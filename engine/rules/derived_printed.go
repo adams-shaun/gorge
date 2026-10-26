@@ -431,7 +431,7 @@ func (e *Engine) printedPT(o *state.Object, f *cards.Face, active []ContinuousEf
 	power, toughness = printedPTBase(o, f)
 	power, toughness = power+dp, toughness+dt
 	if printedCharsVerify {
-		if want := e.derivedCompute(o.ID, 0); want.Power != power || want.Toughness != toughness {
+		if want := e.derivedComputeFresh(o.ID, 0); want.Power != power || want.Toughness != toughness {
 			msg := fmt.Sprintf("rules: printed P/T for obj %d: fast %d/%d, full %d/%d", o.ID, power, toughness, want.Power, want.Toughness)
 			fmt.Fprintln(os.Stderr, msg)
 			panic(msg)
@@ -441,7 +441,7 @@ func (e *Engine) printedPT(o *state.Object, f *cards.Face, active []ContinuousEf
 }
 
 func (e *Engine) verifyPrintedChars(id state.ObjID, power, toughness int32, got []string, name string) {
-	want := e.derivedCompute(id, 0)
+	want := e.derivedComputeFresh(id, 0)
 	if want.Power != power || want.Toughness != toughness || !slices.Equal(want.Keywords, got) || want.Keywords == nil ||
 		(name != "" && want.Name != name) {
 		msg := fmt.Sprintf("rules: printed characteristics for obj %d: fast %d/%d %q %q, full %d/%d %q %q",

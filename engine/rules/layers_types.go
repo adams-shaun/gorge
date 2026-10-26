@@ -2,7 +2,9 @@ package rules
 
 import (
 	"fmt"
+	"strings"
 	"sync/atomic"
+	"unsafe"
 
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/chars"
@@ -101,8 +103,13 @@ func (e *Engine) matchesWithCharsPT(ce *ContinuousEffect, id state.ObjID, types,
 	// of thousands of goblin tokens was the measured case (seed
 	// 6181111140895991800). This is a pure early-out -- identical result -- and
 	// it lives on the one seam every layer's match shares, so a layer-6/7
-	// self-only effect is covered too.
-	if ce.Affects == "Card.Self" && id != ce.Source {
+	// self-only effect is covered too. It covers every spec each of whose
+	// comma alternatives carries a Self conjunct (affectsSelfBound), not
+	// just the bare Card.Self: the station spacecraft's normalised
+	// `AffectedDefined$ Self | Affected$ Card.counters_GE<N>_CHARGE`
+	// (Card.Self+counters_GE<N>_CHARGE) was matched in full against every
+	// object of every layer walk (four-yay TestStationLockstep).
+	if id != ce.Source && affectsSelfBound(ce.Affects) {
 		if layer4PrecheckVerify {
 			selfRejectVerify.Add(1)
 			// Recompute through the full match and confirm the early-out
@@ -116,6 +123,39 @@ func (e *Engine) matchesWithCharsPT(ce *ContinuousEffect, id state.ObjID, types,
 	}
 	return e.matchesWithCharsPTSlow(ce, id, types, keywords, atStack, power, toughness, basePower, baseToughness, hasPT)
 }
+
+// affectsSelfBound reports whether an Affected$ spec can match only the
+// effect's own source: every comma alternative carries a Self conjunct, the
+// effects filter's o.ID == src predicate (affectsReach == reachSelf, whose
+// plain-grammar whitelist rejects negation and anything it cannot split).
+// It runs on every layer-walk match, so the bare Card.Self is answered
+// without a lookup and every other spec through selfBoundMemo, direct-mapped
+// by the spec text's address: a hit requires the same address and length,
+// which for an immutable Go string is the same text, so the classification
+// (a pure function of the text) is exact. Entries are immutable and
+// published atomically, shared across engines like specLocalMemo.
+func affectsSelfBound(spec string) bool {
+	if spec == "Card.Self" {
+		return true
+	}
+	if spec == "" {
+		return false
+	}
+	p := unsafe.StringData(spec)
+	h := uint64(uintptr(unsafe.Pointer(p))) * 0x9e3779b97f4a7c15
+	slot := &selfBoundMemo[h>>(64-selfBoundMemoBits)]
+	if en := slot.Load(); en != nil && unsafe.StringData(en.spec) == p && len(en.spec) == len(spec) {
+		return en.ok
+	}
+	ok := strings.Contains(spec, "Self") && affectsReach(spec) == reachSelf
+	slot.Store(&specLocalEntry{spec: spec, ok: ok})
+	return ok
+}
+
+const selfBoundMemoBits = 10
+
+// selfBoundMemo caches affectsSelfBound's classification per spec string.
+var selfBoundMemo [1 << selfBoundMemoBits]atomic.Pointer[specLocalEntry]
 
 // selfRejectVerify counts the Card.Self early rejections the shortcut made
 // under verify mode; a test asserts it advances so the shortcut cannot be

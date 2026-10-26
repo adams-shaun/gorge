@@ -758,6 +758,7 @@ func isolatePreviewMemos(p *Engine) {
 	p.activeBufAlt, p.activeSrc = nil, nil
 	p.typesTouch, p.typesAct, p.derivedTouched, p.boardScanBuf = nil, nil, nil, nil
 	p.derivedMemo, p.derivedMemoStack = derivedMemoTable{}, derivedMemoTable{}
+	p.typesMemo = typesMemoTable{}
 	p.lossMemo, p.manaGate = abilityLossMemo{}, manaGateMemo{}
 }
 

@@ -49,6 +49,7 @@ func cloneSpareFields(c *Engine, sp *Spare) {
 	c.typesProbe = sp.probe[:0]
 	c.derivedMemo = sp.memo
 	c.derivedMemoStack = sp.memoStack
+	c.typesMemo = sp.typesMemo
 	c.legalOptBuf = sp.legalOpts
 	c.manaAbBuf = sp.manaAb
 	c.lossMemo = sp.lossMemo
@@ -1225,6 +1226,8 @@ type sparePools struct {
 	memo derivedMemoTable
 	// memoStack recycles Engine.derivedMemoStack.
 	memoStack derivedMemoTable
+	// typesMemo recycles Engine.typesMemo.
+	typesMemo typesMemoTable
 	// legalOpts recycles Engine.legalOptBuf.
 	legalOpts []decision.Option
 	// manaAb recycles Engine.manaAbBuf.
@@ -1254,6 +1257,7 @@ func releasePools(e *Engine, sp *Spare) {
 	sp.probe, e.typesProbe = e.typesProbe[:0], nil
 	sp.memo, e.derivedMemo = e.derivedMemo.release(), derivedMemoTable{}
 	sp.memoStack, e.derivedMemoStack = e.derivedMemoStack.release(), derivedMemoTable{}
+	sp.typesMemo, e.typesMemo = e.typesMemo.release(), typesMemoTable{}
 	sp.legalOpts, e.legalOptBuf = e.legalOptBuf[:0], nil
 	sp.manaAb, e.manaAbBuf = e.manaAbBuf[:0], nil
 	sp.lossMemo, e.lossMemo = e.lossMemo.recycled(), abilityLossMemo{}

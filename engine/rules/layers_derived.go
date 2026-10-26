@@ -156,6 +156,19 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 // derivedmemo.go's walk-scoped memo calls it on a miss (and on every hit in
 // verify mode) and copies the result into owned storage.
 func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
+	// The layer-4 half is served by the derived-types memo (types_memo.go)
+	// when it applies; the rest of the walk runs as before.
+	if atStack == 0 {
+		if l4, ok := e.layer4Top(id); ok {
+			return chars.ComputeWith(asChars(e), &e.charsWalk, id, 0, &l4)
+		}
+	}
+	return e.derivedComputeFresh(id, atStack)
+}
+
+// derivedComputeFresh is derivedCompute with no memo at all: the reference
+// every verify mode compares a served answer against.
+func (e *Engine) derivedComputeFresh(id state.ObjID, atStack state.Zone) Derived {
 	return chars.Compute(asChars(e), &e.charsWalk, id, atStack)
 }
 
@@ -169,7 +182,7 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 func (e *Engine) derivedName(id state.ObjID) (string, bool) {
 	name, nameSet := chars.Name(asChars(e), &e.charsWalk, id)
 	if derivedMemoVerify {
-		if want := e.derivedCompute(id, 0); want.Name != name || want.NameSet != nameSet {
+		if want := e.derivedComputeFresh(id, 0); want.Name != name || want.NameSet != nameSet {
 			panic(fmt.Sprintf("rules: derivedName(%d) = %q (set %v), full walk %q (set %v)", id, name, nameSet, want.Name, want.NameSet))
 		}
 	}
@@ -302,13 +315,17 @@ func (e *Engine) derivedTypesOf(id state.ObjID) []string {
 	var ty []string
 	if d := e.derivedMemoPeek(id); d != nil {
 		ty = d.Types
+	} else if l4, ok := e.layer4Top(id); ok {
+		// The derived-types memo (types_memo.go) answers an unchanged
+		// object at an unchanged board without re-walking layer 4.
+		ty = l4.Types
 	} else {
 		e.charsWalk.Depth++
 		ty = e.typeCharacteristics(id, 0)
 		e.charsWalk.Depth--
 	}
 	if derivedMemoVerify {
-		if want := e.derivedCompute(id, 0).Types; !slices.Equal(ty, want) {
+		if want := e.derivedComputeFresh(id, 0).Types; !slices.Equal(ty, want) {
 			panic(fmt.Sprintf("rules: derivedTypesOf(%d) = %v, full walk %v", id, ty, want))
 		}
 	}
