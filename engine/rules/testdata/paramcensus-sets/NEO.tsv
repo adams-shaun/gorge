@@ -1,10 +1,4 @@
 Eater of Virtue	param:stat:Continuous.SharedKeywordsZone,param:stat:Continuous.SharedRestrictions
-Explosive Singularity	cost:tapXType
 Intercessor's Arrest	param:stat:CantAttack.ValidSA,param:stat:CantBlock.ValidSA
-March of Burgeoning Life	cost:ExileFromHand
-March of Otherworldly Light	cost:ExileFromHand
-March of Reckless Joy	cost:ExileFromHand
-March of Swirling Mist	cost:ExileFromHand
-March of Wretched Sorrow	cost:ExileFromHand
 Reckoner Shakedown	param:api:ChooseCard.ChoiceDesc,param:api:ChooseCard.FromDesc
 The Dragon-Kami Reborn	param:api:Dig.ExileWithCounters
