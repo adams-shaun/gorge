@@ -455,6 +455,12 @@ type Game struct {
 	// their next one. Folded from the same event, keyed by g.Turn at grant
 	// time, so no new event field carries it.
 	ControlArmedTurn map[PlayerID]int32
+	// ControlCombatOnly marks a controlled player whose grant lasts only
+	// their next combat phase (`Combat$ True`, Secret of Bloodbending): it is
+	// live from that turn's beginning of combat through its end of combat
+	// (LiveController), and the engine expires it as that end-of-combat step
+	// ends. Folded from the +1's Counter "combat"; cleared by the -1.
+	ControlCombatOnly map[PlayerID]bool
 	// NextID hands out object ids one at a time, starting at 1 (see NewGame)
 	// and incrementing by exactly one per AddObject call below -- it can
 	// never reach playerRefBit (1<<31, ids.go): a single match would need
@@ -1015,6 +1021,12 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 			c.ControlArmedTurn[p] = t
 		}
 	}
+	if g.ControlCombatOnly != nil {
+		c.ControlCombatOnly = make(map[PlayerID]bool, len(g.ControlCombatOnly))
+		for p, b := range g.ControlCombatOnly {
+			c.ControlCombatOnly[p] = b
+		}
+	}
 	c.ExtraTurnQueue = append([]ExtraTurn(nil), g.ExtraTurnQueue...)
 	c.ExtraPhases = append([]ExtraPhase(nil), g.ExtraPhases...)
 	return &c
@@ -1067,10 +1079,15 @@ func (g *Game) IsInitiative(p PlayerID) bool { return g.HasInitiative && g.Initi
 // (controlPlayerRedirect) and the view's CR 723.4 widening (controlsSeat, and
 // the host's controlledSeats) all read it, so who answers for subj and who
 // may see subj's hidden information cannot disagree (cr-g57). A self-control
-// entry is never live (CR 723.9).
+// entry is never live (CR 723.9). A combat-only grant (ControlCombatOnly,
+// CR 723.2's limited duration) is further live only from that turn's
+// beginning of combat step through its end of combat step.
 func (g *Game) LiveController(subj PlayerID) (PlayerID, bool) {
 	ctl, ok := g.ControlledBy[subj]
 	if !ok || ctl == subj || g.Active != subj || g.Turn <= g.ControlArmedTurn[subj] {
+		return 0, false
+	}
+	if g.ControlCombatOnly[subj] && (g.Step < StepBeginCombat || g.Step > StepEndCombat) {
 		return 0, false
 	}
 	return ctl, true
