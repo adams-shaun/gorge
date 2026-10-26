@@ -80,6 +80,15 @@ type Board interface {
 	// ActionCause is the stack object whose resolution caused the synchronous
 	// action event being matched (0 when none, e.g. a cost).
 	ActionCause() state.ObjID
+	// InResolution reports whether a stack object's resolution is running, so
+	// ActionCause names the object that caused the event rather than whatever
+	// sits on the stack under a special action (CR 116.2b).
+	InResolution() bool
+	// PayingCostOf is the open cast flow's keyword, for a WhileKeyword$ read:
+	// an activation whose ability carries Keyword$ reports it (isSpell false),
+	// an emerge cast reports "Emerge" (isSpell true). ok is false when no
+	// cast flow is open or it carries neither.
+	PayingCostOf() (kw string, isSpell bool, ok bool)
 	// InFlightCounterAdder is the player causing the counter placement in
 	// flight, and whether that attribution is known at all.
 	InFlightCounterAdder() (state.PlayerID, bool)
@@ -164,6 +173,10 @@ type SpecOpts struct {
 	// A flag, not a zero Zone: ZLibrary is the zero value.
 	InZone bool
 	Zone   state.Zone
+	// TargetsBound binds Targets as the targets the `targetedBy` predicate
+	// reads (the resolving object's own targets).
+	TargetsBound bool
+	Targets      []state.Target
 }
 
 // Activation is an in-flight activation's facts while its cast flow is open:

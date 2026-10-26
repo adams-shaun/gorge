@@ -32,7 +32,15 @@ func turnFaceUpMatches(e Board, t cards.Trigger, source state.ObjID, ev events.E
 	if o == nil {
 		return false
 	}
-	return eventCardAndPlayerMatch(e, t, source, ev.Obj, o.Controller)
+	if !eventCardAndPlayerMatch(e, t, source, ev.Obj, o.Controller) {
+		return false
+	}
+	// ValidCause$ names who or what turned it up (Growing Dread's
+	// "SpellAbility.YouCtrl"): CR 603.2.
+	if v := t.ParamStr(cards.PKValidCause); v != "" && !turnFaceUpCauseAdmits(e, v, source, o) {
+		return false
+	}
+	return true
 }
 
 func init() {

@@ -80,6 +80,9 @@ func (b *trigBoard) MatchesSpec(spec string, id, source state.ObjID, you state.P
 	sc := e.specCtx(source, you)
 	sc.DelayedRemembered, sc.ExtraTypes, sc.Layers.StaticGoads = o.DelayedRemembered, o.ExtraTypes, o.StaticGoads
 	sc.ExtraTypesOwner = id
+	if o.TargetsBound {
+		sc.Resolving, sc.ResolutionTargets = true, o.Targets
+	}
 	// A zone-scoped candidate reads a bare Permanent base as a permanent
 	// card; any other spec keeps the derived-bound ordinary match.
 	if o.InZone && effects.SpecMentionsPermanent(spec) {
@@ -109,6 +112,30 @@ func (b *trigBoard) CastProvenanceAdmits(spec string, objID state.ObjID, you sta
 }
 
 func (b *trigBoard) ActionCause() state.ObjID { return b.eng().actionCause() }
+
+func (b *trigBoard) InResolution() bool { return b.resolvingObj != 0 }
+
+// PayingCostOf reads the open cast flow (pendingCast) for the keyword whose
+// cost is being paid: an activated ability's Keyword$ (Craft), or Emerge for
+// an emerge cast (CR 702.118a).
+func (b *trigBoard) PayingCostOf() (kw string, isSpell bool, ok bool) {
+	pc := b.cast
+	if pc == nil {
+		return "", false, false
+	}
+	if pc.isAbility() {
+		if sa := b.eng().pcAbility(pc); sa != nil {
+			if kw := sa.ParamStr(cards.PKKeyword); kw != "" {
+				return kw, false, true
+			}
+		}
+		return "", false, false
+	}
+	if pc.emerge {
+		return "Emerge", true, true
+	}
+	return "", false, false
+}
 
 func (b *trigBoard) InFlightCounterAdder() (state.PlayerID, bool) {
 	return b.eng().inFlightCounterAdder()
