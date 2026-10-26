@@ -589,6 +589,31 @@ func CantPlayLandParamsReadable(params map[string]string) bool {
 	return ok && strings.EqualFold(strings.TrimSpace(origin), "Hand")
 }
 
+// cantBeCastParamsReadableKeys is the parameter whitelist an Effect-delivered
+// CantBeCast body must pass before effEffect registers it and rules'
+// castRestrictionSources reads it beside the printed S: route (the
+// playLandForbidden precedent): the mode, the object spec (ValidCard$), the
+// actor scope (Caster$), the origin-zone gate (Origin$), the per-turn count
+// cap (NumLimitEachTurn$) and the gate family the shared continuous gate
+// evaluates for this consumer (AffectedZone$, Phases$, Condition$, ClassBand$,
+// IsPresent$, PresentCompare$, PresentZone$, CheckSVar$, SVarCompare$), plus
+// display text. A body carrying any other parameter names a scoping this
+// build does not evaluate; registering it blanket would over-restrict, so it
+// is reported unimplemented instead (the permissive direction for a
+// restriction, and the ONE whitelist both registration and consultation run,
+// so the two paths cannot disagree about what is readable).
+var cantBeCastParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "Caster", "Origin", "NumLimitEachTurn", "AffectedZone", "Phases", "Condition", "ClassBand", "IsPresent", "PresentCompare", "PresentZone", "CheckSVar", "SVarCompare", "Description")
+
+// CantBeCastParamsReadable is that whitelist's read.
+func CantBeCastParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantBeCastParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 // UnspentManaParamsReadable is the parameter whitelist an UnspentMana static
 // must pass before this build enforces it -- used BOTH by the face-static
 // reader (engine/rules/statics.go's unspentManaKeep activeStatics walk) and by

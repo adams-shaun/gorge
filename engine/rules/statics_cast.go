@@ -225,6 +225,14 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, id) {
 			continue
 		}
+		// Origin$ (Kunoros, Grafdigger's Cage, Memory Vessel's NoCast): the
+		// zone the cast begins from, which at offer time is the restricted
+		// object's CURRENT zone (every cast evaluation site's pending origin;
+		// the CR 601.2e recheck reads pc.from instead, because the card is on
+		// the stack by then). A zone the restriction does not name skips it.
+		if o := e.G.Obj(id); o != nil && !castOriginGateHolds(sv, o.Zone) {
+			continue
+		}
 		spec := castValidCardSpec(sv)
 		countSpec := spec
 		// The origin-zone cast-provenance split (task wascastfrom): a
@@ -244,12 +252,12 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 				spec = s
 			}
 		}
-		sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
+		sc := e.spellSpecCtx(e.castStaticSpecCtx(sv), id)
 		if asPrototype {
 			sc = e.prototypeSpellSpecCtx(sc, id)
 		}
 		if e.matchesSpec(spec, id, sc) &&
-			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv)) }) {
+			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.castStaticSpecCtx(sv)) }) {
 			if printed {
 				printed = false
 				cost = Cost{}
@@ -416,13 +424,14 @@ func (e *Engine) legendarySpellLocked(p state.PlayerID, id state.ObjID) bool {
 }
 
 // castValidCardSpec is a CantBeCast static's ValidCard$ with an absent one
-// read as "Card" (Fires of Invention carries none: every spell). A static
-// naming an Origin$ instead (Grafdigger's Cage's "from graveyards") keeps
-// its empty spec, so the default never turns an origin restriction into a
-// blanket one.
+// read as "Card" (Fires of Invention carries none: every spell). An Origin$
+// static without a ValidCard$ (Kunoros, Grafdigger's Cage's "from graveyards")
+// takes the same default now that castOriginGateHolds enforces the origin
+// against the cast's actual start zone -- the default can no longer turn an
+// origin restriction into a blanket one.
 func castValidCardSpec(sv staticView) string {
 	spec := strings.TrimSpace(sv.ParamStr(cards.PKValidCard))
-	if spec == "" && !sv.HasParam(cards.PKOrigin) {
+	if spec == "" {
 		return "Card"
 	}
 	return spec
@@ -461,6 +470,15 @@ func castLimitBinds(log []events.Event, sv staticView, p state.PlayerID, candida
 // hand/library/stack source is live). Without the self-merge a hand-zone
 // lockout is invisible: activeStatics walks the battlefield only, and a
 // battlefield-only restriction can never reach the card it restricts.
+//
+// It also appends one view per LIVE registered continuous effect whose
+// Restriction is CantBeCast and whose parameters pass
+// effects.CantBeCastParamsReadable (the playLandForbidden precedent: one
+// whitelist shared by effEffect's registration gate and this consultation, so
+// the two paths cannot disagree about what is readable). This is the route
+// Bilbo's Gambit's `DB$ Effect | StaticAbilities$ STCantBeCast` reaches the
+// cast gate through; a printed-static-only board appends nothing and pays
+// only the active() walk.
 func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []staticView {
 	out := statics
 	o := e.G.Obj(id)
@@ -473,7 +491,39 @@ func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []
 		}
 		out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params, PS: st.ParamSetOf()})
 	}
+	// Index, not range-copy: the views below borrow the effect's slices, so
+	// the loop must not dance over a range copy that escapes. A board with no
+	// registered CantBeCast effect (every ordinary cast) appends nothing.
+	active := e.active()
+	for i := range active {
+		ce := &active[i]
+		if cards.StaticModeOf(ce.Restriction) != cards.StaticCantBeCast || !effects.CantBeCastParamsReadable(ce.RestrictParams) {
+			continue
+		}
+		out = append(out, staticView{
+			Source: ce.Source, Controller: ce.Controller,
+			Params: ce.RestrictParams, SVars: ce.RestrictSVars,
+			Remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
+			effectDelivered: true,
+		})
+	}
 	return out
+}
+
+// castOriginGateHolds evaluates a CantBeCast restriction's Origin$: the zone
+// the cast may BEGIN from (Forge reads card.getCastFrom(); CR 601.2e's
+// recheck reads the pending cast's origin, because the card is on the stack
+// by then). No Origin$ always holds; a list naming no zone the cast could
+// start from -- or an unparseable one -- withholds the restriction, the
+// fail-closed direction for an unevaluable term. Grafdigger's Cage's
+// "from graveyards" and Memory Vessel's Origin$ Hand are the corpus shapes.
+func castOriginGateHolds(sv staticView, from state.Zone) bool {
+	origin, ok := sv.Param(cards.PKOrigin)
+	if !ok {
+		return true
+	}
+	zones := effects.ZoneListOf(origin)
+	return zones.OK() && zones.Admits(from)
 }
 
 // restrictionGateHolds evaluates the non-matching gates one CantBeCast /

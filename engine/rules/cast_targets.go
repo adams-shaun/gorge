@@ -1548,7 +1548,14 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 				if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) {
 					continue
 				}
-				sc := e.specCtx(sv.Source, sv.Controller)
+				// Origin$ reads the cast's announced ORIGIN (pc.from): the card
+				// is on the stack by now, so its current zone is the stack, and
+				// Forge's applyCantBeCastAbility reads card.getCastFrom() -- the
+				// same read the offer made against the current zone.
+				if !castOriginGateHolds(sv, pc.from) {
+					continue
+				}
+				sc := e.castStaticSpecCtx(sv)
 				if asPrototype {
 					sc = e.prototypeSpellSpecCtx(sc, pc.card)
 				} else {

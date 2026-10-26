@@ -1002,7 +1002,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case cards.StaticCantTarget, cards.StaticCantRegenerate, cards.StaticCantPreventDamage, cards.StaticCantAttack, cards.StaticCantSacrifice, cards.StaticCantExile, cards.StaticCantPutCounter, cards.StaticCantBlockBy, cards.StaticCanAttackDefender, cards.StaticUnspentMana, cards.StaticCantBlockUnless, cards.StaticCantAttackUnless, cards.StaticMustBlock, cards.StaticNumLoyaltyAct, cards.StaticCantGainLife, cards.StaticCantPlayLand, cards.StaticCastWithFlash, cards.StaticCantChangeLife:
+		case cards.StaticCantTarget, cards.StaticCantRegenerate, cards.StaticCantPreventDamage, cards.StaticCantAttack, cards.StaticCantSacrifice, cards.StaticCantExile, cards.StaticCantPutCounter, cards.StaticCantBlockBy, cards.StaticCanAttackDefender, cards.StaticUnspentMana, cards.StaticCantBlockUnless, cards.StaticCantAttackUnless, cards.StaticMustBlock, cards.StaticNumLoyaltyAct, cards.StaticCantGainLife, cards.StaticCantPlayLand, cards.StaticCastWithFlash, cards.StaticCantChangeLife, cards.StaticCantBeCast:
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (engine/rules/layers.go restrictionApplies consults the
@@ -1032,6 +1032,24 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// triggered one. The wide cause-aware whitelist is reserved for the
 				// rules-side face-static walk (engine/rules/layers.go exileBlocked), exactly
 				// as CantSacrificeRestrictionParamsReadable is for CantSacrifice.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantBeCast" && !CantBeCastParamsReadable(params) {
+				// An Effect-delivered CantBeCast body (Bilbo's Gambit's
+				// "players can't cast spells this turn", Avatar's Wrath's
+				// "from anywhere other than their hands", Memory Vessel's
+				// "from their hand") registers as a continuous restriction
+				// rules' castRestrictionSources reads beside the printed S:
+				// route, exactly as CantPlayLand registers for
+				// playLandForbidden. A body carrying a scoping term the cast
+				// gate does not evaluate must not register blanket -- it
+				// reports unimplemented instead (the permissive direction for
+				// a restriction; the whitelist is CantBeCastParamsReadable,
+				// shared with the rules-side read so the two paths cannot
+				// disagree about what is readable).
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -1174,7 +1192,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ExileOnMoved:  exileOn,
 				ForgetCounter: forgetCounter,
 			}
-			if mode == "CantAttack" || mode == "CantSacrifice" || mode == "CantBlockBy" || mode == "CantGainLife" {
+			if mode == "CantAttack" || mode == "CantSacrifice" || mode == "CantBlockBy" || mode == "CantGainLife" || mode == "CantBeCast" {
 				// The player half of the remembered capture: Call for Aid's
 				// RememberObjects$ TargetedPlayer must reach the registered
 				// CantAttack, whose Target$ Player.IsRemembered ("you can't
@@ -1195,6 +1213,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// RememberDamaged$ read) and its ValidPlayer$ Player.IsRemembered
 				// resolve against the same set at consultation time
 				// (engine/rules/replacement_life.go lifeGainForbidden).
+				//
+				// CantBeCast joins for the Orim's Chant family: its
+				// RememberObjects$ TargetedPlayer (the player the Chant
+				// targeted) feeds the registered restriction's
+				// Caster$ Player.IsRemembered through the same
+				// RestrictionPlayerSpecMatches read the other four modes run
+				// (engine/rules/statics.go actorMatches, on the
+				// effect-delivered view castRestrictionSources builds).
 				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
 			}
 			if mode == "CantGainLife" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent") {
