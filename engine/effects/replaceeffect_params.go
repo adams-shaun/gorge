@@ -100,7 +100,7 @@ var replaceEffectKnownKeys = [...]string{
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards", "DefinedTarget", "Description", "Exclude",
-	"Exhaust", "ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards", "ImprintPlayed",
+	"Exhaust", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "Image", "ImprintCards", "ImprintPlayed",
 	"InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword",
 	"KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost",
 	"Monstrosity", "NewController", "NonBasicSpell", "OpponentTurn",
