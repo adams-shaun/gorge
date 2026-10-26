@@ -1,10 +1,12 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects/params"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -499,14 +501,14 @@ func excessConditionHolds(h Host, c *Ctx, cond string, o *state.Object) bool {
 // turn, exile it instead") reuses the shared registerReplaceDying helper over
 // every creature that fought.
 func effFight(h Host, c *Ctx, sa *cards.SA) {
-	// Unread flags stay loud, never silent: TargetsWithoutSameCreatureType$
-	// (Rivals' Duel -- the pairwise share-no-types legality is not expressible
-	// in the per-candidate census, so the plain 2-target ask stands in), and
-	// ExcessSVar$/ExcessSVarCondition$ (rhinos_rampage, the_last_agni_kai --
-	// "excess damage becomes X").
+	// TargetsWithoutSameCreatureType$ (Rivals' Duel -- the pairwise
+	// share-no-types legality is not expressible in the per-candidate census,
+	// so the plain 2-target ask stands in) stays loud. ExcessSVar$ /
+	// ExcessSVarCondition$ (rhinos_rampage, the_last_agni_kai -- "excess
+	// damage becomes X") is a real binding below.
 	fightUnreadNote(h, c, sa, "TargetsWithoutSameCreatureType")
-	fightUnreadNote(h, c, sa, "ExcessSVar")
-	fightUnreadNote(h, c, sa, "ExcessSVarCondition")
+	excessName := params.ExcessSVarParam(sa)
+	excessCond := params.ExcessSVarConditionParam(sa)
 	pairs := fightPairs(h, c, sa)
 	hits := make([]fightHit, 0, 2*len(pairs))
 	for _, p := range pairs {
@@ -517,11 +519,37 @@ func effFight(h Host, c *Ctx, sa *cards.SA) {
 		hits = append(hits, fightHit{src: p[0], dst: p[1], amount: h.Power(p[0])},
 			fightHit{src: p[1], dst: p[0], amount: h.Power(p[1])})
 	}
+	// CR 120.10: capture each damaged permanent's lethal amount BEFORE any
+	// hit lands -- marked damage counts toward lethality, so reading after
+	// the exchange would double-count it. The condition is evaluated on the
+	// same pre-hit object, the DealDamage binding's contract.
+	lethals := make([]int32, len(hits))
+	binds := make([]bool, len(hits))
+	if excessName != "" {
+		for i, x := range hits {
+			o := h.Game().Obj(x.dst)
+			if o == nil {
+				continue
+			}
+			lethal, ok := excessLethal(h, o)
+			if !ok || !excessConditionHolds(h, c, excessCond, o) {
+				continue
+			}
+			lethals[i], binds[i] = lethal, true
+		}
+	}
 	h.BeginDamageBatch()
 	var dying []state.Target
 	defer func() { registerReplaceDying(h, c, replaceDyingParam(sa), dying) }()
-	for _, x := range hits {
-		emitFightHit(h, x.src, x.dst, x.amount)
+	for i, x := range hits {
+		dealt := emitFightHit(h, x.src, x.dst, x.amount)
+		if binds[i] {
+			excess := dealt - lethals[i]
+			if excess < 0 {
+				excess = 0
+			}
+			publishSVar(c, excessName, strconv.Itoa(int(excess)))
+		}
 	}
 	for _, p := range pairs {
 		dying = append(dying, state.Target{Obj: p[0]})
@@ -658,11 +686,12 @@ func fightUnreadNote(h Host, c *Ctx, sa *cards.SA, key string) {
 // SetDamageSource toggled around the emission so rules' protection check and
 // DamageDone triggers read the creature, then restored (one batch spans two
 // sources).
-func emitFightHit(h Host, src, dst state.ObjID, amount int32) {
+func emitFightHit(h Host, src, dst state.ObjID, amount int32) int32 {
 	rider := fightRider(h, src, amount)
 	prev := h.SetDamageSource(rider.source)
-	emitObjectDamage(rider, dst)
+	dealt := emitObjectDamage(rider, dst)
 	h.SetDamageSource(prev)
+	return dealt
 }
 
 // fightRider builds the per-fighter damage rider: source is the fighter

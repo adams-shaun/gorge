@@ -330,6 +330,12 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 		ev := moveZoneEvent(c, id, z, to)
 		applyMoveFaceDown(h, c, &cza.Riders.FaceDownRiders, &ev, to)
+		// WithCountersType$ folds into the entry event so the permanent
+		// ENTERS with its counters (CR 122.6) and its enters triggers see
+		// them -- Dig's WithCounters$ fold, ChangeZone's entry-counter path.
+		if cza.WithCountersType != "" {
+			entryWithCounters(&ev, to, cza.WithCountersType, numText(h, c, cza.WithCountersAmount, 1))
+		}
 		emitEntryMove(h, c, cza.Riders.GainControl, to, ev)
 		moved = append(moved, id)
 		exiledWithAssociation(h, c, id, to)

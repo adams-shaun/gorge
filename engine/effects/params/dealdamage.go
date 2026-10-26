@@ -180,6 +180,18 @@ func DamageSourceParam(sa *cards.SA) string {
 	return strings.TrimSpace(sa.ParamStr(cards.PKDamageSource))
 }
 
+// ExcessSVarParam is ExcessSVar$'s single-key reader (trimmed): DealDamage
+// compiles it, and Fight reads it here for the excess-damage binding.
+func ExcessSVarParam(sa *cards.SA) string {
+	return strings.TrimSpace(sa.ParamStr(cards.PKExcessSVar))
+}
+
+// ExcessSVarConditionParam is ExcessSVarCondition$'s single-key reader
+// (trimmed): DealDamage compiles it, and Fight reads it here.
+func ExcessSVarConditionParam(sa *cards.SA) string {
+	return strings.TrimSpace(sa.ParamStr(cards.PKExcessSVarCondition))
+}
+
 // ReplaceDyingParam is ReplaceDyingDefined$'s one reader (trimmed):
 // DealDamage compiles it, and Fight, DamageAll, EachDamage and DamageResolve
 // read it here for registerReplaceDying.

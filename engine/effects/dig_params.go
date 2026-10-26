@@ -81,6 +81,11 @@ type DigParams struct {
 	// its Num-grammar amount (default 1): a battlefield take enters with them.
 	WithCounters       string
 	WithCountersAmount ParamText
+	// WithDifferentPowers is WithDifferentPowers$ True: the take is a set
+	// whose chosen cards must have pairwise different powers (Rip, Spawn
+	// Hunter). The ask carries decision.SetPropDistinct with one power token
+	// per option; the deterministic take is the greedy first-of-each-power.
+	WithDifferentPowers bool
 
 	// Unread are the parameters present on the ability that no Dig reader
 	// consumes: the resolution Notes them once.
@@ -129,7 +134,7 @@ var digKnownKeys = [...]string{
 	"Type", "Ultimate", "Unearth", "UnlessAI", "UnlessCost", "UnlessPayer",
 	"UnlessResolveSubs", "UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc",
 	"ValidChoices", "ValidCounterType", "ValidDescription", "ValidTgts", "VoteMessage",
-	"WithCounters", "WithCountersAmount", "WithMayLook", "WithTotalCMC", "WithoutManaCost", "XMax", "XMin",
+	"WithCounters", "WithCountersAmount", "WithDifferentPowers", "WithMayLook", "WithTotalCMC", "WithoutManaCost", "XMax", "XMin",
 }
 
 // isDigSA reports whether sa resolves as api:Dig.
@@ -214,6 +219,7 @@ func compileDig(sa *cards.SA) *DigParams {
 	p.Choser = strings.TrimSpace(rawParamText(sa, "Choser").Text)
 	p.WithCounters = strings.TrimSpace(rawParamText(sa, "WithCounters").Text)
 	p.WithCountersAmount = rawParamText(sa, "WithCountersAmount")
+	p.WithDifferentPowers = isTrue(rawParamText(sa, "WithDifferentPowers").Text)
 	p.Unread = unreadKeys(sa, digKnownKeys[:])
 	return p
 }

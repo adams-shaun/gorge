@@ -472,6 +472,7 @@ const (
 	PKResultSubAbilities
 	PKRevealAllValid
 	PKRevealDefined
+	PKRevealNumber
 	PKRevealOptional
 	PKRevealType
 	PKRevealValid
@@ -1305,6 +1306,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKResultSubAbilities:               "ResultSubAbilities",
 	PKRevealAllValid:                   "RevealAllValid",
 	PKRevealDefined:                    "RevealDefined",
+	PKRevealNumber:                     "RevealNumber",
 	PKRevealOptional:                   "RevealOptional",
 	PKRevealType:                       "RevealType",
 	PKRevealValid:                      "RevealValid",

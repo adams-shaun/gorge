@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -488,6 +489,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// what decides whether a choice exists (below).
 		greedy := make([]state.ObjID, 0, len(budgetEligible))
 		running := 0
+		var powers []string
 		for _, id := range budgetEligible {
 			if int32(len(greedy)) >= changeNum {
 				break
@@ -495,6 +497,16 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			mv := manaValueOf(g, id)
 			if hasBudget && running+mv > int(budget) {
 				continue
+			}
+			if dp.WithDifferentPowers {
+				// WithDifferentPowers$ True: the forced take is the greedy
+				// first card of each distinct power in window order, the same
+				// set the R-9 host would pick.
+				pow := strconv.Itoa(chooseCardPower(h, id))
+				if slices.Contains(powers, pow) {
+					continue
+				}
+				powers = append(powers, pow)
 			}
 			running += mv
 			greedy = append(greedy, id)
@@ -570,6 +582,11 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				ResumeTarget: targetIndex,
 				Prompt:       prompt,
 			}
+			if dp.WithDifferentPowers {
+				// WithDifferentPowers$ True: Validate enforces pairwise
+				// different powers from one power token per option.
+				d.SetPropMode = decision.SetPropDistinct
+			}
 			for _, id := range budgetEligible {
 				name := "a card"
 				if !noLooking || revealWin {
@@ -591,6 +608,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				// byte-identically.
 				if hasBudget {
 					opt.Value = manaValueOf(g, id)
+				}
+				if dp.WithDifferentPowers {
+					opt.SetProps = []string{strconv.Itoa(chooseCardPower(h, id))}
 				}
 				d.Options = append(d.Options, opt)
 			}

@@ -57,6 +57,10 @@ type RepeatEachParams struct {
 	// the scan's Zone$ set (the battlefield when Zone$ is blank).
 	Cards string
 	Zones ZoneMask
+	// StartingWith is StartingWith$: "You" rotates a player-subject loop to
+	// begin at the resolving controller (CR 101.4's APNAP order is Forge's
+	// default; this names a different starting player).
+	StartingWith string
 	// ChooseOrder is ChooseOrder$: True orders the card subjects by the
 	// controller, any other non-empty value names the chooser.
 	ChooseOrder string
@@ -101,7 +105,7 @@ var repeatEachKnownKeys = [...]string{
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
 	"ReplaceType", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
 	"ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
-	"SubAbility", "TargetMax", "TargetMin", "TargetType", "TargetUnique",
+	"StartingWith", "SubAbility", "TargetMax", "TargetMin", "TargetType", "TargetUnique",
 	"TargetValidTargeting", "TargetingPlayer", "TargetingPlayerControls",
 	"TargetsAtRandom", "TargetsForEachPlayer", "TargetsWithControllerProperty",
 	"TargetsWithDefinedController", "TargetsWithDifferentCMC",
@@ -185,6 +189,7 @@ func compileRepeatEach(sa *cards.SA, dr *DefinedParams) *RepeatEachParams {
 			}
 		}
 	}
+	p.StartingWith = strings.TrimSpace(sa.ParamStr(cards.PKStartingWith))
 	p.ChooseOrder = strings.TrimSpace(sa.ParamStr(cards.PKChooseOrder))
 	p.TypesFrom = strings.TrimSpace(sa.ParamStr(cards.PKRepeatTypesFrom))
 	p.Unread = unreadKeys(sa, repeatEachKnownKeys[:])

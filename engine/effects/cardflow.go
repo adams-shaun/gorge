@@ -446,6 +446,18 @@ func discardEligible(g *state.Game, c *Ctx, hand []state.ObjID, valid string) []
 	return out
 }
 
+// revealPool filters an answered RevealNumber$ pick to cards that still sit
+// in the eligible hand, preserving the player's answer order.
+func revealPool(eligible, ans []state.ObjID) []state.ObjID {
+	out := make([]state.ObjID, 0, len(ans))
+	for _, id := range ans {
+		if slices.Contains(eligible, id) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
 func discardChooser(c *Ctx, mode string) state.PlayerID {
 	if mode == "RevealTgtChoose" {
 		for _, t := range c.Targets {
@@ -514,8 +526,48 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			if len(eligible) == 0 {
 				continue
 			}
-			askMin, askMax := discardBounds(h, c, sa, len(eligible))
-			d := discardAsk(g, c, sa, eligible, chooser, askMin, askMax, targetIndex)
+			// RevealNumber$ (Klaw, Sonic Subjugator): the TARGET reveals
+			// exactly N cards from their hand, and the chooser picks only
+			// among those N (CR 701.9b, CR 701.20a). N at or above the hand
+			// leaves today's whole-hand offer unchanged.
+			pool := eligible
+			if raw, present := sa.Param(cards.PKRevealNumber); present && strings.TrimSpace(raw) != "" {
+				n := int(Num(h, c, sa, "RevealNumber", 0))
+				if n <= 0 {
+					continue
+				}
+				if n < len(eligible) {
+					revealed := eligible[:n]
+					d := &decision.Decision{Player: p, Kind: decision.KChoose,
+						Min: n, Max: n, Source: c.Source,
+						ResumeKind: "discard_reveal", ResumeSA: sa, ResumeTarget: targetIndex,
+						Prompt: "Reveal " + strconv.Itoa(n) + " card(s) from your hand"}
+					for _, id := range eligible {
+						name := "a card"
+						if o := g.Obj(id); o != nil && o.Face() != nil {
+							name = o.Face().Name
+						}
+						d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+							Kind: "reveal", Label: "Reveal " + name, Obj: id, Player: p})
+					}
+					if ans, ok := AskTape(h, d); ok {
+						revealed = revealPool(eligible, answerObjs(ans))
+					} else {
+						// Fuzz/no-engine host: the first N eligible cards in
+						// hand order (R-9), still publicly revealed.
+						h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+							Text: "reveals its first " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
+					}
+					pool = revealed
+					picked := make([]state.Target, 0, len(pool))
+					for _, id := range pool {
+						picked = append(picked, state.Target{Obj: id})
+					}
+					emitChosenReveal(h, p, picked)
+				}
+			}
+			askMin, askMax := discardBounds(h, c, sa, len(pool))
+			d := discardAsk(g, c, sa, pool, chooser, askMin, askMax, targetIndex)
 			if ans, ok := AskTape(h, d); ok {
 				// Answered in place: discard exactly the chosen cards that
 				// still sit in this target's hand.
@@ -529,7 +581,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
 			for i := 0; i < askMax; i++ {
-				discardAndRemember(h, c, riders, eligible[i], p)
+				discardAndRemember(h, c, riders, pool[i], p)
 			}
 		}
 		return
