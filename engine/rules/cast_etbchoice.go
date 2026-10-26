@@ -165,9 +165,6 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 			// a second filter (effects.NameChoices reads it only as a safety
 			// fallback when ValidCards$ is absent).
 			selector := r.With.ParamStr(cards.PKValidDescription)
-			if kind == "copy" {
-				selector = effects.CloneOf(r.With).ChoicesRaw
-			}
 			var opts []decision.Option
 			if kind == "type" {
 				// The type ask is category-aware (task ct1): a Type$ Basic Land
@@ -181,7 +178,7 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 				opts = effects.ETBNumberChoices(e, o.ID, you, o.Face().SVars, r.With)
 			} else if kind == "copy" {
 				cp := effects.CloneOf(r.With)
-				opts = e.etbCloneOptions(you, o.ID, cp.ChoicesRaw, cp.ChoiceZoneKind)
+				opts = etbCloneOptions(e.G, you, o.ID, cp.ChoicesRaw, cp.ChoiceZoneKind)
 			} else {
 				opts = e.etbOptions(you, o.ID, kind,
 					r.With.ParamStr(cards.PKValidCards), selector,
@@ -228,17 +225,17 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 // Choices$ selector admits, across every living player (CR 707.2: Echoing
 // Deeps and Superior Spider-Man copy a card in "a graveyard", not only their
 // controller's). Option order is seat order, then the zone's own order.
-func (e *Engine) etbCloneOptions(you state.PlayerID, card state.ObjID, choices string, zone state.Zone) []decision.Option {
+func etbCloneOptions(g *state.Game, you state.PlayerID, card state.ObjID, choices string, zone state.Zone) []decision.Option {
 	spec := strings.TrimSpace(choices)
 	if spec == "" {
 		spec = "Creature.Other"
 	}
 	sc := effects.NewSpecContext(you, card)
 	out := []decision.Option{}
-	for _, p := range e.G.AliveFrom(0) {
-		for _, id := range e.G.Zone(zone, p) {
-			o := e.G.Obj(id)
-			if o != nil && o.Face() != nil && effects.CloneETBSelectorMatches(e.G, spec, id, sc) {
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(zone, p) {
+			o := g.Obj(id)
+			if o != nil && o.Face() != nil && effects.CloneETBSelectorMatches(g, spec, id, sc) {
 				out = append(out, decision.Option{Index: len(out), Kind: "clone", Obj: id, Label: o.Face().Name})
 			}
 		}
@@ -310,7 +307,7 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case etbOptionsCopy:
-		return e.etbCloneOptions(you, card, choices, state.ZBattlefield)
+		return etbCloneOptions(e.G, you, card, choices, state.ZBattlefield)
 	case etbOptionsName:
 		// A no-universe Config is a pre-feature match on replay. Its visible
 		// object builder, including the Card.nonLand default and its full

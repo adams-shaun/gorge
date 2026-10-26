@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -74,8 +75,16 @@ func TestEchoingDeepsPlayedEntersAsGraveyardLandCopyTapped(t *testing.T) {
 			t.Fatal("copy entered untapped; Echoing Deeps enters tapped")
 		}
 		// The copy has the Forest's mana ability.
-		if f := e.G.Obj(id).Face(); f == nil || len(f.Abilities) == 0 {
-			t.Fatal("copy has no abilities; expected the Forest's mana ability")
+		makesG := false
+		if f := e.G.Obj(id).Face(); f != nil {
+			for _, a := range f.Abilities {
+				if cards.IsManaAbilityAPI(a.API) && a.ParamStr(cards.PKProduced) == "G" {
+					makesG = true
+				}
+			}
+		}
+		if !makesG {
+			t.Fatal("copy lacks the Forest's {T}: add {G} mana ability")
 		}
 		if e.G.Obj(findOn(t, e, state.ZGraveyard, 1, "Forest")) == nil {
 			t.Fatal("the copied card left the graveyard")
