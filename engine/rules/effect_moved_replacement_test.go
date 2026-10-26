@@ -151,6 +151,9 @@ func TestEffectReplacementMoveToLibraryBottom(t *testing.T) {
 func TestEffectReplacementMoveToLibraryOtherSpellUnaffected(t *testing.T) {
 	t.Parallel()
 	e, cfg, _, b := emrKyloxEngine(t)
+	if n := emrMovedRepls(e); n != 1 {
+		t.Fatalf("precondition: live Moved registrations = %d, want 1", n)
+	}
 	if z := e.G.Obj(b).Zone; z != state.ZHand {
 		t.Fatalf("precondition: unremembered spell in %s, want hand", z)
 	}
@@ -253,6 +256,9 @@ func TestEffectReplacementEntersTappedLightstall(t *testing.T) {
 func TestEffectReplacementEntersTappedNeedsThePlay(t *testing.T) {
 	t.Parallel()
 	e, cfg, land, _ := emrLightstall(t)
+	if n := emrMovedRepls(e); n != 1 {
+		t.Fatalf("precondition: live Moved registrations = %d, want 1", n)
+	}
 	if z := e.G.Obj(land).Zone; z != state.ZExile {
 		t.Fatalf("precondition: remembered land in %s, want exile", z)
 	}
