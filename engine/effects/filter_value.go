@@ -330,7 +330,7 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		}
 		return isOdd(currentPower()) == wantOdd, true
 	}
-	for _, field := range [...]string{"power", "toughness", "cmc", "basePower", "baseToughness"} {
+	for _, field := range [...]string{"power", "toughness", "cmc", "basePower", "baseToughness", "totalPT"} {
 		// The P/T half of this vocabulary is ptNumericFields, which
 		// SpecReadsPT's dependency test reads through ptNumericField; cmc is
 		// the evaluator's one non-P/T field and is matched here only.
@@ -338,6 +338,13 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			continue
 		}
 		rest := name[len(field):]
+		// Forge spells the total-P/T property with an underscore between the
+		// property and the comparator ("totalPT_LE5"); the other fields are
+		// contiguous. Accept the separator only for totalPT so a stray
+		// underscore on another field stays an unknown shape.
+		if field == "totalPT" {
+			rest = strings.TrimPrefix(rest, "_")
+		}
 		if len(rest) < 3 {
 			return false, false
 		}
@@ -395,6 +402,8 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			have = baseToughnessValue()
 		case numericFieldCmc:
 			have = cmcValue(g, o, sc)
+		case numericFieldTotalPT:
+			have = currentPower() + currentToughness()
 		}
 		return applyCmp(cmp, have, n)
 	}
@@ -590,6 +599,7 @@ const (
 	numericFieldBasePower
 	numericFieldBaseToughness
 	numericFieldCmc
+	numericFieldTotalPT
 )
 
 var numericFieldCodes = state.NewStrCodes(
@@ -598,6 +608,7 @@ var numericFieldCodes = state.NewStrCodes(
 	state.StrEntry[numericFieldCode]{Key: "basePower", Val: numericFieldBasePower},
 	state.StrEntry[numericFieldCode]{Key: "baseToughness", Val: numericFieldBaseToughness},
 	state.StrEntry[numericFieldCode]{Key: "cmc", Val: numericFieldCmc},
+	state.StrEntry[numericFieldCode]{Key: "totalPT", Val: numericFieldTotalPT},
 )
 
 // lacksPT reports an object that has no power or toughness characteristic at

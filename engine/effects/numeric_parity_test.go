@@ -173,7 +173,7 @@ func TestNumericPredicateUnknownComparatorFailsClosed(t *testing.T) {
 
 // numericCensusToken finds a filter-position token (after '.', '+' or '!')
 // in numericPred's field vocabulary anywhere in a corpus script.
-var numericCensusToken = regexp.MustCompile(`[.+!]((?:power|toughness|cmc|basePower|baseToughness|counters_|classLevel_)[A-Za-z0-9_]*)`)
+var numericCensusToken = regexp.MustCompile(`[.+!]((?:power|toughness|cmc|basePower|baseToughness|totalPT|counters_|classLevel_)[A-Za-z0-9_]*)`)
 
 // numericCensusNeedsGame are the recognised tokens whose truth reads the
 // spec source's recorded choice, which the object sweep below does not
