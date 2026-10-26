@@ -104,6 +104,14 @@ type TriggerContext struct {
 	// TriggerRememberedStamps: replay re-derives the queue-time capture.
 	SourceRemembered  []state.Target
 	SourceIncarnation uint32
+	// SelfLeaves marks a Mode$ ChangesZone | Origin$ Battlefield |
+	// ValidCard$ Card.Self trigger ("When CARDNAME leaves the battlefield").
+	// Its capture is the leaving source itself, so Defined$ Remembered must
+	// not fall back to it: the linked ability (CR 607.2a: Mesmeric Fiend's
+	// "return the exiled card") refers only to what the source's own enters
+	// ability remembered, and an empty list is the empty set. rules sets it
+	// in triggerReferents; resolvedRemembered reads it.
+	SelfLeaves bool
 	// Reflexive marks a CR 603.12 reflexive triggered ability ("When you do,
 	// ...") minted by effImmediateTrigger through Host.QueueReflexiveTrigger.
 	// Its stack object's Remembered is the instance's OWN remembered set --

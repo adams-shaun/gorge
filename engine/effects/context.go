@@ -2058,6 +2058,12 @@ func copyTargets(s []state.Target) []state.Target {
 // cards only, never the creature whose death fired the trigger. Only a
 // context holding nothing but the capture keeps it.
 func resolvedRemembered(h Host, c *Ctx) []state.Target {
+	if c.SelfLeaves && c.RepeatSubject == (state.Target{}) && len(c.DelayedRemembered) == 0 && len(sourceRemembered(h, c)) == 0 {
+		// A leaves-the-battlefield trigger on its own source: the capture is
+		// the leaver, never a Remembered fallback (see TriggerContext.SelfLeaves). A
+		// RepeatEach iteration (Giant Albatross) binds its own subject, kept as is.
+		return excludeCaptureOccurrences(c.Remembered, c.Captured)
+	}
 	return selectRemembered(c.Remembered, c.Captured, c.DelayedRemembered, sourceRemembered(h, c))
 }
 
