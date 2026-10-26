@@ -47,12 +47,10 @@ type Reader interface {
 	// an action of kind saKind's tap-power amount (Station, Crew, Saddle):
 	// its layer-derived power, as any stat:TapPowerValue static adjusts it.
 	TapPower(id state.ObjID, saKind string) int32
-	// AnyCantCrew reports whether any stat:CantCrew static is active, so the
-	// crew-candidate filter costs one length check on a board without one.
-	AnyCantCrew() bool
-	// CantCrew reports whether a stat:CantCrew static forbids creature id
-	// from being tapped to pay a Crew cost (CR 702.122a).
-	CantCrew(id state.ObjID) bool
+	// DropCantCrew is ids without the creatures a stat:CantCrew static
+	// forbids from paying a Crew cost (CR 702.122a); ids itself, unscanned,
+	// when no such static is active.
+	DropCantCrew(ids []state.ObjID) []state.ObjID
 	// ZoneEntrySeq is the log sequence of id's entry into its current zone
 	// (the engine's incremental zone-entry index).
 	ZoneEntrySeq(id state.ObjID) uint64

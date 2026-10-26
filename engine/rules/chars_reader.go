@@ -73,12 +73,8 @@ func (r *charsReader) TapPower(id state.ObjID, saKind string) int32 {
 	return e.tapPowerValue(id, saKind)
 }
 
-func (r *charsReader) AnyCantCrew() bool {
-	return len(r.eng().activeStatics("CantCrew")) > 0
-}
-
-func (r *charsReader) CantCrew(id state.ObjID) bool {
-	return r.eng().cantCrew(id)
+func (r *charsReader) DropCantCrew(ids []state.ObjID) []state.ObjID {
+	return r.eng().dropCantCrew(ids)
 }
 
 // ZoneEntrySeq (chars.Reader) is the zone-entry index's sequence for id.

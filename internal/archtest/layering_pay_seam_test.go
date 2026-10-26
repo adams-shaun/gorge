@@ -27,9 +27,10 @@ import (
 // nonManaCastableP): 6 -> 8. E7 flow slice 1: ZoneEntrySeq (the zone-entry
 // index read, moved off pay.Engine to make room for the flow seam): 8 -> 9.
 // E7 flow slice 4: Power and Colors (the Convoke/Harmonize announcement,
-// pay.ConvokeAsk): 9 -> 11.
+// pay.ConvokeAsk): 9 -> 11. cr-g182: DropCantCrew (the Crew tap-candidate
+// filter, pay.FilterCrewCandidates; stat:CantCrew): 11 -> 12.
 const (
-	charsReaderMethods = 11
+	charsReaderMethods = 12
 	charsReaderCeiling = 20
 )
 

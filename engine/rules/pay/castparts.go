@@ -27,16 +27,10 @@ func TapPowerSum(e Engine, ids []state.ObjID, saKind string) int32 {
 // "any CantCrew static?" test is hoisted so a board without one costs a
 // single check and no allocation.
 func FilterCrewCandidates(e Engine, ids []state.ObjID, tapKind string) []state.ObjID {
-	if tapKind != "Crew" || len(ids) == 0 || !e.Chars().AnyCantCrew() {
+	if tapKind != "Crew" {
 		return ids
 	}
-	out := make([]state.ObjID, 0, len(ids))
-	for _, id := range ids {
-		if !e.Chars().CantCrew(id) {
-			out = append(out, id)
-		}
-	}
-	return out
+	return e.Chars().DropCantCrew(ids)
 }
 
 // TapTopPowerSum is tapPowerSum for a literal tapXType<N/...> part with a
