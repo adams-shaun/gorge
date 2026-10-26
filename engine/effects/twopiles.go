@@ -34,8 +34,15 @@ func init() {
 // with option 0 (pile A = the first card) and the pick with option 0 (pile
 // A), the same deterministic answers through the ordinary decision channel.
 //
+// The battlefield shape (Liliana of the Veil's -6, Do or Die, Fight or
+// Flight; cards.TwoPilesBattlefieldShape) has no DefinedCards$: the card set
+// is the permanents ValidCards$ matches among those the pool player controls
+// (Defined$, else the targeted player), the Chooser$ defaults to that player,
+// and the pile bodies run exactly as above.
+//
 // Scoped out (each ONE loud Note naming the unread parameter, nothing
-// moves): DefinedPiles$, Zone$, FaceDown$, LeftRightPile$, a DefinedCards$
+// moves; cards.TwoPilesShapeSupported keeps coverage in step): DefinedPiles$, Zone$ other
+// than that battlefield shape, FaceDown$, LeftRightPile$, a DefinedCards$
 // value other than Remembered/Targeted, a ChosenPile$/UnchosenPile$ value
 // that is not an SVar name of the resolving face (the TurnFaceUp/ToHand/
 // ToGrave one-offs), and a Separator$/Chooser$ selector this resolver
@@ -53,14 +60,18 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	spec := DefinedOf(sa).Cards.Text
+	battlefield := false
 	if spec == "" {
 		if v := strings.TrimSpace(sa.ParamStr(cards.PKZone)); v != "" {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unimplemented TwoPiles shape: Zone$ " + v})
-			return
+			if !cards.TwoPilesBattlefieldShape(sa) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unimplemented TwoPiles shape: Zone$ " + v})
+				return
+			}
+			battlefield = true
 		}
 	}
-	if spec != "Remembered" && spec != "Targeted" {
+	if !battlefield && spec != "Remembered" && spec != "Targeted" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented TwoPiles shape: DefinedCards$ " + spec})
 		return
@@ -92,15 +103,28 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	// event object the trigger fired on (rememberedExcludingCapture): a
 	// Curator of Destinies ETB captures the entering Sphinx in its Ctx, and
 	// reading the raw list offered the source itself as a pile card.
-	set := objectsOf(rememberedExcludingCapture(h, c))
-	if spec == "Targeted" {
-		set = objectsOf(c.Targets)
-	}
-	ids := make([]state.ObjID, 0, len(set))
+	var pool state.PlayerID
+	var ids []state.ObjID
 	g := h.Game()
-	for _, t := range set {
-		if o := g.Obj(t.Obj); o != nil {
-			ids = append(ids, o.ID)
+	if battlefield {
+		p, ok := twoPilesPoolPlayer(h, c, sa)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented TwoPiles shape: the battlefield pool names no player this engine can resolve"})
+			return
+		}
+		pool = p
+		ids = twoPilesBattlefieldSet(h, c, sa, pool)
+	} else {
+		set := objectsOf(rememberedExcludingCapture(h, c))
+		if spec == "Targeted" {
+			set = objectsOf(c.Targets)
+		}
+		ids = make([]state.ObjID, 0, len(set))
+		for _, t := range set {
+			if o := g.Obj(t.Obj); o != nil {
+				ids = append(ids, o.ID)
+			}
 		}
 	}
 	if len(ids) == 0 {
@@ -119,19 +143,29 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	if sepSpec == "" {
 		sepSpec = chooseSpec
 	}
-	sep, ok := twoPilesPlayer(h, c, sepSpec)
-	if !ok {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "unimplemented TwoPiles shape: Separator$ " + sepSpec + " names no player this engine can resolve"})
-		return
+	var sep, chooser state.PlayerID
+	ok := true
+	if battlefield && chooseSpec == "" {
+		// "that player's choice": the pool player picks the pile.
+		chooser = pool
+	} else {
+		chooser, ok = twoPilesPlayer(h, c, chooseSpec)
 	}
-	chooser, ok := twoPilesPlayer(h, c, chooseSpec)
 	if !ok {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented TwoPiles shape: Chooser$ " + chooseSpec + " names no player this engine can resolve"})
 		return
 	}
-
+	if battlefield && sepSpec == "" {
+		sep = chooser
+	} else {
+		sep, ok = twoPilesPlayer(h, c, sepSpec)
+	}
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented TwoPiles shape: Separator$ " + sepSpec + " names no player this engine can resolve"})
+		return
+	}
 	// The pile bodies: ChosenPile$ must name an SVar of the resolving face
 	// (Forge's core carriers all do); UnchosenPile$ is optional — Brilliant
 	// Ultimatum leaves the unchosen pile in exile. An unresolvable value
@@ -212,6 +246,36 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	// One-card set: the split ask is skipped, the chooser is still asked.
 	pickB := twoPilesPosePick(h, c, sa, chooser)
 	runPiles(pickB, ids[:1], nil)
+}
+
+// twoPilesPoolPlayer is the player whose permanents the battlefield shape
+// separates: Defined$ when the script names one, else the first player the
+// resolution targeted (Liliana's "target player").
+func twoPilesPoolPlayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
+	if spec := DefinedRefOf(sa).Text; spec != "" {
+		return twoPilesPlayer(h, c, spec)
+	}
+	for _, t := range c.Targets {
+		if t.IsPlayer && int(t.Player) < len(h.Game().Players) && !h.Game().Players[t.Player].Lost {
+			return t.Player, true
+		}
+	}
+	return 0, false
+}
+
+// twoPilesBattlefieldSet is the pool player's battlefield permanents the
+// ValidCards$ spec matches, in battlefield order (deterministic).
+func twoPilesBattlefieldSet(h Host, c *Ctx, sa *cards.SA, pool state.PlayerID) []state.ObjID {
+	g := h.Game()
+	spec := twoPilesValidCards(sa)
+	var ids []state.ObjID
+	for _, id := range g.Zone(state.ZBattlefield, pool) {
+		if o := g.Obj(id); o != nil && o.Controller == pool &&
+			MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 // noShuffleBody is the pile body a pile movement actually resolves: the SVar

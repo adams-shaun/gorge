@@ -38,6 +38,12 @@ func (f *Face) Primitives() []string {
 			// resolver cannot bind to a single attacker and a mandatory target.
 			set["api:MustBlock.OtherShape"] = struct{}{}
 		}
+		if sa.API == "TwoPiles" && !TwoPilesShapeSupported(sa, f) {
+			// A pile split the resolver Notes and skips (Raging River's
+			// left/right piles, a graveyard card set) is registered by API but
+			// not playable as printed.
+			set["api:TwoPiles.OtherShape"] = struct{}{}
+		}
 		if v := strings.TrimSpace(sa.ParamStr(PKAtEOT)); v != "" && !AtEOTValueSupported(v) {
 			set["api:AtEOT."+v] = struct{}{}
 		}

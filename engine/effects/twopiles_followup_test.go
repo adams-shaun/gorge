@@ -38,11 +38,11 @@ func TestRememberPeekedCapturesOnlyWhenRequested(t *testing.T) {
 func TestTwoPilesLibraryZoneWithoutDefinedCardsStaysLoud(t *testing.T) {
 	h, ids := twopilesBoard(t)
 	ctx := &Ctx{Controller: 0, Source: ids[5], Remembered: twopilesRemembered(ids[:2]), SVars: twopilesSVars()}
-	Resolve(h, ctx, sa(t, "DB$ TwoPiles | Defined$ You | Zone$ Battlefield | ValidCards$ Creature | Separator$ You | ChosenPile$ DBHand"))
+	Resolve(h, ctx, sa(t, "DB$ TwoPiles | Defined$ You | Zone$ Graveyard | ValidCards$ Creature | Separator$ You | ChosenPile$ DBHand"))
 	if h.g.Obj(ids[0]).Zone != state.ZLibrary || h.g.Obj(ids[1]).Zone != state.ZLibrary {
 		t.Fatal("unsupported Zone shape moved cards")
 	}
-	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "unimplemented TwoPiles shape: Zone$ Battlefield" {
+	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "unimplemented TwoPiles shape: Zone$ Graveyard" {
 		t.Fatalf("log = %+v, want exactly one Zone$ Note", h.log)
 	}
 }
