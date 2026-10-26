@@ -647,7 +647,11 @@ func (e *Engine) abilityRestrictionApplies(sv staticView, p state.PlayerID, id s
 		return false
 	}
 	if spec := sv.ParamStr(cards.PKValidCard); spec != "" {
-		if !e.matchesSpec(spec, id, e.assignmentStaticSpecCtx(sv)) {
+		sc := e.staticSpecCtx(sv)
+		if sv.effectDelivered {
+			sc = e.assignmentStaticSpecCtx(sv)
+		}
+		if !e.matchesSpec(spec, id, sc) {
 			return false
 		}
 	} else if !sv.effectDelivered {
