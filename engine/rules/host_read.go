@@ -42,6 +42,9 @@ func (e *Engine) LayerTables(want effects.LayerTableSet) effects.LayerTables {
 	if want&effects.LayerCDAPT != 0 {
 		t.CDAPTs = e.cdaPTTable()
 	}
+	if want&effects.LayerBattlefieldPT != 0 {
+		t.BattlefieldPTs = e.battlefieldPTTable()
+	}
 	return t
 }
 
@@ -60,6 +63,34 @@ func (e *Engine) cdaPTTable() []effects.ObjectPT {
 		}
 		p, t, bp, bt, ok := e.FilterDerivedPT(o.ID)
 		if !ok {
+			continue
+		}
+		out = append(out, effects.ObjectPT{ID: o.ID, Power: p, Toughness: t, BasePower: bp, BaseToughness: bt})
+	}
+	return out
+}
+
+// battlefieldPTTable is LayerTables.BattlefieldPTs: every battlefield object
+// whose Derived current P/T differs from the printed face plus counters, or
+// whose Derived base P/T differs from the printed face, with those values.
+// An object whose Derived P/T is the object-alone read is omitted, so the
+// effects fallback stays exact for it and the table is nil on a plain board.
+// Built in g.Objs order (no map range).
+func (e *Engine) battlefieldPTTable() []effects.ObjectPT {
+	var out []effects.ObjectPT
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		f := o.Face()
+		if o.Zone != state.ZBattlefield || f == nil {
+			continue
+		}
+		p, t, bp, bt, ok := e.FilterDerivedPT(o.ID)
+		if !ok {
+			continue
+		}
+		dp, dt := o.CounterPTTotals()
+		fp, ft := int32(f.Power()), int32(f.Toughness())
+		if p == fp+int32(dp) && t == ft+int32(dt) && bp == fp && bt == ft {
 			continue
 		}
 		out = append(out, effects.ObjectPT{ID: o.ID, Power: p, Toughness: t, BasePower: bp, BaseToughness: bt})
