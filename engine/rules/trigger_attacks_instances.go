@@ -31,6 +31,12 @@ func attacksTriggerInstances(board trigmatch.Board, t *cards.Trigger, id state.O
 		inst := pt
 		inst.Ctx.TriggerContext.TriggerCard = attacker
 		inst.Ctx.TriggerContext.TriggerSource = attacker
+		// The attacked planeswalker/battle is per attacker: the event batches
+		// attackers per defending seat, not per defender object.
+		inst.Ctx.TriggerContext.DefenderObj = 0
+		if a := board.Game().Obj(attacker); a != nil && a.IsAttacking {
+			inst.Ctx.TriggerContext.DefenderObj = a.AttackingBattle
+		}
 		// The AbilityTriggered marker's "own" bit is per instance: only the
 		// attacker that IS the source caused that instance. causeOf answers
 		// for the line's source as an attacker, so clear it on every other
