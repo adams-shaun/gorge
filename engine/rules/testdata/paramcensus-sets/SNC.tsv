@@ -1,8 +1,7 @@
 Ballroom Brawlers	param:api:Pump.ThisDefinedAndTgts
 Call In a Professional	param:api:DealDamage.NoPrevention
-Elspeth Resplendent	param:api:Dig.ChangeValidDesc,param:api:Dig.PrimaryPrompt,param:api:PutCounter.TypeList
+Elspeth Resplendent	param:api:PutCounter.TypeList
 Evelyn, the Covetous	param:api:Dig.ExileWithCounters
-Evolving Door	param:api:Play.DefinedDesc
 Exotic Pets	param:api:PutCounter.SpecifyCounter
 Glamorous Outlaw	param:stat:Continuous.MayPlay.Secondary
 Lord Xander, the Collector	param:api:Sacrifice.Mode

@@ -1,4 +1,3 @@
-Discover the Impossible	param:api:ChangeZone.DefinedDesc,param:api:Play.DefinedDesc,param:api:Play.IfDesc
 Eater of Virtue	param:stat:Continuous.SharedKeywordsZone,param:stat:Continuous.SharedRestrictions
 Explosive Singularity	cost:tapXType
 Intercessor's Arrest	param:stat:CantAttack.ValidSA,param:stat:CantBlock.ValidSA
