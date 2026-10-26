@@ -247,7 +247,7 @@ func (e *Engine) finishUntapStep(next int) bool {
 					continue
 				}
 				if o.PhasedOut {
-					if !o.WontPhaseInNormal {
+					if !o.WontPhaseInNormal && !o.PhasedOutIndirect {
 						e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: -1})
 					}
 				} else if e.hasKeywordH(id, kwhPhasing) {
