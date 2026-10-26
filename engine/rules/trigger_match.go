@@ -1863,6 +1863,18 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				if nInst > 1 {
 					pt.Ctx.TriggerContext.TriggerAmount = 1
 					for k := int32(1); k < nInst; k++ {
+						// A per-counter instance is a NEW occurrence of the
+						// triggering condition (CR 603.2c), so it must pass and
+						// reserve BOTH limit gates again: ActivationLimit$ 1
+						// queues the first counter and refuses the rest,
+						// exactly as Forge's per-counter TriggerHandler run
+						// checks and counts each activation limit. The first
+						// instance already reserved above; a line with no limit
+						// passes both gates and keeps one instance per counter.
+						if !e.triggerGameActivationLimitAllows(t, key) || !e.triggerActivationLimitAllows(t, key) {
+							break
+						}
+						e.reserveTriggerLimits(t, key)
 						e.pendingTriggers = append(e.pendingTriggers, pt)
 					}
 				}
