@@ -121,6 +121,9 @@ type View struct {
 	// won" from "the game is still going" or "it was a draw" (Task 22
 	// finding 5). A JSON null is unambiguous where a bare 0 would not be.
 	Winner *state.PlayerID `json:"winner"`
+	// DayNight is the CR 731 designation: "day", "night", or omitted while the
+	// game has neither; public for every seat.
+	DayNight string `json:"day_night,omitempty"`
 	// Players, Stack and Pending (below) are every public list this type
 	// carries. All of them are built non-nil even when empty (Ruling
 	// T23-u): a client should never have to treat a bare JSON `null` and an
@@ -603,6 +606,7 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 	}
 	v.Over = g.Over
 	v.Draw = g.Draw
+	v.DayNight = g.DayNight.String()
 	if g.Over && !g.Draw && int(g.Winner) < len(g.Players) {
 		if winner == nil {
 			winner = new(state.PlayerID)

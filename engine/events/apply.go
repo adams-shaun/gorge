@@ -498,6 +498,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldActivationReversed(g, e)
 	case HadToAttack:
 		foldHadToAttack(g, e)
+	case DayNightChange:
+		foldDayNightChange(g, e)
 	case Exert:
 		foldExert(g, e)
 	case KeywordTriggerPush:

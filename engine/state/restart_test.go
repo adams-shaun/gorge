@@ -130,6 +130,7 @@ func TestRestartClearsTerminalAndDesignationState(t *testing.T) {
 	g.Active, g.Priority = 1, 1
 	g.Monarch, g.HasMonarch = 1, true
 	g.Initiative, g.HasInitiative = 1, true
+	g.DayNight, g.PrevTurnSpells = DayNightNight, 3
 	g.ExtraTurns = map[PlayerID]int{0: 1}
 	g.SkipTurns = map[PlayerID]int{0: 1}
 	g.DelayedNext = 5
@@ -148,6 +149,9 @@ func TestRestartClearsTerminalAndDesignationState(t *testing.T) {
 	}
 	if g.HasMonarch || g.HasInitiative {
 		t.Errorf("designations = monarch %v initiative %v, want none", g.HasMonarch, g.HasInitiative)
+	}
+	if g.DayNight != DayNightNeither || g.PrevTurnSpells != 0 {
+		t.Errorf("day/night = %v prev spells %d, want neither/0", g.DayNight, g.PrevTurnSpells)
 	}
 	if g.ExtraTurns != nil || g.SkipTurns != nil || g.DelayedNext != 0 {
 		t.Errorf("extra turns %v skip turns %v delayed next %d, want cleared", g.ExtraTurns, g.SkipTurns, g.DelayedNext)

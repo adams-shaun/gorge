@@ -127,6 +127,7 @@ func (g *Game) Restart(life int32, keep []ObjID) {
 	g.ResolvedThisTurn = nil
 	g.Monarch, g.HasMonarch, g.TurnStartMonarch, g.HasTurnStartMonarch = 0, false, 0, false
 	g.Initiative, g.HasInitiative = 0, false
+	g.DayNight, g.PrevTurnSpells = DayNightNeither, 0
 	g.ControlledBy, g.ControlArmedTurn = nil, nil
 	g.Delayed = nil
 	g.Entered = nil
