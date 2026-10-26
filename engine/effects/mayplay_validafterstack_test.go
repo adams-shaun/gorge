@@ -33,3 +33,63 @@ func TestEffectMayPlayValidAfterStackRejectsBlankQualifier(t *testing.T) {
 		t.Fatal("free grant rejected valid ValidAfterStack")
 	}
 }
+
+// TestEffectMayPlaySecondaryRegisters pins the display-only Secondary$ rider
+// through the Effect route: Siphon Insight's STPlay line carries Secondary$
+// True beside its implemented riders, and Forge reads Secondary only in the
+// card text renderer (Card.java) -- so the grant builder must accept the
+// line and register the real riders, never fail closed on the display bit.
+func TestEffectMayPlaySecondaryRegisters(t *testing.T) {
+	grant, ok := mayPlayGrantFromLine(map[string]string{
+		"MayPlay":            "True",
+		"MayPlayIgnoreColor": "True",
+		"Affected":           "Card.IsRemembered",
+		"AffectedZone":       "Exile",
+		"Secondary":          "True",
+		"Description":        "x",
+	})
+	if !ok {
+		t.Fatal("Siphon Insight's STPlay line (Secondary$ True) refused by the Effect route")
+	}
+	if !grant.MayPlayIgnoreColor {
+		t.Fatal("registered grant lost its MayPlayIgnoreColor rider")
+	}
+	if !grant.MayPlay {
+		t.Fatal("registered grant is not a MayPlay grant")
+	}
+}
+
+// TestEffectMayPlayGateKeysEffectRouteOnly pins the CheckSVar$/SVarCompare$
+// whitelist direction: the Effect-delivered route accepts the gate pair and
+// carries it on the registered effect (Possibility Technician, Flameshape),
+// a bare SVarCompare$ with no CheckSVar$ is malformed and refused, and the
+// printed route's MayPlayStaticParams still refuses the gate keys (its own
+// gate is evaluated before the grant is built).
+func TestEffectMayPlayGateKeysEffectRouteOnly(t *testing.T) {
+	grant, ok := mayPlayGrantFromLine(map[string]string{
+		"MayPlay": "True", "CheckSVar": "X", "SVarCompare": "GE1",
+	})
+	if !ok {
+		t.Fatal("Effect route refused a CheckSVar$-gated may-play line")
+	}
+	if grant.MayPlayCheckSVar != "X" || grant.MayPlaySVarCompare != "GE1" {
+		t.Fatalf("gate keys not carried: %+v", grant)
+	}
+
+	if _, ok := mayPlayGrantFromLine(map[string]string{
+		"MayPlay": "True", "SVarCompare": "GE2",
+	}); ok {
+		t.Fatal("Effect route accepted a bare SVarCompare$ with no CheckSVar$")
+	}
+
+	if _, _, _, _, ok := MayPlayStaticParams(map[string]string{
+		"MayPlay": "True", "CheckSVar": "X",
+	}); ok {
+		t.Fatal("printed route's MayPlayStaticParams accepted a CheckSVar$ line")
+	}
+	if _, _, _, _, ok := MayPlayStaticParams(map[string]string{
+		"MayPlay": "True", "Secondary": "True",
+	}); ok {
+		t.Fatal("printed route's MayPlayStaticParams accepted a Secondary$ line")
+	}
+}

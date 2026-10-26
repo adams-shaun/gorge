@@ -737,6 +737,15 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetCounter = forgetCounter
 				grant.ImprintOnHost = imprintOnHost
 				grant.Chosen, grant.ChosenBound = effectChosenSnapshot(h, c, grant.Affects)
+				if grant.MayPlayCheckSVar != "" {
+					// The gate reads the RESOLVING face's SVar table
+					// (Flameshape's SVar:X lives on the Adventure face, but
+					// the effect's source object rests on its main face once
+					// the adventure resolves): bind it on the grant so rules'
+					// effectMayPlayGateHolds resolves X against the face that
+					// wrote it.
+					grant.SVars = c.SVars
+				}
 				effectContinuous(h, grant)
 				registered = true
 			} else if grant, ok := mayPlayFreeGrantFromLine(params); ok {
@@ -763,6 +772,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetCounter = forgetCounter
 				grant.ImprintOnHost = imprintOnHost
 				grant.Chosen, grant.ChosenBound = effectChosenSnapshot(h, c, grant.Affects)
+				if grant.MayPlayCheckSVar != "" {
+					// Same binding as the plain grant above: the gate reads
+					// the RESOLVING face's SVar table.
+					grant.SVars = c.SVars
+				}
 				effectContinuous(h, grant)
 				registered = true
 			} else if _, ok := untapDenialGrantFromLine(params); ok {
