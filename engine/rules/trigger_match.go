@@ -924,6 +924,7 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	// their own, so a live EffectRepeat registration widens the event gate.
 	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone || ev.Kind == events.MonarchChange ||
 		ev.Kind == events.ControlChange || ev.Kind == events.Damage || ev.Kind == events.DeclareAttackers ||
+		((ev.Kind == events.AbilityPush || ev.Kind == events.KeywordAbilityPush) && len(e.G.Delayed) > 0) ||
 		e.hasEffectRepeatDelayed() {
 		e.checkEventDelayedTriggers(*ev, lki)
 	}
