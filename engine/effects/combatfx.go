@@ -422,7 +422,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 // The one-sentence rule: a resolution-created one-shot pump honours the
 // duration its script declared instead of being forced to end of turn.
 func durationTiming(dur string) (permanent bool, untilEOT bool) {
-	if IsNextTurnDuration(dur) {
+	if IsNextTurnDuration(dur) || IsUntilYourNextUpkeepDuration(dur) {
 		return false, false
 	}
 	switch durationTimingCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
@@ -1040,7 +1040,8 @@ func animateUntilEOT(dur string) bool {
 	if animateHostScoped(dur) || isPerpetualDuration(dur) {
 		return false
 	}
-	return !strings.EqualFold(strings.TrimSpace(dur), "Permanent") && !IsNextTurnDuration(dur)
+	return !strings.EqualFold(strings.TrimSpace(dur), "Permanent") &&
+		!IsNextTurnDuration(dur) && !IsUntilYourNextUpkeepDuration(dur)
 }
 
 // isPerpetualDuration reports Duration$ Perpetual: the effect lasts for the

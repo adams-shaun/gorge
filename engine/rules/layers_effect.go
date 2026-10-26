@@ -1048,6 +1048,26 @@ func (e *Engine) expireUntapStepEffects() {
 	e.continuousChanged()
 }
 
+// dropUntilYourNextUpkeep removes every Duration$ UntilYourNextUpkeep
+// registration controlled by the player whose upkeep is beginning. Like
+// expireUntapStepEffects it emits no event: the slice is engine-runtime state
+// rebuilt by re-execution on replay. No carrier is a clone copy, so no clone
+// expiry runs.
+func dropUntilYourNextUpkeep(continuous []ContinuousEffect, active state.PlayerID) ([]ContinuousEffect, bool) {
+	n0 := len(continuous)
+	kept := continuous[:0]
+	for _, ce := range continuous {
+		if effects.IsUntilYourNextUpkeepDuration(ce.Duration) && ce.Controller == active {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if len(kept) == n0 {
+		return continuous, false
+	}
+	return kept, true
+}
+
 // continuousLive is active()'s duration-honouring filter over one registered
 // effect (see active()): whether it still exists right now. It is the one
 // predicate active() and anyLayer4Active's registered-effect check share, so
@@ -1082,6 +1102,11 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 		// until expireUntapStepEffects drops it at the end of the
 		// controller's first next untap step (CR 611.3b), which is exactly
 		// the lifetime the text grants.
+		return true
+	}
+	if effects.IsUntilYourNextUpkeepDuration(ce.Duration) {
+		// "Until your next upkeep" outlives its source and this turn's cleanup;
+		// dropUntilYourNextUpkeep drops it as the controller's next upkeep begins.
 		return true
 	}
 	if ce.UntilEOT {
