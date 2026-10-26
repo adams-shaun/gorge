@@ -101,13 +101,12 @@ func TestSkrelvHexproofFromChosenColor(t *testing.T) {
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack not empty after resolution: %d", len(e.G.Stack))
 	}
-	// The choice was really recorded as blue, then Skrelv's colour changes (a
-	// later activation choosing red, or DBCleanup's ClearChosenColor$): the
-	// grant and the CantBlockBy effect hold the colour they resolved with.
-	if got := e.G.Obj(skrelv).ChosenColor; got != "U" {
-		t.Fatalf("Skrelv's recorded choice = %q, want U", got)
+	// DBCleanup's ClearChosenColor$ has run: Skrelv's recorded choice is gone,
+	// and the grant and the CantBlockBy effect still hold the colour they
+	// resolved with.
+	if got := e.G.Obj(skrelv).ChosenColor; got != "" {
+		t.Fatalf("Skrelv's recorded choice = %q, want cleared", got)
 	}
-	e.G.Obj(skrelv).ChosenColor = "R"
 
 	if !e.HasKeyword(bear, "Toxic") {
 		t.Fatalf("bear lacks toxic 1: %v", e.Keywords(bear))
