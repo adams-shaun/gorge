@@ -1,0 +1,6 @@
+Hauntwoods Shrieker	param:api:SetState.RevealFirst,param:api:SetState.ValidNewFace
+Orphans of the Wheat	param:api:Tap.AnyNumber,param:api:Tap.CardChoices,param:api:Tap.ChoiceAmount,param:api:Tap.RememberTapped
+Osseous Sticktwister	param:api:GenericChoice.DamageMap
+Overlord of the Hauntwoods	param:api:Token.LockTokenScript
+Sporogenic Infection	param:api:Sacrifice.SacMessage
+Vile Mutilator	param:api:Sacrifice.SacMessage

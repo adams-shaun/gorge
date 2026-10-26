@@ -1,0 +1,36 @@
+Along the Crooked Way	param:api:ChangeZone.ValidTgtsDesc
+Bejeweled Warg	param:api:PutCounter.ValidTgtsDesc
+Beorn's Hospitality	param:api:PutCounter.ValidTgtsDesc
+Bilbo's Gambit	param:api:Token.GiftDescription
+Bilbo, Luckwearer	param:api:ExchangeControl.ValidTgtsDesc
+Bofur, Reliable Guardian	param:api:Pump.ValidTgtsDesc
+Burn, Burn, Tree and Fern	param:api:DealDamage.ValidTgtsDesc,param:api:Destroy.ValidTgtsDesc
+Celebrate the Mountain-king	param:api:ChangeZone.ValidTgtsDesc
+Dancing from Dark to Dawn	param:api:PutCounter.ValidTgtsDesc
+Dwarven Mattock	param:api:Attach.ValidTgtsDesc
+Eagle's Rescue	param:api:Pump.ValidTgtsDesc
+Elven Raft-Steerer	param:api:Tap.ValidTgtsDesc,param:api:Untap.ValidTgtsDesc
+Elvenking's Halls	param:api:PutCounter.ValidTgtsDesc
+Front Porch Sentries	param:api:Pump.ValidTgtsDesc
+Goblin-town	param:api:PutCounter.ValidTgtsDesc
+Gollum the Abandoned	param:api:ChangeZone.ValidTgtsDesc
+Iron Hills	param:api:PutCounter.ValidTgtsDesc
+Iron Hills Stalwart	param:api:Attach.ValidTgtsDesc,param:api:Pump.ValidTgtsDesc
+Lake-town	param:api:PutCounter.ValidTgtsDesc
+Lake-town Mariners	param:api:ChangeZone.ValidTgtsDesc
+Lake-town Toymaker	param:api:Pump.ValidTgtsDesc
+Little Bear	param:api:Untap.ValidTgtsDesc
+Mirkwood	param:api:PutCounter.ValidTgtsDesc
+Mirkwood Nurturer	param:api:ChangeZone.ValidTgtsDesc
+Moment of Glory	param:api:PutCounter.ValidTgtsDesc
+Pinecone Strike	param:api:Destroy.ValidTgtsDesc
+Roll-Roll-Roll-Roll	param:api:ChangeZone.ValidTgtsDesc
+Stone by Sunlight	param:api:Destroy.ValidTgtsDesc
+The Eagles Are Coming!	param:api:ChangeZone.ValidTgtsDesc
+The Mountain-king's Return	param:api:ChangeZone.ValidTgtsDesc
+Thorin's Last Stand	param:api:Destroy.ValidTgtsDesc
+Thorin, Mountain-king	param:api:Attach.ValidTgtsDesc,param:api:Pump.ValidTgtsDesc
+Thranduil's Company	param:api:PutCounter.ValidTgtsDesc
+Troll Negotiations	param:api:Fight.ValidTgtsDesc,param:api:PutCounter.ValidTgtsDesc
+Vow to Erebor	param:api:Untap.ValidTgtsDesc
+Warg Tactics	param:api:PutCounter.ValidTgtsDesc
