@@ -429,7 +429,7 @@ func (e *Engine) legendGroups(mayPair bool) []legendGroup {
 	if !mayPair {
 		return nil
 	}
-	exempt := e.activeStatics("IgnoreLegendRule")
+	exempt := e.legendExemptions()
 	anyLType := e.activeHasLType()
 	var all []legendGroup
 	for _, p := range e.G.AliveFrom(0) {
@@ -470,6 +470,30 @@ func (e *Engine) legendGroups(mayPair bool) []legendGroup {
 		}
 	}
 	return groups
+}
+
+// legendExemptions collects every live IgnoreLegendRule exemption the CR
+// 704.5j scan must honour, from BOTH delivery routes: the printed
+// S:Mode$ statics (activeStatics' canonical battlefield walk) first, then
+// the Effect-delivered registrations (state.ContinuousEffect entries whose
+// Restriction is IgnoreLegendRule, in e.active()'s CR 613 order -- sorted,
+// deterministic, never a map). Hall of Echoes' resolved {5} ability
+// (`DB$ Effect | StaticAbilities$ LegendPermission`, LegendPermission:
+// `Mode$ IgnoreLegendRule | ValidCard$ Permanent.YouCtrl`) is the corpus
+// carrier of the second route. legendRuleExempt matches both unchanged: the
+// registered view's YouCtrl resolves against the effect's controller
+// through staticSpecCtx exactly like a printed static's does.
+// sbaQuietKindsSafe reads the same helper, so the quiet skip and the full
+// pass can never disagree about whether an exemption is live.
+func (e *Engine) legendExemptions() []staticView {
+	exempt := e.activeStatics("IgnoreLegendRule")
+	for _, ce := range e.active() {
+		if ce.Restriction == effects.ModeIgnoreLegendRule {
+			exempt = append(exempt, staticView{Source: ce.Source, Controller: ce.Controller,
+				Params: ce.RestrictParams, SVars: ce.RestrictSVars, Remembered: ce.Remembered})
+		}
+	}
+	return exempt
 }
 
 // legendRuleExempt reports whether one of the given live IgnoreLegendRule

@@ -485,10 +485,11 @@ func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, reme
 // Implemented delivery-mode names shared by effects registration and rules
 // consultation. Keep comparisons against these named mode identifiers.
 const (
-	ModeIgnoreHexproof  = "IgnoreHexproof"
-	ModeNoCleanupDamage = "NoCleanupDamage"
-	ModeMustBlock       = "MustBlock"
-	ModeFlipCoinMod     = "FlipCoinMod"
+	ModeIgnoreHexproof   = "IgnoreHexproof"
+	ModeIgnoreLegendRule = "IgnoreLegendRule"
+	ModeNoCleanupDamage  = "NoCleanupDamage"
+	ModeMustBlock        = "MustBlock"
+	ModeFlipCoinMod      = "FlipCoinMod"
 )
 
 // staticKeysReadable fails closed when a delivered static carries an unread
