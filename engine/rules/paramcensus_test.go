@@ -2867,13 +2867,6 @@ var abilityPresentationSecondary = []string{
 	"Token",
 }
 
-var ignoredAbilityParams = func() map[string]string {
-	const cite = "SA text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179, forge-game/src/main/java/forge/game/card/Card.java:3013 (text renderer only)"
-	m := map[string]string{
-		"Effect.PumpZone": "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
-	}
-	for _, api := range abilityPresentationSecondary {
-		m[api+".Secondary"] = cite
 // pawprintModeAPIs are the mode-body APIs the corpus carries Pawprint$ on
 // inside a budgeted Charm's Choices$ (measured over the full corpus at the
 // current pin). The price is a property of the mode choice (CR 700.2i,
@@ -2886,9 +2879,13 @@ var pawprintModeAPIs = []string{
 }
 
 var ignoredAbilityParams = func() map[string]string {
+	const cite = "SA text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179, forge-game/src/main/java/forge/game/card/Card.java:3013 (text renderer only)"
 	const pawprintCite = "mode price read by the parent Charm: engine/effects/charm_modes.go:41 (modePawprint); forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java:183"
 	m := map[string]string{
 		"Effect.PumpZone": "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+	}
+	for _, api := range abilityPresentationSecondary {
+		m[api+".Secondary"] = cite
 	}
 	for _, api := range pawprintModeAPIs {
 		m[api+".Pawprint"] = pawprintCite
@@ -4071,10 +4068,6 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 	// ability-cost); the body cost below is now Mana<1>, a corpus-attested
 	// ability-cost head (`Cost$ Mana<2 R\NumTimes>`, bloodthirsty_adversary and
 	// 8 more) ParseCost still does not model.
-	// Pawprint$ WAS this fixture's unread body key until cr-g175 made the
-	// parent Charm's mode-price read explicit: the key is now scoped-ignored
-	// on the mode APIs (ignoredAbilityParams), so the fixture uses
-	// TokenPower$, which remains genuinely unread by LoseLife.
 	if !d.api["Charm"]["Choices"] || !d.api["Repeat"]["RepeatSubAbility"] {
 		t.Fatalf("outer Choices$/RepeatSubAbility$ reads lost -- fixture premise broken")
 	}
