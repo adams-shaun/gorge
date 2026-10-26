@@ -2865,6 +2865,30 @@ var abilityPresentationSecondary = []string{
 	"ChangeZone", "CopySpellAbility", "DealDamage", "Draw", "ImmediateTrigger",
 	"DelayedTrigger", "Mana", "Pump", "PumpAll", "PutCounter", "Regenerate",
 	"Token",
+var ignoredAbilityParams = map[string]string{
+	"Effect.PumpZone":          "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+	"GenericChoice.ShowChoice": "UI notify of the chosen value; forge-game/src/main/java/forge/game/ability/effects/ChooseGenericEffect.java:113 (notifyOfValue); gorge's ModeChosen is public (engine/view/describe.go:715)",
+	"PeekAndReveal.NoPeek":     "skips the private look before a public reveal; forge-game/src/main/java/forge/game/ability/effects/PeekAndRevealEffect.java:55,78",
+}
+
+// unlessNamesFaceSVar reports a Cost$-family parameter whose WHOLE trimmed
+// value is a key of the face's own SVar table. An UnlessCost$ that names an
+// SVar is priced at resolution: effects.UnlessCostResolved
+// (engine/effects/unless.go) folds the whole value through EvalCountOK and
+// charges it as that much generic mana, and an SVar body the evaluator
+// cannot read is already a count:<head> gap through cards.Registry
+// .Unsupported (Face.referencedNames tokenises every parameter value,
+// UnlessCost$ included). So ParseCost("Y").Unknown is a false positive, and
+// the census must not label it as an unmodelled cost token. Cost$ is never
+// exempt (a literal printed cost is genuinely parsed), and neither is a
+// token inside a compound value (Foo<1/X>): only a whole-value
+// SVar NAME is folded, never a name nested in a larger expression.
+func unlessNamesFaceSVar(f *cards.Face, k, v string) bool {
+	if k != "UnlessCost" || f == nil {
+		return false
+	}
+	_, ok := f.SVars[strings.TrimSpace(v)]
+	return ok
 }
 
 // pawprintModeAPIs are the mode-body APIs the corpus carries Pawprint$ on
@@ -3071,6 +3095,9 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			readSet := d.api[sa.API]
 			for k, v := range sa.Params {
 				if k == "Cost" || k == "UnlessCost" {
+					if unlessNamesFaceSVar(f, k, v) {
+						continue
+					}
 					for _, tok := range ParseCost(v).Unknown {
 						addLabel("cost:" + tok)
 					}
@@ -3111,6 +3138,9 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			readSet := d.stat[mode]
 			for k, v := range st.Params {
 				if k == "Cost" || k == "UnlessCost" {
+					if unlessNamesFaceSVar(f, k, v) {
+						continue
+					}
 					for _, tok := range ParseCost(v).Unknown {
 						addLabel("cost:" + tok)
 					}
@@ -3174,6 +3204,9 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 				prim, readSet := "stat:"+mode, d.stat[mode]
 				for k, v := range st.Params {
 					if k == "Cost" || k == "UnlessCost" {
+						if unlessNamesFaceSVar(f, k, v) {
+							continue
+						}
 						for _, tok := range ParseCost(v).Unknown {
 							addLabel("cost:" + tok)
 						}
