@@ -838,6 +838,17 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// Decayed's attack trigger (CR 702.147a): its resolution, not the
+	// declaration, registers the end-of-combat sacrifice (CR 603.7a).
+	if pt.Decayed {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwDecayedAttack", Text: "decayed ability"})
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// A granted Exploit (CR 702.58a via a layer-6 AddKeyword$ Exploit --
 	// Colonel Autumn's "Other legendary creatures you control have
 	// exploit"): the Ward/Afflict shape. The trigger is optional in

@@ -597,7 +597,7 @@ func (e *Engine) cumulativePaymentAsk() {
 	var manual []decision.Option
 	if cu.action == nil && e.resPayNeedsMana(cu.player, cu.source, announced, paymentCumulativeUpkeep) {
 		// Pay first: an untapped source can fund what the pool lacks.
-		routes := e.resPayOptions(cu.player, cu.source, announced, "cumulative_pay", "cumulative_pay_manual", payLabel)
+		routes := e.resPayOptions(cu.player, cu.source, announced, paymentCumulativeUpkeep, "cumulative_pay", "cumulative_pay_manual", payLabel)
 		opts, manual = []decision.Option{routes[0]}, routes[1:]
 	} else if payable {
 		opts = append(opts, decision.Option{Kind: "cumulative_pay", Obj: cu.source, Label: payLabel})
@@ -1430,7 +1430,7 @@ func (e *Engine) triggeredCostPaymentAsk() {
 		// it. An energy part the payer cannot cover still keeps the
 		// decline-only ask.
 		if pay.EnergyPayable(e.G, tc.player, &announced) {
-			routes := e.resPayOptions(tc.player, tc.source, announced, "trigger_cost_pay", "trigger_cost_pay_manual",
+			routes := e.resPayOptions(tc.player, tc.source, announced, paymentOther, "trigger_cost_pay", "trigger_cost_pay_manual",
 				capitaliseFirst(tc.costLabel))
 			opts = []decision.Option{routes[0], {Kind: "trigger_cost_decline", Obj: tc.source, Label: "Do not pay"}}
 			opts = append(opts, routes[1:]...)

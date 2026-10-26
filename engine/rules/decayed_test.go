@@ -134,6 +134,9 @@ func TestDecayedCounterGrantsBothRules(t *testing.T) {
 	if got := e.G.Obj(decayed).Zone; got != state.ZBattlefield {
 		t.Fatalf("decayed attacker left the battlefield at declaration: zone %s, want battlefield (CR 702.147a sacrifices at END of combat)", got)
 	}
+	// The attack trigger sits on the stack (CR 603.3); its resolution arms the
+	// end-of-combat promise (CR 603.7a), so resolve it before the precondition.
+	passUntilStackEmpty(t, e, 40)
 	// Precondition: the end-of-combat promise was really armed, so the
 	// sacrifice assertion below is not vacuous.
 	if !hasDecayedPromise(e, decayed) {

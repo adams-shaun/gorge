@@ -177,6 +177,23 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 			Text: "registers a delayed trigger with no Execute"})
 		return
 	}
+	// OncePerSource$ True (Decayed's attack trigger): a live registration of
+	// this body for this source already covers it -- a second would
+	// sacrifice the creature twice.
+	if dp.OncePerSource {
+		// A source that left the battlefield, or came back as a new object
+		// (flickered in response to its own trigger), since the ability
+		// was put on the stack is not the creature that attacked (CR 400.7):
+		// "sacrifice it" cannot reach the new object.
+		if src := h.Game().Obj(c.Source); src == nil || sourceLeftSincePush(h, c, src) {
+			return
+		}
+		for i := range h.Game().Delayed {
+			if dt := &h.Game().Delayed[i]; dt.Source == c.Source && dt.Execute == exec {
+				return
+			}
+		}
+	}
 	// DelayedTriggerDefinedPlayer$ (Gideon Jura's "During target opponent's
 	// next turn"): the registration is armed only from the defined player's
 	// NEXT turn start, so the first one of that player is the gate the

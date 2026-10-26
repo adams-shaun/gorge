@@ -634,7 +634,7 @@ func (pe *payEval) MayPlayRider(p state.PlayerID, id state.ObjID) pipRider {
 			}
 		}
 	}
-	return r
+	return mayPlayStaticRider(e.activeStatics, e.mayPlayGrantedBy, o, p, r)
 }
 
 // offerSacXModsGated is offerSacXMods behind its own first test

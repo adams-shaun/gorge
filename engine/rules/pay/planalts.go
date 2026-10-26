@@ -28,6 +28,11 @@ func AnnouncedAbilityColours(e Engine, p state.PlayerID, id state.ObjID, ma *car
 	if raw != "Any" && raw != "ColorIdentity" && !PaymentPlanChoiceShape(raw) {
 		return nil
 	}
+	// A RestrictValid$ ability is planned per payment (PlanPaymentCostWithout)
+	// but the announced window keeps it a single manual option.
+	if e.Eval().ManaStatic(ma).RestrictValid {
+		return nil
+	}
 	if tier, _, _ := PaymentPlanAbilityTier(e, p, id, ma); tier != TierNormal && tier != TierLastResort {
 		return nil
 	}

@@ -1497,6 +1497,7 @@ var stringMapParams = map[string]string{
 	// values the census already attributes at the primitive site.
 	"effects:hiddenKeywordGrantFromLine:params":   "parseStaticLine-built static line (an SVar body), not a card Params map",
 	"effects:adjustLandPlaysGrantFromLine:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
+	"effects:animateSelfMayPlayGrant:params":      "parseStaticLine-built static line (an SVar body) from Animate staticAbilities$, not a card Params map",
 	// engine/effects/restrictions.go replacementRedirectsToExile: params is one
 	// ReplaceWith$ line parseReplacementLine built from the face's SVar
 	// table (the Fizzle$ rider the exile-redirect admission reads), not a
@@ -2017,6 +2018,15 @@ var apiSpecificRulesStat = map[string]string{
 	// grant path does, keeping the permissions a given host granted, so its
 	// read is family-attributed exactly like the grant path's.
 	"Engine.mayPlayGrantedBy": "Continuous.MayPlay",
+	// The MayPlayWithFlash$ timing rider (engine/rules/mayplay_riders.go): it
+	// reads MayPlay statics' MayPlayWithFlash$ live and runs mayPlayStatic over
+	// the same sources, so it is family-attributed like the grant path.
+	"mayPlayFlashGranted": "Continuous.MayPlay",
+	// The MayPlayIgnoreColor$/MayPlayIgnoreType$ payment rider of a printed
+	// static with a MayPlayPlayer$ beneficiary (engine/rules/mayplay_riders.go,
+	// Ian Malcolm): it reads those MayPlay statics' rider keys live and asks
+	// mayPlayGrantedBy for the grant, so it is family-attributed too.
+	"mayPlayStaticRider": "Continuous.MayPlay",
 	// quietStaticMayPlay (engine/rules/quiet_facts.go), the quiet-seat proof's
 	// per-face may-play scan: quietCastOpen and quietSelfReducePipFloor call
 	// it over a face's own Statics slice to detect any may-play cost key

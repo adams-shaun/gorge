@@ -55,6 +55,12 @@ type DelayedTriggerParams struct {
 	DefinedPlayer string
 	// RememberChainFalse is RememberChain$ False.
 	RememberChainFalse bool
+	// OncePerSource is OncePerSource$ True (this repo's own generated-SA
+	// param, the RememberChain$ False precedent): the Phase registration is
+	// skipped when a live one already names this source with the same
+	// Execute$ body (Decayed's attack trigger, which can resolve twice for
+	// one creature).
+	OncePerSource bool
 	// RememberNumber is RememberNumber$ True: the registration carries the
 	// chain's remembered Integer (a RememberCounteredCMC$ binding) to the
 	// fired ability's Count$TriggerRememberAmount (Mana Drain).
@@ -95,7 +101,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "Mode", "ModeCost", "Monstrosity",
-	"NewController", "NextTurn", "NonBasicSpell", "OpponentTurn", "Origin", "Phase",
+	"NewController", "NextTurn", "NonBasicSpell", "OncePerSource", "OpponentTurn", "Origin", "Phase",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberChain", "RememberCostMana", "RememberNumber", "RememberObjects", "RememberTargets", "ReplaceColor",
@@ -162,6 +168,7 @@ func compileDelayedTrigger(sa *cards.SA, ap *ActivationParams) *DelayedTriggerPa
 	p.UpcomingTurn = isTrue(sa.ParamStr(cards.PKUpcomingTurn))
 	p.DefinedPlayer = strings.TrimSpace(sa.ParamStr(cards.PKDelayedTriggerDefinedPlayer))
 	p.RememberChainFalse = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberChain)), "False")
+	p.OncePerSource = isTrue(sa.ParamStr(cards.PKOncePerSource))
 	p.RememberNumber = isTrue(sa.ParamStr(cards.PKRememberNumber))
 	p.Execute = strings.TrimSpace(sa.ParamStr(cards.PKExecute))
 	p.ThisTurn = isTrue(sa.ParamStr(cards.PKThisTurn))

@@ -162,6 +162,7 @@ const (
 	PKMayLookAt
 	PKMayPlay
 	PKMayPlayAltManaCost
+	PKMayPlayWithFlash
 	PKMayPlayWithoutManaCost
 	PKMentor
 	PKMin
@@ -572,6 +573,7 @@ const (
 	PKNotFirstCardInDrawStep
 	PKNumLimitEachTurn
 	PKNum
+	PKOncePerSource
 	PKOneOff
 	PKOrderDuplicates
 	PKPhaseCount
@@ -983,6 +985,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKMayLookAt:                        "MayLookAt",
 	PKMayPlay:                          "MayPlay",
 	PKMayPlayAltManaCost:               "MayPlayAltManaCost",
+	PKMayPlayWithFlash:                 "MayPlayWithFlash",
 	PKMayPlayWithoutManaCost:           "MayPlayWithoutManaCost",
 	PKMentor:                           "Mentor",
 	PKMin:                              "Min",
@@ -1403,6 +1406,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKNotFirstCardInDrawStep:           "NotFirstCardInDrawStep",
 	PKNumLimitEachTurn:                 "NumLimitEachTurn",
 	PKNum:                              "Num",
+	PKOncePerSource:                    "OncePerSource",
 	PKOneOff:                           "OneOff",
 	PKOrderDuplicates:                  "OrderDuplicates",
 	PKPhaseCount:                       "PhaseCount",

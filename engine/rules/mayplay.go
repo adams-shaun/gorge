@@ -452,7 +452,7 @@ func mayPlayGateRejectedOther(params map[string]string) bool {
 		strings.TrimSpace(params["CharacteristicDefining"]) != "" {
 		return true
 	}
-	return params["MayPlayPlayer"] != "" && !mayPlayPerCardBeneficiary(params["MayPlayPlayer"])
+	return params["MayPlayPlayer"] != "" && !mayPlaySeatBeneficiary(params["MayPlayPlayer"])
 }
 
 // mayPlayExiler reports whether a MayPlayPlayer$ value is Exiler, the one
@@ -464,7 +464,7 @@ func mayPlayExiler(v string) bool { return v == "Exiler" }
 // grant, whose beneficiary is whichever player exiled / owns the card
 // (mayPlayStatic's per-card ExiledBy / owner gate is the real filter).
 func mayPlayStaticYou(p state.PlayerID, sv *staticView) state.PlayerID {
-	if mayPlayPerCardBeneficiary(sv.ParamStr(cards.PKMayPlayPlayer)) {
+	if mayPlaySeatBeneficiary(sv.ParamStr(cards.PKMayPlayPlayer)) {
 		return p
 	}
 	return sv.Controller
@@ -476,7 +476,7 @@ func mayPlayStaticYou(p state.PlayerID, sv *staticView) state.PlayerID {
 // mayPlayGateRejectedOther.
 func mayPlayStaticBenefits(p state.PlayerID, sv *staticView) bool {
 	if v := sv.ParamStr(cards.PKMayPlayPlayer); v != "" {
-		return mayPlayPerCardBeneficiary(v)
+		return mayPlaySeatBeneficiary(v)
 	}
 	return sv.Controller == p
 }
@@ -575,6 +575,11 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 			if o.Owner != you {
 				return false, false, false, Cost{}, false, false
 			}
+		case mayPlayAnySeat(mp):
+		case mayPlayActiveSeat(mp):
+			if you != e.G.Active {
+				return false, false, false, Cost{}, false, false
+			}
 		default:
 			return false, false, false, Cost{}, false, false
 		}
@@ -661,17 +666,10 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	// sit. Absent grants every zone -- the corpus always spells the zone
 	// out (181 S: MayPlay lines all carry it or default sensibly), so the
 	// default only serves a script that omits it.
-	if az := strings.TrimSpace(params["AffectedZone"]); az != "" {
-		inZone := false
-		for part := range strings.SplitSeq(az, ",") {
-			if z, known := effects.ZoneFromString(strings.TrimSpace(part)); known && z == o.Zone {
-				inZone = true
-				break
-			}
-		}
-		if !inZone {
-			return false, false, false, Cost{}, hasRaise, priced
-		}
+	// "All" (Weftwalking) names every zone; the DontGrant rider below keeps it
+	// from opening any zone permission on its own.
+	if !affectedZoneOK(params["AffectedZone"], o.Zone) {
+		return false, false, false, Cost{}, hasRaise, priced
 	}
 	// Affected$ describes a card in AffectedZone$, not necessarily a
 	// battlefield permanent. Forge uses Permanent for permanent cards in
@@ -860,6 +858,18 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 			continue
 		}
 		raw := strings.TrimSpace(sv.ParamStr(cards.PKMayPlayAltManaCost))
+		// MayPlayPlayer$ Player / ActivePlayer / Player.Active (Aluren,
+		// Weftwalking): a battlefield static whose beneficiary is every / the
+		// active player, so its gates read p, not the controller.
+		mpp := sv.ParamStr(cards.PKMayPlayPlayer)
+		seat := i < len(bf) && (mayPlayAnySeat(mpp) || mayPlayActiveSeat(mpp))
+		you := sv.Controller
+		if seat {
+			you = p
+			if mayPlayActiveSeat(mpp) && p != e.G.Active {
+				continue
+			}
+		}
 		// MayPlayWithoutManaCost$ True over a card in HAND (Omniscience's
 		// "You may cast spells from your hand without paying their mana
 		// costs", Fires of Invention, Dracogenesis): casting without paying
@@ -872,17 +882,16 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		free := raw == "" && o.Zone == state.ZHand &&
 			strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlayWithoutManaCost)), "True")
 		if (raw == "" && !free) || strings.TrimSpace(sv.ParamStr(cards.PKMayPlay)) != "True" || mayPlayGateRejected(sv.Params) ||
-			!e.mayPlayConditionGateHolds(sv.Params, sv.Source, sv.Controller) {
+			!e.mayPlayConditionGateHolds(sv.Params, sv.Source, you) {
 			continue
 		}
 		// A battlefield static's permission is its controller's alone (the
-		// mayPlayGrant rule): every MayPlayPlayer$ value but Exiler and
-		// CardOwner is rejected above, and those per-card grants are kept to
-		// their controller here (fail closed), so no static here
-		// grants another player anything, and an Affected$ with
-		// no YouOwn/YouCtrl qualifier (Fires of Invention's
-		// Card.nonLand+cmcLEX) must not reach an opponent's hand.
-		if i < len(bf) && sv.Controller != p {
+		// mayPlayGrant rule): the Exiler and CardOwner grants are kept to
+		// their controller here (fail closed), only the Player /
+		// ActivePlayer / Player.Active grants (seat above) reach another
+		// seat, and an Affected$ with no YouOwn/YouCtrl qualifier (Fires of
+		// Invention's Card.nonLand+cmcLEX) must not reach an opponent's hand.
+		if i < len(bf) && !seat && sv.Controller != p {
 			continue
 		}
 		// Condition$ PlayerTurn ("during each of your turns"): the static's
@@ -904,19 +913,10 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		if spec == "" {
 			continue
 		}
-		if az := strings.TrimSpace(sv.ParamStr(cards.PKAffectedZone)); az != "" {
-			inZone := false
-			for part := range strings.SplitSeq(az, ",") {
-				if z, known := effects.ZoneFromString(strings.TrimSpace(part)); known && z == o.Zone {
-					inZone = true
-					break
-				}
-			}
-			if !inZone {
-				continue
-			}
+		if !affectedZoneOK(sv.ParamStr(cards.PKAffectedZone), o.Zone) {
+			continue
 		}
-		if !e.matchesSpecFrom(spec, id, sv.Controller, sv.Source) {
+		if !e.matchesSpecFrom(spec, id, you, sv.Source) {
 			continue
 		}
 		if rawLimit := strings.TrimSpace(sv.ParamStr(cards.PKMayPlayLimit)); rawLimit != "" {
@@ -925,8 +925,9 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 			}
 		}
 		grants := !strings.EqualFold(strings.TrimSpace(sv.Params["MayPlayDontGrantZonePermissions"]), "True")
+		flash := strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlayWithFlash)), "True")
 		if free {
-			out = append(out, mayPlayAltView{grants: grants})
+			out = append(out, mayPlayAltView{grants: grants, flash: flash})
 			continue
 		}
 		alt, ok := e.altCostParse(id, raw)
@@ -936,7 +937,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 			// never offered at a wrong price.
 			continue
 		}
-		out = append(out, mayPlayAltView{cost: alt, grants: grants})
+		out = append(out, mayPlayAltView{cost: alt, grants: grants, flash: flash})
 	}
 	return out
 }
@@ -946,6 +947,8 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 type mayPlayAltView struct {
 	cost   Cost
 	grants bool
+	// flash: the static carries MayPlayWithFlash$ True.
+	flash bool
 }
 
 // mayPlayCastAlts lists the alternatives a CAST through a may-play

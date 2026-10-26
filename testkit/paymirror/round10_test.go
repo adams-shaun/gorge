@@ -59,7 +59,13 @@ import (
 //     the mandatory library-search shuffle (cr-g09: the may-shuffle ask is
 //     gone, two fewer events) to seq 5196, where run A's witness is clean and the float route is the expected
 //     cast_blocked_by_float_trigger (floating at priority puts a mana
-//     trigger on the stack first).
+//     trigger on the stack first). cr-g125 (2026-10-26: an untapped
+//     RestrictValid$ source, ulalek-eldrazi's Eldrazi Temple here, now funds
+//     a planned cast its restriction admits) moves the bots' trajectory:
+//     the Infernal Plunge cast is at seq 2879, no longer blocked by a
+//     float trigger, so its verdict is plain equivalent (confirmed by
+//     reverting the planner hunk: seq 5196 and the expected float verdict
+//     return).
 //
 // fb-20260927T163321Z-69285807 moved the commander seeds here (12468, 11828,
 // 12603, 10877) with the command-zone payment-plan fix: a commander in the
@@ -84,7 +90,7 @@ var roundTenWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key (
 	12468: {},
 	11828: {},
 	12603: {2409: ""},
-	10877: {5196: "expected:float_then_cast:cast_blocked_by_float_trigger"},
+	10877: {2879: ""},
 }
 
 const (

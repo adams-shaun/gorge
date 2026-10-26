@@ -72,7 +72,8 @@ func (e *Engine) announcedAutoFillPlan(pc *pendingCast, mana Cost) *decision.Pay
 		origin = plannedMayPlayOrigin(pc.from)
 	}
 	cast := decision.PlannedCast{Object: pc.card, Face: 0, Origin: origin}
-	got := pay.PlanPaymentCost(asPayer(e), p, cast, mana)
+	desc := paymentForCast(pc, mana)
+	got := pay.PlanPaymentCost(asPayer(e), p, cast, mana, &desc)
 	if got.Plan == nil || len(got.Plan.Activations) == 0 {
 		return nil
 	}
@@ -171,7 +172,7 @@ func (e *Engine) announcedActivate(pc *pendingCast, opt decision.Option) {
 	ab := abilities[opt.Ability]
 	normal := false
 	if tier, _, _ := pay.PaymentPlanAbilityTier(asPayer(e), p, src, ab); tier == pay.TierNormal &&
-		pay.PaymentPlanTapOnlyCost(e.abilityCompiledCost(ab).Cost) {
+		pay.PaymentPlanTapOnlyCost(e.abilityCompiledCost(ab).Cost) && !e.manaStaticOf(ab).RestrictValid {
 		normal = true
 	}
 	gained := pay.GainedManaRefFor(asPayer(e), p, src, ab)

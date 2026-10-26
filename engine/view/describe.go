@@ -625,6 +625,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the chooser is the card's controller. An unrecognized Counter (a
 		// fuzz event, a future shape) degrades to a generic "chooses a
 		// value" line rather than inventing a field.
+		if ev.Secret && ev.Obj == 0 && ev.Text == "" && ev.Counter == "" {
+			// The shape view.RedactEvent serves every other seat for a
+			// Secretly$ Choose (A Killer Among Us): the payload -- including
+			// Counter -- is cleared, so only the chooser and the fact of a
+			// choice remain. The chooser's own copy keeps Obj/Text and renders
+			// through the ordinary line below.
+			return player(g, ev.Player) + " secretly makes a choice"
+		}
 		if ev.Counter == "protector" {
 			return player(g, ev.Player) + " protects " + obj(g, ev.Obj) +
 				" (chosen by " + player(g, objController(g, ev.Obj)) + ")"

@@ -496,6 +496,20 @@ func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 	if ts := Defined(h, c, sa); len(ts) > 0 && ts[0].IsPlayer {
 		chooser = ts[0].Player
 	}
+	// Secretly$ True (A Killer Among Us): the chooser's answer is hidden from
+	// every other seat until an effect reveals it, per the card's own
+	// instruction. The answered and fallback emits carry Secret and Player so
+	// view.RedactEvent serves opponents the event's shape only; the AtRandom
+	// draw below is not a player's choice and stays public.
+	secretly := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKSecretly)), "True")
+	emitType := func(text string) {
+		ev := events.Event{Kind: events.Choose, Obj: c.Source, Counter: "type", Text: text}
+		if secretly {
+			ev.Secret = true
+			ev.Player = chooser
+		}
+		h.Emit(ev)
+	}
 	labels, known := chooseTypeLabels(h, c, sa, chooser, cat)
 	if !known {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -520,7 +534,7 @@ func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 	if len(d.Options) > 1 {
 		if ans, ok := AskTape(h, d); ok && len(ans) > 0 && ans[0].Label != "" {
 			// Answered in place: record the chosen type.
-			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "type", Text: ans[0].Label})
+			emitType(ans[0].Label)
 			return
 		}
 	}
@@ -536,7 +550,7 @@ func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 	if fallback == "" {
 		fallback = creatureTypeFallback(g, c.Controller)
 	}
-	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "type", Text: fallback})
+	emitType(fallback)
 }
 
 // chooseTypeLabels returns the option labels for the resolving ChooseType's
