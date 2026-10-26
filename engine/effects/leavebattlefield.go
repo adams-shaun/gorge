@@ -361,8 +361,8 @@ var registerLeaveExileCodes = state.NewStrCodes(
 // animateSelfMayPlayGrant builds the may-play ContinuousEffect an Animate
 // staticAbilities$ body grants the animated card: a Mode$ Continuous static
 // that is MayPlay$ True over Card.Self (optionally +nonLand) and nothing
-// else this build cannot read (no ValidAfterStack$, MayPlayPlayer$ or free
-// cast). A card off the battlefield and off the stack anchors the zone-scoped
+// else this build cannot read (no ValidAfterStack$, MayPlayPlayer$,
+// CheckSVar$/SVarCompare$ gate or free cast). A card off the battlefield and off the stack anchors the zone-scoped
 // grant to its CR 400.7 identity (state.ContinuousEffect.SourceZoneGen), so
 // the permission ends when the card leaves the zone it was granted in even
 // though the same ObjID returns; the caller owns every other lifetime field.
@@ -376,7 +376,13 @@ func animateSelfMayPlayGrant(h Host, c *Ctx, id state.ObjID, params map[string]s
 		return state.ContinuousEffect{}, false
 	}
 	ce, ok := mayPlayGrantFromLine(params)
-	if !ok || ce.MayPlayValidAfterStack != "" || ce.MayPlayPlayer != "" {
+	if !ok || ce.MayPlayValidAfterStack != "" || ce.MayPlayPlayer != "" || ce.MayPlayCheckSVar != "" {
+		// The CheckSVar$ refusal keeps the Animate staticAbilities$ route
+		// (Monk Class's StPlay) on its loud unimplemented Note: the shared
+		// grant builder now carries gate keys for the Effect route, but this
+		// route binds no resolving-face SVar table, so carrying one would be
+		// an unevaluable gate bound to the wrong face (fails closed forever)
+		// and would silence the Note without making the card playable.
 		return state.ContinuousEffect{}, false
 	}
 	if o := h.Game().Obj(id); o == nil {

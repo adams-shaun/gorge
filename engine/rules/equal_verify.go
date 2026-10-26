@@ -20,7 +20,7 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 121
+	continuousEffectFieldCount = 123
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
@@ -143,6 +143,8 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.MayLookAt == b.MayLookAt &&
 		a.MayLookAtAll == b.MayLookAtAll &&
 		a.MayPlayPlayer == b.MayPlayPlayer &&
+		a.MayPlayCheckSVar == b.MayPlayCheckSVar &&
+		a.MayPlaySVarCompare == b.MayPlaySVarCompare &&
 		a.MayPlayIgnoreType == b.MayPlayIgnoreType &&
 		a.ForgetOnMoved == b.ForgetOnMoved &&
 		a.ExileOnMoved == b.ExileOnMoved &&
