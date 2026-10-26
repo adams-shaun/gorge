@@ -169,8 +169,8 @@ func TestGrubCopiesTheBlightedCreature(t *testing.T) {
 
 // TestCopyPermanentChoicesCensus is the corpus-wide ratchet over every
 // CopyPermanent ability carrying Choices$: the ones still blocked are exactly
-// the shapes this primitive does not model (a multi-pick WithDifferentNames$,
-// a Pawprint$ mode, a non-Zndrsplt Chooser$). The list may only shrink.
+// the shapes this primitive does not model (a Pawprint$ mode, a non-Zndrsplt
+// Chooser$). The list may only shrink.
 func TestCopyPermanentChoicesCensus(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	total := 0
@@ -204,9 +204,8 @@ func TestCopyPermanentChoicesCensus(t *testing.T) {
 	}
 	sort.Strings(blocked)
 	want := []string{
-		"Battle for Bretagard/DBCopy", // WithDifferentNames$ multi-pick
-		"Season of Weaving/DBCopy",    // Pawprint$
-		"The Bean/DBCopyEach",         // Chooser$ Remembered over ControlledBy Remembered
+		"Season of Weaving/DBCopy", // Pawprint$
+		"The Bean/DBCopyEach",      // Chooser$ Remembered over ControlledBy Remembered
 	}
 	if total < 20 {
 		t.Fatalf("census saw %d Choices$ CopyPermanent abilities, want >= 20 (corpus missing?)", total)
