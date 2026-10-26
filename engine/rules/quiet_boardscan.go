@@ -185,7 +185,7 @@ func (e *Engine) quietStaticHit(p state.PlayerID, o *state.Object, sf *cards.Fac
 	// filter) -- and an AddAbility$ static whose Affected$ cannot reach
 	// an object p controls (and grants no Activator$ ability) gives p nothing.
 	if h&qbhMayPlay != 0 && o.Controller != p && e.controllerOf(o.ID) != p &&
-		!mayPlayPerCardBeneficiary(st.ParamStr(cards.PKMayPlayPlayer)) {
+		!mayPlaySeatBeneficiary(st.ParamStr(cards.PKMayPlayPlayer)) {
 		h &^= qbhMayPlay
 	}
 	if h&qbhAddAbility != 0 && e.quietAddAbilityStaticClears(p, o, sf, st) {

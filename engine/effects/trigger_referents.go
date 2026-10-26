@@ -439,9 +439,16 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	// shared player-spec evaluator (controlReferentPlayers below), exactly like
 	// Player.EnchantedBy. The label is dynamic, so it is a prefix arm rather
 	// than a table key, and it is deliberately the ONLY delegated Player.*
-	// qualifier: the other unrecognised refs (Player.Opponent, Player.Other,
-	// Player.Active) stay unknown and keep failing closed.
+	// qualifier: the other unrecognised refs (Player.Opponent, Player.Other)
+	// stay unknown and keep failing closed.
 	if controlReferentNotedForLabel(ref) != "" {
+		return op, ref, true
+	}
+	// Player.Active resolves directly to the active seat in
+	// controlReferentPlayers (the only corpus carrier is Weftwalking's
+	// Affected$ and its ThisTurnCast gate); Player.Opponent and Player.Other
+	// stay unknown and keep failing closed.
+	if ref == "Player.Active" {
 		return op, ref, true
 	}
 	return "", "", false
@@ -643,6 +650,11 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 				targets = append(targets, state.Target{IsPlayer: true, Player: state.PlayerID(p)})
 			}
 		}
+	case controlReferentPlayersPlayerActive:
+		// Player.Active is a global player property: the active player,
+		// whoever's static or ability reads it (Weftwalking's "Card.nonLand+
+		// ControlledBy Player.Active").
+		targets = []state.Target{{IsPlayer: true, Player: g.Active}}
 	default:
 		return nil, false
 	}
@@ -836,6 +848,7 @@ const (
 	controlReferentPlayersNextOpponentToYourLeft
 	controlReferentPlayersChosenPlayer
 	controlReferentPlayersPlayerEnchantedBy
+	controlReferentPlayersPlayerActive
 	controlReferentPlayersTriggeredActivator
 	controlReferentPlayersTriggeredAttackingPlayer
 )
@@ -865,4 +878,5 @@ var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "ChosenPlayer", Val: controlReferentPlayersChosenPlayer},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.Chosen", Val: controlReferentPlayersChosenPlayer},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.EnchantedBy", Val: controlReferentPlayersPlayerEnchantedBy},
+	state.StrEntry[controlReferentPlayersCode]{Key: "Player.Active", Val: controlReferentPlayersPlayerActive},
 )
