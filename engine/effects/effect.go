@@ -1090,7 +1090,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			if mode == "CantBlock" && !CantBlockRestrictionParamsReadable(params) {
+			if mode == "CantBlock" && (!CantBlockRestrictionParamsReadable(params) || ep.SetChosenNumber != "") {
+				// A SetChosenNumber$ Effect (Rumbling Ruin's powerLEX over
+				// Count$ChosenNumber) freezes a count the block-time spec read
+				// cannot see; registering it would read the source's 0 and
+				// restrict nothing, so it stays the loud Note.
 				// An Effect-delivered CantBlock body (Cosmotronic Wave's
 				// "creatures your opponents control can't block this turn",
 				// Immobilizer Eldrazi, Ahn-Crop Crasher, Ember Gale) registers

@@ -367,3 +367,49 @@ func TestEffectCantBlockUnreadParamStaysUnregistered(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestEffectCantBlockChosenNumberStaysUnregistered: a Rumbling Ruin-shaped
+// body (SetChosenNumber$ + powerLEX over Count$ChosenNumber) fails closed to
+// the Note rather than registering a restriction that reads the source's 0.
+func TestEffectCantBlockChosenNumberStaysUnregistered(t *testing.T) {
+	t.Parallel()
+	gated := "Name:Ruin Wave\nManaCost:R\nTypes:Sorcery\n" +
+		"A:SP$ Effect | SetChosenNumber$ 2 | StaticAbilities$ CB | SpellDescription$ Creatures your opponents control can't block this turn.\n" +
+		"SVar:CB:Mode$ CantBlock | ValidCard$ Creature.OppCtrl+powerLEX | Description$ Creatures your opponents control can't block this turn.\nSVar:X:Count$ChosenNumber\nOracle:x\n"
+	e, cfg, spellID, ids := cantBlockPlace(t, 6159, []string{"a", "b"},
+		card(t, gated), []*cards.Card{card(t, cantBlockAttackerSrc), card(t, cantBlockDefenderSrc)})
+	atkID, blkID := ids[0], ids[1]
+	driveToStepAll(t, e, 3, 0, state.StepMain1)
+	cantBlockToHand(t, e, spellID)
+	cantBlockCast(t, e, spellID, "R")
+
+	if !hasNote(e, "continuous effect CantBlock unimplemented") {
+		t.Fatal("no unimplemented Note for the SetChosenNumber$ CantBlock body")
+	}
+	if ce := cantBlockRegistered(t, e); ce != nil {
+		t.Fatalf("the SetChosenNumber$ body registered a CantBlock restriction anyway: %+v", *ce)
+	}
+	if e.blockRestricted(blkID, atkID) {
+		t.Fatal("the unread-param body restricted blocking anyway")
+	}
+	e.G.Obj(atkID).SummonSick = false
+	driveToStepAll(t, e, 3, 0, state.StepDeclareAttackers)
+	e.askAttackers()
+	submitAttackers(t, e, atkID)
+	e.G.Step = state.StepDeclareBlockers
+	e.askBlockers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KBlockers {
+		t.Fatalf("blocker decision = %+v, want the creature offered (nothing registered)", d)
+	}
+	found := false
+	for _, o := range d.Options {
+		if o.Obj == blkID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("the creature lost its block option to an unregistered body: %+v", d.Options)
+	}
+	replayCheck(t, e, cfg)
+}

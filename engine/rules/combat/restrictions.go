@@ -288,7 +288,9 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 	// "you"/"opponent" pivot and its RememberedPlayers bound, the same
 	// consultation-time channel the CantBlockBy registered walk reads; the
 	// registration gate (effects.CantBlockRestrictionParamsReadable) has
-	// already refused every body whose scoping this loop cannot evaluate, so
+	// already refused every body whose scoping this loop cannot evaluate
+	// (unread parameters, and a SetChosenNumber$ Effect whose frozen count
+	// the spec read here cannot see), so
 	// the empty-spec read falls to the ordinary matcher's empty-set
 	// fail-closed direction.
 	for ceI, ceL := 0, b.Active(); ceI < len(ceL); ceI++ {
