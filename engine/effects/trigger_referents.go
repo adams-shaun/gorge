@@ -46,6 +46,13 @@ type TriggerContext struct {
 	// DefenderFixed is the effect itself names the defender (K:Ninjutsu's
 	// CR 702.49c), so CR 508.4's controller choice is not offered.
 	DefenderFixed bool
+	// DefenderObj is the planeswalker or battle the triggering attacker is
+	// attacking, bound per instance on a Mode$ Attacks trigger (CR 508.3a)
+	// from the attacker's AttackingBattle. It is Forge's TriggeredDefender
+	// when that defender is not a player (Raid Bombardment's "Valid
+	// Planeswalker.TriggeredDefender"); DefendingPlayer stays the defending
+	// seat. Zero for a player defender and every other trigger mode.
+	DefenderObj   state.ObjID
 	TriggerPlayer state.Target
 	TriggerCard   state.ObjID
 	// DelayedObject is the causing event's object for a delayed trigger:

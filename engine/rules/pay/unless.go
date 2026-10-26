@@ -386,6 +386,23 @@ func unlessChoiceComponentsPayable(e Engine, p state.PlayerID, cost costvocab.Co
 	add(state.ZHand, "revealcost", cost.Reveal)
 	add(state.ZBattlefield, "beholdcost", cost.Behold)
 	add(state.ZBattlefield, "returncost", cost.Return)
+	add(state.ZBattlefield, UnlessKindTap, cost.TapPermanent)
+	for _, part := range cost.Blight {
+		subs = append(subs, slot{zone: state.ZBattlefield, kind: UnlessKindBlight, part: part})
+	}
+	for _, part := range cost.AddCounter {
+		subs = append(subs, slot{zone: state.ZBattlefield, kind: UnlessKindCounter, part: part})
+	}
+	if cost.Waterbend > 0 {
+		wb, _, _ := unlessSpecialPartAt(cost, len(cost.TapPermanent)+len(cost.Blight))
+		for range WaterbendTapsOwed(e.Game(), p, cost.Waterbend) {
+			subs = append(subs, slot{zone: state.ZBattlefield, kind: UnlessKindWaterbend, part: wb})
+		}
+	}
+	var evidenceNeed int32
+	for _, part := range cost.Evidence {
+		evidenceNeed += part.N
+	}
 	// Whole-zone Exile parts take the entire zone, so they are validated and
 	// marked used first; an ordinary Exile part then joins the bipartite
 	// match like any other pick.
@@ -411,6 +428,12 @@ func unlessChoiceComponentsPayable(e Engine, p state.PlayerID, cost costvocab.Co
 		}
 		for i := int32(0); i < part.N; i++ {
 			subs = append(subs, slot{zone: UnlessExileZone(part), kind: "exilecost", part: part})
+		}
+	}
+	if evidenceNeed > 0 {
+		pool := UnlessCandidatesFor(e, p, *ctx, state.ZGraveyard, UnlessKindEvidence, costvocab.CostPart{N: evidenceNeed}, used)
+		if EvidenceManaValue(e.Game(), p, pool) < evidenceNeed {
+			return false
 		}
 	}
 	if len(subs) == 0 {
@@ -441,6 +464,9 @@ func UnlessCandidatesFor(e Engine, payer state.PlayerID, ctx effects.Ctx, zone s
 	seen := make(map[state.ObjID]bool, len(used))
 	for _, id := range used {
 		seen[id] = true
+	}
+	if out, ok := unlessSpecialCandidates(e, payer, ctx, zone, kind, part, seen); ok {
+		return out
 	}
 	sc := ctx.SpecContext(payer)
 	// A Behold<N/Spec> part (CR 702.176) draws its candidates from TWO zones:

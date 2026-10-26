@@ -1425,7 +1425,7 @@ func positiveRecognised(p string) bool {
 	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
 		return true
 	}
-	if p == "TriggeredNewCard" || p == "TriggeredCard" || p == "TriggeredCards" || p == "TriggeredTarget" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
+	if p == "TriggeredNewCard" || p == "TriggeredCard" || p == "TriggeredCards" || p == "TriggeredTarget" || p == "TriggeredDefender" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
 		return true
 	}
 	if _, ok := notDefinedTriggerReferent(p); ok {
@@ -2247,6 +2247,17 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	}
 	if p == "TriggeredTarget" {
 		return matchTriggeredTarget(o, sc)
+	}
+	if p == "TriggeredDefender" {
+		// Forge's Planeswalker.TriggeredDefender (Raid Bombardment, Myr
+		// Battlesphere): the candidate is the planeswalker/battle the
+		// triggering attacker is attacking (DefenderObj). A bound combat
+		// trigger whose defender is a player is a resolved no-match; with no
+		// combat binding at all the referent is absent and fails closed.
+		if sc.DefenderObj != 0 {
+			return o.ID == sc.DefenderObj, true
+		}
+		return false, sc.DefendingPlayer.IsPlayer
 	}
 	if p == "TriggeredCards" {
 		// Forge's Card.TriggeredCards set property inside an ordinary filter
