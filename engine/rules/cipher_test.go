@@ -111,7 +111,7 @@ func resolveCipher(t *testing.T, e *Engine, cipherID state.ObjID, encodeChoice [
 		t.Fatalf("precondition: cipher card in zone %v, want library", o.Zone)
 	}
 	base := len(e.L.Events)
-	e.beginPlay(0, cipherID, true, "", false, false)
+	e.beginPlay(0, cipherID, true, "", false, false, "")
 	if n := countPutOnStackFor(e, base, o.Face().Name); n != 1 {
 		t.Fatalf("precondition: actual cast put %d %s on the stack, want one", n, o.Face().Name)
 	}
@@ -216,7 +216,7 @@ func castCipherDelusions(t *testing.T, e *Engine, id state.ObjID, encodeChoice [
 		t.Fatalf("precondition: Paranoid Delusions %d must be in library", id)
 	}
 	base := len(e.L.Events)
-	e.beginPlay(0, id, true, "", false, false)
+	e.beginPlay(0, id, true, "", false, false, "")
 	if n := countPutOnStackFor(e, base, "Paranoid Delusions"); n != 1 {
 		t.Fatalf("precondition: actual cast put %d Paranoid Delusions on the stack, want one", n)
 	}

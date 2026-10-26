@@ -198,6 +198,8 @@ var charmKnownKeys = [...]string{
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "MinCharmNum", "ModeCost",
 	"Monstrosity", "NewController", "NoPutDesc", "NonBasicSpell", "NumRandomChoices", "OpponentTurn", "Optional",
+	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "MinCharmNum", "ModeCost",
+	"Monstrosity", "NewController", "NonBasicSpell", "NumRandomChoices", "OpponentTurn", "Optional",
 	"Pawprint", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",
 	"PresentDefined", "PresentZone", "PrimaryPrompt", "Random", "RandomCompare", "RandomCompareSVar", "RandomNumTargets",
 	"ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor",

@@ -98,6 +98,8 @@ var attachKnownKeys = [...]string{
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
 	"NewController", "NoPutDesc", "NonBasicSpell", "Object",
+	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
+	"NewController", "NonBasicSpell", "Object",
 	"OpponentTurn", "Optional", "Origin", "Planeswalker", "PlayCost", "PlayerChoices",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberAttached",

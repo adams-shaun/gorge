@@ -97,6 +97,8 @@ var repeatEachKnownKeys = [...]string{
 	"ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword",
 	"KeywordLine", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"ModeCost", "Monstrosity", "NewController", "NoPutDesc", "NonBasicSpell", "OpponentTurn",
+	"KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
+	"ModeCost", "Monstrosity", "NewController", "NonBasicSpell", "OpponentTurn",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "RepeatCards",

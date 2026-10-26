@@ -128,6 +128,8 @@ var manaReflectedKnownKeys = [...]string{
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW",
 	"Keyword", "KeywordLine", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"ModeCost", "Monstrosity", "NewController", "NoPutDesc", "NonBasicSpell", "OpponentTurn", "Planeswalker",
+	"Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
+	"ModeCost", "Monstrosity", "NewController", "NonBasicSpell", "OpponentTurn", "Planeswalker",
 	"PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "PrimaryPrompt", "Produced", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"ReflectProperty", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor",

@@ -4,5 +4,4 @@ Green Sun's Twilight	param:api:DigMultiple.ChangeLater,param:api:DigMultiple.Cha
 Kaito, Dancing Shadow	param:stat:NumLoyaltyAct.Twice
 Koth, Fire of Resistance	param:api:ChangeZone.NumCards
 Melira, the Living Cure	param:api:ImmediateTrigger.AfterReplacement
-Sheoldred's Edict	param:api:Sacrifice.SacMessage
 Voidwing Hybrid	param:trig:Proliferate.PresentPlayer

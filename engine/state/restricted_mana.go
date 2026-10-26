@@ -1,5 +1,7 @@
 package state
 
+import "strings"
+
 // ManaRestriction is a batch of floating mana that may be spent only for a
 // Forge RestrictValid$ payment. Pool keeps the colour totals for display and
 // ordinary payment; these records retain the provenance Pool deliberately
@@ -55,6 +57,40 @@ type ManaRestriction struct {
 	// the spell's entry). Empty for every batch whose ability has no rider
 	// and for every historical batch, so the encoding stays byte-identical.
 	AddsCounters string
+	// AddsKeywords is the producing ability's AddsKeywords$ rider ("if that
+	// mana is spent on a Dragon creature spell, it gains haste"), snapshotted
+	// at production like AddsCounters and carried by the " ak=" Text segment.
+	// The zero value is no rider.
+	AddsKeywords ManaKeywordRider
+}
+
+// ManaKeywordRider is one mana ability's AddsKeywords$ rider: Keywords is
+// the raw AddsKeywords$ value (" & "-separated), Valid the AddsKeywordsValid$
+// spell filter ("" admits every spell), Until the AddsKeywordsUntil$ value
+// ("" is permanent, "UntilEOT" lasts to end of turn).
+type ManaKeywordRider struct {
+	Keywords string
+	Valid    string
+	Until    string
+}
+
+// AppendGrants appends one grant per keyword of the rider (the AddsKeywords$
+// value is " & "-separated) to dst.
+func (r ManaKeywordRider) AppendGrants(dst []ManaAddsKeywordGrant) []ManaAddsKeywordGrant {
+	for kw := range strings.SplitSeq(r.Keywords, "&") {
+		if kw = strings.TrimSpace(kw); kw != "" {
+			dst = append(dst, ManaAddsKeywordGrant{Keyword: kw, Until: r.Until})
+		}
+	}
+	return dst
+}
+
+// ManaAddsKeywordGrant is one keyword a cast earned from a spent
+// AddsKeywords$ rider (CR 106.6): rules' entry hook grants it to the
+// permanent the spell becomes (CR 400.7a).
+type ManaAddsKeywordGrant struct {
+	Keyword string
+	Until   string
 }
 
 // ManaAddsCounterGrant is one AddsCounters$ mana-spend rider grant a cast

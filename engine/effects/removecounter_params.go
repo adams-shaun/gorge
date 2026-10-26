@@ -102,6 +102,8 @@ var removeCounterKnownKeys = [...]string{
 	"ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
 	"NewController", "NoPutDesc", "NonBasicSpell", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
+	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
+	"NewController", "NonBasicSpell", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAmount",
 	"RememberAnimated", "RememberCostMana", "RememberObjects", "RememberRemoved", "RememberTargets", "ReplaceColor",

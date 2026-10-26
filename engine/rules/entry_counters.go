@@ -812,6 +812,7 @@ func isolatePreviewScratch(p *Engine) {
 	p.secretVoteBallots = slices.Clone(p.secretVoteBallots)
 	p.lifeLossBatch = slices.Clone(p.lifeLossBatch)
 	p.ManaSpentAddsCounters = slices.Clone(p.ManaSpentAddsCounters)
+	p.ManaSpentAddsKeywords = slices.Clone(p.ManaSpentAddsKeywords)
 	p.ManaSpentSources = slices.Clone(p.ManaSpentSources)
 	p.PaymentPlanCarriers = slices.Clone(p.PaymentPlanCarriers)
 	p.PaymentPlanRelaxed = slices.Clone(p.PaymentPlanRelaxed)

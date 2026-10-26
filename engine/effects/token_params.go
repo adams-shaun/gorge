@@ -91,6 +91,8 @@ var tokenKnownKeys = [...]string{
 	"InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
 	"NewController", "NoPutDesc", "NonBasicSpell", "OpponentTurn", "Planeswalker", "PlayCost", "PlayerTurn",
+	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
+	"NewController", "NonBasicSpell", "OpponentTurn", "Planeswalker", "PlayCost", "PlayerTurn",
 	"PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone",
 	"PrimaryPrompt", "PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberCostMana", "RememberObjects", "RememberOriginalTokens", "RememberTargets", "RememberTokens",

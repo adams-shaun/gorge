@@ -234,9 +234,7 @@ func AttackRequirements(b Board, id state.ObjID) RequirementSet {
 			}
 			continue
 		}
-		if p, ok := requirementDefender(b, spec, ce.Source, ce.Controller, ce.RememberedPlayers); ok {
-			s.addNamed(p)
-		}
+		s.addRequirementDefenders(b, spec, ce.Source, ce.Controller, ce.RememberedPlayers)
 	}
 	for _, sv := range b.Statics("MustAttack") {
 		if !effects.MustAttackParamsReadableForRules(sv.Params) || !b.StaticGateHolds(sv) {
@@ -256,9 +254,7 @@ func AttackRequirements(b Board, id state.ObjID) RequirementSet {
 			}
 			continue
 		}
-		if p, ok := requirementDefender(b, spec, sv.Source, sv.Controller, nil); ok {
-			s.addNamed(p)
-		}
+		s.addRequirementDefenders(b, spec, sv.Source, sv.Controller, nil)
 	}
 	if HasActiveGoad(b, o) {
 		s.Goad = true
@@ -295,8 +291,9 @@ func mustAttackLineSelects(b Board, spec string, id state.ObjID, source state.Ob
 // Remembered.NonActive additionally requires that player not be the active
 // one. You binds to the controller captured by the registration. Remembered
 // binds only when exactly one player was captured; ambiguous registrations
-// fail closed. Other references need bindings or evaluators this build does
-// not carry and therefore fail closed.
+// fail closed. The defined references (CardOwner, EnchantedController, ...)
+// need bindings this build does not carry and therefore fail closed; the
+// player-filter spellings are handled by addRequirementDefenders.
 func requirementDefender(b Board, spec string, source state.ObjID, controller state.PlayerID, rememberedPlayers []state.PlayerID) (state.PlayerID, bool) {
 	switch requirementDefenderCodes.Code(string(strings.TrimSpace(spec))) {
 	case requirementDefenderChosenPlayer:
@@ -325,6 +322,63 @@ func requirementDefender(b Board, spec string, source state.ObjID, controller st
 		}
 	}
 	return 0, false
+}
+
+// addRequirementDefenders records the defender(s) a MustAttack$ player
+// reference names. The fixed requirementDefender switch goes first; when it
+// does not resolve, the spec is read as a player filter (Player.Other,
+// Opponent.lifeEQX, ...) and EVERY live non-attacking player it matches is
+// named, so attacking any of them satisfies the one requirement (Forge's
+// AttackRequirement.defenderSpecific counts each listed entity, CR 508.1d).
+// Players are walked in turn order from the active player, never by map.
+func (s *RequirementSet) addRequirementDefenders(b Board, spec string, source state.ObjID, controller state.PlayerID, rememberedPlayers []state.PlayerID) {
+	if p, ok := requirementDefender(b, spec, source, controller, rememberedPlayers); ok {
+		s.addNamed(p)
+		return
+	}
+	if !playerFilterSpec(spec) {
+		return
+	}
+	g := b.Game()
+	ctx := b.PlayerSpecCtx(source)
+	for _, p := range g.AliveFrom(g.Active) {
+		if p == g.Active {
+			continue
+		}
+		if effects.MatchesPlayerSpecCtx(g, spec, p, controller, ctx) {
+			s.addNamed(p)
+		}
+	}
+}
+
+// playerFilterSpec reports whether every comma alternative of spec is a
+// Player/Opponent filter. The grammar also evaluates defined references
+// (CardOwner, EnchantedController, You,...) that are not filters; those stay
+// fail-closed here.
+func playerFilterSpec(spec string) bool {
+	for start := 0; start <= len(spec); {
+		end := start
+		for end < len(spec) && spec[end] != ',' {
+			end++
+		}
+		if !playerFilterAlt(spec[start:end]) {
+			return false
+		}
+		start = end + 1
+	}
+	return true
+}
+
+// playerFilterAlt is one comma alternative: a Player or Opponent base with
+// an optional `.`/`+` qualifier tail.
+func playerFilterAlt(alt string) bool {
+	for _, base := range [...]string{"Player", "Opponent"} {
+		if len(alt) >= len(base) && alt[:len(base)] == base &&
+			(len(alt) == len(base) || alt[len(base)] == '.' || alt[len(base)] == '+') {
+			return true
+		}
+	}
+	return false
 }
 
 // requirementPermanent resolves a MustAttack$ reference that names an

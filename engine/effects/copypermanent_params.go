@@ -150,6 +150,8 @@ var copyPermanentKnownKeys = [...]string{
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
 	"NewController", "NoPutDesc", "NonBasicSpell", "NonLegendary", "NumCopies", "OpponentTurn",
+	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
+	"NewController", "NonBasicSpell", "NonLegendary", "NumCopies", "OpponentTurn",
 	"Pawprint", "Planeswalker", "PlayCost", "PlayerTurn", "Populate", "PowerUp",
 	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "PumpDuration",
 	"PumpKeywords", "RandomCopied", "RandomNum", "RandomNumTargets", "ReduceAmount", "ReduceCost",
