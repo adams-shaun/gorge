@@ -548,6 +548,11 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 // id when the batch's event recorded one, so source-relative filter
 // predicates (Cavern of Souls' ChosenType) resolve against the mana source;
 // source-less batches keep the historical paid-card reading.
+//
+// CantCastNonArtifactSpells and CantCastSpellFromHand are "can't" restrictions
+// on SPELLS only (CR 106.6): they leave every non-spell payment class
+// (activated abilities, cumulative upkeep, other costs) free, matching Forge's
+// !sa.isSpell() reading.
 func RestrictValidMatches(e Engine, p state.PlayerID, d Descriptor, valid string, src state.ObjID) bool {
 	for term := range strings.SplitSeq(strings.TrimSpace(valid), ",") {
 		if restrictValidTermMatches(e, p, d, strings.TrimSpace(term), src) {
@@ -567,10 +572,10 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 			return d.Class == PurposeActivated
 		case restrictValidTermMatchesCantCastNonArtifactSpells:
 			o := e.Game().Obj(d.ID)
-			return d.Class == PurposeSpell && o != nil && o.Face() != nil && o.Face().IsArtifact()
+			return d.Class != PurposeSpell || (o != nil && o.Face() != nil && o.Face().IsArtifact())
 		case restrictValidTermMatchesCantCastSpellFromHand:
 			_, ok := e.CastProvenanceAdmitsPending("Card.!wasCastFromYourHand", d.ID, p)
-			return d.Class == PurposeSpell && ok
+			return d.Class != PurposeSpell || ok
 		case restrictValidTermMatchesCostContainsX:
 			// An announced X was folded into Generic (Cost.WithX clears
 			// Cost.X), so the descriptor's marker carries it — the cost the
