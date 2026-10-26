@@ -68,13 +68,9 @@ func (r *charsReader) SameColorRevealSets(p state.PlayerID, source state.ObjID, 
 	return e.sameColorRevealSets(p, source, excludeSource)
 }
 
-func (r *charsReader) TapPower(id state.ObjID, saKind string) int32 {
+func (r *charsReader) TapContribution(id state.ObjID, saKind string) (int32, bool) {
 	e := r.eng()
-	return e.tapPowerValue(id, saKind)
-}
-
-func (r *charsReader) DropCantCrew(ids []state.ObjID) []state.ObjID {
-	return r.eng().dropCantCrew(ids)
+	return e.tapPowerValue(id, saKind), saKind != "Crew" || !e.cantCrew(id)
 }
 
 // ZoneEntrySeq (chars.Reader) is the zone-entry index's sequence for id.

@@ -16,21 +16,37 @@ import (
 func TapPowerSum(e Engine, ids []state.ObjID, saKind string) int32 {
 	sum := int32(0)
 	for _, id := range ids {
-		sum += e.Chars().TapPower(id, saKind)
+		pw, _ := e.Chars().TapContribution(id, saKind)
+		sum += pw
 	}
 	return sum
 }
 
 // FilterCrewCandidates drops from ids the creatures a stat:CantCrew static
 // forbids from paying a Crew cost (CR 702.122a); every other tap kind
-// (Saddle, Station, a hand-written tapXType) returns ids untouched. The
-// "any CantCrew static?" test is hoisted so a board without one costs a
-// single check and no allocation.
+// (Saddle, Station, a hand-written tapXType) returns ids untouched, and so
+// does a Crew list nothing is dropped from (no allocation on a board without
+// a CantCrew static).
 func FilterCrewCandidates(e Engine, ids []state.ObjID, tapKind string) []state.ObjID {
 	if tapKind != "Crew" {
 		return ids
 	}
-	return e.Chars().DropCantCrew(ids)
+	var out []state.ObjID
+	for i, id := range ids {
+		if _, ok := e.Chars().TapContribution(id, tapKind); !ok {
+			if out == nil {
+				out = append(make([]state.ObjID, 0, len(ids)-1), ids[:i]...)
+			}
+			continue
+		}
+		if out != nil {
+			out = append(out, id)
+		}
+	}
+	if out == nil {
+		return ids
+	}
+	return out
 }
 
 // TapTopPowerSum is tapPowerSum for a literal tapXType<N/...> part with a
@@ -46,7 +62,8 @@ func TapTopPowerSum(e Engine, ids []state.ObjID, n int, saKind string) int32 {
 	}
 	pw := make([]int32, 0, len(ids))
 	for _, id := range ids {
-		pw = append(pw, e.Chars().TapPower(id, saKind))
+		v, _ := e.Chars().TapContribution(id, saKind)
+		pw = append(pw, v)
 	}
 	sort.Slice(pw, func(a, b int) bool { return pw[a] > pw[b] })
 	sum := int32(0)
@@ -259,7 +276,8 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 						continue
 					}
 					avail++
-					floorSum += e.Chars().TapPower(oid, tapKind)
+					v, _ := e.Chars().TapContribution(oid, tapKind)
+					floorSum += v
 				}
 				if avail == 0 {
 					return false
