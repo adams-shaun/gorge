@@ -177,7 +177,7 @@ this snapshot.
   parameters. Its per-card files in `engine/rules/testdata/paramcensus/` hold 15 cards that carry an
   unread param or an unmodelled cost token: 11 distinct param labels and 1
   cost label.
-- **Set-scoped param census: 410 of 7009.** `TestEveryStandardSetParamsAreRead`
+- **Set-scoped param census: 408 of 7009.** `TestEveryStandardSetParamsAreRead`
   (`engine/rules/paramcensus_sets_test.go`) walks the 26 Standard-program set lists in
   `testdata/sets/` against baselines `testdata/paramcensus-sets/<SET>.tsv`
   (`PARAMCENSUS_SETS_REGEN=1`): 410 cards, 141 distinct labels at cr-g160.
