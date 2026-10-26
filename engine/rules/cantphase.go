@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -74,7 +72,7 @@ func phaseBlocked(e cantPhaseEngine, id state.ObjID, in bool) bool {
 		if !e.staticGateHolds(sv) {
 			continue
 		}
-		if spec := strings.TrimSpace(sv.ParamStr(cards.PKValidCard)); spec != "" &&
+		if spec := sv.ParamStr(cards.PKValidCard); spec != "" &&
 			!e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			continue
 		}
