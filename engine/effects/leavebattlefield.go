@@ -208,12 +208,21 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 			})
 			continue
 		}
-		if mode != "CantSacrifice" && mode != "CantBlockUnless" && mode != "CantAttackUnless" {
+		if mode != "CantSacrifice" && mode != "CantBlockUnless" && mode != "CantAttackUnless" && mode != "CantBlockBy" {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
 			continue
 		}
 		if mode == "CantSacrifice" && !CantSacrificeRestrictionParamsReadable(params) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
+			continue
+		}
+		if mode == "CantBlockBy" && !CantBlockByRestrictionParamsReadable(params) {
+			// Surge Engine's granted "This creature can't be blocked" body
+			// (ValidAttacker$ Creature.Self) registers the same restriction a
+			// printed or Effect-delivered CantBlockBy does; a gated body this
+			// build's block consultation cannot evaluate stays loud.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
 			continue
