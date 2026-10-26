@@ -72,6 +72,12 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() || cp.Committed(paid, id) {
 			continue
 		}
+		// CR 118.3 / 602.2b: the source taps for the cost's own {T}, so it is
+		// never an untapped permanent a contribution (convoke, improvise,
+		// harmonize, waterbend) could tap first.
+		if in.SourceTaps && id == in.Card {
+			continue
+		}
 		group := fmt.Sprintf("payment:%d", id)
 		if in.Harmonize && o.EffectiveIsCreature() && (mana.Generic > 0 || hasX) {
 			// The reduction offered is the creature's ACTUAL power (CR
