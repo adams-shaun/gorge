@@ -87,7 +87,7 @@ var tokenKnownKeys = [...]string{
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards",
 	"DefinedTarget", "Description", "Exclude", "Exhaust", "ForgetOtherRemembered",
-	"ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards", "ImprintPlayed", "ImprintTokens",
+	"ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "Image", "ImprintCards", "ImprintPlayed", "ImprintTokens",
 	"InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
 	"NewController", "NonBasicSpell", "OpponentTurn", "Planeswalker", "PlayCost", "PlayerTurn",

@@ -248,7 +248,7 @@ var changeZoneKnownKeys = [...]string{
 	"Exactly", "Exclude", "Exhaust", "ExileFaceDown", "ExiledWithEffectSource", "FaceDown", "FaceDownPower",
 	"FaceDownSetType", "FaceDownToughness", "Foretold", "ForgetChanged",
 	"ForgetOtherRemembered", "ForgetOtherTargets", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit",
-	"Hidden", "Image", "Imprint", "ImprintCards", "ImprintLast", "ImprintPlayed",
+	"GiftDescription", "Hidden", "Image", "Imprint", "ImprintCards", "ImprintLast", "ImprintPlayed",
 	"InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword",
 	"KeywordLine", "LeaveBattlefield", "LibraryPosition", "LibraryPositionAlternative",
 	"Mandatory", "MaxRevealed", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",

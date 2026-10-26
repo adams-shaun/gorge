@@ -115,7 +115,7 @@ var digKnownKeys = [...]string{
 	"DefinedTarget", "Description", "DestZone2Optional", "DestinationZone", "DestinationZone2", "DigNum",
 	"Exclude", "Exhaust", "ExileFaceDown", "FaceDown", "FaceDownPower", "FaceDownSetType",
 	"FaceDownToughness", "ForceRevealToController", "Foretold", "ForgetOtherRemembered",
-	"ForgetOtherTargets", "FromBottom", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit", "Image", "Imprint", "ImprintCards",
+	"ForgetOtherTargets", "FromBottom", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit", "GiftDescription", "Image", "Imprint", "ImprintCards",
 	"ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"LibraryPosition", "LibraryPosition2", "MaxTotalTargetCMC", "MaxTotalTargetPower",
 	"Mentor", "ModeCost", "Monstrosity", "NewController", "NoLooking", "NoReveal",

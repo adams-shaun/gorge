@@ -89,7 +89,7 @@ var effectKnownKeys = [...]string{
 	"Defined", "DefinedCards", "DefinedTarget", "Description", "Duration",
 	"EffectOwner", "EffectZone", "Exclude", "Execute", "Exhaust", "ExileOnMoved",
 	"ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn",
-	"ForgetOtherRemembered", "ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards",
+	"ForgetOtherRemembered", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "Image", "ImprintCards",
 	"ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name",

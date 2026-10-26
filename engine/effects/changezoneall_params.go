@@ -120,7 +120,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"Defined", "DefinedCards", "DefinedExiler", "DefinedTarget", "Description", "Destination",
 	"Duration", "Exclude", "Exhaust", "ExileFaceDown", "FaceDown",
 	"FaceDownPower", "FaceDownSetType", "FaceDownToughness", "Foretold",
-	"ForgetOtherRemembered", "ForgetOtherTargets", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit", "Image",
+	"ForgetOtherRemembered", "ForgetOtherTargets", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit", "GiftDescription", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LibraryPosition",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
