@@ -269,3 +269,14 @@ func TestPutCounterAllSubLinkPlayerTarget(t *testing.T) {
 		t.Fatalf("p1's creature P1P1 = %d, want 0", got)
 	}
 }
+
+// TestPutCounterAllSubLinkPlayerTargetCastEndToEnd drives the real cast of
+// Twisted Fates: both targets announced at cast, the Destroy kills p1's
+// Ornithopter, and only the targeted player's (p0's) creature grows.
+func TestPutCounterAllSubLinkPlayerTargetCastEndToEnd(t *testing.T) {
+	t.Parallel()
+	runG120Scenario(t, `{"name":"fates","cr":["608.2b"],"why":"x",
+	 "setup":{"p0":{"battlefield":["Grizzly Bears"],"hand":["Twisted Fates"]},"p1":{"battlefield":["Ornithopter","Runeclaw Bear"]}},
+	 "steps":[{"op":"cast","seat":0,"card":"p0:Twisted Fates","mana":"CCWWB","targets":["p1:Ornithopter","p0"]},{"op":"resolve"}],
+	 "expect":[{"card":"p1:Ornithopter","zone":"graveyard"},{"card":"p0:Grizzly Bears","counters":{"P1P1":1}},{"card":"p1:Runeclaw Bear","counters":{"P1P1":0}}]}`)
+}
