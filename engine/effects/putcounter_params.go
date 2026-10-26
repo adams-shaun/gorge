@@ -158,7 +158,7 @@ var putCounterKnownKeys = [...]string{
 	"DividedAsYouChoose", "DividedRandomly", "ETB", "EachExistingCounter", "EachFromSource", "Exclude",
 	"Exhaust", "ForColor", "ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards", "ImprintPlayed",
 	"InstantSpeed", "IsCurse", "IsPresent", "KW",
-	"Keyword", "KeywordLine", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
+	"Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"MinChoiceAmount", "ModeCost", "Monstrosity", "NewController",
 	"NonBasicSpell", "OnlyNewKind", "OpponentTurn", "Optional", "PerDefined",
 	"Placer", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",

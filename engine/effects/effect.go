@@ -533,7 +533,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// remembered-object and original-controller filters), but is not
 			// a printed-trigger matcher. Admit only this explicitly handled
 			// delayed mode here; all other unknown modes remain fail-closed.
-			if tr.Mode != "ChangesController" && !h.TriggerModeSupported(tr.Mode) {
+			if tr.Mode != "ChangesController" && !effectCombatTriggerModes[tr.Mode] && !h.TriggerModeSupported(tr.Mode) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect trigger " + tr.Mode + " unimplemented"})
 				registered = true
@@ -1477,3 +1477,16 @@ func effectFaceSVars(h Host, source state.ObjID) map[string]string {
 	}
 	return nil
 }
+
+// effectCombatTriggerModes are the combat-declaration modes an Effect may
+// deliver: they have no trigmatch matcher (the walks in
+// engine/rules/trigger_blocks.go fire one instance per matching pair), so
+// TriggerModeSupported is false for them.
+var effectCombatTriggerModes = map[string]bool{
+	"AttackerBlocked": true, "AttackerBlockedByCreature": true,
+	"AttackerUnblocked": true, "Blocks": true,
+}
+
+// EffectDeliversCombatTrigger reports whether mode is a combat-declaration
+// trigger an Effect registers for real (see effectCombatTriggerModes).
+func EffectDeliversCombatTrigger(mode string) bool { return effectCombatTriggerModes[mode] }
