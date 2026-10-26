@@ -59,6 +59,17 @@ type staticView struct {
 	// for such a view and finds a pending cast's captured set by it
 	// (costStaticSpecCtx).
 	effectStamp uint32
+	// rememberedPlayers is the captured player set of an Effect-delivered
+	// restriction view (state.ContinuousEffect.RememberedPlayers): the
+	// Caster$ Player.IsRemembered clause (Orim's Chant's RememberObjects$
+	// TargetedPlayer) resolves against it through
+	// effects.RestrictionPlayerSpecMatches. Printed statics leave it nil.
+	rememberedPlayers []state.PlayerID
+	// effectDelivered marks a view castRestrictionSources built from a
+	// registered continuous restriction: actorMatches resolves its Caster$
+	// through the restriction player grammar instead of the printed-static
+	// one. Printed statics keep it false.
+	effectDelivered bool
 	// selfOnly marks a raise/reduce/set cost view whose ValidCard$ is exactly
 	// `Card.Self` (markCostSelfOnly). It is set only on views collected into a
 	// costStaticViews; the offer floor reads it (costStaticsInertFor).
@@ -400,11 +411,18 @@ func (e *Engine) scanActiveStatics(mode string, out []staticView) []staticView {
 
 // actorMatches implements the Caster$/Activator$ parameter, which scopes a
 // restriction to whose action it is. A restriction with no such parameter
-// applies regardless of actor.
+// applies regardless of actor. An effect-delivered view resolves the spec
+// through the restriction player grammar, so an IsRemembered clause (Orim's
+// Chant's Caster$ Player.IsRemembered) names the delivering Effect's captured
+// players instead of a source object's event-backed list; a printed static
+// keeps the ordinary player filter.
 func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) bool {
 	spec, ok := sv.Params[key]
 	if !ok {
 		return true
+	}
+	if sv.effectDelivered {
+		return effects.RestrictionPlayerSpecMatches(e.G, spec, actor, sv.Controller, sv.Source, sv.rememberedPlayers)
 	}
 	return effects.MatchesPlayerSpecCtx(e.G, spec, actor, sv.Controller, e.playerSpecCtx(sv.Source))
 }
