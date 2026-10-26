@@ -108,7 +108,7 @@ var tokenKnownKeys = [...]string{
 	"TokenToughness", "TriggerDescription", "Type", "Ultimate", "UnlessAI", "UnlessCost",
 	"UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "ValidCard", "ValidCards",
 	"ValidCardsDesc", "ValidChoices", "ValidCounterType", "ValidDescription", "ValidTgts",
-	"VoteMessage", "WithCountersAmount", "WithCountersType", "WithoutManaCost", "XMax",
+	"ValidTgtsDesc", "VoteMessage", "WithCountersAmount", "WithCountersType", "WithoutManaCost", "XMax",
 	"XMin",
 }
 
