@@ -18,6 +18,24 @@ func effectUnsupportedStatic(h Host, c *Ctx, mode string, params staticLineParam
 		})
 		return true
 	}
+	if mode == ModeAssignCombatDamageAsUnblocked &&
+		staticKeysReadable(params, "Mode", "ValidCard", "Optional", "Description") {
+		// CR 510.1c-d's "assign combat damage as though it weren't blocked",
+		// delivered by a resolved ability (Predatory Focus's Creature.YouCtrl
+		// this-turn grant, Outmaneuver's remembered blocked creatures,
+		// Gurzigost's Card.EffectSource self-grant). Registered as a
+		// restriction rules' asUnblockedStaticMatches reads beside the
+		// printed S: static route; Optional$ True keeps the controller
+		// election, an absent Optional$ is mandatory. A body carrying any
+		// other key fails closed to the unimplemented Note.
+		effectContinuous(h, state.ContinuousEffect{
+			Source: c.Source, Controller: c.Controller, Name: name,
+			UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
+			Restriction: mode, RestrictParams: params,
+			Remembered: remembered,
+		})
+		return true
+	}
 	if mode == ModeIgnoreLegendRule &&
 		staticKeysReadable(params, "Mode", "ValidCard", "Description") {
 		// CR 704.5j's exemption delivered by a resolved ability (Hall of
