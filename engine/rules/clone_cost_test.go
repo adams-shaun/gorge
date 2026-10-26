@@ -219,7 +219,13 @@ func TestUnlessPaymentCloneOwnsEveryPickSlice(t *testing.T) {
 	up.Beholds = make([]state.ObjID, 2, 4)
 	up.Returns = make([]state.ObjID, 2, 4)
 	up.Exiles = make([]state.ObjID, 2, 4)
-	for _, s := range [][]state.ObjID{up.Sacs, up.Discards, up.Reveals, up.Beholds, up.Returns, up.Exiles} {
+	up.Taps = make([]state.ObjID, 2, 4)
+	up.WaterbendTaps = make([]state.ObjID, 2, 4)
+	up.Blights = make([]state.ObjID, 2, 4)
+	up.CounterTo = make([]state.ObjID, 2, 4)
+	up.Evidence = make([]state.ObjID, 2, 4)
+	for _, s := range [][]state.ObjID{up.Sacs, up.Discards, up.Reveals, up.Beholds, up.Returns, up.Exiles,
+		up.Taps, up.WaterbendTaps, up.Blights, up.CounterTo, up.Evidence} {
 		s[0], s[1] = 1, 2
 	}
 	e.UnlessPayment = up
@@ -237,8 +243,10 @@ func TestUnlessPaymentCloneOwnsEveryPickSlice(t *testing.T) {
 		}
 	}
 	populated := map[string]bool{"Sacs": true, "Discards": true, "Reveals": true,
-		"Beholds": true, "Returns": true, "Exiles": true}
-	for _, name := range []string{"Sacs", "Discards", "Reveals", "Beholds", "Returns", "Exiles"} {
+		"Beholds": true, "Returns": true, "Exiles": true, "Taps": true, "WaterbendTaps": true,
+		"Blights": true, "CounterTo": true, "Evidence": true}
+	for _, name := range []string{"Sacs", "Discards", "Reveals", "Beholds", "Returns", "Exiles",
+		"Taps", "WaterbendTaps", "Blights", "CounterTo", "Evidence"} {
 		if !enumerated[name] {
 			t.Errorf("the walk did not enumerate unlessPayment pick slice %q; its struct shape changed and the walk must follow", name)
 		}
@@ -286,4 +294,9 @@ func TestUnlessPaymentCloneOwnsEveryPickSlice(t *testing.T) {
 	checkPickSliceClone("beholds", &e.UnlessPayment.Beholds, &c.UnlessPayment.Beholds)
 	checkPickSliceClone("returns", &e.UnlessPayment.Returns, &c.UnlessPayment.Returns)
 	checkPickSliceClone("exiles", &e.UnlessPayment.Exiles, &c.UnlessPayment.Exiles)
+	checkPickSliceClone("taps", &e.UnlessPayment.Taps, &c.UnlessPayment.Taps)
+	checkPickSliceClone("waterbendTaps", &e.UnlessPayment.WaterbendTaps, &c.UnlessPayment.WaterbendTaps)
+	checkPickSliceClone("blights", &e.UnlessPayment.Blights, &c.UnlessPayment.Blights)
+	checkPickSliceClone("counterTo", &e.UnlessPayment.CounterTo, &c.UnlessPayment.CounterTo)
+	checkPickSliceClone("evidence", &e.UnlessPayment.Evidence, &c.UnlessPayment.Evidence)
 }

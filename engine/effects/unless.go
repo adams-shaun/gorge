@@ -821,6 +821,9 @@ func sortTargets(ts []state.Target, rank map[state.PlayerID]int) {
 // than degrading to "Pay the cost". Display only, like unlessCostLabel: raw
 // cost syntax (Sac<1/Land>) must never reach a prompt or label.
 func unlessPayPhrase(cost string) string {
+	if n, ok := ParseDamageUnlessCost(cost); ok {
+		return "Take " + strconv.Itoa(n) + " damage"
+	}
 	if what, ok := sacrificeOneLabel(cost); ok {
 		return "Sacrifice " + what
 	}

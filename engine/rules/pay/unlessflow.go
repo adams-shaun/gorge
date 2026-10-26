@@ -281,25 +281,26 @@ func askUnlessPicks(e Engine, u *UnlessPayment, kind, prompt string, lo, hi int,
 	e.Ask(AskUnlessCost, d)
 }
 
-// unlessSpecialPrompt is the ask text of one special part.
+// unlessSpecialPrompt is the ask text of one special part (the amount to pick
+// rides the decision's Min/Max).
 func unlessSpecialPrompt(kind string, part costvocab.CostPart) string {
 	switch unlessSpecialKinds.Code(kind) {
 	case unlessSpecialTap:
 		if part.Desc != "" {
-			return fmt.Sprintf("Tap %d untapped %s you control to pay the cost", part.N, part.Desc)
+			return "Tap untapped " + part.Desc + " you control to pay the cost"
 		}
-		return fmt.Sprintf("Tap %d untapped permanent(s) you control to pay the cost", part.N)
+		return "Tap untapped permanents you control to pay the cost"
 	case unlessSpecialBlight:
-		return fmt.Sprintf("Choose a creature you control to put %d -1/-1 counter(s) on to pay the cost", part.N)
+		return "Choose a creature you control to blight to pay the cost"
 	case unlessSpecialCounter:
 		if part.Desc != "" {
-			return fmt.Sprintf("Choose where to put %d %s counter(s): %s", part.N, part.Spec, part.Desc)
+			return "Choose where to put the counter: " + part.Desc
 		}
-		return fmt.Sprintf("Choose where to put %d %s counter(s) to pay the cost", part.N, part.Spec)
+		return "Choose where to put the counter to pay the cost"
 	case unlessSpecialWaterbend:
 		return "Tap untapped artifacts and creatures you control to pay for waterbend"
 	}
-	return fmt.Sprintf("Exile cards from your graveyard with total mana value %d or more to collect evidence", part.N)
+	return "Exile cards from your graveyard to collect evidence"
 }
 
 // askUnlessMana opens one tap ask over the payer's remaining window-eligible
