@@ -630,6 +630,9 @@ const (
 	PKXMin
 	PKAddsCounters
 	PKAddsNoCounter
+	PKAddsKeywords
+	PKAddsKeywordsValid
+	PKAddsKeywordsUntil
 	PKAlternativeDecider
 	PKAlwaysRemember
 	PKAmountFromVotes
@@ -1474,6 +1477,9 @@ var paramKeyNames = [paramKeyCount]string{
 	PKXMin:                             "XMin",
 	PKAddsCounters:                     "AddsCounters",
 	PKAddsNoCounter:                    "AddsNoCounter",
+	PKAddsKeywords:                     "AddsKeywords",
+	PKAddsKeywordsValid:                "AddsKeywordsValid",
+	PKAddsKeywordsUntil:                "AddsKeywordsUntil",
 	PKAlternativeDecider:               "AlternativeDecider",
 	PKAlwaysRemember:                   "AlwaysRemember",
 	PKAmountFromVotes:                  "AmountFromVotes",

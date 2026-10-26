@@ -78,6 +78,10 @@ const (
 	// cloaked card). The game/state-aware family -- needs the object's own
 	// zone, classified here so matcher and UnknownPredicates agree.
 	wordFaceDown
+	// Forge's faceUp: the object is NOT face down (the negation Forge's
+	// Card.isFaceDown answers, in any zone -- the exile carriers read it).
+	// Game/state-aware, same family.
+	wordFaceUp
 	// Forge's IsRingbearer (CR 701.54e): the object is its controller's
 	// Ring-bearer. Game/state-aware -- needs the object's zone and the
 	// players' designations -- classified here so matcher and
@@ -487,6 +491,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordBottomLibrary, ""
 	case wordPredicateWordFaceDown:
 		return wordFaceDown, ""
+	case wordPredicateWordFaceUp:
+		return wordFaceUp, ""
 	case wordPredicateWordCanBeTurnedFaceUp:
 		return wordCanBeTurnedFaceUp, ""
 	case wordPredicateWordIsRingbearer:
@@ -817,11 +823,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordCanBeTurnedFaceUp:
 		// Forge's Card.canBeTurnedFaceUp: a face-down battlefield permanent
 		// with a real card face to reveal (CR 708.6) -- morph/megamorph/
-		// disguise, manifest or cloak. gorge's turn-up path (effects'
-		// effSetState Mode$ TurnFaceUp) reveals any face-down battlefield
-		// permanent, so this live FaceDown read is the engine's own answer;
-		// the corpus's `+faceDown` qualifier beside it is redundant but
-		// harmless.
+		// disguise, manifest or cloak. This answers the filter word, not the
+		// effect's eligibility: effSetState Mode$ TurnFaceUp additionally
+		// applies the printed-type gate (CR 701.40g/701.58g: a manifested or
+		// cloaked instant/sorcery is revealed and stays face down) and
+		// ValidNewFace$, so a manifested Bolt matches this word even though
+		// that effect never turns it up. The corpus's `+faceDown` qualifier
+		// beside it is redundant but harmless.
 		return o.FaceDown && o.Zone == state.ZBattlefield && o.Face() != nil
 	case wordFaceDown:
 		// Forge's faceDown: the object is a face-down battlefield permanent
@@ -837,6 +845,14 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// the very entry it names. engine/rules/replacement.go sets this bit when the
 		// intercepted move is a face-down battlefield entry.
 		return sc.AsFaceDown || (o.FaceDown && o.Zone == state.ZBattlefield)
+	case wordFaceUp:
+		// Forge's faceUp: the negation of Card.isFaceDown, in ANY zone (the
+		// exile carriers -- riftsweeper, ashiok_nightmare_muse -- target
+		// face-up exiled cards; Expose the Culprit's
+		// Creature.faceUp+YouCtrl+withDisguise reads the battlefield). The
+		// AsFaceDown override a face-down ENTRY carries (see wordFaceDown)
+		// keeps a card about to land face down from matching.
+		return !o.FaceDown && !sc.AsFaceDown
 	case wordRingBearer:
 		// Forge's IsRingbearer (CR 701.54e): the object is its controller's
 		// Ring-bearer -- true exactly while it is on the battlefield under
@@ -1449,6 +1465,7 @@ const (
 	wordPredicateWordDealtDamageToAny
 	wordPredicateWordDealtCombatDamageToAny
 	wordPredicateWordBottomLibrary
+	wordPredicateWordFaceUp
 )
 
 var wordPredicateWordCodes = state.NewStrCodes(
@@ -1511,6 +1528,7 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "RememberedPlayerOwn", Val: wordPredicateWordRememberedPlayerOwn},
 	state.StrEntry[wordPredicateWordCode]{Key: "dealtDamagetoAny", Val: wordPredicateWordDealtDamageToAny},
 	state.StrEntry[wordPredicateWordCode]{Key: "dealtCombatDamagetoAny", Val: wordPredicateWordDealtCombatDamageToAny},
+	state.StrEntry[wordPredicateWordCode]{Key: "faceUp", Val: wordPredicateWordFaceUp},
 )
 
 type wordPredicateSharesCode uint16

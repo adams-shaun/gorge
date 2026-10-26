@@ -62,6 +62,9 @@ type ManaParams struct {
 	// The production riders, trimmed ("" = absent).
 	AddsNoCounter              string
 	AddsCounters               string
+	AddsKeywords               string
+	AddsKeywordsValid          string
+	AddsKeywordsUntil          string
 	PersistentMana             string
 	PersistentUntilEndOfCombat string
 	TriggersWhenSpent          string
@@ -137,6 +140,9 @@ func compileMana(sa *cards.SA, dp *DefinedParams) *ManaParams {
 	p.RestrictValid = strings.TrimSpace(sa.ParamStr(cards.PKRestrictValid))
 	p.AddsNoCounter = strings.TrimSpace(sa.ParamStr(cards.PKAddsNoCounter))
 	p.AddsCounters = strings.TrimSpace(sa.ParamStr(cards.PKAddsCounters))
+	p.AddsKeywords = strings.TrimSpace(sa.ParamStr(cards.PKAddsKeywords))
+	p.AddsKeywordsValid = strings.TrimSpace(sa.ParamStr(cards.PKAddsKeywordsValid))
+	p.AddsKeywordsUntil = strings.TrimSpace(sa.ParamStr(cards.PKAddsKeywordsUntil))
 	p.PersistentMana = strings.TrimSpace(sa.ParamStr(cards.PKPersistentMana))
 	p.PersistentUntilEndOfCombat = strings.TrimSpace(sa.ParamStr(cards.PKPersistentUntilEndOfCombat))
 	p.TriggersWhenSpent = strings.TrimSpace(sa.ParamStr(cards.PKTriggersWhenSpent))
@@ -204,7 +210,7 @@ var manaKnownKeys = [...]string{
 	"AILifeThreshold", "AILogic", "AINoRecursiveCheck", "AIPhyrexianPayment", "AITgts",
 	"Activation", "ActivationAfterBlockers", "ActivationFirstCombat", "ActivationGameTypes",
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddType",
-	"AddTypes", "AdditionalDesc", "AdditionalDescription", "AddsCounters", "AddsNoCounter",
+	"AddTypes", "AdditionalDesc", "AdditionalDescription", "AddsCounters", "AddsKeywords", "AddsKeywordsUntil", "AddsKeywordsValid", "AddsNoCounter",
 	"Affected", "AlternateCost", "AlternativeCost", "Amount", "Announce", "AnnounceTitle",
 	"Boast", "CantCopy", "ChangeTypeDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
 	"ChoiceZone", "Choices", "ChooseFromList", "Chooser", "ClearImprinted", "Condition",
@@ -214,7 +220,7 @@ var manaKnownKeys = [...]string{
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards",
 	"DefinedTarget", "Description", "Each", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW",
-	"Keyword", "KeywordLine", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
+	"Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"ModeCost", "Monstrosity", "NewController", "NonBasicSpell", "OpponentTurn", "PersistentMana",
 	"PersistentUntilEndOfCombat", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp",
 	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "Produced",
