@@ -129,7 +129,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.40a,e | follows | `engine/effects/zone_manifest.go#effManifest` | - |  |
 | 701.40b-d | not-impl | `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` | - | no turn-face-up special action |
 | 701.40f | unknown | `engine/rules/replacement_match.go#Engine.replacementMatchesRememberedUngatedBy` | - | Cage-vs-manifest test would settle |
-| 701.40g | deviates | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldTurnFaceUp` | - | effect turns manifested instant face up |
+| 701.40g | follows | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldTurnFaceUp` | `TestHauntwoodsRevealsNoncreatureAndLeavesItFaceDown` `TestEffectTurnUpLeavesManifestedSorceryFaceDown` | effect turn-up reveals a manifested instant or sorcery and leaves it face down |
 | 701.40h | n/a | - | - | cross-reference to 708 |
 | 701.41a | deviates | `engine/effects/counters_put.go#putCounterSupport` | `TestLeadByExampleSpellSupportOffersEveryCreature` | support not targeted: ignores hexproof/ward |
 | 701.42a-c | follows | `engine/effects/meld.go#Meld` `engine/effects/meld.go#meldRoles` `engine/effects/meld_api.go#effMeld` | - |  |
