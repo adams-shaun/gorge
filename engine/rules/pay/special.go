@@ -1,10 +1,6 @@
 package pay
 
-import (
-	"strings"
-
-	"github.com/adams-shaun/gorge/engine/state"
-)
+import "github.com/adams-shaun/gorge/engine/state"
 
 // Special names the CR 116.2 special action a PurposeSpecial payment pays
 // for: turn face up (CR 116.2b, split by the procedure Forge's SA properties
@@ -120,7 +116,7 @@ var specialPropertyCodes = state.NewStrCodes(
 // (Morph and Megamorph), isTurnFaceUp the union of the four turn-up
 // procedures.
 func SpecialHasProperty(s Special, token string) (match, known bool) {
-	switch specialPropertyCodes.Code(strings.TrimSpace(token)) {
+	switch specialPropertyCodes.Code(token) {
 	case specialPropertyForetelling:
 		return s == SpecialForetell, true
 	case specialPropertyPlotting:
@@ -164,17 +160,25 @@ func staticRestrictionTail(d Descriptor, tail string) (filter string, ok bool) {
 	if d.Class != PurposeSpecial {
 		return "", false
 	}
-	var rest []string
-	for tok := range strings.SplitSeq(tail, "+") {
+	for start := 0; start <= len(tail); {
+		end := start
+		for end < len(tail) && tail[end] != '+' {
+			end++
+		}
+		tok := tail[start:end]
+		start = end + 1
 		match, known := SpecialHasProperty(d.Special, tok)
 		switch {
 		case !known:
-			rest = append(rest, tok)
+			if filter != "" {
+				filter += "+"
+			}
+			filter += tok
 		case !match:
 			return "", false
 		}
 	}
-	return strings.Join(rest, "+"), true
+	return filter, true
 }
 
 // CostPayableSpecial is the offer gate for special action sp on id: the same

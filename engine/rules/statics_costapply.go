@@ -662,7 +662,7 @@ func (e *Engine) spellConstraintMatches(sv staticView, scope costScope, p state.
 // Static.ManifestUp+Creature restriction is evaluated by RestrictValidMatches
 // through the same pay.SpecialHasProperty). Anything else denies.
 func staticConstraintMatches(scope costScope, constraint string) bool {
-	match, _ := pay.SpecialHasProperty(pay.SpecialOfScope(scope), constraint)
+	match, _ := pay.SpecialHasProperty(pay.SpecialOfScope(scope), strings.TrimSpace(constraint))
 	return match
 }
 
