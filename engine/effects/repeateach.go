@@ -240,6 +240,32 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "RepeatEach selector unimplemented"})
 		return
 	}
+	// StartingWith$ (CR 101.4): the player-subject loop begins at the named
+	// player rather than at APNAP order. Only `You` (the resolving
+	// controller) is modelled; every other value -- the corpus carriers use
+	// `Opponent` -- stays loud and keeps APNAP order. RepeatPlayers$ Player
+	// already lists AliveFrom(controller), so for that selector the rotation
+	// is a no-op; it is still real for a Targeted$ or Remembered$ list whose
+	// first subject is not the controller.
+	if rp.StartingWith != "" {
+		start := -1
+		if strings.EqualFold(rp.StartingWith, "You") {
+			for i, t := range subjects {
+				if t.IsPlayer && t.Player == c.Controller {
+					start = i
+					break
+				}
+			}
+		}
+		if start < 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "unread RepeatEach StartingWith " + rp.StartingWith})
+		} else if start > 0 {
+			rotated := make([]state.Target, 0, len(subjects))
+			rotated = append(rotated, subjects[start:]...)
+			rotated = append(rotated, subjects[:start]...)
+			subjects = rotated
+		}
+	}
 	// The loop's setup runs HERE, before the ChooseOrder$ ask below (Ezuri's
 	// Predation carries BOTH ChooseOrder$ and ChangeZoneTable$).
 	// ClearRememberedBeforeLoop$ True (Forge's RepeatEachEffect: "clear the

@@ -64,12 +64,25 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// names a Count$ body targetBoundCtx's SVar table already resolves.
 	if tc, ok := e.triggerContexts[source]; ok {
 		ctx.TriggerContext = tc
+		// The trigger's own Remembered and fire-time LKI are bound here for
+		// the same reason targetSpecContext binds them: a dynamic bound that
+		// reads the triggering object (Quirion Beastcaller's TargetMax$ X /
+		// DividedAsYouChoose$ X over SVar:X:TriggeredCard$CardCounters.P1P1)
+		// must see what the object HAD as it left (CR 603.10a, 608.2h), not
+		// the graveyard card's cleared counters. The wrapper's Remembered is
+		// the TriggerPush capture; triggerLKI is the snapshot taken before the
+		// move (engine/rules/emit.go), the same one resolution reads.
+		ctx.Remembered = append([]state.Target(nil), o.Remembered...)
+		if lki, ok := e.triggerLKI[source]; ok {
+			ctx.LKI = lki.object
+			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
+				lki.power, lki.toughness, lki.ptValid
+		}
 		if tc.Reflexive {
 			// A reflexive ability's bound may count what its spawning
 			// resolution remembered ("return up to THAT MANY target cards":
 			// TargetMax$ X over TriggerRemembered$Amount), which rides the
 			// minted object's own Remembered (engine/rules/reflexive.go).
-			ctx.Remembered = append([]state.Target(nil), o.Remembered...)
 			reflexiveCaptured(ctx)
 		}
 	}

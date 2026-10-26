@@ -83,6 +83,13 @@ type ChangeZoneAllParams struct {
 	RememberChanged bool
 	Tapped          bool
 
+	// WithCountersType is WithCountersType$ (a comma-separated counter kind
+	// list) and WithCountersAmount its Num-grammar amount (default 1): a
+	// battlefield sweep enters each moved permanent with them (CR 122.6;
+	// Ghost Vacuum's flying counter).
+	WithCountersType   string
+	WithCountersAmount ParamText
+
 	// Riders are the move riders shared with ChangeZone and Dig.
 	Riders MoveRiders
 
@@ -139,7 +146,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"UnlessResolveSubs", "UnlessSwitched", "UseAllOriginZones", "ValidCard",
 	"ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidTgts", "VoteMessage",
-	"WithMayLook", "WithoutManaCost", "XMax", "XMin",
+	"WithCountersAmount", "WithCountersType", "WithMayLook", "WithoutManaCost", "XMax", "XMin",
 }
 
 // isChangeZoneAllSA reports whether sa resolves as api:ChangeZoneAll.
@@ -217,6 +224,8 @@ func compileChangeZoneAll(sa *cards.SA, tp *TargetParams, dp *DefinedParams) *Ch
 	p.RememberLKI = isTrue(sa.ParamStr(cards.PKRememberLKI))
 	p.RememberChanged = isTrue(sa.ParamStr(cards.PKRememberChanged))
 	p.Tapped = isTrue(sa.ParamStr(cards.PKTapped))
+	p.WithCountersType = strings.TrimSpace(sa.ParamStr(cards.PKWithCountersType))
+	p.WithCountersAmount = rawParamText(sa, "WithCountersAmount")
 
 	p.Riders = compileMoveRiders(sa)
 	p.Unread = unreadKeys(sa, changeZoneAllKnownKeys[:])
