@@ -4,9 +4,4 @@ Longstalk Brawl	param:api:Token.LockTokenScript
 Mind Spiral	param:api:Token.LockTokenScript
 Parting Gust	param:api:Token.LockTokenScript
 Sazacap's Brew	param:api:Token.LockTokenScript
-Season of Gathering	param:api:Draw.Pawprint,param:api:PutCounter.Pawprint
-Season of Loss	param:api:Draw.Pawprint,param:api:LoseLife.Pawprint,param:api:Sacrifice.Pawprint
-Season of Weaving	param:api:ChangeZoneAll.Pawprint,param:api:Draw.Pawprint
-Season of the Bold	param:api:Dig.Pawprint,param:api:Effect.Pawprint,param:api:Token.Pawprint
-Season of the Burrow	param:api:ChangeZone.Pawprint,param:api:Token.Pawprint
 Starforged Sword	param:api:Token.LockTokenScript
