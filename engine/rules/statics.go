@@ -727,7 +727,14 @@ func init() {
 	// The obvious alternative spelling MustBeBlocked is already taken by an
 	// unrelated Forge AI-hint SVar name (engine/rules/layers.go GrantedSVar, 41
 	// corpus files), so it is deliberately NOT used here.
-	effects.RegisterNonAPI("kw:MustBlock", "kw:CantAttackOrBlock")
+	// kw:AllMustBlock -- CR 509.1c's Lure sentence "All creatures able to
+	// block CARDNAME do so.", a per-attacker requirement: askBlockers marks
+	// every offered, cost-free (blocker, attacker) pair of such an attacker as
+	// a duty (BlockMust), and decision.blockRequiredCore counts only obeying
+	// pairs. Printed K: lines canonicalise to this head
+	// (engine/cards/hiddenkeyword.go); KW$ HIDDEN grants keep the sentence.
+	// Proof tests: rules/cr509_1c_lure_test.go.
+	effects.RegisterNonAPI("kw:MustBlock", "kw:CantAttackOrBlock", "kw:AllMustBlock")
 	// kw:CantAttackAlone / kw:CantBlockAlone / kw:CantAttackOrBlockAlone --
 	// CR 506.5's attack-alone / block-alone restriction family (“CARDNAME
 	// can't attack alone.”, “... can't block alone.”, “... can't attack or

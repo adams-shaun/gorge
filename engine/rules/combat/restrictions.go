@@ -30,6 +30,10 @@ type HiddenKeywordFlags struct {
 	// DeclaresAlone (the declaration oracle) alone.
 	CantAttackAlone bool
 	CantBlockAlone  bool
+	// AllMustBlock is CR 509.1c's "All creatures able to block CARDNAME do
+	// so." (Lure): a per-attacker requirement binding every offered,
+	// cost-free blocker pair, read by askBlockers.
+	AllMustBlock bool
 }
 
 // ParseHiddenKeyword reads one derived keyword line into its combat meaning.
@@ -80,6 +84,10 @@ func ParseHiddenKeyword(k string) HiddenKeywordFlags {
 	case cards.HiddenKeywordCantBlockAlone:
 		// CR 506.5's block-only sibling: the lone ATTACK stays legal.
 		return HiddenKeywordFlags{CantBlockAlone: true}
+	case cards.HiddenKeywordAllMustBlock:
+		// CR 509.1c: every creature able to block this attacker must block
+		// it; a per-pair duty read by askBlockers.
+		return HiddenKeywordFlags{AllMustBlock: true}
 	}
 	return HiddenKeywordFlags{}
 }
@@ -98,6 +106,7 @@ func DerivedHiddenFlags(b Board, id state.ObjID) HiddenKeywordFlags {
 		f.UntapNextStep = f.UntapNextStep || g.UntapNextStep
 		f.CantAttackAlone = f.CantAttackAlone || g.CantAttackAlone
 		f.CantBlockAlone = f.CantBlockAlone || g.CantBlockAlone
+		f.AllMustBlock = f.AllMustBlock || g.AllMustBlock
 	}
 	return f
 }
