@@ -683,6 +683,7 @@ var specialPositiveTokenSet = state.NewNameSet(
 	"EffectSource",
 	"IsGoaded",
 	"IsRemembered",
+	"phasedOutIsRemembered",
 	"IsTriggerRemembered",
 )
 
