@@ -523,6 +523,7 @@ func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, reme
 // consultation. Keep comparisons against these named mode identifiers.
 const (
 	ModeIgnoreHexproof   = "IgnoreHexproof"
+	ModeCantLoseLife     = "CantLoseLife"
 	ModeIgnoreLegendRule = "IgnoreLegendRule"
 	ModeNoCleanupDamage  = "NoCleanupDamage"
 	ModeMustBlock        = "MustBlock"

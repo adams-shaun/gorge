@@ -253,7 +253,7 @@ func (e *Engine) askAttackers() {
 	// closed for that payer rather than being offered and reversed at
 	// payment. "Players can always pay 0 life" (CR 119.4b) keeps a
 	// charge-free pair and a Phyrexian pip's colour face.
-	if e.playerLifeChangeForbidden(p) {
+	if e.playerLifeChangeForbidden(p) || e.playerLifeLossForbidden(p) {
 		opts = slices.DeleteFunc(opts, func(o decision.Option) bool {
 			return o.CostLife > 0 || o.CostPhyrexian > 0
 		})
@@ -1264,7 +1264,7 @@ func (e *Engine) askBlockers() {
 			continue
 		}
 		opts := append(make([]decision.Option, 0, len(built)), built...)
-		if e.playerLifeChangeForbidden(defender) {
+		if e.playerLifeChangeForbidden(defender) || e.playerLifeLossForbidden(defender) {
 			// CR 119.7/119.8: that defender can't pay a positive life cost at
 			// all (the attack-side gate above), so a charged pair is not
 			// offered; CR 119.4b keeps the charge-free ones.
