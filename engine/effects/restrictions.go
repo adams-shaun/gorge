@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"maps"
 	"strconv"
 	"strings"
 
@@ -1427,3 +1428,34 @@ var cantAttackPresentKeyCodes = state.NewStrCodes(
 	state.StrEntry[cantAttackPresentKeyCode]{Key: "IsPresent", Val: cantAttackPresentKeyIsPresent},
 	state.StrEntry[cantAttackPresentKeyCode]{Key: "IsPresent2", Val: cantAttackPresentKeyIsPresent2},
 )
+
+// freezeChosenColor freezes the source's chosen colour into a registered
+// CantBlockBy body (Skrelv, Sungold Sentinel: ValidBlocker$ Creature.ChosenColor).
+// Forge snapshots the choice into the Effect, so a DBCleanup's
+// ClearChosenColor$ or the source's next colour choice must not change which
+// blockers the registered restriction bars: each spec's ChosenColor token
+// becomes the colour word now, on a private copy of the parsed parameters.
+// A body naming no ChosenColor keeps them as parsed; with no recorded choice
+// the token stays and the spec matches nothing, the fail-closed read.
+func freezeChosenColor(h Host, c *Ctx, ce *state.ContinuousEffect) {
+	word := ""
+	cloned := false
+	for _, k := range [...]cards.ParamKey{cards.PKValidAttacker, cards.PKValidBlocker, cards.PKValidCard} {
+		spec := ce.RestrictParam(k)
+		if !strings.Contains(spec, "ChosenColor") {
+			continue
+		}
+		if word == "" {
+			word = resolveGains("ChosenColor", "", h.Game().Obj(c.Source))
+			if word == "" {
+				return
+			}
+			word = strings.ToUpper(word[:1]) + word[1:]
+		}
+		if !cloned {
+			ce.RestrictParams = maps.Clone(ce.RestrictParams)
+			cloned = true
+		}
+		ce.RestrictParams[k.String()] = strings.ReplaceAll(spec, "ChosenColor", word)
+	}
+}

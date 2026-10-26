@@ -2,6 +2,7 @@ package effects
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -103,6 +104,11 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		rememberDefinedObjects(h, c, p.RememberObjects, "Pump")
 	}
 	zone := p.PumpZone
+	grant := &p.Grant
+	if p.DefinedKW != "" {
+		g := definedKWGrant(h, c, p)
+		grant = &g
+	}
 	var ateotIDs []state.ObjID
 	// pumpedTargets collects the objects this Pump actually affected, for the
 	// ReplaceDyingDefined$ rider below (the same []state.Target shape
@@ -153,7 +159,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		// apply one creature's stat to every creature.
 		att := numForObjectText(h, c, p.NumAtt, true, 0, o.ID)
 		def := numForObjectText(h, c, p.NumDef, false, 0, o.ID)
-		registerPumpEffects(h, c, o.ID, att, def, false, false, &p.Grant, zone, chosenKW)
+		registerPumpEffects(h, c, o.ID, att, def, false, false, grant, zone, chosenKW)
 		pumpedTargets = append(pumpedTargets, t)
 		if atEOTInclude(h, c, sa, o.ID) {
 			ateotIDs = append(ateotIDs, o.ID)
@@ -270,3 +276,44 @@ var pumpNotesCodes = state.NewStrCodes(
 	state.StrEntry[pumpNotesCode]{Key: "Remembered", Val: pumpNotesRemembered},
 	state.StrEntry[pumpNotesCode]{Key: "TriggeredSource", Val: pumpNotesTriggeredSource},
 )
+
+// definedKWGrant is p.Grant with DefinedKW$'s token replaced in every KW$
+// keyword by the source's recorded choice (Forge's PumpEffect: ChosenColor
+// becomes the colour word, ChosenType the creature/land type). The choice is
+// read now, at resolution, so the grant keeps it after a later Cleanup or
+// re-choice. A choice that is not recorded drops the keywords carrying the
+// token, and a DefinedKW$ value this build cannot substitute (the
+// player-valued family of protection-from-player grants) is one Note and
+// leaves the keywords as written.
+func definedKWGrant(h Host, c *Ctx, p *PumpParams) PumpGrant {
+	g := p.Grant
+	src := h.Game().Obj(c.Source)
+	var repl string
+	switch p.DefinedKW {
+	case "ChosenColor":
+		repl = resolveGains("ChosenColor", "", src)
+	case "ChosenType":
+		if src != nil {
+			repl = src.ChosenType
+		}
+	default:
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "DefinedKW$ " + p.DefinedKW + " is not a choice this engine can substitute; the KW$ keywords are granted as written"})
+		return g
+	}
+	kws := make([]string, 0, len(g.KW))
+	for _, kw := range g.KW {
+		if !strings.Contains(kw, p.DefinedKW) {
+			kws = append(kws, kw)
+			continue
+		}
+		if repl == "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "DefinedKW$ " + p.DefinedKW + " has no recorded choice; the keyword " + kw + " is not granted"})
+			continue
+		}
+		kws = append(kws, strings.ReplaceAll(kw, p.DefinedKW, repl))
+	}
+	g.KW = kws
+	return g
+}

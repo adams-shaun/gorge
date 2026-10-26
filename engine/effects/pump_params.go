@@ -85,6 +85,10 @@ type PumpParams struct {
 	// Pump carrier) naming the objects the replacement watches. Empty when the
 	// key is absent.
 	ReplaceDyingDefined string
+	// DefinedKW$, trimmed: the word naming which recorded choice replaces the
+	// token of that name in every KW$ keyword at resolution ("ChosenColor",
+	// "ChosenType"; Skrelv's "Hexproof:ChosenColor"). Empty when absent.
+	DefinedKW string
 	// Grant is the registration's riders.
 	Grant PumpGrant
 
@@ -151,6 +155,7 @@ func compilePump(sa *cards.SA, dp *DefinedParams) *PumpParams {
 	p.NumDef = ParamText{Text: nd, Present: ndOK}
 	p.ForgetImprinted = strings.TrimSpace(sa.ParamStr(cards.PKForgetImprinted))
 	p.ReplaceDyingDefined = strings.TrimSpace(sa.ParamStr(cards.PKReplaceDyingDefined))
+	p.DefinedKW = strings.TrimSpace(sa.ParamStr(cards.PKDefinedKW))
 	p.Grant = compilePumpGrant(sa)
 	if sa.API == "Pump" {
 		p.Unread = unreadKeys(sa, pumpKnownKeys[:])
@@ -205,7 +210,7 @@ var pumpKnownKeys = [...]string{
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
-	"Defined", "DefinedCards", "DefinedTarget", "Description", "Duration",
+	"Defined", "DefinedCards", "DefinedKW", "DefinedTarget", "Description", "Duration",
 	"Exclude", "Exhaust", "ForgetImprinted", "ForgetOtherTargets", "GameActivationLimit", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "KWChoice", "Keyword", "KeywordLine", "LeaveBattlefield",

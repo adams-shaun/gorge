@@ -649,6 +649,12 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 				targets := c.Targets
 				if c.PickedTargets != nil {
 					targets = c.PickedTargets
+				} else if len(targets) == 0 {
+					// Forge's Targeted is the union of every target choice down
+					// the chain (Skrelv's DBEffect after the targeting DBPump:
+					// the root ChooseColor targets nothing), the same read
+					// Defined$ Targeted makes.
+					targets = refTargetUnion(c)
 				}
 				out = appendEffectRememberedObjects(h, out, targets)
 			case effectRememberedParentTarget:
