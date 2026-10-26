@@ -4013,6 +4013,10 @@
             "minimum": 0,
             "type": "integer"
           },
+          "day_night": {
+            "description": "DayNight is the CR 731 designation: \"day\", \"night\", or omitted while the game has neither; public for every seat.",
+            "type": "string"
+          },
           "decision": {
             "$ref": "#/components/schemas/Decision"
           },
