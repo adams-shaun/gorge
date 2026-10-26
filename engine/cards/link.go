@@ -153,6 +153,12 @@ var builtinSVars = map[string]string{
 	// permanent itself, so Defined$ Self is it -- the __kwBlitzSacrifice
 	// shape, registered for the end-of-COMBAT step rather than end step.
 	"__kwDecayedSacrifice": "DB$ Sacrifice | Defined$ Self",
+	// Decayed's attack trigger (CR 702.147a, CR 603.7a): the stack object
+	// whose resolution creates the end-of-combat sacrifice above. The
+	// registering source is the decayed creature itself; OncePerSource$ True
+	// keeps a second resolution from arming it twice, and RememberChain$ False
+	// keeps the registration free of the attack's captured referents.
+	"__kwDecayedAttack": "DB$ DelayedTrigger | Mode$ Phase | Phase$ EndCombat | Execute$ __kwDecayedSacrifice | OncePerSource$ True | RememberChain$ False",
 	// Blitz (CR 702.152c): the cast-for-blitz permanent has "When this
 	// creature dies, draw a card." engine/rules/altcast.go's blitzEnter registers a
 	// ContinuousEffect whose AddTrigger$ names this SVar, so the body is
