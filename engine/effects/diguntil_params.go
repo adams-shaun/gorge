@@ -111,7 +111,7 @@ var digUntilKnownKeys = [...]string{
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards",
 	"DefinedTarget", "Description", "DigZone", "Exclude", "Exhaust",
 	"ForgetOtherRemembered", "ForgetOtherTargets", "FoundDestination", "FoundLibraryPosition", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf",
-	"GameActivationLimit", "Image", "ImprintCards", "ImprintFound", "ImprintPlayed",
+	"GameActivationLimit", "GiftDescription", "Image", "ImprintCards", "ImprintFound", "ImprintPlayed",
 	"ImprintRevealed", "InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword",
 	"KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "MinTotalCMC", "ModeCost",
 	"Monstrosity", "NewController", "NoMoveFound", "NoMoveRevealed", "NonBasicSpell", "NoneFoundDestination",
