@@ -74,6 +74,21 @@ func AdvanceUnless(e Engine) UnlessStep {
 	for u.Part < u.PaymentPartCount() {
 		part, zone, kind := UnlessPartAt(u.Cost, u.Part)
 		eligible := UnlessPaymentCandidates(e, u, zone, kind, part)
+		if unlessSpecialKinds.Code(kind) != 0 {
+			lo, hi, ok := unlessSpecialPicks(e, u, kind, part, eligible)
+			if !ok {
+				return unlessDeclined()
+			}
+			if lo == hi && (lo == 0 || len(eligible) == lo) {
+				// Nothing to choose: the pool covers a waterbend, or exactly
+				// the needed candidates exist.
+				RecordUnlessPaymentPick(e, u, kind, eligible[:lo])
+				u.Part++
+				continue
+			}
+			askUnlessPicks(e, u, kind, unlessSpecialPrompt(kind, part), lo, hi, eligible)
+			return UnlessStep{}
+		}
 		if kind == "discard" && IsHandDiscardSpec(part.Spec) {
 			// Discard<N/Hand> is the whole hand, never a pick; an empty hand
 			// pays by discarding nothing.
@@ -129,19 +144,7 @@ func AdvanceUnless(e Engine) UnlessStep {
 			}
 			prompt = fmt.Sprintf("Exile %d card(s) from your %s to pay the cost", part.N, zoneName)
 		}
-		d := &decision.Decision{Player: u.Payer, Kind: decision.KChoose,
-			Min: int(part.N), Max: int(part.N), Source: u.Ctx.Source,
-			ResumeKind: "unless_cost",
-			Prompt:     prompt}
-		for _, id := range eligible {
-			label := "a card"
-			if o := g.Obj(id); o != nil && o.Face() != nil {
-				label = o.Face().Name
-			}
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: kind,
-				Label: label, Obj: id, Player: u.Payer})
-		}
-		e.Ask(AskUnlessCost, d)
+		askUnlessPicks(e, u, kind, prompt, int(part.N), int(part.N), eligible)
 		return UnlessStep{}
 	}
 	// Resolve every drawer before charging any component. A Draw<N/Spec> may
@@ -161,6 +164,9 @@ func AdvanceUnless(e Engine) UnlessStep {
 			}
 		}
 		drawers[i] = players
+	}
+	if !chargeUnlessWaterbend(e, u) {
+		return unlessDeclined()
 	}
 	if !PayManaConv(e, u.Payer, u.Cost, e.Eval().Conv(u.Payer, u.StackObj, false)) { // guarded above; retain totality if state changes.
 		return unlessDeclined()
@@ -245,6 +251,7 @@ func AdvanceUnless(e Engine) UnlessStep {
 			e.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
 		}
 	}
+	chargeUnlessSpecial(e, u)
 	src := u.Ctx.Source
 	if o := g.Obj(u.StackObj); o != nil && o.Ability != nil {
 		src = o.Source
@@ -253,6 +260,47 @@ func AdvanceUnless(e Engine) UnlessStep {
 		e.Emit(events.Event{Kind: events.CounterChange, Obj: src, Counter: part.Spec, Amount: -part.N})
 	}
 	return UnlessStep{Done: true, Paid: true, Draws: drawers}
+}
+
+// askUnlessPicks poses the KChoose ask for one component's payer-chosen
+// objects (ResumeKind "unless_cost"): lo..hi of eligible, in order.
+func askUnlessPicks(e Engine, u *UnlessPayment, kind, prompt string, lo, hi int, eligible []state.ObjID) {
+	g := e.Game()
+	d := &decision.Decision{Player: u.Payer, Kind: decision.KChoose,
+		Min: lo, Max: hi, Source: u.Ctx.Source,
+		ResumeKind: "unless_cost",
+		Prompt:     prompt}
+	for _, id := range eligible {
+		label := "a card"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			label = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: kind,
+			Label: label, Obj: id, Player: u.Payer})
+	}
+	e.Ask(AskUnlessCost, d)
+}
+
+// unlessSpecialPrompt is the ask text of one special part (the amount to pick
+// rides the decision's Min/Max).
+func unlessSpecialPrompt(kind string, part costvocab.CostPart) string {
+	switch unlessSpecialKinds.Code(kind) {
+	case unlessSpecialTap:
+		if part.Desc != "" {
+			return "Tap untapped " + part.Desc + " you control to pay the cost"
+		}
+		return "Tap untapped permanents you control to pay the cost"
+	case unlessSpecialBlight:
+		return "Choose a creature you control to blight to pay the cost"
+	case unlessSpecialCounter:
+		if part.Desc != "" {
+			return "Choose where to put the counter: " + part.Desc
+		}
+		return "Choose where to put the counter to pay the cost"
+	case unlessSpecialWaterbend:
+		return "Tap untapped artifacts and creatures you control to pay for waterbend"
+	}
+	return "Exile cards from your graveyard to collect evidence"
 }
 
 // askUnlessMana opens one tap ask over the payer's remaining window-eligible
@@ -329,6 +377,14 @@ func AnswerUnlessPayment(e Engine, chosen []decision.Option) (UnlessStep, bool) 
 	// zone/filter against the current game before any event is emitted so a
 	// malformed resumed state declines rather than paying an illegal cost.
 	eligible := UnlessPaymentCandidates(e, u, zone, kind, part)
+	if unlessSpecialKinds.Code(kind) != 0 {
+		if !unlessSpecialAnswerOK(e, u, kind, part, eligible, ids) {
+			return unlessDeclined(), true
+		}
+		RecordUnlessPaymentPick(e, u, kind, ids)
+		u.Part++
+		return AdvanceUnless(e), true
+	}
 	allowed := make(map[state.ObjID]bool, len(eligible))
 	for _, id := range eligible {
 		allowed[id] = true

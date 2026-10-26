@@ -603,10 +603,11 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 
 // ParseDamageUnlessCost reports whether an UnlessCost$ value is the
 // damage-payment offer form "DamageYou<N>" and returns N. Recognised: the
-// exact spelling (case-insensitive) with a non-negative integer N; anything
+// whole value being the exact spelling with a positive integer N (an X or an
+// SVar name is folded to its number first, UnlessCostResolved); anything
 // else is not the offer (and falls to the shared gate's pricing).
 func ParseDamageUnlessCost(cost string) (int, bool) {
-	_, n, ok := strings.Cut(strings.TrimSpace(cost), "DamageYou<")
+	n, ok := strings.CutPrefix(strings.TrimSpace(cost), "DamageYou<")
 	if !ok || !strings.HasSuffix(n, ">") {
 		return 0, false
 	}

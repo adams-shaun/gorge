@@ -1191,6 +1191,11 @@ func cloneFieldsPaySession(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0.Beholds = append([]state.ObjID(nil), e.UnlessPayment.Beholds...)
 		p0.Returns = append([]state.ObjID(nil), e.UnlessPayment.Returns...)
 		p0.Exiles = append([]state.ObjID(nil), e.UnlessPayment.Exiles...)
+		p0.Taps = append([]state.ObjID(nil), e.UnlessPayment.Taps...)
+		p0.WaterbendTaps = append([]state.ObjID(nil), e.UnlessPayment.WaterbendTaps...)
+		p0.Blights = append([]state.ObjID(nil), e.UnlessPayment.Blights...)
+		p0.CounterTo = append([]state.ObjID(nil), e.UnlessPayment.CounterTo...)
+		p0.Evidence = append([]state.ObjID(nil), e.UnlessPayment.Evidence...)
 		c.UnlessPayment = &p0
 	}
 	if e.ManaCost != nil {

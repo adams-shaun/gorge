@@ -1225,13 +1225,15 @@ func IsDigitRun(s string) bool {
 // Mandatory marker.
 // Anything else — an unfolded X/Y/Z (UnlessCostResolved folds an announced X
 // and resolvable SVar bodies first; an unbound X never prices here),
-// DamageYou<N> (the Sacrifice arm's own path), BeholdExile<...>, tapXType<...>,
-// CopyCost, or any prose —
+// DamageYou<N> (the unless-pay arm's own damage path), BeholdExile<...>, a
+// dynamic tapXType<X/...> or tapXType<Any/...>, CopyCost, or any prose —
 // reports ok=false, and the unless-pay arm treats that as a hard decline
 // (the conservative read: a payer who "pays" a cost the engine cannot price
 // has not paid it). A Reveal component is choice-bearing like Sac/Discard
 // and pays through the beginUnlessPayment continuation, never synchronously.
-// Return and Exile components are choice-bearing the same way.
+// Return and Exile components are choice-bearing the same way, and so are
+// the tapXType<N/Spec>, AddCounter<N/Kind/Defined>, Waterbend<N>, Blight<N>,
+// CollectEvidence<N> and ExileFromStack<1/Card.Self> parts (unless_special.go).
 func ParseUnlessCost(s string) (Cost, bool) {
 	s = strings.TrimSpace(s)
 	if s == "" || strings.EqualFold(s, "no cost") {
@@ -1345,11 +1347,14 @@ func ParseUnlessCost(s string) (Cost, bool) {
 			// with the candidate enumeration shared with the cast flow's Behold
 			// cost so the offer and the settlement cannot disagree.
 			//
-			// BeholdExile<N/...> and tapXType<...> stay hard declines: no corpus
-			// UnlessCost$ carries either, and BeholdExile's then-exile settlement
-			// is a distinct behaviour that must land with its own test.
+			// tapXType<N/Spec> (Command Bridge's "tap an untapped permanent you
+			// control", CR 701.26a) is the same shape and pays through the same
+			// continuation. BeholdExile<N/...> stays a hard decline: its
+			// then-exile settlement is a distinct behaviour that must land with
+			// its own test.
 			if m, ok := matchChoiceCost(t); ok {
-				if m[1] != "Reveal" && m[1] != "Behold" {
+				code := parseUnlessChoiceCodes.Code(string(m[1]))
+				if code == 0 {
 					return Cost{}, false
 				}
 				n, err := strconv.ParseInt(m[2], 10, 64)
@@ -1357,10 +1362,13 @@ func ParseUnlessCost(s string) (Cost, bool) {
 					return Cost{}, false
 				}
 				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ","), Desc: m[4]}
-				if m[1] == "Reveal" {
+				switch code {
+				case parseUnlessChoiceReveal:
 					c.Reveal = append(c.Reveal, part)
-				} else {
+				case parseUnlessChoiceBehold:
 					c.Behold = append(c.Behold, part)
+				default:
+					c.TapPermanent = append(c.TapPermanent, part)
 				}
 				continue
 			}
@@ -1421,10 +1429,19 @@ func ParseUnlessCost(s string) (Cost, bool) {
 				c.RevealChosen = append(c.RevealChosen, CostPart{Spec: m[1], Desc: m[2]})
 				continue
 			}
+			if matched, ok := parseUnlessSpecialCost(&c, t); matched {
+				if !ok {
+					return Cost{}, false
+				}
+				continue
+			}
 			// Every other token — a dynamic amount, an unmodelled cost verb,
 			// or prose — makes the whole cost unpriceable.
 			return Cost{}, false
 		}
+	}
+	if !unlessSpecialShapeOK(c) {
+		return Cost{}, false
 	}
 	return c, true
 }
@@ -1506,3 +1523,118 @@ var parseUnlessCostCodes = state.NewStrCodes(
 	state.StrEntry[parseUnlessCostCode]{Key: "Discard", Val: parseUnlessCostDiscard},
 	state.StrEntry[parseUnlessCostCode]{Key: "Draw", Val: parseUnlessCostDraw},
 )
+
+type parseUnlessChoiceCode uint16
+
+const (
+	parseUnlessChoiceReveal parseUnlessChoiceCode = iota + 1
+	parseUnlessChoiceBehold
+	parseUnlessChoiceTap
+)
+
+var parseUnlessChoiceCodes = state.NewStrCodes(
+	state.StrEntry[parseUnlessChoiceCode]{Key: "Reveal", Val: parseUnlessChoiceReveal},
+	state.StrEntry[parseUnlessChoiceCode]{Key: "Behold", Val: parseUnlessChoiceBehold},
+	state.StrEntry[parseUnlessChoiceCode]{Key: "tapXType", Val: parseUnlessChoiceTap},
+)
+
+// The unless-cost grammar's non-mana, non-pick-by-count tail (CR 118.12a: an "unless [player] [cost]" cost is any cost the payer
+// may pay, 118.3: payable only with the resources). Each head parses to the
+// SAME Cost field the ordinary cost parser fills, so the pay layer's shared
+// candidate helpers read one shape:
+//
+//   - AddCounter<N/Kind/Defined[/Desc]> -> AddCounter{N, Spec: kind (the
+//     canonical counter spelling), Target: Defined, Desc}. Defined names the
+//     recipient: CARDNAME (the source), Card.targetedBy (the resolving
+//     ability's target) or a spec the payer chooses among.
+//   - Waterbend<N> -> Waterbend (CR 701.67a). Unlike the ability-cost reader
+//     the {N} is NOT folded into Generic: the unless payment's waterbend
+//     step owns the whole amount (taps plus floating mana).
+//   - Blight<N> -> Blight{N, "Creature.YouCtrl"} (CR 701.68a).
+//   - CollectEvidence<N> -> Evidence{N}.
+//   - ExileFromStack<1/Card.Self> -> Exile{1, "Card.Self", Zone: ZStack}: the
+//     resolving spell itself, a choice-free exile part.
+//
+// A dynamic amount (Waterbend<X>, Blight<X>, CollectEvidence<NAME>) and a
+// zero amount stay hard declines, like every other unbound token.
+
+// parseUnlessSpecialCost adds the part t names to c. matched reports that t
+// is one of the heads above; ok=false then means this instance is malformed
+// or dynamic and the whole cost is unpriceable.
+func parseUnlessSpecialCost(c *Cost, t costTok) (matched, ok bool) {
+	if !t.angle {
+		return false, false
+	}
+	switch t.id {
+	case hAddCounter:
+		part, ok := matchUnlessAddCounter(t.inner)
+		if ok {
+			c.AddCounter = append(c.AddCounter, part)
+		}
+		return true, ok
+	case hWaterbend:
+		n, ok := unlessLiteralAmount(t.inner)
+		if ok {
+			c.Waterbend = AddClampedGeneric(c.Waterbend, int64(n))
+		}
+		return true, ok
+	case hBlight:
+		n, ok := unlessLiteralAmount(t.inner)
+		if ok {
+			c.Blight = append(c.Blight, CostPart{N: n, Spec: "Creature.YouCtrl"})
+		}
+		return true, ok
+	case hCollectEvidence:
+		n, ok := unlessLiteralAmount(t.inner)
+		if ok {
+			c.Evidence = append(c.Evidence, CostPart{N: n})
+		}
+		return true, ok
+	case hExileFromStack:
+		n, spec, _, found := countSpecDesc(t.inner, isDigits)
+		if !found || n != "1" || spec != "Card.Self" {
+			return true, false
+		}
+		c.Exile = append(c.Exile, CostPart{N: 1, Spec: spec, Zone: state.ZStack})
+		return true, true
+	}
+	return false, false
+}
+
+// unlessLiteralAmount reads a positive literal amount (a dynamic X or a zero
+// is not one).
+func unlessLiteralAmount(s string) (int32, bool) {
+	if !isDigits(s) {
+		return 0, false
+	}
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+		return 0, false
+	}
+	return int32(n), true
+}
+
+// matchUnlessAddCounter reads AddCounter's inner "N/Kind/Defined[/Desc]".
+func matchUnlessAddCounter(inner string) (CostPart, bool) {
+	f := strings.SplitN(inner, "/", 4)
+	if len(f) < 3 || !isDigits(f[0]) || !isCounterKind(f[1]) || f[2] == "" {
+		return CostPart{}, false
+	}
+	n, err := strconv.ParseInt(f[0], 10, 64)
+	if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+		return CostPart{}, false
+	}
+	part := CostPart{N: int32(n), Spec: state.CanonicalCounterKind(f[1]), Target: strings.ReplaceAll(f[2], ";", ",")}
+	if len(f) == 4 {
+		part.Desc = f[3]
+	}
+	return part, true
+}
+
+// unlessSpecialShapeOK rejects the one mixed shape the waterbend step cannot
+// settle atomically: Waterbend beside a mana, life or life-half component
+// (the step spends the floating pool itself). No corpus UnlessCost$ mixes
+// them; the fail-closed direction is a hard decline.
+func unlessSpecialShapeOK(c Cost) bool {
+	return c.Waterbend == 0 || (!c.HasManaPayment() && c.Life == 0 && !c.LifeHalfUp && len(c.LifeX) == 0)
+}

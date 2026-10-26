@@ -128,7 +128,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 118.6-118.6a | follows | `engine/rules/nomanacost.go#isNoManaCost` `engine/rules/nomanacost.go#Engine.filterNoManaCostCasts` | - | unpayable cost |
 | 118.7-118.7g | follows | `engine/rules/pay/costmods.go#CostMods.Apply` | - |  |
 | 118.8-118.9d | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` `engine/rules/cast_begin.go#Engine.beginPlay` | - | additional/alternative costs |
-| 118.10-118.12b | unknown | - | - | not reached |
+| 118.10-118.12 | unknown | - | - | not reached |
+| 118.12a | follows | `engine/rules/pay/unless.go#UnlessCostPayable` `engine/rules/unless_tape.go#settleUnlessElection` `engine/rules/pay/unlessflow.go#AdvanceUnless` | `TestUnlessTapTypeCommandBridge` `TestUnlessTapTypeRentIsDue` `TestUnlessAddCounterSanctuaryWall` `TestUnlessAddCounterCheeringCrowd` `TestUnlessDamageYouXCombustionMan` `TestUnlessWaterbendLesson` `TestUnlessBlightGutsplitter` `TestUnlessExileFromStackSphinxsApproach` `TestUnlessDrawXArmorWars` | the payer may pay; the offer is gated on payability (118.3), never on parseability |
+| 118.12b | unknown | - | - | not reached |
 | 118.13-118.13c | follows | `engine/rules/potential_plan.go#Engine.planHybridCost` `engine/rules/cast_payment.go#Engine.manaAsk` | - |  |
 | 118.14 | unknown | - | - | not reached |
 | 119.1-119.3 | follows | `engine/events/apply_combat.go#foldDamage` `engine/effects/life.go#effGainLife` `engine/effects/life.go#effLoseLife` | - | starting life in 103.4 row |

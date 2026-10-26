@@ -38,27 +38,21 @@ const (
 // payment the window or the continuation must assemble.
 func settleUnlessElection(e *Engine, ctx *effects.Ctx, sa *cards.SA, obj state.ObjID, chosen []decision.Option) (unlessSettle, state.PlayerID, Cost) {
 	payOption, chosePay := unlessPayChoice(chosen)
-	// Sacrifice's damage-payment offer (Vexing Devil's UnlessCost$
-	// DamageYou<4>, UnlessPayer$ Opponent, UnlessSwitched$ True): "paying" is
-	// TAKING THE DAMAGE, which the mana path below cannot express --
-	// ParseCost silently substitutes an unknown spelling for a flat {1} and
-	// would charge one floating mana for four damage. The accepting
-	// opponent's Damage event is emitted from the offering permanent, and
-	// effSacrifice, reading the answered UnlessPay, then sacrifices (the
-	// switched orientation: paying CAUSES the sacrifice). A plain-mana
-	// UnlessCost$ (the echo / cumulative-upkeep family) falls through to the
-	// shared mana path below, exactly like a Counter's: paid spares the
-	// permanent, decline sacrifices it.
-	if sa.API == "Sacrifice" {
-		if n, dmg := effects.ParseDamageUnlessCost(sa.ParamStr(cards.PKUnlessCost)); dmg {
-			ctx.UnlessPay = "decline"
-			if chosePay {
-				e.payUnlessDamageCost(ctx, payOption.Player, n)
-				ctx.UnlessPay = "pay"
-			}
-			return unlessSettled, payOption.Player, Cost{}
-		}
-	}
+	// The damage-payment offer (Vexing Devil's UnlessCost$ DamageYou<4>,
+	// UnlessPayer$ Opponent, UnlessSwitched$ True; Combustion Man's
+	// DamageYou<X>, X its power): "paying" is TAKING THE DAMAGE, which the
+	// mana path below cannot express -- ParseCost silently substitutes an
+	// unknown spelling for a flat {1} and would charge one floating mana for
+	// four damage. The accepting payer's Damage event is emitted from the
+	// offering source, and the effect, reading the answered UnlessPay, applies
+	// its orientation (Sacrifice, switched: paying CAUSES the sacrifice;
+	// Destroy, unswitched: paying SPARES the permanent). It is any API's:
+	// the offer is gated on the cost being exactly DamageYou<N> after the
+	// fold, never on the API. A plain-mana UnlessCost$ (the echo /
+	// cumulative-upkeep family) falls through to the shared mana path below,
+	// exactly like a Counter's: paid spares the permanent, decline sacrifices
+	// it.
+	//
 	// UnlessCostResolved first: an UnlessCost$ naming an SVar whose count
 	// body resolves folds its numeric result into a generic amount (Feather,
 	// Radiant Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2 -- "{2} for
@@ -67,6 +61,14 @@ func settleUnlessElection(e *Engine, ctx *effects.Ctx, sa *cards.SA, obj state.O
 	// ctx's table lacks or whose body does not resolve passes through raw and
 	// lands in the same hard decline as before.
 	raw := effects.UnlessCostResolved(e, ctx, sa)
+	if n, dmg := effects.ParseDamageUnlessCost(raw); dmg {
+		ctx.UnlessPay = "decline"
+		if chosePay {
+			e.payUnlessDamageCost(ctx, payOption.Player, n)
+			ctx.UnlessPay = "pay"
+		}
+		return unlessSettled, payOption.Player, Cost{}
+	}
 	paid, ok := ParseUnlessCost(raw)
 	ctx.UnlessPay = "decline"
 	if !ok {
@@ -89,8 +91,9 @@ func settleUnlessElection(e *Engine, ctx *effects.Ctx, sa *cards.SA, obj state.O
 		return unlessSettled, payOption.Player, Cost{}
 	}
 	if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.Behold) > 0 ||
-		len(paid.RevealChosen) > 0 || len(paid.Return) > 0 || len(paid.Exile) > 0 {
-		// Sacrifice, discard, reveal, behold, return and exile are
+		len(paid.RevealChosen) > 0 || len(paid.Return) > 0 || len(paid.Exile) > 0 || pay.UnlessHasSpecialParts(paid) {
+		// Sacrifice, discard, reveal, behold, return, exile and the tap,
+		// counter, waterbend, blight and evidence parts are
 		// choice-bearing costs: the payer selects every component before
 		// anything is charged.
 		ctx.UnlessPay = ""

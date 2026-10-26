@@ -193,6 +193,17 @@ func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
 					changed = true
 				}
 			}
+			if m := xAmountToken.FindStringSubmatch(f); m != nil {
+				// DamageYou<X> (Combustion Man: its power) and Draw<X/Spec>
+				// (Armor Wars: the artifacts you control) fold from the face's
+				// SVar:X exactly like PayLife<X>. A zero or unresolved X stays
+				// raw: a zero is not a payment anyone could choose, and an
+				// unbound one must never price as free.
+				if n, resolved := EvalCountOK(h, c, c.SVars["X"]); resolved && n > 0 {
+					f = m[1] + "<" + strconv.Itoa(int(n)) + m[2] + ">"
+					changed = true
+				}
+			}
 			out = append(out, f)
 		}
 		if changed {
@@ -211,6 +222,10 @@ var payEnergyToken = regexp.MustCompile(`^PayEnergy<([^>]*)>$`)
 // Essence Vortex): the amount is the SVar:X body, folded above when the
 // resolution's table resolves it and at the pay sites' face route otherwise.
 var payLifeXToken = regexp.MustCompile(`^PayLife<X>$`)
+
+// xAmountToken matches the DamageYou<X> and Draw<X/Spec> unless-cost tokens
+// whose amount is the face's SVar:X (see UnlessCostResolved).
+var xAmountToken = regexp.MustCompile(`^(DamageYou|Draw)<X(/[^>]*)?>$`)
 
 // definedCostToken matches Forge's DefinedCost_<Defined>[_<Modifier>] and
 // DefinedSACost_<Defined> tokens; Modifier is Minus<N>/Plus<N>.
@@ -499,10 +514,17 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 				name = o.Face().Name
 			}
 			payLabel = "Take " + strconv.Itoa(n) + " damage"
-			if ActivationOf(sa).Has(ActUnlessSwitched) {
+			switch {
+			case sa.API != "Sacrifice":
+				// Any other API (Combustion Man's Destroy, Browbeat's Draw):
+				// the orientation is the effect's own, so the wording stays
+				// neutral.
+				prompt = "Take " + strconv.Itoa(n) + " damage from " + name + ", or decline"
+				declineLabel = "Don't"
+			case ActivationOf(sa).Has(ActUnlessSwitched):
 				prompt = name + " deals " + strconv.Itoa(n) + " damage to you — accept?"
 				declineLabel = "Refuse — it stays"
-			} else {
+			default:
 				prompt = name + " — take " + strconv.Itoa(n) + " damage to spare it, or sacrifice it"
 				declineLabel = "Sacrifice it"
 			}
@@ -517,13 +539,13 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 	// implements only the two-argument form is still consulted. The effects
 	// test host (and other embedders) keep the two options -- R-9 still
 	// declines when it cannot ask.
-	// DamageYou<N> is the one strict-parser exception: the Sacrifice arm has
-	// its own rules-side payment path (payUnlessDamageCost), so its recognised
-	// damage offer is payable even though generic ParseUnlessCost deliberately
-	// rejects DamageYou. Every other strict-unpriceable cost reaches the shared
-	// gate below and exposes only decline.
+	// DamageYou<N> is the one strict-parser exception: the unless-pay arm has
+	// its own rules-side payment path for it (payUnlessDamageCost, any API),
+	// so a recognised damage offer is payable even though generic
+	// ParseUnlessCost deliberately rejects DamageYou. Taking damage needs no
+	// resource (CR 118.3). Every other strict-unpriceable cost reaches the
+	// shared gate below and exposes only decline.
 	_, damagePayment := ParseDamageUnlessCost(cost)
-	damagePayment = sa.API == "Sacrifice" && damagePayment
 	// A non-rules host cannot price a cost and keeps the historic two-option
 	// R-9 ask; its no-host fallback deterministically declines. A rules host
 	// supplies the actual fail-closed offer gate for every non-damage cost.
@@ -799,6 +821,9 @@ func sortTargets(ts []state.Target, rank map[state.PlayerID]int) {
 // than degrading to "Pay the cost". Display only, like unlessCostLabel: raw
 // cost syntax (Sac<1/Land>) must never reach a prompt or label.
 func unlessPayPhrase(cost string) string {
+	if n, ok := ParseDamageUnlessCost(cost); ok {
+		return "Take " + strconv.Itoa(n) + " damage"
+	}
 	if what, ok := sacrificeOneLabel(cost); ok {
 		return "Sacrifice " + what
 	}

@@ -41,7 +41,8 @@ func MaxBipartiteMatch(cands [][]state.ObjID) int {
 }
 
 // UnlessPartAt returns the cost component at flat index i across the
-// unlessPayment's Sac, Discard, Reveal, Behold, Return and Exile lists,
+// unlessPayment's Sac, Discard, Reveal, Behold, Return, Exile and special
+// (tap, blight, waterbend, evidence, counter) lists,
 // together with the zone its candidates come from and the option kind the wire
 // carries. The
 // option kind "revealcost" is the cast flow's own reveal-cost string
@@ -64,10 +65,36 @@ func UnlessPartAt(cost Cost, i int) (cost.CostPart, state.Zone, string) {
 		return cost.Behold[i-nSac-nDisc-nRev], state.ZBattlefield, "beholdcost"
 	case i < nSac+nDisc+nRev+nBeh+nRet:
 		return cost.Return[i-nSac-nDisc-nRev-nBeh], state.ZBattlefield, "returncost"
-	default:
-		part := cost.Exile[i-nSac-nDisc-nRev-nBeh-nRet]
+	}
+	i -= nSac + nDisc + nRev + nBeh + nRet
+	if i < len(cost.Exile) {
+		part := cost.Exile[i]
 		return part, UnlessExileZone(part), "exilecost"
 	}
+	return unlessSpecialPartAt(cost, i-len(cost.Exile))
+}
+
+// unlessSpecialPartAt is UnlessPartAt past the Exile list: the tap, blight,
+// waterbend (one part of the whole amount), evidence and counter parts.
+func unlessSpecialPartAt(c Cost, i int) (cost.CostPart, state.Zone, string) {
+	if i < len(c.TapPermanent) {
+		return c.TapPermanent[i], state.ZBattlefield, UnlessKindTap
+	}
+	i -= len(c.TapPermanent)
+	if i < len(c.Blight) {
+		return c.Blight[i], state.ZBattlefield, UnlessKindBlight
+	}
+	i -= len(c.Blight)
+	if c.Waterbend > 0 {
+		if i == 0 {
+			return cost.CostPart{N: c.Waterbend, Spec: waterbendSpec}, state.ZBattlefield, UnlessKindWaterbend
+		}
+		i--
+	}
+	if i < len(c.Evidence) {
+		return c.Evidence[i], state.ZGraveyard, UnlessKindEvidence
+	}
+	return c.AddCounter[i-len(c.Evidence)], state.ZBattlefield, UnlessKindCounter
 }
 
 // UnlessExileZone is the zone an Exile cost part draws from. cost.CostPart.Zone's
