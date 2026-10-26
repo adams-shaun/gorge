@@ -35,14 +35,14 @@ func TestTriggerPresentDefinedUsesTriggerContext(t *testing.T) {
 		TriggerTarget:     state.Target{Obj: captured},
 		DelayedRemembered: []state.Target{{Obj: captured}},
 	}
-	if !e.presentClauseHolds(trigger, source, 0, &tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone") {
+	if !e.presentClauseHolds(trigger, source, 0, &tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone", "PresentPlayer") {
 		t.Fatal("present clause did not count the delayed registration's remembered creature instead of the source's persistent land (EQ1)")
 	}
 
 	// Defined-group resolution also needs the event roles themselves, not just
 	// the Remembered slice. This would resolve to the source if tc were dropped.
 	trigger.Params["PresentDefined"] = "TriggeredTarget"
-	if !e.presentClauseHolds(trigger, source, 0, &tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone") {
+	if !e.presentClauseHolds(trigger, source, 0, &tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone", "PresentPlayer") {
 		t.Fatal("present clause did not resolve TriggeredTarget from the trigger context (EQ1)")
 	}
 }

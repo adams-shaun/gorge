@@ -3,4 +3,3 @@ Awaken the Sleeper	param:api:DestroyAll.Optional
 Green Sun's Twilight	param:api:DigMultiple.ChangeLater,param:api:DigMultiple.ChangeValid,param:api:DigMultiple.DigNum,param:api:DigMultiple.ImprintRest,param:api:DigMultiple.RememberChanged,param:api:DigMultiple.Reveal
 Koth, Fire of Resistance	param:api:ChangeZone.NumCards
 Melira, the Living Cure	param:api:ImmediateTrigger.AfterReplacement
-Voidwing Hybrid	param:trig:Proliferate.PresentPlayer

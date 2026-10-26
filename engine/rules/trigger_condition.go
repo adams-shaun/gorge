@@ -170,11 +170,11 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 	// (cardfuzz batch3 lines 4/21: 500+ continuous effects, every Derived
 	// walking all of them -- the "hang").
 	if _, ok := t.Param(cards.PKIsPresent); ok &&
-		!e.presentClauseHolds(t, source, you, tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone") {
+		!e.presentClauseHolds(t, source, you, tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone", "PresentPlayer") {
 		return false
 	}
 	if _, ok := t.Param(cards.PKIsPresent2); ok &&
-		!e.presentClauseHolds(t, source, you, tc, "IsPresent2", "PresentCompare2", "PresentDefined2", "PresentZone2") {
+		!e.presentClauseHolds(t, source, you, tc, "IsPresent2", "PresentCompare2", "PresentDefined2", "PresentZone2", "PresentPlayer2") {
 		return false
 	}
 	if v, ok := t.Param(cards.PKMetalcraft); ok {
@@ -454,6 +454,11 @@ func (e *Engine) lifeConditionHoldsAs(t cards.Trigger, you state.PlayerID, amoun
 //     in deterministic seat/zone order; an unknown zone word fails closed.
 //   - otherwise the battlefield is counted.
 //
+// PresentPlayer$ (PresentPlayer2$ for IsPresent2$) picks whose copies count:
+// absent/Any is every living seat, You the caller's "you", Opponent the other
+// living seats (Forge's CardTraitBase readPresentPlayer default Any). An
+// unreadable scope fails closed.
+//
 // The caller's TriggerContext, when it names a delayed registration's capture
 // through DelayedRemembered, is bound into the SpecContext the spec matches
 // resolve against, so a capture-aware present spec (Card.IsTriggerRemembered
@@ -462,7 +467,7 @@ func (e *Engine) lifeConditionHoldsAs(t cards.Trigger, you state.PlayerID, amoun
 // nothing, exactly the pre-existing read.
 //
 // A comparison this build cannot fold (PresentCompare$ EQX) fails closed.
-func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, isKey, cmpKey, definedKey, zoneKey string) bool {
+func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, isKey, cmpKey, definedKey, zoneKey, playerKey string) bool {
 	spec := strings.TrimSpace(t.Params[isKey])
 	cmp, hasCmp := t.Params[cmpKey]
 	if !hasCmp {
@@ -511,6 +516,12 @@ func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you sta
 		}
 		return comparePresent(n, cmp)
 	}
+	// PresentPlayer$ scopes only the zone/battlefield copies below; a
+	// PresentDefined$ clause above names an explicit group and is untouched.
+	scope, scopeKnown := presentPlayerScopeFor(t.Params[playerKey])
+	if !scopeKnown {
+		return false
+	}
 	if pz := strings.TrimSpace(t.Params[zoneKey]); pz != "" {
 		zones, known := presentZoneFromParam(pz)
 		if !known {
@@ -518,11 +529,77 @@ func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you sta
 		}
 		n := 0
 		for _, zone := range zones {
-			n += e.presentZoneCountCtx(zone, spec, source, you, sc)
+			n += e.presentZoneCountScoped(zone, spec, source, you, sc, scope)
 		}
 		return comparePresent(n, cmp)
 	}
-	return comparePresent(e.countPresentCtx(spec, source, you, sc), cmp)
+	return comparePresent(e.countPresentScoped(spec, source, you, sc, scope), cmp)
+}
+
+// presentPlayerScope is PresentPlayer$'s restriction on whose copies of the
+// present zones are counted, matching Forge's CardTraitBase readPresentPlayer:
+// the absent/default Any counts every living seat's copies, You only the
+// trigger's "you", Opponent only the other living seats.
+type presentPlayerScope uint8
+
+const (
+	presentPlayerAny presentPlayerScope = iota
+	presentPlayerYou
+	presentPlayerOpponent
+)
+
+// presentPlayerScopeFor parses one PresentPlayer$ value. An absent value is
+// Forge's Any default; any other word is an unreadable scope, and the caller
+// fails the clause closed rather than silently counting everyone. The card
+// script parser trims every parameter value at load, so the values are
+// compared as they are stored (no per-evaluation string normalisation).
+func presentPlayerScopeFor(v string) (presentPlayerScope, bool) {
+	switch v {
+	case "", "Any":
+		return presentPlayerAny, true
+	case "You":
+		return presentPlayerYou, true
+	case "Opponent":
+		return presentPlayerOpponent, true
+	}
+	return presentPlayerAny, false
+}
+
+// presentSeats lists the alive seats whose copies of a zone a scope counts, in
+// the deterministic seat order AliveFrom(0) yields.
+func (e *Engine) presentSeats(you state.PlayerID, scope presentPlayerScope) []state.PlayerID {
+	all := e.G.AliveFrom(0)
+	switch scope {
+	case presentPlayerYou:
+		for _, p := range all {
+			if p == you {
+				return []state.PlayerID{p}
+			}
+		}
+		return nil
+	case presentPlayerOpponent:
+		out := make([]state.PlayerID, 0, len(all))
+		for _, p := range all {
+			if p != you {
+				out = append(out, p)
+			}
+		}
+		return out
+	}
+	return all
+}
+
+// presentControllerInScope reports whether a battlefield permanent's
+// controller is counted by the scope. presentPlayerAny is handled by the
+// caller's fast path.
+func presentControllerInScope(ctrl, you state.PlayerID, scope presentPlayerScope) bool {
+	switch scope {
+	case presentPlayerYou:
+		return ctrl == you
+	case presentPlayerOpponent:
+		return ctrl != you
+	}
+	return true
 }
 
 // presentZoneCount counts spec matches over one zone across every living
@@ -535,8 +612,14 @@ func (e *Engine) presentZoneCount(zone state.Zone, spec string, source state.Obj
 // so a capture-aware spec resolves against a binding the generic constructor
 // does not carry (see presentClauseHolds).
 func (e *Engine) presentZoneCountCtx(zone state.Zone, spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext) int {
+	return e.presentZoneCountScoped(zone, spec, source, you, sc, presentPlayerAny)
+}
+
+// presentZoneCountScoped is presentZoneCountCtx restricted to the seats the
+// present clause's PresentPlayer$ counts.
+func (e *Engine) presentZoneCountScoped(zone state.Zone, spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext, scope presentPlayerScope) int {
 	n := 0
-	for _, p := range e.G.AliveFrom(0) {
+	for _, p := range e.presentSeats(you, scope) {
 		for _, id := range e.G.Zone(zone, p) {
 			if e.matchesSpec(presentSpecForZone(spec, zone), id, sc) {
 				n++
@@ -557,10 +640,19 @@ func (e *Engine) countPresent(spec string, source state.ObjID, you state.PlayerI
 // capture-aware spec resolves against a binding the generic constructor does
 // not carry (see presentClauseHolds).
 func (e *Engine) countPresentCtx(spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext) int {
+	return e.countPresentScoped(spec, source, you, sc, presentPlayerAny)
+}
+
+// countPresentScoped is countPresentCtx restricted to permanents the present
+// clause's PresentPlayer$ counts.
+func (e *Engine) countPresentScoped(spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext, scope presentPlayerScope) int {
 	n := 0
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
 		if o == nil || o.Zone != state.ZBattlefield {
+			return
+		}
+		if scope != presentPlayerAny && !presentControllerInScope(e.controllerOf(id), you, scope) {
 			return
 		}
 		if e.matchesSpec(spec, id, sc) {

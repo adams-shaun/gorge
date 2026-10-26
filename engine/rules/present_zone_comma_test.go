@@ -54,7 +54,7 @@ func TestPresentZoneCommaListDesertCarriers(t *testing.T) {
 	if desertTrigger == nil {
 		t.Fatal("precondition: Deserts Hold has no Battlefield,Graveyard IsPresent trigger")
 	}
-	if !e.presentClauseHolds(*desertTrigger, hold, 0, nil, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone") {
+	if !e.presentClauseHolds(*desertTrigger, hold, 0, nil, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone", "PresentPlayer") {
 		t.Fatal("Deserts Hold's IsPresent trigger clause rejected the graveyard Desert")
 	}
 }
