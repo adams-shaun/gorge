@@ -168,8 +168,10 @@ func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 // With no UpTo$ the election is mandatory: a single present kind needs no
 // ask (nobody could answer differently), a multi-kind carrier asks. With
 // UpTo$ even a single present kind is a real ask (remove another or Done).
-// Each selection is applied immediately through events.Apply, so the next
-// step reads the updated carrier. The no-answer fallback is the first present
+// The election runs against a local tally so each ask sees the pending
+// removals, and the whole election is logged as ONE batched event per kind
+// when it ends (the CounterRemovedOnce contract: one negative-Amount event
+// carries the whole removal). The no-answer fallback is the first present
 // kind -- the same pick botpolicy's "counter_kind" arm takes -- so the R-9
 // no-host path and a bot-answered ask emit the same events.
 func removeCounterAny(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) {
@@ -197,9 +199,9 @@ func removeCounterAny(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) {
 						func(i int) int32 { return pl.Counters[i].N }))
 				},
 				func(kind string) int32 { return pl.Counter(kind) },
-				func(kind string) {
-					h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: kind, Amount: -1})
-					rememberRemoved(h, c, rp, state.PlayerRef(p), 1)
+				func(kind string, removed int32) {
+					h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: kind, Amount: -removed})
+					rememberRemoved(h, c, rp, state.PlayerRef(p), removed)
 				})
 			continue
 		}
@@ -221,24 +223,42 @@ func removeCounterAny(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) {
 					func(i int) int32 { return o.Counters[i].N }))
 			},
 			func(kind string) int32 { return o.Counter(kind) },
-			func(kind string) {
-				h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: -1})
-				rememberRemoved(h, c, rp, o.ID, 1)
+			func(kind string, removed int32) {
+				h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: -removed})
+				rememberRemoved(h, c, rp, o.ID, removed)
 			})
 	}
 }
 
 // removeCounterAnyCarrier runs removeCounterAny's election loop over one
 // counter carrier. present returns the carrier's positive-count kinds in its
-// deterministic slice order; count re-reads one kind after each event;
-// removeOne logs the single-counter removal (and its RememberRemoved$ rider).
+// deterministic slice order; count re-reads one kind before the batch is
+// applied. The election decrements a local tally so present/count reflect the
+// pending removals; emit logs the finished election as one batched event per
+// kind (Amount = -removed, the CounterRemovedOnce contract) and its
+// RememberRemoved$ rider.
 func removeCounterAnyCarrier(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams, n int32,
-	present func() []string, count func(string) int32, removeOne func(string)) {
+	present func() []string, count func(string) int32, emit func(string, int32)) {
+	order := present()
+	remaining := make(map[string]int32, len(order))
+	for _, k := range order {
+		remaining[k] = count(k)
+	}
+	presentNow := func() []string {
+		var kinds []string
+		for _, k := range order {
+			if remaining[k] > 0 {
+				kinds = append(kinds, k)
+			}
+		}
+		return kinds
+	}
 	var removed int32
+	removedByKind := make(map[string]int32, len(order))
 	for n < 0 || removed < n {
-		kinds := present()
+		kinds := presentNow()
 		if len(kinds) == 0 {
-			return
+			break
 		}
 		chosen := kinds[0]
 		if len(kinds) > 1 || rp.UpTo {
@@ -255,16 +275,22 @@ func removeCounterAnyCarrier(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterPara
 			}
 			if ans, ok := AskTape(h, d); ok {
 				if len(ans) == 0 || ans[0].Kind == "remove_counter_done" {
-					return
+					break
 				}
 				chosen = ans[0].Label
 			}
 		}
-		if chosen == "" || count(chosen) <= 0 {
-			return // a stale answer cannot invent a counter
+		if chosen == "" || remaining[chosen] <= 0 {
+			break // a stale answer cannot invent a counter
 		}
-		removeOne(chosen)
+		remaining[chosen]--
+		removedByKind[chosen]++
 		removed++
+	}
+	for _, k := range order {
+		if got := removedByKind[k]; got > 0 {
+			emit(k, got)
+		}
 	}
 }
 

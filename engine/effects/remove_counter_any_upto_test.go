@@ -78,14 +78,14 @@ func anyUpToCtx(src, perm state.ObjID) *Ctx {
 	return &Ctx{Controller: 0, Source: src, Targets: []state.Target{{Obj: perm}}}
 }
 
-func anyUpToRemovals(h *anyUpToHost, perm state.ObjID) int {
-	n := 0
+func anyUpToRemovals(h *anyUpToHost, perm state.ObjID) []events.Event {
+	var out []events.Event
 	for _, ev := range h.log {
 		if ev.Kind == events.CounterChange && ev.Obj == perm && ev.Amount < 0 {
-			n++
+			out = append(out, ev)
 		}
 	}
-	return n
+	return out
 }
 
 func assertAnyUpToAsks(t *testing.T, h *anyUpToHost, wantAsks int) {
@@ -123,8 +123,15 @@ func TestRemoveCounterAnyUpTo(t *testing.T) {
 		if got := h.g.Obj(perm).Counter("OIL"); got != 1 {
 			t.Fatalf("OIL = %d, want 1 after one removal", got)
 		}
-		if got := anyUpToRemovals(h, perm); got != 3 {
-			t.Fatalf("removal events = %d, want 3", got)
+		evs := anyUpToRemovals(h, perm)
+		if len(evs) != 2 {
+			t.Fatalf("removal events = %+v, want one batched event per kind (P1P1 -2, OIL -1)", evs)
+		}
+		if evs[0].Counter != "P1P1" || evs[0].Amount != -2 {
+			t.Fatalf("first removal = %+v, want P1P1 -2 (the whole P1P1 batch)", evs[0])
+		}
+		if evs[1].Counter != "OIL" || evs[1].Amount != -1 {
+			t.Fatalf("second removal = %+v, want OIL -1", evs[1])
 		}
 		assertAnyUpToAsks(t, h, 3)
 		third := h.asks[2]
@@ -145,8 +152,13 @@ func TestRemoveCounterAnyUpTo(t *testing.T) {
 		if got := h.g.Obj(perm).Counter("OIL"); got != 1 {
 			t.Fatalf("OIL = %d, want 1 after one removal", got)
 		}
-		if got := anyUpToRemovals(h, perm); got != 2 {
-			t.Fatalf("removal events = %d, want 2 (Done stopped before three)", got)
+		evs := anyUpToRemovals(h, perm)
+		if len(evs) != 2 {
+			t.Fatalf("removal events = %+v, want one per kind before Done", evs)
+		}
+		if evs[0].Counter != "P1P1" || evs[0].Amount != -1 ||
+			evs[1].Counter != "OIL" || evs[1].Amount != -1 {
+			t.Fatalf("removals = %+v, want P1P1 -1 then OIL -1", evs)
 		}
 		assertAnyUpToAsks(t, h, 3)
 	})
