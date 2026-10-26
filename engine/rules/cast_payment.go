@@ -63,6 +63,11 @@ func (e *Engine) validateCastContributions(d *decision.Decision, in decision.Int
 			return nil // a different cast-flow ask, not the convoke announcement
 		}
 	}
+	for _, p := range pays {
+		if pc.cost.Tap && p.ID == pc.card {
+			return fmt.Errorf("the source taps for its own {T} cost and cannot also be tapped to help pay")
+		}
+	}
 	all := append(append([]convokePayment(nil), pc.Convoke...), pays...)
 	if !e.convokeAbsorbs(pc, e.manaToPay(pc), all, pc.cost.X > 0) {
 		return fmt.Errorf("announcement reduces nothing: the outstanding cost cannot absorb every chosen contribution")
