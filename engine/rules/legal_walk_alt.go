@@ -129,6 +129,14 @@ func (w *legalWalk) mayPlaySpellWalk() {
 					Label: "Cast " + f.Name + " (" + label + ")", Obj: id, Mode: sc.mode})
 			}
 		}
+		// An Adventure-demanding grant (Mosswood Dreadknight's "cast it from
+		// your graveyard as an Adventure") offers the Adventure face's cast
+		// only, gated on THAT face's timing, so it sits above the main
+		// face's timing gate; the plain offer below is withheld for it
+		// (mayPlayKinds reads only the grants that do not demand it).
+		if off.key == "" && e.mayPlayAdventureGrant(p, o) {
+			w.appendAdventureAlt(o, sorcery)
+		}
 		if !w.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}

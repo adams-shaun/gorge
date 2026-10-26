@@ -1141,7 +1141,8 @@ func mayPlayLandCard(o *state.Object) bool {
 
 func (e *Engine) effectGrantMatches(ce *state.ContinuousEffect, id state.ObjID) bool {
 	sc := e.effectGrantSpecContext(ce)
-	if !e.matchesSpec(ce.Affects, id, sc) {
+	affects, _ := effects.MayPlayAdventureSpec(ce.Affects)
+	if !e.matchesSpec(affects, id, sc) {
 		return false
 	}
 	if ce.MayPlayValidAfterStack != "" && !mayPlayLandCard(e.G.Obj(id)) {
@@ -1206,6 +1207,21 @@ func (e *Engine) mayPlayEffectFree(p state.PlayerID, o *state.Object) (free, cov
 // (graveyard, exile) can match; the library self-grant is a static, never an
 // effect.
 func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool {
+	return e.mayPlayEffectCovers(p, o, false)
+}
+
+// mayPlayAdventureGrant is mayPlayEffectGrantsCast for the grants whose
+// Affected$ demands the Adventure (effects.MayPlayAdventureSpec: Mosswood
+// Dreadknight's "cast it from your graveyard as an Adventure"): such a grant
+// permits the Adventure face's cast only (CR 715.3a), so it is NOT an
+// ordinary cast permission and mayPlayEffectGrantsCast skips it.
+func (e *Engine) mayPlayAdventureGrant(p state.PlayerID, o *state.Object) bool {
+	return e.mayPlayEffectCovers(p, o, true)
+}
+
+// mayPlayEffectCovers is the one gate chain behind both reads above; adventure
+// selects the grants that demand the Adventure face (true) or the rest (false).
+func (e *Engine) mayPlayEffectCovers(p state.PlayerID, o *state.Object, adventure bool) bool {
 	if o.Zone != state.ZGraveyard && o.Zone != state.ZExile {
 		return false
 	}
@@ -1214,6 +1230,9 @@ func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool
 	for i := range ces {
 		ce := &ces[i]
 		if !ce.MayPlay || !mayPlayEffectBenefits(ce, o, p) {
+			continue
+		}
+		if _, adv := effects.MayPlayAdventureSpec(ce.Affects); adv != adventure {
 			continue
 		}
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
