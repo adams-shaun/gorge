@@ -194,11 +194,12 @@ const xFoldBoundCap int32 = 64
 
 // costCarriesUnfoldedX reports whether the cost carries an X the payment
 // cannot charge until it is folded: a printed {X} pip (Cost.X, Elenda and
-// Azor's "Cost$ X W U B") or an announced PayLife<X> part (LifeX Spec X,
-// Vizkopa Confessor's "pay any amount of life"). The other announced parts
-// (Sac<X/Spec>, PayEnergy<X>, SubCounter<X/Kind>) are NOT this shape: the
-// trigger window has no settle for them, and they keep the decline-only
-// hard-decline convention (the non-mana-settle follow-up family).
+// Azor's "Cost$ X W U B"), an announced PayLife<X> part (LifeX Spec X,
+// Vizkopa Confessor's "pay any amount of life"), or a CollectEvidence<X> part
+// whose amount names the announced X (Incinerator of the Guilty). The other
+// announced parts (Sac<X/Spec>, PayEnergy<X>, SubCounter<X/Kind>) are NOT this
+// shape: the trigger window has no settle for them, and they keep the
+// decline-only hard-decline convention (the non-mana-settle follow-up family).
 func costCarriesUnfoldedX(c Cost) bool {
 	if c.X > 0 {
 		return true
@@ -213,13 +214,14 @@ func costCarriesUnfoldedX(c Cost) bool {
 			return true
 		}
 	}
-	return false
+	return costCarriesEvidenceX(c)
 }
 
 // foldCostX folds a chosen X into the cost, once per unfolded shape: the
-// printed {X} pips become that much generic mana (Cost.WithX) and each
-// announced PayLife<X> part becomes that much fixed life, so the folded
-// cost is Priceable and payManaConv can charge it whole.
+// printed {X} pips become that much generic mana (Cost.WithX), each announced
+// PayLife<X> part becomes that much fixed life, and a CollectEvidence<X> part
+// becomes a literal threshold, so the folded cost's mana half is Priceable and
+// the evidence stage can resolve it.
 func foldCostX(c Cost, x int32) Cost {
 	out := c.WithX(x)
 	if len(out.LifeX) > 0 {
@@ -230,7 +232,30 @@ func foldCostX(c Cost, x int32) Cost {
 		}
 		out.LifeX = nil
 	}
+	if costCarriesEvidenceX(out) {
+		// A collect-evidence X becomes a literal threshold, on a copied slice
+		// (the parsed cost is shared).
+		ev := append([]CostPart(nil), out.Evidence...)
+		for i := range ev {
+			if ev[i].Dyn == "X" {
+				ev[i].N = x
+				ev[i].Dyn = ""
+			}
+		}
+		out.Evidence = ev
+	}
 	return out
+}
+
+// costCarriesEvidenceX reports whether an Evidence part names the announced X
+// (Incinerator of the Guilty's CollectEvidence<X>).
+func costCarriesEvidenceX(c Cost) bool {
+	for _, part := range c.Evidence {
+		if part.Dyn == "X" {
+			return true
+		}
+	}
+	return false
 }
 
 // scaleCost repeats every mana/life payment component once per age counter.
@@ -879,9 +904,10 @@ func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, o *state.Object,
 }
 
 // triggeredCostXAsk is the X arm of the payment ask: a cost carrying an
-// unfolded {X} or PayLife<X> part needs its X announced BEFORE the mana
-// activations that cover it (CR 601.2b's announce-then-activate ordering;
-// the ordinary pay/decline election follows the fold). Two shapes:
+// unfolded {X}, PayLife<X> or CollectEvidence<X> part needs its X announced
+// BEFORE the mana activations that cover it (CR 601.2b's
+// announce-then-activate ordering; the ordinary pay/decline election follows
+// the fold). Two shapes:
 //
 //   - FIXED (SVar:X names a resolvable expression other than Count$xPaid):
 //     the value is folded into the cost once, no ask is posed, and the
@@ -992,13 +1018,42 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			}
 		}
 	}
+	evidenceX := costCarriesEvidenceX(tc.amount)
+	if evidenceX {
+		// CR 701.59a: the graveyard's total mana value (less what the
+		// window's component picks reserved) bounds the announced X.
+		total := evidenceManaValue(e.G, tc.player,
+			evidenceGraveCandidates(e.G, tc.player, tc.reservedComponents()))
+		if total > xFoldBoundCap {
+			total = xFoldBoundCap
+		}
+		if bound < 0 || total < bound {
+			bound = total
+		}
+	}
 	if bound < 0 {
 		return false
 	}
 	var opts []decision.Option
 	for x := int32(0); x <= bound; x++ {
 		v := foldCostX(tc.amount, x)
-		if !pay.EnergyPayable(e.G, tc.player, &v) || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, false, v, pot, e.G.Players[tc.player].ManaUnits()) {
+		priced := v
+		if evidenceX {
+			// Cost.Priceable is false for an Evidence part, so the folded
+			// cost's evidence half is gated by the component window's own
+			// payable check. X = 0 stays offered: the follow-up pay ask
+			// declines a zero threshold, keeping option 0 the
+			// decline-equivalent the bots take.
+			if x > 0 {
+				probe := *tc
+				probe.amount = v
+				if !e.triggeredCostComponentsPayable(&probe) {
+					continue
+				}
+			}
+			priced.Evidence = nil
+		}
+		if !pay.EnergyPayable(e.G, tc.player, &priced) || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, false, priced, pot, e.G.Players[tc.player].ManaUnits()) {
 			continue
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "trigger_cost_x",
@@ -2284,6 +2339,11 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 			e.triggeredCostDecline(tc)
 			return
 		}
+	}
+	// The announced X (the evidence fold) binds into the body exactly like
+	// the pay arm's fold does.
+	if tc.xPaid != 0 {
+		rp.winPaidX = tc.xPaid
 	}
 	rp.kind = "effect_paid"
 	e.resumeResolution(rp, nil)
