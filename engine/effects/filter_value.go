@@ -35,6 +35,9 @@ func objectPowerInContext(o *state.Object, sc SpecContext) int {
 	if sc.HasDerivedPT {
 		return int(sc.DerivedPower)
 	}
+	if d, ok := sc.Layers.battlefieldPT(o.ID); ok {
+		return int(d.Power)
+	}
 	if d, ok := sc.Layers.cdaPT(o.ID); ok {
 		return int(d.Power)
 	}
@@ -222,10 +225,14 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 	// A face with a characteristic-defining P/T reads the published CDA
 	// value (LayerTables.CDAPTs) in every zone when no per-object bind is
 	// present: its printed star is not 0 (CR 208.2a, 604.3).
+	bf, hasBF := sc.Layers.battlefieldPT(o.ID)
 	cda, hasCDA := sc.Layers.cdaPT(o.ID)
 	currentPower := func() int {
 		if sc.HasDerivedPT {
 			return int(sc.DerivedPower)
+		}
+		if hasBF {
+			return int(bf.Power)
 		}
 		if _, p, _, ok := prototypePT(o, sc); ok {
 			return int(p)
@@ -239,6 +246,9 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if sc.HasDerivedPT {
 			return int(sc.DerivedToughness)
 		}
+		if hasBF {
+			return int(bf.Toughness)
+		}
 		if _, _, t, ok := prototypePT(o, sc); ok {
 			return int(t)
 		}
@@ -251,6 +261,9 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if sc.HasBasePT {
 			return int(sc.BasePower)
 		}
+		if hasBF {
+			return int(bf.BasePower)
+		}
 		if _, p, _, ok := prototypePT(o, sc); ok {
 			return int(p)
 		}
@@ -262,6 +275,9 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 	baseToughnessValue := func() int {
 		if sc.HasBasePT {
 			return int(sc.BaseToughness)
+		}
+		if hasBF {
+			return int(bf.BaseToughness)
 		}
 		if _, _, t, ok := prototypePT(o, sc); ok {
 			return int(t)

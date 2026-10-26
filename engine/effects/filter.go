@@ -784,6 +784,17 @@ type LayerTables struct {
 	// shape as DerivedTypes; built on demand (LayerCDAPT) and nil when no such
 	// object exists.
 	CDAPTs []ObjectPT
+	// BattlefieldPTs optionally supplies the current and base (through layer
+	// 7b) P/T of every battlefield object whose Derived value differs from
+	// the printed-plus-counters fallback (current) or from the printed face
+	// (base): a pump, an anthem, a set-P/T effect, a prototype, a face-down
+	// 2/2 (CR 613.4, 708.2). It is what lets a resolving filter's power and
+	// toughness predicates (DestroyAll, PumpAll, ChooseCard, Defined$ Valid,
+	// ConditionDefined$) read the current value instead of the printed one.
+	// Consulted only when the candidate has no per-object DerivedPower/BasePower
+	// bind, ahead of CDAPTs. The same immutable value-slice shape as CDAPTs;
+	// built on demand (LayerBattlefieldPT) and nil when nothing differs.
+	BattlefieldPTs []ObjectPT
 }
 
 // ObjectPT binds one object to its current and base (through layer 7b)
@@ -791,6 +802,16 @@ type LayerTables struct {
 type ObjectPT struct {
 	ID                                         state.ObjID
 	Power, Toughness, BasePower, BaseToughness int32
+}
+
+// battlefieldPT returns id's entry in the BattlefieldPTs table.
+func (t *LayerTables) battlefieldPT(id state.ObjID) (*ObjectPT, bool) {
+	for i := range t.BattlefieldPTs {
+		if t.BattlefieldPTs[i].ID == id {
+			return &t.BattlefieldPTs[i], true
+		}
+	}
+	return nil, false
 }
 
 // cdaPT returns o's entry in the CDAPTs table.

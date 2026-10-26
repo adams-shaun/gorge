@@ -913,6 +913,8 @@ const (
 	LayerKeywords
 	// LayerCDAPT asks for LayerTables.CDAPTs.
 	LayerCDAPT
+	// LayerBattlefieldPT asks for LayerTables.BattlefieldPTs.
+	LayerBattlefieldPT
 )
 
 // layerTablesHost is implemented by the rules engine to publish the board's
@@ -950,7 +952,7 @@ func layerTablesFor(h Host, sa *cards.SA) LayerTables {
 			want |= LayerKeywords
 		}
 		if saMentionsPT(sa) {
-			want |= LayerCDAPT
+			want |= LayerCDAPT | LayerBattlefieldPT
 		}
 	}
 	return lh.LayerTables(want)
