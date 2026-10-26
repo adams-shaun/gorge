@@ -50,6 +50,9 @@ type DealDamageParams struct {
 	DamageSource string
 	// DamageMap is DamageMap$ True: mark the damage for a DamageResolve.
 	DamageMap bool
+	// NoPrevention is NoPrevention$ True: the damage this ability deals
+	// can't be prevented (CR 615.12).
+	NoPrevention bool
 	// OptionalDecider is OptionalDecider$ (Forge's "that creature's
 	// controller may have this deal damage"), trimmed: the spec the damage
 	// resolution resolves to the player who makes the may election.
@@ -89,7 +92,7 @@ var dealDamageKnownKeys = [...]string{
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController",
-	"NoPutDesc", "NonBasicSpell", "NumDmg", "OpponentTurn", "OptionalDecider", "Planeswalker",
+	"NoPrevention", "NoPutDesc", "NonBasicSpell", "NumDmg", "OpponentTurn", "OptionalDecider", "Planeswalker",
 	"PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",
 	"PresentDefined", "PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RelativeTarget",
 	"RememberAnimated", "RememberCostMana", "RememberDamaged", "RememberObjects", "RememberTargets", "ReplaceColor",
@@ -155,6 +158,7 @@ func compileDealDamage(sa *cards.SA) *DealDamageParams {
 	p.ExcessSVarCondition = strings.TrimSpace(sa.ParamStr(cards.PKExcessSVarCondition))
 	p.DamageSource = DamageSourceParam(sa)
 	p.DamageMap = isTrue(sa.ParamStr(cards.PKDamageMap))
+	p.NoPrevention = isTrue(sa.ParamStr(cards.PKNoPrevention))
 	p.RelativeTarget = strings.TrimSpace(sa.ParamStr(cards.PKRelativeTarget)) != ""
 	p.ReplaceDyingDefined = ReplaceDyingParam(sa)
 	p.OptionalDecider = strings.TrimSpace(sa.ParamStr(cards.PKOptionalDecider))
