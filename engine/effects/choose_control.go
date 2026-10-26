@@ -1635,7 +1635,10 @@ func effControlSpell(h Host, c *Ctx, sa *cards.SA) {
 // engine redirects that player's decisions to their controller while the
 // grant is live (engine/rules/engine.go ask) and expires it at the end of that
 // player's next turn (engine/rules/turn.go beginTurn). The duration is Forge's fixed
-// "next turn" reading -- none of the corpus carriers carries a Duration$.
+// "next turn" reading -- none of the corpus carriers carries a Duration$ --
+// except `Combat$ True` (Secret of Bloodbending, "during their next combat
+// phase"; Forge ControlPlayerEffect), which rides the grant as Counter
+// "combat" so state.Game.LiveController narrows it to that combat phase.
 func effControlPlayer(h Host, c *Ctx, sa *cards.SA) {
 	subj, ok := playerTargetIn(c.Targets)
 	if !ok {
@@ -1655,8 +1658,12 @@ func effControlPlayer(h Host, c *Ctx, sa *cards.SA) {
 			Text: "ControlPlayer target is the source's own controller"})
 		return
 	}
-	h.Emit(events.Event{Kind: events.ControlPlayerChange, Player: c.Controller,
-		IDs: []state.ObjID{state.PlayerRef(subj)}, Amount: 1})
+	ev := events.Event{Kind: events.ControlPlayerChange, Player: c.Controller,
+		IDs: []state.ObjID{state.PlayerRef(subj)}, Amount: 1}
+	if strings.EqualFold(sa.Params["Combat"], "True") {
+		ev.Counter = events.ControlCombatOnly
+	}
+	h.Emit(ev)
 }
 
 func effectSA(o *state.Object) *cards.SA {

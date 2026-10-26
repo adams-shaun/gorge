@@ -711,6 +711,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	if wasBattlefield && to != state.ZBattlefield {
 		o.Controller = o.Owner
 		o.PhasedOut = false
+		o.PhasedOutIndirect = false
 	}
 	if wasBattlefield && to != state.ZBattlefield {
 		// CR 702.99: a creature's encoded cards are battlefield-stint state.
