@@ -126,6 +126,12 @@ func (e *Engine) bindReflexiveContext(id state.ObjID, pt *pendingTrigger) {
 		}
 		e.castRevealed[id] = pt.Ctx.Paid.Revealed
 	}
+	if len(pt.Ctx.Paid.Discarded) > 0 {
+		if e.castDiscarded == nil {
+			e.castDiscarded = make(map[state.ObjID][]state.ObjID)
+		}
+		e.castDiscarded[id] = pt.Ctx.Paid.Discarded
+	}
 	if len(pt.Ctx.Paid.CounterPut) > 0 {
 		if e.castCounterPut == nil {
 			e.castCounterPut = make(map[state.ObjID][]state.ObjID)

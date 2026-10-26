@@ -343,6 +343,14 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.castRevealed[k0] = nv0
 		}
 	}
+	if e.castDiscarded != nil {
+		c.castDiscarded = make(map[state.ObjID][]state.ObjID, len(e.castDiscarded))
+		for k0, v0 := range e.castDiscarded {
+			var nv0 []state.ObjID
+			nv0 = append([]state.ObjID(nil), v0...)
+			c.castDiscarded[k0] = nv0
+		}
+	}
 	if e.castCounterPut != nil {
 		c.castCounterPut = make(map[state.ObjID][]state.ObjID, len(e.castCounterPut))
 		for k0, v0 := range e.castCounterPut {

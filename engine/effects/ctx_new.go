@@ -131,6 +131,7 @@ func (c *Ctx) ForTrigger(tc TriggerContext) Ctx {
 		Paid: PaidCostLists{
 			Exiled:     append([]state.ObjID(nil), c.Paid.Exiled...),
 			Revealed:   append([]state.ObjID(nil), c.Paid.Revealed...),
+			Discarded:  append([]state.ObjID(nil), c.Paid.Discarded...),
 			CounterPut: append([]state.ObjID(nil), c.Paid.CounterPut...),
 		},
 	}
