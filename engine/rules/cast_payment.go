@@ -136,7 +136,7 @@ func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
 func (e *Engine) manaToPayXMods(pc *pendingCast, x int32) costMods {
 	if costAnnouncesPaidX(pc.cost) {
 		if scope, ok := e.pendingCastScope(pc); ok {
-			return e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.targets, x)
+			return pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.targets, x))
 		}
 	}
 	return pc.mods

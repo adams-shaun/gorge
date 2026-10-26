@@ -112,13 +112,15 @@ func (e *Engine) lifePayable(p state.PlayerID, n int32) bool {
 	return e.G.Players[p].Life >= n && !e.playerLifeChangeForbidden(p) && !e.playerLifeLossForbidden(p)
 }
 
-// foldDefilerMods re-adds the answered reductions after a modifier refresh
-// (repriceForTargets recomputes pc.mods from the statics, which do not know
-// the cast-time answers).
-func (pc *pendingCast) foldDefilerMods() {
+// withDefiler returns m with the answered Defiler reductions added. Every
+// recomputation of the modifiers from the statics (repriceForTargets, the
+// per-candidate target filter, the paid-X re-pricing) goes through it, because
+// the statics do not know the cast-time answers.
+func (pc *pendingCast) withDefiler(m costMods) costMods {
 	if pc.defilerRed.HasColor {
-		pc.mods.Reduces = append(slices.Clone(pc.mods.Reduces), pc.defilerRed)
+		m.Reduces = append(slices.Clone(m.Reduces), pc.defilerRed)
 	}
+	return m
 }
 
 // defilerAsk poses, one yes/no per applicable Defiler in collector order,
