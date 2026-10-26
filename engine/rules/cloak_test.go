@@ -511,7 +511,6 @@ func TestCloakedLeavesBattlefieldReveals(t *testing.T) {
 func TestCloakOutOfScopeShapesStayLoud(t *testing.T) {
 	t.Parallel()
 	for _, tt := range []struct{ name, sa string }{
-		{"choices", "A:SP$ Cloak | Choices$ Card.YouCtrl"},
 		{"unknown-defined", "A:SP$ Cloak | Defined$ ChosenCard"},
 	} {
 		src := "Name:Loud Cloak\nManaCost:0\nTypes:Instant\n" + tt.sa + "\nOracle:x\n"
@@ -606,6 +605,175 @@ func TestUnexplainedAbsenceCloaksEachControllerTop(t *testing.T) {
 	cloakedDerived(t, e, top0, 0)
 	cloakedDerived(t, e, top1, 1)
 	noUnimplementedManifest(t, e)
+	noUnimplementedCloak(t, e)
+	replayCheck(t, e, cfg)
+}
+
+// TestBecomeAnonymousCloaksThePileWithoutShufflingTheLibrary pins the pile
+// reading of Cloak's Shuffle$ True (Become Anonymous): the spell exiles a
+// bear and the top two library cards in a face-down pile, cloaks all three
+// (entered tapped), and shuffles THE PILE -- which is not a library (CR
+// 701.24a), so no events.Shuffle is emitted and the remaining library keeps
+// its recorded order.
+func TestBecomeAnonymousCloaksThePileWithoutShufflingTheLibrary(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	e, cfg := manifestEngine(t, reg, "Become Anonymous", "Grizzly Bears")
+	bear := bearOn(t, e, 0)
+	id := searchMoveByName(t, e, "Become Anonymous", state.ZHand)
+	libBefore := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
+	if len(libBefore) < 3 {
+		t.Fatalf("seat 0's library has %d cards, want at least 3", len(libBefore))
+	}
+	topA, topB := libBefore[0], libBefore[1]
+
+	addMana(t, e, 0, "CCUU")
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no decision pending")
+	}
+	cast := -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == id {
+			cast = o.Index
+		}
+	}
+	if cast < 0 {
+		t.Fatalf("no cast option for Become Anonymous: %+v", d.Options)
+	}
+	submitChoices(t, e, cast)
+	cutoff := len(e.L.Events)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("after casting: %+v, want the target ask", d)
+	}
+	tgt := -1
+	for _, o := range d.Options {
+		if o.Obj == bear {
+			tgt = o.Index
+		}
+	}
+	if tgt < 0 {
+		t.Fatalf("target %d not offered: %+v", bear, d.Options)
+	}
+	submitChoices(t, e, tgt)
+	passUntilStackEmpty(t, e, 30)
+
+	// Exactly three cards entered cloaked and tapped: the bear and the two
+	// library tops.
+	want := map[state.ObjID]bool{bear: true, topA: true, topB: true}
+	got := map[state.ObjID]bool{}
+	for _, cid := range e.G.Zone(state.ZBattlefield, 0) {
+		o := e.G.Obj(cid)
+		if o != nil && o.Cloaked && o.FaceDown {
+			got[cid] = true
+			if !o.Tapped {
+				t.Fatalf("cloaked card %d entered untapped, want tapped", cid)
+			}
+		}
+	}
+	if len(got) != 3 {
+		t.Fatalf("%d cards entered cloaked, want exactly 3", len(got))
+	}
+	for id := range want {
+		if !got[id] {
+			t.Fatalf("expected card %d did not enter cloaked", id)
+		}
+	}
+	// No shuffle: the pile is not a library.
+	for _, ev := range e.L.Events[cutoff:] {
+		if ev.Kind == events.Shuffle {
+			t.Fatalf("a Shuffle event was emitted after the cast: %+v", ev)
+		}
+	}
+	// The library is the recorded order minus its top two cards.
+	libAfter := e.G.Zone(state.ZLibrary, 0)
+	if len(libAfter) != len(libBefore)-2 {
+		t.Fatalf("library now %d cards, want %d", len(libAfter), len(libBefore)-2)
+	}
+	for i, cid := range libAfter {
+		if cid != libBefore[i+2] {
+			t.Fatalf("library order changed at %d: %v -> %v", i, libBefore[2:], libAfter)
+		}
+	}
+	noUnimplementedCloak(t, e)
+	replayCheck(t, e, cfg)
+}
+
+// TestExposeTheCulpritCloaksTheExiledPile is the second carrier: Expose the
+// Culprit's second mode exiles any number of face-up creatures you control
+// with disguise face down, then cloaks them (Shuffle$ True: the pile, so no
+// events.Shuffle).
+func TestExposeTheCulpritCloaksTheExiledPile(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	e, cfg := manifestEngine(t, reg, "Expose the Culprit", "Basilica Stalker", "Vengeful Creeper")
+	stalker := searchMoveByName(t, e, "Basilica Stalker", state.ZBattlefield)
+	creeper := searchMoveByName(t, e, "Vengeful Creeper", state.ZBattlefield)
+
+	id := searchMoveByName(t, e, "Expose the Culprit", state.ZHand)
+	addMana(t, e, 0, "CR")
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no decision pending")
+	}
+	cast := -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == id {
+			cast = o.Index
+		}
+	}
+	if cast < 0 {
+		t.Fatalf("no cast option for Expose the Culprit: %+v", d.Options)
+	}
+	submitChoices(t, e, cast)
+	cutoff := len(e.L.Events)
+	// Only the exile mode remains: the turn-face-up mode has no face-down
+	// creature to target and is dropped from the ask as target-infeasible.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KModes {
+		t.Fatalf("after casting: %+v, want the mode ask", d)
+	}
+	exile := -1
+	for _, o := range d.Options {
+		if strings.Contains(o.Label, "Exile any number of face-up creatures") {
+			exile = o.Index
+		}
+	}
+	if exile < 0 {
+		t.Fatalf("no exile mode on the ask: %+v", d.Options)
+	}
+	submitChoices(t, e, exile)
+	// Hidden$ True's choose-which-cards ask over the two matching creatures.
+	d = passUntilAskKind(t, e, decision.KChoose, 20)
+	pick := make([]int, 0, 2)
+	for _, o := range d.Options {
+		if o.Kind == "hidden_pick" {
+			pick = append(pick, o.Index)
+		}
+	}
+	if len(pick) != 2 {
+		t.Fatalf("the hidden pick offered %d cards, want both disguise creatures: %+v", len(pick), d.Options)
+	}
+	submitChoices(t, e, pick...)
+	passUntilStackEmpty(t, e, 30)
+
+	// Both disguise creatures re-entered cloaked (untapped: no Tapped$).
+	for _, cid := range []state.ObjID{stalker, creeper} {
+		o := e.G.Obj(cid)
+		if o.Zone != state.ZBattlefield || !o.Cloaked || !o.FaceDown {
+			t.Fatalf("creature %d: zone %s Cloaked %v FaceDown %v, want cloaked on the battlefield",
+				cid, o.Zone, o.Cloaked, o.FaceDown)
+		}
+		if o.Tapped {
+			t.Fatalf("cloaked creature %d entered tapped, want untapped", cid)
+		}
+	}
+	for _, ev := range e.L.Events[cutoff:] {
+		if ev.Kind == events.Shuffle {
+			t.Fatalf("a Shuffle event was emitted after the cast: %+v", ev)
+		}
+	}
 	noUnimplementedCloak(t, e)
 	replayCheck(t, e, cfg)
 }
