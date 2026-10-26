@@ -730,6 +730,15 @@ func (e *Engine) castWithFlashAsFace(p state.PlayerID, id state.ObjID, f *cards.
 // caster's own card. base is copied before any append because activeStatics
 // returns a cached slice during a legal-actions walk and must never be
 // mutated.
+//
+// Only a self static that names its own EffectZone$ is appended (CR 113.6:
+// an ability of a permanent card functions only on the battlefield unless it
+// says otherwise, and a battlefield static is already in activeStatics while
+// its card is there). Radagast's "you may cast spells as though they had
+// flash" therefore does not grant its own card flash from hand, while
+// Illusion Spinners' `EffectZone$ All` "this spell" grant does (CR 113.6e);
+// the caller still checks the named zone against the source. The same
+// default applies to any mode a later caller passes.
 func (e *Engine) withSelfStatics(base []staticView, id state.ObjID, mode string) []staticView {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
@@ -737,7 +746,7 @@ func (e *Engine) withSelfStatics(base []staticView, id state.ObjID, mode string)
 	}
 	var count int
 	for _, st := range o.Face().Statics {
-		if st.Mode == mode {
+		if st.Mode == mode && st.HasParam(cards.PKEffectZone) {
 			count++
 		}
 	}
@@ -746,7 +755,7 @@ func (e *Engine) withSelfStatics(base []staticView, id state.ObjID, mode string)
 	}
 	out := append([]staticView(nil), base...)
 	for _, st := range o.Face().Statics {
-		if st.Mode == mode {
+		if st.Mode == mode && st.HasParam(cards.PKEffectZone) {
 			out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params, PS: st.ParamSetOf()})
 		}
 	}
