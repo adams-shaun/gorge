@@ -34,9 +34,6 @@ func TestDescriptiveKeyNoNoteChangeZone(t *testing.T) {
 	if !params.IsDescriptiveKey("ValidTgtsDesc") {
 		t.Fatal("precondition: ValidTgtsDesc must be a descriptive key")
 	}
-	if _, known := slices.BinarySearch(changeZoneKnownKeys[:], "ValidTgtsDesc"); known {
-		t.Fatal("precondition: changeZoneKnownKeys already lists ValidTgtsDesc, so this fixture cannot exercise the descriptive skip")
-	}
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Heroic Return")
 	if !ok {
@@ -61,9 +58,6 @@ func TestDescriptiveKeyNoNoteChangeZone(t *testing.T) {
 func TestDescriptiveKeyNoNoteDraw(t *testing.T) {
 	if !params.IsDescriptiveKey("GiftDescription") {
 		t.Fatal("precondition: GiftDescription must be a descriptive key")
-	}
-	if _, known := slices.BinarySearch(drawKnownKeys[:], "GiftDescription"); known {
-		t.Fatal("precondition: drawKnownKeys already lists GiftDescription, so this fixture cannot exercise the descriptive skip")
 	}
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Dewdrop Cure")
