@@ -404,12 +404,16 @@ func exiledBySource(g *state.Game, o *state.Object, src state.ObjID) bool {
 // ref resolver (engine/effects/count.go's refTargets) and the Defined$ selector
 // (definedSpec below), so a count body and a Defined$ body can never disagree
 // about which cards the paid list holds. ref is "Exiled" (Forge's
-// CostExile row key, HashLKIListKey) or "Revealed" (CostReveal.doPayment);
-// an absent binding is an empty list -- a legitimate zero, never a fallback.
+// CostExile row key, HashLKIListKey), "Revealed" (CostReveal.doPayment), or
+// "Discarded" (CostDiscard); an absent binding is an empty list -- a
+// legitimate zero, never a fallback.
 func paidCostTargets(c *Ctx, ref string) []state.Target {
 	ids := c.Paid.Exiled
-	if ref == "Revealed" {
+	switch ref {
+	case "Revealed":
 		ids = c.Paid.Revealed
+	case "Discarded":
+		ids = c.Paid.Discarded
 	}
 	out := make([]state.Target, 0, len(ids))
 	for _, id := range ids {
@@ -1551,7 +1555,11 @@ func imprintAssociationContains(g *state.Game, source *state.Object, id state.Ob
 // exile, even though g.Obj(id) is already in the destination zone. Passing the
 // live object in (the ordinary filter path) reads its live zone and expires
 // exactly as imprintAssociationContains does. Token and SeekFound associations
-// ignore the zone in both forms.
+// ignore the zone in both forms. A candidate on the battlefield also matches
+// when it is in the ordinary Imprinted list: ImprintCards$ on a battlefield
+// permanent (Winnowing, Eye of Singularity) records it there, and this
+// predicate is the only reader that must see it; Defined$ Imprinted stays
+// exile-gated.
 func imprintAssociationContainsCandidate(g *state.Game, source *state.Object, o *state.Object) bool {
 	if source == nil || o == nil {
 		return false
@@ -1559,7 +1567,18 @@ func imprintAssociationContainsCandidate(g *state.Game, source *state.Object, o 
 	if g.Obj(o.ID) == nil {
 		return false
 	}
-	return imprintAssociationContainsInZone(source, o.ID, o.Zone)
+	if imprintAssociationContainsInZone(source, o.ID, o.Zone) {
+		return true
+	}
+	if o.Zone != state.ZBattlefield {
+		return false
+	}
+	for _, linkedID := range source.Imprinted {
+		if linkedID == o.ID {
+			return true
+		}
+	}
+	return false
 }
 
 // imprintAssociationContainsInZone is the shared membership rule behind both

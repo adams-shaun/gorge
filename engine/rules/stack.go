@@ -439,6 +439,7 @@ func (e *Engine) resolveTop() {
 		ctx.Sacrificed = e.sacrificedLKI[id]
 		ctx.Paid.Exiled = e.castExiled[id]
 		ctx.Paid.Revealed = e.castRevealed[id]
+		ctx.Paid.Discarded = e.castDiscarded[id]
 		ctx.Paid.CounterPut = e.castCounterPut[id]
 		if link, ok := e.sourceLifelinkLKI[id]; ok {
 			ctx.Snap.SourceLifelink = link
@@ -744,6 +745,7 @@ func (e *Engine) resolveTop() {
 		ctx.Sacrificed = e.sacrificedLKI[id]
 		ctx.Paid.Exiled = e.castExiled[id]
 		ctx.Paid.Revealed = e.castRevealed[id]
+		ctx.Paid.Discarded = e.castDiscarded[id]
 		ctx.Paid.CounterPut = e.castCounterPut[id]
 		effects.SetSVars(ctx, f.SVars)
 		// CR 601.2b: a modal spell's choice was recorded on its proposal before

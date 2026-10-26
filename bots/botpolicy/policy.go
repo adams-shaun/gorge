@@ -908,6 +908,8 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			in.Choices = []int{d.Options[0].Index}
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
+		case "harmonize":
+			in.Choices = []int{chooseHarmonize(d)}
 		case "discard":
 			in.Choices = b.chooseDiscard(d)
 		case "exile":
@@ -1307,6 +1309,21 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 	}
 	return Clamp(d, in)
+}
+
+// chooseHarmonize returns the index of the harmonize option to take. CR
+// 702.180a/b lets the caster tap at most one creature and choose which, so
+// take the largest offered power (ties keep the first offered), funding as
+// much of the generic cost as possible. The option's Amount is the only fact
+// this reads.
+func chooseHarmonize(d *decision.Decision) int {
+	best := 0
+	for i := 1; i < len(d.Options); i++ {
+		if d.Options[i].Amount > d.Options[best].Amount {
+			best = i
+		}
+	}
+	return d.Options[best].Index
 }
 
 // facingLethal reports whether the opposing board already forces the

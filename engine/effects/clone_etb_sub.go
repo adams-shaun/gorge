@@ -19,14 +19,24 @@ var cloneETBCounterSubKeys = state.NewNameSet(
 	"Defined", "CounterType", "ETB", "CounterNum", "SubAbility",
 )
 
+// cloneETBReflexiveKeys are the keys the admitted "When you do, exile that
+// card" link may carry (Superior Spider-Man's DBImmediateTrig).
+var cloneETBReflexiveKeys = state.NewNameSet(
+	"ConditionDefined", "ConditionPresent", "ConditionCompare", "Execute",
+	"RememberObjects", "SubAbility", "TriggerDescription",
+)
+
 // CloneETBSubChainOK reports whether an as-enters Clone body's SubAbility$
-// chain lies inside the implemented rider shape: every link an unconditional
-// `DB$ PutCounter | Defined$ Self | ETB$ True` with no asking modifier. A body
-// with no SubAbility$ is trivially inside it. Any other chain (Moritte of the
-// Frost's DB$ Effect replacement, Undercover Operative's ConditionPresent$
-// shield counter) fails closed, keeping the body out of the ETB election.
-// The key scan only answers a boolean, so map order cannot reach an event.
-func CloneETBSubChainOK(sa *cards.SA) bool {
+// chain lies inside the implemented shapes: any number of unconditional
+// `DB$ PutCounter | Defined$ Self | ETB$ True` rider links with no asking
+// modifier, then optionally Superior Spider-Man's reflexive exile
+// (CloneETBReflexiveExileOK) with its trailing `DB$ Cleanup | ClearRemembered$
+// True`. A body with no SubAbility$ is trivially inside it. Any other chain
+// (Moritte of the Frost's DB$ Effect replacement, Undercover Operative's
+// ConditionPresent$ shield counter) fails closed, keeping the body out of the
+// ETB election. The key scan only answers a boolean, so map order cannot
+// reach an event.
+func CloneETBSubChainOK(sa *cards.SA, svars map[string]string) bool {
 	if sa == nil {
 		return false
 	}
@@ -38,7 +48,14 @@ func CloneETBSubChainOK(sa *cards.SA) bool {
 		return false
 	}
 	for link, d := sa.Sub, 0; link != nil; link, d = link.Sub, d+1 {
-		if d >= maxChain || !IsPutCounter(link) {
+		if d >= maxChain {
+			return false
+		}
+		if link.API == "ImmediateTrigger" {
+			// The reflexive exile is the second-to-last link, closed by Cleanup.
+			return CloneETBReflexiveExileOK(link, svars) && cloneETBCleanupOnly(link.Sub)
+		}
+		if !IsPutCounter(link) {
 			return false
 		}
 		for k := range link.Params {
@@ -55,6 +72,39 @@ func CloneETBSubChainOK(sa *cards.SA) bool {
 		}
 	}
 	return true
+}
+
+// CloneETBReflexiveExileOK reports whether link is exactly Superior
+// Spider-Man's "When you do, exile that card": an ImmediateTrigger over the
+// remembered copy origin whose Execute$ is a `DB$ ChangeZone | Defined$
+// DelayTriggerRememberedLKI` from the graveyard to exile.
+func CloneETBReflexiveExileOK(link *cards.SA, svars map[string]string) bool {
+	if link == nil || link.API != "ImmediateTrigger" {
+		return false
+	}
+	for k := range link.Params {
+		if !cloneETBReflexiveKeys.Has(k) {
+			return false
+		}
+	}
+	if link.ParamStr(cards.PKConditionDefined) != "Remembered" || link.ParamStr(cards.PKRememberObjects) != "RememberedCard" ||
+		link.ParamStr(cards.PKConditionPresent) != "Card" || link.ParamStr(cards.PKConditionCompare) != "GE1" {
+		return false
+	}
+	body := cards.ResolveSVar(svars, link.ParamStr(cards.PKExecute))
+	if body == nil || body.API != "ChangeZone" || body.Sub != nil {
+		return false
+	}
+	return body.ParamStr(cards.PKDefined) == "DelayTriggerRememberedLKI" &&
+		body.ParamStr(cards.PKOrigin) == "Graveyard" && body.ParamStr(cards.PKDestination) == "Exile" &&
+		len(body.Params) == 3
+}
+
+// cloneETBCleanupOnly reports whether link is the single trailing
+// `DB$ Cleanup | ClearRemembered$ True` that ends the remembered window.
+func cloneETBCleanupOnly(link *cards.SA) bool {
+	return link != nil && link.API == "Cleanup" && link.Sub == nil && len(link.Params) == 1 &&
+		link.ParamStr(cards.PKClearRemembered) == "True"
 }
 
 // CloneETBNoCopy reports that an as-enters copy election was recorded on the

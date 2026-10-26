@@ -341,18 +341,22 @@ func harmonizeCost(f *cards.Face) (Cost, bool) {
 	return ParseCost(s), true
 }
 
-// harmonizePayment applies the keyword's creature-power reduction in stable
-// battlefield order and returns the creatures that pay it by becoming tapped.
+// harmonizePayment prices the keyword's creature-power reduction for the
+// legal-action offer gate: the single creature whose power reduces the cost
+// the most (CR 702.180a/b: tap up to one untapped creature you control, and
+// you choose which creature to tap). It is not the payment itself; the
+// announced harmonize option is the tap.
 func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cost, []state.ObjID) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil || !o.Face().HasKeywordRef(kwRefHarmonize) {
 		return c, nil
 	}
-	var tapped []state.ObjID
+	if c.Generic == 0 {
+		return c, nil
+	}
+	var best state.ObjID
+	var bestPower int32
 	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
-		if c.Generic == 0 {
-			break
-		}
 		co := e.G.Obj(cid)
 		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() || co.ReconfiguredAttached() {
 			continue
@@ -361,18 +365,21 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 		// that spell's generic cost by its power"): layer-7 effects and
 		// P1P1/M1M1 counters apply, not the printed face. harmonizePayment
 		// and convokeAsk's offer must read the same number or the offer
-		// gate and the payment disagree on what the creature funds.
+		// gate and the payment disagree on what the creature funds. A
+		// strict > keeps the first battlefield-order creature on ties.
 		reduce := e.Derived(cid).Power
-		if reduce <= 0 {
-			continue
+		if reduce > bestPower {
+			best, bestPower = cid, reduce
 		}
-		if reduce > c.Generic {
-			reduce = c.Generic
-		}
-		c.Generic -= reduce
-		tapped = append(tapped, cid)
 	}
-	return c, tapped
+	if bestPower <= 0 {
+		return c, nil
+	}
+	if bestPower > c.Generic {
+		bestPower = c.Generic
+	}
+	c.Generic -= bestPower
+	return c, []state.ObjID{best}
 }
 
 type suspendInfo struct {

@@ -85,8 +85,11 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 	// The Convoke/Harmonize/Improvise/Waterbend announcement ask
 	// (engine/rules/cast.go convokeAsk): one option per legal contribution ("Tap
 	// <creature> for W", "... for 1", ...), mixed Kinds, Min 0 up to the
-	// cost's outstanding slot count, each battlefield object's options in
-	// one payment Group so one object is committed to at most one payment.
+	// cost's outstanding slot count -- except a harmonize-only ask, which is
+	// capped at Max 1 because CR 702.180a lets the caster tap at most one
+	// creature -- each non-harmonize object's options in one payment Group,
+	// and every harmonize option in one shared group, so an object is
+	// committed to at most one payment.
 	// The payment GROUPS are not expressible on the wire (spec G-4:
 	// Validate is the fence, rejections counted in the census), but the ask
 	// itself is a plain multi-select over labelled alternatives:

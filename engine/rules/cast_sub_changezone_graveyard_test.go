@@ -171,27 +171,11 @@ func TestCatharticPartingGraveyardTargetsAnnouncedOnCast(t *testing.T) {
 // card that newly becomes resolvable is stale and fails the census by name,
 // and a card that newly becomes unresolvable is a new gap that fails too.
 //
-// Remaining entries are unsupported Battlefield-origin object links. The
-// admitted Battlefield shape is deliberately narrow: one battlefield target
-// zone matching a single Battlefield Origin$; multi-zone and other origins
-// remain pinned here.
-var knownUnjudgedChangeZoneSubTargets = map[string]string{
-	"Aether Tradewinds":         "Battlefield",
-	"Churning Eddy":             "Battlefield",
-	"Expel the Unworthy":        "Battlefield",
-	"Fiery Annihilation":        "Battlefield",
-	"Grip of Desolation":        "Battlefield",
-	"Into the Flood Maw":        "Battlefield",
-	"Karn's Temporal Sundering": "Battlefield",
-	"Kaya, Spirits' Justice":    "Battlefield",
-	"Lost in the Mist":          "Battlefield",
-	"Peel from Reality":         "Battlefield",
-	"Rise":                      "Battlefield",
-	"Rite of Undoing":           "Battlefield",
-	"Tear Asunder":              "Battlefield",
-	"Time Out":                  "Battlefield",
-	"Withdraw":                  "Battlefield",
-}
+// The ratchet is empty: every single-zone Battlefield-origin object link is
+// announced on cast (CR 601.2c); castSubPreAskable still decides timing for a
+// mandatory parent-dependent link. Multi-zone and other origins would be a new
+// gap and fail the census by name.
+var knownUnjudgedChangeZoneSubTargets = map[string]string{}
 
 // TestSubAbilityChangeZonePreAskCensus walks every front-face ability's
 // SubAbility$ chain and classifies each targeted ChangeZone link by whether

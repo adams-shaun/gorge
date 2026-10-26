@@ -2,6 +2,7 @@ package effects
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -33,7 +34,9 @@ import (
 //
 // CounterType$ Any is the per-counter kind election removeCounterAny runs:
 // the controller picks the kind for each counter removed, up to CounterNum$;
-// UpTo$ True adds a Done option so the controller may stop early.
+// UpTo$ True adds a Done option so the controller may stop early, and
+// CounterNum$ Any (Rhys, the Evermore's "any number") is that election with
+// no cap, Done offered from the first step.
 //
 // RememberRemoved$ True records one remembered entry per removed counter on
 // the source's persistent (event-backed) remembered list -- one Choose
@@ -48,7 +51,7 @@ import (
 // Exotic shapes stay LOUD (the effPutCounterAll exotic pattern -- one Note
 // naming the shape, nothing moves): ChoiceOptional$ without Choices$ (a
 // malformed mid-resolution pick), UpTo$ on a named kind (a bounded election),
-// CounterNum$ Any, CounterNumShared$, and a
+// CounterNum$ Any on a named kind, CounterNumShared$, and a
 // TgtZone$ naming anything but the battlefield (the suspended-TIME-counter
 // family), RememberAmount$
 // (a removed NUMBER the remembered list has no honest channel for) and
@@ -177,7 +180,7 @@ func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 func removeCounterAny(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) {
 	g := h.Game()
 	n := int32(1)
-	if rp.NumAll {
+	if rp.NumAll || rp.NumAny {
 		n = -1 // every counter, one election at a time
 	} else if rp.NumSet {
 		n = numText(h, c, rp.CounterNum, 1)
@@ -261,7 +264,8 @@ func removeCounterAnyCarrier(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterPara
 			break
 		}
 		chosen := kinds[0]
-		if len(kinds) > 1 || rp.UpTo {
+		upTo := rp.UpTo || rp.NumAny
+		if len(kinds) > 1 || upTo {
 			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
 				Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa,
 				Prompt: "Choose a counter kind to remove"}
@@ -269,7 +273,7 @@ func removeCounterAnyCarrier(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterPara
 				d.Options = append(d.Options, decision.Option{Index: i,
 					Kind: "counter", Label: k, Player: c.Controller})
 			}
-			if rp.UpTo {
+			if upTo {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 					Kind: "remove_counter_done", Label: "Done", Player: c.Controller})
 			}
@@ -330,9 +334,11 @@ func removeCounterAnyCarrier(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterPara
 // "counter_pick" arm both take the first Max eligible in zone order, so a
 // bot-answered ask emits the same events a silent build would have.
 //
-// Loud-and-unmodelled (one Note naming the shapes, nothing moves — the same
-// exotic discipline the defined path keeps): CounterType$ Any/All (a
-// which-kind pick stacked on the card election), CounterNum$ Any (a
+// CounterType$ Any with a fixed CounterNum$ (Mister Hyde, Monster Within) asks
+// the kind per chosen object (removeCounterAnyCarrier, the defined path's
+// election). Loud-and-unmodelled (one Note naming the shapes, nothing moves —
+// the same exotic discipline the defined path keeps): CounterType$ All,
+// CounterType$ Any stacked on CounterNum$ Any or UpTo$, CounterNum$ Any (a
 // how-many-per-card ask), UpTo$/CounterNumShared$ (a divided total), and a
 // ChoiceZone$ naming neither the battlefield nor exile.
 func removeCounterChoose(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) {
@@ -382,7 +388,7 @@ func removeCounterChoose(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) 
 		if int32(len(picks)) > maxv {
 			picks = picks[:maxv]
 		}
-		removeCounterPickApply(h, c, rp, zone, kind, num, picks)
+		removeCounterPickApply(h, c, sa, rp, zone, kind, num, picks)
 	}
 	if len(eligible) == 0 || (minv == maxv && maxv >= int32(len(eligible))) {
 		// Nothing eligible, or the forced exact set (the strict-supersets
@@ -396,7 +402,7 @@ func removeCounterChoose(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) 
 		Source:     c.Source,
 		ResumeKind: "counter_pick",
 		ResumeSA:   sa,
-		Prompt:     "Choose card(s) to remove " + kind + " counters from"}
+		Prompt:     removeCounterChoosePrompt(kind)}
 	for _, id := range eligible {
 		name := "a card"
 		if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -408,7 +414,7 @@ func removeCounterChoose(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) 
 	if ans, ok := AskTape(h, d); ok {
 		// The "counter_pick" answer in hand; the count is re-read here
 		// without the num clamp above.
-		removeCounterPickApply(h, c, rp, zone, kind, numText(h, c, rp.CounterNum, 1), counterAnswerObjs(ans))
+		removeCounterPickApply(h, c, sa, rp, zone, kind, numText(h, c, rp.CounterNum, 1), counterAnswerObjs(ans))
 		return
 	}
 
@@ -423,13 +429,34 @@ func removeCounterChoose(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) 
 // encoding: the object's id once per counter removed, so the chained
 // Count$RememberedNumber payoff — Garnet's X, Chandra's Z, Dyadrine's
 // ConditionCheckSVar$ Z — reads the real total).
-func removeCounterPickApply(h Host, c *Ctx, rp *RemoveCounterParams, zone state.Zone, kind string, num int32, picks []state.ObjID) {
+func removeCounterPickApply(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams, zone state.Zone, kind string, num int32, picks []state.ObjID) {
 	g := h.Game()
 	rememberAmount := rp.RememberAmount
 	var amountIDs []state.ObjID
 	for _, id := range picks {
 		o := g.Obj(id)
 		if o == nil || o.Zone != zone {
+			continue
+		}
+		if rp.AnyKinds {
+			// CounterType$ Any: the kind is asked per chosen object, exactly
+			// as the defined path's election (a lone kind needs no ask).
+			var got int32
+			removeCounterAnyCarrier(h, c, sa, rp, num,
+				func() []string {
+					return dedupeKinds(counterKinds("", len(o.Counters),
+						func(i int) string { return o.Counters[i].Kind },
+						func(i int) int32 { return o.Counters[i].N }))
+				},
+				func(k string) int32 { return o.Counter(k) },
+				func(k string, r int32) {
+					h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: k, Amount: -r})
+					rememberRemoved(h, c, rp, id, r)
+					got += r
+				})
+			for i := int32(0); i < got; i++ {
+				amountIDs = append(amountIDs, id)
+			}
 			continue
 		}
 		count := o.Counter(kind)
@@ -468,4 +495,14 @@ func rememberRemoved(h Host, c *Ctx, rp *RemoveCounterParams, id state.ObjID, re
 		ids = append(ids, id)
 	}
 	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered", IDs: ids})
+}
+
+// removeCounterChoosePrompt names the kind the recipient pick removes; the
+// Any kind (the controller picks the kind per recipient afterwards) is
+// "counters", not "Any counters".
+func removeCounterChoosePrompt(kind string) string {
+	if strings.EqualFold(kind, "Any") {
+		return "Choose card(s) to remove counters from"
+	}
+	return "Choose card(s) to remove " + kind + " counters from"
 }

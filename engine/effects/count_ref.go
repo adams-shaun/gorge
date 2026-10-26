@@ -492,6 +492,17 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.Source}}, true
 		}
 		return nil, false
+	case refTargetsDiscarded:
+		// The cards the resolving spell's or ability's own Discard<...> cost
+		// discarded: Grab the Prize's X:Discarded$Valid Card.nonLand/Times.2.
+		// This is Forge's "Discarded" paid-list row, carried on Ctx.Paid and
+		// keyed by the stack object the cost paid for -- NOT the cost-move log
+		// window discardedGroup scans for ConditionDefined$ Discarded, which
+		// another spell's PutOnStack truncates and a mana ability's discard
+		// enters. By resolution the card is in the graveyard and the filter
+		// reads it there (last-known information); no discard is a resolved
+		// zero.
+		return paidCostTargets(c, "Discarded"), true
 	case refTargetsCollected:
 		// The cards the cast collected as evidence (CR 701.59a), the count
 		// spelling of the ConditionDefined$ Collected group: Behind the
@@ -836,6 +847,7 @@ const (
 	refTargetsSpellTargeted
 	refTargetsTriggerObjectsAttackers
 	refTargetsCollected
+	refTargetsDiscarded
 )
 
 var refTargetsCodes = state.NewStrCodes(
@@ -876,6 +888,7 @@ var refTargetsCodes = state.NewStrCodes(
 	state.StrEntry[refTargetsCode]{Key: "TriggerObjectsAttackers", Val: refTargetsTriggerObjectsAttackers},
 	state.StrEntry[refTargetsCode]{Key: "Collected", Val: refTargetsCollected},
 	state.StrEntry[refTargetsCode]{Key: "CastSA>Collected", Val: refTargetsCollected},
+	state.StrEntry[refTargetsCode]{Key: "Discarded", Val: refTargetsDiscarded},
 )
 
 type countRefTagCode uint16

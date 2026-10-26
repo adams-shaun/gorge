@@ -28,7 +28,7 @@ func TestCompileRemoveCounter(t *testing.T) {
 		"Optional": "True", "RememberRemoved": " true ", "ChoiceZone": "Library", "Hidden": "True",
 	}}
 	p := RemoveCounterOf(sa)
-	if p.ExoticNote != "unimplemented RemoveCounter shape: ChoiceOptional$, CounterNum$ Any, "+
+	if p.ExoticNote != "unimplemented RemoveCounter shape: ChoiceOptional$, "+
 		"CounterNumShared$, TgtZone$ Graveyard, RememberAmount$, Optional$" {
 		t.Fatalf("exotic = %q", p.ExoticNote)
 	}

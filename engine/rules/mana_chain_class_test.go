@@ -131,8 +131,11 @@ func TestWickermawChooseColorChainIsAnImmediateManaAbility(t *testing.T) {
 	if got := e.Colors(id); got != "U" {
 		t.Fatalf("Wickermaw colours = %q after choosing Blue, want U (the DBAnimate rider must overwrite the colour)", got)
 	}
-	if got := e.G.Obj(id).ChosenColor; got != "U" {
-		t.Fatalf("ChosenColor = %q, want the answered U", got)
+	// DBCleanup (ClearChosenColor$) ran as the chain's last link: the pool and
+	// the DBAnimate colour above prove the answered U was read first, and the
+	// source's recorded choice is gone afterwards.
+	if got := e.G.Obj(id).ChosenColor; got != "" {
+		t.Fatalf("ChosenColor = %q after the chain, want cleared by DBCleanup", got)
 	}
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("a stack object exists after the mana activation: %+v", e.G.Stack)

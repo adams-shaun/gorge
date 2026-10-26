@@ -86,6 +86,13 @@ type engineTriggerMaps struct {
 	// used to pay its costs uses the original's (CR 707.10).
 	castExiled   map[state.ObjID][]state.ObjID `clone:"deep"`
 	castRevealed map[state.ObjID][]state.ObjID `clone:"deep"`
+	// castDiscarded is the same discipline for the cards a Discard<...> cost
+	// part discarded (Forge's paid-list key "Discarded"), read through
+	// effects.Ctx.Paid.Discarded by the `Discarded$<Property>` value ref
+	// (Grab the Prize's "if the discarded card wasn't a land card"). Keyed by
+	// the stack object the cost paid for, so a discard that pays another
+	// spell or a mana ability in response can never bleed into this one.
+	castDiscarded map[state.ObjID][]state.ObjID `clone:"deep"`
 	// castCounterPut is the same discipline for the creatures a Blight<N>
 	// cost part put its -1/-1 counters on (Forge's paid list "CounterPut"),
 	// read through effects.Ctx.Paid.CounterPut by `Defined$ CounterPutCards`

@@ -21,8 +21,8 @@ func CloneETBSpendSelector(spec string, svars map[string]string) bool {
 
 // CloneETBSelectorMatches is the common announcement/replacement matcher.
 // Other selectors keep their original resolver-free context; Mockingbird's
-// Y is available only while the entering object retains its cast provenance.
-// In particular a non-cast entry cannot mistake an absent spend for zero.
+// Y is the mana spent to cast the entering object, and 0 when it was not
+// cast.
 func CloneETBSelectorMatches(g *state.Game, spec string, id state.ObjID, sc SpecContext) bool {
 	if spec == "" {
 		spec = "Creature.Other"
@@ -32,11 +32,16 @@ func CloneETBSelectorMatches(g *state.Game, spec string, id state.ObjID, sc Spec
 	}
 	if spec == mockingbirdETBSelector {
 		source := g.Obj(sc.Source)
-		if source == nil || source.Face() == nil || !CloneETBSpendSelector(spec, source.Face().SVars) ||
-			source.CastFlags&state.FlagManaSpent == 0 {
+		if source == nil || source.Face() == nil || !CloneETBSpendSelector(spec, source.Face().SVars) {
 			return false
 		}
-		spend := source.ManaSpent
+		// Count$CastTotalManaSpent is 0 when the permanent was not cast
+		// (Forge AbilityUtils, XMage ManaSpentToCastCount): a reanimated or
+		// blinked Mockingbird may still copy a mana-value-0 creature.
+		spend := int32(0)
+		if source.CastFlags&state.FlagManaSpent != 0 {
+			spend = source.ManaSpent
+		}
 		sc.Resolve = func(name string) (int32, bool) {
 			return spend, name == mockingbirdSpendName
 		}
@@ -59,8 +64,9 @@ func CloneETBOffered(sa *cards.SA, svars map[string]string) bool {
 		return false
 	}
 	// A SubAbility$ chain is offered only as Altered Ego's "enters with X
-	// additional +1/+1 counters" rider (CloneETBSubChainOK).
-	if !CloneETBSubChainOK(sa) {
+	// additional +1/+1 counters" rider or Superior Spider-Man's reflexive
+	// exile (CloneETBSubChainOK).
+	if !CloneETBSubChainOK(sa, svars) {
 		return false
 	}
 	for _, name := range cp.StaticNames {
