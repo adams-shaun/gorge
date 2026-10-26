@@ -293,40 +293,43 @@ func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield
 func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
 	twice := false
 	additional := 0
-	// apply folds one live NumLoyaltyAct line into the accumulator. The
-	// ValidCard$ spec is matched against the permanent with the static's own
-	// source, controller and remembered set bound (the same binding
-	// restrictionApplies and combat.goadLineMatches use).
-	apply := func(params map[string]string, source state.ObjID, controller state.PlayerID, remembered []state.ObjID) {
-		sc := e.specCtx(source, controller)
-		for _, r := range remembered {
-			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
-		}
-		if !e.matchesSpec(params["ValidCard"], id, sc) {
-			return
-		}
-		if params["Twice"] == "True" {
-			twice = true
-		}
-		if raw, ok := params["Additional"]; ok {
-			additional += int(parseAmount(raw, 0))
-		}
-	}
 	for _, sv := range e.activeStatics("NumLoyaltyAct") {
-		apply(sv.Params, sv.Source, sv.Controller, nil)
+		e.numLoyaltyActFold(id, sv.Params, sv.Source, sv.Controller, nil, &twice, &additional)
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
 		if ce.Restriction != "NumLoyaltyAct" {
 			continue
 		}
-		apply(ce.RestrictParams, ce.Source, ce.Controller, ce.Remembered)
+		e.numLoyaltyActFold(id, ce.RestrictParams, ce.Source, ce.Controller, ce.Remembered, &twice, &additional)
 	}
 	base := 1
 	if twice {
 		base = 2
 	}
 	return base + additional
+}
+
+// numLoyaltyActFold folds one live NumLoyaltyAct line into
+// loyaltyAbilityLimit's accumulator. The ValidCard$ spec is matched against
+// the permanent with the static's own source, controller and remembered set
+// bound (the same binding restrictionApplies and combat.goadLineMatches use).
+// A named method, not a closure, so the parameter census sees its
+// Twice$/Additional$ reads.
+func (e *Engine) numLoyaltyActFold(id state.ObjID, params map[string]string, source state.ObjID, controller state.PlayerID, remembered []state.ObjID, twice *bool, additional *int) {
+	sc := e.specCtx(source, controller)
+	for _, r := range remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+	}
+	if !e.matchesSpec(params["ValidCard"], id, sc) {
+		return
+	}
+	if params["Twice"] == "True" {
+		*twice = true
+	}
+	if raw, ok := params["Additional"]; ok {
+		*additional += int(parseAmount(raw, 0))
+	}
 }
 
 // activationUsedCount counts this object's activations of one ability over

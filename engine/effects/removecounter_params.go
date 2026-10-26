@@ -98,7 +98,7 @@ var removeCounterKnownKeys = [...]string{
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "CounterNum",
 	"CounterNumShared", "CounterType", "Defined", "DefinedCards", "DefinedTarget",
-	"Description", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards",
+	"Description", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "Image", "ImprintCards",
 	"ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
 	"NewController", "NonBasicSpell", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",

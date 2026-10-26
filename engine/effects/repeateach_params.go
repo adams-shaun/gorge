@@ -93,7 +93,7 @@ var repeatEachKnownKeys = [...]string{
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"DamageMap", "Defined", "DefinedCards", "DefinedTarget", "Description",
-	"Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards",
+	"Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "Image", "ImprintCards",
 	"ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword",
 	"KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"ModeCost", "Monstrosity", "NewController", "NonBasicSpell", "OpponentTurn",

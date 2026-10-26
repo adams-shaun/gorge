@@ -3,9 +3,7 @@ Defiler of Faith	param:stat:OptionalCost.ReduceColor
 Defiler of Flesh	param:stat:OptionalCost.ReduceColor
 Defiler of Instinct	param:stat:OptionalCost.ReduceColor
 Defiler of Vigor	param:stat:OptionalCost.ReduceColor
-Karn, Living Legacy	cost:Y,param:api:ChooseNumber.ChooseAnyNumber,param:api:Effect.Abilities
-Protect the Negotiators	cost:Y
-Sphinx of Clear Skies	param:api:PeekAndReveal.NoPeek
+Karn, Living Legacy	param:api:ChooseNumber.ChooseAnyNumber,param:api:Effect.Abilities
 The Phasing of Zhalfir	param:api:RepeatEach.UseImprinted
 Threats Undetected	param:api:ChangeZone.DifferentPower
-Urza Assembles the Titans	param:api:Dig.RememberRevealed,param:api:Dig.RevealOptional,param:stat:NumLoyaltyAct.Twice
+Urza Assembles the Titans	param:api:Dig.RememberRevealed,param:api:Dig.RevealOptional

@@ -1,6 +1,4 @@
 Cheering Crowd	cost:AddCounter
 Electro, Assaulting Battery	param:stat:UnspentMana.ManaType,param:stat:UnspentMana.ValidPlayer
 Multiversal Passage	param:api:ChooseType.ETB
-Parker Luck	param:api:PeekAndReveal.NoPeek
-The Death of Gwen Stacy	param:api:GenericChoice.ShowChoice
 With Great Power...	param:api:ReplaceEffect.VarType

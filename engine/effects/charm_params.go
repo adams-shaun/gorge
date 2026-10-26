@@ -194,7 +194,7 @@ var charmKnownKeys = [...]string{
 	"ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost",
 	"CostDesc", "DamageMap", "Defined", "DefinedCards", "DefinedTarget",
 	"Description", "Exclude", "Exhaust", "FallbackAbility",
-	"ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
+	"ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "MinCharmNum", "ModeCost",
 	"Monstrosity", "NewController", "NonBasicSpell", "NumRandomChoices", "OpponentTurn", "Optional",

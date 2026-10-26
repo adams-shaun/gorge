@@ -94,7 +94,7 @@ var attachKnownKeys = [...]string{
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"Defined", "DefinedCards", "DefinedTarget",
 	"Description", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit",
-	"Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
+	"GiftDescription", "Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
 	"NewController", "NonBasicSpell", "Object",

@@ -89,8 +89,16 @@ func (e *Engine) giftAsk() bool {
 		return false
 	}
 	pc.giftDone = true
+	// GiftDescription$ is the gift's noun ("a card", "a Treasure"): CR
+	// 702.174a makes it part of what the caster decides to give. Text only.
+	prompt, gift := "Promise a gift?", "a gift"
+	if sa := cards.ResolveSVar(o.Face().SVars, "GiftAbility"); sa != nil {
+		if desc := sa.Params["GiftDescription"]; desc != "" { // trimmed at parse
+			prompt, gift = "Promise a gift ("+desc+")?", desc
+		}
+	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: "Promise a gift?", Source: pc.card}
+		Prompt: prompt, Source: pc.card}
 	d.Options = append(d.Options, decision.Option{Index: 0, Kind: "gift_decline",
 		Label: "Don't promise a gift"})
 	for _, p := range e.G.AliveFrom(pc.player) {
@@ -98,7 +106,7 @@ func (e *Engine) giftAsk() bool {
 			continue
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "gift_promise",
-			Player: p, Label: "Promise " + pay.SeatName(e.G, p) + " a gift"})
+			Player: p, Label: "Promise " + pay.SeatName(e.G, p) + " " + gift})
 	}
 	e.choosing = chooseCast
 	e.ask(d)

@@ -560,6 +560,9 @@ func init() {
 		// covers both directions of a LifeChange plus damage dealt to a
 		// player; ValidPlayer$ is the only scoping parameter enforced.
 		"stat:CantChangeLife",
+		// cr-g158: CR 119.8 CantLoseLife (Effect-delivered); replacement_life.go
+		// playerLifeLossForbidden is the reader.
+		"stat:CantLoseLife",
 		// cantdraw1 / cantdraw-drawlimit-cap: CR 121.6 CantDraw statics
 		// (engine/rules/replacement.go drawForbidden, consulted by applyReplacements
 		// before any Draw replacement). ValidPlayer$ scopes total prohibitions
@@ -683,6 +686,10 @@ func init() {
 		// ValidCard$/Condition$ are matched through the shared static walk).
 		// Proof test: rules/ignorelegendrule_test.go.
 		"stat:IgnoreLegendRule",
+		// cr-g159: CR 702.26's CantPhaseIn / CantPhaseOut (phaseBlocked in
+		// engine/rules/cantphase.go, consulted at the emit choke point for
+		// every PhaseOut event: the untap-step phasing and api:Phases).
+		"stat:CantPhaseIn", "stat:CantPhaseOut",
 		// IgnoreHexproof: the CR 702.11 targeting exemption (Nowhere to Run,
 		// Detection Tower, Glaring Spotlight, Kaya, Bane of the Dead). Read by
 		// Engine.ignoreHexproofApplies (engine/rules/protection.go), consulted at the

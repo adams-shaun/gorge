@@ -211,7 +211,7 @@ var pumpKnownKeys = [...]string{
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"Defined", "DefinedCards", "DefinedKW", "DefinedTarget", "Description", "Duration",
-	"Exclude", "Exhaust", "ForgetImprinted", "ForgetOtherTargets", "GameActivationLimit", "Image",
+	"Exclude", "Exhaust", "ForgetImprinted", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "KWChoice", "Keyword", "KeywordLine", "LeaveBattlefield",
 	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",

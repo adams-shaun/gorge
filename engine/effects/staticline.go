@@ -523,6 +523,7 @@ func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, reme
 // consultation. Keep comparisons against these named mode identifiers.
 const (
 	ModeIgnoreHexproof   = "IgnoreHexproof"
+	ModeCantLoseLife     = "CantLoseLife"
 	ModeIgnoreLegendRule = "IgnoreLegendRule"
 	// ModeAssignCombatDamageAsUnblocked names CR 510.1c-d's
 	// "assign combat damage as though it weren't blocked" static, delivered
@@ -533,6 +534,8 @@ const (
 	ModeNoCleanupDamage               = "NoCleanupDamage"
 	ModeMustBlock                     = "MustBlock"
 	ModeFlipCoinMod                   = "FlipCoinMod"
+	ModeCantPhaseIn                   = "CantPhaseIn"
+	ModeCantPhaseOut                  = "CantPhaseOut"
 )
 
 // staticKeysReadable fails closed when a delivered static carries an unread

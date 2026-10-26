@@ -92,7 +92,8 @@ func containsObjID(ids []state.ObjID, id state.ObjID) bool {
 // applies to p; rules' playerLifeChangeForbidden is the one answer, shared with
 // the replacement site, so an offer gate and the charged payment cannot disagree.
 func (pe *payEval) LifeChangeForbidden(p state.PlayerID) bool {
-	return (*Engine)(pe).playerLifeChangeForbidden(p)
+	e := (*Engine)(pe)
+	return e.playerLifeChangeForbidden(p) || e.playerLifeLossForbidden(p)
 }
 
 // Conv (pay.Engine; formerly paymentConv) is the conversion set for p paying id (ability selects the

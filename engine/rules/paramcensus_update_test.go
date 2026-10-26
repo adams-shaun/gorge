@@ -63,6 +63,12 @@ func knownKeysCensusWant(api string, d *derivedReads) []string {
 	for k := range ignoredParamKeys {
 		want[k] = true
 	}
+	// A mode body's Pawprint$ is read by its parent Charm (modePawprint), not
+	// by the mode API's own compiler, so the census scopes the key to exactly
+	// those APIs (ignoredAbilityParams); their tables must carry it too.
+	if slices.Contains(pawprintModeAPIs, api) {
+		want["Pawprint"] = true
+	}
 	for k := range structuralKeys["sa"] {
 		want[k] = true
 	}

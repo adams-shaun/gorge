@@ -150,7 +150,7 @@ var copyPermanentKnownKeys = [...]string{
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "Controller", "CopyCard", "Cost",
 	"CostDesc", "Defined", "DefinedCards", "DefinedName", "DefinedTarget",
-	"Description", "Exclude", "Execute", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "Image",
+	"Description", "Exclude", "Execute", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "Image",
 	"ImprintCards", "ImprintPlayed", "ImprintTokens", "InstantSpeed",
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",

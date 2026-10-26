@@ -1,28 +1,6 @@
-Blooming Blast	param:api:Token.GiftDescription
-Coiling Rebirth	param:api:Draw.GiftDescription
-Consumed by Greed	param:api:Draw.GiftDescription
-Cruelclaw's Heist	param:api:Draw.GiftDescription
-Crumb and Get It	param:api:Token.GiftDescription
-Dawn's Truce	param:api:Draw.GiftDescription
-Dazzling Denial	cost:Y
-Dewdrop Cure	param:api:Draw.GiftDescription
-Into the Flood Maw	param:api:Token.GiftDescription,param:api:Token.LockTokenScript
-Kitnap	param:api:Draw.GiftDescription
-Long River's Pull	param:api:Draw.GiftDescription
-Longstalk Brawl	param:api:Token.GiftDescription,param:api:Token.LockTokenScript
-Mind Spiral	param:api:Token.GiftDescription,param:api:Token.LockTokenScript
-Nocturnal Hunger	param:api:Token.GiftDescription
-Parting Gust	param:api:Token.GiftDescription,param:api:Token.LockTokenScript
-Peerless Recycling	param:api:Draw.GiftDescription
-Sazacap's Brew	param:api:Token.GiftDescription,param:api:Token.LockTokenScript
-Scrapshooter	param:api:Draw.GiftDescription
-Season of Gathering	param:api:Draw.Pawprint,param:api:PutCounter.Pawprint
-Season of Loss	param:api:Draw.Pawprint,param:api:LoseLife.Pawprint,param:api:Sacrifice.Pawprint
-Season of Weaving	param:api:ChangeZoneAll.Pawprint,param:api:Draw.Pawprint
-Season of the Bold	param:api:Dig.Pawprint,param:api:Effect.Pawprint,param:api:Token.Pawprint
-Season of the Burrow	param:api:ChangeZone.Pawprint,param:api:Token.Pawprint
-Starfall Invocation	param:api:Draw.GiftDescription
-Starforged Sword	param:api:Token.GiftDescription,param:api:Token.LockTokenScript
-Valley Rally	param:api:Token.GiftDescription
-Wear Down	param:api:Draw.GiftDescription
-Wildfire Howl	param:api:Draw.GiftDescription
+Into the Flood Maw	param:api:Token.LockTokenScript
+Longstalk Brawl	param:api:Token.LockTokenScript
+Mind Spiral	param:api:Token.LockTokenScript
+Parting Gust	param:api:Token.LockTokenScript
+Sazacap's Brew	param:api:Token.LockTokenScript
+Starforged Sword	param:api:Token.LockTokenScript

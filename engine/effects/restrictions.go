@@ -332,6 +332,31 @@ func CantBlockByRestrictionParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// CantBlockRestrictionParamsReadable is the parameter whitelist an
+// Effect-registered CantBlock static must pass before this build enforces it
+// (cr-g156; the same discipline CantBlockByRestrictionParamsReadable enforces
+// for CantBlockBy, so the registration and consultation paths cannot
+// disagree): the blocker-side spec the continuous consultation reads
+// (engine/rules/combat/restrictions.go BlockRestricted's registered-effects
+// walk: ValidCard$ against the would-be blocker), plus the zone scoping the
+// registration carries anyway and display text. A body carrying a condition
+// or scoping parameter this build's continuous path does not evaluate
+// (Condition$, IsPresent$, CheckSVar$, ...) must not register blanket -- a
+// gated "can't block" would become an UNCONDITIONAL one, over-restricting --
+// so it stays the unimplemented Note. Measured over the corpus's 8
+// Effect-delivered CantBlock bodies (Ahn-Crop Crasher, Cosmotronic Wave,
+// Ember Gale, Hazardous Blast, Headliner Scarlett, Immobilizer Eldrazi,
+// Rumbling Ruin, Sontaran General): every one reads only the whitelisted
+// parameters.
+func CantBlockRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantBlockRestrictionParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 // MustAttackParamsReadable is the parameter whitelist a MustAttack line must
 // pass before effEffect registers it as an Effect-delivered per-player attack
 // REQUIREMENT (Territorial Hellkite's `DB$ Effect | StaticAbilities$
@@ -614,6 +639,30 @@ func CantBeCastParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// cantBeActivatedParamsReadableKeys is the parameter whitelist an
+// Effect-delivered CantBeActivated body must pass before effEffect registers
+// it and rules' abilityRestrictedUsing reads it beside the printed S: route:
+// the mode, the object spec (ValidCard$), the ability spec (ValidSA$), the
+// actor scope (Activator$), the zone gate (AffectedZone$) and the gate family
+// the shared restrictionGateHolds/checkSVarHolds evaluators already run for
+// this consumer (Phases$, Condition$, ClassBand$, CheckSVar$, SVarCompare$),
+// plus display text. A body carrying any other parameter names a scoping this
+// build does not evaluate; registering it blanket would over-restrict, so it
+// is reported unimplemented instead. This is the ONE whitelist both
+// registration and consultation run, so the two paths cannot disagree about
+// what is readable.
+var cantBeActivatedParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "ValidSA", "Activator", "AffectedZone", "Phases", "Condition", "ClassBand", "CheckSVar", "SVarCompare", "Description")
+
+// CantBeActivatedParamsReadable is that whitelist's read.
+func CantBeActivatedParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantBeActivatedParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 // UnspentManaParamsReadable is the parameter whitelist an UnspentMana static
 // must pass before this build enforces it -- used BOTH by the face-static
 // reader (engine/rules/statics.go's unspentManaKeep activeStatics walk) and by
@@ -870,6 +919,31 @@ var untilUntapDurationCodes = state.NewStrCodes(
 func IsUntapStepDuration(dur string) bool {
 	switch untilUntapDurationCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
 	case untilUntapDurationEndOfYourNextUntap:
+		return true
+	}
+	return false
+}
+
+// untilTargetedUntapsDurationCode indexes the one Duration$ spelling
+// IsUntilTargetedUntapsDuration answers, through the same StrCodes table
+// convention the sibling duration predicates use.
+type untilTargetedUntapsDurationCode uint16
+
+const (
+	untilTargetedUntapsDurationUntaps untilTargetedUntapsDurationCode = iota + 1
+)
+
+var untilTargetedUntapsDurationCodes = state.NewStrCodes(
+	state.StrEntry[untilTargetedUntapsDurationCode]{Key: "untiltargeteduntaps", Val: untilTargetedUntapsDurationUntaps},
+)
+
+// IsUntilTargetedUntapsDuration reports whether a Duration$ value names the
+// "for as long as it remains tapped" lifetime (Braided Net's lock, and the
+// Clone duration of the same spelling). Exported so rules' event-driven
+// expiry reads the same spelling effEffect saw.
+func IsUntilTargetedUntapsDuration(dur string) bool {
+	switch untilTargetedUntapsDurationCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
+	case untilTargetedUntapsDurationUntaps:
 		return true
 	}
 	return false
@@ -1374,6 +1448,8 @@ var cantAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCard",
 
 var cantBlockByRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidAttacker", "ValidBlocker", "ValidCard", "Description", "Secondary")
 
+var cantBlockRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "Description", "EffectZone", "AffectedZone")
+
 var mustAttackParamsReadableKeys = state.NewNameSet("Mode", "ValidCreature", "MustAttack", "Description", "Secondary")
 
 var mustAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCreature", "MustAttack", "Description", "Secondary", "IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "CheckSVar", "SVarCompare", "Condition", "ClassBand")
@@ -1410,6 +1486,7 @@ var canAttackDefenderParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", 
 var absentDurationMeansThisTurnSet = state.NewNameSet(
 	"CantPutCounter",
 	"CantBlockBy",
+	"CantBlock",
 	"CanAttackDefender",
 	"NumLoyaltyAct",
 	"CombatDamageToughness",
