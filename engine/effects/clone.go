@@ -585,6 +585,15 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			ev.Counter = "ifnew " + kw
 		}
 		h.Emit(ev)
+		if cp.RememberCloneOrigin {
+			// RememberCloneOrigin$ True: the copied object joins the become
+			// object's remembered set (Forge's CloneEffect addRemembered), both
+			// halves as every other remembering primitive: the chain-local list
+			// (ConditionDefined$ Remembered, the reflexive body's referent) and
+			// the source object's event-backed list.
+			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: t.Obj})
+			eventRemember(h, c, t.Obj)
+		}
 		for _, raw := range staticBodies {
 			h.Emit(events.Event{Kind: events.CloneStatic, Obj: b.Obj, Text: raw})
 		}
@@ -776,7 +785,10 @@ func cloneBecome(h Host, c *Ctx, cp *CloneParams) ([]state.Target, bool) {
 // rechecks both the filter grammar and Mockingbird's captured cast spend.
 func cloneETBTemplateLegal(g *state.Game, c *Ctx, cp *CloneParams) bool {
 	o := g.Obj(c.CloneEnter.Choice)
-	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+	// The template is checked in the zone the body chooses from (ChoiceZone$,
+	// battlefield when absent): Echoing Deeps copies a land card in a
+	// graveyard, which is no longer a legal template once it leaves it.
+	if o == nil || o.Zone != cp.ChoiceZoneKind || o.Face() == nil {
 		return false
 	}
 	return CloneETBSelectorMatches(g, cp.Choices, c.CloneEnter.Choice, c.TableSpecContext(c.Controller))
