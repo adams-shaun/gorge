@@ -76,16 +76,15 @@ func TestTrunkPoolsEveryCardLane(t *testing.T) {
 		g.poolProj = mkLin(w, poolIn, d, make([]float32, d))
 		g.denseIn = zero(denseW, d)
 		g.sparseProj = zero(e, d)
-		g.bnorm = norm{w: ones(d), b: make([]float32, d), eps: 1e-5}
-		g.fc1 = zero(d, ff)
-		g.fc1.wt[0] = 1
-		g.fc2 = zero(ff, d)
-		g.fc2.wt[0] = 1
+		blk := block{norm: norm{w: ones(d), b: make([]float32, d), eps: 1e-5}, fc1: zero(d, ff), fc2: zero(ff, d)}
+		blk.fc1.wt[0] = 1
+		blk.fc2.wt[0] = 1
+		g.blocks = []block{blk}
 		g.fnorm = norm{w: ones(d), b: make([]float32, d), eps: 1e-5}
 		g.val0 = zero(d, d)
 		g.val0.wt[0] = 1
-		g.val2w = make([]float32, d)
-		g.val2w[0] = 1
+		g.valOutW = make([]float32, d)
+		g.valOutW[0] = 1
 
 		sc := &Scratch{ent: make([]float32, cd), groups: []uint8{0}}
 		for i := range sc.ent {

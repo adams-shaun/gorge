@@ -141,8 +141,10 @@ func poolAccScalar(sum, mx, c *float32) {
 	}
 }
 
-// poolAccN: sum[:n] += 0.25·c, mx[:n] = max(mx, c), over a width-generic n.
-func poolAccN(sum, mx, c *float32, n int) {
+// poolAccNScalar: sum[:n] += 0.25·c, mx[:n] = max(mx, c), over a
+// width-generic n (poolAccNAVX512's twin: every lane is independent, so any
+// lane blocking is bit-identical).
+func poolAccNScalar(sum, mx, c *float32, n int) {
 	S := f32s(sum, n)
 	M := f32s(mx, n)
 	C := f32s(c, n)
@@ -164,48 +166,74 @@ func poolAccW(sum, mx, c *float32, cd int) {
 	poolAccN(sum, mx, c, cd)
 }
 
-// Width-generic variants. The 64-lane kernels above are the fast path, tuned
-// against the assembly; these serve every other width (a wide MLP's d=128, a
-// GNN's 128/384) and the fast path's own scalar reference. They accumulate in
-// float64 so a wide vector's layernorm does not drift with length; the 64-lane
-// kernels keep their fp32 quarter sums because the assembly reduces that way
-// and kern_test.go compares them bit-for-bit.
-//
-// lnN: y = ((x - mean(x)) / sqrt(var(x) + eps)) * w + b over n lanes.
-func lnN(y, x, w, b *float32, eps float32, n int) {
+// Width-generic variants. The 64-lane kernels above are the d=64 fast path;
+// these serve every other width (a wide MLP's d=128/256, a GNN's 128/384) in
+// fp32, reduced in the same tree the AVX-512 twins (kern_amd64.s lnNAVX512,
+// dotNAVX512, addvNAVX512) reduce in, so the assembly and these are
+// bit-identical at every width that is a multiple of 16 (kern_test.go). They
+// are the 64-lane kernels generalised: lane j of 16-lane chunk c of the
+// vector accumulates into accumulator c%4 (the mean and the variance; one
+// chain for the dot), the accumulators combine as ((a0+a1)+(a2+a3)), then
+// hsum16. At n = 64 that is exactly ln64's quarter sums and dot64's chain.
+// A width that is not a multiple of 16 (only SumRows or a non-multiple d_emb
+// reaches one) runs the same tree with a partial last chunk.
+
+// lnNScalar: y = ((x - mean(x)) / sqrt(var(x) + eps)) * w + b over n lanes,
+// fp32 statistics. y may be x.
+func lnNScalar(y, x, w, b *float32, eps float32, n int) {
 	X := f32s(x, n)
 	Y := f32s(y, n)
 	Wv := f32s(w, n)
 	Bv := f32s(b, n)
-	var sum float64
-	for _, v := range X {
-		sum += float64(v)
-	}
-	m := sum / float64(n)
-	var sq float64
-	for _, v := range X {
-		d := float64(v) - m
-		sq += d * d
-	}
-	inv := 1 / math.Sqrt(sq/float64(n)+float64(eps))
+	invN := float32(1) / float32(n)
+	var a [4][16]float32
 	for i, v := range X {
-		Y[i] = float32((float64(v)-m)*inv*float64(Wv[i])) + Bv[i]
+		r := (i >> 4) & 3
+		a[r][i&15] += v
+	}
+	m := reduce4(&a) * invN
+	a = [4][16]float32{}
+	for i, v := range X {
+		d := v - m
+		r := (i >> 4) & 3
+		a[r][i&15] = fma32(d, d, a[r][i&15])
+	}
+	q := reduce4(&a) * invN
+	inv := float32(1) / float32(math.Sqrt(float64(q+eps)))
+	for i, v := range X {
+		d := v - m
+		Y[i] = float32(float32(d*inv)*Wv[i]) + Bv[i]
 	}
 }
 
-// dotN: the sum of a[i]*b[i] over n lanes, accumulated in float64.
-func dotN(a, b *float32, n int) float32 {
+// reduce4 combines four 16-lane accumulators as ((a0+a1)+(a2+a3)), then
+// hsum16.
+func reduce4(a *[4][16]float32) float32 {
+	var s [16]float32
+	for j := range s {
+		s[j] = (a[0][j] + a[1][j]) + (a[2][j] + a[3][j])
+	}
+	return hsum16(&s)
+}
+
+// dotNScalar: the sum of a[i]*b[i] over n lanes: one 16-lane chain (the
+// first chunk a product, every later chunk an FMA), then hsum16.
+func dotNScalar(a, b *float32, n int) float32 {
 	A := f32s(a, n)
 	B := f32s(b, n)
-	var s float64
+	var s [16]float32
 	for i := range A {
-		s += float64(A[i]) * float64(B[i])
+		if i < 16 {
+			s[i] = A[i] * B[i]
+		} else {
+			s[i&15] = fma32(A[i], B[i], s[i&15])
+		}
 	}
-	return float32(s)
+	return hsum16(&s)
 }
 
-// addvN: y[i] += x[i] over n lanes.
-func addvN(y, x *float32, n int) {
+// addvNScalar: y[i] += x[i] over n lanes.
+func addvNScalar(y, x *float32, n int) {
 	Y := f32s(y, n)
 	X := f32s(x, n)
 	for i := range Y {

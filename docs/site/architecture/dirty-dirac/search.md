@@ -177,6 +177,11 @@ of identical semantics.
   positions exactly, including across search worlds that hold the same
   objects.
 - **No allocation** per evaluation once the scratch has grown.
+- **Shapes.** Any trunk depth and head depth the trainer exports (`layers`,
+  `policy_layers`, `value_layers`), at any width that is a multiple of 32.
+  The production shape (d = head width = 64) takes dedicated 64-lane kernels;
+  every other width takes width-generic AVX-512 kernels that are bit-identical
+  to their scalar twins.
 
 ## The import boundary
 
