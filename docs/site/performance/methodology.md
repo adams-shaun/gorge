@@ -40,7 +40,8 @@ flowchart LR
 **Peak RSS is a distribution.** A Go process's peak is set by when the garbage
 collector happens to run during corpus load and deck setup, so the reps of one
 row can fall into two clusters rather than scatter around one value (the
-dirty-dirac rows do, roughly 100 MB apart). The summary table therefore keeps
+dirty-dirac rows did, roughly 100 MB apart, until its game runner stopped
+loading the whole corpus on 2026-10-26). The summary table therefore keeps
 the median in `peak RSS MB` and lists every rep, sorted, in `RSS reps MB`;
 compare the distributions, not the medians.
 
@@ -278,7 +279,7 @@ written, and the warm-up games are dropped when the run is recorded.
 
 dirty-dirac is the maintainers' private kernel, under active development
 toward a full engine, so its row cannot be rerun from the public
-repositories. Its published game rows were measured on 2026-10-25, after the
+repositories. Its published game rows were measured on 2026-10-26, after the
 kernel redesign, and its search rows on 2026-10-20, before it
 ([Performance](index.md#dirty-diracs-rows)), with the same script, which
 calls the kernel's game runner `kplay` when `KPLAY` names a binary built from

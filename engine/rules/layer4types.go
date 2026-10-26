@@ -597,11 +597,11 @@ func (e *Engine) buildDerivedTypes(buf []effects.ObjectTypes) []effects.ObjectTy
 		// the same argument the self-only path rests on.
 		reach, _, ok := e.layer4BoundedReach(arr[:0])
 		if !ok {
-			return e.buildDerivedTypesWalk(buf, nil, false)
+			return e.buildDerivedTypesWalk(buf, nil, false, true)
 		}
 		srcs = reach
 	}
-	buf = e.buildDerivedTypesWalk(buf, srcs, true)
+	buf = e.buildDerivedTypesWalk(buf, srcs, true, true)
 	if layer4PrecheckVerify {
 		e.verifySelfOnlyDerivedTypes(buf)
 	}
@@ -615,7 +615,7 @@ func (e *Engine) buildDerivedTypesFull(buf []effects.ObjectTypes) []effects.Obje
 	if !e.anyLayer4Active() {
 		return buf[:0]
 	}
-	return e.buildDerivedTypesWalk(buf, nil, false)
+	return e.buildDerivedTypesWalk(buf, nil, false, false)
 }
 
 // layer4MaxSelfSources bounds the self-only fast path's source list: its
@@ -779,8 +779,10 @@ func layer4MayDifferNow(o *state.Object) bool {
 }
 
 // buildDerivedTypesWalk is the table walk. With selfOnly set it visits only
-// srcs and the layer4BaseMayDiffer objects (see buildDerivedTypes).
-func (e *Engine) buildDerivedTypesWalk(buf []effects.ObjectTypes, srcs []state.ObjID, selfOnly bool) []effects.ObjectTypes {
+// srcs and the layer4BaseMayDiffer objects (see buildDerivedTypes). With
+// memo set each object's walk may be served by the derived-types memo
+// (layer4ForTable); the full-walk reference passes false.
+func (e *Engine) buildDerivedTypesWalk(buf []effects.ObjectTypes, srcs []state.ObjID, selfOnly, memo bool) []effects.ObjectTypes {
 	buf = buf[:0]
 	e.typesBuilding = true
 	defer func() { e.typesBuilding = false }()
@@ -794,7 +796,13 @@ func (e *Engine) buildDerivedTypesWalk(buf []effects.ObjectTypes, srcs []state.O
 		if selfOnly && !layer4BaseMayDiffer(o) && !slices.Contains(srcs, o.ID) {
 			continue
 		}
-		ty, all := chars.TypesAndAllCreatureTypes(asChars(e), e.active(), o.ID, 0)
+		var ty []string
+		var all bool
+		if memo {
+			ty, all = e.layer4ForTable(e.active(), o.ID)
+		} else {
+			ty, all = chars.TypesAndAllCreatureTypes(asChars(e), e.active(), o.ID, 0)
+		}
 		if sameTypeWordSet(ty, o.Face().Types) && all == effects.IntrinsicAllCreatureTypes(o) {
 			continue
 		}
@@ -1101,7 +1109,7 @@ func (e *Engine) verifyLayer4Active(want bool) {
 // layer4PrecheckVerify: it rebuilds the table with the full walk into fresh
 // storage and panics unless the fast path's table is identical.
 func (e *Engine) verifySelfOnlyDerivedTypes(got []effects.ObjectTypes) {
-	full := e.buildDerivedTypesWalk(nil, nil, false)
+	full := e.buildDerivedTypesWalk(nil, nil, false, false)
 	if len(got) != len(full) || (len(got) > 0 && !objectTypesListEqual(got, full)) {
 		panic(fmt.Sprintf("rules: self-only layer-4 table at log %d disagrees with the full walk (%d vs %d entries)", len(e.L.Events), len(got), len(full)))
 	}

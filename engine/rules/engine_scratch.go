@@ -51,6 +51,16 @@ type engineScratch struct {
 	derivedMemoStack derivedMemoTable `clone:"reset,pool=memoStack,release=.release"`
 	derivedMemoDepth int              `clone:"reset"`
 	derivedMemoGen   uint64           `clone:"reset"`
+	// typesMemo is the derived-types memo (engine/rules/types_memo.go): each
+	// object's layer-4 answer under the Derived memo's cross-walk key, served
+	// to derivedTypesOf and every top-level Derived build. typesMemoLocal*
+	// memoize, per active() build, whether every live layer-4 effect is local.
+	// Pure derived scratch: Clone copies none of it.
+	typesMemo         typesMemoTable `clone:"reset,pool=typesMemo,release=.release"`
+	typesMemoLocalSeq uint64         `clone:"reset"`
+	typesMemoLocal    bool           `clone:"reset"`
+	typesMemoAny      bool           `clone:"reset"`
+	typesMemoLocalOK  bool           `clone:"reset"`
 	// targetHintsSeq is d.Seq+1 of the pending decision EnsureTargetHints last
 	// filled (engine/rules/target_hints.go); a clone starts unbuilt.
 	targetHintsSeq uint64 `clone:"reset"`
