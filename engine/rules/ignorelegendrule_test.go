@@ -15,8 +15,11 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // ignoreLegendTwin is a synthetic legendary creature used for the duplicate
@@ -377,5 +380,201 @@ func TestIgnoreLegendRuleEventStreamIsDeterministic(t *testing.T) {
 	// priority round pending, which is expected and not the batch).
 	if e1.legendBatch != nil || e2.legendBatch != nil {
 		t.Fatalf("a legend batch is still parked after the scenario settled")
+	}
+}
+
+// echoPermissionSrc is the Hall of Echoes {5} ability's Effect body, resolved
+// directly: a permanent carrying `DB$ Effect | StaticAbilities$
+// LegendPermission` whose LegendPermission SVar is the card's exact
+// `Mode$ IgnoreLegendRule | ValidCard$ Permanent.YouCtrl` line. The real card
+// delivers it as the SubAbility$ of its AB$ Clone; this source isolates the
+// registration and its lifetime for the scope and cleanup tests.
+const echoPermissionSrc = "Name:Echo Permission\nTypes:Enchantment\n" +
+	"SVar:DBEffect:DB$ Effect | StaticAbilities$ LegendPermission\n" +
+	"SVar:LegendPermission:Mode$ IgnoreLegendRule | ValidCard$ Permanent.YouCtrl | Description$ The \"legend rule\" doesn't apply to permanents you control this turn.\n" +
+	"Oracle:x\n"
+
+// resolveEchoPermission resolves the DB$ Effect body on source exactly the
+// way TestCantPlayLandHandLocked's registration recipe does, then asserts the
+// fixture precondition the caller's assertions depend on: one live
+// IgnoreLegendRule exemption is collected by legendExemptions (the
+// registration, not a printed static -- the source carries no S: line).
+func resolveEchoPermission(t *testing.T, e *Engine, source state.ObjID) {
+	t.Helper()
+	grant := e.G.Obj(source)
+	effects.Resolve(e, &effects.Ctx{Source: source, Controller: grant.Controller, SVars: grant.Face().SVars},
+		cards.ResolveSVar(grant.Face().SVars, "DBEffect"))
+	exempt := e.legendExemptions()
+	if len(exempt) != 1 || exempt[0].Source != source || exempt[0].Params == nil {
+		t.Fatalf("fixture: the DB$ Effect did not register one live IgnoreLegendRule exemption (got %d views)", len(exempt))
+	}
+	if got := strings.TrimSpace(exempt[0].Params["ValidCard"]); got != "Permanent.YouCtrl" {
+		t.Fatalf("fixture: the registered ValidCard$ is %q, want Permanent.YouCtrl", got)
+	}
+}
+
+// TestEffectIgnoreLegendRuleHallOfEchoes is the reported card end to end:
+// Hall of Echoes' {5} ability targets a legendary creature you control, the
+// land becomes a copy of it, and the resolved ability's DB$ Effect registers
+// the "the 'legend rule' doesn't apply to permanents you control this turn"
+// exemption -- so the two same-named legendary permanents under seat 0 keep
+// BOTH members: no legend choice posed, no legend batch parked, no
+// IgnoreLegendRule Note. Without the fix the body Notes
+// "IgnoreLegendRule unimplemented" and the next state-based check kills the
+// copy, so this fails at the pending decision.
+func TestEffectIgnoreLegendRuleHallOfEchoes(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := searchEngine(t, reg, "Hall of Echoes", "Isamaru, Hound of Konda")
+	hall := searchMoveByName(t, e, "Hall of Echoes", state.ZBattlefield)
+	isamaru := searchMoveByName(t, e, "Isamaru, Hound of Konda", state.ZBattlefield)
+
+	addMana(t, e, 0, "CCCCC")
+	opt := abilityOption(t, e, hall, 1)
+	submitChoices(t, e, opt.Index)
+	idx := cloneTargetOption(t, e, isamaru)
+	if idx < 0 {
+		t.Fatalf("the clone target ask offers no option for Isamaru %d: %+v", isamaru, e.Pending())
+	}
+	submitChoices(t, e, idx)
+	passUntilStackEmpty(t, e, 40)
+
+	// The clone landed: Hall of Echoes is now a copy of Isamaru -- same
+	// derived name, legendary -- so the two really are a CR 704.5j set.
+	f := e.G.Obj(hall).Face()
+	if f == nil || f.Name != "Isamaru, Hound of Konda" {
+		t.Fatalf("Hall of Echoes did not become a copy (face %v)", f)
+	}
+	if !f.IsLegendary() {
+		t.Fatal("the copy is not legendary; the legend rule would have nothing to fire on")
+	}
+	assertLegendTwinPair(t, e, 0, "Isamaru, Hound of Konda", isamaru, hall)
+	// The registration is live and its Permanent.YouCtrl admits both members.
+	exempt := e.legendExemptions()
+	if len(exempt) != 1 {
+		t.Fatalf("fixture: %d IgnoreLegendRule exemptions live, want exactly Hall of Echoes' registration", len(exempt))
+	}
+	for _, id := range []state.ObjID{isamaru, hall} {
+		if !e.legendRuleExempt(exempt, id) {
+			t.Fatalf("fixture: Permanent.YouCtrl did not exempt permanent %d", id)
+		}
+	}
+
+	e.checkStateBased()
+
+	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
+		t.Fatalf("a decision %s is pending under Hall of Echoes' live exemption", d.Kind)
+	}
+	if e.legendBatch != nil {
+		t.Fatalf("a legend batch is parked under Hall of Echoes' live exemption")
+	}
+	for _, id := range []state.ObjID{isamaru, hall} {
+		if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+			t.Fatalf("permanent %d is in %v; the legend rule must not apply this turn", id, o.Zone)
+		}
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "IgnoreLegendRule") {
+			t.Fatalf("the Effect body degraded to a Note instead of registering: %q", ev.Text)
+		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestEffectIgnoreLegendRuleEndsAtCleanup pins the exemption's lifetime: the
+// body carries no Duration$, so the registration is an end-of-turn one (CR
+// 611.2a). This turn the pair is exempt and no choice is asked; after the
+// turn's cleanup the registration is gone and the CR 704.5j choice is posed.
+func TestEffectIgnoreLegendRuleEndsAtCleanup(t *testing.T) {
+	t.Parallel()
+	e := ignoreLegendEngine(t)
+	source := onBoardGrant(t, e, 0, echoPermissionSrc)
+	id1 := onBoard(t, e, 0, ignoreLegendTwin)
+	id2 := onBoard(t, e, 0, ignoreLegendTwin)
+	assertLegendTwinPair(t, e, 0, "Ignore Legend Twin", id1, id2)
+	resolveEchoPermission(t, e, source)
+
+	// This turn: no choice, no batch, both members stay.
+	e.checkStateBased()
+	if d := e.Pending(); d != nil {
+		t.Fatalf("a decision %s is pending while the exemption is live", d.Kind)
+	}
+	if e.legendBatch != nil {
+		t.Fatalf("a legend batch is parked while the exemption is live")
+	}
+
+	// Drive through this turn's cleanup, passing every priority round. The
+	// choice must return exactly once the registration is gone (CR 514.2/514.3:
+	// cleanup ends the until-end-of-turn effect, then the repeated SBA check
+	// gathers the pair again).
+	turn := e.G.Turn
+	e.pending = nil
+	e.Advance()
+	for i := 0; i < 200; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision while driving to cleanup")
+		}
+		if d.Kind != decision.KPriority {
+			break
+		}
+		submitPass(t, e)
+	}
+	if n := len(e.legendExemptions()); n != 0 {
+		t.Fatalf("%d IgnoreLegendRule exemptions still live after the turn's cleanup", n)
+	}
+	if e.G.Turn != turn || e.G.Step != state.StepCleanup {
+		t.Fatalf("the choice returned at turn %d step %s, want the same turn's cleanup step", e.G.Turn, e.G.Step)
+	}
+	d := legendPending(t, e, 0, id1, id2)
+	submitKeep(t, e, d, 0)
+	if o := e.G.Obj(id1); o.Zone != state.ZBattlefield {
+		t.Fatalf("the kept twin left the battlefield (zone %v)", o.Zone)
+	}
+	if o := e.G.Obj(id2); o.Zone != state.ZGraveyard {
+		t.Fatalf("the unchosen twin is in %v, want its owner's graveyard once the exemption ended", o.Zone)
+	}
+}
+
+// TestEffectIgnoreLegendRuleOnlyYourPermanents is the registration's scope
+// boundary: the effect's `Permanent.YouCtrl` resolves against the EFFECT's
+// controller, so seat 1's same-named pair is still gathered and still asked
+// while seat 0's exemption is live.
+func TestEffectIgnoreLegendRuleOnlyYourPermanents(t *testing.T) {
+	t.Parallel()
+	e := ignoreLegendEngine(t)
+	source := onBoardGrant(t, e, 0, echoPermissionSrc)
+	c1 := onBoard(t, e, 0, ignoreLegendTwin)
+	c2 := onBoard(t, e, 0, ignoreLegendTwin)
+	id1 := onBoard(t, e, 1, ignoreLegendTwin)
+	id2 := onBoard(t, e, 1, ignoreLegendTwin)
+	assertLegendTwinPair(t, e, 0, "Ignore Legend Twin", c1, c2)
+	assertLegendTwinPair(t, e, 1, "Ignore Legend Twin", id1, id2)
+	resolveEchoPermission(t, e, source)
+	exempt := e.legendExemptions()
+	for _, id := range []state.ObjID{c1, c2} {
+		if !e.legendRuleExempt(exempt, id) {
+			t.Fatalf("fixture: Permanent.YouCtrl did not exempt seat 0's permanent %d", id)
+		}
+	}
+	for _, id := range []state.ObjID{id1, id2} {
+		if e.legendRuleExempt(exempt, id) {
+			t.Fatalf("fixture: seat 0's Permanent.YouCtrl exempted seat 1's permanent %d", id)
+		}
+	}
+
+	e.checkStateBased()
+	d := legendPending(t, e, 1, id1, id2)
+	submitKeep(t, e, d, 1)
+	if o := e.G.Obj(id2); o.Zone != state.ZBattlefield {
+		t.Fatalf("the kept opponent creature left the battlefield (zone %v)", o.Zone)
+	}
+	if o := e.G.Obj(id1); o.Zone != state.ZGraveyard {
+		t.Fatalf("the unchosen opponent creature is in %v, want its owner's graveyard", o.Zone)
+	}
+	for _, id := range []state.ObjID{c1, c2} {
+		if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+			t.Fatalf("the exempt seat-0 creature %d is in %v, want on the battlefield", id, o.Zone)
+		}
 	}
 }

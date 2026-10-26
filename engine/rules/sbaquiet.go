@@ -269,9 +269,11 @@ func (e *Engine) sbaQuietEvent(ev *events.Event) bool {
 //   - no battlefield object prints a characteristic-defining static (its
 //     P/T is an arbitrary count, which derivedSeq does not cover -- a
 //     "number of untapped lands" toughness can reach zero on a Tap);
-//   - no IgnoreLegendRule static is live (its "as long as" gate is an
-//     arbitrary condition, read by legendGroups) -- needed only while some
-//     controller has a legend pair: legendGroups reads the statics only past
+//   - no IgnoreLegendRule exemption is live on either delivery route (the
+//     printed static walk or the Effect-delivered registration; its "as long
+//     as" gate is an arbitrary condition, read by legendGroups through the
+//     shared legendExemptions walk) -- needed only while some controller has
+//     a legend pair: legendGroups reads the statics only past
 //     its mayHaveLegendPair gate, and no quiet kind can form a pair (a quiet
 //     entry is never printed Legendary, and phasing and control moves are
 //     not quiet); sbaQuietEntry rejects a derived-Legendary entry, so a
@@ -316,7 +318,7 @@ func (e *Engine) sbaQuietKindsSafe() bool {
 	if sbaQuietVerify && pair != e.mayHaveLegendPair() {
 		panic("rules: SBA kinds-safe legend count disagrees with mayHaveLegendPair")
 	}
-	return !pair || len(e.activeStatics("IgnoreLegendRule")) == 0
+	return !pair || len(e.legendExemptions()) == 0
 }
 
 // sbaQuietCarry returns the quiet key a clone of e may start with. A clone
