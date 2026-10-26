@@ -467,6 +467,13 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			t := splitTok(sym)
+			if t.angle && t.head == "Mana" {
+				if unit, ok := strings.CutSuffix(t.inner, `\NumTimes`); ok && unit != "" {
+					c = c.Plus(ParseCost(unit))
+					c.NumTimes = true
+					continue
+				}
+			}
 			if matchChooseCardCost(t) {
 				c.RevealOrChoose = append(c.RevealOrChoose, CostPart{N: 1, Spec: CloseEncounterChooseSpec, ChooseCard: true})
 				continue
