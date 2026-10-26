@@ -241,9 +241,18 @@ func foldDamage(g *state.Game, e *Event) {
 			// it reads a Ward-poison counter); this fold only withholds the
 			// life loss the poison replaces.
 		} else {
-			g.Players[e.Player].Life -= e.Amount
-			if e.Amount > 0 {
-				g.Players[e.Player].LifeLostThisTurn += e.Amount
+			// A LifeReduced replacement may have changed the life loss
+			// without changing the damage dealt (Bloodletter of Aclazotz):
+			// the Damage event's Amount stays the damage for lifelink and
+			// damage triggers, while the life total and the turn tally read
+			// the recorded loss.
+			loss := e.Amount
+			if amount, ok := DamageLifeLoss(*e); ok {
+				loss = amount
+			}
+			g.Players[e.Player].Life -= loss
+			if loss > 0 {
+				g.Players[e.Player].LifeLostThisTurn += loss
 			}
 		}
 	}
