@@ -86,9 +86,11 @@ type Board interface {
 	InResolution() bool
 	// PayingCostOf is the open cast flow's keyword, for a WhileKeyword$ read:
 	// an activation whose ability carries Keyword$ reports it (isSpell false),
-	// an emerge cast reports "Emerge" (isSpell true). ok is false when no
-	// cast flow is open or it carries neither.
-	PayingCostOf() (kw string, isSpell bool, ok bool)
+	// an emerge cast reports "Emerge" (isSpell true) and the permanent chosen
+	// as its sacrifice (emergeSac; any other sacrifice during the cast, such
+	// as one paying a mana ability, is not the emerge cost). ok is false when
+	// no cast flow is open or it carries neither.
+	PayingCostOf() (kw string, isSpell bool, emergeSac state.ObjID, ok bool)
 	// InFlightCounterAdder is the player causing the counter placement in
 	// flight, and whether that attribution is known at all.
 	InFlightCounterAdder() (state.PlayerID, bool)

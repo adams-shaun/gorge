@@ -16,12 +16,10 @@ import (
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-// exiledAsCostText is the Text every cost exile carries (rules' costExileEvent).
-const exiledAsCostText = "exiled as a cost"
 
 // stackCauseAdmits evaluates a ValidCause$ stack spec against the stack object
 // o that caused an event, from you's perspective. Alternatives are OR and an
@@ -35,11 +33,20 @@ func stackCauseAdmits(g *state.Game, spec string, o *state.Object, you state.Pla
 	n := len(o.Targets) + len(o.SubTargets)
 	for _, tok := range state.CauseStackTokens(spec) {
 		if state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindOf(g, o), o, o.Controller, you) &&
-			tok.TargetCountAdmits(n) {
+			targetCountAdmits(tok, n) {
 			return true
 		}
 	}
 	return false
+}
+
+// targetCountAdmits is a token's singleTarget and numTargets qualifiers
+// against a stack object with n targets.
+func targetCountAdmits(tok state.StackKindToken, n int) bool {
+	if tok.SingleTarget && n != 1 {
+		return false
+	}
+	return tok.NumTargetsOp == "" || effects.CmpOpOf(tok.NumTargetsOp).Apply(n, tok.NumTargets)
 }
 
 // turnFaceUpCauseAdmits is TurnFaceUp's ValidCause$. An effect that turned the
@@ -72,6 +79,11 @@ func damageCauseMatches(e Board, t cards.Trigger, source state.ObjID, ev events.
 	if validCause == "" && relative == "" {
 		return true
 	}
+	// Outside a resolution a spell on the stack did not deal the damage (a
+	// mana ability or cost), whatever ActionCause reads off the stack top.
+	if !e.InResolution() {
+		return false
+	}
 	cause := e.ActionCause()
 	if cause == 0 {
 		return false
@@ -99,11 +111,16 @@ func whileKeywordAdmits(e Board, t cards.Trigger, ev events.Event) bool {
 	if !ok {
 		return true
 	}
-	if ev.Text != exiledAsCostText && !events.IsSacrifice(ev) {
+	if !events.IsExileAsCost(ev) && !events.IsSacrifice(ev) {
 		return false
 	}
-	kw, isSpell, open := e.PayingCostOf()
+	kw, isSpell, emergeSac, open := e.PayingCostOf()
 	if !open {
+		return false
+	}
+	// The emerge cost sacrifices one chosen permanent; a sacrifice paying a
+	// mana ability (Ashnod's Altar) mid-cast is that ability's cost.
+	if isSpell && events.IsSacrifice(ev) && ev.Obj != emergeSac {
 		return false
 	}
 	wantSpell, want, parsed := state.WhileKeywordSpec(spec)

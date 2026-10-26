@@ -272,31 +272,6 @@ func CauseStackTokens(spec string) []StackKindToken {
 	return out
 }
 
-// TargetCountAdmits reports whether a stack object with n targets passes the
-// token's singleTarget and numTargets qualifiers.
-func (t StackKindToken) TargetCountAdmits(n int) bool {
-	if t.SingleTarget && n != 1 {
-		return false
-	}
-	switch t.NumTargetsOp {
-	case "":
-		return true
-	case "EQ":
-		return n == t.NumTargets
-	case "NE":
-		return n != t.NumTargets
-	case "GE":
-		return n >= t.NumTargets
-	case "GT":
-		return n > t.NumTargets
-	case "LE":
-		return n <= t.NumTargets
-	case "LT":
-		return n < t.NumTargets
-	}
-	return false
-}
-
 // AdmitsSpecialAction reports whether the token admits an event caused by a
 // special action (CR 116.2b): there is no stack object, so only the
 // `SpellAbility` kind set matches, with nothing but the controller qualifier,

@@ -118,23 +118,23 @@ func (b *trigBoard) InResolution() bool { return b.resolvingObj != 0 }
 // PayingCostOf reads the open cast flow (pendingCast) for the keyword whose
 // cost is being paid: an activated ability's Keyword$ (Craft), or Emerge for
 // an emerge cast (CR 702.118a).
-func (b *trigBoard) PayingCostOf() (kw string, isSpell bool, ok bool) {
+func (b *trigBoard) PayingCostOf() (kw string, isSpell bool, emergeSac state.ObjID, ok bool) {
 	pc := b.cast
 	if pc == nil {
-		return "", false, false
+		return "", false, 0, false
 	}
 	if pc.isAbility() {
 		if sa := b.eng().pcAbility(pc); sa != nil {
 			if kw := sa.ParamStr(cards.PKKeyword); kw != "" {
-				return kw, false, true
+				return kw, false, 0, true
 			}
 		}
-		return "", false, false
+		return "", false, 0, false
 	}
 	if pc.emerge {
-		return "Emerge", true, true
+		return "Emerge", true, pc.emergeSac, true
 	}
-	return "", false, false
+	return "", false, 0, false
 }
 
 func (b *trigBoard) InFlightCounterAdder() (state.PlayerID, bool) {
