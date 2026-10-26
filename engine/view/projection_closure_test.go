@@ -95,7 +95,7 @@ func TestViewMarshalsClosed(t *testing.T) {
 		"viewer": true, "own_deck": true, "visibility": true, "turn": true, "round": true, "step": true,
 		"phase": true, "active": true, "priority": true, "over": true,
 		"draw": true, "winner": true, "players": true, "stack": true,
-		"pending": true, "decision": true,
+		"pending": true, "decision": true, "day_night": true,
 	})
 	// round (added by task ui12) is a projection of the public turn counter
 	// and the public per-seat lost flags -- how many full passes the surviving

@@ -357,6 +357,10 @@ func (e *Engine) checkStateBased() {
 		if e.dungeonCompletion(tried) {
 			changed = true
 		}
+		// CR 702.145d/g: the neither-to-day and neither-to-night checks.
+		if e.sbaFacts(facts).dayNight && e.dayNightStateCheck() {
+			changed = true
+		}
 		if !changed {
 			stable = true
 			break

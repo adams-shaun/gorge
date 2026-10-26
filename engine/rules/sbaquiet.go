@@ -390,7 +390,7 @@ func (e *Engine) sbaQuietEntry(id state.ObjID) bool {
 		return false
 	}
 	f := o.Face()
-	if f == nil || f.IsLegendary() || f.IsWorld() || f.IsPlaneswalker() || f.IsBattle() {
+	if f == nil || f.IsLegendary() || f.IsWorld() || f.IsPlaneswalker() || f.IsBattle() || dayNightFace(f) {
 		return false
 	}
 	if n, _ := chapterSpec(f); n != 0 {

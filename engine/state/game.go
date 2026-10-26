@@ -435,6 +435,13 @@ type Game struct {
 	// seat zero distinct from no initiative, exactly like Monarch above.
 	Initiative    PlayerID
 	HasInitiative bool
+	// DayNight is the CR 731 day/night designation, folded from
+	// DayNightChange events. PrevTurnSpells is the outgoing active seat's
+	// SpellsCastThisTurn as the last TurnChange folded it: the count CR
+	// 731.2 reads in the next untap step. Both are scalars, so Clone copies
+	// them with the struct.
+	DayNight       DayNight
+	PrevTurnSpells int32
 	// ControlledBy maps each CR 720 controlled player to the seat controlling
 	// them ("you control target opponent during their next turn"). It is
 	// folded from ControlPlayerChange events, so a log-only reconstruction

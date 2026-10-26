@@ -132,6 +132,12 @@ func foldStepChange(g *state.Game, e *Event) {
 // foldTurnChange folds Kind TurnChange into state.
 func foldTurnChange(g *state.Game, e *Event) {
 	if validPlayer(g, e.Player) {
+		// CR 731.2: snapshot the outgoing active seat's spell tally before
+		// the watcher reset below; the next untap step reads it.
+		g.PrevTurnSpells = 0
+		if validPlayer(g, g.Active) {
+			g.PrevTurnSpells = g.Players[g.Active].SpellsCastThisTurn
+		}
 		g.Turn = e.Amount
 		g.Active = e.Player
 		g.Players[e.Player].LandsPlayed = 0
