@@ -1,5 +1,4 @@
 Drana and Linvala	param:stat:Continuous.ManaConversion
-Invasion of New Phyrexia	param:api:Tap.AnyNumber,param:api:Tap.CardChoices,param:api:Tap.ChoiceAmount,param:api:Tap.ChoicePrompt,param:api:Tap.RememberTapped
 Realmbreaker's Grasp	param:stat:CantAttack.ValidSA,param:stat:CantBlock.ValidSA
 Sunder the Gateway	param:api:SetState.Mandatory
 Surge of Salvation	param:api:Effect.ExileOnLost
