@@ -534,6 +534,8 @@ const (
 	ModeNoCleanupDamage               = "NoCleanupDamage"
 	ModeMustBlock                     = "MustBlock"
 	ModeFlipCoinMod                   = "FlipCoinMod"
+	ModeCantPhaseIn                   = "CantPhaseIn"
+	ModeCantPhaseOut                  = "CantPhaseOut"
 )
 
 // staticKeysReadable fails closed when a delivered static carries an unread

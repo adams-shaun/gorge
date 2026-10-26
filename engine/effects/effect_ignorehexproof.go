@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -66,6 +68,34 @@ func effectUnsupportedStatic(h Host, c *Ctx, mode string, params staticLineParam
 			UntilEOT: effectUntilEOT(h, c.Source, rawDur) || rawDur == "", Duration: dur,
 			Restriction: mode, RestrictParams: params,
 			RememberedPlayers: effectRememberedPlayers(h, c, sa),
+		})
+		return true
+	}
+	if (mode == ModeCantPhaseIn || mode == ModeCantPhaseOut) &&
+		staticKeysReadable(params, "Mode", "ValidCard", "Description") {
+		// CR 702.26's "can't phase in" / "can't phase out" delivered by a
+		// resolved ability (Ertai's Familiar, Spatial Binding, The Phasing of
+		// Zhalfir, Teferi, Timeless Voyager): registered as a restriction
+		// rules' phaseBlocked reads at the emit choke point, so neither the
+		// untap-step phasing nor an api:Phases effect phases the permanent.
+		// The IsPresent$-gated bodies (The Pandorica, The Doctor's Childhood
+		// Barn) are refused here: a registered restriction has no present
+		// gate, and a blanket reading would hold the permanent forever.
+		//
+		// Duration$ UntilYourNextUpkeep (Ertai's Familiar, Spatial Binding)
+		// has no expiry of its own in this build; for a phasing restriction
+		// it is exactly UntilTheEndOfYourNextUntap, whose untap-step expiry
+		// rules already runs: phasing happens only in the untap step (CR
+		// 702.26a) or by an effect, and no player gets priority between the
+		// end of that step and the upkeep.
+		if strings.EqualFold(strings.TrimSpace(rawDur), "UntilYourNextUpkeep") {
+			rawDur, dur = "UntilTheEndOfYourNextUntap", "UntilTheEndOfYourNextUntap"
+		}
+		effectContinuous(h, state.ContinuousEffect{
+			Source: c.Source, Controller: c.Controller, Name: name,
+			UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
+			Restriction: mode, RestrictParams: params,
+			RestrictSVars: c.SVars, Remembered: remembered,
 		})
 		return true
 	}
