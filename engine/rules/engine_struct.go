@@ -155,6 +155,15 @@ type Engine struct {
 	searchingBy state.PlayerID `clone:"reset"`
 	searchDepth int            `clone:"reset"`
 
+	// stackLeave names why the spell move being emitted is leaving the stack,
+	// for repl:Moved's Fizzle$ ("... instead of putting it into your graveyard
+	// as it resolves"): the resolution rest move sets stackLeaveResolved, the
+	// fizzle moves set stackLeaveFizzled, and a counter or any other move
+	// leaves it stackLeaveNone, so only the resolution is redirected. Set and
+	// cleared around one synchronous emit, never folded from an event and
+	// never read across a suspension.
+	stackLeave stackLeaveCause `clone:"reset"`
+
 	// loop is the livelock watcher (engine/rules/livelock.go): pure observation of
 	// the event stream this engine is logging, configured by Config.
 	// LoopGuard. It reads nothing and is read by nothing else; it panics
@@ -200,3 +209,13 @@ type Engine struct {
 	// handed to engine/rules/pay through pay.Engine's Session.
 	paySession
 }
+
+// stackLeaveCause is the reason a spell move off the stack is being emitted
+// (Engine.stackLeave).
+type stackLeaveCause uint8
+
+const (
+	stackLeaveNone stackLeaveCause = iota
+	stackLeaveResolved
+	stackLeaveFizzled
+)
