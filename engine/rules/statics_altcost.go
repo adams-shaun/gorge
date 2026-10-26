@@ -21,6 +21,9 @@ type altCostView struct {
 	cost     Cost
 	announce string
 	src      state.ObjID
+	// flash: the alternative is a may-play static's with MayPlayWithFlash$
+	// True, so it may be cast at instant speed (mayPlayFlashGranted).
+	flash bool
 }
 
 // alternativeCosts lists extra ways to cast id, each becoming its own
@@ -120,7 +123,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 	// "pay THIS instead of the mana cost" shape delivered by the may-play
 	// family; the family root carries its own gates and limit.
 	for _, v := range e.mayPlayAltCosts(p, id) {
-		out = append(out, altCostView{cost: v.cost})
+		out = append(out, altCostView{cost: v.cost, flash: v.flash})
 	}
 	return out
 }
