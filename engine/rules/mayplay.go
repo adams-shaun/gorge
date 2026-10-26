@@ -1143,24 +1143,23 @@ func mayPlayLandCard(o *state.Object) bool {
 // CheckSVar$/SVarCompare$ intervening-if (Possibility Technician's "you may
 // play it if you control a Kavu", Flameshape's Wizard gate; CR 611.2a/b --
 // the permission holds exactly while its condition does, CR 601.3) through
-// the ONE shared statics evaluator (Engine.checkSVarHolds ->
+// the ONE shared statics evaluator (checkSVarHoldsRaw ->
 // effects.CheckSVarHolds), the same machinery mayPlayConditionGateHolds runs
-// for the printed route. The grant carries its resolving face's SVar table
-// (effects bound it at registration), so the named SVar resolves against the
-// face that wrote it even when the source object has since moved zones or
-// faces. A gate body this build cannot read fails CLOSED -- the statics
+// for the printed route. The gate text rides state.ContinuousEffect rather
+// than a static's param map (the codeshape string ratchet counts no
+// map[string] site for it), so the raw-text evaluator entry point is the
+// right shape. The grant carries its resolving face's SVar table (effects
+// bound it at registration), so the named SVar resolves against the face
+// that wrote it even when the source object has since moved zones or faces.
+// A gate body this build cannot read fails CLOSED -- the statics
 // convention -- so an unmodelled count head still withholds the permission.
-// A grant with no CheckSVar$ takes the no-alloc early path.
+// A grant with no CheckSVar$ takes the no-evaluation early path.
 func (e *Engine) effectMayPlayGateHolds(ce *state.ContinuousEffect) bool {
 	if ce.MayPlayCheckSVar == "" {
 		return true
 	}
-	params := map[string]string{"CheckSVar": ce.MayPlayCheckSVar}
-	if ce.MayPlaySVarCompare != "" {
-		params["SVarCompare"] = ce.MayPlaySVarCompare
-	}
-	return e.checkSVarHolds(staticView{Source: ce.Source, Controller: ce.Controller,
-		SVars: ce.SVars, Params: params})
+	return e.checkSVarHoldsRaw(staticView{Source: ce.Source, Controller: ce.Controller, SVars: ce.SVars},
+		ce.MayPlayCheckSVar, ce.MayPlaySVarCompare, costSubject{}, nil)
 }
 
 func (e *Engine) effectGrantMatches(ce *state.ContinuousEffect, id state.ObjID) bool {
