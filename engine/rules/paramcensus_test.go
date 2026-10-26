@@ -2874,6 +2874,24 @@ var ignoredAbilityParams = func() map[string]string {
 	}
 	for _, api := range abilityPresentationSecondary {
 		m[api+".Secondary"] = cite
+// pawprintModeAPIs are the mode-body APIs the corpus carries Pawprint$ on
+// inside a budgeted Charm's Choices$ (measured over the full corpus at the
+// current pin). The price is a property of the mode choice (CR 700.2i,
+// CR 601.2b), read once by the parent Charm's modePawprint; the mode body's
+// own compiler must therefore treat the key as known rather than loud-degrade
+// it, and the census must not attribute a gap to the body.
+var pawprintModeAPIs = []string{
+	"ChangeZone", "ChangeZoneAll", "Dig", "Draw", "Effect", "LoseLife",
+	"PutCounter", "Sacrifice", "Token",
+}
+
+var ignoredAbilityParams = func() map[string]string {
+	const pawprintCite = "mode price read by the parent Charm: engine/effects/charm_modes.go:41 (modePawprint); forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java:183"
+	m := map[string]string{
+		"Effect.PumpZone": "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+	}
+	for _, api := range pawprintModeAPIs {
+		m[api+".Pawprint"] = pawprintCite
 	}
 	return m
 }()
@@ -4041,22 +4059,27 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 	// root's pre-captured ChangeZone target read (prefetchRemembered-
 	// ChangeZoneTarget, which runs before any primitive dispatch) made that
 	// parameter read for every API too. RememberTargets$ is now read by the
-	// shared Resolve recorder for every API, so this fixture uses Pawprint$,
-	// which remains genuinely unread by LoseLife. (It was TargetingPlayer$
-	// before all of these, until the shared target-ask read made that
-	// parameter read for every API; the SVar-body-gap fixture is only
-	// meaningful while its key stays unread.)
+	// shared Resolve recorder for every API, so this fixture uses
+	// TokenPower$, which remains genuinely unread by LoseLife. (It was
+	// TargetingPlayer$ before all of these, until the shared target-ask read
+	// made that parameter read for every API; the SVar-body-gap fixture is
+	// only meaningful while its key stays unread. Pawprint$ held this slot
+	// until cr-g175 scoped it to the mode APIs as the parent Charm's read.)
 	// PayEnergy<X> WAS the fixture's unmodelled
 	// cost token until ParseCost gained a real Energy field, and Waterbend<X>
 	// followed it when ParseCost learned the Waterbend head (task tla-waterbend-
 	// ability-cost); the body cost below is now Mana<1>, a corpus-attested
 	// ability-cost head (`Cost$ Mana<2 R\NumTimes>`, bloodthirsty_adversary and
 	// 8 more) ParseCost still does not model.
+	// Pawprint$ WAS this fixture's unread body key until cr-g175 made the
+	// parent Charm's mode-price read explicit: the key is now scoped-ignored
+	// on the mode APIs (ignoredAbilityParams), so the fixture uses
+	// TokenPower$, which remains genuinely unread by LoseLife.
 	if !d.api["Charm"]["Choices"] || !d.api["Repeat"]["RepeatSubAbility"] {
 		t.Fatalf("outer Choices$/RepeatSubAbility$ reads lost -- fixture premise broken")
 	}
-	if d.api["LoseLife"]["Pawprint"] {
-		t.Fatalf("api:LoseLife now reads Pawprint$ -- re-point the fixture at a genuinely unread key")
+	if d.api["LoseLife"]["TokenPower"] {
+		t.Fatalf("api:LoseLife now reads TokenPower$ -- re-point the fixture at a genuinely unread key")
 	}
 	// The body's cost token is genuinely unmodelled (CR 701.67a's Waterbend<X>
 	// held this slot until ParseCost learned the Waterbend head); re-point it
@@ -4065,29 +4088,27 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 		t.Fatalf("fixture token Mana<1> now parses to Unknown %v -- re-point this fixture at a genuinely unmodelled cost token", got)
 	}
 	c := &cards.Card{Faces: []*cards.Face{{
-		// A modal spell whose one mode loses life and remembers its target
-		// (the RememberTargets$ spelling no LoseLife reader touches --
-		// RememberObjects$ and, before it, TargetingPlayer$ WERE this
-		// fixture's unread body key until generic reads claimed them), and
-		// a repeat whose body carries a cost token ParseCost does not model
-		// (Mana<1>, reached through RepeatSubAbility$).
+		// A modal spell whose one mode loses life and carries TokenPower$, a
+		// key no LoseLife reader touches, and a repeat whose body carries a
+		// cost token ParseCost does not model (Mana<1>, reached through
+		// RepeatSubAbility$).
 		Abilities: []*cards.SA{
 			{Kind: "SP", API: "Charm", Params: map[string]string{"Choices": "DBMode,DBMoney", "CharmNum": "1"}},
 			{Kind: "SP", API: "Repeat", Params: map[string]string{"RepeatNum": "2", "RepeatSubAbility": "DBMoney"}},
 		},
 		SVars: map[string]string{
-			"DBMode":  "DB$ LoseLife | Pawprint$ True | Defined$ Remembered",
+			"DBMode":  "DB$ LoseLife | TokenPower$ True | Defined$ Remembered",
 			"DBMoney": "DB$ LoseLife | Cost$ Mana<1>",
 		},
 	}}}
-	want := []string{"param:api:LoseLife.Pawprint", "cost:Mana"}
+	want := []string{"param:api:LoseLife.TokenPower", "cost:Mana"}
 	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {
 		t.Errorf("SVar-body census = %v, want %v -- an unread key or unmodelled token inside a Choices$/RepeatSubAbility$ body is not being reported", got, want)
 	}
 	// The drop plumbing reaches the bodies too: pretending the LoseLife
-	// Pawprint$ read existed (it does not) must not un-report the body's
+	// TokenPower$ read existed (it does not) must not un-report the body's
 	// gap through some other path.
-	if got := cardCensusLabels(c, d, map[string]map[string]bool{"api:LoseLife": {"Pawprint": true}}); !sameSet(got, want) {
+	if got := cardCensusLabels(c, d, map[string]map[string]bool{"api:LoseLife": {"TokenPower": true}}); !sameSet(got, want) {
 		t.Errorf("drop-simulated census = %v, want %v", got, want)
 	}
 }
