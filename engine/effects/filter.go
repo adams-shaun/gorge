@@ -3289,6 +3289,10 @@ func MatchesSpecInZone(g *state.Game, spec string, id state.ObjID, sc SpecContex
 	return matchesZoneSpecCtx(g, spec, id, sc, zone)
 }
 
+// SpecMentionsPermanent reports a spec with a Permanent token: the only specs
+// whose match depends on the candidate's zone context (a bare Permanent base).
+func SpecMentionsPermanent(spec string) bool { return strings.Contains(spec, "Permanent") }
+
 // matchesInOwnZone is the plain matcher for a reader whose candidates come
 // from any zone (a hand, graveyard or library list): a bare Permanent base
 // names a permanent card there (CR 110.4a) rather than failing the battlefield
@@ -3299,7 +3303,7 @@ func matchesInOwnZone(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if o == nil {
 		return false
 	}
-	if o.Zone == state.ZBattlefield || o.Zone == state.ZStack || !strings.Contains(spec, "Permanent") {
+	if o.Zone == state.ZBattlefield || o.Zone == state.ZStack || !SpecMentionsPermanent(spec) {
 		return matchesObjectPtr(g, spec, o, &sc)
 	}
 	return matchesZoneSpecCtx(g, spec, o.ID, sc, o.Zone)
