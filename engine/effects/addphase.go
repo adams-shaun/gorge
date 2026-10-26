@@ -85,6 +85,9 @@ func parseDelayedTriggerBody(phase, vp string) (state.Step, string, bool) {
 //     TriggerCount$DamageAmount) is the grant count through the ordinary Num
 //     SVar indirection; an unresolvable value is a loud Note and grants one.
 //   - SubAbility$ chains through the ordinary effect walk (free).
+//   - BeforeFirstPostCombatMainEnd$ True (World at War's "after the second
+//     main phase this turn"): the grant is made only while the first
+//     postcombat main phase has not ended -- see addphase_params.go.
 //   - ConditionPhases$ / ConditionPlayerTurn$ / ConditionFirstCombat$ and
 //     the Present/Defined/Compare/SVar family are the shared condition gate
 //     (engine/effects/conditions.go), run by the dispatch before this effect.
@@ -101,6 +104,9 @@ func parseDelayedTriggerBody(phase, vp string) (state.Step, string, bool) {
 // phase's entry step. An unresolvable DelTrig SVar or an unparseable Phase$
 // is a loud Note and the grant still applies without the rider.
 func effAddPhase(h Host, c *Ctx, sa *cards.SA) {
+	if addPhaseGatedByPostCombatMain(h.Game(), sa) {
+		return
+	}
 	entry, rangeEnd, note := parseExtraPhaseValue(sa.ParamStr(cards.PKExtraPhase))
 	if note != "" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,

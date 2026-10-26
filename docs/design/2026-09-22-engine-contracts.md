@@ -199,3 +199,34 @@ diagnostic, not a stand-in. `TestMixedOriginNoteStillFiresWhenNothingMoves`
 `TestWorldsoulsRagePicksFromHandAndGraveyardInOneAnswer`
 (`engine/rules/worldsouls_rage_mixed_origin_test.go`) pins the multi-pick
 search.
+
+## Extra phases: CR 500.8 order, passed splice points, nested ranges
+
+`DB$ AddPhase` grants one `ExtraPhase` event whose fold is `Game.ExtraPhases`
+(a queue spliced into the CURRENT turn). Four edges are deliberate, match Forge
+(`PhaseHandler`: a per-phase LIFO stack of extra phases, `extraPhases.clear()`
+when the turn ends) and XMage (`Turn.java`, LIFO extra phases), and are pinned:
+
+- **Order (CR 500.8):** extra phases created after the same phase occur most
+  recent first. `TestCR500_8MostRecentExtraPhaseOccursFirst`
+  (`engine/rules/cr500_extra_phase_lifo_test.go`).
+- **A passed splice point is dropped:** a grant whose splice step the walk has
+  already left this turn is cleared at `TurnChange`, never carried into the next
+  turn. `TestExtraPhaseQueueDoesNotSurviveTheTurn`
+  (`engine/rules/addphase_test.go`).
+- **A splice mid-range of another active extra phase** continues the outer range
+  afterwards. `TestExtraPhaseSpliceMidRangeContinuesTheOuterRange`
+  (`engine/rules/addphase_multistep_test.go`).
+- **Several extra phases completing at the same step** resume at the LAST
+  completed grant's resume point (the innermost one's).
+  `TestExtraPhaseMultiCompletionTakesTheLastResume`
+  (`engine/rules/addphase_multistep_test.go`).
+
+`effAddPhase`'s Notes (an unresolvable `ExtraPhase$`/`AfterPhase$`/`FollowedBy$`/
+`NumPhases$`/delayed-trigger value, a non-contiguous multi-step set) are
+fail-closed guards no corpus card reaches;
+`TestAddPhaseCorpusValuesResolveWithoutNote` (`engine/effects/addphase_corpus_census_test.go`)
+holds that. `BeforeFirstPostCombatMainEnd$ True` (World at War) refuses the
+grant once a main phase after the first postcombat main has begun, read from the
+folded `Game.MainPhasesThisTurn` (Forge's `nMainsThisTurn <= (is(MAIN2) ? 2 : 1)`):
+`TestWorldAtWarAfterTheFirstPostcombatMainGrantsNothing`.
