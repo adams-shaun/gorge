@@ -1209,14 +1209,25 @@ func optionDump(d *decision.Decision) string {
 // "pN:..." a card ref, anything else a case-insensitive label substring or
 // an exact option kind.
 func (r *oracleRun) matchPick(d *decision.Decision, pick string, used map[int]bool) (int, error) {
+	return r.matchPickGrouped(d, pick, used, nil)
+}
+
+// matchPickGrouped is matchPick with the answer's already-represented
+// exclusivity groups (decision.Option.Group). A non-empty used group's
+// options are skipped, so a combined target ask covering several modal
+// instances picks one option from each instance's own group rather than the
+// first unused option, which may belong to a group an earlier pick already
+// filled (CR 700.2d, CR 115.3). A nil usedGroups keeps every caller that
+// does not read Group exactly as before.
+func (r *oracleRun) matchPickGrouped(d *decision.Decision, pick string, used map[int]bool, usedGroups map[string]bool) (int, error) {
 	if p, ok := parseSeatRef(pick); ok {
 		for _, o := range d.Options {
-			if !used[o.Index] && o.Obj == 0 && o.Player == p && o.Kind != "pass" {
+			if optionAvailable(o, used, usedGroups) && o.Obj == 0 && o.Player == p && o.Kind != "pass" {
 				return o.Index, nil
 			}
 		}
 		for _, o := range d.Options {
-			if !used[o.Index] && o.Obj == state.PlayerRef(p) {
+			if optionAvailable(o, used, usedGroups) && o.Obj == state.PlayerRef(p) {
 				return o.Index, nil
 			}
 		}
@@ -1228,7 +1239,7 @@ func (r *oracleRun) matchPick(d *decision.Decision, pick string, used map[int]bo
 			return -1, err
 		}
 		for _, o := range d.Options {
-			if !used[o.Index] && o.Obj == id {
+			if optionAvailable(o, used, usedGroups) && o.Obj == id {
 				return o.Index, nil
 			}
 		}
@@ -1241,7 +1252,7 @@ func (r *oracleRun) matchPick(d *decision.Decision, pick string, used map[int]bo
 	if lp == "yes" || lp == "no" {
 		for _, o := range d.Options {
 			k, l := strings.ToLower(o.Kind), strings.ToLower(o.Label)
-			if used[o.Index] {
+			if !optionAvailable(o, used, usedGroups) {
 				continue
 			}
 			if lp == "yes" && (k == "yes" || k == "accept" || o.Mode == "unless_pay" || strings.HasSuffix(k, "_pay") ||
@@ -1262,16 +1273,26 @@ func (r *oracleRun) matchPick(d *decision.Decision, pick string, used map[int]bo
 		}
 	}
 	for _, o := range d.Options {
-		if !used[o.Index] && oracleManaColourMatches(o.ManaSymbol, pick) {
+		if optionAvailable(o, used, usedGroups) && oracleManaColourMatches(o.ManaSymbol, pick) {
 			return o.Index, nil
 		}
 	}
 	for _, o := range d.Options {
-		if !used[o.Index] && (strings.EqualFold(o.Kind, pick) || oracleLabelMatches(o.Label, pick)) {
+		if optionAvailable(o, used, usedGroups) && (strings.EqualFold(o.Kind, pick) || oracleLabelMatches(o.Label, pick)) {
 			return o.Index, nil
 		}
 	}
 	return -1, nil
+}
+
+// optionAvailable reports whether o may be picked: its index is unused and,
+// when usedGroups is non-nil, its non-empty Group is not already represented
+// in the answer.
+func optionAvailable(o decision.Option, used map[int]bool, usedGroups map[string]bool) bool {
+	if used[o.Index] {
+		return false
+	}
+	return usedGroups == nil || o.Group == "" || !usedGroups[o.Group]
 }
 
 // oracleDeclineOption reports whether o is a decline: a no/decline kind or
@@ -1345,9 +1366,10 @@ func (r *oracleRun) answer(d *decision.Decision, why string) error {
 	}
 	if d.Kind == decision.KTarget && len(r.targets) > 0 {
 		used := map[int]bool{}
+		usedGroups := map[string]bool{}
 		var choices []int
 		for len(r.targets) > 0 && len(choices) < max(d.Max, 1) {
-			idx, err := r.matchPick(d, r.targets[0], used)
+			idx, err := r.matchPickGrouped(d, r.targets[0], used, usedGroups)
 			if err != nil {
 				return err
 			}
@@ -1359,6 +1381,9 @@ func (r *oracleRun) answer(d *decision.Decision, why string) error {
 			}
 			r.targets = r.targets[1:]
 			used[idx] = true
+			if g := d.Options[idx].Group; g != "" {
+				usedGroups[g] = true
+			}
 			choices = append(choices, idx)
 		}
 		return r.submit(d, choices, "target")
