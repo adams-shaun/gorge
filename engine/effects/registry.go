@@ -286,6 +286,10 @@ type Ctx struct {
 	// ResumeRemembered. The marks are unexported-typed so the rules package
 	// holds them opaquely. See engine/effects/damage.go's effDamageResolve.
 	PendingDamage []PendingDamage
+	// DamageMapOpen is set while a GenericChoice with DamageMap$ True walks
+	// its choosers: a chosen body's DealDamage marks into PendingDamage even
+	// while it is still empty. Re-derived from the SA on every walk entry.
+	DamageMapOpen bool
 	// EffectFrame names the Effect-created continuous-effect registration
 	// whose replacement body this Ctx is resolving (rules' seedEffectReplCtx
 	// sets it from the match's "effect:<source>:<timestamp>" key; zero Source

@@ -324,7 +324,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// the same simultaneous batch as the root's 4. The inheriting call only
 	// marks when it has no per-call riders (RememberDamaged$/
 	// ReplaceDyingDefined$) the flush could not honour.
-	inherits := len(c.PendingDamage) > 0 && !remember && dp.ReplaceDyingDefined == ""
+	inherits := (len(c.PendingDamage) > 0 || c.DamageMapOpen) && !remember && dp.ReplaceDyingDefined == ""
 	if (dp.DamageMap || inherits) && !divided && len(multiSources) < 2 {
 		for _, t := range Defined(h, c, sa) {
 			if t.IsPlayer {
