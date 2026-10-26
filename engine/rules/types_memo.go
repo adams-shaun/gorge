@@ -1,8 +1,8 @@
 package rules
 
 import (
-	"fmt"
 	"slices"
+	"strconv"
 
 	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -244,6 +244,6 @@ func (e *Engine) verifyTypesMemo(id state.ObjID, got chars.Layer4) {
 	want := e.layer4Fresh(id)
 	if (got.Types == nil) != (want.Types == nil) || !slices.Equal(got.Types, want.Types) ||
 		got.AllCreatureTypes != want.AllCreatureTypes || got.LandSet != want.LandSet {
-		panic(fmt.Sprintf("rules: derived-types memo stale for obj %d: cached %+v, fresh %+v", id, got, want))
+		panic("rules: derived-types memo stale for obj " + strconv.FormatUint(uint64(id), 10))
 	}
 }
