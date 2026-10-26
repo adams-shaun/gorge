@@ -101,6 +101,14 @@ type boardRow struct {
 	// pflash/pflashback are the face's printed keyword list's Flash and
 	// Flashback facts.
 	pflash, pflashback bool
+	// removeDeck, playMain1 and auraLogic are the face's static AI-hint
+	// facts (Card.RemoveDeck/PlayMain1/AuraLogic). Only the opt-in AIHints
+	// and HoldOwnAura rules read them, but the Board is filled before the
+	// deciding policy's configuration is known, so they are filled always:
+	// cached here, an off rule costs one read per face change, not an SVar
+	// lookup per card per refill.
+	removeDeck           bool
+	playMain1, auraLogic string
 	// derived facts (valid per gen/fill). kw is the derived keyword list:
 	// the face's own printed list when the derivation answered with exactly
 	// that (immutable compiled data, so it is carried, not copied), else a
@@ -168,6 +176,7 @@ func (inc *boardInc) face(id state.ObjID, f *cards.Face, k boardReadKeyer) *boar
 		r.counter = isCounterSpell(f)
 		r.cmc = cmcOfFace(f)
 		r.pflash, r.pflashback = hasFlash(f.Keywords), hasFlashback(f.Keywords)
+		r.removeDeck, r.playMain1, r.auraLogic = f.RemoveDeck != "", f.PlayMain1Hint(), effects.CastAuraLogic(f)
 		r.reusable = k.CharacteristicsReusable(id)
 		r.gen, r.fill = 0, 0
 	}
@@ -336,9 +345,9 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				PumpToughness:  pumpToughness,
 				PumpOwn:        pumpOwnCombatants,
 				CombatTrick:    effects.CastCombatTrick(f.SpellAbility()),
-				PlayMain1:      f.PlayMain1Hint(),
-				RemoveDeck:     f.RemoveDeck != "",
-				AuraLogic:      effects.CastAuraLogic(f),
+				PlayMain1:      r.playMain1,
+				RemoveDeck:     r.removeDeck,
+				AuraLogic:      r.auraLogic,
 			}
 		}
 	}
@@ -377,9 +386,9 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
-				PlayMain1:      f.PlayMain1Hint(),
-				RemoveDeck:     f.RemoveDeck != "",
-				AuraLogic:      effects.CastAuraLogic(f),
+				PlayMain1:      r.playMain1,
+				RemoveDeck:     r.removeDeck,
+				AuraLogic:      r.auraLogic,
 			}
 		}
 	}
