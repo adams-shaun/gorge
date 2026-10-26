@@ -1717,6 +1717,12 @@ type Object struct {
 	// carrier), so Card.ExiledWithSource filters replay without ambient
 	// state. Zero means no tracked exile provenance.
 	ExiledWith ObjID
+	// ExiledWithInc is one more than the Incarnation the exiling source had when this card was
+	// exiled (CR 400.7). The ExiledWith link only counts while the source
+	// is still that incarnation (or has just left the battlefield it was exiled on, for leave triggers): a source that has changed zones since is a new
+	// object that remembers nothing of the old one's exile. Folded by
+	// events.Apply from the same MoveZone, so replay rebuilds it.
+	ExiledWithInc uint32
 	// MayLookPlayer is the player a Dig's or ChangeZone's WithMayLook$ True
 	// authorises to look at this face-down exiled card (Forge's Card.mayLook),
 	// with HasMayLook distinguishing seat 0 from "nobody". It is state, not
@@ -1888,7 +1894,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [26]byte
+	_ [22]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast

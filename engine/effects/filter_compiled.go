@@ -687,6 +687,8 @@ var specialPositiveTokenSet = state.NewNameSet(
 )
 
 var typePredicateTokenSet = state.NewNameSet(
+	"ExiledWithSource",
+	"ExiledWithSourceLKI",
 	"Legendary",
 	"Basic",
 	"Snow",
