@@ -334,7 +334,7 @@ cannot keep claiming a gap that is gone.
 
 **To change.** When your change closes a gap, delete its entry **in the same
 commit**. The Known-approximations table is a closing register: a landing
-change deletes its row and lowers `knownApproximationRows`; a deviation it
+change deletes its row's file in `docs/agents/known-approximations/` and its `ALLOWED.txt` line; a deviation it
 cannot close goes in the commit message, never in a new row.
 
 **Classic mistake.** Adding a `known-unsupported` file to turn a red test
