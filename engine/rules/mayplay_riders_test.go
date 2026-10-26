@@ -307,6 +307,36 @@ func TestMayPlayPlayerAnyAluren(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestMayPlayWithFlashAlternativeCostOnly: Aluren's flash covers the free cast,
+// not a paid cast of the same card. With the mana to pay for it, seat 1 at
+// instant timing is offered the alternative-cost cast alone.
+func TestMayPlayWithFlashAlternativeCostOnly(t *testing.T) {
+	e, cfg, ids := mpRiderGame(t, nil, []string{"Centaur Courser"}, []string{"Aluren"}, nil)
+	mpRiderDrive(t, e, 4, 1, state.StepBeginCombat)
+	addManaQuiet(t, e, 1, "GGG")
+	e.priorityRound()
+	c := ids[1]["Centaur Courser"][0]
+	if e.G.Active != 1 || e.G.Priority != 1 || e.G.Players[1].Pool.Total() != 3 {
+		t.Fatalf("precondition: active %d priority %d pool %d", e.G.Active, e.G.Priority, e.G.Players[1].Pool.Total())
+	}
+	var offers []decision.Option
+	for _, o := range e.Pending().Options {
+		if o.Kind == "cast" && o.Obj == c {
+			offers = append(offers, o)
+		}
+	}
+	if len(offers) != 1 || offers[0].AltCostIndex == 0 {
+		t.Fatalf("want exactly the alternative-cost cast, got %+v (%v)", offers, mpRiderLabels(e))
+	}
+	submitChoices(t, e, offers[0].Index)
+	e.resolveTop()
+	e.priorityRound()
+	if o := e.G.Obj(c); o.Zone != state.ZBattlefield || e.G.Players[1].Pool.Total() != 3 {
+		t.Fatalf("free cast: Courser in %s, pool %d (want battlefield, 3)", o.Zone, e.G.Players[1].Pool.Total())
+	}
+	replayCheck(t, e, cfg)
+}
+
 func TestMayPlayRiderCorpusCarriers(t *testing.T) {
 	players := map[string]bool{}
 	flash := map[string]bool{}

@@ -123,5 +123,5 @@ func (w *legalWalk) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Fac
 	if !ok {
 		return false
 	}
-	return !needFlash || w.e.spellFlashGranted(p, id, w.castWithFlash(p, id))
+	return !needFlash || w.castWithFlash(p, id) || mayPlayFlashGranted(w.e, w.e.G.Obj(id), p)
 }

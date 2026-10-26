@@ -925,8 +925,9 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 			}
 		}
 		grants := !strings.EqualFold(strings.TrimSpace(sv.Params["MayPlayDontGrantZonePermissions"]), "True")
+		flash := strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlayWithFlash)), "True")
 		if free {
-			out = append(out, mayPlayAltView{grants: grants})
+			out = append(out, mayPlayAltView{grants: grants, flash: flash})
 			continue
 		}
 		alt, ok := e.altCostParse(id, raw)
@@ -936,7 +937,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 			// never offered at a wrong price.
 			continue
 		}
-		out = append(out, mayPlayAltView{cost: alt, grants: grants})
+		out = append(out, mayPlayAltView{cost: alt, grants: grants, flash: flash})
 	}
 	return out
 }
@@ -946,6 +947,8 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 type mayPlayAltView struct {
 	cost   Cost
 	grants bool
+	// flash: the static carries MayPlayWithFlash$ True.
+	flash bool
 }
 
 // mayPlayCastAlts lists the alternatives a CAST through a may-play

@@ -331,6 +331,7 @@ func (w *legalWalk) handWalk() {
 					}
 				}
 			}
+			w.offerMayPlayFlashAlts(p, id, f, out)
 			continue
 		}
 		// targetsAvailable is the plain SpellAbility's target census, run on
