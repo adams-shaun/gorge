@@ -154,14 +154,6 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 		// unimplemented-API fallback. A body outside the whitelist is not a
 		// choice at all, so it is skipped before the ordinal is counted.
 		if kind == "copy" {
-			cp := effects.CloneOf(r.With)
-			// A resolver-dependent copy selector is supportable only when this
-			// entry carries the cast-time total its SVar reads. Without provenance
-			// (blink/reanimation), retain the loud fallback rather than asking a
-			// copy election whose candidate matcher must reject everything.
-			if effects.CloneETBSpendSelector(cp.Choices, o.Face().SVars) && o.CastFlags&state.FlagManaSpent == 0 {
-				continue
-			}
 			if !etbCloneWhitelist(r.With, o.Face().SVars) {
 				continue
 			}
@@ -187,6 +179,9 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 				// The card's own Min$/Max$ bound, through the ONE bound reader
 				// the mid-resolution ChooseNumber ask uses (Talion: 1..10).
 				opts = effects.ETBNumberChoices(e, o.ID, you, o.Face().SVars, r.With)
+			} else if kind == "copy" {
+				cp := effects.CloneOf(r.With)
+				opts = e.etbCloneOptions(you, o.ID, cp.ChoicesRaw, cp.ChoiceZoneKind)
 			} else {
 				opts = e.etbOptions(you, o.ID, kind,
 					r.With.ParamStr(cards.PKValidCards), selector,
@@ -226,6 +221,29 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 		seen++
 	}
 	return etbChoice{}, false
+}
+
+// etbCloneOptions lists the legal copy templates of an as-enters Clone: every
+// object of the body's ChoiceZone$ zone (the battlefield when absent) that the
+// Choices$ selector admits, across every living player (CR 707.2: Echoing
+// Deeps and Superior Spider-Man copy a card in "a graveyard", not only their
+// controller's). Option order is seat order, then the zone's own order.
+func (e *Engine) etbCloneOptions(you state.PlayerID, card state.ObjID, choices string, zone state.Zone) []decision.Option {
+	spec := strings.TrimSpace(choices)
+	if spec == "" {
+		spec = "Creature.Other"
+	}
+	sc := effects.NewSpecContext(you, card)
+	out := []decision.Option{}
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(zone, p) {
+			o := e.G.Obj(id)
+			if o != nil && o.Face() != nil && effects.CloneETBSelectorMatches(e.G, spec, id, sc) {
+				out = append(out, decision.Option{Index: len(out), Kind: "clone", Obj: id, Label: o.Face().Name})
+			}
+		}
+	}
+	return out
 }
 
 // etbColourLabels pairs the WUBRG letter the Choose event records with the
@@ -292,24 +310,7 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case etbOptionsCopy:
-		spec := strings.TrimSpace(choices)
-		if spec == "" {
-			spec = strings.TrimSpace(validCards)
-		}
-		if spec == "" {
-			spec = "Creature.Other"
-		}
-		sc := effects.NewSpecContext(you, card)
-		out := []decision.Option{}
-		for _, p := range e.G.AliveFrom(0) {
-			for _, id := range e.G.Zone(state.ZBattlefield, p) {
-				o := e.G.Obj(id)
-				if o != nil && o.Face() != nil && effects.CloneETBSelectorMatches(e.G, spec, id, sc) {
-					out = append(out, decision.Option{Index: len(out), Kind: "clone", Obj: id, Label: o.Face().Name})
-				}
-			}
-		}
-		return out
+		return e.etbCloneOptions(you, card, choices, state.ZBattlefield)
 	case etbOptionsName:
 		// A no-universe Config is a pre-feature match on replay. Its visible
 		// object builder, including the Card.nonLand default and its full

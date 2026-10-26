@@ -12,20 +12,21 @@ import (
 
 // etbCloneCleanNames is the measured set of corpus cards carrying an
 // ETBReplacement:Copy keyword whose DB$ Clone body's parameter set lies
-// entirely inside etbCloneWhitelist's supported scope {Choices$, AddTypes$,
-// AddKeywords$, SpellDescription$} AND whose values are inside it too (no
+// entirely inside etbCloneWhitelist's supported scope {Choices$, ChoiceZone$,
+// ChoiceTitle$, NewName$, RememberCloneOrigin$, AddTypes$, AddKeywords$,
+// SpellDescription$, ...} AND whose values are inside it too (no
 // unsupported SVar-resolved selector predicate, no multi-word AddKeywords$ head -- see
 // etbCloneWhitelist). The pin is bidirectional: a corpus-pin
 // bump or a scope change that alters membership fails here and forces a
 // deliberate re-measure, so the supported boundary cannot widen (a new
 // parameter accepted into etbCloneWhitelist) or narrow silently.
 var etbCloneCleanNames = []string{
-	"Altered Ego", "Auton Soldier", "Callidus Assassin", "Clever Impersonator", "Clone", "Copy Artifact", "Copy Enchantment", "Copy Land",
-	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Flesh Duplicate", "Glasspool Mimic",
-	"Jwari Shapeshifter", "Malleable Impostor", "Masterwork of Ingenuity", "Mirror Image",
+	"Activated Sleeper", "Altered Ego", "Auton Soldier", "Body Double", "Callidus Assassin", "Chameleon, Master of Disguise", "Clever Impersonator", "Clone", "Copy Artifact", "Copy Enchantment", "Copy Land",
+	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Echoing Deeps", "Flesh Duplicate", "Glasspool Mimic",
+	"Jwari Shapeshifter", "Lazotep Convert", "Malleable Impostor", "Masterwork of Ingenuity", "Mirror Image", "Mirrorhall Mimic",
 	"Mirrormade", "Mocking Doppelganger", "Mockingbird", "Naga Fleshcrafter", "Omni-Changeling",
 	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Quicksilver Gargantuan", "Sakashima of a Thousand Faces", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
-	"Stunt Double", "Synth Infiltrator", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Waxen Shapethief",
+	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Waxen Shapethief",
 }
 
 // TestETBCloneWhitelistCensus walks every ETBReplacement:Copy Repl in the
@@ -94,7 +95,7 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 		{"Mocking Doppelganger", true},
 		{"Vesuva", true},                // IntoPlayTapped$ True now taps the entering copy
 		{"Cursed Mirror", false},        // Duration$ UntilEndOfTurn
-		{"Mirrorhall Mimic", false},     // ChoiceTitle$
+		{"Mirrorhall Mimic", true},      // ChoiceTitle$ is prompt text only
 		{"Vizier of Many Faces", false}, // SetColor$/AddTypes$ + Embalm$ provenance
 		// The CopyExcept exceptions (CR 707.9b): a literal P/T, a parsed
 		// colour and NonLegendary$ True are offered; an entry-time P/T

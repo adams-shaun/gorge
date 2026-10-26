@@ -76,6 +76,13 @@ func TestCompileClone(t *testing.T) {
 		"Choices": "Creature", "AddKeywords": "IfNew Vanishing:3"}}).ETBShapeOK {
 		t.Fatal("Flesh Duplicate's IfNew Vanishing:3 rider must pass the ETB gate")
 	}
+	// cr-g119: ChoiceZone$, ChoiceTitle$, NewName$ and RememberCloneOrigin$
+	// True are inside the as-enters scope.
+	if !CloneOf(&cards.SA{API: "Clone", Params: map[string]string{
+		"Choices": "Creature.Other", "ChoiceZone": "Graveyard", "ChoiceTitle": "Pick",
+		"NewName": "X", "RememberCloneOrigin": "True"}}).ETBShapeOK {
+		t.Fatal("ChoiceZone$/ChoiceTitle$/NewName$/RememberCloneOrigin$ must pass the ETB gate")
+	}
 	for _, params := range []map[string]string{
 		{"Choices": "Creature.Other+cmcLEX"},
 		// A rider whose counters the line cannot name (non-literal count)
@@ -85,7 +92,10 @@ func TestCompileClone(t *testing.T) {
 		{"Choices": "Creature", "AddKeywords": "IfNew Storm"},
 		{"Choices": "Creature", "AddKeywords": "IfNew Voltron"},
 		{"Choices": "Creature", "IntoPlayTapped": "False"},
-		{"Choices": "Creature", "ChoiceTitle": "Pick"},
+		// An unclassifiable ChoiceZone$ and a non-True RememberCloneOrigin$
+		// fail closed.
+		{"Choices": "Creature", "ChoiceZone": "Library"},
+		{"Choices": "Creature", "RememberCloneOrigin": "False"},
 	} {
 		if CloneOf(&cards.SA{API: "Clone", Params: params}).ETBShapeOK {
 			t.Errorf("ETB shape admitted %v", params)

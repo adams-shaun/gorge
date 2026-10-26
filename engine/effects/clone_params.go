@@ -46,6 +46,9 @@ type CloneParams struct {
 	ChoiceZone     string
 	ChoiceZoneKind state.Zone
 	ChoiceZoneOK   bool
+	// RememberCloneOrigin is RememberCloneOrigin$ True: the copied object joins
+	// the become object's remembered set (Forge's CloneEffect addRemembered).
+	RememberCloneOrigin bool
 	// ChoiceOptional is ChoiceOptional$ True; ChoiceTitle is ChoiceTitle$.
 	ChoiceOptional bool
 	ChoiceTitle    string
@@ -156,7 +159,7 @@ var cloneKnownKeys = [...]string{
 	"NonBasicSpell", "NonLegendary", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount",
-	"ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "RemoveCardTypes",
+	"ReduceCost", "RememberAnimated", "RememberCloneOrigin", "RememberCostMana", "RememberObjects", "RememberTargets", "RemoveCardTypes",
 	"RemoveCreatureTypes", "RemoveSubTypes", "ReplaceColor", "ReplaceGraveyard",
 	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "SVarCompare",
 	"SelectPrompt", "SetChosenMode", "SetColor", "SetCreatureTypes", "SetPower",
@@ -215,6 +218,7 @@ func compileClone(sa *cards.SA, dr *DefinedParams) *CloneParams {
 	p.ChoiceZone = strings.TrimSpace(sa.ParamStr(cards.PKChoiceZone))
 	p.ChoiceZoneKind, p.ChoiceZoneOK = cloneChoiceZone(p.ChoiceZone)
 	p.ChoiceOptional = isTrue(sa.ParamStr(cards.PKChoiceOptional))
+	p.RememberCloneOrigin = isTrue(rawParamText(sa, "RememberCloneOrigin").Text)
 	p.ChoiceTitle = strings.TrimSpace(sa.ParamStr(cards.PKChoiceTitle))
 	p.CloneTarget = strings.TrimSpace(rawParamText(sa, "CloneTarget").Text)
 	p.ChoicesTargetBecome = p.Choices != "" && p.CloneTarget == "" && TargetsOf(sa).Targeted()
@@ -290,6 +294,15 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 		}
 	}
 	if SpecNeedsResolver(p.Choices) && p.Choices != mockingbirdETBSelector {
+		return false
+	}
+	// ChoiceZone$ names the zone the template is chosen from (Echoing Deeps'
+	// "land card in a graveyard"); a zone this build cannot classify fails
+	// closed rather than offering a battlefield pool.
+	if p.ChoiceZone != "" && !p.ChoiceZoneOK {
+		return false
+	}
+	if _, ok := sa.Params["RememberCloneOrigin"]; ok && !p.RememberCloneOrigin {
 		return false
 	}
 	for _, kw := range p.AddKeywords {
@@ -376,4 +389,5 @@ var cloneETBShapeKeys = state.NewNameSet(
 	"Choices", "AddKeywords", "AddTypes", "SpellDescription",
 	"AddStaticAbilities", "IntoPlayTapped", "AddTriggers", "AddSVars", "SubAbility",
 	"SetPower", "SetToughness", "SetColor", "AddColors", "NonLegendary",
+	"ChoiceZone", "NewName", "ChoiceTitle", "RememberCloneOrigin",
 )
