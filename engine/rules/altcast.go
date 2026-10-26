@@ -158,7 +158,7 @@ func (e *Engine) altCostEnter(ev events.Event) {
 // must exist before the entry replacement, so granting it here would be
 // wrong: it stays unmodelled behind a Note (fail closed).
 func (e *Engine) applyManaKeywordGrant(id state.ObjID, controller state.PlayerID, g state.ManaAddsKeywordGrant) {
-	if strings.EqualFold(g.Keyword, "Riot") {
+	if g.Keyword == "Riot" {
 		e.emit(events.Event{Kind: events.Note, Text: "Mana AddsKeywords$ Riot is not modelled (an as-enters choice)"})
 		return
 	}

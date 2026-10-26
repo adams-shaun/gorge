@@ -1,5 +1,7 @@
 package state
 
+import "strings"
+
 // ManaRestriction is a batch of floating mana that may be spent only for a
 // Forge RestrictValid$ payment. Pool keeps the colour totals for display and
 // ordinary payment; these records retain the provenance Pool deliberately
@@ -70,6 +72,17 @@ type ManaKeywordRider struct {
 	Keywords string
 	Valid    string
 	Until    string
+}
+
+// AppendGrants appends one grant per keyword of the rider (the AddsKeywords$
+// value is " & "-separated) to dst.
+func (r ManaKeywordRider) AppendGrants(dst []ManaAddsKeywordGrant) []ManaAddsKeywordGrant {
+	for kw := range strings.SplitSeq(r.Keywords, "&") {
+		if kw = strings.TrimSpace(kw); kw != "" {
+			dst = append(dst, ManaAddsKeywordGrant{Keyword: kw, Until: r.Until})
+		}
+	}
+	return dst
 }
 
 // ManaAddsKeywordGrant is one keyword a cast earned from a spent

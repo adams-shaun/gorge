@@ -493,11 +493,7 @@ func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *st
 		// producer. Spell payments only; the grants keep batch order.
 		if d.Class == PurposeSpell && r.AddsKeywords.Keywords != "" {
 			if v := r.AddsKeywords.Valid; v == "" || RestrictValidMatches(e, p, d, v, r.Source) {
-				for kw := range strings.SplitSeq(r.AddsKeywords.Keywords, "&") {
-					if kw = strings.TrimSpace(kw); kw != "" {
-						capt.ManaSpentAddsKeywords = append(capt.ManaSpentAddsKeywords, state.ManaAddsKeywordGrant{Keyword: kw, Until: r.AddsKeywords.Until})
-					}
-				}
+				capt.ManaSpentAddsKeywords = r.AddsKeywords.AppendGrants(capt.ManaSpentAddsKeywords)
 			}
 		}
 		e.Emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
