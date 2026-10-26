@@ -1565,6 +1565,12 @@ func (e *canonEncoder) encdecision_TargetEffect(v *decision.TargetEffect) error 
 			}
 		}
 	}
+	if len(v.Desc) == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.appendString(string(v.Desc))
+	}
 	return nil
 }
 
