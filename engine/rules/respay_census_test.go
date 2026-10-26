@@ -95,7 +95,7 @@ func TestTriggerBodyCostPayFirstCensus(t *testing.T) {
 			manual[detail] += len(names)
 			continue
 		}
-		if e.resPayPlan(0, 0, cost) == nil {
+		if e.resPayPlan(0, 0, cost, paymentOther) == nil {
 			unplanned = append(unplanned, raw+" ("+names[0]+")")
 			continue
 		}

@@ -743,7 +743,8 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 		}
 	}
 	manaOnly := Cost{Colored: mana.Colored, Generic: mana.Generic}
-	got := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, tapped, nil, kept)
+	desc := pay.DescriptorFor(id, ability, composed)
+	got := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, tapped, nil, kept)
 	if got.Plan == nil {
 		// No plan even with every other source is a proof.
 		return got
@@ -760,7 +761,7 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 	exhaustive, allInsufficient := true, true
 	var found *PaymentPlanOutcome
 	e.planEachReservation(p, id, composed, ability, parts, func(tapR, keptR []state.ObjID) bool {
-		retry := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
+		retry := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
 		if retry.Plan == nil {
 			if retry.Reason != "insufficient" {
 				allInsufficient = false

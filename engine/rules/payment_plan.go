@@ -145,7 +145,8 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	if global, detail := e.paymentPlanGlobalManaEffect(p, cast.Object); global {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
 	}
-	return pay.PlanPaymentCost(asPayer(e), p, cast, pay.PlanManaHalf(cost))
+	desc := pay.DescriptorFor(cast.Object, false, cost)
+	return pay.PlanPaymentCost(asPayer(e), p, cast, pay.PlanManaHalf(cost), &desc)
 }
 
 // paymentPlanCastCandidate deliberately delegates timing, mandatory-target
@@ -873,8 +874,11 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 				// census, which lists free-cost abilities only. Such an
 				// ability is never normal (paymentPlanTapOnlyCost); the tier
 				// gate in paymentPlanUnitAlternatives keeps it only when it is
-				// a last-resort shape.
-				if mf.FreeCost || mf.RestrictValid {
+				// a last-resort shape. A RestrictValid$ free ability is the
+				// shared census's blind spot (windowManaUnitsWith keeps its
+				// conservatism): it joins here, and the planner admits it per
+				// payment (pay.PlanPaymentCostWithout's descriptor).
+				if mf.FreeCost && !mf.RestrictValid {
 					continue
 				}
 				total := int32(0)
