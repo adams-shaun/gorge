@@ -404,8 +404,18 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			// (CR 608.2m, engine/rules/stack.go's ability tail parks it in exile),
 			// so a countered ability moves there, never to the graveyard.
 			if remember {
-				c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
-				eventRemember(h, c, o.ID)
+				// Forge's CounterEffect remembers a countered ABILITY's
+				// SOURCE card (tgtSACard), not the ability: Tishana's
+				// Tidebinder, Trickbind, Interdict and Ouphe Vandals all read
+				// the remembered permanent back (loses all abilities, can't
+				// activate, destroy). The ability object itself exits to exile
+				// right below and is nothing a later clause can name.
+				rid := o.ID
+				if o.Source != 0 && h.Game().Obj(o.Source) != nil {
+					rid = o.Source
+				}
+				c.Remembered = append(c.Remembered, state.Target{Obj: rid})
+				eventRemember(h, c, rid)
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 				From: state.ZStack, To: state.ZExile, Text: "countered"})
