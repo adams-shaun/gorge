@@ -1,0 +1,52 @@
+Additive Evolution	param:api:PutCounter.ValidTgtsDesc
+Applied Geometry	param:api:CopyPermanent.ValidTgtsDesc
+Ascendant Dustspeaker	param:api:ChangeZone.ValidTgtsDesc,param:api:PutCounter.ValidTgtsDesc
+Burrog Barrage	param:api:DealDamage.ValidTgtsDesc,param:api:Pump.ValidTgtsDesc
+Cauldron of Essence	param:api:ChangeZone.ValidTgtsDesc
+Chelonian Tackle	param:api:Fight.ValidTgtsDesc
+Choreographed Sparks	param:api:CopySpellAbility.ValidTgtsDesc
+Daydream	param:api:ChangeZone.ValidTgtsDesc
+Dig Site Inventory	param:api:PutCounter.ValidTgtsDesc
+Dissection Practice	param:api:Pump.ValidTgtsDesc
+Divergent Equation	param:api:ChangeZone.ValidTgtsDesc
+Echocasting Symposium	param:api:CopyPermanent.ValidTgtsDesc
+Ennis, Debate Moderator	param:api:ChangeZone.ValidTgtsDesc
+Erode	param:api:Destroy.ValidTgtsDesc
+Flashback	param:api:Pump.ValidTgtsDesc
+Glorious Decay	param:api:ChangeZone.ValidTgtsDesc,param:api:DealDamage.ValidTgtsDesc
+Graduation Day	param:api:PutCounter.ValidTgtsDesc
+Grapple with Death	param:api:Destroy.ValidTgtsDesc
+Growth Curve	param:api:PutCounter.ValidTgtsDesc
+Impractical Joke	param:api:DealDamage.ValidTgtsDesc
+Living History	param:api:Pump.ValidTgtsDesc
+Lorehold Charm	param:api:ChangeZone.ValidTgtsDesc
+Maelstrom Artisan	param:api:Destroy.ValidTgtsDesc
+Masterful Flourish	param:api:Pump.ValidTgtsDesc
+Matterbending Mage	param:api:ChangeZone.ValidTgtsDesc
+Moment of Reckoning	param:api:ChangeZone.ValidTgtsDesc,param:api:Destroy.ValidTgtsDesc
+Moseo, Vein's New Dean	param:api:ChangeZone.ValidTgtsDesc
+Nita, Forum Conciliator	param:api:ChangeZone.ValidTgtsDesc
+Oracle's Restoration	param:api:Pump.ValidTgtsDesc
+Poisoner's Apprentice	param:api:Pump.ValidTgtsDesc
+Practiced Scrollsmith	param:api:ChangeZone.ValidTgtsDesc
+Primary Research	param:api:ChangeZone.ValidTgtsDesc
+Prismari Charm	param:api:ChangeZone.ValidTgtsDesc
+Proctor's Gaze	param:api:ChangeZone.ValidTgtsDesc
+Pull from the Grave	param:api:ChangeZone.ValidTgtsDesc
+Quandrix Charm	param:api:Counter.ValidTgtsDesc
+Rabid Attack	param:api:Pump.ValidTgtsDesc
+Ral Zarek, Guest Lecturer	param:api:ChangeZone.ValidTgtsDesc
+Restoration Seminar	param:api:ChangeZone.ValidTgtsDesc
+Scathing Shadelock	param:api:Pump.ValidTgtsDesc
+Shattered Acolyte	param:api:Destroy.ValidTgtsDesc
+Silverquill Charm	param:api:ChangeZone.ValidTgtsDesc
+Skycoach Conductor	param:api:ChangeZone.ValidTgtsDesc
+Stand Up for Yourself	param:api:Destroy.ValidTgtsDesc
+Startled Relic Sloth	param:api:ChangeZone.ValidTgtsDesc
+Steal the Show	param:api:DealDamage.ValidTgtsDesc
+Sundering Archaic	param:api:ChangeZone.ValidTgtsDesc
+Suspend Aggression	param:api:ChangeZone.ValidTgtsDesc,param:api:RepeatEach.UseImprinted
+Tester of the Tangential	param:api:MoveCounter.ValidTgtsDesc
+The Dawning Archaic	param:api:Play.ValidTgtsDesc
+Witherbloom Charm	param:api:Destroy.ValidTgtsDesc
+Zealous Lorecaster	param:api:ChangeZone.ValidTgtsDesc

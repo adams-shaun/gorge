@@ -1,0 +1,5 @@
+Airtight Alibi	param:stat:CantBeSuspected.Secondary
+Intrude on the Mind	param:api:PeekAndReveal.NoPeek
+Pick Your Poison	param:api:Sacrifice.SacMessage
+Repulsive Mutation	cost:Y
+Sanctuary Wall	cost:AddCounter

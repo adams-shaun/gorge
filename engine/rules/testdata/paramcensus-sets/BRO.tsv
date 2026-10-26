@@ -1,0 +1,9 @@
+Gix, Yawgmoth Praetor	cost:Discard
+Gixian Skullflayer	param:trig:Phase.PresentPlayer
+Hostile Negotiations	param:api:TwoPiles.KeepRemembered
+Hurkyl, Master Wizard	param:api:ChooseCard.ChoiceTitleAppend,param:api:PeekAndReveal.NoPeek
+Over the Top	param:api:ChangeZoneAll.ForgetChanged,param:api:PeekAndReveal.NoPeek
+Phyrexian Fleshgorger	cost:PayLife
+The Stone Brain	param:api:Cleanup.ClearNamedCard
+Urza, Lord Protector	param:stat:NumLoyaltyAct.Twice
+Urza, Planeswalker	param:stat:NumLoyaltyAct.Twice
