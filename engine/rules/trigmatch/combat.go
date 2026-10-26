@@ -430,6 +430,9 @@ func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev e
 			return false
 		}
 	}
+	if !damageCauseMatches(e, t, source, ev) {
+		return false
+	}
 	// FirstTime$ True on DamageDoneOnce (task agent-20261001T020044Z; only
 	// Hercules, Olympian Hero carries the combination corpus-wide) admits
 	// exactly the first Damage event on that recipient this turn, mirroring

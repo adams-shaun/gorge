@@ -809,7 +809,9 @@ const (
 	TurnFaceUp
 	// SearchedLibrary records one completed search of a library (CR 701.23;
 	// trig:SearchedLibrary). Player is the player whose library was searched
-	// and Obj is the resolving source, if any. It is a pure marker: the
+	// and Obj is the resolving source, if any. Amount is 0 when that player
+	// searched their own library, else the searcher's seat + 1 (a Bribery on
+	// an opponent's library). It is a pure marker: the
 	// search's card moves and shuffle are recorded by their own events.
 	// Appended after TurnFaceUp to preserve all earlier Kind ordinals.
 	SearchedLibrary

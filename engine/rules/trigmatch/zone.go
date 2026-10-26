@@ -200,7 +200,7 @@ func LeftBattlefield(ev events.Event) bool {
 // or events.DiscardCost, so the action marker and its cost provenance survive
 // a replacement changing the destination.
 func sacrificedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if !events.IsSacrifice(ev) {
+	if !events.IsSacrifice(ev) || !whileKeywordAdmits(e, t, ev) {
 		return false
 	}
 	ctrl := e.ControllerOf(source)

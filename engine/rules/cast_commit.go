@@ -74,7 +74,7 @@ type craftMaterialSource interface {
 // a Craft material is "exiled with" the crafted card (Mastercraft Raptor's
 // ExiledWith$CardPower), and MoveZone's IDs payload names the exiling source.
 func costExileEvent(o *state.Object, craftMaterials []state.ObjID, crafted state.ObjID) events.Event {
-	mv := events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"}
+	mv := events.ExileAsCost(o.ID, o.Zone)
 	if slices.Contains(craftMaterials, o.ID) {
 		mv.IDs = []state.ObjID{crafted}
 	}

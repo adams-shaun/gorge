@@ -9,7 +9,7 @@ import (
 
 func exiledMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	return ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ev.To == state.ZExile &&
-		ZoneChangeMatches(e, t, source, ev, lki)
+		ZoneChangeMatches(e, t, source, ev, lki) && whileKeywordAdmits(e, t, ev)
 }
 
 func changesControllerMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {

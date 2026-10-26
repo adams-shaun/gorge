@@ -1453,7 +1453,13 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// MoveZone events so trig:SearchedLibrary cannot false-fire on ordinary
 	// library movement.
 	if searchedLib {
-		h.Emit(events.Event{Kind: events.SearchedLibrary, Obj: c.Source, Player: owner})
+		// The searcher rides Amount (+1) only when it is not the owner, so a
+		// self-search keeps its encoding (Amount 0) byte for byte.
+		rec := events.Event{Kind: events.SearchedLibrary, Obj: c.Source, Player: owner}
+		if searcher := searchChooser(h, c, cz, owner); searcher != owner {
+			rec.Amount = int32(searcher) + 1
+		}
+		h.Emit(rec)
 	}
 	// The search's reveal (hiddenreveal1): Forge's changeHiddenOriginResolve
 	// reveals the moved cards when Reveal$ says so, and ALSO by default when

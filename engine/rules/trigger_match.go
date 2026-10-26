@@ -860,6 +860,10 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 		*observer = Engine{G: e.triggerBefore.game, L: e.L,
 			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion,
 			setNameInPool: e.setNameInPool, layer4InPool: e.layer4InPool}
+		// The open cast flow and the resolving object are not board state:
+		// the cause qualifiers (WhileKeyword$, a ValidCause$ stack read) of
+		// a leaves-the-battlefield trigger read them.
+		observer.cast, observer.resolvingObj = e.cast, e.resolvingObj
 		// The no-ability-loss proof covers every object and registration
 		// the snapshot can hold (abilityloss.go).
 		observer.lossProof = abilityLossProof{seen: e.abilityLossPossible(), objs: e.lossProof.objs, contLen: -1}
