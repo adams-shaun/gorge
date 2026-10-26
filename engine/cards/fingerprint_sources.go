@@ -122,6 +122,7 @@ import "embed"
 //go:embed strtab.go
 //go:embed subset.go
 //go:embed tokens.go
+//go:embed twopiles_shape.go
 //go:embed validate.go
 //go:embed words.go
 var compilerSources embed.FS
