@@ -165,9 +165,9 @@ example of the shape we like.
 
 The per-package map is [docs/agents/repo-map.md](docs/agents/repo-map.md)
 and `go run ./cmd/pkgmap` prints every package with its purpose and tier.
-Draft events, training and the research bots are not in this repository:
-they live in four-yay, a private companion module that imports gorge (README,
-"four-yay, the private companion module"). The compliance oracles and the
+Draft events and the maintainers' extensions are not in this repository:
+they live in a private companion module that imports gorge (README,
+"The private companion module"). The compliance oracles and the
 oracle-scenario corpora (the hand Oracle-text audit, the XMage ports) live in
 the public [gorge-compliance](https://github.com/adams-shaun/gorge-compliance),
 which measures a pinned gorge revision; gorge keeps the oracle runner

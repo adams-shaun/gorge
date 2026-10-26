@@ -91,7 +91,7 @@ Untracked paths you will meet locally:
 | `gorged-data/`, `feedback/` | A local server's default persistence and player bug reports. |
 | `cmd/repro/testdata/.tokens/` | Token-script text stripped from committed replay fixtures. |
 
-The research tree, draft events and the oracle pipelines are not here: see
+Draft events, the maintainers' extensions and the oracle pipelines are not here: see
 [The three repositories](../repos/index.md).
 
 ## Tiers and import direction

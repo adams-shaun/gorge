@@ -150,9 +150,9 @@ by card against XMage, Forge and hand-written Oracle-text scenarios, and
 holds the certification ratchet. It imports gorge; gorge never imports it.
 See [The three repositories](../repos/index.md).
 
-**four-yay.** The maintainers' private companion module: research, draft
-events, research bots, the dirty-dirac kernel and the demo's deployment
-tooling. It imports gorge at a pinned commit; nothing in gorge needs it.
+**Private companion.** The maintainers' private companion module: draft
+events, the dirty-dirac kernel and the demo server. It imports gorge at a
+pinned commit; nothing in gorge needs it.
 
 **`GORGE_PIN`.** A file at the root of each companion repository holding the
 full gorge commit SHA it builds against, mirrored by the gorge

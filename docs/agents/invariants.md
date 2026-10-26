@@ -16,7 +16,7 @@ bots/:   botpolicy (→ effects) → heuristic (→ seat) → searchprobe/search
 server/: protocol (→ view) → host (→ rules, bots registry) → server/host/httpapi
 server/gorged (→ host, httpapi, bots/all) → cmd/gorged
 cmd/*
-(outside the repo: four-yay imports gorge; gorge never imports four-yay)
+(outside the repo: companion modules import gorge; gorge never imports them)
 ```
 
 A package imports only packages to its left or in an earlier group. `deck`
@@ -24,9 +24,9 @@ sits beside the engine chain: it imports `cards` only and is imported by
 `rules`, `view`, `host` and the test fixtures. `engine/seat` is the contract
 only and imports just `decision` and `view`. That is the measured import graph
 (`go list`, 2026-10-16, after the ADR 0001 restructure). Draft events and
-the research bots are four-yay's (private) and reach gorge only through
-`server/gorged.Extensions`, `server/gorged.RegisterNetBot` and
-`bots.Register`; nothing in gorge can import four-yay, because the root
+the companion bots live in a private companion module and reach gorge only
+through `server/gorged.Extensions`, `server/gorged.RegisterNetBot` and
+`bots.Register`; nothing in gorge can import a companion, because the root
 `go.mod` has no `require` lines (invariant 7). The enforced contract is the set of
 edges that must never appear: `effects` never imports `rules` (effects reaches
 the engine only through `effects.Host`). `view`, `protocol` and `deck` never
@@ -79,9 +79,8 @@ The engine is a pure function of `(Config, intents)`.
     deadlines);
   - measurement and developer CLIs that read the clock only to bound a run or
     report elapsed time (`cmd/enginebench`, `cmd/cardfuzz`, `cmd/paymirror`);
-    the research and pipeline CLIs that also read the clock (`botbench`,
-    `searchteacher`, the SpellBench agents, the draft-event runtime, the
-    issue `ledger`) moved to four-yay;
+    the other clock-reading CLIs and the draft-event runtime moved out of
+    gorge;
   - nothing in the engine, card pipeline, effects, view or bot policies.
 
   Research libraries that need timing take an injected `Millis` hook instead
@@ -177,9 +176,8 @@ absent. The card pipeline, the rules core and the learned-policy stack
 engine must also build for 32-bit, so it cannot depend on packed 64-bit ints.
 
 An experiment that genuinely needs a third-party module goes in its own module
-that imports gorge through a `replace`, never the other way round: four-yay's
-`training/experimental/gamepool` (the GPU scorer) requires purego for its CUDA
-binding.
+that imports gorge through a `replace`, never the other way round (the GPU
+game pool, which requires purego for its CUDA binding, moved out this way).
 
 **Enforced by:**
 - `internal/archtest` `TestRootModuleHasNoRequires` (parses the root `go.mod`
@@ -281,16 +279,15 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
 ### Workflow
 
 1. **Work in a task worktree** with the main checkout's `.cards/` linked into
-   it, so corpus tests really run (four-yay's `ops/scripts/agent-worktree.sh`
-   sets one up). Leave `main`'s checkout clean. Merge into `main`, then
+   it, so corpus tests really run (`ln -s <main>/.cards .cards`, then check
+   the link resolves). Leave `main`'s checkout clean. Merge into `main`, then
    remove the worktree.
 2. **Prove the corpus ran.** A package that prints `ok` in about 2 ms with
    `.cards/` missing executed nothing. If `.cards/` is absent, say so. Do not
    report green.
 3. **Run the right gates before merging.**
    - Focused, capped tests of the packages you touched (step 4). The full
-     suite runs after merge (CI and the maintainers' post-merge batch, which
-     bisects a red main to its culprit). Never run an uncapped
+     suite runs after merge, in CI. Never run an uncapped
      `go test ./...` by hand.
    - `make lint`: gofmt, vet, `gentypes -check`, plus web lint.
    - `make sim`: 20/20 `replay OK`.
