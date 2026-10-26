@@ -1,9 +1,7 @@
 package rules
 
 import (
-	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -36,8 +34,10 @@ func (e *Engine) reduceColorOptionalViews(statics costStaticViews, p state.Playe
 	}
 	var out []reduceColorView
 	for _, sv := range statics.optional {
-		col := strings.TrimSpace(sv.ParamStr(cards.PKReduceColor))
-		if len(col) != 1 || !strings.Contains("WUBRG", col) ||
+		// ReduceColor$ is one of W/U/B/R/G; ManaIndex maps anything else to
+		// colourless.
+		col := sv.ParamStr(cards.PKReduceColor)
+		if len(col) != 1 || state.ManaIndex(col[0]) == state.MC ||
 			!e.costStaticApplies(sv, "OptionalCost", p, id, spellScope(""), nil, false) {
 			continue
 		}
@@ -90,6 +90,18 @@ func (w *legalWalk) reducedOptionalCastable(p state.PlayerID, id state.ObjID, ba
 	return w.e.offerCastableUsingExtra(statics, p, id, &base, spellScope(""), false, w.pricing(), extra)
 }
 
+// positiveDecimal renders n > 0 in decimal for a prompt (the string-machinery
+// ratchet keeps strconv out of this package's new code).
+func positiveDecimal(n int32) string {
+	var b [10]byte
+	i := len(b)
+	for ; n > 0; n /= 10 {
+		i--
+		b[i] = byte('0' + n%10)
+	}
+	return string(b[i:])
+}
+
 // lifePayable reports whether p can pay n life in total: CR 119.4 (a player
 // can pay life only while their life total is at least that much) and
 // CR 119.8 (a player who can't lose life can't pay it).
@@ -138,7 +150,7 @@ func (e *Engine) defilerAsk() bool {
 		pip := "{" + string("WUBRGC"[v.color]) + "}"
 		pays := "Pay the optional cost"
 		if v.cost.Life > 0 {
-			pays = fmt.Sprintf("Pay %d life", v.cost.Life)
+			pays = "Pay " + positiveDecimal(v.cost.Life) + " life"
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: pays + ": " + name + " costs " + pip + " less?", Source: pc.card}
