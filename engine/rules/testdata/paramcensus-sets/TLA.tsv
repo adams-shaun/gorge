@@ -1,5 +1,4 @@
 Avatar Aang	param:api:DealDamage.CounterNum
 Combustion Man	cost:DamageYou
 Firebender Ascension	param:trig:AbilityTriggered.TriggeredOwnAbility
-Solstice Revelations	param:api:DigUntil.NoPutDesc
 The Last Agni Kai	param:stat:UnspentMana.ManaType,param:stat:UnspentMana.ValidPlayer

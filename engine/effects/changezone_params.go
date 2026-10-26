@@ -236,27 +236,27 @@ var changeZoneKnownKeys = [...]string{
 	"AlternateCost", "AlternativeCost", "AlternativeDecider", "Announce", "AnnounceTitle",
 	"AtEOT", "AtRandom", "AttachedTo", "AttachedToPlayer", "Attacking",
 	"BecomeStartingPlayer", "Boast", "CantCopy", "ChangeNum", "ChangeType", "ChangeTypeDesc",
-	"CharacteristicDefining", "CheckSVar", "ChoiceOptional", "ChoiceTitle", "ChoiceZone",
+	"ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceOptional", "ChoiceTitle", "ChoiceZone",
 	"Choices", "ChooseFromDefined", "ChooseFromList", "Chooser", "ClassBand",
 	"ClearImprinted", "Condition", "ConditionActivationLimit", "ConditionCheckSVar",
 	"ConditionCompare", "ConditionCompare2", "ConditionDefined", "ConditionDescription",
 	"ConditionFirstCombat", "ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases",
 	"ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost",
-	"CostDesc", "Defined", "DefinedCards", "DefinedExiler",
+	"CostDesc", "Defined", "DefinedCards", "DefinedDesc", "DefinedExiler",
 	"DefinedPlayer", "DefinedTarget", "Description", "DestAltSVar", "DestAltSVarCompare",
 	"Destination", "DestinationAlternative", "DifferentNames", "Duration",
 	"Exactly", "Exclude", "Exhaust", "ExileFaceDown", "ExiledWithEffectSource", "FaceDown", "FaceDownPower",
 	"FaceDownSetType", "FaceDownToughness", "Foretold", "ForgetChanged",
 	"ForgetOtherRemembered", "ForgetOtherTargets", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit",
-	"Hidden", "Image", "Imprint", "ImprintCards", "ImprintLast", "ImprintPlayed",
+	"Hidden", "IfDesc", "Image", "Imprint", "ImprintCards", "ImprintLast", "ImprintPlayed",
 	"InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword",
 	"KeywordLine", "LeaveBattlefield", "LibraryPosition", "LibraryPositionAlternative",
 	"Mandatory", "MaxRevealed", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
-	"ModeCost", "Monstrosity", "NewController", "NoLooking", "NoReveal", "NoShuffle",
+	"ModeCost", "Monstrosity", "NewController", "NoLooking", "NoPutDesc", "NoReveal", "NoShuffle",
 	"NonBasicSpell", "OpponentTurn", "Optional",
 	"OptionalPrompt", "Origin", "OriginAlternative", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
-	"PresentZone", "RandomNumTargets", "RandomOrder", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana",
+	"PresentZone", "PrimaryPrompt", "RandomNumTargets", "RandomOrder", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana",
 	"RememberLKI", "RememberObjects", "RememberSearched", "RememberTargets", "Reorder",
 	"ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
 	"ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "Reveal", "SVarCompare",
@@ -283,6 +283,9 @@ var changeZoneKnownKeys = [...]string{
 func changeZoneUnread(sa *cards.SA) []string {
 	var out []string
 	for _, k := range sa.ParamNames() {
+		if params.IsDescriptiveKey(k) {
+			continue
+		}
 		if _, known := slices.BinarySearch(changeZoneKnownKeys[:], k); !known {
 			out = append(out, k)
 		}

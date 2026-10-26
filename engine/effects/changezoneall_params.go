@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects/params"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -110,23 +111,23 @@ var changeZoneAllKnownKeys = [...]string{
 	"Activator", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AffectedZone", "AlternateCost",
 	"AlternativeCost", "Announce", "AnnounceTitle", "AtEOT", "Attacking", "Boast",
-	"CantCopy", "ChangeNum", "ChangeType", "ChangeTypeDesc", "CharacteristicDefining",
+	"CantCopy", "ChangeNum", "ChangeType", "ChangeTypeDesc", "ChangeValidDesc", "CharacteristicDefining",
 	"CheckSVar", "ChoiceTitle", "ChoiceZone", "Choices", "ChooseFromList",
 	"ClassBand", "ClearImprinted", "Condition", "ConditionActivationLimit",
 	"ConditionCheckSVar", "ConditionCompare", "ConditionCompare2", "ConditionDefined",
 	"ConditionDescription", "ConditionFirstCombat", "ConditionNotPresent", "ConditionOptionalPaid",
 	"ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
-	"Defined", "DefinedCards", "DefinedExiler", "DefinedTarget", "Description", "Destination",
+	"Defined", "DefinedCards", "DefinedDesc", "DefinedExiler", "DefinedTarget", "Description", "Destination",
 	"Duration", "Exclude", "Exhaust", "ExileFaceDown", "FaceDown",
 	"FaceDownPower", "FaceDownSetType", "FaceDownToughness", "Foretold",
-	"ForgetOtherRemembered", "ForgetOtherTargets", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit", "Image",
+	"ForgetOtherRemembered", "ForgetOtherTargets", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LibraryPosition",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
-	"NewController", "NoShuffle", "NonBasicSpell", "OpponentTurn",
+	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "OpponentTurn",
 	"Origin", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
-	"PresentCompare", "PresentDefined", "PresentZone", "RandomNumTargets", "RandomOrder", "ReduceAmount",
+	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "RandomNumTargets", "RandomOrder", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana", "RememberLKI",
 	"RememberObjects", "RememberTargets", "ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid",
 	"ReplaceMana", "ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare",
@@ -246,6 +247,9 @@ func unreadKeys(sa *cards.SA, known []string) []string {
 		// unrelated or malformed use must still be reported as unread.
 		if k == cards.PKTapCreaturesForMana.String() &&
 			ActivationOf(sa).Has(ActTapCreaturesForMana) {
+			continue
+		}
+		if params.IsDescriptiveKey(k) {
 			continue
 		}
 		if _, ok := slices.BinarySearch(known, k); !ok {

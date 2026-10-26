@@ -24,6 +24,7 @@ func TestCompileChangeZone(t *testing.T) {
 		"Origin": "Graveyard", "OriginAlternative": "Hand,Exile", "Destination": "Battlefield",
 		"DestAltSVar": "MANDATORY X", "DestinationAlternative": "Exile", "Chooser": "Player.Chosen",
 		"Hidden": "True", "Optional": "You", "ValidTgtsDesc": "a creature card",
+		"MadeUpUnreadKey": "x",
 	}}
 	cz := ChangeZoneOf(sa)
 	if !slices.Equal(cz.Origin, []state.Zone{state.ZGraveyard, state.ZHand, state.ZExile}) ||
@@ -39,8 +40,8 @@ func TestCompileChangeZone(t *testing.T) {
 	if cz.handChooser != handChooserChosenPlayer || !cz.Hidden || !cz.OptionalYes || cz.OptionalTrue {
 		t.Fatalf("chooser/flags = %+v", cz)
 	}
-	if !slices.Equal(cz.Unread, []string{"ValidTgtsDesc"}) {
-		t.Fatalf("unread = %v, want [ValidTgtsDesc]", cz.Unread)
+	if !slices.Equal(cz.Unread, []string{"MadeUpUnreadKey"}) {
+		t.Fatalf("unread = %v, want [MadeUpUnreadKey]", cz.Unread)
 	}
 	// The front cache answers the same map with the same record; a
 	// rewritten map recompiles.
