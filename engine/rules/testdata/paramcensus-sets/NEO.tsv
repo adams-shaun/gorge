@@ -7,5 +7,4 @@ March of Reckless Joy	cost:ExileFromHand
 March of Swirling Mist	cost:ExileFromHand
 March of Wretched Sorrow	cost:ExileFromHand
 Reckoner Shakedown	param:api:ChooseCard.ChoiceDesc,param:api:ChooseCard.FromDesc
-Spirit-Sister's Call	param:api:Sacrifice.SacMessage
 The Dragon-Kami Reborn	param:api:Dig.ExileWithCounters
