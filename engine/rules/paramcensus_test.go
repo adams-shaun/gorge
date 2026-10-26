@@ -3112,7 +3112,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 					if unlessNamesFaceSVar(f, k, v) {
 						continue
 					}
-					for _, tok := range ParseCost(v).Unknown {
+					for _, tok := range censusCostUnknown(f, prim, k, v) {
 						addLabel("cost:" + tok)
 					}
 				}
@@ -3155,7 +3155,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 					if unlessNamesFaceSVar(f, k, v) {
 						continue
 					}
-					for _, tok := range ParseCost(v).Unknown {
+					for _, tok := range censusCostUnknown(f, prim, k, v) {
 						addLabel("cost:" + tok)
 					}
 				}
@@ -3221,7 +3221,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 						if unlessNamesFaceSVar(f, k, v) {
 							continue
 						}
-						for _, tok := range ParseCost(v).Unknown {
+						for _, tok := range censusCostUnknown(f, prim, k, v) {
 							addLabel("cost:" + tok)
 						}
 					}
