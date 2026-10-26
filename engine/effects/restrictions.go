@@ -1327,6 +1327,8 @@ var replacementRedirectsToExileKeys = state.NewNameSet("Event", "ValidCard", "Va
 
 var effectOneShotDelayedModeSet = state.NewNameSet(
 	"SpellCast",
+	"AbilityCast",
+	"SpellAbilityCast",
 	"ChangesZone",
 	"ChangesController",
 	"DamageDone",

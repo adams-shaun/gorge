@@ -228,7 +228,8 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	if i := strings.Index(text, ":"); i > 0 &&
 		(effectRepeat || text[:i] == "SpellCast" || text[:i] == "ChangesZone" ||
 			text[:i] == "ChangesController" || text[:i] == "DamageDone" ||
-			text[:i] == "AttackersDeclared" || text[:i] == "BecomeMonarch") {
+			text[:i] == "AttackersDeclared" || text[:i] == "BecomeMonarch" ||
+			text[:i] == "AbilityCast" || text[:i] == "SpellAbilityCast") {
 		mode, trigger = text[:i], text[i+1:]
 	}
 	g.Delayed = append(g.Delayed, state.DelayedTrigger{

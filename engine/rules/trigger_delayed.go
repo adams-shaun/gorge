@@ -420,7 +420,8 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// checkDelayedTriggers at its phase occurrence.
 		if !dt.EffectRepeat && dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" &&
 			dt.EventMode != "ChangesController" && dt.EventMode != "DamageDone" &&
-			dt.EventMode != "AttackersDeclared" && dt.EventMode != "BecomeMonarch" {
+			dt.EventMode != "AttackersDeclared" && dt.EventMode != "BecomeMonarch" &&
+			dt.EventMode != "AbilityCast" && dt.EventMode != "SpellAbilityCast" {
 			continue
 		}
 		// TurnChange collects expired registrations before another event can
@@ -752,6 +753,10 @@ func (e *Engine) delayedEventMatches(t cards.Trigger, dt *state.DelayedTrigger, 
 	switch t.ModeKind() {
 	case cards.TriggerSpellCast:
 		return e.eventDelayedSpellCastMatches(t, dt, ev)
+	case cards.TriggerAbilityCast, cards.TriggerSpellAbilityCast:
+		// The printed matcher a T: line uses (ValidSA$, ValidActivatingPlayer$).
+		fn := trigmatch.LookupMode(t.ModeKind())
+		return fn != nil && fn(boardOf(e), t, dt.Source, ev, lki)
 	case cards.TriggerChangesController:
 		return e.delayedChangesControllerMatches(t, dt, ev, lki)
 	case cards.TriggerDamageDone:
@@ -775,7 +780,7 @@ func (e *Engine) delayedEventPlayer(t cards.Trigger, ev events.Event, lki *state
 		if o := e.G.Obj(ev.Obj); o != nil {
 			return o.Controller, true
 		}
-	case cards.TriggerSpellCast:
+	case cards.TriggerSpellCast, cards.TriggerAbilityCast, cards.TriggerSpellAbilityCast:
 		return ev.Player, int(ev.Player) < len(e.G.Players)
 	case cards.TriggerDamageDone:
 		if ev.Obj == 0 {
@@ -917,6 +922,8 @@ func (e *Engine) clearEffectMatchScope() {
 
 var delayedEventModeHandledSet = state.NewNameSet(
 	"SpellCast",
+	"AbilityCast",
+	"SpellAbilityCast",
 	"ChangesController",
 	"DamageDone",
 	"AttackersDeclared",
