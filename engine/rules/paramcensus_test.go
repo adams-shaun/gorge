@@ -2791,6 +2791,7 @@ var ignoredParamKeys = map[string]string{
 	"PrecostDesc":           "cost-prompt prefix; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"TgtPrompt":             "target-prompt UI text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"ChoiceTitle":           "choice-dialog title; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
+	"GiftDescription":       "gift noun for the keyword/stack text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java:1142, forge-game/src/main/java/forge/game/ability/SpellAbilityEffect.java:117",
 	"AdditionalDescription": "extra UI rules-text fragment; forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java",
 	// AdditionalDesc is the same class of UI fragment one ability at a time:
 	// Forge reads it for the ability's rendered description only (the
