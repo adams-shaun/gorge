@@ -116,7 +116,7 @@ var repeatEachKnownKeys = [...]string{
 	"TokenScript", "TriggerDescription", "Type", "Ultimate", "UnlessAI",
 	"UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched",
 	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
-	"ValidCounterType", "ValidDescription", "ValidTgts", "VoteMessage",
+	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage",
 	"WithoutManaCost", "XMax", "XMin", "Zone",
 }
 

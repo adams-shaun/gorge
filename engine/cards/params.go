@@ -832,6 +832,9 @@ const (
 	// ReturnValid$ matches. Appended: earlier ordinals stay stable.
 	PKReturnAbility
 	PKReturnValid
+	// ValidTgtsDesc$: the script's noun for the legal target set; presentation
+	// only (append-only).
+	PKValidTgtsDesc
 	paramKeyCount
 )
 
@@ -1626,6 +1629,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidDestination:                 "ValidDestination",
 	PKValidSpellAbility:                "ValidSpellAbility",
 	PKAddReplacementEffect:             "AddReplacementEffect",
+	PKValidTgtsDesc:                    "ValidTgtsDesc",
 }
 
 // String is the key's Forge text.
