@@ -223,16 +223,6 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	case rp.Players != "":
 		var ps []state.PlayerID
 		ps, ok = repeatPlayers(h, c, rp.Players)
-		// StartingWith$ You is the one place the player list is built in
-		// table order and then rotated to the resolving controller below:
-		// the rotation is the parameter's whole meaning, and the final order
-		// is identical to AliveFrom(c.Controller) once it runs. Building the
-		// base from controller order here would make the rotation a no-op and
-		// hide the very seat-order bug the parameter fixes when the controller
-		// is not seat 0.
-		if strings.EqualFold(rp.StartingWith, "You") && repeatPlayersCodes.Code(string(rp.Players)) == repeatPlayersPlayer {
-			ps = h.Game().AliveFrom(0)
-		}
 		for _, p := range ps {
 			subjects = append(subjects, state.Target{Player: p, IsPlayer: true})
 		}
@@ -252,8 +242,11 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// StartingWith$ (CR 101.4): the player-subject loop begins at the named
 	// player rather than at APNAP order. Only `You` (the resolving
-	// controller) is modelled; every other value -- the three corpus
-	// carriers use `Opponent` -- stays loud and keeps APNAP order.
+	// controller) is modelled; every other value -- the corpus carriers use
+	// `Opponent` -- stays loud and keeps APNAP order. RepeatPlayers$ Player
+	// already lists AliveFrom(controller), so for that selector the rotation
+	// is a no-op; it is still real for a Targeted$ or Remembered$ list whose
+	// first subject is not the controller.
 	if rp.StartingWith != "" {
 		start := -1
 		if strings.EqualFold(rp.StartingWith, "You") {

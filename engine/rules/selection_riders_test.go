@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -77,6 +78,15 @@ func selectionOptionsWithPower(d *decision.Decision, power string) []int {
 func selectionNoteIDs(e *Engine, player state.PlayerID, ids []state.ObjID) bool {
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Note && ev.Player == player && !ev.Secret && sameObjIDs(ev.IDs, ids) {
+			return true
+		}
+	}
+	return false
+}
+
+func selectionNoteContains(e *Engine, substr string) bool {
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, substr) {
 			return true
 		}
 	}
@@ -209,6 +219,7 @@ func TestKlawRevealNumberTargetChoosesReveal(t *testing.T) {
 func TestGhostVacuumReturnsWithFlyingCounter(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	gv := selectionCard(t, reg, "Ghost Vacuum")
+	ozolith := selectionCard(t, reg, "The Ozolith")
 	hill := selectionCard(t, reg, "Hill Giant")
 	centaur := selectionCard(t, reg, "Centaur Courser")
 
@@ -218,9 +229,13 @@ func TestGhostVacuumReturnsWithFlyingCounter(t *testing.T) {
 			{Life: 20, Exile: []*cards.Card{hill, centaur}},
 			{Life: 20},
 		},
-		Permanents: []StagedPermanent{{Card: gv, Owner: 0, Controller: 0}},
+		Permanents: []StagedPermanent{
+			{Card: gv, Owner: 0, Controller: 0},
+			{Card: ozolith, Owner: 0, Controller: 0},
+		},
 	})
 	gvID := ids.Permanents[0]
+	ozolithID := ids.Permanents[1]
 	exiled := append([]state.ObjID(nil), ids.Exile[0]...)
 	e.emit(events.Event{Kind: events.Imprint, Obj: gvID, IDs: exiled, Text: "exiled-with"})
 
@@ -244,6 +259,18 @@ func TestGhostVacuumReturnsWithFlyingCounter(t *testing.T) {
 		if got.Counter("Flying") != 1 {
 			t.Fatalf("exiled card %d has %d Flying counters, want 1", id, got.Counter("Flying"))
 		}
+	}
+	// The Ozolith's leaves-the-battlefield trigger reads the returned card's
+	// counters ("if it had counters on it"), proving the entry event carried
+	// the flying counter into the trigger's view.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: exiled[0], From: state.ZBattlefield, To: state.ZGraveyard})
+	e.putTriggersOnStack()
+	if len(e.G.Stack) == 0 {
+		t.Fatal("The Ozolith's counters trigger did not queue")
+	}
+	e.resolveTop()
+	if got := e.G.Obj(ozolithID).Counter("Flying"); got != 1 {
+		t.Fatalf("The Ozolith has %d Flying counters, want 1 copied from the returned card", got)
 	}
 	replayCheck(t, e, cfg)
 }
@@ -384,6 +411,9 @@ func TestRepeatEachStartingWithYou(t *testing.T) {
 	d := kr0Run(t, e, sa, func() *effects.Ctx {
 		return &effects.Ctx{Source: yangchenID, Controller: 1, SVars: selectionSVars(face)}
 	}, nil)
+	if selectionNoteContains(e, "StartingWith") {
+		t.Fatal("StartingWith$ is still reported unread")
+	}
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("first choice %+v", d)
 	}
@@ -417,6 +447,107 @@ func TestRepeatEachStartingWithYou(t *testing.T) {
 	}
 	if e.G.Obj(yangchenID).Zone != state.ZBattlefield {
 		t.Fatalf("Yangchen in %v, want battlefield", e.G.Obj(yangchenID).Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestKlawRevealNumberCoversHand(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	klaw := selectionCard(t, reg, "Klaw, Sonic Subjugator")
+	grizzly := selectionCard(t, reg, "Grizzly Bears")
+	hill := selectionCard(t, reg, "Hill Giant")
+	centaur := selectionCard(t, reg, "Centaur Courser")
+	llanowar := selectionCard(t, reg, "Llanowar Elves")
+
+	e, ids, cfg := selectionStage(t, reg, Stage{
+		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain1,
+		Players: []StagedPlayer{
+			{Life: 20, Graveyard: []*cards.Card{grizzly, hill, centaur}},
+			{Life: 20, Hand: []*cards.Card{hill, centaur, grizzly, llanowar}},
+		},
+		Permanents: []StagedPermanent{{Card: klaw, Owner: 0, Controller: 0}},
+	})
+	klawID := ids.Permanents[0]
+	sa := cards.ResolveSVar(e.G.Obj(klawID).Face().SVars, "TrigDiscard")
+	d := kr0Run(t, e, sa, func() *effects.Ctx {
+		return &effects.Ctx{
+			Source:     klawID,
+			Controller: 0,
+			SVars:      selectionSVars(e.G.Obj(klawID).Face()),
+			Targets:    []state.Target{{Player: 1, IsPlayer: true}},
+			OfferedSA:  sa,
+		}
+	}, nil)
+	if d == nil || d.Player != 0 || d.Kind != decision.KModes || d.ResumeKind != "discard" {
+		t.Fatalf("first decision %+v, want the caster's discard over the whole hand", d)
+	}
+	if len(d.Options) != 4 {
+		t.Fatalf("discard options %d, want the whole 4-card hand: %+v", len(d.Options), d.Options)
+	}
+	if selectionNoteContains(e, "reveal") {
+		t.Fatal("N covering the hand must not ask for or note a reveal")
+	}
+	discarded := d.Options[0].Obj
+	kr0Answer(t, e, d.Options[0].Index)
+	if e.G.Obj(discarded).Zone != state.ZGraveyard {
+		t.Fatalf("discarded card %d in %v, want graveyard", discarded, e.G.Obj(discarded).Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestFightExcessUsesLandedDamage(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	rhino := selectionCard(t, reg, "Rhino's Rampage")
+	sengir := selectionCard(t, reg, "Sengir Vampire")
+	cho := selectionCard(t, reg, "Cho-Manno, Revolutionary")
+	bonesplitter := selectionCard(t, reg, "Bonesplitter")
+
+	e, ids, cfg := selectionStage(t, reg, Stage{
+		Turn: 1, Active: 0, Starting: 0, Step: state.StepMain1,
+		Players: []StagedPlayer{
+			{Life: 20, Graveyard: []*cards.Card{rhino}},
+			{Life: 20},
+		},
+		Permanents: []StagedPermanent{
+			{Card: sengir, Owner: 0, Controller: 0},
+			{Card: cho, Owner: 1, Controller: 1, Sick: true},
+			{Card: bonesplitter, Owner: 1, Controller: 1, Sick: true},
+		},
+	})
+	rhinoID := ids.Graveyard[0][0]
+	fighter := ids.Permanents[0]
+	victim := ids.Permanents[1]
+	artifact := ids.Permanents[2]
+	face := e.G.Obj(rhinoID).Face()
+	var last *effects.Ctx
+	pumpSA := face.Abilities[0]
+	d := kr0Run(t, e, pumpSA, func() *effects.Ctx {
+		return &effects.Ctx{
+			Source:     rhinoID,
+			Controller: 0,
+			SVars:      selectionSVars(face),
+			Targets:    []state.Target{{Obj: fighter}},
+			OfferedSA:  pumpSA,
+			SubPreAsk:  map[string][]state.Target{pumpSA.Sub.Line: {{Obj: victim}}},
+		}
+	}, &last)
+	if e.Power(fighter) != 5 {
+		t.Fatalf("fighter power %d, want 5 after Rhino's +1/+0", e.Power(fighter))
+	}
+	if last == nil {
+		t.Fatal("resolution context was not captured")
+	}
+	if last.SVars["Excess"] != "0" {
+		t.Fatalf("Excess %q, want 0: Cho-Manno prevented the whole 5", last.SVars["Excess"])
+	}
+	if d != nil {
+		t.Fatalf("unexpected excess decision %+v", d)
+	}
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("queued %d triggers although the damage was prevented", len(e.pendingTriggers))
+	}
+	if e.G.Obj(artifact).Zone != state.ZBattlefield {
+		t.Fatalf("artifact in %v, want battlefield", e.G.Obj(artifact).Zone)
 	}
 	replayCheck(t, e, cfg)
 }

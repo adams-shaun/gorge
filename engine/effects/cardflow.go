@@ -483,6 +483,52 @@ func discardAsk(g *state.Game, c *Ctx, sa *cards.SA, eligible []state.ObjID, cho
 		Prompt: "Choose " + strconv.Itoa(min) + ".." + strconv.Itoa(max) + " card(s) to discard", Options: opts}
 }
 
+// discardRevealNumber applies RevealNumber$ for one target: the target
+// reveals exactly N cards from their hand and the chooser picks among those N
+// (CR 701.9b, CR 701.20a). The reveal is public. N at or above the eligible
+// hand leaves today's whole-hand offer unchanged. ok is false when N resolves
+// to zero or less, so the resolution skips this target.
+func discardRevealNumber(h Host, c *Ctx, sa *cards.SA, g *state.Game, p state.PlayerID, targetIndex int, eligible []state.ObjID) ([]state.ObjID, bool) {
+	raw, present := sa.Param(cards.PKRevealNumber)
+	if !present || strings.TrimSpace(raw) == "" {
+		return eligible, true
+	}
+	n := int(Num(h, c, sa, "RevealNumber", 0))
+	if n <= 0 {
+		return nil, false
+	}
+	if n >= len(eligible) {
+		return eligible, true
+	}
+	revealed := eligible[:n]
+	d := &decision.Decision{Player: p, Kind: decision.KChoose,
+		Min: n, Max: n, Source: c.Source,
+		ResumeKind: "discard_reveal", ResumeSA: sa, ResumeTarget: targetIndex,
+		Prompt: "Reveal " + strconv.Itoa(n) + " card(s) from your hand"}
+	for _, id := range eligible {
+		name := "a card"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "reveal", Label: "Reveal " + name, Obj: id, Player: p})
+	}
+	if ans, ok := AskTape(h, d); ok {
+		revealed = revealPool(eligible, answerObjs(ans))
+	} else {
+		// Fuzz/no-engine host: the first N eligible cards in hand order
+		// (R-9), still publicly revealed.
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "reveals its first " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
+	}
+	picked := make([]state.Target, 0, len(revealed))
+	for _, id := range revealed {
+		picked = append(picked, state.Target{Obj: id})
+	}
+	emitChosenReveal(h, p, picked)
+	return revealed, true
+}
+
 func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	riders := discardRidersOf(sa)
@@ -526,45 +572,9 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			if len(eligible) == 0 {
 				continue
 			}
-			// RevealNumber$ (Klaw, Sonic Subjugator): the TARGET reveals
-			// exactly N cards from their hand, and the chooser picks only
-			// among those N (CR 701.9b, CR 701.20a). N at or above the hand
-			// leaves today's whole-hand offer unchanged.
-			pool := eligible
-			if raw, present := sa.Param(cards.PKRevealNumber); present && strings.TrimSpace(raw) != "" {
-				n := int(Num(h, c, sa, "RevealNumber", 0))
-				if n <= 0 {
-					continue
-				}
-				if n < len(eligible) {
-					revealed := eligible[:n]
-					d := &decision.Decision{Player: p, Kind: decision.KChoose,
-						Min: n, Max: n, Source: c.Source,
-						ResumeKind: "discard_reveal", ResumeSA: sa, ResumeTarget: targetIndex,
-						Prompt: "Reveal " + strconv.Itoa(n) + " card(s) from your hand"}
-					for _, id := range eligible {
-						name := "a card"
-						if o := g.Obj(id); o != nil && o.Face() != nil {
-							name = o.Face().Name
-						}
-						d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-							Kind: "reveal", Label: "Reveal " + name, Obj: id, Player: p})
-					}
-					if ans, ok := AskTape(h, d); ok {
-						revealed = revealPool(eligible, answerObjs(ans))
-					} else {
-						// Fuzz/no-engine host: the first N eligible cards in
-						// hand order (R-9), still publicly revealed.
-						h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-							Text: "reveals its first " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
-					}
-					pool = revealed
-					picked := make([]state.Target, 0, len(pool))
-					for _, id := range pool {
-						picked = append(picked, state.Target{Obj: id})
-					}
-					emitChosenReveal(h, p, picked)
-				}
+			pool, ok := discardRevealNumber(h, c, sa, g, p, targetIndex, eligible)
+			if !ok {
+				continue
 			}
 			askMin, askMax := discardBounds(h, c, sa, len(pool))
 			d := discardAsk(g, c, sa, pool, chooser, askMin, askMax, targetIndex)
