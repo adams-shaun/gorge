@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/trigmatch"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -213,7 +214,7 @@ func TestEffectStaticCensus(t *testing.T) {
 	fmt.Fprintf(&b, "Effect trigger modes reached in the corpus (%d):\n", len(triggerCorpus))
 	for _, mode := range names(triggerCorpus) {
 		state := "REGISTERED"
-		if trigmatch.Lookup(mode) == nil && mode != "ChangesController" {
+		if trigmatch.Lookup(mode) == nil && mode != "ChangesController" && !effects.EffectDeliversCombatTrigger(mode) {
 			state = "NOTES"
 			triggerNotes = append(triggerNotes, mode)
 		}

@@ -318,6 +318,18 @@ func rememberedLKIGroup(h Host, c *Ctx) []state.Target {
 			out = append(out, t)
 		}
 	}
+	if c.EffectFrame.Carrier {
+		// An Effect-delivered trigger body resolves under its Effect, whose
+		// own memory (RememberObjects$ Targeted, Barreling Attack's pump
+		// target) rides the registration; the stack object's Remembered is
+		// all fire-time capture, so the Effect's memory is read here.
+		for _, t := range c.DelayedRemembered {
+			if !t.IsPlayer && !seen[t.Obj] {
+				seen[t.Obj] = true
+				out = append(out, t)
+			}
+		}
+	}
 	return out
 }
 
