@@ -2924,6 +2924,16 @@ var ignoredParamKeys = map[string]string{
 	// gates no rules-side behaviour — the pay-or-decline ask the shared
 	// unless gate poses is the rules — so the census ignores it.
 	"UnlessAI": "AI copy-eligibility hint; forge-ai/src/main/java/forge/ai/ability/CopySpellAbilityAi.java",
+	// cr-g193: stack-description, dialog-title and AI-hint keys. Every Forge
+	// reader is text or AI only; TestIgnoredDescAndAIHintKeysAreUnreadInGorge
+	// fails if a gorge primitive ever reads one.
+	"ChoiceDesc":        "ChooseCard stack-description noun; forge-game/src/main/java/forge/game/ability/effects/ChooseCardEffect.java:41",
+	"FromDesc":          "ChooseCard stack-description \" from ...\" suffix; forge-game/src/main/java/forge/game/ability/effects/ChooseCardEffect.java:46-47",
+	"ChoiceTitleAppend": "ChooseCard choice-dialog title suffix; forge-game/src/main/java/forge/game/ability/effects/ChooseCardEffect.java:231-240",
+	"ChangeNumDesc":     "ChangeZone hidden-origin stack-description count; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java:289-293",
+	"AIMinTgts":         "AI minimum-target hint; forge-ai/src/main/java/forge/ai/ability/ChangeZoneAi.java:1236-1237",
+	"AITgtOwnCards":     "AI own-cards target hint; forge-ai/src/main/java/forge/ai/ability/ChangeZoneAi.java:1111",
+	"AIXMax":            "AI X-cap hint; forge-ai/src/main/java/forge/ai/ComputerUtilCost.java:686-688, forge-ai/src/main/java/forge/ai/ComputerUtilMana.java:1626",
 }
 
 // ignoredStatParams scopes a presentation key to individual stat modes.

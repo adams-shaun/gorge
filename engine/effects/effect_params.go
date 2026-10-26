@@ -74,14 +74,14 @@ type EffectParams struct {
 // TestEffectKnownKeysMatchTheCensus holds it equal to the parameter census's
 // measured api:Effect read set plus its ignored and structural keys.
 var effectKnownKeys = [...]string{
-	"AILifeThreshold", "AILogic", "AINoRecursiveCheck", "AIPhyrexianPayment",
-	"AITgts", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat",
+	"AILifeThreshold", "AILogic", "AIMinTgts", "AINoRecursiveCheck", "AIPhyrexianPayment",
+	"AITgtOwnCards", "AITgts", "AIXMax", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat",
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
 	"Activator", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
 	"AlternativeCost", "Announce", "AnnounceTitle", "BecomeStartingPlayer", "Boast",
-	"CantCopy", "ChangeTypeDesc", "ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
-	"ChoiceZone", "Choices", "ChooseFromList", "ClassBand", "ClearImprinted",
+	"CantCopy", "ChangeNumDesc", "ChangeTypeDesc", "ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceDesc", "ChoiceTitle",
+	"ChoiceTitleAppend", "ChoiceZone", "Choices", "ChooseFromList", "ClassBand", "ClearImprinted",
 	"Condition", "ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
@@ -89,7 +89,7 @@ var effectKnownKeys = [...]string{
 	"Defined", "DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration",
 	"EffectOwner", "EffectZone", "Exclude", "Execute", "Exhaust", "ExileOnMoved",
 	"ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn",
-	"ForgetOtherRemembered", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "IfDesc", "Image", "ImprintCards",
+	"ForgetOtherRemembered", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image", "ImprintCards",
 	"ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name",
