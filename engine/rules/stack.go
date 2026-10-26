@@ -652,8 +652,10 @@ func (e *Engine) resolveTop() {
 				// belongs) -- exile instead of the graveyard for one cast
 				// via Flashback (CR 702.32b).
 				rest := spellFizzleZone(o)
+				e.stackLeave = stackLeaveFizzled
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: rest, Text: "fizzled: no legal targets remain"})
+				e.stackLeave = stackLeaveNone
 				e.ensureLeftTheStack(id, rest, "a replacement fully discarded this "+
 					"spell's 'fizzled: no legal targets' move without relocating it anywhere; "+
 					"sent to its resting zone instead of re-resolving forever")
@@ -664,8 +666,10 @@ func (e *Engine) resolveTop() {
 	}
 	if len(targets) == 0 && subChosen > 0 && subLegal == 0 {
 		rest := spellFizzleZone(o)
+		e.stackLeave = stackLeaveFizzled
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest,
 			Text: "fizzled: no legal targets remain"})
+		e.stackLeave = stackLeaveNone
 		e.ensureLeftTheStack(id, rest, "all cast-time sub targets became illegal")
 		return
 	}

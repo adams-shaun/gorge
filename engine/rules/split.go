@@ -189,8 +189,10 @@ func (e *Engine) resolveFused(o *state.Object) (*resumePoint, bool) {
 	}
 	if checked && totalLegal == 0 {
 		rest := spellFizzleZone(o)
+		e.stackLeave = stackLeaveFizzled
 		e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: rest, Text: "fizzled: no legal targets remain"})
+		e.stackLeave = stackLeaveNone
 		e.ensureLeftTheStack(o.ID, rest, "a replacement fully discarded this "+
 			"fused spell's 'fizzled: no legal targets' move without relocating it anywhere; "+
 			"sent to its resting zone instead of re-resolving forever")

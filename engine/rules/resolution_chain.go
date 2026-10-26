@@ -247,7 +247,9 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	// uses below). A countered or fizzled Omen never reaches this tail
 	// (spellFizzleZone names the graveyard), so it never shuffles.
 	omen := rest == state.ZLibrary && o.CastFlags&state.FlagOmen != 0 && !o.IsCopy
+	e.stackLeave = stackLeaveResolved
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest, Counter: marker})
+	e.stackLeave = stackLeaveNone
 	if omen {
 		if cur := e.G.Obj(id); cur != nil && cur.Zone == state.ZLibrary {
 			order := e.ShuffleLibrary(cur.Owner, e.G.Zone(state.ZLibrary, cur.Owner))

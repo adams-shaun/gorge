@@ -1,8 +1,6 @@
 package effects
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -82,15 +80,8 @@ func effectUnsupportedStatic(h Host, c *Ctx, mode string, params staticLineParam
 		// Barn) are refused here: a registered restriction has no present
 		// gate, and a blanket reading would hold the permanent forever.
 		//
-		// Duration$ UntilYourNextUpkeep (Ertai's Familiar, Spatial Binding)
-		// has no expiry of its own in this build; for a phasing restriction
-		// it is exactly UntilTheEndOfYourNextUntap, whose untap-step expiry
-		// rules already runs: phasing happens only in the untap step (CR
-		// 702.26a) or by an effect, and no player gets priority between the
-		// end of that step and the upkeep.
-		if strings.EqualFold(strings.TrimSpace(rawDur), "UntilYourNextUpkeep") {
-			rawDur, dur = "UntilTheEndOfYourNextUntap", "UntilTheEndOfYourNextUntap"
-		}
+		// Duration$ UntilYourNextUpkeep is handled by the generic duration
+		// machinery (IsUntilYourNextUpkeepDuration).
 		effectContinuous(h, state.ContinuousEffect{
 			Source: c.Source, Controller: c.Controller, Name: name,
 			UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
