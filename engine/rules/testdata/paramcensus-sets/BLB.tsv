@@ -1,6 +1,6 @@
 Blooming Blast	param:api:Token.GiftDescription
 Coiling Rebirth	param:api:Draw.GiftDescription
-Consumed by Greed	param:api:Draw.GiftDescription,param:api:Sacrifice.SacMessage
+Consumed by Greed	param:api:Draw.GiftDescription
 Cruelclaw's Heist	param:api:Draw.GiftDescription
 Crumb and Get It	param:api:Token.GiftDescription
 Dawn's Truce	param:api:Draw.GiftDescription

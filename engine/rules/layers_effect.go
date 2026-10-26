@@ -100,13 +100,17 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		// extra turn granted after this registration moves the boundary with
 		// the controller's next actual turn.
 	}
-	// CR 611.2a: an instant's or sorcery's explicit Duration$ Permanent Effect
-	// (effects.effectUntilEOT leaves it un-UntilEOT) outlives its source,
+	// CR 611.2a: an explicit Duration$ Permanent Effect outlives its source,
 	// which is in a graveyard or exile by the time it resolves; without the
 	// flag the source-gone rule in continuousLive would drop it at once. Its
-	// ForgetOnMoved$/ExileOnMoved$ ends are the Effect's own expiry.
+	// ForgetOnMoved$/ExileOnMoved$ ends are the Effect's own expiry. This
+	// covers BOTH deliveries: an Effect-created grant (FromEffect — Emrakul's
+	// may-play lives on while its own cost moved it to exile) and an
+	// instant's or sorcery's grant (Soul Partition).
 	if !ce.UntilEOT && !ce.Permanent && ce.UntilTurn == 0 && strings.EqualFold(ce.Duration, "Permanent") {
-		if o := e.G.Obj(ce.Source); o != nil {
+		if ce.FromEffect {
+			ce.Permanent = true
+		} else if o := e.G.Obj(ce.Source); o != nil {
 			if f := o.Face(); f != nil && (f.IsInstant() || f.IsSorcery()) {
 				ce.Permanent = true
 			}

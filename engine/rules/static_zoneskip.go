@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -225,6 +226,16 @@ func (e *Engine) staticZonesCatchUp() {
 	}
 	for _, ev := range e.L.Events[e.staticZonesEp:] {
 		e.staticZoneTouch(ev.Obj)
+		if ev.Kind == events.PhaseOut {
+			// CR 702.26g/h: the PhaseOut fold also (un)phases every
+			// attachment of ev.Obj, none of them named by the event, so
+			// touch every attached battlefield permanent.
+			for i := range e.G.Objs {
+				if o := &e.G.Objs[i]; o.AttachedTo != 0 && o.Zone == state.ZBattlefield {
+					e.staticZoneTouch(o.ID)
+				}
+			}
+		}
 		for _, id := range ev.IDs {
 			e.staticZoneTouch(id)
 		}
