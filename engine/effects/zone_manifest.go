@@ -26,10 +26,14 @@ import (
 // Scope, measured over the corpus's 33 plain-Manifest lines: the default
 // top-card shape (the 9 bare `DB$ Manifest` trigger bodies), a
 // `DefinedPlayer$` selector through searchPlayers's grammar (Reality
-// Shift's `TargetedController`) and a literal/SVar `Amount$` (default 1;
+// Shift's `TargetedController`), `RememberManifested$ True` (each manifested
+// object joins the resolution's Remembered: Wildcall's counters, Lightform's
+// attach, Kozilek's per-card draw) and a literal/SVar `Amount$` (default 1;
 // a value resolving to <= 0 manifests nothing, no event) are implemented.
-// Every other shape -- `Defined$` object manifests, the `Choices$`
-// chooser forms, `RememberManifested$ True`, an unresolvable `Amount$`
+// `Choices$` (default `ChoiceZone$ Hand`: scroll_of_fate's "manifest a card
+// from your hand") asks each listed player to pick Amount$ cards from the
+// hand pool. Every other shape -- `Defined$` object manifests, a
+// `ChoiceZone$` other than Hand, an unresolvable `Amount$`
 // body (Y, or X outside a cast's own X-value) -- emits the SAME loud
 // "unimplemented API Manifest" note the unimplemented-API fallback emits
 // and moves nothing: fail loud, never silently move the wrong card.
@@ -37,13 +41,13 @@ import (
 // special action engine/rules/morph_turnup.go offers from the Manifested
 // marker this primitive emits.
 func effManifest(h Host, c *Ctx, sa *cards.SA) {
-	if DefinedRefOf(sa).Set() ||
-		strings.TrimSpace(sa.ParamStr(cards.PKChoices)) != "" ||
-		strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberManifested)), "True") {
+	choices := strings.TrimSpace(sa.ParamStr(cards.PKChoices)) != ""
+	if DefinedRefOf(sa).Set() {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented API Manifest"})
 		return
 	}
+	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberManifested)), "True")
 	amount := int32(1)
 	if raw, present := sa.Param(cards.PKAmount); present {
 		// X/Y (and any body Num's grammar cannot resolve) are out of scope:
@@ -70,6 +74,21 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 		if int(p) >= len(g.Players) {
 			continue
 		}
+		if choices {
+			ids, ok := chooseFromZoneForFaceDown(h, c, sa, p, amount)
+			if !ok {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unimplemented API Manifest"})
+				return
+			}
+			for _, id := range ids {
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p,
+					From: state.ZHand, To: state.ZBattlefield,
+					Counter: events.ManifestEntryCounter, Secret: true})
+				rememberManifested(h, c, id, remember)
+			}
+			continue
+		}
 		n := amount
 		if l := int32(len(g.Zone(state.ZLibrary, p))); l < n {
 			n = l
@@ -82,7 +101,18 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: top, Player: p,
 				From: state.ZLibrary, To: state.ZBattlefield,
 				Counter: events.ManifestEntryCounter, Secret: true})
+			rememberManifested(h, c, top, remember)
 		}
+	}
+}
+
+// rememberManifested is RememberManifested$ True's write after a manifest
+// move: the id joins the resolution's Remembered (Ctx half and the source's
+// event-backed half), the manifestDreadMove pair.
+func rememberManifested(h Host, c *Ctx, id state.ObjID, remember bool) {
+	if remember {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		eventRemember(h, c, id)
 	}
 }
 
@@ -234,10 +264,13 @@ func manifestDreadMove(h Host, c *Ctx, p state.PlayerID, window []state.ObjID, c
 // shapes (become_anonymous, hide_in_plain_sight, expose_the_culprit), a
 // literal/SVar Amount$ (default 1; a value resolving to <= 0 cloaks
 // nothing, no event) and the riders Tapped$ (enter tapped, the
-// MoveZone-then-Tap pair), Shuffle$ (the standard Secret shuffle of each
-// affected player's library afterwards) and RememberCloaked$ (each cloaked
+// MoveZone-then-Tap pair), Shuffle$ (Forge's shuffle of the CLOAKED PILE
+// itself, CR-wise no library shuffle at all: the pile is not a library, and
+// gorge's deterministic cloaking order is not observable through the
+// face-down projection, so it is a no-op here) and RememberCloaked$ (each cloaked
 // object joins the resolution's Remembered -- cryptic_coat's chained attach)
-// are implemented. SubAbility$ is free (the ordinary chain). Every other
+// and the Choices$ cloak-from-hand chooser (vannifar: the controller picks
+// Amount$ cards of their hand) are implemented. SubAbility$ is free (the ordinary chain). Every other
 // shape -- the Choices$ cloak-from-hand chooser (vannifar), a Defined$
 // selector outside the TopOfLibrary/Remembered/ValidLibrary set, an
 // unresolvable Amount$ body -- emits the SAME loud
@@ -252,10 +285,7 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 			Text: "unimplemented API Cloak"})
 	}
 	defined := DefinedRefOf(sa).Text
-	if strings.TrimSpace(sa.ParamStr(cards.PKChoices)) != "" {
-		loud()
-		return
-	}
+	choices := strings.TrimSpace(sa.ParamStr(cards.PKChoices)) != ""
 	amount := int32(1)
 	if raw, present := sa.Param(cards.PKAmount); present {
 		// X/Y (and any body Num's grammar cannot resolve) are out of scope:
@@ -276,10 +306,11 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKTapped)), "True")
-	shuffle := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKShuffle)), "True")
+	// Shuffle$ is the pile shuffle, not a library shuffle: no-op here (see
+	// doc comment). Read it so the parameter census still sees it read.
+	_ = sa.ParamStr(cards.PKShuffle)
 	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCloaked)), "True")
 	g := h.Game()
-	shuffled := make(map[state.PlayerID]bool)
 	cloak := func(id state.ObjID, cloaker state.PlayerID) {
 		o := g.Obj(id)
 		if o == nil || o.Zone == state.ZBattlefield {
@@ -318,9 +349,17 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: o.Controller,
 				Text: "entered tapped"})
 		}
-		shuffled[o.Owner] = true
 	}
-	if definedPlayerRef(sa).Set() {
+	if choices {
+		ids, ok := chooseFromZoneForFaceDown(h, c, sa, c.Controller, amount)
+		if !ok {
+			loud()
+			return
+		}
+		for _, id := range ids {
+			cloak(id, c.Controller)
+		}
+	} else if definedPlayerRef(sa).Set() {
 		// The per-player top-card shape (unexplained_absence's
 		// "Defined$ TopOfLibrary | DefinedPlayer$ RememberedController"):
 		// each listed player's OWN top Amount$ cards -- searchPlayers's
@@ -385,17 +424,11 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
-	if shuffle {
-		// Shuffle$ True: the standard Secret events.Shuffle for each player
-		// whose library lost a card (become_anonymous and expose_the_culprit
-		// carry it; the deterministic order comes from the host's own rng
-		// path every other library shuffle uses).
-		for _, p := range g.AliveFrom(c.Controller) {
-			if shuffled[p] {
-				shuffleLibraryOrder(h, p)
-			}
-		}
-	}
+	// Shuffle$ True is the pile shuffle (become_anonymous, expose_the_culprit):
+	// "shuffle that pile, then cloak those cards". A pile is not a library
+	// (CR 701.24a), so no events.Shuffle is emitted; the parameter is still
+	// read above so the census sees it, and the projection makes the pile
+	// order a no-op (face-down CardView keeps the object ID).
 }
 
 type effCloakCode uint16
@@ -410,3 +443,56 @@ var effCloakCodes = state.NewStrCodes(
 	state.StrEntry[effCloakCode]{Key: "TopOfLibrary", Val: effCloakTopOfLibrary},
 	state.StrEntry[effCloakCode]{Key: "Remembered", Val: effCloakRemembered},
 )
+
+// chooseFromZoneForFaceDown is the Choices$ chooser shared by Manifest and
+// Cloak (Forge ManifestBaseEffect): player p picks min(amount, |pool|) cards
+// from the pool of their own ChoiceZone$ (default Hand) cards that Choices$
+// admits. ok is false for a ChoiceZone$ other than Hand (out of scope, the
+// caller goes loud); an empty pool returns no ids. With no host to ask the
+// first cards in zone order are taken, with a Secret Note.
+func chooseFromZoneForFaceDown(h Host, c *Ctx, sa *cards.SA, p state.PlayerID, amount int32) (ids []state.ObjID, ok bool) {
+	zones := map[state.Zone]bool{state.ZHand: true}
+	if sa.HasParam(cards.PKChoiceZone) {
+		zones = choiceZones(sa)
+		if len(zones) != 1 || !zones[state.ZHand] {
+			return nil, false
+		}
+	}
+	g := h.Game()
+	admitted := map[state.ObjID]bool{}
+	for _, t := range cardChoicesIn(h, c, sa, p, zones) {
+		admitted[t.Obj] = true
+	}
+	var pool []state.ObjID
+	for _, id := range g.Zone(state.ZHand, p) {
+		if admitted[id] {
+			pool = append(pool, id)
+		}
+	}
+	n := int(amount)
+	if n > len(pool) {
+		n = len(pool)
+	}
+	if n <= 0 {
+		return nil, true
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: n, Max: n,
+		Source: c.Source, ResumeKind: "face_down_choice", ResumeSA: sa,
+		Prompt: "Choose a card from your hand to put onto the battlefield face down"}
+	for _, id := range pool {
+		label := "a card"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			label = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "face_down_choice", Label: label, Obj: id, Player: p})
+	}
+	if ans, served := AskTape(h, d); served {
+		for _, o := range ans {
+			ids = append(ids, o.Obj)
+		}
+		return ids, true
+	}
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+		Text: "puts the first hand cards face down (no engine host to ask)", Secret: true})
+	return pool[:n], true
+}

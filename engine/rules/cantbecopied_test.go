@@ -35,3 +35,52 @@ func TestCantBeCopiedBlocksStormCopies(t *testing.T) {
 		}
 	}
 }
+
+const cantCopySifterSrc = "Name:X Sifter\nTypes:Artifact\n" +
+	"A:AB$ Draw | Cost$ X T | NumCards$ X | CantCopy$ True | SpellDescription$ Draw X cards.\n" +
+	"Oracle:Draw X cards. This ability can't be copied.\n"
+
+func cantCopyBoard(t *testing.T, seed uint64, sifter string) (*Engine, Config, state.ObjID, int) {
+	t.Helper()
+	e, cfg, _ := newFixtureDeck(t, seed, enigmaJewelAbilityCopySrc, sifter, plainSifterSrc)
+	moveSeeded(t, e, 0, enigmaJewelAbilityCopySrc, state.ZBattlefield)
+	moveSeeded(t, e, 0, sifter, state.ZBattlefield)
+	moveSeeded(t, e, 0, plainSifterSrc, state.ZBattlefield)
+	abil := glavaAnnounce(t, e, 1)
+	return e, cfg, abil, len(e.G.Zone(state.ZHand, 0))
+}
+
+func TestCantCopyAbilityIsNotCopied(t *testing.T) {
+	t.Parallel()
+	e, cfg, abil, handBefore := cantCopyBoard(t, 141, cantCopySifterSrc)
+	if o := e.G.Obj(abil); o == nil || o.Zone != state.ZStack || o.Ability == nil {
+		t.Fatalf("precondition: ability wrapper %d not on the stack", abil)
+	}
+	if e.SpellCopyAllowed(abil) {
+		t.Fatal("precondition: CantCopy$ True ability reported copyable")
+	}
+	drainTriggerAsks(t, e, 40)
+	if got := copyCount(e, abil); got != 0 {
+		t.Fatalf("StackCopy of CantCopy ability = %d, want 0", got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("hand %d, want %d", got, handBefore+1)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestCantCopyLeavesOtherAbilitiesCopyable(t *testing.T) {
+	t.Parallel()
+	e, cfg, abil, handBefore := cantCopyBoard(t, 141, changeXSifterSrc)
+	if !e.SpellCopyAllowed(abil) {
+		t.Fatal("precondition: plain ability reported uncopyable")
+	}
+	drainTriggerAsks(t, e, 40)
+	if got := copyCount(e, abil); got != 1 {
+		t.Fatalf("StackCopy = %d, want 1", got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+2 {
+		t.Fatalf("hand %d, want %d", got, handBefore+2)
+	}
+	replayCheck(t, e, cfg)
+}

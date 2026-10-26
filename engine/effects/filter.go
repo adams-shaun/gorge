@@ -185,6 +185,12 @@ var predicates = map[string]predFn{
 	"phasedOutOther": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		return src != 0 && o.ID != src && o.PhasedOut && o.Zone == state.ZBattlefield
 	},
+	// phasedOutPermanent is Forge's phasedOut prefix over Permanent (Disciple
+	// of Caelus Nin's `Card.phasedOutPermanent`): every phased-out
+	// battlefield object is a permanent, so it reads exactly as phasedOut.
+	"phasedOutPermanent": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.PhasedOut && o.Zone == state.ZBattlefield
+	},
 	"attacking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsAttacking },
 	// attackingAlone is "attacking alone" (Crowd of True Believers' and
 	// Viper, Cruel Conspirator's target specs): the object is attacking and
@@ -940,7 +946,7 @@ func init() {
 		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Double Strike", "Menace",
 		"Flanking", "Horsemanship", "Defender", "Foretell", "Shadow", "Doctor's companion",
 		"Flash", "Mutate", "Decayed", "Hexproof", "Ward", "Toxic", "Infect",
-		"Morph", "Megamorph", "Devoid", "Madness", "Persist", "Phasing", "Unearth",
+		"Morph", "Megamorph", "Disguise", "Devoid", "Madness", "Persist", "Phasing", "Unearth",
 		"Cascade", "Convoke", "Cycling", "Disturb", "Flashback", "Kicker", "Multikicker",
 		"Landwalk", "Enchant"} {
 		k := kw
@@ -1434,7 +1440,7 @@ func positiveRecognised(p string) bool {
 	if p == "IsGoaded" {
 		return true
 	}
-	if p == "IsRemembered" || p == "IsTriggerRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+	if p == "IsRemembered" || p == "phasedOutIsRemembered" || p == "IsTriggerRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
 		// EffectSource is matched by matchPositive against SpecContext.Source;
 		// listing it here keeps the matcher and the UnknownPredicates census
 		// (both driven by positiveRecognised) in agreement.
@@ -2386,6 +2392,17 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// one home Defined$ Remembered shares), so once the body has
 		// remembered cards of its own (Avatar Destiny's RememberMilled$) the
 		// creature whose death fired the trigger no longer matches.
+		return anyRemembered(g, &sc, func(id state.ObjID) bool { return id == o.ID }), true
+	}
+	if p == "phasedOutIsRemembered" {
+		// Forge's phasedOut prefix (CardProperty: a phased-out card matches
+		// the REST of the property) over IsRemembered: the CantPhaseIn
+		// carriers' `Card.phasedOutIsRemembered` (Teferi, Timeless Voyager;
+		// The Phasing of Zhalfir). Phased out AND remembered, the same
+		// remembered read the bare IsRemembered branch above makes.
+		if !o.PhasedOut || o.Zone != state.ZBattlefield {
+			return false, true
+		}
 		return anyRemembered(g, &sc, func(id state.ObjID) bool { return id == o.ID }), true
 	}
 	if rest, has := strings.CutPrefix(p, "greatestPower"); has {

@@ -854,8 +854,10 @@ func (e *Engine) effectLandPlayRefusal(p state.PlayerID, id state.ObjID, from st
 // logged no-op rather than panic. replaceGraveyard carries the Play SA's
 // ReplaceGraveyard$ Exile rider (task replplay1): true stamps the played
 // spell's pay-time CastInfo with state.FlagReplaceGraveyard so the resolution
-// reader exiles it instead of the graveyard.
-func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string, replaceGraveyard, copyCard bool) {
+// reader exiles it instead of the graveyard. manaConversion carries the Play
+// SA's ManaConversion$ rider (Quistis Trepe, Tinybones, the Pickpocket) onto
+// the pending cast, so only that cast's payment converts (CR 118.14/609.4b).
+func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string, replaceGraveyard, copyCard bool, manaConversion string) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
@@ -966,6 +968,7 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	}
 	e.cast = e.newCast(p, id, o.Zone, "play", -1)
 	e.cast.cost, e.cast.mods, e.cast.replaceGraveyard = cost, mods, replaceGraveyard
+	e.cast.playManaConversion = manaConversion
 	// The either-or additional cost rides a Play cast too, free or not (CR
 	// 118.9d: Etali, Primal Storm casting Eaten Alive still sacrifices a
 	// creature or pays {3}{B}).

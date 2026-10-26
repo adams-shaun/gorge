@@ -100,13 +100,17 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		// extra turn granted after this registration moves the boundary with
 		// the controller's next actual turn.
 	}
-	// CR 611.2a: an instant's or sorcery's explicit Duration$ Permanent Effect
-	// (effects.effectUntilEOT leaves it un-UntilEOT) outlives its source,
+	// CR 611.2a: an explicit Duration$ Permanent Effect outlives its source,
 	// which is in a graveyard or exile by the time it resolves; without the
 	// flag the source-gone rule in continuousLive would drop it at once. Its
-	// ForgetOnMoved$/ExileOnMoved$ ends are the Effect's own expiry.
+	// ForgetOnMoved$/ExileOnMoved$ ends are the Effect's own expiry. This
+	// covers BOTH deliveries: an Effect-created grant (FromEffect — Emrakul's
+	// may-play lives on while its own cost moved it to exile) and an
+	// instant's or sorcery's grant (Soul Partition).
 	if !ce.UntilEOT && !ce.Permanent && ce.UntilTurn == 0 && strings.EqualFold(ce.Duration, "Permanent") {
-		if o := e.G.Obj(ce.Source); o != nil {
+		if ce.FromEffect {
+			ce.Permanent = true
+		} else if o := e.G.Obj(ce.Source); o != nil {
 			if f := o.Face(); f != nil && (f.IsInstant() || f.IsSorcery()) {
 				ce.Permanent = true
 			}
@@ -618,6 +622,35 @@ func (e *Engine) expireClonesOnEvent(ev events.Event, wasTapped bool) {
 	e.continuous = kept
 	e.continuousChanged()
 	e.settleExpiredClones(expired)
+}
+
+// expireUntilTargetedUntaps ends non-clone Effect registrations whose
+// Duration$ UntilTargetedUntaps names one of their Remembered objects, once
+// that object untaps (CR 611.2b's "for as long as it remains tapped") or
+// leaves the battlefield (Braided Net's lock). Clone units keep their own
+// expiry in expireClonesOnEvent; this is the restriction lifetime beside it.
+func (e *Engine) expireUntilTargetedUntaps(ev events.Event, wasTapped bool) {
+	if ev.Obj == 0 ||
+		!(ev.Kind == events.Untap && wasTapped || ev.Kind == events.MoveZone && ev.From == state.ZBattlefield) {
+		return
+	}
+	dropped := false
+	kept := e.continuous[:0]
+	for i := range e.continuous {
+		ce := &e.continuous[i]
+		if ce.CloneTarget == 0 &&
+			effects.IsUntilTargetedUntapsDuration(ce.Duration) &&
+			slices.Contains(ce.Remembered, ev.Obj) {
+			dropped = true
+			continue
+		}
+		kept = append(kept, *ce)
+	}
+	if !dropped {
+		return
+	}
+	e.continuous = kept
+	e.continuousChanged()
 }
 
 // settleExpiredClones rewrites the CopyFace basis of every permanent whose

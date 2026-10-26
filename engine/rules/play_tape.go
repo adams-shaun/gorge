@@ -51,6 +51,13 @@ func playAnswerApply(e *Engine, ctx *effects.Ctx, sa *cards.SA, chosen []decisio
 	// leaving the original in its source zone. False or absent keeps
 	// the ordinary Play path.
 	copyCard := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKCopyCard)), "True")
+	// ManaConversion$ (Quistis Trepe, Tinybones, the Pickpocket): Forge's
+	// PlayEffect copies the rider onto the one spell ability it casts, so
+	// "mana of any type can be spent to cast that spell" scopes to that
+	// cast's payment only. Carried as the Play SA's per-cast provenance;
+	// the tokenizer (strings.FieldsSeq) is whitespace-insensitive, the same
+	// raw-value read the board statics use.
+	manaConversion := sa.ParamStr(cards.PKManaConversion)
 	// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
 	// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
 	// files): every card the Play actually BEGINS to play is recorded
@@ -117,7 +124,8 @@ func playAnswerApply(e *Engine, ctx *effects.Ctx, sa *cards.SA, chosen []decisio
 		ctx.Play = toPlay[0]
 	}
 	q := &queuedPlays{player: player, ids: toPlay, free: free, playCost: playCost,
-		replaceGraveyard: replaceGraveyard, copyCard: copyCard}
+		replaceGraveyard: replaceGraveyard, copyCard: copyCard,
+		manaConversion: manaConversion}
 	if imprintPlayed {
 		q.imprintOn = ctx.Source
 	}

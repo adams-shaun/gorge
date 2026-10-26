@@ -151,6 +151,9 @@ var baseBuckets = map[string]bucket{
 	// cover.
 	"pt.Trigger": bTrig,
 	"s":          bStat, "st": bStat, "sv": bStat,
+	// ce is a *state.ContinuousEffect; only its RestrictParams (an
+	// Effect-delivered static's S: parameters) reaches the census.
+	"ce": bStat,
 	// carrier is offBattlefieldGrantedWalk's element of
 	// actionStaticSource.addAbilityContinuous(): a staticView like s/st/sv,
 	// whose Params (Condition$/Affected$/AddAbility$) the offer walk reads.
@@ -1646,7 +1649,14 @@ var stringMapParams = map[string]string{
 	"effects:redirectExileBody:svars":       "SVars table lookup by SubAbility$ name, not a card Params map",
 	"effects:redirectSubName:body":          "keys of a replacementBodyParams-built SubAbility$ SVar body, not a card Params map",
 	"effects:redirectRiderChain:svars":      "SVars table lookup by SubAbility$ name, not a card Params map",
-	"effects:redirectLineRemembered:params": "parseReplacementLine-built ReplaceWith$ line map, not a card Params map"}
+	"effects:redirectLineRemembered:params": "parseReplacementLine-built ReplaceWith$ line map, not a card Params map",
+	// engine/effects/restrictions.go replacementMovedBodyLiveKind / redirectTapBody
+	// (cr-g138): the same parseReplacementLine-built line map, now also read for
+	// the ReplacementResult$/ValidCause$ riders, and the DB$ Tap | ETB$ True
+	// body's replacementBodyParams-built map.
+	"effects:replacementMovedBodyLiveKind:params": "parseReplacementLine-built ReplaceWith$ line map (ReplacementResult$/ValidCause$ riders), not a card Params map",
+	"effects:redirectTapBody:body":                "keys of a replacementBodyParams-built ReplaceWith$ SVar body, not a card Params map",
+	"effects:redirectTapBody:svars":               "SVars table lookup by SubAbility$ name, not a card Params map"}
 
 // propagateKeyReads resolves two indirect read shapes:
 //
@@ -1736,6 +1746,12 @@ func (s *scan) propagateKeyReadsOnce() bool {
 				switch {
 				case strings.HasSuffix(arg, ".Params"):
 					base = strings.TrimSuffix(arg, ".Params")
+				case strings.HasSuffix(arg, ".RestrictParams"):
+					// state.ContinuousEffect.RestrictParams
+					// (engine/state/continuous.go:321) is an Effect-delivered
+					// static's own S: parameters -- the same map a printed
+					// sv.Params is; its base buckets as a static.
+					base = strings.TrimSuffix(arg, ".RestrictParams")
 				default:
 					if b, isAlias := fi.aliases[arg]; isAlias {
 						base = b
@@ -2777,6 +2793,11 @@ var ignoredParamKeys = map[string]string{
 	"StackDescription":      "stack caption; forge-game/src/main/java/forge/game/card/CardFactory.java",
 	"TriggerDescription":    "trigger caption; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"ChangeTypeDesc":        "search UI text; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
+	"ChangeValidDesc":       "Dig search UI text; forge-game/src/main/java/forge/game/ability/effects/DigEffect.java:85",
+	"DefinedDesc":           "Play/Animate UI description; forge-game/src/main/java/forge/game/ability/effects/PlayEffect.java:68-69, AnimateEffect.java:236",
+	"IfDesc":                "Play conditional UI description; forge-game/src/main/java/forge/game/ability/effects/PlayEffect.java:76-77",
+	"NoPutDesc":             "DigUntil UI text; forge-game/src/main/java/forge/game/ability/effects/DigUntilEffect.java:69",
+	"PrimaryPrompt":         "Dig primary pick prompt; forge-game/src/main/java/forge/game/ability/effects/DigEffect.java:321-322",
 	"ValidDescription":      "valid-card UI text; forge-game/src/main/java/forge/game/card/Card.java",
 	"ValidCardsDesc":        "valid-card UI text; forge-game/src/main/java/forge/game/card/Card.java",
 	"CostDesc":              "alternate-cost UI text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
@@ -2784,6 +2805,7 @@ var ignoredParamKeys = map[string]string{
 	"PrecostDesc":           "cost-prompt prefix; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"TgtPrompt":             "target-prompt UI text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"ChoiceTitle":           "choice-dialog title; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
+	"GiftDescription":       "gift noun for the keyword/stack text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java:1142, forge-game/src/main/java/forge/game/ability/SpellAbilityEffect.java:117",
 	"AdditionalDescription": "extra UI rules-text fragment; forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java",
 	// AdditionalDesc is the same class of UI fragment one ability at a time:
 	// Forge reads it for the ability's rendered description only (the
@@ -2843,11 +2865,69 @@ var statPresentationSecondary = []string{
 	"CantBeActivated", "CantSacrifice", "CantBeCast", "CantAttack",
 	"CastWithFlash", "CantGainLife", "CantTarget", "Panharmonicon",
 	"RaiseCost", "ReduceCost", "DisableTriggers",
+	"CantBeSuspected", "CantPutCounter", "CombatDamageToughness",
 }
 
-var ignoredAbilityParams = map[string]string{
-	"Effect.PumpZone": "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+// abilityPresentationSecondary lists the REGISTERED api primitives the corpus
+// carries `Secondary$ True` on (measured over the full corpus at the current
+// pin; every AB$/SP$/DB$ line with the key, uniq'd by api). Meld is
+// deliberately absent: api:Meld's `Secondary` is the partner card's NAME
+// (forge-game MeldEffect.java:26, mirrored by engine/effects/meld_api.go
+// MeldOf) -- a genuine rules read that must stay measurable, so it can never
+// join a text-dedup list.
+var abilityPresentationSecondary = []string{
+	"ChangeZone", "CopySpellAbility", "DealDamage", "Draw", "ImmediateTrigger",
+	"DelayedTrigger", "Mana", "Pump", "PumpAll", "PutCounter", "Regenerate",
+	"Token",
 }
+
+// unlessNamesFaceSVar reports a Cost$-family parameter whose WHOLE trimmed
+// value is a key of the face's own SVar table. An UnlessCost$ that names an
+// SVar is priced at resolution: effects.UnlessCostResolved
+// (engine/effects/unless.go) folds the whole value through EvalCountOK and
+// charges it as that much generic mana, and an SVar body the evaluator
+// cannot read is already a count:<head> gap through cards.Registry
+// .Unsupported (Face.referencedNames tokenises every parameter value,
+// UnlessCost$ included). So ParseCost("Y").Unknown is a false positive, and
+// the census must not label it as an unmodelled cost token. Cost$ is never
+// exempt (a literal printed cost is genuinely parsed), and neither is a
+// token inside a compound value (Foo<1/X>): only a whole-value
+// SVar NAME is folded, never a name nested in a larger expression.
+func unlessNamesFaceSVar(f *cards.Face, k, v string) bool {
+	if k != "UnlessCost" || f == nil {
+		return false
+	}
+	_, ok := f.SVars[strings.TrimSpace(v)]
+	return ok
+}
+
+// pawprintModeAPIs are the mode-body APIs the corpus carries Pawprint$ on
+// inside a budgeted Charm's Choices$ (measured over the full corpus at the
+// current pin). The price is a property of the mode choice (CR 700.2i,
+// CR 601.2b), read once by the parent Charm's modePawprint; the mode body's
+// own compiler must therefore treat the key as known rather than loud-degrade
+// it, and the census must not attribute a gap to the body.
+var pawprintModeAPIs = []string{
+	"ChangeZone", "ChangeZoneAll", "Dig", "Draw", "Effect", "LoseLife",
+	"PutCounter", "Sacrifice", "Token",
+}
+
+var ignoredAbilityParams = func() map[string]string {
+	const cite = "SA text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179, forge-game/src/main/java/forge/game/card/Card.java:3013 (text renderer only)"
+	const pawprintCite = "mode price read by the parent Charm: engine/effects/charm_modes.go:41 (modePawprint); forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java:183"
+	m := map[string]string{
+		"Effect.PumpZone":          "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+		"GenericChoice.ShowChoice": "UI notify of the chosen value; forge-game/src/main/java/forge/game/ability/effects/ChooseGenericEffect.java:113 (notifyOfValue); gorge's ModeChosen is public (engine/view/describe.go:715)",
+		"PeekAndReveal.NoPeek":     "skips the private look before a public reveal; forge-game/src/main/java/forge/game/ability/effects/PeekAndRevealEffect.java:55,78",
+	}
+	for _, api := range abilityPresentationSecondary {
+		m[api+".Secondary"] = cite
+	}
+	for _, api := range pawprintModeAPIs {
+		m[api+".Pawprint"] = pawprintCite
+	}
+	return m
+}()
 
 var ignoredStatParams = func() map[string]string {
 	const cite = "static text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179 (Card.java getText callers only)"
@@ -3027,6 +3107,9 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			readSet := d.api[sa.API]
 			for k, v := range sa.Params {
 				if k == "Cost" || k == "UnlessCost" {
+					if unlessNamesFaceSVar(f, k, v) {
+						continue
+					}
 					for _, tok := range ParseCost(v).Unknown {
 						addLabel("cost:" + tok)
 					}
@@ -3067,6 +3150,9 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			readSet := d.stat[mode]
 			for k, v := range st.Params {
 				if k == "Cost" || k == "UnlessCost" {
+					if unlessNamesFaceSVar(f, k, v) {
+						continue
+					}
 					for _, tok := range ParseCost(v).Unknown {
 						addLabel("cost:" + tok)
 					}
@@ -3130,6 +3216,9 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 				prim, readSet := "stat:"+mode, d.stat[mode]
 				for k, v := range st.Params {
 					if k == "Cost" || k == "UnlessCost" {
+						if unlessNamesFaceSVar(f, k, v) {
+							continue
+						}
 						for _, tok := range ParseCost(v).Unknown {
 							addLabel("cost:" + tok)
 						}
@@ -3439,11 +3528,15 @@ func TestParamCensusDetectsADeletedConsumer(t *testing.T) {
 // TestParamCensusScopesSecondaryByPrimitive pins the Secondary$ scoping:
 // on a stat the key is Forge's text-dedup marker, ignored mode-scoped via
 // ignoredStatParams (so a synthetic Secondary$ Continuous static labels
-// nothing even when the scan is told its read was deleted), while the
-// trigger read (engine/rules/trigger_match.go secondaryYields) stays measurable --
-// dropping that read makes a synthetic Secondary$ trigger label. A bare
-// ignoredParamKeys["Secondary"] entry would have suppressed BOTH halves;
-// this probe fails if either side regresses.
+// nothing even when the scan is told its read was deleted), and on a
+// registered api primitive ignored api-scoped via ignoredAbilityParams
+// (abilityPresentationSecondary). Meanwhile the trigger read
+// (engine/rules/trigger_match.go secondaryYields) stays measurable --
+// dropping that read makes a synthetic Secondary$ trigger label -- and so
+// does api:Meld's Secondary read (the partner card's NAME, MeldEffect.java:26)
+// and the Continuous.MayPlay family's fail-closed Secondary recognition
+// (layers.go mayPlayGrant). A bare ignoredParamKeys["Secondary"] entry would
+// have suppressed every one of these; this probe fails if any side regresses.
 func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	t.Parallel()
 	_, d := measureParamCensus(t, nil)
@@ -3480,6 +3573,55 @@ func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	}
 	if !hit {
 		t.Errorf("dropped trigger Secondary read did not label param:trig:Phase.Secondary -- trigger Secondary$ measurability is broken")
+	}
+	// (a) api-side scoping: a Secondary$ True on a registered ability
+	// primitive is Forge's SA text-dedup marker, suppressed by the
+	// abilityPresentationSecondary entry even when the read is dropped.
+	if d.api["Draw"] == nil {
+		t.Fatalf("api:Draw is no longer a registered primitive -- the api-side Secondary scoping probe cannot fail")
+	}
+	drawCard, diags := cards.ParseBytes("census-probe-draw.txt", []byte(
+		"Name: Census Probe Draw\nTypes: Creature\nA:AB$ Draw | Cost$ T | Defined$ Self | Secondary$ True\n"))
+	if len(diags) != 0 {
+		t.Fatalf("draw probe card failed to parse: %v", diags)
+	}
+	for _, l := range cardCensusLabels(drawCard, d, map[string]map[string]bool{
+		"api:Draw": {"Secondary": true},
+	}) {
+		if l == "param:api:Draw.Secondary" {
+			t.Errorf("api:Draw Secondary$ labelled despite the api-scoped ignore -- the classification is not consulted")
+		}
+	}
+	// (b) Meld's Secondary read is the partner card's NAME (MeldEffect.java:26
+	// / engine/effects/meld_api.go MeldOf), a genuine rules read: it must
+	// stay measurable, and Meld must never join abilityPresentationSecondary.
+	if !d.api["Meld"]["Secondary"] {
+		t.Fatalf("api:Meld no longer derives a Secondary$ read -- the MeldOf partner-name read is gone for real; re-classify or fix the census")
+	}
+	if ignoredParam("api:Meld", "Secondary") {
+		t.Errorf("api:Meld Secondary is classified ignored -- the Meld partner-name read is no longer measurable")
+	}
+	// (c) the Continuous.MayPlay family's whitelist still fail-closes a
+	// Secondary$-carrying grant -- a genuine recognition (mayPlayGrant /
+	// mayPlayParamsScan, layers.go's mayPlayShape), not the text marker, so
+	// the family's Secondary label must stay live (the seven MayPlay
+	// carriers keep theirs) rather than join the ignored list.
+	mayPlayCard, diags := cards.ParseBytes("census-probe-mayplay.txt", []byte(
+		"Name: Census Probe MayPlay\nTypes: Creature\nS:Mode$ Continuous | MayPlay$ True | Affected$ Card.Self | AffectedZone$ Exile | Secondary$ True\n"))
+	if len(diags) != 0 {
+		t.Fatalf("mayplay probe card failed to parse: %v", diags)
+	}
+	if statCensusMode(mayPlayCard.Faces[0].Statics[0].Mode, mayPlayCard.Faces[0].Statics[0].Params) != "Continuous.MayPlay" {
+		t.Fatal("mayplay probe static did not map to Continuous.MayPlay -- the probe measures nothing")
+	}
+	hit = false
+	for _, l := range cardCensusLabels(mayPlayCard, d, nil) {
+		if l == "param:stat:Continuous.MayPlay.Secondary" {
+			hit = true
+		}
+	}
+	if !hit {
+		t.Errorf("MayPlay Secondary$ carrier did not label param:stat:Continuous.MayPlay.Secondary -- the MayPlay family's Secondary recognition is no longer measurable")
 	}
 }
 
@@ -3959,11 +4101,12 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 	// root's pre-captured ChangeZone target read (prefetchRemembered-
 	// ChangeZoneTarget, which runs before any primitive dispatch) made that
 	// parameter read for every API too. RememberTargets$ is now read by the
-	// shared Resolve recorder for every API, so this fixture uses Pawprint$,
-	// which remains genuinely unread by LoseLife. (It was TargetingPlayer$
-	// before all of these, until the shared target-ask read made that
-	// parameter read for every API; the SVar-body-gap fixture is only
-	// meaningful while its key stays unread.)
+	// shared Resolve recorder for every API, so this fixture uses
+	// TokenPower$, which remains genuinely unread by LoseLife. (It was
+	// TargetingPlayer$ before all of these, until the shared target-ask read
+	// made that parameter read for every API; the SVar-body-gap fixture is
+	// only meaningful while its key stays unread. Pawprint$ held this slot
+	// until cr-g175 scoped it to the mode APIs as the parent Charm's read.)
 	// PayEnergy<X> WAS the fixture's unmodelled
 	// cost token until ParseCost gained a real Energy field, and Waterbend<X>
 	// followed it when ParseCost learned the Waterbend head (task tla-waterbend-
@@ -3973,8 +4116,8 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 	if !d.api["Charm"]["Choices"] || !d.api["Repeat"]["RepeatSubAbility"] {
 		t.Fatalf("outer Choices$/RepeatSubAbility$ reads lost -- fixture premise broken")
 	}
-	if d.api["LoseLife"]["Pawprint"] {
-		t.Fatalf("api:LoseLife now reads Pawprint$ -- re-point the fixture at a genuinely unread key")
+	if d.api["LoseLife"]["TokenPower"] {
+		t.Fatalf("api:LoseLife now reads TokenPower$ -- re-point the fixture at a genuinely unread key")
 	}
 	// The body's cost token is genuinely unmodelled (CR 701.67a's Waterbend<X>
 	// held this slot until ParseCost learned the Waterbend head); re-point it
@@ -3983,29 +4126,27 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 		t.Fatalf("fixture token Mana<1> now parses to Unknown %v -- re-point this fixture at a genuinely unmodelled cost token", got)
 	}
 	c := &cards.Card{Faces: []*cards.Face{{
-		// A modal spell whose one mode loses life and remembers its target
-		// (the RememberTargets$ spelling no LoseLife reader touches --
-		// RememberObjects$ and, before it, TargetingPlayer$ WERE this
-		// fixture's unread body key until generic reads claimed them), and
-		// a repeat whose body carries a cost token ParseCost does not model
-		// (Mana<1>, reached through RepeatSubAbility$).
+		// A modal spell whose one mode loses life and carries TokenPower$, a
+		// key no LoseLife reader touches, and a repeat whose body carries a
+		// cost token ParseCost does not model (Mana<1>, reached through
+		// RepeatSubAbility$).
 		Abilities: []*cards.SA{
 			{Kind: "SP", API: "Charm", Params: map[string]string{"Choices": "DBMode,DBMoney", "CharmNum": "1"}},
 			{Kind: "SP", API: "Repeat", Params: map[string]string{"RepeatNum": "2", "RepeatSubAbility": "DBMoney"}},
 		},
 		SVars: map[string]string{
-			"DBMode":  "DB$ LoseLife | Pawprint$ True | Defined$ Remembered",
+			"DBMode":  "DB$ LoseLife | TokenPower$ True | Defined$ Remembered",
 			"DBMoney": "DB$ LoseLife | Cost$ Mana<1>",
 		},
 	}}}
-	want := []string{"param:api:LoseLife.Pawprint", "cost:Mana"}
+	want := []string{"param:api:LoseLife.TokenPower", "cost:Mana"}
 	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {
 		t.Errorf("SVar-body census = %v, want %v -- an unread key or unmodelled token inside a Choices$/RepeatSubAbility$ body is not being reported", got, want)
 	}
 	// The drop plumbing reaches the bodies too: pretending the LoseLife
-	// Pawprint$ read existed (it does not) must not un-report the body's
+	// TokenPower$ read existed (it does not) must not un-report the body's
 	// gap through some other path.
-	if got := cardCensusLabels(c, d, map[string]map[string]bool{"api:LoseLife": {"Pawprint": true}}); !sameSet(got, want) {
+	if got := cardCensusLabels(c, d, map[string]map[string]bool{"api:LoseLife": {"TokenPower": true}}); !sameSet(got, want) {
 		t.Errorf("drop-simulated census = %v, want %v", got, want)
 	}
 }

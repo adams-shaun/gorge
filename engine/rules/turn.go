@@ -62,8 +62,32 @@ func (e *Engine) expirePlayerControl(outgoing state.PlayerID) {
 	if e.G.Turn <= e.G.ControlArmedTurn[outgoing] {
 		return
 	}
+	if e.G.ControlCombatOnly[outgoing] && e.G.CombatsThisTurn == 0 {
+		// A combat-only grant whose controlled turn had no combat phase
+		// waits for the next one (Forge ControlPlayerEffect starts it at
+		// the next beginning of combat). One whose combat began and was cut
+		// short (the turn ended mid-combat) expires here.
+		return
+	}
 	e.emit(events.Event{Kind: events.ControlPlayerChange, Player: ctl,
 		IDs: []state.ObjID{state.PlayerRef(outgoing)}, Amount: -1})
+}
+
+// expireCombatControl ends a combat-only CR 723 control (`Combat$ True`,
+// Secret of Bloodbending) as the controlled seat's end of combat step ends on
+// a turn after the grant was armed. An extra combat phase later in the same
+// turn is not controlled: the grant ended with the first one.
+func expireCombatControl(g *state.Game, emit func(events.Event) events.Event) {
+	subj := g.Active
+	if !g.ControlCombatOnly[subj] {
+		return
+	}
+	ctl, ok := g.ControlledBy[subj]
+	if !ok || g.Turn <= g.ControlArmedTurn[subj] {
+		return
+	}
+	emit(events.Event{Kind: events.ControlPlayerChange, Player: ctl,
+		IDs: []state.ObjID{state.PlayerRef(subj)}, Amount: -1})
 }
 
 // finishEnteredStep performs the turn-based action owed by the step that a
@@ -247,7 +271,7 @@ func (e *Engine) finishUntapStep(next int) bool {
 					continue
 				}
 				if o.PhasedOut {
-					if !o.WontPhaseInNormal {
+					if !o.WontPhaseInNormal && !o.PhasedOutIndirect {
 						e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: -1})
 					}
 				} else if e.hasKeywordH(id, kwhPhasing) {
@@ -1252,6 +1276,9 @@ func (e *Engine) advanceStep() {
 		// 510.3) ended with every player passing on an empty stack: the
 		// combat damage step's continuation state ends with the step.
 		e.combatRound = combatRound{}
+	}
+	if e.G.Step == state.StepEndCombat {
+		expireCombatControl(e.G, e.emit)
 	}
 	next := e.G.Step + 1
 	if s, ok := e.extraPhaseBoundary(); ok {

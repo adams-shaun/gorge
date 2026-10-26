@@ -427,10 +427,24 @@ func (e *Engine) checkSVarHoldsFor(sv staticView, sub costSubject, targets []sta
 	if !ok {
 		return true
 	}
+	return e.checkSVarHoldsRaw(sv, raw, sv.ParamStr(cards.PKSVarCompare), sub, targets)
+}
+
+// checkSVarHoldsRaw is checkSVarHoldsFor over an explicit CheckSVar$/
+// SVarCompare$ text pair instead of the view's param map (the view still
+// carries Source/Controller and the face's SVar table; an Effect-delivered
+// gate whose text rides state.ContinuousEffect has no param map to build):
+// the ONE mapping of (source, controller, SVar table, gate text) onto the
+// shared evaluator's Ctx. The statics' shipped convention lives here: an
+// unreadable gate body (an unmodelled count head, an unparseable compare)
+// degrades to zero and the gate fails -- a continuous "as long as X" must
+// not silently always-apply on a gate this build cannot read. The SA-level
+// callers (conditionMet, the ability-offer gate) fail OPEN instead; each
+// call site documents its own direction. An empty raw check is the
+// present-but-empty gate: EvalCount reads it 0 and the no-compare nonzero
+// read fails it.
+func (e *Engine) checkSVarHoldsRaw(sv staticView, raw, cmp string, sub costSubject, targets []state.Target) bool {
 	if strings.TrimSpace(raw) == "" {
-		// Present-but-empty: the empty expression, EvalCount reads it 0 and
-		// the no-compare nonzero read fails it -- what the pre-delegation
-		// code did too (and no corpus static carries).
 		return false
 	}
 	o := e.G.Obj(sv.Source)
@@ -443,14 +457,8 @@ func (e *Engine) checkSVarHoldsFor(sv staticView, sub costSubject, targets []sta
 	}
 	ctx := effects.NewCtxPtr(sv.Source, sv.Controller, effects.CtxInit{SVars: svars, Targets: targets})
 	ctx.AffectedObj, ctx.AffectedAbility = sub.id, sub.ab
-	holds, evaluated := effects.CheckSVarHolds(e, ctx, raw, sv.ParamStr(cards.PKSVarCompare))
+	holds, evaluated := effects.CheckSVarHolds(e, ctx, raw, cmp)
 	if !evaluated {
-		// The statics' shipped convention: an unreadable gate body (an
-		// unmodelled count head, an unparseable compare) degrades to zero and
-		// the static's gate fails — a continuous "as long as X" must not
-		// silently always-apply on a gate this build cannot read. The SA-level
-		// callers (conditionMet, the ability-offer gate) fail OPEN instead;
-		// each call site documents its own direction.
 		return false
 	}
 	return holds

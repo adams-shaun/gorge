@@ -519,6 +519,7 @@ func (e *Engine) payCast() {
 	// keeps one record per spent unit, so a cast that spent ordinary (or only
 	// restricted) mana emits no rider event and stays byte-identical.
 	pc.addsCounterGrants = append([]state.ManaAddsCounterGrant(nil), e.ManaSpentAddsCounters...)
+	pc.addsKeywordGrants = append([]state.ManaAddsKeywordGrant(nil), e.ManaSpentAddsKeywords...)
 	// The spent mana's producing sources, from the same capture (it is
 	// consumed by fireManaSpentTriggers below, so it is read here).
 	e.captureManaSources(pc)
@@ -899,6 +900,12 @@ func (e *Engine) payCast() {
 	if len(pc.addsCounterGrants) > 0 {
 		acFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagAddsCounters)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: int32(len(pc.addsCounterGrants)), Counter: acFlags, Text: events.ManaAddsCounterGrantsText(pc.addsCounterGrants)})
+	}
+	// AddsKeywords$ (CR 106.6): the keyword grants the spent mana earned, on
+	// their own trailing CastInfo (the AddsCounters pattern above).
+	if len(pc.addsKeywordGrants) > 0 {
+		akFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagAddsKeywords)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: int32(len(pc.addsKeywordGrants)), Counter: akFlags, Text: events.ManaAddsKeywordGrantsText(pc.addsKeywordGrants)})
 	}
 	// Cast-spend (task castprov1): the TOTAL mana actually spent to cast the
 	// spell rides its own TRAILING pay-time CastInfo -- the flag routes the

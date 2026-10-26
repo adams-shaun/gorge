@@ -101,6 +101,8 @@ type TargetParams struct {
 	ValidTgts string
 	// Prompt is TgtPrompt$, trimmed.
 	Prompt string
+	// Desc is ValidTgtsDesc$, trimmed: the script's noun for the legal set.
+	Desc string
 	// Min and Max are TargetMin$/TargetMax$ as written.
 	Min, Max ParamText
 	// BoundMin and BoundMax are the literal-only bounds (targetBounds'
@@ -215,6 +217,7 @@ func compileTargets(sa *cards.SA) *TargetParams {
 		}
 	}
 	p.Prompt = strings.TrimSpace(sa.ParamStr(cards.PKTgtPrompt))
+	p.Desc = strings.TrimSpace(sa.ParamStr(cards.PKValidTgtsDesc))
 
 	tmin, tminOK := sa.Param(cards.PKTargetMin)
 	tmax, tmaxOK := sa.Param(cards.PKTargetMax)

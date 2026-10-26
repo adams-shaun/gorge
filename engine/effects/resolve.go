@@ -139,6 +139,12 @@ func hasChosenPlayers(ts []state.Target) bool {
 // SubAbility$ still runs (the chain is owned by Resolve, never by a decline).
 func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	optAns := ""
+	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKMode)), "TurnFaceUp") {
+		// The reveals precede the Optional$ ask (Hauntwoods Shrieker: "Reveal
+		// target face-down permanent. If it's a creature card, you may turn
+		// it face up"), so the player sees the card before choosing.
+		setStateTurnUpReveals(h, c, sa)
+	}
 
 	mode := sa.ParamStr(cards.PKMode)
 	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
@@ -189,6 +195,9 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if turnUp {
 			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
+				if !setStateTurnUpGate(h, c, sa, o) {
+					continue
+				}
 				h.Emit(events.Event{Kind: events.TurnFaceUp, Obj: o.ID})
 				setstateRememberChanged(c, sa, o.ID)
 			}
@@ -282,7 +291,8 @@ func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspeci
 			continue
 		}
 		if turnUp {
-			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
+			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown &&
+				setStateTurnUpGate(h, c, sa, o) {
 				return true
 			}
 			continue
@@ -753,3 +763,51 @@ var effCounterCodes = state.NewStrCodes(
 	state.StrEntry[effCounterCode]{Key: "TopOfLibrary", Val: effCounterTop},
 	state.StrEntry[effCounterCode]{Key: "BottomOfLibrary", Val: effCounterBottom},
 )
+
+// setStateTurnUpVerdict is the pure per-object TurnFaceUp gate: whether the
+// RevealFirst$ reveal applies, whether a reveal is forced (CR 701.40g/701.58g:
+// an instant or sorcery card is revealed and stays face down) and whether the
+// turn-up may proceed (a permanent card whose printed face matches
+// ValidNewFace$, Forge SetStateEffect).
+func setStateTurnUpVerdict(h Host, c *Ctx, sa *cards.SA, o *state.Object) (reveal, turn bool) {
+	f := o.Face()
+	if f == nil {
+		return false, false
+	}
+	reveal = strings.EqualFold(strings.TrimSpace(sa.Params["RevealFirst"]), "True")
+	if !f.IsPermanent() {
+		return true, false
+	}
+	if spec := strings.TrimSpace(sa.Params["ValidNewFace"]); spec != "" {
+		up := *o // a face-up view: the printed card, not the face-down set
+		up.FaceDown = false
+		if !MatchesObjectCtx(h.Game(), spec, &up, c.SpecContext(c.Controller)) {
+			return reveal, false
+		}
+	}
+	return reveal, true
+}
+
+// setStateTurnUpGate reports whether o may turn face up.
+func setStateTurnUpGate(h Host, c *Ctx, sa *cards.SA, o *state.Object) bool {
+	_, turn := setStateTurnUpVerdict(h, c, sa, o)
+	return turn
+}
+
+// setStateTurnUpReveals emits the public reveal Note, once per face-down
+// battlefield Defined$ object whose verdict asks for one.
+func setStateTurnUpReveals(h Host, c *Ctx, sa *cards.SA) {
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		o := h.Game().Obj(t.Obj)
+		if o == nil || o.Card == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
+			continue
+		}
+		if reveal, _ := setStateTurnUpVerdict(h, c, sa, o); reveal {
+			h.Emit(events.Event{Kind: events.Note, IDs: []state.ObjID{o.ID},
+				Text: "reveals " + o.Face().Name})
+		}
+	}
+}

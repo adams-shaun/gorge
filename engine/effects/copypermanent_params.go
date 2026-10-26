@@ -39,19 +39,24 @@ type CopyPermanentParams struct {
 	// SupportsChoice is set for the Choices$ shapes the chooser ask
 	// implements: the measured Zndrsplt Choices$/Chooser$/Controller$ shape
 	// (ChooserRemembered), and every bare Choices$ filter (no Chooser$, no
-	// Controller$, no WithDifferentNames$) whose chooser and controller are
-	// the ability's controller -- Forge's CopyPermanentEffect "choose one of
-	// the Choices$ pool" arm (Twilight Diviner's Card.TriggeredCards, Calamity
-	// Galloping Inferno's SaddledThisTurn, Summon: Good King Mog XII's
-	// token+nonSaga). The pool is the battlefield filtered by Choices$, or,
-	// when Defined$ is also present, the Defined$ objects filtered by it
-	// (Mimic Vat's `Defined$ Imprinted.ExiledWithSource | Choices$ Card`).
-	// WithDifferentNames$ ("choose any number ... with different names") is a
-	// multi-pick this single-pick ask does not model, so it stays blocked.
+	// Controller$) whose chooser and controller are the ability's controller
+	// -- Forge's CopyPermanentEffect "choose one of the Choices$ pool" arm
+	// (Twilight Diviner's Card.TriggeredCards, Calamity Galloping Inferno's
+	// SaddledThisTurn, Summon: Good King Mog XII's token+nonSaga). With
+	// WithDifferentNames$ True that bare shape is the multi-pick loop
+	// (DifferentNames below); without it, it is the single pick. The pool is
+	// the battlefield filtered by Choices$, or, when Defined$ is also present,
+	// the Defined$ objects filtered by it (Mimic Vat's
+	// `Defined$ Imprinted.ExiledWithSource | Choices$ Card`).
 	// ChoiceFilter is the Choices$ filter the ask offers.
 	SupportsChoice    bool
 	ChooserRemembered bool
 	ChoiceFilter      string
+	// DifferentNames is WithDifferentNames$ True on the bare Choices$ shape:
+	// the chooser picks any number of objects whose names are pairwise
+	// different, one optional pick per ask, the pool shrinking by name after
+	// each pick (Battle for Bretagard's chapter III).
+	DifferentNames bool
 
 	// AtEOT$ and AtEOTTrig$.
 	AtEOT     string
@@ -131,48 +136,203 @@ type CopyPermanentParams struct {
 // parameter census's measured api:CopyPermanent read set plus its ignored
 // and structural keys.
 var copyPermanentKnownKeys = [...]string{
-	"AILifeThreshold", "AILogic", "AINoRecursiveCheck", "AIPhyrexianPayment",
-	"AITgts", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat",
-	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
-	"Activator", "AddAbilities", "AddColors", "AddKeywords", "AddSVars", "AddStaticAbilities",
-	"AddTriggers", "AddType", "AddTypes", "AdditionalDesc", "AdditionalDescription",
-	"Affected", "AlternateCost", "AlternativeCost", "Announce", "AnnounceTitle",
-	"AtEOT", "AtEOTTrig", "AttachedTo", "Boast", "ChangeTypeDesc",
-	"CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone", "Choices",
-	"ChooseFromList", "Chooser", "ClassBand", "ClearImprinted", "Condition",
-	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
-	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
-	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
-	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "Controller", "CopyCard", "Cost",
-	"CostDesc", "Defined", "DefinedCards", "DefinedName", "DefinedTarget",
-	"Description", "Exclude", "Execute", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "Image",
-	"ImprintCards", "ImprintPlayed", "ImprintTokens", "InstantSpeed",
-	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
-	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
-	"NewController", "NonBasicSpell", "NonLegendary", "NumCopies", "OpponentTurn",
-	"Pawprint", "Planeswalker", "PlayCost", "PlayerTurn", "Populate", "PowerUp",
-	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "PumpDuration",
-	"PumpKeywords", "RandomCopied", "RandomNum", "RandomNumTargets", "ReduceAmount", "ReduceCost",
-	"RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "RememberTokens", "RemoveCardTypes", "RemoveCost",
-	"RemoveCreatureTypes", "RemoveKeywords", "RemoveSubTypes", "ReplaceColor",
-	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
-	"ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
-	"SetCreatureTypes", "SetPower", "SetToughness", "ShowCards", "SorcerySpeed",
-	"SpellDescription", "StackDescription", "SubAbility", "TargetMax", "TargetMin",
-	"TargetType", "TargetUnique", "TargetValidTargeting", "TargetingPlayer",
-	"TargetingPlayerControls", "TargetsAtRandom", "TargetsForEachPlayer",
-	"TargetsWithControllerProperty", "TargetsWithDefinedController",
-	"TargetsWithDifferentCMC", "TargetsWithDifferentControllers",
-	"TargetsWithDifferentNames", "TargetsWithEqualToughness",
-	"TargetsWithRelatedProperty", "TargetsWithSameCardType", "TargetsWithSameController",
-	"TargetsWithSameCreatureType", "TargetsWithSharedCardType",
-	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenAttacking",
-	"TokenRemembered", "TokenScript", "TokenTapped", "TriggerDescription", "Type",
-	"Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
-	"UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
-	"ValidCounterType", "ValidDescription", "ValidSupportedCopy", "ValidTgts",
-	"VoteMessage", "WithCountersAmount", "WithCountersType", "WithDifferentNames",
-	"WithoutManaCost", "XMax", "XMin",
+	"AILifeThreshold",
+	"AILogic",
+	"AINoRecursiveCheck",
+	"AIPhyrexianPayment",
+	"AITgts",
+	"Activation",
+	"ActivationAfterBlockers",
+	"ActivationFirstCombat",
+	"ActivationGameTypes",
+	"ActivationLimit",
+	"ActivationPhases",
+	"ActivationZone",
+	"Activator",
+	"AddAbilities",
+	"AddColors",
+	"AddKeywords",
+	"AddSVars",
+	"AddStaticAbilities",
+	"AddTriggers",
+	"AddType",
+	"AddTypes",
+	"AdditionalDesc",
+	"AdditionalDescription",
+	"Affected",
+	"AlternateCost",
+	"AlternativeCost",
+	"Announce",
+	"AnnounceTitle",
+	"AtEOT",
+	"AtEOTTrig",
+	"AttachedTo",
+	"Boast",
+	"CantCopy",
+	"ChangeTypeDesc",
+	"ChangeValidDesc",
+	"CharacteristicDefining",
+	"CheckSVar",
+	"ChoiceTitle",
+	"ChoiceZone",
+	"Choices",
+	"ChooseFromList",
+	"Chooser",
+	"ClassBand",
+	"ClearImprinted",
+	"Condition",
+	"ConditionActivationLimit",
+	"ConditionCheckSVar",
+	"ConditionCompare",
+	"ConditionCompare2",
+	"ConditionDefined",
+	"ConditionDescription",
+	"ConditionFirstCombat",
+	"ConditionNotPresent",
+	"ConditionOptionalPaid",
+	"ConditionPhases",
+	"ConditionPlayerTurn",
+	"ConditionPresent",
+	"ConditionPresent2",
+	"ConditionSVarCompare",
+	"ConditionZone",
+	"Controller",
+	"CopyCard",
+	"Cost",
+	"CostDesc",
+	"Defined",
+	"DefinedCards",
+	"DefinedDesc",
+	"DefinedName",
+	"DefinedTarget",
+	"Description",
+	"Exclude",
+	"Execute",
+	"Exhaust",
+	"ForgetOtherTargets",
+	"GameActivationLimit",
+	"GiftDescription", "IfDesc",
+	"Image",
+	"ImprintCards",
+	"ImprintPlayed",
+	"ImprintTokens",
+	"InstantSpeed",
+	"IsCurse",
+	"IsPresent",
+	"KW",
+	"Keyword",
+	"KeywordLine",
+	"ManaConversion",
+	"MaxTotalTargetCMC",
+	"MaxTotalTargetPower",
+	"Mentor",
+	"ModeCost",
+	"Monstrosity",
+	"NewController",
+	"NoPutDesc",
+	"NonBasicSpell",
+	"NonLegendary",
+	"NumCopies",
+	"OpponentTurn",
+	"Pawprint",
+	"Planeswalker",
+	"PlayCost",
+	"PlayerTurn",
+	"Populate",
+	"PowerUp",
+	"PrecostDesc",
+	"PresentCompare",
+	"PresentDefined",
+	"PresentZone",
+	"PrimaryPrompt",
+	"PumpDuration",
+	"PumpKeywords",
+	"RandomCopied",
+	"RandomNum",
+	"RandomNumTargets",
+	"ReduceAmount",
+	"ReduceCost",
+	"RememberAnimated",
+	"RememberCostMana",
+	"RememberObjects",
+	"RememberTargets",
+	"RememberTokens",
+	"RemoveCardTypes",
+	"RemoveCost",
+	"RemoveCreatureTypes",
+	"RemoveKeywords",
+	"RemoveSubTypes",
+	"ReplaceColor",
+	"ReplaceGraveyard",
+	"ReplaceGraveyardValid",
+	"ReplaceMana",
+	"ReplaceOnly",
+	"ReplaceType",
+	"ReturnAbility",
+	"ReturnValid",
+	"SVarCompare",
+	"SelectPrompt",
+	"SetChosenMode",
+	"SetColor",
+	"SetCreatureTypes",
+	"SetPower",
+	"SetToughness",
+	"ShowCards",
+	"SorcerySpeed",
+	"SpellDescription",
+	"StackDescription",
+	"SubAbility",
+	"TargetMax",
+	"TargetMin",
+	"TargetType",
+	"TargetUnique",
+	"TargetValidTargeting",
+	"TargetingPlayer",
+	"TargetingPlayerControls",
+	"TargetsAtRandom",
+	"TargetsForEachPlayer",
+	"TargetsWithControllerProperty",
+	"TargetsWithDefinedController",
+	"TargetsWithDifferentCMC",
+	"TargetsWithDifferentControllers",
+	"TargetsWithDifferentNames",
+	"TargetsWithEqualToughness",
+	"TargetsWithRelatedProperty",
+	"TargetsWithSameCardType",
+	"TargetsWithSameController",
+	"TargetsWithSameCreatureType",
+	"TargetsWithSharedCardType",
+	"TargetsWithSharedTypes",
+	"TgtPrompt",
+	"TgtZone",
+	"TokenAttacking",
+	"TokenRemembered",
+	"TokenScript",
+	"TokenTapped",
+	"TriggerDescription",
+	"Type",
+	"Ultimate",
+	"UnlessAI",
+	"UnlessCost",
+	"UnlessPayer",
+	"UnlessResolveSubs",
+	"UnlessSwitched",
+	"ValidCard",
+	"ValidCards",
+	"ValidCardsDesc",
+	"ValidChoices",
+	"ValidCounterType",
+	"ValidDescription",
+	"ValidSupportedCopy",
+	"ValidTgts",
+	"ValidTgtsDesc",
+	"VoteMessage",
+	"WithCountersAmount",
+	"WithCountersType",
+	"WithDifferentNames",
+	"WithoutManaCost",
+	"XMax",
+	"XMin",
 }
 
 // isCopyPermanentSA reports whether sa resolves as api:CopyPermanent.
@@ -241,9 +401,11 @@ func compileCopyPermanent(sa *cards.SA, dp *DefinedParams) *CopyPermanentParams 
 	choiceFilter := strings.TrimSpace(choices)
 	p.ChooserRemembered = choiceFilter == "Creature.RememberedPlayerCtrl" &&
 		strings.TrimSpace(chooser) == "Remembered" && p.Controller == "Remembered"
-	_, differentNames := sa.Param(cards.PKWithDifferentNames)
-	p.SupportsChoice = p.ChooserRemembered ||
-		(choicesOK && choiceFilter != "" && !chooserOK && p.Controller == "" && !differentNames)
+	differentNamesRaw, differentNamesOK := sa.Param(cards.PKWithDifferentNames)
+	differentNamesTrue := differentNamesOK && strings.EqualFold(strings.TrimSpace(differentNamesRaw), "True")
+	bareChoice := choicesOK && choiceFilter != "" && !chooserOK && p.Controller == ""
+	p.DifferentNames = differentNamesTrue && bareChoice
+	p.SupportsChoice = p.ChooserRemembered || (bareChoice && (!differentNamesOK || differentNamesTrue))
 	if p.SupportsChoice {
 		p.ChoiceFilter = choiceFilter
 	}
@@ -251,7 +413,7 @@ func compileCopyPermanent(sa *cards.SA, dp *DefinedParams) *CopyPermanentParams 
 		note("Choices$")
 		p.Blocked = true
 	}
-	if differentNames {
+	if differentNamesOK && !p.DifferentNames {
 		note("WithDifferentNames$")
 	}
 	if chooserOK && !p.SupportsChoice {

@@ -593,6 +593,7 @@ func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool
 	// so a body that did not ask for the binding must not get one.
 	p := CharmOf(sa)
 	tempRemember := p.TempRemember
+	c.DamageMapOpen = p.DamageMap
 	baselineRemembered := append([]state.Target(nil), c.Remembered...)
 	// FallbackAbility$ (Forge ChooseGenericEffect): the ability resolved for a
 	// chooser when NONE of the Choices$ is payable RIGHT NOW -- Forge drops a
@@ -713,6 +714,10 @@ func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool
 	}
 	c.Choosers.Choosers = nil
 	c.Choosers.ChooserIndex = 0
+	if p.DamageMap {
+		c.DamageMapOpen = false
+		flushPendingDamage(h, c)
+	}
 	return true
 }
 

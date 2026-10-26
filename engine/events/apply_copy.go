@@ -207,6 +207,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// the original's cast, and FlagAddsCounters is stripped from castFlags
 	// by CastProvenanceFlags above.
 	o.ManaAddsCounterGrants = nil
+	o.ManaAddsKeywordGrants = nil
 	if morphFlags != 0 {
 		o.FaceDown = true
 		o.Cloaked = morphFlags&state.FlagDisguised != 0

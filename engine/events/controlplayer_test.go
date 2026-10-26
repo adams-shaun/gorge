@@ -39,3 +39,34 @@ func TestControlPlayerChangeFoldsGrantExpiryAndSelf(t *testing.T) {
 		t.Fatalf("self-grant folded: %+v", g.ControlledBy)
 	}
 }
+
+func TestControlPlayerChangeCombatCounterFoldsCombatOnly(t *testing.T) {
+	g, _ := twoPlayer(t)
+	grant := Event{Kind: ControlPlayerChange, Player: 0,
+		IDs: []state.ObjID{state.PlayerRef(1)}, Amount: 1}
+	combat := grant
+	combat.Counter = ControlCombatOnly
+	Apply(g, combat)
+	if ctl, ok := g.ControlledBy[1]; !ok || ctl != 0 {
+		t.Fatalf("after combat grant ControlledBy = %+v, want 1 -> 0", g.ControlledBy)
+	}
+	if !g.ControlCombatOnly[1] {
+		t.Fatalf("combat grant did not mark combat-only: %+v", g.ControlCombatOnly)
+	}
+	if c := g.Clone(); !c.ControlCombatOnly[1] {
+		t.Fatalf("clone dropped the combat-only mark: %+v", c.ControlCombatOnly)
+	}
+	expire := grant
+	expire.Amount = -1
+	Apply(g, expire)
+	if _, ok := g.ControlCombatOnly[1]; ok {
+		t.Fatalf("after expiry ControlCombatOnly = %+v", g.ControlCombatOnly)
+	}
+	Apply(g, grant)
+	if _, ok := g.ControlledBy[1]; !ok {
+		t.Fatalf("whole-turn grant not folded: %+v", g.ControlledBy)
+	}
+	if _, ok := g.ControlCombatOnly[1]; ok {
+		t.Fatalf("whole-turn grant marked combat-only: %+v", g.ControlCombatOnly)
+	}
+}

@@ -533,7 +533,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// remembered-object and original-controller filters), but is not
 			// a printed-trigger matcher. Admit only this explicitly handled
 			// delayed mode here; all other unknown modes remain fail-closed.
-			if tr.Mode != "ChangesController" && !h.TriggerModeSupported(tr.Mode) {
+			if tr.Mode != "ChangesController" && !effectCombatTriggerModes[tr.Mode] && !h.TriggerModeSupported(tr.Mode) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect trigger " + tr.Mode + " unimplemented"})
 				registered = true
@@ -596,10 +596,13 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// replaced result cannot lose an object, and a body this build cannot
 		// price is skipped by the dispatcher, never read as zero. Every OTHER
 		// AddCounter body keeps its loud Note.
-		// Every OTHER Moved body (the
-		// destination-changing ChangeZone/Tap/Clone family, 44 measured
-		// files) and every Draw/ProduceMana body keeps its loud
+		// Every OTHER Moved body (the unmodelled ChangeZone/Tap/Clone family,
+		// 44 measured files) and every Draw/ProduceMana body keeps its loud
 		// Note: a half-modelled Replaced-result could LOSE the moved object.
+		// replacementMovedBodyLive admits the two recorded shapes that cannot
+		// lose it: a single-destination redirect of the ReplacedCard (exile,
+		// stack-to-hand, or the library -- Kylox's Voltstrider's bottom) and
+		// the ReplacementResult$ Updated ETB tap (Lightstall Inquisitor).
 		// The effect's own capture state rides every live registration:
 		// Remembered (the trigger's RememberObjects$ card, what the body's
 		// IsRemembered/Remembered$ specs and Count$ChosenNumber's neighbours
@@ -609,7 +612,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// turn), and the frozen SetChosenNumber$ binding.
 		if body != "" && (event == "DamageDone" ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
-			(event == "Moved" && replacementRedirectsToExile(params, body, c.SVars)) ||
+			(event == "Moved" && replacementMovedBodyLive(params, body, c.SVars)) ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken") ||
 			(event == "AddCounter" && replacementBodyAPI(body) == "ReplaceCounter")) {
 			effectContinuous(h, state.ContinuousEffect{
@@ -737,6 +740,15 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetCounter = forgetCounter
 				grant.ImprintOnHost = imprintOnHost
 				grant.Chosen, grant.ChosenBound = effectChosenSnapshot(h, c, grant.Affects)
+				if grant.MayPlayCheckSVar != "" {
+					// The gate reads the RESOLVING face's SVar table
+					// (Flameshape's SVar:X lives on the Adventure face, but
+					// the effect's source object rests on its main face once
+					// the adventure resolves): bind it on the grant so rules'
+					// effectMayPlayGateHolds resolves X against the face that
+					// wrote it.
+					grant.SVars = c.SVars
+				}
 				effectContinuous(h, grant)
 				registered = true
 			} else if grant, ok := mayPlayFreeGrantFromLine(params); ok {
@@ -763,6 +775,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetCounter = forgetCounter
 				grant.ImprintOnHost = imprintOnHost
 				grant.Chosen, grant.ChosenBound = effectChosenSnapshot(h, c, grant.Affects)
+				if grant.MayPlayCheckSVar != "" {
+					// Same binding as the plain grant above: the gate reads
+					// the RESOLVING face's SVar table.
+					grant.SVars = c.SVars
+				}
 				effectContinuous(h, grant)
 				registered = true
 			} else if _, ok := untapDenialGrantFromLine(params); ok {
@@ -1002,7 +1019,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case cards.StaticCantTarget, cards.StaticCantRegenerate, cards.StaticCantPreventDamage, cards.StaticCantAttack, cards.StaticCantSacrifice, cards.StaticCantExile, cards.StaticCantPutCounter, cards.StaticCantBlockBy, cards.StaticCanAttackDefender, cards.StaticUnspentMana, cards.StaticCantBlockUnless, cards.StaticCantAttackUnless, cards.StaticMustBlock, cards.StaticNumLoyaltyAct, cards.StaticCantGainLife, cards.StaticCantPlayLand, cards.StaticCastWithFlash, cards.StaticCantChangeLife:
+		case cards.StaticCantTarget, cards.StaticCantRegenerate, cards.StaticCantPreventDamage, cards.StaticCantAttack, cards.StaticCantBlock, cards.StaticCantSacrifice, cards.StaticCantExile, cards.StaticCantPutCounter, cards.StaticCantBlockBy, cards.StaticCanAttackDefender, cards.StaticUnspentMana, cards.StaticCantBlockUnless, cards.StaticCantAttackUnless, cards.StaticMustBlock, cards.StaticNumLoyaltyAct, cards.StaticCantGainLife, cards.StaticCantPlayLand, cards.StaticCastWithFlash, cards.StaticCantChangeLife, cards.StaticCantBeActivated, cards.StaticCantBeCast:
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (engine/rules/layers.go restrictionApplies consults the
@@ -1037,6 +1054,39 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
+			if mode == "CantBeActivated" && !CantBeActivatedParamsReadable(params) {
+				// An Effect-delivered CantBeActivated body (Braided Net's
+				// "its activated abilities can't be activated", Kang's
+				// power-up lock) registers as a continuous restriction
+				// rules' abilityRestrictedUsing reads beside the printed S:
+				// route, exactly as CantBeCast registers for the cast gate.
+				// A body carrying a scoping term the activation gate does not
+				// evaluate must not register blanket -- it reports
+				// unimplemented instead, through the same whitelist the
+				// rules-side read runs.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantBeCast" && !CantBeCastParamsReadable(params) {
+				// An Effect-delivered CantBeCast body (Bilbo's Gambit's
+				// "players can't cast spells this turn", Avatar's Wrath's
+				// "from anywhere other than their hands", Memory Vessel's
+				// "from their hand") registers as a continuous restriction
+				// rules' castRestrictionSources reads beside the printed S:
+				// route, exactly as CantPlayLand registers for
+				// playLandForbidden. A body carrying a scoping term the cast
+				// gate does not evaluate must not register blanket -- it
+				// reports unimplemented instead (the permissive direction for
+				// a restriction; the whitelist is CantBeCastParamsReadable,
+				// shared with the rules-side read so the two paths cannot
+				// disagree about what is readable).
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
 			if mode == "CanAttackDefender" && !CanAttackDefenderGrantParamsReadable(params) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
@@ -1050,6 +1100,26 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			if mode == "CantBlockBy" && !CantBlockByRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantBlock" && (!CantBlockRestrictionParamsReadable(params) || ep.SetChosenNumber != "") {
+				// A SetChosenNumber$ Effect (Rumbling Ruin's powerLEX over
+				// Count$ChosenNumber) freezes a count the block-time spec read
+				// cannot see; registering it would read the source's 0 and
+				// restrict nothing, so it stays the loud Note.
+				// An Effect-delivered CantBlock body (Cosmotronic Wave's
+				// "creatures your opponents control can't block this turn",
+				// Immobilizer Eldrazi, Ahn-Crop Crasher, Ember Gale) registers
+				// as a continuous restriction rules' combat.BlockRestricted
+				// registered walk reads beside the printed S: route, exactly as
+				// CantBlockBy does. A body carrying a scoping term this build
+				// does not evaluate must not register blanket -- it reports
+				// unimplemented instead (the same fail-closed-to-Note direction
+				// every sibling whitelist arm here keeps; a gated can't-block
+				// registered blanket would over-restrict).
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -1153,6 +1223,16 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// same reason.
 				ceUntilEOT = true
 			}
+			if IsUntilTargetedUntapsDuration(rawDur) && len(remembered) == 0 {
+				// CR 611.2b: "for as long as it remains tapped" ends when the
+				// remembered object untaps (rules' expireUntilTargetedUntaps).
+				// With no remembered object there is no boundary to read, so
+				// the registration would lock forever; keep the honest Note.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
@@ -1174,7 +1254,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ExileOnMoved:  exileOn,
 				ForgetCounter: forgetCounter,
 			}
-			if mode == "CantAttack" || mode == "CantSacrifice" || mode == "CantBlockBy" || mode == "CantGainLife" {
+			if mode == "CantAttack" || mode == "CantSacrifice" || mode == "CantBlockBy" || mode == "CantGainLife" || mode == "CantBeCast" || mode == "CantBeActivated" || mode == "CantBlock" {
 				// The player half of the remembered capture: Call for Aid's
 				// RememberObjects$ TargetedPlayer must reach the registered
 				// CantAttack, whose Target$ Player.IsRemembered ("you can't
@@ -1195,6 +1275,22 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// RememberDamaged$ read) and its ValidPlayer$ Player.IsRemembered
 				// resolve against the same set at consultation time
 				// (engine/rules/replacement_life.go lifeGainForbidden).
+				//
+				// CantBeCast joins for the Orim's Chant family: its
+				// RememberObjects$ TargetedPlayer (the player the Chant
+				// targeted) feeds the registered restriction's
+				// Caster$ Player.IsRemembered through the same
+				// RestrictionPlayerSpecMatches read the other four modes run
+				// (engine/rules/statics.go actorMatches, on the
+				// effect-delivered view castRestrictionSources builds).
+				//
+				// CantBlock joins for the targeted-player carriers: Ember Gale
+				// and Headliner Scarlett's RememberObjects$ Targeted (the
+				// player the spell targeted) feeds the registered restriction's
+				// ValidCard$ Creature.RememberedPlayerCtrl through the same
+				// consultation-time RememberedPlayers channel
+				// (engine/rules/combat/restrictions.go BlockRestricted's
+				// registered walk).
 				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
 			}
 			if mode == "CantGainLife" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent") {
@@ -1351,7 +1447,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			effectContinuous(h, ce)
 			registered = true
 		default:
-			registered = effectUnsupportedStatic(h, c, mode, params, effectName, rawDur, dur, what)
+			registered = effectUnsupportedStatic(h, c, mode, params, effectName, rawDur, dur, what, remembered, sa)
 		}
 	}
 	// Nothing registered (an unsupported StaticAbilities$ mode, or a
@@ -1406,3 +1502,16 @@ func effectFaceSVars(h Host, source state.ObjID) map[string]string {
 	}
 	return nil
 }
+
+// effectCombatTriggerModes are the combat-declaration modes an Effect may
+// deliver: they have no trigmatch matcher (the walks in
+// engine/rules/trigger_blocks.go fire one instance per matching pair), so
+// TriggerModeSupported is false for them.
+var effectCombatTriggerModes = map[string]bool{
+	"AttackerBlocked": true, "AttackerBlockedByCreature": true,
+	"AttackerUnblocked": true, "Blocks": true,
+}
+
+// EffectDeliversCombatTrigger reports whether mode is a combat-declaration
+// trigger an Effect registers for real (see effectCombatTriggerModes).
+func EffectDeliversCombatTrigger(mode string) bool { return effectCombatTriggerModes[mode] }

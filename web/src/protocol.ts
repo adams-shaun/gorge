@@ -1413,6 +1413,12 @@ export interface TargetEffect {
    * when nothing resolves.
    */
   statics?: string[];
+  /**
+   * Desc is the script's noun for the legal target set (Forge
+   * ValidTgtsDesc); presentation only, never a legality fact. Absent when
+   * the script supplies none.
+   */
+  desc?: string;
 }
 
   /**

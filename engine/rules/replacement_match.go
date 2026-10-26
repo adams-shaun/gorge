@@ -206,7 +206,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		}
 		return true
 	case cards.ReplMoved:
-		if ev.Kind != events.MoveZone {
+		if ev.Kind != events.MoveZone || !movedLandPlayCauseHolds(r.ParamStr(cards.PKValidCause), r.ParamStr(cards.PKDiscard) == "True", e.etbLandPlay, e.etbLandObj, ev.Obj, e.mayPlayGrantedBy(e.etbLandPlayer, ev.Obj, source)) {
 			return false
 		}
 		// Discard$ True narrows a Moved replacement to a discard. EffectOnly$
@@ -861,6 +861,20 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	}
 	return r.EventKind() == cards.ReplLoseMana && loseManaReplacementApplies(ev, replacementPlayerMatches(e, source, &r, ev.Player), e.replacementConditionHoldsWith(r, source, you, svars))
+}
+
+// movedLandPlayCauseHolds reports whether a Moved replacement's non-discard
+// ValidCause$ admits this move. Only LandAbility.MayPlaySource is modelled
+// (Lightstall Inquisitor's "each land played this way"): the move is the
+// in-flight land play of the replaced card and a may-play permission hosted
+// by the replacement's source covers it. Any other cause keeps today's
+// permissive read; a discard line reads its cause through
+// trigmatch.DiscardCauseAdmits instead.
+func movedLandPlayCauseHolds(cause string, discard, landPlay bool, landObj, moved state.ObjID, grantedBySource bool) bool {
+	if discard || cause != "LandAbility.MayPlaySource" {
+		return true
+	}
+	return landPlay && landObj == moved && grantedBySource
 }
 
 // replacementConditionHolds evaluates the condition parameters a replacement

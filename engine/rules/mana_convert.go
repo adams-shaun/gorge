@@ -43,21 +43,7 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 		if strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKOptional)), "True") {
 			dst = &optional
 		}
-		for tok := range strings.FieldsSeq(sv.ParamStr(cards.PKManaConversion)) {
-			if from, to, ok := strings.Cut(tok, "->"); ok {
-				if froms := pay.ManaColourFrom(from); froms != nil {
-					pay.ApplyConversionTo(dst, froms, to)
-				}
-				continue
-			}
-			if from, ok := strings.CutSuffix(tok, "<-C"); ok {
-				if froms := pay.ManaColourFrom(from); froms != nil {
-					for _, i := range froms {
-						dst.OnlyC[i] = true
-					}
-				}
-			}
-		}
+		applyManaConversionWords(dst, sv.ParamStr(cards.PKManaConversion))
 	}
 	for i := range srcs {
 		apply(srcs[i].sv, nil)
@@ -81,7 +67,39 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 				Params: ce.CostStaticParams, SVars: ce.CostStaticSVars}, remembered)
 		}
 	}
+	// A Play SA's own ManaConversion$ rider (Quistis Trepe, Tinybones, the
+	// Pickpocket) is a MANDATORY grant on the one spell that Play casts:
+	// Forge's PlayEffect copies it onto the cast spell ability, so it applies
+	// only while this exact spell's payment is being resolved -- never to an
+	// activated ability, and never to a later ordinary cast. The rider is
+	// subject to the pool's normal conversion semantics ("can be spent").
+	if !ability && e.cast != nil && e.cast.card == id && e.cast.playManaConversion != "" {
+		applyManaConversionWords(&mandatory, e.cast.playManaConversion)
+	}
 	return mandatory, optional
+}
+
+// applyManaConversionWords folds one ManaConversion$ word list into dst with
+// the grammar the static reader has always used: a "<from>-><to>" token
+// converts, a "<from><-C" token marks the from colours as payable for {C},
+// and an unknown word names nothing (fail closed). Both the board statics and
+// a Play SA's per-cast rider parse through here, so they mean the same thing.
+func applyManaConversionWords(dst *manaConv, spec string) {
+	for tok := range strings.FieldsSeq(spec) {
+		if from, to, ok := strings.Cut(tok, "->"); ok {
+			if froms := pay.ManaColourFrom(from); froms != nil {
+				pay.ApplyConversionTo(dst, froms, to)
+			}
+			continue
+		}
+		if from, ok := strings.CutSuffix(tok, "<-C"); ok {
+			if froms := pay.ManaColourFrom(from); froms != nil {
+				for _, i := range froms {
+					dst.OnlyC[i] = true
+				}
+			}
+		}
+	}
 }
 
 // mayPlayManaConvertRemembered records, at beginCast, every active

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/trigmatch"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -26,6 +27,11 @@ import (
 
 var staticCaseRE = regexp.MustCompile(`cards\.Static([A-Z][A-Za-z]+)`)
 
+// defaultModeRE reads the comparisons effectUnsupportedStatic makes against a
+// named Mode identifier (e.g. `mode == ModeIgnoreHexproof`), one per
+// default-arm-registered mode.
+var defaultModeRE = regexp.MustCompile(`mode == Mode([A-Z][A-Za-z]+)`)
+
 // effectRegisteredStaticModes parses the Effect switch's own case labels.
 func effectRegisteredStaticModes(t *testing.T) map[string]bool {
 	t.Helper()
@@ -40,14 +46,16 @@ func effectRegisteredStaticModes(t *testing.T) map[string]bool {
 		}
 		modes[m[1]] = true
 	}
-	// IgnoreHexproof is not a switch label: effectUnsupportedStatic registers
-	// it from the default arm. Detect that read rather than assume it.
+	// A mode the switch does not label can still be registered from the
+	// default arm: effectUnsupportedStatic admits modes by comparing against
+	// the named statics.Mode identifiers. Detect every such comparison rather
+	// than assume the fixed set.
 	ih, err := os.ReadFile(filepath.Join("..", "effects", "effect_ignorehexproof.go"))
 	if err != nil {
 		t.Fatalf("read engine/effects/effect_ignorehexproof.go: %v", err)
 	}
-	if strings.Contains(string(ih), "mode == ModeIgnoreHexproof") {
-		modes["IgnoreHexproof"] = true
+	for _, m := range defaultModeRE.FindAllStringSubmatch(string(ih), -1) {
+		modes[m[1]] = true
 	}
 	return modes
 }
@@ -200,7 +208,7 @@ func TestEffectStaticCensus(t *testing.T) {
 	fmt.Fprintf(&b, "Effect trigger modes reached in the corpus (%d):\n", len(triggerCorpus))
 	for _, mode := range names(triggerCorpus) {
 		state := "REGISTERED"
-		if trigmatch.Lookup(mode) == nil && mode != "ChangesController" {
+		if trigmatch.Lookup(mode) == nil && mode != "ChangesController" && !effects.EffectDeliversCombatTrigger(mode) {
 			state = "NOTES"
 			triggerNotes = append(triggerNotes, mode)
 		}

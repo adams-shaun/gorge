@@ -123,6 +123,11 @@ type Session struct {
 	// events.
 	ManaSpentAddsCounters []state.ManaAddsCounterGrant `clone:"reset"`
 
+	// ManaSpentAddsKeywords is ManaSpentAddsCounters' sibling for the
+	// AddsKeywords$ rider: one grant per keyword of every consumed batch whose
+	// AddsKeywordsValid$ admits the spell being cast (SPELL payments only).
+	ManaSpentAddsKeywords []state.ManaAddsKeywordGrant `clone:"reset"`
+
 	// PlanQuery is the payment planner's per-query scratch (the
 	// zone-entry index and source census, engine/rules/payment_plan_search.go),
 	// installed for one query and validated against the log on every read.

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -39,6 +40,28 @@ func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bo
 		}
 		matched = true
 		if strings.TrimSpace(sv.ParamStr(cards.PKOptional)) != "True" {
+			return true, true
+		}
+	}
+	// Effect-delivered registrations (engine/effects/effect_ignorehexproof.go
+	// registers the mode as a continuous restriction): the same read every
+	// other registered-restriction consumer makes — restrictionApplies
+	// resolves the registration's own ValidCard$ against the candidate with
+	// the registration's Source/Controller/Remembered context, so
+	// Creature.YouCtrl, Card.IsRemembered and Card.EffectSource all answer
+	// against the effect's own capture. Optional$ True keeps the election;
+	// an absent Optional$ is mandatory (Outmaneuver), the same rule the
+	// printed-static loop above applies. Index order, deterministic.
+	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
+		ce := &ceL[ceI]
+		if ce.Restriction != effects.ModeAssignCombatDamageAsUnblocked {
+			continue
+		}
+		if !e.restrictionApplies(ce, id) {
+			continue
+		}
+		matched = true
+		if ce.RestrictParam(cards.PKOptional) != "True" {
 			return true, true
 		}
 	}

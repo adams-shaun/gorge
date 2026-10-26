@@ -62,6 +62,9 @@ type ManaParams struct {
 	// The production riders, trimmed ("" = absent).
 	AddsNoCounter              string
 	AddsCounters               string
+	AddsKeywords               string
+	AddsKeywordsValid          string
+	AddsKeywordsUntil          string
 	PersistentMana             string
 	PersistentUntilEndOfCombat string
 	TriggersWhenSpent          string
@@ -137,6 +140,9 @@ func compileMana(sa *cards.SA, dp *DefinedParams) *ManaParams {
 	p.RestrictValid = strings.TrimSpace(sa.ParamStr(cards.PKRestrictValid))
 	p.AddsNoCounter = strings.TrimSpace(sa.ParamStr(cards.PKAddsNoCounter))
 	p.AddsCounters = strings.TrimSpace(sa.ParamStr(cards.PKAddsCounters))
+	p.AddsKeywords = strings.TrimSpace(sa.ParamStr(cards.PKAddsKeywords))
+	p.AddsKeywordsValid = strings.TrimSpace(sa.ParamStr(cards.PKAddsKeywordsValid))
+	p.AddsKeywordsUntil = strings.TrimSpace(sa.ParamStr(cards.PKAddsKeywordsUntil))
 	p.PersistentMana = strings.TrimSpace(sa.ParamStr(cards.PKPersistentMana))
 	p.PersistentUntilEndOfCombat = strings.TrimSpace(sa.ParamStr(cards.PKPersistentUntilEndOfCombat))
 	p.TriggersWhenSpent = strings.TrimSpace(sa.ParamStr(cards.PKTriggersWhenSpent))
@@ -204,20 +210,20 @@ var manaKnownKeys = [...]string{
 	"AILifeThreshold", "AILogic", "AINoRecursiveCheck", "AIPhyrexianPayment", "AITgts",
 	"Activation", "ActivationAfterBlockers", "ActivationFirstCombat", "ActivationGameTypes",
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddType",
-	"AddTypes", "AdditionalDesc", "AdditionalDescription", "AddsCounters", "AddsNoCounter",
+	"AddTypes", "AdditionalDesc", "AdditionalDescription", "AddsCounters", "AddsKeywords", "AddsKeywordsUntil", "AddsKeywordsValid", "AddsNoCounter",
 	"Affected", "AlternateCost", "AlternativeCost", "Amount", "Announce", "AnnounceTitle",
-	"Boast", "ChangeTypeDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
+	"Boast", "CantCopy", "ChangeTypeDesc", "ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
 	"ChoiceZone", "Choices", "ChooseFromList", "Chooser", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards",
-	"DefinedTarget", "Description", "Each", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "Image",
+	"DefinedDesc", "DefinedTarget", "Description", "Each", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW",
-	"Keyword", "KeywordLine", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
-	"ModeCost", "Monstrosity", "NewController", "NonBasicSpell", "OpponentTurn", "PersistentMana",
+	"Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
+	"ModeCost", "Monstrosity", "NewController", "NoPutDesc", "NonBasicSpell", "OpponentTurn", "PersistentMana",
 	"PersistentUntilEndOfCombat", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp",
-	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "Produced",
+	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "Produced",
 	"RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects",
 	"RememberTargets", "ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
 	"ReplaceOnly", "ReplaceType", "RestrictValid", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt",
@@ -232,7 +238,7 @@ var manaKnownKeys = [...]string{
 	"TgtPrompt", "TgtZone", "TokenScript", "TriggerDescription", "TriggersWhenSpent",
 	"Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
-	"ValidCounterType", "ValidDescription", "ValidTgts", "VoteMessage", "WithoutManaCost",
+	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost",
 	"XMax", "XMin",
 }
 

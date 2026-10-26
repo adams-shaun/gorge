@@ -69,7 +69,7 @@ func TestCipherEncodeIsPartOfResolution(t *testing.T) {
 		t.Fatal("precondition: eligible creature missing")
 	}
 
-	e.beginPlay(0, cipherID, true, "", false, false)
+	e.beginPlay(0, cipherID, true, "", false, false, "")
 	if o := e.G.Obj(cipherID); o == nil || o.Zone != state.ZStack {
 		t.Fatalf("precondition: the cast spell is not on the stack: %+v", o)
 	}
@@ -133,7 +133,7 @@ func TestCipherEncodeRunsAfterSuspendedBody(t *testing.T) {
 	if n := len(e.G.Zone(state.ZLibrary, 0)); n < 2 {
 		t.Fatalf("precondition: seat 0's library has %d cards, too few for the scry body to ask", n)
 	}
-	e.beginPlay(0, cipherID, true, "", false, false)
+	e.beginPlay(0, cipherID, true, "", false, false, "")
 	sawBodyAsk, encodes := false, 0
 	for i := 0; i < 40 && len(e.G.Stack) > 0; i++ {
 		d := e.Pending()
@@ -212,7 +212,7 @@ func TestCipherEncodeAppliesRegardlessOfRestZone(t *testing.T) {
 		if o := e.G.Obj(creature); o == nil || o.Zone != state.ZBattlefield {
 			t.Fatal("precondition: eligible creature missing")
 		}
-		e.beginPlay(0, cipherID, true, "", true, false)
+		e.beginPlay(0, cipherID, true, "", true, false, "")
 		if o := e.G.Obj(cipherID); o == nil || o.CastFlags&state.FlagReplaceGraveyard == 0 {
 			t.Fatalf("precondition: the resolving spell does not carry the exile resting-zone flag: %+v", o)
 		}
@@ -237,7 +237,7 @@ func TestCipherEncodeAppliesRegardlessOfRestZone(t *testing.T) {
 	if o := e.G.Obj(creature); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatal("precondition: eligible creature missing")
 	}
-	e.beginPlay(0, cipherID, true, "", true, false)
+	e.beginPlay(0, cipherID, true, "", true, false, "")
 	if o := e.G.Obj(cipherID); o == nil || o.CastFlags&state.FlagReplaceGraveyard == 0 {
 		t.Fatalf("precondition: the resolving spell does not carry the exile resting-zone flag: %+v", o)
 	}

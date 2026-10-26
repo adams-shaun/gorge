@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -329,6 +330,11 @@ type Descriptor struct {
 	// paymentForCast. Offer and payment must agree about an X cost, never
 	// drift.
 	XAnnounced bool
+	// Face, when set, is the face an alternate-face cast flips to: a
+	// RestrictValid$ restriction reads the spell as that face (CR 712.11:
+	// a Modal DFC's back-face spell has only that face's characteristics),
+	// though the card in hand still shows its front.
+	Face *cards.Face
 }
 
 // DescriptorFor is the descriptor for paying cost for id (a spell, or an
@@ -423,6 +429,7 @@ func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *st
 	capt.NoCounterSpend = 0
 	capt.ManaSpentSources = nil
 	capt.ManaSpentAddsCounters = nil
+	capt.ManaSpentAddsKeywords = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
 	// otherwise removing the first of two matching batches would make the
 	// live slice shift under this loop and could skip or double-spend one.
@@ -484,6 +491,15 @@ func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *st
 		if (d.Class == PurposeSpell || d.Class == PurposeActivated) && strings.TrimSpace(r.AddsCounters) != "" {
 			if g, ok := e.AddsCounterGrant(r, used); ok {
 				capt.ManaSpentAddsCounters = append(capt.ManaSpentAddsCounters, g)
+			}
+		}
+		// AddsKeywords$ (CR 106.6): the spell is checked against the rider's
+		// own AddsKeywordsValid$ with the mana source's controller as "you"
+		// (Forge's reading), so the filter is evaluated from the batch's
+		// producer. Spell payments only; the grants keep batch order.
+		if d.Class == PurposeSpell && r.AddsKeywords.Keywords != "" {
+			if v := r.AddsKeywords.Valid; v == "" || RestrictValidMatches(e, p, d, v, r.Source) {
+				capt.ManaSpentAddsKeywords = r.AddsKeywords.AppendGrants(capt.ManaSpentAddsKeywords)
 			}
 		}
 		e.Emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
@@ -554,6 +570,11 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 // (activated abilities, cumulative upkeep, other costs) free, matching Forge's
 // !sa.isSpell() reading.
 func RestrictValidMatches(e Engine, p state.PlayerID, d Descriptor, valid string, src state.ObjID) bool {
+	if d.Face != nil {
+		f := d.Face
+		d.Face = nil
+		return e.AsFace(d.ID, f, func() bool { return RestrictValidMatches(e, p, d, valid, src) })
+	}
 	for term := range strings.SplitSeq(strings.TrimSpace(valid), ",") {
 		if restrictValidTermMatches(e, p, d, strings.TrimSpace(term), src) {
 			return true

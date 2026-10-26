@@ -50,7 +50,10 @@ type engineScratch struct {
 	derivedMemo      derivedMemoTable `clone:"reset,pool=memo,release=.release"`
 	derivedMemoStack derivedMemoTable `clone:"reset,pool=memoStack,release=.release"`
 	derivedMemoDepth int              `clone:"reset"`
-	derivedMemoGen   uint64           `clone:"reset"`
+	// planFace is the face an alternate-face potential plan casts as, read
+	// by planComposedCost's descriptor (potential_plan.go); nil otherwise.
+	planFace       *cards.Face `clone:"reset"`
+	derivedMemoGen uint64      `clone:"reset"`
 	// typesMemo is the derived-types memo (engine/rules/types_memo.go): each
 	// object's layer-4 answer under the Derived memo's cross-walk key, served
 	// to derivedTypesOf and every top-level Derived build. typesMemoLocal*

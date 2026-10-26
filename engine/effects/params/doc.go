@@ -114,6 +114,9 @@ func LoadFacts(sa *cards.SA) *Facts {
 func unreadKeys(sa *cards.SA, known []string) []string {
 	var out []string
 	for k := range sa.Params {
+		if IsDescriptiveKey(k) {
+			continue
+		}
 		if _, ok := slices.BinarySearch(known, k); !ok {
 			out = append(out, k)
 		}

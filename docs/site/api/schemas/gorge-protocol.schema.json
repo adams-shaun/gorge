@@ -3736,6 +3736,10 @@
           "$ref": "#/$defs/DamageEffect",
           "description": "Damage is present only for recognised direct damage primitives (DealDamage and DamageAll). Absence is not proof that a whole spell's other abilities cannot deal damage."
         },
+        "desc": {
+          "description": "Desc is the script's noun for the legal target set (Forge ValidTgtsDesc); presentation only, never a legality fact. Absent when the script supplies none.",
+          "type": "string"
+        },
         "removal": {
           "$ref": "#/$defs/RemovalEffect",
           "description": "Removal classifies the active SA's direct zone-removal shape. It is absent for an unknown API, a non-removal destination, or a ChangeZone whose destination this vocabulary does not model."

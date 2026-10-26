@@ -16,7 +16,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 601.2g | partial | `engine/rules/cast_paymentplan.go#Engine.manaWindowAsk` | `TestCR601ManaWindowBeforePayment` | g window only when pool short; d no manual mana, autopayer ignores hand reserve |
 | 601.2h | partial | `engine/rules/cast_begin.go#Engine.costObjectAsks` `engine/rules/cast_commit.go#Engine.payCast` | `TestCR601_2hTargetsAreChosenBeforeTheSacrifice` `TestCR601_2hOneObjectPaysOneCost` | h objects chosen at payment, after the targets (c) and the g mana window; random/mill order; d autopay sources |
 | 601.2i | follows | `engine/rules/cast_commit.go#Engine.payCast` `engine/rules/cast_commit.go#Engine.fireDeferredCastTrigger` | `TestCR601CastTriggerWaitsForCompletedProposal` | cast triggers after payment, caster priority |
-| 601.3 | partial | `engine/rules/statics_cast.go#Engine.castRestricted` `engine/effects/filter_value.go#numericPred` `engine/effects/filter_value.go#parityPredicate` | `TestVoidWinnowerForbidsOpponentEvenManaValueSpells` | REVISED note: cmcEven fixed (cr-g03); Effect-delivered CantBeCast still a Note (LOUD) |
+| 601.3 | partial | `engine/rules/statics_cast.go#Engine.castRestricted` `engine/effects/filter_value.go#numericPred` `engine/effects/filter_value.go#parityPredicate` | `TestVoidWinnowerForbidsOpponentEvenManaValueSpells` `TestEffectCantBeCastBilbosGambit` `TestCantBeCastPrintedOriginKunoros` | REVISED note: cmcEven fixed (cr-g03); Effect-delivered CantBeCast registers via castRestrictionSources (cr-g136a), Origin$ read on both routes |
 | 601.3a | follows | `engine/rules/statics_cast.go#Engine.castRestrictedCost` `engine/rules/statics_cast.go#Engine.xAnnouncementEscapes` `engine/rules/cast_targets.go#Engine.recheckIllegal` | `TestCR601_3aXSpellEscapesManaValueProhibition` `TestCR601_3aFreeCastHasNoXChoice` `TestCR601_3aEscapeMustBePayable` `TestCR601_3aFlashbackRouteAnnouncesNoX` `TestCR601_3aFreeMayPlayOfferStillProhibited` `TestCR601_3aPotentialWalkSeesPayableEscape` `TestVoidWinnowerRechecksChosenXOnTheStack` | offer looks ahead only over payable announced X (cost carries {X}, printed face carries {X}, priced through the offer's affordability helper against the walk's pricing pool); 601.2e recheck enforces the announced X; d no prohibition statics in pool |
 | 601.3b | unknown | `engine/rules/statics_cast.go#Engine.castWithFlash` | - | settle: Aura-flash static + bestow card test; d no bestow |
 | 601.3c | follows | `engine/rules/mayflashsac.go#mayFlashSacFace` `engine/rules/cast_begin.go#castModeMayflash` | - | MayFlashCost/MayFlashSac; d none in pool |
@@ -44,7 +44,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 602.3a | follows | `engine/rules/target_ask.go#Engine.opponentPicker` | - | as 601.7a; d two players |
 | 602.3b | unknown | - | - | as 601.7b, not traced |
 | 602.4 | follows | `engine/rules/cast_pricing.go#Engine.manaToPay` | - | as 601.8 |
-| 602.5 | partial | `engine/rules/statics_cast.go#Engine.abilityRestricted` `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` `engine/effects/effect.go#effEffect` | - | g Effect-delivered CantBeActivated is a Note only (LOUD) |
+| 602.5 | follows | `engine/rules/statics_cast.go#Engine.abilityRestricted` `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` `engine/effects/effect.go#effEffect` | `TestEffectCantBeActivatedBraidedNet` `TestCantBeActivatedValidSAPowerUpPrinted` | Effect-delivered CantBeActivated registers via the continuous registry (cr-g136b); ValidSA$ Activated.PowerUp is read |
 | 602.5a | follows | `engine/rules/pay/managates.go#TapCostSick` `engine/rules/pay/managates.go#TapFlagsSick` | `TestCR602NewNoncreatureCanActivateTapAbility` | {T} sickness, haste, control change |
 | 602.5b | follows | `engine/rules/legal_loyalty.go#Engine.activationUsedCount` | `TestCR602OncePerTurnActivationRestriction` | per object across control change |
 | 602.5c | unknown | `engine/rules/legal_loyalty.go#Engine.activationUsedCount` | - | g granted identity = SVar name; two grantors may share tally |
@@ -75,7 +75,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.6c | follows | `engine/rules/trigger_kinds.go#Engine.faceLookBackZones` `engine/rules/trigger_snapshot_pool.go#Engine.lookBackObserver` | `TestCR704EveryDyingBloodArtistWitnessesWholeBatch` `TestCR704SimultaneousDeathsPreserveBloodArtistWitness` | LTB look-back for ChangesZone Origin Battlefield |
 | 603.6d | follows | `engine/rules/cast_etbchoice.go#Engine.entryETBChoice` `engine/effects/combatfx.go#effTap` | - | as-enters is static |
 | 603.6e | unknown | - | - | d no such Aura |
-| 603.7 | follows | `engine/rules/trigger_delayed.go#Engine.checkDelayedTriggers` `engine/rules/trigger_delayed.go#Engine.checkEventDelayedTriggers` | - | d drops silently past MaxDelayed=8 / maxDProg=6 |
+| 603.7 | follows | `engine/rules/trigger_delayed.go#Engine.checkDelayedTriggers` `engine/rules/trigger_delayed.go#Engine.checkEventDelayedTriggers` | `TestPitAutomatonCopiesNextExhaust` | event modes SpellCast, ChangesZone, ChangesController, DamageDone, AttackersDeclared, BecomeMonarch, AbilityCast, SpellAbilityCast; d drops silently past MaxDelayed=8 / maxDProg=6 |
 | 603.7a | follows | `engine/effects/delayed_trigger.go#effDelayedTrigger` | `TestDelayedTriggerPhaseRegisters` | created at resolution; not audited separately |
 | 603.7b | follows | `engine/rules/trigger_delayed.go#Engine.checkDelayedTriggers` | - | one-shot removal at DelayedPush; not audited separately |
 | 603.7c | partial | `engine/effects/zone_change.go#definedDelayRememberedTargets` `engine/effects/zone_change.go#effChangeZone` `engine/effects/zone_bulk.go#effDestroy` | - | g new-object check only for move/destroy/sac bodies |
@@ -254,7 +254,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 614.10a-614.10b | unknown | - | - | not audited |
 | 614.11 | follows | `engine/rules/replacement.go#Engine.applyNonMoveReplacements` `engine/rules/replacement_match.go#drawMatchAmount` | `TestLivingConundrumSkipsTheDrawOnAnEmptyLibrary` `TestThoughtReflectionDrawsMeetNotionThief` | draw replaced on an empty library |
 | 614.11a-614.11b | unknown | - | - | not audited |
-| 614.12 | follows | `engine/rules/replacement_match.go#Engine.activeZonesGateOK` | - | non-cast Clone entry LOUD |
+| 614.12 | follows | `engine/rules/replacement_match.go#Engine.activeZonesGateOK` `engine/effects/restrictions.go#replacementMovedBodyLive` `engine/rules/replacement_match.go#Engine.replacementMatchesRememberedUngatedBy` | `TestEffectReplacementEntersTappedLightstall` | Effect-delivered enters-tapped replacement (Lightstall Inquisitor); non-cast Clone entry LOUD |
 | 614.12a | follows | `engine/rules/replacement_etb.go#Engine.applyETBChoiceReplacement` | - | choices before entering |
 | 614.12b | unknown | - | - | - |
 | 614.12c | unknown | - | - | - |

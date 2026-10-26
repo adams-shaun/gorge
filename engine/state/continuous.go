@@ -607,6 +607,17 @@ type ContinuousEffect struct {
 	// benefits each affected card's owner instead of the controller.
 	MayPlayPlayer string
 
+	// MayPlayCheckSVar/MayPlaySVarCompare carry the grant's CheckSVar$/
+	// SVarCompare$ intervening-if (Possibility Technician's "you may play it
+	// if you control a Kavu", Flameshape's Wizard gate; CR 611.2a/b -- the
+	// permission holds exactly while the condition does): rules'
+	// effectMayPlayGateHolds evaluates the named SVar through the shared
+	// statics evaluator every time the grant is matched. SVarCompare is the
+	// "<op><number>" threshold; an empty MayPlayCheckSVar is no gate.
+	// Runtime-only, rebuilt by re-execution on replay like MayPlayPlayer.
+	MayPlayCheckSVar   string
+	MayPlaySVarCompare string
+
 	// MayPlayIgnoreType marks the grant's MayPlayIgnoreType$ True rider
 	// (Rakdos, the Muscle's "mana of any type can be spent to cast those
 	// spells"): like MayPlayIgnoreColor it lets any colour pay a coloured

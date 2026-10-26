@@ -137,6 +137,7 @@ func applyLoseManaReplacement(ev events.Event, m replMatch, p state.Player,
 		for _, batch := range restrictedBatchesForSlot(p.RestrictedMana, slot, available) {
 			text := events.ManaRestrictionTextNC(batch.Valid, batch.Source, batch.NoCounter)
 			text = events.ManaAddsCountersText(text, batch.AddsCounters)
+			text = events.ManaAddsKeywordsText(text, batch.AddsKeywords)
 			converted = append(converted, events.Event{Kind: events.ManaAdd, Player: ev.Player,
 				Amount: batch.Amount, Counter: convertedManaCounter(batch.Color, out), Text: text})
 			if len(batch.Color) == 2 && batch.Color[0] == 'S' {

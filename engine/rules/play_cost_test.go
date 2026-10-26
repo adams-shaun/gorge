@@ -86,7 +86,7 @@ func TestBeginPlayFixedGenericPlayCostPaysTheTokenNotTheManaValue(t *testing.T) 
 	for range 3 {
 		e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1})
 	}
-	e.beginPlay(0, bearID, false, "3", false, false)
+	e.beginPlay(0, bearID, false, "3", false, false, "")
 	if hasEvent(e, events.PutOnStack, bearID) == false {
 		t.Fatalf("the fixed-generic PlayCost did not begin a cast (no stack push)")
 	}
@@ -110,7 +110,7 @@ func TestBeginPlayPayLifePlayCostSubstitutesTheManaValue(t *testing.T) {
 	bearID := e.G.Zone(state.ZHand, 0)[0]
 	// Anrakyr the Traveller's PlayCost$ PayLife<ConvertedManaCost> shape:
 	// pay life equal to the card's mana value (2), never its mana cost.
-	e.beginPlay(0, bearID, false, "PayLife<ConvertedManaCost>", false, false)
+	e.beginPlay(0, bearID, false, "PayLife<ConvertedManaCost>", false, false, "")
 	if !hasEvent(e, events.PutOnStack, bearID) {
 		t.Fatalf("the PayLife alternative did not begin a cast (no stack push)")
 	}
@@ -127,7 +127,7 @@ func TestBeginPlayPayLifePlayCostSubstitutesTheManaValue(t *testing.T) {
 	e2, _ := castProvEngine(t, reg, bear)
 	bear2 := e2.G.Zone(state.ZHand, 0)[0]
 	e2.G.Players[0].Life = 1
-	e2.beginPlay(0, bear2, false, "PayLife<ConvertedManaCost>", false, false)
+	e2.beginPlay(0, bear2, false, "PayLife<ConvertedManaCost>", false, false, "")
 	if hasEvent(e2, events.PutOnStack, bear2) {
 		t.Fatalf("an unpayable PayLife alternative began a cast")
 	}
@@ -175,7 +175,7 @@ func TestPlayCostPricingAndHardDecline(t *testing.T) {
 	e, _ := castProvEngine(t, reg, bear)
 	bearID := e.G.Zone(state.ZHand, 0)[0]
 	before := len(e.L.Events)
-	e.beginPlay(0, bearID, false, "SuspendCost", false, false)
+	e.beginPlay(0, bearID, false, "SuspendCost", false, false, "")
 	if e.cast != nil {
 		t.Fatalf("an unpriceable PlayCost began a cast")
 	}

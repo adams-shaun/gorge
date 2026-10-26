@@ -1548,7 +1548,17 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 				if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) {
 					continue
 				}
-				sc := e.specCtx(sv.Source, sv.Controller)
+				// Origin$ reads the cast's announced ORIGIN (pc.from): the card
+				// is on the stack by now, so its current zone is the stack, and
+				// Forge's applyCantBeCastAbility reads card.getCastFrom() -- the
+				// same read the offer made against the current zone.
+				if !castOriginGateHolds(sv, pc.from) {
+					continue
+				}
+				sc := e.staticSpecCtx(sv)
+				for _, rid := range sv.Remembered {
+					sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
+				}
 				if asPrototype {
 					sc = e.prototypeSpellSpecCtx(sc, pc.card)
 				} else {
@@ -1557,7 +1567,16 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 				}
 				spec := castValidCardSpec(sv)
 				if e.matchesSpec(spec, pc.card, sc) &&
-					castLimitBinds(e.L.Events, sv, pc.player, pc.card, func(oid state.ObjID) bool { return e.matchesSpec(spec, oid, e.staticSpecCtx(sv)) }) {
+					castLimitBinds(e.L.Events, sv, pc.player, pc.card, func(oid state.ObjID) bool {
+						if len(sv.Remembered) == 0 {
+							return e.matchesSpec(spec, oid, e.staticSpecCtx(sv))
+						}
+						sc := e.staticSpecCtx(sv)
+						for _, rid := range sv.Remembered {
+							sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
+						}
+						return e.matchesSpec(spec, oid, sc)
+					}) {
 					return true
 				}
 			}

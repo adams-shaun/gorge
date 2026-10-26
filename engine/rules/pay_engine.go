@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -91,7 +92,8 @@ func containsObjID(ids []state.ObjID, id state.ObjID) bool {
 // applies to p; rules' playerLifeChangeForbidden is the one answer, shared with
 // the replacement site, so an offer gate and the charged payment cannot disagree.
 func (pe *payEval) LifeChangeForbidden(p state.PlayerID) bool {
-	return (*Engine)(pe).playerLifeChangeForbidden(p)
+	e := (*Engine)(pe)
+	return e.playerLifeChangeForbidden(p) || e.playerLifeLossForbidden(p)
 }
 
 // Conv (pay.Engine; formerly paymentConv) is the conversion set for p paying id (ability selects the
@@ -101,10 +103,13 @@ func (pe *payEval) LifeChangeForbidden(p state.PlayerID) bool {
 // byte-identical.
 func (pe *payEval) Conv(p state.PlayerID, id state.ObjID, ability bool) *manaConv {
 	e := (*Engine)(pe)
+	// A Play SA's per-cast ManaConversion$ rider is a conversion source that
+	// no board static represents: the early nil answer must not swallow it.
+	rider := !ability && e.cast != nil && e.cast.card == id && e.cast.playManaConversion != ""
 	// With no printed ManaConvert static on the board and no Effect-delivered
 	// one in active()'s list (its build digest), manaConversionParts has no
 	// source to apply, so both parts are empty: the nil answer, directly.
-	if len(e.manaConvPrintedSources()) == 0 && !e.activeSummaryOf(e.active()).hasManaConvert {
+	if !rider && len(e.manaConvPrintedSources()) == 0 && !e.activeSummaryOf(e.active()).hasManaConvert {
 		if walkCacheVerify {
 			if m, o := e.manaConversionParts(p, id, ability); !m.Empty() || !o.Empty() {
 				panic(fmt.Sprintf("rules: a board with no ManaConvert source converts mana for obj %d", id))
@@ -192,6 +197,9 @@ func (pe *payer) Game() *state.Game                 { return pe.G }
 func (pe *payer) Emit(ev events.Event) events.Event { return (*Engine)(pe).emit(ev) }
 func (pe *payer) Verify() bool                      { return walkCacheVerify }
 func (pe *payer) Log() *events.Log                  { return pe.L }
+func (pe *payer) AsFace(id state.ObjID, face *cards.Face, fn func() bool) bool {
+	return (*Engine)(pe).offerAsFace(id, face, fn)
+}
 func (pe *payer) MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {
 	e := (*Engine)(pe)
 	// A cost spec comparing against an X the ability's targets fix

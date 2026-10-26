@@ -15,6 +15,9 @@ type queuedPlays struct {
 	playCost         string
 	replaceGraveyard bool
 	copyCard         bool
+	// manaConversion is the Play SA's ManaConversion$ rider, copied onto
+	// each card the Play casts (Forge PlayEffect's per-spell grant).
+	manaConversion string
 	// imprintOn is the ImprintPlayed$ True source (0 = no imprint): every
 	// card the play actually begins is imprinted on it.
 	imprintOn state.ObjID
@@ -42,7 +45,7 @@ func (e *Engine) runPlays(q *queuedPlays) bool {
 		if o := e.G.Obj(id); o != nil {
 			from = o.Zone
 		}
-		e.beginPlay(q.player, id, q.free, q.playCost, q.replaceGraveyard, q.copyCard)
+		e.beginPlay(q.player, id, q.free, q.playCost, q.replaceGraveyard, q.copyCard, q.manaConversion)
 		begun = true
 		if q.imprintOn != 0 && from.Valid() {
 			if o := e.G.Obj(id); o != nil && o.Zone != from {

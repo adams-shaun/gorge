@@ -311,11 +311,11 @@ func applyManaAdd(g *state.Game, e *Event) {
 		// it here. Registering before the pool write would be equivalent
 		// for the ADD path; the consume path needs the batch list, which
 		// this block owns.
-		if valid, srcID, cond, addsCounters, restricted := ManaRestrictionFromText(rest); restricted {
+		if valid, srcID, cond, addsCounters, addsKeywords, restricted := manaRestrictionParts(rest); restricted {
 			if e.Amount > 0 {
 				player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
 					Color: e.Counter, Amount: e.Amount, Valid: valid, Source: srcID,
-					NoCounter: cond, Persistent: persistent, Combat: persistent && combat, AddsCounters: addsCounters,
+					NoCounter: cond, Persistent: persistent, Combat: persistent && combat, AddsCounters: addsCounters, AddsKeywords: addsKeywords,
 				})
 			} else if e.Amount < 0 {
 				// A restricted spend event names exactly the restriction batch it

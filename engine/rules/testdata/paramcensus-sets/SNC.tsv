@@ -1,0 +1,17 @@
+Ballroom Brawlers	param:api:Pump.ThisDefinedAndTgts
+Call In a Professional	param:api:DealDamage.NoPrevention
+Elspeth Resplendent	param:api:PutCounter.TypeList
+Evelyn, the Covetous	param:api:Dig.ExileWithCounters
+Exotic Pets	param:api:PutCounter.SpecifyCounter
+Glamorous Outlaw	param:stat:Continuous.MayPlay.Secondary
+Lord Xander, the Collector	param:api:Sacrifice.Mode
+Maestros Ascendancy	param:stat:Continuous.MayPlay.ReplaceGraveyard
+Masked Bandits	param:stat:Continuous.MayPlay.Secondary
+Rakish Revelers	param:stat:Continuous.MayPlay.Secondary
+Rogues' Gallery	param:api:ChangeZone.LockInText
+Scheming Fence	param:stat:Continuous.ManaConversion
+Security Rhox	param:stat:AlternativeCost.ManaRestriction
+Shattered Seraph	param:stat:Continuous.MayPlay.Secondary
+Soul of Emancipation	param:api:RepeatEach.UseImprinted
+Spara's Adjudicators	param:stat:Continuous.MayPlay.Secondary
+Vivien on the Hunt	param:api:ChangeZone.ChangeNumDesc

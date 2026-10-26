@@ -572,39 +572,82 @@ func foldPhaseOut(g *state.Game, e *Event) {
 	// that left the battlefield is not a phase. The Move fold clears
 	// PhasedOut on every real battlefield departure, so a later entry
 	// (CR 400.7) starts phased in.
-	if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield {
-		o.PhasedOut = e.Amount >= 1
-		if e.Amount >= 1 {
-			o.WontPhaseInNormal = e.Text == "wont-phase-in-normal"
-		} else {
-			o.WontPhaseInNormal = false
+	o := g.Obj(e.Obj)
+	if o == nil || o.Zone != state.ZBattlefield {
+		return
+	}
+	if e.Amount >= 1 {
+		phaseOutOne(g, o, false)
+		o.WontPhaseInNormal = e.Text == "wont-phase-in-normal"
+		// CR 702.26g: every permanent attached to a permanent that phases
+		// out phases out indirectly with it, recursively. Derived here, in
+		// the fold, so every emitter (effects, the untap scan) gets it and
+		// replay re-derives it from the one PhaseOut event.
+		phaseOutAttached(g, o.ID)
+		return
+	}
+	o.PhasedOut = false
+	o.PhasedOutIndirect = false
+	o.WontPhaseInNormal = false
+	// CR 702.26h: permanents that phased out indirectly with this one phase
+	// in with it, still attached. A directly phased-out attachment is not
+	// touched: it phases in on its own controller's untap step.
+	phaseInAttached(g, o.ID)
+}
+
+// phaseOutOne marks o phased out (direct or indirect) and removes it from
+// combat (CR 702.25c): phasing is deliberately NOT a zone change, so no Move
+// fold runs to clear the combat members the way a departure does; clear them
+// with the exact EndCombatReset{Obj} shape, so a phased-out ATTACKER stops
+// assigning and receiving combat damage and a phased-out BLOCKER stops
+// absorbing it. A zero tombstone is left in each attacking creature's
+// BlockedBy (CR 509.1h: the attacker stays blocked even though its blocker is
+// gone), which is exactly what liveBlockers and damageStep already read.
+func phaseOutOne(g *state.Game, o *state.Object, indirect bool) {
+	o.PhasedOut = true
+	o.PhasedOutIndirect = indirect
+	for i := range g.Objs {
+		other := &g.Objs[i]
+		if other.ID == o.ID {
+			other.IsAttacking = false
+			other.IsBlocking = false
+			other.AttackingBattle = 0
+			other.Band = 0
+			other.BlockedBy = nil
+			continue
 		}
-		// CR 702.25c: "A permanent that phases out is removed from
-		// combat." Phasing is deliberately NOT a zone change, so no Move
-		// fold runs to clear the combat members the way a departure does;
-		// clear them here with the exact EndCombatReset{Obj} shape, so a
-		// phased-out ATTACKER stops assigning and receiving combat damage
-		// and a phased-out BLOCKER stops absorbing it. A zero tombstone is
-		// left in each attacking creature's BlockedBy (CR 509.1h: the
-		// attacker stays blocked even though its blocker is gone), which
-		// is exactly what liveBlockers and damageStep already read.
-		if o.PhasedOut {
-			for i := range g.Objs {
-				other := &g.Objs[i]
-				if other.ID == e.Obj {
-					other.IsAttacking = false
-					other.IsBlocking = false
-					other.AttackingBattle = 0
-					other.Band = 0
-					other.BlockedBy = nil
-					continue
-				}
-				for j, id := range other.BlockedBy {
-					if id == e.Obj {
-						other.BlockedBy[j] = 0
-					}
-				}
+		for j, id := range other.BlockedBy {
+			if id == o.ID {
+				other.BlockedBy[j] = 0
 			}
 		}
+	}
+}
+
+// phaseOutAttached phases out, indirectly, every phased-in battlefield
+// permanent attached to host, then their attachments (CR 702.26g). The
+// arena walk is in object order, so the fold is deterministic.
+func phaseOutAttached(g *state.Game, host state.ObjID) {
+	for i := range g.Objs {
+		a := &g.Objs[i]
+		if a.Zone != state.ZBattlefield || a.PhasedOut || a.AttachedTo != host {
+			continue
+		}
+		phaseOutOne(g, a, true)
+		phaseOutAttached(g, a.ID)
+	}
+}
+
+// phaseInAttached is CR 702.26h's other half: the indirectly phased-out
+// attachments of host phase in with it, recursively, and stay attached.
+func phaseInAttached(g *state.Game, host state.ObjID) {
+	for i := range g.Objs {
+		a := &g.Objs[i]
+		if a.Zone != state.ZBattlefield || !a.PhasedOut || !a.PhasedOutIndirect || a.AttachedTo != host {
+			continue
+		}
+		a.PhasedOut = false
+		a.PhasedOutIndirect = false
+		phaseInAttached(g, a.ID)
 	}
 }

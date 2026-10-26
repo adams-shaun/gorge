@@ -28,7 +28,7 @@ func TestCR305_3EffectLandPlayNeedsOwnTurn(t *testing.T) {
 	if !e.CastProhibited(0, forest) {
 		t.Errorf("CR 305.3: the Play election offers a land on another player's turn")
 	}
-	e.beginPlay(0, forest, true, "", false, false)
+	e.beginPlay(0, forest, true, "", false, false, "")
 	if z := e.G.Obj(forest).Zone; z != state.ZHand {
 		t.Fatalf("CR 305.3: a Play effect put the Forest into %s on seat 1's turn, want it left in hand", z)
 	}
@@ -51,14 +51,14 @@ func TestCR305_2aEffectLandPlayUsesExtraDrop(t *testing.T) {
 	if e.CastProhibited(0, first) {
 		t.Errorf("CR 305.2a: the Play election withholds a land although Exploration leaves a land play")
 	}
-	e.beginPlay(0, first, true, "", false, false)
+	e.beginPlay(0, first, true, "", false, false, "")
 	if z := e.G.Obj(first).Zone; z != state.ZBattlefield {
 		t.Fatalf("CR 305.2a: the Play effect left the Forest in %s with Exploration's second land play unused, want the battlefield", z)
 	}
 	if n := e.G.Players[0].LandsPlayed; n != 2 {
 		t.Fatalf("LandsPlayed = %d after the effect play, want 2 (CR 305.2a counts it)", n)
 	}
-	e.beginPlay(0, second, true, "", false, false)
+	e.beginPlay(0, second, true, "", false, false, "")
 	if z := e.G.Obj(second).Zone; z != state.ZHand {
 		t.Fatalf("CR 305.3: a third land was played with two land plays available, zone %s", z)
 	}

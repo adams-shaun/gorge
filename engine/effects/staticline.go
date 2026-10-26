@@ -251,6 +251,8 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 		MayPlayPlayerTurn:      playerTurn,
 		MayPlayValidAfterStack: afterStack,
 		MayPlayPlayer:          strings.TrimSpace(params["MayPlayPlayer"]),
+		MayPlayCheckSVar:       strings.TrimSpace(params["CheckSVar"]),
+		MayPlaySVarCompare:     strings.TrimSpace(params["SVarCompare"]),
 	}, true
 }
 
@@ -278,6 +280,8 @@ func mayPlayFreeGrantFromLine(params map[string]string) (state.ContinuousEffect,
 		MayPlayPlayerTurn:      playerTurn,
 		MayPlayValidAfterStack: afterStack,
 		MayPlayPlayer:          strings.TrimSpace(params["MayPlayPlayer"]),
+		MayPlayCheckSVar:       strings.TrimSpace(params["CheckSVar"]),
+		MayPlaySVarCompare:     strings.TrimSpace(params["SVarCompare"]),
 	}, true
 }
 
@@ -359,12 +363,15 @@ func mayPlayEffectFreeParams(params map[string]string) (limit int32, playerTurn 
 // mayPlayParamsScan is the ONE parameter scan every may-play whitelist
 // shares. allowFree widens the key whitelist by exactly
 // MayPlayWithoutManaCost$ (the caller has already required it to be True);
-// allowAfterStack widens it by exactly ValidAfterStack$ (the
+// allowAfterStack widens it by ValidAfterStack$ (the
 // Effect-delivery path accepts the qualifier and carries it verbatim on the
-// registered effect for rules to evaluate). Every other unknown key fails
-// closed. The ValidAfterStack$ value is returned unread -- effects must not
-// interpret rules' spec grammar -- so an unsupported value is fail-closed at
-// the matcher, never here.
+// registered effect for rules to evaluate), the CheckSVar$/SVarCompare$
+// gate pair (carried as the registered effect's MayPlayCheckSVar/
+// MayPlaySVarCompare for rules' board-dependent gate, CR 611.2a/b) and
+// display-only Secondary$ (carried, never read). Every other unknown key
+// fails closed. The ValidAfterStack$ value is returned unread -- effects must
+// not interpret rules' spec grammar -- so an unsupported value is fail-closed
+// at the matcher, never here.
 func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool) (ignoreColor, ignoreType bool, limit int32, playerTurn bool, validAfterStack string, ok bool) {
 	for key := range params {
 		switch mayPlayParamCodes.Code(key) {
@@ -384,6 +391,36 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 			// effect's MayPlayPlayer for rules' per-card owner gate. Every
 			// other beneficiary, and the printed route, fails closed.
 			if !allowAfterStack || strings.TrimSpace(params[key]) != MayPlayCardOwner {
+				return false, false, 0, false, "", false
+			}
+		case mayPlayParamGateSVar:
+			// CheckSVar$/SVarCompare$ ride the Effect-delivered grant as the
+			// registered effect's MayPlayCheckSVar/MayPlaySVarCompare for
+			// rules' board-dependent gate (CR 611.2a/b: "you may play it if
+			// you control a Kavu/Wizard" -- Possibility Technician,
+			// Flameshape). The printed route (allowAfterStack=false) keeps
+			// refusing them: its own gate is evaluated BEFORE the grant is
+			// built, so carrying them there would be a dead read.
+			if !allowAfterStack {
+				return false, false, 0, false, "", false
+			}
+			// A CheckSVar$ present but blank is unreadable (nothing to
+			// evaluate): refusing it here keeps a blank key from silently
+			// registering an UNGATED grant (the printed route's
+			// checkSVarHolds convention: present-but-empty fails).
+			if raw, okv := params["CheckSVar"]; okv && strings.TrimSpace(raw) == "" {
+				return false, false, 0, false, "", false
+			}
+			// A bare SVarCompare$ with no CheckSVar$ is malformed (nothing to
+			// compare): mayPlayConditionGateHolds's convention.
+			if strings.TrimSpace(params["CheckSVar"]) == "" && strings.TrimSpace(params["SVarCompare"]) != "" {
+				return false, false, 0, false, "", false
+			}
+		case mayPlayParamSecondary:
+			// Secondary$ is Forge's display-only renderer bit (only the card
+			// text renderer reads it): carried, never read. The printed route
+			// keeps refusing it as an unread qualifier, as before.
+			if !allowAfterStack {
 				return false, false, 0, false, "", false
 			}
 		default:
@@ -485,10 +522,20 @@ func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, reme
 // Implemented delivery-mode names shared by effects registration and rules
 // consultation. Keep comparisons against these named mode identifiers.
 const (
-	ModeIgnoreHexproof  = "IgnoreHexproof"
-	ModeNoCleanupDamage = "NoCleanupDamage"
-	ModeMustBlock       = "MustBlock"
-	ModeFlipCoinMod     = "FlipCoinMod"
+	ModeIgnoreHexproof   = "IgnoreHexproof"
+	ModeCantLoseLife     = "CantLoseLife"
+	ModeIgnoreLegendRule = "IgnoreLegendRule"
+	// ModeAssignCombatDamageAsUnblocked names CR 510.1c-d's
+	// "assign combat damage as though it weren't blocked" static, delivered
+	// by a resolved Effect's StaticAbilities$ body (Predatory Focus,
+	// Outmaneuver, Gurzigost) and read by rules'
+	// asUnblockedStaticMatches beside the printed S: static route.
+	ModeAssignCombatDamageAsUnblocked = "AssignCombatDamageAsUnblocked"
+	ModeNoCleanupDamage               = "NoCleanupDamage"
+	ModeMustBlock                     = "MustBlock"
+	ModeFlipCoinMod                   = "FlipCoinMod"
+	ModeCantPhaseIn                   = "CantPhaseIn"
+	ModeCantPhaseOut                  = "CantPhaseOut"
 )
 
 // staticKeysReadable fails closed when a delivered static carries an unread
@@ -984,6 +1031,8 @@ const (
 	mayPlayParamMayPlayWithoutManaCost
 	mayPlayParamValidAfterStack
 	mayPlayParamMayPlayPlayer
+	mayPlayParamGateSVar
+	mayPlayParamSecondary
 )
 
 var mayPlayParamCodes = state.NewStrCodes(
@@ -1000,4 +1049,7 @@ var mayPlayParamCodes = state.NewStrCodes(
 	state.StrEntry[mayPlayParamCode]{Key: "MayPlayWithoutManaCost", Val: mayPlayParamMayPlayWithoutManaCost},
 	state.StrEntry[mayPlayParamCode]{Key: "ValidAfterStack", Val: mayPlayParamValidAfterStack},
 	state.StrEntry[mayPlayParamCode]{Key: "MayPlayPlayer", Val: mayPlayParamMayPlayPlayer},
+	state.StrEntry[mayPlayParamCode]{Key: "CheckSVar", Val: mayPlayParamGateSVar},
+	state.StrEntry[mayPlayParamCode]{Key: "SVarCompare", Val: mayPlayParamGateSVar},
+	state.StrEntry[mayPlayParamCode]{Key: "Secondary", Val: mayPlayParamSecondary},
 )

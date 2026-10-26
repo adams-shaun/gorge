@@ -447,6 +447,13 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 		}
+		if cp.DifferentNames {
+			// "Choose any number ... with different names": Forge's
+			// one-at-a-time loop, not the single-pick ask below. The helper
+			// owns the shrinking pool and the deterministic no-host arm.
+			targets = copyPermanentDifferentNamesPicks(h, c, sa, chooser, pick)
+			break
+		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
 			Source: c.Source, ResumeKind: "copypermanent_choice", ResumeSA: sa,
 			Prompt: "Choose a creature to copy"}

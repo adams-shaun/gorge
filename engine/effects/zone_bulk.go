@@ -325,6 +325,12 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Permanent"
 	}
 	validCard := strings.TrimSpace(sa.ParamStr(cards.PKValidCard))
+	// SacMessage$ is the printed English noun for the SacValid$ set
+	// ("nontoken creature"). It is PRESENTATION only (CR 701.21a: the legal
+	// sacrifice set is SacValid$), so it names the ask and never narrows the
+	// eligible permanents. Forge passes it to the chooser's selection prompt;
+	// with no key the pre-SacMessage wording stays byte for byte.
+	sacMessage := strings.TrimSpace(sa.Params["SacMessage"])
 	// RememberSacrificed$ True drives the task's effect-driven sacrifice
 	// capture: it makes effSacrifice record the LKI snapshot (power,
 	// toughness, mana value) of each object it sacrifices, so a SubAbility$
@@ -356,6 +362,12 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	}
 	optional := sa.ParamStr(cards.PKOptional) == "True"
 	strict := optional && sa.ParamStr(cards.PKStrictAmount) == "True"
+	// The strict optional yes/no ask names the same noun in place of
+	// permanent(s); the pre-SacMessage wording is unchanged.
+	sacAskNoun := "permanent(s)"
+	if sacMessage != "" {
+		sacAskNoun = sacrificeNoun(sacMessage, amount)
+	}
 	// Optional + StrictAmount is not a 0..Amount range: it is specifically
 	// "none, or exactly Amount". The KModes answer is consumed below before a
 	// possible exact-batch KChoose; keeping it separate prevents a partial
@@ -476,7 +488,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 						d := &decision.Decision{Player: t.Player, Kind: decision.KModes,
 							Min: 1, Max: 1, Source: c.Source, ResumeKind: "sacrifice_optional",
 							ResumeSA: sa, ResumeTarget: targetIndex,
-							Prompt: "Sacrifice " + strconv.Itoa(int(amount)) + " permanent(s)?",
+							Prompt: "Sacrifice " + strconv.Itoa(int(amount)) + " " + sacAskNoun + "?",
 							Options: []decision.Option{
 								{Index: 0, Kind: "mode", Label: "Sacrifice " + strconv.Itoa(int(amount)) + " permanent(s)", Obj: c.Source, Player: t.Player},
 								{Index: 1, Kind: "mode", Label: "Don't sacrifice", Obj: c.Source, Player: t.Player},
@@ -531,7 +543,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					ResumeKind:   "sacrifice",
 					ResumeSA:     sa,
 					ResumeTarget: targetIndex,
-					Prompt:       sacrificePrompt(optional && !strict, maxv)}
+					Prompt:       sacrificePrompt(optional && !strict, maxv, sacMessage)}
 				for _, id := range eligible {
 					name := "a permanent"
 					if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -602,7 +614,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose,
 				Min: 0, Max: 1, Source: c.Source,
 				ResumeKind: "sacrifice", ResumeSA: sa, ResumeTarget: targetIndex,
-				Prompt: sacrificePrompt(true, 1)}
+				Prompt: sacrificePrompt(true, 1, sacMessage)}
 			name := "a permanent"
 			if o.Face() != nil {
 				name = o.Face().Name
@@ -652,12 +664,31 @@ func ParseDamageUnlessCost(cost string) (int, bool) {
 	return v, true
 }
 
-// sacrificePrompt renders the player-targeted sacrifice ask's prompt.
-func sacrificePrompt(optional bool, n int32) string {
-	if optional {
-		return "Choose up to " + strconv.Itoa(int(n)) + " permanent(s) to sacrifice, or none"
+// sacrificePrompt renders the player-targeted sacrifice ask's prompt. noun is
+// SacMessage$ (the printed English noun for SacValid$); "" keeps the
+// pre-SacMessage permanent(s) text byte for byte.
+func sacrificePrompt(optional bool, n int32, noun string) string {
+	if noun == "" {
+		if optional {
+			return "Choose up to " + strconv.Itoa(int(n)) + " permanent(s) to sacrifice, or none"
+		}
+		return "Choose " + strconv.Itoa(int(n)) + " permanent(s) to sacrifice"
 	}
-	return "Choose " + strconv.Itoa(int(n)) + " permanent(s) to sacrifice"
+	noun = sacrificeNoun(noun, n)
+	if optional {
+		return "Choose up to " + strconv.Itoa(int(n)) + " " + noun + " to sacrifice, or none"
+	}
+	return "Choose " + strconv.Itoa(int(n)) + " " + noun + " to sacrifice"
+}
+
+// sacrificeNoun pluralises a SacMessage$ noun for a batch greater than one.
+// The noun is the card's printed English phrase, so its plural is the phrase
+// plus "s" ("nontoken creature" -> "nontoken creatures").
+func sacrificeNoun(noun string, n int32) string {
+	if n > 1 {
+		return noun + "s"
+	}
+	return noun
 }
 
 // sacrificeAmount resolves Amount$ (default 1). Literals pass through; a

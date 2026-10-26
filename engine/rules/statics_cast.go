@@ -11,12 +11,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// SpellCopyAllowed reports whether no live CantBeCopied static names id.
+// SpellCopyAllowed reports whether id may be copied: false when the stack
+// object's own ability carries CantCopy$ True ("This ability can't be
+// copied"), or when a live CantBeCopied static names it.
 // The source-zone walk follows staticSourceZones, so Stack-scoped spell
 // statics and broader EffectZone statics share the normal static filter path.
 func (e *Engine) SpellCopyAllowed(id state.ObjID) bool {
 	candidate := e.G.Obj(id)
 	if candidate == nil || candidate.Zone != state.ZStack {
+		return false
+	}
+	if a := candidate.Ability; a != nil && (a.Params["CantCopy"] == "True" || a.Params["CantCopy"] == "true") {
 		return false
 	}
 	for pi, p := range e.G.AliveFrom(0) {
@@ -225,6 +230,14 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, id) {
 			continue
 		}
+		// Origin$ (Kunoros, Grafdigger's Cage, Memory Vessel's NoCast): the
+		// zone the cast begins from, which at offer time is the restricted
+		// object's CURRENT zone (every cast evaluation site's pending origin;
+		// the CR 601.2e recheck reads pc.from instead, because the card is on
+		// the stack by then). A zone the restriction does not name skips it.
+		if o := e.G.Obj(id); o != nil && !castOriginGateHolds(sv, o.Zone) {
+			continue
+		}
 		spec := castValidCardSpec(sv)
 		countSpec := spec
 		// The origin-zone cast-provenance split (task wascastfrom): a
@@ -244,12 +257,30 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 				spec = s
 			}
 		}
+		// Bind the delivering Effect's captured Remembered set (the
+		// assignmentStaticSpecCtx pattern) for a Card.IsRemembered clause. The
+		// loop reads nil for every printed static, so the allocation-free hot
+		// path keeps its original shape -- routing this through a helper method
+		// made the Resolve closure escape once per cast candidate
+		// (TestLegalActionsReusesActionStaticMembership's pin).
 		sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
+		for _, rid := range sv.Remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
+		}
 		if asPrototype {
 			sc = e.prototypeSpellSpecCtx(sc, id)
 		}
 		if e.matchesSpec(spec, id, sc) &&
-			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv)) }) {
+			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool {
+				if len(sv.Remembered) == 0 {
+					return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv))
+				}
+				sc := e.staticSpecCtx(sv)
+				for _, rid := range sv.Remembered {
+					sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
+				}
+				return e.matchesSpec(countSpec, oid, sc)
+			}) {
 			if printed {
 				printed = false
 				cost = Cost{}
@@ -416,13 +447,14 @@ func (e *Engine) legendarySpellLocked(p state.PlayerID, id state.ObjID) bool {
 }
 
 // castValidCardSpec is a CantBeCast static's ValidCard$ with an absent one
-// read as "Card" (Fires of Invention carries none: every spell). A static
-// naming an Origin$ instead (Grafdigger's Cage's "from graveyards") keeps
-// its empty spec, so the default never turns an origin restriction into a
-// blanket one.
+// read as "Card" (Fires of Invention carries none: every spell). An Origin$
+// static without a ValidCard$ (Kunoros, Grafdigger's Cage's "from graveyards")
+// takes the same default now that castOriginGateHolds enforces the origin
+// against the cast's actual start zone -- the default can no longer turn an
+// origin restriction into a blanket one.
 func castValidCardSpec(sv staticView) string {
 	spec := strings.TrimSpace(sv.ParamStr(cards.PKValidCard))
-	if spec == "" && !sv.HasParam(cards.PKOrigin) {
+	if spec == "" {
 		return "Card"
 	}
 	return spec
@@ -461,6 +493,15 @@ func castLimitBinds(log []events.Event, sv staticView, p state.PlayerID, candida
 // hand/library/stack source is live). Without the self-merge a hand-zone
 // lockout is invisible: activeStatics walks the battlefield only, and a
 // battlefield-only restriction can never reach the card it restricts.
+//
+// It also appends one view per LIVE registered continuous effect whose
+// Restriction is CantBeCast and whose parameters pass
+// effects.CantBeCastParamsReadable (the playLandForbidden precedent: one
+// whitelist shared by effEffect's registration gate and this consultation, so
+// the two paths cannot disagree about what is readable). This is the route
+// Bilbo's Gambit's `DB$ Effect | StaticAbilities$ STCantBeCast` reaches the
+// cast gate through; a printed-static-only board appends nothing and pays
+// only the active() walk.
 func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []staticView {
 	out := statics
 	o := e.G.Obj(id)
@@ -473,7 +514,39 @@ func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []
 		}
 		out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params, PS: st.ParamSetOf()})
 	}
+	// Index, not range-copy: the views below borrow the effect's slices, so
+	// the loop must not dance over a range copy that escapes. A board with no
+	// registered CantBeCast effect (every ordinary cast) appends nothing.
+	active := e.active()
+	for i := range active {
+		ce := &active[i]
+		if cards.StaticModeOf(ce.Restriction) != cards.StaticCantBeCast || !effects.CantBeCastParamsReadable(ce.RestrictParams) {
+			continue
+		}
+		out = append(out, staticView{
+			Source: ce.Source, Controller: ce.Controller,
+			Params: ce.RestrictParams, SVars: ce.RestrictSVars,
+			Remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
+			effectDelivered: true,
+		})
+	}
 	return out
+}
+
+// castOriginGateHolds evaluates a CantBeCast restriction's Origin$: the zone
+// the cast may BEGIN from (Forge reads card.getCastFrom(); CR 601.2e's
+// recheck reads the pending cast's origin, because the card is on the stack
+// by then). No Origin$ always holds; a list naming no zone the cast could
+// start from -- or an unparseable one -- withholds the restriction, the
+// fail-closed direction for an unevaluable term. Grafdigger's Cage's
+// "from graveyards" and Memory Vessel's Origin$ Hand are the corpus shapes.
+func castOriginGateHolds(sv staticView, from state.Zone) bool {
+	origin, ok := sv.Param(cards.PKOrigin)
+	if !ok {
+		return true
+	}
+	zones := effects.ZoneListOf(origin)
+	return zones.OK() && zones.Admits(from)
 }
 
 // restrictionGateHolds evaluates the non-matching gates one CantBeCast /
@@ -534,20 +607,57 @@ func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, 
 		return false
 	}
 	for _, sv := range statics {
-		if !e.actorMatches(sv, "Activator", p) {
+		if e.abilityRestrictionApplies(sv, p, id, ab) {
+			return true
+		}
+	}
+	// An Effect-delivered CantBeActivated body lives in the continuous
+	// registry, which the printed walk above never visits. Walk it in
+	// active() order; the view borrows the registration's own slices, so a
+	// board with no live CantBeActivated effect allocates nothing.
+	active := e.active()
+	for i := range active {
+		ce := &active[i]
+		if cards.StaticModeOf(ce.Restriction) != cards.StaticCantBeActivated ||
+			!effects.CantBeActivatedParamsReadable(ce.RestrictParams) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
-			continue
+		sv := staticView{
+			Source: ce.Source, Controller: ce.Controller,
+			Params: ce.RestrictParams, SVars: ce.RestrictSVars,
+			Remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
+			effectDelivered: true,
 		}
-		if !e.matchesSpec(sv.ParamStr(cards.PKValidCard), id, e.staticSpecCtx(sv)) {
-			continue
-		}
-		if activatedMatchesValidSA(ab, sv.ParamStr(cards.PKValidSA)) {
+		if e.abilityRestrictionApplies(sv, p, id, ab) {
 			return true
 		}
 	}
 	return false
+}
+
+// abilityRestrictionApplies is the ONE per-view match both CantBeActivated
+// delivery routes run: the printed S: walk and the Effect-delivered
+// continuous-registry walk above. An Effect view's absent ValidCard$ means
+// every card (Forge's default); a printed static keeps its existing read.
+func (e *Engine) abilityRestrictionApplies(sv staticView, p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	if !e.actorMatches(sv, "Activator", p) {
+		return false
+	}
+	if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+		return false
+	}
+	if spec := sv.ParamStr(cards.PKValidCard); spec != "" {
+		sc := e.staticSpecCtx(sv)
+		if sv.effectDelivered {
+			sc = e.assignmentStaticSpecCtx(sv)
+		}
+		if !e.matchesSpec(spec, id, sc) {
+			return false
+		}
+	} else if !sv.effectDelivered {
+		return false
+	}
+	return activatedMatchesValidSA(ab, sv.ParamStr(cards.PKValidSA))
 }
 
 // activatedMatchesValidSA reports whether a CantBeActivated restriction whose
@@ -594,6 +704,13 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 				return true
 			}
 			// else: mana abilities are expressly spared; try the next alt
+		case activatedValidSACodes.Code(constraint) == activatedValidSAPowerUp:
+			// Forge's Activated.PowerUp (SpellAbility.isPowerUp): scopes the
+			// restriction to an ability carrying PowerUp$ True. A non-power-up
+			// ability is spared and the next alternative is tried.
+			if powerUpTrueCodes.Code(ab.ParamStr(cards.PKPowerUp)) == powerUpTrue {
+				return true
+			}
 		case constraint == "ManaAbility" || strings.HasPrefix(constraint, "ManaAbility<"):
 			if !cards.IsManaAbilitySA(ab) {
 				break // not a mana ability; try the next alt
@@ -633,6 +750,30 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 	}
 	return false
 }
+
+// activatedValidSACode indexes the Activated-kind constraints
+// activatedMatchesValidSA evaluates. A value absent from this table keeps the
+// fail-closed deny below.
+type activatedValidSACode uint16
+
+const (
+	activatedValidSAPowerUp activatedValidSACode = iota + 1
+)
+
+var activatedValidSACodes = state.NewStrCodes(
+	state.StrEntry[activatedValidSACode]{Key: "PowerUp", Val: activatedValidSAPowerUp},
+)
+
+// powerUpTrueCode indexes the PowerUp$ parameter's one corpus value.
+type powerUpTrueCode uint16
+
+const (
+	powerUpTrue powerUpTrueCode = iota + 1
+)
+
+var powerUpTrueCodes = state.NewStrCodes(
+	state.StrEntry[powerUpTrueCode]{Key: "True", Val: powerUpTrue},
+)
 
 // adjustedCost applies the full RaiseCost/ReduceCost/SetCost composition to
 // id's printed mana cost. RaiseCost Cost$ may add coloured pips (and fixed

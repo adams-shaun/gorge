@@ -605,7 +605,7 @@ func (e *Engine) describeTargetEffect(p state.PlayerID, source state.ObjID, sa *
 	if sa == nil {
 		return nil
 	}
-	out := &decision.TargetEffect{API: sa.API}
+	out := &decision.TargetEffect{API: sa.API, Desc: effects.TargetsOf(sa).Desc}
 	if x == 0 {
 		if o := e.G.Obj(source); o != nil {
 			x = o.X

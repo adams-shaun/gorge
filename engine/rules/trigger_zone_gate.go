@@ -33,6 +33,11 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 	if o == nil {
 		return false
 	}
+	if e.effectMatchOverride && source == e.effectMatchSource {
+		// An Effect-delivered trigger lives on the Effect object, not on its
+		// creating card, so the card's zone is irrelevant (CR 611.2a).
+		return true
+	}
 	spec := t.ParamStr(cards.PKTriggerZones)
 	if spec == "" {
 		// Forge's ActiveZones$ is the trigger-side spelling of the same gate

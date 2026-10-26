@@ -332,6 +332,31 @@ func CantBlockByRestrictionParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// CantBlockRestrictionParamsReadable is the parameter whitelist an
+// Effect-registered CantBlock static must pass before this build enforces it
+// (cr-g156; the same discipline CantBlockByRestrictionParamsReadable enforces
+// for CantBlockBy, so the registration and consultation paths cannot
+// disagree): the blocker-side spec the continuous consultation reads
+// (engine/rules/combat/restrictions.go BlockRestricted's registered-effects
+// walk: ValidCard$ against the would-be blocker), plus the zone scoping the
+// registration carries anyway and display text. A body carrying a condition
+// or scoping parameter this build's continuous path does not evaluate
+// (Condition$, IsPresent$, CheckSVar$, ...) must not register blanket -- a
+// gated "can't block" would become an UNCONDITIONAL one, over-restricting --
+// so it stays the unimplemented Note. Measured over the corpus's 8
+// Effect-delivered CantBlock bodies (Ahn-Crop Crasher, Cosmotronic Wave,
+// Ember Gale, Hazardous Blast, Headliner Scarlett, Immobilizer Eldrazi,
+// Rumbling Ruin, Sontaran General): every one reads only the whitelisted
+// parameters.
+func CantBlockRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantBlockRestrictionParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 // MustAttackParamsReadable is the parameter whitelist a MustAttack line must
 // pass before effEffect registers it as an Effect-delivered per-player attack
 // REQUIREMENT (Territorial Hellkite's `DB$ Effect | StaticAbilities$
@@ -587,6 +612,55 @@ func CantPlayLandParamsReadable(params map[string]string) bool {
 	}
 	origin, ok := params["Origin"]
 	return ok && strings.EqualFold(strings.TrimSpace(origin), "Hand")
+}
+
+// cantBeCastParamsReadableKeys is the parameter whitelist an Effect-delivered
+// CantBeCast body must pass before effEffect registers it and rules'
+// castRestrictionSources reads it beside the printed S: route (the
+// playLandForbidden precedent): the mode, the object spec (ValidCard$), the
+// actor scope (Caster$), the origin-zone gate (Origin$), the per-turn count
+// cap (NumLimitEachTurn$) and the gate family the shared continuous gate
+// evaluates for this consumer (AffectedZone$, Phases$, Condition$, ClassBand$,
+// IsPresent$, PresentCompare$, PresentZone$, CheckSVar$, SVarCompare$), plus
+// display text. A body carrying any other parameter names a scoping this
+// build does not evaluate; registering it blanket would over-restrict, so it
+// is reported unimplemented instead (the permissive direction for a
+// restriction, and the ONE whitelist both registration and consultation run,
+// so the two paths cannot disagree about what is readable).
+var cantBeCastParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "Caster", "Origin", "NumLimitEachTurn", "AffectedZone", "Phases", "Condition", "ClassBand", "IsPresent", "PresentCompare", "PresentZone", "CheckSVar", "SVarCompare", "Description")
+
+// CantBeCastParamsReadable is that whitelist's read.
+func CantBeCastParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantBeCastParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
+// cantBeActivatedParamsReadableKeys is the parameter whitelist an
+// Effect-delivered CantBeActivated body must pass before effEffect registers
+// it and rules' abilityRestrictedUsing reads it beside the printed S: route:
+// the mode, the object spec (ValidCard$), the ability spec (ValidSA$), the
+// actor scope (Activator$), the zone gate (AffectedZone$) and the gate family
+// the shared restrictionGateHolds/checkSVarHolds evaluators already run for
+// this consumer (Phases$, Condition$, ClassBand$, CheckSVar$, SVarCompare$),
+// plus display text. A body carrying any other parameter names a scoping this
+// build does not evaluate; registering it blanket would over-restrict, so it
+// is reported unimplemented instead. This is the ONE whitelist both
+// registration and consultation run, so the two paths cannot disagree about
+// what is readable.
+var cantBeActivatedParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "ValidSA", "Activator", "AffectedZone", "Phases", "Condition", "ClassBand", "CheckSVar", "SVarCompare", "Description")
+
+// CantBeActivatedParamsReadable is that whitelist's read.
+func CantBeActivatedParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantBeActivatedParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
 }
 
 // UnspentManaParamsReadable is the parameter whitelist an UnspentMana static
@@ -850,6 +924,31 @@ func IsUntapStepDuration(dur string) bool {
 	return false
 }
 
+// untilTargetedUntapsDurationCode indexes the one Duration$ spelling
+// IsUntilTargetedUntapsDuration answers, through the same StrCodes table
+// convention the sibling duration predicates use.
+type untilTargetedUntapsDurationCode uint16
+
+const (
+	untilTargetedUntapsDurationUntaps untilTargetedUntapsDurationCode = iota + 1
+)
+
+var untilTargetedUntapsDurationCodes = state.NewStrCodes(
+	state.StrEntry[untilTargetedUntapsDurationCode]{Key: "untiltargeteduntaps", Val: untilTargetedUntapsDurationUntaps},
+)
+
+// IsUntilTargetedUntapsDuration reports whether a Duration$ value names the
+// "for as long as it remains tapped" lifetime (Braided Net's lock, and the
+// Clone duration of the same spelling). Exported so rules' event-driven
+// expiry reads the same spelling effEffect saw.
+func IsUntilTargetedUntapsDuration(dur string) bool {
+	switch untilTargetedUntapsDurationCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
+	case untilTargetedUntapsDurationUntaps:
+		return true
+	}
+	return false
+}
+
 // replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built
 // static line -- the SVar name of the R: body's own ReplaceWith$ body, not a
 // card Params map. Factored into its own function so the paramcensus rot
@@ -871,9 +970,11 @@ func replacementLineWith(params map[string]string) string {
 // move is discarded and the body moves the same card to exile.
 //
 // The line's own parameters must be ones the Moved matcher reads (the
-// Fizzle$/Optional$/Layer$ riders and any other stay on the loud Note path),
-// and every other body shape -- a library/battlefield destination, counters,
-// a RememberChanged$/plot/delayed-trigger chain -- keeps its loud Note.
+// Fizzle$/Optional$/Layer$ riders and any other stay on the loud Note path);
+// the library destination and the ETB-tap body are admitted by the sibling
+// replacementMovedBodyLive below, and every other body shape -- a
+// battlefield destination, counters, a RememberChanged$/plot/delayed-trigger
+// chain -- keeps its loud Note.
 //
 // Before this, Mavinda, Students' Advocate's "if that spell would be put into
 // your graveyard, exile it instead" was a Note: the recast card went back to
@@ -882,6 +983,28 @@ func replacementLineWith(params map[string]string) string {
 // The same promise is the whole point of Jace, Vryn's Prodigy, Dire Fleet
 // Daredevil, Gaea's Will and the other ~20 carriers of this shape.
 func replacementRedirectsToExile(params map[string]string, body string, svars map[string]string) bool {
+	_, hasResult := params["ReplacementResult"]
+	_, hasCause := params["ValidCause"]
+	if hasResult || hasCause {
+		return false
+	}
+	return replacementMovedBodyLiveKind(params, body, svars, false)
+}
+
+// replacementMovedBodyLive is the Effect-delivered Moved registration gate:
+// the redirect to exile / stack-to-hand (above), the redirect to the library
+// (Kylox's Voltstrider's bottom-of-library, Yawgmoth's Testament, Don't
+// Blink's shuffle), and the DB$ Tap | ETB$ True "enters tapped" update
+// (Lightstall Inquisitor, ReplacementResult$ Updated). Every body admitted
+// moves or updates the one replaced card, so none can lose it.
+func replacementMovedBodyLive(params map[string]string, body string, svars map[string]string) bool {
+	return replacementMovedBodyLiveKind(params, body, svars, true)
+}
+
+// replacementMovedBodyLiveKind is the shared gate body; allowLibrary separates
+// the exile-only redirect (leavebattlefield's self-exile idiom, whose caller
+// must keep rejecting a library return) from the full Moved registration.
+func replacementMovedBodyLiveKind(params map[string]string, body string, svars map[string]string, allowLibrary bool) bool {
 	// Fizzle$ is admitted only in its no-op spelling: "False" (and absent)
 	// means the replacement applies normally; a true fizzle would cancel the
 	// replaced event outright, a semantics this plain redirect cannot carry,
@@ -889,15 +1012,67 @@ func replacementRedirectsToExile(params map[string]string, body string, svars ma
 	if f := strings.TrimSpace(params["Fizzle"]); f != "" && !strings.EqualFold(f, "False") {
 		return false
 	}
-	for k := range params {
-		if !replacementRedirectsToExileKeys.Has(k) {
+	api := cards.APICodeForName(replacementBodyAPI(body))
+	updated := false
+	for k, v := range params {
+		switch redirectLineKeyCodes.Code(k) {
+		case redirectLineKeyReplacementResult:
+			if v != "Updated" {
+				return false
+			}
+			updated = true
+		case redirectLineKeyValidCause:
+			if v != "LandAbility.MayPlaySource" {
+				return false
+			}
+		default:
+			if !replacementRedirectsToExileKeys.Has(k) {
+				return false
+			}
+		}
+	}
+	switch api {
+	case cards.APIChangeZone:
+		return !updated && redirectExileBody(replacementBodyParams(body), svars, redirectLineRemembered(params), allowLibrary)
+	case cards.APITap:
+		// ValidCard$ Permanent does not match a card that is not yet on the
+		// battlefield, so an enters-tapped line on it would register and
+		// never apply; it stays on the loud-Note path.
+		if strings.SplitN(strings.TrimSpace(params["ValidCard"]), ".", 2)[0] == "Permanent" {
+			return false
+		}
+		return allowLibrary && updated && redirectTapBody(replacementBodyParams(body), svars, redirectLineRemembered(params))
+	}
+	return false
+}
+
+// redirectTapBody gates the "enters tapped" body: DB$ Tap | ETB$ True |
+// Defined$ ReplacedCard with an optional registered rider chain.
+func redirectTapBody(body map[string]string, svars map[string]string, remembered bool) bool {
+	switch redirectDefinedCodes.Code(body["Defined"]) {
+	case redirectDefinedReplaced:
+	case redirectDefinedRemembered:
+		if !remembered {
+			return false
+		}
+	default:
+		return false
+	}
+	if !strings.EqualFold(body["ETB"], "True") {
+		return false
+	}
+	for k, v := range body {
+		switch redirectTapBodyCodes.Code(k) {
+		case redirectTapBodyAllowed:
+		case redirectTapBodySubAbility:
+			if !redirectRiderChain(v, svars, 0) {
+				return false
+			}
+		default:
 			return false
 		}
 	}
-	if replacementBodyAPI(body) != "ChangeZone" {
-		return false
-	}
-	return redirectExileBody(replacementBodyParams(body), svars, redirectLineRemembered(params))
+	return true
 }
 
 // redirectLineRemembered reports whether the replacement line's ValidCard$
@@ -908,13 +1083,16 @@ func redirectLineRemembered(params map[string]string) bool {
 	return strings.Contains(params["ValidCard"], "IsRemembered")
 }
 
-// redirectExileBody is replacementRedirectsToExile's body gate: body is the
+// redirectExileBody is the ChangeZone body gate shared by
+// replacementRedirectsToExile and replacementMovedBodyLive: body is the
 // Key$ Value map of the ReplaceWith$ SVar body (a parsed SVar line, not a
 // card Params map) and svars the face's SVar table its SubAbility$ names.
 //
 // The head is a ChangeZone of the replaced card to exile -- or, from the
 // stack, to its owner's hand (Soulfire Grand Master's "put that card into
-// your hand instead of into your graveyard as it resolves"). Defined$
+// your hand instead of into your graveyard as it resolves"), or, when
+// allowLibrary is set, to its owner's library (Kylox's Voltstrider's
+// bottom-of-library, Don't Blink's shuffle). Defined$
 // Remembered names the same card only when the line's ValidCard$ pins
 // IsRemembered (checked by the caller's params), so the head can never move
 // a different card than the one the replacement discarded. The head's
@@ -923,7 +1101,7 @@ func redirectLineRemembered(params map[string]string) bool {
 // the head has already moved the card by then, so a rider this build cannot
 // resolve loses the rider, never the moved object -- but every link must be
 // a registered API so an unmodelled rider stays on the loud Note path.
-func redirectExileBody(body map[string]string, svars map[string]string, remembered bool) bool {
+func redirectExileBody(body map[string]string, svars map[string]string, remembered bool, allowLibrary bool) bool {
 	switch redirectDefinedCodes.Code(body["Defined"]) {
 	case redirectDefinedReplaced:
 	case redirectDefinedRemembered:
@@ -933,8 +1111,14 @@ func redirectExileBody(body map[string]string, svars map[string]string, remember
 	default:
 		return false
 	}
+	library := false
 	switch redirectDestinationCodes.Code(body["Destination"]) {
 	case redirectDestinationExile:
+	case redirectDestinationLibrary:
+		if !allowLibrary {
+			return false
+		}
+		library = true
 	case redirectDestinationHand:
 		if redirectOriginCodes.Code(body["Origin"]) != redirectOriginStack {
 			return false
@@ -951,6 +1135,14 @@ func redirectExileBody(body map[string]string, svars map[string]string, remember
 			}
 		case redirectExileBodySubAbility:
 			if !redirectRiderChain(v, svars, 0) {
+				return false
+			}
+		case redirectExileBodyLibPos:
+			if _, err := strconv.Atoi(v); err != nil || !library {
+				return false
+			}
+		case redirectExileBodyLibTrue:
+			if !library || !strings.EqualFold(v, "True") {
 				return false
 			}
 		default:
@@ -1256,6 +1448,8 @@ var cantAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCard",
 
 var cantBlockByRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidAttacker", "ValidBlocker", "ValidCard", "Description", "Secondary")
 
+var cantBlockRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "Description", "EffectZone", "AffectedZone")
+
 var mustAttackParamsReadableKeys = state.NewNameSet("Mode", "ValidCreature", "MustAttack", "Description", "Secondary")
 
 var mustAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCreature", "MustAttack", "Description", "Secondary", "IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "CheckSVar", "SVarCompare", "Condition", "ClassBand")
@@ -1292,6 +1486,7 @@ var canAttackDefenderParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", 
 var absentDurationMeansThisTurnSet = state.NewNameSet(
 	"CantPutCounter",
 	"CantBlockBy",
+	"CantBlock",
 	"CanAttackDefender",
 	"NumLoyaltyAct",
 	"CombatDamageToughness",
@@ -1302,6 +1497,8 @@ var replacementRedirectsToExileKeys = state.NewNameSet("Event", "ValidCard", "Va
 
 var effectOneShotDelayedModeSet = state.NewNameSet(
 	"SpellCast",
+	"AbilityCast",
+	"SpellAbilityCast",
 	"ChangesZone",
 	"ChangesController",
 	"DamageDone",
@@ -1370,16 +1567,48 @@ var redirectDefinedCodes = state.NewStrCodes(
 	state.StrEntry[redirectDefinedCode]{Key: "Remembered", Val: redirectDefinedRemembered},
 )
 
+type redirectLineKeyCode uint16
+
+const (
+	redirectLineKeyReplacementResult redirectLineKeyCode = iota + 1
+	redirectLineKeyValidCause
+)
+
+// redirectLineKeyCodes is the vocabulary of the replacement line's own keys
+// that a Moved registration reads beyond replacementRedirectsToExileKeys.
+var redirectLineKeyCodes = state.NewStrCodes(
+	state.StrEntry[redirectLineKeyCode]{Key: "ReplacementResult", Val: redirectLineKeyReplacementResult},
+	state.StrEntry[redirectLineKeyCode]{Key: "ValidCause", Val: redirectLineKeyValidCause},
+)
+
+type redirectTapBodyCode uint16
+
+const (
+	redirectTapBodyAllowed redirectTapBodyCode = iota + 1
+	redirectTapBodySubAbility
+)
+
+// redirectTapBodyCodes is the body-key whitelist of the entry-update Tap body
+// (DB$ Tap | ETB$ True | Defined$ ReplacedCard).
+var redirectTapBodyCodes = state.NewStrCodes(
+	state.StrEntry[redirectTapBodyCode]{Key: "DB", Val: redirectTapBodyAllowed},
+	state.StrEntry[redirectTapBodyCode]{Key: "Defined", Val: redirectTapBodyAllowed},
+	state.StrEntry[redirectTapBodyCode]{Key: "ETB", Val: redirectTapBodyAllowed},
+	state.StrEntry[redirectTapBodyCode]{Key: "SubAbility", Val: redirectTapBodySubAbility},
+)
+
 type redirectDestinationCode uint16
 
 const (
 	redirectDestinationExile redirectDestinationCode = iota + 1
 	redirectDestinationHand
+	redirectDestinationLibrary
 )
 
 var redirectDestinationCodes = state.NewStrCodes(
 	state.StrEntry[redirectDestinationCode]{Key: "Exile", Val: redirectDestinationExile},
 	state.StrEntry[redirectDestinationCode]{Key: "Hand", Val: redirectDestinationHand},
+	state.StrEntry[redirectDestinationCode]{Key: "Library", Val: redirectDestinationLibrary},
 )
 
 type redirectOriginCode uint16
@@ -1396,6 +1625,8 @@ const (
 	redirectExileBodyAllowed redirectExileBodyCode = iota + 1
 	redirectExileBodyHidden
 	redirectExileBodySubAbility
+	redirectExileBodyLibPos
+	redirectExileBodyLibTrue
 )
 
 var redirectExileBodyCodes = state.NewStrCodes(
@@ -1419,6 +1650,10 @@ var redirectExileBodyCodes = state.NewStrCodes(
 	state.StrEntry[redirectExileBodyCode]{Key: "RememberChanged", Val: redirectExileBodyHidden},
 	state.StrEntry[redirectExileBodyCode]{Key: "ExiledWithEffectSource", Val: redirectExileBodyHidden},
 	state.StrEntry[redirectExileBodyCode]{Key: "SubAbility", Val: redirectExileBodySubAbility},
+	// Library destination only: LibraryPosition$ <int>, Shuffle$/Reveal$ True.
+	state.StrEntry[redirectExileBodyCode]{Key: "LibraryPosition", Val: redirectExileBodyLibPos},
+	state.StrEntry[redirectExileBodyCode]{Key: "Shuffle", Val: redirectExileBodyLibTrue},
+	state.StrEntry[redirectExileBodyCode]{Key: "Reveal", Val: redirectExileBodyLibTrue},
 )
 
 type cantAttackPresentKeyCode uint16

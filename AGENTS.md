@@ -177,6 +177,10 @@ this snapshot.
   parameters. Its per-card files in `engine/rules/testdata/paramcensus/` hold 15 cards that carry an
   unread param or an unmodelled cost token: 11 distinct param labels and 1
   cost label.
+- **Set-scoped param census: 405 of 7009.** `TestEveryStandardSetParamsAreRead`
+  (`engine/rules/paramcensus_sets_test.go`) walks the 26 Standard-program set lists in
+  `testdata/sets/` against baselines `testdata/paramcensus-sets/<SET>.tsv`
+  (`PARAMCENSUS_SETS_REGEN=1`): 405 cards, 137 distinct labels at cr-g142.
 - **Golden games.** The 12 pinned Legacy decks (`legacyDeckNames`, which
   deliberately excludes the Commander decks) round-robin across 2/4/6/8 seats
   (`TestRepoDecksPlayAtEverySeatCount`). They replay byte-identically

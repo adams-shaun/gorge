@@ -1205,15 +1205,13 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 }
 
 // animateAllUnreadNote names, in ONE loud note, every parameter the SA carries
-// that neither Animate nor AnimateAll reads (RemoveKeywords$/RemoveAllAbilities$/
-// staticAbilities$/Triggers$/Replacements$/CantHaveKeyword$ --
-// the shared pre-existing Animate gaps, so the gap stays visible instead of
-// silently doing nothing), then the supported parameters still apply.
+// that AnimateAll still does not read (HiddenKeywords$/Replacements$/
+// CantHaveKeyword$ -- the Animate-scoped parameters the sweep keeps cleared,
+// so the gap stays visible instead of silently doing nothing), then the
+// supported parameters still apply.
 func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
 	var unread []string
 	for _, key := range []struct{ name, val string }{
-		{"RemoveKeywords$", sa.ParamStr(cards.PKRemoveKeywords)},
-		{"RemoveAllAbilities$", sa.ParamStr(cards.PKRemoveAllAbilities)},
 		{"HiddenKeywords$", sa.ParamStr(cards.PKHiddenKeywords)},
 		{"Replacements$", sa.ParamStr(cards.PKReplacements)},
 		{"CantHaveKeyword$", sa.ParamStr(cards.PKCantHaveKeyword)},
@@ -1240,12 +1238,13 @@ func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
 // card sits there.
 func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	ag := parseAnimateGrant(h, c, sa)
-	// AnimateAll's RemoveKeywords$ and RemoveAllAbilities$ stay unread (out of
-	// scope for the tickets that read them on Animate): clear what the shared
-	// parser read so the sweep below cannot apply them behind
-	// animateAllUnreadNote's "not implemented; ignored" note.
-	ag.removeKeywords = nil
-	ag.removeAbilities = false
+	// AnimateAll's Replacements$ stays unread (Animate-scoped): clear what
+	// the shared parser read so the sweep below cannot apply it behind
+	// animateAllUnreadNote's "not implemented; ignored" note. RemoveKeywords$
+	// and RemoveAllAbilities$ are READ (CR 613.1f): the sweep carries them
+	// per object through the same registerAnimateEffects registration the
+	// single-target Animate uses, so "creatures lose indestructible, then
+	// destroy" (Spectacular Pileup) really strips.
 	ag.replacements = nil
 	// AnimateAll's HiddenKeywords$ stays unread too (the corpus carries no
 	// AnimateAll HiddenKeywords$ line, and this ticket scopes the derived

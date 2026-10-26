@@ -125,14 +125,16 @@ func TestAnimateAllPermanentDurationIsPermanent(t *testing.T) {
 }
 
 // TestAnimateAllUnreadParametersNoteLoudly: the remaining AnimateAll gaps
-// (RemoveKeywords$/RemoveAllAbilities$/Replacements$/CantHaveKeyword$) must
-// be LOUD — one note naming every unread parameter present — while the
-// supported parameters still apply. staticAbilities$ is
+// (HiddenKeywords$/Replacements$/CantHaveKeyword$) must be LOUD -- one note
+// naming every unread parameter present, and NEVER a read parameter --
+// while the supported parameters still apply. staticAbilities$ is
 // tested through the shared Animate registration path below.
 // Triggers$ is READ since the Animate Triggers$ ticket: a named body the
 // parser refuses (no SVar table here, so TrigSomething resolves to
 // nothing) gets its own loud refuse-note instead of joining the unread
-// list.
+// list. RemoveKeywords$/RemoveAllAbilities$ are READ since cr-g134
+// (animate_removekeywords_test.go), so their absence from the note is
+// pinned here too.
 func TestAnimateStaticAbilitiesRegistersCantSacrifice(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
@@ -153,16 +155,18 @@ func TestAnimateAllUnreadParametersNoteLoudly(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0}, sa(t,
-		"DB$ AnimateAll | ValidCards$ Creature | Power$ 1 | RemoveAllAbilities$ True | Triggers$ TrigSomething | Replacements$ ReplSomething"))
+		"DB$ AnimateAll | ValidCards$ Creature | Power$ 1 | Triggers$ TrigSomething | Replacements$ ReplSomething"))
 	notes := notesOf(h)
 	if len(notes) != 2 {
 		t.Fatalf("notes = %v, want the unread-params note plus the refused Triggers$ body's note", notes)
 	}
 	var unread, refused bool
 	for _, n := range notes {
-		if strings.Contains(n, "RemoveAllAbilities$") &&
-			strings.Contains(n, "Replacements$") {
+		if strings.Contains(n, "Replacements$") && strings.Contains(n, "not implemented") {
 			unread = true
+		}
+		if strings.Contains(n, "RemoveAllAbilities$") || strings.Contains(n, "RemoveKeywords$") {
+			t.Fatalf("a read parameter named in an unread note: %q", n)
 		}
 		if strings.Contains(n, "Triggers$ TrigSomething") {
 			refused = true

@@ -49,7 +49,7 @@ var conditionSupportedDefined = newConditionNames(
 	"TriggeredSourceLKICopy", "RememberedLKI", "ParentTarget", "Sacrificed",
 	"ThisTargetedCard", "TriggeredSpellAbility",
 	"Collected", "CastSA>Collected", "TriggeredTargetLKICopy",
-	"TriggeredAttackerLKICopy",
+	"TriggeredAttackerLKICopy", "Enchanted", "Equipped",
 )
 
 // conditionUnmodelledDefined is every ConditionDefined$ group the corpus
@@ -57,7 +57,6 @@ var conditionSupportedDefined = newConditionNames(
 // carrier (counts measured 2026-10-04); a new value fails the census test.
 var conditionUnmodelledDefined = newConditionNames(
 	"DelayTriggerRememberedLKI", // 6
-	"Equipped",                  // 5
 	"DelayTriggerRemembered",    // 5
 	"TriggeredNewCardLKICopy",   // 4
 	"ReplacedSource",            // 3
@@ -65,7 +64,6 @@ var conditionUnmodelledDefined = newConditionNames(
 	"RememberedCard",            // 2
 	"ExiledWithSource",          // 2
 	"ExiledWith",                // 2
-	"Enchanted",                 // 2
 	"Tapped",                    // 1
 	"OriginalHost",              // 1
 )
@@ -74,14 +72,14 @@ var conditionUnmodelledDefined = newConditionNames(
 // evaluates (the case-insensitive switch in its bare branch).
 var conditionSupportedBare = newConditionNames(
 	"Kicked", "Bargain", "Foretold", "Revolt", "Delirium", "Metalcraft", "Blessing",
-	"OptionalCost",
+	"OptionalCost", "EnduringStory",
 )
 
 // conditionUnmodelledBare is every bare Condition$ value the corpus carries
 // that conditionMetCore does not evaluate. Counts measured 2026-10-04.
 var conditionUnmodelledBare = newConditionNames(
 	"PlayerTurn", "Threshold", "MaxSpeed", "NotPlayerTurn", "Hellbent",
-	"EnduringStory", "NoOpponentHasMoreLifeThanAttacked",
+	"NoOpponentHasMoreLifeThanAttacked",
 	"Monarch", "FatefulHour", "Evolve", "Surge", "Sacrificed", "Night",
 	"LifePaid", "Ferocious", "ExtraTurn", "AttackerHasUnattackedOpp",
 	"AttackedPlayerWithMostLife", "Add",
