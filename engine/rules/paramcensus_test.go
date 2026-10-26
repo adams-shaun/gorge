@@ -2017,6 +2017,10 @@ var apiSpecificRulesStat = map[string]string{
 	// grant path does, keeping the permissions a given host granted, so its
 	// read is family-attributed exactly like the grant path's.
 	"Engine.mayPlayGrantedBy": "Continuous.MayPlay",
+	// The MayPlayWithFlash$ timing rider (engine/rules/mayplay_riders.go): it
+	// reads MayPlay statics' MayPlayWithFlash$ live and runs mayPlayStatic over
+	// the same sources, so it is family-attributed like the grant path.
+	"Engine.mayPlayWithFlash": "Continuous.MayPlay",
 	// quietStaticMayPlay (engine/rules/quiet_facts.go), the quiet-seat proof's
 	// per-face may-play scan: quietCastOpen and quietSelfReducePipFloor call
 	// it over a face's own Statics slice to detect any may-play cost key

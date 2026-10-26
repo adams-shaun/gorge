@@ -3,6 +3,7 @@ package rules
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -35,11 +36,8 @@ func (e *Engine) mayPlayWithFlash(p state.PlayerID, id state.ObjID) bool {
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	withFlash := func(params map[string]string) bool {
-		return strings.EqualFold(strings.TrimSpace(params["MayPlayWithFlash"]), "True")
-	}
 	for _, st := range mayPlayOwnStatics(o, p) {
-		if st.Mode != "Continuous" || !withFlash(st.Params) {
+		if st.Mode != "Continuous" || !strings.EqualFold(st.ParamStr(cards.PKMayPlayWithFlash), "True") {
 			continue
 		}
 		if applies, _, _, _, _, _ := e.mayPlayStatic(st.Params, id, o.Controller, id); applies {
@@ -47,7 +45,7 @@ func (e *Engine) mayPlayWithFlash(p state.PlayerID, id state.ObjID) bool {
 		}
 	}
 	for _, sv := range e.activeStatics("Continuous") {
-		if !withFlash(sv.Params) || !mayPlayStaticBenefits(p, &sv) {
+		if !strings.EqualFold(sv.ParamStr(cards.PKMayPlayWithFlash), "True") || !mayPlayStaticBenefits(p, &sv) {
 			continue
 		}
 		if applies, _, _, _, _, _ := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, &sv), sv.Source); applies {

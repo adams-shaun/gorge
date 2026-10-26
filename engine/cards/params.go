@@ -162,6 +162,7 @@ const (
 	PKMayLookAt
 	PKMayPlay
 	PKMayPlayAltManaCost
+	PKMayPlayWithFlash
 	PKMayPlayWithoutManaCost
 	PKMentor
 	PKMin
@@ -984,6 +985,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKMayLookAt:                        "MayLookAt",
 	PKMayPlay:                          "MayPlay",
 	PKMayPlayAltManaCost:               "MayPlayAltManaCost",
+	PKMayPlayWithFlash:                 "MayPlayWithFlash",
 	PKMayPlayWithoutManaCost:           "MayPlayWithoutManaCost",
 	PKMentor:                           "Mentor",
 	PKMin:                              "Min",
