@@ -222,6 +222,15 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 				return false
 			}
 		}
+		// ValidCause$ LandAbility.MayPlaySource (Lightstall Inquisitor's
+		// "each land played this way"): the move is the in-flight land play of
+		// this very card, and a may-play permission hosted by the source covers
+		// it. Any other non-discard ValidCause$ is not read here.
+		if r.ParamStr(cards.PKValidCause) == "LandAbility.MayPlaySource" {
+			if !e.etbLandPlay || e.etbLandObj != ev.Obj || !e.mayPlayGrantedBy(e.etbLandPlayer, ev.Obj, source) {
+				return false
+			}
+		}
 		// Origin$ is a zone SET: a single zone name or a comma list (the
 		// trigger matcher reads it the same way). ParseZones bails closed on
 		// an unknown token rather than degrading to graveyard, and Any/All is

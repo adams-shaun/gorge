@@ -596,10 +596,13 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// replaced result cannot lose an object, and a body this build cannot
 		// price is skipped by the dispatcher, never read as zero. Every OTHER
 		// AddCounter body keeps its loud Note.
-		// Every OTHER Moved body (the
-		// destination-changing ChangeZone/Tap/Clone family, 44 measured
-		// files) and every Draw/ProduceMana body keeps its loud
+		// Every OTHER Moved body (the unmodelled ChangeZone/Tap/Clone family,
+		// 44 measured files) and every Draw/ProduceMana body keeps its loud
 		// Note: a half-modelled Replaced-result could LOSE the moved object.
+		// replacementMovedBodyLive admits the two recorded shapes that cannot
+		// lose it: a single-destination redirect of the ReplacedCard (exile,
+		// stack-to-hand, or the library -- Kylox's Voltstrider's bottom) and
+		// the ReplacementResult$ Updated ETB tap (Lightstall Inquisitor).
 		// The effect's own capture state rides every live registration:
 		// Remembered (the trigger's RememberObjects$ card, what the body's
 		// IsRemembered/Remembered$ specs and Count$ChosenNumber's neighbours
@@ -609,7 +612,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// turn), and the frozen SetChosenNumber$ binding.
 		if body != "" && (event == "DamageDone" ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
-			(event == "Moved" && replacementRedirectsToExile(params, body, c.SVars)) ||
+			(event == "Moved" && replacementMovedBodyLive(params, body, c.SVars)) ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken") ||
 			(event == "AddCounter" && replacementBodyAPI(body) == "ReplaceCounter")) {
 			effectContinuous(h, state.ContinuousEffect{

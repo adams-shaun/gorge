@@ -1646,7 +1646,14 @@ var stringMapParams = map[string]string{
 	"effects:redirectExileBody:svars":       "SVars table lookup by SubAbility$ name, not a card Params map",
 	"effects:redirectSubName:body":          "keys of a replacementBodyParams-built SubAbility$ SVar body, not a card Params map",
 	"effects:redirectRiderChain:svars":      "SVars table lookup by SubAbility$ name, not a card Params map",
-	"effects:redirectLineRemembered:params": "parseReplacementLine-built ReplaceWith$ line map, not a card Params map"}
+	"effects:redirectLineRemembered:params": "parseReplacementLine-built ReplaceWith$ line map, not a card Params map",
+	// engine/effects/restrictions.go replacementMovedBodyLiveKind / redirectTapBody
+	// (cr-g138): the same parseReplacementLine-built line map, now also read for
+	// the ReplacementResult$/ValidCause$ riders, and the DB$ Tap | ETB$ True
+	// body's replacementBodyParams-built map.
+	"effects:replacementMovedBodyLiveKind:params": "parseReplacementLine-built ReplaceWith$ line map (ReplacementResult$/ValidCause$ riders), not a card Params map",
+	"effects:redirectTapBody:body":                "keys of a replacementBodyParams-built ReplaceWith$ SVar body, not a card Params map",
+	"effects:redirectTapBody:svars":               "SVars table lookup by SubAbility$ name, not a card Params map"}
 
 // propagateKeyReads resolves two indirect read shapes:
 //

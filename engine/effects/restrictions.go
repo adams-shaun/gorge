@@ -896,9 +896,11 @@ func replacementLineWith(params map[string]string) string {
 // move is discarded and the body moves the same card to exile.
 //
 // The line's own parameters must be ones the Moved matcher reads (the
-// Fizzle$/Optional$/Layer$ riders and any other stay on the loud Note path),
-// and every other body shape -- a library/battlefield destination, counters,
-// a RememberChanged$/plot/delayed-trigger chain -- keeps its loud Note.
+// Fizzle$/Optional$/Layer$ riders and any other stay on the loud Note path);
+// the library destination and the ETB-tap body are admitted by the sibling
+// replacementMovedBodyLive below, and every other body shape -- a
+// battlefield destination, counters, a RememberChanged$/plot/delayed-trigger
+// chain -- keeps its loud Note.
 //
 // Before this, Mavinda, Students' Advocate's "if that spell would be put into
 // your graveyard, exile it instead" was a Note: the recast card went back to
@@ -907,6 +909,28 @@ func replacementLineWith(params map[string]string) string {
 // The same promise is the whole point of Jace, Vryn's Prodigy, Dire Fleet
 // Daredevil, Gaea's Will and the other ~20 carriers of this shape.
 func replacementRedirectsToExile(params map[string]string, body string, svars map[string]string) bool {
+	_, hasResult := params["ReplacementResult"]
+	_, hasCause := params["ValidCause"]
+	if hasResult || hasCause {
+		return false
+	}
+	return replacementMovedBodyLiveKind(params, body, svars, false)
+}
+
+// replacementMovedBodyLive is the Effect-delivered Moved registration gate:
+// the redirect to exile / stack-to-hand (above), the redirect to the library
+// (Kylox's Voltstrider's bottom-of-library, Yawgmoth's Testament, Don't
+// Blink's shuffle), and the DB$ Tap | ETB$ True "enters tapped" update
+// (Lightstall Inquisitor, ReplacementResult$ Updated). Every body admitted
+// moves or updates the one replaced card, so none can lose it.
+func replacementMovedBodyLive(params map[string]string, body string, svars map[string]string) bool {
+	return replacementMovedBodyLiveKind(params, body, svars, true)
+}
+
+// replacementMovedBodyLiveKind is the shared gate body; allowLibrary separates
+// the exile-only redirect (leavebattlefield's self-exile idiom, whose caller
+// must keep rejecting a library return) from the full Moved registration.
+func replacementMovedBodyLiveKind(params map[string]string, body string, svars map[string]string, allowLibrary bool) bool {
 	// Fizzle$ is admitted only in its no-op spelling: "False" (and absent)
 	// means the replacement applies normally; a true fizzle would cancel the
 	// replaced event outright, a semantics this plain redirect cannot carry,
@@ -914,15 +938,59 @@ func replacementRedirectsToExile(params map[string]string, body string, svars ma
 	if f := strings.TrimSpace(params["Fizzle"]); f != "" && !strings.EqualFold(f, "False") {
 		return false
 	}
-	for k := range params {
-		if !replacementRedirectsToExileKeys.Has(k) {
+	api := replacementBodyAPI(body)
+	updated := false
+	for k, v := range params {
+		switch {
+		case k == "ReplacementResult":
+			if v != "Updated" {
+				return false
+			}
+			updated = true
+		case k == "ValidCause":
+			if v != "LandAbility.MayPlaySource" {
+				return false
+			}
+		case !replacementRedirectsToExileKeys.Has(k):
 			return false
 		}
 	}
-	if replacementBodyAPI(body) != "ChangeZone" {
+	switch api {
+	case "ChangeZone":
+		return !updated && redirectExileBody(replacementBodyParams(body), svars, redirectLineRemembered(params), allowLibrary)
+	case "Tap":
+		return allowLibrary && updated && redirectTapBody(replacementBodyParams(body), svars, redirectLineRemembered(params))
+	}
+	return false
+}
+
+// redirectTapBody gates the "enters tapped" body: DB$ Tap | ETB$ True |
+// Defined$ ReplacedCard with an optional registered rider chain.
+func redirectTapBody(body map[string]string, svars map[string]string, remembered bool) bool {
+	switch redirectDefinedCodes.Code(body["Defined"]) {
+	case redirectDefinedReplaced:
+	case redirectDefinedRemembered:
+		if !remembered {
+			return false
+		}
+	default:
 		return false
 	}
-	return redirectExileBody(replacementBodyParams(body), svars, redirectLineRemembered(params))
+	if !strings.EqualFold(body["ETB"], "True") {
+		return false
+	}
+	for k, v := range body {
+		switch k {
+		case "DB", "Defined", "ETB":
+		case "SubAbility":
+			if !redirectRiderChain(v, svars, 0) {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // redirectLineRemembered reports whether the replacement line's ValidCard$
@@ -933,13 +1001,16 @@ func redirectLineRemembered(params map[string]string) bool {
 	return strings.Contains(params["ValidCard"], "IsRemembered")
 }
 
-// redirectExileBody is replacementRedirectsToExile's body gate: body is the
+// redirectExileBody is the ChangeZone body gate shared by
+// replacementRedirectsToExile and replacementMovedBodyLive: body is the
 // Key$ Value map of the ReplaceWith$ SVar body (a parsed SVar line, not a
 // card Params map) and svars the face's SVar table its SubAbility$ names.
 //
 // The head is a ChangeZone of the replaced card to exile -- or, from the
 // stack, to its owner's hand (Soulfire Grand Master's "put that card into
-// your hand instead of into your graveyard as it resolves"). Defined$
+// your hand instead of into your graveyard as it resolves"), or, when
+// allowLibrary is set, to its owner's library (Kylox's Voltstrider's
+// bottom-of-library, Don't Blink's shuffle). Defined$
 // Remembered names the same card only when the line's ValidCard$ pins
 // IsRemembered (checked by the caller's params), so the head can never move
 // a different card than the one the replacement discarded. The head's
@@ -948,7 +1019,7 @@ func redirectLineRemembered(params map[string]string) bool {
 // the head has already moved the card by then, so a rider this build cannot
 // resolve loses the rider, never the moved object -- but every link must be
 // a registered API so an unmodelled rider stays on the loud Note path.
-func redirectExileBody(body map[string]string, svars map[string]string, remembered bool) bool {
+func redirectExileBody(body map[string]string, svars map[string]string, remembered bool, allowLibrary bool) bool {
 	switch redirectDefinedCodes.Code(body["Defined"]) {
 	case redirectDefinedReplaced:
 	case redirectDefinedRemembered:
@@ -958,8 +1029,14 @@ func redirectExileBody(body map[string]string, svars map[string]string, remember
 	default:
 		return false
 	}
+	library := false
 	switch redirectDestinationCodes.Code(body["Destination"]) {
 	case redirectDestinationExile:
+	case redirectDestinationLibrary:
+		if !allowLibrary {
+			return false
+		}
+		library = true
 	case redirectDestinationHand:
 		if redirectOriginCodes.Code(body["Origin"]) != redirectOriginStack {
 			return false
@@ -976,6 +1053,14 @@ func redirectExileBody(body map[string]string, svars map[string]string, remember
 			}
 		case redirectExileBodySubAbility:
 			if !redirectRiderChain(v, svars, 0) {
+				return false
+			}
+		case redirectExileBodyLibPos:
+			if _, err := strconv.Atoi(v); err != nil || !library {
+				return false
+			}
+		case redirectExileBodyLibTrue:
+			if !library || !strings.EqualFold(v, "True") {
 				return false
 			}
 		default:
@@ -1402,11 +1487,13 @@ type redirectDestinationCode uint16
 const (
 	redirectDestinationExile redirectDestinationCode = iota + 1
 	redirectDestinationHand
+	redirectDestinationLibrary
 )
 
 var redirectDestinationCodes = state.NewStrCodes(
 	state.StrEntry[redirectDestinationCode]{Key: "Exile", Val: redirectDestinationExile},
 	state.StrEntry[redirectDestinationCode]{Key: "Hand", Val: redirectDestinationHand},
+	state.StrEntry[redirectDestinationCode]{Key: "Library", Val: redirectDestinationLibrary},
 )
 
 type redirectOriginCode uint16
@@ -1423,6 +1510,8 @@ const (
 	redirectExileBodyAllowed redirectExileBodyCode = iota + 1
 	redirectExileBodyHidden
 	redirectExileBodySubAbility
+	redirectExileBodyLibPos
+	redirectExileBodyLibTrue
 )
 
 var redirectExileBodyCodes = state.NewStrCodes(
@@ -1446,6 +1535,10 @@ var redirectExileBodyCodes = state.NewStrCodes(
 	state.StrEntry[redirectExileBodyCode]{Key: "RememberChanged", Val: redirectExileBodyHidden},
 	state.StrEntry[redirectExileBodyCode]{Key: "ExiledWithEffectSource", Val: redirectExileBodyHidden},
 	state.StrEntry[redirectExileBodyCode]{Key: "SubAbility", Val: redirectExileBodySubAbility},
+	// Library destination only: LibraryPosition$ <int>, Shuffle$/Reveal$ True.
+	state.StrEntry[redirectExileBodyCode]{Key: "LibraryPosition", Val: redirectExileBodyLibPos},
+	state.StrEntry[redirectExileBodyCode]{Key: "Shuffle", Val: redirectExileBodyLibTrue},
+	state.StrEntry[redirectExileBodyCode]{Key: "Reveal", Val: redirectExileBodyLibTrue},
 )
 
 type cantAttackPresentKeyCode uint16
