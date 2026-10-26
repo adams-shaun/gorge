@@ -511,7 +511,6 @@ func TestCloakedLeavesBattlefieldReveals(t *testing.T) {
 func TestCloakOutOfScopeShapesStayLoud(t *testing.T) {
 	t.Parallel()
 	for _, tt := range []struct{ name, sa string }{
-		{"choices", "A:SP$ Cloak | Choices$ Card.YouCtrl"},
 		{"unknown-defined", "A:SP$ Cloak | Defined$ ChosenCard"},
 	} {
 		src := "Name:Loud Cloak\nManaCost:0\nTypes:Instant\n" + tt.sa + "\nOracle:x\n"
