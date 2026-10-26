@@ -55,6 +55,10 @@ type PumpParams struct {
 	// Defined$, trimmed (the NoteCards$ Self fallback's "no selector" test;
 	// the selector itself resolves through Defined).
 	Defined string
+	// ThisDefinedAndTgts$, trimmed: the named extra objects (Self,
+	// ParentTarget, TopOfLibrary) the pump affects in addition to its chosen
+	// targets (Ballroom Brawlers, Razorgrass Invoker).
+	ThisDefinedAndTgts string
 	// Secondary$ True: Forge's presentation flag, recognised and ignored.
 	Secondary bool
 	// KWChoice$: present-and-non-blank, and its trimmed non-empty candidate
@@ -137,6 +141,7 @@ func compilePump(sa *cards.SA, dp *DefinedParams) *PumpParams {
 	p.NoteCardsFor = strings.TrimSpace(sa.ParamStr(cards.PKNoteCardsFor))
 	p.NoteCards = strings.TrimSpace(sa.ParamStr(cards.PKNoteCards))
 	p.Defined = dp.Defined.Text
+	p.ThisDefinedAndTgts = strings.TrimSpace(rawParamText(sa, "ThisDefinedAndTgts").Text)
 	p.Secondary = isTrue(sa.ParamStr(cards.PKSecondary))
 	kw := strings.TrimSpace(sa.ParamStr(cards.PKKWChoice))
 	p.HasKWChoice = kw != ""
@@ -352,7 +357,7 @@ var pumpKnownKeys = [...]string{
 	"TargetsWithSharedTypes",
 	"TgtPrompt",
 	"TgtZone",
-	"TokenScript",
+	"ThisDefinedAndTgts", "TokenScript",
 	"TriggerDescription",
 	"Type",
 	"Ultimate",
