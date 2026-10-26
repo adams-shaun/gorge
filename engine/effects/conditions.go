@@ -627,17 +627,24 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 		if o == nil {
 			continue
 		}
+		memberSc := sc
 		// CR 608.2b/h look-back: a target that has left the battlefield since
 		// targeting is read with the counters it had there, so Dismantle's
 		// `ConditionDefined$ Targeted | ConditionPresent$ Card.HasCounters`
 		// still holds after the chained Destroy moved the target to the
-		// graveyard. Only the counter field is substituted; every other
+		// graveyard. The P/T half reads the layer-derived values captured at
+		// the departure boundary (Ctx.Snap.TargetPT), so Driftgloom Coyote's
+		// "if that creature had power 2 or less" sees a Burrowguard Mentor's
+		// last battlefield power, not a live CDA in exile. Every other
 		// characteristic is read live (or via Ctx.LKI for a trigger).
 		if defined == "Targeted" || defined == "ThisTargetedCard" {
 			if cs, ok := targetCountersLKI(c, t.Obj, o); ok {
 				oc := *o
 				oc.Counters = cs
 				o = &oc
+			}
+			if pt, ok := targetPTLKI(c, o); ok {
+				memberSc.DerivedPower, memberSc.DerivedToughness, memberSc.HasDerivedPT = pt.Power, pt.Toughness, true
 			}
 			o = targetedPermanentLKI(c, present, o)
 		}
@@ -685,12 +692,12 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 		if spellTargeting {
 			// The present spec is a target filter over the member spell's
 			// TARGETS, not a filter over the member object's own face.
-			if spellTargetingMatches(g, memberSpec, o, sc) {
+			if spellTargetingMatches(g, memberSpec, o, memberSc) {
 				count++
 			}
 			continue
 		}
-		if MatchesObjectCtx(g, memberSpec, o, sc) {
+		if MatchesObjectCtx(g, memberSpec, o, memberSc) {
 			count++
 		}
 	}
@@ -1026,10 +1033,11 @@ func conditionBareMet(h Host, c *Ctx, bare, optionalPaid string) (bool, bool) {
 // permanent" names the object as it last existed on the battlefield: when the
 // member left the battlefield this turn (events.Apply's EnteredFrom stamp on
 // its current zone) it is read as a battlefield object under its
-// resolution-start controller (Ctx.TargetControllerLKI). Every other
-// characteristic is read from the live card, as the counters look-back above
-// does. A spec without a Permanent-base alternative, or a member that did not
-// come from the battlefield, is returned unchanged.
+// resolution-start controller (Ctx.TargetControllerLKI). Power/toughness are
+// substituted separately from Ctx.Snap.TargetPT; every other characteristic is
+// read from the live card, as the counters look-back above does. A spec
+// without a Permanent-base alternative, or a member that did not come from the
+// battlefield, is returned unchanged.
 func targetedPermanentLKI(c *Ctx, present string, o *state.Object) *state.Object {
 	if o == nil || o.Zone == state.ZBattlefield || !o.EnteredThisTurn ||
 		o.EnteredFrom != state.ZBattlefield || !specNamesPermanentBase(present) {
