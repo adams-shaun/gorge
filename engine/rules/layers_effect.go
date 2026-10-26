@@ -624,6 +624,35 @@ func (e *Engine) expireClonesOnEvent(ev events.Event, wasTapped bool) {
 	e.settleExpiredClones(expired)
 }
 
+// expireUntilTargetedUntaps ends non-clone Effect registrations whose
+// Duration$ UntilTargetedUntaps names one of their Remembered objects, once
+// that object untaps (CR 611.2b's "for as long as it remains tapped") or
+// leaves the battlefield (Braided Net's lock). Clone units keep their own
+// expiry in expireClonesOnEvent; this is the restriction lifetime beside it.
+func (e *Engine) expireUntilTargetedUntaps(ev events.Event, wasTapped bool) {
+	if ev.Obj == 0 ||
+		!(ev.Kind == events.Untap && wasTapped || ev.Kind == events.MoveZone && ev.From == state.ZBattlefield) {
+		return
+	}
+	dropped := false
+	kept := e.continuous[:0]
+	for i := range e.continuous {
+		ce := &e.continuous[i]
+		if ce.CloneTarget == 0 &&
+			effects.IsUntilTargetedUntapsDuration(ce.Duration) &&
+			slices.Contains(ce.Remembered, ev.Obj) {
+			dropped = true
+			continue
+		}
+		kept = append(kept, *ce)
+	}
+	if !dropped {
+		return
+	}
+	e.continuous = kept
+	e.continuousChanged()
+}
+
 // settleExpiredClones rewrites the CopyFace basis of every permanent whose
 // clone units this cleanup just dropped from e.continuous.
 //

@@ -44,7 +44,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 602.3a | follows | `engine/rules/target_ask.go#Engine.opponentPicker` | - | as 601.7a; d two players |
 | 602.3b | unknown | - | - | as 601.7b, not traced |
 | 602.4 | follows | `engine/rules/cast_pricing.go#Engine.manaToPay` | - | as 601.8 |
-| 602.5 | partial | `engine/rules/statics_cast.go#Engine.abilityRestricted` `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` `engine/effects/effect.go#effEffect` | - | g Effect-delivered CantBeActivated is a Note only (LOUD) |
+| 602.5 | follows | `engine/rules/statics_cast.go#Engine.abilityRestricted` `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` `engine/effects/effect.go#effEffect` | `TestEffectCantBeActivatedBraidedNet` `TestCantBeActivatedValidSAPowerUpPrinted` | Effect-delivered CantBeActivated registers via the continuous registry (cr-g136b); ValidSA$ Activated.PowerUp is read |
 | 602.5a | follows | `engine/rules/pay/managates.go#TapCostSick` `engine/rules/pay/managates.go#TapFlagsSick` | `TestCR602NewNoncreatureCanActivateTapAbility` | {T} sickness, haste, control change |
 | 602.5b | follows | `engine/rules/legal_loyalty.go#Engine.activationUsedCount` | `TestCR602OncePerTurnActivationRestriction` | per object across control change |
 | 602.5c | unknown | `engine/rules/legal_loyalty.go#Engine.activationUsedCount` | - | g granted identity = SVar name; two grantors may share tally |

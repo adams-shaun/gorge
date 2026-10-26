@@ -2,7 +2,7 @@
 # One line per remaining file: <slug> <max bytes>. Lines may only be DELETED (the row closed: delete
 # its file and its line) or have their byte cap LOWERED. Never add a line or raise a cap.
 restrictvalid 660
-effect-modes 649
+effect-modes 630
 cloak1 485
 combatrestriction1 1171
 ap1 633

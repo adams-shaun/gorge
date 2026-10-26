@@ -1019,7 +1019,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case cards.StaticCantTarget, cards.StaticCantRegenerate, cards.StaticCantPreventDamage, cards.StaticCantAttack, cards.StaticCantBlock, cards.StaticCantSacrifice, cards.StaticCantExile, cards.StaticCantPutCounter, cards.StaticCantBlockBy, cards.StaticCanAttackDefender, cards.StaticUnspentMana, cards.StaticCantBlockUnless, cards.StaticCantAttackUnless, cards.StaticMustBlock, cards.StaticNumLoyaltyAct, cards.StaticCantGainLife, cards.StaticCantPlayLand, cards.StaticCastWithFlash, cards.StaticCantChangeLife, cards.StaticCantBeCast:
+		case cards.StaticCantTarget, cards.StaticCantRegenerate, cards.StaticCantPreventDamage, cards.StaticCantAttack, cards.StaticCantBlock, cards.StaticCantSacrifice, cards.StaticCantExile, cards.StaticCantPutCounter, cards.StaticCantBlockBy, cards.StaticCanAttackDefender, cards.StaticUnspentMana, cards.StaticCantBlockUnless, cards.StaticCantAttackUnless, cards.StaticMustBlock, cards.StaticNumLoyaltyAct, cards.StaticCantGainLife, cards.StaticCantPlayLand, cards.StaticCastWithFlash, cards.StaticCantChangeLife, cards.StaticCantBeActivated, cards.StaticCantBeCast:
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (engine/rules/layers.go restrictionApplies consults the
@@ -1049,6 +1049,21 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// triggered one. The wide cause-aware whitelist is reserved for the
 				// rules-side face-static walk (engine/rules/layers.go exileBlocked), exactly
 				// as CantSacrificeRestrictionParamsReadable is for CantSacrifice.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantBeActivated" && !CantBeActivatedParamsReadable(params) {
+				// An Effect-delivered CantBeActivated body (Braided Net's
+				// "its activated abilities can't be activated", Kang's
+				// power-up lock) registers as a continuous restriction
+				// rules' abilityRestrictedUsing reads beside the printed S:
+				// route, exactly as CantBeCast registers for the cast gate.
+				// A body carrying a scoping term the activation gate does not
+				// evaluate must not register blanket -- it reports
+				// unimplemented instead, through the same whitelist the
+				// rules-side read runs.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -1208,6 +1223,16 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// same reason.
 				ceUntilEOT = true
 			}
+			if IsUntilTargetedUntapsDuration(rawDur) && len(remembered) == 0 {
+				// CR 611.2b: "for as long as it remains tapped" ends when the
+				// remembered object untaps (rules' expireUntilTargetedUntaps).
+				// With no remembered object there is no boundary to read, so
+				// the registration would lock forever; keep the honest Note.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
@@ -1229,7 +1254,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ExileOnMoved:  exileOn,
 				ForgetCounter: forgetCounter,
 			}
-			if mode == "CantAttack" || mode == "CantSacrifice" || mode == "CantBlockBy" || mode == "CantGainLife" || mode == "CantBeCast" || mode == "CantBlock" {
+			if mode == "CantAttack" || mode == "CantSacrifice" || mode == "CantBlockBy" || mode == "CantGainLife" || mode == "CantBeCast" || mode == "CantBeActivated" || mode == "CantBlock" {
 				// The player half of the remembered capture: Call for Aid's
 				// RememberObjects$ TargetedPlayer must reach the registered
 				// CantAttack, whose Target$ Player.IsRemembered ("you can't
