@@ -26,12 +26,14 @@ import (
 // Scope, measured over the corpus's 33 plain-Manifest lines: the default
 // top-card shape (the 9 bare `DB$ Manifest` trigger bodies), a
 // `DefinedPlayer$` selector through searchPlayers's grammar (Reality
-// Shift's `TargetedController`) and a literal/SVar `Amount$` (default 1;
+// Shift's `TargetedController`), `RememberManifested$ True` (each manifested
+// object joins the resolution's Remembered: Wildcall's counters, Lightform's
+// attach, Kozilek's per-card draw) and a literal/SVar `Amount$` (default 1;
 // a value resolving to <= 0 manifests nothing, no event) are implemented.
 // `Choices$` (default `ChoiceZone$ Hand`: scroll_of_fate's "manifest a card
 // from your hand") asks each listed player to pick Amount$ cards from the
 // hand pool. Every other shape -- `Defined$` object manifests, a
-// `ChoiceZone$` other than Hand, `RememberManifested$ True`, an unresolvable `Amount$`
+// `ChoiceZone$` other than Hand, an unresolvable `Amount$`
 // body (Y, or X outside a cast's own X-value) -- emits the SAME loud
 // "unimplemented API Manifest" note the unimplemented-API fallback emits
 // and moves nothing: fail loud, never silently move the wrong card.
@@ -40,12 +42,12 @@ import (
 // marker this primitive emits.
 func effManifest(h Host, c *Ctx, sa *cards.SA) {
 	choices := strings.TrimSpace(sa.ParamStr(cards.PKChoices)) != ""
-	if DefinedRefOf(sa).Set() ||
-		strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberManifested)), "True") {
+	if DefinedRefOf(sa).Set() {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented API Manifest"})
 		return
 	}
+	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberManifested)), "True")
 	amount := int32(1)
 	if raw, present := sa.Param(cards.PKAmount); present {
 		// X/Y (and any body Num's grammar cannot resolve) are out of scope:
@@ -83,6 +85,7 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 				h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p,
 					From: state.ZHand, To: state.ZBattlefield,
 					Counter: events.ManifestEntryCounter, Secret: true})
+				rememberManifested(h, c, id, remember)
 			}
 			continue
 		}
@@ -98,7 +101,18 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: top, Player: p,
 				From: state.ZLibrary, To: state.ZBattlefield,
 				Counter: events.ManifestEntryCounter, Secret: true})
+			rememberManifested(h, c, top, remember)
 		}
+	}
+}
+
+// rememberManifested is RememberManifested$ True's write after a manifest
+// move: the id joins the resolution's Remembered (Ctx half and the source's
+// event-backed half), the manifestDreadMove pair.
+func rememberManifested(h Host, c *Ctx, id state.ObjID, remember bool) {
+	if remember {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		eventRemember(h, c, id)
 	}
 }
 
