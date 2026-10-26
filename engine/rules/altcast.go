@@ -225,7 +225,7 @@ func (e *Engine) offerMadness(ev events.Event) {
 // in the exile zone the replacement put it in. beginCast's ordinary flow
 // charges the printed madness cost and records the spell on the stack.
 func (e *Engine) castMadness(p state.PlayerID, id state.ObjID) bool {
-	if !e.madnessCastable(p, id) {
+	if !madnessCastable(e.G, p, id) {
 		return false
 	}
 	e.beginCast(p, decision.Option{Kind: "cast", Obj: id, Mode: altMode(altMadness)})
@@ -234,8 +234,8 @@ func (e *Engine) castMadness(p state.PlayerID, id state.ObjID) bool {
 
 // madnessCastable reports whether id is still the exiled card p owns that a
 // madness trigger may cast.
-func (e *Engine) madnessCastable(p state.PlayerID, id state.ObjID) bool {
-	o := e.G.Obj(id)
+func madnessCastable(g *state.Game, p state.PlayerID, id state.ObjID) bool {
+	o := g.Obj(id)
 	return o != nil && o.Zone == state.ZExile && o.Owner == p
 }
 
@@ -292,7 +292,7 @@ func (e *Engine) resolveMadnessChoice(rp *resumePoint, yes bool) {
 	}
 	card, owner := ability.Source, ability.Controller
 	e.finishResumption(rp.obj)
-	if yes && e.madnessCastable(owner, card) {
+	if yes && madnessCastable(e.G, owner, card) {
 		// CR 117.3b: the trigger's resolution ends with the active player
 		// receiving priority and a fresh pass count. The reset precedes the
 		// cast, as an ordinary cast's does, so the opponent's pass that let
