@@ -184,3 +184,18 @@ they sit at the end of their controller's battlefield list. The engine is
 hypothetical: its later shuffles are seeded by `Config.Seed` and it is not
 replayable from `Config`. The full contract is the doc comment in
 `engine/rules/staging.go`.
+
+## A mixed-Hand ChangeZone that moves nothing emits one diagnostic Note
+
+An explicit multi-zone `ChangeZone Origin$` that includes `Hand` with a fetch
+selector resolves through the search path: one private option list across
+every named origin (CR 400.1, "from your hand and/or graveyard"), as Forge's
+`changeHiddenOriginResolve` and XMage's Worldsoul's Rage do. A `Defined$` that
+names its objects keeps the object path. When such an object-path resolution
+moves nothing, `effChangeZone` emits exactly one replay-visible Note naming the
+origin; a resolution that moved its objects emits none. The Note is a
+diagnostic, not a stand-in. `TestMixedOriginNoteStillFiresWhenNothingMoves`
+(`engine/effects/mixed_origin_test.go`) pins it;
+`TestWorldsoulsRagePicksFromHandAndGraveyardInOneAnswer`
+(`engine/rules/worldsouls_rage_mixed_origin_test.go`) pins the multi-pick
+search.

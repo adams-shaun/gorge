@@ -3,9 +3,7 @@
 # its file and its line) or have their byte cap LOWERED. Never add a line or raise a cap.
 restrictvalid 660
 effect-modes 729
-mixed-origin-hand 512
 cloak1 485
-copyperm-grants 622
 combatrestriction1 1171
 ap1 633
 kw-mayflashsac 1120
