@@ -93,3 +93,53 @@ func TestEffectMayPlayGateKeysEffectRouteOnly(t *testing.T) {
 		t.Fatal("printed route's MayPlayStaticParams accepted a Secondary$ line")
 	}
 }
+
+// TestEffectMayPlayBlankCheckSVarRefused pins the present-but-blank
+// CheckSVar$ refusal: a blank gate key is unreadable, and accepting it would
+// register the grant UNGATED (MayPlayCheckSVar trims to "" and the rules gate
+// reads that as no gate) -- the printed route's convention is that
+// present-but-empty fails closed.
+func TestEffectMayPlayBlankCheckSVarRefused(t *testing.T) {
+	for _, raw := range []string{"", "  \t"} {
+		if _, ok := mayPlayGrantFromLine(map[string]string{
+			"MayPlay": "True", "CheckSVar": raw,
+		}); ok {
+			t.Errorf("ordinary grant accepted present blank CheckSVar %q", raw)
+		}
+		if _, ok := mayPlayFreeGrantFromLine(map[string]string{
+			"MayPlay": "True", "MayPlayWithoutManaCost": "True", "CheckSVar": raw,
+		}); ok {
+			t.Errorf("free grant accepted present blank CheckSVar %q", raw)
+		}
+	}
+}
+
+// TestAnimateMayPlayGrantRefusesGateKeys pins the Animate staticAbilities$
+// route's gate-key refusal (Monk Class's StPlay): the shared grant builder
+// now carries CheckSVar$ for the Effect route, but this route binds no
+// resolving-face SVar table, so it must keep its loud unimplemented Note
+// rather than silently register a grant whose gate can never evaluate.
+func TestAnimateMayPlayGrantRefusesGateKeys(t *testing.T) {
+	// Precondition: the line shape minus the gate key is accepted by the
+	// same builder the Animate route calls, so the refusal below is
+	// specifically the route's gate-key guard.
+	if ce, ok := mayPlayGrantFromLine(map[string]string{
+		"Affected": "Card.Self", "AffectedZone": "Exile", "MayPlay": "True",
+	}); !ok || ce.MayPlayCheckSVar != "" {
+		t.Fatalf("precondition: plain self/Exile line not accepted: %+v ok=%v", ce, ok)
+	}
+	for _, extra := range []map[string]string{
+		{"CheckSVar": "YouCastThisTurn"},
+		{"CheckSVar": "X", "SVarCompare": "GE1"},
+	} {
+		params := map[string]string{
+			"Affected": "Card.Self", "AffectedZone": "Exile", "MayPlay": "True",
+		}
+		for k, v := range extra {
+			params[k] = v
+		}
+		if _, ok := animateSelfMayPlayGrant(nil, NewCtxPtr(0, 0, CtxInit{}), 0, params); ok {
+			t.Fatalf("Animate route registered a gate-keyed may-play grant without an SVar table: %v", extra)
+		}
+	}
+}

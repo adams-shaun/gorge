@@ -404,6 +404,13 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 			if !allowAfterStack {
 				return false, false, 0, false, "", false
 			}
+			// A CheckSVar$ present but blank is unreadable (nothing to
+			// evaluate): refusing it here keeps a blank key from silently
+			// registering an UNGATED grant (the printed route's
+			// checkSVarHolds convention: present-but-empty fails).
+			if raw, okv := params["CheckSVar"]; okv && strings.TrimSpace(raw) == "" {
+				return false, false, 0, false, "", false
+			}
 			// A bare SVarCompare$ with no CheckSVar$ is malformed (nothing to
 			// compare): mayPlayConditionGateHolds's convention.
 			if strings.TrimSpace(params["CheckSVar"]) == "" && strings.TrimSpace(params["SVarCompare"]) != "" {
