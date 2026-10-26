@@ -85,6 +85,10 @@ type DigParams struct {
 	// its Num-grammar amount (default 1): a battlefield take enters with them.
 	WithCounters       string
 	WithCountersAmount ParamText
+	// ExileWithCounters is ExileWithCounters$ (a counter kind): a card the Dig
+	// moves to exile gets one counter of it there (CR 122.1; Karn, Scion of
+	// Urza's "exile the other with a silver counter on it").
+	ExileWithCounters string
 	// WithDifferentPowers is WithDifferentPowers$ True: the take is a set
 	// whose chosen cards must have pairwise different powers (Rip, Spawn
 	// Hunter). The ask carries decision.SetPropDistinct with one power token
@@ -172,6 +176,7 @@ var digKnownKeys = [...]string{
 	"Exclude",
 	"Exhaust",
 	"ExileFaceDown",
+	"ExileWithCounters",
 	"FaceDown",
 	"FaceDownPower",
 	"FaceDownSetType",
@@ -390,6 +395,7 @@ func compileDig(sa *cards.SA) *DigParams {
 	p.DestZone2Optional = isTrue(rawParamText(sa, "DestZone2Optional").Text)
 	p.WithCounters = strings.TrimSpace(rawParamText(sa, "WithCounters").Text)
 	p.WithCountersAmount = rawParamText(sa, "WithCountersAmount")
+	p.ExileWithCounters = strings.TrimSpace(rawParamText(sa, "ExileWithCounters").Text)
 	p.WithDifferentPowers = isTrue(rawParamText(sa, "WithDifferentPowers").Text)
 	p.Unread = unreadKeys(sa, digKnownKeys[:])
 	return p
