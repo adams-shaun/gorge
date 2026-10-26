@@ -511,6 +511,7 @@ const (
 	PKUntapUpTo
 	PKUseDifferenceBetweenRolls
 	PKUseHighestRoll
+	PKUseImprinted
 	PKValidCards2
 	PKValidDefined
 	PKValidPlayers
@@ -1366,6 +1367,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKUntapUpTo:                        "UntapUpTo",
 	PKUseDifferenceBetweenRolls:        "UseDifferenceBetweenRolls",
 	PKUseHighestRoll:                   "UseHighestRoll",
+	PKUseImprinted:                     "UseImprinted",
 	PKValidCards2:                      "ValidCards2",
 	PKValidDefined:                     "ValidDefined",
 	PKValidPlayers:                     "ValidPlayers",
