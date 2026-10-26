@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -124,6 +125,48 @@ import (
 // exotic DestinationZone2 values (PlanarDeck). The primary optional
 // election, primary LibraryPosition$, Choser$ and DigNum$ X are handled by
 // this walk.
+//
+// digGreedyTake is the deterministic forced take under WithTotalCMC$ and
+// WithDifferentPowers$: walk the pickable cards in window order and take
+// each only while the running mana-value sum fits, skipping a power already
+// taken when the take must be pairwise distinct.
+func digGreedyTake(h Host, g *state.Game, ids []state.ObjID, changeNum int32, budget int, hasBudget, distinct bool) []state.ObjID {
+	out := make([]state.ObjID, 0, len(ids))
+	running := 0
+	var powers []string
+	for _, id := range ids {
+		if int32(len(out)) >= changeNum {
+			break
+		}
+		mv := manaValueOf(g, id)
+		if hasBudget && running+mv > budget {
+			continue
+		}
+		if distinct {
+			// WithDifferentPowers$ True: the forced take is the greedy
+			// first card of each distinct power in window order, the same
+			// set the R-9 host would pick.
+			pow := strconv.Itoa(chooseCardPower(h, id))
+			if slices.Contains(powers, pow) {
+				continue
+			}
+			powers = append(powers, pow)
+		}
+		running += mv
+		out = append(out, id)
+	}
+	return out
+}
+
+// digSetOptionPowers marks a WithDifferentPowers$ take: Validate enforces
+// pairwise different powers from one power token per option.
+func digSetOptionPowers(h Host, d *decision.Decision) {
+	d.SetPropMode = decision.SetPropDistinct
+	for i := range d.Options {
+		d.Options[i].SetProps = []string{strconv.Itoa(chooseCardPower(h, d.Options[i].Obj))}
+	}
+}
+
 func effDig(h Host, c *Ctx, sa *cards.SA) {
 	dp := DigOf(sa)
 	digNum := numText(h, c, dp.DigNum, 1)
@@ -486,19 +529,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// running sum of mana values still fits. This is the exact take the
 		// no-choice tail and the R-9 no-host fallback apply, and it is also
 		// what decides whether a choice exists (below).
-		greedy := make([]state.ObjID, 0, len(budgetEligible))
-		running := 0
-		for _, id := range budgetEligible {
-			if int32(len(greedy)) >= changeNum {
-				break
-			}
-			mv := manaValueOf(g, id)
-			if hasBudget && running+mv > int(budget) {
-				continue
-			}
-			running += mv
-			greedy = append(greedy, id)
-		}
+		greedy := digGreedyTake(h, g, budgetEligible, changeNum, int(budget), hasBudget, dp.WithDifferentPowers)
 		// forcedAll says the forced greedy take consumes every budget-eligible
 		// card, so the answer cannot differ from it and no ask is warranted.
 		forcedAll := len(greedy) == len(budgetEligible)
@@ -593,6 +624,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					opt.Value = manaValueOf(g, id)
 				}
 				d.Options = append(d.Options, opt)
+			}
+			if dp.WithDifferentPowers {
+				digSetOptionPowers(h, d)
 			}
 			if allOrNothing {
 				// ChangeNum$ All moves every matching card or none
