@@ -332,6 +332,31 @@ func CantBlockByRestrictionParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// CantBlockRestrictionParamsReadable is the parameter whitelist an
+// Effect-registered CantBlock static must pass before this build enforces it
+// (cr-g156; the same discipline CantBlockByRestrictionParamsReadable enforces
+// for CantBlockBy, so the registration and consultation paths cannot
+// disagree): the blocker-side spec the continuous consultation reads
+// (engine/rules/combat/restrictions.go BlockRestricted's registered-effects
+// walk: ValidCard$ against the would-be blocker), plus the zone scoping the
+// registration carries anyway and display text. A body carrying a condition
+// or scoping parameter this build's continuous path does not evaluate
+// (Condition$, IsPresent$, CheckSVar$, ...) must not register blanket -- a
+// gated "can't block" would become an UNCONDITIONAL one, over-restricting --
+// so it stays the unimplemented Note. Measured over the corpus's 8
+// Effect-delivered CantBlock bodies (Ahn-Crop Crasher, Cosmotronic Wave,
+// Ember Gale, Hazardous Blast, Headliner Scarlett, Immobilizer Eldrazi,
+// Rumbling Ruin, Sontaran General): every one reads only the whitelisted
+// parameters.
+func CantBlockRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantBlockRestrictionParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 // MustAttackParamsReadable is the parameter whitelist a MustAttack line must
 // pass before effEffect registers it as an Effect-delivered per-player attack
 // REQUIREMENT (Territorial Hellkite's `DB$ Effect | StaticAbilities$
@@ -1423,6 +1448,8 @@ var cantAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCard",
 
 var cantBlockByRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidAttacker", "ValidBlocker", "ValidCard", "Description", "Secondary")
 
+var cantBlockRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "Description", "EffectZone", "AffectedZone")
+
 var mustAttackParamsReadableKeys = state.NewNameSet("Mode", "ValidCreature", "MustAttack", "Description", "Secondary")
 
 var mustAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCreature", "MustAttack", "Description", "Secondary", "IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "CheckSVar", "SVarCompare", "Condition", "ClassBand")
@@ -1459,6 +1486,7 @@ var canAttackDefenderParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", 
 var absentDurationMeansThisTurnSet = state.NewNameSet(
 	"CantPutCounter",
 	"CantBlockBy",
+	"CantBlock",
 	"CanAttackDefender",
 	"NumLoyaltyAct",
 	"CombatDamageToughness",

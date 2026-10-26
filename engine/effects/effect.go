@@ -1019,7 +1019,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case cards.StaticCantTarget, cards.StaticCantRegenerate, cards.StaticCantPreventDamage, cards.StaticCantAttack, cards.StaticCantSacrifice, cards.StaticCantExile, cards.StaticCantPutCounter, cards.StaticCantBlockBy, cards.StaticCanAttackDefender, cards.StaticUnspentMana, cards.StaticCantBlockUnless, cards.StaticCantAttackUnless, cards.StaticMustBlock, cards.StaticNumLoyaltyAct, cards.StaticCantGainLife, cards.StaticCantPlayLand, cards.StaticCastWithFlash, cards.StaticCantChangeLife, cards.StaticCantBeActivated, cards.StaticCantBeCast:
+		case cards.StaticCantTarget, cards.StaticCantRegenerate, cards.StaticCantPreventDamage, cards.StaticCantAttack, cards.StaticCantBlock, cards.StaticCantSacrifice, cards.StaticCantExile, cards.StaticCantPutCounter, cards.StaticCantBlockBy, cards.StaticCanAttackDefender, cards.StaticUnspentMana, cards.StaticCantBlockUnless, cards.StaticCantAttackUnless, cards.StaticMustBlock, cards.StaticNumLoyaltyAct, cards.StaticCantGainLife, cards.StaticCantPlayLand, cards.StaticCastWithFlash, cards.StaticCantChangeLife, cards.StaticCantBeActivated, cards.StaticCantBeCast:
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (engine/rules/layers.go restrictionApplies consults the
@@ -1100,6 +1100,26 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			if mode == "CantBlockBy" && !CantBlockByRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantBlock" && (!CantBlockRestrictionParamsReadable(params) || ep.SetChosenNumber != "") {
+				// A SetChosenNumber$ Effect (Rumbling Ruin's powerLEX over
+				// Count$ChosenNumber) freezes a count the block-time spec read
+				// cannot see; registering it would read the source's 0 and
+				// restrict nothing, so it stays the loud Note.
+				// An Effect-delivered CantBlock body (Cosmotronic Wave's
+				// "creatures your opponents control can't block this turn",
+				// Immobilizer Eldrazi, Ahn-Crop Crasher, Ember Gale) registers
+				// as a continuous restriction rules' combat.BlockRestricted
+				// registered walk reads beside the printed S: route, exactly as
+				// CantBlockBy does. A body carrying a scoping term this build
+				// does not evaluate must not register blanket -- it reports
+				// unimplemented instead (the same fail-closed-to-Note direction
+				// every sibling whitelist arm here keeps; a gated can't-block
+				// registered blanket would over-restrict).
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -1234,7 +1254,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ExileOnMoved:  exileOn,
 				ForgetCounter: forgetCounter,
 			}
-			if mode == "CantAttack" || mode == "CantSacrifice" || mode == "CantBlockBy" || mode == "CantGainLife" || mode == "CantBeCast" || mode == "CantBeActivated" {
+			if mode == "CantAttack" || mode == "CantSacrifice" || mode == "CantBlockBy" || mode == "CantGainLife" || mode == "CantBeCast" || mode == "CantBeActivated" || mode == "CantBlock" {
 				// The player half of the remembered capture: Call for Aid's
 				// RememberObjects$ TargetedPlayer must reach the registered
 				// CantAttack, whose Target$ Player.IsRemembered ("you can't
@@ -1263,6 +1283,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// RestrictionPlayerSpecMatches read the other four modes run
 				// (engine/rules/statics.go actorMatches, on the
 				// effect-delivered view castRestrictionSources builds).
+				//
+				// CantBlock joins for the targeted-player carriers: Ember Gale
+				// and Headliner Scarlett's RememberObjects$ Targeted (the
+				// player the spell targeted) feeds the registered restriction's
+				// ValidCard$ Creature.RememberedPlayerCtrl through the same
+				// consultation-time RememberedPlayers channel
+				// (engine/rules/combat/restrictions.go BlockRestricted's
+				// registered walk).
 				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
 			}
 			if mode == "CantGainLife" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent") {
