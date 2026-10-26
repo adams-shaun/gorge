@@ -273,6 +273,20 @@ type pendingCast struct {
 	multikickTimes int32  `clone:"deep"`
 	multikickDone  bool   `clone:"deep"`
 
+	// Defiler cycle (ReduceColor$ OptionalCost statics, defilerAsk): defilerNext
+	// is how many applicable statics the one-at-a-time asks have considered,
+	// defilerAsked/defilerParam/defilerColor name the Defiler whose question is
+	// out, defilerTimes counts the yes answers and defilerRed is their summed
+	// one-pip reductions, re-added to pc.mods after every modifier refresh.
+	// Plain data, so Clone copies it like the multikick fields above.
+	defilerNext  int32   `clone:"deep"`
+	defilerDone  bool    `clone:"deep"`
+	defilerAsked bool    `clone:"deep"`
+	defilerParam string  `clone:"deep"`
+	defilerColor int32   `clone:"deep"`
+	defilerTimes int32   `clone:"deep"`
+	defilerRed   costMod `clone:"deep"`
+
 	// escalateParam is the raw Escalate keyword parameter (the modal
 	// additional cost "pay this for each mode chosen beyond the first") a
 	// Charm cast re-parses once the CR 601.2b mode answer is in; escalateDone

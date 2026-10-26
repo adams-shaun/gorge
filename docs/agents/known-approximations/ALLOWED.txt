@@ -5,4 +5,3 @@ restrictvalid 660
 effect-modes 630
 cloak1 485
 combatrestriction1 1171
-kw-mayflashsac 1120

@@ -136,7 +136,7 @@ func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
 func (e *Engine) manaToPayXMods(pc *pendingCast, x int32) costMods {
 	if costAnnouncesPaidX(pc.cost) {
 		if scope, ok := e.pendingCastScope(pc); ok {
-			return e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.targets, x)
+			return pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.targets, x))
 		}
 	}
 	return pc.mods
@@ -363,6 +363,8 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			}
 			pc.multikickTimes = n
 		}
+	case castAnswerDefilerYes, castAnswerDefilerNo:
+		e.answerDefiler(pc, chosen)
 	case castAnswerSquad:
 		// CR 702.66: the answered payment count folds that many squad
 		// payments into cost -- the replicate/multikicker arm's exact shape.
@@ -568,6 +570,8 @@ const (
 	castAnswerCancelCast
 	castAnswerCostType
 	castAnswerDivide
+	castAnswerDefilerYes
+	castAnswerDefilerNo
 )
 
 var castAnswerCodes = state.NewStrCodes(
@@ -599,4 +603,6 @@ var castAnswerCodes = state.NewStrCodes(
 	state.StrEntry[castAnswerCode]{Key: decision.OptCancelCast, Val: castAnswerCancelCast},
 	state.StrEntry[castAnswerCode]{Key: "type", Val: castAnswerCostType},
 	state.StrEntry[castAnswerCode]{Key: "divide", Val: castAnswerDivide},
+	state.StrEntry[castAnswerCode]{Key: "yes", Val: castAnswerDefilerYes},
+	state.StrEntry[castAnswerCode]{Key: "no", Val: castAnswerDefilerNo},
 )

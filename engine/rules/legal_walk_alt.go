@@ -306,7 +306,7 @@ func (w *legalWalk) commandZoneWalk() {
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
-		if targetsAvailable && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id), spellScope(""), false) {
+		if raw := pay.RawBaseCost(asPayer(e), p, id); targetsAvailable && (w.offerCastable(p, id, raw, spellScope(""), false) || w.reducedOptionalCastable(p, id, raw)) {
 			w.add("cast", w.castLabel(f), id)
 		}
 		if targetsAvailable {

@@ -299,7 +299,7 @@ func (e *Engine) paymentPlanCastShapeDetailScoped(statics costStaticViews, p sta
 		return "shape:additional_cost"
 	}
 	f := o.Face()
-	if len(altAddCostParts(f)) != 0 || len(e.optionalCostViews(statics, p, id)) != 0 {
+	if len(altAddCostParts(f)) != 0 || len(e.optionalCostViews(statics, p, id)) != 0 || len(e.reduceColorOptionalViews(statics, p, id)) != 0 {
 		return "shape:optional_cost"
 	}
 	// Cost$ on the spell ability and the supported cost-static extra are both

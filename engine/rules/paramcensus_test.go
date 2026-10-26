@@ -2205,7 +2205,7 @@ var handRoots = struct {
 		"ReduceCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX", "Engine.paymentPlanHasTargetDependentModifier",
 			"quietSelfReducePipFloor"},
 		"SetCost":      {"Engine.paymentPlanHasTargetDependentModifier"},
-		"OptionalCost": {"Engine.optionalCostViews"},
+		"OptionalCost": {"Engine.optionalCostViews", "Engine.reduceColorOptionalViews"},
 		// paymentPlanManaConvertName (payment_plan_interference.go) names the
 		// restricting ManaConvert static behind a global auto-pay decline: it
 		// walks manaConvPrintedSources and the active ManaConvert statics
