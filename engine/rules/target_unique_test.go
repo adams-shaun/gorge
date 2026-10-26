@@ -358,6 +358,14 @@ func TestWithdrawChangeZoneSubAsksAnotherTarget(t *testing.T) {
 	}
 	submitChoices(t, e, aOpt)
 
+	// CR 601.2c: "another target creature" is announced on cast too, and the
+	// TargetUnique$ filter leaves exactly the remaining creature.
+	sd := castSubAsk(t, e)
+	if len(sd.Options) != 1 || sd.Options[0].Obj != idb {
+		t.Fatalf("sub ask offers %+v, want exactly the second Bear", sd.Options)
+	}
+	answerCastSubObj(t, e, idb)
+
 	// The sub carries UnlessCost$ 1 / UnlessPayer$ TargetedController: the
 	// gate asks the root target's controller (both Bears are seat 0's)
 	// before the body. Decline, so the bounce runs.
@@ -389,25 +397,6 @@ func TestWithdrawChangeZoneSubAsksAnotherTarget(t *testing.T) {
 		t.Fatal("the unless gate never posed its pay ask")
 	}
 
-	// The sub's own target ask (KChoose, the "choice" ask): it must
-	// NOT be skipped — pre-fix it never fired and the clause was dead.
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choice" {
-		t.Fatalf("sub target ask = %+v, want KChoose choice", d)
-	}
-	bOpt := -1
-	for _, o := range d.Options {
-		if o.Obj == idb {
-			bOpt = o.Index
-		}
-	}
-	if bOpt < 0 {
-		t.Fatalf("sub ask does not offer the second Bear: %+v", d.Options)
-	}
-	if len(d.Options) != 1 {
-		t.Fatalf("sub ask offers %d options, want exactly the one remaining creature: %+v", len(d.Options), d.Options)
-	}
-	submitChoices(t, e, bOpt)
 	passUntilStackEmpty(t, e, 30)
 
 	// Both Bears are in seat 0's hand (the root's and the sub's bounces).
@@ -474,10 +463,8 @@ func TestWithdrawShapedSubExcludesTheBattlefieldParent(t *testing.T) {
 		}
 	}
 
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choice" {
-		t.Fatalf("sub target ask = %+v, want KChoose choice", d)
-	}
+	// CR 601.2c: the sub's target is announced on cast.
+	d = castSubAsk(t, e)
 	for _, o := range d.Options {
 		if o.Obj == ida {
 			t.Fatalf("sub TargetUnique$ ask re-offers the pumped parent: %+v", d.Options)

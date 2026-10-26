@@ -87,7 +87,10 @@ func TestChangeZoneBattlefieldSubTargetAnnouncementZonesAreNarrow(t *testing.T) 
 	}{
 		{name: "inferred battlefield", line: "DB$ ChangeZone | ValidTgts$ Creature | TargetMin$ Y | TargetMax$ Y | Origin$ Battlefield | Destination$ Exile", admitted: true, zone: state.ZBattlefield},
 		{name: "explicit matching battlefield", line: "DB$ ChangeZone | ValidTgts$ Creature | TargetMin$ Y | TargetMax$ Y | TgtZone$ Battlefield | Origin$ Battlefield | Destination$ Exile", admitted: true, zone: state.ZBattlefield},
-		{name: "unbounded battlefield shape remains unsupported", line: "DB$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Exile", admitted: false, zone: state.ZBattlefield},
+		// CR 601.2c: every target is announced on cast, bounded or not.
+		{name: "unbounded battlefield link is announced on cast", line: "DB$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Exile", admitted: true, zone: state.ZBattlefield},
+		{name: "optional battlefield link is announced on cast", line: "DB$ ChangeZone | ValidTgts$ Equipment | TargetMin$ 0 | TargetMax$ 1 | Origin$ Battlefield | Destination$ Exile", admitted: true, zone: state.ZBattlefield},
+		{name: "parent-relative optional battlefield link is announced on cast", line: "DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Equipment.AttachedTo ParentTarget | TargetMin$ 0 | TargetMax$ 1", admitted: true, zone: state.ZBattlefield},
 		{name: "explicit zone wins but mismatch rejects", line: "DB$ ChangeZone | ValidTgts$ Card | TgtZone$ Graveyard | Origin$ Battlefield | Destination$ Exile", admitted: false, zone: state.ZGraveyard},
 		{name: "multi-zone explicit rejected", line: "DB$ ChangeZone | ValidTgts$ Card | TgtZone$ Battlefield,Graveyard | Origin$ Battlefield | Destination$ Exile", admitted: false},
 		{name: "multi-origin inferred rejected", line: "DB$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield,Graveyard | Destination$ Exile", admitted: false, zone: state.ZBattlefield},

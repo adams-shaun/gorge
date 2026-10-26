@@ -86,15 +86,14 @@ func TestSubTargetAttachedToParentTargetIsOffered(t *testing.T) {
 			e.emit(events.Event{Kind: events.Attach, Obj: helm, IDs: []state.ObjID{ox}})
 
 			d := castAtOx(t, e, spell, ox)
-			// The change_zone link still asks at resolution (KChoose); the
-			// generic link is announced on cast (CR 601.2c, KTarget cast_sub)
-			// now that the cast census binds the parent target.
+			// Both links are announced on cast (CR 601.2c, KTarget
+			// cast_sub) now that the cast census binds the parent target.
 			atCast := d != nil && d.Kind == decision.KTarget && d.ResumeKind == "cast_sub"
 			if d == nil || (d.Kind != decision.KChoose && !atCast) {
 				t.Fatalf("posed %+v, want the sub's own Equipment target ask", d)
 			}
-			if atCast != (tc.name == "generic_api") {
-				t.Fatalf("sub ask atCast=%v for %s, want cast-time only for generic_api", atCast, tc.name)
+			if !atCast {
+				t.Fatalf("sub ask atCast=%v for %s, want the cast-time announcement", atCast, tc.name)
 			}
 			if d.Min != 0 || d.Max != 1 {
 				t.Fatalf("sub target bounds = %d..%d, want 0..1 (up to one)", d.Min, d.Max)
