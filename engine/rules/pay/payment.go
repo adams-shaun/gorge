@@ -423,6 +423,7 @@ func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *st
 	capt.NoCounterSpend = 0
 	capt.ManaSpentSources = nil
 	capt.ManaSpentAddsCounters = nil
+	capt.ManaSpentAddsKeywords = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
 	// otherwise removing the first of two matching batches would make the
 	// live slice shift under this loop and could skip or double-spend one.
@@ -484,6 +485,19 @@ func emitRestrictedManaSpend(e Engine, p state.PlayerID, d Descriptor, spent *st
 		if (d.Class == PurposeSpell || d.Class == PurposeActivated) && strings.TrimSpace(r.AddsCounters) != "" {
 			if g, ok := e.AddsCounterGrant(r, used); ok {
 				capt.ManaSpentAddsCounters = append(capt.ManaSpentAddsCounters, g)
+			}
+		}
+		// AddsKeywords$ (CR 106.6): the spell is checked against the rider's
+		// own AddsKeywordsValid$ with the mana source's controller as "you"
+		// (Forge's reading), so the filter is evaluated from the batch's
+		// producer. Spell payments only; the grants keep batch order.
+		if d.Class == PurposeSpell && r.AddsKeywords.Keywords != "" {
+			if v := r.AddsKeywords.Valid; v == "" || RestrictValidMatches(e, p, d, v, r.Source) {
+				for kw := range strings.SplitSeq(r.AddsKeywords.Keywords, "&") {
+					if kw = strings.TrimSpace(kw); kw != "" {
+						capt.ManaSpentAddsKeywords = append(capt.ManaSpentAddsKeywords, state.ManaAddsKeywordGrant{Keyword: kw, Until: r.AddsKeywords.Until})
+					}
+				}
 			}
 		}
 		e.Emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,

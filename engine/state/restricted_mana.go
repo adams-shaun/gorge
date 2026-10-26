@@ -55,6 +55,29 @@ type ManaRestriction struct {
 	// the spell's entry). Empty for every batch whose ability has no rider
 	// and for every historical batch, so the encoding stays byte-identical.
 	AddsCounters string
+	// AddsKeywords is the producing ability's AddsKeywords$ rider ("if that
+	// mana is spent on a Dragon creature spell, it gains haste"), snapshotted
+	// at production like AddsCounters and carried by the " ak=" Text segment.
+	// The zero value is no rider.
+	AddsKeywords ManaKeywordRider
+}
+
+// ManaKeywordRider is one mana ability's AddsKeywords$ rider: Keywords is
+// the raw AddsKeywords$ value (" & "-separated), Valid the AddsKeywordsValid$
+// spell filter ("" admits every spell), Until the AddsKeywordsUntil$ value
+// ("" is permanent, "UntilEOT" lasts to end of turn).
+type ManaKeywordRider struct {
+	Keywords string
+	Valid    string
+	Until    string
+}
+
+// ManaAddsKeywordGrant is one keyword a cast earned from a spent
+// AddsKeywords$ rider (CR 106.6): rules' entry hook grants it to the
+// permanent the spell becomes (CR 400.7a).
+type ManaAddsKeywordGrant struct {
+	Keyword string
+	Until   string
 }
 
 // ManaAddsCounterGrant is one AddsCounters$ mana-spend rider grant a cast

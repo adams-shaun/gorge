@@ -400,6 +400,9 @@ type pendingCast struct {
 	// so Clone carries it like converge.
 	addsCounterGrants []state.ManaAddsCounterGrant `clone:"share"`
 
+	// addsKeywordGrants is addsCounterGrants' sibling for AddsKeywords$ riders.
+	addsKeywordGrants []state.ManaAddsKeywordGrant `clone:"share"`
+
 	// manaSources captures, right after payment, the producing sources of
 	// the mana the cast spent (emitRestrictedManaSpend's ManaSpentSources),
 	// but only when one of them reads that identity (captureManaSources):

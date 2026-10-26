@@ -467,7 +467,11 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// A producer whose own face reads the spent mana's source identity
 	// (ManaSourceObserved: Spell.ManaFromCard) needs the same source-bearing
 	// batch, so the payment can attribute the units it spends to the source.
-	provenanceOnly := (triggersWhenSpent != "" || addsCounters != "" || ManaSourceObserved(h, c.Source)) && restriction == "" && noCounter == ""
+	// AddsKeywords$ (Carnelian Orb of Dragonkind) rides the same source-bearing
+	// batch: the " ak=" segment carries the producing ability's rider, so the
+	// spend captures the grant and a replay derives the identical batch.
+	addsKeywords := state.ManaKeywordRider{Keywords: mp.AddsKeywords, Valid: mp.AddsKeywordsValid, Until: mp.AddsKeywordsUntil}
+	provenanceOnly := (triggersWhenSpent != "" || addsCounters != "" || addsKeywords.Keywords != "" || ManaSourceObserved(h, c.Source)) && restriction == "" && noCounter == ""
 	for _, p := range ManaRecipients(h, c, sa) {
 		var emitted [256]bool
 		for _, r := range runes {
@@ -513,6 +517,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			// Composes with a restriction and with AddsNoCounter$; empty for
 			// every non-rider ability, keeping those events byte-identical.
 			ev.Text = events.ManaAddsCountersText(ev.Text, addsCounters)
+			ev.Text = events.ManaAddsKeywordsText(ev.Text, addsKeywords)
 			if combat {
 				ev.Text = events.ManaCombatPersistentText(ev.Text)
 			} else if persistent {
