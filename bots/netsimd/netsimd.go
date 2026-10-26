@@ -83,6 +83,16 @@ type Net struct {
 	valOutW             []float32
 	valOutB             float32
 
+	// one: the production layout (one block, policy_layers 2,
+	// value_layers 1), decided at Load; trunkBag1 reads these aliases of
+	// blocks[0], polHid[0], polOut* and valOut*.
+	one          bool
+	bnorm        norm
+	fc1, fc2     lin
+	pol2         lin
+	pol4w, val2w []float32
+	pol4b, val2b float32
+
 	cache *cardCache
 	zero  []float32 // d zeros (an accumulator for a bias-free gemv)
 }
@@ -325,6 +335,12 @@ func Load(path string, cardCache int) (*Net, error) {
 		copy(ws[o*d:(o+1)*d], p0w[o*2*d:o*2*d+d])
 		copy(wo[o*d:(o+1)*d], p0w[o*2*d+d:(o+1)*2*d])
 	}
+	if len(g.blocks) == 1 && len(g.polHid) == 1 && len(g.valHid) == 0 {
+		g.one = true
+		g.bnorm, g.fc1, g.fc2 = g.blocks[0].norm, g.blocks[0].fc1, g.blocks[0].fc2
+		g.pol2, g.pol4w, g.pol4b = g.polHid[0], g.polOutW, g.polOutB
+		g.val2w, g.val2b = g.valOutW, g.valOutB
+	}
 	g.pol0s = mk(ws, d, hh, p0b)
 	g.pol0o = mk(wo, d, hh, nil)
 	// hproj(table[r]) for every row, and the none projections
@@ -378,7 +394,10 @@ func (g *Net) Eval(sc *Scratch, st *policynet.State, opts []policynet.Option, sc
 			g.cache.put(sc.keys[k], ent)
 		}
 	}
-	return g.trunk(sc, nc, st.Dense, st.Sparse, opts, scores)
+	if g.one { // the production layout, straight-line (trunkBag1)
+		return g.trunkBag1(sc, nc, st.Dense, st.Sparse, nil, opts, scores)
+	}
+	return g.trunkBagN(sc, nc, st.Dense, st.Sparse, nil, opts, scores)
 }
 
 // cardFull writes the card vector of (raw, rows) to ent:
@@ -399,15 +418,22 @@ func (g *Net) cardFull(sc *Scratch, raw []float32, rows []policynet.Feature, ent
 	gemvT(&g.cardPhi.wt[0], &sc.u[0], &g.cardPhi.b[0], ent, cd, cd, true)
 }
 
-// trunk is the network after the card vectors: sc.ent holds nc card
-// vectors and sc.groups their groups.
-func (g *Net) trunk(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, opts []policynet.Option, scores []float32) float32 {
-	return g.trunkBag(sc, nc, dense, sparse, nil, opts, scores)
+// trunkBag is the network after the card vectors (sc.ent holds nc card
+// vectors and sc.groups their groups), with the sparse bag's row sum given
+// (bagIn, e wide) instead of computed from sparse when bagIn is non-nil.
+// The production layout runs the straight-line trunkBag1, every other
+// layout trunkBagN. The Eval entry points branch on g.one themselves: this
+// dispatcher does not inline, and its call would cost every eval.
+func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, opts []policynet.Option, scores []float32) float32 {
+	if g.one {
+		return g.trunkBag1(sc, nc, dense, sparse, bagIn, opts, scores)
+	}
+	return g.trunkBagN(sc, nc, dense, sparse, bagIn, opts, scores)
 }
 
-// trunkBag is trunk with the sparse bag's row sum given (bagIn, e wide)
-// instead of computed from sparse when bagIn is non-nil.
-func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, opts []policynet.Option, scores []float32) float32 {
+// trunkBagN is trunkBag for any layout: the blocks and the heads' hidden
+// layers in loops.
+func (g *Net) trunkBagN(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, opts []policynet.Option, scores []float32) float32 {
 	d, cd, e := g.d, g.cd, g.e
 	sc.bag32 = growF(sc.bag32, e)
 

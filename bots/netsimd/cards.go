@@ -86,7 +86,10 @@ type CardIn struct {
 // card cache Load was given is not consulted.
 func (g *Net) EvalCards(sc *Scratch, cards []CardIn, dense []float32, sparse []policynet.Feature, opts []policynet.Option, scores []float32) float32 {
 	nc := g.cardsIn(sc, cards)
-	return g.trunk(sc, nc, dense, sparse, opts, scores)
+	if g.one {
+		return g.trunkBag1(sc, nc, dense, sparse, nil, opts, scores)
+	}
+	return g.trunkBagN(sc, nc, dense, sparse, nil, opts, scores)
 }
 
 // cardsIn fills sc's card vectors and groups from cards.
@@ -149,7 +152,10 @@ func SumRows(dst, table []float32, width int, rows []policynet.Feature) {
 // float rounding, not bit for bit.
 func (g *Net) EvalBag(sc *Scratch, cards []CardIn, dense, bagSum []float32, opts []policynet.Option, scores []float32) float32 {
 	nc := g.cardsIn(sc, cards)
-	return g.trunkBag(sc, nc, dense, nil, bagSum, opts, scores)
+	if g.one {
+		return g.trunkBag1(sc, nc, dense, nil, bagSum, opts, scores)
+	}
+	return g.trunkBagN(sc, nc, dense, nil, bagSum, opts, scores)
 }
 
 // CardVec is card k's vector from the last evaluation on sc (CardWidth

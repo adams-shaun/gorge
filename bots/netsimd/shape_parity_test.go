@@ -282,3 +282,61 @@ func TestLoadRejectsBadDepths(t *testing.T) {
 		}
 	}
 }
+
+// The production layout's straight-line trunk (trunkBag1) and the general
+// loops (trunkBagN) are the same arithmetic: bit-identical on the corpus
+// network and on every random production-layout shape.
+func TestOneLayoutMatchesGeneral(t *testing.T) {
+	t.Cleanup(func() { netsimd.ForceScalar = false })
+	dir := t.TempDir()
+	sts, opts := synthInputs(60, 3)
+	check := func(name string, g *netsimd.Net, sts []policynet.State, opts [][]policynet.Option) {
+		if !netsimd.SetGeneral(g, false) {
+			t.Fatalf("%s: not the production layout", name)
+		}
+		for _, scalar := range []bool{false, true} {
+			netsimd.ForceScalar = scalar
+			var sc netsimd.Scratch
+			for i := range sts {
+				a := make([]float32, len(opts[i]))
+				b := make([]float32, len(opts[i]))
+				netsimd.SetGeneral(g, false)
+				va := g.Eval(&sc, &sts[i], opts[i], a)
+				netsimd.SetGeneral(g, true)
+				vb := g.Eval(&sc, &sts[i], opts[i], b)
+				netsimd.SetGeneral(g, false)
+				if math.Float32bits(va) != math.Float32bits(vb) {
+					t.Fatalf("%s scalar=%v rec %d: one %v general %v", name, scalar, i, va, vb)
+				}
+				for j := range a {
+					if math.Float32bits(a[j]) != math.Float32bits(b[j]) {
+						t.Fatalf("%s scalar=%v rec %d opt %d: one %v general %v", name, scalar, i, j, a[j], b[j])
+					}
+				}
+			}
+		}
+		netsimd.ForceScalar = false
+	}
+	for i, s := range []netShape{{64, 128, 32, 32, 64, 1, 2, 1}, {128, 256, 64, 64, 128, 1, 2, 1}, {96, 192, 48, 96, 96, 1, 2, 1}} {
+		g, err := netsimd.Load(writeShapeNet(t, dir, s, uint64(40+i)), 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		check(s.String(), g, sts, opts)
+	}
+	if p := os.Getenv("NETSIMD_DZGW"); p != "" || fileExists(defaultNet) {
+		recs := corpus(t)
+		g := loadSIMD(t, 0)
+		if !netsimd.SetGeneral(g, false) {
+			return // a multi-block or deep-head network: no production layout
+		}
+		cs := make([]policynet.State, len(recs))
+		co := make([][]policynet.Option, len(recs))
+		for i := range recs {
+			cs[i], co[i] = recs[i].st, recs[i].opts
+		}
+		check("corpus", g, cs, co)
+	}
+}
+
+func fileExists(p string) bool { _, err := os.Stat(p); return err == nil }
