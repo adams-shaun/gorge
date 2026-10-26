@@ -206,17 +206,17 @@ All three repositories land work the same way:
 ```mermaid
 flowchart LR
   pr["your branch<br/>or fork"] -->|"pull request,<br/>ci green"| develop["develop"]
-  develop -->|"ci green on push:<br/>promote.yml opens<br/>develop → main PR"| main["main"]
+  develop -->|"agentctl promote:<br/>snapshot PR<br/>develop → main"| main["main"]
   main -->|"docs.yml"| site["this site"]
 ```
 
 1. Changes land on **`develop`**, through a pull request whose `ci` workflow
    (lint plus a sharded test run with the corpus fetched) is green.
-2. When `ci` finishes green on a push to `develop`, the
-   [`promote`](https://github.com/adams-shaun/gorge/blob/main/.github/workflows/promote.yml)
-   workflow opens a `develop → main` pull request, or leaves the open one in
-   place. Only the commit that is still `develop`'s tip promotes.
-3. A person merges it on GitHub, **with a merge commit, not a squash**, so
+2. The maintainers' pipeline (agentctl's `[promote]`) periodically snapshots
+   `develop` to a `promote/develop-<stamp>` branch and opens a `develop → main`
+   pull request from it, superseding older snapshot PRs. When its checks are
+   green it is merged; a red snapshot is parked for a person.
+3. Merges use **a merge commit, not a squash**, so
    `develop` and `main` keep sharing history. Nothing pushes `main` directly.
 4. Pushes to `main` publish this site (`docs.yml`) and the card-coverage
    tables (`coverage.yml`, as a workflow artifact).
