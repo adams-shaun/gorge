@@ -1,6 +1,5 @@
 Archive Arbiter	param:api:Destroy.ValidTgtsDesc
 Awaken the Inferno	param:api:DealDamage.ValidTgtsDesc,param:api:PutCounter.ValidTgtsDesc
-Break Under Pressure	param:api:Sacrifice.SacMessage
 Budding Insurgent	param:api:Destroy.ValidTgtsDesc
 Carnivorous Cultivator	param:api:ChangeZone.ValidTgtsDesc
 Chandra, Chill of Compliance	param:api:Tap.ValidTgtsDesc

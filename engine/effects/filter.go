@@ -946,7 +946,7 @@ func init() {
 		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Double Strike", "Menace",
 		"Flanking", "Horsemanship", "Defender", "Foretell", "Shadow", "Doctor's companion",
 		"Flash", "Mutate", "Decayed", "Hexproof", "Ward", "Toxic", "Infect",
-		"Morph", "Megamorph", "Devoid", "Madness", "Persist", "Phasing", "Unearth",
+		"Morph", "Megamorph", "Disguise", "Devoid", "Madness", "Persist", "Phasing", "Unearth",
 		"Cascade", "Convoke", "Cycling", "Disturb", "Flashback", "Kicker", "Multikicker",
 		"Landwalk", "Enchant"} {
 		k := kw

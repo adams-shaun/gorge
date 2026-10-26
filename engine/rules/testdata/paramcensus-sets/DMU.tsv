@@ -9,4 +9,3 @@ Sphinx of Clear Skies	param:api:PeekAndReveal.NoPeek
 The Phasing of Zhalfir	param:api:RepeatEach.UseImprinted
 Threats Undetected	param:api:ChangeZone.DifferentPower
 Urza Assembles the Titans	param:api:Dig.RememberRevealed,param:api:Dig.RevealOptional,param:stat:NumLoyaltyAct.Twice
-Walking Bulwark	param:stat:CombatDamageToughness.Secondary

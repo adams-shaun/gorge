@@ -132,6 +132,11 @@ func foldControlChange(g *state.Game, e *Event) {
 	}
 }
 
+// ControlCombatOnly is the ControlPlayerChange +1 Counter of a grant that
+// lasts only the controlled player's next combat phase (`Combat$ True`,
+// Secret of Bloodbending). An empty Counter is the whole-turn grant.
+const ControlCombatOnly = "combat"
+
 // foldControlPlayerChange folds Kind ControlPlayerChange into state.
 func foldControlPlayerChange(g *state.Game, e *Event) {
 	// CR 720: Player is the controlling seat and IDs[0] the controlled
@@ -162,9 +167,20 @@ func foldControlPlayerChange(g *state.Game, e *Event) {
 		}
 		g.ControlledBy[subj] = ctl
 		g.ControlArmedTurn[subj] = g.Turn
+		// A re-grant replaces the duration with its own: only a +1 that
+		// names the combat-only Counter narrows the interval.
+		if e.Counter == ControlCombatOnly {
+			if g.ControlCombatOnly == nil {
+				g.ControlCombatOnly = map[state.PlayerID]bool{}
+			}
+			g.ControlCombatOnly[subj] = true
+		} else {
+			delete(g.ControlCombatOnly, subj)
+		}
 	case e.Amount < 0:
 		delete(g.ControlledBy, subj)
 		delete(g.ControlArmedTurn, subj)
+		delete(g.ControlCombatOnly, subj)
 	}
 }
 

@@ -82,7 +82,7 @@ func TestCipherCounteredSpellDoesNotEncode(t *testing.T) {
 	if o := e.G.Obj(creature); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatal("precondition: eligible creature missing")
 	}
-	e.beginPlay(0, cipherID, true, "", false, false)
+	e.beginPlay(0, cipherID, true, "", false, false, "")
 	if o := e.G.Obj(cipherID); o == nil || o.Zone != state.ZStack {
 		t.Fatalf("precondition: the cast spell is not on the stack: %+v", o)
 	}
@@ -117,7 +117,7 @@ func TestCipherFizzledSpellDoesNotEncode(t *testing.T) {
 	if o := e.G.Obj(creature); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatal("precondition: eligible creature missing")
 	}
-	e.beginPlay(0, cipherID, true, "", false, false)
+	e.beginPlay(0, cipherID, true, "", false, false, "")
 	if o := e.G.Obj(cipherID); o == nil || o.Zone != state.ZStack {
 		t.Fatalf("precondition: the cast spell is not on the stack: %+v", o)
 	}

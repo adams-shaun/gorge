@@ -1490,6 +1490,81 @@ func ManaAddsCountersText(text, rider string) string {
 	return text + manaRestrictionACPrefix + base64.StdEncoding.EncodeToString([]byte(rider))
 }
 
+// manaRestrictionAKPrefix introduces the AddsKeywords$ rider segment, the
+// AddsCounters$ " ac=" segment's sibling: a base64 payload appended after it
+// (and after every other provenance segment, before the persistence suffix),
+// only when the producing ability carries the rider.
+const manaRestrictionAKPrefix = " ak="
+
+// ManaAddsKeywordsText appends the AddsKeywords$ rider segment to a ManaAdd
+// event's provenance encoding. An empty rider appends nothing.
+func ManaAddsKeywordsText(text string, r state.ManaKeywordRider) string {
+	if r.Keywords == "" {
+		return text
+	}
+	raw := strings.Join([]string{strconv.Quote(r.Keywords), strconv.Quote(r.Valid), strconv.Quote(r.Until)}, manaAddsCounterGrantFields)
+	return text + manaRestrictionAKPrefix + base64.StdEncoding.EncodeToString([]byte(raw))
+}
+
+// manaKeywordRiderFromPayload decodes a " ak=" payload; malformed input
+// yields no rider (fail closed).
+func manaKeywordRiderFromPayload(payload string) (state.ManaKeywordRider, bool) {
+	raw, err := base64.StdEncoding.DecodeString(payload)
+	if err != nil {
+		return state.ManaKeywordRider{}, false
+	}
+	fields := strings.Split(string(raw), manaAddsCounterGrantFields)
+	if len(fields) != 3 {
+		return state.ManaKeywordRider{}, false
+	}
+	kw, err1 := strconv.Unquote(fields[0])
+	valid, err2 := strconv.Unquote(fields[1])
+	until, err3 := strconv.Unquote(fields[2])
+	if err1 != nil || err2 != nil || err3 != nil || kw == "" {
+		return state.ManaKeywordRider{}, false
+	}
+	return state.ManaKeywordRider{Keywords: kw, Valid: valid, Until: until}, true
+}
+
+// ManaAddsKeywordGrantsText encodes a cast's keyword grants into the pay-time
+// CastInfo's Text payload (base64-armoured, deterministic); empty is "".
+func ManaAddsKeywordGrantsText(grants []state.ManaAddsKeywordGrant) string {
+	if len(grants) == 0 {
+		return ""
+	}
+	recs := make([]string, 0, len(grants))
+	for _, g := range grants {
+		recs = append(recs, strconv.Quote(g.Keyword)+manaAddsCounterGrantFields+strconv.Quote(g.Until))
+	}
+	return base64.StdEncoding.EncodeToString([]byte(strings.Join(recs, manaAddsCounterGrantRecords)))
+}
+
+// ManaAddsKeywordGrantsFromText decodes ManaAddsKeywordGrantsText; a
+// malformed payload yields no grant (fail closed).
+func ManaAddsKeywordGrantsFromText(text string) []state.ManaAddsKeywordGrant {
+	if text == "" {
+		return nil
+	}
+	raw, err := base64.StdEncoding.DecodeString(text)
+	if err != nil {
+		return nil
+	}
+	var out []state.ManaAddsKeywordGrant
+	for _, rec := range strings.Split(string(raw), manaAddsCounterGrantRecords) {
+		fields := strings.Split(rec, manaAddsCounterGrantFields)
+		if len(fields) != 2 {
+			return nil
+		}
+		kw, err1 := strconv.Unquote(fields[0])
+		until, err2 := strconv.Unquote(fields[1])
+		if err1 != nil || err2 != nil || kw == "" {
+			return nil
+		}
+		out = append(out, state.ManaAddsKeywordGrant{Keyword: kw, Until: until})
+	}
+	return out
+}
+
 // ManaRestrictionTextNC is ManaRestrictionText for a batch whose producing
 // ability also carries AddsNoCounter$. cond is "True" (the plain flag) or
 // "NotPermanent" (AddsNoCounter$ !Permanent); an empty cond encodes the plain
@@ -1557,9 +1632,22 @@ func ManaCombatPersistentText(text string) string { return text + manaCombatPers
 // counts as a restriction batch (the batch is unrestricted spend-wise but
 // carries the provenance).
 func ManaRestrictionFromText(text string) (valid string, source state.ObjID, cond, addsCounters string, restricted bool) {
+	valid, source, cond, addsCounters, _, restricted = manaRestrictionParts(text)
+	return
+}
+
+// manaRestrictionParts is ManaRestrictionFromText plus the AddsKeywords$
+// rider the " ak=" segment carries.
+func manaRestrictionParts(text string) (valid string, source state.ObjID, cond, addsCounters string, addsKeywords state.ManaKeywordRider, restricted bool) {
 	valid, ok := strings.CutPrefix(text, manaRestrictionPrefix)
 	if !ok || valid == "" {
-		return "", 0, "", "", false
+		return "", 0, "", "", state.ManaKeywordRider{}, false
+	}
+	if head, tail, found := strings.Cut(valid, manaRestrictionAKPrefix); found {
+		if r, ok := manaKeywordRiderFromPayload(tail); ok {
+			addsKeywords = r
+			valid = head
+		}
 	}
 	if head, tail, found := strings.Cut(valid, manaRestrictionACPrefix); found {
 		if raw, err := base64.StdEncoding.DecodeString(tail); err == nil {
@@ -1575,10 +1663,10 @@ func ManaRestrictionFromText(text string) (valid string, source state.ObjID, con
 	if _, tail, found := strings.Cut(valid, " @"); found {
 		head, _, _ := strings.Cut(valid, " @")
 		if n, err := strconv.ParseUint(tail, 10, 64); err == nil {
-			return head, state.ObjID(n), cond, addsCounters, true
+			return head, state.ObjID(n), cond, addsCounters, addsKeywords, true
 		}
 	}
-	return valid, 0, cond, addsCounters, true
+	return valid, 0, cond, addsCounters, addsKeywords, true
 }
 
 // manaAddsCounterGrantFields is the field separator in a CastInfo's rider
@@ -1997,6 +2085,9 @@ var flagNames = [...]struct {
 	// substitute the inset characteristics. Appended at the end per the
 	// table's own ordering rule.
 	{"prototype", state.FlagPrototype},
+	// The AddsKeywords$ mana-spend rider (Carnelian Orb of Dragonkind).
+	// Appended at the end per the table's own ordering rule.
+	{"addskeywords", state.FlagAddsKeywords},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
