@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -560,6 +561,10 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	}) {
 		event, params := parseReplacementLine(c.SVars, name)
+		if vs, ok := frozenChosenColorSource(h.Game(), c.Source, params[cards.PKValidSource.String()]); ok {
+			params = maps.Clone(params)
+			params[cards.PKValidSource.String()] = vs
+		}
 		body := ""
 		if with := replacementLineWith(params); with != "" {
 			body = c.SVars[with]
