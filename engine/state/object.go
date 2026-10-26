@@ -1772,10 +1772,13 @@ type Object struct {
 	// so replay rebuilds it with no new event kind and no Event field change.
 	MayLookPlayer PlayerID
 	HasMayLook    bool
-	// ExiledBy is the player a DefinedExiler$ exile instruction named (Shared
-	// Fate's "that player exiles the top card of their library face down").
-	// HasExiledBy distinguishes seat 0 from "no exiler recorded". Folded from
-	// the MoveZone marker's Amount; zero/absent on every other exile.
+	// ExiledBy is Forge's Card.getExiledBy(): the player Forge's handleExiledWith
+	// records -- the DefinedExiler$ player when the effect names one (Shared
+	// Fate's "that player exiles the top card of their library face down"),
+	// otherwise the controller of the exiling ability. HasExiledBy
+	// distinguishes seat 0 from "no exiler recorded". Folded from the MoveZone
+	// marker's Amount (the DefinedExiler$ marker and the plain effect-exile
+	// events.MarkExileExiler payload); absent on every other exile.
 	ExiledBy    PlayerID
 	HasExiledBy bool
 	// Cloaked records the cloak variant of the face-down battlefield entry

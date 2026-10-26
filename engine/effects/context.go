@@ -2242,7 +2242,7 @@ func containsTarget(ts []state.Target, want state.Target) bool {
 // constructor, so ExiledWithSource is derived from the logged move rather than
 // a live-only side table.
 func moveZoneEvent(c *Ctx, id state.ObjID, from, to state.Zone) events.Event {
-	ev := events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to}
+	ev := events.MarkExileExiler(events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to}, c.Controller)
 	if to == state.ZExile && exileProvenanceNeeded(c) {
 		ev.IDs = []state.ObjID{c.Source}
 	}

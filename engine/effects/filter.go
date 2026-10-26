@@ -531,6 +531,15 @@ var predicates = map[string]predFn{
 	"ExiledWithSourceLKI": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		return exiledBySource(g, o, src)
 	},
+	// ExiledByYou is Forge's CardProperty ExiledByYou: the card's recorded exiler is
+	// the evaluating player. state.Object.ExiledBy/HasExiledBy is the one field;
+	// events.Apply folds it from the DefinedExiler$ marker and from the
+	// MarkExileExiler payload. No recorded exiler never matches; seat 0 is a real
+	// answer (HasExiledBy). The predicate does not check the zone -- AffectedZone$
+	// does.
+	"ExiledByYou": func(_ *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
+		return o != nil && o.HasExiledBy && o.ExiledBy == you
+	},
 	// escaped is the CastFlags provenance of an escape cast (CR 702.42a): the
 	// "sacrifice it unless it escaped" ETB family reads it through
 	// Card.Self+escaped (Kroxa, Uro, Phlage), as do the escape-with-counters
