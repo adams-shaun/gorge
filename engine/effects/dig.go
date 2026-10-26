@@ -374,6 +374,15 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// in Amount and the exiling source in IDs. applyFaceDownMarker
 			// stamps battlefield FaceDown$ entries too.
 			emitEntryMove(h, c, digGainControl(dp.GainControl), dest, ev)
+			// ExileWithCounters$ (Karn, Scion of Urza; Evelyn, the Covetous):
+			// one counter of that kind on the card the move actually put in
+			// exile, after the move (CR 122.1). A replaced or redirected move
+			// leaves the card elsewhere and gets nothing.
+			if dp.ExileWithCounters != "" && dest == state.ZExile {
+				if moved := g.Obj(id); moved != nil && moved.Zone == state.ZExile {
+					emitChangeZoneCounters(h, id, dp.ExileWithCounters, 1)
+				}
+			}
 			if dp.Imprint && c.Source != 0 {
 				if moved := g.Obj(id); moved != nil && moved.Zone == dest && !moved.IsToken {
 					h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
@@ -500,6 +509,13 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				ev := moveZoneEvent(c, id, state.ZLibrary, dest2)
 				ev.Player, ev.Secret = digSecretTo(&ev, chooser, p, saw), true
 				h.Emit(ev)
+				// The rest arm's ExileWithCounters$ (Karn's unchosen card):
+				// one counter on the card actually exiled.
+				if dp.ExileWithCounters != "" && dest2 == state.ZExile {
+					if moved := g.Obj(id); moved != nil && moved.Zone == state.ZExile {
+						emitChangeZoneCounters(h, id, dp.ExileWithCounters, 1)
+					}
+				}
 				digRemember(c, dp, id)
 			}
 		}

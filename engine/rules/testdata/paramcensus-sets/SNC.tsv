@@ -1,6 +1,5 @@
 Ballroom Brawlers	param:api:Pump.ThisDefinedAndTgts
 Elspeth Resplendent	param:api:PutCounter.TypeList
-Evelyn, the Covetous	param:api:Dig.ExileWithCounters
 Exotic Pets	param:api:PutCounter.SpecifyCounter
 Maestros Ascendancy	param:stat:Continuous.MayPlay.ReplaceGraveyard
 Rogues' Gallery	param:api:ChangeZone.LockInText

@@ -1,4 +1,3 @@
 Eater of Virtue	param:stat:Continuous.SharedKeywordsZone,param:stat:Continuous.SharedRestrictions
 Intercessor's Arrest	param:stat:CantAttack.ValidSA,param:stat:CantBlock.ValidSA
 Reckoner Shakedown	param:api:ChooseCard.ChoiceDesc,param:api:ChooseCard.FromDesc
-The Dragon-Kami Reborn	param:api:Dig.ExileWithCounters
