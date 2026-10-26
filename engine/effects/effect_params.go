@@ -91,7 +91,7 @@ var effectKnownKeys = [...]string{
 	"ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn",
 	"ForgetOtherRemembered", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "IfDesc", "Image", "ImprintCards",
 	"ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IsCurse",
-	"IsPresent", "KW", "Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC",
+	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name",
 	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "OneOff", "OpponentTurn", "OptionalDecider", "Pawprint", "Phase",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",

@@ -340,7 +340,7 @@ var changeZoneKnownKeys = [...]string{
 	"LeaveBattlefield",
 	"LibraryPosition",
 	"LibraryPositionAlternative",
-	"ManaConversion",
+	"LockInText", "ManaConversion",
 	"Mandatory",
 	"MaxRevealed",
 	"MaxTotalTargetCMC",

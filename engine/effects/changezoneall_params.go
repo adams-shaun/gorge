@@ -196,7 +196,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"Keyword",
 	"KeywordLine",
 	"LibraryPosition",
-	"ManaConversion",
+	"LockInText", "ManaConversion",
 	"MaxTotalTargetCMC",
 	"MaxTotalTargetPower",
 	"Mentor",

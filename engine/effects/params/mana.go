@@ -220,7 +220,7 @@ var manaKnownKeys = [...]string{
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards",
 	"DefinedDesc", "DefinedTarget", "Description", "Each", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW",
-	"Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
+	"Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"ModeCost", "Monstrosity", "NewController", "NoPutDesc", "NonBasicSpell", "OpponentTurn", "PersistentMana",
 	"PersistentUntilEndOfCombat", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp",
 	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "Produced",
