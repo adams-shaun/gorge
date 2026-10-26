@@ -1610,7 +1610,7 @@ func specReadsKeywords(spec string) bool {
 	return false
 }
 
-// ptNumericField reports whether a predicate name is one of the four P/T
+// ptNumericField reports whether a predicate name is one of the five P/T
 // comparison spellings numericPred evaluates against the candidate's
 // layer-derived power/toughness (current and base, CR 613.4). It is exactly
 // the field vocabulary numericPred's comparison loop walks, so
@@ -1637,8 +1637,8 @@ var ptNumericFields = [...]string{"power", "toughness", "basePower", "baseToughn
 // power/toughness when a caller binds SpecContext.DerivedPower /
 // DerivedToughness / BasePower / BaseToughness -- i.e. whether binding those
 // four values can change what the spec matches. The shapes are
-// numericPred's four comparison fields (power/toughness/basePower/
-// baseToughness, including the two-characteristic forms like
+// numericPred's five comparison fields (power/toughness/basePower/
+// baseToughness/totalPT, including the two-characteristic forms like
 // powerGTbasePower, matched by ptNumericField).
 //
 // effects cannot derive P/T itself (rules sits above it), so Count$Valid's

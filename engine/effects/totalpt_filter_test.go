@@ -44,7 +44,7 @@ func TestTotalPTFilter(t *testing.T) {
 		{"2/3 total 5 is LE5", "Creature.totalPT_LE5", twoThree, true},
 		{"3/3 total 6 is not LE5", "Creature.totalPT_LE5", threeThree, false},
 		// No P/T: no totalPT comparison can hold (same rule as power).
-		{"non-creature has no totalPT", "Creature.totalPT_LE5", id["myLand"], false},
+		{"non-creature has no totalPT", "Permanent.totalPT_LE5", id["myLand"], false},
 		// GE and EQ.
 		{"2/3 total 5 is GE5", "Creature.totalPT_GE5", twoThree, true},
 		{"3/3 total 6 is GE6", "Creature.totalPT_GE6", threeThree, true},

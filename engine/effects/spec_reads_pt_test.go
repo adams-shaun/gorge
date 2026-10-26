@@ -19,7 +19,7 @@ func TestSpecReadsPT(t *testing.T) {
 		{"Artifact.YouCtrl", false},
 		{"Creature.YouCtrl", false},
 		{"Creature.token", false},
-		// The four comparison fields, lowercase LHS spellings.
+		// The five comparison fields, lowercase LHS spellings.
 		{"Creature.powerGE4", true},
 		{"Creature.toughnessLE1", true},
 		{"Creature.basePowerEQ1", true},

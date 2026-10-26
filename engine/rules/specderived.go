@@ -32,7 +32,8 @@ func storeSpecDerived(slot *atomic.Pointer[specDerivedEntry], spec string) *spec
 func computeSpecReadsDerived(spec string) bool {
 	low := strings.ToLower(spec)
 	return strings.Contains(low, "with") || strings.Contains(low, "affinity") ||
-		strings.Contains(low, "power") || strings.Contains(low, "toughness")
+		strings.Contains(low, "power") || strings.Contains(low, "toughness") ||
+		effects.SpecReadsPT(spec)
 }
 
 type specDerivedEntry struct {
