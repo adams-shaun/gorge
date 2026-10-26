@@ -15,6 +15,10 @@ import (
 // same window on re-entry.
 func effDigMultiple(h Host, c *Ctx, sa *cards.SA) {
 	p := DigMultipleOf(sa)
+	if p.UnsupportedSource != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "DigMultiple SourceZone$ " + p.UnsupportedSource + " unimplemented"})
+		return
+	}
 	n := numText(h, c, p.Num, 1)
 	if n < 0 {
 		n = 0
