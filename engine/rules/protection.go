@@ -238,6 +238,27 @@ func protectionQuality(kw string) (string, bool) {
 	return "", false
 }
 
+// protectionPlayerUID parses Forge's Player.PlayerUID_<n> quality. It is a
+// player reference, not an object filter, so it is handled before the generic
+// matchesSpec grammar.
+func protectionPlayerUID(q string) (int64, bool) {
+	rest, ok := strings.CutPrefix(q, "Player.PlayerUID_")
+	if !ok {
+		return 0, false
+	}
+	return parseInt10(rest)
+}
+
+// protectionOpponentOfPlayerUID parses Forge's
+// "Player.OpponentOf PlayerUID_<n>" quality.
+func protectionOpponentOfPlayerUID(q string) (int64, bool) {
+	rest, ok := strings.CutPrefix(q, "Player.OpponentOf PlayerUID_")
+	if !ok {
+		return 0, false
+	}
+	return parseInt10(rest)
+}
+
 // sourceHasQuality reports whether the object source carries the given
 // protection quality. "everything" is short for "a source that has any
 // characteristics"; everything else is matched against the source's colours
@@ -250,6 +271,18 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	o := e.G.Obj(source)
 	if o == nil {
 		return false
+	}
+	// Forge's player-valued protection quality: Player.PlayerUID_<n> is
+	// "a source controlled by player n", and Player.OpponentOf
+	// PlayerUID_<n> is "a source controlled by anyone but player n". Both
+	// are resolved at the controller level; an out-of-range seat names no
+	// source, so the quality is false rather than an accidental match on
+	// the zero-value seat.
+	if n, ok := protectionPlayerUID(q); ok {
+		return n >= 0 && n < int64(len(e.G.Players)) && int64(e.controllerOf(source)) == n
+	}
+	if n, ok := protectionOpponentOfPlayerUID(q); ok {
+		return n >= 0 && n < int64(len(e.G.Players)) && int64(e.controllerOf(source)) != n
 	}
 	// A card object on the stack is a spell. An ability source is represented
 	// by its source permanent for protection checks, so it is not a spell.
