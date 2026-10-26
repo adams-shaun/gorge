@@ -28,6 +28,15 @@ func LifeLoss(ev events.Event) (state.PlayerID, int32, bool) {
 	switch ev.Kind {
 	case events.Damage:
 		if ev.Obj == 0 && ev.Amount > 0 && ev.Counter != "infect" {
+			// A LifeReduced replacement (Bloodletter of Aclazotz) doubles
+			// the loss, not the damage dealt; the recorded loss is what
+			// LifeLost triggers and the replacement pipeline see.
+			if amount, ok := events.DamageLifeLoss(ev); ok {
+				if amount <= 0 {
+					return 0, 0, false
+				}
+				return ev.Player, amount, true
+			}
 			return ev.Player, ev.Amount, true
 		}
 	case events.LifeChange:
