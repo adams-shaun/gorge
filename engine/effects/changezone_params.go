@@ -464,12 +464,18 @@ var changeZoneKnownKeys = [...]string{
 // changeZoneUnread lists, sorted, the keys present on sa that a ChangeZone
 // resolution never reads (compile time only: one map walk per ability).
 func changeZoneUnread(sa *cards.SA) []string {
+	return changeZoneUnreadIn(sa, changeZoneKnownKeys[:])
+}
+
+// changeZoneUnreadIn is changeZoneUnread against any sorted table, so a test
+// can prove the caption skip without leaning on what the real table lists.
+func changeZoneUnreadIn(sa *cards.SA, known []string) []string {
 	var out []string
 	for _, k := range sa.ParamNames() {
 		if params.IsDescriptiveKey(k) {
 			continue
 		}
-		if _, known := slices.BinarySearch(changeZoneKnownKeys[:], k); !known {
+		if _, ok := slices.BinarySearch(known, k); !ok {
 			out = append(out, k)
 		}
 	}

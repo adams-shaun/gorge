@@ -101,3 +101,32 @@ func TestDescriptiveKeyRealGapStillNotes(t *testing.T) {
 		t.Fatalf("notes = %v, want [%q]", notes, want)
 	}
 }
+
+// descriptiveProbeSA carries every descriptive key plus one made-up key.
+func descriptiveProbeSA(api string) *cards.SA {
+	ps := map[string]string{"MadeUpUnreadKey": "x"}
+	for _, k := range params.DescriptiveKeys {
+		ps[k] = "caption"
+	}
+	return &cards.SA{API: api, Params: ps}
+}
+
+// TestDescriptiveKeySkipIgnoresTable proves both effects-side skip sites drop
+// every caption on their own: against an empty table, only the made-up key is
+// reported, whatever the per-API known-key tables happen to list.
+func TestDescriptiveKeySkipIgnoresTable(t *testing.T) {
+	sa := descriptiveProbeSA("ChangeZone")
+	if len(sa.Params) != len(params.DescriptiveKeys)+1 {
+		t.Fatalf("precondition: probe carries %d params, want %d", len(sa.Params), len(params.DescriptiveKeys)+1)
+	}
+	want := []string{"MadeUpUnreadKey"}
+	if got := changeZoneUnreadIn(sa, nil); !slices.Equal(got, want) {
+		t.Fatalf("changeZoneUnreadIn(all captions, nil) = %v, want %v", got, want)
+	}
+	if got := unreadKeys(sa, nil); !slices.Equal(got, want) {
+		t.Fatalf("unreadKeys(all captions, nil) = %v, want %v", got, want)
+	}
+	if got := ChangeZoneOf(sa).Unread; !slices.Equal(got, want) {
+		t.Fatalf("ChangeZoneOf(all captions).Unread = %v, want %v", got, want)
+	}
+}
