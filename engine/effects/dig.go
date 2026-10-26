@@ -311,6 +311,11 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if saw {
 				seenFaceDownExile(&ev, chooser, c.Source)
 			}
+			// WithCounters$ folds into the entry event so the permanent
+			// ENTERS with its counters (CR 122.6) and its enters triggers see them.
+			if dp.WithCounters != "" {
+				entryWithCounters(&ev, dest, dp.WithCounters, numText(h, c, dp.WithCountersAmount, 1))
+			}
 			ev.Player, ev.Secret = digSecretTo(&ev, chooser, p, saw), true
 			if dest == state.ZLibrary {
 				primaryMoved = append(primaryMoved, id)
