@@ -1392,12 +1392,16 @@ func (e *Engine) mayPlayHostsCovering(p state.PlayerID, id state.ObjID) []state.
 // records every host), so "any covering grant carries the rider" is the rule;
 // a static that only exempts the mana cost (MayPlayDontGrantZonePermissions$)
 // does not reach here because mayPlayGrantedBy requires a grant.
+//
+// The value is compared without normalisation (the strings-call ratchet): the
+// corpus spells the rider exactly `Exile` on both carriers, and the static
+// parameter parser already trims the field.
 func (e *Engine) mayPlayReplacesGraveyard(p state.PlayerID, id state.ObjID) bool {
 	for _, sv := range e.activeStatics("Continuous") {
 		if !mayPlayStaticBenefits(p, &sv) || !e.mayPlayGrantedBy(p, id, sv.Source) {
 			continue
 		}
-		if strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKReplaceGraveyard)), "Exile") {
+		if sv.ParamStr(cards.PKReplaceGraveyard) == "Exile" {
 			return true
 		}
 	}

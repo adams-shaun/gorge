@@ -5,8 +5,9 @@ package rules
 // Maestros Ascendancy (SNC) and Kess, Dissident Mage carry it on their
 // Mode$ Continuous MayPlay$ grant. Forge installs the same replacement a DB$
 // Play's rider uses when a spell is put on the stack through a may-play static
-// with the key, so beginCast records it on the pending cast and the existing
-// payCast/spellRestZone/spellFizzleZone path sends the card to exile.
+// with the key, so beginCast records it on the pending cast and the
+// payCast/spellRestZone/spellFizzleZone path sends the card to exile (and the
+// counter/ward destination reader does too).
 
 import (
 	"strings"
@@ -28,7 +29,6 @@ const (
 	// the resolved spell in the graveyard.
 	mrgPlainSrc = "Name:Plain Grave Vault\nManaCost:1\nTypes:Enchantment\n" +
 		"S:Mode$ Continuous | Affected$ Instant.YouCtrl,Sorcery.YouCtrl | Condition$ PlayerTurn | MayPlay$ True | RaiseCost$ Sac<1/Creature> | MayPlayLimit$ 1 | EffectZone$ Battlefield | AffectedZone$ Graveyard | Description$ x\nOracle:x\n"
-	mrgPlainName = "Plain Grave Vault"
 	// mrgCounterSrc is the fixture counterspell seat 1 answers the may-play Bolt
 	// with; the countered spell must still be exiled by the rider.
 	mrgCounterSrc  = "Name:Test Dismiss\nManaCost:U\nTypes:Instant\nA:SP$ Counter | TargetType$ Spell | ValidTgts$ Card | SpellDescription$ Counter target spell.\nOracle:x\n"
@@ -222,8 +222,9 @@ func TestMaestrosAscendancyCastIsExiledOnResolution(t *testing.T) {
 }
 
 // TestMaestrosAscendancyCounteredSpellIsExiled: the same may-play cast is
-// countered by seat 1; spellFizzleZone reads the same flag, so a spell that
-// never resolves still goes to exile instead of back to the graveyard.
+// countered by seat 1; the counter/ward destination reader
+// (state.ExilesInsteadOfGraveyard) reads the same flag, so a spell that never
+// resolves still goes to exile instead of back to the graveyard.
 func TestMaestrosAscendancyCounteredSpellIsExiled(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
