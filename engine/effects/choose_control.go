@@ -168,10 +168,15 @@ func chooseCardControl(sa *cards.SA) string {
 }
 
 func cardChoices(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID) []state.Target {
+	return cardChoicesIn(h, c, sa, chooser, choiceZones(sa))
+}
+
+// cardChoicesIn is cardChoices over an explicit zone set, for a caller whose
+// ChoiceZone$ default is not the battlefield (the face-down hand chooser).
+func cardChoicesIn(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID, zones map[state.Zone]bool) []state.Target {
 	g, spec := h.Game(), sa.ParamStr(cards.PKChoices)
 	control := chooseCardControl(sa)
 	var candidates []state.Target
-	zones := choiceZones(sa)
 	if raw := DefinedOf(sa).Cards.Text; raw != "" {
 		var qualifier string
 		candidates, qualifier = definedCardPool(g, c, raw)
