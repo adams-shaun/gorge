@@ -789,6 +789,9 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
+				if strings.EqualFold(spec, "NICKNAME") {
+					spec = "CARDNAME" // Forge's alias of the source self-reference
+				}
 				c.Exile = append(c.Exile, CostPart{N: int32(n), Spec: spec, Zone: state.ZBattlefield, Desc: m[3]})
 				continue
 			}
