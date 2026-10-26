@@ -13,17 +13,17 @@ companions as they stood that day.*
 
 ## At a glance
 
-| | **gorge** | **gorge-compliance** | **four-yay** |
+| | **gorge** | **gorge-compliance** | **private companion** |
 |---|---|---|---|
 | Visibility | public | public | private |
 | Licence | Apache-2.0 | Apache-2.0 | (private) |
-| Module | `github.com/adams-shaun/gorge` | `github.com/adams-shaun/gorge-compliance` | `github.com/adams-shaun/four-yay` |
-| Holds | the rules engine, the reference server `gorged`, the baseline and hosted bots, the browser client, contributor tooling | the compliance oracles (gorge vs XMage vs Forge), the hand-written Oracle-text scenarios, the XMage-ported scenarios, the certification ratchet | the maintainers' extensions: research, draft events, research bots, the [dirty-dirac kernel](../architecture/dirty-dirac/index.md), and the demo's deployment tooling |
+| Module | `github.com/adams-shaun/gorge` | `github.com/adams-shaun/gorge-compliance` | (private) |
+| Holds | the rules engine, the reference server `gorged`, the baseline and hosted bots, the browser client, contributor tooling | the compliance oracles (gorge vs XMage vs Forge), the hand-written Oracle-text scenarios, the XMage-ported scenarios, the certification ratchet | the maintainers' extensions: draft events, the [dirty-dirac kernel](../architecture/dirty-dirac/index.md) and the demo server |
 | Depends on | nothing (the root `go.mod` has no `require` lines) | gorge, pinned by commit | gorge, pinned by commit |
 | You need it to… | build, run, test or embed the engine | measure gorge against independent engines | nothing in gorge |
 
 <figure>
-<svg viewBox="0 0 760 280" width="100%" role="img" aria-label="Dependency direction between the three repositories: gorge-compliance and four-yay each import gorge at a pinned commit; gorge imports neither.">
+<svg viewBox="0 0 760 280" width="100%" role="img" aria-label="Dependency direction between the three repositories: gorge-compliance and the private companion each import gorge at a pinned commit; gorge imports neither.">
 <defs><marker id="rp-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-arrow-accent"/></marker></defs>
 <rect x="270" y="20" width="220" height="150" rx="10" class="dg-box-accent"/>
 <text x="380" y="48" text-anchor="middle" class="dg-text-bold">gorge</text>
@@ -38,10 +38,10 @@ companions as they stood that day.*
 <text x="110" y="110" text-anchor="middle" class="dg-text">oracles, scenarios,</text>
 <text x="110" y="128" text-anchor="middle" class="dg-text">certification ratchet</text>
 <rect x="550" y="40" width="200" height="110" rx="10" class="dg-box-muted"/>
-<text x="650" y="68" text-anchor="middle" class="dg-text-bold">four-yay</text>
+<text x="650" y="68" text-anchor="middle" class="dg-text-bold">private companion</text>
 <text x="650" y="86" text-anchor="middle" class="dg-text-muted">private</text>
-<text x="650" y="110" text-anchor="middle" class="dg-text">research, draft events,</text>
-<text x="650" y="128" text-anchor="middle" class="dg-text">dirty-dirac, demo ops</text>
+<text x="650" y="110" text-anchor="middle" class="dg-text">draft events,</text>
+<text x="650" y="128" text-anchor="middle" class="dg-text">dirty-dirac, demo server</text>
 <line x1="210" y1="95" x2="266" y2="95" class="dg-line-accent" marker-end="url(#rp-arr)"/>
 <line x1="550" y1="95" x2="494" y2="95" class="dg-line-accent" marker-end="url(#rp-arr)"/>
 <text x="238" y="200" text-anchor="middle" class="dg-text-muted">imports gorge at</text>
@@ -115,12 +115,11 @@ the per-set table on [Card support](../support/sets.md); if the branch is
 missing, the page falls back to its committed snapshot. The same nightly
 workflow runs the `drift` check described under [Pinning](#pinning).
 
-## four-yay
+## The private companion
 
-four-yay is the maintainers' **private** companion module. It holds work
-built on top of gorge that is not part of the public surface: research,
-draft events, research bots, the dirty-dirac kernel, and the tooling that
-deploys the public demo. It imports gorge at a pinned commit, the same way
+The maintainers' **private** companion module holds work built on top of
+gorge that is not part of the public surface: draft events, the dirty-dirac
+kernel and the demo server. It imports gorge at a pinned commit, the same way
 gorge-compliance does ([Pinning](#pinning)); gorge never imports it, and
 nothing in gorge needs it to build or test. The
 [dirty-dirac pages](../architecture/dirty-dirac/index.md) describe that
@@ -131,9 +130,9 @@ kernel's design.
 ```mermaid
 flowchart LR
   compliance["gorge-compliance"] -->|"go.mod require<br/>at GORGE_PIN"| gorge["gorge"]
-  fouryay["four-yay (private)"] -->|"go.mod require<br/>at GORGE_PIN"| gorge
+  priv["private companion"] -->|"go.mod require<br/>at GORGE_PIN"| gorge
   gorge -.->|"never"| compliance
-  gorge -.->|"never"| fouryay
+  gorge -.->|"never"| priv
 ```
 
 | Boundary | Enforced by |
@@ -235,7 +234,7 @@ sequenceDiagram
   G->>G: develop → main
   C->>C: PR: GORGE_PIN + go.mod to the new commit
   C->>C: rerun audits, update targets, adopt the new API
-  Note over G,C: four-yay bumps its own pin the same way
+  Note over G,C: the private companion bumps its own pin the same way
 ```
 
 - **The gorge commit must be pushed** before a companion can pin it: the

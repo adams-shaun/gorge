@@ -147,11 +147,26 @@ func (e *Engine) castRestrictedFree(p state.PlayerID, id state.ObjID) bool {
 // potential walk's hypothetical bound prices the projection (see
 // castRestrictedCost).
 func (e *Engine) castRestrictedPrinted(statics []staticView, p state.PlayerID, id state.ObjID, pool *state.Mana) bool {
-	var cost Cost
-	if o := e.G.Obj(id); o != nil && o.Face() != nil {
-		cost = e.faceCompiledCost(o.Face()).Cost
+	return e.castRestrictedCostAs(statics, p, id, Cost{}, true, castPricingPool{pool: pool}, false)
+}
+
+// castPricingPool is the pricing pool a CantBeCast gate's CR 601.3a X
+// lookahead prices against, read LAZILY: a legal walk's pool read is
+// counted (legalWalk.pricing, walk_block_reuse.go), and the lookahead is
+// the only consumer, so the read -- and its count -- happens only when a
+// restriction matches and the cast announces an X. A gate whose answer
+// never consulted the pool is pool-independent, which is exactly what the
+// block-reuse recorder's count means. w nil reads pool directly.
+type castPricingPool struct {
+	w    *legalWalk
+	pool *state.Mana
+}
+
+func (c castPricingPool) get() *state.Mana {
+	if c.w != nil {
+		return c.w.pricing()
 	}
-	return e.castRestrictedCost(statics, p, id, cost, pool)
+	return c.pool
 }
 
 // castRestrictedCost is the CantBeCast gate for a cast that will pay cost:
@@ -173,17 +188,22 @@ func (e *Engine) castRestrictedPrinted(statics []staticView, p state.PlayerID, i
 // lift it, so it is checked before the loop, on every cast route that
 // reaches here.
 func (e *Engine) castRestrictedCost(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
-	return e.castRestrictedCostAs(statics, p, id, cost, pool, false)
+	return e.castRestrictedCostAs(statics, p, id, cost, false, castPricingPool{pool: pool}, false)
 }
 
 // castRestrictedCostPrototype is castRestrictedCost for the prototyped cast
 // route: every restriction spec reads the card's K:Prototype inset mana
 // value, colours and P/T (CR 718.3a) instead of its printed face.
 func (e *Engine) castRestrictedCostPrototype(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
-	return e.castRestrictedCostAs(statics, p, id, cost, pool, true)
+	return e.castRestrictedCostAs(statics, p, id, cost, false, castPricingPool{pool: pool}, true)
 }
 
-func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana, asPrototype bool) bool {
+// castRestrictedCostAs is the shared CantBeCast gate. printed true ignores
+// cost and uses the current face's printed cost, compiled only when a
+// restriction actually matches (the X lookahead is its only reader; almost
+// every cast check sees no restriction at all), and pp is read only when
+// the lookahead runs.
+func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, printed bool, pp castPricingPool, asPrototype bool) bool {
 	if e.legendarySpellLocked(p, id) {
 		return true
 	}
@@ -230,7 +250,14 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 		}
 		if e.matchesSpec(spec, id, sc) &&
 			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv)) }) {
-			if cost.X > 0 && e.xAnnouncementEscapes(sv, spec, p, id, cost, pool, asPrototype) {
+			if printed {
+				printed = false
+				cost = Cost{}
+				if o := e.G.Obj(id); o != nil && o.Face() != nil {
+					cost = e.faceCompiledCost(o.Face()).Cost
+				}
+			}
+			if cost.X > 0 && e.xAnnouncementEscapes(sv, spec, p, id, cost, pp.get(), asPrototype) {
 				continue
 			}
 			return true

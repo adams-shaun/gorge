@@ -115,7 +115,7 @@ func TestCompiledTypeAndKeywordMasks(t *testing.T) {
 	keywordNames := []string{
 		"AlternateAdditionalCost", "Buyback", "Chapter", "Cycling", "Dethrone", "Devoid",
 		"Dredge", "Enchant", "Flash", "Flashback", "Harmonize", "Kicker", "Madness",
-		"MayEffectFromOpeningHand", "Miracle", "Riot", "Surge", "Suspend",
+		"MayEffectFromOpeningHand", "Miracle", "Riot", "Surge", "Suspend", "Prototype",
 	}
 	assertUniqueKnownCodes(t, "keyword", keywordNames, keywordMaskFor, KeywordMask(0))
 	if got := keywordMaskFor("FutureKeyword"); got != 0 {

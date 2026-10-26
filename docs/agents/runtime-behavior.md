@@ -74,13 +74,13 @@ auto-pay bot falls back to a manual mana tap, and once mana floats the
 engine withholds plans for the rest of the window, so a search seat that
 asks its bot first (`azmcts.Seat.DecideSearch`) never searched those
 windows. The opt-outs are bots whose policy reads only the manual option
-list (manual-mana `heuristic.Bot`, `heuristic.PolicyNetBot`, the searchteacher seat,
+list (manual-mana `heuristic.Bot`, `heuristic.PolicyNetBot`, the search-teacher seat,
 generation-0 `az-redeal`), each named with its reason in
 `bots/all/payment_default_test.go`, which fails the build on any other
 registered bot answering false. As a backstop, an AutoPayment az seat whose
 bot still answers a mana tap searches the full payment vocabulary with no
 bot candidate (`Root.NoBot`) and counts `Stats.BotTapRerooted`
-(four-yay botbench's `tap-rerooted` line). Human seats are unchanged: the host builds
+(reported as `tap-rerooted` by a bench run). Human seats are unchanged: the host builds
 their plans under `TableConfig.AutoMana` and the client only picks.
 
 The same build also leaves an engine-side cast census on the decision

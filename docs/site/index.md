@@ -90,7 +90,7 @@ dependencies and no cgo.
 ## Three repositories at a glance
 
 <figure>
-<svg viewBox="0 0 780 330" width="100%" role="img" aria-label="The three repositories. gorge, public, holds the engine, server, bots and tools. gorge-compliance, public, checks gorge against XMage and Forge. four-yay, private, holds the maintainers' research and extensions. Both companions import gorge at a pinned commit; gorge imports neither.">
+<svg viewBox="0 0 780 330" width="100%" role="img" aria-label="The three repositories. gorge, public, holds the engine, server, bots and tools. gorge-compliance, public, checks gorge against XMage and Forge. A private companion holds the maintainers' extensions. Both companions import gorge at a pinned commit; gorge imports neither.">
 <defs><marker id="hm-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-arrow-accent"/></marker></defs>
 <rect x="270" y="10" width="240" height="250" rx="12" class="dg-box-accent"/>
 <rect x="270" y="10" width="240" height="40" rx="12" class="dg-box-solid"/>
@@ -112,12 +112,11 @@ dependencies and no cgo.
 <text x="26" y="176" class="dg-text">Oracle-text scenarios</text>
 <text x="26" y="206" class="dg-text-muted">certification ratchet</text>
 <rect x="560" y="40" width="210" height="190" rx="12" class="dg-box-muted"/>
-<text x="665" y="68" text-anchor="middle" class="dg-text-bold">four-yay</text>
+<text x="665" y="68" text-anchor="middle" class="dg-text-bold">private companion</text>
 <text x="665" y="88" text-anchor="middle" class="dg-text-muted">private</text>
-<text x="576" y="116" class="dg-text">research and draft</text>
-<text x="576" y="136" class="dg-text">events, research bots,</text>
-<text x="576" y="156" class="dg-text">the dirty-dirac kernel,</text>
-<text x="576" y="176" class="dg-text">demo deployment</text>
+<text x="576" y="116" class="dg-text">draft events,</text>
+<text x="576" y="136" class="dg-text">the dirty-dirac kernel,</text>
+<text x="576" y="156" class="dg-text">the demo server</text>
 <text x="576" y="206" class="dg-text-muted">not needed to use gorge</text>
 <line x1="220" y1="135" x2="266" y2="135" class="dg-line-accent" marker-end="url(#hm-arr)"/>
 <line x1="560" y1="135" x2="514" y2="135" class="dg-line-accent" marker-end="url(#hm-arr)"/>
@@ -139,7 +138,7 @@ dependencies and no cgo.
 
     ---
 
-    What lives in gorge, gorge-compliance and four-yay, which way the
+    What lives in gorge, gorge-compliance and the private companion, which way the
     imports run, licensing, pinning and the branch flow.
 
 -   **[Architecture: the gorge kernel](architecture/index.md)**
