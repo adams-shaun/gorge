@@ -156,7 +156,7 @@ var copyPermanentKnownKeys = [...]string{
 	"RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "RememberTokens", "RemoveCardTypes", "RemoveCost",
 	"RemoveCreatureTypes", "RemoveKeywords", "RemoveSubTypes", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
-	"ReplaceType", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
+	"ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
 	"SetCreatureTypes", "SetPower", "SetToughness", "ShowCards", "SorcerySpeed",
 	"SpellDescription", "StackDescription", "SubAbility", "TargetMax", "TargetMin",
 	"TargetType", "TargetUnique", "TargetValidTargeting", "TargetingPlayer",

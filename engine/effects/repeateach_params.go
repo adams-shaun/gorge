@@ -103,7 +103,7 @@ var repeatEachKnownKeys = [...]string{
 	"RepeatOptionalForEachPlayer", "RepeatOptionalMessage", "RepeatPlayers",
 	"RepeatSpellAbilities", "RepeatSubAbility", "RepeatTargeted", "RepeatTypesFrom", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
-	"ReplaceType", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
+	"ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
 	"ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
 	"StartingWith", "SubAbility", "TargetMax", "TargetMin", "TargetType", "TargetUnique",
 	"TargetValidTargeting", "TargetingPlayer", "TargetingPlayerControls",

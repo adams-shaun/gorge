@@ -132,7 +132,7 @@ var manaReflectedKnownKeys = [...]string{
 	"PresentZone", "Produced", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"ReflectProperty", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
-	"ReplaceType", "RestrictValid", "SVarCompare", "SelectPrompt", "SetChosenMode",
+	"ReplaceType", "RestrictValid", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode",
 	"SetColor", "ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
 	"SubAbility", "TargetMax", "TargetMin", "TargetType", "TargetUnique",
 	"TargetValidTargeting", "TargetingPlayer", "TargetingPlayerControls", "TargetsAtRandom",

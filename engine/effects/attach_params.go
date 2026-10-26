@@ -103,7 +103,7 @@ var attachKnownKeys = [...]string{
 	"PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberAttached",
 	"RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor", "ReplaceGraveyard",
 	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType",
-	"SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
+	"ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
 	"ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
 	"SubAbility", "TargetMax", "TargetMin", "TargetType",
 	"TargetUnique", "TargetValidTargeting", "TargetingPlayer",

@@ -455,7 +455,10 @@ func foldImprint(g *state.Game, e *Event) {
 			// exiled cards (IDs) come back to the zone carried in Amount
 			// when the source leaves the battlefield (rules sweepExileReturn).
 			if e.Text == "until-host-leaves" {
-				from := state.Zone(e.Amount)
+				// Amount's low byte is the zone; ExileReturnRetFlag marks an
+				// exile whose ChangeZone carried ReturnAbility$.
+				from := state.Zone(e.Amount & state.ExileReturnZoneMask)
+				ret := e.Amount&state.ExileReturnRetFlag != 0
 				if from.Valid() {
 					for _, id := range e.IDs {
 						if g.Obj(id) == nil {
@@ -469,7 +472,7 @@ func foldImprint(g *state.Game, e *Event) {
 							}
 						}
 						if !dupe {
-							o.ExileReturn = append(o.ExileReturn, state.ExileReturnEntry{Obj: id, From: from})
+							o.ExileReturn = append(o.ExileReturn, state.ExileReturnEntry{Obj: id, From: from, Ret: ret})
 						}
 					}
 				}

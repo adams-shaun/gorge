@@ -106,7 +106,7 @@ var removeCounterKnownKeys = [...]string{
 	"PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAmount",
 	"RememberAnimated", "RememberCostMana", "RememberObjects", "RememberRemoved", "RememberTargets", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
-	"ReplaceType", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor", "ShowCards",
+	"ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor", "ShowCards",
 	"SorcerySpeed", "SpellDescription", "StackDescription", "SubAbility", "TargetMax",
 	"TargetMin", "TargetType", "TargetUnique", "TargetValidTargeting", "TargetingPlayer",
 	"TargetingPlayerControls", "TargetsAtRandom", "TargetsForEachPlayer",

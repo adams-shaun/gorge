@@ -124,7 +124,7 @@ var digKnownKeys = [...]string{
 	"PresentZone", "PromptToSkipOptionalAbility", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
-	"ReplaceType", "RestRandomOrder", "Reveal", "SVarCompare", "SelectPrompt",
+	"ReplaceType", "RestRandomOrder", "ReturnAbility", "ReturnValid", "Reveal", "SVarCompare", "SelectPrompt",
 	"SetChosenMode", "SetColor", "SharedRestrictions", "ShowCards", "SkipReorder", "SorcerySpeed",
 	"SpellDescription", "StackDescription", "StaticEffect", "StaticEffectCheckSVar",
 	"StaticEffectSVarCompare", "SubAbility", "Tapped", "TargetMax", "TargetMin",

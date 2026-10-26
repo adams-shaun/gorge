@@ -197,7 +197,7 @@ var charmKnownKeys = [...]string{
 	"PresentDefined", "PresentZone", "Random", "RandomCompare", "RandomCompareSVar", "RandomNumTargets",
 	"ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
-	"ReplaceType", "SVarCompare", "SelectPrompt", "SetChosenMode",
+	"ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode",
 	"SetColor", "ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
 	"SubAbility", "TargetMax", "TargetMin", "TargetType",
 	"TargetUnique", "TargetValidTargeting", "TargetingPlayer", "TargetingPlayerControls", "TargetsAtRandom",
