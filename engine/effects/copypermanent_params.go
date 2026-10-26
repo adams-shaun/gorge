@@ -171,7 +171,7 @@ var copyPermanentKnownKeys = [...]string{
 	"Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
 	"ValidCounterType", "ValidDescription", "ValidSupportedCopy", "ValidTgts",
-	"VoteMessage", "WithCountersAmount", "WithCountersType", "WithDifferentNames",
+	"ValidTgtsDesc", "VoteMessage", "WithCountersAmount", "WithCountersType", "WithDifferentNames",
 	"WithoutManaCost", "XMax", "XMin",
 }
 
