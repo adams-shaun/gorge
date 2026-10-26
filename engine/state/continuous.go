@@ -760,7 +760,9 @@ type ContinuousEffect struct {
 	// other resolution-created fields.
 	CloneTarget ObjID
 	// CloneDurationTarget is the tapped object whose actual untap ends a
-	// Duration$ UntilTargetedUntaps copy (not necessarily CloneTarget).
+	// Duration$ UntilTargetedUntaps copy (not necessarily CloneTarget), or
+	// the attachment whose detaching from CloneTarget ends a Duration$
+	// UntilUnattached copy.
 	CloneDurationTarget ObjID
 
 	// CloneSource, CloneName and CloneGainThisAbility describe the copy the

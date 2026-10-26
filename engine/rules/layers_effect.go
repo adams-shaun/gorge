@@ -478,7 +478,7 @@ func (e *Engine) EndOfTurnCleanup() {
 		// tested live.
 		if ce.Layer == LCopy && ce.CloneTarget != 0 &&
 			strings.EqualFold(strings.TrimSpace(ce.Duration), "untilunattached") {
-			if o := e.G.Obj(ce.CloneTarget); o == nil || o.AttachedTo == 0 {
+			if !cloneStillAttached(e.G, &ce) {
 				dropClone(ce)
 				continue
 			}
@@ -579,6 +579,13 @@ func cloneExpiryIn(keys []cloneExpiry, k cloneExpiry) bool {
 	return false
 }
 
+// cloneStillAttached reports whether an UntilUnattached copy's attachment
+// (CloneDurationTarget) is still attached to the copied object (CloneTarget).
+func cloneStillAttached(g *state.Game, ce *ContinuousEffect) bool {
+	att := g.Obj(ce.CloneDurationTarget)
+	return att != nil && att.Zone == state.ZBattlefield && att.AttachedTo == ce.CloneTarget
+}
+
 // expireClonesOnEvent ends copy effects at their event-driven boundaries.
 // The marker owns expiry; its sibling modifiers carry the same unit key.
 // Run after Apply so the replay-visible re-base follows the untap/turn-down.
@@ -589,7 +596,9 @@ func (e *Engine) expireClonesOnEvent(ev events.Event, wasTapped bool) {
 			continue
 		}
 		dur := strings.ToLower(strings.TrimSpace(ce.Duration))
-		match := dur == "untilfacedown" && ev.Kind == events.TurnFaceDown && ev.Obj == ce.CloneTarget ||
+		match := dur == "untilunattached" && (ev.Kind == events.Attach || ev.Kind == events.Unattached || ev.Kind == events.MoveZone) &&
+			!cloneStillAttached(e.G, &ce) ||
+			dur == "untilfacedown" && ev.Kind == events.TurnFaceDown && ev.Obj == ce.CloneTarget ||
 			dur == "untiltargeteduntaps" && ev.Obj == ce.CloneDurationTarget &&
 				(ev.Kind == events.Untap && wasTapped || ev.Kind == events.MoveZone && ev.From == state.ZBattlefield)
 		if match && !cloneExpiryIn(expired, cloneExpiryOf(&ce)) {

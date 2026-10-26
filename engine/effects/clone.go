@@ -623,6 +623,12 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			if strings.EqualFold(d, "UntilTargetedUntaps") {
 				ce.CloneDurationTarget = t.Obj
 			}
+			if untilUnattached {
+				// The attachment (the resolving ability's source, e.g. the
+				// Equipment) whose staying attached to the become object
+				// keeps the copy alive.
+				ce.CloneDurationTarget = c.Source
+			}
 			h.AddContinuous(ce)
 		}
 		reg := func(ce state.ContinuousEffect) {
@@ -672,16 +678,15 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		// The layer-1 LCopy MARKER owns the copy's lifetime. It is always
 		// registered (even when no modifier effect is), so rules' clone
 		// sweep has exactly one owner per copy to expire and can drop the
-		// marker's sibling effects with it. UntilUnattached is enforced by
-		// EndOfTurnCleanup's attached check, which reads the marker's
-		// Duration; every other duration rides UntilEOT/UntilTurn or the
+		// marker's sibling effects with it. UntilUnattached ends the moment the
+		// source stops being attached (rules' expireClonesOnEvent), with
+		// EndOfTurnCleanup as the backstop; every other duration rides UntilEOT/UntilTurn or the
 		// source-leaves rule.
 		//
 		// The marker also CARRIES the copy (source id, NewName$,
 		// GainThisAbility$) so that expiring one unit on an object that
 		// carries ANOTHER live unit re-bases the object onto the
 		// survivor instead of clearing the shared CopyFace basis.
-		_ = untilUnattached
 		reg(state.ContinuousEffect{Layer: state.LCopy, CloneSource: t.Obj,
 			CloneName: newName, CloneChosenName: chosenName,
 			CloneStaticBodies: staticBodies, CloneGainThisAbility: gainThisAbility,
