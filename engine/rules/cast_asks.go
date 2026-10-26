@@ -93,7 +93,7 @@ func (e *Engine) giftAsk() bool {
 	// 702.174a makes it part of what the caster decides to give. Text only.
 	prompt, gift := "Promise a gift?", "a gift"
 	if sa := cards.ResolveSVar(o.Face().SVars, "GiftAbility"); sa != nil {
-		if desc := strings.TrimSpace(sa.Params["GiftDescription"]); desc != "" {
+		if desc := sa.Params["GiftDescription"]; desc != "" { // trimmed at parse
 			prompt, gift = "Promise a gift ("+desc+")?", desc
 		}
 	}
