@@ -1,19 +1,2 @@
-Brilliance Unleashed	param:api:ChangeZone.ValidTgtsDesc
-Death in the Family	param:api:ChangeZone.ValidTgtsDesc
-Don & Leo, Problem Solvers	param:api:ChangeZone.ValidTgtsDesc,param:api:Pump.ValidTgtsDesc
-Go Ninja Go	param:api:ChangeZone.ValidTgtsDesc,param:api:DealDamage.ValidTgtsDesc
-High-Flying Ace	param:api:Pump.ValidTgtsDesc
-Karai's Technique	param:api:Pump.ValidTgtsDesc
-Koya, Death from Above	param:api:ChangeZone.ValidTgtsDesc
-Mind Transfer Protocol	param:api:Animate.ValidTgtsDesc
 Ninja Teen	param:stat:Continuous.MayPlay.Secondary
-Nobody	param:api:ChangeZone.ValidTgtsDesc
-Old Hob, Alleycat Blues	param:api:Pump.ValidTgtsDesc
-Paramecia Coloniex	param:api:ChangeZone.ValidTgtsDesc
-Pizza Face, Gastromancer	param:api:PutCounter.ValidTgtsDesc
-Rock Soldiers	param:api:Destroy.ValidTgtsDesc
-Shredder, Unrelenting	param:api:Pump.ValidTgtsDesc
-Tainted Treats	param:api:Destroy.ValidTgtsDesc
-Tenderize	param:api:DealDamage.ValidTgtsDesc,param:api:Pump.ValidTgtsDesc
-The Neutrinos	param:api:ChangeZone.ValidTgtsDesc
 Turtles in Time	param:api:GenericChoice.ShowChoice
