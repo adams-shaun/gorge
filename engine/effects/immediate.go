@@ -120,6 +120,14 @@ func effImmediateTrigger(h Host, c *Ctx, sa *cards.SA) {
 	rememberedAmount, _ := numResolvedText(h, &amountCtx, ParamText{
 		Text:    strings.TrimSpace(sa.ParamStr(cards.PKRememberSVarAmount)),
 		Present: sa.HasParam(cards.PKRememberSVarAmount)}, 0)
+	// Announce$ NumTimes (the adversary cycle, Tranquil Frillback, Hawkeye):
+	// the announced repeat count is the SVar named NumTimes, which no face
+	// declares. The trigger-cost window carries it as the paid X.
+	if sa.ParamStr(cards.PKRememberSVarAmount) == "NumTimes" && c.XAnnounced {
+		if _, declared := c.SVars["NumTimes"]; !declared {
+			rememberedAmount = c.X
+		}
+	}
 	remember := strings.TrimSpace(sa.ParamStr(cards.PKRememberObjects))
 	each := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberEach)), "True")
 	// wholeSet is the set every non-RememberEach instance's Ctx.Remembered sees
