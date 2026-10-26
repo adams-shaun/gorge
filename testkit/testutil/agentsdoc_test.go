@@ -54,7 +54,7 @@ const (
 	// and zone now exist, api:Planeswalk rotates the deck (the PlanarWalk
 	// fold), api:ChaosEnsues erupts the current plane, and T:Mode$ ChaosEnsues
 	// fires on a chaos roll.
-	knownApproximationRows = 8
+	knownApproximationRows = 7
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
