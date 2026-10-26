@@ -62,6 +62,9 @@ type CostPart struct {
 	// SubCounter<N/Kind> token has always had. Forge writes the restriction
 	// space-free and the display description prose, so a space-bearing third
 	// field is a description, not a filter.
+	//
+	// On an UnlessCost$ AddCounter<N/Kind/Defined> part Target is the
+	// recipient filter (Defined) and Spec the counter kind.
 	Target string
 	// Desc is Forge's trailing human-readable description field
 	// (the ".../another creature" in Sac<1/Creature.Other/another creature>),

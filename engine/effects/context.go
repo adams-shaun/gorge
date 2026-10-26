@@ -1346,9 +1346,12 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// evaluated the same way the Player fallback below evaluates one; an
 	// unmet qualifier fails closed to the empty set, never a guessed
 	// fallback. Outside a combat trigger the role is absent and the set is
-	// empty.
+	// empty. A qualified (player-valued) spelling names nobody when the
+	// attacker is attacking a planeswalker or battle (c.DefenderObj): the
+	// defender is that object, which Raid Bombardment's companion arm "Valid
+	// Planeswalker.TriggeredDefender" names instead.
 	if base, qual, _ := strings.Cut(spec, "."); base == "TriggeredDefender" && !strings.Contains(spec, " & ") {
-		if !c.DefendingPlayer.IsPlayer {
+		if !c.DefendingPlayer.IsPlayer || (qual != "" && c.DefenderObj != 0) {
 			return nil, true
 		}
 		if qual != "" && !MatchesPlayerSpecFrom(g, qual, c.DefendingPlayer.Player, c.Controller, c.Source) {

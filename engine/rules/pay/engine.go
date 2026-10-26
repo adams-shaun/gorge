@@ -57,6 +57,12 @@ type Engine interface {
 	Session() *Session
 	// SearchScratch is the plan search's reusable working storage.
 	SearchScratch() *SearchScratch
+	// EmitCounterBy emits a counter event with p published as the player
+	// putting the counters (a ward or unless cost is paid by its payer, not
+	// by the controller the actionCause fallback would credit). asCost also
+	// marks it a cost's own placement, which the EffectOnly$ AddCounter
+	// replacement gate refuses (CR 118.12a: an unless cost is a cost).
+	EmitCounterBy(ev events.Event, p state.PlayerID, asCost bool) events.Event
 	// Rand is the engine's deterministic random draw in [0, n) (a
 	// Discard<N/Random> cost part's pick).
 	Rand(n int) int

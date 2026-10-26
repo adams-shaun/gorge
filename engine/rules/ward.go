@@ -87,10 +87,7 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 			}
 			return e.askWardObjects(rp, ctx, payer, "ward_evidence", "Exile evidence with total mana value "+strconv.Itoa(n), 1, len(ids), ids)
 		case beginWardPaymentWaterbend:
-			need := n - int(e.G.Players[payer].Pool.Total())
-			if need < 0 {
-				need = 0
-			}
+			need := int(pay.WaterbendTapsOwed(e.G, payer, int32(n)))
 			if need == 0 {
 				return pay.PayMana(asPayer(e), payer, Cost{Generic: int32(n)}), false
 			}
@@ -259,29 +256,16 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		}
 		m := wardSpecialCost.FindStringSubmatch(raw)
 		n, _ := strconv.Atoi(m[2])
-		// The blight -1/-1 counters are put by the PAYER (a ward cost),
-		// not by the ward permanent's controller, so publish the payer
-		// explicitly rather than letting the actionCause fallback
-		// attribute them to the wrong player.
-		prevAdder := e.SetCounterAdder(payer)
-		e.emit(events.Event{Kind: events.CounterChange, Obj: ids[0], Counter: "M1M1", Amount: int32(n)})
-		e.SetCounterAdder(prevAdder)
+		// The blight -1/-1 counters are put by the PAYER (a ward cost), not
+		// by the ward permanent's controller; PayBlight publishes the payer
+		// explicitly rather than letting the actionCause fallback attribute
+		// them to the wrong player.
+		pay.PayBlight(asPayer(e), payer, ids[0], int32(n), false)
 		return true
 	case settleWardPaymentWardEvidence:
-		for _, id := range ids {
-			if !slices.Contains(e.G.Zone(state.ZGraveyard, payer), id) {
-				return false
-			}
-		}
 		m := wardSpecialCost.FindStringSubmatch(raw)
 		n, _ := strconv.Atoi(m[2])
-		if wardManaValue(e.G, ids) < int32(n) {
-			return false
-		}
-		for _, id := range ids {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "collected as evidence for ward"})
-		}
-		return true
+		return pay.PayEvidence(asPayer(e), payer, int32(n), ids, "collected as evidence for ward")
 	case settleWardPaymentWardWaterbend:
 		for _, id := range ids {
 			if !slices.Contains(e.wardPermanents(payer, ctx.Source, "Artifact,Creature", true), id) {
@@ -290,14 +274,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		}
 		m := wardSpecialCost.FindStringSubmatch(raw)
 		n, _ := strconv.Atoi(m[2])
-		remaining := n - len(ids)
-		if remaining < 0 || !pay.PayMana(asPayer(e), payer, Cost{Generic: int32(remaining)}) {
-			return false
-		}
-		for _, id := range ids {
-			e.emit(events.Event{Kind: events.Tap, Obj: id})
-		}
-		return true
+		return pay.PayWaterbend(asPayer(e), payer, int32(n), ids)
 	case settleWardPaymentWardTap:
 		if len(ids) != 1 || !slices.Contains(e.wardPermanents(payer, ctx.Source, "Artifact,Creature", true), ids[0]) {
 			return false

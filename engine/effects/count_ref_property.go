@@ -127,6 +127,19 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		if o == nil {
 			continue
 		}
+		// CR 608.2h: an object this resolution sacrificed under
+		// `Sacrifice … RememberSacrificed$ True` is read from the capture the
+		// sacrifice took before the zone change (state.SacrificedInfo), not
+		// the card now in the graveyard. Tribute to Hunger's "you gain life
+		// equal to that creature's toughness" and Kylox's "their total power"
+		// both name a remembered creature that has already left, so the
+		// printed face would drop an anthem, a pump or a counter. The capture
+		// is the same one Sacrificed$CardPower reads, so the two spellings
+		// cannot disagree.
+		var sacLKI *state.SacrificedInfo
+		if ref == "Remembered" || ref == "RememberedLKI" {
+			sacLKI, _ = sacrificedInfoFor(c, t.Obj)
+		}
 		f := o.Face()
 		switch {
 		case prop == "CardTypes":
@@ -151,7 +164,9 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			}
 		case prop == "CardPower":
 			if f != nil {
-				if lki && c.Snap.PTValid {
+				if sacLKI != nil {
+					n += sacLKI.Power
+				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Power
 				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
 					n += pt.Power
@@ -180,7 +195,9 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			}
 		case prop == "CardToughness":
 			if f != nil {
-				if lki && c.Snap.PTValid {
+				if sacLKI != nil {
+					n += sacLKI.Toughness
+				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Toughness
 				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
 					n += pt.Toughness
@@ -200,7 +217,11 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			// the same number the plain spelling does. One shared case, so
 			// the two cannot disagree.
 			if f != nil {
-				n += int32(objectManaValue(h.Game(), o))
+				if sacLKI != nil {
+					n += sacLKI.ManaValue
+				} else {
+					n += int32(objectManaValue(h.Game(), o))
+				}
 			}
 		case prop == "NumTimesChoseMode":
 			// TriggeredSpellAbility$NumTimesChoseMode (Riku of Many Paths'

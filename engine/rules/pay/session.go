@@ -182,11 +182,27 @@ type UnlessPayment struct {
 	// (isWholeZoneExileSpec) takes EVERY candidate without asking; an
 	// ordinary part is a choice exactly like a sacrifice.
 	Exiles []state.ObjID
+	// Taps holds the tapXType<N/Spec> picks, WaterbendTaps the permanents
+	// tapped to help pay a Waterbend<N>, Blights and CounterTo the one
+	// creature / recipient per Blight / AddCounter part (parallel to
+	// Cost.Blight / Cost.AddCounter), Evidence the CollectEvidence<N> graveyard
+	// picks. Their candidates and settlement live in unlessspecial.go.
+	Taps          []state.ObjID
+	WaterbendTaps []state.ObjID
+	Blights       []state.ObjID
+	CounterTo     []state.ObjID
+	Evidence      []state.ObjID
 }
 
 // PaymentPartCount is the flat count of the choice-bearing components
-// (Sac, Discard, Reveal, Behold, Return, Exile) the continuation walks before
-// it settles the synchronous ones.
+// (Sac, Discard, Reveal, Behold, Return, Exile, then the special tap,
+// blight, waterbend, evidence and counter parts) the continuation walks
+// before it settles the synchronous ones.
 func (u *UnlessPayment) PaymentPartCount() int {
-	return len(u.Cost.Sac) + len(u.Cost.Discard) + len(u.Cost.Reveal) + len(u.Cost.Behold) + len(u.Cost.Return) + len(u.Cost.Exile)
+	n := len(u.Cost.Sac) + len(u.Cost.Discard) + len(u.Cost.Reveal) + len(u.Cost.Behold) + len(u.Cost.Return) + len(u.Cost.Exile) +
+		len(u.Cost.TapPermanent) + len(u.Cost.Blight) + len(u.Cost.Evidence) + len(u.Cost.AddCounter)
+	if u.Cost.Waterbend > 0 {
+		n++
+	}
+	return n
 }

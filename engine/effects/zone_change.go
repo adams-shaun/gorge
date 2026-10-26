@@ -766,6 +766,9 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if cz.DefinedTriggered && len(c.TriggerRememberedMoved) > 0 {
 		targets = dropTriggerRememberedMoved(c, targets)
 	}
+	if optionalConfirmMarker(cz) {
+		targets = changeZoneOptionalConfirm(h, c, cz, targets, to, originAll)
+	}
 	if to == state.ZLibrary && objectPathShuffleOwed(cz) && cz.ShuffleNonMandatory &&
 		!objectPathMayShuffle(h, c, sa, targets) {
 		return

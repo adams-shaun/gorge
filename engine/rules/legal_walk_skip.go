@@ -30,9 +30,11 @@ type walkBoardFacts struct {
 	kwMaybe bool
 }
 
-// grantedKWHeads are the four heads cards.GrantedKeywordAbility expands
-// (mayDeriveKeywordLine's set).
-var grantedKWHeads = [...]kwHead{kwhCycling, kwhTypeCycling, kwhSaddle, kwhCrew}
+// grantedKWHeads are the heads cards.GrantedKeywordAbility expands
+// (mayDeriveKeywordLine's set; TestGrantedKeywordHeadSetsAgree pins it to
+// cards.GrantedKeywordHeadNames).
+var grantedKWHeads = [...]kwHead{kwhCycling, kwhTypeCycling, kwhSaddle, kwhCrew,
+	kwhEquip, kwhFortify, kwhLevelUp, kwhOutlast, kwhUnearth, kwhEmbalm, kwhEternalize, kwhNinjutsu}
 
 // boardFacts reads the walk's board facts once and publishes them on the
 // walk's action-static source, where the mana walk picks them up.

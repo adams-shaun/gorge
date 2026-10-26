@@ -3817,13 +3817,14 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// CR 613.4a CDA sublayer (Tarmogoyf, Krovikan Mist now derive their
 	// announced P/T), so the read is genuine on the generic bucket.
 	// ValidAfterStack$ is consumed by mayPlayStatic as a derived spell filter
-	// (task mayplay-validafterstack); MayPlayPlayer$ is consumed for Exiler only.
+	// (task mayplay-validafterstack); MayPlayPlayer$ is consumed for Exiler and CardOwner only.
 	if !d.stat["Continuous.MayPlay"]["ValidAfterStack"] {
 		t.Error(`d.stat["Continuous.MayPlay"]["ValidAfterStack"] = false -- MayPlay characteristic gate lost its read`)
 	}
-	// MayPlayPlayer$ Exiler is now consumed (Shared Fate: mayPlayStatic's
-	// ExiledBy gate, the look half in layers.go); every other value is still
-	// rejected by mayPlayGateRejectedOther, so the key is a genuine read.
+	// MayPlayPlayer$ Exiler and CardOwner are now consumed (Shared Fate:
+	// mayPlayStatic's ExiledBy gate, the look half in layers.go; Soul
+	// Partition: the owner gate); every other value is still rejected by
+	// mayPlayGateRejectedOther, so the key is a genuine read.
 	for _, key := range []string{"MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
 			if !d.stat[mode][key] {

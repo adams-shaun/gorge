@@ -142,8 +142,9 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 
 // grantedKeywordLines returns the DERIVED granted-keyword lines id carries
 // right now that no compiled face of its pile already expands, restricted to
-// the four heads that mint an activated ability (cards.GrantedKeywordAbility:
-// Cycling, TypeCycling, Saddle, Crew). A printed K: line is expanded at link
+// the heads that mint an activated ability (cards.GrantedKeywordAbility:
+// Cycling, TypeCycling, Saddle, Crew, Equip, Fortify, Level up, Outlast,
+// Unearth, Embalm, Eternalize, Ninjutsu). A printed K: line is expanded at link
 // time into the pile's own abilities (the pile walk offers that one); a
 // layer-6 AddKeyword$ grant (CR 613.1f -- Tectonic Reformation, Rhet-Tomb
 // Mystic, Jo Grant, Homing Sliver, Jandor, Kotori, Astor, Swift
@@ -174,7 +175,7 @@ func (e *Engine) grantedKeywordLines(id state.ObjID) []string {
 // the derived list the answer is nil, and the offer walk skips the full layer
 // walk it otherwise paid for every card in every offered zone.
 func (e *Engine) mayDeriveKeywordLine(id state.ObjID) bool {
-	return e.mayHaveDerivedKeywordAnyH(id, kwhCycling, kwhTypeCycling, kwhSaddle, kwhCrew)
+	return e.mayHaveDerivedKeywordAnyH(id, grantedKWHeads[:]...)
 }
 
 // grantedKeywordLinesFull is grantedKeywordLines without the precheck.
@@ -317,7 +318,7 @@ func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int
 	return used
 }
 
-var grantedKeywordLinesFullKeys = state.NewNameSet("Cycling", "TypeCycling", "Saddle", "Crew")
+var grantedKeywordLinesFullKeys = state.NewNameSet(cards.GrantedKeywordHeadNames()...)
 
 type gainsValidAbilitiesAdmitsCode uint16
 

@@ -31,7 +31,7 @@ func printedExpandedSA(t *testing.T, line string) *SA {
 // every other head returns nil (fail closed).
 func TestGrantedKeywordAbilityShapes(t *testing.T) {
 	t.Parallel()
-	for _, line := range []string{"Cycling:1 U", "TypeCycling:Sliver:3", "Saddle:2", "Crew:1"} {
+	for _, line := range []string{"Cycling:1 U", "TypeCycling:Sliver:3", "Saddle:2", "Crew:1", "Equip:3", "Equip:2:Creature.YouCtrl+Legendary:legendary creature", "Fortify:3", "Level up:1 B", "Outlast:1 W"} {
 		granted := GrantedKeywordAbility(line)
 		if granted == nil {
 			t.Fatalf("GrantedKeywordAbility(%q) = nil, want a body", line)
@@ -48,7 +48,7 @@ func TestGrantedKeywordAbilityShapes(t *testing.T) {
 		}
 	}
 	// Fail closed on heads that mint no activated ability this build models.
-	for _, line := range []string{"Flying", "Equip:1", "Reconfigure:2", "Level up:1"} {
+	for _, line := range []string{"Flying", "Reconfigure:2", "Transmute:2"} {
 		if got := GrantedKeywordAbility(line); got != nil {
 			t.Fatalf("GrantedKeywordAbility(%q) = %+v, want nil (fail closed)", line, got)
 		}

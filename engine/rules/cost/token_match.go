@@ -46,6 +46,7 @@ const (
 	hExileCtrlOrGrave
 	hExileFromGrave
 	hExileFromHand
+	hExileFromStack
 	hExileFromTop
 	hExiledMoveToGrave
 	hGainLife
@@ -89,6 +90,7 @@ var costHeadNames = [numCostHeads]string{
 	hExileCtrlOrGrave:            "ExileCtrlOrGrave",
 	hExileFromGrave:              "ExileFromGrave",
 	hExileFromHand:               "ExileFromHand",
+	hExileFromStack:              "ExileFromStack",
 	hExileFromTop:                "ExileFromTop",
 	hExiledMoveToGrave:           "ExiledMoveToGrave",
 	hGainLife:                    "GainLife",

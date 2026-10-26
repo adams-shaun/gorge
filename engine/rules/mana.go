@@ -595,7 +595,7 @@ func (pe *payEval) MayPlayRider(p state.PlayerID, id state.ObjID) pipRider {
 	ces := e.active()
 	for i := range ces {
 		ce := &ces[i]
-		if !ce.MayPlay || ce.Controller != p {
+		if !ce.MayPlay || !mayPlayEffectBenefits(ce, o, p) {
 			continue
 		}
 		color, typ := ce.MayPlayIgnoreColor && !r.AnyColor, ce.MayPlayIgnoreType && !r.AnyType
