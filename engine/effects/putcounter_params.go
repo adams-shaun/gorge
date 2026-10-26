@@ -160,7 +160,7 @@ var putCounterKnownKeys = [...]string{
 	"InstantSpeed", "IsCurse", "IsPresent", "KW",
 	"Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"MinChoiceAmount", "ModeCost", "Monstrosity", "NewController",
-	"NonBasicSpell", "OnlyNewKind", "OpponentTurn", "Optional", "PerDefined",
+	"NonBasicSpell", "OnlyNewKind", "OpponentTurn", "Optional", "Pawprint", "PerDefined",
 	"Placer", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "PutOnDefined", "PutOnEachOther", "RandomNumTargets", "RandomType", "ReduceAmount",
 	"ReduceCost", "RememberAmount", "RememberAnimated", "RememberCards", "RememberCostMana", "RememberObjects",

@@ -125,7 +125,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LibraryPosition",
 	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
 	"NewController", "NoShuffle", "NonBasicSpell", "OpponentTurn",
-	"Origin", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
+	"Origin", "Pawprint", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "RandomNumTargets", "RandomOrder", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana", "RememberLKI",
 	"RememberObjects", "RememberTargets", "ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid",

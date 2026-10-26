@@ -47,6 +47,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if suppressSuspectedEvent(e, ev) {
 		return ev
 	} // CR 702.157
+	if suppressPhaseEvent(e, ev) {
+		return ev
+	} // CR 702.26
 	if bookkeepingKind(ev.Kind) && !e.applyingReplacement {
 		e.emitBookkeeping(&ev)
 		return ev
