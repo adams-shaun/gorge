@@ -119,7 +119,7 @@ var replaceEffectKnownKeys = [...]string{
 	"TargetsWithSameCreatureType", "TargetsWithSharedCardType", "TargetsWithSharedTypes",
 	"TgtPrompt", "TgtZone", "TokenScript", "TriggerDescription", "Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
-	"ValidCounterType", "ValidDescription", "ValidTgts", "VarName", "VarValue",
+	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VarName", "VarValue",
 	"VoteMessage", "WithoutManaCost", "XMax", "XMin",
 }
 

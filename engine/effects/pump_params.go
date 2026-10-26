@@ -231,7 +231,7 @@ var pumpKnownKeys = [...]string{
 	"TargetsWithSameCreatureType", "TargetsWithSharedCardType", "TargetsWithSharedTypes",
 	"TgtPrompt", "TgtZone", "TokenScript", "TriggerDescription", "Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
-	"ValidCounterType", "ValidDescription", "ValidTgts", "VoteMessage", "WithoutManaCost", "XMax", "XMin",
+	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XMax", "XMin",
 }
 
 // PumpKnownKeys is a copy of pumpKnownKeys, for the census check.

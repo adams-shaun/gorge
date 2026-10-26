@@ -124,7 +124,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"ValidAttackersAmount", "ValidCard", "ValidCards", "ValidCardsDesc",
 	"ValidChoices", "ValidCounterType", "ValidDescription", "ValidOriginalController",
 	"ValidPlayer", "ValidSA", "ValidSource", "ValidTarget", "ValidTgts",
-	"VoteMessage", "WithoutManaCost", "XMax", "XMin",
+	"ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XMax", "XMin",
 }
 
 // isDelayedTriggerSA reports whether sa resolves as api:DelayedTrigger.
