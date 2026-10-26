@@ -13,8 +13,8 @@ so most of these hurt someone other than you.
 - **Don't `git checkout` inside another worktree.** It discards that seat's
   uncommitted work. Back it up with `cp`, or make a WIP commit first.
 - **Don't use a worktree without `.cards/`.** A bare `git worktree add`
-  carries only tracked files: link the main checkout's `.cards` into it (or
-  use four-yay's `ops/scripts/agent-worktree.sh`, which does and verifies it).
+  carries only tracked files: link the main checkout's `.cards` into it
+  (`ln -s <main>/.cards .cards`) and check the link resolves.
   Without the corpus, tests skip and read green.
 - **Don't `git add -A`.** Stage explicit paths.
 - **Don't leave a worktree behind after its merge.** Stale worktrees double
@@ -37,7 +37,7 @@ so most of these hurt someone other than you.
   checkpoints.**
 - **Don't add a Go dependency or cgo.** The root `go.mod` has no `require`
   lines, and it stays that way (`TestRootModuleHasNoRequires`); a tag-gated
-  experiment that needs one is a separate module that imports gorge, like four-yay's `training/experimental/gamepool`.
+  experiment that needs one is a separate module that imports gorge.
 - **Don't use maps or per-call string parsing on hot paths.** Use bitsets and
   dense slices, and compile strings to masks once.
 - **Don't hand-edit `web/src/protocol.ts`.** Run `make gentypes`.
@@ -97,16 +97,16 @@ so most of these hurt someone other than you.
   a `systemd-run` scope with `MemoryMax`, and set `GOMEMLIMIT`. The box has
   been OOMed.
 - **Don't put training data or checkpoints in `/tmp`** (it is RAM-backed).
-  Use `/mnt/sata/gorge-training`.
+  Use the training-data disk.
 
 ## Bots and training
 
 - **Don't let clairvoyant or oracle modes near a hosted table or a rated
   game.** They are measurement ceilings only.
 - **Don't register a hosted policy** (`bots.Register`, linked from `bots/all`) without
-  passing the adoption gate (see [`docs/site/research/bots.md`](../site/research/bots.md)).
-- **Don't import four-yay.** gorge is
-  public and four-yay is private; four-yay depends on gorge, never the reverse.
+  passing the adoption gate (see [`docs/site/bots/training-and-adoption.md`](../site/bots/training-and-adoption.md)).
+- **Don't import a companion module.** gorge is public and stands alone;
+  companion modules depend on gorge, never the reverse.
 - **Don't train through PyTorch or any out-of-tree runtime** for anything
   meant to ship. Learned policies are pure Go and deterministic.
 - **Don't commit neural checkpoints (`.gpol`)** without an operator decision.

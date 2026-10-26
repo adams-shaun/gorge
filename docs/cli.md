@@ -6,8 +6,9 @@ gorge's root module has no third-party requires (invariant 7,
 `internal/archtest/gomod_test.go`), so these conventions are implemented on
 the standard library by package [`cli`](../cli/doc.go).
 
-The first command built on it, `dzgorge`, lives in four-yay (the private
-companion module); `cli` is public so outside modules can use it. All 16
+The first command built on it lives in a private companion module; `cli`
+is public so outside modules can use it. The examples below use a
+hypothetical command, `mytool`. All 16
 commands under gorge's `cmd/` still use the standard `flag` package; see
 [Migrating a command](#migrating-a-command).
 
@@ -19,7 +20,7 @@ commands under gorge's `cmd/` still use the standard `flag` package; see
 | **Flags** | `--name=value`, `--name value`, `-n value`, `-n=value`. A bool is `--name` or `--name=false` and never takes the next word. `--` ends the flags. Flags may come before, between or after positionals. |
 | **Go `flag` spelling** | A single-dash long name (`-name value`, `-name=value`) also works, so a command moved off `flag` keeps every existing invocation. Short flags never cluster: `-abc` is the flag `abc` or an error, never `-a -b -c`. |
 | **Inheritance** | A command's flags apply to its subcommands too. |
-| **Environment** | `GORGE_<PATH>_<FLAG>`: the path of the command that defines the flag, root first, then the flag name, upper case with `-` as `_`. For example, `dzgorge play -pairs` is `GORGE_DZGORGE_PLAY_PAIRS`. An empty variable counts as unset. A list flag reads a comma list. |
+| **Environment** | `GORGE_<PATH>_<FLAG>`: the path of the command that defines the flag, root first, then the flag name, upper case with `-` as `_`. For example, `mytool play -pairs` is `GORGE_MYTOOL_PLAY_PAIRS`. An empty variable counts as unset. A list flag reads a comma list. |
 | **Config file** | `--config <file>` or `GORGE_<ROOT>_CONFIG`. See [Config files](#config-files). |
 | **Precedence** | explicit flag > environment > config file > default. A list flag takes its whole value from the highest source that sets it. Sources are never merged. |
 | **`--print-config`** | Prints the invoked command's effective configuration (every flag, all sources applied) in the config format, then exits 0. Feeding the output back with `--config` gives the same configuration, which prints identically. |
@@ -32,7 +33,7 @@ A config file is one JSON object:
 
 ```json
 {
-  "$schema": "dzgorge-config-1",
+  "$schema": "mytool-config-1",
   "play": {"pairs": 200, "seed": 78, "a": {"kind": "az", "sims": 200, "autopay": true}, "b": "sbtactical"},
   "pack": {"shard": 100000}
 }
@@ -45,13 +46,13 @@ A config file is one JSON object:
 - Values are typed per flag: a JSON string, number, bool, or array of strings
   for a list. A flag type that `cli` does not know is a JSON string in the
   flag's text form, for example a duration `"300µs"`. It may also read its
-  own JSON (`cli.JSONValue`), as dzgorge's policy flags do.
+  own JSON (`cli.JSONValue`), as a policy flag such as `play.a` above can.
 - An unknown key, a wrong type, a duplicate key, or trailing data is an error
   that names the file and the dotted key (`play.pairz`). Every section is
   checked, not only the invoked command's, so a typo in a section you are not
   running still fails.
 - `"$schema"` is optional. When present it must be the program's config tag:
-  its contract name and major (`dzgorge-config-1`), or `gorge-cli-config-1`
+  its contract name and major (`mytool-config-1`), or `gorge-cli-config-1`
   for a program that registers no contract. A file without it is read as the
   current version, so a hand-written file needs no boilerplate.
   `--print-config` always writes the tag.
@@ -113,8 +114,7 @@ Rules:
   explicitly (nil in a test) so the test stays hermetic.
 - If anything outside the repo writes config files for the command, register
   its config as a contract: a `ConfigSchema` tag, an example file, and its
-  `--print-config` output as goldens. See dzgorge-config in four-yay's
-  `docs/contracts.md` (private).
+  `--print-config` output as goldens.
 
 ## Migrating a command
 
@@ -125,8 +125,7 @@ when:
    `Var` with a small duration `Value`.
 2. A test runs the parser over the exact argv shapes the repo's scripts and
    known external callers pass, and checks the effective values through
-   `--print-config` (see four-yay's `cmd/dzgorge/cli_test.go`,
-   `TestScriptArgvShapes` and `TestScriptFlagsExist`).
+   `--print-config`.
 3. Behaviour changes are named in the commit. Under `flag`, parsing stopped
    at the first positional and ignored the rest. `cli` reads flags after
    positionals, and `cli.NoArgs` refuses a stray positional. This catches

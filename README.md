@@ -71,16 +71,14 @@ What is actually enforced is a list of forbidden import edges (for example,
 in `internal/archtest`'s `TestDependencyOrderHolds`, not a total order. The
 layout and its reasons are in [ADR 0001](docs/decisions/0001-repo-layout.md).
 
-### four-yay, the private companion module
+### The private companion module
 
-Draft events, training research, the research binaries (`botbench`,
-`draftsim`, `dzgorge`, …) and the research bots live in four-yay (`github.com/adams-shaun/four-yay`), a
-**private** module that imports gorge; gorge never imports it. It plugs in
-through three seams: `bots.Register` (its bots join the registry),
-`server/gorged.RegisterNetBot` (network-backed hosted bots) and
-`server/gorged.Extensions` (draft events under `/api/events`). Its own
-`cmd/gorged` is the full demo server. Nothing in gorge needs four-yay to
-build or test.
+Draft events and the maintainers' extensions live in a **private**
+companion module that imports gorge at a pinned commit; gorge never imports
+it. It plugs in through three seams: `bots.Register` (its bots join the
+registry), `server/gorged.RegisterNetBot` (network-backed hosted bots) and
+`server/gorged.Extensions` (draft events under `/api/events`). Nothing in
+gorge needs it to build or test.
 
 ### gorge-compliance, the public compliance repository
 

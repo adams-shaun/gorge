@@ -18,15 +18,15 @@ primitives that IR references. See
 - `server/`: `gorged` (the importable server; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`), `protocol`, `manabrew`, `divergence`.
 - `bots/`: `botpolicy`, `heuristic` (the default bot), the registry, hosted bots and their inference runtime.
 - `cmd/`: product and developer tools. `internal/`: ratchets, test support, generators.
-- Draft events, training research and the research bots live in the private
-  companion module four-yay (`github.com/adams-shaun/four-yay`, checkout `../four-yay`), which
-  imports gorge; gorge never imports it (ADR 0001 amendment, 2026-10-16).
+- Draft events and the maintainers' extensions live in a private companion
+  module, which imports gorge at a pinned commit; gorge never imports it, and
+  nothing in gorge needs it to build or test (ADR 0001 amendment, 2026-10-16).
 - The compliance oracles and the oracle-scenario corpora (hand Oracle-text audit, XMage ports)
   live in the public gorge-compliance (`github.com/adams-shaun/gorge-compliance`), which pins
   gorge and plays the corpora through `engine/rules`' exported oracle runner (ADR 0001
   amendment 3). gorge keeps the runner and `oracle_contract_test.go`'s residual scenarios.
-- `scripts/`: contributor and CI scripts. gorge carries no agent-pipeline or demo-deploy
-  machinery; the maintainers' pipeline, its hooks and the demo deploy live in four-yay's `ops/`.
+- `scripts/`: contributor and CI scripts. gorge carries no maintainer automation or
+  demo-deploy machinery.
 - `docs/design/`: living designs; parked history is indexed in `docs/design/ARCHIVE.md`.
 
 ## Agent guide
@@ -81,7 +81,7 @@ every test fits 4 GB RSS, 4 vCPU and 1 minute wall; one outside it is a defect
 to split, never to trim. Agents run tests focused and capped, never
 `go test ./...` or `-count=1`:
 `systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -timeout 2m -run X ./pkg`.
-The full suite runs after merge (CI, and the maintainers' post-merge batch).
+The full suite runs after merge, in CI.
 Rules and rationale: [invariants.md](docs/agents/invariants.md#workflow).
 
 `make conformance` is the focused CR 601/733 audit. I-2 (mandatory-target
@@ -281,14 +281,14 @@ matching, host observer hooks, or seat-authorised HTTP/session handling.
 ## Running a gorged server while you work
 
 On the maintainers' shared box several sessions run servers at once, and a
-live demo (deployed by hand from four-yay, `make deploy-demo` there; a
-redeploy aborts every in-flight vs-bot game) holds 8080-8081. So ports are
+live demo (deployed by hand by the maintainers; a redeploy aborts every
+in-flight vs-bot game) holds 8080-8081. So ports are
 allocated, not first-come:
 
 | range | who |
 |---|---|
 | 8080-8081 | the demo. **Never bind these**, and never run the demo deploy |
-| 8082-8089 | the bot-policy / botbench workstream |
+| 8082-8089 | the bot-policy workstream |
 | 8090-8099 | task agents on the engine side — pick one of these |
 
 Put persistence under `/tmp/gorge-<something-unique>`, never the repo-root
@@ -305,8 +305,6 @@ and it has killed a session here. Find the server by its listening socket
 is the BINARY's name -- if you built `gorged-after`, its `comm` is
 `gorged-after`, not `gorged` -- so match on the port rather than the name.
 
-(four-yay's `ops/scripts/fleet.sh ports` prints the current allocation, and
-`fleet.sh port` a free one in your range.)
 
 ## Working in a worktree
 
@@ -314,8 +312,8 @@ Make each change in its own git worktree and keep the main checkout clean;
 several sessions may share one checkout, so never `git checkout`, `git
 switch`, `git reset` or bare `git stash` in it, and stage explicit paths
 (never `git add -A`). A worktree carries only tracked files: link the
-`.cards` corpus into it (`ln -s <main>/.cards .cards`; four-yay's
-`ops/scripts/agent-worktree.sh` does this and verifies it), or every
+`.cards` corpus into it (`ln -s <main>/.cards .cards`, then check the link
+resolves, e.g. `ls .cards/cardsfolder`), or every
 corpus-dependent test SKIPS through `testutil.CorpusRegistry` and the package
 still prints `ok` in about 2ms. If you find yourself in a worktree with no
 `.cards`, stop and say so rather than reporting a green suite.
