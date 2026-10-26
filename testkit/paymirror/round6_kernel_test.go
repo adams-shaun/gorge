@@ -28,7 +28,11 @@ import (
 //     (no planned cast of it remains), so the pin is re-seeded to 25, where the
 //     same deck set reaches it at seq 269, verdict equivalent; the combat
 //     priority fixes (rules e7aaf1530 and 93b6057e4, CR 510.4/117.3a: more
-//     priority windows in combat) move it to seq 282;
+//     priority windows in combat) move it to seq 282; cr-g125 (2026-10-26:
+//     an untapped RestrictValid$ source, Avengers Tower here, now funds a
+//     planned cast its restriction admits, so the bot's auto-pay casts
+//     earlier through it) moves it to seq 273 (confirmed by reverting the
+//     planner hunk: 282 returns), verdict still equivalent;
 //   - 4139: CR 601.2c now announces graveyard ChangeZone sub-targets during
 //     casting, changing the bot game's path before the Urza's Incubator
 //     finding. The seed remains pinned as a clean, control-equivalent game;
@@ -66,7 +70,7 @@ func TestRoundSixFindingsMirrorKernel(t *testing.T) {
 	}{
 		{4130, []string{"vivi-ornitier-cedh", "foundations-reign-of-dragons", "avengers-assemble", "valgavoth-endless-punishment"}, 0, ""},
 		{2138, []string{"vivi-ornitier-cedh", "hearthhull-worldseed-landfall", "pro-shaper", "foundations-keen-engineering"}, 0, ""},
-		{25, []string{"foundations-reign-of-dragons", "hearthhull-worldseed-landfall", "avengers-assemble", "rakdos-muscle-scam-exe"}, 282, ""},
+		{25, []string{"foundations-reign-of-dragons", "hearthhull-worldseed-landfall", "avengers-assemble", "rakdos-muscle-scam-exe"}, 273, ""},
 		{4139, []string{"foundations-wretched-ranks", "deadly-disguise", "foundations-reign-of-dragons", "ulalek-eldrazi"}, 0, ""},
 		{4129, []string{"rakdos-muscle-scam-exe", "pro-shaper", "foundations-reign-of-dragons", "foundations-wretched-ranks"}, 3557, ""},
 	} {

@@ -89,13 +89,14 @@ func (e *Engine) resPayNeedsMana(player state.PlayerID, source state.ObjID, amou
 // an unplannable pool, or sources that do not cover it). Life is charged by
 // the flow's own payment after the mana is in the pool, so it is not part of
 // the planned shape.
-func (e *Engine) resPayPlan(player state.PlayerID, source state.ObjID, amount Cost) *decision.PaymentPlan {
+func (e *Engine) resPayPlan(player state.PlayerID, source state.ObjID, amount Cost, class paymentClass) *decision.PaymentPlan {
 	planned := amount
 	planned.Life = 0
 	if pay.PlanCostDetail(planned) != "" || !pay.PlanPoolOK(&e.G.Players[player]) {
 		return nil
 	}
-	got := pay.PlanPaymentCost(asPayer(e), player, decision.PlannedCast{Object: source, Origin: "resolution"}, planned)
+	desc := paymentDescriptor{ID: source, Class: class, Cost: &amount}
+	got := pay.PlanPaymentCost(asPayer(e), player, decision.PlannedCast{Object: source, Origin: "resolution"}, planned, &desc)
 	if got.Plan == nil || len(got.Plan.Activations) == 0 {
 		return nil
 	}
@@ -107,9 +108,9 @@ func (e *Engine) resPayPlan(player state.PlayerID, source state.ObjID, amount Co
 // fund it, so the plain pay is the auto route -- the manual route
 // (manualKind) after it. With no witness the plain pay IS the manual route,
 // so it is offered alone.
-func (e *Engine) resPayOptions(player state.PlayerID, source state.ObjID, amount Cost, payKind, manualKind, label string) []decision.Option {
+func (e *Engine) resPayOptions(player state.PlayerID, source state.ObjID, amount Cost, class paymentClass, payKind, manualKind, label string) []decision.Option {
 	opts := []decision.Option{{Kind: payKind, Obj: source, Label: label}}
-	if e.resPayPlan(player, source, amount) != nil {
+	if e.resPayPlan(player, source, amount, class) != nil {
 		opts = append(opts, decision.Option{Kind: manualKind, Obj: source, Label: label + " (choose mana sources)"})
 	}
 	return opts
@@ -132,7 +133,7 @@ func (e *Engine) resPayFund(rp *resPay, player state.PlayerID, source state.ObjI
 	}
 	if !rp.manual {
 		if rp.steps < resPayAutoStepCap {
-			if plan := e.resPayPlan(player, source, amount); plan != nil && e.resPayAutoStep(rp, player, plan.Activations[0]) {
+			if plan := e.resPayPlan(player, source, amount, class); plan != nil && e.resPayAutoStep(rp, player, plan.Activations[0]) {
 				return true
 			}
 		}

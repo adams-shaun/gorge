@@ -92,9 +92,6 @@ func PaymentPlanShapeTierOf(ma *cards.SA, cost costvocab.Cost) (tier Tier, c Con
 		}
 		return deferred("source:param:" + key)
 	}
-	if params.ManaOf(ma).RestrictValid != "" {
-		return deferred("source:special_production")
-	}
 	if PlanHasSpecialProductionParam(ma) {
 		return deferred("source:special_production")
 	}

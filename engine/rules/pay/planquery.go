@@ -12,6 +12,9 @@ type PlanCostKey struct {
 	Colored state.Mana
 	Generic int32
 	Demand  [5]int
+	// Admitted is restrictedAdmission: which of the census's RestrictValid$
+	// alternatives the payment may spend.
+	Admitted string
 }
 
 // PlanCostMemo is one memoised planner outcome (its own plan copy).

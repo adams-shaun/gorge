@@ -193,7 +193,7 @@ func (e *Engine) echoElectionAsk() {
 	var opts, manual []decision.Option
 	if ef.action == nil && e.resPayNeedsMana(ef.player, ef.source, announced, paymentOther) {
 		// Pay first: an untapped source can fund what the pool lacks.
-		routes := e.resPayOptions(ef.player, ef.source, announced, "echo_pay", "echo_pay_manual", capitaliseFirst(ef.costLabel))
+		routes := e.resPayOptions(ef.player, ef.source, announced, paymentOther, "echo_pay", "echo_pay_manual", capitaliseFirst(ef.costLabel))
 		opts, manual = []decision.Option{routes[0]}, routes[1:]
 	} else if payable {
 		opts = append(opts, decision.Option{Kind: "echo_pay", Obj: ef.source,

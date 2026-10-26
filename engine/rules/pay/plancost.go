@@ -5,28 +5,33 @@ import (
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects/params"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-func PlanPaymentCost(e Engine, p state.PlayerID, cast decision.PlannedCast, cost costvocab.Cost) PlanOutcome {
+// PlanPaymentCost plans cost for the payment desc describes (nil: no payment
+// is known, so every RestrictValid$ source is refused, PlanPaymentCostWithout).
+func PlanPaymentCost(e Engine, p state.PlayerID, cast decision.PlannedCast, cost costvocab.Cost, desc *Descriptor) PlanOutcome {
 	q := e.Session().PlanQuery
 	if !q.Valid(e.Log()) || e.Session().PaymentPlanRelaxed != nil || e.Session().PaymentPlanRelaxedFee != 0 || !plainManaCost(cost, e.Verify()) {
-		return planPaymentCostExcluding(e, p, cast, cost, nil)
+		return PlanPaymentCostWithout(e, p, cast, cost, desc, nil, nil, nil)
 	}
 	// Within one query scope (one state), the planner's outcome for a plain
 	// mana cost reads the cast only through the hand Demand that excludes
-	// it (planPaymentCostWithout's rank context): two casts with the same
-	// payer, cost and Demand -- two copies of a card in hand -- plan
-	// identically, so the scope serves the first one's outcome, with its
-	// own copy of the witness.
+	// it (planPaymentCostWithout's rank context) and through which of the
+	// census's RestrictValid$ alternatives its payment admits
+	// (restrictedAdmission): two casts with the same payer, cost, Demand
+	// and admission -- two copies of a card in hand -- plan identically, so
+	// the scope serves the first one's outcome, with its own copy of the
+	// witness.
 	Demand := PaymentPlanHandDemand(e, p, cast.Object)
-	Key := PlanCostKey{Payer: p, Colored: cost.Colored, Generic: cost.Generic, Demand: Demand}
+	Key := PlanCostKey{Payer: p, Colored: cost.Colored, Generic: cost.Generic, Demand: Demand, Admitted: restrictedAdmission(e, p, desc)}
 	for i := range q.Plans {
 		if q.Plans[i].Key == Key {
 			out := q.Plans[i].Out
 			if e.Verify() {
-				if want := planPaymentCostWithDemand(e, p, Demand, cost, nil, nil, nil); !PlanOutcomeEqual(want, out) {
+				if want := planPaymentCostWithDemand(e, p, Demand, cost, desc, nil, nil, nil); !PlanOutcomeEqual(want, out) {
 					panic(fmt.Sprintf("payment plan query: cost memo for %+v served %+v, planned %+v", Key, out, want))
 				}
 			}
@@ -37,7 +42,7 @@ func PlanPaymentCost(e Engine, p state.PlayerID, cast decision.PlannedCast, cost
 			return out
 		}
 	}
-	out := planPaymentCostWithDemand(e, p, Demand, cost, nil, nil, nil)
+	out := planPaymentCostWithDemand(e, p, Demand, cost, desc, nil, nil, nil)
 	stored := out
 	if out.Plan != nil {
 		plan := decision.ClonePaymentPlan(*out.Plan)
@@ -68,12 +73,6 @@ func plainManaCost(c costvocab.Cost, verify bool) bool {
 	return ok
 }
 
-// planPaymentCostExcluding is planPaymentCost over the census with the
-// sources in exclude left out entirely (planPaymentCostWithout's gone).
-func planPaymentCostExcluding(e Engine, p state.PlayerID, cast decision.PlannedCast, cost costvocab.Cost, exclude []state.ObjID) PlanOutcome {
-	return PlanPaymentCostWithout(e, p, cast, cost, nil, exclude, nil)
-}
-
 // PlanPaymentCostWithout is planPaymentCost over the census with three
 // kinds of withheld source (PotentialPaymentPlans): a tapped source is one
 // the play's own cost taps (the ability's {T}, a tapXType candidate), so it
@@ -84,14 +83,54 @@ func planPaymentCostExcluding(e Engine, p state.PlayerID, cast decision.PlannedC
 // planPaymentCost exactly, cached classes included; a withheld census
 // groups its own classes, because the query cache's classes are keyed by
 // payer and phase only.
-func PlanPaymentCostWithout(e Engine, p state.PlayerID, cast decision.PlannedCast, cost costvocab.Cost, tapped, gone, kept []state.ObjID) PlanOutcome {
-	return planPaymentCostWithDemand(e, p, PaymentPlanHandDemand(e, p, cast.Object), cost, tapped, gone, kept)
+//
+// desc is the payment the plan funds. A source whose mana ability carries
+// RestrictValid$ keeps that alternative only when RestrictValidMatches admits
+// desc (CR 106.6: the restriction limits what the mana is spent on, so it
+// decides per payment, exactly as pay.AvailableFor does for floating mana);
+// a nil desc admits none.
+func PlanPaymentCostWithout(e Engine, p state.PlayerID, cast decision.PlannedCast, cost costvocab.Cost, desc *Descriptor, tapped, gone, kept []state.ObjID) PlanOutcome {
+	return planPaymentCostWithDemand(e, p, PaymentPlanHandDemand(e, p, cast.Object), cost, desc, tapped, gone, kept)
+}
+
+// restrictedRefused reports whether alt is a RestrictValid$ alternative and,
+// if so, whether desc's payment may not spend it (a nil desc refuses).
+func restrictedRefused(e Engine, p state.PlayerID, desc *Descriptor, alt Alt) (restricted, refused bool) {
+	if alt.Ma == nil || !e.Eval().ManaStatic(alt.Ma).RestrictValid {
+		return false, false
+	}
+	if desc == nil {
+		return true, true
+	}
+	return true, !RestrictValidMatches(e, p, *desc, params.ManaOf(alt.Ma).RestrictValid, alt.Activation.Source)
+}
+
+// restrictedAdmission is the memo key's admission part: one byte per
+// RestrictValid$ alternative of p's census, in census order, '1' when desc's
+// payment may spend it. It is "" on a census with none.
+func restrictedAdmission(e Engine, p state.PlayerID, desc *Descriptor) string {
+	var out []byte
+	for _, u := range PaymentPlanQueryUnits(e, p) {
+		for _, alt := range PaymentPlanQueryAlternatives(e, u) {
+			if restricted, refused := restrictedRefused(e, p, desc, alt); restricted {
+				out = append(out, "10"[b2i(refused)])
+			}
+		}
+	}
+	return string(out)
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // planPaymentCostWithDemand is planPaymentCostWithout over the hand demand
-// that excludes the cast (paymentPlanHandDemand), the one place the cast
-// enters the plan.
-func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost costvocab.Cost, tapped, gone, kept []state.ObjID) PlanOutcome {
+// that excludes the cast (paymentPlanHandDemand), the cast's one entry into
+// the plan besides desc's restriction admission.
+func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost costvocab.Cost, desc *Descriptor, tapped, gone, kept []state.ObjID) PlanOutcome {
 	defer PaymentPlanQueryEnd(e, PaymentPlanQueryBegin(e))
 	units := PaymentPlanQueryUnits(e, p)
 	queryClasses := func(p state.PlayerID, minTier Tier, choices [][]Alt) []Class {
@@ -110,26 +149,30 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 		units = kept
 		queryClasses = ownClasses
 	}
-	// withhold drops a tapped source's tapping alternatives and a kept
-	// source's consuming ones.
+	// withhold drops a tapped source's tapping alternatives, a kept
+	// source's consuming ones and a RestrictValid$ alternative desc's
+	// payment may not spend. A census holding any RestrictValid$
+	// alternative groups its own classes: the query cache's are shared by
+	// every payment, whose admissions differ.
+	restrictedSeen := false
 	withhold := func(alts []Alt) []Alt {
 		if len(alts) == 0 {
 			return alts
 		}
 		src := alts[0].Activation.Source
 		tap, keep := slices.Contains(tapped, src), slices.Contains(kept, src)
-		if !tap && !keep {
-			return alts
-		}
 		var out []Alt
 		for _, alt := range alts {
-			if tap && AbilityCompiledCost(e, alt.Ma).Cost.Tap {
-				continue
-			}
-			if keep && (alt.Consequence.Sacrifice || alt.Consequence.ReturnToHand) {
+			restricted, refused := restrictedRefused(e, p, desc, alt)
+			restrictedSeen = restrictedSeen || restricted
+			if refused || (tap && AbilityCompiledCost(e, alt.Ma).Cost.Tap) ||
+				(keep && (alt.Consequence.Sacrifice || alt.Consequence.ReturnToHand)) {
 				continue
 			}
 			out = append(out, alt)
+		}
+		if len(out) == len(alts) {
+			return alts
 		}
 		return out
 	}
@@ -142,6 +185,7 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 	for i, u := range units {
 		choices[i] = withhold(PaymentPlanQueryAlternatives(e, u))
 	}
+
 	if len(e.Session().PaymentPlanRelaxed) != 0 {
 		// PotentialPaymentPlans' relaxed proof (paymentPlanRelaxProof): the
 		// census's uncovered sources as free, never-executed alternatives,
@@ -154,6 +198,9 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 			}
 			choices = append(choices, withhold(alts))
 		}
+		queryClasses = ownClasses
+	}
+	if restrictedSeen {
 		queryClasses = ownClasses
 	}
 	// Phase 1 (spec 5): normal sources only. If it finds a complete plan,
