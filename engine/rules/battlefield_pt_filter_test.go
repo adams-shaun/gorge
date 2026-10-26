@@ -94,6 +94,9 @@ func TestDamageAllToughnessFilterReadsCurrentPT(t *testing.T) {
 // Depressurize's second body (Defined$ Targeted.powerLE0) reads the power
 // the Pump of the first body just gave: Bears 2/2 -> -1/2 die, a 4/4 -> 1/4
 // lives. The second body is a new boundary, so it sees the pumped value.
+// Defined$ Targeted.<pt> already binds derived P/T per candidate, so this is
+// a regression guard, not a table consumer (TestChooseCardPowerFilterReadsCurrentPT
+// is the table-dependent carrier).
 func TestDefinedTargetedPowerGateReadsPump(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -216,4 +219,21 @@ func TestBattlefieldPTTableIsSparse(t *testing.T) {
 	if got := e2.LayerTables(0).BattlefieldPTs; got != nil {
 		t.Fatalf("table published without the want bit: %+v", got)
 	}
+}
+
+// Unstable Glyphbridge's ChooseCard (Choices$ Creature.powerLE2) is the
+// carrier that has no per-candidate P/T bind, so it must read the board
+// table: p0's Bears under a Glorious Anthem are a 3/3, not a legal choice,
+// and die; p1's bare 1/1 is chosen and survives.
+func TestChooseCardPowerFilterReadsCurrentPT(t *testing.T) {
+	t.Parallel()
+	snaps := runPTFilterScenario(t, `{"name":"glyphbridge","setup":{
+	  "p0":{"battlefield":["Grizzly Bears","Glorious Anthem"],"hand":["Unstable Glyphbridge"]},
+	  "p1":{"battlefield":["Mons's Goblin Raiders"]}},
+	 "steps":[{"op":"cast","seat":0,"card":"p0:Unstable Glyphbridge","mana":"CCCWW"},{"op":"resolve"}]}`)
+	wantPT(t, snaps[0], "p0:Grizzly Bears", "3/3")
+	wantPT(t, snaps[0], "p1:Mons's Goblin Raiders", "1/1")
+	last := snaps[len(snaps)-1]
+	wantAlive(t, last, "p0:Grizzly Bears", false)
+	wantAlive(t, last, "p1:Mons's Goblin Raiders", true)
 }
