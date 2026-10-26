@@ -1120,8 +1120,8 @@ func effectSelfExileOnCastSpec(h Host, c *Ctx, names string) string {
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
-// (instant/sorcery) source, an absent Duration$, or an explicit this-turn
-// Duration$ is UntilEOT and is dropped at end-of-turn cleanup
+// (instant/sorcery) source with no explicit Duration$ Permanent, an absent
+// Duration$, or an explicit this-turn Duration$ is UntilEOT and is dropped at end-of-turn cleanup
 // (rules' EndOfTurnCleanup). An explicit Permanent or source-relative form
 // persists while its source stays on the battlefield, the same rule the layer
 // effects use. A Duration$ that spans the controller's NEXT turn is NOT
@@ -1140,6 +1140,12 @@ func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
 	// it is also not source-leaves -- a sorcery's registration would never
 	// expire. It stays open until rules' untap-step expiry drops it.
 	if IsUntapStepDuration(dur) {
+		return false
+	}
+	// CR 611.2a: an explicit Duration$ Permanent lasts indefinitely whatever
+	// the source's type (Soul Partition's instant keeps its may-play); only an
+	// absent Duration$ takes the one-shot spell default below.
+	if strings.EqualFold(strings.TrimSpace(dur), "Permanent") {
 		return false
 	}
 	if o := h.Game().Obj(source); o != nil {

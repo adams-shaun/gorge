@@ -100,6 +100,18 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		// extra turn granted after this registration moves the boundary with
 		// the controller's next actual turn.
 	}
+	// CR 611.2a: an instant's or sorcery's explicit Duration$ Permanent Effect
+	// (effects.effectUntilEOT leaves it un-UntilEOT) outlives its source,
+	// which is in a graveyard or exile by the time it resolves; without the
+	// flag the source-gone rule in continuousLive would drop it at once. Its
+	// ForgetOnMoved$/ExileOnMoved$ ends are the Effect's own expiry.
+	if !ce.UntilEOT && !ce.Permanent && ce.UntilTurn == 0 && strings.EqualFold(ce.Duration, "Permanent") {
+		if o := e.G.Obj(ce.Source); o != nil {
+			if f := o.Face(); f != nil && (f.IsInstant() || f.IsSorcery()) {
+				ce.Permanent = true
+			}
+		}
+	}
 	e.continuous = append(e.continuous, ce)
 	if ce.AddTrigger != nil || len(ce.GainedTriggerFaces) > 0 {
 		e.trigGrant.free = false // trigger_grantfree.go
