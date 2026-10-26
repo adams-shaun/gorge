@@ -500,12 +500,13 @@ func (e *Engine) checkGrantedMentorTriggers(observer *Engine, id state.ObjID, o 
 //   - Decayed (CR 702.147a): "When this creature attacks, sacrifice it at end
 //     of combat." The keyword reaches the derived list from a printed
 //     K:Decayed line, a decayed counter (cards.CounterKeyword, CR 122.1b) or
-//     a KW$ Decayed grant, and all three must arm the same promise. The walk
-//     arms a real one-shot DelayedRegister (the unearth/blitz shape) rather
-//     than sacrificing at declaration, so the creature is still on the
-//     battlefield through blockers and combat damage and is sacrificed at
-//     the EndCombat step by the builtin __kwDecayedSacrifice body
-//     (engine/cards/link.go). engine/rules/decayed.go registers the coverage marker.
+//     a KW$ Decayed grant, and all three queue the same stack trigger. Its
+//     __kwDecayedAttack body (engine/cards/link.go) registers, on
+//     resolution, a one-shot DelayedRegister (the unearth/blitz shape)
+//     rather than sacrificing at declaration, so the creature is still on
+//     the battlefield through blockers and combat damage and is sacrificed
+//     at the EndCombat step by the builtin __kwDecayedSacrifice body.
+//     engine/rules/decayed.go registers the coverage marker.
 func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
 	// Both synthesized triggers are Attacks + ValidCard$ Card.Self, so only an
 	// object this declaration names as an attacker can match one. Apply that
@@ -513,23 +514,26 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	// Decayed's promise is armed first and is independent of the Firebending
-	// branch below (an object may hold both keywords).
+	// Decayed's attack trigger queues first and is independent of the
+	// Firebending branch below (an object may hold both keywords). Its
+	// resolution registers the promise, once per live promise (an extra
+	// combat phase can declare the same attacker again).
 	if e.hasKeywordH(id, kwhDecayed) {
-		// Arm only when no live __kwDecayed promise already names this object
-		// -- a second registration would sacrifice it twice (an extra combat
-		// phase can declare the same attacker again).
-		armed := false
-		for i := range e.G.Delayed {
-			dt := &e.G.Delayed[i]
-			if dt.Source == id && strings.HasPrefix(dt.Execute, "__kwDecayed") {
-				armed = true
-				break
+		t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
+			"Mode": "Attacks", "ValidCard": "Card.Self",
+		}}
+		if observer.triggerMatches(t, id, ev, objLKI) {
+			key := triggerKey{Source: id, Idx: -1}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
 			}
-		}
-		if !armed {
-			e.emit(events.Event{Kind: events.DelayedRegister, Obj: id,
-				Player: o.Controller, Step: state.StepEndCombat, Counter: "__kwDecayedSacrifice"})
+			if e.triggerFireCount[key] < maxTriggerFires {
+				e.triggerFireCount[key]++
+				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Decayed: true,
+					cause: causeOf(boardOf(observer), t, id, ev, 0),
+					Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
+						TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})})
+			}
 		}
 	}
 	if !e.hasKeywordH(id, kwhFirebending) || f.HasKeywordRef(kwRefFirebending) {

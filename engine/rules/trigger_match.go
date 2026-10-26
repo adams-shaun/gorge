@@ -283,6 +283,11 @@ type pendingTrigger struct {
 	// parameter text (the literal N or an SVar name), never empty for a real
 	// instance; Idx and SA are unset for it.
 	Firebending string
+	// Decayed is a decayed creature's attack trigger (CR 702.147a, 603.3):
+	// the drain pushes a KeywordTriggerPush whose __kwDecayedAttack payload
+	// resolves from the builtin table into the delayed end-of-combat
+	// sacrifice (CR 603.7a). Idx and SA are unset for it.
+	Decayed bool
 	// Cumulative is a GRANTED cumulative-upkeep cost (CR 702.24 via a layer-6
 	// AddKeyword$ Cumulative upkeep:<cost> -- Breath of Dreams, Mana Chains,
 	// Decomposition -- or an A:AB$ Pump's KW$ Cumulative upkeep:<cost> --
