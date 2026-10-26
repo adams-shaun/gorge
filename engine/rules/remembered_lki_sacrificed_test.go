@@ -62,4 +62,30 @@ func TestRememberedLKISacrificedReadsDerivedToughness(t *testing.T) {
 	})
 }
 
+// TestRememberedLKIGreatestCardPowerAfterSacrifice pins the same capture for
+// the `RememberedLKI$GreatestCardPower` head: Shadowgrange Archfiend's life
+// gain reads the anthem-boosted power 3 of the creature its opponent
+// sacrificed, not the printed 2 of the Grizzly Bears in the graveyard.
+func TestRememberedLKIGreatestCardPowerAfterSacrifice(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	sc := oracleScenario{
+		Setup: map[string]oracleSeat{
+			"p0": {Hand: []string{"Shadowgrange Archfiend"}},
+			"p1": {Battlefield: []string{"Grizzly Bears", "Glorious Anthem"}},
+		},
+		Steps: []oracleStep{
+			{Op: "cast", Seat: 0, Card: "p0:Shadowgrange Archfiend", Mana: "CCCCCCB",
+				Expect: []oracleExpect{{Card: "p1:Grizzly Bears", PT: "3/3"}}},
+			{Op: "resolve", Answers: []oracleAnswer{{Kind: "choose", Pick: []string{"p1:Grizzly Bears"}}}},
+		},
+		Expect: []oracleExpect{
+			{Card: "p1:Grizzly Bears", Zone: "graveyard"},
+			{Life: map[string]int32{"p0": 23}},
+		},
+	}
+	if fails, transcript, _ := runOracleScenario(reg, sc); len(fails) > 0 {
+		t.Fatalf("%v\ntranscript:\n%v", fails, transcript)
+	}
+}
+
 func intPtr(n int) *int { return &n }

@@ -181,15 +181,21 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			// lands" over TriggerObjectsAttackers, Shadowgrange Archfiend's
 			// life gain over RememberedLKI. The per-object value is the same
 			// derived, layer-aware read the CardPower case above falls back
-			// to: live layer output through h.Power on the battlefield, the
-			// printed face plus P/T counters for a remembered object that
-			// already left (Shadowgrange's sacrificed creatures are in the
-			// graveyard at the read). Property-scoped, not ref-scoped: every
+			// to: the sacrifice capture (CR 608.2h) for an object this
+			// resolution sacrificed -- Shadowgrange's creatures are in the
+			// graveyard at the read, and the printed face would drop an
+			// anthem, a pump or a counter -- else live layer output through
+			// h.Power on the battlefield, the printed face plus P/T counters
+			// for an object that left some other way. Property-scoped, not ref-scoped: every
 			// ref that reaches this switch was already resolved to its
 			// referent set by refTargets, so one case serves all three
 			// carriers. An empty referent set keeps n = 0 and still resolves.
 			if f != nil {
-				if p := refPower(h, o, lki); p > n {
+				p := refPower(h, o, lki)
+				if sacLKI != nil {
+					p = sacLKI.Power
+				}
+				if p > n {
 					n = p
 				}
 			}
