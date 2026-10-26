@@ -13,7 +13,7 @@ never appear (see [invariants.md](invariants.md#1-dependency-direction)).
 
 | Package | What it owns |
 |---|---|
-| `engine/cards` | Compiles Forge card scripts into the card IR; keyword expanders (`engine/cards/kw_*.go`); `cards.Registry`, coverage. `cards.OpenCorpusFor` (`engine/cards/subset.go`) opens only a known card pool's cards from the per-card segment file, falling back to the whole corpus when the pool reads the name universe; four-yay's botbench deck and `-spellbench` modes use it. `cards.CompilerFingerprint` hashes every non-test `.go` file here, so **any edit in `engine/cards/` invalidates every IR cache** and forces a recompile. |
+| `engine/cards` | Compiles Forge card scripts into the card IR; keyword expanders (`engine/cards/kw_*.go`); `cards.Registry`, coverage. `cards.OpenCorpusFor` (`engine/cards/subset.go`) opens only a known card pool's cards from the per-card segment file, falling back to the whole corpus when the pool reads the name universe; bench tools' fixed-deck modes use it. `cards.CompilerFingerprint` hashes every non-test `.go` file here, so **any edit in `engine/cards/` invalidates every IR cache** and forces a recompile. |
 | `engine/cards/oracletext` | Printed-card (Oracle) view for the Oracle audit. A subpackage on purpose so it does not move the fingerprint. |
 | `engine/state` | Objects, zones, players, `state.Game`, the `ContinuousEffect` vocabulary. Plain data; mutated only by `events.Apply`. |
 | `engine/decision` | `Decision` / `Option` / `Intent`, and the closed set of `decision.Kind`s (`decision.Kinds`). The whole engine↔seat contract. |
@@ -43,7 +43,7 @@ The layering design for `engine/rules` is
 |---|---|
 | `bots/botpolicy` | The one heuristic bot policy (`botpolicy.Decide`), in one copy, shared by `bots/heuristic` and rules' own fuzz driver. Reads a `Board`, never a view or an engine (archtest forbids `view`, `rules`, `seat`). Cast profiles in `bots/botpolicy/profiles/`. |
 | `bots/heuristic` | The default bot: `heuristic.Bot` (`NewBot`, `NewLethalPressureBot`, `NewAttackSimBot`, `NewExploreBot`, `NewCastProfileBot`, …), `heuristic.BoardSeat` (a seat that reads a `botpolicy.Board`), and `PolicyNetBot` (`NewPolicyNetBot`). |
-| `bots` | The closed registry of hosted policies (`bots/registry.go`, `bots.Factory`); gorge's built-ins register from `bots/bot`, `bots/lethalpressure`, `bots/sbtactical` and `bots/azredeal`, linked together by `bots/all`. The research bots (`cast-profile`, `search`, `sb-heuristic`/`sb-uniform`/`sb-first`, `sb-search-lite-atk`) register from four-yay's packages; the hosted az nets (az-c3/c4/c5) are four-yay's too, linked through `server/gorged.RegisterNetBot` and enabled by gorged's `-az-c*-net` flags (`server/gorged/azc3.go`, `server/gorged/azclosed.go`). |
+| `bots` | The closed registry of hosted policies (`bots/registry.go`, `bots.Factory`); gorge's built-ins register from `bots/bot`, `bots/lethalpressure`, `bots/sbtactical` and `bots/azredeal`, linked together by `bots/all`. Companion modules register further bots the same way; network-backed hosted bots (az-c3/c4/c5) are linked through `server/gorged.RegisterNetBot` and enabled by gorged's `-az-c*-net` flags (`server/gorged/azc3.go`, `server/gorged/azclosed.go`). |
 | `bots/sanity` | Opt-in common-sense guard decorator over engine target hints (default off). |
 | `bots/bot`, `bots/lethalpressure`, `bots/azredeal`, `bots/sbtactical` | The hosted policy packages (`az-redeal` and `sb-tactical` are BP adapters of the hosted-bot-packages design) over the inference runtime below. |
 | `bots/azmcts` | AlphaZero-style PUCT search ([`docs/design/2026-09-27-alphazero-mcts-design.md`](../design/2026-09-27-alphazero-mcts-design.md)). |
@@ -51,8 +51,8 @@ The layering design for `engine/rules` is
 | `bots/policynet` | Feature layer of the learned per-option policy: deterministic encoder from a seat's view, MLP, `.gpol` checkpoints. |
 | `bots/searchprobe` | Hidden-information world sampler (`Collector`, `Sample`, `Redealer`, known-card tracking). |
 | `bots/searchseat` | The PIMC search decision function (`Choose`) shared by the teacher corpus generator and `SearchBot`. |
-| `bots/spellbench` (+`builtins`, `payexec`) | The SpellBench benchmark deck catalogs (moved here from the old research tree; generator `bots/spellbench/fdn-catalog.py`), the builtin and tactical policies, and the payment-plan lowering. |
-| `bots/traceboard` | The redacted, map-free decision-trace board schema (four-yay's `botbench -decision-trace`). |
+| `bots/spellbench` (+`builtins`, `payexec`) | The SpellBench benchmark deck catalogs (moved here from the old `lab/` tree; generator `bots/spellbench/fdn-catalog.py`), the builtin and tactical policies, and the payment-plan lowering. |
+| `bots/traceboard` | The redacted, map-free decision-trace board schema (written by bench tools' decision traces). |
 
 ## `server/`
 
@@ -68,4 +68,4 @@ The layering design for `engine/rules` is
 | `server/matchrecord` | The portable per-game match record (`gorge-match-1`, `<id>.match.json.gz`): the Config's replay-input subset, the log, the head and provenance; `Write`/`Load`/`Verify`, and `Match.Config`, the Config builder `feedback.Load` shares. Written by `testkit/bench`'s `Hooks.Record`; `cmd/repro` replays it. Never carries token text; never commit a record. |
 | `server/spellbench` (+`cmd/spellbench-gorge-env`) | The SpellBench Protocol v2 environment adapter: catalog, protocol, mapping, session, validation, minihost and goldens. `cmd/spellbench-gorge-env` serves it over stdio. Engine auto-pay is the default (agents never see mana taps); `-manual-mana` restores interactive mana taps. Ported from SpellBench's gorge adapter; see `NOTICE`. |
 
-The draft stack moved to four-yay (private), which plugs it into `server/gorged` as an `EventsPlugin`.
+The draft stack lives in a private companion module, which plugs it into `server/gorged` as an `EventsPlugin`.

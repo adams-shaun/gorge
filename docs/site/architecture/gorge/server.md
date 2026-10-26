@@ -209,4 +209,4 @@ binary:
 
 gorge's own `cmd/gorged` links only gorge's bots. The private companion
 module builds its own main over `server/gorged` to add draft events and
-research bots; gorge never imports it.
+further bots; gorge never imports it.

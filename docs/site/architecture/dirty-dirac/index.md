@@ -21,8 +21,8 @@ design and for bot authors who want to know what a "kernel game" is.
     Each page says how its figures were produced.
 
 !!! note "Where the code lives"
-    dirty-dirac lives in **four-yay**, the maintainers' private companion
-    module (see [The three repositories](../../repos/index.md)). Its Go
+    dirty-dirac lives in the maintainers' **private companion
+    module** (see [The three repositories](../../repos/index.md)). Its Go
     package is `kernel`, with sub-packages `kop`, `cardset`, `feat`,
     `search`, `neteval`, `oracle`, `vanilla` (a hand-written test table) and
     one generated `cards_<pool>` package per card pool, and the commands `kgen` (the card generator), `kfuzz` (the
@@ -138,7 +138,7 @@ three places may:
 
 ```mermaid
 flowchart LR
-  subgraph fy["dirty-dirac (four-yay, private)"]
+  subgraph fy["dirty-dirac (private companion)"]
     kernel["kernel<br/>(State, Step, Apply)"] --> kop["kop<br/>(op vocabulary, Table)"]
     cards["cards_&lt;pool&gt;<br/>(generated tables)"] --> kop
     cardset --> kop

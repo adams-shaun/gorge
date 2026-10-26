@@ -477,6 +477,7 @@ const (
 	KeywordRiot
 	KeywordSurge
 	KeywordSuspend
+	KeywordPrototype
 )
 
 func keywordMaskFor(head string) KeywordMask {
@@ -517,6 +518,8 @@ func keywordMaskFor(head string) KeywordMask {
 		return KeywordSurge
 	case "Suspend":
 		return KeywordSuspend
+	case "Prototype":
+		return KeywordPrototype
 	}
 	// Case-insensitive fallback. Most lookups land here -- every keyword with
 	// no mask ("Flying", "Haste", ...) misses the exact switch above -- and
@@ -587,6 +590,8 @@ func keywordMaskForLower(lower string) KeywordMask {
 		return KeywordSurge
 	case "suspend":
 		return KeywordSuspend
+	case "prototype":
+		return KeywordPrototype
 	default:
 		return 0
 	}

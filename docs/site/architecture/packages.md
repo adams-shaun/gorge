@@ -51,6 +51,6 @@ go run ./cmd/pkgmap > docs/site/architecture/_generated_packages.md
 | `.githooks/` | opt-in git hooks: the package-classification check, the `RACE=1` race gate | TOOL |
 | `.github/` | the `ci`, `docs`, `coverage` and `promote` workflows, the PR template | TOOL |
 
-The research packages, draft events and the oracle pipelines are not in this
+Draft events, the maintainers' extensions and the oracle pipelines are not in this
 repository and are not listed here; see
 [The three repositories](../repos/index.md).

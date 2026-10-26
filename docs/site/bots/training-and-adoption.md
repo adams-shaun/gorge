@@ -5,8 +5,7 @@ for gorge. It covers what the engine offers search and learning code, how to
 evaluate a policy honestly, and the ladder a policy climbs from a bench
 experiment to the default bot that plays real users. gorge ships the
 engine-side interfaces, the hosted bots and their inference code; training
-tools and research bots live outside this repository and are not covered
-here.
+tools live outside this repository and are not covered here.
 
 ## The contract a policy answers
 

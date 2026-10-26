@@ -261,7 +261,7 @@ func TestCompiledFaceQueryParity(t *testing.T) {
 	keywordNames := []string{
 		"AlternateAdditionalCost", "Buyback", "Chapter", "Cycling", "Dethrone", "Devoid",
 		"Dredge", "Enchant", "Flash", "Flashback", "Harmonize", "Kicker", "Madness",
-		"MayEffectFromOpeningHand", "Miracle", "Riot", "Surge", "Suspend",
+		"MayEffectFromOpeningHand", "Miracle", "Riot", "Surge", "Suspend", "Prototype",
 	}
 	checked := 0
 	checkCard := func(card *Card) {
