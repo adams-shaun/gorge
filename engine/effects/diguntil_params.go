@@ -103,7 +103,7 @@ var digUntilKnownKeys = [...]string{
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddType",
 	"AddTypes", "AdditionalDesc", "AdditionalDescription", "Affected", "AffectedZone", "AlternateCost",
 	"AlternativeCost", "Amount", "Announce", "AnnounceTitle", "Attacking", "Boast",
-	"ChangeTypeDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone",
+	"CantCopy", "ChangeTypeDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone",
 	"Choices", "ChooseFromList", "ClassBand", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",

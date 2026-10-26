@@ -105,7 +105,7 @@ var digKnownKeys = [...]string{
 	"Activation", "ActivationAfterBlockers", "ActivationFirstCombat", "ActivationGameTypes",
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddType",
 	"AddTypes", "AdditionalDesc", "AdditionalDescription", "Affected", "AffectedZone", "AlternateCost",
-	"AlternativeCost", "Announce", "AnnounceTitle", "Attacking", "Boast", "ChangeNum",
+	"AlternativeCost", "Announce", "AnnounceTitle", "Attacking", "Boast", "CantCopy", "ChangeNum",
 	"ChangeTypeDesc", "ChangeValid", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
 	"ChoiceZone", "Choices", "ChooseFromList", "Choser", "ClassBand", "ClearImprinted",
 	"Condition", "ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",

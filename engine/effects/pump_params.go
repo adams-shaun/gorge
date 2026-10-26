@@ -203,7 +203,7 @@ var pumpKnownKeys = [...]string{
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
 	"Activator", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
-	"AlternativeCost", "Announce", "AnnounceTitle", "AtEOT", "Boast", "ChangeTypeDesc",
+	"AlternativeCost", "Announce", "AnnounceTitle", "AtEOT", "Boast", "CantCopy", "ChangeTypeDesc",
 	"CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone", "Choices",
 	"ChooseFromList", "ClassBand", "ClearImprinted", "ClearNotedCardsFor", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",

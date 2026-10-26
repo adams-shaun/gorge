@@ -85,7 +85,7 @@ var attachKnownKeys = [...]string{
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
 	"Activator", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
-	"AlternativeCost", "Announce", "AnnounceTitle", "Boast", "ChangeTypeDesc",
+	"AlternativeCost", "Announce", "AnnounceTitle", "Boast", "CantCopy", "ChangeTypeDesc",
 	"CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone", "Choices",
 	"ChooseFromList", "ClassBand", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",

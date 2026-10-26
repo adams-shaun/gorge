@@ -80,7 +80,7 @@ var tokenKnownKeys = [...]string{
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddType",
 	"AddTypes", "AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
 	"AlternativeCost", "Announce", "AnnounceTitle", "AtEOT", "AttachedTo", "Boast",
-	"ChangeTypeDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone",
+	"CantCopy", "ChangeTypeDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone",
 	"Choices", "ChooseFromList", "ClassBand", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",

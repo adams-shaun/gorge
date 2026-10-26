@@ -145,7 +145,7 @@ var cloneKnownKeys = [...]string{
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddAbilities", "AddColors",
 	"AddKeywords", "AddSVars", "AddStaticAbilities", "AddTriggers", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
-	"AlternativeCost", "Announce", "AnnounceTitle", "AttachedTo", "Boast", "ChangeTypeDesc",
+	"AlternativeCost", "Announce", "AnnounceTitle", "AttachedTo", "Boast", "CantCopy", "ChangeTypeDesc",
 	"CharacteristicDefining", "CheckSVar", "ChoiceOptional", "ChoiceTitle", "ChoiceZone",
 	"Choices", "ChooseFromList", "ClassBand", "ClearImprinted", "CloneTarget", "CloneZone",
 	"Condition", "ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",

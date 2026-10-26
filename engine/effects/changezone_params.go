@@ -235,7 +235,7 @@ var changeZoneKnownKeys = [...]string{
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AffectedZone",
 	"AlternateCost", "AlternativeCost", "AlternativeDecider", "Announce", "AnnounceTitle",
 	"AtEOT", "AtRandom", "AttachedTo", "AttachedToPlayer", "Attacking",
-	"BecomeStartingPlayer", "Boast", "ChangeNum", "ChangeType", "ChangeTypeDesc",
+	"BecomeStartingPlayer", "Boast", "CantCopy", "ChangeNum", "ChangeType", "ChangeTypeDesc",
 	"CharacteristicDefining", "CheckSVar", "ChoiceOptional", "ChoiceTitle", "ChoiceZone",
 	"Choices", "ChooseFromDefined", "ChooseFromList", "Chooser", "ClassBand",
 	"ClearImprinted", "Condition", "ConditionActivationLimit", "ConditionCheckSVar",

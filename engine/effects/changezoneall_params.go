@@ -110,7 +110,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"Activator", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AffectedZone", "AlternateCost",
 	"AlternativeCost", "Announce", "AnnounceTitle", "AtEOT", "Attacking", "Boast",
-	"ChangeNum", "ChangeType", "ChangeTypeDesc", "CharacteristicDefining",
+	"CantCopy", "ChangeNum", "ChangeType", "ChangeTypeDesc", "CharacteristicDefining",
 	"CheckSVar", "ChoiceTitle", "ChoiceZone", "Choices", "ChooseFromList",
 	"ClassBand", "ClearImprinted", "Condition", "ConditionActivationLimit",
 	"ConditionCheckSVar", "ConditionCompare", "ConditionCompare2", "ConditionDefined",

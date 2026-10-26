@@ -146,7 +146,7 @@ var putCounterKnownKeys = [...]string{
 	"Activator", "Adapt", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
 	"AlternativeCost", "Announce", "AnnounceTitle", "BecomeStartingPlayer", "Boast",
-	"Bolster", "ChangeTypeDesc", "CharacteristicDefining", "CheckSVar",
+	"Bolster", "CantCopy", "ChangeTypeDesc", "CharacteristicDefining", "CheckSVar",
 	"ChoiceAmount", "ChoiceTitle", "ChoiceZone", "Choices", "ChooseDifferent",
 	"ChooseFromList", "Chooser", "ClassBand", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",

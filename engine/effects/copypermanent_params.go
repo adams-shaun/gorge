@@ -137,7 +137,7 @@ var copyPermanentKnownKeys = [...]string{
 	"Activator", "AddAbilities", "AddColors", "AddKeywords", "AddSVars", "AddStaticAbilities",
 	"AddTriggers", "AddType", "AddTypes", "AdditionalDesc", "AdditionalDescription",
 	"Affected", "AlternateCost", "AlternativeCost", "Announce", "AnnounceTitle",
-	"AtEOT", "AtEOTTrig", "AttachedTo", "Boast", "ChangeTypeDesc",
+	"AtEOT", "AtEOTTrig", "AttachedTo", "Boast", "CantCopy", "ChangeTypeDesc",
 	"CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone", "Choices",
 	"ChooseFromList", "Chooser", "ClassBand", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",

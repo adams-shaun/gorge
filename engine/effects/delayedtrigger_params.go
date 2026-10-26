@@ -89,7 +89,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"Activator", "ActiveZones", "AddType",
 	"AddTypes", "AdditionalDesc", "AdditionalDescription", "Affected",
 	"AlternateCost", "AlternativeCost", "Announce", "AnnounceTitle", "AttackedTarget",
-	"AttackingPlayer", "Boast", "ChangeTypeDesc", "CharacteristicDefining",
+	"AttackingPlayer", "Boast", "CantCopy", "ChangeTypeDesc", "CharacteristicDefining",
 	"CheckSVar", "ChoiceTitle", "ChoiceZone", "Choices", "ChooseFromList",
 	"ClassBand", "ClearImprinted", "CombatDamage", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
