@@ -1,5 +1,4 @@
 Gix, Yawgmoth Praetor	cost:Discard
-Gixian Skullflayer	param:trig:Phase.PresentPlayer
 Hostile Negotiations	param:api:TwoPiles.KeepRemembered
 Hurkyl, Master Wizard	param:api:ChooseCard.ChoiceTitleAppend
 Over the Top	param:api:ChangeZoneAll.ForgetChanged

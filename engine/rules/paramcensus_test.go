@@ -2919,6 +2919,8 @@ var ignoredAbilityParams = func() map[string]string {
 		"Effect.PumpZone":          "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
 		"GenericChoice.ShowChoice": "UI notify of the chosen value; forge-game/src/main/java/forge/game/ability/effects/ChooseGenericEffect.java:113 (notifyOfValue); gorge's ModeChosen is public (engine/view/describe.go:715)",
 		"PeekAndReveal.NoPeek":     "skips the private look before a public reveal; forge-game/src/main/java/forge/game/ability/effects/PeekAndRevealEffect.java:55,78",
+		"Sacrifice.Mode":           "Discard-family spelling SacrificeEffect never reads; forge-game/src/main/java/forge/game/ability/effects/SacrificeEffect.java (no Mode read)",
+		"Token.LockTokenScript":    "opts out of source text-change on the token prototype, which gorge never applies; forge-game/src/main/java/forge/game/card/token/TokenInfo.java:249",
 	}
 	for _, api := range abilityPresentationSecondary {
 		m[api+".Secondary"] = cite
