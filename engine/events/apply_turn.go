@@ -127,6 +127,12 @@ func foldStepChange(g *state.Game, e *Event) {
 	if e.Step.Valid() && e.Step == state.StepEnd {
 		g.EndStepsThisTurn++
 	}
+	// The per-turn main-phase count (Forge PhaseHandler.nMainsThisTurn): one
+	// increment per Main1/Main2 ENTRY, so an api:AddPhase-spliced extra main
+	// phase counts again. TurnChange resets it below.
+	if e.Step.Valid() && (e.Step == state.StepMain1 || e.Step == state.StepMain2) {
+		g.MainPhasesThisTurn++
+	}
 }
 
 // foldTurnChange folds Kind TurnChange into state.
@@ -227,6 +233,8 @@ func foldTurnChange(g *state.Game, e *Event) {
 		// The per-turn end-step count is a per-turn fact, dropped at the
 		// boundary exactly as CombatsThisTurn is.
 		g.EndStepsThisTurn = 0
+		// The per-turn main-phase count is dropped with them.
+		g.MainPhasesThisTurn = 0
 		// The per-ability resolution tally is a per-turn fact (CR 608.2m
 		// counts resolutions in the turn), so it is dropped at the turn
 		// boundary exactly as CombatsThisTurn is. Clearing (rather than
