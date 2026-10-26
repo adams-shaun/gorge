@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 
@@ -243,6 +244,30 @@ func TestSearchedLibraryValidPlayerReadsSearcher(t *testing.T) {
 		answerQuiet(t, e, 60)
 		if got := e.G.Players[0].Life - before; got != tc.gain {
 			t.Errorf("%s: gained %d, want %d", tc.name, got, tc.gain)
+		}
+	}
+}
+
+// The effect route reads the resolving spell: seat 0's Break Open turns seat
+// 1's face-down creature up. With Growing Dread on seat 0 the spell is "yours"
+// (the creature gets its counter); with Growing Dread on seat 1 it is not.
+func TestGrowingDreadReadsTheResolvingSpellsController(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		dreadSeat state.PlayerID
+		want      int32
+	}{{0, 1}, {1, 0}} {
+		reg := testutil.CorpusRegistry(t)
+		e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Break Open")}, nil)
+		onBoardCard(t, e, tc.dreadSeat, lookup(t, reg, "Growing Dread"))
+		bears := onBoardCard(t, e, 1, lookup(t, reg, "Grizzly Bears"))
+		e.G.Obj(bears).FaceDown = true
+		castCorpusSpell(t, e, "Break Open", "CR", bears)
+		if o := e.G.Obj(bears); o == nil || o.FaceDown {
+			t.Fatalf("dread on seat %d: precondition: Break Open did not turn the creature up (%+v)", tc.dreadSeat, o)
+		}
+		if got := counterCount(e.G.Obj(bears), "P1P1"); got != tc.want {
+			t.Errorf("Growing Dread on seat %d, seat 0's Break Open: %d counters, want %d", tc.dreadSeat, got, tc.want)
 		}
 	}
 }
