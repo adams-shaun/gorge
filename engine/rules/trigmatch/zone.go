@@ -162,6 +162,12 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 			}
 		} else {
 			spec, ok := e.CastProvenanceAdmits(v, ev.Obj, e.ControllerOf(source))
+			// The card is already in its destination: name that zone so a
+			// bare Permanent base reads as a permanent card there
+			// (Moonshadow's milled or discarded permanent card).
+			if ev.To != state.ZBattlefield && ev.To != state.ZStack {
+				capture.Zone, capture.InZone = ev.To, true
+			}
 			if !ok || !e.MatchesSpec(spec, ev.Obj, source, e.ControllerOf(source), capture) {
 				return false
 			}

@@ -3282,6 +3282,29 @@ func matchesZoneSpecObj(g *state.Game, spec string, o *state.Object, sc SpecCont
 	return compiledMatchZone(compiledSpecFor(spec), g, o, &sc, zone)
 }
 
+// MatchesSpecInZone is matchesZoneSpecCtx for the rules side: a filter over a
+// candidate already known to sit in zone (a trigger's moved card in its
+// destination), so a bare Permanent base reads as the permanent-card type test.
+func MatchesSpecInZone(g *state.Game, spec string, id state.ObjID, sc SpecContext, zone state.Zone) bool {
+	return matchesZoneSpecCtx(g, spec, id, sc, zone)
+}
+
+// matchesInOwnZone is the plain matcher for a reader whose candidates come
+// from any zone (a hand, graveyard or library list): a bare Permanent base
+// names a permanent card there (CR 110.4a) rather than failing the battlefield
+// check. The battlefield and the stack keep the ordinary reading -- a spell is
+// not a permanent (CR 110.4b) -- and a spec without a Permanent token has no
+// zone-sensitive base, so it takes the ordinary matcher unchanged.
+func matchesInOwnZone(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
+	if o == nil {
+		return false
+	}
+	if o.Zone == state.ZBattlefield || o.Zone == state.ZStack || !strings.Contains(spec, "Permanent") {
+		return matchesObjectPtr(g, spec, o, &sc)
+	}
+	return matchesZoneSpecCtx(g, spec, o.ID, sc, o.Zone)
+}
+
 // matchesEnteredEntry matches one per-turn entry (state.Game.Entered) for a
 // ThisTurnEntered_ count. A battlefield departure is matched even when the
 // object is a copy that has since ceased to exist: a token copy that died
