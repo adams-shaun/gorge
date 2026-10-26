@@ -244,6 +244,14 @@ var predicates = map[string]predFn{
 	"unblocked": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.IsAttacking && len(o.BlockedBy) == 0
 	},
+	// blocked is the CR 509.1h complement: the object is attacking and at
+	// least one blocker is recorded on it. The record is a zero tombstone
+	// after a blocker leaves combat (events.Apply's zone move keeps the list
+	// length), so the attacker stays blocked even when every blocker is gone
+	// -- Tactical Advantage's `Creature.blocked`.
+	"blocked": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.IsAttacking && len(o.BlockedBy) > 0
+	},
 	// attackingYou is the source-relative attacker predicate (Watchdog's and
 	// Boarded Window's continuous `Affected$ Creature.attackingYou`, Ice
 	// Floe's/Hunting Kavu's/Snow Fortress's `Creature.attackingYou` target
