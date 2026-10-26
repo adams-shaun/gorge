@@ -630,6 +630,22 @@ func ExilesLeavingStack(flags uint64) bool {
 	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagAftermath) != 0
 }
 
+// ExilesInsteadOfGraveyard reports whether a card leaving the stack with these
+// flags, headed for to, must be exiled instead. It folds the two families the
+// counter and ward paths share: a keyword cast (ExilesLeavingStack) is exiled
+// on ANY departure -- a named Remand hand or Memory Lapse library destination
+// included -- while a ReplaceGraveyard$ Exile rider (a DB$ Play SA, or a
+// may-play static's grant: Maestros Ascendancy, Kess, Dissident Mage) replaces
+// only a graveyard destination, so a bounce to hand is not redirected.
+// rules' spellRestZone/spellFizzleZone already make the same two-way choice
+// for the resolving and fizzling exits; this is the counter/ward reader.
+func ExilesInsteadOfGraveyard(flags uint64, to Zone) bool {
+	if ExilesLeavingStack(flags) {
+		return true
+	}
+	return to == ZGraveyard && flags&FlagReplaceGraveyard != 0
+}
+
 // WasCastFromGraveyard reports whether a cast carrying these flags was made
 // from a graveyard by a keyword that grants such a cast: flashback
 // (CR 702.32a), jump-start (CR 702.84a), harmonize and escape (CR 702.42a).

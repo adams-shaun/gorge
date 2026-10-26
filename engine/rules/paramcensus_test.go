@@ -2124,6 +2124,13 @@ var apiSpecificRulesStat = map[string]string{
 	// grant path does, keeping the permissions a given host granted, so its
 	// read is family-attributed exactly like the grant path's.
 	"Engine.mayPlayGrantedBy": "Continuous.MayPlay",
+	// The grant's ReplaceGraveyard$ Exile rider read (engine/rules/mayplay.go's
+	// mayPlayReplacesGraveyard, called from beginCast's "mayplay" case): it
+	// walks the same MayPlay statics under mayPlayStaticBenefits and
+	// mayPlayGrantedBy and reads that rider key, so its read is
+	// family-attributed exactly like the grant path's -- left generic it
+	// would mask a plain Continuous static's real unread keys.
+	"Engine.mayPlayReplacesGraveyard": "Continuous.MayPlay",
 	// The MayPlayWithFlash$ timing rider (engine/rules/mayplay_riders.go): it
 	// reads MayPlay statics' MayPlayWithFlash$ live and runs mayPlayStatic over
 	// the same sources, so it is family-attributed like the grant path.
