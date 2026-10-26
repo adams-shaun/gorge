@@ -21,6 +21,24 @@ func TapPowerSum(e Engine, ids []state.ObjID, saKind string) int32 {
 	return sum
 }
 
+// FilterCrewCandidates drops from ids the creatures a stat:CantCrew static
+// forbids from paying a Crew cost (CR 702.122a); every other tap kind
+// (Saddle, Station, a hand-written tapXType) returns ids untouched. The
+// "any CantCrew static?" test is hoisted so a board without one costs a
+// single check and no allocation.
+func FilterCrewCandidates(e Engine, ids []state.ObjID, tapKind string) []state.ObjID {
+	if tapKind != "Crew" || len(ids) == 0 || !e.Chars().AnyCantCrew() {
+		return ids
+	}
+	out := make([]state.ObjID, 0, len(ids))
+	for _, id := range ids {
+		if !e.Chars().CantCrew(id) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
 // TapTopPowerSum is tapPowerSum for a literal tapXType<N/...> part with a
 // group predicate: exactly N are tapped, so the most a payment can tap is
 // the power of the N largest candidates. A slice sort is fine here -- the
@@ -242,7 +260,7 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 			if part.Dyn == "Any" {
 				avail := 0
 				var floorSum int32
-				for _, oid := range TapCostCandidates(e, p, id, part) {
+				for _, oid := range FilterCrewCandidates(e, TapCostCandidates(e, p, id, part), tapKind) {
 					if reserved[oid] || (cost.Tap && oid == id) {
 						continue
 					}
@@ -267,7 +285,7 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 			continue
 		}
 		var avail []state.ObjID
-		for _, oid := range TapCostCandidates(e, p, id, part) {
+		for _, oid := range FilterCrewCandidates(e, TapCostCandidates(e, p, id, part), tapKind) {
 			if reserved[oid] || (cost.Tap && oid == id) {
 				continue
 			}
