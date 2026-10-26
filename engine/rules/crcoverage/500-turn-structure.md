@@ -98,7 +98,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 509.1c | partial | `engine/rules/combat/block.go#MustBlockCandidates` `engine/effects/mustblock_api.go#effMustBlock` | `TestCrashingBoarsMustBlockChoicePool` | MustBlockCandidates now reads stat:MustBlock; RequiredQuota counts creatures (D15) |
 | 509.1d-509.1f | follows | `engine/rules/attack_cost.go#Engine.blockPairCharge` `engine/rules/attack_cost.go#Engine.blockChargeOf` `engine/rules/attack_cost.go#Engine.payCombatExtras` | `TestQalSismaBehemothBlockCharge` |  |
 | 509.1g | follows | `engine/rules/combat.go#Engine.handleBlockers` `engine/events/apply_combat.go#foldDeclareBlockers` | - |  |
-| 509.1h | follows | `engine/events/apply_combat.go#foldDeclareBlockers` `engine/events/apply_zone.go#move` | `TestAttackerWhoseBlockerIsRemovedDealsNoDamageWithoutTrample` `TestBecomesBlockedByEffect` | zero tombstone keeps the attacker blocked |
+| 509.1h | follows | `engine/events/apply_combat.go#foldDeclareBlockers` `engine/events/apply_zone.go#move` `engine/effects/filter.go#predicates` | `TestAttackerWhoseBlockerIsRemovedDealsNoDamageWithoutTrample` `TestBecomesBlockedByEffect` `TestBlockedFilterProperty` | zero tombstone keeps the attacker blocked |
 | 509.1i | follows | `engine/rules/trigger_blocks.go#Engine.checkBlocksTriggers` `engine/rules/trigger_blocks.go#Engine.checkAttackerBlockedTriggers` | `TestBlocksTriggerFiresPerPair` |  |
 | 509.2 | follows | `engine/rules/turn.go#Engine.step` `engine/rules/turn.go#Engine.priorityRound` | `TestCR509PriorityAfterBlockDeclaration` |  |
 | 509.2a | follows | `engine/rules/turn.go#Engine.step` | - |  |
