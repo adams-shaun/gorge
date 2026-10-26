@@ -275,13 +275,8 @@ func panharmoniconModes(ev events.Event) []string {
 // `DB$ Effect | StaticAbilities$ Unspent`), the latter through the ordinary
 // active() lifetime machinery so the grant ends with its source or its
 // duration. A face static's "as long as" gates run through the shared
-// continuousGateHolds grammar; ValidPlayer$ goes through the shared player
-// spec matcher (You scopes to the static's controller, absent — Upwelling —
-// protects every seat). ManaType$ is a comma-separated colour-word list
-// parsed by effects.ColorLetters; absent (or an unparseable "Colorless"
-// word set, the C slot) protects every slot only when the parameter is
-// wholly absent. An unresolvable ManaType$ value fails closed and protects
-// nothing — the shipped-statics convention.
+// continuousGateHolds grammar; each line's ValidPlayer$/ManaType$ semantics
+// live in unspentManaFold.
 func (e *Engine) unspentManaKeep(p state.PlayerID) string {
 	keep := make([]bool, len(e.G.Players[p].Pool))
 	for _, sv := range e.activeStatics("UnspentMana") {
