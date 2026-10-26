@@ -180,7 +180,7 @@ this snapshot.
 - **Set-scoped param census: 408 of 7009.** `TestEveryStandardSetParamsAreRead`
   (`engine/rules/paramcensus_sets_test.go`) walks the 26 Standard-program set lists in
   `testdata/sets/` against baselines `testdata/paramcensus-sets/<SET>.tsv`
-  (`PARAMCENSUS_SETS_REGEN=1`): 410 cards, 141 distinct labels at cr-g160.
+  (`PARAMCENSUS_SETS_REGEN=1`): 408 cards, 140 distinct labels at cr-g160.
 - **Golden games.** The 12 pinned Legacy decks (`legacyDeckNames`, which
   deliberately excludes the Commander decks) round-robin across 2/4/6/8 seats
   (`TestRepoDecksPlayAtEverySeatCount`). They replay byte-identically
