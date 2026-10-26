@@ -669,18 +669,17 @@ and not in the two-deck rows:
 
 | Benchmark | ns per transition (median of 5) | instructions per transition | allocations |
 |---|--:|--:|--:|
-| Foundations (FDN) | 2,819 (2,766-2,933) | 45.5 k | 0 |
-| Bloomburrow (BLB) | 2,981 (2,935-3,090) | 51.0 k | 0 |
-| Foundations, whole-pool table (FDN pool) | 3,631 (3,617-3,884) | 59.6 k | 0 |
+| Foundations (FDN) | 2,633 (2,632-2,637) | 45.5 k | 0 |
+| Bloomburrow (BLB) | 2,765 (2,757-2,785) | 51.0 k | 0 |
+| Foundations, whole-pool table (FDN pool) | 3,492 (3,487-3,510) | 59.6 k | 0 |
 
 `go test -run X -bench 'BenchmarkTransition(FDN|BLB|FDNPool)$' -count 5 -benchtime 2s`
 with `GOMAXPROCS=1` on core 26; instructions from `perf stat -e instructions:u`
-over two run lengths, differenced so setup cancels. The 2026-10-26 run had
-other work on the measuring core's hyperthread sibling (load average 8-10),
-so its nanoseconds read about 10% above a quiet run's (the 2026-10-25 table,
-on a quiet machine, had FDN at 2,548 and BLB at 2,674 ns); the instruction
-counts do not depend on load, and FDN's and BLB's are unchanged from
-2026-10-25 (45.4 k and 51.0 k).
+over two run lengths, differenced so setup cancels. Load average 4-5 during
+the run, with the measuring core and its hyperthread sibling otherwise idle.
+FDN's and BLB's instruction counts, which do not depend on load, are
+unchanged from 2026-10-25 (45.4 k and 51.0 k); their nanoseconds read about
+3% above that day's quieter run (2,548 and 2,674 ns).
 
 ## Caveats
 
