@@ -17,9 +17,6 @@ func effDebuff(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	permanent, untilEOT := durationTiming(p.Duration)
-	if IsNextTurnDuration(p.Duration) {
-		untilEOT = false
-	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
