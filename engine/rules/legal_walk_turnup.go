@@ -46,7 +46,7 @@ func (w *legalWalk) turnFaceUpOffers(p state.PlayerID, id state.ObjID) {
 		// against its hypothetical bound, so a float-gated turn-up is a
 		// potential play like every other mana-costed offer.
 		mods, ok := e.morphTurnUpMods(p, id, mf)
-		if !ok || !e.morphTurnUpPayablePriced(p, id, mf.cost, mods, w.pricing()) {
+		if !ok || !e.morphTurnUpPayablePriced(p, id, mf.special(), mf.cost, mods, w.pricing()) {
 			continue
 		}
 		w.add("turn_face_up", "Turn face up ("+costPhrase(mf.cost)+")", id)

@@ -63,6 +63,10 @@ type morphFaceUp struct {
 	megamorph bool
 }
 
+// special is the CR 116.2b turn-up procedure's special action, read off the
+// same scope the cost modifiers price it under.
+func (mf morphFaceUp) special() pay.Special { return pay.SpecialOfScope(mf.scope()) }
+
 // mode is the decision.Option.Mode that identifies this offer when a
 // permanent carries more than one turn-up procedure. The cast path keeps the
 // historical empty mode; manifest/cloak and the keyword alternatives name
@@ -334,6 +338,14 @@ func morphTurnUpCountAnnounced(c Cost) bool {
 // order the cast flow's charge takes -- so the offer, the X ask and the
 // settlement price one total.
 func (e *Engine) morphTurnUpPayable(p state.PlayerID, id state.ObjID, cost Cost, mods costMods) bool {
+	return e.morphTurnUpPayableAs(p, id, pay.SpecialMorphUp, cost, mods)
+}
+
+// morphTurnUpPayableAs is morphTurnUpPayable for the turn-up procedure sp
+// (morphFaceUp.special): the mana half is priced as that special action, the
+// class the settlement pays under, so RestrictValid$ Static.* mana is visible
+// to the offer exactly when it is to the payment.
+func (e *Engine) morphTurnUpPayableAs(p state.PlayerID, id state.ObjID, sp pay.Special, cost Cost, mods costMods) bool {
 	if !pay.NonManaCastable(asPayer(e), p, id, cost, false, "") {
 		return false
 	}
@@ -342,7 +354,7 @@ func (e *Engine) morphTurnUpPayable(p state.PlayerID, id state.ObjID, cost Cost,
 		min = 0
 	}
 	if cost.X == 0 {
-		return pay.CostPayable(asPayer(e), p, id, false, mods.Apply(cost))
+		return pay.CostPayableSpecial(asPayer(e), p, id, sp, mods.Apply(cost))
 	}
 	// Each extra X adds one generic, so the pool total is the finite ceiling
 	// past which no further X can be paid (the same safe bound xAsk uses).
@@ -350,7 +362,7 @@ func (e *Engine) morphTurnUpPayable(p state.PlayerID, id state.ObjID, cost Cost,
 	// reduction total widens the ceiling rather than cutting it short.
 	bound := e.G.Players[p].Pool.Total() + cost.Generic + int32(cost.X) + 1 + mods.ReduceTotal()
 	for x := min; x <= bound; x++ {
-		if pay.CostPayable(asPayer(e), p, id, false, mods.Apply(cost.WithX(x))) {
+		if pay.CostPayableSpecial(asPayer(e), p, id, sp, mods.Apply(cost.WithX(x))) {
 			return true
 		}
 	}
@@ -366,9 +378,9 @@ func (e *Engine) morphTurnUpPayable(p state.PlayerID, id state.ObjID, cost Cost,
 // cost is priced at its smallest legal announcement: each extra X only adds
 // generic, so no larger X is payable when the smallest is not, and the
 // hypothetical bound may be unbounded (no finite loop ceiling exists there).
-func (e *Engine) morphTurnUpPayablePriced(p state.PlayerID, id state.ObjID, cost Cost, mods costMods, hyp *state.Mana) bool {
+func (e *Engine) morphTurnUpPayablePriced(p state.PlayerID, id state.ObjID, sp pay.Special, cost Cost, mods costMods, hyp *state.Mana) bool {
 	if hyp == nil {
-		return e.morphTurnUpPayable(p, id, cost, mods)
+		return e.morphTurnUpPayableAs(p, id, sp, cost, mods)
 	}
 	if !pay.NonManaCastable(asPayer(e), p, id, cost, false, "") {
 		return false
@@ -394,6 +406,9 @@ type turnUpPay struct {
 	// announcement) at every payability read and at settlement, captured
 	// once when the action is taken -- the snapshot the offer priced.
 	mods costMods
+	// special is the turn-up procedure's special action, the class every mana
+	// read of this flow (X bound, revalidation, payment) prices under.
+	special pay.Special
 	// megamorph is the procedure's +1/+1 rider, captured with the cost so a
 	// manifested card using its printed Megamorph procedure still gets the
 	// counter.
@@ -439,11 +454,11 @@ func (e *Engine) turnFaceUp(p state.PlayerID, opt decision.Option) {
 	// changed under the option degrades to a no-op rather than paying a
 	// partial cost (no partial payment followed by a no-op).
 	mods, ok := e.morphTurnUpMods(p, opt.Obj, mf)
-	if !ok || !e.morphTurnUpPayable(p, opt.Obj, mf.cost, mods) {
+	if !ok || !e.morphTurnUpPayableAs(p, opt.Obj, mf.special(), mf.cost, mods) {
 		return
 	}
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-	e.turnUp = &turnUpPay{player: p, card: opt.Obj, cost: mf.cost, mods: mods, megamorph: mf.megamorph}
+	e.turnUp = &turnUpPay{player: p, card: opt.Obj, cost: mf.cost, mods: mods, megamorph: mf.megamorph, special: mf.special()}
 	e.advanceTurnUp()
 }
 
@@ -491,7 +506,7 @@ func (e *Engine) turnUpXAsk(tp *turnUpPay) bool {
 	var legal []int32
 	bound := e.G.Players[tp.player].Pool.Total() + tp.cost.Generic + int32(tp.cost.X) + 1 + tp.mods.ReduceTotal()
 	for x := min; x <= bound; x++ {
-		if pay.CostPayable(asPayer(e), tp.player, tp.card, false, tp.mods.Apply(tp.cost.WithX(x))) {
+		if pay.CostPayableSpecial(asPayer(e), tp.player, tp.card, tp.special, tp.mods.Apply(tp.cost.WithX(x))) {
 			legal = append(legal, x)
 		}
 	}
@@ -778,7 +793,7 @@ func (e *Engine) settleTurnUp(tp *turnUpPay) {
 			e.abortTurnUp(tp)
 			return
 		}
-		if !pay.CostPayable(asPayer(e), tp.player, tp.card, false, paidCost) {
+		if !pay.CostPayableSpecial(asPayer(e), tp.player, tp.card, tp.special, paidCost) {
 			e.abortTurnUp(tp)
 			return
 		}
@@ -787,7 +802,7 @@ func (e *Engine) settleTurnUp(tp *turnUpPay) {
 		// CR 616.1 replacement order choice, a madness choice); the
 		// continuation then resumes from resumeTurnUpAfterCost without
 		// charging any of these components again.
-		if !pay.PayMana(asPayer(e), tp.player, paidCost) {
+		if !pay.PayManaSpecial(asPayer(e), tp.player, tp.card, tp.special, paidCost) {
 			e.abortTurnUp(tp)
 			return
 		}

@@ -659,27 +659,11 @@ func (e *Engine) spellConstraintMatches(sv staticView, scope costScope, p state.
 // (Harrowing Swarm's granted reduction). The manifest/cloak arms are named
 // for the union's exactness; no corpus cost modifier carries a
 // ValidSpell$ Static.ManifestUp/CloakUp at the pin (Qarsi Deceiver's
-// Static.ManifestUp+Creature restriction is evaluated by RestrictValidMatches,
-// which rejects Static.* -- the known approximation). Anything else denies.
+// Static.ManifestUp+Creature restriction is evaluated by RestrictValidMatches
+// through the same pay.SpecialHasProperty). Anything else denies.
 func staticConstraintMatches(scope costScope, constraint string) bool {
-	switch staticConstraintMatchesCodes.Code(string(strings.TrimSpace(constraint))) {
-	case staticConstraintMatchesForetelling:
-		return scope.Kind == "Foretell"
-	case staticConstraintMatchesPlotting:
-		return scope.Mode == "plot"
-	case staticConstraintMatchesUnlock:
-		return scope.Kind == "Static" && scope.Mode == "unlock"
-	case staticConstraintMatchesMorphUp:
-		return scope.Kind == "Static" && scope.Mode == "morphup"
-	case staticConstraintMatchesManifestUp:
-		return scope.Kind == "Static" && scope.Mode == "manifestup"
-	case staticConstraintMatchesCloakUp:
-		return scope.Kind == "Static" && scope.Mode == "cloakup"
-	case staticConstraintMatchesIsTurnFaceUp:
-		return scope.Kind == "Static" && (scope.Mode == "morphup" || scope.Mode == "disguiseup" ||
-			scope.Mode == "manifestup" || scope.Mode == "cloakup")
-	}
-	return false
+	match, _ := pay.SpecialHasProperty(pay.SpecialOfScope(scope), constraint)
+	return match
 }
 
 // abilityConstraintMatches checks one ValidSpell$ Activated.* constraint
@@ -899,28 +883,6 @@ var spellConstraintMatchesCodes = state.NewStrCodes(
 	state.StrEntry[spellConstraintMatchesCode]{Key: "Bargain", Val: spellConstraintMatchesBargain},
 	state.StrEntry[spellConstraintMatchesCode]{Key: "Instant", Val: spellConstraintMatchesInstant},
 	state.StrEntry[spellConstraintMatchesCode]{Key: "Sorcery", Val: spellConstraintMatchesSorcery},
-)
-
-type staticConstraintMatchesCode uint16
-
-const (
-	staticConstraintMatchesForetelling staticConstraintMatchesCode = iota + 1
-	staticConstraintMatchesPlotting
-	staticConstraintMatchesUnlock
-	staticConstraintMatchesMorphUp
-	staticConstraintMatchesManifestUp
-	staticConstraintMatchesCloakUp
-	staticConstraintMatchesIsTurnFaceUp
-)
-
-var staticConstraintMatchesCodes = state.NewStrCodes(
-	state.StrEntry[staticConstraintMatchesCode]{Key: "Foretelling", Val: staticConstraintMatchesForetelling},
-	state.StrEntry[staticConstraintMatchesCode]{Key: "Plotting", Val: staticConstraintMatchesPlotting},
-	state.StrEntry[staticConstraintMatchesCode]{Key: "Unlock", Val: staticConstraintMatchesUnlock},
-	state.StrEntry[staticConstraintMatchesCode]{Key: "MorphUp", Val: staticConstraintMatchesMorphUp},
-	state.StrEntry[staticConstraintMatchesCode]{Key: "ManifestUp", Val: staticConstraintMatchesManifestUp},
-	state.StrEntry[staticConstraintMatchesCode]{Key: "CloakUp", Val: staticConstraintMatchesCloakUp},
-	state.StrEntry[staticConstraintMatchesCode]{Key: "isTurnFaceUp", Val: staticConstraintMatchesIsTurnFaceUp},
 )
 
 type abilityConstraintMatchesCode uint16

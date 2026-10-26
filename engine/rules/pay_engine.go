@@ -46,6 +46,11 @@ func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana,
 // this payment (CostContainsX), so the marker rides pc.cost — the folded cost
 // itself has Cost.X == 0 and would read as X-less.
 func paymentForCast(pc *pendingCast, cost Cost) paymentDescriptor {
+	if sp := pay.SpecialOfCastMode(pc.mode); sp != pay.SpecialNone && !pc.isAbility() {
+		d := pay.SpecialDescriptor(pc.card, sp, cost)
+		d.XAnnounced = pc.cost.X > 0
+		return d
+	}
 	d := paymentFor(pc.card, pc.isAbility(), cost)
 	d.XAnnounced = pc.cost.X > 0
 	return d
@@ -191,6 +196,23 @@ const (
 
 func paymentFor(id state.ObjID, ability bool, cost Cost) paymentDescriptor {
 	return pay.DescriptorFor(id, ability, cost)
+}
+
+// offerPayment is the payment descriptor (its cost left to the pricing site,
+// Descriptor.Priced) an offer gate prices the option priced under scope with.
+// A CR 116.2 special action -- turn face up, unlock, foretell, plot, suspend --
+// reads its class off the scope's kind and mode, the same pay.SpecialOfScope
+// reading the cost modifiers use and the payment's descriptor derives from, so
+// offer and payment can never disagree on which RestrictValid$ mana pays it.
+func offerPayment(id state.ObjID, ability bool, scope costScope) paymentDescriptor {
+	if sp := pay.SpecialOfScope(scope); sp != pay.SpecialNone {
+		return paymentDescriptor{ID: id, Class: pay.PurposeSpecial, Special: sp}
+	}
+	class := paymentSpell
+	if ability {
+		class = paymentActivated
+	}
+	return paymentDescriptor{ID: id, Class: class}
 }
 
 func (pe *payer) Game() *state.Game                 { return pe.G }

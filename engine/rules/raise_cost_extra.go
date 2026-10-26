@@ -704,7 +704,7 @@ func (e *Engine) offerNamedMods(p state.PlayerID, id state.ObjID, ability bool, 
 			bound.reduce[i] = sv
 		}
 		m := e.costModifiersWithTargetsXUsing(bound, p, id, scope, nil, false, 0)
-		if e.manaFeasiblePriced(p, id, ability, base, m, tax, delve, hyp) {
+		if e.manaFeasiblePriced(p, offerPayment(id, ability, scope), base, m, tax, delve, hyp) {
 			return m, true
 		}
 	}
