@@ -170,6 +170,8 @@ func typePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bo
 		return t != "" && !hasTypeCtx(o, t, sc), true
 	case typePredicateChosenCtrl:
 		return chosenCtrlMatches(g, o, sc.Source), true
+	case typePredicateExiledWithSource:
+		return exiledBySourceAt(g, o, sc.Source, sc.TriggerContext.SourceIncarnation), true
 	}
 	return false, false
 }
@@ -384,6 +386,7 @@ const (
 	typePredicateChosenType
 	typePredicateIsNotChosenType
 	typePredicateChosenCtrl
+	typePredicateExiledWithSource
 )
 
 var typePredicateCodes = state.NewStrCodes(
@@ -396,4 +399,6 @@ var typePredicateCodes = state.NewStrCodes(
 	state.StrEntry[typePredicateCode]{Key: "ChosenType", Val: typePredicateChosenType},
 	state.StrEntry[typePredicateCode]{Key: "IsNotChosenType", Val: typePredicateIsNotChosenType},
 	state.StrEntry[typePredicateCode]{Key: "ChosenCtrl", Val: typePredicateChosenCtrl},
+	state.StrEntry[typePredicateCode]{Key: "ExiledWithSource", Val: typePredicateExiledWithSource},
+	state.StrEntry[typePredicateCode]{Key: "ExiledWithSourceLKI", Val: typePredicateExiledWithSource},
 )
