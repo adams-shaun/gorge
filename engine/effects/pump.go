@@ -2,6 +2,7 @@ package effects
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -277,30 +278,64 @@ var pumpNotesCodes = state.NewStrCodes(
 	state.StrEntry[pumpNotesCode]{Key: "TriggeredSource", Val: pumpNotesTriggeredSource},
 )
 
-// definedKWGrant is p.Grant with DefinedKW$'s token replaced in every KW$
-// keyword by the source's recorded choice (Forge's PumpEffect: ChosenColor
-// becomes the colour word, ChosenType the creature/land type). The choice is
-// read now, at resolution, so the grant keeps it after a later Cleanup or
-// re-choice. A choice that is not recorded drops the keywords carrying the
-// token, and a DefinedKW$ value this build cannot substitute (the
-// player-valued family of protection-from-player grants) is one Note and
-// leaves the keywords as written.
+// definedKWGrant is p.Grant with DefinedKW$ substituted at resolution.
+//
+// Forge's PumpEffect has three DefinedKW$ families. ChosenColor and ChosenType
+// replace the selector token with the source's recorded choice. The player
+// family (Opponent, You, ChosenPlayer, TargetedPlayer, and a qualifier such as
+// RememberedController.Opponent) resolves to a set of player seats; every KW$
+// keyword that names ChosenPlayerUID/ChosenPlayerName is granted once per
+// resolved player, with both tokens replaced. A player selector that resolves
+// to no players drops those keywords entirely: the card's own "no opponent"
+// case, not a defect, so it emits no Note. A selector this build does not know
+// is still one Note and leaves the keywords as written.
 func definedKWGrant(h Host, c *Ctx, p *PumpParams) PumpGrant {
 	g := p.Grant
 	src := h.Game().Obj(c.Source)
-	var repl string
 	switch p.DefinedKW {
 	case "ChosenColor":
-		repl = resolveGains("ChosenColor", "", src)
+		return substituteDefinedKWChoice(h, c, p, g, resolveGains("ChosenColor", "", src))
 	case "ChosenType":
+		repl := ""
 		if src != nil {
 			repl = src.ChosenType
 		}
-	default:
+		return substituteDefinedKWChoice(h, c, p, g, repl)
+	}
+	players, known := definedKWPlayers(h, c, p.DefinedKW)
+	if !known {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "DefinedKW$ " + p.DefinedKW + " is not a choice this engine can substitute; the KW$ keywords are granted as written"})
 		return g
 	}
+	if len(players) == 0 {
+		g.KW = nil
+		return g
+	}
+	kws := make([]string, 0, len(g.KW)+len(players)*len(g.KW))
+	for _, kw := range g.KW {
+		if !definedKWPlayerToken(kw) {
+			kws = append(kws, kw)
+		}
+	}
+	for _, kw := range g.KW {
+		if !definedKWPlayerToken(kw) {
+			continue
+		}
+		for _, pl := range players {
+			out := strings.ReplaceAll(kw, "ChosenPlayerUID", strconv.Itoa(int(pl)))
+			out = strings.ReplaceAll(out, "ChosenPlayerName", definedKWPlayerName(h.Game(), pl))
+			kws = append(kws, out)
+		}
+	}
+	g.KW = kws
+	return g
+}
+
+// substituteDefinedKWChoice is the ChosenColor/ChosenType half of
+// definedKWGrant: replace the selector token in every keyword that names it.
+// A keyword whose choice was not recorded is dropped with one Note.
+func substituteDefinedKWChoice(h Host, c *Ctx, p *PumpParams, g PumpGrant, repl string) PumpGrant {
 	kws := make([]string, 0, len(g.KW))
 	for _, kw := range g.KW {
 		if !strings.Contains(kw, p.DefinedKW) {
@@ -316,4 +351,57 @@ func definedKWGrant(h Host, c *Ctx, p *PumpParams) PumpGrant {
 	}
 	g.KW = kws
 	return g
+}
+
+// definedKWPlayers resolves a player-valued DefinedKW$ selector to seats.
+// The optional ".qualifier" is matched with the same Player.<spec> grammar
+// the rest of the engine uses, with the resolving source's controller as
+// "you". ChosenPlayer only ever names an actual chosen player target: Forge
+// does not fall back to a chosen card's controller for this selector.
+func definedKWPlayers(h Host, c *Ctx, selector string) ([]state.PlayerID, bool) {
+	base, qual, _ := strings.Cut(selector, ".")
+	ts, ok := knownDefinedTargets(h, c, base)
+	if !ok {
+		return nil, false
+	}
+	if base == "ChosenPlayer" {
+		players := make([]state.Target, 0, len(ts))
+		for _, t := range ts {
+			if t.IsPlayer {
+				players = append(players, t)
+			}
+		}
+		ts = players
+	}
+	ids := playerIDsFromTargets(h, c, base, ts)
+	if qual == "" {
+		return ids, true
+	}
+	out := make([]state.PlayerID, 0, len(ids))
+	for _, id := range ids {
+		if MatchesPlayerSpecFrom(h.Game(), "Player."+qual, id, c.Controller, c.Source) {
+			out = append(out, id)
+		}
+	}
+	return out, true
+}
+
+// definedKWPlayerToken reports whether kw carries one of the two player
+// placeholder tokens Forge substitutes into a player-valued DefinedKW$.
+func definedKWPlayerToken(kw string) bool {
+	return strings.Contains(kw, "ChosenPlayerUID") || strings.Contains(kw, "ChosenPlayerName")
+}
+
+// definedKWPlayerName is the name token's replacement, using the same
+// precedence as the view's display name: PlayerName when the host set one,
+// the seat's Name otherwise.
+func definedKWPlayerName(g *state.Game, p state.PlayerID) string {
+	if int(p) >= len(g.Players) {
+		return ""
+	}
+	pl := &g.Players[p]
+	if pl.PlayerName != "" {
+		return pl.PlayerName
+	}
+	return pl.Name
 }
