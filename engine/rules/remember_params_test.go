@@ -77,9 +77,9 @@ func TestFranticScapegoatPassesSuspicion(t *testing.T) {
 // only. p0's choice (Grizzly Bears) shares a type with p1's Runeclaw Bear,
 // but p1's own choice (Hill Giant) does not, so the iteration imprints the
 // Runeclaw Bear for the sacrifice; p0's Hill Giant is imprinted likewise
-// although p1 chose a Hill Giant. (The imprinted creatures are asserted
-// from the Imprint events: Creature.IsImprinted matches only exiled cards
-// today, so SacrificeAll does not yet consume them.)
+// although p1 chose a Hill Giant. The imprinted creatures are asserted from
+// the Imprint events, and SacrificeAll ValidCards$ Creature.IsImprinted
+// consumes them: they end in the graveyard while the chosen ones stay.
 func TestWinnowingClearsRememberedPerPlayer(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -87,7 +87,8 @@ func TestWinnowingClearsRememberedPerPlayer(t *testing.T) {
 	if err := json.Unmarshal([]byte(`{"name":"winnowing","setup":{"p0":{"battlefield":["Grizzly Bears","Hill Giant"],"hand":["Winnowing"]},"p1":{"battlefield":["Runeclaw Bear","Hill Giant"]}},
 	 "steps":[{"op":"cast","seat":0,"card":"p0:Winnowing","mana":"WWWWWW"},
 	  {"op":"resolve","answers":[{"kind":"choose","pick":["p0:Grizzly Bears"]},{"kind":"choose","pick":["p1:Hill Giant"]}]}],
-	 "expect":[]}`), &sc); err != nil {
+	 "expect":[{"card":"p0:Grizzly Bears","zone":"battlefield"},{"card":"p0:Hill Giant","zone":"graveyard"},
+	  {"card":"p1:Hill Giant","zone":"battlefield"},{"card":"p1:Runeclaw Bear","zone":"graveyard"}]}`), &sc); err != nil {
 		t.Fatal(err)
 	}
 	fails, tr, r := runOracleScenario(reg, sc)
