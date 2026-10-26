@@ -1,4 +1,3 @@
 Cheering Crowd	cost:AddCounter
-Electro, Assaulting Battery	param:stat:UnspentMana.ManaType,param:stat:UnspentMana.ValidPlayer
 Multiversal Passage	param:api:ChooseType.ETB
 With Great Power...	param:api:ReplaceEffect.VarType

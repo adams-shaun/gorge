@@ -284,43 +284,18 @@ func panharmoniconModes(ev events.Event) []string {
 // nothing — the shipped-statics convention.
 func (e *Engine) unspentManaKeep(p state.PlayerID) string {
 	keep := make([]bool, len(e.G.Players[p].Pool))
-	apply := func(params map[string]string, you state.PlayerID) {
-		if spec := params["ValidPlayer"]; spec != "" &&
-			!effects.MatchesPlayerSpec(e.G, spec, p, you) {
-			return
-		}
-		mt := strings.TrimSpace(params["ManaType"])
-		if mt == "" {
-			for i := range keep {
-				keep[i] = true
-			}
-			return
-		}
-		letters, ok := effects.ColorLetters(mt)
-		if !ok {
-			return
-		}
-		if len(letters) == 0 {
-			// "Colorless" — the C slot alone.
-			keep[len(keep)-1] = true
-			return
-		}
-		for _, l := range letters {
-			keep[state.ManaIndex(l[0])] = true
-		}
-	}
 	for _, sv := range e.activeStatics("UnspentMana") {
 		if !e.continuousGateHolds(sv) {
 			continue
 		}
-		apply(sv.Params, sv.Controller)
+		e.unspentManaFold(p, sv.Params, sv.Controller, keep)
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
 		if ce.Restriction != "UnspentMana" {
 			continue
 		}
-		apply(ce.RestrictParams, ce.Controller)
+		e.unspentManaFold(p, ce.RestrictParams, ce.Controller, keep)
 	}
 	var out []byte
 	for i, k := range keep {
@@ -329,4 +304,39 @@ func (e *Engine) unspentManaKeep(p state.PlayerID) string {
 		}
 	}
 	return string(out)
+}
+
+// unspentManaFold folds one live UnspentMana line into unspentManaKeep's
+// keep slots. ValidPlayer$ goes through the shared player spec matcher (You
+// scopes to the static's controller, absent — Upwelling — protects every
+// seat). ManaType$ is a comma-separated colour-word list parsed by
+// effects.ColorLetters; absent (or an unparseable "Colorless" word set, the
+// C slot) protects every slot only when the parameter is wholly absent. An
+// unresolvable ManaType$ value fails closed and protects nothing — the
+// shipped-statics convention. A named method, not a closure, so the
+// parameter census sees its ValidPlayer$/ManaType$ reads.
+func (e *Engine) unspentManaFold(p state.PlayerID, params map[string]string, you state.PlayerID, keep []bool) {
+	if spec := params["ValidPlayer"]; spec != "" &&
+		!effects.MatchesPlayerSpec(e.G, spec, p, you) {
+		return
+	}
+	mt := strings.TrimSpace(params["ManaType"])
+	if mt == "" {
+		for i := range keep {
+			keep[i] = true
+		}
+		return
+	}
+	letters, ok := effects.ColorLetters(mt)
+	if !ok {
+		return
+	}
+	if len(letters) == 0 {
+		// "Colorless" — the C slot alone.
+		keep[len(keep)-1] = true
+		return
+	}
+	for _, l := range letters {
+		keep[state.ManaIndex(l[0])] = true
+	}
 }
