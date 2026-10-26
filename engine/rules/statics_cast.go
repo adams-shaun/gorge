@@ -498,6 +498,15 @@ func (e *Engine) restrictionGateHolds(sv staticView, target state.ObjID) bool {
 			return false
 		}
 	}
+	// Phases$ (CR 506.1, 604.1): "during combat" restrictions (Yuriko, Hand
+	// to Hand) hold only inside the window. An absent window always holds; an
+	// unparseable one withholds the restriction, like every other
+	// unevaluable term here.
+	if ph := sv.ParamStr(cards.PKPhases); ph != "" {
+		if pp := e.parsedPhaseSpec(ph); !pp.valid || !pp.set.Has(e.G.Step) {
+			return false
+		}
+	}
 	switch staticConditionOf(sv) {
 	case condBlank:
 		return true
