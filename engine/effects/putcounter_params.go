@@ -180,7 +180,7 @@ var putCounterKnownKeys = [...]string{
 	"Tribute", "TriggerDescription", "Type", "Ultimate",
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "UpTo", "UpToMin",
 	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
-	"ValidDescription", "ValidTgts", "VoteMessage",
+	"ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage",
 	"WithoutManaCost", "XMax", "XMin",
 }
 
