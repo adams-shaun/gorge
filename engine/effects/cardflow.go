@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -931,12 +932,12 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 			count = 0
 		}
 		var milledIDs []state.ObjID
-		for i := int32(0); i < count; i++ {
-			lib := zoneOf(g, state.ZLibrary, p)
-			if len(lib) == 0 {
-				break
+		for _, id := range millSnapshot(g, p, count) {
+			if !slices.Contains(zoneOf(g, state.ZLibrary, p), id) {
+				// CR 609.3: a snapshot card a replacement already moved out
+				// of the library is skipped, never replaced by a new top card.
+				continue
 			}
-			id := lib[0]
 			h.Emit(events.Mill(id, p))
 			if remember {
 				rememberMilled(h, c, id)
@@ -967,6 +968,18 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: milledIDs})
 		}
 	}
+}
+
+// millSnapshot names the top count cards of p's library, in order, before any
+// of them moves. CR 701.17a: a mill is one action over those cards, so a
+// replacement that shuffles an earlier card back into the library (Darksteel
+// Colossus) must not change which cards the rest of the mill takes.
+func millSnapshot(g *state.Game, p state.PlayerID, count int32) []state.ObjID {
+	lib := zoneOf(g, state.ZLibrary, p)
+	if count < 0 {
+		count = 0
+	}
+	return append([]state.ObjID(nil), lib[:min(int(count), len(lib))]...)
 }
 
 // rememberMilled records one milled card in both halves of the remembered

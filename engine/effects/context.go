@@ -434,7 +434,10 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	}
 	// The DOTTED `Targeted <qualifier>` selector (Back for Seconds'
 	// `ChooseFromDefined$ Targeted.cmcLE4`): the subset of the resolution's
-	// TARGETED OBJECTS the qualifier admits, in target order. The qualifier
+	// TARGETED OBJECTS the qualifier admits, in target order -- every target
+	// slot down the chain (refTargetUnion, the bare Targeted's own read), not
+	// just the resolving link's (Friendly Rivalry's EachDamage link targets
+	// only the recipient; its damagers are the earlier slots). The qualifier
 	// rides the ONE shared dotted-qualifier grammar
 	// (definedCardQualifierMatches, the same matcher DefinedCards$' dotted
 	// forms use) so a selector and a choice pool can never disagree about
@@ -444,7 +447,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	if qual, ok := strings.CutPrefix(spec, "Targeted."); ok {
 		qual = strings.TrimSpace(qual)
 		var out []state.Target
-		for _, t := range c.Targets {
+		for _, t := range refTargetUnion(c) {
 			if t.IsPlayer || t.Obj == 0 {
 				continue
 			}

@@ -216,13 +216,25 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	if charged.Generic < 0 {
 		charged.Generic = 0
 	}
-	if !charged.HasManaPayment() {
+	if !hasRemainingManaComponent(charged) {
 		return false
 	}
 	av := pay.AvailableFor(asPayer(e), pc.player, payment)
 	return pay.ManaReachable(asPayer(e), pc.player, charged, av.Pool, e.G.Players[pc.player].Snow,
 		av.Typed, e.G.Players[pc.player].Life, rider,
 		asEval(e).Conv(pc.player, payment.ID, payment.Class == paymentActivated), e.castWindowUnits(pc))
+}
+
+// hasRemainingManaComponent reports whether c still demands a mana payment
+// after the announced faces are folded in. HasManaPayment alone misses an
+// unannounced Phyrexian or hybrid-Phyrexian pip: announcing the life face
+// folds 2 into c.Life, but the pip's colour face is still a mana component
+// (CR 107.4f), so the source-window probe above must still price it. A
+// remaining hybrid or monocolour-hybrid pip cannot reach here without a
+// Colored/Generic component, because announcing the current pip folds that
+// face in.
+func hasRemainingManaComponent(c Cost) bool {
+	return c.HasManaPayment() || len(c.Phyrexian) > 0 || len(c.HybridPhyrexian) > 0
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or

@@ -177,12 +177,10 @@ func effRadiationDrain(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	n := g.Players[p].Counter("RAD")
-	for i := int32(0); i < n; i++ {
-		lib := g.Zone(state.ZLibrary, p)
-		if len(lib) == 0 {
-			break
+	for _, id := range millSnapshot(g, p, n) {
+		if !slices.Contains(g.Zone(state.ZLibrary, p), id) {
+			continue
 		}
-		id := lib[0]
 		o := g.Obj(id)
 		land := false
 		if o != nil && o.Face() != nil {
