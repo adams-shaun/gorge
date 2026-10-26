@@ -2,4 +2,3 @@ In the Presence of Ages	param:api:DigMultiple.ChangeValid,param:api:DigMultiple.
 Malcolm, Alluring Scoundrel	param:api:Play.DefinedDesc,param:api:Play.IfDesc
 Ojer Kaslem, Deepest Growth	param:api:DigMultiple.ChangeValid,param:api:DigMultiple.DestinationZone,param:api:DigMultiple.DigNum,param:api:DigMultiple.Optional,param:api:DigMultiple.RestRandomOrder,param:api:DigMultiple.Reveal,param:api:DigMultiple.SourceZone
 Palani's Hatcher	param:api:Sacrifice.SacMessage
-Zoyowa Lava-Tongue	param:api:GenericChoice.DamageMap
