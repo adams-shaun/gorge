@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -14,8 +13,9 @@ import (
 // named entries BEFORE this same effect's AddKeywords apply (Animate Dead's
 // "it loses 'enchant creature card in a graveyard'" in the same pass that
 // grants "enchant creature put onto the battlefield with CARDNAME").
-// AnimateAll's RemoveKeywords$ stays unread (the animateAllUnreadNote
-// convention) and is pinned unchanged.
+// AnimateAll's RemoveKeywords$/RemoveAllAbilities$ are READ since cr-g134:
+// the sweep carries them per object through registerAnimateEffects, so the
+// registered unit-level shape is pinned here beside the single-target read.
 
 func animateRemoveHost(t *testing.T) (*fakeHost, *Ctx) {
 	t.Helper()
@@ -66,24 +66,98 @@ func TestAnimateRemoveKeywordsOnlyBodyStillRegisters(t *testing.T) {
 	}
 }
 
-// TestAnimateAllKeepsRemoveKeywordsUnread pins the scope boundary: the shared
-// parser reads the parameter but AnimateAll's sweep must not apply it -- the
-// unread note names it, and no registered effect carries a removal.
-func TestAnimateAllKeepsRemoveKeywordsUnread(t *testing.T) {
-	h, c := animateRemoveHost(t)
-	Resolve(h, c, sa(t, "SP$ AnimateAll | ValidCards$ Creature | RemoveKeywords$ Enchant:Creature.inZoneGraveyard:stale"))
-	noted := false
-	for _, ev := range h.log {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, "RemoveKeywords$") && strings.Contains(ev.Text, "not implemented") {
-			noted = true
+// TestAnimateAllRemoveKeywordsRegistersPerObject pins the sweep's read of
+// RemoveKeywords$: every creature the ValidCards$ filter matches gets its OWN
+// LAbilities effect carrying the removal (the same registration the
+// single-target Animate uses), and no Note names RemoveKeywords$ -- it is a
+// read parameter now, not an unread gap.
+func TestAnimateAllRemoveKeywordsRegistersPerObject(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	Resolve(h, &Ctx{Controller: 0},
+		sa(t, "SP$ AnimateAll | ValidCards$ Creature | RemoveKeywords$ Indestructible"))
+	want := map[state.ObjID]bool{ids["myBear"]: true, ids["myFlier"]: true, ids["theirBig"]: true}
+	seen := map[state.ObjID]bool{}
+	for _, ce := range h.continuous {
+		if !want[ce.Source] {
+			t.Fatalf("grant landed on a non-creature (source %d): %+v", ce.Source, ce)
+		}
+		if seen[ce.Source] {
+			t.Fatalf("two continuous effects for creature %d: %+v", ce.Source, ce)
+		}
+		seen[ce.Source] = true
+		if ce.Layer != state.LAbilities {
+			t.Fatalf("layer %v, want LAbilities: %+v", ce.Layer, ce)
+		}
+		if len(ce.RemoveKeywords) != 1 || ce.RemoveKeywords[0] != "Indestructible" {
+			t.Fatalf("RemoveKeywords = %v, want [Indestructible]: %+v", ce.RemoveKeywords, ce)
 		}
 	}
-	if !noted {
-		t.Fatalf("no AnimateAll RemoveKeywords$ unread note in the log: %+v", h.log)
+	if len(seen) != len(want) {
+		t.Fatalf("creatures swept = %v, want all of %v", seen, want)
 	}
+	for _, n := range notesOf(h) {
+		if strings.Contains(n, "RemoveKeywords$") {
+			t.Fatalf("RemoveKeywords$ is read: no note may name it, got %q", n)
+		}
+	}
+}
+
+// TestAnimateAllRemoveAllAbilitiesRegistersPerObject pins the Curious
+// Colossus body on the sweep: RemoveAllAbilities$ True plus the base 1/1 and
+// the Coward type grant register per swept creature as the THREE effects the
+// shared registration makes (layer-6 removal, layer-4 type add, layer-7b base
+// P/T), and no Note names RemoveAllAbilities$.
+func TestAnimateAllRemoveAllAbilitiesRegistersPerObject(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	Resolve(h, &Ctx{Controller: 0},
+		sa(t, "DB$ AnimateAll | ValidCards$ Creature | Power$ 1 | Toughness$ 1 | "+
+			"RemoveAllAbilities$ True | Types$ Coward | Duration$ Permanent"))
+	want := map[state.ObjID]bool{ids["myBear"]: true, ids["myFlier"]: true, ids["theirBig"]: true}
+	saw := map[state.ObjID]map[string]bool{}
 	for _, ce := range h.continuous {
-		if len(ce.RemoveKeywords) > 0 {
-			t.Fatalf("AnimateAll applied RemoveKeywords$ behind the unread note: %+v", ce)
+		if !want[ce.Source] {
+			t.Fatalf("grant landed on a non-creature (source %d): %+v", ce.Source, ce)
+		}
+		kind := ""
+		switch {
+		case ce.Layer == state.LAbilities:
+			if !ce.RemoveAbilities {
+				t.Fatalf("LAbilities effect without RemoveAbilities: %+v", ce)
+			}
+			kind = "abilities"
+		case ce.Layer == state.LType:
+			if len(ce.AddTypes) != 1 || ce.AddTypes[0] != "Coward" {
+				t.Fatalf("type effect = %+v, want the Coward add", ce)
+			}
+			kind = "types"
+		case ce.Layer == state.LPT:
+			if ce.Sub != state.SubSet || !ce.HasSet || ce.SetPower != 1 || ce.SetToughness != 1 {
+				t.Fatalf("P/T effect = %+v, want the 1/1 base set", ce)
+			}
+			kind = "pt"
+		default:
+			t.Fatalf("unexpected layer %d: %+v", ce.Layer, ce)
+		}
+		if !ce.Permanent || ce.UntilEOT {
+			t.Fatalf("Duration$ Permanent registered %+v", ce)
+		}
+		if saw[ce.Source] == nil {
+			saw[ce.Source] = map[string]bool{}
+		}
+		saw[ce.Source][kind] = true
+	}
+	for id := range want {
+		for _, kind := range []string{"abilities", "types", "pt"} {
+			if !saw[id][kind] {
+				t.Fatalf("creature %d missing its %s effect: %+v", id, kind, h.continuous)
+			}
+		}
+	}
+	for _, n := range notesOf(h) {
+		if strings.Contains(n, "RemoveAllAbilities$") {
+			t.Fatalf("RemoveAllAbilities$ is read: no note may name it, got %q", n)
 		}
 	}
 }
