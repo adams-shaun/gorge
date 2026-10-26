@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -195,6 +196,9 @@ func (pe *payer) Game() *state.Game                 { return pe.G }
 func (pe *payer) Emit(ev events.Event) events.Event { return (*Engine)(pe).emit(ev) }
 func (pe *payer) Verify() bool                      { return walkCacheVerify }
 func (pe *payer) Log() *events.Log                  { return pe.L }
+func (pe *payer) AsFace(id state.ObjID, face *cards.Face, fn func() bool) bool {
+	return (*Engine)(pe).offerAsFace(id, face, fn)
+}
 func (pe *payer) MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {
 	e := (*Engine)(pe)
 	// A cost spec comparing against an X the ability's targets fix

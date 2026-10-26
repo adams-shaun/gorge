@@ -362,6 +362,13 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		if !ok {
 			return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}
 		}
+		// a RestrictValid$ source admits the payment by the cast face's
+		// characteristics (cr-g125; The Ringhart Crest's "legendary creature
+		// spell" mana cannot pay its own back face), the rest of the plan
+		// reads the board as it is
+		prev := e.planFace
+		e.planFace = castFace
+		defer func() { e.planFace = prev }()
 		return e.planComposedCost(p, id, composed, false, false)
 	}
 	lo := base.XMin
@@ -744,6 +751,7 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 	}
 	manaOnly := Cost{Colored: mana.Colored, Generic: mana.Generic}
 	desc := pay.DescriptorFor(id, ability, composed)
+	desc.Face = e.planFace // an alternate-face route's restriction reads the cast face
 	got := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, tapped, nil, kept)
 	if got.Plan == nil {
 		// No plan even with every other source is a proof.
