@@ -523,6 +523,7 @@ func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, reme
 // consultation. Keep comparisons against these named mode identifiers.
 const (
 	ModeIgnoreHexproof   = "IgnoreHexproof"
+	ModeCantLoseLife     = "CantLoseLife"
 	ModeIgnoreLegendRule = "IgnoreLegendRule"
 	// ModeAssignCombatDamageAsUnblocked names CR 510.1c-d's
 	// "assign combat damage as though it weren't blocked" static, delivered
