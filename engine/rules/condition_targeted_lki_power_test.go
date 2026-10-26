@@ -20,13 +20,23 @@ func TestConditionTargetedReadsLKIPower(t *testing.T) {
 	for _, tc := range []struct {
 		name        string
 		battlefield []string
+		target      string
 		livePT      string
 		wantPT      string
 		wantCounter int32
 	}{
 		{
+			name:        "anthem-boosted 3/3: no counter",
+			battlefield: []string{"Grizzly Bears", "Glorious Anthem"},
+			target:      "p1:Grizzly Bears",
+			livePT:      "3/3",
+			wantPT:      "3/4",
+			wantCounter: 0,
+		},
+		{
 			name:        "mentor power 3: no counter",
 			battlefield: []string{"Burrowguard Mentor", "Grizzly Bears", "Grizzly Bears"},
+			target:      "p1:Burrowguard Mentor",
 			livePT:      "3/3",
 			wantPT:      "3/4",
 			wantCounter: 0,
@@ -34,6 +44,7 @@ func TestConditionTargetedReadsLKIPower(t *testing.T) {
 		{
 			name:        "vanilla 2/2: counter",
 			battlefield: []string{"Grizzly Bears"},
+			target:      "p1:Grizzly Bears",
 			livePT:      "2/2",
 			wantPT:      "4/5",
 			wantCounter: 1,
@@ -41,16 +52,13 @@ func TestConditionTargetedReadsLKIPower(t *testing.T) {
 		{
 			name:        "mentor power 2: counter",
 			battlefield: []string{"Burrowguard Mentor", "Grizzly Bears"},
+			target:      "p1:Burrowguard Mentor",
 			livePT:      "2/2",
 			wantPT:      "4/5",
 			wantCounter: 1,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			target := "p1:Burrowguard Mentor"
-			if len(tc.battlefield) == 1 && tc.battlefield[0] != "Burrowguard Mentor" {
-				target = "p1:Grizzly Bears"
-			}
 			sc := oracleScenario{
 				Setup: map[string]oracleSeat{
 					"p0": {Hand: []string{"Driftgloom Coyote"}},
@@ -58,11 +66,11 @@ func TestConditionTargetedReadsLKIPower(t *testing.T) {
 				},
 				Steps: []oracleStep{
 					{Op: "cast", Seat: 0, Card: "p0:Driftgloom Coyote", Mana: "WWCCC",
-						Expect: []oracleExpect{{Card: target, PT: tc.livePT}}},
-					{Op: "resolve", Targets: []string{target}},
+						Expect: []oracleExpect{{Card: tc.target, PT: tc.livePT}}},
+					{Op: "resolve", Targets: []string{tc.target}},
 				},
 				Expect: []oracleExpect{
-					{Card: target, Zone: "exile"},
+					{Card: tc.target, Zone: "exile"},
 					{Card: "p0:Driftgloom Coyote", Zone: "battlefield", PT: tc.wantPT,
 						Counters: map[string]int32{"P1P1": tc.wantCounter}},
 				},

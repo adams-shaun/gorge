@@ -49,6 +49,23 @@ func SacrificedLKI(h Host, id state.ObjID) state.SacrificedInfo {
 	return s
 }
 
+// sacrificedInfoFor returns the capture this resolution took for id under
+// `Sacrifice … RememberSacrificed$ True`, if any. The count path's
+// Remembered/RememberedLKI P/T and mana-value reads use it so a remembered
+// sacrifice is read from the same snapshot Sacrificed$<Property> reads,
+// never the card's printed face in the graveyard (CR 608.2h).
+func sacrificedInfoFor(c *Ctx, id state.ObjID) (*state.SacrificedInfo, bool) {
+	if c == nil {
+		return nil, false
+	}
+	for i := range c.Sacrificed {
+		if c.Sacrificed[i].Obj == id {
+			return &c.Sacrificed[i], true
+		}
+	}
+	return nil, false
+}
+
 // sacrificedSourceLKI returns the snapshot this resolving spell or ability
 // took of its OWN source when it sacrificed it -- a Sac<1/CARDNAME> cost
 // (Ravenous Amulet's "Sacrifice this artifact: Each opponent loses life
