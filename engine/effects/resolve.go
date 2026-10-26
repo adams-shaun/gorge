@@ -62,6 +62,16 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	// ClearChosenColor$ (Skrelv's, Rhystic Cave's, Nyx Lotus's DBCleanup): the
+	// source's recorded colour choice. It is always the last chain link, so
+	// every same-chain read (Mana Produced$ Chosen, devotion, the Pump and
+	// Effect snapshots) has already happened. Only a real clear emits.
+	if strings.EqualFold(sa.ParamStr(cards.PKClearChosenColor), "True") && c.Source != 0 {
+		if o := h.Game().Obj(c.Source); o != nil && o.ChosenColor != "" {
+			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-chosen-color"})
+			noted = true
+		}
+	}
 	// The cosmetic fallback (an empty-list clear, or a Cleanup with nothing
 	// to clear): the Note main has always emitted, byte-for-byte, so golden
 	// games whose cleanups run on empty lists replay identically. This also
