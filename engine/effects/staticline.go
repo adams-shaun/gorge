@@ -524,11 +524,17 @@ func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, reme
 const (
 	ModeIgnoreHexproof   = "IgnoreHexproof"
 	ModeIgnoreLegendRule = "IgnoreLegendRule"
-	ModeNoCleanupDamage  = "NoCleanupDamage"
-	ModeMustBlock        = "MustBlock"
-	ModeFlipCoinMod      = "FlipCoinMod"
-	ModeCantPhaseIn      = "CantPhaseIn"
-	ModeCantPhaseOut     = "CantPhaseOut"
+	// ModeAssignCombatDamageAsUnblocked names CR 510.1c-d's
+	// "assign combat damage as though it weren't blocked" static, delivered
+	// by a resolved Effect's StaticAbilities$ body (Predatory Focus,
+	// Outmaneuver, Gurzigost) and read by rules'
+	// asUnblockedStaticMatches beside the printed S: static route.
+	ModeAssignCombatDamageAsUnblocked = "AssignCombatDamageAsUnblocked"
+	ModeNoCleanupDamage               = "NoCleanupDamage"
+	ModeMustBlock                     = "MustBlock"
+	ModeFlipCoinMod                   = "FlipCoinMod"
+	ModeCantPhaseIn                   = "CantPhaseIn"
+	ModeCantPhaseOut                  = "CantPhaseOut"
 )
 
 // staticKeysReadable fails closed when a delivered static carries an unread

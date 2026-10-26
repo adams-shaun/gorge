@@ -1653,8 +1653,8 @@ func (e *Engine) enterEndCombat() {
 func (e *Engine) beginCombatPass(pass bool) {
 	e.combatRound.pass = pass
 	e.combatRound.active = true
-	e.combatRound.electQueue = e.asUnblockedNeeding(pass)
 	e.combatRound.doneElect = nil
+	e.combatRound.electQueue = e.asUnblockedNeeding(pass)
 	e.combatRound.queue = e.divisionNeeding(pass)
 	e.combatRound.done = nil
 	e.combatRound.askAttacker = 0
