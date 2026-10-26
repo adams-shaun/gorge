@@ -2,5 +2,4 @@ Gix, Yawgmoth Praetor	cost:Discard
 Hostile Negotiations	param:api:TwoPiles.KeepRemembered
 Hurkyl, Master Wizard	param:api:ChooseCard.ChoiceTitleAppend
 Over the Top	param:api:ChangeZoneAll.ForgetChanged
-Phyrexian Fleshgorger	cost:PayLife
 The Stone Brain	param:api:Cleanup.ClearNamedCard
