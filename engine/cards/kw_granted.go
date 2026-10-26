@@ -3,9 +3,13 @@
 // link-time expansion (engine/cards/keywords.go expandKeywords) only ever reads a
 // face's PRINTED keyword list, so no ability is minted for the grant. This
 // file is the one dispatcher every granted-keyword read site calls: it
-// synthesizes the ability body for the four heads that mint an activated
-// ability (Cycling, TypeCycling, Saddle, Crew) from the line alone, sharing
-// each body builder with the printed expansion so the two cannot drift.
+// synthesizes the ability body for every head whose printed expansion mints
+// exactly one activated ability from the line alone: Cycling, TypeCycling,
+// Saddle and Crew share a body builder with the printed expansion; Equip,
+// Fortify, Level up, Outlast, Unearth, Embalm, Eternalize and Ninjutsu run the
+// registered printed expander itself against a scratch face, so the two cannot
+// drift. Reconfigure (a pair of abilities) and Transmute (the body reads the
+// face's mana value) cannot be rebuilt from the line alone and stay absent.
 
 package cards
 
@@ -13,15 +17,44 @@ import "strings"
 
 // grantedKeywordHeads is the set of keyword heads GrantedKeywordAbility can
 // synthesize an activated ability for. Every other head returns nil (fail
-// closed): the expansion of a keyword like Equip, Reconfigure or LevelUp
-// mints an ability with its own zone/target/alt-cost design, and handing back
-// a wrong body would be worse than handing back none.
+// closed): a keyword whose expansion needs more than the line (Reconfigure's
+// attach/unattach pair, Transmute's printed mana value) would hand back a
+// wrong body, which is worse than handing back none.
 func grantedKeywordHeads(head string) bool {
 	switch head {
 	case "Cycling", "TypeCycling", "Saddle", "Crew":
 		return true
 	}
+	return grantedExpanderHeads(head)
+}
+
+// grantedExpanderHeads is the subset of grantedKeywordHeads whose body is the
+// printed expander's own single minted ability (grantedExpanderSA).
+func grantedExpanderHeads(head string) bool {
+	switch head {
+	case "Equip", "Fortify", "Level up", "Outlast", "Unearth", "Embalm", "Eternalize", "Ninjutsu":
+		return true
+	}
 	return false
+}
+
+// GrantedKeywordHeadNames lists every head GrantedKeywordAbility synthesizes,
+// in a fixed order, for the rules-side head gates that must agree with it.
+func GrantedKeywordHeadNames() []string {
+	return []string{"Cycling", "TypeCycling", "Saddle", "Crew",
+		"Equip", "Fortify", "Level up", "Outlast", "Unearth", "Embalm", "Eternalize", "Ninjutsu"}
+}
+
+// grantedExpanderSA runs the registered printed expander for line against a
+// scratch face and returns the single ability it mints, tagged exactly as the
+// printed expansion tags it (KeywordLine = line). A line whose expander mints
+// nothing or more than one ability (a malformed cost) returns nil.
+func grantedExpanderSA(line string) *SA {
+	f := newFace()
+	if !f.ApplyKeywordExpansion(line) || len(f.Abilities) != 1 {
+		return nil
+	}
+	return f.Abilities[0]
 }
 
 // GrantedKeywordAbility synthesizes the activated ability a keyword LINE
@@ -60,6 +93,8 @@ func GrantedKeywordAbility(line string) *SA {
 	case "Crew":
 		n, riders := crewParamParts(param)
 		sa = crewAbilitySA(n, riders)
+	default:
+		sa = grantedExpanderSA(line)
 	}
 	if sa != nil {
 		sa.Params["KeywordLine"] = line
