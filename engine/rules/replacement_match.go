@@ -714,8 +714,9 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 			if ev.Kind == events.PlayerCounterChange {
 				// A player alternative in the recipient list (Innkeeper's
 				// Talent's ValidObject$ Permanent.inZoneBattlefield,Player:
-				// "on a permanent or player") admits the player form.
-				if !playerCounterRecipientMatches(e, spec, ev.Player, you, source) {
+				// "on a permanent or player") admits the player form; the
+				// object alternatives name no player base and never match.
+				if !effects.MatchesPlayerSpecFrom(e.G, spec, ev.Player, you, source) {
 					return false
 				}
 			} else if ev.Kind != events.CounterChange {
@@ -1379,25 +1380,4 @@ func (e *Engine) enteringObjectMatches(spec string, ev events.Event, sc effects.
 		}
 	}
 	return e.matchesSpec(spec, ev.Obj, sc)
-}
-
-// playerCounterRecipientMatches reports whether a counter replacement's
-// recipient spec names player p through one of its comma alternatives whose
-// head is a player word (Player, You, Opponent); the object alternatives
-// never match a player.
-func playerCounterRecipientMatches(e *Engine, spec string, p, you state.PlayerID, source state.ObjID) bool {
-	for _, alt := range strings.Split(spec, ",") {
-		alt = strings.TrimSpace(alt)
-		head := alt
-		if i := strings.IndexAny(head, ".+"); i >= 0 {
-			head = head[:i]
-		}
-		switch head {
-		case "Player", "You", "Opponent":
-			if effects.MatchesPlayerSpecFrom(e.G, alt, p, you, source) {
-				return true
-			}
-		}
-	}
-	return false
 }
