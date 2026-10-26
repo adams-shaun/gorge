@@ -230,3 +230,24 @@ holds that. `BeforeFirstPostCombatMainEnd$ True` (World at War) refuses the
 grant once a main phase after the first postcombat main has begun, read from the
 folded `Game.MainPhasesThisTurn` (Forge's `nMainsThisTurn <= (is(MAIN2) ? 2 : 1)`):
 `TestWorldAtWarAfterTheFirstPostcombatMainGrantsNothing`.
+
+## A stack copy keeps alternative-cost provenance (CR 707.10)
+
+`events.StackCopy` inherits the original's `CastFlags` except the bits in
+`state.CastProvenanceFlags`, and that split is the rule, not an approximation:
+
+- **Kept:** `FlagEvoked`, `FlagDashed` and `FlagWarped` record that an
+  alternative cost was paid, and CR 707.10 copies all alternative costs. The
+  token the copy becomes therefore gets the same battlefield-entry hook:
+  evoke's sacrifice (CR 702.74a), dash's haste and end-step return
+  (CR 702.109a), and warp's end-step exile (CR 702.185a). Pinned by
+  `TestCopyOfEvokedSpellIsSacrificed`,
+  `TestCopyOfDashedSpellReturnsAtEndStep` and
+  `TestCopyOfWarpedSpellIsExiledAtEndStep`
+  (`engine/rules/altcost_copy_provenance_test.go`).
+- **Lost:** `state.CastProvenanceFlags` lists the bits whose readers are
+  conditioned on the spell having been CAST, so a copy -- put on the stack,
+  never cast -- must not inherit them. `FlagMayFlashSac` is one: its rider is
+  "if you cast it any time a sorcery couldn't have been cast".
+  `TestMayFlashSacCopiedSpellIsNotSacrificed` (`engine/rules/mayflashsac_test.go`)
+  pins that half.
