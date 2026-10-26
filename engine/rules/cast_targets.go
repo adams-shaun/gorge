@@ -959,7 +959,9 @@ func teamworkBattlefieldSub(f *cards.Face, root, sub *cards.SA) bool {
 // cast census can resolve its targets: a player-target link (zone-free), or
 // a single-zone Graveyard/Battlefield object target matching its Origin$,
 // inferred by originImpliedTargetZone or declared by matching TgtZone$.
-// Both routes feed targetZones for the offer census, cast ask and CR 608.2b
+// Timing is then castSubPreAskable's call, as for every other API: a
+// mandatory parent-dependent link stays on its resolution path. Both routes
+// feed targetZones for the offer census, cast ask and CR 608.2b
 // recheck. Other origins and multi-zone shapes remain fail-closed and keep
 // their mid-resolution ask (changeZoneChosenTargets). The Teamwork-only
 // battlefield branch is separately admitted by teamworkBattlefieldSub at
@@ -984,26 +986,11 @@ func castSubChangeZoneAnnounceable(sa *cards.SA) bool {
 			return false
 		}
 		z := tp.Zones[0]
-		if z == state.ZBattlefield && !castSubBattlefieldChangeZoneShape(sa) {
-			return false
-		}
 		return (z == state.ZGraveyard || z == state.ZBattlefield) &&
 			effects.ChangeZoneOf(sa).OriginExactly(z)
 	}
-	z, ok, _ := originImpliedTargetZone(sa)
-	return ok && (z != state.ZBattlefield || castSubBattlefieldChangeZoneShape(sa))
-}
-
-// castSubBattlefieldChangeZoneShape is the narrow public-target form supported
-// here: an unconditional Creature link with an explicit, equal target bound.
-// Cruel Alliance's Teamwork SVar supplies that bound at cast time; the broad
-// family of other battlefield ChangeZone links remains on its existing path.
-func castSubBattlefieldChangeZoneShape(sa *cards.SA) bool {
-	tp := effects.TargetsOf(sa)
-	min, max := strings.TrimSpace(tp.Min.Text), strings.TrimSpace(tp.Max.Text)
-	return tp.ValidTgts == "Creature" && min != "" && min == max &&
-		strings.TrimSpace(sa.ParamStr(cards.PKCondition)) == "" &&
-		!tp.Has(effects.TgtTypeStack) && !tp.Has(effects.TgtValidPlayers)
+	_, ok, _ := originImpliedTargetZone(sa)
+	return ok
 }
 
 // castSubPreAskable reports whether the cast flow can announce this chain

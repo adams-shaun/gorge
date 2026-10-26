@@ -137,20 +137,11 @@ func TestTearAsunderKickedTakesOnlyTheSubTarget(t *testing.T) {
 	}
 	submitChoices(t, e, kickIdx)
 
-	// The kicked main SA must demand ZERO targets: no cast-time KTarget ask.
-	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
-		t.Fatalf("kicked main SA asked for %d target(s) (max=%d); want none", d.Min, d.Max)
-	}
-
-	// Drive to resolution: the sub's target ask appears as a mid-resolution
-	// picker for exactly one nonland permanent. passAll stops at it.
-	passAll(t, e, 12)
+	// The kicked main SA must demand ZERO targets: the only cast-time KTarget
+	// ask is the chained sub's (CR 601.2c), never the root's artifact pick.
 	sub := e.Pending()
-	if sub == nil || sub.Kind == decision.KPriority {
-		t.Fatal("precondition: the kicked sub never asked for its nonland-permanent target")
-	}
-	if sub.Prompt != "Select target nonland permanent" {
-		t.Fatalf("sub ask prompt = %q, want the nonland-permanent picker", sub.Prompt)
+	if sub == nil || sub.Kind != decision.KTarget || sub.ResumeKind != "cast_sub" {
+		t.Fatalf("precondition: the kicked cast should announce only the chained sub's target, got %+v", sub)
 	}
 	if sub.Min != 1 || sub.Max != 1 {
 		t.Fatalf("kicked sub target bounds min=%d max=%d, want 1/1", sub.Min, sub.Max)

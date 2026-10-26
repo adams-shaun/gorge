@@ -48,8 +48,10 @@ func TestKr8ParentSubTargetWithCandidateIsCheckpointed(t *testing.T) {
 			t.Fatalf("the attached Equipment was not exiled (zone %v)", o.Zone)
 		}
 	}, tapeCondFierySrc, tapeCondBearSrc, tapeCondEquipSrc)
-	if st.Misses != 0 || st.Checkpoints != 1 || st.Served == 0 {
-		t.Fatalf("an attached Equipment: the sub-target ask must be checkpointed and served: %+v", st)
+	// CR 601.2c: the Equipment is announced on cast, so the resolution itself
+	// poses no ask: its checkpoint is served by the recorded NoAsk.
+	if st.Misses != 0 || st.Checkpoints != 1 || st.NoAsk != 1 || st.Posed != 0 {
+		t.Fatalf("an attached Equipment: the sub-target is announced on cast, resolution asks nothing: %+v", st)
 	}
 }
 
