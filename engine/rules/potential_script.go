@@ -124,6 +124,26 @@ func (sr *scriptSearch) run(e *Engine) ([]ScriptStep, bool) {
 	return append([]ScriptStep(nil), sr.path...), true
 }
 
+// ownTapSource reports whether id is the source of the searched activated
+// ability and that ability's cost taps it: activating id for mana first
+// leaves the play's own {T} unpayable, so no continuation of that prefix
+// can pay the play (Katilda, Dawnhart Prime's granted mana ability before
+// her own "{4}{G}{W}, {T}" counters ability). The node pricing would still
+// call it payable (planAbilityPayment withholds the source from the census
+// but does not read its tapped state), ending the search in a dead-end
+// script that hides every other prefix.
+func (sr *scriptSearch) ownTapSource(c *Engine, id state.ObjID) bool {
+	if sr.play.Kind != "ability" || id != sr.play.Obj {
+		return false
+	}
+	o := c.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	pa, ok := o.PileAbilityAt(sr.play.Ability)
+	return ok && pa.SA != nil && c.abilityCompiledCost(pa.SA).Cost.Tap
+}
+
 func (sr *scriptSearch) offered(o *decision.Option) bool {
 	a := sr.play
 	return o.Kind == a.Kind && o.Obj == a.Obj && o.Ability == a.Ability && o.Mode == a.Mode && (sr.altCost < 0 || o.AltCostIndex == sr.altCost)
@@ -243,6 +263,9 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 			opt := &d.Options[i]
 			if opt.Kind != "activate" || scriptGap(gaps, opt.Obj) != gap {
 				continue
+			}
+			if sr.ownTapSource(c, opt.Obj) {
+				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
 			}
 			next := funded
 			if !gap {
