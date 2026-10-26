@@ -52,7 +52,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.26d | follows | `engine/events/apply_combat.go#foldPhaseOut` | - |  |
 | 702.26e | follows | `engine/rules/layers_types.go#Engine.matchesWithCharsPT` | `TestCR702PhasedOutPermanentStaticAbilityIsOff` | no continuous effect ever applies while phased out |
 | 702.26f,k,n | unknown | - | - | (helper) |
-| 702.26g,h | not-impl | `engine/effects/phases.go#effPhases` `engine/rules/turn.go#Engine.finishUntapStep` `engine/rules/attach.go#Engine.attachmentSBAs` | - | SILENT: attachments never phase out indirectly (helper) |
+| 702.26g,h | follows | `engine/events/apply_combat.go#foldPhaseOut` `engine/rules/turn.go#Engine.finishUntapStep` | `TestCR70226gAuraPhasesOutWithBearer` `TestCR70226hIndirectPhasesInWithHost` | attachments phase out indirectly with the host and phase in with it (PhasedOutIndirect) |
 | 702.26i | follows | `engine/rules/attach.go#Engine.attachmentSBAs` | - | by construction; untested |
 | 702.26j | follows | `engine/events/apply_combat.go#foldPhaseOut` | - | by construction |
 | 702.26m | follows | `engine/rules/turn.go#Engine.beginTurn` | - |  |

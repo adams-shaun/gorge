@@ -92,6 +92,9 @@ func (e *Engine) altCostEnter(ev events.Event) {
 			Ctx:        effects.NewCtx(ev.Obj, o.Controller, effects.CtxInit{}),
 		})
 	}
+	for _, g := range o.ManaAddsKeywordGrants {
+		e.applyManaKeywordGrant(ev.Obj, o.Controller, g)
+	}
 	if o.CastFlags&state.FlagDashed != 0 {
 		// CR 702: a dashed spell gains haste. A layer-6 grant scoped to the
 		// object itself (the effPump shape), UntilEOT: it leaves with the
@@ -146,6 +149,23 @@ func (e *Engine) altCostEnter(ev events.Event) {
 		// stack->battlefield move preserves it, so it is readable here.
 		e.sneakEnter(ev.Obj, o.Controller)
 	}
+}
+
+// applyManaKeywordGrant applies one AddsKeywords$ mana-spend grant (CR 106.6,
+// 400.7a) to the permanent a spell became: a layer-6 keyword grant scoped to
+// the object (Dash's shape), until end of turn when the rider says UntilEOT
+// and otherwise for as long as it stays. Riot is an as-enters choice that
+// must exist before the entry replacement, so granting it here would be
+// wrong: it stays unmodelled behind a Note (fail closed).
+func (e *Engine) applyManaKeywordGrant(id state.ObjID, controller state.PlayerID, g state.ManaAddsKeywordGrant) {
+	if g.Keyword == "Riot" {
+		e.emit(events.Event{Kind: events.Note, Text: "Mana AddsKeywords$ Riot is not modelled (an as-enters choice)"})
+		return
+	}
+	e.AddContinuous(state.ContinuousEffect{
+		Source: id, Affects: "Card.Self", Controller: controller,
+		Layer: state.LAbilities, AddKeywords: []string{g.Keyword}, UntilEOT: g.Until == "UntilEOT",
+	})
 }
 
 // escapeCost is id's Escape cost (CR 702.42a): the printed K:Escape

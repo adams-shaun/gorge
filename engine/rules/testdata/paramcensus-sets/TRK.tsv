@@ -3,10 +3,8 @@ Bat'leth	param:api:Pump.ValidTgtsDesc
 Command Decision	param:api:Destroy.ValidTgtsDesc
 Common Goal	param:api:EachDamage.ValidTgtsDesc,param:api:Pump.ValidTgtsDesc
 Cybernetic Specialist	param:api:ChangeZone.ValidTgtsDesc
-Dathon and Picard at El-Adrel	param:api:Sacrifice.SacMessage
 Guidance Failure	param:api:ChangeZone.ValidTgtsDesc
 I'm a Doctor, Not a ...	param:api:PutCounter.ValidTgtsDesc
-In the Pale Moonlight	param:api:Sacrifice.SacMessage
 Malfunctioning Holodeck	param:api:ChangeZone.ValidTgtsDesc
 Picard, Leading by Example	param:api:Pump.ValidTgtsDesc
 Resistance Is Futile	param:api:ChangeZone.ValidTgtsDesc,param:api:Destroy.ValidTgtsDesc

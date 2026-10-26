@@ -3,6 +3,5 @@ Invasion of New Phyrexia	param:api:Tap.AnyNumber,param:api:Tap.CardChoices,param
 Omnath, Locus of All	param:api:PeekAndReveal.NoPeek
 Realmbreaker's Grasp	param:stat:CantAttack.ValidSA,param:stat:CantBlock.ValidSA
 Sandstalker Moloch	param:api:Dig.PrimaryPrompt
-Sheoldred	param:api:Sacrifice.SacMessage
 Sunder the Gateway	param:api:SetState.Mandatory
 Surge of Salvation	param:api:Effect.ExileOnLost
