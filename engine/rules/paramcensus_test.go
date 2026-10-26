@@ -2944,14 +2944,20 @@ var ignoredParamKeys = map[string]string{
 // RaiseCost/ReduceCost are listed too: costStaticApplies used to SKIP a
 // Secondary$ cost static (the costgate fix removed that -- Forge applies it
 // like any other), so on a cost modifier the key is now exactly the text
-// marker it is in Forge. The Continuous.MayPlay family's whitelist still
-// fail-closes a Secondary$-carrying grant (engine/rules/layers.go mayPlayGrant) --
-// a RECOGNITION the census keeps measurable exactly like MayPlayPlayer$.
+// marker it is in Forge. The Continuous.MayPlay family is listed for the
+// same reason: CardTraitBase.isSecondary()
+// (forge-game/src/main/java/forge/game/CardTraitBase.java:179) is read only
+// by Card.java's getText-family renderers
+// (forge-game/src/main/java/forge/game/card/Card.java:2946,2978,2997,3013)
+// and LandAbility.java; no static-ability execution path reads it, and
+// XMage's RadhaHeartOfKeld grants its top-of-library land play
+// unconditionally. So both of gorge's may-play routes carry it and never
+// read it (engine/effects/staticline.go mayPlayParamsScan).
 // The modes below are the REGISTERED stat modes the corpus carries
 // Secondary$ on (measured over the full corpus at the current pin); an
 // unregistered mode's params are the primitive ratchet's business.
 var statPresentationSecondary = []string{
-	"Continuous", "CantBlockBy", "MustAttack", "CantBlock", "MinMaxBlocker",
+	"Continuous", "Continuous.MayPlay", "CantBlockBy", "MustAttack", "CantBlock", "MinMaxBlocker",
 	"CantBeActivated", "CantSacrifice", "CantBeCast", "CantAttack",
 	"CastWithFlash", "CantGainLife", "CantTarget", "Panharmonicon",
 	"RaiseCost", "ReduceCost", "DisableTriggers",
@@ -3693,11 +3699,12 @@ func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	if ignoredParam("api:Meld", "Secondary") {
 		t.Errorf("api:Meld Secondary is classified ignored -- the Meld partner-name read is no longer measurable")
 	}
-	// (c) the Continuous.MayPlay family's whitelist still fail-closes a
-	// Secondary$-carrying grant -- a genuine recognition (mayPlayGrant /
-	// mayPlayParamsScan, layers.go's mayPlayShape), not the text marker, so
-	// the family's Secondary label must stay live (the seven MayPlay
-	// carriers keep theirs) rather than join the ignored list.
+	// (c) the Continuous.MayPlay family also carries Secondary$ only as
+	// Forge's text marker: CardTraitBase.isSecondary() is read by Card.java's
+	// getText renderers and LandAbility.java, never by a static-ability
+	// execution path, so both may-play routes accept and ignore it
+	// (engine/effects/staticline.go mayPlayParamsScan). The scoped ignore must
+	// therefore suppress the family's label.
 	mayPlayCard, diags := cards.ParseBytes("census-probe-mayplay.txt", []byte(
 		"Name: Census Probe MayPlay\nTypes: Creature\nS:Mode$ Continuous | MayPlay$ True | Affected$ Card.Self | AffectedZone$ Exile | Secondary$ True\n"))
 	if len(diags) != 0 {
@@ -3706,14 +3713,13 @@ func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	if statCensusMode(mayPlayCard.Faces[0].Statics[0].Mode, mayPlayCard.Faces[0].Statics[0].Params) != "Continuous.MayPlay" {
 		t.Fatal("mayplay probe static did not map to Continuous.MayPlay -- the probe measures nothing")
 	}
-	hit = false
+	if !ignoredParam("stat:Continuous.MayPlay", "Secondary") {
+		t.Fatalf("stat:Continuous.MayPlay.Secondary is no longer classified as presentation-only -- the census will report a false positive")
+	}
 	for _, l := range cardCensusLabels(mayPlayCard, d, nil) {
 		if l == "param:stat:Continuous.MayPlay.Secondary" {
-			hit = true
+			t.Errorf("MayPlay Secondary$ carrier still labels param:stat:Continuous.MayPlay.Secondary despite the scoped ignore")
 		}
-	}
-	if !hit {
-		t.Errorf("MayPlay Secondary$ carrier did not label param:stat:Continuous.MayPlay.Secondary -- the MayPlay family's Secondary recognition is no longer measurable")
 	}
 }
 
