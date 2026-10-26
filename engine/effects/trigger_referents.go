@@ -448,7 +448,9 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	// controlReferentPlayers (the only corpus carrier is Weftwalking's
 	// Affected$ and its ThisTurnCast gate); Player.Opponent and Player.Other
 	// stay unknown and keep failing closed.
-	if ref == "Player.Active" {
+	// ActivePlayer is Forge's other spelling of the same seat (Ian Malcolm,
+	// Chaotician's "!OwnedBy ActivePlayer").
+	if ref == "Player.Active" || ref == "ActivePlayer" {
 		return op, ref, true
 	}
 	return "", "", false
@@ -879,4 +881,5 @@ var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.Chosen", Val: controlReferentPlayersChosenPlayer},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.EnchantedBy", Val: controlReferentPlayersPlayerEnchantedBy},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.Active", Val: controlReferentPlayersPlayerActive},
+	state.StrEntry[controlReferentPlayersCode]{Key: "ActivePlayer", Val: controlReferentPlayersPlayerActive},
 )
