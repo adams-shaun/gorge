@@ -231,8 +231,10 @@ func zoneIn(zones []state.Zone, want state.Zone) bool {
 }
 
 // mixedOriginIncludesHand identifies every explicit multi-zone Origin$ that
-// includes Hand. Such an effect needs one origin-aware hidden-zone chooser;
-// the exact-Hand and exact-Library walkers cannot safely stand in for it.
+// includes Hand. With a fetch selector the search path owns it (one private
+// option list across the named origins, effSearchLibrary); a Defined$ that
+// names its objects keeps the object path, and one diagnostic Note fires
+// only when such a resolution moved nothing.
 func mixedOriginIncludesHand(zones []state.Zone, all bool) bool {
 	return !all && len(zones) > 1 && zoneIn(zones, state.ZHand)
 }
