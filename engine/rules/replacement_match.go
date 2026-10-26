@@ -711,10 +711,17 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 			spec = strings.TrimSpace(r.ParamStr(cards.PKValidObject))
 		}
 		if spec != "" {
-			if ev.Kind != events.CounterChange {
+			if ev.Kind == events.PlayerCounterChange {
+				// A player alternative in the recipient list (Innkeeper's
+				// Talent's ValidObject$ Permanent.inZoneBattlefield,Player:
+				// "on a permanent or player") admits the player form; the
+				// object alternatives name no player base and never match.
+				if !effects.MatchesPlayerSpecFrom(e.G, spec, ev.Player, you, source) {
+					return false
+				}
+			} else if ev.Kind != events.CounterChange {
 				return false
-			}
-			if !e.matchesSpecFrom(spec, ev.Obj, you, source) {
+			} else if !e.matchesSpecFrom(spec, ev.Obj, you, source) {
 				return false
 			}
 		}
