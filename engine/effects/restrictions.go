@@ -639,6 +639,30 @@ func CantBeCastParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// cantBeActivatedParamsReadableKeys is the parameter whitelist an
+// Effect-delivered CantBeActivated body must pass before effEffect registers
+// it and rules' abilityRestrictedUsing reads it beside the printed S: route:
+// the mode, the object spec (ValidCard$), the ability spec (ValidSA$), the
+// actor scope (Activator$), the zone gate (AffectedZone$) and the gate family
+// the shared restrictionGateHolds/checkSVarHolds evaluators already run for
+// this consumer (Phases$, Condition$, ClassBand$, CheckSVar$, SVarCompare$),
+// plus display text. A body carrying any other parameter names a scoping this
+// build does not evaluate; registering it blanket would over-restrict, so it
+// is reported unimplemented instead. This is the ONE whitelist both
+// registration and consultation run, so the two paths cannot disagree about
+// what is readable.
+var cantBeActivatedParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "ValidSA", "Activator", "AffectedZone", "Phases", "Condition", "ClassBand", "CheckSVar", "SVarCompare", "Description")
+
+// CantBeActivatedParamsReadable is that whitelist's read.
+func CantBeActivatedParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !cantBeActivatedParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 // UnspentManaParamsReadable is the parameter whitelist an UnspentMana static
 // must pass before this build enforces it -- used BOTH by the face-static
 // reader (engine/rules/statics.go's unspentManaKeep activeStatics walk) and by
@@ -895,6 +919,31 @@ var untilUntapDurationCodes = state.NewStrCodes(
 func IsUntapStepDuration(dur string) bool {
 	switch untilUntapDurationCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
 	case untilUntapDurationEndOfYourNextUntap:
+		return true
+	}
+	return false
+}
+
+// untilTargetedUntapsDurationCode indexes the one Duration$ spelling
+// IsUntilTargetedUntapsDuration answers, through the same StrCodes table
+// convention the sibling duration predicates use.
+type untilTargetedUntapsDurationCode uint16
+
+const (
+	untilTargetedUntapsDurationUntaps untilTargetedUntapsDurationCode = iota + 1
+)
+
+var untilTargetedUntapsDurationCodes = state.NewStrCodes(
+	state.StrEntry[untilTargetedUntapsDurationCode]{Key: "untiltargeteduntaps", Val: untilTargetedUntapsDurationUntaps},
+)
+
+// IsUntilTargetedUntapsDuration reports whether a Duration$ value names the
+// "for as long as it remains tapped" lifetime (Braided Net's lock, and the
+// Clone duration of the same spelling). Exported so rules' event-driven
+// expiry reads the same spelling effEffect saw.
+func IsUntilTargetedUntapsDuration(dur string) bool {
+	switch untilTargetedUntapsDurationCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
+	case untilTargetedUntapsDurationUntaps:
 		return true
 	}
 	return false

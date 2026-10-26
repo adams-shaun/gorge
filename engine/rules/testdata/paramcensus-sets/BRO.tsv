@@ -5,5 +5,3 @@ Hurkyl, Master Wizard	param:api:ChooseCard.ChoiceTitleAppend
 Over the Top	param:api:ChangeZoneAll.ForgetChanged
 Phyrexian Fleshgorger	cost:PayLife
 The Stone Brain	param:api:Cleanup.ClearNamedCard
-Urza, Lord Protector	param:stat:NumLoyaltyAct.Twice
-Urza, Planeswalker	param:stat:NumLoyaltyAct.Twice

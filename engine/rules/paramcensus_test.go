@@ -151,6 +151,9 @@ var baseBuckets = map[string]bucket{
 	// cover.
 	"pt.Trigger": bTrig,
 	"s":          bStat, "st": bStat, "sv": bStat,
+	// ce is a *state.ContinuousEffect; only its RestrictParams (an
+	// Effect-delivered static's S: parameters) reaches the census.
+	"ce": bStat,
 	// carrier is offBattlefieldGrantedWalk's element of
 	// actionStaticSource.addAbilityContinuous(): a staticView like s/st/sv,
 	// whose Params (Condition$/Affected$/AddAbility$) the offer walk reads.
@@ -1743,6 +1746,12 @@ func (s *scan) propagateKeyReadsOnce() bool {
 				switch {
 				case strings.HasSuffix(arg, ".Params"):
 					base = strings.TrimSuffix(arg, ".Params")
+				case strings.HasSuffix(arg, ".RestrictParams"):
+					// state.ContinuousEffect.RestrictParams
+					// (engine/state/continuous.go:321) is an Effect-delivered
+					// static's own S: parameters -- the same map a printed
+					// sv.Params is; its base buckets as a static.
+					base = strings.TrimSuffix(arg, ".RestrictParams")
 				default:
 					if b, isAlias := fi.aliases[arg]; isAlias {
 						base = b

@@ -399,6 +399,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	stored := ev
 	absorbedEntry := e.foldEntryMove(&stored, true)
 	e.expireClonesOnEvent(stored, wasTapped)
+	e.expireUntilTargetedUntaps(stored, wasTapped)
 	if stored.Kind == events.MoveZone { // CR 303.4f: a non-cast Aura enters attached to its chosen bearer.
 		settleAuraEntry(e, &stored)
 	}

@@ -607,20 +607,57 @@ func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, 
 		return false
 	}
 	for _, sv := range statics {
-		if !e.actorMatches(sv, "Activator", p) {
+		if e.abilityRestrictionApplies(sv, p, id, ab) {
+			return true
+		}
+	}
+	// An Effect-delivered CantBeActivated body lives in the continuous
+	// registry, which the printed walk above never visits. Walk it in
+	// active() order; the view borrows the registration's own slices, so a
+	// board with no live CantBeActivated effect allocates nothing.
+	active := e.active()
+	for i := range active {
+		ce := &active[i]
+		if cards.StaticModeOf(ce.Restriction) != cards.StaticCantBeActivated ||
+			!effects.CantBeActivatedParamsReadable(ce.RestrictParams) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
-			continue
+		sv := staticView{
+			Source: ce.Source, Controller: ce.Controller,
+			Params: ce.RestrictParams, SVars: ce.RestrictSVars,
+			Remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
+			effectDelivered: true,
 		}
-		if !e.matchesSpec(sv.ParamStr(cards.PKValidCard), id, e.staticSpecCtx(sv)) {
-			continue
-		}
-		if activatedMatchesValidSA(ab, sv.ParamStr(cards.PKValidSA)) {
+		if e.abilityRestrictionApplies(sv, p, id, ab) {
 			return true
 		}
 	}
 	return false
+}
+
+// abilityRestrictionApplies is the ONE per-view match both CantBeActivated
+// delivery routes run: the printed S: walk and the Effect-delivered
+// continuous-registry walk above. An Effect view's absent ValidCard$ means
+// every card (Forge's default); a printed static keeps its existing read.
+func (e *Engine) abilityRestrictionApplies(sv staticView, p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	if !e.actorMatches(sv, "Activator", p) {
+		return false
+	}
+	if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+		return false
+	}
+	if spec := sv.ParamStr(cards.PKValidCard); spec != "" {
+		sc := e.staticSpecCtx(sv)
+		if sv.effectDelivered {
+			sc = e.assignmentStaticSpecCtx(sv)
+		}
+		if !e.matchesSpec(spec, id, sc) {
+			return false
+		}
+	} else if !sv.effectDelivered {
+		return false
+	}
+	return activatedMatchesValidSA(ab, sv.ParamStr(cards.PKValidSA))
 }
 
 // activatedMatchesValidSA reports whether a CantBeActivated restriction whose
@@ -667,6 +704,13 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 				return true
 			}
 			// else: mana abilities are expressly spared; try the next alt
+		case activatedValidSACodes.Code(constraint) == activatedValidSAPowerUp:
+			// Forge's Activated.PowerUp (SpellAbility.isPowerUp): scopes the
+			// restriction to an ability carrying PowerUp$ True. A non-power-up
+			// ability is spared and the next alternative is tried.
+			if powerUpTrueCodes.Code(ab.ParamStr(cards.PKPowerUp)) == powerUpTrue {
+				return true
+			}
 		case constraint == "ManaAbility" || strings.HasPrefix(constraint, "ManaAbility<"):
 			if !cards.IsManaAbilitySA(ab) {
 				break // not a mana ability; try the next alt
@@ -706,6 +750,30 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 	}
 	return false
 }
+
+// activatedValidSACode indexes the Activated-kind constraints
+// activatedMatchesValidSA evaluates. A value absent from this table keeps the
+// fail-closed deny below.
+type activatedValidSACode uint16
+
+const (
+	activatedValidSAPowerUp activatedValidSACode = iota + 1
+)
+
+var activatedValidSACodes = state.NewStrCodes(
+	state.StrEntry[activatedValidSACode]{Key: "PowerUp", Val: activatedValidSAPowerUp},
+)
+
+// powerUpTrueCode indexes the PowerUp$ parameter's one corpus value.
+type powerUpTrueCode uint16
+
+const (
+	powerUpTrue powerUpTrueCode = iota + 1
+)
+
+var powerUpTrueCodes = state.NewStrCodes(
+	state.StrEntry[powerUpTrueCode]{Key: "True", Val: powerUpTrue},
+)
 
 // adjustedCost applies the full RaiseCost/ReduceCost/SetCost composition to
 // id's printed mana cost. RaiseCost Cost$ may add coloured pips (and fixed
