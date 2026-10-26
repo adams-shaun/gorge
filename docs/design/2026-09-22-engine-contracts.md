@@ -251,3 +251,37 @@ folded `Game.MainPhasesThisTurn` (Forge's `nMainsThisTurn <= (is(MAIN2) ? 2 : 1)
   "if you cast it any time a sorcery couldn't have been cast".
   `TestMayFlashSacCopiedSpellIsNotSacrificed` (`engine/rules/mayflashsac_test.go`)
   pins that half.
+
+## Corpus-absent Manifest/Cloak shapes stay loud
+
+The Manifest family (`Manifest`, `ManifestDread`, `Cloak`) implements every
+corpus shape, including the `Defined$` object forms (`Remembered`,
+`ValidLibrary ...`, `ValidHand ...`; Forge `ManifestBaseEffect`'s
+`getTargetCards` branch, where `Amount$` does not limit the defined set) and an
+`Amount$ X`/`Y` the card declares as an SVar. `Shuffle$ True` is the pile
+shuffle (CR 701.24a: a pile is not a library): no `events.Shuffle`. What stays
+loud (the same "unimplemented API <name>" note, nothing moved) has no corpus
+carrier:
+
+- `ManifestDread | Choices$` (the chooser form);
+- a `ChoiceZone$` other than `Hand` on a Manifest or Cloak `Choices$` form;
+- a Manifest `Defined$` outside `Remembered`/`ValidLibrary`/`ValidHand`, or a
+  `Defined$` beside `Choices$`;
+- a Cloak `Defined$` outside `TopOfLibrary`/`Remembered`/`ValidLibrary` (or a
+  `DefinedPlayer$`);
+- a literal `X`/`Y` `Amount$` the card does not declare as an SVar, and an
+  `Amount$` body the resolution cannot evaluate.
+
+The printed-shape decisions live in one place,
+`effects.ManifestFamilyShapeSupported` (`engine/effects/manifest_params.go`),
+which the three primitives call before moving anything.
+`TestManifestFamilyCorpusShapesAreSupported`
+(`engine/rules/manifest_defined_close_test.go`) runs every corpus Manifest,
+ManifestDread and Cloak SA through it, so the census and the primitives cannot
+disagree. The unresolvable-`Amount$` case needs the resolution's context and is
+checked at run time only.
+
+The retired "Ordinary filters read the printed face, missing a manifested Elf"
+approximation is closed by the face-down type gate:
+`TestFaceDownHidesPrintedSubtypes` (`engine/effects/facedown_type_test.go`) and
+`TestFaceDownPermanentHasNoName` (`engine/rules/face_down_characteristics_test.go`).

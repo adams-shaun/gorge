@@ -249,6 +249,7 @@ var auraEntryCensusEffects = map[string]string{
 	"zone_manifest.go:effCloak":                 "noentry: face-down entry (CR 708.5: not an Aura)",
 	"zone_manifest.go:effManifest":              "noentry: face-down entry (CR 708.5: not an Aura)",
 	"zone_manifest.go:manifestDreadMove":        "noentry: face-down entry (CR 708.5: not an Aura)",
+	"zone_manifest.go:manifestObjects":          "noentry: face-down entry (CR 708.5: not an Aura)",
 	"zone_search.go:applyLibrarySearch":         "marks: library branch marks before its inlined move; other zones settle through settleChangeZoneMoveAs",
 }
 

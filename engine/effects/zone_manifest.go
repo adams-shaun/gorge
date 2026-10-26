@@ -23,45 +23,62 @@ import (
 // move would otherwise stay public under rule 2 and leak the face through
 // the transcript.
 //
-// Scope, measured over the corpus's 33 plain-Manifest lines: the default
-// top-card shape (the 9 bare `DB$ Manifest` trigger bodies), a
-// `DefinedPlayer$` selector through searchPlayers's grammar (Reality
-// Shift's `TargetedController`), `RememberManifested$ True` (each manifested
-// object joins the resolution's Remembered: Wildcall's counters, Lightform's
-// attach, Kozilek's per-card draw) and a literal/SVar `Amount$` (default 1;
-// a value resolving to <= 0 manifests nothing, no event) are implemented.
-// `Choices$` (default `ChoiceZone$ Hand`: scroll_of_fate's "manifest a card
-// from your hand") asks each listed player to pick Amount$ cards from the
-// hand pool. Every other shape -- `Defined$` object manifests, a
-// `ChoiceZone$` other than Hand, an unresolvable `Amount$`
-// body (Y, or X outside a cast's own X-value) -- emits the SAME loud
-// "unimplemented API Manifest" note the unimplemented-API fallback emits
-// and moves nothing: fail loud, never silently move the wrong card.
+// Scope, measured over the corpus's plain-Manifest lines: the default
+// top-card shape (the bare `DB$ Manifest` trigger bodies), a `DefinedPlayer$`
+// selector through searchPlayers's grammar (Reality Shift's
+// `TargetedController`), `RememberManifested$ True` (each manifested object
+// joins the resolution's Remembered: Wildcall's counters, Lightform's
+// attach, Kozilek's per-card draw), a literal/SVar `Amount$` (default 1; a
+// value resolving to <= 0 manifests nothing, no event) and the `Defined$`
+// OBJECT forms are implemented. `Choices$` (default `ChoiceZone$ Hand`:
+// scroll_of_fate's "manifest a card from your hand") asks each listed player
+// to pick Amount$ cards from the hand pool.
+//
+// The object forms (Forge ManifestBaseEffect's getTargetCards branch) name
+// the cards themselves: `Defined$ Remembered` (Write into Being, Ghastly
+// Conscription, Jeskai Infiltrator: each remembered card object, wherever it
+// is now), `ValidLibrary ...` and `ValidHand ...` (Thieving Amalgam, Orochi
+// Soul-Reaver, The Battle of Dragon Brothers: the shared zone-Valid Defined$
+// grammar, definedSpec). Each manifests under the `DefinedPlayer$` player
+// (default the controller), in resolved order, one MoveZone per card
+// (CR 701.40e for library cards). Amount$ does not limit a defined set, and
+// `Shuffle$ True` is the pile shuffle (CR 701.24a: a pile is not a library),
+// so no events.Shuffle is emitted and the face-down view keeps object IDs.
+//
+// Every other shape is loud (ManifestFamilyShapeSupported, the one home of
+// the printed-shape decisions): a Defined$ outside the object set, a
+// `ChoiceZone$` other than Hand, a literal X/Y `Amount$` the card does not
+// declare, and an unresolvable `Amount$` body emit the SAME loud
+// "unimplemented API Manifest" note the unimplemented-API fallback emits and
+// move nothing: fail loud, never silently move the wrong card.
 // Turning a manifested creature card face up (CR 701.40b/708.6) is the
 // special action engine/rules/morph_turnup.go offers from the Manifested
 // marker this primitive emits.
 func effManifest(h Host, c *Ctx, sa *cards.SA) {
-	choices := strings.TrimSpace(sa.ParamStr(cards.PKChoices)) != ""
-	if DefinedRefOf(sa).Set() {
+	loud := func() {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented API Manifest"})
+	}
+	if !ManifestFamilyShapeSupported("Manifest", sa, func(name string) bool {
+		if _, ok := c.SVars[name]; ok {
+			return true
+		}
+		_, ok := runtimeSVar(c, name)
+		return ok
+	}) {
+		loud()
 		return
 	}
-	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberManifested)), "True")
+	mp := compileManifest(sa)
+	if mp.Kind != manifestDefinedNone {
+		manifestObjects(h, c, sa, mp)
+		return
+	}
 	amount := int32(1)
-	if raw, present := sa.Param(cards.PKAmount); present {
-		// X/Y (and any body Num's grammar cannot resolve) are out of scope:
-		// loud, never a degraded count silently moving a wrong number of
-		// cards.
-		if raw == "X" || raw == "Y" {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unimplemented API Manifest"})
-			return
-		}
-		n, ok := NumResolved(h, c, sa, "Amount", 1)
+	if mp.Amount.Present {
+		n, ok := numResolvedText(h, c, mp.Amount, 1)
 		if !ok {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unimplemented API Manifest"})
+			loud()
 			return
 		}
 		amount = n
@@ -69,16 +86,16 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 	if amount <= 0 {
 		return
 	}
+	remember := mp.Remember
 	g := h.Game()
 	for _, p := range searchPlayers(h, c, sa) {
 		if int(p) >= len(g.Players) {
 			continue
 		}
-		if choices {
+		if mp.Choices {
 			ids, ok := chooseFromZoneForFaceDown(h, c, sa, p, amount)
 			if !ok {
-				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-					Text: "unimplemented API Manifest"})
+				loud()
 				return
 			}
 			for _, id := range ids {
@@ -102,6 +119,50 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 				From: state.ZLibrary, To: state.ZBattlefield,
 				Counter: events.ManifestEntryCounter, Secret: true})
 			rememberManifested(h, c, top, remember)
+		}
+	}
+}
+
+// manifestObjects is effManifest's Defined$ object form: the named card
+// objects (never a player; one already on the battlefield is not a manifest
+// candidate) move face down under the DefinedPlayer$ player, default the
+// controller. DefinedPlayer$ is resolved only when present: searchPlayers
+// would otherwise read Defined$ itself as a player selector.
+func manifestObjects(h Host, c *Ctx, sa *cards.SA, mp manifestParams) {
+	var targets []state.Target
+	if mp.Kind == manifestDefinedRemembered {
+		targets = objectsOf(copyTargets(c.Remembered))
+	} else {
+		targets, _ = definedSpec(h, c, mp.Defined)
+	}
+	manifesters := []state.PlayerID{c.Controller}
+	if definedPlayerRef(sa).Set() {
+		manifesters = searchPlayers(h, c, sa)
+	}
+	g := h.Game()
+	for _, p := range manifesters {
+		if int(p) >= len(g.Players) {
+			continue
+		}
+		for _, t := range targets {
+			if t.IsPlayer {
+				continue
+			}
+			o := g.Obj(t.Obj)
+			if o == nil || o.Zone == state.ZBattlefield {
+				continue
+			}
+			// The manifesting player puts the card onto the battlefield, so it
+			// enters under that player's control (CR 110.2a): Ghastly
+			// Conscription manifests the OPPONENT's exiled creatures. The
+			// pre-move ControlChange is effCloak's shape.
+			if o.Controller != p {
+				h.Emit(events.Event{Kind: events.ControlChange, Obj: t.Obj, Player: p, Text: "manifest"})
+			}
+			h.Emit(events.Event{Kind: events.MoveZone, Obj: t.Obj, Player: p,
+				From: o.Zone, To: state.ZBattlefield,
+				Counter: events.ManifestEntryCounter, Secret: true})
+			rememberManifested(h, c, t.Obj, mp.Remember)
 		}
 	}
 }
@@ -136,7 +197,7 @@ func rememberManifested(h Host, c *Ctx, id state.ObjID, remember bool) {
 // note and moves nothing.
 func effManifestDread(h Host, c *Ctx, sa *cards.SA) {
 	mp := compileManifestDread(sa)
-	if mp.Choices {
+	if !ManifestFamilyShapeSupported("ManifestDread", sa, nil) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented API ManifestDread"})
 		return
@@ -284,17 +345,23 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented API Cloak"})
 	}
+	if !ManifestFamilyShapeSupported("Cloak", sa, func(name string) bool {
+		if _, ok := c.SVars[name]; ok {
+			return true
+		}
+		_, ok := runtimeSVar(c, name)
+		return ok
+	}) {
+		loud()
+		return
+	}
 	defined := DefinedRefOf(sa).Text
 	choices := strings.TrimSpace(sa.ParamStr(cards.PKChoices)) != ""
 	amount := int32(1)
-	if raw, present := sa.Param(cards.PKAmount); present {
-		// X/Y (and any body Num's grammar cannot resolve) are out of scope:
-		// loud, never a degraded count silently moving a wrong number of
-		// cards.
-		if raw == "X" || raw == "Y" {
-			loud()
-			return
-		}
+	if sa.HasParam(cards.PKAmount) {
+		// A body Num's grammar cannot resolve is loud (the shape check owns
+		// the literal X/Y case): never a degraded count silently moving a
+		// wrong number of cards.
 		n, ok := NumResolved(h, c, sa, "Amount", 1)
 		if !ok {
 			loud()
@@ -451,13 +518,10 @@ var effCloakCodes = state.NewStrCodes(
 // caller goes loud); an empty pool returns no ids. With no host to ask the
 // first cards in zone order are taken, with a Secret Note.
 func chooseFromZoneForFaceDown(h Host, c *Ctx, sa *cards.SA, p state.PlayerID, amount int32) (ids []state.ObjID, ok bool) {
-	zones := map[state.Zone]bool{state.ZHand: true}
-	if sa.HasParam(cards.PKChoiceZone) {
-		zones = choiceZones(sa)
-		if len(zones) != 1 || !zones[state.ZHand] {
-			return nil, false
-		}
+	if !faceDownChoiceZoneSupported(sa) {
+		return nil, false
 	}
+	zones := map[state.Zone]bool{state.ZHand: true}
 	g := h.Game()
 	admitted := map[state.ObjID]bool{}
 	for _, t := range cardChoicesIn(h, c, sa, p, zones) {
