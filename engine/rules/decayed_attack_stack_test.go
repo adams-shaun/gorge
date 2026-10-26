@@ -214,3 +214,32 @@ func TestDecayedAttackTriggerRegistersOnce(t *testing.T) {
 		t.Fatalf("a second resolution registered %d promises, want 1", n)
 	}
 }
+
+// CR 400.7: a decayed creature flickered in response to its own attack
+// trigger returns as a new object that never attacked, so the resolving
+// trigger must not arm the sacrifice against it.
+func TestDecayedAttackTriggerFlickeredInResponse(t *testing.T) {
+	t.Parallel()
+	e, cfg, id := decayedFixture(t, 984, decayedBearSrc)
+	declareAttacker(t, e, id)
+	requireDecayedOnStack(t, e, id)
+	before := e.G.Obj(id).Incarnation
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZExile, To: state.ZBattlefield})
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield || o.Incarnation == before {
+		t.Fatalf("precondition: the creature must be back as a new incarnation, zone %s incarnation %d (was %d)", o.Zone, o.Incarnation, before)
+	}
+	if len(stackAbilitiesOf(e, id)) != 1 {
+		t.Fatalf("precondition: the trigger must still be on the stack: %v", e.G.Stack)
+	}
+	passUntilStackEmpty(t, e, 40)
+	if hasDecayedPromise(e, id) {
+		t.Fatalf("the trigger armed the sacrifice against the re-entered object: %+v", e.G.Delayed)
+	}
+	driveToStepAll(t, e, e.G.Turn, 0, state.StepEndCombat)
+	passUntilStackEmpty(t, e, 40)
+	if got := e.G.Obj(id).Zone; got != state.ZBattlefield {
+		t.Fatalf("the flickered creature = %s after end of combat, want battlefield", got)
+	}
+	replayCheck(t, e, cfg)
+}
