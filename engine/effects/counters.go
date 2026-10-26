@@ -314,7 +314,9 @@ func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32
 	players := h.Game().AliveFrom(0)
 	if TargetsOf(sa).ValidTgts == "Player" {
 		players = nil
-		for _, t := range c.Targets {
+		// CR 608.2b: a SubAbility$ link with its own ValidTgts$ Player acts on
+		// ITS announced player (PickedTargets); c.Targets are the root's.
+		for _, t := range targetedGroup(c) {
 			if t.IsPlayer {
 				players = append(players, t.Player)
 			}

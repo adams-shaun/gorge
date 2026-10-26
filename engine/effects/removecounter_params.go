@@ -34,14 +34,16 @@ type RemoveCounterParams struct {
 	Choices string
 	// ExoticNote is the defined path's one loud Note for the shapes it does
 	// not model ("" when none): ChoiceOptional$, UpTo$ on a named kind,
-	// CounterNum$ Any, CounterNumShared$, a non-battlefield TgtZone$,
-	// RememberAmount$ and Optional$. CounterType$ Any is modelled (the
-	// per-counter kind election), and UpTo$ with it is the bounded form.
+	// CounterNum$ Any on a named kind, CounterNumShared$, a non-battlefield
+	// TgtZone$, RememberAmount$ and Optional$. CounterType$ Any is modelled
+	// (the per-counter kind election), and UpTo$ or CounterNum$ Any with it
+	// is the bounded form.
 	ExoticNote string
 	// ChoiceNote is the Choices$ arm's one loud Note for the shapes it does
-	// not model ("" when none): CounterType$ Any/All, CounterNum$ Any, UpTo$,
-	// CounterNumShared$ and a ChoiceZone$ naming neither the battlefield nor
-	// exile; ChoiceZone is the arm's zone.
+	// not model ("" when none): CounterType$ All, CounterType$ Any stacked on
+	// CounterNum$ Any or UpTo$, CounterNum$ Any, UpTo$, CounterNumShared$ and
+	// a ChoiceZone$ naming neither the battlefield nor exile; ChoiceZone is
+	// the arm's zone.
 	ChoiceNote string
 	ChoiceZone state.Zone
 	// Kind is CounterType$ (default P1P1); AllKinds is its All spelling and
@@ -54,6 +56,10 @@ type RemoveCounterParams struct {
 	CounterNum ParamText
 	NumAll     bool
 	NumSet     bool
+	// NumAny is CounterNum$ Any: with AnyKinds on the defined path, "any
+	// number" of counters over the kinds the carrier holds (the per-counter
+	// kind election with an unbounded up-to budget).
+	NumAny bool
 	// UpTo is UpTo$ (the bounded election). It is modelled with AnyKinds;
 	// a named kind keeps it loud (the defined path has no per-kind amount
 	// election yet).
@@ -164,6 +170,7 @@ func compileRemoveCounter(sa *cards.SA, dr *DefinedParams) *RemoveCounterParams 
 	p.NumSet = numRaw != ""
 	p.NumAll = strings.EqualFold(numRaw, "All")
 	numAny := strings.EqualFold(numRaw, "Any")
+	p.NumAny = numAny
 	p.ChoiceNum = rawParamText(sa, "ChoiceNum")
 	p.ChoiceNumSet = strings.TrimSpace(p.ChoiceNum.Text) != ""
 	choiceOptional := strings.TrimSpace(sa.ParamStr(cards.PKChoiceOptional))
@@ -184,7 +191,7 @@ func compileRemoveCounter(sa *cards.SA, dr *DefinedParams) *RemoveCounterParams 
 	if upTo && !p.AnyKinds {
 		exotic = append(exotic, "UpTo$")
 	}
-	if numAny {
+	if numAny && !p.AnyKinds {
 		exotic = append(exotic, "CounterNum$ Any")
 	}
 	if numShared {
@@ -205,7 +212,10 @@ func compileRemoveCounter(sa *cards.SA, dr *DefinedParams) *RemoveCounterParams 
 
 	// The Choices$ arm's loud shapes, in the historical Note order.
 	var loud []string
-	if strings.EqualFold(p.Kind, "Any") || p.AllKinds {
+	// CounterType$ Any with a fixed CounterNum$ is modelled (the kind is
+	// asked per chosen object); Any stacked on a how-many or up-to ask, and
+	// All, stay loud.
+	if p.AllKinds || (p.AnyKinds && (numAny || upTo)) {
 		loud = append(loud, "CounterType$ "+p.Kind)
 	}
 	if numAny {
