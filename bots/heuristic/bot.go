@@ -58,8 +58,9 @@ type Bot struct {
 	// (botpolicy.AIHints). Configured once by an opt-in constructor; the zero
 	// value leaves the cast scorer unchanged.
 	aiHints botpolicy.AIHints
-	// attach selects the opt-in A5 attach rules (botpolicy.AttachRules).
-	// Configured once by an opt-in constructor; the zero value is off.
+	// attach selects the A5 attach rules (botpolicy.AttachRules). NewBotOn
+	// arms AuraPolarity so a boon Aura never lands on the opponent's
+	// creature; Carrier and HoldOwnAura stay opt-in.
 	attach botpolicy.AttachRules
 	// skipLifePlans withholds every offered payment plan with a step that
 	// pays life (spec §6: a caretaker standing in for a human never
@@ -124,7 +125,7 @@ func BotSource(seed uint64) *rand.PCG {
 // it: the source is the bot's only state. NewBotOn(BotSource(seed)) is
 // NewBot(seed).
 func NewBotOn(src *rand.PCG) *Bot {
-	return &Bot{r: rand.New(src)}
+	return &Bot{r: rand.New(src), attach: botpolicy.AttachRules{AuraPolarity: true}}
 }
 
 // EnableTargetRules arms the A2 target-selection rules (botpolicy.TargetRules)
@@ -185,8 +186,9 @@ func (b *Bot) TimingRules() botpolicy.TimingRules {
 }
 
 // EnableAIHints arms the A3 Forge AI-hint rules (botpolicy.AIHints) on this
-// bot and returns it. The default bot never calls it; the forge-heuristic
-// policy is the registered constructor that does.
+// bot and returns it, replacing the default (AuraPolarity only). The
+// forge-heuristic policy is the registered constructor that also arms Carrier
+// and HoldOwnAura.
 func (b *Bot) EnableAIHints(h botpolicy.AIHints) *Bot {
 	b.aiHints = h
 	return b
@@ -198,8 +200,9 @@ func (b *Bot) AIHints() botpolicy.AIHints {
 }
 
 // EnableAttachRules arms the A5 attach rules (botpolicy.AttachRules) on this
-// bot and returns it. The default bot never calls it; the forge-heuristic
-// policy is the registered constructor that does.
+// bot and returns it, replacing the default (AuraPolarity only). The
+// forge-heuristic policy is the registered constructor that also arms Carrier
+// and HoldOwnAura.
 func (b *Bot) EnableAttachRules(r botpolicy.AttachRules) *Bot {
 	b.attach = r
 	return b
