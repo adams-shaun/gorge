@@ -19,6 +19,9 @@ type DigMultipleParams struct {
 	Reveal, Optional, RandomRest, Remember, ImprintRest, ChangeLater bool
 	ChooseAmount                                                     int
 	ChosenZone                                                       state.Zone
+	// UnsupportedSource is a SourceZone$ other than Library (gorge digs the
+	// library only); effDigMultiple notes it and does nothing.
+	UnsupportedSource string
 }
 
 func digMultipleParam(sa *cards.SA, key cards.ParamKey) ParamText {
@@ -62,6 +65,9 @@ func compileDigMultiple(sa *cards.SA) *DigMultipleParams {
 	}
 	if v := digMultipleParam(sa, cards.PKChosenZone).Text; v != "" {
 		p.ChosenZone = ParseZone(v)
+	}
+	if v := strings.TrimSpace(sa.Params["SourceZone"]); v != "" && v != "Library" {
+		p.UnsupportedSource = v
 	}
 	p.Reveal = isTrue(digMultipleParam(sa, cards.PKReveal).Text)
 	p.Optional = isTrue(digMultipleParam(sa, cards.PKOptional).Text)

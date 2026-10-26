@@ -272,6 +272,14 @@ type fnInfo struct {
 	callSites []callSite
 	sig       []string
 	strParams map[string]int
+	// pkParams records parameters typed cards.ParamKey: a compiled-ParamSet
+	// read `x.Param(key)` on one is attributed at the call sites, where the
+	// argument is a cards.PK<Key> constant (the string-key path's twin).
+	pkParams map[string]int
+	// pkRanges maps a `for _, k := range [...]cards.ParamKey{cards.PK...}`
+	// loop variable to the literal keys it iterates, so `x.Param(k)` inside
+	// the loop reads every one of them.
+	pkRanges map[string][]string
 	// mapParams records parameters whose declared type is map[string]string
 	// (the Params maps' type): an index read on one is a potential Params
 	// read attributed through the call sites' arguments, never silently
@@ -397,6 +405,9 @@ func (s *scan) scanSource(t *testing.T, path, pkg, src string) {
 				if pt, ok := p.Type.(*ast.Ident); ok && pt.Name == "string" {
 					fi.strParams[pn.Name] = position
 				}
+				if isParamKeyType(p.Type) {
+					fi.pkParams[pn.Name] = position
+				}
 				if isStringMap(p.Type) {
 					fi.mapParams[pn.Name] = position
 				}
@@ -454,6 +465,40 @@ func isStringMap(e ast.Expr) bool {
 	return kok && vok && k.Name == "string" && v.Name == "string"
 }
 
+// noteParamKeyRange records the loop variable of a range over a composite
+// literal whose elements are all cards.PK<Key> constants (playLandForbidden's
+// Player/ValidPlayer pair, plotZoneAllowed's known keys).
+func noteParamKeyRange(fi *fnInfo, rs *ast.RangeStmt) {
+	val, ok := rs.Value.(*ast.Ident)
+	lit, isLit := rs.X.(*ast.CompositeLit)
+	if !ok || !isLit || len(lit.Elts) == 0 {
+		return
+	}
+	var keys []string
+	for _, e := range lit.Elts {
+		sel, ok := e.(*ast.SelectorExpr)
+		if !ok {
+			return
+		}
+		pk, isPkg := sel.X.(*ast.Ident)
+		if !isPkg || pk.Name != "cards" || !strings.HasPrefix(sel.Sel.Name, "PK") {
+			return
+		}
+		keys = append(keys, strings.TrimPrefix(sel.Sel.Name, "PK"))
+	}
+	fi.pkRanges[val.Name] = keys
+}
+
+// isParamKeyType reports whether e is the type expression cards.ParamKey.
+func isParamKeyType(e ast.Expr) bool {
+	sel, ok := e.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	pk, ok := sel.X.(*ast.Ident)
+	return ok && pk.Name == "cards" && sel.Sel.Name == "ParamKey"
+}
+
 func (s *scan) failf(t *testing.T, pos token.Position, format string, args ...any) {
 	s.unclassified = append(s.unclassified, fmt.Sprintf("%s: %s", pos, fmt.Sprintf(format, args...)))
 }
@@ -469,6 +514,8 @@ func (s *scan) fnOf(pkg, name string) *fnInfo {
 		keyRds:    map[bucket]map[string]bool{},
 		calls:     map[string]bool{},
 		strParams: map[string]int{},
+		pkParams:  map[string]int{},
+		pkRanges:  map[string][]string{},
 		mapParams: map[string]int{},
 		aliases:   map[string]string{},
 	}
@@ -603,6 +650,7 @@ func (s *scan) scanFuncBody(t *testing.T, fset *token.FileSet, fd *ast.FuncDecl,
 			s.scanCall(t, fset, fi, name, v, pkg)
 			return true
 		case *ast.RangeStmt:
+			noteParamKeyRange(fi, v)
 			s.scanRangeWhitelist(t, fset, fi, name, v, pkg, writes)
 			return true
 		}
@@ -626,19 +674,39 @@ func (s *scan) scanCompiledParamRead(t *testing.T, fset *token.FileSet, fi *fnIn
 	if !ok || !compiledParamReaders[sel.Sel.Name] || len(ce.Args) != 1 {
 		return
 	}
-	arg, ok := ce.Args[0].(*ast.SelectorExpr)
-	if !ok {
+	if lit, isLit := ce.Args[0].(*ast.BasicLit); isLit && lit.Kind == token.STRING {
 		return // not a ParamKey argument shape: some other Param method
 	}
-	if pk, ok := arg.X.(*ast.Ident); !ok || pk.Name != "cards" || !strings.HasPrefix(arg.Sel.Name, "PK") {
-		return
+	arg, isSel := ce.Args[0].(*ast.SelectorExpr)
+	if isSel {
+		if pk, ok := arg.X.(*ast.Ident); !ok || pk.Name != "cards" || !strings.HasPrefix(arg.Sel.Name, "PK") {
+			return
+		}
 	}
 	base := exprText(sel.X)
 	b, ok := s.bucketOf(t, fset, ce.Pos(), base, pkg)
 	if !ok {
 		return
 	}
-	s.addRead(fi, b, strings.TrimPrefix(arg.Sel.Name, "PK"))
+	if isSel {
+		s.addRead(fi, b, strings.TrimPrefix(arg.Sel.Name, "PK"))
+		return
+	}
+	if id, ok := ce.Args[0].(*ast.Ident); ok {
+		if _, isParam := fi.pkParams[id.Name]; isParam {
+			s.addKeyRead(fi, b, id.Name)
+			return
+		}
+		if keys, isRange := fi.pkRanges[id.Name]; isRange {
+			for _, k := range keys {
+				s.addRead(fi, b, k)
+			}
+			return
+		}
+	}
+	s.failf(t, fset.Position(ce.Pos()),
+		"%s: computed ParamKey %s in %s.%s -- pass a cards.PK<Key> constant or forward a cards.ParamKey parameter",
+		fi.name, argText(ce.Args[0]), base, sel.Sel.Name)
 }
 
 // recordParamsRead records one `.Params[...]` (or alias) access on the given
@@ -1037,6 +1105,13 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 		if lit, ok := a.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			if v, err := strconv.Unquote(lit.Value); err == nil {
 				args[i] = v
+			}
+		}
+		// A cards.PK<Key> constant argument attributes a ParamKey key
+		// parameter exactly like a string literal does a string one.
+		if sel, ok := a.(*ast.SelectorExpr); ok && strings.HasPrefix(sel.Sel.Name, "PK") {
+			if pk, ok := sel.X.(*ast.Ident); ok && pk.Name == "cards" {
+				args[i] = strings.TrimPrefix(sel.Sel.Name, "PK")
 			}
 		}
 	}
@@ -1706,6 +1781,11 @@ func (s *scan) propagateKeyReadsOnce() bool {
 			for b, params := range target.keyRds {
 				for param := range params {
 					idx, ok := target.strParams[param]
+					callerKeyParams := fi.strParams
+					if !ok {
+						idx, ok = target.pkParams[param]
+						callerKeyParams = fi.pkParams
+					}
 					if !ok || idx >= len(cs.args) {
 						continue
 					}
@@ -1725,7 +1805,7 @@ func (s *scan) propagateKeyReadsOnce() bool {
 					// it; a non-identifier argument cannot be followed and
 					// stays unattributed, exactly as before.
 					if pname := cs.exprs[idx]; pname != "" {
-						if _, isParam := fi.strParams[pname]; isParam {
+						if _, isParam := callerKeyParams[pname]; isParam {
 							if count(fi, b, fi.keyRds[b], pname) {
 								added = true
 							}
@@ -1842,6 +1922,16 @@ var handEffectsRoots = []string{
 	// body's SubAbility$ rider chain; it scans the rider links' own keys to
 	// fail closed on any key outside the implemented shape.
 	"CloneETBSubChainOK",
+	// engine/effects/castcombat.go: the bots (bots/botpolicy/combat.go,
+	// board_inc.go) and the card view (engine/view/card.go) call this
+	// advisory predicate directly; its NumAtt$/NumDef$ reads (through
+	// literalPumpAmount) are a heuristic over a printed Pump, not a
+	// resolution consumer, so they join no API's read set.
+	"CastCombatTrick",
+	// engine/effects/castpump.go: reached from the exported cast-pump
+	// predicates the rules cast path calls directly, outside any
+	// Register'd implementation.
+	"readPump",
 }
 
 // apiSpecificRulesSA names the rules functions whose SA (bSA) reads execute
