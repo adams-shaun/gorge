@@ -21,8 +21,9 @@ import (
 // TestParseUnlessCostExileComponents pins the strict parser boundary for the
 // Exile head: the fixed zone-headed forms the corpus carries are priceable
 // (and carry the graveyard/hand zone the cast-cost parser assigns), while the
-// spellings the exileCost regex does not cover -- ExileFromStack, bare Exile
-// and an unfolded X amount -- stay hard declines.
+// spellings the exileCost regex does not cover -- bare Exile and an unfolded
+// X amount -- stay hard declines. ExileFromStack<1/Card.Self> is priced by the
+// unless special-cost arm (cr-g113), as the stack-zone self exile.
 func TestParseUnlessCostExileComponents(t *testing.T) {
 	t.Parallel()
 	if c, ok := ParseUnlessCost("ExileFromGrave<1/Card>"); !ok || len(c.Exile) != 1 ||
@@ -54,10 +55,12 @@ func TestParseUnlessCostExileComponents(t *testing.T) {
 	if c, ok := ParseUnlessCost("Mandatory ExileFromGrave<1/Card>"); !ok || len(c.Exile) != 1 {
 		t.Fatalf("Mandatory ExileFromGrave<1/Card> = %+v ok=%v, want the marker stripped and one part", c, ok)
 	}
-	// Heads the exileCost regex does not cover stay hard declines.
-	if _, ok := ParseUnlessCost("ExileFromStack<1/Card.Self>"); ok {
-		t.Fatal("ExileFromStack priced; it must hard-decline")
+	// ExileFromStack<1/Card.Self> is priced since cr-g113 (unless_special.go):
+	// one stack part, the spell itself.
+	if c, ok := ParseUnlessCost("ExileFromStack<1/Card.Self>"); !ok || len(c.Exile) != 1 || c.Exile[0].Zone != state.ZStack {
+		t.Fatalf("ExileFromStack<1/Card.Self> = %+v ok=%v, want one stack part", c, ok)
 	}
+	// Heads the exileCost regex does not cover stay hard declines.
 	if _, ok := ParseUnlessCost("Exile<1/Creature.!token>"); ok {
 		t.Fatal("bare Exile priced; it must hard-decline")
 	}
