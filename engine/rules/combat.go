@@ -1178,10 +1178,17 @@ func (e *Engine) askBlockers() {
 		// with no offered pair (no legal blocker, no affordable pair) has no
 		// option carrying the flag, so it contributes no requirement -- the
 		// "if able" half is decided by the offer, never asserted here.
+		// The Lure sentence (CR 509.1c) is the per-pair sibling: every
+		// offered pair with no block charge is a duty to block that attacker.
 		mustBeBlocked := make(map[state.ObjID]bool, len(scope.attackers))
+		lure := make(map[state.ObjID]bool, len(scope.attackers))
 		for _, aid := range scope.attackers {
-			if combat.HasMustBeBlockedKeyword(asBoard(e), aid) {
+			fl := combat.DerivedHiddenFlags(asBoard(e), aid)
+			if fl.MustBlock {
 				mustBeBlocked[aid] = true
+			}
+			if fl.AllMustBlock {
+				lure[aid] = true
 			}
 		}
 		for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
@@ -1206,8 +1213,10 @@ func (e *Engine) askBlockers() {
 				// (one creature blocks one attacker) without knowing what a
 				// blocker is. The value is internal only -- a blocker:<id>
 				// prefix plus the object id -- never a display string.
-				mustBlockPair := requiredBlockers[bid] && combat.MustBlockPairRequired(asBoard(e), bid, aid)
-				mustBlockAllPair := mustBlockPair && combat.MustBlockAllPair(asBoard(e), bid, aid)
+				dutyPair := requiredBlockers[bid] && combat.MustBlockPairRequired(asBoard(e), bid, aid)
+				mustBlockAllPair := dutyPair && combat.MustBlockAllPair(asBoard(e), bid, aid)
+				// CR 509.1c: a block needing a cost payment is not required.
+				mustBlockPair := dutyPair || (lure[aid] && charge.zero())
 				opt := decision.Option{Index: len(built), Kind: "block",
 					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
 					Obj:   bid, Attacker: aid, Player: defender,

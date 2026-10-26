@@ -31,14 +31,20 @@ import "strings"
 //     requirement to receive at least one legal blocker) is read as the
 //     MustBlock keyword, the spelling engine/rules/statics.go's
 //     combat.HasMustBeBlockedKeyword accepts beside the Pump-granted sentence form.
+//   - "All creatures able to block CARDNAME do so." (CR 509.1c, Lure: every
+//     creature able to block the attacker must) is read as the AllMustBlock
+//     keyword, the per-attacker blocking requirement askBlockers publishes as
+//     a per-pair duty. It is NOT "must be blocked if able", which one blocker
+//     satisfies.
 //   - "CARDNAME can't attack or block." is read as CantAttackOrBlock, whose
 //     two combat restrictions are both consumed by the rules readers.
 var canonicalKeywordHeads = map[string]string{
-	"cardname must be blocked if able.":     "MustBlock",
-	"cardname can't attack or block.":       "CantAttackOrBlock",
-	"cardname can't attack or block alone.": "CantAttackOrBlockAlone",
-	"cardname can't attack alone.":          "CantAttackAlone",
-	"cardname can't block alone.":           "CantBlockAlone",
+	"cardname must be blocked if able.":           "MustBlock",
+	"all creatures able to block cardname do so.": "AllMustBlock",
+	"cardname can't attack or block.":             "CantAttackOrBlock",
+	"cardname can't attack or block alone.":       "CantAttackOrBlockAlone",
+	"cardname can't attack alone.":                "CantAttackAlone",
+	"cardname can't block alone.":                 "CantBlockAlone",
 }
 
 // HiddenUntapNextStepKeyword is the EXACT Forge sentence a Pump/PumpAll `KW$
@@ -121,6 +127,7 @@ const (
 	HiddenKeywordCantAttackOrBlockAlone
 	HiddenKeywordCantAttackAlone
 	HiddenKeywordCantBlockAlone
+	HiddenKeywordAllMustBlock
 	HiddenKeywordCount
 )
 
@@ -144,6 +151,8 @@ var hiddenKeywordHeadCodes = NewStrCodes(
 	StrEntry[HiddenKeyword]{Key: "cardname can't attack alone.", Val: HiddenKeywordCantAttackAlone},
 	StrEntry[HiddenKeyword]{Key: "cantblockalone", Val: HiddenKeywordCantBlockAlone},
 	StrEntry[HiddenKeyword]{Key: "cardname can't block alone.", Val: HiddenKeywordCantBlockAlone},
+	StrEntry[HiddenKeyword]{Key: "allmustblock", Val: HiddenKeywordAllMustBlock},
+	StrEntry[HiddenKeyword]{Key: "all creatures able to block cardname do so.", Val: HiddenKeywordAllMustBlock},
 )
 
 // HiddenKeywordOf resolves one keyword line to its HiddenKeyword code,
