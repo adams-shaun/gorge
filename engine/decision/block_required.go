@@ -160,7 +160,8 @@ func (d *Decision) blockRequiredCore() []int {
 			counts[o.Attacker]++
 			chosen = append(chosen, ci)
 			add := 0
-			if b.required {
+			// Only a pair that obeys the blocker's requirement counts (CR 509.1c).
+			if b.required && (o.BlockMust || o.Required) {
 				add = 1
 			}
 			// An attacker-oriented requirement is satisfied by the FIRST

@@ -792,7 +792,7 @@ func (d *Decision) blockRequiredCoreRef() []int {
 			counts[o.Attacker]++
 			chosen = append(chosen, ci)
 			add := 0
-			if b.required {
+			if b.required && (o.BlockMust || o.Required) {
 				add = 1
 			}
 			// An attacker-oriented requirement is satisfied by the FIRST
