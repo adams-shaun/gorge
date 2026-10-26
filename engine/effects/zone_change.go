@@ -846,7 +846,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		moved = append(moved, o.ID)
 		exiledWithAssociation(h, c, o.ID, to)
 		if to == state.ZExile {
-			recordExileReturnFor(h, c, cz.Riders.Duration, o.ID, fromZone, to)
+			recordExileReturnFor(h, c, sa, cz.Riders.Duration, o.ID, fromZone, to)
 		}
 		// RememberLKI$ True (Reanimate's "creature card" whose mana value the
 		// chained lose-life SVar reads, RememberedLKI$CardManaCost) joins the
@@ -1728,7 +1728,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 	entryCounters := withKind != "" && counterDestination(to) && entryWithCounters(&ev, to, withKind, withAmt)
 	emitEntryMove(h, c, cz.Riders.GainControl, to, ev)
 	if to == state.ZExile {
-		recordExileReturnFor(h, c, cz.Riders.Duration, id, from, to)
+		recordExileReturnFor(h, c, sa, cz.Riders.Duration, id, from, to)
 	}
 	// Imprint$ True on the shared settle path (Dakra Mystic's DBPutRevealed:
 	// `Defined$ Remembered | Origin$ Library | Destination$ Graveyard |
@@ -1823,7 +1823,7 @@ func exileHostGoneFor(h Host, c *Ctx, dur ParamText) bool {
 }
 
 // recordExileReturnFor is recordExileReturn over a compiled Duration$.
-func recordExileReturnFor(h Host, c *Ctx, dur ParamText, id state.ObjID, from, to state.Zone) {
+func recordExileReturnFor(h Host, c *Ctx, sa *cards.SA, dur ParamText, id state.ObjID, from, to state.Zone) {
 	raw, present := dur.Text, dur.Present
 	if !present || strings.TrimSpace(raw) == "" {
 		return
@@ -1839,8 +1839,12 @@ func recordExileReturnFor(h Host, c *Ctx, dur ParamText, id state.ObjID, from, t
 	if o := h.Game().Obj(id); o == nil || o.Zone != state.ZExile || o.IsToken {
 		return
 	}
+	amount := int32(from)
+	if sa != nil && sa.HasParam(cards.PKReturnAbility) {
+		amount |= state.ExileReturnRetFlag
+	}
 	h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id},
-		Amount: int32(from), Text: "until-host-leaves"})
+		Amount: amount, Text: "until-host-leaves"})
 }
 
 // objectTargetCount counts the object (non-player) entries of targets.

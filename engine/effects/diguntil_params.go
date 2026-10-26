@@ -120,7 +120,7 @@ var digUntilKnownKeys = [...]string{
 	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "RandomNumTargets",
 	"ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberFound", "RememberObjects",
 	"RememberRevealed", "RememberTargets", "ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid",
-	"ReplaceMana", "ReplaceOnly", "ReplaceType", "RevealRandomOrder", "RevealedDestination",
+	"ReplaceMana", "ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "RevealRandomOrder", "RevealedDestination",
 	"RevealedLibraryPosition", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor", "SharedRestrictions", "ShowCards", "Shuffle", "ShuffleCondition", "SorcerySpeed", "SpellDescription",
 	"StackDescription", "StaticEffect", "StaticEffectCheckSVar", "StaticEffectSVarCompare",
 	"SubAbility", "Tapped", "TargetMax", "TargetMin", "TargetType", "TargetUnique",

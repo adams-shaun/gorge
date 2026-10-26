@@ -161,7 +161,7 @@ var cloneKnownKeys = [...]string{
 	"PresentZone", "PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberCloneOrigin", "RememberCostMana", "RememberObjects", "RememberTargets", "RemoveCardTypes",
 	"RemoveCreatureTypes", "RemoveSubTypes", "ReplaceColor", "ReplaceGraveyard",
-	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "SVarCompare",
+	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare",
 	"SelectPrompt", "SetChosenMode", "SetColor", "SetCreatureTypes", "SetPower",
 	"SetToughness", "ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
 	"SubAbility", "TargetMax", "TargetMin", "TargetType", "TargetUnique",

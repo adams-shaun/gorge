@@ -1933,7 +1933,18 @@ type MergedCard struct {
 type ExileReturnEntry struct {
 	Obj  ObjID
 	From Zone
+	// Ret marks an exile whose ChangeZone carried ReturnAbility$ (Lagrella,
+	// the Magpie): the return sweep then runs that ability on the returned
+	// card. Entries without it never pay the lookup.
+	Ret bool
 }
+
+// ExileReturnZoneMask and ExileReturnRetFlag split the Amount of the
+// "until-host-leaves" Imprint event: the exiled-from zone and the Ret bit.
+const (
+	ExileReturnZoneMask int32 = 0xff
+	ExileReturnRetFlag  int32 = 0x100
+)
 
 // BestowedAttached reports whether o is a card printed with Bestow that is
 // currently attached to a permanent (CR 702.114e: while attached to a

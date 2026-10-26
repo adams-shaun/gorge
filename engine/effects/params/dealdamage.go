@@ -90,7 +90,7 @@ var dealDamageKnownKeys = [...]string{
 	"PresentDefined", "PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RelativeTarget",
 	"RememberAnimated", "RememberCostMana", "RememberDamaged", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceDyingDefined", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
-	"ReplaceOnly", "ReplaceType", "SVarCompare", "SelectPrompt",
+	"ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt",
 	"SetChosenMode", "SetColor", "ShowCards", "SorcerySpeed", "SpellDescription",
 	"StackDescription", "SubAbility", "TargetMax", "TargetMin",
 	"TargetType", "TargetUnique", "TargetValidTargeting", "TargetingPlayer",

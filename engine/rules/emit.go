@@ -839,6 +839,9 @@ func (e *Engine) sweepExileReturn(source state.ObjID) {
 			continue
 		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: entry.Obj, From: state.ZExile, To: entry.From})
+		if entry.Ret {
+			e.runExileReturnAbility(source, entry.Obj)
+		}
 	}
 }
 

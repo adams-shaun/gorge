@@ -220,7 +220,7 @@ var pumpKnownKeys = [...]string{
 	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "PumpZone", "RandomNumTargets",
 	"ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberPumped",
 	"RememberTargets", "ReplaceColor", "ReplaceDyingDefined", "ReplaceGraveyard", "ReplaceGraveyardValid",
-	"ReplaceMana", "ReplaceOnly", "ReplaceType", "SVarCompare",
+	"ReplaceMana", "ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare",
 	"Secondary", "SelectPrompt", "SetChosenMode", "SetColor", "ShowCards", "SorcerySpeed",
 	"SpellDescription", "StackDescription", "SubAbility", "TargetMax",
 	"TargetMin", "TargetType", "TargetUnique", "TargetValidTargeting", "TargetingPlayer",

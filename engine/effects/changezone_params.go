@@ -259,7 +259,7 @@ var changeZoneKnownKeys = [...]string{
 	"PresentZone", "RandomNumTargets", "RandomOrder", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana",
 	"RememberLKI", "RememberObjects", "RememberSearched", "RememberTargets", "Reorder",
 	"ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
-	"ReplaceOnly", "ReplaceType", "Reveal", "SVarCompare",
+	"ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "Reveal", "SVarCompare",
 	"SelectPrompt", "SetChosenMode", "SetColor", "ShareLandType", "SharedRestrictions", "ShowCards", "Shuffle",
 	"ShuffleNonMandatory", "SorcerySpeed", "SpellDescription", "StackDescription",
 	"StaticEffect", "StaticEffectCheckSVar", "StaticEffectSVarCompare",
