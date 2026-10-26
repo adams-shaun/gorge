@@ -212,10 +212,17 @@ type Engine struct {
 
 // stackLeaveCause is the reason a spell move off the stack is being emitted
 // (Engine.stackLeave).
-type stackLeaveCause uint8
+type stackLeaveCause uint16
 
 const (
 	stackLeaveNone stackLeaveCause = iota
 	stackLeaveResolved
 	stackLeaveFizzled
+)
+
+// stackLeaveByFizzle maps a Moved line's Fizzle$ value to the cause it
+// admits; any other spelling is stackLeaveNone, which never matches.
+var stackLeaveByFizzle = state.NewStrCodes(
+	state.StrEntry[stackLeaveCause]{Key: "False", Val: stackLeaveResolved},
+	state.StrEntry[stackLeaveCause]{Key: "True", Val: stackLeaveFizzled},
 )

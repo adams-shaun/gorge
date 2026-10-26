@@ -249,14 +249,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// not leaving the stack carry no cause, so neither matches; an
 		// unrecognised value fails closed.
 		if raw, ok := r.Params["Fizzle"]; ok {
-			want := stackLeaveNone
-			switch strings.ToLower(strings.TrimSpace(raw)) {
-			case "false":
-				want = stackLeaveResolved
-			case "true":
-				want = stackLeaveFizzled
-			}
-			if want == stackLeaveNone || ev.From != state.ZStack || e.stackLeave != want {
+			if want := stackLeaveByFizzle.Code(raw); want == stackLeaveNone || ev.From != state.ZStack || e.stackLeave != want {
 				return false
 			}
 		}
