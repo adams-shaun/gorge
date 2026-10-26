@@ -102,6 +102,17 @@ type PutCounterParams struct {
 	// RememberPut$ True, RememberCards$ True.
 	RememberPut   bool
 	RememberCards bool
+	// RememberAmount is RememberAmount$ True: the placed COUNT transport
+	// (one remembered entry per counter actually placed after replacement).
+	RememberAmount bool
+	// ForColor is ForColor$: the put runs once per colour W, U, B, R, G with
+	// that colour bound as the source's chosen colour (Call the Spirit
+	// Dragons).
+	ForColor bool
+	// UpTo is UpTo$ True: the amount per recipient is chosen in
+	// [UpToMin, CounterNum$] on resolution. UpToMin is UpToMin$ (default 0).
+	UpTo    bool
+	UpToMin ParamText
 	// CounterTypes$ (plural, distinct from CounterType$): one counter of each
 	// listed kind. OneOfEach is its canonical list when every entry is a plain
 	// counter kind; SpecialTypes names entries this build does not model as a
@@ -145,14 +156,14 @@ var putCounterKnownKeys = [...]string{
 	"CounterNum", "CounterNumPerDefined", "CounterType", "CounterTypePerDefined", "CounterTypes",
 	"Defined", "DefinedCards", "DefinedTarget", "Description", "Divided",
 	"DividedAsYouChoose", "DividedRandomly", "ETB", "EachExistingCounter", "EachFromSource", "Exclude",
-	"Exhaust", "ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards", "ImprintPlayed",
+	"Exhaust", "ForColor", "ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards", "ImprintPlayed",
 	"InstantSpeed", "IsCurse", "IsPresent", "KW",
 	"Keyword", "KeywordLine", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"MinChoiceAmount", "ModeCost", "Monstrosity", "NewController",
 	"NonBasicSpell", "OnlyNewKind", "OpponentTurn", "Optional", "PerDefined",
 	"Placer", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "PutOnDefined", "PutOnEachOther", "RandomNumTargets", "RandomType", "ReduceAmount",
-	"ReduceCost", "RememberAnimated", "RememberCards", "RememberCostMana", "RememberObjects",
+	"ReduceCost", "RememberAmount", "RememberAnimated", "RememberCards", "RememberCostMana", "RememberObjects",
 	"RememberPut", "RememberTargets", "Renown", "ReplaceColor", "ReplaceGraveyard",
 	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType",
 	"SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
@@ -167,7 +178,7 @@ var putCounterKnownKeys = [...]string{
 	"TargetsWithSameCreatureType", "TargetsWithSharedCardType",
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript",
 	"Tribute", "TriggerDescription", "Type", "Ultimate",
-	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched",
+	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "UpTo", "UpToMin",
 	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidTgts", "VoteMessage",
 	"WithoutManaCost", "XMax", "XMin",
@@ -295,6 +306,10 @@ func compilePutCounter(sa *cards.SA) *PutCounterParams {
 	p.CounterNumPerDefined = strings.TrimSpace(perNum)
 	p.RememberPut = isTrue(sa.ParamStr(cards.PKRememberPut))
 	p.RememberCards = isTrue(sa.ParamStr(cards.PKRememberCards))
+	p.RememberAmount = isTrue(sa.ParamStr(cards.PKRememberAmount))
+	p.ForColor = isTrue(rawParamText(sa, "ForColor").Text)
+	p.UpTo = isTrue(sa.ParamStr(cards.PKUpTo))
+	p.UpToMin = rawParamText(sa, "UpToMin")
 	tribute, tributeOK := sa.Param(cards.PKTribute)
 	p.Tribute = isTrue(tribute)
 

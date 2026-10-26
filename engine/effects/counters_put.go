@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -193,6 +194,10 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	counterKinds := pc.Kinds
 	perKind := pc.CounterTypePerDefined
 	if pc.Choices != "" {
+		if pc.ForColor {
+			putCounterForColor(h, c, sa, n, kind, counterKinds)
+			return
+		}
 		putCounterChoose(h, c, sa, n, kind, counterKinds)
 		return
 	}
@@ -262,6 +267,10 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var placed []state.Target
+	// RememberAmount$ (Earthbender Ascension, Wishing Well): one remembered
+	// entry per counter that actually landed, read off the fold's result.
+	var amountPlaced []state.Target
+	g := h.Game()
 	for ti, t := range Defined(h, c, sa) {
 		if perKind && len(counterKinds) > 1 {
 			if ti >= len(kindAnswers) || kindAnswers[ti] == "" {
@@ -289,11 +298,21 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			// behaviour) silently dropped the whole instruction -- the corpus
 			// carries 156 player-targeted PutCounter lines.
 			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
+				pn := n
+				if pc.UpTo && !etb {
+					pn = putCounterUpToAmount(h, c, sa, pc, n, ti)
+				}
+				before := playerCounterTotal(&g.Players[p])
 				for _, k := range putCounterKindsFor(pc, kind) {
 					emitPutCounterChange(h, c, sa, events.Event{Kind: events.PlayerCounterChange, Player: p,
-						Counter: k, Amount: n})
+						Counter: k, Amount: pn})
 				}
-				if n > 0 && pc.RememberPut {
+				if pc.RememberAmount {
+					for i := playerCounterTotal(&g.Players[p]) - before; i > 0; i-- {
+						amountPlaced = append(amountPlaced, state.Target{Player: p, IsPlayer: true})
+					}
+				}
+				if pn > 0 && pc.RememberPut {
 					placed = append(placed, state.Target{Player: p, IsPlayer: true})
 				}
 			}
@@ -364,6 +383,12 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 				amount = 0
 			}
 		}
+		if pc.UpTo && !etb {
+			// CR 608.2d: "up to N" is the amount the controller picks on
+			// resolution, per recipient.
+			amount = putCounterUpToAmount(h, c, sa, pc, amount, ti)
+		}
+		totalBefore := o.Counter("ALL")
 		if len(kindsAns) > 0 {
 			for _, chosenKind := range kindsAns {
 				emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: chosenKind, Amount: amount})
@@ -376,6 +401,15 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			}
 		} else {
 			emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
+		}
+		if pc.RememberAmount {
+			// Re-read the object: the fold (replacements, prevention) decides
+			// how many counters landed, not CounterNum$.
+			if now := g.Obj(o.ID); now != nil {
+				for i := now.Counter("ALL") - totalBefore; i > 0; i-- {
+					amountPlaced = append(amountPlaced, state.Target{Obj: o.ID})
+				}
+			}
 		}
 		// The mark (CR 701.31b: "...and it becomes monstrous"): one
 		// AlterAttribute per placed object, emitted AFTER its counters so the
@@ -410,6 +444,9 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	rememberPlaced(c, sa, placed)
+	if len(amountPlaced) > 0 {
+		c.Remembered = append(c.Remembered, amountPlaced...)
+	}
 }
 
 // putCounterKindsFor is the ONE home for "which counter kinds does this
@@ -885,6 +922,12 @@ func objTargets(ids []state.ObjID) []state.Target {
 // chooses ONE creature" asks exactly when that player controls two or more
 // eligible creatures.
 func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, kinds []string) {
+	putCounterChooseTitled(h, c, sa, n, kind, kinds, PutCounterOf(sa).ChoiceTitle)
+}
+
+// putCounterChooseTitled is putCounterChoose with the recipient ask's prompt
+// given (ForColor$ templates its colour into ChoiceTitle$ per pass).
+func putCounterChooseTitled(h Host, c *Ctx, sa *cards.SA, n int32, kind string, kinds []string, title string) {
 	if n <= 0 {
 		return
 	}
@@ -945,7 +988,7 @@ func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, kinds 
 		Source:     c.Source,
 		ResumeKind: "counter_pick",
 		ResumeSA:   sa,
-		Prompt:     pc.ChoiceTitle}
+		Prompt:     title}
 	for _, id := range eligible {
 		name := "a creature"
 		if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -960,6 +1003,103 @@ func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, kinds 
 	}
 
 	fallback()
+}
+
+// forColorNames are ForColor$'s passes in Forge's MagicColor.Constant.
+// ONLY_COLORS order (CR 105.1: white, blue, black, red, green).
+var forColorNames = [...]string{"White", "Blue", "Black", "Red", "Green"}
+
+// putCounterForColor is the ForColor$ shape (Call the Spirit Dragons' "for
+// each color, put a +1/+1 counter on a Dragon you control of that color"):
+// the Choices$ pick runs once per colour, with that colour bound as the
+// source's chosen colour on this Ctx's trigger context only (never on the
+// object: the spec's ChosenColor word reads it through sourceChosen), and
+// ChoiceTitle$'s "chosenColor" templated to the colour. A colour no
+// permanent matches places nothing. RememberPut$ is Forge's LinkedHashSet
+// host list: an object picked in two passes is remembered once, on the
+// source's persistent list that Count$RememberedSize reads.
+func putCounterForColor(h Host, c *Ctx, sa *cards.SA, n int32, kind string, kinds []string) {
+	pc := PutCounterOf(sa)
+	saved := c.TriggerContext
+	defer func() { c.TriggerContext = saved }()
+	chosenType := saved.SourceChosenType
+	if !saved.SourceLKIValid {
+		if o := h.Game().Obj(c.Source); o != nil {
+			chosenType = o.ChosenType
+		}
+	}
+	for _, color := range forColorNames {
+		c.TriggerContext.SourceLKIValid = true
+		c.TriggerContext.SourceChosenType = chosenType
+		c.TriggerContext.SourceChosenColor = color
+		before := len(c.Remembered)
+		putCounterChooseTitled(h, c, sa, n, kind, kinds, strings.ReplaceAll(pc.ChoiceTitle, "chosenColor", strings.ToLower(color)))
+		if pc.RememberPut {
+			putCounterRememberOnce(h, c, before)
+		}
+	}
+}
+
+// putCounterRememberOnce keeps the remembered entries a ForColor$ pass added
+// (c.Remembered[from:]) only for objects the source has not remembered yet,
+// and mirrors each onto the source's event-backed list.
+func putCounterRememberOnce(h Host, c *Ctx, from int) {
+	if from > len(c.Remembered) {
+		return
+	}
+	kept := c.Remembered[:from:from]
+	var src *state.Object
+	if c.Source != 0 {
+		src = h.Game().Obj(c.Source)
+	}
+	for _, t := range c.Remembered[from:] {
+		if slices.Contains(kept, t) {
+			continue
+		}
+		kept = append(kept, t)
+		if src != nil && !t.IsPlayer && !slices.ContainsFunc(src.Remembered, func(r state.Target) bool { return r == t }) {
+			eventRemember(h, c, t.Obj)
+		}
+	}
+	c.Remembered = kept
+}
+
+// putCounterUpToAmount is UpTo$'s per-recipient amount ask (Forge
+// CountersPutEffect chooseNumber(UpToMin..counterAmount)): the controller
+// picks how many of max counters to put, in [UpToMin$ (default 0), max]. No
+// ask when the range is a single value. The options run from max down, so
+// the first offer -- what the bot arm and the no-host fallback (R-9) take --
+// is the full amount, today's behaviour.
+func putCounterUpToAmount(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, max int32, ti int) int32 {
+	lo := numText(h, c, pc.UpToMin, 0)
+	if lo < 0 {
+		lo = 0
+	}
+	if lo >= max || max > chooseNumberBoundedCeiling {
+		return max
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "counter_upto", ResumeSA: sa, ResumeTarget: ti,
+		Prompt: "Choose how many counters to put"}
+	for i := max; i >= lo; i-- {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "number",
+			Label: strconv.Itoa(int(i)), Amount: int(i)})
+	}
+	if ans, ok := AskTape(h, d); ok && len(ans) > 0 {
+		if v := int32(ans[0].Amount); v >= lo && v <= max {
+			return v
+		}
+	}
+	return max
+}
+
+// playerCounterTotal is the sum of a player's counters of every kind.
+func playerCounterTotal(p *state.Player) int32 {
+	var n int32
+	for _, c := range p.Counters {
+		n += c.N
+	}
+	return n
 }
 
 // putCounterChooseApply resolves the counter-kind half of a bare Choices$
