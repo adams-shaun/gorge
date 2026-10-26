@@ -1111,6 +1111,14 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: pc.from, Text: "reversed"})
 		}
 	}
+	// CR 702.35b: a madness card whose cast is reversed was not cast, so it
+	// goes to its owner's graveyard rather than staying in the exile the
+	// madness replacement put it in. The reversal above already returned the
+	// pushed spell to pc.from (exile); move it on. This also covers a
+	// proposal aborted before the push.
+	if !pc.isAbility() && pc.mode == altMode(altMadness) {
+		e.madnessDeclined(pc.card)
+	}
 	// CR 733.1: a pushed spell's PutOnStack stays in the append-only log, so
 	// the spell-cast turn watcher it folded (state.Player.SpellsCastThisTurn)
 	// is undone by a companion reversal event. A pushed activated ability's
