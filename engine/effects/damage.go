@@ -1257,24 +1257,12 @@ type PendingDamage struct {
 	target state.Target
 }
 
-// effDamageResolve implements "DB$ DamageResolve" (Forge's
-// AbilityFactoryDamageResolve): it flushes the marks a DamageMap$ True
-// DealDamage left in the resolving chain as ONE simultaneous damage batch --
-// the observable that motivates the primitive, so a DamageDealtOnce
-// ("deals damage one or more times") trigger latches once with the batch
-// total instead of once per marked call, and CR 616 replacement effects see
-// one damage event per recipient, not one per marking call. The marks are
-// flushed in recorded order (a slice, never a map, so the order is
-// deterministic). A flush with nothing marked is a SILENT no-op: no Note, no
-// batch, exactly the shape a bare DamageResolve tail leaves when the script's
-// marking half dealt nothing. It runs the DamageResolve SA's own
-// RememberDamaged$ True / ReplaceDyingDefined$ riders over the objects the
-// flush actually damaged, the same way a real DealDamage would (the one
-// corpus carrier, Serpentine Spike, puts both on the DamageResolve line).
-func effDamageResolve(h Host, c *Ctx, sa *cards.SA) {
+// flushPendingDamage deals every mark on c.PendingDamage as ONE damage batch
+// and returns the targets actually damaged (nil when nothing was marked).
+func flushPendingDamage(h Host, c *Ctx) []state.Target {
 	marks := c.PendingDamage
 	if len(marks) == 0 {
-		return
+		return nil
 	}
 	// Consume the marks before emitting: a Damage event's own replacement or
 	// trigger machinery must not see them as still pending, and a later
@@ -1294,6 +1282,25 @@ func effDamageResolve(h Host, c *Ctx, sa *cards.SA) {
 		h.SetDamageSource(prev)
 	}
 	h.EndDamageBatch()
+	return damaged
+}
+
+// effDamageResolve implements "DB$ DamageResolve" (Forge's
+// AbilityFactoryDamageResolve): it flushes the marks a DamageMap$ True
+// DealDamage left in the resolving chain as ONE simultaneous damage batch --
+// the observable that motivates the primitive, so a DamageDealtOnce
+// ("deals damage one or more times") trigger latches once with the batch
+// total instead of once per marked call, and CR 616 replacement effects see
+// one damage event per recipient, not one per marking call. The marks are
+// flushed in recorded order (a slice, never a map, so the order is
+// deterministic). A flush with nothing marked is a SILENT no-op: no Note, no
+// batch, exactly the shape a bare DamageResolve tail leaves when the script's
+// marking half dealt nothing. It runs the DamageResolve SA's own
+// RememberDamaged$ True / ReplaceDyingDefined$ riders over the objects the
+// flush actually damaged, the same way a real DealDamage would (the one
+// corpus carrier, Serpentine Spike, puts both on the DamageResolve line).
+func effDamageResolve(h Host, c *Ctx, sa *cards.SA) {
+	damaged := flushPendingDamage(h, c)
 	if len(damaged) == 0 {
 		return
 	}

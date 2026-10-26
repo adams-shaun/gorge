@@ -80,6 +80,10 @@ type CharmParams struct {
 	// AILogic$ Random: the script's AI-picks-at-random marker, carried on
 	// the ask as decision.Decision.AIRandom for unattended bots.
 	AILogicRandom bool
+	// DamageMap$ True (GenericChoice; Osseous Sticktwister, Zoyowa
+	// Lava-Tongue): the chosen bodies' DealDamage marks into one map flushed as
+	// a single batch after the last chooser (Forge ChooseGenericEffect).
+	DamageMap bool
 	// NumRandomChoices$ (GenericChoice; Davriel, Soul Broker's offers and
 	// conditions): only that many of the available choices, drawn from the
 	// engine rng, are offered (engine/effects/atrandom.go charmRandomOffer).
@@ -157,6 +161,7 @@ func compileCharm(sa *cards.SA, dp *DefinedParams) *CharmParams {
 	p.TempRemember = strings.TrimSpace(sa.ParamStr(cards.PKTempRemember)) != ""
 	p.FallbackAbility = strings.TrimSpace(sa.ParamStr(cards.PKFallbackAbility))
 	p.AtRandom = strings.TrimSpace(sa.ParamStr(cards.PKAtRandom))
+	p.DamageMap = isTrue(sa.ParamStr(cards.PKDamageMap))
 	p.AILogicRandom = strings.TrimSpace(sa.ParamStr(cards.PKAILogic)) == "Random"
 	nrc, nrcOK := sa.Param(cards.PKNumRandomChoices)
 	p.NumRandomChoices = ParamText{Text: nrc, Present: nrcOK}
@@ -187,7 +192,7 @@ var charmKnownKeys = [...]string{
 	"ConditionCheckSVar", "ConditionCompare", "ConditionCompare2", "ConditionDefined", "ConditionDescription",
 	"ConditionFirstCombat", "ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases",
 	"ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost",
-	"CostDesc", "Defined", "DefinedCards", "DefinedTarget",
+	"CostDesc", "DamageMap", "Defined", "DefinedCards", "DefinedTarget",
 	"Description", "Exclude", "Exhaust", "FallbackAbility",
 	"ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
