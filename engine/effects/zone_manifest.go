@@ -250,8 +250,10 @@ func manifestDreadMove(h Host, c *Ctx, p state.PlayerID, window []state.ObjID, c
 // shapes (become_anonymous, hide_in_plain_sight, expose_the_culprit), a
 // literal/SVar Amount$ (default 1; a value resolving to <= 0 cloaks
 // nothing, no event) and the riders Tapped$ (enter tapped, the
-// MoveZone-then-Tap pair), Shuffle$ (the standard Secret shuffle of each
-// affected player's library afterwards) and RememberCloaked$ (each cloaked
+// MoveZone-then-Tap pair), Shuffle$ (Forge's shuffle of the CLOAKED PILE
+// itself, CR-wise no library shuffle at all: the pile is not a library, and
+// gorge's deterministic cloaking order is not observable through the
+// face-down projection, so it is a no-op here) and RememberCloaked$ (each cloaked
 // object joins the resolution's Remembered -- cryptic_coat's chained attach)
 // and the Choices$ cloak-from-hand chooser (vannifar: the controller picks
 // Amount$ cards of their hand) are implemented. SubAbility$ is free (the ordinary chain). Every other
@@ -290,10 +292,11 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKTapped)), "True")
-	shuffle := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKShuffle)), "True")
+	// Shuffle$ is the pile shuffle, not a library shuffle: no-op here (see
+	// doc comment). Read it so the parameter census still sees it read.
+	_ = sa.ParamStr(cards.PKShuffle)
 	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCloaked)), "True")
 	g := h.Game()
-	shuffled := make(map[state.PlayerID]bool)
 	cloak := func(id state.ObjID, cloaker state.PlayerID) {
 		o := g.Obj(id)
 		if o == nil || o.Zone == state.ZBattlefield {
@@ -332,7 +335,6 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: o.Controller,
 				Text: "entered tapped"})
 		}
-		shuffled[o.Owner] = true
 	}
 	if choices {
 		ids, ok := chooseFromZoneForFaceDown(h, c, sa, c.Controller, amount)
@@ -408,17 +410,11 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
-	if shuffle {
-		// Shuffle$ True: the standard Secret events.Shuffle for each player
-		// whose library lost a card (become_anonymous and expose_the_culprit
-		// carry it; the deterministic order comes from the host's own rng
-		// path every other library shuffle uses).
-		for _, p := range g.AliveFrom(c.Controller) {
-			if shuffled[p] {
-				shuffleLibraryOrder(h, p)
-			}
-		}
-	}
+	// Shuffle$ True is the pile shuffle (become_anonymous, expose_the_culprit):
+	// "shuffle that pile, then cloak those cards". A pile is not a library
+	// (CR 701.24a), so no events.Shuffle is emitted; the parameter is still
+	// read above so the census sees it, and the projection makes the pile
+	// order a no-op (face-down CardView keeps the object ID).
 }
 
 type effCloakCode uint16
