@@ -938,27 +938,29 @@ func replacementMovedBodyLiveKind(params map[string]string, body string, svars m
 	if f := strings.TrimSpace(params["Fizzle"]); f != "" && !strings.EqualFold(f, "False") {
 		return false
 	}
-	api := replacementBodyAPI(body)
+	api := cards.APICodeForName(replacementBodyAPI(body))
 	updated := false
 	for k, v := range params {
-		switch {
-		case k == "ReplacementResult":
+		switch redirectLineKeyCodes.Code(k) {
+		case redirectLineKeyReplacementResult:
 			if v != "Updated" {
 				return false
 			}
 			updated = true
-		case k == "ValidCause":
+		case redirectLineKeyValidCause:
 			if v != "LandAbility.MayPlaySource" {
 				return false
 			}
-		case !replacementRedirectsToExileKeys.Has(k):
-			return false
+		default:
+			if !replacementRedirectsToExileKeys.Has(k) {
+				return false
+			}
 		}
 	}
 	switch api {
-	case "ChangeZone":
+	case cards.APIChangeZone:
 		return !updated && redirectExileBody(replacementBodyParams(body), svars, redirectLineRemembered(params), allowLibrary)
-	case "Tap":
+	case cards.APITap:
 		// ValidCard$ Permanent does not match a card that is not yet on the
 		// battlefield, so an enters-tapped line on it would register and
 		// never apply; it stays on the loud-Note path.
@@ -986,9 +988,9 @@ func redirectTapBody(body map[string]string, svars map[string]string, remembered
 		return false
 	}
 	for k, v := range body {
-		switch k {
-		case "DB", "Defined", "ETB":
-		case "SubAbility":
+		switch redirectTapBodyCodes.Code(k) {
+		case redirectTapBodyAllowed:
+		case redirectTapBodySubAbility:
 			if !redirectRiderChain(v, svars, 0) {
 				return false
 			}
@@ -1486,6 +1488,36 @@ const (
 var redirectDefinedCodes = state.NewStrCodes(
 	state.StrEntry[redirectDefinedCode]{Key: "ReplacedCard", Val: redirectDefinedReplaced},
 	state.StrEntry[redirectDefinedCode]{Key: "Remembered", Val: redirectDefinedRemembered},
+)
+
+type redirectLineKeyCode uint16
+
+const (
+	redirectLineKeyReplacementResult redirectLineKeyCode = iota + 1
+	redirectLineKeyValidCause
+)
+
+// redirectLineKeyCodes is the vocabulary of the replacement line's own keys
+// that a Moved registration reads beyond replacementRedirectsToExileKeys.
+var redirectLineKeyCodes = state.NewStrCodes(
+	state.StrEntry[redirectLineKeyCode]{Key: "ReplacementResult", Val: redirectLineKeyReplacementResult},
+	state.StrEntry[redirectLineKeyCode]{Key: "ValidCause", Val: redirectLineKeyValidCause},
+)
+
+type redirectTapBodyCode uint16
+
+const (
+	redirectTapBodyAllowed redirectTapBodyCode = iota + 1
+	redirectTapBodySubAbility
+)
+
+// redirectTapBodyCodes is the body-key whitelist of the entry-update Tap body
+// (DB$ Tap | ETB$ True | Defined$ ReplacedCard).
+var redirectTapBodyCodes = state.NewStrCodes(
+	state.StrEntry[redirectTapBodyCode]{Key: "DB", Val: redirectTapBodyAllowed},
+	state.StrEntry[redirectTapBodyCode]{Key: "Defined", Val: redirectTapBodyAllowed},
+	state.StrEntry[redirectTapBodyCode]{Key: "ETB", Val: redirectTapBodyAllowed},
+	state.StrEntry[redirectTapBodyCode]{Key: "SubAbility", Val: redirectTapBodySubAbility},
 )
 
 type redirectDestinationCode uint16
