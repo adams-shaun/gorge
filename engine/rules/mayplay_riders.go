@@ -25,47 +25,32 @@ func mayPlaySeatBeneficiary(v string) bool {
 	return mayPlayPerCardBeneficiary(v) || mayPlayAnySeat(v) || mayPlayActiveSeat(v)
 }
 
-// mayPlayGrantFn reports whether the may-play static sv opens card id's zone
-// for you (mayPlayStatic's grants answer). mayPlayGrantsOf binds it to e.
-type mayPlayGrantFn func(sv *staticView, id state.ObjID, you state.PlayerID) bool
-
-func mayPlayGrantsOf(e *Engine) mayPlayGrantFn {
-	return func(sv *staticView, id state.ObjID, you state.PlayerID) bool {
-		_, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, you, sv.Source)
-		return grants
-	}
-}
-
 // mayPlayFlashGranted reports whether a printed MayPlay$ static carrying
 // MayPlayWithFlash$ True lets p cast o from its current zone at instant speed
 // ("you may cast them as though they had flash", Azula; Elsha's top-of-library
-// cast). It reads the gates every may-play offer reads (mayPlayStatic:
-// Condition$ PlayerTurn, the beneficiary, Affected$/AffectedZone$) and covers
-// only a cast made through a static that OPENS o's zone, so the timing
-// permission exists exactly where that grant does (CR 601.3, CR 702.8a).
+// cast). It asks grantedBy (Engine.mayPlayGrantedBy) -- the gates every
+// may-play offer reads (Condition$ PlayerTurn, the beneficiary,
+// Affected$/AffectedZone$) -- so it covers only a cast made through a static
+// that OPENS o's zone, and the timing permission exists exactly where that
+// grant does (CR 601.3, CR 702.8a). statics is read only past the hand
+// exclusion, so a hand card costs no board scan.
 //
 // A card in hand is never covered here: the flash of a static that delivers an
 // alternative cost (Aluren's free cast, Primal Prayers' {E}) belongs to that
 // alternative-cost option alone (altCostView.flash), not to the ordinary cast
 // of the same card. A pure read.
-func mayPlayFlashGranted(bf []staticView, grants mayPlayGrantFn, o *state.Object, p state.PlayerID) bool {
+func mayPlayFlashGranted(statics func(string) []staticView, grantedBy func(p state.PlayerID, id, host state.ObjID) bool, o *state.Object, p state.PlayerID) bool {
 	if o == nil || o.Face() == nil || o.Zone == state.ZHand {
 		return false
 	}
 	for _, st := range mayPlayOwnStatics(o, p) {
-		if st.Mode != "Continuous" || !strings.EqualFold(st.ParamStr(cards.PKMayPlayWithFlash), "True") {
-			continue
-		}
-		own := staticView{Params: st.Params, PS: st.ParamSetOf(), Source: o.ID, Controller: o.Controller}
-		if grants(&own, o.ID, o.Controller) {
-			return true
+		if st.Mode == "Continuous" && strings.EqualFold(st.ParamStr(cards.PKMayPlayWithFlash), "True") {
+			return grantedBy(p, o.ID, o.ID)
 		}
 	}
-	for _, sv := range bf {
-		if !strings.EqualFold(sv.ParamStr(cards.PKMayPlayWithFlash), "True") || !mayPlayStaticBenefits(p, &sv) {
-			continue
-		}
-		if grants(&sv, o.ID, mayPlayStaticYou(p, &sv)) {
+	for _, sv := range statics("Continuous") {
+		if strings.EqualFold(sv.ParamStr(cards.PKMayPlayWithFlash), "True") && mayPlayStaticBenefits(p, &sv) &&
+			grantedBy(p, o.ID, sv.Source) {
 			return true
 		}
 	}
