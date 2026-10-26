@@ -43,7 +43,7 @@ func (e *Engine) QueueReflexiveTrigger(c *effects.Ctx, execute string, body *car
 		return false
 	}
 	src := e.G.Obj(c.Source)
-	if src == nil || src.Face() == nil || !reflexiveTableIsSources(c.SVars, src) {
+	if src == nil || src.Face() == nil || !reflexiveTableIsSources(c, src) {
 		return false
 	}
 	sa := events.ResolveSVarAcrossFaces(src, execute)
@@ -156,15 +156,15 @@ func reflexiveCaptured(ctx *effects.Ctx) {
 // another object (Superior Spider-Man's as-enters copy runs its "When you do,
 // exile that card" after the copy basis replaced the face) -- one of its own
 // printed faces', which events.ResolveSVarAcrossFaces falls back to.
-func reflexiveTableIsSources(table map[string]string, src *state.Object) bool {
-	if maps.Equal(table, src.Face().SVars) {
+func reflexiveTableIsSources(c *effects.Ctx, src *state.Object) bool {
+	if maps.Equal(c.SVars, src.Face().SVars) {
 		return true
 	}
 	if src.Card == nil {
 		return false
 	}
 	for _, cf := range src.Card.Faces {
-		if maps.Equal(table, cf.SVars) {
+		if maps.Equal(c.SVars, cf.SVars) {
 			return true
 		}
 	}
