@@ -197,6 +197,13 @@ type pendingCast struct {
 	// rides pendingCast rather than the shared "play" mode.
 	replaceGraveyard bool `clone:"deep"`
 
+	// playManaConversion is the Play SA's ManaConversion$ rider (Quistis
+	// Trepe, Tinybones, the Pickpocket): Forge's PlayEffect copies the
+	// conversion onto the one spell ability it casts, so only that cast's
+	// payment may spend mana as though it were any type. Per-SA provenance,
+	// exactly like replaceGraveyard.
+	playManaConversion string `clone:"deep"`
+
 	// faceDown marks the morph family's face-down cast (CR 702.37a
 	// Morph, 702.168a Megamorph, 702.169a Disguise): the {3} cast puts a
 	// face-down spell on the stack. It gates the cast-flow stages the
