@@ -24,11 +24,16 @@ import (
 // Both scope forms resolve through the shared player-target vocabulary
 // (`Defined` / `definedSpec`), so `ValidTgts$ Player`, `ValidTgts$ Opponent`,
 // `Defined$ You`, `Defined$ TargetedController` and the rest all work without a
-// second spelling table. A selector we cannot resolve to a PLAYER (an unknown
-// spelling, or an object-only one) keeps the pre-fix all-players sweep rather
-// than silently moving nothing, and emits a Note saying so: the unscoped sweep
-// is the previous behaviour, so an unmodelled card is never quietly inert, and
-// a card we DO understand is correctly restricted. `Origin$` handling is not
+// second spelling table. On the non-targeting path, a selector we cannot
+// resolve to a PLAYER (an unknown spelling, or an object-only one) keeps the
+// pre-fix all-players sweep rather than silently moving nothing, and emits a
+// Note saying so: the unscoped sweep is the previous behaviour, so an
+// unmodelled card is never quietly inert, and a card we DO understand is
+// correctly restricted. On the TARGETING path an empty chosen set is a legal
+// answer ("any number", CR 601.2c, includes zero), so it scopes to no players
+// and moves nothing -- Thraben Charm's "exile any number of target players'
+// graveyards" cast with no targets must not sweep every graveyard. `Origin$`
+// handling is not
 // touched -- ParseZones already splits `Hand,Graveyard` into two zones and the
 // Any/All wildcard is resolved by the caller before this runs.
 func changeZoneAllPlayers(h Host, c *Ctx, sa *cards.SA, p *ChangeZoneAllParams) (players []state.PlayerID, scoped bool) {
@@ -63,12 +68,14 @@ func changeZoneAllPlayers(h Host, c *Ctx, sa *cards.SA, p *ChangeZoneAllParams) 
 		out = append(out, t.Player)
 	}
 	if len(out) == 0 {
-		sel := p.DefinedText
 		if targeting {
-			sel = p.ValidTgtsText
+			// CR 601.2c: "any number" includes zero. An empty chosen set on
+			// the targeting path is a legal answer that names no players, not
+			// an unresolvable scope -- the effect moves nothing.
+			return nil, true
 		}
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-			Text: "ChangeZoneAll could not resolve a player scope from " + sel + "; sweeping all players"})
+			Text: "ChangeZoneAll could not resolve a player scope from " + p.DefinedText + "; sweeping all players"})
 		return g.AliveFrom(0), false
 	}
 	return out, true
