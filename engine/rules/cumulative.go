@@ -960,6 +960,26 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			bound = energy
 		}
 	}
+	// XMax$ (Shanna, Purifying Blade's "X can't be greater than the amount of
+	// life you gained this turn"): the body's own cap on the announced X, read
+	// with the same context a fixed X body sees (cast_etbchoice.go's
+	// etbPayLifeBound reads it the same way). An unresolvable cap fails
+	// closed to no extra bound, the pre-XMax behaviour.
+	if sa := tc.resume.sa; sa.ParamStr(cards.PKXMax) != "" {
+		ctx := effects.NewCtxPtr(tc.source, tc.player, effects.CtxInit{SVars: o.Face().SVars})
+		if tcx, ok := e.triggerContexts[tc.resume.obj]; ok {
+			ctx.TriggerContext = tcx
+		}
+		ctx.Remembered = tc.costRemembered
+		if cap, ok := effects.NumResolved(e, ctx, sa, "XMax", 0); ok {
+			if cap < 0 {
+				cap = 0
+			}
+			if bound < 0 || cap < bound {
+				bound = cap
+			}
+		}
+	}
 	if bound < 0 {
 		return false
 	}
