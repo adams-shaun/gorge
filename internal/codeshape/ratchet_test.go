@@ -10,7 +10,7 @@ import (
 // The W0 shrink-only ratchets of the rules-engine refactor spec
 // (docs/design/2026-10-03-rules-engine-lasagna-design.md, section
 // 4), on the pattern of testkit/testutil/agentsdoc_test.go's
-// knownApproximationRows: each constant is the measured value on main at
+// shrink-only Known-approximations register: each constant is the measured value on main at
 // 49bd9af8d, the test FAILS when the measurement grows past it and LOGS when
 // it falls below it. A change that shrinks a metric lowers its constant to
 // the new measurement in the same commit; NEVER raise one.

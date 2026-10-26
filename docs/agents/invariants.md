@@ -236,15 +236,15 @@ exactly the game the goldens pin. A legitimate behaviour change moves them:
 - Changing the default `bot` policy moves the heads. Its promotion regenerates
   them in the same merge.
 
-### 10. AGENTS.md's Known-approximations table only shrinks
+### 10. The Known-approximations register only shrinks
 
-It is a closing register:
+It is a closing register, one file per row in `docs/agents/known-approximations/`
+(moved out of AGENTS.md on 2026-10-26):
 
-- No row may be added.
-- No row may grow past 600 bytes.
-- The count may not exceed `knownApproximationRows`.
+- No row may be added: every file must be listed in `ALLOWED.txt`.
+- No row may grow past its `ALLOWED.txt` byte cap.
 
-A landing ticket deletes its row and lowers the constant. A deviation that a
+A landing ticket deletes its row's file and its `ALLOWED.txt` line. A deviation that a
 ticket cannot close goes in the **commit message** and the ticket report.
 
 **Enforced by:** `testkit/testutil/agentsdoc_test.go`.

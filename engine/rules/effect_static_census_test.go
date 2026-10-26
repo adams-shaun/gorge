@@ -122,7 +122,7 @@ func effectCorpusModes(t *testing.T) (static, trigger map[string]map[string]bool
 	return static, trigger
 }
 
-// effectRowStillNotes parses AGENTS.md's Known-approximations row for the
+// effectRowStillNotes parses the Known-approximations row file for the
 // Effect-delivered StaticAbilities$/Triggers$ registration and returns the
 // static and trigger modes the row names as still unimplemented. Reading the
 // row (rather than a second hand list) is what makes the census a ratchet on
@@ -130,38 +130,32 @@ func effectCorpusModes(t *testing.T) (static, trigger map[string]map[string]bool
 // pass is to change the row.
 func effectRowStillNotes(t *testing.T) (statics, triggers []string) {
 	t.Helper()
-	b, err := os.ReadFile(filepath.Join("..", "..", "AGENTS.md"))
+	const rowFile = "docs/agents/known-approximations/effect-modes.md"
+	b, err := os.ReadFile(filepath.Join("..", "..", rowFile))
 	if err != nil {
-		t.Fatalf("read AGENTS.md: %v", err)
+		t.Fatalf("read %s: %v", rowFile, err)
 	}
 	var cell string
 	for _, line := range strings.Split(string(b), "\n") {
-		if !strings.HasPrefix(line, "| `Effect` registers") {
-			continue
+		if rest, ok := strings.CutPrefix(line, "**Stand-in.** "); ok {
+			cell = rest
+			break
 		}
-		// The Stand-in cell is everything before the last two cells (Where,
-		// Removed by); a Forge fragment in a description carries its own "|".
-		cells := strings.Split(strings.Trim(strings.TrimSpace(line), "|"), "|")
-		if len(cells) < 3 {
-			t.Fatalf("AGENTS.md: Effect row has %d cells, want at least 3", len(cells))
-		}
-		cell = strings.Join(cells[:len(cells)-2], "|")
-		break
 	}
 	if cell == "" {
-		t.Fatal("AGENTS.md: `Effect` StaticAbilities$/Triggers$ row not found -- did it move or get deleted?")
+		t.Fatalf("%s: no **Stand-in.** paragraph -- did the row move or get deleted?", rowFile)
 	}
 	backtick := regexp.MustCompile("`([A-Za-z][A-Za-z0-9]*)`")
 	section := func(start, end string) []string {
 		i := strings.Index(cell, start)
 		if i < 0 {
-			t.Fatalf("AGENTS.md: Effect row has no %q section", strings.TrimSpace(start))
+			t.Fatalf("effect-modes row has no %q section", strings.TrimSpace(start))
 		}
 		rest := cell[i+len(start):]
 		if end != "" {
 			j := strings.Index(rest, end)
 			if j < 0 {
-				t.Fatalf("AGENTS.md: Effect row %q section has no %q terminator", strings.TrimSpace(start), strings.TrimSpace(end))
+				t.Fatalf("effect-modes row %q section has no %q terminator", strings.TrimSpace(start), strings.TrimSpace(end))
 			}
 			rest = rest[:j]
 		}
@@ -222,9 +216,9 @@ func TestEffectStaticCensus(t *testing.T) {
 		return strings.Join(c, ",")
 	}
 	if got, want := set(staticNotes), set(rowStatic); got != want {
-		t.Errorf("Effect static modes that still Note differ from the AGENTS.md row:\n census: %s\n    row: %s", got, want)
+		t.Errorf("Effect static modes that still Note differ from docs/agents/known-approximations/effect-modes.md:\n census: %s\n    row: %s", got, want)
 	}
 	if got, want := set(triggerNotes), set(rowTrigger); got != want {
-		t.Errorf("Effect trigger modes that still Note differ from the AGENTS.md row:\n census: %s\n    row: %s", got, want)
+		t.Errorf("Effect trigger modes that still Note differ from docs/agents/known-approximations/effect-modes.md:\n census: %s\n    row: %s", got, want)
 	}
 }
