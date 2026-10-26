@@ -147,7 +147,7 @@ def spread(vals):
 
 RSS_NOTE = ("Peak RSS is a distribution, not one number: a Go process's peak is set by when the "
             "garbage collector runs during corpus load and deck setup, so one row's reps can fall "
-            "into two clusters (the dirty-dirac rows' do). 'peak RSS MB' is the median; "
+            "into two clusters. 'peak RSS MB' is the median; "
             "'RSS reps MB' lists every rep, sorted. Compare distributions, not medians.")
 
 
