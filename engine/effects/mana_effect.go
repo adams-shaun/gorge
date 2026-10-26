@@ -72,10 +72,23 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool,
 	// player adds one mana of any color"); a targeted ability with no
 	// Defined$ keeps the activator choosing (Radiant Lotus: "Choose a color.
 	// Target player adds ..." -- Chooser$ You).
+	mp := ManaOf(sa)
 	chooser := c.Controller
-	if ManaOf(sa).HasDefined {
+	if mp.HasDefined {
 		if recipients := ManaRecipients(h, c, sa); len(recipients) == 1 {
 			chooser = recipients[0]
+		}
+	}
+	// Chooser$ names who makes the colour choice: You is the activator, so
+	// it overrides the recipient default (the mana still goes to the
+	// recipients). Any other spelling is unmodelled: one Note and today's
+	// chooser, never a silently wrong seat.
+	if ch := strings.TrimSpace(mp.Chooser); ch != "" {
+		if strings.EqualFold(ch, "You") {
+			chooser = c.Controller
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "unmodelled Mana Chooser$ " + ch})
 		}
 	}
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: min, Max: max,
