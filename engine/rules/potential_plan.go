@@ -640,6 +640,14 @@ func (e *Engine) potentialCastVerdict(p state.PlayerID, id state.ObjID, sh *cast
 // planAbilityPayment plans the mana part of printed activated ability
 // `ability` (a flat pile index, as the "ability" option carries it) of id.
 func (e *Engine) planAbilityPayment(p state.PlayerID, id state.ObjID, ability int) PaymentPlanOutcome {
+	return e.planAbilityPaymentLifePips(p, id, ability, -1)
+}
+
+// planAbilityPaymentLifePips is planAbilityPayment with lifePips >= 0 pricing
+// the cost's Phyrexian pips for a payer who pays that many with life (CR
+// 107.4f): the remaining pips are planned as coloured pips of their colour.
+// lifePips < 0 leaves the cost as compiled.
+func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ability, lifePips int) PaymentPlanOutcome {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return PaymentPlanOutcome{Reason: "unsupported"}
@@ -664,6 +672,14 @@ func (e *Engine) planAbilityPayment(p state.PlayerID, id state.ObjID, ability in
 	// its Cost would over-state the activation the payment actually makes.
 	if pay.TapCreaturesForMana(ab) {
 		cost.Generic -= e.creatureManaOfferCredit(p, id, cost)
+	}
+	if lifePips >= 0 {
+		for i, col := range cost.Phyrexian {
+			if i >= lifePips {
+				cost.Colored[state.ManaIndex(col)]++
+			}
+		}
+		cost.Phyrexian = nil
 	}
 	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
 	return e.planComposedCost(p, id, composed, true, true)

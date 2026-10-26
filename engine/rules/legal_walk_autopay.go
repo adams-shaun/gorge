@@ -19,7 +19,7 @@ import (
 // the ordinary walk asks. Every non-mana part of the cost is read for real by
 // the confirming gate, and the witness is planned so those parts stay payable.
 func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base Cost, ab *cards.SA) bool {
-	if w.hyp != nil || !w.e.paidManaCensus || !abilityCostNeedsMana(base) || !pay.PaymentPlanPoolAccepted(asPayer(w.e), p) {
+	if w.hyp != nil || !w.e.paidManaCensus || !(abilityCostNeedsMana(base) || len(base.Phyrexian) > 0) || !pay.PaymentPlanPoolAccepted(asPayer(w.e), p) {
 		return false
 	}
 	scope := abilityScope(ab)
@@ -35,6 +35,9 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 	probe := base
 	if !w.e.offerCastableUsing(statics, p, id, &probe, scope, true, &bound) {
 		return false
+	}
+	if len(base.Phyrexian) > 0 {
+		return w.autoPayPhyrexian(p, id, idx, base, scope, statics)
 	}
 	// The exact fast path (autoPayFast): when it proves the planner would
 	// accept, skip the planner. Under verify mode it still runs the planner
@@ -52,7 +55,35 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 // confirm its witness with the engine's own offer gate, exactly as autoPayOffer
 // always did before the fast path existed.
 func (w *legalWalk) autoPayPlan(p state.PlayerID, id state.ObjID, idx int, base Cost, scope costScope, statics costStaticViews) bool {
-	out := w.e.planAbilityPayment(p, id, idx)
+	return w.autoPayConfirm(p, id, base, scope, statics, w.e.planAbilityPayment(p, id, idx))
+}
+
+// autoPayPhyrexian is the autopay offer for a cost carrying Phyrexian pips
+// (CR 107.4f: each is paid with one mana of its colour or 2 life). The
+// planner prices a pip as neither (PlanManaHalf), so a witness over the raw
+// cost taps nothing for a pip the life total cannot cover. Try each count k of
+// life-paid pips the life total affords (most life first, so the least colour
+// is demanded), plan the cost with the other pips as coloured pips, and let
+// autoPayConfirm's offer gate -- which resolves the real mixed cost against the
+// witness's pool -- accept it.
+func (w *legalWalk) autoPayPhyrexian(p state.PlayerID, id state.ObjID, idx int, base Cost, scope costScope, statics costStaticViews) bool {
+	k := len(base.Phyrexian)
+	if life := w.e.G.Players[p].Life; life < 0 {
+		k = 0
+	} else if afford := int(life) / decision.PhyrexianLife; afford < k {
+		k = afford
+	}
+	for ; k >= 0; k-- {
+		if w.autoPayConfirm(p, id, base, scope, statics, w.e.planAbilityPaymentLifePips(p, id, idx, k)) {
+			return true
+		}
+	}
+	return false
+}
+
+// autoPayConfirm runs the engine's own offer gate over a planner outcome's
+// witness: the pool plus everything the plan taps.
+func (w *legalWalk) autoPayConfirm(p state.PlayerID, id state.ObjID, base Cost, scope costScope, statics costStaticViews, out PaymentPlanOutcome) bool {
 	if out.Plan == nil || out.Reason != "" || len(out.Plan.Activations) == 0 {
 		return false
 	}
