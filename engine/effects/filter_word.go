@@ -817,11 +817,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordCanBeTurnedFaceUp:
 		// Forge's Card.canBeTurnedFaceUp: a face-down battlefield permanent
 		// with a real card face to reveal (CR 708.6) -- morph/megamorph/
-		// disguise, manifest or cloak. gorge's turn-up path (effects'
-		// effSetState Mode$ TurnFaceUp) reveals any face-down battlefield
-		// permanent, so this live FaceDown read is the engine's own answer;
-		// the corpus's `+faceDown` qualifier beside it is redundant but
-		// harmless.
+		// disguise, manifest or cloak. This answers the filter word, not the
+		// effect's eligibility: effSetState Mode$ TurnFaceUp additionally
+		// applies the printed-type gate (CR 701.40g/701.58g: a manifested or
+		// cloaked instant/sorcery is revealed and stays face down) and
+		// ValidNewFace$, so a manifested Bolt matches this word even though
+		// that effect never turns it up. The corpus's `+faceDown` qualifier
+		// beside it is redundant but harmless.
 		return o.FaceDown && o.Zone == state.ZBattlefield && o.Face() != nil
 	case wordFaceDown:
 		// Forge's faceDown: the object is a face-down battlefield permanent

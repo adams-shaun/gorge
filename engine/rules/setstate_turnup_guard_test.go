@@ -92,6 +92,30 @@ func TestHauntwoodsRevealsNoncreatureAndLeavesItFaceDown(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+func TestHauntwoodsRejectsNoncreaturePermanentOnValidNewFace(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := manifestEngine(t, reg, "Hauntwoods Shrieker", "Darksteel Ingot")
+	shrieker := moveByName(t, e, 0, "Hauntwoods Shrieker", state.ZBattlefield)
+	ingot := manifestCard(t, e, 0, "Darksteel Ingot")
+	if o := e.G.Obj(ingot); o.Zone != state.ZBattlefield || !o.FaceDown {
+		t.Fatalf("precondition: the Ingot is not face down on the battlefield: %+v", o)
+	}
+	from := len(e.L.Events)
+	if ask := hauntwoodsActivate(t, e, shrieker, ingot); ask != nil {
+		t.Fatalf("a setstate_optional ask was posed for a card outside ValidNewFace$: %+v", ask)
+	}
+	passUntilStackEmpty(t, e, 50)
+	turnUps, reveals := turnUpGuardCounts(e, from, "Darksteel Ingot")
+	if turnUps != 0 || !e.G.Obj(ingot).FaceDown {
+		t.Errorf("Ingot turned face up past ValidNewFace$ Creature: %d TurnFaceUp events, FaceDown=%v",
+			turnUps, e.G.Obj(ingot).FaceDown)
+	}
+	if reveals != 1 {
+		t.Errorf("public reveal Notes naming Darksteel Ingot = %d, want 1", reveals)
+	}
+	replayCheck(t, e, cfg)
+}
+
 func TestHauntwoodsTurnsUpAManifestedCreatureOnYes(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := manifestEngine(t, reg, "Hauntwoods Shrieker", "Grizzly Bears")
