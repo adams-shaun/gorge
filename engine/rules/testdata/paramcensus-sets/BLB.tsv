@@ -6,7 +6,6 @@ Crumb and Get It	param:api:Token.GiftDescription
 Dawn's Truce	param:api:Draw.GiftDescription
 Dazzling Denial	cost:Y
 Dewdrop Cure	param:api:Draw.GiftDescription
-Innkeeper's Talent	param:api:PutCounter.ValidTgtsDesc
 Into the Flood Maw	param:api:Token.GiftDescription,param:api:Token.LockTokenScript
 Kitnap	param:api:Draw.GiftDescription
 Long River's Pull	param:api:Draw.GiftDescription

@@ -132,7 +132,7 @@ var digUntilKnownKeys = [...]string{
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript", "TriggerDescription",
 	"Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "Valid", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
-	"ValidCounterType", "ValidDescription", "ValidTgts", "VoteMessage", "WithoutManaCost",
+	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost",
 	"XMax", "XMin",
 }
 

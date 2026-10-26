@@ -274,7 +274,7 @@ var changeZoneKnownKeys = [...]string{
 	"Type", "Ultimate", "Unearth",
 	"Unimprint", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
-	"ValidCounterType", "ValidDescription", "ValidTgts", "VoteMessage", "WithCountersAmount", "WithCountersType", "WithMayLook",
+	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithCountersAmount", "WithCountersType", "WithMayLook",
 	"WithTotalCMC", "WithTotalCardTypes", "WithoutManaCost", "XMax", "XMin",
 }
 

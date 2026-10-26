@@ -600,6 +600,10 @@ type TargetEffect struct {
 	// wire and the canonical Board encoding never carry it. Empty when the
 	// source declares none.
 	AttachLogic string `json:"-"`
+	// Desc is the script's noun for the legal target set (Forge
+	// ValidTgtsDesc); presentation only, never a legality fact. Absent when
+	// the script supplies none.
+	Desc string `json:"desc,omitempty"`
 }
 
 // RemovalEffect is a conservative classification of an active removal SA.
