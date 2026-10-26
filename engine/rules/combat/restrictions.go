@@ -274,6 +274,34 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 			return true
 		}
 	}
+	// The Effect-registered CantBlock restrictions (cr-g156): a
+	// `DB$ Effect | StaticAbilities$ KWPump` whose SVar body is
+	// `Mode$ CantBlock | ValidCard$ Creature.OppCtrl` -- Cosmotronic Wave's
+	// "creatures your opponents control can't block this turn", the same
+	// Effect-delivered shape Ahn-Crop Crasher, Ember Gale, Hazardous Blast,
+	// Immobilizer Eldrazi, Rumbling Ruin, Sontaran General and Headliner
+	// Scarlett deliver -- registers through effEffect's restriction case and
+	// is consulted here beside the face statics, so the opponents' creatures
+	// really are forbidden as blockers for the effect's lifetime (CR 509.1b).
+	// ValidCard$ is resolved against the BLOCKER (the creature the restriction
+	// applies to) with the registration's own controller as the spec's
+	// "you"/"opponent" pivot and its RememberedPlayers bound, the same
+	// consultation-time channel the CantBlockBy registered walk reads; the
+	// registration gate (effects.CantBlockRestrictionParamsReadable) has
+	// already refused every body whose scoping this loop cannot evaluate
+	// (unread parameters, and a SetChosenNumber$ Effect whose frozen count
+	// the spec read here cannot see), so
+	// the empty-spec read falls to the ordinary matcher's empty-set
+	// fail-closed direction.
+	for ceI, ceL := 0, b.Active(); ceI < len(ceL); ceI++ {
+		ce := &ceL[ceI]
+		if ce.Restriction != "CantBlock" {
+			continue
+		}
+		if b.MatchesSpec(ce.RestrictParam(cards.PKValidCard), blocker, ce.Source, ce.Controller, ce.Remembered, ce.RememberedPlayers) {
+			return true
+		}
+	}
 	for _, sv := range b.Statics("CantBlockBy") {
 		// Apply the same shared per-static gate as the CantBlock loop above.
 		if !b.StaticGateHolds(sv) {
