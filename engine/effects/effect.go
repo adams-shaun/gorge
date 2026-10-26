@@ -1422,7 +1422,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			effectContinuous(h, ce)
 			registered = true
 		default:
-			registered = effectUnsupportedStatic(h, c, mode, params, effectName, rawDur, dur, what, remembered)
+			registered = effectUnsupportedStatic(h, c, mode, params, effectName, rawDur, dur, what, remembered, sa)
 		}
 	}
 	// Nothing registered (an unsupported StaticAbilities$ mode, or a

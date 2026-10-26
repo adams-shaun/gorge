@@ -560,6 +560,9 @@ func init() {
 		// covers both directions of a LifeChange plus damage dealt to a
 		// player; ValidPlayer$ is the only scoping parameter enforced.
 		"stat:CantChangeLife",
+		// cr-g158: CR 119.8 CantLoseLife (Effect-delivered); replacement_life.go
+		// playerLifeLossForbidden is the reader.
+		"stat:CantLoseLife",
 		// cantdraw1 / cantdraw-drawlimit-cap: CR 121.6 CantDraw statics
 		// (engine/rules/replacement.go drawForbidden, consulted by applyReplacements
 		// before any Draw replacement). ValidPlayer$ scopes total prohibitions

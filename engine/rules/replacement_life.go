@@ -76,6 +76,18 @@ func (e *Engine) applyLifeReplacements(ev events.Event) (events.Event, bool) {
 		e.consumeExchangeLifeSide(ev)
 		return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: life total can't change"}), true
 	}
+	// A CantLoseLife effect (CR 119.8, Everybody Lives!): a LoseLife or life
+	// cost is swallowed whole, but damage dealt to the player still happens
+	// (lifelink, damage triggers) with its recorded life loss set to 0.
+	if ev.Kind == events.LifeChange && ev.Amount < 0 && e.playerLifeLossForbidden(ev.Player) {
+		e.consumeExchangeLifeSide(ev)
+		return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: can't lose life"}), true
+	}
+	if ev.Kind == events.Damage {
+		if q, loss, ok := lifeLoss(ev); ok && loss > 0 && e.playerLifeLossForbidden(q) {
+			events.SetDamageLifeLoss(&ev, 0)
+		}
+	}
 	return e.continueLifeReplacements(ev, nil)
 }
 
@@ -440,6 +452,25 @@ func (e *Engine) playerLifeChangeForbidden(p state.PlayerID) bool {
 			continue
 		}
 		return true
+	}
+	return false
+}
+
+// playerLifeLossForbidden is playerLifeChangeForbidden's loss-only sibling
+// (CR 119.8): an Effect-registered CantLoseLife restriction scoped to p, or a
+// battlefield CantLoseLife static. Gain stays legal under it. It is the read
+// every life-payment offer gate takes beside the change gate.
+func (e *Engine) playerLifeLossForbidden(p state.PlayerID) bool {
+	for _, sv := range e.activeStatics("CantLoseLife") {
+		if spec := sv.ParamStr(cards.PKValidPlayer); spec == "" ||
+			effects.MatchesPlayerSpec(e.G, spec, p, sv.Controller) {
+			return true
+		}
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction == "CantLoseLife" && e.restrictionScopesPlayer(ce, p) {
+			return true
+		}
 	}
 	return false
 }

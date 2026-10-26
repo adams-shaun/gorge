@@ -3,6 +3,7 @@ package effects
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -10,7 +11,7 @@ import (
 // effectUnsupportedStatic handles a statically unknown Effect body. Detection
 // Tower's targeting exception and Hall of Echoes' legend-rule exemption are
 // two supported modes delivered this way.
-func effectUnsupportedStatic(h Host, c *Ctx, mode string, params staticLineParams, name, rawDur, dur, what string, remembered []state.ObjID) bool {
+func effectUnsupportedStatic(h Host, c *Ctx, mode string, params staticLineParams, name, rawDur, dur, what string, remembered []state.ObjID, sa *cards.SA) bool {
 	if mode == ModeIgnoreHexproof && len(params["ValidEntity"]) > 0 &&
 		staticKeysReadable(params, "Mode", "Activator", "ValidEntity", "Description") {
 		effectContinuous(h, state.ContinuousEffect{
@@ -54,6 +55,19 @@ func effectUnsupportedStatic(h Host, c *Ctx, mode string, params staticLineParam
 			UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
 			Restriction: mode, RestrictParams: params,
 			RestrictSVars: c.SVars, Remembered: remembered,
+		})
+		return true
+	}
+	if mode == ModeCantLoseLife &&
+		staticKeysReadable(params, "Mode", "ValidPlayer", "Description") {
+		// CR 119.8 "can't lose life" delivered by a resolved ability
+		// (Everybody Lives!, Courageous Resolve), read by rules'
+		// playerLifeLossForbidden. An absent Duration$ is this turn.
+		effectContinuous(h, state.ContinuousEffect{
+			Source: c.Source, Controller: c.Controller, Name: name,
+			UntilEOT: effectUntilEOT(h, c.Source, rawDur) || rawDur == "", Duration: dur,
+			Restriction: mode, RestrictParams: params,
+			RememberedPlayers: effectRememberedPlayers(h, c, sa),
 		})
 		return true
 	}

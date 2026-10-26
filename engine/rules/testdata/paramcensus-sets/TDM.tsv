@@ -1,7 +1,2 @@
-Barrensteppe Siege	param:api:GenericChoice.ShowChoice
-Frostcliff Siege	param:api:GenericChoice.ShowChoice
-Glacierwood Siege	param:api:GenericChoice.ShowChoice
-Hollowmurk Siege	param:api:GenericChoice.ShowChoice
 Nature's Rhythm	param:api:ChangeZone.AIXMax
 Strategic Betrayal	param:api:ChangeZoneAll.DefinedPlayer
-Windcrag Siege	param:api:GenericChoice.ShowChoice
