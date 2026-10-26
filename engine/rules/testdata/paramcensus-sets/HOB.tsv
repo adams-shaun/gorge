@@ -1,7 +1,6 @@
 Along the Crooked Way	param:api:ChangeZone.ValidTgtsDesc
 Bejeweled Warg	param:api:PutCounter.ValidTgtsDesc
 Beorn's Hospitality	param:api:PutCounter.ValidTgtsDesc
-Bilbo's Gambit	param:api:Token.GiftDescription
 Bilbo, Luckwearer	param:api:ExchangeControl.ValidTgtsDesc
 Bofur, Reliable Guardian	param:api:Pump.ValidTgtsDesc
 Burn, Burn, Tree and Fern	param:api:DealDamage.ValidTgtsDesc,param:api:Destroy.ValidTgtsDesc
