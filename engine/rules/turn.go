@@ -255,6 +255,9 @@ func (e *Engine) finishUntapStep(next int) bool {
 				}
 			}
 		}
+		// CR 731.2 / 502.2: after the phasing action, before the untap
+		// action. The next == 0 gate runs it once per step, never on a resume.
+		e.dayNightUntapCheck()
 	}
 	// CR 502.3: the active player untaps their permanents as ONE turn-based
 	// action, so the untaps this step emits are ONE untapping action for the

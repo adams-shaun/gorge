@@ -305,7 +305,10 @@ func (e *Engine) applyLifeReplacement(ev events.Event, m replMatch) (events.Even
 	_, loss, _ := lifeLoss(ev)
 	if amount, ok := e.replaceCount(m.id, r, "Amount", loss); ok {
 		if ev.Kind == events.Damage {
-			ev.Amount = amount
+			// Bloodletter of Aclazotz doubles the life LOSS, not the damage
+			// dealt: lifelink and DamageDone triggers keep reading Amount,
+			// while the fold and LifeLost triggers read the recorded loss.
+			events.SetDamageLifeLoss(&ev, amount)
 		} else {
 			ev.Amount = -amount
 		}

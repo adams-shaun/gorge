@@ -162,6 +162,12 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 			}
 		} else {
 			spec, ok := e.CastProvenanceAdmits(v, ev.Obj, e.ControllerOf(source))
+			// The card is already in its destination: name that zone so a
+			// bare Permanent base reads as a permanent card there
+			// (Moonshadow's milled or discarded permanent card).
+			if ev.To != state.ZBattlefield && ev.To != state.ZStack {
+				capture.Zone, capture.InZone = ev.To, true
+			}
 			if !ok || !e.MatchesSpec(spec, ev.Obj, source, e.ControllerOf(source), capture) {
 				return false
 			}
@@ -194,7 +200,7 @@ func LeftBattlefield(ev events.Event) bool {
 // or events.DiscardCost, so the action marker and its cost provenance survive
 // a replacement changing the destination.
 func sacrificedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if !events.IsSacrifice(ev) {
+	if !events.IsSacrifice(ev) || !whileKeywordAdmits(e, t, ev) {
 		return false
 	}
 	ctrl := e.ControllerOf(source)

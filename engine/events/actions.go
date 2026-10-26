@@ -200,6 +200,19 @@ func IsMill(ev Event) bool {
 	return ev.Kind == MoveZone && ev.From == state.ZLibrary && ev.To == state.ZGraveyard && ev.Text == milledText
 }
 
+// exiledAsCostText marks a card exiled to pay a cost (CR 118.3).
+const exiledAsCostText = "exiled as a cost"
+
+// ExileAsCost returns the zone-change event for a card exiled as a cost.
+func ExileAsCost(obj state.ObjID, from state.Zone) Event {
+	return Event{Kind: MoveZone, Obj: obj, From: from, To: state.ZExile, Text: exiledAsCostText}
+}
+
+// IsExileAsCost reports whether ev is a card exiled as a cost.
+func IsExileAsCost(ev Event) bool {
+	return ev.Kind == MoveZone && ev.To == state.ZExile && ev.Text == exiledAsCostText
+}
+
 const sacrificeText = "sacrificed"
 
 // Sacrifice returns the canonical zone-change event for sacrificing a

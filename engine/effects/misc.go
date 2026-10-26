@@ -84,6 +84,29 @@ const (
 	alterAttributePlotted = 5
 )
 
+// alterAttributeHeld reports whether o currently carries the designation the
+// alterAttributeNames code names (false for a gone object).
+func alterAttributeHeld(o *state.Object, code int) bool {
+	if o == nil {
+		return false
+	}
+	switch code {
+	case 0:
+		return o.Suspected
+	case alterAttributePrepared:
+		return o.Prepared
+	case 2:
+		return o.SaddledTurn != 0
+	case alterAttributeSolved:
+		return o.Solved
+	case 4:
+		return o.Harnessed
+	case alterAttributePlotted:
+		return o.PlottedTurn != 0
+	}
+	return false
+}
+
 // effAlterAttribute applies Forge's AlterAttribute effect: it flips a
 // designation attribute on each resolved target (task alterattr1). Targets
 // come through the ordinary Defined path, so a body with no Defined$ asks
@@ -120,6 +143,7 @@ func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	activate := !strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKActivate)), "False")
+	rememberAltered := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberAltered)), "True")
 	for _, name := range strings.FieldsFunc(attr, func(r rune) bool { return r == ',' || r == ' ' }) {
 		code := -1
 		for i, known := range alterAttributeNames {
@@ -168,7 +192,14 @@ func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
 				// CaseSolved's ValidPlayer$ You subject.
 				ev.Player = c.Controller
 			}
+			before := alterAttributeHeld(o, code)
 			h.Emit(ev)
+			// RememberAltered$ (Frantic Scapegoat; Forge's `altered &&`): only an
+			// object whose designation actually flipped is remembered.
+			if rememberAltered && alterAttributeHeld(h.Game().Obj(t.Obj), code) != before {
+				c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
+				eventRemember(h, c, t.Obj)
+			}
 		}
 	}
 }

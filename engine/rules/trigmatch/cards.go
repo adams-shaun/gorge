@@ -113,8 +113,18 @@ func searchedLibraryMatches(e Board, t cards.Trigger, source state.ObjID, ev eve
 		!e.MatchesSpec(v, ev.Obj, source, ctrl, SpecOpts{}) {
 		return false
 	}
+	// ev.Player is the searched library's owner; the searcher rides Amount-1
+	// when it differs (applyLibrarySearch). Forge reads ValidPlayer$ as the
+	// searcher and SearchOwnLibrary$ as searcher == library owner.
+	searcher := ev.Player
+	if ev.Amount > 0 {
+		searcher = state.PlayerID(ev.Amount - 1)
+	}
 	if v := t.ParamStr(cards.PKValidPlayer); v != "" &&
-		!effects.MatchesPlayerSpec(e.Game(), v, ev.Player, ctrl) {
+		!effects.MatchesPlayerSpec(e.Game(), v, searcher, ctrl) {
+		return false
+	}
+	if t.Params["SearchOwnLibrary"] == "True" && searcher != ev.Player {
 		return false
 	}
 	return true

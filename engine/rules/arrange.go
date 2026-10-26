@@ -200,9 +200,26 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		newLib = append(newLib, remainder...)
 		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner,
 			IDs: newLib, Secret: true})
+		var moved []state.ObjID
 		for _, id := range pileB {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 				From: state.ZLibrary, To: state.ZGraveyard, Player: owner})
+			if o := e.G.Obj(id); o != nil && o.Zone == state.ZGraveyard {
+				moved = append(moved, id)
+			}
+		}
+		// RememberMoved$ True (CR 607.2a; Enlightened Confidant, Chandra,
+		// Chill of Compliance: "the card you put into your graveyard this
+		// way"): the cards that actually reached the graveyard join the
+		// source's remembered list and the chain's Ctx, the same pair of
+		// views RememberKept$ keeps below.
+		if sa != nil && effects.SurveilOf(sa).RememberMoved && len(moved) > 0 {
+			e.emit(events.Event{Kind: events.Choose, Obj: d.Source, Counter: "remembered", IDs: moved})
+			if c := e.resolutionCtx; c != nil {
+				for _, id := range moved {
+					c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				}
+			}
 		}
 		// RememberKept$ True (task surveil-remember-kept; LCI Starving
 		// Revenant's "for each card you put on top of your library, you

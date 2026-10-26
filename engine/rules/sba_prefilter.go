@@ -279,6 +279,7 @@ type sbaBoardFacts struct {
 	at                                    int
 	pw, battle, saga, counterPair, attach bool
 	role, world, legend, combat           bool
+	dayNight                              bool
 }
 
 // sbaFacts refreshes f when the log has moved since it was taken.
@@ -324,6 +325,9 @@ func (e *Engine) sbaFacts(f *sbaBoardFacts) *sbaBoardFacts {
 					}
 					if !o.FaceDown && face.IsBattle() {
 						f.battle = true
+					}
+					if !f.dayNight && !o.FaceDown && dayNightFace(face) {
+						f.dayNight = true
 					}
 				}
 				if !f.counterPair && o.Counter("P1P1") > 0 && o.Counter("M1M1") > 0 {

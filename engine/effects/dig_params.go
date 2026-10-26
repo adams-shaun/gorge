@@ -77,6 +77,10 @@ type DigParams struct {
 	Pos2      string
 	// Choser is Choser$.
 	Choser string
+	// WithCounters is WithCounters$ (a counter kind) and WithCountersAmount$
+	// its Num-grammar amount (default 1): a battlefield take enters with them.
+	WithCounters       string
+	WithCountersAmount ParamText
 
 	// Unread are the parameters present on the ability that no Dig reader
 	// consumes: the resolution Notes them once.
@@ -125,7 +129,7 @@ var digKnownKeys = [...]string{
 	"Type", "Ultimate", "Unearth", "UnlessAI", "UnlessCost", "UnlessPayer",
 	"UnlessResolveSubs", "UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc",
 	"ValidChoices", "ValidCounterType", "ValidDescription", "ValidTgts", "VoteMessage",
-	"WithMayLook", "WithTotalCMC", "WithoutManaCost", "XMax", "XMin",
+	"WithCounters", "WithCountersAmount", "WithMayLook", "WithTotalCMC", "WithoutManaCost", "XMax", "XMin",
 }
 
 // isDigSA reports whether sa resolves as api:Dig.
@@ -208,6 +212,8 @@ func compileDig(sa *cards.SA) *DigParams {
 		p.Pos2 = "-1"
 	}
 	p.Choser = strings.TrimSpace(rawParamText(sa, "Choser").Text)
+	p.WithCounters = strings.TrimSpace(rawParamText(sa, "WithCounters").Text)
+	p.WithCountersAmount = rawParamText(sa, "WithCountersAmount")
 	p.Unread = unreadKeys(sa, digKnownKeys[:])
 	return p
 }

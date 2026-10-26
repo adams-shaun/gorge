@@ -498,6 +498,15 @@ func (e *Engine) restrictionGateHolds(sv staticView, target state.ObjID) bool {
 			return false
 		}
 	}
+	// Phases$ (CR 506.1, 604.1): "during combat" restrictions (Yuriko, Hand
+	// to Hand) hold only inside the window. An absent window always holds; an
+	// unparseable one withholds the restriction, like every other
+	// unevaluable term here.
+	if ph := sv.ParamStr(cards.PKPhases); ph != "" {
+		if pp := e.parsedPhaseSpec(ph); !pp.valid || !pp.set.Has(e.G.Step) {
+			return false
+		}
+	}
 	switch staticConditionOf(sv) {
 	case condBlank:
 		return true
@@ -1023,7 +1032,14 @@ func (e *Engine) spellTimingPre(p state.PlayerID, id state.ObjID, f *cards.Face,
 	if f == nil {
 		return sorcery, false
 	}
-	if !e.activationPhasesOK(p, f.SpellAbility()) {
+	sa := f.SpellAbility()
+	// IsPresent$ / PresentCompare$ / PresentZone$ on the spell's own SA is a
+	// cast restriction ("Cast this spell only if a creature is attacking you",
+	// Confront the Assault; "...only if you control two or more Vampires",
+	// Feast of Blood). An unmet condition withholds the offer (CR 601.3)
+	// rather than fizzling at resolution. Only the spell's own SA is read: a
+	// SubAbility's IsPresent$ is a resolution condition, not a restriction.
+	if !e.activationPhasesOK(p, sa) || (sa != nil && sa.MayHaveAnyParam(spellPresentKeys) && !e.abilityPresentHolds(p, id, sa)) {
 		return false, false
 	}
 	if sorcery || f.IsInstant() || e.hasKeywordH(id, kwhFlash) || mayFlashSacFace(f) {
@@ -1031,6 +1047,9 @@ func (e *Engine) spellTimingPre(p state.PlayerID, id state.ObjID, f *cards.Face,
 	}
 	return true, true
 }
+
+// spellPresentKeys are the keys the spell cast gate reads for IsPresent$.
+var spellPresentKeys = cards.ParamMaskOf(cards.PKIsPresent)
 
 type spellMatchesValidSACode uint16
 

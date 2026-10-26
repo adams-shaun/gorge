@@ -77,6 +77,14 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		stampText = text[i+4:]
 		text = text[:i]
 	}
+	// A remembered spell's cast-time spend rides "|MS=<id>:<total>:<snow>:
+	// <t0>:<t1>:<t2>:<t3>[,...]", appended between |RN= and |RS=, so it
+	// strips second (state.DelayedTrigger.RememberedManaSpent).
+	var manaSpent []state.ManaSpentLKI
+	if i := strings.LastIndex(text, "|MS="); i >= 0 {
+		manaSpent = decodeDelayedManaSpent(text[i+4:])
+		text = text[:i]
+	}
 	// RememberNumber$ True (Mana Drain's "add an amount of {C} equal to
 	// that spell's mana value") rides "|RN=<n>", appended LAST by the
 	// Phase registration, so it is stripped first. A registration logged
@@ -224,37 +232,38 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		mode, trigger = text[:i], text[i+1:]
 	}
 	g.Delayed = append(g.Delayed, state.DelayedTrigger{
-		ID:                g.DelayedNext,
-		Phase:             e.Step,
-		Source:            e.Obj,
-		Controller:        e.Player,
-		Execute:           e.Counter,
-		Remembered:        rememberedFrom(e.IDs),
-		RememberedStamps:  registrationStamps(rememberedStamps, rememberedStampsFrom(g, e.IDs)),
-		MinTurn:           e.Amount,
-		MaxTurn:           maxTurn,
-		SourceIncarnation: src.Incarnation,
-		TrackSource:       track,
-		EventMode:         mode,
-		Trigger:           trigger,
-		EffectRepeat:      effectRepeat,
-		ValidPlayer:       vp,
-		PresentSpec:       presentSpec,
-		PresentZone:       presentZone,
-		PresentCompare:    presentCompare,
-		OptionalSpec:      optionalSpec,
-		EffectDuration:    duration,
-		BirthTurn:         g.Turn,
-		ForgetOnMoved:     forget,
-		ExileOnMoved:      exile,
-		ForgetCounter:     counter,
-		ForgetOnCast:      cast,
-		ImprintOnHost:     imprint,
-		SourceBattlefield: sourceBattlefield,
-		RememberedAmount:  rememberedAmount,
-		DefinedPlayer:     definedPlayer,
-		ThisTurnDefined:   thisTurnDefined,
-		Static:            staticFlag,
+		ID:                  g.DelayedNext,
+		Phase:               e.Step,
+		Source:              e.Obj,
+		Controller:          e.Player,
+		Execute:             e.Counter,
+		Remembered:          rememberedFrom(e.IDs),
+		RememberedStamps:    registrationStamps(rememberedStamps, rememberedStampsFrom(g, e.IDs)),
+		MinTurn:             e.Amount,
+		MaxTurn:             maxTurn,
+		SourceIncarnation:   src.Incarnation,
+		TrackSource:         track,
+		EventMode:           mode,
+		Trigger:             trigger,
+		EffectRepeat:        effectRepeat,
+		ValidPlayer:         vp,
+		PresentSpec:         presentSpec,
+		PresentZone:         presentZone,
+		PresentCompare:      presentCompare,
+		OptionalSpec:        optionalSpec,
+		EffectDuration:      duration,
+		BirthTurn:           g.Turn,
+		ForgetOnMoved:       forget,
+		ExileOnMoved:        exile,
+		ForgetCounter:       counter,
+		ForgetOnCast:        cast,
+		ImprintOnHost:       imprint,
+		SourceBattlefield:   sourceBattlefield,
+		RememberedAmount:    rememberedAmount,
+		RememberedManaSpent: manaSpent,
+		DefinedPlayer:       definedPlayer,
+		ThisTurnDefined:     thisTurnDefined,
+		Static:              staticFlag,
 	})
 	g.DelayedNext++
 }
@@ -620,4 +629,33 @@ func foldGainedTriggerPush(g *state.Game, e *Event) {
 	// live queue walked with. Without this the wrapper resolves with an
 	// empty remembered set and the body acts on nothing.
 	o.Remembered = rememberedFrom(e.IDs[1:])
+}
+
+// decodeDelayedManaSpent parses the "|MS=" payload: comma-separated
+// "<id>:<total>:<snow>:<t0>:<t1>:<t2>:<t3>" records. A malformed record is
+// dropped (the registration then reads a zero spend, as before the slot).
+func decodeDelayedManaSpent(s string) []state.ManaSpentLKI {
+	var out []state.ManaSpentLKI
+	for rec := range strings.SplitSeq(s, ",") {
+		f := strings.Split(rec, ":")
+		if len(f) != 7 {
+			continue
+		}
+		var n [7]int
+		ok := true
+		for i := range n {
+			v, err := strconv.Atoi(strings.TrimSpace(f[i]))
+			if err != nil {
+				ok = false
+				break
+			}
+			n[i] = v
+		}
+		if !ok {
+			continue
+		}
+		out = append(out, state.ManaSpentLKI{Obj: state.ObjID(n[0]), Total: int32(n[1]), Snow: int32(n[2]),
+			Typed: [4]int32{int32(n[3]), int32(n[4]), int32(n[5]), int32(n[6])}})
+	}
+	return out
 }

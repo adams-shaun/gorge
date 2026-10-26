@@ -82,6 +82,18 @@ func effImmediateTrigger(h Host, c *Ctx, sa *cards.SA) {
 			Text: "ImmediateTrigger with no resolvable Execute$ " + execName})
 		return
 	}
+	// RememberDiscarded$ True on a gated ImmediateTrigger (Ill-Timed Explosion,
+	// CR 607.2a: "the highest mana value among the discarded cards"): the
+	// Discard<...> cards the settled UnlessCost$ payment discarded join the
+	// remembered set the reflexive ability inherits (Forge's Player.discard
+	// records them for any discard whose SA carries the key). The following
+	// DBCleanup ClearRemembered$ empties it as for any other remembered card.
+	if len(c.UnlessDiscarded) > 0 && strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberDiscarded)), "True") {
+		c.Remembered = append(copyTargets(c.Remembered), c.UnlessDiscarded...)
+		for _, t := range c.UnlessDiscarded {
+			eventRemember(h, c, t.Obj)
+		}
+	}
 	// The parent remembered set minus the trigger's own event capture, via the
 	// shared helper refTargets' TriggerRemembered case also uses (so the two
 	// cannot disagree about what Forge's host list holds).

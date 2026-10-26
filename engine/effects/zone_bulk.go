@@ -36,6 +36,24 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 	// other remembered read is affected.
 	rememberDestroyed := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberDestroyed)), "True")
 	rememberLKI := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberLKI)), "True")
+	// AlwaysRemember$ True with RememberLKI$ (Azog, Moria's Ruin; Kellan,
+	// Inquisitive Prodigy; Forge's `(destroyed || alwaysRem) && RememberLKI`):
+	// the target is recorded whether or not the destruction happened, so the
+	// linked follow-up (CR 607.2a) still sees an indestructible, regenerated
+	// or otherwise spared permanent.
+	alwaysRemember := rememberLKI &&
+		strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKAlwaysRemember)), "True")
+	rememberSpared := func(id state.ObjID) {
+		o := h.Game().Obj(id)
+		if o == nil {
+			return
+		}
+		cp := o.CloneDeep()
+		c.LKI = &cp
+		c.Snap.Power, c.Snap.Toughness, c.Snap.PTValid = h.Power(o.ID), h.Toughness(o.ID), true
+		c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+		eventRemember(h, c, o.ID)
+	}
 	// Same pre-batch discipline as effDestroyAll: the targets Defined
 	// resolves are destroyed as one simultaneous batch (a multi-target
 	// Destroy over a lifelink Equipment and its bearer must not make the
@@ -48,6 +66,9 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		if h.HasKeyword(o.ID, "Indestructible") {
+			if alwaysRemember {
+				rememberSpared(o.ID)
+			}
 			continue
 		}
 		victims = append(victims, o.ID)
@@ -69,10 +90,16 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		// hangs off -- so this is correctness insurance for when that changes,
 		// not a live fix.
 		if sa.ParamStr(cards.PKNoRegen) != "True" && ReplaceDestruction(h, id) {
+			if alwaysRemember {
+				rememberSpared(id)
+			}
 			continue
 		}
 		// CR 122.1c: a shield counter replaces the destruction.
 		if ReplaceShieldCounter(h, id) {
+			if alwaysRemember {
+				rememberSpared(id)
+			}
 			continue
 		}
 		// Umbra armor (CR 702.90) applies even when NoRegen$ suppresses
@@ -80,6 +107,9 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		// the Aura leaves it in the graveyard; when the loop reaches the Aura
 		// itself (a DestroyAll that named it too) the zone guard above skips it.
 		if ReplaceUmbraArmor(h, id) {
+			if alwaysRemember {
+				rememberSpared(id)
+			}
 			continue
 		}
 		// Capture the last-known information BEFORE the Move folds: the

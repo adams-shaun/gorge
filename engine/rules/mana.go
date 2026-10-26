@@ -164,6 +164,20 @@ func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scop
 	return e.offerCastableUsing(e.collectCostStatics(), p, id, &base, scope, ability, nil)
 }
 
+// offerCastablePotential is offerCastable for a cast or activation offered
+// outside the priority walk (a madness ask mid-resolution): CR 601.2g lets the
+// caster activate mana abilities while paying, so the gate prices the mana
+// against the pool plus every untapped source, not against the floating pool
+// alone. The bound is restriction-aware (potentialManaFor with this payment's
+// descriptor): a source whose RestrictValid$ cannot spend on THIS cast
+// contributes nothing, exactly as it cannot at the payment (CR 106.6). The
+// payment window the cast opens is what actually taps the sources.
+func (e *Engine) offerCastablePotential(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
+	desc := paymentFor(id, ability, base)
+	hyp := e.potentialManaFor(p, &desc)
+	return e.offerCastableUsing(e.collectCostStatics(), p, id, &base, scope, ability, &hyp)
+}
+
 // offerCastableUsing is offerCastable's core with the statics collected
 // once (the walk shares one collection) and the mana pool optionally
 // overridden: hyp nil is the ordinary real-pool gate, hyp non-nil prices the
@@ -595,7 +609,7 @@ func (pe *payEval) MayPlayRider(p state.PlayerID, id state.ObjID) pipRider {
 	ces := e.active()
 	for i := range ces {
 		ce := &ces[i]
-		if !ce.MayPlay || ce.Controller != p {
+		if !ce.MayPlay || !mayPlayEffectBenefits(ce, o, p) {
 			continue
 		}
 		color, typ := ce.MayPlayIgnoreColor && !r.AnyColor, ce.MayPlayIgnoreType && !r.AnyType

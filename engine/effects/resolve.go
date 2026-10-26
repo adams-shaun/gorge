@@ -223,6 +223,11 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if transform && o.Zone != state.ZBattlefield {
 			continue
 		}
+		// CR 702.145b/e: a daybound or nightbound permanent can't transform
+		// except by its own ability (engine/rules syncDayNightFaces).
+		if transform && dayNightBound(h, o.ID) {
+			continue
+		}
 		next := (int(o.FaceIdx) + 1) % len(o.Card.Faces)
 		h.Emit(events.Event{Kind: events.Note, Obj: o.ID,
 			Text: "flips to face " + strconv.Itoa(next) + " (" + mode + ")"})
@@ -293,6 +298,11 @@ func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspeci
 		if transform && o.Zone != state.ZBattlefield {
 			continue
 		}
+		// CR 702.145b/e: a daybound or nightbound permanent can't transform
+		// except by its own ability (engine/rules syncDayNightFaces).
+		if transform && dayNightBound(h, o.ID) {
+			continue
+		}
 		if o.Card != nil && len(o.Card.Faces) >= 2 {
 			return true
 		}
@@ -341,6 +351,12 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	// number lands on the Ctx channel above; an ABILITY has no mana value
 	// and contributes nothing.
 	rememberCMC := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCounteredCMC)), "True")
+	// RememberForCounter$ (Mana Sculpt; Forge's CounterEffect): remember each
+	// targeted spell BEFORE the can't-be-countered and prevention checks, so a
+	// spell that survives the Counter is still the linked object (CR 607.2a).
+	// The delayed trigger then reads its spend through the resolution-start
+	// stack snapshot (captureStackTargetSnapshots / targetManaSpentLKI).
+	rememberFor := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberForCounter)), "True")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -348,6 +364,10 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		o := h.Game().Obj(t.Obj)
 		if o == nil || o.Zone != state.ZStack {
 			continue
+		}
+		if rememberFor {
+			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			eventRemember(h, c, o.ID)
 		}
 		// AddsNoCounter$ mana (Cavern of Souls): a spell paid with that mana
 		// carries state.FlagNoCounter and can't be countered — it stays on the

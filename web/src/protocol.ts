@@ -1648,6 +1648,11 @@ export interface View {
    */
   winner: number | null;
   /**
+   * DayNight is the CR 731 designation: "day", "night", or omitted while the
+   * game has neither; public for every seat.
+   */
+  day_night?: string;
+  /**
    * Players, Stack and Pending (below) are every public list this type
    * carries. All of them are built non-nil even when empty (Ruling
    * T23-u): a client should never have to treat a bare JSON `null` and an

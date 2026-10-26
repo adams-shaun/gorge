@@ -218,7 +218,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 			}
 			for _, q := range seats {
 				for _, id := range g.Zone(zn, q) {
-					if MatchesSpecCtx(g, valid, id, sc) {
+					if matchesInOwnZone(g, valid, g.Obj(id), sc) {
 						candidates = append(candidates, id)
 					}
 				}

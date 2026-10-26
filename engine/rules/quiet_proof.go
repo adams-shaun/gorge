@@ -261,11 +261,12 @@ func (e *Engine) quietBoardBlocker(p state.PlayerID) quietBlockerID {
 	// cost" family mayPlayAltCosts serves. The static half is read by the
 	// existence scan below; the effect-delivered half here.
 	// Flag 3 (Q3c): every reader of an effect-delivered may-play grant gates
-	// on ce.Controller == p (mayPlayBoardGrantsOpen, mayPlaySpellIds,
-	// mayPlayLandAny, mayPlayGrantedBy, MayPlayRider), so another seat's
-	// grant offers p nothing.
+	// on mayPlayEffectSeatOpen / mayPlayEffectBenefits (mayPlayBoardGrantsOpen,
+	// mayPlaySpellIds, mayPlayLandAny, mayPlayGrantedBy, MayPlayRider): the
+	// controller, or the card's owner for a MayPlayPlayer$ CardOwner grant,
+	// so any other seat's grant offers p nothing.
 	for i := range ces {
-		if ces[i].MayPlay && ces[i].Controller == p {
+		if ces[i].MayPlay && mayPlayEffectSeatOpen(&ces[i], p) {
 			return qbBoardMayPlay
 		}
 	}

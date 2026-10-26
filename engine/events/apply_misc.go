@@ -221,6 +221,16 @@ func foldInitiativeChange(g *state.Game, e *Event) {
 	}
 }
 
+// foldDayNightChange folds Kind DayNightChange into state. Only Amount 1 (day)
+// and 2 (night) are designations; anything else is ignored, so no event can
+// return the game to neither (CR 731.1: only a CR 727 restart does).
+func foldDayNightChange(g *state.Game, e *Event) {
+	d := state.DayNight(e.Amount)
+	if e.Amount == int32(state.DayNightDay) || e.Amount == int32(state.DayNightNight) {
+		g.DayNight = d
+	}
+}
+
 // foldBlessingChange folds Kind BlessingChange into state.
 func foldBlessingChange(g *state.Game, e *Event) {
 	// CR 702.131: one-way designation latch.

@@ -21,6 +21,15 @@ type Target struct {
 	IsPlayer bool
 }
 
+// ManaSpentLKI is one spell's cast-time mana spend as it was on the stack
+// (Object.ManaSpent, ManaSnowSpent and the typed captures indexed like
+// TypedManaTags), carried past the zone change that zeroes the live fields.
+type ManaSpentLKI struct {
+	Obj         ObjID
+	Total, Snow int32
+	Typed       [4]int32
+}
+
 // TargetStamp records which identity of an object a stack object
 // targeted (CR 400.7): Obj's Incarnation and ZoneGen at the moment the
 // target was chosen. It is kept beside Targets rather than inside Target so the

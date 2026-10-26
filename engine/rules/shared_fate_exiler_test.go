@@ -154,7 +154,7 @@ func TestSharedFateExilerIsTheDrawerNotTheController(t *testing.T) {
 
 func TestMayPlayGateRejectedOtherExilerOnly(t *testing.T) {
 	t.Parallel()
-	for v, want := range map[string]bool{"Exiler": false, "": false, "CardOwner": true, "ActivePlayer": true, "Player": true, "Player.Active": true} {
+	for v, want := range map[string]bool{"Exiler": false, "": false, "CardOwner": false, "ActivePlayer": true, "Player": true, "Player.Active": true} {
 		params := map[string]string{}
 		if v != "" {
 			params["MayPlayPlayer"] = v

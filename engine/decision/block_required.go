@@ -117,6 +117,11 @@ func (d *Decision) blockRequiredCore() []int {
 					return
 				}
 			}
+			// CR 506.5: a team that declares a can't-block-alone creature by
+			// itself is no legal declaration, so it cannot be the maximum.
+			if !d.AloneLegal(chosen) {
+				return
+			}
 			if satisfied > bestRequired || (satisfied == bestRequired && len(chosen) < bestLength) {
 				bestRequired, bestLength = satisfied, len(chosen)
 				best = append([]int(nil), chosen...)
@@ -160,7 +165,8 @@ func (d *Decision) blockRequiredCore() []int {
 			counts[o.Attacker]++
 			chosen = append(chosen, ci)
 			add := 0
-			if b.required {
+			// Only a pair that obeys the blocker's requirement counts (CR 509.1c).
+			if b.required && (o.BlockMust || o.Required) {
 				add = 1
 			}
 			// An attacker-oriented requirement is satisfied by the FIRST

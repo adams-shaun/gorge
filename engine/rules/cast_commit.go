@@ -74,7 +74,7 @@ type craftMaterialSource interface {
 // a Craft material is "exiled with" the crafted card (Mastercraft Raptor's
 // ExiledWith$CardPower), and MoveZone's IDs payload names the exiling source.
 func costExileEvent(o *state.Object, craftMaterials []state.ObjID, crafted state.ObjID) events.Event {
-	mv := events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"}
+	mv := events.ExileAsCost(o.ID, o.Zone)
 	if slices.Contains(craftMaterials, o.ID) {
 		mv.IDs = []state.ObjID{crafted}
 	}
@@ -1110,6 +1110,14 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 		} else {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: pc.from, Text: "reversed"})
 		}
+	}
+	// CR 702.35b: a madness card whose cast is reversed was not cast, so it
+	// goes to its owner's graveyard rather than staying in the exile the
+	// madness replacement put it in. The reversal above already returned the
+	// pushed spell to pc.from (exile); move it on. This also covers a
+	// proposal aborted before the push.
+	if !pc.isAbility() && pc.mode == altMode(altMadness) {
+		e.madnessDeclined(pc.card)
 	}
 	// CR 733.1: a pushed spell's PutOnStack stays in the append-only log, so
 	// the spell-cast turn watcher it folded (state.Player.SpellsCastThisTurn)

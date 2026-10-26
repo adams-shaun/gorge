@@ -340,11 +340,17 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 // explicitly indefinite shape ("Permanent", CR 611.2a) becomes a Permanent
 // effect that outlives its source and every cleanup; "UntilEndOfCombat"
 // (CR 511.2) becomes a combat-phase-scoped effect, dropped when the
-// end-of-combat step ends; every other value ("", "UntilEndOfTurn", ...)
+// end-of-combat step ends; a next-turn value (UntilYourNextTurn,
+// UntilTheEndOfYourNextTurn, CR 611.2b) is neither, so the grant gets the
+// UntilTurn boundary rules.AddContinuous computes from its Duration (the
+// lifetime Animate and Clone use); every other value ("", "UntilEndOfTurn", ...)
 // keeps the historic UntilEOT default, dropped by end-of-turn cleanup.
 // The one-sentence rule: a resolution-created one-shot pump honours the
 // duration its script declared instead of being forced to end of turn.
 func durationTiming(dur string) (permanent bool, untilEOT bool) {
+	if IsNextTurnDuration(dur) {
+		return false, false
+	}
 	switch durationTimingCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
 	case durationTimingPermanent:
 		return true, false
@@ -1235,7 +1241,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 					continue
 				}
 				for _, id := range g.Zone(z, p) {
-					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) && inSweepScope(g, id, scope) {
+					if matchesInOwnZone(g, spec, g.Obj(id), c.SpecContext(c.Controller)) && inSweepScope(g, id, scope) {
 						registerAnimateEffects(h, c, id, ag)
 						ateotIDs = append(ateotIDs, id)
 					}

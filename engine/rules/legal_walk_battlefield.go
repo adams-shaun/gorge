@@ -568,7 +568,7 @@ func (w *legalWalk) battlefieldWalk() {
 						}
 						*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",
 							Label: f.Name + ": " + ab.ParamStr(cards.PKSpellDescription), Obj: id,
-							Ability: -1, Keyword: line})
+							Ability: -1, Keyword: line, Attach: ab.API == "Attach"})
 					}
 					w.recordAbilityBlock(z, zonePlayer, id, blockStart, blockGates)
 				}

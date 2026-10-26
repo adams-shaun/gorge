@@ -90,8 +90,7 @@ func TestTriggerRememberedRefProperty(t *testing.T) {
 		{"TriggerRemembered$Amount/Twice", 4},
 		// CastTotalManaSpent is an Object field read, zero for these
 		// never-cast objects -- it must resolve (not fail closed) and answer
-		// zero. GreatestCardManaCost is an extreme aggregate this build does
-		// not model; both stay zero, but the ref itself is admitted.
+		// zero; it resolves rather than failing closed.
 		{"TriggerRemembered$CastTotalManaSpent", 0},
 		// The adjacent refs on the same ctx keep their own binding: the
 		// plain TriggeredCard read is the WHOLE Remembered list (capture
@@ -136,9 +135,8 @@ func TestTriggerRememberedRefProperty(t *testing.T) {
 	// EvalCount assertion cannot tell a modelled zero from a fail-closed
 	// one. CastTotalManaSpent and CardManaCostLKI are both modelled by the
 	// shared property switch today (the brief listed them as still-degraded;
-	// re-measured here they resolve), while GreatestCardManaCost and
-	// CardTypes are genuinely absent from evalRefProperty and stay
-	// fail-closed (ok=false).
+	// re-measured here they resolve), and
+	// GreatestCardManaCost is modelled for this ref (ok=true).
 	for _, tc := range []struct {
 		expr string
 		want int32
@@ -146,7 +144,10 @@ func TestTriggerRememberedRefProperty(t *testing.T) {
 	}{
 		{"TriggerRemembered$CastTotalManaSpent", 0, true},
 		{"TriggerRemembered$CardManaCostLKI", 6, true},
-		{"TriggerRemembered$GreatestCardManaCost", 0, false},
+		// GreatestCardManaCost is the extreme aggregate over the
+		// capture-excluded objects (Ill-Timed Explosion's "highest mana
+		// value among the discarded cards"): max(2, 4).
+		{"TriggerRemembered$GreatestCardManaCost", 4, true},
 		{"TriggerRemembered$CardTypes", 2, true},
 	} {
 		got, ok := EvalCountOK(h, c, tc.expr)

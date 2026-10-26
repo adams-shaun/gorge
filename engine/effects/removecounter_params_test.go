@@ -28,7 +28,7 @@ func TestCompileRemoveCounter(t *testing.T) {
 		"Optional": "True", "RememberRemoved": " true ", "ChoiceZone": "Library", "Hidden": "True",
 	}}
 	p := RemoveCounterOf(sa)
-	if p.ExoticNote != "unimplemented RemoveCounter shape: CounterType$ Any, ChoiceOptional$, UpTo$, CounterNum$ Any, "+
+	if p.ExoticNote != "unimplemented RemoveCounter shape: ChoiceOptional$, CounterNum$ Any, "+
 		"CounterNumShared$, TgtZone$ Graveyard, RememberAmount$, Optional$" {
 		t.Fatalf("exotic = %q", p.ExoticNote)
 	}
@@ -36,8 +36,8 @@ func TestCompileRemoveCounter(t *testing.T) {
 		"CounterNumShared$, ChoiceZone$ Library" {
 		t.Fatalf("choice = %q", p.ChoiceNote)
 	}
-	if p.Kind != "Any" || p.AllKinds || p.NumAll || !p.NumSet || p.ChoiceOptional || !p.RememberAmount ||
-		!p.RememberRemoved || p.Choices != "" {
+	if p.Kind != "Any" || !p.AnyKinds || p.AllKinds || !p.UpTo || p.NumAll || !p.NumSet || p.ChoiceOptional ||
+		!p.RememberAmount || !p.RememberRemoved || p.Choices != "" {
 		t.Fatalf("shape = %+v", p)
 	}
 	if !slices.Equal(p.Unread, []string{"Hidden"}) {

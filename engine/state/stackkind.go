@@ -97,9 +97,13 @@ type StackKindToken struct {
 	SingleTarget bool
 	NumTargetsOp string
 	NumTargets   int
-	NonCreature  bool
-	Colorless    bool
-	Legendary    bool
+	// Skipped records that the token carried a qualifier this parser does not
+	// read (Cycling, Other, ...). No TargetType$/ValidStack consumer reads it:
+	// a trigger's cause check, which must fail closed, does.
+	Skipped     bool
+	NonCreature bool
+	Colorless   bool
+	Legendary   bool
 }
 
 // StackKindTokenOf parses ONE comma-separated token of a stack spec. ok is
@@ -160,9 +164,11 @@ func StackKindTokenOf(t string) (StackKindToken, bool) {
 				tok.InstantOnly = true
 			case "Sorcery":
 				tok.SorceryOnly = true
+			case "":
 			default:
 				fields := strings.Fields(strings.TrimSpace(q))
 				if len(fields) != 2 || fields[0] != "numTargets" || len(fields[1]) < 3 {
+					tok.Skipped = true
 					continue
 				}
 				switch fields[1][:2] {
@@ -170,8 +176,10 @@ func StackKindTokenOf(t string) (StackKindToken, bool) {
 					op := fields[1][:2]
 					if n, err := strconv.Atoi(fields[1][2:]); err == nil {
 						tok.NumTargetsOp, tok.NumTargets = op, n
+						continue
 					}
 				}
+				tok.Skipped = true
 			}
 		}
 	}
@@ -246,4 +254,53 @@ func StackKindAdmits(toks []StackKindToken, k StackObjKind, o *Object, controlle
 		return true
 	}
 	return false
+}
+
+// CauseStackTokens parses a trigger's ValidCause$ stack spec for a matcher
+// that must fail closed: an alternative that names no stack kind, carries a
+// qualifier StackKindTokenOf skips, or one only rules can evaluate against a
+// live object (NonCreature, Colorless, Legendary) contributes nothing.
+func CauseStackTokens(spec string) []StackKindToken {
+	var out []StackKindToken
+	for alt := range strings.SplitSeq(spec, ",") {
+		tok, ok := StackKindTokenOf(alt)
+		if !ok || tok.Skipped || tok.NonCreature || tok.Colorless || tok.Legendary {
+			continue
+		}
+		out = append(out, tok)
+	}
+	return out
+}
+
+// AdmitsSpecialAction reports whether the token admits an event caused by a
+// special action (CR 116.2b): there is no stack object, so only the
+// `SpellAbility` kind set matches, with nothing but the controller qualifier,
+// read against whether the acting player is the chooser.
+func (t StackKindToken) AdmitsSpecialAction(actorIsYou bool) bool {
+	if !t.Kinds[StackKindSpell] || !t.Kinds[StackKindActivated] || !t.Kinds[StackKindTriggered] ||
+		t.InstantOnly || t.SorceryOnly || t.SingleTarget || t.NumTargetsOp != "" {
+		return false
+	}
+	switch {
+	case t.YouCtrl:
+		return actorIsYou
+	case t.OppCtrl || t.YouDontCtrl:
+		return !actorIsYou
+	}
+	return true
+}
+
+// WhileKeywordSpec parses a trigger's WhileKeyword$: `Ability.<Kw>` (an
+// activation of an ability carrying that Keyword$) or `Spell.with<Kw>` (a
+// spell cast with that keyword). ok is false for any other spelling.
+func WhileKeywordSpec(spec string) (spell bool, kw string, ok bool) {
+	kind, rest, _ := strings.Cut(spec, ".")
+	switch kind {
+	case "Ability":
+		return false, rest, rest != ""
+	case "Spell":
+		w, found := strings.CutPrefix(rest, "with")
+		return true, w, found && w != ""
+	}
+	return false, "", false
 }

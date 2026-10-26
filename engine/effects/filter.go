@@ -784,6 +784,17 @@ type LayerTables struct {
 	// shape as DerivedTypes; built on demand (LayerCDAPT) and nil when no such
 	// object exists.
 	CDAPTs []ObjectPT
+	// BattlefieldPTs optionally supplies the current and base (through layer
+	// 7b) P/T of every battlefield object whose Derived value differs from
+	// the printed-plus-counters fallback (current) or from the printed face
+	// (base): a pump, an anthem, a set-P/T effect, a prototype, a face-down
+	// 2/2 (CR 613.4, 708.2). It is what lets a resolving filter's power and
+	// toughness predicates (DestroyAll, PumpAll, ChooseCard, Defined$ Valid,
+	// ConditionDefined$) read the current value instead of the printed one.
+	// Consulted only when the candidate has no per-object DerivedPower/BasePower
+	// bind, ahead of CDAPTs. The same immutable value-slice shape as CDAPTs;
+	// built on demand (LayerBattlefieldPT) and nil when nothing differs.
+	BattlefieldPTs []ObjectPT
 }
 
 // ObjectPT binds one object to its current and base (through layer 7b)
@@ -791,6 +802,16 @@ type LayerTables struct {
 type ObjectPT struct {
 	ID                                         state.ObjID
 	Power, Toughness, BasePower, BaseToughness int32
+}
+
+// battlefieldPT returns id's entry in the BattlefieldPTs table.
+func (t *LayerTables) battlefieldPT(id state.ObjID) (*ObjectPT, bool) {
+	for i := range t.BattlefieldPTs {
+		if t.BattlefieldPTs[i].ID == id {
+			return &t.BattlefieldPTs[i], true
+		}
+	}
+	return nil, false
 }
 
 // cdaPT returns o's entry in the CDAPTs table.
@@ -3259,6 +3280,33 @@ func matchesZoneSpecObj(g *state.Game, spec string, o *state.Object, sc SpecCont
 		return matchesObjectPtr(g, spec, o, &sc)
 	}
 	return compiledMatchZone(compiledSpecFor(spec), g, o, &sc, zone)
+}
+
+// MatchesSpecInZone is matchesZoneSpecCtx for the rules side: a filter over a
+// candidate already known to sit in zone (a trigger's moved card in its
+// destination), so a bare Permanent base reads as the permanent-card type test.
+func MatchesSpecInZone(g *state.Game, spec string, id state.ObjID, sc SpecContext, zone state.Zone) bool {
+	return matchesZoneSpecCtx(g, spec, id, sc, zone)
+}
+
+// SpecMentionsPermanent reports a spec with a Permanent token: the only specs
+// whose match depends on the candidate's zone context (a bare Permanent base).
+func SpecMentionsPermanent(spec string) bool { return strings.Contains(spec, "Permanent") }
+
+// matchesInOwnZone is the plain matcher for a reader whose candidates come
+// from any zone (a hand, graveyard or library list): a bare Permanent base
+// names a permanent card there (CR 110.4a) rather than failing the battlefield
+// check. The battlefield and the stack keep the ordinary reading -- a spell is
+// not a permanent (CR 110.4b) -- and a spec without a Permanent token has no
+// zone-sensitive base, so it takes the ordinary matcher unchanged.
+func matchesInOwnZone(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
+	if o == nil {
+		return false
+	}
+	if o.Zone == state.ZBattlefield || o.Zone == state.ZStack || !SpecMentionsPermanent(spec) {
+		return matchesObjectPtr(g, spec, o, &sc)
+	}
+	return matchesZoneSpecCtx(g, spec, o.ID, sc, o.Zone)
 }
 
 // matchesEnteredEntry matches one per-turn entry (state.Game.Entered) for a

@@ -112,9 +112,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		return obj(g, ev.Obj) + " phases in"
 	case events.SearchedLibrary:
 		// CR 701.23: the completed-search marker (trig:SearchedLibrary).
-		// Player is the seat whose library was searched; the resolving source
-		// (ev.Obj) is not named -- the search's card moves carry their own
-		// events and lines.
+		// Player is the seat whose library was searched, Amount-1 the searcher
+		// when it is someone else; the resolving source (ev.Obj) is not named
+		// -- the search's card moves carry their own events and lines.
+		if ev.Amount > 0 {
+			return player(g, state.PlayerID(ev.Amount-1)) + " searches " + player(g, ev.Player) + "'s library"
+		}
 		return player(g, ev.Player) + " searches their library"
 	case events.RingTemptsYou:
 		// CR 701.54: the temptation and the designation it made. A bearer of

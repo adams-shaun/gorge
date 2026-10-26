@@ -231,6 +231,11 @@ func mayLookAtExileGrantFromLine(params staticLineParams) (ce state.ContinuousEf
 	return state.ContinuousEffect{Affects: params["Affected"], AffectedZone: "Exile", MayLookAt: true}, rest, true
 }
 
+// MayPlayCardOwner is the one MayPlayPlayer$ value the Effect route carries:
+// the grant's beneficiary is each affected card's owner, not the effect's
+// controller (rules' mayPlayEffectBenefits reads it per card).
+const MayPlayCardOwner = "CardOwner"
+
 func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
 	ignoreColor, ignoreType, limit, playerTurn, afterStack, ok := mayPlayEffectParams(params, false)
 	if !ok {
@@ -245,6 +250,7 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 		MayPlayLimit:           limit,
 		MayPlayPlayerTurn:      playerTurn,
 		MayPlayValidAfterStack: afterStack,
+		MayPlayPlayer:          strings.TrimSpace(params["MayPlayPlayer"]),
 	}, true
 }
 
@@ -271,6 +277,7 @@ func mayPlayFreeGrantFromLine(params map[string]string) (state.ContinuousEffect,
 		MayPlayLimit:           limit,
 		MayPlayPlayerTurn:      playerTurn,
 		MayPlayValidAfterStack: afterStack,
+		MayPlayPlayer:          strings.TrimSpace(params["MayPlayPlayer"]),
 	}, true
 }
 
@@ -369,6 +376,14 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 			}
 		case mayPlayParamValidAfterStack:
 			if !allowAfterStack || strings.TrimSpace(params[key]) == "" {
+				return false, false, 0, false, "", false
+			}
+		case mayPlayParamMayPlayPlayer:
+			// MayPlayPlayer$ CardOwner (Soul Partition: "its owner may play
+			// it") is carried on the Effect route only, as the registered
+			// effect's MayPlayPlayer for rules' per-card owner gate. Every
+			// other beneficiary, and the printed route, fails closed.
+			if !allowAfterStack || strings.TrimSpace(params[key]) != MayPlayCardOwner {
 				return false, false, 0, false, "", false
 			}
 		default:
@@ -634,6 +649,12 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 				targets := c.Targets
 				if c.PickedTargets != nil {
 					targets = c.PickedTargets
+				} else if len(targets) == 0 {
+					// Forge's Targeted is the union of every target choice down
+					// the chain (Skrelv's DBEffect after the targeting DBPump:
+					// the root ChooseColor targets nothing), the same read
+					// Defined$ Targeted makes.
+					targets = refTargetUnion(c)
 				}
 				out = appendEffectRememberedObjects(h, out, targets)
 			case effectRememberedParentTarget:
@@ -962,6 +983,7 @@ const (
 	mayPlayParamCarried mayPlayParamCode = iota + 1
 	mayPlayParamMayPlayWithoutManaCost
 	mayPlayParamValidAfterStack
+	mayPlayParamMayPlayPlayer
 )
 
 var mayPlayParamCodes = state.NewStrCodes(
@@ -977,4 +999,5 @@ var mayPlayParamCodes = state.NewStrCodes(
 	state.StrEntry[mayPlayParamCode]{Key: "EffectZone", Val: mayPlayParamCarried},
 	state.StrEntry[mayPlayParamCode]{Key: "MayPlayWithoutManaCost", Val: mayPlayParamMayPlayWithoutManaCost},
 	state.StrEntry[mayPlayParamCode]{Key: "ValidAfterStack", Val: mayPlayParamValidAfterStack},
+	state.StrEntry[mayPlayParamCode]{Key: "MayPlayPlayer", Val: mayPlayParamMayPlayPlayer},
 )

@@ -435,6 +435,13 @@ type Game struct {
 	// seat zero distinct from no initiative, exactly like Monarch above.
 	Initiative    PlayerID
 	HasInitiative bool
+	// DayNight is the CR 731 day/night designation, folded from
+	// DayNightChange events. PrevTurnSpells is the outgoing active seat's
+	// SpellsCastThisTurn as the last TurnChange folded it: the count CR
+	// 731.2 reads in the next untap step. Both are scalars, so Clone copies
+	// them with the struct.
+	DayNight       DayNight
+	PrevTurnSpells int32
 	// ControlledBy maps each CR 720 controlled player to the seat controlling
 	// them ("you control target opponent during their next turn"). It is
 	// folded from ControlPlayerChange events, so a log-only reconstruction
@@ -680,6 +687,15 @@ type DelayedTrigger struct {
 	// ("|RN=<n>") because the event gains no field (Ruling T20-a); zero when
 	// the registration remembered no number.
 	RememberedAmount int32
+	// RememberedManaSpent is the cast-time spend of each remembered spell
+	// the registering chain had captured while it was still on the stack
+	// (CR 608.2h look-back; Mana Sculpt's "the amount of mana spent to cast
+	// that spell"): events.Apply zeroes a spell's live spend when it leaves
+	// the stack (CR 400.7), so the delayed body would read 0 off the countered
+	// card. It rides the DelayedRegister Text ("|MS=<id>:<total>:<snow>:<t0>:
+	// <t1>:<t2>:<t3>,...") because the event gains no field (Ruling T20-a);
+	// empty on every registration that remembered no spell.
+	RememberedManaSpent []ManaSpentLKI
 	// DefinedPlayer is a DelayedTriggerDefinedPlayer$ registration's player
 	// (seat+1; zero = none): the registration is armed only from that
 	// player's first turn start after BirthTurn, and with ThisTurn$ it dies
@@ -941,6 +957,7 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 		for i, dt := range g.Delayed {
 			dt.Remembered = append([]Target(nil), dt.Remembered...)
 			dt.RememberedStamps = append([]TargetStamp(nil), dt.RememberedStamps...)
+			dt.RememberedManaSpent = append([]ManaSpentLKI(nil), dt.RememberedManaSpent...)
 			c.Delayed[i] = dt
 		}
 	}

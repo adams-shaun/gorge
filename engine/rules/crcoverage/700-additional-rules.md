@@ -192,7 +192,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 703.3 | follows | `engine/rules/turn.go#Engine.finishEnteredStep` | `TestFirstTurnDrawStepTriggerDoesNotFireInTwoPlayer` | TBA first, then triggers drained and Priority emitted |
 | 703.4 | follows | `engine/rules/turn.go#Engine.finishEnteredStep` | - | index rule; members below |
 | 703.4a | follows | `engine/rules/turn.go#Engine.finishUntapStep` | `TestCR702PhasedOutPermanentPhasesInAtUntap` `TestCR702PhasingKeywordTogglesAtUntapStep` |  |
-| 703.4b | not-impl | - | - | LOUD: day/night designation absent |
+| 703.4b | follows | `engine/rules/daynight.go#Engine.dayNightUntapCheck` | `TestCR731DayBecomesNightWhenThePreviousActivePlayerCastNothing` | - |
 | 703.4c | follows | `engine/rules/turn.go#Engine.finishUntapStep` `engine/rules/untap.go#Engine.untapTurnPermanent` | `TestBasaltMonolithStaysTappedThroughItsUntapStep` `TestChainedUntapAndUpkeepSkips` | one untap action; stun and doesn't-untap honoured |
 | 703.4d | follows | `engine/rules/turn.go#Engine.drawStepTurnAction` `engine/rules/turn.go#skipFirstDrawStep` | `TestDrawStepDeckOutEndsTheGameBeforePriority` `TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw` | CR 103.8a first-turn skip included |
 | 703.4e | n/a | - | - | Archenemy not modelled |
@@ -436,7 +436,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 730.3a-730.3b | partial | `engine/events/apply_zone.go#move` | - | no arrangement or exile-timestamp choice; fixed pile order |
 | 730.3c | unknown | - | - | not located: whether follow-up effects find every component |
 | 730.3d-730.3e | partial | `engine/events/apply_zone.go#move` | - | under-cards take the replaced destination; 730.3e token/card split not modelled |
-| 731.1-731.2c | not-impl | - | - |  |
+| 731.1-731.2c | follows | `engine/state/daynight.go#DayNight` `engine/events/apply_misc.go#foldDayNightChange` `engine/events/apply_turn.go#foldTurnChange` `engine/rules/daynight.go#Engine.dayNightUntapCheck` | `TestCR731DayboundPermanentMakesItDay` `TestCR731NightBecomesDayAfterTwoSpells` `TestDayNightChangeFoldAndPrevTurnSpells` | api:DayTime (14 files) and DayTime$ conditions unread |
 | 732.1,732.1a,732.1c | n/a | - | - | informal and tournament shortcut conventions; engines pose each choice |
 | 732.1b,732.2-732.3 | not-impl | `engine/effects/resolve.go#effRepeat` | - | SILENT: no shortcut proposal protocol; gorge only cuts no-progress repeats |
 | 732.4,732.6 | deviates | `engine/rules/livelock.go#livelockWatcher.abort` `engine/rules/livelock.go#LivelockError` | `TestLivelockWatcherAbortsSameObjectSameKindRepeats` `TestLivelockWatcherAbortsMultiEventCycle` | gorge panics on a mandatory loop |
