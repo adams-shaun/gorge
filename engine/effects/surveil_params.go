@@ -13,12 +13,16 @@ import (
 type SurveilParams struct {
 	paramBinding
 	RememberKept bool
+	// RememberMoved is RememberMoved$ True: the cards the surveil put into
+	// the graveyard join the remembered set (Forge's toGrave).
+	RememberMoved bool
 }
 
 func compileSurveil(sa *cards.SA) *SurveilParams {
 	return &SurveilParams{
-		paramBinding: bindParams(sa),
-		RememberKept: strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberKept)), "True"),
+		paramBinding:  bindParams(sa),
+		RememberKept:  strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberKept)), "True"),
+		RememberMoved: strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberMoved)), "True"),
 	}
 }
 

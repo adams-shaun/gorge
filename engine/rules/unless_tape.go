@@ -7,6 +7,8 @@ package rules
 // and so does the choice-bearing component continuation.
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -145,7 +147,7 @@ func unlessAnswerSettle(e *Engine, d *decision.Decision, chosen []decision.Optio
 	case unlessOpenWindow:
 		tapeUnlessWindow(e, ctx, sa, obj, payer, cost, d.ResumeTarget)
 	case unlessPayComponents:
-		tapeUnlessComponents(e, ctx, payer, cost, obj)
+		tapeUnlessComponents(e, ctx, sa, payer, cost, obj)
 	}
 	ctx.UnlessNext = d.ResumeTarget
 }
@@ -228,9 +230,10 @@ func wardAnswerSettle(e *Engine, ctx *effects.Ctx, sa *cards.SA, obj state.ObjID
 // tape, so its component picks and mana window ask through windowAsk and are
 // served from the tape, and finishUnlessPayment settles into the live Ctx
 // (tapeUnlessSettled) instead of resuming a parked frame.
-func tapeUnlessComponents(e *Engine, ctx *effects.Ctx, payer state.PlayerID, cost Cost, obj state.ObjID) {
+func tapeUnlessComponents(e *Engine, ctx *effects.Ctx, sa *cards.SA, payer state.PlayerID, cost Cost, obj state.ObjID) {
 	cost, ok := pay.UnlessFoldDynamic(asPayer(e), payer, cost, ctx)
-	e.UnlessPayment = &unlessPayment{Payer: payer, Ctx: pay.CloneUnlessCtx(*ctx), StackObj: obj, Tape: true}
+	e.UnlessPayment = &unlessPayment{Payer: payer, Ctx: pay.CloneUnlessCtx(*ctx), StackObj: obj, Tape: true,
+		RememberDiscards: strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberDiscarded)), "True")}
 	if !ok {
 		e.finishUnlessPayment(false)
 		return
@@ -255,6 +258,14 @@ func tapeUnlessSettled(e *Engine, u *unlessPayment, paid bool) {
 			ctx.UnlessDiscarded = make([]state.Target, 0, len(u.Discards))
 			for _, id := range u.Discards {
 				ctx.UnlessDiscarded = append(ctx.UnlessDiscarded, state.Target{Obj: id})
+			}
+			// RememberDiscarded$ True on the gated ability (Ill-Timed
+			// Explosion's reflexive trigger, CR 607.2a): the paid discards
+			// join the chain's remembered set, so RememberObjects$ Remembered
+			// hands them to the reflexive ability (Forge's Player.discard
+			// records them for any discard whose SA carries the key).
+			if u.RememberDiscards {
+				ctx.Remembered = append(ctx.Remembered, ctx.UnlessDiscarded...)
 			}
 		}
 	}

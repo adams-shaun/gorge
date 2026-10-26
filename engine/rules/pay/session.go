@@ -182,6 +182,9 @@ type UnlessPayment struct {
 	// (isWholeZoneExileSpec) takes EVERY candidate without asking; an
 	// ordinary part is a choice exactly like a sacrifice.
 	Exiles []state.ObjID
+	// RememberDiscards is the gated ability's RememberDiscarded$ True: the
+	// settled Discard picks also join the chain's Remembered set.
+	RememberDiscards bool
 }
 
 // PaymentPartCount is the flat count of the choice-bearing components

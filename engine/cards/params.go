@@ -412,6 +412,7 @@ const (
 	PKRememberAffected
 	PKRememberAmass
 	PKRememberAnimated
+	PKRememberAltered
 	PKRememberChosen
 	PKRememberClasher
 	PKRememberCloaked
@@ -428,12 +429,14 @@ const (
 	PKRememberEach
 	PKRememberExchanged
 	PKRememberFound
+	PKRememberForCounter
 	PKRememberGoaded
 	PKRememberInvestigatingPlayers
 	PKRememberKept
 	PKRememberLoser
 	PKRememberManifested
 	PKRememberMilled
+	PKRememberMoved
 	PKRememberNewCard
 	PKRememberNumber
 	PKRememberPeeked
@@ -623,6 +626,7 @@ const (
 	PKAddsCounters
 	PKAddsNoCounter
 	PKAlternativeDecider
+	PKAlwaysRemember
 	PKAmountFromVotes
 	PKAtEOTTrig
 	PKAttachedToPlayer
@@ -1237,6 +1241,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRememberAffected:                 "RememberAffected",
 	PKRememberAmass:                    "RememberAmass",
 	PKRememberAnimated:                 "RememberAnimated",
+	PKRememberAltered:                  "RememberAltered",
 	PKRememberChosen:                   "RememberChosen",
 	PKRememberClasher:                  "RememberClasher",
 	PKRememberCloaked:                  "RememberCloaked",
@@ -1253,12 +1258,14 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRememberEach:                     "RememberEach",
 	PKRememberExchanged:                "RememberExchanged",
 	PKRememberFound:                    "RememberFound",
+	PKRememberForCounter:               "RememberForCounter",
 	PKRememberGoaded:                   "RememberGoaded",
 	PKRememberInvestigatingPlayers:     "RememberInvestigatingPlayers",
 	PKRememberKept:                     "RememberKept",
 	PKRememberLoser:                    "RememberLoser",
 	PKRememberManifested:               "RememberManifested",
 	PKRememberMilled:                   "RememberMilled",
+	PKRememberMoved:                    "RememberMoved",
 	PKRememberNewCard:                  "RememberNewCard",
 	PKRememberNumber:                   "RememberNumber",
 	PKRememberPeeked:                   "RememberPeeked",
@@ -1450,6 +1457,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKAddsCounters:                     "AddsCounters",
 	PKAddsNoCounter:                    "AddsNoCounter",
 	PKAlternativeDecider:               "AlternativeDecider",
+	PKAlwaysRemember:                   "AlwaysRemember",
 	PKAmountFromVotes:                  "AmountFromVotes",
 	PKAtEOTTrig:                        "AtEOTTrig",
 	PKAttachedToPlayer:                 "AttachedToPlayer",

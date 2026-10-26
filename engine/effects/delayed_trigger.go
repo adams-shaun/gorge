@@ -210,6 +210,13 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	if dp.RememberNumber && c.Num.RememberedCMCBound {
 		text += "|RN=" + strconv.Itoa(int(c.Num.RememberedCMC))
 	}
+	// RememberObjects$ RememberedLKI over a spell that left the stack in this
+	// chain (Mana Sculpt's countered spell): its cast-time spend rides
+	// "|MS=..." (state.DelayedTrigger.RememberedManaSpent), appended after
+	// |RN= and before |RS= so the decode strips it between them.
+	if dp.RememberObjects == "RememberedLKI" {
+		text += delayedManaSpentSuffix(c, remembered)
+	}
 	// The registration's remembered stamps ride the Text too
 	// ("|RS=<id>:<inc>[,<id>:<inc>...]", appended LAST so the decode strips
 	// them FIRST): the trigger-time stamps the resolving trigger captured
@@ -227,6 +234,35 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
 		IDs: encodeRemembered(remembered), Text: text})
+}
+
+// delayedManaSpentSuffix encodes the resolution-start spend snapshot
+// (Ctx.Snap.TargetManaSpent) of every remembered object it covers as
+// "|MS=<id>:<total>:<snow>:<t0>:<t1>:<t2>:<t3>[,...]", in remembered order;
+// "" when none is covered, so a registration that remembered no stack
+// target is byte-identical to before.
+func delayedManaSpentSuffix(c *Ctx, remembered []state.Target) string {
+	if len(c.Snap.TargetManaSpent) == 0 {
+		return ""
+	}
+	var parts []string
+	seen := make(map[state.ObjID]bool, len(remembered))
+	for _, t := range remembered {
+		snap, ok := c.Snap.TargetManaSpent[t.Obj]
+		if t.IsPlayer || !ok || seen[t.Obj] {
+			continue
+		}
+		seen[t.Obj] = true
+		part := strconv.Itoa(int(t.Obj)) + ":" + strconv.Itoa(int(snap.total)) + ":" + strconv.Itoa(int(snap.snow))
+		for _, n := range snap.typed {
+			part += ":" + strconv.Itoa(int(n))
+		}
+		parts = append(parts, part)
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return "|MS=" + strings.Join(parts, ",")
 }
 
 // delayedRegisterStampSuffix encodes a Phase DelayedTrigger registration's
