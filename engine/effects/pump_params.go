@@ -265,7 +265,7 @@ var pumpKnownKeys = [...]string{
 	"ForgetImprinted",
 	"ForgetOtherTargets",
 	"GameActivationLimit",
-	"IfDesc",
+	"GiftDescription", "IfDesc",
 	"Image",
 	"ImprintCards",
 	"ImprintPlayed",

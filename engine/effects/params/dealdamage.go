@@ -85,7 +85,7 @@ var dealDamageKnownKeys = [...]string{
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"DamageMap", "DamageSource", "Defined", "DefinedCards", "DefinedDesc", "DefinedTarget",
 	"Description", "DividedAsYouChoose", "ExcessSVar",
-	"ExcessSVarCondition", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "IfDesc", "Image",
+	"ExcessSVarCondition", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController",

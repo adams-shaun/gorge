@@ -248,7 +248,7 @@ var charmKnownKeys = [...]string{
 	"FallbackAbility",
 	"ForgetOtherTargets",
 	"GameActivationLimit",
-	"IfDesc",
+	"GiftDescription", "IfDesc",
 	"Image",
 	"ImprintCards",
 	"ImprintPlayed",

@@ -170,7 +170,7 @@ var digUntilKnownKeys = [...]string{
 	"GainsAbilitiesOf",
 	"GainsTriggerAbsOf",
 	"GameActivationLimit",
-	"IfDesc",
+	"GiftDescription", "IfDesc",
 	"Image",
 	"ImprintCards",
 	"ImprintFound",

@@ -142,7 +142,7 @@ var attachKnownKeys = [...]string{
 	"Exhaust",
 	"ForgetOtherTargets",
 	"GameActivationLimit",
-	"IfDesc",
+	"GiftDescription", "IfDesc",
 	"Image",
 	"ImprintCards",
 	"ImprintPlayed",
