@@ -14,10 +14,8 @@ package trigmatch
 
 import (
 	"slices"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -26,99 +24,38 @@ import (
 const exiledAsCostText = "exiled as a cost"
 
 // stackCauseAdmits evaluates a ValidCause$ stack spec against the stack object
-// o that caused an event, from you's perspective. Alternatives are OR. It
-// fails closed on a qualifier it cannot evaluate: the shared StackKindTokenOf
-// parser skips what it does not know, which would widen the match here.
+// o that caused an event, from you's perspective. Alternatives are OR and an
+// alternative it cannot evaluate fails closed (state.CauseStackTokens).
 func stackCauseAdmits(g *state.Game, spec string, o *state.Object, you state.PlayerID) bool {
 	if o == nil {
 		return false
 	}
-	for alt := range strings.SplitSeq(spec, ",") {
-		tok, ok := state.StackKindTokenOf(alt)
-		if !ok || tok.NonCreature || tok.Colorless || tok.Legendary || !causeQualifiersKnown(alt) {
-			continue
+	// A chain link's targets (Arc Trail's second target) are the spell's
+	// targets too, though they ride SubTargets, not Targets.
+	n := len(o.Targets) + len(o.SubTargets)
+	for _, tok := range state.CauseStackTokens(spec) {
+		if state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindOf(g, o), o, o.Controller, you) &&
+			tok.TargetCountAdmits(n) {
+			return true
 		}
-		if !state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindOf(g, o), o, o.Controller, you) {
-			continue
-		}
-		// A chain link's targets (Arc Trail's second target) are the spell's
-		// targets too, though they ride SubTargets, not Targets.
-		n := len(o.Targets) + len(o.SubTargets)
-		if tok.SingleTarget && n != 1 {
-			continue
-		}
-		if tok.NumTargetsOp != "" && !numTargetsCompare(n, tok.NumTargetsOp, tok.NumTargets) {
-			continue
-		}
-		return true
-	}
-	return false
-}
-
-// causeQualifiersKnown reports whether every qualifier of one stack-spec
-// alternative is one stackCauseAdmits evaluates.
-func causeQualifiersKnown(alt string) bool {
-	_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
-	for part := range strings.SplitSeq(rest, ".") {
-		for q := range strings.SplitSeq(part, "+") {
-			q = strings.TrimSpace(q)
-			switch q {
-			case "", "YouCtrl", "OppCtrl", "YouDontCtrl", "singleTarget", "Instant", "Sorcery":
-			default:
-				if f := strings.Fields(q); len(f) != 2 || f[0] != "numTargets" {
-					return false
-				}
-			}
-		}
-	}
-	return true
-}
-
-func numTargetsCompare(count int, op string, want int) bool {
-	switch effects.CmpOpOf(op) {
-	case effects.CmpEQ:
-		return count == want
-	case effects.CmpNE:
-		return count != want
-	case effects.CmpGE:
-		return count >= want
-	case effects.CmpGT:
-		return count > want
-	case effects.CmpLE:
-		return count <= want
-	case effects.CmpLT:
-		return count < want
 	}
 	return false
 }
 
 // turnFaceUpCauseAdmits is TurnFaceUp's ValidCause$. An effect that turned the
 // permanent up is the resolving stack object. Otherwise the turn-up is the
-// special action its controller took (CR 116.2b, no stack object): only a
-// `SpellAbility` alternative admits it, with YouCtrl/OppCtrl read against
-// the turner (the permanent's controller). Anything else fails closed.
+// special action its controller took (CR 116.2b, no stack object), read
+// against the turner (the permanent's controller). Anything the spec cannot
+// say about it fails closed.
 func turnFaceUpCauseAdmits(e Board, spec string, source state.ObjID, turned *state.Object) bool {
 	you := e.ControllerOf(source)
 	if e.InResolution() {
 		cause := e.ActionCause()
 		return cause != 0 && stackCauseAdmits(e.Game(), spec, e.Game().Obj(cause), you)
 	}
-	for alt := range strings.SplitSeq(spec, ",") {
-		base, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
-		if base != "SpellAbility" {
-			continue
-		}
-		switch rest {
-		case "":
+	for _, tok := range state.CauseStackTokens(spec) {
+		if tok.AdmitsSpecialAction(turned.Controller == you) {
 			return true
-		case "YouCtrl":
-			if turned.Controller == you {
-				return true
-			}
-		case "OppCtrl", "YouDontCtrl":
-			if turned.Controller != you {
-				return true
-			}
 		}
 	}
 	return false
@@ -169,13 +106,6 @@ func whileKeywordAdmits(e Board, t cards.Trigger, ev events.Event) bool {
 	if !open {
 		return false
 	}
-	kind, rest, _ := strings.Cut(spec, ".")
-	switch {
-	case kind == "Ability" && !isSpell:
-		return rest != "" && rest == kw
-	case kind == "Spell" && isSpell:
-		w, found := strings.CutPrefix(rest, "with")
-		return found && w != "" && w == kw
-	}
-	return false
+	wantSpell, want, parsed := state.WhileKeywordSpec(spec)
+	return parsed && wantSpell == isSpell && want == kw
 }

@@ -124,7 +124,7 @@ func searchedLibraryMatches(e Board, t cards.Trigger, source state.ObjID, ev eve
 		!effects.MatchesPlayerSpec(e.Game(), v, searcher, ctrl) {
 		return false
 	}
-	if strings.EqualFold(t.Params["SearchOwnLibrary"], "True") && searcher != ev.Player {
+	if t.Params["SearchOwnLibrary"] == "True" && searcher != ev.Player {
 		return false
 	}
 	return true
