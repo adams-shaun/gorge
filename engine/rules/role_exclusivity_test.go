@@ -9,16 +9,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Role-token exclusivity: the second sentence of every Role token's rules
-// text is "(If you control another Role on it, put that one into the
-// graveyard.)" -- a creature carries at most one Role at a time. The sweep
-// lives in Engine.emit's Attach clause, so it is reachable from BOTH attach
-// paths (engine/effects/token.go's AttachedTo$ mint and engine/effects/attach.go's Attach
-// SA) and fires BEFORE the new Attach applies. These pins drive real corpus
-// carriers onto a fixture bear; the sweep itself is the MoveZone the SBAs
-// use, so the departed token is moved to its owner's graveyard and then (CR
-// 704.5d, the ordinary token SBA) ceases to exist at the next state-based
-// pass -- the durable evidence is the logged sweep MoveZone, not the tombstone.
+// Role-token exclusivity (CR 704.5z / 303.7a): a permanent carries at most
+// one Role per controller, and the sweep is a state-based action
+// (Engine.roleSBA), not an attach-time replacement. These pins drive real
+// corpus carriers onto a fixture bear; the sweep itself is a plain
+// battlefield-to-graveyard MoveZone, so the departed token is moved to its
+// owner's graveyard and then (CR 704.5d, the ordinary token SBA) ceases to
+// exist in the same pass -- the durable evidence is the logged sweep
+// MoveZone, not the tombstone.
 
 // castRoyalRole casts corpus Royal Treatment from seat 0's hand at the bear
 // and returns the id of the minted Royal Role token.
@@ -70,9 +68,9 @@ func sweepMoveZoneInLog(e *Engine, oldID state.ObjID) bool {
 }
 
 // TestRoleExclusivityOldRoleGoesToGraveyard pins the sweep on the same Role
-// kind twice: a second Royal Role attaching to a bearer that already carries
-// one puts the OLD Role into its owner's graveyard before the new Attach
-// applies, so the bearer ends with exactly one Role and its power reflects
+// kind twice: after a second Royal Role attaches to a bearer that already
+// carries one, the next state-based check puts the OLD Role into its owner's
+// graveyard, so the bearer ends with exactly one Role and its power reflects
 // only the surviving one.
 func TestRoleExclusivityOldRoleGoesToGraveyard(t *testing.T) {
 	t.Parallel()

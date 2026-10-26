@@ -255,6 +255,92 @@ func (e *Engine) attachmentSBAs() bool {
 	return changed
 }
 
+// roleSBA implements CR 704.5z (repeated by CR 303.7a): if a permanent has
+// more than one Role attached to it controlled by the SAME player, each of
+// those Roles except the one with the most recent timestamp is put into its
+// owner's graveyard. It is a state-based action, not an attach-time
+// replacement: two Roles controlled by different players coexist on one
+// bearer, and even two controlled by one player both stay until the next
+// state-based check.
+//
+// Roles are grouped per bearer by their CURRENT controller (a control change
+// can make a bearer's two Roles share one controller) and the survivor is
+// the greatest LayerTimestamp (CR 613.7e restamps an Aura when it becomes
+// attached, so the newest attach wins). Equal timestamps -- only reachable
+// from a synthetic board, since an attach takes a fresh Game.Clock tick --
+// keep the Role later in the battlefield walk order, which is deterministic:
+// AliveFrom(0) seat order, then each battlefield zone slice's own order.
+//
+// The removal is a plain battlefield-to-graveyard MoveZone, NOT destruction:
+// no replacement or regeneration path, and the recursive emit lets the
+// swept Role's "leaves the battlefield" triggers fire normally (a Wicked
+// Role's "each opponent loses 1 life").
+//
+// Reports whether anything changed, so checkStateBased's pass loop runs
+// again (a swept Role can trigger, and its departure can change the board).
+func (e *Engine) roleSBA() bool {
+	// The battlefield snapshot the walk ranges lives in the Engine's SBA
+	// scratch, taken so a re-entrant pass allocates its own (sbaIDBuf).
+	ids := e.sbaIDBuf
+	e.sbaIDBuf = nil
+	rolesByBearer := make(map[state.ObjID][]state.ObjID)
+	var bearers []state.ObjID
+	for _, p := range e.G.AliveFrom(0) {
+		ids = append(ids[:0], e.G.Zone(state.ZBattlefield, p)...)
+		for _, id := range ids {
+			o := e.G.Obj(id)
+			if o == nil || o.PhasedOut || o.AttachedTo == 0 || !e.isRole(o) {
+				continue
+			}
+			if _, ok := rolesByBearer[o.AttachedTo]; !ok {
+				bearers = append(bearers, o.AttachedTo)
+			}
+			rolesByBearer[o.AttachedTo] = append(rolesByBearer[o.AttachedTo], id)
+		}
+	}
+	changed := false
+	for _, bearer := range bearers {
+		roles := rolesByBearer[bearer]
+		if len(roles) < 2 {
+			continue
+		}
+		// newest[i] is the surviving Role index for its controller; a map is
+		// used only for membership, never ranged, so no map order can reach
+		// an event.
+		newest := make(map[state.PlayerID]int, len(roles))
+		for i, id := range roles {
+			o := e.G.Obj(id)
+			if o == nil {
+				continue
+			}
+			j, ok := newest[o.Controller]
+			if !ok {
+				newest[o.Controller] = i
+				continue
+			}
+			cur := e.G.Obj(roles[j])
+			if cur == nil || o.LayerTimestamp() >= cur.LayerTimestamp() {
+				newest[o.Controller] = i
+			}
+		}
+		for i, id := range roles {
+			o := e.G.Obj(id)
+			if o == nil || o.Zone != state.ZBattlefield {
+				continue
+			}
+			if newest[o.Controller] == i {
+				continue
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+				From: state.ZBattlefield, To: state.ZGraveyard,
+				Text: "another Role on it: the old Role goes to the graveyard"})
+			changed = true
+		}
+	}
+	e.sbaIDBuf = ids[:0]
+	return changed
+}
+
 // attachRefused implements the CR 701.3a/b refusal half of emit's Attach
 // gate: refused is true when an Attach fastening the on-battlefield object
 // obj to bearerID would either do nothing (obj is already attached to that
