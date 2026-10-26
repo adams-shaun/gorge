@@ -1,6 +1,5 @@
 Barrensteppe Siege	param:api:GenericChoice.ShowChoice
 Breaching Dragonstorm	param:api:ChangeZone.DefinedDesc
-Constrictor Sage	param:api:Tap.ValidTgtsDesc
 Frostcliff Siege	param:api:GenericChoice.ShowChoice
 Glacierwood Siege	param:api:GenericChoice.ShowChoice
 Hollowmurk Siege	param:api:GenericChoice.ShowChoice
