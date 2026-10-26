@@ -135,13 +135,13 @@ func TestWanShiTongOpponentSearchingOtherLibrary(t *testing.T) {
 	runCauseScenario(t, `{"name":"wst-controller-searches-opponent","cr":["603.2"],"why":"the controller searching an opponent's library is not an opponent searching",
  "setup":{"p0":{"battlefield":["Wan Shi Tong, Librarian"],"hand":["Bribery"]},"p1":{"library":["Grizzly Bears"]}},
  "steps":[{"op":"cast","seat":0,"card":"p0:Bribery","mana":"CCCUU","targets":["p1"]},{"op":"resolve","answers":[{"kind":"choose","pick":["Grizzly Bears"]}]}],
- "expect":[{"card":"p1:Grizzly Bears","zone":"battlefield"},{"stack_size":0}]}`)
+ "expect":[{"card":"p1:Grizzly Bears","zone":"battlefield"},{"hand_size":{"p0":0}},{"card":"p0:Wan Shi Tong, Librarian","counters":{"P1P1":0}}]}`)
 	// SearchOwnLibrary$ True: an opponent (seat 1) searching a THIRD player's
 	// library is an opponent searching, but not their own library.
 	runCauseScenario(t, `{"name":"wst-opponent-searches-third-library","cr":["603.2"],"why":"SearchOwnLibrary requires the searcher to own the library","players":3,
  "setup":{"p0":{"battlefield":["Wan Shi Tong, Librarian"]},"p1":{"hand":["Bribery"]},"p2":{"library":["Grizzly Bears"]}},
  "steps":[{"op":"pass_to","step":"main1","active":"p1"},{"op":"cast","seat":1,"card":"p1:Bribery","mana":"CCCUU","targets":["p2"]},{"op":"resolve","answers":[{"kind":"choose","pick":["Grizzly Bears"]}]}],
- "expect":[{"card":"p2:Grizzly Bears","zone":"battlefield"},{"stack_size":0}]}`)
+ "expect":[{"card":"p2:Grizzly Bears","zone":"battlefield"},{"card":"p0:Wan Shi Tong, Librarian","counters":{"P1P1":0}}]}`)
 }
 
 // Market Gnome's "exiled from the battlefield WHILE YOU'RE ACTIVATING A CRAFT
@@ -211,5 +211,38 @@ func TestFoulEmissaryOnlyOnEmergeSacrifice(t *testing.T) {
 	}
 	if got := causeTokens(e2); got != 0 {
 		t.Fatalf("sacrificed by an effect: %d tokens, want 0", got)
+	}
+}
+
+// causeSearchProbeSrc reads only ValidPlayer$ (no SearchOwnLibrary$), so the
+// searcher/owner split is visible through ValidPlayer$ alone.
+const causeSearchProbeSrc = "Name:Search Probe\nManaCost:1\nTypes:Creature Beast\nPT:1/1\n" +
+	"T:Mode$ SearchedLibrary | ValidPlayer$ Player.Opponent | Execute$ ProbeLife | TriggerZones$ Battlefield | TriggerDescription$ Whenever an opponent searches a library, you gain 1 life.\n" +
+	"SVar:ProbeLife:DB$ GainLife | LifeAmount$ 1\n"
+
+// SearchedLibrary's ValidPlayer$ is the SEARCHER (Forge TriggerSearchedLibrary),
+// not the library's owner: the event's Player is the owner and a searcher who
+// is not the owner rides Amount (+1).
+func TestSearchedLibraryValidPlayerReadsSearcher(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	for _, tc := range []struct {
+		name  string
+		owner state.PlayerID
+		amt   int32
+		gain  int32
+	}{
+		{"opponent searches own library", 1, 0, 1},
+		{"controller searches an opponent's library", 1, 1, 0},
+		{"opponent searches the controller's library", 0, 2, 1},
+	} {
+		e := corpusEngine(t, reg, nil, nil)
+		onBoardCard(t, e, 0, card(t, causeSearchProbeSrc))
+		before := e.G.Players[0].Life
+		e.emit(events.Event{Kind: events.SearchedLibrary, Player: tc.owner, Amount: tc.amt})
+		answerQuiet(t, e, 60)
+		if got := e.G.Players[0].Life - before; got != tc.gain {
+			t.Errorf("%s: gained %d, want %d", tc.name, got, tc.gain)
+		}
 	}
 }
