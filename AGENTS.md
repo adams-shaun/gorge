@@ -220,7 +220,7 @@ deterministic R-9 no-host fallback and never offers it).
 Concede (M2d-3) is not a kind: it is a `concede` option on every priority
 decision that emits the existing `PlayerLost` with Text "conceded". The
 engine-side defaults that still stand in for a choice the engine cannot yet
-ask are listed under **Known approximations** below.
+ask are listed in [`docs/agents/known-approximations/`](docs/agents/known-approximations/).
 
 Acceptance commands:
 
@@ -231,45 +231,9 @@ make sim
 
 ## Known approximations
 
-Each row is one place a registered primitive defaults instead of asking, or
-behaves more narrowly than the card text, with the stand-in's location and
-the milestone that removes it.
-
-**This table is a CLOSING REGISTER, frozen at this commit. No row may ever be
-added, and no row may be grown.** It started at 13 rows as an honest audit of
-where "supported" was not the whole truth; it then became a place every
-landed ticket wrote a paragraph, reached 264 KB on 2026-09-22 across ~100
-rows, and was loaded into every agent's context on every turn. Every
-remaining row now has a P1 ticket whose only job is to delete it.
-
-So:
-
-- **A landing ticket DELETES its row** and lowers the
-  `knownApproximationRows` constant in `testkit/testutil/agentsdoc_test.go`
-  by the number of rows it deleted. `TestKnownApproximationsOnlyShrinks`
-  fails the build on a row added, a row grown past 600 bytes, or a count
-  above the constant.
-- **A deviation a ticket cannot close goes in the COMMIT MESSAGE and the
-  ticket report — never here.** If it needs tracking, the implementer says so
-  plainly in the report and the operator files a ticket for it.
-- **A reviewer treats any added or grown row as a MAJOR finding.**
-
-Behaviour that is a deliberate contract rather than debt — the R-9 no-ask
-host degradation contract, regeneration, the exact round number — is in
-[`docs/design/2026-09-22-engine-contracts.md`](docs/design/2026-09-22-engine-contracts.md),
-not here.
-
-| Stand-in | Where | Removed by |
-|---|---|---|
-| `RestrictValid$` is carried into the mana pool; only dotted `Spell.<filter>`/`Activated.<filter>` alternatives supported by the matcher are enforced. Unsupported alternatives fail closed, including bare `Spell`/`Activated` (13 raw lines), `CostContainsX`, `CumulativeUpkeep`, `CantCast*`, `Static.*` and `nonSpell`; 41 raw `RestrictValid$` lines across 39 corpus files contain at least one such term, so mixed alternatives can lose only the unsupported branch. | `engine/effects/mana_effect.go` (`effMana`), `engine/rules/pay/payment.go` (`RestrictValidMatches`) | M4 (the remaining restriction grammar) |
-| `Effect` registers a `StaticAbilities$`/`Triggers$` mode for real via `engine/effects/effect.go`'s switch and `trigmatch.Lookup`; these still Note: statics `AssignCombatDamageAsUnblocked`, `AssignNoCombatDamage`, `AttackVigilance`, `BlockRestrict`, `CanAdapt`, `CantBeActivated`, `CantBeCast`, `CantBecomeMonarch`, `CantBlock`, `CantLoseLife`, `CantPhaseIn`, `CantPhaseOut`, `IgnoreLegendRule`, `IgnoreShroud`, `MinMaxBlocker`, `UntapOtherPlayer`; triggers `Abandoned`, `Adapt`, `AttackerBlocked`, `AttackerBlockedByCreature`, `AttackerUnblocked`, `Blocks`, `Shuffled`, `VisitAttraction`. | `engine/effects/effect.go` (`effEffect`), `engine/effects/effect_ignorehexproof.go`, `engine/rules/trigmatch` (`Lookup`), `engine/rules/layers_restrict.go`, `engine/state/continuous.go` | M4 (the named modes) |
-| An explicit multi-zone `ChangeZone Origin$` including `Hand` has no origin-aware chooser: the exact-hand and exact-library walkers cannot build one private option list across hand, graveyard, library and battlefield, so a source-default picker emits one replay-visible Note and moves nothing loudly. | `engine/effects/zone.go` (`mixedOriginIncludesHand`), `engine/effects/zone_change.go` (`effChangeZone`) | M4 (origin-aware mixed hidden-zone chooser) |
-| (cloak1) Loud-unimplemented: plain `Manifest`'s `RememberManifested$`, `Defined$`-object manifests, the `Choices$` asking forms (`ManifestDread`'s chooser included); for Cloak, the from-hand chooser. Ordinary filters read the printed face, missing a manifested Elf. | `engine/effects/zone_manifest.go` (`effManifest`, `effCloak`), `engine/rules/layers_types.go` (`typeCharacteristics`, `faceDownPrintedHides`), `engine/effects/filter_word.go` (`faceDown`) | M4 (plain `Manifest`'s `RememberManifested$`; the defined-object and `Choices$` manifest forms; Cloak's from-hand chooser) |
-| (copyperm-grants) `api:CopyPermanent` now grants named `AddTriggers$`/`AddSVars$`/`AddAbilities$` from the resolving source table, supports a named `AttachedTo$` destination and the exact Zndrsplt `Choices$`/`Chooser$` shape. `WithDifferentNames$` remains loud-unimplemented, while `ImprintTokens$ True` still records no copies for delayed exile/sacrifice (Kharasha Foothills, Shredder, Shadow Master); `TokenRemembered$` is real. | `engine/effects/copypermanent.go` (`effCopyPermanent`, unread-parameter Note block) | M4 (`WithDifferentNames$`, `ImprintTokens$`) |
-| (combatrestriction1) Only whitelisted static shapes are enforced; an unwhitelisted parameter means the static is SKIPPED, not enforced blanket — the deliberate permissive direction. `MustAttack$ ChosenPlayer`/`RememberedPlayer` name their defender for real (Territorial Hellkite's ChoosePlayer riders, via `attackRequirementSet`); every OTHER `MustAttack$` player reference stays unread and fails closed, and a NAMED duty whose defender no offered pair reaches releases the creature entirely (CR 508.1d: attacking anyone else obeys zero requirements too), so it is not marked Required. Unread: CantAttack's UnlessDefender$/Condition$/CheckSVar$ family, CantSacrifice's `ForCost$ True`, a `Target$` list's walker half, `stat:MustBlock`. | `engine/rules/layers_restrict.go` (`SacrificeBlocked`), `engine/rules/combat/` (`AttackBlocked`, `AttackRequirements`), `engine/rules/combat.go` (`mustAttackRequired`, `attackDutyDischargeable`), `engine/effects/choose_control.go` (`effChoosePlayer`), `engine/effects/misc.go` (`effEffect`) | M4 (the conditional parameter grammar; ForCost$ True cost provenance; stat:MustBlock; the walker Target$ half) |
-| (ap1) AddPhase loud-degrades (one Note, grant still applied) on an unresolvable `ExtraPhase$`/`AfterPhase$`/`FollowedBy$`/`NumPhases$`/DelTrig value or a multi-step set. Deliberate: a grant whose splice point has passed is dropped silently at TurnChange; a splice mid-range of another active extra phase is untested; a multi-completion takes the LAST entry's resume point. `FirstAttack$` unread. | `engine/effects/addphase.go` (`effAddPhase`, `parseExtraPhaseValue`), `engine/rules/turn.go` (`extraPhaseBoundary`) | M4 (a real per-turn attack history for the unread `FirstAttack$` gate) |
-| (kw:MayFlashSac) The keyword is implemented rules-side, not as a `engine/cards/keywords.go` expansion: its meaning is a casting OPTION, which `expandKeywords`' own doc lists as the family rules reads directly, and the sibling `kw:MayFlashCost` landed the same way. The rider ("if you CAST it any time a sorcery couldn't have been cast") rides a pay-time `FlagMayFlashSac` CastInfo, and `state.CastProvenanceFlags` strips that bit from a stack copy, since a copy is put on the stack and never cast (CR 707.10). Deliberately NOT changed with it: the sibling entry-hook bits `FlagEvoked`/`FlagDashed`/`FlagWarped` are still inherited by a copy, because they are conditioned on an alternative COST having been paid — a cast-time choice the copy rules do carry for the comparable kicked case. | `engine/rules/mayflashsac.go`, `engine/rules/statics_cast.go` (`spellTimingOK`), `engine/rules/altcast.go` (`altCostEnter`), `engine/state/object.go` (`CastProvenanceFlags`), `engine/events/apply.go` (`StackCopy`) | M4 (a copy ruling for the evoke/dash/warp entry hooks) |
-
+A closing register of stand-ins, one file per row in
+[`docs/agents/known-approximations/`](docs/agents/known-approximations/): a ticket that closes one deletes
+its file and its `ALLOWED.txt` line; nothing is ever added (`TestKnownApproximationsOnlyShrinks`).
 
 ## Runtime behavior details
 
