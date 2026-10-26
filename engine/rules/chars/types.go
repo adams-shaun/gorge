@@ -541,11 +541,13 @@ func impendingTypeSwitch(o *state.Object, types []string) []string {
 	return withoutCreature(types, true)
 }
 
-// cardTypeWords are the card types; supertypeWords the supertypes. Every
-// other type word on a face is a subtype, so RemoveCreatureTypes' strip is
-// "drop what is neither" -- the same split Forge's own type vocabulary makes.
+// cardTypeWords are the card types (Kindred is the current spelling of the
+// retired Tribal; both are card types, CR 205.2a and 308.3); supertypeWords
+// the supertypes. Every other type word on a face is a subtype, so
+// RemoveCreatureTypes' strip is "drop what is neither" -- the same split
+// Forge's own type vocabulary makes.
 var (
-	cardTypeWords  = []string{"Artifact", "Battle", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery", "Tribal"}
+	cardTypeWords  = []string{"Artifact", "Battle", "Creature", "Enchantment", "Instant", "Kindred", "Land", "Planeswalker", "Sorcery", "Tribal"}
 	supertypeWords = []string{"Basic", "Legendary", "Ongoing", "Snow", "World"}
 )
 

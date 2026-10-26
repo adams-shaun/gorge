@@ -117,14 +117,14 @@ func (s *CreatureTypeSet) AddWords(types []string) int {
 	return added
 }
 
-// cardTypeWords is the CR 205.1 card-type vocabulary (including the retired
-// Tribal and Vanguard), the set Count$Valid...$CardTypes counts distinct
-// members of (Tarmogoyf).
+// cardTypeWords is the CR 205.1/205.2a card-type vocabulary (including the
+// current Kindred and the retired Tribal, plus the legacy Vanguard), the set
+// Count$Valid...$CardTypes counts distinct members of (Tarmogoyf).
 var cardTypeWords = map[string]bool{
 	"Artifact": true, "Battle": true, "Conspiracy": true, "Creature": true,
-	"Dungeon": true, "Enchantment": true, "Instant": true, "Land": true,
-	"Phenomenon": true, "Plane": true, "Planeswalker": true, "Scheme": true,
-	"Sorcery": true, "Tribal": true, "Vanguard": true,
+	"Dungeon": true, "Enchantment": true, "Instant": true, "Kindred": true,
+	"Land": true, "Phenomenon": true, "Plane": true, "Planeswalker": true,
+	"Scheme": true, "Sorcery": true, "Tribal": true, "Vanguard": true,
 }
 
 // permanentTypeWords is the CR 205.2 permanent-type vocabulary, the set
@@ -139,6 +139,5 @@ var permanentTypeWords = map[string]bool{
 }
 
 // CardTypeWord reports whether w is a CR 205.2a card type word (the
-// cardTypeWords vocabulary, plus Kindred -- the current spelling of the
-// Tribal type).
-func CardTypeWord(w string) bool { return cardTypeWords[w] || w == "Kindred" }
+// cardTypeWords vocabulary).
+func CardTypeWord(w string) bool { return cardTypeWords[w] }

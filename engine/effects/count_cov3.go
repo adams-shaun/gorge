@@ -670,7 +670,7 @@ func sacrificedPermanentTypes(g *state.Game, players []state.PlayerID) int32 {
 			continue
 		}
 		for _, typ := range o.Face().Types {
-			if cardTypeWords[typ] || typ == "Kindred" {
+			if cardTypeWords[typ] {
 				seen[typ] = true
 			}
 		}
@@ -700,7 +700,7 @@ func typesSharedWith(h Host, c *Ctx, arg string) (int32, bool) {
 	if so == nil || so.Face() == nil {
 		return 0, true
 	}
-	isCardType := func(t string) bool { return cardTypeWords[t] || t == "Kindred" }
+	isCardType := func(t string) bool { return cardTypeWords[t] }
 	pool := map[string]bool{}
 	sc := c.SpecContext(c.Controller)
 	for i := range g.Players {

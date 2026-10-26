@@ -111,14 +111,13 @@ func repeatEachTypesFrom(h Host, c *Ctx, spec string) ([]string, bool) {
 }
 
 // repeatEachCardTypes returns the CR 205.1 registry in deterministic order.
-// Kindred is the current name for Tribal and is accepted alongside the legacy
-// spelling. Sorting the registry keys avoids a second, drifting type list.
+// Kindred (the current name for Tribal) and the retired spelling both live in
+// cardTypeWords. Sorting the registry keys avoids a second, drifting type list.
 func repeatEachCardTypes() []string {
-	types := make([]string, 0, len(cardTypeWords)+1)
+	types := make([]string, 0, len(cardTypeWords))
 	for typ := range cardTypeWords {
 		types = append(types, typ)
 	}
-	types = append(types, "Kindred")
 	sort.Strings(types)
 	return types
 }
