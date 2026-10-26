@@ -65,6 +65,9 @@ const (
 	wordHistoric
 	wordAdventureCard
 	wordIsCommander
+	// CR 712.1: the card is a transforming or modal double-faced card. It
+	// reads the card, not the current face, so it holds in every zone.
+	wordDoubleFaced
 	wordBlockingSource
 	wordBlockedBySource
 	// The object is controlled by a player dealt combat damage this turn by
@@ -518,6 +521,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordAdventureCard, ""
 	case wordPredicateWordIsCommander:
 		return wordIsCommander, ""
+	case wordPredicateWordDoubleFaced:
+		return wordDoubleFaced, ""
 	case wordPredicateWordBlockingSource:
 		return wordBlockingSource, ""
 	case wordPredicateWordBlockedBySource:
@@ -902,6 +907,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			}
 		}
 		return false
+	case wordDoubleFaced:
+		return o != nil && o.Card.BackFaceIsBattlefieldOnly()
 	case wordIsCommander:
 		// Forge's IsCommander: the object is one of a seat's commanders, or
 		// a melded/merged permanent with one among its cards (CR 903.3b-c,
@@ -1431,6 +1438,7 @@ const (
 	wordPredicateWordHistoric
 	wordPredicateWordAdventureCard
 	wordPredicateWordIsCommander
+	wordPredicateWordDoubleFaced
 	wordPredicateWordBlockingSource
 	wordPredicateWordBlockedBySource
 	wordPredicateWordHasANonBasicLandType
@@ -1494,6 +1502,7 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "OppProtect", Val: wordPredicateWordOppProtect},
 	state.StrEntry[wordPredicateWordCode]{Key: "AdventureCard", Val: wordPredicateWordAdventureCard},
 	state.StrEntry[wordPredicateWordCode]{Key: "IsCommander", Val: wordPredicateWordIsCommander},
+	state.StrEntry[wordPredicateWordCode]{Key: "DoubleFaced", Val: wordPredicateWordDoubleFaced},
 	state.StrEntry[wordPredicateWordCode]{Key: "blockingSource", Val: wordPredicateWordBlockingSource},
 	state.StrEntry[wordPredicateWordCode]{Key: "blockedBySource", Val: wordPredicateWordBlockedBySource},
 	state.StrEntry[wordPredicateWordCode]{Key: "hasANonBasicLandType", Val: wordPredicateWordHasANonBasicLandType},

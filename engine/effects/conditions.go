@@ -836,6 +836,12 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 			}
 		}
 	}
+	if defined == "Enchanted" || defined == "Equipped" {
+		// CR 303.4: the same bearer the Defined$ Enchanted/Equipped
+		// resolver reads (LKI bearer included), so gate and effect agree. A
+		// source attached to nothing is a resolved empty group.
+		return definedSpec(h, c, defined)
+	}
 	if defined == "Imprinted" {
 		// The source card's persistent imprint list (state.Object.Imprinted,
 		// the events.Imprint associations): the ONLY group for this family —
@@ -950,6 +956,11 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 func conditionBareMet(h Host, c *Ctx, bare, optionalPaid string) (bool, bool) {
 	g := h.Game()
 	switch {
+	case strings.EqualFold(bare, "EnduringStory"):
+		// CR 702.195: the controller has the enduring story designation
+		// (Balin, Loremaster), the state playerHasEnduringStory reads.
+		p := int(c.Controller)
+		return p >= 0 && p < len(g.Players) && g.Players[p].EnduringStory, true
 	case strings.EqualFold(bare, "OptionalCost"):
 		// CR 601.2b/601.2f: "If this spell's additional cost was paid" (Ruinous
 		// Waterbending's waterbend, the behold Exhales, Undergrowth's {2}{R}).
