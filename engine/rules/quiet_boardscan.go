@@ -180,11 +180,12 @@ func (e *Engine) quietStaticHit(p state.PlayerID, o *state.Object, sf *cards.Fac
 	}
 	// Q3c per-seat scope (engine/rules/quiet_grantscope.go): a battlefield MayPlay$
 	// static grants its CONTROLLER alone (mayPlayBoardGrantsOpen,
-	// mayPlayAltCosts) -- except a MayPlayPlayer$ Exiler static, which can
-	// grant any seat (the per-card ExiledBy gate is the real filter) -- and an AddAbility$ static whose Affected$ cannot reach
+	// mayPlayAltCosts) -- except a MayPlayPlayer$ Exiler or CardOwner static,
+	// which can grant any seat (the per-card ExiledBy / owner gate is the real
+	// filter) -- and an AddAbility$ static whose Affected$ cannot reach
 	// an object p controls (and grants no Activator$ ability) gives p nothing.
 	if h&qbhMayPlay != 0 && o.Controller != p && e.controllerOf(o.ID) != p &&
-		!mayPlayExiler(st.ParamStr(cards.PKMayPlayPlayer)) {
+		!mayPlayPerCardBeneficiary(st.ParamStr(cards.PKMayPlayPlayer)) {
 		h &^= qbhMayPlay
 	}
 	if h&qbhAddAbility != 0 && e.quietAddAbilityStaticClears(p, o, sf, st) {

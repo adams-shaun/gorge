@@ -48,7 +48,7 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 	landKeep := func(o *state.Object) bool { return o.Face() != nil && o.Face().IsLand() }
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if !ce.MayPlay || ce.Controller != p {
+		if !ce.MayPlay || !mayPlayEffectSeatOpen(ce, p) {
 			continue
 		}
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
@@ -68,7 +68,7 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 		// deterministic seat order -- the same shape mayPlaySpellIds'
 		// walk already is. The Affects match decides ownership claims;
 		// walking the slices only enumerates candidates.
-		for _, pr := range w.pairs(ce, mayPlayWalkZones(zones, all), false, landKeep) {
+		for _, pr := range w.pairs(ce, mayPlayWalkZones(zones, all), false, mayPlayEffectKeep(ce, p, landKeep)) {
 			dup := false
 			for _, s := range seen {
 				if s.zone == pr.zone && s.id == pr.id {
@@ -415,7 +415,7 @@ func (e *Engine) mayPlaySpellIdsBoard(p state.PlayerID, board bool) []mayPlaySpe
 	spellKeep := func(o *state.Object) bool { return o.Face() != nil && !o.Face().IsLand() }
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if !ce.MayPlay || ce.Controller != p {
+		if !ce.MayPlay || !mayPlayEffectSeatOpen(ce, p) {
 			continue
 		}
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
@@ -434,7 +434,7 @@ func (e *Engine) mayPlaySpellIdsBoard(p state.PlayerID, board bool) []mayPlaySpe
 		// play it), so every seat's slice is walked in deterministic seat
 		// order -- never a map. The Affects match decides ownership claims;
 		// walking the slices only enumerates candidates.
-		for _, pr := range w.pairs(ce, mayPlayWalkZones(zones, all), true, spellKeep) {
+		for _, pr := range w.pairs(ce, mayPlayWalkZones(zones, all), true, mayPlayEffectKeep(ce, p, spellKeep)) {
 			consider(pr.zone, pr.id, "")
 		}
 	}
@@ -453,7 +453,7 @@ func (e *Engine) mayPlayLandAny(p state.PlayerID) bool {
 	}
 	ces := e.active()
 	for i := range ces {
-		if ces[i].MayPlay && ces[i].Controller == p {
+		if ces[i].MayPlay && mayPlayEffectSeatOpen(&ces[i], p) {
 			return true
 		}
 	}
