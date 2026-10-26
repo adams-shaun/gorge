@@ -466,6 +466,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.SourceRemembered = append([]state.Target(nil), src.Remembered...)
 		c.SourceIncarnation = src.Incarnation
 	}
+	c.SelfLeaves = t.Mode == "ChangesZone" && t.ParamStr(cards.PKOrigin) == "Battlefield" &&
+		t.ParamStr(cards.PKValidCard) == "Card.Self"
 	return c
 }
 

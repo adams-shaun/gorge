@@ -485,7 +485,7 @@ func SpecTargetsOnlyPlayers(spec string) bool {
 // SpecContext.Resolve (powerGEX, cmcEQX, toughnessLTX, counters_GTX_<KIND>).
 // Only these shapes are dynamic in X; a literal bound (cmcGE3) is static and
 // stays gated at offer time.
-var xBoundRe = regexp.MustCompile(`(?i)(power|toughness|cmc)(LE|GE|EQ|LT|GT)X|counters_(?:LE|GE|EQ|LT|GT)X_`)
+var xBoundRe = regexp.MustCompile(`(?i)(power|toughness|cmc)(LE|GE|EQ|LT|GT)X|totalPT_(?:LE|GE|EQ|LT|GT)X|counters_(?:LE|GE|EQ|LT|GT)X_`)
 
 // SpecNamesXBound reports whether spec carries an X-bounded numeric
 // predicate (xBoundRe).

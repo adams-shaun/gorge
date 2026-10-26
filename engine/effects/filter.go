@@ -244,6 +244,14 @@ var predicates = map[string]predFn{
 	"unblocked": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.IsAttacking && len(o.BlockedBy) == 0
 	},
+	// blocked is the CR 509.1h complement: the object is attacking and at
+	// least one blocker is recorded on it. The record is a zero tombstone
+	// after a blocker leaves combat (events.Apply's zone move keeps the list
+	// length), so the attacker stays blocked even when every blocker is gone
+	// -- Tactical Advantage's `Creature.blocked`.
+	"blocked": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.IsAttacking && len(o.BlockedBy) > 0
+	},
 	// attackingYou is the source-relative attacker predicate (Watchdog's and
 	// Boarded Window's continuous `Affected$ Creature.attackingYou`, Ice
 	// Floe's/Hunting Kavu's/Snow Fortress's `Creature.attackingYou` target
@@ -1602,7 +1610,7 @@ func specReadsKeywords(spec string) bool {
 	return false
 }
 
-// ptNumericField reports whether a predicate name is one of the four P/T
+// ptNumericField reports whether a predicate name is one of the five P/T
 // comparison spellings numericPred evaluates against the candidate's
 // layer-derived power/toughness (current and base, CR 613.4). It is exactly
 // the field vocabulary numericPred's comparison loop walks, so
@@ -1622,15 +1630,15 @@ func ptNumericField(name string) bool {
 // ptNumericFields is the P/T half of numericPred's comparison-field
 // vocabulary, in the evaluator's own order. cmc is the evaluator's other
 // field and reads the printed mana cost, never a derived characteristic, so
-// it does not belong here.
-var ptNumericFields = [...]string{"power", "toughness", "basePower", "baseToughness"}
+// it does not belong here. totalPT is current power plus current toughness.
+var ptNumericFields = [...]string{"power", "toughness", "basePower", "baseToughness", "totalPT"}
 
 // SpecReadsPT reports whether the spec consults the candidate's layer-derived
 // power/toughness when a caller binds SpecContext.DerivedPower /
 // DerivedToughness / BasePower / BaseToughness -- i.e. whether binding those
 // four values can change what the spec matches. The shapes are
-// numericPred's four comparison fields (power/toughness/basePower/
-// baseToughness, including the two-characteristic forms like
+// numericPred's five comparison fields (power/toughness/basePower/
+// baseToughness/totalPT, including the two-characteristic forms like
 // powerGTbasePower, matched by ptNumericField).
 //
 // effects cannot derive P/T itself (rules sits above it), so Count$Valid's
@@ -1645,9 +1653,10 @@ var ptNumericFields = [...]string{"power", "toughness", "basePower", "baseToughn
 // consults the dependency test.
 func SpecReadsPT(spec string) bool {
 	// Fast path: every P/T field begins with "power" or "toughness" (basePower
-	// and baseToughness carry the same lowercase tails), so a spec with
-	// neither substring can never read one -- one reject on the hot path.
-	if !strings.Contains(spec, "ower") && !strings.Contains(spec, "oughness") {
+	// and baseToughness carry the same lowercase tails) except totalPT, so a
+	// spec with none of those substrings can never read one -- one reject on
+	// the hot path.
+	if !strings.Contains(spec, "ower") && !strings.Contains(spec, "oughness") && !strings.Contains(spec, "totalPT") {
 		return false
 	}
 	for alt := range filterAlternatives(spec) {
@@ -3468,9 +3477,17 @@ func predicateNeedsResolver(name string) bool {
 	if _, _, parity := parityPredicate(name); parity {
 		return false
 	}
-	for _, field := range [...]string{"power", "toughness", "cmc"} {
+	for _, field := range [...]string{"power", "toughness", "cmc", "totalPT"} {
 		rest, ok := strings.CutPrefix(name, field)
-		if !ok || len(rest) < 3 {
+		if !ok {
+			continue
+		}
+		// totalPT is the one field Forge spells with an underscore before the
+		// comparator ("totalPT_EQX").
+		if field == "totalPT" {
+			rest = strings.TrimPrefix(rest, "_")
+		}
+		if len(rest) < 3 {
 			continue
 		}
 		if numericCmpOrNotCodes.Code(rest[:2]) == 0 && !strings.HasPrefix(rest, "NOT") {
