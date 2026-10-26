@@ -79,7 +79,17 @@ func TestMovedFizzleFeatherCounteredSpellGoesToGraveyard(t *testing.T) {
 	if z := e.G.Obj(growth).Zone; z != state.ZStack {
 		t.Fatalf("Giant Growth is in %v after the cast, want stack", z)
 	}
-	submitPass(t, e) // seat 0 passes; seat 1 holds priority
+	// Resolve Feather's cast trigger first so it has remembered Giant Growth;
+	// only then does a Moved line exist for the counter to (wrongly) hit.
+	for i := 0; i < 10 && len(e.G.Stack) > 1; i++ {
+		submitPass(t, e)
+	}
+	if n := len(e.G.Stack); n != 1 {
+		t.Fatalf("stack holds %d objects after Feather's trigger, want only Giant Growth", n)
+	}
+	if d := e.Pending(); d != nil && d.Player == 0 {
+		submitPass(t, e) // seat 0 passes; seat 1 holds priority
+	}
 	if d := e.Pending(); d == nil || d.Player != 1 {
 		t.Fatalf("seat 1 not holding priority: %+v", d)
 	}
