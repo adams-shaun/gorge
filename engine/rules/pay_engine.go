@@ -237,6 +237,22 @@ var payAskFlows = [...]chooseFor{
 	pay.AskCast: chooseCast,
 }
 
+// EmitCounterBy (pay.Engine) emits ev with p published as the counter adder,
+// optionally marked a cost's own placement (costCounters).
+func (pe *payer) EmitCounterBy(ev events.Event, p state.PlayerID, asCost bool) events.Event {
+	e := (*Engine)(pe)
+	prevAdder := e.SetCounterAdder(p)
+	if asCost {
+		e.costCounters++
+	}
+	out := e.emit(ev)
+	if asCost {
+		e.costCounters--
+	}
+	e.SetCounterAdder(prevAdder)
+	return out
+}
+
 // Batch opens or closes one action bracket (pay.Engine.Batch).
 func (pe *payer) Batch(kind pay.BatchKind, open bool) {
 	e := (*Engine)(pe)

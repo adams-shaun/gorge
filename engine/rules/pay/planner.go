@@ -386,13 +386,18 @@ func UnlessPaymentCandidates(e Engine, u *UnlessPayment, zone state.Zone, kind s
 	// removes an already-impossible candidate. Revealed and beheld cards are
 	// NOT removed from the hand, which is exactly why they need the explicit
 	// exclusion.
-	used := make([]state.ObjID, 0, len(u.Sacs)+len(u.Discards)+len(u.Reveals)+len(u.Beholds)+len(u.Returns)+len(u.Exiles))
+	used := make([]state.ObjID, 0, len(u.Sacs)+len(u.Discards)+len(u.Reveals)+len(u.Beholds)+len(u.Returns)+len(u.Exiles)+len(u.Taps)+len(u.WaterbendTaps)+len(u.Blights)+len(u.CounterTo)+len(u.Evidence))
 	used = append(used, u.Sacs...)
 	used = append(used, u.Discards...)
 	used = append(used, u.Reveals...)
 	used = append(used, u.Beholds...)
 	used = append(used, u.Returns...)
 	used = append(used, u.Exiles...)
+	used = append(used, u.Taps...)
+	used = append(used, u.WaterbendTaps...)
+	used = append(used, u.Blights...)
+	used = append(used, u.CounterTo...)
+	used = append(used, u.Evidence...)
 	return UnlessCandidatesFor(e, u.Payer, u.Ctx, zone, kind, part, used)
 }
 
@@ -408,8 +413,10 @@ func RecordUnlessPaymentPick(e Engine, u *UnlessPayment, kind string, ids []stat
 		u.Returns = append(u.Returns, ids...)
 	case recordUnlessPaymentPickExilecost:
 		u.Exiles = append(u.Exiles, ids...)
-	default:
+	case recordUnlessPaymentPickDiscard:
 		u.Discards = append(u.Discards, ids...)
+	default:
+		recordUnlessSpecialPick(u, kind, ids)
 	}
 }
 
@@ -425,6 +432,7 @@ const (
 	recordUnlessPaymentPickBeholdcost
 	recordUnlessPaymentPickReturncost
 	recordUnlessPaymentPickExilecost
+	recordUnlessPaymentPickDiscard
 )
 
 var recordUnlessPaymentPickCodes = state.NewStrCodes(
@@ -433,4 +441,5 @@ var recordUnlessPaymentPickCodes = state.NewStrCodes(
 	state.StrEntry[recordUnlessPaymentPickCode]{Key: "beholdcost", Val: recordUnlessPaymentPickBeholdcost},
 	state.StrEntry[recordUnlessPaymentPickCode]{Key: "returncost", Val: recordUnlessPaymentPickReturncost},
 	state.StrEntry[recordUnlessPaymentPickCode]{Key: "exilecost", Val: recordUnlessPaymentPickExilecost},
+	state.StrEntry[recordUnlessPaymentPickCode]{Key: "discard", Val: recordUnlessPaymentPickDiscard},
 )
