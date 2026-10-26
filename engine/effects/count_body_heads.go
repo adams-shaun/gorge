@@ -296,10 +296,10 @@ func evalCountBodyDotted(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		}
 		switch evalCountBodyDottedCodes.Code(string(head[:dot])) {
 		case evalCountBodyDottedWasCastFromGraveyard:
-			// The resolving source was CAST FROM A GRAVEYARD (CR 601.2b's
-			// alternative-cost provenance): any graveyard-origin cast bit —
-			// FlagFlashback, FlagHarmonize or FlagEscaped — holds it. This is
-			// the same bit test the Card.wasCastFromGraveyard filter predicate
+			// The resolving source was CAST FROM A GRAVEYARD (CR 601.2a's
+			// zone provenance): a graveyard-origin keyword flag or a
+			// LatestCastFrom of the graveyard (a may-play cast) holds it. This
+			// is the same read the Card.wasCastFromGraveyard filter predicate
 			// and its compiled twin share (engine/effects/filter.go,
 			// engine/effects/compiled_predicate.go); a nil/missing source reads
 			// false, and so does a stack copy (IsCopy — a copy was never cast,

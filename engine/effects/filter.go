@@ -566,8 +566,10 @@ var predicates = map[string]predFn{
 		return o != nil && o.Zone == state.ZExile && o.Counter("TIME") > 0 &&
 			(o.SuspendGranted || (o.CastFlags&state.FlagSuspend) != 0 || (o.Face() != nil && o.Face().HasKeywordRef(kwRefSuspend)))
 	},
-	// wasCastFromGraveyard is the CastFlags provenance of a GRAVEYARD-ORIGIN
-	// cast (CR 601.2b): any of FlagFlashback, FlagHarmonize or FlagEscaped.
+	// wasCastFromGraveyard is the provenance of a GRAVEYARD-ORIGIN cast
+	// (CR 601.2a): the latest cast came from a graveyard, whether by a
+	// keyword flag (flashback, harmonize, jump-start, escape) or a may-play
+	// permission (Festival of Embers) that sets none.
 	// The same object-aware read the Count$wasCastFromGraveyard branch head
 	// shares (engine/effects/count.go) and its compiled twin mirrors
 	// (engine/effects/compiled_predicate.go's predicateTermWasCastFromGraveyard);
