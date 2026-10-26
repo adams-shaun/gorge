@@ -681,7 +681,10 @@ func (w *legalWalk) battlefieldWalk() {
 					if pay.ActivationTapCostUnavailable(o, &cost) || pay.TapCostSick(asPayer(e), id, &cost, activatesAsIfHaste(e, id)) {
 						continue
 					}
-					if !w.offerCastable(p, id, cost, abilityScope(ab), true) {
+					e.gainedOfferConv = ga.GainedManaConv
+					castable := w.offerCastable(p, id, cost, abilityScope(ab), true)
+					e.gainedOfferConv = ""
+					if !castable {
 						continue
 					}
 					if !e.abilityTargetsAvailable(p, id, ab) {

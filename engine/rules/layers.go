@@ -353,6 +353,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							gg.GainedZones = strings.TrimSpace(st.ParamStr(cards.PKGainsAbilitiesOfZones))
 							gg.GainsValidAbilities = strings.TrimSpace(st.ParamStr(cards.PKGainsValidAbilities))
 							gg.GainsLimitPerTurn = gainsLimitPerTurn(st)
+							gg.GainedManaConversion = strings.TrimSpace(st.ParamStr(cards.PKManaConversion))
 							if spec := strings.TrimSpace(st.ParamStr(cards.PKGainsAbilitiesOf)); spec != "" {
 								gg.GainedFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
 							}

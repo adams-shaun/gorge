@@ -78,6 +78,12 @@ type engineEmitCtx struct {
 	// resolving. They are synchronous context rather than ManaAdd fields.
 	manaFromTap  bool        `clone:"reset"`
 	manaProducer state.ObjID `clone:"reset"`
+	// gainedOfferConv is the ManaConversion$ of the GainsAbilitiesOf$ grant
+	// whose gained ability the legal-actions walk is pricing right now
+	// (manaConversionParts reads it at offer time, when no cast exists yet).
+	// Set and restored around that one offerCastable call, so it is empty at
+	// every clone boundary.
+	gainedOfferConv string `clone:"reset"`
 	// stepLeaving is the step transition currently offered to BeginPhase
 	// replacements (valid while stepLeavingSet); parked choices own a value
 	// copy. Held by value so a step change allocates nothing.

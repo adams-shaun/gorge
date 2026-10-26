@@ -76,7 +76,36 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 	if !ability && e.cast != nil && e.cast.card == id && e.cast.playManaConversion != "" {
 		applyManaConversionWords(&mandatory, e.cast.playManaConversion)
 	}
+	if g := e.gainedManaConversion(p, id, ability); g != "" {
+		applyManaConversionWords(&mandatory, g)
+	}
 	return mandatory, optional
+}
+
+// gainedManaConversion is the ManaConversion$ word list of the
+// GainsAbilitiesOf$ grant whose gained activated ability id is being paid
+// for (CR 609.4b: the permission names only those activations), or "". At
+// offer time the walk names it in gainedOfferConv; during the activation it is
+// looked up from the cast's (gainedFrom, gainedIdx) anchor among id's current
+// grants, merging every matching grant's list when two grants give the same
+// ability. A spell, a printed ability and another grant's ability get "".
+func (e *Engine) gainedManaConversion(p state.PlayerID, id state.ObjID, ability bool) string {
+	if !ability {
+		return ""
+	}
+	if e.cast == nil {
+		return e.gainedOfferConv
+	}
+	if e.cast.card != id || e.cast.gainedFrom == 0 {
+		return ""
+	}
+	var out string
+	for _, ga := range e.grantedAbilities(p, id) {
+		if ga.Gained && ga.GainedFrom == e.cast.gainedFrom && ga.GainedIdx == e.cast.gainedIdx && ga.GainedManaConv != "" {
+			out += " " + ga.GainedManaConv
+		}
+	}
+	return strings.TrimSpace(out)
 }
 
 // applyManaConversionWords folds one ManaConversion$ word list into dst with

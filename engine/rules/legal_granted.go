@@ -111,7 +111,8 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 					continue
 				}
 				out = append(out, grantedAbility{SA: ab, Source: ce.Source,
-					Gained: true, GainedFrom: gf.Obj, GainedIdx: i, GainedFace: gf.Face})
+					Gained: true, GainedFrom: gf.Obj, GainedIdx: i, GainedFace: gf.Face,
+					GainedManaConv: ce.GainedManaConversion})
 			}
 		}
 		if len(ce.AddAbilities) == 0 {
