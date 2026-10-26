@@ -165,7 +165,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.58b-d | not-impl | - | - | no turn-face-up |
 | 701.58f | unknown | - | - | not reached |
 | 701.58g-h | n/a | - | - | no turn-face-up path exists; 58h cross-reference |
-| 701.59a-b | follows | `engine/rules/pay/evidence.go#EvidenceGraveCandidates` `engine/rules/cast_targets.go#Engine.evidenceAsk` | `TestConditionCollectedGatesOnEvidence` |  |
+| 701.59a-b | follows | `engine/rules/pay/evidence.go#EvidenceGraveCandidates` `engine/rules/cast_targets.go#Engine.evidenceAsk` `engine/rules/cumulative.go#Engine.triggeredCostXAsk` `engine/rules/evidence_cost.go#triggeredEffectCost.evidenceStage` | `TestConditionCollectedGatesOnEvidence` `TestTriggerCollectEvidenceXAnnouncesAndPays` |  |
 | 701.59c | follows | `engine/effects/conditions.go#conditionDefinedGroup` `engine/rules/cast_targets.go#castSubTargetsOwed` | - | linked via OptionalCost (traced shallowly) |
 | 701.60a | deviates | `engine/events/apply_player.go#foldControlChange` | - | suspected cleared on control change |
 | 701.60b-d | follows | `engine/rules/chars/derive.go#BaseKeywords` `engine/rules/combat/block.go#CanBlock` `engine/effects/misc.go#effAlterAttribute` | - |  |

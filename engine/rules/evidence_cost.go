@@ -127,10 +127,12 @@ func evidenceGreedyMin(g *state.Game, ids []state.ObjID, need int32) int {
 
 // evidenceNeed resolves the window's collect-evidence threshold from the
 // cost's Evidence parts. A literal part contributes its N; a dynamic part
-// (Dyn != "", e.g. Incinerator of the Guilty's CollectEvidence<X>) is NOT
-// resolvable in the trigger window -- there is no cast-style chosen-target
-// union and no announced X here -- so it returns -1, the loud "unresolvable"
-// sentinel. The caller must DECLINE on -1, never free-settle.
+// (Dyn != "") is NOT resolvable here, so it returns -1, the loud
+// "unresolvable" sentinel. The announced-X arm (triggeredCostXAsk) folds
+// CollectEvidence<X> to a literal part before the payment ask, so a dynamic
+// part reaching this read is one whose X was never announced (no SVar:X, an
+// unresolvable body, or a window that offered no payable X): the caller must
+// DECLINE on -1, never free-settle.
 func (tc *triggeredEffectCost) evidenceNeed() int32 {
 	need := int32(0)
 	for _, part := range tc.amount.Evidence {
