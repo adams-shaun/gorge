@@ -489,8 +489,10 @@ func adjustLandPlaysGrant(params map[string]string) (int32, bool) {
 // MayPlayLimit$). A richer grant is out of scope and must fail closed (MayPlay
 // stays false) so it is never silently over-applied -- in particular a
 // MayPlayWithoutManaCost$ (free cast) static changes what the cast IS, not
-// just where it may come from, and a Condition$/CheckSVar$/ValidAfterStack$/
-// Secondary$ qualifier changes when the grant lives. The explicit whitelist,
+// just where it may come from, and a Condition$/CheckSVar$/ValidAfterStack$
+// qualifier changes when the grant lives. Secondary$ is Forge's text
+// renderer bit (CardTraitBase.isSecondary, read only by Card.java's getText
+// family), so it is carried rather than treated as a qualifier. The explicit whitelist,
 // rather than a blacklist of currently-known gating keys, means a newly
 // encountered semantic parameter also fails closed. Iterating st.Params only
 // yields a boolean, so map order never reaches an event/option/view --

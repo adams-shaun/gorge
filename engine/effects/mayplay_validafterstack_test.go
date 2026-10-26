@@ -89,8 +89,8 @@ func TestEffectMayPlayGateKeysEffectRouteOnly(t *testing.T) {
 	}
 	if _, _, _, _, ok := MayPlayStaticParams(map[string]string{
 		"MayPlay": "True", "Secondary": "True",
-	}); ok {
-		t.Fatal("printed route's MayPlayStaticParams accepted a Secondary$ line")
+	}); !ok {
+		t.Fatal("printed route's MayPlayStaticParams refused the display-only Secondary$ marker")
 	}
 }
 
