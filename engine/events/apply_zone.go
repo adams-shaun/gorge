@@ -885,6 +885,14 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.IsCopy = false
 		}
 
+		// CR 702.145b: a daybound permanent represented by a transforming
+		// DFC that enters while it is night enters with its back face up.
+		// Not a transform (no FlipFace, no "transforms into" trigger), so it
+		// folds here as a pure function of the event-folded Game.DayNight.
+		if !wasBattlefield && g.DayNight == state.DayNightNight && entersTransformedAtNight(o) {
+			o.SetFaceIdx(1)
+		}
+
 		// CR 400.7: a battlefield entry from another zone is a new object and
 		// a new control acquisition — kw:Echo's gate stamp (the entry already
 		// carries the entering controller). A battlefield→battlefield stay is
