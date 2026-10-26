@@ -251,7 +251,8 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 	d := &decision.Decision{Player: card.Owner, Kind: decision.KTriggerOptional,
 		Min: 1, Max: 1, Source: card.ID, ResumeKind: "madness",
 		Prompt: "Cast " + name + " for its madness cost?"}
-	if e.offerCastablePotential(card.Owner, card.ID, cost, spellScope(m.mode), false) {
+	if e.offerCastablePotential(card.Owner, card.ID, cost, spellScope(m.mode), false) &&
+		e.castTargetsAvailable(card.Owner, card.ID, card.Face().SpellAbility()) {
 		raw, _ := card.Face().KeywordParam(m.head)
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "yes",
 			Label: "Cast " + name + " for " + raw, Obj: card.ID})

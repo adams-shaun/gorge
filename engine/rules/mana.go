@@ -167,11 +167,14 @@ func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scop
 // offerCastablePotential is offerCastable for a cast or activation offered
 // outside the priority walk (a madness ask mid-resolution): CR 601.2g lets the
 // caster activate mana abilities while paying, so the gate prices the mana
-// against PotentialMana -- the pool plus every untapped source -- exactly as
-// the hand walk's hypothetical bound does, not against the floating pool
-// alone. The payment window the cast opens is what actually taps the sources.
+// against the pool plus every untapped source, not against the floating pool
+// alone. The bound is restriction-aware (potentialManaFor with this payment's
+// descriptor): a source whose RestrictValid$ cannot spend on THIS cast
+// contributes nothing, exactly as it cannot at the payment (CR 106.6). The
+// payment window the cast opens is what actually taps the sources.
 func (e *Engine) offerCastablePotential(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
-	hyp := e.PotentialMana(p)
+	desc := paymentFor(id, ability, base)
+	hyp := e.potentialManaFor(p, &desc)
 	return e.offerCastableUsing(e.collectCostStatics(), p, id, &base, scope, ability, &hyp)
 }
 
