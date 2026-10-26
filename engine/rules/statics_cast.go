@@ -252,12 +252,30 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 				spec = s
 			}
 		}
-		sc := e.spellSpecCtx(e.castStaticSpecCtx(sv), id)
+		// Bind the delivering Effect's captured Remembered set (the
+		// assignmentStaticSpecCtx pattern) for a Card.IsRemembered clause. The
+		// loop reads nil for every printed static, so the allocation-free hot
+		// path keeps its original shape -- routing this through a helper method
+		// made the Resolve closure escape once per cast candidate
+		// (TestLegalActionsReusesActionStaticMembership's pin).
+		sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
+		for _, rid := range sv.Remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
+		}
 		if asPrototype {
 			sc = e.prototypeSpellSpecCtx(sc, id)
 		}
 		if e.matchesSpec(spec, id, sc) &&
-			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.castStaticSpecCtx(sv)) }) {
+			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool {
+				if len(sv.Remembered) == 0 {
+					return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv))
+				}
+				sc := e.staticSpecCtx(sv)
+				for _, rid := range sv.Remembered {
+					sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
+				}
+				return e.matchesSpec(countSpec, oid, sc)
+			}) {
 			if printed {
 				printed = false
 				cost = Cost{}

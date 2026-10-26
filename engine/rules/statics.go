@@ -550,23 +550,6 @@ func (e *Engine) assignmentStaticSpecCtx(sv staticView) effects.SpecContext {
 	return sc
 }
 
-// castStaticSpecCtx is the spec context a CantBeCast restriction's ValidCard$
-// matches under: staticSpecCtx plus the delivering Effect's captured
-// Remembered set (the assignmentStaticSpecCtx pattern), so a Card.IsRemembered
-// clause names what the Effect remembered. A view with no remembered set --
-// every printed static, and an Effect that remembered none -- returns the
-// plain staticSpecCtx, so the hot path allocates nothing.
-func (e *Engine) castStaticSpecCtx(sv staticView) effects.SpecContext {
-	sc := e.staticSpecCtx(sv)
-	if len(sv.Remembered) == 0 {
-		return sc
-	}
-	for _, id := range sv.Remembered {
-		sc.Remembered = append(sc.Remembered, state.Target{Obj: id})
-	}
-	return sc
-}
-
 func init() {
 	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:CantBeCopied", "stat:RaiseCost", "stat:CastWithFlash",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:OptionalCost", "stat:CantBlock", "stat:CantBlockBy",

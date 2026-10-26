@@ -1555,7 +1555,10 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 				if !castOriginGateHolds(sv, pc.from) {
 					continue
 				}
-				sc := e.castStaticSpecCtx(sv)
+				sc := e.staticSpecCtx(sv)
+				for _, rid := range sv.Remembered {
+					sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
+				}
 				if asPrototype {
 					sc = e.prototypeSpellSpecCtx(sc, pc.card)
 				} else {
@@ -1564,7 +1567,16 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 				}
 				spec := castValidCardSpec(sv)
 				if e.matchesSpec(spec, pc.card, sc) &&
-					castLimitBinds(e.L.Events, sv, pc.player, pc.card, func(oid state.ObjID) bool { return e.matchesSpec(spec, oid, e.staticSpecCtx(sv)) }) {
+					castLimitBinds(e.L.Events, sv, pc.player, pc.card, func(oid state.ObjID) bool {
+						if len(sv.Remembered) == 0 {
+							return e.matchesSpec(spec, oid, e.staticSpecCtx(sv))
+						}
+						sc := e.staticSpecCtx(sv)
+						for _, rid := range sv.Remembered {
+							sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
+						}
+						return e.matchesSpec(spec, oid, sc)
+					}) {
 					return true
 				}
 			}
