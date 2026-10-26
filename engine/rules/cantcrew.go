@@ -25,8 +25,8 @@ func (e *Engine) dropCantCrew(ids []state.ObjID) []state.ObjID {
 // crew Vehicles", Intercessor's Arrest) forbids creature id from being tapped
 // to pay a Crew cost (CR 702.122a). Forge's StaticAbilityCantCrew reads
 // ValidCard$ only; the shared restriction gate guards the rest. It affects
-// only Crew tap costs -- pay.FilterCrewCandidates (via dropCantCrew) is its one consumer, so the
-// creature still pays any other tap cost.
+// only Crew tap costs -- pay.FilterCrewCandidates (via dropCantCrew) is its
+// one consumer, so the creature still pays any other tap cost.
 func (e *Engine) cantCrew(id state.ObjID) bool {
 	for _, sv := range e.activeStatics("CantCrew") {
 		if !e.restrictionGateHolds(sv, id) {

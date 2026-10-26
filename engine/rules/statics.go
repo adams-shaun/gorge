@@ -551,7 +551,8 @@ func (e *Engine) assignmentStaticSpecCtx(sv staticView) effects.SpecContext {
 }
 
 func init() {
-	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:CantCrew", // cantcrew.go "stat:CantBeCopied", "stat:RaiseCost", "stat:CastWithFlash",
+	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:CantBeCopied", "stat:RaiseCost", "stat:CastWithFlash",
+		"stat:CantCrew", // cantcrew.go
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:OptionalCost", "stat:CantBlock", "stat:CantBlockBy",
 		"stat:CantGainLife", "stat:CantPlayLand", "stat:Continuous", "stat:ManaConvert", "stat:NumLoyaltyAct",
 		// cantchangelife1: the CR 119.7/119.8 CantChangeLife static ("your
