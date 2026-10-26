@@ -642,6 +642,7 @@ func TestBecomeAnonymousCloaksThePileWithoutShufflingTheLibrary(t *testing.T) {
 		t.Fatalf("no cast option for Become Anonymous: %+v", d.Options)
 	}
 	submitChoices(t, e, cast)
+	cutoff := len(e.L.Events)
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("after casting: %+v, want the target ask", d)
@@ -656,7 +657,6 @@ func TestBecomeAnonymousCloaksThePileWithoutShufflingTheLibrary(t *testing.T) {
 		t.Fatalf("target %d not offered: %+v", bear, d.Options)
 	}
 	submitChoices(t, e, tgt)
-	cutoff := len(e.L.Events)
 	passUntilStackEmpty(t, e, 30)
 
 	// Exactly three cards entered cloaked and tapped: the bear and the two
@@ -727,10 +727,7 @@ func TestExposeTheCulpritCloaksTheExiledPile(t *testing.T) {
 		t.Fatalf("no cast option for Expose the Culprit: %+v", d.Options)
 	}
 	submitChoices(t, e, cast)
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KModes {
-		t.Fatalf("after casting: %+v, want the mode ask", d)
-	}
+	cutoff := len(e.L.Events)
 	// Only the exile mode remains: the turn-face-up mode has no face-down
 	// creature to target and is dropped from the ask as target-infeasible.
 	d = e.Pending()
@@ -759,7 +756,6 @@ func TestExposeTheCulpritCloaksTheExiledPile(t *testing.T) {
 		t.Fatalf("the hidden pick offered %d cards, want both disguise creatures: %+v", len(pick), d.Options)
 	}
 	submitChoices(t, e, pick...)
-	cutoff := len(e.L.Events)
 	passUntilStackEmpty(t, e, 30)
 
 	// Both disguise creatures re-entered cloaked (untapped: no Tapped$).

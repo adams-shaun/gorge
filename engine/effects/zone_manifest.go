@@ -292,8 +292,9 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKTapped)), "True")
-	shuffle := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKShuffle)), "True")
-	_ = shuffle // Shuffle$ is the pile shuffle, not a library shuffle: no-op here (see doc comment).
+	// Shuffle$ is the pile shuffle, not a library shuffle: no-op here (see
+	// doc comment). Read it so the parameter census still sees it read.
+	_ = sa.ParamStr(cards.PKShuffle)
 	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCloaked)), "True")
 	g := h.Game()
 	cloak := func(id state.ObjID, cloaker state.PlayerID) {
