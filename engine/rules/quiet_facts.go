@@ -141,7 +141,9 @@ type quietFaceFacts struct {
 	isLand       bool
 	instantSpeed bool
 	castOpen     bool
-	castFloor    int32
+	// castFloor is the cheapest mana payment the printed cast needs (each
+	// twobrid pip counts 1, CR 107.4e), not the face's mana value.
+	castFloor int32
 
 	// Graveyard recast routes a face can open (Flashback, Escape, Unearth,
 	// Disturb, Jump-start, Retrace, Embalm, Eternalize, Scavenge, Encore,
@@ -258,7 +260,10 @@ const (
 func computeQuietFaceFacts(f *cards.Face, hasAltCosts bool) quietFaceFacts {
 	var q quietFaceFacts
 	q.isLand = f.IsLand()
-	q.castFloor = f.Cmc()
+	// castFloor is the cheapest mana payment (each twobrid pip counts 1, per
+	// CR 107.4e), not the face's mana value: a mana-value floor would claim
+	// quiet below a payable twobrid cast (CR 202.3f).
+	q.castFloor, _ = quietManaFloor(&pay.FaceCostOf(f).Cost)
 	q.instantSpeed = f.IsInstant() || f.HasKeywordRef(kwRefFlash) || mayFlashSacFace(f) || faceHasCastWithFlash(f)
 	if hasAltCosts {
 		q.castOpen = true
