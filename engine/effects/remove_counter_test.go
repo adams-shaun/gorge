@@ -161,15 +161,17 @@ func TestRemoveCounterRememberRemovedRecordsOneEntryPerCounter(t *testing.T) {
 }
 
 // The exotic shapes stay LOUD: one Note naming the shape, nothing moves.
+// CounterType$ Any is no longer exotic (the per-counter kind election in
+// removecounter.go); CounterNum$ Any is still withheld.
 func TestRemoveCounterExoticShapesStayLoud(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	g.Obj(ids["myBear"]).AddCounter("P1P1", 2)
 	before := len(h.log)
 	Resolve(h, &Ctx{Controller: 0, Source: ids["myBear"]},
-		sa(t, "DB$ RemoveCounter | Defined$ Self | CounterType$ Any | CounterNum$ 1"))
+		sa(t, "DB$ RemoveCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ Any"))
 	if got := g.Obj(ids["myBear"]).Counter("P1P1"); got != 2 {
-		t.Fatalf("CounterType$ Any moved counters (%d left), want untouched", got)
+		t.Fatalf("CounterNum$ Any moved counters (%d left), want untouched", got)
 	}
 	if len(h.log) != before+1 || h.log[len(h.log)-1].Kind != events.Note {
 		t.Fatalf("expected exactly one Note for the exotic shape, got %+v", h.log[before:])

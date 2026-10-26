@@ -33,9 +33,10 @@ type RemoveCounterParams struct {
 	// Choices is Choices$, trimmed: non-empty selects the card-election arm.
 	Choices string
 	// ExoticNote is the defined path's one loud Note for the shapes it does
-	// not model ("" when none): CounterType$ Any, ChoiceOptional$, UpTo$,
+	// not model ("" when none): ChoiceOptional$, UpTo$ on a named kind,
 	// CounterNum$ Any, CounterNumShared$, a non-battlefield TgtZone$,
-	// RememberAmount$ and Optional$.
+	// RememberAmount$ and Optional$. CounterType$ Any is modelled (the
+	// per-counter kind election), and UpTo$ with it is the bounded form.
 	ExoticNote string
 	// ChoiceNote is the Choices$ arm's one loud Note for the shapes it does
 	// not model ("" when none): CounterType$ Any/All, CounterNum$ Any, UpTo$,
@@ -43,14 +44,20 @@ type RemoveCounterParams struct {
 	// exile; ChoiceZone is the arm's zone.
 	ChoiceNote string
 	ChoiceZone state.Zone
-	// Kind is CounterType$ (default P1P1); AllKinds is its All spelling.
+	// Kind is CounterType$ (default P1P1); AllKinds is its All spelling and
+	// AnyKinds its Any spelling (the per-counter kind election).
 	Kind     string
 	AllKinds bool
+	AnyKinds bool
 	// CounterNum is CounterNum$ (the Num grammar, default 1); NumAll is its
 	// All spelling and NumSet a non-blank value.
 	CounterNum ParamText
 	NumAll     bool
 	NumSet     bool
+	// UpTo is UpTo$ (the bounded election). It is modelled with AnyKinds;
+	// a named kind keeps it loud (the defined path has no per-kind amount
+	// election yet).
+	UpTo bool
 	// ChoiceNum is ChoiceNum$ (the Num grammar, default 1); ChoiceNumSet is
 	// a non-blank value.
 	ChoiceNum    ParamText
@@ -150,6 +157,7 @@ func compileRemoveCounter(sa *cards.SA, dr *DefinedParams) *RemoveCounterParams 
 		p.Kind = "P1P1"
 	}
 	p.AllKinds = strings.EqualFold(p.Kind, "All")
+	p.AnyKinds = strings.EqualFold(p.Kind, "Any")
 	counterNum, ok := sa.Param(cards.PKCounterNum)
 	p.CounterNum = ParamText{Text: counterNum, Present: ok}
 	numRaw := strings.TrimSpace(counterNum)
@@ -161,19 +169,19 @@ func compileRemoveCounter(sa *cards.SA, dr *DefinedParams) *RemoveCounterParams 
 	choiceOptional := strings.TrimSpace(sa.ParamStr(cards.PKChoiceOptional))
 	p.ChoiceOptional = strings.EqualFold(choiceOptional, "True")
 	upTo := strings.TrimSpace(sa.ParamStr(cards.PKUpTo)) != ""
+	p.UpTo = upTo
 	numShared := strings.TrimSpace(rawParamText(sa, "CounterNumShared").Text) != ""
 	p.RememberAmount = isTrue(sa.ParamStr(cards.PKRememberAmount))
 	p.RememberRemoved = isTrue(rawParamText(sa, "RememberRemoved").Text)
 
 	// The defined path's exotic shapes, in the historical Note order.
+	// CounterType$ Any and (with it) UpTo$ are modelled by the per-counter
+	// kind election, so they no longer appear here.
 	var exotic []string
-	if strings.EqualFold(rawKind, "Any") {
-		exotic = append(exotic, "CounterType$ Any")
-	}
 	if choiceOptional != "" {
 		exotic = append(exotic, "ChoiceOptional$")
 	}
-	if upTo {
+	if upTo && !p.AnyKinds {
 		exotic = append(exotic, "UpTo$")
 	}
 	if numAny {
