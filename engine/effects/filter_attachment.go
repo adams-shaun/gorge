@@ -77,7 +77,8 @@ func attachableTo(g *state.Game, o *state.Object, bearer *state.Object) bool {
 		return MatchesSpecFrom(g, strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
 	case hasType(o, "Equipment"):
 		bf := bearer.Face()
-		return bf != nil && bf.IsCreature()
+		// CR 702.176a: an impending-dormant permanent is not a creature.
+		return bf != nil && bf.IsCreature() && !bearer.ImpendingDormant()
 	}
 	return false
 }

@@ -125,6 +125,15 @@ func hasTypePrinted(o *state.Object, t string, id cards.TypeWordID) (typeDecisio
 			return typeNo, f
 		}
 	}
+	// CR 702.176a: a permanent cast for its impending cost is not a creature
+	// while it has a time counter, so Creature and every creature subtype
+	// answer no (the layer walk's chars/types.go impendingTypeSwitch strips
+	// the same words). The enchantment type and its subtypes stay true, and
+	// the decided No also skips the Changeling tail, which the layer path
+	// likewise withholds from a dormant permanent.
+	if o.ImpendingDormant() && (strings.EqualFold(t, "Creature") || changelingType(t)) {
+		return typeNo, f
+	}
 	if f.TypeLineHas(t, id) {
 		return typeYes, f
 	}
