@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -521,6 +522,32 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 // silently killing the very creature the card was granting an ability to.
 func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	ag := parseAnimateGrant(h, c, sa)
+	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True") && animateWouldChange(h, c, sa, ag) {
+		// CR 608.2d: "you may have it become ..." is the controller's
+		// election at resolution (Crawling Barrens, Ebony Fly, The Irencrag).
+		// Option 0 is today's behaviour (yes), so the bot clamp keeps every
+		// bot game byte-identical. OptionQuestion$ is the card's own prompt
+		// when it names one; a host that cannot ask (R-9) keeps the mandatory
+		// animation and emits one Note.
+		prompt := strings.TrimSpace(sa.ParamStr(cards.PKOptionQuestion))
+		if prompt == "" {
+			prompt = "Have " + objName(h.Game(), c.Source) + " become a creature?"
+		}
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			Source: c.Source, ResumeKind: "animate_optional", ResumeSA: sa, Prompt: prompt,
+			Options: []decision.Option{
+				{Index: 0, Kind: "yes", Label: "Yes", Player: c.Controller},
+				{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+			}}
+		if ans, ok := AskTape(h, d); ok {
+			if !answerYes(ans) {
+				return
+			}
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Animate: no host to ask the Optional$ election; animates (R-9 stand-in)"})
+		}
+	}
 	emitAnimateColorsNotes(h, c, ag, "Animate")
 	emitAnimateTriggersNotes(h, c, ag, "Animate")
 	// RememberAnimated$ True (Rise and Shine): every permanent this Animate
@@ -555,6 +582,35 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	scheduleAtEOT(h, c, sa, ateotIDs)
+}
+
+// animateWouldChange reports whether this Animate would actually alter any
+// object: an empty grant is a no-op, and a source that has left since the
+// push has no object left to animate, so neither poses an Optional$ election.
+func animateWouldChange(h Host, c *Ctx, sa *cards.SA, ag animateGrant) bool {
+	if !animateGrantChanges(ag) {
+		return false
+	}
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && !sourceLeftSincePush(h, c, o) {
+			return true
+		}
+	}
+	return false
+}
+
+// animateGrantChanges reports whether ag carries any characteristic-changing
+// rider at all (lifetime-only fields like Duration$ do not count).
+func animateGrantChanges(ag animateGrant) bool {
+	return ag.hasPower || ag.hasTough || len(ag.types) > 0 || ag.removeCreatureTypes ||
+		len(ag.removeTypes) > 0 || ag.allCreatureTypes || ag.removeCardTypes || ag.removeLandTypes ||
+		ag.name != "" || ag.colorsRaw != "" || len(ag.kws) > 0 || len(ag.hiddenKws) > 0 ||
+		len(ag.abilities) > 0 || len(ag.triggers) > 0 || len(ag.svars) > 0 ||
+		len(ag.staticAbilities) > 0 || len(ag.removeKeywords) > 0 || ag.removeAbilities ||
+		len(ag.replacements) > 0 || ag.leaveExile != ""
 }
 
 // animateGrant is the per-object payload Animate and AnimateAll share: their

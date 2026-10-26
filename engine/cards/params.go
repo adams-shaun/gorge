@@ -185,6 +185,7 @@ const (
 	PKOptional
 	PKOptionalDecider
 	PKOptionalPrompt
+	PKOptionQuestion
 	PKOrigin
 	PKPhase
 	PKPlacer
@@ -1009,6 +1010,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKOptional:                         "Optional",
 	PKOptionalDecider:                  "OptionalDecider",
 	PKOptionalPrompt:                   "OptionalPrompt",
+	PKOptionQuestion:                   "OptionQuestion",
 	PKOrigin:                           "Origin",
 	PKPhase:                            "Phase",
 	PKPlacer:                           "Placer",
