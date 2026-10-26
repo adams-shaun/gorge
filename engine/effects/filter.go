@@ -1630,8 +1630,8 @@ func ptNumericField(name string) bool {
 // ptNumericFields is the P/T half of numericPred's comparison-field
 // vocabulary, in the evaluator's own order. cmc is the evaluator's other
 // field and reads the printed mana cost, never a derived characteristic, so
-// it does not belong here.
-var ptNumericFields = [...]string{"power", "toughness", "basePower", "baseToughness"}
+// it does not belong here. totalPT is current power plus current toughness.
+var ptNumericFields = [...]string{"power", "toughness", "basePower", "baseToughness", "totalPT"}
 
 // SpecReadsPT reports whether the spec consults the candidate's layer-derived
 // power/toughness when a caller binds SpecContext.DerivedPower /
@@ -1653,9 +1653,10 @@ var ptNumericFields = [...]string{"power", "toughness", "basePower", "baseToughn
 // consults the dependency test.
 func SpecReadsPT(spec string) bool {
 	// Fast path: every P/T field begins with "power" or "toughness" (basePower
-	// and baseToughness carry the same lowercase tails), so a spec with
-	// neither substring can never read one -- one reject on the hot path.
-	if !strings.Contains(spec, "ower") && !strings.Contains(spec, "oughness") {
+	// and baseToughness carry the same lowercase tails) except totalPT, so a
+	// spec with none of those substrings can never read one -- one reject on
+	// the hot path.
+	if !strings.Contains(spec, "ower") && !strings.Contains(spec, "oughness") && !strings.Contains(spec, "totalPT") {
 		return false
 	}
 	for alt := range filterAlternatives(spec) {
@@ -3476,9 +3477,17 @@ func predicateNeedsResolver(name string) bool {
 	if _, _, parity := parityPredicate(name); parity {
 		return false
 	}
-	for _, field := range [...]string{"power", "toughness", "cmc"} {
+	for _, field := range [...]string{"power", "toughness", "cmc", "totalPT"} {
 		rest, ok := strings.CutPrefix(name, field)
-		if !ok || len(rest) < 3 {
+		if !ok {
+			continue
+		}
+		// totalPT is the one field Forge spells with an underscore before the
+		// comparator ("totalPT_EQX").
+		if field == "totalPT" {
+			rest = strings.TrimPrefix(rest, "_")
+		}
+		if len(rest) < 3 {
 			continue
 		}
 		if numericCmpOrNotCodes.Code(rest[:2]) == 0 && !strings.HasPrefix(rest, "NOT") {
