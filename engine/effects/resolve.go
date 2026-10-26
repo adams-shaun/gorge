@@ -223,6 +223,11 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if transform && o.Zone != state.ZBattlefield {
 			continue
 		}
+		// CR 702.145b/e: a daybound or nightbound permanent can't transform
+		// except by its own ability (engine/rules syncDayNightFaces).
+		if transform && dayNightBound(h, o.ID) {
+			continue
+		}
 		next := (int(o.FaceIdx) + 1) % len(o.Card.Faces)
 		h.Emit(events.Event{Kind: events.Note, Obj: o.ID,
 			Text: "flips to face " + strconv.Itoa(next) + " (" + mode + ")"})
@@ -291,6 +296,11 @@ func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspeci
 		// off-battlefield object would not change, so an Optional$ ask must
 		// not be posed for it either.
 		if transform && o.Zone != state.ZBattlefield {
+			continue
+		}
+		// CR 702.145b/e: a daybound or nightbound permanent can't transform
+		// except by its own ability (engine/rules syncDayNightFaces).
+		if transform && dayNightBound(h, o.ID) {
 			continue
 		}
 		if o.Card != nil && len(o.Card.Faces) >= 2 {
