@@ -748,7 +748,12 @@ type Object struct {
 	// and the view projection (view). A plain value copy in CloneDeep
 	// carries it.
 	PhasedOut bool
-	Damage    int32
+	// PhasedOutIndirect marks a phased-out permanent that phased out
+	// because the permanent it is attached to did (CR 702.26g). It does not
+	// phase in at its own controller's untap step; it phases in with its
+	// host (CR 702.26h). Set and cleared only by the PhaseOut fold.
+	PhasedOutIndirect bool
+	Damage            int32
 	// IsToken and IsCopy mark an object that only ever exists on the stack
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). A token copy
 	// minted by Myriad (CR 702.109) or a "create a token copy" effect
@@ -1894,7 +1899,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [22]byte
+	_ [14]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast
