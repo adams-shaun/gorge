@@ -1555,7 +1555,11 @@ func imprintAssociationContains(g *state.Game, source *state.Object, id state.Ob
 // exile, even though g.Obj(id) is already in the destination zone. Passing the
 // live object in (the ordinary filter path) reads its live zone and expires
 // exactly as imprintAssociationContains does. Token and SeekFound associations
-// ignore the zone in both forms.
+// ignore the zone in both forms. A candidate on the battlefield also matches
+// when it is in the ordinary Imprinted list: ImprintCards$ on a battlefield
+// permanent (Winnowing, Eye of Singularity) records it there, and this
+// predicate is the only reader that must see it; Defined$ Imprinted stays
+// exile-gated.
 func imprintAssociationContainsCandidate(g *state.Game, source *state.Object, o *state.Object) bool {
 	if source == nil || o == nil {
 		return false
@@ -1563,7 +1567,18 @@ func imprintAssociationContainsCandidate(g *state.Game, source *state.Object, o 
 	if g.Obj(o.ID) == nil {
 		return false
 	}
-	return imprintAssociationContainsInZone(source, o.ID, o.Zone)
+	if imprintAssociationContainsInZone(source, o.ID, o.Zone) {
+		return true
+	}
+	if o.Zone != state.ZBattlefield {
+		return false
+	}
+	for _, linkedID := range source.Imprinted {
+		if linkedID == o.ID {
+			return true
+		}
+	}
+	return false
 }
 
 // imprintAssociationContainsInZone is the shared membership rule behind both
