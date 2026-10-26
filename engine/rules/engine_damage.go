@@ -28,6 +28,15 @@ func (e *Engine) SetDamageSource(id state.ObjID) state.ObjID {
 	return prev
 }
 
+// SetDamageNoPrevention implements effects.Host: publish "the Damage event
+// the calling emitter is about to emit can't be prevented" (CR 615.12), read
+// by cantPreventDamage. See dmgNoPrevention's field doc for the discipline.
+func (e *Engine) SetDamageNoPrevention(on bool) (prev bool) {
+	prev = e.dmgNoPrevention
+	e.dmgNoPrevention = on
+	return prev
+}
+
 // inFlightCounterAdder is the one reader for AddCounter-replacement
 // provenance: the player causing the counter placement currently in flight,
 // and whether that attribution is known at all. A published override wins
