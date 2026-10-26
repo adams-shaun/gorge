@@ -93,7 +93,7 @@ var voteKnownKeys = [...]string{
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript", "TriggerDescription",
 	"Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "UpTo", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
-	"ValidCounterType", "ValidDescription", "ValidTgts", "VoteCard", "VoteMessage",
+	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteCard", "VoteMessage",
 	"VotePlayer", "VoteSubAbility", "VoteTiedAbility", "WithoutManaCost", "XMax", "XMin",
 }
 

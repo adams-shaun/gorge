@@ -108,7 +108,7 @@ var dealDamageKnownKeys = [...]string{
 	"TriggerDescription", "Type", "Ultimate", "UnlessAI",
 	"UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "ValidCard",
 	"ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
-	"ValidDescription", "ValidTgts", "VoteMessage",
+	"ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage",
 	"WithoutManaCost", "XMax", "XMin",
 }
 
