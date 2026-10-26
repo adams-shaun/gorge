@@ -180,7 +180,7 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		if !ok {
 			return
 		}
-		if !pay.PayMana(asPayer(e), in.Player, mods.Apply(cost)) {
+		if !pay.PayManaSpecial(asPayer(e), in.Player, opt.Obj, pay.SpecialOfScope(specialActionScope("unlock")), mods.Apply(cost)) {
 			return
 		}
 		// Zero denotes the alternate face; positive values encode cast face + 1.

@@ -337,14 +337,14 @@ func TestManifestedCardRevealsWhenItLeaves(t *testing.T) {
 }
 
 // TestManifestOutOfScopeShapesStayLoud pins the fail-loud contract: a
-// Manifest whose shape this build does not implement (Defined$
-// Remembered — the object-manifest forms) emits the SAME "unimplemented API
+// Manifest whose shape this build does not implement (a literal Amount$ Y
+// the card declares no SVar for) emits the SAME "unimplemented API
 // Manifest" note the unimplemented fallback always emitted, and moves
 // nothing: no library→battlefield manifest move, no silent wrong-card move.
 func TestManifestOutOfScopeShapesStayLoud(t *testing.T) {
 	t.Parallel()
 	src := "Name:Loud Manifest\nManaCost:0\nTypes:Instant\n" +
-		"A:SP$ Manifest | Defined$ Remembered\nOracle:x\n"
+		"A:SP$ Manifest | Amount$ Y\nOracle:x\n"
 	e, cfg, id := newFixtureDeck(t, 4401, src)
 	addMana(t, e, 0, "C")
 	libBefore := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)

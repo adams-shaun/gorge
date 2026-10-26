@@ -273,7 +273,7 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	if scope.Kind == "Spell" && e.hasCastDelve(id) || scope.Kind != "Spell" && e.hasKeywordH(id, kwhDelve) {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
 	}
-	if !e.manaFeasiblePricedP(p, id, ability, base, &mods, tax, delve, hyp) {
+	if !e.manaFeasiblePricedP(p, offerPayment(id, ability, scope), base, &mods, tax, delve, hyp) {
 		// A target-dependent reducer cannot be in the ordinary pre-target
 		// snapshot, but it may make one legal target choice payable. Retry with
 		// exactly those potential reductions; target-dependent raises/floors
@@ -293,7 +293,7 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 				if len(extra) > 0 {
 					m.Reduces = append(slices.Clone(m.Reduces), extra...)
 				}
-				if !e.manaFeasiblePriced(p, id, ability, *base, m, tax, delve, hyp) {
+				if !e.manaFeasiblePriced(p, offerPayment(id, ability, scope), *base, m, tax, delve, hyp) {
 					return false
 				}
 				var c Cost
@@ -388,14 +388,14 @@ func (e *Engine) offerSacXMods(p state.PlayerID, id state.ObjID, ability bool, b
 		}
 		announced := base.WithX(x)
 		mods := e.costModifiersWithTargetsXUsing(statics, p, id, scope, nil, false, x)
-		if e.manaFeasiblePriced(p, id, ability, announced, mods, tax, delve, hyp) {
+		if e.manaFeasiblePriced(p, offerPayment(id, ability, scope), announced, mods, tax, delve, hyp) {
 			return mods, true
 		}
 		if len(targets) == 0 {
 			continue
 		}
 		if candidateMods, ok := e.potentialCostModsUsing(statics, p, id, scope, targets, x, func(m costMods) bool {
-			return e.manaFeasiblePriced(p, id, ability, announced, m, tax, delve, hyp)
+			return e.manaFeasiblePriced(p, offerPayment(id, ability, scope), announced, m, tax, delve, hyp)
 		}); ok {
 			return candidateMods, true
 		}
