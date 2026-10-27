@@ -29,16 +29,10 @@ Defined$ ReplacedNewCard.Planeswalker	2
 Defined$ RevealedCards.!Self	1
 Defined$ Sacrificed	2
 Defined$ SacrificedCards	1
-Defined$ Self & Spawner>TriggeredAttackerLKICopy	1
 Defined$ ShieldEffectTarget	5
 Defined$ SourceController	3
 Defined$ SourceFirstSpell	1
 Defined$ Spawner>Sacrificed	1
-Defined$ Spawner>TriggeredAttackerLKICopy	1
-Defined$ Spawner>TriggeredBlockerLKICopy	1
-Defined$ Spawner>TriggeredCard	1
-Defined$ Spawner>TriggeredSpellAbility	1
-Defined$ Spawner>TriggeredTarget	2
 Defined$ Tapped	1
 Defined$ TargetedCard	2
 Defined$ TargetedSource	1
@@ -60,4 +54,3 @@ Defined$ ValidCommand Effect.namedRaging River Right+IsImprinted	1
 Defined$ You & TriggeredSpellAbility>ManaSpender.Other	1
 DefinedPlayer$ ActivePlayer	1
 DefinedPlayer$ RememberController	1
-DefinedPlayer$ Spawner>TriggeredTarget	1
