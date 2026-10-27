@@ -94,6 +94,17 @@ type DigParams struct {
 	// Hunter). The ask carries decision.SetPropDistinct with one power token
 	// per option; the deterministic take is the greedy first-of-each-power.
 	WithDifferentPowers bool
+	// RevealOptional is RevealOptional$ True (Urza Assembles the Titans: "you
+	// may reveal the top card"): the digging player elects whether the window is
+	// revealed. RememberRevealed is RememberRevealed$ True: a revealed window
+	// joins Remembered before the ChangeValid$ filter runs. SetChosenPlayer is
+	// SetChosenPlayer$ True (Memories Returning): the resolved Choser$ becomes the
+	// source's chosen player. ForceRevealTo is the ForceReveal$ player selector
+	// (Gonti, Night Minister): the player the window is revealed to.
+	RevealOptional   bool
+	RememberRevealed bool
+	SetChosenPlayer  bool
+	ForceRevealTo    string
 
 	// Unread are the parameters present on the ability that no Dig reader
 	// consumes: the resolution Notes them once.
@@ -181,6 +192,7 @@ var digKnownKeys = [...]string{
 	"FaceDownPower",
 	"FaceDownSetType",
 	"FaceDownToughness",
+	"ForceReveal",
 	"ForceRevealToController",
 	"Foretold",
 	"ForgetOtherRemembered",
@@ -232,8 +244,9 @@ var digKnownKeys = [...]string{
 	"ReduceCost",
 	"RememberAnimated",
 	"RememberChanged",
-	"RememberCostMana",
+	"RememberChosen", "RememberCostMana",
 	"RememberObjects",
+	"RememberRevealed",
 	"RememberTargets",
 	"ReplaceColor",
 	"ReplaceGraveyard",
@@ -245,9 +258,11 @@ var digKnownKeys = [...]string{
 	"ReturnAbility",
 	"ReturnValid",
 	"Reveal",
+	"RevealOptional",
 	"SVarCompare",
 	"SelectPrompt",
 	"SetChosenMode",
+	"SetChosenPlayer",
 	"SetColor",
 	"SharedRestrictions",
 	"ShowCards",
@@ -397,6 +412,10 @@ func compileDig(sa *cards.SA) *DigParams {
 	p.WithCountersAmount = rawParamText(sa, "WithCountersAmount")
 	p.ExileWithCounters = strings.TrimSpace(rawParamText(sa, "ExileWithCounters").Text)
 	p.WithDifferentPowers = isTrue(rawParamText(sa, "WithDifferentPowers").Text)
+	p.RevealOptional = isTrue(rawParamText(sa, "RevealOptional").Text)
+	p.RememberRevealed = isTrue(rawParamText(sa, "RememberRevealed").Text)
+	p.SetChosenPlayer = isTrue(rawParamText(sa, "SetChosenPlayer").Text)
+	p.ForceRevealTo = strings.TrimSpace(rawParamText(sa, "ForceReveal").Text)
 	p.Unread = unreadKeys(sa, digKnownKeys[:])
 	return p
 }

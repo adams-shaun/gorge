@@ -300,6 +300,18 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	for targetIndex, p := range players {
 		lib := zoneOf(g, state.ZLibrary, p)
 		chooser := digChooser(h, c, dp, p)
+		if dp.SetChosenPlayer && dp.Choser != "" {
+			choiceRecord(h, c, sa, []state.Target{{IsPlayer: true, Player: chooser}}, true)
+		}
+		// looker is who sees the window: the chooser, or the ForceReveal$ player
+		// when that selector resolves (Gonti, Night Minister: the creature's
+		// controller looks, not the trigger's controller).
+		looker, forced := chooser, false
+		if dp.ForceRevealTo != "" {
+			if fp, ok := chooserPlayer(h, c, dp.ForceRevealTo); ok {
+				looker, forced = fp, true
+			}
+		}
 		// saw records that this target's walk has shown the chooser the window
 		// (a look Note or a public reveal): from then on the walk's Secret
 		// moves are the chooser's (digSecretTo).
@@ -352,14 +364,14 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 			applyFaceDownMarker(h, sa, c, &ev, dest)
 			if saw {
-				seenFaceDownExile(&ev, chooser, c.Source)
+				seenFaceDownExile(&ev, looker, c.Source)
 			}
 			// WithCounters$ folds into the entry event so the permanent
 			// ENTERS with its counters (CR 122.6) and its enters triggers see them.
 			if dp.WithCounters != "" {
 				entryWithCounters(&ev, dest, dp.WithCounters, numText(h, c, dp.WithCountersAmount, 1))
 			}
-			ev.Player, ev.Secret = digSecretTo(&ev, chooser, p, saw), true
+			ev.Player, ev.Secret = digSecretTo(&ev, looker, p, saw), true
 			if dest == state.ZLibrary {
 				primaryMoved = append(primaryMoved, id)
 			}
@@ -507,7 +519,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					h.Emit(events.Event{Kind: events.Note, Player: p, IDs: []state.ObjID{id}})
 				}
 				ev := moveZoneEvent(c, id, state.ZLibrary, dest2)
-				ev.Player, ev.Secret = digSecretTo(&ev, chooser, p, saw), true
+				ev.Player, ev.Secret = digSecretTo(&ev, looker, p, saw), true
 				h.Emit(ev)
 				// The rest arm's ExileWithCounters$ (Karn's unchosen card):
 				// one counter on the card actually exiled.
@@ -541,6 +553,24 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			rest(restIDs)
 			placePrimary()
+		}
+		// RevealOptional$ / RememberRevealed$ (Forge's DigEffect order: the
+		// reveal election, then the Remembered append, both before the
+		// ChangeValid$ filter below). A Reveal$ True window is already revealed
+		// and skips the election. Each step is gated on its own key.
+		revealed := revealWin
+		if dp.RevealOptional && !revealWin && len(top) > 0 {
+			revealed = digRevealOptional(h, c, sa, p, top)
+			if revealed {
+				saw = true
+			}
+		}
+		if dp.RememberRevealed && revealed {
+			for _, id := range top {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
+			selection.Remembered = c.Remembered
 		}
 		eligible := make([]state.ObjID, 0, len(top))
 		for _, id := range top {
@@ -587,7 +617,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 				saw = true
 			} else if !noLooking {
-				emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, top, lookText)
+				emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)
 				saw = true
 			}
 			minv := int32(0)
@@ -736,12 +766,17 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// The ordered-bottom ask is coming: the look that authorises it is
 			// recorded here, the same Secret chooser's Note the take-ask path
 			// emits before ITS ask (a Reveal$ window is already public).
-			emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, top, lookText)
+			emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)
+			saw = true
+		} else if forced && !revealWin && !noLooking && len(top) > 0 {
+			// ForceReveal$ names the player who sees the window (Gonti, Night
+			// Minister): their look is recorded even though no ask follows.
+			emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)
 			saw = true
 		} else if chooser != p && dest == state.ZLibrary && !revealWin && !noLooking && len(top) > 0 {
 			// A pure look (no take) at another player's library still records
 			// the look for the chooser (Rootwater Mystic, Moonring Island).
-			emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, top, lookText)
+			emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)
 			saw = true
 		}
 		taken := make(map[state.ObjID]bool, len(greedy))
@@ -761,6 +796,30 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// The walk completed: release the ride (the same boundary the search and
 	// hidden walks end at), so a later ability in the chain cannot inherit it.
 	endForgetOtherSnapshot(c)
+}
+
+// digRevealOptional is RevealOptional$ True's election: the digging player
+// may reveal the window. Option 0 is Yes, so the bot clamp reveals; a host that
+// cannot ask (R-9) reveals and emits one Note. A yes emits the public reveal
+// Note naming the window (the Reveal$ True shape) and reports true.
+func digRevealOptional(h Host, c *Ctx, sa *cards.SA, p state.PlayerID, top []state.ObjID) bool {
+	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "dig_reveal_optional", ResumeSA: sa,
+		Prompt: "Reveal the card(s) you looked at?",
+		Options: []decision.Option{
+			{Index: 0, Kind: "yes", Label: "Yes — reveal", Player: p},
+			{Index: 1, Kind: "no", Label: "No", Player: p},
+		}}
+	if ans, ok := AskTape(h, d); ok {
+		if !answerYes(ans) {
+			return false
+		}
+	} else {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+			Text: "Dig: no host to ask the RevealOptional$ election; reveals (R-9 stand-in)"})
+	}
+	h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
+	return true
 }
 
 // digSecretTo is the one seat a Dig's Secret library move hands its payload
