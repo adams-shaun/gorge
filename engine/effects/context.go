@@ -784,26 +784,19 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	case definedSpecRememberedController:
 		return rememberedControllersLKI(h, c), true
 	case definedSpecNonRememberedController:
-		// These selectors name living players other than the controller of a
-		// remembered CARD. A remembered player is not a card anchor, and an
-		// absent remembered card fails closed to nobody.
-		var excluded state.PlayerID
-		found := false
-		for _, t := range hostRemembered(h, c) {
-			if t.IsPlayer || t.Obj == 0 {
-				continue
-			}
-			if o := g.Obj(t.Obj); o != nil {
-				excluded, found = o.Controller, true
-				break
-			}
-		}
-		if !found {
-			return nil, true
+		// Forge builds these as set complements: Non = every player in turn
+		// order minus RememberedController, OppNon = the activating player's
+		// opponents minus RememberedController (AbilityUtils.getDefinedPlayers).
+		// With nothing remembered the suffix removes nobody, so every player
+		// (every opponent) qualifies; every remembered controller is removed,
+		// not just the first live one.
+		excluded := make(map[state.PlayerID]bool)
+		for _, t := range rememberedControllersLKI(h, c) {
+			excluded[t.Player] = true
 		}
 		var out []state.Target
 		for _, p := range g.AliveFrom(c.Controller) {
-			if p == excluded || (spec == "OppNonRememberedController" && p == c.Controller) {
+			if excluded[p] || (spec == "OppNonRememberedController" && p == c.Controller) {
 				continue
 			}
 			out = append(out, state.Target{Player: p, IsPlayer: true})
