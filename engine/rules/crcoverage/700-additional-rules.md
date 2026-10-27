@@ -139,7 +139,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.44d | partial | `engine/effects/explore.go#effExplore` | - | Defined order, not APNAP |
 | 701.45a | n/a | - | - | - |
 | 701.46a | follows | `engine/effects/counters_put.go#effPutCounter` | `TestAdaptDBBodyCountsAndConditionsOnNoP1P1` |  |
-| 701.47a | deviates | `engine/effects/amass.go#effAmass` | `TestAmassDoublingSeasonCountersEveryMint` | no Army choice; counters on every doubled mint |
+| 701.47a | deviates | `engine/effects/amass.go#effAmass` | `TestAmassDoublingSeasonCountersEveryMint` `TestAmassUsesChangelingAsArmy` `TestAmassIgnoresNoncreatureArmy` | no Army choice; counters on every doubled mint |
 | 701.47b | partial | `engine/effects/amass.go#effAmass` | - | amass 0 creates no token |
 | 701.47c-d | follows | `engine/effects/amass.go#amassRiders` `engine/effects/amass.go#effAmass` | - |  |
 | 701.48a | not-impl | - | - |  |
