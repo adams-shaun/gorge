@@ -2043,6 +2043,13 @@ var apiSpecificRulesSA = map[string][]string{
 	// Self read onto effects.DefinedOf's compiled Ref (the generic
 	// Defined-reference tier every API reads).
 
+	// The DB$ ReplaceSplitDamage redirect body (engine/rules/replacement_splitdamage.go)
+	// is applied inline for that body only, so its DamageTarget$/VarName$
+	// reads belong to api:ReplaceSplitDamage alone -- left in the generic
+	// union they would mark both keys read for every other API.
+	"Engine.splitDamageRecipient":        {"ReplaceSplitDamage"},
+	"Engine.applyReplaceSplitDamageBody": {"ReplaceSplitDamage"},
+
 	// plainManaShape (engine/rules/mana_plain.go) returns at once unless the
 	// ability is api:Mana, so its Produced$/Amount$/Cost$ reads belong to
 	// api:Mana alone.

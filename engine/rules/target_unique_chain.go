@@ -171,7 +171,7 @@ func castSubAskLinks(e *Engine, pc *pendingCast, root *cards.SA) []*cards.SA {
 	if !pc.isAbility() {
 		if o := e.G.Obj(pc.card); o != nil && o.Face() != nil {
 			charm = o.Face().SpellAbility()
-			if effects.CharmOf(charm).HasChoices && len(o.ChosenModes) > 0 {
+			if isCharmWithChoices(charm) && len(o.ChosenModes) > 0 {
 				for _, name := range o.ChosenModes {
 					if mode := cards.ResolveSVar(o.Face().SVars, name); mode != nil {
 						roots = append(roots, mode)
@@ -180,7 +180,7 @@ func castSubAskLinks(e *Engine, pc *pendingCast, root *cards.SA) []*cards.SA {
 			}
 		}
 	}
-	if !effects.CharmOf(charm).HasChoices && root != nil {
+	if !isCharmWithChoices(charm) && root != nil {
 		roots = append(roots, root)
 	}
 	var out []*cards.SA
@@ -192,6 +192,14 @@ func castSubAskLinks(e *Engine, pc *pendingCast, root *cards.SA) []*cards.SA {
 		}
 	}
 	return out
+}
+
+// isCharmWithChoices reports whether sa is a modal Charm root. Choices$ alone
+// is not the test: a ChooseSource root (Harm's Way) carries Choices$ Card,Emblem
+// too, and reading it as modal dropped its SubAbility$ chain from the cast's
+// target announcement (CR 601.2c).
+func isCharmWithChoices(sa *cards.SA) bool {
+	return sa != nil && sa.API == "Charm" && effects.CharmOf(sa).HasChoices
 }
 
 // uniqueChainViableCandidates withholds, from one announcement ask of a cast

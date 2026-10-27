@@ -245,6 +245,11 @@ type ConditionParams struct {
 	// read through the raw Params map: the key is not in cards' compiled
 	// vocabulary.
 	OptionalPaid string
+	// ManaSpent / ManaNotSpent are ConditionManaSpent$ / ConditionManaNotSpent$,
+	// the space-separated colour lists of the "if {G} was spent to cast this
+	// spell" gate, read through the raw Params map.
+	ManaSpent    string
+	ManaNotSpent string
 }
 
 // Any reports whether any key conditionMet evaluates is written (a lone
@@ -253,7 +258,8 @@ func (c *ConditionParams) Any() bool {
 	return c.Defined != "" || c.Present.Text != "" || c.NotPresent != "" || c.Compare.Text != "" ||
 		c.CheckSVar != "" || c.Bare != "" || c.PlayerTurn != "" || c.Phases != "" ||
 		c.FirstCombat != "" || c.ActivationLimit != "" ||
-		c.Present2.Text != "" || c.Compare2.Text != "" || c.Zone != "" || c.OptionalPaid != ""
+		c.Present2.Text != "" || c.Compare2.Text != "" || c.Zone != "" || c.OptionalPaid != "" ||
+		c.ManaSpent != "" || c.ManaNotSpent != ""
 }
 
 // ActivationParams is one ability's activation/condition-tier parameters,
@@ -435,6 +441,8 @@ func compileActivation(sa *cards.SA) *ActivationParams {
 	c.Compare2 = CompareOf(sa.ParamStr(cards.PKConditionCompare2))
 	c.Zone = conditionZoneParam(sa)
 	c.OptionalPaid = strings.TrimSpace(sa.Params["ConditionOptionalPaid"])
+	c.ManaSpent = strings.TrimSpace(sa.Params["ConditionManaSpent"])
+	c.ManaNotSpent = strings.TrimSpace(sa.Params["ConditionManaNotSpent"])
 
 	p.UnlessCost = sa.ParamStr(cards.PKUnlessCost)
 	p.UnlessPayer = strings.TrimSpace(sa.ParamStr(cards.PKUnlessPayer))
@@ -456,7 +464,7 @@ func activationZoneMask(az ParamText) uint32 {
 }
 
 // conditionOtherKey reports whether sa carries a Condition* key conditionMet
-// does not evaluate (ConditionZone$, ConditionManaSpent$, ...).
+// does not evaluate (ConditionZone$, ConditionPlayerDefined$, ...).
 // ConditionDescription$ is display text, never part of the evaluation. The
 // answer is order-independent, so ranging the map cannot leak iteration
 // order.
@@ -494,5 +502,5 @@ var conditionEvaluatedKeys = state.NewNameSet(
 	"Condition", "ConditionPlayerTurn", "ConditionPhases",
 	"ConditionFirstCombat", "ConditionActivationLimit",
 	"ConditionPresent2", "ConditionCompare2", "ConditionZone",
-	"ConditionOptionalPaid",
+	"ConditionOptionalPaid", "ConditionManaSpent", "ConditionManaNotSpent",
 )

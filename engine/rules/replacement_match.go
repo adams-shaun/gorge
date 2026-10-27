@@ -108,7 +108,17 @@ func (e *Engine) activeZonesGateOK(r cards.Repl, source state.ObjID, ev events.E
 // — gating on the source's zone would permanently silence every one of them
 // (task wildgrowth1). active() still ends the effect on its own lifetime.
 func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
-	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, nil)
+	return e.replacementMatchesEffectCreatedCap(r, source, ev, remembered, rememberedPlayers, chosenCapture{})
+}
+
+// replacementMatchesEffectCreatedCap is replacementMatchesEffectCreated with
+// the registration's ChosenCard snapshot (state.ContinuousEffect.Chosen): the
+// damage-replacement callers pass it so a `ValidSource$ Card.ChosenCard` spec
+// reads the creation-time choice, not the source's live (possibly cleared)
+// list.
+func (e *Engine) replacementMatchesEffectCreatedCap(r cards.Repl, source state.ObjID, ev events.Event,
+	remembered []state.ObjID, rememberedPlayers []state.PlayerID, cc chosenCapture) bool {
+	return e.replacementMatchesRememberedUngatedBy(r, source, ev, remembered, rememberedPlayers, nil, e.controllerOf(source), nil, cc)
 }
 
 // replacementMatchesEffectCreatedBy evaluates the temporary replacement in
@@ -117,7 +127,14 @@ func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjI
 // meaning of You.
 func (e *Engine) replacementMatchesEffectCreatedBy(r cards.Repl, source state.ObjID, ev events.Event,
 	remembered []state.ObjID, rememberedPlayers []state.PlayerID, controller state.PlayerID) bool {
-	return e.replacementMatchesRememberedUngatedBy(r, source, ev, remembered, rememberedPlayers, nil, controller, nil)
+	return e.replacementMatchesEffectCreatedByCap(r, source, ev, remembered, rememberedPlayers, controller, chosenCapture{})
+}
+
+// replacementMatchesEffectCreatedByCap is the controller-frozen twin of
+// replacementMatchesEffectCreatedCap.
+func (e *Engine) replacementMatchesEffectCreatedByCap(r cards.Repl, source state.ObjID, ev events.Event,
+	remembered []state.ObjID, rememberedPlayers []state.PlayerID, controller state.PlayerID, cc chosenCapture) bool {
+	return e.replacementMatchesRememberedUngatedBy(r, source, ev, remembered, rememberedPlayers, nil, controller, nil, cc)
 }
 
 // replacementMatchesToken / replacementMatchesEffectCreatedToken are the
@@ -137,7 +154,7 @@ func (e *Engine) replacementMatchesEffectCreatedToken(r cards.Repl, source state
 // predicate body without the ActiveZones$ gate; only the wrappers above
 // reach it.
 func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID, tokenOverride *state.Object) bool {
-	return e.replacementMatchesRememberedUngatedBy(r, source, ev, remembered, rememberedPlayers, tokenOverride, e.controllerOf(source), nil)
+	return e.replacementMatchesRememberedUngatedBy(r, source, ev, remembered, rememberedPlayers, tokenOverride, e.controllerOf(source), nil, chosenCapture{})
 }
 
 // replacementMatchesGranted is the matcher for a GRANTED static replacement
@@ -149,11 +166,11 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 // "first draw each turn" replacement, whose SVar:X lives on Scion) would
 // otherwise read the host's face and mis-evaluate the gate.
 func (e *Engine) replacementMatchesGranted(r cards.Repl, source state.ObjID, ev events.Event, svars map[string]string) bool {
-	return e.replacementMatchesRememberedUngatedBy(r, source, ev, nil, nil, nil, e.controllerOf(source), svars)
+	return e.replacementMatchesRememberedUngatedBy(r, source, ev, nil, nil, nil, e.controllerOf(source), svars, chosenCapture{})
 }
 
 func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source state.ObjID, ev events.Event,
-	remembered []state.ObjID, rememberedPlayers []state.PlayerID, tokenOverride *state.Object, you state.PlayerID, svars map[string]string) bool {
+	remembered []state.ObjID, rememberedPlayers []state.PlayerID, tokenOverride *state.Object, you state.PlayerID, svars map[string]string, cc chosenCapture) bool {
 	switch r.EventKind() {
 	case cards.ReplAttached:
 		if ev.Kind != events.Attach || len(ev.IDs) == 0 {
@@ -452,7 +469,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// cleanup under two Ghosts of the Innocent, and each answer's
 		// halving re-emitted the removal, forever (fuzz batch6 line 9).
 		if ev.Kind != events.Damage || ev.Amount <= 0 ||
-			!e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers) {
+			!e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers, cc) {
 			return false
 		}
 		if v, ok := r.Param(cards.PKValidCard); ok &&

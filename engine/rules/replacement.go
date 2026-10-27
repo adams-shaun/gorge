@@ -218,10 +218,12 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		}
 		if with := replacementBodySA(ce.ReplacementBody); with != nil {
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
-			if e.replacementMatchesEffectCreatedBy(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, ce.Controller) {
+			cc := chosenCapture{ids: ce.Chosen, bound: ce.ChosenBound}
+			if e.replacementMatchesEffectCreatedByCap(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, ce.Controller, cc) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
 					rememberedPlayers: ce.RememberedPlayers,
-					chosen:            ce.ChosenNumber, controller: ce.Controller, frozenController: true,
+					chosenCards:       ce.Chosen, chosenBound: ce.ChosenBound,
+					chosen: ce.ChosenNumber, controller: ce.Controller, frozenController: true,
 					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
 		} else if ce.ReplacementBody == "" && (strings.EqualFold(strings.TrimSpace(ce.ReplacementParam(cards.PKLayer)), "CantHappen") ||
@@ -237,10 +239,12 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			// (applyNonMoveReplacements' Prevent$ arm) exactly as a printed R:
 			// line's would be.
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
-			if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) {
+			cc := chosenCapture{ids: ce.Chosen, bound: ce.ChosenBound}
+			if e.replacementMatchesEffectCreatedCap(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, cc) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
 					rememberedPlayers: ce.RememberedPlayers,
-					key:               "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+					chosenCards:       ce.Chosen, chosenBound: ce.ChosenBound,
+					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
 		}
 	}
@@ -481,7 +485,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 		// re-gated on ActiveZones$.
 		matched := false
 		if m.key != "" {
-			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers)
+			matched = e.replacementMatchesEffectCreatedCap(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers, m.chosenCap())
 		} else {
 			matched = e.replacementMatches(*m.repl, m.id, ev)
 		}
@@ -524,6 +528,14 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			// reduced event standing for the next modifier. Its SubAbility$
 			// chain is deliberately not run (see applyReplaceDamageBody).
 			if e.applyReplaceDamageBody(&ev, m) {
+				return ev, true
+			}
+			continue
+		}
+		if m.repl.With.API == "ReplaceSplitDamage" {
+			// The redirect shield: part of the held amount is dealt to
+			// DamageTarget$ instead (applyReplaceSplitDamageBody).
+			if e.applyReplaceSplitDamageBody(&ev, m) {
 				return ev, true
 			}
 			continue
@@ -575,6 +587,11 @@ type replMatch struct {
 	// through rules' damageReplacementMatches, the one damage gate that can
 	// see it. Printed replacements never carry one.
 	rememberedPlayers []state.PlayerID
+	// chosenCards/chosenBound are the registration's ChosenCard snapshot
+	// (state.ContinuousEffect.Chosen/ChosenBound), preferred over the source's
+	// live chosen list by rememberedSpecContextCap. Zero on printed lines.
+	chosenCards []state.ObjID
+	chosenBound bool
 	// chosen carries the Effect-created replacement's SetChosenNumber$ binding
 	// (state.ContinuousEffect.ChosenNumber, task wildgrowth1): the number the
 	// Effect resolved at creation, which replCtx threads into the body Ctx so
@@ -610,8 +627,33 @@ type replMatch struct {
 // the predicates fail closed exactly as before. Nil ids yield the plain
 // context every caller without a remembered set already built.
 func (e *Engine) rememberedSpecContext(you state.PlayerID, source state.ObjID, remembered []state.ObjID) effects.SpecContext {
+	return e.rememberedSpecContextCap(you, source, remembered, chosenCapture{})
+}
+
+// chosenCapture is an Effect registration's creation-time ChosenCard set
+// (Forge's EffectEffect copies the host's chosen cards onto the effect card,
+// so a later ClearChosenCard$ on the source does not change the effect). bound
+// false means no snapshot: the live source read applies.
+type chosenCapture struct {
+	ids   []state.ObjID
+	bound bool
+}
+
+func (m replMatch) chosenCap() chosenCapture {
+	return chosenCapture{ids: m.chosenCards, bound: m.chosenBound}
+}
+
+// rememberedSpecContextCap is rememberedSpecContext with the registration's
+// snapshot: a bound snapshot replaces the live ChosenTargetsFrom read (an
+// empty bound snapshot is an empty choice, so ChosenCard fails closed).
+func (e *Engine) rememberedSpecContextCap(you state.PlayerID, source state.ObjID, remembered []state.ObjID, cc chosenCapture) effects.SpecContext {
 	sc := e.withNames(effects.NewSpecContext(you, source))
-	if chosen := effects.ChosenTargetsFrom(e.G, source); len(chosen) > 0 {
+	if cc.bound {
+		for _, id := range cc.ids {
+			sc.Chosen = append(sc.Chosen, state.Target{Obj: id})
+		}
+		sc.ChosenValid = len(sc.Chosen) > 0
+	} else if chosen := effects.ChosenTargetsFrom(e.G, source); len(chosen) > 0 {
 		sc.Chosen = chosen
 		sc.ChosenValid = true
 	}
