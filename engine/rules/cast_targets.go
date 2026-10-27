@@ -927,8 +927,9 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 // (CR 601.2c). It returns true for every non-ChangeZone link -- those are
 // judged by the ordinary cast flow -- and, for a ChangeZone link, when the
 // cast census can resolve its targets: a player-target link (zone-free), or
-// a single-zone Graveyard/Battlefield object target matching its Origin$,
-// inferred by originImpliedTargetZone or declared by matching TgtZone$.
+// a single-zone object target matching its Origin$ -- Graveyard, Battlefield
+// or Exile inferred by originImpliedTargetZone, or a Graveyard/Battlefield
+// TgtZone$ matching Origin$.
 // Timing is then castSubPreAskable's call, as for every other API: a
 // mandatory parent-dependent link stays on its resolution path. Both routes
 // feed targetZones for the offer census, cast ask and CR 608.2b
