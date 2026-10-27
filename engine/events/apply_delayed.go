@@ -66,6 +66,19 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	// name, so every already-logged registration decodes exactly as
 	// before (VP ungated; MaxTurn zero).
 	text := e.Text
+	// An Effect-created trigger whose body reads Card.NamedCard snapshots the
+	// host's chosen name at registration ("|CN=<name>", appended LAST so a
+	// later ClearNamedCard$ cannot retract the effect's referent). It strips
+	// before every other suffix, including the bare |EF flag (a name may
+	// follow it). An already-logged registration carries no such spelling and
+	// decodes with the snapshot unbound, exactly as before.
+	frozenChosenName := ""
+	frozenChosenNameBound := false
+	if i := strings.LastIndex(text, "|CN="); i >= 0 {
+		frozenChosenName = text[i+4:]
+		frozenChosenNameBound = true
+		text = text[:i]
+	}
 	// The registration's remembered stamps ("|RS=<id>:<inc>[,...]", the
 	// trigger-time stamps the registering trigger carried, CR 400.7) are
 	// appended LAST by the Phase registration, so they strip FIRST -- before
@@ -252,6 +265,8 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		PresentZone:         presentZone,
 		PresentCompare:      presentCompare,
 		OptionalSpec:        optionalSpec,
+		ChosenName:          frozenChosenName,
+		ChosenNameFrozen:    frozenChosenNameBound,
 		EffectDuration:      duration,
 		BirthTurn:           g.Turn,
 		ForgetOnMoved:       forget,

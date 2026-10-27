@@ -375,6 +375,19 @@ type ContinuousEffect struct {
 	// 400.7). Engine-runtime only, rebuilt by re-execution on replay.
 	Chosen      []ObjID
 	ChosenBound bool
+	// ChosenName is the card name the host carried when this Effect
+	// registered, and ChosenNameFrozen says a snapshot was taken. Forge's
+	// EffectEffect copies the named card onto the effect card it creates;
+	// this build reads Card.NamedCard through the LIVE source object, so an
+	// Effect whose own body names the chosen card (Cheering Fanatic's
+	// ReduceCost ValidCard$) would lose it the instant the chain's
+	// `DB$ Cleanup | ClearNamedCard$ True` wiped the source. NamedCard reads
+	// the frozen value when bound (effects.SpecContext.ChosenNameBound), so
+	// a later choose-a-name on the same permanent cannot rewrite an effect
+	// already registered (CR 201.4, 607.2). Engine-runtime only, rebuilt by
+	// re-execution on replay like every other continuous-effect field.
+	ChosenName       string
+	ChosenNameFrozen bool
 	// Duration is the original Duration$ value ("" means Permanent, the
 	// effEffect default) preserved for reporting and for the expiry decision
 	// in rules/layers.go. Cosmetic for a layer effect.

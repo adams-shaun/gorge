@@ -83,7 +83,8 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 			continue
 		}
 		sv := staticView{Source: ce.Source, Controller: ce.Controller,
-			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true}
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true,
+			chosenName: ce.ChosenName, chosenNameFrozen: ce.ChosenNameFrozen}
 		// ValidCard$ is presence-gated here exactly as costStaticApplies gates
 		// it: an absent spec restricts nothing (the printed face-static walk
 		// below never consults one at all -- Marshland's AlternativeCost body

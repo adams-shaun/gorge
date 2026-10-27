@@ -743,9 +743,16 @@ func delayedEventModeHandled(mode string) bool {
 	return delayedEventModeHandledSet.Has(mode)
 }
 
-// delayedSpecCtx binds a registration's capture only for its trigger match.
-func delayedSpecCtx(sc effects.SpecContext, remembered []state.Target) effects.SpecContext {
-	sc.DelayedRemembered = remembered
+// delayedSpecCtx binds a registration's capture for its trigger match: the
+// remembered set and, when the body reads Card.NamedCard, the chosen-name
+// snapshot the Effect copied at registration (Medomai's Prophecy). A frozen
+// EMPTY name fails closed rather than reading a name the source acquires
+// later.
+func delayedSpecCtx(sc effects.SpecContext, dt *state.DelayedTrigger) effects.SpecContext {
+	sc.DelayedRemembered = dt.Remembered
+	if dt.ChosenNameFrozen {
+		sc.FrozenChosenName, sc.ChosenNameBound = dt.ChosenName, true
+	}
 	return sc
 }
 
@@ -811,7 +818,7 @@ func (e *Engine) delayedChangesControllerMatches(t cards.Trigger, dt *state.Dela
 		return false
 	}
 	ctrl := dt.Controller
-	if v := t.ParamStr(cards.PKValidCard); v != "" && !effects.MatchesObjectCtx(e.G, v, lki, delayedSpecCtx(e.specCtx(dt.Source, ctrl), dt.Remembered)) {
+	if v := t.ParamStr(cards.PKValidCard); v != "" && !effects.MatchesObjectCtx(e.G, v, lki, delayedSpecCtx(e.specCtx(dt.Source, ctrl), dt)) {
 		return false
 	}
 	if v := t.ParamStr(cards.PKValidOriginalController); v != "" && !effects.MatchesPlayerSpec(e.G, v, lki.Controller, ctrl) {
@@ -865,7 +872,7 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		if !ok {
 			return false
 		}
-		if !e.matchesSpec(trigmatch.SpellCastPermanentSpec(v), ev.Obj, delayedSpecCtx(e.specCtx(dt.Source, dt.Controller), dt.Remembered)) {
+		if !e.matchesSpec(trigmatch.SpellCastPermanentSpec(v), ev.Obj, delayedSpecCtx(e.specCtx(dt.Source, dt.Controller), dt)) {
 			return false
 		}
 	}

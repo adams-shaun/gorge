@@ -2041,6 +2041,9 @@ func nameCharacteristics(o *state.Object) []string {
 func namePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bool, bool) {
 	switch p {
 	case "NamedCard":
+		if sc.ChosenNameBound {
+			return sc.FrozenChosenName != "" && sharesName(o, sc.FrozenChosenName, sc), true
+		}
 		s := g.Obj(sc.Source)
 		return s != nil && s.ChosenName != "" && sharesName(o, s.ChosenName, sc), true
 	case "noName":
@@ -2817,6 +2820,19 @@ type SpecContext struct {
 	// inset rather than the printed face. rules' spellSpecCtx sets it for a
 	// "prototype" cast mode; absent from every other evaluation.
 	AsPrototype bool
+	// FrozenChosenName and ChosenNameBound are an Effect-registered static
+	// or delayed trigger's snapshot of the source's chosen card name at
+	// REGISTRATION time (state.ContinuousEffect.ChosenName /
+	// state.DelayedTrigger.ChosenName, Forge's EffectEffect copies the
+	// named card onto the effect card it creates). When bound, the
+	// NamedCard predicate compares against this name instead of the live
+	// source object's ChosenName, so a chain's later
+	// `DB$ Cleanup | ClearNamedCard$ True` cannot retract a name an
+	// already-registered effect copied (CR 201.4, 607.2). The name rides
+	// the embedded context rather than a scope-global because a resolving
+	// effect's body must see the value frozen when IT was created.
+	FrozenChosenName string
+	ChosenNameBound  bool
 	// AsFaceDown is the same class of DERIVED-CHARACTERISTICS override for
 	// the faceDown predicate: a Moved replacement's ValidCard$ is evaluated
 	// ahead of the Move it intercepts, so the entering object is not yet

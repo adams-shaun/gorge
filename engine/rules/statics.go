@@ -53,6 +53,14 @@ type staticView struct {
 	// static. It binds Card.IsRemembered in the same shared spec context as
 	// restriction registrations; printed statics leave it nil.
 	Remembered []state.ObjID
+	// chosenName and chosenNameFrozen carry an Effect-delivered static's
+	// chosen-card-name snapshot (state.ContinuousEffect.ChosenName): the
+	// NamedCard predicate reads it instead of the source's live name once a
+	// chain's ClearNamedCard$ cleanup has wiped the source (Cheering
+	// Fanatic's ReduceCost ValidCard$ Card.NamedCard). Printed statics leave
+	// both zero.
+	chosenName       string
+	chosenNameFrozen bool
 	// effectStamp identifies the delivering Effect of an Effect-delivered
 	// cost-modifier view (its ContinuousEffect.Timestamp, unique per
 	// registration; 0 for every other view). The cost chain binds Remembered
@@ -536,7 +544,11 @@ func (e *Engine) verifySpecDerivedSkip(spec string, id state.ObjID, sc effects.S
 // its own SVar table when the view carries one (an under-card static), else the
 // source object's top face.
 func (e *Engine) staticSpecCtx(sv staticView) effects.SpecContext {
-	return e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+	sc := e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+	if sv.chosenNameFrozen {
+		sc.FrozenChosenName, sc.ChosenNameBound = sv.chosenName, true
+	}
+	return sc
 }
 
 // assignmentStaticSpecCtx binds captured Effect memory only for the narrow

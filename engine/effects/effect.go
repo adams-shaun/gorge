@@ -11,6 +11,39 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// chosenNameReadByParams reports whether any value in an Effect-delivered
+// static line's parameter map names the chosen card (Forge's
+// Card.NamedCard). Such a line must snapshot the source's chosen name at
+// registration: the chain's `DB$ Cleanup | ClearNamedCard$ True` wipes the
+// source right after the Effect registers (Cheering Fanatic's ReduceCost).
+// A map range is safe here -- only the boolean escapes, never the order.
+func chosenNameReadByParams(params map[string]string) bool {
+	for _, v := range params {
+		if strings.Contains(v, "NamedCard") {
+			return true
+		}
+	}
+	return false
+}
+
+// effectChosenNameSuffix is the "|CN=<name>" tail an Effect-delivered trigger
+// registration carries when its body reads Card.NamedCard: the name is
+// snapshotted at registration (Forge copies the named card onto the effect
+// card it creates), so a later ClearNamedCard$ cannot retract the trigger's
+// referent (Medomai's Prophecy). Empty when the body does not read the name
+// or the source does not exist; an EMPTY name still emits the suffix so a
+// fire-time read fails closed instead of matching a name chosen later.
+func effectChosenNameSuffix(h Host, source state.ObjID, body string) string {
+	if !strings.Contains(body, "NamedCard") {
+		return ""
+	}
+	o := h.Game().Obj(source)
+	if o == nil {
+		return ""
+	}
+	return "|CN=" + o.ChosenName
+}
+
 // effEffect creates a lasting effect object holding StaticAbilities$ for
 // Duration$. This is the part of Task ce1 that turns the M1 Note into a real
 // registration: a StaticAbilities$ entry naming a RESTRICTION static
@@ -249,6 +282,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
+		// A body naming the chosen card snapshots it now, before the chain's
+		// own ClearNamedCard$ cleanup wipes the source (Medomai's Prophecy).
+		cnSuffix := effectChosenNameSuffix(h, c.Source, raw)
 		if effectSelfExileOnCastTrigger(h, c, tr) {
 			// The Effect's cast-driven lifetime, already consumed by the
 			// effectSelfExileOnCastSpec scan above. It is not a delayed
@@ -340,7 +376,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// Defined$ selector.)
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + odSuffix})
+				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + odSuffix + cnSuffix})
 			registered = true
 			continue
 		}
@@ -464,7 +500,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + efMarker})
+					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + efMarker + cnSuffix})
 			}
 			registered = true
 		case cards.TriggerPhase:
@@ -537,7 +573,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: step, Counter: exec,
-					IDs: encodeRemembered(phaseIDs), Text: text})
+					IDs: encodeRemembered(phaseIDs), Text: text + cnSuffix})
 			}
 			registered = true
 		default:
@@ -560,7 +596,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker})
+					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker + cnSuffix})
 			}
 			registered = true
 		}
@@ -1417,6 +1453,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				CostStaticSVars:  c.SVars,
 				CostStaticParams: params,
 				ChosenNumber:     chosenNumber,
+			}
+			if chosenNameReadByParams(params) {
+				// The static's Card.NamedCard referent is the name chosen by THIS
+				// resolution, copied onto the effect (Forge's EffectEffect); the
+				// cleanup that follows must not retract it.
+				if o := h.Game().Obj(c.Source); o != nil {
+					ce.ChosenName, ce.ChosenNameFrozen = o.ChosenName, true
+				}
 			}
 			effectContinuous(h, ce)
 			registered = true
