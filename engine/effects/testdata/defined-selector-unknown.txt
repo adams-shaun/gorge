@@ -1,8 +1,5 @@
 Defined$ .Chosen,You	2
 Defined$ ActivePlayer	2
-Defined$ AttachedBy Returned	1
-Defined$ AttachedBy Sacrificed & Valid Creature.sharesCreatureTypeWith AttachedBy Sacrificed	5
-Defined$ AttachedBy TriggeredCardLKICopy	2
 Defined$ AttachedTo Targeted.Aura,Equipment	1
 Defined$ AttachedTo Targeted.Equipment	1
 Defined$ AttackingPlayer	3
@@ -14,7 +11,6 @@ Defined$ DirectRemembered	4
 Defined$ DiscardedCards	1
 Defined$ EnchantedController	5
 Defined$ EnchantedOwner	1
-Defined$ ExiledCards	3
 Defined$ ExiledCards.withoutSuspend	1
 Defined$ ExiledWithSource	4
 Defined$ Imprinted.ExiledWithSource	3
@@ -27,13 +23,9 @@ Defined$ ReplacedCardLKIController	1
 Defined$ ReplacedNewCard.Creature	2
 Defined$ ReplacedNewCard.Planeswalker	2
 Defined$ RevealedCards.!Self	1
-Defined$ Sacrificed	2
-Defined$ SacrificedCards	1
 Defined$ ShieldEffectTarget	5
 Defined$ SourceController	3
 Defined$ SourceFirstSpell	1
-Defined$ Spawner>Sacrificed	1
-Defined$ Tapped	1
 Defined$ TargetedCard	2
 Defined$ TargetedSource	1
 Defined$ ThisTargetedPlayer	2

@@ -241,6 +241,8 @@ func (e *Engine) runFusedHalves(o *state.Object, halves []*cards.Face, sas []*ca
 		ctx.Paid.Revealed = e.castRevealed[o.ID]
 		ctx.Paid.Discarded = e.castDiscarded[o.ID]
 		ctx.Paid.CounterPut = e.castCounterPut[o.ID]
+		ctx.Paid.Tapped = e.castTapped[o.ID]
+		ctx.Paid.Returned = e.castReturned[o.ID]
 		effects.SetSVars(ctx, hf.SVars)
 		ctx.Modes = o.ChosenModes
 		effects.Resolve(e, ctx, sa)
