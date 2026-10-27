@@ -2,6 +2,7 @@ package effects
 
 import (
 	"math"
+	"strconv"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -979,5 +980,104 @@ func TestCountDottedBranchesResolveSVarNames(t *testing.T) {
 	}
 	if n := EvalCount(h, c, "Count$StartingPlayer.Y.Z"); n != 2 && n != 3 {
 		t.Fatalf("Count$StartingPlayer.Y.Z = %d, want a named branch (2 or 3)", n)
+	}
+}
+
+// TestCountOpsMod is the arithmetic table guard for Forge's doXMath "Mod"
+// (AbilityUtils.doXMath: num % secondaryNum). Before the Mod. arm landed the
+// suffix fell out of applyCountOp's switch and returned the base value, so
+// Sab-Sunen's odd-counter gate read the raw counter total.
+func TestCountOpsMod(t *testing.T) {
+	cases := []struct {
+		in   int32
+		op   string
+		want int32
+	}{
+		{0, "Mod.2", 0},
+		{1, "Mod.2", 1},
+		{2, "Mod.2", 0},
+		{3, "Mod.2", 1},
+		{7, "Mod.2", 1},
+		{10, "Mod.3", 1},
+		// Forge/Java remainder keeps the dividend's sign.
+		{-3, "Mod.2", -1},
+		// A zero divisor leaves the value unchanged rather than panicking.
+		{7, "Mod.0", 7},
+	}
+	for _, tc := range cases {
+		if got := applyCountOp(tc.in, tc.op); got != tc.want {
+			t.Errorf("applyCountOp(%d, %q) = %d, want %d", tc.in, tc.op, got, tc.want)
+		}
+	}
+}
+
+// TestCountModSabSunenOddCounter pins Sab-Sunen, Luxa Embodied's odd-counter
+// gate: the static's "as long as it has an odd number of counters" body is
+// Count$CardCounters.ALL/Mod.2 compared EQ1. The raw counter total is the
+// precondition; 3 and 7 are the values the missing Mod. arm used to fail.
+func TestCountModSabSunenOddCounter(t *testing.T) {
+	h, c := fixtureHost(t)
+	src := h.Game().Obj(c.Source)
+	c.SVars = map[string]string{"X": "Count$CardCounters.ALL/Mod.2"}
+	for _, counters := range []int32{0, 1, 2, 3, 4, 7} {
+		src.Counters = nil
+		src.AddCounter("P1P1", counters)
+		if got := EvalCount(h, c, "Count$CardCounters.ALL"); got != counters {
+			t.Fatalf("%d counters: raw Count$CardCounters.ALL = %d, want %d (precondition)", counters, got, counters)
+		}
+		wantOdd := counters%2 == 1
+		want := int32(0)
+		if wantOdd {
+			want = 1
+		}
+		if got := EvalCount(h, c, "Count$CardCounters.ALL/Mod.2"); got != want {
+			t.Errorf("%d counters: Count$CardCounters.ALL/Mod.2 = %d, want %d", counters, got, want)
+		}
+		holds, evaluated := CheckSVarHolds(h, c, "X", "EQ1")
+		if !evaluated {
+			t.Errorf("%d counters: CheckSVarHolds evaluated = false, want true", counters)
+		}
+		if holds != wantOdd {
+			t.Errorf("%d counters: CheckSVarHolds EQ1 = %v, want %v", counters, holds, wantOdd)
+		}
+	}
+}
+
+// TestCountModCorpusShapes pins the two other corpus carriers and the named
+// operand entry: Chaos Lord's Count$Valid Permanent/Mod.2, Face to Face's
+// SVar$Sum/Mod.3 (a named-operand Mod. operand) and Number$7/Mod.Three (which
+// needs Mod. in countOperandOps to resolve the SVar name).
+func TestCountModCorpusShapes(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	r := EvalCount(h, c, "Count$Valid Permanent")
+	if r != 8 || r%3 == r {
+		t.Fatalf("Count$Valid Permanent = %d, want 8 with a 3-remainder that differs (precondition)", r)
+	}
+	if got := EvalCount(h, c, "Count$Valid Permanent/Mod.3"); got != r%3 {
+		t.Errorf("Count$Valid Permanent/Mod.3 = %d, want %d", got, r%3)
+	}
+
+	faceToFace := func(you, opp int32) *Ctx {
+		return &Ctx{Controller: 0, SVars: map[string]string{
+			"YouChose": "Number$" + strconv.FormatInt(int64(you), 10),
+			"OppChose": "Number$" + strconv.FormatInt(int64(opp), 10),
+			"Sum":      "SVar$YouChose/Plus.OppChose",
+			"GameMod":  "SVar$Sum/Mod.3",
+		}}
+	}
+	// A 3-0 win: the sum (3) must score 0, not the raw 3.
+	if got := EvalCount(h, faceToFace(2, 1), "SVar$GameMod"); got != 0 {
+		t.Errorf("Face to Face sum 3 GameMod = %d, want 0", got)
+	}
+	// A 3-1 loss: the sum (4) must score 1, not the raw 4.
+	if got := EvalCount(h, faceToFace(3, 1), "SVar$GameMod"); got != 1 {
+		t.Errorf("Face to Face sum 4 GameMod = %d, want 1", got)
+	}
+
+	named := &Ctx{Controller: 0, SVars: map[string]string{"Three": "Number$3"}}
+	if got := EvalCount(h, named, "Number$7/Mod.Three"); got != 1 {
+		t.Errorf("Number$7/Mod.Three = %d, want 1", got)
 	}
 }
