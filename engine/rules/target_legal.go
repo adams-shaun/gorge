@@ -1284,13 +1284,41 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 		}
 		return filterParentControllerTargets(e.G, in, sc)
 	}
-	var player state.PlayerID
-	var ok bool
-	failClosed := false
-	nonTriggeredController := false
-	switch filterTargetsWithDefinedControllerCodes.Code(string(ref)) {
+	player, ok, failClosed, nonTriggered := e.definedControllerPlayer(ref, sc)
+	if !ok {
+		if failClosed || nonTriggered {
+			return nil
+		}
+		return in
+	}
+	out := in[:0]
+	for _, candidate := range in {
+		if candidate.kind != "permanent" {
+			continue
+		}
+		o := e.G.Obj(candidate.obj)
+		if o == nil {
+			continue
+		}
+		if definedControllerAdmits(o, player, ok, failClosed, nonTriggered) {
+			out = append(out, candidate)
+		}
+	}
+	return out
+}
+
+// definedControllerPlayer resolves a non-parent TargetsWithDefinedController$
+// referent to the one player whose control the restriction names. ok reports
+// the referent resolved; failClosed and nonTriggered flag the arms that must
+// admit nothing when it did not (the attack-declaration roles, and
+// NonTriggeredCardController, whose predicate is the complement). It is the
+// ONE referent definition, shared by the offer post-filter
+// (filterTargetsWithDefinedController) and the CR 608.2b resolution recheck
+// (legalTargets) so the two cannot drift.
+func (e *Engine) definedControllerPlayer(ref string, sc effects.SpecContext) (player state.PlayerID, ok, failClosed, nonTriggered bool) {
+	switch filterTargetsWithDefinedControllerCodes.Code(ref) {
 	case filterTargetsWithDefinedControllerNonTriggeredCardController:
-		nonTriggeredController = true
+		nonTriggered = true
 		player, ok = effects.TriggeredCardController(e.G, sc.TriggerContext, sc.Remembered)
 	case filterTargetsWithDefinedControllerTriggeredTarget:
 		if sc.TriggerTarget.IsPlayer {
@@ -1319,46 +1347,27 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 	case filterTargetsWithDefinedControllerTriggeredCardController:
 		player, ok = effects.TriggeredCardController(e.G, sc.TriggerContext, nil)
 	}
-	if !ok {
-		if failClosed || nonTriggeredController {
-			return nil
-		}
-		return in
-	}
-	out := in[:0]
-	for _, candidate := range in {
-		if candidate.kind != "permanent" {
-			continue
-		}
-		o := e.G.Obj(candidate.obj)
-		if o == nil {
-			continue
-		}
-		if nonTriggeredController {
-			if nonTriggeredControllerAdmits(o, player, ok) {
-				out = append(out, candidate)
-			}
-			continue
-		}
-		if o.Controller == player {
-			out = append(out, candidate)
-		}
-	}
-	return out
+	return player, ok, failClosed, nonTriggered
 }
 
-// nonTriggeredControllerAdmits is the ONE definition of the
-// TargetsWithDefinedController$ NonTriggeredCardController predicate ("target
-// permanent another player controls", CR 109.5's complement of the triggering
-// card's controller). It is shared by the offer post-filter
-// (filterTargetsWithDefinedController) and the CR 608.2b resolution recheck
-// (legalTargets) so the two cannot drift: both sites admit a candidate only
-// when the triggering card's controller resolved (ok) and the candidate is a
-// battlefield permanent controlled by a different player. The same-controller
-// case is rejected, and an unresolvable controller fails closed, at both
-// sites.
-func nonTriggeredControllerAdmits(o *state.Object, controller state.PlayerID, ok bool) bool {
-	return ok && o != nil && o.Zone == state.ZBattlefield && o.Controller != controller
+// definedControllerAdmits is the ONE per-object TargetsWithDefinedController$
+// predicate, shared by the offer post-filter and the CR 608.2b resolution
+// recheck. A resolved referent (ok) admits an object its player controls; for
+// NonTriggeredCardController ("target permanent another player controls",
+// CR 109.5's complement) it admits a battlefield permanent controlled by a
+// different player. An unresolved referent admits everything except for the
+// failClosed and nonTriggered arms, which admit nothing.
+func definedControllerAdmits(o *state.Object, player state.PlayerID, ok, failClosed, nonTriggered bool) bool {
+	if o == nil {
+		return false
+	}
+	if !ok {
+		return !failClosed && !nonTriggered
+	}
+	if nonTriggered {
+		return o.Zone == state.ZBattlefield && o.Controller != player
+	}
+	return o.Controller == player
 }
 
 // charmTargetSlots returns one slot per selected target-bearing mode INSTANCE,
