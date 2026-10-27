@@ -80,11 +80,11 @@ func markSourceAbilityLayer(emitted []ContinuousEffect) {
 }
 
 // removalApplies reports whether the ability-removing effect r applies to the
-// battlefield permanent o, whose finished layer-4 type list is types. It is
-// the layer-6 walk's own applicability test (derivedCompute): the shared
-// matcher, then the AffectedZone$ qualifier.
+// battlefield permanent or graveyard card o, whose finished layer-4 type list
+// is types. It is the layer-6 walk's own applicability test (derivedCompute):
+// the shared matcher, then the AffectedZone$ qualifier.
 func (e *Engine) removalApplies(r *ContinuousEffect, o *state.Object, types []string) bool {
-	if o.Zone != state.ZBattlefield {
+	if o.Zone != state.ZBattlefield && o.Zone != state.ZGraveyard {
 		return false
 	}
 	if types == nil {
@@ -96,7 +96,7 @@ func (e *Engine) removalApplies(r *ContinuousEffect, o *state.Object, types []st
 		return false
 	}
 	if r.AffectedZone != "" && !r.MayPlay {
-		if zones, all, ok := effects.ParseZones(r.AffectedZone); !ok || (!all && !slices.Contains(zones, state.ZBattlefield)) {
+		if zones, all, ok := effects.ParseZones(r.AffectedZone); !ok || (!all && !slices.Contains(zones, o.Zone)) {
 			return false
 		}
 	}
@@ -261,15 +261,17 @@ func (e *Engine) pruneLostSourceAbilities(list []ContinuousEffect) []ContinuousE
 }
 
 // abilityLoss reports whether a live "loses all abilities" effect applies to
-// the battlefield permanent o, and the latest such effect's timestamp. It
-// reads active()'s published list, in which every remover still present is
-// live (pruneLostSourceAbilities dropped the silenced ones). A board with no
-// remover answers from the per-build summary alone.
+// the battlefield permanent or graveyard card o (the graveyard arm serves
+// Yixlid Jailer's AffectedZone$ Graveyard removal, read through the pre-move
+// look-back for a card leaving the graveyard), and the latest such effect's
+// timestamp. It reads active()'s published list, in which every remover still
+// present is live (pruneLostSourceAbilities dropped the silenced ones). A
+// board with no remover answers from the per-build summary alone.
 //
 // During a layer scan (active() mid-build) it stands down and reports no
 // loss, the same stand-down matchesSpec's Derived bind takes.
 func (e *Engine) abilityLoss(o *state.Object) (uint32, bool) {
-	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+	if o == nil || o.Face() == nil || (o.Zone != state.ZBattlefield && o.Zone != state.ZGraveyard) {
 		return 0, false
 	}
 	// The board-wide early outs (mid-build stand-down, the sticky proof, a
@@ -281,8 +283,11 @@ func (e *Engine) abilityLoss(o *state.Object) (uint32, bool) {
 		return 0, false
 	}
 	// Memoized per object too, except while a derivation guard is live;
-	// verify mode recomputes every hit.
-	memo := e.derivedMemoUsable()
+	// verify mode recomputes every hit. The memo is battlefield-only: a
+	// graveyard read is answered through the pre-move look-back clone, which
+	// shares the live object's ObjID, so caching its graveyard answer under
+	// that id would answer for the live object's new zone.
+	memo := o.Zone == state.ZBattlefield && e.derivedMemoUsable()
 	gen := m.gen
 	var hit abilityLossEnt
 	if memo && int(o.ID) < len(m.ents) && m.ents[o.ID].gen == gen {

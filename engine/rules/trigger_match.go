@@ -1310,8 +1310,16 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 			// before.
 			walk = nil
 		}
-		if len(walk) != 0 && observer.printedAbilitiesLost(o) {
-			// CR 613.1f: a permanent that lost all abilities has no printed
+		lossObj := o
+		if id == ev.Obj && objLKI != nil && ev.Kind == events.MoveZone &&
+			ev.From == state.ZGraveyard && ev.To != state.ZBattlefield {
+			// CR 603.10a: an ability that triggers when a card leaves a
+			// graveyard looks back in time -- its existence is judged on the
+			// card as it was immediately before the move.
+			lossObj = objLKI
+		}
+		if len(walk) != 0 && observer.printedAbilitiesLost(lossObj) {
+			// CR 613.1f: an object that lost all abilities has no printed
 			// triggered ability; the granted walks below still run.
 			walk = nil
 		}
