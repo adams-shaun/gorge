@@ -2659,11 +2659,11 @@ func (nt triggerNumTimes) times(n int32) Cost {
 // presence gate is the census-visible read (NumResolved takes the key as a
 // string, which the scanner cannot attribute), and NumResolved already
 // reports ok=false for an absent key, so the gate changes no behaviour.
-func announceMaxBound(e *Engine, ctx *effects.Ctx, sa *cards.SA) (int32, bool) {
+func announceMaxBound(h effects.Host, ctx *effects.Ctx, sa *cards.SA) (int32, bool) {
 	if _, ok := sa.Params["AnnounceMax"]; !ok {
 		return 0, false
 	}
-	return effects.NumResolved(e, ctx, sa, "AnnounceMax", 0)
+	return effects.NumResolved(h, ctx, sa, "AnnounceMax", 0)
 }
 
 // triggeredCostNumTimesAsk poses the repeat-count announcement (CR 601.2b's
