@@ -77,6 +77,15 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 	if o == nil {
 		return 0
 	}
+	// A token is minted straight onto the battlefield by the TokenCreate/
+	// CardToken fold, so the mint event carries no move zones of its own
+	// (From/To are the zero value). Model the mint as Library -> Battlefield
+	// exactly as trigmatch.ZoneChangeMatchesWithCapture does, and read the
+	// substituted pair in the Origin$/Destination$ gates below.
+	from, to := ev.From, ev.To
+	if ev.Kind == events.TokenCreate || ev.Kind == events.CardToken {
+		from, to = state.ZLibrary, state.ZBattlefield
+	}
 	modes := panharmoniconModes(ev)
 	n := 0
 	for _, sv := range e.panharmoniconStatics() {
@@ -131,7 +140,10 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 			candidates := causes
 			if candidates == nil {
 				switch ev.Kind {
-				case events.MoveZone, events.Draw, events.PutOnStack:
+				case events.MoveZone, events.Draw, events.PutOnStack, events.TokenCreate, events.CardToken:
+					// A mint's cause is the minted token itself, which emit
+					// hands the trigger walk in ev.Obj (the logged event keeps
+					// Obj zero for replay).
 					candidates = []state.ObjID{ev.Obj}
 				case events.DeclareAttackers:
 					candidates = ev.IDs
@@ -150,10 +162,10 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 		}
 		// Origin$ is a zone SET (single name or comma list); Any/All is a
 		// wildcard and an unknown token fails closed.
-		if o, ok := sv.ParamCode(cards.PKOrigin); ok && sv.ParamStr(cards.PKOrigin) != "" && !effects.ZoneList(o).Admits(ev.From) {
+		if o, ok := sv.ParamCode(cards.PKOrigin); ok && sv.ParamStr(cards.PKOrigin) != "" && !effects.ZoneList(o).Admits(from) {
 			continue
 		}
-		if d, ok := sv.ParamCode(cards.PKDestination); ok && !effects.Destination(d).IsEmpty() && !effects.Destination(d).Admits(ev.To) {
+		if d, ok := sv.ParamCode(cards.PKDestination); ok && !effects.Destination(d).IsEmpty() && !effects.Destination(d).Admits(to) {
 			continue
 		}
 		if spec := sv.ParamStr(cards.PKValidSource); spec != "" {
@@ -233,6 +245,11 @@ func panharmoniconModes(ev events.Event) []string {
 			out = append(out, "LandPlayed")
 		}
 		return out
+	case events.TokenCreate, events.CardToken:
+		// A token mint is a permanent entering the battlefield (CR 603.6a):
+		// the same ChangesZone family trigmatch.ZoneChangeMatchesWithCapture
+		// serves, with no LandPlayed (a mint is never a land play).
+		return []string{"ChangesZone", "ChangesZoneAll"}
 	case events.Draw:
 		return []string{"Drawn"}
 	case events.PutOnStack:
