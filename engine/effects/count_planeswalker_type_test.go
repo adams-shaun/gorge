@@ -49,6 +49,27 @@ func TestEvalCountPlaneswalkerTypeDedups(t *testing.T) {
 	}
 }
 
+// TestEvalCountPlaneswalkerTypeCountsSvega pins the type line read rather
+// than a roster: "Svega" is a real printed planeswalker type the ChooseType
+// vocabulary has not caught up with, and the count must still be 1. Svega,
+// the Unconventional's -2 makes one Attendee token per planeswalker type, so
+// a zero here silently makes no tokens.
+func TestEvalCountPlaneswalkerTypeCountsSvega(t *testing.T) {
+	g := state.NewGame([]string{"you", "them"})
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	diffObject(t, g, 0, state.ZBattlefield, "Name:Svega, the Unconventional\nTypes:Legendary Planeswalker Svega\nLoyalty:3\nOracle:x\n")
+	// PRECONDITION: the plain Valid count sees the lone planeswalker, so the
+	// fold has a candidate to visit, and its type line really carries the
+	// Svega subtype the count must read.
+	if got := EvalCount(h, c, "Count$Valid Planeswalker.YouCtrl"); got != 1 {
+		t.Fatalf("Count$Valid Planeswalker.YouCtrl = %d, want 1", got)
+	}
+	if got := EvalCount(h, c, "Count$Valid Planeswalker.YouCtrl$PlaneswalkerType"); got != 1 {
+		t.Fatalf("Count$Valid Planeswalker.YouCtrl$PlaneswalkerType = %d, want 1 (Svega)", got)
+	}
+}
+
 // TestEvalCountPlaneswalkerTypeLimitMaxClamps pins the bounded-property
 // suffix: PlaneswalkerType must clamp like its CreatureType sibling rather
 // than ignore /LimitMax.<n>. Three distinct types clamp to 2.

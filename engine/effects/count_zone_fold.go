@@ -265,10 +265,29 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 			}
 		}
 	case zoneFoldPropPlaneswalkerType:
-		for _, typ := range o.Face().Types {
-			if planeswalkerSubtypeWords[typ] {
-				f.seenPlaneswalkerTypes[typ] = true
+		// CR 205.3j: a planeswalker type is one of the subtypes printed on a
+		// planeswalker's type line. Read every subtype word off the matched
+		// object itself rather than gating on a separate vocabulary: Forge's
+		// CardType.getPlaneswalkerTypes() returns the card's subtypes when it
+		// is a planeswalker, and a roster can fall behind a printed type
+		// (Svega, the Unconventional) into the same silent zero this property
+		// used to read. CR 205.1 orders the type line supertypes, then card
+		// types, then subtypes, so the subtypes are the words after the
+		// Planeswalker card type. An object without the card type contributes
+		// nothing.
+		types := o.Face().Types
+		walker := -1
+		for i, typ := range types {
+			if typ == "Planeswalker" {
+				walker = i
+				break
 			}
+		}
+		if walker < 0 {
+			return
+		}
+		for _, typ := range types[walker+1:] {
+			f.seenPlaneswalkerTypes[typ] = true
 		}
 	case zoneFoldPropColors:
 		f.colorsSeen |= ColorMaskOf(o)
@@ -515,19 +534,6 @@ var countZoneCodes = state.NewStrCodes(
 	state.StrEntry[countZoneCode]{Key: "ValidStack", Val: countZoneValidStack},
 	state.StrEntry[countZoneCode]{Key: "ValidCommand", Val: countZoneValidCommand},
 )
-
-// planeswalkerSubtypeWords is the membership set over the planeswalker
-// subtype vocabulary choosePlaneswalkerTypes (type_choices.go's ChooseType
-// list, read-only here), built once so the fold's per-subtype test is a map
-// lookup rather than a slice scan. cr-g222's PlaneswalkerType distinct count
-// is the planeswalker sibling of creatureSubtypeWords' CreatureType fold.
-var planeswalkerSubtypeWords = func() map[string]bool {
-	out := make(map[string]bool, len(choosePlaneswalkerTypes))
-	for _, t := range choosePlaneswalkerTypes {
-		out[t] = true
-	}
-	return out
-}()
 
 type zoneFoldPropCode uint16
 

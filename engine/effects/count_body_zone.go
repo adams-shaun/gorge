@@ -32,7 +32,8 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	// values among the matches, the Augur of Autumn Coven gate's shape.
 	// CreatureType, PlaneswalkerType and CardTypesPermanent (task
 	// diffcount2, cr-g222) are the same distinct-set shape over a narrower
-	// vocabulary. The four extreme
+	// vocabulary; PlaneswalkerType reads the matched planeswalker's own
+	// printed subtypes (CR 205.3j), so it has no roster to fall behind. The four extreme
 	// reductions (GreatestCardPower 64 files,
 	// GreatestCardManaCost 62, GreatestCardToughness 12, LeastCardPower 1;
 	// 136 files total) are read: the max (or min, for Least) of the
