@@ -456,16 +456,69 @@ func exiledBySourceAt(g *state.Game, o *state.Object, src state.ObjID, fireInc u
 func paidCostTargets(c *Ctx, ref string) []state.Target {
 	ids := c.Paid.Exiled
 	switch ref {
-	case "Revealed":
+	case "Revealed", "RevealedCards":
 		ids = c.Paid.Revealed
 	case "Discarded":
 		ids = c.Paid.Discarded
+	case "Tapped", "TappedCards":
+		ids = c.Paid.Tapped
+	case "Returned", "ReturnedCards":
+		ids = c.Paid.Returned
+	case "Sacrificed", "SacrificedCards":
+		ids = make([]state.ObjID, 0, len(c.Sacrificed))
+		for _, sac := range c.Sacrificed {
+			ids = append(ids, sac.Obj)
+		}
 	}
 	out := make([]state.Target, 0, len(ids))
 	for _, id := range ids {
 		out = append(out, state.Target{Obj: id})
 	}
 	return out
+}
+
+// attachedByDefinedSelector resolves the prefix `AttachedBy <referent>`
+// selector (Krasis Incubation's `Defined$ AttachedBy Returned`, Parallax
+// Dementia's `AttachedBy TriggeredCardLKICopy`): for each object the referent
+// names, the permanent it is (or was) attached to -- Forge's getAttachedTo()
+// on the referent's (LKI) card. A live attachment reads AttachedTo; a departed
+// one (an Aura returned or sacrificed as a cost, or put into the graveyard)
+// reads LastBearer, which events.Apply folds when the attachment ends. An
+// object with neither contributes nobody. An unknown referent leaves the whole
+// selector unknown (ok=false), and a compound ` & ` spelling is refused so the
+// conjunction splitter owns it.
+func attachedByDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	arg, ok := strings.CutPrefix(spec, "AttachedBy ")
+	if !ok {
+		return nil, false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" || strings.Contains(arg, " & ") {
+		return nil, false
+	}
+	refs, known := knownDefinedTargets(h, c, arg)
+	if !known {
+		return nil, false
+	}
+	g := h.Game()
+	out := []state.Target{}
+	for _, t := range refs {
+		if t.IsPlayer || t.Obj == 0 {
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil {
+			continue
+		}
+		bearer := o.AttachedTo
+		if bearer == 0 {
+			bearer = o.LastBearer
+		}
+		if bearer != 0 {
+			out = append(out, state.Target{Obj: bearer})
+		}
+	}
+	return out, true
 }
 
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
@@ -476,6 +529,9 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// the referent and its qualifier list ride after one space. The BARE
 	// `AttachedTo` case below stays the resolving source's own bearer.
 	if ts, ok := attachedToDefinedSelector(h, c, spec); ok {
+		return ts, true
+	}
+	if ts, ok := attachedByDefinedSelector(h, c, spec); ok {
 		return ts, true
 	}
 	// The DOTTED `Targeted <qualifier>` selector (Back for Seconds'
@@ -2796,6 +2852,14 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "RememberedPlayers", Val: definedSpecRememberedPlayer},
 	state.StrEntry[definedSpecCode]{Key: "Exiled", Val: definedSpecExiled},
 	state.StrEntry[definedSpecCode]{Key: "Revealed", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "ExiledCards", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "RevealedCards", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "Tapped", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "TappedCards", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "Returned", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "ReturnedCards", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "Sacrificed", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "SacrificedCards", Val: definedSpecExiled},
 	state.StrEntry[definedSpecCode]{Key: "CounterPutCards", Val: definedSpecCounterPutCards},
 	state.StrEntry[definedSpecCode]{Key: "ImprintedLKI", Val: definedSpecImprintedLKI},
 	state.StrEntry[definedSpecCode]{Key: "Imprinted", Val: definedSpecImprinted},

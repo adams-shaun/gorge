@@ -152,6 +152,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	ctx.Paid.Revealed = e.castRevealed[rp.obj]
 	ctx.Paid.Discarded = e.castDiscarded[rp.obj]
 	ctx.Paid.CounterPut = e.castCounterPut[rp.obj]
+	ctx.Paid.Tapped = e.castTapped[rp.obj]
+	ctx.Paid.Returned = e.castReturned[rp.obj]
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo; CR 107.3m binds a trigger's X to the causing
 	// event's card.

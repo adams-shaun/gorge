@@ -405,6 +405,18 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	if body, ok := strings.CutPrefix(expr, "TriggerObjectsCurrentCastSpells$"); ok {
 		return evalTriggerCurrentCastSpellsOK(h, c, body)
 	}
+	// A Sacrificed$... expression answers "the sacrificed object's" head (CR
+	// 608.2g last-known-information): power, toughness, mana value, or the
+	// number of objects sacrificed. It reads the LKI snapshot captured at the
+	// instant of the sacrifice (Ctx.Sacrificed), never the live object -- a
+	// graveyard object has no layer-derived P/T and Move has reset its
+	// counters. The /Op suffix (e.g. Sacrificed$Amount/Plus.1) is applied the
+	// same way Count$ applies it. It sits BEFORE evalRefProperty because that
+	// function's defined-targets fallback now also names the `Sacrificed` paid
+	// list (cr-g261) and would read the live graveyard object's power.
+	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
+		return evalSacrificedOK(h, c, strings.TrimSpace(body))
+	}
 	if n, ok := evalRefProperty(h, c, expr, depth); ok {
 		return n, true
 	}
@@ -456,16 +468,6 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			}
 			return 0, false
 		}
-	}
-	// A Sacrificed$... expression answers "the sacrificed object's" head (CR
-	// 608.2g last-known-information): power, toughness, mana value, or the
-	// number of objects sacrificed. It reads the LKI snapshot captured at the
-	// instant of the sacrifice (Ctx.Sacrificed), never the live object -- a
-	// graveyard object has no layer-derived P/T and Move has reset its
-	// counters. The /Op suffix (e.g. Sacrificed$Amount/Plus.1) is applied the
-	// same way Count$ applies it.
-	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
-		return evalSacrificedOK(h, c, strings.TrimSpace(body))
 	}
 	// A Remembered$... expression block was hoisted above evalRefProperty;
 	// see its comment there for the ordering contract.
