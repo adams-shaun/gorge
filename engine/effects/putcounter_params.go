@@ -116,10 +116,18 @@ type PutCounterParams struct {
 	// CounterTypes$ (plural, distinct from CounterType$): one counter of each
 	// listed kind. OneOfEach is its canonical list when every entry is a plain
 	// counter kind; SpecialTypes names entries this build does not model as a
-	// plain kind (ChosenFromList, EachType_*), named loudly at resolution.
-	CounterTypes string
-	OneOfEach    []string
-	SpecialTypes []string
+	// plain kind, named loudly at resolution. ChosenFromList is the
+	// "ChosenFromList" entry (a kind chosen per recipient from TypeList$,
+	// canonical kinds, Elspeth Resplendent); EachTypeSpec is the spec of an
+	// "EachType_<spec>" entry that rides a Choices$ recipient pick (one pick
+	// per distinct counter kind among the matching battlefield objects,
+	// Exotic Pets).
+	CounterTypes   string
+	OneOfEach      []string
+	SpecialTypes   []string
+	ChosenFromList bool
+	TypeList       []string
+	EachTypeSpec   string
 
 	// EntryFoldBlocked reports that the ability carries an asking or
 	// per-recipient modifier the entry-counter fold must leave to the
@@ -177,7 +185,7 @@ var putCounterKnownKeys = [...]string{
 	"TargetsWithRelatedProperty", "TargetsWithSameCardType", "TargetsWithSameController",
 	"TargetsWithSameCreatureType", "TargetsWithSharedCardType",
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript",
-	"Tribute", "TriggerDescription", "Type", "Ultimate",
+	"Tribute", "TriggerDescription", "Type", "TypeList", "Ultimate",
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "UpTo", "UpToMin",
 	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage",
@@ -260,16 +268,30 @@ func compilePutCounter(sa *cards.SA) *PutCounterParams {
 	// of each listed kind, accumulating repeats (Scavenged Brawler's four P1P1
 	// entries). An entry outside that grammar (ChosenFromList, EachType_*) is
 	// kept in SpecialTypes so the resolution names it loudly rather than
-	// silently dropping it.
+	// silently dropping it. ChosenFromList and EachType_<spec> (with a
+	// Choices$ pick) are the two modelled entries.
+	choices, choicesOK := sa.Param(cards.PKChoices)
 	p.CounterTypes = strings.TrimSpace(rawParamText(sa, "CounterTypes").Text)
 	if p.CounterTypes != "" {
 		for _, k := range splitCounterKinds(canonicalCounterKind(p.CounterTypes)) {
-			if strings.Contains(k, "_") || strings.EqualFold(k, "ChosenFromList") {
+			if strings.EqualFold(k, "ChosenFromList") {
+				p.ChosenFromList = true
+				continue
+			}
+			if spec, ok := strings.CutPrefix(k, "EachType_"); ok && spec != "" && p.EachTypeSpec == "" && strings.TrimSpace(choices) != "" {
+				p.EachTypeSpec = spec
+				continue
+			}
+			if strings.Contains(k, "_") {
 				p.SpecialTypes = append(p.SpecialTypes, k)
 				continue
 			}
 			p.OneOfEach = append(p.OneOfEach, k)
 		}
+	}
+
+	if p.ChosenFromList {
+		p.TypeList = splitCounterKinds(canonicalCounterKind(rawParamText(sa, "TypeList").Text))
 	}
 
 	p.Placer = strings.TrimSpace(sa.ParamStr(cards.PKPlacer))
@@ -283,7 +305,6 @@ func compilePutCounter(sa *cards.SA) *PutCounterParams {
 	p.Divided = dividedOK
 	dividedRandomly, dividedRandomlyOK := sa.Param(cards.PKDividedRandomly)
 	p.DividedRandomly = isTrue(dividedRandomly)
-	choices, choicesOK := sa.Param(cards.PKChoices)
 	p.Choices = strings.TrimSpace(choices)
 	p.Chooser = sa.ParamStr(cards.PKChooser)
 	p.ChoiceTitle = sa.ParamStr(cards.PKChoiceTitle)
