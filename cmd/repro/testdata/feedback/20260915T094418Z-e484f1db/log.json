@@ -11405,7 +11405,8 @@
       "kind": 2,
       "obj": 101,
       "from": 2,
-      "to": 4
+      "to": 4,
+      "counter": "exiled_by"
     },
     {
       "seq": 2098,
@@ -13477,7 +13478,8 @@
       "kind": 2,
       "obj": 215,
       "from": 2,
-      "to": 4
+      "to": 4,
+      "counter": "exiled_by"
     },
     {
       "seq": 2480,
@@ -24429,7 +24431,7 @@
       ]
     }
   ],
-  "head": "2e3af8d60ab16f38",
+  "head": "177d8935726f2ad9",
   "intent_count": 664,
   "turn": 22,
   "step": "main1",
