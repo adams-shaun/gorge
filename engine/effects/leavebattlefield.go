@@ -17,6 +17,7 @@
 package effects
 
 import (
+	"maps"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -175,6 +176,13 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 				continue
 			}
 		}
+		if cards.StaticModeOf(mode) == cards.StaticContinuous {
+			lt := staticGrantLifetime{Remembered: remembered, ExileOnMoved: exileOn,
+				ExileOnMovedAlso: exileAlso, DurationSource: durSource}
+			if registerAnimateContinuousGrant(h, c, id, params, dur, permanent, untilEOT, lt) {
+				continue
+			}
+		}
 		if mode == ModeNoCleanupDamage && len(params["ValidCard"]) > 0 &&
 			staticKeysReadable(params, "Mode", "ValidCard", "Description") {
 			h.AddContinuous(state.ContinuousEffect{
@@ -259,6 +267,35 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 			RestrictSVars: c.SVars,
 		})
 	}
+}
+
+// registerAnimateContinuousGrant registers a granted Mode$ Continuous body
+// the self-P/T branch does not cover (Restless Spire's first strike, The
+// Irencrag's equipped pump, Mileva's indestructible to others, Roar of the
+// Fifth People's mana ability): the animated object HAS the static (CR
+// 611.3a), so it registers through the Effect route's builder and whitelist
+// with Source = the animated object -- Other, YouCtrl and EquippedBy resolve
+// against it -- Affected$ verbatim and the animation's own lifetime.
+// Condition$ PlayerTurn ("during your turn") rides ControllerTurnOnly; any
+// other Condition$ is unread and the body stays loud.
+func registerAnimateContinuousGrant(h Host, c *Ctx, id state.ObjID, params staticLineParams, dur string, permanent, untilEOT bool, lt staticGrantLifetime) bool {
+	cond, hasCond := params["Condition"]
+	if hasCond && strings.TrimSpace(cond) != "PlayerTurn" {
+		return false
+	}
+	if zone, ok := params["EffectZone"]; ok && !strings.EqualFold(strings.TrimSpace(zone), "Battlefield") {
+		return false
+	}
+	body := maps.Clone(params)
+	delete(body, "Condition")
+	delete(body, "EffectZone")
+	g, affects, ok := parseStaticEffectGrant(body, false)
+	if !ok || !effectStaticGrantReadable(body, g) {
+		return false
+	}
+	g.duration, g.permanent, g.untilEOT = dur, permanent, untilEOT
+	lt.ControllerTurnOnly = hasCond
+	return registerStaticEffectGrant(h, c, id, affects, g, lt)
 }
 
 // registerSVarGrants registers a body's sVars$ grant (the named SVars the

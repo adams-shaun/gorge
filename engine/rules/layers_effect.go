@@ -1068,11 +1068,26 @@ func dropUntilYourNextUpkeep(continuous []ContinuousEffect, active state.PlayerI
 	return kept, true
 }
 
+// controllerTurnHolds is a ControllerTurnOnly grant's gate: its source's
+// controller (the registered controller once the source is gone) is the
+// active player. The object's own Controller field, not a derived read, so
+// the gate never re-enters active().
+func (e *Engine) controllerTurnHolds(ce *ContinuousEffect) bool {
+	who := ce.Controller
+	if o := e.G.Obj(ce.Source); o != nil {
+		who = o.Controller
+	}
+	return e.G.Active == who
+}
+
 // continuousLive is active()'s duration-honouring filter over one registered
 // effect (see active()): whether it still exists right now. It is the one
 // predicate active() and anyLayer4Active's registered-effect check share, so
 // the two cannot disagree about which registered effects are live.
 func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
+	if ce.ControllerTurnOnly && !e.controllerTurnHolds(ce) {
+		return false
+	}
 	if ce.SourceZoneAnchored {
 		if source := e.G.Obj(ce.Source); source == nil || source.ZoneGen != ce.SourceZoneGen {
 			return false

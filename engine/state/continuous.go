@@ -496,6 +496,13 @@ type ContinuousEffect struct {
 	// live turn, never a mutable field.
 	MayPlayPlayerTurn bool
 
+	// ControllerTurnOnly gates a granted layer effect on its controller's
+	// turn (an Animate staticAbilities$ body's Condition$ PlayerTurn,
+	// Restless Spire's "during your turn, this creature has first strike",
+	// CR 611.3a): rules' continuousLive keeps it only while the source's
+	// controller is the active player. False on every ungated effect.
+	ControllerTurnOnly bool
+
 	// MayPlayFree marks the grant's MayPlayWithoutManaCost$ True rider (the
 	// free-cast may-play family: Dauthi Voidwalker's "you may play it this
 	// turn without paying its mana cost", Idol of Endurance, Nicol Bolas,
