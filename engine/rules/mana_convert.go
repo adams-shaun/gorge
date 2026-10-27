@@ -102,10 +102,13 @@ func (e *Engine) gainedManaConversion(p state.PlayerID, id state.ObjID, ability 
 	var out string
 	for _, ga := range e.grantedAbilities(p, id) {
 		if ga.Gained && ga.GainedFrom == e.cast.gainedFrom && ga.GainedIdx == e.cast.gainedIdx && ga.GainedManaConv != "" {
-			out += " " + ga.GainedManaConv
+			if out != "" {
+				out += " "
+			}
+			out += ga.GainedManaConv
 		}
 	}
-	return strings.TrimSpace(out)
+	return out
 }
 
 // applyManaConversionWords folds one ManaConversion$ word list into dst with
