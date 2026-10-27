@@ -209,6 +209,8 @@ type tokenChoiceState struct {
 	// apply/decline, and option declineIdx declines it while any other answer
 	// applies the match.
 	plainOptional bool
+	// batch is the token-creation batch the parked mint belongs to.
+	batch uint64
 }
 
 // driveTokenReplacements applies matches[from:] to the plan, in the
@@ -256,7 +258,7 @@ func (e *Engine) driveTokenReplacements(ev events.Event, matches []replMatch, pl
 				}
 				e.replChoices = append(e.replChoices, replChoice{kind: replChoiceToken,
 					ev: ev, cands: matches[i:], applicable: applicable, before: e.retainTriggerBefore(),
-					tokenPlan: plan, tokenNext: i, player: p, inResolution: e.resolvingObj != 0 || e.answerInResolution})
+					tokenPlan: plan, tokenNext: i, tokenBatch: e.curTokenCreation(), player: p, inResolution: e.resolvingObj != 0 || e.answerInResolution})
 				if e.pending == nil {
 					e.askReplacementChoice(p)
 				}
@@ -326,7 +328,7 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 		opts = append(opts, decision.Option{Index: declineIdx + 1 + i, Kind: "creature", Label: label, Obj: id})
 	}
 	st := &tokenChoiceState{ev: ev, matches: matches, plan: plan,
-		next: idx + 1, match: m, declineIdx: declineIdx}
+		next: idx + 1, match: m, declineIdx: declineIdx, batch: e.curTokenCreation()}
 	e.tokenChoice = st
 	prompt := "Choose a creature to copy"
 	if optional {
@@ -375,7 +377,7 @@ func (e *Engine) posePlainOptionalTokenReplacement(ev events.Event, matches []re
 		{Index: 1, Kind: "apply", Label: "apply this replacement"},
 	}
 	st := &tokenChoiceState{ev: ev, matches: matches, plan: plan,
-		next: idx + 1, match: m, declineIdx: 0, plainOptional: true}
+		next: idx + 1, match: m, declineIdx: 0, plainOptional: true, batch: e.curTokenCreation()}
 	e.tokenChoice = st
 	d := &decision.Decision{Player: you, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: m.id, Prompt: "You may apply this token replacement effect: apply it?", Options: opts}
@@ -402,6 +404,10 @@ func (e *Engine) tokenReplAnswer(chosen []decision.Option) {
 // settleTokenAnswer is tokenReplAnswer's body: apply the answered election to
 // the parked plan, drive the remaining matches and emit the settled plan.
 func (e *Engine) settleTokenAnswer(st *tokenChoiceState, chosen []decision.Option) {
+	e.withTokenCreation(st.batch, func() { e.settleTokenAnswerIn(st, chosen) })
+}
+
+func (e *Engine) settleTokenAnswerIn(st *tokenChoiceState, chosen []decision.Option) {
 	if st.plainOptional {
 		// A bare Optional$ election: any non-decline answer applies the
 		// match itself; the decline skips it and the remaining matches run.
@@ -646,6 +652,16 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []tokenPlanMi
 			}
 		}
 		if fixed && matched {
+			// One fixed block per creation batch (Forge's ReplaceTokenEffect
+			// groups the event's whole token table): later mints of the same
+			// Token resolution get none from this replacement.
+			ctrl := ev.Player
+			if fixedController.hasController {
+				ctrl = fixedController.controller
+			}
+			if !e.claimTokenCreationAdd(m, body.ParamStr(cards.PKTokenScript), ctrl) {
+				return out
+			}
 			for i := int32(0); i < n; i++ {
 				for _, s := range extra {
 					out = append(out, tokenPlanMint{script: s, controller: fixedController.controller, hasController: fixedController.hasController})
@@ -909,3 +925,27 @@ var applyTokenReplacementToPlanCodes = state.NewStrCodes(
 	state.StrEntry[applyTokenReplacementToPlanCode]{Key: "AddToken", Val: applyTokenReplacementToPlanAddToken},
 	state.StrEntry[applyTokenReplacementToPlanCode]{Key: "ReplaceController", Val: applyTokenReplacementToPlanReplaceController},
 )
+
+// resumeTokenOrder applies the answered CR 616.1 order pick m to the parked
+// plan, then drives the remaining matches (rest) and emits the settled plan.
+func (e *Engine) resumeTokenOrder(rc replChoice, m replMatch, rest []replMatch) {
+	var plan []tokenPlanMint
+	var parked bool
+	if body := m.repl.With; body != nil &&
+		(strings.EqualFold(strings.TrimSpace(body.ParamStr(cards.PKTokenScript)), "Chosen") ||
+			strings.TrimSpace(body.ParamStr(cards.PKValidChoices)) != "") {
+		// A chosen-copy match: the election the scan-order drive poses for
+		// it (driveTokenReplacements' chosenShape arm), with the remaining
+		// matches and the plan as they stand. idx -1 makes the pose's resume
+		// cursor re-drive rest from 0 (m itself is already gone from rest).
+		plan, parked = e.poseChosenTokenReplacement(rc.ev, rest, rc.tokenPlan, -1, m)
+	} else {
+		plan = e.applyTokenReplacementToPlan(rc.ev, rc.tokenPlan, m)
+	}
+	if !parked {
+		plan, parked = e.driveTokenReplacements(rc.ev, rest, plan, 0)
+	}
+	if !parked {
+		e.emitTokenPlan(rc.ev, plan)
+	}
+}
