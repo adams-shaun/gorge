@@ -3075,6 +3075,13 @@ var ignoredStatParams = func() map[string]string {
 	}
 	m["CantAttack.ValidSA"] = cantAttackBlockValidSA
 	m["CantBlock.ValidSA"] = cantAttackBlockValidSA
+	// Compound CantAttack/CantBlock/CantBeActivated lines (Intercessor's
+	// Arrest, Realmbreaker's Grasp) put ValidSA$ on the line for the
+	// CantBeActivated mode, which reads it.
+	const compound = "compound-line key read by CantBeActivated; forge-game/src/main/java/forge/game/staticability/StaticAbilityCantAttackBlock.java reads no ValidSA"
+	m["CantAttack.ValidSA"] = compound
+	m["CantBlock.ValidSA"] = compound
+	m["CantCrew.ValidSA"] = "compound-line key read by CantBeActivated; forge-game/src/main/java/forge/game/staticability/StaticAbilityCantCrew.java reads ValidCard only"
 	return m
 }()
 
