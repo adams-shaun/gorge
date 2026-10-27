@@ -455,11 +455,12 @@ const (
 	// FlagManaColorSpent marks a cast whose pay-time CastInfo carries the
 	// PER-COLOUR parts of the total mana spent to cast it (Adamant: "if at
 	// least N mana of colour C was spent", CR 702.5's Adamant keyword action
-	// wording). The six-slot state.Mana vector (W,U,B,R,G,C) rides the
+	// wording) or whose card reads ConditionManaSpent$ / ConditionManaNotSpent$
+	// ("if {G} was spent to cast this spell"). The six-slot state.Mana vector (W,U,B,R,G,C) rides the
 	// event's Text into Object.ManaColorSpent -- the FlagAddsCounters
 	// structured-payload pattern, one event for the whole vector -- and the
-	// Count$Adamant heads read it. Only a face whose SVar table or ability
-	// text reads the Adamant count emits the event, so every unrelated cast
+	// Count$Adamant heads and the mana-spent conditions read it. Only a face
+	// that reads one of those emits the event, so every unrelated cast
 	// stays byte-identical. It IS a CastProvenanceFlag: the spend is a
 	// statement about the cast (a copy was never cast, CR 707.10). Appended
 	// after main's FlagSneaked to preserve its bit.
