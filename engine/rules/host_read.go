@@ -161,6 +161,29 @@ func (e *Engine) CastTargetsUnavailable(p state.PlayerID, id state.ObjID) bool {
 	return !e.castTargetsAvailable(p, id, sa)
 }
 
+// CopyTargetCandidates is effects' optional copyTargetCandidatesHost read
+// (CR 707.10d, CopySpellAbility CopyForEachCanTarget$): every target the
+// spell's first targeting declaration could legally choose now, announced by
+// the copier, in the target census's deterministic order. A pure read.
+func (e *Engine) CopyTargetCandidates(copier state.PlayerID, spell state.ObjID) []state.Target {
+	o := e.G.Obj(spell)
+	if o == nil {
+		return nil
+	}
+	root, _ := e.copyDeclarationSplit(o)
+	for _, sa := range root {
+		if sa == nil || !effects.TargetsOf(sa).Targeted() {
+			continue
+		}
+		var out []state.Target
+		for _, cand := range e.legalTargetCandidates(copier, spell, spell, sa) {
+			out = append(out, candidateTarget(cand))
+		}
+		return out
+	}
+	return nil
+}
+
 // GraveyardKeywordParam is effects' optional graveyardDredgeHost read: a
 // graveyard card's derived keyword parameter (derivedKeywordParam, the object's
 // CURRENT layer-derived keyword list). Dredge (CR 702.55) is offered from the
