@@ -143,6 +143,59 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// destroyAllTargetedMatcher reads a ValidCards$ spec beginning "Targeted." the
+// way Forge's filterListByType does: the first live object target becomes the
+// relative source for every comma-split entry (so Eaten by Spiders'
+// "Targeted.Self,Card.Equipment+Attached" is anchored in both entries). With
+// no such target the spec matches nothing. Attached here means attached TO
+// the anchor (CardProperty "Attached"), unlike the global predicate's
+// "attached to anything"; Other and sameName ride the matcher with the anchor
+// as SpecContext.Source. rest is the spec after "Targeted.".
+func destroyAllTargetedMatcher(g *state.Game, rest string, sc SpecContext) func(state.ObjID) bool {
+	anchor, ok := targetedCardSelfReferent(sc)
+	if !ok || g.Obj(anchor) == nil {
+		return func(state.ObjID) bool { return false }
+	}
+	sc.Source = anchor
+	type entry struct {
+		spec     string
+		attached bool
+	}
+	var entries []entry
+	for part := range strings.SplitSeq(rest, ",") {
+		part = strings.TrimPrefix(part, "Card.")
+		var quals []string
+		var e entry
+		for q := range strings.SplitSeq(part, "+") {
+			if q == "Attached" {
+				e.attached = true
+				continue
+			}
+			quals = append(quals, q)
+		}
+		e.spec = "Card"
+		if len(quals) > 0 {
+			e.spec += "." + strings.Join(quals, "+")
+		}
+		entries = append(entries, e)
+	}
+	return func(id state.ObjID) bool {
+		o := g.Obj(id)
+		if o == nil {
+			return false
+		}
+		for _, e := range entries {
+			if e.attached && o.AttachedTo != anchor {
+				continue
+			}
+			if MatchesSpecCtx(g, e.spec, id, sc) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 	spec := sa.ParamStr(cards.PKValidCards)
 	if spec == "" {
@@ -169,6 +222,10 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 	sc := c.SpecContext(c.Controller)
 	sc.CombatDamageHits = h.CombatDamageToPlayersThisTurn()
 	scope := targetPlayerKindScope(h, c, sa)
+	matchDestroyAll := func(id state.ObjID) bool { return MatchesSpecCtx(g, spec, id, sc) }
+	if rest, ok := strings.CutPrefix(spec, "Targeted."); ok {
+		matchDestroyAll = destroyAllTargetedMatcher(g, rest, sc)
+	}
 	for _, p := range g.AliveFrom(0) {
 		ids := append([]state.ObjID(nil), g.Zone(zone, p)...)
 		for _, id := range ids {
@@ -178,9 +235,25 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 			if zone == state.ZBattlefield && h.HasKeyword(id, "Indestructible") {
 				continue
 			}
-			if MatchesSpecCtx(g, spec, id, sc) {
+			if matchDestroyAll(id) {
 				victims = append(victims, id)
 			}
+		}
+	}
+	if len(victims) > 0 && sa.ParamStr(cards.PKOptional) == "True" {
+		// An Optional$ destroy-all asks once the victim list is known and
+		// non-empty (with nothing to destroy, yes and no are the same). No
+		// served answer or a "no" destroys nothing; the chain still runs.
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			Source: c.Source, ResumeKind: "destroyall_optional", ResumeSA: sa,
+			Prompt: "Destroy them?",
+			Options: []decision.Option{
+				{Index: 0, Kind: "yes", Label: "Yes", Player: c.Controller},
+				{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+			}}
+		ans, ok := AskTape(h, d)
+		if !ok || len(ans) == 0 || ans[0].Kind != "yes" {
+			return
 		}
 	}
 	if len(victims) > 0 && zone == state.ZBattlefield {

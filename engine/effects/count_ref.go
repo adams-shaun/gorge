@@ -227,7 +227,12 @@ func evalRememberedOK(h Host, c *Ctx, body string, depth int) (int32, bool) {
 // rememberedExcludingCapture is the ctx's Remembered list minus its
 // fire-time event capture (Ctx.Captured) -- Forge's host remembered list,
 // which never contains the event object the trigger fired on. The exclusion
-// lives in ONE helper every plain-Remembered reader goes through:
+// applies to an EVENT capture only: a delayed registration's saved set is
+// authored memory (also seeded into Captured as the referent for the other
+// readers), and it is separated into TriggerContext.DelayedRemembered, so a
+// registration whose Captured is exactly that set is returned unchanged --
+// the same shape test filterCapturedRemembered already applies.
+// The exclusion lives in ONE helper every plain-Remembered reader goes through:
 // effImmediateTrigger (which builds each "when you do" instance's ctx from
 // it, so its exclusion and the TriggerRemembered count head's cannot drift),
 // refTargets' TriggerRemembered case (Loamcrafter Faun's SVar:X:
@@ -243,6 +248,9 @@ func evalRememberedOK(h Host, c *Ctx, body string, depth int) (int32, bool) {
 // same set.
 func rememberedExcludingCapture(h Host, c *Ctx) []state.Target {
 	if len(c.Captured) == 0 {
+		return c.Remembered
+	}
+	if len(c.DelayedRemembered) > 0 && sameTargets(c.Captured, c.DelayedRemembered) {
 		return c.Remembered
 	}
 	return excludeCaptureOccurrences(c.Remembered, c.Captured)
