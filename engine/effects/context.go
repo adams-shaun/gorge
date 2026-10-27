@@ -1999,6 +1999,10 @@ func eventRemember(h Host, c *Ctx, id state.ObjID) {
 var definedAliases = map[string]string{
 	"TargetedOrController": "TargetedController",
 	"TargetedAndYou":       "TargetedController & You",
+	// DirectRemembered -- the host's remembered objects as the RememberLKI$
+	// copies stored them (Supplant Form, Dance of the Dead): the same
+	// capture-excluding set RememberedLKI names.
+	"DirectRemembered": "RememberedLKI",
 }
 
 // uniqueTargets drops repeated entries, keeping first-occurrence order.
@@ -2815,6 +2819,7 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "TriggeredAttackerController", Val: definedSpecTriggeredCombatantController},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredBlockerController", Val: definedSpecTriggeredCombatantController},
 	state.StrEntry[definedSpecCode]{Key: "ExiledWith", Val: definedSpecExiledWith},
+	state.StrEntry[definedSpecCode]{Key: "ExiledWithSource", Val: definedSpecExiledWith},
 	state.StrEntry[definedSpecCode]{Key: "Equipped", Val: definedSpecEquipped},
 	state.StrEntry[definedSpecCode]{Key: "Enchanted", Val: definedSpecEquipped},
 	state.StrEntry[definedSpecCode]{Key: "AttachedTo", Val: definedSpecEquipped},
@@ -2885,13 +2890,16 @@ var exiledWithSourceKeyCodes = state.NewStrCodes(
 // triggeredCardQualified resolves `<base>.<qualifier>` when base is one of the
 // Triggered-card family spellings (definedSpecTriggeredCard), the singular
 // attacker spellings (definedSpecTriggeredAttacker) or the source spellings
-// (definedSpecSelf: Iron Man Armor's `Self.nonCreature`): the base's objects
-// filtered by definedCardQualifierMatches. A compound (" & ") value is not
+// (definedSpecSelf: Iron Man Armor's `Self.nonCreature`), the imprinted cards
+// (`Imprinted.ExiledWithSource`), the parent's targets
+// (`ParentTarget.attacking`) or the paid exile/reveal list
+// (definedSpecExiled): the base's objects filtered by definedCardQualifierMatches. A compound (" & ") value is not
 // this shape and is left to the callers that split it.
 func triggeredCardQualified(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	base, qual, dotted := strings.Cut(spec, ".")
 	code := definedSpecCodes.Code(base)
-	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker && code != definedSpecSelf) {
+	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker && code != definedSpecSelf &&
+		code != definedSpecImprinted && code != definedSpecParentTarget && code != definedSpecExiled) {
 		return nil, false
 	}
 	ts, _ := definedSpec(h, c, base)
