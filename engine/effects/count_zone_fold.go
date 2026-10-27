@@ -140,7 +140,11 @@ type zoneCountFold struct {
 	// diffcount2): creature-subtype words among the matched faces, read
 	// only through len.
 	seenCreatureTypes map[string]bool
-	colorsSeen        ColorMask
+	// seenPlaneswalkerTypes is the PlaneswalkerType spelling's distinct set
+	// (cr-g222): planeswalker-subtype words among the matched faces, read
+	// only through len.
+	seenPlaneswalkerTypes map[string]bool
+	colorsSeen            ColorMask
 	// diffKind and the seen sets for the Different* distinct-set property
 	// family (task diffcount1). Both maps are read only through len, so no
 	// map ordering ever reaches an event or a view.
@@ -258,6 +262,12 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		for _, typ := range o.Face().Types {
 			if creatureSubtypeWords[typ] {
 				f.seenCreatureTypes[typ] = true
+			}
+		}
+	case zoneFoldPropPlaneswalkerType:
+		for _, typ := range o.Face().Types {
+			if planeswalkerSubtypeWords[typ] {
+				f.seenPlaneswalkerTypes[typ] = true
 			}
 		}
 	case zoneFoldPropColors:
@@ -506,6 +516,19 @@ var countZoneCodes = state.NewStrCodes(
 	state.StrEntry[countZoneCode]{Key: "ValidCommand", Val: countZoneValidCommand},
 )
 
+// planeswalkerSubtypeWords is the membership set over the planeswalker
+// subtype vocabulary choosePlaneswalkerTypes (type_choices.go's ChooseType
+// list, read-only here), built once so the fold's per-subtype test is a map
+// lookup rather than a slice scan. cr-g222's PlaneswalkerType distinct count
+// is the planeswalker sibling of creatureSubtypeWords' CreatureType fold.
+var planeswalkerSubtypeWords = func() map[string]bool {
+	out := make(map[string]bool, len(choosePlaneswalkerTypes))
+	for _, t := range choosePlaneswalkerTypes {
+		out[t] = true
+	}
+	return out
+}()
+
 type zoneFoldPropCode uint16
 
 const (
@@ -514,6 +537,7 @@ const (
 	zoneFoldPropCardManaCost
 	zoneFoldPropCardTypes
 	zoneFoldPropCreatureType
+	zoneFoldPropPlaneswalkerType
 	zoneFoldPropColors
 )
 
@@ -524,6 +548,7 @@ var zoneFoldPropCodes = state.NewStrCodes(
 	state.StrEntry[zoneFoldPropCode]{Key: "CardTypes", Val: zoneFoldPropCardTypes},
 	state.StrEntry[zoneFoldPropCode]{Key: "CardTypesPermanent", Val: zoneFoldPropCardTypes},
 	state.StrEntry[zoneFoldPropCode]{Key: "CreatureType", Val: zoneFoldPropCreatureType},
+	state.StrEntry[zoneFoldPropCode]{Key: "PlaneswalkerType", Val: zoneFoldPropPlaneswalkerType},
 	state.StrEntry[zoneFoldPropCode]{Key: "Colors", Val: zoneFoldPropColors},
 )
 
