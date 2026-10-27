@@ -78,8 +78,8 @@ type PumpParams struct {
 	// creature its chain's Defined$ Remembered Attach reads. Unset when the
 	// key is absent.
 	RememberObjects Ref
-	// NumAtt$ / NumDef$ (numForObjectText: "Double" reads the object's own
-	// power/toughness).
+	// NumAtt$ / NumDef$ (numForObjectText: "Double"/"Triple" add one/two
+	// times the object's own power/toughness, see statAddMultiplier).
 	NumAtt ParamText
 	NumDef ParamText
 	// ForgetImprinted$, trimmed (a Defined$-grammar selector).
@@ -183,14 +183,16 @@ func compilePumpGrant(sa *cards.SA) PumpGrant {
 	return g
 }
 
-// numForObjectText is NumForObject over a compiled parameter: "Double" reads
-// obj's own power (power) or toughness, else numText.
+// numForObjectText is NumForObject over a compiled parameter: a
+// statAddMultiplier token ("Double", "Triple") adds that multiple of obj's own
+// power (power) or toughness, else numText. A scalar read of either token
+// still degrades to zero (fail-closed).
 func numForObjectText(h Host, c *Ctx, p ParamText, power bool, def int32, obj state.ObjID) int32 {
-	if obj != 0 && strings.TrimSpace(p.Text) == "Double" {
+	if m, ok := statAddMultiplier[strings.TrimSpace(p.Text)]; ok && obj != 0 {
 		if power {
-			return h.Power(obj)
+			return m * h.Power(obj)
 		}
-		return h.Toughness(obj)
+		return m * h.Toughness(obj)
 	}
 	return numText(h, c, p, def)
 }
