@@ -74,13 +74,13 @@ type DealDamageParams struct {
 // census's measured api:DealDamage read set plus its ignored and structural
 // keys.
 var dealDamageKnownKeys = [...]string{
-	"AILifeThreshold", "AILogic", "AINoRecursiveCheck", "AIPhyrexianPayment",
-	"AITgts", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat",
+	"AILifeThreshold", "AILogic", "AIMinTgts", "AINoRecursiveCheck", "AIPhyrexianPayment",
+	"AITgtOwnCards", "AITgts", "AIXMax", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat",
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
 	"Activator", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
-	"AlternativeCost", "Announce", "AnnounceTitle", "Boast", "CantCopy", "ChangeTypeDesc",
-	"ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone", "Choices",
+	"AlternativeCost", "Announce", "AnnounceTitle", "Boast", "CantCopy", "ChangeNumDesc", "ChangeTypeDesc",
+	"ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceDesc", "ChoiceTitle", "ChoiceTitleAppend", "ChoiceZone", "Choices",
 	"ChooseFromList", "ClassBand", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
@@ -88,7 +88,7 @@ var dealDamageKnownKeys = [...]string{
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"DamageMap", "DamageSource", "Defined", "DefinedCards", "DefinedDesc", "DefinedTarget",
 	"Description", "DividedAsYouChoose", "ExcessSVar",
-	"ExcessSVarCondition", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
+	"ExcessSVarCondition", "Exclude", "Exhaust", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController",

@@ -140,14 +140,14 @@ type PutCounterParams struct {
 // census's measured api:PutCounter read set plus its ignored and structural
 // keys.
 var putCounterKnownKeys = [...]string{
-	"AILifeThreshold", "AILogic", "AINoRecursiveCheck", "AIPhyrexianPayment",
-	"AITgts", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat",
+	"AILifeThreshold", "AILogic", "AIMinTgts", "AINoRecursiveCheck", "AIPhyrexianPayment",
+	"AITgtOwnCards", "AITgts", "AIXMax", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat",
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
 	"Activator", "Adapt", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
 	"AlternativeCost", "Announce", "AnnounceTitle", "BecomeStartingPlayer", "Boast",
-	"Bolster", "CantCopy", "ChangeTypeDesc", "ChangeValidDesc", "CharacteristicDefining", "CheckSVar",
-	"ChoiceAmount", "ChoiceTitle", "ChoiceZone", "Choices", "ChooseDifferent",
+	"Bolster", "CantCopy", "ChangeNumDesc", "ChangeTypeDesc", "ChangeValidDesc", "CharacteristicDefining", "CheckSVar",
+	"ChoiceAmount", "ChoiceDesc", "ChoiceTitle", "ChoiceTitleAppend", "ChoiceZone", "Choices", "ChooseDifferent",
 	"ChooseFromList", "Chooser", "ClassBand", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
@@ -156,7 +156,7 @@ var putCounterKnownKeys = [...]string{
 	"CounterNum", "CounterNumPerDefined", "CounterType", "CounterTypePerDefined", "CounterTypes",
 	"Defined", "DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Divided",
 	"DividedAsYouChoose", "DividedRandomly", "ETB", "EachExistingCounter", "EachFromSource", "Exclude",
-	"Exhaust", "ForColor", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "IfDesc", "Image", "ImprintCards", "ImprintPlayed",
+	"Exhaust", "ForColor", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image", "ImprintCards", "ImprintPlayed",
 	"InstantSpeed", "IsCurse", "IsPresent", "KW",
 	"Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"MinChoiceAmount", "ModeCost", "Monstrosity", "NewController",

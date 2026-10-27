@@ -4,4 +4,3 @@ Maestros Ascendancy	param:stat:Continuous.MayPlay.ReplaceGraveyard
 Scheming Fence	param:stat:Continuous.ManaConversion
 Security Rhox	param:stat:AlternativeCost.ManaRestriction
 Soul of Emancipation	param:api:RepeatEach.UseImprinted
-Vivien on the Hunt	param:api:ChangeZone.ChangeNumDesc
