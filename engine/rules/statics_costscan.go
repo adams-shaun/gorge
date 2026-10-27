@@ -224,6 +224,7 @@ func (e *Engine) appendEffectCostStatics(out *costStaticViews) {
 		}
 		*dst = append(*dst, staticView{Source: ce.Source, Controller: ce.Controller,
 			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true,
+			chosenName: ce.ChosenName, chosenNameFrozen: ce.ChosenNameFrozen,
 			Remembered: ce.Remembered, effectStamp: ce.Timestamp})
 	}
 }

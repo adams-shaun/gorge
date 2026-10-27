@@ -338,6 +338,7 @@ const (
 	PKClearChosenCard
 	PKClearChosenColor
 	PKClearChosenPlayer
+	PKClearNamedCard
 	PKClearRemembered
 	PKColors
 	PKColorsFrom
@@ -1186,6 +1187,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKClearChosenCard:                  "ClearChosenCard",
 	PKClearChosenColor:                 "ClearChosenColor",
 	PKClearChosenPlayer:                "ClearChosenPlayer",
+	PKClearNamedCard:                   "ClearNamedCard",
 	PKClearRemembered:                  "ClearRemembered",
 	PKColors:                           "Colors",
 	PKColorsFrom:                       "ColorsFrom",

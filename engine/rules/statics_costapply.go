@@ -273,7 +273,7 @@ func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Ta
 	if len(targets) == 0 {
 		return false
 	}
-	ctx := e.staticSpecCtx(sv)
+	ctx := e.staticSpecCtxNamed(sv)
 	for _, target := range targets {
 		if target.IsPlayer {
 			if effects.MatchesPlayerSpec(e.G, spec, target.Player, sv.Controller) {
@@ -581,7 +581,7 @@ func (e *Engine) validSpellMatches(sv staticView, scope costScope, p state.Playe
 func (e *Engine) spellConstraintMatches(sv staticView, scope costScope, p state.PlayerID, id state.ObjID, constraint string, targets []state.Target) bool {
 	c := strings.TrimSpace(constraint)
 	if strings.HasPrefix(c, "IsTargeting") {
-		sc := e.staticSpecCtx(sv)
+		sc := e.staticSpecCtxNamed(sv)
 		sc.You = p
 		sc.AsStack = true
 		sc.ProposedTargets = targets

@@ -20,7 +20,7 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 126
+	continuousEffectFieldCount = 128
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
@@ -115,6 +115,8 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		sliceEq(a.RememberedPlayers, b.RememberedPlayers) &&
 		sliceEq(a.Chosen, b.Chosen) &&
 		a.ChosenBound == b.ChosenBound &&
+		a.ChosenName == b.ChosenName &&
+		a.ChosenNameFrozen == b.ChosenNameFrozen &&
 		a.Duration == b.Duration &&
 		a.Permanent == b.Permanent &&
 		a.ReplacementEvent == b.ReplacementEvent &&

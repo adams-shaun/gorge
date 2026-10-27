@@ -381,6 +381,8 @@ func foldChoose(g *state.Game, e *Event) {
 			o.Remembered = nil
 		case "clear-chosen-color":
 			o.ChosenColor = ""
+		case "clear-named-card":
+			o.ChosenName = ""
 		case "clear-chosen-card":
 			// Forge's Cleanup ClearChosenCard$: the chosen-card half of the
 			// object's chosen list goes; chosen players stay.
