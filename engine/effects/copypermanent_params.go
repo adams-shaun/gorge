@@ -155,7 +155,6 @@ var copyPermanentKnownKeys = [...]string{
 	"AddSVars",
 	"AddStaticAbilities",
 	"AddTriggers",
-	"AddType",
 	"AddTypes",
 	"AdditionalDesc",
 	"AdditionalDescription",

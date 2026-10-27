@@ -77,7 +77,7 @@ var dealDamageKnownKeys = [...]string{
 	"AILifeThreshold", "AILogic", "AIMinTgts", "AINoRecursiveCheck", "AIPhyrexianPayment",
 	"AITgtOwnCards", "AITgts", "AIXMax", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat",
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
-	"Activator", "AddType", "AddTypes",
+	"Activator",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
 	"AlternativeCost", "Announce", "AnnounceTitle", "Boast", "CantCopy", "ChangeNumDesc", "ChangeTypeDesc",
 	"ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceDesc", "ChoiceTitle", "ChoiceTitleAppend", "ChoiceZone", "Choices",

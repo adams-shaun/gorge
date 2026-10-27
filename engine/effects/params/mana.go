@@ -209,8 +209,7 @@ func plainManaParams(sa *cards.SA, p *ManaParams) (byte, int32) {
 var manaKnownKeys = [...]string{
 	"AILifeThreshold", "AILogic", "AIMinTgts", "AINoRecursiveCheck", "AIPhyrexianPayment", "AITgtOwnCards", "AITgts",
 	"AIXMax", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat", "ActivationGameTypes",
-	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddType",
-	"AddTypes", "AdditionalDesc", "AdditionalDescription", "AddsCounters", "AddsKeywords", "AddsKeywordsUntil", "AddsKeywordsValid", "AddsNoCounter",
+	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AdditionalDesc", "AdditionalDescription", "AddsCounters", "AddsKeywords", "AddsKeywordsUntil", "AddsKeywordsValid", "AddsNoCounter",
 	"Affected", "AlternateCost", "AlternativeCost", "Amount", "Announce", "AnnounceTitle",
 	"Boast", "CantCopy", "ChangeNumDesc", "ChangeTypeDesc", "ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceDesc", "ChoiceTitle",
 	"ChoiceTitleAppend", "ChoiceZone", "Choices", "ChooseFromList", "Chooser", "ClearImprinted", "Condition",

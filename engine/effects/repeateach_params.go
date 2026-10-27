@@ -95,8 +95,6 @@ var repeatEachKnownKeys = [...]string{
 	"ActivationPhases",
 	"ActivationZone",
 	"Activator",
-	"AddType",
-	"AddTypes",
 	"AdditionalDesc",
 	"AdditionalDescription",
 	"Affected",

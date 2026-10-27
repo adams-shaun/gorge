@@ -97,8 +97,6 @@ var delayedTriggerKnownKeys = [...]string{
 	"ActivationZone",
 	"Activator",
 	"ActiveZones",
-	"AddType",
-	"AddTypes",
 	"AdditionalDesc",
 	"AdditionalDescription",
 	"Affected",
