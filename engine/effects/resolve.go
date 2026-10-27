@@ -72,6 +72,17 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 			noted = true
 		}
 	}
+	// ClearNamedCard$ (Wood Sage's, Cursed Scroll's DBCleanup): the source's
+	// recorded card name, which a repeatable "choose a card name" ability
+	// names afresh on each resolution (CR 201.4). Only a real clear emits;
+	// an empty-name clear stays the cosmetic Note path, so a chain without
+	// the key or with nothing to clear is byte-identical.
+	if strings.EqualFold(sa.ParamStr(cards.PKClearNamedCard), "True") && c.Source != 0 {
+		if o := h.Game().Obj(c.Source); o != nil && o.ChosenName != "" {
+			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-named-card"})
+			noted = true
+		}
+	}
 	// The cosmetic fallback (an empty-list clear, or a Cleanup with nothing
 	// to clear): the Note main has always emitted, byte-for-byte, so golden
 	// games whose cleanups run on empty lists replay identically. This also
