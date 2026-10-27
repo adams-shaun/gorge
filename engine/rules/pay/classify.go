@@ -28,7 +28,7 @@ func ActionFor(d *decision.Decision, id string) (decision.PaymentAction, bool) {
 }
 
 func FaceReadsManaSpent(f *cards.Face) bool {
-	for _, needle := range []string{"ConditionManaSpent$", "Count$Adamant", "Count$EachSpentToCast", "Count$TotalManaSpent", "ManaSpentBy"} {
+	for _, needle := range []string{"ConditionManaSpent$", "ConditionManaNotSpent$", "Count$Adamant", "Count$EachSpentToCast", "Count$TotalManaSpent", "ManaSpentBy"} {
 		if f.Mentions(needle) {
 			return true
 		}

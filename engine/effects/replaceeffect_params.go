@@ -130,7 +130,7 @@ var replaceEffectKnownKeys = [...]string{
 	"ConditionDefined",
 	"ConditionDescription",
 	"ConditionFirstCombat",
-	"ConditionNotPresent",
+	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent",
 	"ConditionOptionalPaid",
 	"ConditionPhases",
 	"ConditionPlayerTurn",
