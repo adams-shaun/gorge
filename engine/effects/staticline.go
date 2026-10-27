@@ -297,10 +297,12 @@ func mayPlayFreeGrantFromLine(params map[string]string) (state.ContinuousEffect,
 // MayPlayWithoutManaCost$ is the FREE-cast shape, read by its own whitelist
 // (mayPlayFreeGrantFromLine), never by this one. Anything else --
 // MayPlayText$ (it changes what the cast IS, not just where it may come
-// from), a Condition$ whose value is not PlayerTurn, a
-// ValidAfterStack$/Secondary$ qualifier (it changes when the grant lives),
-// or a MayPlayLimit$ value that is not a non-negative integer -- fails
-// closed.
+// from), a Condition$ whose value is not PlayerTurn, a ValidAfterStack$
+// qualifier (it changes when the grant lives), or a MayPlayLimit$ value
+// that is not a non-negative integer -- fails closed. Secondary$ is
+// Forge's text renderer bit (CardTraitBase.isSecondary is read only by
+// Card.java's getText family), so on BOTH routes it is carried and never
+// read rather than refused.
 //
 // The one exception is the printed route's ability-word Condition$
 // (Null Summoner's "Threshold -- As long as there are seven or more cards in
@@ -367,8 +369,9 @@ func mayPlayEffectFreeParams(params map[string]string) (limit int32, playerTurn 
 // Effect-delivery path accepts the qualifier and carries it verbatim on the
 // registered effect for rules to evaluate), the CheckSVar$/SVarCompare$
 // gate pair (carried as the registered effect's MayPlayCheckSVar/
-// MayPlaySVarCompare for rules' board-dependent gate, CR 611.2a/b) and
-// display-only Secondary$ (carried, never read). Every other unknown key
+// MayPlaySVarCompare for rules' board-dependent gate, CR 611.2a/b).
+// display-only Secondary$ is carried and never read on BOTH routes (Forge
+// reads it only in Card.java's text renderers). Every other unknown key
 // fails closed. The ValidAfterStack$ value is returned unread -- effects must
 // not interpret rules' spec grammar -- so an unsupported value is fail-closed
 // at the matcher, never here.
@@ -417,12 +420,10 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 				return false, false, 0, false, "", false
 			}
 		case mayPlayParamSecondary:
-			// Secondary$ is Forge's display-only renderer bit (only the card
-			// text renderer reads it): carried, never read. The printed route
-			// keeps refusing it as an unread qualifier, as before.
-			if !allowAfterStack {
-				return false, false, 0, false, "", false
-			}
+			// Secondary$ is Forge's display-only renderer bit
+			// (CardTraitBase.isSecondary, read only by Card.java's getText
+			// family): carried, never read, on the printed and Effect routes
+			// alike. It never changes when the grant lives.
 		default:
 			return false, false, 0, false, "", false
 		}
@@ -516,6 +517,9 @@ func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, reme
 		Affects: affected, AffectedZone: strings.TrimSpace(params["AffectedZone"]),
 		GainedFaces: faces, GainsValidAbilities: strings.TrimSpace(params["GainsValidAbilities"]),
 		GainsLimitPerTurn: effectGainsLimitPerTurn(params),
+		// Grell Philosopher's STSteal: the grant's ManaConversion$ rides the
+		// effect exactly as a printed static's does (layers.go).
+		GainedManaConversion: strings.TrimSpace(params["ManaConversion"]),
 	}, true
 }
 

@@ -21,13 +21,27 @@ var textLockedKeys = NewNameSet("TokenScript", "NewName", "DefinedName", "Choose
 	"SVars", "Choices", "AddTrigger", "AddStaticAbility", "AddReplacementEffect",
 	"AddSVar", "AddSVars", "StaticAbilities", "Replacements", "RepeatSubAbility")
 
+// lockInTextParam is Forge's LockInText$ marker. Forge's
+// CardTraitBase.hasParam is presence-based, and
+// AbilityUtils.applyAbilityTextChangeEffects / applyDescriptionTextChangeEffects
+// return the text unchanged for such an ability: the words the script spells
+// (a per-colour filter chain, for example) are not words printed in the card's
+// Oracle text, so CR 612.2 has nothing to change.
+const lockInTextParam = "LockInText"
+
+func textChangeLockedSA(s *SA) bool         { _, ok := s.Params[lockInTextParam]; return ok }
+func textChangeLockedStatic(s *Static) bool { _, ok := s.Params[lockInTextParam]; return ok }
+func textChangeLockedBody(body string) bool { _, ok := parseParams(body)[lockInTextParam]; return ok }
+
 // WithTextChanges returns a copy of f whose text reads with subs applied in
 // order (CR 612.1/612.2): the type line, keywords, Oracle text, SVar bodies
 // and every parameter of every ability, trigger, static and replacement
-// (sub-ability chains included). A locked key (textLockedKeys) and a value
-// that names one of f's SVars are kept verbatim. f is never mutated; nil f
-// or empty subs returns f itself. The copy shares f's slots and keeps no
-// compiled catalog row or ParamSet, so every reader takes the text path.
+// (sub-ability chains included). A locked key (textLockedKeys), a value
+// that names one of f's SVars, and a `LockInText$` ability, SVar body or
+// static (Forge's per-ability lock: lockInTextParam) are kept verbatim. f is
+// never mutated; nil f or empty subs returns f itself. The copy shares f's
+// slots and keeps no compiled catalog row or ParamSet, so every reader takes
+// the text path.
 // No derive(): it records slice identities as uintptrs, which would make the
 // face differ between a live game and its log-only replay (see
 // face_runtime.go); the identity-guarded caches (printed facts, type words,
@@ -44,7 +58,13 @@ func (f *Face) WithTextChanges(subs []TextSub) *Face {
 	g.Keywords = t.words(f.Keywords)
 	g.SVars = maps.Clone(f.SVars)
 	for k, v := range g.SVars {
-		g.SVars[k] = t.word(v)
+		// An SVar body carrying LockInText$ is left verbatim: it is compiled
+		// into an ability after this point, and Forge's text change never
+		// reaches such an ability. parseParams is the same pipe grammar the
+		// body is compiled with, so no substring test can disagree with it.
+		if !textChangeLockedBody(v) {
+			g.SVars[k] = t.word(v)
+		}
 	}
 	g.Abilities = make([]*SA, len(f.Abilities))
 	for i, a := range f.Abilities {
@@ -63,6 +83,9 @@ func (f *Face) WithTextChanges(subs []TextSub) *Face {
 	for i := range g.Statics {
 		st := &g.Statics[i]
 		st.Params, st.ps = maps.Clone(st.Params), nil
+		if textChangeLockedStatic(st) {
+			continue
+		}
 		for k, v := range st.Params {
 			st.Params[k] = t.param(k, v)
 		}
@@ -117,6 +140,13 @@ func (t textRewriter) sa(s *SA, depth int) *SA {
 	}
 	c := *s
 	c.Params, c.ps = maps.Clone(s.Params), nil
+	if textChangeLockedSA(s) {
+		// Forge leaves a LockInText$ ability's own text verbatim; the chain
+		// is still walked because each link carries its own lock.
+		c.compiledCatalog, c.compiledID = nil, 0
+		c.Sub = t.sa(s.Sub, depth+1)
+		return &c
+	}
 	for k, v := range c.Params {
 		c.Params[k] = t.param(k, v)
 	}

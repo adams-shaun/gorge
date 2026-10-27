@@ -208,6 +208,23 @@ func ExileAsCost(obj state.ObjID, from state.Zone) Event {
 	return Event{Kind: MoveZone, Obj: obj, From: from, To: state.ZExile, Text: exiledAsCostText}
 }
 
+// ExileExilerCounter is the MoveZone Counter value marking an effect exile whose
+// Amount is the player who controlled the exiling ability (Forge's
+// Card.getExiledBy, the value CardProperty.ExiledByYou reads).
+const ExileExilerCounter = "exiled_by"
+
+// MarkExileExiler stamps exiler onto a freshly built MoveZone into exile; any
+// other event is returned unchanged (a caller need not branch). It is only
+// called on the constructor's fresh event, before any face-down marker is set.
+func MarkExileExiler(ev Event, exiler state.PlayerID) Event {
+	if ev.Kind != MoveZone || ev.To != state.ZExile {
+		return ev
+	}
+	ev.Counter = ExileExilerCounter
+	ev.Amount = int32(exiler)
+	return ev
+}
+
 // IsExileAsCost reports whether ev is a card exiled as a cost.
 func IsExileAsCost(ev Event) bool {
 	return ev.Kind == MoveZone && ev.To == state.ZExile && ev.Text == exiledAsCostText

@@ -313,6 +313,11 @@ const (
 	// descriptor. It must not inherit PurposeSpell: bare RestrictValid$ Spell
 	// admits only a spell cast, and unknown/unclassified payments fail closed.
 	PurposeOther
+	// PurposeSpecial is a CR 116.2 special action's mana payment (turn face
+	// up, unlock, foretell, plot, suspend): neither a spell nor an activated
+	// ability, so only RestrictValid$ Static.* and nonSpell admit it.
+	// Descriptor.Special names which action.
+	PurposeSpecial
 )
 
 // Descriptor identifies one payment: the object paid for, its Purpose, the
@@ -320,7 +325,9 @@ const (
 type Descriptor struct {
 	ID    state.ObjID
 	Class Purpose
-	Cost  *Cost
+	// Special is the special action a PurposeSpecial payment pays for.
+	Special Special
+	Cost    *Cost
 	// XAnnounced records that the payment's cost carried an X the
 	// announcement machinery has already folded (Cost.WithX clears Cost.X
 	// once a value is chosen, so the normalized cost alone can no longer
@@ -569,6 +576,13 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 // on SPELLS only (CR 106.6): they leave every non-spell payment class
 // (activated abilities, cumulative upkeep, other costs) free, matching Forge's
 // !sa.isSpell() reading.
+//
+// Static.<tail> is a CR 116.2 special action (turn face up, unlock, foretell,
+// plot, suspend: Forge's AbilityStatic roots): the tail's SA-property tokens
+// (Unlock, isTurnFaceUp, MorphUp, ManifestUp, Foretelling...) test the
+// descriptor's Special, the rest is a card filter on the paid object, and bare
+// Static admits every special action. Neither Spell nor Activated admits one.
+// nonSpell admits every payment but a spell cast.
 func RestrictValidMatches(e Engine, p state.PlayerID, d Descriptor, valid string, src state.ObjID) bool {
 	if d.Face != nil {
 		f := d.Face
@@ -613,6 +627,12 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 			return d.Cost != nil && d.Cost.Generic == 0
 		case restrictValidTermMatchesCumulativeUpkeep:
 			return d.Class == PurposeCumulativeUpkeep
+		case restrictValidTermMatchesStatic:
+			// Forge's root instanceof AbilityStatic: every special action.
+			return d.Class == PurposeSpecial
+		case restrictValidTermMatchesNonSpell:
+			// Forge's !sa.isSpell(): every payment but a spell cast.
+			return d.Class != PurposeSpell
 		default:
 			return false
 		}
@@ -624,7 +644,12 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 	if kind == "Spell" && d.Class != PurposeSpell {
 		return false
 	}
-	if kind != "Activated" && kind != "Spell" {
+	if kind == "Static" {
+		var ok bool
+		if spec, ok = staticRestrictionTail(d, spec); !ok {
+			return false
+		}
+	} else if kind != "Activated" && kind != "Spell" {
 		return false
 	}
 	needsBattlefield := strings.Contains(spec, "inZoneBattlefield")
@@ -683,9 +708,15 @@ func CostPayableGrant(e Engine, p state.PlayerID, id state.ObjID, ability bool, 
 	// descriptor with an empty cost would hide every cost-keyed restricted
 	// batch (CostContainsX, CostContainsC) even when the payment itself
 	// admits it — the offer and the payment must read the same cost.
-	av := AvailableFor(e, p, DescriptorFor(id, ability, cost))
+	return costPayableDescriptor(e, p, DescriptorFor(id, ability, cost), cost, rider)
+}
+
+// costPayableDescriptor is CostPayableGrant over a caller-built descriptor, so
+// a special action's offer prices the class its payment pays under.
+func costPayableDescriptor(e Engine, p state.PlayerID, d Descriptor, cost Cost, rider PipRider) bool {
+	av := AvailableFor(e, p, d)
 	_, ok := ResolveManaWith(cost, av.Pool, e.Game().Players[p].Snow, av.Typed,
-		e.Game().Players[p].Life, e.Eval().PayLifeInsteadOfB(p), rider, e.Eval().Conv(p, id, ability))
+		e.Game().Players[p].Life, e.Eval().PayLifeInsteadOfB(p), rider, e.Eval().Conv(p, d.ID, d.Class == PurposeActivated))
 
 	return ok
 }
@@ -818,12 +849,15 @@ const (
 	restrictValidTermMatchesCostContainsC
 	restrictValidTermMatchesCantPayGenericCosts
 	restrictValidTermMatchesCumulativeUpkeep
+	restrictValidTermMatchesStatic
+	restrictValidTermMatchesNonSpell
 )
 
 var restrictValidTermMatchesCodes = state.NewStrCodes(
 	state.StrEntry[restrictValidTermMatchesCode]{Key: "Spell", Val: restrictValidTermMatchesSpell},
 	state.StrEntry[restrictValidTermMatchesCode]{Key: "Activated", Val: restrictValidTermMatchesActivated},
-	state.StrEntry[restrictValidTermMatchesCode]{Key: "nonSpell", Val: restrictValidTermMatchesActivated},
+	state.StrEntry[restrictValidTermMatchesCode]{Key: "nonSpell", Val: restrictValidTermMatchesNonSpell},
+	state.StrEntry[restrictValidTermMatchesCode]{Key: "Static", Val: restrictValidTermMatchesStatic},
 	state.StrEntry[restrictValidTermMatchesCode]{Key: "CantCastNonArtifactSpells", Val: restrictValidTermMatchesCantCastNonArtifactSpells},
 	state.StrEntry[restrictValidTermMatchesCode]{Key: "CantCastSpellFromHand", Val: restrictValidTermMatchesCantCastSpellFromHand},
 	state.StrEntry[restrictValidTermMatchesCode]{Key: "CostContainsX", Val: restrictValidTermMatchesCostContainsX},

@@ -336,7 +336,7 @@ func (e *Engine) tapPermanentCostAsk() bool {
 	tapKind := tapCostSAKind(e.pcAbility(pc))
 	for pc.TapPart < len(pc.cost.TapPermanent) {
 		part := pc.cost.TapPermanent[pc.TapPart]
-		candidates := pay.TapCostCandidates(asPayer(e), pc.player, pc.card, part)
+		candidates := pay.FilterCrewCandidates(asPayer(e), pay.TapCostCandidates(asPayer(e), pc.player, pc.card, part), tapKind)
 		// One permanent can never pay two parts of the same cost, so the
 		// candidate filter claims everything an earlier stage already recorded:
 		// an earlier tap part's choice (taps settle together at payCast, so the

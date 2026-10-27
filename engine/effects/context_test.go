@@ -30,6 +30,7 @@ type fakeHost struct {
 	controls     []ControlGrant
 	n            int
 	dmgSrc       state.ObjID
+	dmgNoPrev    bool
 	counterAdder state.PlayerID
 	batch        []state.ObjID
 	// exploitedLKI records the snapshots effExploit publishes through
@@ -583,6 +584,14 @@ func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
 func (h *fakeHost) SetDamageSource(id state.ObjID) state.ObjID {
 	prev := h.dmgSrc
 	h.dmgSrc = id
+	return prev
+}
+
+// SetDamageNoPrevention records the published bit on the double and returns
+// the previous one (the set-and-restore contract).
+func (h *fakeHost) SetDamageNoPrevention(on bool) bool {
+	prev := h.dmgNoPrev
+	h.dmgNoPrev = on
 	return prev
 }
 

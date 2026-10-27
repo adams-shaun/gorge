@@ -20,7 +20,7 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 123
+	continuousEffectFieldCount = 124
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
@@ -104,6 +104,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		gainedFacesEqual(a.GainedFaces, b.GainedFaces) &&
 		gainedFacesEqual(a.GainedTriggerFaces, b.GainedTriggerFaces) &&
 		a.GainsValidAbilities == b.GainsValidAbilities &&
+		a.GainedManaConversion == b.GainedManaConversion &&
 		a.GainsLimitPerTurn == b.GainsLimitPerTurn &&
 		a.GainedZones == b.GainedZones &&
 		a.Restriction == b.Restriction &&

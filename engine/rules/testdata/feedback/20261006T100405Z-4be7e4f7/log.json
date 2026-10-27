@@ -4532,6 +4532,7 @@
       "kind": 2,
       "obj": 98,
       "to": 4,
+      "counter": "exiled_by",
       "secret": true
     },
     {
@@ -4539,6 +4540,7 @@
       "kind": 2,
       "obj": 73,
       "to": 4,
+      "counter": "exiled_by",
       "secret": true
     },
     {
@@ -7661,7 +7663,7 @@
       ]
     }
   ],
-  "head": "034ad709e5beab95",
+  "head": "f704ee3621c92588",
   "intent_count": 191,
   "turn": 9,
   "step": "main1",

@@ -392,6 +392,11 @@ func protecColourLetter(q string) rune {
 // since Banefire's self-static exists while its spell is resolving; the
 // source/Combat gates are evaluated against the damage currently in flight.
 func (e *Engine) cantPreventDamage(damageSource, target state.ObjID) bool {
+	// CR 615.12: the dealing ability said its damage can't be prevented
+	// (DealDamage's NoPrevention$).
+	if e.dmgNoPrevention {
+		return true
+	}
 	// Effect-created restrictions (Skullcrack, Call In a Professional, and
 	// the rest of the StaticAbilities$ family) live in the same registry as
 	// CantTarget/CantRegenerate. A restriction with no Affected$ is global;

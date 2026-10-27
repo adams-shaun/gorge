@@ -630,24 +630,46 @@ func ExilesLeavingStack(flags uint64) bool {
 	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagAftermath) != 0
 }
 
+// ExilesInsteadOfGraveyard reports whether a card leaving the stack with these
+// flags, headed for to, must be exiled instead. It folds the two families the
+// counter and ward paths share: a keyword cast (ExilesLeavingStack) is exiled
+// on ANY departure -- a named Remand hand or Memory Lapse library destination
+// included -- while a ReplaceGraveyard$ Exile rider (a DB$ Play SA, or a
+// may-play static's grant: Maestros Ascendancy, Kess, Dissident Mage) replaces
+// only a graveyard destination, so a bounce to hand is not redirected.
+// rules' spellRestZone/spellFizzleZone already make the same two-way choice
+// for the resolving and fizzling exits; this is the counter/ward reader.
+func ExilesInsteadOfGraveyard(flags uint64, to Zone) bool {
+	if ExilesLeavingStack(flags) {
+		return true
+	}
+	return to == ZGraveyard && flags&FlagReplaceGraveyard != 0
+}
+
 // WasCastFromGraveyard reports whether a cast carrying these flags was made
 // from a graveyard by a keyword that grants such a cast: flashback
 // (CR 702.32a), jump-start (CR 702.84a), harmonize and escape (CR 702.42a).
-// It is the flags-only body of the Card.wasCastFromGraveyard predicate
-// (engine/effects/filter.go); object-aware readers must call
-// ObjectWasCastFromGraveyard instead, which adds the never-cast guard.
+// It is the flags-only half of the Card.wasCastFromGraveyard predicate and
+// misses a may-play graveyard cast, which carries no keyword flag;
+// object-aware readers must call ObjectWasCastFromGraveyard instead, which
+// adds the cast-origin zone and the never-cast guard.
 func WasCastFromGraveyard(flags uint64) bool {
 	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagEscaped) != 0
 }
 
 // ObjectWasCastFromGraveyard is the ONE home for the object-aware read of
-// the graveyard-origin cast provenance: the flags test PLUS the never-cast
-// guard. A stack copy is PUT on the stack, never cast (CR 707.10/706.10),
+// the graveyard-origin cast provenance: the spell was cast from a graveyard
+// (CR 601.2a), whatever the permission. That is the keyword flags test OR the
+// latest PutOnStack cast zone (LatestCastFrom), so a may-play cast (Festival
+// of Embers, Osteomancer Adept), which sets no keyword flag, reads true; the
+// flags arm stays for fixtures that stamp CastFlags without a PutOnStack.
+// Both are gated by the never-cast guard. A stack copy is PUT on the stack, never cast (CR 707.10/706.10),
 // so IsCopy reads false even though events.Apply's StackCopy case leaves the
 // graveyard-origin bits inherited (state.CastProvenanceFlags does not strip
 // them). Every reader must call this, never the flags test directly.
 func ObjectWasCastFromGraveyard(o *Object) bool {
-	return o != nil && !o.IsCopy && WasCastFromGraveyard(o.CastFlags)
+	return o != nil && !o.IsCopy &&
+		(WasCastFromGraveyard(o.CastFlags) || (o.HasLatestCast && o.LatestCastFrom == ZGraveyard))
 }
 
 // ModeChoice is one ChoiceRestriction$ pick recorded on an object: the
@@ -1750,10 +1772,13 @@ type Object struct {
 	// so replay rebuilds it with no new event kind and no Event field change.
 	MayLookPlayer PlayerID
 	HasMayLook    bool
-	// ExiledBy is the player a DefinedExiler$ exile instruction named (Shared
-	// Fate's "that player exiles the top card of their library face down").
-	// HasExiledBy distinguishes seat 0 from "no exiler recorded". Folded from
-	// the MoveZone marker's Amount; zero/absent on every other exile.
+	// ExiledBy is Forge's Card.getExiledBy(): the player Forge's handleExiledWith
+	// records -- the DefinedExiler$ player when the effect names one (Shared
+	// Fate's "that player exiles the top card of their library face down"),
+	// otherwise the controller of the exiling ability. HasExiledBy
+	// distinguishes seat 0 from "no exiler recorded". Folded from the MoveZone
+	// marker's Amount (the DefinedExiler$ marker and the plain effect-exile
+	// events.MarkExileExiler payload); absent on every other exile.
 	ExiledBy    PlayerID
 	HasExiledBy bool
 	// Cloaked records the cloak variant of the face-down battlefield entry

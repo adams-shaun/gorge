@@ -123,7 +123,7 @@ func (g *Game) Restart(life int32, keep []ObjID) {
 	g.Over, g.Winner, g.Draw = false, 0, false
 	g.DelayedNext = 0
 	g.ExtraTurns, g.SkipTurns, g.ExtraTurnQueue, g.ExtraPhases = nil, nil, nil, nil
-	g.CombatsThisTurn, g.EndStepsThisTurn = 0, 0
+	g.CombatsThisTurn, g.EndStepsThisTurn, g.MainPhasesThisTurn = 0, 0, 0
 	g.ResolvedThisTurn = nil
 	g.Monarch, g.HasMonarch, g.TurnStartMonarch, g.HasTurnStartMonarch = 0, false, 0, false
 	g.Initiative, g.HasInitiative = 0, false

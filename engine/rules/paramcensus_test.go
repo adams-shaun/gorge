@@ -272,6 +272,14 @@ type fnInfo struct {
 	callSites []callSite
 	sig       []string
 	strParams map[string]int
+	// pkParams records parameters typed cards.ParamKey: a compiled-ParamSet
+	// read `x.Param(key)` on one is attributed at the call sites, where the
+	// argument is a cards.PK<Key> constant (the string-key path's twin).
+	pkParams map[string]int
+	// pkRanges maps a `for _, k := range [...]cards.ParamKey{cards.PK...}`
+	// loop variable to the literal keys it iterates, so `x.Param(k)` inside
+	// the loop reads every one of them.
+	pkRanges map[string][]string
 	// mapParams records parameters whose declared type is map[string]string
 	// (the Params maps' type): an index read on one is a potential Params
 	// read attributed through the call sites' arguments, never silently
@@ -397,6 +405,9 @@ func (s *scan) scanSource(t *testing.T, path, pkg, src string) {
 				if pt, ok := p.Type.(*ast.Ident); ok && pt.Name == "string" {
 					fi.strParams[pn.Name] = position
 				}
+				if isParamKeyType(p.Type) {
+					fi.pkParams[pn.Name] = position
+				}
 				if isStringMap(p.Type) {
 					fi.mapParams[pn.Name] = position
 				}
@@ -454,6 +465,40 @@ func isStringMap(e ast.Expr) bool {
 	return kok && vok && k.Name == "string" && v.Name == "string"
 }
 
+// noteParamKeyRange records the loop variable of a range over a composite
+// literal whose elements are all cards.PK<Key> constants (playLandForbidden's
+// Player/ValidPlayer pair, plotZoneAllowed's known keys).
+func noteParamKeyRange(fi *fnInfo, rs *ast.RangeStmt) {
+	val, ok := rs.Value.(*ast.Ident)
+	lit, isLit := rs.X.(*ast.CompositeLit)
+	if !ok || !isLit || len(lit.Elts) == 0 {
+		return
+	}
+	var keys []string
+	for _, e := range lit.Elts {
+		sel, ok := e.(*ast.SelectorExpr)
+		if !ok {
+			return
+		}
+		pk, isPkg := sel.X.(*ast.Ident)
+		if !isPkg || pk.Name != "cards" || !strings.HasPrefix(sel.Sel.Name, "PK") {
+			return
+		}
+		keys = append(keys, strings.TrimPrefix(sel.Sel.Name, "PK"))
+	}
+	fi.pkRanges[val.Name] = keys
+}
+
+// isParamKeyType reports whether e is the type expression cards.ParamKey.
+func isParamKeyType(e ast.Expr) bool {
+	sel, ok := e.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	pk, ok := sel.X.(*ast.Ident)
+	return ok && pk.Name == "cards" && sel.Sel.Name == "ParamKey"
+}
+
 func (s *scan) failf(t *testing.T, pos token.Position, format string, args ...any) {
 	s.unclassified = append(s.unclassified, fmt.Sprintf("%s: %s", pos, fmt.Sprintf(format, args...)))
 }
@@ -469,6 +514,8 @@ func (s *scan) fnOf(pkg, name string) *fnInfo {
 		keyRds:    map[bucket]map[string]bool{},
 		calls:     map[string]bool{},
 		strParams: map[string]int{},
+		pkParams:  map[string]int{},
+		pkRanges:  map[string][]string{},
 		mapParams: map[string]int{},
 		aliases:   map[string]string{},
 	}
@@ -603,6 +650,7 @@ func (s *scan) scanFuncBody(t *testing.T, fset *token.FileSet, fd *ast.FuncDecl,
 			s.scanCall(t, fset, fi, name, v, pkg)
 			return true
 		case *ast.RangeStmt:
+			noteParamKeyRange(fi, v)
 			s.scanRangeWhitelist(t, fset, fi, name, v, pkg, writes)
 			return true
 		}
@@ -626,19 +674,39 @@ func (s *scan) scanCompiledParamRead(t *testing.T, fset *token.FileSet, fi *fnIn
 	if !ok || !compiledParamReaders[sel.Sel.Name] || len(ce.Args) != 1 {
 		return
 	}
-	arg, ok := ce.Args[0].(*ast.SelectorExpr)
-	if !ok {
+	if lit, isLit := ce.Args[0].(*ast.BasicLit); isLit && lit.Kind == token.STRING {
 		return // not a ParamKey argument shape: some other Param method
 	}
-	if pk, ok := arg.X.(*ast.Ident); !ok || pk.Name != "cards" || !strings.HasPrefix(arg.Sel.Name, "PK") {
-		return
+	arg, isSel := ce.Args[0].(*ast.SelectorExpr)
+	if isSel {
+		if pk, ok := arg.X.(*ast.Ident); !ok || pk.Name != "cards" || !strings.HasPrefix(arg.Sel.Name, "PK") {
+			return
+		}
 	}
 	base := exprText(sel.X)
 	b, ok := s.bucketOf(t, fset, ce.Pos(), base, pkg)
 	if !ok {
 		return
 	}
-	s.addRead(fi, b, strings.TrimPrefix(arg.Sel.Name, "PK"))
+	if isSel {
+		s.addRead(fi, b, strings.TrimPrefix(arg.Sel.Name, "PK"))
+		return
+	}
+	if id, ok := ce.Args[0].(*ast.Ident); ok {
+		if _, isParam := fi.pkParams[id.Name]; isParam {
+			s.addKeyRead(fi, b, id.Name)
+			return
+		}
+		if keys, isRange := fi.pkRanges[id.Name]; isRange {
+			for _, k := range keys {
+				s.addRead(fi, b, k)
+			}
+			return
+		}
+	}
+	s.failf(t, fset.Position(ce.Pos()),
+		"%s: computed ParamKey %s in %s.%s -- pass a cards.PK<Key> constant or forward a cards.ParamKey parameter",
+		fi.name, argText(ce.Args[0]), base, sel.Sel.Name)
 }
 
 // recordParamsRead records one `.Params[...]` (or alias) access on the given
@@ -1037,6 +1105,13 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 		if lit, ok := a.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			if v, err := strconv.Unquote(lit.Value); err == nil {
 				args[i] = v
+			}
+		}
+		// A cards.PK<Key> constant argument attributes a ParamKey key
+		// parameter exactly like a string literal does a string one.
+		if sel, ok := a.(*ast.SelectorExpr); ok && strings.HasPrefix(sel.Sel.Name, "PK") {
+			if pk, ok := sel.X.(*ast.Ident); ok && pk.Name == "cards" {
+				args[i] = strings.TrimPrefix(sel.Sel.Name, "PK")
 			}
 		}
 	}
@@ -1706,6 +1781,11 @@ func (s *scan) propagateKeyReadsOnce() bool {
 			for b, params := range target.keyRds {
 				for param := range params {
 					idx, ok := target.strParams[param]
+					callerKeyParams := fi.strParams
+					if !ok {
+						idx, ok = target.pkParams[param]
+						callerKeyParams = fi.pkParams
+					}
 					if !ok || idx >= len(cs.args) {
 						continue
 					}
@@ -1725,7 +1805,7 @@ func (s *scan) propagateKeyReadsOnce() bool {
 					// it; a non-identifier argument cannot be followed and
 					// stays unattributed, exactly as before.
 					if pname := cs.exprs[idx]; pname != "" {
-						if _, isParam := fi.strParams[pname]; isParam {
+						if _, isParam := callerKeyParams[pname]; isParam {
 							if count(fi, b, fi.keyRds[b], pname) {
 								added = true
 							}
@@ -1842,6 +1922,16 @@ var handEffectsRoots = []string{
 	// body's SubAbility$ rider chain; it scans the rider links' own keys to
 	// fail closed on any key outside the implemented shape.
 	"CloneETBSubChainOK",
+	// engine/effects/castcombat.go: the bots (bots/botpolicy/combat.go,
+	// board_inc.go) and the card view (engine/view/card.go) call this
+	// advisory predicate directly; its NumAtt$/NumDef$ reads (through
+	// literalPumpAmount) are a heuristic over a printed Pump, not a
+	// resolution consumer, so they join no API's read set.
+	"CastCombatTrick",
+	// engine/effects/castpump.go: reached from the exported cast-pump
+	// predicates the rules cast path calls directly, outside any
+	// Register'd implementation.
+	"readPump",
 }
 
 // apiSpecificRulesSA names the rules functions whose SA (bSA) reads execute
@@ -2034,6 +2124,13 @@ var apiSpecificRulesStat = map[string]string{
 	// grant path does, keeping the permissions a given host granted, so its
 	// read is family-attributed exactly like the grant path's.
 	"Engine.mayPlayGrantedBy": "Continuous.MayPlay",
+	// The grant's ReplaceGraveyard$ Exile rider read (engine/rules/mayplay.go's
+	// mayPlayReplacesGraveyard, called from beginCast's "mayplay" case): it
+	// walks the same MayPlay statics under mayPlayStaticBenefits and
+	// mayPlayGrantedBy and reads that rider key, so its read is
+	// family-attributed exactly like the grant path's -- left generic it
+	// would mask a plain Continuous static's real unread keys.
+	"Engine.mayPlayReplacesGraveyard": "Continuous.MayPlay",
 	// The MayPlayWithFlash$ timing rider (engine/rules/mayplay_riders.go): it
 	// reads MayPlay statics' MayPlayWithFlash$ live and runs mayPlayStatic over
 	// the same sources, so it is family-attributed like the grant path.
@@ -2115,7 +2212,7 @@ var handRoots = struct {
 		"ReduceCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX", "Engine.paymentPlanHasTargetDependentModifier",
 			"quietSelfReducePipFloor"},
 		"SetCost":      {"Engine.paymentPlanHasTargetDependentModifier"},
-		"OptionalCost": {"Engine.optionalCostViews"},
+		"OptionalCost": {"Engine.optionalCostViews", "Engine.reduceColorOptionalViews"},
 		// paymentPlanManaConvertName (payment_plan_interference.go) names the
 		// restricting ManaConvert static behind a global auto-pay decline: it
 		// walks manaConvPrintedSources and the active ManaConvert statics
@@ -2765,7 +2862,13 @@ func (s *scan) reachFromRoots(b bucket, fn string) bool {
 // measured.
 var structuralKeys = func() map[string]map[string]bool {
 	m := map[string]map[string]bool{
-		"sa":   {"SubAbility": true},
+		// LockInText is consumed by Face.WithTextChanges
+		// (engine/cards/textchange.go), which leaves such an ability, SVar
+		// body or static verbatim: Forge's
+		// AbilityUtils.applyAbilityTextChangeEffects returns the text
+		// unchanged for an ability with hasParam("LockInText")
+		// (forge-game/src/main/java/forge/game/ability/AbilityUtils.java:3081).
+		"sa":   {"SubAbility": true, "LockInText": true},
 		"trig": {"Mode": true, "Execute": true},
 		"stat": {"Mode": true},
 		"repl": {"Event": true, "ReplaceWith": true},
@@ -2828,6 +2931,16 @@ var ignoredParamKeys = map[string]string{
 	// gates no rules-side behaviour — the pay-or-decline ask the shared
 	// unless gate poses is the rules — so the census ignores it.
 	"UnlessAI": "AI copy-eligibility hint; forge-ai/src/main/java/forge/ai/ability/CopySpellAbilityAi.java",
+	// cr-g193: stack-description, dialog-title and AI-hint keys. Every Forge
+	// reader is text or AI only; TestIgnoredDescAndAIHintKeysAreUnreadInGorge
+	// fails if a gorge primitive ever reads one.
+	"ChoiceDesc":        "ChooseCard stack-description noun; forge-game/src/main/java/forge/game/ability/effects/ChooseCardEffect.java:41",
+	"FromDesc":          "ChooseCard stack-description \" from ...\" suffix; forge-game/src/main/java/forge/game/ability/effects/ChooseCardEffect.java:46-47",
+	"ChoiceTitleAppend": "ChooseCard choice-dialog title suffix; forge-game/src/main/java/forge/game/ability/effects/ChooseCardEffect.java:231-240",
+	"ChangeNumDesc":     "ChangeZone hidden-origin stack-description count; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java:289-293",
+	"AIMinTgts":         "AI minimum-target hint; forge-ai/src/main/java/forge/ai/ability/ChangeZoneAi.java:1236-1237",
+	"AITgtOwnCards":     "AI own-cards target hint; forge-ai/src/main/java/forge/ai/ability/ChangeZoneAi.java:1111",
+	"AIXMax":            "AI X-cap hint; forge-ai/src/main/java/forge/ai/ComputerUtilCost.java:686-688, forge-ai/src/main/java/forge/ai/ComputerUtilMana.java:1626",
 }
 
 // ignoredStatParams scopes a presentation key to individual stat modes.
@@ -2854,14 +2967,20 @@ var ignoredParamKeys = map[string]string{
 // RaiseCost/ReduceCost are listed too: costStaticApplies used to SKIP a
 // Secondary$ cost static (the costgate fix removed that -- Forge applies it
 // like any other), so on a cost modifier the key is now exactly the text
-// marker it is in Forge. The Continuous.MayPlay family's whitelist still
-// fail-closes a Secondary$-carrying grant (engine/rules/layers.go mayPlayGrant) --
-// a RECOGNITION the census keeps measurable exactly like MayPlayPlayer$.
+// marker it is in Forge. The Continuous.MayPlay family is listed for the
+// same reason: CardTraitBase.isSecondary()
+// (forge-game/src/main/java/forge/game/CardTraitBase.java:179) is read only
+// by Card.java's getText-family renderers
+// (forge-game/src/main/java/forge/game/card/Card.java:2946,2978,2997,3013)
+// and LandAbility.java; no static-ability execution path reads it, and
+// XMage's RadhaHeartOfKeld grants its top-of-library land play
+// unconditionally. So both of gorge's may-play routes carry it and never
+// read it (engine/effects/staticline.go mayPlayParamsScan).
 // The modes below are the REGISTERED stat modes the corpus carries
 // Secondary$ on (measured over the full corpus at the current pin); an
 // unregistered mode's params are the primitive ratchet's business.
 var statPresentationSecondary = []string{
-	"Continuous", "CantBlockBy", "MustAttack", "CantBlock", "MinMaxBlocker",
+	"Continuous", "Continuous.MayPlay", "CantBlockBy", "MustAttack", "CantBlock", "MinMaxBlocker",
 	"CantBeActivated", "CantSacrifice", "CantBeCast", "CantAttack",
 	"CastWithFlash", "CantGainLife", "CantTarget", "Panharmonicon",
 	"RaiseCost", "ReduceCost", "DisableTriggers",
@@ -2916,9 +3035,17 @@ var ignoredAbilityParams = func() map[string]string {
 	const cite = "SA text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179, forge-game/src/main/java/forge/game/card/Card.java:3013 (text renderer only)"
 	const pawprintCite = "mode price read by the parent Charm: engine/effects/charm_modes.go:41 (modePawprint); forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java:183"
 	m := map[string]string{
-		"Effect.PumpZone":          "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
-		"GenericChoice.ShowChoice": "UI notify of the chosen value; forge-game/src/main/java/forge/game/ability/effects/ChooseGenericEffect.java:113 (notifyOfValue); gorge's ModeChosen is public (engine/view/describe.go:715)",
-		"PeekAndReveal.NoPeek":     "skips the private look before a public reveal; forge-game/src/main/java/forge/game/ability/effects/PeekAndRevealEffect.java:55,78",
+		"ChangeZone.NumCards":         "inert on api:ChangeZone (ChangeZoneEffect.java reads no NumCards; ChangeNum$ defaults to 1, and only Draw/Discard/Mill/Reveal/RearrangeTopOfLibrary read NumCards); forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
+		"ChangeZoneAll.DefinedPlayer": "only orders a 2+ card move into a library; gorge orders every library move by scan order with no ask; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneAllEffect.java:104",
+		"ChooseType.ETB":              "inert on api:ChooseType (ChooseTypeEffect.java reads no ETB; the generic read at AbilityUtils.java:1686 is the Count$xPaid replacement branch); forge-game/src/main/java/forge/game/ability/effects/ChooseTypeEffect.java",
+		"DealDamage.CounterNum":       "inert on api:DealDamage (DamageDealEffect.java reads no CounterNum; read only by the Counters*Effect family); forge-game/src/main/java/forge/game/ability/effects/DamageDealEffect.java",
+		"DestroyAll.Hidden":           "inert on api:DestroyAll (DestroyAllEffect.java reads no Hidden; SpellAbility.isHidden's only callers are ChangeZoneEffect.java:52,454); forge-game/src/main/java/forge/game/spellability/SpellAbility.java:2637",
+		"Effect.PumpZone":             "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+		"GenericChoice.ShowChoice":    "UI notify of the chosen value; forge-game/src/main/java/forge/game/ability/effects/ChooseGenericEffect.java:113 (notifyOfValue); gorge's ModeChosen is public (engine/view/describe.go:715)",
+		"PeekAndReveal.NoPeek":        "skips the private look before a public reveal; forge-game/src/main/java/forge/game/ability/effects/PeekAndRevealEffect.java:55,78",
+		"Sacrifice.Mode":              "Discard-family spelling SacrificeEffect never reads; forge-game/src/main/java/forge/game/ability/effects/SacrificeEffect.java (no Mode read)",
+		"Sacrifice.OrString":          "UnlessCost prompt text only (PlaySpellAbility.getOrStringFromCost); SacrificeEffect.java reads no OrString; forge-game/src/main/java/forge/game/player/PlaySpellAbility.java:423",
+		"Token.LockTokenScript":       "opts out of source text-change on the token prototype, which gorge never applies; forge-game/src/main/java/forge/game/card/token/TokenInfo.java:249",
 	}
 	for _, api := range abilityPresentationSecondary {
 		m[api+".Secondary"] = cite
@@ -2931,10 +3058,30 @@ var ignoredAbilityParams = func() map[string]string {
 
 var ignoredStatParams = func() map[string]string {
 	const cite = "static text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179 (Card.java getText callers only)"
-	m := make(map[string]string, len(statPresentationSecondary))
+	// ValidSA$ on the CantAttack/CantBlock halves of a compound
+	// `Mode$ CantAttack,CantBlock,CantBeActivated | ValidSA$ Activated.!ManaAbility`
+	// line (Realmbreaker's Grasp, Intercessor's Arrest; cr-g204): Forge's
+	// StaticAbilityCantAttackBlock never reads ValidSA$ (its params are
+	// UnlessDefender/DefenderNotNearestToYouInChosenDirection/ValidBlocker/
+	// Cost/Trigger/Min/Max), and the value belongs to the sibling
+	// CantBeActivated mode, which the parse-time split shares the Params map
+	// with. engine/effects/restrictions.go's CantAttack face whitelist admits
+	// the key INERT, and the printed CantBlock path (combat.BlockRestricted)
+	// reads no parameter whitelist at all -- neither evaluates it as a gate.
+	const cantAttackBlockValidSA = "inert sibling CantBeActivated param, never a CantAttack/CantBlock gate; forge-game/src/main/java/forge/game/staticability/StaticAbilityCantAttackBlock.java (never reads ValidSA)"
+	m := make(map[string]string, len(statPresentationSecondary)+2)
 	for _, mode := range statPresentationSecondary {
 		m[mode+".Secondary"] = cite
 	}
+	m["CantAttack.ValidSA"] = cantAttackBlockValidSA
+	m["CantBlock.ValidSA"] = cantAttackBlockValidSA
+	// Compound CantAttack/CantBlock/CantBeActivated lines (Intercessor's
+	// Arrest, Realmbreaker's Grasp) put ValidSA$ on the line for the
+	// CantBeActivated mode, which reads it.
+	const compound = "compound-line key read by CantBeActivated; forge-game/src/main/java/forge/game/staticability/StaticAbilityCantAttackBlock.java reads no ValidSA"
+	m["CantAttack.ValidSA"] = compound
+	m["CantBlock.ValidSA"] = compound
+	m["CantCrew.ValidSA"] = "compound-line key read by CantBeActivated; forge-game/src/main/java/forge/game/staticability/StaticAbilityCantCrew.java reads ValidCard only"
 	return m
 }()
 
@@ -3110,7 +3257,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 					if unlessNamesFaceSVar(f, k, v) {
 						continue
 					}
-					for _, tok := range ParseCost(v).Unknown {
+					for _, tok := range censusCostUnknown(f, prim, k, v) {
 						addLabel("cost:" + tok)
 					}
 				}
@@ -3153,7 +3300,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 					if unlessNamesFaceSVar(f, k, v) {
 						continue
 					}
-					for _, tok := range ParseCost(v).Unknown {
+					for _, tok := range censusCostUnknown(f, prim, k, v) {
 						addLabel("cost:" + tok)
 					}
 				}
@@ -3219,7 +3366,7 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 						if unlessNamesFaceSVar(f, k, v) {
 							continue
 						}
-						for _, tok := range ParseCost(v).Unknown {
+						for _, tok := range censusCostUnknown(f, prim, k, v) {
 							addLabel("cost:" + tok)
 						}
 					}
@@ -3601,11 +3748,12 @@ func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	if ignoredParam("api:Meld", "Secondary") {
 		t.Errorf("api:Meld Secondary is classified ignored -- the Meld partner-name read is no longer measurable")
 	}
-	// (c) the Continuous.MayPlay family's whitelist still fail-closes a
-	// Secondary$-carrying grant -- a genuine recognition (mayPlayGrant /
-	// mayPlayParamsScan, layers.go's mayPlayShape), not the text marker, so
-	// the family's Secondary label must stay live (the seven MayPlay
-	// carriers keep theirs) rather than join the ignored list.
+	// (c) the Continuous.MayPlay family also carries Secondary$ only as
+	// Forge's text marker: CardTraitBase.isSecondary() is read by Card.java's
+	// getText renderers and LandAbility.java, never by a static-ability
+	// execution path, so both may-play routes accept and ignore it
+	// (engine/effects/staticline.go mayPlayParamsScan). The scoped ignore must
+	// therefore suppress the family's label.
 	mayPlayCard, diags := cards.ParseBytes("census-probe-mayplay.txt", []byte(
 		"Name: Census Probe MayPlay\nTypes: Creature\nS:Mode$ Continuous | MayPlay$ True | Affected$ Card.Self | AffectedZone$ Exile | Secondary$ True\n"))
 	if len(diags) != 0 {
@@ -3614,14 +3762,13 @@ func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	if statCensusMode(mayPlayCard.Faces[0].Statics[0].Mode, mayPlayCard.Faces[0].Statics[0].Params) != "Continuous.MayPlay" {
 		t.Fatal("mayplay probe static did not map to Continuous.MayPlay -- the probe measures nothing")
 	}
-	hit = false
+	if !ignoredParam("stat:Continuous.MayPlay", "Secondary") {
+		t.Fatalf("stat:Continuous.MayPlay.Secondary is no longer classified as presentation-only -- the census will report a false positive")
+	}
 	for _, l := range cardCensusLabels(mayPlayCard, d, nil) {
 		if l == "param:stat:Continuous.MayPlay.Secondary" {
-			hit = true
+			t.Errorf("MayPlay Secondary$ carrier still labels param:stat:Continuous.MayPlay.Secondary despite the scoped ignore")
 		}
-	}
-	if !hit {
-		t.Errorf("MayPlay Secondary$ carrier did not label param:stat:Continuous.MayPlay.Secondary -- the MayPlay family's Secondary recognition is no longer measurable")
 	}
 }
 

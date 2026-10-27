@@ -772,6 +772,14 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		e.cast.mayPlayPerm = opt.MayPlayPerm
 		e.cast.mayPlayHosts = e.mayPlayHostsCovering(p, id)
 		e.cast.mayPlayHostsSet = true
+		// A may-play grant's own ReplaceGraveyard$ Exile rider ("if a spell
+		// cast this way would be put into your graveyard, exile it instead"):
+		// Forge installs it from the permission the spell was put on the stack
+		// through, so this is the same downstream flag a DB$ Play rider sets.
+		// Only the may-play cast rides a permission; a bargained cast does not.
+		if opt.Mode == "mayplay" {
+			e.cast.replaceGraveyard = e.mayPlayReplacesGraveyard(p, id)
+		}
 	}
 	if e.cast != nil {
 		e.cast.costRemembered = e.costRememberedCapture(id)
@@ -1111,6 +1119,11 @@ func (e *Engine) continueCast() {
 	// carrier pairs both keywords (measured over the corpus), so the two
 	// asks never coexist on one cast.
 	if e.multikickAsk() {
+		return
+	}
+	// CR 601.2b: each Defiler's optional "pay 2 life, {G} less" (a
+	// ReduceColor$ OptionalCost static) is announced the same way.
+	if e.defilerAsk() {
 		return
 	}
 	// CR 601.2b: the squad count (CR 702.66's optional additional cost, paid

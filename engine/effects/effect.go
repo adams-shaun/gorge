@@ -1254,6 +1254,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ExileOnMoved:  exileOn,
 				ForgetCounter: forgetCounter,
 			}
+			if IsUntilTargetedUntapsDuration(rawDur) {
+				// CR 611.2b: the lock lasts while the remembered object stays
+				// tapped, past the end of the turn and whatever becomes of the
+				// source (Braided Net crafts into Braided Quipu). Only rules'
+				// expireUntilTargetedUntaps ends it, at the untap or departure.
+				ce.Permanent = true
+				ce.UntilEOT = false
+			}
 			if mode == "CantAttack" || mode == "CantSacrifice" || mode == "CantBlockBy" || mode == "CantGainLife" || mode == "CantBeCast" || mode == "CantBeActivated" || mode == "CantBlock" {
 				// The player half of the remembered capture: Call for Aid's
 				// RememberObjects$ TargetedPlayer must reach the registered

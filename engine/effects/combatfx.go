@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -198,27 +199,99 @@ func allPlayersFor(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 // controller unless Tapper$ names a player (Forge TapEffect). ETB$ True is the
 // "enters tapped" replacement body (804 corpus files, every ETBTapped land):
 // the permanent is given its entry state and does not become tapped (CR
-// 603.2e), so EmitTap marks it and no Taps trigger runs.
+// 603.2e), so EmitTap marks it and no Taps trigger runs. CardChoices$ swaps
+// the Defined$ walk for tapChoices' pick (Orphans of the Wheat).
 func effTap(h Host, c *Ctx, sa *cards.SA) {
+	p := compileTapParams(sa)
 	tapper := c.Controller
-	if spec := strings.TrimSpace(sa.ParamStr(cards.PKTapper)); spec != "" {
-		if ps := definedPlayerIDs(h, c, spec); len(ps) > 0 {
+	if p.Tapper != "" {
+		if ps := definedPlayerIDs(h, c, p.Tapper); len(ps) > 0 {
 			tapper = ps[0]
 		}
 	}
-	entering := strings.EqualFold(sa.ParamStr(cards.PKETB), "True")
-	for _, t := range Defined(h, c, sa) {
-		if t.IsPlayer {
-			continue
+	if p.RememberTapped {
+		c.Remembered = nil
+		clearEventRemembered(h, c)
+	}
+	// One Tap resolution is one tapping action: the Mode$ TapAll batch fires
+	// once however many permanents it taps. Tap does not suspend, so the
+	// deferred close is exact.
+	defer beginActionBatch(h)()
+	var ids []state.ObjID
+	if p.CardChoices != "" {
+		ids = tapChoices(h, c, sa, p)
+	} else {
+		for _, t := range Defined(h, c, sa) {
+			if !t.IsPlayer {
+				ids = append(ids, t.Obj)
+			}
 		}
-		o := h.Game().Obj(t.Obj)
+	}
+	for _, id := range ids {
+		o := h.Game().Obj(id)
 		// sourceLeftSincePush: "tap this permanent" never reaches the new
 		// object a flickered source became (CR 400.7).
 		if o == nil || o.Zone != state.ZBattlefield || o.Tapped || sourceLeftSincePush(h, c, o) {
 			continue
 		}
-		h.EmitTap(o.ID, tapper, entering)
+		h.EmitTap(o.ID, tapper, p.ETB)
+		if p.RememberTapped {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
+		}
 	}
+}
+
+// tapChoices is the CardChoices$ pick: the battlefield permanents matching it
+// (seat order, then zone order), of which the controller chooses
+// ChoiceAmount$ (AnyNumber$: zero up to that many; the count is capped at the
+// eligible set). Unserved (no tape, no host) the R-9 stand-in is the
+// minimum: none with AnyNumber$, else the first n in order.
+func tapChoices(h Host, c *Ctx, sa *cards.SA, p tapParams) []state.ObjID {
+	g := h.Game()
+	var eligible []state.ObjID
+	for _, pl := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, pl) {
+			if MatchesSpecCtx(g, p.CardChoices, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
+			}
+		}
+	}
+	n := int32(1)
+	if p.hasChoiceAmount {
+		n = Num(h, c, sa, "ChoiceAmount", 1)
+	}
+	if n > int32(len(eligible)) {
+		n = int32(len(eligible))
+	}
+	if n <= 0 || len(eligible) == 0 {
+		return nil
+	}
+	minv := n
+	if p.AnyNumber {
+		minv = 0
+	}
+	prompt := p.ChoicePrompt
+	if prompt == "" {
+		prompt = fmt.Sprintf("Choose %d permanent(s) to tap", n)
+		if p.AnyNumber {
+			prompt = fmt.Sprintf("Choose up to %d permanent(s) to tap", n)
+		}
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min: int(minv), Max: int(n), Source: c.Source, Prompt: prompt}
+	for _, id := range eligible {
+		name := "a permanent"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "tap", Label: name, Obj: id, Player: c.Controller})
+	}
+	if ans, ok := AskTape(h, d); ok {
+		return tapeAnswerObjs(ans)
+	}
+	return eligible[:minv]
 }
 
 // effPump, effPumpAll, effAnimate and effProtection are all continuous
@@ -349,7 +422,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 // The one-sentence rule: a resolution-created one-shot pump honours the
 // duration its script declared instead of being forced to end of turn.
 func durationTiming(dur string) (permanent bool, untilEOT bool) {
-	if IsNextTurnDuration(dur) {
+	if IsNextTurnDuration(dur) || IsUntilYourNextUpkeepDuration(dur) {
 		return false, false
 	}
 	switch durationTimingCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
@@ -967,7 +1040,8 @@ func animateUntilEOT(dur string) bool {
 	if animateHostScoped(dur) || isPerpetualDuration(dur) {
 		return false
 	}
-	return !strings.EqualFold(strings.TrimSpace(dur), "Permanent") && !IsNextTurnDuration(dur)
+	return !strings.EqualFold(strings.TrimSpace(dur), "Permanent") &&
+		!IsNextTurnDuration(dur) && !IsUntilYourNextUpkeepDuration(dur)
 }
 
 // isPerpetualDuration reports Duration$ Perpetual: the effect lasts for the

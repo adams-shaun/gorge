@@ -160,6 +160,15 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// a copy copies the original's targets; a target that has since become
 	// a new object, CR 400.7, is illegal for the copy too).
 	stamps := append([]state.TargetStamp(nil), src.TargetStamps...)
+	// CR 707.10c: the chain's announced targets (SubTargets) are copied the
+	// same way -- but only by a plain spell's non-electing copy. An electing
+	// copy (Amount 1) re-announces each link as its answers arrive, and an
+	// ability, Charm, fused or overloaded copy keeps its chain on the
+	// resolution-time ask (engine/rules copyChainRoot is the same gate).
+	var subTargets []state.Target
+	if e.Amount != 1 && src.Ability == nil && len(src.ChosenModes) == 0 && src.CastFlags&(state.FlagFused|state.FlagOverloaded) == 0 {
+		subTargets = append(subTargets, src.SubTargets...)
+	}
 	remembered := append([]state.Target(nil), src.Remembered...)
 	// CR 707.10: the announced division is a decision made for the spell,
 	// so the copy carries it; positional with Targets (CR 115.7f).
@@ -194,6 +203,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	o.StackKind, o.StackKindKnown = stackKind, stackKindKnown
 	o.GainedFace, o.GainedFrom = gainedFace, gainedFrom
 	o.Targets = targets
+	o.SubTargets = subTargets
 	if len(stamps) > 0 {
 		o.TargetStamps = stamps
 	}

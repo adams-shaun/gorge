@@ -511,6 +511,7 @@ const (
 	PKUntapUpTo
 	PKUseDifferenceBetweenRolls
 	PKUseHighestRoll
+	PKUseImprinted
 	PKValidCards2
 	PKValidDefined
 	PKValidPlayers
@@ -835,6 +836,13 @@ const (
 	// ValidTgtsDesc$: the script's noun for the legal target set; presentation
 	// only (append-only).
 	PKValidTgtsDesc
+	// ReduceColor$ on an OptionalCost static (the Defiler cycle): the colour
+	// whose one pip the paid optional cost removes. Appended: earlier ordinals
+	// stay stable.
+	PKReduceColor
+	// NoPrevention$ True on DealDamage: this ability's damage can't be
+	// prevented (CR 615.12). Appended: earlier ordinals stay stable.
+	PKNoPrevention
 	paramKeyCount
 )
 
@@ -1359,6 +1367,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKUntapUpTo:                        "UntapUpTo",
 	PKUseDifferenceBetweenRolls:        "UseDifferenceBetweenRolls",
 	PKUseHighestRoll:                   "UseHighestRoll",
+	PKUseImprinted:                     "UseImprinted",
 	PKValidCards2:                      "ValidCards2",
 	PKValidDefined:                     "ValidDefined",
 	PKValidPlayers:                     "ValidPlayers",
@@ -1630,6 +1639,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidSpellAbility:                "ValidSpellAbility",
 	PKAddReplacementEffect:             "AddReplacementEffect",
 	PKValidTgtsDesc:                    "ValidTgtsDesc",
+	PKReduceColor:                      "ReduceColor",
+	PKNoPrevention:                     "NoPrevention",
 }
 
 // String is the key's Forge text.

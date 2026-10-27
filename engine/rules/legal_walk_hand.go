@@ -389,7 +389,7 @@ func (w *legalWalk) handWalk() {
 					break
 				}
 			}
-		} else if w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, convokeBase), spellScope(""), false) && targetsAvailable() {
+		} else if plain := pay.WithSpellAbilityExtras(f, convokeBase); (w.offerCastable(p, id, plain, spellScope(""), false) || w.reducedOptionalCastable(p, id, plain)) && targetsAvailable() {
 			w.add("cast", w.castLabel(f), id)
 		}
 		if views := e.optionalCostViews(costStatics.get(), p, id); len(views) > 0 {

@@ -207,11 +207,13 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 		// exactly that many, so none is found (the fail-to-find tail below);
 		// when they do exist, the ask below admits exactly that many or none
 		// (Decision.AllowNone).
-		if cz.DifferentNames {
+		// DifferentPower$ True (Threats Undetected) clamps the same way over the
+		// distinct powers.
+		if cz.DifferentNames || cz.DifferentPower {
 			names := make(map[string]bool, len(budgetEligible))
 			for _, id := range budgetEligible {
-				if o := g.Obj(id); o != nil && o.Face() != nil {
-					names[o.Face().Name] = true
+				if key := searchDistinctKey(h, cz, id); key != "" {
+					names[key] = true
 				}
 			}
 			if distinct := int32(len(names)); max > distinct {
@@ -280,7 +282,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 		// pick, with no fail-to-find choice -- so no player is asked and the
 		// pick replays. The EACH, WithTotalCMC$ and DifferentNames$ shapes
 		// keep the ask (measured: no AtRandom$ carrier uses them).
-		if cz.AtRandom && !hasBudget && !cz.DifferentNames {
+		if cz.AtRandom && !hasBudget && !cz.DifferentNames && !cz.DifferentPower {
 			if _, each := eachAlternatives(spec); !each {
 				c.Search.Target = targetIndex
 				applyLibrarySearch(h, c, sa, cz, owner, to, randomObjIDs(h, budgetEligible, int(max)), zones)
@@ -307,7 +309,9 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 		// same card twice -- the wire enforces what Forge's one-at-a-time loop
 		// (the DifferentNames fetchList filter) enforces there. The apply side
 		// dedupes a host that bypassed the wire (applyLibrarySearch).
-		differentNames := cz.DifferentNames
+		// DifferentPower$ True (Threats Undetected) is the same shape keyed on
+		// the card's power (searchDistinctKey); DifferentNames$ takes precedence.
+		differentNames := cz.DifferentNames || cz.DifferentPower
 		// Forge's EACH multi-type search grammar ("EACH Forest & Plains"): the
 		// pick is per-type, never a flat count over the union. One option per
 		// eligible card, the sub-spec's ordinal in Option.Group, per-type
@@ -382,7 +386,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 					opt.Value = manaValueOf(g, id)
 				}
 				if differentNames && cardName != "" {
-					opt.Group = cardName
+					opt.Group = searchDistinctKey(h, cz, id)
 				}
 				d.Options = append(d.Options, opt)
 			}
@@ -504,10 +508,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 						if len(picked) >= n {
 							break
 						}
-						var cardName string
-						if o := g.Obj(id); o != nil && o.Face() != nil {
-							cardName = o.Face().Name
-						}
+						cardName := searchDistinctKey(h, cz, id)
 						if seen[cardName] {
 							continue
 						}
@@ -1199,14 +1200,11 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// per card name, so a validated wire answer cannot repeat a name. A host
 	// that bypassed the wire (bot clamp top-up, a direct resume) is deduped
 	// here deterministically -- first per name in answer order.
-	if cz.DifferentNames {
+	if cz.DifferentNames || cz.DifferentPower {
 		seenNames := make(map[string]bool, len(chosen))
 		deduped := make([]state.ObjID, 0, len(chosen))
 		for _, id := range chosen {
-			name := ""
-			if o := g.Obj(id); o != nil && o.Face() != nil {
-				name = o.Face().Name
-			}
+			name := searchDistinctKey(h, cz, id)
 			if name != "" && seenNames[name] {
 				continue
 			}
@@ -1548,3 +1546,23 @@ var totalCardTypesSatisfiedCodes = state.NewStrCodes(
 	state.StrEntry[totalCardTypesSatisfiedCode]{Key: "Planeswalker", Val: totalCardTypesSatisfiedCardType},
 	state.StrEntry[totalCardTypesSatisfiedCode]{Key: "Sorcery", Val: totalCardTypesSatisfiedCardType},
 )
+
+// searchDistinctKey is the pairwise-distinct key of a hidden-library search
+// card: its name under DifferentNames$ True, its power ("power:N", so it can
+// never collide with a name) under DifferentPower$ True (Threats Undetected;
+// Forge's getNetPower, which chooseCardPower reads off the battlefield). ""
+// when neither is set or the card has no face. DifferentNames$ takes
+// precedence; no card carries both.
+func searchDistinctKey(h Host, cz *ChangeZoneParams, id state.ObjID) string {
+	o := h.Game().Obj(id)
+	if o == nil || o.Face() == nil {
+		return ""
+	}
+	if cz.DifferentNames {
+		return o.Face().Name
+	}
+	if cz.DifferentPower {
+		return "power:" + strconv.Itoa(chooseCardPower(h, id))
+	}
+	return ""
+}

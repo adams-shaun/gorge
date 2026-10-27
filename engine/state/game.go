@@ -402,6 +402,14 @@ type Game struct {
 	// The same event-folded, replay-exact shape CombatsThisTurn uses, so no
 	// new event or event field is needed.
 	EndStepsThisTurn int32
+	// MainPhasesThisTurn counts the main phases BEGUN this turn (one per
+	// StepMain1 or StepMain2 StepChange, folded in engine/events/apply_turn.go,
+	// reset at TurnChange): 1 in the precombat main, 2 in the first postcombat
+	// main, 3 in an extra main phase an api:AddPhase grant spliced in. It backs
+	// Forge's PhaseHandler.beforeFirstPostCombatMainEnd, the gate World at
+	// War's BeforeFirstPostCombatMainEnd$ True reads. The same event-folded,
+	// replay-exact shape CombatsThisTurn uses, so no new event is needed.
+	MainPhasesThisTurn int32
 	// ResolvedThisTurn counts, per resolving ability, how many times THAT
 	// ability has resolved this turn, INCLUDING the resolution whose tally is
 	// being read. It backs Forge's Count$ResolvedThisTurn (Sephiroth, Fabled

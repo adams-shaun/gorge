@@ -203,6 +203,7 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.Manifested = false
 			o.FaceDownSetType, o.FaceDownPower, o.FaceDownToughness, o.FaceDownHasPT = "", 0, 0, false
 		} else if e.To == state.ZExile {
+			foldExileExiler(g, o, e)
 			switch moveCounter {
 			case "exiled_with_face_down", "exiled_with_face_down_foretold":
 				// A blind face-down exile (Necropotence's top-card exile; a
@@ -1366,4 +1367,18 @@ func withoutExileReturnObj(entries []state.ExileReturnEntry, id state.ObjID) []s
 		return out
 	}
 	return entries
+}
+
+// foldExileExiler folds the MarkExileExiler payload. The face-down exile markers
+// override Counter and keep their own Amount layouts, so this no-ops for them;
+// the DefinedExiler$ arm below still owns ExiledBy for those.
+func foldExileExiler(g *state.Game, o *state.Object, e *Event) {
+	if o == nil || e.Kind != MoveZone || e.To != state.ZExile || e.Counter != ExileExilerCounter {
+		return
+	}
+	p := state.PlayerID(e.Amount)
+	if !validPlayer(g, p) {
+		return
+	}
+	o.ExiledBy, o.HasExiledBy = p, true
 }

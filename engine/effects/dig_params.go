@@ -85,11 +85,26 @@ type DigParams struct {
 	// its Num-grammar amount (default 1): a battlefield take enters with them.
 	WithCounters       string
 	WithCountersAmount ParamText
+	// ExileWithCounters is ExileWithCounters$ (a counter kind): a card the Dig
+	// moves to exile gets one counter of it there (CR 122.1; Karn, Scion of
+	// Urza's "exile the other with a silver counter on it").
+	ExileWithCounters string
 	// WithDifferentPowers is WithDifferentPowers$ True: the take is a set
 	// whose chosen cards must have pairwise different powers (Rip, Spawn
 	// Hunter). The ask carries decision.SetPropDistinct with one power token
 	// per option; the deterministic take is the greedy first-of-each-power.
 	WithDifferentPowers bool
+	// RevealOptional is RevealOptional$ True (Urza Assembles the Titans: "you
+	// may reveal the top card"): the digging player elects whether the window is
+	// revealed. RememberRevealed is RememberRevealed$ True: a revealed window
+	// joins Remembered before the ChangeValid$ filter runs. SetChosenPlayer is
+	// SetChosenPlayer$ True (Memories Returning): the resolved Choser$ becomes the
+	// source's chosen player. ForceRevealTo is the ForceReveal$ player selector
+	// (Gonti, Night Minister): the player the window is revealed to.
+	RevealOptional   bool
+	RememberRevealed bool
+	SetChosenPlayer  bool
+	ForceRevealTo    string
 
 	// Unread are the parameters present on the ability that no Dig reader
 	// consumes: the resolution Notes them once.
@@ -103,10 +118,10 @@ type DigParams struct {
 var digKnownKeys = [...]string{
 	"AILifeThreshold",
 	"AILogic",
-	"AINoRecursiveCheck",
+	"AIMinTgts", "AINoRecursiveCheck",
 	"AIPhyrexianPayment",
-	"AITgts",
-	"Activation",
+	"AITgtOwnCards", "AITgts",
+	"AIXMax", "Activation",
 	"ActivationAfterBlockers",
 	"ActivationFirstCombat",
 	"ActivationGameTypes",
@@ -128,13 +143,13 @@ var digKnownKeys = [...]string{
 	"Boast",
 	"CantCopy",
 	"ChangeNum",
-	"ChangeTypeDesc",
+	"ChangeNumDesc", "ChangeTypeDesc",
 	"ChangeValid",
 	"ChangeValidDesc",
 	"CharacteristicDefining",
 	"CheckSVar",
-	"ChoiceTitle",
-	"ChoiceZone",
+	"ChoiceDesc", "ChoiceTitle",
+	"ChoiceTitleAppend", "ChoiceZone",
 	"Choices",
 	"ChooseFromList",
 	"Choser",
@@ -172,16 +187,18 @@ var digKnownKeys = [...]string{
 	"Exclude",
 	"Exhaust",
 	"ExileFaceDown",
+	"ExileWithCounters",
 	"FaceDown",
 	"FaceDownPower",
 	"FaceDownSetType",
 	"FaceDownToughness",
+	"ForceReveal",
 	"ForceRevealToController",
 	"Foretold",
 	"ForgetOtherRemembered",
 	"ForgetOtherTargets",
 	"FromBottom",
-	"GainControl",
+	"FromDesc", "GainControl",
 	"GainsAbilitiesOf",
 	"GainsTriggerAbsOf",
 	"GameActivationLimit",
@@ -198,7 +215,7 @@ var digKnownKeys = [...]string{
 	"KeywordLine",
 	"LibraryPosition",
 	"LibraryPosition2",
-	"ManaConversion",
+	"LockInText", "ManaConversion",
 	"MaxTotalTargetCMC",
 	"MaxTotalTargetPower",
 	"Mentor",
@@ -227,8 +244,9 @@ var digKnownKeys = [...]string{
 	"ReduceCost",
 	"RememberAnimated",
 	"RememberChanged",
-	"RememberCostMana",
+	"RememberChosen", "RememberCostMana",
 	"RememberObjects",
+	"RememberRevealed",
 	"RememberTargets",
 	"ReplaceColor",
 	"ReplaceGraveyard",
@@ -240,9 +258,11 @@ var digKnownKeys = [...]string{
 	"ReturnAbility",
 	"ReturnValid",
 	"Reveal",
+	"RevealOptional",
 	"SVarCompare",
 	"SelectPrompt",
 	"SetChosenMode",
+	"SetChosenPlayer",
 	"SetColor",
 	"SharedRestrictions",
 	"ShowCards",
@@ -390,7 +410,12 @@ func compileDig(sa *cards.SA) *DigParams {
 	p.DestZone2Optional = isTrue(rawParamText(sa, "DestZone2Optional").Text)
 	p.WithCounters = strings.TrimSpace(rawParamText(sa, "WithCounters").Text)
 	p.WithCountersAmount = rawParamText(sa, "WithCountersAmount")
+	p.ExileWithCounters = strings.TrimSpace(rawParamText(sa, "ExileWithCounters").Text)
 	p.WithDifferentPowers = isTrue(rawParamText(sa, "WithDifferentPowers").Text)
+	p.RevealOptional = isTrue(rawParamText(sa, "RevealOptional").Text)
+	p.RememberRevealed = isTrue(rawParamText(sa, "RememberRevealed").Text)
+	p.SetChosenPlayer = isTrue(rawParamText(sa, "SetChosenPlayer").Text)
+	p.ForceRevealTo = strings.TrimSpace(rawParamText(sa, "ForceReveal").Text)
 	p.Unread = unreadKeys(sa, digKnownKeys[:])
 	return p
 }

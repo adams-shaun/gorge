@@ -73,12 +73,23 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // recognisedPredicate classifier drives, so the check cannot drift from what
 // countPresent really resolves.
 //
+// ValidSA$ is admitted INERT. Forge's StaticAbilityCantAttackBlock never reads
+// it (its params are UnlessDefender, DefenderNotNearestToYouInChosenDirection,
+// ValidBlocker, Cost, Trigger, Min, Max) and XMage's Realmbreaker's Grasp is an
+// unconditional CantAttackBlockAttachedEffect. It reaches a CantAttack static
+// only because the parse-time split (f81f996e) hands every mode of a compound
+// `Mode$ CantAttack,CantBlock,CantBeActivated | ValidSA$ ...` line the SAME
+// Params map, where ValidSA$ belongs to the sibling CantBeActivated mode
+// ("activated abilities ... unless they're mana abilities"). Admitting it lets
+// the attack half bind instead of skipping the whole static; it is read and
+// ignored, never evaluated as a gate.
+//
 // The Effect-delivered registration gate (effEffect, which keeps the narrower
 // CantRestrictionParamsReadable for BOTH modes) cannot share this list: its
 // continuous path reads neither evaluator, so a gate-bearing body must not
 // register blanket -- a gated "can't attack" would become unconditional,
 // over-restricting, and could leave a MustAttack creature with no legal pair.
-// A static carrying any OTHER parameter (ValidCause$, ForCost$, ValidSA$,
+// A static carrying any OTHER parameter (ValidCause$, ForCost$,
 // Cost$, ...) still fails the whitelist and is skipped whole, the deliberate
 // permissive direction. Iterating the params map only yields a boolean, so map
 // order never reaches an event/option/view -- determinism is preserved.
@@ -884,6 +895,21 @@ func IsNextTurnDuration(dur string) bool {
 	return false
 }
 
+// IsUntilYourNextUpkeepDuration reports Duration$ UntilYourNextUpkeep (Elkin
+// Bottle, Erhnam Djinn, Xenic Poltergeist, ...): the effect lasts until the
+// beginning of its controller's next upkeep. It is deliberately NOT
+// IsNextTurnDuration -- that spelling would give it an end-of-turn UntilTurn
+// boundary. rules' dropUntilYourNextUpkeep drops it as the upkeep begins.
+// UntilTheEndOfYourNextUpkeep (Halfdane) is a different boundary and does not
+// match.
+func IsUntilYourNextUpkeepDuration(dur string) bool {
+	switch isNextTurnDurationCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
+	case isNextTurnDurationUntilYourNextUpkeep:
+		return true
+	}
+	return false
+}
+
 // IsUntilYourNextTurn distinguishes the start-of-next-turn boundary from
 // UntilTheEndOfYourNextTurn, which lasts through that turn's cleanup.
 func IsUntilYourNextTurn(dur string) bool {
@@ -1334,6 +1360,11 @@ func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
 	if IsUntapStepDuration(dur) {
 		return false
 	}
+	// UntilYourNextUpkeep likewise outlives this turn's cleanup and its
+	// source; rules drops it as the controller's next upkeep begins.
+	if IsUntilYourNextUpkeepDuration(dur) {
+		return false
+	}
 	// CR 611.2a: an explicit Duration$ Permanent lasts indefinitely whatever
 	// the source's type (Soul Partition's instant keeps its may-play); only an
 	// absent Duration$ takes the one-shot spell default below.
@@ -1444,7 +1475,7 @@ func clauseIsRemembered(clause string) (neg, has bool) {
 
 var cantRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "Target", "Description", "Secondary")
 
-var cantAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCard", "Target", "Description", "Secondary", "CheckSVar", "SVarCompare", "Condition", "UnlessDefender", "IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "ClassBand")
+var cantAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCard", "Target", "Description", "Secondary", "CheckSVar", "SVarCompare", "Condition", "UnlessDefender", "IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "ClassBand", "ValidSA")
 
 var cantBlockByRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidAttacker", "ValidBlocker", "ValidCard", "Description", "Secondary")
 
@@ -1548,11 +1579,13 @@ type isNextTurnDurationCode uint16
 
 const (
 	isNextTurnDurationUntilYourNextTurn isNextTurnDurationCode = iota + 1
+	isNextTurnDurationUntilYourNextUpkeep
 )
 
 var isNextTurnDurationCodes = state.NewStrCodes(
 	state.StrEntry[isNextTurnDurationCode]{Key: "untilyournextturn", Val: isNextTurnDurationUntilYourNextTurn},
 	state.StrEntry[isNextTurnDurationCode]{Key: "untiltheendofyournextturn", Val: isNextTurnDurationUntilYourNextTurn},
+	state.StrEntry[isNextTurnDurationCode]{Key: "untilyournextupkeep", Val: isNextTurnDurationUntilYourNextUpkeep},
 )
 
 type redirectDefinedCode uint16

@@ -1377,6 +1377,37 @@ func (e *Engine) mayPlayHostsCovering(p state.PlayerID, id state.ObjID) []state.
 	return out
 }
 
+// mayPlayReplacesGraveyard reports whether any may-play permission covering
+// id for p carries ReplaceGraveyard$ Exile -- Maestros Ascendancy's and Kess,
+// Dissident Mage's "if a spell cast this way would be put into your graveyard,
+// exile it instead." Forge installs the same replacement a DB$ Play's rider
+// uses (MagicStack.java's sp.getMayPlay() arm), so beginCast records the flag
+// on the pending cast and payCast stamps state.FlagReplaceGraveyard, which
+// spellRestZone/spellFizzleZone already read.
+//
+// The walk is the grant walk's two gates: mayPlayStaticBenefits (whose "you"
+// the static reads for) and mayPlayGrantedBy (the static really grants this
+// card's cast from its current zone). gorge's untyped may-play model rides
+// EVERY covering grant (mayPlayRaiseCost sums every raise, castRidesMayPlayOf
+// records every host), so "any covering grant carries the rider" is the rule;
+// a static that only exempts the mana cost (MayPlayDontGrantZonePermissions$)
+// does not reach here because mayPlayGrantedBy requires a grant.
+//
+// The value is compared without normalisation (the strings-call ratchet): the
+// corpus spells the rider exactly `Exile` on both carriers, and the static
+// parameter parser already trims the field.
+func (e *Engine) mayPlayReplacesGraveyard(p state.PlayerID, id state.ObjID) bool {
+	for _, sv := range e.activeStatics("Continuous") {
+		if !mayPlayStaticBenefits(p, &sv) || !e.mayPlayGrantedBy(p, id, sv.Source) {
+			continue
+		}
+		if sv.ParamStr(cards.PKReplaceGraveyard) == "Exile" {
+			return true
+		}
+	}
+	return false
+}
+
 // castRidesMayPlayOf reports whether the cast being priced under scope is a
 // may-play cast whose permission host is host (Forge's MayPlaySource). Only
 // the "mayplay" cast mode rides a may-play permission. The pending cast of id

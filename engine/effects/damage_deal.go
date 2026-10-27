@@ -130,6 +130,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// engine/rules/combat.go's damage step (the reference shape this class was
 	// modelled on).
 	rider := newDamageRider(h, c, dp.DamageSource, n)
+	rider.noPrevention = dp.NoPrevention
 	prev := h.SetDamageSource(rider.source)
 	defer h.SetDamageSource(prev)
 	// A multi-target DealDamage is one simultaneous damage event for triggers
@@ -470,6 +471,7 @@ func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sour
 		// would collapse every source onto the first match again): it names
 		// no spec, so its source is the per-source ctx's own.
 		rider := newDamageRider(h, pc, "", n)
+		rider.noPrevention = dp.NoPrevention
 		prev := h.SetDamageSource(rider.source)
 		for _, t := range recips {
 			if t.IsPlayer {

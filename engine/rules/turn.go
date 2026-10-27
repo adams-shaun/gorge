@@ -648,6 +648,14 @@ func (e *Engine) setStep(s state.Step) {
 	previous, previousSet := e.stepLeaving, e.stepLeavingSet
 	e.stepLeaving, e.stepLeavingSet = leaving, true
 	e.cleanupWindow = false
+	if s == state.StepUpkeep && s != leaving {
+		// Before the StepChange emit: a Phase$ Upkeep trigger is queued inside
+		// it and must not see an "until your next upkeep" effect still live.
+		if kept, changed := dropUntilYourNextUpkeep(e.continuous, e.G.Active); changed {
+			e.continuous = kept
+			e.continuousChanged()
+		}
+	}
 	e.emit(events.Event{Kind: events.StepChange, Step: s})
 	e.stepLeaving, e.stepLeavingSet = previous, previousSet
 	if e.pending != nil {

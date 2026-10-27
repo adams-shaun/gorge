@@ -385,6 +385,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 			eventRemember(h, c, id)
 		}
+		// ForgetChanged$ True runs after the remember handling (Forge
+		// ChangeZoneAllEffect order), so remember + forget leaves the card out.
+		eventForgetChanged(h, c, sa, id)
 	}
 	if randomOrder {
 		type pendingMove struct {

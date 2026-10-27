@@ -199,3 +199,89 @@ diagnostic, not a stand-in. `TestMixedOriginNoteStillFiresWhenNothingMoves`
 `TestWorldsoulsRagePicksFromHandAndGraveyardInOneAnswer`
 (`engine/rules/worldsouls_rage_mixed_origin_test.go`) pins the multi-pick
 search.
+
+## Extra phases: CR 500.8 order, passed splice points, nested ranges
+
+`DB$ AddPhase` grants one `ExtraPhase` event whose fold is `Game.ExtraPhases`
+(a queue spliced into the CURRENT turn). Four edges are deliberate, match Forge
+(`PhaseHandler`: a per-phase LIFO stack of extra phases, `extraPhases.clear()`
+when the turn ends) and XMage (`Turn.java`, LIFO extra phases), and are pinned:
+
+- **Order (CR 500.8):** extra phases created after the same phase occur most
+  recent first. `TestCR500_8MostRecentExtraPhaseOccursFirst`
+  (`engine/rules/cr500_extra_phase_lifo_test.go`).
+- **A passed splice point is dropped:** a grant whose splice step the walk has
+  already left this turn is cleared at `TurnChange`, never carried into the next
+  turn. `TestExtraPhaseQueueDoesNotSurviveTheTurn`
+  (`engine/rules/addphase_test.go`).
+- **A splice mid-range of another active extra phase** continues the outer range
+  afterwards. `TestExtraPhaseSpliceMidRangeContinuesTheOuterRange`
+  (`engine/rules/addphase_multistep_test.go`).
+- **Several extra phases completing at the same step** resume at the LAST
+  completed grant's resume point (the innermost one's).
+  `TestExtraPhaseMultiCompletionTakesTheLastResume`
+  (`engine/rules/addphase_multistep_test.go`).
+
+`effAddPhase`'s Notes (an unresolvable `ExtraPhase$`/`AfterPhase$`/`FollowedBy$`/
+`NumPhases$`/delayed-trigger value, a non-contiguous multi-step set) are
+fail-closed guards no corpus card reaches;
+`TestAddPhaseCorpusValuesResolveWithoutNote` (`engine/effects/addphase_corpus_census_test.go`)
+holds that. `BeforeFirstPostCombatMainEnd$ True` (World at War) refuses the
+grant once a main phase after the first postcombat main has begun, read from the
+folded `Game.MainPhasesThisTurn` (Forge's `nMainsThisTurn <= (is(MAIN2) ? 2 : 1)`):
+`TestWorldAtWarAfterTheFirstPostcombatMainGrantsNothing`.
+
+## A stack copy keeps alternative-cost provenance (CR 707.10)
+
+`events.StackCopy` inherits the original's `CastFlags` except the bits in
+`state.CastProvenanceFlags`, and that split is the rule, not an approximation:
+
+- **Kept:** `FlagEvoked`, `FlagDashed` and `FlagWarped` record that an
+  alternative cost was paid, and CR 707.10 copies all alternative costs. The
+  token the copy becomes therefore gets the same battlefield-entry hook:
+  evoke's sacrifice (CR 702.74a), dash's haste and end-step return
+  (CR 702.109a), and warp's end-step exile (CR 702.185a). Pinned by
+  `TestCopyOfEvokedSpellIsSacrificed`,
+  `TestCopyOfDashedSpellReturnsAtEndStep` and
+  `TestCopyOfWarpedSpellIsExiledAtEndStep`
+  (`engine/rules/altcost_copy_provenance_test.go`).
+- **Lost:** `state.CastProvenanceFlags` lists the bits whose readers are
+  conditioned on the spell having been CAST, so a copy -- put on the stack,
+  never cast -- must not inherit them. `FlagMayFlashSac` is one: its rider is
+  "if you cast it any time a sorcery couldn't have been cast".
+  `TestMayFlashSacCopiedSpellIsNotSacrificed` (`engine/rules/mayflashsac_test.go`)
+  pins that half.
+
+## Corpus-absent Manifest/Cloak shapes stay loud
+
+The Manifest family (`Manifest`, `ManifestDread`, `Cloak`) implements every
+corpus shape, including the `Defined$` object forms (`Remembered`,
+`ValidLibrary ...`, `ValidHand ...`; Forge `ManifestBaseEffect`'s
+`getTargetCards` branch, where `Amount$` does not limit the defined set) and an
+`Amount$ X`/`Y` the card declares as an SVar. `Shuffle$ True` is the pile
+shuffle (CR 701.24a: a pile is not a library): no `events.Shuffle`. What stays
+loud (the same "unimplemented API <name>" note, nothing moved) has no corpus
+carrier:
+
+- `ManifestDread | Choices$` (the chooser form);
+- a `ChoiceZone$` other than `Hand` on a Manifest or Cloak `Choices$` form;
+- a Manifest `Defined$` outside `Remembered`/`ValidLibrary`/`ValidHand`, or a
+  `Defined$` beside `Choices$`;
+- a Cloak `Defined$` outside `TopOfLibrary`/`Remembered`/`ValidLibrary` (or a
+  `DefinedPlayer$`);
+- a literal `X`/`Y` `Amount$` the card does not declare as an SVar, and an
+  `Amount$` body the resolution cannot evaluate.
+
+The printed-shape decisions live in one place,
+`effects.ManifestFamilyShapeSupported` (`engine/effects/manifest_params.go`),
+which the three primitives call before moving anything.
+`TestManifestFamilyCorpusShapesAreSupported`
+(`engine/rules/manifest_defined_close_test.go`) runs every corpus Manifest,
+ManifestDread and Cloak SA through it, so the census and the primitives cannot
+disagree. The unresolvable-`Amount$` case needs the resolution's context and is
+checked at run time only.
+
+The retired "Ordinary filters read the printed face, missing a manifested Elf"
+approximation is closed by the face-down type gate:
+`TestFaceDownHidesPrintedSubtypes` (`engine/effects/facedown_type_test.go`) and
+`TestFaceDownPermanentHasNoName` (`engine/rules/face_down_characteristics_test.go`).

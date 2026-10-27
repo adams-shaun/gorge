@@ -531,6 +531,15 @@ var predicates = map[string]predFn{
 	"ExiledWithSourceLKI": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		return exiledBySource(g, o, src)
 	},
+	// ExiledByYou is Forge's CardProperty ExiledByYou: the card's recorded exiler is
+	// the evaluating player. state.Object.ExiledBy/HasExiledBy is the one field;
+	// events.Apply folds it from the DefinedExiler$ marker and from the
+	// MarkExileExiler payload. No recorded exiler never matches; seat 0 is a real
+	// answer (HasExiledBy). The predicate does not check the zone -- AffectedZone$
+	// does.
+	"ExiledByYou": func(_ *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
+		return o != nil && o.HasExiledBy && o.ExiledBy == you
+	},
 	// escaped is the CastFlags provenance of an escape cast (CR 702.42a): the
 	// "sacrifice it unless it escaped" ETB family reads it through
 	// Card.Self+escaped (Kroxa, Uro, Phlage), as do the escape-with-counters
@@ -566,8 +575,10 @@ var predicates = map[string]predFn{
 		return o != nil && o.Zone == state.ZExile && o.Counter("TIME") > 0 &&
 			(o.SuspendGranted || (o.CastFlags&state.FlagSuspend) != 0 || (o.Face() != nil && o.Face().HasKeywordRef(kwRefSuspend)))
 	},
-	// wasCastFromGraveyard is the CastFlags provenance of a GRAVEYARD-ORIGIN
-	// cast (CR 601.2b): any of FlagFlashback, FlagHarmonize or FlagEscaped.
+	// wasCastFromGraveyard is the provenance of a GRAVEYARD-ORIGIN cast
+	// (CR 601.2a): the latest cast came from a graveyard, whether by a
+	// keyword flag (flashback, harmonize, jump-start, escape) or a may-play
+	// permission (Festival of Embers) that sets none.
 	// The same object-aware read the Count$wasCastFromGraveyard branch head
 	// shares (engine/effects/count.go) and its compiled twin mirrors
 	// (engine/effects/compiled_predicate.go's predicateTermWasCastFromGraveyard);

@@ -127,6 +127,11 @@ type damageRider struct {
 	hasInfect     bool
 	hasWither     bool
 	hasDeathtouch bool
+	// noPrevention is DealDamage's NoPrevention$ True (CR 615.12): the
+	// emit functions publish it around the Damage event so rules' prevention
+	// gates skip it. It rides the rider so a DamageMap mark carries its own
+	// ability's flag to the DamageResolve flush.
+	noPrevention bool
 }
 
 // resolveSourceObject unwraps one object id to the permanent a damage rider
@@ -387,7 +392,7 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 	}
 	// An animated planeswalker's "creature" tag (CR 120.3e) is derived for
 	// every Damage emitter by rules' recomputeWalkerCreatureMarker.
-	applied := h.EmitDamage(ev)
+	applied := emitDamageEvent(r, ev)
 	dealt := int32(0)
 	if applied.Kind == events.Damage {
 		dealt = applied.Amount
@@ -398,6 +403,18 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 	}
 	payLifelinkRider(r, dealt)
 	return dealt
+}
+
+// emitDamageEvent emits one non-combat Damage event, publishing the rider's
+// NoPrevention$ bit around it (set and restored exactly as SetDamageSource
+// is) so the "can't be prevented" fact reaches every prevention gate.
+func emitDamageEvent(r damageRider, ev events.Event) events.Event {
+	if !r.noPrevention {
+		return r.h.EmitDamage(ev)
+	}
+	prev := r.h.SetDamageNoPrevention(true)
+	defer r.h.SetDamageNoPrevention(prev)
+	return r.h.EmitDamage(ev)
 }
 
 // emitPlayerDamage lands one non-combat Damage event on a player and pays the
@@ -417,7 +434,7 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) {
 		// creature, where Engine.emit recomputes it into counter form.
 		ev.Counter = "wither"
 	}
-	applied := r.h.EmitDamage(ev)
+	applied := emitDamageEvent(r, ev)
 	dealt := int32(0)
 	if applied.Kind == events.Damage {
 		dealt = applied.Amount

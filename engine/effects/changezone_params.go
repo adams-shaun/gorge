@@ -179,6 +179,7 @@ type ChangeZoneParams struct {
 	Reveal                 bool
 	NoReveal               bool
 	DifferentNames         bool
+	DifferentPower         bool
 	Exactly                bool
 	ShareLandType          bool
 	ShuffleTrue            bool // Shuffle$ True
@@ -230,10 +231,10 @@ type changeZoneTargeting struct {
 var changeZoneKnownKeys = [...]string{
 	"AILifeThreshold",
 	"AILogic",
-	"AINoRecursiveCheck",
+	"AIMinTgts", "AINoRecursiveCheck",
 	"AIPhyrexianPayment",
-	"AITgts",
-	"Activation",
+	"AITgtOwnCards", "AITgts",
+	"AIXMax", "Activation",
 	"ActivationAfterBlockers",
 	"ActivationFirstCombat",
 	"ActivationGameTypes",
@@ -261,14 +262,14 @@ var changeZoneKnownKeys = [...]string{
 	"Boast",
 	"CantCopy",
 	"ChangeNum",
-	"ChangeType",
+	"ChangeNumDesc", "ChangeType",
 	"ChangeTypeDesc",
 	"ChangeValidDesc",
 	"CharacteristicDefining",
 	"CheckSVar",
-	"ChoiceOptional",
+	"ChoiceDesc", "ChoiceOptional",
 	"ChoiceTitle",
-	"ChoiceZone",
+	"ChoiceTitleAppend", "ChoiceZone",
 	"Choices",
 	"ChooseFromDefined",
 	"ChooseFromList",
@@ -306,6 +307,7 @@ var changeZoneKnownKeys = [...]string{
 	"Destination",
 	"DestinationAlternative",
 	"DifferentNames",
+	"DifferentPower",
 	"Duration",
 	"Exactly",
 	"Exclude",
@@ -320,7 +322,7 @@ var changeZoneKnownKeys = [...]string{
 	"ForgetChanged",
 	"ForgetOtherRemembered",
 	"ForgetOtherTargets",
-	"GainControl",
+	"FromDesc", "GainControl",
 	"GainsAbilitiesOf",
 	"GainsTriggerAbsOf",
 	"GameActivationLimit",
@@ -340,7 +342,7 @@ var changeZoneKnownKeys = [...]string{
 	"LeaveBattlefield",
 	"LibraryPosition",
 	"LibraryPositionAlternative",
-	"ManaConversion",
+	"LockInText", "ManaConversion",
 	"Mandatory",
 	"MaxRevealed",
 	"MaxTotalTargetCMC",
@@ -703,6 +705,7 @@ func compileChangeZone(sa *cards.SA, tp *TargetParams, dr *DefinedParams) *Chang
 	p.Reveal = isTrue(sa.ParamStr(cards.PKReveal))
 	p.NoReveal = isTrue(sa.ParamStr(cards.PKNoReveal))
 	p.DifferentNames = isTrue(sa.ParamStr(cards.PKDifferentNames))
+	p.DifferentPower = isTrue(rawParamText(sa, "DifferentPower").Text)
 	p.Exactly = isTrue(sa.ParamStr(cards.PKExactly))
 	p.ShareLandType = isTrue(sa.ParamStr(cards.PKShareLandType))
 	shuffle := strings.TrimSpace(sa.ParamStr(cards.PKShuffle))
@@ -713,6 +716,13 @@ func compileChangeZone(sa *cards.SA, tp *TargetParams, dr *DefinedParams) *Chang
 	p.RandomOrder = compileChangeZoneRandomOrder(sa)
 	p.Reorder = isTrue(sa.ParamStr(cards.PKReorder))
 	p.Unread = changeZoneUnread(sa)
+	if p.DifferentNames && p.DifferentPower {
+		// No card carries both; DifferentNames$ wins and the loud-degrade Note
+		// names the ignored key.
+		p.DifferentPower = false
+		p.Unread = append(p.Unread, "DifferentPower")
+		slices.Sort(p.Unread)
+	}
 	return p
 }
 

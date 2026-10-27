@@ -75,7 +75,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 307.5a | follows | `engine/rules/mayflashsac.go#Engine.offSorceryAtCast` | - | - |
 | 308.1 | follows | `engine/rules/chars/types.go#IsCardType` | - | no kindred in pools |
 | 308.2 | follows | `engine/rules/chars/types.go#Types` | - | - |
-| 308.3 | partial | `engine/rules/chars/types.go#cardTypeWords` | - | corpus says Kindred; chars list says Tribal |
+| 308.3 | follows | `engine/rules/chars/types.go#IsCardType` `engine/effects/creature_types.go#cardTypeWords` | `TestKindredIsACardType` | Kindred is the current spelling; retired Tribal retained |
 | 309.1-309.2c | follows | `engine/effects/venture.go#effVenture` `engine/effects/venture.go#ventureEnter` | - | no dungeons in pools |
 | 309.2d | n/a | - | - | no corpus non-venture dungeon entry |
 | 309.3 | follows | `engine/rules/dungeon.go#Engine.PutDungeon` | - | - |

@@ -283,6 +283,15 @@ func matchSacXCost(t costTok) (groups, bool) {
 	return groups{m[0], m[2], m[3]}, true
 }
 
+// matchDiscardXCost is ^Discard<X/([^/>]+)(?:/([^>]*))?>$: groups [sym, spec, desc].
+func matchDiscardXCost(t costTok) (groups, bool) {
+	m, ok := matchHeadCountSpecDesc(t, hDiscard, func(s string) bool { return s == "X" })
+	if !ok {
+		return groups{}, false
+	}
+	return groups{m[0], m[2], m[3]}, true
+}
+
 // matchExileCost is
 // ^Exile(FromHand|FromGrave|AnyGrave)<(X|\d+)/([^/>]+)(?:/([^>]*))?>$.
 func matchExileCost(t costTok) (groups, bool) {

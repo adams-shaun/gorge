@@ -444,3 +444,82 @@ func TestExtraPhaseQueueDoesNotSurviveTheTurn(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// castWorldAtWar moves a World at War from the library to seat 0's hand, pays
+// {3}{R}{R} out of thin mana and casts it, then drains the stack.
+func castWorldAtWar(t *testing.T, e *Engine) state.ObjID {
+	t.Helper()
+	waw := moveByName(t, e, 0, "World at War", state.ZHand)
+	for i := 0; i < 5; i++ {
+		e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1})
+	}
+	e.priorityRound()
+	d := e.Pending()
+	idx := -1
+	if d != nil && d.Kind == decision.KPriority {
+		for _, o := range d.Options {
+			if o.Kind == "cast" && o.Obj == waw {
+				idx = o.Index
+			}
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("World at War seq %d: no cast option at step %s (pending %+v)", len(e.L.Events), e.G.Step, d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("World at War seq %d: cast: %v", len(e.L.Events), err)
+	}
+	passUntilStackEmpty(t, e, 40)
+	return waw
+}
+
+// TestWorldAtWarAfterTheFirstPostcombatMainGrantsNothing: World at War's
+// BeforeFirstPostCombatMainEnd$ True (Forge's AddPhaseEffect gate,
+// PhaseHandler.beforeFirstPostCombatMainEnd). Resolved in the first
+// postcombat main phase it grants the extra combat; the same effect resolved
+// in the extra main phase that combat was followed by -- a main phase after
+// the first postcombat main has ended -- grants nothing.
+func TestWorldAtWarAfterTheFirstPostcombatMainGrantsNothing(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	waw := lookup(t, reg, "World at War")
+	e, cfg := addPhaseEngine(t, reg,
+		[]*cards.Card{waw, waw, card(t, bearSrc)}, []*cards.Card{})
+	moveByName(t, e, 0, "Bear", state.ZBattlefield)
+	for driveToTurn(t, e, 3, 0) {
+	}
+	passToKind(t, e, decision.KAttackers)
+	submitNoAttackers(t, e)
+	driveToStep(t, e, 3, 0, state.StepMain2)
+	if e.G.MainPhasesThisTurn != 2 {
+		t.Fatalf("precondition: MainPhasesThisTurn = %d in the first postcombat main, want 2", e.G.MainPhasesThisTurn)
+	}
+	grants := func() int {
+		return countEvents(e, func(ev events.Event) bool {
+			return ev.Kind == events.ExtraPhase && ev.Amount > 0
+		})
+	}
+	first := castWorldAtWar(t, e)
+	if grants() != 1 || len(e.G.ExtraPhases) != 1 || e.G.ExtraPhases[0].Source != first {
+		t.Fatalf("World at War in the first postcombat main: %d grants, ExtraPhases %+v, want one extra combat", grants(), e.G.ExtraPhases)
+	}
+	// Leave Main2: the extra combat, then the extra main phase it is followed by.
+	passToKind(t, e, decision.KAttackers)
+	submitNoAttackers(t, e)
+	for i := 0; i < 200 && e.G.MainPhasesThisTurn < 3; i++ {
+		passOnce(t, e)
+	}
+	if e.G.Turn != 3 || e.G.Step != state.StepMain2 || e.G.MainPhasesThisTurn != 3 {
+		t.Fatalf("precondition: turn %d step %s MainPhasesThisTurn %d, want the extra main phase (turn 3, Main2, 3)",
+			e.G.Turn, e.G.Step, e.G.MainPhasesThisTurn)
+	}
+	before := grants()
+	castWorldAtWar(t, e)
+	if got := grants(); got != before {
+		t.Fatalf("World at War in the extra main phase made %d new ExtraPhase grants, want 0", got-before)
+	}
+	if len(e.G.ExtraPhases) != 0 {
+		t.Fatalf("ExtraPhases = %+v after the gated cast, want none", e.G.ExtraPhases)
+	}
+	replayCheck(t, e, cfg)
+}

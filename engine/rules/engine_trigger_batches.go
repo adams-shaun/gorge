@@ -308,6 +308,7 @@ type engineTriggerBatches struct {
 	// every intent boundary, never cloned.
 	batchWindow      *triggerSnapshot `clone:"reset"`
 	batchWindowDepth int              `clone:"reset"`
+	dmgNoPrevention  bool             `clone:"reset"` // SetDamageNoPrevention's in-flight bit
 	// batchReplSources lists every object that departed the battlefield
 	// while a simultaneous departure batch was open (replBatchDepth > 0:
 	// an effect's BatchDepartures or an SBA batch in sba.go). CR 614.6/616 with

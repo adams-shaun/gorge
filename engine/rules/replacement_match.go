@@ -243,6 +243,16 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		if d, ok := r.ParamCode(cards.PKDestination); ok && !effects.Destination(d).Admits(ev.To) {
 			return false
 		}
+		// Fizzle$ (Feather's "instead of putting it into your graveyard as it
+		// resolves"): the line applies only to the spell's resolution move
+		// (False) or only to its fizzle move (True). A counter and every move
+		// not leaving the stack carry no cause, so neither matches; an
+		// unrecognised value fails closed.
+		if raw, ok := r.Params["Fizzle"]; ok {
+			if want := stackLeaveByFizzle.Code(raw); want == stackLeaveNone || ev.From != state.ZStack || e.stackLeave != want {
+				return false
+			}
+		}
 		// FoundSearchingLibrary$ True (Opposition Agent's "While an opponent
 		// is searching their library, they exile each card they find"): the
 		// replacement applies only to the moves a library search emits. The

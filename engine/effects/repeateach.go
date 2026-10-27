@@ -28,7 +28,9 @@ func repeatedCards(h Host, c *Ctx, rp *RepeatEachParams) ([]state.Target, bool) 
 		case repeatedCardsTargeted:
 			return objectsOf(c.Targets), true
 		case repeatedCardsRemembered:
-			return objectsOf(c.Remembered), true
+			// Forge's host remembered list, not the fired-event capture: the
+			// trigger's own referent is not a subject the source remembered.
+			return objectsOf(hostRemembered(h, c)), true
 		case repeatedCardsChosenCard:
 			return objectsOf(c.Chosen), true
 		}
@@ -111,14 +113,13 @@ func repeatEachTypesFrom(h Host, c *Ctx, spec string) ([]string, bool) {
 }
 
 // repeatEachCardTypes returns the CR 205.1 registry in deterministic order.
-// Kindred is the current name for Tribal and is accepted alongside the legacy
-// spelling. Sorting the registry keys avoids a second, drifting type list.
+// Kindred (the current name for Tribal) and the retired spelling both live in
+// cardTypeWords. Sorting the registry keys avoids a second, drifting type list.
 func repeatEachCardTypes() []string {
-	types := make([]string, 0, len(cardTypeWords)+1)
+	types := make([]string, 0, len(cardTypeWords))
 	for typ := range cardTypeWords {
 		types = append(types, typ)
 	}
-	types = append(types, "Kindred")
 	sort.Strings(types)
 	return types
 }
@@ -324,10 +325,16 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		// source/controller remain those of the outer spell or ability.
 		base := iterationBase(c, t)
 		cc.Remembered = append(copyTargets(base), t)
-		// UseImprinted$ names the same subject "Imprinted" for the body's
-		// selectors (UnlessPayer$ ImprintedController, Defined$
-		// ImprintedController).
+		// The subject is also named "Imprinted" for the body's selectors
+		// (UnlessPayer$ ImprintedController, Defined$ ImprintedController).
 		cc.RepeatSubject = t
+		start := append(copyTargets(base), t)
+		if rp.UseImprinted {
+			// UseImprinted$ imprints the subject instead of remembering it:
+			// the host's Remembered is untouched for the whole loop.
+			cc.Remembered = copyTargets(c.Remembered)
+			start = copyTargets(c.Remembered)
+		}
 		if fromVotes {
 			// The per-iteration binding lives on this iteration's Ctx copy
 			// (scalar fields, so the copy is safe), read back through
@@ -360,7 +367,7 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		if h.Suspended() {
 			return
 		}
-		c.Remembered = rememberIteration(c.Remembered, cc.Remembered, base, t)
+		c.Remembered = foldIteration(c.Remembered, cc.Remembered, start)
 	}
 	for _, typ := range repeatedTypes {
 		// RepeatTypesFrom binds the current type to the resolving source;

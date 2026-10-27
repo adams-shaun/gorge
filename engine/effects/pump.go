@@ -115,7 +115,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	// ReplaceDyingDefined$ rider below (the same []state.Target shape
 	// DealDamage's registration takes).
 	var pumpedTargets []state.Target
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range pumpSet(h, c, sa, p) {
 		if t.IsPlayer {
 			continue
 		}
@@ -404,4 +404,38 @@ func definedKWPlayerName(g *state.Game, p state.PlayerID) string {
 		return pl.PlayerName
 	}
 	return pl.Name
+}
+
+// pumpSet is the objects a Pump affects: Defined(h, c, sa), or -- with
+// ThisDefinedAndTgts$ (Ballroom Brawlers' "CARDNAME and up to one other
+// target creature") -- the named extra objects followed by the chosen
+// targets, each once (Forge SpellAbilityEffect.getCards). An unresolvable
+// value is one loud Note and the ordinary set.
+func pumpSet(h Host, c *Ctx, sa *cards.SA, p *PumpParams) []state.Target {
+	if p.ThisDefinedAndTgts == "" {
+		return Defined(h, c, sa)
+	}
+	extra := thisDefinedAndTgtsTargets(h, c, p.ThisDefinedAndTgts)
+	if len(extra) == 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "ThisDefinedAndTgts$ " + p.ThisDefinedAndTgts + " is not a selector this engine can resolve; the pump keeps the ordinary set"})
+		return Defined(h, c, sa)
+	}
+	// The chosen targets are the generic pre-ask's answered set while a
+	// sub-ability dispatches (DefinedRef's same precedence), else the
+	// resolution's own.
+	chosen := c.Targets
+	if c.PickedTargets != nil {
+		chosen = c.PickedTargets
+	}
+	out := make([]state.Target, 0, len(extra)+len(chosen))
+	seen := make(map[state.Target]bool, cap(out))
+	for _, t := range append(extra, chosen...) {
+		if t.IsPlayer || seen[t] {
+			continue
+		}
+		seen[t] = true
+		out = append(out, t)
+	}
+	return out
 }

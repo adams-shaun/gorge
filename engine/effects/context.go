@@ -2194,6 +2194,13 @@ func effectiveSourceRemembered(g *state.Game, tc TriggerContext, src *state.Obje
 	return src.Remembered
 }
 
+// SourceRemembered is effectiveSourceRemembered for callers outside effects
+// (rules' trigger-condition gate) that must ask the same pending-referent
+// question without re-deriving it.
+func SourceRemembered(g *state.Game, tc TriggerContext, src *state.Object) []state.Target {
+	return effectiveSourceRemembered(g, tc, src)
+}
+
 // sourceRemembered is the resolving source's persistent, event-backed
 // Remembered list (nil for a departed source). A pending trigger that queued
 // a fire-time snapshot (TriggerContext.SourceRemembered, the CR 400.7
@@ -2235,7 +2242,7 @@ func containsTarget(ts []state.Target, want state.Target) bool {
 // constructor, so ExiledWithSource is derived from the logged move rather than
 // a live-only side table.
 func moveZoneEvent(c *Ctx, id state.ObjID, from, to state.Zone) events.Event {
-	ev := events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to}
+	ev := events.MarkExileExiler(events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to}, c.Controller)
 	if to == state.ZExile && exileProvenanceNeeded(c) {
 		ev.IDs = []state.ObjID{c.Source}
 	}

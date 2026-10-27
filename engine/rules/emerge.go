@@ -150,7 +150,7 @@ func (e *Engine) emergeSacPayable(pc *pendingCast, oid state.ObjID) bool {
 	if e.hasCastDelve(pc.card) {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
 	}
-	return e.manaFeasiblePriced(pc.player, pc.card, false, candidate, pc.mods, pc.taxGeneric, delve, nil)
+	return e.manaFeasiblePriced(pc.player, paymentFor(pc.card, false, Cost{}), candidate, pc.mods, pc.taxGeneric, delve, nil)
 }
 
 // applyEmergeReduction folds the actual chosen sacrifice's mana value into the

@@ -88,8 +88,8 @@ func (e *Engine) manaFeasiblePoolP(p state.PlayerID, id state.ObjID, ability boo
 // manaFeasiblePriced is manaFeasible's priced-mode entry: hyp nil keeps the
 // ordinary real-pool gate, hyp non-nil prices the feasibility against the
 // potential walk's hypothetical bound (engine/rules/legal.go legalActionsPriced).
-func (e *Engine) manaFeasiblePriced(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
-	return e.manaFeasiblePricedP(p, id, ability, &c, &mods, taxGeneric, delve, hyp)
+func (e *Engine) manaFeasiblePriced(p state.PlayerID, desc paymentDescriptor, c Cost, mods costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
+	return e.manaFeasiblePricedP(p, desc, &c, &mods, taxGeneric, delve, hyp)
 }
 
 // manaFeasiblePricedP is manaFeasiblePriced over pointers (*c and *mods are
@@ -97,7 +97,7 @@ func (e *Engine) manaFeasiblePriced(p state.PlayerID, id state.ObjID, ability bo
 // only to a RestrictedMana batch: without one it is the floating pool and the
 // raw tally verbatim, and under hyp both are replaced outright, so neither
 // case builds the descriptor (a Cost copy).
-func (e *Engine) manaFeasiblePricedP(p state.PlayerID, id state.ObjID, ability bool, c *Cost, mods *costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
+func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c *Cost, mods *costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
 	pl := &e.G.Players[p]
 	var pool state.Mana
 	var typed [7]state.Mana
@@ -109,10 +109,10 @@ func (e *Engine) manaFeasiblePricedP(p state.PlayerID, id state.ObjID, ability b
 	case len(pl.RestrictedMana) == 0:
 		pool, typed = pl.Pool, pl.ManaUnits()
 	default:
-		av := pay.AvailableFor(asPayer(e), p, paymentFor(id, ability, *c))
+		av := pay.AvailableFor(asPayer(e), p, desc.Priced(c))
 		pool, typed = av.Pool, av.Typed
 	}
-	return e.manaFeasiblePoolP(p, id, ability, c, mods, taxGeneric, delve, pool, typed)
+	return e.manaFeasiblePoolP(p, desc.ID, desc.Class == paymentActivated, c, mods, taxGeneric, delve, pool, typed)
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies

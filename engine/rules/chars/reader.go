@@ -43,10 +43,12 @@ type Reader interface {
 	// excludeSource) a RevealSameColor cost part may reveal together, with
 	// each card's current colour words.
 	SameColorRevealSets(p state.PlayerID, source state.ObjID, excludeSource bool) ([]state.ObjID, [][]string)
-	// TapPower is the value creature id contributes when it is tapped to pay
-	// an action of kind saKind's tap-power amount (Station, Crew, Saddle):
-	// its layer-derived power, as any stat:TapPowerValue static adjusts it.
-	TapPower(id state.ObjID, saKind string) int32
+	// TapContribution is the value creature id contributes when it is tapped
+	// to pay an action of kind saKind's tap-power amount (Station, Crew,
+	// Saddle): its layer-derived power, as any stat:TapPowerValue static
+	// adjusts it. ok is false when a static forbids id from paying that
+	// kind at all (stat:CantCrew for Crew, CR 702.122a).
+	TapContribution(id state.ObjID, saKind string) (power int32, ok bool)
 	// ZoneEntrySeq is the log sequence of id's entry into its current zone
 	// (the engine's incremental zone-entry index).
 	ZoneEntrySeq(id state.ObjID) uint64
@@ -98,6 +100,10 @@ type Granted struct {
 	// GainedFace is the foreign face SA was compiled on (gained only): the
 	// SVar table a gained mana ability resolves against.
 	GainedFace *cards.Face
+	// GainedManaConv is the granting effect's ManaConversion$ word list
+	// (state.ContinuousEffect.GainedManaConversion), applied as a mandatory
+	// conversion to this gained ability's activation payment.
+	GainedManaConv string
 }
 
 // PileAbilityRef maps a printed ability pointer back to its flat pile index
