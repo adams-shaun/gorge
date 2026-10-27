@@ -330,12 +330,12 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		if !pay.PayMana(asPayer(e), payer, wardManaCost(cost)) {
 			return false
 		}
-		toText := "discarded for ward"
 		if kind == "ward_sac" {
-			toText = "sacrificed for ward"
+			pay.PaySacrificeCost(asPayer(e), ids)
+			return true
 		}
 		for _, id := range ids {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: zone, To: state.ZGraveyard, Text: toText})
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: zone, To: state.ZGraveyard, Text: "discarded for ward"})
 		}
 		return true
 	}
