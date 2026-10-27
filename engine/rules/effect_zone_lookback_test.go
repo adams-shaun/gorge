@@ -116,7 +116,7 @@ func TestEffectZoneLookbackSeesCapturedMemory(t *testing.T) {
 		t.Fatal("precondition: remembered subject and source must differ")
 	}
 	effects.Resolve(e, &effects.Ctx{Source: src, Controller: 0, SVars: face.SVars,
-		Remembered: []state.Target{{Obj: other}}}, face.Abilities[0])
+		Targets: []state.Target{{Obj: other}}}, face.Abilities[0])
 	if len(e.G.Delayed) != 1 || !e.G.Delayed[0].EffectRepeat ||
 		len(e.G.Delayed[0].Remembered) != 1 || e.G.Delayed[0].Remembered[0].Obj != other {
 		t.Fatalf("precondition: Effect must capture the other creature: %+v", e.G.Delayed)
