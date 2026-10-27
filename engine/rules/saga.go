@@ -45,8 +45,16 @@ func chapterSpec(f *cards.Face) (int, []string) { return cards.SagaChapters(f) }
 // number of 0). printedAbilitiesGone is only consulted after a nonzero printed
 // count, so non-Sagas pay nothing.
 func (e *Engine) sagaChapters(o *state.Object) (int, []string) {
-	n, names := chapterSpec(o.Face())
-	if n == 0 || e.printedAbilitiesGone(o) {
+	return e.sagaChaptersOn(o, o.Face())
+}
+
+// sagaChaptersOn is sagaChapters over an explicit face: the entry notice of an
+// as-enters copy reads the template's copiable face before ClonePermanent
+// installs it. printedAbilitiesGone is o's own ability-loss state, so it only
+// applies to o's own face, not to another object's copiable values.
+func (e *Engine) sagaChaptersOn(o *state.Object, f *cards.Face) (int, []string) {
+	n, names := chapterSpec(f)
+	if n == 0 || (f == o.Face() && e.printedAbilitiesGone(o)) {
 		return 0, nil
 	}
 	return n, names
@@ -118,7 +126,11 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 	if o == nil || o.Zone != state.ZBattlefield {
 		return
 	}
-	n, names := e.sagaChapters(o)
+	face := o.Face()
+	if ev.Text == events.EntryCounterNotice {
+		face = e.entryCopyBasisFace(o)
+	}
+	n, names := e.sagaChaptersOn(o, face)
 	if n == 0 || len(names) == 0 {
 		return
 	}
@@ -142,7 +154,7 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 	}
 	for i := first; i <= last; i++ {
 		name := names[i-1]
-		sa := cards.ResolveSVar(o.Face().SVars, name)
+		sa := cards.ResolveSVar(face.SVars, name)
 		if sa == nil {
 			continue
 		}
