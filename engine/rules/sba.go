@@ -1225,6 +1225,14 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts, facts *sbaBoardFacts) b
 	own := e.snapshotTriggerBoard()
 	e.triggerBefore = own
 	defer e.closeTriggerWindow(own, before)
+	// CR 704.3/603.2c: the whole sweep is one simultaneous state-based-action
+	// event, so a Mode$ ChangesZoneAll line ("whenever one or more creatures
+	// die") latches once for the batch instead of once per member -- the same
+	// zone batch BatchDepartures opens for the effect-side departure batches.
+	// The triggerBefore window above is the look-back board only; it does not
+	// latch the trigger.
+	e.openZoneBatch()
+	defer e.closeZoneBatch()
 	e.beginReplBatch()
 	defer e.endReplBatch()
 	for _, c := range dead {
