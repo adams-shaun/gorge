@@ -1992,6 +1992,14 @@ var apiSpecificRulesSA = map[string][]string{
 	// so no generic read masks any api:Sacrifice gap).
 	"Engine.beginWardPayment":  {"Ward"},
 	"Engine.settleWardPayment": {"Ward"},
+	// The triggered-cost repeat-count bound: AnnounceMax$ is carried only by
+	// the AB$ ImmediateTrigger lines that pay a Mana<...\NumTimes> cost
+	// (measured over the corpus at the current pin: every Announce$ NumTimes
+	// carrier is api:ImmediateTrigger), so its read belongs to that API alone.
+	// Left in the generic union it would mark AnnounceMax$ read for every
+	// primitive (measured: Hawkeye, Master Marksman's label would clear, but
+	// so would any future non-ImmediateTrigger carrier's).
+	"announceMaxBound": {"ImmediateTrigger"},
 	// The opening-hand pregame actions: applyOpeningEffect, its delayed-
 	// trigger registration and the answer handler run ONLY on the expanded
 	// opening-action SVar of a MayEffectFromOpeningHand keyword (Chancellor
@@ -3035,17 +3043,25 @@ var ignoredAbilityParams = func() map[string]string {
 	const cite = "SA text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179, forge-game/src/main/java/forge/game/card/Card.java:3013 (text renderer only)"
 	const pawprintCite = "mode price read by the parent Charm: engine/effects/charm_modes.go:41 (modePawprint); forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java:183"
 	m := map[string]string{
-		"ChangeZone.NumCards":         "inert on api:ChangeZone (ChangeZoneEffect.java reads no NumCards; ChangeNum$ defaults to 1, and only Draw/Discard/Mill/Reveal/RearrangeTopOfLibrary read NumCards); forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
-		"ChangeZoneAll.DefinedPlayer": "only orders a 2+ card move into a library; gorge orders every library move by scan order with no ask; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneAllEffect.java:104",
-		"ChooseType.ETB":              "inert on api:ChooseType (ChooseTypeEffect.java reads no ETB; the generic read at AbilityUtils.java:1686 is the Count$xPaid replacement branch); forge-game/src/main/java/forge/game/ability/effects/ChooseTypeEffect.java",
-		"DealDamage.CounterNum":       "inert on api:DealDamage (DamageDealEffect.java reads no CounterNum; read only by the Counters*Effect family); forge-game/src/main/java/forge/game/ability/effects/DamageDealEffect.java",
-		"DestroyAll.Hidden":           "inert on api:DestroyAll (DestroyAllEffect.java reads no Hidden; SpellAbility.isHidden's only callers are ChangeZoneEffect.java:52,454); forge-game/src/main/java/forge/game/spellability/SpellAbility.java:2637",
-		"Effect.PumpZone":             "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
-		"GenericChoice.ShowChoice":    "UI notify of the chosen value; forge-game/src/main/java/forge/game/ability/effects/ChooseGenericEffect.java:113 (notifyOfValue); gorge's ModeChosen is public (engine/view/describe.go:715)",
-		"PeekAndReveal.NoPeek":        "skips the private look before a public reveal; forge-game/src/main/java/forge/game/ability/effects/PeekAndRevealEffect.java:55,78",
-		"Sacrifice.Mode":              "Discard-family spelling SacrificeEffect never reads; forge-game/src/main/java/forge/game/ability/effects/SacrificeEffect.java (no Mode read)",
-		"Sacrifice.OrString":          "UnlessCost prompt text only (PlaySpellAbility.getOrStringFromCost); SacrificeEffect.java reads no OrString; forge-game/src/main/java/forge/game/player/PlaySpellAbility.java:423",
-		"Token.LockTokenScript":       "opts out of source text-change on the token prototype, which gorge never applies; forge-game/src/main/java/forge/game/card/token/TokenInfo.java:249",
+		"ChangeZone.AlreadyRevealed":        "only suppresses the whole-hand reveal to a non-owner decider; gorge's hidden-hand mover never makes that reveal (engine/effects/zone_hand.go:336, handMoveOwnersWalk); forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java:1044",
+		"ChangeZone.ETB":                    "read only by the generic Count$xPaid replacement branch, which reads the entering card's paid X -- the value gorge already gives it; forge-game/src/main/java/forge/game/ability/AbilityUtils.java:1686",
+		"ChangeZone.NumCards":               "inert on api:ChangeZone (ChangeZoneEffect.java reads no NumCards; ChangeNum$ defaults to 1, and only Draw/Discard/Mill/Reveal/RearrangeTopOfLibrary read NumCards); forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
+		"ChangeZoneAll.DefinedPlayer":       "only orders a 2+ card move into a library; gorge orders every library move by scan order with no ask; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneAllEffect.java:104",
+		"ChooseType.ETB":                    "inert on api:ChooseType (ChooseTypeEffect.java reads no ETB; the generic read at AbilityUtils.java:1686 is the Count$xPaid replacement branch); forge-game/src/main/java/forge/game/ability/effects/ChooseTypeEffect.java",
+		"DealDamage.CounterNum":             "inert on api:DealDamage (DamageDealEffect.java reads no CounterNum; read only by the Counters*Effect family); forge-game/src/main/java/forge/game/ability/effects/DamageDealEffect.java",
+		"DestroyAll.Hidden":                 "inert on api:DestroyAll (DestroyAllEffect.java reads no Hidden; SpellAbility.isHidden's only callers are ChangeZoneEffect.java:52,454); forge-game/src/main/java/forge/game/spellability/SpellAbility.java:2637",
+		"Effect.ExileOnLost":                "exiles the effect when its controller leaves the game; after CR 800.4a the departed player controls nothing (engine/rules/sba.go:998, ceaseDepartedObjects), so the effect matches nothing either way; forge-game/src/main/java/forge/game/ability/effects/EffectEffect.java:257",
+		"Effect.PumpZone":                   "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+		"GenericChoice.ShowChoice":          "UI notify of the chosen value; forge-game/src/main/java/forge/game/ability/effects/ChooseGenericEffect.java:113 (notifyOfValue); gorge's ModeChosen is public (engine/view/describe.go:715)",
+		"ImmediateTrigger.AfterReplacement": "defers the immediate trigger until the replacement finishes -- the order gorge already resolves; forge-game/src/main/java/forge/game/trigger/TriggerImmediate.java:37",
+		"PeekAndReveal.NoPeek":              "skips the private look before a public reveal; forge-game/src/main/java/forge/game/ability/effects/PeekAndRevealEffect.java:55,78",
+		"Play.ShowCardToActivator":          "reveals the card to the activator, who already sees it; forge-game/src/main/java/forge/game/ability/effects/PlayEffect.java:255",
+		"Pump.Origin":                       "inert on api:Pump (PumpEffect.java reads no Origin; Origin is read only by ChangeZone/ChangeZoneAll target adjustment, AbilityFactory.java:370-379 from ChangeZoneEffect.java:47 and ChangeZoneAllEffect.java:34)",
+		"PutCounter.SpecifyCounter":         "prompt title suffix only; forge-game/src/main/java/forge/game/ability/effects/CountersPutEffect.java:224",
+		"ReplaceEffect.VarType":             "picks how VarValue$ is parsed, not a rules read; gorge infers the referent kind from the code (engine/rules/replacement_replace.go:95-130, replaceEventRefCodes); forge-game/src/main/java/forge/game/ability/effects/ReplaceEffect.java:25-41",
+		"Sacrifice.Mode":                    "Discard-family spelling SacrificeEffect never reads; forge-game/src/main/java/forge/game/ability/effects/SacrificeEffect.java (no Mode read)",
+		"Sacrifice.OrString":                "UnlessCost prompt text only (PlaySpellAbility.getOrStringFromCost); SacrificeEffect.java reads no OrString; forge-game/src/main/java/forge/game/player/PlaySpellAbility.java:423",
+		"Token.LockTokenScript":             "opts out of source text-change on the token prototype, which gorge never applies; forge-game/src/main/java/forge/game/card/token/TokenInfo.java:249",
 	}
 	for _, api := range abilityPresentationSecondary {
 		m[api+".Secondary"] = cite

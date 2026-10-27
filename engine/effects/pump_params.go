@@ -297,7 +297,7 @@ var pumpKnownKeys = [...]string{
 	"NumAtt",
 	"NumDef",
 	"OpponentTurn",
-	"Planeswalker",
+	"Origin", "Planeswalker",
 	"PlayCost",
 	"PlayerTurn",
 	"PowerUp",

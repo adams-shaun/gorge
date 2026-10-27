@@ -2655,6 +2655,17 @@ func (nt triggerNumTimes) times(n int32) Cost {
 	return out
 }
 
+// announceMaxBound is the AnnounceMax$ cap of a triggered-cost window: the
+// presence gate is the census-visible read (NumResolved takes the key as a
+// string, which the scanner cannot attribute), and NumResolved already
+// reports ok=false for an absent key, so the gate changes no behaviour.
+func announceMaxBound(e *Engine, ctx *effects.Ctx, sa *cards.SA) (int32, bool) {
+	if _, ok := sa.Params["AnnounceMax"]; !ok {
+		return 0, false
+	}
+	return effects.NumResolved(e, ctx, sa, "AnnounceMax", 0)
+}
+
 // triggeredCostNumTimesAsk poses the repeat-count announcement (CR 601.2b's
 // announce step for "pay this cost any number of times"): a choose over
 // 0..N in ascending order, N bounded by AnnounceMax$ (else xFoldBoundCap) and
@@ -2667,7 +2678,7 @@ func (e *Engine) triggeredCostNumTimesAsk(tc *triggeredEffectCost) bool {
 	bound := xFoldBoundCap
 	if sa := tc.resume.sa; sa != nil && sa.HasParam(cards.PKAnnounce) {
 		ctx := effects.NewCtxPtr(tc.source, tc.player, effects.CtxInit{})
-		if m, ok := effects.NumResolved(e, ctx, sa, "AnnounceMax", 0); ok && m > 0 && m < bound {
+		if m, ok := announceMaxBound(e, ctx, sa); ok && m > 0 && m < bound {
 			bound = m
 		}
 	}
