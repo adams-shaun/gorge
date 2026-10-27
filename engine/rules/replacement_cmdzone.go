@@ -85,7 +85,9 @@ func init() {
 		// file) via the ReplaceDamage intercept in applyReplacements, never
 		// through effects.Resolve/runReplaceWith -- this registration is the
 		// census token only; a stub effects.Register handler would be dead code.
-		"api:ReplaceDamage")
+		"api:ReplaceDamage",
+		// api:ReplaceSplitDamage is likewise inline (applyReplaceSplitDamageBody).
+		"api:ReplaceSplitDamage")
 }
 
 // cmdZoneMove is one commander command-zone ask. For CR 903.9b it is a parked

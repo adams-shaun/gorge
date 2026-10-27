@@ -562,6 +562,9 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 		// recomputation below (CR 616.1e).
 		return e.applyReplaceDamageBody(ev, m)
 	}
+	if m.repl.With.API == "ReplaceSplitDamage" {
+		return e.applyReplaceSplitDamageBody(ev, m)
+	}
 	e.runReplaceWith(e.replCtx(m, *ev), ev.Obj, m.repl.With, ev)
 	return m.repl.With.API != "ReplaceEffect"
 }
