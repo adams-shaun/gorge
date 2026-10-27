@@ -206,7 +206,7 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return uniqueTargets(ts), ok
 	}
 	if !strings.Contains(spec, " & ") {
-		return nil, false
+		return nonComplementTargets(h, c, spec)
 	}
 	var out []state.Target
 	for part := range strings.SplitSeq(spec, " & ") {
@@ -215,6 +215,35 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return nil, false
 		}
 		out = append(out, ts...)
+	}
+	return out, true
+}
+
+// nonComplementTargets is Forge's general `Non<referent>` player selector
+// (AbilityUtils.getDefinedPlayers: every player in turn order minus the
+// players `<referent>` names): Zenith Chronicler's NonTriggeredCardController,
+// The Death of Gwen Stacy's NonRememberedOwner. It runs only after the table
+// and alias lookups missed, so the hand-written complements keep their arms.
+// An unknown referent stays unknown (ok=false). Living seats come back in
+// APNAP order from the resolving controller.
+func nonComplementTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	rest, ok := strings.CutPrefix(spec, "Non")
+	if !ok || rest == "" {
+		return nil, false
+	}
+	named, ok := knownDefinedTargets(h, c, rest)
+	if !ok {
+		return nil, false
+	}
+	excluded := make(map[state.PlayerID]bool)
+	for _, p := range playerIDsFromTargets(h, c, rest, named) {
+		excluded[p] = true
+	}
+	var out []state.Target
+	for _, p := range h.Game().AliveFrom(c.Controller) {
+		if !excluded[p] {
+			out = append(out, state.Target{Player: p, IsPlayer: true})
+		}
 	}
 	return out, true
 }
@@ -516,6 +545,19 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// non-matching object is known-empty (fail closed to nobody, never Self).
 	if ts, ok := triggeredCardQualified(h, c, spec); ok {
 		return ts, true
+	}
+	// The `Spawner>` chain (Forge's adjustTriggerContext): an immediate
+	// trigger's body re-anchors the rest of the selector on the SPAWNING
+	// trigger, so `Defined$ Spawner>TriggeredTarget` (Biting-Palm Ninja's
+	// reveal and exile) names the spawner's event player, not the instance's.
+	// The immediate instance keeps the spawner's roles and its Remembered is
+	// capture-excluded, so the spawner's capture rides in Captured; the inner
+	// ref reads it as Remembered, as the count and damage-source readers do.
+	// An unknown inner ref stays unknown.
+	if inner, ok := spawnerChain(spec); ok {
+		sc := *c
+		sc.Remembered = copyTargets(c.Captured)
+		return definedSpec(h, &sc, inner)
 	}
 	switch definedSpecCodes.Code(string(spec)) {
 	case definedSpecEmpty:
@@ -845,6 +887,27 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// Prank's animated creature's "deals 1 damage to you". A detached
 		// source (the object gone) yields nothing, never a guessed seat.
 		if o := g.Obj(c.Source); o != nil {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+		}
+		return nil, true
+	case definedSpecCardOwner:
+		// Forge's CardOwner (Gandalf, Wandering Wizard's "Gandalf's owner
+		// shuffles him"): the source object's owner (CR 108.3). A gone source
+		// yields nothing.
+		if o := g.Obj(c.Source); o != nil {
+			return []state.Target{{Player: o.Owner, IsPlayer: true}}, true
+		}
+		return nil, true
+	case definedSpecOriginalHostController:
+		// The controller of the OriginalHost object (the grantor for a
+		// granted ability, else the source): Hold for Ransom's granted "{7}:
+		// Hold for Ransom's controller sacrifices it" names the Aura's
+		// controller, not the enchanted creature's.
+		host := c.Source
+		if c.Grantor != 0 {
+			host = c.Grantor
+		}
+		if o := g.Obj(host); o != nil {
 			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
 		}
 		return nil, true
@@ -2603,6 +2666,8 @@ const (
 	definedSpecReplacedPlayer
 	definedSpecNonReplacedPlayer
 	definedSpecPlayer
+	definedSpecCardOwner
+	definedSpecOriginalHostController
 )
 
 var definedSpecCodes = state.NewStrCodes(
@@ -2706,6 +2771,8 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "ReplacedPlayer", Val: definedSpecReplacedPlayer},
 	state.StrEntry[definedSpecCode]{Key: "NonReplacedPlayer", Val: definedSpecNonReplacedPlayer},
 	state.StrEntry[definedSpecCode]{Key: "Player", Val: definedSpecPlayer},
+	state.StrEntry[definedSpecCode]{Key: "CardOwner", Val: definedSpecCardOwner},
+	state.StrEntry[definedSpecCode]{Key: "OriginalHostController", Val: definedSpecOriginalHostController},
 )
 
 type effectOwnerPlayersCode uint16
