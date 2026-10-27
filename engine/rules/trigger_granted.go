@@ -490,10 +490,11 @@ func (e *Engine) checkGrantedMentorTriggers(observer *Engine, id state.ObjID, o 
 //     Card.Self), so it is byte-identical to the printed path: its body is
 //     the same DB$ Mana producing the granted N red with the end-of-combat
 //     exception, which rules.pushTrigger builds and events.Apply rebuilds
-//     from the KeywordTriggerPush payload alone. It skips the object entirely
-//     when its printed face already carries Firebending, so a creature
-//     printing the keyword and also granted it fires once (the Dethrone
-//     dedup). The amount is the derived keyword's parameter text (a literal
+//     from the KeywordTriggerPush payload alone. The walk queues one instance
+//     per derived Firebending entry the printed lines do not already own (a
+//     printed line consumes one equal derived entry, so a creature printing
+//     the keyword and also granted it fires for both, and two grants stack).
+//     The amount is the derived keyword's parameter text (a literal
 //     for every measured grant); a blank or unreadable parameter is not an
 //     instance this build can price, so it queues nothing.
 //
@@ -537,29 +538,58 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 			}
 		}
 	}
-	if !e.hasKeywordH(id, kwhFirebending) || f.HasKeywordRef(kwRefFirebending) {
+	if !e.hasKeywordH(id, kwhFirebending) {
 		return
 	}
-	param, ok := e.derivedKeywordParamH(id, kwhFirebending)
-	if !ok || param == "" {
+	// Printed ownership is a multiset: each printed K:Firebending line is
+	// queued by the printed expansion, so it consumes one equal derived entry;
+	// every other derived entry is a granted instance (CR 113.2c: each is its
+	// own ability). A face-down object has no printed face (CR 708.8).
+	var printedLeft []string
+	if !e.faceDownPrintedHides(o) {
+		for _, k := range f.Keywords {
+			if cards.KeywordHead(k) == "Firebending" {
+				printedLeft = append(printedLeft, k)
+			}
+		}
+	}
+	var params []string
+	for _, k := range e.Derived(id).Keywords {
+		head := cards.KeywordHead(k)
+		if head != "Firebending" {
+			continue
+		}
+		if i := slices.Index(printedLeft, k); i >= 0 {
+			printedLeft = slices.Delete(printedLeft, i, i+1)
+			continue
+		}
+		if len(k) > len(head)+1 {
+			params = append(params, k[len(head)+1:])
+		}
+	}
+	if len(params) == 0 {
 		return
 	}
 	t := attacksSelf
-	t.Effect = &cards.SA{Kind: "DB", API: "Mana", Params: map[string]string{
-		"Produced": "R", "Amount": param, "PersistentUntilEndOfCombat": "True",
-	}}
-	if observer.triggerMatches(t, id, ev, objLKI) {
-		key := triggerKey{Source: id, Idx: -1}
-		if e.triggerFireCount == nil {
-			e.triggerFireCount = map[triggerKey]int32{}
+	if !observer.triggerMatches(t, id, ev, objLKI) {
+		return
+	}
+	key := triggerKey{Source: id, Idx: -1}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	for _, param := range params {
+		if e.triggerFireCount[key] >= maxTriggerFires {
+			return
 		}
-		if e.triggerFireCount[key] < maxTriggerFires {
-			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Firebending: param, SA: t.Effect,
-				cause: causeOf(boardOf(observer), t, id, ev, 0),
-				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
-					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})})
-		}
+		e.triggerFireCount[key]++
+		t.Effect = &cards.SA{Kind: "DB", API: "Mana", Params: map[string]string{
+			"Produced": "R", "Amount": param, "PersistentUntilEndOfCombat": "True",
+		}}
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Firebending: param, SA: t.Effect,
+			cause: causeOf(boardOf(observer), t, id, ev, 0),
+			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})})
 	}
 }
 
