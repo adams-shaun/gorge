@@ -636,8 +636,32 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			target := h.Game().Obj(targets[0].Obj)
 			var chooser state.PlayerID
 			chooserOK := false
-			if altDecider == "TargetedOwner" && target != nil {
-				chooser, chooserOK = target.Owner, true
+			switch altDecider {
+			case "TargetedOwner", "ThisTargetedOwner":
+				// Both spellings name the OWNER of this move's own target:
+				// TargetedOwner is the resolving ability's target set, and
+				// Forge's ThisTargetedOwner is the same referent read from
+				// THIS ability (AbilityUtils' ThisTargetedCard), which for a
+				// Charm mode is the mode's own target -- exactly targets[0]
+				// here. The owner answers, never the spell's controller
+				// (CR 401.4): Jailbreak Scheme spells its second mode this way.
+				if target != nil {
+					chooser, chooserOK = target.Owner, true
+				}
+			default:
+				// Every other spelling is the ordinary Defined$ player
+				// grammar (Forge reads AlternativeDecider with
+				// getDefinedPlayers), and it must name exactly ONE player;
+				// RememberedOwner is the corpus's other carrier (Tolarian
+				// Contempt). knownDefinedTargets is the fail-closed read: an
+				// unmodelled selector is "unknown" rather than Defined's
+				// source fallback, so an unsupported spelling stays loud
+				// instead of quietly asking the caster.
+				if ts, ok := knownDefinedTargets(h, c, altDecider); ok {
+					if ps := playerIDsFromTargets(h, c, altDecider, ts); len(ps) == 1 {
+						chooser, chooserOK = ps[0], true
+					}
+				}
 			}
 			if !chooserOK || int(chooser) >= len(h.Game().Players) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
