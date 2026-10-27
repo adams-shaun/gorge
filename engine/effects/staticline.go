@@ -833,6 +833,26 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 			}
 		}
 	}
+	return dedupeObjectIDs(out)
+}
+
+// dedupeObjectIDs drops repeated ids, keeping first-occurrence order. An
+// Effect's remembered set is a set (Forge's LinkedHashSet), while the
+// resolution's Ctx.Remembered can hold one card twice (the trigger capture
+// plus RememberChanged$ True).
+func dedupeObjectIDs(ids []state.ObjID) []state.ObjID {
+	if len(ids) < 2 {
+		return ids
+	}
+	seen := make(map[state.ObjID]bool, len(ids))
+	out := make([]state.ObjID, 0, len(ids))
+	for _, id := range ids {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		out = append(out, id)
+	}
 	return out
 }
 
