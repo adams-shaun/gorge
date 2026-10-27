@@ -94,7 +94,7 @@ func TestPumpReplaceDyingDefinedRegistersExile(t *testing.T) {
 	if p := PumpOf(sa(t, line)); len(p.Unread) != 0 {
 		t.Fatalf("Pump Unread = %v, want empty (ReplaceDyingDefined$ must be consumed)", p.Unread)
 	}
-	Resolve(h, &Ctx{Source: id, Controller: 0}, sa(t, line))
+	Resolve(h, &Ctx{Source: id, Controller: 0, Targets: []state.Target{{Obj: id}}}, sa(t, line))
 	var repl *state.ContinuousEffect
 	for i := range h.continuous {
 		if h.continuous[i].ReplacementEvent == "Moved" {
@@ -108,14 +108,8 @@ func TestPumpReplaceDyingDefinedRegistersExile(t *testing.T) {
 		repl.ReplacementParams["ValidCard"] != "Card.IsRemembered" {
 		t.Fatalf("replacement params = %+v, want battlefield->graveyard exile", repl.ReplacementParams)
 	}
-	found := false
-	for _, rid := range repl.Remembered {
-		if rid == id {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatalf("remembered %v does not include the pumped object %d", repl.Remembered, id)
+	if len(repl.Remembered) != 1 || repl.Remembered[0] != id {
+		t.Fatalf("remembered %v, want exactly the pumped object %d", repl.Remembered, id)
 	}
 	for _, n := range ufNotes(h) {
 		if strings.Contains(n, "ReplaceDyingDefined") {

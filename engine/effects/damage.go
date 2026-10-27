@@ -64,13 +64,19 @@ func registerReplaceDying(h Host, c *Ctx, die string, damaged []state.Target) {
 			Text: "unrecognised ReplaceDyingDefined$ " + die})
 		return
 	}
-	// ThisTargetedCard is the resolving ability's own chosen target set, not
+	// A target-based selector narrows to the ability's chosen targets, not
 	// every permanent that happened to receive damage (notably in Fight and
-	// other batch emitters). Intersect it with the objects this API actually
-	// damaged so off-zone or otherwise unaffected targets cannot register.
+	// other batch emitters, where Defined$ adds the source fighter to the
+	// damaged slice). Targeted is Forge's root/sub-ability chain union;
+	// ThisTargetedCard is the resolving SA's own chosen set. Intersect either
+	// with the objects this API actually damaged so off-zone or otherwise
+	// unaffected targets cannot register.
 	var targeted map[state.ObjID]bool
-	if selector == definedSpecThisTargetedCard {
+	if selector == definedSpecThisTargetedCard || selector == definedSpecTargeted {
 		chosen := c.Targets
+		if selector == definedSpecTargeted {
+			chosen = refTargetUnion(c)
+		}
 		if c.PickedTargets != nil {
 			chosen = c.PickedTargets
 		}
