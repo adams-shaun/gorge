@@ -14,7 +14,6 @@ var (
 	kwRefDethrone    = cards.NewKeywordRef("Dethrone")
 	kwRefDisguise    = cards.NewKeywordRef("Disguise")
 	kwRefExploit     = cards.NewKeywordRef("Exploit")
-	kwRefFirebending = cards.NewKeywordRef("Firebending")
 	kwRefFlash       = cards.NewKeywordRef("Flash")
 	kwRefFuse        = cards.NewKeywordRef("Fuse")
 	kwRefGift        = cards.NewKeywordRef("Gift")
