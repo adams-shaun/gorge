@@ -200,3 +200,96 @@ func hasFirebendingTrigger(f *cards.Face) bool {
 	}
 	return false
 }
+
+const grantedFirebending1Static = "Name:Small Banner\nManaCost:0\nTypes:Enchantment\n" +
+	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Firebending:1 | Description$ Creatures you control have firebending 1.\nOracle:x\n"
+
+func firebendingEntries(e *Engine, id state.ObjID) []string {
+	var out []string
+	for _, k := range e.Derived(id).Keywords {
+		if strings.EqualFold(cards.KeywordHead(k), "Firebending") {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// attackFirebendingMana declares bear as the only attacker and returns the
+// red in the pool and in the combat-persistent tally after the attack.
+func attackFirebendingMana(t *testing.T, e *Engine, bear state.ObjID) (pool, combat int) {
+	t.Helper()
+	passToKind(t, e, decision.KAttackers)
+	submitAttackersOnly(t, e, bear)
+	// Two Firebending instances are simultaneous triggers (CR 603.3b): the
+	// controller orders them; any order yields the same total mana.
+	if d := e.Pending(); d != nil && d.Kind == decision.KTriggerOrder {
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0, 1}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	driveToStepAll(t, e, e.G.Turn, 0, state.StepEndCombat)
+	return int(e.G.Players[0].Pool[state.MR]), int(e.G.Players[0].CombatMana[state.MR])
+}
+
+func printedFirebendingBear(printed string) string {
+	return "Name:Testbear\nManaCost:0\nTypes:Creature Bear\nPT:2/2\n" + printed + "Oracle:x\n"
+}
+
+// firebendingInstanceCase runs one attack with `statics` on board and a bear
+// printing `printed` (a K: line or ""), asserting the derived list holds
+// wantDerived Firebending entries and the face prints wantPrinted.
+func firebendingInstanceCase(t *testing.T, printed string, statics []string, wantPrinted, wantDerived, wantR int) {
+	t.Helper()
+	e, _, _ := newFixtureDeck(t, 23, "Name:Placeholder\nManaCost:0\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
+	for _, s := range statics {
+		_ = onBoard(t, e, 0, s)
+	}
+	bear := onBoard(t, e, 0, printedFirebendingBear(printed))
+	e.G.Obj(bear).SummonSick = false
+
+	if got := len(firebendingEntries(e, bear)); got != wantDerived {
+		t.Fatalf("precondition: derived Firebending entries = %d (%v), want %d", got, firebendingEntries(e, bear), wantDerived)
+	}
+	gotPrinted := 0
+	if f := e.G.Obj(bear).Face(); f != nil {
+		for _, k := range f.Keywords {
+			if strings.EqualFold(cards.KeywordHead(k), "Firebending") {
+				gotPrinted++
+			}
+		}
+	}
+	if gotPrinted != wantPrinted {
+		t.Fatalf("precondition: face prints %d Firebending lines, want %d", gotPrinted, wantPrinted)
+	}
+
+	pool, combat := attackFirebendingMana(t, e, bear)
+	if pool != wantR || combat != wantR {
+		t.Fatalf("Firebending mana pool=%d combat=%d, want %d each (CR 702.189a + CR 113.2c)", pool, combat, wantR)
+	}
+}
+
+// TestFirebendingPrintedPlusGrantedBothTrigger: a printed Firebending 1 and a
+// granted Firebending 3 are two abilities (CR 113.2c); both add mana.
+func TestFirebendingPrintedPlusGrantedBothTrigger(t *testing.T) {
+	firebendingInstanceCase(t, "K:Firebending:1\n", []string{grantedFirebendingStatic}, 1, 2, 4)
+}
+
+// TestFirebendingPrintedPlusIdenticalGrantedBothTrigger: the granted entry is
+// textually equal to the printed one, so only a multiset subtraction (not a
+// string-set skip) keeps the granted instance.
+func TestFirebendingPrintedPlusIdenticalGrantedBothTrigger(t *testing.T) {
+	firebendingInstanceCase(t, "K:Firebending:1\n", []string{grantedFirebending1Static}, 1, 2, 2)
+}
+
+// TestFirebendingTwoGrantsBothTrigger: two grants on a creature printing no
+// Firebending stack.
+func TestFirebendingTwoGrantsBothTrigger(t *testing.T) {
+	firebendingInstanceCase(t, "", []string{grantedFirebendingStatic, grantedFirebendingStatic}, 0, 2, 6)
+}
+
+// TestFirebendingSingleGrantStillOnce: one grant alone and one printed line
+// alone each fire exactly once (no double count of the printed instance).
+func TestFirebendingSingleGrantStillOnce(t *testing.T) {
+	firebendingInstanceCase(t, "", []string{grantedFirebendingStatic}, 0, 1, 3)
+	firebendingInstanceCase(t, "K:Firebending:2\n", nil, 1, 1, 2)
+}
