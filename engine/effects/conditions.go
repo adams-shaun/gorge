@@ -853,6 +853,14 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		// source attached to nothing is a resolved empty group.
 		return definedSpec(h, c, defined)
 	}
+	if conditionDefinedSharedResolver.Has(defined) {
+		// CR 603.7c / 608.2c: the group is the object set the same name
+		// names in Defined$ (Forge resolves ConditionDefined$ with the
+		// Defined$ resolver), so the gate reads exactly what the guarded
+		// effect acts on -- Nettling Imp's DelayTriggerRemembered is the
+		// delayed trigger's own remembered creature.
+		return definedSpec(h, c, defined)
+	}
 	if defined == "Imprinted" {
 		// The source card's persistent imprint list (state.Object.Imprinted,
 		// the events.Imprint associations): the ONLY group for this family —
