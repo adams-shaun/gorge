@@ -546,6 +546,19 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	if ts, ok := triggeredCardQualified(h, c, spec); ok {
 		return ts, true
 	}
+	// The `Spawner>` chain (Forge's adjustTriggerContext): an immediate
+	// trigger's body re-anchors the rest of the selector on the SPAWNING
+	// trigger, so `Defined$ Spawner>TriggeredTarget` (Biting-Palm Ninja's
+	// reveal and exile) names the spawner's event player, not the instance's.
+	// The immediate instance keeps the spawner's roles and its Remembered is
+	// capture-excluded, so the spawner's capture rides in Captured; the inner
+	// ref reads it as Remembered, as the count and damage-source readers do.
+	// An unknown inner ref stays unknown.
+	if inner, ok := spawnerChain(spec); ok {
+		sc := *c
+		sc.Remembered = copyTargets(c.Captured)
+		return definedSpec(h, &sc, inner)
+	}
 	switch definedSpecCodes.Code(string(spec)) {
 	case definedSpecEmpty:
 		return nil, false

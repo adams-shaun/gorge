@@ -77,7 +77,22 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// stack-arena order, each copied Amount$ times. It is nil for every other
 	// Defined form, whose established single-spell shape is unchanged.
 	var validStackSpells []state.ObjID
-	switch effCopySpellAbilityCodes.Code(string(DefinedRefOf(sa).Text)) {
+	code := effCopySpellAbilityCodes.Code(string(DefinedRefOf(sa).Text))
+	if _, chained := spawnerChain(DefinedRefOf(sa).Text); chained {
+		code = effCopySpellAbilitySpawnerChain
+	}
+	switch code {
+	case effCopySpellAbilitySpawnerChain:
+		// `Defined$ Spawner>TriggeredSpellAbility` (Breeches, the Blastmaker's
+		// reflexive "copy that spell"): the shared definedSpec chain arm
+		// re-anchors the inner ref on the spawner's capture. A chain that
+		// names no stack object copies nothing -- never the chosen targets.
+		if ts, _ := knownDefinedTargets(h, c, DefinedRefOf(sa).Text); len(ts) > 0 && !ts[0].IsPlayer {
+			spell = ts[0].Obj
+		}
+		if spell == 0 {
+			return
+		}
 	case effCopySpellAbilityTriggeredSpellAbility:
 		// The activation arm (abcopy1): the trigger context's TriggerAbility
 		// names the minted ability wrapper -- an AbilityPush's Obj is the
@@ -586,6 +601,9 @@ type effCopySpellAbilityCode uint16
 const (
 	effCopySpellAbilityTriggeredSpellAbility effCopySpellAbilityCode = iota + 1
 	effCopySpellAbilityParent
+	// effCopySpellAbilitySpawnerChain is set by effCopySpellAbility itself
+	// for a `Spawner>` chained Defined$; it has no table key.
+	effCopySpellAbilitySpawnerChain
 )
 
 var effCopySpellAbilityCodes = state.NewStrCodes(
