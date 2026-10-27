@@ -562,16 +562,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// overwrites each link as its copy_targets answers arrive
 		// (finishCopyTargets), a non-electing one resolves with them as they
 		// stand.
-		if root := copyChainRoot(e, e.G.Obj(copyID)); root != nil {
-			if from := e.castSubTargets[ev.Obj]; len(from) > 0 {
-				if e.castSubTargets == nil {
-					e.castSubTargets = make(map[state.ObjID]map[string][]state.Target)
-				}
-				cp := make(map[string][]state.Target, len(from))
-				for line, ts := range from {
-					cp[line] = append([]state.Target{}, ts...)
-				}
-				e.castSubTargets[copyID] = cp
+		if copyChainRoot(e, e.G.Obj(copyID)) != nil {
+			for line, ts := range e.castSubTargets[ev.Obj] {
+				e.recordCastSub(copyID, line, append([]state.Target{}, ts...))
 			}
 		}
 		inheritCopyRecord(e.sacrificedLKI, ev.Obj, copyID)

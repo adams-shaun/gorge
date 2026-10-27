@@ -61,13 +61,7 @@ func (e *Engine) finishCopyTargets(obj state.ObjID, chosen []decision.Option) {
 		if idx := len(rootDecls) + i; idx < len(ans) {
 			ts = targetOptions(ans[idx])
 		}
-		if e.castSubTargets == nil {
-			e.castSubTargets = make(map[state.ObjID]map[string][]state.Target)
-		}
-		if e.castSubTargets[obj] == nil {
-			e.castSubTargets[obj] = make(map[string][]state.Target)
-		}
-		e.castSubTargets[obj][sa.Line] = ts
+		e.recordCastSub(obj, sa.Line, ts)
 		e.recordSubTargets(obj, ts)
 	}
 	delete(e.copyAnswerTargets, obj)
