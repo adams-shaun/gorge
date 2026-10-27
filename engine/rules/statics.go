@@ -119,7 +119,7 @@ func (e *Engine) costRememberedCapture(id state.ObjID) []costRememberedEntry {
 // the pending cast of id the set recorded at beginCast (costRemembered)
 // stands in for the live one.
 func (e *Engine) costStaticSpecCtx(sv staticView, id state.ObjID) effects.SpecContext {
-	sc := e.staticSpecCtx(sv)
+	sc := e.staticSpecCtxNamed(sv)
 	if sv.effectStamp == 0 {
 		return sc
 	}
@@ -544,7 +544,17 @@ func (e *Engine) verifySpecDerivedSkip(spec string, id state.ObjID, sc effects.S
 // its own SVar table when the view carries one (an under-card static), else the
 // source object's top face.
 func (e *Engine) staticSpecCtx(sv staticView) effects.SpecContext {
-	sc := e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+	return e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+}
+
+// staticSpecCtxNamed is staticSpecCtx plus an Effect-delivered cost static's
+// chosen-card-name snapshot. It is a separate helper because the binding
+// pushes staticSpecCtx over the inliner's budget and heap-allocates the
+// context for the per-candidate action-static match (TestLegalActionsReuses
+// ActionStaticMembership); only the cost/alternative readers that can see a
+// snapshot view pay it.
+func (e *Engine) staticSpecCtxNamed(sv staticView) effects.SpecContext {
+	sc := e.staticSpecCtx(sv)
 	if sv.chosenNameFrozen {
 		sc.FrozenChosenName, sc.ChosenNameBound = sv.chosenName, true
 	}

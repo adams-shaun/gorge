@@ -92,7 +92,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		// matches NOTHING, so an unconditional check would silently deny
 		// every ValidCard$-less grant.
 		if spec, ok := sv.Param(cards.PKValidCard); ok && spec != "" &&
-			!e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
+			!e.matchesSpec(spec, id, e.staticSpecCtxNamed(sv)) {
 			continue
 		}
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
@@ -345,7 +345,7 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 			return true
 		}
 		if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil &&
-			e.matchesSpec(spec, ev.Obj, e.staticSpecCtx(sv)) {
+			e.matchesSpec(spec, ev.Obj, e.staticSpecCtxNamed(sv)) {
 			return true
 		}
 	}
