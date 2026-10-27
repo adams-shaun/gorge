@@ -64,20 +64,15 @@ func effAmass(h Host, c *Ctx, sa *cards.SA) {
 	if ps := definedPlayers(h, c, sa); len(ps) > 0 {
 		ctl = ps[0]
 	}
-	// Find the amasser's first Army in battlefield order.
+	// Find the amasser's first Army creature in battlefield order. CR 701.47a
+	// asks for an Army CREATURE, and CR 702.73a makes a changeling every
+	// creature type, so the answer must come from current characteristics
+	// (a layer-4 type grant and changeling both count) -- never the printed
+	// face.
 	army := state.ObjID(0)
 	for _, id := range g.Zone(state.ZBattlefield, ctl) {
-		o := g.Obj(id)
-		if o == nil || o.Face() == nil {
-			continue
-		}
-		for _, t := range o.Face().Types {
-			if t == "Army" {
-				army = id
-				break
-			}
-		}
-		if army != 0 {
+		if MatchesSpecFrom(g, "Creature.Army", id, ctl, c.Source) {
+			army = id
 			break
 		}
 	}
