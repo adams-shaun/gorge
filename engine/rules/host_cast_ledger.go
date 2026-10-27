@@ -313,6 +313,9 @@ func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) boo
 	if obj == 0 {
 		return nil
 	}
+	if o := e.G.Obj(obj); o != nil && o.Zone != state.ZStack {
+		return e.castWindowMoves(obj, match)
+	}
 	// An ability wrapper's AbilityPush carries the SOURCE permanent's id
 	// (events.Apply mints the wrapper; Event.Obj names its source), so the
 	// anchor is found by wrapper id or source id alike.
@@ -370,6 +373,44 @@ back:
 		}
 	}
 	return append(reverseIDs(before), out...)
+}
+
+// castWindowMoves is costMovesInWindow's answer for an obj that is no longer
+// on the stack: the cost parts the cast that made obj paid (CR 601.2b/601.2h),
+// a fact the permanent carries however many responses sat between the cast and
+// now. It is empty unless obj was cast (WasCast, so a blinked permanent, a new
+// object per CR 400.7, reads empty). The window is anchored on obj's latest
+// PutOnStack only -- a trigger push naming the permanent is not the cast -- and
+// runs forward alone (a spell pays after its push) to the first other stack
+// push, step/turn change, pool clear or player loss.
+func (e *Engine) castWindowMoves(obj state.ObjID, match func(events.Event) bool) []state.ObjID {
+	if !e.WasCast(obj) {
+		return nil
+	}
+	anchor := -1
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		if ev := e.L.Events[i]; ev.Kind == events.PutOnStack && ev.Obj == obj {
+			anchor = i
+			break
+		}
+	}
+	if anchor < 0 {
+		return nil
+	}
+	var out []state.ObjID
+	for i := anchor + 1; i < len(e.L.Events); i++ {
+		ev := e.L.Events[i]
+		switch ev.Kind {
+		case events.MoveZone:
+			if match(ev) {
+				out = append(out, ev.Obj)
+			}
+		case events.PutOnStack, events.AbilityPush, events.TriggerPush, events.DelayedPush, events.GrantTriggerPush,
+			events.StepChange, events.TurnChange, events.ManaClear, events.PlayerLost:
+			return out
+		}
+	}
+	return out
 }
 
 // reverseIDs restores log order to a backward scan's collection.

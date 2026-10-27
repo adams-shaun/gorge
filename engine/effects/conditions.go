@@ -812,7 +812,13 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		// the EQ0 comparison binds against a definite count.
 		group = returnedGroup(h, c)
 	}
-	if defined == "Collected" || defined == "CastSA>Collected" {
+	if defined == "CastSA>Collected" {
+		// Crimestopper Sprite's spelling: the evidence is a fact of the
+		// permanent's own cast, read off the permanent (c.Source), never off
+		// the trigger wrapper's window (castCollectedGroup).
+		group = castCollectedGroup(h, c)
+	}
+	if defined == "Collected" {
 		// ConditionDefined$ Collected (Extract a Confession's "if evidence was
 		// collected, instead...", Analyze the Pollen's second search) and its
 		// CastSA>Collected spelling (Crimestopper Sprite): Forge's group is
@@ -1139,6 +1145,19 @@ func returnedGroup(h Host, c *Ctx) []state.Target {
 func collectedGroup(h Host, c *Ctx) []state.Target {
 	var out []state.Target
 	for _, id := range h.CostMovesInWindow(c.ResolvingObj, events.CostMoveEvidence) {
+		out = append(out, state.Target{Obj: id})
+	}
+	return out
+}
+
+// castCollectedGroup enumerates the ConditionDefined$ CastSA>Collected group
+// (Crimestopper Sprite, Vitu-Ghazi Inspector, Spotlight Falcon): the cards the
+// cast of c.Source -- the permanent the spell became -- exiled as evidence.
+// Unlike collectedGroup it never reads the resolving trigger wrapper, so a
+// response to the creature spell cannot erase it (CR 601.2h).
+func castCollectedGroup(h Host, c *Ctx) []state.Target {
+	var out []state.Target
+	for _, id := range h.CostMovesInWindow(c.Source, events.CostMoveEvidence) {
 		out = append(out, state.Target{Obj: id})
 	}
 	return out
