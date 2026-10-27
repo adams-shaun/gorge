@@ -216,3 +216,58 @@ func TestMockingbirdNonCastEntryCopiesOnlyManaValueZero(t *testing.T) {
 		t.Fatal("a mana-value-2 creature was offered to a non-cast Mockingbird")
 	}
 }
+
+// TestReanimatedPhantasmalImageGetsCopyElection: Phantasmal Image put onto the
+// battlefield without being cast, by Zombify's ChangeZone, still gets its
+// "you may have this enter as a copy" election. The ask is posed at the
+// MoveZone boundary for every entry, so the copy is made, keeps the printed
+// AddTypes$ Illusion exception, and the loud fallback never runs.
+func TestReanimatedPhantasmalImageGetsCopyElection(t *testing.T) {
+	t.Parallel()
+	raw := `{"name":"phantasmal-image-reanimated","cr":["614.12a","707.9b"],"why":"cr-g119","setup":{` +
+		`"p0":{"hand":["Zombify"],"graveyard":["Phantasmal Image"]},` +
+		`"p1":{"battlefield":["Grizzly Bears"]}},` +
+		`"steps":[{"op":"cast","seat":0,"card":"p0:Zombify","mana":"BBBC","targets":["p0:Phantasmal Image"]},` +
+		`{"op":"resolve","seat":0,"answers":[{"kind":"choose","pick":["p1:Grizzly Bears"]}]}]}`
+	run := runETBCloneScenario(t, raw)
+	e := run.e
+	id := findOn(t, e, state.ZBattlefield, 0, "Grizzly Bears")
+	der := e.Derived(id)
+	if !slices.Contains(der.Types, "Illusion") {
+		t.Fatalf("reanimated Phantasmal Image copy lacks the printed AddTypes$ Illusion exception: %v", der.Types)
+	}
+	if !hasEvent(e, events.ClonePermanent, id) {
+		t.Fatal("precondition: no copy was made")
+	}
+	// The copied Grizzly Bears is the opponent's; the reanimated card is a
+	// separate object that copied it (CR 707.2), not the same permanent.
+	orig := findOn(t, e, state.ZBattlefield, 1, "Grizzly Bears")
+	if orig == id {
+		t.Fatal("the copy is the opponent's own Grizzly Bears, not a new object")
+	}
+}
+
+// TestBlinkedCloneGetsCopyElection: Clone exiled and returned by Ephemerate is
+// a non-cast entry too. The +1/+1 counter keeps the 0/0 Clone alive until the
+// blink, and the re-entry election makes the returning object a Grizzly Bears
+// copy; the loud fallback never runs.
+func TestBlinkedCloneGetsCopyElection(t *testing.T) {
+	t.Parallel()
+	raw := `{"name":"clone-blinked","cr":["614.12a","707.9b"],"why":"cr-g119","setup":{` +
+		`"p0":{"hand":["Ephemerate"],"battlefield":["Clone"],"counters":{"Clone":{"P1P1":1}}},` +
+		`"p1":{"battlefield":["Grizzly Bears"]}},` +
+		`"steps":[{"op":"cast","seat":0,"card":"p0:Ephemerate","mana":"W","targets":["p0:Clone"]},` +
+		`{"op":"resolve","seat":0,"answers":[{"kind":"choose","pick":["p1:Grizzly Bears"]}]}]}`
+	run := runETBCloneScenario(t, raw)
+	e := run.e
+	id := findOn(t, e, state.ZBattlefield, 0, "Grizzly Bears")
+	if !hasEvent(e, events.ClonePermanent, id) {
+		t.Fatal("precondition: no copy was made")
+	}
+	// The copied Grizzly Bears is the opponent's; the returning card is a
+	// separate object that copied it.
+	orig := findOn(t, e, state.ZBattlefield, 1, "Grizzly Bears")
+	if orig == id {
+		t.Fatal("the copy is the opponent's own Grizzly Bears, not a new object")
+	}
+}
