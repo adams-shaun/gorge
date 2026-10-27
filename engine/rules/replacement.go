@@ -528,6 +528,14 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			}
 			continue
 		}
+		if m.repl.With.API == "ReplaceSplitDamage" {
+			// The redirect shield: part of the held amount is dealt to
+			// DamageTarget$ instead (applyReplaceSplitDamageBody).
+			if e.applyReplaceSplitDamageBody(&ev, m) {
+				return ev, true
+			}
+			continue
+		}
 		ctx := e.replCtx(m, ev)
 		rewritesHeldEvent := replacementBodyRewritesHeldEvent(m.repl.With, ctx.SVars)
 		e.runReplaceWith(ctx, ev.Obj, m.repl.With, &ev)
