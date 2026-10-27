@@ -151,12 +151,17 @@ const (
 	wordNamed
 	wordNotnamed
 	wordSameName
-	// wordDoesNotShareName is Forge's doesNotShareNameWith <referent> (the
-	// corpus's only carrier is Yenna, Redtooth Regent's
-	// `Enchantment.YouCtrl+doesNotShareNameWith OtherYourBattlefield`): the
-	// candidate shares a name characteristic with NO other permanent its
-	// controller controls on the battlefield. key is the referent; only the
-	// OtherYourBattlefield spelling is recognised, any other argument stays
+	// wordDoesNotShareName is Forge's doesNotShareNameWith <referent>. key is
+	// the referent; three spellings are read (doesNotShareNameWithKey):
+	//   - OtherYourBattlefield (empty key; Yenna, Redtooth Regent): the
+	//     candidate shares a name with NO other permanent its controller
+	//     controls.
+	//   - YourGraveyard: no card in the source controller's graveyard shares
+	//     a name with it (Guardian Project).
+	//   - any resolvable card spec (The Apprentice's Folly `Card.token`,
+	//     Light-Paws `Aura.YouCtrl`): no battlefield permanent matching the
+	//     spec shares a name with it.
+	// A Remembered*/Imprinted* argument or an unresolvable spec stays
 	// wordUnknown and fails closed.
 	wordDoesNotShareName
 	// wasCast is Forge's Card.wasCast: the object is a SPELL currently on
@@ -369,12 +374,9 @@ func wordPredicate(p string) (wordKind, string) {
 	if p == "sameName" {
 		return wordSameName, ""
 	}
-	// Forge's doesNotShareNameWith <referent>: the argument must spell the
-	// OtherYourBattlefield referent the corpus carries (Yenna); any other
-	// argument stays unknown so an unmodelled referent cannot widen.
 	if rest, ok := strings.CutPrefix(p, "doesNotShareNameWith "); ok {
-		if strings.EqualFold(strings.TrimSpace(rest), "OtherYourBattlefield") {
-			return wordDoesNotShareName, ""
+		if key, ok := doesNotShareNameWithKey(rest); ok {
+			return wordDoesNotShareName, key
 		}
 	}
 	// FORGE_REF fb4d809 respells the same predicate as a player filter on the
@@ -1153,23 +1155,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		}
 		return sharesNameWithObject(o, g.Obj(sc.Source), sc)
 	case wordDoesNotShareName:
-		// Forge CardProperty doesNotShareNameWith OtherYourBattlefield: the
-		// candidate shares a name characteristic with no OTHER permanent its
-		// controller controls (Yenna). The full name-set comparison is the
-		// sharesNameWithObject read, so a token and its face share and a
-		// renamed candidate compares by its effective names. A phased-out
-		// permanent is not on the battlefield to share with.
-		for i := range g.Objs {
-			other := &g.Objs[i]
-			if other.ID == o.ID || other.Zone != state.ZBattlefield ||
-				other.PhasedOut || other.Controller != o.Controller {
-				continue
-			}
-			if sharesNameWithObject(o, other, sc) {
-				return false
-			}
-		}
-		return true
+		return doesNotShareNameWithMatches(g, o, sc, key)
 	case wordAttachedTo:
 		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
 		// attached to something, and the permanent it is attached to (its
