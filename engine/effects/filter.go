@@ -1471,7 +1471,7 @@ func positiveRecognised(p string) bool {
 	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
 		return true
 	}
-	if p == "TriggeredNewCard" || p == "TriggeredCard" || p == "TriggeredCards" || p == "TriggeredTarget" || p == "TriggeredDefender" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
+	if p == "TriggeredNewCard" || p == "TriggeredCard" || p == "TriggeredCards" || p == "TriggeredTarget" || p == "TriggeredAttacker" || p == "TriggeredDefender" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
 		return true
 	}
 	if _, ok := notDefinedTriggerReferent(p); ok {
@@ -2121,7 +2121,9 @@ func sharesNameWithObject(o, src *state.Object, sc SpecContext) bool {
 // notDefinedTriggerReferent classifies Forge's NotDefined<referent> spelling
 // of "other than that object" for the single-object trigger referents
 // (Pawpatch Recruit's NotDefinedTriggeredTarget, Jackdaw Savior's and Puca's
-// Covenant's NotDefinedTriggeredCard -- "another target ... card"). It returns
+// Covenant's NotDefinedTriggeredCard -- "another target ... card"; Saw's
+// NotDefinedTriggeredAttacker -- "a permanent other than the triggered
+// attacker or CARDNAME"). It returns
 // the positive twin, which matchPositive evaluates and negates in ONE place:
 // the twin's unbound fail-closed (ok=false) propagates, so the negation can
 // never invert an absent referent into a match. A NotDefined<X> whose twin is
@@ -2129,7 +2131,7 @@ func sharesNameWithObject(o, src *state.Object, sc SpecContext) bool {
 // which).
 func notDefinedTriggerReferent(p string) (base string, ok bool) {
 	base, ok = strings.CutPrefix(p, "NotDefined")
-	return base, ok && (base == "TriggeredCard" || base == "TriggeredTarget")
+	return base, ok && (base == "TriggeredCard" || base == "TriggeredTarget" || base == "TriggeredAttacker")
 }
 
 // matchTriggeredTarget evaluates Forge's bare TriggeredTarget property ("the
@@ -2153,6 +2155,29 @@ func matchTriggeredTarget(o *state.Object, sc SpecContext) (result, ok bool) {
 		return false, false
 	}
 	return o.ID == sc.TriggerTarget.Obj, true
+}
+
+// matchTriggeredAttacker evaluates Forge's bare TriggeredAttacker property
+// ("the attacking creature this trigger fired for") inside an ordinary filter
+// spec -- Saw's Sac<1/Permanent.Other+NotDefinedTriggeredAttacker> cost
+// ("a permanent other than the triggered attacker or CARDNAME"), and the
+// positive twin the NotDefined spelling negates. The binding arrives through
+// SpecContext.TriggerContext: rules' Attacks queue point binds TriggerCard to
+// that instance's own attacker (engine/rules/trigger_attacks_instances.go),
+// and a Blocks trigger binds TriggerCard to the pair's attacker, so the
+// candidate matches exactly the attacker the event captured. This is the same
+// TriggerCard role the Defined$ TriggeredAttacker resolver prefers
+// (engine/effects/context.go's definedSpecTriggeredAttacker) and the
+// TriggeredAttacker count ref reads (engine/effects/count_ref.go). An absent
+// binding fails CLOSED (ok=false): the spec matches nothing, never an
+// invented referent, and the leading-'!' spelling cannot invert the absence
+// into a match. NotDefinedTriggeredAttacker negates it through
+// notDefinedTriggerReferent.
+func matchTriggeredAttacker(o *state.Object, sc SpecContext) (result, ok bool) {
+	if sc.TriggerCard == 0 {
+		return false, false
+	}
+	return o.ID == sc.TriggerCard, true
 }
 
 // matchPositive evaluates a recognised positive-evaluation predicate token p
@@ -2296,6 +2321,9 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	}
 	if p == "TriggeredTarget" {
 		return matchTriggeredTarget(o, sc)
+	}
+	if p == "TriggeredAttacker" {
+		return matchTriggeredAttacker(o, sc)
 	}
 	if p == "TriggeredDefender" {
 		// Forge's Planeswalker.TriggeredDefender (Raid Bombardment, Myr
