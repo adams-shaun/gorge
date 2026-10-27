@@ -3052,10 +3052,23 @@ var ignoredAbilityParams = func() map[string]string {
 
 var ignoredStatParams = func() map[string]string {
 	const cite = "static text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179 (Card.java getText callers only)"
-	m := make(map[string]string, len(statPresentationSecondary))
+	// ValidSA$ on the CantAttack/CantBlock halves of a compound
+	// `Mode$ CantAttack,CantBlock,CantBeActivated | ValidSA$ Activated.!ManaAbility`
+	// line (Realmbreaker's Grasp, Intercessor's Arrest; cr-g204): Forge's
+	// StaticAbilityCantAttackBlock never reads ValidSA$ (its params are
+	// UnlessDefender/DefenderNotNearestToYouInChosenDirection/ValidBlocker/
+	// Cost/Trigger/Min/Max), and the value belongs to the sibling
+	// CantBeActivated mode, which the parse-time split shares the Params map
+	// with. engine/effects/restrictions.go's CantAttack face whitelist admits
+	// the key INERT, and the printed CantBlock path (combat.BlockRestricted)
+	// reads no parameter whitelist at all -- neither evaluates it as a gate.
+	const cantAttackBlockValidSA = "inert sibling CantBeActivated param, never a CantAttack/CantBlock gate; forge-game/src/main/java/forge/game/staticability/StaticAbilityCantAttackBlock.java (never reads ValidSA)"
+	m := make(map[string]string, len(statPresentationSecondary)+2)
 	for _, mode := range statPresentationSecondary {
 		m[mode+".Secondary"] = cite
 	}
+	m["CantAttack.ValidSA"] = cantAttackBlockValidSA
+	m["CantBlock.ValidSA"] = cantAttackBlockValidSA
 	return m
 }()
 
