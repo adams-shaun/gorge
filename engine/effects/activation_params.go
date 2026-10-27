@@ -464,7 +464,7 @@ func activationZoneMask(az ParamText) uint32 {
 }
 
 // conditionOtherKey reports whether sa carries a Condition* key conditionMet
-// does not evaluate (ConditionZone$, ConditionManaSpent$, ...).
+// does not evaluate (ConditionZone$, ConditionPlayerDefined$, ...).
 // ConditionDescription$ is display text, never part of the evaluation. The
 // answer is order-independent, so ranging the map cannot leak iteration
 // order.
