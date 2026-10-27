@@ -205,8 +205,10 @@ type TriggerContext struct {
 	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
 	// matched. CR 107.3m binds that value at trigger time: it must survive if
 	// the card later leaves the stack or battlefield before the ability
-	// resolves. Zero is both a valid paid value and the value for a triggering
-	// card with no paid X.
+	// resolves. For a Mode$ Cycled trigger it is the X paid for the cycling
+	// ability that caused the discard (CR 702.29d / 107.3i), because the
+	// discarded card itself carried no {X}. Zero is both a valid paid value
+	// and the value for a triggering card with no paid X.
 	TriggerPaidX int32
 	// TriggerBearer is the permanent an Aura/Equipment BECAME attached to
 	// (rules/triggerReferents' Attached case, over the one shared Attach
