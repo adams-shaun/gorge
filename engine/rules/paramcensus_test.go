@@ -1997,8 +1997,7 @@ var apiSpecificRulesSA = map[string][]string{
 	// (measured over the corpus at the current pin: every Announce$ NumTimes
 	// carrier is api:ImmediateTrigger), so its read belongs to that API alone.
 	// Left in the generic union it would mark AnnounceMax$ read for every
-	// primitive (measured: Hawkeye, Master Marksman's label would clear, but
-	// so would any future non-ImmediateTrigger carrier's).
+	// primitive, masking any future non-ImmediateTrigger carrier's gap.
 	"announceMaxBound": {"ImmediateTrigger"},
 	// The opening-hand pregame actions: applyOpeningEffect, its delayed-
 	// trigger registration and the answer handler run ONLY on the expanded
