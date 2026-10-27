@@ -294,6 +294,15 @@ type ContinuousEffect struct {
 	// re-execution on replay like every other continuous-effect field.
 	GainsValidAbilities string
 
+	// GainedManaConversion is the ManaConversion$ word list a GainsAbilitiesOf$
+	// grant carries (Drana and Linvala, Scheming Fence: "you may spend mana as
+	// though it were mana of any color to activate those abilities", CR 609.4b):
+	// a MANDATORY conversion applied only to the payment of an activated
+	// ability this grant gave, never to the recipient's own abilities or to a
+	// spell. Engine-runtime only, rebuilt by re-execution on replay like every
+	// other continuous-effect field.
+	GainedManaConversion string
+
 	// GainsLimitPerTurn is the per-foreign-ability activation cap a
 	// GainsAbilitiesOf$ grant carries (Forge's GainsAbilitiesLimitPerTurn$,
 	// Mairsil the Pretender's "You may activate each of those abilities only

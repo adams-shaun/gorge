@@ -111,6 +111,9 @@ func (pe *payEval) Conv(p state.PlayerID, id state.ObjID, ability bool) *manaCon
 	// A Play SA's per-cast ManaConversion$ rider is a conversion source that
 	// no board static represents: the early nil answer must not swallow it.
 	rider := !ability && e.cast != nil && e.cast.card == id && e.cast.playManaConversion != ""
+	// A gained ability's grant ManaConversion$ is likewise a source no board
+	// static represents (manaConversionParts, gainedManaConversion).
+	rider = rider || e.gainedManaConversion(p, id, ability) != ""
 	// With no printed ManaConvert static on the board and no Effect-delivered
 	// one in active()'s list (its build digest), manaConversionParts has no
 	// source to apply, so both parts are empty: the nil answer, directly.

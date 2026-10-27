@@ -98,6 +98,10 @@ type Granted struct {
 	// GainedFace is the foreign face SA was compiled on (gained only): the
 	// SVar table a gained mana ability resolves against.
 	GainedFace *cards.Face
+	// GainedManaConv is the granting effect's ManaConversion$ word list
+	// (state.ContinuousEffect.GainedManaConversion), applied as a mandatory
+	// conversion to this gained ability's activation payment.
+	GainedManaConv string
 }
 
 // PileAbilityRef maps a printed ability pointer back to its flat pile index

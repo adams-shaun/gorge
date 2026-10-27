@@ -517,6 +517,9 @@ func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, reme
 		Affects: affected, AffectedZone: strings.TrimSpace(params["AffectedZone"]),
 		GainedFaces: faces, GainsValidAbilities: strings.TrimSpace(params["GainsValidAbilities"]),
 		GainsLimitPerTurn: effectGainsLimitPerTurn(params),
+		// Grell Philosopher's STSteal: the grant's ManaConversion$ rides the
+		// effect exactly as a printed static's does (layers.go).
+		GainedManaConversion: strings.TrimSpace(params["ManaConversion"]),
 	}, true
 }
 

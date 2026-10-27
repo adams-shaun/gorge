@@ -1,4 +1,3 @@
-Drana and Linvala	param:stat:Continuous.ManaConversion
 Realmbreaker's Grasp	param:stat:CantAttack.ValidSA,param:stat:CantBlock.ValidSA
 Sunder the Gateway	param:api:SetState.Mandatory
 Surge of Salvation	param:api:Effect.ExileOnLost
