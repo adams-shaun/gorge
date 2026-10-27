@@ -9,8 +9,6 @@ Defined$ DiscardedCards	1
 Defined$ OppNonParentTarget	4
 Defined$ OppNonRememberedOwner	2
 Defined$ RememberedFirst	1
-Defined$ ReplacedCardController	2
-Defined$ ReplacedCardLKIController	1
 Defined$ ReplacedNewCard.Creature	2
 Defined$ ReplacedNewCard.Planeswalker	2
 Defined$ ShieldEffectTarget	5
@@ -19,10 +17,8 @@ Defined$ SourceFirstSpell	1
 Defined$ TargetedCard	2
 Defined$ TargetedSource	1
 Defined$ ThisTargetedPlayer	2
-Defined$ TriggeredAttackerOwner	1
 Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy	3
 Defined$ TriggeredBlockers	2
-Defined$ TriggeredCardOpponent	3
 Defined$ TriggeredCauseController	1
 Defined$ TriggeredLastStateBattlefieldLKICopy.Creature+ControlledBy TriggeredPlayer,Artifact+ControlledBy TriggeredPlayer	1
 Defined$ ValidAll Card.IsCommander+YouOwn	1
