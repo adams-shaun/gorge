@@ -289,16 +289,21 @@ func drawnSnapshot(h Host, p state.PlayerID, all bool) []state.ObjID {
 	return append([]state.ObjID(nil), zoneOf(h.Game(), state.ZLibrary, p)...)
 }
 
-// recordDrawn appends one draw instruction's remember records. AllReplaced
-// records every card of the pre-draw snapshot now in the DRAWING player's own
-// hand, in library order -- the draw itself and whatever its replacement body
-// drew (CR 121.6c/614.1; Forge's AllReplaced marker). A card an opponent's
-// replacement drew (Notion Thief) is in the opponent's hand, not p's, and is
-// not recorded. True keeps recording only the pre-draw top card.
+// recordDrawn appends one draw instruction's remember records to both halves
+// of the remembered state, exactly as rememberMilled does for a milled card:
+// the resolution's Ctx.Remembered set (what a chained sub-ability reads this
+// walk) and the source object's event-backed Remembered list (what survives
+// the resolution for a later Card.IsRemembered / Count$RememberedSize read).
+// AllReplaced records every card of the pre-draw snapshot now in the DRAWING
+// player's own hand, in library order -- the draw itself and whatever its
+// replacement body drew (CR 121.6c/614.1; Forge's AllReplaced marker). A card
+// an opponent's replacement drew (Notion Thief) is in the opponent's hand, not
+// p's, and is not recorded. True keeps recording only the pre-draw top card.
 func recordDrawn(h Host, c *Ctx, p state.PlayerID, before, top []state.ObjID, all bool) {
 	if !all {
 		if len(top) > 0 {
 			c.Remembered = append(c.Remembered, state.Target{Obj: top[0]})
+			eventRemember(h, c, top[0])
 		}
 		return
 	}
@@ -306,6 +311,7 @@ func recordDrawn(h Host, c *Ctx, p state.PlayerID, before, top []state.ObjID, al
 	for _, id := range before {
 		if slices.Contains(hand, id) {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 	}
 }
