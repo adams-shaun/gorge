@@ -43,7 +43,7 @@ func (e *Engine) mayPlayEffectCoversCard(ce *state.ContinuousEffect, p state.Pla
 	if ce.MayPlayPlayerTurn && e.G.Active != p {
 		return false
 	}
-	if ce.MayPlayLimit > 0 && int32(limited.count()) >= ce.MayPlayLimit {
+	if !e.mayPlayCapOpen(ce, limited) {
 		return false
 	}
 	zones, all, ok := effects.ParseZones(ce.AffectedZone)

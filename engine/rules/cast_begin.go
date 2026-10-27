@@ -781,6 +781,9 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if e.cast.mayPlayPerm == "" {
 			e.cast.mayPlayPerm = altKey
 		}
+		if e.cast.mayPlayPerm == "" {
+			e.cast.mayPlayPerm = e.mayPlayEffectPermKey(p, id)
+		}
 		e.cast.mayPlayHosts = e.mayPlayHostsCovering(p, id)
 		e.cast.mayPlayHostsSet = true
 		// A may-play grant's own ReplaceGraveyard$ Exile rider ("if a spell
