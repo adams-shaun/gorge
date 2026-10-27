@@ -424,6 +424,12 @@ func (e *Engine) mayPlaySpellIdsBoard(p state.PlayerID, board bool) []mayPlaySpe
 		if ce.MayPlayLimit > 0 && int32(limited.count()) >= ce.MayPlayLimit {
 			continue
 		}
+		// A PRINTED limited static's permission is offered above under its own
+		// per-static key (mayPlayPermissions); this effect-registered twin of
+		// it would offer the same cast unattributed, outside that count.
+		if ce.MayPlayLimit > 0 && !ce.FromEffect {
+			continue
+		}
 		zones, all, ok := effects.ParseZones(ce.AffectedZone)
 		if !ok && !all {
 			continue

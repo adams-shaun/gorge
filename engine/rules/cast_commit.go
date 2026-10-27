@@ -114,6 +114,7 @@ func (e *Engine) payCast() {
 		// boundary so it is logged only after the answered entry completes.
 		e.cast, e.choosing = nil, chooseNone
 		e.etbLandPlay, e.etbLandObj, e.etbLandPlayer = true, pc.card, pc.player
+		e.etbLandPerm = pc.mayPlayPerm
 		card := pc.card
 		// CR 305.1/110.2: the player who plays a land puts it onto the
 		// battlefield under their control, even when a MayPlay grant lets them
@@ -793,7 +794,7 @@ func (e *Engine) payCast() {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x,
 			Counter: events.FlagsString(events.FlagsFrom(flags)&^state.FlagReplicated) + permSuffix})
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: repCount, Counter: flags})
-	} else if pc.x != 0 || flags != "" {
+	} else if pc.x != 0 || flags != "" || permSuffix != "" {
 		amt := pc.x
 		if repCount > 0 {
 			amt = repCount

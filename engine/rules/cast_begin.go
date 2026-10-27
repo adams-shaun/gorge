@@ -167,6 +167,10 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 	// flashback/alternative recast would drop the modifiers entirely.
 	cost := pay.RawBaseCost(asPayer(e), p, id)
 	var announceAlt *altCostView
+	// altKey is the MayPlayLimit$ identity of the may-play static whose
+	// alternative this cast pays (mayPlayAltView.key); stamped on the cast
+	// below so the static's once-per-turn count sees it.
+	altKey := ""
 	if opt.AltCostIndex > 0 && opt.Mode == "mayplay" {
 		// A may-play cast at one of its permission's alternatives
 		// (mayPlayCastAlts, the list the may-play spell walk offered the
@@ -174,7 +178,8 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// castModeMayplay arm below keeps the permission's RaiseCost$ and
 		// skips its free-cast read; the extras fold below still applies.
 		if alts := e.mayPlayCastAlts(p, id, e.mayPlayPlainGrant(p, id)); opt.AltCostIndex-1 < len(alts) {
-			cost = alts[opt.AltCostIndex-1]
+			cost = alts[opt.AltCostIndex-1].cost
+			altKey = alts[opt.AltCostIndex-1].key
 		}
 	} else if opt.AltCostIndex > 0 {
 		if alts := e.alternativeCosts(p, id); opt.AltCostIndex-1 < len(alts) {
@@ -697,6 +702,9 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 	if announceAlt != nil && announceAlt.announce != "" {
 		e.cast.announceX = announceAlt.announce
 	}
+	if announceAlt != nil {
+		e.cast.mayPlayPerm = announceAlt.mayPlayKey
+	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
 	// above) -- the exact same commanderTaxFor the command-zone offer in
@@ -770,6 +778,9 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		e.cast.mayPlayIgnore, e.cast.mayPlayIgnoreType = rider.AnyColor, rider.AnyType
 		e.cast.mayPlayRemembered = e.mayPlayManaConvertRemembered(p, id)
 		e.cast.mayPlayPerm = opt.MayPlayPerm
+		if e.cast.mayPlayPerm == "" {
+			e.cast.mayPlayPerm = altKey
+		}
 		e.cast.mayPlayHosts = e.mayPlayHostsCovering(p, id)
 		e.cast.mayPlayHostsSet = true
 		// A may-play grant's own ReplaceGraveyard$ Exile rider ("if a spell

@@ -275,9 +275,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// recurring form -- events.Apply cannot decode a non-|EF registration
 		// for it and rules.checkEventDelayedTriggers has no non-repeat arm, so
 		// forcing one-shot there would make the body inert rather than
-		// one-shot. (Mode$ Phase is inherently one-shot: its registration
-		// carries no |EF and its Phase arm emits none, so the DelayedPush that
-		// fires it consumes it whether or not the body says OneOff$.)
+		// one-shot. Mode$ Phase is outside that set and decides its own
+		// marker in its arm: a bare Phase trigger is recurring (CR 114.4,
+		// 603.2: an emblem's or "each combat this turn" trigger fires at
+		// every occurrence until its Effect ends), a OneOff$ True one is
+		// consumed by its first firing.
 		oneOff := tl.OneOff &&
 			effectOneShotDelayedMode(tr.Mode)
 		efMarker := "|EF"
@@ -510,6 +512,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if c.Num.RememberedCMCBound && (cards.DelayedPreventedCounterBody(c.SVars, exec) ||
 				cards.DelayedPreventedCounterBody(effectFaceSVars(h, c.Source), exec)) {
 				text += "|RN=" + strconv.Itoa(int(c.Num.RememberedCMC))
+			}
+			// |EF rides last (events.Apply strips it right after |RN=): the
+			// registration is not consumed by its DelayedPush, so it fires at
+			// every later occurrence of the step until the Effect's lifetime
+			// (|TT=/|DU=/|SB, or the body's own self-exile via
+			// Host.EndEffectSource) retires it.
+			if !tl.OneOff {
+				text += "|EF"
 			}
 			// The Effect's remembered PLAYERS join the capture (Rowan
 			// Kenrith's RememberObjects$ Targeted names a player): the phase
