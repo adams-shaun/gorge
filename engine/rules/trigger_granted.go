@@ -545,29 +545,26 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 	// queued by the printed expansion, so it consumes one equal derived entry;
 	// every other derived entry is a granted instance (CR 113.2c: each is its
 	// own ability). A face-down object has no printed face (CR 708.8).
-	printedLeft := map[string]int{}
+	var printedLeft []string
 	if !e.faceDownPrintedHides(o) {
 		for _, k := range f.Keywords {
-			if strings.EqualFold(cards.KeywordHead(k), "Firebending") {
-				printedLeft[strings.ToLower(k)]++
+			if cards.KeywordHead(k) == "Firebending" {
+				printedLeft = append(printedLeft, k)
 			}
 		}
 	}
 	var params []string
 	for _, k := range e.Derived(id).Keywords {
-		if !strings.EqualFold(cards.KeywordHead(k), "Firebending") {
+		head := cards.KeywordHead(k)
+		if head != "Firebending" {
 			continue
 		}
-		if key := strings.ToLower(k); printedLeft[key] > 0 {
-			printedLeft[key]--
+		if i := slices.Index(printedLeft, k); i >= 0 {
+			printedLeft = slices.Delete(printedLeft, i, i+1)
 			continue
 		}
-		param := ""
-		if j := strings.IndexByte(k, ':'); j >= 0 {
-			param = strings.TrimSpace(k[j+1:])
-		}
-		if param != "" {
-			params = append(params, param)
+		if len(k) > len(head)+1 {
+			params = append(params, k[len(head)+1:])
 		}
 	}
 	if len(params) == 0 {
