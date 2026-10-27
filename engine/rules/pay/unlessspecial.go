@@ -147,6 +147,9 @@ func PayEvidence(e Engine, payer state.PlayerID, n int32, ids []state.ObjID, tex
 	for _, id := range ids {
 		e.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: text})
 	}
+	if len(ids) > 0 {
+		e.Emit(events.Event{Kind: events.CollectEvidenceAction, Player: payer})
+	}
 	return true
 }
 
@@ -226,7 +229,11 @@ func chargeUnlessSpecial(e Engine, u *UnlessPayment) {
 		part := u.Cost.AddCounter[i]
 		e.EmitCounterBy(events.Event{Kind: events.CounterChange, Obj: id, Counter: part.Spec, Amount: part.N}, u.Payer, true)
 	}
-	for _, id := range u.Evidence {
-		e.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "collected as evidence as a cost"})
+	if len(u.Evidence) > 0 {
+		need := int32(0)
+		for _, part := range u.Cost.Evidence {
+			need = costvocab.AddClampedGeneric(need, int64(part.N))
+		}
+		PayEvidence(e, u.Payer, need, u.Evidence, "collected as evidence as a cost")
 	}
 }
