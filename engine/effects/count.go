@@ -465,7 +465,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// counters. The /Op suffix (e.g. Sacrificed$Amount/Plus.1) is applied the
 	// same way Count$ applies it.
 	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
-		return evalSacrificedOK(c, strings.TrimSpace(body))
+		return evalSacrificedOK(h, c, strings.TrimSpace(body))
 	}
 	// A Remembered$... expression block was hoisted above evalRefProperty;
 	// see its comment there for the ordering contract.

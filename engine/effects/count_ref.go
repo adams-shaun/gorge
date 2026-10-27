@@ -131,10 +131,15 @@ func evalTriggerCountOK(c *Ctx, body string, max bool) (int32, bool) {
 // "the card did nothing" totality convention of every other head here. The
 // /Op suffix (Plus/Minus/Times./Twice/HalfDown/HalfUp/Negative) is applied
 // after the base value, exactly as applyCountOp does for Count$.
-func evalSacrificedOK(c *Ctx, body string) (int32, bool) {
+func evalSacrificedOK(h Host, c *Ctx, body string) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	trimmed := strings.TrimSpace(body)
 	var n int32
+	// Valid <spec> counts the sacrificed objects matching the filter, read off
+	// the sacrifice-time capture (sacrificedValidCount).
+	if spec, ok := strings.CutPrefix(trimmed, "Valid "); ok {
+		return finishSacrificed(sacrificedValidCount(h, c, strings.TrimSpace(spec)), op, hasOp), true
+	}
 	// ChromaSource[.<Colour>] (task lb-chroma) is the dotted spelling the
 	// exact-string enum below cannot hold, so it is claimed first: the
 	// sacrificed objects' coloured mana symbols, read off the LKI capture
@@ -172,17 +177,45 @@ func evalSacrificedOK(c *Ctx, body string) (int32, bool) {
 			}
 			n = int32(len(seen))
 		default:
-			// An out-of-scope head (Valid, CardNumColors, CardCounters)
+			// An out-of-scope head (CardNumColors, CardCounters)
 			// degrades to zero, exactly as before the fix -- the conservative
 			// same-as-before no-op the brief scopes out. NOT evaluated: a gate
 			// over one of these fails open.
 			return 0, false
 		}
 	}
+	return finishSacrificed(n, op, hasOp), true
+}
+
+// finishSacrificed applies the /Op suffix to a Sacrificed$ head's value.
+func finishSacrificed(n int32, op string, hasOp bool) int32 {
 	if hasOp {
 		n = applyCountOp(n, op)
 	}
-	return n, true
+	return n
+}
+
+// sacrificedValidCount counts the sacrificed objects matching spec, read off
+// last known information (CR 608.2h): the object the sacrifice moved, with the
+// designation the capture took before the zone change laid over it, because
+// CR 702.157b ends "suspected" the moment the permanent leaves the battlefield
+// (Agency Coroner's Sacrificed$Valid Card.IsSuspected).
+func sacrificedValidCount(h Host, c *Ctx, spec string) int32 {
+	g := h.Game()
+	sc := c.SpecContext(c.Controller)
+	var n int32
+	for _, s := range c.Sacrificed {
+		o := g.Obj(s.Obj)
+		if o == nil {
+			continue
+		}
+		oc := *o
+		oc.Suspected = s.Suspected
+		if MatchesObjectCtx(g, spec, &oc, sc) {
+			n++
+		}
+	}
+	return n
 }
 
 // sacrificedNumeric folds a numeric property across every object this

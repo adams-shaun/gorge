@@ -100,6 +100,11 @@ type SacrificedInfo struct {
 	// objects). Printed face types here; effects.SacrificedLKI overwrites
 	// them with the layer-derived set for a battlefield permanent.
 	Types []string
+	// Suspected is the CR 702.157 designation at the instant of the sacrifice
+	// (Sacrificed$Valid Card.IsSuspected, Agency Coroner). The designation
+	// ends when the permanent leaves the battlefield (CR 702.157b), so the
+	// graveyard object no longer carries it.
+	Suspected bool
 }
 
 // LKIObject is the last-known-information snapshot captured by a
@@ -2619,7 +2624,7 @@ func SacrificedInfoOf(g *Game, id ObjID) SacrificedInfo {
 	}
 	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: ManaValue(g, o),
 		ManaCost: o.Face().ManaCost, FaceDown: o.FaceDown, Counters: counters,
-		Types: append([]string(nil), o.Face().Types...)}
+		Types: append([]string(nil), o.Face().Types...), Suspected: o.Suspected}
 }
 
 // CloneChosenModes copies a ChosenModes announcement, preserving the
