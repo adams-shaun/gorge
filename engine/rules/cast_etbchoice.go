@@ -87,7 +87,6 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 	if o == nil || o.Face() == nil || ev.To != state.ZBattlefield {
 		return etbChoice{}, false
 	}
-	you := o.Controller
 	seen := 0
 	// CR 303.4f: a non-cast Aura's controller chooses what it enchants as it
 	// enters -- the first as-enters election, so every later one (and the
@@ -99,23 +98,44 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 		}
 		seen++
 	}
-	if o.Face().HasKeywordRef(kwRefRiot) {
-		if seen == ordinal {
+	f := o.Face()
+	if choice, ok := e.faceETBChoice(o, f, ev, ordinal, &seen, false); ok {
+		return choice, true
+	}
+	// CR 707.2 and 614.12: an entrant whose copy election was answered for a
+	// template enters with the template's copiable values, so the template's
+	// own as-enters choices (Kindred Discovery's creature type) are asked at
+	// this same entry, after the entrant's own ordinals. The answers land on
+	// the entering object through the ordinary etb Choose events.
+	if tpl := e.cloneRiderTemplate(o.ID); tpl != nil {
+		return e.faceETBChoice(o, tpl.Face(), ev, ordinal, &seen, true)
+	}
+	return etbChoice{}, false
+}
+
+// faceETBChoice walks one face's as-enters choices (riot, unleash and the
+// Repls), counting into *seen and returning the one whose position is
+// ordinal. fromTemplate marks the copied template's face, whose own copy
+// election is skipped.
+func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, ordinal int, seen *int, fromTemplate bool) (etbChoice, bool) {
+	you := o.Controller
+	if f.HasKeywordRef(kwRefRiot) {
+		if *seen == ordinal {
 			return etbChoice{kind: "riot", options: []decision.Option{
 				{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter", Obj: o.ID, Player: you},
 				{Index: 1, Kind: "riot", Label: "Gain haste", Obj: o.ID, Player: you},
 			}}, true
 		}
-		seen++
+		(*seen)++
 	}
-	if o.Face().HasKeywordRef(kwRefUnleash) {
-		if seen == ordinal {
+	if f.HasKeywordRef(kwRefUnleash) {
+		if *seen == ordinal {
 			return etbChoice{kind: "unleash", options: unleashOptions(o.ID, you)}, true
 		}
-		seen++
+		(*seen)++
 	}
-	for i := range o.Face().Repls {
-		r := &o.Face().Repls[i]
+	for i := range f.Repls {
+		r := &f.Repls[i]
 		if r.With == nil || !e.replacementMatches(*r, o.ID, ev) {
 			continue
 		}
@@ -133,10 +153,10 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 			if !ok {
 				continue
 			}
-			if seen == ordinal {
+			if *seen == ordinal {
 				return etbChoice{kind: "paylife", options: etbPayLifeOptions(you, o.ID, bound)}, true
 			}
-			seen++
+			(*seen)++
 			continue
 		}
 		kind := etbChoiceKind(r.With.API)
@@ -154,11 +174,13 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 		// unimplemented-API fallback. A body outside the whitelist is not a
 		// choice at all, so it is skipped before the ordinal is counted.
 		if kind == "copy" {
-			if !etbCloneWhitelist(r.With, o.Face().SVars) {
+			// A copied face's own Clone body is not re-elected: a copy of a
+			// Clone enters as the Clone's template only once (CR 707.9a).
+			if fromTemplate || !etbCloneWhitelist(r.With, f.SVars) {
 				continue
 			}
 		}
-		if seen == ordinal {
+		if *seen == ordinal {
 			// The fifth filter slot means different things per kind: Choices$
 			// is the copy-template selector the clone slice reads, while
 			// ValidDescription$ is Forge prompt text for the name kinds, not
@@ -175,7 +197,7 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 			} else if kind == "number" {
 				// The card's own Min$/Max$ bound, through the ONE bound reader
 				// the mid-resolution ChooseNumber ask uses (Talion: 1..10).
-				opts = effects.ETBNumberChoices(e, o.ID, you, o.Face().SVars, r.With)
+				opts = effects.ETBNumberChoices(e, o.ID, you, f.SVars, r.With)
 			} else if kind == "copy" {
 				cp := effects.CloneOf(r.With)
 				opts = etbCloneOptions(e.G, you, o.ID, cp.ChoicesRaw, cp.ChoiceZoneKind)
@@ -215,7 +237,7 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 			}
 			return etbChoice{kind: kind, options: opts}, true
 		}
-		seen++
+		(*seen)++
 	}
 	return etbChoice{}, false
 }

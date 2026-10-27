@@ -518,7 +518,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 		if m.repl.With == nil {
 			// Counter's Layer$ CantHappen shape has no ReplaceWith$: stopping
 			// the event is its complete replacement.
-			return ev, true
+			return stoppedDamage(ev), true
 		}
 		if m.repl.With.API == "ReplaceDamage" {
 			// Handled here, not through runReplaceWith/effects.Resolve: the
@@ -528,7 +528,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			// reduced event standing for the next modifier. Its SubAbility$
 			// chain is deliberately not run (see applyReplaceDamageBody).
 			if e.applyReplaceDamageBody(&ev, m) {
-				return ev, true
+				return stoppedDamage(ev), true
 			}
 			continue
 		}
@@ -536,7 +536,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			// The redirect shield: part of the held amount is dealt to
 			// DamageTarget$ instead (applyReplaceSplitDamageBody).
 			if e.applyReplaceSplitDamageBody(&ev, m) {
-				return ev, true
+				return stoppedDamage(ev), true
 			}
 			continue
 		}
@@ -561,9 +561,23 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 		// A body that does not rewrite the held event (DB$ DealDamage,
 		// DB$ RemoveCounters, ...) supplied its own outcome; its emissions
 		// replace the original event.
-		return ev, true
+		return stoppedDamage(ev), true
 	}
 	return ev, false
+}
+
+// stoppedDamage is the event a replacement hands back when it fully stopped a
+// proposed Damage without logging a landing of its own: the unlogged proposal
+// is never dealt (CR 120.1, 614.1a, 615.1), so the zero event tells every
+// caller -- lifelink, deathtouch, RememberDamaged$, the combat assignment
+// loop -- that dealt is 0. Returning the held Damage would let each of them
+// price a ghost hit from its still-intact Amount. Every other kind keeps its
+// historical shape.
+func stoppedDamage(ev events.Event) events.Event {
+	if ev.Kind == events.Damage {
+		return events.Event{}
+	}
+	return ev
 }
 
 // replMatch is one replacement effect the engine found applicable to an

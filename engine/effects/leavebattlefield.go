@@ -216,7 +216,22 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 			})
 			continue
 		}
-		if mode != "CantSacrifice" && mode != "CantBlockUnless" && mode != "CantAttackUnless" && mode != "CantBlockBy" {
+		if known, readable := animateCombatStaticReadable(mode, params); known {
+			// CR 611.3a: an ability an effect grants is the object's own
+			// static, so an Animate staticAbilities$ body delivering one of
+			// the combat restriction/requirement modes binds the animated
+			// creature's attack/block declaration exactly as the Effect
+			// route's registration does (Nettling Imp's MustAttack, Traumatic
+			// Prank's CantBlock). The grant-path predicate gates it: the
+			// face-side variants admit gates and UnlessDefender$ that the
+			// registered continuous-effect walks cannot evaluate, which would
+			// register an unconditional restriction.
+			if !readable {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
+				continue
+			}
+		} else if mode != "CantSacrifice" && mode != "CantBlockUnless" && mode != "CantAttackUnless" && mode != "CantBlockBy" {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
 			continue
@@ -267,6 +282,33 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 			RestrictSVars: c.SVars,
 		})
 	}
+}
+
+// animateCombatStaticReadable reports whether mode names one of the combat
+// restriction/requirement statics an Animate staticAbilities$ grant can
+// deliver, and whether params carry only what the Effect-registered
+// consultation path evaluates. It is the grant-path half of the four modes'
+// whitelists -- the same predicates effEffect's own restriction case and the
+// MustAttack case apply -- deliberately not the face-side
+// CantAttackParamsReadableForRules / CanAttackDefenderParamsReadable: those
+// admit the shared gate family and UnlessDefender$, which the FACE readers
+// evaluate but the registered walks (combat.AttackBlocked,
+// combat.AttackAllowedThroughDefender) do not. Registering a granted Veiled
+// Serpent body (UnlessDefender$ controlsIsland) through them would turn it
+// into an unconditional "can't attack"; the narrower predicate keeps it the
+// loud Note it is today.
+func animateCombatStaticReadable(mode string, params map[string]string) (known, readable bool) {
+	switch mode {
+	case "MustAttack":
+		return true, MustAttackParamsReadable(params)
+	case "CantAttack":
+		return true, CantRestrictionParamsReadable(params)
+	case "CantBlock":
+		return true, CantBlockRestrictionParamsReadable(params)
+	case "CanAttackDefender":
+		return true, CanAttackDefenderGrantParamsReadable(params)
+	}
+	return false, false
 }
 
 // registerAnimateContinuousGrant registers a granted Mode$ Continuous body

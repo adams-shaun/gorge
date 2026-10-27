@@ -50,22 +50,31 @@ var conditionSupportedDefined = newConditionNames(
 	"ThisTargetedCard", "TriggeredSpellAbility",
 	"Collected", "CastSA>Collected", "TriggeredTargetLKICopy",
 	"TriggeredAttackerLKICopy", "Enchanted", "Equipped",
+	"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "TriggeredNewCardLKICopy",
+	"ReplacedSource", "TopOfLibrary", "RememberedCard", "ExiledWith", "OriginalHost",
+)
+
+// conditionDefinedSharedResolver is the subset of conditionSupportedDefined
+// whose group is exactly what the Defined$ resolver (definedSpec) returns for
+// the same name, so a gate and the effect it guards name one set: Nettling
+// Imp / Norritt / Berserk's DelayTriggerRemembered, Surtland Flinger's
+// DelayTriggerRememberedLKI, Hook Horror's TriggeredNewCardLKICopy,
+// Comeuppance's ReplacedSource, Vesuvan Drifter's TopOfLibrary, God-Eternal
+// Kefnet's RememberedCard, The Creation of Avacyn's ExiledWith and Heliod's
+// Punishment's OriginalHost.
+var conditionDefinedSharedResolver = newConditionNames(
+	"DelayTriggerRemembered", "DelayTriggerRememberedLKI", "TriggeredNewCardLKICopy",
+	"ReplacedSource", "TopOfLibrary", "RememberedCard", "ExiledWith", "OriginalHost",
 )
 
 // conditionUnmodelledDefined is every ConditionDefined$ group the corpus
-// carries that conditionMetCore cannot enumerate. Each entry is a real
+// carries that conditionMetCore cannot enumerate: neither has a whole-value
+// Defined$ resolver to share (ExiledWithSource is only a filter predicate and
+// a dotted qualifier; Tapped names a cost's tapped set). Each entry is a real
 // carrier (counts measured 2026-10-04); a new value fails the census test.
 var conditionUnmodelledDefined = newConditionNames(
-	"DelayTriggerRememberedLKI", // 6
-	"DelayTriggerRemembered",    // 5
-	"TriggeredNewCardLKICopy",   // 4
-	"ReplacedSource",            // 3
-	"TopOfLibrary",              // 2
-	"RememberedCard",            // 2
-	"ExiledWithSource",          // 2
-	"ExiledWith",                // 2
-	"Tapped",                    // 1
-	"OriginalHost",              // 1
+	"ExiledWithSource", // 2
+	"Tapped",           // 1
 )
 
 // conditionSupportedBare is every bare Condition$ value conditionMetCore

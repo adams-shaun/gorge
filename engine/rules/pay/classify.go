@@ -33,7 +33,9 @@ func FaceReadsManaSpent(f *cards.Face) bool {
 			return true
 		}
 	}
-	return false
+	// The parsed top-level "| ConditionManaSpent$ G" clause is a param key,
+	// invisible to the value search above.
+	return f.MentionsParam("ConditionManaSpent") || f.MentionsParam("ConditionManaNotSpent")
 }
 
 // PlanNonManaAdmissible reports whether c is a cost a mana-only V1

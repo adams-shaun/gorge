@@ -595,17 +595,22 @@ func faceWantsCastSpend(f *cards.Face) bool {
 
 // faceWantsManaColorSpent is the heads-safety gate for the pay-time
 // per-colour-spend CastInfo (the faceWantsCastSpend shape): it reports
-// whether the face reads per-colour payment provenance: a ConditionManaSpent$ /
-// ConditionManaNotSpent$ gate, or Adamant: a Count$Adamant head
-// (an SVar body or compiled CheckSVar$ gate) or the direct trigger-level
-// Adamant$ clause. Face.Mentions scans every string the face owns -- SVars,
-// keywords, ability params, trigger params and replacement params -- so both
-// forms are covered without a second, driftable list.
+// whether the face reads per-colour payment provenance: a Count$Adamant head
+// (an SVar body or compiled CheckSVar$ gate), the direct trigger-level
+// Adamant$ clause, or a ConditionManaSpent$ / ConditionManaNotSpent$ gate.
+// Face.Mentions scans every string VALUE the face owns -- SVars, keywords,
+// ability params, trigger params and replacement params -- which covers the
+// SVar-body spelling; Face.MentionsParam scans the parameter KEYS, which
+// covers the parsed top-level "| ConditionManaSpent$ G" clause.
 func faceWantsManaColorSpent(f *cards.Face) bool {
 	if f == nil {
 		return false
 	}
-	if f.Mentions("Count$Adamant") || f.Mentions("ConditionManaSpent$") || f.Mentions("ConditionManaNotSpent$") {
+	if f.Mentions("Count$Adamant") {
+		return true
+	}
+	if f.Mentions("ConditionManaSpent$") || f.Mentions("ConditionManaNotSpent$") ||
+		f.MentionsParam("ConditionManaSpent") || f.MentionsParam("ConditionManaNotSpent") {
 		return true
 	}
 	for _, tr := range f.Triggers {

@@ -438,22 +438,128 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	// Player.NotedFor<label> is a global player property resolved by the
 	// shared player-spec evaluator (controlReferentPlayers below), exactly like
 	// Player.EnchantedBy. The label is dynamic, so it is a prefix arm rather
-	// than a table key, and it is deliberately the ONLY delegated Player.*
-	// qualifier: the other unrecognised refs (Player.Opponent, Player.Other)
-	// stay unknown and keep failing closed.
+	// than a table key.
 	if controlReferentNotedForLabel(ref) != "" {
 		return op, ref, true
 	}
 	// Player.Active resolves directly to the active seat in
 	// controlReferentPlayers (the only corpus carrier is Weftwalking's
-	// Affected$ and its ThisTurnCast gate); Player.Opponent and Player.Other
-	// stay unknown and keep failing closed.
+	// Affected$ and its ThisTurnCast gate).
 	// ActivePlayer is Forge's other spelling of the same seat (Ian Malcolm,
 	// Chaotician's "!OwnedBy ActivePlayer").
 	if ref == "Player.Active" || ref == "ActivePlayer" {
 		return op, ref, true
 	}
+	// Every other Player.<qualifier> is Forge's player-property grammar
+	// applied to the owner/controller (CardProperty.OwnedBy/ControlledBy
+	// test player.isValid first). Delegate to the shared player-spec
+	// evaluator's own known/unknown verdict rather than hand-listing the
+	// spellings: Player.Opponent, Player.Other, Player.isMonarch,
+	// Player.EnchantedController and Player.CardOwner are the corpus
+	// carriers. An unrecognised qualifier (Player.NoSuchThing,
+	// Player.targetedBy) still fails closed here and stays reported by
+	// UnknownPredicates.
+	if strings.HasPrefix(ref, "Player.") && controlReferentPlayerSpecKnown(ref) {
+		return op, ref, true
+	}
 	return "", "", false
+}
+
+// controlReferentPlayerSpecKnown reports whether every clause of a
+// Player.<qualifier> control/ownership referent is a spelling the shared
+// player-spec evaluator (MatchesPlayerSpecCtx) reads. It walks the compiled
+// form's own classification -- the qualifier table plus the evaluator-only
+// spellings compilePlayerSingle records -- so the classifier cannot disagree
+// with the matcher about a qualifier. An empty or unknown clause makes the
+// whole ref unknown, which keeps an unrecognised qualifier failing closed and
+// visible to UnknownPredicates.
+func controlReferentPlayerSpecKnown(ref string) bool {
+	ps := compiledPlayerSpecFor(ref)
+	if len(ps.alts) == 0 {
+		return false
+	}
+	for _, alts := range ps.alts {
+		if len(alts) == 0 {
+			return false
+		}
+		for i := range alts {
+			if !controlReferentPlayerClauseKnown(&alts[i]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func controlReferentPlayerClauseKnown(c *playerClause) bool {
+	if c.blank {
+		return false
+	}
+	if c.dealt {
+		return true
+	}
+	if c.bare {
+		return c.bareCode != 0
+	}
+	if len(c.single) == 0 {
+		return false
+	}
+	for i := range c.single {
+		if !controlReferentPlayerAltKnown(&c.single[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// controlReferentPlayerAltKnown mirrors matchesPlayerSingleSpec's dispatch:
+// a qualifier is known when the compiled spec classified it in
+// playerSpecQualifierCodes or when the evaluator's explicit string arms read
+// it. The string-arm spellings are shared with player_filter.go, so a new
+// arm there needs its one entry here (compiledPlayerSpec's own fields still
+// own the classification).
+func controlReferentPlayerAltKnown(a *playerAlt) bool {
+	if a.negInner {
+		return a.baseCode != 0 && a.innerKnown
+	}
+	if !a.qualified {
+		return a.baseCode != 0
+	}
+	if a.baseCode == 0 {
+		return false
+	}
+	if (a.base == "Player" || a.base == "Any") && (a.qualifier == "CardOwner" || a.qualifier == "Owner") {
+		return true
+	}
+	if a.qualifier == "Chosen" || a.qualifier == "IsRemembered" {
+		return true
+	}
+	playerBase := a.base == "Player" || a.base == "Any"
+	if kind, is := strings.CutPrefix(a.qualifier, "withMost"); is {
+		return playerBase && playerHasMostCodes.Code(kind) != 0
+	}
+	if rem, is := strings.CutPrefix(a.qualifier, "controlsCard."); is {
+		return playerBase && rem != ""
+	}
+	if rem, is := strings.CutPrefix(a.qualifier, "controlsCreature."); is {
+		return playerBase && rem != ""
+	}
+	if rem, is := strings.CutPrefix(a.qualifier, "controlsPermanent."); is {
+		return playerBase && rem != ""
+	}
+	if a.qualCode != 0 {
+		return true
+	}
+	if label, is := strings.CutPrefix(a.qualifier, "NotedFor"); is && label != "" {
+		return a.base == "Player" || a.base == "Any"
+	}
+	if _, _, _, ok := splitPlayerCountCompare(a.qualifier); ok {
+		return true
+	}
+	if _, _, ok := splitPlayerCompare(a.qualifier); ok {
+		return true
+	}
+	return false
 }
 
 // targetReferent is the shared classifier for TargetedPlayerCtrl and the
@@ -658,7 +764,25 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		// ControlledBy Player.Active").
 		targets = []state.Target{{IsPlayer: true, Player: g.Active}}
 	default:
-		return nil, false
+		// Every other Player.<qualifier> is the shared player-spec grammar
+		// applied to the owner/controller. Resolve it exactly like the
+		// Player.EnchantedBy arm above, binding the source and resolution
+		// memory the qualifier reads; an empty result is unbound (no match,
+		// never a guess), and an unknown qualifier was already rejected by
+		// controlReferent.
+		if !strings.HasPrefix(ref, "Player.") || !controlReferentPlayerSpecKnown(ref) {
+			return nil, false
+		}
+		pc := PlayerSpecCtx{
+			Source:          sc.Source,
+			Remembered:      sc.Remembered,
+			RememberedBound: len(sc.Remembered) > 0,
+		}
+		for p := range g.Players {
+			if MatchesPlayerSpecCtx(g, ref, state.PlayerID(p), sc.You, pc) {
+				targets = append(targets, state.Target{IsPlayer: true, Player: state.PlayerID(p)})
+			}
+		}
 	}
 
 	players := make([]state.PlayerID, 0, len(targets))
@@ -809,6 +933,7 @@ const (
 
 var controlReferentCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentCode]{Key: "TriggeredTarget", Val: controlReferentTriggeredTarget},
+	state.StrEntry[controlReferentCode]{Key: "Player.TriggeredTarget", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "TriggeredDefendingPlayer", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "TriggeredPlayer", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "TriggeredCard", Val: controlReferentTriggeredTarget},
@@ -858,6 +983,7 @@ const (
 var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "TriggeredSourceSAController", Val: controlReferentPlayersTriggeredSourceSAController},
 	state.StrEntry[controlReferentPlayersCode]{Key: "TriggeredTarget", Val: controlReferentPlayersTriggeredTarget},
+	state.StrEntry[controlReferentPlayersCode]{Key: "Player.TriggeredTarget", Val: controlReferentPlayersTriggeredTarget},
 	state.StrEntry[controlReferentPlayersCode]{Key: "TriggeredDefendingPlayer", Val: controlReferentPlayersTriggeredDefendingPlayer},
 	state.StrEntry[controlReferentPlayersCode]{Key: "TriggeredPlayer", Val: controlReferentPlayersTriggeredPlayer},
 	state.StrEntry[controlReferentPlayersCode]{Key: "TriggeredCard", Val: controlReferentPlayersTriggeredCard},

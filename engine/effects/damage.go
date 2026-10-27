@@ -86,6 +86,18 @@ func registerReplaceDying(h Host, c *Ctx, die string, damaged []state.Target) {
 		if t.IsPlayer || t.Obj == 0 || (targeted != nil && !targeted[t.Obj]) {
 			continue
 		}
+		// Remembered names the recipients this resolution ACTUALLY dealt
+		// damage to (CR 120.1: damage a replacement or prevention stopped was
+		// never dealt). damaged is the full batch -- every target the emitter
+		// proposed, kept for the target-based selectors -- so the Remembered
+		// selector must intersect it with c.Remembered, the set the remember
+		// arms wrote only for a positive dealt amount.
+		if selector == definedSpecRemembered {
+			dealt := targetIn(c.Remembered, state.Target{Obj: t.Obj})
+			if !dealt {
+				continue
+			}
+		}
 		if qualifier != "" && !MatchesSpecCtx(h.Game(), qualifier, t.Obj, c.SpecContext(c.Controller)) {
 			continue
 		}
@@ -418,10 +430,12 @@ func emitDamageEvent(r damageRider, ev events.Event) events.Event {
 }
 
 // emitPlayerDamage lands one non-combat Damage event on a player and pays the
-// lifelink rider from the amount that survived replacement effects.
-func emitPlayerDamage(r damageRider, target state.PlayerID) {
+// lifelink rider from the amount that survived replacement effects. It
+// returns that surviving amount so a RememberDamaged$ caller can record only
+// recipients that were actually dealt damage (CR 120.1).
+func emitPlayerDamage(r damageRider, target state.PlayerID) int32 {
 	if r.amount <= 0 {
-		return
+		return 0
 	}
 	ev := events.Event{Kind: events.Damage, Player: target, Amount: r.amount}
 	if r.hasInfect {
@@ -440,6 +454,7 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) {
 		dealt = applied.Amount
 	}
 	payLifelinkRider(r, dealt)
+	return dealt
 }
 
 // excessLethal is the amount of damage that is LETHAL to one permanent, read
@@ -798,9 +813,9 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(state.ZBattlefield, p) {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) && inSweepScope(g, id, scope) {
-					emitObjectDamage(rider, id)
+					dealt := emitObjectDamage(rider, id)
 					damaged = append(damaged, state.Target{Obj: id})
-					if remember {
+					if remember && dealt > 0 {
 						c.Remembered = append(c.Remembered, state.Target{Obj: id})
 						eventRemember(h, c, id)
 					}
@@ -809,9 +824,9 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	for _, p := range validPlayers(h, c, sa.ParamStr(cards.PKValidPlayers)) {
-		emitPlayerDamage(rider, p)
+		dealt := emitPlayerDamage(rider, p)
 		damaged = append(damaged, state.Target{Player: p, IsPlayer: true})
-		if remember {
+		if remember && dealt > 0 {
 			rememberPlayerBothHalves(h, c, p)
 		}
 	}
@@ -1275,11 +1290,15 @@ type PendingDamage struct {
 }
 
 // flushPendingDamage deals every mark on c.PendingDamage as ONE damage batch
-// and returns the targets actually damaged (nil when nothing was marked).
-func flushPendingDamage(h Host, c *Ctx) []state.Target {
+// and returns the targets the marks named (nil when nothing was marked),
+// together with, per target, whether that emit actually dealt damage after
+// replacement and prevention. The full target list is kept for
+// registerReplaceDying's target-based selectors; RememberDamaged$ readers
+// consult the per-target dealt flags (CR 120.1).
+func flushPendingDamage(h Host, c *Ctx) ([]state.Target, []bool) {
 	marks := c.PendingDamage
 	if len(marks) == 0 {
-		return nil
+		return nil, nil
 	}
 	// Consume the marks before emitting: a Damage event's own replacement or
 	// trigger machinery must not see them as still pending, and a later
@@ -1287,19 +1306,22 @@ func flushPendingDamage(h Host, c *Ctx) []state.Target {
 	c.PendingDamage = nil
 	h.BeginDamageBatch()
 	var damaged []state.Target
+	var dealt []bool
 	for _, m := range marks {
 		prev := h.SetDamageSource(m.rider.source)
 		if m.target.IsPlayer {
-			emitPlayerDamage(m.rider, m.target.Player)
+			applied := emitPlayerDamage(m.rider, m.target.Player)
 			damaged = append(damaged, state.Target{Player: m.target.Player, IsPlayer: true})
+			dealt = append(dealt, applied > 0)
 		} else if o := h.Game().Obj(m.target.Obj); o != nil && o.Zone == state.ZBattlefield {
-			emitObjectDamage(m.rider, m.target.Obj)
+			applied := emitObjectDamage(m.rider, m.target.Obj)
 			damaged = append(damaged, state.Target{Obj: m.target.Obj})
+			dealt = append(dealt, applied > 0)
 		}
 		h.SetDamageSource(prev)
 	}
 	h.EndDamageBatch()
-	return damaged
+	return damaged, dealt
 }
 
 // effDamageResolve implements "DB$ DamageResolve" (Forge's
@@ -1317,12 +1339,15 @@ func flushPendingDamage(h Host, c *Ctx) []state.Target {
 // flush actually damaged, the same way a real DealDamage would (the one
 // corpus carrier, Serpentine Spike, puts both on the DamageResolve line).
 func effDamageResolve(h Host, c *Ctx, sa *cards.SA) {
-	damaged := flushPendingDamage(h, c)
+	damaged, dealt := flushPendingDamage(h, c)
 	if len(damaged) == 0 {
 		return
 	}
 	if strings.TrimSpace(sa.ParamStr(cards.PKRememberDamaged)) != "" {
-		for _, t := range damaged {
+		for i, t := range damaged {
+			if i >= len(dealt) || !dealt[i] {
+				continue
+			}
 			c.Remembered = append(c.Remembered, t)
 			// A player entry's Obj is zero and would emit a garbage Choose
 			// event; encode the player through PlayerRef, the same encoding

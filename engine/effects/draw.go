@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -28,8 +29,12 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	// what moved). Unread before this — the whole sub-chain saw nothing. A
 	// suspended draw has not happened yet, so the record waits until the
 	// draw is real (the suspend check below).
-	// The corpus uses both True and AllReplaced; both record cards this
-	// ability's draws actually moved into a hand (replaced draws are not here).
+	// The corpus uses both True and AllReplaced. True records only the card
+	// this ability's own draw moved (the pre-draw top card). AllReplaced also
+	// records the cards a replacement body drew in its place: CR 121.6c/614.1
+	// says a replaced draw is not drawn but the replacement instruction's
+	// cards ARE, and Forge's AllReplaced marker adds every card the draw
+	// machinery moves to hand under that cause (see recordDrawn below).
 	remember := dp.RememberDrawn
 	// tapeReentry repeats the unread-parameter Note and the capture
 	// exclusion after each answer served in place (the event stream the
@@ -197,7 +202,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 				// The chosen count is this target's batch: offer it to the
 				// DrawCards replacement class before the first card moves
 				// (the same boundary the mandatory loop takes).
-				if c.Draw.Done == 0 && proposeDrawBatch(h, c.Source, p, c.Draw.UptoCount) {
+				if c.Draw.Done == 0 && drawBatchConsumed(h, c.Source, p, c.Draw.UptoCount, c, dp.RememberDrawnAll) {
 					c.Draw.Done = c.Draw.UptoCount
 					if h.Suspended() {
 						return
@@ -208,6 +213,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 				if remember {
 					lib = zoneOf(h.Game(), state.ZLibrary, p)
 				}
+				before := drawnSnapshot(h, p, dp.RememberDrawnAll)
 				if drawFor(h, p, int(c.Draw.Done), sa, drawUptoRider{idx: idx, count: c.Draw.UptoCount}) {
 					// A Dredge answer, already applied: on past this draw.
 					tapeReentry()
@@ -219,8 +225,8 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 					// not run later targets yet.
 					return
 				}
-				if remember && len(lib) > 0 {
-					c.Remembered = append(c.Remembered, state.Target{Obj: lib[0]})
+				if remember {
+					recordDrawn(h, c, p, before, lib, dp.RememberDrawnAll)
 				}
 				c.Draw.Done++
 			}
@@ -238,7 +244,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 		// cards" replaces a Thought Reflection draw-two as ONE event. A
 		// consumed batch drew through its replacement's body already; the
 		// cursor moves past it and nothing is drawn here.
-		if c.Draw.Done%n == 0 && proposeDrawBatch(h, c.Source, p, n) {
+		if c.Draw.Done%n == 0 && drawBatchConsumed(h, c.Source, p, n, c, dp.RememberDrawnAll) {
 			c.Draw.Done += n
 			if h.Suspended() {
 				return
@@ -249,6 +255,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 		if remember {
 			lib = zoneOf(h.Game(), state.ZLibrary, p)
 		}
+		before := drawnSnapshot(h, p, dp.RememberDrawnAll)
 		if drawFor(h, p, int(c.Draw.Done), sa, drawUptoRider{}) {
 			// A Dredge answer, already applied: on past this draw.
 			tapeReentry()
@@ -260,13 +267,63 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 			// later draws, Remembered or SubAbility$ yet.
 			return
 		}
-		if remember && len(lib) > 0 {
-			c.Remembered = append(c.Remembered, state.Target{Obj: lib[0]})
+		if remember {
+			recordDrawn(h, c, p, before, lib, dp.RememberDrawnAll)
 		}
 		c.Draw.Done++
 	}
 	// The draw cursor is scoped to this primitive.
 	c.Draw.Done = 0
+}
+
+// drawnSnapshot copies the drawing player's library before a draw when the
+// cause is RememberDrawn$ AllReplaced: the cards the draw and its replacement
+// body move into that player's hand are then read back from it. nil for the
+// True spelling, whose single pre-draw top card is read from the live zone
+// slice the caller already holds (the fold replaces the slice, so it keeps
+// the pre-draw contents).
+func drawnSnapshot(h Host, p state.PlayerID, all bool) []state.ObjID {
+	if !all {
+		return nil
+	}
+	return append([]state.ObjID(nil), zoneOf(h.Game(), state.ZLibrary, p)...)
+}
+
+// recordDrawn appends one draw instruction's remember records. AllReplaced
+// records every card of the pre-draw snapshot now in the DRAWING player's own
+// hand, in library order -- the draw itself and whatever its replacement body
+// drew (CR 121.6c/614.1; Forge's AllReplaced marker). A card an opponent's
+// replacement drew (Notion Thief) is in the opponent's hand, not p's, and is
+// not recorded. True keeps recording only the pre-draw top card.
+func recordDrawn(h Host, c *Ctx, p state.PlayerID, before, top []state.ObjID, all bool) {
+	if !all {
+		if len(top) > 0 {
+			c.Remembered = append(c.Remembered, state.Target{Obj: top[0]})
+		}
+		return
+	}
+	hand := zoneOf(h.Game(), state.ZHand, p)
+	for _, id := range before {
+		if slices.Contains(hand, id) {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
+	}
+}
+
+// drawBatchConsumed offers one draw instruction's batch to the DrawCards
+// replacement class and reports whether a replacement consumed it. When one
+// did, its body drew in the batch's place, so a RememberDrawn$ AllReplaced
+// cause records those draws exactly as the per-card loop records its own
+// (the snapshot is taken before the body runs).
+func drawBatchConsumed(h Host, source state.ObjID, p state.PlayerID, n int32, c *Ctx, rememberAll bool) bool {
+	before := drawnSnapshot(h, p, rememberAll)
+	if !proposeDrawBatch(h, source, p, n) {
+		return false
+	}
+	if !h.Suspended() {
+		recordDrawn(h, c, p, before, nil, rememberAll)
+	}
+	return true
 }
 
 // proposeDrawBatch offers one draw instruction's whole batch to the

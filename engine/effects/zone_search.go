@@ -551,12 +551,13 @@ type libraryFetch struct {
 // Object selectors from Hand and Graveyard already use effChangeZone's normal
 // object path. Library is the exceptional origin because it otherwise enters
 // effSearchLibrary. A Defined$ yielding only player targets still belongs to
-// the search-owner path below. Each owner whose library this fetch moves a
-// card out of is shuffled once; a fetch that moves no card from an owner's
-// library shuffles nothing (Gathering Stone's empty Remembered DBToHand must
-// not reorder the top card its chained TopOfLibrary mill reads). Nissa's
-// Pilgrimage's shuffle rides its search tail and, when its fetch list still
-// names a library card, this path.
+// the search-owner path below. A Defined$ fetch is not a search: it shuffles
+// only on explicit Shuffle$ True, a library destination, a NoLooking$ search
+// placement leg, or a search that deferred its shuffle via
+// Ctx.Search.DeferredShuffle (Nissa's Pilgrimage). A fetch that moves no card
+// from an owner's library shuffles nothing (Gathering Stone's empty
+// Remembered DBToHand must not reorder the top card its chained TopOfLibrary
+// mill reads), nor does a plain reveal-and-take.
 //
 // Optional$ True is a choice over the whole known fetch list, not permission
 // to silently move it. Kenessos's DBBottom is the corpus example: after its
@@ -747,9 +748,16 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 		// battlefield), so this owner's fetch list is empty -- and shuffling
 		// here reordered the library before the chained `Defined$ TopOfLibrary`
 		// mill read its top card, milling a deeper card instead of the peeked
-		// one. A fetch that did move library cards keeps its mandatory shuffle
-		// (Nissa's Pilgrimage's "Then shuffle" rides this path).
-		if !preserveDeferredRest && (cz.ShuffleTrue || (!cz.DefinedLibraryPosition && len(moved) > 0)) {
+		// one. A Defined$ fetch is not a search (Forge's `defined` flag keeps
+		// the post-move shuffle from firing), so a plain reveal-and-take
+		// (Traveling Botanist, Gathering Stone, Bucolic Ranch) shuffles
+		// nothing. The implicit shuffle survives only where the script owes
+		// one: a library destination, the NoLooking$ placement leg of a
+		// search, or a search that deferred its shuffle to this leg
+		// (Ctx.Search.DeferredShuffle -- Nissa's Pilgrimage).
+		implicitShuffle := !cz.DefinedLibraryPosition && len(moved) > 0 &&
+			(to == state.ZLibrary || cz.NoLooking || (c != nil && c.Search.DeferredShuffle))
+		if !preserveDeferredRest && (cz.ShuffleTrue || implicitShuffle) {
 			shuffleLibrary(h, cz, f.owner)
 		}
 		placeLibraryObjects(h, c, cz, f.owner, moved, to)
@@ -1513,6 +1521,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// library shuffle tail.
 	scheduleAtEOT(h, c, sa, moved)
 	if searchedLib {
+		c.Search.DeferredShuffle = !cz.ShuffleTrue && (cz.ShuffleFalse || cz.NoShuffle)
 		searchShuffleTail(h, c, cz, owner, moved, to)
 	}
 }

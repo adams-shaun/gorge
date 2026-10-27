@@ -55,6 +55,7 @@ func init() {
 // double) keeps the deterministic decline.
 func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
+	addTypes := CopySpellAbilityOf(sa).AddTypes
 	// Optional$ True (Sevinne's Reclamation's "if this spell was cast from a
 	// graveyard, you may copy this spell", the corpus's wider may-copy
 	// family, and the Optional$+UnlessCost$ carriers Wandering Archaic and
@@ -307,7 +308,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// resolve what it names.
 	targets, defined := copyDefinedTargets(h, c, sa)
 	if spec := strings.TrimSpace(sa.Params["CopyForEachCanTarget"]); spec != "" && spell != 0 && !defined {
-		if copyForEachCanTarget(h, c, sa, spell, controller, spec, rememberCopies, payload) {
+		if copyForEachCanTarget(h, c, sa, spell, controller, spec, rememberCopies, payload, addTypes) {
 			return
 		}
 	}
@@ -319,7 +320,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		// too).
 		for _, t := range targets {
 			ev := events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: []state.ObjID{t.Obj}, Counter: payload}
-			emitCopy(h, c, rememberCopies, ev)
+			emitCopy(h, c, rememberCopies, ev, addTypes)
 		}
 	case defined:
 		// A resolvable param whose set is empty (nothing chosen): no copy,
@@ -347,7 +348,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 					// stand-in.
 					ev.Amount = 1
 				}
-				emitCopy(h, c, rememberCopies, ev)
+				emitCopy(h, c, rememberCopies, ev, addTypes)
 			}
 		}
 	}
@@ -361,25 +362,40 @@ func spellCopyAllowed(h Host, id state.ObjID) bool {
 	return !ok || checker.SpellCopyAllowed(id)
 }
 
-// emitCopy emits one StackCopy event. When remember is set it routes through
-// the mint-returning Host.EmitStackCopy and appends every minted copy object
-// to the resolution's remembered set -- both halves, exactly as
-// engine/effects/token.go's RememberTokens$ rider does for a token mint: the chain
-// local Ctx.Remembered (read by Defined$ Remembered and by the ConditionDefined$
-// Remembered gate) and the source object's persistent event-backed list via
-// eventRemember (Forge's card.addRemembered). A copy that the fold did not
-// actually mint (an early break -- the source left the stack) returns no id
-// and is not remembered, mirroring Forge's own early returns. An absent or
-// False RememberCopies$ leaves remember false, so emission is the historical
-// plain Emit.
-func emitCopy(h Host, c *Ctx, remember bool, ev events.Event) {
-	if !remember {
+// emitCopy emits one StackCopy event. When remember or addTypes is set it
+// routes through the mint-returning Host.EmitStackCopy: remember appends every
+// minted copy object to the resolution's remembered set -- both halves,
+// exactly as engine/effects/token.go's RememberTokens$ rider does for a token
+// mint: the chain local Ctx.Remembered (read by Defined$ Remembered and by the
+// ConditionDefined$ Remembered gate) and the source object's persistent
+// event-backed list via eventRemember (Forge's card.addRemembered). A copy that
+// the fold did not actually mint (an early break -- the source left the stack)
+// returns no id and is not remembered, mirroring Forge's own early returns. An
+// absent or False RememberCopies$ leaves remember false.
+//
+// addTypes is CopySpellAbility's AddTypes$ list. Every minted copy gets one
+// CopyExcept carrying the copied face's type line plus those words (CR
+// 707.9a/b), the same event Clone/CopyPermanent use for their copy exceptions,
+// so every type reader sees the addition without a layer-4 special case. The
+// payload is settled against the COPIED SPELL (ev.Obj), not the mint: when the
+// source is itself a copy its Face() is already the earlier CopyExcept basis,
+// so a copy of a copy inherits AddTypes$ (CR 707.2). An absent key leaves the
+// historical plain Emit.
+func emitCopy(h Host, c *Ctx, remember bool, ev events.Event, addTypes []string) {
+	if !remember && len(addTypes) == 0 {
 		h.Emit(ev)
 		return
 	}
 	for _, id := range h.EmitStackCopy(ev) {
-		c.Remembered = append(c.Remembered, state.Target{Obj: id})
-		eventRemember(h, c, id)
+		if remember {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
+		}
+		if len(addTypes) > 0 {
+			if x := copyExceptions(h.Game().Obj(ev.Obj), copyExceptSpec{addTypes: addTypes}); !x.Empty() {
+				h.Emit(events.Event{Kind: events.CopyExcept, Obj: id, Text: x.Text()})
+			}
+		}
 	}
 }
 
@@ -393,7 +409,7 @@ func emitCopy(h Host, c *Ctx, remember bool, ev events.Event) {
 // IDs, so it yields no copy under one loud Note. It reports false when the
 // host cannot enumerate candidates or the spell has a target this override
 // cannot carry, leaving the historical single inherited-target copy.
-func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, controller state.PlayerID, spec string, remember bool, payload string) bool {
+func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, controller state.PlayerID, spec string, remember bool, payload string, addTypes []string) bool {
 	ch, ok := h.(copyTargetCandidatesHost)
 	if !ok {
 		return false
@@ -451,7 +467,7 @@ func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, contr
 		for _, t := range so.Targets[1:] {
 			ids = append(ids, t.Obj)
 		}
-		emitCopy(h, c, remember, events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: ids, Counter: payload})
+		emitCopy(h, c, remember, events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: ids, Counter: payload}, addTypes)
 	}
 	return true
 }
