@@ -270,3 +270,82 @@ func TestSeparateDestroysAreSeparateChangesZoneAllBatches(t *testing.T) {
 		t.Fatalf("Vengeful Townsfolk got %d +1/+1 counters from two separate destroys, want 2", got)
 	}
 }
+
+// TestSweeperSBALethalDeathsAreOneChangesZoneAllBatch is the SBA half of the
+// same rule: one DamageAll sweep resolves as ONE round of state-based actions
+// (CR 704.3), so the lethal-damage deaths it causes are one event for a
+// Mode$ ChangesZoneAll line (CR 603.10a/603.2c). Casting the real Pyroclasm
+// kills two real creatures, and the townsfolk must put exactly ONE +1/+1
+// counter on itself -- the pre-fix SBA path emitted one MoveZone per member
+// with no zone batch open, so the latch queued twice.
+func TestSweeperSBALethalDeathsAreOneChangesZoneAllBatch(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg,
+		[]*cards.Card{lookup(t, reg, "Vengeful Townsfolk"), lookup(t, reg, "Grizzly Bears"),
+			lookup(t, reg, "Elite Vanguard"), lookup(t, reg, "Pyroclasm")}, nil)
+	tf := moveByName(t, e, 0, "Vengeful Townsfolk", state.ZBattlefield)
+	bears := []state.ObjID{
+		moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield),
+		moveByName(t, e, 0, "Elite Vanguard", state.ZBattlefield),
+	}
+	pyro := moveByName(t, e, 0, "Pyroclasm", state.ZHand)
+	// Preconditions: the watcher and both victims really are on the
+	// battlefield, the sweeper really is in hand, the watcher has no counter
+	// yet and the trigger queue is empty -- otherwise the final assertion
+	// could pass for the wrong reason.
+	if z := e.G.Obj(tf).Zone; z != state.ZBattlefield {
+		t.Fatalf("precondition: townsfolk in %s, want battlefield", z)
+	}
+	for _, id := range bears {
+		if z := e.G.Obj(id).Zone; z != state.ZBattlefield {
+			t.Fatalf("precondition: sweeper victim %d in %s, want battlefield", id, z)
+		}
+	}
+	if z := e.G.Obj(pyro).Zone; z != state.ZHand {
+		t.Fatalf("precondition: Pyroclasm in %s, want hand", z)
+	}
+	if got := townsfolkCounters(t, e, tf); got != 0 {
+		t.Fatalf("precondition: townsfolk already has %d +1/+1 counters", got)
+	}
+	if n := len(e.pendingTriggers); n != 0 {
+		t.Fatalf("precondition: %d pending triggers before the sweep, want 0", n)
+	}
+
+	addMana(t, e, 0, "CR")
+	submitChoices(t, e, castOptionFor(t, e, pyro).Index)
+	// Resolve the sweeper and the SBA round it triggers, then let the
+	// ChangesZoneAll trigger resolve. Priority passes while the stack is
+	// non-empty; every other ask takes the tape's deterministic answer.
+	for i := 0; i < 200; i++ {
+		d := e.Pending()
+		if d == nil || e.G.Over {
+			break
+		}
+		if d.Kind == decision.KPriority {
+			if len(e.G.Stack) == 0 {
+				break
+			}
+			submitChoices(t, e, tapePassIndex(d))
+			continue
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: tapePick(d)}); err != nil {
+			t.Fatalf("submit %s/%s: %v", d.Kind, d.ResumeKind, err)
+		}
+	}
+
+	for _, id := range bears {
+		if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+			t.Fatalf("precondition: sweeper victim %d in %s after Pyroclasm, want graveyard", id, z)
+		}
+	}
+	if z := e.G.Obj(tf).Zone; z != state.ZBattlefield {
+		t.Fatalf("precondition: townsfolk in %s after Pyroclasm, want battlefield", z)
+	}
+	// One sweep killed both victims, so the "one or more" line must have
+	// latched once and left exactly one counter. Without the zone batch the
+	// two MoveZone events queue two triggers and this reads 2.
+	if got := townsfolkCounters(t, e, tf); got != 1 {
+		t.Fatalf("Vengeful Townsfolk got %d +1/+1 counters from one Pyroclasm killing 2 creatures, want 1", got)
+	}
+}
