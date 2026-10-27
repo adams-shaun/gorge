@@ -1872,6 +1872,10 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // else (the no-host R-9 decline included) keeps the base count.
 func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Amount", 1)
+	if n <= 0 {
+		// Surveil 0 is no surveil (CR 701.25c): no election, no marker.
+		return
+	}
 	ans := ""
 	// Pose the election once, for the FIRST acting player carrying
 	// optionals. The answer belongs to that player and is carried through
@@ -1976,6 +1980,10 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 	if n < 0 {
 		n = 0
 	}
+	if verb == "Scry" && n == 0 {
+		// Scry 0 is no scry (CR 701.22b): no ask, no look, no record.
+		return
+	}
 	g := h.Game()
 	for targetIndex, t := range actingPlayers(h, c, sa) {
 		c.Search.Target = targetIndex
@@ -1994,13 +2002,13 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 				continue
 			}
 		}
-		if markSurveil {
-			h.Emit(events.Event{Kind: events.Surveil, Player: p, Obj: c.Source})
-		}
 		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
 		if extraOf != nil {
 			k += extraOf(p)
+		}
+		if markSurveil && k > 0 {
+			h.Emit(events.Event{Kind: events.Surveil, Player: p, Obj: c.Source})
 		}
 		if verb == "Scry" {
 			// The order choice parks the proposal before inspecting the library.
@@ -2010,7 +2018,7 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 				return
 			}
 
-			if !proceed {
+			if !proceed || k <= 0 {
 				continue
 			}
 		}
@@ -2039,8 +2047,7 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 				Kind: kind, Label: name, Obj: lib[i], Player: p})
 		}
 		// The shared ask boundary (effects.Ask) refuses to post a KArrange
-		// whose only legal answer is the empty one: with an empty library (or
-		// ScryNum$/SurveilNum$ 0) k is 0, Min 0 / Max 0 and there are no
+		// whose only legal answer is the empty one: with an empty library k is 0, Min 0 / Max 0 and there are no
 		// options -- the exact wedge shape. An unanswered ask resolves
 		// through the stand-in below: every zero cards keep their place and
 		// the resolution completes.
@@ -2070,7 +2077,7 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered", IDs: kept})
 		}
 		// A Scry that completes HERE -- no-host, or the never-posted empty
-		// KArrange an empty library or ScryNum$ 0 produces -- still completed:
+		// KArrange an empty library produces -- still completed:
 		// record its zero-card bottom pile (task scrybottom) through
 		// EmitScryRecord, the same outside-the-replacement-pass route
 		// handleArrange uses, so trig:Scry's plain "whenever you scry" fires
