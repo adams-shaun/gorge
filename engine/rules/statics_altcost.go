@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -287,27 +288,6 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 	return true
 }
 
-// onlyFirstSpellUsed reports whether a ReduceCost static carrying
-// OnlyFirstSpell$ (Conduit of Ruin: "The first creature spell you cast each
-// turn costs {2} less") has already spent its this-turn application: a covered
-// spell was cast by the payer earlier in the turn. The answer is a log walk
-// over PutOnStack events back to the last TurnChange (cast.go's
-// spellsCastThisTurn derivation), so a replay agrees by construction, and it
-// counts the ValidCard$-covered casts -- the oracle's "first creature spell"
-// is first among the covered kind, not first among all spells.
-//
-// Every cost-static evaluation site runs BEFORE the cast's own PutOnStack
-// exists (the offer walk, beginCast's modifier snapshot, and the
-// target-announcement recompute all precede pushCast -- CR 601.2f's
-// modifiers are computed into pc.mods and manaToPay only reads them), so the
-// in-flight cast is never in the log while it is being priced. The ev.Obj ==
-// id exclusion is defensive against a future evaluation site past the push:
-// the cast being priced must not count as its own "previous cast".
-//
-// A cast whose object no longer carries a face (or whose face the spec cannot
-// re-evaluate) is not counted -- the missing-match direction for a USED
-// tracking, which widens the discount by at most one cast on a board this
-// build cannot reconstruct, never withholds it.
 func (e *Engine) firstForetellUsed(p state.PlayerID) bool {
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
@@ -331,23 +311,162 @@ func (e *Engine) firstForetellUsed(p state.PlayerID) bool {
 	return false
 }
 
+// onlyFirstSpellUsed reports whether a ReduceCost static carrying
+// OnlyFirstSpell$ (Conduit of Ruin: "The first creature spell you cast each
+// turn costs {2} less") has already spent its this-turn application: a covered
+// spell was cast by the payer earlier in the turn. The answer is a log walk
+// over PutOnStack events back to the last TurnChange (cast.go's
+// spellsCastThisTurn derivation), so a replay agrees by construction, and it
+// counts the covered casts -- the oracle's "first creature spell" is first
+// among the covered kind, not first among all spells. A prior cast is covered
+// iff it matches ValidCard$ (when present) and THEN its own cast-scope
+// satisfies ValidSpell$ (when present), Forge's CostAdjustment order: Melek's
+// "first instant or sorcery spell" is not spent by an earlier creature spell.
+// A prior cast's cast mode and root targets are not on its object once it
+// leaves the stack, so both are rebuilt from the CastInfo / TargetsChosen
+// events above its PutOnStack.
+//
+// Every cost-static evaluation site runs BEFORE the cast's own PutOnStack
+// exists (the offer walk, beginCast's modifier snapshot, and the
+// target-announcement recompute all precede pushCast -- CR 601.2f's
+// modifiers are computed into pc.mods and manaToPay only reads them), so the
+// in-flight cast is never in the log while it is being priced. The ev.Obj ==
+// id exclusion is defensive against a future evaluation site past the push:
+// the cast being priced must not count as its own "previous cast".
+//
+// A cast whose object no longer carries a face (or whose face, mode or targets
+// the specs cannot re-evaluate) is not counted -- the missing-match direction
+// for a USED tracking, which widens the discount by at most one cast on a
+// board this build cannot reconstruct, never withholds it.
+// priorCastFacts is one completed cast's pay-time CastFlags and its announced
+// root targets, reconstructed from the events above its PutOnStack.
+type priorCastFacts struct {
+	flags     uint64
+	flagsSeen bool
+	targetEvs []events.Event
+}
+
+// priorCastScope is the cost scope a prior cast was made under, from its
+// accumulated CastFlags. Only the first set mode flag is read: no measured
+// OnlyFirstSpell$ carrier constrains a multi-mode cast, so the corpus cannot
+// observe the difference.
+func priorCastScope(flags uint64) costScope {
+	switch {
+	case flags&state.FlagKicked != 0:
+		return spellScope("kicked")
+	case flags&state.FlagFlashback != 0:
+		return spellScope("flashback")
+	case flags&state.FlagSurged != 0:
+		return spellScope("surged")
+	case flags&state.FlagMiracle != 0:
+		return spellScope("miracle")
+	case flags&state.FlagBlitzed != 0:
+		return spellScope("blitzed")
+	case flags&state.FlagDashed != 0:
+		return spellScope("dashed")
+	case flags&state.FlagBuyback != 0:
+		return spellScope("buyback")
+	case flags&state.FlagBargained != 0:
+		return spellScope("bargained")
+	case flags&state.FlagMayPlay != 0:
+		return spellScope("mayplay")
+	case flags&state.FlagMorphed != 0:
+		return spellScope("morphed")
+	case flags&state.FlagMegamorphed != 0:
+		return spellScope("megamorphed")
+	case flags&state.FlagDisguised != 0:
+		return spellScope("disguised")
+	}
+	return spellScope("")
+}
+
+// priorCastTargets replays a prior cast's root TargetsChosen events (oldest
+// first) with foldTargetsChosen's four shapes.
+func priorCastTargets(evs []events.Event) []state.Target {
+	var targets []state.Target
+	for _, ev := range evs {
+		switch ev.Amount {
+		case 1:
+			targets = []state.Target{{Player: ev.Player, IsPlayer: true}}
+		case 2:
+			for _, id := range ev.IDs {
+				targets = append(targets, state.Target{Obj: id})
+			}
+		case 3:
+			targets = append(targets, state.Target{Player: ev.Player, IsPlayer: true})
+		default:
+			targets = nil
+			for _, id := range ev.IDs {
+				targets = append(targets, state.Target{Obj: id})
+			}
+		}
+	}
+	return targets
+}
+
 func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.ObjID) bool {
-	spec := strings.TrimSpace(sv.ParamStr(cards.PKValidCard))
+	cardSpec := strings.TrimSpace(sv.ParamStr(cards.PKValidCard))
+	spellSpec, hasSpellSpec := sv.Param(cards.PKValidSpell)
+	sc := e.staticSpecCtxNamed(sv)
+	facts := make(map[state.ObjID]*priorCastFacts)
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			break
 		}
-		if ev.Kind != events.PutOnStack || ev.Player != p || ev.Obj == id {
+		switch ev.Kind {
+		case events.CastInfo:
+			f := facts[ev.Obj]
+			if f == nil {
+				f = &priorCastFacts{}
+				facts[ev.Obj] = f
+			}
+			if !f.flagsSeen {
+				f.flags, f.flagsSeen = events.FlagsFrom(ev.Counter), true
+			}
+			continue
+		case events.TargetsChosen:
+			if ev.Text == events.SubTargetNotice {
+				continue
+			}
+			f := facts[ev.Obj]
+			if f == nil {
+				f = &priorCastFacts{}
+				facts[ev.Obj] = f
+			}
+			// Walking backward, so the log-order replay needs the oldest first.
+			f.targetEvs = append(f.targetEvs, ev)
+			continue
+		case events.PutOnStack:
+		default:
 			continue
 		}
-		if spec == "" {
-			return true
+		// Consume BEFORE the player/id filter: a re-cast object's newer facts
+		// must never be read at its older push.
+		f := facts[ev.Obj]
+		delete(facts, ev.Obj)
+		if ev.Player != p || ev.Obj == id {
+			continue
 		}
-		if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil &&
-			e.matchesSpec(spec, ev.Obj, e.staticSpecCtxNamed(sv)) {
-			return true
+		if cardSpec != "" {
+			o := e.G.Obj(ev.Obj)
+			if o == nil || o.Face() == nil || !e.matchesSpec(cardSpec, ev.Obj, sc) {
+				continue
+			}
 		}
+		if hasSpellSpec {
+			var flags uint64
+			var targets []state.Target
+			if f != nil {
+				flags = f.flags
+				slices.Reverse(f.targetEvs)
+				targets = priorCastTargets(f.targetEvs)
+			}
+			if !e.validSpellMatches(sv, priorCastScope(flags), p, ev.Obj, spellSpec, targets) {
+				continue
+			}
+		}
+		return true
 	}
 	return false
 }
