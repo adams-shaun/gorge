@@ -334,7 +334,18 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 				svars = mf.SVars
 			}
 		}
-		ctx := effects.NewCtxPtr(source, you, effects.CtxInit{SVars: svars})
+		// Remembered$Amount in the gate (Coffin Queen, Krovikan Vampire) counts
+		// the source's persistent list; a resolution-time re-check reads the
+		// fire-time snapshot when the source re-entered (CR 400.7).
+		var tcv effects.TriggerContext
+		if tc != nil {
+			tcv = *tc
+		}
+		var remembered []state.Target
+		if src != nil {
+			remembered = effects.SourceRemembered(e.G, tcv, src)
+		}
+		ctx := effects.NewCtxPtr(source, you, effects.CtxInit{SVars: svars, TriggerContext: tcv, Remembered: remembered})
 		holds, evaluated := effects.CheckSVarHolds(e, ctx, name, strings.TrimSpace(t.ParamStr(cards.PKSVarCompare)))
 		if !evaluated || !holds {
 			return false
