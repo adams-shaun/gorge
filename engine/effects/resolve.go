@@ -152,7 +152,21 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	unspecialize := strings.EqualFold(strings.TrimSpace(mode), "Unspecialize")
 	transform := strings.EqualFold(strings.TrimSpace(mode), "Transform")
 	optional := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True")
-	if optional {
+	// Choices$ replaces the Defined$ referents with the controller's pick; the
+	// pick's own Min 0 is the optional election, so no yes/no is posed.
+	var targets []state.Target
+	sp := SetStateOf(sa)
+	picked := sp.Choices != ""
+	if picked {
+		var ok bool
+		targets, ok = setStateChoose(h, c, sa, sp, optional, turnUp, turnDown, unspecialize, transform)
+		if !ok {
+			return
+		}
+	} else {
+		targets = Defined(h, c, sa)
+	}
+	if optional && !picked {
 		// Pose the yes/no election -- but only when the change would
 		// actually do something; with nothing to change, decline and accept
 		// are the same, so no ask (the Attach precedent's len(legal) == 0
@@ -185,7 +199,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		// PutCounter/Attach.Optional precedent).
 		return
 	}
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range targets {
 		if t.IsPlayer {
 			continue
 		}
@@ -290,44 +304,96 @@ func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspeci
 		if o == nil {
 			continue
 		}
-		if turnUp {
-			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown &&
-				setStateTurnUpGate(h, c, sa, o) {
-				return true
-			}
-			continue
-		}
-		if turnDown {
-			if o.Zone == state.ZBattlefield && !o.FaceDown {
-				return true
-			}
-			continue
-		}
-		if unspecialize {
-			// The would-change read shares Unspecialize's own semantics (ONE
-			// home with effSetState's branch above): only a multi-faced
-			// object not already on its front face changes.
-			if o.Card != nil && len(o.Card.Faces) >= 2 && o.FaceIdx != 0 {
-				return true
-			}
-			continue
-		}
-		// The Transform arm's CR 701.27a battlefield gate (effSetState): an
-		// off-battlefield object would not change, so an Optional$ ask must
-		// not be posed for it either.
-		if transform && o.Zone != state.ZBattlefield {
-			continue
-		}
-		// CR 702.145b/e: a daybound or nightbound permanent can't transform
-		// except by its own ability (engine/rules syncDayNightFaces).
-		if transform && dayNightBound(h, o.ID) {
-			continue
-		}
-		if o.Card != nil && len(o.Card.Faces) >= 2 {
+		if setStateObjWouldChange(h, c, sa, o, turnUp, turnDown, unspecialize, transform) {
 			return true
 		}
 	}
 	return false
+}
+
+// setStateObjWouldChange is setStateWouldChange's per-object predicate, also
+// the Choices$ pool's filter (setStateChoose).
+func setStateObjWouldChange(h Host, c *Ctx, sa *cards.SA, o *state.Object, turnUp, turnDown, unspecialize, transform bool) bool {
+	if turnUp {
+		return o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown &&
+			setStateTurnUpGate(h, c, sa, o)
+	}
+	if turnDown {
+		return o.Zone == state.ZBattlefield && !o.FaceDown
+	}
+	if unspecialize {
+		// The would-change read shares Unspecialize's own semantics (ONE
+		// home with effSetState's branch above): only a multi-faced
+		// object not already on its front face changes.
+		return o.Card != nil && len(o.Card.Faces) >= 2 && o.FaceIdx != 0
+	}
+	// The Transform arm's CR 701.27a battlefield gate (effSetState): an
+	// off-battlefield object would not change, so an Optional$ ask must
+	// not be posed for it either.
+	if transform && o.Zone != state.ZBattlefield {
+		return false
+	}
+	// CR 702.145b/e: a daybound or nightbound permanent can't transform
+	// except by its own ability (engine/rules syncDayNightFaces).
+	if transform && dayNightBound(h, o.ID) {
+		return false
+	}
+	return o.Card != nil && len(o.Card.Faces) >= 2
+}
+
+// setStateChoose is the Choices$ shape (Sunder the Gateway's "transform an
+// Incubator token you control", Hustle // Bustle's "you may turn a face-down
+// creature you control face up"): the controller picks MinAmount$..Amount$
+// battlefield permanents out of the Choices$ pool, restricted to those the
+// mode would change. Forge's chooseCardsForEffect is optional unless
+// Mandatory$ True, and Optional$ True also lets the pick be declined. An empty
+// pool asks nothing and changes nothing; ok is false when no answer was
+// served (R-9).
+func setStateChoose(h Host, c *Ctx, sa *cards.SA, sp *SetStateParams, optional, turnUp, turnDown, unspecialize, transform bool) ([]state.Target, bool) {
+	g := h.Game()
+	var eligible []state.ObjID
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
+			if o != nil && MatchesSpecCtx(g, sp.Choices, id, c.SpecContext(c.Controller)) &&
+				setStateObjWouldChange(h, c, sa, o, turnUp, turnDown, unspecialize, transform) {
+				eligible = append(eligible, id)
+			}
+		}
+	}
+	maxN := numText(h, c, sp.Amount, 1)
+	if maxN > int32(len(eligible)) {
+		maxN = int32(len(eligible))
+	}
+	if maxN < 1 {
+		return nil, true
+	}
+	minN := maxN
+	if sp.MinAmount.Present {
+		minN = numText(h, c, sp.MinAmount, maxN)
+	}
+	if optional || !sp.Mandatory || minN < 0 {
+		minN = 0
+	}
+	if minN > maxN {
+		minN = maxN
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min: int(minN), Max: int(maxN), Source: c.Source,
+		ResumeKind: "setstate_pick", ResumeSA: sa, Prompt: sp.ChoiceTitle}
+	for _, id := range eligible {
+		name := "a permanent"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "setstate_pick", Label: name, Obj: id, Player: c.Controller})
+	}
+	ans, ok := AskTape(h, d)
+	if !ok {
+		return nil, false
+	}
+	return objTargets(counterAnswerObjs(ans)), true
 }
 
 // effCounter removes the targeted spell from the stack to its owner's
