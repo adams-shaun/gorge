@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -81,6 +82,11 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 			}
 			seen = append(seen, offered{pr.zone, pr.id})
 			out = append(out, pr.id)
+		}
+		if id, ok := e.mayPlayEffectLibraryTop(ce, p, mayPlayEffectKeep(ce, p, landKeep)); ok {
+			if dup := slices.Contains(out, id); !dup {
+				out = append(out, id)
+			}
 		}
 	}
 	// kw-mayplay: the card's OWN static (or a battlefield static naming it)
@@ -442,6 +448,9 @@ func (e *Engine) mayPlaySpellIdsBoard(p state.PlayerID, board bool) []mayPlaySpe
 		// walking the slices only enumerates candidates.
 		for _, pr := range w.pairs(ce, mayPlayWalkZones(zones, all), true, mayPlayEffectKeep(ce, p, spellKeep)) {
 			consider(pr.zone, pr.id, "")
+		}
+		if id, ok := e.mayPlayEffectLibraryTop(ce, p, mayPlayEffectKeep(ce, p, spellKeep)); ok {
+			consider(state.ZLibrary, id, "")
 		}
 	}
 	return out

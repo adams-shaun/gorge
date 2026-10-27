@@ -508,6 +508,15 @@ type ContinuousEffect struct {
 	// MayPlay.
 	MayPlayFree bool
 
+	// MayPlayAltCost is an Effect-delivered grant's MayPlayAltManaCost$ text
+	// (Inside Information's PayLife<ConvertedManaCost>, Hama, the
+	// Bloodbender's Waterbend<ConvertedManaCost>): the alternative cost the
+	// granted cast pays instead of the mana cost (CR 118.9). Carried raw;
+	// rules' mayPlayAltCosts prices it through altCostParse, the same
+	// pricing the printed route's static uses. Set only together with
+	// MayPlay, on the Effect-delivery path.
+	MayPlayAltCost string
+
 	// MayPlayValidAfterStack is an Effect-delivered may-play grant's
 	// ValidAfterStack$ qualifier (Nahiri, Forged in Fury's "You may cast
 	// Equipment spells this way without paying their mana costs":

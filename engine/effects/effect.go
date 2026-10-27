@@ -691,7 +691,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// with the Effect's lifetime and Remembered set. The key is then
 			// dropped, so a MayPlay$ rider on the same line registers through
 			// the ordinary may-play branch below; a look-only line is done.
-			if look, rest, ok := mayLookAtExileGrantFromLine(params); ok {
+			if look, rest, ok := mayLookAtGrantFromLine(params); ok {
 				look.Source, look.Controller = c.Source, c.Controller
 				look.Name = effectName
 				look.UntilEOT = effectUntilEOT(h, c.Source, rawDur)

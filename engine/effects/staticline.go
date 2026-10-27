@@ -199,18 +199,33 @@ func HandSizeValueOK(raw string) (int, bool) {
 // constant; both are tested to agree by TestHandSizeValueGrammarIsShared.
 const UnlimitedHandSize = 1 << 20
 
-// mayLookAtExileGrantFromLine reads an Effect-delivered MayLookAt$ over
-// exiled cards (AffectedZone$ Exile; every such corpus value is You or True,
-// the effect's controller -- 13 + 1 raw lines at the pin) into a look-only
-// ContinuousEffect, and DELETES the MayLookAt key from params so the rest of
-// the line is read by the ordinary branches. rest reports whether any grant
-// key beyond Mode/Affected/AffectedZone/Description remains. Any other value,
-// zone or an unread Condition$/CheckSVar$ gate reports !ok and leaves params
-// untouched (cr-g64).
-func mayLookAtExileGrantFromLine(params staticLineParams) (ce state.ContinuousEffect, rest, ok bool) {
+// mayLookAtGrantFromLine reads an Effect-delivered MayLookAt$ into a
+// look-only ContinuousEffect, and DELETES the MayLookAt key from params so
+// the rest of the line is read by the ordinary branches. Two shapes:
+//   - over exiled cards (AffectedZone$ Exile; every such corpus value is You
+//     or True, the effect's controller -- 13 + 1 raw lines at the pin);
+//   - over the top of the library (AffectedZone$ Library with a TopLibrary
+//     Affected$: The Belligerent, Gwenom, Remorseless): You/True look, Player
+//     reveals the card to every seat (MayLookAtAll, CR 401.5). A rider the
+//     may-play scan cannot read leaves the whole line unregistered, so a
+//     look never goes live beside a refused play.
+//
+// rest reports whether any grant key beyond Mode/Affected/AffectedZone/
+// Description remains. Any other value, zone or an unread Condition$/
+// CheckSVar$ gate reports !ok and leaves params untouched (cr-g64).
+func mayLookAtGrantFromLine(params staticLineParams) (ce state.ContinuousEffect, rest, ok bool) {
 	v := strings.TrimSpace(params["MayLookAt"])
-	if !strings.EqualFold(v, "You") && !strings.EqualFold(v, "True") ||
-		!strings.EqualFold(strings.TrimSpace(params["AffectedZone"]), "Exile") || strings.TrimSpace(params["Affected"]) == "" {
+	zone := strings.TrimSpace(params["AffectedZone"])
+	revealAll := false
+	switch {
+	case zone == "Exile" && (strings.EqualFold(v, "You") || strings.EqualFold(v, "True")):
+	case zone == "Library" && strings.Contains(params["Affected"], "TopLibrary") &&
+		(strings.EqualFold(v, "You") || strings.EqualFold(v, "True") || strings.EqualFold(v, "Player")):
+		revealAll = strings.EqualFold(v, "Player")
+	default:
+		return state.ContinuousEffect{}, false, false
+	}
+	if strings.TrimSpace(params["Affected"]) == "" {
 		return state.ContinuousEffect{}, false, false
 	}
 	// The look-only grant has no gate reader of its own: a Condition$ or
@@ -228,7 +243,15 @@ func mayLookAtExileGrantFromLine(params staticLineParams) (ce state.ContinuousEf
 			rest = true
 		}
 	}
-	return state.ContinuousEffect{Affects: params["Affected"], AffectedZone: "Exile", MayLookAt: true}, rest, true
+	if rest && zone == "Library" {
+		_, plain := mayPlayGrantFromLine(params)
+		_, free := mayPlayFreeGrantFromLine(params)
+		if !plain && !free {
+			params["MayLookAt"] = v
+			return state.ContinuousEffect{}, false, false
+		}
+	}
+	return state.ContinuousEffect{Affects: params["Affected"], AffectedZone: zone, MayLookAt: true, MayLookAtAll: revealAll}, rest, true
 }
 
 // MayPlayCardOwner is the one MayPlayPlayer$ value the Effect route carries:
@@ -253,6 +276,7 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 		MayPlayPlayer:          strings.TrimSpace(params["MayPlayPlayer"]),
 		MayPlayCheckSVar:       strings.TrimSpace(params["CheckSVar"]),
 		MayPlaySVarCompare:     strings.TrimSpace(params["SVarCompare"]),
+		MayPlayAltCost:         strings.TrimSpace(params["MayPlayAltManaCost"]),
 	}, true
 }
 
@@ -419,6 +443,16 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 			if strings.TrimSpace(params["CheckSVar"]) == "" && strings.TrimSpace(params["SVarCompare"]) != "" {
 				return false, false, 0, false, "", false
 			}
+		case mayPlayParamAltManaCost:
+			// MayPlayAltManaCost$ rides the Effect-delivered grant as the
+			// registered effect's MayPlayAltCost (Inside Information, Hama):
+			// rules prices it through altCostParse. The printed route keeps
+			// refusing it (its S: static prices its own alternative in
+			// mayPlayAltCosts, so a registered twin would offer the plain
+			// cast too), and a free cast has no alternative to name.
+			if !allowAfterStack || allowFree || strings.TrimSpace(params[key]) == "" {
+				return false, false, 0, false, "", false
+			}
 		case mayPlayParamSecondary:
 			// Secondary$ is Forge's display-only renderer bit
 			// (CardTraitBase.isSecondary, read only by Card.java's getText
@@ -443,6 +477,13 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 		// A Condition$ other than PlayerTurn changes when the grant lives;
 		// never register it half-read.
 		_, _ = cond, okv
+		return false, false, 0, false, "", false
+	}
+	if allowAfterStack && strings.Contains(params["AffectedZone"], "Library") &&
+		!strings.Contains(params["Affected"], "TopLibrary") {
+		// The library is hidden: an Effect grant over it is readable only
+		// when its Affected$ pins the top card (the rules walks offer that
+		// one card and never a deeper identity).
 		return false, false, 0, false, "", false
 	}
 	ignoreColor = strings.EqualFold(strings.TrimSpace(params["MayPlayIgnoreColor"]), "True")
@@ -1037,6 +1078,7 @@ const (
 	mayPlayParamMayPlayPlayer
 	mayPlayParamGateSVar
 	mayPlayParamSecondary
+	mayPlayParamAltManaCost
 )
 
 var mayPlayParamCodes = state.NewStrCodes(
@@ -1056,4 +1098,5 @@ var mayPlayParamCodes = state.NewStrCodes(
 	state.StrEntry[mayPlayParamCode]{Key: "CheckSVar", Val: mayPlayParamGateSVar},
 	state.StrEntry[mayPlayParamCode]{Key: "SVarCompare", Val: mayPlayParamGateSVar},
 	state.StrEntry[mayPlayParamCode]{Key: "Secondary", Val: mayPlayParamSecondary},
+	state.StrEntry[mayPlayParamCode]{Key: "MayPlayAltManaCost", Val: mayPlayParamAltManaCost},
 )

@@ -973,7 +973,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		}
 		out = append(out, mayPlayAltView{cost: alt, grants: grants, flash: flash, key: key})
 	}
-	return out
+	return append(out, e.mayPlayEffectAltCosts(p, id)...)
 }
 
 // mayPlayAltView is one priced may-play alternative (mayPlayAltCosts):
@@ -1052,7 +1052,7 @@ func (e *Engine) mayPlayPlainGrant(p state.PlayerID, id state.ObjID) bool {
 			return true
 		}
 	}
-	if e.paradigmMayPlay(p, o) || e.mayPlayEffectGrantsCast(p, o) {
+	if e.paradigmMayPlay(p, o) || e.mayPlayEffectCovers(p, o, false, true) {
 		return true
 	}
 	free, covered := e.mayPlayEffectFree(p, o)
@@ -1270,7 +1270,7 @@ func (e *Engine) mayPlayEffectFree(p state.PlayerID, o *state.Object) (free, cov
 // (graveyard, exile) can match; the library self-grant is a static, never an
 // effect.
 func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool {
-	return e.mayPlayEffectCovers(p, o, false)
+	return e.mayPlayEffectCovers(p, o, false, false)
 }
 
 // mayPlayAdventureGrant is mayPlayEffectGrantsCast for the grants whose
@@ -1279,39 +1279,29 @@ func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool
 // permits the Adventure face's cast only (CR 715.3a), so it is NOT an
 // ordinary cast permission and mayPlayEffectGrantsCast skips it.
 func (e *Engine) mayPlayAdventureGrant(p state.PlayerID, o *state.Object) bool {
-	return e.mayPlayEffectCovers(p, o, true)
+	return e.mayPlayEffectCovers(p, o, true, false)
 }
 
 // mayPlayEffectCovers is the one gate chain behind both reads above; adventure
 // selects the grants that demand the Adventure face (true) or the rest (false).
-func (e *Engine) mayPlayEffectCovers(p state.PlayerID, o *state.Object, adventure bool) bool {
-	if o.Zone != state.ZGraveyard && o.Zone != state.ZExile {
+// plainOnly drops the grants that name their own alternative cost
+// (MayPlayAltManaCost$): those are not a printed-cost permission
+// (mayPlayPlainGrant), only the price of their own.
+func (e *Engine) mayPlayEffectCovers(p state.PlayerID, o *state.Object, adventure, plainOnly bool) bool {
+	if !e.mayPlayEffectReaches(p, o) {
 		return false
 	}
 	limited := lazyMayPlays{e: e, p: p}
 	ces := e.active()
 	for i := range ces {
 		ce := &ces[i]
-		if !ce.MayPlay || !mayPlayEffectBenefits(ce, o, p) {
+		if !ce.MayPlay || plainOnly && ce.MayPlayAltCost != "" {
 			continue
 		}
 		if _, adv := effects.MayPlayAdventureSpec(ce.Affects); adv != adventure {
 			continue
 		}
-		if ce.MayPlayPlayerTurn && e.G.Active != p {
-			continue
-		}
-		if ce.MayPlayLimit > 0 && int32(limited.count()) >= ce.MayPlayLimit {
-			continue
-		}
-		zones, all, ok := effects.ParseZones(ce.AffectedZone)
-		if !ok && !all {
-			continue
-		}
-		if !all && !slices.Contains(zones, o.Zone) {
-			continue
-		}
-		if e.effectGrantMatches(ce, o.ID) {
+		if e.mayPlayEffectCoversCard(ce, p, o, &limited) {
 			return true
 		}
 	}
