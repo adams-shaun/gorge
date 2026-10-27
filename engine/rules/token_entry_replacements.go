@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -30,8 +31,17 @@ import (
 // the token comes from outside the game, so no Origin$-scoped line matches
 // it.
 //
-// Only the entry-state bodies -- Tap, Untap and PutCounter, the whole
-// corpus population of non-self Updated entry bodies except two -- are run;
+// A full replacement (no ReplacementResult$) whose body ChangeZones the
+// ReplacedCard off the battlefield -- Hallowed Moonlight's "exile it
+// instead" -- is run against the folded token too (Forge's TokenEffectBase
+// mints the token, then moveToPlay applies the replacement to it): the token
+// object ends in the other zone, the later replacements no longer apply
+// (CR 614.5), and trigmatch.ZoneChangeMatches skips the entry triggers of a
+// mint no longer on the battlefield.
+//
+// Of the Updated bodies only the entry-state ones -- Tap, Untap and
+// PutCounter, the whole corpus population of non-self Updated entry bodies
+// except two -- are run;
 // a Clone body (Essence of the Wild's EssenceClone, Displaced Dinosaurs) and
 // an Animate body need the pre-entry as-enters machinery a folded token no
 // longer has, and are left unapplied. The token's own Moved lines are not
@@ -94,15 +104,30 @@ func (e *Engine) applyTokenEntryUpdates(id state.ObjID, absorbed []string) {
 			// other entry counters as one event.
 			continue
 		}
+		if m.repl.ParamStr(cards.PKReplacementResult) != "Updated" {
+			e.runReplaceWith(e.replCtx(m, ev), id, m.repl.With, &ev)
+			return
+		}
 		e.runReplaceWith(e.replCtx(m, ev), id, m.repl.With, nil)
 	}
 }
 
-// tokenEntryBody reports whether a Moved line is an Updated battlefield-entry
-// replacement whose body applyTokenEntryUpdates runs on a folded token.
+// tokenEntryBody reports whether a Moved line is a battlefield-entry
+// replacement whose body applyTokenEntryUpdates runs on a folded token: an
+// Updated entry-state body, or a full replacement whose ChangeZone moves the
+// ReplacedCard off the battlefield.
 func tokenEntryBody(result, destination string, with *cards.SA) bool {
-	if result != "Updated" || destination != "Battlefield" {
+	if destination != "Battlefield" {
 		return false
+	}
+	if result != "Updated" {
+		if with.APIKind() != cards.APIChangeZone {
+			return false
+		}
+		cz := effects.ChangeZoneOf(with)
+		return cz.DestinationKnown && cz.Destination != state.ZBattlefield &&
+			effects.DefinedRefOf(with).Text == "ReplacedCard" &&
+			(cz.OriginAll || !cz.OriginPresent || cz.OriginMask.Has(state.ZBattlefield))
 	}
 	switch with.APIKind() {
 	case cards.APITap, cards.APIUntap, cards.APIPutCounter:
