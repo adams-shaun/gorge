@@ -1,19 +1,15 @@
 Defined$ .Chosen,You	2
-Defined$ ActivePlayer	2
 Defined$ AttachedBy Returned	1
 Defined$ AttachedBy Sacrificed & Valid Creature.sharesCreatureTypeWith AttachedBy Sacrificed	5
 Defined$ AttachedBy TriggeredCardLKICopy	2
 Defined$ AttachedTo Targeted.Aura,Equipment	1
 Defined$ AttachedTo Targeted.Equipment	1
-Defined$ AttackingPlayer	3
 Defined$ Card.Self	1
 Defined$ ChoosingPlayer	2
 Defined$ ChosenMap	2
 Defined$ DefendingPlayer	1
 Defined$ DirectRemembered	4
 Defined$ DiscardedCards	1
-Defined$ EnchantedController	5
-Defined$ EnchantedOwner	1
 Defined$ ExiledCards	3
 Defined$ ExiledCards.withoutSuspend	1
 Defined$ ExiledWithSource	4
@@ -51,5 +47,4 @@ Defined$ ValidCommand Effect.namedRaging River Left+IsImprinted	1
 Defined$ ValidCommand Effect.namedRaging River Right	1
 Defined$ ValidCommand Effect.namedRaging River Right+IsImprinted	1
 Defined$ You & TriggeredSpellAbility>ManaSpender.Other	1
-DefinedPlayer$ ActivePlayer	1
 DefinedPlayer$ RememberController	1
