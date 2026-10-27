@@ -961,17 +961,19 @@ func objIDIn(ids []state.ObjID, id state.ObjID) bool {
 	return false
 }
 
-// objIDWithout returns ids without the first occurrence of id.
+// objIDWithout returns ids without every occurrence of id. It never rewrites
+// ids in place: activeBuf copies share the backing array.
 func objIDWithout(ids []state.ObjID, id state.ObjID) []state.ObjID {
-	for i, x := range ids {
-		if x == id {
-			out := make([]state.ObjID, 0, len(ids)-1)
-			out = append(out, ids[:i]...)
-			out = append(out, ids[i+1:]...)
-			return out
+	if !objIDIn(ids, id) {
+		return ids
+	}
+	out := make([]state.ObjID, 0, len(ids)-1)
+	for _, x := range ids {
+		if x != id {
+			out = append(out, x)
 		}
 	}
-	return ids
+	return out
 }
 
 // isCombatStep reports whether s is one of the combat phase's five steps
