@@ -387,8 +387,8 @@ func saChainMayAsk(sa *SA, svars map[string]string, self *Face, root bool, depth
 			if strings.Contains(s.ParamStr(PKCounterType), ",") {
 				return true // a counter-kind pick
 			}
-			if strings.Contains(s.Params["CounterTypes"], "ChosenFromList") && strings.Contains(s.Params["TypeList"], ",") {
-				return true // a per-recipient kind pick from TypeList$
+			if _, ok := s.Params["TypeList"]; ok {
+				return true // CounterTypes$ ChosenFromList: a per-recipient kind pick
 			}
 		case "Charm":
 			if !first || choices == "" || depth > 0 {
