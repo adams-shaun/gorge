@@ -1283,11 +1283,6 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// same one `Defined$ Imprinted` resolves later. Collected across the loop
 	// and emitted as ONE events.Imprint after it, exactly like that path.
 	var imprinted []state.ObjID
-	// One classification for this search's whole mover loop: both branches
-	// below (the public-origin settle and the library-origin direct emit)
-	// share it, so a degrading rider is one Note per search, not one per card.
-	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
-		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, []state.PlayerID{owner}, cz.Riders.GainControl))
 	// Snapshot the rechecked pick before clearing persistent IsRemembered.
 	valid := make([]state.ObjID, 0, len(chosen))
 	for _, id := range chosen {
@@ -1299,6 +1294,17 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 			valid = append(valid, id)
 		}
 	}
+	// Dina's Guidance's "put it into your hand or graveyard": the unconditional
+	// zone choice is made after the pick with the found set final, and only
+	// when a card was found (changeHiddenOriginResolve's handleAltDest).
+	if len(valid) > 0 && cz.DestinationText != "" && cz.unconditionalZoneChoice(to) && cz.searchDefersDestination() {
+		to = askUnconditionalDestination(h, c, cz, to)
+	}
+	// One classification for this search's whole mover loop: both branches
+	// below (the public-origin settle and the library-origin direct emit)
+	// share it, so a degrading rider is one Note per search, not one per card.
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
+		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, []state.PlayerID{owner}, cz.Riders.GainControl))
 	// The search's fetch is entered: Forge clears the source's remembered
 	// cards before the choose (ChangeZoneEffect.changeHiddenOriginResolve
 	// 1103), so a search that yields no card still clears. The valid set above
