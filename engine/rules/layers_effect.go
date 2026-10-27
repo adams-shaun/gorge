@@ -1149,6 +1149,12 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 	if ce.SourceIncarnation != 0 && o.Incarnation != ce.SourceIncarnation {
 		return false
 	}
+	if o.Controller != ce.Controller && effects.IsAsLongAsControlDuration(ce.Duration) {
+		// CR 611.2b: "for as long as you control CARDNAME" also ends when the
+		// effect's controller stops controlling the source (it was stolen).
+		// The object's own Controller field, as controllerTurnHolds reads it.
+		return false
+	}
 	if ce.DurationSource != 0 {
 		durationSource := e.G.Obj(ce.DurationSource)
 		return durationSource != nil && durationSource.Zone == state.ZBattlefield
