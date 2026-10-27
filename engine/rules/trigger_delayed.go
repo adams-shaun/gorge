@@ -414,6 +414,9 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 	var remove []uint32
 	for i := range e.G.Delayed {
 		dt := &e.G.Delayed[i]
+		if dt.EventMode == "" {
+			continue // a Phase registration (recurring or not) never matches an event
+		}
 		// The event-matched modes: SpellCast (a spell's PutOnStack) and
 		// ChangesZone (a move, the Earthbend return promise). A Mode$ Phase
 		// registration carries no EventMode at all and is owned by

@@ -77,7 +77,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.6e | unknown | - | - | d no such Aura |
 | 603.7 | follows | `engine/rules/trigger_delayed.go#Engine.checkDelayedTriggers` `engine/rules/trigger_delayed.go#Engine.checkEventDelayedTriggers` | `TestPitAutomatonCopiesNextExhaust` | event modes SpellCast, ChangesZone, ChangesController, DamageDone, AttackersDeclared, BecomeMonarch, AbilityCast, SpellAbilityCast; d drops silently past MaxDelayed=8 / maxDProg=6 |
 | 603.7a | follows | `engine/effects/delayed_trigger.go#effDelayedTrigger` | `TestDelayedTriggerPhaseRegisters` | created at resolution; not audited separately |
-| 603.7b | follows | `engine/rules/trigger_delayed.go#Engine.checkDelayedTriggers` | - | one-shot removal at DelayedPush; not audited separately |
+| 603.7b | follows | `engine/rules/trigger_delayed.go#Engine.checkDelayedTriggers` | - | one-shot removal at DelayedPush for a plain CR 603.7 promise; an api:Effect Mode$ Phase trigger is recurring (EffectRepeat) unless OneOff$ True, see 114.1-114.5 |
 | 603.7c | partial | `engine/effects/zone_change.go#definedDelayRememberedTargets` `engine/effects/zone_change.go#effChangeZone` `engine/effects/zone_bulk.go#effDestroy` | - | g new-object check only for move/destroy/sac bodies |
 | 603.7d-603.7e | follows | `engine/effects/delayed_trigger.go#effDelayedTrigger` | - | controller and source from the creating ability |
 | 603.7f | unknown | `engine/rules/altcast.go#Engine.altCostEnter` | - | not verified |
