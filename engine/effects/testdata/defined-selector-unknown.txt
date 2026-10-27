@@ -6,7 +6,6 @@ Defined$ ChoosingPlayer	2
 Defined$ ChosenMap	2
 Defined$ DefendingPlayer	1
 Defined$ DiscardedCards	1
-Defined$ ExiledCards.withoutSuspend	1
 Defined$ OppNonParentTarget	4
 Defined$ OppNonRememberedOwner	2
 Defined$ RememberedFirst	1
@@ -14,7 +13,6 @@ Defined$ ReplacedCardController	2
 Defined$ ReplacedCardLKIController	1
 Defined$ ReplacedNewCard.Creature	2
 Defined$ ReplacedNewCard.Planeswalker	2
-Defined$ RevealedCards.!Self	1
 Defined$ ShieldEffectTarget	5
 Defined$ SourceController	3
 Defined$ SourceFirstSpell	1
