@@ -289,56 +289,87 @@ func (e *Engine) CostMovesInWindow(obj state.ObjID, k events.CostMoveKind) []sta
 	return e.costMovesInWindow(obj, events.CostMoveMatcher(k))
 }
 
-// costMovesInWindow walks obj's activation window backward over the event log
-// and returns (in log order) every MoveZone event match admits — the cost
-// acts obj's OWN activation paid, which is what the ConditionDefined$
-// Discarded/Returned groups enumerate. The scan starts at obj's resolving
-// wrapper and stops at the first unrelated stack push, step/turn change, pool
-// clear or player loss — while crossing obj's OWN push events, because the
-// two cost orderings share the one rule: an ability's cost parts are paid
-// BEFORE its AbilityPush mints the wrapper (engine/rules/cast.go's activation
-// branch), a spell's AFTER its PutOnStack (the spell branch), and no other
-// wrapper's push can sit between a cost payment and the resolution that
-// follows it. Priority passes are deliberately NOT a boundary: an activated
-// ability can sit on the stack across any number of passes before it
-// resolves, and the cost it paid belongs to exactly that resolution. Derived
-// from the log the way WasCastFromHandByYou is, so a replay derives the same
-// answer.
+// costMovesInWindow returns (in log order) every MoveZone event match admits
+// inside obj's OWN activation window — the cost acts obj's own activation
+// paid, which is what the ConditionDefined$ Discarded/Returned/Collected
+// groups enumerate. The window is anchored on obj's own latest push (the
+// PutOnStack or AbilityPush naming obj or its source) and runs both ways from
+// it, because the two cost orderings share the one rule: an ability's cost
+// parts are paid BEFORE its AbilityPush mints the wrapper (engine/rules/
+// cast.go's activation branch), a spell's AFTER its PutOnStack (the spell
+// branch).
+//
+// Backward from the push the walk stops at the first unrelated stack push,
+// step/turn change, pool clear or player loss. Forward from the push it stops
+// at the first stack push of another object (a response, CR 117.1a/405.1) or
+// the same boundary events — a response's own cost moves, or anything that
+// resolves above obj, are not obj's costs, and obj's cost is fully paid before
+// any response can exist (CR 601.2h-i). Priority passes are deliberately NOT a
+// boundary: an activated ability can sit on the stack across any number of
+// passes before it resolves. An obj with no push in the log reads the
+// backward walk from the end of the log. Derived from the log the way
+// WasCastFromHandByYou is, so a replay derives the same answer.
 func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) bool) []state.ObjID {
 	if obj == 0 {
 		return nil
 	}
 	// An ability wrapper's AbilityPush carries the SOURCE permanent's id
 	// (events.Apply mints the wrapper; Event.Obj names its source), so the
-	// scan crosses its own push by wrapper id or source id alike.
+	// anchor is found by wrapper id or source id alike.
 	var src state.ObjID
 	if o := e.G.Obj(obj); o != nil {
 		src = o.Source
 	}
-	var out []state.ObjID
+	isPush := func(k events.Kind) bool {
+		return k == events.PutOnStack || k == events.AbilityPush || k == events.TriggerPush ||
+			k == events.DelayedPush || k == events.GrantTriggerPush
+	}
+	isOwn := func(ev events.Event) bool {
+		return isPush(ev.Kind) && (ev.Obj == obj || (src != 0 && ev.Obj == src))
+	}
+	anchor := len(e.L.Events)
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
-		ev := e.L.Events[i]
-		switch ev.Kind {
-		case events.MoveZone:
-			if match(ev) {
-				out = append(out, ev.Obj)
-				continue
-			}
-			// An ordinary move inside the window is not a boundary — an
-			// ability's payment can move several cards (exile parts, tapped
-			// entries) between its cost payment and its push.
-			continue
-		case events.PutOnStack, events.AbilityPush, events.TriggerPush,
-			events.DelayedPush, events.GrantTriggerPush:
-			if ev.Obj == obj || (src != 0 && ev.Obj == src) {
-				continue // the resolving object's own push: cross it
-			}
-			return reverseIDs(out)
-		case events.StepChange, events.TurnChange, events.ManaClear, events.PlayerLost:
-			return reverseIDs(out)
+		if isOwn(e.L.Events[i]) {
+			anchor = i
+			break
 		}
 	}
-	return reverseIDs(out)
+	var out []state.ObjID
+	// Forward half: the spell-branch payments after the push, up to the first
+	// response.
+	for i := anchor + 1; i < len(e.L.Events); i++ {
+		ev := e.L.Events[i]
+		if ev.Kind == events.MoveZone {
+			if match(ev) {
+				out = append(out, ev.Obj)
+			}
+			continue
+		}
+		if (isPush(ev.Kind) && !isOwn(ev)) || ev.Kind == events.StepChange || ev.Kind == events.TurnChange ||
+			ev.Kind == events.ManaClear || ev.Kind == events.PlayerLost {
+			break
+		}
+	}
+	// Backward half: the ability-branch payments before the push (and the
+	// whole window when obj has no push).
+	var before []state.ObjID
+back:
+	for i := anchor - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		switch {
+		case ev.Kind == events.MoveZone:
+			if match(ev) {
+				before = append(before, ev.Obj)
+			}
+		case isPush(ev.Kind):
+			if !isOwn(ev) {
+				break back
+			}
+		case ev.Kind == events.StepChange, ev.Kind == events.TurnChange, ev.Kind == events.ManaClear, ev.Kind == events.PlayerLost:
+			break back
+		}
+	}
+	return append(reverseIDs(before), out...)
 }
 
 // reverseIDs restores log order to a backward scan's collection.
