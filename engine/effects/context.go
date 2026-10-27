@@ -865,6 +865,12 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// "its controller discards" names the creature DBDamage targeted).
 		return controllersOf(g, parentLinkTargets(c)), true
 	case definedSpecThisTargetedCard:
+		// A sub link's own ValidTgts$ answer is PickedTargets (even when
+		// empty: "up to one" answered with none); Ctx.Targets is the chain
+		// root's list. CR 115.1, 608.2b.
+		if c.PickedTargets != nil {
+			return copyTargets(c.PickedTargets), true
+		}
 		return copyTargets(c.Targets), true
 	case definedSpecTriggeredAttackers:
 		// Forge's plural attack-batch referent (Love on the Battlefield's
