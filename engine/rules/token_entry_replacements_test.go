@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -55,5 +56,77 @@ func TestGrumgullyCountersOwnCreatureTokens(t *testing.T) {
 	_, theirs := tokenEntryBoard(t, "Grumgully, the Generous", 1)
 	if got := theirs.Counter("P1P1"); got != 0 {
 		t.Fatalf("opponent's Goblin token +1/+1 counters = %d, want 0", got)
+	}
+}
+
+// hallowedMoonlightBoard casts Hallowed Moonlight from seat 0's hand and
+// resolves it, returning the engine with its "Moved" replacement active.
+func hallowedMoonlightBoard(t *testing.T) *Engine {
+	t.Helper()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Hallowed Moonlight"))
+	hm := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MW], e.G.Players[0].Pool[state.MC] = 1, 1
+	castMode(t, e, hm, "")
+	e.resolveTop()
+	drainQueuedTriggers(t, e)
+	if o := e.G.Obj(hm); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("precondition: Hallowed Moonlight not in the graveyard: %+v", o)
+	}
+	found := false
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent == "Moved" && ce.ReplacementParam(cards.PKReplacementResult) == "" {
+			with := replacementBodySA(ce.ReplacementBody)
+			found = with != nil && with.APIKind() == cards.APIChangeZone &&
+				tokenEntryBody("", ce.ReplacementParam(cards.PKDestination), with)
+		}
+	}
+	if !found {
+		t.Fatal("precondition: no active full Moved replacement with a ChangeZone body")
+	}
+	return e
+}
+
+// TestHallowedMoonlightExilesOpponentToken: a creature token an opponent
+// creates is exiled instead of entering the battlefield (CR 614.1, 111.1).
+func TestHallowedMoonlightExilesOpponentToken(t *testing.T) {
+	t.Parallel()
+	e := hallowedMoonlightBoard(t)
+	want := e.G.NextID
+	e.EmitTokenCreate(events.Event{Kind: events.TokenCreate, Player: 1, Text: "r_1_1_goblin"})
+	drainQueuedTriggers(t, e)
+	tok := e.G.Obj(want)
+	if tok == nil || !tok.IsToken {
+		t.Fatalf("precondition: the Goblin token was not created: %+v", tok)
+	}
+	if tok.Zone != state.ZExile {
+		t.Fatalf("opponent's Goblin token is in %s under Hallowed Moonlight, want Exile", tok.Zone)
+	}
+}
+
+// TestHallowedMoonlightSuppressesTokenEntryTriggers: a token exiled instead
+// of entering raises no "enters the battlefield" trigger.
+func TestHallowedMoonlightSuppressesTokenEntryTriggers(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Hallowed Moonlight"))
+	warden := e.G.AddObject(corpusAlternativeCard(t, "Soul Warden"), 0)
+	warden.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{warden.ID})
+	soulWardenTrigger(t, e, warden.ID)
+	hm := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MW], e.G.Players[0].Pool[state.MC] = 1, 1
+	castMode(t, e, hm, "")
+	e.resolveTop()
+	drainQueuedTriggers(t, e)
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("precondition: seat 0 life = %d, want 20", got)
+	}
+	want := e.G.NextID
+	e.EmitTokenCreate(events.Event{Kind: events.TokenCreate, Player: 1, Text: "r_1_1_goblin"})
+	drainQueuedTriggers(t, e)
+	if tok := e.G.Obj(want); tok == nil || tok.Zone != state.ZExile {
+		t.Fatalf("precondition: the Goblin token was not exiled: %+v", tok)
+	}
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("seat 0 life = %d, want 20 (no entry trigger for an exiled token)", got)
 	}
 }

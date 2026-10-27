@@ -62,6 +62,11 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 	}
 	from, to := ev.From, ev.To
 	if ev.Kind == events.TokenCreate || ev.Kind == events.CardToken {
+		// A mint whose entry was fully replaced (Hallowed Moonlight's
+		// exile) never entered the battlefield: no entry trigger.
+		if o := e.Game().Obj(ev.Obj); o == nil || o.Zone != state.ZBattlefield {
+			return false
+		}
 		from, to = state.ZLibrary, state.ZBattlefield
 	}
 	// ResolvedOnly$ True: a trigger fires only on the spell's own RESOLUTION
