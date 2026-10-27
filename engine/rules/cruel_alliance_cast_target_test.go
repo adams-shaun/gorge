@@ -94,7 +94,7 @@ func TestChangeZoneBattlefieldSubTargetAnnouncementZonesAreNarrow(t *testing.T) 
 		{name: "explicit zone wins but mismatch rejects", line: "DB$ ChangeZone | ValidTgts$ Card | TgtZone$ Graveyard | Origin$ Battlefield | Destination$ Exile", admitted: false, zone: state.ZGraveyard},
 		{name: "multi-zone explicit rejected", line: "DB$ ChangeZone | ValidTgts$ Card | TgtZone$ Battlefield,Graveyard | Origin$ Battlefield | Destination$ Exile", admitted: false},
 		{name: "multi-origin inferred rejected", line: "DB$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield,Graveyard | Destination$ Exile", admitted: false, zone: state.ZBattlefield},
-		{name: "unsupported exile origin", line: "DB$ ChangeZone | ValidTgts$ Card | Origin$ Exile | Destination$ Library", admitted: false, zone: state.ZBattlefield},
+		{name: "inferred exile origin", line: "DB$ ChangeZone | ValidTgts$ Card | Origin$ Exile | Destination$ Library", admitted: true, zone: state.ZExile},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sa := kr0SA(t, tc.line)

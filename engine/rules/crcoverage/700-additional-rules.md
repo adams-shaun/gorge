@@ -84,7 +84,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.20d | unknown | - | - | not reached |
 | 701.21a | partial | `engine/effects/zone_bulk.go#sacrificeObjectEligible` `engine/effects/zone_bulk.go#effSacrifice` | - | gorge object path lacks controller check |
 | 701.22a | follows | `engine/effects/cardflow.go#effLookAndArrange` | - |  |
-| 701.22b | deviates | `engine/effects/cardflow.go#effLookAndArrange` | - | scry 0 fires scry triggers |
+| 701.22b | follows | `engine/effects/cardflow.go#effLookAndArrange` | `TestScryZeroIsNoScryEvent` `TestScryOneStillTriggersOnEmptyLibrary` | scry 0 records nothing; scry N>0 over an empty library still records |
 | 701.22c | partial | `engine/effects/cardflow.go#effLookAndArrange` | - | players scry sequentially |
 | 701.22d | follows | `engine/rules/arrange.go#arrangeAnswerRecord` | - |  |
 | 701.23a | follows | `engine/effects/zone_search.go#effSearchLibrary` `engine/effects/zone_search.go#originAlternativeZones` | `TestCROriginAlternativeGraveyardOnlySkipsLibrary` `TestCROriginAlternativeLibraryOnlyOmitsGraveyard` | "and/or" origins: the searcher elects the zones; an unsearched library is not searched, recorded or shuffled |
@@ -98,7 +98,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.24g | unknown | - | - | not reached |
 | 701.25a | follows | `engine/effects/cardflow.go#effSurveil` | - |  |
 | 701.25b | follows | `engine/effects/cardflow.go#effLookAndArrange` | - |  |
-| 701.25c | deviates | `engine/effects/cardflow.go#effLookAndArrange` | - | gorge: surveil 0 fires triggers |
+| 701.25c | follows | `engine/effects/cardflow.go#effSurveil` `engine/effects/cardflow.go#effLookAndArrange` | `TestSurveilZeroIsNoSurveilEvent` `TestCerebralDownloadWithNoArtifactsSurveilsZero` | |
 | 701.25d | partial | `engine/effects/cardflow.go#effLookAndArrange` | - | marker before the look; no outcome found |
 | 701.26a-b | follows | `engine/effects/combatfx.go#effTap` `engine/effects/combatfx.go#effUntapAll` `engine/effects/untap.go#effUntap` | - |  |
 | 701.27a-b | follows | `engine/effects/resolve.go#effSetState` `engine/events/event.go#FlipFace` | - | OpTransform unused |
@@ -139,7 +139,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.44d | partial | `engine/effects/explore.go#effExplore` | - | Defined order, not APNAP |
 | 701.45a | n/a | - | - | - |
 | 701.46a | follows | `engine/effects/counters_put.go#effPutCounter` | `TestAdaptDBBodyCountsAndConditionsOnNoP1P1` |  |
-| 701.47a | deviates | `engine/effects/amass.go#effAmass` | `TestAmassDoublingSeasonCountersEveryMint` | no Army choice; counters on every doubled mint |
+| 701.47a | deviates | `engine/effects/amass.go#effAmass` | `TestAmassDoublingSeasonCountersEveryMint` `TestAmassUsesChangelingAsArmy` `TestAmassIgnoresNoncreatureArmy` | no Army choice; counters on every doubled mint |
 | 701.47b | partial | `engine/effects/amass.go#effAmass` | - | amass 0 creates no token |
 | 701.47c-d | follows | `engine/effects/amass.go#amassRiders` `engine/effects/amass.go#effAmass` | - |  |
 | 701.48a | not-impl | - | - |  |
