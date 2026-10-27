@@ -449,6 +449,20 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	if ev.Kind == events.TurnFaceUp {
 		c.TriggerPaidX = ev.Amount
 	}
+	// CR 702.29d / 107.3i: a Mode$ Cycled trigger's Count$xPaid is the X paid
+	// for the cycling ABILITY, not the discarded card's own X. The card is
+	// discarded as the activation's cost, and the ability's CastInfo stamp is
+	// emitted only AFTER the cost events, so at this fire-time capture the
+	// announced value is still on the in-flight activation (the same e.cast.x
+	// targetSpecContext reads at the placement ask). Forge's TriggerCycled
+	// resolves it from AbilityKey.Cause, the cycling SpellAbility; keeping the
+	// read on Mode$ Cycled leaves a Mode$ Discarded trigger on the same event
+	// at zero.
+	if t.ModeKind() == cards.TriggerCycled {
+		if _, ok := events.IsCyclingDiscard(ev); ok && e.cast != nil && e.cast.card == ev.Obj {
+			c.TriggerPaidX = e.cast.x
+		}
+	}
 	// CR 400.7: the pending trigger belongs to the object that existed when
 	// it fired, so its body's `Defined$ Remembered` read (sourceRemembered)
 	// must answer with THIS object's list even after the source re-enters the
