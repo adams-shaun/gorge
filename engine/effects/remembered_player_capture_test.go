@@ -41,9 +41,19 @@ func TestRememberedPlayerSpellingsIgnoreTriggerCapture(t *testing.T) {
 	if got := DefinedSpec(h, c, "Remembered"); len(got) != 1 || got[0].Obj != src.ID {
 		t.Fatalf("precondition: Defined$ Remembered = %+v, want the capture [%d]", got, src.ID)
 	}
-	for _, sel := range []string{"RememberedOwner", "RememberedController", "NonRememberedController", "OppNonRememberedController"} {
+	for _, sel := range []string{"RememberedOwner", "RememberedController"} {
 		wantPlayers(t, definedPlayerIDs(h, c, sel), nil, "definedPlayerIDs("+sel+") with nothing remembered")
 	}
+	// The NonRemembered spellings are set complements, so with nothing
+	// remembered they name every player in turn order from the resolver
+	// (1,2,0), and every opponent (1,2) with controller 0. Reading the
+	// trigger capture as remembered would drop seat 1 in both cases.
+	wantPlayers(t, definedPlayerIDs(h, c, "NonRememberedController"), []state.PlayerID{1, 2, 0},
+		"definedPlayerIDs(NonRememberedController) with nothing remembered")
+	c.Controller = 0
+	wantPlayers(t, definedPlayerIDs(h, c, "OppNonRememberedController"), []state.PlayerID{1, 2},
+		"definedPlayerIDs(OppNonRememberedController) with nothing remembered")
+	c.Controller = 1
 
 	// Once the source WROTE its list (the ETB exiled seat 2's card), the
 	// owner/controller spellings name that card's seat, not the capture's.
