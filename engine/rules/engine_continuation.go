@@ -135,6 +135,9 @@ type engineContinuation struct {
 	etbLandPlay   bool           `clone:"deep"`
 	etbLandObj    state.ObjID    `clone:"deep"`
 	etbLandPlayer state.PlayerID `clone:"deep"`
+	// etbLandPerm is the limited untyped may-play permission the land play
+	// consumes (mayPlayLandPermKey), stamped on its LandPlayed event.
+	etbLandPerm string `clone:"deep"`
 	// riotMove parks a non-cast battlefield entry while its controller makes
 	// Riot's as-enters choice. The event is emitted only after Choose records
 	// the answer, so every entry path reaches events.Move with RiotChoice set.

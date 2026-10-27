@@ -14,6 +14,7 @@ package rules
 
 import (
 	"fmt"
+	"hash/fnv"
 	"slices"
 	"strconv"
 	"strings"
@@ -200,8 +201,11 @@ type mayPlaySpellOffer struct {
 // permission covering card id for player p, in deterministic order: the
 // card's own face statics, then battlefield statics in activeStatics' APNAP
 // order. board is mayPlayGrantScoped's board switch, so the verify-mode
-// scoping stays consistent. An untyped grant collapses to one entry with an
-// empty key (its limit is the historical per-card one); a MayPlayText$-typed
+// scoping stays consistent. An untyped grant WITHOUT a MayPlayLimit$ collapses
+// to one entry with an empty key; an untyped grant that carries one is its
+// own entry keyed by (source, mayPlayUntypedKey) with no text, so its limit
+// counts per static (Johann's "once each turn" spans every card on the
+// library top). A MayPlayText$-typed
 // grant is its own entry keyed by (source, label), so an artifact creature
 // matching both Muldrotha's Artifact and Creature statics is offered once
 // per still-unused permission and the cast can say which one it consumes.
@@ -219,12 +223,14 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 	// mayPlayStatic's gates. The callers below pass st.Params / sv.Params
 	// DIRECTLY so the parameter census traces each argument to a Params map
 	// (the same shape mayPlayRaiseCost uses).
-	ok := func(text string, source state.ObjID, free bool, raise Cost, hasRaise, priced bool) {
-		if text == "" {
+	ok := func(text string, ukey string, source state.ObjID, free bool, raise Cost, hasRaise, priced bool) {
+		key := ukey
+		if text != "" {
+			key = mayPlayPermKey(source, text)
+		} else if ukey == "" {
 			untyped = true
 			return
 		}
-		key := mayPlayPermKey(source, text)
 		if typed[key] {
 			return
 		}
@@ -240,7 +246,7 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 		if !applies || !grants {
 			continue
 		}
-		ok(mayPlayPermText(st.ParamStr(cards.PKMayPlayText), st.Params), id, free, raise, hasRaise, priced)
+		ok(mayPlayPermText(st.ParamStr(cards.PKMayPlayText), st.Params), mayPlayUntypedKey(id, st.Params), id, free, raise, hasRaise, priced)
 	}
 	if board {
 		for _, sv := range e.activeStatics("Continuous") {
@@ -251,7 +257,7 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 			if !applies || !grants {
 				continue
 			}
-			ok(mayPlayPermText(sv.ParamStr(cards.PKMayPlayText), sv.Params), sv.Source, free, raise, hasRaise, priced)
+			ok(mayPlayPermText(sv.ParamStr(cards.PKMayPlayText), sv.Params), mayPlayUntypedKey(sv.Source, sv.Params), sv.Source, free, raise, hasRaise, priced)
 		}
 	}
 	if untyped {
@@ -681,24 +687,22 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	// Gravetide's six per-permanent-type grants: "you may ... cast a
 	// permanent spell of each permanent type from your graveyard"). It is
 	// both the option label and the permission's identity: a typed grant's
-	// MayPlayLimit$ is enforced once per turn PER STATIC
-	// (mayPlayTypedLimitReached), not per card, so Muldrotha allows one
-	// creature AND one artifact in the same turn while a second creature is
-	// withheld. An untyped grant keeps the historical per-card limit (Kess).
+	// MayPlayLimit$ is enforced once per turn PER PERMISSION, so Muldrotha
+	// allows one creature AND one artifact in the same turn while a second
+	// creature is withheld. An untyped grant is one permission per static.
 	permissionText := strings.TrimSpace(params["MayPlayText"])
 	// MayPlayLimit$ (always the literal 1 in the corpus, 45 S: lines): the
-	// granted play is once per turn. An unresolvable value stays unenforced,
-	// the same convention activationLimitReached applies to a non-literal
-	// ActivationLimit$.
-	if raw := strings.TrimSpace(params["MayPlayLimit"]); raw != "" {
-		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
-			if permissionText != "" {
-				if e.mayPlayTypedLimitReached(source, permissionText, n) {
-					return false, false, false, Cost{}, hasRaise, priced
-				}
-			} else if e.mayPlayLimitReached(id, n) {
-				return false, false, false, Cost{}, hasRaise, priced
-			}
+	// granted play is once per turn PER STATIC (typed or not -- Johann's
+	// "once each turn" spans every card). An unresolvable value stays
+	// unenforced, the same convention activationLimitReached applies to a
+	// non-literal ActivationLimit$.
+	if n := mayPlayLimitN(params); n > 0 {
+		key := mayPlayLimitKey(source, params)
+		if permissionText != "" {
+			key = mayPlayPermKey(source, permissionText)
+		}
+		if e.mayPlayKeyLimitReached(key, n) {
+			return false, false, false, Cost{}, hasRaise, priced
 		}
 	}
 	grants = !strings.EqualFold(params["MayPlayDontGrantZonePermissions"], "True")
@@ -717,33 +721,6 @@ func (e *Engine) mayPlayIsPresent(spec, zoneParam string, you state.PlayerID, so
 	return n > 0
 }
 
-// mayPlayLimitReached reports whether the card has already been played
-// `limit` times this turn -- a spell cast (PutOnStack) or moved to the
-// battlefield from a non-hand, non-stack zone (a land played from the
-// graveyard, exile or the top of the library). The scan mirrors
-// activationLimitReached's: walk the log backwards to the last TurnChange.
-// A land returned to the battlefield by a non-play effect (a reanimate) also
-// matches the MoveZone shape, so the count can overcount for a card that is
-// both reanimated and re-played -- narrower, never wider, and noted in the
-// AGENTS.md audit.
-func (e *Engine) mayPlayLimitReached(id state.ObjID, limit int) bool {
-	used := 0
-	for i := len(e.L.Events) - 1; i >= 0; i-- {
-		ev := e.L.Events[i]
-		if ev.Kind == events.TurnChange {
-			break
-		}
-		if ev.Obj != id {
-			continue
-		}
-		if ev.Kind == events.PutOnStack ||
-			(ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && ev.From != state.ZHand && ev.From != state.ZStack) {
-			used++
-		}
-	}
-	return used >= limit
-}
-
 // mayPlayPermKey is a MayPlayText$-typed permission's stable identity: the
 // granting static's source object plus its MayPlayText$ label. Muldrotha's
 // six statics share one source and differ by label, so the pair names
@@ -754,30 +731,104 @@ func mayPlayPermKey(source state.ObjID, text string) string {
 	return strconv.FormatInt(int64(source), 10) + ":" + text
 }
 
-// mayPlayTypedLimitReached reports whether a MayPlayText$-typed permission
-// has already been used `limit` times this turn. A cast through such a
-// permission stamps a "perm=<key>" token on its pay-time CastInfo (payCast),
-// so the scan mirrors mayPlayLimitReached's backward walk to the last
-// TurnChange but keys on the permission token rather than the card id. A
-// land played through a typed permission emits no CastInfo, so a typed LAND
-// permission's count is not tracked here; the once-per-turn land drop
-// (LandsPlayed) bounds it instead (Muldrotha's Land static).
-func (e *Engine) mayPlayTypedLimitReached(source state.ObjID, text string, limit int) bool {
-	token := "perm=" + mayPlayPermKey(source, text)
+// mayPlayLimitN is a static's literal MayPlayLimit$ (0 when absent,
+// non-literal or not positive: unenforced).
+func mayPlayLimitN(params map[string]string) int {
+	raw := strings.TrimSpace(params["MayPlayLimit"])
+	if raw == "" {
+		return 0
+	}
+	if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+		return n
+	}
+	return 0
+}
+
+// mayPlayLimitKey is the permission identity of a MayPlayLimit$ static that
+// carries no MayPlayText$: its source object plus a "~<hash>" label of the
+// static itself (its Description$, else its sorted parameters), so two
+// statics on one card and two copies of one card never share a count. The
+// "~" keeps it disjoint from any typed label, and the fixed width keeps one
+// key from being a prefix of another inside a log token.
+func mayPlayLimitKey(source state.ObjID, params map[string]string) string {
+	h := fnv.New32a()
+	if d := params["Description"]; d != "" {
+		h.Write([]byte(d))
+	} else {
+		keys := make([]string, 0, len(params))
+		for k := range params {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		for _, k := range keys {
+			h.Write([]byte(k + "=" + params[k] + "|"))
+		}
+	}
+	return mayPlayPermKey(source, fmt.Sprintf("~%08x", h.Sum32()))
+}
+
+// mayPlayUntypedKey is mayPlayLimitKey for a static whose permission is
+// offered under its own key: untyped, limited, and not a MayPlayAltManaCost$
+// static (those are priced through the alternative-cost walks, which carry
+// the key per alternative). "" for every other static, which stays on the
+// collapsed empty-key path.
+func mayPlayUntypedKey(source state.ObjID, params map[string]string) string {
+	if strings.TrimSpace(params["MayPlayText"]) != "" || mayPlayLimitN(params) == 0 {
+		return ""
+	}
+	if _, alt := params["MayPlayAltManaCost"]; alt {
+		return ""
+	}
+	return mayPlayLimitKey(source, params)
+}
+
+// mayPlayKeyLimitReached reports whether the permission named by key has
+// already been used `limit` times this turn. A cast through it stamps a
+// "perm=<key>" token on its pay-time CastInfo (payCast) and a land play
+// through it on its LandPlayed Text (settleLandPlay), so the scan walks the
+// log backwards to the last TurnChange (activationLimitReached's shape) and
+// counts the token. A land played through a MayPlayText$-typed permission
+// is not stamped; the once-per-turn land drop (LandsPlayed) bounds it
+// instead (Muldrotha's Land static).
+func (e *Engine) mayPlayKeyLimitReached(key string, limit int) bool {
+	token := "perm=" + key
 	used := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			break
 		}
-		if ev.Kind != events.CastInfo || ev.Counter == "" {
-			continue
-		}
-		if strings.Contains(ev.Counter, token) {
-			used++
+		switch ev.Kind {
+		case events.CastInfo:
+			if ev.Counter != "" && strings.Contains(ev.Counter, token) {
+				used++
+			}
+		case events.LandPlayed:
+			if ev.Text != "" && strings.Contains(ev.Text, token) {
+				used++
+			}
 		}
 	}
 	return used >= limit
+}
+
+// mayPlayLandPermKey is the limited untyped permission a land play from a
+// non-hand zone consumes, or "" when the play stays unattributed. Land
+// options name no permission, so the choice is made for the player in the
+// direction that never burns a limit needlessly: any covering permission
+// without a limit (the collapsed entry, or a typed one) takes the play, and
+// otherwise the first limited static in mayPlayPermissions' order does.
+func (e *Engine) mayPlayLandPermKey(p state.PlayerID, id state.ObjID) string {
+	key := ""
+	for _, off := range e.mayPlayPermissions(p, id, true) {
+		if off.key == "" || off.text != "" {
+			return ""
+		}
+		if key == "" {
+			key = off.key
+		}
+	}
+	return key
 }
 
 // mayPlayAltCosts delivers a MayPlay static's MayPlayAltManaCost$ as an
@@ -814,13 +865,11 @@ func (e *Engine) mayPlayTypedLimitReached(source state.ObjID, text string, limit
 //     Cost.Unknown non-empty and the alternative is NOT offered -- an
 //     unpriceable cost must never exist as an option.
 //
-// MayPlayLimit$ is enforced per AFFECTED CARD (mayPlayLimitReached's
-// per-card log walk), the same reading the zone-permission family applies:
-// a colorless spell already played this turn cannot use the discount again.
-// The Monolith's printed "Once each turn" is a per-STATIC limit, which this
-// per-card tracking under-enforces (two different colorless spells can each
-// use it once in one turn) -- the same under-enforcement Forge's per-card
-// MayPlayTurn carries; named in the deck import report's Issues.
+// MayPlayLimit$ is enforced per STATIC (mayPlayKeyLimitReached): the
+// Monolith's printed "Once each turn" spans every colorless spell, so a
+// second, different spell cannot use the discount again. Each entry carries
+// the static's key and the cast at that alternative stamps it. (Forge counts
+// the same way: StaticAbility.getMayPlayTurn is per static.)
 //
 // Each entry reports whether its static OPENS the zone permission (grants:
 // MayPlayDontGrantZonePermissions$ absent -- Valgavoth, Terror Eater) or
@@ -919,15 +968,17 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		if !e.matchesSpecFrom(spec, id, you, sv.Source) {
 			continue
 		}
-		if rawLimit := strings.TrimSpace(sv.ParamStr(cards.PKMayPlayLimit)); rawLimit != "" {
-			if n, err := strconv.Atoi(rawLimit); err == nil && n > 0 && e.mayPlayLimitReached(id, n) {
+		key := ""
+		if n := mayPlayLimitN(sv.Params); n > 0 {
+			key = mayPlayLimitKey(sv.Source, sv.Params)
+			if e.mayPlayKeyLimitReached(key, n) {
 				continue
 			}
 		}
 		grants := !strings.EqualFold(strings.TrimSpace(sv.Params["MayPlayDontGrantZonePermissions"]), "True")
 		flash := strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlayWithFlash)), "True")
 		if free {
-			out = append(out, mayPlayAltView{grants: grants, flash: flash})
+			out = append(out, mayPlayAltView{grants: grants, flash: flash, key: key})
 			continue
 		}
 		alt, ok := e.altCostParse(id, raw)
@@ -937,7 +988,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 			// never offered at a wrong price.
 			continue
 		}
-		out = append(out, mayPlayAltView{cost: alt, grants: grants, flash: flash})
+		out = append(out, mayPlayAltView{cost: alt, grants: grants, flash: flash, key: key})
 	}
 	return out
 }
@@ -949,6 +1000,9 @@ type mayPlayAltView struct {
 	grants bool
 	// flash: the static carries MayPlayWithFlash$ True.
 	flash bool
+	// key is the static's limit identity (mayPlayLimitKey) when it carries a
+	// MayPlayLimit$, "" otherwise; a cast at this alternative stamps it.
+	key string
 }
 
 // mayPlayCastAlts lists the alternatives a CAST through a may-play
@@ -970,11 +1024,11 @@ type mayPlayAltView struct {
 //
 // The offer walk and beginCast both call this over the same board, so the
 // index cannot drift between offer and charge.
-func (e *Engine) mayPlayCastAlts(p state.PlayerID, id state.ObjID, plain bool) []Cost {
-	var out []Cost
+func (e *Engine) mayPlayCastAlts(p state.PlayerID, id state.ObjID, plain bool) []mayPlayAltView {
+	var out []mayPlayAltView
 	for _, v := range e.mayPlayAltCosts(p, id) {
 		if v.grants || plain {
-			out = append(out, v.cost)
+			out = append(out, v)
 		}
 	}
 	return out

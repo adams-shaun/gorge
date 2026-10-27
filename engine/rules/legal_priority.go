@@ -123,6 +123,12 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 			from = o.Zone
 		}
 		e.cast = e.newCast(in.Player, opt.Obj, from, "land", -1)
+		// A land played from a non-hand zone through a limited untyped
+		// may-play static spends that static's use; payCast hands the key to
+		// the LandPlayed event.
+		if from != state.ZHand {
+			e.cast.mayPlayPerm = e.mayPlayLandPermKey(in.Player, opt.Obj)
+		}
 		e.continueCast()
 		e.tape.ResolutionDone()
 

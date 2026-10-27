@@ -36,7 +36,15 @@ func (e *Engine) settleLandPlay(id state.ObjID) {
 	p := e.etbLandPlayer
 	e.etbLandPlay = false
 	e.etbLandObj = 0
-	e.emit(events.Event{Kind: events.LandPlayed, Player: p})
+	// A land played through a limited untyped may-play static carries the
+	// static's permission token (mayPlayKeyLimitReached counts it); every
+	// other land play is byte-identical.
+	text := ""
+	if e.etbLandPerm != "" {
+		text = "perm=" + e.etbLandPerm
+	}
+	e.etbLandPerm = ""
+	e.emit(events.Event{Kind: events.LandPlayed, Player: p, Text: text})
 }
 
 // landEntryParked reports whether some engine machinery still holds id's

@@ -100,11 +100,13 @@ func TestMayPlayValidAfterStackSerraManaValueGate(t *testing.T) {
 		t.Fatalf("Serra must offer only cheap permanent: %+v", d)
 	}
 	found := false
+	var carrier map[string]string
 	for _, st := range s.Face().Statics {
 		if st.Params["ValidAfterStack"] != "Spell.cmcLE3" {
 			continue
 		}
 		found = true
+		carrier = st.Params
 		params := maps.Clone(st.Params)
 		params["Affected"] = "Card.YouOwn"
 		if applies, grants, _, _, _, _ := e.mayPlayStatic(params, x.ID, 0, s.ID); applies || grants {
@@ -114,11 +116,14 @@ func TestMayPlayValidAfterStackSerraManaValueGate(t *testing.T) {
 	if !found {
 		t.Fatal("Serra carrier static missing")
 	}
-	// A prior cast of this same card this turn consumes its MayPlayLimit$ 1.
-	// The return to the graveyard is an event too; it does not reset the log.
+	// A prior cast through this static this turn consumes its MayPlayLimit$ 1
+	// (the cast stamps the static's permission token on its pay-time
+	// CastInfo). The return to the graveyard is an event too; it does not
+	// reset the log.
 	e.emit(events.Event{Kind: events.PutOnStack, Obj: c.ID, Player: 0, From: state.ZGraveyard, To: state.ZStack})
+	e.emit(events.Event{Kind: events.CastInfo, Obj: c.ID, Counter: ",perm=" + mayPlayLimitKey(s.ID, carrier)})
 	e.emit(events.Event{Kind: events.MoveZone, Obj: c.ID, Player: 0, From: state.ZStack, To: state.ZGraveyard})
-	if c.Zone != state.ZGraveyard || !e.mayPlayLimitReached(c.ID, 1) {
+	if c.Zone != state.ZGraveyard || !e.mayPlayKeyLimitReached(mayPlayLimitKey(s.ID, carrier), 1) {
 		t.Fatal("precondition: cast not recorded or card not returned to graveyard")
 	}
 	e.pending = nil
