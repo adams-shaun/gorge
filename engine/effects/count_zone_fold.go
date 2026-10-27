@@ -140,7 +140,11 @@ type zoneCountFold struct {
 	// diffcount2): creature-subtype words among the matched faces, read
 	// only through len.
 	seenCreatureTypes map[string]bool
-	colorsSeen        ColorMask
+	// seenPlaneswalkerTypes is the PlaneswalkerType spelling's distinct set
+	// (cr-g222): planeswalker-subtype words among the matched faces, read
+	// only through len.
+	seenPlaneswalkerTypes map[string]bool
+	colorsSeen            ColorMask
 	// diffKind and the seen sets for the Different* distinct-set property
 	// family (task diffcount1). Both maps are read only through len, so no
 	// map ordering ever reaches an event or a view.
@@ -259,6 +263,31 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 			if creatureSubtypeWords[typ] {
 				f.seenCreatureTypes[typ] = true
 			}
+		}
+	case zoneFoldPropPlaneswalkerType:
+		// CR 205.3j: a planeswalker type is one of the subtypes printed on a
+		// planeswalker's type line. Read every subtype word off the matched
+		// object itself rather than gating on a separate vocabulary: Forge's
+		// CardType.getPlaneswalkerTypes() returns the card's subtypes when it
+		// is a planeswalker, and a roster can fall behind a printed type
+		// (Svega, the Unconventional) into the same silent zero this property
+		// used to read. CR 205.1 orders the type line supertypes, then card
+		// types, then subtypes, so the subtypes are the words after the
+		// Planeswalker card type. An object without the card type contributes
+		// nothing.
+		types := o.Face().Types
+		walker := -1
+		for i, typ := range types {
+			if typ == "Planeswalker" {
+				walker = i
+				break
+			}
+		}
+		if walker < 0 {
+			return
+		}
+		for _, typ := range types[walker+1:] {
+			f.seenPlaneswalkerTypes[typ] = true
 		}
 	case zoneFoldPropColors:
 		f.colorsSeen |= ColorMaskOf(o)
@@ -514,6 +543,7 @@ const (
 	zoneFoldPropCardManaCost
 	zoneFoldPropCardTypes
 	zoneFoldPropCreatureType
+	zoneFoldPropPlaneswalkerType
 	zoneFoldPropColors
 )
 
@@ -524,6 +554,7 @@ var zoneFoldPropCodes = state.NewStrCodes(
 	state.StrEntry[zoneFoldPropCode]{Key: "CardTypes", Val: zoneFoldPropCardTypes},
 	state.StrEntry[zoneFoldPropCode]{Key: "CardTypesPermanent", Val: zoneFoldPropCardTypes},
 	state.StrEntry[zoneFoldPropCode]{Key: "CreatureType", Val: zoneFoldPropCreatureType},
+	state.StrEntry[zoneFoldPropCode]{Key: "PlaneswalkerType", Val: zoneFoldPropPlaneswalkerType},
 	state.StrEntry[zoneFoldPropCode]{Key: "Colors", Val: zoneFoldPropColors},
 )
 
