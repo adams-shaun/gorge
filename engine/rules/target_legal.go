@@ -363,8 +363,9 @@ func originImpliedTargetZone(sa *cards.SA) (state.Zone, bool, bool) {
 }
 
 // changeZoneTargetZones infers a multi-zone ChangeZone census only when every
-// ValidTgts$ alternative names its zone with a recognized inZone<X> word, and
-// every such zone is in the parsed Origin$ set. This keeps arbitrary filters,
+// ValidTgts$ alternative names its zone with a recognized inZone<X> word (or
+// is unmarked beside a stack Origin$ with one other zone), and every such
+// zone is in the parsed Origin$ set. This keeps arbitrary filters,
 // incomplete alternatives, unknown zones and zones outside Origin$ fail-closed.
 func changeZoneTargetZones(sa *cards.SA, isChangeZone bool) ([]state.Zone, bool) {
 	if !isChangeZone {
@@ -404,10 +405,32 @@ func changeZoneTargetZones(sa *cards.SA, isChangeZone bool) ([]state.Zone, bool)
 			}
 		}
 		if len(altZones) == 0 {
-			return nil, false
+			// An unmarked alternative (Swat Away's Creature next to
+			// Card.inZoneStack) is attributed to the Origin$'s one
+			// non-stack zone; any other unmarked shape fails closed.
+			z, ok := soleNonStackZone(cz.OriginOwn)
+			if !ok {
+				return nil, false
+			}
+			if !containsZone(zones, z) {
+				zones = append(zones, z)
+			}
 		}
 	}
 	return zones, len(zones) > 0
+}
+
+// soleNonStackZone returns the only zone in zs other than the stack.
+func soleNonStackZone(zs []state.Zone) (state.Zone, bool) {
+	var sole state.Zone
+	n := 0
+	for _, z := range zs {
+		if z != state.ZStack {
+			sole = z
+			n++
+		}
+	}
+	return sole, n == 1
 }
 
 func containsZone(zones []state.Zone, want state.Zone) bool {
