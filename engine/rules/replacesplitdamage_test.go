@@ -63,3 +63,12 @@ func TestReplaceSplitDamageRegistered(t *testing.T) {
 		t.Fatalf("Ward of Piety still reports api:ReplaceSplitDamage unsupported: %v", missing)
 	}
 }
+
+// TestReplaceSplitDamageShieldDepletes: a one-use Ward of Piety shield spends
+// across events (CR 615.7 by analogy). A Bolt and a Shock at the enchanted Craw Wurm
+// redirect 1 damage to p1 once, not twice: p1 ends at 19 (an undepleted shield
+// would redirect on both spells, leaving p1 at 18).
+func TestReplaceSplitDamageShieldDepletes(t *testing.T) {
+	t.Parallel()
+	runSplitDamageScenario(t, `{"name":"deplete","cr":["614.9"],"why":"a redirect shield is spent by what it redirects","setup":{"p0":{"hand":["Ward of Piety"],"battlefield":["Craw Wurm","Plains","Plains","Plains","Plains"]},"p1":{"hand":["Lightning Bolt","Shock"],"battlefield":["Mountain","Mountain"]}},"steps":[{"op":"resolve","seat":0},{"op":"cast","seat":0,"card":"p0:Ward of Piety","mana":"CW","targets":["p0:Craw Wurm"]},{"op":"pass_to","seat":0,"step":"begin-combat","active":"p0"},{"op":"activate","seat":0,"card":"p0:Ward of Piety","mana":"CW","targets":["p1"],"ability_index":0},{"op":"pass_to","seat":0,"step":"main2","active":"p0"},{"op":"pass","seat":0},{"op":"cast","seat":1,"card":"p1:Lightning Bolt","mana":"R","targets":["p0:Craw Wurm"]},{"op":"cast","seat":1,"card":"p1:Shock","mana":"R","targets":["p0:Craw Wurm"]},{"op":"pass_to","seat":0,"step":"end","active":"p0"},{"op":"resolve","seat":0}],"expect":[{"life":{"p0":20}},{"life":{"p1":19}}]}`)
+}
