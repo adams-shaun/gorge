@@ -871,13 +871,31 @@ func (f *Face) Mentions(needle string) bool {
 			return true
 		}
 	}
+	return f.anyParam(func(_, v string) bool { return strings.Contains(v, needle) })
+}
+
+// MentionsParam is Mentions' keyed counterpart: it reports whether any
+// parameter KEY on the face contains needle, over the same containers
+// Mentions walks. A top-level "A:SP$ ... | ConditionManaSpent$ G" parses to
+// the key "ConditionManaSpent", which the value search cannot see.
+func (f *Face) MentionsParam(needle string) bool {
+	if f == nil || needle == "" {
+		return false
+	}
+	return f.anyParam(func(k, _ string) bool { return strings.Contains(k, needle) })
+}
+
+// anyParam reports whether match holds for any key/value pair of the face's
+// ability parameters (with their SubAbility$ chains), trigger params and
+// effects, replacement params and bodies, and static params.
+func (f *Face) anyParam(match func(k, v string) bool) bool {
 	var walkSA func(sa *SA, depth int) bool
 	walkSA = func(sa *SA, depth int) bool {
 		if sa == nil || depth > 32 {
 			return false
 		}
-		for _, v := range sa.Params {
-			if strings.Contains(v, needle) {
+		for k, v := range sa.Params {
+			if match(k, v) {
 				return true
 			}
 		}
@@ -889,8 +907,8 @@ func (f *Face) Mentions(needle string) bool {
 		}
 	}
 	for _, tr := range f.Triggers {
-		for _, v := range tr.Params {
-			if strings.Contains(v, needle) {
+		for k, v := range tr.Params {
+			if match(k, v) {
 				return true
 			}
 		}
@@ -899,8 +917,8 @@ func (f *Face) Mentions(needle string) bool {
 		}
 	}
 	for _, r := range f.Repls {
-		for _, v := range r.Params {
-			if strings.Contains(v, needle) {
+		for k, v := range r.Params {
+			if match(k, v) {
 				return true
 			}
 		}
@@ -909,8 +927,8 @@ func (f *Face) Mentions(needle string) bool {
 		}
 	}
 	for _, s := range f.Statics {
-		for _, v := range s.Params {
-			if strings.Contains(v, needle) {
+		for k, v := range s.Params {
+			if match(k, v) {
 				return true
 			}
 		}
