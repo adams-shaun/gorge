@@ -10,8 +10,8 @@ import (
 )
 
 // destroyAllBoard seats Awaken the Sleeper in seat 0's hand and an opposing
-// Grizzly Bears wearing Eater of Virtue, plus a second Bears wearing a second
-// Eater of Virtue (the equipment the destroy must leave alone). withEquip
+// Grizzly Bears wearing Bonesplitter, plus a second Bears wearing a second
+// Bonesplitter (the equipment the destroy must leave alone). withEquip
 // false leaves the stolen Bears bare.
 type destroyAllBoard struct {
 	e                                *Engine
@@ -23,9 +23,9 @@ func newDestroyAllBoard(t *testing.T, withEquip bool) destroyAllBoard {
 	t.Helper()
 	awaken := corpusCard(t, "Awaken the Sleeper")
 	bears := corpusCard(t, "Grizzly Bears")
-	eater := corpusCard(t, "Eater of Virtue")
-	// Eater of Virtue is legendary, so the bystander Equipment is another card.
-	splitter := corpusCard(t, "Bonesplitter")
+	eater := corpusCard(t, "Bonesplitter")
+	// The bystander Equipment is a different card from the stolen Bears'.
+	splitter := corpusCard(t, "Leather Armor")
 	e, cfg := tokenReplGameSeats(t, 5,
 		[]*cards.Card{awaken, eater, splitter},
 		[]*cards.Card{bears, bears})
