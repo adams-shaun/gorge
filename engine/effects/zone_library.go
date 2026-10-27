@@ -8,7 +8,8 @@ import (
 )
 
 // shuffleLibrary applies the default hidden-library shuffle used by searches
-// and direct Defined$ fetches: the CR 701.23 "then shuffle", unless the SA
+// and the Defined$ fetches that owe one (a library destination, a NoLooking$
+// placement leg, a deferred search shuffle): the CR 701.23 "then shuffle", unless the SA
 // opts out (NoShuffle$ True / Shuffle$ False). A hand put-back is different:
 // it shuffles only when its own SA explicitly says Shuffle$ True, and uses
 // shuffleLibraryExplicit below. ShuffleNonMandatory$ is never read here: on

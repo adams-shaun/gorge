@@ -53,7 +53,7 @@ func TestDefinedLibraryPositionFetchesDoNotShuffle(t *testing.T) {
 		})
 	}
 
-	t.Run("remembered still shuffles", func(t *testing.T) {
+	t.Run("remembered does not shuffle", func(t *testing.T) {
 		h := newHost(t, 2)
 		source := h.g.AddObject(mkCard(t, "Name:Source\nTypes:Sorcery\nOracle:x\n"), 0)
 		fetched := h.g.AddObject(mkCard(t, "Name:Remembered\nTypes:Creature\nPT:2/2\nOracle:x\n"), 0)
@@ -79,8 +79,8 @@ func TestDefinedLibraryPositionFetchesDoNotShuffle(t *testing.T) {
 				shuffles++
 			}
 		}
-		if shuffles != 1 {
-			t.Fatalf("Defined$ Remembered emitted %d Shuffle events, want one: %+v", shuffles, h.log)
+		if shuffles != 0 {
+			t.Fatalf("Defined$ Remembered emitted %d Shuffle events, want none (a Defined$ fetch is not a search): %+v", shuffles, h.log)
 		}
 	})
 }

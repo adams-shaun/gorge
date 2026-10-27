@@ -298,6 +298,10 @@ type SearchInputs struct {
 	// Resolution-scratch like Remembered -- never event-encoded; a replay
 	// re-derives the same set by replaying the same resolution.
 	Known []state.Target
+	// DeferredShuffle is set when this resolution's search suppressed its own
+	// shuffle (Shuffle$ False / NoShuffle$ True) and the chain still owes the
+	// "Then shuffle" at the next Defined$ placement leg.
+	DeferredShuffle bool
 }
 
 // NumberInputs is the chosen and remembered numbers a Count$ reads.

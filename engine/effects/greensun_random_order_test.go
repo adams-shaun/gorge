@@ -145,12 +145,12 @@ func greenSunUnpairedNoProducerCheck(t *testing.T) {
 			shuffles++
 		}
 	}
-	if shuffles != 1 {
-		t.Fatalf("unpaired fetch Shuffle events = %d, want one; log=%+v", shuffles, h.log)
+	if shuffles != 0 {
+		t.Fatalf("unpaired fetch Shuffle events = %d, want none (a Defined$ fetch is not a search); log=%+v", shuffles, h.log)
 	}
 }
 
-func TestDefinedLibraryFetchKeepsDefaultShuffleOutsideGreenSunContinuation(t *testing.T) {
+func TestDefinedLibraryFetchDoesNotShuffleOutsideGreenSunContinuation(t *testing.T) {
 	h := newHost(t, 2)
 	source := h.g.AddObject(mkCard(t, "Name:Ordinary Fetch\nTypes:Sorcery\nOracle:x\n"), 0)
 	first := h.g.AddObject(mkCard(t, "Name:First\nTypes:Sorcery\nOracle:x\n"), 0)
@@ -175,7 +175,7 @@ func TestDefinedLibraryFetchKeepsDefaultShuffleOutsideGreenSunContinuation(t *te
 			shuffles++
 		}
 	}
-	if shuffles != 1 {
-		t.Fatalf("ordinary resolved Defined fetch Shuffle events = %d, want established default 1; log=%+v", shuffles, h.log)
+	if shuffles != 0 {
+		t.Fatalf("ordinary resolved Defined fetch Shuffle events = %d, want none; log=%+v", shuffles, h.log)
 	}
 }
