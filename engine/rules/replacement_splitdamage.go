@@ -1,8 +1,7 @@
 package rules
 
 import (
-	"strings"
-
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -19,8 +18,10 @@ func (e *Engine) splitShieldIndex(m replMatch) int {
 	}
 	for i := range e.continuous {
 		ce := &e.continuous[i]
-		if ce.Source == source && ce.Timestamp == ts && ce.ReplacementEvent == "DamageDone" &&
-			strings.Contains(ce.ReplacementBody, "ReplaceSplitDamage") {
+		if ce.Source != source || ce.Timestamp != ts || ce.ReplacementEvent != "DamageDone" {
+			continue
+		}
+		if with := replacementBodySA(ce.ReplacementBody); with != nil && with.API == "ReplaceSplitDamage" {
 			return i
 		}
 	}
@@ -32,7 +33,7 @@ func (e *Engine) splitShieldIndex(m replMatch) int {
 // recipient: a player still in the game or a permanent on the battlefield.
 // ok is false when none is left, and the held event then stands unchanged.
 func (e *Engine) splitDamageRecipient(m replMatch, ev events.Event) (state.Target, bool) {
-	spec := effects.ReplaceSplitDamageOf(m.repl.With).DamageTarget
+	spec := m.repl.With.ParamStr(cards.PKDamageTarget)
 	if spec == "" {
 		return state.Target{}, false
 	}
@@ -68,9 +69,14 @@ func (e *Engine) applyReplaceSplitDamageBody(ev *events.Event, m replMatch) bool
 		pool = e.continuous[idx].ChosenNumber
 	}
 	if pool <= 0 {
-		var resolved bool
-		if pool, resolved = effects.ReplaceSplitDamageShield(e, e.replCtx(m, *ev), m.repl.With); !resolved {
-			return false
+		// VarName$ names the SVar holding the shield size; a body without one
+		// shields 1 (Forge ReplaceSplitDamageEffect).
+		pool = 1
+		if m.repl.With.HasParam(cards.PKVarName) {
+			var resolved bool
+			if pool, resolved = effects.NumResolved(e, e.replCtx(m, *ev), m.repl.With, "VarName", 1); !resolved {
+				return false
+			}
 		}
 	}
 	n := min(ev.Amount, pool)
