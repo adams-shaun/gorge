@@ -34,18 +34,20 @@ func TestReallyCharmingPrinceNameCardRandomUsesListedCorpusChoices(t *testing.T)
 		t.Fatalf("corpus precondition: choices = %q, want multiple choices", sa.Params["ChooseFromList"])
 	}
 	effects.Resolve(e, &effects.Ctx{Source: source, Controller: 0}, sa)
-	chosen := e.G.Obj(source).ChosenName
+	// The SubAbility chain ends in `DB$ Cleanup | ClearNamedCard$ True`, so the
+	// chosen name is consumed by the resolution (cr-g229) rather than left on
+	// the permanent. Read the recorded name event the handler emitted.
+	chosen := ""
+	for _, event := range e.L.Events {
+		if event.Kind == events.Choose && event.Obj == source && event.Counter == "name" {
+			chosen = event.Text
+		}
+	}
 	if !listed[chosen] {
 		t.Fatalf("Really Charming Prince chose %q outside its ChooseFromList %q", chosen, sa.Params["ChooseFromList"])
 	}
-	recorded := false
-	for _, event := range e.L.Events {
-		if event.Kind == events.Choose && event.Obj == source && event.Counter == "name" && event.Text == chosen {
-			recorded = true
-		}
-	}
-	if !recorded {
-		t.Fatal("NameCard handler did not record its chosen name event")
+	if got := e.G.Obj(source).ChosenName; got != "" {
+		t.Fatalf("ChosenName after the chained ClearNamedCard cleanup = %q, want empty", got)
 	}
 }
 

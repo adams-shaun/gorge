@@ -53,6 +53,14 @@ type staticView struct {
 	// static. It binds Card.IsRemembered in the same shared spec context as
 	// restriction registrations; printed statics leave it nil.
 	Remembered []state.ObjID
+	// chosenName and chosenNameFrozen carry an Effect-delivered static's
+	// chosen-card-name snapshot (state.ContinuousEffect.ChosenName): the
+	// NamedCard predicate reads it instead of the source's live name once a
+	// chain's ClearNamedCard$ cleanup has wiped the source (Cheering
+	// Fanatic's ReduceCost ValidCard$ Card.NamedCard). Printed statics leave
+	// both zero.
+	chosenName       string
+	chosenNameFrozen bool
 	// effectStamp identifies the delivering Effect of an Effect-delivered
 	// cost-modifier view (its ContinuousEffect.Timestamp, unique per
 	// registration; 0 for every other view). The cost chain binds Remembered
@@ -111,7 +119,7 @@ func (e *Engine) costRememberedCapture(id state.ObjID) []costRememberedEntry {
 // the pending cast of id the set recorded at beginCast (costRemembered)
 // stands in for the live one.
 func (e *Engine) costStaticSpecCtx(sv staticView, id state.ObjID) effects.SpecContext {
-	sc := e.staticSpecCtx(sv)
+	sc := e.staticSpecCtxNamed(sv)
 	if sv.effectStamp == 0 {
 		return sc
 	}
@@ -537,6 +545,20 @@ func (e *Engine) verifySpecDerivedSkip(spec string, id state.ObjID, sc effects.S
 // source object's top face.
 func (e *Engine) staticSpecCtx(sv staticView) effects.SpecContext {
 	return e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+}
+
+// staticSpecCtxNamed is staticSpecCtx plus an Effect-delivered cost static's
+// chosen-card-name snapshot. It is a separate helper because the binding
+// pushes staticSpecCtx over the inliner's budget and heap-allocates the
+// context for the per-candidate action-static match (TestLegalActionsReuses
+// ActionStaticMembership); only the cost/alternative readers that can see a
+// snapshot view pay it.
+func (e *Engine) staticSpecCtxNamed(sv staticView) effects.SpecContext {
+	sc := e.staticSpecCtx(sv)
+	if sv.chosenNameFrozen {
+		sc.FrozenChosenName, sc.ChosenNameBound = sv.chosenName, true
+	}
+	return sc
 }
 
 // assignmentStaticSpecCtx binds captured Effect memory only for the narrow

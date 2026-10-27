@@ -667,6 +667,19 @@ type DelayedTrigger struct {
 	// ("|OD=<spec>") the same way ValidPlayer$ and MaxTurn do. Empty for
 	// every registration with no election.
 	OptionalSpec string
+	// ChosenName and ChosenNameFrozen are an Effect-created trigger's
+	// snapshot of the host's chosen card name at REGISTRATION (Forge's
+	// EffectEffect copies the named card onto the effect card it creates).
+	// The body is re-parsed at fire time against the source object, which a
+	// chain's `DB$ Cleanup | ClearNamedCard$ True` may have wiped by then; a
+	// bound name makes NamedCard read this value instead (Medomai's
+	// Prophecy's "when you cast a spell with the chosen name"). The pair
+	// rides the DelayedRegister event's Text ("|CN=<name>") because the
+	// event gains no field (Ruling T20-a's field-reuse precedent), and
+	// ChosenNameFrozen distinguishes a frozen EMPTY name (fail closed) from
+	// a registration that took no snapshot.
+	ChosenName       string
+	ChosenNameFrozen bool
 	// Effect-created trigger lifetime riders, folded from DelayedRegister.Text.
 	// BirthTurn distinguishes a later turn belonging to the effect controller
 	// from the turn in which the promise was created.
