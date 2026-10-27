@@ -128,6 +128,11 @@ type engineContinuation struct {
 	// objects. The AddCounter replacement's EffectOnly$ gate reads it
 	// (replacement_match.go). Set and cleared synchronously around the emit.
 	costCounters int `clone:"reset"`
+	// counterEffectOnlyAdmitted opens the EffectOnly$ provenance gate for one
+	// AddCounter re-scan after another replacement effect has already applied
+	// to the same counter event (CR 614.16). Set and cleared synchronously;
+	// zero on every live engine.
+	counterEffectOnlyAdmitted bool `clone:"reset"`
 	// etbLandPlay identifies the land whose LandPlayed event must wait for its
 	// final battlefield entry. A replacement can suspend and later re-emit the
 	// move, so the object id is needed to avoid consuming this continuation on

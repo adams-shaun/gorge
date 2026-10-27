@@ -58,22 +58,69 @@ func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatc
 			Text: "counter change awaiting replacement-order choice"}, true
 	}
 	amount := ev.Amount
-	changed := false
 	for _, m := range cands {
 		n, ok := e.applyAddCounterBody(ev, m, amount)
 		if !ok {
 			continue
 		}
-		if n != amount {
-			amount = n
-			changed = true
-		}
-	}
-	if !changed {
-		return ev, false
+		amount = n
 	}
 	ev.Amount = amount
+	if next, handled := e.applyDeferredAddCounterReplacements(ev, cands); handled {
+		return next, true
+	} else {
+		ev = next
+	}
 	return ev, false
+}
+
+// addCounterEffectOnlyClosed reports whether an EffectOnly$ True AddCounter
+// replacement (Doubling Season, Selesnya Loft Gardens) is outside its
+// provenance for this counter event: a cost's own placement (a planeswalker's
+// [+N]) or a placement with no stack cause is not an effect. A replacement
+// BODY's own placement (the K:etbCounter entry body's DB$ PutCounter) has no
+// stack cause either but is the action of a replacement effect (CR 614.1c),
+// so it stays admitted. The gate is open during a CR 614.16 re-scan.
+func (e *Engine) addCounterEffectOnlyClosed(ev events.Event) bool {
+	if e.counterEffectOnlyAdmitted {
+		return false
+	}
+	if ev.Kind != events.CounterChange && ev.Kind != events.PlayerCounterChange {
+		return false
+	}
+	if e.costCounters > 0 {
+		return true
+	}
+	if e.actionCause() == 0 {
+		if _, isBody := e.replacementBodyCounterAdder(); !isBody {
+			return true
+		}
+	}
+	return false
+}
+
+// applyDeferredAddCounterReplacements is the CR 614.16 second pass: once
+// another replacement effect has applied to a counter event whose provenance
+// closed the EffectOnly$ class, that class "does so, even if the original
+// event ... wasn't itself an effect" (Pir turns a loyalty cost's 1 into 2 and
+// lets Doubling Season in). applied are the replacements already spent on
+// the event; CR 614.5 keeps them from applying again.
+func (e *Engine) applyDeferredAddCounterReplacements(ev events.Event, applied []replMatch) (events.Event, bool) {
+	if len(applied) == 0 || !e.addCounterEffectOnlyClosed(ev) {
+		return ev, false
+	}
+	savedExclude := e.replExclude
+	ids := make([]string, 0, len(applied))
+	for _, m := range applied {
+		ids = append(ids, replIdentity(m))
+	}
+	e.replExclude = append(append([]string(nil), savedExclude...), ids...)
+	e.counterEffectOnlyAdmitted = true
+	defer func() {
+		e.counterEffectOnlyAdmitted = false
+		e.replExclude = savedExclude
+	}()
+	return e.applyReplacementsDispatch(ev)
 }
 
 // addCounterAffectedPlayer is the CR 616.1 affected player of a counter
@@ -284,6 +331,11 @@ func (e *Engine) driveAddCounterCompetition(rc replChoice,
 			}
 		}
 		if len(remaining) == 0 {
+			if next, handled := e.applyDeferredAddCounterReplacements(ev, applied); handled {
+				return
+			} else {
+				ev = next
+			}
 			complete(ev, applied)
 			return
 		}
