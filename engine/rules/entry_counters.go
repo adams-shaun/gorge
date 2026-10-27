@@ -149,7 +149,7 @@ func (e *Engine) entryCounterGrants(ev *events.Event) []events.EntryCounterGrant
 		if o == nil || o.Zone == state.ZBattlefield {
 			return nil
 		}
-		grants := events.EntryCounterGrants(o, events.IsFaceDownEntry(ev.Counter))
+		grants := events.EntryCounterGrantsForFace(o, e.entryCopyBasisFace(o), events.IsFaceDownEntry(ev.Counter))
 		// The counters the moving effect says the permanent enters WITH
 		// (ChangeZone's WithCountersType$, effects.entryWithCounters): CR
 		// 122.6 makes them part of the entry, so they settle and fold here
@@ -276,6 +276,19 @@ func (e *Engine) cloneRiderTemplate(entrant state.ObjID) *state.Object {
 		return nil
 	}
 	return tpl
+}
+
+// entryCopyBasisFace is the face the entering object is about to have: the
+// answered as-enters clone template's copiable face while ClonePermanent has
+// not installed it (CR 707.2), else o's own face.
+func (e *Engine) entryCopyBasisFace(o *state.Object) *cards.Face {
+	if o == nil {
+		return nil
+	}
+	if tpl := e.cloneRiderTemplate(o.ID); tpl != nil {
+		return tpl.CopiableFace()
+	}
+	return o.Face()
 }
 
 // entryBodyKindEncodable reports whether a PutCounter|ETB$ True body's
