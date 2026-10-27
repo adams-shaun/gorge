@@ -993,6 +993,15 @@ type castTargetsHost interface {
 	CastTargetsUnavailable(p state.PlayerID, id state.ObjID) bool
 }
 
+// copyTargetCandidatesHost is the rules-side read behind CopySpellAbility's
+// CopyForEachCanTarget$ (CR 707.10d): every target the copied spell's
+// targeting clause could legally choose now, as the copier would announce it.
+// Optional; a host without it (an effects test double) keeps the single
+// inherited-target copy.
+type copyTargetCandidatesHost interface {
+	CopyTargetCandidates(copier state.PlayerID, spell state.ObjID) []state.Target
+}
+
 // saMentionsKeywords reports whether any parameter of sa, or of a
 // sub-ability chained under it (the walk shares one Ctx), can name a
 // with<Keyword>/without<Keyword>/hasKeyword<Keyword> predicate.

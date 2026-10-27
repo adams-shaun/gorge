@@ -76,19 +76,28 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		if t.Mode == "Cycled" && source == ev.Obj && events.IsDiscard(ev) {
 			return true
 		}
-		// A card's own hand->exile move (Lupine Harbingers' "note the number
-		// of turns you've begun since it was foretold" exile trigger -- the
-		// corpus's ONE ChangesZone self-trigger with no TriggerZones$ whose
-		// destination is not the battlefield, measured over the corpus pin):
-		// the only zone the trigger can observe the move from is the hand the
-		// card sits in. Forge applies no zone restriction to a trigger
-		// without TriggerZones$; the battlefield default would leave such a
-		// trigger unable to fire at all, so the card's own hand-origin move
-		// admits it, the same courtesy the Discarded and Cycled cases above
-		// extend. (Self-moves whose DESTINATION is the battlefield need no
+		// A card's own ChangesZone move from any origin (Lupine Harbingers'
+		// hand->exile "note the number of turns you've begun since it was
+		// foretold"; Ulamog, the Infinite Gyre and Emrakul, the Aeons Torn
+		// "put into a graveyard from anywhere"; Gaea's Blessing and Narcomoeba
+		// "from your library"; Golgari Brownscale, graveyard->hand; Geth's
+		// Summons, the stack: 19 corpus files at the pin carry a self
+		// ChangesZone line with no TriggerZones$ whose destination is not the
+		// battlefield and whose origin is neither the battlefield nor the
+		// hand, plus Lupine Harbingers). CR 603.6a / 603.10a: the card's own
+		// trigger looks back in time and fires from the zone the card left.
+		// Forge applies no zone restriction to a trigger without
+		// TriggerZones$; the battlefield default would leave such a trigger
+		// unable to fire at all, so the card's own move from any origin admits
+		// it, the same courtesy the Discarded and Cycled cases above extend.
+		// Origin$ and Destination$ stay the trigger matcher's job, so a dies
+		// trigger (Origin$ Battlefield) still ignores a mill. A line with
+		// neither Origin$ nor Destination$ does not look back in time
+		// (zoneChangeNoLookBack) and keeps the post-move zone check below.
+		// (Self-moves whose DESTINATION is the battlefield need no
 		// admission: the post-move zone check below already sees them.)
 		if t.Mode == "ChangesZone" && source == ev.Obj && ev.Kind == events.MoveZone &&
-			ev.From == state.ZHand {
+			!zoneChangeNoLookBack(t) {
 			return true
 		}
 		spec = "Battlefield"

@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -305,6 +306,11 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// one loud Note -- the override applies only where the engine can
 	// resolve what it names.
 	targets, defined := copyDefinedTargets(h, c, sa)
+	if spec := strings.TrimSpace(sa.Params["CopyForEachCanTarget"]); spec != "" && spell != 0 && !defined {
+		if copyForEachCanTarget(h, c, sa, spell, controller, spec, rememberCopies, payload) {
+			return
+		}
+	}
 	switch {
 	case defined && len(targets) > 0:
 		// One copy per defined target, each carrying that entry alone in its
@@ -375,6 +381,79 @@ func emitCopy(h Host, c *Ctx, remember bool, ev events.Event) {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 		eventRemember(h, c, id)
 	}
+}
+
+// copyForEachCanTarget is CR 707.10d's "copy that spell for each other object
+// it could target" (CopyForEachCanTarget$ <spec>): one copy per legal target
+// of the spell's targeting clause that the spec admits (the copier is "You")
+// and the spell does not already target, each copy's first target replaced by
+// its candidate through the StackCopy IDs override, in ObjID order.
+// ChooseOnlyOne$ True (Beamsplitter Mage) asks the copier for one candidate
+// and makes one copy. A player candidate cannot ride StackCopy's object-only
+// IDs, so it yields no copy under one loud Note. It reports false when the
+// host cannot enumerate candidates or the spell has a target this override
+// cannot carry, leaving the historical single inherited-target copy.
+func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, controller state.PlayerID, spec string, remember bool, payload string) bool {
+	ch, ok := h.(copyTargetCandidatesHost)
+	if !ok {
+		return false
+	}
+	g := h.Game()
+	so := g.Obj(spell)
+	if so == nil || len(so.Targets) == 0 {
+		return false
+	}
+	for _, t := range so.Targets {
+		if t.IsPlayer {
+			return false
+		}
+	}
+	var cands []state.ObjID
+	playerCand := false
+	for _, t := range ch.CopyTargetCandidates(controller, spell) {
+		if t.IsPlayer {
+			if MatchesPlayerSpec(g, spec, t.Player, controller) {
+				playerCand = true
+			}
+			continue
+		}
+		if t.Obj == so.Targets[0].Obj || !MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(controller)) {
+			continue
+		}
+		cands = append(cands, t.Obj)
+	}
+	slices.Sort(cands)
+	if playerCand {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "copy: CopyForEachCanTarget$ player candidates not copied (a copy cannot override a target with a player)"})
+	}
+	if len(cands) > 0 && strings.EqualFold(strings.TrimSpace(sa.Params["ChooseOnlyOne"]), "True") {
+		d := &decision.Decision{Player: controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			Source: c.Source, ResumeKind: "copy_for_each_can_target", ResumeSA: sa,
+			Prompt: "Choose a target for the copy"}
+		for _, id := range cands {
+			name := "a permanent"
+			if o := g.Obj(id); o != nil && o.Face() != nil {
+				name = o.Face().Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "copy_target", Label: name, Obj: id, Player: controller})
+		}
+		// No answer (an effects-package double): the first candidate, the
+		// pick the bot's clamp fallback answers.
+		cands = cands[:1]
+		if ans, ok := AskTape(h, d); ok && len(ans) > 0 {
+			cands = []state.ObjID{ans[0].Obj}
+		}
+	}
+	for _, cand := range cands {
+		ids := []state.ObjID{cand}
+		for _, t := range so.Targets[1:] {
+			ids = append(ids, t.Obj)
+		}
+		emitCopy(h, c, remember, events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: ids, Counter: payload})
+	}
+	return true
 }
 
 // copyDefinedTargets resolves a CopySpellAbility DefinedTarget$ parameter to
