@@ -377,17 +377,20 @@ func rememberPlayerBothHalves(h Host, c *Ctx, p state.PlayerID) {
 // chooseCardsToDiscardFrom call, shared by the asking arms: AnyNumber$ is
 // min 0 with no cap short of the eligible hand, Optional$ lowers min to 0,
 // and otherwise min == max == NumCards (capped at the eligible count).
-// AnyNumber$ is implemented for the two asking modes (RevealYouChoose and
-// TgtChoose); the measured corpus population is TgtChoose-only (22 lines,
-// every one also Optional$ True), but the bounds themselves are one Forge
-// code path for all modes.
+// A resolved zero stays zero: Forge's DiscardEffect uses
+// max == 0 ? CardCollection.EMPTY : chooseCardsToDiscardFrom(...), so it
+// discards nothing and poses no discard ask (the callers skip the decision
+// when askMax == 0). AnyNumber$ is implemented for the two asking modes
+// (RevealYouChoose and TgtChoose); the measured corpus population is
+// TgtChoose-only (22 lines, every one also Optional$ True), but the bounds
+// themselves are one Forge code path for all modes.
 func discardBounds(h Host, c *Ctx, sa *cards.SA, eligible int) (int, int) {
 	if strings.EqualFold(sa.ParamStr(cards.PKAnyNumber), "True") {
 		return 0, eligible
 	}
 	n := int(Num(h, c, sa, "NumCards", 1))
-	if n < 1 {
-		n = 1
+	if n < 0 {
+		n = 0
 	}
 	if n > eligible {
 		n = eligible
@@ -583,6 +586,9 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			askMin, askMax := discardBounds(h, c, sa, len(pool))
+			if askMax == 0 {
+				continue
+			}
 			d := discardAsk(g, c, sa, pool, chooser, askMin, askMax, targetIndex)
 			if ans, ok := AskTape(h, d); ok {
 				// Answered in place: discard exactly the chosen cards that
@@ -710,6 +716,9 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			askMin, askMax := discardBounds(h, c, sa, len(eligible))
+			if askMax == 0 {
+				continue
+			}
 			// Optional$ True ("you MAY discard a land card", Mox Diamond's
 			// replacement; "discard up to two cards"): the zero-card answer
 			// is a real choice, and a bare Min 0 card pick expressed it only

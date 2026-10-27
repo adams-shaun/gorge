@@ -386,28 +386,47 @@ func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Targ
 	return ts
 }
 
+// derivedCardTypes returns o's layer-4 type words as bound in sc, falling
+// back to the printed face when no derived entry exists -- an object off the
+// battlefield. Callers filter the words through cardTypeWords; the returned
+// slice is sc's own (or the face's) and is only ever read.
+func derivedCardTypes(o *state.Object, sc *SpecContext) []string {
+	for i := range sc.Layers.DerivedTypes {
+		if d := &sc.Layers.DerivedTypes[i]; d.ID == o.ID {
+			return d.Types
+		}
+	}
+	if o.Face() == nil {
+		return nil
+	}
+	return o.Face().Types
+}
+
 // sharesCardTypeWith reports whether o shares at least one CARD type with
 // any object the referent names (Forge Card.sharesCardTypeWith: an
 // intersection over the card types — Artifact, Creature, Enchantment, Land,
-// Planeswalker, Battle — not supertypes or subtypes). The referent object
-// is read live from the game, so a remembered card in the graveyard still
-// answers from its own face (CR 603.10's LKI reading applies to
-// power/toughness/counters, not types). An unbound referent matches
-// nothing — fail closed, never widened.
+// Planeswalker, Battle — not supertypes or subtypes). Both sides read the
+// layer-4 (CR 613.1d) type set: the candidate through derivedCardTypes and
+// the referent through hasTypeCtx, whose derived entry is authoritative and
+// is NOT unioned with the printed face — a RemoveCardTypes$ loses the word,
+// while an animated land (Mutavault) or a Karn-animated artifact gains
+// Creature. Only an object with no derived entry — off the battlefield —
+// answers from its printed face. The referent object is read live from the
+// game, so a remembered card in the graveyard still answers from its own
+// face (CR 603.10's LKI reading applies to power/toughness/counters, not
+// types). An unbound referent matches nothing — fail closed, never widened.
 func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
-	// The candidate's ACTUAL card types, enumerated from its printed face
-	// through the CR 205.1 vocabulary (cardTypeWords) — the same enumeration
+	// The candidate's layer-4 (CR 613.1d) card types, filtered through the
+	// CR 205.1 vocabulary (cardTypeWords) — the same enumeration
 	// sharesAllCardTypesWithOther probes. A FIXED probe list would miss the
 	// Instant/Sorcery half of the vocabulary, so two instants "sharing a
 	// card type" (Possibility Storm's dig, Cemetery Gatekeeper's trigger)
-	// would never intersect. A face enumerating to no card type is
+	// would never intersect. An object enumerating to no card type is
 	// malformed; fail closed.
 	var oTypes []string
-	if f := o.Face(); f != nil {
-		for _, x := range f.Types {
-			if cardTypeWords[x] {
-				oTypes = append(oTypes, x)
-			}
+	for _, x := range derivedCardTypes(o, &sc) {
+		if cardTypeWords[x] {
+			oTypes = append(oTypes, x)
 		}
 	}
 	if len(oTypes) == 0 {
@@ -422,7 +441,7 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 			continue
 		}
 		for _, cardType := range oTypes {
-			if hasType(r, cardType) {
+			if hasTypeCtx(r, cardType, sc) {
 				return true
 			}
 		}
@@ -433,14 +452,15 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 // sharesCardTypeWithOther reports whether o shares at least one CARD type
 // with an OTHER object the referent names. It is the intersection sibling of
 // sharesAllCardTypesWithOther: only the candidate identity exclusion differs
-// from sharesCardTypeWith.
+// from sharesCardTypeWith. Both sides read the layer-4 (CR 613.1d) type set
+// through derivedCardTypes and hasTypeCtx, and a derived entry is
+// authoritative rather than a union with the printed face (RemoveCardTypes$
+// is honored); only an object off the battlefield falls back to its face.
 func sharesCardTypeWithOther(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
 	var oTypes []string
-	if f := o.Face(); f != nil {
-		for _, x := range f.Types {
-			if cardTypeWords[x] {
-				oTypes = append(oTypes, x)
-			}
+	for _, x := range derivedCardTypes(o, &sc) {
+		if cardTypeWords[x] {
+			oTypes = append(oTypes, x)
 		}
 	}
 	if len(oTypes) == 0 {
@@ -455,7 +475,7 @@ func sharesCardTypeWithOther(g *state.Game, o *state.Object, sc SpecContext, ref
 			continue
 		}
 		for _, cardType := range oTypes {
-			if hasType(r, cardType) {
+			if hasTypeCtx(r, cardType, sc) {
 				return true
 			}
 		}
@@ -505,27 +525,28 @@ func sharesColorWithOther(g *state.Game, o *state.Object, sc *SpecContext, ref s
 //
 // "Other" is Forge's own suffix: the matched object must be a different
 // object than the candidate (by identity — two milled copies of the same
-// card name are different objects and do share all their card types). The
-// referent objects are read live from the game, so a remembered card in the
-// graveyard still answers from its own face, exactly like
-// sharesCardTypeWith's read. An unbound referent matches nothing — fail
-// closed, never widened.
+// card name are different objects and do share all their card types). Both
+// sides read the layer-4 (CR 613.1d) type set through derivedCardTypes and
+// hasTypeCtx, an object's derived entry is authoritative rather than a union
+// with its printed face (RemoveCardTypes$ is honored), and only an object
+// off the battlefield falls back to its face. The referent objects are read
+// live from the game, so a remembered card in the graveyard still answers
+// from its own face, exactly like sharesCardTypeWith's read. An unbound
+// referent matches nothing — fail closed, never widened.
 func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
-	// The candidate's ACTUAL card types, enumerated from its printed face and
-	// filtered by the CR 205.1 card-type vocabulary (cardTypeWords — the same
-	// set Count$Valid...$CardTypes counts for Tarmogoyf). Probing a FIXED
-	// list instead would trivially pass any candidate whose card types are
-	// all outside the list (an Instant or a Sorcery would "share all its
-	// card types" with anything — the false positive the GE2 gate exists to
-	// prevent), so the probe is the enumeration, not a list. A face that
+	// The candidate's layer-4 (CR 613.1d) card types, filtered by the CR
+	// 205.1 card-type vocabulary (cardTypeWords — the same set
+	// Count$Valid...$CardTypes counts for Tarmogoyf). Probing a FIXED list
+	// instead would trivially pass any candidate whose card types are all
+	// outside the list (an Instant or a Sorcery would "share all its card
+	// types" with anything — the false positive the GE2 gate exists to
+	// prevent), so the probe is the enumeration, not a list. An object that
 	// enumerates to no card type at all is malformed; fail closed rather
 	// than trivially matching.
 	var oTypes []string
-	if f := o.Face(); f != nil {
-		for _, x := range f.Types {
-			if cardTypeWords[x] {
-				oTypes = append(oTypes, x)
-			}
+	for _, x := range derivedCardTypes(o, &sc) {
+		if cardTypeWords[x] {
+			oTypes = append(oTypes, x)
 		}
 	}
 	if len(oTypes) == 0 {
@@ -541,7 +562,7 @@ func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext,
 		}
 		all := true
 		for _, cardType := range oTypes {
-			if !hasType(r, cardType) {
+			if !hasTypeCtx(r, cardType, sc) {
 				all = false
 				break
 			}

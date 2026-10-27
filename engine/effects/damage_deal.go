@@ -372,22 +372,23 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			r := rider
 			r.amount = amt
 			if t.obj != 0 {
+				dealt := int32(0)
 				if o := h.Game().Obj(t.obj); o != nil {
 					lethal, ok := excessLethal(h, o)
-					dealt := emitObjectDamage(r, t.obj)
+					dealt = emitObjectDamage(r, t.obj)
 					if ok {
 						bindExcess(o, lethal, dealt)
 					}
 				}
-				if remember {
+				if remember && dealt > 0 {
 					c.Remembered = append(c.Remembered, state.Target{Obj: t.obj})
 					eventRemember(h, c, t.obj)
 				}
 				dying = append(dying, state.Target{Obj: t.obj})
 				continue
 			}
-			emitPlayerDamage(r, t.player)
-			if remember {
+			dealt := emitPlayerDamage(r, t.player)
+			if remember && dealt > 0 {
 				rememberPlayerBothHalves(h, c, t.player)
 			}
 		}
@@ -396,8 +397,8 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
-			emitPlayerDamage(rider, t.Player)
-			if remember {
+			dealt := emitPlayerDamage(rider, t.Player)
+			if remember && dealt > 0 {
 				rememberPlayerBothHalves(h, c, t.Player)
 			}
 			continue
@@ -408,7 +409,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			if ok {
 				bindExcess(o, lethal, dealt)
 			}
-			if remember {
+			if remember && dealt > 0 {
 				c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
 				eventRemember(h, c, t.Obj)
 			}
@@ -475,8 +476,8 @@ func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sour
 		prev := h.SetDamageSource(rider.source)
 		for _, t := range recips {
 			if t.IsPlayer {
-				emitPlayerDamage(rider, t.Player)
-				if remember {
+				dealt := emitPlayerDamage(rider, t.Player)
+				if remember && dealt > 0 {
 					rememberPlayerBothHalves(h, c, t.Player)
 				}
 				emittedAny = true
@@ -488,7 +489,7 @@ func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sour
 				if ok {
 					bindExcess(to, lethal, dealt)
 				}
-				if remember {
+				if remember && dealt > 0 {
 					c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
 					eventRemember(h, c, t.Obj)
 				}
