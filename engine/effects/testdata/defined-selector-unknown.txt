@@ -13,8 +13,6 @@ Defined$ ExiledCards	3
 Defined$ ExiledCards.withoutSuspend	1
 Defined$ OppNonParentTarget	4
 Defined$ OppNonRememberedOwner	2
-Defined$ ReplacedCardController	2
-Defined$ ReplacedCardLKIController	1
 Defined$ ReplacedNewCard.Creature	2
 Defined$ ReplacedNewCard.Planeswalker	2
 Defined$ RevealedCards.!Self	1
@@ -27,10 +25,8 @@ Defined$ Spawner>Sacrificed	1
 Defined$ Tapped	1
 Defined$ TargetedSource	1
 Defined$ ThisTargetedPlayer	2
-Defined$ TriggeredAttackerOwner	1
 Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy	3
 Defined$ TriggeredBlockers	2
-Defined$ TriggeredCardOpponent	3
 Defined$ TriggeredCauseController	1
 Defined$ TriggeredLastStateBattlefieldLKICopy.Creature+ControlledBy TriggeredPlayer,Artifact+ControlledBy TriggeredPlayer	1
 Defined$ ValidAll Card.IsCommander+YouOwn	1
