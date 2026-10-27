@@ -52,6 +52,17 @@ func evolveConditionHolds(r interface {
 // the event-matched delayed walker, the AttackerBlocked hook) keeps its own
 // check.
 func noResolvingCheck(t cards.Trigger) bool {
+	if strings.EqualFold(strings.TrimSpace(t.Mode), "Always") {
+		// CR 603.8: a state-triggered ability triggers when the game state
+		// matches its condition and does not trigger again until it has left
+		// the stack. Nothing in 603.8 rechecks the condition as the ability
+		// resolves; the CR 603.4 resolution-time recheck belongs to an
+		// intervening-if clause, which a state trigger's condition is not.
+		// Forge makes the same exemption: WrappedAbility.java:405-409 skips
+		// requirementsCheck at resolution for TriggerType.Always exactly as
+		// for NoResolvingCheck$.
+		return true
+	}
 	return strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKNoResolvingCheck)), "True")
 }
 
