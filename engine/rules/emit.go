@@ -184,14 +184,6 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if !e.applyingReplacement || ((ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) && !e.counterReplacementFold) {
 		replaced, handled := e.applyReplacements(ev)
 		if handled {
-			if ev.Kind == events.Damage && replaced.Kind == events.Damage {
-				// A DamageDone replacement that supplied its own outcome
-				// (Soul-Scar Mage's counters, a full prevention body) means
-				// the proposed Damage never happened: return the non-event,
-				// not a ghost hit whose Amount callers would price lifelink,
-				// deathtouch and RememberDamaged$ from (CR 120.1).
-				return events.Event{}
-			}
 			return replaced
 		}
 		// Not replaced, but possibly REWRITTEN in place (a DamageDone
