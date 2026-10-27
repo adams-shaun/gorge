@@ -464,11 +464,13 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		// anywhere else any time it would leave the stack" -- a named
 		// destination (Remand's hand, Memory Lapse's library) included.
 		// CR 702.127a (aftermath), 702.133a (jump-start) and 702.180a
-		// (harmonize) say the same. One shared predicate (state.
-		// ExilesLeavingStack); rules' emit applies the same rewrite to every
-		// stack departure, and resolving it here too keeps the library
+		// (harmonize) say the same. A ReplaceGraveyard$ Exile rider (a DB$
+		// Play SA, or a may-play static's grant) also exiles, but only when
+		// the destination is the graveyard -- the shared predicate encodes
+		// both. rules' emit applies the same rewrite to the keyword family on
+		// every stack departure, and resolving it here too keeps the library
 		// placement below from running for a card that went to exile.
-		if state.ExilesLeavingStack(o.CastFlags) {
+		if state.ExilesInsteadOfGraveyard(o.CastFlags, to) {
 			to, libraryDest = state.ZExile, false
 		}
 		if remember {

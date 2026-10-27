@@ -297,8 +297,10 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// CR 702.34a and its family (aftermath, jump-start, harmonize): a spell
 	// cast that way is exiled however it leaves the stack, countered by ward
-	// included -- the same predicate effCounter's default path applies.
-	if state.ExilesLeavingStack(o.CastFlags) && to == state.ZGraveyard {
+	// included. A ReplaceGraveyard$ Exile rider (a DB$ Play SA, or a may-play
+	// static's grant) also exiles a countered spell, but only instead of the
+	// graveyard -- the shared predicate encodes both.
+	if state.ExilesInsteadOfGraveyard(o.CastFlags, to) {
 		to = state.ZExile
 	}
 	h.Emit(events.Event{Kind: events.MoveZone, Obj: cause, From: state.ZStack, To: to, Text: "countered by ward"})
