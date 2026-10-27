@@ -806,6 +806,11 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		if r.ParamStr(cards.PKEffectOnly) == "True" && e.addCounterEffectOnlyClosed(ev) {
 			return false
 		}
+		// The CR 614.16 re-scan takes up only the lines the provenance gate
+		// had closed; every other line was already in the first scan.
+		if e.counterEffectOnlyAdmitted && r.ParamStr(cards.PKEffectOnly) != "True" {
+			return false
+		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplRollPlanarDice:
 		// The planar-dice replacement class (Ichor Elixir, task rollplanar1):
