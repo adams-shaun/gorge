@@ -80,4 +80,17 @@ func TestAsLongAsControlEndsOnControlChange(t *testing.T) {
 			t.Fatalf("the Bear stayed tapped after its holder lost control of Geists")
 		}
 	})
+	t.Run("stolen then returned stays released", func(t *testing.T) {
+		t.Parallel()
+		e, geists, bear := geistsHold(t)
+		e.emit(events.Event{Kind: events.ControlChange, Obj: geists, Player: 1})
+		e.emit(events.Event{Kind: events.ControlChange, Obj: geists, Player: 0})
+		if e.G.Obj(geists).Controller != 0 {
+			t.Fatalf("precondition: Geists controller = %d, want 0", e.G.Obj(geists).Controller)
+		}
+		driveToStepAny(t, e, 2, 1, state.StepUpkeep)
+		if e.G.Obj(bear).Tapped {
+			t.Fatalf("the Bear was held again after control of Geists returned (CR 611.2b: the effect does not start again)")
+		}
+	})
 }

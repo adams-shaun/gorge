@@ -692,6 +692,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.Untap || ev.Kind == events.MoveZone && ev.From == state.ZBattlefield {
 		e.expireUntilUntaps(ev.Obj)
 	}
+	if ev.Kind == events.ControlChange {
+		e.expireAsLongAsControl(ev.Obj)
+	}
 	if ev.Kind == events.PutOnStack {
 		e.effectMoveSweep(ev)
 		e.sweepEffectDelayed(ev)
