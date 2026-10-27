@@ -8,13 +8,11 @@ Defined$ DefendingPlayer	1
 Defined$ DiscardedCards	1
 Defined$ OppNonParentTarget	4
 Defined$ OppNonRememberedOwner	2
-Defined$ RememberedFirst	1
 Defined$ ReplacedNewCard.Creature	2
 Defined$ ReplacedNewCard.Planeswalker	2
 Defined$ ShieldEffectTarget	5
 Defined$ SourceController	3
 Defined$ SourceFirstSpell	1
-Defined$ TargetedCard	2
 Defined$ TargetedSource	1
 Defined$ ThisTargetedPlayer	2
 Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy	3
