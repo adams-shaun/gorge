@@ -35,6 +35,16 @@ const (
 	mrgCounterName = "Test Dismiss"
 )
 
+// mrgZone is the diagnostic form of an object's zone: the object itself is far
+// too large to print, and the zone is what every assertion in this file
+// compares.
+func mrgZone(e *Engine, id state.ObjID) any {
+	if o := e.G.Obj(id); o != nil {
+		return o.Zone
+	}
+	return "absent"
+}
+
 // mrgBoard builds the cr-g201 scenario: seat 0 has the grant permanent and a
 // creature to sacrifice on the battlefield, Lightning Bolt in the graveyard,
 // {R} in the pool, and seat 1 has the fixture counterspell in hand and {U} in
@@ -70,14 +80,14 @@ func mrgBoard(t *testing.T, grant *cards.Card, seatOneCounter bool) (*Engine, Co
 	addMana(t, e, 0, "R")
 
 	// Preconditions: the rule looks at all three zones and at whose turn it is.
-	if o := e.G.Obj(grantID); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("grant permanent zone = %v, want the battlefield", o)
+	if z := mrgZone(e, grantID); z != state.ZBattlefield {
+		t.Fatalf("grant permanent zone = %v, want the battlefield", z)
 	}
-	if o := e.G.Obj(sacID); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("sacrifice creature zone = %v, want the battlefield", o)
+	if z := mrgZone(e, sacID); z != state.ZBattlefield {
+		t.Fatalf("sacrifice creature zone = %v, want the battlefield", z)
 	}
-	if o := e.G.Obj(boltID); o == nil || o.Zone != state.ZGraveyard {
-		t.Fatalf("Lightning Bolt zone = %v, want the graveyard (the granted zone)", o)
+	if z := mrgZone(e, boltID); z != state.ZGraveyard {
+		t.Fatalf("Lightning Bolt zone = %v, want the graveyard (the granted zone)", z)
 	}
 	if e.G.Active != 0 || e.G.Step != state.StepMain1 {
 		t.Fatalf("turn state = active %d step %v, want seat 0's main 1", e.G.Active, e.G.Step)
@@ -107,15 +117,18 @@ func mrgCastMayPlay(t *testing.T, e *Engine, bolt state.ObjID) {
 	submitChoices(t, e, idx)
 }
 
-// mrgDrive answers the scenarios' asks until the Bolt has settled in want and
-// the stack is empty. seatOneCounter makes seat 1 cast the fixture counterspell
-// at the Bolt when it next holds priority. It reports whether the raise's
-// sacrifice ask and the Bolt's target ask were both seen.
-func mrgDrive(t *testing.T, e *Engine, bolt, sac state.ObjID, want state.Zone, seatOneCounter bool) (sawSac, sawTarget bool) {
+// mrgDrive answers the scenarios' asks until the Bolt has come to rest in a
+// terminal zone (want included, or the graveyard, which is the M1 failure's
+// shape) with the stack empty. seatOneCounter makes seat 1 cast the fixture
+// counterspell at the Bolt when it next holds priority. It reports whether the
+// raise's sacrifice ask and the Bolt's target ask were both seen.
+func mrgDrive(t *testing.T, e *Engine, bolt, sac state.ObjID, want state.Zone, seatOneCounter bool) (sawSac, sawTarget, sawCounter bool) {
 	t.Helper()
 	for i := 0; i < 80; i++ {
-		if o := e.G.Obj(bolt); o != nil && o.Zone == want && len(e.G.Stack) == 0 {
-			return sawSac, sawTarget
+		if sawSac && len(e.G.Stack) == 0 {
+			if o := e.G.Obj(bolt); o != nil && (o.Zone == want || o.Zone == state.ZGraveyard || o.Zone == state.ZExile) {
+				return sawSac, sawTarget, sawCounter
+			}
 		}
 		d := e.Pending()
 		if d == nil {
@@ -128,6 +141,7 @@ func mrgDrive(t *testing.T, e *Engine, bolt, sac state.ObjID, want state.Zone, s
 					if o.Kind == "cast" && o.Mode == "" && e.G.Obj(o.Obj) != nil &&
 						e.G.Obj(o.Obj).Face().Name == mrgCounterName {
 						submitChoices(t, e, o.Index)
+						sawCounter = true
 						goto next
 					}
 				}
@@ -175,7 +189,7 @@ func mrgDrive(t *testing.T, e *Engine, bolt, sac state.ObjID, want state.Zone, s
 	next:
 	}
 	t.Fatalf("the scenario did not settle within 80 decisions (Bolt in %v)", e.G.Obj(bolt).Zone)
-	return false, false
+	return false, false, false
 }
 
 // mrgCastInfoHasReplaceGraveyard reports whether the Bolt's pay-time CastInfo
@@ -199,7 +213,7 @@ func TestMaestrosAscendancyCastIsExiledOnResolution(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg, bolt, sac := mrgBoard(t, searchCorpusCard(t, reg, "Maestros Ascendancy"), false)
 	mrgCastMayPlay(t, e, bolt)
-	sawSac, sawTarget := mrgDrive(t, e, bolt, sac, state.ZExile, false)
+	sawSac, sawTarget, _ := mrgDrive(t, e, bolt, sac, state.ZExile, false)
 	if !sawSac {
 		t.Fatal("the RaiseCost$ Sac<1/Creature> was never asked (the offered cast was not the raised one)")
 	}
@@ -209,11 +223,11 @@ func TestMaestrosAscendancyCastIsExiledOnResolution(t *testing.T) {
 	if life := e.G.Players[1].Life; life != 17 {
 		t.Fatalf("opponent life = %d, want 17 (the Bolt resolved)", life)
 	}
-	if o := e.G.Obj(sac); o == nil || o.Zone != state.ZGraveyard {
-		t.Fatalf("the sacrificed creature zone = %v, want the graveyard (the raise was paid)", o)
+	if z := mrgZone(e, sac); z != state.ZGraveyard {
+		t.Fatalf("the sacrificed creature zone = %v, want the graveyard (the raise was paid)", z)
 	}
-	if o := e.G.Obj(bolt); o == nil || o.Zone != state.ZExile {
-		t.Fatalf("the resolved Bolt zone = %v, want exile (the grant's ReplaceGraveyard$ Exile)", o)
+	if z := mrgZone(e, bolt); z != state.ZExile {
+		t.Fatalf("the resolved Bolt zone = %v, want exile (the grant's ReplaceGraveyard$ Exile)", z)
 	}
 	if !mrgCastInfoHasReplaceGraveyard(e, bolt) {
 		t.Fatal("the Bolt's cast_info carries no replacegraveyard flag")
@@ -230,15 +244,21 @@ func TestMaestrosAscendancyCounteredSpellIsExiled(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg, bolt, sac := mrgBoard(t, searchCorpusCard(t, reg, "Maestros Ascendancy"), true)
 	mrgCastMayPlay(t, e, bolt)
-	sawSac, _ := mrgDrive(t, e, bolt, sac, state.ZExile, true)
+	sawSac, _, sawCounter := mrgDrive(t, e, bolt, sac, state.ZExile, true)
 	if !sawSac {
 		t.Fatal("the RaiseCost$ Sac<1/Creature> was never asked")
 	}
-	if o := e.G.Obj(bolt); o == nil || o.Zone != state.ZExile {
-		t.Fatalf("the countered Bolt zone = %v, want exile (the grant's ReplaceGraveyard$ Exile)", o)
+	if !sawCounter {
+		t.Fatal("seat 1 never cast the fixture counterspell")
 	}
-	if o := e.G.Obj(sac); o == nil || o.Zone != state.ZGraveyard {
-		t.Fatalf("the sacrificed creature zone = %v, want the graveyard (the raise was paid)", o)
+	if life := e.G.Players[1].Life; life != 20 {
+		t.Fatalf("opponent life = %d, want 20 (the Bolt was countered, never resolved)", life)
+	}
+	if z := mrgZone(e, bolt); z != state.ZExile {
+		t.Fatalf("the countered Bolt zone = %v, want exile (the grant's ReplaceGraveyard$ Exile)", z)
+	}
+	if z := mrgZone(e, sac); z != state.ZGraveyard {
+		t.Fatalf("the sacrificed creature zone = %v, want the graveyard (the raise was paid)", z)
 	}
 	if !mrgCastInfoHasReplaceGraveyard(e, bolt) {
 		t.Fatal("the counter-targeted Bolt's cast_info carries no replacegraveyard flag")
@@ -253,12 +273,12 @@ func TestPlainGraveyardMayPlayStillGoesToGraveyard(t *testing.T) {
 	t.Parallel()
 	e, cfg, bolt, sac := mrgBoard(t, card(t, mrgPlainSrc), false)
 	mrgCastMayPlay(t, e, bolt)
-	sawSac, _ := mrgDrive(t, e, bolt, sac, state.ZGraveyard, false)
+	sawSac, _, _ := mrgDrive(t, e, bolt, sac, state.ZGraveyard, false)
 	if !sawSac {
 		t.Fatal("the RaiseCost$ Sac<1/Creature> was never asked (the offer was dead)")
 	}
-	if o := e.G.Obj(bolt); o == nil || o.Zone != state.ZGraveyard {
-		t.Fatalf("the rider-less may-play Bolt zone = %v, want the graveyard", o)
+	if z := mrgZone(e, bolt); z != state.ZGraveyard {
+		t.Fatalf("the rider-less may-play Bolt zone = %v, want the graveyard", z)
 	}
 	if mrgCastInfoHasReplaceGraveyard(e, bolt) {
 		t.Fatal("the rider-less grant stamped the replacegraveyard flag")
