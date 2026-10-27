@@ -456,16 +456,69 @@ func exiledBySourceAt(g *state.Game, o *state.Object, src state.ObjID, fireInc u
 func paidCostTargets(c *Ctx, ref string) []state.Target {
 	ids := c.Paid.Exiled
 	switch ref {
-	case "Revealed":
+	case "Revealed", "RevealedCards":
 		ids = c.Paid.Revealed
 	case "Discarded":
 		ids = c.Paid.Discarded
+	case "Tapped", "TappedCards":
+		ids = c.Paid.Tapped
+	case "Returned", "ReturnedCards":
+		ids = c.Paid.Returned
+	case "Sacrificed", "SacrificedCards":
+		ids = make([]state.ObjID, 0, len(c.Sacrificed))
+		for _, sac := range c.Sacrificed {
+			ids = append(ids, sac.Obj)
+		}
 	}
 	out := make([]state.Target, 0, len(ids))
 	for _, id := range ids {
 		out = append(out, state.Target{Obj: id})
 	}
 	return out
+}
+
+// attachedByDefinedSelector resolves the prefix `AttachedBy <referent>`
+// selector (Krasis Incubation's `Defined$ AttachedBy Returned`, Parallax
+// Dementia's `AttachedBy TriggeredCardLKICopy`): for each object the referent
+// names, the permanent it is (or was) attached to -- Forge's getAttachedTo()
+// on the referent's (LKI) card. A live attachment reads AttachedTo; a departed
+// one (an Aura returned or sacrificed as a cost, or put into the graveyard)
+// reads LastBearer, which events.Apply folds when the attachment ends. An
+// object with neither contributes nobody. An unknown referent leaves the whole
+// selector unknown (ok=false), and a compound ` & ` spelling is refused so the
+// conjunction splitter owns it.
+func attachedByDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	arg, ok := strings.CutPrefix(spec, "AttachedBy ")
+	if !ok {
+		return nil, false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" || strings.Contains(arg, " & ") {
+		return nil, false
+	}
+	refs, known := knownDefinedTargets(h, c, arg)
+	if !known {
+		return nil, false
+	}
+	g := h.Game()
+	out := []state.Target{}
+	for _, t := range refs {
+		if t.IsPlayer || t.Obj == 0 {
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil {
+			continue
+		}
+		bearer := o.AttachedTo
+		if bearer == 0 {
+			bearer = o.LastBearer
+		}
+		if bearer != 0 {
+			out = append(out, state.Target{Obj: bearer})
+		}
+	}
+	return out, true
 }
 
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
@@ -476,6 +529,9 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// the referent and its qualifier list ride after one space. The BARE
 	// `AttachedTo` case below stays the resolving source's own bearer.
 	if ts, ok := attachedToDefinedSelector(h, c, spec); ok {
+		return ts, true
+	}
+	if ts, ok := attachedByDefinedSelector(h, c, spec); ok {
 		return ts, true
 	}
 	// The DOTTED `Targeted <qualifier>` selector (Back for Seconds'
@@ -1330,6 +1386,24 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
 		}
 		return nil, true
+	case definedSpecReplacedCardController:
+		// The replaced card's current controller (Land Equilibrium, The
+		// Doctor's Tomb). Nobody outside a replacement or once it is gone.
+		if o := g.Obj(c.Repl.Replaced); o != nil && int(o.Controller) < len(g.Players) {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+		}
+		return nil, true
+	case definedSpecReplacedCardLKIController:
+		// The controller captured when the replacement matched, before the
+		// body's move reset it to the owner (CR 400.7; Ugin's Nexus). Falls
+		// back to the live controller when nothing was captured.
+		if c.Repl.HasReplacedController && int(c.Repl.ReplacedController) < len(g.Players) {
+			return []state.Target{{Player: c.Repl.ReplacedController, IsPlayer: true}}, true
+		}
+		if o := g.Obj(c.Repl.Replaced); o != nil && int(o.Controller) < len(g.Players) {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+		}
+		return nil, true
 	case definedSpecReplacedTargetController:
 		if c.Repl.Target.IsPlayer {
 			return []state.Target{c.Repl.Target}, true
@@ -1388,6 +1462,32 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			}
 		}
 		return out, true
+	case definedSpecTriggeredCardOpponent:
+		// Each opponent of the triggering card's controller (Standstill's "each
+		// of that player's opponents"), through the one shared
+		// TriggeredCardController resolver. No resolvable triggering card
+		// names nobody, never the source's controller.
+		p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered)
+		if !ok {
+			return nil, true
+		}
+		var out []state.Target
+		for _, q := range g.AliveFrom(c.Controller) {
+			if q != p {
+				out = append(out, state.Target{Player: q, IsPlayer: true})
+			}
+		}
+		return out, true
+	case definedSpecTriggeredAttackerOwner:
+		// The owner (CR 108.3) of the singular triggering attacker, so a
+		// stolen attacker's owner is named, not the thief (Nihiloor).
+		attackers, _ := definedSpec(h, c, "TriggeredAttacker")
+		for _, t := range attackers {
+			if o := g.Obj(t.Obj); o != nil && int(o.Owner) < len(g.Players) {
+				return []state.Target{{Player: o.Owner, IsPlayer: true}}, true
+			}
+		}
+		return nil, true
 	case definedSpecTriggeredCombatantController:
 		// The controller of the triggering event's attacker or blocker. The
 		// Blocks mode captures both roles per pair (engine/rules/trigger_match.go's
@@ -1999,6 +2099,10 @@ func eventRemember(h Host, c *Ctx, id state.ObjID) {
 var definedAliases = map[string]string{
 	"TargetedOrController": "TargetedController",
 	"TargetedAndYou":       "TargetedController & You",
+	// DirectRemembered -- the host's remembered objects as the RememberLKI$
+	// copies stored them (Supplant Form, Dance of the Dead): the same
+	// capture-excluding set RememberedLKI names.
+	"DirectRemembered": "RememberedLKI",
 }
 
 // uniqueTargets drops repeated entries, keeping first-occurrence order.
@@ -2700,6 +2804,10 @@ const (
 	definedSpecReplacedSource
 	definedSpecReplacedSourceController
 	definedSpecReplacedTargetController
+	definedSpecReplacedCardController
+	definedSpecReplacedCardLKIController
+	definedSpecTriggeredCardOpponent
+	definedSpecTriggeredAttackerOwner
 	definedSpecTriggeredDefendingPlayer
 	definedSpecTriggeredPlayer
 	definedSpecTriggeredAttackingPlayer
@@ -2744,6 +2852,14 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "RememberedPlayers", Val: definedSpecRememberedPlayer},
 	state.StrEntry[definedSpecCode]{Key: "Exiled", Val: definedSpecExiled},
 	state.StrEntry[definedSpecCode]{Key: "Revealed", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "ExiledCards", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "RevealedCards", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "Tapped", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "TappedCards", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "Returned", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "ReturnedCards", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "Sacrificed", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "SacrificedCards", Val: definedSpecExiled},
 	state.StrEntry[definedSpecCode]{Key: "CounterPutCards", Val: definedSpecCounterPutCards},
 	state.StrEntry[definedSpecCode]{Key: "ImprintedLKI", Val: definedSpecImprintedLKI},
 	state.StrEntry[definedSpecCode]{Key: "Imprinted", Val: definedSpecImprinted},
@@ -2804,6 +2920,10 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "ReplacedSource", Val: definedSpecReplacedSource},
 	state.StrEntry[definedSpecCode]{Key: "ReplacedSourceController", Val: definedSpecReplacedSourceController},
 	state.StrEntry[definedSpecCode]{Key: "ReplacedTargetController", Val: definedSpecReplacedTargetController},
+	state.StrEntry[definedSpecCode]{Key: "ReplacedCardController", Val: definedSpecReplacedCardController},
+	state.StrEntry[definedSpecCode]{Key: "ReplacedCardLKIController", Val: definedSpecReplacedCardLKIController},
+	state.StrEntry[definedSpecCode]{Key: "TriggeredCardOpponent", Val: definedSpecTriggeredCardOpponent},
+	state.StrEntry[definedSpecCode]{Key: "TriggeredAttackerOwner", Val: definedSpecTriggeredAttackerOwner},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredDefendingPlayer", Val: definedSpecTriggeredDefendingPlayer},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredPlayer", Val: definedSpecTriggeredPlayer},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredAttackingPlayer", Val: definedSpecTriggeredAttackingPlayer},
@@ -2815,6 +2935,7 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "TriggeredAttackerController", Val: definedSpecTriggeredCombatantController},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredBlockerController", Val: definedSpecTriggeredCombatantController},
 	state.StrEntry[definedSpecCode]{Key: "ExiledWith", Val: definedSpecExiledWith},
+	state.StrEntry[definedSpecCode]{Key: "ExiledWithSource", Val: definedSpecExiledWith},
 	state.StrEntry[definedSpecCode]{Key: "Equipped", Val: definedSpecEquipped},
 	state.StrEntry[definedSpecCode]{Key: "Enchanted", Val: definedSpecEquipped},
 	state.StrEntry[definedSpecCode]{Key: "AttachedTo", Val: definedSpecEquipped},
@@ -2885,13 +3006,16 @@ var exiledWithSourceKeyCodes = state.NewStrCodes(
 // triggeredCardQualified resolves `<base>.<qualifier>` when base is one of the
 // Triggered-card family spellings (definedSpecTriggeredCard), the singular
 // attacker spellings (definedSpecTriggeredAttacker) or the source spellings
-// (definedSpecSelf: Iron Man Armor's `Self.nonCreature`): the base's objects
-// filtered by definedCardQualifierMatches. A compound (" & ") value is not
+// (definedSpecSelf: Iron Man Armor's `Self.nonCreature`), the imprinted cards
+// (`Imprinted.ExiledWithSource`), the parent's targets
+// (`ParentTarget.attacking`) or the paid exile/reveal list
+// (definedSpecExiled): the base's objects filtered by definedCardQualifierMatches. A compound (" & ") value is not
 // this shape and is left to the callers that split it.
 func triggeredCardQualified(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	base, qual, dotted := strings.Cut(spec, ".")
 	code := definedSpecCodes.Code(base)
-	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker && code != definedSpecSelf) {
+	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker && code != definedSpecSelf &&
+		code != definedSpecImprinted && code != definedSpecParentTarget && code != definedSpecExiled) {
 		return nil, false
 	}
 	ts, _ := definedSpec(h, c, base)

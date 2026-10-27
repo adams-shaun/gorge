@@ -359,6 +359,22 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.castCounterPut[k0] = nv0
 		}
 	}
+	if e.castTapped != nil {
+		c.castTapped = make(map[state.ObjID][]state.ObjID, len(e.castTapped))
+		for k0, v0 := range e.castTapped {
+			var nv0 []state.ObjID
+			nv0 = append([]state.ObjID(nil), v0...)
+			c.castTapped[k0] = nv0
+		}
+	}
+	if e.castReturned != nil {
+		c.castReturned = make(map[state.ObjID][]state.ObjID, len(e.castReturned))
+		for k0, v0 := range e.castReturned {
+			var nv0 []state.ObjID
+			nv0 = append([]state.ObjID(nil), v0...)
+			c.castReturned[k0] = nv0
+		}
+	}
 	if e.fuseTargets != nil {
 		c.fuseTargets = make(map[state.ObjID][][]state.Target, len(e.fuseTargets))
 		for k0, v0 := range e.fuseTargets {
@@ -406,6 +422,9 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.castSubTargets[k0] = nv0
 		}
 	}
+}
+
+func cloneFieldsEngineTriggerMaps2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.resolutionTargets != nil {
 		c.resolutionTargets = make(resolutionTargetMap, len(e.resolutionTargets))
 		for k0, v0 := range e.resolutionTargets {
@@ -422,9 +441,6 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		}
 	}
 	c.trigSub = e.trigSub.clone()
-}
-
-func cloneFieldsEngineTriggerMaps2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.charmTargets != nil {
 		c.charmTargets = make(map[state.ObjID][][]state.Target, len(e.charmTargets))
 		for k0, v0 := range e.charmTargets {

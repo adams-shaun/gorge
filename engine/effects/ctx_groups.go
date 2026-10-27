@@ -114,6 +114,13 @@ type ReplacementInputs struct {
 	// -- it drives the replacement's own resolution but is never itself persisted
 	// to the event log.
 	Replaced state.ObjID
+	// ReplacedController is the controller of Replaced captured when the
+	// replacement matched, while the object was still in its original zone
+	// (Defined$ ReplacedCardLKIController: the body's move resets the
+	// controller to the owner, CR 400.7). Valid only with
+	// HasReplacedController. Context, never persisted.
+	ReplacedController    state.PlayerID
+	HasReplacedController bool
 	// ReplacedCards is the ordered plural batch a replaced INSTRUCTION was
 	// about (Defined$ ReplacedCards / ReplacedCards.<qual>): the cascade
 	// instruction's exiled cards, which Averna, the Chaos Bloom picks a land
@@ -421,11 +428,17 @@ type ETBRecords struct {
 // PaidCostLists is the cast's/activation's cost-PAID object lists (Forge's
 // SpellAbility.getPaidList rows), carried on Ctx.Paid: the cards an Exile
 // part removed ("Exiled"), a Reveal part showed ("Revealed"), the cards a
-// Discard part discarded ("Discarded"), and the creatures a Blight part put
-// -1/-1 counters on ("CounterPut"). See Ctx.Paid.
+// Discard part discarded ("Discarded"), the creatures a Blight part put
+// -1/-1 counters on ("CounterPut"), the objects a TapXType part tapped
+// ("Tapped") and the ones a Return part returned ("Returned"). The objects a
+// Sacrifice part sacrificed ride Ctx.Sacrificed. See Ctx.Paid.
 type PaidCostLists struct {
 	Exiled     []state.ObjID
 	Revealed   []state.ObjID
 	Discarded  []state.ObjID
 	CounterPut []state.ObjID
+	// Tapped and Returned are the objects a TapXType part tapped and a
+	// Return part returned to hand (Forge's paid lists "Tapped"/"Returned").
+	Tapped   []state.ObjID
+	Returned []state.ObjID
 }

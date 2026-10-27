@@ -100,6 +100,14 @@ type engineTriggerMaps struct {
 	// payCast and by the triggered-cost window, which pays a trigger body's
 	// own Cost$ Blight<N>.
 	castCounterPut map[state.ObjID][]state.ObjID `clone:"deep"`
+	// castTapped and castReturned are the same discipline for the objects a
+	// TapXType cost part tapped and a Return cost part returned to hand
+	// (Forge's paid lists "Tapped"/"Returned"), read through
+	// effects.Ctx.Paid.Tapped/Returned by `Defined$ Tapped` (Swallow Whole's
+	// counter recipient) and `Defined$ AttachedBy Returned` (Krasis
+	// Incubation's enchanted creature).
+	castTapped   map[state.ObjID][]state.ObjID `clone:"deep"`
+	castReturned map[state.ObjID][]state.ObjID `clone:"deep"`
 	// fuseTargets maps a fused (FlagFused) stack object id to its two target
 	// stages' own chosen targets (index 0 the front half's, index 1 the
 	// alternate half's). Recorded by payCast at payment, read by resolveFused

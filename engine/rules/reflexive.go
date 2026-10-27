@@ -139,6 +139,18 @@ func (e *Engine) bindReflexiveContext(id state.ObjID, pt *pendingTrigger) {
 		}
 		e.castCounterPut[id] = pt.Ctx.Paid.CounterPut
 	}
+	if len(pt.Ctx.Paid.Tapped) > 0 {
+		if e.castTapped == nil {
+			e.castTapped = make(map[state.ObjID][]state.ObjID)
+		}
+		e.castTapped[id] = pt.Ctx.Paid.Tapped
+	}
+	if len(pt.Ctx.Paid.Returned) > 0 {
+		if e.castReturned == nil {
+			e.castReturned = make(map[state.ObjID][]state.ObjID)
+		}
+		e.castReturned[id] = pt.Ctx.Paid.Returned
+	}
 }
 
 // reflexiveCaptured rebinds a reflexive ability's resolution Ctx.Captured to
