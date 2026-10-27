@@ -112,16 +112,19 @@ func TestControlledByPlayerNotedFor(t *testing.T) {
 
 // TestPlayerNotedForControlReferentStaysBounded guards the scope boundary: a
 // bare or empty label stays unknown (wordPredicate's own rule), and an
-// unrelated unrecognised Player.* ref is NOT admitted by this arm -- admitting
-// it would silently stop UnknownPredicates reporting an unmodelled shape.
+// unrecognised Player.* ref is NOT admitted by the shared player-spec arm --
+// admitting it would silently stop UnknownPredicates reporting an unmodelled
+// shape. Player.Opponent and Player.Other are now recognised by that arm
+// (controlReferentPlayerSpecKnown), so the boundary moved to qualifiers the
+// player grammar itself does not read.
 func TestPlayerNotedForControlReferentStaysBounded(t *testing.T) {
 	g, _ := board(t)
 	events.Apply(g, events.Event{Kind: events.PlayerNoted, Player: 0, Text: "Stargate"})
 
 	for _, spec := range []string{
-		"Card.OwnedBy Player.NotedFor",   // empty label
-		"Card.OwnedBy Player.Opponent",   // a different, still-unmodelled ref
-		"Card.ControlledBy Player.Other", // likewise
+		"Card.OwnedBy Player.NotedFor",        // empty label
+		"Card.OwnedBy Player.NoSuchThing",     // qualifier the grammar does not read
+		"Card.ControlledBy Player.targetedBy", // likewise
 	} {
 		if unknown := UnknownPredicates(spec); len(unknown) == 0 {
 			t.Fatalf("%s should stay unknown (scope boundary), got no unknown report", spec)
