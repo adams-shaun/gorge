@@ -866,13 +866,22 @@ func (e *Engine) AskCopyTargets() bool {
 		return false
 	}
 	controller := o.Controller
-	decls := e.copyTargetDeclarations(o)
+	rootDecls, chainDecls := e.copyDeclarationSplit(o)
+	decls := append(rootDecls[:len(rootDecls):len(rootDecls)], chainDecls...)
 	if stage >= len(decls) {
 		return false
 	}
 	sa := decls[stage]
 	if sa == nil || !effects.TargetsOf(sa).Targeted() {
 		return false
+	}
+	// A chained declaration is judged the way the cast judged it (subTargetAsk):
+	// a link whose pool reads an EARLIER target binds the nearest earlier
+	// declaration's answers for the census.
+	chained := stage >= len(rootDecls)
+	savedParent, savedBound := e.subOfferParent, e.subOfferBound
+	if chained {
+		e.subOfferParent, e.subOfferBound = e.copyChainParent(o.ID, stage, len(rootDecls)), true
 	}
 	candidates := e.legalTargetCandidates(controller, o.ID, o.ID, sa)
 	// MaxTotalTargetPower$ (Reunion of the House): re-run the cast ask's
@@ -908,7 +917,8 @@ func (e *Engine) AskCopyTargets() bool {
 	}
 	ordered = append(ordered, candidates...)
 	if len(ordered) == 0 {
-		return false
+		e.subOfferParent, e.subOfferBound = savedParent, savedBound
+		return e.copySkipStage(o, stage, len(decls))
 	}
 	// The copy's OWN declaration supplies the required count (CR 707.10c
 	// retargets a copy per the spell's target rules), through the same shared
@@ -917,6 +927,7 @@ func (e *Engine) AskCopyTargets() bool {
 	// per-controller capacity counts a kept target too.
 	min, max := e.resolvedTargetBounds(controller, o.ID, sa, o.X)
 	min, max, _, _ = e.oneEachTargetBounds(sa, ordered, min, max)
+	e.subOfferParent, e.subOfferBound = savedParent, savedBound
 	// A mandatory minimum above the offered list would be an unanswerable
 	// decision no seat could satisfy (a livelock). The inherited keep-current
 	// entries are always offered even when illegal, so the list is non-empty;
@@ -936,11 +947,7 @@ func (e *Engine) AskCopyTargets() bool {
 	// set for this declaration -- and move on to the next declaration, if
 	// any, exactly as an answered ask would.
 	if max == 0 {
-		if e.copyTargetStage == nil {
-			e.copyTargetStage = make(map[state.ObjID]int)
-		}
-		e.copyTargetStage[o.ID] = stage + 1
-		return e.AskCopyTargets()
+		return e.copySkipStage(o, stage, len(decls))
 	}
 	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a new target for the copy", Source: o.ID,
@@ -1005,6 +1012,52 @@ func (e *Engine) AskCopyTargets() bool {
 	}
 }
 
+// copySkipStage passes over a declaration that has nothing to choose: the copy
+// keeps its inherited (empty) set for it and the walk moves to the next
+// declaration. When the skipped declaration is the LAST one and earlier ones
+// were answered, their accumulated answers are recorded now -- no later answer
+// will arrive to record them (a chained declaration with no legal target after
+// the root was retargeted).
+func (e *Engine) copySkipStage(o *state.Object, stage, nDecls int) bool {
+	if e.copyTargetStage == nil {
+		e.copyTargetStage = make(map[state.ObjID]int)
+	}
+	e.copyTargetStage[o.ID] = stage + 1
+	ans := e.copyAnswerTargets[o.ID]
+	pending := len(ans) > 0
+	if pending {
+		for len(ans) <= stage {
+			ans = append(ans, nil)
+		}
+		e.copyAnswerTargets[o.ID] = ans
+	}
+	if stage+1 < nDecls {
+		return e.AskCopyTargets()
+	}
+	if pending {
+		e.finishCopyTargets(o.ID, nil)
+	}
+	return false
+}
+
+// copyChainParent is the parent target list a chained declaration's census
+// binds: the previous chained declaration's answer, or the root declarations'
+// flattened answers for the first link (the cast's pc.targets).
+func (e *Engine) copyChainParent(obj state.ObjID, stage, nRoot int) []state.Target {
+	ans := e.copyAnswerTargets[obj]
+	if stage > nRoot {
+		if stage-1 < len(ans) {
+			return targetOptions(ans[stage-1])
+		}
+		return nil
+	}
+	var flat []decision.Option
+	for i := 0; i < nRoot && i < len(ans); i++ {
+		flat = append(flat, ans[i]...)
+	}
+	return targetOptions(flat)
+}
+
 // copyTargetDeclarations returns the target DECLARATIONS a copy must ask, in
 // cast order. A Fuse copy has two: the front half's spell ability and the
 // alternate half's (split.go's fusedSplitFaces), each with its own ValidTgts$
@@ -1012,6 +1065,35 @@ func (e *Engine) AskCopyTargets() bool {
 // target-bearing mode is a separate declaration in chosen order. A declaration
 // with no ValidTgts$ is dropped.
 func (e *Engine) copyTargetDeclarations(o *state.Object) []*cards.SA {
+	root, chain := e.copyDeclarationSplit(o)
+	return append(root[:len(root):len(root)], chain...)
+}
+
+// copyDeclarationSplit separates a copy's declarations into the ROOT ones
+// (the root spell ability, a fused copy's halves, a Charm's chosen modes) and
+// the CHAIN ones: each target-bearing link of a plain spell's SubAbility$
+// chain (CR 707.10c: a copy's controller may change ANY of the copied spell's
+// targets, and the cast announced the chain's too, CR 601.2c). The two halves
+// are recorded differently -- the root's answers replace Object.Targets, a
+// link's answer lands in castSubTargets[copy][Line] and Object.SubTargets.
+func (e *Engine) copyDeclarationSplit(o *state.Object) (root, chain []*cards.SA) {
+	root = e.copyRootDeclarations(o)
+	chain = copyChainDeclarations(e, o)
+	if len(chain) > 0 {
+		// A chain-only declaration set: an untargeted root is no declaration
+		// (AskCopyTargets stops at one), so it must not occupy stage 0.
+		kept := root[:0:0]
+		for _, sa := range root {
+			if effects.TargetsOf(sa).Targeted() {
+				kept = append(kept, sa)
+			}
+		}
+		root = kept
+	}
+	return root, chain
+}
+
+func (e *Engine) copyRootDeclarations(o *state.Object) []*cards.SA {
 	if o == nil {
 		return nil
 	}
@@ -1048,6 +1130,55 @@ func (e *Engine) copyTargetDeclarations(o *state.Object) []*cards.SA {
 	return []*cards.SA{sa}
 }
 
+// copyChainRoot returns the root of the SubAbility$ chain a copy announces
+// new targets for, nil when the copy's shape keeps the chain on its
+// resolution-time ask: an ability copy, a Fuse copy (two halves, no chain walk
+// on cast either), an overloaded copy ("target" reads "each", CR 702.96a) and a
+// Charm (its modes are the declarations). These mirror castSubAskLinks.
+func copyChainRoot(e *Engine, o *state.Object) *cards.SA {
+	if o == nil || o.Ability != nil || o.CastFlags&(state.FlagFused|state.FlagOverloaded) != 0 || len(o.ChosenModes) > 0 {
+		return nil
+	}
+	f := o.Face()
+	if f == nil {
+		return nil
+	}
+	if root := stackSpellSA(o, f); root != nil && root.API != "Charm" {
+		return root
+	}
+	return nil
+}
+
+// copyChainDeclarations is the copy's chained target declarations, in chain
+// order: the links the cast announced (collectSubTargetPreAsks, minus those
+// castSubPreAskable keeps on the resolution path), minus the ones an unpaid
+// Kicked/OptionalCost cost excuses. The cast mode is rebuilt from the copy's
+// inherited cast flags so castSubTargetsOwed judges the copy as it judged the
+// original.
+func copyChainDeclarations(e *Engine, o *state.Object) []*cards.SA {
+	root := copyChainRoot(e, o)
+	if root == nil {
+		return nil
+	}
+	probe := &pendingCast{}
+	switch {
+	case o.CastFlags&state.FlagMultikicked != 0:
+		probe.multikickSet, probe.multikickTimes = true, 1
+	case o.CastFlags&state.FlagKicked != 0:
+		probe.mode = "kicked"
+	case o.CastFlags&state.FlagOptionalCostPaid != 0:
+		probe.mode = "optionalcost"
+	}
+	svars := o.Face().SVars
+	var out []*cards.SA
+	for _, sub := range e.collectSubTargetPreAsks(root) {
+		if !subTargetingRootUnbindable(sub, svars) && castSubTargetsOwed(probe, sub) {
+			out = append(out, sub)
+		}
+	}
+	return out
+}
+
 func copyCharmModes(f *cards.Face, sa *cards.SA, names []string) []*cards.SA {
 	if f == nil || sa == nil || sa.API != "Charm" || len(names) == 0 || effects.TargetsOf(sa).Targeted() {
 		return nil
@@ -1066,7 +1197,21 @@ func copyCharmModes(f *cards.Face, sa *cards.SA, names []string) []*cards.SA {
 // provenance, flat targets are divided by declaration bounds in cast order;
 // legality must never be used to infer ownership after the board changes.
 func (e *Engine) copyInheritedForDeclaration(o *state.Object, decls []*cards.SA, stage int) []state.Target {
-	if o == nil || len(o.Targets) == 0 {
+	if o == nil {
+		return nil
+	}
+	if root, chain := e.copyDeclarationSplit(o); len(chain) > 0 {
+		if stage >= len(root) {
+			// A chained declaration: the cast's (or the original copy's)
+			// answer for this link, inherited under the copy's id.
+			if i := stage - len(root); i < len(chain) {
+				return e.castSubTargets[o.ID][chain[i].Line]
+			}
+			return nil
+		}
+		decls = root
+	}
+	if len(o.Targets) == 0 {
 		return nil
 	}
 	if len(decls) <= 1 {

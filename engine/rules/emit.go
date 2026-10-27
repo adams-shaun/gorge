@@ -556,6 +556,24 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// sacrificed creature's power). The copy takes its own copy of each
 		// cost-paid record the original's resolution Ctx reads (Forge
 		// SpellAbility.copy shares the paid hash the same way).
+		// CR 707.10c: a copy copies the chain's announced targets too. A copy
+		// whose SubAbility$ chain it announces (copyChainDeclarations) takes
+		// the original's per-link record under its own id; an electing copy
+		// overwrites each link as its copy_targets answers arrive
+		// (finishCopyTargets), a non-electing one resolves with them as they
+		// stand.
+		if root := copyChainRoot(e, e.G.Obj(copyID)); root != nil {
+			if from := e.castSubTargets[ev.Obj]; len(from) > 0 {
+				if e.castSubTargets == nil {
+					e.castSubTargets = make(map[state.ObjID]map[string][]state.Target)
+				}
+				cp := make(map[string][]state.Target, len(from))
+				for line, ts := range from {
+					cp[line] = append([]state.Target{}, ts...)
+				}
+				e.castSubTargets[copyID] = cp
+			}
+		}
 		inheritCopyRecord(e.sacrificedLKI, ev.Obj, copyID)
 		inheritCopyRecord(e.castExiled, ev.Obj, copyID)
 		inheritCopyRecord(e.castRevealed, ev.Obj, copyID)

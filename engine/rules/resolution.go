@@ -16,6 +16,63 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// finishCopyTargets records a copy's accumulated per-declaration answers once
+// the last declaration is passed. The ROOT declarations' answers are
+// flattened in declaration order (option 0 replaces, the rest append) and
+// published as the per-declaration split for a fused copy, so resolveFused
+// hands each half exactly the targets chosen FOR it (the same split a cast
+// publishes at payment). Each CHAINED declaration's answer is the copy's
+// record for that link (castSubTargets, which resolution consumes line by
+// line) and a sub-target TargetsChosen that folds into Object.SubTargets, the
+// shape a cast's installSubPreAsk/recordSubTargets leave. chosen is the last
+// answer given, the fallback when no root declaration was answered.
+func (e *Engine) finishCopyTargets(obj state.ObjID, chosen []decision.Option) {
+	ans := e.copyAnswerTargets[obj]
+	rootDecls, chainDecls := e.copyDeclarationSplit(e.G.Obj(obj))
+	nRoot := len(rootDecls)
+	if nRoot > len(ans) {
+		nRoot = len(ans)
+	}
+	flat := make([]decision.Option, 0, len(chosen))
+	stages := make([][]state.Target, nRoot)
+	for i, sl := range ans[:nRoot] {
+		flat = append(flat, sl...)
+		stages[i] = targetOptions(sl)
+	}
+	if len(flat) == 0 && len(chainDecls) == 0 {
+		flat = chosen
+	}
+	if len(flat) > 0 || len(chainDecls) == 0 {
+		e.recordChosenTargets(obj, flat, false)
+	}
+	if o := e.G.Obj(obj); o != nil && o.CastFlags&state.FlagFused != 0 {
+		if ff, _ := fusedSplitFaces(o); ff != nil {
+			if sa := ff.SpellAbility(); sa == nil || !effects.TargetsOf(sa).Targeted() {
+				stages = append([][]state.Target{nil}, stages...)
+			}
+		}
+		if e.fuseTargets == nil {
+			e.fuseTargets = make(map[state.ObjID][][]state.Target)
+		}
+		e.fuseTargets[obj] = stages
+	}
+	for i, sa := range chainDecls {
+		ts := []state.Target{}
+		if idx := len(rootDecls) + i; idx < len(ans) {
+			ts = targetOptions(ans[idx])
+		}
+		if e.castSubTargets == nil {
+			e.castSubTargets = make(map[state.ObjID]map[string][]state.Target)
+		}
+		if e.castSubTargets[obj] == nil {
+			e.castSubTargets[obj] = make(map[string][]state.Target)
+		}
+		e.castSubTargets[obj][sa.Line] = ts
+		e.recordSubTargets(obj, ts)
+	}
+	delete(e.copyAnswerTargets, obj)
+}
+
 // resumeResolution re-enters the body of the stack object rp names and then
 // completes the resolution: it rebuilds the Ctx resolveTop built for the
 // object on its first pass (Source/Controller/Targets/Remembered and the SVar
@@ -53,33 +110,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				e.resolveTop()
 				return
 			}
-			// Every declaration answered: record the flattened list in
-			// declaration order (option 0 replaces, the rest append) and
-			// publish the per-declaration split for a fused copy, so
-			// resolveFused hands each half exactly the targets chosen FOR it
-			// (the same split a cast publishes at payment).
-			flat := make([]decision.Option, 0, len(chosen))
-			stages := make([][]state.Target, len(ans))
-			for i, sl := range ans {
-				flat = append(flat, sl...)
-				stages[i] = targetOptions(sl)
-			}
-			if len(flat) == 0 {
-				flat = chosen
-			}
-			e.recordChosenTargets(rp.obj, flat, false)
-			if o := e.G.Obj(rp.obj); o != nil && o.CastFlags&state.FlagFused != 0 {
-				if ff, _ := fusedSplitFaces(o); ff != nil {
-					if sa := ff.SpellAbility(); sa == nil || !effects.TargetsOf(sa).Targeted() {
-						stages = append([][]state.Target{nil}, stages...)
-					}
-				}
-				if e.fuseTargets == nil {
-					e.fuseTargets = make(map[state.ObjID][][]state.Target)
-				}
-				e.fuseTargets[rp.obj] = stages
-			}
-			delete(e.copyAnswerTargets, rp.obj)
+			// Every declaration answered: record them.
+			e.finishCopyTargets(rp.obj, chosen)
 		}
 		e.resolveTop()
 		return
