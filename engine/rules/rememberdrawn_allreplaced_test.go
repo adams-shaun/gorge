@@ -32,7 +32,9 @@ const rememberDrawnTrueSpell = "Name:RememberDrawn True Test\nManaCost:U\nTypes:
 
 // rememberDrawnBoard is the reported scenario's board: seat 0 holds the
 // spell and Shock, its library is Healing Salve above Giant Growth, and
-// Thought Reflection (when requested) is on the battlefield.
+// Thought Reflection (when requested) is on the battlefield. The batch pin
+// also puts Alms Collector on seat 1 and a spare hand card in seat 0's hand
+// (the batch needs a two-card draw, so a third pre-cast hand card makes X=2).
 type rememberDrawnBoard struct {
 	e          *Engine
 	cfg        Config
@@ -41,16 +43,45 @@ type rememberDrawnBoard struct {
 	salve      state.ObjID
 	growth     state.ObjID
 	reflection state.ObjID
+	spare      state.ObjID
+	alms       state.ObjID
+}
+
+// rememberDrawnSetup selects the extra pieces a board carries. The zero
+// value is the reported two-card-hand scenario.
+type rememberDrawnSetup struct {
+	// spellSrc replaces the corpus Ancient Excavation with a fixture script
+	// (the RememberDrawn$ True control).
+	spellSrc string
+	// reflection puts Thought Reflection on seat 0's battlefield.
+	reflection bool
+	// almsCollector puts Alms Collector on seat 1's battlefield and a spare
+	// card in seat 0's hand, so the resolution's draw is a two-card batch
+	// that Alms Collector's DrawCards replacement consumes.
+	almsCollector bool
 }
 
 // rememberDrawnGame builds a two-seat game from seat 0's deck and stops at
 // turn 1's first main, where every board below is set up.
 func rememberDrawnGame(t *testing.T, seed uint64, seat0 []*cards.Card) (*Engine, Config) {
 	t.Helper()
+	return rememberDrawnGameDecks(t, seed, seat0, nil)
+}
+
+// rememberDrawnGameDecks is rememberDrawnGame with an explicit seat 1 deck;
+// nil keeps the all-Mountain deck.
+func rememberDrawnGameDecks(t *testing.T, seed uint64, seat0, seat1 []*cards.Card) (*Engine, Config) {
+	t.Helper()
 	deck := append([]*cards.Card(nil), seat0...)
 	deck = append(deck, mountainDeck(t, 40-len(deck))...)
+	if seat1 == nil {
+		seat1 = mountainDeck(t, 40)
+	} else {
+		seat1 = append([]*cards.Card(nil), seat1...)
+		seat1 = append(seat1, mountainDeck(t, 40-len(seat1))...)
+	}
 	cfg := seatZeroStart(Config{Seed: seed, Names: []string{"a", "b"},
-		Decks:  [][]*cards.Card{deck, mountainDeck(t, 40)},
+		Decks:  [][]*cards.Card{deck, seat1},
 		Tokens: map[string]*cards.Card{}})
 	e := New(cfg)
 	e.Advance()
@@ -61,39 +92,49 @@ func rememberDrawnGame(t *testing.T, seed uint64, seat0 []*cards.Card) (*Engine,
 // setupRememberDrawnBoard builds the board with logged moves only, so
 // replayCheck can rebuild it. Every other seat-0 hand/library card is exiled
 // to make the hand and library counts exact.
-func setupRememberDrawnBoard(t *testing.T, seed uint64, spellSrc string, withReflection bool) *rememberDrawnBoard {
+func setupRememberDrawnBoard(t *testing.T, seed uint64, s rememberDrawnSetup) *rememberDrawnBoard {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	spellCard := mustCorpusCard(t, reg, "Ancient Excavation")
-	if spellSrc != "" {
-		spellCard = card(t, spellSrc)
+	if s.spellSrc != "" {
+		spellCard = card(t, s.spellSrc)
 	}
 	seat0 := []*cards.Card{spellCard,
 		mustCorpusCard(t, reg, "Shock"),
 		mustCorpusCard(t, reg, "Healing Salve"),
 		mustCorpusCard(t, reg, "Giant Growth")}
-	if withReflection {
+	if s.reflection {
 		seat0 = append(seat0, mustCorpusCard(t, reg, "Thought Reflection"))
 	}
-	e, cfg := rememberDrawnGame(t, seed, seat0)
-	find := func(name string) state.ObjID {
+	var seat1 []*cards.Card
+	if s.almsCollector {
+		seat0 = append(seat0, mustCorpusCard(t, reg, "Grizzly Bears"))
+		seat1 = append(seat1, mustCorpusCard(t, reg, "Alms Collector"))
+	}
+	e, cfg := rememberDrawnGameDecks(t, seed, seat0, seat1)
+	find := func(p state.PlayerID, name string) state.ObjID {
 		for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
-			for _, id := range e.G.Zone(z, 0) {
+			for _, id := range e.G.Zone(z, p) {
 				if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
 					return id
 				}
 			}
 		}
-		t.Fatalf("precondition: %q not in seat 0's hand or library", name)
+		t.Fatalf("precondition: %q not in seat %d's hand or library", name, p)
 		return 0
 	}
 	b := &rememberDrawnBoard{e: e, cfg: cfg,
-		shock: find("Shock"), salve: find("Healing Salve"), growth: find("Giant Growth")}
-	b.spell = find(spellCard.Faces[0].Name)
-	if withReflection {
-		b.reflection = find("Thought Reflection")
+		shock: find(0, "Shock"), salve: find(0, "Healing Salve"), growth: find(0, "Giant Growth")}
+	b.spell = find(0, spellCard.Faces[0].Name)
+	if s.reflection {
+		b.reflection = find(0, "Thought Reflection")
 	}
-	keep := map[state.ObjID]bool{b.spell: true, b.shock: true, b.salve: true, b.growth: true, b.reflection: true}
+	if s.almsCollector {
+		b.spare = find(0, "Grizzly Bears")
+		b.alms = find(1, "Alms Collector")
+	}
+	keep := map[state.ObjID]bool{b.spell: true, b.shock: true, b.salve: true, b.growth: true,
+		b.reflection: true, b.spare: true}
 	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
 		for _, id := range append([]state.ObjID(nil), e.G.Zone(z, 0)...) {
 			if !keep[id] {
@@ -111,22 +152,41 @@ func setupRememberDrawnBoard(t *testing.T, seed uint64, spellSrc string, withRef
 	}
 	move(b.spell, state.ZHand)
 	move(b.shock, state.ZHand)
+	if s.almsCollector {
+		move(b.spare, state.ZHand)
+	}
 	move(b.salve, state.ZLibrary)
 	move(b.growth, state.ZLibrary) // appended after Salve: Salve is on top
-	if withReflection {
+	if s.reflection {
 		move(b.reflection, state.ZBattlefield)
 	}
-	// Precondition the scenario's counts: two cards in hand (the spell and
-	// Shock, leaving one at resolution) and exactly the two-card library.
-	if got := len(e.G.Zone(state.ZHand, 0)); got != 2 {
-		t.Fatalf("precondition: hand = %d, want 2 (spell + Shock)", got)
+	if s.almsCollector {
+		move(b.alms, state.ZBattlefield)
+	}
+	// Precondition the scenario's counts: the spell and Shock leave one card
+	// in hand at resolution (the batch pin adds the spare, leaving two), and
+	// exactly the two-card library.
+	wantHand := 2
+	if s.almsCollector {
+		wantHand = 3
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != wantHand {
+		t.Fatalf("precondition: hand = %d, want %d", got, wantHand)
 	}
 	if lib := e.G.Zone(state.ZLibrary, 0); len(lib) != 2 || lib[0] != b.salve || lib[1] != b.growth {
 		t.Fatalf("precondition: library = %v, want [Healing Salve Giant Growth]", lib)
 	}
-	if withReflection {
+	if s.reflection {
 		if o := e.G.Obj(b.reflection); o == nil || o.Zone != state.ZBattlefield {
 			t.Fatalf("precondition: Thought Reflection not on the battlefield: %+v", o)
+		}
+	}
+	if s.almsCollector {
+		if o := e.G.Obj(b.alms); o == nil || o.Zone != state.ZBattlefield {
+			t.Fatalf("precondition: Alms Collector not on seat 1's battlefield: %+v", o)
+		}
+		if len(e.G.Zone(state.ZLibrary, 1)) == 0 {
+			t.Fatal("precondition: seat 1 needs a card to draw for Alms Collector")
 		}
 	}
 	return b
@@ -184,6 +244,9 @@ func (b *rememberDrawnBoard) castAndResolve(t *testing.T, wantDiscards int, pick
 			}
 			submitChoices(t, b.e, pass)
 		case d.Kind == decision.KReplacement:
+			if b.reflection == 0 {
+				t.Fatalf("unexpected replacement choice: %+v", d)
+			}
 			pick := optionForObj(d, b.reflection)
 			if pick < 0 {
 				t.Fatalf("Thought Reflection missing from the draw competition: %+v", d.Options)
@@ -218,7 +281,7 @@ func (b *rememberDrawnBoard) castAndResolve(t *testing.T, wantDiscards int, pick
 // and both cards must count as "drawn this way", so the discard asks for two.
 func TestRememberDrawnAllReplacedCountsReplacementDraws(t *testing.T) {
 	t.Parallel()
-	b := setupRememberDrawnBoard(t, 9410, "", true)
+	b := setupRememberDrawnBoard(t, 9410, rememberDrawnSetup{reflection: true})
 	b.castAndResolve(t, 2, b.shock, b.salve)
 	for _, id := range []state.ObjID{b.shock, b.salve} {
 		if !inZone(b.e, state.ZGraveyard, 0, id) {
@@ -238,7 +301,7 @@ func TestRememberDrawnAllReplacedCountsReplacementDraws(t *testing.T) {
 // Reflection the same spell draws one card and asks for exactly one discard.
 func TestRememberDrawnAllReplacedWithoutReplacement(t *testing.T) {
 	t.Parallel()
-	b := setupRememberDrawnBoard(t, 9411, "", false)
+	b := setupRememberDrawnBoard(t, 9411, rememberDrawnSetup{})
 	b.castAndResolve(t, 1, b.shock)
 	if !inZone(b.e, state.ZGraveyard, 0, b.shock) {
 		t.Fatalf("Shock is not in the graveyard after the one-card discard")
@@ -257,7 +320,7 @@ func TestRememberDrawnAllReplacedWithoutReplacement(t *testing.T) {
 // asks for one although two cards were drawn.
 func TestRememberDrawnTrueUnchanged(t *testing.T) {
 	t.Parallel()
-	b := setupRememberDrawnBoard(t, 9412, rememberDrawnTrueSpell, true)
+	b := setupRememberDrawnBoard(t, 9412, rememberDrawnSetup{spellSrc: rememberDrawnTrueSpell, reflection: true})
 	b.castAndResolve(t, 1, b.shock)
 	if !inZone(b.e, state.ZGraveyard, 0, b.shock) {
 		t.Fatalf("Shock is not in the graveyard after the one-card discard")
@@ -269,6 +332,51 @@ func TestRememberDrawnTrueUnchanged(t *testing.T) {
 	}
 	if got := len(b.e.G.Zone(state.ZHand, 0)); got != 2 {
 		t.Fatalf("hand size = %d, want 2 (both replacement draws less the one discard)", got)
+	}
+	replayCheck(t, b.e, b.cfg)
+}
+
+// TestRememberDrawnAllReplacedCountsConsumedBatch pins the DrawBatchProposal
+// arm: Alms Collector ("if an opponent would draw two or more cards, instead
+// you and that player each draw a card") consumes Ancient Excavation's
+// two-card batch as ONE event. Its body's draw for the drawing player is
+// itself replaced by Thought Reflection ("draw two instead"), so the batch
+// record must see BOTH cards that replacement moved into the drawing
+// player's hand; the card Alms Collector's own controller drew is in the
+// opponent's hand and must not be remembered. The discard asks for exactly
+// two, so removing the batch record (draw.go's drawBatchConsumed) makes
+// Remembered$Amount 0, which the discard's minimum of one exposes as an
+// ask of one.
+func TestRememberDrawnAllReplacedCountsConsumedBatch(t *testing.T) {
+	t.Parallel()
+	b := setupRememberDrawnBoard(t, 9413, rememberDrawnSetup{reflection: true, almsCollector: true})
+	// Precondition: the cast leaves two cards in hand, so X (the hand count)
+	// makes the resolution draw a two-card batch -- Alms Collector's Number$
+	// GE2 window.
+	if got := len(b.e.G.Zone(state.ZHand, 0)); got != 3 {
+		t.Fatalf("precondition: pre-cast hand = %d, want 3 (spell + Shock + spare)", got)
+	}
+	hand1 := len(b.e.G.Zone(state.ZHand, 1))
+	b.castAndResolve(t, 2, b.shock, b.salve)
+	for _, id := range []state.ObjID{b.shock, b.salve} {
+		if !inZone(b.e, state.ZGraveyard, 0, id) {
+			t.Fatalf("card %d is not in the graveyard; both cards the batch's replacement drew must count", id)
+		}
+	}
+	if !inZone(b.e, state.ZHand, 0, b.growth) {
+		t.Fatalf("Giant Growth is not in hand: Thought Reflection drew both replacement cards")
+	}
+	if lib := b.e.G.Zone(state.ZLibrary, 0); len(lib) != 0 {
+		t.Fatalf("seat 0 library = %d cards, want 0 (both drawn by the replacement body)", len(lib))
+	}
+	if got := len(b.e.G.Zone(state.ZHand, 0)); got != 2 {
+		t.Fatalf("hand size = %d, want 2 (spare + Giant Growth)", got)
+	}
+	// The opponent's own draw is the opponent-hand control: Alms Collector
+	// drew a card too, and it must not inflate Remembered$Amount (the ask
+	// above was two, not three).
+	if got := len(b.e.G.Zone(state.ZHand, 1)) - hand1; got != 1 {
+		t.Fatalf("seat 1 hand delta = %d, want 1 (Alms Collector's controller draws)", got)
 	}
 	replayCheck(t, b.e, b.cfg)
 }
