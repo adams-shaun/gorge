@@ -328,6 +328,9 @@ type staticGrantLifetime struct {
 	// host-scoped lifetime (registerAnimateStaticAbilities).
 	DurationSource   state.ObjID
 	ExileOnMovedAlso string
+	// ControllerTurnOnly gates every registration on its controller's
+	// turn (an Animate-delivered Condition$ PlayerTurn body).
+	ControllerTurnOnly bool
 }
 
 // stampGrantLifetime applies lt to one layer's registration. Zero-value
@@ -363,6 +366,9 @@ func stampGrantLifetime(ce *state.ContinuousEffect, lt staticGrantLifetime) {
 	}
 	if lt.DurationSource != 0 {
 		ce.DurationSource = lt.DurationSource
+	}
+	if lt.ControllerTurnOnly {
+		ce.ControllerTurnOnly = true
 	}
 	if lt.ExileOnMovedAlso != "" {
 		ce.ExileOnMovedAlso = lt.ExileOnMovedAlso
