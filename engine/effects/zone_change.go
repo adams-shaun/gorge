@@ -74,7 +74,10 @@ func thisDefinedAndTgtsTargets(h Host, c *Ctx, value string) []state.Target {
 // the primary is the pre-existing behaviour and therefore replay-safe.
 func changeZoneAltDestination(h Host, c *Ctx, cz *ChangeZoneParams, primary state.Zone) state.Zone {
 	if cz.DestAltSVarText == "" {
-		return primary
+		if !cz.unconditionalZoneChoice(primary) || cz.searchDefersDestination() {
+			return primary
+		}
+		return askUnconditionalDestination(h, c, cz, primary)
 	}
 	holds, evaluated := CheckSVarHolds(h, c, cz.DestAltCond, cz.DestAltSVarCompare)
 	if !evaluated {
@@ -96,6 +99,50 @@ func changeZoneAltDestination(h Host, c *Ctx, cz *ChangeZoneParams, primary stat
 	if cz.DestAltMandatory {
 		return cz.DestinationAlt
 	}
+	if ans, ok := askDestinationChoice(h, c, cz, primary); ok {
+		return ans
+	}
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+		Text: "DestAltSVar$ " + cz.DestAltSVarText +
+			" holds: no destination answer was available; the alternate destination " + cz.DestinationAltText + " is taken"})
+	return cz.DestinationAlt
+}
+
+// unconditionalZoneChoice reports a DestinationAlternative$ with no
+// DestAltSVar$ that names a different modelled zone and carries no
+// AlternativeDecider$ (Dina's Guidance's "put it into your hand or
+// graveyard", Illuna's "onto the battlefield or into your hand"): Forge's
+// handleAltDest leaves altDestOpt true there, so the controller chooses. The
+// AlternativeDecider$ top-or-bottom family is owned by effChangeZone's
+// position ask, and a same-zone alternative is a position choice.
+func (cz *ChangeZoneParams) unconditionalZoneChoice(primary state.Zone) bool {
+	return cz.DestAltSVarText == "" && cz.DestinationAltText != "" &&
+		cz.AlternativeDecider == "" && cz.DestinationAltKnown && cz.DestinationAlt != primary
+}
+
+// searchDefersDestination reports the library search whose destination ask
+// is posed after the pick, once the found set is final (Forge's
+// changeHiddenOriginResolve calls handleAltDest after chosenCards): the
+// prelude keeps the primary and applyLibrarySearch asks.
+func (cz *ChangeZoneParams) searchDefersDestination() bool {
+	return cz.OriginPresent && !cz.OriginAll && cz.Defined == "" && zoneIn(cz.Origin, state.ZLibrary)
+}
+
+// askUnconditionalDestination is the controller's hand-or-graveyard style
+// choice. With no answer available (R-9) the primary is kept, so every
+// no-host replay is unchanged, and one Note names both zones.
+func askUnconditionalDestination(h Host, c *Ctx, cz *ChangeZoneParams, primary state.Zone) state.Zone {
+	if to, ok := askDestinationChoice(h, c, cz, primary); ok {
+		return to
+	}
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+		Text: "DestinationAlternative$ " + cz.DestinationAltText +
+			": no destination answer was available; the primary destination " + primary.String() + " is taken"})
+	return primary
+}
+
+// askDestinationChoice poses the two-option changezone_dest_alt decision.
+func askDestinationChoice(h Host, c *Ctx, cz *ChangeZoneParams, primary state.Zone) (state.Zone, bool) {
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: c.Source, ResumeKind: "changezone_dest_alt",
 		Prompt: "Choose where to put the selected cards"}
@@ -103,16 +150,14 @@ func changeZoneAltDestination(h Host, c *Ctx, cz *ChangeZoneParams, primary stat
 		{Index: 0, Kind: "destination", Label: primary.String(), Player: c.Controller, Mode: "primary"},
 		{Index: 1, Kind: "destination", Label: cz.DestinationAlt.String(), Player: c.Controller, Mode: "alternate"},
 	}
-	if ans, ok := AskTape(h, d); ok {
-		if len(ans) > 0 && ans[0].Index == 0 {
-			return primary
-		}
-		return cz.DestinationAlt
+	ans, ok := AskTape(h, d)
+	if !ok {
+		return 0, false
 	}
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-		Text: "DestAltSVar$ " + cz.DestAltSVarText +
-			" holds: no destination answer was available; the alternate destination " + cz.DestinationAltText + " is taken"})
-	return cz.DestinationAlt
+	if len(ans) > 0 && ans[0].Index == 0 {
+		return primary, true
+	}
+	return cz.DestinationAlt, true
 }
 
 // clearChangeZoneImprint uses the same event as Cleanup's ClearImprinted rider.
