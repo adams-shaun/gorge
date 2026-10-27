@@ -360,7 +360,8 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	// 2 x4, 3 x5, X/ChandraX x3 -- the X shapes fall back to one card rather
 	// than risk an over-wide offer).
 	min := 1
-	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True") {
+	optional := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True")
+	if optional {
 		min = 0
 	}
 	max := 1
@@ -368,6 +369,18 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	case playAmountOne:
 	case playAmountAll:
 		max = len(candidates)
+		// An Amount$ All Play WITHOUT Optional$ is "cast the copies if
+		// able", not a "choose any number" offer: every castable candidate
+		// must be cast (CR 608.2c/707.12; Oracle Spelltwine, Surge to
+		// Victory, Svega). Forge's PlayEffect cannot decline a pick when
+		// the effect is not optional, so its Amount$ All loop plays the
+		// whole list -- the answer only ORDERS the casts (rules'
+		// playAnswerApply begins them in answer order). The optional shape
+		// keeps Min 0, and the budget path keeps its historical Min 1 (no
+		// corpus carrier combines WithTotalCMC$ with All).
+		if !optional && !hasBudget {
+			min = max
+		}
 	default:
 		if n, err := strconv.Atoi(amt); err == nil && n > 1 {
 			max = n
