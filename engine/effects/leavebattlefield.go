@@ -278,7 +278,7 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 // against it -- Affected$ verbatim and the animation's own lifetime.
 // Condition$ PlayerTurn ("during your turn") rides ControllerTurnOnly; any
 // other Condition$ is unread and the body stays loud.
-func registerAnimateContinuousGrant(h Host, c *Ctx, id state.ObjID, params map[string]string, dur string, permanent, untilEOT bool, lt staticGrantLifetime) bool {
+func registerAnimateContinuousGrant(h Host, c *Ctx, id state.ObjID, params staticLineParams, dur string, permanent, untilEOT bool, lt staticGrantLifetime) bool {
 	cond, hasCond := params["Condition"]
 	if hasCond && strings.TrimSpace(cond) != "PlayerTurn" {
 		return false
