@@ -479,7 +479,7 @@ Oracle:x
 	}
 }
 
-func TestLandPlayedTriggerFiresOnlyForLands(t *testing.T) {
+func TestLandPlayedTriggerFiresOnARealLandPlay(t *testing.T) {
 	t.Parallel()
 	src := `Name:Ranger
 ManaCost:1 G
@@ -490,15 +490,41 @@ SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You
 Oracle:x
 `
 	e := layerEngine(t)
-	onBoard(t, e, 0, src)
-	land := e.G.AddObject(card(t, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"), 0)
-	land.Zone = state.ZHand
-	e.G.SetZone(state.ZHand, 0, []state.ObjID{land.ID})
-	e.emit(events.Event{Kind: events.MoveZone, Obj: land.ID, From: state.ZHand, To: state.ZBattlefield})
-	e.emit(events.Event{Kind: events.LandPlayed, Player: 0})
-	e.putTriggersOnStack()
-	if len(e.G.Stack) != 1 {
-		t.Fatalf("stack = %v, want the land-played trigger", e.G.Stack)
+	ranger := onBoard(t, e, 0, src)
+	e.Advance()
+	driveToStep(t, e, e.G.Turn, 0, state.StepMain1)
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("expected seat 0's priority in main1, got %+v", d)
+	}
+	idx := -1
+	var landID state.ObjID
+	for _, o := range d.Options {
+		if o.Kind == "play_land" {
+			idx, landID = o.Index, o.Obj
+			break
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no play_land option among %+v", d.Options)
+	}
+	land := e.G.Obj(landID)
+	if land == nil || land.Face() == nil || !land.Face().IsLand() {
+		t.Fatalf("play_land option Obj %d is not a land: %+v", landID, land)
+	}
+	if land.Zone != state.ZHand {
+		t.Fatalf("land to play is in zone %v, want hand", land.Zone)
+	}
+	submitChoices(t, e, idx)
+	if got := e.G.Obj(landID); got == nil || got.Zone != state.ZBattlefield {
+		t.Fatalf("land after the play is on %+v, want battlefield", got)
+	}
+	if got := e.G.Players[0].LandsPlayed; got != 1 {
+		t.Fatalf("LandsPlayed = %d, want 1 (the move really was the land play)", got)
+	}
+	if n := observedTriggerCount(e, ranger); n != 1 {
+		t.Fatalf("a real land play queued %d land-play triggers, want 1", n)
 	}
 }
 

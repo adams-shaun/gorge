@@ -664,9 +664,11 @@ func abilitySourceQualifiersHold(quals []string, o *state.Object, you state.Play
 const landPlayedMayPlaySourceClause = "SpellAbility.MayPlaySource"
 
 // landPlayedMatches implements Mode$ LandPlayed. This fires on the MoveZone
-// hand->battlefield of a land specifically -- not on the separate LandPlayed
-// event legal.go's "play_land" case also emits, which carries only a Player
-// (no Obj), and so has nothing ValidCard$ could ever match against.
+// that the land-play special action uses to move a land to the battlefield
+// (from the hand or, under a play permission, another zone) -- not on the
+// separate LandPlayed event legal.go's "play_land" case also emits, which
+// carries only a Player (no Obj), and so has nothing ValidCard$ could ever
+// match against.
 //
 // ValidSA$ SpellAbility.MayPlaySource (Share the Spoils, The Fourth / Eighth
 // Doctor, Serra Paragon: "When they do ...") scopes the trigger to a land
@@ -682,12 +684,12 @@ func landPlayedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.E
 	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield {
 		return false
 	}
-	// A hand-to-battlefield entry is read as a play, as before. From any
-	// other zone the move counts only when it IS the land-play special
-	// action (CR 305.1 under a play permission: Crucible of Worlds' graveyard,
-	// Light Up the Stage's exile), never a land merely put onto the
-	// battlefield from there (a reanimated land is not played).
-	if ev.From != state.ZHand && (ev.Obj == 0 || e.Facts().PlayingLand != ev.Obj) {
+	// The move counts only when it IS the land-play special action (CR 305.1,
+	// also under a play permission: Crucible of Worlds' graveyard, Light Up
+	// the Stage's exile), never a land merely put onto the battlefield -- from
+	// hand included (CR 305.4: putting a land onto the battlefield is not
+	// playing it).
+	if ev.Obj == 0 || e.Facts().PlayingLand != ev.Obj {
 		return false
 	}
 	// Origin$ scopes the zone the land was played from ("play a land from
