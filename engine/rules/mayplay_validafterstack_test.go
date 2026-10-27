@@ -121,9 +121,9 @@ func TestMayPlayValidAfterStackSerraManaValueGate(t *testing.T) {
 	// CastInfo). The return to the graveyard is an event too; it does not
 	// reset the log.
 	e.emit(events.Event{Kind: events.PutOnStack, Obj: c.ID, Player: 0, From: state.ZGraveyard, To: state.ZStack})
-	e.emit(events.Event{Kind: events.CastInfo, Obj: c.ID, Counter: ",perm=" + mayPlayLimitKey(s.ID, carrier)})
+	e.emit(events.Event{Kind: events.CastInfo, Obj: c.ID, Counter: ",perm=" + mayPlayLimitKey(s.ID, carrier["Description"], carrier["Affected"], carrier["AffectedZone"])})
 	e.emit(events.Event{Kind: events.MoveZone, Obj: c.ID, Player: 0, From: state.ZStack, To: state.ZGraveyard})
-	if c.Zone != state.ZGraveyard || !e.mayPlayKeyLimitReached(mayPlayLimitKey(s.ID, carrier), 1) {
+	if c.Zone != state.ZGraveyard || !e.mayPlayKeyLimitReached(mayPlayLimitKey(s.ID, carrier["Description"], carrier["Affected"], carrier["AffectedZone"]), 1) {
 		t.Fatal("precondition: cast not recorded or card not returned to graveyard")
 	}
 	e.pending = nil

@@ -246,7 +246,7 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 		if !applies || !grants {
 			continue
 		}
-		ok(mayPlayPermText(st.ParamStr(cards.PKMayPlayText), st.Params), mayPlayUntypedKey(id, st.Params), id, free, raise, hasRaise, priced)
+		ok(mayPlayPermText(st.ParamStr(cards.PKMayPlayText), st.Params), mayPlayUntypedKey(id, st.ParamStr(cards.PKMayPlayLimit), st.ParamStr(cards.PKMayPlayText), st.HasParam(cards.PKMayPlayAltManaCost), st.ParamStr(cards.PKDescription), st.ParamStr(cards.PKAffected), st.ParamStr(cards.PKAffectedZone)), id, free, raise, hasRaise, priced)
 	}
 	if board {
 		for _, sv := range e.activeStatics("Continuous") {
@@ -257,7 +257,7 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 			if !applies || !grants {
 				continue
 			}
-			ok(mayPlayPermText(sv.ParamStr(cards.PKMayPlayText), sv.Params), mayPlayUntypedKey(sv.Source, sv.Params), sv.Source, free, raise, hasRaise, priced)
+			ok(mayPlayPermText(sv.ParamStr(cards.PKMayPlayText), sv.Params), mayPlayUntypedKey(sv.Source, sv.ParamStr(cards.PKMayPlayLimit), sv.ParamStr(cards.PKMayPlayText), sv.HasParam(cards.PKMayPlayAltManaCost), sv.ParamStr(cards.PKDescription), sv.ParamStr(cards.PKAffected), sv.ParamStr(cards.PKAffectedZone)), sv.Source, free, raise, hasRaise, priced)
 		}
 	}
 	if untyped {
@@ -696,8 +696,8 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	// "once each turn" spans every card). An unresolvable value stays
 	// unenforced, the same convention activationLimitReached applies to a
 	// non-literal ActivationLimit$.
-	if n := mayPlayLimitN(params); n > 0 {
-		key := mayPlayLimitKey(source, params)
+	if n := mayPlayLimitN(params["MayPlayLimit"]); n > 0 {
+		key := mayPlayLimitKey(source, params["Description"], params["Affected"], params["AffectedZone"])
 		if permissionText != "" {
 			key = mayPlayPermKey(source, permissionText)
 		}
@@ -733,12 +733,8 @@ func mayPlayPermKey(source state.ObjID, text string) string {
 
 // mayPlayLimitN is a static's literal MayPlayLimit$ (0 when absent,
 // non-literal or not positive: unenforced).
-func mayPlayLimitN(params map[string]string) int {
-	raw := strings.TrimSpace(params["MayPlayLimit"])
-	if raw == "" {
-		return 0
-	}
-	if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+func mayPlayLimitN(raw string) int {
+	if n, err := strconv.Atoi(strings.TrimSpace(raw)); err == nil && n > 0 {
 		return n
 	}
 	return 0
@@ -746,24 +742,13 @@ func mayPlayLimitN(params map[string]string) int {
 
 // mayPlayLimitKey is the permission identity of a MayPlayLimit$ static that
 // carries no MayPlayText$: its source object plus a "~<hash>" label of the
-// static itself (its Description$, else its sorted parameters), so two
+// static itself (its Description$, Affected$ and AffectedZone$), so two
 // statics on one card and two copies of one card never share a count. The
 // "~" keeps it disjoint from any typed label, and the fixed width keeps one
 // key from being a prefix of another inside a log token.
-func mayPlayLimitKey(source state.ObjID, params map[string]string) string {
+func mayPlayLimitKey(source state.ObjID, desc, affected, zone string) string {
 	h := fnv.New32a()
-	if d := params["Description"]; d != "" {
-		h.Write([]byte(d))
-	} else {
-		keys := make([]string, 0, len(params))
-		for k := range params {
-			keys = append(keys, k)
-		}
-		slices.Sort(keys)
-		for _, k := range keys {
-			h.Write([]byte(k + "=" + params[k] + "|"))
-		}
-	}
+	h.Write([]byte(desc + "|" + affected + "|" + zone))
 	return mayPlayPermKey(source, fmt.Sprintf("~%08x", h.Sum32()))
 }
 
@@ -772,14 +757,11 @@ func mayPlayLimitKey(source state.ObjID, params map[string]string) string {
 // static (those are priced through the alternative-cost walks, which carry
 // the key per alternative). "" for every other static, which stays on the
 // collapsed empty-key path.
-func mayPlayUntypedKey(source state.ObjID, params map[string]string) string {
-	if strings.TrimSpace(params["MayPlayText"]) != "" || mayPlayLimitN(params) == 0 {
+func mayPlayUntypedKey(source state.ObjID, limit, text string, alt bool, desc, affected, zone string) string {
+	if strings.TrimSpace(text) != "" || alt || mayPlayLimitN(limit) == 0 {
 		return ""
 	}
-	if _, alt := params["MayPlayAltManaCost"]; alt {
-		return ""
-	}
-	return mayPlayLimitKey(source, params)
+	return mayPlayLimitKey(source, desc, affected, zone)
 }
 
 // mayPlayKeyLimitReached reports whether the permission named by key has
@@ -969,8 +951,8 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 			continue
 		}
 		key := ""
-		if n := mayPlayLimitN(sv.Params); n > 0 {
-			key = mayPlayLimitKey(sv.Source, sv.Params)
+		if n := mayPlayLimitN(sv.ParamStr(cards.PKMayPlayLimit)); n > 0 {
+			key = mayPlayLimitKey(sv.Source, sv.ParamStr(cards.PKDescription), sv.ParamStr(cards.PKAffected), sv.ParamStr(cards.PKAffectedZone))
 			if e.mayPlayKeyLimitReached(key, n) {
 				continue
 			}
