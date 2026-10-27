@@ -67,6 +67,7 @@ var modelledValueHeads = []string{
 	"LifeOppsLostThisTurn",
 	"LifeYouGainedThisTurn",
 	"LifeYouLostThisTurn",
+	"LifeYourTeamGainedThisTurn",
 	"MaxOppDamageThisTurn",
 	"Metalcraft",
 	"Monarch",

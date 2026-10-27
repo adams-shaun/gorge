@@ -570,6 +570,11 @@ var evalCountBodyPaidCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyPaidCode]{Key: "LifeYouLostThisTurn", Val: evalCountBodyPaidLifeYouLostThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "Party", Val: evalCountBodyPaidParty},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "LifeYouGainedThisTurn", Val: evalCountBodyPaidLifeYouGainedThisTurn},
+	// LifeYourTeamGainedThisTurn is Forge's YourTeam player collection over
+	// the life-gained amount (AbilityUtils YourTeam). gorge models no teams,
+	// so the team is the player alone and the reading is LifeYouGainedThisTurn
+	// (engine/rules/turn.go).
+	state.StrEntry[evalCountBodyPaidCode]{Key: "LifeYourTeamGainedThisTurn", Val: evalCountBodyPaidLifeYouGainedThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "YouDrewThisTurn", Val: evalCountBodyPaidYouDrewThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "YouScryThisTurn", Val: evalCountBodyPaidYouScryOrSurveilThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "YouSurveilThisTurn", Val: evalCountBodyPaidYouScryOrSurveilThisTurn},
