@@ -71,6 +71,13 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	if ev.Kind == events.Draw && e.drawForbidden(ev.Player) {
 		return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot draw cards"}), true
 	}
+	// The same prohibition covers the attempted draw from an empty library
+	// (CR 121.6, 704.5b): a player who can't draw does not attempt to, so no
+	// DrawEmpty mark is left for the next state-based check. Amount 0 is the
+	// mark; the Amount 1 clear the check itself emits is never held back.
+	if ev.Kind == events.DrawEmpty && ev.Amount == 0 && e.drawForbidden(ev.Player) {
+		return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot draw cards"}), true
+	}
 	// Positive LifeChange is a gain; it never carries a repl:DamageDone
 	// match (that class names a Damage event only), so it routes straight
 	// to the life replacement machinery.
