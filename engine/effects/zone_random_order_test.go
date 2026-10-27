@@ -50,7 +50,7 @@ func TestDefinedRememberedWithUnrelatedImprintStillShuffles(t *testing.T) {
 	}
 }
 
-func TestDefinedRememberedWithLibraryImprintStillShuffles(t *testing.T) {
+func TestDefinedRememberedWithLibraryImprintDoesNotShuffle(t *testing.T) {
 	h := newHost(t, 2)
 	source := h.g.AddObject(mkCard(t, "Name:Source\nTypes:Sorcery\nOracle:x\n"), 0)
 	fetched := h.g.AddObject(mkCard(t, "Name:Remembered\nTypes:Creature\nPT:2/2\nOracle:x\n"), 0)
@@ -74,8 +74,8 @@ func TestDefinedRememberedWithLibraryImprintStillShuffles(t *testing.T) {
 			shuffles++
 		}
 	}
-	if shuffles != 1 {
-		t.Fatalf("unrelated library-resident imprint suppressed mandatory shuffle: got %d Shuffle events, want one: %+v", shuffles, h.log)
+	if shuffles != 0 {
+		t.Fatalf("plain Defined$ hand fetch shuffled with a library-resident imprint: got %d Shuffle events, want none: %+v", shuffles, h.log)
 	}
 }
 
