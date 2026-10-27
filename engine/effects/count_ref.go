@@ -574,6 +574,11 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 			return collectedGroup(h, &sc), true
 		}
 		return collectedGroup(h, c), true
+	case refTargetsCastCollected:
+		// CastSA>Collected$Amount (Vitu-Ghazi Inspector, Spotlight Falcon):
+		// the evidence the cast of the source permanent collected, at fire
+		// time and at resolution alike (castCollectedGroup).
+		return castCollectedGroup(h, c), true
 	case refTargetsRemembered:
 		// Forge's plain Remembered$ form reads the executing ability's shared
 		// host-card remembered list: the ctx walk's set UNIONED with the
@@ -901,6 +906,7 @@ const (
 	refTargetsTriggerObjectsAttackers
 	refTargetsCollected
 	refTargetsDiscarded
+	refTargetsCastCollected
 )
 
 var refTargetsCodes = state.NewStrCodes(
@@ -940,7 +946,7 @@ var refTargetsCodes = state.NewStrCodes(
 	state.StrEntry[refTargetsCode]{Key: "SpellTargeted", Val: refTargetsSpellTargeted},
 	state.StrEntry[refTargetsCode]{Key: "TriggerObjectsAttackers", Val: refTargetsTriggerObjectsAttackers},
 	state.StrEntry[refTargetsCode]{Key: "Collected", Val: refTargetsCollected},
-	state.StrEntry[refTargetsCode]{Key: "CastSA>Collected", Val: refTargetsCollected},
+	state.StrEntry[refTargetsCode]{Key: "CastSA>Collected", Val: refTargetsCastCollected},
 	state.StrEntry[refTargetsCode]{Key: "Discarded", Val: refTargetsDiscarded},
 )
 
