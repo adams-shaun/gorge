@@ -48,3 +48,24 @@ func TestEvalCountPlaneswalkerTypeDedups(t *testing.T) {
 		t.Fatalf("%s = %d, want 2 distinct planeswalker types (Ajani, Chandra); the artifact adds nothing", body, got)
 	}
 }
+
+// TestEvalCountPlaneswalkerTypeLimitMaxClamps pins the bounded-property
+// suffix: PlaneswalkerType must clamp like its CreatureType sibling rather
+// than ignore /LimitMax.<n>. Three distinct types clamp to 2.
+func TestEvalCountPlaneswalkerTypeLimitMaxClamps(t *testing.T) {
+	g := state.NewGame([]string{"you", "them"})
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	diffObject(t, g, 0, state.ZBattlefield, pwtAjani1)
+	diffObject(t, g, 0, state.ZBattlefield, pwtChandra)
+	diffObject(t, g, 0, state.ZBattlefield, "Name:Gideon, Fixture\nTypes:Legendary Planeswalker Gideon\nLoyalty:3\nOracle:x\n")
+	// PRECONDITION: three distinct planeswalker types are on the
+	// battlefield, so the clamp has something to reduce.
+	if got := EvalCount(h, c, "Count$Valid Planeswalker.YouCtrl$PlaneswalkerType"); got != 3 {
+		t.Fatalf("unclamped PlaneswalkerType = %d, want 3", got)
+	}
+	const body = "Count$Valid Planeswalker.YouCtrl$PlaneswalkerType/LimitMax.2"
+	if got := EvalCount(h, c, body); got != 2 {
+		t.Fatalf("%s = %d, want 2 (3 distinct planeswalker types clamped to the cap)", body, got)
+	}
+}
