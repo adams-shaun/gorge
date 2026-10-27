@@ -212,10 +212,10 @@ func TestImmediateTriggerUnknownRememberObjectsNotesAndStillRuns(t *testing.T) {
 	toBattlefield(h, c.Source)
 	c.Remembered = []state.Target{{Obj: c.Source}}
 	Resolve(h, c, &cards.SA{Kind: "DB", API: "ImmediateTrigger",
-		Params: map[string]string{"Execute": "Hit", "RememberObjects": "Sacrificed"}})
+		Params: map[string]string{"Execute": "Hit", "RememberObjects": "NoSuchSelector"}})
 	notes := 0
 	for _, ev := range h.log {
-		if ev.Kind == events.Note && ev.Text == "ImmediateTrigger RememberObjects$ Sacrificed is not implemented; every instance sees the whole remembered set" {
+		if ev.Kind == events.Note && ev.Text == "ImmediateTrigger RememberObjects$ NoSuchSelector is not implemented; every instance sees the whole remembered set" {
 			notes++
 		}
 	}
