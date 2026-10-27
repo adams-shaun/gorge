@@ -348,6 +348,39 @@ func changeZoneDepartureBatch(h Host, cz *ChangeZoneParams, targets []state.Targ
 	return departing
 }
 
+// altDeciderChooser resolves a ChangeZone's AlternativeDecider$ spelling to
+// the ONE player who chooses the targeted card's library position. The two
+// literal owner spellings name the OWNER of this move's own target:
+// TargetedOwner is the resolving ability's target set, and Forge's
+// ThisTargetedOwner is the same referent read from THIS ability (AbilityUtils'
+// ThisTargetedCard), which for a Charm mode is the mode's own target -- exactly
+// the target passed here. The owner answers, never the spell's controller
+// (CR 401.4): Jailbreak Scheme spells its second mode this way. Every other
+// spelling is the ordinary Defined$ player grammar (Forge reads
+// AlternativeDecider with getDefinedPlayers), and it must name exactly ONE
+// player; RememberedOwner is the corpus's other carrier (Tolarian Contempt).
+// knownDefinedTargets is the fail-closed read: an unmodelled selector is
+// "unknown" rather than Defined's source fallback, so an unsupported spelling
+// stays loud instead of quietly asking the caster. A departed target, zero or
+// several players, or an unknown spelling is (0, false); the caller keeps the
+// Note and the primary destination.
+func altDeciderChooser(h Host, c *Ctx, spec string, target *state.Object) (state.PlayerID, bool) {
+	switch spec {
+	case "TargetedOwner", "ThisTargetedOwner":
+		if target != nil {
+			return target.Owner, true
+		}
+		return 0, false
+	default:
+		if ts, ok := knownDefinedTargets(h, c, spec); ok {
+			if ps := playerIDsFromTargets(h, c, spec, ts); len(ps) == 1 {
+				return ps[0], true
+			}
+		}
+		return 0, false
+	}
+}
+
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	cz := ChangeZoneOf(sa)
 	to, stop := changeZonePrelude(h, c, cz)
@@ -633,12 +666,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 				Text: "AlternativeDecider$ " + altDecider + " is not the top-or-bottom library shape this engine can ask; the primary destination is taken"})
 		default:
-			target := h.Game().Obj(targets[0].Obj)
-			var chooser state.PlayerID
-			chooserOK := false
-			if altDecider == "TargetedOwner" && target != nil {
-				chooser, chooserOK = target.Owner, true
-			}
+			chooser, chooserOK := altDeciderChooser(h, c, altDecider, h.Game().Obj(targets[0].Obj))
 			if !chooserOK || int(chooser) >= len(h.Game().Players) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 					Text: "AlternativeDecider$ " + altDecider + " cannot resolve an object owner"})
