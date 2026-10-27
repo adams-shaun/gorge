@@ -323,7 +323,11 @@ func mayPlayFreeGrantFromLine(params map[string]string) (state.ContinuousEffect,
 // MayPlayText$ (it changes what the cast IS, not just where it may come
 // from), a Condition$ whose value is not PlayerTurn, a ValidAfterStack$
 // qualifier (it changes when the grant lives), or a MayPlayLimit$ value
-// that is not a non-negative integer -- fails closed. Secondary$ is
+// that is not a non-negative integer -- fails closed. On the printed route
+// (the only caller) the IsPresent$/IsPresent2$/PresentCompare$/PresentZone$
+// gate family and MayLookAt$ are carried: the static walk evaluated the gates
+// and the look branch registers the look from the same line. CheckSVar$/
+// SVarCompare$ stay refused there. Secondary$ is
 // Forge's text renderer bit (CardTraitBase.isSecondary is read only by
 // Card.java's getText family), so on BOTH routes it is carried and never
 // read rather than refused.
@@ -451,6 +455,24 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 			// mayPlayAltCosts, so a registered twin would offer the plain
 			// cast too), and a free cast has no alternative to name.
 			if !allowAfterStack || allowFree || strings.TrimSpace(params[key]) == "" {
+				return false, false, 0, false, "", false
+			}
+		case mayPlayParamPrintedGate:
+			// IsPresent$/IsPresent2$/PresentCompare$/PresentZone$ gate the
+			// printed grant: continuousGateHolds (rules/layers_static.go)
+			// evaluated the family BEFORE the grant is built, exactly as
+			// adjustLandPlaysKeys relies on. The Effect route has no gate
+			// evaluator, so it keeps refusing them. A present-but-blank value
+			// is unreadable (PresentZone$'s blank means the battlefield).
+			if allowAfterStack || (key != "PresentZone" && strings.TrimSpace(params[key]) == "") {
+				return false, false, 0, false, "", false
+			}
+		case mayPlayParamMayLookAt:
+			// The printed look branch (rules/layers.go) registers the look
+			// from the same line. The Effect route deletes the key in
+			// mayLookAtGrantFromLine, so a key still present there is an
+			// unread look shape and the whole line stays refused.
+			if allowAfterStack || strings.TrimSpace(params[key]) == "" {
 				return false, false, 0, false, "", false
 			}
 		case mayPlayParamSecondary:
@@ -1079,6 +1101,8 @@ const (
 	mayPlayParamGateSVar
 	mayPlayParamSecondary
 	mayPlayParamAltManaCost
+	mayPlayParamPrintedGate
+	mayPlayParamMayLookAt
 )
 
 var mayPlayParamCodes = state.NewStrCodes(
@@ -1099,4 +1123,9 @@ var mayPlayParamCodes = state.NewStrCodes(
 	state.StrEntry[mayPlayParamCode]{Key: "SVarCompare", Val: mayPlayParamGateSVar},
 	state.StrEntry[mayPlayParamCode]{Key: "Secondary", Val: mayPlayParamSecondary},
 	state.StrEntry[mayPlayParamCode]{Key: "MayPlayAltManaCost", Val: mayPlayParamAltManaCost},
+	state.StrEntry[mayPlayParamCode]{Key: "IsPresent", Val: mayPlayParamPrintedGate},
+	state.StrEntry[mayPlayParamCode]{Key: "IsPresent2", Val: mayPlayParamPrintedGate},
+	state.StrEntry[mayPlayParamCode]{Key: "PresentCompare", Val: mayPlayParamPrintedGate},
+	state.StrEntry[mayPlayParamCode]{Key: "PresentZone", Val: mayPlayParamPrintedGate},
+	state.StrEntry[mayPlayParamCode]{Key: "MayLookAt", Val: mayPlayParamMayLookAt},
 )
