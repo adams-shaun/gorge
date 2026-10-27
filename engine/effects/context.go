@@ -615,6 +615,34 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: o.AttachedPlayer, IsPlayer: true}}, true
 		}
 		return nil, true
+	case definedSpecActivePlayer:
+		// Forge's ActivePlayer: the player whose turn it is.
+		return []state.Target{{Player: g.Active, IsPlayer: true}}, true
+	case definedSpecAttackingPlayer:
+		// Forge's AttackingPlayer: the combat's attacking player, the active
+		// player, and only while a combat is under way (beginning of combat
+		// through end of combat). Outside combat it names NOBODY with ok=true,
+		// never the source.
+		if g.Step >= state.StepBeginCombat && g.Step <= state.StepEndCombat {
+			return []state.Target{{Player: g.Active, IsPlayer: true}}, true
+		}
+		return nil, true
+	case definedSpecEnchantedController:
+		// The controller of the permanent the source is attached to; an
+		// unattached source (or a departed bearer) names nobody.
+		if p, ok := playerEnchantedController(g, c.Source); ok {
+			return []state.Target{{Player: p, IsPlayer: true}}, true
+		}
+		return nil, true
+	case definedSpecEnchantedOwner:
+		// The owner of the permanent the source is attached to; same
+		// fail-closed convention as EnchantedController.
+		if o := g.Obj(c.Source); o != nil && o.AttachedTo != 0 {
+			if bearer := g.Obj(o.AttachedTo); bearer != nil {
+				return []state.Target{{Player: bearer.Owner, IsPlayer: true}}, true
+			}
+		}
+		return nil, true
 	case definedSpecTopOrBottomOfLibrary:
 		// Library order is top-first. These selectors name one known card, not
 		// a player whose whole library should be searched; hidden-origin
@@ -2689,6 +2717,10 @@ const (
 	definedSpecTriggeredSpellAbilityTargets
 	definedSpecCardOwner
 	definedSpecOriginalHostController
+	definedSpecActivePlayer
+	definedSpecAttackingPlayer
+	definedSpecEnchantedController
+	definedSpecEnchantedOwner
 )
 
 var definedSpecCodes = state.NewStrCodes(
@@ -2795,6 +2827,10 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "TriggeredSpellAbilityTargets", Val: definedSpecTriggeredSpellAbilityTargets},
 	state.StrEntry[definedSpecCode]{Key: "CardOwner", Val: definedSpecCardOwner},
 	state.StrEntry[definedSpecCode]{Key: "OriginalHostController", Val: definedSpecOriginalHostController},
+	state.StrEntry[definedSpecCode]{Key: "ActivePlayer", Val: definedSpecActivePlayer},
+	state.StrEntry[definedSpecCode]{Key: "AttackingPlayer", Val: definedSpecAttackingPlayer},
+	state.StrEntry[definedSpecCode]{Key: "EnchantedController", Val: definedSpecEnchantedController},
+	state.StrEntry[definedSpecCode]{Key: "EnchantedOwner", Val: definedSpecEnchantedOwner},
 )
 
 type effectOwnerPlayersCode uint16
