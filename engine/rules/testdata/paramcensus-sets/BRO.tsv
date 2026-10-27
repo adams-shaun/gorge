@@ -1,4 +1,3 @@
 Gix, Yawgmoth Praetor	cost:Discard
 Hostile Negotiations	param:api:TwoPiles.KeepRemembered
-Over the Top	param:api:ChangeZoneAll.ForgetChanged
 The Stone Brain	param:api:Cleanup.ClearNamedCard

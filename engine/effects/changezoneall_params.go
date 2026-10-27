@@ -179,6 +179,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"FaceDownSetType",
 	"FaceDownToughness",
 	"Foretold",
+	"ForgetChanged",
 	"ForgetOtherRemembered",
 	"ForgetOtherTargets",
 	"FromDesc", "GainControl",
