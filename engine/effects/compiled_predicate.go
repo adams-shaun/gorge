@@ -274,8 +274,8 @@ func compilePredicateTerm(term string) predicateTerm {
 	case compilePredicateTermEscaped:
 		kind = predicateTermEscaped
 	case compilePredicateTermWasCastFromGraveyard:
-		// The graveyard-origin cast bits (FlagFlashback/FlagHarmonize/
-		// FlagEscaped) on a never-cast read — the compiled twin of the
+		// The graveyard-origin cast (a keyword flag or a LatestCastFrom of
+		// the graveyard) on a never-cast read — the compiled twin of the
 		// filter.go entry and of the Count$wasCastFromGraveyard branch head,
 		// all three sharing state.ObjectWasCastFromGraveyard (so a stack copy
 		// reads false: a copy was put on the stack, never cast, CR 707.10);

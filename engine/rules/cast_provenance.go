@@ -39,15 +39,16 @@
 //     wasCastFromTheirHand — the object's LATEST PutOnStack cast came from
 //     the named zone (and, for the YourGraveyard spellings, was made by the
 //     evaluating you). The bare wasCastFromGraveyard spelling is NOT here:
-//     it is the effects-side CastFlags predicate (FlagFlashback | Harmonize
-//     | Escaped, engine/effects/filter.go), which the rules-side strip must leave
+//     it is the effects-side predicate (state.ObjectWasCastFromGraveyard:
+//     the keyword flags OR a LatestCastFrom of the graveyard,
+//     engine/effects/filter.go), which the rules-side strip must leave
 //     in place for the effects-only call sites (the ConditionPresent gates,
-//     the target ValidTgts$ matching) — and the log read and the flag read
-//     agree on every shape the flag covers, so a rules-side site that strips
-//     the other four never disagrees with an effects-side site that keeps it.
-//     The flag set itself is state.WasCastFromGraveyard (flashback, harmonize,
-//     jump-start, escaped), shared with the three effects call sites so the
-//     two reads cannot drift.
+//     the target ValidTgts$ matching) — and the log read and that read agree
+//     on every cast, since the latest PutOnStack zone is what both consult,
+//     so a rules-side site that strips the other four never disagrees with
+//     an effects-side site that keeps it. The keyword flag set is
+//     state.WasCastFromGraveyard (flashback, harmonize, jump-start,
+//     escaped), the flags arm of that one object-aware read.
 //     The same latest-cast-wins and copy-was-never-cast guards the hand
 //     families take apply here.
 //
@@ -609,7 +610,7 @@ func (e *Engine) latestCastOrigin(obj state.ObjID) (state.Zone, state.PlayerID, 
 // families use. ok is false when no alternative survives. A spec without any
 // of the tokens is returned unchanged, so every unrelated evaluation is
 // byte-identical. The bare wasCastFromGraveyard spelling is deliberately NOT
-// evaluated here (it stays the effects-side CastFlags predicate).
+// evaluated here (it stays the effects-side zone-and-flags predicate).
 func (e *Engine) castOriginAdmits(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
 	for _, tok := range castOriginTokens {
 		if !strings.Contains(spec, tok.token) {
