@@ -225,10 +225,10 @@ func (w *legalWalk) mayPlaySpellWalk() {
 					raise = r
 				}
 				for i, alt := range e.mayPlayCastAlts(p, id, printed) {
-					if w.castRestrictedCost(p, id, alt.Plus(raise)) {
+					if w.castRestrictedCost(p, id, alt.cost.Plus(raise)) {
 						continue
 					}
-					if w.mayPlayAffordable(p, id, f, alt.Plus(raise)) {
+					if w.mayPlayAffordable(p, id, f, alt.cost.Plus(raise)) {
 						*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 							Label: altCostLabel(f.Name, i), Obj: id, Mode: "mayplay", AltCostIndex: i + 1})
 					}
