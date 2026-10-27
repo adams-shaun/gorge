@@ -318,7 +318,7 @@ func targetZones(sa *cards.SA) []state.Zone {
 //     whose tokens were all unknown must not silently fall through to Origin$
 //     either) and no stack-targeting TargetType$;
 //  3. effects.ParseZones parses its Origin$ as exactly one concrete zone
-//     (Graveyard or Battlefield for ChangeZone) -- not Any/All, not an
+//     (Graveyard, Battlefield or Exile for ChangeZone) -- not Any/All, not an
 //     unknown token, not a multi-zone origin (ParseZones' ok=false fails closed);
 //  4. its ValidTgts$ is object-only under the existing targetsPlayers
 //     classifier, so a player-targeted ChangeZone keeps its existing
@@ -348,7 +348,7 @@ func originImpliedTargetZone(sa *cards.SA) (state.Zone, bool, bool) {
 		// ChangeZone's Origin$ is read through its compiled parameters, the
 		// same parse effChangeZone's Origin$ precondition applies.
 		cz := effects.ChangeZoneOf(sa)
-		for _, z := range [...]state.Zone{state.ZGraveyard, state.ZBattlefield} {
+		for _, z := range [...]state.Zone{state.ZGraveyard, state.ZBattlefield, state.ZExile} {
 			if cz.OriginExactly(z) {
 				return z, true, changeZone
 			}
