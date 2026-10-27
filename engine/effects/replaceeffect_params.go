@@ -101,8 +101,6 @@ var replaceEffectKnownKeys = [...]string{
 	"ActivationPhases",
 	"ActivationZone",
 	"Activator",
-	"AddType",
-	"AddTypes",
 	"AdditionalDesc",
 	"AdditionalDescription",
 	"Affected",

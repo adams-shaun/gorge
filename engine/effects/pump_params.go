@@ -216,8 +216,6 @@ var pumpKnownKeys = [...]string{
 	"ActivationPhases",
 	"ActivationZone",
 	"Activator",
-	"AddType",
-	"AddTypes",
 	"AdditionalDesc",
 	"AdditionalDescription",
 	"Affected",
