@@ -90,10 +90,8 @@ var conditionUnmodelledBare = newConditionNames(
 // map; the evaluated set is conditionEvaluatedKeys). Counts measured
 // 2026-10-04.
 var conditionUnmodelledKeys = newConditionNames(
-	"ConditionManaSpent",            // 34
 	"ConditionPlayerDefined",        // 9
 	"ConditionPlayerContains",       // 9
-	"ConditionManaNotSpent",         // 5
 	"ConditionChosenColor",          // 5
 	"ConditionLifeTotal",            // 4
 	"ConditionLifeAmount",           // 4

@@ -841,6 +841,7 @@ func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) 
 				p0.cands[i1] = e.entryStageDone.cands[i1]
 				p0.cands[i1].remembered = append([]state.ObjID(nil), e.entryStageDone.cands[i1].remembered...)
 				p0.cands[i1].rememberedPlayers = append([]state.PlayerID(nil), e.entryStageDone.cands[i1].rememberedPlayers...)
+				p0.cands[i1].chosenCards = append([]state.ObjID(nil), e.entryStageDone.cands[i1].chosenCards...)
 				if e.entryStageDone.cands[i1].svars != nil {
 					p0.cands[i1].svars = make(map[string]string, len(e.entryStageDone.cands[i1].svars))
 					for k2, v2 := range e.entryStageDone.cands[i1].svars {
@@ -855,6 +856,7 @@ func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) 
 				p0.applied[i1] = e.entryStageDone.applied[i1]
 				p0.applied[i1].remembered = append([]state.ObjID(nil), e.entryStageDone.applied[i1].remembered...)
 				p0.applied[i1].rememberedPlayers = append([]state.PlayerID(nil), e.entryStageDone.applied[i1].rememberedPlayers...)
+				p0.applied[i1].chosenCards = append([]state.ObjID(nil), e.entryStageDone.applied[i1].chosenCards...)
 				if e.entryStageDone.applied[i1].svars != nil {
 					p0.applied[i1].svars = make(map[string]string, len(e.entryStageDone.applied[i1].svars))
 					for k2, v2 := range e.entryStageDone.applied[i1].svars {
@@ -884,6 +886,7 @@ func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) 
 				p0.matches[i1] = e.tokenChoice.matches[i1]
 				p0.matches[i1].remembered = append([]state.ObjID(nil), e.tokenChoice.matches[i1].remembered...)
 				p0.matches[i1].rememberedPlayers = append([]state.PlayerID(nil), e.tokenChoice.matches[i1].rememberedPlayers...)
+				p0.matches[i1].chosenCards = append([]state.ObjID(nil), e.tokenChoice.matches[i1].chosenCards...)
 				if e.tokenChoice.matches[i1].svars != nil {
 					p0.matches[i1].svars = make(map[string]string, len(e.tokenChoice.matches[i1].svars))
 					for k2, v2 := range e.tokenChoice.matches[i1].svars {
@@ -895,6 +898,7 @@ func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) 
 		p0.plan = append([]tokenPlanMint(nil), e.tokenChoice.plan...)
 		p0.match.remembered = append([]state.ObjID(nil), e.tokenChoice.match.remembered...)
 		p0.match.rememberedPlayers = append([]state.PlayerID(nil), e.tokenChoice.match.rememberedPlayers...)
+		p0.match.chosenCards = append([]state.ObjID(nil), e.tokenChoice.match.chosenCards...)
 		if e.tokenChoice.match.svars != nil {
 			p0.match.svars = make(map[string]string, len(e.tokenChoice.match.svars))
 			for k2, v2 := range e.tokenChoice.match.svars {
@@ -1047,6 +1051,7 @@ func cloneFieldsEngineParked2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 					c.replChoices[i0].cands[i1] = e.replChoices[i0].cands[i1]
 					c.replChoices[i0].cands[i1].remembered = append([]state.ObjID(nil), e.replChoices[i0].cands[i1].remembered...)
 					c.replChoices[i0].cands[i1].rememberedPlayers = append([]state.PlayerID(nil), e.replChoices[i0].cands[i1].rememberedPlayers...)
+					c.replChoices[i0].cands[i1].chosenCards = append([]state.ObjID(nil), e.replChoices[i0].cands[i1].chosenCards...)
 					if e.replChoices[i0].cands[i1].svars != nil {
 						c.replChoices[i0].cands[i1].svars = make(map[string]string, len(e.replChoices[i0].cands[i1].svars))
 						for k2, v2 := range e.replChoices[i0].cands[i1].svars {
@@ -1068,6 +1073,7 @@ func cloneFieldsEngineParked2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 					c.replChoices[i0].appliedRepls[i1] = e.replChoices[i0].appliedRepls[i1]
 					c.replChoices[i0].appliedRepls[i1].remembered = append([]state.ObjID(nil), e.replChoices[i0].appliedRepls[i1].remembered...)
 					c.replChoices[i0].appliedRepls[i1].rememberedPlayers = append([]state.PlayerID(nil), e.replChoices[i0].appliedRepls[i1].rememberedPlayers...)
+					c.replChoices[i0].appliedRepls[i1].chosenCards = append([]state.ObjID(nil), e.replChoices[i0].appliedRepls[i1].chosenCards...)
 					if e.replChoices[i0].appliedRepls[i1].svars != nil {
 						c.replChoices[i0].appliedRepls[i1].svars = make(map[string]string, len(e.replChoices[i0].appliedRepls[i1].svars))
 						for k2, v2 := range e.replChoices[i0].appliedRepls[i1].svars {
@@ -1082,6 +1088,7 @@ func cloneFieldsEngineParked2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 					c.replChoices[i0].used[i1] = e.replChoices[i0].used[i1]
 					c.replChoices[i0].used[i1].remembered = append([]state.ObjID(nil), e.replChoices[i0].used[i1].remembered...)
 					c.replChoices[i0].used[i1].rememberedPlayers = append([]state.PlayerID(nil), e.replChoices[i0].used[i1].rememberedPlayers...)
+					c.replChoices[i0].used[i1].chosenCards = append([]state.ObjID(nil), e.replChoices[i0].used[i1].chosenCards...)
 					if e.replChoices[i0].used[i1].svars != nil {
 						c.replChoices[i0].used[i1].svars = make(map[string]string, len(e.replChoices[i0].used[i1].svars))
 						for k2, v2 := range e.replChoices[i0].used[i1].svars {
@@ -1102,6 +1109,7 @@ func cloneFieldsEngineParked2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 						p1.cands[i2] = e.replChoices[i0].stage.cands[i2]
 						p1.cands[i2].remembered = append([]state.ObjID(nil), e.replChoices[i0].stage.cands[i2].remembered...)
 						p1.cands[i2].rememberedPlayers = append([]state.PlayerID(nil), e.replChoices[i0].stage.cands[i2].rememberedPlayers...)
+						p1.cands[i2].chosenCards = append([]state.ObjID(nil), e.replChoices[i0].stage.cands[i2].chosenCards...)
 						if e.replChoices[i0].stage.cands[i2].svars != nil {
 							p1.cands[i2].svars = make(map[string]string, len(e.replChoices[i0].stage.cands[i2].svars))
 							for k3, v3 := range e.replChoices[i0].stage.cands[i2].svars {
@@ -1116,6 +1124,7 @@ func cloneFieldsEngineParked2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 						p1.applied[i2] = e.replChoices[i0].stage.applied[i2]
 						p1.applied[i2].remembered = append([]state.ObjID(nil), e.replChoices[i0].stage.applied[i2].remembered...)
 						p1.applied[i2].rememberedPlayers = append([]state.PlayerID(nil), e.replChoices[i0].stage.applied[i2].rememberedPlayers...)
+						p1.applied[i2].chosenCards = append([]state.ObjID(nil), e.replChoices[i0].stage.applied[i2].chosenCards...)
 						if e.replChoices[i0].stage.applied[i2].svars != nil {
 							p1.applied[i2].svars = make(map[string]string, len(e.replChoices[i0].stage.applied[i2].svars))
 							for k3, v3 := range e.replChoices[i0].stage.applied[i2].svars {
@@ -1143,6 +1152,7 @@ func cloneFieldsEngineParked2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 							p2.cands[i3] = e.replChoices[i0].manaBoundary.phase.cands[i3]
 							p2.cands[i3].remembered = append([]state.ObjID(nil), e.replChoices[i0].manaBoundary.phase.cands[i3].remembered...)
 							p2.cands[i3].rememberedPlayers = append([]state.PlayerID(nil), e.replChoices[i0].manaBoundary.phase.cands[i3].rememberedPlayers...)
+							p2.cands[i3].chosenCards = append([]state.ObjID(nil), e.replChoices[i0].manaBoundary.phase.cands[i3].chosenCards...)
 							if e.replChoices[i0].manaBoundary.phase.cands[i3].svars != nil {
 								p2.cands[i3].svars = make(map[string]string, len(e.replChoices[i0].manaBoundary.phase.cands[i3].svars))
 								for k4, v4 := range e.replChoices[i0].manaBoundary.phase.cands[i3].svars {

@@ -69,7 +69,7 @@ import (
 // itself enumerates the ConditionDefined$ groups in conditionSupportedDefined
 // and the bare Condition$ values in conditionSupportedBare. The wider
 // vocabulary the corpus still carries but this file does not evaluate —
-// ConditionZone$ (60), ConditionManaSpent$ (34), ConditionNotPresent$ over an
+// ConditionZone$ (60), ConditionNotPresent$ over an
 // unenumerable group, a bare ConditionCompare$ with no group, and the other
 // ConditionDefined$/bare values — is classified unmodelled by
 // engine/effects/condition_census.go, so the walk fails it CLOSED with a Note. A
@@ -320,7 +320,8 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	firstCombat := cp.FirstCombat
 	activationLimit := cp.ActivationLimit
 	if defined == "" && present == "" && notPresent == "" && compare == "" && check == "" && bare == "" &&
-		playerTurn == "" && phases == "" && firstCombat == "" && activationLimit == "" {
+		playerTurn == "" && phases == "" && firstCombat == "" && activationLimit == "" &&
+		cp.ManaSpent == "" && cp.ManaNotSpent == "" {
 		return true, false // not gated (a lone ConditionSVarCompare$ compares nothing)
 	}
 	// ConditionActivationLimit$ <op><n> (4 corpus lines: Farrelite Priest,
@@ -335,12 +336,13 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// unsupported too.
 	if activationLimit != "" {
 		if defined != "" || present != "" || notPresent != "" || compare != "" || check != "" || bare != "" ||
-			playerTurn != "" || phases != "" || firstCombat != "" || c.ActivationsThisTurn <= 0 {
+			playerTurn != "" || phases != "" || firstCombat != "" || c.ActivationsThisTurn <= 0 ||
+			cp.ManaSpent != "" || cp.ManaNotSpent != "" {
 			return false, false
 		}
 		return activationCountHolds(c.ActivationsThisTurn, activationLimit)
 	}
-	// Any other Condition* key (Zone, ManaSpent, ...) beside the supported
+	// Any other Condition* key (PlayerDefined, LifeTotal, ...) beside the supported
 	// nine makes the shape unsupported. ConditionDescription$ is
 	// display text, not part of the evaluation, and is ignored.
 	// (The ConditionCheckSVar$ shape below covers the sacrifice-continuation
@@ -385,6 +387,15 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			extraMet = false
 		}
 	}
+	// ConditionManaSpent$ / ConditionManaNotSpent$: a precondition over the
+	// source's recorded per-colour spend, AND-ed like the turn/phase gates.
+	if cp.ManaSpent != "" || cp.ManaNotSpent != "" {
+		manaMet, manaOK := conditionManaSpentMet(c, g, cp.ManaSpent, cp.ManaNotSpent)
+		if !manaOK {
+			return false, false
+		}
+		extraMet = extraMet && manaMet
+	}
 	// ConditionFirstCombat$ (the DB$ AddPhase gate: Raiyuu, Storm's Edge and
 	// A-Raiyuu's "if it's the first combat phase of the turn" -- 3 corpus
 	// lines, the gate that keeps an extra combat from granting another one):
@@ -426,7 +437,7 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			return false, false
 		}
 		if defined == "" && present == "" && notPresent == "" && compare == "" && bare == "" &&
-			playerTurn == "" && phases == "" && firstCombat == "" {
+			playerTurn == "" && phases == "" && firstCombat == "" && cp.ManaSpent == "" && cp.ManaNotSpent == "" {
 			return holds, true
 		}
 		// A ConditionCheckSVar$ beside a ConditionDefined$/ConditionPresent$
@@ -461,7 +472,7 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	}
 	if bare != "" {
 		if defined != "" || present != "" || notPresent != "" || compare != "" || svarCmp != "" ||
-			playerTurn != "" || phases != "" || firstCombat != "" {
+			playerTurn != "" || phases != "" || firstCombat != "" || cp.ManaSpent != "" || cp.ManaNotSpent != "" {
 			return false, false
 		}
 		return conditionBareMet(h, c, bare, cp.OptionalPaid)

@@ -3,7 +3,6 @@ package effects
 import (
 	"strings"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -554,52 +553,18 @@ func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext,
 	return false
 }
 
-// faceIsTheChosenType reports whether the object's face carries the
-// "CARDNAME is the chosen type in addition to its other types" static
-// (Titan of Littjara, Adaptive Automaton, Metallic Mimic, Roaming Throne,
-// Multiversal Passage, Thran Portal): a Continuous static whose Affected$
-// names the host itself and whose AddType$/AddTypes$ value is the
-// ChosenType indirection. For such a referent the recorded "as this
-// enters" choice counts among its creature types in a
-// sharesCreatureTypeWith read: the grant is materialised only inside the
-// layer walk (rules' resolveChosenTypes against the host's recorded
-// choice), which a count or target filter evaluation never runs, so the
-// probe reads the static's own shape instead. A referent with no recorded
-// choice grants nothing — the same fail-closed direction the layer walk
-// takes.
-func faceIsTheChosenType(r *state.Object) bool {
-	if r == nil || r.Face() == nil || r.ChosenType == "" {
-		return false
-	}
-	for _, st := range r.Face().Statics {
-		if st.Mode != "Continuous" || !strings.Contains(st.ParamStr(cards.PKAffected), "Self") {
-			continue
-		}
-		for v := range strings.SplitSeq(st.ParamStr(cards.PKAddType), ",") {
-			if strings.TrimSpace(v) == "ChosenType" {
-				return true
-			}
-		}
-		for v := range strings.SplitSeq(st.ParamStr(cards.PKAddTypes), ",") {
-			if strings.TrimSpace(v) == "ChosenType" {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // sharesCreatureTypeWith reports whether o shares at least one CREATURE
 // subtype with any object the referent names (Forge
-// Card.sharesCreatureTypeWith: an intersection over the creature subtypes —
-// Heirloom Blade's "a creature card that shares a creature type with it").
-// The candidate's subtypes are read context-aware (hasTypeCtx: layer grants
-// and Changeling reach it); the referent's own subtypes are read from its
-// live face exactly like sharesCardTypeWith's card-type read (hasType,
-// which handles Changeling on the referent's side too) — plus the chosen
-// type when the face's own "is the chosen type" static grants it
-// (faceIsTheChosenType: Titan of Littjara's Illusion-Bear read below).
-// An unbound referent matches nothing — fail closed, never widened.
+// Card.sharesCreatureTypeWith: an intersection over the CURRENT creature
+// subtypes — Heirloom Blade's "a creature card that shares a creature type
+// with it"). Both sides read the layer-4 (CR 613.1d) type set: the candidate
+// through hasTypeCtx, the referent through derivedCreatureTypes, so a
+// changeling, an AddAllCreatureTypes$ grant (Mistform Ultimus, Mutavault) or
+// a chosen-type grant (Titan of Littjara) is one of the referent's creature
+// types rather than only a printed word. An object with every creature type
+// shares with any object that has at least one creature type (CR 702.73a),
+// on either side. An unbound referent matches nothing — fail closed, never
+// widened.
 func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
 	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
@@ -609,21 +574,64 @@ func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref 
 		if r == nil || r.Face() == nil {
 			continue
 		}
-		for _, word := range r.Face().Types {
+		types, all := derivedCreatureTypes(r, &sc)
+		// The referent side of CR 702.73a: every creature type shares with
+		// any object that has at least one creature type. The reverse
+		// direction needs no separate arm — hasTypeCtx below sees the
+		// candidate's own all-types marker.
+		if all && hasAnyCreatureTypeCtx(o, &sc) {
+			return true
+		}
+		for _, word := range types {
 			if !CreatureTypeWords(word) {
 				continue
 			}
-			if hasTypeCtx(o, word, sc) && hasType(r, word) {
+			if hasTypeCtx(o, word, sc) {
 				return true
 			}
 		}
-		// The chosen-type grant: the recorded choice is one of the
-		// referent's creature types exactly as the layer walk materialises
-		// it. The printed-face hasType above cannot see the grant (it lives
-		// in rules' layer-4 emission, not on Face().Types), so this read is
-		// the grant's own — and CreatureTypeWords keeps a non-creature
-		// recorded choice (a ChooseType over another category) out.
-		if w := r.ChosenType; w != "" && CreatureTypeWords(w) && faceIsTheChosenType(r) && hasTypeCtx(o, w, sc) {
+	}
+	return false
+}
+
+// derivedCreatureTypes returns o's layer-4 type words and all-creature-types
+// marker as bound in sc, falling back to the printed face plus the intrinsic
+// CDA (Changeling, AddAllCreatureTypes$ True) when no derived entry exists —
+// an object off the battlefield. The returned slice is sc's own (or the
+// face's); callers only read it, and the scan allocates nothing.
+func derivedCreatureTypes(o *state.Object, sc *SpecContext) ([]string, bool) {
+	for i := range sc.Layers.DerivedTypes {
+		if d := &sc.Layers.DerivedTypes[i]; d.ID == o.ID {
+			return d.Types, d.AllCreatureTypes
+		}
+	}
+	if o.Face() == nil {
+		return nil, false
+	}
+	return o.Face().Types, IntrinsicAllCreatureTypes(o)
+}
+
+// hasAnyCreatureTypeCtx reports whether o currently has at least one creature
+// subtype. It follows hasTypeCtx's read order so the all-types branch above
+// cannot disagree with the word intersection beside it: the layer walk's
+// types-so-far list when it is bound for o, else the layer-4 derived entry,
+// else the printed face plus its intrinsic CDA.
+func hasAnyCreatureTypeCtx(o *state.Object, sc *SpecContext) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	var types []string
+	if sc.ExtraTypes != nil && o.ID == sc.ExtraTypesOwner {
+		types = sc.ExtraTypes
+	} else {
+		var all bool
+		types, all = derivedCreatureTypes(o, sc)
+		if all {
+			return true
+		}
+	}
+	for _, word := range types {
+		if CreatureTypeWords(word) {
 			return true
 		}
 	}

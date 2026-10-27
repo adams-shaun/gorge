@@ -538,6 +538,7 @@ const (
 	PKControlOpponentsSearchingLibrary
 	PKCounterAmount
 	PKDamageAmount
+	PKDamageTarget
 	PKDelirium
 	PKDescription
 	PKDethrone
@@ -1395,6 +1396,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKControlOpponentsSearchingLibrary: "ControlOpponentsSearchingLibrary",
 	PKCounterAmount:                    "CounterAmount",
 	PKDamageAmount:                     "DamageAmount",
+	PKDamageTarget:                     "DamageTarget",
 	PKDelirium:                         "Delirium",
 	PKDescription:                      "Description",
 	PKDethrone:                         "Dethrone",

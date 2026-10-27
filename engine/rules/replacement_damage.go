@@ -40,7 +40,7 @@ func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMat
 		// DamageDone replacement the scan just admitted (Taii Wakeen).
 		matched := false
 		if m.key != "" {
-			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers)
+			matched = e.replacementMatchesEffectCreatedCap(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers, m.chosenCap())
 		} else {
 			matched = e.replacementMatches(*m.repl, m.id, ev)
 		}
@@ -274,7 +274,7 @@ func bindPreventedAmount(v string, prevented int) string {
 // (nil/nil for every printed line); a shield scopes by them directly, every
 // other filter evaluates as before.
 func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev events.Event,
-	remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
+	remembered []state.ObjID, rememberedPlayers []state.PlayerID, cc chosenCapture) bool {
 	ctrl := e.controllerOf(source)
 	// A prevention shield (effects' PreventDamage registration, marker
 	// PreventionShield) scopes by ITS OWN captured recipients: membership in
@@ -345,13 +345,16 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 			// nil remembered: only the chosen half is added here, so an
 			// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
 			// exact match it had before ChooseSource landed.
-			!e.matchesSpec(v, src, e.rememberedSpecContext(ctrl, source, nil)) {
+			!e.matchesSpec(v, src, e.rememberedSpecContextCap(ctrl, source, nil, cc)) {
 			return false
 		}
 	}
 	if v := r.ParamStr(cards.PKValidTarget); v != "" {
 		if ev.Obj != 0 {
-			if !e.matchesSpecFrom(v, ev.Obj, ctrl, source) {
+			// The Effect's own capture scopes the object half too: Shielded
+			// Passage's `ValidTarget$ Card.IsRemembered` names the creature it
+			// targeted, and a ChosenCard spec reads the creation-time choice.
+			if !e.matchesSpec(v, ev.Obj, e.rememberedSpecContextCap(ctrl, source, remembered, cc)) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
@@ -477,9 +480,9 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
 			m := replMatch{id: ce.Source, repl: r,
 				remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
-				chosen: ce.ChosenNumber,
-				key:    "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) &&
+				chosen: ce.ChosenNumber, chosenCards: ce.Chosen, chosenBound: ce.ChosenBound,
+				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+			if !alreadyUsed(m) && e.replacementMatchesEffectCreatedCap(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, m.chosenCap()) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj)) {
 				out = append(out, m)
 			}
@@ -494,8 +497,9 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
 			m := replMatch{id: ce.Source, repl: r,
 				remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
+				chosenCards: ce.Chosen, chosenBound: ce.ChosenBound,
 				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) &&
+			if !alreadyUsed(m) && e.replacementMatchesEffectCreatedCap(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, m.chosenCap()) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj)) {
 				out = append(out, m)
 			}
@@ -561,6 +565,9 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 		// prevented event is terminal, a reduced one stands for the
 		// recomputation below (CR 616.1e).
 		return e.applyReplaceDamageBody(ev, m)
+	}
+	if m.repl.With.API == "ReplaceSplitDamage" {
+		return e.applyReplaceSplitDamageBody(ev, m)
 	}
 	e.runReplaceWith(e.replCtx(m, *ev), ev.Obj, m.repl.With, ev)
 	return m.repl.With.API != "ReplaceEffect"
