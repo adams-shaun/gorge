@@ -46,6 +46,23 @@ import (
 // updateKnownKeys rewrites the known-key tables from the measured census.
 var updateKnownKeys = flag.Bool("update", false, "rewrite the effects known-key tables from the measured census (the Test*KnownKeysMatchTheCensus family); rerun without the flag to verify")
 
+// runtimeIgnoredAbilityParams are the ignoredAbilityParams entries whose API
+// also owns a runtime unread table, so the table must silence the same key the
+// census scopes. The list is deliberately explicit: a scoped ignore is
+// census-only unless the API's compiler has an unread Note of its own, and
+// Play/ImmediateTrigger have no such table today (their entries are still
+// named so a future table inherits the scope).
+var runtimeIgnoredAbilityParams = []string{
+	"ChangeZone.AlreadyRevealed",
+	"ChangeZone.ETB",
+	"Effect.ExileOnLost",
+	"ImmediateTrigger.AfterReplacement",
+	"Play.ShowCardToActivator",
+	"Pump.Origin",
+	"PutCounter.SpecifyCounter",
+	"ReplaceEffect.VarType",
+}
+
 // knownKeysCensusWant is the census-derived want list
 // checkKnownKeysMatchTheCensus holds each table to: the API's measured read
 // set (minus the key the generic activation-cost tier owns) plus the ignored
@@ -62,6 +79,16 @@ func knownKeysCensusWant(api string, d *derivedReads) []string {
 	}
 	for k := range ignoredParamKeys {
 		want[k] = true
+	}
+	// A scoped ignored key whose API also owns a runtime unread table must
+	// join that table: otherwise the resolver still Notes the exact false
+	// positive the census suppressed. Only the entries listed below have a
+	// table to join (the rest are census-only: GenericChoice shares
+	// charmKnownKeys with Charm, so no per-API table can answer its scope).
+	for _, k := range runtimeIgnoredAbilityParams {
+		if a, key, ok := strings.Cut(k, "."); ok && a == api {
+			want[key] = true
+		}
 	}
 	// A mode body's Pawprint$ is read by its parent Charm (modePawprint), not
 	// by the mode API's own compiler, so the census scopes the key to exactly
