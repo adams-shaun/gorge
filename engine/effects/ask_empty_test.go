@@ -351,9 +351,9 @@ func TestDefinedHiddenOriginObjectsMoveDirectly(t *testing.T) {
 // TestDefinedLibraryObjectSelectorsMoveDirectly covers every resolved
 // object-valued selector in the exact-Library audit. A fresh library search
 // would ask this askable host; each selector instead moves only its established
-// fetch-list member. Search-like Defined$ fetches shuffle the source library;
-// TopOfLibrary and BottomOfLibrary are known-position reads and do not. In
-// particular, ChosenCard is the list recorded by an earlier ChooseCard answer,
+// fetch-list member. A Defined$ fetch is not a search, so none of them shuffles
+// the source library without an explicit Shuffle$ True, a library destination,
+// a NoLooking$ placement leg or a deferred search shuffle. In particular, ChosenCard is the list recorded by an earlier ChooseCard answer,
 // not a request to search the whole library.
 func TestDefinedLibraryObjectSelectorsMoveDirectly(t *testing.T) {
 	cases := []struct {
@@ -363,11 +363,11 @@ func TestDefinedLibraryObjectSelectorsMoveDirectly(t *testing.T) {
 		bind          func(*Ctx, state.ObjID)
 	}{
 		{
-			name: "remembered", defined: "Remembered", want: 1, shuffles: 1,
+			name: "remembered", defined: "Remembered", want: 1, shuffles: 0,
 			bind: func(c *Ctx, id state.ObjID) { c.Remembered = []state.Target{{Obj: id}} },
 		},
 		{
-			name: "chosen card", defined: "ChosenCard", want: 1, shuffles: 1,
+			name: "chosen card", defined: "ChosenCard", want: 1, shuffles: 0,
 			bind: func(c *Ctx, id state.ObjID) {
 				// This is choiceRecord's post-answer binding. The selected object
 				// remains in the library until this ChangeZone consumes it.
