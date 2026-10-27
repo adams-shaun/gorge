@@ -68,10 +68,12 @@ func applyCountOpOperandOK(h Host, c *Ctx, n int32, op string, depth int) (int32
 
 // countOperandOps are the arithmetic suffixes whose operand may be a name
 // rather than a literal: Plus./Minus./Times. (Alrund's SVar$X/Plus.Y,
-// Forgotten Lore's SVar$ChoiceNum/Times.CheckNotPaid) and Forge's clamp
-// pair LimitMax./LimitMin. (Face to Face's SVar$Wins/LimitMin.Losses,
-// Snowblind's SVar$EnchantedDef/LimitMax.AttackingX).
-var countOperandOps = [...]string{"Plus.", "Minus.", "Times.", "LimitMax.", "LimitMin.", "Pow."}
+// Forgotten Lore's SVar$ChoiceNum/Times.CheckNotPaid), Forge's clamp pair
+// LimitMax./LimitMin. (Face to Face's SVar$Wins/LimitMin.Losses, Snowblind's
+// SVar$EnchantedDef/LimitMax.AttackingX), Pow. (Mathemagics'
+// Number$2/Pow.X) and Mod. (Face to Face's SVar$Sum/Mod.3, Sab-Sunen's
+// Count$CardCounters.ALL/Mod.2).
+var countOperandOps = [...]string{"Plus.", "Minus.", "Times.", "LimitMax.", "LimitMin.", "Pow.", "Mod."}
 
 // countOperandValue resolves a named arithmetic operand, in the order the
 // SVar$ head reads a name: a Count$ expression; a runtime write
@@ -435,6 +437,14 @@ func applyCountOp(n int32, op string) int32 {
 	case strings.HasPrefix(op, "Times."):
 		if x, err := strconv.Atoi(op[len("Times."):]); err == nil {
 			v *= int64(x)
+		}
+	case strings.HasPrefix(op, "Mod."):
+		// Forge's doXMath "Mod" (AbilityUtils.doXMath: num % secondaryNum).
+		// Java and Go both give the remainder the dividend's sign. A zero
+		// divisor is left unchanged rather than panicking; no corpus body
+		// spells Mod.0 and the Divide arm guards zero the same way.
+		if x, err := strconv.Atoi(op[len("Mod."):]); err == nil && x != 0 {
+			v %= int64(x)
 		}
 	case strings.HasPrefix(op, "Pow."):
 		if x, err := strconv.Atoi(op[len("Pow."):]); err == nil && x >= 0 {
