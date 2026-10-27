@@ -1,22 +1,14 @@
 Defined$ .Chosen,You	2
-Defined$ ActivePlayer	2
 Defined$ AttachedTo Targeted.Aura,Equipment	1
 Defined$ AttachedTo Targeted.Equipment	1
-Defined$ AttackingPlayer	3
 Defined$ Card.Self	1
 Defined$ ChoosingPlayer	2
 Defined$ ChosenMap	2
 Defined$ DefendingPlayer	1
-Defined$ DirectRemembered	4
 Defined$ DiscardedCards	1
-Defined$ EnchantedController	5
-Defined$ EnchantedOwner	1
 Defined$ ExiledCards.withoutSuspend	1
-Defined$ ExiledWithSource	4
-Defined$ Imprinted.ExiledWithSource	3
 Defined$ OppNonParentTarget	4
 Defined$ OppNonRememberedOwner	2
-Defined$ ParentTarget.attacking	1
 Defined$ RememberedFirst	1
 Defined$ ReplacedCardController	2
 Defined$ ReplacedCardLKIController	1
@@ -43,5 +35,4 @@ Defined$ ValidCommand Effect.namedRaging River Left+IsImprinted	1
 Defined$ ValidCommand Effect.namedRaging River Right	1
 Defined$ ValidCommand Effect.namedRaging River Right+IsImprinted	1
 Defined$ You & TriggeredSpellAbility>ManaSpender.Other	1
-DefinedPlayer$ ActivePlayer	1
 DefinedPlayer$ RememberController	1

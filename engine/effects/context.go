@@ -671,6 +671,34 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: o.AttachedPlayer, IsPlayer: true}}, true
 		}
 		return nil, true
+	case definedSpecActivePlayer:
+		// Forge's ActivePlayer: the player whose turn it is.
+		return []state.Target{{Player: g.Active, IsPlayer: true}}, true
+	case definedSpecAttackingPlayer:
+		// Forge's AttackingPlayer: the combat's attacking player, the active
+		// player, and only while a combat is under way (beginning of combat
+		// through end of combat). Outside combat it names NOBODY with ok=true,
+		// never the source.
+		if g.Step >= state.StepBeginCombat && g.Step <= state.StepEndCombat {
+			return []state.Target{{Player: g.Active, IsPlayer: true}}, true
+		}
+		return nil, true
+	case definedSpecEnchantedController:
+		// The controller of the permanent the source is attached to; an
+		// unattached source (or a departed bearer) names nobody.
+		if p, ok := playerEnchantedController(g, c.Source); ok {
+			return []state.Target{{Player: p, IsPlayer: true}}, true
+		}
+		return nil, true
+	case definedSpecEnchantedOwner:
+		// The owner of the permanent the source is attached to; same
+		// fail-closed convention as EnchantedController.
+		if o := g.Obj(c.Source); o != nil && o.AttachedTo != 0 {
+			if bearer := g.Obj(o.AttachedTo); bearer != nil {
+				return []state.Target{{Player: bearer.Owner, IsPlayer: true}}, true
+			}
+		}
+		return nil, true
 	case definedSpecTopOrBottomOfLibrary:
 		// Library order is top-first. These selectors name one known card, not
 		// a player whose whole library should be searched; hidden-origin
@@ -2027,6 +2055,10 @@ func eventRemember(h Host, c *Ctx, id state.ObjID) {
 var definedAliases = map[string]string{
 	"TargetedOrController": "TargetedController",
 	"TargetedAndYou":       "TargetedController & You",
+	// DirectRemembered -- the host's remembered objects as the RememberLKI$
+	// copies stored them (Supplant Form, Dance of the Dead): the same
+	// capture-excluding set RememberedLKI names.
+	"DirectRemembered": "RememberedLKI",
 }
 
 // uniqueTargets drops repeated entries, keeping first-occurrence order.
@@ -2745,6 +2777,10 @@ const (
 	definedSpecTriggeredSpellAbilityTargets
 	definedSpecCardOwner
 	definedSpecOriginalHostController
+	definedSpecActivePlayer
+	definedSpecAttackingPlayer
+	definedSpecEnchantedController
+	definedSpecEnchantedOwner
 )
 
 var definedSpecCodes = state.NewStrCodes(
@@ -2847,6 +2883,7 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "TriggeredAttackerController", Val: definedSpecTriggeredCombatantController},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredBlockerController", Val: definedSpecTriggeredCombatantController},
 	state.StrEntry[definedSpecCode]{Key: "ExiledWith", Val: definedSpecExiledWith},
+	state.StrEntry[definedSpecCode]{Key: "ExiledWithSource", Val: definedSpecExiledWith},
 	state.StrEntry[definedSpecCode]{Key: "Equipped", Val: definedSpecEquipped},
 	state.StrEntry[definedSpecCode]{Key: "Enchanted", Val: definedSpecEquipped},
 	state.StrEntry[definedSpecCode]{Key: "AttachedTo", Val: definedSpecEquipped},
@@ -2859,6 +2896,10 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "TriggeredSpellAbilityTargets", Val: definedSpecTriggeredSpellAbilityTargets},
 	state.StrEntry[definedSpecCode]{Key: "CardOwner", Val: definedSpecCardOwner},
 	state.StrEntry[definedSpecCode]{Key: "OriginalHostController", Val: definedSpecOriginalHostController},
+	state.StrEntry[definedSpecCode]{Key: "ActivePlayer", Val: definedSpecActivePlayer},
+	state.StrEntry[definedSpecCode]{Key: "AttackingPlayer", Val: definedSpecAttackingPlayer},
+	state.StrEntry[definedSpecCode]{Key: "EnchantedController", Val: definedSpecEnchantedController},
+	state.StrEntry[definedSpecCode]{Key: "EnchantedOwner", Val: definedSpecEnchantedOwner},
 )
 
 type effectOwnerPlayersCode uint16
@@ -2913,13 +2954,16 @@ var exiledWithSourceKeyCodes = state.NewStrCodes(
 // triggeredCardQualified resolves `<base>.<qualifier>` when base is one of the
 // Triggered-card family spellings (definedSpecTriggeredCard), the singular
 // attacker spellings (definedSpecTriggeredAttacker) or the source spellings
-// (definedSpecSelf: Iron Man Armor's `Self.nonCreature`): the base's objects
-// filtered by definedCardQualifierMatches. A compound (" & ") value is not
+// (definedSpecSelf: Iron Man Armor's `Self.nonCreature`), the imprinted cards
+// (`Imprinted.ExiledWithSource`), the parent's targets
+// (`ParentTarget.attacking`) or the paid exile/reveal list
+// (definedSpecExiled): the base's objects filtered by definedCardQualifierMatches. A compound (" & ") value is not
 // this shape and is left to the callers that split it.
 func triggeredCardQualified(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	base, qual, dotted := strings.Cut(spec, ".")
 	code := definedSpecCodes.Code(base)
-	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker && code != definedSpecSelf) {
+	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker && code != definedSpecSelf &&
+		code != definedSpecImprinted && code != definedSpecParentTarget && code != definedSpecExiled) {
 		return nil, false
 	}
 	ts, _ := definedSpec(h, c, base)
