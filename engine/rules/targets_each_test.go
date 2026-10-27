@@ -316,16 +316,32 @@ func TestTolarianContemptBareInlineBoundAsksOnePerOpponent(t *testing.T) {
 	// RepeatEach over the targeted) then moves each chosen creature to its
 	// OWNER's library. Tolarian Contempt's script writes NO LibraryPosition$
 	// on the primary move (Forge's absent default is 0 = TOP), and its
-	// top-or-bottom election rides AlternativeDecider$ RememberedOwner, a
-	// decider this engine does not recognise. The deterministic no-host
-	// fallback therefore takes the PRIMARY placement (top) -- the same
-	// primary-destination contract the Dream Cache DestinationAlternative$
-	// shape has -- and emits a Note naming the unrecognised decider. Before
-	// golgari_thug2 the absent spelling left the card at the MoveZone bottom
-	// append, which is what the old bottom assertion here was pinning.
+	// top-or-bottom election rides AlternativeDecider$ RememberedOwner, which
+	// cr-g221 resolves through the Defined$ player grammar to each iteration's
+	// remembered card's owner. Each owner is therefore asked top or bottom;
+	// answer "top" (the primary placement this test's assertions were written
+	// against). Before cr-g221 the decider was unrecognised, so no owner was
+	// asked and the Note-plus-primary fallback happened to place the bears on
+	// top too.
 	pick := []int{indexOf(bearA), indexOf(bearC)}
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: pick}); err != nil {
 		t.Fatalf("submit one-per-opponent answer: %v", err)
+	}
+	for asked := 0; asked < 2; asked++ {
+		ask := passPriorityUntil(t, e, decision.KChoose)
+		if ask.ResumeKind != "changezone_alternative" {
+			t.Fatalf("decider ask %d = %+v, want changezone_alternative", asked, ask)
+		}
+		top := -1
+		for _, o := range ask.Options {
+			if o.Label == "top" {
+				top = o.Index
+			}
+		}
+		if top < 0 {
+			t.Fatalf("decider ask %d offers no top option: %+v", asked, ask.Options)
+		}
+		submitChoices(t, e, top)
 	}
 	passUntilStackEmpty(t, e, 40)
 	if z := e.G.Obj(bearA).Zone; z != state.ZLibrary {

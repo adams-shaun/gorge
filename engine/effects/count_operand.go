@@ -110,7 +110,8 @@ func countOperandValue(h Host, c *Ctx, operand string, depth int) (int32, bool) 
 // Count$Valid/ValidZone body whose property is one of the bounded
 // distinct-set reads -- Colors's one corpus op suffix (happily_ever_after's
 // Permanent.YouCtrl$Colors/LimitMax.5) and CreatureType's two (Valiant
-// Changeling's /LimitMax.5, Saavik's /LimitMax.10). It is called from
+// Changeling's /LimitMax.5, Saavik's /LimitMax.10). PlaneswalkerType (cr-g222)
+// joins the bounded distinct-set reads so the same clamp applies. It is called from
 // evalCountExprOK's generic /Op site, which cuts the suffix off the whole
 // body BEFORE the head dispatch, so the countZone branch never sees it;
 // keeping the clamp scoped to the bounded distinct-set properties (the
@@ -602,4 +603,5 @@ const (
 var countDistinctLimitMaxCodes = state.NewStrCodes(
 	state.StrEntry[countDistinctLimitMaxCode]{Key: "Colors", Val: countDistinctLimitMaxSupported},
 	state.StrEntry[countDistinctLimitMaxCode]{Key: "CreatureType", Val: countDistinctLimitMaxSupported},
+	state.StrEntry[countDistinctLimitMaxCode]{Key: "PlaneswalkerType", Val: countDistinctLimitMaxSupported},
 )

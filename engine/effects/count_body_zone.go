@@ -30,8 +30,10 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	// anyway. The Different* distinct family IS read since diffcount1
 	// (differentPropertyKindOf's case above): distinct powers/names/mana
 	// values among the matches, the Augur of Autumn Coven gate's shape.
-	// CreatureType and CardTypesPermanent (task diffcount2) are the same
-	// distinct-set shape over a narrower vocabulary. The four extreme
+	// CreatureType, PlaneswalkerType and CardTypesPermanent (task
+	// diffcount2, cr-g222) are the same distinct-set shape over a narrower
+	// vocabulary; PlaneswalkerType reads the matched planeswalker's own
+	// printed subtypes (CR 205.3j), so it has no roster to fall behind. The four extreme
 	// reductions (GreatestCardPower 64 files,
 	// GreatestCardManaCost 62, GreatestCardToughness 12, LeastCardPower 1;
 	// 136 files total) are read: the max (or min, for Least) of the
@@ -50,7 +52,8 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 			switch {
 			case prop == "CardPower" || prop == "CardToughness" || prop == "CardManaCost" ||
 				prop == "CardTypes" || prop == "CardTypesPermanent" || prop == "Colors" ||
-				prop == "CreatureType" || strings.HasPrefix(prop, "CardCounters."):
+				prop == "CreatureType" || prop == "PlaneswalkerType" ||
+				strings.HasPrefix(prop, "CardCounters."):
 			case isExtremeProperty(prop):
 			case differentPropertyKindOf(prop) != diffNone:
 			default:
@@ -76,6 +79,13 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		var seenCreatureTypes map[string]bool
 		if prop == "CreatureType" {
 			seenCreatureTypes = make(map[string]bool)
+		}
+		// PlaneswalkerType (cr-g222) is the planeswalker-subtype sibling of
+		// CreatureType: Tam, the Possibility's "the number of planeswalker
+		// types among planeswalkers you control".
+		var seenPlaneswalkerTypes map[string]bool
+		if prop == "PlaneswalkerType" {
+			seenPlaneswalkerTypes = make(map[string]bool)
 		}
 		// The bare wasCastFromYourHand qualifier (task castprov3, Approach of
 		// the Second Sun's Count$ValidStack Card.wasCastFromYourHand+Self):
@@ -140,7 +150,8 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 			prop: prop, extreme: extreme, isLeast: isLeastProperty(prop),
 			hasBareHand: hasBareHand, readsPT: SpecReadsPT(spec),
 			seenTokenNames: seenTokenNames, seenCardTypes: seenCardTypes,
-			seenCreatureTypes: seenCreatureTypes}
+			seenCreatureTypes:     seenCreatureTypes,
+			seenPlaneswalkerTypes: seenPlaneswalkerTypes}
 		// The Different* distinct-set property family (task diffcount1):
 		// DifferentCardManaCost / DifferentCardPower / DifferentCardNames /
 		// DifferentColorPair count the DISTINCT values among the matching
@@ -217,6 +228,9 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		}
 		if prop == "CreatureType" {
 			return int32(len(seenCreatureTypes)), true, true
+		}
+		if prop == "PlaneswalkerType" {
+			return int32(len(seenPlaneswalkerTypes)), true, true
 		}
 		if seenTokenNames != nil {
 			return int32(len(seenTokenNames)), true, true

@@ -57,7 +57,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 
 	kind := pc.Kind
 	// CounterTypes$ (plural) entries this build does not model as a plain kind
-	// (ChosenFromList, EachType_*) are named loudly; the plain entries still
+	// (an EachType_* without a Choices$ pick) are named loudly; the plain entries still
 	// place. One loud Note per resolution, never a silent drop.
 	if len(pc.SpecialTypes) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
@@ -166,6 +166,10 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// the decision's continuation.
 	counterKinds := pc.Kinds
 	perKind := pc.CounterTypePerDefined
+	if pc.EachTypeSpec != "" {
+		putCounterEachType(h, c, sa, pc, n)
+		return
+	}
 	if pc.Choices != "" {
 		putCounterChoose(h, c, sa, n, kind, counterKinds)
 		return
@@ -344,16 +348,21 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		amount = putCounterAmount(h, c, sa, pc, etb, amount, ti)
+		chosenKind := putCounterChosenFromList(h, c, sa, pc, ti)
 		totalBefore := o.Counter("ALL")
 		if len(kindsAns) > 0 {
 			for _, chosenKind := range kindsAns {
 				emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: chosenKind, Amount: amount})
 			}
-		} else if len(pc.OneOfEach) > 0 {
+		} else if len(pc.OneOfEach) > 0 || pc.ChosenFromList {
 			// CounterTypes$: one counter of each listed kind (repeats
-			// accumulate), never a single default P1P1.
+			// accumulate), never a single default P1P1; a ChosenFromList
+			// entry adds the kind chosen for this recipient.
 			for _, k := range pc.OneOfEach {
 				emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: amount})
+			}
+			if chosenKind != "" {
+				emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: chosenKind, Amount: amount})
 			}
 		} else {
 			emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
@@ -394,6 +403,64 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	rememberPlaced(c, sa, placed)
 	if pc.RememberAmount {
 		c.Remembered = append(c.Remembered, amountPlaced...)
+	}
+}
+
+// putCounterChosenFromList is CounterTypes$'s ChosenFromList entry for the
+// recipient at index ti: the counter kind chosen from TypeList$ (Forge's
+// chooseTypeFromList, one choice per recipient). A single-entry list asks
+// nothing; no ChosenFromList entry, or an empty list, yields "".
+func putCounterChosenFromList(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, ti int) string {
+	if !pc.ChosenFromList || len(pc.TypeList) == 0 {
+		return ""
+	}
+	if len(pc.TypeList) == 1 {
+		return pc.TypeList[0]
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, ResumeTarget: ti, Prompt: "Choose a counter kind"}
+	for i, k := range pc.TypeList {
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+	}
+	if ans, ok := AskTape(h, d); ok {
+		if k := counterAnswerLabel(ans); k != "" {
+			return k
+		}
+	}
+	return pc.TypeList[0]
+}
+
+// putCounterEachType is CounterTypes$'s EachType_<spec> entry with a Choices$
+// pick (Exotic Pets' "for each kind of counter among creatures you control,
+// put a counter of that kind on either of those tokens"): the distinct counter
+// kinds on the battlefield objects matching <spec> are gathered in
+// deterministic battlefield order (players from the controller, each object's
+// Counters in slice order), and the Choices$ recipient pick runs once per
+// kind, placing CounterNum$ counters of that kind on the pick. No kinds, no
+// ask and no counters.
+func putCounterEachType(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, n int32) {
+	g := h.Game()
+	var kinds []string
+	seen := map[string]bool{} // membership only, never ranged
+	for _, p := range g.AliveFrom(c.Controller) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
+			if o == nil || !MatchesSpecCtx(g, pc.EachTypeSpec, id, c.SpecContext(c.Controller)) {
+				continue
+			}
+			for _, ct := range o.Counters {
+				if ct.N > 0 && !seen[ct.Kind] {
+					seen[ct.Kind] = true
+					kinds = append(kinds, ct.Kind)
+				}
+			}
+		}
+	}
+	for _, k := range kinds {
+		title := "Put a " + k + " counter on a creature"
+		if pc.ChoiceTitle != "" {
+			title = pc.ChoiceTitle + " (" + k + ")"
+		}
+		putCounterChooseTitled(h, c, sa, n, k, nil, title)
 	}
 }
 
