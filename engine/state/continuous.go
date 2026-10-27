@@ -496,6 +496,13 @@ type ContinuousEffect struct {
 	// live turn, never a mutable field.
 	MayPlayPlayerTurn bool
 
+	// ControllerTurnOnly gates a granted layer effect on its controller's
+	// turn (an Animate staticAbilities$ body's Condition$ PlayerTurn,
+	// Restless Spire's "during your turn, this creature has first strike",
+	// CR 611.3a): rules' continuousLive keeps it only while the source's
+	// controller is the active player. False on every ungated effect.
+	ControllerTurnOnly bool
+
 	// MayPlayFree marks the grant's MayPlayWithoutManaCost$ True rider (the
 	// free-cast may-play family: Dauthi Voidwalker's "you may play it this
 	// turn without paying its mana cost", Idol of Endurance, Nicol Bolas,
@@ -507,6 +514,15 @@ type ContinuousEffect struct {
 	// route's free read lives in mayPlayStatic. Set only together with
 	// MayPlay.
 	MayPlayFree bool
+
+	// MayPlayAltCost is an Effect-delivered grant's MayPlayAltManaCost$ text
+	// (Inside Information's PayLife<ConvertedManaCost>, Hama, the
+	// Bloodbender's Waterbend<ConvertedManaCost>): the alternative cost the
+	// granted cast pays instead of the mana cost (CR 118.9). Carried raw;
+	// rules' mayPlayAltCosts prices it through altCostParse, the same
+	// pricing the printed route's static uses. Set only together with
+	// MayPlay, on the Effect-delivery path.
+	MayPlayAltCost string
 
 	// MayPlayValidAfterStack is an Effect-delivered may-play grant's
 	// ValidAfterStack$ qualifier (Nahiri, Forged in Fury's "You may cast

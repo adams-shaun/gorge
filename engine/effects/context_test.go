@@ -349,10 +349,12 @@ func (h *fakeHost) RememberExploitedLKI(s state.SacrificedInfo) {
 
 // The damage-batch bracket has nothing to latch here (no trigger machinery),
 // so the double reports no-ops; the dealDamage loops' bracketing still runs.
-func (h *fakeHost) BeginDamageBatch() {}
-func (h *fakeHost) EndDamageBatch()   {}
-func (h *fakeHost) BeginZoneBatch()   {}
-func (h *fakeHost) EndZoneBatch()     {}
+func (h *fakeHost) BeginDamageBatch()   {}
+func (h *fakeHost) EndDamageBatch()     {}
+func (h *fakeHost) BeginZoneBatch()     {}
+func (h *fakeHost) BeginTokenCreation() {}
+func (h *fakeHost) EndTokenCreation()   {}
+func (h *fakeHost) EndZoneBatch()       {}
 
 // CastThisTurn has no real turn log to count here (Task 17); the effects
 // package tests set up their own boards, so the double reports zero.

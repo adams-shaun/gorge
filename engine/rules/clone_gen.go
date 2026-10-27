@@ -540,6 +540,14 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 	c.excessBatch.entries = append([]excessBatchEntry(nil), e.excessBatch.entries...)
 	c.lifelinkBatch = append([]lifelinkGain(nil), e.lifelinkBatch...)
 	c.lifelinkBatchOpen = e.lifelinkBatchOpen
+	c.tokenCreationSeq = e.tokenCreationSeq
+	c.tokenCreationOpen = append([]uint64(nil), e.tokenCreationOpen...)
+	if e.tokenCreationDone != nil {
+		c.tokenCreationDone = make(map[tokenCreationKey]bool, len(e.tokenCreationDone))
+		for k0, v0 := range e.tokenCreationDone {
+			c.tokenCreationDone[k0] = v0
+		}
+	}
 	if e.zoneBatchOpen {
 		c.zoneBatchOpen = e.zoneBatchOpen
 		c.zoneBatchDepth = e.zoneBatchDepth
@@ -630,6 +638,9 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 	c.replZones = copyReplZones(sp.replZones, e.replZones)
 	c.replZonesEp = e.replZonesEp
 	c.replArena = e.replArena
+}
+
+func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.tappedTurn != nil {
 		c.tappedTurn = make(map[state.ObjID]int32, len(e.tappedTurn))
 		for k0, v0 := range e.tappedTurn {
@@ -642,9 +653,6 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			c.triggerTurnFires[k0] = v0
 		}
 	}
-}
-
-func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.triggerGameFires != nil {
 		c.triggerGameFires = make(map[triggerKey]gameFires, len(e.triggerGameFires))
 		for k0, v0 := range e.triggerGameFires {

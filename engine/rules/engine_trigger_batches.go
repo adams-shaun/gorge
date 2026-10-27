@@ -98,10 +98,16 @@ type engineTriggerBatches struct {
 	// drain, for the same reason as the damage batch. Outside a
 	// ChangeZoneTable loop the bracket is never open, so the per-move
 	// batch-of-one reading is untouched.
-	zoneBatchOpen  bool                 `clone:"deep"`
-	zoneBatchDepth int                  `clone:"deep"`
-	zoneBatchIdx   map[zoneBatchKey]int `clone:"deep"`
-	zoneBatchLog   []zoneBatchEntry     `clone:"deep"`
+	// tokenCreationOpen/Done/Seq: token_creation_batch.go's creation batches
+	// (one Token resolution = one "create tokens" event for a fixed
+	// Type$ AddToken replacement). Engine memory like the batches above.
+	tokenCreationSeq  uint64                    `clone:"deep"`
+	tokenCreationOpen []uint64                  `clone:"deep"`
+	tokenCreationDone map[tokenCreationKey]bool `clone:"deep"`
+	zoneBatchOpen     bool                      `clone:"deep"`
+	zoneBatchDepth    int                       `clone:"deep"`
+	zoneBatchIdx      map[zoneBatchKey]int      `clone:"deep"`
+	zoneBatchLog      []zoneBatchEntry          `clone:"deep"`
 	// entryHeld is CR 603.6a's entering batch: while a zone batch is open, each battlefield entry's trigger check (a MoveZone onto the battlefield from another zone, or a token mint) is held here in emit order instead of running at the event, and closeZoneBatch runs every held check, in order, once the batch's last member has entered, so each entrant's "whenever another ... enters" sees the whole batch. Deep like the zone batch it rides: a RepeatEach ChangeZoneTable bracket can stay open across a pending decision. entryFlushing is set while those held checks run, so they are not held again.
 	entryHeld     []heldEntryCheck `clone:"deep,copy=cloneHeldEntryChecks"`
 	entryFlushing bool             `clone:"reset"`

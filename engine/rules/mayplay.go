@@ -803,12 +803,74 @@ func (e *Engine) mayPlayKeyLimitReached(key string, limit int) bool {
 // otherwise the first limited static in mayPlayPermissions' order does.
 func (e *Engine) mayPlayLandPermKey(p state.PlayerID, id state.ObjID) string {
 	key := ""
-	for _, off := range e.mayPlayPermissions(p, id, true) {
+	perms := e.mayPlayPermissions(p, id, true)
+	if len(perms) == 0 {
+		return e.mayPlayEffectPermKey(p, id)
+	}
+	for _, off := range perms {
 		if off.key == "" || off.text != "" {
 			return ""
 		}
 		if key == "" {
 			key = off.key
+		}
+	}
+	return key
+}
+
+// mayPlayEffectKey is an Effect-delivered MayPlayLimit$ grant's permission
+// identity: its Source plus its registration Timestamp (unique per
+// AddContinuous clock tick, replay-stable), so two activations of one
+// Tomb of Aclazotz are two permissions. The timestamp is rendered through
+// mayPlayPermKey so its trailing ":" terminates the number and one key is
+// never a prefix of another inside a log token.
+func mayPlayEffectKey(ce *state.ContinuousEffect) string {
+	return mayPlayPermKey(ce.Source, "@") + mayPlayPermKey(state.ObjID(ce.Timestamp), "")
+}
+
+// mayPlayCapOpen reports whether ce's MayPlayLimit$ cap has a use left. An
+// Effect-delivered grant counts only the plays stamped with its own key
+// (mayPlayKeyLimitReached); any other limited grant keeps the player's
+// total may-play count.
+func (e *Engine) mayPlayCapOpen(ce *state.ContinuousEffect, limited *lazyMayPlays) bool {
+	if ce.MayPlayLimit == 0 {
+		return true
+	}
+	if ce.FromEffect {
+		return !e.mayPlayKeyLimitReached(mayPlayEffectKey(ce), int(ce.MayPlayLimit))
+	}
+	return int32(limited.count()) < ce.MayPlayLimit
+}
+
+// mayPlayEffectPermKey is the limited Effect grant a play of card id from a
+// public zone consumes, or "" when the play stays unattributed. A static
+// permission or an uncapped covering grant takes the play first (never burn
+// a limit needlessly); otherwise the FIRST covering limited Effect grant in
+// e.active() order whose cap is not reached does.
+func (e *Engine) mayPlayEffectPermKey(p state.PlayerID, id state.ObjID) string {
+	o := e.G.Obj(id)
+	if o == nil || (o.Zone != state.ZGraveyard && o.Zone != state.ZExile) {
+		return ""
+	}
+	if len(e.mayPlayPermissions(p, id, true)) != 0 {
+		return ""
+	}
+	key := ""
+	ces := e.active()
+	for i := range ces {
+		ce := &ces[i]
+		if !ce.MayPlay || !mayPlayEffectBenefits(ce, o, p) || (ce.MayPlayPlayerTurn && e.G.Active != p) {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if (!ok && !all) || (!all && !slices.Contains(zones, o.Zone)) || !e.effectGrantMatches(ce, id) {
+			continue
+		}
+		if ce.MayPlayLimit == 0 || !ce.FromEffect {
+			return ""
+		}
+		if key == "" && !e.mayPlayKeyLimitReached(mayPlayEffectKey(ce), int(ce.MayPlayLimit)) {
+			key = mayPlayEffectKey(ce)
 		}
 	}
 	return key
@@ -973,7 +1035,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		}
 		out = append(out, mayPlayAltView{cost: alt, grants: grants, flash: flash, key: key})
 	}
-	return out
+	return append(out, e.mayPlayEffectAltCosts(p, id)...)
 }
 
 // mayPlayAltView is one priced may-play alternative (mayPlayAltCosts):
@@ -1052,7 +1114,7 @@ func (e *Engine) mayPlayPlainGrant(p state.PlayerID, id state.ObjID) bool {
 			return true
 		}
 	}
-	if e.paradigmMayPlay(p, o) || e.mayPlayEffectGrantsCast(p, o) {
+	if e.paradigmMayPlay(p, o) || e.mayPlayEffectCovers(p, o, false, true) {
 		return true
 	}
 	free, covered := e.mayPlayEffectFree(p, o)
@@ -1241,7 +1303,7 @@ func (e *Engine) mayPlayEffectFree(p state.PlayerID, o *state.Object) (free, cov
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
 			continue
 		}
-		if ce.MayPlayLimit > 0 && int32(limited.count()) >= ce.MayPlayLimit {
+		if !e.mayPlayCapOpen(ce, &limited) {
 			continue
 		}
 		zones, all, ok := effects.ParseZones(ce.AffectedZone)
@@ -1270,7 +1332,7 @@ func (e *Engine) mayPlayEffectFree(p state.PlayerID, o *state.Object) (free, cov
 // (graveyard, exile) can match; the library self-grant is a static, never an
 // effect.
 func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool {
-	return e.mayPlayEffectCovers(p, o, false)
+	return e.mayPlayEffectCovers(p, o, false, false)
 }
 
 // mayPlayAdventureGrant is mayPlayEffectGrantsCast for the grants whose
@@ -1279,39 +1341,29 @@ func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool
 // permits the Adventure face's cast only (CR 715.3a), so it is NOT an
 // ordinary cast permission and mayPlayEffectGrantsCast skips it.
 func (e *Engine) mayPlayAdventureGrant(p state.PlayerID, o *state.Object) bool {
-	return e.mayPlayEffectCovers(p, o, true)
+	return e.mayPlayEffectCovers(p, o, true, false)
 }
 
 // mayPlayEffectCovers is the one gate chain behind both reads above; adventure
 // selects the grants that demand the Adventure face (true) or the rest (false).
-func (e *Engine) mayPlayEffectCovers(p state.PlayerID, o *state.Object, adventure bool) bool {
-	if o.Zone != state.ZGraveyard && o.Zone != state.ZExile {
+// plainOnly drops the grants that name their own alternative cost
+// (MayPlayAltManaCost$): those are not a printed-cost permission
+// (mayPlayPlainGrant), only the price of their own.
+func (e *Engine) mayPlayEffectCovers(p state.PlayerID, o *state.Object, adventure, plainOnly bool) bool {
+	if !e.mayPlayEffectReaches(p, o) {
 		return false
 	}
 	limited := lazyMayPlays{e: e, p: p}
 	ces := e.active()
 	for i := range ces {
 		ce := &ces[i]
-		if !ce.MayPlay || !mayPlayEffectBenefits(ce, o, p) {
+		if !ce.MayPlay || plainOnly && ce.MayPlayAltCost != "" {
 			continue
 		}
 		if _, adv := effects.MayPlayAdventureSpec(ce.Affects); adv != adventure {
 			continue
 		}
-		if ce.MayPlayPlayerTurn && e.G.Active != p {
-			continue
-		}
-		if ce.MayPlayLimit > 0 && int32(limited.count()) >= ce.MayPlayLimit {
-			continue
-		}
-		zones, all, ok := effects.ParseZones(ce.AffectedZone)
-		if !ok && !all {
-			continue
-		}
-		if !all && !slices.Contains(zones, o.Zone) {
-			continue
-		}
-		if e.effectGrantMatches(ce, o.ID) {
+		if e.mayPlayEffectCoversCard(ce, p, o, &limited) {
 			return true
 		}
 	}
@@ -1373,7 +1425,7 @@ func (e *Engine) mayPlayGrantedBy(p state.PlayerID, id, host state.ObjID) bool {
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
 			continue
 		}
-		if ce.MayPlayLimit > 0 && int32(limited.count()) >= ce.MayPlayLimit {
+		if !e.mayPlayCapOpen(ce, &limited) {
 			continue
 		}
 		zones, all, ok := effects.ParseZones(ce.AffectedZone)

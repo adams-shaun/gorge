@@ -425,9 +425,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// phases the Effect's memory (Oubliette's `RememberObjects$
 		// Targeted`, Out of Time's `RememberObjects$ Remembered`) rather than
 		// the host that just left. Every other Effect trigger keeps its
-		// existing registration set untouched.
+		// existing registration set untouched, except that an Effect with its
+		// own RememberObjects$ registers that capture (CR 611.2a): its
+		// `Card.IsRemembered` triggers name the Effect's memory.
 		regIDs := c.Remembered
-		if permanentComeback || forgetOn != "" || exileOn != "" || forgetCounter != "" {
+		if ep.RemembersObjects || permanentComeback || forgetOn != "" || exileOn != "" || forgetCounter != "" {
 			regIDs = make([]state.Target, 0, len(remembered))
 			for _, id := range remembered {
 				regIDs = append(regIDs, state.Target{Obj: id})
@@ -691,7 +693,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// with the Effect's lifetime and Remembered set. The key is then
 			// dropped, so a MayPlay$ rider on the same line registers through
 			// the ordinary may-play branch below; a look-only line is done.
-			if look, rest, ok := mayLookAtExileGrantFromLine(params); ok {
+			if look, rest, ok := mayLookAtGrantFromLine(params); ok {
 				look.Source, look.Controller = c.Source, c.Controller
 				look.Name = effectName
 				look.UntilEOT = effectUntilEOT(h, c.Source, rawDur)

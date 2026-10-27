@@ -206,10 +206,18 @@ func TestTokenOrderAskKeepsTokenEffectRiders(t *testing.T) {
 					t.Fatalf("token %d tapped %d times, want exactly once", id, n)
 				}
 			}
-			// Both creations landed, each with Doubling Season's extra
-			// Treasure and Helm's Map: neither mint was swallowed.
-			if names["Treasure Token"] < 4 || names["Map Token"] < 2 {
-				t.Fatalf("minted tokens %v, want both creations' Treasures (doubled) and Maps", names)
+			// Blood Money's Token resolution is ONE creation event (CR 616.1,
+			// 614.1a), so Helm's fixed Map is added once per event, as Forge's
+			// ReplaceTokenEffect does. Both Treasures are doubled in either
+			// order (4). Doubling Season first doubles only the Treasures and
+			// then Helm adds its single Map; Helm first adds the Map before
+			// the doubling, so it is doubled to 2.
+			wantMaps := 2
+			if tc.dsFirst {
+				wantMaps = 1
+			}
+			if names["Treasure Token"] != 4 || names["Map Token"] != wantMaps {
+				t.Fatalf("minted tokens %v, want 4 Treasures and %d Map(s)", names, wantMaps)
 			}
 			if o := e.G.Obj(spellID); o == nil || o.Zone != state.ZGraveyard {
 				t.Fatalf("resolved spell = %+v, want it in the graveyard", o)

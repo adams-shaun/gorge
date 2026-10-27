@@ -830,6 +830,10 @@ func runTokenMints(h Host, c *Ctx, sa *cards.SA, tp *TokenParams, job *TokenJob)
 	// "whenever one or more tokens enter" trigger fires once for the batch.
 	h.BeginZoneBatch()
 	defer h.EndZoneBatch()
+	// CR 614.1a: the same resolution is also ONE event for a fixed
+	// Type$ AddToken replacement, which adds its extra tokens once.
+	h.BeginTokenCreation()
+	defer h.EndTokenCreation()
 	var minted []state.ObjID
 	for _, key := range tp.Scripts {
 		if _, ok := g.Tokens[key]; !ok {
