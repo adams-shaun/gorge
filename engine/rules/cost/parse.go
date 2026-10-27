@@ -41,6 +41,13 @@ const drawDynCost = `^Draw<([A-Za-z][A-Za-z0-9]*)/([^/>]+)(?:/([^>]*))?>$`
 // costModifiers' SVar-aware amount read.
 const sacXCost = `^Sac<X/([^/>]+)(?:/([^>]*))?>$`
 
+// discardXCost matches the announced-count discard form Discard<X/Spec> (Gix,
+// Yawgmoth Praetor's "Discard X cards"; the Dreams cycle's additional cost):
+// the player announces X (0..matching cards in hand, CR 601.2b) and exactly X
+// matching cards are discarded. Recorded like sacXCost: an Announced Discard
+// part that xAsk caps and discardAsk settles at the announced X.
+const discardXCost = `^Discard<X/([^/>]+)(?:/([^>]*))?>$`
+
 // exileCost matches Forge's ExileFromHand<N/Spec>, ExileFromGrave<N/Spec>
 // and ExileAnyGrave<N/Spec> tokens -- exiling a matching card from the named
 // zone as a cost payment (CR 118.8 lists exiling a card from one's hand among
@@ -712,6 +719,11 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				c.SubCounter = append(c.SubCounter, CostPart{N: int32(n), Spec: kind, Target: target, Desc: desc})
+				continue
+			}
+			if m, ok := matchDiscardXCost(t); ok {
+				spec := strings.ReplaceAll(m[1], ";", ",")
+				c.Discard = append(c.Discard, CostPart{Spec: spec, Announced: true, Desc: m[2]})
 				continue
 			}
 			if m, ok := matchNonManaCost(t); ok {

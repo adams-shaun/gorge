@@ -177,9 +177,9 @@ func parseRaiseExtra(text string, withheld []string) raiseExtraCost {
 		// Discard<X/Spec> whose X is the cast's own announced X (Aether
 		// Tide's "discard X creature cards", SVar:X:Count$xPaid): an
 		// Announced discard part, settled by discardAsk at the announced X
-		// and capped by xAsk at the matching cards in hand. Only this bridge
-		// produces the announced form; ParseCost keeps its reported fallback
-		// for the Discard<X> ACTIVATION costs whose X is not the cast's.
+		// and capped by xAsk at the matching cards in hand. ParseCost reads
+		// the same Discard<X/Spec> token for an ability's own Cost$ (Gix,
+		// Yawgmoth Praetor); this bridge reads the RaiseCost static's.
 		if m := discardXCost.FindStringSubmatch(sym); m != nil {
 			r.extra = r.extra.Plus(Cost{Discard: []CostPart{{Spec: strings.ReplaceAll(m[1], ";", ","), Announced: true, Desc: m[2]}}})
 			continue

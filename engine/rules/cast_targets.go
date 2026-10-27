@@ -1107,7 +1107,6 @@ func (e *Engine) installSubPreAsk(pc *pendingCast) {
 	if pc.stackObj == 0 || len(pc.subAsks) == 0 {
 		return
 	}
-	m := make(map[string][]state.Target, len(pc.subAsks))
 	for i, sa := range pc.subAsks {
 		var ts []state.Target
 		if i < len(pc.subAns) {
@@ -1116,12 +1115,22 @@ func (e *Engine) installSubPreAsk(pc *pendingCast) {
 		if ts == nil {
 			ts = []state.Target{}
 		}
-		m[sa.Line] = ts
+		e.recordCastSub(pc.stackObj, sa.Line, ts)
 	}
+}
+
+// recordCastSub sets one chain link's announced targets in obj's
+// castSubTargets record (keyed by the link's Line), creating the record on
+// first use. installSubPreAsk writes a cast's links through it, and a copy's
+// finishCopyTargets / StackCopy inheritance write the copy's.
+func (e *Engine) recordCastSub(obj state.ObjID, line string, ts []state.Target) {
 	if e.castSubTargets == nil {
 		e.castSubTargets = make(map[state.ObjID]map[string][]state.Target)
 	}
-	e.castSubTargets[pc.stackObj] = m
+	if e.castSubTargets[obj] == nil {
+		e.castSubTargets[obj] = make(map[string][]state.Target)
+	}
+	e.castSubTargets[obj][line] = ts
 }
 
 // evidenceAsk poses the CollectEvidence payment (alltargeted1): the payer

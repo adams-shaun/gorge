@@ -230,7 +230,17 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 			if !a.innerKnown {
 				continue
 			}
-			if !playerInnerSourceFree.Has(inner) && playerSpecQualifierCodes.Code(inner) != playerSpecQualifierMaxSpeed && g.Obj(pc.Source) == nil {
+			innerCode := playerSpecQualifierCodes.Code(inner)
+			if innerCode == playerSpecQualifierIsTriggerRemembered {
+				// The delayed registration's capture IS this clause's
+				// binding, so a missing capture fails the whole conjunction
+				// closed rather than letting `!` invert the absence into a
+				// match (the same fail-closed direction IsRemembered takes
+				// with no source bound).
+				if len(pc.DelayedRemembered) == 0 {
+					continue
+				}
+			} else if !playerInnerSourceFree.Has(inner) && innerCode != playerSpecQualifierMaxSpeed && g.Obj(pc.Source) == nil {
 				continue
 			}
 			if matchesPlayerSingleSpec(g, a.baseOnly, p, you, pc) && !matchesPlayerSingleSpec(g, a.positive, p, you, pc) {
@@ -452,6 +462,19 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 			// the move, and TurnChange clears the ledger on replay as in play.
 			if descendedThisTurn(g, p) > 0 {
 				return true
+			}
+		case playerSpecQualifierIsTriggerRemembered:
+			// Player.IsTriggerRemembered (Forge PlayerProperty): the seat is
+			// among the PLAYERS the delayed-trigger registration captured.
+			// CR 603.7's "that player's next end step" names the captured
+			// player (The Eternal Wanderer's exiled card's owner, Faramir's
+			// chosen player), and the rules-side phase gate binds the
+			// registration's capture as DelayedRemembered. Object entries
+			// never satisfy a player read; an empty capture fails closed.
+			for _, t := range pc.DelayedRemembered {
+				if t.IsPlayer && t.Player == p {
+					return true
+				}
 			}
 		case playerSpecQualifierTriggeredDefendingPlayer:
 			// Player.TriggeredDefendingPlayer (Forge PlayerProperty): the
@@ -933,14 +956,16 @@ var isBarePlayerPropertySet = state.NewNameSet(
 	"IsCorrupted",
 )
 
-var matchesPlayerSingleSpecKeys = state.NewNameSet("CardOwner", "Owner", "IsRemembered", "EnchantedBy")
+var matchesPlayerSingleSpecKeys = state.NewNameSet("CardOwner", "Owner", "IsRemembered", "EnchantedBy", "IsTriggerRemembered")
 
 // playerInnerSourceFree is the set of negated (inner) player qualifiers that
 // are pure player-state reads and therefore evaluate with NO source object
 // bound. Every other negatable qualifier (CardOwner, Owner, IsRemembered)
 // reads the source object, so the negInner branch in matchesPlayerSingleSpec
-// fails it closed when no source is bound. A new source-free qualifier adds
-// one entry here rather than another inline literal test.
+// fails it closed when no source is bound. IsTriggerRemembered reads the
+// delayed registration's capture instead, so that branch gates it on the
+// capture binding (DelayedRemembered). A new source-free qualifier adds one
+// entry here rather than another inline literal test.
 var playerInnerSourceFree = state.NewNameSet("EnchantedBy")
 
 type matchesPlayerClauseCtxCode uint16
@@ -991,6 +1016,7 @@ const (
 	playerSpecQualifierAttackedYouTheirCurrentTurn
 	playerSpecQualifierAttackedYouCtrlPlaneswalkerTheirCurrentTurn
 	playerSpecQualifierOpponentOfReplaced
+	playerSpecQualifierIsTriggerRemembered
 )
 
 var playerSpecQualifierCodes = state.NewStrCodes(
@@ -1010,6 +1036,7 @@ var playerSpecQualifierCodes = state.NewStrCodes(
 	state.StrEntry[playerSpecQualifierCode]{Key: "TriggeredDefendingPlayer", Val: playerSpecQualifierTriggeredDefendingPlayer},
 	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouTheirCurrentTurn", Val: playerSpecQualifierAttackedYouTheirCurrentTurn},
 	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouCtrlTheirCurrentTurn_Planeswalker", Val: playerSpecQualifierAttackedYouCtrlPlaneswalkerTheirCurrentTurn},
+	state.StrEntry[playerSpecQualifierCode]{Key: "IsTriggerRemembered", Val: playerSpecQualifierIsTriggerRemembered},
 )
 
 type playerHasMostCode uint16
