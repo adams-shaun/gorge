@@ -28,7 +28,9 @@ func repeatedCards(h Host, c *Ctx, rp *RepeatEachParams) ([]state.Target, bool) 
 		case repeatedCardsTargeted:
 			return objectsOf(c.Targets), true
 		case repeatedCardsRemembered:
-			return objectsOf(c.Remembered), true
+			// Forge's host remembered list, not the fired-event capture: the
+			// trigger's own referent is not a subject the source remembered.
+			return objectsOf(hostRemembered(h, c)), true
 		case repeatedCardsChosenCard:
 			return objectsOf(c.Chosen), true
 		}
