@@ -972,14 +972,17 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 		}
 	}
 	controllerProp := ""
-	nonTriggeredController := false
-	triggeredCardController := state.PlayerID(0)
-	triggeredCardControllerOK := false
+	definedController := false
+	var definedPlayer state.PlayerID
+	var definedOK, definedFailClosed, definedNonTriggered bool
 	if sa != nil {
 		controllerProp = tp.ControllerProperty
-		if tp.Has(effects.TgtNonTriggeredController) {
-			nonTriggeredController = true
-			triggeredCardController, triggeredCardControllerOK = effects.TriggeredCardController(e.G, sc.TriggerContext, sc.Remembered)
+		// TargetsWithDefinedController$ is rechecked at resolution for every
+		// non-parent referent (CR 608.2b), through the same two helpers the
+		// offer post-filter uses. Parent-target referents stay out of scope.
+		if ref := tp.DefinedController; ref != "" && !effects.DefinedControllerParentReferent(ref) {
+			definedController = true
+			definedPlayer, definedOK, definedFailClosed, definedNonTriggered = e.definedControllerPlayer(ref, sc)
 		}
 	}
 	// TargetsWithSharedCardType$ is the reference-relative sibling of the
@@ -1050,12 +1053,11 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 		}
 		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) {
 			// The offer post-filter's own predicate, the SAME definition: a
-			// target that was offered under NonTriggeredCardController cannot
-			// be inconsistent with this CR 608.2b recheck, and one whose
-			// controller changed to the triggering controller (or that left
-			// the battlefield) is dropped here exactly as it was withheld at
-			// announcement.
-			if nonTriggeredController && !nonTriggeredControllerAdmits(o, triggeredCardController, triggeredCardControllerOK) {
+			// target offered under a TargetsWithDefinedController$ referent
+			// whose controller changed since (or that left the zone, for
+			// NonTriggeredCardController) is dropped here exactly as it was
+			// withheld at announcement.
+			if definedController && !definedControllerAdmits(o, definedPlayer, definedOK, definedFailClosed, definedNonTriggered) {
 				continue
 			}
 			if o.Zone == state.ZStack && (sa == nil || !e.stackKindAdmits(
