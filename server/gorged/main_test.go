@@ -302,8 +302,58 @@ func startServe(t *testing.T, c config) (string, context.CancelFunc, <-chan erro
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- serve(ctx, c, ln) }()
+	exited := make(chan struct{})
+	go func() {
+		defer close(exited)
+		done <- serve(ctx, c, ln)
+	}()
+	// Registered after every t.TempDir above, so LIFO runs this BEFORE TempDir's
+	// RemoveAll: cancel, then wait for serve to stop the HTTP server and close
+	// the registry (which waits for the table goroutines and their persistence
+	// writes).
+	t.Cleanup(func() {
+		cancel()
+		<-exited
+	})
 	return "http://" + ln.Addr().String(), cancel, done
+}
+
+// TestStartServeCleanupWaitsForShutdown pins the helper's cleanup contract:
+// a cleanup registered before startServe runs after the helper's own (LIFO),
+// and by then serve must have exited. An open SSE connection keeps the HTTP
+// shutdown busy, so a helper that only signals cancel() fails this check.
+func TestStartServeCleanupWaitsForShutdown(t *testing.T) {
+	var stream *http.Response
+	t.Cleanup(func() {
+		if stream != nil {
+			stream.Body.Close()
+		}
+	})
+	dir := t.TempDir()
+	var done <-chan error
+	t.Cleanup(func() {
+		if done == nil {
+			return
+		}
+		select {
+		case <-done:
+		default:
+			t.Errorf("serve still running when the cleanup order reached the check")
+		}
+	})
+	url, cancel, d := startServe(t, config{tables: 1, seats: 2, pace: 0, perpetual: false, dir: dir})
+	done = d
+	waitTables(t, url, 1)
+	resp, err := http.Get(url + "/api/stream")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK || resp.Header.Get("Content-Type") != "text/event-stream" {
+		resp.Body.Close()
+		t.Fatalf("stream precondition: status %d, content-type %q", resp.StatusCode, resp.Header.Get("Content-Type"))
+	}
+	stream = resp
+	cancel()
 }
 
 // waitTables polls /api/tables until n tables are listed, so a request
