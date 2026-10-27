@@ -186,9 +186,23 @@ type EntryCounterGrant struct {
 //
 // The Riot "haste" election is deliberately NOT here: it grants a keyword,
 // not a counter, and stays in events.Move where it always was.
+//
+// The type-bearing face is an input, not necessarily o.Face(): an answered
+// as-enters clone's copy basis is only installed after the entry move folds
+// (EntryCounterGrantsForFace).
 func EntryCounterGrants(o *state.Object, faceDown bool) []EntryCounterGrant {
+	return EntryCounterGrantsForFace(o, nil, faceDown)
+}
+
+// EntryCounterGrantsForFace is EntryCounterGrants with the type-bearing face
+// made explicit (CR 707.2: a copy enters with the copied object's copiable
+// values). nil means o.Face(). The elections and payments stay the entrant's.
+func EntryCounterGrantsForFace(o *state.Object, f *cards.Face, faceDown bool) []EntryCounterGrant {
 	if o == nil || faceDown {
 		return nil
+	}
+	if f == nil {
+		f = o.Face()
 	}
 	var grants []EntryCounterGrant
 	// CR 306.5b: a planeswalker enters with loyalty counters equal to its
@@ -196,7 +210,7 @@ func EntryCounterGrants(o *state.Object, faceDown bool) []EntryCounterGrant {
 	// (absent, non-numeric, or the Loyalty:X dynamic form) grants nothing,
 	// the same total-fail-closed stance the fold took. The Phyrexian
 	// compleated payment (CR 702.143) lowers it by the life paid.
-	if f := o.Face(); f != nil && f.IsPlaneswalker() {
+	if f != nil && f.IsPlaneswalker() {
 		// CR 306.5b: a planeswalker enters with loyalty counters equal to its
 		// starting loyalty. A CopySpellAbility SetLoyalty$ rider (Ob Nixilis,
 		// the Adversary's Casualty:X copy) names the starting loyalty
@@ -231,12 +245,12 @@ func EntryCounterGrants(o *state.Object, faceDown bool) []EntryCounterGrant {
 	}
 	// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a lore
 	// counter."
-	if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
+	if _, names := cards.SagaChapters(f); len(names) > 0 {
 		grants = append(grants, EntryCounterGrant{Kind: "LORE", Amount: 1})
 	}
 	// CR 310.6/310.8: a Battle enters with defense counters equal to its
 	// printed Defense; an absent/X/non-numeric value fails closed.
-	if f := o.Face(); f != nil && f.IsBattle() {
+	if f != nil && f.IsBattle() {
 		if n, err := strconv.Atoi(strings.TrimSpace(f.Defense)); err == nil && n > 0 {
 			grants = append(grants, EntryCounterGrant{Kind: "DEFENSE", Amount: int32(n)})
 		}
