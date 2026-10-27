@@ -107,9 +107,10 @@ func (m CostMods) ReduceTotal() int32 {
 // Apply composes c with the modifiers, CR 601.2f: increases before
 // reductions, each reduction applied whole (Color$ reductions take the
 // matching pips first, spilling the shortfall to generic unless
-// IgnoreGeneric$), each reduction's MinMana$ floor restored immediately, and
-// the SetCost floor raised to last (Trinisphere: total mana below 3 becomes
-// 3). Generic never dips below zero at any point.
+// IgnoreGeneric$), each reduction's MinMana$ floor capping only that
+// reduction (a cost already at or below the floor is never raised to it),
+// and the SetCost floor raised to last (Trinisphere: total mana below 3
+// becomes 3). Generic never dips below zero at any point.
 func (m CostMods) Apply(c Cost) Cost {
 	m.ApplyTo(&c)
 	return c
@@ -135,6 +136,13 @@ func (m *CostMods) ApplyTo(c *Cost) {
 	c.Generic = cost.AddClampedGeneric(c.Generic, int64(m.RaiseGen))
 	c.Life = cost.AddClampedGeneric(c.Life, int64(m.RaiseLife))
 	for _, red := range m.Reduces {
+		// The floor caps THIS reduction: Forge CostAdjustment.java:500-509
+		// computes maxReduction = manaCost.cmc - minMana - sumReduced and
+		// never returns a negative value, so a cost already at or below the
+		// floor is left exactly as it was -- the clause only limits how far
+		// the reduction may take it, it never adds mana to a cheaper cost
+		// (CR 601.2f; a {T}-only cost under MinMana$ 1 stays {T}).
+		before := totalMana(*c)
 		leftover := red.Generic
 		if red.HasColor {
 			for i := range red.Colored {
@@ -153,8 +161,12 @@ func (m *CostMods) ApplyTo(c *Cost) {
 			}
 		}
 		if red.Floor > 0 {
-			if total := totalMana(*c); total < red.Floor {
-				c.Generic = cost.AddClampedGeneric(c.Generic, int64(red.Floor-total))
+			floor := red.Floor
+			if before < floor {
+				floor = before
+			}
+			if total := totalMana(*c); total < floor {
+				c.Generic = cost.AddClampedGeneric(c.Generic, int64(floor-total))
 			}
 		}
 	}

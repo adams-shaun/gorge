@@ -73,12 +73,23 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // recognisedPredicate classifier drives, so the check cannot drift from what
 // countPresent really resolves.
 //
+// ValidSA$ is admitted INERT. Forge's StaticAbilityCantAttackBlock never reads
+// it (its params are UnlessDefender, DefenderNotNearestToYouInChosenDirection,
+// ValidBlocker, Cost, Trigger, Min, Max) and XMage's Realmbreaker's Grasp is an
+// unconditional CantAttackBlockAttachedEffect. It reaches a CantAttack static
+// only because the parse-time split (f81f996e) hands every mode of a compound
+// `Mode$ CantAttack,CantBlock,CantBeActivated | ValidSA$ ...` line the SAME
+// Params map, where ValidSA$ belongs to the sibling CantBeActivated mode
+// ("activated abilities ... unless they're mana abilities"). Admitting it lets
+// the attack half bind instead of skipping the whole static; it is read and
+// ignored, never evaluated as a gate.
+//
 // The Effect-delivered registration gate (effEffect, which keeps the narrower
 // CantRestrictionParamsReadable for BOTH modes) cannot share this list: its
 // continuous path reads neither evaluator, so a gate-bearing body must not
 // register blanket -- a gated "can't attack" would become unconditional,
 // over-restricting, and could leave a MustAttack creature with no legal pair.
-// A static carrying any OTHER parameter (ValidCause$, ForCost$, ValidSA$,
+// A static carrying any OTHER parameter (ValidCause$, ForCost$,
 // Cost$, ...) still fails the whitelist and is skipped whole, the deliberate
 // permissive direction. Iterating the params map only yields a boolean, so map
 // order never reaches an event/option/view -- determinism is preserved.
@@ -1464,7 +1475,7 @@ func clauseIsRemembered(clause string) (neg, has bool) {
 
 var cantRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "Target", "Description", "Secondary")
 
-var cantAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCard", "Target", "Description", "Secondary", "CheckSVar", "SVarCompare", "Condition", "UnlessDefender", "IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "ClassBand")
+var cantAttackParamsReadableForRulesKeys = state.NewNameSet("Mode", "ValidCard", "Target", "Description", "Secondary", "CheckSVar", "SVarCompare", "Condition", "UnlessDefender", "IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "ClassBand", "ValidSA")
 
 var cantBlockByRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidAttacker", "ValidBlocker", "ValidCard", "Description", "Secondary")
 

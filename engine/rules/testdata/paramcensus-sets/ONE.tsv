@@ -1,4 +1,2 @@
-Argentum Masticore	param:api:Sacrifice.OrString
 Awaken the Sleeper	param:api:DestroyAll.Optional
-Koth, Fire of Resistance	param:api:ChangeZone.NumCards
 Melira, the Living Cure	param:api:ImmediateTrigger.AfterReplacement
