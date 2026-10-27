@@ -409,11 +409,6 @@ func costAnnouncesXRef(c *Cost) bool {
 			return true
 		}
 	}
-	for _, part := range c.Discard {
-		if part.Announced {
-			return true
-		}
-	}
 	for _, part := range c.TapPermanent {
 		if part.Dyn == "X" {
 			return true
