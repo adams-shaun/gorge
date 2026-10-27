@@ -156,6 +156,74 @@ func TestSpreadingSeasStripsEnchantedLandAbilities(t *testing.T) {
 	}
 }
 
+// TestFlagstonesDiesTriggerSuppressedByCR3057 pins the leaves-the-battlefield
+// look-back path on the real corpus card: Flagstones of Trokair's printed
+// dies trigger is queued when it leaves the battlefield normally, and is not
+// queued once Spreading Seas has set its subtype to Island and CR 305.7 has
+// taken its rules-text abilities.
+func TestFlagstonesDiesTriggerSuppressedByCR3057(t *testing.T) {
+	t.Parallel()
+	moveToGraveyard := func(t *testing.T, e *Engine, flag state.ObjID) {
+		t.Helper()
+		e.pending = nil
+		e.emit(events.Event{Kind: events.MoveZone, Obj: flag, From: state.ZBattlefield, To: state.ZGraveyard})
+		if z := e.G.Obj(flag).Zone; z != state.ZGraveyard {
+			t.Fatalf("Flagstones zone after the move = %v, want graveyard", z)
+		}
+	}
+
+	t.Run("control_fires_without_setter", func(t *testing.T) {
+		t.Parallel()
+		reg := testutil.CorpusRegistry(t)
+		e, _ := landTypesEngine(t, reg,
+			[]*cards.Card{lookup(t, reg, "Flagstones of Trokair")}, nil)
+		flag := moveByName(t, e, 0, "Flagstones of Trokair", state.ZBattlefield)
+		if z := e.G.Obj(flag).Zone; z != state.ZBattlefield {
+			t.Fatalf("precondition: Flagstones zone = %v, want battlefield", z)
+		}
+		if e.printedAbilitiesLost(e.G.Obj(flag)) {
+			t.Fatal("precondition: Flagstones lost its printed abilities without a CR 305.7 setter")
+		}
+
+		e.pendingTriggers = nil
+		moveToGraveyard(t, e, flag)
+
+		if len(e.pendingTriggers) != 1 {
+			t.Fatalf("Flagstones without a setter queued %d dies trigger(s), want 1", len(e.pendingTriggers))
+		}
+		if got := e.pendingTriggers[0].Source; got != flag {
+			t.Fatalf("dies trigger source = %d, want Flagstones %d", got, flag)
+		}
+	})
+
+	t.Run("suppressed_under_spreading_seas", func(t *testing.T) {
+		t.Parallel()
+		reg := testutil.CorpusRegistry(t)
+		e, _ := landTypesEngine(t, reg,
+			[]*cards.Card{lookup(t, reg, "Flagstones of Trokair")},
+			[]*cards.Card{lookup(t, reg, "Spreading Seas")})
+		flag := moveByName(t, e, 0, "Flagstones of Trokair", state.ZBattlefield)
+		seas := moveByName(t, e, 1, "Spreading Seas", state.ZBattlefield)
+		e.emit(events.Event{Kind: events.Attach, Obj: seas, IDs: []state.ObjID{flag}})
+		e.pending = nil
+		e.Advance()
+		e.pendingTriggers = nil
+
+		if ty := e.Derived(flag).Types; !slices.Contains(ty, "Island") {
+			t.Fatalf("enchanted Flagstones types = %v, want Island", ty)
+		}
+		if !e.printedAbilitiesLost(e.G.Obj(flag)) {
+			t.Fatal("precondition: Spreading Seas did not remove Flagstones' printed abilities")
+		}
+
+		moveToGraveyard(t, e, flag)
+
+		if len(e.pendingTriggers) != 0 {
+			t.Fatalf("CR 305.7: Flagstones enchanted by Spreading Seas queued %d dies trigger(s), want 0", len(e.pendingTriggers))
+		}
+	})
+}
+
 // TestAddedBasicLandTypeKeepsRulesText is the guard for 305.7's last
 // sentence: a basic land type gained IN ADDITION (no RemoveLandTypes$)
 // removes nothing -- Mutavault keeps its animate ability and {C}, and gains
