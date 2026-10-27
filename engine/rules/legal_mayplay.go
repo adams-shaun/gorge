@@ -54,7 +54,7 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
 			continue
 		}
-		if ce.MayPlayLimit > 0 && int32(limited.count()) >= ce.MayPlayLimit {
+		if !e.mayPlayCapOpen(ce, &limited) {
 			continue
 		}
 		zones, all, ok := effects.ParseZones(ce.AffectedZone)
@@ -421,7 +421,7 @@ func (e *Engine) mayPlaySpellIdsBoard(p state.PlayerID, board bool) []mayPlaySpe
 		if ce.MayPlayPlayerTurn && e.G.Active != p {
 			continue
 		}
-		if ce.MayPlayLimit > 0 && int32(limited.count()) >= ce.MayPlayLimit {
+		if !e.mayPlayCapOpen(ce, &limited) {
 			continue
 		}
 		// A PRINTED limited static's permission is offered above under its own
