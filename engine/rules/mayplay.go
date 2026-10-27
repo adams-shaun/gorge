@@ -374,14 +374,15 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 // mayPlayUnreadGates are the gating parameters a MayPlay$ static can carry
 // that this build neither implements nor can safely ignore. Each one either
 // further conditions the permission (the residual SVar condition family
-// CheckSecondSVar$/CheckThirdSVar$/PresentCompare$, ValidSA$,
-// ActivationZone$) -- and an unconditional gate is the widening this file
+// CheckSecondSVar$/CheckThirdSVar$, ValidSA$, ActivationZone$) -- and an unconditional gate is the widening this file
 // refuses: an offer the engine cannot evaluate must not exist at all. Any of
 // these present fails the static closed, so the card is simply not offered.
 // CheckSVar$/SVarCompare$ LEFT this family (mayPlayConditionGateHolds now
 // evaluates them through the shared statics evaluator, exactly as
 // continuousGateHolds does for a generic Continuous static), which is what
 // lets Verge Rangers' opponent-ahead gate open its top-of-library permission.
+// PresentCompare$ LEFT it the same way: mayPlayStatic reads IsPresent$ through
+// the shared presentGate, which owns the comparator (The Indomitable's GE3).
 // MayPlayAltManaCost$ is NOT in this list: it is
 // genuinely consumed: mayPlayAltCosts prices it, for the ordinary hand
 // cast walk (alternativeCosts) and for the may-play spell walk's cast from
@@ -393,7 +394,7 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 // priceability check in mayPlayStatic), never an uncharged surcharge.
 var mayPlayUnreadGates = [...]string{
 	"CheckSecondSVar", "CheckThirdSVar",
-	"PresentCompare", "ValidSA", "ActivationZone", "CharacteristicDefining",
+	"ValidSA", "ActivationZone", "CharacteristicDefining",
 }
 
 // mayPlayGateRejected reports whether a MayPlay$ static carries one of the
@@ -453,7 +454,6 @@ func mayPlayGateRejected(params map[string]string) bool {
 func mayPlayGateRejectedOther(params map[string]string) bool {
 	if strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
 		strings.TrimSpace(params["CheckThirdSVar"]) != "" ||
-		strings.TrimSpace(params["PresentCompare"]) != "" ||
 		strings.TrimSpace(params["ActivationZone"]) != "" ||
 		strings.TrimSpace(params["CharacteristicDefining"]) != "" {
 		return true
@@ -650,11 +650,12 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 		return false, false, false, Cost{}, hasRaise, priced
 	}
 	// IsPresent$ ("as long as a Zombie is on the battlefield", Gravecrawler):
-	// the static applies only while at least one object on the battlefield
-	// matches the spec. A spec nothing on the battlefield satisfies --
-	// including one whose predicate this build cannot evaluate (unknown
-	// predicates fail closed) -- withholds the static, never widens it.
-	if ip := strings.TrimSpace(params["IsPresent"]); ip != "" && !e.mayPlayIsPresent(ip, params["PresentZone"], you, source) {
+	// the static applies only while the shared presentGate holds: the count of
+	// objects in PresentZone$ (default battlefield) matching the spec compared
+	// by PresentCompare$ (default GE1; The Indomitable's GE3). A spec nothing
+	// satisfies -- including one whose predicate this build cannot evaluate
+	// (unknown predicates fail closed) -- withholds the static, never widens it.
+	if ip := strings.TrimSpace(params["IsPresent"]); ip != "" && !e.presentGate(staticView{Source: source, Controller: you, Params: params}, ip) {
 		return false, false, false, Cost{}, hasRaise, priced
 	}
 	spec := strings.TrimSpace(params["Affected"])
@@ -708,17 +709,6 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	grants = !strings.EqualFold(params["MayPlayDontGrantZonePermissions"], "True")
 	free = strings.EqualFold(params["MayPlayWithoutManaCost"], "True")
 	return true, grants, free, raise, hasRaise, priced
-}
-
-// mayPlayIsPresent scans the PresentZone$ zones (Forge's IsPresent$ default is
-// the battlefield; an unrecognised zone fails closed) for at least one object
-// matching spec -- Gravecrawler's `IsPresent$ Zombie.YouCtrl`.
-// The spec's controller-relative qualifiers resolve against `you`, Self and
-// CARDNAME against `source`, exactly like the Affected$ spec. AliveFrom(0)
-// keeps the scan deterministic and empty-safe.
-func (e *Engine) mayPlayIsPresent(spec, zoneParam string, you state.PlayerID, source state.ObjID) bool {
-	n, _ := presentCountInZones(e, zoneParam, spec, source, you)
-	return n > 0
 }
 
 // mayPlayPermKey is a MayPlayText$-typed permission's stable identity: the
@@ -1000,7 +990,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		default:
 			continue
 		}
-		if ip := strings.TrimSpace(sv.ParamStr(cards.PKIsPresent)); ip != "" && !e.mayPlayIsPresent(ip, sv.ParamStr(cards.PKPresentZone), sv.Controller, sv.Source) {
+		if ip := strings.TrimSpace(sv.ParamStr(cards.PKIsPresent)); ip != "" && !e.presentGate(sv, ip) {
 			continue
 		}
 		spec := strings.TrimSpace(sv.ParamStr(cards.PKAffected))
