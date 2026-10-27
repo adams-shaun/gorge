@@ -325,10 +325,16 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		// source/controller remain those of the outer spell or ability.
 		base := iterationBase(c, t)
 		cc.Remembered = append(copyTargets(base), t)
-		// UseImprinted$ names the same subject "Imprinted" for the body's
-		// selectors (UnlessPayer$ ImprintedController, Defined$
-		// ImprintedController).
+		// The subject is also named "Imprinted" for the body's selectors
+		// (UnlessPayer$ ImprintedController, Defined$ ImprintedController).
 		cc.RepeatSubject = t
+		start := append(copyTargets(base), t)
+		if rp.UseImprinted {
+			// UseImprinted$ imprints the subject instead of remembering it:
+			// the host's Remembered is untouched for the whole loop.
+			cc.Remembered = copyTargets(c.Remembered)
+			start = copyTargets(c.Remembered)
+		}
 		if fromVotes {
 			// The per-iteration binding lives on this iteration's Ctx copy
 			// (scalar fields, so the copy is safe), read back through
@@ -361,7 +367,7 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		if h.Suspended() {
 			return
 		}
-		c.Remembered = rememberIteration(c.Remembered, cc.Remembered, base, t)
+		c.Remembered = foldIteration(c.Remembered, cc.Remembered, start)
 	}
 	for _, typ := range repeatedTypes {
 		// RepeatTypesFrom binds the current type to the resolving source;

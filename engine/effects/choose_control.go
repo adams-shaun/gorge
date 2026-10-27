@@ -1968,8 +1968,14 @@ func indexTarget(ts []state.Target, want state.Target) int {
 // the subject) and the subject are not additions. The result is a fresh
 // slice: outer may share a backing array with a stack object.
 func rememberIteration(outer, body, base []state.Target, subject state.Target) []state.Target {
+	return foldIteration(outer, body, append(copyTargets(base), subject))
+}
+
+// foldIteration is rememberIteration over the entries the iteration started
+// with: any start entry the body dropped is removed from outer, and any body
+// entry that is neither a start entry nor already in outer is appended.
+func foldIteration(outer, body, start []state.Target) []state.Target {
 	out := copyTargets(outer)
-	start := append(copyTargets(base), subject)
 	// Any entry the iteration STARTED with (base+subject) that the body no
 	// longer holds was removed by the body (ForgetChosen$,
 	// forgetRememberedOne): that removal must persist on the outer set, else

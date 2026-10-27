@@ -67,6 +67,9 @@ type RepeatEachParams struct {
 	// TypesFrom is RepeatTypesFrom$: its matching cards supply the distinct
 	// card types bound as ChosenType for each iteration.
 	TypesFrom string
+	// UseImprinted is UseImprinted$ True: the iteration's subject binds as
+	// Imprinted only, and the body's Remembered stays the host's own list.
+	UseImprinted bool
 
 	// Unread are the parameters present on the ability that no RepeatEach
 	// reader consumes: the resolution Notes them once.
@@ -241,6 +244,7 @@ var repeatEachKnownKeys = [...]string{
 	"UnlessPayer",
 	"UnlessResolveSubs",
 	"UnlessSwitched",
+	"UseImprinted",
 	"ValidCard",
 	"ValidCards",
 	"ValidCardsDesc",
@@ -328,6 +332,7 @@ func compileRepeatEach(sa *cards.SA, dr *DefinedParams) *RepeatEachParams {
 	p.StartingWith = strings.TrimSpace(sa.ParamStr(cards.PKStartingWith))
 	p.ChooseOrder = strings.TrimSpace(sa.ParamStr(cards.PKChooseOrder))
 	p.TypesFrom = strings.TrimSpace(sa.ParamStr(cards.PKRepeatTypesFrom))
+	p.UseImprinted = isTrue(sa.ParamStr(cards.PKUseImprinted))
 	p.Unread = unreadKeys(sa, repeatEachKnownKeys[:])
 	return p
 }
