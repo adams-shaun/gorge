@@ -327,7 +327,6 @@ func TestFightExcessBindsRhinosRampage(t *testing.T) {
 			t.Fatal("the reflexive destroy trigger was not queued")
 		}
 		e.putTriggersOnStack()
-		e.resolveTop()
 		kr0Answer(t, e, kr0Opt(t, e.Pending(), artifact))
 		passUntilStackEmpty(t, e, 20)
 	}

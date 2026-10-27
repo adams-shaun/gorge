@@ -2,6 +2,7 @@ package rules
 
 import (
 	"maps"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -157,16 +158,42 @@ func reflexiveCaptured(ctx *effects.Ctx) {
 // exile that card" after the copy basis replaced the face) -- one of its own
 // printed faces', which events.ResolveSVarAcrossFaces falls back to.
 func reflexiveTableIsSources(c *effects.Ctx, src *state.Object) bool {
-	if maps.Equal(c.SVars, src.Face().SVars) {
+	if svarTableIsFaces(c, src.Face()) {
 		return true
 	}
 	if src.Card == nil {
 		return false
 	}
 	for _, cf := range src.Card.Faces {
-		if maps.Equal(c.SVars, cf.SVars) {
+		if svarTableIsFaces(c, cf) {
 			return true
 		}
 	}
 	return false
+}
+
+// svarTableIsFaces reports whether c's table is face's SVar table, allowing the
+// resolution's published scratch bindings on top of it: ExcessSVar$ (Rhino's
+// Rampage, Bolg) binds an integer under a name the face never declares, and
+// that binding must not send the "when you do" half down the inline path
+// (where a targetless body would act on the spawner's targets). A script body
+// is never a bare integer, so a foreign table's extra SVars still fail.
+func svarTableIsFaces(c *effects.Ctx, face *cards.Face) bool {
+	if maps.Equal(c.SVars, face.SVars) {
+		return true
+	}
+	for k, v := range face.SVars {
+		if tv, ok := c.SVars[k]; !ok || tv != v {
+			return false
+		}
+	}
+	for k, v := range c.SVars {
+		if _, declared := face.SVars[k]; declared {
+			continue
+		}
+		if v == "" || strings.TrimLeft(v, "0123456789") != "" {
+			return false
+		}
+	}
+	return true
 }
