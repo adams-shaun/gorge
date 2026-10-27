@@ -658,6 +658,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// effect exactly after the one entry it upgrades -- load-bearing:
 		// without it the effect would upgrade EVERY later creature cast this
 		// turn), and the frozen SetChosenNumber$ binding.
+		// A replacement naming ChosenCard in ValidSource$/ValidTarget$ binds the
+		// creation-time choice (Forge's EffectEffect copies the host's chosen
+		// cards onto the effect), so the chain's ClearChosenCard$ cleanup does
+		// not erase it. No ChosenCard text, no snapshot.
+		chosenSnap, chosenBound := effectChosenSnapshot(h, c,
+			params[cards.PKValidSource.String()]+" "+params[cards.PKValidTarget.String()])
 		if body != "" && (event == "DamageDone" ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
 			(event == "Moved" && replacementMovedBodyLive(params, body, c.SVars)) ||
@@ -675,6 +681,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ChosenNumber:      chosenNumber,
 				RememberedPlayers: effectRememberedPlayers(h, c, sa),
 				ReplacementEvent:  event, ReplacementParams: params, ReplacementBody: body,
+				Chosen: chosenSnap, ChosenBound: chosenBound,
 			})
 			registered = true
 		} else if event != "" && body == "" && (replacementLineCantHappen(params) ||
@@ -710,6 +717,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				RememberedPlayers: effectRememberedPlayers(h, c, sa),
 				ImprintOnHost:     imprintOnHost,
 				ReplacementEvent:  event, ReplacementParams: params,
+				Chosen: chosenSnap, ChosenBound: chosenBound,
 			})
 			registered = true
 		} else if name != "" {
