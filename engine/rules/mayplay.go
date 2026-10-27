@@ -744,12 +744,12 @@ func mayPlayLimitN(raw string) int {
 // carries no MayPlayText$: its source object plus a "~<hash>" label of the
 // static itself (its Description$, Affected$ and AffectedZone$), so two
 // statics on one card and two copies of one card never share a count. The
-// "~" keeps it disjoint from any typed label, and the fixed width keeps one
+// "~" keeps it disjoint from any typed label, and the fixed width (nine hex digits) keeps one
 // key from being a prefix of another inside a log token.
 func mayPlayLimitKey(source state.ObjID, desc, affected, zone string) string {
 	h := fnv.New32a()
 	h.Write([]byte(desc + "|" + affected + "|" + zone))
-	return mayPlayPermKey(source, fmt.Sprintf("~%08x", h.Sum32()))
+	return mayPlayPermKey(source, "~"+strconv.FormatUint(uint64(h.Sum32())|1<<32, 16))
 }
 
 // mayPlayUntypedKey is mayPlayLimitKey for a static whose permission is
@@ -780,15 +780,16 @@ func (e *Engine) mayPlayKeyLimitReached(key string, limit int) bool {
 		if ev.Kind == events.TurnChange {
 			break
 		}
-		switch ev.Kind {
-		case events.CastInfo:
-			if ev.Counter != "" && strings.Contains(ev.Counter, token) {
-				used++
-			}
-		case events.LandPlayed:
-			if ev.Text != "" && strings.Contains(ev.Text, token) {
-				used++
-			}
+		// The token rides a cast's CastInfo Counter or a land play's
+		// LandPlayed Text.
+		text := ev.Counter
+		if ev.Kind == events.LandPlayed {
+			text = ev.Text
+		} else if ev.Kind != events.CastInfo {
+			continue
+		}
+		if strings.Contains(text, token) {
+			used++
 		}
 	}
 	return used >= limit
