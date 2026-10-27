@@ -2,7 +2,6 @@ package rules
 
 import (
 	"strconv"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -127,7 +126,7 @@ func tokenEntryBody(result, destination string, with *cards.SA) bool {
 		}
 		cz := effects.ChangeZoneOf(with)
 		return cz.DestinationKnown && cz.Destination != state.ZBattlefield &&
-			strings.EqualFold(strings.TrimSpace(cz.Defined), "ReplacedCard") &&
+			effects.DefinedRefOf(with).Text == "ReplacedCard" &&
 			(cz.OriginAll || !cz.OriginPresent || cz.OriginMask.Has(state.ZBattlefield))
 	}
 	switch with.APIKind() {
