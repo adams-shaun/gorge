@@ -42,6 +42,32 @@ func TestLandPlayedOriginScopesThePlay(t *testing.T) {
 	}
 }
 
+// TestLandPutFromHandIsNotPlayed: an effect that puts a land from hand onto
+// the battlefield is not the land-play special action (CR 305.4), so a
+// "whenever you play a land" trigger (Horn of Greed) stays silent. It mirrors
+// the graveyard arm below: only the engine's land-play fact admits the move.
+func TestLandPutFromHandIsNotPlayed(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	src := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Horn of Greed"))
+	o := e.G.AddObject(mustCorpusCard(t, reg, "Forest"), 0)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
+	// Precondition: the land is in the zone the matcher reads. Nothing arms
+	// the land-play fact for this hand->battlefield move, so it is a put.
+	if got := e.G.Obj(o.ID).Zone; got != state.ZHand {
+		t.Fatalf("Forest zone before the put = %v, want hand", got)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZHand, To: state.ZBattlefield})
+	if got := e.G.Obj(o.ID).Zone; got != state.ZBattlefield {
+		t.Fatalf("Forest zone after the put = %v, want battlefield (the move must not be a no-op)", got)
+	}
+	if n := observedTriggerCount(e, src); n != 0 {
+		t.Fatalf("a land put onto the battlefield from hand queued %d land-play triggers, want 0", n)
+	}
+}
+
 // TestLandPutFromGraveyardIsNotPlayed: a land merely put onto the battlefield
 // from a graveyard (not the land-play special action) is not "played" (CR
 // 305.1, 305.4), so Shadow of the Goblin's non-hand land-play trigger stays

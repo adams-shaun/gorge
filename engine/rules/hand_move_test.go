@@ -162,6 +162,42 @@ func TestBurgeoningAsksForTheHandLandAndHonoursTheAnswer(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestBurgeoningPutFromHandIsNotALandPlay: accepting Burgeoning's optional
+// trigger PUTS a land from seat 0's hand onto the battlefield (CR 305.4: a put
+// is not a play), so The Endstone's Mode$ LandPlayed trigger must not fire for
+// it. The Endstone's own end-step trigger has already been pushed by the time
+// the ask arrives, so the assertion is the delta, not an absolute zero.
+func TestBurgeoningPutFromHandIsNotALandPlay(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := burgeoningFixture(t, 71, 2)
+	endstone := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "The Endstone"))
+
+	d := opponentPlaysALand(t, e)
+	if d == nil || d.Kind != decision.KTriggerOptional {
+		t.Fatalf("expected the trigger_optional ask, got %+v", d)
+	}
+	before := observedTriggerCount(e, endstone)
+	submitChoices(t, e, 0) // accept the trigger; the put happens below
+
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" || len(d.Options) == 0 {
+		t.Fatalf("expected a pending hand_move KChoose, got %+v", d)
+	}
+	picked := d.Options[0].Obj
+	submitChoices(t, e, d.Options[0].Index)
+	// Precondition: the effect really put a hand land onto the battlefield.
+	if n := handToBattlefieldMoves(e.L.Events, picked); n != 1 {
+		t.Fatalf("picked land moved hand->battlefield %d times, want exactly 1", n)
+	}
+	if got := e.G.Obj(picked); got == nil || got.Zone != state.ZBattlefield {
+		t.Fatalf("the picked land is not on the battlefield: %+v", got)
+	}
+	if n := observedTriggerCount(e, endstone); n != before {
+		t.Fatalf("The Endstone queued %d LandPlayed trigger(s) for a land PUT from hand, want no change from %d", n-before, before)
+	}
+}
+
 // TestBurgeoningNoLandInHandResolvesSilently is the zero-eligible leaf:
 // answering "yes" with no land in hand resolves the trigger doing nothing --
 // no ask, no move, no wedge. Seat 1's own land play is a legitimate
