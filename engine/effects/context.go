@@ -2847,14 +2847,15 @@ var exiledWithSourceKeyCodes = state.NewStrCodes(
 )
 
 // triggeredCardQualified resolves `<base>.<qualifier>` when base is one of the
-// Triggered-card family spellings (definedSpecTriggeredCard) or the singular
-// attacker spellings (definedSpecTriggeredAttacker): the base's objects
+// Triggered-card family spellings (definedSpecTriggeredCard), the singular
+// attacker spellings (definedSpecTriggeredAttacker) or the source spellings
+// (definedSpecSelf: Iron Man Armor's `Self.nonCreature`): the base's objects
 // filtered by definedCardQualifierMatches. A compound (" & ") value is not
 // this shape and is left to the callers that split it.
 func triggeredCardQualified(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	base, qual, dotted := strings.Cut(spec, ".")
 	code := definedSpecCodes.Code(base)
-	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker) {
+	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker && code != definedSpecSelf) {
 		return nil, false
 	}
 	ts, _ := definedSpec(h, c, base)
