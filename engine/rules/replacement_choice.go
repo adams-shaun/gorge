@@ -149,6 +149,9 @@ type replChoice struct {
 	// same Clone class as the rest of the queue.
 	tokenPlan []tokenPlanMint
 	tokenNext int
+	// tokenBatch is the token-creation batch (token_creation_batch.go) the parked mint
+	// belongs to, re-entered when the answer resumes the drive.
+	tokenBatch uint64
 	// emitted marks kind == replChoiceUpdated's original event as already
 	// emitted (the composition's preamble ran); a re-parked continuation
 	// skips the emit and resolves only the remaining bodies.
@@ -890,25 +893,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		}
 		m := rc.cands[rc.applicable[chosen[0].Index]]
 		rest := dropReplMatch(rc.cands, m)
-		var plan []tokenPlanMint
-		var parked bool
-		if body := m.repl.With; body != nil &&
-			(strings.EqualFold(strings.TrimSpace(body.ParamStr(cards.PKTokenScript)), "Chosen") ||
-				strings.TrimSpace(body.ParamStr(cards.PKValidChoices)) != "") {
-			// A chosen-copy match: the election the scan-order drive poses for
-			// it (driveTokenReplacements' chosenShape arm), with the remaining
-			// matches and the plan as they stand. idx -1 makes the pose's resume
-			// cursor re-drive rest from 0 (m itself is already gone from rest).
-			plan, parked = e.poseChosenTokenReplacement(rc.ev, rest, rc.tokenPlan, -1, m)
-		} else {
-			plan = e.applyTokenReplacementToPlan(rc.ev, rc.tokenPlan, m)
-		}
-		if !parked {
-			plan, parked = e.driveTokenReplacements(rc.ev, rest, plan, 0)
-		}
-		if !parked {
-			e.emitTokenPlan(rc.ev, plan)
-		}
+		e.withTokenCreation(rc.tokenBatch, func() { e.resumeTokenOrder(rc, m, rest) })
 	case replChoiceUpdated:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
 			e.triggerBefore = before

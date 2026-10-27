@@ -85,6 +85,11 @@ type HostEmit interface {
 	// a CopyToken mint's battlefield MoveZone may be emitted through this
 	// call too -- it returns the copy only once that entry has folded.
 	EmitTokenCreate(events.Event) []state.ObjID
+	// BeginTokenCreation/EndTokenCreation bracket one Token resolution's mints as
+	// ONE creation event for a fixed Type$ AddToken replacement (Quina's one
+	// Frog for "create two Food"). They nest; neither suspends.
+	BeginTokenCreation()
+	EndTokenCreation()
 	// EmitStackCopy emits a StackCopy event and returns the object it actually
 	// minted, if any. The copy object is created inside events.Apply's
 	// StackCopy fold (AddObject assigns it the pre-emit NextID), so an effect
