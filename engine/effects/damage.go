@@ -92,8 +92,11 @@ func registerReplaceDying(h Host, c *Ctx, die string, damaged []state.Target) {
 		// proposed, kept for the target-based selectors -- so the Remembered
 		// selector must intersect it with c.Remembered, the set the remember
 		// arms wrote only for a positive dealt amount.
-		if selector == definedSpecRemembered && !targetIn(c.Remembered, state.Target{Obj: t.Obj}) {
-			continue
+		if selector == definedSpecRemembered {
+			dealt := targetIn(c.Remembered, state.Target{Obj: t.Obj})
+			if !dealt {
+				continue
+			}
 		}
 		if qualifier != "" && !MatchesSpecCtx(h.Game(), qualifier, t.Obj, c.SpecContext(c.Controller)) {
 			continue
