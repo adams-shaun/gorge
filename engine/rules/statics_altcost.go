@@ -311,33 +311,6 @@ func (e *Engine) firstForetellUsed(p state.PlayerID) bool {
 	return false
 }
 
-// onlyFirstSpellUsed reports whether a ReduceCost static carrying
-// OnlyFirstSpell$ (Conduit of Ruin: "The first creature spell you cast each
-// turn costs {2} less") has already spent its this-turn application: a covered
-// spell was cast by the payer earlier in the turn. The answer is a log walk
-// over PutOnStack events back to the last TurnChange (cast.go's
-// spellsCastThisTurn derivation), so a replay agrees by construction, and it
-// counts the covered casts -- the oracle's "first creature spell" is first
-// among the covered kind, not first among all spells. A prior cast is covered
-// iff it matches ValidCard$ (when present) and THEN its own cast-scope
-// satisfies ValidSpell$ (when present), Forge's CostAdjustment order: Melek's
-// "first instant or sorcery spell" is not spent by an earlier creature spell.
-// A prior cast's cast mode and root targets are not on its object once it
-// leaves the stack, so both are rebuilt from the CastInfo / TargetsChosen
-// events above its PutOnStack.
-//
-// Every cost-static evaluation site runs BEFORE the cast's own PutOnStack
-// exists (the offer walk, beginCast's modifier snapshot, and the
-// target-announcement recompute all precede pushCast -- CR 601.2f's
-// modifiers are computed into pc.mods and manaToPay only reads them), so the
-// in-flight cast is never in the log while it is being priced. The ev.Obj ==
-// id exclusion is defensive against a future evaluation site past the push:
-// the cast being priced must not count as its own "previous cast".
-//
-// A cast whose object no longer carries a face (or whose face, mode or targets
-// the specs cannot re-evaluate) is not counted -- the missing-match direction
-// for a USED tracking, which widens the discount by at most one cast on a
-// board this build cannot reconstruct, never withholds it.
 // priorCastFacts is one completed cast's pay-time CastFlags and its announced
 // root targets, reconstructed from the events above its PutOnStack.
 type priorCastFacts struct {
@@ -361,9 +334,9 @@ func priorCastScope(flags uint64) costScope {
 	case flags&state.FlagMiracle != 0:
 		return spellScope("miracle")
 	case flags&state.FlagBlitzed != 0:
-		return spellScope("blitzed")
+		return spellScope(altCastModes[altBlitz].mode)
 	case flags&state.FlagDashed != 0:
-		return spellScope("dashed")
+		return spellScope(altCastModes[altDash].mode)
 	case flags&state.FlagBuyback != 0:
 		return spellScope("buyback")
 	case flags&state.FlagBargained != 0:
@@ -404,6 +377,33 @@ func priorCastTargets(evs []events.Event) []state.Target {
 	return targets
 }
 
+// onlyFirstSpellUsed reports whether a ReduceCost static carrying
+// OnlyFirstSpell$ (Conduit of Ruin: "The first creature spell you cast each
+// turn costs {2} less") has already spent its this-turn application: a covered
+// spell was cast by the payer earlier in the turn. The answer is a log walk
+// over PutOnStack events back to the last TurnChange (cast.go's
+// spellsCastThisTurn derivation), so a replay agrees by construction, and it
+// counts the covered casts -- the oracle's "first creature spell" is first
+// among the covered kind, not first among all spells. A prior cast is covered
+// iff it matches ValidCard$ (when present) and THEN its own cast-scope
+// satisfies ValidSpell$ (when present), Forge's CostAdjustment order: Melek's
+// "first instant or sorcery spell" is not spent by an earlier creature spell.
+// A prior cast's cast mode and root targets are not on its object once it
+// leaves the stack, so both are rebuilt from the CastInfo / TargetsChosen
+// events above its PutOnStack.
+//
+// Every cost-static evaluation site runs BEFORE the cast's own PutOnStack
+// exists (the offer walk, beginCast's modifier snapshot, and the
+// target-announcement recompute all precede pushCast -- CR 601.2f's
+// modifiers are computed into pc.mods and manaToPay only reads them), so the
+// in-flight cast is never in the log while it is being priced. The ev.Obj ==
+// id exclusion is defensive against a future evaluation site past the push:
+// the cast being priced must not count as its own "previous cast".
+//
+// A cast whose object no longer carries a face (or whose face, mode or targets
+// the specs cannot re-evaluate) is not counted -- the missing-match direction
+// for a USED tracking, which widens the discount by at most one cast on a
+// board this build cannot reconstruct, never withholds it.
 func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.ObjID) bool {
 	cardSpec := strings.TrimSpace(sv.ParamStr(cards.PKValidCard))
 	spellSpec, hasSpellSpec := sv.Param(cards.PKValidSpell)
