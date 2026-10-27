@@ -797,23 +797,14 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// cannot: since CR 602.2a's push-first the ability being activated is
 		// on the stack while its [+N] is paid, and an instant-speed
 		// activation's cost is always paid above other objects.
-		if r.ParamStr(cards.PKEffectOnly) == "True" && e.costCounters > 0 {
+		//
+		// A replacement BODY's counter placement (the K:etbCounter entry body's
+		// DB$ PutCounter) has no stack cause either, but it IS the action of a
+		// replacement effect (CR 614.1c) and this wording reaches it
+		// (addCounterEffectOnlyClosed carries that carve-out). CR 614.16 reopens
+		// the gate once another replacement has applied to the same event.
+		if r.ParamStr(cards.PKEffectOnly) == "True" && e.addCounterEffectOnlyClosed(ev) {
 			return false
-		}
-		if r.ParamStr(cards.PKEffectOnly) == "True" && e.actionCause() == 0 {
-			// A replacement BODY's counter placement (the K:etbCounter entry
-			// body's DB$ PutCounter) also has no stack cause by the time it
-			// emits -- the entry move has already applied and the wrapper is
-			// off the stack -- but it IS the action of a replacement effect
-			// (CR 614.1c), and this wording reaches it: CR 614.5, the
-			// replacement's instruction is a new event the AddCounter class
-			// modifies (Doubling Season doubles a planeswalker's starting
-			// loyalty, the class's own precedent). A cost or turn-based
-			// placement is never made from inside a replacement body, so the
-			// exclusion keeps its teeth there.
-			if _, isBody := e.replacementBodyCounterAdder(); !isBody {
-				return false
-			}
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplRollPlanarDice:
