@@ -140,3 +140,57 @@ func TestChangeZoneConditionalDestinationNoHostUsesAlternate(t *testing.T) {
 	}
 	t.Fatalf("missing deterministic fallback Note: %+v", h.log)
 }
+
+func TestChangeZoneUnconditionalDestinationChoice(t *testing.T) {
+	_, ability, _ := corpusRiderSA(t, "Illuna, Apex of Wishes", "DBChange")
+	if ability.Params["DestAltSVar"] != "" || ability.Params["DestinationAlternative"] != "Hand" || ability.Params["Destination"] != "Battlefield" {
+		t.Fatalf("precondition: unexpected Illuna destination parameters: %+v", ability.Params)
+	}
+	setup := func(t *testing.T) (*fakeHost, *Ctx, state.ObjID) {
+		fh, c := fixtureHost(t)
+		id := fh.g.AddObject(mkCard(t, riderBear), 0).ID
+		fh.g.Obj(id).Zone = state.ZExile
+		c.Controller = 0
+		c.Remembered = []state.Target{{Obj: id}}
+		if z := fh.g.Obj(id).Zone; z != state.ZExile {
+			t.Fatalf("precondition: card in %s, want exile", z)
+		}
+		return fh, c, id
+	}
+	for _, tc := range []struct {
+		name string
+		pick int
+		want state.Zone
+	}{
+		{name: "hand", pick: 1, want: state.ZHand},
+		{name: "battlefield", pick: 0, want: state.ZBattlefield},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fh, c, id := setup(t)
+			h := &destinationTapeHost{fakeHost: fh, answer: tc.pick}
+			Resolve(h, c, ability)
+			if h.asked == nil || h.asked.ResumeKind != "changezone_dest_alt" || len(h.asked.Options) != 2 {
+				t.Fatalf("unconditional destination decision not posed: %+v", h.asked)
+			}
+			if got := h.g.Obj(id).Zone; got != tc.want {
+				t.Fatalf("zone=%s, want %s", got, tc.want)
+			}
+		})
+	}
+	t.Run("no tape takes the primary with a Note", func(t *testing.T) {
+		fh, c, id := setup(t)
+		Resolve(fh, c, ability)
+		if got := fh.g.Obj(id).Zone; got != state.ZBattlefield {
+			t.Fatalf("zone=%s, want battlefield", got)
+		}
+		notes := 0
+		for _, ev := range fh.log {
+			if ev.Kind == events.Note && strings.Contains(ev.Text, "DestinationAlternative$ Hand") {
+				notes++
+			}
+		}
+		if notes != 1 {
+			t.Fatalf("destination Notes = %d, want 1", notes)
+		}
+	})
+}
