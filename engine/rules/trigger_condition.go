@@ -38,9 +38,12 @@ func evolveConditionHolds(r interface {
 	return r.Power(ev.Obj) > r.Power(source) || r.Toughness(ev.Obj) > r.Toughness(source)
 }
 
-// noResolvingCheck reports whether the trigger carries NoResolvingCheck$ True:
-// Forge's marker that its condition clause (an intervening-if, an
-// IsPresent$/PresentCompare$ or a CheckSVar$/SVarCompare$ gate) is checked
+// noResolvingCheck reports whether the trigger is exempt from the
+// resolution-time recheck: either it carries NoResolvingCheck$ True, or it is
+// a CR 603.8 Mode$ Always state trigger (whose condition is not an
+// intervening-if). NoResolvingCheck$ True is Forge's marker that its condition
+// clause (an intervening-if, an IsPresent$/PresentCompare$ or a
+// CheckSVar$/SVarCompare$ gate) is checked
 // ONLY when the trigger would fire, never again as it resolves. Measured over
 // the corpus: 88 raw T: lines across 87 files, every one True -- transient
 // fire-time battlefield counts (pack tactics' attacking power, battalion's
@@ -52,6 +55,17 @@ func evolveConditionHolds(r interface {
 // the event-matched delayed walker, the AttackerBlocked hook) keeps its own
 // check.
 func noResolvingCheck(t cards.Trigger) bool {
+	if t.Mode == "Always" {
+		// CR 603.8: a state-triggered ability triggers when the game state
+		// matches its condition and does not trigger again until it has left
+		// the stack. Nothing in 603.8 rechecks the condition as the ability
+		// resolves; the CR 603.4 resolution-time recheck belongs to an
+		// intervening-if clause, which a state trigger's condition is not.
+		// Forge makes the same exemption: WrappedAbility.java:405-409 skips
+		// requirementsCheck at resolution for TriggerType.Always exactly as
+		// for NoResolvingCheck$.
+		return true
+	}
 	return strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKNoResolvingCheck)), "True")
 }
 
@@ -59,7 +73,8 @@ func noResolvingCheck(t cards.Trigger) bool {
 // condition check, beside triggerMatches' fire-time half: a triggered
 // ability's condition is checked when it triggers AND as it resolves, and a
 // false answer at resolution removes the ability from the stack (CR 603.4).
-// NoResolvingCheck$ True opts the trigger out of this second check.
+// NoResolvingCheck$ True and a CR 603.8 Mode$ Always state trigger opt the
+// trigger out of this second check.
 //
 // tc is the ability's captured event roles (Engine.triggerContexts[id] at the
 // resolveTop call site), which is what lets the event-RELATIVE clauses below
