@@ -821,10 +821,11 @@ func (e *Engine) mayPlayLandPermKey(p state.PlayerID, id state.ObjID) string {
 // mayPlayEffectKey is an Effect-delivered MayPlayLimit$ grant's permission
 // identity: its Source plus its registration Timestamp (unique per
 // AddContinuous clock tick, replay-stable), so two activations of one
-// Tomb of Aclazotz are two permissions. The trailing "." terminates the
-// number so one key is never a prefix of another inside a log token.
+// Tomb of Aclazotz are two permissions. The timestamp is rendered through
+// mayPlayPermKey so its trailing ":" terminates the number and one key is
+// never a prefix of another inside a log token.
 func mayPlayEffectKey(ce *state.ContinuousEffect) string {
-	return mayPlayPermKey(ce.Source, "@"+strconv.FormatUint(uint64(ce.Timestamp), 10)+".")
+	return mayPlayPermKey(ce.Source, "@") + mayPlayPermKey(state.ObjID(ce.Timestamp), "")
 }
 
 // mayPlayCapOpen reports whether ce's MayPlayLimit$ cap has a use left. An
