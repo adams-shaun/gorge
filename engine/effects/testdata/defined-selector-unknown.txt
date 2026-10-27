@@ -1,0 +1,55 @@
+Defined$ .Chosen,You	2
+Defined$ ActivePlayer	2
+Defined$ AttachedBy Returned	1
+Defined$ AttachedBy Sacrificed & Valid Creature.sharesCreatureTypeWith AttachedBy Sacrificed	5
+Defined$ AttachedBy TriggeredCardLKICopy	2
+Defined$ AttachedTo Targeted.Aura,Equipment	1
+Defined$ AttachedTo Targeted.Equipment	1
+Defined$ AttackingPlayer	3
+Defined$ Card.Self	1
+Defined$ ChoosingPlayer	2
+Defined$ ChosenMap	2
+Defined$ DefendingPlayer	1
+Defined$ DirectRemembered	4
+Defined$ DiscardedCards	1
+Defined$ EnchantedController	5
+Defined$ EnchantedOwner	1
+Defined$ ExiledCards	3
+Defined$ ExiledCards.withoutSuspend	1
+Defined$ ExiledWithSource	4
+Defined$ Imprinted.ExiledWithSource	3
+Defined$ OppNonParentTarget	4
+Defined$ OppNonRememberedOwner	2
+Defined$ ParentTarget.attacking	1
+Defined$ RememberedFirst	1
+Defined$ ReplacedCardController	2
+Defined$ ReplacedCardLKIController	1
+Defined$ ReplacedNewCard.Creature	2
+Defined$ ReplacedNewCard.Planeswalker	2
+Defined$ RevealedCards.!Self	1
+Defined$ Sacrificed	2
+Defined$ SacrificedCards	1
+Defined$ ShieldEffectTarget	5
+Defined$ SourceController	3
+Defined$ SourceFirstSpell	1
+Defined$ Spawner>Sacrificed	1
+Defined$ Tapped	1
+Defined$ TargetedCard	2
+Defined$ TargetedSource	1
+Defined$ ThisTargetedPlayer	2
+Defined$ TriggeredAttackerOwner	1
+Defined$ TriggeredAttackingPlayer.Opponent+controlsCreature.attacking Player.EnchantedBy	3
+Defined$ TriggeredBlockers	2
+Defined$ TriggeredCardOpponent	3
+Defined$ TriggeredCauseController	1
+Defined$ TriggeredLastStateBattlefieldLKICopy.Creature+ControlledBy TriggeredPlayer,Artifact+ControlledBy TriggeredPlayer	1
+Defined$ ValidAll Card.IsCommander+YouOwn	1
+Defined$ ValidAll Card.TopLibrary+TargetedPlayerCtrl	1
+Defined$ ValidAll Card.YouOwn+!IsRemembered+IsCommander	1
+Defined$ ValidCommand Effect.namedRaging River Left	1
+Defined$ ValidCommand Effect.namedRaging River Left+IsImprinted	1
+Defined$ ValidCommand Effect.namedRaging River Right	1
+Defined$ ValidCommand Effect.namedRaging River Right+IsImprinted	1
+Defined$ You & TriggeredSpellAbility>ManaSpender.Other	1
+DefinedPlayer$ ActivePlayer	1
+DefinedPlayer$ RememberController	1
