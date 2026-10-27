@@ -548,6 +548,12 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 		b.BeginDiscardBatch()
 		defer b.EndDiscardBatch()
 	}
+	// Zone bracket (Mode$ ChangesZoneAll): one api:Discard resolution is one
+	// batched zone change into the graveyard (Forge's DiscardEffect fires
+	// triggerChangesZoneAll once from its one CardZoneTable). Asks are
+	// answered in place, so it closes when this call returns.
+	h.BeginZoneBatch()
+	defer h.EndZoneBatch()
 	mode := sa.ParamStr(cards.PKMode)
 	valid := sa.ParamStr(cards.PKDiscardValid)
 	if valid == "" {
@@ -957,6 +963,13 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 	// per-card Mode$ Milled trigger needs no batch and fires on each MoveZone
 	// exactly as before.
 	defer beginActionBatch(h)()
+	// The same resolution is ONE zone-change event for Mode$ ChangesZoneAll
+	// ("whenever one or more cards are put into ..."): Forge's MillEffect
+	// builds one CardZoneTable for the whole call and fires
+	// triggerChangesZoneAll once. Every ask is answered in place, so the
+	// bracket closes when this call returns.
+	h.BeginZoneBatch()
+	defer h.EndZoneBatch()
 	g := h.Game()
 	noted := false
 	for idx, t := range actingPlayers(h, c, sa) {

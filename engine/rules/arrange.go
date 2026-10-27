@@ -200,7 +200,12 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		newLib = append(newLib, remainder...)
 		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner,
 			IDs: newLib, Secret: true})
+		// One surveil puts its whole pile B into the graveyard as ONE zone
+		// change for Mode$ ChangesZoneAll (Forge's SurveilEffect fires
+		// triggerChangesZoneAll once). The bracket spans only these moves,
+		// never the decision.
 		var moved []state.ObjID
+		e.openZoneBatch()
 		for _, id := range pileB {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 				From: state.ZLibrary, To: state.ZGraveyard, Player: owner})
@@ -208,6 +213,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 				moved = append(moved, id)
 			}
 		}
+		e.closeZoneBatch()
 		// RememberMoved$ True (CR 607.2a; Enlightened Confidant, Chandra,
 		// Chill of Compliance: "the card you put into your graveyard this
 		// way"): the cards that actually reached the graveyard join the
