@@ -276,3 +276,45 @@ func TestTwoLimitedStaticsCountSeparately(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestMayPlayAltCostLimitIsPerStatic is the alternative-cost twin: Darksteel
+// Monolith's "once each turn, you may pay {0} rather than pay the mana cost
+// for a colorless spell" is one use per static, so a second, different
+// colorless spell cannot take the discount.
+func TestMayPlayAltCostLimitIsPerStatic(t *testing.T) {
+	t.Parallel()
+	monolith := "Name:Monolith Fixture\nManaCost:0\nTypes:Artifact\n" +
+		"S:Mode$ Continuous | MayPlay$ True | MayPlayAltManaCost$ 0 | MayPlayLimit$ 1 | MayPlayDontGrantZonePermissions$ True | Affected$ Card.nonLand+Colorless+YouOwn | AffectedZone$ Hand | Description$ Once each turn, you may pay {0} rather than pay the mana cost for a colorless spell that you cast from your hand.\nOracle:x\n"
+	idol := func(n string) string { return "Name:" + n + "\nManaCost:3\nTypes:Artifact\nOracle:x\n" }
+	e, cfg, _ := newFixtureDeck(t, 209, monolith, idol("IdolA"), idol("IdolB"))
+	moveSeeded(t, e, 0, monolith, state.ZBattlefield)
+	a := moveSeeded(t, e, 0, idol("IdolA"), state.ZHand)
+	b := moveSeeded(t, e, 0, idol("IdolB"), state.ZHand)
+	toMain1(t, e)
+	e.priorityRound()
+	altOffer := func(id state.ObjID) int {
+		for _, o := range e.legalActions(0) {
+			if o.Kind == "cast" && o.Obj == id && o.AltCostIndex > 0 {
+				return o.Index
+			}
+		}
+		return -1
+	}
+	if altOffer(a) < 0 || altOffer(b) < 0 {
+		t.Fatalf("precondition: both idols must be offered at the {0} alternative: %+v", e.legalActions(0))
+	}
+	e.priorityRound()
+	submitChoices(t, e, altOffer(a))
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(a); o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: IdolA must have been cast for free, zone %s", o.Zone)
+	}
+	e.priorityRound()
+	if perStaticTokenCount(e) != 1 {
+		t.Fatalf("the alternative cast must stamp the static's token, got %d", perStaticTokenCount(e))
+	}
+	if altOffer(b) >= 0 {
+		t.Fatalf("the static's one use is spent; IdolB must not be offered at {0}: %+v", e.legalActions(0))
+	}
+	replayCheck(t, e, cfg)
+}
