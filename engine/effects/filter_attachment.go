@@ -243,6 +243,56 @@ func sharesNameValidMatches(g *state.Game, o *state.Object, sc SpecContext, filt
 	return false
 }
 
+// doesNotShareNameWithKey classifies the argument of Forge's
+// doesNotShareNameWith (CardProperty): OtherYourBattlefield is the empty key,
+// YourGraveyard its own key, and any other argument is a valid-spec read over
+// the battlefield, kept as the key when it resolves. Remembered*/Imprinted*
+// need a defined-card set this filter has no binding for, so they, and a spec
+// with an unknown predicate, are refused (fail closed).
+func doesNotShareNameWithKey(arg string) (string, bool) {
+	arg = strings.TrimSpace(arg)
+	switch {
+	case strings.EqualFold(arg, "OtherYourBattlefield"):
+		return "", true
+	case arg == "YourGraveyard":
+		return arg, true
+	case arg == "" || strings.HasPrefix(arg, "Remembered") || strings.HasPrefix(arg, "Imprinted"):
+		return "", false
+	}
+	return arg, len(UnknownPredicates(arg)) == 0
+}
+
+// doesNotShareNameWithMatches is the wordDoesNotShareName body, dispatched on
+// doesNotShareNameWithKey's key. The full name-set comparison is
+// sharesNameWithObject, so a token and its face share and a renamed candidate
+// compares by its effective names. A phased-out permanent is not on the
+// battlefield to share with.
+func doesNotShareNameWithMatches(g *state.Game, o *state.Object, sc SpecContext, key string) bool {
+	switch key {
+	case "":
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.ID == o.ID || other.Zone != state.ZBattlefield ||
+				other.PhasedOut || other.Controller != o.Controller {
+				continue
+			}
+			if sharesNameWithObject(o, other, sc) {
+				return false
+			}
+		}
+		return true
+	case "YourGraveyard":
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.Zone == state.ZGraveyard && other.Owner == sc.You && sharesNameWithObject(o, other, sc) {
+				return false
+			}
+		}
+		return true
+	}
+	return !sharesNameValidMatches(g, o, sc, key)
+}
+
 func isTargetedCardBase(base string) bool {
 	return definedCardPoolCodes.Code(base) == definedCardPoolTargetedCard
 }
