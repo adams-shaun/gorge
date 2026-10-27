@@ -52,7 +52,7 @@ func evolveConditionHolds(r interface {
 // the event-matched delayed walker, the AttackerBlocked hook) keeps its own
 // check.
 func noResolvingCheck(t cards.Trigger) bool {
-	if strings.EqualFold(strings.TrimSpace(t.Mode), "Always") {
+	if t.Mode == "Always" {
 		// CR 603.8: a state-triggered ability triggers when the game state
 		// matches its condition and does not trigger again until it has left
 		// the stack. Nothing in 603.8 rechecks the condition as the ability
