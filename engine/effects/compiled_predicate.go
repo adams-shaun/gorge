@@ -530,6 +530,10 @@ const (
 
 var compilePredicateTermCodes = state.NewStrCodes(
 	state.StrEntry[compilePredicateTermCode]{Key: "YouCtrl", Val: compilePredicateTermYouCtrl},
+	// YourTeamCtrl reads YouCtrl because gorge models no teams: a player's
+	// team is that player alone (engine/rules/turn.go). The textual matcher's
+	// predicates["YourTeamCtrl"] and this compiled term must stay identical.
+	state.StrEntry[compilePredicateTermCode]{Key: "YourTeamCtrl", Val: compilePredicateTermYouCtrl},
 	state.StrEntry[compilePredicateTermCode]{Key: "YouDontCtrl", Val: compilePredicateTermYouDontCtrl},
 	state.StrEntry[compilePredicateTermCode]{Key: "OppCtrl", Val: compilePredicateTermYouDontCtrl},
 	state.StrEntry[compilePredicateTermCode]{Key: "YouOwn", Val: compilePredicateTermYouOwn},

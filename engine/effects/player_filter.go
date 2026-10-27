@@ -1024,6 +1024,10 @@ var playerSpecQualifierCodes = state.NewStrCodes(
 	state.StrEntry[playerSpecQualifierCode]{Key: "OpponentOf ReplacedPlayer", Val: playerSpecQualifierOpponentOfReplaced},
 	state.StrEntry[playerSpecQualifierCode]{Key: "IsCorrupted", Val: playerSpecQualifierIsCorrupted},
 	state.StrEntry[playerSpecQualifierCode]{Key: "You", Val: playerSpecQualifierYou},
+	// YourTeam is Forge's PlayerProperty YourTeam (sameTeam). gorge models no
+	// teams, so a player's team is that player alone and the reading is You
+	// (engine/rules/turn.go). A future team mode changes it here.
+	state.StrEntry[playerSpecQualifierCode]{Key: "YourTeam", Val: playerSpecQualifierYou},
 	state.StrEntry[playerSpecQualifierCode]{Key: "Opponent", Val: playerSpecQualifierOpponent},
 	state.StrEntry[playerSpecQualifierCode]{Key: "Other", Val: playerSpecQualifierOpponent},
 	state.StrEntry[playerSpecQualifierCode]{Key: "Active", Val: playerSpecQualifierActive},

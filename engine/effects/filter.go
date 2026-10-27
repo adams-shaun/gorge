@@ -79,6 +79,14 @@ var predicates = map[string]predFn{
 	"YouCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller == you
 	},
+	// YourTeamCtrl is Forge's CardProperty YourTeamCtrl: the permanent's
+	// controller is on the source controller's team. gorge models no teams
+	// (engine/rules/turn.go: "gorge models no Two-Headed Giant teams"), so a
+	// player's team is that player alone and the reading is YouCtrl. A future
+	// team mode changes the reading here and in the compiled table.
+	"YourTeamCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
+		return o.Controller == you
+	},
 	"YouDontCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller != you
 	},
