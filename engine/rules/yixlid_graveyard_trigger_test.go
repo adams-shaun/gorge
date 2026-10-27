@@ -79,6 +79,32 @@ func TestGolgariBrownscaleGraveyardToHandTrigger(t *testing.T) {
 	runYixlidScenario(t, `{"name":"brownscale-gains-life","cr":["603.10a"],"why":"without the Jailer the graveyard->hand trigger fires","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Swamp","Swamp"],"graveyard":["Golgari Brownscale"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"life":{"p0":22}}]}`)
 }
 
+// TestUnscopedAbilityLossDoesNotReachGraveyard pins the zone-scope guard in
+// removalApplies: Humility ("all creatures lose all abilities") prints an
+// unscoped RemoveAllAbilities$ static (no AffectedZone$), and CR 109.2/113.6
+// make such a static reach only creature permanents on the battlefield. The
+// Brownscale in the graveyard keeps its graveyard->hand trigger, so p0 gains
+// 2 life despite the Humility on the battlefield.
+func TestUnscopedAbilityLossDoesNotReachGraveyard(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	humility, ok := reg.Lookup("Humility")
+	if !ok {
+		t.Fatal("Humility missing from corpus")
+	}
+	unscoped := false
+	for i := range humility.Faces[0].Statics {
+		if humility.Faces[0].Statics[i].HasParam(cards.PKRemoveAllAbilities) &&
+			!humility.Faces[0].Statics[i].HasParam(cards.PKAffectedZone) {
+			unscoped = true
+		}
+	}
+	if !unscoped {
+		t.Fatal("precondition: Humility carries no unscoped RemoveAllAbilities$ static")
+	}
+	runYixlidScenario(t, `{"name":"humility-spares-graveyard","cr":["109.2","113.6"],"why":"an unscoped ability-loss static reaches only battlefield permanents, so the graveyard->hand trigger still fires","setup":{"p0":{"hand":["Cemetery Recruitment"],"battlefield":["Humility","Swamp","Swamp"],"graveyard":["Golgari Brownscale"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Cemetery Recruitment","mana":"CB","targets":["p0:Golgari Brownscale"]},{"op":"resolve","seat":0}],"expect":[{"count":{"seat":0,"zone":"hand","name":"Golgari Brownscale"},"eq":1},{"life":{"p0":22}}]}`)
+}
+
 // TestYixlidJailerKeepsObserverGraveyardTrigger pins the id == ev.Obj guard at
 // the trigger gate: the ability-loss look-back is asked only about the moved
 // card itself. Kishla Skimmer, which watches ANY card leave the graveyard, is

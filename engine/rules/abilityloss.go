@@ -95,7 +95,18 @@ func (e *Engine) removalApplies(r *ContinuousEffect, o *state.Object, types []st
 	if !e.matchesWithChars(r, o.ID, types, nil, 0) {
 		return false
 	}
-	if r.AffectedZone != "" && !r.MayPlay {
+	if o.Zone == state.ZGraveyard {
+		// CR 109.2/113.6: an unscoped "loses all abilities" (Humility, "all
+		// creatures lose all abilities") reaches only creature permanents on
+		// the battlefield, so it must not reach a graveyard card. A card in
+		// the graveyard loses its abilities only to a removal whose
+		// AffectedZone$ names the graveyard (Yixlid Jailer) or every zone (a
+		// perpetual removal).
+		zones, all, ok := effects.ParseZones(r.AffectedZone)
+		if !ok || (!all && !slices.Contains(zones, state.ZGraveyard)) {
+			return false
+		}
+	} else if r.AffectedZone != "" && !r.MayPlay {
 		if zones, all, ok := effects.ParseZones(r.AffectedZone); !ok || (!all && !slices.Contains(zones, o.Zone)) {
 			return false
 		}
