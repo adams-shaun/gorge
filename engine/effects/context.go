@@ -1078,6 +1078,26 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerAbility}}, true
 		}
 		return objectsOf(c.Remembered), true
+	case definedSpecTriggeredSpellAbilityTargets:
+		// Forge's SpellAbilityTargets triggering object: the union of every
+		// target choice of the cast spell, root then each chain link. The
+		// spell is resolved as the TriggeredSpellAbility arm does; a spell
+		// that is gone or targets nothing is a KNOWN empty set, never the
+		// source (Storm, Windrider must not pump itself).
+		var out []state.Target
+		spells := []state.Target{}
+		if c.TriggerAbility != 0 {
+			spells = append(spells, state.Target{Obj: c.TriggerAbility})
+		} else {
+			spells = objectsOf(c.Remembered)
+		}
+		for _, sp := range spells {
+			if o := h.Game().Obj(sp.Obj); o != nil {
+				out = append(out, o.Targets...)
+				out = append(out, o.SubTargets...)
+			}
+		}
+		return dedupeTargets(out), true
 	case definedSpecTriggeredTarget:
 		// The object or player that received the triggering event. Spiteful
 		// Shadows uses this as a DamageSource$: the enchanted creature, not the
@@ -2666,6 +2686,7 @@ const (
 	definedSpecReplacedPlayer
 	definedSpecNonReplacedPlayer
 	definedSpecPlayer
+	definedSpecTriggeredSpellAbilityTargets
 	definedSpecCardOwner
 	definedSpecOriginalHostController
 )
@@ -2771,6 +2792,7 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "ReplacedPlayer", Val: definedSpecReplacedPlayer},
 	state.StrEntry[definedSpecCode]{Key: "NonReplacedPlayer", Val: definedSpecNonReplacedPlayer},
 	state.StrEntry[definedSpecCode]{Key: "Player", Val: definedSpecPlayer},
+	state.StrEntry[definedSpecCode]{Key: "TriggeredSpellAbilityTargets", Val: definedSpecTriggeredSpellAbilityTargets},
 	state.StrEntry[definedSpecCode]{Key: "CardOwner", Val: definedSpecCardOwner},
 	state.StrEntry[definedSpecCode]{Key: "OriginalHostController", Val: definedSpecOriginalHostController},
 )
@@ -2825,14 +2847,15 @@ var exiledWithSourceKeyCodes = state.NewStrCodes(
 )
 
 // triggeredCardQualified resolves `<base>.<qualifier>` when base is one of the
-// Triggered-card family spellings (definedSpecTriggeredCard) or the singular
-// attacker spellings (definedSpecTriggeredAttacker): the base's objects
+// Triggered-card family spellings (definedSpecTriggeredCard), the singular
+// attacker spellings (definedSpecTriggeredAttacker) or the source spellings
+// (definedSpecSelf: Iron Man Armor's `Self.nonCreature`): the base's objects
 // filtered by definedCardQualifierMatches. A compound (" & ") value is not
 // this shape and is left to the callers that split it.
 func triggeredCardQualified(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	base, qual, dotted := strings.Cut(spec, ".")
 	code := definedSpecCodes.Code(base)
-	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker) {
+	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker && code != definedSpecSelf) {
 		return nil, false
 	}
 	ts, _ := definedSpec(h, c, base)

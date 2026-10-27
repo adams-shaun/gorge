@@ -59,7 +59,7 @@ func dedupeTargets(ts []state.Target) []state.Target {
 //     cannot pose); zero eligible tokens is a legitimate no-op (populate does
 //     nothing), never a Note.
 //   - Defined$: resolved through knownDefinedTargets, FAIL-CLOSED -- an
-//     unresolvable selector (ChosenMap, TriggeredSpellAbilityTargets, ...)
+//     unresolvable selector (ChosenMap, ...)
 //     is one Note and NO mint, never a silent fall-through to the source or
 //     the chosen targets (a wrong-copy is worse than no-copy here).
 //   - ValidTgts$ (no Defined$): the answered target ask (Ctx.Targets / the
