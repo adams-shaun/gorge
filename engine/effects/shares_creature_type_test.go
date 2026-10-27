@@ -115,3 +115,60 @@ func TestSharesCreatureTypeWithCommander(t *testing.T) {
 		t.Errorf("a seat with no commanders must match nothing (fail closed)")
 	}
 }
+
+// TestSharesCreatureTypeReferentAllTypes pins the REFERENT side of the
+// layer-4 type read: a referent with every creature type (Mistform Ultimus,
+// or Mutavault animated with all creature types) shares a creature type with
+// any creature, and a referent whose derived list grants a word its printed
+// face does not print shares that word too. Before the derived read the
+// predicate looped over the referent's printed words only, so both cases
+// matched nothing from this direction.
+func TestSharesCreatureTypeReferentAllTypes(t *testing.T) {
+	g := state.NewGame(names(2))
+	ultimus := g.AddObject(mkCard(t, "Name:Mistform Ultimus\nTypes:Legendary Creature Illusion\nPT:3/3\nOracle:x\n"), 0)
+	mutavault := g.AddObject(mkCard(t, "Name:Mutavault\nTypes:Land\nOracle:x\n"), 0)
+	bear := g.AddObject(mkCard(t, "Name:Grizzly Bears\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	giant := g.AddObject(mkCard(t, "Name:Hill Giant\nTypes:Creature Giant\nPT:3/3\nOracle:x\n"), 0)
+
+	const spec = "Creature.sharesCreatureTypeWith Self"
+	if got := UnknownPredicates(spec); len(got) != 0 {
+		t.Fatalf("UnknownPredicates(%q) = %v, want []", spec, got)
+	}
+	// Precondition: neither referent's PRINTED face carries Bear, so the
+	// assertions below depend on the derived table actually being read.
+	for _, ref := range []state.ObjID{ultimus.ID, mutavault.ID} {
+		sc := SpecContext{You: 0, Source: ref}
+		if MatchesSpecCtx(g, spec, bear.ID, sc) {
+			t.Fatalf("precondition: referent %d's printed face must not share Bear", ref)
+		}
+	}
+
+	// All creature types on the referent side: shares with a Bear and a
+	// Giant alike (CR 702.73a).
+	allTypes := SpecContext{You: 0, Source: ultimus.ID, Layers: LayerTables{DerivedTypes: []ObjectTypes{
+		{ID: ultimus.ID, Types: []string{"Legendary", "Creature", "Illusion"}, AllCreatureTypes: true},
+	}}}
+	for _, cand := range []state.ObjID{bear.ID, giant.ID} {
+		if !MatchesSpecCtx(g, spec, cand, allTypes) {
+			t.Errorf("an all-creature-types referent must share with candidate %d", cand)
+		}
+	}
+
+	// A derived creature word not on the printed face (an animated land's
+	// grant) is one of the referent's creature types too.
+	granted := SpecContext{You: 0, Source: mutavault.ID, Layers: LayerTables{DerivedTypes: []ObjectTypes{
+		{ID: mutavault.ID, Types: []string{"Land", "Creature", "Bear"}},
+	}}}
+	if !MatchesSpecCtx(g, spec, bear.ID, granted) {
+		t.Errorf("a referent with a derived Bear word must share Bear")
+	}
+	if MatchesSpecCtx(g, spec, giant.ID, granted) {
+		t.Errorf("a referent with derived Land/Creature/Bear must not share Giant")
+	}
+
+	// No common creature word either side (both fall back to printed
+	// faces): the relation stays false.
+	if MatchesSpecCtx(g, spec, bear.ID, SpecContext{You: 0, Source: giant.ID}) {
+		t.Errorf("a Giant referent and a Bear candidate share no creature type")
+	}
+}
