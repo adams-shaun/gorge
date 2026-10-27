@@ -74,11 +74,12 @@ func TestDiscardedCostValueRefSurvivesResponseSpell(t *testing.T) {
 		t.Fatalf("cost discard ask = %+v", d)
 	}
 	submitObj(t, e, "discard", disc)
-	// Respond with Dark Ritual: its PutOnStack is the window boundary that
-	// used to erase the discard.
+	// Respond with Dark Ritual: its PutOnStack used to be the window boundary
+	// that erased the discard; the window is now Grab's own cast, so the
+	// discard stays readable through the log window as well.
 	castNoDrain(t, e, ritual)
-	if got := e.CostMovesInWindow(grab, events.CostMoveDiscard); len(got) != 0 {
-		t.Fatalf("precondition: response spell left the cost-move window open: %v", got)
+	if got := e.CostMovesInWindow(grab, events.CostMoveDiscard); len(got) != 1 || got[0] != disc {
+		t.Fatalf("precondition: response spell hid the cost discard from the window: %v, want [%d]", got, disc)
 	}
 	passUntilStackEmpty(t, e, 30)
 	if o := e.G.Obj(ritual); o == nil || o.Zone != state.ZGraveyard {
