@@ -1000,6 +1000,9 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	// act on exactly the card being kept out of the graveyard -- not the
 	// source that owns the replacement.
 	ctx.Repl.Replaced = ev.Obj
+	if ro := e.G.Obj(ev.Obj); ro != nil {
+		ctx.Repl.ReplacedController, ctx.Repl.HasReplacedController = ro.Controller, true
+	}
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 		ctx.Repl.ExcludeFromBattlefieldCount = ev.Obj
 	}

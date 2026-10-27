@@ -1330,6 +1330,24 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
 		}
 		return nil, true
+	case definedSpecReplacedCardController:
+		// The replaced card's current controller (Land Equilibrium, The
+		// Doctor's Tomb). Nobody outside a replacement or once it is gone.
+		if o := g.Obj(c.Repl.Replaced); o != nil && int(o.Controller) < len(g.Players) {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+		}
+		return nil, true
+	case definedSpecReplacedCardLKIController:
+		// The controller captured when the replacement matched, before the
+		// body's move reset it to the owner (CR 400.7; Ugin's Nexus). Falls
+		// back to the live controller when nothing was captured.
+		if c.Repl.HasReplacedController && int(c.Repl.ReplacedController) < len(g.Players) {
+			return []state.Target{{Player: c.Repl.ReplacedController, IsPlayer: true}}, true
+		}
+		if o := g.Obj(c.Repl.Replaced); o != nil && int(o.Controller) < len(g.Players) {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+		}
+		return nil, true
 	case definedSpecReplacedTargetController:
 		if c.Repl.Target.IsPlayer {
 			return []state.Target{c.Repl.Target}, true
@@ -1388,6 +1406,32 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			}
 		}
 		return out, true
+	case definedSpecTriggeredCardOpponent:
+		// Each opponent of the triggering card's controller (Standstill's "each
+		// of that player's opponents"), through the one shared
+		// TriggeredCardController resolver. No resolvable triggering card
+		// names nobody, never the source's controller.
+		p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered)
+		if !ok {
+			return nil, true
+		}
+		var out []state.Target
+		for _, q := range g.AliveFrom(c.Controller) {
+			if q != p {
+				out = append(out, state.Target{Player: q, IsPlayer: true})
+			}
+		}
+		return out, true
+	case definedSpecTriggeredAttackerOwner:
+		// The owner (CR 108.3) of the singular triggering attacker, so a
+		// stolen attacker's owner is named, not the thief (Nihiloor).
+		attackers, _ := definedSpec(h, c, "TriggeredAttacker")
+		for _, t := range attackers {
+			if o := g.Obj(t.Obj); o != nil && int(o.Owner) < len(g.Players) {
+				return []state.Target{{Player: o.Owner, IsPlayer: true}}, true
+			}
+		}
+		return nil, true
 	case definedSpecTriggeredCombatantController:
 		// The controller of the triggering event's attacker or blocker. The
 		// Blocks mode captures both roles per pair (engine/rules/trigger_match.go's
@@ -2704,6 +2748,10 @@ const (
 	definedSpecReplacedSource
 	definedSpecReplacedSourceController
 	definedSpecReplacedTargetController
+	definedSpecReplacedCardController
+	definedSpecReplacedCardLKIController
+	definedSpecTriggeredCardOpponent
+	definedSpecTriggeredAttackerOwner
 	definedSpecTriggeredDefendingPlayer
 	definedSpecTriggeredPlayer
 	definedSpecTriggeredAttackingPlayer
@@ -2808,6 +2856,10 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "ReplacedSource", Val: definedSpecReplacedSource},
 	state.StrEntry[definedSpecCode]{Key: "ReplacedSourceController", Val: definedSpecReplacedSourceController},
 	state.StrEntry[definedSpecCode]{Key: "ReplacedTargetController", Val: definedSpecReplacedTargetController},
+	state.StrEntry[definedSpecCode]{Key: "ReplacedCardController", Val: definedSpecReplacedCardController},
+	state.StrEntry[definedSpecCode]{Key: "ReplacedCardLKIController", Val: definedSpecReplacedCardLKIController},
+	state.StrEntry[definedSpecCode]{Key: "TriggeredCardOpponent", Val: definedSpecTriggeredCardOpponent},
+	state.StrEntry[definedSpecCode]{Key: "TriggeredAttackerOwner", Val: definedSpecTriggeredAttackerOwner},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredDefendingPlayer", Val: definedSpecTriggeredDefendingPlayer},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredPlayer", Val: definedSpecTriggeredPlayer},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredAttackingPlayer", Val: definedSpecTriggeredAttackingPlayer},

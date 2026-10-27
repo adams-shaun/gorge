@@ -114,6 +114,13 @@ type ReplacementInputs struct {
 	// -- it drives the replacement's own resolution but is never itself persisted
 	// to the event log.
 	Replaced state.ObjID
+	// ReplacedController is the controller of Replaced captured when the
+	// replacement matched, while the object was still in its original zone
+	// (Defined$ ReplacedCardLKIController: the body's move resets the
+	// controller to the owner, CR 400.7). Valid only with
+	// HasReplacedController. Context, never persisted.
+	ReplacedController    state.PlayerID
+	HasReplacedController bool
 	// ReplacedCards is the ordered plural batch a replaced INSTRUCTION was
 	// about (Defined$ ReplacedCards / ReplacedCards.<qual>): the cascade
 	// instruction's exiled cards, which Averna, the Chaos Bloom picks a land
