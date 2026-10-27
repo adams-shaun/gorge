@@ -23,8 +23,15 @@ func TestCompileDraw(t *testing.T) {
 	}}
 	p := DrawOf(sa)
 	if p.NumCards != (ParamText{Text: "X", Present: true}) || !p.RememberDrawn ||
-		p.OptionalDecider != "You" || !p.Upto {
+		!p.RememberDrawnAll || p.OptionalDecider != "You" || !p.Upto {
 		t.Fatalf("compiled = %+v", p)
+	}
+	// AllReplaced is case-insensitive; True sets only the plain flag.
+	if d := DrawOf(&cards.SA{API: "Draw", Params: map[string]string{"RememberDrawn": "allreplaced"}}); !d.RememberDrawn || !d.RememberDrawnAll {
+		t.Fatalf("allreplaced draw = %+v", d)
+	}
+	if d := DrawOf(&cards.SA{API: "Draw", Params: map[string]string{"RememberDrawn": "True"}}); !d.RememberDrawn || d.RememberDrawnAll {
+		t.Fatalf("true draw = %+v", d)
 	}
 	if !slices.Equal(p.Unread, []string{"Bogus"}) {
 		t.Fatalf("unread = %v", p.Unread)

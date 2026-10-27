@@ -25,6 +25,12 @@ type DrawParams struct {
 	NumCards ParamText
 	// RememberDrawn$ present-and-non-blank (True and AllReplaced alike).
 	RememberDrawn bool
+	// RememberDrawn$ AllReplaced (case-insensitive): remember every card the
+	// draw machinery moved into the drawing player's hand under this cause,
+	// including the replacement's own draws (Forge's AllReplaced marker,
+	// CR 121.6c/614.1). False for the True spelling, which records only the
+	// effect's own pre-draw top card.
+	RememberDrawnAll bool
 	// OptionalDecider$, trimmed ("" = a mandatory draw).
 	OptionalDecider string
 	// Upto$ True.
@@ -70,7 +76,9 @@ func compileDraw(sa *cards.SA) *DrawParams {
 	p := &DrawParams{paramBinding: bindParams(sa)}
 	nc, ncOK := sa.Param(cards.PKNumCards)
 	p.NumCards = ParamText{Text: nc, Present: ncOK}
-	p.RememberDrawn = strings.TrimSpace(sa.ParamStr(cards.PKRememberDrawn)) != ""
+	rememberDrawn := strings.TrimSpace(sa.ParamStr(cards.PKRememberDrawn))
+	p.RememberDrawn = rememberDrawn != ""
+	p.RememberDrawnAll = strings.EqualFold(rememberDrawn, "AllReplaced")
 	p.OptionalDecider = strings.TrimSpace(sa.ParamStr(cards.PKOptionalDecider))
 	p.Upto = isTrue(sa.ParamStr(cards.PKUpto))
 	if sa.API == "Draw" {
