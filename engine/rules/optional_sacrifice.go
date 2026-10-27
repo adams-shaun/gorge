@@ -57,7 +57,7 @@ var optionalSacrifices = [...]optionalSacrifice{
 		},
 		prompt: "Choose a creature to sacrifice for casualty",
 		stale:  "casualty no longer payable; casting without casualty"},
-	optSacBargain: {mode: "bargained", answer: "bargain", spec: "Artifact,Enchantment,token", scope: "bargained",
+	optSacBargain: {mode: "bargained", answer: "bargain", spec: "Artifact,Enchantment,Card.token", scope: "bargained",
 		offered: func(e *Engine, id state.ObjID) (int32, bool) {
 			return 0, e.stackKeywordPossibleH(id, kwhBargain)
 		},
