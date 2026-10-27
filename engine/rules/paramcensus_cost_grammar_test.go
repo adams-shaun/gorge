@@ -216,12 +216,14 @@ func TestWardCostShapeKnown(t *testing.T) {
 	}
 }
 
-func TestCensusCostKeepsGixDiscardX(t *testing.T) {
+func TestCensusCostReadsGixDiscardX(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
 	c := searchCorpusCard(t, reg, "Gix, Yawgmoth Praetor")
 	_, d := measureParamCensus(t, nil)
-	if got := cardCensusLabels(c, d, nil); !slices.Contains(got, "cost:Discard") {
-		t.Errorf("Gix labels = %v, want cost:Discard kept (activation Discard<X> is a real gap)", got)
+	for _, l := range cardCensusLabels(c, d, nil) {
+		if strings.HasPrefix(l, "cost:") {
+			t.Errorf("Gix carries census label %q, want no cost: label (Discard<X/Card> is read)", l)
+		}
 	}
 }
