@@ -947,6 +947,27 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// union (Ctx.AllTargets: rules' chainTargetUnion) -- Uldaros Theorix's
 		// and Urgent Necropsy's untargeted "exile/destroy them" tail link.
 		return copyTargets(refTargetUnion(c)), true
+	case definedSpecTargetedCard:
+		// Forge's Targeted/TargetedCard card list: the target CARDS of every
+		// target choice in the chain. Player targets are not cards, so they
+		// drop; with no card target it is the known-empty set, never the
+		// source (Will of the Sultai's "It gains trample", Jon Irenicus's
+		// counters on the donated creature).
+		var out []state.Target
+		for _, t := range objectsOf(refTargetUnion(c)) {
+			if t.Obj != 0 {
+				out = append(out, t)
+			}
+		}
+		return out, true
+	case definedSpecRememberedFirst:
+		// Forge's getFirstRemembered, when it is a card: the first object
+		// entry of the resolved Remembered list (Parallel Thoughts' top card
+		// of the exiled pile). An empty pile is the known-empty set.
+		if objs := objectsOf(resolvedRemembered(h, c)); len(objs) > 0 {
+			return objs[:1:1], true
+		}
+		return nil, true
 	case definedSpecParentTarget:
 		// The NEAREST targeting parent link's targets (parent_targets.go).
 		return copyTargets(parentLinkTargets(c)), true
@@ -2677,6 +2698,8 @@ const (
 	definedSpecChosenCardController
 	definedSpecCardController
 	definedSpecTargeted
+	definedSpecTargetedCard
+	definedSpecRememberedFirst
 	definedSpecParentTarget
 	definedSpecParentTargetedController
 	definedSpecThisTargetedCard
@@ -2768,6 +2791,8 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "ChosenCardController", Val: definedSpecChosenCardController},
 	state.StrEntry[definedSpecCode]{Key: "CardController", Val: definedSpecCardController},
 	state.StrEntry[definedSpecCode]{Key: "Targeted", Val: definedSpecTargeted},
+	state.StrEntry[definedSpecCode]{Key: "TargetedCard", Val: definedSpecTargetedCard},
+	state.StrEntry[definedSpecCode]{Key: "RememberedFirst", Val: definedSpecRememberedFirst},
 	state.StrEntry[definedSpecCode]{Key: "ParentTarget", Val: definedSpecParentTarget},
 	state.StrEntry[definedSpecCode]{Key: "ParentTargeted", Val: definedSpecParentTarget},
 	state.StrEntry[definedSpecCode]{Key: "ParentTargetedController", Val: definedSpecParentTargetedController},

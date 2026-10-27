@@ -13,7 +13,6 @@ Defined$ ExiledCards	3
 Defined$ ExiledCards.withoutSuspend	1
 Defined$ OppNonParentTarget	4
 Defined$ OppNonRememberedOwner	2
-Defined$ RememberedFirst	1
 Defined$ ReplacedCardController	2
 Defined$ ReplacedCardLKIController	1
 Defined$ ReplacedNewCard.Creature	2
@@ -26,7 +25,6 @@ Defined$ SourceController	3
 Defined$ SourceFirstSpell	1
 Defined$ Spawner>Sacrificed	1
 Defined$ Tapped	1
-Defined$ TargetedCard	2
 Defined$ TargetedSource	1
 Defined$ ThisTargetedPlayer	2
 Defined$ TriggeredAttackerOwner	1
