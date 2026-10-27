@@ -63,6 +63,10 @@ type EffectParams struct {
 	RememberLKI     string
 	SetChosenNumber string
 	EffectOwner     string
+	// RemembersObjects is RememberObjects$ present and non-blank: the
+	// Effect's own trigger bodies then read its capture, not the resolving
+	// spell's memory.
+	RemembersObjects bool
 
 	// Unread are the parameters present on the ability that no Effect
 	// reader consumes: the resolution Notes them once.
@@ -169,6 +173,7 @@ func compileEffect(sa *cards.SA) *EffectParams {
 	p.RememberLKI = strings.TrimSpace(sa.ParamStr(cards.PKRememberLKI))
 	p.SetChosenNumber = strings.TrimSpace(sa.ParamStr(cards.PKSetChosenNumber))
 	p.EffectOwner = strings.TrimSpace(sa.ParamStr(cards.PKEffectOwner))
+	p.RemembersObjects = strings.TrimSpace(sa.ParamStr(cards.PKRememberObjects)) != ""
 	// NoShuffle$ is the opt-out twopiles' noShuffleBody forces onto EVERY pile
 	// body (a pile split is not a search, so the shared library-origin tail's
 	// CR 701.23d shuffle must be suppressed). An Effect body has no library

@@ -425,9 +425,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// phases the Effect's memory (Oubliette's `RememberObjects$
 		// Targeted`, Out of Time's `RememberObjects$ Remembered`) rather than
 		// the host that just left. Every other Effect trigger keeps its
-		// existing registration set untouched.
+		// existing registration set untouched, except that an Effect with its
+		// own RememberObjects$ registers that capture (CR 611.2a): its
+		// `Card.IsRemembered` triggers name the Effect's memory.
 		regIDs := c.Remembered
-		if permanentComeback || forgetOn != "" || exileOn != "" || forgetCounter != "" {
+		if ep.RemembersObjects || permanentComeback || forgetOn != "" || exileOn != "" || forgetCounter != "" {
 			regIDs = make([]state.Target, 0, len(remembered))
 			for _, id := range remembered {
 				regIDs = append(regIDs, state.Target{Obj: id})
