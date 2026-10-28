@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/spellbench/observe"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
@@ -144,8 +145,9 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		return SingleChoice(env, d, choice(src, "card_type"), func(o decision.Option) (protocol.Semantic, bool, error) {
-			return protocol.ChooseName(src, "card_type", observe.Normalize(o.Label)), true, nil
+		purpose := chooseTypeNamePurpose(d.Options)
+		return SingleChoice(env, d, choice(src, purpose), func(o decision.Option) (protocol.Semantic, bool, error) {
+			return protocol.ChooseName(src, purpose, observe.Normalize(o.Label)), true, nil
 		})
 	})
 	Register("choose/name", func(env *Env, d *decision.Decision) (Transaction, error) {
@@ -157,4 +159,57 @@ func init() {
 			return protocol.ChooseName(src, "card_name", o.Label), env.Domain[o.Label], nil
 		})
 	})
+}
+
+// chooseTypeNamePurpose picks the v2 choose_name purpose for a "choose a type"
+// decision from the option universe the engine offered, never from the
+// resolving card. A universe is only called a family when every option's label
+// belongs to that family's vocabulary, so a value is never emitted outside the
+// purpose it is projected under; a universe that fits none is purpose "other"
+// with the label as offered.
+func chooseTypeNamePurpose(opts []decision.Option) string {
+	switch {
+	case labelsInTypeVocabulary(opts, protocol.Vocab["card_type"]):
+		return "card_type"
+	case labelsInTypeVocabulary(opts, effects.TypeChoiceLabels("Basic Land", "", "")):
+		return "basic_land_type"
+	case labelsInTypeVocabulary(opts, effects.TypeChoiceLabels("Land", "", "")):
+		return "land_type"
+	case labelsAreCreatureTypes(opts):
+		return "creature_type"
+	default:
+		return "other"
+	}
+}
+
+// labelsInTypeVocabulary reports whether opts names at least one option and
+// every option's normalized label is one of vocab's normalized entries.
+func labelsInTypeVocabulary(opts []decision.Option, vocab []string) bool {
+	if len(opts) == 0 || len(vocab) == 0 {
+		return false
+	}
+	set := make(map[string]bool, len(vocab))
+	for _, v := range vocab {
+		set[observe.Normalize(v)] = true
+	}
+	for _, o := range opts {
+		if !set[observe.Normalize(o.Label)] {
+			return false
+		}
+	}
+	return true
+}
+
+// labelsAreCreatureTypes reports whether opts names at least one option and
+// every option's label is a creature subtype word.
+func labelsAreCreatureTypes(opts []decision.Option) bool {
+	if len(opts) == 0 {
+		return false
+	}
+	for _, o := range opts {
+		if !effects.CreatureTypeWords(strings.TrimSpace(o.Label)) {
+			return false
+		}
+	}
+	return true
 }
