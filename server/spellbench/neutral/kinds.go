@@ -179,10 +179,11 @@ func (s *Session) distributeShare(sd *protocol.SeatDecision, v *view.View, purpo
 			}
 		}
 	}
-	if remaining < lethal {
-		return remaining
-	}
-	return lethal
+	// mapping.EngineOrderSplit is the one home of the engine-order rule:
+	// this step is the first of a two-recipient split, the synthetic second
+	// recipient being the remainder the host's later substeps receive.
+	split := mapping.EngineOrderSplit(int32(remaining), []int32{int32(lethal), 0})
+	return int(split[0])
 }
 
 // pile translates choose_pile to a one-choice KChoose over the offered
