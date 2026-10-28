@@ -56,6 +56,30 @@ func observationDegradationGame(t *testing.T, reg *cards.Registry, deck []*cards
 	return g
 }
 
+// normalizeOffBattlefield drops the engine transients that only mean something
+// on the battlefield. native's cardView copies SummonSick and
+// ActivatedThisTurn straight from state.Object in every zone, so a creature
+// that died still reads summon-sick in the graveyard; the observation carries
+// summoning_sick only inside a battlefield permanent and no activated count at
+// all. Comparing those fields off the battlefield measures gorge's transient
+// storage, not a fact a seat can lose (the brief's class (c)), so both planes
+// are normalised to the battlefield's own answer.
+func normalizeOffBattlefield(v *view.View) {
+	for i := range v.Players {
+		p := &v.Players[i]
+		for _, z := range [][]view.CardView{p.Hand, p.Graveyard, p.Exile, p.Command} {
+			for k := range z {
+				z[k].SummonSick, z[k].ActivatedThisTurn = false, 0
+			}
+		}
+	}
+	for i := range v.Stack {
+		if c := v.Stack[i].Card; c != nil {
+			c.SummonSick, c.ActivatedThisTurn = false, 0
+		}
+	}
+}
+
 // observationDegradationNative is the view xview carries in x_gorge_view_v1
 // for the pending decision: the production projection the web client renders
 // from. xview re-keys object ids to the seat's small integers and drops
@@ -76,6 +100,7 @@ func observationDegradationNative(g *gamecfg.Game, seat state.PlayerID) view.Vie
 		}
 	}
 	v.Pending = kept
+	normalizeOffBattlefield(&v)
 	return v
 }
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/observe"
@@ -154,8 +155,8 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 	if err != nil {
 		return view.View{}, err
 	}
-	v := view.View{Viewer: viewer, Visibility: "seat", Turn: int32(o.Turn), Players: []view.PlayerView{},
-		Stack: []view.StackView{}, Pending: []view.PendingView{}}
+	v := view.View{Viewer: viewer, Visibility: "seat", Turn: int32(o.Turn), Round: roundOf(o.Turn),
+		Players: []view.PlayerView{}, Stack: []view.StackView{}, Pending: []view.PendingView{}}
 	// day_night: the observation spells out CR 731's designation. A null
 	// field means the host declared the flag absent; the view then keeps its
 	// zero (neither), never inventing a day/night state.
@@ -197,11 +198,22 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 			return view.View{}, err
 		}
 		pool := p.ManaPool
+		// Pool is always non-nil, but native view's poolView keeps only the
+		// colours holding mana: an empty pool is {}, never six zero keys. The
+		// observation sends all six amounts, so the rebuild drops the zeros.
 		pv := view.PlayerView{ID: seat, Name: p.Seat, Life: p.Life, LibrarySize: int(p.LibraryCount),
 			HandSize: int(p.HandCount), GraveyardSize: len(p.Graveyard),
-			Pool: map[string]int32{"W": int32(pool.W), "U": int32(pool.U), "B": int32(pool.B),
-				"R": int32(pool.R), "G": int32(pool.G), "C": int32(pool.C)},
-			Command: []view.CardView{}, Commanders: []view.CardView{}, CommanderCasts: []int32{}}
+			Pool:          map[string]int32{},
+			LandDropSpent: p.LandsPlayedThisTurn > 0,
+			Command:       []view.CardView{}, Commanders: []view.CardView{}, CommanderCasts: []int32{}}
+		for _, m := range [...]struct {
+			sym string
+			n   uint32
+		}{{"W", pool.W}, {"U", pool.U}, {"B", pool.B}, {"R", pool.R}, {"G", pool.G}, {"C", pool.C}} {
+			if m.n > 0 {
+				pv.Pool[m.sym] = int32(m.n)
+			}
+		}
 		// player counters: view.PlayerView.Counters is the same map native
 		// builds from state.Player.Counters. Poison is split into its own
 		// protocol field and folded back into the same "POISON" key native
@@ -229,10 +241,10 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 		if slices.Contains(p.Designations, "initiative") {
 			pv.HasInitiative = true
 		}
-		zone := func(rs []protocol.ObjectRecord) ([]view.CardView, error) {
+		zone := func(rs []protocol.ObjectRecord, costs bool) ([]view.CardView, error) {
 			out := make([]view.CardView, 0, len(rs))
 			for _, r := range rs {
-				cv, err := b.card(r, blockers)
+				cv, err := b.card(r, blockers, costs)
 				if err != nil {
 					return nil, err
 				}
@@ -241,15 +253,17 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 			return out, nil
 		}
 		if seat == viewer {
-			if pv.Hand, err = zone(p.Hand); err != nil {
+			if pv.Hand, err = zone(p.Hand, true); err != nil {
 				return view.View{}, err
 			}
 		}
 		for _, z := range []struct {
-			dst *[]view.CardView
-			src []protocol.ObjectRecord
-		}{{&pv.Battlefield, p.Battlefield}, {&pv.Graveyard, p.Graveyard}, {&pv.Exile, p.Exile}, {&pv.Command, p.Command}} {
-			if *z.dst, err = zone(z.src); err != nil {
+			dst   *[]view.CardView
+			src   []protocol.ObjectRecord
+			costs bool
+		}{{&pv.Battlefield, p.Battlefield, true}, {&pv.Graveyard, p.Graveyard, false},
+			{&pv.Exile, p.Exile, false}, {&pv.Command, p.Command, false}} {
+			if *z.dst, err = zone(z.src, z.costs); err != nil {
 				return view.View{}, err
 			}
 		}
@@ -325,7 +339,7 @@ func attackTargetKey(t *protocol.TargetRef) string {
 	return ""
 }
 
-func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjID) (view.CardView, error) {
+func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjID, costs bool) (view.CardView, error) {
 	controller, err := Seat(r.ControllerSeat)
 	if err != nil {
 		return view.CardView{}, err
@@ -336,7 +350,7 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 	}
 	id := b.IDs.Of(r.ObjectID)
 	cv := view.CardView{ID: id, Controller: controller, Owner: owner, FaceDown: r.FaceDown,
-		Token: "#" + strconv.FormatUint(uint64(id), 10)}
+		IsToken: r.Token, IsCopy: r.Copy, Token: "#" + strconv.FormatUint(uint64(id), 10)}
 	if r.CardName == nil {
 		// A face-down card the viewer may not look at: gorge projects it
 		// with every printed field blank.
@@ -344,6 +358,10 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 	}
 	f := b.face(r.CardName, r.Token && !r.Copy, r.Characteristics)
 	b.printed(&cv, f, *r.CardName, r.Characteristics)
+	b.frontName(&cv, r.CardName, r.Token)
+	if costs && f != nil {
+		cv.AbilityCosts = printedAbilityCosts(f)
+	}
 	if c := r.Characteristics; c != nil {
 		if c.Power != nil {
 			cv.Power = *c.Power
@@ -395,6 +413,53 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 	return cv, nil
 }
 
+// roundOf derives the board's round from the observation's turn. The v2
+// observation is exactly two seats (Section 6's players is two records), so
+// one round is two turns and the first turn opens round 1:
+// round = 1 + (turn-1)/2. view.RoundOf counts the same boundary from the
+// event log, including eliminated seats it can no longer reach; a two-seat
+// game ends when one seat loses, so no turn after that exists to diverge.
+// Turn 0 (pregame) is round 1, as RoundOf's empty-log guard has it.
+func roundOf(turn uint32) int32 {
+	if turn == 0 {
+		return 1
+	}
+	return int32((turn-1)/2) + 1
+}
+
+// frontName fills CardView.CardName the way native's cardView does: the
+// resolved card's printed front-face name when it differs from the object's
+// shown name (a transformed back face, a copy, a SetName$ rename). A token's
+// registry lookup would find a same-named card rather than the token script,
+// and its one face is the shown name anyway, so tokens keep it empty.
+func (b *Builder) frontName(cv *view.CardView, name *string, token bool) {
+	if name == nil || token {
+		return
+	}
+	r := b.ref(name)
+	if r.Card == nil || len(r.Card.Faces) == 0 || r.Card.Faces[0] == nil {
+		return
+	}
+	if front := r.Card.Faces[0].Name; front != cv.Name {
+		cv.CardName = front
+	}
+}
+
+// printedAbilityCosts is the no-rules fallback native's zoneCard uses when its
+// Chars is absent: each non-mana activated ability's printed Cost$, in face
+// order. The observation carries no offer-time cost, so the plain rebuild can
+// only recover the printed one; a live RaiseCost/ReduceCost is a protocol gap
+// the degradation census records.
+func printedAbilityCosts(f *cards.Face) []string {
+	var out []string
+	for _, a := range f.Abilities {
+		if a.Kind == "AB" && !cards.IsManaAbilitySA(a) {
+			out = append(out, cost.FormatCost(cost.ParseCost(a.Params["Cost"])))
+		}
+	}
+	return out
+}
+
 // printed fills a card's printed facts. Observed Supertypes/Types/Subtypes
 // win when the observation carries them (the other engine may have applied
 // continuous effects the registry's printed face does not know); a card with
@@ -419,8 +484,18 @@ func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *prot
 	cv.Name, cv.Printing.Name = f.Name, f.Name
 	if cv.Types == "" {
 		cv.Types = strings.Join(f.Types, " ")
+	} else if sameTypeLine(c, f.Types) {
+		// The observation normalises each type word (lower case, punctuation
+		// folded to "_"), losing "Urza's" and "Assembly-Worker" spelling. When
+		// the observed set is the printed set, the registry's line is the same
+		// fact with its original punctuation and casing.
+		cv.Types = strings.Join(f.Types, " ")
 	}
 	cv.ManaCost = f.ManaCost
+	cv.PrintedPT = f.PT
+	cv.ColourIdentity = cards.ColourMask(f.ColourIdentity())
+	cv.PlayMain1 = f.PlayMain1Hint()
+	cv.RemoveDeck = f.RemoveDeck != ""
 	// An observed mana value of 0 on a face whose printed cost is not 0 is
 	// a copy that has no mana cost (CR 707.9b: Embalm, Eternalize).
 	if c != nil && c.ManaValue == 0 && f.Cmc() > 0 {
@@ -446,6 +521,31 @@ func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *prot
 	if p := f.ManaProduction(); !p.IsZero() {
 		cv.Produces = &p
 	}
+}
+
+// sameTypeLine reports whether observed's normalised type words are exactly
+// face's printed type words, so the registry line can supply the punctuation
+// and casing the observation folded away. A type-changing effect leaves the
+// sets unequal and the observed line stands.
+func sameTypeLine(c *protocol.Characteristics, face []string) bool {
+	if c == nil || len(face) == 0 {
+		return false
+	}
+	var obs []string
+	for _, list := range [][]string{c.Supertypes, c.Types, c.Subtypes} {
+		obs = append(obs, list...)
+	}
+	if len(obs) == 0 {
+		return false
+	}
+	var a, b []string
+	for _, w := range obs {
+		a = append(a, observe.Normalize(w))
+	}
+	for _, w := range face {
+		b = append(b, observe.Normalize(w))
+	}
+	return strings.Join(a, "_") == strings.Join(b, "_")
 }
 
 func (b *Builder) stack(e protocol.StackEntry) (view.StackView, error) {
@@ -481,6 +581,8 @@ func (b *Builder) stack(e protocol.StackEntry) (view.StackView, error) {
 			cv := view.CardView{ID: sv.ID, Controller: controller, Owner: owner, Token: "#" + strconv.FormatUint(uint64(sv.ID), 10)}
 			f := b.face(e.CardName, false, e.Characteristics)
 			b.printed(&cv, f, *e.CardName, e.Characteristics)
+			b.frontName(&cv, e.CardName, false)
+			cv.IsCopy = e.Copy
 			if c := e.Characteristics; c != nil {
 				if c.Power != nil {
 					cv.Power = *c.Power
