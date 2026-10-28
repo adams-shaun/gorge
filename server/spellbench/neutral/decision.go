@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/rules/combat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/mapping"
@@ -1647,6 +1648,18 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 				}
 			}
 		}
+		// attached maps a permanent's gorge id to the permanents attached to
+		// it, so a blocker's granted statics (Copper Carapace's "equipped
+		// creature can't block") are visible where the view has no static
+		// registry.
+		attached := map[state.ObjID][]view.CardView{}
+		for _, p := range v.Players {
+			for _, cv := range p.Battlefield {
+				if cv.AttachedTo != 0 {
+					attached[cv.AttachedTo] = append(attached[cv.AttachedTo], cv)
+				}
+			}
+		}
 		first, err := ref(sd.Candidates[0].Semantic, "blocker")
 		if err != nil {
 			return nil, nil, err
@@ -1675,12 +1688,15 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			s.blockOption(n, b, *a, name(b)+" blocks "+name(*a), s.attackerMinBlockers(*a, v))
 		}
 		// Every other untapped, able blocker, against every attacker it can
-		// block. The current blocker already has its authoritative pairs.
+		// block. The current blocker already has its authoritative pairs. The
+		// gates are combat.CanBlock's public-fact half (see canBlockPair), so
+		// the bot's whole-declaration view does not see a pair the engine's
+		// own offer omitted.
 		for _, b := range battlefield(v, s.seat) {
 			if !isCreature(b) || b.Tapped || s.B.IDs.V2(b.ID) == cur {
 				continue
 			}
-			if s.cantBlock(b) {
+			if s.cantBlock(b, attached[b.ID]) {
 				continue
 			}
 			bref, ok := refs[s.B.IDs.V2(b.ID)]
@@ -1688,10 +1704,7 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 				continue
 			}
 			for _, a := range attackers {
-				if hasKeyword(a, "Flying") && !hasKeyword(b, "Flying") && !hasKeyword(b, "Reach") {
-					continue
-				}
-				if protected(a, colors[s.B.IDs.V2(b.ID)]) || s.cantBlockAttacker(b, a) {
+				if !s.canBlockPair(v, b, a, colors) {
 					continue
 				}
 				aref, ok := refs[s.B.IDs.V2(a.ID)]
@@ -1737,21 +1750,149 @@ func (s *Session) attackerMinBlockers(a protocol.ObjectRef, v *view.View) int {
 	return 1
 }
 
-// cantBlock reports whether a printed static forbids this creature from
-// blocking (Aesthir Glider's "CARDNAME can't block"). The v2 view carries no
-// static registry, so the printed face is the only source.
-func (s *Session) cantBlock(cv view.CardView) bool {
-	f := s.B.face(&cv.Name, false, nil)
-	if f == nil {
+// canBlockPair is combat.CanBlock's per-pair rule rebuilt from the seat's view
+// and the observation's current colours: the gates that read only public
+// battlefield facts. The candidate stream is authoritative for the blocker
+// under decision; this keeps the board-derived pairs for the OTHER blockers
+// inside the same legality, so the whole-declaration bot cannot choose a pair
+// the engine's own offer would have omitted.
+func (s *Session) canBlockPair(v *view.View, b, a view.CardView, colors map[string][]string) bool {
+	bv2, av2 := s.B.IDs.V2(b.ID), s.B.IDs.V2(a.ID)
+	bc, ac := colors[bv2], colors[av2]
+	if hasKeyword(a, "Flying") && !hasKeyword(b, "Flying") && !hasKeyword(b, "Reach") {
 		return false
 	}
-	for _, st := range f.Statics {
-		if !slices.Contains(strings.Split(st.Mode, ","), "CantBlock") {
+	// CR 702.28: shadow pairs only with shadow, in either direction.
+	if hasKeyword(a, "Shadow") != hasKeyword(b, "Shadow") {
+		return false
+	}
+	// CR 702.31b: horsemanship is attacker-keyed (a horsemanship creature may
+	// block a creature without it, but not the other way round).
+	if hasKeyword(a, "Horsemanship") && !hasKeyword(b, "Horsemanship") {
+		return false
+	}
+	artifact := hasType(b, "Artifact")
+	// CR 702.36: Fear -- only artifact or black creatures block it.
+	if hasKeyword(a, "Fear") && !artifact && !slices.Contains(bc, "black") {
+		return false
+	}
+	// CR 702.13a: Intimidate -- artifact creatures and creatures sharing a
+	// colour with the attacker.
+	if hasKeyword(a, "Intimidate") && !artifact && !sharesColour(bc, ac) {
+		return false
+	}
+	// CR 702.110a: Skulk -- a blocker with greater power cannot block.
+	if hasKeyword(a, "Skulk") && b.Power > a.Power {
+		return false
+	}
+	// CR 702.157b: a suspected creature can't block.
+	if b.Flags&view.FlagSuspected != 0 {
+		return false
+	}
+	// CR 702.86: an unleashed creature with a +1/+1 counter can't block.
+	if hasKeyword(b, "Unleash") && b.Counters["P1P1"] > 0 {
+		return false
+	}
+	if protected(a, bc) || s.cantBlockAttacker(b, a) {
+		return false
+	}
+	// CR 702.14: landwalk -- the attacker is unblockable while the defending
+	// player controls a land its filter names.
+	if s.landwalkEvades(v, a) {
+		return false
+	}
+	return true
+}
+
+// landwalkEvades reports whether a's Landwalk filter matches a land this seat
+// controls. The filter is read with combat.LandwalkSpec, the same parser the
+// engine's evasion uses, and matched against the view's derived type words.
+func (s *Session) landwalkEvades(v *view.View, a view.CardView) bool {
+	for _, line := range a.Keywords {
+		spec, ok := combat.LandwalkSpec(line)
+		if !ok || spec == "" {
 			continue
 		}
-		valid := strings.TrimSpace(st.Params["ValidCard"])
-		if valid == "" || strings.EqualFold(valid, "Card.Self") || strings.EqualFold(valid, "CARDNAME") {
+		for _, land := range battlefield(v, s.seat) {
+			if matchesLandSpec(land, spec) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// matchesLandSpec reports whether a land's (derived) type line satisfies a
+// landwalk filter: the land itself, then every dot-separated qualifier ("Snow",
+// "nonBasic", "Legendary", a basic land subtype).
+func matchesLandSpec(cv view.CardView, spec string) bool {
+	words := strings.Fields(cv.Types)
+	has := func(w string) bool {
+		return slices.ContainsFunc(words, func(t string) bool { return strings.EqualFold(t, w) })
+	}
+	if !has("Land") {
+		return false
+	}
+	for _, part := range strings.Split(spec, ".") {
+		part = strings.TrimSpace(part)
+		switch {
+		case part == "" || strings.EqualFold(part, "Land"):
+		case strings.EqualFold(part, "nonBasic"):
+			if has("Basic") {
+				return false
+			}
+		default:
+			if !has(part) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func hasType(cv view.CardView, t string) bool {
+	return slices.ContainsFunc(strings.Fields(cv.Types), func(w string) bool { return strings.EqualFold(w, t) })
+}
+
+func sharesColour(a, b []string) bool {
+	for _, c := range a {
+		if slices.Contains(b, c) {
 			return true
+		}
+	}
+	return false
+}
+
+// cantBlock reports whether a printed static forbids this creature from
+// blocking: its own unconditional "CARDNAME can't block" (Aesthir Glider), or
+// a CantBlock static on a permanent attached to it (Copper Carapace's
+// "equipped creature gets +2/+2 and can't block"). The v2 view carries no
+// static registry, so the printed faces are the only source.
+func (s *Session) cantBlock(cv view.CardView, attached []view.CardView) bool {
+	if f := s.B.face(&cv.Name, false, nil); f != nil {
+		for _, st := range f.Statics {
+			if !slices.Contains(strings.Split(st.Mode, ","), "CantBlock") {
+				continue
+			}
+			valid := strings.TrimSpace(st.Params["ValidCard"])
+			if valid == "" || strings.EqualFold(valid, "Card.Self") || strings.EqualFold(valid, "CARDNAME") {
+				return true
+			}
+		}
+	}
+	for i := range attached {
+		f := s.B.face(&attached[i].Name, false, nil)
+		if f == nil {
+			continue
+		}
+		for _, st := range f.Statics {
+			if !slices.Contains(strings.Split(st.Mode, ","), "CantBlock") {
+				continue
+			}
+			valid := strings.TrimSpace(st.Params["ValidCard"])
+			if strings.Contains(valid, "EquippedBy") || strings.Contains(valid, "EnchantedBy") {
+				return true
+			}
 		}
 	}
 	return false
