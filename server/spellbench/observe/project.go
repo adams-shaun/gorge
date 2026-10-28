@@ -208,11 +208,17 @@ func (b *builder) records(cvs []view.CardView) ([]protocol.ObjectRecord, error) 
 
 func u32(v int32) uint32 { return uint32(max(0, v)) }
 
-func (p *Projector) Observation(viewer state.PlayerID, st State) (protocol.Observation, error) {
+func (p *Projector) Observation(viewer state.PlayerID, st State) (obs protocol.Observation, err error) {
+	p.IDs.BeginObservation(viewer)
+	defer func() {
+		if err == nil {
+			p.IDs.EndObservation(viewer)
+		}
+	}()
 	g := p.E.G
 	v := view.Project(g, p.E, viewer, nil)
 	b := &builder{p: p, viewer: viewer}
-	obs := protocol.Observation{Viewer: Seat(viewer), Turn: uint32(max(0, g.Turn)), PhaseStep: PhaseStep(g),
+	obs = protocol.Observation{Viewer: Seat(viewer), Turn: uint32(max(0, g.Turn)), PhaseStep: PhaseStep(g),
 		Stack: []protocol.StackEntry{}, PendingTriggers: []protocol.PendingTrigger{}, Known: st.Known}
 	if obs.Known == nil {
 		obs.Known = []protocol.Known{}
