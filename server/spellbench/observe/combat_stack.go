@@ -68,14 +68,25 @@ func looksBackTrigger(src *state.Object, ability *cards.SA) bool {
 }
 
 func (b *builder) permanent(o *state.Object) (*protocol.Permanent, error) {
+	// A face-down permanent the viewer may not look at shows only what CR 708
+	// makes public: its counters, tapped/attacking state and the morph-like
+	// statuses. Its real chosen characteristics, Class level and Room doors
+	// stay hidden, exactly as Characteristics already hides its types.
+	hidden := o.FaceDown && !MayLook(b.viewer, o)
 	pm := &protocol.Permanent{Tapped: o.Tapped, SummoningSick: o.SummonSick, Damage: u32(o.Damage),
-		Counters: map[string]uint32{}, BlockedAttackers: []protocol.ObjectRef{}}
+		Counters: map[string]uint32{}, BlockedAttackers: []protocol.ObjectRef{},
+		Statuses: statusNames(b.p.E.G, o, hidden), Chosen: []map[string]string{}}
+	if !hidden {
+		pm.Chosen, pm.ClassLevel = chosen(o), classLevel(o)
+	}
 	for _, c := range o.Counters {
 		// gorge's own status markers (Shield, Deathtouched) ride an ordinary
 		// counter for want of a status field; they are engine internals, never
-		// one of Section 6.10's counters.
-		if c.N > 0 && !state.InternalCounterMarker(c.Kind) {
-			pm.Counters[Counter(c.Kind)] += uint32(c.N)
+		// one of Section 6.10's counters. A zero entry is kept: the engine
+		// retains it after a counter is removed to zero and view.CardView
+		// keeps the key.
+		if !state.InternalCounterMarker(c.Kind) {
+			pm.Counters[Counter(c.Kind)] += u32(c.N)
 		}
 	}
 	if o.AttachedTo != 0 {
@@ -117,6 +128,78 @@ func (b *builder) permanent(o *state.Object) (*protocol.Permanent, error) {
 		}
 	}
 	return pm, nil
+}
+
+// statusNames projects the permanent status designations the engine knows:
+// the view.CardFlag bits view.cardFlags folds, plus the CR 701.38 goad the
+// view has no bit for (upstream SpellBench carries it as "goaded"). The order
+// is fixed so an observation is deterministic; the neutral builder maps the
+// names back to CardFlag bits.
+func statusNames(g *state.Game, o *state.Object, hidden bool) []string {
+	out := []string{}
+	add := func(on bool, name string) {
+		if on {
+			out = append(out, name)
+		}
+	}
+	add(o.Suspected, "suspected")
+	add(o.Renowned, "renowned")
+	add(o.Monstrous, "monstrous")
+	add(o.Harnessed, "harnessed")
+	add(o.Solved, "solved")
+	add(o.Cloaked, "cloaked")
+	add(len(o.Goads) > 0, "goaded")
+	add(int(o.Controller) < len(g.Players) && o.ID != 0 && g.Players[o.Controller].RingBearer == o.ID, "ring_bearer")
+	add(o.CastFlags&(state.FlagMorphed|state.FlagMegamorphed) != 0, "morphed")
+	add(o.CastFlags&state.FlagDisguised != 0, "disguised")
+	if !hidden {
+		// A Room's unlocked doors name its real printed faces, so they are
+		// hidden until the viewer may look at a face-down permanent.
+		add(o.DoorUnlocked(0), "left_door")
+		add(o.DoorUnlocked(1), "right_door")
+	}
+	return out
+}
+
+// chosen is Section 6.6's chosen characteristics, in the upstream goldens'
+// {"kind","value"} shape. A permanent may record more than one independent
+// choice (a name and a type, say), so each is its own entry.
+func chosen(o *state.Object) []map[string]string {
+	out := []map[string]string{}
+	add := func(kind, value string) {
+		if value != "" {
+			out = append(out, map[string]string{"kind": kind, "value": value})
+		}
+	}
+	add("card_name", o.ChosenName)
+	add("creature_type", o.ChosenType)
+	add("color", o.ChosenColor)
+	if o.ChosenNumber > 0 {
+		out = append(out, map[string]string{"kind": "number", "value": fmt.Sprint(o.ChosenNumber)})
+	}
+	return out
+}
+
+// classLevel is a Class permanent's CR 716 designation. class_level is nullable
+// (V8): a non-Class permanent has no level, while a Class at its base level
+// answers 1, exactly as state.Object.ClassLevel() does.
+func classLevel(o *state.Object) *uint32 {
+	f := o.Face()
+	if f == nil {
+		return nil
+	}
+	isClass := false
+	for _, t := range f.Types {
+		if Normalize(t) == "class" {
+			isClass = true
+			break
+		}
+	}
+	if !isClass {
+		return nil
+	}
+	n := uint32(o.ClassLevel())
+	return &n
 }
 
 var stackKinds = map[state.StackObjKind]string{state.StackKindSpell: "spell",

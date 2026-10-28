@@ -217,6 +217,10 @@ func (p *Projector) Observation(viewer state.PlayerID, st State) (protocol.Obser
 	if obs.Known == nil {
 		obs.Known = []protocol.Known{}
 	}
+	// day_night is always present under the true flag: the empty string is
+	// CR 731.1's "neither", exactly as view.View.DayNight omits it.
+	dayNight := g.DayNight.String()
+	obs.DayNight = &dayNight
 	if v.Active != view.NoSeat {
 		s := Seat(v.Active)
 		obs.ActiveSeat = &s
@@ -227,11 +231,36 @@ func (p *Projector) Observation(viewer state.PlayerID, st State) (protocol.Obser
 	}
 	for i, pv := range v.Players {
 		pl := g.Players[pv.ID]
-		po := protocol.PlayerObs{Seat: Seat(pv.ID), Life: pv.Life,
+		// The engine spells its player counter "POISON" (effects/counters.go's
+		// effPoison; state.Player.Counter is an exact-match lookup).
+		poison := u32(pl.Counter("POISON"))
+		po := protocol.PlayerObs{Seat: Seat(pv.ID), Life: pv.Life, Poison: &poison,
+			Counters:     map[string]uint32{},
+			Designations: []string{},
 			ManaPool: protocol.ManaPool{W: u32(pl.Pool[state.MW]), U: u32(pl.Pool[state.MU]), B: u32(pl.Pool[state.MB]),
 				R: u32(pl.Pool[state.MR]), G: u32(pl.Pool[state.MG]), C: u32(pl.Pool[state.MC])},
 			LandsPlayedThisTurn: u32(pl.LandsPlayed), MulligansTaken: p.Mulls[pv.ID],
 			HandCount: uint32(pv.HandSize), LibraryCount: uint32(pv.LibrarySize)}
+		// poison has its own field; every other player counter rides counters.
+		// A zero entry is kept: state.Player.Counters retains one after a
+		// counter is removed to zero, and view.PlayerView.Counters keeps the
+		// key, so dropping it here would make the rebuild differ from native.
+		// The poison field has no presence bit of its own, so a zero-valued
+		// poison counter rides both: the field carries the count and counters
+		// carries the key. A positive poison rides only the field, never both
+		// routings at once.
+		for _, c := range pl.Counters {
+			if strings.EqualFold(c.Kind, "poison") && c.N > 0 {
+				continue
+			}
+			po.Counters[Counter(c.Kind)] = u32(c.N)
+		}
+		if g.IsMonarch(pv.ID) {
+			po.Designations = append(po.Designations, "monarch")
+		}
+		if g.IsInitiative(pv.ID) {
+			po.Designations = append(po.Designations, "initiative")
+		}
 		var err error
 		if pv.ID == viewer {
 			if po.Hand, err = b.records(pv.Hand); err != nil {
