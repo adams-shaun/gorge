@@ -38,6 +38,11 @@ export GOMEMLIMIT ?= 5GiB
 export GOFLAGS ?= -p=2 -trimpath
 GO_TEST_FLAGS ?= -p=2
 
+# seat-check's two structural test runs. systemd-run bounds them when this box
+# offers it; otherwise they fall back to the plain env caps (and -p 1 limits
+# them to one package binary at a time).
+SEAT_CAP ?= $(shell systemd-run --user --scope -q true >/dev/null 2>&1 && echo 'systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400%')
+
 # Where forgec puts the fetched corpus and the IR compiled from it. Never
 # committed — the scripts are GPL-3.0.
 CARDS_DIR  ?= .cards
@@ -87,6 +92,7 @@ help:
 	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make smoke          — headless-browser smoke gate vs two real gorged servers (public+omniscient); fails on any browser error or a hung loading state"
 	@echo "  make test lint cover"
+	@echo "  make seat-check     — structural seat gate: gofmt, gentypes -check, archtest, codeshape"
 	@echo "  make conformance    — run the CR 601/733 conformance suites (see the target's comment)"
 	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
@@ -299,6 +305,20 @@ lint: lint-web
 		fi
 	go vet ./...
 	go run ./cmd/gentypes -check
+
+# seat-check is the fast structural gate a seat runs before DONE: formatting,
+# the generated wire types, and the two architecture/shape ratchets. It
+# deliberately leaves out `go vet ./...` and `lint-web` (make lint), which the
+# daemon's gates cover; it must stay a ~10 s check.
+.PHONY: seat-check
+seat-check:
+	@out=$$(gofmt -l $$($(GO_FILES)) 2>&1); \
+		if [ -n "$$out" ]; then \
+			echo "gofmt: files need formatting:"; echo "$$out"; exit 1; \
+		fi
+	go run ./cmd/gentypes -check
+	$(SEAT_CAP) env GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -timeout 2m -p 1 ./internal/archtest/
+	$(SEAT_CAP) env GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -timeout 2m -p 1 ./internal/codeshape/
 
 .PHONY: clean
 clean:
