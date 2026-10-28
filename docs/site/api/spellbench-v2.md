@@ -785,8 +785,10 @@ flag gorge declares `false` are `null`; with gorge's profile that is player `pro
 player `counters`, `designations`, `day_night` and `permanent_details` true and fills them
 from its view: a player's poison counters and other counters, the monarch and initiative
 designations, CR 731's day/night state, and a permanent's `counters`, `statuses`, `chosen`
-and `class_level`. `player_progress` stays false; the dungeon, ring and speed projection is
-outside this profile.
+and `class_level`. A positive poison count rides `poison` only; a poison counter the engine
+still keeps at zero also appears in `counters` as its presence marker, because `poison` has
+no separate presence bit. `player_progress` stays false; the dungeon, ring and speed
+projection is outside this profile.
 
 | Field | Type | Notes |
 |---|---|---|

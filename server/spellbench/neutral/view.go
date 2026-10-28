@@ -204,8 +204,12 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 		// player counters: view.PlayerView.Counters is the same map native
 		// builds from state.Player.Counters. Poison is split into its own
 		// protocol field and folded back into the same "POISON" key native
-		// uses. A null counters/poison (flag false) leaves the map nil, so a
-		// host that sends nothing cannot make the seat look poisoned.
+		// uses. A positive poison is sent only in the field; a zero-valued
+		// poison counter (which state retains after a removal) is also sent
+		// in counters as its presence marker, so it rebuilds the zero entry
+		// native keeps. A null counters/poison (flag false) leaves the map
+		// nil, so a host that sends nothing cannot make the seat look
+		// poisoned.
 		ctr := map[string]int32{}
 		for k, n := range p.Counters {
 			ctr[nativeCounter(k)] = int32(n)
@@ -524,41 +528,25 @@ func keywordLines(f *cards.Face, names []string) []string {
 
 var ptCounter = regexp.MustCompile(`^[pm]\d+[pm]\d+$`)
 
-// nativeCounterKinds are the engine's upper-case counter spellings (the
-// entry-counter table in engine/events, the numeric counters effects write
-// directly, and the player counters). Section 6.10 normalises every one to
-// lower case on the wire, so this is the reverse table for the spellings a
-// view.View.Counters map actually holds.
-var nativeCounterKinds = map[string]string{
-	"age": "AGE", "cage": "CAGE", "charge": "CHARGE", "conqueror": "CONQUEROR",
-	"corruption": "CORRUPTION", "defense": "DEFENSE", "dream": "DREAM", "energy": "ENERGY",
-	"everything": "EVERYTHING", "experience": "EXPERIENCE", "finality": "FINALITY",
-	"ingredient": "INGREDIENT", "level": "LEVEL", "lore": "LORE", "loyalty": "LOYALTY",
-	"luck": "LUCK", "magnet": "MAGNET", "oil": "OIL", "ore": "ORE", "petal": "PETAL",
-	"poison": "POISON", "quest": "QUEST", "rad": "RAD", "shield": "SHIELD", "soul": "SOUL",
-	"stash": "STASH", "stun": "STUN", "task": "TASK", "time": "TIME", "void": "VOID",
-	"vow": "VOW", "wish": "WISH",
-}
-
 // nativeCounter reverses observe.Counter's Section 6.10 normalisation for the
 // engine spellings view.View.Counters carries. The P/T counters are upper-case
-// ("P1P1"/"M1M1"), the table above restores the other upper-case engine kinds
-// ("loyalty" -> "LOYALTY"), and anything else title-cases each
-// underscore-separated word (a keyword counter, "flying" -> "Flying"). A kind
-// whose engine spelling matches none of these is lossy, which is why the
-// census test guards the round trip on real games.
+// ("P1P1"/"M1M1"); CR 122.1b keyword counters are title case ("Flying",
+// "First Strike"), which cards.CounterKeyword recognises case-insensitively;
+// every other engine kind is upper-case ("loyalty" -> "LOYALTY", "ticket" ->
+// "TICKET"). A kind whose engine spelling matches none of these is lossy,
+// which is why the census test guards the round trip on real games.
 func nativeCounter(k string) string {
-	if ptCounter.MatchString(k) {
+	if ptCounter.MatchString(strings.ToLower(k)) {
 		return strings.ToUpper(k)
-	}
-	if n, ok := nativeCounterKinds[k]; ok {
-		return n
 	}
 	words := strings.Split(k, "_")
 	for i, w := range words {
 		words[i] = title(w)
 	}
-	return strings.Join(words, " ")
+	if kind, ok := cards.CounterKeyword(strings.Join(words, " ")); ok {
+		return kind
+	}
+	return strings.ToUpper(k)
 }
 
 // statusFlag maps a Section 6.10 status name to the CardFlag bit native's

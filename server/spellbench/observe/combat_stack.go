@@ -68,9 +68,17 @@ func looksBackTrigger(src *state.Object, ability *cards.SA) bool {
 }
 
 func (b *builder) permanent(o *state.Object) (*protocol.Permanent, error) {
+	// A face-down permanent the viewer may not look at shows only what CR 708
+	// makes public: its counters, tapped/attacking state and the morph-like
+	// statuses. Its real chosen characteristics, Class level and Room doors
+	// stay hidden, exactly as Characteristics already hides its types.
+	hidden := o.FaceDown && !MayLook(b.viewer, o)
 	pm := &protocol.Permanent{Tapped: o.Tapped, SummoningSick: o.SummonSick, Damage: u32(o.Damage),
 		Counters: map[string]uint32{}, BlockedAttackers: []protocol.ObjectRef{},
-		Statuses: statusNames(b.p.E.G, o), Chosen: chosen(o), ClassLevel: classLevel(o)}
+		Statuses: statusNames(b.p.E.G, o, hidden), Chosen: []map[string]string{}}
+	if !hidden {
+		pm.Chosen, pm.ClassLevel = chosen(o), classLevel(o)
+	}
 	for _, c := range o.Counters {
 		// gorge's own status markers (Shield, Deathtouched) ride an ordinary
 		// counter for want of a status field; they are engine internals, never
@@ -127,7 +135,7 @@ func (b *builder) permanent(o *state.Object) (*protocol.Permanent, error) {
 // view has no bit for (upstream SpellBench carries it as "goaded"). The order
 // is fixed so an observation is deterministic; the neutral builder maps the
 // names back to CardFlag bits.
-func statusNames(g *state.Game, o *state.Object) []string {
+func statusNames(g *state.Game, o *state.Object, hidden bool) []string {
 	out := []string{}
 	add := func(on bool, name string) {
 		if on {
@@ -144,8 +152,12 @@ func statusNames(g *state.Game, o *state.Object) []string {
 	add(int(o.Controller) < len(g.Players) && o.ID != 0 && g.Players[o.Controller].RingBearer == o.ID, "ring_bearer")
 	add(o.CastFlags&(state.FlagMorphed|state.FlagMegamorphed) != 0, "morphed")
 	add(o.CastFlags&state.FlagDisguised != 0, "disguised")
-	add(o.DoorUnlocked(0), "left_door")
-	add(o.DoorUnlocked(1), "right_door")
+	if !hidden {
+		// A Room's unlocked doors name its real printed faces, so they are
+		// hidden until the viewer may look at a face-down permanent.
+		add(o.DoorUnlocked(0), "left_door")
+		add(o.DoorUnlocked(1), "right_door")
+	}
 	return out
 }
 
