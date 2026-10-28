@@ -37,6 +37,9 @@ func validateSetupState(p int, s oracleSeat) error {
 	if s.Speed < 0 || s.Speed > maxSetupSpeed {
 		return harnessf("setup: p%d speed %d (want 0..%d)", p, s.Speed, maxSetupSpeed)
 	}
+	if err := validateSetupAttached(p, s); err != nil {
+		return err
+	}
 	return validateSetupTokens(p, s)
 }
 
