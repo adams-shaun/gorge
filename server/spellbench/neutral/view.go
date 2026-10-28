@@ -2,6 +2,7 @@ package neutral
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -154,6 +155,12 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 	}
 	v := view.View{Viewer: viewer, Visibility: "seat", Turn: int32(o.Turn), Players: []view.PlayerView{},
 		Stack: []view.StackView{}, Pending: []view.PendingView{}}
+	// day_night: the observation spells out CR 731's designation. A null
+	// field means the host declared the flag absent; the view then keeps its
+	// zero (neither), never inventing a day/night state.
+	if o.DayNight != nil {
+		v.DayNight = *o.DayNight
+	}
 	// pregame is gorge's untap step of turn 0.
 	i := 0
 	if o.PhaseStep != "pregame" {
@@ -194,6 +201,29 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 			Pool: map[string]int32{"W": int32(pool.W), "U": int32(pool.U), "B": int32(pool.B),
 				"R": int32(pool.R), "G": int32(pool.G), "C": int32(pool.C)},
 			Command: []view.CardView{}, Commanders: []view.CardView{}, CommanderCasts: []int32{}}
+		// player counters: view.PlayerView.Counters is the same map native
+		// builds from state.Player.Counters. Poison is split into its own
+		// protocol field and folded back into the same "POISON" key native
+		// uses. A null counters/poison (flag false) leaves the map nil, so a
+		// host that sends nothing cannot make the seat look poisoned.
+		ctr := map[string]int32{}
+		for k, n := range p.Counters {
+			ctr[nativeCounter(k)] = int32(n)
+		}
+		if p.Poison != nil && *p.Poison > 0 {
+			ctr["POISON"] = int32(*p.Poison)
+		}
+		if len(ctr) > 0 {
+			pv.Counters = ctr
+		}
+		// designations: view.PlayerView's only designation field is
+		// HasInitiative (CR 726.1). The monarch has no view.View field native
+		// uses, so a "monarch" entry is deliberately not turned into an
+		// invented field here; the observation still carries it for other
+		// clients. A null designations array stays "nothing declared".
+		if slices.Contains(p.Designations, "initiative") {
+			pv.HasInitiative = true
+		}
 		zone := func(rs []protocol.ObjectRecord) ([]view.CardView, error) {
 			out := make([]view.CardView, 0, len(rs))
 			for _, r := range rs {
@@ -333,12 +363,29 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 		if bs := blockers[r.ObjectID]; len(bs) > 0 {
 			cv.BlockedBy = slices.Clone(bs)
 		}
+		// permanent counters: the host normalises counter names (Section
+		// 6.10); native view.View.Counters holds the engine's own spellings
+		// ("P1P1", "Loyalty"). A null counters map (permanent_details false)
+		// leaves the CardView without counters rather than an empty map.
 		if len(p.Counters) > 0 {
 			cv.Counters = map[string]int32{}
 			for k, n := range p.Counters {
-				cv.Counters[strings.ToUpper(k)] = int32(n)
+				cv.Counters[nativeCounter(k)] = int32(n)
 			}
 		}
+		// statuses: view.CardView.Flags is native's bit set for the status
+		// designations it models (suspected, renowned, monstrous, harnessed,
+		// solved, cloaked, the Ring-bearer, morph/disguise, unlocked Room
+		// doors). A status outside that set (goaded) has no view field and is
+		// not invented into one.
+		for _, s := range p.Statuses {
+			cv.Flags |= statusFlag(s)
+		}
+		// chosen and class_level have no field in view.CardView: native's
+		// projection carries neither a permanent's chosen name/type nor its
+		// CR 716 level, so the neutral rebuild reads the fields (validating
+		// their presence is the host's job) and maps them to nothing. Adding
+		// a field here would make neutral richer than native, not equal.
 	}
 	return cv, nil
 }
@@ -473,6 +520,75 @@ func keywordLines(f *cards.Face, names []string) []string {
 		out = append(out, line)
 	}
 	return out
+}
+
+var ptCounter = regexp.MustCompile(`^[pm]\d+[pm]\d+$`)
+
+// nativeCounterKinds are the engine's upper-case counter spellings (the
+// entry-counter table in engine/events, the numeric counters effects write
+// directly, and the player counters). Section 6.10 normalises every one to
+// lower case on the wire, so this is the reverse table for the spellings a
+// view.View.Counters map actually holds.
+var nativeCounterKinds = map[string]string{
+	"age": "AGE", "cage": "CAGE", "charge": "CHARGE", "conqueror": "CONQUEROR",
+	"corruption": "CORRUPTION", "defense": "DEFENSE", "dream": "DREAM", "energy": "ENERGY",
+	"everything": "EVERYTHING", "experience": "EXPERIENCE", "finality": "FINALITY",
+	"ingredient": "INGREDIENT", "level": "LEVEL", "lore": "LORE", "loyalty": "LOYALTY",
+	"luck": "LUCK", "magnet": "MAGNET", "oil": "OIL", "ore": "ORE", "petal": "PETAL",
+	"poison": "POISON", "quest": "QUEST", "rad": "RAD", "shield": "SHIELD", "soul": "SOUL",
+	"stash": "STASH", "stun": "STUN", "task": "TASK", "time": "TIME", "void": "VOID",
+	"vow": "VOW", "wish": "WISH",
+}
+
+// nativeCounter reverses observe.Counter's Section 6.10 normalisation for the
+// engine spellings view.View.Counters carries. The P/T counters are upper-case
+// ("P1P1"/"M1M1"), the table above restores the other upper-case engine kinds
+// ("loyalty" -> "LOYALTY"), and anything else title-cases each
+// underscore-separated word (a keyword counter, "flying" -> "Flying"). A kind
+// whose engine spelling matches none of these is lossy, which is why the
+// census test guards the round trip on real games.
+func nativeCounter(k string) string {
+	if ptCounter.MatchString(k) {
+		return strings.ToUpper(k)
+	}
+	if n, ok := nativeCounterKinds[k]; ok {
+		return n
+	}
+	words := strings.Split(k, "_")
+	for i, w := range words {
+		words[i] = title(w)
+	}
+	return strings.Join(words, " ")
+}
+
+// statusFlag maps a Section 6.10 status name to the CardFlag bit native's
+// view.cardFlags sets for it. Names the view cannot represent return 0.
+func statusFlag(s string) view.CardFlag {
+	switch s {
+	case "suspected":
+		return view.FlagSuspected
+	case "renowned":
+		return view.FlagRenowned
+	case "monstrous":
+		return view.FlagMonstrous
+	case "harnessed":
+		return view.FlagHarnessed
+	case "solved":
+		return view.FlagSolved
+	case "cloaked":
+		return view.FlagCloaked
+	case "ring_bearer":
+		return view.FlagRingBearer
+	case "morphed":
+		return view.FlagMorphed
+	case "disguised":
+		return view.FlagDisguised
+	case "left_door":
+		return view.FlagLeftDoor
+	case "right_door":
+		return view.FlagRightDoor
+	}
+	return 0
 }
 
 func title(w string) string {

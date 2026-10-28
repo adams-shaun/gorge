@@ -9,9 +9,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-var Flags = map[string]bool{"poison": false, "player_counters": false, "designations": false, "player_progress": false,
-	"day_night": false, "passed_seats": false, "pending_triggers": true, "keywords": true, "full_name": false,
-	"exiled_by": false, "stack_text": false, "permanent_details": false, "known_cards": false}
+var Flags = map[string]bool{"poison": true, "player_counters": true, "designations": true, "player_progress": false,
+	"day_night": true, "passed_seats": false, "pending_triggers": true, "keywords": true, "full_name": false,
+	"exiled_by": false, "stack_text": false, "permanent_details": true, "known_cards": false}
 
 func Seat(p state.PlayerID) string { return fmt.Sprintf("p%d", p) }
 
