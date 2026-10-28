@@ -6,11 +6,11 @@ package gorged
 // (server/gorged/gorged.go mounts it at topMux.Handle("/", httpapi.NewHandler(r, opts))).
 //
 // The routes pinned here are the registered patterns, not guesses:
-//   - GET  /api/tables/{t}/matches/{k}/pending        server/host/httpapi/handler.go
-//   - GET  /api/tables/{t}/matches/{k}/view           server/host/httpapi/handler.go
-//   - POST /api/tables/{t}/matches/{k}/intent         server/host/httpapi/handler.go
-//   - GET  /api/stream                               server/host/httpapi/sse.go
-//   - POST /api/subscribe                            server/host/httpapi/handler.go
+//   - GET  /api/tables/{t}/matches/{k}/pending        server/host/httpapi/handler.go:108
+//   - GET  /api/tables/{t}/matches/{k}/view           server/host/httpapi/handler.go:106
+//   - POST /api/tables/{t}/matches/{k}/intent         server/host/httpapi/handler.go:109
+//   - GET  /api/stream                               server/host/httpapi/sse.go:16
+//   - POST /api/subscribe                            server/host/httpapi/handler.go:111
 //
 // The golden canonicalises only the two values that are inherently random:
 // the SSE session id (minted by crypto/rand) and, with it, the session half of
@@ -503,13 +503,19 @@ func nativeWireDiff(want, got []byte) string {
 			hi = len(gl)
 		}
 		var b strings.Builder
+		short := func(s string) string {
+			if len(s) > 400 {
+				return s[:400] + "…"
+			}
+			return s
+		}
 		for j := lo; j < hi; j++ {
 			mark := " "
 			if j == i {
 				mark = "!"
 			}
-			fmt.Fprintf(&b, "%s want: %s\n", mark, wl[j])
-			fmt.Fprintf(&b, "%s got:  %s\n", mark, gl[j])
+			fmt.Fprintf(&b, "%s want: %s\n", mark, short(wl[j]))
+			fmt.Fprintf(&b, "%s got:  %s\n", mark, short(gl[j]))
 		}
 		return b.String()
 	}
