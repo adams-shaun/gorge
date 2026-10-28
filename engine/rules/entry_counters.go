@@ -818,7 +818,42 @@ func (e *Engine) entryPreview(ev events.Event) (*Engine, state.ObjID) {
 	stripEntryRequests(&ev)
 	events.Apply(preview.G, ev)
 	preview.replArenaNoteApplied(ev)
+	// Only a foreign entry rider reads the entrant's post-entry types; most
+	// entries have none and keep the copied caches.
+	if len(preview.foreignEntryBodies(entrant, previewForeignEv(ev, entrant))) > 0 {
+		preview.refreshEntryPreviewStatics()
+	}
 	return preview, entrant
+}
+
+// previewForeignEv is the entry move foreignEntryBodies is asked about: a
+// token mint matches as the synthetic ZCeased-origin move entryBodyCounterGrants
+// builds for it.
+func previewForeignEv(ev events.Event, entrant state.ObjID) events.Event {
+	if ev.Kind == events.MoveZone {
+		return ev
+	}
+	return events.Event{Kind: events.MoveZone, Obj: entrant, From: state.ZCeased, To: state.ZBattlefield}
+}
+
+// refreshEntryPreviewStatics re-reads the preview's static-continuous memo and
+// layer-4 types table after the entry move was applied. Both are keyed on the
+// log length, and the preview's bare Apply appends nothing, so without this
+// they serve the PRE-entry board and a foreign entry rider's filter judges the
+// entrant without its own static abilities (a second Metallic Mimic is not yet
+// the chosen type). CR 614.12: the replacements that apply to a permanent
+// entering are decided against its characteristics as it would exist on the
+// battlefield, its own statics included. Only the preview's private memos move;
+// the reusable preview struct is re-copied from the live engine (*pp = *e) at
+// the next entryPreview, so these invalidated epochs never carry over.
+func (e *Engine) refreshEntryPreviewStatics() {
+	e.staticEpoch = -1
+	// The layer-4 probe cache behind staticsMayChangeTypes is log-keyed too;
+	// the entrant just changed zone, so its cell is stale. A negative epoch
+	// makes the next read re-probe the board (into the preview's own array).
+	e.typesProbeEpoch = -1
+	e.refreshStaticContinuous()
+	e.refreshDerivedTypesFull(len(e.L.Events))
 }
 
 // isolatePreviewMemos gives an entry preview -- a shallow struct copy of the
