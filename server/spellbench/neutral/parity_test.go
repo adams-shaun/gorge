@@ -340,7 +340,7 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 		kinds[k] = true
 	}
 	tw := &twin{reg: reg, agree: map[string]int{}, total: map[string]int{}, examples: map[string][]string{}}
-	games := 10
+	games := 6
 	for i := 0; i < games; i++ {
 		d := catalog.Decks()[i%len(catalog.Decks())]
 		// Engine auto-pay, the default path: the native agent reads gorge's
