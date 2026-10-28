@@ -1,6 +1,7 @@
 package neutral_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,7 +13,10 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	_ "github.com/adams-shaun/gorge/bots/all"
 	"github.com/adams-shaun/gorge/bots/heuristic"
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/seat"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/agent"
 	"github.com/adams-shaun/gorge/server/spellbench/catalog"
@@ -28,7 +32,53 @@ import (
 
 func init() {
 	bots.Register(bots.Entry{Info: bots.Info{Name: "test-bot-auto-pay", Label: "test bot auto-pay", Tier: bots.Experimental},
-		New: func(o bots.Options) (seat.Seat, error) { return heuristic.NewBot(o.Seed).EnableAutoPayMana(), nil }})
+		New: func(o bots.Options) (seat.Seat, error) {
+			return noFloat{heuristic.NewBot(o.Seed).EnableAutoPayMana()}, nil
+		}})
+}
+
+// noFloat is the bot of an engine_autopay host: gorge's decision still lists
+// a tap of every mana source, but the host hides those taps from the v2
+// candidates, so floating mana by hand has nothing to answer with. The bot
+// pays by plan only, and neither world shows it the taps.
+//
+// It also reads the payment actions in card-name order. gorge lists them in
+// the engine's hand order, which the observation hides (a hand is shown
+// sorted), so which of two equally ranked casts comes first is not something
+// the neutral world can know; the name order is the same in both worlds.
+type noFloat struct{ *heuristic.Bot }
+
+func (n noFloat) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
+	if d.Kind != decision.KPriority {
+		return n.Bot.Decide(ctx, v, d)
+	}
+	kept := make([]decision.Option, 0, len(d.Options))
+	var back []int
+	for _, o := range d.Options {
+		if o.Kind != "activate" {
+			back = append(back, o.Index)
+			o.Index = len(kept)
+			kept = append(kept, o)
+		}
+	}
+	d.Options = kept
+	names := map[state.ObjID]string{}
+	for _, p := range v.Players {
+		for _, zone := range [][]view.CardView{p.Hand, p.Graveyard, p.Exile, p.Battlefield} {
+			for _, c := range zone {
+				names[c.ID] = c.Name
+			}
+		}
+	}
+	d.PaymentActions = slices.Clone(d.PaymentActions)
+	slices.SortStableFunc(d.PaymentActions, func(a, b decision.PaymentAction) int {
+		return strings.Compare(names[a.Cast.Object], names[b.Cast.Object])
+	})
+	in, err := n.Bot.Decide(ctx, v, d)
+	for i, c := range in.Choices {
+		in.Choices[i] = back[c]
+	}
+	return in, err
 }
 
 // recorder passes requests to a gorge agent and keeps every choose request.
@@ -186,6 +236,7 @@ func TestViewMatchesGorgeViewOnGorgeGames(t *testing.T) {
 // to one translating the bare observation, answers with the first and
 // counts agreement by the decision's first candidate kind.
 type twin struct {
+	reg           *cards.Registry
 	view, neutral *agent.Server
 	agree, total  map[string]int
 	examples      map[string][]string
@@ -219,21 +270,67 @@ func (tw *twin) Round(req []byte) ([]byte, error) {
 	}
 	json.Unmarshal(a, &ca)
 	json.Unmarshal(b, &cb)
-	if q.Decision.Candidates[ca.Selection.CandidateID].Semantic.Kind == "activate_mana_ability" {
-		// gorge's engine has its seats float mana; under engine_autopay the
-		// neutral seat never does, so these are not comparable.
+	if tw.chosenColour(&q.Decision) {
+		// A source whose mana is a colour chosen as it entered: the
+		// observation does not carry that choice (permanent.chosen is null),
+		// so the neutral planner cannot see what the source makes.
 		tw.total[kind]--
-		tw.total["(gorge floated mana)"]++
+		tw.total["(chosen-colour source in play)"]++
 		return a, nil
 	}
-	if ca.Selection.CandidateID == cb.Selection.CandidateID {
+	if ca.Selection.CandidateID == cb.Selection.CandidateID ||
+		sameCard(q.Decision.Candidates[ca.Selection.CandidateID].Semantic, q.Decision.Candidates[cb.Selection.CandidateID].Semantic) {
 		tw.agree[kind]++
-	} else if len(tw.examples[kind]) < 3 {
+	} else if len(tw.examples[kind]) < 14 {
 		sa, _ := json.Marshal(q.Decision.Candidates[ca.Selection.CandidateID].Semantic)
 		sb, _ := json.Marshal(q.Decision.Candidates[cb.Selection.CandidateID].Semantic)
 		tw.examples[kind] = append(tw.examples[kind], fmt.Sprintf("gorge %s\n      neutral %s", sa, sb))
 	}
 	return a, nil
+}
+
+// sameCard reports whether two candidates play the same card: the engine
+// hides the order of interchangeable copies in a hand, so which of them a
+// seat plays first is not a decision.
+func sameCard(x, y protocol.Semantic) bool {
+	if x.Kind != y.Kind || x.Kind != "cast_spell" && x.Kind != "play_land" {
+		return false
+	}
+	anon := func(s protocol.Semantic) string {
+		raw, _ := json.Marshal(s)
+		var m map[string]any
+		json.Unmarshal(raw, &m)
+		if src, ok := m["source"].(map[string]any); ok {
+			delete(src, "object_id")
+		}
+		out, _ := json.Marshal(m)
+		return string(out)
+	}
+	return anon(x) == anon(y)
+}
+
+// chosenColour reports whether the acting seat controls a permanent whose
+// mana depends on a colour chosen as it entered.
+func (tw *twin) chosenColour(sd *protocol.SeatDecision) bool {
+	for _, p := range sd.Observation.Players {
+		for _, r := range p.Battlefield {
+			if r.CardName == nil {
+				continue
+			}
+			c, ok := tw.reg.Lookup(*r.CardName)
+			if !ok {
+				continue
+			}
+			for _, f := range c.Faces {
+				for _, a := range f.Abilities {
+					if a.API == "Mana" && strings.Contains(a.Params["Produced"], "Chosen") {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
 }
 
 func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
@@ -242,15 +339,16 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 	for _, k := range env.DecisionKinds {
 		kinds[k] = true
 	}
-	tw := &twin{agree: map[string]int{}, total: map[string]int{}, examples: map[string][]string{}}
+	tw := &twin{reg: reg, agree: map[string]int{}, total: map[string]int{}, examples: map[string][]string{}}
 	games := 10
 	for i := 0; i < games; i++ {
 		d := catalog.Decks()[i%len(catalog.Decks())]
-		// No engine auto-pay: the v2 wire drops the engine's payment plan
-		// (PaymentActions), so the neutral world cannot reproduce a plan the
-		// gorge engine floated before posing priority. Both seats pay manually;
-		// that is the path the adapter has to translate, and it is exact.
+		// Engine auto-pay, the default path: the native agent reads gorge's
+		// payment plans (PaymentActions) off the engine; the neutral one has
+		// to plan the same payments on the board it rebuilds from the
+		// observation.
 		srv := env.New(reg, nil)
+		srv.EnableAutoPay()
 		h := &minihost.Host{RunSecret: make([]byte, 32), Engine: &minihost.EngineLink{S: srv},
 			Profile:  validate.Profile{Kinds: kinds, Flags: observe.Flags, Extensions: map[string]bool{"x_gorge_view_v1": true}},
 			MaxSteps: 20000, MaxDecisions: 9999}
@@ -280,8 +378,9 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 	}
 	sort.Strings(lines)
 	t.Logf("agreement %d/%d\n%s", agree, total, strings.Join(lines, "\n"))
-	if floated := tw.total["(gorge floated mana)"]; agree != total-floated {
-		t.Errorf("the translated decision disagrees with gorge's own %d times in %d", total-floated-agree, total-floated)
+	skipped := tw.total["(chosen-colour source in play)"]
+	if agree != total-skipped {
+		t.Errorf("the translated decision disagrees with gorge's own %d times in %d", total-skipped-agree, total-skipped)
 	}
 }
 

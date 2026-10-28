@@ -19,7 +19,7 @@ import (
 )
 
 // noOp is the op of a candidate no gorge option stands for (a mana
-// activation under engine autopay, or a family not translated yet). No plan
+// activation no payment plan takes, or a family not translated yet). No plan
 // ever matches it, so the agent's fallback answers such a decision.
 var noOp = mapping.NativeOp{Op: "untranslated", Option: -1}
 
@@ -35,6 +35,8 @@ type native struct {
 	names   map[string]string // priority: cast source v2 id -> its card name
 	arrange *arrangement      // an arrangement's partition and order so far
 	follow  map[string]decision.Decision
+	pays    map[string]*planned                   // priority: payment action id -> its lowering
+	paid    map[string]*decision.PaymentSelection // priority: card name -> the plan paying its cast
 }
 
 // arrangement is a scry-like native decision spent over 2n-1 v2 decisions.
@@ -64,6 +66,7 @@ type Session struct {
 	uses     map[string]int32
 	usesTurn uint32
 	seen     map[string]bool // activated-ability stack ids already counted
+	pend     *pending        // a payment plan being lowered over priority decisions
 }
 
 func NewSession(reg *cards.Registry) *Session {
@@ -287,7 +290,8 @@ func (s *Session) hasOmenFace(src protocol.ObjectRef) bool {
 
 func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.NativeOp, *native, error) {
 	n := s.open("priority", decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1})
-	n.casts, n.names = map[string][]int{}, map[string]string{}
+	n.casts, n.names, n.paid = map[string][]int{}, map[string]string{}, map[string]*decision.PaymentSelection{}
+	pre := s.prepay(sd, v)
 	ops := make([]mapping.NativeOp, len(sd.Candidates))
 	add := func(o decision.Option) int {
 		o.Index = len(n.d.Options)
@@ -333,9 +337,24 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 				}
 				o.Mode = mode
 			}
-			idx := add(o)
-			n.casts[src.ObjectID], n.names[src.ObjectID] = []int{idx}, name(src)
-			ops[i] = mapping.NativeOp{Op: "choose", Option: idx}
+			// An autopay host pays a planned cast by its plan: gorge's
+			// decision then has no plain cast option, only the action.
+			plan := pre.cover(o)
+			idx := -1
+			n.names[src.ObjectID] = name(src)
+			if plan == nil || plan.poolOnly {
+				idx = add(o)
+				n.casts[src.ObjectID] = []int{idx}
+				ops[i] = mapping.NativeOp{Op: "choose", Option: idx}
+				if plan != nil {
+					// The pool already pays: the plan tags the plain cast.
+					plan.base = &idx
+					ops[i].Payment = plan.sel
+				}
+			} else {
+				n.paid[name(src)] = plan.sel
+				ops[i] = mapping.NativeOp{Op: "payment", Option: -1, Payment: plan.sel}
+			}
 			if (sem.Fields["method"] == nil || method == "normal") && src.Zone == "hand" {
 				// gorge offers the optional-cost variants (kicker and the
 				// like) as casts of their own, beside the plain cast. The
@@ -358,7 +377,11 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 					covers = append(covers, alt)
 				}
 				if len(covers) > 0 {
-					ops[i] = mapping.NativeOp{Op: "cast", Option: -1, Covers: append([]int{idx}, covers...)}
+					all := covers
+					if idx >= 0 {
+						all = append([]int{idx}, covers...)
+					}
+					ops[i] = mapping.NativeOp{Op: "cast", Option: -1, Covers: all, Payment: ops[i].Payment}
 				}
 			}
 		case "activate_ability":
@@ -372,10 +395,11 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			}
 			ops[i] = mapping.NativeOp{Op: "choose", Option: add(o)}
 		}
-		// activate_mana_ability stays untranslated: the engine pays costs
-		// itself (engine_autopay), so gorge's bot never floats mana here,
-		// exactly as its auto-pay policies drop mana activations.
+		// activate_mana_ability stays untranslated here: gorge's bot never
+		// floats mana by hand (its auto-pay policies drop mana activations).
+		// pay tags the candidates a chosen payment plan takes.
 	}
+	s.finish(pre, n, ops)
 	return ops, n, nil
 }
 
@@ -518,6 +542,14 @@ func (s *Session) castMethod(sd *protocol.SeatDecision) ([]mapping.NativeOp, *na
 		}
 		if len(covers) > 0 {
 			ops[i] = mapping.NativeOp{Op: "cast", Option: -1, Covers: covers}
+		}
+		if sel := n.paid[name(src)]; sel != nil && method == "normal" {
+			// The plain cast was paid by a plan: the method decision that
+			// follows it is the plan's own.
+			ops[i].Op, ops[i].Payment = "payment", sel
+			if len(covers) == 0 {
+				ops[i].Option = -1
+			}
 		}
 	}
 	return ops, n, nil

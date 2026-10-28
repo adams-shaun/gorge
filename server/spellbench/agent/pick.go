@@ -64,6 +64,9 @@ func (pl *Plan) match(p xview.Payload, op mapping.NativeOp, ask func(decision.De
 	if in.Payment != nil && op.Payment != nil && reflect.DeepEqual(in.Payment, op.Payment) {
 		return true
 	}
+	if in.Payment != nil && slices.ContainsFunc(op.Pays, func(p *decision.PaymentSelection) bool { return reflect.DeepEqual(in.Payment, p) }) {
+		return true
+	}
 	switch op.Op {
 	case "choose":
 		var ok bool
