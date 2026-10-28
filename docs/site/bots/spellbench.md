@@ -185,7 +185,11 @@ It has two worlds:
   refuses the match (`agent requirement not offered: extensions`).
 - `-world neutral` rebuilds the decision from the neutral observation and
   candidates of *any* v2 engine, and needs the card corpus (`-corpus .cards`)
-  or a frozen registry (`-registry file -registry-sha256 digest`).
+  or a frozen registry (`-registry file -registry-sha256 digest`). It
+  translates the candidate kinds gorge's own engine never poses
+  (`choose_cast_method`, `choose_option`, `choose_cost_option`, `distribute`,
+  `choose_pile`) onto the nearest gorge decision, so only a genuinely
+  unmappable kind reaches the agent's fallback.
 
 Because `-sb-agent` passes no arguments, wrap the command:
 
