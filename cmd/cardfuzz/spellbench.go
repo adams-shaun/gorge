@@ -10,7 +10,9 @@ package main
 //	  game stays on the native trajectory; each disagreement is counted by
 //	  decision kind and written to -failures as one JSON line carrying the v2
 //	  request ("spellbench" field; -repro replays to it). Exit status 1 on any
-//	  disagreement or harness error.
+//	  disagreement or harness error, or with -min-agree on a decision kind
+//	  with at least 50 compared decisions whose agreement is below the
+//	  threshold (the default 0 keeps the any-disagreement rule).
 //	-spellbench outcome  each deck pair is played twice on one seed, once with
 //	  native seats and once with seat 0 (or both seats, -sb-v2-seats both) a v2
 //	  neutral agent behind server/spellbench/seat, the path mtgsim -sb-agent
@@ -62,7 +64,19 @@ type sbOptions struct {
 	games                            int
 	seed                             uint64
 	workers                          int
+	// minAgree fails the twin run when a decision kind with at least
+	// sbMinAgreeSamples compared decisions agrees below this percentage
+	// (0 keeps the any-disagreement rule).
+	minAgree float64
+	// maxOutcomeGap fails the outcome run when the 95% CI of (v2 - native)
+	// seat-0 win rate excludes 0 and |gap| exceeds this many percentage
+	// points (0 disables the check).
+	maxOutcomeGap float64
 }
+
+// sbMinAgreeSamples is the smallest compared-decision count -min-agree gates:
+// a kind with fewer samples is too noisy for a percentage threshold.
+const sbMinAgreeSamples = 50
 
 // sbRecord is the "spellbench" field of a twin failure record.
 type sbRecord struct {
@@ -291,6 +305,29 @@ func sortedKeys[V any](m map[string]V) []string {
 	return out
 }
 
+// failingKinds returns the decision kinds, in code point order, whose
+// agreement is below minAgree percent over at least sbMinAgreeSamples compared
+// decisions. minAgree <= 0 disables the check.
+func (s *sbTwinSummary) failingKinds(minAgree float64) []string {
+	if minAgree <= 0 {
+		return nil
+	}
+	var out []string
+	for _, k := range sortedKeys(s.Total) {
+		if k == twin.Floated || k == twin.Opaque || k == twin.ChosenColour {
+			continue
+		}
+		n := s.Total[k]
+		if n < sbMinAgreeSamples {
+			continue
+		}
+		if 100*float64(s.Agree[k])/float64(n) < minAgree {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
 func (s *sbTwinSummary) print(w io.Writer, o sbOptions) {
 	fmt.Fprintf(w, "== spellbench twin: policy=%s autopay=%s seed=%d games=%d ==\n", o.policy, map[bool]string{true: "all", false: "off"}[o.autopay], o.seed, o.games)
 	unsupported := 0
@@ -313,10 +350,18 @@ func (s *sbTwinSummary) print(w io.Writer, o sbOptions) {
 		total += s.Total[k]
 	}
 	fmt.Fprintf(w, "agreement %d/%d (%s); %d decisions skipped where gorge floated mana, %d where the neutral world could not rebuild the pick, %d where a chosen-colour source was in play\n", agree, total, sbPct(agree, total), s.Total[twin.Floated], s.Total[twin.Opaque], s.Total[twin.ChosenColour])
+	failing := map[string]bool{}
+	for _, k := range s.failingKinds(o.minAgree) {
+		failing[k] = true
+	}
 	fmt.Fprintln(w, "agreement by decision kind:")
 	for _, k := range sortedKeys(s.Total) {
 		if k != twin.Floated && k != twin.Opaque && k != twin.ChosenColour {
-			fmt.Fprintf(w, "  %-32s %6d/%6d\n", k, s.Agree[k], s.Total[k])
+			mark := ""
+			if failing[k] {
+				mark = "  FAIL"
+			}
+			fmt.Fprintf(w, "  %-32s %6d/%6d%s\n", k, s.Agree[k], s.Total[k], mark)
 		}
 	}
 	classes := sortedKeys(s.Classes)
@@ -566,7 +611,39 @@ func wilson(k, n int) (lo, hi float64) {
 	return c - h, c + h
 }
 
-func runSBOutcome(reg *cards.Registry, p *pool, o sbOptions, out io.Writer) []sbPair {
+// sbOutcomeParity is the (v2 - native) seat-0 win-rate gap and its 95% normal
+// interval, in percentage points. ok is false when a lane finished no game.
+type sbOutcomeParity struct {
+	nativeWin, nativeDone, v2Win, v2Done int
+	gapPP, loPP, hiPP                    float64
+	ok                                   bool
+}
+
+// sbOutcomeParityOf computes the outcome parity from each lane's seat-0 wins
+// over its finished games.
+func sbOutcomeParityOf(nativeWin, nativeDone, v2Win, v2Done int) sbOutcomeParity {
+	p := sbOutcomeParity{nativeWin: nativeWin, nativeDone: nativeDone, v2Win: v2Win, v2Done: v2Done}
+	if nativeDone == 0 || v2Done == 0 {
+		return p
+	}
+	pn, pv := float64(nativeWin)/float64(nativeDone), float64(v2Win)/float64(v2Done)
+	se := math.Sqrt(pn*(1-pn)/float64(nativeDone) + pv*(1-pv)/float64(v2Done))
+	d := pv - pn
+	p.gapPP, p.loPP, p.hiPP = 100*d, 100*(d-1.959964*se), 100*(d+1.959964*se)
+	p.ok = true
+	return p
+}
+
+// fails reports whether the interval excludes zero and the gap exceeds
+// maxGapPP percentage points. maxGapPP <= 0 disables the check.
+func (p sbOutcomeParity) fails(maxGapPP float64) bool {
+	if maxGapPP <= 0 || !p.ok {
+		return false
+	}
+	return (p.loPP > 0 || p.hiPP < 0) && math.Abs(p.gapPP) > maxGapPP
+}
+
+func runSBOutcome(reg *cards.Registry, p *pool, o sbOptions, out io.Writer) sbOutcomeParity {
 	jobs := sbJobs(p, o.seed, o.games)
 	v2 := []bool{true, o.v2Both}
 	pairs := make([]sbPair, 0, len(jobs))
@@ -622,17 +699,19 @@ func runSBOutcome(reg *cards.Registry, p *pool, o sbOptions, out io.Writer) []sb
 	}
 	fmt.Fprintf(out, "seat 0 win-rate, native seats: %s\n", rate(nWin, nDone))
 	fmt.Fprintf(out, "seat 0 win-rate, v2 seats:     %s\n", rate(vWin, vDone))
-	if nDone > 0 && vDone > 0 {
-		pn, pv := float64(nWin)/float64(nDone), float64(vWin)/float64(vDone)
-		se := math.Sqrt(pn*(1-pn)/float64(nDone) + pv*(1-pv)/float64(vDone))
-		d := pv - pn
-		fmt.Fprintf(out, "outcome parity: v2 - native = %+.1f pp, 95%% CI [%+.1f, %+.1f] pp (unpaired normal)\n", 100*d, 100*(d-1.959964*se), 100*(d+1.959964*se))
+	parity := sbOutcomeParityOf(nWin, nDone, vWin, vDone)
+	if parity.ok {
+		mark := ""
+		if parity.fails(o.maxOutcomeGap) {
+			mark = "  FAIL"
+		}
+		fmt.Fprintf(out, "outcome parity: v2 - native = %+.1f pp, 95%% CI [%+.1f, %+.1f] pp (unpaired normal)%s\n", parity.gapPP, parity.loPP, parity.hiPP, mark)
 	} else {
 		fmt.Fprintln(out, "outcome parity: n/a (no finished games)")
 	}
 	fmt.Fprintf(out, "same winner on %d/%d pairs both lanes finished; v2 lane forfeits: %d pairs\n", same, both, forfeits)
 	fmt.Fprintf(out, "mean turns: native %s, v2 %s; mean intents: native %s, v2 %s\n", mean(nTurns, nDone), mean(vTurns, vDone), mean(nLen, nDone), mean(vLen, vDone))
-	return pairs
+	return parity
 }
 
 // runSpellbench is main's -spellbench entry; it returns the exit status.
@@ -644,12 +723,30 @@ func runSpellbench(reg *cards.Registry, p *pool, o sbOptions, failPath string, o
 			fmt.Fprintln(os.Stderr, "cardfuzz:", err)
 			return 1
 		}
-		if sum.Disagreements > 0 || sum.Errors > 0 {
+		if sum.Errors > 0 {
+			return 1
+		}
+		if o.minAgree > 0 {
+			if kinds := sum.failingKinds(o.minAgree); len(kinds) > 0 {
+				detail := make([]string, len(kinds))
+				for i, k := range kinds {
+					detail[i] = fmt.Sprintf("%s %s", k, sbPct(sum.Agree[k], sum.Total[k]))
+				}
+				fmt.Fprintf(os.Stderr, "cardfuzz: spellbench twin agreement below -min-agree %.1f%%: %s\n", o.minAgree, strings.Join(detail, ", "))
+				return 1
+			}
+			return 0
+		}
+		if sum.Disagreements > 0 {
 			return 1
 		}
 		return 0
 	case "outcome":
-		runSBOutcome(reg, p, o, out)
+		parity := runSBOutcome(reg, p, o, out)
+		if parity.fails(o.maxOutcomeGap) {
+			fmt.Fprintf(os.Stderr, "cardfuzz: spellbench outcome gap %+.1f pp exceeds -max-outcome-gap %.1f pp (95%% CI [%+.1f, %+.1f])\n", parity.gapPP, o.maxOutcomeGap, parity.loPP, parity.hiPP)
+			return 1
+		}
 		return 0
 	}
 	fmt.Fprintf(os.Stderr, "cardfuzz: -spellbench %q: want twin or outcome\n", o.mode)
