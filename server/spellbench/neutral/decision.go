@@ -83,7 +83,13 @@ type Session struct {
 	uses     map[string]int32
 	usesTurn uint32
 	seen     map[string]bool // activated-ability stack ids already counted
-	pend     *pending        // a payment plan being lowered over priority decisions
+	// pendingUses is the activation census's reversal check: a counted
+	// activation whose source was tapped at the time. When its stack object
+	// leaves and the source is untapped, the activation was reversed (CR
+	// 733.1, an unpayable target/cost) and the engine's AbilityPush census
+	// was folded back; the neutral count must follow.
+	pendingUses map[string]pendingUse
+	pend        *pending // a payment plan being lowered over priority decisions
 	// autoPay is the host's declared engine_autopay (Section 7.1). A host
 	// that does not declare it poses mana abilities as candidates and pays
 	// them by the lowering on those candidates; it never takes a plan for a
@@ -92,12 +98,20 @@ type Session struct {
 	autoPay bool
 }
 
+// pendingUse is one counted activated ability awaiting its stack departure.
+type pendingUse struct {
+	source    string
+	wasTapped bool
+	selfTap   bool // the ability's own cost taps its source ({T})
+	turn      uint32
+}
+
 // SetAutoPay records whether the host declared engine_autopay in its hello.
 func (s *Session) SetAutoPay(autoPay bool) { s.autoPay = autoPay }
 
 func NewSession(reg *cards.Registry) *Session {
 	return &Session{B: NewBuilder(reg), Counts: map[string]int{}, Approx: map[string]int{}, activated: map[string]int{},
-		grants: map[string][]string{}, uses: map[string]int32{}, seen: map[string]bool{}}
+		grants: map[string][]string{}, uses: map[string]int32{}, seen: map[string]bool{}, pendingUses: map[string]pendingUse{}}
 }
 
 // Picked tells the session which candidate of its last decision the seat
@@ -149,11 +163,48 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 	s.last = sd
 	if sd.Observation.Turn != s.usesTurn {
 		s.usesTurn, s.uses = sd.Observation.Turn, map[string]int32{}
+		s.pendingUses = map[string]pendingUse{}
+	}
+	onStack := make(map[string]bool, len(sd.Observation.Stack))
+	for _, e := range sd.Observation.Stack {
+		onStack[e.ObjectID] = true
+	}
+	tapped := map[string]bool{}
+	for _, p := range sd.Observation.Players {
+		for _, r := range p.Battlefield {
+			tapped[r.ObjectID] = r.Permanent != nil && r.Permanent.Tapped
+		}
+	}
+	// A reversed activation leaves the stack with its source untapped (the
+	// tap cost was undone). The observation carries no explicit census, so
+	// this is the one observable signature of CR 733.1's fold.
+	for id, p := range s.pendingUses {
+		if onStack[id] {
+			continue
+		}
+		// A self-tapping activation that leaves its source untapped was
+		// reversed: the engine folds the cost back. An activation whose
+		// source was already tapped at first sight is the weaker fallback
+		// signal (a non-{T} cost paid by tapping another permanent).
+		if p.turn == s.usesTurn && (p.selfTap || p.wasTapped) && !tapped[p.source] {
+			if s.uses[p.source] > 0 {
+				s.uses[p.source]--
+			}
+		}
+		delete(s.pendingUses, id)
 	}
 	for _, e := range sd.Observation.Stack {
 		if e.StackKind == "activated_ability" && e.Source != nil && !s.seen[e.ObjectID] {
 			s.seen[e.ObjectID] = true
 			s.uses[e.Source.ObjectID]++
+			selfTap := false
+			if i, ok := s.activated[e.Source.ObjectID]; ok {
+				if f := s.B.face(e.Source.CardName, false, nil); f != nil && i >= 0 && i < len(f.Abilities) {
+					selfTap = rules.ParseCost(f.Abilities[i].Params["Cost"]).Tap
+				}
+			}
+			s.pendingUses[e.ObjectID] = pendingUse{source: e.Source.ObjectID, wasTapped: tapped[e.Source.ObjectID],
+				selfTap: selfTap, turn: s.usesTurn}
 		}
 	}
 	for pi := range v.Players {
@@ -179,7 +230,16 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 	s.cur = n
 	d := n.d
 	d.Player = s.seat
-	return xview.Payload{Version: 1, NativeIndex: n.index, View: v, Decision: d, Ops: ops, Followups: n.follow}, nil
+	// Rebuild restores these policy facts from the payload; the neutral
+	// world has no extension to read them from, so publish the decision's
+	// own resume fields. Without the kind, a counter's unless-pay ask loses
+	// its pay/decline arm and the bot pays a tax natively declined.
+	facts := xview.Facts{ResumeKind: string(d.ResumeKind)}
+	if d.ResumeSA != nil {
+		facts.ResumeAPI = d.ResumeSA.API
+		facts.ResumeUnlessCost = d.ResumeSA.Params["UnlessCost"]
+	}
+	return xview.Payload{Version: 1, NativeIndex: n.index, View: v, Decision: d, Facts: facts, Ops: ops, Followups: n.follow}, nil
 }
 
 // open starts a new native decision under key.
@@ -395,6 +455,18 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			// An autopay host pays a planned cast by its plan: gorge's
 			// decision then has no plain cast option, only the action.
 			plan := pre.cover(o)
+			if plan == nil && s.autoPay && ownNonMain(v) && o.Mode == "" && o.AltCostIndex == 0 {
+				// On the seat's own turn outside a main phase the native
+				// bot never consults the payment planner, so its decision
+				// carries only plan-only casts. When the shadow planner
+				// could not rebuild the plan, a plain cast here would let
+				// the neutral bot cast a spell the native bot passed. Leave
+				// the candidate untranslated unless the floating pool alone
+				// would have offered it as a plain cast.
+				if f := s.B.face(src.CardName, false, nil); f != nil && !s.poolPays(v, f) {
+					continue
+				}
+			}
 			idx := -1
 			n.names[src.ObjectID] = name(src)
 			if plan == nil || plan.poolOnly {
@@ -809,6 +881,13 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 		if purpose == "discard" {
 			d.Kind = decision.KModes // gorge asks an effect's discard as a modal pick
 		}
+		if purpose == "tap" {
+			// A tap cost with a total-power floor publishes the floor as
+			// Decision.MinSum and each candidate's power as its Value
+			// (Crew 3, tapXType<Any/...withTotalPowerGE3>), so the bot's
+			// shared Validate-driven fill paces the election.
+			d.MinSum = s.tapFloor(*src)
+		}
 	}
 	ops, n, err := s.pick(sd, key, d, func(sem protocol.Semantic) (*protocol.TargetRef, error) {
 		if sem.Kind != "select_object" {
@@ -820,7 +899,21 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 			p, err := Seat(*t.Player)
 			return decision.Option{Kind: kind, Label: *t.Player, Player: p}, err
 		}
-		return decision.Option{Kind: kind, Label: name(*t.Object), Obj: s.B.IDs.Of(t.Object.ObjectID)}, nil
+		o := decision.Option{Kind: kind, Label: name(*t.Object), Obj: s.B.IDs.Of(t.Object.ObjectID)}
+		if purpose == "tap" {
+			if p, ok := observedPower(&sd.Observation, t.Object.ObjectID); ok {
+				o.Value = p
+			} else {
+				f := s.B.face(t.Object.CardName, false, nil)
+				if f == nil {
+					f = s.B.face(t.Object.CardName, true, nil) // a token's printed face
+				}
+				if f != nil {
+					o.Value = f.Power()
+				}
+			}
+		}
+		return o, nil
 	}, "finish_selection")
 	if err == nil && purpose == "search" && src != nil {
 		s.groupSearch(sd, n, *src)
@@ -828,24 +921,25 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 	return ops, n, err
 }
 
-// groupSearch restores the per-type Group structure of an EACH hidden-library
-// search. gorge offers one option per eligible card with the EACH sub-spec's
-// ordinal in Option.Group, and the bot answers one card per group (a "search
-// for a Zombie and a Swamp" takes one of each). The v2 select_object semantic
-// carries no Group, so without this the neutral bot sees an ungrouped search
-// and takes only its first option, finishing the selection after one card.
-// The grouping is rebuilt from the source's own EACH ChangeType spec and the
+// groupSearch restores the Group structure of a hidden-library search. gorge
+// offers one option per eligible card with the spec's ordinal in Option.Group,
+// and the bot answers one card per group (a "search for a Zombie and a Swamp"
+// takes one of each; "four creatures with different powers" takes one per
+// power). The v2 select_object semantic carries no Group, so the grouping is
+// rebuilt from the source's own ChangeType/DifferentPower spec and the
 // candidates' printed faces; it is not card-specific.
 func (s *Session) groupSearch(sd *protocol.SeatDecision, n *native, src protocol.ObjectRef) {
 	if n == nil {
 		return
 	}
-	sa := s.eachSearchSA(src)
+	sa := s.librarySearchSA(src)
 	if sa == nil {
 		return
 	}
 	spec := strings.TrimSpace(sa.Params["ChangeType"])
-	if !strings.HasPrefix(spec, "EACH ") {
+	each := strings.HasPrefix(spec, "EACH ")
+	differentPower := strings.EqualFold(strings.TrimSpace(sa.Params["DifferentPower"]), "True")
+	if !each && !differentPower {
 		return
 	}
 	for _, c := range sd.Candidates {
@@ -860,19 +954,32 @@ func (s *Session) groupSearch(sd *protocol.SeatDecision, n *native, src protocol
 		if !ok || idx < 0 || idx >= len(n.d.Options) {
 			continue
 		}
-		n.d.Options[idx].Group = strconv.Itoa(eachFaceGroup(spec, s.B.face(t.Object.CardName, false, nil)))
+		f := s.B.face(t.Object.CardName, false, nil)
+		if f == nil {
+			continue
+		}
+		switch {
+		case each:
+			n.d.Options[idx].Group = strconv.Itoa(eachFaceGroup(spec, f))
+		default:
+			n.d.Options[idx].Group = strconv.Itoa(f.Power())
+		}
 	}
-	// ChangeNum$ above 1 raises each group's cap; the engine carries it in
-	// GroupLimit, and the bot's group-aware fill reads the same field.
-	if per, err := strconv.Atoi(strings.TrimSpace(sa.Params["ChangeNum"])); err == nil && per > 1 {
-		n.d.GroupLimit = per
+	// ChangeNum$ above 1 raises each EACH group's cap; the engine carries it
+	// in GroupLimit, and the bot's group-aware fill reads the same field. A
+	// DifferentPower search's ChangeNum is the total pick ceiling (already
+	// Max), not a per-power cap, so it must leave GroupLimit at one-per-group.
+	if each {
+		if per, err := strconv.Atoi(strings.TrimSpace(sa.Params["ChangeNum"])); err == nil && per > 1 {
+			n.d.GroupLimit = per
+		}
 	}
 }
 
-// eachSearchSA is the source's library ChangeZone ability with an EACH
-// ChangeType spec. A spell's own ability chain is read first; a permanent's
-// printed abilities (an activated search) follow.
-func (s *Session) eachSearchSA(src protocol.ObjectRef) *cards.SA {
+// librarySearchSA is the source's first ChangeZone ability from a library. A
+// spell's own ability chain is read first; a permanent's printed abilities
+// (an activated search) follow.
+func (s *Session) librarySearchSA(src protocol.ObjectRef) *cards.SA {
 	f := s.B.face(src.CardName, false, nil)
 	if f == nil {
 		return nil
@@ -883,15 +990,181 @@ func (s *Session) eachSearchSA(src protocol.ObjectRef) *cards.SA {
 	}
 	for _, root := range roots {
 		for _, sa := range chain(f, root) {
-			if sa.API != "ChangeZone" || !strings.EqualFold(strings.TrimSpace(sa.Params["Origin"]), "Library") {
-				continue
-			}
-			if strings.HasPrefix(strings.TrimSpace(sa.Params["ChangeType"]), "EACH ") {
+			if sa.API == "ChangeZone" && strings.EqualFold(strings.TrimSpace(sa.Params["Origin"]), "Library") {
 				return sa
 			}
 		}
 	}
 	return nil
+}
+
+// attackRestricted reports whether a printed restriction on a permanent
+// attached to this attacker forbids attacking the given defender. The Vow
+// cycle is the common shape: an Aura's CantAttack static with
+// ValidCard$ Creature.EnchantedBy and Target$ You,Planeswalker.YouCtrl.
+func (s *Session) attackRestricted(o *protocol.Observation, a protocol.ObjectRef, def protocol.TargetRef) bool {
+	defController := ""
+	switch {
+	case def.Player != nil:
+		defController = *def.Player
+	case def.Object != nil:
+		defController = def.Object.ControllerSeat
+	default:
+		return false
+	}
+	for _, p := range o.Players {
+		for _, r := range p.Battlefield {
+			if r.Permanent == nil || r.Permanent.AttachedTo == nil || r.Permanent.AttachedTo.Object == nil ||
+				r.Permanent.AttachedTo.Object.ObjectID != a.ObjectID {
+				continue
+			}
+			f := s.B.face(r.CardName, false, nil)
+			if f == nil {
+				continue
+			}
+			for _, st := range f.Statics {
+				if !slices.Contains(strings.Split(st.Mode, ","), "CantAttack") {
+					continue
+				}
+				valid := strings.TrimSpace(st.Params["ValidCard"])
+				if !strings.Contains(valid, "EnchantedBy") && !strings.Contains(valid, "IsRemembered") {
+					continue
+				}
+				target := strings.TrimSpace(st.Params["Target"])
+				if target == "" {
+					continue
+				}
+				// "You" is the attachment's controller; a planeswalker
+				// target is restricted when its controller is that seat.
+				if slices.Contains(strings.Split(target, ","), "You") && strings.EqualFold(defController, r.ControllerSeat) {
+					return true
+				}
+				if strings.Contains(target, "Planeswalker.YouCtrl") && def.Object != nil && strings.EqualFold(defController, r.ControllerSeat) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// isBattle reports whether the observed permanent's type line includes the
+// battle card type.
+func (s *Session) isBattle(id string) bool {
+	if s.last == nil {
+		return false
+	}
+	for _, p := range s.last.Observation.Players {
+		for _, r := range p.Battlefield {
+			if r.ObjectID == id && r.Characteristics != nil && slices.Contains(r.Characteristics.Types, "battle") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ownNonMain reports whether the deciding seat is the active player and the
+// step is not a main phase -- exactly the window where the native bot skips
+// its payment planner.
+func ownNonMain(v *view.View) bool {
+	return v.Viewer == v.Active && v.Phase != "main1" && v.Phase != "main2"
+}
+
+// poolPays reports whether the deciding seat's floating pool alone covers the
+// card's mana cost. A pool-only cast keeps its plain cast option even when
+// the shadow plan is missing; an unpayable one does not.
+func (s *Session) poolPays(v *view.View, f *cards.Face) bool {
+	if f == nil || f.ManaCost == "" {
+		return false
+	}
+	cost := rules.ParseCost(f.ManaCost)
+	if cost.X > 0 || len(cost.Hybrid) > 0 || len(cost.Phyrexian) > 0 || cost.Snow > 0 || cost.Twobrid != nil {
+		return false
+	}
+	var pool view.PlayerView
+	for _, p := range v.Players {
+		if p.ID == v.Viewer {
+			pool = p
+			break
+		}
+	}
+	for i, c := range []string{"W", "U", "B", "R", "G"} {
+		if i < len(cost.Colored) && int(cost.Colored[i]) > int(pool.Pool[c]) {
+			return false
+		}
+	}
+	total := int32(0)
+	for _, n := range pool.Pool {
+		total += n
+	}
+	return total >= cost.Generic+cost.Colored.Total()
+}
+
+// observedPower is the object's current projected power, the fact the
+// engine's tap election publishes as Option.Value. A token's printed script
+// is ambiguous (many share one name); the observation's characteristics are
+// not.
+func observedPower(o *protocol.Observation, id string) (int, bool) {
+	for _, p := range o.Players {
+		for _, r := range p.Battlefield {
+			if r.ObjectID == id && r.Characteristics != nil && r.Characteristics.Power != nil {
+				return int(*r.Characteristics.Power), true
+			}
+		}
+	}
+	return 0, false
+}
+
+// tapFloor is the total-power floor a source's tap cost imposes (Crew 3, or a
+// tapXType<...withTotalPowerGE3> part), read with the same cost parser the
+// engine uses. Zero means no set-level floor.
+func (s *Session) tapFloor(src protocol.ObjectRef) int {
+	f := s.B.face(src.CardName, false, nil)
+	if f == nil {
+		return 0
+	}
+	// Only the ability that is actually being cast/activated can impose a
+	// tap-cost floor. An effect that asks the seat to tap permanents (a
+	// spell's "tap up to N creatures") has no such cost; scanning every
+	// printed ability would invent one.
+	var root *cards.SA
+	if src.Zone == "battlefield" {
+		if i, ok := s.activated[src.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
+			root = f.Abilities[i]
+		}
+	} else if s.last != nil {
+		// The tap election's source may be the activated ability object on
+		// the stack (Crew); its Source is the permanent whose ability Picked
+		// recorded.
+		for _, e := range s.last.Observation.Stack {
+			if e.ObjectID != src.ObjectID || e.StackKind != "activated_ability" || e.Source == nil {
+				continue
+			}
+			if sf := s.B.face(e.Source.CardName, false, nil); sf != nil {
+				f = sf
+				if i, ok := s.activated[e.Source.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
+					root = f.Abilities[i]
+				}
+			}
+			break
+		}
+	}
+	if root == nil && src.Zone != "battlefield" {
+		root = f.SpellAbility()
+	}
+	if root == nil {
+		return 0
+	}
+	for _, sa := range chain(f, root) {
+		cost := rules.ParseCost(sa.Params["Cost"])
+		for _, part := range cost.TapPermanent {
+			if part.MinPower > 0 {
+				return int(part.MinPower)
+			}
+		}
+	}
+	return 0
 }
 
 // chainSA is the first ability in the source spell's chain (its spell
@@ -1020,20 +1293,74 @@ func isCreature(cv view.CardView) bool {
 	return slices.ContainsFunc(strings.Fields(cv.Types), func(t string) bool { return strings.EqualFold(t, "Creature") })
 }
 
-// attackers builds gorge's whole declaration at the group's first substep:
-// one option per creature the seat could attack with and per opposing
-// player. The v2 group asks one creature per substep; each substep's
-// candidates map onto that creature's options.
+// attackKey names one (attacker, defender) pair.
+func attackKey(attacker string, def *protocol.TargetRef) string {
+	switch {
+	case def == nil:
+		return attacker + ">none"
+	case def.Player != nil:
+		return attacker + ">player:" + *def.Player
+	case def.Object != nil:
+		return attacker + ">object:" + def.Object.ObjectID
+	}
+	return attacker + ">?"
+}
+
+// attackOption builds gorge's attacker option for one (attacker, defender)
+// pair. The v2 declare_attack semantic names a player or a planeswalker, and
+// the native decision carries one option per pair: Player is the defender
+// and Battle is the planeswalker's object (0 for a player).
+func (s *Session) attackOption(n *native, a protocol.ObjectRef, def protocol.TargetRef, label string, required bool) (int, bool) {
+	key := attackKey(a.ObjectID, &def)
+	if i, ok := n.options[key]; ok {
+		return i, true
+	}
+	o := decision.Option{Index: len(n.d.Options), Kind: "attacker", Label: label,
+		Obj: s.B.IDs.Of(a.ObjectID), Required: required}
+	switch {
+	case def.Player != nil:
+		p, err := Seat(*def.Player)
+		if err != nil {
+			return 0, false
+		}
+		o.Player = p
+	case def.Object != nil:
+		p, err := Seat(def.Object.ControllerSeat)
+		if err != nil {
+			return 0, false
+		}
+		// A battle is protected by an opponent of its controller (CR
+		// 310.8); the v2 object names only the battle, whose controller can
+		// be the attacker's own seat. The defending player is the other
+		// seat in a two-player game.
+		if s.isBattle(def.Object.ObjectID) {
+			p = 1 - p
+		}
+		o.Player = p
+		o.Battle = s.B.IDs.Of(def.Object.ObjectID)
+	default:
+		return 0, false
+	}
+	n.options[key] = o.Index
+	n.d.Options = append(n.d.Options, o)
+	return o.Index, true
+}
+
+// attackers builds gorge's declaration from the v2 candidate stream and the
+// observed board. The current substep's candidates are authoritative for the
+// unit under decision (every legal defender, a player or a planeswalker);
+// every other legal attacker gets its player option so the whole-declaration
+// bot sees the future substeps too.
 func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.NativeOp, *native, error) {
 	opp := 1 - s.seat
 	n := s.continuing("attack")
+	goaded := map[string]bool{}
 	if n == nil || sd.Group.SubstepIndex == 0 {
 		n = s.open("attack", decision.Decision{Kind: decision.KAttackers, Min: 0, Prompt: "declare attackers"})
 		// CR 508.1d requirements: a goaded creature must attack if able.
 		// gorge marks those options Required; the v2 declare_attack semantic
 		// does not carry the flag, but the observation still reports the
 		// permanent's "goaded" status, so rebuild it from there.
-		goaded := map[string]bool{}
 		for _, p := range sd.Observation.Players {
 			for _, r := range p.Battlefield {
 				if r.Permanent != nil && slices.Contains(r.Permanent.Statuses, "goaded") {
@@ -1041,33 +1368,169 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 				}
 			}
 		}
-		units := map[string]bool{}
-		addUnit := func(id string, label string) {
-			if units[id] {
-				return
+		// The native decision carries one unit per group substep. At the
+		// first substep the whole declaration is known from the board; the
+		// current substep's candidates are authoritative for the unit under
+		// decision, and the remaining units are the first SubstepCount legal
+		// attackers in the engine's battlefield order.
+		player := protocol.PlayerTarget("p" + strconv.Itoa(int(opp)))
+		var defenders []protocol.TargetRef
+		// A battle is attacked by a player other than its protector (CR
+		// 310.8): the acting seat's own battles are the attackable ones, and
+		// an opponent's battle is one this seat protects. Planeswalkers are
+		// the reverse -- only an opponent's can be attacked.
+		for _, p := range sd.Observation.Players {
+			for _, r := range p.Battlefield {
+				if r.Characteristics == nil {
+					continue
+				}
+				attackable := slices.Contains(r.Characteristics.Types, "planeswalker")
+				if p.Seat == sd.ActingSeat {
+					attackable = slices.Contains(r.Characteristics.Types, "battle")
+				}
+				if attackable {
+					defenders = append(defenders, protocol.ObjectTarget(r.ObjectRef))
+				}
 			}
-			units[id] = true
-			o := decision.Option{Index: len(n.d.Options), Kind: "attacker", Label: "Attack with " + label,
-				Obj: s.B.IDs.Of(id), Player: opp, Required: goaded[id]}
-			n.options[id] = o.Index
-			n.d.Options = append(n.d.Options, o)
 		}
-		first, err := ref(sd.Candidates[0].Semantic, "attacker")
-		if err != nil {
-			return nil, nil, err
-		}
-		addUnit(first.ObjectID, name(first))
+		var legal []protocol.ObjectRef
 		for _, p := range sd.Observation.Players {
 			if p.Seat != sd.ActingSeat {
 				continue
 			}
 			for _, r := range p.Battlefield {
 				cv, ok := findCard(battlefield(v, s.seat), s.B.IDs.Of(r.ObjectID))
-				if !ok || !isCreature(cv) || cv.Tapped || hasKeyword(cv, "Defender") || (cv.SummonSick && !hasKeyword(cv, "Haste")) {
+				if !ok || !isCreature(cv) || cv.Tapped || hasKeyword(cv, "Defender") ||
+					(cv.SummonSick && !hasKeyword(cv, "Haste")) || s.cantAttack(cv) {
 					continue
 				}
-				addUnit(r.ObjectID, cv.Name)
+				legal = append(legal, r.ObjectRef)
 			}
+		}
+		nUnits := int(sd.Group.SubstepCount)
+		if nUnits < 1 {
+			nUnits = 1
+		}
+		addUnit := func(a protocol.ObjectRef) bool {
+			added := false
+			if !s.attackRestricted(&sd.Observation, a, player) {
+				if _, ok := s.attackOption(n, a, player, "Attack with "+name(a)+" at p"+strconv.Itoa(int(opp)), goaded[a.ObjectID]); ok {
+					added = true
+				}
+			}
+			for _, def := range defenders {
+				if s.attackRestricted(&sd.Observation, a, def) {
+					continue
+				}
+				label := "Attack with " + name(a)
+				if def.Object != nil {
+					label += " (planeswalker: " + name(*def.Object) + ")"
+				}
+				if _, ok := s.attackOption(n, a, def, label, goaded[a.ObjectID]); ok {
+					added = true
+				}
+			}
+			return added
+		}
+		if nUnits == 1 {
+			// A one-unit declaration: only the current unit's own offer.
+			for _, c := range sd.Candidates {
+				a, err := ref(c.Semantic, "attacker")
+				if err != nil {
+					return nil, nil, err
+				}
+				def, err := target(c.Semantic, "defender")
+				if err != nil {
+					return nil, nil, err
+				}
+				if def == nil {
+					continue
+				}
+				label := "Attack with " + name(a)
+				if def.Player != nil {
+					label += " at " + *def.Player
+				} else if def.Object != nil {
+					label += " (planeswalker: " + name(*def.Object) + ")"
+				}
+				s.attackOption(n, a, *def, label, goaded[a.ObjectID])
+			}
+		} else {
+			// The group's first substep names the first native unit; the
+			// remaining units are the board-order creatures. A creature with
+			// a printed CantAttack static (conditional or not) is ordered
+			// last: the observation cannot evaluate its CheckSVar, but the
+			// engine's offer does, and an unconditional/true restriction must
+			// not displace an unrestricted attacker from the declaration.
+			cur := ""
+			if _, err := ref(sd.Candidates[0].Semantic, "attacker"); err == nil {
+				a, _ := ref(sd.Candidates[0].Semantic, "attacker")
+				cur = a.ObjectID
+			}
+			var ordered []protocol.ObjectRef
+			for _, a := range legal {
+				if a.ObjectID == cur {
+					ordered = append(ordered, a)
+				}
+			}
+			for _, a := range legal {
+				if a.ObjectID != cur && !s.hasCantAttack(a, v) {
+					ordered = append(ordered, a)
+				}
+			}
+			for _, a := range legal {
+				if a.ObjectID != cur && s.hasCantAttack(a, v) {
+					ordered = append(ordered, a)
+				}
+			}
+			if len(ordered) == 0 {
+				ordered = legal
+			}
+			if nUnits > len(ordered) {
+				nUnits = len(ordered)
+			}
+			seen := map[string]bool{}
+			added := 0
+			for i := 0; i < len(ordered) && added < nUnits; i++ {
+				if !addUnit(ordered[i]) {
+					continue // every defender is restricted for this attacker
+				}
+				seen[ordered[i].ObjectID] = true
+				added++
+			}
+			// The current unit is always part of the native declaration; a
+			// board-order miss appends it without dropping another unit.
+			for _, c := range sd.Candidates {
+				a, err := ref(c.Semantic, "attacker")
+				if err != nil {
+					return nil, nil, err
+				}
+				if !seen[a.ObjectID] {
+					addUnit(a)
+					seen[a.ObjectID] = true
+				}
+			}
+		}
+		// Any candidate pair the board-derived shape did not name is still
+		// part of the native offer.
+		for _, c := range sd.Candidates {
+			a, err := ref(c.Semantic, "attacker")
+			if err != nil {
+				return nil, nil, err
+			}
+			def, err := target(c.Semantic, "defender")
+			if err != nil {
+				return nil, nil, err
+			}
+			if def == nil {
+				continue
+			}
+			label := "Attack with " + name(a)
+			if def.Player != nil {
+				label += " at " + *def.Player
+			} else if def.Object != nil {
+				label += " (planeswalker: " + name(*def.Object) + ")"
+			}
+			s.attackOption(n, a, *def, label, goaded[a.ObjectID])
 		}
 		n.d.Max = len(n.d.Options)
 	}
@@ -1078,10 +1541,6 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 		if err != nil {
 			return nil, nil, err
 		}
-		k, ok := n.options[a.ObjectID]
-		if !ok {
-			continue
-		}
 		def, err := target(c.Semantic, "defender")
 		if err != nil {
 			return nil, nil, err
@@ -1091,9 +1550,26 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 		case def == nil:
 			ops[i] = mapping.NativeOp{Op: "none", Option: -1, Unit: unit}
 		case def.Player != nil:
-			ops[i] = mapping.NativeOp{Op: "choose", Option: k, Unit: unit}
+			k, ok := n.options[attackKey(a.ObjectID, def)]
+			if !ok {
+				label := "Attack with " + name(a) + " at " + *def.Player
+				k, ok = s.attackOption(n, a, *def, label, goaded[a.ObjectID])
+			}
+			if ok {
+				ops[i] = mapping.NativeOp{Op: "choose", Option: k, Unit: unit}
+			}
+		case def.Object != nil:
+			k, ok := n.options[attackKey(a.ObjectID, def)]
+			if !ok {
+				label := "Attack with " + name(a) + " (planeswalker: " + name(*def.Object) + ")"
+				k, ok = s.attackOption(n, a, *def, label, goaded[a.ObjectID])
+			}
+			if ok {
+				ops[i] = mapping.NativeOp{Op: "choose", Option: k, Unit: unit}
+			}
 		}
 	}
+	n.d.Max = len(n.d.Options)
 	return ops, n, nil
 }
 
@@ -1127,8 +1603,30 @@ func protected(a view.CardView, colors []string) bool {
 	return false
 }
 
-// blockers builds gorge's whole block declaration at the group's first
-// substep: one option per (untapped creature, attacker it could block).
+// blockKey names one (blocker, attacker) pair.
+func blockKey(blocker, attacker string) string { return blocker + ">" + attacker }
+
+// blockOption builds gorge's block option for one pair.
+func (s *Session) blockOption(n *native, b, a protocol.ObjectRef, label string, minBlockers int) int {
+	key := blockKey(b.ObjectID, a.ObjectID)
+	if i, ok := n.options[key]; ok {
+		return i
+	}
+	o := decision.Option{Index: len(n.d.Options), Kind: "block", Label: label,
+		Obj: s.B.IDs.Of(b.ObjectID), Attacker: s.B.IDs.Of(a.ObjectID), Player: s.seat,
+		Group: "blocker:" + b.ObjectID}
+	if minBlockers > 1 {
+		o.MinBlockers = minBlockers
+	}
+	n.options[key] = o.Index
+	n.d.Options = append(n.d.Options, o)
+	return o.Index
+}
+
+// blockers builds gorge's block declaration from the v2 candidate stream and
+// the observed board. The current substep's candidates are authoritative for
+// the blocker under decision; other untapped blockers get their board-derived
+// pairs so the whole-declaration bot sees the future substeps.
 func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.NativeOp, *native, error) {
 	n := s.continuing("block")
 	if n == nil || sd.Group.SubstepIndex == 0 {
@@ -1140,8 +1638,10 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			}
 		}
 		colors := map[string][]string{}
+		refs := map[string]protocol.ObjectRef{}
 		for _, p := range sd.Observation.Players {
 			for _, o := range p.Battlefield {
+				refs[o.ObjectID] = o.ObjectRef
 				if o.Characteristics != nil {
 					colors[o.ObjectID] = o.Characteristics.Colors
 				}
@@ -1151,24 +1651,54 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 		if err != nil {
 			return nil, nil, err
 		}
+		cur := first.ObjectID
+		// The current substep's candidates: exactly the native decision's
+		// offered pairs for this blocker.
+		for _, c := range sd.Candidates {
+			if c.Semantic.Kind != "declare_block" {
+				continue
+			}
+			b, err := ref(c.Semantic, "blocker")
+			if err != nil {
+				return nil, nil, err
+			}
+			if b.ObjectID != cur {
+				continue
+			}
+			a, err := optRef(c.Semantic, "attacker")
+			if err != nil {
+				return nil, nil, err
+			}
+			if a == nil {
+				continue
+			}
+			s.blockOption(n, b, *a, name(b)+" blocks "+name(*a), s.attackerMinBlockers(*a, v))
+		}
+		// Every other untapped, able blocker, against every attacker it can
+		// block. The current blocker already has its authoritative pairs.
 		for _, b := range battlefield(v, s.seat) {
-			if !isCreature(b) || (b.Tapped && b.ID != s.B.IDs.Of(first.ObjectID)) {
+			if !isCreature(b) || b.Tapped || s.B.IDs.V2(b.ID) == cur {
+				continue
+			}
+			if s.cantBlock(b) {
+				continue
+			}
+			bref, ok := refs[s.B.IDs.V2(b.ID)]
+			if !ok {
 				continue
 			}
 			for _, a := range attackers {
 				if hasKeyword(a, "Flying") && !hasKeyword(b, "Flying") && !hasKeyword(b, "Reach") {
 					continue
 				}
-				if protected(a, colors[s.B.IDs.V2(b.ID)]) {
+				if protected(a, colors[s.B.IDs.V2(b.ID)]) || s.cantBlockAttacker(b, a) {
 					continue
 				}
-				o := decision.Option{Index: len(n.d.Options), Kind: "block", Label: b.Name + " blocks " + a.Name,
-					Obj: b.ID, Attacker: a.ID, Player: s.seat, Group: fmt.Sprintf("blocker:%d", b.ID)}
-				if hasKeyword(a, "Menace") {
-					o.MinBlockers = 2
+				aref, ok := refs[s.B.IDs.V2(a.ID)]
+				if !ok {
+					continue
 				}
-				n.options[s.B.IDs.V2(b.ID)+">"+s.B.IDs.V2(a.ID)] = o.Index
-				n.d.Options = append(n.d.Options, o)
+				s.blockOption(n, bref, aref, b.Name+" blocks "+a.Name, s.attackerMinBlockers(aref, v))
 			}
 		}
 		n.d.Max = len(n.d.Options)
@@ -1189,11 +1719,141 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			ops[i] = mapping.NativeOp{Op: "none", Option: -1, Unit: unit}
 			continue
 		}
-		if k, ok := n.options[b.ObjectID+">"+a.ObjectID]; ok {
-			ops[i] = mapping.NativeOp{Op: "choose", Option: k, Unit: unit}
+		k, ok := n.options[blockKey(b.ObjectID, a.ObjectID)]
+		if !ok {
+			k = s.blockOption(n, b, *a, name(b)+" blocks "+name(*a), s.attackerMinBlockers(*a, v))
+		}
+		ops[i] = mapping.NativeOp{Op: "choose", Option: k, Unit: unit}
+	}
+	n.d.Max = len(n.d.Options)
+	return ops, n, nil
+}
+
+// attackerMinBlockers is the group-size floor an attacker's Menace imposes.
+func (s *Session) attackerMinBlockers(a protocol.ObjectRef, v *view.View) int {
+	if cv, ok := s.cardByV2(v, a.ObjectID); ok && hasKeyword(cv, "Menace") {
+		return 2
+	}
+	return 1
+}
+
+// cantBlock reports whether a printed static forbids this creature from
+// blocking (Aesthir Glider's "CARDNAME can't block"). The v2 view carries no
+// static registry, so the printed face is the only source.
+func (s *Session) cantBlock(cv view.CardView) bool {
+	f := s.B.face(&cv.Name, false, nil)
+	if f == nil {
+		return false
+	}
+	for _, st := range f.Statics {
+		if !slices.Contains(strings.Split(st.Mode, ","), "CantBlock") {
+			continue
+		}
+		valid := strings.TrimSpace(st.Params["ValidCard"])
+		if valid == "" || strings.EqualFold(valid, "Card.Self") || strings.EqualFold(valid, "CARDNAME") {
+			return true
 		}
 	}
-	return ops, n, nil
+	return false
+}
+
+// unresolvedStatic reports whether a static carries a printed condition whose
+// live value the v2 observation does not carry. cantAttack treats such a
+// static as not restricting: the engine's own offer remains the authority, and
+// a failed condition must not displace a legal attacker.
+func unresolvedStatic(st cards.Static) bool {
+	for _, param := range []string{"CheckSVar", "SVarCompare", "CheckSecondSVar", "SecondSVarCompare",
+		"IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "Condition",
+		"ConditionCompare", "UnlessDefender", "Target"} {
+		if strings.TrimSpace(st.Params[param]) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// cantAttack reports whether an unconditional printed static forbids this
+// creature from attacking. A static carrying any condition parameter is not
+// evaluated (the observation carries no live SVar or board gate), so the
+// engine's own offer remains the authority there.
+func (s *Session) cantAttack(cv view.CardView) bool {
+	f := s.B.face(&cv.Name, false, nil)
+	if f == nil {
+		return false
+	}
+	for _, st := range f.Statics {
+		if !slices.Contains(strings.Split(st.Mode, ","), "CantAttack") {
+			continue
+		}
+		if unresolvedStatic(st) {
+			continue // unresolvable here: a later unconditional static still decides
+		}
+		valid := strings.TrimSpace(st.Params["ValidCard"])
+		if valid == "" || strings.EqualFold(valid, "Card.Self") || strings.EqualFold(valid, "CARDNAME") {
+			return true
+		}
+	}
+	return false
+}
+
+// cantBlockAttacker reports whether the blocker's printed CantBlockBy static
+// forbids this attacker (Hinterland Drake's "can't block artifact creatures").
+func (s *Session) cantBlockAttacker(b, a view.CardView) bool {
+	f := s.B.face(&b.Name, false, nil)
+	if f == nil {
+		return false
+	}
+	for _, st := range f.Statics {
+		if !slices.Contains(strings.Split(st.Mode, ","), "CantBlockBy") {
+			continue
+		}
+		blocker := strings.TrimSpace(st.Params["ValidBlocker"])
+		explicitSelf := blocker != "" && strings.Contains(blocker, "Self")
+		if blocker != "" && !explicitSelf {
+			continue // the restriction names another blocker, not this card
+		}
+		spec := strings.ToLower(strings.TrimSpace(st.Params["ValidAttacker"]))
+		if strings.Contains(spec, "self") {
+			// "CARDNAME can't be blocked" is this creature's own evasion as
+			// an attacker, not a restriction on it as a blocker.
+			continue
+		}
+		switch {
+		case spec == "":
+			if explicitSelf {
+				return true
+			}
+		case strings.Contains(spec, "artifact"):
+			if slices.ContainsFunc(strings.Fields(a.Types), func(t string) bool { return strings.EqualFold(t, "Artifact") }) {
+				return true
+			}
+		case strings.Contains(spec, "creature"):
+			if explicitSelf {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// hasCantAttack reports whether the creature carries any printed CantAttack
+// static, conditional or not. It is the ordering key for an unresolvable
+// condition, not a legality verdict.
+func (s *Session) hasCantAttack(a protocol.ObjectRef, v *view.View) bool {
+	cv, ok := s.cardByV2(v, a.ObjectID)
+	if !ok {
+		return false
+	}
+	f := s.B.face(&cv.Name, false, nil)
+	if f == nil {
+		return false
+	}
+	for _, st := range f.Statics {
+		if slices.Contains(strings.Split(st.Mode, ","), "CantAttack") {
+			return true
+		}
+	}
+	return false
 }
 
 // --- small choices ---
@@ -1243,13 +1903,27 @@ func (s *Session) optionalCost(sd *protocol.SeatDecision) ([]mapping.NativeOp, *
 			break
 		}
 	}
-	if str(first, "cost") != "unless_payment" {
+	src, err := ref(first, "source")
+	if err != nil {
+		return nil, nil, err
+	}
+	// The native decision publishes the unless-cost ability as ResumeSA.
+	// The bot's unless-mana arm needs it to tell a payable tax from a
+	// no-cost ask; the v2 semantic names only the source, so resolve the
+	// ability that is on the stack or resolving and read its own printed
+	// UnlessCost body. A "other" optional cost whose source carries an
+	// UnlessCost elsewhere on its face is not this shape.
+	resume := s.unlessCostSA(src, &sd.Observation)
+	if str(first, "cost") != "unless_payment" && resume == nil {
 		return s.yesNo(sd)
 	}
 	n := s.open("unless", decision.Decision{Kind: decision.KModes, Min: 1, Max: 1, ResumeKind: "unless_pay",
-		Prompt: "Pay the cost?", Options: []decision.Option{
-			{Index: 0, Kind: "mode", Label: "Pay", Mode: decision.ModeUnlessPay},
-			{Index: 1, Kind: "mode", Label: "Decline", Mode: decision.ModeUnlessDecline}}})
+		Prompt: "Pay the cost?", ResumeSA: resume,
+		Options: []decision.Option{
+			{Index: 0, Kind: "mode", Label: "Pay", Mode: decision.ModeUnlessPay,
+				Obj: s.B.IDs.Of(src.ObjectID), Player: s.seat},
+			{Index: 1, Kind: "mode", Label: "Decline", Mode: decision.ModeUnlessDecline,
+				Obj: s.B.IDs.Of(src.ObjectID), Player: s.seat}}})
 	ops := make([]mapping.NativeOp, len(sd.Candidates))
 	for i, c := range sd.Candidates {
 		ops[i] = noOp
@@ -1263,6 +1937,83 @@ func (s *Session) optionalCost(sd *protocol.SeatDecision) ([]mapping.NativeOp, *
 		ops[i] = mapping.NativeOp{Op: "choose", Option: k}
 	}
 	return ops, n, nil
+}
+
+// unlessCostSA finds the printed unless-cost body of the ability that is on
+// the stack or resolving, the native decision's ResumeSA. The v2 source names
+// the ability object, so the observation's stack entry (or the activation the
+// session just recorded) picks the one ability; scanning the whole face would
+// let an unrelated ability's UnlessCost masquerade as this ask's.
+func (s *Session) unlessCostSA(src protocol.ObjectRef, o *protocol.Observation) *cards.SA {
+	var entry *protocol.StackEntry
+	for i := range o.Stack {
+		if o.Stack[i].ObjectID == src.ObjectID {
+			entry = &o.Stack[i]
+		}
+	}
+	var f *cards.Face
+	var roots []*cards.SA
+	switch {
+	case entry != nil && entry.StackKind == "spell":
+		if f = s.B.face(entry.CardName, false, nil); f != nil {
+			roots = append(roots, f.SpellAbility())
+		}
+	case entry != nil && entry.StackKind == "activated_ability" && entry.Source != nil:
+		// The ask names the ability object on the stack; the activated
+		// permanent is the entry's Source and Picked recorded which of its
+		// printed abilities was chosen.
+		if f = s.B.face(entry.Source.CardName, false, nil); f != nil {
+			if i, ok := s.activated[entry.Source.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
+				roots = append(roots, f.Abilities[i])
+			} else {
+				roots = append(roots, f.Abilities...)
+			}
+		}
+	case entry != nil && entry.StackKind == "triggered_ability":
+		// The observation does not say which printed trigger fired, so every
+		// trigger's effect is a candidate; an unrelated activated ability is
+		// not.
+		if f = s.B.face(src.CardName, false, nil); f != nil {
+			for _, tr := range f.Triggers {
+				if tr.Effect != nil {
+					roots = append(roots, tr.Effect)
+				}
+			}
+		}
+	case src.Zone == "battlefield":
+		// An ability being activated is announced from its permanent.
+		if f = s.B.face(src.CardName, false, nil); f != nil {
+			if i, ok := s.activated[src.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
+				roots = append(roots, f.Abilities[i])
+			}
+		}
+	default:
+		// The stack entry is gone (a resolving trigger) or the source is a
+		// card the observation does not place: no ability can be singled
+		// out, so keep the historic face-wide search.
+		if f = s.B.face(src.CardName, false, nil); f != nil {
+			for _, tr := range f.Triggers {
+				if tr.Effect != nil {
+					roots = append(roots, tr.Effect)
+				}
+			}
+			roots = append(roots, f.Abilities...)
+			if root := f.SpellAbility(); root != nil {
+				roots = append(roots, root)
+			}
+		}
+	}
+	for _, root := range roots {
+		if root == nil {
+			continue
+		}
+		for _, sa := range chain(f, root) {
+			if sa.Params["UnlessCost"] != "" {
+				return sa
+			}
+		}
+	}
+	return nil
 }
 
 func (s *Session) mulligan(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, error) {
@@ -1484,39 +2235,74 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 		}
 	}
 	var f *cards.Face
-	var root *cards.SA
+	var roots []*cards.SA
 	var x *uint32
 	switch {
 	case entry != nil && entry.StackKind == "spell":
 		if f = s.B.face(entry.CardName, false, nil); f != nil {
-			root = f.SpellAbility()
+			roots = append(roots, f.SpellAbility())
+		}
+		x = entry.XValue
+	case entry != nil && entry.StackKind == "activated_ability" && entry.Source != nil:
+		// The ask names the ability object on the stack; the activated
+		// permanent is the entry's Source and Picked recorded which of its
+		// printed abilities was chosen.
+		if f = s.B.face(entry.Source.CardName, false, nil); f != nil {
+			if i, ok := s.activated[entry.Source.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
+				roots = append(roots, f.Abilities[i])
+			}
+		}
+		x = entry.XValue
+	case entry != nil && entry.StackKind == "triggered_ability":
+		// A triggered ability's source is its permanent, and the ask names
+		// the trigger's own ability object. The observation does not say
+		// which printed trigger fired, so every root's chain is a candidate;
+		// the slot picks the targeting ability within it.
+		if f = s.B.face(src.CardName, false, nil); f != nil {
+			// A trigger's Execute$ body is the effect that poses the ask;
+			// the printed AB/spell roots are the fallback for a trigger the
+			// compiler folded elsewhere.
+			for _, tr := range f.Triggers {
+				if tr.Effect != nil {
+					roots = append(roots, tr.Effect)
+				}
+			}
+			roots = append(roots, f.Abilities...)
+			if root := f.SpellAbility(); root != nil {
+				roots = append(roots, root)
+			}
 		}
 		x = entry.XValue
 	case src.Zone == "battlefield":
 		// An ability being activated is announced from its permanent.
 		i, ok := s.activated[src.ObjectID]
 		if f = s.B.face(src.CardName, false, nil); f != nil && ok && i < len(f.Abilities) {
-			root = f.Abilities[i]
+			roots = append(roots, f.Abilities[i])
 		}
 	}
-	if root == nil {
-		return nil
-	}
 	var sa *cards.SA
-	k := 0
-	for _, c := range chain(f, root) {
-		if _, ok := c.Params["ValidTgts"]; ok {
-			if k == slot {
-				sa = c
-				break
+	for _, root := range roots {
+		k := 0
+		for _, c := range chain(f, root) {
+			if _, ok := c.Params["ValidTgts"]; ok {
+				if k == slot {
+					sa = c
+					break
+				}
+				k++
 			}
-			k++
+		}
+		if sa != nil {
+			break
 		}
 	}
 	if sa == nil {
 		return nil
 	}
 	out := &decision.TargetEffect{API: sa.API, Removal: removal(sa)}
+	if sa.API == "Effect" {
+		out.Statics = staticModesFromFace(f, sa)
+	}
 	if sa.API == "DealDamage" || sa.API == "DamageAll" {
 		out.Damage = &decision.DamageEffect{}
 		raw := strings.TrimSpace(sa.Params["NumDmg"])
@@ -1560,6 +2346,38 @@ func removal(sa *cards.SA) *decision.RemovalEffect {
 		return &decision.RemovalEffect{Kind: kind, Destination: dest}
 	}
 	return nil
+}
+
+// staticModesFromFace resolves an Effect SA's StaticAbilities$ names against
+// the printed face's SVar table, returning each body's Mode$ in written
+// order. It is the neutral mirror of rules.staticModesFromSVars: the v2
+// observation has no live static registry, so the printed ability facts are
+// the only source, and the native target ask publishes exactly these modes
+// for the bot's grant polarity read.
+func staticModesFromFace(f *cards.Face, sa *cards.SA) []string {
+	if f == nil || sa == nil || sa.API != "Effect" {
+		return nil
+	}
+	names := strings.FieldsFunc(sa.Params["StaticAbilities"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
+	var out []string
+	for _, n := range names {
+		body := strings.TrimSpace(f.SVars[n])
+		if body == "" {
+			continue
+		}
+		statics, ok := cards.ParseStaticLines(body)
+		if !ok {
+			continue
+		}
+		for _, st := range statics {
+			if st.Mode != "" {
+				out = append(out, st.Mode)
+			}
+		}
+	}
+	return out
 }
 
 // --- ordering and arrangement ---
