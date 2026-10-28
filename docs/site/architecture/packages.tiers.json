@@ -391,6 +391,10 @@
       "tier": "server",
       "status": "EXT"
     },
+    "server/spellbench/neutral/twin": {
+      "tier": "server",
+      "status": "EXT"
+    },
     "server/spellbench/observe": {
       "tier": "server",
       "status": "EXT"
