@@ -204,12 +204,12 @@ $ go run ./cmd/mtgsim -seats 2 -games 20 -a sb-gorge -sb-agent sb-gorge=./gorge-
 
 That runs gorge's `bot` through the full v2 round trip against gorge's own
 `bot`. It is a useful fidelity check: over seeds 0–19 with Death & Taxes
-against Dimir Tempo, the bot won **17 of 20 games natively** (`-a bot`) and
-**1 of 20 through the neutral v2 translation** (2026-10-20, and again on
-2026-10-21 at `513a2a0c3`; 20 games took 17 s). Something the
-bot relies on does not survive the trip through the neutral observation;
-until that is found, compare v2-served policies with each other, not with
-native ones.
+against Dimir Tempo, the bot wins **17 of 20 games natively** (`-a bot`) and
+**17 of 20 through the neutral v2 translation** (2026-10-28 at `315962169`
+with the `cmd/mtgsim` payment-plan guard; 20 games took 17 s). Before that
+guard the neutral seat received no payment plans and won 1 of 20: it could
+still pick the engine's manual cast options, but could never apply a planned
+payment.
 
 ### Latency
 

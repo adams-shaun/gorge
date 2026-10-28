@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"maps"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots"
@@ -75,7 +76,7 @@ func (r *v2Recorder) Round(req []byte) ([]byte, error) {
 	return resp, err
 }
 
-// v2Corpus plays gorge bot mirrors on gorge's engine (no engine auto-pay, as
+// v2Corpus plays gorge bot mirrors on gorge's engine (engine auto-pay, as
 // TestDecisionsMatchGorgeOnGorgeGames) and returns each seat's decoded stream.
 func v2Corpus(tb testing.TB, reg *cards.Registry, games int) []*v2Stream {
 	tb.Helper()
@@ -86,7 +87,9 @@ func v2Corpus(tb testing.TB, reg *cards.Registry, games int) []*v2Stream {
 	var out []*v2Stream
 	for i := 0; i < games; i++ {
 		d := catalog.Decks()[i%len(catalog.Decks())]
-		h := &minihost.Host{RunSecret: make([]byte, 32), Engine: &minihost.EngineLink{S: env.New(reg, nil)},
+		srv := env.New(reg, nil)
+		srv.EnableAutoPay()
+		h := &minihost.Host{RunSecret: make([]byte, 32), Engine: &minihost.EngineLink{S: srv},
 			Profile:  validate.Profile{Kinds: kinds, Flags: observe.Flags, Extensions: map[string]bool{"x_gorge_view_v1": true}},
 			MaxSteps: 20000, MaxDecisions: 9999}
 		var links [2]minihost.Link
@@ -208,6 +211,26 @@ func comparable(st *v2Step, i int) bool {
 	return st.sd.Candidates[i].Semantic.Kind != "activate_mana_ability"
 }
 
+// sameCopy reports whether two candidates play the same card: the engine
+// hides the order of interchangeable copies in a hand, so which of them a seat
+// plays first is not a decision (as twin.Seat counts it).
+func sameCopy(x, y map[string]any) bool {
+	if x["kind"] != y["kind"] || x["kind"] != "cast_spell" && x["kind"] != "play_land" {
+		return false
+	}
+	anon := func(m map[string]any) string {
+		c := maps.Clone(m)
+		if src, ok := c["source"].(map[string]any); ok {
+			src = maps.Clone(src)
+			delete(src, "object_id")
+			c["source"] = src
+		}
+		out, _ := json.Marshal(c)
+		return string(out)
+	}
+	return anon(x) == anon(y)
+}
+
 func TestV2AdapterAgreesWithNative(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	streams := v2Corpus(t, reg, 1)
@@ -230,7 +253,7 @@ func TestV2AdapterAgreesWithNative(t *testing.T) {
 			if len(st.sd.Candidates) > 1 {
 				multi++
 			}
-			if a != n {
+			if a != n && !sameCopy(st.sems[a], st.sems[n]) {
 				t.Errorf("seat %d step %d (%s): adapter picks %s, native %s", si, k, st.sd.Context.Kind,
 					st.sd.Candidates[a].Semantic.Kind, st.sd.Candidates[n].Semantic.Kind)
 			}

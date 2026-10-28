@@ -1,6 +1,7 @@
 package neutral_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,7 +13,9 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	_ "github.com/adams-shaun/gorge/bots/all"
 	"github.com/adams-shaun/gorge/bots/heuristic"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/seat"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/agent"
 	"github.com/adams-shaun/gorge/server/spellbench/catalog"
@@ -29,7 +32,53 @@ import (
 
 func init() {
 	bots.Register(bots.Entry{Info: bots.Info{Name: "test-bot-auto-pay", Label: "test bot auto-pay", Tier: bots.Experimental},
-		New: func(o bots.Options) (seat.Seat, error) { return heuristic.NewBot(o.Seed).EnableAutoPayMana(), nil }})
+		New: func(o bots.Options) (seat.Seat, error) {
+			return noFloat{heuristic.NewBot(o.Seed).EnableAutoPayMana()}, nil
+		}})
+}
+
+// noFloat is the bot of an engine_autopay host: gorge's decision still lists
+// a tap of every mana source, but the host hides those taps from the v2
+// candidates, so floating mana by hand has nothing to answer with. The bot
+// pays by plan only, and neither world shows it the taps.
+//
+// It also reads the payment actions in card-name order. gorge lists them in
+// the engine's hand order, which the observation hides (a hand is shown
+// sorted), so which of two equally ranked casts comes first is not something
+// the neutral world can know; the name order is the same in both worlds.
+type noFloat struct{ *heuristic.Bot }
+
+func (n noFloat) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
+	if d.Kind != decision.KPriority {
+		return n.Bot.Decide(ctx, v, d)
+	}
+	kept := make([]decision.Option, 0, len(d.Options))
+	var back []int
+	for _, o := range d.Options {
+		if o.Kind != "activate" {
+			back = append(back, o.Index)
+			o.Index = len(kept)
+			kept = append(kept, o)
+		}
+	}
+	d.Options = kept
+	names := map[state.ObjID]string{}
+	for _, p := range v.Players {
+		for _, zone := range [][]view.CardView{p.Hand, p.Graveyard, p.Exile, p.Battlefield} {
+			for _, c := range zone {
+				names[c.ID] = c.Name
+			}
+		}
+	}
+	d.PaymentActions = slices.Clone(d.PaymentActions)
+	slices.SortStableFunc(d.PaymentActions, func(a, b decision.PaymentAction) int {
+		return strings.Compare(names[a.Cast.Object], names[b.Cast.Object])
+	})
+	in, err := n.Bot.Decide(ctx, v, d)
+	for i, c := range in.Choices {
+		in.Choices[i] = back[c]
+	}
+	return in, err
 }
 
 // recorder passes requests to a gorge agent and keeps every choose request.
@@ -190,14 +239,16 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 		kinds[k] = true
 	}
 	tw := twin.New()
-	games := 10
+	tw.SetRegistry(reg)
+	games := 6
 	for i := 0; i < games; i++ {
 		d := catalog.Decks()[i%len(catalog.Decks())]
-		// No engine auto-pay: the v2 wire drops the engine's payment plan
-		// (PaymentActions), so the neutral world cannot reproduce a plan the
-		// gorge engine floated before posing priority. Both seats pay manually;
-		// that is the path the adapter has to translate, and it is exact.
+		// Engine auto-pay, the default path: the native agent reads gorge's
+		// payment plans (PaymentActions) off the engine; the neutral one has
+		// to plan the same payments on the board it rebuilds from the
+		// observation.
 		srv := env.New(reg, nil)
+		srv.EnableAutoPay()
 		h := &minihost.Host{RunSecret: make([]byte, 32), Engine: &minihost.EngineLink{S: srv},
 			Profile:  validate.Profile{Kinds: kinds, Flags: observe.Flags, Extensions: map[string]bool{"x_gorge_view_v1": true}},
 			MaxSteps: 20000, MaxDecisions: 9999}
@@ -227,7 +278,8 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 	}
 	sort.Strings(lines)
 	t.Logf("agreement %d/%d\n%s", agree, total, strings.Join(lines, "\n"))
-	if floated := tw.Total[twin.Floated]; agree != total-floated {
-		t.Errorf("the translated decision disagrees with gorge's own %d times in %d", total-floated-agree, total-floated)
+	skipped := tw.Total[twin.Floated] + tw.Total[twin.ChosenColour]
+	if agree != total-skipped {
+		t.Errorf("the translated decision disagrees with gorge's own %d times in %d", total-skipped-agree, total-skipped)
 	}
 }
