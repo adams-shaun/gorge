@@ -547,6 +547,34 @@ func ReplParamsMayElect(params map[string]string) bool {
 	return opt || dec
 }
 
+// FaceGrantedReplAskEvents reports the replaceable events for which f's
+// statics grant an electing replacement effect: an AddReplacementEffect$
+// naming an SVar whose R: body is Optional$ / OptionalDecider$ (or a
+// CreateToken body with a chosen-copy election: ReplMayElect). A granted line
+// lives in the static, not in f.Repls, so the predicate's printed-line walk
+// cannot see it; rules' replacement-arena precompute unions this mask over
+// every object's faces and its board gates read the event bit. A body that
+// does not parse, or an SVar that is not on the granting face, grants nothing
+// (engine/rules/layers.go fails closed), so it is not counted.
+func FaceGrantedReplAskEvents(f *Face) ReplEventMask {
+	if f == nil {
+		return 0
+	}
+	var m ReplEventMask
+	for i := range f.Statics {
+		for _, name := range SplitGrantNames(f.Statics[i].ParamStr(PKAddReplacementEffect)) {
+			r, ok := ParseReplacementLine(f.SVars[name])
+			if !ok || !ReplMayElect(&r) {
+				continue
+			}
+			if ev := r.EventKind(); ev != 0 {
+				m |= 1 << ev
+			}
+		}
+	}
+	return m
+}
+
 // faceEnchants reports whether f has an Enchant keyword: an Aura put onto the
 // battlefield without being cast chooses what it enchants as it enters.
 // FaceEntryOrEnchantMayAsk reports whether a face asks as it enters the
