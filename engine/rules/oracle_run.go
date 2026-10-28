@@ -105,6 +105,11 @@ type oracleSeat struct {
 	// Speed is the seat's starting speed (CR 702.179), 0..4, set with a
 	// SpeedChange event during setup.
 	Speed int32 `json:"speed,omitempty"`
+	// Tokens are the tokens this seat controls at setup, in creation order,
+	// minted after the seat's card placements so "pN:token:Name#k" refs bind
+	// as in the recorded game. Placement fires no trigger and no CreateToken
+	// replacement; see oracleSetupToken.
+	Tokens []oracleSetupToken `json:"tokens,omitempty"`
 }
 
 // setupCounters lists the counters a seat's setup puts on a battlefield
@@ -770,6 +775,9 @@ func (r *oracleRun) build(sc oracleScenario) error {
 				ref = fmt.Sprintf("%s#%d", ref, counts[n])
 			}
 			r.refs[ref] = id
+		}
+		if err := r.placeSetupTokens(sc, p); err != nil {
+			return err
 		}
 		if len(tops) > 0 {
 			// LibraryOrder's IDs are the complete new order, top first.
