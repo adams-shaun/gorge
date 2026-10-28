@@ -98,7 +98,9 @@ class RenderTest(unittest.TestCase):
         head = section(self.out, "headline")
         self.assertIn("**50 of 100** cards (50.0%)", head)
         self.assertIn("`671efbb30`", head)
-        self.assertIn("`012345678`", head)
+        # The private module's commit is never published.
+        self.assertNotIn("`012345678`", head)
+        self.assertIn("the dirty-dirac snapshot of 2026-10-21", head)
 
     def test_without_status(self):
         out = docs_sets.render([], {}, {}, DD)

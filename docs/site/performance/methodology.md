@@ -279,8 +279,8 @@ written, and the warm-up games are dropped when the run is recorded.
 
 dirty-dirac is the maintainers' private kernel, under active development
 toward a full engine, so its row cannot be rerun from the public
-repositories. Its published game rows were measured on 2026-10-26, after the
-kernel redesign, and its search rows on 2026-10-20, before it
+repositories. Its published game rows were measured on 2026-10-26, and its search rows on 2026-10-20, on the kernel's
+earlier state layout
 ([Performance](index.md#dirty-diracs-rows)), with the same script, which
 calls the kernel's game runner `kplay` when `KPLAY` names a binary built from
 the private module:
@@ -344,11 +344,12 @@ was made and which IR caches each warm-up compiled.
 
 The search rows measure what one MCTS simulation costs, the number that
 decides how much look-ahead a search bot can afford. Each run is one process
-on one pinned core, three reps at once, 30 seconds, FDN pair A.
+on one pinned core, three reps at once, 30 seconds, FDN pair A (gorge's
+`az` row alternates pairs A and B, two games each).
 
 | Row | What runs | How cost is counted |
 |---|---|---|
-| gorge MCTS, heuristic leaf | `enginebench -row az -sims N` (build tag `enginebench_az`): the `azmcts` seat behind `az-redeal`, every simulation over a freshly re-dealt world of what the seat cannot see, a heuristic leaf value, gorge's heuristic bot playing every unsearched decision inside the search. It searches priority roots from turns 5-8 of seeded pair-A games | CPU time inside the search only, divided by simulations (`sims_per_cpu_s`) and by searched roots |
+| gorge MCTS, heuristic leaf | `enginebench -row az -sims N` (build tag `enginebench_az`): the `azmcts` seat behind `az-redeal`, every simulation over a freshly re-dealt world of what the seat cannot see, a heuristic leaf value, gorge's heuristic bot playing every unsearched decision inside the search. It searches priority roots from turns 5-8 of seeded games that alternate pairs A and B | CPU time inside the search only, divided by simulations (`sims_per_cpu_s`) and by searched roots |
 | dirty-dirac MCTS, heuristic leaf | the kernel's game runner with an MCTS seat on both sides (`-a az:sims=N -b az:sims=N`): the same algorithm shape (re-dealt worlds, the native port of gorge's heuristic bot as the in-search player), heuristic leaf | process CPU over whole games (searched and unsearched decisions, the engine between searches), divided by completed simulations; so it slightly overstates the search's own cost against the gorge row |
 | dirty-dirac MCTS, network leaf | the same with `:gonet=<weights>`: a small multilayer perceptron (one 64-wide layer, about 2.4 MB of weights) evaluated in-process on the CPU as the leaf value | as above |
 

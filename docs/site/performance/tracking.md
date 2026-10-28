@@ -5,7 +5,7 @@ This page is meant to chart gorge's engine speed relative to a fixed
 shows up as a step in a line rather than as a number someone has to remember.
 It is for contributors checking whether a change moved the engine's speed.
 
-!!! warning "Status, 2026-10-25: not live"
+!!! warning "Status, 2026-10-27: not live"
     No speed history is recorded yet, so the charts below show "no data".
 
     | Piece | State |

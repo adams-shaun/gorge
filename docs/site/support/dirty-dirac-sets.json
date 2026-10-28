@@ -1,7 +1,6 @@
 {
   "about": "dirty-dirac per-set card acceptance, rendered by scripts/docs_sets.py. dirty-dirac's source is private: a maintainer re-runs its acceptance ratchet and lockstep runs and edits this file. accepted = cards kgen lowers with no refusal; cards = distinct names in XMage's manifest for the set that exist in the corpus (corpus: distinct card names in the Forge corpus at FORGE_REF). lockstep = seeded games played in both engines, compared at every decision.",
   "date": "2026-10-25",
-  "commit": "33a021ca",
   "gorge_pin": "bb026728d",
   "corpus": {"accepted": 17126, "cards": 34072},
   "lockstep": {

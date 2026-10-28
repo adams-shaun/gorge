@@ -159,9 +159,9 @@ full gorge commit SHA it builds against, mirrored by the gorge
 pseudo-version in its `go.mod`. Moving it is a pull request in the companion
 ([Pinning](../repos/index.md#pinning)).
 
-**`develop` / `main`.** Changes land on `develop` by pull request. When CI is
-green there, the `promote` workflow opens a `develop → main` pull request,
-which a maintainer merges with a merge commit. `main` is what this site and
+**`develop` / `main`.** Changes land on `develop` by pull request. The
+maintainers' pipeline periodically opens a `develop → main` snapshot pull
+request and merges it, when its checks are green, with a merge commit. `main` is what this site and
 the published coverage are built from ([Branch flow](../repos/index.md#branch-flow)).
 
 **dirty-dirac.** A second, much faster rules kernel, in the private

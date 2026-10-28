@@ -1,0 +1,53 @@
+<svg class="mzc" viewBox="0 0 760 230" role="img" aria-label="Recorded decisions per seat-game by kind: XMage 82-87, dirty-dirac 52" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">Recorded decisions per seat-game, by kind (Faeries pool, gen0)</text>
+<rect class="s1" x="16" y="37" width="12" height="12" rx="2" style="stroke:none"/>
+<text x="34.0" y="47.0" text-anchor="start">priority</text>
+<rect class="s2" x="102" y="37" width="12" height="12" rx="2" style="stroke:none"/>
+<text x="120.0" y="47.0" text-anchor="start">combat picks</text>
+<rect class="s3" x="216" y="37" width="12" height="12" rx="2" style="stroke:none"/>
+<text x="234.0" y="47.0" text-anchor="start">other targets</text>
+<rect class="seg4" x="337" y="37" width="12" height="12" rx="2" style="stroke:none"/>
+<text x="355.0" y="47.0" text-anchor="start">yes/no asks</text>
+<rect class="seg5" x="444" y="37" width="12" height="12" rx="2" style="stroke:none"/>
+<text x="462.0" y="47.0" text-anchor="start">choose / modes</text>
+<line class="mz-grid" x1="130.0" y1="64" x2="130.0" y2="190"/>
+<text x="130.0" y="206.0" class="mz-muted" text-anchor="middle">0</text>
+<line class="mz-grid" x1="193.3" y1="64" x2="193.3" y2="190"/>
+<text x="193.3" y="206.0" class="mz-muted" text-anchor="middle">10</text>
+<line class="mz-grid" x1="256.7" y1="64" x2="256.7" y2="190"/>
+<text x="256.7" y="206.0" class="mz-muted" text-anchor="middle">20</text>
+<line class="mz-grid" x1="320.0" y1="64" x2="320.0" y2="190"/>
+<text x="320.0" y="206.0" class="mz-muted" text-anchor="middle">30</text>
+<line class="mz-grid" x1="383.3" y1="64" x2="383.3" y2="190"/>
+<text x="383.3" y="206.0" class="mz-muted" text-anchor="middle">40</text>
+<line class="mz-grid" x1="446.7" y1="64" x2="446.7" y2="190"/>
+<text x="446.7" y="206.0" class="mz-muted" text-anchor="middle">50</text>
+<line class="mz-grid" x1="510.0" y1="64" x2="510.0" y2="190"/>
+<text x="510.0" y="206.0" class="mz-muted" text-anchor="middle">60</text>
+<line class="mz-grid" x1="573.3" y1="64" x2="573.3" y2="190"/>
+<text x="573.3" y="206.0" class="mz-muted" text-anchor="middle">70</text>
+<line class="mz-grid" x1="636.7" y1="64" x2="636.7" y2="190"/>
+<text x="636.7" y="206.0" class="mz-muted" text-anchor="middle">80</text>
+<line class="mz-grid" x1="700.0" y1="64" x2="700.0" y2="190"/>
+<text x="700.0" y="206.0" class="mz-muted" text-anchor="middle">90</text>
+<text x="118.0" y="94.0" text-anchor="end">MageZero ver4</text>
+<g><title>MageZero ver4: priority 45.4 per seat-game</title><rect class="seg s1" x="130.0" y="78" width="287.5" height="22" rx="3"/></g>
+<g><title>MageZero ver4: combat picks 24.8 per seat-game</title><rect class="seg s2" x="417.5" y="78" width="156.8" height="22" rx="3"/></g>
+<g><title>MageZero ver4: other targets 9.0 per seat-game</title><rect class="seg s3" x="574.3" y="78" width="57.3" height="22" rx="3"/></g>
+<g><title>MageZero ver4: yes/no asks 2.5 per seat-game</title><rect class="seg seg4" x="631.6" y="78" width="15.7" height="22" rx="3"/></g>
+<text x="655.3" y="94.0" text-anchor="start">81.7</text>
+<text x="118.0" y="134.0" text-anchor="end">XMage jar rerun</text>
+<g><title>XMage jar rerun: priority 50.3 per seat-game</title><rect class="seg s1" x="130.0" y="118" width="318.6" height="22" rx="3"/></g>
+<g><title>XMage jar rerun: combat picks 24.5 per seat-game</title><rect class="seg s2" x="448.6" y="118" width="155.0" height="22" rx="3"/></g>
+<g><title>XMage jar rerun: other targets 9.6 per seat-game</title><rect class="seg s3" x="603.6" y="118" width="60.9" height="22" rx="3"/></g>
+<g><title>XMage jar rerun: yes/no asks 2.4 per seat-game</title><rect class="seg seg4" x="664.5" y="118" width="15.2" height="22" rx="3"/></g>
+<text x="687.7" y="134.0" text-anchor="start">86.8</text>
+<text x="118.0" y="174.0" text-anchor="end">dirty-dirac</text>
+<g><title>dirty-dirac: priority 35.2 per seat-game</title><rect class="seg s1" x="130.0" y="158" width="222.9" height="22" rx="3"/></g>
+<g><title>dirty-dirac: combat picks 9.7 per seat-game</title><rect class="seg s2" x="352.9" y="158" width="61.2" height="22" rx="3"/></g>
+<g><title>dirty-dirac: other targets 2.9 per seat-game</title><rect class="seg s3" x="414.1" y="158" width="18.6" height="22" rx="3"/></g>
+<g><title>dirty-dirac: yes/no asks 1.0 per seat-game</title><rect class="seg seg4" x="432.7" y="158" width="6.3" height="22" rx="3"/></g>
+<g><title>dirty-dirac: choose / modes 3.6 per seat-game</title><rect class="seg seg5" x="439.1" y="158" width="22.5" height="22" rx="3"/></g>
+<text x="469.6" y="174.0" text-anchor="start">52.4</text>
+<text x="415.0" y="226.0" class="mz-muted" text-anchor="middle">decisions per seat-game</text>
+</svg>

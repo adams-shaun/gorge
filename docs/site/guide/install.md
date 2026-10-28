@@ -5,7 +5,7 @@ prerequisites, the card corpus, the binaries and the browser client. It is
 for anyone who wants to play against gorge's bots or run bot matches; a
 contributor needs the same steps, and then [Testing](../contributing/testing.md).
 
-*Verified 2026-10-21 on Linux (x86-64, Go 1.26.3) at commit `513a2a0c3`.
+*Verified 2026-10-27 on Linux (x86-64, Go 1.26.3) at commit `25d71cadc`.
 Other platforms are not tested by the maintainers.*
 
 ## Prerequisites
@@ -62,7 +62,7 @@ version you build gets its own `ir-*` files and old ones pile up. They are
 safe to delete; the next run recompiles.
 
 `make report` prints the corpus coverage at the pin, for example
-`cards: 34074  playable: 32265 (94.7%)` (2026-10-25, `87ed64d3b`). See
+`cards: 34074  playable: 32337 (94.9%)` (2026-10-27, `25d71cadc`). See
 [Card sets](../support/sets.md) for what "playable" means.
 
 ## 3. Build the binaries
@@ -122,10 +122,10 @@ heuristic bots, replaying each one and comparing the rebuilt event chain with
 the live one. Every game prints a result line and `replay OK`:
 
 ```text
-seed 0: 4 seats,   1419 intents,   6941 events,  33 turns, winner=death-n-taxes, chain=3681b10f8c62ff99
-  replay OK (chain 3681b10f8c62ff99)
-seed 1: 4 seats,   1717 intents,   8409 events,  36 turns, winner=death-n-taxes, chain=23863a66d71e0279
-  replay OK (chain 23863a66d71e0279)
+seed 0: 4 seats,   1419 intents,   6941 events,  33 turns, winner=death-n-taxes, chain=c726ff7a143bef8d
+  replay OK (chain c726ff7a143bef8d)
+seed 1: 4 seats,   1717 intents,   8409 events,  36 turns, winner=death-n-taxes, chain=cdf023640deb1b71
+  replay OK (chain cdf023640deb1b71)
 ```
 
 All 20 games verified in 5 s here. If you see `replay diverged` or a

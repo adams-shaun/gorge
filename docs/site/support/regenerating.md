@@ -206,7 +206,7 @@ go test ./engine/rules/ -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDec
 ```
 
 The two log lines are the live counts (`ratchet: 2 of 1123 …` and
-`param census: 15 of 1123 …`). The named cards are the files in
+`param census: 3 of 1123 …`). The named cards are the files in
 [`engine/rules/testdata/known-unsupported/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/known-unsupported)
 and
 [`engine/rules/testdata/paramcensus/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/paramcensus),

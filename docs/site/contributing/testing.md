@@ -8,7 +8,7 @@ debugging tests; setup and the worktree workflow are on
 [Contributing](index.md), and the reasons behind each guard on
 [Invariants](../architecture/invariants.md).
 
-*Test names and paths re-checked on `develop` @ `513a2a0c3`, 2026-10-21.*
+*Test names and paths re-checked on `develop` @ `25d71cadc`, 2026-10-27.*
 
 ## Focused runs
 

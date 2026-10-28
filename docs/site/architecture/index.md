@@ -7,8 +7,7 @@ written for Go developers who want to read or change the engine. If you only
 want to run a game, start at [Getting started](../getting-started.md); if you
 want to fix your first card, see [Your first card fix](../contributing/first-card-fix.md).
 
-*Figures on this page were measured on `develop` @ `513a2a0c3`, 2026-10-21;
-the card-pool row was re-measured on `87ed64d3b`, 2026-10-25.
+*Figures on this page were measured on `develop` @ `25d71cadc`, 2026-10-27.
 Every number names the command that produced it, so you can re-measure.*
 
 ## The idea in one paragraph
@@ -45,7 +44,7 @@ and the smaller one is held to the larger one.
   <text x="30" y="112" class="dg-text-muted">up to 8 seats, Constructed and Commander</text>
   <text x="30" y="132" class="dg-text-muted">state.Game: an object arena with pointers,</text>
   <text x="30" y="150" class="dg-text-muted">slices and maps; clone = deep copy</text>
-  <text x="30" y="170" class="dg-text-muted">event-sourced: 144 event kinds,</text>
+  <text x="30" y="170" class="dg-text-muted">event-sourced: 145 event kinds,</text>
   <text x="30" y="188" class="dg-text-muted">hash-chained log, replay by re-execution</text>
   <text x="30" y="208" class="dg-text-muted">13 decision kinds, redacted per-seat views</text>
   <text x="30" y="236" class="dg-text">Job: correctness for every card,</text>
@@ -76,7 +75,7 @@ the same canonical board projection after every action.</figcaption>
 
 | | gorge | dirty-dirac |
 |---|---|---|
-| Card pool | every Forge script; 32,265 of 34,074 (94.7 %) are playable (`make report`, 2026-10-25) | 17,126 of 34,072 corpus cards lower (50.3 %); FDN and BLB are verified in lockstep ([per set](../support/sets.md#per-set-support)). It is under active development toward a full engine, and its card support is still growing |
+| Card pool | every Forge script; 32,337 of 34,074 (94.9 %) are playable (`make report`, 2026-10-27) | 17,126 of 34,072 corpus cards lower (50.3 %); FDN and BLB are verified in lockstep ([per set](../support/sets.md#per-set-support)). It is under active development toward a full engine, and its card support is still growing |
 | Players | up to 8 per hosted table (`server/host/table.go`); the golden games cover 2, 4, 6 and 8 | 2 |
 | Game state | `state.Game`: an arena of `state.Object` values plus maps and slices | a single fixed-size struct |
 | Mutation | events proposed by the engine, folded by `events.Apply`, hash-chained | `Apply(action)` on the value |
@@ -122,9 +121,9 @@ the root `go.mod` has no `require` lines at all.
   <text x="410" y="106" class="dg-text-bold">bots/</text>
   <text x="410" y="128" class="dg-text-mono">botpolicy  heuristic  registry</text>
   <text x="410" y="146" class="dg-text-mono">hosted bots, search seats</text>
-  <text x="410" y="166" class="dg-text-muted">22 packages, 51k lines: every bot a table can seat</text>
+  <text x="410" y="166" class="dg-text-muted">23 packages, 54k lines: every bot a table can seat</text>
   <rect x="10" y="196" width="740" height="174" rx="8" class="dg-box-accent"/>
-  <text x="30" y="220" class="dg-text-bold">engine/   19 packages, 294k lines (559k lines of tests)</text>
+  <text x="30" y="220" class="dg-text-bold">engine/   19 packages, 309k lines (602k lines of tests)</text>
   <rect x="30" y="234" width="130" height="40" rx="6" class="dg-box"/><text x="95" y="259" text-anchor="middle" class="dg-text-mono">seat</text>
   <rect x="170" y="234" width="130" height="40" rx="6" class="dg-box"/><text x="235" y="259" text-anchor="middle" class="dg-text-mono">view</text>
   <rect x="310" y="234" width="130" height="40" rx="6" class="dg-box"/><text x="375" y="259" text-anchor="middle" class="dg-text-mono">replay</text>
@@ -140,8 +139,8 @@ the root `go.mod` has no `require` lines at all.
   <line x1="380" y1="80" x2="380" y2="70" class="dg-line" marker-end="url(#ix-up)"/>
 </svg>
 <figcaption>Package counts from <code>go list ./&lt;group&gt;/...</code>; line counts are
-<code>wc -l</code> over non-test <code>.go</code> files (develop @ 513a2a0c3,
-2026-10-21). An upper box may import a lower one, never the reverse.</figcaption>
+<code>wc -l</code> over non-test <code>.go</code> files (develop @ 25d71cadc,
+2026-10-27). An upper box may import a lower one, never the reverse.</figcaption>
 </figure>
 
 Inside `engine/` the import graph is strictly layered. This is the real graph
@@ -231,7 +230,7 @@ Each step of that loop has its own page.
 
 | Page | What it covers |
 |---|---|
-| [Events and replay](gorge/events.md) | `events.Apply` as the only mutation path, the 144 event kinds, the hash chain and golden heads, replay by re-execution, clones and the resolution kernel's checkpoints |
+| [Events and replay](gorge/events.md) | `events.Apply` as the only mutation path, the 145 event kinds, the hash chain and golden heads, replay by re-execution, clones and the resolution kernel's checkpoints |
 | [Game loop and decisions](gorge/game-loop.md) | turns, steps and priority; the 13 decision kinds; how a decision is posed, answered and validated; mulligans, the starting player and concede; the `Seat` contract |
 | [Cards and primitives](gorge/cards.md) | Forge script to IR, keyword expansion, the IR cache and its fingerprint, how primitives are registered and how an unsupported one is caught; SVars, costs and payment |
 | [The rules core](gorge/rules.md) | casting (CR 601), the stack, state-based actions, triggers, replacement effects, the layer system (CR 613), combat, zones and object identity |

@@ -74,9 +74,9 @@ func init() {
 		Tier:        bots.Experimental,
 		Strength: []bots.Measurement{{
 			Claim:  "not measured",
-			Source: "cli-20261021T151254Z-b05edce8",
+			Source: "registered 2026-10-21 without a measurement",
 		}},
-		Cost:    bots.Cost{Scope: "per decision", Note: "not measured; same policy shape as forge-heuristic", Source: "cli-20261021T151254Z-b05edce8"},
+		Cost:    bots.Cost{Scope: "per decision", Note: "not measured; same policy shape as forge-heuristic", Source: "registered 2026-10-21 without a measurement"},
 		Formats: []string{"constructed", "commander"},
 	}, New: func(o bots.Options) (seat.Seat, error) {
 		if o.Config == nil {

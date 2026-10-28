@@ -5,8 +5,8 @@ the recommended direction. It is for contributors looking for safe cleanup
 work and for reviewers asking "is this still used?". It is a roadmap, not a
 commitment: each item is decided on its own.
 
-*Re-checked 2026-10-21 on `develop` @ `513a2a0c3` against `go run ./cmd/pkgmap`
-(99 packages, none classified SUSP or RED) and the Makefile, scripts and
+*Re-checked 2026-10-27 on `develop` @ `25d71cadc` against `go run ./cmd/pkgmap`
+(100 packages, none classified SUSP or RED) and the Makefile, scripts and
 workflows. Closed items are summarised at the end. Confidence: **H** high,
 **M** medium, **L** low.*
 
@@ -16,7 +16,7 @@ workflows. Closed items are summarised at the end. Confidence: **H** high,
 |---|---|---|
 | Four overlapping search stacks are down to two | gorge keeps the PIMC harness (`bots/searchprobe` + `bots/searchseat`, ~10.8k non-test lines) and the PUCT search (`bots/azmcts`, ~6.2k); `searchprobe` and `searchseat` are also linked into `server/host`. | Choose the survivor on benchmark evidence. (L) |
 | ManaBrew wire stack (~11.2k non-test lines across `server/manabrew`, `server/protocol/manabrew`, `server/host/manabrewhttp`) | Deprioritised; its tests build only with `-tags manabrew` (`make test-manabrew`) and are outside CI, but the code is compiled into `gorged` (`-manabrew`) and `cmd/cardfuzz` uses its mock client. | Keep; optionally tag the non-test code too. (L) |
-| SpellBench v2 adapters (`server/spellbench/*`, ~12.8k non-test lines; `cmd/spellbench-gorge-env`, `cmd/spellbench-gorge-agent`) | Ported back into gorge on 2026-10-19/20 as the environment and agent roles of the SpellBench v2 protocol; classified EXT. The earlier v1/v2 bridges left gorge on 2026-10-16. | Keep while the benchmark is in use; it imports `engine/`, `bots/` and `server/` packages, plus the one `testkit/` edge below. (M) |
+| SpellBench v2 adapters (`server/spellbench/*`, ~12.9k non-test lines; `cmd/spellbench-gorge-env`, `cmd/spellbench-gorge-agent`) | Ported back into gorge on 2026-10-19/20 as the environment and agent roles of the SpellBench v2 protocol; classified EXT. The earlier v1/v2 bridges left gorge on 2026-10-16. | Keep while the benchmark is in use; it imports `engine/`, `bots/` and `server/` packages, plus the one `testkit/` edge below. (M) |
 | `cmd/kcensus` | A one-off mechanic census for the dirty-dirac kernel's card-set planning; no Makefile, script or workflow references it. | Keep while kernel set planning uses it; a candidate to retire afterwards. (L) |
 | One tier back-edge | `server/spellbench/internal/testcorpus` (test support) imports `testkit/testutil`, drawn red on [Packages](packages.md). | Harmless (test-only support), but could move under `testkit/`. (L) |
 | `codeshape` ratchets skipped | `TestCodeShapeOnlyShrinks` and `TestLongFunctionsOnlyShrink` have been skipped by the maintainers since 2026-10-06. | Re-enable by deleting the `t.Skip` lines once the ceilings are re-measured. (M) |
