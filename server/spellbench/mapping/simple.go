@@ -63,6 +63,7 @@ func init() {
 		})
 	})
 	Register("choose/yesno", func(env *Env, d *decision.Decision) (Transaction, error) {
+		openLookIfHidden(env, d)
 		src, err := ResolveSource(env, d)
 		if err != nil {
 			return nil, err

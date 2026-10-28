@@ -15,6 +15,10 @@ import (
 
 var destOrder = []string{"top", "bottom", "graveyard", "exile", "hand", "battlefield", "pile_0", "pile_1"}
 
+// digDestinations are the non-library destinations newDig can pose. The
+// library remainder is "bottom", the engine's ordered-bottom ask.
+var digDestinations = map[string]bool{"bottom": true, "graveyard": true, "exile": true, "hand": true, "battlefield": true}
+
 func init() {
 	for _, k := range []string{"bottom", "graveyard", "exile", "hand"} {
 		Register("arrange/"+k, newScryLike)
@@ -47,6 +51,7 @@ type arrangeTx struct {
 	byID     map[string]int // look id -> card index
 	native   []int          // the card's native option index, -1 for none
 	dests    [][]string
+	inside   map[string]bool // destination's membership in the native Choices; nil keeps the legacy convention
 	legal    func(i int, dst string, chosen []string) bool
 	restOnly map[string]bool                  // destinations whose native order is fixed by the engine
 	destOp   func(i int, dst string) NativeOp // optional override of the partition op
@@ -145,6 +150,9 @@ func (t *arrangeTx) Pose() (*Pose, error) {
 			op := NativeOp{Op: "dest", Option: t.native[i], List: dst, Position: i}
 			if t.destOp != nil {
 				op = t.destOp(i, dst)
+			}
+			if inside, ok := t.inside[dst]; ok {
+				op.Inside = &inside
 			}
 			p.Candidates = append(p.Candidates, Cand{Sem: protocol.ArrangeCard(t.src, t.purpose, t.refs[i], uint32(i), uint32(t.n()), dst), Op: op})
 		}
@@ -292,7 +300,14 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	if dest2 == "" {
 		dest2, pos2 = "Library", "-1"
 	}
-	if !strings.EqualFold(dest, "Hand") || !strings.EqualFold(dest2, "Library") || pos2 != "-1" || d.MaxSum > 0 ||
+	primary, rest := strings.ToLower(dest), strings.ToLower(dest2)
+	if rest == "library" {
+		if pos2 != "-1" {
+			return nil, fmt.Errorf("%w:dig_shape", ErrUnmapped)
+		}
+		rest = "bottom" // the library remainder's ordered-bottom ask
+	}
+	if primary == "library" || primary == rest || !digDestinations[primary] || !digDestinations[rest] || d.MaxSum > 0 ||
 		strings.EqualFold(param("SkipReorder"), "True") || strings.EqualFold(param("FromBottom"), "True") {
 		return nil, fmt.Errorf("%w:dig_shape", ErrUnmapped)
 	}
@@ -317,15 +332,21 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	if strings.EqualFold(param("Reveal"), "True") {
 		how = "revealed"
 	}
-	t := &arrangeTx{env: env, d: d, purpose: "dig", src: src, cards: window, restOnly: map[string]bool{}}
+	t := &arrangeTx{env: env, d: d, purpose: "dig", src: src, cards: window, restOnly: map[string]bool{},
+		inside: map[string]bool{primary: true, rest: false}}
 	for _, id := range window {
 		if idx, ok := eligible[id]; ok {
 			t.native = append(t.native, idx)
-			t.dests = append(t.dests, []string{"hand", "bottom"})
+			t.dests = append(t.dests, []string{primary, rest})
 		} else {
 			t.native = append(t.native, -1)
-			t.dests = append(t.dests, []string{"bottom"})
+			t.dests = append(t.dests, []string{rest})
 		}
+	}
+	if rest != "bottom" {
+		// The engine fixes a non-library remainder's order (it moves in
+		// library order), so its ordering picks are presentational.
+		t.restOnly[rest] = true
 	}
 	if err := t.look(how); err != nil {
 		return nil, err
@@ -340,16 +361,16 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 		return k
 	}
 	t.legal = func(i int, dst string, chosen []string) bool {
-		hand := 0
+		taken := 0
 		for _, c := range chosen {
-			if c == "hand" {
-				hand++
+			if c == primary {
+				taken++
 			}
 		}
-		if dst == "hand" {
-			return hand+1 <= d.Max
+		if dst == primary {
+			return taken+1 <= d.Max
 		}
-		return hand+eligibleAfter(i) >= d.Min
+		return taken+eligibleAfter(i) >= d.Min
 	}
 	sentTo := func(dst string) (cards []int) {
 		for i, c := range t.chosen {
@@ -361,10 +382,10 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	}
 	followIdx := map[state.ObjID]int{}
 	t.prepare = func() error {
-		if len(sentTo("bottom")) < 2 {
-			return nil // gorge moves a lone remainder without asking
+		if rest != "bottom" || len(sentTo(rest)) < 2 {
+			return nil // a non-library remainder has no order ask; a lone bottom card has none either
 		}
-		c, err := env.G.Probe(Intent(d, t.nativeOf(sentTo("hand"))...))
+		c, err := env.G.Probe(Intent(d, t.nativeOf(sentTo(primary))...))
 		if err != nil {
 			return err
 		}
@@ -379,23 +400,29 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 		return nil
 	}
 	t.listFor = func(i int, dst string) (string, int) {
-		if dst == "hand" {
+		if dst == primary {
 			return "choices", t.native[i]
 		}
 		return "followup:dig_bottom", followIdx[t.cards[i]]
 	}
 	t.orderOp = func(_ int, dst string) (NativeOp, bool) {
-		if dst == "bottom" && len(sentTo("bottom")) == 1 {
+		if dst == rest && rest != "bottom" {
+			// The remainder is outside the native Choices whatever its name:
+			// "hand" is a remainder here, not the legacy inside destination.
+			inside := false
+			return NativeOp{Op: "dest", Option: -1, List: rest, Inside: &inside}, true
+		}
+		if dst == rest && len(sentTo(rest)) == 1 {
 			// gorge moves a lone remainder without asking dig_bottom: the
 			// ordering pick carries the presentational dest op instead.
-			return NativeOp{Op: "dest", Option: -1, List: "bottom"}, true
+			return NativeOp{Op: "dest", Option: -1, List: rest}, true
 		}
 		return NativeOp{}, false
 	}
 	t.commit = func() ([]decision.Intent, error) {
-		dig := Intent(d, t.nativeOf(t.orderedFor("hand"))...)
-		bottom := t.orderedFor("bottom")
-		if len(bottom) < 2 {
+		dig := Intent(d, t.nativeOf(t.orderedFor(primary))...)
+		bottom := t.orderedFor(rest)
+		if rest != "bottom" || len(bottom) < 2 {
 			return []decision.Intent{dig}, nil
 		}
 		c, err := env.G.Probe(dig)
