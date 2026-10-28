@@ -60,6 +60,10 @@ func TestSVarCountScopeIsUnknownNotBothPlayers(t *testing.T) {
 			t.Errorf("%s = %d, true; a source-scoped count must stay unknown, not count both players", body, n)
 		}
 	}
+	// The control: an unscoped body still counts every player's zone.
+	if n, ok := s.svarValue(o, "Count$Valid Creature"); !ok || n != 4 {
+		t.Errorf("Count$Valid Creature = %d, %v; want 4, true", n, ok)
+	}
 }
 
 // TestSVarCountUnknownPredicateIsUnknown pins the second MAJOR defect: a
