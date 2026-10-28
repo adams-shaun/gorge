@@ -4,8 +4,9 @@ import "testing"
 
 // TestCanonicalCounterKindFoldsCaseVariants pins the fold PutCounter applies
 // to CounterType$: the corpus's minority spellings (Stun, Quest, Verse) become
-// the kind every reader uses, and case-significant kinds (keyword counters,
-// P1P1, the engine's own Shield marker) pass through untouched.
+// the kind every reader uses, `WithCounters$ Shield` folds onto the REAL
+// shield counter (never the engine's "Shield" marker), and title-cased
+// keyword counters pass through untouched.
 func TestCanonicalCounterKindFoldsCaseVariants(t *testing.T) {
 	for in, want := range map[string]string{
 		"Stun":            "STUN",
@@ -15,7 +16,9 @@ func TestCanonicalCounterKindFoldsCaseVariants(t *testing.T) {
 		"Verse":           "VERSE",
 		"P1P1":            "P1P1",
 		"Flying":          "Flying",
-		"Shield":          "Shield",
+		"Shield":          "SHIELD",
+		"shield":          "SHIELD",
+		"stun":            "STUN",
 		"":                "",
 		"Stun,Flying":     "STUN,Flying",
 		"P1P1, Verse":     "P1P1,VERSE",
