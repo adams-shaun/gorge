@@ -477,6 +477,38 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 			return n, true
 		}
 	}
+	// Forge's PlayerCountProperty<group>$<Property> family reads a property
+	// through AbilityUtils.playerXCount, which splits the property string on
+	// "/" (CardFactoryUtil.extractOperators) and applies the extracted
+	// operator to the summed count with doXMath. A spec-bearing property
+	// carries that operator at the end of its ARGUMENT -- Bonecache
+	// Overseer's `SacrificedThisTurn Food/Times.3` -- so peel it before the
+	// reader sees it; otherwise the filter is "Food/Times.3" and matches no
+	// Food. The peel is done once here so every PlayerCountProperty* scalar
+	// takes it (the corpus census carries three SacrificedThisTurn spellings
+	// and no other scalar-with-argument suffix; Master of Waves' two
+	// `Valid <spec>` bodies are the separate filter-property family, which
+	// this dispatch does not model at all).
+	// Space-less spellings (LifeLostThisTurn/Times.X) put the operator in
+	// the property itself and are cut by evalCountExprOK's bare-body /Op
+	// fallback before this dispatch, as before.
+	if strings.HasPrefix(group, "PlayerCountProperty") {
+		if spec, op, hasOp := strings.Cut(arg, "/"); hasOp && modelledCountOp(h, c, op, depth) {
+			n, ok := evalCov3PlayerScalar(h, c, g, group, players, prop, strings.TrimSpace(spec))
+			if !ok {
+				return 0, false
+			}
+			return applyCountOpOperand(h, c, n, op, depth), true
+		}
+	}
+	return evalCov3PlayerScalar(h, c, g, group, players, prop, arg)
+}
+
+// evalCov3PlayerScalar answers the per-group scalar property reads of
+// evalCov3PlayerHead's PlayerCount<group>$ dispatch. arg is the property
+// argument AFTER the PlayerCountProperty* /Op suffix has been peeled by the
+// caller; the wrapper there applies that operator to the returned count.
+func evalCov3PlayerScalar(h Host, c *Ctx, g *state.Game, group string, players []state.PlayerID, prop, arg string) (int32, bool) {
 	switch cov3PlayerScalarCodes.Code(string(prop)) {
 	case cov3PlayerScalarSacrificedThisTurn:
 		return sacrificedThisTurn(g, c, players, arg), true
