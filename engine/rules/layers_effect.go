@@ -819,6 +819,34 @@ func (e *Engine) expireUntilUntaps(host state.ObjID) {
 	e.continuousChanged()
 }
 
+// expireAsLongAsControl drops every Duration$ AsLongAsControl registration
+// whose source is src and whose controller no longer controls it (CR 611.2b).
+// The effect has ended for good: it does not start again if the controller
+// regains control, so continuousLive's controller check alone (a filter
+// re-evaluated per build) is not enough. Called after a ControlChange of src.
+// Like expireUntilUntaps it is an in-place rewrite of e.continuous that emits
+// no event; replay rebuilds it by re-executing the same registrations.
+func (e *Engine) expireAsLongAsControl(src state.ObjID) {
+	o := e.G.Obj(src)
+	if o == nil {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.Source == src && ce.Controller != o.Controller && effects.IsAsLongAsControlDuration(ce.Duration) {
+			changed = true
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousChanged()
+}
+
 // mayPlayRememberedLeftZone reports whether ev moves one of a may-play
 // grant's REMEMBERED cards out of a zone the grant names (AffectedZone$),
 // for a grant that spells no move-driven lifetime of its own. CR 400.7: a
@@ -1147,6 +1175,12 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 		return false
 	}
 	if ce.SourceIncarnation != 0 && o.Incarnation != ce.SourceIncarnation {
+		return false
+	}
+	if o.Controller != ce.Controller && effects.IsAsLongAsControlDuration(ce.Duration) {
+		// CR 611.2b: "for as long as you control CARDNAME" also ends when the
+		// effect's controller stops controlling the source (it was stolen).
+		// The object's own Controller field, as controllerTurnHolds reads it.
 		return false
 	}
 	if ce.DurationSource != 0 {
