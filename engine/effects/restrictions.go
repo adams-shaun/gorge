@@ -910,6 +910,14 @@ func IsUntilYourNextUpkeepDuration(dur string) bool {
 	return false
 }
 
+// IsAsLongAsControlDuration reports Duration$ AsLongAsControl ("for as long as
+// you control CARDNAME"): CR 611.2b ends such an effect when its controller
+// stops controlling the source, not only when the source leaves the
+// battlefield. rules' continuousLive reads it for the controller half.
+func IsAsLongAsControlDuration(dur string) bool {
+	return asLongAsControlDurationCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) == asLongAsControlDurationYes
+}
+
 // IsUntilYourNextTurn distinguishes the start-of-next-turn boundary from
 // UntilTheEndOfYourNextTurn, which lasts through that turn's cleanup.
 func IsUntilYourNextTurn(dur string) bool {
@@ -1586,6 +1594,14 @@ var isNextTurnDurationCodes = state.NewStrCodes(
 	state.StrEntry[isNextTurnDurationCode]{Key: "untilyournextturn", Val: isNextTurnDurationUntilYourNextTurn},
 	state.StrEntry[isNextTurnDurationCode]{Key: "untiltheendofyournextturn", Val: isNextTurnDurationUntilYourNextTurn},
 	state.StrEntry[isNextTurnDurationCode]{Key: "untilyournextupkeep", Val: isNextTurnDurationUntilYourNextUpkeep},
+)
+
+type asLongAsControlDurationCode uint16
+
+const asLongAsControlDurationYes asLongAsControlDurationCode = iota + 1
+
+var asLongAsControlDurationCodes = state.NewStrCodes(
+	state.StrEntry[asLongAsControlDurationCode]{Key: "aslongascontrol", Val: asLongAsControlDurationYes},
 )
 
 type redirectDefinedCode uint16
