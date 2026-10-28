@@ -813,7 +813,10 @@ A third-party v2 client renders from the observation above, not from `x_gorge_vi
 `TestObservationDegradationCensus` (`server/spellbench/neutral`) measures the difference:
 it plays 100 seeded two-seat games over the twelve Legacy decks with the production bot at
 both seats, rebuilds `view.View` from the plain observation at every decision, and compares
-it field by field with the view `x_gorge_view_v1` carries. Over 62,368 decisions the most
+it field by field with a re-projection of the view half of `x_gorge_view_v1` (the same
+`view.ProjectLeanInto`, `RoundOf` and hidden-pending filter; the test cannot call
+`xview.Extend` itself on an arbitrary direct-engine decision, because its re-keyer needs an
+open look transaction and otherwise fails `look_not_open`). Over 62,368 decisions the most
 frequent unequal paths are below; `testdata/observation_degradation.tsv` is the full,
 frequency-ordered ratchet (`OBSDEG_REGEN=1` regenerates it, and it may only shrink).
 
@@ -825,15 +828,19 @@ frequency-ordered ratchet (`OBSDEG_REGEN=1` regenerates it, and it may only shri
 | `players[].{hand,graveyard,exile,battlefield}[].colour_identity`, `.printed_pt`, `.types`, `.keywords[]`, `.play_main1`, `.remove_deck`, `.effective_mana_cost` | printed, public card facts; the rebuild has `card_name` but does not read the registry for them | fixable (project the printed facts) |
 | `players[].{hand,graveyard,exile}[].summon_sick` | an engine transient with no meaning outside the battlefield | fixable (normalise by zone) |
 | `players[].land_drop_spent`, `.available`, `.spells_cast_this_turn`, `.life_gained_this_turn`, `.life_lost_this_turn`, `.tokens_created_this_turn`, `.potential_actions[]`, `.battlefield[].activated_this_turn` | engine-derived or per-turn state the observation does not carry | fixable (protocol addition), not hidden |
-| `players[].battlefield[].card_name` | a face-down or hidden-identity permanent is deliberately unnamed | inherent (hidden information) |
+| `players[].battlefield[].card_name` | the native view carries the printed front-face name when it differs from `name` (a transformed DFC, a copy, a `SetName$` rename); the rebuild resolves the observed name back to the registry card but never maps that card's front face onto `card_name` | fixable (project the printed front face) |
+| `players[].{battlefield,hand}[].ability_costs[]` | native projects the offer-time cost of each non-mana activated ability, with `RaiseCost`/`ReduceCost` already composed; the observation has no ability-cost field | fixable (protocol addition) |
 | `players[].battlefield[].{blocked_by[],attached_to,exiled_cards[]}`, `.imprinted[]` | public object relationships the observation only partly carries | fixable (protocol addition) |
 | `stack[].text`, `.source`, `.targets[].label`, `.targets[].obj`, `.optional`, `.decider`, `.modes[]`, `.kicks`, `.x`, `.card` | public stack detail the observation's stack record omits or abbreviates | fixable (protocol addition) |
 | `players[].battlefield[].counters.{Shield,Deathtouched}`, `pending[]`, `.is_token` | the rebuild does not yet map these observation fields | fixable |
 
-The split matters: the `id` rows are a numbering choice, not lost knowledge; the
-`card_name` row is the only top-path difference that is genuinely hidden information. The
-rest are public facts the observation already has or could carry, so a future protocol
-revision can close them without changing what a seat is allowed to know.
+The split matters: the `id`/`token` rows are a numbering choice, not lost knowledge, and
+none of these top-path differences is genuinely hidden information. The one fact a client
+must never learn -- a face-down card's printed identity -- is redacted by both planes
+(native rebuilds that `CardView` from an empty literal, and the neutral rebuild gets a null
+`card_name`), so it does not appear in the table at all. Every row is a public fact the
+observation already carries or could carry, so a future protocol revision can close them
+without changing what a seat is allowed to know.
 
 ## Candidate kinds
 
