@@ -816,31 +816,49 @@ both seats, rebuilds `view.View` from the plain observation at every decision, a
 it field by field with a re-projection of the view half of `x_gorge_view_v1` (the same
 `view.ProjectLeanInto`, `RoundOf` and hidden-pending filter; the test cannot call
 `xview.Extend` itself on an arbitrary direct-engine decision, because its re-keyer needs an
-open look transaction and otherwise fails `look_not_open`). Over 62,368 decisions the most
-frequent unequal paths are below; `testdata/observation_degradation.tsv` is the full,
-frequency-ordered ratchet (`OBSDEG_REGEN=1` regenerates it, and it may only shrink).
+open look transaction and otherwise fails `look_not_open`). Over 62,368 decisions
+`testdata/observation_degradation.tsv` is the full, frequency-ordered ratchet
+(`OBSDEG_REGEN=1` regenerates it, and it may only shrink).
 
-| field path | why it differs | class |
+The rebuild fills every fact the plain observation carries: the pool with only its non-zero
+colours, `land_drop_spent` from `lands_played_this_turn`, and `round` from `turn` (the
+profile is exactly two seats, so one round is two turns and turn 1 opens round 1). The
+land-drop count is the ordinary one-land allowance: the observation carries how many lands
+were played, not an Exploration-style extra allowance, so a live extra-land-drop static is
+the one case where the rebuilt `land_drop_spent` can lag. Card
+facts the session's registry knows -- colour identity, printed P/T, the printed front-face
+`card_name`, types, keywords, `play_main1`, `remove_deck`, `is_token`/`is_copy`, and the
+printed non-mana ability costs -- are projected from the resolved card, so a field the
+observation carries no longer differs. `summon_sick` and `activated_this_turn` are engine
+transients: the census normalises them away outside the battlefield instead of comparing a
+dead creature's retained tap bookkeeping.
+
+The rows below are what remains. Each is **inherent to this observation profile**: either a
+transport-local number or a fact the v2 observation does not carry at all, not a fact a
+seat is wrong to learn. A future protocol revision could add the missing fields; the plain
+observation cannot supply them.
+
+| field path | why it still differs | class |
 |---|---|---|
-| `players[].pool.{W,U,B,R,G,C}` | the native view omits a zero amount; the neutral rebuild emits all six keys, zero included | fixable (normalise) |
-| `round` | native derives it from the event log; the observation carries only `turn` and `phase_step` | fixable (add `round` to the observation) |
-| `players[].{hand,graveyard,exile,battlefield}[].id`, `.token`, `stack[].id`, `.card.id` | object ids are re-keyed per carrier, so the same object has a different number in each plane | inherent (transport-local numbering) |
-| `players[].{hand,graveyard,exile,battlefield}[].colour_identity`, `.printed_pt`, `.types`, `.keywords[]`, `.play_main1`, `.remove_deck`, `.effective_mana_cost` | printed, public card facts; the rebuild has `card_name` but does not read the registry for them | fixable (project the printed facts) |
-| `players[].{hand,graveyard,exile}[].summon_sick` | an engine transient with no meaning outside the battlefield | fixable (normalise by zone) |
-| `players[].land_drop_spent`, `.available`, `.spells_cast_this_turn`, `.life_gained_this_turn`, `.life_lost_this_turn`, `.tokens_created_this_turn`, `.potential_actions[]`, `.battlefield[].activated_this_turn` | engine-derived or per-turn state the observation does not carry | fixable (protocol addition), not hidden |
-| `players[].battlefield[].card_name` | the native view carries the printed front-face name when it differs from `name` (a transformed DFC, a copy, a `SetName$` rename); the rebuild resolves the observed name back to the registry card but never maps that card's front face onto `card_name` | fixable (project the printed front face) |
-| `players[].{battlefield,hand}[].ability_costs[]` | native projects the offer-time cost of each non-mana activated ability, with `RaiseCost`/`ReduceCost` already composed; the observation has no ability-cost field | fixable (protocol addition) |
-| `players[].battlefield[].{blocked_by[],attached_to,exiled_cards[]}`, `.imprinted[]` | public object relationships the observation only partly carries | fixable (protocol addition) |
-| `stack[].text`, `.source`, `.targets[].label`, `.targets[].obj`, `.optional`, `.decider`, `.modes[]`, `.kicks`, `.x`, `.card` | public stack detail the observation's stack record omits or abbreviates | fixable (protocol addition) |
-| `players[].battlefield[].counters.{Shield,Deathtouched}`, `pending[]`, `.is_token` | the rebuild does not yet map these observation fields | fixable |
+| `players[].{hand,graveyard,exile,battlefield}[].id`, `.token`, `stack[].id`, `.card.id`, `.card.token`, `stack[].card` | object ids are re-keyed per carrier, so the same object has a different number in each plane; `stack[].card` is that nested id/token plus the card the stack entry does not carry | inherent (transport-local numbering) |
+| `players[].{battlefield,graveyard,exile}[].attached_to`, `.exiled_cards[]`, `.blocked_by[]`, `stack[].targets[].obj` | the relationship endpoints are object ids, compared by their transport numbers | inherent (transport-local numbering) |
+| `players[].available` | the engine's available-mana walk prices untapped sources through the layer system; the observation carries the battlefield and printed production, not that walk | inherent (not carried) |
+| `players[].spells_cast_this_turn`, `.life_gained_this_turn`, `.life_lost_this_turn`, `.tokens_created_this_turn`, `.battlefield[].activated_this_turn` | per-turn engine tallies; the observation has no field for any of them | inherent (not carried) |
+| `players[].potential_actions[]` | the engine's "what could I still do after tapping out" projection; no observation field | inherent (not carried) |
+| `players[].hand[].effective_mana_cost` | the offer-time cost with live modifiers composed; no observation field | inherent (not carried) |
+| `stack[].text`, `.optional`, `.decider` | `stack_text` is false in this profile and the stack record has no optional/decider field | inherent (profile flag / not carried) |
+| `stack[].source` | the observation nulls a source that has left its expected object (Section 6.5); native keeps the id even after the source changes zones | inherent (observation's null-ref rule) |
+| `stack[].targets[].label` | a target reference is exactly a player or an object; it has no label field | inherent (not carried) |
+| `players[].battlefield[].keywords[]` | the observation normalises keywords to their head and de-duplicates them, so duplicate printed lines and `Protection from <colour>` parameters cannot be reconstructed | inherent (normalised vocabulary) |
+| `players[].battlefield[].types` | the observation normalises type words (case and punctuation folded); when a continuous effect changes the type line, the registry face cannot supply the spelling of a word it does not print (an animated Mishra's Factory's `Assembly-Worker`) | inherent (normalised vocabulary) |
+| `players[].battlefield[].counters.{Shield,Deathtouched}` | engine-internal counter markers the observation deliberately omits | inherent (not carried) |
+| `players[].battlefield[].printed_pt`, `pending[]`, `.modes[]`, `.kicks`, `.x` | residual token/copy faces the registry cannot match, and stack detail the observation abbreviates | inherent (not carried) |
 
 The split matters: the `id`/`token` rows are a numbering choice, not lost knowledge, and
-none of these top-path differences is genuinely hidden information. The one fact a client
-must never learn -- a face-down card's printed identity -- is redacted by both planes
-(native rebuilds that `CardView` from an empty literal, and the neutral rebuild gets a null
-`card_name`), so it does not appear in the table at all. Every row is a public fact the
-observation already carries or could carry, so a future protocol revision can close them
-without changing what a seat is allowed to know.
+none of these differences is genuinely hidden information. The one fact a client must
+never learn -- a face-down card's printed identity -- is redacted by both planes (native
+rebuilds that `CardView` from an empty literal, and the neutral rebuild gets a null
+`card_name`), so it does not appear in the table at all.
 
 ## Candidate kinds
 
