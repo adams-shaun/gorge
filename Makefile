@@ -62,7 +62,10 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # Dragonfire amounts (#12320); exact/required target counts (#12321);
 # planeswalker/battle targets (#12322); Dream Beavers' Defined$ and
 # Tresserhorn's Lord's ValidTgts$ (#12323), all Card-Forge/forge.
-FORGE_REF  ?= 76fd7691ab45ab1b42cef19ad04b41bf364501f4
+# 91402ac51 = 76fd7691a + 53ab12ae9 (wires unreachable SVars: Your Mistake Is My
+# Triumph, Disciple of Perdition, Last Rites) + 91402ac51 (Mandatory$ True on 48
+# ChooseCard lines of 44 cards whose Oracle says "choose"; Card-Forge/forge#12481/#12482).
+FORGE_REF  ?= 91402ac511046c0b7ed0bb691a8a446ca7dfc873
 
 .PHONY: help
 help:
