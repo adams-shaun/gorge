@@ -54,14 +54,11 @@ func IsManaAbilitySA(sa *SA) bool {
 	return !requiresTarget(sa) && !movesLibraryCard(sa)
 }
 
-// isLoyaltyScripted reports whether sa is scripted as a loyalty ability (CR
-// 605.1b): the Planeswalker$ True marker or a LOYALTY counter in Cost$. Only
-// the chain arm of IsManaAbilitySA reads it; a head-word Mana loyalty ability
-// is filtered by the callers that already split on isLoyaltyAbility.
-func isLoyaltyScripted(sa *SA) bool {
-	return strings.EqualFold(strings.TrimSpace(sa.ParamStr(PKPlaneswalker)), "True") ||
-		strings.Contains(sa.ParamStr(PKCost), "/LOYALTY>")
-}
+// isLoyaltyScripted reports whether sa carries the Planeswalker$ True marker
+// Forge scripts on every loyalty ability (CR 605.1b). Only the chain arm of
+// IsManaAbilitySA reads it; a head-word Mana loyalty ability is filtered by
+// the callers that already split on isLoyaltyAbility.
+func isLoyaltyScripted(sa *SA) bool { return sa.ParamStr(PKPlaneswalker) == "True" }
 
 // movesLibraryCard reports whether sa's cost or effect moves a card to or
 // from a library, which disqualifies a mana ability (CR 605.1a: "its cost and
