@@ -362,7 +362,7 @@ The handshake: the host names the protocol, the engine answers with its profile.
 | `deck_sources` | `["catalog"]` | gorge plays catalog decks only, never a pasted decklist |
 | `catalog` | five decks: Wildfire, Rally, Spy, Burn, CawGates | `catalog_id`, `name`, `decklist` |
 | `rules_supported` | `mulligan: [london, none]`, `starting_player: [host_assigned]` | |
-| `observation` | `keywords` and `pending_triggers` true, the other eleven false | Section 6.9 flags: a field behind a false flag is `null` |
+| `observation` | `day_night`, `designations`, `keywords`, `pending_triggers`, `permanent_details`, `player_counters` and `poison` true; `exiled_by`, `full_name`, `known_cards`, `passed_seats`, `player_progress`, `stack_text` false | Section 6.9 flags: a field behind a false flag is `null` |
 | `decision_kinds` | 24 of the 30 kinds (see [Candidate kinds](#candidate-kinds)) | |
 | `engine_defaults` | `combat_damage_assignment: "engine_order"`; `mana_payment: "engine_autopay"` under auto-pay, else `null`; `trigger_order` and `replacement_order` `null` | Section 7.6: choices the engine makes itself |
 | `rewind` | `false` | gorge never rewinds a decision |
@@ -395,10 +395,10 @@ without auto-pay, so `mana_payment` is `null` and the version has no `/autopay`)
   "extensions": [{"name": "x_gorge_view_v1", "native_ids": false}],
   "fairness": {"noninterference_probe": false},
   "formats": ["pauper-bo1"],
-  "observation": {"day_night": false, "designations": false, "exiled_by": false, "full_name": false,
+  "observation": {"day_night": true, "designations": true, "exiled_by": false, "full_name": false,
     "keywords": true, "known_cards": false, "passed_seats": false, "pending_triggers": true,
-    "permanent_details": false, "player_counters": false, "player_progress": false,
-    "poison": false, "stack_text": false},
+    "permanent_details": true, "player_counters": true, "player_progress": false,
+    "poison": true, "stack_text": false},
   "protocol": "spellbench/v2", "protocol_minor": 0, "request_id": "h-1",
   "response_type": "hello_ok", "rewind": false,
   "rules_supported": {"mulligan": ["london", "none"], "starting_player": ["host_assigned"]}
@@ -780,9 +780,15 @@ From `agent_error_internal_error.transcript.jsonl`:
 [`observe`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/observe/project.go);
 schema [observation.schema.json](schemas/spellbench-v2/observation.schema.json).*
 The observation is what the acting seat may know, never more. Fields behind an observation
-flag gorge declares `false` are `null`; with gorge's profile that is `poison`, player
-`counters`, `designations`, `progress`, `day_night`, `passed_seats`, and in object records
-`full_name`, `exiled_by`, and the permanent fields `statuses`, `class_level` and `chosen`.
+flag gorge declares `false` are `null`; with gorge's profile that is player `progress`,
+`passed_seats`, and in object records `full_name` and `exiled_by`. Gorge declares `poison`,
+player `counters`, `designations`, `day_night` and `permanent_details` true and fills them
+from its view: a player's poison counters and other counters, the monarch and initiative
+designations, CR 731's day/night state, and a permanent's `counters`, `statuses`, `chosen`
+and `class_level`. A positive poison count rides `poison` only; a poison counter the engine
+still keeps at zero also appears in `counters` as its presence marker, because `poison` has
+no separate presence bit. `player_progress` stays false; the dungeon, ring and speed
+projection is outside this profile.
 
 | Field | Type | Notes |
 |---|---|---|
