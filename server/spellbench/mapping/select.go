@@ -56,6 +56,7 @@ func mixedSelect(purp string, withSource bool) Builder {
 		}
 		lo, hi := uint32(d.Min), uint32(d.Max)
 		refs := make([]protocol.ObjectRef, len(d.Options))
+		hidden := make([]bool, len(d.Options))
 		var known []protocol.Known
 		look := false
 		for i, o := range d.Options {
@@ -73,6 +74,7 @@ func mixedSelect(purp string, withSource bool) Builder {
 					return nil, err
 				}
 				refs[i] = r
+				hidden[i] = true
 				known = append(known, observe.KnownEntry(r, "revealed", nil))
 				continue
 			}
@@ -87,7 +89,14 @@ func mixedSelect(purp string, withSource bool) Builder {
 			Context: protocol.Context{Kind: "choice", Source: src, Purpose: &purp},
 			Sem: func(opt int, sel uint32) (Cand, error) {
 				r := refs[opt]
-				return Cand{Sem: protocol.SelectObject(src, purp, protocol.ObjectTarget(r), sel, lo, hi)}, nil
+				c := Cand{Sem: protocol.SelectObject(src, purp, protocol.ObjectTarget(r), sel, lo, hi)}
+				if hidden[opt] {
+					// Section 7.1: a candidate naming a hidden-zone card
+					// carries the (card_name, object_id) order Finalize and V5
+					// impose, as hiddenSelect does.
+					c.Hidden, c.SortName, c.SortID = true, cardName(r), r.ObjectID
+				}
+				return c, nil
 			},
 			Finish: func(sel uint32) protocol.Semantic { return protocol.FinishSelection(src, purp, sel) }}), nil
 	}

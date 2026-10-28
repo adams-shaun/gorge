@@ -407,7 +407,10 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	}
 	t.orderOp = func(_ int, dst string) (NativeOp, bool) {
 		if dst == rest && rest != "bottom" {
-			return NativeOp{Op: "dest", Option: -1, List: rest}, true
+			// The remainder is outside the native Choices whatever its name:
+			// "hand" is a remainder here, not the legacy inside destination.
+			inside := false
+			return NativeOp{Op: "dest", Option: -1, List: rest, Inside: &inside}, true
 		}
 		if dst == rest && len(sentTo(rest)) == 1 {
 			// gorge moves a lone remainder without asking dig_bottom: the
