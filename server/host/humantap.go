@@ -59,3 +59,11 @@ func (s *HumanSeat) attachTap(mc *bots.MatchContext, autoPayMana bool) error {
 	}
 	return tap.AttachMatch(mc)
 }
+
+// HumanTapFactory builds the tap of one human seat at match start. It runs on
+// the match goroutine before the seat's first decision, so it may read the
+// match context (the table's seat count and format, the game id) and must
+// return promptly. A nil tap leaves the seat untapped; an error crashes the
+// match. server/gorged's -sbv2 uses it to install a SpellBench v2 codec only on
+// a two-seat constructed AutoMana table.
+type HumanTapFactory func(table TableID, match int, autoPayMana bool, mc *bots.MatchContext) (HumanTap, error)

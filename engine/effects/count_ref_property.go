@@ -148,7 +148,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		// DFC and no ante/pump/counters, which is exactly the CR 608.2h
 		// information the capture exists to preserve.
 		var sacLKI *state.SacrificedInfo
-		if refNamesSacrificed(ref) || ref == "Remembered" || ref == "RememberedLKI" {
+		if refReadsSacrificeCapture(ref) {
 			sacLKI, _ = sacrificedInfoFor(c, t.Obj)
 		}
 		f := o.Face()
@@ -688,6 +688,19 @@ func refNamesSacrificed(ref string) bool {
 		ref = inner
 	}
 	return ref == "Sacrificed" || ref == "SacrificedCards"
+}
+
+// refReadsSacrificeCapture reports whether ref names an object this
+// resolution sacrificed under `RememberSacrificed$ True`, so a P/T read must
+// come from the capture rather than the card's current face (CR 608.2h).
+// Besides the paid-list spellings (refNamesSacrificed) that is the remembered
+// forms: the plain Remembered/RememberedLKI refs, and TriggerRemembered, the
+// referent a reflexive trigger's body reads ("that creature's power").
+// TriggerRemembered's target set is the same remembered object, so before
+// this the per-object P/T cases fell through to the graveyard face and
+// dropped the transformed back face, a pump or a counter.
+func refReadsSacrificeCapture(ref string) bool {
+	return refNamesSacrificed(ref) || ref == "Remembered" || ref == "RememberedLKI" || ref == "TriggerRemembered"
 }
 
 func refPower(h Host, o *state.Object, snapshot bool) int32 {
