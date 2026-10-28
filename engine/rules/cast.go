@@ -391,9 +391,10 @@ type pendingCast struct {
 	// W,U,B,R,G,C), from the same full spent delta payManaCastSpent returns.
 	// manaColorSpentOn is the heads-safety gate (faceWantsManaColorSpent):
 	// the pay-time CastInfo is emitted ONLY for a face whose SVar table or
-	// ability text reads a Count$Adamant head or a ConditionManaSpent$ /
-	// ConditionManaNotSpent$ gate, so no game that casts no such
-	// card changes an event. Plain data, so Clone copies it like converge.
+	// ability text reads a Count$Adamant or Count$EachSpentToCast head, or a
+	// ConditionManaSpent$ / ConditionManaNotSpent$ gate, so no game that
+	// casts no such card changes an event. Plain data, so Clone copies it
+	// like converge.
 	manaColorSpentOn bool       `clone:"deep"`
 	manaColorSpent   state.Mana `clone:"deep"`
 
