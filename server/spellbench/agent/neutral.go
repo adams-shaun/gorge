@@ -41,6 +41,14 @@ func (s *Server) EnableNeutral() error {
 
 func (s *Server) startNeutral(q request) error {
 	g := &neutralGame{session: neutral.NewSession(s.registry)}
+	// The host's hello declares whether it pays plans itself (Section 7.1).
+	// A manual host poses mana abilities as candidates and pays by a lowered
+	// plan, never by a plan-only cast, so the session must not invent one.
+	autoPay := false
+	if m := q.EngineProfile.EngineDefaults["mana_payment"]; m != nil && *m == "engine_autopay" {
+		autoPay = true
+	}
+	g.session.SetAutoPay(autoPay)
 	for _, d := range []*searchDeck{q.OwnDeck, q.OpponentDeck} {
 		if d == nil {
 			continue
