@@ -21,6 +21,7 @@ exclude_docs: |
   architecture/_generated_packages.md
   architecture/packages.tiers.json
   requirements.txt
+  bots/magezero/*.svg
 
 theme:
   name: material
@@ -133,6 +134,7 @@ nav:
       - Python and Java examples: bots/examples.md
       - SpellBench v2 agents: bots/spellbench.md
       - Training and adoption: bots/training-and-adoption.md
+      - MageZero replication: bots/magezero-replication.md
       - Interface review: bots/interfaces-review.md
   - API reference:
       - api/index.md
