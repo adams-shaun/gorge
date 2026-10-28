@@ -58,6 +58,7 @@ var (
 type Agent struct {
 	name     string
 	argv     []string
+	serve    func(io.Reader, io.Writer) error // an in-process agent (NewInProcess); nil runs argv
 	opts     bots.Options
 	fallback engineseat.Seat
 
@@ -78,6 +79,7 @@ type Agent struct {
 	done              bool
 	forfeit           string
 	fallbackLogged    bool
+	unposed           int
 	// startup is the handshake deadline seam. Tests replace it to shorten
 	// the budget; nil uses the advertised startupBudget.
 	startup func() (context.Context, context.CancelFunc)
@@ -96,6 +98,25 @@ func New(name string, argv []string, o bots.Options) (engineseat.Seat, error) {
 		return nil, fmt.Errorf("spellbench seat %q: empty command", name)
 	}
 	return &Agent{name: name, argv: append([]string(nil), argv...), opts: o, fallback: heuristic.NewBot(o.Seed)}, nil
+}
+
+// NewInProcess builds a v2 agent seat whose agent runs in this process: serve
+// is the agent's stdio loop (agent.Serve over a server), started on a pipe pair
+// at AttachMatch in place of exec'ing a command. The wire, the handshake and
+// every forfeit rule are the process seat's; it is for harnesses that measure
+// the seat path without a binary per seat.
+func NewInProcess(name string, serve func(io.Reader, io.Writer) error, o bots.Options) (*Agent, error) {
+	if serve == nil {
+		return nil, fmt.Errorf("spellbench seat %q: nil serve", name)
+	}
+	return &Agent{name: name, serve: serve, opts: o, fallback: heuristic.NewBot(o.Seed)}, nil
+}
+
+// Forfeit is the cause the seat forfeited its match with ("" while it has not).
+func (a *Agent) Forfeit() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.forfeit
 }
 
 func (a *Agent) logf(format string, args ...any) {
@@ -182,6 +203,14 @@ func (a *Agent) AttachMatch(mc *bots.MatchContext) error {
 }
 
 func (a *Agent) start() error {
+	if a.serve != nil {
+		inR, inW := io.Pipe()
+		outR, outW := io.Pipe()
+		go func() { outW.CloseWithError(a.serve(inR, outW)); inR.Close() }()
+		a.stdin = inW
+		a.reader = wire.NewReader(outR)
+		return nil
+	}
 	cmd := exec.CommandContext(a.ctx, a.argv[0], a.argv[1:]...)
 	cmd.WaitDelay = 2_000_000_000
 	cmd.Stderr = io.Discard
@@ -458,17 +487,15 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 		a.projected(func() { in, ok, err = mapping.Internal(a.env, &d) })
 		if ok || err != nil {
 			if err != nil {
-				a.forfeit = forfeitAgent
 				a.logf("spellbench seat %d (%s): internal decision: %v", d.Player, a.name, err)
-				return a.forfeitAnswer(ctx, v, d), nil
+				return a.unposable(ctx, v, d, err), nil
 			}
 			return in, nil
 		}
 		a.projected(func() { tx, err = mapping.Begin(a.env, &d) })
 		if err != nil {
-			a.forfeit = forfeitAgent
 			a.logf("spellbench seat %d (%s): unmapped decision: %v", d.Player, a.name, err)
-			return a.forfeitAnswer(ctx, v, d), nil
+			return a.unposable(ctx, v, d, err), nil
 		}
 		a.tx, a.native = tx, &d
 	}
@@ -484,9 +511,8 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 		a.projected(func() { p, err = a.tx.Pose() })
 		if err != nil {
 			a.tx = nil
-			a.forfeit = forfeitAgent
 			a.logf("spellbench seat %d (%s): pose %s (%q, %d options, min %d max %d repeat %v src %d): %v", d.Player, a.name, d.Kind, mapping.Route(&d), len(d.Options), d.Min, d.Max, d.Repeatable, d.Source, err)
-			return a.forfeitAnswer(ctx, v, d), nil
+			return a.unposable(ctx, v, d, err), nil
 		}
 		i, err := a.ask(ctx, p)
 		if err != nil {
@@ -692,6 +718,29 @@ func (a *Agent) actionObject(op mapping.NativeOp) state.ObjID {
 	return 0
 }
 
+// unposable answers a decision the v2 mapping cannot pose. An engine_contract
+// failure is the adapter's limit, not the agent's fault: the decision is
+// answered by the deterministic fallback and the match goes on. Any other
+// mapping error still forfeits the seat as agent_error.
+func (a *Agent) unposable(ctx context.Context, v view.View, d decision.Decision, err error) decision.Intent {
+	if !errors.Is(err, mapping.ErrUnmapped) && !errors.Is(err, mapping.ErrDeadEnd) && !errors.Is(err, mapping.ErrCandidateLimit) &&
+		!errors.Is(err, mapping.ErrDuplicate) && !errors.Is(err, mapping.ErrUnresolvableSource) {
+		a.forfeit = forfeitAgent
+		return a.forfeitAnswer(ctx, v, d)
+	}
+	a.tx = nil
+	a.env.CloseLooks()
+	a.unposed++
+	return a.fallbackAnswer(ctx, v, d)
+}
+
+// Unposed counts the decisions the mapping could not pose and the fallback answered.
+func (a *Agent) Unposed() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.unposed
+}
+
 func (a *Agent) forfeitAnswer(ctx context.Context, v view.View, d decision.Decision) decision.Intent {
 	if d.Kind == decision.KPriority {
 		for _, o := range d.Options {
@@ -704,6 +753,11 @@ func (a *Agent) forfeitAnswer(ctx context.Context, v view.View, d decision.Decis
 		a.fallbackLogged = true
 		a.logf("spellbench seat %d (%s): forfeit %s: defaulting non-priority %s until a concede window", d.Player, a.name, a.forfeit, d.Kind)
 	}
+	return a.fallbackAnswer(ctx, v, d)
+}
+
+// fallbackAnswer is the deterministic heuristic bot's answer to d.
+func (a *Agent) fallbackAnswer(ctx context.Context, v view.View, d decision.Decision) decision.Intent {
 	var (
 		in  decision.Intent
 		err error
@@ -768,6 +822,12 @@ func (a *Agent) EndMatch(result bots.MatchResult) {
 	}
 	a.stop()
 }
+
+// WantsPaymentActions opts the seat into the engine's payment plans
+// (seat.PaymentPlanConsumer). The seat declares engine_autopay, so mapping
+// offers a cast only through Decision.PaymentActions; a driver that leaves them
+// unbuilt shows the agent no castable spell, and it passes every window.
+func (a *Agent) WantsPaymentActions() bool { return true }
 
 func (a *Agent) DecisionBudgetMS() int {
 	return a.deadlineMS()
@@ -866,5 +926,6 @@ func seatDecisionKinds() []string {
 
 var _ engineseat.Seat = (*Agent)(nil)
 var _ bots.BudgetedSeat = (*Agent)(nil)
+var _ engineseat.PaymentPlanConsumer = (*Agent)(nil)
 var _ bots.MatchSeat = (*Agent)(nil)
 var _ bots.MatchEnd = (*Agent)(nil)

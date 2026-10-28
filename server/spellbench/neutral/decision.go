@@ -57,6 +57,11 @@ type Session struct {
 	cur    *native
 	last   *protocol.SeatDecision
 	Counts map[string]int // untranslated decisions by first candidate kind (audit)
+	// Approx counts decisions translated by an approximation rather than a
+	// gorge ask (choose_pile's first-pile stand-in). It is deliberately
+	// separate from Counts, which is the untranslated audit and the budget
+	// TestNeutralUntranslatedBudget holds to 0.5%.
+	Approx map[string]int
 	// activated is the face ability index of each source's latest
 	// activation, so its target ask can describe the ability.
 	activated map[string]int
@@ -70,7 +75,7 @@ type Session struct {
 }
 
 func NewSession(reg *cards.Registry) *Session {
-	return &Session{B: NewBuilder(reg), Counts: map[string]int{}, activated: map[string]int{}, uses: map[string]int32{}, seen: map[string]bool{}}
+	return &Session{B: NewBuilder(reg), Counts: map[string]int{}, Approx: map[string]int{}, activated: map[string]int{}, uses: map[string]int32{}, seen: map[string]bool{}}
 }
 
 // Picked tells the session which candidate of its last decision the seat
@@ -196,6 +201,10 @@ func (s *Session) translate(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 		return s.costOption(sd)
 	case "choose_option":
 		return s.option(sd)
+	case "distribute":
+		return s.distribute(sd, v)
+	case "choose_pile":
+		return s.pile(sd)
 	case "choose_number":
 		return s.numbers(sd)
 	case "choose_color":

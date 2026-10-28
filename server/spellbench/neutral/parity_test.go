@@ -13,7 +13,6 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	_ "github.com/adams-shaun/gorge/bots/all"
 	"github.com/adams-shaun/gorge/bots/heuristic"
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -24,6 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/server/spellbench/internal/testcorpus"
 	"github.com/adams-shaun/gorge/server/spellbench/minihost"
 	"github.com/adams-shaun/gorge/server/spellbench/neutral"
+	"github.com/adams-shaun/gorge/server/spellbench/neutral/twin"
 	"github.com/adams-shaun/gorge/server/spellbench/observe"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 	"github.com/adams-shaun/gorge/server/spellbench/validate"
@@ -232,114 +232,14 @@ func TestViewMatchesGorgeViewOnGorgeGames(t *testing.T) {
 	}
 }
 
-// twin forwards every request to a gorge agent reading x_gorge_view_v1 and
-// to one translating the bare observation, answers with the first and
-// counts agreement by the decision's first candidate kind.
-type twin struct {
-	reg           *cards.Registry
-	view, neutral *agent.Server
-	agree, total  map[string]int
-	examples      map[string][]string
-}
-
-func (tw *twin) Round(req []byte) ([]byte, error) {
-	a, _ := tw.view.Round(req)
-	b, _ := tw.neutral.Round(req)
-	var q struct {
-		RequestType string                `json:"request_type"`
-		Decision    protocol.SeatDecision `json:"decision"`
-	}
-	if err := json.Unmarshal(req, &q); err != nil || q.RequestType != "choose" {
-		if q.RequestType == "game_start" && !strings.Contains(string(b), `"ack"`) {
-			return nil, fmt.Errorf("neutral game_start: %s", b)
-		}
-		return a, nil
-	}
-	kind := q.Decision.Candidates[0].Semantic.Kind
-	if q.Decision.Context.Kind == "priority" {
-		kind = "priority"
-	}
-	if len(q.Decision.Candidates) == 1 {
-		kind += "(single)"
-	}
-	tw.total[kind]++
-	var ca, cb struct {
-		Selection struct {
-			CandidateID int `json:"candidate_id"`
-		} `json:"selection"`
-	}
-	json.Unmarshal(a, &ca)
-	json.Unmarshal(b, &cb)
-	if tw.chosenColour(&q.Decision) {
-		// A source whose mana is a colour chosen as it entered: the
-		// observation does not carry that choice (permanent.chosen is null),
-		// so the neutral planner cannot see what the source makes.
-		tw.total[kind]--
-		tw.total["(chosen-colour source in play)"]++
-		return a, nil
-	}
-	if ca.Selection.CandidateID == cb.Selection.CandidateID ||
-		sameCard(q.Decision.Candidates[ca.Selection.CandidateID].Semantic, q.Decision.Candidates[cb.Selection.CandidateID].Semantic) {
-		tw.agree[kind]++
-	} else if len(tw.examples[kind]) < 14 {
-		sa, _ := json.Marshal(q.Decision.Candidates[ca.Selection.CandidateID].Semantic)
-		sb, _ := json.Marshal(q.Decision.Candidates[cb.Selection.CandidateID].Semantic)
-		tw.examples[kind] = append(tw.examples[kind], fmt.Sprintf("gorge %s\n      neutral %s", sa, sb))
-	}
-	return a, nil
-}
-
-// sameCard reports whether two candidates play the same card: the engine
-// hides the order of interchangeable copies in a hand, so which of them a
-// seat plays first is not a decision.
-func sameCard(x, y protocol.Semantic) bool {
-	if x.Kind != y.Kind || x.Kind != "cast_spell" && x.Kind != "play_land" {
-		return false
-	}
-	anon := func(s protocol.Semantic) string {
-		raw, _ := json.Marshal(s)
-		var m map[string]any
-		json.Unmarshal(raw, &m)
-		if src, ok := m["source"].(map[string]any); ok {
-			delete(src, "object_id")
-		}
-		out, _ := json.Marshal(m)
-		return string(out)
-	}
-	return anon(x) == anon(y)
-}
-
-// chosenColour reports whether the acting seat controls a permanent whose
-// mana depends on a colour chosen as it entered.
-func (tw *twin) chosenColour(sd *protocol.SeatDecision) bool {
-	for _, p := range sd.Observation.Players {
-		for _, r := range p.Battlefield {
-			if r.CardName == nil {
-				continue
-			}
-			c, ok := tw.reg.Lookup(*r.CardName)
-			if !ok {
-				continue
-			}
-			for _, f := range c.Faces {
-				for _, a := range f.Abilities {
-					if a.API == "Mana" && strings.Contains(a.Params["Produced"], "Chosen") {
-						return true
-					}
-				}
-			}
-		}
-	}
-	return false
-}
-
 func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	kinds := map[string]bool{}
 	for _, k := range env.DecisionKinds {
 		kinds[k] = true
 	}
-	tw := &twin{reg: reg, agree: map[string]int{}, total: map[string]int{}, examples: map[string][]string{}}
+	tw := twin.New()
+	tw.SetRegistry(reg)
 	games := 6
 	for i := 0; i < games; i++ {
 		d := catalog.Decks()[i%len(catalog.Decks())]
@@ -360,7 +260,7 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 			if err := na.EnableNeutral(); err != nil {
 				t.Fatal(err)
 			}
-			links[s] = &twinSeat{tw: tw, view: va, neutral: na}
+			links[s] = tw.Seat(va, na)
 		}
 		if _, err := h.Play(uint64(i), d, "london", []string{"x_gorge_view_v1"}, links); err != nil {
 			t.Fatalf("game %d (%s): %v", i, d.CatalogID, err)
@@ -368,29 +268,18 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 	}
 	var lines []string
 	agree, total := 0, 0
-	for k, n := range tw.total {
-		agree += tw.agree[k]
+	for k, n := range tw.Total {
+		agree += tw.Agree[k]
 		total += n
-		lines = append(lines, fmt.Sprintf("%-32s %5d/%5d", k, tw.agree[k], n))
-		for _, e := range tw.examples[k] {
+		lines = append(lines, fmt.Sprintf("%-32s %5d/%5d", k, tw.Agree[k], n))
+		for _, e := range tw.Examples[k] {
 			lines = append(lines, "    "+e)
 		}
 	}
 	sort.Strings(lines)
 	t.Logf("agreement %d/%d\n%s", agree, total, strings.Join(lines, "\n"))
-	skipped := tw.total["(chosen-colour source in play)"]
+	skipped := tw.Total[twin.Floated] + tw.Total[twin.ChosenColour]
 	if agree != total-skipped {
 		t.Errorf("the translated decision disagrees with gorge's own %d times in %d", total-skipped-agree, total-skipped)
 	}
-}
-
-// twinSeat binds one seat's pair of agents to the shared tally.
-type twinSeat struct {
-	tw            *twin
-	view, neutral *agent.Server
-}
-
-func (s *twinSeat) Round(req []byte) ([]byte, error) {
-	s.tw.view, s.tw.neutral = s.view, s.neutral
-	return s.tw.Round(req)
 }
