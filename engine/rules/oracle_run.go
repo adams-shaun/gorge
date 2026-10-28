@@ -115,6 +115,27 @@ type oracleSeat struct {
 	// for an unspecified earlier action, so it queues no trigger: every
 	// trigger it caused is discarded.
 	TappedAfterUntap []string `json:"tapped_after_untap,omitempty"`
+	// Tokens are the tokens this seat controls at setup, in creation order,
+	// minted after the seat's card placements so "pN:token:Name#k" refs bind
+	// as in the recorded game. Placement fires no trigger and no CreateToken
+	// replacement; see oracleSetupToken.
+	Tokens []oracleSetupToken `json:"tokens,omitempty"`
+}
+
+// oracleSetupToken is one token a seat's setup places on the battlefield.
+//
+// Setup is placement, not creation (CR 111.2 still makes the seat the owner
+// and controller): the token is minted with a TokenCreate keyed by its Forge
+// token-script stem (Game.Tokens), but no trigger the mint queues fires
+// ("when this enters", "whenever you create a token") and no CreateToken
+// replacement (Doubling Season) rewrites it -- XMage's cheat placement sees
+// neither. Counters is the token's COMPLETE counter set after setup (a placed
+// token enters with none of its own, so unlike the card field Counters it is
+// not added on top of entry counters). A scenario lists the token's whole
+// state; nothing the script grants on entry is invented here.
+type oracleSetupToken struct {
+	Script   string           `json:"script"`
+	Counters map[string]int32 `json:"counters,omitempty"`
 }
 
 // setupCounters lists the counters a seat's setup puts on a battlefield
@@ -789,6 +810,9 @@ func (r *oracleRun) build(sc oracleScenario) error {
 				ref = fmt.Sprintf("%s#%d", ref, counts[n])
 			}
 			r.refs[ref] = id
+		}
+		if err := r.placeSetupTokens(sc.Setup[fmt.Sprintf("p%d", p)].Tokens, p); err != nil {
+			return err
 		}
 		if len(tops) > 0 {
 			// LibraryOrder's IDs are the complete new order, top first.
