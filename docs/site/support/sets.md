@@ -14,7 +14,7 @@ the most leverage.
     - **Measured by hand on 2026-10-27:** the corpus figures, the leverage
       ranking and the repo-deck ratchets. These were measured at gorge
       `develop` @ `25d71cadc` with the Forge corpus pin (`FORGE_REF`)
-      `76fd7691ab45ab1b42cef19ad04b41bf364501f4`.
+      `91402ac511046c0b7ed0bb691a8a446ca7dfc873`.
 
     [Regenerating the tables](regenerating.md) gives the command behind each
     number.
@@ -194,7 +194,7 @@ certifications.
 `make report` at gorge `25d71cadc` (2026-10-27):
 
 ```text
-corpus: 76fd7691ab45ab1b42cef19ad04b41bf364501f4 @ 76fd7691ab45ab1b42cef19ad04b41bf364501f4 (GPL-3.0, 34074 files)
+corpus: 91402ac511046c0b7ed0bb691a8a446ca7dfc873 @ 91402ac511046c0b7ed0bb691a8a446ca7dfc873 (GPL-3.0, 34074 files)
 cards: 34074  playable: 32337 (94.9%)
 tokens: 854
 ```

@@ -75,14 +75,14 @@ make report          # forgec report -dir .cards
 
 `fetch` does a sparse clone of the card and token folders from gorge's Forge
 fork at the pinned commit (`FORGE_REF` in the Makefile, currently
-`76fd7691ab45ab1b42cef19ad04b41bf364501f4`) and writes `.cards/cards.lock`.
+`91402ac511046c0b7ed0bb691a8a446ca7dfc873`) and writes `.cards/cards.lock`.
 Pinning matters: the corpus is input to every golden replay, so a corpus bump
 is a deliberate change, never a side effect of upstream moving.
 
 `make report` on `25d71cadc` (2026-10-27) printed:
 
 ```text
-corpus: 76fd7691ab45ab1b42cef19ad04b41bf364501f4 @ 76fd7691ab45ab1b42cef19ad04b41bf364501f4 (GPL-3.0, 34074 files)
+corpus: 91402ac511046c0b7ed0bb691a8a446ca7dfc873 @ 91402ac511046c0b7ed0bb691a8a446ca7dfc873 (GPL-3.0, 34074 files)
 cards: 34074  playable: 32337 (94.9%)
 tokens: 854
 
