@@ -967,7 +967,7 @@ func init() {
 		"Flash", "Mutate", "Decayed", "Hexproof", "Ward", "Toxic", "Infect",
 		"Morph", "Megamorph", "Disguise", "Devoid", "Madness", "Persist", "Phasing", "Unearth",
 		"Cascade", "Convoke", "Cycling", "Disturb", "Flashback", "Kicker", "Multikicker",
-		"Landwalk", "Enchant"} {
+		"Landwalk", "Enchant", "Warp"} {
 		k := kw
 		with := func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 			return objectHasKeyword(o, k)
