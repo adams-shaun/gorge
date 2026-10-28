@@ -280,11 +280,17 @@ func driveMatch(e *rules.Engine, seats []engineseat.Seat) (n int, err error) {
 	ctx := context.Background()
 	for !e.G.Over && e.Pending() != nil && n < maxIntents {
 		d := e.Pending()
-		v := view.Project(e.G, e, d.Player, d)
-		v.Round = view.RoundOf(e.G, e.L.Events)
 		if int(d.Player) >= len(seats) {
 			return n, fmt.Errorf("decision for seat %d, but only %d seats", d.Player, len(seats))
 		}
+		// A consumer seat (the SpellBench v2 agent) sees the planner's cast
+		// candidates only through Decision.PaymentActions; build them before
+		// the projection copies the decision.
+		if consumer, ok := seats[d.Player].(engineseat.PaymentPlanConsumer); ok && consumer.WantsPaymentActions() {
+			e.EnsurePaymentActions()
+		}
+		v := view.Project(e.G, e, d.Player, d)
+		v.Round = view.RoundOf(e.G, e.L.Events)
 		in, err := seats[d.Player].Decide(ctx, v, *d)
 		if err != nil {
 			return n, fmt.Errorf("bot error at intent %d: %w", n, err)
