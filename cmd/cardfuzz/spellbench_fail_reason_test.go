@@ -70,4 +70,24 @@ func TestSpellbenchFailReasonNamed(t *testing.T) {
 	if !strings.Contains(line, "FAIL") {
 		t.Fatalf("summary at budget 0 does not mark rebuild_fail FAIL:\n%s", fail.String())
 	}
+
+	// Every failed criterion is named: a harness error is the other run-level
+	// criterion, and its summary line is marked FAIL too.
+	errSum := newSBTwinSummary()
+	errSum.Total["priority"], errSum.Agree["priority"] = 100, 100
+	errSum.Errors, errSum.ErrorText["validator: V7"] = 1, 1
+	if reasons := errSum.failReasons(minAgree, 0.5); len(reasons) != 1 || reasons[0] != "errors 1" {
+		t.Fatalf("failReasons names a harness error as %v, want [errors 1]", reasons)
+	}
+	var errOut bytes.Buffer
+	errSum.print(&errOut, sbOptions{policy: "bot", autopay: true, seed: 1, games: 1, minAgree: minAgree, maxRebuildFail: 0.5})
+	errLine := ""
+	for _, l := range strings.Split(errOut.String(), "\n") {
+		if strings.Contains(l, "error validator") {
+			errLine = l
+		}
+	}
+	if errLine == "" || !strings.Contains(errLine, "FAIL") {
+		t.Fatalf("summary does not mark the harness error FAIL:\n%s", errOut.String())
+	}
 }
