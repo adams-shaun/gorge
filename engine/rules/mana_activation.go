@@ -102,6 +102,7 @@ type manaColorActivation struct {
 	trigger    *pendingTrigger
 	gained     pay.GainedManaRef
 	sacs       []state.ObjID
+	sacLKI     []state.SacrificedInfo
 	allocation bool
 	// nested is set when a colour choice was posed by effects.Ask from a
 	// SubAbility$ Mana effect inside an off-stack mana resolution.
@@ -235,10 +236,11 @@ func (e *Engine) continueManaPaymentWindow(cumulative bool) {
 // window it was activated from -- unless the effect chain suspended on a
 // routed colour ask, whose answer runs that same continuation.
 func (e *Engine) finishManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, produced string,
-	gained pay.GainedManaRef, sacs []state.ObjID, cast, cumulative bool, triggers []pendingTrigger) {
+	gained pay.GainedManaRef, sacs []state.ObjID, sacLKI []state.SacrificedInfo, cast, cumulative bool, triggers []pendingTrigger) {
 	act := manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative,
-		triggers: triggers, gained: gained, sacs: append([]state.ObjID(nil), sacs...)}
-	if e.withOffStackMana(act, func() { e.resolveManaEffectColor(p, source, ma, produced, gained, sacs) }) {
+		triggers: triggers, gained: gained, sacs: append([]state.ObjID(nil), sacs...),
+		sacLKI: append([]state.SacrificedInfo(nil), sacLKI...)}
+	if e.withOffStackMana(act, func() { e.resolveManaEffectColor(p, source, ma, produced, gained, sacs, sacLKI) }) {
 		return
 	}
 	e.resolveTriggeredManaAbilities(triggers, cast, cumulative)
@@ -349,6 +351,7 @@ type manaUnlessActivation struct {
 	cumulative bool
 	triggers   []pendingTrigger
 	sacs       []state.ObjID
+	sacLKI     []state.SacrificedInfo
 	payers     []state.PlayerID
 	next       int
 	gained     pay.GainedManaRef
@@ -1078,7 +1081,7 @@ func (e *Engine) commitManaDiscard() {
 	pay.PayManaSourceParts(asPayer(e), md.Player, md.Source, md.Cost)
 	e.costCounters--
 	pay.SettleManaSubCounter(asPayer(e), md)
-	e.emitSacrifices(md.Sacs)
+	sacLKI := e.emitSacrifices(md.Sacs)
 	pay.SettleManaForage(asPayer(e), md)
 	pay.SettleManaUntap(asPayer(e), md)
 	e.ManaCost = nil
@@ -1094,11 +1097,11 @@ func (e *Engine) commitManaDiscard() {
 		// for the answer instead; Submit resumes it (resumeManaAfterCost).
 		e.manaAfterCost = &manaAfterCost{player: md.Player, source: md.Source, ability: md.Ability,
 			cast: md.Cast, cumulative: md.Cumulative, triggers: manaTriggers,
-			sacs: append([]state.ObjID(nil), md.Sacs...), gained: md.Gained,
+			sacs: append([]state.ObjID(nil), md.Sacs...), sacLKI: sacLKI, gained: md.Gained,
 			untaps: append([]state.ObjID(nil), md.Untaps...)}
 		return
 	}
-	e.resolveManaEffect(md.Player, md.Source, md.Ability, md.Cast, md.Cumulative, manaTriggers, md.Sacs, md.Gained, md.Untaps)
+	e.resolveManaEffect(md.Player, md.Source, md.Ability, md.Cast, md.Cumulative, manaTriggers, md.Sacs, sacLKI, md.Gained, md.Untaps)
 	e.continueManaPaymentWindow(md.Cumulative)
 }
 
@@ -1114,6 +1117,7 @@ type manaAfterCost struct {
 	cumulative bool
 	triggers   []pendingTrigger
 	sacs       []state.ObjID
+	sacLKI     []state.SacrificedInfo
 	gained     pay.GainedManaRef
 	untaps     []state.ObjID
 }
@@ -1127,7 +1131,7 @@ type manaAfterCost struct {
 func (e *Engine) resumeManaAfterCost() {
 	r := e.manaAfterCost
 	e.manaAfterCost = nil
-	e.resolveManaEffect(r.player, r.source, r.ability, r.cast, r.cumulative, r.triggers, r.sacs, r.gained, r.untaps)
+	e.resolveManaEffect(r.player, r.source, r.ability, r.cast, r.cumulative, r.triggers, r.sacs, r.sacLKI, r.gained, r.untaps)
 	if r.cumulative && e.choosing == chooseNone {
 		e.paymentWindowAsk()
 	}
@@ -1539,7 +1543,7 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	e.costCounters++
 	pay.PayManaSourceParts(asPayer(e), p, source, cost)
 	e.costCounters--
-	e.emitSacrifices(sacs)
+	sacLKI := e.emitSacrifices(sacs)
 	// Return<1/CARDNAME>: the source goes to its OWNER's hand as part of the
 	// payment (the cast path's Return settle, engine/rules/cast.go), after the {T}
 	// tap so a tap-and-return cost never taps a hand card.
@@ -1549,16 +1553,16 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 			e.emit(events.Event{Kind: events.MoveZone, Obj: source, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
 		}
 	}
-	e.resolveManaEffect(p, source, ma, cast, payment, manaTriggers, sacs, gained, nil)
+	e.resolveManaEffect(p, source, ma, cast, payment, manaTriggers, sacs, sacLKI, gained, nil)
 }
 
 // resolveManaEffect resolves the mana a paid ability produces. sacs carries
 // the permanents the ability's Sac<...> cost sacrificed, so a ManaReflected
 // Valid$ "Defined.Sacrificed" selector (Squandered Resources) can read them
 // through the resolution context's Remembered list.
-func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, sacs []state.ObjID, gained pay.GainedManaRef, untaps []state.ObjID) {
+func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, sacs []state.ObjID, sacLKI []state.SacrificedInfo, gained pay.GainedManaRef, untaps []state.ObjID) {
 	if strings.TrimSpace(ma.ParamStr(cards.PKUnlessCost)) != "" {
-		e.askManaUnless(p, source, ma, cast, cumulative, triggers, sacs, gained)
+		e.askManaUnless(p, source, ma, cast, cumulative, triggers, sacs, sacLKI, gained)
 		return
 	}
 	mp := effects.ManaOf(ma)
@@ -1601,34 +1605,34 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		if len(produced) == 1 && slices.Contains(cols, produced) {
 			// A payment plan's step names its colour (pay.AlternativeExec's
 			// one-letter Produced$): resolve it as the answered ask would.
-			e.finishManaEffect(p, source, ma, produced, gained, sacs, cast, cumulative, triggers)
+			e.finishManaEffect(p, source, ma, produced, gained, sacs, sacLKI, cast, cumulative, triggers)
 			return
 		}
 		switch len(cols) {
 		case 0:
 			e.emit(events.Event{Kind: events.Note, Obj: source, Text: "ManaReflected found no mana to reflect"})
 		case 1:
-			e.finishManaEffect(p, source, ma, cols[0], gained, sacs, cast, cumulative, triggers)
+			e.finishManaEffect(p, source, ma, cols[0], gained, sacs, sacLKI, cast, cumulative, triggers)
 		default:
-			e.askManaColor(p, source, ma, cast, cumulative, triggers, cols, gained, 1, sacs)
+			e.askManaColor(p, source, ma, cast, cumulative, triggers, cols, gained, 1, sacs, sacLKI)
 		}
 		return
 	}
 	if pay.CostHasDynamicXTap((&e.abilityCompiledCost(ma).Cost)) && mp.AmountTrim == "0" {
 		// X=0 produces no mana and therefore has no meaningful colour
 		// allocation decision.
-		e.finishManaEffect(p, source, ma, produced, gained, sacs, cast, cumulative, triggers)
+		e.finishManaEffect(p, source, ma, produced, gained, sacs, sacLKI, cast, cumulative, triggers)
 		return
 	}
-	if mp.Each.Present && e.manaEachCount(p, source, ma, sacs, gained) <= 0 {
+	if mp.Each.Present && e.manaEachCount(p, source, ma, sacLKI, gained) <= 0 {
 		// Each$ 0 (Brigid, Doun's Mind with no other creatures) adds no mana,
 		// so there is no colour to allocate; effMana adds nothing.
-		e.finishManaEffect(p, source, ma, produced, gained, sacs, cast, cumulative, triggers)
+		e.finishManaEffect(p, source, ma, produced, gained, sacs, sacLKI, cast, cumulative, triggers)
 		return
 	}
 	if produced == "Any" || produced == "Combo Any" {
 		e.askManaColor(p, source, ma, cast, cumulative, triggers, []string{"W", "U", "B", "R", "G"}, gained,
-			e.manaEffectAmount(p, source, ma, sacs, gained), sacs)
+			e.manaEffectAmount(p, source, ma, sacLKI, gained), sacs, sacLKI)
 		return
 	}
 	// A "Combo <colours>" shape is "add one of these", not "add each of
@@ -1647,11 +1651,11 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 	// one-option stage-2 ask.
 	if colours, ok := effects.ComboColours(produced); ok {
 		if len(colours) == 1 {
-			e.finishManaEffect(p, source, ma, colours[0], gained, sacs, cast, cumulative, triggers)
+			e.finishManaEffect(p, source, ma, colours[0], gained, sacs, sacLKI, cast, cumulative, triggers)
 			return
 		}
 		e.askManaColor(p, source, ma, cast, cumulative, triggers, colours, gained,
-			e.manaEffectAmount(p, source, ma, sacs, gained), sacs)
+			e.manaEffectAmount(p, source, ma, sacLKI, gained), sacs, sacLKI)
 		return
 	}
 	// "ColorIdentity" (Command Tower, Arcane Signet: "Add one mana of any
@@ -1669,25 +1673,25 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		cols := pay.CommanderIdentityColours(asPayer(e), p)
 		switch len(cols) {
 		case 1:
-			e.finishManaEffect(p, source, ma, cols[0], gained, sacs, cast, cumulative, triggers)
+			e.finishManaEffect(p, source, ma, cols[0], gained, sacs, sacLKI, cast, cumulative, triggers)
 			return
 		default:
 			if len(cols) > 1 {
 				e.askManaColor(p, source, ma, cast, cumulative, triggers, cols, gained,
-					e.manaEffectAmount(p, source, ma, sacs, gained), sacs)
+					e.manaEffectAmount(p, source, ma, sacLKI, gained), sacs, sacLKI)
 				return
 			}
 			// 0 colours: fall through to the fail-closed resolve below.
 		}
 	}
-	e.finishManaEffect(p, source, ma, produced, gained, sacs, cast, cumulative, triggers)
+	e.finishManaEffect(p, source, ma, produced, gained, sacs, sacLKI, cast, cumulative, triggers)
 }
 
 // askManaUnless handles the one off-stack instance of the shared UnlessCost$
 // contract. Activated mana abilities cannot use effects.Host.Ask's stack
 // resume point, but their payer still receives an ordinary KModes decision
 // and rules charges exactly the same parsed cost on a "pay" answer.
-func (e *Engine) askManaUnless(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, sacs []state.ObjID, gained pay.GainedManaRef) {
+func (e *Engine) askManaUnless(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, sacs []state.ObjID, sacLKI []state.SacrificedInfo, gained pay.GainedManaRef) {
 	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{})
 	var payers []state.PlayerID
 	for _, t := range effects.UnlessPayers(e, ctx, ma) {
@@ -1699,7 +1703,7 @@ func (e *Engine) askManaUnless(p state.PlayerID, source state.ObjID, ma *cards.S
 		payers = []state.PlayerID{p}
 	}
 	e.manaUnlessActivation = &manaUnlessActivation{player: p, source: source, ability: ma,
-		cast: cast, cumulative: cumulative, triggers: triggers, sacs: sacs, payers: payers, gained: gained}
+		cast: cast, cumulative: cumulative, triggers: triggers, sacs: sacs, sacLKI: sacLKI, payers: payers, gained: gained}
 	e.askManaUnlessDecision()
 }
 
@@ -1774,7 +1778,7 @@ func (e *Engine) finishManaUnlessPayment(paid bool) {
 			delete(cp.Params, "UnlessCost")
 			delete(cp.Params, "UnlessPayer")
 			delete(cp.Params, "UnlessSwitched")
-			e.resolveManaEffect(m.player, m.source, &cp, m.cast, m.cumulative, m.triggers, m.sacs, m.gained, nil)
+			e.resolveManaEffect(m.player, m.source, &cp, m.cast, m.cumulative, m.triggers, m.sacs, m.sacLKI, m.gained, nil)
 		} else {
 			e.resolveTriggeredManaAbilities(m.triggers, m.cast, m.cumulative)
 			e.continueManaPaymentWindow(m.cumulative)
@@ -1788,7 +1792,7 @@ func (e *Engine) finishManaUnlessPayment(paid bool) {
 // askManaColor poses the colour choice for a Produced value that names a
 // fixed set. Any selects one colour for the whole Amount$; Combo allocates
 // one option per mana unit, so Combo Any Amount 2 can select U then R.
-func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, colours []string, gained pay.GainedManaRef, amount int32, sacs []state.ObjID) {
+func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, colours []string, gained pay.GainedManaRef, amount int32, sacs []state.ObjID, sacLKI []state.SacrificedInfo) {
 	allocation := strings.HasPrefix(effects.ManaOf(ma).Produced, "Combo ") && amount > 1
 	min, max := 1, 1
 	if allocation {
@@ -1827,7 +1831,7 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source, Label: prefix + "Add " + color, ManaSymbol: color})
 		}
 	}
-	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative, triggers: triggers, gained: gained, sacs: append([]state.ObjID(nil), sacs...), allocation: allocation}
+	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative, triggers: triggers, gained: gained, sacs: append([]state.ObjID(nil), sacs...), sacLKI: append([]state.SacrificedInfo(nil), sacLKI...), allocation: allocation}
 	windowAsk(e, d, chooseManaColor)
 }
 
@@ -1984,15 +1988,13 @@ func fixedProductionColours(ma *cards.SA) []string {
 // manaEffectAmount resolves the production amount in the same source and
 // sacrifice context effMana will receive. Combo's allocation must use this
 // value before posing its decision, including an SVar such as Burnt Offering.
-func (e *Engine) manaEffectAmount(p state.PlayerID, source state.ObjID, ma *cards.SA, sacs []state.ObjID, gained pay.GainedManaRef) int32 {
+func (e *Engine) manaEffectAmount(p state.PlayerID, source state.ObjID, ma *cards.SA, sacLKI []state.SacrificedInfo, gained pay.GainedManaRef) int32 {
 	o := e.G.Obj(source)
 	if o == nil || o.Face() == nil {
 		return 0
 	}
 	ctx := e.manaAmountCtx(p, source)
-	for _, id := range sacs {
-		ctx.Sacrificed = append(ctx.Sacrificed, effects.SacrificedLKI(e, id))
-	}
+	ctx.Sacrificed = append(ctx.Sacrificed, sacLKI...)
 	effects.SetSVars(ctx, gained.SVars(o.Face().SVars))
 	amount := effects.ManaAmountNum(effects.ManaOf(ma), e, ctx, 1)
 	if amount < 0 {
@@ -2003,20 +2005,18 @@ func (e *Engine) manaEffectAmount(p state.PlayerID, source state.ObjID, ma *card
 
 // manaEachCount resolves the Each$ multiplier in the same context
 // manaEffectAmount uses, so the pre-ask gate agrees with effMana.
-func (e *Engine) manaEachCount(p state.PlayerID, source state.ObjID, ma *cards.SA, sacs []state.ObjID, gained pay.GainedManaRef) int32 {
+func (e *Engine) manaEachCount(p state.PlayerID, source state.ObjID, ma *cards.SA, sacLKI []state.SacrificedInfo, gained pay.GainedManaRef) int32 {
 	o := e.G.Obj(source)
 	if o == nil || o.Face() == nil {
 		return 0
 	}
 	ctx := e.manaAmountCtx(p, source)
-	for _, id := range sacs {
-		ctx.Sacrificed = append(ctx.Sacrificed, effects.SacrificedLKI(e, id))
-	}
+	ctx.Sacrificed = append(ctx.Sacrificed, sacLKI...)
 	effects.SetSVars(ctx, gained.SVars(o.Face().SVars))
 	return effects.ManaEachNum(effects.ManaOf(ma), e, ctx, 1)
 }
 
-func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma *cards.SA, produced string, gained pay.GainedManaRef, sacs []state.ObjID) {
+func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma *cards.SA, produced string, gained pay.GainedManaRef, sacs []state.ObjID, sacLKI []state.SacrificedInfo) {
 	o := e.G.Obj(source)
 	if o == nil || o.Face() == nil {
 		return
@@ -2050,7 +2050,7 @@ func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma
 	e.manaProducer = source
 	// A gained mana ability's body resolves its SVars (Amount$ X) against
 	// the FOREIGN face it was compiled on, never the recipient's.
-	e.resolveAbilitySacrificing(source, p, nil, &copy, gained.SVars(o.Face().SVars), sacs)
+	e.resolveAbilitySacrificing(source, p, nil, &copy, gained.SVars(o.Face().SVars), sacLKI)
 	e.manaFromTap, e.manaProducer = savedTap, savedProducer
 	if isPlain {
 		e.verifyPlainMana(plain, n0)
@@ -2113,7 +2113,7 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 	if ma.allocation {
 		ability = pay.WithManaAllocation(ma.ability, ma.ability, produced)
 	}
-	e.finishManaEffect(ma.player, ma.source, ability, produced, ma.gained, ma.sacs, ma.cast, ma.cumulative, ma.triggers)
+	e.finishManaEffect(ma.player, ma.source, ability, produced, ma.gained, ma.sacs, ma.sacLKI, ma.cast, ma.cumulative, ma.triggers)
 	return ma.cast
 }
 
