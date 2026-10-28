@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -92,7 +93,7 @@ func keepOption(t *testing.T, d *decision.Decision, id state.ObjID) int {
 // castRollercrusherForX casts the named hand copy and answers its {X}.
 func castRollercrusherForX(t *testing.T, e *Engine, x int) {
 	t.Helper()
-	addMana(t, e, 0, "RCCCC") // {X}{2}{R} with X=2
+	addMana(t, e, 0, "R"+strings.Repeat("C", 2+x)) // {X}{2}{R}
 	castFirst(t, e, "cast")
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "x" {
