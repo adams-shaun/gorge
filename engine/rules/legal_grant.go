@@ -19,7 +19,7 @@ import (
 // the grant is already in effect) and Duplicate (an identical grant from the
 // same source is already on the stack unresolved).
 func (e *Engine) abilityGrant(id state.ObjID, ab *cards.SA) *decision.Grant {
-	kw := pureGrantKeywords(ab)
+	kw := PureGrantKeywords(ab)
 	if len(kw) == 0 {
 		return nil
 	}
@@ -36,7 +36,7 @@ func (e *Engine) abilityGrant(id state.ObjID, ab *cards.SA) *decision.Grant {
 	return g
 }
 
-// pureGrantKeywords returns the keywords an SA grants when its whole effect is
+// PureGrantKeywords returns the keywords an SA grants when its whole effect is
 // a pure, idempotent keyword grant AIMED AT ITS OWN SOURCE: a Pump adding only
 // keywords (a non-empty KW$), with no additive stat change (NumAtt/NumDef), no
 // SubAbility$ chain, and no colon-parametrised keyword. nil means the
@@ -65,7 +65,7 @@ func (e *Engine) abilityGrant(id state.ObjID, ab *cards.SA) *decision.Grant {
 //
 // Narrowing to the self-aimed Pump was measured to move no acceptance head and
 // no botbench golden, so the wider form bought nothing it could be trusted on.
-func pureGrantKeywords(ab *cards.SA) []string {
+func PureGrantKeywords(ab *cards.SA) []string {
 	if ab == nil || ab.API != "Pump" {
 		return nil
 	}
@@ -115,7 +115,7 @@ func (e *Engine) grantPending(id state.ObjID, kw []string) bool {
 		if o == nil || o.Source != id {
 			continue
 		}
-		if grantSetsEqual(pureGrantKeywords(o.Ability), kw) {
+		if grantSetsEqual(PureGrantKeywords(o.Ability), kw) {
 			return true
 		}
 	}
