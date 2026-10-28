@@ -72,7 +72,10 @@ type Session struct {
 	// grants is the pending pure keyword grant of each source whose latest
 	// activation was one, so a repeated activation of the same ability can be
 	// reported as the engine's redundant-grant fact (decision.Grant). A source
-	// whose ability has left the stack is dropped in Payload.
+	// whose ability has left the stack is dropped at the next priority
+	// decision, the only kind whose Payload may prune: a cost-target or target
+	// decision for a pending activation arrives before the ability is on the
+	// stack, so pruning there would forget the grant.
 	grants map[string][]string
 	// uses counts this turn's activations of each source, which gorge's
 	// view carries as ActivatedThisTurn and its bot budgets: each activated
@@ -147,19 +150,10 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 	if sd.Observation.Turn != s.usesTurn {
 		s.usesTurn, s.uses = sd.Observation.Turn, map[string]int32{}
 	}
-	onStack := map[string]bool{}
 	for _, e := range sd.Observation.Stack {
-		if e.StackKind == "activated_ability" && e.Source != nil {
-			onStack[e.Source.ObjectID] = true
-			if !s.seen[e.ObjectID] {
-				s.seen[e.ObjectID] = true
-				s.uses[e.Source.ObjectID]++
-			}
-		}
-	}
-	for id := range s.grants {
-		if !onStack[id] {
-			delete(s.grants, id)
+		if e.StackKind == "activated_ability" && e.Source != nil && !s.seen[e.ObjectID] {
+			s.seen[e.ObjectID] = true
+			s.uses[e.Source.ObjectID]++
 		}
 	}
 	for pi := range v.Players {
@@ -338,10 +332,19 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 	pre := s.prepay(sd, v)
 	// pendingGrant names the sources whose activated ability is on the stack
 	// right now: the observation's only evidence for decision.Grant.Duplicate.
+	// Prune the grants this priority decision no longer sees here, not in
+	// Payload: the cost-target and target decisions an activation poses come
+	// before its ability is on the stack, and pruning there would drop the
+	// grant that a later priority decision must still report.
 	pendingGrant := map[string]bool{}
 	for _, e := range sd.Observation.Stack {
 		if e.StackKind == "activated_ability" && e.Source != nil {
 			pendingGrant[e.Source.ObjectID] = true
+		}
+	}
+	for id := range s.grants {
+		if !pendingGrant[id] {
+			delete(s.grants, id)
 		}
 	}
 	ops := make([]mapping.NativeOp, len(sd.Candidates))
