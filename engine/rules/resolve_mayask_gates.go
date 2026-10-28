@@ -63,12 +63,20 @@ var replEventGates = [cards.ReplEventCount]replEventGate{
 // that moves objects (a destroy, a bounce, a mill, a countered spell, a
 // token's entry): two Moved replacements that can apply to one of its moves
 // (Rest in Peace and Leyline of the Void competing for a destroyed card, or
-// a commander's own replacement), or one that elects. A permanent's own
+// a commander's own replacement), or one that elects -- printed, Effect-
+// created, or GRANTED by a static (Pulmonic Sliver). A permanent's own
 // entry line (a self-only ValidCard$ with Destination$ Battlefield: an
 // ETB-tapped land in a hand or on the battlefield) is skipped: the only
 // entries an ask-free chain makes are new tokens and the source returning
 // itself, whose own entry text the text half judges (FaceEntryMayAsk).
 func tapeMovedReplMayAsk(e *Engine) bool {
+	// A static can GRANT an optional Moved replacement (Pulmonic Sliver's
+	// "you may put it on top of its owner's library instead"). The granted
+	// line is not in any face's Repls, so the walk below cannot count it; the
+	// arena precompute unions the statics' electing lines by event.
+	if replArenaGrantedAskFor(e, replEventBit("Moved")) {
+		return true
+	}
 	n := 0
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		if ce := &ceL[ceI]; ce.ReplacementEvent == "Moved" {

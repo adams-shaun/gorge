@@ -294,8 +294,12 @@ func tapeDredgeMayAsk(e *Engine) bool {
 // can ask as the event happens. An Effect-created CreateToken replacement
 // always counts as electing. Read only for an
 // otherwise ask-free resolution that opens the gate, through the
-// replacement-source zone masks.
+// replacement-source zone masks. A static-granted electing line for the event
+// is read from the arena precompute, because it is not in any face's Repls.
 func tapeReplMayAsk(e *Engine, event string) bool {
+	if replArenaGrantedAskFor(e, replEventBit(event)) {
+		return true
+	}
 	n, ask := 0, false
 	// Effect-created replacements (an Effect's ReplacementEffects$: Soul
 	// Echo's per-upkeep damage shield) live on the continuous effects.

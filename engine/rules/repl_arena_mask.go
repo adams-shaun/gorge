@@ -38,6 +38,13 @@ type replArenaMask struct {
 	// scans (objectReplAsk's classes): an arena with no object carrying a
 	// class lets tapeAnyReplBodyMayAsk / tapeLandReplMayAsk skip the walk.
 	ask uint32
+	// granted is the same kind of superset for STATIC-GRANTED electing
+	// replacements (cards.FaceGrantedReplAskEvents): bit 1<<ReplEvent(k) is
+	// set when some arena object's faces carry a static that grants an
+	// optional replacement for that event. A granted R: line lives in
+	// f.Statics, not in f.Repls, so objectReplMask and the printed-line
+	// board walks cannot see it; the gates read this bit before walking.
+	granted uint32
 	// objs is how many arena objects the mask has classified; ep the log
 	// length its touch catch-up has reached. ok is false until the first
 	// full classification (a fresh or recycled engine).
@@ -92,13 +99,14 @@ func (e *Engine) replArenaTouchEvent(ev *events.Event) {
 	}
 }
 
-// classify ORs o's event bits and ask classes into the union. The ask
-// classes are read even for an object whose lines carry no event bit (an
-// out-of-vocabulary R:Event$): a walk still visits it in a zone another
-// object makes hot.
+// classify ORs o's event bits, ask classes and granted elective-replacement
+// bits into the union. The ask classes are read even for an object whose
+// lines carry no event bit (an out-of-vocabulary R:Event$): a walk still
+// visits it in a zone another object makes hot.
 func (a *replArenaMask) classify(o *state.Object) {
 	a.mask |= objectReplMask(o)
 	a.ask |= objectReplAsk(o)
+	a.granted |= objectGrantedReplAsk(o)
 }
 
 // The ask classes of an R: line (replLineAsk), unioned over an object's
@@ -153,11 +161,39 @@ func objectReplAsk(o *state.Object) uint32 {
 	return m
 }
 
+// objectGrantedReplAsk is the union of cards.FaceGrantedReplAskEvents over
+// every face objectReplMask reads (CopyFace and each of the card's faces).
+func objectGrantedReplAsk(o *state.Object) uint32 {
+	if o == nil {
+		return 0
+	}
+	var m uint32
+	if f := o.CopyFace; f != nil {
+		m |= uint32(cards.FaceGrantedReplAskEvents(f))
+	}
+	if o.Card != nil {
+		for _, f := range o.Card.Faces {
+			if f != nil {
+				m |= uint32(cards.FaceGrantedReplAskEvents(f))
+			}
+		}
+	}
+	return m
+}
+
 // replArenaAskFor brings the union up to date and reports whether some
 // arena object may carry an R: line of ask class c.
 func replArenaAskFor(e *Engine, c uint32) bool {
 	e.replArenaMaskFor(0)
 	return e.replArena.ask&c != 0
+}
+
+// replArenaGrantedAskFor brings the union up to date and reports whether some
+// arena object's faces carry a static granting an electing replacement for
+// the event bit (bit 1<<ReplEvent(k), replEventBit).
+func replArenaGrantedAskFor(e *Engine, bit uint32) bool {
+	e.replArenaMaskFor(0)
+	return e.replArena.granted&bit != 0
 }
 
 // replArenaNoteApplied is the touch for a fold applied without a log entry

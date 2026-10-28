@@ -44,6 +44,12 @@ func tapeLandMayAsk(e *Engine, p state.PlayerID, obj state.ObjID) bool {
 // in a CR 616.1 order choice. Every board in a deck with two such cards
 // otherwise checkpointed every land play.
 func tapeLandReplMayAsk(e *Engine, obj state.ObjID) bool {
+	// A static-granted optional Moved replacement can apply to the land's own
+	// entry too; the granted line is not in any face's Repls, so the walks
+	// below cannot count it (replArenaMask.granted).
+	if replArenaGrantedAskFor(e, replEventBit("Moved")) {
+		return true
+	}
 	n := 0
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		if ce := &ceL[ceI]; ce.ReplacementEvent == "Moved" {
