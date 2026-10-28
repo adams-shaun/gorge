@@ -170,7 +170,7 @@ def fig_decisions():
 THEIRS = {  # their UWTempo main line (roundrobin-trainlog.txt), per opponent B G R U W, 200 games each
     0: (.415, .415, .335, .270, .300), 1: (.405, .410, .425, .285, .280), 2: (.470, .465, .490, .345, .425),
     3: (.565, .520, .485, .455, .485), 4: (.560, .585, .525, .475, .390), 5: (.600, .540, .600, .470, .410),
-    6: (.655, .550, .595, .480, .435), 8: (.597, .600, .505, .480, .465), 9: (.595, .615, .480, .480, .510),
+    6: (.655, .550, .595, .480, .435), 7: (.575, .550, .490, .455, .375), 8: (.597, .600, .505, .480, .465), 9: (.595, .615, .480, .480, .510),
     10: (.610, .640, .575, .460, .535), 11: (.590, .670, .595, .565, .575), 12: (.745, .625, .620, .530, .520),
     13: (.595, .665, .590, .530, .490), 14: (.705, .620, .555, .560, .550), 15: (.620, .680, .620, .520, .585),
     16: (.705, .700, .685, .545, .575), 17: (.655, .680, .645, .650, .600),
@@ -185,7 +185,9 @@ def read_curve(path):
         f = ln.rstrip("\n").split("\t")
         if not f or f[0] in ("arm", "") or len(f) < 5:
             continue
-        arm, gen, opp, games, wins = f[0], int(f[1]), f[2], int(f[3]), int(f[4])
+        arm, gen, opp, games, wins = f[0], int(f[1]), f[2], int(f[3]), float(f[4])
+        if not opp.startswith("MTGA_"):  # skip the TSV's pooled AVG rows
+            continue
         g = arms.setdefault(arm, {}).setdefault(gen, [0, 0])
         g[0] += games
         g[1] += wins
@@ -193,24 +195,27 @@ def read_curve(path):
 
 
 def fig_curve(curve):
-    W, H = 760, 340
+    W, H = 760, 380
     s = SVG(W, H, "UWTempo average win rate vs the five MTGA mono decks by training generation")
     s.text(16, 20, "UWTempo vs the five MTGA monos: average win rate per generation", "mz-title")
     items = [("", "MageZero per opponent", "faint"), ("s1", "MageZero average", "line")]
-    labels = {"L": "dirty-dirac, calibrated opponents", "K": "dirty-dirac, heuristic opponents"}
-    cls_of = {"L": "s2", "K": "s3"}
-    for arm in sorted(curve):
-        items.append((cls_of.get(arm, "s3"), labels.get(arm, f"dirty-dirac arm {arm}"), "line"))
-    legend(s, 16, 44, items)
-    x0, x1, y0, y1 = 56, W - 24, 64, H - 40
+    labels = {"L": "dirty-dirac, calibrated opponents", "L2": "same, second seed",
+              "K": "dirty-dirac, heuristic opponents"}
+    cls_of = {"L": "s2", "L2": "s2", "K": "s3"}
+    for arm in ("L", "L2", "K"):
+        if arm in curve:
+            items.append((cls_of[arm] + (" dash" if arm == "L2" else ""), labels[arm], "line"))
+    legend(s, 16, 44, items[:3])
+    legend(s, 16, 64, items[3:])
+    x0, x1, y0, y1 = 56, W - 24, 80, H - 40
     gmax = max([17] + [max(g) for g in curve.values() if g])
 
     def X(g):
         return x0 + g / gmax * (x1 - x0)
 
     def Y(v):
-        return y1 - (v - 0.2) / (0.8 - 0.2) * (y1 - y0)
-    for v in (0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8):
+        return y1 - (v - 0.2) / (0.9 - 0.2) * (y1 - y0)
+    for v in (0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9):
         s.add(f'<line class="{"mz-ref" if v == 0.5 else "mz-grid"}" x1="{x0}" y1="{Y(v):.1f}" x2="{x1}" y2="{Y(v):.1f}"/>')
         s.text(x0 - 8, Y(v) + 4, f"{v:.0%}", "mz-muted", "end")
     for g in range(0, gmax + 1, 2 if gmax <= 24 else 4):
@@ -225,14 +230,16 @@ def fig_curve(curve):
     for g in gens:
         lo, hi = ci(avg[g], 1000)
         s.dot(X(g), Y(avg[g]), "s1", f"MageZero gen{g}: {avg[g]:.3f} [{lo:.3f}, {hi:.3f}] over 1,000 games", r=4)
-    for arm, gd in sorted(curve.items()):
+    for arm, gd in sorted(curve.items(), key=lambda kv: {"K": 0, "L2": 1, "L": 2}.get(kv[0], 3)):
         cls = cls_of.get(arm, "s3")
         gs = sorted(gd)
-        s.add(f'<polyline class="{cls} ln" points="{" ".join(f"{X(g):.1f},{Y(gd[g][0]):.1f}" for g in gs)}"/>')
+        dash = " dash" if arm == "L2" else ""
+        s.add(f'<polyline class="{cls} ln{dash}" points="{" ".join(f"{X(g):.1f},{Y(gd[g][0]):.1f}" for g in gs)}"/>')
         for g in gs:
             p, n = gd[g]
             lo, hi = ci(p, n)
-            s.dot(X(g), Y(p), cls, f"{labels.get(arm, arm)} gen{g}: {p:.3f} [{lo:.3f}, {hi:.3f}] over {n} games", r=4)
+            if arm != "L2":
+                s.dot(X(g), Y(p), cls, f"{labels.get(arm, arm)} gen{g}: {p:.3f} [{lo:.3f}, {hi:.3f}] over {n} games", r=4)
     return s.done()
 
 

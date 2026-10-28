@@ -52,6 +52,7 @@ figure svg {
 .mzc .s2 { fill: var(--s2); stroke: var(--s2); }
 .mzc .s3 { fill: var(--s3); stroke: var(--s3); }
 .mzc .ln { fill: none; stroke-width: 2; }
+.mzc .dash { stroke-dasharray: 6 4; }
 .mzc .ci { stroke-width: 1.5; fill: none; }
 .mzc .seg { stroke: var(--md-default-bg-color); stroke-width: 2; }
 .mzc .seg4 { fill: #eda100; } .mzc .seg5 { fill: #e87ba4; }

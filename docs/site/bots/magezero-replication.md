@@ -19,6 +19,9 @@ whether MageZero's encoding or network should replace ours.
       at the same search budget, with no network, Faeries wins more on
       dirty-dirac than on XMage against four of seven opponents. Matching the
       option list, the leaf evaluator and the search math does not close that gap.
+    - **Training from scratch, same schedule:** UWTempo on dirty-dirac goes
+      from their gen0 (0.38 vs 0.35) to 0.78 by gen17, where theirs reaches
+      0.65, against an opponent calibrated to their gen0.
     - **Adopted:** the encoder ships as an opt-in, off-by-default recording
       flag, measured free when off. NetGraph is not adopted.
 
@@ -61,6 +64,7 @@ far its two sides were actually matched.
 | NetGraph vs d64 MLP on our data | records, candidates, metric | NetGraph sees our states through a Go port of their encoder | **like-for-like, through a verified port** (id-parity tested) |
 | Faeries gen0: XMage vs dirty-dirac | lists (no substitutes), budget, clairvoyance, leaf, PUCT scale, option list | tree reuse, duplicate-state merging, combat factorisation, rules implementation | **close; residual = engine** |
 | UWTempo vs monos: **dirty-dirac 0.642 vs MageZero gen0 0.347** (earlier version of this page) | deck lists (2 substitutes), 300 sims | **opponent pilot** (our heuristic vs XMage depth-6 minimax); their gen0 ran at **150** sims | **not like-for-like**; replaced by [the training curve](#uwtempo-training-curve) |
+| UWTempo training curve, gen0 → gen17 (this page) | lists (no substitutes), schedule (150 → 300 sims, prior off → on at gen12), games per generation, TD 0.92, gen0 anchor | opponent pilot (calibrated search, not minimax; misses the heuristic anchor), network, engine | **close**: same start, shapes comparable; absolute levels carry the opponent mismatch |
 | UWTempo heuristic pilot 0.261 vs their minimax pilot 0.16 | deck lists | both pilots *and* both opponents differ | **not comparable** |
 
 The two UWTempo rows were the weak point of the first write-up. They crossed
@@ -267,18 +271,67 @@ the README omits:
 --8<-- "bots/magezero/uwtempo-curve.svg"
 </figure>
 
-Their average panel reads 1–3 points above the mean of their own
-per-opponent points at gens 0–2. The curve here (35% at gen0, 65% at gen17) is computed from the
-per-opponent numbers in their log (200 games each).
+All curves average the five opponents (200 games each). Their README chart
+reads 37% → 64% because it leaves out MonoU, the "mirror" of their other
+training run; over all five, their curve runs 35% → 65%. Their gen7 (49%,
+the first generation after the switch to 300 simulations) is in their log
+but not in their chart; it is drawn here.
 
-**The dirty-dirac run.** <!-- UWRL:RESULTS -->Running. dirty-dirac trains
-UWTempo from scratch on the same schedule: gen0 and gens 1–6 at 150
-simulations and 300 from gen7, a value-only prior through gen11, then the
-policy prior, 1,000 games per generation, 200 per mono. We have no port of
-XMage's minimax, so the opponent pilot is calibrated instead: we pick the
-dirty-dirac pilot that reproduces both of their anchors (a heuristic UWTempo
-at about 16% and a gen0-search UWTempo at about 35%). This page is updated
-when the run finishes.<!-- /UWRL:RESULTS -->
+**The dirty-dirac run.** dirty-dirac trained UWTempo from scratch on their
+schedule:
+
+- 1,000 games per generation (200 per mono), no exploration noise and a
+  50-turn cap, as in their config;
+- 150 simulations for gens 0–6 and 300 from gen7;
+- a uniform prior (the net guides search by value only) through gen11, then
+  the net's policy prior from gen12;
+- our d64 MLP trained on UWTempo's decisions only, value target TD-discounted
+  at 0.92, a 10-generation replay window, each net started from the previous
+  one;
+- their exact lists, with no substitutes.
+
+We have no port of XMage's minimax, so the opponent pilot was calibrated
+against both of their anchors:
+
+| UWTempo pilot ↓ / opponent pilot → | heuristic | search, 25 sims | search, 100 sims | search, 300 sims | their minimax |
+|---|---:|---:|---:|---:|---:|
+| heuristic | 0.163 | 0.117 | 0.100 | 0.092 | 0.16 |
+| gen0 search, 150 sims | 0.513 | 0.445 | 0.399 | 0.372 | 0.347 |
+
+No dirty-dirac pilot matches both anchors. Our heuristic opponent matches
+minimax against a heuristic UWTempo but is far easier for search. The
+300-simulation search opponent matches the gen0 anchor (0.372 vs 0.347,
+inside the 95% interval) but beats a heuristic UWTempo harder than minimax
+does. The run uses the search opponent, so its gen0 sits on theirs; read the
+absolute levels with that mismatch in mind.
+
+| gen | 0 | 1 | 3 | 6 | 7 | 11 | 12 | 13 | 17 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| MageZero | .347 | .361 | .502 | .543 | .489 | .599 | .608 | .574 | .646 |
+| dirty-dirac, calibrated opponents | .379 | .493 | .560 | .605 | .642 | .675 | .735 | .765 | .776 |
+| same recipe, second seed | .380 | .494 | .595 | .593 | .664 | .677 | .747 | .763 | .784 |
+| dirty-dirac, heuristic opponents | .506 | .610 | .701 | .728 | .772 | .776 | .838 | .856 | .868 |
+
+Each generation's figure is ±0.03 (95%, 1,000 games). Reading:
+
+- **Same shape.** Both systems gain about 0.3–0.4 over 17 generations, climb
+  slowly through the value-only phase and step up when the policy prior turns
+  on at gen12. The two dirty-dirac seeds agree within noise at every
+  generation.
+- **dirty-dirac learns faster from the same start.** Its first net is worth
+  +0.11 where theirs is worth +0.01, and it ends 0.13 higher (0.78 vs 0.65).
+  Part of that is the network. On their own data our d64 MLP matches
+  NetGraph on value ([above](#their-data-both-nets)) at 1/53 of the
+  parameters, and 1,000 games is a small data set for an 8.8M-parameter net.
+  The rest is not separated: engine, opponent and training details all
+  differ.
+- **The weak-opponent arm** starts at 0.51, where the first version of this
+  page compared it against their 0.35, and climbs to 0.87. That gap was the
+  opponent, not the search.
+- **One difference we know of.** From gen12 our policy prior also shapes the
+  opponent's moves inside UWTempo's search tree. That prior is untrained,
+  because the net learns from UWTempo's decisions only. Their opponent nodes
+  never used a prior.
 
 ## The encoder as an opt-in flag
 
@@ -293,6 +346,10 @@ inside run-to-run noise.
 
 - **Combat.** Why XMage's Faeries gets twice the combat-damage draw asks and
   still wins less. This is the remaining engine lead.
-- **Opponent strength.** How our heuristic opponent compares with XMage's
-  depth-6 minimax head to head. The calibrated UWTempo run measures it
-  indirectly, but no direct match has been played.
+- **Opponent strength.** No dirty-dirac pilot matches XMage's depth-6 minimax
+  on both anchors. A direct match (minimax-piloted monos on their jar against
+  our UWTempo nets) would remove the last calibration caveat from the
+  training curve.
+- **Why our nets learn faster.** Network size, engine and the opponent are
+  all confounded in the training curve. Their NetGraph trained on our
+  generations' data would separate the network.

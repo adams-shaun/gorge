@@ -1,71 +1,156 @@
-<svg class="mzc" viewBox="0 0 760 340" role="img" aria-label="UWTempo average win rate vs the five MTGA mono decks by training generation" xmlns="http://www.w3.org/2000/svg">
+<svg class="mzc" viewBox="0 0 760 380" role="img" aria-label="UWTempo average win rate vs the five MTGA mono decks by training generation" xmlns="http://www.w3.org/2000/svg">
 <text x="16.0" y="20.0" class="mz-title" text-anchor="start">UWTempo vs the five MTGA monos: average win rate per generation</text>
 <line class="mz-faint" x1="16" y1="42" x2="34" y2="42"/>
 <text x="40.0" y="46.0" text-anchor="start">MageZero per opponent</text>
 <line class="s1 ln" x1="193" y1="42" x2="211" y2="42"/>
 <text x="217.0" y="46.0" text-anchor="start">MageZero average</text>
-<line class="mz-grid" x1="56" y1="300.0" x2="736" y2="300.0"/>
-<text x="48.0" y="304.0" class="mz-muted" text-anchor="end">20%</text>
-<line class="mz-grid" x1="56" y1="260.7" x2="736" y2="260.7"/>
-<text x="48.0" y="264.7" class="mz-muted" text-anchor="end">30%</text>
-<line class="mz-grid" x1="56" y1="221.3" x2="736" y2="221.3"/>
-<text x="48.0" y="225.3" class="mz-muted" text-anchor="end">40%</text>
-<line class="mz-ref" x1="56" y1="182.0" x2="736" y2="182.0"/>
-<text x="48.0" y="186.0" class="mz-muted" text-anchor="end">50%</text>
-<line class="mz-grid" x1="56" y1="142.7" x2="736" y2="142.7"/>
-<text x="48.0" y="146.7" class="mz-muted" text-anchor="end">60%</text>
-<line class="mz-grid" x1="56" y1="103.3" x2="736" y2="103.3"/>
-<text x="48.0" y="107.3" class="mz-muted" text-anchor="end">70%</text>
-<line class="mz-grid" x1="56" y1="64.0" x2="736" y2="64.0"/>
-<text x="48.0" y="68.0" class="mz-muted" text-anchor="end">80%</text>
-<text x="56.0" y="316.0" class="mz-muted" text-anchor="middle">0</text>
-<text x="136.0" y="316.0" class="mz-muted" text-anchor="middle">2</text>
-<text x="216.0" y="316.0" class="mz-muted" text-anchor="middle">4</text>
-<text x="296.0" y="316.0" class="mz-muted" text-anchor="middle">6</text>
-<text x="376.0" y="316.0" class="mz-muted" text-anchor="middle">8</text>
-<text x="456.0" y="316.0" class="mz-muted" text-anchor="middle">10</text>
-<text x="536.0" y="316.0" class="mz-muted" text-anchor="middle">12</text>
-<text x="616.0" y="316.0" class="mz-muted" text-anchor="middle">14</text>
-<text x="696.0" y="316.0" class="mz-muted" text-anchor="middle">16</text>
-<text x="396.0" y="336.0" class="mz-muted" text-anchor="middle">training generation (1 generation = 1,000 games)</text>
-<polyline class="mz-faint" points="56.0,215.4 96.0,219.4 136.0,193.8 176.0,156.4 216.0,158.4 256.0,142.7 296.0,121.0 376.0,143.8 416.0,144.6 456.0,138.7 496.0,146.6 536.0,85.6 576.0,144.6 616.0,101.4 656.0,134.8 696.0,101.4 736.0,121.0"/>
-<polyline class="mz-faint" points="56.0,215.4 96.0,217.4 136.0,195.8 176.0,174.1 216.0,148.6 256.0,166.3 296.0,162.3 376.0,142.7 416.0,136.8 456.0,126.9 496.0,115.1 536.0,132.8 576.0,117.1 616.0,134.8 656.0,111.2 696.0,103.3 736.0,111.2"/>
-<polyline class="mz-faint" points="56.0,246.9 96.0,211.5 136.0,185.9 176.0,187.9 216.0,172.2 256.0,142.7 296.0,144.6 376.0,180.0 416.0,189.9 456.0,152.5 496.0,144.6 536.0,134.8 576.0,146.6 616.0,160.4 656.0,134.8 696.0,109.2 736.0,125.0"/>
-<polyline class="mz-faint" points="56.0,272.5 96.0,266.6 136.0,243.0 176.0,199.7 216.0,191.8 256.0,193.8 296.0,189.9 376.0,189.9 416.0,189.9 456.0,197.7 496.0,156.4 536.0,170.2 576.0,170.2 616.0,158.4 656.0,174.1 696.0,164.3 736.0,123.0"/>
-<polyline class="mz-faint" points="56.0,260.7 96.0,268.5 136.0,211.5 176.0,187.9 216.0,225.3 256.0,217.4 296.0,207.6 376.0,195.8 416.0,178.1 456.0,168.2 496.0,152.5 536.0,174.1 576.0,185.9 616.0,162.3 656.0,148.6 696.0,152.5 736.0,142.7"/>
-<polyline class="s1 ln" points="56.0,242.2 96.0,236.7 136.0,206.0 176.0,181.2 216.0,179.2 256.0,172.6 296.0,165.1 376.0,170.4 416.0,167.8 456.0,156.8 496.0,143.1 536.0,139.5 576.0,152.9 616.0,143.5 656.0,140.7 696.0,126.1 736.0,124.6"/>
-<g><title>MageZero gen0: 0.347 [0.317, 0.377] over 1,000 games</title><circle cx="56.0" cy="242.2" r="11" fill="transparent"/>
-<circle class="dot s1" cx="56.0" cy="242.2" r="4"/></g>
-<g><title>MageZero gen1: 0.361 [0.331, 0.391] over 1,000 games</title><circle cx="96.0" cy="236.7" r="11" fill="transparent"/>
-<circle class="dot s1" cx="96.0" cy="236.7" r="4"/></g>
-<g><title>MageZero gen2: 0.439 [0.408, 0.470] over 1,000 games</title><circle cx="136.0" cy="206.0" r="11" fill="transparent"/>
-<circle class="dot s1" cx="136.0" cy="206.0" r="4"/></g>
-<g><title>MageZero gen3: 0.502 [0.471, 0.533] over 1,000 games</title><circle cx="176.0" cy="181.2" r="11" fill="transparent"/>
-<circle class="dot s1" cx="176.0" cy="181.2" r="4"/></g>
-<g><title>MageZero gen4: 0.507 [0.476, 0.538] over 1,000 games</title><circle cx="216.0" cy="179.2" r="11" fill="transparent"/>
-<circle class="dot s1" cx="216.0" cy="179.2" r="4"/></g>
-<g><title>MageZero gen5: 0.524 [0.493, 0.555] over 1,000 games</title><circle cx="256.0" cy="172.6" r="11" fill="transparent"/>
-<circle class="dot s1" cx="256.0" cy="172.6" r="4"/></g>
-<g><title>MageZero gen6: 0.543 [0.512, 0.574] over 1,000 games</title><circle cx="296.0" cy="165.1" r="11" fill="transparent"/>
-<circle class="dot s1" cx="296.0" cy="165.1" r="4"/></g>
-<g><title>MageZero gen8: 0.529 [0.498, 0.560] over 1,000 games</title><circle cx="376.0" cy="170.4" r="11" fill="transparent"/>
-<circle class="dot s1" cx="376.0" cy="170.4" r="4"/></g>
-<g><title>MageZero gen9: 0.536 [0.505, 0.567] over 1,000 games</title><circle cx="416.0" cy="167.8" r="11" fill="transparent"/>
-<circle class="dot s1" cx="416.0" cy="167.8" r="4"/></g>
-<g><title>MageZero gen10: 0.564 [0.533, 0.595] over 1,000 games</title><circle cx="456.0" cy="156.8" r="11" fill="transparent"/>
-<circle class="dot s1" cx="456.0" cy="156.8" r="4"/></g>
-<g><title>MageZero gen11: 0.599 [0.569, 0.629] over 1,000 games</title><circle cx="496.0" cy="143.1" r="11" fill="transparent"/>
-<circle class="dot s1" cx="496.0" cy="143.1" r="4"/></g>
-<g><title>MageZero gen12: 0.608 [0.578, 0.638] over 1,000 games</title><circle cx="536.0" cy="139.5" r="11" fill="transparent"/>
-<circle class="dot s1" cx="536.0" cy="139.5" r="4"/></g>
-<g><title>MageZero gen13: 0.574 [0.543, 0.605] over 1,000 games</title><circle cx="576.0" cy="152.9" r="11" fill="transparent"/>
-<circle class="dot s1" cx="576.0" cy="152.9" r="4"/></g>
-<g><title>MageZero gen14: 0.598 [0.568, 0.628] over 1,000 games</title><circle cx="616.0" cy="143.5" r="11" fill="transparent"/>
-<circle class="dot s1" cx="616.0" cy="143.5" r="4"/></g>
-<g><title>MageZero gen15: 0.605 [0.575, 0.635] over 1,000 games</title><circle cx="656.0" cy="140.7" r="11" fill="transparent"/>
-<circle class="dot s1" cx="656.0" cy="140.7" r="4"/></g>
-<g><title>MageZero gen16: 0.642 [0.612, 0.672] over 1,000 games</title><circle cx="696.0" cy="126.1" r="11" fill="transparent"/>
-<circle class="dot s1" cx="696.0" cy="126.1" r="4"/></g>
-<g><title>MageZero gen17: 0.646 [0.616, 0.676] over 1,000 games</title><circle cx="736.0" cy="124.6" r="11" fill="transparent"/>
-<circle class="dot s1" cx="736.0" cy="124.6" r="4"/></g>
+<line class="s2 ln" x1="335" y1="42" x2="353" y2="42"/>
+<text x="359.0" y="46.0" text-anchor="start">dirty-dirac, calibrated opponents</text>
+<line class="s2 dash ln" x1="16" y1="62" x2="34" y2="62"/>
+<text x="40.0" y="66.0" text-anchor="start">same, second seed</text>
+<line class="s3 ln" x1="165" y1="62" x2="183" y2="62"/>
+<text x="189.0" y="66.0" text-anchor="start">dirty-dirac, heuristic opponents</text>
+<line class="mz-grid" x1="56" y1="340.0" x2="736" y2="340.0"/>
+<text x="48.0" y="344.0" class="mz-muted" text-anchor="end">20%</text>
+<line class="mz-grid" x1="56" y1="302.9" x2="736" y2="302.9"/>
+<text x="48.0" y="306.9" class="mz-muted" text-anchor="end">30%</text>
+<line class="mz-grid" x1="56" y1="265.7" x2="736" y2="265.7"/>
+<text x="48.0" y="269.7" class="mz-muted" text-anchor="end">40%</text>
+<line class="mz-ref" x1="56" y1="228.6" x2="736" y2="228.6"/>
+<text x="48.0" y="232.6" class="mz-muted" text-anchor="end">50%</text>
+<line class="mz-grid" x1="56" y1="191.4" x2="736" y2="191.4"/>
+<text x="48.0" y="195.4" class="mz-muted" text-anchor="end">60%</text>
+<line class="mz-grid" x1="56" y1="154.3" x2="736" y2="154.3"/>
+<text x="48.0" y="158.3" class="mz-muted" text-anchor="end">70%</text>
+<line class="mz-grid" x1="56" y1="117.1" x2="736" y2="117.1"/>
+<text x="48.0" y="121.1" class="mz-muted" text-anchor="end">80%</text>
+<line class="mz-grid" x1="56" y1="80.0" x2="736" y2="80.0"/>
+<text x="48.0" y="84.0" class="mz-muted" text-anchor="end">90%</text>
+<text x="56.0" y="356.0" class="mz-muted" text-anchor="middle">0</text>
+<text x="136.0" y="356.0" class="mz-muted" text-anchor="middle">2</text>
+<text x="216.0" y="356.0" class="mz-muted" text-anchor="middle">4</text>
+<text x="296.0" y="356.0" class="mz-muted" text-anchor="middle">6</text>
+<text x="376.0" y="356.0" class="mz-muted" text-anchor="middle">8</text>
+<text x="456.0" y="356.0" class="mz-muted" text-anchor="middle">10</text>
+<text x="536.0" y="356.0" class="mz-muted" text-anchor="middle">12</text>
+<text x="616.0" y="356.0" class="mz-muted" text-anchor="middle">14</text>
+<text x="696.0" y="356.0" class="mz-muted" text-anchor="middle">16</text>
+<text x="396.0" y="376.0" class="mz-muted" text-anchor="middle">training generation (1 generation = 1,000 games)</text>
+<polyline class="mz-faint" points="56.0,260.1 96.0,263.9 136.0,239.7 176.0,204.4 216.0,206.3 256.0,191.4 296.0,171.0 336.0,200.7 376.0,192.5 416.0,193.3 456.0,187.7 496.0,195.1 536.0,137.6 576.0,193.3 616.0,152.4 656.0,184.0 696.0,152.4 736.0,171.0"/>
+<polyline class="mz-faint" points="56.0,260.1 96.0,262.0 136.0,241.6 176.0,221.1 216.0,197.0 256.0,213.7 296.0,210.0 336.0,210.0 376.0,191.4 416.0,185.9 456.0,176.6 496.0,165.4 536.0,182.1 576.0,167.3 616.0,184.0 656.0,161.7 696.0,154.3 736.0,161.7"/>
+<polyline class="mz-faint" points="56.0,289.9 96.0,256.4 136.0,232.3 176.0,234.1 216.0,219.3 256.0,191.4 296.0,193.3 336.0,232.3 376.0,226.7 416.0,236.0 456.0,200.7 496.0,193.3 536.0,184.0 576.0,195.1 616.0,208.1 656.0,184.0 696.0,159.9 736.0,174.7"/>
+<polyline class="mz-faint" points="56.0,314.0 96.0,308.4 136.0,286.1 176.0,245.3 216.0,237.9 256.0,239.7 296.0,236.0 336.0,245.3 376.0,236.0 416.0,236.0 456.0,243.4 496.0,204.4 536.0,217.4 576.0,217.4 616.0,206.3 656.0,221.1 696.0,211.9 736.0,172.9"/>
+<polyline class="mz-faint" points="56.0,302.9 96.0,310.3 136.0,256.4 176.0,234.1 216.0,269.4 256.0,262.0 296.0,252.7 336.0,275.0 376.0,241.6 416.0,224.9 456.0,215.6 496.0,200.7 536.0,221.1 576.0,232.3 616.0,210.0 656.0,197.0 696.0,200.7 736.0,191.4"/>
+<polyline class="s1 ln" points="56.0,285.4 96.0,280.2 136.0,251.2 176.0,227.8 216.0,226.0 256.0,219.7 296.0,212.6 336.0,232.7 376.0,217.7 416.0,215.2 456.0,204.8 496.0,191.8 536.0,188.5 576.0,201.1 616.0,192.2 656.0,189.6 696.0,175.8 736.0,174.3"/>
+<g><title>MageZero gen0: 0.347 [0.317, 0.377] over 1,000 games</title><circle cx="56.0" cy="285.4" r="11" fill="transparent"/>
+<circle class="dot s1" cx="56.0" cy="285.4" r="4"/></g>
+<g><title>MageZero gen1: 0.361 [0.331, 0.391] over 1,000 games</title><circle cx="96.0" cy="280.2" r="11" fill="transparent"/>
+<circle class="dot s1" cx="96.0" cy="280.2" r="4"/></g>
+<g><title>MageZero gen2: 0.439 [0.408, 0.470] over 1,000 games</title><circle cx="136.0" cy="251.2" r="11" fill="transparent"/>
+<circle class="dot s1" cx="136.0" cy="251.2" r="4"/></g>
+<g><title>MageZero gen3: 0.502 [0.471, 0.533] over 1,000 games</title><circle cx="176.0" cy="227.8" r="11" fill="transparent"/>
+<circle class="dot s1" cx="176.0" cy="227.8" r="4"/></g>
+<g><title>MageZero gen4: 0.507 [0.476, 0.538] over 1,000 games</title><circle cx="216.0" cy="226.0" r="11" fill="transparent"/>
+<circle class="dot s1" cx="216.0" cy="226.0" r="4"/></g>
+<g><title>MageZero gen5: 0.524 [0.493, 0.555] over 1,000 games</title><circle cx="256.0" cy="219.7" r="11" fill="transparent"/>
+<circle class="dot s1" cx="256.0" cy="219.7" r="4"/></g>
+<g><title>MageZero gen6: 0.543 [0.512, 0.574] over 1,000 games</title><circle cx="296.0" cy="212.6" r="11" fill="transparent"/>
+<circle class="dot s1" cx="296.0" cy="212.6" r="4"/></g>
+<g><title>MageZero gen7: 0.489 [0.458, 0.520] over 1,000 games</title><circle cx="336.0" cy="232.7" r="11" fill="transparent"/>
+<circle class="dot s1" cx="336.0" cy="232.7" r="4"/></g>
+<g><title>MageZero gen8: 0.529 [0.498, 0.560] over 1,000 games</title><circle cx="376.0" cy="217.7" r="11" fill="transparent"/>
+<circle class="dot s1" cx="376.0" cy="217.7" r="4"/></g>
+<g><title>MageZero gen9: 0.536 [0.505, 0.567] over 1,000 games</title><circle cx="416.0" cy="215.2" r="11" fill="transparent"/>
+<circle class="dot s1" cx="416.0" cy="215.2" r="4"/></g>
+<g><title>MageZero gen10: 0.564 [0.533, 0.595] over 1,000 games</title><circle cx="456.0" cy="204.8" r="11" fill="transparent"/>
+<circle class="dot s1" cx="456.0" cy="204.8" r="4"/></g>
+<g><title>MageZero gen11: 0.599 [0.569, 0.629] over 1,000 games</title><circle cx="496.0" cy="191.8" r="11" fill="transparent"/>
+<circle class="dot s1" cx="496.0" cy="191.8" r="4"/></g>
+<g><title>MageZero gen12: 0.608 [0.578, 0.638] over 1,000 games</title><circle cx="536.0" cy="188.5" r="11" fill="transparent"/>
+<circle class="dot s1" cx="536.0" cy="188.5" r="4"/></g>
+<g><title>MageZero gen13: 0.574 [0.543, 0.605] over 1,000 games</title><circle cx="576.0" cy="201.1" r="11" fill="transparent"/>
+<circle class="dot s1" cx="576.0" cy="201.1" r="4"/></g>
+<g><title>MageZero gen14: 0.598 [0.568, 0.628] over 1,000 games</title><circle cx="616.0" cy="192.2" r="11" fill="transparent"/>
+<circle class="dot s1" cx="616.0" cy="192.2" r="4"/></g>
+<g><title>MageZero gen15: 0.605 [0.575, 0.635] over 1,000 games</title><circle cx="656.0" cy="189.6" r="11" fill="transparent"/>
+<circle class="dot s1" cx="656.0" cy="189.6" r="4"/></g>
+<g><title>MageZero gen16: 0.642 [0.612, 0.672] over 1,000 games</title><circle cx="696.0" cy="175.8" r="11" fill="transparent"/>
+<circle class="dot s1" cx="696.0" cy="175.8" r="4"/></g>
+<g><title>MageZero gen17: 0.646 [0.616, 0.676] over 1,000 games</title><circle cx="736.0" cy="174.3" r="11" fill="transparent"/>
+<circle class="dot s1" cx="736.0" cy="174.3" r="4"/></g>
+<polyline class="s3 ln" points="56.0,226.2 96.0,187.9 136.0,158.7 176.0,154.1 216.0,158.6 256.0,132.9 296.0,143.9 336.0,127.4 376.0,129.8 416.0,129.4 456.0,133.1 496.0,126.1 536.0,103.0 576.0,96.3 616.0,101.0 656.0,99.9 696.0,98.8 736.0,92.1"/>
+<g><title>dirty-dirac, heuristic opponents gen0: 0.506 [0.476, 0.537] over 1000 games</title><circle cx="56.0" cy="226.2" r="11" fill="transparent"/>
+<circle class="dot s3" cx="56.0" cy="226.2" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen1: 0.610 [0.579, 0.640] over 1000 games</title><circle cx="96.0" cy="187.9" r="11" fill="transparent"/>
+<circle class="dot s3" cx="96.0" cy="187.9" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen2: 0.688 [0.659, 0.717] over 1000 games</title><circle cx="136.0" cy="158.7" r="11" fill="transparent"/>
+<circle class="dot s3" cx="136.0" cy="158.7" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen3: 0.701 [0.672, 0.729] over 1000 games</title><circle cx="176.0" cy="154.1" r="11" fill="transparent"/>
+<circle class="dot s3" cx="176.0" cy="154.1" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen4: 0.689 [0.660, 0.717] over 1000 games</title><circle cx="216.0" cy="158.6" r="11" fill="transparent"/>
+<circle class="dot s3" cx="216.0" cy="158.6" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen5: 0.757 [0.731, 0.784] over 1000 games</title><circle cx="256.0" cy="132.9" r="11" fill="transparent"/>
+<circle class="dot s3" cx="256.0" cy="132.9" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen6: 0.728 [0.700, 0.756] over 1000 games</title><circle cx="296.0" cy="143.9" r="11" fill="transparent"/>
+<circle class="dot s3" cx="296.0" cy="143.9" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen7: 0.772 [0.747, 0.798] over 1000 games</title><circle cx="336.0" cy="127.4" r="11" fill="transparent"/>
+<circle class="dot s3" cx="336.0" cy="127.4" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen8: 0.766 [0.740, 0.792] over 1000 games</title><circle cx="376.0" cy="129.8" r="11" fill="transparent"/>
+<circle class="dot s3" cx="376.0" cy="129.8" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen9: 0.767 [0.741, 0.793] over 1000 games</title><circle cx="416.0" cy="129.4" r="11" fill="transparent"/>
+<circle class="dot s3" cx="416.0" cy="129.4" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen10: 0.757 [0.730, 0.784] over 1000 games</title><circle cx="456.0" cy="133.1" r="11" fill="transparent"/>
+<circle class="dot s3" cx="456.0" cy="133.1" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen11: 0.776 [0.750, 0.802] over 1000 games</title><circle cx="496.0" cy="126.1" r="11" fill="transparent"/>
+<circle class="dot s3" cx="496.0" cy="126.1" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen12: 0.838 [0.815, 0.861] over 1000 games</title><circle cx="536.0" cy="103.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="536.0" cy="103.0" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen13: 0.856 [0.834, 0.878] over 1000 games</title><circle cx="576.0" cy="96.3" r="11" fill="transparent"/>
+<circle class="dot s3" cx="576.0" cy="96.3" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen14: 0.844 [0.821, 0.866] over 1000 games</title><circle cx="616.0" cy="101.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="616.0" cy="101.0" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen15: 0.847 [0.824, 0.869] over 1000 games</title><circle cx="656.0" cy="99.9" r="11" fill="transparent"/>
+<circle class="dot s3" cx="656.0" cy="99.9" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen16: 0.850 [0.827, 0.872] over 1000 games</title><circle cx="696.0" cy="98.8" r="11" fill="transparent"/>
+<circle class="dot s3" cx="696.0" cy="98.8" r="4"/></g>
+<g><title>dirty-dirac, heuristic opponents gen17: 0.868 [0.846, 0.889] over 1000 games</title><circle cx="736.0" cy="92.1" r="11" fill="transparent"/>
+<circle class="dot s3" cx="736.0" cy="92.1" r="4"/></g>
+<polyline class="s2 ln dash" points="56.0,273.1 96.0,230.6 136.0,197.9 176.0,193.3 216.0,201.1 256.0,190.5 296.0,194.2 336.0,167.7 376.0,167.3 416.0,169.0 456.0,172.5 496.0,162.8 536.0,136.8 576.0,130.7 616.0,126.8 656.0,132.0 696.0,132.9 736.0,123.1"/>
+<polyline class="s2 ln" points="56.0,273.5 96.0,231.0 136.0,205.2 176.0,206.1 216.0,196.6 256.0,192.0 296.0,189.6 336.0,175.6 376.0,187.2 416.0,180.3 456.0,179.7 496.0,163.6 536.0,141.5 576.0,130.1 616.0,140.4 656.0,134.8 696.0,125.9 736.0,125.9"/>
+<g><title>dirty-dirac, calibrated opponents gen0: 0.379 [0.349, 0.409] over 1000 games</title><circle cx="56.0" cy="273.5" r="11" fill="transparent"/>
+<circle class="dot s2" cx="56.0" cy="273.5" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen1: 0.493 [0.463, 0.524] over 1000 games</title><circle cx="96.0" cy="231.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="96.0" cy="231.0" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen2: 0.563 [0.532, 0.594] over 1000 games</title><circle cx="136.0" cy="205.2" r="11" fill="transparent"/>
+<circle class="dot s2" cx="136.0" cy="205.2" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen3: 0.560 [0.530, 0.591] over 1000 games</title><circle cx="176.0" cy="206.1" r="11" fill="transparent"/>
+<circle class="dot s2" cx="176.0" cy="206.1" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen4: 0.586 [0.555, 0.617] over 1000 games</title><circle cx="216.0" cy="196.6" r="11" fill="transparent"/>
+<circle class="dot s2" cx="216.0" cy="196.6" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen5: 0.599 [0.568, 0.629] over 1000 games</title><circle cx="256.0" cy="192.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="256.0" cy="192.0" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen6: 0.605 [0.575, 0.635] over 1000 games</title><circle cx="296.0" cy="189.6" r="11" fill="transparent"/>
+<circle class="dot s2" cx="296.0" cy="189.6" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen7: 0.642 [0.613, 0.672] over 1000 games</title><circle cx="336.0" cy="175.6" r="11" fill="transparent"/>
+<circle class="dot s2" cx="336.0" cy="175.6" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen8: 0.612 [0.581, 0.642] over 1000 games</title><circle cx="376.0" cy="187.2" r="11" fill="transparent"/>
+<circle class="dot s2" cx="376.0" cy="187.2" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen9: 0.630 [0.600, 0.660] over 1000 games</title><circle cx="416.0" cy="180.3" r="11" fill="transparent"/>
+<circle class="dot s2" cx="416.0" cy="180.3" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen10: 0.631 [0.602, 0.661] over 1000 games</title><circle cx="456.0" cy="179.7" r="11" fill="transparent"/>
+<circle class="dot s2" cx="456.0" cy="179.7" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen11: 0.675 [0.646, 0.704] over 1000 games</title><circle cx="496.0" cy="163.6" r="11" fill="transparent"/>
+<circle class="dot s2" cx="496.0" cy="163.6" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen12: 0.735 [0.707, 0.762] over 1000 games</title><circle cx="536.0" cy="141.5" r="11" fill="transparent"/>
+<circle class="dot s2" cx="536.0" cy="141.5" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen13: 0.765 [0.739, 0.791] over 1000 games</title><circle cx="576.0" cy="130.1" r="11" fill="transparent"/>
+<circle class="dot s2" cx="576.0" cy="130.1" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen14: 0.738 [0.710, 0.765] over 1000 games</title><circle cx="616.0" cy="140.4" r="11" fill="transparent"/>
+<circle class="dot s2" cx="616.0" cy="140.4" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen15: 0.752 [0.726, 0.779] over 1000 games</title><circle cx="656.0" cy="134.8" r="11" fill="transparent"/>
+<circle class="dot s2" cx="656.0" cy="134.8" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen16: 0.776 [0.751, 0.802] over 1000 games</title><circle cx="696.0" cy="125.9" r="11" fill="transparent"/>
+<circle class="dot s2" cx="696.0" cy="125.9" r="4"/></g>
+<g><title>dirty-dirac, calibrated opponents gen17: 0.776 [0.751, 0.802] over 1000 games</title><circle cx="736.0" cy="125.9" r="11" fill="transparent"/>
+<circle class="dot s2" cx="736.0" cy="125.9" r="4"/></g>
 </svg>
