@@ -12,7 +12,8 @@ package main
 //	  request ("spellbench" field; -repro replays to it). Exit status 1 on any
 //	  disagreement or harness error, or with -min-agree on a decision kind
 //	  with at least 50 compared decisions whose agreement is below the
-//	  threshold (the default 0 keeps the any-disagreement rule).
+//	  threshold or more rebuild failures than -max-rebuild-fail allows (the
+//	  default 0 keeps the any-disagreement rule).
 //	-spellbench outcome  each deck pair is played twice on one seed, once with
 //	  native seats and once with seat 0 (or both seats, -sb-v2-seats both) a v2
 //	  neutral agent behind server/spellbench/seat, the path mtgsim -sb-agent
@@ -68,6 +69,10 @@ type sbOptions struct {
 	// sbMinAgreeSamples compared decisions agrees below this percentage
 	// (0 keeps the any-disagreement rule).
 	minAgree float64
+	// maxRebuildFail fails a -min-agree twin run when the neutral world could
+	// not rebuild the pick for more than this percentage of the run's
+	// decisions (0 allows none). Ignored without -min-agree.
+	maxRebuildFail float64
 	// maxOutcomeGap fails the outcome run when the 95% CI of (v2 - native)
 	// seat-0 win rate excludes 0 and |gap| exceeds this many percentage
 	// points (0 disables the check).
@@ -328,6 +333,55 @@ func (s *sbTwinSummary) failingKinds(minAgree float64) []string {
 	return out
 }
 
+// compared returns the run's compared decision count: agreement plus
+// disagreement, excluding every skip class.
+func (s *sbTwinSummary) compared() int {
+	n := 0
+	for _, k := range sortedKeys(s.Total) {
+		if k == twin.Floated || k == twin.Opaque || k == twin.ChosenColour {
+			continue
+		}
+		n += s.Total[k]
+	}
+	return n
+}
+
+// rebuildFailPct is the percentage of the run's decisions (compared plus the
+// ones the neutral world could not rebuild) that it could not rebuild.
+func (s *sbTwinSummary) rebuildFailPct() float64 {
+	n := s.Total[twin.Opaque]
+	d := s.compared() + n
+	if d == 0 {
+		return 0
+	}
+	return 100 * float64(n) / float64(d)
+}
+
+// rebuildFailExceeds reports whether the neutral world's failure to rebuild
+// the pick exceeds the maxPct percentage budget. A zero budget allows none.
+func (s *sbTwinSummary) rebuildFailExceeds(maxPct float64) bool {
+	return s.Total[twin.Opaque] > 0 && s.rebuildFailPct() > maxPct
+}
+
+// failReasons names every failed criterion of a -min-agree twin run: each
+// decision kind below the threshold, the rebuild-failure budget and harness
+// errors. The result is empty when the run passes.
+func (s *sbTwinSummary) failReasons(minAgree, maxRebuildFail float64) []string {
+	var out []string
+	for _, k := range s.failingKinds(minAgree) {
+		out = append(out, fmt.Sprintf("%s %s", k, sbPct(s.Agree[k], s.Total[k])))
+	}
+	if s.rebuildFailExceeds(maxRebuildFail) {
+		d := s.compared() + s.Total[twin.Opaque]
+		out = append(out, fmt.Sprintf("rebuild_fail %d/%d (%s) exceeds -max-rebuild-fail %.3g%%",
+			s.Total[twin.Opaque], d, sbPct(s.Total[twin.Opaque], d), maxRebuildFail))
+	}
+	if s.Errors > 0 {
+		out = append(out, fmt.Sprintf("errors %d", s.Errors))
+	}
+	return out
+}
+
 func (s *sbTwinSummary) print(w io.Writer, o sbOptions) {
 	fmt.Fprintf(w, "== spellbench twin: policy=%s autopay=%s seed=%d games=%d ==\n", o.policy, map[bool]string{true: "all", false: "off"}[o.autopay], o.seed, o.games)
 	unsupported := 0
@@ -339,7 +393,11 @@ func (s *sbTwinSummary) print(w io.Writer, o sbOptions) {
 		fmt.Fprintf(w, "  unsupported_kind %-40s %d\n", k, s.Unsupported[k])
 	}
 	for _, k := range sortedKeys(s.ErrorText) {
-		fmt.Fprintf(w, "  error %s: %d\n", k, s.ErrorText[k])
+		mark := ""
+		if o.minAgree > 0 && s.Errors > 0 {
+			mark = "  FAIL"
+		}
+		fmt.Fprintf(w, "  error %s: %d%s\n", k, s.ErrorText[k], mark)
 	}
 	agree, total := 0, 0
 	for _, k := range sortedKeys(s.Total) {
@@ -363,6 +421,14 @@ func (s *sbTwinSummary) print(w io.Writer, o sbOptions) {
 			}
 			fmt.Fprintf(w, "  %-32s %6d/%6d%s\n", k, s.Agree[k], s.Total[k], mark)
 		}
+	}
+	if o.minAgree > 0 {
+		n, d := s.Total[twin.Opaque], s.compared()+s.Total[twin.Opaque]
+		mark := ""
+		if s.rebuildFailExceeds(o.maxRebuildFail) {
+			mark = "  FAIL"
+		}
+		fmt.Fprintf(w, "  %-32s %6d/%6d (%s, budget %.3g%%)%s\n", "rebuild_fail", n, d, sbPct(n, d), o.maxRebuildFail, mark)
 	}
 	classes := sortedKeys(s.Classes)
 	sort.SliceStable(classes, func(a, b int) bool { return s.Classes[classes[a]].N > s.Classes[classes[b]].N })
@@ -723,19 +789,15 @@ func runSpellbench(reg *cards.Registry, p *pool, o sbOptions, failPath string, o
 			fmt.Fprintln(os.Stderr, "cardfuzz:", err)
 			return 1
 		}
-		if sum.Errors > 0 {
-			return 1
-		}
 		if o.minAgree > 0 {
-			if kinds := sum.failingKinds(o.minAgree); len(kinds) > 0 {
-				detail := make([]string, len(kinds))
-				for i, k := range kinds {
-					detail[i] = fmt.Sprintf("%s %s", k, sbPct(sum.Agree[k], sum.Total[k]))
-				}
-				fmt.Fprintf(os.Stderr, "cardfuzz: spellbench twin agreement below -min-agree %.1f%%: %s\n", o.minAgree, strings.Join(detail, ", "))
+			if reasons := sum.failReasons(o.minAgree, o.maxRebuildFail); len(reasons) > 0 {
+				fmt.Fprintf(os.Stderr, "cardfuzz: spellbench twin failed (-min-agree %.1f%%, -max-rebuild-fail %.3g%%): %s\n", o.minAgree, o.maxRebuildFail, strings.Join(reasons, ", "))
 				return 1
 			}
 			return 0
+		}
+		if sum.Errors > 0 {
+			return 1
 		}
 		if sum.Disagreements > 0 {
 			return 1
