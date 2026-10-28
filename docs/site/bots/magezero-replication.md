@@ -320,11 +320,11 @@ Each generation's figure is ±0.03 (95%, 1,000 games). Reading:
   generation.
 - **dirty-dirac learns faster from the same start.** Its first net is worth
   +0.11 where theirs is worth +0.01, and it ends 0.13 higher (0.78 vs 0.65).
-  Part of that is the network. On their own data our d64 MLP matches
-  NetGraph on value ([above](#their-data-both-nets)) at 1/53 of the
-  parameters, and 1,000 games is a small data set for an 8.8M-parameter net.
-  The rest is not separated: engine, opponent and training details all
-  differ.
+  Why is not separated: network, engine, opponent and training details all
+  differ. One hypothesis, not tested: 1,000 games per generation suits a
+  166K-parameter net better than an 8.8M-parameter one. On their own data
+  the small net already matches NetGraph on value
+  ([above](#their-data-both-nets)).
 - **The weak-opponent arm** starts at 0.51, where the first version of this
   page compared it against their 0.35, and climbs to 0.87. That gap was the
   opponent, not the search.
