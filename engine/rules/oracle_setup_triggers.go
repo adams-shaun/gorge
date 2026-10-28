@@ -49,11 +49,17 @@ import (
 // A trigger whose line cannot be resolved is kept: the discard only ever
 // removes a trigger it can positively classify as an entry shape, so an
 // unrecognised synthetic trigger degrades toward firing rather than vanishing.
-func setupPlacementDropsTrigger(t cards.Trigger, backFaceChapter bool) bool {
+//
+// dropAttached is set only by a placement that enters ATTACHED (setup's
+// "attached", placeSetupCard's bearer): it also drops TriggerAttached, since
+// XMage links the attachment without an attach event.
+func setupPlacementDropsTrigger(t cards.Trigger, backFaceChapter, dropAttached bool) bool {
 	if backFaceChapter {
 		return true
 	}
 	switch t.ModeKind() {
+	case cards.TriggerAttached:
+		return dropAttached
 	case cards.TriggerChangesZone:
 		// Destination$ compiles once through the registered coder (the same
 		// read the merge-base filter used), so this is a trip through the
@@ -104,10 +110,18 @@ func setupBackFaceDropsChapter(o *state.Object, backFace bool) bool {
 //
 // Only fixture scenarios take either branch; a hand-written scenario keeps the
 // ordinary move and every trigger it queues.
-func (r *oracleRun) placeSetupCard(id state.ObjID, from, to state.Zone, fixture, backFace bool) {
+//
+// A nonzero bearer marks a battlefield move as an effect-named Aura entry
+// (events.MarkNamedAttachEntry): the Aura enters attached to bearer with no
+// choice (CR 303.4f), and a fixture placement also drops the "whenever an Aura
+// becomes attached" trigger that entry queued.
+func (r *oracleRun) placeSetupCard(id state.ObjID, from, to state.Zone, fixture, backFace bool, bearer state.ObjID) {
 	e := r.e
 	pendingBefore := len(e.pendingTriggers)
 	move := events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to}
+	if bearer != 0 {
+		events.MarkNamedAttachEntry(&move, []state.ObjID{bearer})
+	}
 	if !fixture {
 		e.emit(move)
 		return
@@ -152,7 +166,7 @@ func (r *oracleRun) placeSetupCard(id state.ObjID, from, to state.Zone, fixture,
 	dropChapter := setupBackFaceDropsChapter(e.G.Obj(id), backFace)
 	for _, pt := range tail {
 		t, _ := e.triggerOf(pt)
-		if setupPlacementDropsTrigger(t, pt.Chapter && dropChapter) {
+		if setupPlacementDropsTrigger(t, pt.Chapter && dropChapter, bearer != 0) {
 			continue
 		}
 		kept = append(kept, pt)
@@ -199,7 +213,7 @@ func (e *Engine) dropSetupEntryTriggers() {
 		ordered := 0
 		for i, pt := range e.pendingTriggers {
 			t, _ := e.triggerOf(pt)
-			if setupPlacementDropsTrigger(t, pt.Chapter && pt.Source == sd.obj && sd.dropChapter) {
+			if setupPlacementDropsTrigger(t, pt.Chapter && pt.Source == sd.obj && sd.dropChapter, false) {
 				continue
 			}
 			if i < e.orderedTriggers {
