@@ -17,6 +17,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
+	"github.com/adams-shaun/gorge/server/spellbench/neutral"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 	"github.com/adams-shaun/gorge/server/spellbench/wire"
 	"github.com/adams-shaun/gorge/server/spellbench/xview"
@@ -49,6 +50,14 @@ type Server struct {
 	gameID, auditSeat string
 	gameOverReceived  bool
 	neutral           *neutralGame // set when the seat plays another engine's game (EnableNeutral)
+	// autoPay is the table's engine_autopay declaration: the v2 candidate set
+	// omits manual mana activations, so the native decision the bot is asked
+	// must omit them too.
+	autoPay bool
+	// opaque marks the last neutral decision's candidates the neutral world
+	// could not reconstruct (neutral.Untranslated). The twin leaves those out
+	// of the comparison: the neutral agent had no answer to give.
+	opaque []bool
 }
 
 func New(policy string) (*Server, error) {
@@ -70,6 +79,13 @@ func (s *Server) Forced() int { return s.forced }
 func (s *Server) Records() map[uint64]*Record { return s.records }
 
 func (s *Server) PolicyKey() string { return s.policy }
+
+// NeutralOpaque reports whether the last neutral decision's candidate i was
+// one the neutral world could not translate (neutral.Untranslated). It is
+// false on the view path, whose candidates are the native ones.
+func (s *Server) NeutralOpaque(i int) bool {
+	return i >= 0 && i < len(s.opaque) && s.opaque[i]
+}
 
 func (s *Server) Round(req []byte) ([]byte, error) { return s.Handle(req), nil }
 
@@ -154,6 +170,8 @@ func (s *Server) Handle(line []byte) (resp []byte) {
 			return errorLine(q.RequestID, "malformed_request", err.Error())
 		}
 		s.bot = bot
+		mana := q.EngineProfile.EngineDefaults["mana_payment"]
+		s.autoPay = mana != nil && *mana == "engine_autopay"
 		s.gameID, s.auditSeat, s.gameOverReceived = q.GameID, q.Seat, false
 		s.plan = nil
 		s.records = map[uint64]*Record{}
@@ -226,6 +244,7 @@ func (s *Server) decide(v view.View, d decision.Decision) (in decision.Intent) {
 }
 
 func (s *Server) choose(q request) uint32 {
+	s.opaque = nil // a failed translation below must not keep the last decision's marks
 	cands := q.Decision.Candidates
 	if len(cands) == 0 {
 		s.fallbacks++
@@ -238,6 +257,10 @@ func (s *Server) choose(q request) uint32 {
 			fmt.Fprintln(os.Stderr, "gorge agent: decision untranslatable:", err)
 			s.fallbacks++
 			return cands[0].CandidateID
+		}
+		s.opaque = make([]bool, len(p.Ops))
+		for i := range p.Ops {
+			s.opaque[i] = p.Ops[i].Op == neutral.Untranslated
 		}
 	} else {
 		raw, ok := q.Decision.Extensions["x_gorge_view_v1"]
@@ -252,7 +275,14 @@ func (s *Server) choose(q request) uint32 {
 		}
 	}
 	v, d := Rebuild(p)
+	if s.autoPay && s.neutral == nil {
+		d = withoutManualMana(d)
+		v.Decision = &d
+	}
 	ask := func(nd decision.Decision) decision.Intent {
+		if s.autoPay && s.neutral == nil {
+			nd = withoutManualMana(nd)
+		}
 		vv := v // a follow-up is asked with the same view, showing that decision
 		vv.Decision = &nd
 		return s.decide(vv, nd)
@@ -293,6 +323,22 @@ func (s *Server) choose(q request) uint32 {
 		fmt.Fprintln(os.Stderr, "gorge agent: native", p.NativeIndex, r.Reason)
 	}
 	return cands[i].CandidateID
+}
+
+// withoutManualMana drops the priority mana activations an engine_autopay
+// table does not offer on the wire (mapping's priority pose hides them). The
+// native decision carries them, so a bot asked the full decision can pick an
+// action the v2 candidate set cannot name and Pick falls back to pass; asking
+// only the actions the wire offers keeps the pick representable.
+func withoutManualMana(d decision.Decision) decision.Decision {
+	kept := d.Options[:0:0]
+	for _, o := range d.Options {
+		if o.Kind != "activate" {
+			kept = append(kept, o)
+		}
+	}
+	d.Options = kept
+	return d
 }
 
 // Rebuild returns the bot's inputs, restoring the server-side policy facts.

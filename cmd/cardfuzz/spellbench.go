@@ -298,16 +298,16 @@ func (s *sbTwinSummary) print(w io.Writer, o sbOptions) {
 	}
 	agree, total := 0, 0
 	for _, k := range sortedKeys(s.Total) {
-		if k == twin.Floated {
+		if k == twin.Floated || k == twin.Opaque {
 			continue
 		}
 		agree += s.Agree[k]
 		total += s.Total[k]
 	}
-	fmt.Fprintf(w, "agreement %d/%d (%s); %d decisions skipped where gorge floated mana\n", agree, total, sbPct(agree, total), s.Total[twin.Floated])
+	fmt.Fprintf(w, "agreement %d/%d (%s); %d decisions skipped where gorge floated mana, %d where the neutral world could not rebuild the pick\n", agree, total, sbPct(agree, total), s.Total[twin.Floated], s.Total[twin.Opaque])
 	fmt.Fprintln(w, "agreement by decision kind:")
 	for _, k := range sortedKeys(s.Total) {
-		if k != twin.Floated {
+		if k != twin.Floated && k != twin.Opaque {
 			fmt.Fprintf(w, "  %-32s %6d/%6d\n", k, s.Agree[k], s.Total[k])
 		}
 	}
