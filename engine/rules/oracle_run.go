@@ -115,6 +115,30 @@ type oracleSeat struct {
 	// for an unspecified earlier action, so it queues no trigger: every
 	// trigger it caused is discarded.
 	TappedAfterUntap []string `json:"tapped_after_untap,omitempty"`
+	// Tokens are the tokens this seat controls at setup, in creation order,
+	// minted after the seat's card placements so "pN:token:Name#k" refs bind
+	// as in the recorded game. Placement fires no trigger and no CreateToken
+	// replacement; see oracleSetupToken.
+	Tokens []oracleSetupToken `json:"tokens,omitempty"`
+	// Attached places listed battlefield Auras already attached; see
+	// oracleSetupAttach.
+	Attached []oracleSetupAttach `json:"attached,omitempty"`
+}
+
+// oracleSetupToken is one token a seat's setup places on the battlefield.
+//
+// Setup is placement, not creation (CR 111.2 still makes the seat the owner
+// and controller): the token is minted with a TokenCreate keyed by its Forge
+// token-script stem (Game.Tokens), but no trigger the mint queues fires
+// ("when this enters", "whenever you create a token") and no CreateToken
+// replacement (Doubling Season) rewrites it -- XMage's cheat placement sees
+// neither. Counters is the token's COMPLETE counter set after setup (a placed
+// token enters with none of its own, so unlike the card field Counters it is
+// not added on top of entry counters). A scenario lists the token's whole
+// state; nothing the script grants on entry is invented here.
+type oracleSetupToken struct {
+	Script   string           `json:"script"`
+	Counters map[string]int32 `json:"counters,omitempty"`
 }
 
 // setupCounters lists the counters a seat's setup puts on a battlefield
@@ -328,6 +352,9 @@ type oracleRun struct {
 	flips      []OracleFlip
 	flipScan   int
 	noSnapshot bool // runOracleScenarioWith's switch
+	// attachedDeferred holds the Auras build binds but places after every
+	// seat (placeAttached).
+	attachedDeferred []setupAttachedEntry
 	// xmageFixture mirrors sc.xmageFixture: this run replays a GENERATED
 	// compliance scenario, where XMage is the reference engine. The
 	// hand-authored audit fixtures are gorge-internal (no XMage snapshot to
@@ -707,64 +734,12 @@ func (r *oracleRun) build(sc oracleScenario) error {
 			if pl.zone == state.ZBattlefield {
 				r.exactRefs[ref] = true
 			}
-			backFace := setupPlacedBackFace(sc.Setup[fmt.Sprintf("p%d", p)], pl.name)
-			if from := e.G.Obj(id).Zone; from != pl.zone {
-				// A back-face battlefield card enters ON its back face: the
-				// FlipFace rides ahead of the MoveZone (the same sequence a
-				// transformed ChangeZone emits, effects.applyTransformed), so
-				// the entry fold reads the face XMage's addCard places --
-				// a back-face Saga creature enters with its lore counter, a
-				// back-face non-Saga (a transformed Saga's creature, the
-				// crafted Braided Quipu) enters with none and no chapter
-				// trigger. A flip after the entry would leave the FRONT
-				// face's entry grants (The Legend of Kuruk's lore counter)
-				// stranded on a permanent whose face never carried them.
-				if backFace && pl.zone == state.ZBattlefield {
-					// Placement is not a transform (CR 701.28): the back
-					// face's "as this transforms" replacement (Sephiroth's
-					// emblem) must not run for a card the harness merely
-					// seats on that face, as XMage's addCard does.
-					prior := e.applyingReplacement
-					e.applyingReplacement = true
-					e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: 1, Text: "Transformed"})
-					e.applyingReplacement = prior
-				}
-				r.placeSetupCard(id, from, pl.zone, sc.xmageFixture, backFace)
+			// An Aura named in setup "attached" binds its ref here and is placed by
+			// placeAttached once every bearer exists (oracleSetupAttach).
+			if r.deferSetupAttached(sc.Setup[fmt.Sprintf("p%d", p)], p, pl.zone, pl.name, counts[pl.name], id) {
+				continue
 			}
-			if pl.zone == state.ZBattlefield && backFace {
-				// A back-face PLANESWALKER whose entering face prints no
-				// positive loyalty (Forge's "Loyalty: 0" carry-over spelling,
-				// Oko, Lorwyn Liege's Shadowmoor Scion) is not enterable as
-				// printed: a real Oko reaches the back face by transforming,
-				// carrying its loyalty. XMage's addCard places the back face
-				// with the front face's starting loyalty, so the harness
-				// grants that where the entry fold (reading the back face)
-				// granted none; without it the walker sits at 0 loyalty and
-				// the CR 704.5i state-based action removes it before its
-				// first-main-phase trigger can fire.
-				if n := setupBackFaceLoyalty(e.G.Obj(id)); n > 0 {
-					e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "LOYALTY", Amount: n})
-				}
-			}
-			for _, tapped := range sc.Setup[fmt.Sprintf("p%d", p)].Tapped {
-				if cards.NormalizeName(tapped) == cards.NormalizeName(pl.name) {
-					e.emit(events.Event{Kind: events.Tap, Obj: id})
-					break
-				}
-			}
-			if pl.zone == state.ZBattlefield {
-				for _, ev := range setupCounters(sc.Setup[fmt.Sprintf("p%d", p)], pl.name) {
-					ev.Obj = id
-					e.emit(ev)
-				}
-				// XMage's addCard places a permanent as if it had been there
-				// since before the game: it is not summoning sick (CR 302.6)
-				// on turn 1 whichever seat it sits with. The first TurnChange
-				// clears sickness only for the starting seat, so a
-				// non-starting seat's {T} ability (Trap Runner on p1) would
-				// otherwise be unactivatable on p0's turn 1.
-				e.emit(events.Event{Kind: events.SetupSettled, Obj: id})
-			}
+			r.placeSetupEntry(sc, p, id, pl.name, pl.zone, 0)
 			if pl.top {
 				tops = append(tops, id)
 			}
@@ -790,6 +765,9 @@ func (r *oracleRun) build(sc oracleScenario) error {
 			}
 			r.refs[ref] = id
 		}
+		if err := r.placeSetupTokens(sc.Setup[fmt.Sprintf("p%d", p)].Tokens, p); err != nil {
+			return err
+		}
 		if len(tops) > 0 {
 			// LibraryOrder's IDs are the complete new order, top first.
 			order := append([]state.ObjID(nil), tops...)
@@ -812,6 +790,9 @@ func (r *oracleRun) build(sc oracleScenario) error {
 		if !sc.xmageFixture {
 			emitSetupSpeed(e.emit, p, e.G.Players[p].Speed, sc.Setup[fmt.Sprintf("p%d", p)])
 		}
+	}
+	if err := r.placeAttached(sc); err != nil {
+		return err
 	}
 	e.Advance()
 	r.answers = append([]oracleAnswer(nil), sc.SetupAnswers...)
