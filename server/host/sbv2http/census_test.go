@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -61,6 +62,20 @@ func TestSBV2NativeOnlyCensus(t *testing.T) {
 
 	got := []byte(renderNativeOnlyCensus(measured))
 	if os.Getenv("SBV2_NATIVE_ONLY_REGEN") == "1" {
+		// Refuse to bless growth. A kind that gained decisions is a regression
+		// the ratchet exists to catch; only a shrink (or a kind that
+		// disappeared) may be written without review.
+		if prior, err := os.ReadFile(nativeOnlyBaselinePath); err == nil {
+			before := parseNativeOnlyCensus(t, prior)
+			for kind, n := range measured {
+				if n > before[kind] {
+					t.Fatalf("refusing to regenerate %s: %s grew from %d to %d; the baseline may only shrink",
+						nativeOnlyBaselinePath, kind, before[kind], n)
+				}
+			}
+		} else if !os.IsNotExist(err) {
+			t.Fatalf("reading %s before regen: %v", nativeOnlyBaselinePath, err)
+		}
 		if err := os.MkdirAll("testdata", 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -94,4 +109,25 @@ func renderNativeOnlyCensus(counts map[string]int) string {
 		fmt.Fprintf(&b, "%s\t%d\n", kind, counts[kind])
 	}
 	return b.String()
+}
+
+// parseNativeOnlyCensus reads a baseline so regen can refuse to bless growth.
+func parseNativeOnlyCensus(t *testing.T, raw []byte) map[string]int {
+	t.Helper()
+	out := map[string]int{}
+	for _, line := range strings.Split(strings.TrimSpace(string(raw)), "\n") {
+		if line == "" {
+			continue
+		}
+		fields := strings.Split(line, "\t")
+		if len(fields) != 2 {
+			t.Fatalf("%s: malformed line %q, want kind<TAB>count", nativeOnlyBaselinePath, line)
+		}
+		n, err := strconv.Atoi(fields[1])
+		if err != nil || n < 0 {
+			t.Fatalf("%s: bad count in %q: %v", nativeOnlyBaselinePath, line, err)
+		}
+		out[fields[0]] = n
+	}
+	return out
 }

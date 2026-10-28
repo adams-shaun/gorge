@@ -981,7 +981,10 @@ wire could not pose, captured byte for byte (`TestSBV2Golden`; regenerate only w
 sign-off via `SBV2_GOLDEN_REGEN=1`). `TestSBV2ParityLegacyDecks` plays 20 fixed seeds over the two-seat
 Legacy deck pairs and requires the scripted v2 client and the native table to end on the same
 chain head, and `TestSBV2NativeOnlyCensus` ratchets the server-signalled `native_only`
-decisions by kind in `testdata/native_only.tsv`, which may only shrink.
+decisions by kind in `testdata/native_only.tsv`, which may only shrink. The handful of
+picks with no v2 candidate that the parity client answers over the native routes (auto-pay
+hides priority `activate` candidates) is ratcheted per seed in
+`testdata/parity_misses.tsv`, which likewise may only shrink.
 
 ## Versioning
 

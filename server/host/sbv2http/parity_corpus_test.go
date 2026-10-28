@@ -65,6 +65,13 @@ type seedOutcome struct {
 	// census counts the native-only decisions the scripted client was served,
 	// keyed by native decision kind.
 	census map[string]int
+	// picks counts the mapped (non-native_only) decisions the client saw, and
+	// sends how many of them it answered over /send. misses is a strict subset
+	// of picks: the production bot's native pick had no v2 candidate, so the
+	// client answered it over the native routes. All three are ratcheted by
+	// TestSBV2ParityLegacyDecks.
+	picks  int
+	sends  int
 	misses int
 	errs   []string
 }
@@ -243,7 +250,7 @@ func runParitySeed(reg *cards.Registry, seed uint64) seedOutcome {
 	out.nativeHead, out.nativeEvents = headNative, eventsNative
 
 	client := <-clientDone
-	out.misses, out.census = client.misses, client.census
+	out.misses, out.sends, out.picks, out.census = client.misses, client.sends, client.picks, client.census
 	if client.err != nil {
 		return fail("wire client: %v", client.err)
 	}
@@ -260,6 +267,8 @@ func runParitySeed(reg *cards.Registry, seed uint64) seedOutcome {
 }
 
 type parityClientResult struct {
+	picks  int
+	sends  int
 	misses int
 	census map[string]int
 	err    error
@@ -281,27 +290,31 @@ func playParityClient(r *host.Registry, hub *Hub, base string, table host.TableI
 	deadline := time.Now().Add(parityDeadline)
 	handled := map[string]bool{}
 	seenNative := map[string]bool{}
+	sends, picks := 0, 0
+	result := func(err error) parityClientResult {
+		return parityClientResult{picks: picks, sends: sends, misses: p.misses, census: census, err: err}
+	}
 
 	for {
 		if done, _, err := parityMatchState(r, table); err != nil {
-			return parityClientResult{misses: p.misses, census: census, err: err}
+			return result(err)
 		} else if done {
-			return parityClientResult{misses: p.misses, census: census}
+			return result(nil)
 		}
 		if time.Now().After(deadline) {
-			return parityClientResult{misses: p.misses, census: census, err: fmt.Errorf("client deadline expired while polling %s", statePath)}
+			return result(fmt.Errorf("client deadline expired while polling %s", statePath))
 		}
 
 		status, body, err := parityGet(base+statePath, token)
 		if err != nil {
-			return parityClientResult{misses: p.misses, census: census, err: fmt.Errorf("GET state: %w", err)}
+			return result(fmt.Errorf("GET state: %w", err))
 		}
 		if status != http.StatusOK {
-			return parityClientResult{misses: p.misses, census: census, err: fmt.Errorf("GET state: status %d body %s", status, body)}
+			return result(fmt.Errorf("GET state: status %d body %s", status, body))
 		}
 		var doc stateBody
 		if err := json.Unmarshal(body, &doc); err != nil {
-			return parityClientResult{misses: p.misses, census: census, err: fmt.Errorf("state JSON: %v (%s)", err, body)}
+			return result(fmt.Errorf("state JSON: %v (%s)", err, body))
 		}
 		if doc.Request == nil {
 			time.Sleep(time.Millisecond)
@@ -335,29 +348,31 @@ func playParityClient(r *host.Registry, hub *Hub, base string, table host.TableI
 			continue
 		}
 
+		picks++
 		cand, miss := p.pick(req.ask)
 		if miss != "" {
-			p.misses++
-			// The production bot's native answer is not among the v2
-			// candidates (an engine default or an option the wire folds or
-			// hides). Give v2 up for this decision and answer it over the
-			// native routes, exactly as humanseat's scripted answerer does
-			// when agent.Pick misses.
+			// picker.pick already counted this miss; counting it here too
+			// would double the ratcheted baseline. The production bot's
+			// native answer is not among the v2 candidates (an engine
+			// default or an option the wire folds or hides). Give v2 up for
+			// this decision and answer it over the native routes, exactly as
+			// humanseat's scripted answerer does when agent.Pick misses.
 			if err := r.SubmitIntent(table, 1, 0, p.intent); err != nil {
-				return parityClientResult{misses: p.misses, census: census, err: fmt.Errorf("native fallback for seq %d (%s): %w", p.planSeq, req.ask.Pose.Native.Kind, err)}
+				return result(fmt.Errorf("native fallback for seq %d (%s): %w", p.planSeq, req.ask.Pose.Native.Kind, err))
 			}
 			handled[id] = true
 			continue
 		}
 		sendBody, err := json.Marshal(map[string]any{"request_id": id, "candidate_id": cand})
 		if err != nil {
-			return parityClientResult{misses: p.misses, census: census, err: fmt.Errorf("marshal send: %w", err)}
+			return result(fmt.Errorf("marshal send: %w", err))
 		}
 		status, respBody, err := parityPost(base+sendPath, token, sendBody)
 		if err != nil {
-			return parityClientResult{misses: p.misses, census: census, err: fmt.Errorf("POST send: %w", err)}
+			return result(fmt.Errorf("POST send: %w", err))
 		}
 		if status == http.StatusNoContent {
+			sends++
 			handled[id] = true
 			continue
 		}
@@ -366,7 +381,7 @@ func playParityClient(r *host.Registry, hub *Hub, base string, table host.TableI
 			time.Sleep(time.Millisecond)
 			continue
 		}
-		return parityClientResult{misses: p.misses, census: census, err: fmt.Errorf("POST send request %s candidate %d: status %d body %s", id, cand, status, respBody)}
+		return result(fmt.Errorf("POST send request %s candidate %d: status %d body %s", id, cand, status, respBody))
 	}
 }
 
