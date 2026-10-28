@@ -241,6 +241,10 @@ type config struct {
 	// host.Options.ThinkTimeout, applied only while -manabrew is on
 	// (manabrewThinkTimeout) so setting it alone changes nothing.
 	manabrewThink time.Duration
+	// sbv2 is the -sbv2 flag: mount server/host/sbv2http (sbv2.go) and tap
+	// each two-seat constructed AutoMana human seat with a V2HumanSeat. Off by
+	// default so an unmounted server is byte-identical to today.
+	sbv2 bool
 	// events is the -events flag: host 4-seat draft events under /api/events
 	// (eventhost; persistence under <dir>/events). Off by default so a
 	// server that never turned it on keeps the spectator/bot surface it had
@@ -448,6 +452,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.BoolVar(&c.manabrew, "manabrew", false, "mount the ManaBrew protocol adapter (server/host/manabrewhttp) on the main listener; requires -humans or -vsbot")
 	fs.StringVar(&c.manabrewAddr, "manabrew-addr", "", "serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew; refuses :8080/:8081)")
 	fs.DurationVar(&c.manabrewThink, "manabrew-think", 0, "override the human-seat think timeout while -manabrew is on (0 = inherit the server default)")
+	fs.BoolVar(&c.sbv2, "sbv2", false, "mount the SpellBench v2 human-seat HTTP routes (server/host/sbv2http) on the main listener; requires -humans or -vsbot")
 	fs.BoolVar(&c.events, "events", false, "host 4-seat draft events under /api/events (eventhost; persistence under <dir>/events)")
 	fs.IntVar(&c.maxEvents, "max-events", 4, "maximum draft events not yet COMPLETE")
 	return fs, c
@@ -533,6 +538,12 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if c.manabrew && len(c.humans) == 0 && !c.vsbot {
 		return fmt.Errorf("-manabrew requires a seat gate: pass -humans or -vsbot")
 	}
+	// The v2 routes authenticate through the same seat gate as the native
+	// wire, so the same startup requirement applies: never mount routes that
+	// could only answer 403, and fail before any table is added.
+	if c.sbv2 && len(c.humans) == 0 && !c.vsbot {
+		return fmt.Errorf("-sbv2 requires a seat gate: pass -humans or -vsbot")
+	}
 	// The deck directory is split into the two pools the tables deal: the
 	// commander-declared files (each validated up front, below) and the
 	// constructed rest. One directory serves both formats, so the numbered
@@ -602,6 +613,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	}
 	hopts := c.hostOptions(reg, load)
 	ew.hook(&hopts)
+	sbv2hub := c.applySBV2(&hopts)
 	r, err := host.New(hopts)
 	if err != nil {
 		return err
@@ -728,6 +740,9 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	// nil Options.Seat.
 	mbSrv, mbErrc, err := c.mountManaBrew(topMux, r, gate, newManabrewCardText(ac))
 	if err != nil {
+		return err
+	}
+	if err := c.mountSBV2(topMux, r, gate, sbv2hub); err != nil {
 		return err
 	}
 	topMux.Handle("/", httpapi.NewHandler(r, opts))

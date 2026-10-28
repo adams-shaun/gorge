@@ -331,6 +331,11 @@
       "tier": "server",
       "status": "EXT"
     },
+    "server/host/sbv2http": {
+      "tier": "server",
+      "status": "EXT",
+      "purpose": "Opt-in SpellBench v2 HTTP routes for a human seat, mounted by gorged behind -sbv2."
+    },
     "server/manabrew": {
       "tier": "server",
       "status": "EXT"
