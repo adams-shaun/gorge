@@ -604,7 +604,7 @@ func (e *Engine) effectEntryBodies(ev events.Event) []replMatch {
 			rememberedPlayers: ce.RememberedPlayers,
 			chosenCards:       ce.Chosen, chosenBound: ce.ChosenBound,
 			chosen: ce.ChosenNumber, controller: ce.Controller, frozenController: true,
-			key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+			key: effectReplKey(ce)})
 	}
 	return e.dropAppliedReplacements(out)
 }
@@ -722,38 +722,32 @@ func (e *Engine) entryGrantPlan(ev events.Event, preview *Engine, entrant state.
 	return mergeEntryGrants(grants, bodyGrants), bodyIDs
 }
 
-// mergeEntryGrants is CR 614.1c / 122.6 for the whole plan: every counter an
-// object enters with is put by ONE event, so the plan holds one grant per kind
-// and an "that many plus one" AddCounter replacement (Hardened Scales, Kami of
-// Whispered Hopes) applies once to it. The base grants (intrinsic, requested
-// and rider) fold into the first earlier grant of their kind, then each body
-// grant folds into the base grant of its kind. Two body grants of one kind do
-// not fold here: an entrant's own separate bodies keep one grant each (a lent
-// body already merged into the earlier body grant in entryBodyCounterGrants).
-// A merged grant keeps a body source when either side had one, so the put
-// still reads as effect-caused (EffectOnly$ gates).
+// mergeEntryGrants is CR 614.1c / 122.6 for the plan's two lists: every
+// counter an object enters with is put by ONE event, so a body grant folds
+// into the first base grant (intrinsic, requested or rider) of its kind and a
+// "that many plus one" AddCounter replacement (Hardened Scales, Kami of
+// Whispered Hopes) applies once to the whole put. Two grants of one list do
+// not fold into each other: an entrant's own separate keyword grants (Riot
+// and Unleash) and its own separate bodies keep one grant each, the shape the
+// staged order asks pin (a lent body already merged into the earlier body
+// grant in entryBodyCounterGrants). A merged grant keeps a body source when
+// either side had one, so the put still reads as effect-caused (EffectOnly$
+// gates).
 func mergeEntryGrants(base, bodies []entryGrant) []entryGrant {
-	var out []entryGrant
-	fold := func(g entryGrant, limit int) bool {
-		for i := range out[:limit] {
+	out := base
+	for _, g := range bodies {
+		merged := false
+		for i := range base {
 			if out[i].kind == g.kind {
 				out[i].amount += g.amount
 				if out[i].body == 0 {
 					out[i].body = g.body
 				}
-				return true
+				merged = true
+				break
 			}
 		}
-		return false
-	}
-	for _, g := range base {
-		if !fold(g, len(out)) {
-			out = append(out, g)
-		}
-	}
-	nBase := len(out)
-	for _, g := range bodies {
-		if !fold(g, nBase) {
+		if !merged {
 			out = append(out, g)
 		}
 	}

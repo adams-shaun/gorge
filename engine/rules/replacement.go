@@ -741,6 +741,12 @@ func (e *Engine) replacementAskPlayer(matches []replMatch, affected state.Player
 	return affected
 }
 
+// effectReplKey is the replMatch key of an Effect-created replacement
+// ("effect:<source>:<timestamp>"), the inverse of parseEffectKey.
+func effectReplKey(ce *state.ContinuousEffect) string {
+	return "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))
+}
+
 // parseEffectKey splits a replMatch's effect-created key
 // ("effect:<source>:<timestamp>") back into its parts.
 func parseEffectKey(key string) (state.ObjID, uint32, bool) {
