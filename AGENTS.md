@@ -167,11 +167,10 @@ Measured 2026-10-25 on `develop` 87ed64d3b (`go test ./engine/rules/ -run
 are on the docs site, https://adams-shaun.github.io/gorge/; prefer it over
 this snapshot.
 
-- **Ratchet: 2 of 1123 distinct cards unsupported.** The cards come from the
+- **Ratchet: 1 of 1123 distinct cards unsupported.** The cards come from the
   30 deck files in `testkit/testutil/decks/*.json`: 15 60-card constructed
-  decks and 15 100-card Commander decks. The two are:
+  decks and 15 100-card Commander decks.
   - Incinerate (`stat:CantRegenerate`)
-  - Vines of Vastwood (`stat:CantTarget`)
 - **Param census: 15 of 1123.** `TestEveryRepoDeckParamsAreRead`
   (`engine/rules/paramcensus_test.go`) is the companion ratchet over the same decks'
   parameters. Its per-card files in `engine/rules/testdata/paramcensus/` hold 15 cards that carry an

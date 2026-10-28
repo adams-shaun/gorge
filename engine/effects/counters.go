@@ -47,7 +47,7 @@ func effMultiplyCounter(h Host, c *Ctx, sa *cards.SA) {
 	if mult < 1 {
 		mult = 1
 	}
-	kind := strings.TrimSpace(sa.ParamStr(cards.PKCounterType))
+	kind := canonicalCounterKind(strings.TrimSpace(sa.ParamStr(cards.PKCounterType)))
 	g := h.Game()
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
@@ -296,6 +296,7 @@ func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32
 	if kind == "" {
 		kind = "P1P1"
 	}
+	kind = canonicalCounterKind(kind)
 	if spec == "" {
 		spec = "Permanent"
 	}
@@ -348,7 +349,7 @@ func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32
 // and AllCounters$ cases read the object's own count first purely to avoid an
 // event whose Amount overstates what changed.
 func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
-	kind := sa.ParamStr(cards.PKCounterType)
+	kind := canonicalCounterKind(strings.TrimSpace(sa.ParamStr(cards.PKCounterType)))
 	allTypes := sa.ParamStr(cards.PKAllCounterTypes) == "True"
 	if kind == "" && !allTypes {
 		return
@@ -444,7 +445,7 @@ func dedupeKinds(kinds []string) []string {
 // ("aor_remove:<kind>").
 func effAddOrRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
-	named := strings.TrimSpace(sa.ParamStr(cards.PKCounterType))
+	named := canonicalCounterKind(strings.TrimSpace(sa.ParamStr(cards.PKCounterType)))
 	eachExisting := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKEachExistingCounter)), "True")
 	if eachExisting && named != "" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -690,7 +691,7 @@ func aorApplyAct(h Host, c *Ctx, sa *cards.SA, o *state.Object, kind, act string
 // (the effPutCounterAll/effRemoveCounter exotic pattern). TargetUnique$ True
 // (one carrier, vacuous on a single-target ask) is tolerated silently.
 func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
-	kindParam := strings.TrimSpace(sa.ParamStr(cards.PKCounterType))
+	kindParam := canonicalCounterKind(strings.TrimSpace(sa.ParamStr(cards.PKCounterType)))
 	numParam := strings.TrimSpace(sa.ParamStr(cards.PKCounterNum))
 
 	// Loud-degrade the shapes the core cannot express, before anything moves.

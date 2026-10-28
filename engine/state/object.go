@@ -2439,9 +2439,12 @@ func (o *Object) CounterPTTotals() (dPower, dToughness int32) {
 // the dependency line: Object.Counter's "ALL" sum (this file, read by the
 // CardCounters.ALL count family) and engine/rules/replacement.go's AddCounter
 // doubler gate (rules imports state, never the reverse). Excluding the
-// markers by name is safe: every counter kind the corpus scripts is
-// upper-case (P1P1, LORE, AGE, TIME, STUN, CHARGE, ENERGY, POISON, LOYALTY,
-// ...), so no real kind can collide with either mixed-case marker name.
+// markers by name is safe because a counter kind read from a card script is
+// normalised through CanonicalCounterKind before it reaches an event: the
+// corpus's mixed-case script spellings fold onto the engine's kind
+// (state/counter_kind.go), so `WithCounters$ Shield` becomes the real
+// "SHIELD" counter and never this marker. The markers themselves are written
+// directly by effRegenerate and combat and never pass through that fold.
 func InternalCounterMarker(name string) bool {
 	return name == "Shield" || name == "Deathtouched"
 }

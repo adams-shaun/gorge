@@ -34,7 +34,7 @@ func TestCompoundRememberedRestrictionDoesNotOverapply(t *testing.T) {
 	// The object is remembered, so a naive remembered-set match would return
 	// true (over-applying: it is not a creature). The compound's Creature half
 	// must exclude it.
-	if e.restrictionBlocksTarget(artifact, 1) {
+	if e.restrictionBlocksTarget(artifact, 1, 0, nil) {
 		t.Fatal("compound IsRemembered spec over-applied to a remembered non-creature")
 	}
 	// And a bare IsRemembered spec (the only shape the corpus uses) must keep
@@ -46,7 +46,7 @@ func TestCompoundRememberedRestrictionDoesNotOverapply(t *testing.T) {
 		Remembered:     []state.ObjID{artifact},
 		Duration:       "UntilTheEndOfYourNextTurn",
 	})
-	if !e.restrictionBlocksTarget(artifact, 1) {
+	if !e.restrictionBlocksTarget(artifact, 1, 0, nil) {
 		t.Fatal("bare IsRemembered spec should still block a remembered object")
 	}
 }
