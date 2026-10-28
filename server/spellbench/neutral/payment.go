@@ -116,20 +116,26 @@ func (s *Session) candidates(sd *protocol.SeatDecision) *candidates {
 // before the options are built because on an autopay host a planned cast has
 // no option of its own (it is the action's plan-only cast, as natively).
 type prepared struct {
-	c       *candidates
-	actions []decision.PaymentAction
-	floats  []decision.Option
-	byCast  map[castKey]*planned // autopay: the action a cast candidate pays
-	plans   []*planned           // every offered action's lowering, in action order
-	resume  int                  // the candidate a pending lowering takes now, -1 for none
-	resumed payexec.Status
+	c        *candidates
+	actions  []decision.PaymentAction
+	floats   []decision.Option
+	byCast   map[castKey]*planned // autopay: the action a cast candidate pays
+	plans    []*planned           // every offered action's lowering, in action order
+	autoPay  bool                 // the host pays plans itself (engine_autopay)
+	planOnly bool                 // autopay: a planned cast is the action's plan-only cast
+	resume   int                  // the candidate a pending lowering takes now, -1 for none
+	resumed  payexec.Status
+	// resumedCast reports that the pending lowering takes a cast candidate
+	// now. A manual host decides the cast's method at that window (it has no
+	// plan to apply), so the plan is not put back in the decision's actions.
+	resumedCast bool
 }
 
 // prepay plans the payments of a priority decision: it continues the pending
 // lowering, or asks gorge's planner on a rebuilt board for fresh actions.
 func (s *Session) prepay(sd *protocol.SeatDecision, v *view.View) *prepared {
 	c := s.candidates(sd)
-	pre := &prepared{c: c, resume: -1, byCast: map[castKey]*planned{}}
+	pre := &prepared{c: c, resume: -1, byCast: map[castKey]*planned{}, autoPay: s.autoPay}
 	if len(c.mana) == 0 && len(c.cast) == 0 {
 		return pre
 	}
@@ -137,17 +143,26 @@ func (s *Session) prepay(sd *protocol.SeatDecision, v *view.View) *prepared {
 		j, st := s.step(s.pend.x, c, v)
 		if st == payexec.InProgress || st == payexec.Done {
 			pre.resume, pre.resumed = j, st
+			pre.resumedCast = j >= 0 && j < len(sd.Candidates) && sd.Candidates[j].Semantic.Kind == "cast_spell"
 			return pre
 		}
 		s.pend = nil
 		s.Counts[countAbort]++
+	}
+	// Only an engine_autopay host pays a plan itself; a manual host pays the
+	// plan by the taps it offers, so with no tap to lower onto there is
+	// nothing to plan. (A no-mana window on a manual host is not autopay: the
+	// pool already pays, and the cast is offered as itself.)
+	pre.planOnly = pre.autoPay && len(c.mana) == 0
+	if !pre.autoPay && len(c.mana) == 0 {
+		return pre
 	}
 	var actions []decision.PaymentAction
 	actions, pre.floats = s.plans(sd, c)
 	for _, a := range actions {
 		pl := &planned{action: a, sel: &decision.PaymentSelection{ActionID: a.ID, Plan: decision.ClonePaymentPlan(a.Plans[0])}, cand: -1,
 			poolOnly: len(a.Plans[0].Activations) == 0}
-		if len(c.mana) == 0 {
+		if pre.planOnly {
 			// Engine autopay: the cast candidate carries the plan.
 			j, ok := c.cast[castKey{obj: a.Cast.Object, flashbck: a.Cast.Origin == decision.OriginFlashback}]
 			if !ok {
@@ -172,6 +187,9 @@ func (s *Session) prepay(sd *protocol.SeatDecision, v *view.View) *prepared {
 // cover reports the action whose plan replaces the plain cast option of a
 // cast candidate on an autopay host, nil when none does.
 func (pre *prepared) cover(o decision.Option) *planned {
+	if !pre.planOnly {
+		return nil
+	}
 	if o.Mode != "" && o.Mode != "flashback" || o.AltCostIndex != 0 {
 		return nil
 	}
@@ -191,11 +209,20 @@ func (s *Session) finish(pre *prepared, n *native, ops []mapping.NativeOp) {
 		ops[j].Pays = append(ops[j].Pays, sel)
 	}
 	if p := s.pend; p != nil && pre.resume >= 0 {
-		tag(pre.resume, p.sel)
-		n.index = p.index
-		n.d.PaymentActions = p.actions
-		n.pays = map[string]*planned{p.sel.ActionID: {sel: p.sel, x: p.x}}
-		if pre.resumed == payexec.Done {
+		// A manual host has no plan to submit: at the cast step the seat
+		// picks the cast (and its method) as it would without a plan, while
+		// the lowering's taps have already been taken. Leaving the pending
+		// native index and its actions in place would replay the plan's
+		// payment intent there and shadow another cast method of the same
+		// card (an adventure beside its creature), so the cast is a fresh
+		// decision for the agent to ask.
+		if pre.autoPay || !pre.resumedCast {
+			tag(pre.resume, p.sel)
+			n.index = p.index
+			n.d.PaymentActions = p.actions
+			n.pays = map[string]*planned{p.sel.ActionID: {sel: p.sel, x: p.x}}
+		}
+		if pre.resumed == payexec.Done || pre.resumedCast {
 			s.pend = nil
 		}
 		return
@@ -217,14 +244,14 @@ func (s *Session) finish(pre *prepared, n *native, ops []mapping.NativeOp) {
 	}
 	n.pays = map[string]*planned{}
 	for _, pl := range pre.plans {
-		if len(pre.c.mana) == 0 && !pl.covered {
+		if pre.planOnly && !pl.covered {
 			continue
 		}
-		if len(pre.c.mana) > 0 {
+		if !pre.planOnly {
 			tag(pl.cand, pl.sel)
 		}
 		act := pl.action
-		if pl.base != nil && len(pre.c.mana) == 0 {
+		if pl.base != nil && pre.planOnly {
 			act.BaseOptionIndex = pl.base
 		}
 		n.pays[pl.action.ID] = pl
