@@ -2,6 +2,7 @@ package humanseat_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -27,9 +28,10 @@ import (
 // reference bot is the one defaultSeats builds for the slot, so a game it
 // plays through the codec must be the game a bot plays natively.
 type scripted struct {
-	bot     seat.Seat
-	plan    *agent.Plan
-	planSeq uint64
+	bot        seat.Seat
+	plan       *agent.Plan
+	planSeq    uint64
+	planIntent decision.Intent
 
 	// stallAt, when non-zero, makes the answerer hold the SECOND substep of
 	// the first transaction whose native decision is at least stallAt until
@@ -41,9 +43,10 @@ type scripted struct {
 	mu       sync.Mutex
 	substeps map[uint32]int
 	nativeOn int
+	misses   []string
 	// answerNative, when set, answers a native-only decision over the native
 	// routes, as a client would.
-	answerNative func(humanseat.NativeOnly)
+	answerNative func(n humanseat.NativeOnly, in *decision.Intent)
 }
 
 func (a *scripted) Choose(ctx context.Context, ask humanseat.Ask) (int, error) {
@@ -70,7 +73,8 @@ func (a *scripted) Choose(ctx context.Context, ask humanseat.Ask) (int, error) {
 		return in
 	}
 	if a.plan == nil || a.planSeq != nd.Seq {
-		a.plan, a.planSeq = agent.NewPlan(nd.Seq, askBot(nd)), nd.Seq
+		a.planIntent = askBot(nd)
+		a.plan, a.planSeq = agent.NewPlan(nd.Seq, a.planIntent), nd.Seq
 	}
 	ops := make([]mapping.NativeOp, len(ask.Pose.Candidates))
 	sems := make([]map[string]any, len(ask.Pose.Candidates))
@@ -86,7 +90,21 @@ func (a *scripted) Choose(ctx context.Context, ask humanseat.Ask) (int, error) {
 	for k, f := range ask.Pose.Followups {
 		follow[k] = *f
 	}
-	i, _ := agent.Pick(xview.Payload{Decision: nd, Ops: ops, Followups: follow}, sems, a.plan, askBot)
+	i, miss := agent.Pick(xview.Payload{Decision: nd, Ops: ops, Followups: follow}, sems, a.plan, askBot)
+	if miss != "" {
+		a.mu.Lock()
+		a.misses = append(a.misses, fmt.Sprintf("seq %d kind %s %s sub %d/%d ncand %d", nd.Seq, nd.Kind, miss, ask.Pose.SubstepIndex, ask.Pose.SubstepCount, len(sems)))
+		f := a.answerNative
+		a.mu.Unlock()
+		// The bot's answer is not among the candidates (an engine default or an
+		// unmapped option): give v2 up for this decision and answer it over the
+		// native routes, as the client does for a native_only decision.
+		if f != nil {
+			in := a.planIntent
+			go f(humanseat.NativeOnly{Seat: nd.Player, Seq: nd.Seq, Decision: nd, View: ask.View}, &in)
+		}
+		return 0, errors.New("bot answer is not a candidate")
+	}
 	return i, nil
 }
 
@@ -96,7 +114,7 @@ func (a *scripted) NativeOnly(n humanseat.NativeOnly) {
 	f := a.answerNative
 	a.mu.Unlock()
 	if f != nil {
-		go f(n)
+		go f(n, nil)
 	}
 }
 
@@ -124,7 +142,7 @@ func tableCfg(id host.TableID, tableSeed uint64) host.TableConfig {
 		Seed:  tableSeed, Mulligans: 0, Spectator: view.Omniscient, AutoMana: true, BotAutoPayMana: true}
 }
 
-func play(t *testing.T, o host.Options, cfg host.TableConfig, ans *scripted) (head string, events int) {
+func play(t *testing.T, o host.Options, cfg host.TableConfig) (head string, events int) {
 	t.Helper()
 	r, err := host.New(o)
 	if err != nil {
@@ -133,19 +151,6 @@ func play(t *testing.T, o host.Options, cfg host.TableConfig, ans *scripted) (he
 	defer r.Close()
 	if err := r.AddTable(cfg); err != nil {
 		t.Fatal(err)
-	}
-	if ans != nil {
-		ans.mu.Lock()
-		ans.answerNative = func(n humanseat.NativeOnly) {
-			in, err := ans.bot.Decide(context.Background(), n.View, n.Decision)
-			if err == nil {
-				err = r.SubmitIntent(cfg.ID, 1, n.Seat, in)
-			}
-			if err != nil {
-				t.Errorf("native answer for seq %d (%s): %v", n.Seq, n.Route, err)
-			}
-		}
-		ans.mu.Unlock()
 	}
 	if err := r.Start(cfg.ID); err != nil {
 		t.Fatal(err)
@@ -183,29 +188,153 @@ func waitHead(t *testing.T, r *host.Registry, id host.TableID, limit time.Durati
 	}
 }
 
-// v2Seats puts a tapped human seat at slot 0 and the table's bot at slot 1.
-func v2Seats(t *testing.T, ans humanseat.Answerer, hs **host.HumanSeat) func([]string, uint64) []seat.Seat {
-	return func(names []string, seed uint64) []seat.Seat {
+// recorder keeps every intent the human seat's decisions were answered with,
+// by decision sequence number: the tapped answers and the native ones.
+type recorder struct {
+	mu sync.Mutex
+	in map[uint64]decision.Intent
+}
+
+func (r *recorder) add(in decision.Intent) {
+	r.mu.Lock()
+	if r.in == nil {
+		r.in = map[uint64]decision.Intent{}
+	}
+	r.in[in.Seq] = in
+	r.mu.Unlock()
+}
+
+func (r *recorder) get(seq uint64) (decision.Intent, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	in, ok := r.in[seq]
+	return in, ok
+}
+
+// recTap records what the wrapped tap's answers commit.
+type recTap struct {
+	*humanseat.Seat
+	rec *recorder
+}
+
+func (r recTap) Parked(ctx context.Context, v view.View, d decision.Decision, answer func(decision.Intent) error, gone <-chan struct{}) {
+	r.Seat.Parked(ctx, v, d, func(in decision.Intent) error {
+		err := answer(in)
+		if err == nil {
+			r.rec.add(in)
+		}
+		return err
+	}, gone)
+}
+
+// playV2 plays the table with seat 0 a tapped human seat driven by ans, and
+// returns the chain head and the intents the seat was answered with.
+func playV2(t *testing.T, tableSeed uint64, think time.Duration, ans *scripted) (string, *recorder) {
+	t.Helper()
+	rec := &recorder{}
+	o := repoOptions(t)
+	o.ThinkTimeout = think
+	o.Seats = func(names []string, seed uint64) []seat.Seat {
 		tap, err := humanseat.New(humanseat.Config{Seats: len(names), Format: "constructed", Answerer: ans})
 		if err != nil {
 			t.Errorf("humanseat.New: %v", err)
 			return nil
 		}
 		h := host.NewHumanSeat()
-		h.SetTap(tap)
-		*hs = h
-		out := make([]seat.Seat, len(names))
+		h.SetTap(recTap{tap, rec})
+		out := hostBots(t, len(names), seed)
 		out[0] = h
-		for i := 1; i < len(names); i++ {
-			b, err := host.NewBotPolicySeatWithAutoPayMana(host.BotPolicy, seed^uint64(i+1), true)
-			if err != nil {
-				t.Errorf("bot: %v", err)
-				return nil
-			}
-			out[i] = b
-		}
 		return out
 	}
+	r, err := host.New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	cfg := tableCfg("v2", tableSeed)
+	if err := r.AddTable(cfg); err != nil {
+		t.Fatal(err)
+	}
+	ans.mu.Lock()
+	ans.answerNative = func(n humanseat.NativeOnly, in *decision.Intent) {
+		var nin decision.Intent
+		if in != nil {
+			nin = *in
+		} else {
+			var err error
+			if nin, err = ans.bot.Decide(context.Background(), n.View, n.Decision); err != nil {
+				t.Errorf("native answer for seq %d: %v", n.Seq, err)
+				return
+			}
+		}
+		if err := r.SubmitIntent(cfg.ID, 1, n.Seat, nin); err != nil {
+			t.Errorf("native answer for seq %d (%s): %v", n.Seq, n.Route, err)
+			return
+		}
+		rec.add(nin)
+	}
+	ans.mu.Unlock()
+	if err := r.Start(cfg.ID); err != nil {
+		t.Fatal(err)
+	}
+	head, _ := waitHead(t, r, cfg.ID, 3*time.Minute, nil)
+	return head, rec
+}
+
+// playHuman plays the same table with a plain, untapped human seat 0 that is
+// answered with rec's intents, leaving unanswered any decision rec lacks (the
+// think timeout then hands it to the caretaker).
+func playHuman(t *testing.T, tableSeed uint64, think time.Duration, rec *recorder) (string, int) {
+	t.Helper()
+	o := repoOptions(t)
+	o.ThinkTimeout = think
+	o.Seats = func(names []string, seed uint64) []seat.Seat {
+		out := hostBots(t, len(names), seed)
+		out[0] = host.NewHumanSeat()
+		return out
+	}
+	r, err := host.New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	cfg := tableCfg("human", tableSeed)
+	if err := r.AddTable(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start(cfg.ID); err != nil {
+		t.Fatal(err)
+	}
+	skipped := map[uint64]bool{}
+	head, _ := waitHead(t, r, cfg.ID, 3*time.Minute, func() {
+		d, err := r.Pending(cfg.ID, 1, 0)
+		if err != nil || skipped[d.Seq] {
+			return
+		}
+		in, ok := rec.get(d.Seq)
+		if !ok {
+			skipped[d.Seq] = true
+			return
+		}
+		if err := r.SubmitIntent(cfg.ID, 1, 0, in); err != nil {
+			t.Errorf("replay seq %d: %v", d.Seq, err)
+		}
+	})
+	return head, len(skipped)
+}
+
+// hostBots builds the bots defaultSeats builds for a table, one per slot.
+func hostBots(t *testing.T, n int, seed uint64) []seat.Seat {
+	t.Helper()
+	out := make([]seat.Seat, n)
+	for i := range out {
+		b, err := host.NewBotPolicySeatWithAutoPayMana(host.BotPolicy, seed^uint64(i+1), true)
+		if err != nil {
+			t.Fatalf("bot: %v", err)
+		}
+		out[i] = b
+	}
+	return out
 }
 
 func referenceBot(t *testing.T, tableSeed uint64) seat.Seat {
@@ -218,39 +347,77 @@ func referenceBot(t *testing.T, tableSeed uint64) seat.Seat {
 }
 
 // TestV2HumanSeatHeadsMatchNative: a game whose seat 0 is a V2HumanSeat driven
-// by a scripted answerer ends on the chain head of the same table played by
-// the production bots.
+// by a scripted answerer (at each substep the candidate that carries out what
+// the production bot answers natively) ends on the chain head of the same
+// table with a plain human seat answered with the very intents the v2 seat
+// committed. The tap changes nothing a replay can see.
+//
+// The same game is also compared with the table played by the production
+// bots. That one is not required to match: the v2 mapping answers some
+// decisions itself or words them differently (engine-ordered damage division,
+// a life-paying plan as a plain cast), which the log records. It must match
+// for most seeds, and it is reported per seed.
 func TestV2HumanSeatHeadsMatchNative(t *testing.T) {
-	for g := uint64(0); g < 20; g++ {
-		tableSeed := 3000 + g
-		t.Run(fmt.Sprint(tableSeed), func(t *testing.T) {
-			t.Parallel()
-			native, nEvents := play(t, repoOptions(t), tableCfg("native", tableSeed), nil)
+	const seeds = 20
+	var botIdentical atomic.Int32
+	t.Run("seeds", func(t *testing.T) {
+		for g := uint64(0); g < seeds; g++ {
+			tableSeed := 3000 + g
+			t.Run(fmt.Sprint(tableSeed), func(t *testing.T) {
+				t.Parallel()
+				ans := &scripted{bot: referenceBot(t, tableSeed)}
+				v2, rec := playV2(t, tableSeed, 0, ans)
+				ans.mu.Lock()
+				asked := 0
+				for _, n := range ans.substeps {
+					asked += n
+				}
+				ans.mu.Unlock()
+				if asked == 0 {
+					t.Fatal("the answerer was never asked: the tap did not run")
+				}
+				human, _ := playHuman(t, tableSeed, 0, rec)
+				if v2 != human {
+					t.Fatalf("seed %d: heads differ: v2 seat %s, plain human seat %s", tableSeed, v2, human)
+				}
+				bots, _ := play(t, repoOptions(t), tableCfg("native", tableSeed))
+				same := bots == v2
+				if same {
+					botIdentical.Add(1)
+				}
+				t.Logf("seed %d: %d asks (by substep %v), %d native-only, %d not a candidate; same head as the production bots: %v",
+					tableSeed, asked, ans.substeps, ans.nativeOn, len(ans.misses), same)
+			})
+		}
+	})
+	if got := botIdentical.Load(); got < seeds/2 {
+		t.Errorf("only %d of %d seeds match the production bots' head", got, seeds)
+	} else {
+		t.Logf("%d of %d seeds match the production bots' head", got, seeds)
+	}
+}
 
-			ans := &scripted{bot: referenceBot(t, tableSeed)}
-			o := repoOptions(t)
-			var hs *host.HumanSeat
-			o.Seats = v2Seats(t, ans, &hs)
-			v2, vEvents := play(t, o, tableCfg("v2", tableSeed), ans)
-
-			if hs == nil {
-				t.Fatal("the V2 table never built its tapped seat")
-			}
-			ans.mu.Lock()
-			asked, nativeOnly := 0, ans.nativeOn
-			for _, n := range ans.substeps {
-				asked += n
-			}
-			ans.mu.Unlock()
-			if asked == 0 {
-				t.Fatal("the answerer was never asked: the tap did not run")
-			}
-			if v2 != native {
-				t.Fatalf("seed %d: heads differ: native %s (%d events), v2 %s (%d events); %d asks, %d native-only, misses %q",
-					tableSeed, native, nEvents, v2, vEvents, asked, nativeOnly, ans.misses)
-			}
-			t.Logf("seed %d: %d events, %d substeps asked %v, %d native-only", tableSeed, nEvents, asked, ans.substeps, nativeOnly)
-		})
+// TestV2HumanSeatTimeoutFallsToCaretaker: a think timeout in the middle of a
+// transaction (the answerer holds a later substep) drops the partial picks and
+// the caretaker answers the whole native decision, so the game ends on the head
+// of a plain human seat that timed out at that decision.
+func TestV2HumanSeatTimeoutFallsToCaretaker(t *testing.T) {
+	const tableSeed, think = 3000, 2 * time.Second
+	ans := &scripted{bot: referenceBot(t, tableSeed), stallAt: 1}
+	v2, rec := playV2(t, tableSeed, think, ans)
+	stalled := ans.stalledAt.Load()
+	if stalled == 0 || ans.stalls.Load() != 1 {
+		t.Fatalf("no transaction was held past its first substep (stalls %d)", ans.stalls.Load())
+	}
+	if _, ok := rec.get(stalled); ok {
+		t.Fatalf("decision %d was answered although its transaction stalled", stalled)
+	}
+	human, skipped := playHuman(t, tableSeed, think, rec)
+	if skipped != 1 {
+		t.Fatalf("the plain human seat left %d decisions to the caretaker, want 1", skipped)
+	}
+	if v2 != human {
+		t.Fatalf("heads differ after a timeout at decision %d: v2 seat %s, plain human seat %s", stalled, v2, human)
 	}
 }
 

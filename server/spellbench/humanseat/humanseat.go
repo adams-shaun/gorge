@@ -499,6 +499,12 @@ func (s *Seat) first(gen uint64, d *decision.Decision, p *mapping.Pose, i int, c
 	if in.Seq == 0 {
 		in.Seq, in.Player = d.Seq, d.Player
 	}
+	// A pool-only payment plan is mapped to its plain cast, which executes the
+	// same; commit the plan the candidate stands for, so the log reads as the
+	// native payment answer.
+	if op := p.Candidates[i].Op; op.Op == "choose" && op.Payment != nil && in.Payment == nil && in.Announce == nil && len(commit) == 1 {
+		in = decision.Intent{Seq: d.Seq, Player: d.Player, Payment: decision.ClonePaymentSelection(op.Payment)}
+	}
 	if in.Seq != d.Seq || in.Player != d.Player {
 		s.logf("v2 human seat %d: mapped intent %d/%d does not answer decision %d/%d", d.Player, in.Seq, in.Player, d.Seq, d.Player)
 		s.tx = nil
