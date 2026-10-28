@@ -812,6 +812,14 @@ never asks them (combat damage, for example, follows the declared
 `engine_order` default instead of a `distribute` ask). `gorged`'s seat also emits
 `choose_starting_player`.
 
+The **neutral world** still answers the kinds only another engine poses:
+`choose_cast_method`, `choose_option` and `choose_cost_option` reuse gorge's cast and
+mode asks; `distribute` follows the engine-order split (lethal to each creature in
+substep order, the remainder on the last recipient) and spreads counters, mana and
+life evenly; `choose_pile` takes the first pile as a counted approximation. A
+decision the neutral world cannot map is counted in `Session.Counts`, the audit the
+0.5% untranslated budget holds.
+
 Field types: **ObjectRef** and **TargetRef** as above; **OrderItem** is `{"object": ObjectRef}`
 or `{"trigger": {source, source_name, ability_index, event_objects, instance, label}}`;
 **u32**/**i32** as in Section 4.4; **seat** is `p0` or `p1`; **snake** is an open
