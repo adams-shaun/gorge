@@ -27,6 +27,7 @@ players[].graveyard[].summon_sick
 players[].graveyard[].token
 players[].graveyard_size
 players[].hand[].activated_this_turn
+players[].hand[].effective_mana_cost
 players[].hand[].id
 players[].hand[].keywords[]
 players[].hand[].summon_sick

@@ -479,7 +479,12 @@ func (e *Engine) SpellEffectiveCost(p state.PlayerID, id state.ObjID) string {
 		return ""
 	}
 	f := o.Face()
-	if f.SpellAbility() == nil {
+	// CR 118.6 / 202.1b: a face with no printed mana cost has no plain cast to
+	// price. This is NOT f.SpellAbility() == nil: a vanilla creature or an
+	// activated-ability permanent has no SP$ line and is still cast for its
+	// printed cost. The parser leaves the field empty when a script has no
+	// ManaCost line.
+	if f.ManaCost == "" || isNoManaCost(f.ManaCost) {
 		return ""
 	}
 	base := e.parseCost(f.ManaCost)
@@ -488,7 +493,7 @@ func (e *Engine) SpellEffectiveCost(p state.PlayerID, id state.ObjID) string {
 	}
 	// The own-cost projection does not price alternate cast faces or extra
 	// costs. The ordinary face spell shape is the only supported case here.
-	if f.SpellAbility().ParamStr(cards.PKAlternativeCost) != "" || f.SpellAbility().ParamStr(cards.PKCost) != "" {
+	if sa := f.SpellAbility(); sa != nil && (sa.ParamStr(cards.PKAlternativeCost) != "" || sa.ParamStr(cards.PKCost) != "") {
 		return ""
 	}
 	mods := e.costModifiersWithTargetsUsing(e.collectCostStatics(), p, id, spellScope(""), nil, false)
