@@ -44,6 +44,9 @@ type sourceCharSnapshot struct {
 	// chosenType and chosenColor are the source's recorded "as this enters"
 	// choices; the live object loses them on leaving the battlefield.
 	chosenType, chosenColor string
+	// manaColorSpent is the cast-time spend ("if {W}{W} was spent to cast
+	// it"); the live object loses it on leaving the battlefield (CR 400.7).
+	manaColorSpent state.Mana
 }
 
 // sourceCharSnapshotOf reads src's characteristics now; src must still be on
@@ -55,7 +58,21 @@ func (e *Engine) sourceCharSnapshotOf(src state.ObjID) sourceCharSnapshot {
 	}
 	return sourceCharSnapshot{power: e.Power(src), toughness: e.Toughness(src),
 		counters:   append([]state.Counter(nil), o.Counters...),
-		chosenType: o.ChosenType, chosenColor: o.ChosenColor}
+		chosenType: o.ChosenType, chosenColor: o.ChosenColor, manaColorSpent: o.ManaColorSpent}
+}
+
+// bindSourceLKI binds the departed source's snapshot for the stack object id
+// into tc: the chosen type/colour and the cast-time mana spend (CR 113.7a /
+// 608.2h). It does nothing for an ability whose source never left, so those
+// read live as before.
+func (e *Engine) bindSourceLKI(tc *effects.TriggerContext, id, source state.ObjID) {
+	snap, ok := e.sourceCharLKI[id]
+	if !ok || source == 0 {
+		return
+	}
+	tc.SourceLKIValid = true
+	tc.SourceChosenType, tc.SourceChosenColor = snap.chosenType, snap.chosenColor
+	tc.SourceManaColorSpent = snap.manaColorSpent
 }
 
 // captureSourceCharLKI records src's snapshot, immediately before it leaves
@@ -130,7 +147,7 @@ func (e *Engine) sourceCharLKIFor(stack, source state.ObjID, lki *state.Object, 
 		return sourceCharSnapshot{}, false
 	}
 	return sourceCharSnapshot{power: lkiPower, toughness: lkiToughness, counters: lki.Counters,
-		chosenType: lki.ChosenType, chosenColor: lki.ChosenColor}, true
+		chosenType: lki.ChosenType, chosenColor: lki.ChosenColor, manaColorSpent: lki.ManaColorSpent}, true
 }
 
 // count answers a source-characteristic Count$ body from the snapshot:

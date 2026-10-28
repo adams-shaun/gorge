@@ -15,8 +15,9 @@ import (
 // active player, a damage recipient and a damage source are not interchangeable.
 // Unsupported/ambiguous event roles stay absent rather than guessing.
 type TriggerContext struct {
-	// SourceLKIValid binds SourceChosenType/SourceChosenColor: the source's
-	// "as this enters" choices as they were when it last stood on the
+	// SourceLKIValid binds SourceChosenType/SourceChosenColor and
+	// SourceManaColorSpent: the source's "as this enters" choices and its
+	// cast-time mana spend as they were when it last stood on the
 	// battlefield (CR 113.7a/608.2h). rules sets it for an ability whose
 	// source has since left -- Dawn-Blessed Pennant's target offer, and A
 	// Killer Among Us's resolution ("If target attacking creature token is
@@ -28,8 +29,13 @@ type TriggerContext struct {
 	SourceLKIValid    bool
 	SourceChosenType  string
 	SourceChosenColor string
-	TriggerTarget     state.Target
-	TriggerSource     state.ObjID
+	// SourceManaColorSpent is the last-known cast-time spend of a source
+	// that has left the battlefield, read by Count$Adamant (an evoked
+	// Incarnation sacrificed before its enter trigger's intervening-if is
+	// rechecked). Meaningful only with SourceLKIValid and a departed source.
+	SourceManaColorSpent state.Mana
+	TriggerTarget        state.Target
+	TriggerSource        state.ObjID
 	// TriggerStack is the actual spell/ability object that caused a targeting
 	// event. Unlike TriggerSource it is not unwrapped to its source permanent,
 	// because Ward must counter that stack object itself.

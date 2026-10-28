@@ -604,18 +604,34 @@ func evalAdamantBranch(h Host, c *Ctx, g *state.Game, n int32, rest string, dept
 		return 0, false
 	}
 	var spent int32
-	if o := g.Obj(c.Source); o != nil {
+	vec, have := adamantSpendVector(c, g)
+	if have {
 		if slot == adamantSlotAny {
 			for i := state.MW; i <= state.MG; i++ {
-				if o.ManaColorSpent[i] > spent {
-					spent = o.ManaColorSpent[i]
+				if vec[i] > spent {
+					spent = vec[i]
 				}
 			}
 		} else {
-			spent = o.ManaColorSpent[slot]
+			spent = vec[slot]
 		}
 	}
 	return dotBranch(h, c, branch, spent >= n, depth), true
+}
+
+// adamantSpendVector is the cast-time spend Count$Adamant reads: the live
+// source's, or -- when the source has left the battlefield and the ability
+// carries its last-known information (CR 113.7a / 608.2h) -- the recorded
+// one, since leaving wiped the live vector (CR 400.7).
+func adamantSpendVector(c *Ctx, g *state.Game) (state.Mana, bool) {
+	o := g.Obj(c.Source)
+	if c.TriggerContext.SourceLKIValid && (o == nil || o.Zone != state.ZBattlefield) {
+		return c.TriggerContext.SourceManaColorSpent, true
+	}
+	if o == nil {
+		return state.Mana{}, false
+	}
+	return o.ManaColorSpent, true
 }
 
 // adamantSlotAny is the sentinel slot for the keyword's "mana of the same
