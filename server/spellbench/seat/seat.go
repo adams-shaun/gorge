@@ -58,6 +58,7 @@ var (
 type Agent struct {
 	name     string
 	argv     []string
+	serve    func(io.Reader, io.Writer) error // an in-process agent (NewInProcess); nil runs argv
 	opts     bots.Options
 	fallback engineseat.Seat
 
@@ -96,6 +97,25 @@ func New(name string, argv []string, o bots.Options) (engineseat.Seat, error) {
 		return nil, fmt.Errorf("spellbench seat %q: empty command", name)
 	}
 	return &Agent{name: name, argv: append([]string(nil), argv...), opts: o, fallback: heuristic.NewBot(o.Seed)}, nil
+}
+
+// NewInProcess builds a v2 agent seat whose agent runs in this process: serve
+// is the agent's stdio loop (agent.Serve over a server), started on a pipe pair
+// at AttachMatch in place of exec'ing a command. The wire, the handshake and
+// every forfeit rule are the process seat's; it is for harnesses that measure
+// the seat path without a binary per seat.
+func NewInProcess(name string, serve func(io.Reader, io.Writer) error, o bots.Options) (*Agent, error) {
+	if serve == nil {
+		return nil, fmt.Errorf("spellbench seat %q: nil serve", name)
+	}
+	return &Agent{name: name, serve: serve, opts: o, fallback: heuristic.NewBot(o.Seed)}, nil
+}
+
+// Forfeit is the cause the seat forfeited its match with ("" while it has not).
+func (a *Agent) Forfeit() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.forfeit
 }
 
 func (a *Agent) logf(format string, args ...any) {
@@ -182,6 +202,14 @@ func (a *Agent) AttachMatch(mc *bots.MatchContext) error {
 }
 
 func (a *Agent) start() error {
+	if a.serve != nil {
+		inR, inW := io.Pipe()
+		outR, outW := io.Pipe()
+		go func() { outW.CloseWithError(a.serve(inR, outW)); inR.Close() }()
+		a.stdin = inW
+		a.reader = wire.NewReader(outR)
+		return nil
+	}
 	cmd := exec.CommandContext(a.ctx, a.argv[0], a.argv[1:]...)
 	cmd.WaitDelay = 2_000_000_000
 	cmd.Stderr = io.Discard
