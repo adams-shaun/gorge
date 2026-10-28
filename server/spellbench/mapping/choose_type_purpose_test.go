@@ -30,7 +30,7 @@ func TestChooseTypePurposeByFamily(t *testing.T) {
 			[]string{"Cave", "Forest", "Gate", "Island", "Tower"}},
 		{"card", "card_type", "artifact",
 			[]string{"Artifact", "Creature", "Instant", "Land", "Sorcery"}},
-		{"other", "other", "ajani",
+		{"other", "other", "Ajani",
 			[]string{"Ajani", "Bolas", "Chandra"}},
 	}
 	for _, tc := range cases {

@@ -147,7 +147,11 @@ func init() {
 		}
 		purpose := chooseTypeNamePurpose(d.Options)
 		return SingleChoice(env, d, choice(src, purpose), func(o decision.Option) (protocol.Semantic, bool, error) {
-			return protocol.ChooseName(src, purpose, observe.Normalize(o.Label)), true, nil
+			value := o.Label
+			if purpose != "other" {
+				value = observe.Normalize(o.Label)
+			}
+			return protocol.ChooseName(src, purpose, value), true, nil
 		})
 	})
 	Register("choose/name", func(env *Env, d *decision.Decision) (Transaction, error) {
