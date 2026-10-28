@@ -1542,6 +1542,10 @@ type Object struct {
 	// survives the hand/stack path and Move consumes it on battlefield entry,
 	// exactly like RiotChoice.
 	UnleashChoice string
+	// ReadAheadChapter is the chapter the logged as-enters read ahead choice
+	// (CR 702.155b) picked; the entry grants that many lore counters and Move
+	// consumes it on battlefield entry, exactly like UnleashChoice.
+	ReadAheadChapter int32
 	// GiftPromisedTo is the CR 702.168 Gift promise's receiver: the opponent
 	// the cast's election named. The promise itself is the CastFlags bit
 	// state.FlagPromisedGift (folded by events.GiftPromise, preserved across

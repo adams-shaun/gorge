@@ -634,6 +634,53 @@ func adamantSpendVector(c *Ctx, g *state.Game) (state.Mana, bool) {
 	return o.ManaColorSpent, true
 }
 
+// evalEachSpentToCastHead answers Count$EachSpentToCast.<colour> (Bladecoil
+// Serpent's UU/BB/RR, Clay Champion's GG/WW, Dawnglow Infusion's G/W): the
+// number of the cast's paying mana units whose colour is <colour>, read off
+// the same LKI-aware per-colour spend vector Count$Adamant reads
+// (adamantSpendVector). CR 601.2h / 106.4 count the colour of each mana spent,
+// so a generic pip paid with {U} is blue. <colour> is one WUBRG letter, or C /
+// colorless for the {C} slot; any other token is UNRESOLVABLE -- never a fake
+// zero. The corpus writes the colour as the dotted argument, but the space
+// spelling is accepted too so the head never depends on which the script used.
+// The trailing /HalfDown and /Times.N operators ride evalCountExprOK's shared
+// applyCountOp path like every other count head.
+func evalEachSpentToCastHead(h Host, c *Ctx, g *state.Game, head, arg string) (int32, bool, bool) {
+	tok := ""
+	if rest, ok := strings.CutPrefix(head, "EachSpentToCast."); ok {
+		tok = rest
+	} else if head == "EachSpentToCast" {
+		tok = arg
+	} else {
+		return 0, false, false
+	}
+	slot, ok := eachSpentColourSlot(tok)
+	if !ok {
+		return 0, false, true
+	}
+	vec, have := adamantSpendVector(c, g)
+	if !have {
+		return 0, true, true
+	}
+	return vec[slot], true, true
+}
+
+// eachSpentColourSlot maps one EachSpentToCast colour token to its state.Mana
+// slot. Unlike adamantColourSlot there is no "any" pseudo-colour here: the
+// head names one colour, so only a real slot (WUBRG or the colourless {C}
+// slot) is modelled and anything else is unresolvable.
+func eachSpentColourSlot(tok string) (int, bool) {
+	tok = strings.TrimSpace(tok)
+	if strings.EqualFold(tok, "C") || strings.EqualFold(tok, "colorless") {
+		return state.MC, true
+	}
+	l := colourLetter(tok)
+	if l == 0 {
+		return 0, false
+	}
+	return state.ManaIndex(l), true
+}
+
 // adamantSlotAny is the sentinel slot for the keyword's "mana of the same
 // colour" token; state.MC and the WUBRG slots are the real indices.
 const adamantSlotAny = -1

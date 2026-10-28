@@ -134,6 +134,16 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 		}
 		(*seen)++
 	}
+	// CR 702.155b: a read-ahead Saga chooses its starting chapter as it
+	// enters. An ability-less face has no final chapter, so it asks nothing.
+	if f.HasKeywordRef(kwRefReadAhead) {
+		if n, _ := e.sagaChaptersOn(o, f); n > 0 {
+			if *seen == ordinal {
+				return etbChoice{kind: "readahead", options: readAheadOptions(o.ID, you, n)}, true
+			}
+			(*seen)++
+		}
+	}
 	for i := range f.Repls {
 		r := &f.Repls[i]
 		if r.With == nil || !e.replacementMatches(*r, o.ID, ev) {
@@ -578,6 +588,7 @@ var etbChoicePromptTab = state.NewStrTable[string](
 	state.StrEntry[string]{Key: "color", Val: " a color"},
 	state.StrEntry[string]{Key: "riot", Val: " how this creature enters (counter or haste)"},
 	state.StrEntry[string]{Key: "unleash", Val: " how this creature enters (with a +1/+1 counter or without)"},
+	state.StrEntry[string]{Key: "readahead", Val: " the chapter this Saga starts on"},
 	state.StrEntry[string]{Key: "copy", Val: " a creature to copy"},
 	state.StrEntry[string]{Key: "paylife", Val: " how much life to pay"},
 )

@@ -28,7 +28,6 @@ ProtectionColor
 Provoke
 Prowl
 Rampage
-Read ahead
 Ripple
 Scavenge
 Shaman's Trance

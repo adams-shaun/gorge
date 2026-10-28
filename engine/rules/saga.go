@@ -152,6 +152,14 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 	if last > len(names) {
 		last = len(names)
 	}
+	// CR 702.155a: on its entry turn a read-ahead Saga's chapter abilities
+	// trigger only at exactly the chapter number it has lore counters for.
+	if o.EnteredThisTurn && face.HasKeywordRef(kwRefReadAhead) {
+		if count < first || count > last {
+			return
+		}
+		first, last = count, count
+	}
 	for i := first; i <= last; i++ {
 		name := names[i-1]
 		sa := cards.ResolveSVar(face.SVars, name)
