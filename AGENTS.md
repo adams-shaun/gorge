@@ -194,8 +194,8 @@ this snapshot.
 
 - **`make sim`:** 20/20 `replay OK` over 20 verified 4-seat games
   (re-run for this snapshot, 2026-10-25).
-- **Corpus coverage** at the pin `76fd7691ab45ab1b42cef19ad04b41bf364501f4`
-  (`FORGE_REF`): `make report` prints `cards: 34074  playable: 32265 (94.7%)`
+- **Corpus coverage** at the pin `91402ac511046c0b7ed0bb691a8a446ca7dfc873`
+  (`FORGE_REF`): `make report` prints `cards: 34074  playable: 32337 (94.9%)`
   and `tokens: 854`. Since
   fuzz-cov3 (2026-09-24) the gate also counts the `count:<head>` value heads
   that a card's SVars read (`effects.modelledValueHeads`, held to the

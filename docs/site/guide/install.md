@@ -36,7 +36,7 @@ in the [`Makefile`](https://github.com/adams-shaun/gorge/blob/main/Makefile).
 The pin matters: every game, replay and coverage number is a function of it.
 
 ```text
-fetched 34074 card scripts and 854 token scripts from https://github.com/adams-shaun/forge.git at 76fd7691 (76fd7691ab45ab1b42cef19ad04b41bf364501f4)
+fetched 34074 card scripts and 854 token scripts from https://github.com/adams-shaun/forge.git at 91402ac5 (91402ac511046c0b7ed0bb691a8a446ca7dfc873)
 These scripts are licensed GPL-3.0. They are a build input only:
 never commit them, never include them in a published image.
 ```
