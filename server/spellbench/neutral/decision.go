@@ -1375,12 +1375,20 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 		// attackers in the engine's battlefield order.
 		player := protocol.PlayerTarget("p" + strconv.Itoa(int(opp)))
 		var defenders []protocol.TargetRef
+		// A battle is attacked by a player other than its protector (CR
+		// 310.8): the acting seat's own battles are the attackable ones, and
+		// an opponent's battle is one this seat protects. Planeswalkers are
+		// the reverse -- only an opponent's can be attacked.
 		for _, p := range sd.Observation.Players {
-			if p.Seat == sd.ActingSeat {
-				continue
-			}
 			for _, r := range p.Battlefield {
-				if r.Characteristics != nil && (slices.Contains(r.Characteristics.Types, "planeswalker") || slices.Contains(r.Characteristics.Types, "battle")) {
+				if r.Characteristics == nil {
+					continue
+				}
+				attackable := slices.Contains(r.Characteristics.Types, "planeswalker")
+				if p.Seat == sd.ActingSeat {
+					attackable = slices.Contains(r.Characteristics.Types, "battle")
+				}
+				if attackable {
 					defenders = append(defenders, protocol.ObjectTarget(r.ObjectRef))
 				}
 			}
@@ -1738,7 +1746,7 @@ func (s *Session) cantBlock(cv view.CardView) bool {
 		return false
 	}
 	for _, st := range f.Statics {
-		if st.Mode != "CantBlock" {
+		if !slices.Contains(strings.Split(st.Mode, ","), "CantBlock") {
 			continue
 		}
 		valid := strings.TrimSpace(st.Params["ValidCard"])
@@ -1749,10 +1757,25 @@ func (s *Session) cantBlock(cv view.CardView) bool {
 	return false
 }
 
+// unresolvedStatic reports whether a static carries a printed condition whose
+// live value the v2 observation does not carry. cantAttack treats such a
+// static as not restricting: the engine's own offer remains the authority, and
+// a failed condition must not displace a legal attacker.
+func unresolvedStatic(st cards.Static) bool {
+	for _, param := range []string{"CheckSVar", "SVarCompare", "CheckSecondSVar", "SecondSVarCompare",
+		"IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "Condition",
+		"ConditionCompare", "UnlessDefender", "Target"} {
+		if strings.TrimSpace(st.Params[param]) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 // cantAttack reports whether an unconditional printed static forbids this
-// creature from attacking. A conditional CantAttack$CheckSVar is not
-// evaluated (the observation carries no live SVar value), so the engine's
-// own offer remains the authority there.
+// creature from attacking. A static carrying any condition parameter is not
+// evaluated (the observation carries no live SVar or board gate), so the
+// engine's own offer remains the authority there.
 func (s *Session) cantAttack(cv view.CardView) bool {
 	f := s.B.face(&cv.Name, false, nil)
 	if f == nil {
@@ -1762,7 +1785,7 @@ func (s *Session) cantAttack(cv view.CardView) bool {
 		if !slices.Contains(strings.Split(st.Mode, ","), "CantAttack") {
 			continue
 		}
-		if strings.TrimSpace(st.Params["CheckSVar"]) != "" || strings.TrimSpace(st.Params["SVarCompare"]) != "" {
+		if unresolvedStatic(st) {
 			continue // unresolvable here: a later unconditional static still decides
 		}
 		valid := strings.TrimSpace(st.Params["ValidCard"])
@@ -1785,19 +1808,29 @@ func (s *Session) cantBlockAttacker(b, a view.CardView) bool {
 			continue
 		}
 		blocker := strings.TrimSpace(st.Params["ValidBlocker"])
-		if blocker != "" && !strings.Contains(blocker, "Self") {
-			continue
+		explicitSelf := blocker != "" && strings.Contains(blocker, "Self")
+		if blocker != "" && !explicitSelf {
+			continue // the restriction names another blocker, not this card
 		}
 		spec := strings.ToLower(strings.TrimSpace(st.Params["ValidAttacker"]))
+		if strings.Contains(spec, "self") {
+			// "CARDNAME can't be blocked" is this creature's own evasion as
+			// an attacker, not a restriction on it as a blocker.
+			continue
+		}
 		switch {
 		case spec == "":
-			return true
+			if explicitSelf {
+				return true
+			}
 		case strings.Contains(spec, "artifact"):
 			if slices.ContainsFunc(strings.Fields(a.Types), func(t string) bool { return strings.EqualFold(t, "Artifact") }) {
 				return true
 			}
 		case strings.Contains(spec, "creature"):
-			return true
+			if explicitSelf {
+				return true
+			}
 		}
 	}
 	return false
@@ -1877,10 +1910,10 @@ func (s *Session) optionalCost(sd *protocol.SeatDecision) ([]mapping.NativeOp, *
 	// The native decision publishes the unless-cost ability as ResumeSA.
 	// The bot's unless-mana arm needs it to tell a payable tax from a
 	// no-cost ask; the v2 semantic names only the source, so resolve the
-	// source's printed UnlessCost body. A "other" optional cost whose
-	// source carries an UnlessCost is the same unless-pay shape on the
-	// native side (Dance of Many's upkeep tax), so it gets the same modes.
-	resume := s.unlessCostSA(src)
+	// ability that is on the stack or resolving and read its own printed
+	// UnlessCost body. A "other" optional cost whose source carries an
+	// UnlessCost elsewhere on its face is not this shape.
+	resume := s.unlessCostSA(src, &sd.Observation)
 	if str(first, "cost") != "unless_payment" && resume == nil {
 		return s.yesNo(sd)
 	}
@@ -1906,23 +1939,74 @@ func (s *Session) optionalCost(sd *protocol.SeatDecision) ([]mapping.NativeOp, *
 	return ops, n, nil
 }
 
-// unlessCostSA finds the source's printed unless-cost body, the native
-// decision's ResumeSA, from its triggers or activated abilities.
-func (s *Session) unlessCostSA(src protocol.ObjectRef) *cards.SA {
-	f := s.B.face(src.CardName, false, nil)
-	if f == nil {
-		return nil
-	}
-	for _, tr := range f.Triggers {
-		if tr.Effect != nil && tr.Effect.Params["UnlessCost"] != "" {
-			return tr.Effect
+// unlessCostSA finds the printed unless-cost body of the ability that is on
+// the stack or resolving, the native decision's ResumeSA. The v2 source names
+// the ability object, so the observation's stack entry (or the activation the
+// session just recorded) picks the one ability; scanning the whole face would
+// let an unrelated ability's UnlessCost masquerade as this ask's.
+func (s *Session) unlessCostSA(src protocol.ObjectRef, o *protocol.Observation) *cards.SA {
+	var entry *protocol.StackEntry
+	for i := range o.Stack {
+		if o.Stack[i].ObjectID == src.ObjectID {
+			entry = &o.Stack[i]
 		}
 	}
-	roots := append([]*cards.SA{}, f.Abilities...)
-	if root := f.SpellAbility(); root != nil {
-		roots = append(roots, root)
+	var f *cards.Face
+	var roots []*cards.SA
+	switch {
+	case entry != nil && entry.StackKind == "spell":
+		if f = s.B.face(entry.CardName, false, nil); f != nil {
+			roots = append(roots, f.SpellAbility())
+		}
+	case entry != nil && entry.StackKind == "activated_ability" && entry.Source != nil:
+		// The ask names the ability object on the stack; the activated
+		// permanent is the entry's Source and Picked recorded which of its
+		// printed abilities was chosen.
+		if f = s.B.face(entry.Source.CardName, false, nil); f != nil {
+			if i, ok := s.activated[entry.Source.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
+				roots = append(roots, f.Abilities[i])
+			} else {
+				roots = append(roots, f.Abilities...)
+			}
+		}
+	case entry != nil && entry.StackKind == "triggered_ability":
+		// The observation does not say which printed trigger fired, so every
+		// trigger's effect is a candidate; an unrelated activated ability is
+		// not.
+		if f = s.B.face(src.CardName, false, nil); f != nil {
+			for _, tr := range f.Triggers {
+				if tr.Effect != nil {
+					roots = append(roots, tr.Effect)
+				}
+			}
+		}
+	case src.Zone == "battlefield":
+		// An ability being activated is announced from its permanent.
+		if f = s.B.face(src.CardName, false, nil); f != nil {
+			if i, ok := s.activated[src.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
+				roots = append(roots, f.Abilities[i])
+			}
+		}
+	default:
+		// The stack entry is gone (a resolving trigger) or the source is a
+		// card the observation does not place: no ability can be singled
+		// out, so keep the historic face-wide search.
+		if f = s.B.face(src.CardName, false, nil); f != nil {
+			for _, tr := range f.Triggers {
+				if tr.Effect != nil {
+					roots = append(roots, tr.Effect)
+				}
+			}
+			roots = append(roots, f.Abilities...)
+			if root := f.SpellAbility(); root != nil {
+				roots = append(roots, root)
+			}
+		}
 	}
 	for _, root := range roots {
+		if root == nil {
+			continue
+		}
 		for _, sa := range chain(f, root) {
 			if sa.Params["UnlessCost"] != "" {
 				return sa
