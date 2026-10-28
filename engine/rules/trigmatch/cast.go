@@ -191,13 +191,15 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 		}
 	}
 	// The target-shape params (targetsvalid1): TargetsValid$ narrows the cast
-	// to spells whose targets all match the spec, IsSingleTarget$ to spells
-	// with exactly one target. A SpellCast trigger "that targets CARDNAME"
-	// (the whole Heroic family) must not fire on a cast that targets
-	// something else. The spell's targets were recorded onto the stack object
-	// by handleTarget BEFORE payCast emitted this PutOnStack (CR 601.2c:
-	// targets are chosen before costs), so obj.Targets is the completed list.
-	if !TargetShapeMatches(e, t, obj.Targets, source, ctrl) {
+	// to spells with at least one target matching the spec, IsSingleTarget$
+	// to spells naming exactly one distinct target across the whole chain. A
+	// SpellCast trigger "that targets CARDNAME" (the whole Heroic family) must
+	// still fire when the same cast also targets something else. The spell's
+	// targets were recorded onto the stack object by handleTarget BEFORE
+	// payCast emitted this PutOnStack (CR 601.2c: targets are chosen before
+	// costs), including every SubAbility$ link's SubTargets, so ChainTargets
+	// is the completed list.
+	if !TargetShapeMatches(e, t, ChainTargets(obj), source, ctrl) {
 		return false
 	}
 	if !hasXManaCostGate(t.Params, obj.Face().ManaCost, nil) {
@@ -213,22 +215,30 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 // AbilityCast/SpellAbilityCast activation arm (abilityCastMatches) and the
 // SpellAbilityCast spell arm (spellAbilityCastSpellMatches) -- through this
 // one helper, so the grammar cannot drift between the arms. targets is the
-// triggering spell's or activation's chosen target list, in each arm's own
-// completion state (a spell's recorded stack-object Targets; an activation's
-// pending-cast targets -- see abilityCastMatches for the timing).
+// triggering spell's or activation's WHOLE chain target list (ChainTargets:
+// the root declaration's Targets followed by every SubAbility$ link's
+// SubTargets), in each arm's own completion state (a spell's recorded
+// stack-object list; an activation's pending-cast targets -- see
+// abilityCastMatches for the timing).
 //
-// TargetsValid$ <spec>: EVERY target of the triggering spell or ability must
-// match one of the comma alternatives (Forge's own all-targets reading of
-// the parameter -- the corpus never carries the singular TargetValid$). The
-// reading is what "targets only CARDNAME" needs together with
-// IsSingleTarget$ (exactly one target, and it is CARDNAME). Object targets
-// resolve through the ordinary object filter with the trigger source bound
-// (so Card.Self is the trigger's own permanent) and player targets through
-// the player filter (so Opponent matches the target player). A spell or
-// ability with NO targets never matches -- "targets X" presupposes targets.
+// TargetsValid$ <spec>: at least ONE target of the chain must match one of
+// the comma alternatives; a spell or ability with NO targets never matches.
+// This is Forge's reading (TriggerSpellAbilityCastOrCopy.performTest walks
+// the ability and its sub-abilities and is true when any target entity
+// matches), which is what a Heroic "whenever you cast a spell that targets
+// CARDNAME" needs when the same spell also targets something else. The
+// corpus never carries the singular TargetValid$; "targets only CARDNAME"
+// is the any-match reading together with IsSingleTarget$ (exactly one
+// distinct target, and it is CARDNAME). Object targets resolve through the
+// ordinary object filter with the trigger source bound (so Card.Self is the
+// trigger's own permanent) and player targets through the player filter (so
+// Opponent matches the target player).
 //
-// IsSingleTarget$ True: the triggering spell or ability carries exactly one
-// target. A present param with any other value fails closed (the trigger
+// IsSingleTarget$ True: the chain must name exactly one DISTINCT target (by
+// object id, or by player for player targets). Two target slots naming the
+// same permanent are one target -- the Ivy, Gleeful Spellthief ruling,
+// 2022-09-09 -- while a second, different target on any chain link makes it
+// not single. A present param with any other value fails closed (the trigger
 // stays silent), per the repo's unreadable-condition convention; a param
 // absent leaves the trigger's behaviour unchanged.
 func TargetShapeMatches(e Board, t cards.Trigger, targets []state.Target, source state.ObjID, ctrl state.PlayerID) bool {
@@ -236,21 +246,55 @@ func TargetShapeMatches(e Board, t cards.Trigger, targets []state.Target, source
 		if !strings.EqualFold(strings.TrimSpace(v), "True") {
 			return false
 		}
-		if len(targets) != 1 {
+		if distinctTargetCount(targets) != 1 {
 			return false
 		}
 	}
 	if v, ok := t.Param(cards.PKTargetsValid); ok {
-		if len(targets) == 0 {
-			return false
-		}
+		matched := false
 		for _, tgt := range targets {
-			if !targetMatchesTargetsValid(e, v, tgt, source, ctrl) {
-				return false
+			if targetMatchesTargetsValid(e, v, tgt, source, ctrl) {
+				matched = true
+				break
 			}
+		}
+		if !matched {
+			return false
 		}
 	}
 	return true
+}
+
+// ChainTargets returns the whole target chain of a spell or activated
+// ability: the root declaration's Targets followed by every SubAbility$
+// link's SubTargets (CR 601.2c chooses the whole chain when the spell is
+// cast, but the two lists are kept apart on the object -- see
+// state.Object.SubTargets). The result is a fresh slice; the object's own
+// lists are never mutated.
+func ChainTargets(o *state.Object) []state.Target {
+	if o == nil {
+		return nil
+	}
+	out := make([]state.Target, 0, len(o.Targets)+len(o.SubTargets))
+	out = append(out, o.Targets...)
+	out = append(out, o.SubTargets...)
+	return out
+}
+
+// distinctTargetCount counts the unique targets in a chain: objects by id and
+// players by seat (a player target carries no object id). Entries with an
+// empty identity are ignored.
+func distinctTargetCount(targets []state.Target) int {
+	objs := make(map[state.ObjID]struct{}, len(targets))
+	players := make(map[state.PlayerID]struct{})
+	for _, tgt := range targets {
+		if tgt.IsPlayer {
+			players[tgt.Player] = struct{}{}
+		} else if tgt.Obj != 0 {
+			objs[tgt.Obj] = struct{}{}
+		}
+	}
+	return len(objs) + len(players)
 }
 
 // targetMatchesTargetsValid reports whether ONE chosen target matches a
@@ -330,7 +374,7 @@ func spellAbilityCastSpellMatches(e Board, t cards.Trigger, source state.ObjID, 
 			return false
 		}
 	}
-	if !TargetShapeMatches(e, t, obj.Targets, source, ctrl) {
+	if !TargetShapeMatches(e, t, ChainTargets(obj), source, ctrl) {
 		return false
 	}
 	if !hasXManaCostGate(t.Params, obj.Face().ManaCost, nil) {
@@ -493,12 +537,14 @@ func abilityCastMatches(e Board, t cards.Trigger, source state.ObjID, ev events.
 	// TriggersWhenSpent dispatches after finishTargetedCast records those
 	// targets; at that point read the minted ability stack object's event-backed
 	// Targets rather than the source permanent's (unrelated) target list.
-	tgts := obj.Targets
+	tgts := ChainTargets(obj)
 	if act, ok := e.LiveActivation(ev.Obj); ok {
+		// The open cast flow only exposes the root answers; the chain links'
+		// answers are not on the source permanent yet.
 		tgts = act.Targets
 	} else if stack := e.AbilityCastStackObject(ev.Obj); stack != 0 {
 		if stackObj := e.Game().Obj(stack); stackObj != nil {
-			tgts = stackObj.Targets
+			tgts = ChainTargets(stackObj)
 		}
 	}
 	if !TargetShapeMatches(e, t, tgts, source, ctrl) {

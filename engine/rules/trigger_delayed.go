@@ -901,7 +901,7 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 	// grammar mirrors trigmatch.spellCastMatches' clauses one for one and the read is
 	// honest here -- the spell is already on the stack with its recorded
 	// targets, so a future registration cannot widen silently.
-	if !trigmatch.TargetShapeMatches(boardOf(e), t, obj.Targets, dt.Source, dt.Controller) {
+	if !trigmatch.TargetShapeMatches(boardOf(e), t, trigmatch.ChainTargets(obj), dt.Source, dt.Controller) {
 		return false
 	}
 	return true
