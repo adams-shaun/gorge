@@ -292,8 +292,9 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// visits it and its own copied lines are never read: a token copy of
 	// Diregraf Ghoul entered untapped (CR 707.2, 614.12: the copy has the
 	// "enters tapped" replacement and it applies to its own entry). Read the
-	// entrant's own "enters tapped" line here; its other self-entry lines
-	// (counters, as-enters choices) are not read on this path yet.
+	// entrant's own "enters tapped" line and its recorded "enter as a copy"
+	// election here; its other self-entry lines (counters, other as-enters
+	// choices) are not read on this path.
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && !sawEntrant && event == "Moved" {
 		if o := e.G.Obj(ev.Obj); o != nil && o.IsToken {
 			if f := e.replacementFace(ev.Obj, ev); f != nil {
@@ -304,6 +305,14 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 					// the line's own shape is checked: an Updated self-entry
 					// to the battlefield with no other qualifier.
 					if r.Event == "Moved" && r.With != nil && r.With.APIKind() == cards.APITap && selfEntryTapLine(r) {
+						matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
+					}
+					// The as-enters "enter as a copy" body (CR 614.12, 707.2):
+					// entryETBChoice recorded the election on the token, so the
+					// Clone body is applied only when one is recorded and the
+					// same whitelist that offered it passes.
+					if r.Event == "Moved" && r.ParamStr(cards.PKKeyword) == "ETBReplacement" && r.With != nil && r.With.API == "Clone" &&
+						o.ETBCloneChoiceValid && etbCloneWhitelist(r.With, f.SVars) {
 						matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
 					}
 				}
