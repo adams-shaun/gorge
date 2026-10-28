@@ -32,7 +32,7 @@ transport.
 | P1-1 | Per-decision deadlines for HTTP seats, announced in the decision, answered by the caretaker on expiry; reap abandoned on-demand tables | S | open |
 | P1-2 | Long-poll: `GET .../pending?seat=N&wait_ms=…` blocks until a decision exists | S | open |
 | P1-3 | Authentication: an optional server key for `POST /api/games`; tokens stay per-seat capabilities; TLS by reverse proxy | S | open |
-| P2-1 | A versioned decision schema: JSON Schema generated from the Go types, a schema-version field, and a grow-only ratchet | M | open |
+| P2-1 | A versioned decision schema: JSON Schema generated from the Go types, a schema-version field, and a grow-only ratchet | M | partly done since: the generated schemas are published ([`openapi.json`](../api/openapi.json), checked by `TestOpenAPISchemasMatchGo`); no schema-version field or grow-only ratchet yet (rechecked at `25d71cadc`) |
 | P2-2 | Client-chosen seeds on `POST /api/games`, for reproducible remote experiments (decks can already be chosen) | S | open |
 | P2-3 | Keep the Python and Java examples as the reference SDKs, with a CI job that plays one game with each | S | done (`scripts/examples-smoke.sh` in CI) |
 | P3-1 | SpellBench v2: find why the neutral translation costs the default bot most of its strength; make `game_over` wait for its `ack` | M | open (still 1 of 20 against 17 of 20 on 2026-10-21) |
@@ -164,12 +164,12 @@ against. (Play-vs-bot tables default to `public` through
   extensions`); only `-world neutral` works there.
 - **SSE on a private table needs the token.** Since play-vs-bot tables
   became private, a subscribe from a stream opened without the seat's token
-  is a `404`. `examples/bots/python/measure_latency.py` opens its stream
-  without one, so its SSE run stops at `subscribe: HTTP 404` (its poll run
-  works).
+  is a `404`.
 - Fixed since: `gorged -bot-policy`'s help now lists the registered
-  policies, and `mtgsim` no longer reports `reason: not_finished` for a game
-  that ended naturally.
+  policies, `mtgsim` no longer reports `reason: not_finished` for a game
+  that ended naturally, and `examples/bots/python/measure_latency.py` opens
+  its stream with the seat's token (it used to stop at `subscribe: HTTP
+  404`; fixed after `513a2a0c3`).
 
 ## The gaps, and what to do about each
 

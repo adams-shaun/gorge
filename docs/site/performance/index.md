@@ -26,7 +26,7 @@ how well they play.
       as fast as gorge on its home Burn mirror (174 against 118-143 random
       games per core-second) and 6-13× slower per turn on FDN pair A, the
       FDN pair it plays ([details](#a-second-comparison-decks-mtg-kernel-plays)).
-    - **Search** (2026-10-20, the pre-redesign kernel): one MCTS simulation costs 57-108 µs on dirty-dirac with a
+    - **Search** (2026-10-20, the kernel's earlier state layout): one MCTS simulation costs 57-108 µs on dirty-dirac with a
       heuristic leaf, 90-177 µs with a small network leaf, and 0.9-1.6 ms on
       gorge, at 25-1,000 simulations per decision; almost all of it is the
       rules engine ([details](#search-bots-cost-per-simulation)).
@@ -43,6 +43,16 @@ thin line through it spans the slowest and fastest run. Engines differ by more
 than three orders of magnitude, so the first two charts use a log scale:
 each grid line is ten times the one before. Hover a bar for its exact value
 and spread.
+
+!!! note "gorge re-measured 2026-10-27 at `25d71cadc`"
+    The gorge rows here stay the quiet-machine run of 2026-10-25 (`87ed64d3b`,
+    load 0.5-5), so every engine in the charts was measured at a low load. A
+    re-run on 2026-10-27 at `25d71cadc` found the machine at a load of 16-20
+    and came out 15-27% below these rows (random auto-pay 66, bot 105 games per
+    core-second, pairs pooled). The same day's paired, interleaved A/B against
+    `87ed64d3b` attributes 6-16% of that to code changes (0.84-0.94 on the
+    play rows, 0.82 on MCTS-100) and the rest to the load; the numbers and the
+    ratios are on [Engine speed](engine.md#current-numbers).
 
 <figure markdown>
 <svg viewBox="0 0 760 344" width="100%" role="img" aria-label="Bar chart, log scale: games per core-second for each engine and policy">
@@ -525,9 +535,16 @@ the fastest engine on pair A by an order of magnitude.
 A search bot clones and steps the game many times per decision, so its cost
 is the cost of one simulation times the simulation budget. These rows put an
 MCTS search on both seats (dirty-dirac) or on searched priority roots (gorge)
-of FDN pair A at 25, 100 and 1,000 simulations per searched decision, on one
-pinned core, three reps; [Methodology](methodology.md#search-bots) says
-exactly what runs and how each is counted. They measure speed only.
+of FDN pair A (gorge's roots come from games alternating pairs A and B) at
+25, 100 and 1,000 simulations per searched decision, on one pinned core, three
+reps; [Methodology](methodology.md#search-bots) says exactly what runs and how
+each is counted. They measure speed only.
+
+A 2026-10-27 re-run of the gorge rows at `25d71cadc` (cores 8-10, load 14-18)
+measured 1,295, 1,828 and 2,219 µs per simulation at 25, 100 and 1,000
+simulations; a paired A/B of the 100-simulation row against `87ed64d3b` the
+same day gave 0.82, so most of that rise is the load. The rows below stay the
+2026-10-20 ones, measured beside dirty-dirac's.
 
 <figure markdown>
 <svg viewBox="0 0 760 316" width="100%" role="img" aria-label="Bar chart, log scale: CPU microseconds per MCTS simulation for dirty-dirac and gorge search bots at 25, 100 and 1000 simulations per decision">
@@ -589,7 +606,7 @@ exactly what runs and how each is counted. They measure speed only.
 <text class="dg-text" x="595.5" y="272">1,604</text></g>
 <line class="dg-line" x1="300" y1="28" x2="300" y2="294"/>
 </svg>
-<figcaption>CPU µs per MCTS simulation, log scale, FDN pair A, median of 3 runs, thin line = min-max. 2026-10-20 18:35-18:41 UTC, gorge <code>ad3777023</code>, one pinned core per run (24/26/28), load average 17-32 (core contention at most 10%). dirty-dirac counts whole games' CPU per simulation, gorge only the search's CPU.</figcaption>
+<figcaption>CPU µs per MCTS simulation, log scale, FDN pair A (gorge's <code>az</code> row takes its roots from games alternating pairs A and B), median of 3 runs, thin line = min-max. 2026-10-20 18:35-18:41 UTC, gorge <code>ad3777023</code>, one pinned core per run (24/26/28), load average 17-32 (core contention at most 10%). dirty-dirac counts whole games' CPU per simulation, gorge only the search's CPU.</figcaption>
 </figure>
 
 | Search bot | sims per decision | µs per simulation | simulations per core-second | ms per searched decision | ms per game | games or roots per run |
@@ -638,10 +655,10 @@ by `scripts/xengine-bench.sh` with its private, pre-warmed card cache
   longer does. Measured in isolation, the fix alone made games on the
   whole-pool table about 51% faster, and the game rows play 32-44% more games per core-second
   than on 2026-10-25 (both pairs pooled: random 1,386 → 1,998, hbot
-  1,511 → 1,997). That also makes the kernel faster than the pre-redesign
+  1,511 → 1,997). That also makes the kernel faster than the earlier-layout
   kernel measured on 2026-10-20 (random 1,722 → 1,998, hbot 1,607 → 1,997),
   where the 2026-10-25 rows had been 6-20% slower, even with the
-  redesign's larger game state (9,960 → 15,240 bytes,
+  new layout's larger game state (9,960 → 15,240 bytes,
   [State](../architecture/dirty-dirac/state.md)).
 - **Memory.** The game runner's setup now opens only the card scripts its
   pool table uses instead of the whole corpus, derives its game schedule
@@ -653,11 +670,13 @@ by `scripts/xengine-bench.sh` with its private, pre-warmed card cache
 These rows ran at a 1-minute load average of 7-9 (other sessions active on
 the machine), against 0.5-5 for gorge's 2026-10-25 rows; no rep had more
 than 1% of its core taken by other work. The gorge rows were not re-published
-at that load. gorge's own per-turn cost has since fallen by about 3% (an
-interleaved `enginebench` A/B of the change measured 2.5-3.3% more turns per
-CPU-second), so the dirty-dirac-to-gorge ratios on this page slightly
-overstate the gap. The search rows were not re-run and are still the
-pre-redesign kernel's.
+at that load. gorge's own per-turn cost fell by about 3% just after the
+2026-10-25 rows (an interleaved `enginebench` A/B of the change measured
+2.5-3.3% more turns per CPU-second), but by 2026-10-27 (`25d71cadc`) a paired
+A/B put gorge 6-16% slower than `87ed64d3b` on the play rows
+([Engine speed](engine.md#current-numbers)), so the dirty-dirac-to-gorge
+ratios on this page now slightly understate the gap. The search rows were not re-run and are still the
+earlier-layout kernel's.
 
 The kernel's own transition benchmark (one `Step` plus one `Apply` of a random
 policy, single-option decisions elided, 64 real deck pairings per set),
@@ -712,7 +731,7 @@ unchanged from 2026-10-25 (45.4 k and 51.0 k); their nanoseconds read about
 | Cores | one per run: 24, 26, 28 (three reps at once); `GOMAXPROCS=1` for Go; JVMs pinned the same way (serial GC, `-Xmx2g`) |
 | Load | 1-minute load average 7-9 for the 2026-10-26 dirty-dirac rows, 0.5-5 for the 2026-10-25 gorge rows, 4.4-15 for the 2026-10-20 XMage and Forge rows (per-row ranges in the per-pair table), 6-36 for the Burn rows, 17-32 for the search rows; no published rep had more than 10% of its core taken by other work except one XMage `mad` pair-A rep (28%), whose result sits inside the other two reps' spread |
 | gorge | FDN rows `87ed64d3b` (develop, 2026-10-25); Burn and search rows `ad3777023` (2026-10-20); Go 1.26.3, `cmd/enginebench` |
-| dirty-dirac | private kernel, in development. FDN rows and the transition benchmark: the dirty-dirac player built from the private module at its 2026-10-26 head (after the redesign), measured with gorge `7fe389b82`'s `scripts/xengine-bench.sh`. Search rows: the source of 2026-10-20 (before the redesign), which pinned gorge `aa421da93` |
+| dirty-dirac | private kernel, in development. FDN rows and the transition benchmark: the dirty-dirac player built from the private module at its 2026-10-26 head (current state layout), measured with gorge `7fe389b82`'s `scripts/xengine-bench.sh`. Search rows: the source of 2026-10-20 (earlier state layout), which pinned gorge `aa421da93` |
 | XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance) |
 | Forge | gorge's Forge fork at `da1c712c31` (forge-core/game/ai 2.0.16-SNAPSHOT), JDK 17.0.20.1, driver `forge.oracle.GameReplay` |
 | mtg-kernel | `jackmaiorino/mtg-kernel` `058d075e3` (2026-10-20), Rust 1.94.1, release build of `examples/bench_kernel` with gorge's `--xengine-json` mode; FDN pair A from the `limited-fdn-fixtures` build, Burn from the default build |

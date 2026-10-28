@@ -76,8 +76,8 @@ undo, search clones and bug reproduction are all one mechanism.
 
 ## At a glance
 
-**94.7%** of Forge's 34,074 card scripts are playable in gorge at the pinned
-corpus commit (`make report`, 2026-10-25, `87ed64d3b`). Every Standard set is
+**94.9%** of Forge's 34,074 card scripts are playable in gorge at the pinned
+corpus commit (`make report`, 2026-10-27, `25d71cadc`). Every Standard set is
 certified against XMage at Level A or better. dirty-dirac, the second kernel,
 lowers 50% of the corpus and is lockstep-verified against gorge on
 Foundations and Bloomburrow; it is under active development toward a full

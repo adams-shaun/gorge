@@ -107,7 +107,7 @@ Three properties follow from this design and come up again in the guide:
   its decks and the list of answers. That is what makes undo, the replay
   pages, bug-report snapshots and bot-match verification work.
 - **Bots are cheap.** A heuristic bot answers in well under a millisecond
-  in-process: four cores played 1,320 two-seat bot games in 6.5 seconds
+  in-process: four cores played 1,320 two-seat bot games in about 10 seconds
   ([measured](bot-games.md#a-fair-matchup-with-testkitbench)).
 
 ## Where to go next

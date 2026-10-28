@@ -78,7 +78,7 @@ def load_dirty_dirac(path):
     """Read and check the dirty-dirac snapshot; raise ValueError on a bad file."""
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
-    for k in ("date", "commit", "corpus", "sets"):
+    for k in ("date", "corpus", "sets"):
         if k not in d:
             raise ValueError("%s: missing %r" % (path, k))
     for code, s in list(d["sets"].items()) + [("corpus", d["corpus"])]:
@@ -176,7 +176,9 @@ def stamp_text(meta, level_b):
 
 
 def dd_stamp(dd):
-    return "the dirty-dirac snapshot of %s (private module @ `%s`)" % (dd["date"], dd["commit"][:9])
+    # The private module's commit is never published (privacy rule); the date
+    # identifies the snapshot.
+    return "the dirty-dirac snapshot of %s" % dd["date"]
 
 
 def render_headline(rows, level_b, meta, dd):

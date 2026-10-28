@@ -6,8 +6,8 @@ wiring an existing strategy to a server, or a benchmark harness. This page
 surveys the bots gorge ships and the three ways to plug one in, and helps you
 pick. The pages after it walk through each surface with working code.
 
-*Facts on this section's pages were checked against the code at commit
-`513a2a0c3` (2026-10-21). Unless a figure says otherwise, latencies were
+*Facts on this page were rechecked against the code at commit
+`25d71cadc` (2026-10-27); the other pages in this section give their own date. Unless a figure says otherwise, latencies were
 measured on 2026-10-20 at `ad3777023` on an AMD Ryzen 9 9950X over
 loopback, with the command named next to them.*
 
@@ -32,19 +32,20 @@ order.
 
 ## The bots gorge ships
 
-Five policies register themselves in the bot registry
+Six policies register themselves in the bot registry
 ([`bots/registry.go`](https://github.com/adams-shaun/gorge/blob/main/bots/registry.go))
 from the packages [`bots/all`](https://github.com/adams-shaun/gorge/blob/main/bots/all/all.go)
 links, so every gorge binary that imports `bots/all` (`gorged`, `mtgsim`,
-`cmd/spellbench-gorge-agent`, your own program) has all five. Each entry's
+`cmd/spellbench-gorge-agent`, your own program) has all six. Each entry's
 `bots.Info` carries its label, tier, formats, seat limit, a description, its
 recorded strength claims and its cost. `GET /api/bot-policies` on a running
 server returns exactly that record for the policies the server offers.
 
 | Name | Label | Tier | Formats, seats | Offered by `gorged` | Package |
 |---|---|---|---|---|---|
-| `bot` | Bot | production | constructed and Commander, any | yes; the caretaker of every built-in policy | [`bots/bot`](https://github.com/adams-shaun/gorge/blob/main/bots/bot/bot.go) |
+| `bot` | Bot | production | constructed and Commander, any | yes | [`bots/bot`](https://github.com/adams-shaun/gorge/blob/main/bots/bot/bot.go) |
 | `forge-heuristic` | Forge heuristic | experimental | constructed and Commander, any | yes | [`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go) |
+| `forge-heuristic-hold` | Forge heuristic + hold | experimental | constructed and Commander, any | yes | [`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go) |
 | `lethal-pressure` | Lethal Pressure | experimental | constructed and Commander, any | yes; `gorged`'s default `-bot-policy` | [`bots/lethalpressure`](https://github.com/adams-shaun/gorge/blob/main/bots/lethalpressure/lethalpressure.go) |
 | `sb-tactical` | sb-tactical (SpellBench tactical heuristic) | experimental | constructed, 2 | no: reads every seat's decklist | [`bots/sbtactical`](https://github.com/adams-shaun/gorge/blob/main/bots/sbtactical/sbtactical.go) |
 | `az-redeal` | az-redeal (AlphaZero search) | experimental | constructed, 2 | no: reads every seat's decklist | [`bots/azredeal`](https://github.com/adams-shaun/gorge/blob/main/bots/azredeal/azredeal.go) |
@@ -60,8 +61,9 @@ payment plans and picks attacks and blocks with a two-ply combat simulation;
 on a manual-tap table it is the plain heuristic. It answers the London
 mulligan with a re-expression of Forge's keep/bottom rule
 (`botpolicy.MulliganForge`). It is the baseline every other policy is
-measured against, and the bot that answers for a human seat whose player is
-gone.
+measured against. (A human seat's caretaker, the bot that answers when its
+player times out or the table shuts down, is the table's own bot policy,
+not always `bot`.)
 
 **`forge-heuristic`** is `bot`, built by the same constructor
 (`bot.BaseWithSim`, so the same combat simulation, payment plans and
@@ -83,6 +85,11 @@ The rules live in `bots/botpolicy` (`TargetRules`, `RemovalRules`,
 `TimingRules`, `AIHints`, `AttachRules`, `PostureRules`, `CombatRules`), and
 `bots/forgeheuristic.New` shows how to arm any subset on a policy of your
 own.
+
+**`forge-heuristic-hold`** is `forge-heuristic` with its one option,
+`hold-instant`, switched on: the A6 hold rule keeps instants back outside
+the respond, opponent post-combat and combat-trick windows. Its registry
+entry records no measurement.
 
 **`lethal-pressure`** is the older heuristic configuration: the plain
 heuristic plus the AR7 lethal-pressure attack rule (a creature whose

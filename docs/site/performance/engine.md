@@ -78,70 +78,90 @@ Knobs: `BUDGET` (wall seconds for the whole measured phase, default 60),
 
 ## Current numbers
 
-Measured 2026-10-25 at `87ed64d3b`, Go 1.26.3, `GOMAXPROCS=1`, each run
-pinned to one core (24, 26 or 28; three reps of a row at once), 30 CPU-seconds
-per run, load average 0.5-4, by `scripts/xengine-bench.sh gorge` (the play rows)
-and single `enginebench` runs pinned to core 24 (the rest). Median of three reps, min-max in
-brackets.
+Measured 2026-10-27 at `25d71cadc`, Go 1.26.3, `GOMAXPROCS=1`, each run
+pinned to one core, 30 CPU-seconds per run, by `scripts/xengine-bench.sh gorge`
+(the play rows: two reps of a row at once on cores 2 and 3, the only two
+physical cores whose SMT siblings were idle) and single `enginebench` runs on
+cores 8-10 (the rest). **The machine was heavily loaded: 1-minute load average
+16-20** (other sessions' kernel self-play and test runs on most other cores),
+so these absolutes sit 15-27% below the quiet-machine figures of 2026-10-25
+(load 0.5-4, `87ed64d3b`: random A 97.0, bot A 124 games per core-second).
+Median of two reps, min-max in brackets.
 
 | Row | Pair A | Pair B |
 |---|---|---|
-| `random -autopay`, games per core-second | 92.0 (91.1-93.4) | 84.6 (83.2-84.8) |
-| `random -autopay`, µs per turn / per decision | 475 / 19.8 | 457 / 19.4 |
-| `random` (manual taps), games per core-second | 97.0 (96.6-97.6) | 101 (99.3-102) |
-| `random`, µs per turn / per decision | 246 / 9.0 | 249 / 9.0 |
-| `bot -autopay`, games per core-second | 97.4 (95.8-97.5) | 105 (104-105) |
-| `bot -autopay`, µs per turn / per decision | 572 / 22.8 | 538 / 22.1 |
-| `bot` (manual taps), games per core-second | 124 (122-126) | 134 (134-135) |
-| `bot`, µs per turn / per decision | 446 / 15.9 | 416 / 15.1 |
-| Turns per game: `random -autopay` / `random` / bots | 22.9 / 41.9 / 18 | 26.0 / 39.8 / 18 |
-| Peak RSS of a play run (corpus loaded) | 346-347 MB | 348-394 MB |
+| `random -autopay`, games per core-second | 69.9 (68.9-70.9) | 62.2 (61.3-63.2) |
+| `random -autopay`, µs per turn / per decision | 625 / 26.1 | 617 / 26.1 |
+| `random` (manual taps), games per core-second | 76.0 (74.5-77.5) | 73.6 (72.7-74.5) |
+| `random`, µs per turn / per decision | 313 / 11.5 | 341 / 12.3 |
+| `bot -autopay`, games per core-second | 76.4 (75.3-77.6) | 80.2 (76.8-83.7) |
+| `bot -autopay`, µs per turn / per decision | 723 / 28.8 | 706 / 29.1 |
+| `bot` (manual taps), games per core-second | 105 (103-107) | 105 (105-105) |
+| `bot`, µs per turn / per decision | 527 / 18.8 | 532 / 19.3 |
+| Turns per game: `random -autopay` / `random` / bots | 22.9 / 42.0 / 18 | 26.0 / 39.9 / 18 |
+| Peak RSS of a play run (corpus loaded) | 352-368 MB | 360-365 MB |
 
-| Row (pair A, one run each, same date and build) | Value |
+| Row (one run each, same date and build, load 17-19) | Value |
 |---|---|
-| `clone`, mid-game roots (turns 5-8) | 10.8 µs per clone without GC, 22.5 µs with GC; 191 KB and 50 mallocs per clone |
-| `step` (clone + submit one candidate) | 36.3 µs without GC, 53.3 µs with GC; 367 KB and 132 mallocs per step |
-| `az -sims 100` (azmcts, honest re-deal, heuristic leaf) | 1,090 simulations per core-second, 91.8 ms per searched root (322 roots) |
-| `sampler` (the older rollout sampler) | 104 rollouts per core-second, 253 ms per root |
-| Live heap after the corpus loads | 36 MB |
+| `clone`, pair-A mid-game roots (turns 5-8) | 20.5 µs per clone without GC, 43.9 µs with GC; 199 KB and 50 mallocs per clone |
+| `step` (clone + submit one candidate), pair A | 72.3 µs without GC, 114 µs with GC; 381 KB and 144 mallocs per step |
+| `az -sims 100` (azmcts, honest re-deal, heuristic leaf; roots from games alternating pairs A and B) | 547 (544-642) simulations per core-second, 183 ms per searched root (three reps at once, cores 8-10) |
+| `sampler` (the older rollout sampler, same alternating roots) | 52.9 rollouts per core-second, 474 ms per root |
+| Live heap after the corpus loads | 41 MB (87ed64d3b measures the same 41 MB in this setup) |
 
-Running the three reps of a row at once costs little: on 2026-10-20 a
-`random -autopay` pair-A run alone on core 24 came out 3.5% above the
-concurrent median of the same afternoon. Against the 2026-10-20 run at
-`ad3777023` (a busier machine, load 5-7), the play rows above are 0-8%
-slower and `clone` and `step` are faster; only `make enginebench-pair`
-separates the code's share from the machine's. The 2026-10-07 single-core row
-set (random A 75.7 games/s, bot A 121 games/s, clone 16.5 µs, MCTS-100 595
-sims per CPU-second) ran with `GOMAXPROCS=1` at load 34-80, so the change
-since then mixes the machine's load with the code's; use `make enginebench-pair` to compare
-revisions.
+**What moved, and why.** Absolute rows on a loaded machine mostly measure the
+machine, so the same day's paired, interleaved A/B (`make enginebench-pair
+BASE=87ed64d3b CAND=.`, ABBA, pinned to one core, `GOMAXPROCS=1`, load 16-38)
+separates the code's share. Against `87ed64d3b`, the revision of the previous
+numbers, `25d71cadc` is slower on every row; median candidate/base ratio,
+per-rep spread in brackets:
+
+| Row | cand/base | Reps |
+|---|--:|---|
+| `random` A / B | 0.885 / 0.854 | 4 × 10 s, core 2 |
+| `random -autopay` A / B | 0.839 / 0.845 | 4 × 10 s, core 2 |
+| `bot` A / B | 0.930 / 0.916 | 4 × 10 s, core 2 |
+| `bot -autopay` A / B | 0.937 / 0.904 | 4 × 10 s, core 2 |
+| `clone` / `step` | 0.959 / 0.846 | 4 reps, core 2 |
+| `sampler` | 0.924 | 4 × 10 s, core 2 |
+| confirmation: `bot` A, `random -autopay` A, `step` | 0.883 (0.72-0.99), 0.908 (0.76-1.24), 0.919 (0.86-0.93) | 6 × 15 s, core 9 |
+| `az -sims 100` (build tag `enginebench_az`) | 0.823 (0.64-0.90) | 4 × 20 s, core 9 |
+
+So roughly 6-16% of the drop is the code (741 commits, mostly card support,
+landed between the two revisions; the slowdown is not yet bisected) and the
+rest is the load. The base revision itself ran 20-35% below its own
+2026-10-25 quiet-machine figures in the same session.
 
 ## Where the time goes
 
-CPU profiles of one 20-second pair-A run each (`enginebench -cpuprofile`,
-2026-10-20 at `ad3777023`, core 24/26; not re-run for the numbers above), flat time grouped by package (packages under 1%
-omitted; `engine/rules` includes `engine/rules/pay`):
+CPU profiles of one 20-second pair-A run each (`make enginebench-profile`,
+2026-10-27 at `25d71cadc`, pinned to core 9, `GOMAXPROCS=1`, load 18-19), flat
+time grouped by package (packages under 0.5% omitted; `engine/rules` includes
+`engine/rules/pay`). GC marking (`runtime.gcDrain`) was 1.2% cumulative in
+both runs.
 
 | Package | `random -autopay` | `bot -autopay` |
 |---|--:|--:|
-| `engine/rules` (legal-action walk, payment planning, resolution, triggers) | 64.1% | 56.2% |
-| Go runtime (GC, allocation, maps) | 12.0% | 11.8% |
-| `engine/state` | 7.2% | 7.1% |
-| `bots/botpolicy` + `bots/heuristic` (the bot) | - | 5.8% + under 1% flat |
-| `engine/cards` | 5.0% | 4.4% |
-| `engine/effects` | 4.4% | 4.0% |
-| `engine/events` | 1.3% | under 1% |
-| Go standard library (`strings` and others) | about 2% | about 4% |
+| `engine/rules` (legal-action walk, payment planning, resolution, triggers) | 64.8% | 52.2% |
+| Go runtime (GC, allocation, maps) | 16.6% | 14.8% |
+| `engine/state` | 10.1% | 9.3% |
+| `bots/botpolicy` + `bots/heuristic` (the bot) | - | 8.3% + 0.6% flat |
+| `engine/cards` | 2.8% | 3.0% |
+| `engine/effects` | 3.3% | 2.1% |
+| `engine/events` | 0.5% | 1.4% |
+| Go standard library (`strings` and others) | about 2% | about 6.5% |
 
-By call tree (cumulative), in the random auto-pay run: `Engine.Submit` 72%
-and `Engine.Advance` 39% (they nest); offering the auto-pay priority options
-(`paymentActionsForPriority`) 25%; the legal-action walk over the hand
-(`legalWalk.handWalk`) 24% and over the battlefield 10%; emitting events
+By call tree (cumulative), in the random auto-pay run: `Engine.Submit` 71%
+and `Engine.Advance` 40% (they nest); the legal-action walk over the hand
+(`legalWalk.handWalk`) 29% and over the battlefield 10%; offering the
+auto-pay priority options (`paymentActionsForPriority`) 26%; emitting events
 through `events.Apply` (`Engine.emit`) 17%. In the bot run the bot's own
-work is about 15% cumulative: building its board (`botpolicy.BoardFromGameInto`,
-9.9%) and deciding (`heuristic.(*Bot).DecideBoard`, 5.1%). So in both rows
+work is about 16% cumulative: building its board (`botpolicy.BoardFromGameInto`,
+11.2%) and deciding (`heuristic.(*Bot).DecideBoard`, 4.6%). So in both rows
 the engine, not the policy, is most of the cost: listing what a player may
-do, with payments planned, is the hot path.
+do, with payments planned, is the hot path. Against the 2026-10-20 profile
+(`ad3777023`), `engine/state` and the runtime take a larger share and the
+bot's board building grew from 9.9% to 11.2%.
 
 To reproduce: `go run ./cmd/enginebench -row random -autopay -pair A -secs 20 -cpuprofile ra.cpu`,
 then `go tool pprof -top -cum ra.cpu`, or `make enginebench-profile`.
@@ -164,7 +184,8 @@ not comparable with later ones (see the baseline break).
 | 2026-10-07 | heap-attack branch | self-play | +10.8% combined; allocated objects −30% |
 | 2026-10-09/10 | quiet-machine series | MCTS-100 | +10.4% median |
 | 2026-10-20 | `ad3777023` | `enginebench`, pinned, 3 reps | random A 103, bot A 134 games/core-s; clone 13.6 µs; MCTS-100 1,129 sims/core-s; live heap 36 MB |
-| 2026-10-25 | `87ed64d3b` | `enginebench`, pinned, 3 reps (this page) | see Current numbers; live heap 36 MB |
+| 2026-10-25 | `87ed64d3b` | `enginebench`, pinned, 3 reps, load 0.5-4 | random A 97.0, bot A 124 games/core-s; clone 10.8 µs; MCTS-100 1,090 sims/core-s; live heap 36 MB |
+| 2026-10-27 | `25d71cadc` | `enginebench`, pinned, load 16-20 (this page) | see Current numbers; paired A/B against `87ed64d3b`: 0.84-0.96 on the play and copy rows, 0.82 on MCTS-100 |
 
 The engine-speed method and the first pinned comparison are written up in
 the archived `2026-09-30-gorge-engine-speed.md`

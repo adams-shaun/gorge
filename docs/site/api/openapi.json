@@ -1095,7 +1095,7 @@
             "type": "string"
           },
           "pool": {
-            "description": "Pool names the bot policy this deck is reserved for (\"\" for an ordinary deck). A reserved deck is dealt only to games against that policy, and that policy deals nothing else (server/gorged/azc3.go). A deck reserved for several policies (az-c3 and az-c4 sharing one deck directory, server/gorged/azclosed.go) names them all, comma-separated (JoinPools).",
+            "description": "Pool names the bot policy this deck is reserved for (\"\" for an ordinary deck). A reserved deck is dealt only to games against that policy, and that policy deals nothing else. A deck reserved for several policies (two policies sharing one deck directory) names them all, comma-separated (JoinPools).",
             "type": "string"
           }
         },

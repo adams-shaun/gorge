@@ -8,7 +8,9 @@ gorge bot as a v2 agent, and serving gorge as a v2 environment. Message and
 field reference: [SpellBench v2 reference](../api/spellbench-v2.md).
 Everything shown was run on 2026-10-20 at `ad3777023`; the `mtgsim` and
 environment examples, the policy listing and the fidelity check below were
-run again on 2026-10-21 at `513a2a0c3` with the same results.
+run again on 2026-10-21 at `513a2a0c3` with the same results. The two
+policy listings were updated on 2026-10-27 at `25d71cadc` for
+`forge-heuristic-hold`, registered since.
 
 ## What SpellBench is
 
@@ -141,7 +143,7 @@ game, or an [HTTP bot](http.md), can play against it:
 ```console
 $ ./gorged -addr 127.0.0.1:8093 ... -vsbot -sb-agent sb-gorge-bot=/path/to/gorge-as-v2.sh
 $ curl -s http://127.0.0.1:8093/api/bot-policies | jq -c '[.policies[] | [.name, .label]]'
-[["bot","Bot"],["forge-heuristic","Forge heuristic"],["lethal-pressure","Lethal Pressure"],["sb-gorge-bot","SpellBench v2 agent"]]
+[["bot","Bot"],["forge-heuristic","Forge heuristic"],["forge-heuristic-hold","Forge heuristic + hold"],["lethal-pressure","Lethal Pressure"],["sb-gorge-bot","SpellBench v2 agent"]]
 $ python3 gorge_agent.py --server http://127.0.0.1:8093 --bot-policy sb-gorge-bot
 ...
 match finished after 21 turns in 1.5 s: winner us (seat 0, tron)
@@ -170,6 +172,7 @@ $ ./spellbench-gorge-agent -list-policies
 az-redeal	az-redeal (AlphaZero search)	experimental
 bot	Bot	production
 forge-heuristic	Forge heuristic	experimental
+forge-heuristic-hold	Forge heuristic + hold	experimental
 lethal-pressure	Lethal Pressure	experimental
 sb-tactical	sb-tactical (SpellBench tactical heuristic)	experimental
 ```

@@ -9,7 +9,7 @@ goroutines are, what is written to disk and how clients are fed. To run a
 server, see [Getting started](../../getting-started.md); the HTTP API and the
 bot interfaces have their own pages in the user's and bot author's guides.
 
-*Facts on this page are from `develop` @ `513a2a0c3` (2026-10-21). Line
+*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Line
 counts are `wc -l` over non-test files. Code links point at `main`.*
 
 ## Packages

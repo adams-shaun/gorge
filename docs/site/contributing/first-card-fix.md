@@ -13,7 +13,7 @@ git worktree, `.cards` linked into it; see [Contributing](index.md). Terms in
 *italics* are defined in the [glossary](glossary.md).
 
 *Helper locations and the example test re-checked on `develop` @
-`513a2a0c3`, 2026-10-21.*
+`25d71cadc`, 2026-10-27.*
 
 ## 1. Confirm and triage
 

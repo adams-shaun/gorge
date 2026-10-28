@@ -9,7 +9,7 @@ paid. For the step-by-step contributor workflow (fetch, compile, find a
 missing primitive, fix a card), see [The card pipeline](../../contributing/card-pipeline.md)
 and [Your first card fix](../../contributing/first-card-fix.md).
 
-*Facts on this page are from `develop` @ `513a2a0c3` (2026-10-21). Code links
+*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Code links
 point at `main`.*
 
 ## From script to running effect
@@ -79,11 +79,11 @@ fork at the pinned commit (`FORGE_REF` in the Makefile, currently
 Pinning matters: the corpus is input to every golden replay, so a corpus bump
 is a deliberate change, never a side effect of upstream moving.
 
-`make report` on `87ed64d3b` (2026-10-25) printed:
+`make report` on `25d71cadc` (2026-10-27) printed:
 
 ```text
 corpus: 76fd7691ab45ab1b42cef19ad04b41bf364501f4 @ 76fd7691ab45ab1b42cef19ad04b41bf364501f4 (GPL-3.0, 34074 files)
-cards: 34074  playable: 32265 (94.7%)
+cards: 34074  playable: 32337 (94.9%)
 tokens: 854
 
 top missing primitives (cards unlocked):
@@ -245,20 +245,20 @@ replacements and keywords and lists them as prefixed labels. The Ember
 Courier above needs `kw:Haste`, `trig:ChangesZone` and `api:DealDamage`.
 
 Measured by a scratch program that calls `effects.Supported()` with
-`engine/rules` linked in (2026-10-21, `513a2a0c3`):
+`engine/rules` linked in (2026-10-27, `25d71cadc`):
 
 | Prefix | From | Implemented where | Registered |
 |---|---|---|---|
-| `api:` | `SP$`/`AB$`/`DB$ <Name>` | an `effects.Effect` function, `effects.Register` | 168 |
+| `api:` | `SP$`/`AB$`/`DB$ <Name>` | an `effects.Effect` function, `effects.Register` | 169 |
 | `trig:` | `T:Mode$ <Mode>` | `engine/rules` and `rules/trigmatch`, declared with `RegisterNonAPI` | 99 |
-| `stat:` | `S:Mode$ <Mode>` | `engine/rules` (statics, layers), `RegisterNonAPI` | 50 |
+| `stat:` | `S:Mode$ <Mode>` | `engine/rules` (statics, layers), `RegisterNonAPI` | 54 |
 | `repl:` | `R:Event$ <Event>` | `engine/rules` replacement code, `RegisterNonAPI` | 24 |
-| `kw:` | `K:<Keyword>` | `engine/rules`, or an expander in `engine/cards` | 181 |
-| `count:` | a `Count$<Head>` value an SVar reads | the evaluator in `engine/effects/count*.go` | 200 |
-| | | **total** | **722** |
+| `kw:` | `K:<Keyword>` | `engine/rules`, or an expander in `engine/cards` | 185 |
+| `count:` | a `Count$<Head>` value an SVar reads | the evaluator in `engine/effects/count*.go` | 201 |
+| | | **total** | **732** |
 
-(165 of the 168 `api:` labels are `Register` calls in `engine/effects`; the
-other three are replacement helpers in `engine/rules` declared with
+(165 of the 169 `api:` labels are `Register` calls in `engine/effects`; the
+other four are replacement helpers in `engine/rules` declared with
 `RegisterNonAPI`.) `forgec report` also checks `shape:` labels: a script
 *shape* whose body the engine deliberately declines at run time.
 
@@ -357,7 +357,7 @@ it, and two ratchets in `engine/rules` hold the repository's own decks to it:
 - `TestEveryRepoDeckIsFullySupported` compares every repo deck card's gap
   with a per-card file in `engine/rules/testdata/known-unsupported/` **in
   both directions**: a newly unsupported card fails, and so does a stale entry
-  for a card that is now supported. On `513a2a0c3` the directory holds two
+  for a card that is now supported. On `25d71cadc` the directory holds two
   files (Incinerate, `stat:CantRegenerate`; Vines of Vastwood,
   `stat:CantTarget`).
 - `TestEveryRepoDeckParamsAreRead` (the *param census*) catches the subtler
@@ -366,7 +366,7 @@ it, and two ratchets in `engine/rules` hold the repository's own decks to it:
   derives every `Params["Key"]` read, attributes it to a primitive, and
   reports `param:<Primitive>.<Key>` for a key nothing reads, plus `cost:` for
   a cost token the parser does not model. Its baseline lives in
-  `engine/rules/testdata/paramcensus/` (16 files) and is also checked both
+  `engine/rules/testdata/paramcensus/` (3 files) and is also checked both
   ways.
 
 **At run time**, an unregistered API is "loud but harmless":
