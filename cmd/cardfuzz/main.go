@@ -1097,6 +1097,7 @@ func main() {
 	sbPolicy := flag.String("policy", "bot", "with -spellbench: the bot policy under test")
 	sbV2Both := flag.Bool("sb-v2-seats-both", false, "with -spellbench outcome: both seats are v2 agents in the v2 lane (default: seat 0 only, against a native seat 1)")
 	sbMinAgree := flag.Float64("min-agree", 0, "with -spellbench twin: fail when a decision kind with at least 50 compared decisions agrees below this percentage (0 keeps the any-disagreement rule)")
+	sbMaxRebuildFail := flag.Float64("max-rebuild-fail", 0.5, "with -spellbench twin and -min-agree: fail when the neutral world could not rebuild the pick for more than this percentage of the run's decisions (0 allows none)")
 	sbMaxOutcomeGap := flag.Float64("max-outcome-gap", 0, "with -spellbench outcome: fail when the 95% CI of the (v2 - native) seat-0 win rate excludes 0 and |gap| exceeds this many percentage points (0 disables)")
 	maxStack := flag.Int("max-stack", 256<<20, "per-goroutine stack limit in bytes (runtime/debug.SetMaxStack): an unbounded recursion dies here instead of at Go's 1 GB default")
 	flag.Parse()
@@ -1134,7 +1135,7 @@ func main() {
 	}
 	sbOpts := sbOptions{mode: *sbMode, policy: *sbPolicy, autopay: apc.mode == "all", v2Both: *sbV2Both, maxSteps: uint64(*maxIntents),
 		maxTurns: *maxTurns, maxIntents: *maxIntents, maxObjects: *maxObjects, games: *games, seed: *seed, workers: *workers,
-		minAgree: *sbMinAgree, maxOutcomeGap: *sbMaxOutcomeGap}
+		minAgree: *sbMinAgree, maxRebuildFail: *sbMaxRebuildFail, maxOutcomeGap: *sbMaxOutcomeGap}
 	if *repro != "" {
 		if *cpuProfile != "" {
 			pf, err := os.Create(*cpuProfile)
