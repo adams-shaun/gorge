@@ -851,6 +851,11 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		if err := bots.AttachMatch(s, mc); err != nil {
 			return r.crash(t, m, fmt.Errorf("seat %d: attach match: %w", i, err))
 		}
+		if hs, ok := s.(*HumanSeat); ok {
+			if err := hs.attachTap(mc, autoPayMana); err != nil {
+				return r.crash(t, m, fmt.Errorf("seat %d: attach tap: %w", i, err))
+			}
+		}
 	}
 	maxIntents := r.opts.MaxIntents
 	if maxIntents == 0 {
