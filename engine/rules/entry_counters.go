@@ -818,7 +818,22 @@ func (e *Engine) entryPreview(ev events.Event) (*Engine, state.ObjID) {
 	stripEntryRequests(&ev)
 	events.Apply(preview.G, ev)
 	preview.replArenaNoteApplied(ev)
+	preview.refreshEntryPreviewStatics()
 	return preview, entrant
+}
+
+// refreshEntryPreviewStatics re-reads the preview's static-continuous memo and
+// layer-4 types table after the entry move was applied. Both are keyed on the
+// log length, and the preview's bare Apply appends nothing, so without this
+// they serve the PRE-entry board and a foreign entry rider's filter judges the
+// entrant without its own static abilities (a second Metallic Mimic is not yet
+// the chosen type). CR 614.12: the replacements that apply to a permanent
+// entering are decided against its characteristics as it would exist on the
+// battlefield, its own statics included. Only the preview's private memos move.
+func (e *Engine) refreshEntryPreviewStatics() {
+	e.staticEpoch = -1
+	e.refreshStaticContinuous()
+	e.refreshDerivedTypesFull(len(e.L.Events))
 }
 
 // isolatePreviewMemos gives an entry preview -- a shallow struct copy of the
