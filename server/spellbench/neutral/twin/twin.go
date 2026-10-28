@@ -22,6 +22,11 @@ import (
 // neutral seat never does.
 const Floated = "(gorge floated mana)"
 
+// Opaque counts the decisions left out of the comparison: the view agent
+// picked a candidate the neutral world could not reconstruct, so the neutral
+// agent had no answer to give rather than a different one.
+const Opaque = "(neutral candidate not reconstructed)"
+
 // ChosenColour counts the decisions left out of the comparison: a permanent
 // in play makes mana of a colour chosen as it entered. The observation does
 // not carry that choice (permanent.chosen is null), so the neutral planner
@@ -122,6 +127,11 @@ func (s *Seat) Round(req []byte) ([]byte, error) {
 	json.Unmarshal(b, &cb)
 	if ca.Selection.CandidateID < 0 || ca.Selection.CandidateID >= len(cands) {
 		return a, nil // the host rejects the view agent's pick; nothing to compare
+	}
+	if s.neutral.NeutralOpaque(ca.Selection.CandidateID) {
+		tw.Total[kind]--
+		tw.Total[Opaque]++
+		return a, nil
 	}
 	picked := cands[ca.Selection.CandidateID].Semantic
 	if picked.Kind == "activate_mana_ability" {

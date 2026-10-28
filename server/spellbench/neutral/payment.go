@@ -181,6 +181,17 @@ func (s *Session) prepay(sd *protocol.SeatDecision, v *view.View) *prepared {
 		}
 		pre.plans = append(pre.plans, pl)
 	}
+	if len(c.mana) == 0 {
+		// Engine autopay: the host's candidates carry the plans in the
+		// native cast-option order, and the bot's plan ranking reads that
+		// order when two casts score alike. The shadow's object ids are
+		// rebuilt, so its planner order is not the host's: reorder to the
+		// candidate order the seat actually sees.
+		slices.SortStableFunc(pre.plans, func(a, b *planned) int {
+			return c.cast[castKey{obj: a.action.Cast.Object, flashbck: a.action.Cast.Origin == decision.OriginFlashback}] -
+				c.cast[castKey{obj: b.action.Cast.Object, flashbck: b.action.Cast.Origin == decision.OriginFlashback}]
+		})
+	}
 	return pre
 }
 

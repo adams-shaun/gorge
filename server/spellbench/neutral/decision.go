@@ -18,10 +18,14 @@ import (
 	"github.com/adams-shaun/gorge/server/spellbench/xview"
 )
 
+// Untranslated is the op of a candidate the neutral world cannot represent:
+// a family it has no translation for, or a card whose printed facts its
+// observation cannot rebuild (a token copy, say). No plan ever matches it.
+const Untranslated = "untranslated"
+
 // noOp is the op of a candidate no gorge option stands for (a mana
-// activation no payment plan takes, or a family not translated yet). No plan
-// ever matches it, so the agent's fallback answers such a decision.
-var noOp = mapping.NativeOp{Op: "untranslated", Option: -1}
+// activation no payment plan takes, or a family not translated yet).
+var noOp = mapping.NativeOp{Op: Untranslated, Option: -1}
 
 // native is the gorge decision the seat is answering, kept across the v2
 // decisions that spend it: the substeps of a group, the later picks of a
