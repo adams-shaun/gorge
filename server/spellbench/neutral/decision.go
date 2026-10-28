@@ -70,14 +70,16 @@ type Session struct {
 	// activated is the face ability index of each source's latest
 	// activation, so its target ask can describe the ability.
 	activated map[string]int
-	// grants is the pending pure keyword grant of each source whose latest
-	// activation was one, so a repeated activation of the same ability can be
+	// grants records each source's answered activations in order, oldest
+	// first: the pure-grant keywords, or nil for an activation that was not a
+	// pure grant. priority trims the list to the activations still on the
+	// observed stack, so a repeated activation of any pending grant can be
 	// reported as the engine's redundant-grant fact (decision.Grant). A source
 	// whose ability has left the stack is dropped at the next priority
 	// decision, the only kind whose Payload may prune: a cost-target or target
 	// decision for a pending activation arrives before the ability is on the
 	// stack, so pruning there would forget the grant.
-	grants map[string][]string
+	grants map[string][][]string
 	// uses counts this turn's activations of each source, which gorge's
 	// view carries as ActivatedThisTurn and its bot budgets: each activated
 	// ability seen on the stack counts once for its source.
@@ -112,7 +114,7 @@ func (s *Session) SetAutoPay(autoPay bool) { s.autoPay = autoPay }
 
 func NewSession(reg *cards.Registry) *Session {
 	return &Session{B: NewBuilder(reg), Counts: map[string]int{}, Approx: map[string]int{}, activated: map[string]int{},
-		grants: map[string][]string{}, uses: map[string]int32{}, seen: map[string]bool{}, pendingUses: map[string]pendingUse{}}
+		grants: map[string][][]string{}, uses: map[string]int32{}, seen: map[string]bool{}, pendingUses: map[string]pendingUse{}}
 }
 
 // Picked tells the session which candidate of its last decision the seat
@@ -129,13 +131,11 @@ func (s *Session) Picked(i int) {
 		if src, err := ref(sem, "source"); err == nil {
 			if o, ok := s.abilityOption(src, num(sem, "ability_index")); ok {
 				s.activated[src.ObjectID] = o.Ability
+				var kw []string
 				if f := s.abilityFace(src); f != nil && o.Ability < len(f.Abilities) {
-					if kw := rules.PureGrantKeywords(f.Abilities[o.Ability]); len(kw) > 0 {
-						s.grants[src.ObjectID] = kw
-					} else {
-						delete(s.grants, src.ObjectID)
-					}
+					kw = rules.PureGrantKeywords(f.Abilities[o.Ability])
 				}
+				s.grants[src.ObjectID] = append(s.grants[src.ObjectID], kw)
 			}
 		}
 	case "arrange_card":
@@ -391,21 +391,27 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 	n := s.open("priority", decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1})
 	n.casts, n.names, n.paid = map[string][]int{}, map[string]string{}, map[string]*decision.PaymentSelection{}
 	pre := s.prepay(sd, v)
-	// pendingGrant names the sources whose activated ability is on the stack
+	// pendingGrant counts the activated abilities of each source on the stack
 	// right now: the observation's only evidence for decision.Grant.Duplicate.
-	// Prune the grants this priority decision no longer sees here, not in
-	// Payload: the cost-target and target decisions an activation poses come
-	// before its ability is on the stack, and pruning there would drop the
-	// grant that a later priority decision must still report.
-	pendingGrant := map[string]bool{}
+	// The stack resolves top-down, so when the count drops the records that
+	// remain pending are the oldest ones. Prune the grants this priority
+	// decision no longer sees here, not in Payload: the cost-target and target
+	// decisions an activation poses come before its ability is on the stack,
+	// and pruning there would drop the grant that a later priority decision
+	// must still report.
+	pendingGrant := map[string]int{}
 	for _, e := range sd.Observation.Stack {
 		if e.StackKind == "activated_ability" && e.Source != nil {
-			pendingGrant[e.Source.ObjectID] = true
+			pendingGrant[e.Source.ObjectID]++
 		}
 	}
-	for id := range s.grants {
-		if !pendingGrant[id] {
+	for id, recs := range s.grants {
+		n := pendingGrant[id]
+		switch {
+		case n == 0:
 			delete(s.grants, id)
+		case n < len(recs):
+			s.grants[id] = recs[:n]
 		}
 	}
 	ops := make([]mapping.NativeOp, len(sd.Candidates))
@@ -541,9 +547,9 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 // The engine fills it natively from the ability it offers (rules.abilityGrant);
 // the neutral world has no engine walk, so it reads the printed ability and
 // the observation: Already from the projected keyword list, Duplicate from the
-// activated ability the session itself just put on the stack for this source.
+// recorded pending activations the session answered for this source.
 // A nil result means "not a pure keyword grant", exactly the native nil.
-func (s *Session) grantFact(src protocol.ObjectRef, o decision.Option, v *view.View, pending map[string]bool) *decision.Grant {
+func (s *Session) grantFact(src protocol.ObjectRef, o decision.Option, v *view.View, pending map[string]int) *decision.Grant {
 	f := s.abilityFace(src)
 	if f == nil || o.Ability < 0 || o.Ability >= len(f.Abilities) {
 		return nil
@@ -554,8 +560,36 @@ func (s *Session) grantFact(src protocol.ObjectRef, o decision.Option, v *view.V
 	}
 	g := &decision.Grant{Keywords: kw}
 	g.Already = cardHasKeywords(v, o.Obj, kw)
-	g.Duplicate = pending[src.ObjectID] && slices.Equal(s.grants[src.ObjectID], kw)
+	g.Duplicate = pending[src.ObjectID] > 0 && grantRecorded(s.grants[src.ObjectID], kw)
 	return g
+}
+
+// grantRecorded reports whether recs holds a keyword set equal to kw. It
+// mirrors rules.grantSetsEqual: order-independent and case-insensitive.
+func grantRecorded(recs [][]string, kw []string) bool {
+	for _, rec := range recs {
+		if len(rec) != len(kw) {
+			continue
+		}
+		all := true
+		for _, x := range rec {
+			found := false
+			for _, y := range kw {
+				if strings.EqualFold(x, y) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				all = false
+				break
+			}
+		}
+		if all {
+			return true
+		}
+	}
+	return false
 }
 
 // abilityFace resolves the face an activated ability's source shows, matching
