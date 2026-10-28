@@ -528,16 +528,25 @@ func keywordLines(f *cards.Face, names []string) []string {
 
 var ptCounter = regexp.MustCompile(`^[pm]\d+[pm]\d+$`)
 
+// nativeTitleCounters are the engine's non-keyword counter kinds whose
+// canonical spelling is title case. The corpus writes these player counters
+// that way, and state.CanonicalCounterKind does not fold them.
+var nativeTitleCounters = map[string]string{"contract": "Contract", "experience": "Experience"}
+
 // nativeCounter reverses observe.Counter's Section 6.10 normalisation for the
 // engine spellings view.View.Counters carries. The P/T counters are upper-case
 // ("P1P1"/"M1M1"); CR 122.1b keyword counters are title case ("Flying",
 // "First Strike"), which cards.CounterKeyword recognises case-insensitively;
-// every other engine kind is upper-case ("loyalty" -> "LOYALTY", "ticket" ->
-// "TICKET"). A kind whose engine spelling matches none of these is lossy,
-// which is why the census test guards the round trip on real games.
+// the two engine player counters above are also title case; every other kind
+// is upper-case ("loyalty" -> "LOYALTY", "ticket" -> "TICKET"). A kind whose
+// engine spelling matches none of these is lossy, which is why the census
+// test guards the round trip on real games.
 func nativeCounter(k string) string {
 	if ptCounter.MatchString(strings.ToLower(k)) {
 		return strings.ToUpper(k)
+	}
+	if kind, ok := nativeTitleCounters[k]; ok {
+		return kind
 	}
 	words := strings.Split(k, "_")
 	for i, w := range words {

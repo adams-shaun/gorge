@@ -14,7 +14,7 @@ import (
 // named counters than it listed).
 func TestNativeCounterRoundTrip(t *testing.T) {
 	for _, kind := range []string{
-		"P1P1", "M1M1", "P0P1", "LOYALTY", "CHARGE", "EXPERIENCE", "POISON",
+		"P1P1", "M1M1", "P0P1", "LOYALTY", "CHARGE", "POISON", "Contract", "Experience",
 		"TICKET", "SPORE", "KI", "STORAGE", "DEPLETION", "PLAN", "VERSE", "FUSE",
 		"FLOOD", "POINT", "TIDE", "ICE", "FLAME", "DOOM", "BOUNTY", "HOUR",
 		"GROWTH", "FATE", "PRESSURE", "PLAGUE", "PAGE", "FUNGUS", "BRICK", "WIND",

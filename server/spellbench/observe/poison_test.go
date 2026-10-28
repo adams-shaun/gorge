@@ -35,7 +35,7 @@ func TestObservePoisonUsesTheDedicatedField(t *testing.T) {
 		t.Fatal(err)
 	}
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 3})
-	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "EXPERIENCE", Amount: 2})
+	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "ENERGY", Amount: 2})
 	if got := g.E.G.Players[0].Counter("POISON"); got != 3 {
 		t.Fatalf("precondition: poison %d", got)
 	}
@@ -59,8 +59,8 @@ func TestObservePoisonUsesTheDedicatedField(t *testing.T) {
 	if n, ok := po.Counters["poison"]; ok {
 		t.Fatalf("positive poison is double-routed into counters: %d", n)
 	}
-	if po.Counters["experience"] != 2 {
-		t.Fatalf("experience counter %d, want 2", po.Counters["experience"])
+	if po.Counters["energy"] != 2 {
+		t.Fatalf("energy counter %d, want 2", po.Counters["energy"])
 	}
 	nv, err := neutral.NewBuilder(reg).View(&obs)
 	if err != nil {
@@ -74,7 +74,7 @@ func TestObservePoisonUsesTheDedicatedField(t *testing.T) {
 	// field cannot express their presence, so they must also ride counters;
 	// otherwise the neutral rebuild silently drops native's POISON:0.
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: -3})
-	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "EXPERIENCE", Amount: -2})
+	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "ENERGY", Amount: -2})
 	if got := g.E.G.Players[0].Counter("POISON"); got != 0 {
 		t.Fatalf("precondition: poison %d after removal", got)
 	}

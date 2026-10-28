@@ -134,7 +134,7 @@ func seedCensusState(t *testing.T, g *gamecfg.Game) {
 		events.Emit(g.E.G, g.E.L, events.Event{Kind: events.AlterAttribute, Obj: id, Text: text, Amount: 1})
 	}
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 3})
-	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "EXPERIENCE", Amount: 2})
+	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "Experience", Amount: 2})
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.MonarchChange, Player: 0})
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.InitiativeChange, Player: 1})
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.DayNightChange, Amount: int32(state.DayNightDay)})
