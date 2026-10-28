@@ -153,6 +153,16 @@ func TestEtbTriggerXBoundSurvivesLegendRule(t *testing.T) {
 		if d.Max != 2 || d.Min != 0 {
 			t.Fatalf("target ask Min/Max = %d/%d, want 0/2 (the ability's X)", d.Min, d.Max)
 		}
+		// Precondition the fix reads: the binned source's live X is gone
+		// (events.Move cleared it) while the fire-time capture still holds
+		// the cast's X. Without that difference the ask below would pass for
+		// the wrong reason.
+		if got := e.G.Obj(young).X; got != 0 {
+			t.Fatalf("precondition: legend-binned source still has live X %d; events.Move must clear it", got)
+		}
+		if got := e.triggerContexts[d.Source].TriggerPaidX; got != 2 {
+			t.Fatalf("precondition: trigger context paid X = %d, want the captured 2", got)
+		}
 		// The ask must offer both sponges and nothing else.
 		idx := make([]int, 0, 2)
 		for _, o := range d.Options {
