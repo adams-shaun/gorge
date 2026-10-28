@@ -822,7 +822,10 @@ open look transaction and otherwise fails `look_not_open`). Over 62,368 decision
 
 The rebuild fills every fact the plain observation carries: the pool with only its non-zero
 colours, `land_drop_spent` from `lands_played_this_turn`, and `round` from `turn` (the
-profile is exactly two seats, so one round is two turns and turn 1 opens round 1). Card
+profile is exactly two seats, so one round is two turns and turn 1 opens round 1). The
+land-drop count is the ordinary one-land allowance: the observation carries how many lands
+were played, not an Exploration-style extra allowance, so a live extra-land-drop static is
+the one case where the rebuilt `land_drop_spent` can lag. Card
 facts the session's registry knows -- colour identity, printed P/T, the printed front-face
 `card_name`, types, keywords, `play_main1`, `remove_deck`, `is_token`/`is_copy`, and the
 printed non-mana ability costs -- are projected from the resolved card, so a field the
