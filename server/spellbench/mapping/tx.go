@@ -44,6 +44,11 @@ type Env struct {
 	Domain  map[string]bool
 	Slots   map[string]uint32 // target slot counter per action (key: v2 id of the source)
 	Looking [2]bool
+
+	// NameWindow is the maximum number of candidates a choose/name builder
+	// emits; 0 = no pre-cap (Finalize's MaxCandidates still applies). Set only
+	// by the extensions-bearing human transport.
+	NameWindow int
 }
 
 // OpenLook starts the look a transaction needs before it mints look ids.

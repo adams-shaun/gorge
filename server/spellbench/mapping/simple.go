@@ -153,7 +153,7 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		return SingleChoice(env, d, choice(src, "card_name"), func(o decision.Option) (protocol.Semantic, bool, error) {
+		return SingleChoiceN(env, d, choice(src, "card_name"), env.NameWindow, func(o decision.Option) (protocol.Semantic, bool, error) {
 			return protocol.ChooseName(src, "card_name", o.Label), env.Domain[o.Label], nil
 		})
 	})

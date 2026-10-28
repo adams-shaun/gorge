@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/spellbench/humanseat"
+	"github.com/adams-shaun/gorge/server/spellbench/mapping"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
@@ -189,6 +190,28 @@ func (s *seatState) open(requestID uint64) bool {
 	return req != nil && req.id == requestID && !req.closed && !req.answered && !req.nativeOnly
 }
 
+// openRequest returns the seat's open, answerable v2 request when it carries a
+// pose; a synthetic native-only request never does.
+func (s *seatState) openRequest(requestID uint64) (*request, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	req := s.current
+	if req == nil || req.id != requestID || req.closed || req.answered || req.nativeOnly || req.ask.Pose == nil {
+		return nil, false
+	}
+	return req, true
+}
+
+// markAnswered closes request requestID to further answers (a racing
+// candidate_id then gets stale) once an action answered it natively.
+func (s *seatState) markAnswered(requestID uint64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.current != nil && s.current.id == requestID {
+		s.current.answered = true
+	}
+}
+
 // answer delivers candidate id as the answer to request requestID. It reports
 // false when no request with that id is open — already answered, superseded,
 // or never this seat's.
@@ -253,5 +276,5 @@ func (h *Hub) Tap(table host.TableID, match int, autoPayMana bool, mc *bots.Matc
 	s := h.seat(seatKey{table: table, match: match, seat: state.PlayerID(mc.Seat)})
 	ext := newExtensionBuilder()
 	s.setExtension(ext)
-	return humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: s, Extend: ext.Extend})
+	return humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: s, Extend: ext.Extend, NameWindow: mapping.MaxCandidates})
 }
