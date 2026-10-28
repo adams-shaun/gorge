@@ -85,11 +85,50 @@ func evalCountBodyProvenance(h Host, c *Ctx, body string, depth int) (int32, boo
 	return 0, false, false
 }
 
+// evalTotalDamageDoneThisTurn answers the bare Count$TotalDamageDoneByThisTurn
+// head (Corrupt, Brightflame, Drain Life and the other lifelink-style "equal
+// to the damage dealt this way" riders): the total positive damage the HOST
+// source has dealt this turn, summed over the event-backed
+// Object.DamageDealtThisTurn records (the same records the
+// TotalDamageReceivedThisTurn sibling counts on the recipient side). The host
+// is picked exactly as that sibling picks it -- the triggering card when a
+// trigger is resolving, else the resolving source -- and read through the LKI
+// snapshot when the host has left the battlefield (CR 608.2h), so a spell
+// that has already moved off the stack still answers its own damage. A
+// missing host is a modelled zero, not the unresolvable verdict.
+func evalTotalDamageDoneThisTurn(h Host, c *Ctx) int32 {
+	self := c.TriggerCard
+	if self == 0 {
+		self = c.Source
+	}
+	if self == 0 {
+		return 0
+	}
+	o := h.Game().Obj(self)
+	if c.LKI != nil && c.LKI.ID == self {
+		o = c.LKI
+	}
+	if o == nil {
+		return 0
+	}
+	var n int32
+	for _, rec := range o.DamageDealtThisTurn {
+		n += rec.Amount
+	}
+	return n
+}
+
 // evalCountBodyCost evaluates the scalar heads claimed right after the
-// head/argument split: the TotalDamageReceivedThisTurn shortcut, the
+// head/argument split: the EachSpentToCast colour read, the
+// TotalDamageReceivedThisTurn / TotalDamageDoneByThisTurn shortcuts, the
 // Convoked$/TargetedByTarget$ forms, the fuzz-cov3 heads and the first
 // switch-arm group (YouDescendedThisTurn through SquadPaid).
 func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth int) (int32, bool, bool) {
+	// Count$EachSpentToCast.<colour> (Bladecoil Serpent, Clay Champion,
+	// Dawnglow Infusion): the colour units of the cast's payment.
+	if v, ok, matched := evalEachSpentToCastHead(h, c, g, head, arg); matched {
+		return v, ok, true
+	}
 	// The recipient matcher may retain its context for damage-time type
 	// filtering. Keep the caller's Ctx on the stack for every other count
 	// head (in particular the allocation-free Valid zone scan).
@@ -97,6 +136,9 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	if code == evalCountBodyCostMaxCombatDamageThisTurn || code == evalCountBodyCostNumDamageThisTurn || code == evalCountBodyCostNonCombatDamageThisTurn {
 		damageCtx := *c
 		return evalDamageHistory(h, &damageCtx, g, head, arg)
+	}
+	if head == "TotalDamageDoneByThisTurn" && arg == "" {
+		return evalTotalDamageDoneThisTurn(h, c), true, true
 	}
 	if head == "TotalDamageReceivedThisTurn" && arg == "" {
 		self := c.TriggerCard
