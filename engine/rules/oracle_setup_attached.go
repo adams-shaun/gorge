@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"fmt"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -131,7 +129,7 @@ func (r *oracleRun) placeAttached(sc oracleScenario) error {
 // runs the per-placement tail: the back-face flip, tapped, counters and
 // SetupSettled. A nonzero bearer places a battlefield Aura attached to it.
 func (r *oracleRun) placeSetupEntry(sc oracleScenario, p int, id state.ObjID, name string, zone state.Zone, bearer state.ObjID) {
-	seat := sc.Setup[fmt.Sprintf("p%d", p)]
+	seat := sc.Setup[oracleSeatRef(p, "")]
 	e := r.e
 	backFace := setupPlacedBackFace(seat, name)
 	if from := e.G.Obj(id).Zone; from != zone {
