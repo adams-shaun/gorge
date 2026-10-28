@@ -2,10 +2,14 @@ package sbv2http
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
 
+	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/manabrew"
 )
 
@@ -23,10 +27,44 @@ type sendRequest struct {
 }
 
 // humanAction is the write half of x_gorge_human_v1. Concede and undo take the
-// seat's existing native paths; at most one may be set.
+// seat's existing native paths; choose_name answers a card-name ask with any
+// name the engine offered, including those past the 4096-candidate window of
+// the seat_decision. At most one may be set.
 type humanAction struct {
-	Concede bool `json:"concede"`
-	Undo    bool `json:"undo"`
+	Concede    bool   `json:"concede"`
+	Undo       bool   `json:"undo"`
+	ChooseName string `json:"choose_name,omitempty"`
+}
+
+// actions counts the actions set on a.
+func (a *humanAction) actions() int {
+	n := 0
+	for _, set := range []bool{a.Concede, a.Undo, a.ChooseName != ""} {
+		if set {
+			n++
+		}
+	}
+	return n
+}
+
+// nameIntent is the one home for choose_name's legal-answer rule: name must be
+// the exact Label of a Kind "name" option of the pending native decision d,
+// and the one-choice intent for it must pass d.Validate.
+func nameIntent(d *decision.Decision, name string) (decision.Intent, error) {
+	if d == nil || d.Kind != decision.KChoose {
+		return decision.Intent{}, errors.New("no pending card-name decision")
+	}
+	for _, o := range d.Options {
+		if o.Kind != "name" || o.Label != name {
+			continue
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}
+		if err := d.Validate(in); err != nil {
+			return decision.Intent{}, err
+		}
+		return in, nil
+	}
+	return decision.Intent{}, errors.New("the pending decision does not offer that name")
 }
 
 // send is POST .../send: it answers the claim seat's open request through the
@@ -66,7 +104,7 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if msg.Human != nil {
-		if msg.Human.Undo && msg.Human.Concede {
+		if msg.Human.actions() > 1 {
 			writeError(w, http.StatusBadRequest, "bad_request")
 			return
 		}
@@ -74,6 +112,10 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusConflict, "stale")
 			return
 		}
+	}
+	if msg.Human != nil && msg.Human.ChooseName != "" {
+		h.chooseName(w, claim.Seat, t, k, id, msg.Human.ChooseName)
+		return
 	}
 	if msg.Human != nil && msg.Human.Undo {
 		if err := h.reg.Undo(t, k, claim.Seat); err != nil {
@@ -105,5 +147,36 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "stale")
 		return
 	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// chooseName answers the open card-name request with name. The name is
+// resolved against the PENDING native decision, not the pose's candidates, so
+// every offered name is answerable. A name ask folded into a priority pose's
+// follow-ups is a different native decision than the pose's: its seq does not
+// match, so it is stale here and the client falls back to candidate_id or the
+// native routes.
+func (h *handler) chooseName(w http.ResponseWriter, seat state.PlayerID, t host.TableID, k int, id uint64, name string) {
+	ss := h.hub.seat(seatKey{table: t, match: k, seat: seat})
+	req, ok := ss.openRequest(id)
+	if !ok {
+		writeError(w, http.StatusConflict, "stale")
+		return
+	}
+	d, err := h.reg.Pending(t, k, seat)
+	if err != nil || d == nil || d.Seq != req.ask.Pose.Native.Seq {
+		writeError(w, http.StatusConflict, "stale")
+		return
+	}
+	in, err := nameIntent(d, name)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request")
+		return
+	}
+	if err := h.reg.SubmitIntent(t, k, seat, in); err != nil {
+		writeError(w, http.StatusConflict, "stale")
+		return
+	}
+	ss.markAnswered(id)
 	w.WriteHeader(http.StatusNoContent)
 }

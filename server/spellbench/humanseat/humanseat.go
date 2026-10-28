@@ -119,6 +119,11 @@ type Config struct {
 	// Extend, when non-nil, adds transport-specific extensions to every v2
 	// seat decision this codec poses. The native wire never sets it.
 	Extend ExtendFunc
+	// NameWindow bounds the candidates of a choose_name decision (see
+	// mapping.Env.NameWindow); 0 = no window. The extensions-bearing human
+	// transport sets it to mapping.MaxCandidates and answers the rest through
+	// its own action.
+	NameWindow int
 }
 
 // Seat is the v2 codec of one human seat of one match. Install it with
@@ -126,6 +131,8 @@ type Config struct {
 type Seat struct {
 	answerer Answerer
 	extend   ExtendFunc
+	// nameWindow is Config.NameWindow.
+	nameWindow int
 
 	mu       sync.Mutex
 	mc       *bots.MatchContext
@@ -159,7 +166,7 @@ func New(cfg Config) (*Seat, error) {
 	if cfg.Answerer == nil {
 		return nil, errors.New("v2 human seat: nil answerer")
 	}
-	return &Seat{answerer: cfg.Answerer, extend: cfg.Extend}, nil
+	return &Seat{answerer: cfg.Answerer, extend: cfg.Extend, nameWindow: cfg.NameWindow}, nil
 }
 
 func checkTable(seats int, format string) error {
@@ -217,6 +224,8 @@ func (s *Seat) attachEnv(mc *bots.MatchContext) {
 		Obs:     &observe.Projector{E: mc.Engine, IDs: tracker},
 		Domain:  nameSet(domainNames(mc.Engine.G.NameUniverseNames, mc.OwnDeck, mc.OpponentDeck)),
 		Slots:   map[string]uint32{},
+
+		NameWindow: s.nameWindow,
 	}
 }
 

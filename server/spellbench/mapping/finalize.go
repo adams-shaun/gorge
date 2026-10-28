@@ -6,6 +6,10 @@ import (
 	"sort"
 )
 
+// MaxCandidates is Section 7.1's bound on one decision's candidates: a
+// conforming receiver rejects a longer list.
+const MaxCandidates = 4096
+
 // Finalize applies Section 7.1: candidates referencing hidden-zone cards are
 // ordered among themselves by (card_name, object_id); pass is candidate 0;
 // semantics are pairwise distinct; at most 4096 candidates.
@@ -36,7 +40,7 @@ func Finalize(p *Pose) error {
 	if len(p.Candidates) == 0 {
 		return ErrDeadEnd
 	}
-	if len(p.Candidates) > 4096 {
+	if len(p.Candidates) > MaxCandidates {
 		return ErrCandidateLimit
 	}
 	seen := map[string]bool{}
