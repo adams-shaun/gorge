@@ -752,12 +752,12 @@ classification `forfeit` and reason `forfeit:<cause>`. From the upstream golden
    "seat_step_count": 0, "winner": "p1"}}
 ```
 
-!!! warning "gorged sends an empty outcome for halted and forfeited games"
-    Where the upstream host writes `"outcome":"halted"` or the winner's `pN_win`, `gorged`'s
-    seat currently writes `"outcome":""` for a halted match and for a forfeit
-    ([`seat.go`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/seat/seat.go) `EndMatch`,
-    [`server/host/match.go`](https://github.com/adams-shaun/gorge/blob/main/server/host/match.go)). Read
-    `classification` and `winner` instead. The schema admits `""` for this reason.
+!!! note "gorged's outcome for halted and forfeited games"
+    Like the upstream host, `gorged`'s seat writes `"outcome":"halted"` for a match that ended
+    without a result and the winner's `pN_win` for a forfeit
+    ([`seat.go`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/seat/seat.go) `EndMatch`;
+    rechecked at `25d71cadc`). Earlier builds wrote `"outcome":""`, which the schema still
+    admits.
 
 ### Agent errors
 

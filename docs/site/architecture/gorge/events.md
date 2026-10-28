@@ -7,7 +7,7 @@ heads, how replay works, and how clones and the resolution kernel build on it.
 Read it before you write engine code that changes anything, because the rules
 here are what keep replays, bug reports and search correct.
 
-*Facts on this page are from `develop` @ `513a2a0c3` (2026-10-21). Code links
+*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Code links
 point at `main`.*
 
 ## The loop
@@ -170,8 +170,8 @@ proposed.
 
 ## Event kinds
 
-`events.Kind` is a `uint8`. There are **144** kinds, ordinals 0 to 143
-(`events.NumKinds == 144`, measured by printing the constant from a scratch
+`events.Kind` is a `uint8`. There are **145** kinds, ordinals 0 to 144
+(`events.NumKinds == 145`, measured by printing the constant from a scratch
 program that imports `engine/events`). Each kind has exactly one entry in the
 `kindInfo` table in
 [`engine/events/kindinfo.go`](https://github.com/adams-shaun/gorge/blob/main/engine/events/kindinfo.go),
@@ -185,25 +185,25 @@ every later kind and change the hash of every recorded game. A new kind goes
 after the last one, above the `NumKinds` line.
 
 <figure markdown>
-<svg viewBox="0 0 780 200" width="100%" role="img" aria-label="A timeline of event kind ordinals 0 to 143: the core kinds 0 to 23, then later kinds appended in order, ending at HadToAttack, ordinal 143">
-  <rect x="20.0" y="80" width="124.2" height="36" class="dg-box-accent"/>
-  <rect x="144.2" y="80" width="25.9" height="36" class="dg-box"/>
-  <rect x="170.1" y="80" width="36.2" height="36" class="dg-box-accent"/>
-  <rect x="206.3" y="80" width="553.7" height="36" class="dg-box"/>
+<svg viewBox="0 0 780 200" width="100%" role="img" aria-label="A timeline of event kind ordinals 0 to 144: the core kinds 0 to 23, then later kinds appended in order, ending at DayNightChange, ordinal 144">
+  <rect x="20.0" y="80" width="122.5" height="36" class="dg-box-accent"/>
+  <rect x="142.5" y="80" width="25.5" height="36" class="dg-box"/>
+  <rect x="168.0" y="80" width="35.7" height="36" class="dg-box-accent"/>
+  <rect x="203.7" y="80" width="556.3" height="36" class="dg-box"/>
   <text x="20.0" y="132" text-anchor="middle" class="dg-text-mono">0</text>
-  <text x="144.2" y="132" text-anchor="middle" class="dg-text-mono">24</text>
-  <text x="170.1" y="132" text-anchor="middle" class="dg-text-mono">29</text>
-  <text x="206.3" y="132" text-anchor="middle" class="dg-text-mono">36</text>
-  <text x="760.0" y="132" text-anchor="middle" class="dg-text-mono">143</text>
-  <text x="82.1" y="103" text-anchor="middle" class="dg-text-mono">core</text>
-  <text x="483.1" y="103" text-anchor="middle" class="dg-text-mono">36-143: every later mechanic, appended in landing order</text>
-  <line x1="157.1" y1="80" x2="157.1" y2="26" class="dg-line"/>
-  <text x="161.1" y="22" class="dg-text-muted">24-28: TargetsChosen, FlipFace, ClockTick, TriggerPush, EndCombatReset</text>
-  <line x1="188.2" y1="80" x2="188.2" y2="54" class="dg-line"/>
-  <text x="192.2" y="50" class="dg-text-muted">29-35: CastInfo, Choose, TokenCreate, StackCopy, Attach, AbilityPush, ModeChosen</text>
+  <text x="142.5" y="132" text-anchor="middle" class="dg-text-mono">24</text>
+  <text x="168.0" y="132" text-anchor="middle" class="dg-text-mono">29</text>
+  <text x="203.7" y="132" text-anchor="middle" class="dg-text-mono">36</text>
+  <text x="760.0" y="132" text-anchor="middle" class="dg-text-mono">144</text>
+  <text x="81.2" y="103" text-anchor="middle" class="dg-text-mono">core</text>
+  <text x="481.9" y="103" text-anchor="middle" class="dg-text-mono">36-144: every later mechanic, appended in landing order</text>
+  <line x1="155.3" y1="80" x2="155.3" y2="26" class="dg-line"/>
+  <text x="159.3" y="22" class="dg-text-muted">24-28: TargetsChosen, FlipFace, ClockTick, TriggerPush, EndCombatReset</text>
+  <line x1="185.9" y1="80" x2="185.9" y2="54" class="dg-line"/>
+  <text x="189.9" y="50" class="dg-text-muted">29-35: CastInfo, Choose, TokenCreate, StackCopy, Attach, AbilityPush, ModeChosen</text>
   <text x="20" y="156" class="dg-text-muted">0-23: GameStart, Shuffle, MoveZone, Draw, Damage, Priority, DecisionAsk, Note, LandPlayed ...</text>
-  <text x="20" y="174" class="dg-text-muted">36-143: CmdDamage, DelayedRegister, ControlChange, Mutate, Scry, Surveil, Meld, SpellCastReversed ... HadToAttack</text>
-  <text x="760" y="194" text-anchor="end" class="dg-text-bold">NumKinds = 144 (Kind is a uint8)</text>
+  <text x="20" y="174" class="dg-text-muted">36-144: CmdDamage, DelayedRegister, ControlChange, Mutate, Scry, Surveil, Meld, SpellCastReversed ... DayNightChange</text>
+  <text x="760" y="194" text-anchor="end" class="dg-text-bold">NumKinds = 145 (Kind is a uint8)</text>
 </svg>
 <figcaption>Kinds are grouped by when they were appended, never by topic. The
 core kinds came first; every later mechanic appended its own kind at the end
@@ -211,7 +211,7 @@ so no earlier ordinal, hash or golden replay moved. The scale is
 proportional to ordinal.</figcaption>
 </figure>
 
-??? details "All 144 kinds by ordinal"
+??? details "All 145 kinds by ordinal"
     | Ordinals | Kinds |
     |---|---|
     | 0-9 | GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap, StepChange, TurnChange |
@@ -228,7 +228,7 @@ proportional to ordinal.</figcaption>
     | 110-119 | ManaUndo, EndTurn, DungeonCreate, DungeonRoom, DungeonComplete, DungeonRemove, InitiativeChange, SkipTurn, ControlPlayerChange, Crew |
     | 120-129 | ElementalBend, SetupEntered, DoorLock, Saddle, ClassLevelChange, MillProposal, Meld, ExcessDamage, ForageAction, ManifestDreadAction |
     | 130-139 | CollectEvidenceAction, AbilityTriggered, CastBattlefield, DrawBatchProposal, SpellCastReversed, HiddenIdentity, DrawEmpty, SetupSettled, BlockedByEffect, CopyExcept |
-    | 140-143 | GameRestart, ActivationReversed, TextChange, HadToAttack |
+    | 140-144 | GameRestart, ActivationReversed, TextChange, HadToAttack, DayNightChange |
 
 A few kinds deserve a note because they show the design pressure:
 
@@ -322,7 +322,7 @@ go run ./cmd/headdiff -seats 2 -against before.jsonl  # on the new one: print th
 GORGE_UPDATE_HEADS=1 go test ./engine/rules/ -run '^TestHeads$'  # re-pin, once the change is intended
 ```
 
-On `513a2a0c3`, `go run ./cmd/headdiff -seats 2` prints `2 seats: 2558 events,
+On `25d71cadc`, `go run ./cmd/headdiff -seats 2` prints `2 seats: 2558 events,
 head 9a22e5122a3d436a (matches the pinned head)`; the 4-seat game is 5,718
 events.
 

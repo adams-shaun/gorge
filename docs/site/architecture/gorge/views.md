@@ -8,7 +8,7 @@ it hands anything to a client or a bot, and how determinism keeps the
 server's word authoritative. It is for client and bot authors and for anyone
 touching `engine/view` or the server's HTTP layer.
 
-*Facts on this page are from `develop` @ `513a2a0c3` (2026-10-21). Code links
+*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Code links
 point at `main`.*
 
 ## The boundary

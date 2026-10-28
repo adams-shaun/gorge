@@ -143,7 +143,7 @@ build's first test rather than a server start. The fields that matter:
 | `Formats`, `MaxSeats` | tables the policy accepts (`MaxSeats` 0 = no bound) |
 | `Env`, `ClosedLists`, `Search` | an Env policy builds search over every seat's real decklist and is never seated against a human; `ClosedLists` marks one that closes opponents' lists and may be; `Search` lets the host bound concurrent searches |
 | `NeedsAutoPay` | the policy has no manual-tap mode; a table without payment plans refuses it |
-| `Caretaker` | the policy the host builds to answer for a disconnected human |
+| `Caretaker` | a registered, non-`Env` policy named as this one's stand-in (`bots.Validate` checks it); a human seat's timeout caretaker is the table's own policy, not this field |
 | `Strength`, `Cost` | measurement metadata `GET /api/bot-policies` publishes |
 | `Options` | the keys the factory reads (next section) |
 
@@ -291,8 +291,12 @@ $ curl -s http://127.0.0.1:8093/api/bot-policies | jq -r '.policies[].name'
 bot
 allin
 forge-heuristic
+forge-heuristic-hold
 lethal-pressure
 ```
+
+(Re-run 2026-10-27 at `25d71cadc`: `forge-heuristic-hold` was registered
+after the run above.)
 
 `allin` is now offered to `POST /api/games` (`"bot_policy": "allin"`) and to
 the browser's play-vs-bot picker. The Python example agent played it:

@@ -8,7 +8,7 @@ in this repository. It covers what each repository holds, which way the
 imports run and what enforces that, licensing, how the companions pin gorge,
 and how changes reach `main`.
 
-*Verified 2026-10-21 against gorge `develop` @ `513a2a0c3` and the two
+*Verified 2026-10-27 against gorge `develop` @ `25d71cadc` and the two
 companions as they stood that day.*
 
 ## At a glance
@@ -206,13 +206,13 @@ All three repositories land work the same way:
 ```mermaid
 flowchart LR
   pr["your branch<br/>or fork"] -->|"pull request,<br/>ci green"| develop["develop"]
-  develop -->|"agentctl promote:<br/>snapshot PR<br/>develop → main"| main["main"]
+  develop -->|"snapshot PR<br/>develop → main"| main["main"]
   main -->|"docs.yml"| site["this site"]
 ```
 
 1. Changes land on **`develop`**, through a pull request whose `ci` workflow
    (lint plus a sharded test run with the corpus fetched) is green.
-2. The maintainers' pipeline (agentctl's `[promote]`) periodically snapshots
+2. The maintainers' pipeline periodically snapshots
    `develop` to a `promote/develop-<stamp>` branch and opens a `develop → main`
    pull request from it, superseding older snapshot PRs. When its checks are
    green it is merged; a red snapshot is parked for a person.

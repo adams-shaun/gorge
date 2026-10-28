@@ -6,7 +6,7 @@ something, and how the answer comes back. It is for anyone writing a seat (a
 bot or a client), a driver (a host, a test harness, a simulator), or engine
 code that needs to ask a player a question.
 
-*Facts on this page are from `develop` @ `513a2a0c3` (2026-10-21). Code links
+*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Code links
 point at `main`.*
 
 ## The driving contract: Advance, Pending, Submit

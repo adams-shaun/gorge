@@ -8,8 +8,9 @@ result (and how many games a given difference needs), replay verification,
 reproducibility and speed. Wiring in a bot written in another language is
 covered in [Bots and strategies](../bots/index.md).
 
-*Every command and output here was run on 2026-10-21 at commit `513a2a0c3`
-(corpus pin `FORGE_REF` `76fd7691`), on a shared 32-core Linux box capped to
+*Every command and output here was re-run on 2026-10-27 at commit `25d71cadc`
+(corpus pin `FORGE_REF` `76fd7691`). The wall times and memory figures are
+from the 2026-10-21 run at `513a2a0c3`, on a shared 32-core Linux box capped to
 4 CPUs. The box was under load, so the wall times are upper bounds.*
 
 ## Which tool?
@@ -53,6 +54,7 @@ go run ./cmd/spellbench-gorge-agent -list-policies
 az-redeal	az-redeal (AlphaZero search)	experimental
 bot	Bot	production
 forge-heuristic	Forge heuristic	experimental
+forge-heuristic-hold	Forge heuristic + hold	experimental
 lethal-pressure	Lethal Pressure	experimental
 sb-tactical	sb-tactical (SpellBench tactical heuristic)	experimental
 ```
@@ -66,7 +68,8 @@ policy in full and how to pick one; in short:
 |---|---|---|
 | `bot` | constructed and Commander, any | the production heuristic. With automatic mana payment it simulates combat to choose attacks and blocks; Forge's London mulligan rule ([`bots/bot`](https://github.com/adams-shaun/gorge/blob/main/bots/bot/bot.go)) |
 | `forge-heuristic` | constructed and Commander, any | `bot` (same constructor, combat simulation and mulligan) plus every rule family re-expressed from Forge's AI: removal timing, targeting, AI hints, deck-shape posture, attachments, spell timing and gang blocks ([`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go)) |
-| `lethal-pressure` | constructed and Commander, any | the plain heuristic with the AR7 lethal-pressure attack rule, no combat simulation and the coin mulligan; `gorged`'s default `-bot-policy` ([`bots/lethalpressure`](https://github.com/adams-shaun/gorge/blob/main/bots/lethalpressure/lethalpressure.go)) |
+| `forge-heuristic-hold` | constructed and Commander, any | `forge-heuristic` with its `hold-instant` option armed: it holds instants outside the respond, opponent post-combat and combat-trick windows |
+| `lethal-pressure` | constructed and Commander, any | the plain heuristic with the lethal-pressure attack rule, no combat simulation and the coin mulligan; `gorged`'s default `-bot-policy` ([`bots/lethalpressure`](https://github.com/adams-shaun/gorge/blob/main/bots/lethalpressure/lethalpressure.go)) |
 | `sb-tactical` | constructed, 2 seats | a scored tactical heuristic from the SpellBench project: values creatures, timing, races and removal from what the seat can see. Needs the card registry ([`bots/sbtactical`](https://github.com/adams-shaun/gorge/blob/main/bots/sbtactical/sbtactical.go)) |
 | `az-redeal` | constructed, 2 seats | AlphaZero-style tree search with no network: 100 simulations per searched decision over hidden cards redealt from its own observations, and `bot` everywhere else. About 250 ms per searched decision (its registry entry) ([`bots/azredeal`](https://github.com/adams-shaun/gorge/blob/main/bots/azredeal/azredeal.go)) |
 
@@ -79,9 +82,10 @@ the matchup program below does, `mtgsim` does not.
 **Options.** A policy may declare options (`bots.Info.Options`: key, type,
 default, help). `gorged` sets them with `-bot-opt <policy>.<key>=<value>`,
 `-bot-config <policy>=<file.json>` or `GORGED_BOT_<POLICY>_<KEY>`; your own
-program passes `bots.Options{Config: map[string]string{...}}`. **None of the
-built-in policies declares an option today**, so this matters only for a
-policy you register yourself.
+program passes `bots.Options{Config: map[string]string{...}}`. **Only
+`forge-heuristic` declares one today** (`hold-instant`, a bool, default
+`false`; `forge-heuristic-hold` is the same policy with it armed), so this
+matters mostly for a policy you register yourself.
 
 ## A quick look with `mtgsim`
 
@@ -98,7 +102,7 @@ seed 1: 2 seats,    346 intents,   1894 events,  13 turns, winner=mono-red-gobli
 seed 2: 2 seats,    223 intents,   1259 events,  10 turns, winner=mono-red-goblins, chain=2185ea670cb66f1a
 seed 3: 2 seats,    243 intents,   1397 events,  10 turns, winner=mono-red-goblins, chain=d2247facf6f5c926
 ...
-seed 100: 2 seats,    356 intents,   1961 events,  14 turns, winner=mono-red-goblins, chain=1216b28774c3a6d0
+seed 100: 2 seats,    356 intents,   1961 events,  14 turns, winner=mono-red-goblins, chain=cd4408f4b037e8cf
 ```
 
 Each game prints one line naming the **winning deck**, not the winning
@@ -150,7 +154,7 @@ go mod edit -require github.com/adams-shaun/gorge@v0.0.0 -replace github.com/ada
 go build -o matchup .
 ```
 
-??? example "`main.go` (100 lines)"
+??? example "`main.go` (91 lines)"
 
     ```go
     // Command matchup plays two registered bot policies against each other over
@@ -271,14 +275,14 @@ pair of the 12 pinned constructed decks (66 pairs):
 ```
 
 ```text
-forge-heuristic vs bot: A won 636 of 1320 decided games = 48.2% (95% CI +/- 2.7 pp)
-bot vs bot: A won 630 of 1320 decided games = 47.7% (95% CI +/- 2.7 pp)
+forge-heuristic vs bot: A won 638 of 1320 decided games = 48.3% (95% CI +/- 2.7 pp)
+bot vs bot: A won 631 of 1320 decided games = 47.8% (95% CI +/- 2.7 pp)
 ```
 
 Each run: 1,320 games in about 10 s wall (36-39 s CPU) on 4 cores, 1.3 GB
 peak RSS. The control matters: `bot` against itself is 50% by symmetry, and
-47.7% is what noise (and the seat order) looks like at this size.
-forge-heuristic's 48.2% sits inside the control's interval, so on this run
+47.8% is what noise (and the seat order) looks like at this size.
+forge-heuristic's 48.3% sits inside the control's interval, so on this run
 the two are indistinguishable in 1v1 constructed.
 
 The other two policies run the same way. These are 20-game smoke runs, far
@@ -312,10 +316,10 @@ go run ./cmd/mtgsim -seats 8 -games 2 -verify -a forge-heuristic
 ```
 
 ```text
-seed 0: 8 seats,   4120 intents,  19329 events,  59 turns, winner=death-n-taxes, chain=2722cd61609906f8
-  replay OK (chain 2722cd61609906f8)
-seed 1: 8 seats,   4021 intents,  18475 events,  54 turns, winner=mono-red-goblins, chain=002a811213c188eb
-  replay OK (chain 002a811213c188eb)
+seed 0: 8 seats,   3559 intents,  16519 events,  48 turns, winner=mono-green-stompy, chain=e0263f76ebf6ff76
+  replay OK (chain e0263f76ebf6ff76)
+seed 1: 8 seats,   4021 intents,  18475 events,  54 turns, winner=mono-red-goblins, chain=e88551cadd660619
+  replay OK (chain e88551cadd660619)
 ```
 
 Two 8-seat games in 2.4 s. To balance seats, rotate the deck list across runs
@@ -381,8 +385,8 @@ the answers the seats gave, which the event log records. `-verify` (in
 and compares the rebuilt event chain head with the live one:
 
 ```text
-seed 0: 4 seats,   1419 intents,   6941 events,  33 turns, winner=death-n-taxes, chain=3681b10f8c62ff99
-  replay OK (chain 3681b10f8c62ff99)
+seed 0: 4 seats,   1419 intents,   6941 events,  33 turns, winner=death-n-taxes, chain=c726ff7a143bef8d
+  replay OK (chain c726ff7a143bef8d)
 ```
 
 A `replay diverged at event N` line is an engine bug: please report it with

@@ -10,8 +10,8 @@ and *chain head* are defined in the [glossary](../contributing/glossary.md).
 
 !!! note "Verified against"
     Every signature below was checked against the source at commit
-    `513a2a0c3` (2026-10-21), and the first program was re-run there with
-    Go 1.26.3. The bot example and its contract test were run at `ad3777023`
+    `513a2a0c3` (2026-10-21) and again at `25d71cadc` (2026-10-27), and the
+    first program was re-run at both with Go 1.26.3 (same output). The bot example and its contract test were run at `ad3777023`
     (2026-10-20).
     gorge has no tagged releases, so pin a commit (see [Stability](#stability)).
 
@@ -431,7 +431,7 @@ is what makes the policy exist; `bots/all` links every built-in one.
 | `MaxSeats int` | The most seats the policy plays at; the host refuses a bigger table. 0 means no limit. |
 | `Options []OptionSpec` | Configuration keys the factory reads: `{Key, Type, Default, Help, Required}`, `Type` one of `string`, `int`, `float`, `bool`, `path`. Read them in the factory with `Options.String/Int/Float/Bool`. |
 | `NeedsAutoPay bool` | The policy only plays through payment plans; the host refuses a table without them. |
-| `Caretaker string` | The registered policy that answers for this seat when a human seat's think timeout passes; `bots.Validate` checks it exists and is not an `Env` policy. |
+| `Caretaker string` | A registered, non-`Env` policy declared as this one's stand-in; `bots.Validate` checks it exists and is not an `Env` policy. The host does not read it: a human seat's think-timeout caretaker is built from the table's own `BotPolicy`. |
 | `Env, Search, ClosedLists bool` | For search policies that build an engine from the decklists. A policy with `Env` and without `ClosedLists` reads every seat's real decklist, so the host never seats it against a human. |
 | `Strength []Measurement`, `Cost Cost` | Published claims about strength and per-decision cost, shown by `/api/bot-policies`. |
 

@@ -268,9 +268,11 @@ gorged: -bot-policies: bot policy "sb-tactical" reads opponents' decklists and c
 
 Per-policy options use `-bot-opt <policy>.<key>=<value>`,
 `-bot-config <policy>=<file.json>` or the environment variable
-`GORGED_BOT_<POLICY>_<KEY>`, in that order of precedence. **No built-in policy
-declares any options today**, so the mechanism exists for policies you add;
-an option a policy does not declare is an error:
+`GORGED_BOT_<POLICY>_<KEY>`, in that order of precedence. **Only
+`forge-heuristic` declares an option today** (`hold-instant`, a bool, default
+`false`; `forge-heuristic-hold` is that policy with it armed), so the mechanism
+exists mostly for policies you add. An option a policy does not declare is an
+error:
 
 ```text
 gorged: -bot-opt "bot.depth=3": bot policy "bot" declares no options

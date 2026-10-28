@@ -131,7 +131,7 @@ What each region holds, and the design choice behind it:
 | Change marks | a 192-bit set of objects written since an epoch, a touch counter, a per-object stamp, undo bookkeeping, per-seat counts of elided decisions | see [Change marks](#change-marks-and-incremental-readers) |
 | Generated-table extension | the continuous-effect pool (16 records), the last-known-information pool (16 records), remembered and chosen objects, damage maps, play permissions, delayed programs, emblems, once-per-turn records, per-turn history counters (spells cast, abilities activated, zone entries), poison, energy and speed, as-enters asks, exile-until-leaves links, replacement-order state | the state the generated card tables need; zero and unused on a hand-written table |
 
-Two layout decisions from the redesign are visible in the map:
+Two layout decisions are visible in the map:
 
 - **Counters are sparse.** A permanent keeps a dedicated +1/+1 count and
   three general slots, each a (kind, count) pair kept sorted so that equal
@@ -317,7 +317,7 @@ object still hashes as it did.
 ## The size budget
 
 `State` is the kernel's one scarce resource: every byte is copied on every
-clone, so the redesign treats its size as a budget with a ledger.
+clone, so its size is treated as a budget.
 
 - **Today: 15,240 bytes.** A size test fails the build above 16 KiB. The
   limit was 12 KiB until the battlefield doubled from 64 to 128 slots; padding
@@ -336,7 +336,7 @@ clone, so the redesign treats its size as a budget with a ledger.
   sites, and the code behind the gate is kept out of line so it does not
   disturb the hot loop's layout.
 
-The redesign added the continuous-effect pool, per-slot layer timestamps and
+The current layout added the continuous-effect pool, per-slot layer timestamps and
 turn history while keeping `State` under 10 KB: sparse counters and the
 shared last-known-information pool paid for the additions. Doubling the
 battlefield to 128 slots then took it to 15,240 bytes, most of that in the

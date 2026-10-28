@@ -8,7 +8,7 @@ focused test run. It is for anyone trying gorge for the first time; the
 gorge needs Go (the version in `go.mod`, `go 1.25.8`), `make`, `git` and
 `bash`. Node is needed only to build the browser client.
 
-*Commands checked on `develop` @ `513a2a0c3`, 2026-10-21.*
+*Commands checked on `develop` @ `25d71cadc`, 2026-10-27.*
 
 ## 1. Fetch and compile the card corpus
 
@@ -26,7 +26,7 @@ are always relative to that pin. `make report` begins:
 
 ```text
 corpus: 76fd7691ab45ab1b42cef19ad04b41bf364501f4 @ 76fd7691ab45ab1b42cef19ad04b41bf364501f4 (GPL-3.0, 34074 files)
-cards: 34074  playable: 32265 (94.7%)
+cards: 34074  playable: 32337 (94.9%)
 tokens: 854
 ```
 

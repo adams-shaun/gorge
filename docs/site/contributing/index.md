@@ -6,7 +6,7 @@ change merged. It is written for a Go developer who does not yet know Magic
 engine internals or Forge. Unfamiliar words (IR, primitive, ratchet, chain
 head) are in the [glossary](glossary.md).
 
-*Commands on this page were run on `develop` @ `513a2a0c3`, 2026-10-21,
+*Commands on this page were run on `develop` @ `25d71cadc`, 2026-10-27,
 unless marked otherwise.*
 
 ```mermaid
@@ -154,9 +154,9 @@ you never add one. The why behind each is on
 
 ## Commits and pull requests
 
-**Branches.** Changes land on `develop` by pull request. When `ci` is green
-on `develop`, a workflow opens a `develop → main` pull request that a
-maintainer merges; nothing is pushed to `main` directly. Open your PR
+**Branches.** Changes land on `develop` by pull request. The maintainers'
+pipeline periodically opens a `develop → main` snapshot pull request and
+merges it when its checks are green; nothing is pushed to `main` directly. Open your PR
 **against `develop`**. ([Branch flow](../repos/index.md#branch-flow).)
 
 **Commit messages.**

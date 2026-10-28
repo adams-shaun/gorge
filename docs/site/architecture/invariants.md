@@ -7,8 +7,9 @@ anyone changing engine, server or bot code: read it before your first
 non-trivial change, and come back when a ratchet or golden test fails and you
 want to know what it is protecting.
 
-*Every test named here was checked to exist, and the ones in the summary run
-green, on `develop` @ `513a2a0c3`, 2026-10-21.*
+*Every test named here was checked to exist on `develop` @ `25d71cadc`,
+2026-10-27; the ones in the summary ran green on `develop` @ `513a2a0c3`,
+2026-10-21.*
 
 Where a rule is held only by convention (nothing mechanical catches you at
 the point of writing), the page says so; the after-the-fact backstop is
@@ -35,8 +36,9 @@ Two companion documents record behaviour that is *not* an invariant
 violation even though it can look like one: the
 [engine contracts](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-22-engine-contracts.md)
 (deliberate behaviour, such as the deterministic fallback every asking
-primitive uses when its host cannot answer) and `AGENTS.md`'s *Known
-approximations* table (real, shrinking debt).
+primitive uses when its host cannot answer) and the *Known approximations*
+register, one file per row in `docs/agents/known-approximations/` (real,
+shrinking debt).
 
 ## All state mutation goes through `events.Apply`
 
@@ -198,7 +200,7 @@ for the named edges; `TestCostVocabularyIsALeaf`,
 `*BoardOnlyShrinks` tests for the sub-packages. The group rule itself
 (`engine/` → nothing outside) is **measured, not yet one test**:
 `go list -deps ./engine/...` showed no gorge package outside `engine/` and no
-non-standard-library package on 2026-10-21. `cmd/pkgmap` draws any tier
+non-standard-library package on 2026-10-27. `cmd/pkgmap` draws any tier
 back-edge in red on [Packages](packages.md).
 
 **To change.** Adding a forbidden edge is welcome. Removing one needs a
@@ -316,15 +318,15 @@ raises a ceiling.
 | Table | Test | Today |
 |---|---|---|
 | `engine/rules/testdata/known-unsupported/` (one file per repo-deck card the build cannot fully play) | `TestEveryRepoDeckIsFullySupported` | 2 of 1,123 cards |
-| `engine/rules/testdata/paramcensus/` (cards with a parameter no code reads) | `TestEveryRepoDeckParamsAreRead` | 16 of 1,123 cards |
+| `engine/rules/testdata/paramcensus/` (cards with a parameter no code reads) | `TestEveryRepoDeckParamsAreRead` | 3 of 1,123 cards |
 | `knownUnmodelledCountHeads` | `TestEveryRepoDeckCountHeadResolves` (`engine/rules/count_head_ratchet_test.go`) | |
 | `effects.modelledValueHeads` vs the evaluator | `TestValueHeadRegistryMatchesEvaluator` | |
-| `AGENTS.md`'s *Known approximations* table | `TestKnownApproximationsOnlyShrinks` (`testkit/testutil/agentsdoc_test.go`) | 8 rows, none over 600 bytes |
+| the *Known approximations* register (`docs/agents/known-approximations/`, one file per row, each capped in `ALLOWED.txt`) | `TestKnownApproximationsOnlyShrinks` (`testkit/testutil/agentsdoc_test.go`) | 2 rows, each within its byte cap |
 | function-length and interface-width ceilings | `TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink` (`internal/codeshape`) | skipped by the maintainers since 2026-10-06; the direction still holds |
 | test-budget exception lists | `cmd/testbudget` | see [invariant 11](#every-test-fits-the-budget) |
 
 *"Today" from `go test -v -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' ./engine/rules/`
-and `agentsdoc_test.go`'s `knownApproximationRows`, 2026-10-21 at `513a2a0c3`.*
+and `docs/agents/known-approximations/ALLOWED.txt`, 2026-10-27 at `25d71cadc`.*
 
 **Why.** "Supported" should only ever mean more. A two-way ratchet makes the
 table the exact truth: it cannot silently understate a regression, and it
@@ -372,7 +374,7 @@ unexplained moved head is a bug, often nondeterminism
 wall time**. One that does not is a defect: split it into chunk tests that
 share fixtures; never trim its coverage.
 
-**Why.** The full suite (over 12,000 top-level `Test` functions on 2026-10-21) runs on shared machines after
+**Why.** The full suite (over 12,900 top-level `Test` functions on 2026-10-27) runs on shared machines after
 every merge. One unbounded test can stall or kill everything else running
 there.
 

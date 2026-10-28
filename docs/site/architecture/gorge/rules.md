@@ -8,13 +8,13 @@ who knows Magic can find the code for a rule, and one who does not can see how
 the pieces fit. It assumes you have read [Events and replay](events.md) and
 [Game loop and decisions](game-loop.md).
 
-*Facts on this page are from `develop` @ `513a2a0c3` (2026-10-21). Line
+*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Line
 counts are `wc -l` over non-test files. Code links point at `main`.*
 
 ## The shape of the package
 
-`engine/rules` is the largest package in the repository: 423 non-test files
-and 135,274 lines at the top level, plus 2,470 test files. Around it sit seven
+`engine/rules` is the largest package in the repository: 436 non-test files
+and 140,300 lines at the top level, plus 2,713 test files. Around it sit seven
 sub-packages that each compute one thing and never hold an engine:
 
 <figure markdown>
@@ -61,15 +61,15 @@ Where to look inside `rules` itself (non-test files by name prefix):
 
 | Mechanism | Files | Lines |
 |---|---|---|
-| Casting (`cast*`) | 23 | 14,024 |
-| Triggers (`trigger*`, `triggered_*`) | 29 | 14,187 |
-| Replacement effects (`replace*`) | 23 | 9,837 |
-| Layers (`layer*`) | 12 | 5,683 |
-| Mana (`mana*`) | 11 | 4,071 |
-| Combat (`combat*`) | 4 | 3,369 |
-| State-based actions (`sba*`) | 3 | 2,354 |
-| Turn structure (`turn*`) | 3 | 2,272 |
-| The stack (`stack.go`) | 1 | 1,204 |
+| Casting (`cast*`) | 23 | 14,270 |
+| Triggers (`trigger*`, `triggered_*`) | 32 | 14,794 |
+| Replacement effects (`replace*`) | 24 | 10,195 |
+| Layers (`layer*`) | 12 | 5,881 |
+| Mana (`mana*`) | 11 | 4,152 |
+| Combat (`combat*`) | 4 | 3,378 |
+| State-based actions (`sba*`) | 3 | 2,419 |
+| Turn structure (`turn*`) | 3 | 2,310 |
+| The stack (`stack.go`) | 1 | 1,225 |
 
 ## Casting (CR 601)
 

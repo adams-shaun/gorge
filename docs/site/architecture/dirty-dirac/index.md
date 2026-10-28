@@ -147,7 +147,7 @@ flowchart LR
     search["search<br/>(+ hbot, mull)"] --> kernel
     neteval --> feat
     oracle["oracle<br/>(lockstep, kfuzz)"] --> kernel
-    kgen["cmd/kgen<br/>(card generator)"] -.->|writes| cards
+    kgen["kgen<br/>(card generator)"] -.->|writes| cards
   end
   subgraph g["gorge (public)"]
     engine["engine/...<br/>(rules, cards, state)"]
@@ -182,7 +182,7 @@ not a test.
 | **Mutation** | the engine proposes `events.Event`s; `events.Apply` folds each into the state and appends it to a SHA-256 hash chain | `Apply(action)` writes the value directly; no log |
 | **Clone cost** | `Engine.Clone`: a deep copy of the game plus a shared log prefix | assignment: one 15,240-byte copy, nothing for the garbage collector |
 | **Players** | up to 8 | exactly 2 |
-| **Card coverage** | the whole Forge corpus: 32,265 of 34,074 scripts (94.7 %) playable ([Card support](../../support/sets.md)) | 50 % of the corpus lowers; play is per generated pool ([What it covers](#what-it-covers)) |
+| **Card coverage** | the whole Forge corpus: 32,337 of 34,074 scripts (94.9 %) playable ([Card support](../../support/sets.md)) | 50 % of the corpus lowers; play is per generated pool ([What it covers](#what-it-covers)) |
 | **Rules source** | Forge scripts compiled to gorge's IR, plus gorge's hand-written primitives and rules core | the same IR lowered by `kgen` into integer op programs, plus a hand-written interpreter that mirrors gorge's rules code ([Cards](cards.md)) |
 | **Decisions** | 13 decision kinds, multi-select answers | 8 decision kinds, every answer a single pick ([Step and Apply](step-apply.md)) |
 | **Verification** | golden replays and chain heads, census ratchets, the XMage and Forge compliance oracles | lockstep against gorge on every decision and every position ([Verification](oracle.md)) |
