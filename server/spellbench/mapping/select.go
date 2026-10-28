@@ -15,12 +15,105 @@ var handDestPurpose = map[string]string{"Hand": "put_into_hand", "Battlefield": 
 
 func init() {
 	Register("choose/cleanup_discard", visibleSelect("discard", false))
-	Register("modes/discard", visibleSelect("discard", true))
+	Register("modes/discard", mixedSelect("discard", true))
 	Register("choose/untap", visibleSelect("untap", true))
 	Register("choose/keep", visibleSelect("legend_rule", true))
 	Register("choose/search", newSearch)
 	Register("choose/hand_move", newHandMove)
+	Register("choose/hidden_pick", newHiddenPick)
+	Register("choose/vote_card", mixedSelect("vote", true))
 	Register("modes/mode", newModes)
+}
+
+// openLookIfHidden opens the seat's look when any option names a card in a
+// zone hidden from it. x_gorge_view_v1 rekeys every option object, so a pose
+// with hidden options needs the look even when its candidates do not name
+// one (a yes/no ask about a revealed top card).
+func openLookIfHidden(env *Env, d *decision.Decision) {
+	for _, o := range d.Options {
+		if o.Obj == 0 {
+			continue
+		}
+		if obj := env.G.E.G.Obj(o.Obj); obj != nil && !observe.Visible(d.Player, obj) {
+			env.OpenLook(d.Player)
+			return
+		}
+	}
+}
+
+// mixedSelect is visibleSelect for a pick whose cards may sit in a zone hidden
+// from the chooser: each hidden option is referenced through the seat's look,
+// as hiddenSelect does, while visible options keep their visible ids. The
+// purposes are the protocol's select_object vocabulary.
+func mixedSelect(purp string, withSource bool) Builder {
+	return func(env *Env, d *decision.Decision) (Transaction, error) {
+		var src *protocol.ObjectRef
+		if withSource {
+			var err error
+			if src, err = ResolveSource(env, d); err != nil {
+				return nil, err
+			}
+		}
+		lo, hi := uint32(d.Min), uint32(d.Max)
+		refs := make([]protocol.ObjectRef, len(d.Options))
+		var known []protocol.Known
+		look := false
+		for i, o := range d.Options {
+			obj := env.G.E.G.Obj(o.Obj)
+			if obj == nil {
+				return nil, fmt.Errorf("%w: %s option %d has no object", ErrUnmapped, purp, o.Index)
+			}
+			if !observe.Visible(d.Player, obj) {
+				if !look {
+					env.OpenLook(d.Player)
+					look = true
+				}
+				r, err := env.Obs.LookRef(d.Player, o.Obj)
+				if err != nil {
+					return nil, err
+				}
+				refs[i] = r
+				known = append(known, observe.KnownEntry(r, "revealed", nil))
+				continue
+			}
+			r, err := env.Obs.Ref(d.Player, o.Obj)
+			if err != nil || r == nil {
+				return nil, fmt.Errorf("%w: %s object not visible", ErrUnmapped, purp)
+			}
+			refs[i] = *r
+		}
+		observe.SortKnown(known)
+		return NewPick(env, PickSpec{D: d, Options: allOptions(d), Known: known, Look: look,
+			Context: protocol.Context{Kind: "choice", Source: src, Purpose: &purp},
+			Sem: func(opt int, sel uint32) (Cand, error) {
+				r := refs[opt]
+				return Cand{Sem: protocol.SelectObject(src, purp, protocol.ObjectTarget(r), sel, lo, hi)}, nil
+			},
+			Finish: func(sel uint32) protocol.Semantic { return protocol.FinishSelection(src, purp, sel) }}), nil
+	}
+}
+
+// newHiddenPick: a hidden-origin ChangeZone pick (zone_hidden's "hidden_pick"
+// resume). Its cards may be public (a graveyard) or revealed from a hidden
+// zone, so mixedSelect decides each option's reference; the destination names
+// the select_object purpose.
+func newHiddenPick(env *Env, d *decision.Decision) (Transaction, error) {
+	purp := "other"
+	if d.ResumeSA != nil {
+		switch strings.ToLower(strings.TrimSpace(d.ResumeSA.Params["Destination"])) {
+		case "hand":
+			purp = "put_into_hand"
+		case "battlefield":
+			purp = "put_onto_battlefield"
+		case "graveyard":
+			purp = "put_into_graveyard"
+		case "exile":
+			purp = "exile"
+		case "library":
+			purp = "search"
+		}
+	}
+	return mixedSelect(purp, true)(env, d)
 }
 
 func visibleSelect(purp string, withSource bool) Builder {

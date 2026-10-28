@@ -97,7 +97,11 @@ func (pl *Plan) match(p xview.Payload, op mapping.NativeOp, ask func(decision.De
 		}
 	case "dest":
 		inside := op.Option >= 0 && slices.Contains(in.Choices, op.Option)
-		return inside == (op.List == "top" || op.List == "hand")
+		want := op.List == "top" || op.List == "hand"
+		if op.Inside != nil {
+			want = *op.Inside
+		}
+		return inside == want
 	case "list":
 		list := in.Choices
 		if op.List == "rest" {
