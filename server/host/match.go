@@ -852,6 +852,15 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			return r.crash(t, m, fmt.Errorf("seat %d: attach match: %w", i, err))
 		}
 		if hs, ok := s.(*HumanSeat); ok {
+			if r.opts.TapHuman != nil {
+				tap, err := r.opts.TapHuman(t.cfg.ID, m.k, autoPayMana, mc)
+				if err != nil {
+					return r.crash(t, m, fmt.Errorf("seat %d: build tap: %w", i, err))
+				}
+				if tap != nil {
+					hs.SetTap(tap)
+				}
+			}
 			if err := hs.attachTap(mc, autoPayMana); err != nil {
 				return r.crash(t, m, fmt.Errorf("seat %d: attach tap: %w", i, err))
 			}

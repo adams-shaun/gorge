@@ -76,7 +76,14 @@ type Options struct {
 	Sleep func(d time.Duration, stop <-chan struct{})
 	// Seats is an explicit embedder controller override. Nil selects the
 	// table's named hosted policy through defaultSeats in play.
-	Seats    func(names []string, seed uint64) []seat.Seat
+	Seats func(names []string, seed uint64) []seat.Seat
+	// TapHuman, when non-nil, is asked to build the tap of every human seat at
+	// match start (humantap.go), once the seat's MatchContext exists and before
+	// its first decision. A nil tap, or a nil option, leaves the seat an
+	// ordinary untapped HumanSeat, so a registry that never sets this option
+	// behaves byte-identically. This is the embedder's seam for a codec front
+	// (server/gorged's -sbv2); the host itself neither imports nor knows it.
+	TapHuman HumanTapFactory
 	Sync     bool
 	Ring     int
 	Cooldown time.Duration
