@@ -212,6 +212,13 @@ func (e *Engine) attachmentSBAs() bool {
 				changed = true
 				continue
 			}
+			if why := e.attachedKindIllegal(o); why != "" {
+				e.emit(events.Event{Kind: events.Unattached, Obj: id,
+					IDs:  []state.ObjID{o.AttachedTo},
+					Text: why})
+				changed = true
+				continue
+			}
 			if e.isAura(o) && (!e.auraStillMatchesEnchant(o, bearer) || e.protectedFrom(bearer.ID, o.ID)) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZBattlefield, To: state.ZGraveyard,
@@ -253,6 +260,43 @@ func (e *Engine) attachmentSBAs() bool {
 	}
 	e.sbaIDBuf = ids[:0]
 	return changed
+}
+
+// attachedKindIllegal implements CR 704.5p: an attached object that is a
+// creature or a battle, or that is none of Aura, Equipment and Fortification,
+// becomes unattached and stays on the battlefield (an Aura that is also a
+// creature then takes the CR 303.4d graveyard arm on the next pass, once it
+// is attached to nothing). An attached Reconfigure permanent is not a creature
+// (CR 702.151b) and a bestowed one is handled by its own arm. The derived type
+// list is read, so a layer-4 animation or subtype loss is seen. Returns the
+// detach reason, or "" when the attachment is legal.
+func (e *Engine) attachedKindIllegal(o *state.Object) string {
+	if !o.ReconfiguredAttached() && (e.IsCreature(o.ID) || e.hasType(o, "Battle")) {
+		return "attached creature or battle becomes unattached"
+	}
+	if !e.isAura(o) && !e.isEquipment(o) && !e.isFortification(o) && printsAttachmentType(o) {
+		return "non-attachment permanent becomes unattached"
+	}
+	return ""
+}
+
+// printsAttachmentType reports whether o's printed face is an Aura, Equipment
+// or Fortification, so a derived list without all three means a layer-4
+// effect removed the subtype. A permanent that never printed one (an artifact
+// granted Equip by an Animate effect) is left attached: the grant is the only
+// route that attaches it.
+func printsAttachmentType(o *state.Object) bool {
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	for _, t := range f.Types {
+		switch t {
+		case "Aura", "Equipment", "Fortification":
+			return true
+		}
+	}
+	return false
 }
 
 // roleSBA implements CR 704.5z (repeated by CR 303.7a): if a permanent has
