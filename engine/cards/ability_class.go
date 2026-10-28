@@ -27,14 +27,13 @@ func IsManaAbilityAPI(api string) bool { return api == "Mana" || api == "ManaRef
 // offered twice (wheel and priority "ability"). Kind must be AB: an SP$ Mana
 // is a mana ritual spell (Battle Hymn), never an activated ability.
 //
-// The chain arm is deliberately scoped to ChooseColor heads. A generic "any
-// AB whose SubAbility$ chain reaches a DB$ Mana" walk sweeps in chains that
-// are NOT mana abilities: Red Death, Shipwrecker's goad targets a creature
-// (CR 605.1a), and planeswalker ultimates (Chandra, Heart of Fire) are
-// loyalty abilities (CR 605.1b). Measured 2026-10-09: 25 activated abilities
-// across 21 other head APIs reach a DB$ Mana; this ticket owns only the four
-// ChooseColor carriers, and the generic CR-correct classification (the
-// loyalty gate) is a separate change.
+// The chain arm takes any activated head, whatever its API, whose
+// SubAbility$ chain reaches a DB$ Mana (CR 605.1a puts no order on the
+// effects: Sacellum Godspeaker reveals, then adds {G}). The exclusions below
+// keep out the chains that are not mana abilities: Red Death, Shipwrecker's
+// goad targets a creature, a planeswalker ability is a loyalty ability (CR
+// 605.1b; isLoyaltyScripted), and Priest of Forgotten Gods, Selvala and the
+// like move a card to or from a library.
 //
 // An ability that requires a target anywhere in its SubAbility$ chain is not
 // a mana ability (CR 605.1a): Radiant Lotus, The Warring Triad and Jetfire
@@ -49,10 +48,19 @@ func IsManaAbilitySA(sa *SA) bool {
 	if sa == nil || !sa.IsActivated() {
 		return false
 	}
-	if !IsManaAbilityAPI(sa.API) && !(sa.API == "ChooseColor" && ManaChainProduction(sa) != nil) {
+	if !IsManaAbilityAPI(sa.API) && (ManaChainProduction(sa) == nil || isLoyaltyScripted(sa)) {
 		return false
 	}
 	return !requiresTarget(sa) && !movesLibraryCard(sa)
+}
+
+// isLoyaltyScripted reports whether sa is scripted as a loyalty ability (CR
+// 605.1b): the Planeswalker$ True marker or a LOYALTY counter in Cost$. Only
+// the chain arm of IsManaAbilitySA reads it; a head-word Mana loyalty ability
+// is filtered by the callers that already split on isLoyaltyAbility.
+func isLoyaltyScripted(sa *SA) bool {
+	return strings.EqualFold(strings.TrimSpace(sa.ParamStr(PKPlaneswalker)), "True") ||
+		strings.Contains(sa.ParamStr(PKCost), "/LOYALTY>")
 }
 
 // movesLibraryCard reports whether sa's cost or effect moves a card to or
