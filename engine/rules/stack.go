@@ -957,6 +957,15 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 		// announced target, not the link's own (CR 601.2c vs 608.2b).
 		sc.ResolutionTargets = e.subOfferParent
 	}
+	// ValidSA$ reads the targeting spell/ability off the STACK object self.
+	// The source parameter is the restriction host -- genuinely the source
+	// permanent for an ability (stack.go's ability branch passes o.Source),
+	// so it cannot classify Spell vs Activated/Triggered. self is 0 only for
+	// a caller with no stack object; fall back to source's SA.Kind split.
+	targetingSrc := self
+	if targetingSrc == 0 {
+		targetingSrc = source
+	}
 	// TargetingPlayerControls$ (tpc1): the restriction's answering seat is
 	// resolved through the same derivation the offer census used, with the
 	// answered-ask record taking precedence -- it is keyed by self, the
@@ -1077,7 +1086,12 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 				(!hasSharedRef || e.sharedCardTypeAdmits(t.Obj, sharedRef, sharedWhitelist)) &&
 				related.admits(e, t.Obj) &&
 				(tpState == tpNone || e.tpControlsAdmits(o, you, tpChooser, tpState)) &&
-				!e.restrictionBlocksTarget(t.Obj, you, e.protectionSource(source), sa) &&
+				// ValidSA$ classifies the targeting spell/ability from its
+				// STACK object (self, the resolving spell or ability
+				// wrapper), never from the host permanent ValidSource$ names
+				// -- protectionSource(source) is that host. A caller with no
+				// stack object falls back to source for the SA.Kind split.
+				!e.restrictionBlocksTarget(t.Obj, you, targetingSrc, sa) &&
 				!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
 				!(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(t.Obj, you, e.protectionSource(source))) &&
 				// CR 702.16b: protection stops targeting of a PERMANENT (or a

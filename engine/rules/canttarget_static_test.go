@@ -309,3 +309,191 @@ func TestGroundSealGraveyardCardsCantBeTargeted(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// activateObjAbility submits obj's "ability" option on seat p's priority and
+// returns the target decision the activation poses. Cunning Sparkmage has
+// Haste, so its {T} activation is offered the turn it enters even though
+// moveByName's battlefield move marks the permanent summoning-sick.
+func activateObjAbility(t *testing.T, e *Engine, p state.PlayerID, obj state.ObjID) *decision.Decision {
+	t.Helper()
+	e.askPriority(p)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("expected seat %d's priority, got %+v", p, d)
+	}
+	activate := -1
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == obj {
+			activate = o.Index
+			break
+		}
+	}
+	if activate < 0 {
+		t.Fatalf("precondition: object %d's ability was not offered for activation: %+v", obj, d.Options)
+	}
+	submitChoices(t, e, activate)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision for object %d's ability, got %+v", obj, d)
+	}
+	return d
+}
+
+// TestCantTargetValidSASpellDoesNotBlockActivatedAbility pins ValidSA$ against
+// the TARGETING ABILITY, not its host permanent: Dense Foliage's
+// `ValidSA$ Spell` withholds a creature from the opponent's Lightning Bolt,
+// but not from the opponent's Cunning Sparkmage activation. Before the fix the
+// host permanent was classified as a Spell, so the pinger's target was
+// withheld too (and the resolution recheck dropped it).
+func TestCantTargetValidSASpellDoesNotBlockActivatedAbility(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	foliage := lookup(t, reg, "Dense Foliage")
+	bears := lookup(t, reg, "Grizzly Bears")
+	bolt := lookup(t, reg, "Lightning Bolt")
+
+	// Spell leg: the restriction bites a spell.
+	spellE, spellCfg := corpusEngineCfg(t, reg, []*cards.Card{foliage, bears}, []*cards.Card{bolt})
+	spellFoliage := moveByName(t, spellE, 0, "Dense Foliage", state.ZBattlefield)
+	spellBear := moveByName(t, spellE, 0, "Grizzly Bears", state.ZBattlefield)
+	boltID := moveByName(t, spellE, 1, "Lightning Bolt", state.ZHand)
+	cantTargetOnBoard(t, spellE, spellFoliage)
+	addMana(t, spellE, 1, "R")
+	spellE.askPriority(1)
+	if !castOffered(spellE, boltID) {
+		t.Fatalf("precondition: Lightning Bolt is not castable: %+v", spellE.Pending().Options)
+	}
+	castFirst(t, spellE, "cast")
+	d := spellE.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected Lightning Bolt's target decision, got %+v", d)
+	}
+	if indexOfObjOption(d, spellBear) >= 0 {
+		t.Fatalf("Dense Foliage's ValidSA$ Spell did not withhold the creature from a spell: %+v", d.Options)
+	}
+	replayCheck(t, spellE, spellCfg)
+
+	// Ability leg: it must not bite an activated ability, and the ability's
+	// own CR 608.2b recheck must let the damage land.
+	abilityE, abilityCfg := corpusEngineCfg(t, reg, []*cards.Card{foliage, bears}, []*cards.Card{lookup(t, reg, "Cunning Sparkmage")})
+	abilityFoliage := moveByName(t, abilityE, 0, "Dense Foliage", state.ZBattlefield)
+	abilityBear := moveByName(t, abilityE, 0, "Grizzly Bears", state.ZBattlefield)
+	sparkID := moveByName(t, abilityE, 1, "Cunning Sparkmage", state.ZBattlefield)
+	cantTargetOnBoard(t, abilityE, abilityFoliage)
+	d = activateObjAbility(t, abilityE, 1, sparkID)
+	idx := indexOfObjOption(d, abilityBear)
+	if idx < 0 {
+		t.Fatalf("Dense Foliage's ValidSA$ Spell withheld the creature from an activated ability: %+v", d.Options)
+	}
+	submitChoices(t, abilityE, idx)
+	passUntilStackEmpty(t, abilityE, 12)
+	if o := abilityE.G.Obj(abilityBear); o == nil || o.Damage != 1 {
+		t.Fatalf("the pinger's damage did not land on the creature the restriction should not have withheld: %+v", o)
+	}
+	replayCheck(t, abilityE, abilityCfg)
+}
+
+// TestCantTargetValidSAActivatedTriggeredReadsAbility is the reverse direction:
+// Shanna's `ValidSA$ Activated,Triggered | Activator$ Player.Opponent` must
+// withhold her from an opponent's activated ability, while a spell (not in
+// the list) and her controller's own ability still target her. Before the fix
+// the host permanent classified as a Spell, so the restriction never applied.
+func TestCantTargetValidSAActivatedTriggeredReadsAbility(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	shanna := lookup(t, reg, "Shanna, Sisay's Legacy")
+	spark := lookup(t, reg, "Cunning Sparkmage")
+	bolt := lookup(t, reg, "Lightning Bolt")
+
+	// Spell leg: a Spell is not in ValidSA$, so Bolt keeps Shanna.
+	spellE, spellCfg := corpusEngineCfg(t, reg, []*cards.Card{shanna}, []*cards.Card{bolt})
+	spellShanna := moveByName(t, spellE, 0, "Shanna, Sisay's Legacy", state.ZBattlefield)
+	boltID := moveByName(t, spellE, 1, "Lightning Bolt", state.ZHand)
+	cantTargetOnBoard(t, spellE, spellShanna)
+	addMana(t, spellE, 1, "R")
+	spellE.askPriority(1)
+	if !castOffered(spellE, boltID) {
+		t.Fatalf("precondition: Lightning Bolt is not castable: %+v", spellE.Pending().Options)
+	}
+	castFirst(t, spellE, "cast")
+	d := spellE.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected Lightning Bolt's target decision, got %+v", d)
+	}
+	if indexOfObjOption(d, spellShanna) < 0 {
+		t.Fatalf("Shanna's ValidSA$ Activated,Triggered withheld her from a spell: %+v", d.Options)
+	}
+	replayCheck(t, spellE, spellCfg)
+
+	// Opponent's activated ability: blocked.
+	oppE, oppCfg := corpusEngineCfg(t, reg, []*cards.Card{shanna}, []*cards.Card{spark})
+	oppShanna := moveByName(t, oppE, 0, "Shanna, Sisay's Legacy", state.ZBattlefield)
+	oppSpark := moveByName(t, oppE, 1, "Cunning Sparkmage", state.ZBattlefield)
+	cantTargetOnBoard(t, oppE, oppShanna)
+	d = activateObjAbility(t, oppE, 1, oppSpark)
+	if indexOfObjOption(d, oppShanna) >= 0 {
+		t.Fatalf("Shanna's ValidSA$ Activated,Triggered did not withhold her from an opponent's activated ability: %+v", d.Options)
+	}
+	replayCheck(t, oppE, oppCfg)
+
+	// Her controller's own activated ability: Activator$ Player.Opponent does
+	// not name seat 0, so Shanna is a legal target.
+	ownE, ownCfg := corpusEngineCfg(t, reg, []*cards.Card{shanna, spark}, nil)
+	ownShanna := moveByName(t, ownE, 0, "Shanna, Sisay's Legacy", state.ZBattlefield)
+	ownSpark := moveByName(t, ownE, 0, "Cunning Sparkmage", state.ZBattlefield)
+	cantTargetOnBoard(t, ownE, ownShanna)
+	d = activateObjAbility(t, ownE, 0, ownSpark)
+	if indexOfObjOption(d, ownShanna) < 0 {
+		t.Fatalf("Shanna's controller could not target her with its own activated ability: %+v", d.Options)
+	}
+	replayCheck(t, ownE, ownCfg)
+}
+
+// TestCantTargetEffectValidSAIsReadForAbility covers the Effect-delivered path
+// (an e.active() registration, not a printed static) with an ability target:
+// the body's ValidSA$ Spell must withhold the creature from a spell but not
+// from an activated ability. TestCantTargetEffectValidSourceIsRead covers the
+// spell side only.
+func TestCantTargetEffectValidSAIsReadForAbility(t *testing.T) {
+	const bearSrc = "Name:Test Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	const pingerSrc = "Name:Test Pinger\nManaCost:R\nTypes:Creature Human Wizard\nPT:0/1\nK:Haste\n" +
+		"A:AB$ DealDamage | Cost$ T | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
+	body := ContinuousEffect{
+		Restriction:    "CantTarget",
+		RestrictParams: map[string]string{"ValidTarget": "Creature", "ValidSA": "Spell"},
+		Duration:       "UntilTheEndOfYourNextTurn",
+	}
+
+	// Spell leg: Shock's only other legal target is the player, so the cast
+	// stays offered and the decision shows the creature withheld.
+	spellE := handEngine(t)
+	spellBear := onBoard(t, spellE, 0, bearSrc)
+	shockID := handCard(spellE, card(t, "Name:Shock\nManaCost:R\nTypes:Instant\n"+
+		"A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 2\nOracle:x\n"), 1)
+	ce := body
+	ce.Source, ce.Controller = spellBear, 0
+	spellE.AddContinuous(ce)
+	addMana(t, spellE, 1, "R")
+	spellE.askPriority(1)
+	if !castOffered(spellE, shockID) {
+		t.Fatalf("precondition: Shock is not castable with the player target available: %+v", spellE.Pending().Options)
+	}
+	castFirst(t, spellE, "cast")
+	d := spellE.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected Shock's target decision, got %+v", d)
+	}
+	if indexOfObjOption(d, spellBear) >= 0 {
+		t.Fatalf("the Effect body's ValidSA$ Spell did not withhold the creature from a spell: %+v", d.Options)
+	}
+
+	// Ability leg: the same body must not withhold it from the pinger.
+	abilityE := handEngine(t)
+	abilityBear := onBoard(t, abilityE, 0, bearSrc)
+	pingerID := onBoardReady(t, abilityE, 1, pingerSrc)
+	ce = body
+	ce.Source, ce.Controller = abilityBear, 0
+	abilityE.AddContinuous(ce)
+	d = activateObjAbility(t, abilityE, 1, pingerID)
+	if indexOfObjOption(d, abilityBear) < 0 {
+		t.Fatalf("the Effect body's ValidSA$ Spell withheld the creature from an activated ability: %+v", d.Options)
+	}
+}

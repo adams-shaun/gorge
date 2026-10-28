@@ -135,16 +135,24 @@ func (e *Engine) cantTargetBlocks(b cantTargetBody, id state.ObjID, actor state.
 }
 
 // cantTargetValidSA classifies the targeting spell/ability with the same
-// Spell/Activated/Triggered split counterValidSA uses. The stack object is
-// authoritative; only when it is gone can the SA's own kind decide the two
-// exact one-word spellings (SP is a spell, AB an activated ability). A list
-// or a triggered DB/ST body is unclassifiable there, so it fails open (no
-// restriction).
+// Spell/Activated/Triggered split counterValidSA uses. A STACK object is
+// authoritative: a spell's own stack object (Ability == nil) or the Face-less
+// ability wrapper AbilityPush/TriggerPush mints (Ability != nil, its Trigger
+// record decides Activated vs Triggered). A permanent is the ability's
+// SOURCE -- what ValidSource$ names -- not the targeting ability itself;
+// classifying one as a spell made every activated and triggered ability look
+// like a Spell, so a ValidSA$ Spell restriction withheld targets from
+// abilities while ValidSA$ Activated,Triggered never applied. An activated
+// ability chooses its targets (CR 602.2b) before AbilityPush mints that
+// wrapper, so when no stack object is available the SA's own kind decides the
+// two spellings (SP is a spell, AB an activated ability), matching every
+// comma alternative. A triggered DB/ST body is unclassifiable there, so it
+// fails open (no restriction).
 func (e *Engine) cantTargetValidSA(spec string, source state.ObjID, sa *cards.SA, staticController state.PlayerID) bool {
 	if spec == "" {
 		return true
 	}
-	if o := e.G.Obj(source); o != nil {
+	if o := e.G.Obj(source); o != nil && o.Zone == state.ZStack {
 		return e.counterValidSA(o, spec, staticController, source)
 	}
 	if sa == nil {
@@ -152,9 +160,34 @@ func (e *Engine) cantTargetValidSA(spec string, source state.ObjID, sa *cards.SA
 	}
 	switch sa.Kind {
 	case "SP":
-		return spec == "Spell"
+		return cantTargetSAKindIn(spec, "Spell")
 	case "AB":
-		return spec == "Activated"
+		return cantTargetSAKindIn(spec, "Activated")
+	}
+	return false
+}
+
+// cantTargetSAKindIn reports whether the comma-separated ValidSA$ spec names
+// kind exactly (surrounding space/tab trimmed). It scans by hand instead of
+// strings.Split because the rules package's codeshape strings ratchet counts
+// every new strings.* site.
+func cantTargetSAKindIn(spec, kind string) bool {
+	start := 0
+	for i := 0; i <= len(spec); i++ {
+		if i < len(spec) && spec[i] != ',' {
+			continue
+		}
+		alt := spec[start:i]
+		for len(alt) > 0 && (alt[0] == ' ' || alt[0] == '\t') {
+			alt = alt[1:]
+		}
+		for len(alt) > 0 && (alt[len(alt)-1] == ' ' || alt[len(alt)-1] == '\t') {
+			alt = alt[:len(alt)-1]
+		}
+		if alt == kind {
+			return true
+		}
+		start = i + 1
 	}
 	return false
 }

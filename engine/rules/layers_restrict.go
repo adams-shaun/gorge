@@ -35,7 +35,10 @@ func (e *Engine) RegenerationDisallowed(id state.ObjID) bool {
 // consulted: an Effect-registered body (Vines of Vastwood, Autumn's Veil) and
 // a printed S:Mode$ CantTarget static (Thrun, Breaker of Silence; Ground
 // Seal). They share cantTargetBlocks' matcher so the two cannot disagree.
-// Called from the target offer and the CR 608.2b resolution recheck.
+// source is the targeting spell or ability object on the stack (its
+// ValidSA$ classification); the host permanent ValidSource$ names is
+// resolved from it inside the matcher. Called from the target offer and the
+// CR 608.2b resolution recheck.
 func (e *Engine) restrictionBlocksTarget(id state.ObjID, actor state.PlayerID, source state.ObjID, sa *cards.SA) bool {
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
