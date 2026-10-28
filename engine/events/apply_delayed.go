@@ -66,6 +66,19 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	// name, so every already-logged registration decodes exactly as
 	// before (VP ungated; MaxTurn zero).
 	text := e.Text
+	// A delayed trigger whose SOURCE is not the affected object (the AtEOT$
+	// rider: CR 603.7d makes the creating permanent the source while the body
+	// still names the token or permanent it acts on) carries the creator as
+	// the last trailer "|CR=<id>". Strip it first, so no later LastIndex can
+	// swallow it; every registration without the spelling decodes with
+	// Creator zero exactly as before.
+	creator := state.ObjID(0)
+	if i := strings.LastIndex(text, "|CR="); i >= 0 {
+		if n, err := strconv.ParseUint(strings.TrimSpace(text[i+4:]), 10, 32); err == nil {
+			creator = state.ObjID(n)
+		}
+		text = text[:i]
+	}
 	// An Effect-created trigger whose body reads Card.NamedCard snapshots the
 	// host's chosen name at registration ("|CN=<name>", appended LAST so a
 	// later ClearNamedCard$ cannot retract the effect's referent). It strips
@@ -249,6 +262,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		ID:                  g.DelayedNext,
 		Phase:               e.Step,
 		Source:              e.Obj,
+		Creator:             creator,
 		Controller:          e.Player,
 		Execute:             e.Counter,
 		Remembered:          rememberedFrom(e.IDs),
@@ -356,9 +370,19 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		if src == nil {
 			return
 		}
-		if registration != nil && registration.TrackSource &&
-			src.Incarnation != registration.SourceIncarnation {
-			return
+		if registration != nil && registration.TrackSource {
+			// A creator-distinct registration (the AtEOT$ rider) records the
+			// affected object on Source and the creating permanent on
+			// Creator; the incarnation the stale-promise check must compare
+			// is the affected object's, not the creator's (the creator may
+			// leave and return without cancelling the promise, CR 603.7).
+			tracked := src
+			if registration.Creator != 0 {
+				tracked = g.Obj(registration.Source)
+			}
+			if tracked == nil || tracked.Incarnation != registration.SourceIncarnation {
+				return
+			}
 		}
 		if src.Face() == nil {
 			return
@@ -415,7 +439,17 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		o.Source = e.Obj
 	}
 	if registration != nil && registration.TrackSource {
-		o.SourceIncarnation = incarnation
+		// The AtEOT$ rider's stack SOURCE is the creator, but the incarnation
+		// the promise is tied to is the AFFECTED object's (CR 400.7); stamp
+		// that one so resolveTop's source-incarnation guard drops the ability
+		// when the token left and returned, never when the creator did.
+		if registration.Creator != 0 {
+			if tracked := g.Obj(registration.Source); tracked != nil {
+				o.SourceIncarnation = tracked.Incarnation
+			}
+		} else {
+			o.SourceIncarnation = incarnation
+		}
 	}
 	o.Remembered = rememberedFrom(e.IDs)
 }

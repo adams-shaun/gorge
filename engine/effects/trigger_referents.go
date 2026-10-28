@@ -61,6 +61,15 @@ type TriggerContext struct {
 	DefenderObj   state.ObjID
 	TriggerPlayer state.Target
 	TriggerCard   state.ObjID
+	// DelayedSelf is the AFFECTED object a delayed registration's body names
+	// as Defined$ Self when the delayed trigger's SOURCE is a different
+	// permanent (CR 603.7d: the AtEOT$ rider's source is the card that
+	// created the promise, while the body still sacrifices or exiles the
+	// token it minted). Set from state.DelayedTrigger.Source at fire time;
+	// the stack object's Source is the creator, and stack.go resolves the
+	// body's Ctx.Source against this object. Zero when source and referent
+	// are one object (dash/warp/encore and every printed trigger).
+	DelayedSelf state.ObjID
 	// DelayedObject is the causing event's object for a delayed trigger:
 	// the fire-time object TriggeredObject names.
 	DelayedObject state.ObjID
