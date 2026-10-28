@@ -707,6 +707,10 @@ type subCounterPay = pay.SubCounterPay
 type etbChoice struct {
 	kind    string
 	options []decision.Option
+	// sa is the ETBReplacement body of a "type" choice, carried into the
+	// posed Decision's server-side ResumeSA so the SpellBench v2 mapping can
+	// read the Type$ category. Nil for every other kind.
+	sa *cards.SA
 	// prompt, when set, is the client prompt's suffix in place of
 	// etbChoicePrompt(kind) (the CR 303.4f Aura choice carries its own).
 	prompt string

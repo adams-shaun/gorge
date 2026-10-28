@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/spellbench/observe"
@@ -14,6 +15,34 @@ var colors = map[string]string{"white": "white", "blue": "blue", "black": "black
 
 var boolPurpose = map[string]string{"search_confirm": "may_ability", "copy_optional": "may_ability",
 	"repeat_optional": "may_ability", "search_mayshuffle": "other"}
+
+// chooseTypePurposes maps a ChooseType Type$ category to the choose_name
+// purpose the protocol vocabulary defines (server/spellbench/protocol/kinds.go).
+// Keys are the engine's own spellings (lowercased); an unknown category is
+// "other", the vocabulary's catch-all.
+var chooseTypePurposes = map[string]string{
+	"":                       "creature_type",
+	"creature":               "creature_type",
+	"creatureintargeteddeck": "creature_type",
+	"basic land":             "basic_land_type",
+	"land":                   "land_type",
+	"nonbasic land":          "land_type",
+	"card":                   "card_type",
+	"shared":                 "card_type",
+}
+
+// chooseTypePurpose names the Type$ category an as-enters or mid-resolution
+// ChooseType ask is posing. A decision without the SA (no in-tree producer)
+// falls back to "other", which cannot fail the card_type value check.
+func chooseTypePurpose(d *decision.Decision) string {
+	if d == nil || d.ResumeSA == nil {
+		return "other"
+	}
+	if p, ok := chooseTypePurposes[strings.ToLower(strings.TrimSpace(d.ResumeSA.ParamStr(cards.PKType)))]; ok {
+		return p
+	}
+	return "other"
+}
 
 func init() {
 	Register("mulligan/keep", func(env *Env, d *decision.Decision) (Transaction, error) {
@@ -144,8 +173,9 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		return SingleChoice(env, d, choice(src, "card_type"), func(o decision.Option) (protocol.Semantic, bool, error) {
-			return protocol.ChooseName(src, "card_type", observe.Normalize(o.Label)), true, nil
+		p := chooseTypePurpose(d)
+		return SingleChoice(env, d, choice(src, p), func(o decision.Option) (protocol.Semantic, bool, error) {
+			return protocol.ChooseName(src, p, observe.Normalize(o.Label)), true, nil
 		})
 	})
 	Register("choose/name", func(env *Env, d *decision.Decision) (Transaction, error) {
