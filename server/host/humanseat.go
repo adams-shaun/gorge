@@ -45,6 +45,8 @@ type HumanSeat struct {
 	// to the human's, so absence-of-something is the only signal available, and
 	// a counter is that signal.
 	caretakerFires uint64
+	// tap, when non-nil, is told of each decision this seat parks (humantap.go).
+	tap HumanTap
 }
 
 // configure arms the seat with its caretaker and think budget. play calls it
@@ -193,7 +195,11 @@ func (s *HumanSeat) park(ctx context.Context, v view.View, d decision.Decision, 
 	timeout := s.timeout
 	caretaker := s.caretaker
 	fires0 := s.caretakerFires
+	tap := s.tap
 	s.mu.Unlock()
+	if tap != nil {
+		tap.Parked(ctx, v, *owned.Clone(), func(in decision.Intent) error { return s.submitAdmittedWait(in, nil, false, true) }, slot.abandoned)
+	}
 	return &parking{s: s, slot: slot, ctx: ctx, v: v, d: owned, timeout: timeout, caretaker: caretaker, undo: undo, fires0: fires0}
 }
 

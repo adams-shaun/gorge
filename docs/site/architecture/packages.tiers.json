@@ -367,6 +367,11 @@
       "tier": "server",
       "status": "EXT"
     },
+    "server/spellbench/humanseat": {
+      "tier": "server",
+      "status": "EXT",
+      "purpose": "Answers a human seat's native decisions through SpellBench v2 candidates: the tap of a host HumanSeat."
+    },
     "server/spellbench/identity": {
       "tier": "server",
       "status": "EXT"
