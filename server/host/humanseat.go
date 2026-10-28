@@ -106,6 +106,21 @@ func (sl *pendingSlot) closeAbandoned() {
 	sl.closeOnce.Do(func() { close(sl.abandoned) })
 }
 
+// MatchRewound forwards a host undo's engine swap to a tap that keeps a
+// reference to the live engine (the v2 human codec does). The host calls it on
+// the match goroutine after swapping the replayed engine in and before
+// re-parking the rewound decision. The engine is passed as any so this
+// exported hook does not put rules.Engine in the host's public signature
+// (TestNoExportLeaksAnEngineGame).
+func (s *HumanSeat) MatchRewound(e any) {
+	s.mu.Lock()
+	tap := s.tap
+	s.mu.Unlock()
+	if rw, ok := tap.(interface{ MatchRewound(any) }); ok {
+		rw.MatchRewound(e)
+	}
+}
+
 // NewHumanSeat returns a HumanSeat with no decision pending.
 func NewHumanSeat() *HumanSeat {
 	return &HumanSeat{}

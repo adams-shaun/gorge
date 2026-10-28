@@ -231,6 +231,9 @@ func TestSBV2PlaysAGame(t *testing.T) {
 			if st.Request == nil {
 				continue
 			}
+			if isNativeOnly(st.Request.Decision) {
+				continue
+			}
 			// A stream frame can race a newer park: the request it named may
 			// already be superseded. Answer only what the hub still calls open.
 			req, _ := hub.seat(seatKey{table: "v2", match: 1, seat: 0}).snapshot()
