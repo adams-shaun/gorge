@@ -25,6 +25,10 @@ var ErrUnplannedRandomness = errors.New("engine_contract_failure:unplanned_rando
 type Rules struct {
 	Mulligan     string // "london" or "none"
 	StartingSeat state.PlayerID
+	// ShufflePlanner, when non-nil, supplies every library shuffle order
+	// instead of the game secret's library_shuffle stream. Nil keeps the
+	// default secret-derived plan.
+	ShufflePlanner func(rules.ShuffleContext) ([]state.ObjID, error)
 }
 
 type Game struct {
@@ -46,7 +50,11 @@ func New(reg *cards.Registry, sec *secrets.Game, decks [2][]*cards.Card, r Rules
 	if r.Mulligan == "london" {
 		cfg.Mulligans = 7
 	}
-	e, err := rules.NewHypotheticalPlanned(cfg, []rules.ChanceDraw{{Bound: 2, Value: int(r.StartingSeat)}}, g.plan)
+	planner := g.plan
+	if r.ShufflePlanner != nil {
+		planner = r.ShufflePlanner
+	}
+	e, err := rules.NewHypotheticalPlanned(cfg, []rules.ChanceDraw{{Bound: 2, Value: int(r.StartingSeat)}}, planner)
 	if err != nil {
 		return nil, err
 	}
