@@ -105,6 +105,16 @@ type oracleSeat struct {
 	// Speed is the seat's starting speed (CR 702.179), 0..4, set with a
 	// SpeedChange event during setup.
 	Speed int32 `json:"speed,omitempty"`
+	// TappedAfterUntap taps single battlefield permanents the moment the
+	// setup drive enters the scenario turn's first main phase, after every
+	// untap step (CR 502.3): the board at the cut when the recorded player
+	// tapped them earlier in the turn. Each entry is a seat-relative
+	// battlefield ref (the part of a runner ref after "pN:"): "Forest" is
+	// the first placement of the name, "Grizzly Bears#2" the second. Unlike
+	// Tapped it names ONE object, only on the battlefield. The tap stands in
+	// for an unspecified earlier action, so it queues no trigger: every
+	// trigger it caused is discarded.
+	TappedAfterUntap []string `json:"tapped_after_untap,omitempty"`
 }
 
 // setupCounters lists the counters a seat's setup puts on a battlefield
@@ -447,6 +457,15 @@ func splitRef(ref string) (seat state.PlayerID, name string, token, ability bool
 		name, nth = name[:j], n
 	}
 	return p, name, token, ability, nth, nil
+}
+
+// oracleSeatRef is the runner ref for a seat-relative ref ("pN:rel"), or the
+// bare seat key "pN" when rel is empty.
+func oracleSeatRef(p int, rel string) string {
+	if rel == "" {
+		return fmt.Sprintf("p%d", p)
+	}
+	return fmt.Sprintf("p%d:%s", p, rel)
 }
 
 func (r *oracleRun) objName(o *state.Object) string {
@@ -839,6 +858,9 @@ func (r *oracleRun) build(sc oracleScenario) error {
 		}
 		if !seededMana && e.G.Turn == targetTurn && e.G.Step == state.StepMain1 {
 			seededMana = true
+			if err := r.tapAfterUntap(sc, seats); err != nil {
+				return err
+			}
 			for p := 0; p < seats; p++ {
 				for _, c := range sc.Setup[fmt.Sprintf("p%d", p)].Mana {
 					e.emit(events.Event{Kind: events.ManaAdd, Player: state.PlayerID(p), Counter: string(c), Amount: 1})
