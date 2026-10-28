@@ -439,7 +439,17 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		o.Source = e.Obj
 	}
 	if registration != nil && registration.TrackSource {
-		o.SourceIncarnation = incarnation
+		// The AtEOT$ rider's stack SOURCE is the creator, but the incarnation
+		// the promise is tied to is the AFFECTED object's (CR 400.7); stamp
+		// that one so resolveTop's source-incarnation guard drops the ability
+		// when the token left and returned, never when the creator did.
+		if registration.Creator != 0 {
+			if tracked := g.Obj(registration.Source); tracked != nil {
+				o.SourceIncarnation = tracked.Incarnation
+			}
+		} else {
+			o.SourceIncarnation = incarnation
+		}
 	}
 	o.Remembered = rememberedFrom(e.IDs)
 }
