@@ -810,7 +810,7 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 			d.Kind = decision.KModes // gorge asks an effect's discard as a modal pick
 		}
 	}
-	return s.pick(sd, key, d, func(sem protocol.Semantic) (*protocol.TargetRef, error) {
+	ops, n, err := s.pick(sd, key, d, func(sem protocol.Semantic) (*protocol.TargetRef, error) {
 		if sem.Kind != "select_object" {
 			return nil, nil
 		}
@@ -822,6 +822,76 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 		}
 		return decision.Option{Kind: kind, Label: name(*t.Object), Obj: s.B.IDs.Of(t.Object.ObjectID)}, nil
 	}, "finish_selection")
+	if err == nil && purpose == "search" && src != nil {
+		s.groupSearch(sd, n, *src)
+	}
+	return ops, n, err
+}
+
+// groupSearch restores the per-type Group structure of an EACH hidden-library
+// search. gorge offers one option per eligible card with the EACH sub-spec's
+// ordinal in Option.Group, and the bot answers one card per group (a "search
+// for a Zombie and a Swamp" takes one of each). The v2 select_object semantic
+// carries no Group, so without this the neutral bot sees an ungrouped search
+// and takes only its first option, finishing the selection after one card.
+// The grouping is rebuilt from the source's own EACH ChangeType spec and the
+// candidates' printed faces; it is not card-specific.
+func (s *Session) groupSearch(sd *protocol.SeatDecision, n *native, src protocol.ObjectRef) {
+	if n == nil {
+		return
+	}
+	sa := s.eachSearchSA(src)
+	if sa == nil {
+		return
+	}
+	spec := strings.TrimSpace(sa.Params["ChangeType"])
+	if !strings.HasPrefix(spec, "EACH ") {
+		return
+	}
+	for _, c := range sd.Candidates {
+		if c.Semantic.Kind != "select_object" {
+			continue
+		}
+		t, err := target(c.Semantic, "choice")
+		if err != nil || t == nil || t.Object == nil {
+			continue
+		}
+		idx, ok := n.options[targetKey(*t)]
+		if !ok || idx < 0 || idx >= len(n.d.Options) {
+			continue
+		}
+		n.d.Options[idx].Group = strconv.Itoa(eachFaceGroup(spec, s.B.face(t.Object.CardName, false, nil)))
+	}
+	// ChangeNum$ above 1 raises each group's cap; the engine carries it in
+	// GroupLimit, and the bot's group-aware fill reads the same field.
+	if per, err := strconv.Atoi(strings.TrimSpace(sa.Params["ChangeNum"])); err == nil && per > 1 {
+		n.d.GroupLimit = per
+	}
+}
+
+// eachSearchSA is the source's library ChangeZone ability with an EACH
+// ChangeType spec. A spell's own ability chain is read first; a permanent's
+// printed abilities (an activated search) follow.
+func (s *Session) eachSearchSA(src protocol.ObjectRef) *cards.SA {
+	f := s.B.face(src.CardName, false, nil)
+	if f == nil {
+		return nil
+	}
+	roots := append([]*cards.SA{}, f.Abilities...)
+	if root := f.SpellAbility(); root != nil {
+		roots = append(roots, root)
+	}
+	for _, root := range roots {
+		for _, sa := range chain(f, root) {
+			if sa.API != "ChangeZone" || !strings.EqualFold(strings.TrimSpace(sa.Params["Origin"]), "Library") {
+				continue
+			}
+			if strings.HasPrefix(strings.TrimSpace(sa.Params["ChangeType"]), "EACH ") {
+				return sa
+			}
+		}
+	}
+	return nil
 }
 
 // chainSA is the first ability in the source spell's chain (its spell
@@ -959,6 +1029,18 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 	n := s.continuing("attack")
 	if n == nil || sd.Group.SubstepIndex == 0 {
 		n = s.open("attack", decision.Decision{Kind: decision.KAttackers, Min: 0, Prompt: "declare attackers"})
+		// CR 508.1d requirements: a goaded creature must attack if able.
+		// gorge marks those options Required; the v2 declare_attack semantic
+		// does not carry the flag, but the observation still reports the
+		// permanent's "goaded" status, so rebuild it from there.
+		goaded := map[string]bool{}
+		for _, p := range sd.Observation.Players {
+			for _, r := range p.Battlefield {
+				if r.Permanent != nil && slices.Contains(r.Permanent.Statuses, "goaded") {
+					goaded[r.ObjectID] = true
+				}
+			}
+		}
 		units := map[string]bool{}
 		addUnit := func(id string, label string) {
 			if units[id] {
@@ -966,7 +1048,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 			}
 			units[id] = true
 			o := decision.Option{Index: len(n.d.Options), Kind: "attacker", Label: "Attack with " + label,
-				Obj: s.B.IDs.Of(id), Player: opp}
+				Obj: s.B.IDs.Of(id), Player: opp, Required: goaded[id]}
 			n.options[id] = o.Index
 			n.d.Options = append(n.d.Options, o)
 		}
@@ -1184,17 +1266,56 @@ func (s *Session) optionalCost(sd *protocol.SeatDecision) ([]mapping.NativeOp, *
 }
 
 func (s *Session) mulligan(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, error) {
-	n := s.open("mulligan", decision.Decision{Kind: decision.KMulligan, Min: 1, Max: 1, Prompt: "Keep or mulligan?",
-		Options: []decision.Option{{Index: 0, Kind: "keep", Label: "Keep"}, {Index: 1, Kind: "mulligan", Label: "Mulligan"}}})
+	first := sd.Candidates[0].Semantic
+	taken := num(first, "mulligans_taken")
+	// CR 103.5b's multiplayer free mulligan exempts a seat from the bottoming
+	// PENALTY, not from the allowance. The round's fixed free count is derived
+	// from the table size, so the observation's player list is enough.
+	free := 0
+	if len(sd.Observation.Players) >= 3 {
+		free = 1
+	}
+	bottom := max(0, taken-free)
+	// gorge's keep/mulligan prompt carries the bottoming penalty only in its
+	// text (engine/rules/mulligan.go's keepMulliganPrompt); botpolicy's
+	// keepBottomCount is the rule that reads it. Reproduce the same clause so
+	// the neutral world answers the same keep/mulligan question.
+	penalty := "put " + putCount(bottom) + " on the bottom of your library"
+	if bottom == 0 && free > 0 {
+		penalty = "keep all seven cards"
+	}
+	opts := make([]decision.Option, 0, len(sd.Candidates))
+	at := map[bool]int{}
+	for _, c := range sd.Candidates {
+		keep := boolean(c.Semantic, "keep")
+		kind, label := "mulligan", "mulligan"
+		if keep {
+			kind, label = "keep", "keep"
+		}
+		if _, ok := at[keep]; !ok {
+			at[keep] = len(opts)
+			opts = append(opts, decision.Option{Index: len(opts), Kind: kind, Label: label, Player: s.seat})
+		}
+	}
+	_, canMulligan := at[false]
+	prompt := "Keep your hand (" + penalty + ")"
+	if canMulligan {
+		prompt += " or take a mulligan?"
+	}
+	n := s.open("mulligan", decision.Decision{Kind: decision.KMulligan, Min: 1, Max: 1, Prompt: prompt, Options: opts})
 	ops := make([]mapping.NativeOp, len(sd.Candidates))
 	for i, c := range sd.Candidates {
-		k := 1
-		if boolean(c.Semantic, "keep") {
-			k = 0
-		}
-		ops[i] = mapping.NativeOp{Op: "choose", Option: k}
+		ops[i] = mapping.NativeOp{Op: "choose", Option: at[boolean(c.Semantic, "keep")]}
 	}
 	return ops, n, nil
+}
+
+// putCount is engine/rules/mulligan.go's human-facing card count.
+func putCount(n int) string {
+	if n == 1 {
+		return "1 card"
+	}
+	return strconv.Itoa(n) + " cards"
 }
 
 func (s *Session) modes(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, error) {
@@ -1399,11 +1520,25 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 	if sa.API == "DealDamage" || sa.API == "DamageAll" {
 		out.Damage = &decision.DamageEffect{}
 		raw := strings.TrimSpace(sa.Params["NumDmg"])
-		if n, err := strconv.Atoi(raw); err == nil && n >= 0 {
-			out.Damage.Amount = &n
-		} else if raw == "X" && x != nil {
+		switch {
+		case raw == "":
+		case raw == "X" && x != nil:
 			n := int(*x)
 			out.Damage.Amount = &n
+		default:
+			if n, err := strconv.Atoi(raw); err == nil && n >= 0 {
+				out.Damage.Amount = &n
+				break
+			}
+			// A dynamic amount (NumDmg$ X or another SVar name) is not on
+			// the v2 wire; the observation's zones can still resolve the
+			// common Count$ form, and an unresolvable body stays unknown.
+			if f != nil {
+				if v, ok := s.svarValue(o, f.SVars[raw]); ok && v >= 0 {
+					n := int(v)
+					out.Damage.Amount = &n
+				}
+			}
 		}
 	}
 	return out
