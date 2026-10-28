@@ -1917,13 +1917,14 @@ func (s *Session) optionalCost(sd *protocol.SeatDecision) ([]mapping.NativeOp, *
 	if str(first, "cost") != "unless_payment" && resume == nil {
 		return s.yesNo(sd)
 	}
+	obj := s.unlessCostObject(src, &sd.Observation)
 	n := s.open("unless", decision.Decision{Kind: decision.KModes, Min: 1, Max: 1, ResumeKind: "unless_pay",
 		Prompt: "Pay the cost?", ResumeSA: resume,
 		Options: []decision.Option{
 			{Index: 0, Kind: "mode", Label: "Pay", Mode: decision.ModeUnlessPay,
-				Obj: s.B.IDs.Of(src.ObjectID), Player: s.seat},
+				Obj: obj, Player: s.seat},
 			{Index: 1, Kind: "mode", Label: "Decline", Mode: decision.ModeUnlessDecline,
-				Obj: s.B.IDs.Of(src.ObjectID), Player: s.seat}}})
+				Obj: obj, Player: s.seat}}})
 	ops := make([]mapping.NativeOp, len(sd.Candidates))
 	for i, c := range sd.Candidates {
 		ops[i] = noOp
@@ -1937,6 +1938,25 @@ func (s *Session) optionalCost(sd *protocol.SeatDecision) ([]mapping.NativeOp, *
 		ops[i] = mapping.NativeOp{Op: "choose", Option: k}
 	}
 	return ops, n, nil
+}
+
+// unlessCostObject is the object the native unless-cost decision names:
+// the ability's Source permanent for a triggered or activated ability
+// (rules' Ctx.Source is o.Source, Ruling T20-b), and the source itself
+// for a spell (a counterspell tax names the spell on the stack). The v2
+// semantic names the ability object on the stack, so the stack entry's
+// Source is the one place the permanent is visible.
+func (s *Session) unlessCostObject(src protocol.ObjectRef, o *protocol.Observation) state.ObjID {
+	for i := range o.Stack {
+		e := &o.Stack[i]
+		if e.ObjectID != src.ObjectID || e.Source == nil {
+			continue
+		}
+		if e.StackKind == "triggered_ability" || e.StackKind == "activated_ability" {
+			return s.B.IDs.Of(e.Source.ObjectID)
+		}
+	}
+	return s.B.IDs.Of(src.ObjectID)
 }
 
 // unlessCostSA finds the printed unless-cost body of the ability that is on
