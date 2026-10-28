@@ -1224,12 +1224,10 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 // same list from their own captured LKI (engine/rules/stack.go, engine/rules/resolution.go);
 // this is the mana ability path's one home for it.
 func (e *Engine) resolveAbilitySacrificing(source state.ObjID, controller state.PlayerID,
-	targets []state.Target, sa *cards.SA, svars map[string]string, sacs []state.ObjID) {
+	targets []state.Target, sa *cards.SA, svars map[string]string, sacLKI []state.SacrificedInfo) {
 	ctx := e.arenaCtx()
 	*ctx = effects.NewCtx(source, controller, effects.CtxInit{Targets: targets})
-	for _, id := range sacs {
-		ctx.Sacrificed = append(ctx.Sacrificed, effects.SacrificedLKI(e, id))
-	}
+	ctx.Sacrificed = append(ctx.Sacrificed, sacLKI...)
 	// Forge's Count$ResolvedThisTurn: the same (source, root Ability$ body)
 	// tally resolveTop's ability branch binds, so a DBTransform gated on the
 	// fourth resolution of the turn reads it here too. Zero for a synthetic
