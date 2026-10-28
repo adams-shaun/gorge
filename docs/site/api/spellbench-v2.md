@@ -807,6 +807,34 @@ card. A **target reference** (Section 5.2) is exactly one of `{"player": seat}` 
 `{"object": reference}`. Candidates that reference cards in hidden zones come, among
 themselves, in `(card_name, object_id)` order (Section 7.1), so their order leaks nothing.
 
+### What the plain observation loses
+
+A third-party v2 client renders from the observation above, not from `x_gorge_view_v1`.
+`TestObservationDegradationCensus` (`server/spellbench/neutral`) measures the difference:
+it plays 100 seeded two-seat games over the twelve Legacy decks with the production bot at
+both seats, rebuilds `view.View` from the plain observation at every decision, and compares
+it field by field with the view `x_gorge_view_v1` carries. Over 62,368 decisions the most
+frequent unequal paths are below; `testdata/observation_degradation.tsv` is the full,
+frequency-ordered ratchet (`OBSDEG_REGEN=1` regenerates it, and it may only shrink).
+
+| field path | why it differs | class |
+|---|---|---|
+| `players[].pool.{W,U,B,R,G,C}` | the native view omits a zero amount; the neutral rebuild emits all six keys, zero included | fixable (normalise) |
+| `round` | native derives it from the event log; the observation carries only `turn` and `phase_step` | fixable (add `round` to the observation) |
+| `players[].{hand,graveyard,exile,battlefield}[].id`, `.token`, `stack[].id`, `.card.id` | object ids are re-keyed per carrier, so the same object has a different number in each plane | inherent (transport-local numbering) |
+| `players[].{hand,graveyard,exile,battlefield}[].colour_identity`, `.printed_pt`, `.types`, `.keywords[]`, `.play_main1`, `.remove_deck`, `.effective_mana_cost` | printed, public card facts; the rebuild has `card_name` but does not read the registry for them | fixable (project the printed facts) |
+| `players[].{hand,graveyard,exile}[].summon_sick` | an engine transient with no meaning outside the battlefield | fixable (normalise by zone) |
+| `players[].land_drop_spent`, `.available`, `.spells_cast_this_turn`, `.life_gained_this_turn`, `.life_lost_this_turn`, `.tokens_created_this_turn`, `.potential_actions[]`, `.battlefield[].activated_this_turn` | engine-derived or per-turn state the observation does not carry | fixable (protocol addition), not hidden |
+| `players[].battlefield[].card_name` | a face-down or hidden-identity permanent is deliberately unnamed | inherent (hidden information) |
+| `players[].battlefield[].{blocked_by[],attached_to,exiled_cards[]}`, `.imprinted[]` | public object relationships the observation only partly carries | fixable (protocol addition) |
+| `stack[].text`, `.source`, `.targets[].label`, `.targets[].obj`, `.optional`, `.decider`, `.modes[]`, `.kicks`, `.x`, `.card` | public stack detail the observation's stack record omits or abbreviates | fixable (protocol addition) |
+| `players[].battlefield[].counters.{Shield,Deathtouched}`, `pending[]`, `.is_token` | the rebuild does not yet map these observation fields | fixable |
+
+The split matters: the `id` rows are a numbering choice, not lost knowledge; the
+`card_name` row is the only top-path difference that is genuinely hidden information. The
+rest are public facts the observation already has or could carry, so a future protocol
+revision can close them without changing what a seat is allowed to know.
+
 ## Candidate kinds
 
 *Sections 7.2-7.5; `kindTable` in [`protocol/kinds.go`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/protocol/kinds.go);
