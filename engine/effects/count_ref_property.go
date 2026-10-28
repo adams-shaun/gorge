@@ -136,8 +136,19 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		// printed face would drop an anthem, a pump or a counter. The capture
 		// is the same one Sacrificed$CardPower reads, so the two spellings
 		// cannot disagree.
+		//
+		// The same read applies to the sacrifice paid-list refs themselves
+		// (`Sacrificed`/`SacrificedCards`, cr-g297): the bare `Sacrificed$…`
+		// head is cut by evalCountExprOK before it reaches this evaluator,
+		// but its `Spawner>Sacrificed$…` chained spelling (Bolg of the North,
+		// Heart-Piercer Manticore -- the resolving reflexive trigger's
+		// "that creature's power") arrives here through refTargets and must
+		// bind the SAME snapshot. Without it the read fell through to the
+		// object now in the graveyard: front-face power for a transformed
+		// DFC and no ante/pump/counters, which is exactly the CR 608.2h
+		// information the capture exists to preserve.
 		var sacLKI *state.SacrificedInfo
-		if ref == "Remembered" || ref == "RememberedLKI" {
+		if refNamesSacrificed(ref) || ref == "Remembered" || ref == "RememberedLKI" {
 			sacLKI, _ = sacrificedInfoFor(c, t.Obj)
 		}
 		f := o.Face()
@@ -663,6 +674,20 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // the small effects.Host contract and its test doubles.
 type inProgressDerivedPTHost interface {
 	InProgressDerivedPT(id state.ObjID) (power, toughness int32, ok bool)
+}
+
+// refNamesSacrificed reports whether ref names the paid sacrifice list, after
+// the shared `Spawner>` chain strip. The bare spelling is claimed by
+// evalCountExprOK's Sacrificed$ head; the chained spelling reaches
+// evalRefProperty through refTargets, whose own Spawner> arm unwraps to this
+// same inner ref. Keeping the identity test in one helper means the property
+// read and the target set cannot disagree about which objects carry an LKI
+// snapshot.
+func refNamesSacrificed(ref string) bool {
+	if inner, ok := spawnerChain(ref); ok {
+		ref = inner
+	}
+	return ref == "Sacrificed" || ref == "SacrificedCards"
 }
 
 func refPower(h Host, o *state.Object, snapshot bool) int32 {
