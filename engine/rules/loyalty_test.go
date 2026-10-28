@@ -50,6 +50,7 @@ func walkerBoard(t *testing.T, reg *cards.Registry, name string, onBoard ...*car
 		}
 		if onDeckHas(onBoard, o.Card) {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: state.ZBattlefield})
+			answerReadAheadEntry(t, e, 1)
 		}
 	}
 	if id == 0 {

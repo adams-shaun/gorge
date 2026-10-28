@@ -35,9 +35,6 @@ func readAheadGame(t *testing.T, reg *cards.Registry, name string) (*Engine, Con
 	return New(cfg), cfg
 }
 
-// readAheadEnter moves the named card to the battlefield and answers the posed
-// read-ahead KChoose with chapter. It asserts the ask is exactly the
-// final-chapter-many ascending options before answering.
 // readAheadChapters lists the chapter SVars the Saga has queued or pushed, in
 // the order they were queued: the entry's answer continuation may already have
 // moved a queued chapter onto the stack, so the log's DelayedPush events (whose
@@ -107,6 +104,23 @@ func describeAsk(d *decision.Decision) string {
 	return string(d.Kind) + " with " + strconv.Itoa(len(d.Options)) + " options"
 }
 
+// answerReadAheadEntry answers a pending as-enters read ahead ask with chapter,
+// for fixtures that seat a read-ahead Saga as scenery. It does nothing when no
+// such ask is pending.
+func answerReadAheadEntry(t *testing.T, e *Engine, chapter int) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "readahead" {
+		return
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{chapter - 1}}); err != nil {
+		t.Fatalf("submit read ahead chapter %d: %v", chapter, err)
+	}
+}
+
+// readAheadEnter moves the named card to the battlefield and answers the posed
+// read-ahead KChoose with chapter. It asserts the ask is exactly the
+// final-chapter-many ascending options before answering.
 func readAheadEnter(t *testing.T, e *Engine, name string, chapters, chapter int) state.ObjID {
 	t.Helper()
 	id := moveByName(t, e, 0, name, state.ZBattlefield)
