@@ -222,7 +222,11 @@ func (pe *payer) Game() *state.Game                 { return pe.G }
 func (pe *payer) Emit(ev events.Event) events.Event { return (*Engine)(pe).emit(ev) }
 func (pe *payer) Verify() bool                      { return walkCacheVerify }
 func (pe *payer) Log() *events.Log                  { return pe.L }
-func (pe *payer) AsFace(id state.ObjID, face *cards.Face, fn func() bool) bool {
+func (pe *payer) AsFace(id state.ObjID, faceIdx int, fn func() bool) bool {
+	var face *cards.Face
+	if o := pe.G.Obj(id); o != nil && o.Card != nil && faceIdx >= 0 && faceIdx < len(o.Card.Faces) {
+		face = o.Card.Faces[faceIdx]
+	}
 	return (*Engine)(pe).offerAsFace(id, face, fn)
 }
 func (pe *payer) MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {

@@ -751,7 +751,7 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 	}
 	manaOnly := Cost{Colored: mana.Colored, Generic: mana.Generic}
 	desc := pay.DescriptorFor(id, ability, composed)
-	desc.Face = e.planFace // an alternate-face route's restriction reads the cast face
+	desc.FaceIdx = e.planFaceIdx(id) // an alternate-face route's restriction reads the cast face
 	got := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, tapped, nil, kept)
 	if got.Plan == nil {
 		// No plan even with every other source is a proof.
@@ -1241,3 +1241,21 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prototype", Val: potentialModeBaseCostPrototype},
 )
+
+// planFaceIdx is the Descriptor.FaceIdx of e.planFace on object id: 1 + its
+// index in the object's Card.Faces, or 0 when no alternate face is being
+// planned or it is not one of the object's own faces (offerAsFace prices
+// such a face against the live face, exactly as no face does).
+func (e *Engine) planFaceIdx(id state.ObjID) uint8 {
+	if e.planFace == nil {
+		return 0
+	}
+	if o := e.G.Obj(id); o != nil && o.Card != nil {
+		for i, f := range o.Card.Faces {
+			if f == e.planFace {
+				return uint8(i + 1)
+			}
+		}
+	}
+	return 0
+}

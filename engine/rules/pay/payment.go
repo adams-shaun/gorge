@@ -4,7 +4,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -337,11 +336,15 @@ type Descriptor struct {
 	// paymentForCast. Offer and payment must agree about an X cost, never
 	// drift.
 	XAnnounced bool
-	// Face, when set, is the face an alternate-face cast flips to: a
+	// FaceIdx, when nonzero, is 1 + the index (into the object's
+	// Card.Faces) of the face an alternate-face cast flips to: a
 	// RestrictValid$ restriction reads the spell as that face (CR 712.11:
 	// a Modal DFC's back-face spell has only that face's characteristics),
-	// though the card in hand still shows its front.
-	Face *cards.Face
+	// though the card in hand still shows its front. An index rather than a
+	// *cards.Face so the descriptor holds no pointer that Engine.AsFace
+	// leaks: escape analysis is field-insensitive, and a leaked face pointer
+	// would drag Cost to the heap at every pricing site (perf/bisect-2026-10-27).
+	FaceIdx uint8
 }
 
 // DescriptorFor is the descriptor for paying cost for id (a spell, or an
@@ -584,10 +587,8 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 // Static admits every special action. Neither Spell nor Activated admits one.
 // nonSpell admits every payment but a spell cast.
 func RestrictValidMatches(e Engine, p state.PlayerID, d Descriptor, valid string, src state.ObjID) bool {
-	if d.Face != nil {
-		f := d.Face
-		d.Face = nil
-		return e.AsFace(d.ID, f, func() bool { return RestrictValidMatches(e, p, d, valid, src) })
+	if d.FaceIdx != 0 {
+		return restrictValidMatchesAsFace(e, p, d, valid, src)
 	}
 	for term := range strings.SplitSeq(strings.TrimSpace(valid), ",") {
 		if restrictValidTermMatches(e, p, d, strings.TrimSpace(term), src) {
@@ -595,6 +596,23 @@ func RestrictValidMatches(e Engine, p state.PlayerID, d Descriptor, valid string
 		}
 	}
 	return false
+}
+
+// restrictValidMatchesAsFace is RestrictValidMatches read with the spell
+// showing face d.FaceIdx. The closure handed to Engine.AsFace escapes, so it
+// captures a copy of d whose Cost is a private copy too: capturing d itself
+// would leak d.Cost and move every caller's priced Cost to the heap (the
+// 53d606158 regression, perf/bisect-2026-10-27). Only this rare
+// alternate-face branch pays the copy.
+func restrictValidMatchesAsFace(e Engine, p state.PlayerID, d Descriptor, valid string, src state.ObjID) bool {
+	// Field by field, never dc := d: escape analysis is field-insensitive,
+	// so a whole-struct copy would carry d.Cost's pointer into the closure.
+	dc := Descriptor{ID: d.ID, Class: d.Class, Special: d.Special, XAnnounced: d.XAnnounced}
+	if d.Cost != nil {
+		c := *d.Cost
+		dc.Cost = &c
+	}
+	return e.AsFace(dc.ID, int(d.FaceIdx)-1, func() bool { return RestrictValidMatches(e, p, dc, valid, src) })
 }
 
 func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term string, src state.ObjID) bool {
