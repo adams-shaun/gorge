@@ -845,7 +845,7 @@ observation cannot supply them.
 | `players[].available` | the engine's available-mana walk prices untapped sources through the layer system; the observation carries the battlefield and printed production, not that walk | inherent (not carried) |
 | `players[].spells_cast_this_turn`, `.life_gained_this_turn`, `.life_lost_this_turn`, `.tokens_created_this_turn`, `.battlefield[].activated_this_turn` | per-turn engine tallies; the observation has no field for any of them | inherent (not carried) |
 | `players[].potential_actions[]` | the engine's "what could I still do after tapping out" projection; no observation field | inherent (not carried) |
-| `players[].hand[].effective_mana_cost` | the offer-time cost with live modifiers composed; no observation field | inherent (not carried) |
+| `players[].hand[].effective_mana_cost` | the offer-time cost with live modifiers composed, including a granted spell-cost reduction (for example Absorb Energy's perpetual `ReduceCost` on cards in hand); no observation field carries the grant or the reduced cost, so the neutral world prices the printed cost and only a protocol addition can close the gap | inherent (not carried; protocol addition required) |
 | `stack[].text`, `.optional`, `.decider` | `stack_text` is false in this profile and the stack record has no optional/decider field | inherent (profile flag / not carried) |
 | `stack[].source` | the observation nulls a source that has left its expected object (Section 6.5); native keeps the id even after the source changes zones | inherent (observation's null-ref rule) |
 | `stack[].targets[].label` | a target reference is exactly a player or an object; it has no label field | inherent (not carried) |
