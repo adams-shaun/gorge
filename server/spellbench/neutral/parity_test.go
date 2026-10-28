@@ -20,6 +20,7 @@ import (
 	"github.com/adams-shaun/gorge/server/spellbench/internal/testcorpus"
 	"github.com/adams-shaun/gorge/server/spellbench/minihost"
 	"github.com/adams-shaun/gorge/server/spellbench/neutral"
+	"github.com/adams-shaun/gorge/server/spellbench/neutral/twin"
 	"github.com/adams-shaun/gorge/server/spellbench/observe"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 	"github.com/adams-shaun/gorge/server/spellbench/validate"
@@ -182,67 +183,13 @@ func TestViewMatchesGorgeViewOnGorgeGames(t *testing.T) {
 	}
 }
 
-// twin forwards every request to a gorge agent reading x_gorge_view_v1 and
-// to one translating the bare observation, answers with the first and
-// counts agreement by the decision's first candidate kind.
-type twin struct {
-	view, neutral *agent.Server
-	agree, total  map[string]int
-	examples      map[string][]string
-}
-
-func (tw *twin) Round(req []byte) ([]byte, error) {
-	a, _ := tw.view.Round(req)
-	b, _ := tw.neutral.Round(req)
-	var q struct {
-		RequestType string                `json:"request_type"`
-		Decision    protocol.SeatDecision `json:"decision"`
-	}
-	if err := json.Unmarshal(req, &q); err != nil || q.RequestType != "choose" {
-		if q.RequestType == "game_start" && !strings.Contains(string(b), `"ack"`) {
-			return nil, fmt.Errorf("neutral game_start: %s", b)
-		}
-		return a, nil
-	}
-	kind := q.Decision.Candidates[0].Semantic.Kind
-	if q.Decision.Context.Kind == "priority" {
-		kind = "priority"
-	}
-	if len(q.Decision.Candidates) == 1 {
-		kind += "(single)"
-	}
-	tw.total[kind]++
-	var ca, cb struct {
-		Selection struct {
-			CandidateID int `json:"candidate_id"`
-		} `json:"selection"`
-	}
-	json.Unmarshal(a, &ca)
-	json.Unmarshal(b, &cb)
-	if q.Decision.Candidates[ca.Selection.CandidateID].Semantic.Kind == "activate_mana_ability" {
-		// gorge's engine has its seats float mana; under engine_autopay the
-		// neutral seat never does, so these are not comparable.
-		tw.total[kind]--
-		tw.total["(gorge floated mana)"]++
-		return a, nil
-	}
-	if ca.Selection.CandidateID == cb.Selection.CandidateID {
-		tw.agree[kind]++
-	} else if len(tw.examples[kind]) < 3 {
-		sa, _ := json.Marshal(q.Decision.Candidates[ca.Selection.CandidateID].Semantic)
-		sb, _ := json.Marshal(q.Decision.Candidates[cb.Selection.CandidateID].Semantic)
-		tw.examples[kind] = append(tw.examples[kind], fmt.Sprintf("gorge %s\n      neutral %s", sa, sb))
-	}
-	return a, nil
-}
-
 func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	kinds := map[string]bool{}
 	for _, k := range env.DecisionKinds {
 		kinds[k] = true
 	}
-	tw := &twin{agree: map[string]int{}, total: map[string]int{}, examples: map[string][]string{}}
+	tw := twin.New()
 	games := 10
 	for i := 0; i < games; i++ {
 		d := catalog.Decks()[i%len(catalog.Decks())]
@@ -262,7 +209,7 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 			if err := na.EnableNeutral(); err != nil {
 				t.Fatal(err)
 			}
-			links[s] = &twinSeat{tw: tw, view: va, neutral: na}
+			links[s] = tw.Seat(va, na)
 		}
 		if _, err := h.Play(uint64(i), d, "london", []string{"x_gorge_view_v1"}, links); err != nil {
 			t.Fatalf("game %d (%s): %v", i, d.CatalogID, err)
@@ -270,28 +217,17 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 	}
 	var lines []string
 	agree, total := 0, 0
-	for k, n := range tw.total {
-		agree += tw.agree[k]
+	for k, n := range tw.Total {
+		agree += tw.Agree[k]
 		total += n
-		lines = append(lines, fmt.Sprintf("%-32s %5d/%5d", k, tw.agree[k], n))
-		for _, e := range tw.examples[k] {
+		lines = append(lines, fmt.Sprintf("%-32s %5d/%5d", k, tw.Agree[k], n))
+		for _, e := range tw.Examples[k] {
 			lines = append(lines, "    "+e)
 		}
 	}
 	sort.Strings(lines)
 	t.Logf("agreement %d/%d\n%s", agree, total, strings.Join(lines, "\n"))
-	if floated := tw.total["(gorge floated mana)"]; agree != total-floated {
+	if floated := tw.Total[twin.Floated]; agree != total-floated {
 		t.Errorf("the translated decision disagrees with gorge's own %d times in %d", total-floated-agree, total-floated)
 	}
-}
-
-// twinSeat binds one seat's pair of agents to the shared tally.
-type twinSeat struct {
-	tw            *twin
-	view, neutral *agent.Server
-}
-
-func (s *twinSeat) Round(req []byte) ([]byte, error) {
-	s.tw.view, s.tw.neutral = s.view, s.neutral
-	return s.tw.Round(req)
 }

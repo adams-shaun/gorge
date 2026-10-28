@@ -41,6 +41,9 @@ type Server struct {
 	cache   map[string]cached
 	audit   bool
 	autoPay bool
+	// extra holds decks a Go caller registered beside the catalog (AddDeck);
+	// a protocol client cannot add one.
+	extra map[string]catalog.Deck
 }
 
 func New(reg *cards.Registry, sourceRevision *string) *Server {
@@ -66,6 +69,24 @@ func (s *Server) EnableAutoPay() {
 	}
 	s.autoPay = true
 	s.engine.Version += "/autopay"
+}
+
+// AddDeck makes d playable by its catalog_id beside the engine catalog, for an
+// in-process harness that fuzzes decks the catalog does not hold. A catalog
+// id wins over an added one. It is not part of the protocol.
+func (s *Server) AddDeck(d catalog.Deck) {
+	if s.extra == nil {
+		s.extra = map[string]catalog.Deck{}
+	}
+	s.extra[d.CatalogID] = d
+}
+
+func (s *Server) deckByID(id string) (catalog.Deck, bool) {
+	if d, ok := catalog.ByID(id); ok {
+		return d, true
+	}
+	d, ok := s.extra[id]
+	return d, ok
 }
 
 func marshal(v any) []byte {
@@ -113,7 +134,7 @@ func (s *Server) dispatch(req protocol.Request) []byte {
 		if v.Format != "pauper-bo1" {
 			return errResp(req.ID, protocol.Errf(protocol.CodeUnsupportedFormat, v.Format))
 		}
-		if _, ok := catalog.ByID(v.Deck.CatalogID); v.Deck.IsDecklist || !ok {
+		if _, ok := s.deckByID(v.Deck.CatalogID); v.Deck.IsDecklist || !ok {
 			return errResp(req.ID, protocol.Errf(protocol.CodeUnsupportedDeck, "only the engine catalog decks are playable"))
 		}
 		return marshal(protocol.DeckOK{ResponseType: "deck_ok", Protocol: protocol.Name, RequestID: req.ID})
@@ -146,7 +167,7 @@ func (s *Server) reset(req protocol.Request) []byte {
 	}
 	var decks [2][]*cards.Card
 	for i, spec := range r.Decks {
-		d, ok := catalog.ByID(spec.CatalogID)
+		d, ok := s.deckByID(spec.CatalogID)
 		if spec.IsDecklist || !ok {
 			return errResp(req.ID, protocol.Errf(protocol.CodeUnsupportedDeck, "only the engine catalog decks are playable"))
 		}

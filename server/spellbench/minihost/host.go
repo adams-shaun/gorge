@@ -45,18 +45,25 @@ type Result struct {
 func (h *Host) id() string { h.n++; return fmt.Sprintf("h-%d", h.n) }
 
 func (h *Host) Play(i uint64, deck catalog.Deck, mulligan string, extensions []string, agents [2]Link) (Result, error) {
+	return h.PlayDecks(i, [2]catalog.Deck{deck, deck}, catalog.PoolNames(), mulligan, extensions, agents)
+}
+
+// PlayDecks is Play with a deck per seat and the card-name domain the game is
+// declared over: the entry point for decks the catalog does not hold (the
+// engine must know them, env.Server.AddDeck). Each seat's own_deck is its own
+// list and its opponent_deck the other seat's.
+func (h *Host) PlayDecks(i uint64, decks [2]catalog.Deck, names []string, mulligan string, extensions []string, agents [2]Link) (Result, error) {
 	var res Result
 	if extensions == nil {
 		extensions = []string{}
 	}
 	gameID := secrets.GameID(h.RunSecret, i)
-	names := catalog.PoolNames()
 	domain := wire.DomainID(names)
 	seat0 := "p0"
 	reset := map[string]any{"request_type": "reset", "protocol": protocol.Name, "request_id": h.id(), "game_id": gameID,
 		"format": "pauper-bo1",
-		"seats": []any{map[string]any{"seat": "p0", "deck": map[string]any{"deck_id": deck.DeckID(), "catalog_id": deck.CatalogID}},
-			map[string]any{"seat": "p1", "deck": map[string]any{"deck_id": deck.DeckID(), "catalog_id": deck.CatalogID}}},
+		"seats": []any{map[string]any{"seat": "p0", "deck": map[string]any{"deck_id": decks[0].DeckID(), "catalog_id": decks[0].CatalogID}},
+			map[string]any{"seat": "p1", "deck": map[string]any{"deck_id": decks[1].DeckID(), "catalog_id": decks[1].CatalogID}}},
 		"rules": map[string]any{"opponent_decklist": "visible", "mulligan": mulligan, "starting_player": "host_assigned",
 			"starting_seat": seat0, "card_name_domain": map[string]any{"domain_id": domain, "names": names},
 			"extensions": extensions, "probe": false},
@@ -78,14 +85,17 @@ func (h *Host) Play(i uint64, deck catalog.Deck, mulligan string, extensions []s
 	for s, a := range agents {
 		seat := fmt.Sprintf("p%d", s)
 		// Public decks are needed by native search's sampled-world setup.
-		var rows []map[string]any
-		for _, row := range deck.Rows {
-			rows = append(rows, map[string]any{"name": row.Name, "count": row.Count})
+		publicOf := func(deck catalog.Deck) map[string]any {
+			var rows []map[string]any
+			for _, row := range deck.Rows {
+				rows = append(rows, map[string]any{"name": row.Name, "count": row.Count})
+			}
+			return map[string]any{"deck_id": deck.DeckID(), "name": deck.Name, "decklist": rows}
 		}
-		publicDeck := map[string]any{"deck_id": deck.DeckID(), "name": deck.Name, "decklist": rows}
+		ownDeck, oppDeck := publicOf(decks[s]), publicOf(decks[1-s])
 		start, _ := wire.Canonical(map[string]any{"request_type": "game_start", "protocol": protocol.Name, "request_id": "r-0",
 			"game_id": gameID, "seat": seat, "agent_seed": secrets.AgentSeed(h.RunSecret, i, seat),
-			"own_deck": publicDeck, "opponent_deck": publicDeck,
+			"own_deck": ownDeck, "opponent_deck": oppDeck,
 			"rules":          map[string]any{"mulligan": mulligan},
 			"engine_profile": map[string]any{"engine_defaults": engineProfile.EngineDefaults}})
 		ack, err := a.Round(start)

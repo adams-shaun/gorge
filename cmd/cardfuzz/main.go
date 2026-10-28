@@ -360,11 +360,13 @@ type failure struct {
 	// Manabrew records that the game was played through the ManaBrew wire
 	// lane (-manabrew): every seat was an mbtest.TranslatingSeat over a
 	// seeded-random MockClient, so -repro rebuilds exactly those seats.
-	Manabrew bool   `json:"manabrew,omitempty"`
-	Turns    int32  `json:"turns"`
-	Intents  int    `json:"intents"`
-	Diag     string `json:"diag"`
-	Sig      string `json:"sig"`
+	Manabrew bool `json:"manabrew,omitempty"`
+	// SB is the -spellbench twin disagreement the record names (spellbench.go).
+	SB      *sbRecord `json:"spellbench,omitempty"`
+	Turns   int32     `json:"turns"`
+	Intents int       `json:"intents"`
+	Diag    string    `json:"diag"`
+	Sig     string    `json:"sig"`
 }
 
 // stamp records the run's auto-pay configuration on a failure record.
@@ -1091,6 +1093,9 @@ func main() {
 	flag.BoolVar(&tapeDual, "tape", false, "print the W3 resolution kernel (engine/rules/resolve, the default engine path) counters, the legacy-ask census and the predicate-miss census at the end")
 	flag.BoolVar(&tapeWorlds, "tape-worlds", false, "with -tape: fork a redealt hypothetical world at every posed tape decision and drive it 6 random intents")
 	flag.BoolVar(&planFailures, "plan-failures", true, "record a game whose planned cast was reversed (kind planrev) or fell back to the manual window (planfb) as a failure")
+	sbMode := flag.String("spellbench", "", "twin|outcome: measure a gorge bot through the SpellBench v2 neutral world against its native play on fuzzed decks (spellbench.go); -autopay off|all applies, -failures takes the twin disagreements, -repro replays one")
+	sbPolicy := flag.String("policy", "bot", "with -spellbench: the bot policy under test")
+	sbV2Both := flag.Bool("sb-v2-seats-both", false, "with -spellbench outcome: both seats are v2 agents in the v2 lane (default: seat 0 only, against a native seat 1)")
 	maxStack := flag.Int("max-stack", 256<<20, "per-goroutine stack limit in bytes (runtime/debug.SetMaxStack): an unbounded recursion dies here instead of at Go's 1 GB default")
 	flag.Parse()
 	if tapeDual {
@@ -1125,6 +1130,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "cardfuzz:", err)
 		os.Exit(1)
 	}
+	sbOpts := sbOptions{mode: *sbMode, policy: *sbPolicy, autopay: apc.mode == "all", v2Both: *sbV2Both, maxSteps: uint64(*maxIntents),
+		maxTurns: *maxTurns, maxIntents: *maxIntents, maxObjects: *maxObjects, games: *games, seed: *seed, workers: *workers}
 	if *repro != "" {
 		if *cpuProfile != "" {
 			pf, err := os.Create(*cpuProfile)
@@ -1142,6 +1149,13 @@ func main() {
 			os.Exit(code)
 		}
 		os.Exit(runRepro(reg, *repro, *line, *maxTurns, *maxIntents, *maxObjects))
+	}
+	if *sbMode != "" {
+		if *manabrewLane || (apc.mode != "off" && apc.mode != "all") {
+			fmt.Fprintln(os.Stderr, "cardfuzz: -spellbench takes -autopay off|all and excludes -manabrew")
+			os.Exit(1)
+		}
+		os.Exit(runSpellbench(reg, p, sbOpts, *failPath, os.Stdout))
 	}
 	c, err := loadCov(*statePath)
 	if err != nil {
@@ -1508,6 +1522,9 @@ func runRepro(reg *cards.Registry, path string, line, maxTurns, maxIntents, maxO
 		if err := json.Unmarshal(sc.Bytes(), &rec); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
+		}
+		if rec.SB != nil {
+			return runSBRepro(reg, rec, sbOptions{maxSteps: uint64(maxIntents)}, os.Stdout)
 		}
 		apc, err := autoPayOf(rec)
 		if err != nil {
