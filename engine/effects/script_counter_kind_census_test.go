@@ -43,14 +43,52 @@ func TestScriptCounterKindsAreUpperCased(t *testing.T) {
 		shieldFolded  bool
 		badNormalised []string
 	)
+	countKind := func(face *cards.Face, key, raw string) {
+		for _, part := range strings.Split(raw, ",") {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			checked++
+			norm := state.CanonicalCounterKind(part)
+			if norm != part {
+				// The corpus contains a raw spelling the fold changes:
+				// prove it here so removing the fold cannot pass vacuously.
+				if part == "Shield" && norm == "SHIELD" {
+					shieldFolded = true
+				}
+			}
+			if part == "Shield" {
+				sawShield = true
+			}
+			if part != strings.ToUpper(part) {
+				rawNonUpper = append(rawNonUpper, face.Name+" "+key+"$ "+part)
+			}
+			if state.InternalCounterMarker(norm) {
+				badNormalised = append(badNormalised, face.Name+" "+key+"$ "+part+" -> "+norm)
+			}
+		}
+	}
+	countParams := func(face *cards.Face, params map[string]string) {
+		for _, key := range scriptCounterKindParams {
+			if raw, ok := params[key]; ok {
+				countKind(face, key, raw)
+			}
+		}
+	}
 	for _, card := range reg.AllCards() {
 		for _, face := range card.Faces {
 			var sas []*cards.SA
 			sas = append(sas, face.Abilities...)
 			for i := range face.Triggers {
+				countParams(face, face.Triggers[i].Params)
 				sas = append(sas, face.Triggers[i].Effect)
 			}
+			for i := range face.Statics {
+				countParams(face, face.Statics[i].Params)
+			}
 			for i := range face.Repls {
+				countParams(face, face.Repls[i].Params)
 				sas = append(sas, face.Repls[i].With)
 			}
 			for name := range face.SVars {
@@ -58,37 +96,7 @@ func TestScriptCounterKindsAreUpperCased(t *testing.T) {
 			}
 			for _, sa := range sas {
 				for ; sa != nil; sa = sa.Sub {
-					for _, key := range scriptCounterKindParams {
-						raw, ok := sa.Params[key]
-						if !ok {
-							continue
-						}
-						for _, part := range strings.Split(raw, ",") {
-							part = strings.TrimSpace(part)
-							if part == "" {
-								continue
-							}
-							checked++
-							norm := state.CanonicalCounterKind(part)
-							if norm != part {
-								// The corpus contains a raw spelling the
-								// fold changes: prove it here so removing
-								// the fold cannot pass vacuously.
-								if part == "Shield" && norm == "SHIELD" {
-									shieldFolded = true
-								}
-							}
-							if part == "Shield" {
-								sawShield = true
-							}
-							if part != strings.ToUpper(part) {
-								rawNonUpper = append(rawNonUpper, face.Name+" "+key+"$ "+part)
-							}
-							if state.InternalCounterMarker(norm) {
-								badNormalised = append(badNormalised, face.Name+" "+key+"$ "+part+" -> "+norm)
-							}
-						}
-					}
+					countParams(face, sa.Params)
 				}
 			}
 		}
