@@ -69,6 +69,14 @@ type Session struct {
 	// activated is the face ability index of each source's latest
 	// activation, so its target ask can describe the ability.
 	activated map[string]int
+	// grants is the pending pure keyword grant of each source whose latest
+	// activation was one, so a repeated activation of the same ability can be
+	// reported as the engine's redundant-grant fact (decision.Grant). A source
+	// whose ability has left the stack is dropped at the next priority
+	// decision, the only kind whose Payload may prune: a cost-target or target
+	// decision for a pending activation arrives before the ability is on the
+	// stack, so pruning there would forget the grant.
+	grants map[string][]string
 	// uses counts this turn's activations of each source, which gorge's
 	// view carries as ActivatedThisTurn and its bot budgets: each activated
 	// ability seen on the stack counts once for its source.
@@ -88,7 +96,8 @@ type Session struct {
 func (s *Session) SetAutoPay(autoPay bool) { s.autoPay = autoPay }
 
 func NewSession(reg *cards.Registry) *Session {
-	return &Session{B: NewBuilder(reg), Counts: map[string]int{}, Approx: map[string]int{}, activated: map[string]int{}, uses: map[string]int32{}, seen: map[string]bool{}}
+	return &Session{B: NewBuilder(reg), Counts: map[string]int{}, Approx: map[string]int{}, activated: map[string]int{},
+		grants: map[string][]string{}, uses: map[string]int32{}, seen: map[string]bool{}}
 }
 
 // Picked tells the session which candidate of its last decision the seat
@@ -105,6 +114,13 @@ func (s *Session) Picked(i int) {
 		if src, err := ref(sem, "source"); err == nil {
 			if o, ok := s.abilityOption(src, num(sem, "ability_index")); ok {
 				s.activated[src.ObjectID] = o.Ability
+				if f := s.abilityFace(src); f != nil && o.Ability < len(f.Abilities) {
+					if kw := rules.PureGrantKeywords(f.Abilities[o.Ability]); len(kw) > 0 {
+						s.grants[src.ObjectID] = kw
+					} else {
+						delete(s.grants, src.ObjectID)
+					}
+				}
 			}
 		}
 	case "arrange_card":
@@ -314,6 +330,23 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 	n := s.open("priority", decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1})
 	n.casts, n.names, n.paid = map[string][]int{}, map[string]string{}, map[string]*decision.PaymentSelection{}
 	pre := s.prepay(sd, v)
+	// pendingGrant names the sources whose activated ability is on the stack
+	// right now: the observation's only evidence for decision.Grant.Duplicate.
+	// Prune the grants this priority decision no longer sees here, not in
+	// Payload: the cost-target and target decisions an activation poses come
+	// before its ability is on the stack, and pruning there would drop the
+	// grant that a later priority decision must still report.
+	pendingGrant := map[string]bool{}
+	for _, e := range sd.Observation.Stack {
+		if e.StackKind == "activated_ability" && e.Source != nil {
+			pendingGrant[e.Source.ObjectID] = true
+		}
+	}
+	for id := range s.grants {
+		if !pendingGrant[id] {
+			delete(s.grants, id)
+		}
+	}
 	ops := make([]mapping.NativeOp, len(sd.Candidates))
 	add := func(o decision.Option) int {
 		o.Index = len(n.d.Options)
@@ -419,6 +452,7 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			if !ok {
 				continue
 			}
+			o.Grant = s.grantFact(src, o, v, pendingGrant)
 			ops[i] = mapping.NativeOp{Op: "choose", Option: add(o)}
 		}
 		// activate_mana_ability stays untranslated here: gorge's bot never
@@ -427,6 +461,65 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 	}
 	s.finish(pre, n, ops)
 	return ops, n, nil
+}
+
+// grantFact reconstructs decision.Option.Grant (the bot's A1 no-op fact) for
+// an activated ability whose whole effect is a pure, self-aimed keyword grant.
+// The engine fills it natively from the ability it offers (rules.abilityGrant);
+// the neutral world has no engine walk, so it reads the printed ability and
+// the observation: Already from the projected keyword list, Duplicate from the
+// activated ability the session itself just put on the stack for this source.
+// A nil result means "not a pure keyword grant", exactly the native nil.
+func (s *Session) grantFact(src protocol.ObjectRef, o decision.Option, v *view.View, pending map[string]bool) *decision.Grant {
+	f := s.abilityFace(src)
+	if f == nil || o.Ability < 0 || o.Ability >= len(f.Abilities) {
+		return nil
+	}
+	kw := rules.PureGrantKeywords(f.Abilities[o.Ability])
+	if len(kw) == 0 {
+		return nil
+	}
+	g := &decision.Grant{Keywords: kw}
+	g.Already = cardHasKeywords(v, o.Obj, kw)
+	g.Duplicate = pending[src.ObjectID] && slices.Equal(s.grants[src.ObjectID], kw)
+	return g
+}
+
+// abilityFace resolves the face an activated ability's source shows, matching
+// abilityOption's card-then-token lookup.
+func (s *Session) abilityFace(src protocol.ObjectRef) *cards.Face {
+	if f := s.B.face(src.CardName, false, nil); f != nil {
+		return f
+	}
+	return s.B.face(src.CardName, true, nil)
+}
+
+// cardHasKeywords reports whether the projected card id already carries every
+// keyword in kw, the neutral reading of the engine's HasKeyword loop. The
+// projected Keyword list is the engine's derived list, so this is the same
+// fact rules.abilityGrant reads.
+func cardHasKeywords(v *view.View, id state.ObjID, kw []string) bool {
+	for _, p := range v.Players {
+		for _, cv := range p.Battlefield {
+			if cv.ID != id {
+				continue
+			}
+			for _, want := range kw {
+				found := false
+				for _, have := range cv.Keywords {
+					if strings.EqualFold(cards.KeywordHead(have), want) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return false
+				}
+			}
+			return true
+		}
+	}
+	return false
 }
 
 // kickerAffordable reports whether the printed cost plus the kicker cost

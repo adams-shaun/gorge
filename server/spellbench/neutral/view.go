@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/observe"
@@ -426,7 +427,21 @@ func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *prot
 		cv.ManaCost = ""
 	}
 	if sa := f.SpellAbility(); sa != nil {
+		// The spell-ability projection: the same facts view.cardView reads
+		// off the printed face, so the heuristic's cast and timing gates see
+		// the same card through the rebuilt view as through native's. The
+		// pump facts are load-bearing: without them the A6 PumpInCombat rule
+		// cannot recognise a combat trick as a timed pump and holds it
+		// nowhere (Violent Urge/Thwip! were cast in the precombat main where
+		// native passes).
 		cv.SpellAPI = sa.API
+		cv.RemovalKind = effects.CastRemovalKind(sa)
+		cv.RemovalTargets = effects.CastRemovalTargets(sa)
+		cv.RemovalDamage = effects.CastRemovalDamage(sa)
+		cv.PumpPower, cv.PumpToughness = effects.CastPumpBonus(sa)
+		cv.PumpOwn = effects.CastPumpOwnCombatants(sa)
+		cv.CombatTrick = effects.CastCombatTrick(sa)
+		cv.AuraLogic = effects.CastAuraLogic(f)
 	}
 	if p := f.ManaProduction(); !p.IsZero() {
 		cv.Produces = &p
