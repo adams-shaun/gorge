@@ -245,8 +245,13 @@ func EntryCounterGrantsForFace(o *state.Object, f *cards.Face, faceDown bool) []
 	}
 	// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a lore
 	// counter."
-	if _, names := cards.SagaChapters(f); len(names) > 0 {
-		grants = append(grants, EntryCounterGrant{Kind: "LORE", Amount: 1})
+	// CR 702.155b: a read-ahead Saga enters with the chosen number instead.
+	if n, names := cards.SagaChapters(f); len(names) > 0 {
+		lore := int32(1)
+		if c := o.ReadAheadChapter; c >= 1 && int(c) <= n {
+			lore = c
+		}
+		grants = append(grants, EntryCounterGrant{Kind: "LORE", Amount: lore})
 	}
 	// CR 310.6/310.8: a Battle enters with defense counters equal to its
 	// printed Defense; an absent/X/non-numeric value fails closed.

@@ -147,11 +147,14 @@ func TestCantPhaseInPhasingOfZhalfir(t *testing.T) {
 	t.Parallel()
 	e, cfg := phasesGame(t, 1593, "The Phasing of Zhalfir", "Grizzly Bears")
 	bears := moveSeededCard(t, e, 0, cr702corpusCard(t, "Grizzly Bears"), state.ZBattlefield)
-	saga := moveSeededCard(t, e, 0, cr702corpusCard(t, "The Phasing of Zhalfir"), state.ZBattlefield)
+	toMain1(t, e)
+	saga := moveByName(t, e, 0, "The Phasing of Zhalfir", state.ZBattlefield)
+	answerReadAheadEntry(t, e, 1)
 	if o := e.G.Obj(saga); o == nil || o.Counter("LORE") != 1 {
 		t.Fatal("precondition: the Saga did not enter with one lore counter (chapter I)")
 	}
-	addMana(t, e, 0, "")
+	// The answered entry already put chapter I on the stack and parked its
+	// target ask, so no priority round is needed first.
 	cantPhaseTarget(t, e, bears)
 	passUntilStackEmpty(t, e, 20)
 	if o := e.G.Obj(bears); o == nil || !o.PhasedOut {

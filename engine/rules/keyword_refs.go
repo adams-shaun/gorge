@@ -23,6 +23,7 @@ var (
 	kwRefMorph       = cards.NewKeywordRef("Morph")
 	kwRefOffspring   = cards.NewKeywordRef("Offspring")
 	kwRefParadigm    = cards.NewKeywordRef("Paradigm")
+	kwRefReadAhead   = cards.NewKeywordRef("Read ahead")
 	kwRefRiot        = cards.NewKeywordRef("Riot")
 	kwRefStorm       = cards.NewKeywordRef("Storm")
 	kwRefSunburst    = cards.NewKeywordRef("Sunburst")
