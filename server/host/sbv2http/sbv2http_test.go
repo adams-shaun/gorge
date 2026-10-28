@@ -263,7 +263,7 @@ func TestSBV2PlaysAGame(t *testing.T) {
 			if status, body := postSBV2Send(t, srv.URL, "/api/sbv2/v1/tables/v2/matches/1/send", "tok", st.Request.RequestID, cand); status != http.StatusNoContent {
 				t.Fatalf("send request %s candidate %d: %d %q", st.Request.RequestID, cand, status, body)
 			}
-		case <-time.After(20 * time.Millisecond):
+		case <-time.After(time.Millisecond):
 		}
 	}
 

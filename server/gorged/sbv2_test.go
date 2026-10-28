@@ -159,7 +159,7 @@ func TestSBV2TokenIsTheSeat(t *testing.T) {
 				t.Fatalf("seat 1 answer: %d %q", res.status, res.body)
 			}
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(time.Millisecond)
 	}
 	if seat0 == nil {
 		t.Fatal("seat 0 never got a v2 request")
