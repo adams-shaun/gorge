@@ -262,6 +262,7 @@ var auraEntryCensusRules = map[string]string{
 	"entry_counters.go:Engine.entryBodyCounterGrants":           "noentry: a synthetic match event, never emitted",
 	"entry_counters.go:Engine.foldEntryMove":                    "raw: the entry fold, reached only after the gate",
 	"entry_counters.go:Engine.foldEntryWithPlaced":              "raw: the entry fold, reached only after the gate",
+	"entry_counters.go:previewForeignEv":                        "noentry: a synthetic match event, never emitted",
 	"hidden_identity.go:ReidentifyHidden":                       "raw: hidden-identity redeal in a HYPOTHETICAL search world (CloneHypothetical), never a real battlefield entry",
 	"opening_hand.go:Engine.applyOpeningEffect":                 "gate: Leyline-style opening-hand entry",
 	"oracle_run.go:oracleRun.do":                                "gate: oracle-audit scenario move op through e.emit",
