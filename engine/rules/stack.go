@@ -89,6 +89,7 @@ func (e *Engine) resolveTop() {
 			// AttackedPlayerWithMostLife) be re-checked with the defender the
 			// trigger queued against, which no current state can re-derive.
 			tc := e.triggerContexts[id]
+			e.bindSourceLKI(&tc, id, o.Source)
 			if !e.triggerResolvingCheckHolds(t, o.Source, o.Controller, &tc, e.triggerLineSVars[id]) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
@@ -363,10 +364,7 @@ func (e *Engine) resolveTop() {
 		ctx.TriggerRememberedMoved = e.rememberedMovedSinceFire(ctx.TriggerRememberedStamps)
 		// CR 608.2h: a source that left the battlefield (sacrificed as the
 		// cost) answers "the chosen type" from its last-known choices.
-		if snap, ok := e.sourceCharLKI[id]; ok && o.Source != 0 {
-			ctx.TriggerContext.SourceLKIValid = true
-			ctx.TriggerContext.SourceChosenType, ctx.TriggerContext.SourceChosenColor = snap.chosenType, snap.chosenColor
-		}
+		e.bindSourceLKI(&ctx.TriggerContext, id, o.Source)
 		ctx.ModeTargets = charmModeTargets
 		// Forge's Count$ResolvedThisTurn reads the per-ability tally the
 		// Resolve event's Apply folded: the count INCLUDES this resolution,

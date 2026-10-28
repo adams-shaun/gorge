@@ -464,6 +464,12 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 				if f := o.Face(); f != nil {
 					sub.SVars = f.SVars
 				}
+				if o.ID == c.Source {
+					// The ability's own source (CastSA>): a departed one is
+					// read through its last-known spend (CR 608.2h).
+					sub.TriggerContext.SourceLKIValid = c.TriggerContext.SourceLKIValid
+					sub.TriggerContext.SourceManaColorSpent = c.TriggerContext.SourceManaColorSpent
+				}
 				return evalCountExprOK(h, sub, strings.TrimSpace(right), depth+1)
 			}
 			return 0, false
