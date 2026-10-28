@@ -77,8 +77,8 @@ func TestChainedCounterUnlessPayerIsCounteredController(t *testing.T) {
 			// controller (seat 1) pays, never the resolving spell's
 			// controller or the first half's target's controller (seat 0).
 			if unless.Player != 1 {
-				t.Fatalf("unless_pay payer = seat %d, want the countered spell's controller (seat 1), not seat %d",
-					unless.Player, unless.Player)
+				t.Fatalf("unless_pay payer = seat %d, want the countered spell's controller (seat 1), not the resolving spell's controller or the head target's controller (seat 0)",
+					unless.Player)
 			}
 			// The chained counter has not applied yet: the target spell is
 			// still on the stack when the payer is asked.
