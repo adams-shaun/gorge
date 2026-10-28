@@ -461,7 +461,7 @@ func waitParityMatch(r *host.Registry, table host.TableID) (string, int, error) 
 		if time.Now().After(deadline) {
 			return "", 0, fmt.Errorf("match 1 did not finish within %v", parityDeadline)
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(time.Millisecond)
 	}
 }
 
