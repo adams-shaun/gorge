@@ -58,6 +58,10 @@ type Server struct {
 	// could not reconstruct (neutral.Untranslated). The twin leaves those out
 	// of the comparison: the neutral agent had no answer to give.
 	opaque []bool
+	// manualMana makes the bot float mana by hand instead of choosing a
+	// payment plan. The twin sets it on a manual host so both worlds pose the
+	// same mana surface; the production seat keeps the plan path.
+	manualMana bool
 }
 
 func New(policy string) (*Server, error) {
@@ -79,6 +83,12 @@ func (s *Server) Forced() int { return s.forced }
 func (s *Server) Records() map[uint64]*Record { return s.records }
 
 func (s *Server) PolicyKey() string { return s.policy }
+
+// SetManualMana makes the seat's bot float mana by hand instead of paying
+// from a plan. The twin calls it when the host declares no engine auto-pay,
+// so the native and neutral worlds ask the policy the same question. It must
+// be called before game_start.
+func (s *Server) SetManualMana() { s.manualMana = true }
 
 // NeutralOpaque reports whether the last neutral decision's candidate i was
 // one the neutral world could not translate (neutral.Untranslated). It is
@@ -165,7 +175,7 @@ func (s *Server) Handle(line []byte) (resp []byte) {
 				return errorLine(q.RequestID, "malformed_request", err.Error())
 			}
 		}
-		bot, err := bots.New(s.policy, bots.Options{Seed: q.AgentSeed, AutoPayMana: true, Deps: bots.Deps{Cards: s.registry}})
+		bot, err := bots.New(s.policy, bots.Options{Seed: q.AgentSeed, AutoPayMana: !s.manualMana, Deps: bots.Deps{Cards: s.registry}})
 		if err != nil {
 			return errorLine(q.RequestID, "malformed_request", err.Error())
 		}

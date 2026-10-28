@@ -178,6 +178,12 @@ func playSBTwin(reg *cards.Registry, decks []genDeck, seed uint64, o sbOptions) 
 			res.err = err.Error()
 			return
 		}
+		if !o.autopay {
+			// A manual host offers taps, not plans; ask both worlds the same
+			// question so the twin compares the policy, not the mana surface.
+			va.SetManualMana()
+			na.SetManualMana()
+		}
 		links[s] = res.tw.Seat(va, na)
 	}
 	res.tw.OnDisagree = func(d twin.Disagreement) {
