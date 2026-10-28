@@ -1,27 +1,9 @@
 package rules
 
 import (
-	"fmt"
-
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-// oracleSetupToken is one token a seat's setup places on the battlefield.
-//
-// Setup is placement, not creation (CR 111.2 still makes the seat the owner
-// and controller): the token is minted with a TokenCreate keyed by its Forge
-// token-script stem (Game.Tokens), but no trigger the mint queues fires
-// ("when this enters", "whenever you create a token") and no CreateToken
-// replacement (Doubling Season) rewrites it -- XMage's cheat placement sees
-// neither. Counters is the token's COMPLETE counter set after setup (a placed
-// token enters with none of its own, so unlike the card field Counters it is
-// not added on top of entry counters). A scenario lists the token's whole
-// state; nothing the script grants on entry is invented here.
-type oracleSetupToken struct {
-	Script   string           `json:"script"`
-	Counters map[string]int32 `json:"counters,omitempty"`
-}
 
 // validateSetupTokens rejects a token entry setup cannot place: no script, or
 // a counter with no kind or a non-positive amount.
@@ -41,8 +23,8 @@ func validateSetupTokens(p int, s oracleSeat) error {
 
 // placeSetupTokens mints seat p's setup tokens in list order, so a later
 // "pN:token:Name#k" ref binds as it would in the recorded game.
-func (r *oracleRun) placeSetupTokens(sc oracleScenario, p int) error {
-	for _, tk := range sc.Setup[fmt.Sprintf("p%d", p)].Tokens {
+func (r *oracleRun) placeSetupTokens(tokens []oracleSetupToken, p int) error {
+	for _, tk := range tokens {
 		if r.reg.Tokens[tk.Script] == nil {
 			return harnessf("setup: p%d token script %q is not in the corpus", p, tk.Script)
 		}
@@ -50,12 +32,9 @@ func (r *oracleRun) placeSetupTokens(sc oracleScenario, p int) error {
 		if err != nil {
 			return err
 		}
-		byKind := map[string]int32{}
-		for kind, n := range tk.Counters {
-			byKind[normCounter(kind)] += n
-		}
-		for _, kind := range sortedSetupKeys(byKind) {
-			r.e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: byKind[kind]})
+		// Sorted raw kinds: two spellings of one kind emit two additive changes.
+		for _, kind := range sortedSetupKeys(tk.Counters) {
+			r.e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: normCounter(kind), Amount: tk.Counters[kind]})
 		}
 		r.e.emit(events.Event{Kind: events.SetupSettled, Obj: id})
 	}

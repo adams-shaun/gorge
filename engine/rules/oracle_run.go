@@ -112,6 +112,22 @@ type oracleSeat struct {
 	Tokens []oracleSetupToken `json:"tokens,omitempty"`
 }
 
+// oracleSetupToken is one token a seat's setup places on the battlefield.
+//
+// Setup is placement, not creation (CR 111.2 still makes the seat the owner
+// and controller): the token is minted with a TokenCreate keyed by its Forge
+// token-script stem (Game.Tokens), but no trigger the mint queues fires
+// ("when this enters", "whenever you create a token") and no CreateToken
+// replacement (Doubling Season) rewrites it -- XMage's cheat placement sees
+// neither. Counters is the token's COMPLETE counter set after setup (a placed
+// token enters with none of its own, so unlike the card field Counters it is
+// not added on top of entry counters). A scenario lists the token's whole
+// state; nothing the script grants on entry is invented here.
+type oracleSetupToken struct {
+	Script   string           `json:"script"`
+	Counters map[string]int32 `json:"counters,omitempty"`
+}
+
 // setupCounters lists the counters a seat's setup puts on a battlefield
 // placement named name, kinds sorted so the emitted events are deterministic.
 func setupCounters(s oracleSeat, name string) []events.Event {
@@ -776,7 +792,7 @@ func (r *oracleRun) build(sc oracleScenario) error {
 			}
 			r.refs[ref] = id
 		}
-		if err := r.placeSetupTokens(sc, p); err != nil {
+		if err := r.placeSetupTokens(sc.Setup[fmt.Sprintf("p%d", p)].Tokens, p); err != nil {
 			return err
 		}
 		if len(tops) > 0 {
