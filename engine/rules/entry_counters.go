@@ -832,6 +832,10 @@ func (e *Engine) entryPreview(ev events.Event) (*Engine, state.ObjID) {
 // battlefield, its own statics included. Only the preview's private memos move.
 func (e *Engine) refreshEntryPreviewStatics() {
 	e.staticEpoch = -1
+	// The layer-4 probe cache behind staticsMayChangeTypes is log-keyed too;
+	// the entrant just changed zone, so its cell is stale. A negative epoch
+	// makes the next read re-probe the board (into the preview's own array).
+	e.typesProbeEpoch = -1
 	e.refreshStaticContinuous()
 	e.refreshDerivedTypesFull(len(e.L.Events))
 }
