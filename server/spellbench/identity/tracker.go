@@ -56,7 +56,13 @@ type Tracker struct {
 	looks   map[lookKey]uint32
 	open    [2]map[string]uint32
 	seen    [2]map[string]string
-	zbuf    []state.Zone
+	// Observation windows: an internal key that returns to a viewer's stream
+	// after missing from one of its observations (a phased-out permanent) gets
+	// a fresh incarnation, so no id re-enters an observation it left (V7).
+	inc  [2]map[string]uint32 // last incarnation minted per internal key
+	prev [2]map[string]bool   // keys in the viewer's last committed observation
+	cur  [2]map[string]bool   // keys minted in the observation being built; nil when closed
+	zbuf []state.Zone
 	// References that must turn null when their object changes zones (G1-3):
 	// the key each was taken at. gorge keeps one ObjID across zone changes, so
 	// a live ObjID alone cannot tell a stale reference from a current one.
@@ -71,7 +77,8 @@ type Tracker struct {
 func New(e *rules.Engine, sec *secrets.Game) *Tracker {
 	return &Tracker{sec: sec, shadow: e.G.Clone(), applied: len(e.L.Events),
 		moves: map[state.ObjID]uint32{}, looks: map[lookKey]uint32{},
-		seen:       [2]map[string]string{{}, {}},
+		seen: [2]map[string]string{{}, {}},
+		inc:  [2]map[string]uint32{{}, {}}, prev: [2]map[string]bool{{}, {}},
 		sourceKeys: map[state.ObjID]string{}, targetKeys: map[state.ObjID][]chosen{},
 		attackKeys: map[state.ObjID]string{}, blockKeys: map[state.ObjID]string{}, before: map[state.ObjID]uint32{}}
 }
@@ -230,9 +237,37 @@ func (t *Tracker) mint(viewer state.PlayerID, msg string) (string, error) {
 	return oid, nil
 }
 
-// VisibleID is the id of an object in a zone viewer sees, for its current stay.
+// VisibleID is the id of an object in a zone viewer sees, for its current stay
+// and incarnation: a key that returns after missing from one of the viewer's
+// observations is a new incarnation.
 func (t *Tracker) VisibleID(viewer state.PlayerID, id state.ObjID) (string, error) {
-	return t.mint(viewer, fmt.Sprintf("p%d:%s", viewer, t.Key(id)))
+	key := t.Key(id)
+	if !t.prev[viewer][key] {
+		if n, ok := t.inc[viewer][key]; ok {
+			t.inc[viewer][key] = n + 1
+		} else {
+			t.inc[viewer][key] = 0
+		}
+		t.prev[viewer][key] = true // one return consumes one incarnation
+	}
+	if t.cur[viewer] != nil {
+		t.cur[viewer][key] = true
+	}
+	identity := key
+	if n := t.inc[viewer][key]; n > 0 {
+		identity = fmt.Sprintf("%s:r%d", key, n)
+	}
+	return t.mint(viewer, fmt.Sprintf("p%d:%s", viewer, identity))
+}
+
+// BeginObservation opens the window of keys viewer's next observation lists.
+func (t *Tracker) BeginObservation(viewer state.PlayerID) { t.cur[viewer] = map[string]bool{} }
+
+// EndObservation commits the window: its keys are the ones viewer has seen
+// last. A failed observation is not ended, so it commits nothing.
+func (t *Tracker) EndObservation(viewer state.PlayerID) {
+	t.prev[viewer] = t.cur[viewer]
+	t.cur[viewer] = nil
 }
 
 // OpenLook starts one effect's look for viewer; CloseLook ends it. Opening a
