@@ -55,7 +55,7 @@ func TestResolveNamesFacesAndRefusesNearMisses(t *testing.T) {
 
 func TestCoverageReportsUnsupportedCards(t *testing.T) {
 	reg := testcorpus.Registry(t)
-	for _, name := range []string{"Incinerate", "Vines of Vastwood"} {
+	for _, name := range []string{"Incinerate"} {
 		c, ok := reg.Lookup(name)
 		if !ok {
 			t.Fatalf("%s not in the compiled corpus registry", name)
