@@ -10,7 +10,7 @@ import (
 )
 
 var CostKinds = map[string]string{"sacrifice": "sacrifice", "discard": "discard", "tapcost": "tap",
-	"returncost": "return_to_hand", "exile_cost": "exile", "exile": "exile"}
+	"returncost": "return_to_hand", "exile_cost": "exile", "exilecost": "exile", "exile": "exile"}
 
 var costPurposes = map[string]string{"sacrifice": "sacrifice", "discard": "discard", "tap": "tap",
 	"return_to_hand": "return_to_hand", "exile": "exile"}

@@ -79,14 +79,19 @@ type NativeOp struct {
 	// Pays lists every payment plan this candidate is a step of: the neutral
 	// world lowers a plan onto manual mana candidates, and the plans of
 	// several actions can begin with the same tap.
-	Pays     []*decision.PaymentSelection `json:"pays,omitempty"`
-	Op       string                       `json:"op"`
-	Option   int                          `json:"option"`
-	Followup []int                        `json:"followup,omitempty"`
-	List     string                       `json:"list,omitempty"`
-	Position int                          `json:"position,omitempty"`
-	Unit     state.ObjID                  `json:"unit,omitempty"`
-	Covers   []int                        `json:"covers,omitempty"`
+	Pays   []*decision.PaymentSelection `json:"pays,omitempty"`
+	Op     string                       `json:"op"`
+	Option int                          `json:"option"`
+	// Inside, on a "dest" op, says whether the destination lies in the
+	// native answer's Choices list (selected) or is the implied remainder.
+	// Nil keeps the legacy top/hand convention; set it for destinations
+	// whose native side cannot be inferred from the name.
+	Inside   *bool       `json:"inside,omitempty"`
+	Followup []int       `json:"followup,omitempty"`
+	List     string      `json:"list,omitempty"`
+	Position int         `json:"position,omitempty"`
+	Unit     state.ObjID `json:"unit,omitempty"`
+	Covers   []int       `json:"covers,omitempty"`
 }
 
 type Cand struct {

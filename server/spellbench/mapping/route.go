@@ -72,7 +72,7 @@ func Route(d *decision.Decision) string {
 			return "choose/mana_window"
 		case k["trigger_cost_pay"] || k["trigger_cost_decline"]:
 			return "choose/trigger_cost"
-		case k["sacrifice"] || k["tapcost"] || k["returncost"] || k["exile_cost"] || k["exile"] || (k["discard"] && d.Source != 0):
+		case k["sacrifice"] || k["tapcost"] || k["returncost"] || k["exile_cost"] || k["exilecost"] || k["exile"] || (k["discard"] && d.Source != 0):
 			return "choose/cost"
 		case k["discard"]:
 			return "choose/cleanup_discard"
@@ -87,7 +87,7 @@ func Route(d *decision.Decision) string {
 			}
 		}
 		if len(k) == 1 {
-			for _, c := range []string{"search", "hand_move", "dig", "untap", "keep", "x", "number", "color", "type", "name", "division", "mana"} {
+			for _, c := range []string{"search", "hand_move", "dig", "untap", "keep", "hidden_pick", "vote_card", "x", "number", "color", "type", "name", "division", "mana"} {
 				if k[c] {
 					return "choose/" + c
 				}
