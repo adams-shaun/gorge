@@ -1183,7 +1183,7 @@ zoneLoop:
 						(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
-						(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
+						(!targeting || !e.restrictionBlocksTarget(oid, p, protSrc, sa)) {
 						out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
 						if limit > 0 && len(out) >= limit {
 							break zoneLoop

@@ -77,7 +77,7 @@ func TestEffectContinuousExpiresAtEndOfNextTurn(t *testing.T) {
 	}
 
 	// On the current turn (turn 1) the restriction bites the opponent.
-	if !e.restrictionBlocksTarget(creature, 1) {
+	if !e.restrictionBlocksTarget(creature, 1, 0, nil) {
 		t.Fatal("restriction should bite the opponent on the casting turn")
 	}
 	// Drive through turn 1's and turn 2's cleanups into seat 0's next turn
@@ -85,13 +85,13 @@ func TestEffectContinuousExpiresAtEndOfNextTurn(t *testing.T) {
 	// the property an UntilEOT (or source-leaves) lifetime would fail: the
 	// effect must survive the opponent's turn and be live on my next one.
 	driveToStepAll(t, e, 3, 0, state.StepMain1)
-	if !e.restrictionBlocksTarget(creature, 1) {
+	if !e.restrictionBlocksTarget(creature, 1, 0, nil) {
 		t.Fatal("restriction did not survive to the controller's next turn; it expired a turn early")
 	}
 	// Drive through turn 3's cleanup into turn 4: the boundary turn's cleanup
 	// must drop it, so the restriction no longer bites after my next turn.
 	driveToStepAll(t, e, 4, 1, state.StepMain1)
-	if e.restrictionBlocksTarget(creature, 1) {
+	if e.restrictionBlocksTarget(creature, 1, 0, nil) {
 		t.Fatal("restriction survived past the end of the controller's next turn; it never expires")
 	}
 }

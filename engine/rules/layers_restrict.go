@@ -30,25 +30,26 @@ func (e *Engine) RegenerationDisallowed(id state.ObjID) bool {
 	return false
 }
 
-// restrictionBlocksTarget reports whether an Effect-registered CantTarget
-// restriction (Vines of Vastwood) prevents the player actor from targeting id
-// with a spell or ability. Called from engine/rules/stack.go's askTarget alongside
-// the protectedFrom check, so a creature granted "can't be the target of
-// spells or abilities your opponents control this turn" is actually withheld
-// from the opponent's targeting options.
-func (e *Engine) restrictionBlocksTarget(id state.ObjID, actor state.PlayerID) bool {
+// restrictionBlocksTarget reports whether a CantTarget restriction prevents
+// the player actor from targeting id with source/sa. Both delivery paths are
+// consulted: an Effect-registered body (Vines of Vastwood, Autumn's Veil) and
+// a printed S:Mode$ CantTarget static (Thrun, Breaker of Silence; Ground
+// Seal). They share cantTargetBlocks' matcher so the two cannot disagree.
+// Called from the target offer and the CR 608.2b resolution recheck.
+func (e *Engine) restrictionBlocksTarget(id state.ObjID, actor state.PlayerID, source state.ObjID, sa *cards.SA) bool {
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
 		if ce.Restriction != "CantTarget" {
 			continue
 		}
-		if !e.restrictionApplies(ce, id) {
-			continue
+		if e.cantTargetBlocks(cantTargetBodyOfEffect(ce), id, actor, source, sa, ce.Source, ce.Controller, e.specCtx(ce.Source, ce.Controller)) {
+			return true
 		}
-		if !e.restrictionActorMatches(ce, actor) {
-			continue
+	}
+	for _, sv := range e.activeStatics("CantTarget") {
+		if e.cantTargetBlocks(cantTargetBodyOfStatic(sv), id, actor, source, sa, sv.Source, sv.Controller, e.staticSpecCtx(sv)) {
+			return true
 		}
-		return true
 	}
 	return false
 }
@@ -97,19 +98,6 @@ func (e *Engine) restrictionApplies(ce *ContinuousEffect, id state.ObjID) bool {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 	}
 	return e.matchesSpec(spec, id, sc)
-}
-
-// restrictionActorMatches scopes a CantTarget restriction by Activator$:
-// Vines of Vastwood's Activator$ Player.Opponent means the restriction only
-// bites when the player targeting the creature is an opponent of the effect's
-// controller (the caster of Vines). A restriction with no Activator$ applies
-// to any actor.
-func (e *Engine) restrictionActorMatches(ce *ContinuousEffect, actor state.PlayerID) bool {
-	spec, ok := ce.RestrictParamOk(cards.PKActivator)
-	if !ok {
-		return true
-	}
-	return effects.MatchesPlayerSpecCtx(e.G, spec, actor, ce.Controller, e.playerSpecCtx(ce.Source))
 }
 
 // untapDenied reports whether a live Effect-registered UntapDenial

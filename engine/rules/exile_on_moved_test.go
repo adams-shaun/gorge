@@ -145,7 +145,7 @@ func TestVinesOfVastwoodEffectEndsWhenBattlefieldDeparts(t *testing.T) {
 	if ce.ExileOnMoved != "Battlefield" {
 		t.Fatalf("restriction ExileOnMoved = %q, want Battlefield", ce.ExileOnMoved)
 	}
-	if !e.restrictionBlocksTarget(bear, 1) {
+	if !e.restrictionBlocksTarget(bear, 1, 0, nil) {
 		t.Fatal("the opponent can target the creature the Vines effect protects")
 	}
 
@@ -157,7 +157,7 @@ func TestVinesOfVastwoodEffectEndsWhenBattlefieldDeparts(t *testing.T) {
 	}
 	// ...and back in: a new object, and nothing protects it any more.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZExile, To: state.ZBattlefield})
-	if e.restrictionBlocksTarget(bear, 1) {
+	if e.restrictionBlocksTarget(bear, 1, 0, nil) {
 		t.Fatal("the returned creature is still shielded from the opponent's targeting")
 	}
 }

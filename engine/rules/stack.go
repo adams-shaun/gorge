@@ -1077,7 +1077,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 				(!hasSharedRef || e.sharedCardTypeAdmits(t.Obj, sharedRef, sharedWhitelist)) &&
 				related.admits(e, t.Obj) &&
 				(tpState == tpNone || e.tpControlsAdmits(o, you, tpChooser, tpState)) &&
-				!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
+				!e.restrictionBlocksTarget(t.Obj, you, e.protectionSource(source), sa) &&
 				!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
 				!(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(t.Obj, you, e.protectionSource(source))) &&
 				// CR 702.16b: protection stops targeting of a PERMANENT (or a
