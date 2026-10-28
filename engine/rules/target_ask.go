@@ -487,7 +487,21 @@ func (e *Engine) OpponentPickAsk(c *effects.Ctx, sa *cards.SA) (state.PlayerID, 
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
-	min, max := e.resolvedTargetBounds(p, source, sa, 0)
+	// CR 107.3m: a triggered ability that refers to X reads the value chosen
+	// for the spell that became (or triggered) its source, not the source
+	// permanent's live X. The fire-time capture is TriggerPaidX on the
+	// trigger context -- the same value triggerPaidX hands the ability at
+	// resolution. Reading the live permanent here loses that X whenever a
+	// state-based action moves the source before the trigger is put on the
+	// stack: a second The Rollercrusher Ride entering while the first is on
+	// the battlefield is binned by the legend rule (CR 704.5j), events.Move
+	// correctly clears its X, and a TargetMax$ X bound then resolves to 0
+	// and poses no ask (CR 603.3d requires the targets now).
+	var x int32
+	if tc, ok := e.triggerContexts[source]; ok {
+		x = tc.TriggerPaidX
+	}
+	min, max := e.resolvedTargetBounds(p, source, sa, x)
 	// CR 603.3d / 601.2d: each target of a division receives at least 1, so
 	// at most the divided total may be targeted; a total below the minimum
 	// leaves no legal choice and the ability is removed (the exit below).
