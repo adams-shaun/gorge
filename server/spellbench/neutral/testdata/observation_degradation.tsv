@@ -24,8 +24,8 @@ players[].battlefield[].attached_to	3874
 stack[].targets[].label	3788
 players[].battlefield[].keywords[]	3100
 stack[].targets[].obj	2877
+players[].hand[].effective_mana_cost	2483
 players[].battlefield[].types	2176
-players[].hand[].effective_mana_cost	1985
 players[].life_gained_this_turn	975
 players[].graveyard[].keywords[]	589
 players[].tokens_created_this_turn	506
