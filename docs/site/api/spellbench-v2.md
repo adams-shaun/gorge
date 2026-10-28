@@ -972,6 +972,17 @@ Concede submits the same `concede` intent the native route does (a `PlayerLost` 
 return `204`, or `409 stale` when the request is no longer open. At most one action may be set;
 an absent or stale `request_id` is `409 stale`.
 
+`gorged -sbv2` mounts these routes at `/api/sbv2/v1/tables/`; without the flag nothing is
+registered under the prefix and the native wire is byte-identical. The package's wire fixture,
+[`server/host/sbv2http/testdata/golden/2seat.ndjson.gz`](https://github.com/adams-shaun/gorge/blob/main/server/host/sbv2http/testdata/golden/2seat.ndjson.gz),
+pins one fixed-seed two-seat game: after a leading meta line, each NDJSON line is a `state`
+response, a `stream` frame, a `send` body, or the native fallback answer for a decision the
+wire could not pose, captured byte for byte (`TestSBV2Golden`; regenerate only with operator
+sign-off via `SBV2_GOLDEN_REGEN=1`). `TestSBV2ParityLegacyDecks` plays 20 fixed seeds over the two-seat
+Legacy deck pairs and requires the scripted v2 client and the native table to end on the same
+chain head, and `TestSBV2NativeOnlyCensus` ratchets the server-signalled `native_only`
+decisions by kind in `testdata/native_only.tsv`, which may only shrink.
+
 ## Versioning
 
 - The protocol string is exactly `spellbench/v2`. Any other string in a request is
