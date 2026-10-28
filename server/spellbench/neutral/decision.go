@@ -72,7 +72,16 @@ type Session struct {
 	usesTurn uint32
 	seen     map[string]bool // activated-ability stack ids already counted
 	pend     *pending        // a payment plan being lowered over priority decisions
+	// autoPay is the host's declared engine_autopay (Section 7.1). A host
+	// that does not declare it poses mana abilities as candidates and pays
+	// them by the lowering on those candidates; it never takes a plan for a
+	// plan-only cast. The zero value is the manual host, which is also what a
+	// session built without a game_start models.
+	autoPay bool
 }
+
+// SetAutoPay records whether the host declared engine_autopay in its hello.
+func (s *Session) SetAutoPay(autoPay bool) { s.autoPay = autoPay }
 
 func NewSession(reg *cards.Registry) *Session {
 	return &Session{B: NewBuilder(reg), Counts: map[string]int{}, Approx: map[string]int{}, activated: map[string]int{}, uses: map[string]int32{}, seen: map[string]bool{}}
@@ -353,7 +362,11 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			n.names[src.ObjectID] = name(src)
 			if plan == nil || plan.poolOnly {
 				idx = add(o)
-				n.casts[src.ObjectID] = []int{idx}
+				// One card can offer several cast methods at once (an
+				// adventure and its creature), so accumulate instead of
+				// replacing: castMethod matches a later method decision
+				// against every option of the source.
+				n.casts[src.ObjectID] = append(n.casts[src.ObjectID], idx)
 				ops[i] = mapping.NativeOp{Op: "choose", Option: idx}
 				if plan != nil {
 					// The pool already pays: the plan tags the plain cast.

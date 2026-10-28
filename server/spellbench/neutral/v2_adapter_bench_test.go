@@ -170,6 +170,7 @@ func newV2Seat(tb testing.TB, reg *cards.Registry, seed uint64, adapter bool) *v
 	s := &v2Seat{bot: bot}
 	if adapter {
 		s.sess = neutral.NewSession(reg)
+		s.sess.SetAutoPay(true) // the corpus host declares engine_autopay
 	}
 	return s
 }
