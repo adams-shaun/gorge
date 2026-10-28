@@ -22,6 +22,9 @@ func (t *Tracker) CloneFor(e *rules.Engine) *Tracker {
 	for v := range t.open {
 		c.open[v] = maps.Clone(t.open[v]) // a nil map (no open look) stays nil
 		c.seen[v] = maps.Clone(t.seen[v])
+		c.inc[v] = maps.Clone(t.inc[v])
+		c.prev[v] = maps.Clone(t.prev[v])
+		c.cur[v] = maps.Clone(t.cur[v]) // nil when no window is open
 	}
 	return c
 }
