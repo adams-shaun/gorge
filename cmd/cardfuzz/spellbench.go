@@ -138,6 +138,8 @@ type sbTwinGame struct {
 // per disagreement.
 func playSBTwin(reg *cards.Registry, decks []genDeck, seed uint64, o sbOptions) (res sbTwinGame) {
 	res.tw = twin.New()
+	// The ChosenColour skip is armed only when the Twin can look cards up.
+	res.tw.SetRegistry(reg)
 	defer func() {
 		if r := recover(); r != nil {
 			res.err = fmt.Sprintf("panic: %v", r)
@@ -304,16 +306,16 @@ func (s *sbTwinSummary) print(w io.Writer, o sbOptions) {
 	}
 	agree, total := 0, 0
 	for _, k := range sortedKeys(s.Total) {
-		if k == twin.Floated || k == twin.Opaque {
+		if k == twin.Floated || k == twin.Opaque || k == twin.ChosenColour {
 			continue
 		}
 		agree += s.Agree[k]
 		total += s.Total[k]
 	}
-	fmt.Fprintf(w, "agreement %d/%d (%s); %d decisions skipped where gorge floated mana, %d where the neutral world could not rebuild the pick\n", agree, total, sbPct(agree, total), s.Total[twin.Floated], s.Total[twin.Opaque])
+	fmt.Fprintf(w, "agreement %d/%d (%s); %d decisions skipped where gorge floated mana, %d where the neutral world could not rebuild the pick, %d where a chosen-colour source was in play\n", agree, total, sbPct(agree, total), s.Total[twin.Floated], s.Total[twin.Opaque], s.Total[twin.ChosenColour])
 	fmt.Fprintln(w, "agreement by decision kind:")
 	for _, k := range sortedKeys(s.Total) {
-		if k != twin.Floated && k != twin.Opaque {
+		if k != twin.Floated && k != twin.Opaque && k != twin.ChosenColour {
 			fmt.Fprintf(w, "  %-32s %6d/%6d\n", k, s.Agree[k], s.Total[k])
 		}
 	}
