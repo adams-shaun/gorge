@@ -28,6 +28,7 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -70,6 +71,13 @@ type NativeOnly struct {
 	// server-internal like Ask.Pose: the native routes answer from them.
 	Decision decision.Decision
 	View     view.View
+	// GameID, Game and Events let an extension builder publish the log and a
+	// render plane for the decision the client must answer natively.
+	GameID string
+	Game   *state.Game
+	Events []events.Event
+	// CanUndo is the seat's undo eligibility at the native decision.
+	CanUndo bool
 }
 
 // Answerer is the far end: the human, behind whatever transport carries it.
@@ -84,6 +92,23 @@ type Answerer interface {
 	NativeOnly(NativeOnly)
 }
 
+// Extension is the server-internal state an opt-in extension builder needs
+// when a v2 question is posed for a human seat. A transport that emits
+// extensions supplies Config.Extend; the native wire leaves it nil.
+type Extension struct {
+	Seat        state.PlayerID
+	Env         *mapping.Env
+	Pose        *mapping.Pose
+	View        view.View
+	Game        *state.Game
+	Events      []events.Event
+	NativeIndex uint64
+	CanUndo     bool
+}
+
+// ExtendFunc builds the extension map carried on one v2 seat decision.
+type ExtendFunc func(Extension) (protocol.ExtensionMap, error)
+
 // Config builds a Seat.
 type Config struct {
 	// Seats and Format describe the table the seat will play at. v2 is
@@ -91,12 +116,16 @@ type Config struct {
 	Seats    int
 	Format   string
 	Answerer Answerer
+	// Extend, when non-nil, adds transport-specific extensions to every v2
+	// seat decision this codec poses. The native wire never sets it.
+	Extend ExtendFunc
 }
 
 // Seat is the v2 codec of one human seat of one match. Install it with
 // host.HumanSeat.SetTap.
 type Seat struct {
 	answerer Answerer
+	extend   ExtendFunc
 
 	mu       sync.Mutex
 	mc       *bots.MatchContext
@@ -130,7 +159,7 @@ func New(cfg Config) (*Seat, error) {
 	if cfg.Answerer == nil {
 		return nil, errors.New("v2 human seat: nil answerer")
 	}
-	return &Seat{answerer: cfg.Answerer}, nil
+	return &Seat{answerer: cfg.Answerer, extend: cfg.Extend}, nil
 }
 
 func checkTable(seats int, format string) error {
@@ -172,6 +201,13 @@ func (s *Seat) AttachMatch(mc *bots.MatchContext) error {
 	s.mc = mc
 	s.e = mc.Engine
 	s.gameID = mc.GameID
+	s.attachEnv(mc)
+	return nil
+}
+
+// attachEnv (re)builds the mapping environment against mc.Engine. Called with
+// the seat lock held.
+func (s *Seat) attachEnv(mc *bots.MatchContext) {
 	sec := secrets.NewGame(mc.Secret)
 	tracker := identity.New(mc.Engine, sec)
 	s.env = &mapping.Env{
@@ -182,7 +218,38 @@ func (s *Seat) AttachMatch(mc *bots.MatchContext) error {
 		Domain:  nameSet(domainNames(mc.Engine.G.NameUniverseNames, mc.OwnDeck, mc.OpponentDeck)),
 		Slots:   map[string]uint32{},
 	}
-	return nil
+}
+
+// MatchRewound replaces the engine a host undo swapped in. The host calls it
+// on the match goroutine under the match lock, before re-parking the rewound
+// decision, so a v2 tap never compares or commits against the discarded
+// engine. The old driver (if any) is invalidated; the following Parked call
+// starts a fresh one.
+func (s *Seat) MatchRewound(v any) {
+	e, ok := v.(*rules.Engine)
+	if !ok {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if e == nil || s.mc == nil || s.e == e {
+		return
+	}
+	if s.cancel != nil {
+		s.cancel()
+		s.cancel = nil
+	}
+	s.gen++
+	s.e = e
+	s.mc.Engine = e
+	if s.env != nil {
+		s.env.CloseLooks()
+	}
+	s.tx = nil
+	s.queue = nil
+	s.native = nil
+	s.contSeq, s.queueSeq = 0, 0
+	s.attachEnv(s.mc)
 }
 
 func (s *Seat) logf(format string, args ...any) {
@@ -287,9 +354,11 @@ func (s *Seat) signalNativeOnly(gen uint64, v view.View, d *decision.Decision, e
 	s.queue = nil
 	s.env.CloseLooks()
 	s.nativeOnly++
+	canUndo := s.canUndo(d.Player)
+	gameID, game, evs := s.gameID, s.e.G, s.e.L.Events
 	s.mu.Unlock()
 	s.logf("v2 human seat %d: native only (%s): %v", d.Player, mapping.Route(d), err)
-	s.answerer.NativeOnly(NativeOnly{Seat: d.Player, Seq: d.Seq, Route: mapping.Route(d), Err: err, Decision: *d, View: v})
+	s.answerer.NativeOnly(NativeOnly{Seat: d.Player, Seq: d.Seq, Route: mapping.Route(d), Err: err, Decision: *d, View: v, GameID: gameID, Game: game, Events: evs, CanUndo: canUndo})
 }
 
 // drive answers one parked native decision: queued folded follow-ups first,
@@ -416,7 +485,7 @@ func (s *Seat) pose(gen uint64, gone <-chan struct{}, d *decision.Decision, v vi
 		if p, err = s.tx.Pose(); err != nil {
 			return
 		}
-		sd, err = s.seatDecision(p)
+		sd, err = s.seatDecision(p, v)
 	}) {
 		return Ask{}, false, nil
 	}
@@ -427,7 +496,7 @@ func (s *Seat) pose(gen uint64, gone <-chan struct{}, d *decision.Decision, v vi
 }
 
 // seatDecision is the v2 wire form of a pose. Called under the seat lock.
-func (s *Seat) seatDecision(p *mapping.Pose) (protocol.SeatDecision, error) {
+func (s *Seat) seatDecision(p *mapping.Pose, v view.View) (protocol.SeatDecision, error) {
 	holder := s.priorityHolder(p)
 	known := append([]protocol.Known(nil), p.Known...)
 	observe.SortKnown(known)
@@ -446,7 +515,27 @@ func (s *Seat) seatDecision(p *mapping.Pose) (protocol.SeatDecision, error) {
 	for i, c := range p.Candidates {
 		sd.Candidates = append(sd.Candidates, protocol.Candidate{CandidateID: uint32(i), Semantic: c.Sem})
 	}
+	if s.extend != nil {
+		sd.Extensions, err = s.extend(Extension{
+			Seat: p.Seat, Env: s.env, Pose: p, View: v, Game: s.e.G, Events: s.e.L.Events,
+			NativeIndex: p.Native.Seq, CanUndo: s.canUndo(p.Seat),
+		})
+		if err != nil {
+			return protocol.SeatDecision{}, err
+		}
+	}
 	return sd, nil
+}
+
+// canUndo reports whether the seat has an intent the host's undo queue can
+// rewind. Called under the seat lock.
+func (s *Seat) canUndo(seat state.PlayerID) bool {
+	for i := range s.e.L.Intents {
+		if s.e.L.Intents[i].Player == seat {
+			return true
+		}
+	}
+	return false
 }
 
 // commit applies candidate i to the open transaction.

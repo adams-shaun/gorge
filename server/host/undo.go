@@ -270,6 +270,11 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	// the whole doubling series a second time.
 	e.L.Reserve(defaultExpectedEvents)
 	m.e = e
+	for _, s := range seats {
+		if rw, ok := s.(interface{ MatchRewound(any) }); ok {
+			rw.MatchRewound(e)
+		}
+	}
 	m.intents = n
 	// HD-2's provenance ledger (server/host/divergence_ledger.go) describes exactly
 	// the intents the log holds: drop every entry the rewind discarded.

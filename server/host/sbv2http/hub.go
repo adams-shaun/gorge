@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/spellbench/humanseat"
+	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
 // seatKey names one seat of one match of one table, the identity every route
@@ -35,6 +36,11 @@ type request struct {
 	done   chan struct{}
 	once   sync.Once
 
+	// nativeOnly marks the synthetic request published when the codec leaves a
+	// decision to the native wire. It carries the extensions and the native
+	// view, but no candidates: POST .../send is stale for it.
+	nativeOnly bool
+
 	// closed and answered are read and written under seatState.mu.
 	closed   bool
 	answered bool
@@ -57,10 +63,19 @@ type seatState struct {
 	// the signal a client (and this package's tests) uses to stop waiting
 	// for a v2 request and answer natively instead.
 	nativeOnly int
+	// ext builds the opt-in extensions for this seat. Nil when the hub was not
+	// asked for extensions (the native wire).
+	ext *extensionBuilder
 }
 
 func newSeatState() *seatState {
 	return &seatState{wake: make(chan struct{})}
+}
+
+func (s *seatState) setExtension(ext *extensionBuilder) {
+	s.mu.Lock()
+	s.ext = ext
+	s.mu.Unlock()
 }
 
 // notifyLocked wakes every stream watching this seat. Called under s.mu.
@@ -127,16 +142,33 @@ func (s *seatState) finish(req *request) {
 	req.finish()
 }
 
-// NativeOnly implements humanseat.Answerer. The decision is not posed through
-// v2 at all: no request is published, so the client answers it on the native
-// wire and resumes here at the next decision. The count is published to
-// streams (a null frame) so a client can tell "between decisions" from "this
-// one needs the native wire".
-func (s *seatState) NativeOnly(humanseat.NativeOnly) {
+// NativeOnly implements humanseat.Answerer. It publishes a candidate-less
+// request whose x_gorge_human_v1 says native_only and whose x_gorge_view_v1
+// carries the native view, so the client can render the moment and answer it
+// on the native wire; the next v2 decision supersedes it.
+func (s *seatState) NativeOnly(n humanseat.NativeOnly) {
 	s.mu.Lock()
 	s.nativeOnly++
+	s.next++
+	var extensions protocol.ExtensionMap
+	if s.ext != nil {
+		if built, err := s.ext.NativeExtension(n); err == nil {
+			extensions = built
+		}
+	}
+	req := &request{
+		id:         s.next,
+		nativeOnly: true,
+		ask:        humanseat.Ask{GameID: n.GameID, Decision: protocol.SeatDecision{Extensions: extensions}},
+		done:       make(chan struct{}),
+	}
+	prev := s.current
+	s.current = req
 	s.notifyLocked()
 	s.mu.Unlock()
+	if prev != nil {
+		prev.muClose()
+	}
 }
 
 // nativeOnlyCount reports how many decisions the codec left to the native
@@ -146,6 +178,15 @@ func (s *seatState) nativeOnlyCount() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.nativeOnly
+}
+
+// open reports whether requestID names the seat's open, answerable v2
+// request. A synthetic native-only request is never answerable through send.
+func (s *seatState) open(requestID uint64) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	req := s.current
+	return req != nil && req.id == requestID && !req.closed && !req.answered && !req.nativeOnly
 }
 
 // answer delivers candidate id as the answer to request requestID. It reports
@@ -158,7 +199,7 @@ func (s *seatState) answer(requestID uint64, candidateID int) bool {
 		s.mu.Unlock()
 		return false
 	}
-	if candidateID < 0 || candidateID >= len(req.ask.Pose.Candidates) {
+	if req.nativeOnly || req.ask.Pose == nil || candidateID < 0 || candidateID >= len(req.ask.Pose.Candidates) {
 		s.mu.Unlock()
 		return false
 	}
@@ -210,5 +251,7 @@ func (h *Hub) Tap(table host.TableID, match int, autoPayMana bool, mc *bots.Matc
 		return nil, nil
 	}
 	s := h.seat(seatKey{table: table, match: match, seat: state.PlayerID(mc.Seat)})
-	return humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: s})
+	ext := newExtensionBuilder()
+	s.setExtension(ext)
+	return humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: s, Extend: ext.Extend})
 }

@@ -935,6 +935,43 @@ reference bot server. gorge vendors it byte for byte (pinned by SHA-256 in
 [`env/protocol_v2_test.go`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/env/protocol_v2_test.go))
 but cannot replay it: its rows surround a fake engine with a different catalog.
 
+## Extensions on the HTTP human seat
+
+`/api/sbv2/v1/tables/<table>/matches/<match>` is gorge's opt-in HTTP transport for a human
+seat. Its `state` and `stream` responses carry the usual SpellBench v2 `choose` request plus
+two `seat_decision.extensions` entries. They are emitted only on these human routes, always
+both, and never to a bot agent: the stdio bot-agent wire (`server/spellbench/env` and
+`server/spellbench/seat`) is byte-unchanged and still offers no extensions.
+
+`x_gorge_view_v1` is gorge's render plane. It is the seat's own `view.View` plus the engine
+`decision.Decision` behind the v2 candidates, with object ids re-keyed to the small integers
+the seat sees (`version`, `native_index`, `view`, `decision`, `policy_facts`, `followups`,
+`ops`). Every other reference is `0`, the payload's null. The projection omits the seat's
+library order and own-deck manifest, and another seat's hand, library and face-down identities
+are never present.
+
+`x_gorge_human_v1` carries what plain v2 does not:
+
+| field | meaning |
+|---|---|
+| `log` | transcript lines appended since the previous request, redacted and described for this seat with the same rules as the native seat transcript. An undo truncates the log; the cursor moves to the new head without replaying lines the seat already saw. |
+| `labels` | `candidate_id` -> the native option label the candidate stands for. Payment-only candidates use the payment action's label; a cast uses the option it covers. |
+| `plans` | every payment plan offered for a plan-bearing candidate: `{candidate_id, action_id, plan}`. Plain v2 exposes only the candidate's first plan through `ops[].payment`; this is where the alternatives are visible. `plan` is a `decision.PaymentPlan`. |
+| `can_undo` | the seat has at least one own intent in the log, so the undo queue can attempt a rewind; the host still refuses undo on a table with a second human seat. |
+| `native_only` | `true` on a synthetic candidate-less request: the decision has no v2 mapping. The request still carries `x_gorge_view_v1` with the native view and decision (native object ids, because the client answers on the native routes); `POST .../send` is `409 stale` for it. The next v2 decision supersedes it. |
+
+`POST .../send` accepts the usual `{"request_id", "candidate_id"}` and the two write actions:
+
+```json
+{"request_id":"7","x_gorge_human_v1":{"concede":true}}
+{"request_id":"7","x_gorge_human_v1":{"undo":true}}
+```
+
+Concede submits the same `concede` intent the native route does (a `PlayerLost` with text
+`conceded`); undo calls the host's undo queue and rewinds to the seat's previous intent. Both
+return `204`, or `409 stale` when the request is no longer open. At most one action may be set;
+an absent or stale `request_id` is `409 stale`.
+
 ## Versioning
 
 - The protocol string is exactly `spellbench/v2`. Any other string in a request is
