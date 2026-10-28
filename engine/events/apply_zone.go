@@ -956,6 +956,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// the "counter" half is placed through the engine's CounterChange
 			// path, so only the consumption is left here.
 			o.UnleashChoice = ""
+			o.ReadAheadChapter = 0
 			// CR 400.7: a battlefield RE-entry from another zone is a new
 			// object with no memory of its former existence, so it carries no
 			// remembered list from its previous incarnation. Without this, a
@@ -1112,6 +1113,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.RiotChoice = ""
 		o.UntapChoice = ""
 		o.UnleashChoice = ""
+		o.ReadAheadChapter = 0
 		o.IsMyriad = false
 		// CR 400.7: leaving the battlefield makes the object a new object, so
 		// a layer-1 copy effect does not follow it. The ClonePermanent basis

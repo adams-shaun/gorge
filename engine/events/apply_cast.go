@@ -291,6 +291,8 @@ func foldChoose(g *state.Game, e *Event) {
 			o.UntapChoice = e.Text
 		case "unleash":
 			o.UnleashChoice = e.Text
+		case "readahead":
+			o.ReadAheadChapter = e.Amount
 		case "clone":
 			o.ETBCloneChoiceValid = true
 			o.ETBCloneChoice = 0

@@ -217,6 +217,8 @@ func (e *Engine) resumeETBEntry(chosen []decision.Option) state.ObjID {
 			choice = "counter"
 		}
 		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "unleash", Text: choice})
+	case resumeETBEntryReadAhead:
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "readahead", Amount: int32(opt.Amount)})
 	case resumeETBEntryClone:
 		// The ETB-copy election (K:ETBReplacement:Copy). The chosen template
 		// rides the event's IDs; the decline ("Enter as itself") carries no
@@ -277,6 +279,7 @@ const (
 	resumeETBEntryEvenOdd
 	resumeETBEntryRiot
 	resumeETBEntryUnleash
+	resumeETBEntryReadAhead
 	resumeETBEntryClone
 	resumeETBEntryPayLife
 )
@@ -289,6 +292,7 @@ var resumeETBEntryCodes = state.NewStrCodes(
 	state.StrEntry[resumeETBEntryCode]{Key: "evenodd", Val: resumeETBEntryEvenOdd},
 	state.StrEntry[resumeETBEntryCode]{Key: "riot", Val: resumeETBEntryRiot},
 	state.StrEntry[resumeETBEntryCode]{Key: "unleash", Val: resumeETBEntryUnleash},
+	state.StrEntry[resumeETBEntryCode]{Key: "readahead", Val: resumeETBEntryReadAhead},
 	state.StrEntry[resumeETBEntryCode]{Key: "clone", Val: resumeETBEntryClone},
 	state.StrEntry[resumeETBEntryCode]{Key: "paylife", Val: resumeETBEntryPayLife},
 )
