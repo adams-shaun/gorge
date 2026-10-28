@@ -75,14 +75,18 @@ func (e *Env) CloseLooks() {
 // partition, Task 19b). The neutral world adds "fixed": a choice another
 // engine poses where gorge's engine asks nothing (Pick takes it as is).
 type NativeOp struct {
-	Payment  *decision.PaymentSelection `json:"payment,omitempty"`
-	Op       string                     `json:"op"`
-	Option   int                        `json:"option"`
-	Followup []int                      `json:"followup,omitempty"`
-	List     string                     `json:"list,omitempty"`
-	Position int                        `json:"position,omitempty"`
-	Unit     state.ObjID                `json:"unit,omitempty"`
-	Covers   []int                      `json:"covers,omitempty"`
+	Payment *decision.PaymentSelection `json:"payment,omitempty"`
+	// Pays lists every payment plan this candidate is a step of: the neutral
+	// world lowers a plan onto manual mana candidates, and the plans of
+	// several actions can begin with the same tap.
+	Pays     []*decision.PaymentSelection `json:"pays,omitempty"`
+	Op       string                       `json:"op"`
+	Option   int                          `json:"option"`
+	Followup []int                        `json:"followup,omitempty"`
+	List     string                       `json:"list,omitempty"`
+	Position int                          `json:"position,omitempty"`
+	Unit     state.ObjID                  `json:"unit,omitempty"`
+	Covers   []int                        `json:"covers,omitempty"`
 }
 
 type Cand struct {

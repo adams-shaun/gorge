@@ -89,7 +89,9 @@ func TestKernelCastPlanSpansTheMethodDecision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p.Decision.Kind != decision.KPriority || len(p.Decision.Options) != 3 || p.Ops[3].Op != "untranslated" {
+	// The Mountain's tap is the bot's to float (a fourth option) and the first
+	// step of the plan that pays Lightning Bolt.
+	if p.Decision.Kind != decision.KPriority || len(p.Decision.Options) != 4 || p.Ops[3].Op != "choose" || p.Ops[3].Option != 3 || len(p.Ops[3].Pays) != 1 {
 		t.Fatalf("priority options %+v ops %+v", p.Decision.Options, p.Ops)
 	}
 	if p.View.Players[0].Hand[0].ManaCost != "R" || p.View.Players[1].Battlefield[0].Power != 1 {

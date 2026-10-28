@@ -269,6 +269,9 @@ func (s *Server) choose(q request) uint32 {
 	i, miss := Pick(p, sems, s.plan, ask)
 	if s.neutral != nil && s.neutral.session != nil {
 		s.neutral.session.Picked(i)
+		if miss == "" && s.plan.intent.Payment != nil && len(p.Ops[i].Pays) > 0 {
+			s.neutral.session.PickedPayment(s.plan.intent.Payment)
+		}
 	}
 	if miss == "" && s.plan.intent.Payment != nil && p.Ops[i].Op == "choose" && p.Ops[i].Payment != nil {
 		r := s.records[p.NativeIndex]
