@@ -12,10 +12,29 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
+
+// mandatoryChooseCardRef is the corpus commit that added Mandatory$ True.
+const mandatoryChooseCardRef = "91402ac511046c0b7ed0bb691a8a446ca7dfc873"
+
+// skipUnlessCorpusAtMandatoryRef skips while the resolved shared corpus is
+// still at an older pin: the main checkout's .cards is refetched only after
+// this bump merges, and until then the script has no Mandatory$ to read.
+func skipUnlessCorpusAtMandatoryRef(t *testing.T) {
+	t.Helper()
+	dir, ok := testutil.SharedCorpusDir(".")
+	if !ok {
+		return
+	}
+	if l, err := cards.ReadLock(dir); err == nil && l.Commit != mandatoryChooseCardRef {
+		t.Skipf("corpus at %s, need %s: refetch .cards", l.Commit, mandatoryChooseCardRef)
+	}
+}
 
 func TestFireglassMentorChoiceIsMandatory(t *testing.T) {
 	t.Parallel()
+	skipUnlessCorpusAtMandatoryRef(t)
 	reg := searchTestRegistry(t)
 	e, _ := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Fireglass Mentor")}, nil)
 	mentor := moveByName(t, e, 0, "Fireglass Mentor", state.ZBattlefield)
