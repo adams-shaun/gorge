@@ -1183,7 +1183,11 @@ zoneLoop:
 						(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
-						(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
+						// The targeting object is `source` (the spell or the
+						// Face-less ability wrapper), never protSrc: ValidSA$
+						// must classify the SPELL/ABILITY, while protSrc is
+						// the host permanent ValidSource$ names.
+						(!targeting || !e.restrictionBlocksTarget(oid, p, source, sa)) {
 						out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
 						if limit > 0 && len(out) >= limit {
 							break zoneLoop

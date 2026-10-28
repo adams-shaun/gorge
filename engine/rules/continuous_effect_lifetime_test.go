@@ -37,12 +37,12 @@ func TestEffectContinuousExpiresAtEndOfTurn(t *testing.T) {
 	passUntilStackEmpty(t, e, 8)
 
 	// While on the current turn the restriction is live.
-	if !e.restrictionBlocksTarget(creature, 1) {
+	if !e.restrictionBlocksTarget(creature, 1, 0, nil) {
 		t.Fatal("restriction should bite the opponent during this turn")
 	}
 	// Clearing the effect the way the cleanup step does (CR 514.2) must drop it.
 	e.EndOfTurnCleanup()
-	if e.restrictionBlocksTarget(creature, 1) {
+	if e.restrictionBlocksTarget(creature, 1, 0, nil) {
 		t.Fatal("restriction survived end of turn; an UntilEOT effect must expire")
 	}
 	// A second cleanup is idempotent, and a permanent-sourced (non-EOT) effect
