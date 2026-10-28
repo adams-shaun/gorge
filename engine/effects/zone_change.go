@@ -1143,10 +1143,14 @@ func changeZoneChosenTargetsFor(h Host, c *Ctx, sa *cards.SA, cz *changeZoneTarg
 // Aura: it enters attached to the first named bearer it can legally enchant,
 // or stays in its zone when none is (CR 303.4f/g, engine/rules/aura_entry.go), and
 // changeZoneAttachedTo, which runs after the move, finds it already attached
-// (or not on the battlefield) and leaves it. Anything else (an Equipment, a
-// face-down entry) is not marked and keeps the post-move rider. Every
-// ChangeZone mover that follows its move with changeZoneAttachedTo calls this
-// first; engine/rules/aura_entry_census_test.go pins the pairing.
+// (or not on the battlefield) and leaves it. AttachedTo$'s filter spelling
+// names a class rather than one bearer, so its legal candidates are resolved
+// here and the resolving controller chooses one when there is more than one
+// (CR 303.4f); the chosen bearer is the named set the gate attaches. Anything
+// else (an Equipment, a face-down entry) is not marked and keeps the post-move
+// rider. Every ChangeZone mover that follows its move with
+// changeZoneAttachedTo calls this first; engine/rules/aura_entry_census_test.go
+// pins the pairing.
 func markChangeZoneAttach(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, ev *events.Event) {
 	if ev.To != state.ZBattlefield || (cz.AttachedTo == "" && cz.AttachedToPlayer == "") ||
 		ev.Counter != "" {
@@ -1156,6 +1160,21 @@ func markChangeZoneAttach(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, ev
 		return
 	}
 	targets := changeZoneAttachTargets(h, c, sa, cz)
+	if cz.AttachedTo != "" && changeZoneAttachIsFilter(h, c, cz.AttachedTo) {
+		// AttachedTo$'s filter spelling names a class of legal bearers, not
+		// one bearer: CR 303.4f has the player putting the Aura onto the
+		// battlefield choose among them, so ask before marking the one the
+		// entry gate will attach. The Aura's own Enchant restriction is part
+		// of "legal" (CR 303.4f), and with a single answer there is nothing
+		// to choose -- the same strict-superset convention every as-enters
+		// election keeps.
+		targets = changeZoneAttachLegal(h, c, ev.Obj, targets)
+		if picked := changeZoneAttachChoose(h, c, sa, targets); picked != 0 {
+			targets = []state.Target{{Obj: picked}}
+		} else {
+			targets = nil
+		}
+	}
 	named := make([]state.ObjID, 0, len(targets))
 	for _, t := range targets {
 		if t.IsPlayer {
@@ -1181,12 +1200,95 @@ func changeZoneAttachTargets(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams)
 		}
 		return out
 	}
-	for _, t := range DefinedSpec(h, c, changeZoneAttachSelector(h, c, cz.AttachedTo)) {
+	return changeZoneAttachObjectTargets(h, c, cz.AttachedTo)
+}
+
+// changeZoneAttachObjectTargets resolves AttachedTo$'s object half: every
+// living object the selector names, in the resolver's deterministic order.
+// It is the candidate list the filter spelling chooses among and the named
+// list the defined referents take the first of.
+func changeZoneAttachObjectTargets(h Host, c *Ctx, val string) []state.Target {
+	var out []state.Target
+	for _, t := range DefinedSpec(h, c, changeZoneAttachSelector(h, c, val)) {
 		if !t.IsPlayer && t.Obj != 0 && h.Game().Obj(t.Obj) != nil {
 			out = append(out, t)
 		}
 	}
 	return out
+}
+
+// changeZoneAttachIsFilter reports whether AttachedTo$ spells a card filter
+// ("Creature", "Creature.YouCtrl", "Valid Creature.EnchantedBy") rather than
+// a Defined$ referent (Targeted, ParentTarget, Self, Remembered, ...).
+// changeZoneAttachSelector prefixes an unclassifiable bare filter with
+// "Valid", so the prefix is the one test every filter spelling shares.
+func changeZoneAttachIsFilter(h Host, c *Ctx, val string) bool {
+	if strings.TrimSpace(val) == "" {
+		return false
+	}
+	sel := changeZoneAttachSelector(h, c, val)
+	return sel == "Valid" || strings.HasPrefix(sel, "Valid ")
+}
+
+// changeZoneAttachLegal narrows a filter's candidates to the bearers the
+// moved card could legally be attached to: for an Aura, its own Enchant
+// restriction (CR 303.4f's "according to the Aura's enchant ability"), read
+// by the shared attach legality helper. A non-Aura (an Equipment, CR 301.5c)
+// keeps the filter's own candidates; attachmentSBAs applies the same legal
+// test after the fact.
+func changeZoneAttachLegal(h Host, c *Ctx, moved state.ObjID, targets []state.Target) []state.Target {
+	o := h.Game().Obj(moved)
+	if o == nil || !hasType(o, "Aura") {
+		return targets
+	}
+	kept := targets[:0]
+	for _, t := range targets {
+		if attachableTo(h.Game(), o, h.Game().Obj(t.Obj)) {
+			kept = append(kept, t)
+		}
+	}
+	return kept
+}
+
+// changeZoneAttachChoose poses the CR 303.4f / 301.5c choice among a
+// filter's legal bearers: exactly one candidate attaches without an ask (no
+// decision anybody could answer differently), two or more pose the ordinary
+// single-pick KChoose to the resolving controller, and an unanswered ask --
+// no host able to serve it -- keeps the pre-choice deterministic first
+// candidate. The answer is read back as the option's object, never as its
+// list position, so a client's answer and the validator agree.
+func changeZoneAttachChoose(h Host, c *Ctx, sa *cards.SA, targets []state.Target) state.ObjID {
+	if len(targets) == 0 {
+		return 0
+	}
+	if len(targets) == 1 {
+		return targets[0].Obj
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "changezone_attach", ResumeSA: sa,
+		Prompt: "Choose a permanent to attach to"}
+	d.Options = make([]decision.Option, 0, len(targets))
+	for i, t := range targets {
+		label := ""
+		if o := h.Game().Obj(t.Obj); o != nil && o.Face() != nil {
+			label = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "card", Label: label,
+			Obj: t.Obj, Player: c.Controller})
+	}
+	if ans, ok := AskTape(h, d); ok {
+		for _, a := range ans {
+			for _, t := range targets {
+				if a.Kind == "card" && a.Obj == t.Obj {
+					return t.Obj
+				}
+			}
+		}
+		// A validated answer always names an offered object; a malformed
+		// one must not discard a legal attach.
+		return targets[0].Obj
+	}
+	return targets[0].Obj
 }
 
 // changeZoneAttachSelector is AttachedTo$'s Defined$ spelling: a bare card
@@ -1211,14 +1313,19 @@ func changeZoneAttachSelector(h Host, c *Ctx, val string) string {
 // same shape effToken's own AttachedTo$ rider takes), so every corpus
 // spelling (Self, ParentTarget, TriggeredCardLKICopy, ChosenCard,
 // DelayTriggerRememberedLKI, a card filter, ...) resolves without a second
-// resolver. The Attach event is the same shape that rider emits: Obj is the
-// MOVED card (it takes the AttachedTo back-reference), IDs[0] the target it
-// attaches to. A value that resolves to no object -- a selector this grammar
-// cannot evaluate, or a target that left play -- is ONE loud Note and the
-// card enters unattached (an Aura's unattached state), never a guessed
-// target and never a silent skip. Battlefield destinations only: the param
-// on a move that does not enter the battlefield has no CR meaning (nothing
-// can be attached in a hidden zone) and is left unread.
+// resolver. Defined referents name their bearer and take the first object
+// with no ask; a card filter names a class, so its legal candidates are
+// offered to the resolving controller when more than one exists (CR 303.4f's
+// "the player putting it onto the battlefield chooses" for an Aura, CR 301.5c
+// for an Equipment), and the one-candidate case attaches without a decision.
+// The Attach event is the same shape that rider emits: Obj is the MOVED card
+// (it takes the AttachedTo back-reference), IDs[0] the target it attaches to.
+// A value that resolves to no object -- a selector this grammar cannot
+// evaluate, or a target that left play -- is ONE loud Note and the card enters
+// unattached (an Aura's unattached state), never a guessed target and never a
+// silent skip. Battlefield destinations only: the param on a move that does
+// not enter the battlefield has no CR meaning (nothing can be attached in a
+// hidden zone) and is left unread.
 func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, moved state.ObjID) {
 	val := cz.AttachedTo
 	playerVal := cz.AttachedToPlayer
@@ -1247,10 +1354,21 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, mo
 	// grammar cannot evaluate fails closed to the loud Note below, never to
 	// a guessed attach (changeZoneAttachSelector).
 	var to state.ObjID
-	for _, t := range DefinedSpec(h, c, changeZoneAttachSelector(h, c, val)) {
-		if !t.IsPlayer {
-			to = t.Obj
-			break
+	if changeZoneAttachIsFilter(h, c, val) {
+		// A filter names the class, not the bearer: the resolving controller
+		// chooses among the legal ones (CR 303.4f / 301.5c), narrowed for an
+		// Aura by its own Enchant restriction. An Aura that entered through
+		// the engine's entry gate is already attached and returned above.
+		to = changeZoneAttachChoose(h, c, sa,
+			changeZoneAttachLegal(h, c, moved, changeZoneAttachObjectTargets(h, c, val)))
+	} else {
+		// Defined referents name their bearer(s); the first object is the
+		// effect's own choice and keeps its no-ask behaviour.
+		for _, t := range DefinedSpec(h, c, changeZoneAttachSelector(h, c, val)) {
+			if !t.IsPlayer {
+				to = t.Obj
+				break
+			}
 		}
 	}
 	if to == 0 || h.Game().Obj(to) == nil {
