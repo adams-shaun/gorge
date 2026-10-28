@@ -236,6 +236,8 @@ func effRingBlockerSacrifice(h Host, c *Ctx, _ *cards.SA) {
 		}
 		blockers = append(blockers, t.Obj)
 	}
-	scheduleAtEOTRider(h, c.Controller, atEOTRider{body: ringBlockerSacrificeBody,
+	// Creator 0 keeps the Ring promise's established shape (source == the
+	// blocked creature it acts on); this is not an AtEOT$ registration.
+	scheduleAtEOTRider(h, c.Controller, 0, atEOTRider{body: ringBlockerSacrificeBody,
 		step: state.StepEndCombat, thisTurn: true}, blockers)
 }

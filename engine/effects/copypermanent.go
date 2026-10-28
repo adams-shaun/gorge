@@ -717,9 +717,10 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, want)
 		}
 		// ExileCombat rode the mint (IsMyriad cleanup, above); every other
-		// value is the shared one-shot rider, the token its own source.
+		// value is the shared one-shot rider, the token the affected object
+		// and this CopyPermanent resolution's source the creator (CR 603.7d).
 		if r, ok := atEOTRiders.Get(string(atEOT)); ok && atEOT != "ExileCombat" {
-			scheduleAtEOTRider(h, owner, r, []state.ObjID{want})
+			scheduleAtEOTRider(h, owner, c.Source, r, []state.ObjID{want})
 		}
 	}
 	targetObjs := make([]state.ObjID, 0, len(targets))

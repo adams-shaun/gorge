@@ -200,8 +200,10 @@ const (
 	// different turn -- so the registration is game state, folded here into
 	// state.Game.Delayed so a log-only replay rebuilds the same set. Event
 	// field reuse: Obj is the source object (whose face's SVar table carries
-	// the Execute$ ability), Player the controller, Step the phase to fire
-	// in, Counter the Execute$ SVar name, IDs the Remembered object(s)
+	// the Execute$ ability) -- except for the AtEOT$ rider, whose Obj is the
+	// AFFECTED object its Defined$ Self body names and whose CR 603.7d
+	// creator rides a trailing "|CR=<id>" in Text. Player the controller, Step
+	// the phase to fire in, Counter the Execute$ SVar name, IDs the Remembered object(s)
 	// captured at registration (PlayerRef-encoded, as TriggerPush does), and
 	// Text the Forge Phase$ string for description -- or, for an event-matched
 	// (non-phase) registration, "<Mode$ value>:<trigger SVar name>", the

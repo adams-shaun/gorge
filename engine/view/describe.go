@@ -759,7 +759,7 @@ func Describe(g *state.Game, ev events.Event) string {
 		if i := strings.Index(phase, "|VP="); i >= 0 {
 			phase = phase[:i]
 		}
-		for _, sfx := range []string{"|DP=", "|ST"} {
+		for _, sfx := range []string{"|CR=", "|DP=", "|ST"} {
 			if i := strings.Index(phase, sfx); i >= 0 {
 				phase = phase[:i]
 			}

@@ -48,8 +48,14 @@ func (e *Engine) resolveTop() {
 		// (Evoke's "sacrifice it") loses track when that permanent changes
 		// zones. The ability still resolves and leaves the stack, but does
 		// nothing to the new object now sharing its stable ObjID (CR 400.7).
+		// A delayed AtEOT$ rider stamps the AFFECTED object's incarnation,
+		// which DelayedSelf names when the stack source is the creator.
 		if o.SourceIncarnation != 0 {
-			src := e.G.Obj(o.Source)
+			srcID := o.Source
+			if tc := e.triggerContexts[id]; tc.DelayedSelf != 0 {
+				srcID = tc.DelayedSelf
+			}
+			src := e.G.Obj(srcID)
 			if src == nil || src.Incarnation != o.SourceIncarnation {
 				e.emit(events.Event{Kind: events.Resolve, Obj: id})
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
@@ -349,7 +355,16 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := e.arenaCtx()
-		*ctx = effects.NewCtx(o.Source, o.Controller, effects.CtxInit{
+		// CR 603.7d: a delayed trigger's Source is the creating permanent,
+		// but the AtEOT$ rider body's Defined$ Self still names the affected
+		// object it registered against. DelayedSelf carries that referent;
+		// every trigger whose source and referent are the same object has it
+		// zero and resolves against o.Source exactly as before.
+		ctxSource := o.Source
+		if tc.DelayedSelf != 0 {
+			ctxSource = tc.DelayedSelf
+		}
+		*ctx = effects.NewCtx(ctxSource, o.Controller, effects.CtxInit{
 			Targets: targets, Remembered: e.resolvingRemembered(o), Captured: e.resolvingCaptured(o), TriggerContext: e.triggerContexts[id],
 			// An Effect-created delayed trigger body resolves under the Effect's
 			// source-scoped frame (queued by rules' delayed-trigger fire), so the
