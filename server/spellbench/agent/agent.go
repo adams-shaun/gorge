@@ -275,14 +275,10 @@ func (s *Server) choose(q request) uint32 {
 		}
 	}
 	v, d := Rebuild(p)
-	if s.autoPay && s.neutral == nil {
-		d = withoutManualMana(d)
-		v.Decision = &d
-	}
+	d = s.withoutManualMana(d)
+	v.Decision = &d
 	ask := func(nd decision.Decision) decision.Intent {
-		if s.autoPay && s.neutral == nil {
-			nd = withoutManualMana(nd)
-		}
+		nd = s.withoutManualMana(nd)
 		vv := v // a follow-up is asked with the same view, showing that decision
 		vv.Decision = &nd
 		return s.decide(vv, nd)
@@ -330,7 +326,14 @@ func (s *Server) choose(q request) uint32 {
 // native decision carries them, so a bot asked the full decision can pick an
 // action the v2 candidate set cannot name and Pick falls back to pass; asking
 // only the actions the wire offers keeps the pick representable.
-func withoutManualMana(d decision.Decision) decision.Decision {
+//
+// Only a priority decision loses them. A mid-resolution mana window (echo,
+// cumulative upkeep, a ward or unless cost) is translated as a choose whose
+// activate options stay on the wire, so the bot must still be able to pay.
+func (s *Server) withoutManualMana(d decision.Decision) decision.Decision {
+	if !s.autoPay || s.neutral != nil || d.Kind != decision.KPriority {
+		return d
+	}
 	kept := d.Options[:0:0]
 	for _, o := range d.Options {
 		if o.Kind != "activate" {
