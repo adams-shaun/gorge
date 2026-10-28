@@ -79,22 +79,31 @@ type picker struct {
 	misses  int
 }
 
-func (p *picker) pick(ask humanseat.Ask) (int, string) {
-	ctx := context.Background()
+// nativeIntent is the production bot's answer to the native decision the ask
+// carries, planned once per decision seq.
+func (p *picker) nativeIntent(ask humanseat.Ask) decision.Intent {
 	nd := *ask.Pose.Native
-	askBot := func(d decision.Decision) decision.Intent {
-		v := ask.View
-		v.Decision = &d
-		in, err := p.bot.Decide(ctx, v, d)
-		if err != nil {
-			panic(err)
-		}
-		return in
-	}
 	if p.plan == nil || p.planSeq != nd.Seq {
-		p.intent = askBot(nd)
+		p.intent = p.askBot(ask, nd)
 		p.plan, p.planSeq = agent.NewPlan(nd.Seq, p.intent), nd.Seq
 	}
+	return p.intent
+}
+
+func (p *picker) askBot(ask humanseat.Ask, d decision.Decision) decision.Intent {
+	v := ask.View
+	v.Decision = &d
+	in, err := p.bot.Decide(context.Background(), v, d)
+	if err != nil {
+		panic(err)
+	}
+	return in
+}
+
+func (p *picker) pick(ask humanseat.Ask) (int, string) {
+	nd := *ask.Pose.Native
+	askBot := func(d decision.Decision) decision.Intent { return p.askBot(ask, d) }
+	p.nativeIntent(ask)
 	ops := make([]mapping.NativeOp, len(ask.Pose.Candidates))
 	sems := make([]map[string]any, len(ask.Pose.Candidates))
 	for i, c := range ask.Pose.Candidates {

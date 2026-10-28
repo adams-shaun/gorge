@@ -22,6 +22,16 @@ type humanExtension struct {
 	Plans      []humanPlan    `json:"plans"`
 	CanUndo    bool           `json:"can_undo"`
 	NativeOnly bool           `json:"native_only"`
+	// NameDomain is set only on a choose_name ask whose candidates are a
+	// window of the engine's name list; choose_name answers any of Total.
+	NameDomain *nameDomain `json:"name_domain,omitempty"`
+}
+
+// nameDomain sizes a windowed card-name ask: Total is every option of the
+// pending native decision, Offered the candidates in this seat_decision.
+type nameDomain struct {
+	Total   int `json:"total"`
+	Offered int `json:"offered"`
 }
 
 // humanPlan is one payment witness for a plan-bearing candidate. CandidateID
@@ -59,6 +69,9 @@ func (b *extensionBuilder) Extend(e humanseat.Extension) (protocol.ExtensionMap,
 		Labels:  candidateLabels(e.Pose),
 		Plans:   candidatePlans(e.Seat, e.Pose, b.x),
 		CanUndo: e.CanUndo,
+	}
+	if p := e.Pose; p != nil && p.Native != nil && mapping.Route(p.Native) == "choose/name" && len(p.Native.Options) > len(p.Candidates) {
+		payload.NameDomain = &nameDomain{Total: len(p.Native.Options), Offered: len(p.Candidates)}
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {

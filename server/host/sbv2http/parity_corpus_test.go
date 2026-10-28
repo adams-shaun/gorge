@@ -33,6 +33,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
 	hostprotocol "github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/server/spellbench/humanseat"
+	"github.com/adams-shaun/gorge/server/spellbench/mapping"
 	"github.com/adams-shaun/gorge/server/spellbench/xview"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -73,7 +75,10 @@ type seedOutcome struct {
 	picks  int
 	sends  int
 	misses int
-	errs   []string
+	// nameSends counts the windowed card-name asks answered through
+	// x_gorge_human_v1.choose_name; each is also counted in sends.
+	nameSends int
+	errs      []string
 }
 
 type parityCorpusResult struct {
@@ -251,6 +256,7 @@ func runParitySeed(reg *cards.Registry, seed uint64) seedOutcome {
 
 	client := <-clientDone
 	out.misses, out.sends, out.picks, out.census = client.misses, client.sends, client.picks, client.census
+	out.nameSends = client.nameSends
 	if client.err != nil {
 		return fail("wire client: %v", client.err)
 	}
@@ -267,11 +273,12 @@ func runParitySeed(reg *cards.Registry, seed uint64) seedOutcome {
 }
 
 type parityClientResult struct {
-	picks  int
-	sends  int
-	misses int
-	census map[string]int
-	err    error
+	picks     int
+	sends     int
+	misses    int
+	nameSends int
+	census    map[string]int
+	err       error
 }
 
 // playParityClient is the scripted /api/sbv2 client: it polls the state route
@@ -290,9 +297,9 @@ func playParityClient(r *host.Registry, hub *Hub, base string, table host.TableI
 	deadline := time.Now().Add(parityDeadline)
 	handled := map[string]bool{}
 	seenNative := map[string]bool{}
-	sends, picks := 0, 0
+	sends, picks, nameSends := 0, 0, 0
 	result := func(err error) parityClientResult {
-		return parityClientResult{picks: picks, sends: sends, misses: p.misses, census: census, err: err}
+		return parityClientResult{picks: picks, sends: sends, misses: p.misses, nameSends: nameSends, census: census, err: err}
 	}
 
 	for {
@@ -349,6 +356,27 @@ func playParityClient(r *host.Registry, hub *Hub, base string, table host.TableI
 		}
 
 		picks++
+		if label, ok := windowedName(p, req.ask); ok {
+			sendBody, err := json.Marshal(map[string]any{"request_id": id, "x_gorge_human_v1": map[string]any{"choose_name": label}})
+			if err != nil {
+				return result(fmt.Errorf("marshal choose_name: %w", err))
+			}
+			status, respBody, err := parityPost(base+sendPath, token, sendBody)
+			if err != nil {
+				return result(fmt.Errorf("POST choose_name: %w", err))
+			}
+			if status == http.StatusNoContent {
+				sends++
+				nameSends++
+				handled[id] = true
+				continue
+			}
+			if status == http.StatusConflict {
+				time.Sleep(time.Millisecond)
+				continue
+			}
+			return result(fmt.Errorf("POST choose_name request %s %q: status %d body %s", id, label, status, respBody))
+		}
 		cand, miss := p.pick(req.ask)
 		if miss != "" {
 			// picker.pick already counted this miss; counting it here too
@@ -521,4 +549,19 @@ func parityPost(url, token string, body []byte) (int, []byte, error) {
 		return 0, nil, err
 	}
 	return resp.StatusCode, respBody, nil
+}
+
+// windowedName reports the production bot's native name pick when ask is a
+// choose/name whose candidates are only a window of the engine's names; the
+// client answers it with x_gorge_human_v1.choose_name.
+func windowedName(p *picker, ask humanseat.Ask) (string, bool) {
+	nd := ask.Pose.Native
+	if mapping.Route(nd) != "choose/name" || len(nd.Options) <= len(ask.Pose.Candidates) {
+		return "", false
+	}
+	in := p.nativeIntent(ask)
+	if len(in.Choices) != 1 || in.Choices[0] < 0 || in.Choices[0] >= len(nd.Options) {
+		return "", false
+	}
+	return nd.Options[in.Choices[0]].Label, true
 }

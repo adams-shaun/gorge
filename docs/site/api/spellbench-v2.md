@@ -959,13 +959,22 @@ are never present.
 | `plans` | every payment plan offered for a plan-bearing candidate: `{candidate_id, action_id, plan}`. Plain v2 exposes only the candidate's first plan through `ops[].payment`; this is where the alternatives are visible. `plan` is a `decision.PaymentPlan`. |
 | `can_undo` | the seat has at least one own intent in the log, so the undo queue can attempt a rewind; the host still refuses undo on a table with a second human seat. |
 | `native_only` | `true` on a synthetic candidate-less request: the decision has no v2 mapping. The request still carries `x_gorge_view_v1` with the native view and decision (native object ids, because the client answers on the native routes); `POST .../send` is `409 stale` for it. The next v2 decision supersedes it. |
+| `name_domain` | `{total, offered}`, present only on a `choose_name` ask whose candidates are a window of the engine's name list: `total` is every name the engine offered (for example 34,929 for Pithing Needle), `offered` the candidates in this `seat_decision` (at most 4096, Section 7.1's cap). Absent on every other decision and on name asks that fit. |
 
-`POST .../send` accepts the usual `{"request_id", "candidate_id"}` and the two write actions:
+`POST .../send` accepts the usual `{"request_id", "candidate_id"}` and the write actions:
 
 ```json
 {"request_id":"7","x_gorge_human_v1":{"concede":true}}
 {"request_id":"7","x_gorge_human_v1":{"undo":true}}
+{"request_id":"7","x_gorge_human_v1":{"choose_name":"Cabal Therapy"}}
 ```
+
+`choose_name` answers a card-name ask with any name the engine offered, including those past
+the candidate window; the name is the exact, case-sensitive `label` of a name option in
+`x_gorge_view_v1.decision.options`. An unknown name is `400 bad_request` and the request stays
+open. A name ask folded into a priority decision's follow-ups is `409 stale`: answer it
+with `candidate_id`. A successful `choose_name` returns `204` and closes the request, so a
+racing `candidate_id` is `409 stale`.
 
 Concede submits the same `concede` intent the native route does (a `PlayerLost` with text
 `conceded`); undo calls the host's undo queue and rewinds to the seat's previous intent. Both

@@ -50,15 +50,27 @@ func TestSBV2NativeOnlyCensus(t *testing.T) {
 	if t.Failed() {
 		t.FailNow()
 	}
-	// The census only means something if the corpus actually served
-	// native_only frames; a zero total would make an empty baseline pass.
+	// The census only means something if the corpus actually played; an empty
+	// census (every decision mapped) is the target, so the check is that each
+	// seed ran v2 decisions, not that it served native_only ones.
+	if err := censusRunProblem(res); err != nil {
+		t.Fatal(err)
+	}
 	total := 0
 	for _, n := range measured {
 		total += n
 	}
-	if total == 0 {
-		t.Fatal("precondition: the corpus served no x_gorge_human_v1.native_only decision")
+	// Card-name asks past the 4096-candidate window are answered over the v2
+	// wire's choose_name action; the corpus holds three (seeds 2004, 2011,
+	// 2016), so none being sent means the action path went unexercised.
+	nameSends := 0
+	for _, out := range res.outcomes {
+		nameSends += out.nameSends
 	}
+	if nameSends == 0 {
+		t.Fatal("precondition: the corpus answered no windowed card-name ask through x_gorge_human_v1.choose_name")
+	}
+	t.Logf("nameSends=%d", nameSends)
 
 	got := []byte(renderNativeOnlyCensus(measured))
 	if os.Getenv("SBV2_NATIVE_ONLY_REGEN") == "1" {
@@ -94,6 +106,26 @@ func TestSBV2NativeOnlyCensus(t *testing.T) {
 	if !bytes.Equal(got, want) {
 		t.Fatalf("native-only census moved. testdata/native_only.tsv is a ratchet: it may only shrink, and a stale row must be removed.\n--- measured ---\n%s--- baseline ---\n%s",
 			got, want)
+	}
+}
+
+// censusRunProblem reports a corpus run too thin to ratchet against: a seed
+// that never reached a mapped v2 decision proves nothing about the census.
+func censusRunProblem(res parityCorpusResult) error {
+	for _, out := range res.outcomes {
+		if out.picks == 0 {
+			return fmt.Errorf("precondition: seed %d answered no mapped v2 decision (picks 0)", out.seed)
+		}
+	}
+	return nil
+}
+
+func TestCensusRunProblem(t *testing.T) {
+	if err := censusRunProblem(parityCorpusResult{outcomes: []seedOutcome{{seed: 1, picks: 1}}}); err != nil {
+		t.Fatalf("an empty census with picks must pass: %v", err)
+	}
+	if err := censusRunProblem(parityCorpusResult{outcomes: []seedOutcome{{seed: 1, picks: 1}, {seed: 2, picks: 0}}}); err == nil {
+		t.Fatal("an outcome with no picks must be a problem")
 	}
 }
 
