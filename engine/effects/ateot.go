@@ -50,15 +50,20 @@ func scheduleAtEOT(h Host, c *Ctx, sa *cards.SA, affected []state.ObjID) {
 			Text: "AtEOT$ " + value + " is not implemented; the affected object stays on the battlefield (one Note per call)"})
 		return
 	}
-	scheduleAtEOTRider(h, c.Controller, rider, affected)
+	scheduleAtEOTRider(h, c.Controller, c.Source, rider, affected)
 }
 
 // scheduleAtEOTRider registers one one-shot delayed promise per affected
 // object. RememberChanged$'s Ledger of remembered ids is not consulted: the
-// caller owns the moved set. The registration's Source IS the affected
-// object, so the builtin body's Defined$ Self resolves to it -- exactly the
-// dash/warp/encore shape.
-func scheduleAtEOTRider(h Host, controller state.PlayerID, r atEOTRider, affected []state.ObjID) {
+// caller owns the moved set. The registration's Obj stays the AFFECTED
+// object, because that is the builtin body's Defined$ Self referent (and the
+// incarnation the stale-promise check tracks). CR 603.7d makes the creating
+// permanent the delayed trigger's SOURCE, so a creator that differs from the
+// affected object rides the Text trailer "|CR=<id>": rules pushes the stack
+// object under it while the body still acts on the affected object. A creator
+// equal to the affected object (dash/warp/encore and the self-target riders)
+// emits exactly the event it did before.
+func scheduleAtEOTRider(h Host, controller state.PlayerID, creator state.ObjID, r atEOTRider, affected []state.ObjID) {
 	text := ""
 	if r.thisTurn {
 		// CR 511.2 / 603.7: an end-of-combat promise made after this turn's
@@ -72,8 +77,12 @@ func scheduleAtEOTRider(h Host, controller state.PlayerID, r atEOTRider, affecte
 		if h.Game().Obj(id) == nil {
 			continue // a caller may hand over an id that never resolved
 		}
+		regText := text
+		if creator != 0 && creator != id {
+			regText += "|CR=" + strconv.FormatUint(uint64(creator), 10)
+		}
 		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: id,
-			Player: controller, Step: r.step, Counter: r.body, Text: text})
+			Player: controller, Step: r.step, Counter: r.body, Text: regText})
 	}
 }
 

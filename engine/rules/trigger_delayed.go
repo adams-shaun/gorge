@@ -301,8 +301,18 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		if frame.Source == 0 && dt.EffectDuration != "" {
 			frame = effects.EffectFrame{Source: dt.Source, Carrier: true}
 		}
+		// CR 603.7d: the delayed trigger's source is the spell or ability
+		// that created it. An AtEOT$ rider records that creator beside the
+		// affected object it acts on; every other registration has Creator
+		// zero and keeps Source as its source.
+		pushSource := dt.Source
+		delayedSelf := state.ObjID(0)
+		if dt.Creator != 0 {
+			pushSource = dt.Creator
+			delayedSelf = dt.Source
+		}
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-			Source:     dt.Source,
+			Source:     pushSource,
 			Controller: dt.Controller,
 			Delayed:    true,
 			DelayedID:  dt.ID,
@@ -317,6 +327,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				// A phase registration has no firing event, so its capture
 				// is both Remembered and the DelayTriggerRemembered referent.
 				TriggerContext: effects.TriggerContext{
+					DelayedSelf:             delayedSelf,
 					DelayedRemembered:       append([]state.Target(nil), dt.Remembered...),
 					DelayedRememberedStamps: dt.RememberedStamps,
 					DelayedManaSpent:        dt.RememberedManaSpent,

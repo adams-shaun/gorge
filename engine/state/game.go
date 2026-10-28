@@ -516,9 +516,10 @@ type Game struct {
 	// registered during one resolution and fires later, in general a
 	// different turn, so the registration has to survive the event log to
 	// survive replay, and only events.Apply may write it. Each entry records
-	// the phase it fires in, the source object whose SVar table carries the
-	// Execute$ ability, the controller, and the Remembered captured at
-	// registration. Firing is one-shot: the DelayedPush event removes the
+	// the phase it fires in, the object its body names (and, for the AtEOT$
+	// rider, the CR 603.7d creating permanent separately), whose SVar table
+	// carries the Execute$ ability, the controller, and the Remembered
+	// captured at registration. Firing is one-shot: the DelayedPush event removes the
 	// entry, so a delayed trigger fires exactly once. DelayedNext hands out
 	// the registration IDs monotonically so a firing can remove precisely the
 	// registration it belongs to (a source may register several).
@@ -578,9 +579,23 @@ type ZoneEntry struct {
 // arrives at the same set. Firing (events.Apply's DelayedPush case) removes
 // the entry, which is what keeps a delayed trigger one-shot.
 type DelayedTrigger struct {
-	ID         uint32
-	Phase      Step
-	Source     ObjID
+	ID    uint32
+	Phase Step
+	// Source is the object the delayed body names (Defined$ Self): the
+	// affected token or permanent for the AtEOT$ rider, the trigger's own
+	// source for every other registration. Creator below is the CR 603.7d
+	// source when the two differ.
+	Source ObjID
+	// Creator is the permanent whose spell or ability created this delayed
+	// trigger when that is not the affected object Source names (CR 603.7d:
+	// a delayed triggered ability's source is the source of the spell or
+	// ability that created it). The AtEOT$ rider registers against the token
+	// or permanent it will act on (Source is the body's Defined$ Self
+	// referent), while its stack object is sourced on the creating card.
+	// Zero when creator and affected object are the same, which keeps every
+	// dash/warp/encore registration byte-identical. Folded from the
+	// DelayedRegister event's Text ("|CR=<id>"); replay rebuilds it.
+	Creator    ObjID
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
 	Remembered []Target
