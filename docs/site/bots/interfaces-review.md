@@ -35,7 +35,7 @@ transport.
 | P2-1 | A versioned decision schema: JSON Schema generated from the Go types, a schema-version field, and a grow-only ratchet | M | partly done since: the generated schemas are published ([`openapi.json`](../api/openapi.json), checked by `TestOpenAPISchemasMatchGo`); no schema-version field or grow-only ratchet yet (rechecked at `25d71cadc`) |
 | P2-2 | Client-chosen seeds on `POST /api/games`, for reproducible remote experiments (decks can already be chosen) | S | open |
 | P2-3 | Keep the Python and Java examples as the reference SDKs, with a CI job that plays one game with each | S | done (`scripts/examples-smoke.sh` in CI) |
-| P3-1 | SpellBench v2: find why the neutral translation costs the default bot most of its strength; make `game_over` wait for its `ack` | M | open (still 1 of 20 against 17 of 20 on 2026-10-21) |
+| P3-1 | SpellBench v2: find why the neutral translation costs the default bot most of its strength; make `game_over` wait for its `ack` | M | open (neutral strength fixed 2026-10-28: 17 of 20 against 17 of 20; the `game_over` ack is still best effort) |
 | P3-2 | Multi-seat batching endpoints, only when a training user needs more than about 10,000 decisions per second from outside Go | M | not needed yet |
 | — | Rejected: gRPC (third-party dependency), WebSocket now (hand-written RFC 6455 for a gain long-poll already captures), a stdio transport for new bots | — | — |
 
@@ -151,10 +151,13 @@ against. (Play-vs-bot tables default to `public` through
   server stops. Abandoned on-demand tables also count against
   `-max-on-demand-tables`, so a crashed training loop can exhaust it
   (observed: `host: on-demand table limit 32 reached` after 32 games).
-- **The SpellBench neutral translation costs strength** (P3-1): gorge's
-  `bot` served through `cmd/spellbench-gorge-agent -world neutral` won 1 of
-  20 games where the same bot natively won 17 of 20 (Death & Taxes against
-  Dimir Tempo, seeds 0–19, `mtgsim -a sb-gorge` against `mtgsim -a bot`).
+- **The SpellBench neutral translation no longer costs strength** (P3-1):
+  gorge's `bot` served through `cmd/spellbench-gorge-agent -world neutral`
+  now wins 17 of 20 games where the same bot natively wins 17 of 20 (Death &
+  Taxes against Dimir Tempo, seeds 0–19, `mtgsim -a sb-gorge` against
+  `mtgsim -a bot`, 2026-10-28 at `315962169` with the `cmd/mtgsim`
+  payment-plan guard). Before that guard the neutral seat received no payment
+  plans and won 1 of 20.
 - **`game_over` is best effort**: `seat.Agent.EndMatch` writes it and stops
   the process immediately; in one three-game run only one `game_over` was
   acknowledged.
