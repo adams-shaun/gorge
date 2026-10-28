@@ -401,6 +401,15 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Target) (run
 			return !switched, false, false
 		}
 	}
+	// A chained link that declared its own targets and answered the explicit
+	// EMPTY set has no subject to act on and no "its controller" (CR 118.12)
+	// to name as the payer: the target-derived UnlessPayer$ selectors resolve
+	// nobody, and the resolving-controller fallback would charge a player for
+	// an effect with no target. Apply the unpaid orientation, exactly as a
+	// decline would.
+	if ownTargets != nil && len(ownTargets) == 0 {
+		return !switched, false, false
+	}
 	payers, payerKnown := unlessPayerTargetsFor(h, c, sa, ownTargets)
 	// A named selector whose binding is unavailable must not silently charge
 	// an unrelated target or the resolving controller. Treat it as a decline:

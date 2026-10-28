@@ -145,3 +145,77 @@ func chainedOfferedObj(d *decision.Decision, obj state.ObjID) int {
 	}
 	return -1
 }
+
+// TestChainedCounterUnlessEmptyTargetPosesNoAsk pins the second half of the
+// cr-g294 contract: when the chained link's OWN target answer is the explicit
+// EMPTY set, no "its controller" exists, so no unless_pay ask is posed and the
+// unpaid orientation applies (the Counter body runs over the empty target set,
+// a no-op). Both ways an optional chained target answers empty are covered:
+// the cast flow records the answered-empty set with no candidate, and an
+// offered ask answered with zero picks.
+func TestChainedCounterUnlessEmptyTargetPosesNoAsk(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name     string
+		oppSpell bool
+	}{
+		{"no-candidate", false},
+		{"offered-ask-answered-empty", true},
+	} {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			e := kr2Engine(t, 2)
+			bear := kr2Put(t, e, 0,
+				kr2Src(t, "Name:Chained Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
+				state.ZBattlefield, false)
+			mutation := kr2Put(t, e, 0, kr2Corpus(t, "Repulsive Mutation"), state.ZHand, false)
+			var oppSpell state.ObjID
+			if tc.oppSpell {
+				oppSpell = kr2Put(t, e, 1, kr2Src(t, chainedCounterOppSpellSrc), state.ZStack, false)
+			}
+			kr2Fund(e, 0)
+			kr2Fund(e, 1)
+
+			d := kr2Cast(t, e, 0, mutation)
+			sawX, sawRoot, sawLinkAsk, sawUnless := false, false, false, false
+			for i := 0; d != nil && i < 40; i++ {
+				switch {
+				case d.Kind == decision.KModes && d.ResumeKind == "unless_pay":
+					// The defect: an ask for a target that was never chosen.
+					sawUnless = true
+					d = kr2Answer(t, e, d, len(d.Options)-1)
+				case d.Kind == decision.KChoose && chainedXOption(d) >= 0:
+					sawX = true
+					d = kr2Answer(t, e, d, chainedXOption(d))
+				case d.Kind == decision.KTarget && chainedOfferedObj(d, bear) >= 0:
+					sawRoot = true
+					d = kr2Answer(t, e, d, chainedOfferedObj(d, bear))
+				case d.Kind == decision.KTarget && tc.oppSpell && chainedOfferedObj(d, oppSpell) >= 0:
+					sawLinkAsk = true
+					d = kr2Answer(t, e, d) // explicit empty answer
+				default:
+					t.Fatalf("unexpected decision: kind=%s resume=%q player=%d options=%+v",
+						d.Kind, d.ResumeKind, d.Player, d.Options)
+				}
+			}
+			if !sawX || !sawRoot {
+				t.Fatalf("precondition: cast asks X=%v root target=%v, want both true", sawX, sawRoot)
+			}
+			if tc.oppSpell != sawLinkAsk {
+				t.Fatalf("precondition: chained target ask posed=%v, want %v", sawLinkAsk, tc.oppSpell)
+			}
+			if sawUnless {
+				t.Fatal("a chained unless link with an explicit empty own target posed an unless_pay ask")
+			}
+			if got := e.G.Obj(bear).Counter("P1P1"); got != 1 {
+				t.Fatalf("head half: Bear +1/+1 counters = %d, want 1", got)
+			}
+			if tc.oppSpell {
+				if z := e.G.Obj(oppSpell).Zone; z != state.ZBattlefield {
+					t.Fatalf("untargeted spell zone = %s, want Battlefield (resolved, not countered)", z)
+				}
+			}
+		})
+	}
+}
