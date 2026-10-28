@@ -1,6 +1,7 @@
 package gamecfg_test
 
 import (
+	"errors"
 	"slices"
 	"testing"
 
@@ -78,6 +79,10 @@ func TestShufflePlannerOverride(t *testing.T) {
 	}
 	if err := g.CheckRandomness(); err != nil {
 		t.Fatalf("planner-supplied shuffle counted as unplanned: %v", err)
+	}
+	g.E.Rand(6) // an engine draw no planner supplied
+	if err := g.CheckRandomness(); !errors.Is(err, gamecfg.ErrUnplannedRandomness) {
+		t.Fatalf("override masked an unplanned draw: %v", err)
 	}
 }
 
