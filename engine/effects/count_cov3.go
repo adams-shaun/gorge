@@ -485,6 +485,18 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 		// you've sacrificed this turn": the distinct card types of this
 		// turn's battlefield sacrifices by the counted players.
 		return sacrificedPermanentTypes(g, players), true
+	case cov3PlayerScalarCardsDiscardedThisTurn:
+		// The cards the counted players discarded this turn, summed (Forge's
+		// PlayerCount<group>$CardsDiscardedThisTurn default arm: The Raven
+		// Man's PlayerCountPlayers$ and Tinybones, Trinket Thief's
+		// PlayerCountOpponents$). The per-player read is the same Host log
+		// fold PlayerCountPropertyYou$ and the targeted-player property use,
+		// so the group spellings cannot drift from them.
+		var n int32
+		for _, p := range players {
+			n += h.CardsDiscardedThisTurn(p)
+		}
+		return n, true
 	case cov3PlayerScalarCardsDrawn:
 		// The cards the counted players drew this turn, summed (Heliod, the
 		// Warped Eclipse's "for each card your opponents have drawn this
@@ -902,6 +914,7 @@ type cov3PlayerScalarCode uint16
 const (
 	cov3PlayerScalarSacrificedThisTurn cov3PlayerScalarCode = iota + 1
 	cov3PlayerScalarSacrificedPermanentTypesThis
+	cov3PlayerScalarCardsDiscardedThisTurn
 	cov3PlayerScalarCardsDrawn
 	cov3PlayerScalarNonCombatDamageDealtThisTurn
 	cov3PlayerScalarOpponentsAttackedThisTurn
@@ -916,6 +929,7 @@ const (
 var cov3PlayerScalarCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerScalarCode]{Key: "SacrificedThisTurn", Val: cov3PlayerScalarSacrificedThisTurn},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "SacrificedPermanentTypesThisTurn", Val: cov3PlayerScalarSacrificedPermanentTypesThis},
+	state.StrEntry[cov3PlayerScalarCode]{Key: "CardsDiscardedThisTurn", Val: cov3PlayerScalarCardsDiscardedThisTurn},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "CardsDrawn", Val: cov3PlayerScalarCardsDrawn},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "NonCombatDamageDealtThisTurn", Val: cov3PlayerScalarNonCombatDamageDealtThisTurn},
 	state.StrEntry[cov3PlayerScalarCode]{Key: "OpponentsAttackedThisTurn", Val: cov3PlayerScalarOpponentsAttackedThisTurn},

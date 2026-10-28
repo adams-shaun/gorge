@@ -42,11 +42,11 @@ func captureCastSpend(pc *pendingCast, f *cards.Face, triggeredReaderOut bool, s
 }
 
 // manaColorSpentCastInfo builds the trailing per-colour-spend CastInfo for a
-// cast captured with manaColorSpentOn (the Count$Adamant provenance), or
-// ok=false for an ordinary cast. The flag is a LOCAL one (not ORed into the
-// accumulating flags, the AddsCounters pattern) so the structured Text
-// payload stays off every later event and the folded Object.ManaColorSpent
-// field stays intact.
+// cast captured with manaColorSpentOn (the Count$Adamant / Count$EachSpentToCast
+// provenance), or ok=false for an ordinary cast. The flag is a LOCAL one (not
+// ORed into the accumulating flags, the AddsCounters pattern) so the
+// structured Text payload stays off every later event and the folded
+// Object.ManaColorSpent field stays intact.
 func manaColorSpentCastInfo(pc *pendingCast, flags string) (events.Event, bool) {
 	if !pc.manaColorSpentOn {
 		return events.Event{}, false

@@ -269,10 +269,11 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 			// "SVar:X:PlayerCountPropertyYou$CardsDiscardedThisTurn" behind a
 			// Cost$ Discard<1/Hand> Draw<2/You> body reads the paid discard).
 			// Derived from the event log like LifeLostThisTurn, so a replay
-			// derives the same number. The OTHER group spellings of the same
-			// property (PlayerCountPlayers$/Opponents$/TargetedPlayer$) keep
-			// the fail-closed verdict below — no group machinery here prices
-			// them, and a fake zero is worse.
+			// derives the same number. The summed group spellings of the
+			// same property (PlayerCountPlayers$/PlayerCountOpponents$) are
+			// answered by evalCov3PlayerHead's cov3PlayerScalarCardsDiscarded
+			// ThisTurn arm, which runs before this dispatch; the
+			// TargetedPlayer$ spelling is answered by evalRefProperty.
 			return h.CardsDiscardedThisTurn(c.Controller), true, true
 		case evalCountBodyPlayerLifeLostThisTurn:
 			return h.LifeLostThisTurn(c.Controller), true, true
