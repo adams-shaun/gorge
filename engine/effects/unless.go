@@ -346,8 +346,11 @@ func applyUnlessCostModifier(shown, op, arg string) string {
 // orientation applied. The paid half feeds UnlessResolveSubs$
 // (Resolve gates the SubAbility$ walk on it); on every path where no cost
 // was charged — a decline, an unresolvable payer, a no-host fallback — it is
-// false.
-func unlessProceed(h Host, c *Ctx, sa *cards.SA) (run, paid, served bool) {
+// false. ownTargets is the chained link's own bound target set when Resolve
+// bound it before this gate (nil for the head SA and for a link without its
+// own target); the target-derived UnlessPayer$ selectors read it instead of
+// the paragraph's Ctx.Targets.
+func unlessProceed(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Target) (run, paid, served bool) {
 	cost := UnlessCostResolved(h, c, sa)
 	if !ActivationOf(sa).Unless() {
 		return true, false, false
@@ -398,7 +401,7 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) (run, paid, served bool) {
 			return !switched, false, false
 		}
 	}
-	payers, payerKnown := unlessPayerTargets(h, c, sa)
+	payers, payerKnown := unlessPayerTargetsFor(h, c, sa, ownTargets)
 	// A named selector whose binding is unavailable must not silently charge
 	// an unrelated target or the resolving controller. Treat it as a decline:
 	// the ordinary "unless" body runs, while a switched "if they pay" body
@@ -415,7 +418,7 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) (run, paid, served bool) {
 		// every switched effect (the old `!poseUnlessAsk` inverted this case).
 		if idx+1 < len(payers) {
 			if poseUnlessAsk(h, c, sa, cost, payers, idx+1) == unlessServed {
-				return unlessReread(h, c, sa)
+				return unlessReread(h, c, sa, ownTargets)
 			}
 		}
 		return !switched, false, false
@@ -428,7 +431,7 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) (run, paid, served bool) {
 		payers = []state.Target{{Player: c.Controller, IsPlayer: true}}
 	}
 	if poseUnlessAsk(h, c, sa, cost, payers, 0) == unlessServed {
-		return unlessReread(h, c, sa)
+		return unlessReread(h, c, sa, ownTargets)
 	}
 	// No engine host means poseUnlessAsk deterministically declined. Apply
 	// exactly the same orientation as an answered decline.
@@ -438,8 +441,8 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) (run, paid, served bool) {
 // unlessReread is the gate's pass over an election served in place and
 // settled by the host (Ctx.UnlessPay and Ctx.UnlessNext set): a pay applies
 // the orientation, a decline moves on to the next payer -- marked served.
-func unlessReread(h Host, c *Ctx, sa *cards.SA) (bool, bool, bool) {
-	run, paid, _ := unlessProceed(h, c, sa)
+func unlessReread(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Target) (bool, bool, bool) {
+	run, paid, _ := unlessProceed(h, c, sa, ownTargets)
 	return run, paid, true
 }
 
@@ -599,11 +602,26 @@ func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 // and asking the wrong player. A missing target for the empty/default
 // selector remains known: Forge defaults it to the resolving controller.
 func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
+	return unlessPayerTargetsFor(h, c, sa, nil)
+}
+
+// unlessPayerTargetsFor is unlessPayerTargets with the chained link's own
+// bound targets: Resolve binds a chained link's target before its UnlessCost$
+// gate and hands that set here, so a Target...Controller selector names the
+// player the LINK targeted (Repulsive Mutation's "counter target spell unless
+// ITS controller pays") rather than the head SA's target or the resolving
+// controller. A non-nil empty set is a real answered "no target" and must not
+// fall back to c.Targets.
+func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Target) ([]state.Target, bool) {
 	g := h.Game()
 	if g == nil {
 		return nil, false
 	}
 	spec := ActivationOf(sa).UnlessPayer
+	targetList := c.Targets
+	if ownTargets != nil {
+		targetList = ownTargets
+	}
 	var out []state.Target
 	seen := map[state.PlayerID]bool{}
 	add := func(p state.PlayerID) {
@@ -624,11 +642,11 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 	}
 	switch unlessPayerTargetsCodes.Code(string(spec)) {
 	case unlessPayerTargetsEmpty:
-		addTargets(c.Targets)
+		addTargets(targetList)
 	case unlessPayerTargetsTargetedController:
 		// A missing target uses the historical resolving-controller fallback
 		// below. This is a known target selector, unlike an unknown role.
-		addTargets(c.Targets)
+		addTargets(targetList)
 	case unlessPayerTargetsYou:
 		add(c.Controller)
 	case unlessPayerTargetsEnchantedController:
@@ -686,7 +704,7 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 			return nil, false
 		}
 	case unlessPayerTargetsTargeted:
-		addTargets(c.Targets)
+		addTargets(targetList)
 	case unlessPayerTargetsParentTarget:
 		addTargets(parentLinkTargets(c))
 	case unlessPayerTargetsTriggeredTarget:

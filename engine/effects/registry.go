@@ -1260,6 +1260,27 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// was not. A gate that skips BOTH the body and the subs ends this
 		// SA's chain entirely — Forge returns from handleUnlessCost without
 		// resolveSubAbilities, so the enclosing chain stops here too.
+		//
+		// A chained link that names its own target binds it BEFORE that gate:
+		// the gate's UnlessPayer$ resolves against the link's own targets (CR
+		// 118.12's "its controller"; Forge's ThisTargetedController is
+		// AbilityUtils.getDefinedPlayers on the sub-ability). The head SA's
+		// targets are already bound by the placement/announcement ask, so
+		// d == 0 keeps the established order. The binding is computed once
+		// and reused by the dispatch below, so a link is never asked for its
+		// targets twice.
+		preTargets, preTargetsDone, preEvaluated := []state.Target(nil), false, false
+		if d > 0 && ActivationOf(sa).Unless() && TargetsOf(sa).Targeted() {
+			preEvaluated = true
+			if ts, done := chosenTargetsFor(h, c, sa, false); done {
+				if ts == nil {
+					// No target answer: stop here exactly as an asking body
+					// would.
+					return
+				}
+				preTargets, preTargetsDone = ts, true
+			}
+		}
 		runBody, paid := true, false
 		// Suspended() is widened by the cumulative-upkeep/triggered-cost
 		// payment windows (rules' Suspended() counts e.cumulative and
@@ -1271,7 +1292,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		asksBefore := askCount(h)
 		unlessServed := false
 		if ActivationOf(sa).Unless() {
-			runBody, paid, unlessServed = unlessProceed(h, c, sa)
+			runBody, paid, unlessServed = unlessProceed(h, c, sa, preTargets)
 		}
 		// askCount catches the gate ask the host DEFERRED behind an
 		// already-suspended resolution (rules' Engine.Ask: a second shock
@@ -1311,7 +1332,11 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		if suspendedForRememberedSub {
 			return
 		}
-		if ts, done := chosenTargetsFor(h, c, sa, d == 0); done {
+		ts, done := preTargets, preTargetsDone
+		if !preEvaluated {
+			ts, done = chosenTargetsFor(h, c, sa, d == 0)
+		}
+		if done {
 			if ts == nil {
 				// No target answer: stop here exactly as an asking body
 				// would.
