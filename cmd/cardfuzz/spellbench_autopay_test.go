@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/server/spellbench/neutral/twin"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -59,14 +60,14 @@ func TestSpellbenchTwinAutopayMapsNativePick(t *testing.T) {
 	}
 }
 
-// TestSpellbenchTwinReportsAutopayDivergence keeps the failure-record and
-// repro coverage the autopay work must not lose: a remaining divergence is
-// classified, written as one line per disagreement, carries the v2 request and
-// the two distinct picks, and -repro replays it. The Moonlight Bargain game
-// (seed 13819372491320860226) still diverges under engine_autopay: the neutral
-// shadow planner cannot rebuild the native cast plan, so the neutral seat
-// casts where the native bot passes.
-func TestSpellbenchTwinReportsAutopayDivergence(t *testing.T) {
+// TestSpellbenchTwinArmsChosenColourSkip: playSBTwin must give the Twin the
+// card registry its ChosenColour skip needs. In the Moonlight Bargain game
+// (seed 13819372491320860226) Temple of the Dragon Queen makes a colour chosen
+// as it entered, which the v2 observation does not carry. Without the registry
+// the skip never fires and two priority decisions are reported as
+// "pass -> cast_spell"; with it they are counted as ChosenColour and the game
+// has no priority disagreement at all.
+func TestSpellbenchTwinArmsChosenColourSkip(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	p, err := buildPool(reg)
 	if err != nil {
@@ -90,9 +91,74 @@ func TestSpellbenchTwinReportsAutopayDivergence(t *testing.T) {
 	if g.err != "" {
 		t.Fatalf("game failed: %s", g.err)
 	}
+	if g.tw.Total["priority"] == 0 {
+		t.Fatal("no priority decision was compared; the test proves nothing")
+	}
+	t.Logf("seed %d: chosen=%d priority=%d/%d fails=%d", job.seed, g.tw.Total[twin.ChosenColour], g.tw.Agree["priority"], g.tw.Total["priority"], len(g.fails))
+	if g.tw.Total[twin.ChosenColour] == 0 {
+		t.Fatalf("the ChosenColour skip never fired; the Twin has no registry")
+	}
+	for _, f := range g.fails {
+		if f.Sig == "priority: pass -> cast_spell" {
+			t.Fatalf("priority decision %d was not skipped as ChosenColour: %s", f.SB.Index, f.Diag)
+		}
+	}
+}
+
+// TestSpellbenchTwinReportsAutopayDivergence keeps the failure-record and
+// repro coverage the autopay work must not lose: a remaining divergence is
+// classified, written as one line per disagreement, carries the v2 request and
+// the two distinct picks, and -repro replays it. The Benthic Giant game (seed
+// 8507278219836860430) is the fixture: Benthic Giant is in hand under Absorb
+// Energy's perpetual {1} cost grant, which the v2 observation cannot express,
+// so the neutral world prices the printed cost and picks Tidal Barracuda. The
+// native 4U plan is correct; the Moonlight Bargain game is now a ChosenColour
+// skip, not a divergence.
+func TestSpellbenchTwinReportsAutopayDivergence(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	p, err := buildPool(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jobs := sbJobs(p, 2, 20)
+	var job sbJob
+	found := false
+	for _, j := range jobs {
+		if j.seed == 8507278219836860430 {
+			job, found = j, true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("run seed 2 game set no longer contains the recorded Benthic Giant seed")
+	}
+	o := sbOptions{mode: "twin", policy: "bot", autopay: true, maxSteps: 20000, maxTurns: 100,
+		maxIntents: 20000, maxObjects: 20000, games: 20, seed: 2, workers: 1}
+	g := playSBTwin(reg, job.decks, job.seed, o)
+	if g.err != "" {
+		t.Fatalf("game failed: %s", g.err)
+	}
 	if len(g.fails) == 0 {
 		t.Fatal("no disagreement in the recorded game; the failing record cannot be tested")
 	}
+	var benthic *failure
+	for _, f := range g.fails {
+		if f.SB == nil {
+			continue
+		}
+		if strings.Contains(string(f.SB.NativeSem), "Benthic Giant") &&
+			strings.Contains(string(f.SB.V2Sem), "Tidal Barracuda") {
+			benthic = f
+			break
+		}
+	}
+	if benthic == nil {
+		t.Fatalf("no Benthic Giant/Tidal Barracuda record in the game; failures: %v", g.fails)
+	}
+	if benthic.Sig != "priority: cast_spell -> cast_spell" {
+		t.Fatalf("Benthic Giant record has signature %q, want priority: cast_spell -> cast_spell", benthic.Sig)
+	}
+	t.Logf("benthic: fails=%d index=%d sig=%s", len(g.fails), benthic.SB.Index, benthic.Sig)
 	sum := newSBTwinSummary()
 	sum.add(job.seed, g)
 	var out bytes.Buffer
@@ -123,8 +189,18 @@ func TestSpellbenchTwinReportsAutopayDivergence(t *testing.T) {
 		t.Fatalf("%d failure lines for %d disagreements", len(lines), len(g.fails))
 	}
 	var rec failure
-	if err := json.Unmarshal([]byte(lines[0]), &rec); err != nil || rec.SB == nil {
-		t.Fatalf("first record %v is not a twin record: %v", rec, err)
+	for _, line := range lines {
+		var r failure
+		if err := json.Unmarshal([]byte(line), &r); err != nil {
+			t.Fatalf("failure line is not a record: %v", err)
+		}
+		if r.SB != nil && r.SB.Index == benthic.SB.Index && r.Sig == benthic.Sig {
+			rec = r
+			break
+		}
+	}
+	if rec.SB == nil {
+		t.Fatalf("the Benthic Giant record did not round-trip through the failure file")
 	}
 	if !json.Valid(rec.SB.Request) || len(rec.SB.Request) == 0 || rec.SB.Native == rec.SB.V2 {
 		t.Fatalf("record lacks the v2 request or distinct picks: %+v", rec.SB)

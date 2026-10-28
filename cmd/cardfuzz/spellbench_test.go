@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/server/spellbench/neutral/twin"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -42,6 +44,29 @@ func TestSpellbenchTwinAgreesWithManualPay(t *testing.T) {
 	}
 	if sum.Disagreements != 0 || sum.Errors != 0 {
 		t.Fatalf("%d disagreements, %d errors with -autopay off:\n%s", sum.Disagreements, sum.Errors, out)
+	}
+}
+
+// TestSpellbenchSummaryExcludesChosenColourSkips: ChosenColour is a skip class
+// like Floated and Opaque, so it must not sit in the agreement denominator or
+// appear as a decision kind, and its count belongs in the skip sentence.
+func TestSpellbenchSummaryExcludesChosenColourSkips(t *testing.T) {
+	sum := newSBTwinSummary()
+	sum.Total["priority"], sum.Agree["priority"] = 10, 10
+	sum.Total[twin.ChosenColour] = 90
+	sum.Total[twin.Floated] = 3
+	sum.Total[twin.Opaque] = 2
+	var buf bytes.Buffer
+	sum.print(&buf, sbOptions{policy: "bot", autopay: true, seed: 2, games: 1})
+	out := buf.String()
+	if !strings.Contains(out, "agreement 10/10 ") {
+		t.Fatalf("ChosenColour is in the agreement denominator:\n%s", out)
+	}
+	if !strings.Contains(out, "90 where a chosen-colour source was in play") {
+		t.Fatalf("the skip sentence does not report the ChosenColour count:\n%s", out)
+	}
+	if strings.Contains(out, twin.ChosenColour) {
+		t.Fatalf("ChosenColour is listed as a decision kind:\n%s", out)
 	}
 }
 
