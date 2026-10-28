@@ -526,6 +526,9 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 		}
 		absorbForeign(m)
 	}
+	for _, m := range e.effectEntryBodies(foreignEv) {
+		absorbForeign(m)
+	}
 	if m := e.bloodthirstEntryMatch(matchEv); m != nil {
 		absorb(*m)
 	}
@@ -563,6 +566,46 @@ func (e *Engine) foreignEntryBodies(entrant state.ObjID, ev events.Event) []repl
 			out = append(out, replMatch{id: id, face: f, repl: r})
 		}
 	})
+	return e.dropAppliedReplacements(out)
+}
+
+// effectEntryBodies lists the Moved PutCounter|ETB$ True replacements an
+// Effect created (Recommission's "it enters with an additional +1/+1
+// counter") that match the entry ev and are the bare lent-body shape, in
+// active-effect order. They are the Effect-borne twin of foreignEntryBodies:
+// the same absorbable-shape gate, matched the way the live dispatch matches an
+// Effect-created line, and keyed "effect:<source>:<timestamp>" exactly as it
+// keys them so replIdentity (bodyAbsorbed) keeps the Updated dispatch from
+// running an absorbed body a second time.
+func (e *Engine) effectEntryBodies(ev events.Event) []replMatch {
+	if !e.effectReplacementsPossible() {
+		return nil
+	}
+	var out []replMatch
+	ceL := e.active()
+	for i := range ceL {
+		ce := &ceL[i]
+		if ce.ReplacementEvent != "Moved" {
+			continue
+		}
+		with := replacementBodySA(ce.ReplacementBody)
+		if with == nil {
+			continue
+		}
+		r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
+		if r.OptionalValue() || !entryBodyAbsorbableMatch(*r, true) {
+			continue
+		}
+		cc := chosenCapture{ids: ce.Chosen, bound: ce.ChosenBound}
+		if !e.replacementMatchesEffectCreatedByCap(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, ce.Controller, cc) {
+			continue
+		}
+		out = append(out, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
+			rememberedPlayers: ce.RememberedPlayers,
+			chosenCards:       ce.Chosen, chosenBound: ce.ChosenBound,
+			chosen: ce.ChosenNumber, controller: ce.Controller, frozenController: true,
+			key: effectReplKey(ce)})
+	}
 	return e.dropAppliedReplacements(out)
 }
 
@@ -673,10 +716,42 @@ func (e *Engine) entryGrantPlan(ev events.Event, preview *Engine, entrant state.
 	// before the body grants so the placement order is deterministic.
 	grants = append(grants, e.entryRiderGrants(entrant)...)
 	if preview == nil {
-		return grants, nil
+		return mergeEntryGrants(grants, nil), nil
 	}
 	bodyGrants, bodyIDs := preview.entryBodyCounterGrants(ev, entrant)
-	return append(grants, bodyGrants...), bodyIDs
+	return mergeEntryGrants(grants, bodyGrants), bodyIDs
+}
+
+// mergeEntryGrants is CR 614.1c / 122.6 for the plan's two lists: every
+// counter an object enters with is put by ONE event, so a body grant folds
+// into the first base grant (intrinsic, requested or rider) of its kind and a
+// "that many plus one" AddCounter replacement (Hardened Scales, Kami of
+// Whispered Hopes) applies once to the whole put. Two grants of one list do
+// not fold into each other: an entrant's own separate keyword grants (Riot
+// and Unleash) and its own separate bodies keep one grant each, the shape the
+// staged order asks pin (a lent body already merged into the earlier body
+// grant in entryBodyCounterGrants). A merged grant keeps a body source when
+// either side had one, so the put still reads as effect-caused (EffectOnly$
+// gates).
+func mergeEntryGrants(base, bodies []entryGrant) []entryGrant {
+	out := base
+	for _, g := range bodies {
+		merged := false
+		for i := range base {
+			if out[i].kind == g.kind {
+				out[i].amount += g.amount
+				if out[i].body == 0 {
+					out[i].body = g.body
+				}
+				merged = true
+				break
+			}
+		}
+		if !merged {
+			out = append(out, g)
+		}
+	}
+	return out
 }
 
 // bodyAbsorbed reports whether m's placement was folded into the entry move

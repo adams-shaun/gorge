@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strconv"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -71,7 +69,7 @@ func (e *Engine) applyTokenEntryUpdates(id state.ObjID, absorbed []string) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
 					rememberedPlayers: ce.RememberedPlayers,
 					chosen:            ce.ChosenNumber, controller: ce.Controller, frozenController: true,
-					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+					key: effectReplKey(ce)})
 			}
 		}
 	}
