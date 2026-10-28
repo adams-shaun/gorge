@@ -291,7 +291,7 @@ func compileRemoveCounter(sa *cards.SA, dr *DefinedParams) *RemoveCounterParams 
 	p := &RemoveCounterParams{paramBinding: bindParams(sa), Defined: dr.Defined}
 	p.Choices = strings.TrimSpace(sa.ParamStr(cards.PKChoices))
 	rawKind := strings.TrimSpace(sa.ParamStr(cards.PKCounterType))
-	p.Kind = rawKind
+	p.Kind = canonicalCounterKind(rawKind)
 	if p.Kind == "" {
 		p.Kind = "P1P1"
 	}

@@ -128,8 +128,11 @@ func TestDigWithCountersEntersWithCounters(t *testing.T) {
 		if o.Zone != state.ZBattlefield {
 			t.Fatalf("Elk is in %s, want the battlefield", o.Zone)
 		}
-		if got := o.Counter("Shield"); got != 1 {
-			t.Errorf("Shield counters = %d, want 1", got)
+		if got := o.Counter("SHIELD"); got != 1 {
+			t.Errorf("SHIELD counters = %d, want 1 (the script's `WithCounters$ Shield`)", got)
+		}
+		if got := o.Counter("Shield"); got != 0 {
+			t.Errorf("internal Shield marker = %d, want 0: `Shield` is the real shield counter, not the regeneration marker", got)
 		}
 	})
 }
