@@ -275,6 +275,23 @@ func TestGroundSealGraveyardCardsCantBeTargeted(t *testing.T) {
 	seal := lookup(t, reg, "Ground Seal")
 	raise := lookup(t, reg, "Raise Dead")
 	bears := lookup(t, reg, "Grizzly Bears")
+
+	// Baseline: without Ground Seal the same graveyard card is a legal target,
+	// so the sealed assertion below is not passing for an unrelated reason.
+	base, _ := corpusEngineCfg(t, reg, []*cards.Card{raise, bears}, nil)
+	baseBear := moveByName(t, base, 0, "Grizzly Bears", state.ZGraveyard)
+	baseRaise := moveByName(t, base, 0, "Raise Dead", state.ZHand)
+	addMana(t, base, 0, "B")
+	base.askPriority(0)
+	if !castOffered(base, baseRaise) {
+		t.Fatalf("precondition: Raise Dead is not castable without Ground Seal: %+v", base.Pending().Options)
+	}
+	castFirst(t, base, "cast")
+	baseTarget := base.Pending()
+	if baseTarget == nil || baseTarget.Kind != decision.KTarget || indexOfObjOption(baseTarget, baseBear) < 0 {
+		t.Fatalf("precondition: the graveyard Grizzly Bears is not offered without Ground Seal: %+v", baseTarget)
+	}
+
 	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{seal, raise, bears}, nil)
 
 	sealID := moveByName(t, e, 0, "Ground Seal", state.ZBattlefield)
