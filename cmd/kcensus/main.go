@@ -1,4 +1,4 @@
-// Command kcensus is the FDN microkernel plan's Phase 0 mechanic census: it
+// Command kcensus is a mechanic census: it
 // loads a deck pool, resolves every distinct card through the compiled
 // corpus, tabulates the mechanics each card reaches (API codes along every
 // Sub/trigger/replacement/SVar chain, trigger modes, static modes,
