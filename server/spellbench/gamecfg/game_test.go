@@ -89,8 +89,11 @@ func TestUnplannedRandomnessIsDetected(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	burn := deck(t, reg, "Burn")
 	g, _ := gamecfg.New(reg, secret(3), [2][]*cards.Card{burn, burn}, gamecfg.Rules{Mulligan: "none"})
-	g.E.Rand(6) // an engine draw no planner supplied, as a Rand-using card would make
-	if err := g.CheckRandomness(); !errors.Is(err, gamecfg.ErrUnplannedRandomness) {
+	// gamecfg always installs a chance planner; a clone drops it, so this is
+	// the no-planner engine CheckRandomness still guards.
+	bare := &gamecfg.Game{E: g.E.Clone()}
+	bare.E.Rand(6)
+	if err := bare.CheckRandomness(); !errors.Is(err, gamecfg.ErrUnplannedRandomness) {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -198,8 +201,11 @@ func TestSubmitReportsUnplannedRandomness(t *testing.T) {
 		t.Fatal(err) // New ends with CheckRandomness, so the invariant holds here
 	}
 	in := intent(t, g, 0, "keep")
-	g.E.Rand(6)
-	if err := g.Submit(in); !errors.Is(err, gamecfg.ErrUnplannedRandomness) {
+	// Submit keeps checking the guard; a clone drops the chance planner, so
+	// its engine is the one that can still draw unplanned.
+	bare := &gamecfg.Game{E: g.E.Clone()}
+	bare.E.Rand(6)
+	if err := bare.Submit(in); !errors.Is(err, gamecfg.ErrUnplannedRandomness) {
 		t.Fatalf("got %v", err)
 	}
 }
