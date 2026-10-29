@@ -218,6 +218,56 @@ func TestDigShapeCoversRepoSpellings(t *testing.T) {
 	}
 }
 
+// TestDigBudgetFencesEveryPrimaryPick is the Min-0 case: the cap must fence a
+// primary pick even after Min is already met, or the mapping commits a Choices
+// list whose values exceed Decision.MaxSum and the engine rejects it.
+func TestDigBudgetFencesEveryPrimaryPick(t *testing.T) {
+	reg := testcorpus.Registry(t)
+	g := testgame.New(t, reg, "Spy", "Spy", 1, "none")
+	env := envFor(t, g)
+	sa := &cards.SA{API: "Dig", Params: map[string]string{
+		"DigNum": "3", "ChangeNum": "3", "Optional": "True", "WithTotalCMC": "X",
+		"DestinationZone": "Hand", "DestinationZone2": "Library", "RestRandomOrder": "True"}}
+	d := digTakeDecision(t, g, sa, "Look at the top 3 card(s) of your library", 3)
+	d.Min, d.Max, d.MaxSum = 0, 3, 4
+	d.Options[0].Value, d.Options[1].Value, d.Options[2].Value = 3, 3, 1
+	total := 0
+	for _, o := range d.Options {
+		total += o.Value
+	}
+	if total <= d.MaxSum {
+		t.Fatalf("options total %d is not over the cap %d; the test would not exercise the budget", total, d.MaxSum)
+	}
+	tx, err := mapping.Begin(env, d)
+	if err != nil {
+		t.Fatalf("Begin: %v", err)
+	}
+	commit := answerAll(t, tx, func(p *mapping.Pose) int {
+		for i, c := range p.Candidates {
+			if err := c.Sem.Check(); err != nil {
+				t.Fatalf("candidate %s fails the validator: %v", c.Sem.Kind, err)
+			}
+			if c.Sem.Kind == "arrange_card" && c.Sem.Fields["destination"] == "hand" {
+				return i
+			}
+		}
+		return 0
+	})
+	if len(commit) != 1 {
+		t.Fatalf("a random remainder commits one intent, got %v", commit)
+	}
+	if err := d.Validate(commit[0]); err != nil {
+		t.Fatalf("committed answer %v fails Validate: %v", commit[0].Choices, err)
+	}
+	sum := 0
+	for _, c := range commit[0].Choices {
+		sum += d.Options[c].Value
+	}
+	if sum > d.MaxSum {
+		t.Fatalf("committed choices total %d exceeds the budget %d", sum, d.MaxSum)
+	}
+}
+
 // customDeck builds a 40-card deck from counts in the order given.
 func customDeck(t *testing.T, reg *cards.Registry, entries []struct {
 	name  string

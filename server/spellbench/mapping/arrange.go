@@ -447,6 +447,13 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 			}
 			taken++
 			sum += values[i]
+			// The primary picks are the ones the committed answer's Choices
+			// name, so the cap fences every one of them even when Min is
+			// already met: a Min-0 optional dig keeps taking until the budget
+			// or Max runs out.
+			if hasBudget && sum > d.MaxSum {
+				return false
+			}
 			need := d.Min - taken
 			if need <= 0 {
 				return true
