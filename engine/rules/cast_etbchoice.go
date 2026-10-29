@@ -245,7 +245,11 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 						Label: "Enter as itself", Player: you})
 				}
 			}
-			return etbChoice{kind: kind, options: opts}, true
+			sa := (*cards.SA)(nil)
+			if kind == "type" {
+				sa = r.With
+			}
+			return etbChoice{kind: kind, options: opts, sa: sa}, true
 		}
 		(*seen)++
 	}

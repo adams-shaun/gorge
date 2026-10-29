@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -15,6 +16,39 @@ var colors = map[string]string{"white": "white", "blue": "blue", "black": "black
 
 var boolPurpose = map[string]string{"search_confirm": "may_ability", "copy_optional": "may_ability",
 	"repeat_optional": "may_ability", "search_mayshuffle": "other"}
+
+// chooseTypePurposes maps a ChooseType Type$ category to the choose_name
+// purpose the protocol vocabulary defines (server/spellbench/protocol/kinds.go).
+// Keys are the engine's own spellings (lowercased); an unknown category is
+// "other", the vocabulary's catch-all.
+var chooseTypePurposes = map[string]string{
+	"":                       "creature_type",
+	"creature":               "creature_type",
+	"creatureintargeteddeck": "creature_type",
+	"basic land":             "basic_land_type",
+	"land":                   "land_type",
+	"nonbasic land":          "land_type",
+	"card":                   "card_type",
+	"shared":                 "card_type",
+}
+
+// chooseTypePurpose names the Type$ category an as-enters or mid-resolution
+// ChooseType ask is posing. A decision without the SA (no in-tree producer)
+// falls back to the family its option universe belongs to, so a projection
+// never introduces the card_type value check where the engine did not say
+// "card type"; an SA whose category the table does not know is "other".
+func chooseTypePurpose(d *decision.Decision) string {
+	if d == nil {
+		return "other"
+	}
+	if d.ResumeSA == nil {
+		return chooseTypeNamePurpose(d.Options)
+	}
+	if p, ok := chooseTypePurposes[strings.ToLower(strings.TrimSpace(d.ResumeSA.ParamStr(cards.PKType)))]; ok {
+		return p
+	}
+	return "other"
+}
 
 func init() {
 	Register("mulligan/keep", func(env *Env, d *decision.Decision) (Transaction, error) {
@@ -145,7 +179,7 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		purpose := chooseTypeNamePurpose(d.Options)
+		purpose := chooseTypePurpose(d)
 		return SingleChoice(env, d, choice(src, purpose), func(o decision.Option) (protocol.Semantic, bool, error) {
 			value := o.Label
 			if purpose != "other" {
