@@ -14,9 +14,8 @@ import (
 )
 
 // triggeredCounterMapGame seats the real Captain Marvel, Apex Avenger on seat
-// 0's battlefield with the named counter recipient beside her. Both start
-// untapped and outside summoning sickness only insofar as the trigger needs:
-// it watches counter placement, not combat.
+// 0's battlefield with the named counter recipient beside her. The trigger
+// watches counter placement, not combat, so no turn or combat state is needed.
 func triggeredCounterMapGame(t *testing.T, recipient string) (*Engine, state.ObjID, state.ObjID) {
 	t.Helper()
 	e := layerEngine(t)
