@@ -2,8 +2,9 @@
 //
 // Ported from github.com/jackmaiorino/spellbench/engines/gorge/internal/gamecfg
 // at revision 1beea4c104911bba77a5672c644e570ed9afe28a (MIT).
-// Section 11.6 streams: rules.NewHypotheticalPlanned asks a planner for each
-// library shuffle (per player and ordinal), and the chance prefix forces the
+// Section 11.6 streams: rules.NewHypotheticalChancePlanned asks a planner for
+// each library shuffle (per player and ordinal) and for every non-shuffle
+// chance draw (the shared chance stream), and the chance prefix forces the
 // toss to the host-assigned starting seat. The hypothetical constructor is
 // used deliberately as the live engine; see the plan's Global Constraints.
 package gamecfg
@@ -32,9 +33,9 @@ type Rules struct {
 	// ChancePrefix, when non-nil, is the engine's chance prefix: its draws
 	// are consumed in order from the start of the game, beginning with the
 	// starting-seat toss. It replaces the forced toss and the secret-derived
-	// shuffle plan, so it must cover every draw the game makes; a draw past
-	// the prefix that no planner supplies is unplanned randomness. Nil is
-	// the default: the forced toss plus the secret-derived shuffle plan.
+	// shuffle plan, so it must cover every draw up to the point it ends; the
+	// chance planner then covers non-shuffle draws past it. Nil is the
+	// default: the forced toss plus the secret-derived shuffle plan.
 	ChancePrefix []rules.ChanceDraw
 }
 
@@ -71,7 +72,7 @@ func New(reg *cards.Registry, sec *secrets.Game, decks [2][]*cards.Card, r Rules
 	if r.ShufflePlanner != nil {
 		planner = r.ShufflePlanner
 	}
-	e, err := rules.NewHypotheticalPlanned(cfg, prefix, planner)
+	e, err := rules.NewHypotheticalChancePlanned(cfg, prefix, planner, g.chance)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +98,11 @@ func (g *Game) plan(ctx rules.ShuffleContext) ([]state.ObjID, error) {
 		out[i], out[j] = out[j], out[i]
 	}
 	return out, nil
+}
+
+// chance draws one non-shuffle value from the match's shared chance stream.
+func (g *Game) chance(ctx rules.ChanceContext) (int, error) {
+	return g.Secret.Stream("shared", "chance", uint64(ctx.Ordinal)).IntN(ctx.Bound), nil
 }
 
 // CheckRandomness fails when the engine drew a value no planner supplied.
