@@ -102,6 +102,20 @@ type sbRecord struct {
 	Request   json.RawMessage `json:"request"`
 }
 
+// sbRebuildRecord is the "rebuild" field of a twin rebuild-failure record:
+// a decision the neutral world could not reconstruct, grouped by the
+// id-free cause in the summary.
+type sbRebuildRecord struct {
+	Policy  string          `json:"policy"`
+	Index   int             `json:"index"`
+	Kind    string          `json:"kind"`
+	Seat    string          `json:"seat"`
+	Native  int             `json:"native_pick"`
+	Card    string          `json:"card,omitempty"`
+	Reason  string          `json:"reason"`
+	Request json.RawMessage `json:"request,omitempty"`
+}
+
 // fullCardName is the Oracle name the v2 catalog resolves: faces joined.
 func fullCardName(c *cards.Card) string {
 	names := make([]string, len(c.Faces))
@@ -151,6 +165,7 @@ func sbDomain(decks [2]catalog.Deck) []string {
 type sbTwinGame struct {
 	tw          *twin.Twin
 	fails       []*failure
+	rebuilds    []twin.RebuildFailure // decisions the neutral world could not rebuild
 	steps       int
 	truncated   bool
 	unsupported string // why v2 cannot express the game ("" when it can)
@@ -224,6 +239,9 @@ func playSBTwin(reg *cards.Registry, decks []genDeck, seed uint64, o sbOptions) 
 		}
 		res.fails = append(res.fails, f)
 	}
+	res.tw.OnRebuild = func(r twin.RebuildFailure) {
+		res.rebuilds = append(res.rebuilds, r)
+	}
 	r, err := h.PlayDecks(seed, cd, sbDomain(cd), "london", []string{"x_gorge_view_v1"}, links)
 	res.steps = r.Steps
 	switch {
@@ -265,6 +283,7 @@ type sbTwinSummary struct {
 	ErrorText                               map[string]int
 	Agree, Total                            map[string]int
 	Classes                                 map[string]*sbClassStat
+	Rebuilds                                map[string]*sbRebuildStat
 }
 
 type sbClassStat struct {
@@ -272,8 +291,15 @@ type sbClassStat struct {
 	Example string
 }
 
+// sbRebuildStat is one rebuild-failure class: the decision kind, the id-free
+// reason and the source card name, with one example seed/decision.
+type sbRebuildStat struct {
+	N       int
+	Example string
+}
+
 func newSBTwinSummary() *sbTwinSummary {
-	return &sbTwinSummary{Unsupported: map[string]int{}, ErrorText: map[string]int{}, Agree: map[string]int{}, Total: map[string]int{}, Classes: map[string]*sbClassStat{}}
+	return &sbTwinSummary{Unsupported: map[string]int{}, ErrorText: map[string]int{}, Agree: map[string]int{}, Total: map[string]int{}, Classes: map[string]*sbClassStat{}, Rebuilds: map[string]*sbRebuildStat{}}
 }
 
 func (s *sbTwinSummary) add(seed uint64, g sbTwinGame) {
@@ -303,6 +329,43 @@ func (s *sbTwinSummary) add(seed uint64, g sbTwinGame) {
 		}
 		c.N++
 	}
+	for _, r := range g.rebuilds {
+		s.addRebuild(seed, r)
+	}
+}
+
+// addRebuild folds one rebuild failure into its class: the decision kind, the
+// neutral world's id-free reason and the source card. The example names the
+// seed and decision, the pair a -only-game replay needs.
+func (s *sbTwinSummary) addRebuild(seed uint64, r twin.RebuildFailure) {
+	key := rebuildClass(r)
+	st := s.Rebuilds[key]
+	if st == nil {
+		st = &sbRebuildStat{Example: fmt.Sprintf("seed %d decision %d (%s)", seed, r.Index, r.Seat)}
+		s.Rebuilds[key] = st
+	}
+	st.N++
+}
+
+// rebuildClass is the summary key for one rebuild failure: kind, reason and
+// source card. Every part is id-free so the same cause groups across games.
+func rebuildClass(r twin.RebuildFailure) string {
+	card := r.Card
+	if card == "" {
+		card = "(no source card)"
+	}
+	reason := r.Reason
+	if reason == "" {
+		reason = "untranslated"
+	}
+	return r.Kind + " | " + reason + " | " + card
+}
+
+func seedNote(r twin.RebuildFailure) string {
+	if r.Card == "" {
+		return ""
+	}
+	return " (source: " + r.Card + ")"
 }
 
 func sortedKeys[V any](m map[string]V) []string {
@@ -434,6 +497,19 @@ func (s *sbTwinSummary) print(w io.Writer, o sbOptions) {
 		}
 		fmt.Fprintf(w, "  %-32s %6d/%6d (%s, budget %.3g%%)%s\n", "rebuild_fail", n, d, sbPct(n, d), o.maxRebuildFail, mark)
 	}
+	if len(s.Rebuilds) > 0 {
+		rebuilds := sortedKeys(s.Rebuilds)
+		sort.SliceStable(rebuilds, func(a, b int) bool {
+			if x, y := s.Rebuilds[rebuilds[a]].N, s.Rebuilds[rebuilds[b]].N; x != y {
+				return x > y
+			}
+			return rebuilds[a] < rebuilds[b]
+		})
+		fmt.Fprintf(w, "rebuild classes: %d (top %d)\n", len(rebuilds), min(10, len(rebuilds)))
+		for _, c := range rebuilds[:min(10, len(rebuilds))] {
+			fmt.Fprintf(w, "  rebuild_class %6d  %s\n        e.g. %s\n", s.Rebuilds[c].N, c, trunc(s.Rebuilds[c].Example, 400))
+		}
+	}
 	classes := sortedKeys(s.Classes)
 	sort.SliceStable(classes, func(a, b int) bool { return s.Classes[classes[a]].N > s.Classes[classes[b]].N })
 	fmt.Fprintf(w, "divergence classes: %d (top %d)\n", len(classes), min(10, len(classes)))
@@ -527,7 +603,7 @@ func runSBTwin(reg *cards.Registry, p *pool, o sbOptions, failPath string, out i
 		func(j sbJob) sbTwinGame { return playSBTwin(reg, j.decks, j.seed, o) },
 		func(j sbJob, g sbTwinGame) {
 			sum.add(j.seed, g)
-			for _, f := range g.fails {
+			write := func(f *failure) {
 				if fw == nil {
 					var err error
 					if ff, err = os.OpenFile(failPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644); err != nil {
@@ -539,6 +615,20 @@ func runSBTwin(reg *cards.Registry, p *pool, o sbOptions, failPath string, out i
 				b, _ := json.Marshal(f)
 				fw.Write(b)
 				fw.WriteByte('\n')
+			}
+			for _, f := range g.fails {
+				write(f)
+			}
+			for _, r := range g.rebuilds {
+				f := &failure{Kind: "sbrebuild", Seed: j.seed, Decks: j.decks,
+					Rebuild: &sbRebuildRecord{Policy: o.policy, Index: r.Index, Kind: r.Kind, Seat: r.Seat,
+						Native: r.Native, Card: r.Card, Reason: r.Reason, Request: r.Request},
+					Diag: fmt.Sprintf("%s decision %d (%s): %s%s", r.Kind, r.Index, r.Seat, rebuildClass(r), seedNote(r)),
+					Sig:  rebuildClass(r)}
+				if o.autopay {
+					f.AutoPay = "all"
+				}
+				write(f)
 			}
 			fmt.Fprintf(os.Stderr, "cardfuzz: spellbench twin %d/%d games, %d disagreements\n", sum.Games, o.games, sum.Disagreements)
 		})
@@ -562,6 +652,25 @@ func runSBRepro(reg *cards.Registry, rec failure, o sbOptions, out io.Writer) in
 		}
 	}
 	fmt.Fprintf(out, "REPRO: no disagreement at decision %d (not reproduced)\n", rec.SB.Index)
+	return 0
+}
+
+// runSBRebuildRepro replays a rebuild-failure record's game and checks the
+// same decision is still one the neutral world cannot reconstruct.
+func runSBRebuildRepro(reg *cards.Registry, rec failure, o sbOptions, out io.Writer) int {
+	o.policy, o.autopay = rec.Rebuild.Policy, rec.AutoPay == "all"
+	g := playSBTwin(reg, rec.Decks, rec.Seed, o)
+	if g.err != "" {
+		fmt.Fprintf(out, "REPRO sbrebuild error: %s\n", g.err)
+		return 1
+	}
+	for _, r := range g.rebuilds {
+		if r.Index == rec.Rebuild.Index {
+			fmt.Fprintf(out, "REPRO sbrebuild seed=%d decision %d\n%s\n", rec.Seed, r.Index, rec.Diag)
+			return 2
+		}
+	}
+	fmt.Fprintf(out, "REPRO: decision %d rebuilds (not reproduced)\n", rec.Rebuild.Index)
 	return 0
 }
 

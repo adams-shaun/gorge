@@ -58,6 +58,9 @@ type Server struct {
 	// could not reconstruct (neutral.Untranslated). The twin leaves those out
 	// of the comparison: the neutral agent had no answer to give.
 	opaque []bool
+	// opaqueReason is parallel to opaque: the neutral world's id-free
+	// diagnosis of why it could not rebuild that candidate.
+	opaqueReason []string
 	// manualMana makes the bot float mana by hand instead of choosing a
 	// payment plan. The twin sets it on a manual host so both worlds pose the
 	// same mana surface; the production seat keeps the plan path.
@@ -95,6 +98,16 @@ func (s *Server) SetManualMana() { s.manualMana = true }
 // false on the view path, whose candidates are the native ones.
 func (s *Server) NeutralOpaque(i int) bool {
 	return i >= 0 && i < len(s.opaque) && s.opaque[i]
+}
+
+// NeutralRebuild names why the last neutral decision could not reconstruct
+// candidate i. It is empty when the candidate had a translation, or on the
+// view path.
+func (s *Server) NeutralRebuild(i int) string {
+	if i < 0 || i >= len(s.opaqueReason) {
+		return ""
+	}
+	return s.opaqueReason[i]
 }
 
 func (s *Server) Round(req []byte) ([]byte, error) { return s.Handle(req), nil }
@@ -255,6 +268,7 @@ func (s *Server) decide(v view.View, d decision.Decision) (in decision.Intent) {
 
 func (s *Server) choose(q request) uint32 {
 	s.opaque = nil // a failed translation below must not keep the last decision's marks
+	s.opaqueReason = nil
 	cands := q.Decision.Candidates
 	if len(cands) == 0 {
 		s.fallbacks++
@@ -269,8 +283,12 @@ func (s *Server) choose(q request) uint32 {
 			return cands[0].CandidateID
 		}
 		s.opaque = make([]bool, len(p.Ops))
+		s.opaqueReason = make([]string, len(p.Ops))
 		for i := range p.Ops {
 			s.opaque[i] = p.Ops[i].Op == neutral.Untranslated
+			if s.opaque[i] {
+				s.opaqueReason[i] = s.neutral.session.RebuildReason(i)
+			}
 		}
 	} else {
 		raw, ok := q.Decision.Extensions["x_gorge_view_v1"]
