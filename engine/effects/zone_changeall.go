@@ -311,6 +311,14 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		defer h.EndZoneBatch()
 	}
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
+		// CR 111.8: a token that has left the battlefield can't move to
+		// another zone or come back onto the battlefield. Skipping it here
+		// (no MoveZone, no remember bookkeeping) leaves it where it is until
+		// ceaseDeadTokens retires it, the same guard ChangeZone's mover
+		// applies through changeZoneMoveSkip.
+		if o := g.Obj(id); o != nil && tokenCannotChangeZone(o) {
+			return
+		}
 		// A CantExile restriction withholds the object from a battlefield exile
 		// before the MoveZone (and the moved bookkeeping) is produced -- the
 		// ChangeZoneAll half of the same guard effChangeZone's object loop and

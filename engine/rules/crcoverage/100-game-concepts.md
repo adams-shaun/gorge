@@ -78,7 +78,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 110.5-110.5d | follows | `engine/state/object.go#Object.Tapped` `engine/state/object.go#Object.PhasedOut` | - | status fields; not characteristics |
 | 111.1-111.6 | follows | `engine/effects/token.go#effToken` `engine/effects/token.go#runTokenMints` | - | - |
 | 111.7 | follows | `engine/rules/sba.go#Engine.ceaseDeadTokens` | `TestATokenBouncedToHandCeasesToExist` `TestATokenThatDiesCeasesToExist` | - |
-| 111.8 | unknown | - | - | not reached; settle with a token-flicker test |
+| 111.8 | follows | `engine/effects/zone_change.go#changeZoneMoveSkip` | `TestATokenFlickeredByChangeZoneDoesNotReturn` `TestANonTokenFlickeredByChangeZoneReturns` | - |
 | 111.9-111.13 | unknown | - | - | not reached |
 | 112.1-112.4 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | spell on stack; copy owner per OPS.md |
 | 113.1-113.3d | follows | `engine/cards/ir.go#SA` | - | ability IR categories |
