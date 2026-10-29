@@ -55,6 +55,9 @@ func TestHelloDeclaresTheProfile(t *testing.T) {
 	if slices.Contains(env.DecisionKinds, "distribute") {
 		t.Fatal("distribute declared, but combat damage follows engine_order")
 	}
+	if !slices.Contains(env.DecisionKinds, "choose_option") {
+		t.Fatal("choose_option is posed by the mapping but not declared")
+	}
 }
 
 func TestResetErrors(t *testing.T) {
