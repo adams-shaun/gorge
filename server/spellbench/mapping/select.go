@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/spellbench/observe"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
@@ -31,6 +32,21 @@ func init() {
 // zone hidden from it. x_gorge_view_v1 rekeys every option object, so a pose
 // with hidden options needs the look even when its candidates do not name
 // one (a yes/no ask about a revealed top card).
+// knownPosition is the Section 6.7 position_from_top every known LIBRARY
+// entry must carry (validate V5). A card in any other zone has no library
+// position, so it stays nil (a hand entry).
+func knownPosition(env *Env, obj *state.Object) *uint32 {
+	if obj == nil || obj.Zone != state.ZLibrary {
+		return nil
+	}
+	lib := env.G.E.G.Zone(state.ZLibrary, obj.Owner)
+	if at := slices.Index(lib, obj.ID); at >= 0 {
+		p := uint32(at)
+		return &p
+	}
+	return nil
+}
+
 func openLookIfHidden(env *Env, d *decision.Decision) {
 	for _, o := range d.Options {
 		if o.Obj == 0 {
@@ -84,7 +100,7 @@ func mixedSelect(purp string, withSource bool) Builder {
 				}
 				refs[i] = r
 				hidden[i] = true
-				known = append(known, observe.KnownEntry(r, "revealed", nil))
+				known = append(known, observe.KnownEntry(r, "revealed", knownPosition(env, obj)))
 				continue
 			}
 			r, err := env.Obs.Ref(d.Player, o.Obj)

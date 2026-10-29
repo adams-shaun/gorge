@@ -428,6 +428,11 @@ func TestTwoPilesAndHiddenPickRoute(t *testing.T) {
 			if len(p.Candidates) == 0 {
 				t.Fatal("no split candidates")
 			}
+			for _, k := range p.Known {
+				if k.Zone == "library" && k.PositionFromTop == nil {
+					t.Fatalf("known library entry %q has no position", k.CardName)
+				}
+			}
 			selects := 0
 			for i, c := range p.Candidates {
 				switch c.Sem.Kind {
@@ -540,6 +545,11 @@ func TestTwoPilesAndHiddenPickRoute(t *testing.T) {
 		}
 		if len(p.Candidates) == 0 {
 			t.Fatal("no hidden-pick candidates")
+		}
+		for _, k := range p.Known {
+			if k.Zone == "library" && k.PositionFromTop == nil {
+				t.Fatalf("known library entry %q has no position", k.CardName)
+			}
 		}
 		for _, c := range p.Candidates {
 			if c.Sem.Kind != "select_object" {
