@@ -2703,6 +2703,14 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 	if sa == nil {
 		return nil
 	}
+	// The counter a Count$CardCounters.<KIND> body reads lives on the
+	// battlefield permanent. For an ability on the stack that permanent is
+	// the entry's Source; a spell or an ability announced from the
+	// permanent keeps src.
+	anchor := src
+	if entry != nil && entry.Source != nil {
+		anchor = *entry.Source
+	}
 	out := &decision.TargetEffect{API: sa.API, Removal: removal(sa)}
 	if sa.API == "Effect" {
 		out.Statics = staticModesFromFace(f, sa)
@@ -2724,7 +2732,7 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 			// the v2 wire; the observation's zones can still resolve the
 			// common Count$ form, and an unresolvable body stays unknown.
 			if f != nil {
-				if v, ok := s.svarValue(o, f.SVars[raw]); ok && v >= 0 {
+				if v, ok := s.svarValue(o, &anchor, f.SVars[raw]); ok && v >= 0 {
 					n := int(v)
 					out.Damage.Amount = &n
 				}
