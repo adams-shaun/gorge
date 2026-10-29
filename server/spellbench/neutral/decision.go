@@ -105,10 +105,8 @@ type Session struct {
 
 // pendingUse is one counted activated ability awaiting its stack departure.
 type pendingUse struct {
-	source    string
-	wasTapped bool
-	selfTap   bool // the ability's own cost taps its source ({T})
-	turn      uint32
+	source string
+	turn   uint32
 	// held reports the stack object was observed at a priority decision: a
 	// completed activation gives its controller priority with it on the
 	// stack, while one reversed mid-announcement is seen only by the asks
@@ -177,12 +175,6 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 	for _, e := range sd.Observation.Stack {
 		onStack[e.ObjectID] = true
 	}
-	tapped := map[string]bool{}
-	for _, p := range sd.Observation.Players {
-		for _, r := range p.Battlefield {
-			tapped[r.ObjectID] = r.Permanent != nil && r.Permanent.Tapped
-		}
-	}
 	// A reversed activation leaves the stack with its source untapped (the
 	// tap cost was undone). The observation carries no explicit census, so
 	// this is the one observable signature of CR 733.1's fold.
@@ -211,14 +203,8 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 		if e.StackKind == "activated_ability" && e.Source != nil && !s.seen[e.ObjectID] {
 			s.seen[e.ObjectID] = true
 			s.uses[e.Source.ObjectID]++
-			selfTap := false
-			if i, ok := s.activated[e.Source.ObjectID]; ok {
-				if f := s.B.face(e.Source.CardName, false, nil); f != nil && i >= 0 && i < len(f.Abilities) {
-					selfTap = rules.ParseCost(f.Abilities[i].Params["Cost"]).Tap
-				}
-			}
-			s.pendingUses[e.ObjectID] = pendingUse{source: e.Source.ObjectID, wasTapped: tapped[e.Source.ObjectID],
-				selfTap: selfTap, turn: s.usesTurn, held: sd.Context.Kind == "priority"}
+			s.pendingUses[e.ObjectID] = pendingUse{source: e.Source.ObjectID,
+				turn: s.usesTurn, held: sd.Context.Kind == "priority"}
 		}
 	}
 	for pi := range v.Players {
@@ -2329,6 +2315,236 @@ func selfSpec(spec string) bool {
 	return false
 }
 
+// attackRestriction reports whether st's printed CantAttack gate applies,
+// and whether the observation proves it. A condition the reconstruction
+// cannot evaluate is unknown, not unconditional: the caller drops a derived
+// whole-declaration option rather than inventing a legal attacker. The two
+// families the observation does carry are IsPresent$/PresentCompare$ (a
+// battlefield census) and UnlessDefender$ (the defending seat's board).
+func (s *Session) attackRestriction(st cards.Static, id state.ObjID) (applies, known bool) {
+	if target := strings.TrimSpace(st.Params["Target"]); target != "" {
+		// The observation carries no attacked-player history. The engine's
+		// own offer is authoritative for a player-scoped Target gate (Port
+		// Razer's "can't attack a player it has already attacked this turn");
+		// do not invent a restriction it did not apply.
+		if strings.EqualFold(target, "Player.attackedBySourceThisTurn") {
+			return false, true
+		}
+		return false, false
+	}
+	for _, p := range []string{"CheckSVar", "SVarCompare", "CheckSecondSVar", "SecondSVarCompare",
+		"IsPresent2", "PresentZone", "Condition", "ConditionCompare"} {
+		if strings.TrimSpace(st.Params[p]) != "" {
+			return false, false
+		}
+	}
+	if spec := strings.TrimSpace(st.Params["IsPresent"]); spec != "" {
+		if s.last == nil {
+			return false, false
+		}
+		cmp := strings.TrimSpace(st.Params["PresentCompare"])
+		if cmp == "" {
+			cmp = "GE1"
+		}
+		n := 0
+		for _, p := range s.last.Observation.Players {
+			for _, r := range p.Battlefield {
+				if s.presentSpec(spec, r, s.last.ActingSeat) {
+					n++
+				}
+			}
+		}
+		return compareCount(n, cmp), true
+	}
+	if spec := strings.TrimSpace(st.Params["UnlessDefender"]); spec != "" {
+		if s.last == nil {
+			return false, false
+		}
+		ok, known := s.defenderHas(spec)
+		if !known {
+			return false, false
+		}
+		return !ok, true
+	}
+	return true, true
+}
+
+// presentSpec reports whether one battlefield record matches one comma
+// alternative of an IsPresent$ spec: a type word (or "Permanent") plus the
+// optional .YouCtrl/.OppCtrl scope. Subtypes count, as the filter grammar's
+// type predicates do.
+func (s *Session) presentSpec(spec string, r protocol.ObjectRecord, seat string) bool {
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" || r.Characteristics == nil {
+			continue
+		}
+		parts := strings.Split(alt, ".")
+		scope := ""
+		if len(parts) > 1 {
+			scope = strings.Join(parts[1:], ".")
+		}
+		if strings.Contains(strings.ToLower(scope), "youctrl") && r.ControllerSeat != seat {
+			continue
+		}
+		if strings.Contains(strings.ToLower(scope), "oppctrl") && r.ControllerSeat == seat {
+			continue
+		}
+		words := strings.FieldsFunc(parts[0], func(r rune) bool { return r == '+' || r == '&' || r == ' ' })
+		if len(words) == 0 {
+			continue
+		}
+		match := true
+		for _, w := range words {
+			if strings.EqualFold(w, "Permanent") {
+				continue
+			}
+			if !s.recordHasWord(r, w) {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
+}
+
+// defenderHas reports whether any opposing seat controls a permanent the
+// UnlessDefender$ spec names: controls<Type> (the common land/enchantment
+// cycle) or Permanent.enchanted. known is false for a form the observation
+// cannot answer.
+func (s *Session) defenderHas(spec string) (ok, known bool) {
+	known = true
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		lower := strings.ToLower(alt)
+		switch {
+		case strings.HasPrefix(lower, "controls"):
+			word := alt[len("controls"):]
+			if word == "" {
+				known = false
+				continue
+			}
+			for _, p := range s.last.Observation.Players {
+				if p.Seat == s.last.ActingSeat {
+					continue
+				}
+				for _, r := range p.Battlefield {
+					if s.recordHasWord(r, word) {
+						return true, true
+					}
+				}
+			}
+		case lower == "permanent.enchanted":
+			opp := map[string]bool{}
+			for _, p := range s.last.Observation.Players {
+				if p.Seat != s.last.ActingSeat {
+					opp[p.Seat] = true
+				}
+			}
+			for _, p := range s.last.Observation.Players {
+				for _, r := range p.Battlefield {
+					if r.Permanent == nil || r.Permanent.AttachedTo == nil || r.Permanent.AttachedTo.Object == nil {
+						continue
+					}
+					if !s.recordHasWord(r, "enchantment") {
+						continue
+					}
+					if opp[r.Permanent.AttachedTo.Object.ControllerSeat] {
+						return true, true
+					}
+				}
+			}
+		default:
+			return false, false
+		}
+	}
+	return false, known
+}
+
+// compareCount answers a Forge PresentCompare$/SVarCompare$ form ("EQ0",
+// "GE1", ...) for a board count.
+func compareCount(n int, cmp string) bool {
+	cmp = strings.ToUpper(strings.TrimSpace(cmp))
+	op, rest := "", ""
+	for _, p := range []string{"EQ", "GE", "LE", "GT", "LT", "NE"} {
+		if strings.HasPrefix(cmp, p) {
+			op, rest = p, cmp[len(p):]
+			break
+		}
+	}
+	if op == "" {
+		return false
+	}
+	want, err := strconv.Atoi(strings.TrimSpace(rest))
+	if err != nil {
+		return false
+	}
+	switch op {
+	case "EQ":
+		return n == want
+	case "GE":
+		return n >= want
+	case "LE":
+		return n <= want
+	case "GT":
+		return n > want
+	case "LT":
+		return n < want
+	case "NE":
+		return n != want
+	}
+	return false
+}
+
+// recordHasWord is characteristicsHasWord plus the printed face's words when
+// the observation omits subtypes entirely (a lean projection or a synthetic
+// fixture): the protocol splits subtypes out of Types, and a condition naming
+// a creature or basic-land subtype must still find it there. A record that
+// does carry a subtype list is authoritative -- a derived line that lost a
+// printed subtype must not regain it.
+func (s *Session) recordHasWord(r protocol.ObjectRecord, w string) bool {
+	if characteristicsHasWord(r.Characteristics, w) {
+		return true
+	}
+	if r.Characteristics == nil || len(r.Characteristics.Subtypes) != 0 {
+		return false
+	}
+	f := s.B.face(r.CardName, r.Token && !r.Copy, r.Characteristics)
+	if f == nil {
+		return false
+	}
+	for _, t := range f.Types {
+		if strings.EqualFold(t, w) {
+			return true
+		}
+	}
+	return false
+}
+
+// characteristicsHasWord reports whether an observation's full type line
+// (supertypes, card types, subtypes) carries w. The protocol splits subtypes
+// out of Types, so a condition naming a creature type or a basic land type
+// must read all three lists.
+func characteristicsHasWord(c *protocol.Characteristics, w string) bool {
+	if c == nil {
+		return false
+	}
+	for _, list := range [][]string{c.Supertypes, c.Types, c.Subtypes} {
+		for _, t := range list {
+			if strings.EqualFold(t, w) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // unresolvedStatic reports whether a static carries a printed condition whose
 // live value the v2 observation does not carry. The derived attack/block lists
 // for units the current substep's candidates do not name treat such a static
@@ -2369,11 +2585,24 @@ func (s *Session) cantAttack(cv view.CardView, attached []view.CardView) bool {
 		if !slices.Contains(strings.Split(st.Mode, ","), "CantAttack") {
 			continue
 		}
-		if unresolvedStatic(st) {
-			continue // a later unconditional static still decides
-		}
 		valid := strings.TrimSpace(st.Params["ValidCard"])
-		if valid == "" || selfSpec(valid) {
+		if valid != "" && !selfSpec(valid) {
+			continue
+		}
+		applies, known := s.attackRestriction(st, cv.ID)
+		if !known {
+			// The observation cannot prove this gate absent. The engine's
+			// own offer remains authoritative for the current substep, but
+			// a derived whole-declaration option must not invent a pair the
+			// engine's conditional static excluded (Goblin Cohort,
+			// Deep-Sea Serpent). With no observation at all (the rule's
+			// unit-test shape) the static is not read as unconditional.
+			if s.last != nil {
+				return true
+			}
+			continue
+		}
+		if applies {
 			return true
 		}
 	}
@@ -2427,35 +2656,40 @@ func (s *Session) mayAttackThroughDefender(v2ID string, cv view.CardView) bool {
 		return false
 	}
 	ab := f.Abilities[i]
-	if ab.API != "Effect" {
-		return false
-	}
-	names := strings.FieldsFunc(effects.EffectOf(ab).StaticAbilities, func(r rune) bool {
-		return r == ',' || r == ' ' || r == '\t' || r == '\n'
-	})
-	for _, name := range names {
-		body := strings.TrimSpace(f.SVars[name])
-		if body == "" {
+	// The permission may be the activated ability's own Effect body
+	// (Wall of One Thousand Cuts) or a later link of its SubAbility chain
+	// (Walking Wall's Pump into DB$ Effect | StaticAbilities$ CanAttack).
+	for _, link := range chain(f, ab) {
+		if link.API != "Effect" {
 			continue
 		}
-		statics, ok := cards.ParseStaticLines(body)
-		if !ok {
-			continue
-		}
-		for _, st := range statics {
-			if st.Mode != "CanAttackDefender" || !effects.CanAttackDefenderGrantParamsReadable(st.Params) {
+		names := strings.FieldsFunc(effects.EffectOf(link).StaticAbilities, func(r rune) bool {
+			return r == ',' || r == ' ' || r == '\t' || r == '\n'
+		})
+		for _, name := range names {
+			body := strings.TrimSpace(f.SVars[name])
+			if body == "" {
 				continue
 			}
-			if strings.TrimSpace(st.Params["ValidAttacked"]) != "" {
-				continue // a defender-side gate the neutral cannot evaluate
+			statics, ok := cards.ParseStaticLines(body)
+			if !ok {
+				continue
 			}
-			spec := strings.TrimSpace(st.Params["ValidCard"])
-			if spec == "" {
-				spec = strings.TrimSpace(st.Params["ValidCards"])
-			}
-			switch strings.ToLower(spec) {
-			case "card.effectsource", "card.self", "cardname":
-				return true
+			for _, st := range statics {
+				if st.Mode != "CanAttackDefender" || !effects.CanAttackDefenderGrantParamsReadable(st.Params) {
+					continue
+				}
+				if strings.TrimSpace(st.Params["ValidAttacked"]) != "" {
+					continue // a defender-side gate the neutral cannot evaluate
+				}
+				spec := strings.TrimSpace(st.Params["ValidCard"])
+				if spec == "" {
+					spec = strings.TrimSpace(st.Params["ValidCards"])
+				}
+				switch strings.ToLower(spec) {
+				case "card.effectsource", "card.self", "cardname":
+					return true
+				}
 			}
 		}
 	}

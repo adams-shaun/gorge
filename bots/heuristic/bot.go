@@ -970,13 +970,6 @@ func hasTypeView(cv view.CardView, t string) bool {
 // carries only the same type words joined into one string, so this mirrors
 // exactly that check on the joined list.
 func isCreatureView(cv view.CardView) bool {
-	// CR 708.2: a face-down battlefield permanent is a creature even when the
-	// view prints the visible face's type line. The game-shaped half reads
-	// state.Object.EffectiveIsCreature, which honours the marker; the view
-	// half must agree.
-	if cv.FaceDown {
-		return true
-	}
 	for t := range strings.FieldsSeq(cv.Types) {
 		if strings.EqualFold(t, "Creature") {
 			return true
