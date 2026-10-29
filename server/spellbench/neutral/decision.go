@@ -107,6 +107,11 @@ type pendingUse struct {
 	wasTapped bool
 	selfTap   bool // the ability's own cost taps its source ({T})
 	turn      uint32
+	// held reports the stack object was observed at a priority decision: a
+	// completed activation gives its controller priority with it on the
+	// stack, while one reversed mid-announcement is seen only by the asks
+	// that pay for it.
+	held bool
 }
 
 // SetAutoPay records whether the host declared engine_autopay in its hello.
@@ -181,13 +186,17 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 	// this is the one observable signature of CR 733.1's fold.
 	for id, p := range s.pendingUses {
 		if onStack[id] {
+			if sd.Context.Kind == "priority" {
+				p.held = true
+				s.pendingUses[id] = p
+			}
 			continue
 		}
 		// A self-tapping activation that leaves its source untapped was
 		// reversed: the engine folds the cost back. An activation whose
 		// source was already tapped at first sight is the weaker fallback
 		// signal (a non-{T} cost paid by tapping another permanent).
-		if p.turn == s.usesTurn && (p.selfTap || p.wasTapped) && !tapped[p.source] {
+		if p.turn == s.usesTurn && (!p.held || (p.selfTap || p.wasTapped) && !tapped[p.source]) {
 			if s.uses[p.source] > 0 {
 				s.uses[p.source]--
 			}
@@ -205,7 +214,7 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 				}
 			}
 			s.pendingUses[e.ObjectID] = pendingUse{source: e.Source.ObjectID, wasTapped: tapped[e.Source.ObjectID],
-				selfTap: selfTap, turn: s.usesTurn}
+				selfTap: selfTap, turn: s.usesTurn, held: sd.Context.Kind == "priority"}
 		}
 	}
 	for pi := range v.Players {
@@ -909,6 +918,13 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 		}
 	}
 	d := decision.Decision{Kind: decision.KChoose, Min: lo, Max: hi, Prompt: "Choose " + purpose}
+	if src != nil {
+		if sa := s.hiddenPickSA(*src, &sd.Observation, purpose); sa != nil {
+			// gorge asks a public-origin Hidden$ ChangeZone as a hidden_pick
+			// of the zone's cards, whatever the destination.
+			kind, d.ResumeKind, d.ResumeSA = "hidden_pick", "hidden_pick", sa
+		}
+	}
 	key := "select|" + purpose
 	if src != nil {
 		d.Source = s.B.IDs.Of(src.ObjectID)
@@ -935,6 +951,14 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 			return decision.Option{Kind: kind, Label: *t.Player, Player: p}, err
 		}
 		o := decision.Option{Kind: kind, Label: name(*t.Object), Obj: s.B.IDs.Of(t.Object.ObjectID)}
+		if kind == "hidden_pick" {
+			// The pick's option names the card's owner, as effHiddenPick's does.
+			p, err := Seat(t.Object.OwnerSeat)
+			if err != nil {
+				return o, err
+			}
+			o.Player = p
+		}
 		if purpose == "tap" {
 			if p, ok := observedPower(&sd.Observation, t.Object.ObjectID); ok {
 				o.Value = p
@@ -954,6 +978,36 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 		s.groupSearch(sd, n, *src)
 	}
 	return ops, n, err
+}
+
+// hiddenPickDestinations is the select_object purpose a Hidden$ ChangeZone's
+// destination zone names (mapping's newHiddenPick).
+var hiddenPickDestinations = map[string]string{"exile": "exile", "hand": "put_into_hand",
+	"battlefield": "put_onto_battlefield", "graveyard": "put_into_graveyard", "library": "search"}
+
+// hiddenPickSA is the Hidden$ ChangeZone of the source's ability that asks a
+// pick for purpose from public zones (a graveyard, exile, the battlefield):
+// gorge's effHiddenPick, whose decision is a hidden_pick. An origin that
+// holds hidden information (a library search, a hand move) has its own ask.
+func (s *Session) hiddenPickSA(src protocol.ObjectRef, o *protocol.Observation, purpose string) *cards.SA {
+	f, roots := s.abilityRoots(src, o)
+	for _, root := range roots {
+		if root == nil {
+			continue
+		}
+		for _, sa := range chain(f, root) {
+			if sa.API != "ChangeZone" || !strings.EqualFold(sa.Params["Hidden"], "True") {
+				continue
+			}
+			origin := strings.ToLower(sa.Params["Origin"])
+			if origin == "" || strings.Contains(origin, "hand") || strings.Contains(origin, "library") ||
+				hiddenPickDestinations[strings.ToLower(strings.TrimSpace(sa.Params["Destination"]))] != purpose {
+				continue
+			}
+			return sa
+		}
+	}
+	return nil
 }
 
 // groupSearch restores the Group structure of a hidden-library search. gorge
@@ -2048,6 +2102,16 @@ func (s *Session) yesNo(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native,
 		d.Options[0].Kind, d.Options[1].Kind = "trigger_cost_pay", "trigger_cost_decline"
 	case str(first, "purpose") == "optional_trigger" || str(first, "purpose") == "may_ability":
 		d.Kind = decision.KTriggerOptional
+		if src, _ := optRef(first, "source"); src != nil && str(first, "purpose") == "may_ability" {
+			if sa := s.repeatOptionalSA(*src, &sd.Observation); sa != nil {
+				// RepeatOptional$'s election is a plain choose with its own
+				// wording, not a may-ability.
+				d.Kind, d.Prompt, d.Source = decision.KChoose, "Repeat this process?", s.B.IDs.Of(src.ObjectID)
+				d.ResumeKind, d.ResumeSA = "repeat_optional", sa
+				d.Options[0].Label, d.Options[0].Player = "Repeat", s.seat
+				d.Options[1].Label, d.Options[1].Player = "Stop", s.seat
+			}
+		}
 	case str(first, "purpose") == "optional_replacement":
 		d.Kind = decision.KReplacement
 		d.Options[0].Kind, d.Options[1].Kind = "madness_exile", "madness_graveyard"
@@ -2066,6 +2130,23 @@ func (s *Session) yesNo(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native,
 		ops[i] = mapping.NativeOp{Op: "choose", Option: k}
 	}
 	return ops, n, nil
+}
+
+// repeatOptionalSA is the RepeatOptional$ Repeat of the ability the source
+// names, nil when it has none.
+func (s *Session) repeatOptionalSA(src protocol.ObjectRef, o *protocol.Observation) *cards.SA {
+	f, roots := s.abilityRoots(src, o)
+	for _, root := range roots {
+		if root == nil {
+			continue
+		}
+		for _, sa := range chain(f, root) {
+			if sa.API == "Repeat" && strings.EqualFold(sa.Params["RepeatOptional"], "True") {
+				return sa
+			}
+		}
+	}
+	return nil
 }
 
 // optionalCost is gorge's unless-cost ask (pay or decline) for
@@ -2134,12 +2215,12 @@ func (s *Session) unlessCostObject(src protocol.ObjectRef, o *protocol.Observati
 	return s.B.IDs.Of(src.ObjectID)
 }
 
-// unlessCostSA finds the printed unless-cost body of the ability that is on
-// the stack or resolving, the native decision's ResumeSA. The v2 source names
-// the ability object, so the observation's stack entry (or the activation the
-// session just recorded) picks the one ability; scanning the whole face would
-// let an unrelated ability's UnlessCost masquerade as this ask's.
-func (s *Session) unlessCostSA(src protocol.ObjectRef, o *protocol.Observation) *cards.SA {
+// abilityRoots is the face and the root abilities of the source an ask names:
+// the ability on the stack or resolving, the native decision's ResumeSA. The
+// v2 source names the ability object, so the observation's stack entry (or
+// the activation the session just recorded) picks the one ability; scanning
+// the whole face would let an unrelated ability masquerade as this ask's.
+func (s *Session) abilityRoots(src protocol.ObjectRef, o *protocol.Observation) (*cards.Face, []*cards.SA) {
 	var entry *protocol.StackEntry
 	for i := range o.Stack {
 		if o.Stack[i].ObjectID == src.ObjectID {
@@ -2198,6 +2279,15 @@ func (s *Session) unlessCostSA(src protocol.ObjectRef, o *protocol.Observation) 
 			}
 		}
 	}
+	return f, roots
+}
+
+// unlessCostSA finds the printed unless-cost body of the ability that is on
+// the stack or resolving, the native decision's ResumeSA (abilityRoots picks
+// the one ability, so an unrelated ability's UnlessCost cannot masquerade as
+// this ask's).
+func (s *Session) unlessCostSA(src protocol.ObjectRef, o *protocol.Observation) *cards.SA {
+	f, roots := s.abilityRoots(src, o)
 	for _, root := range roots {
 		if root == nil {
 			continue
