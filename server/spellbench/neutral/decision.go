@@ -56,6 +56,7 @@ type arrangement struct {
 	primary string   // dig: the v2 destination of the take
 	rest    string   // dig: the v2 destination of the remainder
 	fixed   bool     // dig: gorge's engine moves the cards without asking
+	random  bool     // dig: RestRandomOrder$ shuffles the remainder, so no order ask
 }
 
 // Session translates one seat's decisions in one game.
@@ -503,8 +504,11 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 				// could not rebuild the plan, a plain cast here would let
 				// the neutral bot cast a spell the native bot passed. Leave
 				// the candidate untranslated unless the floating pool alone
-				// would have offered it as a plain cast.
-				if f := s.B.face(src.CardName, false, nil); f != nil && !s.poolPays(v, f) {
+				// would have offered it as a plain cast, or the card has a
+				// contribution cast (Convoke and its siblings) the planner
+				// never prices as a plan: the engine offers those as plain
+				// casts at any time.
+				if f := s.B.face(src.CardName, false, nil); f != nil && !s.poolPays(v, f) && !contributionCast(f) {
 					continue
 				}
 			}
@@ -1052,7 +1056,8 @@ func targetManaValue(s *Session, name *string) int32 {
 // selectKinds maps a select_object purpose to gorge's KChoose option kind.
 var selectKinds = map[string]string{"discard": "discard", "sacrifice": "sacrifice", "exile": "exile",
 	"search": "search", "return_to_hand": "returncost", "tap": "tapcost", "untap": "untap", "keep": "keep",
-	"delve": "exile", "put_into_hand": "dig", "reveal": "reveal", "legend_rule": "keep", "convoke": "convoke"}
+	"delve": "exile", "put_into_hand": "dig", "put_onto_battlefield": "hidden_pick", "put_into_graveyard": "hidden_pick",
+	"reveal": "reveal", "legend_rule": "keep", "convoke": "convoke", "vote": "vote_card", "other": "card"}
 
 // replacement translates a CR 616.1 replacement-order ask: v2 names each
 // applicable replacement by its index and source permanent, and gorge asks a
@@ -1110,6 +1115,12 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 	if sa != nil && ownHandOptions(sd) {
 		kind, ok = "hand_move", true
 	}
+	if ok && src != nil && purpose == "other" && s.hasAPI(*src, &sd.Observation, "Proliferate") {
+		// mapping routes a Proliferate pick through the protocol's "other"
+		// purpose, but the bot's proliferate arm takes the first Max options
+		// (Min 0 included), unlike the generic "other" first-Min fill.
+		kind = "proliferate"
+	}
 	if !ok {
 		return nil, nil, nil
 	}
@@ -1151,7 +1162,11 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 	}, func(t protocol.TargetRef) (decision.Option, error) {
 		if t.Object == nil {
 			p, err := Seat(*t.Player)
-			return decision.Option{Kind: kind, Label: *t.Player, Player: p}, err
+			okind := kind
+			if okind == "card" {
+				okind = "player" // the protocol's "other" purpose covers a named player too
+			}
+			return decision.Option{Kind: okind, Label: *t.Player, Player: p}, err
 		}
 		o := decision.Option{Kind: kind, Label: name(*t.Object), Obj: s.B.IDs.Of(t.Object.ObjectID)}
 		if kind == "hidden_pick" {
@@ -1408,6 +1423,20 @@ func (s *Session) isBattle(id string) bool {
 	return false
 }
 
+// contributionCast reports whether a spell can be paid by the contribution
+// keywords (Convoke, Harmonize, Improvise, Waterbend) that the engine poses
+// as a select_object payment rather than a payment plan. Such a cast stays a
+// plain cast option in every priority window, so the autopay shadow's missing
+// plan is not evidence that the engine withheld it.
+func contributionCast(f *cards.Face) bool {
+	for _, kw := range []string{"Convoke", "Harmonize", "Improvise", "Waterbend"} {
+		if f.HasKeyword(kw) {
+			return true
+		}
+	}
+	return false
+}
+
 // ownNonMain reports whether the deciding seat is the active player and the
 // step is not a main phase -- exactly the window where the native bot skips
 // its payment planner.
@@ -1524,6 +1553,25 @@ func (s *Session) chainSA(src protocol.ObjectRef, want func(*cards.SA) bool) *ca
 		}
 	}
 	return nil
+}
+
+// hasAPI reports whether the source's asking ability (or, for a triggered
+// ability the observation cannot single out, any of its triggers) reaches an
+// SA with the given API. It is how the neutral world recovers the native
+// option kind a lossy protocol purpose (the "other" select_object) hides.
+func (s *Session) hasAPI(src protocol.ObjectRef, o *protocol.Observation, api string) bool {
+	f, roots := s.abilityRoots(src, o)
+	for _, root := range roots {
+		if root == nil {
+			continue
+		}
+		for _, sa := range chain(f, root) {
+			if sa.API == api {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // chain is root and the SubAbilities it leads to, in order.
@@ -3853,6 +3901,74 @@ func hiddenOrder(sd *protocol.SeatDecision, ids []string) []int {
 	return order
 }
 
+// digEligible reports whether a card matches a Dig's ChangeValid$ filter and
+// whether the filter is one this reconstruction understands. The engine has
+// already narrowed the wire's options to eligible cards; the neutral world
+// rebuilds the same native option list from the printed faces. The common
+// spec is "Card" or "Card.nonCreature+nonLand": an optional Card prefix and
+// + joined type words, each optionally negated by non. Anything with a scope
+// clause or an unrecognised shape fails closed.
+func digEligible(f *cards.Face, spec string) (match, known bool) {
+	if f == nil {
+		return false, true
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		m, ok := digAlt(f, alt)
+		if !ok {
+			return false, false
+		}
+		if m {
+			return true, true
+		}
+	}
+	return false, true
+}
+
+func digAlt(f *cards.Face, alt string) (bool, bool) {
+	if strings.EqualFold(strings.TrimSpace(alt), "Card") {
+		return true, true
+	}
+	if i := strings.IndexByte(alt, '.'); i >= 0 {
+		if !strings.EqualFold(strings.TrimSpace(alt[:i]), "Card") {
+			return false, false
+		}
+		alt = alt[i+1:]
+		if strings.Contains(alt, ".") {
+			return false, false // a scope clause (Card.YouCtrl) is not modelled
+		}
+	}
+	if strings.TrimSpace(alt) == "" {
+		return true, true
+	}
+	parts := strings.FieldsFunc(alt, func(r rune) bool { return r == '+' || r == '&' || r == ' ' })
+	if len(parts) == 0 {
+		return false, false
+	}
+	for _, p := range parts {
+		neg := false
+		if len(p) > 3 && strings.EqualFold(p[:3], "non") {
+			neg, p = true, p[3:]
+		}
+		if p == "" || !cardTypeWords[strings.ToLower(p)] {
+			// A predicate this filter does not model (Card.NamedCard,
+			// Card.Historic, Card.cmcLE3) is not the same as a type the card
+			// lacks: treating it as one would silently mark every card
+			// ineligible, and a negated one ("Card.nonHistoric") eligible in
+			// reverse.
+			return false, false
+		}
+		has := slices.ContainsFunc(f.Types, func(t string) bool { return strings.EqualFold(t, p) })
+		if has == neg {
+			return false, true
+		}
+	}
+	return true, true
+}
+
 // digSA finds the Dig ability that posed the ask. The source may be a spell
 // on the stack or an activated ability (Orcish Librarian's "{R}, {T}: Look at
 // the top eight..."), so it searches the same ability roots every other
@@ -3926,28 +4042,14 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 			if spec == "" {
 				spec = "Card" // effects.compileDig's default
 			}
-			valid := strings.Split(spec, ",")
-			eligible := func(id string) bool {
+			eligible := func(id string) (bool, bool) {
 				name := ""
 				for _, k := range sd.Observation.Known {
 					if k.ObjectID != nil && *k.ObjectID == id {
 						name = k.CardName
 					}
 				}
-				f := s.B.face(&name, false, nil)
-				if f == nil {
-					return false
-				}
-				for _, v := range valid {
-					v = strings.TrimSpace(v)
-					if strings.EqualFold(v, "Card") || slices.Contains(f.Types, v) {
-						return true
-					}
-				}
-				return false
-			}
-			if slices.ContainsFunc(valid, func(v string) bool { return strings.ContainsAny(v, ".+") }) {
-				return nil, nil, nil
+				return digEligible(s.B.face(&name, false, nil), spec)
 			}
 			d := decision.Decision{Kind: decision.KChoose, Prompt: "dig", ResumeSA: sa}
 			d.Source = s.B.IDs.Of(src.ObjectID)
@@ -3956,7 +4058,11 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 				n.arrange.native[ci] = -1
 			}
 			for _, ci := range hiddenOrder(sd, ids) {
-				if eligible(ids[ci]) {
+				ok, known := eligible(ids[ci])
+				if !known {
+					return nil, nil, nil
+				}
+				if ok {
 					n.arrange.native[ci] = len(d.Options)
 					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "dig", Label: knownName(sd, ids[ci]), Obj: s.B.IDs.Of(ids[ci]), Player: s.seat})
 				}
@@ -3976,6 +4082,7 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 			n.d = d
 		}
 		n.arrange.primary, n.arrange.rest = primaryV2, restV2
+		n.arrange.random = strings.EqualFold(param("RestRandomOrder"), "True")
 		s.cur = n
 	}
 	n := s.continuing("dig")
@@ -4006,7 +4113,7 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 	if n.follow == nil {
 		n.follow = map[string]decision.Decision{}
 	}
-	if len(a.dest) == len(a.cards) && len(bottom) >= 2 {
+	if len(a.dest) == len(a.cards) && len(bottom) >= 2 && !a.random {
 		fd := decision.Decision{Kind: decision.KArrange, Min: len(bottom), Max: len(bottom), ResumeKind: "dig_arrange",
 			ResumeSA: n.d.ResumeSA, Source: n.d.Source, Player: s.seat, Prompt: "Put the remaining cards on the bottom of your library in any order"}
 		for j, ci := range bottom {
@@ -4014,7 +4121,7 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 		}
 		n.follow["dig_bottom"] = fd
 	}
-	if len(a.dest) == len(a.cards) && len(top) >= 2 {
+	if len(a.dest) == len(a.cards) && len(top) >= 2 && !a.random {
 		fd := decision.Decision{Kind: decision.KArrange, Min: len(top), Max: len(top), ResumeKind: "dig_arrange",
 			ResumeSA: n.d.ResumeSA, Source: n.d.Source, Player: s.seat, Prompt: "Put the remaining cards back on top of your library in any order"}
 		for j, ci := range top {
@@ -4066,6 +4173,13 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 				}
 			}
 			switch {
+			case dst == a.rest && (a.random || (dst != "bottom" && dst != "top")):
+				// A random remainder, or one that leaves the library, is moved
+				// in library order: the engine poses no order ask, so each
+				// ordering pick is the presentational dest mapping poses. The
+				// taken pile keeps its Choices order (and its top/bottom ask).
+				inside := false
+				ops[i] = mapping.NativeOp{Op: "dest", Option: -1, List: dst, Inside: &inside}
 			case dst == "hand":
 				ops[i] = mapping.NativeOp{Op: "list", Option: a.native[ci], List: "choices", Position: pos}
 			case dst == "bottom" && len(bottom) == 1:
