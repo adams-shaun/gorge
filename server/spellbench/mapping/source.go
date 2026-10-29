@@ -35,18 +35,36 @@ func ResolveSource(env *Env, d *decision.Decision) (*protocol.ObjectRef, error) 
 			return r, err
 		}
 	}
-	if d.Source == 0 && d.Kind == decision.KChoose &&
-		(d.ResumeKind == "unless_mana" || d.ResumeKind == "ward_mana") {
-		// rules.askWardMana does not populate Decision.Source. Its Ask call
-		// captures the current top stack object as the suspended resolution.
-		// Refer only to that publicly visible entry, without changing the
-		// native decision or borrowing an unrelated priority action's source.
+	// The mana windows are KChoose asks and the pay-or-decline election is a
+	// KModes ask; each arm keeps its kind so an unrelated decision carrying
+	// the same resume kind cannot borrow the stack's top entry.
+	if d.Source == 0 && ((d.Kind == decision.KChoose && (d.ResumeKind == "unless_mana" || d.ResumeKind == "ward_mana")) ||
+		(d.Kind == decision.KModes && d.ResumeKind == "unless_pay")) {
+		// These asks do not populate Decision.Source. Their Ask call captures
+		// the current top stack object as the suspended resolution. Refer only
+		// to that publicly visible entry, without changing the native decision
+		// or borrowing an unrelated priority action's source.
 		if n := len(g.Stack); n > 0 {
 			return env.Obs.Ref(d.Player, g.Stack[n-1])
 		}
 	}
 	if a := env.Action; a != nil && a.Seat == d.Player {
 		return env.Obs.Ref(d.Player, a.Obj)
+	}
+	// A target ask from an activated ability carries no Source: the ability
+	// stack object is already pushed (CR 602.2a), and cast_targets.go leaves
+	// Source 0 so the source permanent stays a legal target of its own
+	// ability. When the chooser is not the activator (TargetingPlayer$), the
+	// action context names the wrong seat, so anchor the ask to the resolving
+	// ability's visible source instead.
+	if d.Source == 0 && d.Kind == decision.KTarget {
+		if n := len(g.Stack); n > 0 {
+			if top := g.Obj(g.Stack[n-1]); top != nil && top.Ability != nil && top.Source != 0 {
+				if r, err := env.Obs.Ref(d.Player, top.Source); r != nil || err != nil {
+					return r, err
+				}
+			}
+		}
 	}
 	return nil, nil
 }
