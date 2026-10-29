@@ -78,221 +78,28 @@ type Builder struct {
 	blocked   map[string]blockMemo
 	blockTurn uint32
 	// cards is the previous View's per-object card views, keyed by protocol
-	// object id. cachedCard.hash is a canonical fingerprint of the record
-	// that produced card; View reuses an entry only when the new record
-	// hashes the same and the zone's cost projection is unchanged. gen marks
-	// the entries touched by the current View, so entries whose object left
-	// the observation are deleted and the cache never grows past one
-	// observation.
+	// object id. cachedCard.rec is a deep copy of the record that produced
+	// card; View reuses an entry only when the new record compares equal and
+	// the zone's cost projection is unchanged. gen marks the entries touched
+	// by the current View, so entries whose object left the observation are
+	// deleted and the cache never grows past one observation.
 	cards map[string]cachedCard
 	gen   uint64
 }
 
-// cachedCard is one cached card view: the canonical hash of the object record
-// that built it, whether the zone lists ability costs, and the built view.
-// A hit reuses card by value; card's Keywords, AbilityCosts, Counters map,
-// Produces and AttackingPlayer are shared with the View that built them
-// (BlockedBy is not: applyBlocks re-clones it per View). No writer in the
-// neutral/v2 path mutates those fields.
+// cachedCard is one cached card view: a deep copy of the object record that
+// built it, whether the zone lists ability costs, and the built view.
+// The copy makes an in-place mutation of the observation's record visible to
+// the next View instead of aliasing it into a stale hit. A hit reuses card by
+// value; card's Keywords, AbilityCosts, Counters map, Produces and
+// AttackingPlayer are shared with the View that built them (BlockedBy is not:
+// applyBlocks re-clones it per View). No writer in the neutral/v2 path mutates
+// those fields.
 type cachedCard struct {
-	hash  uint64
+	rec   protocol.ObjectRecord
 	costs bool
 	gen   uint64
 	card  view.CardView
-}
-
-// FNV-1a (64-bit). The hash is only a cache fingerprint: a collision (about
-// 2^-64 for two different records of the same object id and costs) would
-// reuse a stale card.
-const (
-	fnvOffset64 = 14695981039346656037
-	fnvPrime64  = 1099511628211
-)
-
-// recordHash is a canonical, allocation-free encoding of a protocol record.
-// Every length, field and presence marker is fed in, so two records that
-// differ in any field hash apart (modulo the usual 64-bit collision). Map
-// entries combine commutatively, so an equal map hashes equal whatever the
-// iteration order.
-type recordHash struct{ h uint64 }
-
-func (r *recordHash) u64(v uint64) {
-	for i := 0; i < 8; i++ {
-		r.h ^= v & 0xff
-		r.h *= fnvPrime64
-		v >>= 8
-	}
-}
-
-func (r *recordHash) boolean(b bool) {
-	if b {
-		r.u64(1)
-	} else {
-		r.u64(0)
-	}
-}
-
-func (r *recordHash) str(s string) {
-	r.u64(uint64(len(s)))
-	for i := 0; i < len(s); i++ {
-		r.h ^= uint64(s[i])
-		r.h *= fnvPrime64
-	}
-}
-
-func (r *recordHash) strp(s *string) {
-	if s == nil {
-		r.u64(0)
-		return
-	}
-	r.u64(1)
-	r.str(*s)
-}
-
-func (r *recordHash) strs(ss []string) {
-	r.u64(uint64(len(ss)))
-	for _, s := range ss {
-		r.str(s)
-	}
-}
-
-func (r *recordHash) i32p(v *int32) {
-	if v == nil {
-		r.u64(0)
-		return
-	}
-	r.u64(1)
-	r.u64(uint64(uint32(*v)))
-}
-
-func (r *recordHash) u32p(v *uint32) {
-	if v == nil {
-		r.u64(0)
-		return
-	}
-	r.u64(1)
-	r.u64(uint64(*v))
-}
-
-func (r *recordHash) ref(o *protocol.ObjectRef) {
-	if o == nil {
-		r.u64(0)
-		return
-	}
-	r.u64(1)
-	r.str(o.ObjectID)
-	r.strp(o.CardName)
-	r.str(o.OwnerSeat)
-	r.str(o.ControllerSeat)
-	r.str(o.Zone)
-}
-
-func (r *recordHash) refs(rs []protocol.ObjectRef) {
-	r.u64(uint64(len(rs)))
-	for i := range rs {
-		r.ref(&rs[i])
-	}
-}
-
-func (r *recordHash) target(t *protocol.TargetRef) {
-	switch {
-	case t == nil:
-		r.u64(0)
-	case t.Player != nil:
-		r.u64(1)
-		r.str(*t.Player)
-	case t.Object != nil:
-		r.u64(2)
-		r.ref(t.Object)
-	default:
-		r.u64(3)
-	}
-}
-
-func (r *recordHash) counters(m map[string]uint32) {
-	r.u64(uint64(len(m)))
-	var sum uint64
-	for k, n := range m {
-		var e recordHash
-		e.h = fnvOffset64
-		e.str(k)
-		e.u64(uint64(n))
-		sum += e.h
-	}
-	r.u64(sum)
-}
-
-func (r *recordHash) chosen(ms []map[string]string) {
-	r.u64(uint64(len(ms)))
-	for _, m := range ms {
-		r.u64(uint64(len(m)))
-		var sum uint64
-		for k, v := range m {
-			var e recordHash
-			e.h = fnvOffset64
-			e.str(k)
-			e.str(v)
-			sum += e.h
-		}
-		r.u64(sum)
-	}
-}
-
-func (r *recordHash) characteristics(c *protocol.Characteristics) {
-	if c == nil {
-		r.u64(0)
-		return
-	}
-	r.u64(1)
-	r.strs(c.Supertypes)
-	r.strs(c.Types)
-	r.strs(c.Subtypes)
-	r.strs(c.Colors)
-	r.u64(uint64(c.ManaValue))
-	r.i32p(c.Power)
-	r.i32p(c.Toughness)
-	r.strs(c.Keywords)
-}
-
-func (r *recordHash) permanent(p *protocol.Permanent) {
-	if p == nil {
-		r.u64(0)
-		return
-	}
-	r.u64(1)
-	r.boolean(p.Tapped)
-	r.boolean(p.SummoningSick)
-	r.u64(uint64(p.Damage))
-	r.counters(p.Counters)
-	r.target(p.AttachedTo)
-	r.boolean(p.Attacking)
-	r.target(p.AttackTarget)
-	r.boolean(p.Blocking)
-	r.refs(p.BlockedAttackers)
-	r.boolean(p.PhasedOut)
-	r.strs(p.Statuses)
-	r.u32p(p.ClassLevel)
-	r.chosen(p.Chosen)
-}
-
-// hashObjectRecord fingerprints every field of rec. Fields View does not read
-// are hashed too, so the cache contract is the record's identity, not a
-// list of the fields card happens to use today.
-func hashObjectRecord(rec protocol.ObjectRecord) uint64 {
-	r := recordHash{h: fnvOffset64}
-	r.str(rec.ObjectID)
-	r.strp(rec.CardName)
-	r.str(rec.OwnerSeat)
-	r.str(rec.ControllerSeat)
-	r.str(rec.Zone)
-	r.strp(rec.FullName)
-	r.boolean(rec.FaceDown)
-	r.boolean(rec.Token)
-	r.boolean(rec.Copy)
-	r.characteristics(rec.Characteristics)
-	r.permanent(rec.Permanent)
-	r.ref(rec.ExiledBy)
-	return r.h
 }
 
 // blockMemo is one attacker's blocker count in the current combat and the
@@ -571,19 +378,19 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 	if b.cards == nil {
 		b.cards = map[string]cachedCard{}
 	}
-	h := hashObjectRecord(r)
-	if c, ok := b.cards[r.ObjectID]; ok && c.hash == h && c.costs == costs {
+	if c, ok := b.cards[r.ObjectID]; ok && c.costs == costs && sameObjectRecord(c.rec, r) {
 		c.gen = b.gen
 		b.cards[r.ObjectID] = c
 		cv := c.card
 		applyBlocks(&cv, r, blockers)
 		return cv, nil
 	}
-	cv, err := b.buildCard(r, costs)
+	rec := cloneObjectRecord(r)
+	cv, err := b.buildCard(rec, costs)
 	if err != nil {
 		return view.CardView{}, err
 	}
-	b.cards[r.ObjectID] = cachedCard{hash: h, costs: costs, gen: b.gen, card: cv}
+	b.cards[r.ObjectID] = cachedCard{rec: rec, costs: costs, gen: b.gen, card: cv}
 	applyBlocks(&cv, r, blockers)
 	return cv, nil
 }
