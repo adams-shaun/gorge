@@ -45,6 +45,22 @@ type ObjectRecord struct {
 	Characteristics *Characteristics `json:"characteristics"`
 	Permanent       *Permanent       `json:"permanent"`
 	ExiledBy        *ObjectRef       `json:"exiled_by"`
+	Abilities       []AbilityRecord  `json:"abilities"`
+}
+
+// AbilityRecord is one non-mana activated ability of an ObjectRecord, in the
+// order activate_ability.ability_index names it: the printed face's abilities
+// first (face order), then the granted abilities in the engine's order. An
+// anchor (svar, gained_from/gained_index, keyword) is set exactly for an
+// ability the printed face does not carry; a printed ability has every anchor
+// nil.
+type AbilityRecord struct {
+	Label       string     `json:"label"`
+	SVar        *string    `json:"svar"`
+	GrantSource *ObjectRef `json:"grant_source"`
+	GainedFrom  *ObjectRef `json:"gained_from"`
+	GainedIndex *uint32    `json:"gained_index"`
+	Keyword     *string    `json:"keyword"`
 }
 
 type PlayerObs struct {

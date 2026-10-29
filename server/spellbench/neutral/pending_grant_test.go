@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots/heuristic"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/server/spellbench/internal/testcorpus"
@@ -372,4 +373,196 @@ func grantSummary(opts []decision.Option) string {
 		fmt.Fprintf(&b, "[%s:dup=%t]", strings.Join(g.Keywords, ","), g.Duplicate)
 	}
 	return b.String()
+}
+
+// TestNeutralRebuildsGrantedAbility pins the observation-backed ability list:
+// a granted body the recipient's printed face does not carry, named by its
+// position in ObjectRecord.Abilities, must translate rather than go opaque,
+// and the follow-up target ask must resolve its effect against the GRANTOR's
+// SVar table (the Longbow's Damage). The second Payload is the regression
+// guard for targetEffect's missing lower-bound check: a granted activation's
+// face index is -1, and f.Abilities[-1] panicked before the stored body and
+// the i >= 0 guard.
+func TestNeutralRebuildsGrantedAbility(t *testing.T) {
+	reg := testcorpus.Registry(t)
+	sorc, ok := reg.Lookup("Prodigal Sorcerer")
+	if !ok {
+		t.Fatal(`precondition: corpus has no "Prodigal Sorcerer"`)
+	}
+	lb, ok := reg.Lookup("Viridian Longbow")
+	if !ok {
+		t.Fatal(`precondition: corpus has no "Viridian Longbow"`)
+	}
+	// Precondition: the Sorcerer prints exactly one non-mana activated
+	// ability, and the Longbow's Damage SVar is the granted targeting body.
+	printed := 0
+	for _, a := range sorc.Faces[0].Abilities {
+		if a.Kind == "AB" && !cards.IsManaAbilitySA(a) {
+			printed++
+		}
+	}
+	if printed != 1 {
+		t.Fatalf("precondition: Prodigal Sorcerer printed non-mana ABs = %d, want 1", printed)
+	}
+	damage := "Damage"
+	sa := cards.ResolveSVar(lb.Faces[0].SVars, damage)
+	if sa == nil || sa.API != "DealDamage" || sa.Params["ValidTgts"] == "" || sa.Params["NumDmg"] != "1" {
+		t.Fatalf("precondition: Longbow Damage SVar = %+v, want DealDamage with a target for 1", sa)
+	}
+
+	seat0, p1 := "p0", "p1"
+	sorcName, lbName := "Prodigal Sorcerer", "Viridian Longbow"
+	sorcRef := protocol.ObjectRef{ObjectID: "o-sorc", CardName: &sorcName, OwnerSeat: "p0",
+		ControllerSeat: "p0", Zone: "battlefield"}
+	lbRef := protocol.ObjectRef{ObjectID: "o-longbow", CardName: &lbName, OwnerSeat: "p0",
+		ControllerSeat: "p0", Zone: "battlefield"}
+	printedLabel := "Prodigal Sorcerer: {T}: This creature deals 1 damage to any target."
+	grantedLabel := "Viridian Longbow: {T}: This creature deals 1 damage to any target."
+	power, toughness := int32(0), int32(1)
+	abs := []protocol.AbilityRecord{
+		{Label: printedLabel},
+		{Label: grantedLabel, SVar: &damage, GrantSource: &lbRef},
+	}
+	// Precondition: the two entries differ and index 1 is the anchored one.
+	if abs[0].Label == abs[1].Label {
+		t.Fatalf("precondition: entries share the label %q", abs[0].Label)
+	}
+	if abs[0].SVar != nil || abs[0].GrantSource != nil {
+		t.Fatalf("precondition: entry 0 is anchored: %+v", abs[0])
+	}
+	if abs[1].SVar == nil || abs[1].GrantSource == nil {
+		t.Fatalf("precondition: entry 1 is not anchored: %+v", abs[1])
+	}
+
+	base := protocol.Observation{
+		Viewer:       "p0",
+		Turn:         7,
+		PhaseStep:    "precombat_main",
+		ActiveSeat:   &seat0,
+		PrioritySeat: &seat0,
+		Players: [2]protocol.PlayerObs{
+			{
+				Seat: "p0",
+				Life: 20,
+				Battlefield: []protocol.ObjectRecord{{
+					ObjectRef: sorcRef,
+					Characteristics: &protocol.Characteristics{
+						Types: []string{"creature"}, Subtypes: []string{"human", "wizard"},
+						Colors: []string{"blue"}, ManaValue: 3, Power: &power, Toughness: &toughness,
+						Keywords: []string{},
+					},
+					Permanent: &protocol.Permanent{Tapped: false},
+					Abilities: abs,
+				}},
+			},
+			{Seat: "p1", Life: 20},
+		},
+	}
+	sd := protocol.SeatDecision{
+		ActingSeat:  "p0",
+		SeatStep:    97,
+		Group:       protocol.Group{SubstepIndex: 0, SubstepCount: 1},
+		Context:     protocol.Context{Kind: "priority"},
+		Observation: base,
+		Candidates: []protocol.Candidate{
+			{CandidateID: 0, Semantic: protocol.ActivateAbility(sorcRef, 1)},
+			{CandidateID: 1, Semantic: protocol.Pass()},
+		},
+	}
+	wire, err := json.Marshal(&sd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(wire, &sd); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NewSession(reg)
+	pl, err := s.Payload(&sd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pl.Ops) != 2 {
+		t.Fatalf("precondition: ops = %d, want 2", len(pl.Ops))
+	}
+	if pl.Ops[0].Op != "choose" {
+		t.Fatalf("granted activation is untranslated: %+v (%s)", pl.Ops[0], Untranslated)
+	}
+	if pl.Ops[0].Option < 0 || pl.Ops[0].Option >= len(pl.Decision.Options) {
+		t.Fatalf("granted op option %d outside %d options", pl.Ops[0].Option, len(pl.Decision.Options))
+	}
+	got := pl.Decision.Options[pl.Ops[0].Option]
+	if got.Kind != "ability" || got.SVar != damage || got.Label != grantedLabel || got.Ability != -1 {
+		t.Fatalf("rebuilt granted ability = %+v, want kind ability, SVar %q, label %q, Ability -1",
+			got, damage, grantedLabel)
+	}
+	if pass := pl.Decision.Options[pl.Ops[1].Option]; pass.Kind != "pass" {
+		t.Fatalf("pass candidate rebuilt as %+v", pass)
+	}
+
+	// The follow-up target ask: Picked records the granted body, so the ask
+	// resolves against the Longbow's Damage SA instead of indexing the
+	// recipient's face at -1.
+	s.Picked(0)
+	var targetObs protocol.Observation
+	stackName := "Prodigal Sorcerer"
+	stackRef := protocol.ObjectRef{ObjectID: "o-sorc-stack", CardName: &stackName, OwnerSeat: "p0",
+		ControllerSeat: "p0", Zone: "stack"}
+	targetObs = base
+	targetObs.Stack = []protocol.StackEntry{{ObjectRef: stackRef, StackKind: "activated_ability", Source: &sorcRef}}
+	tgt := protocol.SeatDecision{
+		ActingSeat:  "p0",
+		SeatStep:    98,
+		Group:       protocol.Group{SubstepIndex: 0, SubstepCount: 1},
+		Context:     protocol.Context{Kind: "choice", Source: &stackRef},
+		Observation: targetObs,
+		Candidates: []protocol.Candidate{
+			{CandidateID: 0, Semantic: protocol.ChooseTarget(stackRef, 0, protocol.TargetRef{Player: &p1}, 0, 1, 1)},
+		},
+	}
+	twire, err := json.Marshal(&tgt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(twire, &tgt); err != nil {
+		t.Fatal(err)
+	}
+	tp, err := s.Payload(&tgt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	te := tp.Decision.TargetEffect
+	if te == nil || te.API != "DealDamage" || te.Damage == nil || te.Damage.Amount == nil || *te.Damage.Amount != 1 {
+		t.Fatalf("target effect = %+v, want the Longbow's DealDamage 1", te)
+	}
+
+	// The announcement-time ask (the ability is not on the stack yet): the
+	// same body must resolve through targetEffect's battlefield case. Its
+	// face index is -1, so the i >= 0 guard is what keeps f.Abilities[-1]
+	// from panicking.
+	announce := protocol.SeatDecision{
+		ActingSeat:  "p0",
+		SeatStep:    99,
+		Group:       protocol.Group{SubstepIndex: 0, SubstepCount: 1},
+		Context:     protocol.Context{Kind: "choice", Source: &sorcRef},
+		Observation: base,
+		Candidates: []protocol.Candidate{
+			{CandidateID: 0, Semantic: protocol.ChooseTarget(sorcRef, 0, protocol.TargetRef{Player: &p1}, 0, 1, 1)},
+		},
+	}
+	awire, err := json.Marshal(&announce)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(awire, &announce); err != nil {
+		t.Fatal(err)
+	}
+	ap, err := s.Payload(&announce)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ae := ap.Decision.TargetEffect
+	if ae == nil || ae.API != "DealDamage" || ae.Damage == nil || ae.Damage.Amount == nil || *ae.Damage.Amount != 1 {
+		t.Fatalf("announcement target effect = %+v, want the Longbow's DealDamage 1", ae)
+	}
 }

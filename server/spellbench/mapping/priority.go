@@ -102,29 +102,27 @@ func NonManaAbilityIndex(o *state.Object, opt decision.Option) (uint32, error) {
 	return n, nil
 }
 
-// GrantedAbilityIndex is the Section 7.2 ability_index of an "ability" option
-// whose body is not a printed ability of the object: a keyword-granted,
-// SVar-granted or gained activated ability. Printed non-mana abilities keep
-// their face order (NonManaAbilityIndex), so a grant follows them at the next
-// index; grantOrd is the grant's zero-based position among the object's
-// granted/gained/keyword-granted ability options in the engine's offer order.
-// The observation carries no ability list of its own, so this is the stable
-// index the protocol's u32 can name: it identifies the ability within one
-// decision, and the candidate itself is the answer a v2 seat gives.
-func GrantedAbilityIndex(o *state.Object, grantOrd uint32) (uint32, error) {
-	if o == nil || o.Face() == nil {
-		return 0, fmt.Errorf("%w:ability/no_face", ErrUnmapped)
-	}
-	if len(o.MergedCards) > 0 {
-		return 0, fmt.Errorf("%w:ability/mutated_pile", ErrUnmapped)
-	}
-	n := uint32(0)
-	for _, a := range o.Face().Abilities {
-		if a.Kind == "AB" && !manaAbility(a) {
-			n++
+// GrantedAbilityIndex is the zero-based position of opt's granted ability in
+// observed, the ordered list ObservedAbilities publishes. It matches the
+// option's anchor and fails closed when the list does not carry it.
+func GrantedAbilityIndex(observed []decision.Option, opt decision.Option) (uint32, error) {
+	for i, a := range observed {
+		switch {
+		case opt.Keyword != "":
+			if a.Keyword == opt.Keyword {
+				return uint32(i), nil
+			}
+		case opt.GainedSource != 0:
+			if a.GainedSource == opt.GainedSource && a.GainedIdx == opt.GainedIdx {
+				return uint32(i), nil
+			}
+		case opt.SVar != "" || opt.GrantSource != 0:
+			if a.SVar == opt.SVar && a.GrantSource == opt.GrantSource {
+				return uint32(i), nil
+			}
 		}
 	}
-	return n + grantOrd, nil
+	return 0, fmt.Errorf("%w:ability/grant_not_observed %s", ErrUnmapped, opt.Label)
 }
 
 // isGrantedAnchor reports whether an "ability" option names a body the
@@ -133,13 +131,20 @@ func isGrantedAnchor(o decision.Option) bool {
 	return o.Keyword != "" || o.SVar != "" || o.GrantSource != 0 || o.GainedSource != 0
 }
 
-// AbilityIndex is the Section 7.2 ability_index of an "ability" option: a
-// printed ability's face order, or a grant's next slot (GrantedAbilityIndex).
-func AbilityIndex(o *state.Object, opt decision.Option, grantOrd uint32) (uint32, error) {
+// AbilityIndex is the Section 7.2 ability_index of an "ability" option: the
+// printed ordinal (NonManaAbilityIndex) or the grant's observation position.
+func AbilityIndex(o *state.Object, opt decision.Option, observed []decision.Option) (uint32, error) {
 	if isGrantedAnchor(opt) {
-		return GrantedAbilityIndex(o, grantOrd)
+		return GrantedAbilityIndex(observed, opt)
 	}
-	return NonManaAbilityIndex(o, opt)
+	n, err := NonManaAbilityIndex(o, opt)
+	if err != nil {
+		return 0, err
+	}
+	if int(n) >= len(observed) || observed[n].Ability != opt.Ability {
+		return 0, fmt.Errorf("%w:ability/index_disagrees_with_observation", ErrUnmapped)
+	}
+	return n, nil
 }
 
 // manaAbility is gorge's own split of activated abilities: its priority walk
@@ -272,15 +277,7 @@ func (t *priorityTx) Pose() (*Pose, error) {
 	casts := map[castKey]*castGroup{}
 	var groups []*castGroup          // in candidate order
 	byNative := map[int]*castGroup{} // native cast option -> its group
-	grants := map[state.ObjID]uint32{}
-	grantOrd := map[int]uint32{} // native option index -> grant ordinal on its object
-	for _, o := range d.Options {
-		if o.Kind != "ability" || !isGrantedAnchor(o) {
-			continue
-		}
-		grantOrd[o.Index] = grants[o.Obj]
-		grants[o.Obj]++
-	}
+	observed := map[state.ObjID][]decision.Option{}
 	for _, o := range d.Options {
 		before := len(p.Candidates)
 		switch o.Kind {
@@ -303,7 +300,12 @@ func (t *priorityTx) Pose() (*Pose, error) {
 				return nil, err
 			}
 			obj := t.env.G.E.G.Obj(o.Obj)
-			idx, err := AbilityIndex(obj, o, grantOrd[o.Index])
+			list, ok := observed[o.Obj]
+			if !ok {
+				list = t.env.G.E.ObservedAbilities(t.d.Player, o.Obj)
+				observed[o.Obj] = list
+			}
+			idx, err := AbilityIndex(obj, o, list)
 			if err != nil {
 				return nil, err
 			}

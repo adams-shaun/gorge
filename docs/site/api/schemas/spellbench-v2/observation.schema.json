@@ -429,6 +429,12 @@
               "type": "null"
             }
           ]
+        },
+        "abilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AbilityRecord"
+          }
         }
       },
       "required": [
@@ -443,7 +449,75 @@
         "copy",
         "characteristics",
         "permanent",
-        "exiled_by"
+        "exiled_by",
+        "abilities"
+      ],
+      "additionalProperties": false
+    },
+    "AbilityRecord": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "svar": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "grant_source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gained_from": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gained_index": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "keyword": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "label",
+        "svar",
+        "grant_source",
+        "gained_from",
+        "gained_index",
+        "keyword"
       ],
       "additionalProperties": false
     },

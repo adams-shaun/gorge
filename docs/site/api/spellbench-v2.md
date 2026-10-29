@@ -808,6 +808,15 @@ card. A **target reference** (Section 5.2) is exactly one of `{"player": seat}` 
 `{"object": reference}`. Candidates that reference cards in hidden zones come, among
 themselves, in `(card_name, object_id)` order (Section 7.1), so their order leaks nothing.
 
+Every object record also carries `abilities`: the ordered list of its non-mana activated
+abilities that `activate_ability.ability_index` indexes. The printed face's abilities come
+first, in face order, then the granted abilities in the engine's order, so the list is stable
+across decisions even when an offer gate hides one. Each entry has a renderable `label` and
+the anchors that name a body the printed face does not carry (`svar`, `grant_source`,
+`gained_from`/`gained_index`, `keyword`); a printed ability has every anchor `null`. The list
+is always present (`[]` when the object has none). `activate_mana_ability` is unchanged: it
+keeps its own printed-face index.
+
 ### What the plain observation loses
 
 A third-party v2 client renders from the observation above, not from `x_gorge_view_v1`.
