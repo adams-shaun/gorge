@@ -35,11 +35,15 @@ func ResolveSource(env *Env, d *decision.Decision) (*protocol.ObjectRef, error) 
 			return r, err
 		}
 	}
-	if d.Source == 0 && (d.ResumeKind == "unless_mana" || d.ResumeKind == "ward_mana" || d.ResumeKind == "unless_pay") {
-		// The ward/unless asks do not populate Decision.Source. Their Ask call
-		// captures the current top stack object as the suspended resolution.
-		// Refer only to that publicly visible entry, without changing the
-		// native decision or borrowing an unrelated priority action's source.
+	// The mana windows are KChoose asks and the pay-or-decline election is a
+	// KModes ask; each arm keeps its kind so an unrelated decision carrying
+	// the same resume kind cannot borrow the stack's top entry.
+	if d.Source == 0 && ((d.Kind == decision.KChoose && (d.ResumeKind == "unless_mana" || d.ResumeKind == "ward_mana")) ||
+		(d.Kind == decision.KModes && d.ResumeKind == "unless_pay")) {
+		// These asks do not populate Decision.Source. Their Ask call captures
+		// the current top stack object as the suspended resolution. Refer only
+		// to that publicly visible entry, without changing the native decision
+		// or borrowing an unrelated priority action's source.
 		if n := len(g.Stack); n > 0 {
 			return env.Obs.Ref(d.Player, g.Stack[n-1])
 		}

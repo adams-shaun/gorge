@@ -235,6 +235,13 @@ func (t *priorityTx) ref(id state.ObjID) (protocol.ObjectRef, error) {
 		return protocol.ObjectRef{}, err
 	}
 	if r == nil {
+		// ref is called once per option, so the same hidden card can be
+		// referenced by several options (a cast and its flashback variant, a
+		// cast and an ability). The look id and its Known entry are minted
+		// once: a second Known entry for the same object id fails V4.
+		if lr, ok := t.hidden[id]; ok {
+			return lr, nil
+		}
 		// A priority action can name a hidden-zone card the seat may look at:
 		// a land playable from the top of its owner's library (the engine's
 		// legal walk offers the play_land option, so the seat is entitled to
