@@ -742,16 +742,11 @@ func (s *Session) abilityOption(src protocol.ObjectRef, idx int) (decision.Optio
 		}
 		k++
 	}
-	if idx >= k {
-		// A granted, gained or keyword-granted ability: the printed face has
-		// no body to name it, and the observation carries no ability list.
-		// The v2 mapping indexes grants after the printed non-mana abilities
-		// in engine offer order, so synthesize a placeholder at that index;
-		// the candidate id is what the seat answers, and the native anchors
-		// are not needed to rank it.
-		return decision.Option{Kind: "ability", Label: f.Name + ": granted ability",
-			Obj: s.B.IDs.Of(src.ObjectID), Ability: -1}, true
-	}
+	// idx >= k is a granted, gained or keyword-granted ability. The plain
+	// observation carries no ability list (ObjectRecord has no abilities
+	// field), so the neutral world cannot reconstruct its body or rank it.
+	// The v2 candidate is still posed -- the seat answers candidate ids -- but
+	// this world reports it opaque rather than guessing another ability.
 	return decision.Option{}, false
 }
 

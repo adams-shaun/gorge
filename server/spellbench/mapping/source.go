@@ -36,7 +36,7 @@ func ResolveSource(env *Env, d *decision.Decision) (*protocol.ObjectRef, error) 
 		}
 	}
 	if d.Source == 0 && (d.ResumeKind == "unless_mana" || d.ResumeKind == "ward_mana" || d.ResumeKind == "unless_pay") {
-		// rules.askWardMana does not populate Decision.Source. Its Ask call
+		// The ward/unless asks do not populate Decision.Source. Their Ask call
 		// captures the current top stack object as the suspended resolution.
 		// Refer only to that publicly visible entry, without changing the
 		// native decision or borrowing an unrelated priority action's source.
