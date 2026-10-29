@@ -136,7 +136,8 @@ func init() {
 		}
 		count := uint32(len(d.Options))
 		sem := func(o decision.Option) (protocol.Semantic, bool, error) {
-			return protocol.ChooseOption(src, "effect_option", uint32(o.Index), count, o.Kind), true, nil
+			label := o.Kind
+			return protocol.ChooseOption(src, "effect_option", uint32(o.Index), count, &label), true, nil
 		}
 		if d.Min > 1 {
 			// A named-option ask that needs several answers (ChangeText's
@@ -305,8 +306,9 @@ func (t *optionGroupTx) Pose() (*Pose, error) {
 		if !t.d.Repeatable && slices.Contains(t.chosen, o.Index) {
 			continue
 		}
+		label := o.Kind
 		p.Candidates = append(p.Candidates, Cand{
-			Sem: protocol.ChooseOption(t.src, "effect_option", uint32(o.Index), count, o.Kind),
+			Sem: protocol.ChooseOption(t.src, "effect_option", uint32(o.Index), count, &label),
 			Op:  NativeOp{Op: "choose", Option: o.Index},
 		})
 	}

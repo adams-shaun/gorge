@@ -67,9 +67,10 @@ func TestChooseOptionRoutesNamedOptions(t *testing.T) {
 		if got := c.Sem.Fields["option_count"]; got != uint32(2) {
 			t.Fatalf("candidate %d option_count %v", i, got)
 		}
-		if got := c.Sem.Fields["option_label"]; got != d.Options[i].Kind {
+		label, ok := c.Sem.Fields["option_label"].(*string)
+		if !ok || label == nil || *label != d.Options[i].Kind {
 			t.Fatalf("candidate %d label %v, want the option kind %q (not its presentation label %q)",
-				i, got, d.Options[i].Kind, d.Options[i].Label)
+				i, c.Sem.Fields["option_label"], d.Options[i].Kind, d.Options[i].Label)
 		}
 	}
 	commit, done, err := tx.Answer(1)
