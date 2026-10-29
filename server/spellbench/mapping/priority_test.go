@@ -373,13 +373,12 @@ func TestNonManaAbilityIndexFailsClosed(t *testing.T) {
 		}
 	}
 	// NonManaAbilityIndex still fails closed on a grant anchor; the priority
-	// route now indexes the grant by the observation's ordered ability list,
-	// so it fails only when that list does not carry the option's anchor
-	// (ability/grant_not_observed).
+	// route now indexes the grant after the printed abilities instead (see
+	// TestGrantedAbilityMapsToIndexedActivation).
 	env, d0, hand, _ := synthPosition(t)
 	d := synthetic(d0, decision.Option{Kind: "ability", Obj: hand[0], Ability: -1, Keyword: "Cycling:1 U"})
-	if err := poseErr(env, d); !errors.Is(err, mapping.ErrUnmapped) {
-		t.Errorf("keyword-granted ability option: %v, want ErrUnmapped:ability/grant_not_observed", err)
+	if err := poseErr(env, d); err != nil {
+		t.Errorf("keyword-granted ability option: %v, want a posed candidate", err)
 	}
 }
 
