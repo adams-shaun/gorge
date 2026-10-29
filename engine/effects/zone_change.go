@@ -359,7 +359,25 @@ func definedDelayRememberedTargets(h Host, c *Ctx, sa *cards.SA) []state.Target 
 	return targets
 }
 
+// tokenCannotChangeZone is CR 111.8: a token that has left the battlefield
+// can't move to another zone or come back onto the battlefield. It stays in
+// its current zone and ceases to exist at the next state-based action
+// (ceaseDeadTokens). A token on the stack legitimately lives there (a spell
+// copy, CR 111.7's stack exemption), and a prepared exile copy (CR 722.3c)
+// was minted directly in exile and is castable there, so neither has left
+// the battlefield. The movers that resolve a Defined/Remembered/Targeted set
+// share this one test.
+func tokenCannotChangeZone(o *state.Object) bool {
+	return o.IsToken && !o.PreparedExileCopy() && o.Zone != state.ZBattlefield && o.Zone != state.ZStack
+}
+
 func changeZoneMoveSkip(h Host, cz *ChangeZoneParams, o *state.Object, to state.Zone, originAll bool) bool {
+	// CR 111.8 first: an off-battlefield token would otherwise be moved again
+	// inside one resolution, before any state-based action could cease it
+	// (Splash Portal's exile then its DBReturn sub-ability).
+	if tokenCannotChangeZone(o) {
+		return true
+	}
 	if cz.OriginPresent && !originAll && !cz.OriginMask.Has(o.Zone) {
 		return true
 	}
