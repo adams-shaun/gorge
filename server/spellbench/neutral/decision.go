@@ -70,8 +70,14 @@ type Session struct {
 	// TestNeutralUntranslatedBudget holds to 0.5%.
 	Approx map[string]int
 	// activated is the face ability index of each source's latest
-	// activation, so its target ask can describe the ability.
+	// activation, so its target ask can describe the ability. It stays -1
+	// for a granted ability, whose body is in activatedBodies.
 	activated map[string]int
+	// activatedBodies is what each source's latest activation resolved to:
+	// the face the body lives on and the body itself. A granted body resolves
+	// against the grantor's SVar table, so the follow-up asks cannot recover
+	// it from the recipient's face.
+	activatedBodies map[string]activatedBody
 	// grants records each source's answered activations in order, oldest
 	// first: the pure-grant keywords, or nil for an activation that was not a
 	// pure grant. priority trims the list to the activations still on the
@@ -121,7 +127,18 @@ func (s *Session) SetAutoPay(autoPay bool) { s.autoPay = autoPay }
 
 func NewSession(reg *cards.Registry) *Session {
 	return &Session{B: NewBuilder(reg), Counts: map[string]int{}, Approx: map[string]int{}, activated: map[string]int{},
-		grants: map[string][][]string{}, uses: map[string]int32{}, seen: map[string]bool{}, pendingUses: map[string]pendingUse{}}
+		activatedBodies: map[string]activatedBody{},
+		grants:          map[string][][]string{}, uses: map[string]int32{}, seen: map[string]bool{},
+		pendingUses: map[string]pendingUse{}}
+}
+
+// activatedBody is the body an activation resolved to and the face it lives
+// on: a printed ability's own face, or the grantor's face carrying a granted
+// SVar body. A nil body means the observation named an anchored entry this
+// session could not resolve.
+type activatedBody struct {
+	face *cards.Face
+	sa   *cards.SA
 }
 
 // Picked tells the session which candidate of its last decision the seat
@@ -136,13 +153,10 @@ func (s *Session) Picked(i int) {
 	switch sem.Kind {
 	case "activate_ability":
 		if src, err := ref(sem, "source"); err == nil {
-			if o, ok := s.abilityOption(src, num(sem, "ability_index")); ok {
+			if o, face, sa, ok := s.abilityOption(src, num(sem, "ability_index")); ok {
 				s.activated[src.ObjectID] = o.Ability
-				var kw []string
-				if f := s.abilityFace(src); f != nil && o.Ability >= 0 && o.Ability < len(f.Abilities) {
-					kw = rules.PureGrantKeywords(f.Abilities[o.Ability])
-				}
-				s.grants[src.ObjectID] = append(s.grants[src.ObjectID], kw)
+				s.activatedBodies[src.ObjectID] = activatedBody{face: face, sa: sa}
+				s.grants[src.ObjectID] = append(s.grants[src.ObjectID], rules.PureGrantKeywords(sa))
 			}
 		}
 	case "arrange_card":
@@ -210,7 +224,9 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 			s.seen[e.ObjectID] = true
 			s.uses[e.Source.ObjectID]++
 			selfTap := false
-			if i, ok := s.activated[e.Source.ObjectID]; ok {
+			if b, ok := s.activatedBodies[e.Source.ObjectID]; ok && b.sa != nil {
+				selfTap = rules.ParseCost(b.sa.Params["Cost"]).Tap
+			} else if i, ok := s.activated[e.Source.ObjectID]; ok {
 				if f := s.B.face(e.Source.CardName, false, nil); f != nil && i >= 0 && i < len(f.Abilities) {
 					selfTap = rules.ParseCost(f.Abilities[i].Params["Cost"]).Tap
 				}
@@ -538,7 +554,7 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			if err != nil {
 				return nil, nil, err
 			}
-			o, ok := s.abilityOption(src, num(sem, "ability_index"))
+			o, _, _, ok := s.abilityOption(src, num(sem, "ability_index"))
 			if !ok {
 				continue
 			}
@@ -721,16 +737,91 @@ func (s *Session) altCost(sd *protocol.SeatDecision, src protocol.ObjectRef) boo
 	return false
 }
 
-// abilityOption is gorge's "ability" option for a permanent's non-mana
-// activated ability number idx (Section 7.2 order: printed non-mana
-// abilities in face order).
-func (s *Session) abilityOption(src protocol.ObjectRef, idx int) (decision.Option, bool) {
-	f := s.B.face(src.CardName, false, nil)
-	if f == nil {
-		f = s.B.face(src.CardName, true, nil) // a token's ability
+// objectRecord finds the observation's record for a v2 object id across the
+// zones the source may be in. Ids are unique, so the first hit is the source.
+func (s *Session) objectRecord(id string) *protocol.ObjectRecord {
+	if s.last == nil || id == "" {
+		return nil
 	}
+	o := &s.last.Observation
+	for pi := range o.Players {
+		for _, z := range [][]protocol.ObjectRecord{o.Players[pi].Hand, o.Players[pi].Battlefield,
+			o.Players[pi].Graveyard, o.Players[pi].Exile, o.Players[pi].Command} {
+			for i := range z {
+				if z[i].ObjectID == id {
+					return &z[i]
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// abilityOption is gorge's "ability" option for an object's non-mana activated
+// ability number idx. When the observation publishes the object's ordered
+// ability list (ObjectRecord.Abilities), that list is authoritative and the
+// entry's position is the index and its anchor names the body; a printed entry
+// (all anchors nil) resolves through the face walk at the same ordinal. A nil
+// slice -- an old or foreign observation, or a hand-built fixture -- falls back
+// to the printed-face walk; a non-nil empty slice means "no abilities" and must
+// not fall back.
+//
+// It returns the resolved face and body so the follow-up asks can use the body
+// a grant gave, which lives on the grantor's face rather than the recipient's.
+func (s *Session) abilityOption(src protocol.ObjectRef, idx int) (decision.Option, *cards.Face, *cards.SA, bool) {
+	if rec := s.objectRecord(src.ObjectID); rec != nil && rec.Abilities != nil {
+		if idx < 0 || idx >= len(rec.Abilities) {
+			return decision.Option{}, nil, nil, false
+		}
+		a := rec.Abilities[idx]
+		if a.SVar == nil && a.GrantSource == nil && a.GainedFrom == nil && a.Keyword == nil {
+			// A printed entry: the face walk's same ordinal is the body.
+			return s.printedAbilityOption(src, idx, s.abilityFace(src))
+		}
+		o := decision.Option{Kind: "ability", Label: a.Label, Obj: s.B.IDs.Of(src.ObjectID), Ability: -1}
+		var face *cards.Face
+		var sa *cards.SA
+		switch {
+		case a.Keyword != nil:
+			o.Keyword = *a.Keyword
+			sa = cards.GrantedKeywordAbility(o.Keyword)
+			face = s.abilityFace(src)
+		case a.GainedFrom != nil:
+			o.GainedSource = s.B.IDs.Of(a.GainedFrom.ObjectID)
+			if a.GainedIndex != nil {
+				o.GainedIdx = int(*a.GainedIndex)
+			}
+			face = s.B.face(a.GainedFrom.CardName, false, nil)
+			if face == nil {
+				face = s.B.face(a.GainedFrom.CardName, true, nil) // token fallback
+			}
+			if face != nil && o.GainedIdx >= 0 && o.GainedIdx < len(face.Abilities) {
+				sa = face.Abilities[o.GainedIdx]
+			}
+		case a.SVar != nil:
+			o.SVar = *a.SVar
+			if a.GrantSource != nil {
+				o.GrantSource = s.B.IDs.Of(a.GrantSource.ObjectID)
+				face = s.B.face(a.GrantSource.CardName, false, nil)
+				if face == nil {
+					face = s.B.face(a.GrantSource.CardName, true, nil) // token fallback
+				}
+				if face != nil {
+					sa = cards.ResolveSVar(face.SVars, o.SVar)
+				}
+			}
+		}
+		o.Attach = sa != nil && sa.API == "Attach"
+		return o, face, sa, true
+	}
+	return s.printedAbilityOption(src, idx, s.abilityFace(src))
+}
+
+// printedAbilityOption is the printed-face walk: idx counts the non-mana
+// activated abilities in face order.
+func (s *Session) printedAbilityOption(src protocol.ObjectRef, idx int, f *cards.Face) (decision.Option, *cards.Face, *cards.SA, bool) {
 	if f == nil {
-		return decision.Option{}, false
+		return decision.Option{}, nil, nil, false
 	}
 	k := 0
 	for i, a := range f.Abilities {
@@ -739,16 +830,11 @@ func (s *Session) abilityOption(src protocol.ObjectRef, idx int) (decision.Optio
 		}
 		if k == idx {
 			return decision.Option{Kind: "ability", Label: f.Name + ": " + a.Params["SpellDescription"],
-				Obj: s.B.IDs.Of(src.ObjectID), Ability: i, Cost: a.Params["Cost"], Attach: a.API == "Attach"}, true
+				Obj: s.B.IDs.Of(src.ObjectID), Ability: i, Cost: a.Params["Cost"], Attach: a.API == "Attach"}, f, a, true
 		}
 		k++
 	}
-	// idx >= k is a granted, gained or keyword-granted ability. The plain
-	// observation carries no ability list (ObjectRecord has no abilities
-	// field), so the neutral world cannot reconstruct its body or rank it.
-	// The v2 candidate is still posed -- the seat answers candidate ids -- but
-	// this world reports it opaque rather than guessing another ability.
-	return decision.Option{}, false
+	return decision.Option{}, f, nil, false
 }
 
 // manaAbility mirrors mapping's split of gorge's activated abilities.
@@ -2653,7 +2739,11 @@ func (s *Session) abilityRoots(src protocol.ObjectRef, o *protocol.Observation) 
 	case entry != nil && entry.StackKind == "activated_ability" && entry.Source != nil:
 		// The ask names the ability object on the stack; the activated
 		// permanent is the entry's Source and Picked recorded which of its
-		// printed abilities was chosen.
+		// printed abilities was chosen. A granted body lives on the grantor's
+		// face, so the stored body wins over any face index.
+		if b, ok := s.activatedBodies[entry.Source.ObjectID]; ok && b.sa != nil {
+			return b.face, []*cards.SA{b.sa}
+		}
 		if f = s.B.face(entry.Source.CardName, false, nil); f != nil {
 			if i, ok := s.activated[entry.Source.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
 				roots = append(roots, f.Abilities[i])
@@ -2674,6 +2764,9 @@ func (s *Session) abilityRoots(src protocol.ObjectRef, o *protocol.Observation) 
 		}
 	case src.Zone == "battlefield":
 		// An ability being activated is announced from its permanent.
+		if b, ok := s.activatedBodies[src.ObjectID]; ok && b.sa != nil {
+			return b.face, []*cards.SA{b.sa}
+		}
 		if f = s.B.face(src.CardName, false, nil); f != nil {
 			if i, ok := s.activated[src.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
 				roots = append(roots, f.Abilities[i])
@@ -2976,8 +3069,12 @@ func (s *Session) targetAsk(o *protocol.Observation, src protocol.ObjectRef, slo
 	case entry != nil && entry.StackKind == "activated_ability" && entry.Source != nil:
 		// The ask names the ability object on the stack; the activated
 		// permanent is the entry's Source and Picked recorded which of its
-		// printed abilities was chosen.
-		if f = s.B.face(entry.Source.CardName, false, nil); f != nil {
+		// printed abilities was chosen. A granted body wins: its face is the
+		// grantor's, where its SVar and target chain live.
+		if b, ok := s.activatedBodies[entry.Source.ObjectID]; ok && b.sa != nil {
+			f = b.face
+			roots = append(roots, b.sa)
+		} else if f = s.B.face(entry.Source.CardName, false, nil); f != nil {
 			if i, ok := s.activated[entry.Source.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
 				roots = addRoots(roots, f, entry, f.Abilities[i])
 			}
@@ -3018,10 +3115,16 @@ func (s *Session) targetAsk(o *protocol.Observation, src protocol.ObjectRef, slo
 			}
 		}
 	case src.Zone == "battlefield":
-		// An ability being activated is announced from its permanent.
-		i, ok := s.activated[src.ObjectID]
-		if f = s.B.face(src.CardName, false, nil); f != nil && ok && i < len(f.Abilities) {
-			roots = append(roots, f.Abilities[i])
+		// An ability being activated is announced from its permanent. A
+		// granted body wins, and its face index is -1, so the guard below is
+		// load-bearing: without it f.Abilities[-1] panics.
+		if b, ok := s.activatedBodies[src.ObjectID]; ok && b.sa != nil {
+			f = b.face
+			roots = append(roots, b.sa)
+		} else if i, ok := s.activated[src.ObjectID]; ok {
+			if f = s.B.face(src.CardName, false, nil); f != nil && i >= 0 && i < len(f.Abilities) {
+				roots = append(roots, f.Abilities[i])
+			}
 		}
 	}
 	for _, root := range roots {
