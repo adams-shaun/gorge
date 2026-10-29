@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
@@ -281,6 +282,15 @@ func (b *builder) stackAndPending(obs *protocol.Observation, v view.View) error 
 			}
 		}
 		se.Modes, se.XValue = modesAndX(o)
+		// An ability's TriggerCount$ amount (The Sea Devils' "deals that much
+		// damage") is the causing event's magnitude, not the spell's X. The
+		// neutral target effect reads it from x_value; absent, it stays nil.
+		if o.Ability != nil {
+			if amount, ok := rules.HostTriggerAmount(b.p.E, o.ID); ok {
+				v := u32(amount)
+				se.XValue = &v
+			}
+		}
 		obs.Stack = append(obs.Stack, se)
 	}
 	for _, pt := range b.p.E.PendingTriggers() {

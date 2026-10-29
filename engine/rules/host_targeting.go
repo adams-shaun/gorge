@@ -35,3 +35,16 @@ func (e *Engine) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *ca
 	}
 	return out
 }
+
+// HostTriggerAmount publishes the magnitude the causing event carried for the
+// trigger stack object id -- the DamageDone amount a TriggerCount$DamageAmount
+// head answers (The Sea Devils). ok is false when the object has no trigger
+// context or the event carried no amount, so a caller cannot mistake absence
+// for a zero damage effect.
+func HostTriggerAmount(e *Engine, id state.ObjID) (int32, bool) {
+	tc, ok := e.triggerContexts[id]
+	if !ok || tc.TriggerAmount == 0 {
+		return 0, false
+	}
+	return tc.TriggerAmount, true
+}
