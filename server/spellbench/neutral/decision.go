@@ -674,6 +674,29 @@ func (s *Session) altCost(sd *protocol.SeatDecision, src protocol.ObjectRef) boo
 		if st.Mode != "AlternativeCost" || st.Params["ValidCard"] != "Card.Self" {
 			continue
 		}
+		// The engine's alternativeCostScopeOK prices a spell cast only: a
+		// ValidSA$ naming no Spell scope (Heart of Kiran's Activated.Crew)
+		// is an ability's cost, not a cast the neutral may offer.
+		if vs := strings.TrimSpace(st.Params["ValidSA"]); vs != "" {
+			ok := false
+			for alt := range strings.SplitSeq(vs, ",") {
+				alt = strings.TrimSpace(alt)
+				kind, constraint := alt, ""
+				if i := strings.IndexByte(alt, '.'); i >= 0 {
+					kind, constraint = alt[:i], alt[i+1:]
+				}
+				if kind != "Spell" {
+					continue
+				}
+				switch strings.TrimSpace(constraint) {
+				case "", "Self":
+					ok = true // the neutral offers self-cast statics only
+				}
+			}
+			if !ok {
+				continue
+			}
+		}
 		check := st.Params["CheckSVar"]
 		if check == "" {
 			return true
@@ -1121,7 +1144,9 @@ func (s *Session) attackRestricted(o *protocol.Observation, a protocol.ObjectRef
 				}
 				target := strings.TrimSpace(st.Params["Target"])
 				if target == "" {
-					continue
+					// A blanket restriction (Cessation, Pacifism) names no
+					// defender: it forbids every attack.
+					return true
 				}
 				// "You" is the attachment's controller; a planeswalker
 				// target is restricted when its controller is that seat.
@@ -1454,6 +1479,23 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 			for _, r := range p.Battlefield {
 				if r.Permanent != nil && slices.Contains(r.Permanent.Statuses, "goaded") {
 					goaded[r.ObjectID] = true
+				}
+				// A continuous Goad$ True static on an attached Aura or
+				// Equipment (Coercive Impetus) never becomes a Goads entry,
+				// so the statuses alone miss it. Its goad applies to the
+				// creature it is attached to.
+				if r.Permanent == nil || r.Permanent.AttachedTo == nil || r.Permanent.AttachedTo.Object == nil {
+					continue
+				}
+				f := s.B.face(r.CardName, false, nil)
+				if f == nil {
+					continue
+				}
+				for _, st := range f.Statics {
+					if strings.EqualFold(strings.TrimSpace(st.Params["Goad"]), "True") {
+						goaded[r.Permanent.AttachedTo.Object.ObjectID] = true
+						break
+					}
 				}
 			}
 		}
@@ -2553,6 +2595,22 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 				}
 			}
 			roots = append(roots, f.Abilities...)
+			// An Effect-created trigger (The Sea Devils' "deals that much
+			// damage") is an SVar body with Mode$ + Execute$, never a printed
+			// T: trigger. Its Execute$ body is the root the ask lives in.
+			for _, name := range slices.Sorted(maps.Keys(f.SVars)) {
+				tr, ok := cards.ParseTriggerLine(f.SVars[name])
+				if !ok {
+					continue
+				}
+				exec := strings.TrimSpace(tr.Params["Execute"])
+				if exec == "" {
+					continue
+				}
+				if root := cards.ResolveSVar(f.SVars, exec); root != nil {
+					roots = append(roots, root)
+				}
+			}
 			if root := f.SpellAbility(); root != nil {
 				roots = append(roots, root)
 			}
