@@ -217,10 +217,12 @@ func TestArrangeOverTargetLibraryLooksAtOwner(t *testing.T) {
 	}
 }
 
-// TestDigRestOnTopMaps covers Mobile Homestead's
-// DestinationZone2$ Library | LibraryPosition2$ 0: the remainder goes back on
-// top in a chosen order, not to the bottom. newDig must map it as an
-// arrangement whose rest destination is "top".
+// TestDigRestOnTopMaps covers the two rest-on-top Dig spellings: Mobile
+// Homestead's DestinationZone2$ Library | LibraryPosition2$ 0 (remainder on
+// top) and Coral Fighters' omitted DestinationZone$ LibraryPosition$, which
+// is Forge's bottom default for the primary while LibraryPosition2$ 0 still
+// puts the remainder on top. newDig must map both as arrangements whose rest
+// destination is "top".
 func TestDigRestOnTopMaps(t *testing.T) {
 	g := untilPending(t, "Wildfire", 1, func(d *decision.Decision, e *rules.Engine) bool {
 		return d.Kind == decision.KPriority
@@ -230,19 +232,80 @@ func TestDigRestOnTopMaps(t *testing.T) {
 	if len(lib) < 2 {
 		t.Fatalf("precondition: the library has %d cards, want at least 2", len(lib))
 	}
-	d := &decision.Decision{Kind: decision.KChoose, Player: seat, Min: 1, Max: 1,
-		Prompt: "Look at the top 2 card(s) of your library",
-		ResumeSA: &cards.SA{Kind: "SP", API: "Dig", Params: map[string]string{
+	env := envFor(t, g)
+	for _, tc := range []struct {
+		name   string
+		params map[string]string
+	}{
+		{"Mobile Homestead", map[string]string{
 			"DigNum": "2", "ChangeNum": "1", "DestinationZone": "Battlefield",
 			"DestinationZone2": "Library", "LibraryPosition2": "0", "ChangeValid": "Card.Land"}},
+		{"Coral Fighters", map[string]string{
+			"DigNum": "2", "ChangeNum": "Any", "DestinationZone": "Library",
+			"LibraryPosition2": "0", "ChangeValid": "Card"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := &decision.Decision{Kind: decision.KChoose, Player: seat, Min: 1, Max: 1,
+				Prompt:   "Look at the top 2 card(s) of your library",
+				ResumeSA: &cards.SA{Kind: "SP", API: "Dig", Params: tc.params},
+				Options: []decision.Option{
+					{Kind: "dig", Obj: lib[0], Index: 0, Player: seat},
+					{Kind: "dig", Obj: lib[1], Index: 1, Player: seat},
+				}}
+			tx, err := mapping.Begin(env, d)
+			if err != nil {
+				t.Fatalf("Begin (old code fails here with dig_shape): %v", err)
+			}
+			p, err := tx.Pose()
+			if err != nil {
+				t.Fatalf("Pose: %v", err)
+			}
+			top := 0
+			for _, c := range p.Candidates {
+				if c.Sem.Kind != "arrange_card" {
+					continue
+				}
+				if err := c.Sem.Check(); err != nil {
+					t.Fatalf("arrange_card candidate fails the protocol shape: %v", err)
+				}
+				if c.Sem.Fields["destination"] == "top" {
+					top++
+				}
+			}
+			if top == 0 {
+				t.Fatalf("no top destination candidate for a rest-on-top Dig: %s", semJSON(p.Candidates))
+			}
+		})
+	}
+}
+
+// TestDigOverTargetLibraryUsesOwnerWindow covers Coral Fighters' "look at the
+// top card of defending player's library": the chooser is the attacker while
+// the window belongs to the target. newDig must read the options' library,
+// not the chooser's.
+func TestDigOverTargetLibraryUsesOwnerWindow(t *testing.T) {
+	g := untilPending(t, "Wildfire", 1, func(d *decision.Decision, e *rules.Engine) bool {
+		return d.Kind == decision.KPriority
+	})
+	chooser := state.PlayerID(0)
+	owner := state.PlayerID(1)
+	lib := g.E.G.Zone(state.ZLibrary, owner)
+	if len(lib) < 2 {
+		t.Fatalf("precondition: the target library has %d cards, want at least 2", len(lib))
+	}
+	d := &decision.Decision{Kind: decision.KChoose, Player: chooser, Min: 1, Max: 1,
+		Prompt: "Look at the top 2 card(s) of your library",
+		ResumeSA: &cards.SA{Kind: "SP", API: "Dig", Params: map[string]string{
+			"DigNum": "2", "ChangeNum": "Any", "DestinationZone": "Library",
+			"LibraryPosition2": "0", "ChangeValid": "Card"}},
 		Options: []decision.Option{
-			{Kind: "dig", Obj: lib[0], Index: 0, Player: seat},
-			{Kind: "dig", Obj: lib[1], Index: 1, Player: seat},
+			{Kind: "dig", Obj: lib[0], Index: 0, Player: owner},
+			{Kind: "dig", Obj: lib[1], Index: 1, Player: owner},
 		}}
 	env := envFor(t, g)
 	tx, err := mapping.Begin(env, d)
 	if err != nil {
-		t.Fatalf("Begin (old code fails here with dig_shape): %v", err)
+		t.Fatalf("Begin (old code fails here with dig_option_outside_window): %v", err)
 	}
 	p, err := tx.Pose()
 	if err != nil {
@@ -250,18 +313,12 @@ func TestDigRestOnTopMaps(t *testing.T) {
 	}
 	top := 0
 	for _, c := range p.Candidates {
-		if c.Sem.Kind != "arrange_card" {
-			continue
-		}
-		if err := c.Sem.Check(); err != nil {
-			t.Fatalf("arrange_card candidate fails the protocol shape: %v", err)
-		}
-		if c.Sem.Fields["destination"] == "top" {
+		if c.Sem.Kind == "arrange_card" && c.Sem.Fields["destination"] == "top" {
 			top++
 		}
 	}
 	if top == 0 {
-		t.Fatalf("no top destination candidate for a rest-on-top Dig: %s", semJSON(p.Candidates))
+		t.Fatalf("no top destination candidate: %s", semJSON(p.Candidates))
 	}
 }
 

@@ -373,11 +373,13 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	}
 	if primary == "library" {
 		// A library primary is placed by LibraryPosition$ after the remainder
-		// settles: 0 is the top (Gutless Plunderer), -1 the bottom.
+		// settles: 0 is the top (Gutless Plunderer), -1 or an omitted position
+		// is the bottom (Forge's default; Coral Fighters leaves it out and
+		// places the remainder with LibraryPosition2$ 0).
 		switch param("LibraryPosition") {
 		case "0":
 			primary = "top"
-		case "-1":
+		case "", "-1":
 			primary = "bottom"
 		default:
 			return nil, fmt.Errorf("%w:dig_shape", ErrUnmapped)
@@ -396,11 +398,19 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	lib := env.G.E.G.Zone(state.ZLibrary, d.Player)
+	// The chooser is not always the library's owner: a Dig on "target
+	// player's library" (Coral Fighters) offers cards whose Player is the
+	// owner while the ask's Player is the chooser. The options name the
+	// window's library.
+	owner := d.Player
+	if len(d.Options) > 0 {
+		owner = d.Options[0].Player
+	}
+	lib := env.G.E.G.Zone(state.ZLibrary, owner)
 	window := slices.Clone(lib[:min(n, len(lib))])
 	eligible := map[state.ObjID]int{}
 	for _, o := range d.Options {
-		if o.Player != d.Player || !slices.Contains(window, o.Obj) {
+		if o.Player != owner || !slices.Contains(window, o.Obj) {
 			return nil, fmt.Errorf("%w:dig_option_outside_window", ErrUnmapped)
 		}
 		eligible[o.Obj] = o.Index
