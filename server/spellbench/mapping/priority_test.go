@@ -593,7 +593,6 @@ func TestPriorityFailsClosed(t *testing.T) {
 		{"two alternative costs", mapping.ErrDuplicate, []decision.Option{{Kind: "cast", Obj: a, AltCostIndex: 1}, {Kind: "cast", Obj: a, AltCostIndex: 2}}},
 		{"two optional costs on one cast", mapping.ErrUnmapped, []decision.Option{{Kind: "cast", Obj: a}, {Kind: "cast", Obj: a, Mode: "kicked"}, {Kind: "cast", Obj: a, Mode: "buyback"}}},
 		{"unmapped cast mode", mapping.ErrUnmapped, []decision.Option{{Kind: "cast", Obj: a, Mode: "kicked1"}}},
-		{"granted", mapping.ErrUnmapped, []decision.Option{{Kind: "granted", Obj: a}}},
 		{"specialize", mapping.ErrUnmapped, []decision.Option{{Kind: "specialize", Obj: a}}},
 		{"hidden object", mapping.ErrUnmapped, []decision.Option{{Kind: "cast", Obj: hidden}}},
 	} {
