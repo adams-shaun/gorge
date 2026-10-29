@@ -201,3 +201,49 @@ func TestChooseObjectRoutesObjectOptions(t *testing.T) {
 		t.Fatalf("hidden object: err = %v, want a not-visible error", err)
 	}
 }
+
+// TestChooseOptionMultiPick covers a named-option ask that needs more than
+// one answer (ChangeText's from+to pair): each pick is one choose_option
+// substep, and the last pick commits both native options as one intent.
+func TestChooseOptionMultiPick(t *testing.T) {
+	env := namedOptionEnv(t)
+	d := &decision.Decision{Player: 0, Kind: decision.KChoose, Min: 2, Max: 2,
+		Options: []decision.Option{
+			{Index: 0, Kind: "changetext_from", Label: "black"},
+			{Index: 1, Kind: "changetext_to", Label: "white"},
+		}}
+	if got := mapping.Route(d); got != "choose/option" {
+		t.Fatalf("Route = %q, want choose/option", got)
+	}
+	tx, err := mapping.Begin(env, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := tx.Pose()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !p.GroupStart || p.SubstepIndex != 0 || p.SubstepCount != 2 || len(p.Candidates) != 2 {
+		t.Fatalf("first substep: start %v index %d of %d, %d candidates",
+			p.GroupStart, p.SubstepIndex, p.SubstepCount, len(p.Candidates))
+	}
+	commit, done, err := tx.Answer(0)
+	if err != nil || done || len(commit) != 0 {
+		t.Fatalf("first pick: commit %v, done %v, err %v", commit, done, err)
+	}
+	p, err = tx.Pose()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.GroupStart || p.SubstepIndex != 1 || p.SubstepCount != 2 || len(p.Candidates) != 1 {
+		t.Fatalf("second substep: start %v index %d of %d, %d candidates",
+			p.GroupStart, p.SubstepIndex, p.SubstepCount, len(p.Candidates))
+	}
+	commit, done, err = tx.Answer(0)
+	if err != nil || !done {
+		t.Fatalf("second pick: done %v, err %v", done, err)
+	}
+	if want := []decision.Intent{mapping.Intent(d, 0, 1)}; !reflect.DeepEqual(commit, want) {
+		t.Fatalf("commit %v, want %v", commit, want)
+	}
+}
