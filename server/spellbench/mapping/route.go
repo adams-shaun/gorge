@@ -87,6 +87,20 @@ func Route(d *decision.Decision) string {
 			return "choose/pile_pick"
 		case k["hidden_pick"]:
 			return "choose/hidden_pick"
+		case !k["vote"] && paymentKinds(k):
+			return "choose/payment"
+		case k["move_counter"] && len(k) == 1:
+			return "choose/number"
+		case !k["vote"] && k["proliferate"]:
+			return "choose/proliferate"
+		case d.Min == 0 && !k["vote"] && k["pair"]:
+			return "choose/pair"
+		case d.Min == 0 && !k["vote"] && k["enlist"]:
+			return "choose/enlist"
+		case d.Min == 0 && !k["vote"] && k["reveal"]:
+			return "choose/reveal"
+		case d.Min == 0 && !k["vote"] && k["card"] && d.ResumeKind == "choice":
+			return "choose/card"
 		}
 		for _, o := range d.Options {
 			if strings.HasPrefix(o.Kind, "pay_") {
