@@ -65,6 +65,10 @@ type sbOptions struct {
 	games                            int
 	seed                             uint64
 	workers                          int
+	// onlyPair, when set to a non-negative index, plays only that outcome
+	// pair (the fast repro of one seed); the run reports it under its
+	// original pair index. Nil plays every pair.
+	onlyPair *int
 	// minAgree fails the twin run when a decision kind with at least
 	// sbMinAgreeSamples compared decisions agrees below this percentage
 	// (0 keeps the any-disagreement rule).
@@ -711,22 +715,34 @@ func (p sbOutcomeParity) fails(maxGapPP float64) bool {
 
 func runSBOutcome(reg *cards.Registry, p *pool, o sbOptions, out io.Writer) sbOutcomeParity {
 	jobs := sbJobs(p, o.seed, o.games)
+	runJobs := jobs
+	if o.onlyPair != nil && *o.onlyPair >= 0 {
+		if *o.onlyPair >= len(jobs) {
+			fmt.Fprintf(out, "== spellbench outcome: -only-pair %d out of range (run has %d pairs) ==\n", *o.onlyPair, len(jobs))
+			return sbOutcomeParity{}
+		}
+		jobs = jobs[*o.onlyPair : *o.onlyPair+1]
+		// sbRun folds by slice position, so the chosen pair starts at 0; the
+		// report keeps its original pair number from jobs.
+		runJobs = append([]sbJob(nil), jobs[0])
+		runJobs[0].idx = 0
+	}
 	v2 := []bool{true, o.v2Both}
 	pairs := make([]sbPair, 0, len(jobs))
-	sbRun(jobs, o.workers,
+	sbRun(runJobs, o.workers,
 		func(j sbJob) sbPair {
 			return sbPair{native: playSBLane(reg, j.decks, j.seed, o, []bool{false, false}), v2: playSBLane(reg, j.decks, j.seed, o, v2)}
 		},
 		func(j sbJob, pr sbPair) {
 			pairs = append(pairs, pr)
-			fmt.Fprintf(os.Stderr, "cardfuzz: spellbench outcome %d/%d pairs\n", len(pairs), o.games)
+			fmt.Fprintf(os.Stderr, "cardfuzz: spellbench outcome %d/%d pairs\n", len(pairs), len(jobs))
 		})
 	fmt.Fprintf(out, "== spellbench outcome: policy=%s autopay=%s seed=%d pairs=%d v2 seats=%s ==\n", o.policy,
-		map[bool]string{true: "all", false: "off"}[o.autopay], o.seed, o.games, map[bool]string{true: "both", false: "first"}[o.v2Both])
+		map[bool]string{true: "all", false: "off"}[o.autopay], o.seed, len(jobs), map[bool]string{true: "both", false: "first"}[o.v2Both])
 	var nDone, nWin, vDone, vWin, same, both, forfeits int
 	var nTurns, vTurns, nLen, vLen int
 	for i, pr := range pairs {
-		fmt.Fprintf(out, "pair %3d seed %d\n  native: %s\n  v2:     %s\n", i, jobs[i].seed, pr.native, pr.v2)
+		fmt.Fprintf(out, "pair %3d seed %d\n  native: %s\n  v2:     %s\n", jobs[i].idx, jobs[i].seed, pr.native, pr.v2)
 		if pr.native.done {
 			nDone++
 			nTurns += int(pr.native.turns)

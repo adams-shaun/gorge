@@ -9,6 +9,7 @@ package mapping
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -25,6 +26,24 @@ var (
 	ErrDuplicate          = errors.New("engine_contract_failure:duplicate_candidates")
 	ErrUnresolvableSource = errors.New("engine_contract_failure:unresolvable_source")
 )
+
+// IsContractFailure reports whether err is one of the adapter's
+// engine-contract limits rather than an agent's error. The five sentinels
+// above carry the prefix; observe and identity raise the same
+// "engine_contract_failure:" prefix raw (a look id asked of an object the
+// viewer already sees, an object that left the zone), so a caller that falls
+// back on an unposable decision classifies those too.
+func IsContractFailure(err error) bool {
+	if err == nil {
+		return false
+	}
+	for _, sentinel := range []error{ErrDeadEnd, ErrUnmapped, ErrCandidateLimit, ErrDuplicate, ErrUnresolvableSource} {
+		if errors.Is(err, sentinel) {
+			return true
+		}
+	}
+	return strings.HasPrefix(err.Error(), "engine_contract_failure:")
+}
 
 // ActionContext is the acting seat's priority action in progress: the object
 // it acts from, and Since, the engine's next object id when the action began

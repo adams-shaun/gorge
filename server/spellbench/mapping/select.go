@@ -191,32 +191,56 @@ func visibleSelect(purp string, withSource bool) Builder {
 	}
 }
 
-// hiddenSelect presents options whose objects sit in a zone hidden from the
-// chooser (a library, or the other seat's hand) under look ids.
+// hiddenSelect presents a pick whose options may sit in a zone hidden from the
+// chooser (a library, or the other seat's hand) under look ids. An option the
+// chooser already sees keeps its visible id, as mixedSelect does: a search
+// whose Origin$ is Library,Graveyard offers both, and a look id for the
+// graveyard card would be refused (it already has one).
 func hiddenSelect(env *Env, d *decision.Decision, purp, how string) (Transaction, error) {
 	src, err := ResolveSource(env, d)
 	if err != nil {
 		return nil, err
 	}
-	env.OpenLook(d.Player)
-	refs := map[int]protocol.ObjectRef{}
+	refs := make([]protocol.ObjectRef, len(d.Options))
+	hidden := make([]bool, len(d.Options))
 	var known []protocol.Known
+	look := false
 	for i, o := range d.Options {
+		obj := env.G.E.G.Obj(o.Obj)
+		if obj != nil && observe.Visible(d.Player, obj) {
+			r, err := env.Obs.Ref(d.Player, o.Obj)
+			if err != nil {
+				return nil, err
+			}
+			if r == nil {
+				return nil, fmt.Errorf("%w:%s object not visible", ErrUnmapped, purp)
+			}
+			refs[i] = *r
+			continue
+		}
+		if !look {
+			env.OpenLook(d.Player)
+			look = true
+		}
 		r, err := env.Obs.LookRef(d.Player, o.Obj)
 		if err != nil {
 			return nil, err
 		}
 		refs[i] = r
+		hidden[i] = true
 		known = append(known, observe.KnownEntry(r, how, nil))
 	}
 	observe.SortKnown(known)
 	lo, hi := uint32(d.Min), uint32(d.Max)
-	return NewPick(env, PickSpec{D: d, Options: allOptions(d), Known: known, Look: true,
+	return NewPick(env, PickSpec{D: d, Options: allOptions(d), Known: known, Look: look,
 		Context: protocol.Context{Kind: "choice", Source: src, Purpose: &purp},
 		Sem: func(opt int, sel uint32) (Cand, error) {
 			r := refs[opt]
-			return Cand{Sem: protocol.SelectObject(src, purp, protocol.ObjectTarget(r), sel, lo, hi),
-				Hidden: true, SortName: *r.CardName, SortID: r.ObjectID}, nil
+			c := Cand{Sem: protocol.SelectObject(src, purp, protocol.ObjectTarget(r), sel, lo, hi)}
+			if hidden[opt] {
+				c.Hidden, c.SortName, c.SortID = true, cardName(r), r.ObjectID
+			}
+			return c, nil
 		},
 		Finish: func(sel uint32) protocol.Semantic { return protocol.FinishSelection(src, purp, sel) }}), nil
 }

@@ -1099,6 +1099,7 @@ func main() {
 	sbMinAgree := flag.Float64("min-agree", 0, "with -spellbench twin: fail when a decision kind with at least 50 compared decisions agrees below this percentage (0 keeps the any-disagreement rule)")
 	sbMaxRebuildFail := flag.Float64("max-rebuild-fail", 0.5, "with -spellbench twin and -min-agree: fail when the neutral world could not rebuild the pick for more than this percentage of the run's decisions (0 allows none)")
 	sbMaxOutcomeGap := flag.Float64("max-outcome-gap", 0, "with -spellbench outcome: fail when the 95% CI of the (v2 - native) seat-0 win rate excludes 0 and |gap| exceeds this many percentage points (0 disables)")
+	sbOnlyPair := flag.Int("only-pair", -1, "with -spellbench outcome: play only this pair index (0-based); the report keeps its original pair number")
 	maxStack := flag.Int("max-stack", 256<<20, "per-goroutine stack limit in bytes (runtime/debug.SetMaxStack): an unbounded recursion dies here instead of at Go's 1 GB default")
 	flag.Parse()
 	if tapeDual {
@@ -1135,7 +1136,7 @@ func main() {
 	}
 	sbOpts := sbOptions{mode: *sbMode, policy: *sbPolicy, autopay: apc.mode == "all", v2Both: *sbV2Both, maxSteps: uint64(*maxIntents),
 		maxTurns: *maxTurns, maxIntents: *maxIntents, maxObjects: *maxObjects, games: *games, seed: *seed, workers: *workers,
-		minAgree: *sbMinAgree, maxRebuildFail: *sbMaxRebuildFail, maxOutcomeGap: *sbMaxOutcomeGap}
+		minAgree: *sbMinAgree, maxRebuildFail: *sbMaxRebuildFail, maxOutcomeGap: *sbMaxOutcomeGap, onlyPair: sbOnlyPair}
 	if *repro != "" {
 		if *cpuProfile != "" {
 			pf, err := os.Create(*cpuProfile)
