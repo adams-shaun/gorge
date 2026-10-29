@@ -100,8 +100,19 @@ func Route(d *decision.Decision) string {
 		// vote and twopiles keep their old unmapped fallback: vote encodes its
 		// ballot index in Obj, and twopiles is a multi-pick owned by
 		// sbp-unmapped-dig-division.
-		if len(d.Options) > 0 && !k["vote"] && !k["twopiles"] {
-			if chooseObjectRoute(d, k) {
+		//
+		// A cumulative floor (MinSum) or budget (MaxSum/Budgeted, including
+		// the second budget) is a whole-answer rule the one-pick candidates
+		// below cannot express, and AllowNone's empty answer has no candidate
+		// at all: those asks stay on the old unmapped fallback so the native
+		// bot answers them instead of the v2 seat being posed an intent
+		// Decision.Validate rejects. A Max of 0 likewise admits only the empty
+		// answer.
+		if len(d.Options) > 0 && d.Max >= 1 && !k["vote"] && !k["twopiles"] &&
+			!d.AllowNone && d.MinSum <= 0 && !d.HasBudget() && !d.HasBudget2() {
+			// choose/object commits exactly one pick; a Min>1 object ask
+			// instead takes the option route's group substeps.
+			if d.Min <= 1 && chooseObjectRoute(d, k) {
 				return "choose/object"
 			}
 			return "choose/option"
