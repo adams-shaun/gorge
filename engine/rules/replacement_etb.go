@@ -153,7 +153,7 @@ func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
 	e.etbMove = &move
 	e.etbNext = ordinal + 1
 	d := &decision.Decision{Player: e.G.Obj(ev.Obj).Controller, Kind: decision.KChoose,
-		Min: 1, Max: 1, ResumeKind: "etb", Source: ev.Obj,
+		Min: 1, Max: 1, ResumeKind: "etb", ResumeSA: choice.sa, Source: ev.Obj,
 		Prompt: "Choose" + choice.promptText(), Options: choice.options}
 	e.choosing = chooseETBEntry
 	if in, ok := etbTapeAnswer(e, d, ev.Obj); ok {

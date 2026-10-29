@@ -1,11 +1,16 @@
 package neutral
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/server/spellbench/internal/testcorpus"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 	"github.com/adams-shaun/gorge/server/spellbench/xview"
@@ -208,4 +213,163 @@ func TestNeutralGrantSurvivesCostTargetDecision(t *testing.T) {
 		got.Keywords[0] != nativeGrant.Keywords[0] {
 		t.Fatalf("rebuilt grant after cost decision = %+v, native %+v", got, nativeGrant)
 	}
+}
+
+// TestNeutralGrantTracksEveryPendingGrantFromOneSource pins the defect where a
+// source whose latest activation was a pure grant overwrote the one before it:
+// Glorifier of Dusk put a Flying grant then a different Vigilance grant on the
+// stack, and the neutral rebuild reported only the Vigilance one as duplicate,
+// so the bot paid 2 life for a redundant Flying pump. The native engine reads
+// every object on the stack (rules.abilityGrant); the neutral session must
+// remember every answered activation, oldest first, and trim by count.
+func TestNeutralGrantTracksEveryPendingGrantFromOneSource(t *testing.T) {
+	reg := testcorpus.Registry(t)
+	card, ok := reg.Lookup("Glorifier of Dusk")
+	if !ok {
+		t.Fatal(`precondition: corpus has no "Glorifier of Dusk"`)
+	}
+	if len(card.Faces) == 0 {
+		t.Fatal("precondition: Glorifier of Dusk has no faces")
+	}
+	var grants [][]string
+	for _, ab := range card.Faces[0].Abilities {
+		if kw := rules.PureGrantKeywords(ab); len(kw) > 0 {
+			grants = append(grants, kw)
+		}
+	}
+	if len(grants) != 2 {
+		t.Fatalf("precondition: pure-grant abilities = %v, want exactly 2", grants)
+	}
+	if len(grants[0]) != 1 || !strings.EqualFold(grants[0][0], "Flying") ||
+		len(grants[1]) != 1 || !strings.EqualFold(grants[1][0], "Vigilance") {
+		t.Fatalf("precondition: pure grants = %v, want Flying then Vigilance", grants)
+	}
+	// The two abilities are the face's first two entries, which is the
+	// ability_index the observation's candidates name.
+	if len(card.Faces[0].Abilities) < 2 || card.Faces[0].Abilities[0].Kind != "AB" || card.Faces[0].Abilities[1].Kind != "AB" {
+		t.Fatalf("precondition: first two abilities are not ABs")
+	}
+
+	name, seat0 := "Glorifier of Dusk", "p0"
+	perm := protocol.ObjectRef{ObjectID: "o-glo", CardName: &name, OwnerSeat: "p0", ControllerSeat: "p0", Zone: "battlefield"}
+	power, toughness := int32(4), int32(4)
+	sd := protocol.SeatDecision{
+		ActingSeat: "p0",
+		SeatStep:   97,
+		Group:      protocol.Group{SubstepIndex: 0, SubstepCount: 1},
+		Context:    protocol.Context{Kind: "priority"},
+		Observation: protocol.Observation{
+			Viewer:       "p0",
+			Turn:         7,
+			PhaseStep:    "precombat_main",
+			ActiveSeat:   &seat0,
+			PrioritySeat: &seat0,
+			Players: [2]protocol.PlayerObs{
+				{
+					Seat: "p0",
+					Life: 20,
+					Battlefield: []protocol.ObjectRecord{{
+						ObjectRef: perm,
+						Characteristics: &protocol.Characteristics{
+							Types: []string{"creature"}, Subtypes: []string{"vampire", "soldier"},
+							Colors: []string{"white"}, ManaValue: 5, Power: &power, Toughness: &toughness,
+							Keywords: []string{},
+						},
+						Permanent: &protocol.Permanent{Tapped: false},
+					}},
+				},
+				{Seat: "p1", Life: 20},
+			},
+			// Both answered activations are still on the stack, from the
+			// same source: the observation's only Duplicate evidence.
+			Stack: []protocol.StackEntry{
+				{ObjectRef: protocol.ObjectRef{ObjectID: "o-glo-stack-1", CardName: &name, OwnerSeat: "p0",
+					ControllerSeat: "p0", Zone: "stack"}, StackKind: "activated_ability", Source: &perm},
+				{ObjectRef: protocol.ObjectRef{ObjectID: "o-glo-stack-2", CardName: &name, OwnerSeat: "p0",
+					ControllerSeat: "p0", Zone: "stack"}, StackKind: "activated_ability", Source: &perm},
+			},
+		},
+		Candidates: []protocol.Candidate{
+			{CandidateID: 0, Semantic: protocol.ActivateAbility(perm, 0)},
+			{CandidateID: 1, Semantic: protocol.ActivateAbility(perm, 1)},
+			{CandidateID: 2, Semantic: protocol.Pass()},
+		},
+	}
+	// The wire turns semantic fields into json.RawMessage/json.Number; the
+	// field readers (ref, num) require that round trip.
+	wire, err := json.Marshal(sd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(wire, &sd); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NewSession(reg)
+	s.last = &sd
+	s.Picked(0) // Flying
+	s.Picked(1) // Vigilance
+	pl, err := s.Payload(&sd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var abilities []decision.Option
+	for _, o := range pl.Decision.Options {
+		if o.Kind == "ability" {
+			abilities = append(abilities, o)
+		}
+	}
+	if len(abilities) != 2 {
+		t.Fatalf("precondition: rebuilt ability options = %d, want 2", len(abilities))
+	}
+	var stack int
+	for _, e := range sd.Observation.Stack {
+		if e.StackKind == "activated_ability" && e.Source != nil && e.Source.ObjectID == perm.ObjectID {
+			stack++
+		}
+	}
+	if stack != 2 {
+		t.Fatalf("precondition: observed stack entries from the source = %d, want 2", stack)
+	}
+	for i, o := range abilities {
+		if o.Grant == nil {
+			t.Errorf("option %d (%s) carries no Grant", i, o.Label)
+			continue
+		}
+		if o.Grant.Already {
+			t.Errorf("option %d (%s) Already = true, want false", i, o.Label)
+		}
+		if !o.Grant.Duplicate {
+			t.Errorf("option %d (%s) Duplicate = false; rebuilt grants: %s", i, o.Label, grantSummary(abilities))
+		}
+		want := grants[i][0]
+		if len(o.Grant.Keywords) != 1 || !strings.EqualFold(o.Grant.Keywords[0], want) {
+			t.Errorf("option %d keywords = %v, want [%s]", i, o.Grant.Keywords, want)
+		}
+	}
+
+	in, err := heuristic.NewBot(16462000697783136304).Decide(context.Background(), pl.View, pl.Decision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ch := range in.Choices {
+		if ch >= 0 && ch < len(pl.Decision.Options) && pl.Decision.Options[ch].Kind == "ability" {
+			t.Errorf("bot picked ability option %d (%s) for a redundant grant: %v", ch,
+				pl.Decision.Options[ch].Label, in.Choices)
+		}
+	}
+}
+
+// grantSummary renders the rebuilt ability options' grant facts for a failure.
+func grantSummary(opts []decision.Option) string {
+	var b strings.Builder
+	for _, o := range opts {
+		g := o.Grant
+		if g == nil {
+			fmt.Fprintf(&b, "[%s:<nil>]", o.Label)
+			continue
+		}
+		fmt.Fprintf(&b, "[%s:dup=%t]", strings.Join(g.Keywords, ","), g.Duplicate)
+	}
+	return b.String()
 }
