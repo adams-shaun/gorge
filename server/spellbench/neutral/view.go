@@ -2,6 +2,7 @@ package neutral
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"sort"
@@ -85,6 +86,12 @@ type Builder struct {
 	// deleted and the cache never grows past one observation.
 	cards map[string]cachedCard
 	gen   uint64
+	// derivedTypes mirrors native's ViewTypes gate: the engine's layer-4
+	// table exists only while some LType effect is live, so only then does
+	// native's view print a derived type line (including the face-down,
+	// attached-Reconfigure and Bestow bases). When no observed card type
+	// moved, the native view prints the printed face for every object.
+	derivedTypes bool
 }
 
 // cachedCard is one cached card view: a deep copy of the object record that
@@ -96,10 +103,11 @@ type Builder struct {
 // applyBlocks re-clones it per View). No writer in the neutral/v2 path mutates
 // those fields.
 type cachedCard struct {
-	rec   protocol.ObjectRecord
-	costs bool
-	gen   uint64
-	card  view.CardView
+	rec     protocol.ObjectRecord
+	costs   bool
+	derived bool
+	gen     uint64
+	card    view.CardView
 }
 
 // blockMemo is one attacker's blocker count in the current combat and the
@@ -169,6 +177,83 @@ func (b *Builder) face(name *string, token bool, c *protocol.Characteristics) *c
 	return best
 }
 
+// PreferTokens orders each face name's token scripts so the scripts the
+// game's decks can actually create are tried first. The observation names a
+// token only by its face name, and several scripts share one name (the five
+// 1/1 black Rat tokens differ only in a printed static), so a name-only
+// lookup picks whichever stem sorts first. The decks' TokenScript$ references
+// are the only fact that narrows the set; a tie among several hinted scripts
+// keeps stem order, which is deterministic.
+func (b *Builder) PreferTokens(stems []string) {
+	prefer := map[string]bool{}
+	for _, stem := range stems {
+		if _, ok := b.Reg.Tokens[stem]; ok {
+			prefer[stem] = true
+		}
+	}
+	for _, list := range b.tokens {
+		sort.SliceStable(list, func(i, j int) bool {
+			if prefer[list[i]] != prefer[list[j]] {
+				return prefer[list[i]]
+			}
+			return list[i] < list[j]
+		})
+	}
+}
+
+// TokenStems returns the token-script stems these cards can create: a parsed
+// Token ability's TokenScript$ parameter, and a TokenScript$ reference in any
+// SVar body (the DB$ Token a trigger or charm expands to). Sorted and
+// duplicate-free, so no map iteration reaches the builder's order.
+func TokenStems(cs []*cards.Card) []string {
+	set := map[string]bool{}
+	add := func(v string) {
+		if v = strings.TrimSpace(v); v != "" {
+			set[v] = true
+		}
+	}
+	for _, c := range cs {
+		if c == nil {
+			continue
+		}
+		for _, f := range c.Faces {
+			if f == nil {
+				continue
+			}
+			for _, a := range f.Abilities {
+				if a == nil {
+					continue
+				}
+				add(a.Params["TokenScript"])
+			}
+			for _, key := range slices.Sorted(maps.Keys(f.SVars)) {
+				for _, stem := range tokenScriptRefs(f.SVars[key]) {
+					add(stem)
+				}
+			}
+		}
+	}
+	return slices.Sorted(maps.Keys(set))
+}
+
+// tokenScriptRefs returns each TokenScript$ stem in a raw DB$ body. The
+// parameter list separates entries with '|' (Forge's own line format), and a
+// TokenScript$ value is one stem, occasionally comma-separated.
+func tokenScriptRefs(body string) []string {
+	var out []string
+	for _, part := range strings.FieldsFunc(body, func(r rune) bool { return r == '|' || r == '\n' }) {
+		part = strings.TrimSpace(part)
+		const key = "TokenScript$"
+		if len(part) < len(key) || !strings.EqualFold(part[:len(key)], key) {
+			continue
+		}
+		for _, stem := range strings.FieldsFunc(part[len(key):], func(r rune) bool { return r == ',' || r == ' ' || r == '\t' }) {
+			out = append(out, stem)
+		}
+	}
+	return out
+}
+
 // View builds the seat's gorge view from its observation. Every fact comes
 // from the observation, except the printed facts gorge's Board reads off a
 // card (mana cost, type line, spell API, mana production), which come from
@@ -215,6 +300,7 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 		}
 	}
 	b.rememberBlocks(o, state.Step(i), blockers)
+	b.derivedTypes = b.observedLayer4Types(o)
 	b.gen++
 	for _, p := range o.Players {
 		seat, err := Seat(p.Seat)
@@ -378,7 +464,7 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 	if b.cards == nil {
 		b.cards = map[string]cachedCard{}
 	}
-	if c, ok := b.cards[r.ObjectID]; ok && c.costs == costs && sameObjectRecord(c.rec, r) {
+	if c, ok := b.cards[r.ObjectID]; ok && c.costs == costs && c.derived == b.derivedTypes && sameObjectRecord(c.rec, r) {
 		c.gen = b.gen
 		b.cards[r.ObjectID] = c
 		cv := c.card
@@ -390,7 +476,7 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 	if err != nil {
 		return view.CardView{}, err
 	}
-	b.cards[r.ObjectID] = cachedCard{rec: rec, costs: costs, gen: b.gen, card: cv}
+	b.cards[r.ObjectID] = cachedCard{rec: rec, costs: costs, derived: b.derivedTypes, gen: b.gen, card: cv}
 	applyBlocks(&cv, r, blockers)
 	return cv, nil
 }
@@ -421,6 +507,11 @@ func (b *Builder) buildCard(r protocol.ObjectRecord, costs bool) (view.CardView,
 	id := b.IDs.Of(r.ObjectID)
 	cv := view.CardView{ID: id, Controller: controller, Owner: owner, FaceDown: r.FaceDown,
 		IsToken: r.Token, IsCopy: r.Copy, Token: "#" + strconv.FormatUint(uint64(id), 10)}
+	if p := r.Permanent; p != nil && p.AttachedTo != nil && p.AttachedTo.Object != nil {
+		// Set before printed: the type-line rebuild keys the attached
+		// base-difference case on it.
+		cv.AttachedTo = b.IDs.Of(p.AttachedTo.Object.ObjectID)
+	}
 	if r.CardName == nil {
 		// A face-down card the viewer may not look at: gorge projects it
 		// with every printed field blank.
@@ -433,19 +524,25 @@ func (b *Builder) buildCard(r protocol.ObjectRecord, costs bool) (view.CardView,
 		cv.AbilityCosts = printedAbilityCosts(f)
 	}
 	if c := r.Characteristics; c != nil {
+		// Native's ViewCharacteristics fast path answers the printed P/T for
+		// a base-difference object no layer-7 effect reaches -- including an
+		// attached Reconfigure Equipment whose derived form has no P/T. The
+		// observation omits that pair; the printed face is the fact native's
+		// board carries. Other non-creatures keep the observed absence.
 		if c.Power != nil {
 			cv.Power = *c.Power
+		} else if f != nil && (cv.AttachedTo != 0 || cv.IsCopy) {
+			cv.Power = int32(f.Power())
 		}
 		if c.Toughness != nil {
 			cv.Toughness = *c.Toughness
+		} else if f != nil && (cv.AttachedTo != 0 || cv.IsCopy) {
+			cv.Toughness = int32(f.Toughness())
 		}
 		cv.Keywords = keywordLines(f, c.Keywords)
 	}
 	if p := r.Permanent; p != nil {
 		cv.Tapped, cv.Damage, cv.SummonSick, cv.Attacking = p.Tapped, int32(p.Damage), p.SummoningSick, p.Attacking
-		if p.AttachedTo != nil && p.AttachedTo.Object != nil {
-			cv.AttachedTo = b.IDs.Of(p.AttachedTo.Object.ObjectID)
-		}
 		if p.Attacking && p.AttackTarget != nil && p.AttackTarget.Player != nil {
 			who, err := Seat(*p.AttackTarget.Player)
 			if err != nil {
@@ -512,6 +609,168 @@ func (b *Builder) frontName(cv *view.CardView, name *string, token bool) {
 	}
 }
 
+// observedLayer4Types reports whether native's layer-4 type table can exist
+// for this observation: some battlefield object that is not a base-difference
+// case (face-down, token/copy, attached) shows a type line its printed face
+// does not, which only a live LType effect can do. Native rebuilds that table
+// for every candidate as soon as any LType effect is live, so one such object
+// turns on the derived line for every object whose card types it moves.
+func (b *Builder) observedLayer4Types(o *protocol.Observation) bool {
+	for _, p := range o.Players {
+		for _, r := range p.Battlefield {
+			if r.FaceDown {
+				// CR 708.5's default face is pure {Creature} with no
+				// keywords. A card type beyond it (an artifact face-down
+				// permanent, a Yedora land) or a keyword on it (Earthbend's
+				// hasted face-down land) can only come from a live
+				// continuous effect, which also builds native's table for
+				// every base-difference object.
+				for _, t := range r.Characteristics.Types {
+					if cardTypeWords[strings.ToLower(t)] && !strings.EqualFold(t, "creature") {
+						return true
+					}
+				}
+				for _, k := range r.Characteristics.Keywords {
+					// A cloaked face-down permanent's ward is CR 701.58a's
+					// base property, not an effect's grant; every other
+					// keyword on a face-down permanent needs an effect.
+					if !strings.EqualFold(cards.KeywordHead(k), "ward") {
+						return true
+					}
+				}
+				continue
+			}
+			if r.CardName == nil || r.Characteristics == nil {
+				continue
+			}
+			f := b.face(r.CardName, r.Token && !r.Copy, r.Characteristics)
+			if f == nil {
+				continue
+			}
+			// A copy's characteristics come from layer 1 and are not
+			// evidence of a layer-4 effect; its own line is handled in
+			// printed.
+			if r.Copy {
+				continue
+			}
+			// A token's observed subtypes cannot be compared with one
+			// registry script reliably: several scripts share one face name
+			// (the Kithkin/Rat cycles) and the face lookup picks one. Compare
+			// against every same-named script instead, so only a word NO
+			// script prints counts as an effect's addition.
+			if r.Token {
+				if b.tokenAddsTypeWord(r, r.Characteristics) {
+					return true
+				}
+				continue
+			}
+			attached := r.Permanent != nil && r.Permanent.AttachedTo != nil
+			if attached {
+				// A base-difference object legitimately LOSES printed words
+				// (an attached Reconfigure drops Creature). A word it GAINS
+				// can only come from a live effect, which builds the table.
+				if addsTypeWord(r.Characteristics, f) {
+					return true
+				}
+				continue
+			}
+			if !sameTypeLine(r.Characteristics, f.Types) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// cardTypeWords are the card types sameCardTypeSet compares, the same set
+// rules's ViewTypes table keys on (a subtype or supertype change alone does
+// not create a table entry).
+var cardTypeWords = map[string]bool{
+	"artifact": true, "battle": true, "creature": true, "enchantment": true,
+	"instant": true, "kindred": true, "land": true, "planeswalker": true,
+	"sorcery": true, "tribal": true,
+}
+
+// tokenAddsTypeWord is addsTypeWord against the union of the type words
+// every same-named token script prints, the only safe comparison when the
+// face lookup has to pick one of several scripts.
+func (b *Builder) tokenAddsTypeWord(r protocol.ObjectRecord, c *protocol.Characteristics) bool {
+	if r.CardName == nil || c == nil {
+		return false
+	}
+	known := map[string]bool{}
+	for _, stem := range b.tokens[*r.CardName] {
+		card := b.Reg.Tokens[stem]
+		if card == nil || len(card.Faces) == 0 || card.Faces[0] == nil {
+			continue
+		}
+		for _, t := range card.Faces[0].Types {
+			known[strings.ToLower(t)] = true
+		}
+	}
+	if len(known) == 0 {
+		return false
+	}
+	for _, list := range [][]string{c.Supertypes, c.Types, c.Subtypes} {
+		for _, w := range list {
+			if !known[strings.ToLower(w)] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// addsTypeWord reports whether the observed line carries a type word the
+// printed face does not: an effect added it. (Words missing from the observed
+// line are the face-down/attached base differences, not evidence.)
+func addsTypeWord(c *protocol.Characteristics, f *cards.Face) bool {
+	if c == nil || f == nil {
+		return false
+	}
+	has := func(w string) bool {
+		for _, t := range f.Types {
+			if strings.EqualFold(t, w) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, list := range [][]string{c.Supertypes, c.Types, c.Subtypes} {
+		for _, w := range list {
+			if !has(w) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// sameCardTypeSet reports whether two type lists carry the same card types,
+// ignoring order, case, supertypes and subtypes.
+func sameCardTypeSet(a, b []string) bool {
+	return cardTypesIn(a, b) && cardTypesIn(b, a)
+}
+
+func cardTypesIn(a, b []string) bool {
+	for _, t := range a {
+		if !cardTypeWords[strings.ToLower(t)] {
+			continue
+		}
+		found := false
+		for _, u := range b {
+			if strings.EqualFold(t, u) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 // printedAbilityCosts is the no-rules fallback native's zoneCard uses when its
 // Chars is absent: each non-mana activated ability's printed Cost$, in face
 // order. The observation carries no offer-time cost, so the plain rebuild can
@@ -536,12 +795,32 @@ func printedAbilityCosts(f *cards.Face) []string {
 func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *protocol.Characteristics) {
 	cv.Name = name
 	cv.Printing = view.Printing{Name: name}
-	// A face-down permanent's observed type line is the masked "creature"
-	// (CR 708.2), but native's view projects the visible face's printed type
-	// line (view.cardView reads ViewTypes, which the face-down marker does not
-	// change). Match native: the observed line is the other engine's mask, not
-	// the fact native's board adapter reads.
-	if c != nil && !cv.FaceDown && (len(c.Supertypes) > 0 || len(c.Types) > 0 || len(c.Subtypes) > 0) {
+	// Native's ViewTypes is a layer-4-effect table, not the derived
+	// characteristics: a face-down permanent, an attached Reconfigure
+	// Equipment and a bestowed Aura keep their PRINTED line unless some
+	// LType effect is live to populate that table. The observation's
+	// characteristics always carry the true derived line, so take it only
+	// when observedLayer4Types proves native's table exists AND this object
+	// has a table entry (a base-difference object, or a card-type move);
+	// otherwise the printed face is the fact native's view (and so its board
+	// adapter) shows.
+	// A face-down non-land keeps the observed masked line: that is the fact
+	// the s53 target rebuild needs, and native's table carries it whenever a
+	// type effect makes it visible. A face-down LAND is the one place the
+	// visible printed line can still be native's answer (a plain manifested
+	// land with an empty layer-4 table), so only a proven LType effect turns
+	// it into the masked line. An attached/copied object has the same
+	// printed-vs-table choice; every other object keeps the observed line
+	// (equal to the printed one when no effect moved it).
+	// A copy's line is layer 1's, and a non-base object's observed line is
+	// the only fact to use. A face-down or attached object has a base
+	// difference of its own: native prints the visible face unless its
+	// layer-4 table exists, so only a proven LType effect turns it into the
+	// observed line.
+	baseDiff := cv.FaceDown || cv.AttachedTo != 0
+	useObserved := c != nil && (len(c.Supertypes) > 0 || len(c.Types) > 0 || len(c.Subtypes) > 0) &&
+		(cv.IsCopy || f == nil || !baseDiff || b.derivedTypes)
+	if useObserved {
 		var words []string
 		for _, list := range [][]string{c.Supertypes, c.Types, c.Subtypes} {
 			for _, w := range list {
