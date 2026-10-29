@@ -47,6 +47,17 @@ func (f *Face) Primitives() []string {
 		if v := strings.TrimSpace(sa.ParamStr(PKAtEOT)); v != "" && !AtEOTValueSupported(v) {
 			set["api:AtEOT."+v] = struct{}{}
 		}
+		if sa.API == "Sacrifice" {
+			// Forge's SacrificeEffect reads only Amount$ (default "1") and
+			// never ChangeNum$; the corpus's five ChangeNum$ spellings all
+			// use 1, which is that default. Any other value is a shape this
+			// resolver cannot honour, so report it as unsupported rather than
+			// dropping it (engine/rules/paramcensus_test.go records the inert
+			// 1 as an ignored parameter).
+			if v := strings.TrimSpace(sa.ParamStr(PKChangeNum)); v != "" && v != "1" {
+				set["api:Sacrifice.ChangeNum"] = struct{}{}
+			}
+		}
 		if sa.API == "PreventDamage" && !PreventionRiderResolved(f.SVars, sa) {
 			// The PreventionSubAbility$ rider (Test of Faith's counters,
 			// Candles' Glow's life gain, Sacred Boon's delayed effect) is the
