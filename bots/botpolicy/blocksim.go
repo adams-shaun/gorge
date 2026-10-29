@@ -1,6 +1,7 @@
 package botpolicy
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -194,6 +195,9 @@ func (b Board) chooseBlockersSim(d *decision.Decision, p *AttackSimParams) []int
 		}
 	}
 	if bestScore <= baseScore+p.Margin {
+		if d.Player == 0 && len(d.Options) == 8 {
+			fmt.Printf("DBG SIM me=%v base=%v baseScore=%d best=%v bestScore=%d -> base\n", d.Player, base, baseScore, best, bestScore)
+		}
 		return base
 	}
 	var out []int
@@ -203,5 +207,8 @@ func (b Board) chooseBlockersSim(d *decision.Decision, p *AttackSimParams) []int
 		}
 	}
 	sort.Ints(out)
+	if d.Player == 0 && len(d.Options) == 8 {
+		fmt.Printf("DBG SIM me=%v base=%v baseScore=%d best=%v bestScore=%d -> %v\n", d.Player, base, baseScore, best, bestScore, out)
+	}
 	return out
 }

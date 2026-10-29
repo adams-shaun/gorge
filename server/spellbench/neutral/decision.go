@@ -1379,6 +1379,12 @@ func battlefield(v *view.View, seat state.PlayerID) []view.CardView {
 }
 
 func isCreature(cv view.CardView) bool {
+	// CR 708.2: a face-down permanent on the battlefield is a 2/2 creature.
+	// Native's view still prints the visible face's type line for it (see
+	// Builder.printed), so the type words alone would miss a face-down land.
+	if cv.FaceDown {
+		return true
+	}
 	return slices.ContainsFunc(strings.Fields(cv.Types), func(t string) bool { return strings.EqualFold(t, "Creature") })
 }
 
@@ -1442,6 +1448,14 @@ func (s *Session) attackOption(n *native, a protocol.ObjectRef, def protocol.Tar
 // bot sees the future substeps too.
 func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.NativeOp, *native, error) {
 	opp := 1 - s.seat
+	attached := map[state.ObjID][]view.CardView{}
+	for _, p := range v.Players {
+		for _, cv := range p.Battlefield {
+			if cv.AttachedTo != 0 {
+				attached[cv.AttachedTo] = append(attached[cv.AttachedTo], cv)
+			}
+		}
+	}
 	n := s.continuing("attack")
 	goaded := map[string]bool{}
 	if n == nil || sd.Group.SubstepIndex == 0 {
@@ -1490,7 +1504,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 			for _, r := range p.Battlefield {
 				cv, ok := findCard(battlefield(v, s.seat), s.B.IDs.Of(r.ObjectID))
 				if !ok || !isCreature(cv) || cv.Tapped || hasKeyword(cv, "Defender") ||
-					(cv.SummonSick && !hasKeyword(cv, "Haste")) || s.cantAttack(cv) {
+					(cv.SummonSick && !hasKeyword(cv, "Haste")) || s.cantAttack(cv, attached[cv.ID]) {
 					continue
 				}
 				legal = append(legal, r.ObjectRef)
@@ -1544,46 +1558,21 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 				s.attackOption(n, a, *def, label, goaded[a.ObjectID])
 			}
 		} else {
-			// The group's first substep names the first native unit; the
-			// remaining units are the board-order creatures. A creature with
-			// a printed CantAttack static (conditional or not) is ordered
-			// last: the observation cannot evaluate its CheckSVar, but the
-			// engine's offer does, and an unconditional/true restriction must
-			// not displace an unrestricted attacker from the declaration.
-			cur := ""
-			if _, err := ref(sd.Candidates[0].Semantic, "attacker"); err == nil {
-				a, _ := ref(sd.Candidates[0].Semantic, "attacker")
-				cur = a.ObjectID
-			}
-			var ordered []protocol.ObjectRef
-			for _, a := range legal {
-				if a.ObjectID == cur {
-					ordered = append(ordered, a)
-				}
-			}
-			for _, a := range legal {
-				if a.ObjectID != cur && !s.hasCantAttack(a, v) {
-					ordered = append(ordered, a)
-				}
-			}
-			for _, a := range legal {
-				if a.ObjectID != cur && s.hasCantAttack(a, v) {
-					ordered = append(ordered, a)
-				}
-			}
-			if len(ordered) == 0 {
-				ordered = legal
-			}
-			if nUnits > len(ordered) {
-				nUnits = len(ordered)
+			// The group's substeps follow the engine's own battlefield order:
+			// native's newDeclare walks its options in order and keeps the
+			// first-seen unit, and those options are the board-order legal
+			// attackers. `legal` is built in that same order, so the current
+			// unit must keep its board position rather than moving first.
+			if nUnits > len(legal) {
+				nUnits = len(legal)
 			}
 			seen := map[string]bool{}
 			added := 0
-			for i := 0; i < len(ordered) && added < nUnits; i++ {
-				if !addUnit(ordered[i]) {
+			for i := 0; i < len(legal) && added < nUnits; i++ {
+				if !addUnit(legal[i]) {
 					continue // every defender is restricted for this attacker
 				}
-				seen[ordered[i].ObjectID] = true
+				seen[legal[i].ObjectID] = true
 				added++
 			}
 			// The current unit is always part of the native declaration; a
@@ -1753,42 +1742,48 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			return nil, nil, err
 		}
 		cur := first.ObjectID
-		// The current substep's candidates: exactly the native decision's
-		// offered pairs for this blocker.
-		for _, c := range sd.Candidates {
-			if c.Semantic.Kind != "declare_block" {
-				continue
-			}
-			b, err := ref(c.Semantic, "blocker")
-			if err != nil {
-				return nil, nil, err
-			}
-			if b.ObjectID != cur {
-				continue
-			}
-			a, err := optRef(c.Semantic, "attacker")
-			if err != nil {
-				return nil, nil, err
-			}
-			if a == nil {
-				continue
-			}
-			s.blockOption(n, b, *a, name(b)+" blocks "+name(*a), s.attackerMinBlockers(*a, v))
-		}
-		// Every other untapped, able blocker, against every attacker it can
-		// block. The current blocker already has its authoritative pairs. The
-		// gates are combat.CanBlock's public-fact half (see canBlockPair), so
-		// the bot's whole-declaration view does not see a pair the engine's
-		// own offer omitted.
+		// The group's substeps follow the engine's battlefield order: native's
+		// newDeclare walks its options in order and keeps the first-seen unit.
+		// The current blocker keeps its board position (its candidate stream is
+		// authoritative for its own pairs); every other untapped, able blocker
+		// gets its board-derived pairs. The gates are combat.CanBlock's
+		// public-fact half (see canBlockPair), so the bot's whole-declaration
+		// view does not see a pair the engine's own offer omitted.
 		for _, b := range battlefield(v, s.seat) {
-			if !isCreature(b) || b.Tapped || s.B.IDs.V2(b.ID) == cur {
+			if !isCreature(b) || b.Tapped {
+				continue
+			}
+			bv2 := s.B.IDs.V2(b.ID)
+			bref, ok := refs[bv2]
+			if !ok {
+				continue
+			}
+			if bv2 == cur {
+				// The current substep's candidates: exactly the native
+				// decision's offered pairs for this blocker.
+				for _, c := range sd.Candidates {
+					if c.Semantic.Kind != "declare_block" {
+						continue
+					}
+					cb, err := ref(c.Semantic, "blocker")
+					if err != nil {
+						return nil, nil, err
+					}
+					if cb.ObjectID != cur {
+						continue
+					}
+					a, err := optRef(c.Semantic, "attacker")
+					if err != nil {
+						return nil, nil, err
+					}
+					if a == nil {
+						continue
+					}
+					s.blockOption(n, cb, *a, name(cb)+" blocks "+name(*a), s.attackerMinBlockers(*a, v))
+				}
 				continue
 			}
 			if s.cantBlock(b, attached[b.ID]) {
-				continue
-			}
-			bref, ok := refs[s.B.IDs.V2(b.ID)]
-			if !ok {
 				continue
 			}
 			for _, a := range attackers {
@@ -1957,6 +1952,16 @@ func sharesColour(a, b []string) bool {
 // "equipped creature gets +2/+2 and can't block"). The v2 view carries no
 // static registry, so the printed faces are the only source.
 func (s *Session) cantBlock(cv view.CardView, attached []view.CardView) bool {
+	// A derived keyword grant ("CARDNAME can't block." / the compound
+	// "CARDNAME can't attack or block.") is a layer-6 fact the view already
+	// carries; native's BlockRestricted reads the same derived list, so the
+	// board-derived pairs must honour it too.
+	for _, k := range cv.Keywords {
+		switch cards.HiddenKeywordOf(k) {
+		case cards.HiddenKeywordCantBlock, cards.HiddenKeywordCantAttackOrBlock:
+			return true
+		}
+	}
 	if f := s.B.face(&cv.Name, false, nil); f != nil {
 		for _, st := range f.Statics {
 			if !slices.Contains(strings.Split(st.Mode, ","), "CantBlock") {
@@ -2005,7 +2010,16 @@ func unresolvedStatic(st cards.Static) bool {
 // creature from attacking. A static carrying any condition parameter is not
 // evaluated (the observation carries no live SVar or board gate), so the
 // engine's own offer remains the authority there.
-func (s *Session) cantAttack(cv view.CardView) bool {
+func (s *Session) cantAttack(cv view.CardView, attached []view.CardView) bool {
+	// A derived keyword grant ("CARDNAME can't attack." / the compound
+	// "CARDNAME can't attack or block.") is already in the view's keyword
+	// list, the same derived fact native's AttackBlocked reads.
+	for _, k := range cv.Keywords {
+		switch cards.HiddenKeywordOf(k) {
+		case cards.HiddenKeywordCantAttack, cards.HiddenKeywordCantAttackOrBlock:
+			return true
+		}
+	}
 	f := s.B.face(&cv.Name, false, nil)
 	if f == nil {
 		return false
@@ -2022,13 +2036,47 @@ func (s *Session) cantAttack(cv view.CardView) bool {
 			return true
 		}
 	}
+	// A printed CantAttack static on a permanent attached to this creature
+	// (Recumbent Bliss: "Enchanted creature can't attack or block") is
+	// unconditional when it carries no condition or Target. The Vow cycle's
+	// defender-scoped aura carries Target$ and is handled by attackRestricted.
+	for i := range attached {
+		f := s.B.face(&attached[i].Name, false, nil)
+		if f == nil {
+			continue
+		}
+		for _, st := range f.Statics {
+			if !slices.Contains(strings.Split(st.Mode, ","), "CantAttack") {
+				continue
+			}
+			valid := strings.TrimSpace(st.Params["ValidCard"])
+			if !strings.Contains(valid, "EnchantedBy") && !strings.Contains(valid, "EquippedBy") {
+				continue
+			}
+			if unresolvedStatic(st) {
+				continue
+			}
+			return true
+		}
+	}
 	return false
 }
 
-// cantBlockAttacker reports whether the blocker's printed CantBlockBy static
-// forbids this attacker (Hinterland Drake's "can't block artifact creatures").
+// cantBlockAttacker reports whether a printed CantBlockBy static forbids this
+// (blocker, attacker) pair. Forge spells the static on either side of the
+// pair: a blocker's own "can't block <filter>" (Hinterland Drake:
+// ValidAttacker$ Creature.Artifact | ValidBlocker$ Creature.Self) and an
+// attacker's "can't be blocked by <filter>" (Azure Beastbinder:
+// ValidAttacker$ Creature.Self | ValidBlocker$ Creature.powerGE2). Native's
+// BlockRestricted reads ValidAttacker$ against the attacker and ValidBlocker$
+// against the blocker with the static's host as the Self referent, so both
+// host shapes are read here.
 func (s *Session) cantBlockAttacker(b, a view.CardView) bool {
-	f := s.B.face(&b.Name, false, nil)
+	return s.cantBlockByStatic(b, a, b) || s.cantBlockByStatic(b, a, a)
+}
+
+func (s *Session) cantBlockByStatic(b, a, host view.CardView) bool {
+	f := s.B.face(&host.Name, false, nil)
 	if f == nil {
 		return false
 	}
@@ -2036,53 +2084,88 @@ func (s *Session) cantBlockAttacker(b, a view.CardView) bool {
 		if !slices.Contains(strings.Split(st.Mode, ","), "CantBlockBy") {
 			continue
 		}
-		blocker := strings.TrimSpace(st.Params["ValidBlocker"])
-		explicitSelf := blocker != "" && strings.Contains(blocker, "Self")
-		if blocker != "" && !explicitSelf {
-			continue // the restriction names another blocker, not this card
+		attackerSpec := strings.TrimSpace(st.Params["ValidAttacker"])
+		if attackerSpec == "" {
+			attackerSpec = strings.TrimSpace(st.Params["ValidCard"])
 		}
-		spec := strings.ToLower(strings.TrimSpace(st.Params["ValidAttacker"]))
-		if strings.Contains(spec, "self") {
-			// "CARDNAME can't be blocked" is this creature's own evasion as
-			// an attacker, not a restriction on it as a blocker.
+		// An empty attacker spec matches nothing in native's matcher, so the
+		// static cannot be proven to apply.
+		if attackerSpec == "" || !matchesSpec(attackerSpec, a, host) {
 			continue
 		}
-		switch {
-		case spec == "":
-			if explicitSelf {
-				return true
-			}
-		case strings.Contains(spec, "artifact"):
-			if slices.ContainsFunc(strings.Fields(a.Types), func(t string) bool { return strings.EqualFold(t, "Artifact") }) {
-				return true
-			}
-		case strings.Contains(spec, "creature"):
-			if explicitSelf {
-				return true
-			}
+		blockerSpec, ok := st.Params["ValidBlocker"]
+		if !ok {
+			return true // the attacker spec alone names the restriction
+		}
+		if matchesSpec(strings.TrimSpace(blockerSpec), b, host) {
+			return true
 		}
 	}
 	return false
 }
 
-// hasCantAttack reports whether the creature carries any printed CantAttack
-// static, conditional or not. It is the ordering key for an unresolvable
-// condition, not a legality verdict.
-func (s *Session) hasCantAttack(a protocol.ObjectRef, v *view.View) bool {
-	cv, ok := s.cardByV2(v, a.ObjectID)
-	if !ok {
+// matchesSpec evaluates the dot-separated qualifiers this build can read from
+// a Forge ValidAttacker$/ValidBlocker$ spec against one creature. Self is the
+// static's host. An unknown qualifier matches nothing: a restriction that
+// cannot be proven must not apply, the same fail-closed direction as
+// unresolvedStatic.
+func matchesSpec(spec string, cv, host view.CardView) bool {
+	if spec == "" {
 		return false
 	}
-	f := s.B.face(&cv.Name, false, nil)
-	if f == nil {
-		return false
-	}
-	for _, st := range f.Statics {
-		if slices.Contains(strings.Split(st.Mode, ","), "CantAttack") {
-			return true
+	for _, part := range strings.Split(strings.ToLower(spec), ".") {
+		part = strings.TrimSpace(part)
+		switch {
+		case part == "" || part == "card":
+		case part == "creature":
+			if !isCreature(cv) {
+				return false
+			}
+		case part == "self" || part == "cardname":
+			if cv.ID != host.ID {
+				return false
+			}
+		case part == "artifact":
+			if !hasType(cv, "Artifact") {
+				return false
+			}
+		case strings.HasPrefix(part, "power"):
+			if !matchesPower(part[len("power"):], cv.Power) {
+				return false
+			}
+		default:
+			return false
 		}
 	}
+	return true
+}
+
+// matchesPower reads Forge's comparator suffix ("GE2", "LT3", ...) against a
+// creature's power.
+func matchesPower(cmp string, power int32) bool {
+	switch {
+	case strings.HasPrefix(cmp, "ge"):
+		n, ok := atoi32(cmp[2:])
+		return ok && power >= n
+	case strings.HasPrefix(cmp, "gt"):
+		n, ok := atoi32(cmp[2:])
+		return ok && power > n
+	case strings.HasPrefix(cmp, "le"):
+		n, ok := atoi32(cmp[2:])
+		return ok && power <= n
+	case strings.HasPrefix(cmp, "lt"):
+		n, ok := atoi32(cmp[2:])
+		return ok && power < n
+	case strings.HasPrefix(cmp, "eq"):
+		n, ok := atoi32(cmp[2:])
+		return ok && power == n
+	}
 	return false
+}
+
+func atoi32(s string) (int32, bool) {
+	n, err := strconv.ParseInt(strings.TrimSpace(s), 10, 32)
+	return int32(n), err == nil
 }
 
 // --- small choices ---

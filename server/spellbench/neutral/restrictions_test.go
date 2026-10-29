@@ -136,7 +136,7 @@ func TestConditionalCantAttackKeepsTheCreatureAttackable(t *testing.T) {
 		"Name:Fixture Knight\nTypes:Creature Human Knight\nPT:2/2\n",
 		"Name:Fixture Falcon\nTypes:Creature Bird\nPT:2/1\n"+
 			"S:Mode$ CantAttack | ValidCard$ Card.Self | IsPresent$ Knight.YouCtrl,Soldier.YouCtrl | PresentCompare$ EQ0 | Description$ CARDNAME can't attack unless you control a Knight or Soldier.\n")
-	if s.cantAttack(view.CardView{Name: "Fixture Falcon"}) {
+	if s.cantAttack(view.CardView{Name: "Fixture Falcon"}, nil) {
 		t.Fatal("a conditional CantAttack was read as unconditional")
 	}
 	player := protocol.PlayerTarget("p1")
