@@ -90,6 +90,10 @@ type Builder struct {
 
 // cachedCard is one cached card view: the canonical hash of the object record
 // that built it, whether the zone lists ability costs, and the built view.
+// A hit reuses card by value; card's Keywords, AbilityCosts, Counters map,
+// Produces and AttackingPlayer are shared with the View that built them
+// (BlockedBy is not: applyBlocks re-clones it per View). No writer in the
+// neutral/v2 path mutates those fields.
 type cachedCard struct {
 	hash  uint64
 	costs bool
@@ -97,8 +101,9 @@ type cachedCard struct {
 	card  view.CardView
 }
 
-// FNV-1a (64-bit). The hash is only a cache fingerprint: a collision rebuilds
-// the card, never changes the view.
+// FNV-1a (64-bit). The hash is only a cache fingerprint: a collision (about
+// 2^-64 for two different records of the same object id and costs) would
+// reuse a stale card.
 const (
 	fnvOffset64 = 14695981039346656037
 	fnvPrime64  = 1099511628211
