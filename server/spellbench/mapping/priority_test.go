@@ -372,13 +372,15 @@ func TestNonManaAbilityIndexFailsClosed(t *testing.T) {
 			t.Errorf("%s: %d, %v; want %v", c.name, got, err, mapping.ErrUnmapped)
 		}
 	}
-	// NonManaAbilityIndex still fails closed on a grant anchor; the priority
-	// route now indexes the grant after the printed abilities instead (see
-	// TestGrantedAbilityMapsToIndexedActivation).
+	// NonManaAbilityIndex still fails closed on a grant anchor, and so does
+	// the priority route when the object's ability inventory does not carry
+	// the grant: a decision cannot mint an index for a body the engine says
+	// the object does not have. A real granted body is covered by
+	// TestGrantedAbilityMapsToIndexedActivation.
 	env, d0, hand, _ := synthPosition(t)
 	d := synthetic(d0, decision.Option{Kind: "ability", Obj: hand[0], Ability: -1, Keyword: "Cycling:1 U"})
-	if err := poseErr(env, d); err != nil {
-		t.Errorf("keyword-granted ability option: %v, want a posed candidate", err)
+	if err := poseErr(env, d); !errors.Is(err, mapping.ErrUnmapped) {
+		t.Errorf("unobserved keyword-granted ability option: %v, want %v", err, mapping.ErrUnmapped)
 	}
 }
 

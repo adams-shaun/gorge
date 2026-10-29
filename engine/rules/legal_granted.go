@@ -110,7 +110,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 					e.gainedActivationsThisTurn(id, gf.Obj, i) >= ce.GainsLimitPerTurn {
 					continue
 				}
-				out = append(out, grantedAbility{SA: ab, Source: ce.Source,
+				out = append(out, grantedAbility{SA: ab, Source: ce.Source, Stamp: ce.Timestamp,
 					Gained: true, GainedFrom: gf.Obj, GainedIdx: i, GainedFace: gf.Face,
 					GainedManaConv: ce.GainedManaConversion})
 			}
@@ -135,7 +135,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 			if ab == nil || ab.Kind != "AB" {
 				continue
 			}
-			out = append(out, grantedAbility{SA: ab, Source: grantor, SVar: nm})
+			out = append(out, grantedAbility{SA: ab, Source: grantor, SVar: nm, Stamp: ce.Timestamp})
 		}
 	}
 	return out
