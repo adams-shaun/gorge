@@ -1685,14 +1685,18 @@ func protected(a view.CardView, colors []string) bool {
 func blockKey(blocker, attacker string) string { return blocker + ">" + attacker }
 
 // blockOption builds gorge's block option for one pair.
-func (s *Session) blockOption(n *native, b, a protocol.ObjectRef, label string, minBlockers int) int {
+func (s *Session) blockOption(n *native, b, a protocol.ObjectRef, label string, minBlockers int, required bool) int {
 	key := blockKey(b.ObjectID, a.ObjectID)
 	if i, ok := n.options[key]; ok {
+		if required {
+			n.d.Options[i].Required = true
+			n.d.Options[i].BlockMust = true
+		}
 		return i
 	}
 	o := decision.Option{Index: len(n.d.Options), Kind: "block", Label: label,
 		Obj: s.B.IDs.Of(b.ObjectID), Attacker: s.B.IDs.Of(a.ObjectID), Player: s.seat,
-		Group: "blocker:" + b.ObjectID}
+		Group: "blocker:" + b.ObjectID, Required: required, BlockMust: required}
 	if minBlockers > 1 {
 		o.MinBlockers = minBlockers
 	}
@@ -1742,6 +1746,35 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			return nil, nil, err
 		}
 		cur := first.ObjectID
+		// A non-public block restriction (a CantBlockBy effect with no printed
+		// static, e.g. an "can't be blocked this turn" rider) is invisible to
+		// the observation, but it is readable from this substep's authoritative
+		// offer: an attacker the current blocker can block by every public
+		// fact whose pair the engine did NOT offer is restricted for this
+		// declaration. Mark it so the derived pairs for the OTHER blockers do
+		// not invent a pair the engine never offers. Only when the current
+		// blocker got at least one pair: an all-none offer is equally the
+		// signature of a blocker that cannot block, which says nothing about
+		// the attackers.
+		offered := map[state.ObjID]bool{}
+		for _, c := range sd.Candidates {
+			if c.Semantic.Kind != "declare_block" {
+				continue
+			}
+			if a, err := optRef(c.Semantic, "attacker"); err == nil && a != nil {
+				offered[s.B.IDs.Of(a.ObjectID)] = true
+			}
+		}
+		restricted := map[state.ObjID]bool{}
+		if len(offered) > 0 {
+			if curCV, ok := findCard(battlefield(v, s.seat), s.B.IDs.Of(cur)); ok {
+				for _, a := range attackers {
+					if !offered[a.ID] && s.canBlockPair(v, curCV, a, colors) {
+						restricted[a.ID] = true
+					}
+				}
+			}
+		}
 		// The group's substeps follow the engine's battlefield order: native's
 		// newDeclare walks its options in order and keeps the first-seen unit.
 		// The current blocker keeps its board position (its candidate stream is
@@ -1779,7 +1812,7 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 					if a == nil {
 						continue
 					}
-					s.blockOption(n, cb, *a, name(cb)+" blocks "+name(*a), s.attackerMinBlockers(*a, v))
+					s.blockOption(n, cb, *a, name(cb)+" blocks "+name(*a), s.attackerMinBlockers(*a, v), s.mustBlock(b, attached[b.ID]))
 				}
 				continue
 			}
@@ -1787,14 +1820,14 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 				continue
 			}
 			for _, a := range attackers {
-				if !s.canBlockPair(v, b, a, colors) {
+				if restricted[a.ID] || !s.canBlockPair(v, b, a, colors) {
 					continue
 				}
 				aref, ok := refs[s.B.IDs.V2(a.ID)]
 				if !ok {
 					continue
 				}
-				s.blockOption(n, bref, aref, b.Name+" blocks "+a.Name, s.attackerMinBlockers(aref, v))
+				s.blockOption(n, bref, aref, b.Name+" blocks "+a.Name, s.attackerMinBlockers(aref, v), s.mustBlock(b, attached[b.ID]))
 			}
 		}
 		n.d.Max = len(n.d.Options)
@@ -1817,12 +1850,55 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 		}
 		k, ok := n.options[blockKey(b.ObjectID, a.ObjectID)]
 		if !ok {
-			k = s.blockOption(n, b, *a, name(b)+" blocks "+name(*a), s.attackerMinBlockers(*a, v))
+			cv, _ := s.cardByV2(v, b.ObjectID)
+			k = s.blockOption(n, b, *a, name(b)+" blocks "+name(*a), s.attackerMinBlockers(*a, v), s.mustBlock(cv, nil))
 		}
 		ops[i] = mapping.NativeOp{Op: "choose", Option: k, Unit: unit}
 	}
 	n.d.Max = len(n.d.Options)
 	return ops, n, nil
+}
+
+// mustBlock reports whether the blocker's printed statics make blocking a
+// duty (Watchdog's "blocks each combat if able"). The observation carries no
+// static registry and the view has no such field, so the printed face is the
+// source. Attached grants use the same mode with an EnchantedBy/EquippedBy
+// scope; a conditional static is not read (the engine's offer remains the
+// authority there).
+func (s *Session) mustBlock(cv view.CardView, attached []view.CardView) bool {
+	check := func(host view.CardView, scoped bool) bool {
+		f := s.B.face(&host.Name, false, nil)
+		if f == nil {
+			return false
+		}
+		for _, st := range f.Statics {
+			if !slices.Contains(strings.Split(st.Mode, ","), "MustBlock") {
+				continue
+			}
+			valid := strings.TrimSpace(st.Params["ValidCreature"])
+			if scoped {
+				if !strings.Contains(valid, "EnchantedBy") && !strings.Contains(valid, "EquippedBy") {
+					continue
+				}
+			} else if valid != "" && !strings.Contains(valid, "Self") {
+				continue
+			}
+			if unresolvedStatic(st) {
+				continue
+			}
+			return true
+		}
+		return false
+	}
+	if check(cv, false) {
+		return true
+	}
+	for i := range attached {
+		if check(attached[i], true) {
+			return true
+		}
+	}
+	return false
 }
 
 // attackerMinBlockers is the group-size floor an attacker's Menace imposes.

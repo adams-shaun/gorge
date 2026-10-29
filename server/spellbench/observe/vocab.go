@@ -96,10 +96,31 @@ func Keywords(lines []string) []string {
 			k = "protection"
 		}
 		if !cr702[k] {
-			if cards.HiddenKeywordOf(l) == cards.HiddenKeywordNone {
+			// The hidden combat sentences get their canonical heads; every
+			// other runtime sentence keeps its normalized text so a client can
+			// still see it.
+			switch cards.HiddenKeywordOf(l) {
+			case cards.HiddenKeywordNone:
 				continue
+			case cards.HiddenKeywordCantAttackOrBlock:
+				k = "cantattackorblock"
+			case cards.HiddenKeywordCantAttack:
+				k = "cantattack"
+			case cards.HiddenKeywordCantBlock:
+				k = "cantblock"
+			case cards.HiddenKeywordMustBlock:
+				k = "mustblock"
+			case cards.HiddenKeywordAllMustBlock:
+				k = "allmustblock"
+			case cards.HiddenKeywordCantAttackOrBlockAlone:
+				k = "cantattackorblockalone"
+			case cards.HiddenKeywordCantAttackAlone:
+				k = "cantattackalone"
+			case cards.HiddenKeywordCantBlockAlone:
+				k = "cantblockalone"
+			default:
+				k = Normalize(cards.KeywordHead(strings.TrimPrefix(cards.KeywordHead(l), "HIDDEN ")))
 			}
-			k = Normalize(cards.KeywordHead(cards.CanonicalKeywordLine(strings.TrimPrefix(cards.KeywordHead(l), "HIDDEN "))))
 		}
 		if k != "" && !seen[k] {
 			seen[k] = true

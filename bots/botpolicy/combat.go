@@ -1,7 +1,6 @@
 package botpolicy
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -1720,15 +1719,12 @@ func (b Board) chooseBlockers(d *decision.Decision) []int {
 	}
 
 	var ch []int
-	fmt.Printf("DBG chooseBlockers me=%v myLife=%v attackers=%d unblocked=%d\n", me, myLife, len(attackers), unblocked)
 	for _, at := range attackers {
-		fmt.Printf("DBG atk id=%v p=%v t=%v opts=%v\n", at.id, at.a.Power, at.a.Toughness, at.opts)
 		// An attacker with nothing to block (no power to stop, no lethal
 		// damage to save — including a factless option that reads as a 0/0)
 		// is passed over entirely; BR1 and BR2 both exist to change damage
 		// going to a player, and this one deals none.
 		if at.a.Power <= 0 || at.a.remTough() <= 0 {
-			fmt.Printf("DBG skip atk id=%v p=%v remT=%v\n", at.id, at.a.Power, at.a.remTough())
 			continue
 		}
 		// BR1: cheapest unused blocker that kills the attacker on a
@@ -1753,7 +1749,6 @@ func (b Board) chooseBlockers(d *decision.Decision) []int {
 				best, bestScore = oi, bl.pt()
 			}
 		}
-		fmt.Printf("DBG atk id=%v best=%d\n", at.id, best)
 		if best >= 0 {
 			second := -1
 			if at.a.hasKeyword("Menace") {
@@ -1777,7 +1772,6 @@ func (b Board) chooseBlockers(d *decision.Decision) []int {
 		// where "kill" includes the commander clock (BR3): an unblocked
 		// swing from a commander that would take this defender to 21+ from
 		// it is lethal on the second track no matter the life total.
-		fmt.Printf("DBG BR2 atk id=%v check myLife-unblocked=%d closes=%v\n", at.id, myLife-unblocked, b.closesClock(me, at.id, at.a))
 		if myLife-unblocked <= 0 || b.closesClock(me, at.id, at.a) {
 			chump := -1
 			for _, oi := range at.opts {
