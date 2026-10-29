@@ -2651,7 +2651,7 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 		raw := strings.TrimSpace(sa.Params["NumDmg"])
 		switch {
 		case raw == "":
-		case raw == "X" && x != nil:
+		case raw == "X" && x != nil && xValueIsTriggerAmount(entry, f, raw):
 			n := int(*x)
 			out.Damage.Amount = &n
 		default:
@@ -2671,6 +2671,22 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 		}
 	}
 	return out
+}
+
+// xValueIsTriggerAmount reports whether the stack entry's published x_value
+// is the amount NumDmg$ X names. A spell's x_value is its mana cost's X. An
+// ability's x_value is the causing event's magnitude, which only a
+// TriggerCount$ body reads (The Sea Devils); a Count$ body (Niv-Mizzet,
+// Guildpact's colour-pair count) must go to svarValue instead of borrowing
+// the event's amount.
+func xValueIsTriggerAmount(entry *protocol.StackEntry, f *cards.Face, raw string) bool {
+	if entry == nil || entry.XValue == nil {
+		return false
+	}
+	if entry.StackKind == "spell" {
+		return true
+	}
+	return f != nil && strings.HasPrefix(strings.TrimSpace(f.SVars[raw]), "TriggerCount$")
 }
 
 // removal is gorge's targetRemoval (rules/stack.go), which is unexported.

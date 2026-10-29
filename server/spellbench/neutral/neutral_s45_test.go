@@ -1,6 +1,7 @@
 package neutral
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -156,5 +157,39 @@ func TestTargetEffectReadsEffectTriggerAmount(t *testing.T) {
 	}
 	if effect.Damage == nil || effect.Damage.Amount != nil {
 		t.Fatalf("an unknown TriggerCount$ amount must stay nil: %+v", effect.Damage)
+	}
+}
+
+// TestTargetEffectIgnoresCountXTriggerAmount: Niv-Mizzet, Guildpact's combat
+// damage trigger deals X damage where X is a Count$ over colour pairs, not the
+// damage the triggering event carried. The host publishes that event amount as
+// every trigger's x_value, but only a TriggerCount$ X body reads it; a Count$
+// body must not borrow it. The Count$ body here is outside svarValue's
+// grammar, so the amount stays unknown rather than becoming the combat damage.
+func TestTargetEffectIgnoresCountXTriggerAmount(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	s := NewSession(reg)
+	src := s45Ref("Niv-Mizzet, Guildpact")
+	src.Zone = "stack"
+	f := s.B.face(src.CardName, false, nil)
+	if f == nil {
+		t.Fatal("precondition: Niv-Mizzet, Guildpact is not in the corpus")
+	}
+	if body := strings.TrimSpace(f.SVars["X"]); !strings.HasPrefix(body, "Count$") {
+		t.Fatalf("precondition: the X body is %q, want a Count$ body", body)
+	}
+	if body := strings.TrimSpace(f.SVars["DBDamage"]); !strings.Contains(body, "NumDmg$ X") {
+		t.Fatalf("precondition: the damage body does not name X: %q", body)
+	}
+	x := uint32(6)
+	obs := &protocol.Observation{Stack: []protocol.StackEntry{{
+		ObjectRef: src, StackKind: "triggered_ability", XValue: &x,
+	}}}
+	effect := s.targetEffect(obs, src, 0)
+	if effect == nil || effect.API != "DealDamage" || effect.Damage == nil {
+		t.Fatalf("the DamageDone trigger root was not found: %+v", effect)
+	}
+	if effect.Damage.Amount != nil {
+		t.Fatalf("a Count$ X must not read the trigger's event amount: %+v", *effect.Damage.Amount)
 	}
 }
