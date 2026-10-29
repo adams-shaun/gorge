@@ -111,8 +111,10 @@ func TestRouteNamesEveryPoolShape(t *testing.T) {
 		{"choose/name", &decision.Decision{Kind: decision.KChoose, Options: []decision.Option{{Kind: "name"}}}},
 		{"choose/division", &decision.Decision{Kind: decision.KChoose, Options: []decision.Option{{Kind: "division"}}}},
 		{"choose/mana", &decision.Decision{Kind: decision.KChoose, Options: []decision.Option{{Kind: "mana"}}}},
-		// The fallback names the kind and the sorted option kinds.
-		{"unmapped:choose/vote", &decision.Decision{Kind: decision.KChoose, Options: []decision.Option{{Kind: "vote"}}}},
+		// The vote ballot is a single-kind class: selection is by Index and Obj
+		// is a ballot index+1, not an object id, so it must not reach
+		// chooseObjectRoute.
+		{"choose/vote", &decision.Decision{Kind: decision.KChoose, Options: []decision.Option{{Kind: "vote"}}}},
 	}
 	seen := map[string]bool{}
 	for _, tc := range cases {
