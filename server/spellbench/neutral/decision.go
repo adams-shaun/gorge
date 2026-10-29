@@ -10,6 +10,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/rules/combat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -1531,7 +1532,8 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 			}
 			for _, r := range p.Battlefield {
 				cv, ok := findCard(battlefield(v, s.seat), s.B.IDs.Of(r.ObjectID))
-				if !ok || !isCreature(cv) || cv.Tapped || hasKeyword(cv, "Defender") ||
+				if !ok || !isCreature(cv) || cv.Tapped ||
+					(hasKeyword(cv, "Defender") && !s.mayAttackThroughDefender(r.ObjectID, cv)) ||
 					(cv.SummonSick && !hasKeyword(cv, "Haste")) || s.cantAttack(cv) {
 					continue
 				}
@@ -2062,6 +2064,65 @@ func (s *Session) cantAttack(cv view.CardView) bool {
 		valid := strings.TrimSpace(st.Params["ValidCard"])
 		if valid == "" || strings.EqualFold(valid, "Card.Self") || strings.EqualFold(valid, "CARDNAME") {
 			return true
+		}
+	}
+	return false
+}
+
+// mayAttackThroughDefender reports whether a printed-Defender creature has a
+// live CanAttackDefender permission the observation carries no keyword for:
+// the creature's own activated ability, activated this turn (the session's
+// ActivatedThisTurn census), delivered an Effect whose StaticAbilities$ body
+// is a self-scoped CanAttackDefender grant (Wall of One Thousand Cuts). The
+// engine's continuous-effect registry is the authority; this reads the
+// public half of it -- the printed ability and the activation census --
+// exactly as cantAttack reads a printed static. A grant that is not
+// self-scoped, is gated by a term the observation cannot evaluate, or whose
+// last recorded activation is another ability is not admitted (the engine's
+// own offer still is).
+func (s *Session) mayAttackThroughDefender(v2ID string, cv view.CardView) bool {
+	if cv.ActivatedThisTurn < 1 {
+		return false
+	}
+	f := s.B.face(&cv.Name, false, nil)
+	if f == nil {
+		return false
+	}
+	i, ok := s.activated[v2ID]
+	if !ok || i < 0 || i >= len(f.Abilities) {
+		return false
+	}
+	ab := f.Abilities[i]
+	if ab.API != "Effect" {
+		return false
+	}
+	names := strings.FieldsFunc(effects.EffectOf(ab).StaticAbilities, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
+	for _, name := range names {
+		body := strings.TrimSpace(f.SVars[name])
+		if body == "" {
+			continue
+		}
+		statics, ok := cards.ParseStaticLines(body)
+		if !ok {
+			continue
+		}
+		for _, st := range statics {
+			if st.Mode != "CanAttackDefender" || !effects.CanAttackDefenderGrantParamsReadable(st.Params) {
+				continue
+			}
+			if strings.TrimSpace(st.Params["ValidAttacked"]) != "" {
+				continue // a defender-side gate the neutral cannot evaluate
+			}
+			spec := strings.TrimSpace(st.Params["ValidCard"])
+			if spec == "" {
+				spec = strings.TrimSpace(st.Params["ValidCards"])
+			}
+			switch strings.ToLower(spec) {
+			case "card.effectsource", "card.self", "cardname":
+				return true
+			}
 		}
 	}
 	return false
@@ -2642,6 +2703,14 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 	if sa == nil {
 		return nil
 	}
+	// The counter a Count$CardCounters.<KIND> body reads lives on the
+	// battlefield permanent. For an ability on the stack that permanent is
+	// the entry's Source; a spell or an ability announced from the
+	// permanent keeps src.
+	anchor := src
+	if entry != nil && entry.Source != nil {
+		anchor = *entry.Source
+	}
 	out := &decision.TargetEffect{API: sa.API, Removal: removal(sa)}
 	if sa.API == "Effect" {
 		out.Statics = staticModesFromFace(f, sa)
@@ -2663,7 +2732,7 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 			// the v2 wire; the observation's zones can still resolve the
 			// common Count$ form, and an unresolvable body stays unknown.
 			if f != nil {
-				if v, ok := s.svarValue(o, f.SVars[raw]); ok && v >= 0 {
+				if v, ok := s.svarValue(o, &anchor, f.SVars[raw]); ok && v >= 0 {
 					n := int(v)
 					out.Damage.Amount = &n
 				}
@@ -3092,7 +3161,11 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 		case strings.EqualFold(param("ChangeNum"), "All") || (dest2 != "" && !strings.EqualFold(dest2, "Library")):
 			n.arrange.fixed = true
 		case dest == "" || strings.EqualFold(dest, "Hand"):
-			valid := strings.Split(param("ChangeValid"), ",")
+			spec := param("ChangeValid")
+			if spec == "" {
+				spec = "Card" // effects.compileDig's default
+			}
+			valid := strings.Split(spec, ",")
 			eligible := func(id string) bool {
 				name := ""
 				for _, k := range sd.Observation.Known {
@@ -3105,7 +3178,8 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 					return false
 				}
 				for _, v := range valid {
-					if slices.Contains(f.Types, strings.TrimSpace(v)) {
+					v = strings.TrimSpace(v)
+					if strings.EqualFold(v, "Card") || slices.Contains(f.Types, v) {
 						return true
 					}
 				}
