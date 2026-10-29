@@ -79,6 +79,18 @@ func TestChooseOptionRoutesNamedOptions(t *testing.T) {
 	if want := []decision.Intent{mapping.Intent(d, 1)}; !reflect.DeepEqual(commit, want) {
 		t.Fatalf("commit %v, want %v", commit, want)
 	}
+
+	// Two options naming the same object cannot be select_object candidates
+	// (their semantics would be identical), so they take the option route:
+	// riot, opening-hand yes/no and cumulative upkeep all pose this shape.
+	same := &decision.Decision{Player: 0, Kind: decision.KChoose, Min: 1, Max: 1,
+		Options: []decision.Option{
+			{Index: 0, Kind: "riot", Label: "counter", Obj: 7},
+			{Index: 1, Kind: "riot", Label: "haste", Obj: 7},
+		}}
+	if got := mapping.Route(same); got != "choose/option" {
+		t.Fatalf("same-object ask Route = %q, want choose/option", got)
+	}
 }
 
 func TestChooseObjectRoutesObjectOptions(t *testing.T) {
