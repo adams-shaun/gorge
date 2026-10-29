@@ -362,11 +362,14 @@ type failure struct {
 	// seeded-random MockClient, so -repro rebuilds exactly those seats.
 	Manabrew bool `json:"manabrew,omitempty"`
 	// SB is the -spellbench twin disagreement the record names (spellbench.go).
-	SB      *sbRecord `json:"spellbench,omitempty"`
-	Turns   int32     `json:"turns"`
-	Intents int       `json:"intents"`
-	Diag    string    `json:"diag"`
-	Sig     string    `json:"sig"`
+	SB *sbRecord `json:"spellbench,omitempty"`
+	// Rebuild is the -spellbench twin rebuild failure the record names: a
+	// decision the neutral world could not reconstruct.
+	Rebuild *sbRebuildRecord `json:"rebuild,omitempty"`
+	Turns   int32            `json:"turns"`
+	Intents int              `json:"intents"`
+	Diag    string           `json:"diag"`
+	Sig     string           `json:"sig"`
 }
 
 // stamp records the run's auto-pay configuration on a failure record.
@@ -1527,6 +1530,9 @@ func runRepro(reg *cards.Registry, path string, line, maxTurns, maxIntents, maxO
 		if err := json.Unmarshal(sc.Bytes(), &rec); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
+		}
+		if rec.Rebuild != nil {
+			return runSBRebuildRepro(reg, rec, sbOptions{maxSteps: uint64(maxIntents)}, os.Stdout)
 		}
 		if rec.SB != nil {
 			return runSBRepro(reg, rec, sbOptions{maxSteps: uint64(maxIntents)}, os.Stdout)

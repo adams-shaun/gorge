@@ -9,6 +9,7 @@ package twin
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -50,6 +51,20 @@ type Disagreement struct {
 	Request json.RawMessage
 }
 
+// RebuildFailure is one decision left out of the comparison because the
+// neutral world could not reconstruct the view agent's pick. It carries the
+// id-free diagnosis a run needs to group rebuild failures by cause.
+type RebuildFailure struct {
+	Kind   string // the decision kind, including the "(single)" suffix
+	Index  int    // the choose request's index, as Disagreement.Index
+	Seat   string
+	Native int // the view agent's candidate_id
+	Card   string
+	Reason string
+	// Request is the v2 choose request, so a -failures record can replay it.
+	Request json.RawMessage
+}
+
 // Twin tallies one or more games. It is not safe for concurrent use: a game
 // is played by one goroutine.
 type Twin struct {
@@ -57,6 +72,9 @@ type Twin struct {
 	Examples     map[string][]string
 	// OnDisagree, when non-nil, is called for every disagreement.
 	OnDisagree func(Disagreement)
+	// OnRebuild, when non-nil, is called for every decision the neutral world
+	// could not rebuild (the same decisions counted under Opaque).
+	OnRebuild func(RebuildFailure)
 	// reg, when set, recognises sources whose mana depends on a colour chosen
 	// as they entered (see ChosenColour).
 	reg *cards.Registry
@@ -131,6 +149,11 @@ func (s *Seat) Round(req []byte) ([]byte, error) {
 	if s.neutral.NeutralOpaque(ca.Selection.CandidateID) {
 		tw.Total[kind]--
 		tw.Total[Opaque]++
+		if tw.OnRebuild != nil {
+			caID := ca.Selection.CandidateID
+			tw.OnRebuild(RebuildFailure{Kind: kind, Index: idx, Seat: q.Decision.ActingSeat, Native: caID,
+				Card: candidateCard(cands[caID].Semantic), Reason: s.neutral.NeutralRebuild(caID), Request: slices.Clone(req)})
+		}
 		return a, nil
 	}
 	picked := cands[ca.Selection.CandidateID].Semantic
@@ -165,6 +188,50 @@ func (s *Seat) Round(req []byte) ([]byte, error) {
 		tw.OnDisagree(d)
 	}
 	return a, nil
+}
+
+// candidateCard names the source card of a candidate, for the rebuild
+// breakdown. It prefers the fields that name the offer's own source and only
+// then falls back to any object reference, walking JSON objects in key order
+// so the name is deterministic.
+func candidateCard(sem protocol.Semantic) string {
+	for _, name := range []string{"source", "card", "object", "spell", "item", "choice", "target", "attacker", "blocker"} {
+		if s := cardNameIn(sem.Fields[name]); s != "" {
+			return s
+		}
+	}
+	for _, k := range slices.Sorted(maps.Keys(sem.Fields)) {
+		if s := cardNameIn(sem.Fields[k]); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func cardNameIn(v any) string {
+	switch x := v.(type) {
+	case json.RawMessage:
+		var any any
+		if json.Unmarshal(x, &any) == nil {
+			return cardNameIn(any)
+		}
+	case map[string]any:
+		if s, ok := x["card_name"].(string); ok && s != "" {
+			return s
+		}
+		for _, k := range slices.Sorted(maps.Keys(x)) {
+			if s := cardNameIn(x[k]); s != "" {
+				return s
+			}
+		}
+	case []any:
+		for _, e := range x {
+			if s := cardNameIn(e); s != "" {
+				return s
+			}
+		}
+	}
+	return ""
 }
 
 // sameCard reports whether two candidates play the same card: the engine

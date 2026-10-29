@@ -48,22 +48,27 @@ type native struct {
 
 // arrangement is a scry-like native decision spent over 2n-1 v2 decisions.
 type arrangement struct {
-	cards  []string // looked-at card v2 ids, top first
-	other  string   // the destination that is not the top
-	dest   []string // the partition answered so far, per card
-	placed []string // cards placed by ordering picks
-	native []int    // dig: each card's option in the dig ask, -1 for none
-	fixed  bool     // dig: gorge's engine moves the cards without asking
+	cards   []string // looked-at card v2 ids, top first
+	other   string   // the destination that is not the top
+	dest    []string // the partition answered so far, per card
+	placed  []string // cards placed by ordering picks
+	native  []int    // dig: each card's option in the dig ask, -1 for none
+	primary string   // dig: the v2 destination of the take
+	rest    string   // dig: the v2 destination of the remainder
+	fixed   bool     // dig: gorge's engine moves the cards without asking
 }
 
 // Session translates one seat's decisions in one game.
 type Session struct {
-	B      *Builder
-	seat   state.PlayerID
-	next   uint64
-	cur    *native
-	last   *protocol.SeatDecision
-	Counts map[string]int // untranslated decisions by first candidate kind (audit)
+	B    *Builder
+	seat state.PlayerID
+	next uint64
+	cur  *native
+	last *protocol.SeatDecision
+	// lastReasons is the per-candidate diagnosis of the last Payload, parallel
+	// to its Ops: why the neutral world left a candidate untranslated.
+	lastReasons []string
+	Counts      map[string]int // untranslated decisions by first candidate kind (audit)
 	// Approx counts decisions translated by an approximation rather than a
 	// gorge ask (choose_pile's first-pile stand-in). It is deliberately
 	// separate from Counts, which is the untranslated audit and the budget
@@ -156,6 +161,26 @@ func (s *Session) Picked(i int) {
 	}
 }
 
+// RebuildReason names why the last Payload could not reconstruct candidate
+// i. It is empty when the candidate has a translation, so a caller can use
+// it only for the candidates its ops mark Untranslated.
+func (s *Session) RebuildReason(i int) string {
+	if i < 0 || i >= len(s.lastReasons) {
+		return ""
+	}
+	return s.lastReasons[i]
+}
+
+// untranslatedReason is the id-free diagnosis recorded for an op no plan
+// matches: the decision family when the whole decision is unknown, or the
+// candidate's own kind when only this offer has no translation.
+func untranslatedReason(sem protocol.Semantic, decisionKind string) string {
+	if decisionKind != "" {
+		return "no neutral translation for decision kind " + decisionKind
+	}
+	return "no native option for candidate kind " + sem.Kind
+}
+
 // Payload translates a seat decision into what gorge's agent reads from
 // x_gorge_view_v1 on gorge's own engine: the view, the native decision and
 // one op per candidate. A family it cannot translate yields ops no plan
@@ -219,8 +244,10 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 	}
 	if n == nil {
 		ops = make([]mapping.NativeOp, len(sd.Candidates))
+		s.lastReasons = make([]string, len(sd.Candidates))
 		for i := range ops {
 			ops[i] = noOp
+			s.lastReasons[i] = untranslatedReason(sd.Candidates[i].Semantic, sd.Candidates[0].Semantic.Kind)
 		}
 		s.Counts[sd.Candidates[0].Semantic.Kind]++
 		s.cur = nil
@@ -228,6 +255,12 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 		return xview.Payload{Version: 1, NativeIndex: s.next, View: v, Decision: decision.Decision{Player: s.seat}, Ops: ops}, nil
 	}
 	s.cur = n
+	s.lastReasons = make([]string, len(ops))
+	for i := range ops {
+		if ops[i].Op == Untranslated {
+			s.lastReasons[i] = untranslatedReason(sd.Candidates[i].Semantic, "")
+		}
+	}
 	d := n.d
 	d.Player = s.seat
 	// Rebuild restores these policy facts from the payload; the neutral
@@ -298,6 +331,8 @@ func (s *Session) translate(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 		return s.numbers(sd)
 	case "choose_color":
 		return s.colors(sd)
+	case "choose_replacement":
+		return s.replacement(sd)
 	}
 	return nil, nil, nil
 }
@@ -1017,7 +1052,35 @@ func targetManaValue(s *Session, name *string) int32 {
 // selectKinds maps a select_object purpose to gorge's KChoose option kind.
 var selectKinds = map[string]string{"discard": "discard", "sacrifice": "sacrifice", "exile": "exile",
 	"search": "search", "return_to_hand": "returncost", "tap": "tapcost", "untap": "untap", "keep": "keep",
-	"delve": "exile", "put_into_hand": "dig", "reveal": "reveal", "legend_rule": "keep"}
+	"delve": "exile", "put_into_hand": "dig", "reveal": "reveal", "legend_rule": "keep", "convoke": "convoke"}
+
+// replacement translates a CR 616.1 replacement-order ask: v2 names each
+// applicable replacement by its index and source permanent, and gorge asks a
+// KReplacement whose options are the same sources. The candidate order is the
+// engine's deterministic scan order, so the bot's worth ranking sees the same
+// options in the same order.
+func (s *Session) replacement(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, error) {
+	d := decision.Decision{Kind: decision.KReplacement, Min: 1, Max: 1, Prompt: "Choose a replacement effect to apply next"}
+	n := s.open("replacement", d)
+	ops := make([]mapping.NativeOp, len(sd.Candidates))
+	for i, c := range sd.Candidates {
+		ops[i] = noOp
+		if c.Semantic.Kind != "choose_replacement" {
+			continue
+		}
+		src, err := optRef(c.Semantic, "replacement_source")
+		if err != nil {
+			return nil, nil, err
+		}
+		if src == nil {
+			continue
+		}
+		o := decision.Option{Index: len(n.d.Options), Kind: "replacement", Label: name(*src), Obj: s.B.IDs.Of(src.ObjectID)}
+		n.d.Options = append(n.d.Options, o)
+		ops[i] = mapping.NativeOp{Op: "choose", Option: o.Index}
+	}
+	return ops, n, nil
+}
 
 func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, error) {
 	first := sd.Candidates[0].Semantic
@@ -3790,12 +3853,31 @@ func hiddenOrder(sd *protocol.SeatDecision, ids []string) []int {
 	return order
 }
 
-// dig is a Dig's look: v2 partitions the window (hand or bottom) and then
-// orders it. gorge asks a KChoose of the eligible cards ("dig", in window
-// order) and, when two or more go to the bottom, their bottom order as the
-// follow-up dig_bottom. A Dig whose cards all move without a choice
-// (Winding Way's "all cards of the chosen type", the rest to the graveyard)
-// is one gorge's engine answers itself.
+// digSA finds the Dig ability that posed the ask. The source may be a spell
+// on the stack or an activated ability (Orcish Librarian's "{R}, {T}: Look at
+// the top eight..."), so it searches the same ability roots every other
+// source-scoped reconstruction reads rather than only the spell ability.
+func (s *Session) digSA(src protocol.ObjectRef, o *protocol.Observation) *cards.SA {
+	f, roots := s.abilityRoots(src, o)
+	for _, root := range roots {
+		if root == nil {
+			continue
+		}
+		for _, sa := range chain(f, root) {
+			if sa.API == "Dig" {
+				return sa
+			}
+		}
+	}
+	return nil
+}
+
+// dig is a Dig's look: v2 partitions the window between the primary
+// destination and the remainder destination and then orders the remainder.
+// gorge asks a KChoose of the eligible cards ("dig", in window order) and,
+// when two or more remain, their order as a follow-up. The v2 partition is
+// per card, so each candidate maps to a destination op: inside the bot's
+// take for the primary destination, outside it for the remainder.
 func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, error) {
 	first := sd.Candidates[0].Semantic
 	if first.Kind == "arrange_card" && num(first, "card_index") == 0 && sd.Group.SubstepIndex == 0 {
@@ -3803,19 +3885,43 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 		if err != nil || src == nil {
 			return nil, nil, err
 		}
-		sa := s.chainSA(*src, func(sa *cards.SA) bool { return sa.API == "Dig" })
+		sa := s.digSA(*src, &sd.Observation)
 		ids := looked(sd, num(first, "card_count"))
 		if sa == nil || ids == nil {
 			return nil, nil, nil
 		}
 		param := func(k string) string { return strings.TrimSpace(sa.Params[k]) }
-		dest, dest2 := param("DestinationZone"), param("DestinationZone2")
+		primary := param("DestinationZone")
+		if primary == "" {
+			primary = "Hand"
+		}
+		rest := param("DestinationZone2")
+		pos2 := param("LibraryPosition2")
+		if rest == "" {
+			rest, pos2 = "Library", "-1" // effects.compileDig's default
+		} else if strings.EqualFold(rest, "Library") && pos2 == "" {
+			pos2 = "-1" // an explicit Library with no position is the bottom
+		}
+		primaryV2 := strings.ToLower(primary)
+		restV2 := strings.ToLower(rest)
+		if strings.EqualFold(rest, "Library") {
+			switch pos2 {
+			case "0":
+				restV2 = "top"
+			case "-1":
+				restV2 = "bottom"
+			}
+		}
 		n := s.open("dig", decision.Decision{})
 		n.arrange = &arrangement{cards: ids}
 		switch {
-		case strings.EqualFold(param("ChangeNum"), "All") || (dest2 != "" && !strings.EqualFold(dest2, "Library")):
+		case strings.EqualFold(param("ChangeNum"), "All") || (rest != "" && !strings.EqualFold(rest, "Library")):
 			n.arrange.fixed = true
-		case dest == "" || strings.EqualFold(dest, "Hand"):
+		case primaryV2 == restV2:
+			// Both piles name the same destination: the partition candidates
+			// do not say which side a card is on.
+			return nil, nil, nil
+		default:
 			spec := param("ChangeValid")
 			if spec == "" {
 				spec = "Card" // effects.compileDig's default
@@ -3844,9 +3950,7 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 				return nil, nil, nil
 			}
 			d := decision.Decision{Kind: decision.KChoose, Prompt: "dig", ResumeSA: sa}
-			if src != nil {
-				d.Source = s.B.IDs.Of(src.ObjectID)
-			}
+			d.Source = s.B.IDs.Of(src.ObjectID)
 			n.arrange.native = make([]int, len(ids))
 			for ci := range n.arrange.native {
 				n.arrange.native[ci] = -1
@@ -3870,9 +3974,8 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 				d.Min = d.Max
 			}
 			n.d = d
-		default:
-			return nil, nil, nil
 		}
+		n.arrange.primary, n.arrange.rest = primaryV2, restV2
 		s.cur = n
 	}
 	n := s.continuing("dig")
@@ -3888,19 +3991,36 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 		ops[0] = mapping.NativeOp{Op: "fixed", Option: -1}
 		return ops, n, nil
 	}
-	var bottom []int
+	var bottom, top []int
 	for _, ci := range hiddenOrder(sd, a.cards) {
-		if ci < len(a.dest) && a.dest[ci] == "bottom" {
+		if ci >= len(a.dest) {
+			continue
+		}
+		switch a.dest[ci] {
+		case "bottom":
 			bottom = append(bottom, ci)
+		case "top":
+			top = append(top, ci)
 		}
 	}
-	if len(a.dest) == len(a.cards) && len(bottom) >= 2 && n.follow == nil {
+	if n.follow == nil {
+		n.follow = map[string]decision.Decision{}
+	}
+	if len(a.dest) == len(a.cards) && len(bottom) >= 2 {
 		fd := decision.Decision{Kind: decision.KArrange, Min: len(bottom), Max: len(bottom), ResumeKind: "dig_arrange",
 			ResumeSA: n.d.ResumeSA, Source: n.d.Source, Player: s.seat, Prompt: "Put the remaining cards on the bottom of your library in any order"}
 		for j, ci := range bottom {
 			fd.Options = append(fd.Options, decision.Option{Index: j, Kind: "dig_bottom", Label: knownName(sd, a.cards[ci]), Obj: s.B.IDs.Of(a.cards[ci]), Player: s.seat})
 		}
-		n.follow = map[string]decision.Decision{"dig_bottom": fd}
+		n.follow["dig_bottom"] = fd
+	}
+	if len(a.dest) == len(a.cards) && len(top) >= 2 {
+		fd := decision.Decision{Kind: decision.KArrange, Min: len(top), Max: len(top), ResumeKind: "dig_arrange",
+			ResumeSA: n.d.ResumeSA, Source: n.d.Source, Player: s.seat, Prompt: "Put the remaining cards back on top of your library in any order"}
+		for j, ci := range top {
+			fd.Options = append(fd.Options, decision.Option{Index: j, Kind: "top", Label: knownName(sd, a.cards[ci]), Obj: s.B.IDs.Of(a.cards[ci]), Player: s.seat})
+		}
+		n.follow["dig_top"] = fd
 	}
 	for i, c := range sd.Candidates {
 		switch c.Semantic.Kind {
@@ -3910,9 +4030,18 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 				return nil, nil, err
 			}
 			ci := slices.Index(a.cards, card.ObjectID)
-			if dst := str(c.Semantic, "destination"); ci >= 0 && (dst == "hand" || dst == "bottom") {
-				ops[i] = mapping.NativeOp{Op: "dest", Option: a.native[ci], List: dst, Position: ci}
+			if ci < 0 {
+				continue
 			}
+			dst := strings.ToLower(str(c.Semantic, "destination"))
+			if dst != a.primary && dst != a.rest {
+				continue
+			}
+			inside := dst == a.primary
+			if inside && a.native[ci] < 0 {
+				continue // an ineligible card has no take option
+			}
+			ops[i] = mapping.NativeOp{Op: "dest", Option: a.native[ci], List: dst, Inside: &inside, Position: ci}
 		case "order_pick":
 			it, err := field[protocol.OrderItem](c.Semantic, "item")
 			if err != nil || it.Object == nil {
@@ -3923,6 +4052,13 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 				continue
 			}
 			dst := a.dest[ci]
+			if a.rest == "top" {
+				// A top-remainder Dig's only order ask is that remainder; the
+				// neutral's own partition answers may differ from the played
+				// game's, so the ask's identity (not the divergent state) names
+				// the pile.
+				dst = "top"
+			}
 			pos := 0
 			for _, p := range a.placed {
 				if j := slices.Index(a.cards, p); j >= 0 && j < len(a.dest) && a.dest[j] == dst {
@@ -3937,6 +4073,11 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 				ops[i] = mapping.NativeOp{Op: "dest", Option: -1, List: "bottom"}
 			case dst == "bottom":
 				ops[i] = mapping.NativeOp{Op: "list", Option: slices.Index(bottom, ci), List: "followup:dig_bottom", Position: pos}
+			case dst == "top" && len(top) == 1:
+				// A lone remainder stays on top without an order ask.
+				ops[i] = mapping.NativeOp{Op: "fixed", Option: -1}
+			case dst == "top":
+				ops[i] = mapping.NativeOp{Op: "list", Option: slices.Index(top, ci), List: "followup:dig_top", Position: pos}
 			}
 		}
 	}
