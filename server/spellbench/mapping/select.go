@@ -215,6 +215,17 @@ func newModes(env *Env, d *decision.Decision) (Transaction, error) {
 		return nil, err
 	}
 	lo, hi := uint32(d.Min), uint32(d.Max)
+	// Section 7.3's choose_spell_mode constraint is minimum <= maximum <=
+	// mode_count (protocol/kinds.go checkConstraints). A CanRepeatModes$ ask
+	// may legitimately want more picks than the spell has distinct modes
+	// (Season of Loss is CharmNum$ 5 over three Choices$); v2 has no
+	// repeatable flag, so no candidate for it can pass the validator.
+	// Decline the decision instead of posing candidates every host rejects.
+	// Clamping is not an option: the pick after mode_count would carry
+	// selected_count == maximum and fail selected_count < maximum.
+	if lo > hi || hi > n {
+		return nil, fmt.Errorf("%w:modes_over_printed(min=%d,max=%d,printed=%d,repeat=%t)", ErrUnmapped, lo, hi, n, d.Repeatable)
+	}
 	purp := "modes"
 	return NewPick(env, PickSpec{D: d, Options: allOptions(d), Context: protocol.Context{Kind: "choice", Source: &src},
 		Sem: func(opt int, sel uint32) (Cand, error) {
