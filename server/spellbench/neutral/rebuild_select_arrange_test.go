@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
@@ -124,5 +125,56 @@ func TestRebuildSelectObjectAndArrange(t *testing.T) {
 			src, refs[i], len(window))
 		tb.ask(choiceCtx(string(src), "arrangement"), [2]int{len(window), steps}, []string{cand})
 		requireTranslated(t, tb, 1, "order_pick(single)")
+	})
+
+	// A hand-bound order pick is the native Choices order, not a remainder's
+	// presentational dest: the plan's first taken card wins even when it is
+	// not candidate 0. Lead the Stampede takes every creature to hand.
+	t.Run("order_pick on the taken hand keeps the Choices order", func(t *testing.T) {
+		tb := newTable(t, "Lead the Stampede", "Wall of Roots", "Lotus Petal", "Masked Vandal", "Forest")
+		srcRef := objRef("o-lts", "Lead the Stampede", "stack")
+		tb.obs.Stack = []protocol.StackEntry{{ObjectRef: srcRef, StackKind: "spell"}}
+		src, err := json.Marshal(srcRef)
+		if err != nil {
+			t.Fatal(err)
+		}
+		window := []string{"Wall of Roots", "Lotus Petal", "Masked Vandal", "Forest", "Island"}
+		refs := tb.look("looked_at", window...)
+		creature := []bool{true, false, true, false, false}
+		steps := 2*len(window) - 1
+		var hand []int
+		for i := range window {
+			var cands []string
+			for _, d := range []string{"bottom", "hand"} {
+				if d == "hand" && !creature[i] {
+					continue
+				}
+				cands = append(cands, fmt.Sprintf(`{"kind":"arrange_card","source":%s,"purpose":"dig","card":%s,"card_index":%d,"card_count":%d,"destination":%q}`,
+					src, refs[i], i, len(window), d))
+			}
+			got := tb.ask(choiceCtx(string(src), "dig"), [2]int{i, steps}, cands)
+			requireTranslated(t, tb, len(cands), fmt.Sprintf("arrange_card %d", i))
+			if got["destination"] == "hand" {
+				hand = append(hand, i)
+			}
+		}
+		if len(hand) < 2 {
+			t.Fatalf("fewer than two creatures reached hand: %v", hand)
+		}
+		// The native options follow hiddenOrder (by card name), so the plan's
+		// first hand pick is the name-first taken card.
+		slices.SortStableFunc(hand, func(x, y int) int { return strings.Compare(window[x], window[y]) })
+		// Offer the plan's second choice first: an always-matching dest op
+		// would take it, the Choices list op picks the name-first card.
+		var cands []string
+		for _, i := range []int{hand[1], hand[0]} {
+			cands = append(cands, fmt.Sprintf(`{"kind":"order_pick","source":%s,"purpose":"arrangement","item":{"object":%s},"position":0,"count":%d}`,
+				src, refs[i], len(window)))
+		}
+		got := objectID(tb.ask(choiceCtx(string(src), "arrangement"), [2]int{len(window), steps}, cands)["item"])
+		requireTranslated(t, tb, len(cands), "order_pick(hand)")
+		if want := fmt.Sprintf("o-l%d", hand[0]); got != want {
+			t.Fatalf("hand order picked %s first, want the plan's first choice %s", got, want)
+		}
 	})
 }

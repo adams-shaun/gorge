@@ -4173,10 +4173,11 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 				}
 			}
 			switch {
-			case a.random || (dst != "bottom" && dst != "top"):
+			case dst == a.rest && (a.random || (dst != "bottom" && dst != "top")):
 				// A random remainder, or one that leaves the library, is moved
 				// in library order: the engine poses no order ask, so each
-				// ordering pick is the presentational dest mapping poses.
+				// ordering pick is the presentational dest mapping poses. The
+				// taken pile keeps its Choices order (and its top/bottom ask).
 				inside := false
 				ops[i] = mapping.NativeOp{Op: "dest", Option: -1, List: dst, Inside: &inside}
 			case dst == "hand":
