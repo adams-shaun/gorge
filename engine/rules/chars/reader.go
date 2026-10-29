@@ -77,6 +77,12 @@ func NewKW(s string) KW { return KW{S: s, ID: cards.InternKeywordHead(s)} }
 // table that re-resolves it.
 type Granted struct {
 	SA *cards.SA
+	// Stamp is the CR 613.7 timestamp of the continuous effect that grants
+	// this ability. The v2 mapping orders an object's granted abilities by it
+	// (then by Source, then by the grant's own position) so a granted body
+	// keeps one ability_index while its grant persists. It is a read-time
+	// fact of the engine's active continuous-effect list, never state.
+	Stamp uint32
 	// Source is the object the grant came from (state.ContinuousEffect.Source):
 	// the static's own permanent, which need not be the affected object the
 	// ability is activated from. It is threaded into decision.Option.GrantSource
