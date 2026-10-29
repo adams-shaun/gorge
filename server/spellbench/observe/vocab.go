@@ -77,6 +77,11 @@ func init() {
 }
 
 // Keywords maps gorge's derived keyword lines to CR 702 names, deduplicated in order.
+// A runtime hidden combat sentence (a Pump's "HIDDEN CARDNAME can't attack or
+// block.") names no CR 702 keyword, but Section 6.10 leaves the keyword list
+// open, so it projects as its canonical head instead of vanishing: a seat that
+// sees only the observation must still know the creature cannot attack or
+// block.
 func Keywords(lines []string) []string {
 	out := []string{}
 	seen := map[string]bool{}
@@ -90,7 +95,34 @@ func Keywords(lines []string) []string {
 		case strings.HasPrefix(k, "protection"):
 			k = "protection"
 		}
-		if cr702[k] && !seen[k] {
+		if !cr702[k] {
+			// The hidden combat sentences get their canonical heads; every
+			// other runtime sentence keeps its normalized text so a client can
+			// still see it.
+			switch cards.HiddenKeywordOf(l) {
+			case cards.HiddenKeywordNone:
+				continue
+			case cards.HiddenKeywordCantAttackOrBlock:
+				k = "cantattackorblock"
+			case cards.HiddenKeywordCantAttack:
+				k = "cantattack"
+			case cards.HiddenKeywordCantBlock:
+				k = "cantblock"
+			case cards.HiddenKeywordMustBlock:
+				k = "mustblock"
+			case cards.HiddenKeywordAllMustBlock:
+				k = "allmustblock"
+			case cards.HiddenKeywordCantAttackOrBlockAlone:
+				k = "cantattackorblockalone"
+			case cards.HiddenKeywordCantAttackAlone:
+				k = "cantattackalone"
+			case cards.HiddenKeywordCantBlockAlone:
+				k = "cantblockalone"
+			default:
+				k = Normalize(cards.KeywordHead(strings.TrimPrefix(cards.KeywordHead(l), "HIDDEN ")))
+			}
+		}
+		if k != "" && !seen[k] {
 			seen[k] = true
 			out = append(out, k)
 		}

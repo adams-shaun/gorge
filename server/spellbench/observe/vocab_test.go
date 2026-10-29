@@ -22,7 +22,7 @@ func TestVocabularyNormalization(t *testing.T) {
 		t.Errorf("Colors = %v", got)
 	}
 	got := observe.Keywords([]string{"Flying", "Flashback:1 R", "Forestwalk", "Protection from red", "CARDNAME can't block.", "Flying"})
-	if !reflect.DeepEqual(got, []string{"flying", "flashback", "landwalk", "protection"}) {
+	if !reflect.DeepEqual(got, []string{"flying", "flashback", "landwalk", "protection", "cantblock"}) {
 		t.Errorf("Keywords = %v", got)
 	}
 }

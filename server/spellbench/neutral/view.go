@@ -536,7 +536,12 @@ func printedAbilityCosts(f *cards.Face) []string {
 func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *protocol.Characteristics) {
 	cv.Name = name
 	cv.Printing = view.Printing{Name: name}
-	if c != nil && (len(c.Supertypes) > 0 || len(c.Types) > 0 || len(c.Subtypes) > 0) {
+	// A face-down permanent's observed type line is the masked "creature"
+	// (CR 708.2), but native's view projects the visible face's printed type
+	// line (view.cardView reads ViewTypes, which the face-down marker does not
+	// change). Match native: the observed line is the other engine's mask, not
+	// the fact native's board adapter reads.
+	if c != nil && !cv.FaceDown && (len(c.Supertypes) > 0 || len(c.Types) > 0 || len(c.Subtypes) > 0) {
 		var words []string
 		for _, list := range [][]string{c.Supertypes, c.Types, c.Subtypes} {
 			for _, w := range list {
