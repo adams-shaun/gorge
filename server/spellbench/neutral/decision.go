@@ -3092,7 +3092,11 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 		case strings.EqualFold(param("ChangeNum"), "All") || (dest2 != "" && !strings.EqualFold(dest2, "Library")):
 			n.arrange.fixed = true
 		case dest == "" || strings.EqualFold(dest, "Hand"):
-			valid := strings.Split(param("ChangeValid"), ",")
+			spec := param("ChangeValid")
+			if spec == "" {
+				spec = "Card" // effects.compileDig's default
+			}
+			valid := strings.Split(spec, ",")
 			eligible := func(id string) bool {
 				name := ""
 				for _, k := range sd.Observation.Known {
@@ -3105,7 +3109,8 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 					return false
 				}
 				for _, v := range valid {
-					if slices.Contains(f.Types, strings.TrimSpace(v)) {
+					v = strings.TrimSpace(v)
+					if strings.EqualFold(v, "Card") || slices.Contains(f.Types, v) {
 						return true
 					}
 				}
