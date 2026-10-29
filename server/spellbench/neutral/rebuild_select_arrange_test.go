@@ -9,6 +9,17 @@ import (
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
+// requireTranslated fails when any candidate of the last neutral decision was
+// left untranslated: the twin excludes such a decision instead of comparing it.
+func requireTranslated(t *testing.T, tb *table, n int, what string) {
+	t.Helper()
+	for i := 0; i < n; i++ {
+		if tb.a.NeutralOpaque(i) {
+			t.Fatalf("%s candidate %d was not rebuilt: %s", what, i, tb.a.NeutralRebuild(i))
+		}
+	}
+}
+
 // TestRebuildSelectObjectAndArrange covers the reverse translations the twin
 // used to leave opaque: a select_object(single) with the protocol's "other"
 // purpose (a named card or player), and a Dig's arrange_card / order_pick
@@ -26,9 +37,7 @@ func TestRebuildSelectObjectAndArrange(t *testing.T) {
 		}
 		cand := fmt.Sprintf(`{"kind":"select_object","source":null,"purpose":"other","choice":{"object":%s},"selected_count":0,"minimum":1,"maximum":1}`, ref)
 		got := tb.ask(choiceCtx("null", "other"), [2]int{0, 1}, []string{cand})
-		if tb.a.NeutralOpaque(0) {
-			t.Fatalf("select_object(single) was not rebuilt: %s", tb.a.NeutralRebuild(0))
-		}
+		requireTranslated(t, tb, 1, "select_object(single)")
 		if id := objectID(got["choice"]); id != h.ObjectID {
 			t.Fatalf("chose %q, want %q", id, h.ObjectID)
 		}
@@ -38,9 +47,7 @@ func TestRebuildSelectObjectAndArrange(t *testing.T) {
 		tb := newTable(t, "Forest")
 		cand := `{"kind":"select_object","source":null,"purpose":"other","choice":{"player":"p1"},"selected_count":0,"minimum":1,"maximum":1}`
 		tb.ask(choiceCtx("null", "other"), [2]int{0, 1}, []string{cand})
-		if tb.a.NeutralOpaque(0) {
-			t.Fatalf("player select_object(single) was not rebuilt: %s", tb.a.NeutralRebuild(0))
-		}
+		requireTranslated(t, tb, 1, "player select_object(single)")
 	})
 
 	t.Run("dig arrange_card and order_pick single", func(t *testing.T) {
@@ -67,9 +74,7 @@ func TestRebuildSelectObjectAndArrange(t *testing.T) {
 					src, refs[i], i, len(window), d))
 			}
 			got := tb.ask(choiceCtx(string(src), "dig"), [2]int{i, steps}, cands)
-			if tb.a.NeutralOpaque(0) {
-				t.Fatalf("arrange_card %d was not rebuilt: %s", i, tb.a.NeutralRebuild(0))
-			}
+			requireTranslated(t, tb, len(cands), fmt.Sprintf("arrange_card %d", i))
 			dests[i] = got["destination"].(string)
 		}
 		// The Island stays on the bottom: RestRandomOrder poses one
@@ -81,8 +86,6 @@ func TestRebuildSelectObjectAndArrange(t *testing.T) {
 		cand := fmt.Sprintf(`{"kind":"order_pick","source":%s,"purpose":"arrangement","item":{"object":%s},"position":0,"count":%d}`,
 			src, refs[i], len(window))
 		tb.ask(choiceCtx(string(src), "arrangement"), [2]int{len(window), steps}, []string{cand})
-		if tb.a.NeutralOpaque(0) {
-			t.Fatalf("order_pick(single) was not rebuilt: %s", tb.a.NeutralRebuild(0))
-		}
+		requireTranslated(t, tb, 1, "order_pick(single)")
 	})
 }
