@@ -16,8 +16,10 @@ import (
 // by the granting continuous effect's timestamp, then the granting object's
 // id, then the position the grant was collected at. It lists what the object
 // HAS, never what one decision OFFERS: no timing, activator, payability or
-// target gate applies, so an ability keeps its index while its grant persists
-// and a decision that withholds a sibling grant cannot renumber it. The offer
+// target gate applies, and the per-turn GainsAbilitiesLimitPerTurn$ cap is a
+// withholding gate rather than an end to the grant, so a spent cap still
+// lists the ability. An ability keeps its index while its grant persists and
+// a decision that withholds a sibling grant cannot renumber it. The offer
 // walks remain the authority for which candidates a decision poses.
 //
 // Mana abilities are excluded with the offer walk's own split (a loyalty
@@ -85,7 +87,7 @@ func ObservedAbilities(e *Engine, p state.PlayerID, id state.ObjID) []decision.O
 		}
 		return out
 	}
-	for _, ga := range e.grantedAbilities(p, id) {
+	for _, ga := range e.grantedAbilitiesLimited(p, id, false) {
 		ab := ga.SA
 		if ab == nil || ab.Kind != "AB" || (cards.IsManaAbilitySA(ab) && !e.isLoyaltyAbility(ab)) {
 			continue

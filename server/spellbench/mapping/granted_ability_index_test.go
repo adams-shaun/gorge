@@ -12,6 +12,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/spellbench/internal/testcorpus"
@@ -218,5 +219,103 @@ func TestGrantedAbilityIndexDistinctForIdenticalGrants(t *testing.T) {
 	}
 	if indices[0] == indices[1] {
 		t.Fatalf("identical grants share ability_index %d: %s", indices[0], semJSON(p.Candidates))
+	}
+}
+
+// TestGrantedAbilityIndexStableAcrossCappedSibling covers a spent
+// GainsAbilitiesLimitPerTurn$ cap: it withholds the capped ability from the
+// next decision but does not end its grant, so the object-stable inventory
+// keeps its position and every later grant keeps its index. Old code dropped
+// the capped entry from the inventory, shifting the Longbow grant down one.
+func TestGrantedAbilityIndexStableAcrossCappedSibling(t *testing.T) {
+	g := untilPending(t, "Wildfire", 1, func(d *decision.Decision, e *rules.Engine) bool {
+		if d.Kind != decision.KPriority {
+			return false
+		}
+		for _, id := range e.G.Zone(state.ZBattlefield, d.Player) {
+			if e.IsCreature(id) {
+				return true
+			}
+		}
+		return false
+	})
+	d0 := g.E.Pending()
+	seat := d0.Player
+	var recipient state.ObjID
+	for _, id := range g.E.G.Zone(state.ZBattlefield, seat) {
+		if g.E.IsCreature(id) {
+			recipient = id
+			break
+		}
+	}
+	if recipient == 0 {
+		t.Fatal("precondition: the deciding seat controls no creature to grant abilities")
+	}
+
+	reg := testcorpus.Registry(t)
+	prodigal, ok := reg.Lookup("Prodigal Sorcerer")
+	if !ok {
+		t.Fatal(`precondition: the corpus has no "Prodigal Sorcerer"`)
+	}
+	longbow, ok := reg.Lookup("Viridian Longbow")
+	if !ok {
+		t.Fatal(`precondition: the corpus has no "Viridian Longbow"`)
+	}
+	lbFace := longbow.Faces[0]
+	if cards.ResolveSVar(lbFace.SVars, "Damage") == nil {
+		t.Fatal(`precondition: Viridian Longbow has no "Damage" SVar body`)
+	}
+	foreignIdx := -1
+	for i, ab := range prodigal.Faces[0].Abilities {
+		if ab.Kind == "AB" {
+			foreignIdx = i
+			break
+		}
+	}
+	if foreignIdx < 0 {
+		t.Fatal("precondition: Prodigal Sorcerer has no activated ability")
+	}
+
+	// Older capped gained grant, then a later SVar grant whose index must not
+	// move when the cap is spent.
+	g.E.AddContinuous(rules.ContinuousEffect{Source: recipient, Controller: seat, Timestamp: 1,
+		Affects: "Creature.YouCtrl", GainsLimitPerTurn: 1,
+		GainedFaces: []state.GainedFace{{Obj: recipient, Face: prodigal.Faces[0]}}})
+	g.E.AddContinuous(rules.ContinuousEffect{Source: recipient, Controller: seat, Timestamp: 2,
+		Affects: "Creature.YouCtrl", AddAbilities: []string{"Damage"}, SVars: lbFace.SVars})
+
+	find := func(observed []decision.Option) (gained, damage int) {
+		gained, damage = -1, -1
+		for i, o := range observed {
+			switch {
+			case o.GainedSource == recipient && o.GainedIdx == foreignIdx:
+				gained = i
+			case o.SVar == "Damage" && o.GrantSource == recipient:
+				damage = i
+			}
+		}
+		return gained, damage
+	}
+	before := rules.ObservedAbilities(g.E, seat, recipient)
+	gainedBefore, damageBefore := find(before)
+	if gainedBefore < 0 || damageBefore < 0 {
+		t.Fatalf("precondition: observed %+v does not carry both grants", before)
+	}
+	if damageBefore <= gainedBefore {
+		t.Fatalf("precondition: Longbow index %d does not follow the older gained grant %d", damageBefore, gainedBefore)
+	}
+
+	// Record the capped activation exactly as the engine's GainedAbilityPush
+	// mint does; gainedActivationsThisTurn reads this log.
+	g.E.L.Append(events.Event{Kind: events.GainedAbilityPush, Obj: recipient,
+		IDs: []state.ObjID{recipient}, Amount: int32(foreignIdx)})
+
+	after := rules.ObservedAbilities(g.E, seat, recipient)
+	gainedAfter, damageAfter := find(after)
+	if gainedAfter < 0 {
+		t.Fatalf("the capped gained ability left the object's inventory after its cap was spent: %+v", after)
+	}
+	if damageAfter != damageBefore {
+		t.Fatalf("later grant index moved when the capped sibling's cap was spent: %d then %d", damageBefore, damageAfter)
 	}
 }
