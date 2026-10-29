@@ -74,6 +74,17 @@ func TestRebuildSelectObjectAndArrange(t *testing.T) {
 		if got["kind"] != "select_object" {
 			t.Fatalf("proliferate pick chose %v, want the first offered object", got["kind"])
 		}
+		// The second substep proves the plan kept the remaining Max choices:
+		// a first-Min plan has spent its only pick and would decline here.
+		cands = []string{
+			fmt.Sprintf(`{"kind":"select_object","source":%s,"purpose":"other","choice":{"object":%s},"selected_count":1,"minimum":0,"maximum":2}`, src, rb),
+			fmt.Sprintf(`{"kind":"finish_selection","source":%s,"purpose":"other","selected_count":1}`, src),
+		}
+		got = tb.ask(choiceCtx(src, "other"), [2]int{1, 3}, cands)
+		requireTranslated(t, tb, len(cands), "proliferate select_object second")
+		if got["kind"] != "select_object" {
+			t.Fatalf("proliferate second pick chose %v, want the remaining offered object", got["kind"])
+		}
 	})
 
 	t.Run("dig arrange_card and order_pick single", func(t *testing.T) {
