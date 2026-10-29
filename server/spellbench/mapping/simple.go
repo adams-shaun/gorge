@@ -2,6 +2,7 @@ package mapping
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -110,6 +111,40 @@ func init() {
 		return SingleChoice(env, d, choice(src, p), func(o decision.Option) (protocol.Semantic, bool, error) {
 			return protocol.ChooseBoolean(src, p, o.Kind == "yes"), true, nil
 		})
+	})
+	// choose/object and choose/option are the named-option catch-alls Route
+	// places after every older choose class. An object ask names one visible
+	// object (or player) per option; an option ask carries the option's Kind,
+	// never its Label, which is presentation text.
+	Register("choose/object", func(env *Env, d *decision.Decision) (Transaction, error) {
+		src, err := ResolveSource(env, d)
+		if err != nil {
+			return nil, err
+		}
+		return SingleChoice(env, d, choice(src, "other"), func(o decision.Option) (protocol.Semantic, bool, error) {
+			tg, err := TargetOf(env, d, o)
+			if err != nil {
+				return protocol.Semantic{}, false, err
+			}
+			return protocol.SelectObject(src, "other", tg, 0, 1, 1), true, nil
+		})
+	})
+	Register("choose/option", func(env *Env, d *decision.Decision) (Transaction, error) {
+		src, err := ResolveSource(env, d)
+		if err != nil {
+			return nil, err
+		}
+		count := uint32(len(d.Options))
+		sem := func(o decision.Option) (protocol.Semantic, bool, error) {
+			label := o.Kind
+			return protocol.ChooseOption(src, "effect_option", uint32(o.Index), count, &label), true, nil
+		}
+		if d.Min > 1 {
+			// A named-option ask that needs several answers (ChangeText's
+			// from+to pair) is one choose_option per group substep.
+			return &optionGroupTx{d: d, src: src}, nil
+		}
+		return SingleChoice(env, d, choice(src, "effect_option"), sem)
 	})
 	Register("replacement/madness", func(env *Env, d *decision.Decision) (Transaction, error) {
 		src, err := ResolveSource(env, d)
@@ -250,4 +285,44 @@ func labelsAreCreatureTypes(opts []decision.Option) bool {
 		}
 	}
 	return true
+}
+
+// optionGroupTx poses a Min>1 named-option ask as one choose_option substep
+// per answer. Answer collects the native option indices and commits them as
+// the decision's single intent on the last substep.
+type optionGroupTx struct {
+	d      *decision.Decision
+	src    *protocol.ObjectRef
+	chosen []int
+	pose   *Pose
+}
+
+func (t *optionGroupTx) Pose() (*Pose, error) {
+	p := &Pose{Seat: t.d.Player, Context: choice(t.src, "effect_option"),
+		GroupStart: len(t.chosen) == 0, SubstepIndex: uint32(len(t.chosen)),
+		SubstepCount: uint32(t.d.Min), Native: t.d}
+	count := uint32(len(t.d.Options))
+	for _, o := range t.d.Options {
+		if !t.d.Repeatable && slices.Contains(t.chosen, o.Index) {
+			continue
+		}
+		label := o.Kind
+		p.Candidates = append(p.Candidates, Cand{
+			Sem: protocol.ChooseOption(t.src, "effect_option", uint32(o.Index), count, &label),
+			Op:  NativeOp{Op: "choose", Option: o.Index},
+		})
+	}
+	if err := Finalize(p); err != nil {
+		return nil, err
+	}
+	t.pose = p
+	return p, nil
+}
+
+func (t *optionGroupTx) Answer(i int) ([]decision.Intent, bool, error) {
+	t.chosen = append(t.chosen, t.pose.Candidates[i].Op.Option)
+	if len(t.chosen) < t.d.Min {
+		return nil, false, nil
+	}
+	return []decision.Intent{Intent(t.d, t.chosen...)}, true, nil
 }
