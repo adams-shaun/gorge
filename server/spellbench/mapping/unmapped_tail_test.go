@@ -13,6 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/spellbench/internal/testcorpus"
 	"github.com/adams-shaun/gorge/server/spellbench/mapping"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
@@ -20,72 +21,105 @@ import (
 // TestGrantedAbilityMapsToIndexedActivation covers an "ability" option whose
 // body the printed face does not carry (an SVar grant from another permanent,
 // and a gained ability). v2 has only {source, ability_index}; the mapping
-// places the printed non-mana abilities first and the grants after them in
-// engine offer order, and each candidate must pass the protocol validator.
+// reads the engine's object-stable ability inventory (rules.ObservedAbilities)
+// and each candidate must name its own position there. The protocol shape is
+// checked on every candidate.
 func TestGrantedAbilityMapsToIndexedActivation(t *testing.T) {
 	g := untilPending(t, "Wildfire", 1, func(d *decision.Decision, e *rules.Engine) bool {
-		return d.Kind == decision.KPriority && len(e.G.Zone(state.ZBattlefield, d.Player)) >= 2
+		if d.Kind != decision.KPriority {
+			return false
+		}
+		bf := e.G.Zone(state.ZBattlefield, d.Player)
+		creature := false
+		for _, id := range bf {
+			creature = creature || e.IsCreature(id)
+		}
+		return len(bf) >= 2 && creature
 	})
 	env := envFor(t, g)
 	d0 := g.E.Pending()
 	bf := g.E.G.Zone(state.ZBattlefield, d0.Player)
-	recipient, grantor := bf[0], bf[1]
-	if recipient == grantor {
-		t.Fatal("need two distinct battlefield permanents")
+	var recipient, grantor state.ObjID
+	for _, id := range bf {
+		if recipient == 0 && g.E.IsCreature(id) {
+			recipient = id
+		} else if grantor == 0 && id != recipient {
+			grantor = id
+		}
+	}
+	if recipient == 0 || grantor == 0 {
+		t.Fatalf("precondition: need a creature and another permanent, battlefield %v", bf)
 	}
 	if z := g.E.G.Obj(grantor).Zone; z != state.ZBattlefield {
 		t.Fatalf("grant source %d is in %s, want the battlefield", grantor, z)
 	}
 
-	// Precondition: the recipient is on the battlefield and its printed face
-	// has a measurable non-mana ability base; the two grants then take the
-	// next two indices.
-	base, err := mapping.GrantedAbilityIndex(g.E.G.Obj(recipient), 0)
-	if err != nil {
-		t.Fatalf("GrantedAbilityIndex: %v", err)
+	reg := testcorpus.Registry(t)
+	longbow, ok := reg.Lookup("Viridian Longbow")
+	if !ok {
+		t.Fatal(`precondition: the corpus has no "Viridian Longbow"`)
 	}
-	next, err := mapping.GrantedAbilityIndex(g.E.G.Obj(recipient), 1)
-	if err != nil || next != base+1 {
-		t.Fatalf("second grant index = %d, %v; want %d", next, err, base+1)
+	prodigal, ok := reg.Lookup("Prodigal Sorcerer")
+	if !ok {
+		t.Fatal(`precondition: the corpus has no "Prodigal Sorcerer"`)
+	}
+	if cards.ResolveSVar(longbow.Faces[0].SVars, "Damage") == nil {
+		t.Fatal(`precondition: Viridian Longbow has no "Damage" SVar body`)
 	}
 
-	d := synthetic(d0,
-		decision.Option{Kind: "ability", Obj: recipient, Label: "Granted: pump",
-			SVar: "GrantedPump", GrantSource: grantor},
-		decision.Option{Kind: "ability", Obj: recipient, Label: "Gained: draw",
-			GainedSource: grantor, GainedIdx: 0})
-	tx, err := mapping.Begin(env, d)
-	if err != nil {
-		t.Fatalf("granted ability is unmapped: %v", err)
+	// Precondition: both grants apply to the recipient and are in the
+	// engine's object-stable inventory: one SVar body from the Longbow, one
+	// foreign face gained from the second permanent.
+	g.E.AddContinuous(rules.ContinuousEffect{Source: recipient, Controller: d0.Player, Timestamp: 1,
+		Affects: "Creature.YouCtrl", AddAbilities: []string{"Damage"}, SVars: longbow.Faces[0].SVars})
+	g.E.AddContinuous(rules.ContinuousEffect{Source: recipient, Controller: d0.Player, Timestamp: 2,
+		Affects: "Creature.YouCtrl", GainedFaces: []state.GainedFace{{Obj: grantor, Face: prodigal.Faces[0]}}})
+	observed := rules.ObservedAbilities(g.E, d0.Player, recipient)
+	var sawSVar, sawGained bool
+	for _, o := range observed {
+		switch {
+		case o.SVar == "Damage" && o.GrantSource == recipient:
+			sawSVar = true
+		case o.GainedSource == grantor:
+			sawGained = true
+		}
 	}
-	p, err := tx.Pose()
-	if err != nil {
-		t.Fatalf("granted ability pose: %v", err)
+	if !sawSVar || !sawGained {
+		t.Fatalf("precondition: observed abilities %+v do not carry both grants", observed)
 	}
-	var got []uint32
+
+	d := synthetic(d0, observed...)
+	tx, p := mustPose(t, env, d)
+	seen := make([]bool, len(observed))
 	first := -1
 	for i, c := range p.Candidates {
 		if c.Sem.Kind != "activate_ability" {
 			continue
 		}
-		if first < 0 {
-			first = i
-		}
 		if err := c.Sem.Check(); err != nil {
 			t.Fatalf("activate_ability candidate %s fails the protocol shape: %v", semJSON(c.Sem), err)
+		}
+		native := c.Op.Option
+		if native < 0 || native >= len(observed) {
+			t.Fatalf("candidate commits native option %d, outside the observed list", native)
 		}
 		idx, ok := c.Sem.Fields["ability_index"].(uint32)
 		if !ok {
 			t.Fatalf("ability_index %v is not a u32", c.Sem.Fields["ability_index"])
 		}
-		got = append(got, idx)
+		if idx != uint32(native) {
+			t.Fatalf("candidate commits native option %d but names ability_index %d", native, idx)
+		}
+		seen[native] = true
+		if first < 0 {
+			first = i
+		}
 	}
-	if want := []uint32{base, base + 1}; !slices.Equal(got, want) {
-		t.Fatalf("granted ability indices %v, want %v", got, want)
+	for i, ok := range seen {
+		if !ok {
+			t.Fatalf("no activate_ability candidate commits observed ability %d: %s", i, semJSON(p.Candidates))
+		}
 	}
-	// The first granted candidate commits its native option (the first
-	// synthetic option; pass is native option 2 but Finalize moves its
-	// candidate to the front).
 	if first < 0 {
 		t.Fatalf("no activate_ability candidate: %s", semJSON(p.Candidates))
 	}

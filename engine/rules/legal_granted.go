@@ -49,6 +49,16 @@ func bindGrantedCostReferents(cost *Cost, grantor state.ObjID) {
 }
 
 func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbility {
+	return e.grantedAbilitiesLimited(p, id, true)
+}
+
+// grantedAbilitiesLimited is grantedAbilities with the per-turn
+// GainsAbilitiesLimitPerTurn$ cap optionally applied. Every OFFER and payment
+// walk passes true; the object-stable inventory (ObservedAbilities) passes
+// false: a spent cap withholds an option, it does not end the grant, so the
+// inventory must keep listing the ability or every later grant on the object
+// would shift down an index while its own grant persists.
+func (e *Engine) grantedAbilitiesLimited(p state.PlayerID, id state.ObjID, applyLimit bool) []grantedAbility {
 	var out []grantedAbility
 	ces := e.active()
 	// No grant anywhere in the list is one board-wide fact per active()
@@ -106,11 +116,11 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 				if !e.gainsValidAbilitiesAdmits(ce.GainsValidAbilities, ab) {
 					continue
 				}
-				if ce.GainsLimitPerTurn > 0 &&
+				if applyLimit && ce.GainsLimitPerTurn > 0 &&
 					e.gainedActivationsThisTurn(id, gf.Obj, i) >= ce.GainsLimitPerTurn {
 					continue
 				}
-				out = append(out, grantedAbility{SA: ab, Source: ce.Source,
+				out = append(out, grantedAbility{SA: ab, Source: ce.Source, Stamp: ce.Timestamp,
 					Gained: true, GainedFrom: gf.Obj, GainedIdx: i, GainedFace: gf.Face,
 					GainedManaConv: ce.GainedManaConversion})
 			}
@@ -135,7 +145,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 			if ab == nil || ab.Kind != "AB" {
 				continue
 			}
-			out = append(out, grantedAbility{SA: ab, Source: grantor, SVar: nm})
+			out = append(out, grantedAbility{SA: ab, Source: grantor, SVar: nm, Stamp: ce.Timestamp})
 		}
 	}
 	return out
