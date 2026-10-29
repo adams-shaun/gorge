@@ -29,6 +29,13 @@ type Rules struct {
 	// instead of the game secret's library_shuffle stream. Nil keeps the
 	// default secret-derived plan.
 	ShufflePlanner func(rules.ShuffleContext) ([]state.ObjID, error)
+	// ChancePrefix, when non-nil, is the engine's chance prefix: its draws
+	// are consumed in order from the start of the game, beginning with the
+	// starting-seat toss. It replaces the forced toss and the secret-derived
+	// shuffle plan, so it must cover every draw the game makes; a draw past
+	// the prefix that no planner supplies is unplanned randomness. Nil is
+	// the default: the forced toss plus the secret-derived shuffle plan.
+	ChancePrefix []rules.ChanceDraw
 }
 
 type Game struct {
@@ -50,11 +57,21 @@ func New(reg *cards.Registry, sec *secrets.Game, decks [2][]*cards.Card, r Rules
 	if r.Mulligan == "london" {
 		cfg.Mulligans = 7
 	}
+	// The prefix is a contiguous transcript: a planned shuffle cannot be
+	// appended while it still has unconsumed values (rules.forcePermutation),
+	// so a supplied prefix replaces both the forced toss and the default
+	// secret-derived plan. An explicit planner may still be combined with a
+	// prefix that does not span its shuffles.
+	prefix := []rules.ChanceDraw{{Bound: 2, Value: int(r.StartingSeat)}}
 	planner := g.plan
+	if r.ChancePrefix != nil {
+		prefix = r.ChancePrefix
+		planner = nil
+	}
 	if r.ShufflePlanner != nil {
 		planner = r.ShufflePlanner
 	}
-	e, err := rules.NewHypotheticalPlanned(cfg, []rules.ChanceDraw{{Bound: 2, Value: int(r.StartingSeat)}}, planner)
+	e, err := rules.NewHypotheticalPlanned(cfg, prefix, planner)
 	if err != nil {
 		return nil, err
 	}
