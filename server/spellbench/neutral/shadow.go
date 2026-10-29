@@ -210,6 +210,16 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 	emit(events.Event{Kind: events.Priority, Player: holder, Amount: passes})
 
 	sh := &shadow{e: e, ids: map[state.ObjID]state.ObjID{}}
+	// The observation's object id of every placement, so a zone move can name
+	// a related object (the source that exiled a card) by its rebuilt id.
+	byObs := make(map[string]state.ObjID, len(all))
+	for _, p := range all {
+		id := p.rec.ObjectID
+		if p.stack != nil {
+			id = p.stack.ObjectID
+		}
+		byObs[id] = p.obj
+	}
 	for _, p := range all {
 		switch {
 		case p.stem != "":
@@ -227,7 +237,17 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 			emit(events.Event{Kind: events.PutOnStack, Obj: p.obj, Player: p.owner, From: e.G.Obj(p.obj).Zone, To: state.ZStack})
 		default:
 			if from := e.G.Obj(p.obj).Zone; from != p.zone {
-				emit(events.Event{Kind: events.MoveZone, Obj: p.obj, From: from, To: p.zone})
+				ev := events.Event{Kind: events.MoveZone, Obj: p.obj, From: from, To: p.zone}
+				// An exile's MoveZone IDs payload is the exiling source
+				// (events/apply_zone.go's default arm), so the rebuilt board
+				// keeps the "exiled with this source" relation the engine
+				// derives its count and mana from.
+				if p.zone == state.ZExile && p.rec.ExiledBy != nil {
+					if src, ok := byObs[p.rec.ExiledBy.ObjectID]; ok {
+						ev.IDs = []state.ObjID{src}
+					}
+				}
+				emit(ev)
 			}
 		}
 		if p.stack != nil {

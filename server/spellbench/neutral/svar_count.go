@@ -58,12 +58,12 @@ func (s *Session) countExpr(o *protocol.Observation, src *protocol.ObjectRef, ex
 	} {
 		if strings.HasPrefix(rest, z.head) {
 			spec := strings.TrimSpace(rest[len(z.head):])
-			return s.countZoneSpec(o, z.zone, spec)
+			return s.countZoneSpec(o, z.zone, spec, src)
 		}
 	}
 	// "Count$Valid <spec>" names the battlefield by default in Forge.
 	if spec, ok := strings.CutPrefix(rest, "Valid "); ok {
-		return s.countZoneSpec(o, "battlefield", strings.TrimSpace(spec))
+		return s.countZoneSpec(o, "battlefield", strings.TrimSpace(spec), src)
 	}
 	// "Count$CardCounters.<KIND>" reads the source permanent's counters
 	// (engine/effects/count_body_heads.go). The wire carries counters only on
@@ -117,22 +117,51 @@ func (s *Session) cardCounters(o *protocol.Observation, src *protocol.ObjectRef,
 	return 0, false
 }
 
-func (s *Session) countZoneSpec(o *protocol.Observation, zone, spec string) (int32, bool) {
+func (s *Session) countZoneSpec(o *protocol.Observation, zone, spec string, src *protocol.ObjectRef) (int32, bool) {
 	if !countSpecResolvable(spec) {
 		return 0, false
 	}
-	return s.countZone(o, zone, spec)
+	// The observation carries only the viewer's hand, so possession over a
+	// hand is a partial zone and stays unknown. Every other zone the
+	// evaluator reads is public and complete.
+	if zone == "hand" && countSpecHasPossession(spec) {
+		return 0, false
+	}
+	if countSpecHasPossession(spec) && (src == nil || src.ControllerSeat == "") {
+		return 0, false
+	}
+	return s.countZone(o, zone, spec, src)
+}
+
+// countSpecHasPossession reports whether any alternative names a
+// possession predicate (YouCtrl, YouOwn, OppCtrl, OppOwn), the context words
+// countZone decides against the source's controller.
+func countSpecHasPossession(spec string) bool {
+	for _, alt := range strings.Split(spec, ",") {
+		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		for _, p := range strings.Split(rest, "+") {
+			p = strings.TrimSpace(p)
+			if neg, ok := strings.CutPrefix(p, "non"); ok {
+				p = neg
+			}
+			switch p {
+			case "YouCtrl", "YouOwn", "OppCtrl", "OppOwn":
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // countSpecResolvable is the count evaluator's grammar gate. It reports
 // whether every alternative of spec is built only from words the evaluator
 // decides; anything else makes the whole count UNKNOWN, never a confident
-// zero. That includes the possession predicates (YouCtrl, YouOwn, OppCtrl,
-// ...): a Count$Valid body is not the EACH search candidate list the host has
-// already filtered, so treating them as always true would count both
-// players' zones (or, for a hidden hand, the wrong player's cards). The
-// native engine resolves those against the caster's context; the neutral
-// world publishes no count rather than invent one.
+// zero. That includes other context predicates beyond the possession words
+// countZone resolves (YouCtrl, YouOwn, OppCtrl, OppOwn): a Count$Valid body
+// is not the EACH search candidate list the host has already filtered, so a
+// word the evaluator cannot decide would count both players' zones (or, for
+// a hidden hand, the wrong player's cards). The neutral world publishes no
+// count rather than invent one.
 func countSpecResolvable(spec string) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
@@ -183,13 +212,13 @@ func countPredicateResolvable(p string) bool {
 		return true
 	}
 	switch p {
-	case "White", "Blue", "Black", "Red", "Green":
+	case "White", "Blue", "Black", "Red", "Green", "YouCtrl", "YouOwn", "OppCtrl", "OppOwn":
 		return true
 	}
 	return cards.TypeMaskOfName(p) != 0
 }
 
-func (s *Session) countZone(o *protocol.Observation, zone, spec string) (int32, bool) {
+func (s *Session) countZone(o *protocol.Observation, zone, spec string, src *protocol.ObjectRef) (int32, bool) {
 	var n int32
 	for _, p := range o.Players {
 		var records []protocol.ObjectRecord
@@ -213,7 +242,7 @@ func (s *Session) countZone(o *protocol.Observation, zone, spec string) (int32, 
 				// carries; publish no number instead.
 				return 0, false
 			}
-			if countFaceMatches(f, zone, spec) {
+			if countFaceMatches(f, zone, spec, r, src) {
 				n++
 			}
 		}
@@ -222,28 +251,28 @@ func (s *Session) countZone(o *protocol.Observation, zone, spec string) (int32, 
 }
 
 // countFaceMatches is the comma-alternative arm of Forge's filter grammar for
-// an already-resolvable spec. It reads only printed face facts; the seat
-// predicates that would need the caster's context were rejected above.
-func countFaceMatches(f *cards.Face, zone, spec string) bool {
+// an already-resolvable spec. It reads printed face facts plus the possession
+// words, which countPredicateMatches resolves against the ask's controller.
+func countFaceMatches(f *cards.Face, zone, spec string, rec protocol.ObjectRecord, src *protocol.ObjectRef) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
 		return true
 	}
 	for _, alt := range strings.Split(spec, ",") {
-		if countAltMatches(f, zone, strings.TrimSpace(alt)) {
+		if countAltMatches(f, zone, strings.TrimSpace(alt), rec, src) {
 			return true
 		}
 	}
 	return false
 }
 
-func countAltMatches(f *cards.Face, zone, alt string) bool {
+func countAltMatches(f *cards.Face, zone, alt string, rec protocol.ObjectRecord, src *protocol.ObjectRef) bool {
 	base, rest, _ := strings.Cut(alt, ".")
 	if !countBaseMatches(f, zone, base) {
 		return false
 	}
 	for _, p := range strings.Split(rest, "+") {
-		if p = strings.TrimSpace(p); p != "" && !countPredicateMatches(f, p) {
+		if p = strings.TrimSpace(p); p != "" && !countPredicateMatches(f, p, rec, src) {
 			return false
 		}
 	}
@@ -268,9 +297,24 @@ func countBaseMatches(f *cards.Face, zone, base string) bool {
 	return f.TypeLineHas(base, cards.TypeWordIDOf(base))
 }
 
-func countPredicateMatches(f *cards.Face, p string) bool {
+func countPredicateMatches(f *cards.Face, p string, rec protocol.ObjectRecord, src *protocol.ObjectRef) bool {
 	if neg, ok := strings.CutPrefix(p, "non"); ok {
-		return !countPredicateMatches(f, neg)
+		return !countPredicateMatches(f, neg, rec, src)
+	}
+	// The possession words resolve against the ask's controller ("you"), the
+	// same seat the native evaluator's Ctx.Controller names.
+	if you := ""; src != nil {
+		you = src.ControllerSeat
+		switch p {
+		case "YouCtrl":
+			return rec.ControllerSeat == you
+		case "YouOwn":
+			return rec.OwnerSeat == you
+		case "OppCtrl":
+			return rec.ControllerSeat != you
+		case "OppOwn":
+			return rec.OwnerSeat != you
+		}
 	}
 	if name, ok := strings.CutPrefix(p, "named"); ok {
 		return strings.EqualFold(f.Name, name)
