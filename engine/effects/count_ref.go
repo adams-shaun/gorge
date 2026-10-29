@@ -917,6 +917,12 @@ var refTargetsCodes = state.NewStrCodes(
 	state.StrEntry[refTargetsCode]{Key: "AllTargeted", Val: refTargetsAllTargeted},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredCard", Val: refTargetsTriggeredCard},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredCardLKICopy", Val: refTargetsTriggeredCard},
+	// TriggeredObject is Forge's alias for the triggering event's object
+	// (AbilityUtils' "TriggeredObject" -> "Card" replacement, and the
+	// definedSpecTriggeredObject family); Captain Marvel, Apex Avenger's
+	// Kree gate reads it as TriggeredObject$Valid Kree.
+	state.StrEntry[refTargetsCode]{Key: "TriggeredObject", Val: refTargetsTriggeredCard},
+	state.StrEntry[refTargetsCode]{Key: "TriggeredObjectLKICopy", Val: refTargetsTriggeredCard},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredNewCard", Val: refTargetsTriggeredCard},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredNewCardLKICopy", Val: refTargetsTriggeredCard},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredAttacker", Val: refTargetsTriggeredAttacker},

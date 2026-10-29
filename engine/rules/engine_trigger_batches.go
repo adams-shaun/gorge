@@ -138,6 +138,18 @@ type engineTriggerBatches struct {
 	millBatchDepth int                `clone:"deep"`
 	millBatchIdx   map[triggerKey]int `clone:"deep"`
 	millBatchLog   []millBatchEntry   `clone:"deep"`
+	// counterBatch is the CounterPlayerAddedAll cell latch inside the same
+	// action bracket: Forge's GameEntityCounterTable fires the mode ONCE per
+	// (putter, recipient) cell with the cell's whole Multiset<CounterType>
+	// map, while gorge emits one CounterChange per kind. The first matching
+	// event of one put action for a recipient queues the single instance and
+	// every later matching event of the same action accumulates into the
+	// entry's merged kind/count map, which closeMillBatch patches into the
+	// queued trigger's TriggerContext.TriggerCounterMap (PutCounter's
+	// TriggeredCounterMap$ reads it). Keyed by trigger LINE and recipient;
+	// nil/empty outside a counter put, so every other batch mode is untouched.
+	counterBatchIdx map[counterBatchKey]int `clone:"deep"`
+	counterBatchLog []counterBatchEntry     `clone:"deep"`
 	// discardBatch (effects' api:Discard): one api:Discard resolution is ONE
 	// discard action, so the Mode$ DiscardedAll "whenever you discard one or
 	// more cards" trigger fires once for the whole resolution, not once per
