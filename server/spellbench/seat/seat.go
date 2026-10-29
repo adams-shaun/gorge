@@ -721,10 +721,9 @@ func (a *Agent) actionObject(op mapping.NativeOp) state.ObjID {
 // unposable answers a decision the v2 mapping cannot pose. An engine_contract
 // failure is the adapter's limit, not the agent's fault: the decision is
 // answered by the deterministic fallback and the match goes on. Any other
-// mapping error still forfeits the seat as agent_error.
+// error still forfeits the seat as agent_error.
 func (a *Agent) unposable(ctx context.Context, v view.View, d decision.Decision, err error) decision.Intent {
-	if !errors.Is(err, mapping.ErrUnmapped) && !errors.Is(err, mapping.ErrDeadEnd) && !errors.Is(err, mapping.ErrCandidateLimit) &&
-		!errors.Is(err, mapping.ErrDuplicate) && !errors.Is(err, mapping.ErrUnresolvableSource) {
+	if !mapping.IsContractFailure(err) {
 		a.forfeit = forfeitAgent
 		return a.forfeitAnswer(ctx, v, d)
 	}
