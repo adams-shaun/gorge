@@ -3953,7 +3953,12 @@ func digAlt(f *cards.Face, alt string) (bool, bool) {
 		if len(p) > 3 && strings.EqualFold(p[:3], "non") {
 			neg, p = true, p[3:]
 		}
-		if p == "" {
+		if p == "" || !cardTypeWords[strings.ToLower(p)] {
+			// A predicate this filter does not model (Card.NamedCard,
+			// Card.Historic, Card.cmcLE3) is not the same as a type the card
+			// lacks: treating it as one would silently mark every card
+			// ineligible, and a negated one ("Card.nonHistoric") eligible in
+			// reverse.
 			return false, false
 		}
 		has := slices.ContainsFunc(f.Types, func(t string) bool { return strings.EqualFold(t, p) })
