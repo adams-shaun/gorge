@@ -215,14 +215,19 @@ func CounterRemovedInstances(t *cards.Trigger, ev *events.Event) int32 {
 // every other event mode.
 //
 // Batch granularity is the EVENT, never the counter: the engine emits one
-// placement event per recipient object with the whole batch in Amount, and
-// one matching event queues exactly one trigger however many counters that
-// one batch carried -- the "one or more" reading, the same
+// placement event per (recipient object, counter kind) with that kind's whole
+// batch in Amount, and one matching event queues exactly one trigger however
+// many counters that one batch carried -- the "one or more" reading, the same
 // one-batch-per-action granularity the ChangesZoneAll registration shares
 // (engine/rules/trigmatch/zone.go; the api:Dig/Phases/Mill/RepeatEach brackets open it). One activation hitting several recipients
 // emits one event per recipient and queues one trigger per MATCHING
 // recipient event (each named by its own text); a batch that lands N
-// counters on ONE object queues one trigger, not N.
+// counters on ONE object queues one trigger, not N. A put action placing
+// several KINDS on one recipient (CounterTypes$ emits one CounterChange per
+// kind) is still one Forge GameEntityCounterTable cell: the rules-side
+// counterBatch latch merges those events into one trigger whose
+// TriggerContext.TriggerCounterMap carries every kind's count (Forge's
+// AbilityKey.CounterMap).
 //
 // ValidObject$ names the counter RECIPIENT as comma alternatives, object
 // and player forms mixed (All Will Be One's

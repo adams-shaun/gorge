@@ -118,6 +118,20 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerTarget = player(ev.Player)
 		}
 		c.TriggerAmount = ev.Amount
+		// The batch's per-kind map (Forge's AbilityKey.CounterMap): a single
+		// CounterChange/PlayerCounterChange event carries one kind, and the
+		// action-batch latch in trigger_match.go merges every event of one put
+		// action for this recipient into the full map at batch close. Outside
+		// a batch this one-entry map is the whole placement.
+		if ev.Counter != "" && ev.Amount > 0 {
+			c.TriggerCounterMap = []effects.CounterMapEntry{{Kind: ev.Counter, Count: ev.Amount}}
+		}
+		// Forge's runParams.Source for this mode is the PLAYER who put the
+		// counters, so TriggeredSource in a Placer$/Defined$ player spec
+		// resolves to that seat (Captain Marvel's Placer$ TriggeredSource).
+		if adder, ok := e.inFlightCounterAdder(); ok {
+			c.TriggerPlayer = player(adder)
+		}
 	case cards.TriggerScry:
 		// The completed-scry marker carries the count of cards the player
 		// actually chose to put on the bottom in Amount, which is the
