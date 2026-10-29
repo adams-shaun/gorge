@@ -12,13 +12,13 @@ import (
 
 const AdapterVersion = "0.1.0"
 
-// DecisionKinds are the 24 kinds the engine emits. distribute is not one:
+// DecisionKinds are the 25 kinds the engine emits. distribute is not one:
 // combat damage follows the declared engine_order default (Section 7.6).
 var DecisionKinds = []string{"pass", "play_land", "cast_spell", "activate_mana_ability", "activate_ability",
 	"special_action", "choose_target", "finish_target_selection", "choose_cost_target", "choose_spell_mode",
-	"choose_color", "choose_number", "choose_boolean", "choose_name", "select_object", "finish_selection",
-	"optional_cost", "optional_cast", "mulligan", "order_pick", "arrange_card", "choose_replacement",
-	"declare_attack", "declare_block"}
+	"choose_option", "choose_color", "choose_number", "choose_boolean", "choose_name", "select_object",
+	"finish_selection", "optional_cost", "optional_cast", "mulligan", "order_pick", "arrange_card",
+	"choose_replacement", "declare_attack", "declare_block"}
 
 // corpusRef is the Forge corpus ref this process was started against, set by
 // the command from cards.lock. It is part of the engine identity, not a pin:

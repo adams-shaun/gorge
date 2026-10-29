@@ -47,7 +47,7 @@ func reset(id, gameID, deck, mutate string) []byte {
 func TestHelloDeclaresTheProfile(t *testing.T) {
 	s := env.New(testcorpus.Registry(t), nil)
 	m := resp(t, s.Handle([]byte(`{"request_type":"hello","protocol":"spellbench/v2","request_id":"h-1","protocol_minor":3}`)))
-	if m["protocol_minor"].(float64) != 0 || len(m["decision_kinds"].([]any)) != 24 || len(m["catalog"].([]any)) != 5 ||
+	if m["protocol_minor"].(float64) != 0 || len(m["decision_kinds"].([]any)) != 25 || len(m["catalog"].([]any)) != 5 ||
 		len(m["observation"].(map[string]any)) != 13 || m["rewind"] != false ||
 		m["engine_defaults"].(map[string]any)["combat_damage_assignment"] != "engine_order" {
 		t.Fatalf("hello_ok %v", m)

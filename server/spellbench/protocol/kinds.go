@@ -211,6 +211,9 @@ func ChooseNumber(src *ObjectRef, purpose string, v, lo, hi int32) Semantic {
 func ChooseBoolean(src *ObjectRef, purpose string, v bool) Semantic {
 	return sem("choose_boolean", "source", src, "purpose", purpose, "value", v)
 }
+func ChooseOption(src *ObjectRef, purpose string, idx, count uint32, label string) Semantic {
+	return sem("choose_option", "source", src, "purpose", purpose, "option_index", idx, "option_count", count, "option_label", label)
+}
 func ChooseName(src *ObjectRef, purpose, v string) Semantic {
 	return sem("choose_name", "source", src, "purpose", purpose, "value", v)
 }

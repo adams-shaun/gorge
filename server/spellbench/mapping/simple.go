@@ -111,6 +111,33 @@ func init() {
 			return protocol.ChooseBoolean(src, p, o.Kind == "yes"), true, nil
 		})
 	})
+	// choose/object and choose/option are the named-option catch-alls Route
+	// places after every older choose class. An object ask names one visible
+	// object (or player) per option; an option ask carries the option's Kind,
+	// never its Label, which is presentation text.
+	Register("choose/object", func(env *Env, d *decision.Decision) (Transaction, error) {
+		src, err := ResolveSource(env, d)
+		if err != nil {
+			return nil, err
+		}
+		return SingleChoice(env, d, choice(src, "other"), func(o decision.Option) (protocol.Semantic, bool, error) {
+			tg, err := TargetOf(env, d, o)
+			if err != nil {
+				return protocol.Semantic{}, false, err
+			}
+			return protocol.SelectObject(src, "other", tg, 0, 1, 1), true, nil
+		})
+	})
+	Register("choose/option", func(env *Env, d *decision.Decision) (Transaction, error) {
+		src, err := ResolveSource(env, d)
+		if err != nil {
+			return nil, err
+		}
+		count := uint32(len(d.Options))
+		return SingleChoice(env, d, choice(src, "effect_option"), func(o decision.Option) (protocol.Semantic, bool, error) {
+			return protocol.ChooseOption(src, "effect_option", uint32(o.Index), count, o.Kind), true, nil
+		})
+	})
 	Register("replacement/madness", func(env *Env, d *decision.Decision) (Transaction, error) {
 		src, err := ResolveSource(env, d)
 		if err != nil {
