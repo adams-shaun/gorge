@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/spellbench/observe"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
@@ -21,6 +22,8 @@ func init() {
 	Register("choose/search", newSearch)
 	Register("choose/hand_move", newHandMove)
 	Register("choose/hidden_pick", newHiddenPick)
+	Register("choose/twopiles", mixedSelect("other", true))
+	Register("choose/pile_pick", newTwoPilePick)
 	Register("choose/vote_card", mixedSelect("vote", true))
 	Register("modes/mode", newModes)
 }
@@ -29,6 +32,21 @@ func init() {
 // zone hidden from it. x_gorge_view_v1 rekeys every option object, so a pose
 // with hidden options needs the look even when its candidates do not name
 // one (a yes/no ask about a revealed top card).
+// knownPosition is the Section 6.7 position_from_top every known LIBRARY
+// entry must carry (validate V5). A card in any other zone has no library
+// position, so it stays nil (a hand entry).
+func knownPosition(env *Env, obj *state.Object) *uint32 {
+	if obj == nil || obj.Zone != state.ZLibrary {
+		return nil
+	}
+	lib := env.G.E.G.Zone(state.ZLibrary, obj.Owner)
+	if at := slices.Index(lib, obj.ID); at >= 0 {
+		p := uint32(at)
+		return &p
+	}
+	return nil
+}
+
 func openLookIfHidden(env *Env, d *decision.Decision) {
 	for _, o := range d.Options {
 		if o.Obj == 0 {
@@ -82,7 +100,7 @@ func mixedSelect(purp string, withSource bool) Builder {
 				}
 				refs[i] = r
 				hidden[i] = true
-				known = append(known, observe.KnownEntry(r, "revealed", nil))
+				known = append(known, observe.KnownEntry(r, "revealed", knownPosition(env, obj)))
 				continue
 			}
 			r, err := env.Obs.Ref(d.Player, o.Obj)
@@ -113,6 +131,24 @@ func mixedSelect(purp string, withSource bool) Builder {
 // resume). Its cards may be public (a graveyard) or revealed from a hidden
 // zone, so mixedSelect decides each option's reference; the destination names
 // the select_object purpose.
+// newTwoPilePick maps the pile pick after a TwoPiles split (KChoose Min 1 Max
+// 1 over "pile-a"/"pile-b") to the protocol's counted choose_option shape.
+// The pile CONTENTS are not on the pick decision, so the protocol's
+// choose_pile (which carries both card lists) cannot be built here; the
+// purpose names the effect election and each option keeps the engine's label.
+func newTwoPilePick(env *Env, d *decision.Decision) (Transaction, error) {
+	src, err := ResolveSource(env, d)
+	if err != nil {
+		return nil, err
+	}
+	const purp = "effect_option"
+	count := uint32(len(d.Options))
+	return SingleChoice(env, d, choice(src, purp), func(o decision.Option) (protocol.Semantic, bool, error) {
+		label := o.Label
+		return protocol.ChooseOption(src, purp, uint32(o.Index), count, &label), true, nil
+	})
+}
+
 func newHiddenPick(env *Env, d *decision.Decision) (Transaction, error) {
 	purp := "other"
 	if d.ResumeSA != nil {
