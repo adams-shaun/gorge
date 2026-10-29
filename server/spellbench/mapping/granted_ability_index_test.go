@@ -125,3 +125,98 @@ func TestGrantedAbilityIndexStableAcrossDecisions(t *testing.T) {
 		t.Fatalf("Longbow grant index moved across decisions: %d then %d; want %d", damage1, damage2, damage1)
 	}
 }
+
+// TestGrantedAbilityIndexDistinctForIdenticalGrants covers the sibling case
+// an anchor alone cannot separate: two live grants of the SAME body (same
+// granting object, same SVar) are two inventory entries and two offered
+// options. Each option must take its own position; resolving both to the
+// first matching anchor would pose two identical activate_ability candidates
+// and Finalize would fail the whole decision with ErrDuplicate.
+func TestGrantedAbilityIndexDistinctForIdenticalGrants(t *testing.T) {
+	g := untilPending(t, "Wildfire", 1, func(d *decision.Decision, e *rules.Engine) bool {
+		if d.Kind != decision.KPriority {
+			return false
+		}
+		for _, id := range e.G.Zone(state.ZBattlefield, d.Player) {
+			if e.IsCreature(id) {
+				return true
+			}
+		}
+		return false
+	})
+	d0 := g.E.Pending()
+	seat := d0.Player
+	var recipient state.ObjID
+	for _, id := range g.E.G.Zone(state.ZBattlefield, seat) {
+		if g.E.IsCreature(id) {
+			recipient = id
+			break
+		}
+	}
+	if recipient == 0 {
+		t.Fatal("precondition: the deciding seat controls no creature to grant an ability")
+	}
+
+	reg := testcorpus.Registry(t)
+	longbow, ok := reg.Lookup("Viridian Longbow")
+	if !ok {
+		t.Fatal(`precondition: the corpus has no "Viridian Longbow"`)
+	}
+	lbFace := longbow.Faces[0]
+	if cards.ResolveSVar(lbFace.SVars, "Damage") == nil {
+		t.Fatal(`precondition: Viridian Longbow has no "Damage" SVar body`)
+	}
+
+	// Two continuous effects grant the identical body from the identical
+	// source, at distinct timestamps: two entries in the object's inventory
+	// and two options in the offer walk, both with the same anchor.
+	for _, stamp := range []uint32{1, 2} {
+		g.E.AddContinuous(rules.ContinuousEffect{Source: recipient, Controller: seat, Timestamp: stamp,
+			Affects: "Creature.YouCtrl", AddAbilities: []string{"Damage"}, SVars: lbFace.SVars})
+	}
+
+	observed := rules.ObservedAbilities(g.E, seat, recipient)
+	matching := 0
+	for _, a := range observed {
+		if a.SVar == "Damage" && a.GrantSource == recipient {
+			matching++
+		}
+	}
+	if matching != 2 {
+		t.Fatalf("precondition: observed %d identical Damage grants, want 2: %+v", matching, observed)
+	}
+
+	grant := decision.Option{Kind: "ability", Obj: recipient, Label: "Damage",
+		SVar: "Damage", GrantSource: recipient}
+	d := synthetic(d0, grant, grant)
+
+	env := envFor(t, g)
+	tx, err := mapping.Begin(env, d)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	p, err := tx.Pose()
+	if err != nil {
+		t.Fatalf("two identical grants must pose with distinct indices, got %v", err)
+	}
+	var indices []uint32
+	for _, c := range p.Candidates {
+		if c.Sem.Kind != "activate_ability" {
+			continue
+		}
+		if err := c.Sem.Check(); err != nil {
+			t.Fatalf("activate_ability candidate %s fails the protocol shape: %v", semJSON(c.Sem), err)
+		}
+		idx, ok := c.Sem.Fields["ability_index"].(uint32)
+		if !ok {
+			t.Fatalf("ability_index %v is not a u32", c.Sem.Fields["ability_index"])
+		}
+		indices = append(indices, idx)
+	}
+	if len(indices) != 2 {
+		t.Fatalf("posed %d activate_ability candidates, want 2: %s", len(indices), semJSON(p.Candidates))
+	}
+	if indices[0] == indices[1] {
+		t.Fatalf("identical grants share ability_index %d: %s", indices[0], semJSON(p.Candidates))
+	}
+}

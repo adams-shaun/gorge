@@ -14,7 +14,7 @@ import (
 // object-stable order v2's activate_ability.ability_index names them: the
 // printed face's abilities in face order, then every granted ability ordered
 // by the granting continuous effect's timestamp, then the granting object's
-// id, then the ability's position within that grant. It lists what the object
+// id, then the position the grant was collected at. It lists what the object
 // HAS, never what one decision OFFERS: no timing, activator, payability or
 // target gate applies, so an ability keeps its index while its grant persists
 // and a decision that withholds a sibling grant cannot renumber it. The offer
@@ -42,7 +42,12 @@ func ObservedAbilities(e *Engine, p state.PlayerID, id state.ObjID) []decision.O
 		opt    decision.Option
 		stamp  uint32
 		source state.ObjID
-		pos    int
+		// pos is the position in this collected slice, not a per-grant
+		// ordinal: keyword-granted lines are collected before the SVar/gained
+		// grants, so a tie on (stamp, source) between those classes is broken
+		// by collection order. The order is deterministic and stays fixed
+		// while the grants persist, which is all the index rule needs.
+		pos int
 	}
 	var grants []grant
 	if !e.printedAbilitiesGone(o) {
