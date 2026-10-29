@@ -288,6 +288,11 @@ type fnInfo struct {
 	// mapIdxRds records literal keys indexed on a mapParams parameter
 	// ("" marks a dynamic key, which cannot be attributed and fails).
 	mapIdxRds map[string]map[string]bool
+	// effectStaticRds records the literal keys this function reads from a
+	// parseStaticLine-built body the api:Effect registration path consumes,
+	// keyed by the static mode the reader applies to (see
+	// effectStaticLineReaders). Only readers named there populate it.
+	effectStaticRds map[string]map[string]bool
 	// stringMapResults holds this function's result POSITIONS typed
 	// map[string]string, so a local assigned from a call can be tracked.
 	stringMapResults []int
@@ -510,14 +515,15 @@ func (s *scan) fnOf(pkg, name string) *fnInfo {
 	}
 	fi := &fnInfo{
 		pkg: pkg, name: name,
-		reads:     map[bucket]map[string]bool{},
-		keyRds:    map[bucket]map[string]bool{},
-		calls:     map[string]bool{},
-		strParams: map[string]int{},
-		pkParams:  map[string]int{},
-		pkRanges:  map[string][]string{},
-		mapParams: map[string]int{},
-		aliases:   map[string]string{},
+		reads:           map[bucket]map[string]bool{},
+		keyRds:          map[bucket]map[string]bool{},
+		calls:           map[string]bool{},
+		strParams:       map[string]int{},
+		pkParams:        map[string]int{},
+		pkRanges:        map[string][]string{},
+		mapParams:       map[string]int{},
+		aliases:         map[string]string{},
+		effectStaticRds: map[string]map[string]bool{},
 	}
 	s.fns[key] = fi
 	return fi
@@ -744,8 +750,21 @@ func (s *scan) recordParamsRead(t *testing.T, fset *token.FileSet, fi *fnInfo, n
 // helper-passed-map form). Literal keys are attributed through the call
 // sites' arguments in propagateKeyReads; a dynamic key cannot be attributed
 // and fails. Whitelisted non-card maps (parseStaticLine's SVar table, ...) skip
-// attribution entirely.
+// attribution entirely. A reader named in effectStaticLineReaders records its
+// literal keys as Effect-delivered static reads instead (a dynamic key there
+// is the reader's fail-closed gate loop, not a consumption).
 func (s *scan) recordMapParamRead(t *testing.T, fset *token.FileSet, fi *fnInfo, name string, v *ast.IndexExpr, param string) {
+	if mode, delivered := effectStaticLineReaders[fi.pkg+":"+fi.name+":"+param]; delivered {
+		if lit, ok := v.Index.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			if key, err := strconv.Unquote(lit.Value); err == nil && key != "" {
+				if fi.effectStaticRds[mode] == nil {
+					fi.effectStaticRds[mode] = map[string]bool{}
+				}
+				fi.effectStaticRds[mode][key] = true
+			}
+		}
+		return
+	}
 	if _, skipped := stringMapParams[fi.pkg+":"+fi.name+":"+param]; skipped {
 		return
 	}
@@ -1533,6 +1552,22 @@ func (s *scan) bucketOf(t *testing.T, fset *token.FileSet, pos token.Pos, base, 
 	return 0, false
 }
 
+// effectStaticLineReaders names the effects helpers that read a
+// parseStaticLine-built body an api:Effect's StaticAbilities$ list names, and
+// the static mode the read applies to. Such a body is never a printed S: line,
+// so rules' printed-static read set (d.stat) has no branch for a key only the
+// Effect registration path consumes; the raw-Effect-child census check credits
+// these literal keys alongside it. AddHiddenKeyword$ is the corpus's case:
+// hiddenKeywordGrantFromLine is the can't-block grant arm (Falter, Sundering
+// Eruption) and untapDenialGrantFromLine the untap sentence arm. A dynamic-key
+// loop in either helper is its fail-closed whitelist scan, never a
+// consumption, so only literal indexes are collected. An entry must name a
+// real function that still reads a literal key, or the rot guard fails.
+var effectStaticLineReaders = map[string]string{
+	"effects:hiddenKeywordGrantFromLine:params": "Continuous",
+	"effects:untapDenialGrantFromLine:params":   "Continuous",
+}
+
 // stringMapParams whitelists the map[string]string-typed parameters whose
 // maps are NOT card Params maps, so their index reads are not attributed:
 // each entry is "pkg:func:param" with its justification. Anything not listed
@@ -1568,12 +1603,12 @@ var stringMapParams = map[string]string{
 	// Goad-static helpers inspect map arguments copied from parsed SVar
 	// statics, not card SA Params; their callers classify the actual source.
 	"effects:goadStaticGrantReadable:params": "parsed Goad static-line Params map, not a card SA Params map",
-	// engine/effects/staticline.go hiddenKeywordGrantFromLine and
-	// adjustLandPlaysGrantFromLine: params is a parseStaticLine-built static
-	// line (an SVar body) passed from effEffect, not a card SA Params map.
-	// Their card-parameter reads are the AddHiddenKeyword$/AdjustLandPlays$
-	// values the census already attributes at the primitive site.
-	"effects:hiddenKeywordGrantFromLine:params":   "parseStaticLine-built static line (an SVar body), not a card Params map",
+	// engine/effects/staticline.go adjustLandPlaysGrantFromLine: params is a
+	// parseStaticLine-built static line (an SVar body) passed from effEffect,
+	// not a card SA Params map. Its AdjustLandPlays$ value is also read by
+	// rules' printed-static walk, so the generic stat read set already
+	// attributes it. (The AddHiddenKeyword$ readers in the same file are in
+	// effectStaticLineReaders instead -- rules has no printed read for them.)
 	"effects:adjustLandPlaysGrantFromLine:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
 	"effects:animateSelfMayPlayGrant:params":      "parseStaticLine-built static line (an SVar body) from Animate staticAbilities$, not a card Params map",
 	// engine/effects/restrictions.go replacementRedirectsToExile: params is one
@@ -1685,11 +1720,6 @@ var stringMapParams = map[string]string{
 	// whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is a
 	// fail-closed recognition, never a consumption.
 	"effects:setMaxHandSizeGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
-	// engine/effects/staticline.go untapDenialGrantFromLine: params is the same
-	// parseStaticLine-built SVar static line (the AddHiddenKeyword$ untap
-	// sentence arm's whitelist); its dynamic gate-key loop is a fail-closed
-	// recognition, never a consumption.
-	"effects:untapDenialGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
 	// engine/effects/staticeffect.go parseStaticEffectGrant: params is the map
 	// parseStaticLine built from one SVar static line -- the StaticEffect$
 	// rider's Continuous body (AddType$/AddColor$/AddKeyword$/...), whose keys
@@ -2377,14 +2407,29 @@ type derivedReads struct {
 	trig map[string]map[string]bool
 	stat map[string]map[string]bool
 	repl map[string]map[string]bool
+	// effectStat is the Effect-delivery static read set, per static mode:
+	// keys an api:Effect StaticAbilities$ body's registration path consumes
+	// but rules' printed-static walk does not (effectStaticLineReaders).
+	effectStat map[string]map[string]bool
 }
 
 func (s *scan) derived() *derivedReads {
 	d := &derivedReads{
-		api:  map[string]map[string]bool{},
-		trig: map[string]map[string]bool{},
-		stat: map[string]map[string]bool{},
-		repl: map[string]map[string]bool{},
+		api:        map[string]map[string]bool{},
+		trig:       map[string]map[string]bool{},
+		stat:       map[string]map[string]bool{},
+		repl:       map[string]map[string]bool{},
+		effectStat: map[string]map[string]bool{},
+	}
+	for _, fi := range s.fns {
+		for mode, keys := range fi.effectStaticRds {
+			if d.effectStat[mode] == nil {
+				d.effectStat[mode] = map[string]bool{}
+			}
+			for k := range keys {
+				d.effectStat[mode][k] = true
+			}
+		}
 	}
 	// api: the effects implementation's closure, UNION the generic cast/
 	// activation/legality machinery: every rules-side SA read applies to
@@ -2722,6 +2767,30 @@ func (s *scan) rotGuard(t *testing.T) {
 	}
 	sort.Strings(s.mapArgFailures)
 	s.guardErrs = append(s.guardErrs, s.mapArgFailures...)
+	// effectStaticLineReaders must name real effects functions that still
+	// read a literal key from the static-line parameter: a renamed or
+	// refactored reader must not silently leave the raw-Effect-child check
+	// crediting nothing (or the wrong mode).
+	if s.complete {
+		for key, mode := range effectStaticLineReaders {
+			i := strings.LastIndexByte(key, ':')
+			if i < 0 {
+				s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+					"paramcensus: effectStaticLineReaders key %q is not pkg:func:param -- classify it", key))
+				continue
+			}
+			fi, ok := s.fns[key[:i]]
+			if !ok {
+				s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+					"paramcensus: effectStaticLineReaders names %q, which no longer exists -- rename the entry", key))
+				continue
+			}
+			if len(fi.effectStaticRds[mode]) == 0 {
+				s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+					"paramcensus: effectStaticLineReaders entry %q no longer reads a literal %s static-line key -- delete the stale entry", key, mode))
+			}
+		}
+	}
 	// apiSpecificRulesStat must name real rules functions that still read
 	// static params -- the stat-bucket twin of the apiSpecificRulesSA stale
 	// check: a renamed or refactored function must not leave a silent stale
@@ -3384,6 +3453,11 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 				st := child.Static
 				mode := statCensusMode(st.Mode, st.Params)
 				prim, readSet := "stat:"+mode, d.stat[mode]
+				// A raw StaticAbilities$ body is delivered by the Effect's own
+				// registration path, not by rules' printed-static walk, so the
+				// keys only that path reads (AddHiddenKeyword$) are credited
+				// from the effects implementation's literals too.
+				effectReads := d.effectStat[mode]
 				for k, v := range st.Params {
 					if k == "Cost" || k == "UnlessCost" {
 						if unlessNamesFaceSVar(f, k, v) {
@@ -3393,13 +3467,13 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 							addLabel("cost:" + tok)
 						}
 					}
-					if readSet == nil {
+					if readSet == nil && effectReads == nil {
 						continue
 					}
 					if structuralKeys["stat"][k] || ignoredParam(prim, k) {
 						continue
 					}
-					if !readSet[k] || drop != nil && drop[prim][k] {
+					if !(readSet[k] || effectReads[k]) || drop != nil && drop[prim][k] {
 						addLabel(labelFor(prim, k))
 					}
 				}
