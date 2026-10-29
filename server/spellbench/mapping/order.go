@@ -96,7 +96,7 @@ func newMulliganBottom(env *Env, d *decision.Decision) (Transaction, error) {
 	for _, o := range d.Options {
 		r, err := env.Obs.Ref(d.Player, o.Obj)
 		if err != nil || r == nil {
-			return nil, fmt.Errorf("%w: mulligan card not visible", ErrUnmapped)
+			return nil, fmt.Errorf("%w:mulligan_card_not_visible", ErrUnmapped)
 		}
 		t.items[o.Index] = protocol.ObjectItem(*r)
 		t.pool = append(t.pool, o.Index)
@@ -127,7 +127,7 @@ func newHandToLibrary(env *Env, d *decision.Decision) (Transaction, error) {
 		Sem: func(opt int, sel uint32) (Cand, error) {
 			r, err := env.Obs.Ref(d.Player, d.Options[opt].Obj)
 			if err != nil || r == nil {
-				return Cand{}, fmt.Errorf("%w: hand card not visible", ErrUnmapped)
+				return Cand{}, fmt.Errorf("%w:hand_card_not_visible", ErrUnmapped)
 			}
 			return Cand{Sem: protocol.SelectObject(src, purp, protocol.ObjectTarget(*r), sel, lo, hi)}, nil
 		},

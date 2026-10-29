@@ -90,7 +90,7 @@ func (t *arrangeTx) look(how string) error {
 		}
 		at := slices.Index(lib, id)
 		if at < 0 {
-			return fmt.Errorf("%w: looked-at card %d is not in the library", ErrUnmapped, id)
+			return fmt.Errorf("%w:looked_at_card %d is not in the library", ErrUnmapped, id)
 		}
 		t.refs = append(t.refs, r)
 		t.byID[r.ObjectID] = i

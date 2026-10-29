@@ -103,6 +103,13 @@ func (x *Extender) rekey(env *mapping.Env, seat state.PlayerID, shown map[state.
 		case observe.Visible(seat, o) || o.Zone == state.ZCeased:
 			v2, err = env.IDs.VisibleID(seat, id)
 		case shown[id]:
+			// A native option may name a hidden card this pose did not open a
+			// look for (a named-option ask that carries the card only as an
+			// anchor, never as a candidate). The plain observation exposes no
+			// such card, so omit it rather than fail the projection.
+			if !env.Looking[seat] {
+				return 0
+			}
 			v2, err = env.IDs.LookID(seat, id)
 		default:
 			return 0

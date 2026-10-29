@@ -12,7 +12,7 @@ import (
 )
 
 var handDestPurpose = map[string]string{"Hand": "put_into_hand", "Battlefield": "put_onto_battlefield",
-	"Graveyard": "put_into_graveyard"}
+	"Graveyard": "put_into_graveyard", "Exile": "exile"}
 
 func init() {
 	Register("choose/cleanup_discard", visibleSelect("discard", false))
@@ -87,7 +87,7 @@ func mixedSelect(purp string, withSource bool) Builder {
 		for i, o := range d.Options {
 			obj := env.G.E.G.Obj(o.Obj)
 			if obj == nil {
-				return nil, fmt.Errorf("%w: %s option %d has no object", ErrUnmapped, purp, o.Index)
+				return nil, fmt.Errorf("%w:%s option %d has no object", ErrUnmapped, purp, o.Index)
 			}
 			if !observe.Visible(d.Player, obj) {
 				if !look {
@@ -105,7 +105,7 @@ func mixedSelect(purp string, withSource bool) Builder {
 			}
 			r, err := env.Obs.Ref(d.Player, o.Obj)
 			if err != nil || r == nil {
-				return nil, fmt.Errorf("%w: %s object not visible", ErrUnmapped, purp)
+				return nil, fmt.Errorf("%w:%s object not visible", ErrUnmapped, purp)
 			}
 			refs[i] = *r
 		}
@@ -183,7 +183,7 @@ func visibleSelect(purp string, withSource bool) Builder {
 			Sem: func(opt int, sel uint32) (Cand, error) {
 				r, err := env.Obs.Ref(d.Player, d.Options[opt].Obj)
 				if err != nil || r == nil {
-					return Cand{}, fmt.Errorf("%w: %s object not visible", ErrUnmapped, purp)
+					return Cand{}, fmt.Errorf("%w:%s object not visible", ErrUnmapped, purp)
 				}
 				return Cand{Sem: protocol.SelectObject(src, purp, protocol.ObjectTarget(*r), sel, lo, hi)}, nil
 			},
