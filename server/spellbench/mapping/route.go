@@ -94,7 +94,7 @@ func Route(d *decision.Decision) string {
 			}
 		}
 		if len(k) == 1 {
-			for _, c := range []string{"search", "hand_move", "dig", "untap", "keep", "vote_card", "x", "number", "color", "type", "name", "division", "mana"} {
+			for _, c := range []string{"search", "hand_move", "dig", "untap", "keep", "vote_card", "vote", "x", "number", "color", "type", "name", "division", "mana"} {
 				if k[c] {
 					return "choose/" + c
 				}
@@ -103,9 +103,11 @@ func Route(d *decision.Decision) string {
 		// The named-option classes come last so every route above keeps its
 		// decision. A choice whose options name distinct objects is a
 		// select_object ask; any other named-option ask is an effect option.
-		// vote and twopiles keep their old unmapped fallback: vote encodes its
-		// ballot index in Obj, and twopiles is a multi-pick owned by
-		// sbp-unmapped-dig-division.
+		// A pure vote ask is choose/vote above. A vote mixed with another kind
+		// stays on the unmapped fallback because chooseObjectRoute reads Obj,
+		// and a vote encodes its ballot index in Obj (index+1), not an object
+		// id. twopiles is a multi-pick owned by sbp-unmapped-dig-division and
+		// keeps its own route.
 		//
 		// A cumulative floor (MinSum) or budget (MaxSum/Budgeted, including
 		// the second budget) is a whole-answer rule the one-pick candidates

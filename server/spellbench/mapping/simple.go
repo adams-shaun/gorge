@@ -146,6 +146,21 @@ func init() {
 		}
 		return SingleChoice(env, d, choice(src, "effect_option"), sem)
 	})
+	// choose/vote is the fixed-list ballot: one choose_option per ballot entry,
+	// with the vocabulary's vote purpose. Selection is by option_index; the
+	// engine reads the chosen Option's Obj (index+1), never the label (a fixed
+	// ballot's Label is an internal SVar name).
+	Register("choose/vote", func(env *Env, d *decision.Decision) (Transaction, error) {
+		src, err := ResolveSource(env, d)
+		if err != nil {
+			return nil, err
+		}
+		count := uint32(len(d.Options))
+		return SingleChoice(env, d, choice(src, "vote"), func(o decision.Option) (protocol.Semantic, bool, error) {
+			label := o.Kind
+			return protocol.ChooseOption(src, "vote", uint32(o.Index), count, &label), true, nil
+		})
+	})
 	Register("replacement/madness", func(env *Env, d *decision.Decision) (Transaction, error) {
 		src, err := ResolveSource(env, d)
 		if err != nil {
