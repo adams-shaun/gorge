@@ -72,7 +72,9 @@ func (r *rng) forcePermutation(current, desired []state.ObjID) error {
 		r.chance.prefix = append(r.chance.prefix, ChanceDraw{Bound: i + 1, Value: j})
 		work[i], work[j] = work[j], work[i]
 	}
+	r.chance.inShuffle = true
 	r.Shuffle(current)
+	r.chance.inShuffle = false
 	return nil
 }
 

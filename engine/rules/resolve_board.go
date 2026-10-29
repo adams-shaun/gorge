@@ -194,8 +194,9 @@ func (b *resolveBoard) Checkpoint() resolve.Snapshot {
 	// the hypothetical planner and its per-player ordinal counters: Clone
 	// deliberately drops them (a search world must not inherit the live
 	// game's planner), but Restore reinstalls them from here.
-	if e.rng != nil && e.rng.chance != nil && e.rng.chance.planner != nil && cp.rng.chance != nil {
+	if e.rng != nil && e.rng.chance != nil && cp.rng.chance != nil {
 		cp.rng.chance.planner = e.rng.chance.planner
+		cp.rng.chance.chancePlanner = e.rng.chance.chancePlanner
 		cp.rng.chance.shuffleOrdinals = cloneShuffleOrdinals(e.rng.chance.shuffleOrdinals)
 	}
 	return cp
@@ -279,8 +280,9 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	// Resume the checkpoint's planner where it left off. Clone dropped it,
 	// and dropping it here would turn the lineage's next shuffle into an
 	// unplanned draw (Section 11.6).
-	if s0.rng != nil && s0.rng.chance != nil && s0.rng.chance.planner != nil && sc.rng.chance != nil {
+	if s0.rng != nil && s0.rng.chance != nil && sc.rng.chance != nil {
 		sc.rng.chance.planner = s0.rng.chance.planner
+		sc.rng.chance.chancePlanner = s0.rng.chance.chancePlanner
 		sc.rng.chance.shuffleOrdinals = cloneShuffleOrdinals(s0.rng.chance.shuffleOrdinals)
 	}
 	sc.rng.forked = false
