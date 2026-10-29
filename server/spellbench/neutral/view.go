@@ -2,6 +2,7 @@ package neutral
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"sort"
@@ -167,6 +168,83 @@ func (b *Builder) face(name *string, token bool, c *protocol.Characteristics) *c
 		}
 	}
 	return best
+}
+
+// PreferTokens orders each face name's token scripts so the scripts the
+// game's decks can actually create are tried first. The observation names a
+// token only by its face name, and several scripts share one name (the five
+// 1/1 black Rat tokens differ only in a printed static), so a name-only
+// lookup picks whichever stem sorts first. The decks' TokenScript$ references
+// are the only fact that narrows the set; a tie among several hinted scripts
+// keeps stem order, which is deterministic.
+func (b *Builder) PreferTokens(stems []string) {
+	prefer := map[string]bool{}
+	for _, stem := range stems {
+		if _, ok := b.Reg.Tokens[stem]; ok {
+			prefer[stem] = true
+		}
+	}
+	for _, list := range b.tokens {
+		sort.SliceStable(list, func(i, j int) bool {
+			if prefer[list[i]] != prefer[list[j]] {
+				return prefer[list[i]]
+			}
+			return list[i] < list[j]
+		})
+	}
+}
+
+// TokenStems returns the token-script stems these cards can create: a parsed
+// Token ability's TokenScript$ parameter, and a TokenScript$ reference in any
+// SVar body (the DB$ Token a trigger or charm expands to). Sorted and
+// duplicate-free, so no map iteration reaches the builder's order.
+func TokenStems(cs []*cards.Card) []string {
+	set := map[string]bool{}
+	add := func(v string) {
+		if v = strings.TrimSpace(v); v != "" {
+			set[v] = true
+		}
+	}
+	for _, c := range cs {
+		if c == nil {
+			continue
+		}
+		for _, f := range c.Faces {
+			if f == nil {
+				continue
+			}
+			for _, a := range f.Abilities {
+				if a == nil {
+					continue
+				}
+				add(a.Params["TokenScript"])
+			}
+			for _, key := range slices.Sorted(maps.Keys(f.SVars)) {
+				for _, stem := range tokenScriptRefs(f.SVars[key]) {
+					add(stem)
+				}
+			}
+		}
+	}
+	return slices.Sorted(maps.Keys(set))
+}
+
+// tokenScriptRefs returns each TokenScript$ stem in a raw DB$ body. The
+// parameter list separates entries with '|' (Forge's own line format), and a
+// TokenScript$ value is one stem, occasionally comma-separated.
+func tokenScriptRefs(body string) []string {
+	var out []string
+	for _, part := range strings.FieldsFunc(body, func(r rune) bool { return r == '|' || r == '\n' }) {
+		part = strings.TrimSpace(part)
+		const key = "TokenScript$"
+		if len(part) < len(key) || !strings.EqualFold(part[:len(key)], key) {
+			continue
+		}
+		for _, stem := range strings.FieldsFunc(part[len(key):], func(r rune) bool { return r == ',' || r == ' ' || r == '\t' }) {
+			out = append(out, stem)
+		}
+	}
+	return out
 }
 
 // View builds the seat's gorge view from its observation. Every fact comes
@@ -536,12 +614,15 @@ func printedAbilityCosts(f *cards.Face) []string {
 func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *protocol.Characteristics) {
 	cv.Name = name
 	cv.Printing = view.Printing{Name: name}
-	// A face-down permanent's observed type line is the masked "creature"
-	// (CR 708.2), but native's view projects the visible face's printed type
-	// line (view.cardView reads ViewTypes, which the face-down marker does not
-	// change). Match native: the observed line is the other engine's mask, not
-	// the fact native's board adapter reads.
-	if c != nil && !cv.FaceDown && (len(c.Supertypes) > 0 || len(c.Types) > 0 || len(c.Subtypes) > 0) {
+	// The observed type line wins even for a face-down permanent: it is the
+	// host's derived (masked) line, which is exactly what native's view
+	// projects too (rules.ViewTypes carries the CR 708.2/708.5 mask, so a
+	// manifested sorcery reads "Creature"). The registry face's printed line
+	// would show the hidden card type native's board adapter never sees.
+	maskedLand := cv.FaceDown && f != nil && slices.ContainsFunc(f.Types, func(t string) bool {
+		return strings.EqualFold(t, "Land")
+	})
+	if c != nil && !maskedLand && (len(c.Supertypes) > 0 || len(c.Types) > 0 || len(c.Subtypes) > 0) {
 		var words []string
 		for _, list := range [][]string{c.Supertypes, c.Types, c.Subtypes} {
 			for _, w := range list {

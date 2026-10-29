@@ -194,11 +194,13 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 			}
 			continue
 		}
-		// A self-tapping activation that leaves its source untapped was
-		// reversed: the engine folds the cost back. An activation whose
-		// source was already tapped at first sight is the weaker fallback
-		// signal (a non-{T} cost paid by tapping another permanent).
-		if p.turn == s.usesTurn && (!p.held || (p.selfTap || p.wasTapped) && !tapped[p.source]) {
+		// An activation the seat answered but never saw on the stack never
+		// resolved: the engine reversed it while announcing it (CR 733.1) and
+		// folded the cost back, so the turn's census must follow. One that
+		// did reach a priority decision's stack is a completed activation
+		// whatever its source looks like afterwards: a self-untap ability
+		// leaves its source untapped by resolving, not by being folded back.
+		if p.turn == s.usesTurn && !p.held {
 			if s.uses[p.source] > 0 {
 				s.uses[p.source]--
 			}
@@ -601,6 +603,30 @@ func grantRecorded(recs [][]string, kw []string) bool {
 		}
 	}
 	return false
+}
+
+// requirementFace resolves the printed face of a battlefield record the
+// combat-requirement reconstruction reads (a self-scoped MustAttack static).
+// A token uses the token-script lookup its observed characteristics select,
+// the same way buildCard picks the shown face.
+func (s *Session) requirementFace(r protocol.ObjectRecord) *cards.Face {
+	if r.CardName == nil {
+		return nil
+	}
+	return s.B.face(r.CardName, r.Token && !r.Copy, r.Characteristics)
+}
+
+// PreferTokens narrows a shared token face name to the scripts this game's
+// decks can create (Builder.PreferTokens).
+func (s *Session) PreferTokens(stems []string) { s.B.PreferTokens(stems) }
+
+// staticFace resolves the printed face a permanent's statics live on: a
+// token's script when the permanent is a token, otherwise the card. A token
+// registry lookup by name alone never finds a same-named card (the old
+// card-only lookup missed every token static: the "can't block" Rat token
+// read as blockable and the board-derived block list offered it).
+func (s *Session) staticFace(cv view.CardView) *cards.Face {
+	return s.B.face(&cv.Name, cv.IsToken, nil)
 }
 
 // abilityFace resolves the face an activated ability's source shows, matching
@@ -1637,17 +1663,37 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 		}
 	}
 	n := s.continuing("attack")
-	goaded := map[string]bool{}
+	required := map[string]bool{}
 	if n == nil || sd.Group.SubstepIndex == 0 {
 		n = s.open("attack", decision.Decision{Kind: decision.KAttackers, Min: 0, Prompt: "declare attackers"})
-		// CR 508.1d requirements: a goaded creature must attack if able.
-		// gorge marks those options Required; the v2 declare_attack semantic
-		// does not carry the flag, but the observation still reports the
-		// permanent's "goaded" status, so rebuild it from there.
+		// CR 508.1d requirements: a goaded or self-"attacks each combat if
+		// able" creature must attack. gorge marks those options Required;
+		// the v2 declare_attack semantic does not carry the flag, but the
+		// observation reports the permanent's "goaded" status and the
+		// printed static registry carries a self-scoped MustAttack.
 		for _, p := range sd.Observation.Players {
 			for _, r := range p.Battlefield {
 				if r.Permanent != nil && slices.Contains(r.Permanent.Statuses, "goaded") {
-					goaded[r.ObjectID] = true
+					required[r.ObjectID] = true
+				}
+				// A self-scoped printed MustAttack (Volatile Rig's "CARDNAME
+				// attacks each combat if able") is not a keyword and never
+				// reaches the observation's keyword list, so the printed face
+				// is the only source. A conditional static is left to the
+				// engine's own offer.
+				if f := s.requirementFace(r); f != nil {
+					for _, st := range f.Statics {
+						if !strings.Contains(st.Mode, "MustAttack") || unresolvedStatic(st) || strings.TrimSpace(st.Params["ValidPlayer"]) != "" {
+							continue
+						}
+						valid := strings.TrimSpace(st.Params["ValidCreature"])
+						if valid == "" {
+							valid = strings.TrimSpace(st.Params["ValidCard"])
+						}
+						if selfSpec(valid) {
+							required[r.ObjectID] = true
+						}
+					}
 				}
 				// A continuous Goad$ True static on an attached Aura or
 				// Equipment (Coercive Impetus) never becomes a Goads entry,
@@ -1662,7 +1708,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 				}
 				for _, st := range f.Statics {
 					if strings.EqualFold(strings.TrimSpace(st.Params["Goad"]), "True") {
-						goaded[r.Permanent.AttachedTo.Object.ObjectID] = true
+						required[r.Permanent.AttachedTo.Object.ObjectID] = true
 						break
 					}
 				}
@@ -1715,7 +1761,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 		addUnit := func(a protocol.ObjectRef) bool {
 			added := false
 			if !s.attackRestricted(&sd.Observation, a, player) {
-				if _, ok := s.attackOption(n, a, player, "Attack with "+name(a)+" at p"+strconv.Itoa(int(opp)), goaded[a.ObjectID]); ok {
+				if _, ok := s.attackOption(n, a, player, "Attack with "+name(a)+" at p"+strconv.Itoa(int(opp)), required[a.ObjectID]); ok {
 					added = true
 				}
 			}
@@ -1727,7 +1773,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 				if def.Object != nil {
 					label += " (planeswalker: " + name(*def.Object) + ")"
 				}
-				if _, ok := s.attackOption(n, a, def, label, goaded[a.ObjectID]); ok {
+				if _, ok := s.attackOption(n, a, def, label, required[a.ObjectID]); ok {
 					added = true
 				}
 			}
@@ -1753,7 +1799,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 				} else if def.Object != nil {
 					label += " (planeswalker: " + name(*def.Object) + ")"
 				}
-				s.attackOption(n, a, *def, label, goaded[a.ObjectID])
+				s.attackOption(n, a, *def, label, required[a.ObjectID])
 			}
 		} else {
 			// The group's substeps follow the engine's own battlefield order:
@@ -1806,7 +1852,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 			} else if def.Object != nil {
 				label += " (planeswalker: " + name(*def.Object) + ")"
 			}
-			s.attackOption(n, a, *def, label, goaded[a.ObjectID])
+			s.attackOption(n, a, *def, label, required[a.ObjectID])
 		}
 		n.d.Max = len(n.d.Options)
 	}
@@ -1829,7 +1875,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 			k, ok := n.options[attackKey(a.ObjectID, def)]
 			if !ok {
 				label := "Attack with " + name(a) + " at " + *def.Player
-				k, ok = s.attackOption(n, a, *def, label, goaded[a.ObjectID])
+				k, ok = s.attackOption(n, a, *def, label, required[a.ObjectID])
 			}
 			if ok {
 				ops[i] = mapping.NativeOp{Op: "choose", Option: k, Unit: unit}
@@ -1838,7 +1884,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 			k, ok := n.options[attackKey(a.ObjectID, def)]
 			if !ok {
 				label := "Attack with " + name(a) + " (planeswalker: " + name(*def.Object) + ")"
-				k, ok = s.attackOption(n, a, *def, label, goaded[a.ObjectID])
+				k, ok = s.attackOption(n, a, *def, label, required[a.ObjectID])
 			}
 			if ok {
 				ops[i] = mapping.NativeOp{Op: "choose", Option: k, Unit: unit}
@@ -2065,7 +2111,7 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 // authority there).
 func (s *Session) mustBlock(cv view.CardView, attached []view.CardView) bool {
 	check := func(host view.CardView, scoped bool) bool {
-		f := s.B.face(&host.Name, false, nil)
+		f := s.staticFace(host)
 		if f == nil {
 			return false
 		}
@@ -2236,25 +2282,31 @@ func (s *Session) cantBlock(cv view.CardView, attached []view.CardView) bool {
 			return true
 		}
 	}
-	if f := s.B.face(&cv.Name, false, nil); f != nil {
+	if f := s.staticFace(cv); f != nil {
 		for _, st := range f.Statics {
 			if !slices.Contains(strings.Split(st.Mode, ","), "CantBlock") {
 				continue
 			}
+			if unresolvedStatic(st) {
+				return true // a conditional gate we cannot evaluate is not proven legal
+			}
 			valid := strings.TrimSpace(st.Params["ValidCard"])
-			if valid == "" || strings.EqualFold(valid, "Card.Self") || strings.EqualFold(valid, "CARDNAME") {
+			if valid == "" || selfSpec(valid) {
 				return true
 			}
 		}
 	}
 	for i := range attached {
-		f := s.B.face(&attached[i].Name, false, nil)
+		f := s.staticFace(attached[i])
 		if f == nil {
 			continue
 		}
 		for _, st := range f.Statics {
 			if !slices.Contains(strings.Split(st.Mode, ","), "CantBlock") {
 				continue
+			}
+			if unresolvedStatic(st) {
+				return true // a conditional gate we cannot evaluate is not proven legal
 			}
 			valid := strings.TrimSpace(st.Params["ValidCard"])
 			if strings.Contains(valid, "EquippedBy") || strings.Contains(valid, "EnchantedBy") {
@@ -2265,10 +2317,25 @@ func (s *Session) cantBlock(cv view.CardView, attached []view.CardView) bool {
 	return false
 }
 
+// selfSpec reports whether a Forge ValidCard$/ValidCreature$ spec names the
+// static's own host. Forge spells it Card.Self, Creature.Self or CARDNAME;
+// any dot-separated "Self" qualifier is the same anchor.
+func selfSpec(spec string) bool {
+	for _, part := range strings.Split(strings.ToLower(strings.TrimSpace(spec)), ".") {
+		if part == "self" || part == "cardname" {
+			return true
+		}
+	}
+	return false
+}
+
 // unresolvedStatic reports whether a static carries a printed condition whose
-// live value the v2 observation does not carry. cantAttack treats such a
-// static as not restricting: the engine's own offer remains the authority, and
-// a failed condition must not displace a legal attacker.
+// live value the v2 observation does not carry. The derived attack/block lists
+// for units the current substep's candidates do not name treat such a static
+// as a restriction the seat cannot prove absent, so they omit the option: the
+// engine's own offer is the authority, and inventing a pair it never offered
+// cannot be repaired later in the declaration. A pair the current substep does
+// offer is authoritative and bypasses these reads.
 func unresolvedStatic(st cards.Static) bool {
 	for _, param := range []string{"CheckSVar", "SVarCompare", "CheckSecondSVar", "SecondSVarCompare",
 		"IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "Condition",
@@ -2294,7 +2361,7 @@ func (s *Session) cantAttack(cv view.CardView, attached []view.CardView) bool {
 			return true
 		}
 	}
-	f := s.B.face(&cv.Name, false, nil)
+	f := s.staticFace(cv)
 	if f == nil {
 		return false
 	}
@@ -2303,10 +2370,10 @@ func (s *Session) cantAttack(cv view.CardView, attached []view.CardView) bool {
 			continue
 		}
 		if unresolvedStatic(st) {
-			continue // unresolvable here: a later unconditional static still decides
+			continue // a later unconditional static still decides
 		}
 		valid := strings.TrimSpace(st.Params["ValidCard"])
-		if valid == "" || strings.EqualFold(valid, "Card.Self") || strings.EqualFold(valid, "CARDNAME") {
+		if valid == "" || selfSpec(valid) {
 			return true
 		}
 	}
@@ -2315,7 +2382,7 @@ func (s *Session) cantAttack(cv view.CardView, attached []view.CardView) bool {
 	// unconditional when it carries no condition or Target. The Vow cycle's
 	// defender-scoped aura carries Target$ and is handled by attackRestricted.
 	for i := range attached {
-		f := s.B.face(&attached[i].Name, false, nil)
+		f := s.staticFace(attached[i])
 		if f == nil {
 			continue
 		}
@@ -2351,7 +2418,7 @@ func (s *Session) mayAttackThroughDefender(v2ID string, cv view.CardView) bool {
 	if cv.ActivatedThisTurn < 1 {
 		return false
 	}
-	f := s.B.face(&cv.Name, false, nil)
+	f := s.staticFace(cv)
 	if f == nil {
 		return false
 	}
@@ -2409,13 +2476,16 @@ func (s *Session) cantBlockAttacker(b, a view.CardView) bool {
 }
 
 func (s *Session) cantBlockByStatic(b, a, host view.CardView) bool {
-	f := s.B.face(&host.Name, false, nil)
+	f := s.staticFace(host)
 	if f == nil {
 		return false
 	}
 	for _, st := range f.Statics {
 		if !slices.Contains(strings.Split(st.Mode, ","), "CantBlockBy") {
 			continue
+		}
+		if unresolvedStatic(st) {
+			continue // a conditional gate cannot be proven to apply; the engine's offer stays authoritative
 		}
 		attackerSpec := strings.TrimSpace(st.Params["ValidAttacker"])
 		if attackerSpec == "" {
