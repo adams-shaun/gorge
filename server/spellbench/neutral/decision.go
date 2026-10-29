@@ -138,7 +138,7 @@ func (s *Session) Picked(i int) {
 			if o, ok := s.abilityOption(src, num(sem, "ability_index")); ok {
 				s.activated[src.ObjectID] = o.Ability
 				var kw []string
-				if f := s.abilityFace(src); f != nil && o.Ability < len(f.Abilities) {
+				if f := s.abilityFace(src); f != nil && o.Ability >= 0 && o.Ability < len(f.Abilities) {
 					kw = rules.PureGrantKeywords(f.Abilities[o.Ability])
 				}
 				s.grants[src.ObjectID] = append(s.grants[src.ObjectID], kw)
@@ -381,7 +381,7 @@ func name(r protocol.ObjectRef) string {
 // castModes maps a Section 7.4 method to gorge's cast option Mode.
 var castModes = map[string]string{"normal": "", "flashback": "flashback", "escape": "escape", "madness": "madness",
 	"plot": "plot_cast", "foretell": "foretell_cast", "adventure": "adventure_alt", "split_right": "split_alt",
-	"mdfc_back": "modal_spell", "miracle": "miracle", "suspend": "suspend_cast"}
+	"mdfc_back": "modal_spell", "miracle": "miracle", "suspend": "suspend_cast", "evoke": "evoked"}
 
 // hasOmenFace reports whether src names a card whose inset face is an Omen
 // spell (CR 720). It is the guard for the protocol's catch-all "other"
@@ -742,12 +742,26 @@ func (s *Session) abilityOption(src protocol.ObjectRef, idx int) (decision.Optio
 		}
 		k++
 	}
+	if idx >= k {
+		// A granted, gained or keyword-granted ability: the printed face has
+		// no body to name it, and the observation carries no ability list.
+		// The v2 mapping indexes grants after the printed non-mana abilities
+		// in engine offer order, so synthesize a placeholder at that index;
+		// the candidate id is what the seat answers, and the native anchors
+		// are not needed to rank it.
+		return decision.Option{Kind: "ability", Label: f.Name + ": granted ability",
+			Obj: s.B.IDs.Of(src.ObjectID), Ability: -1}, true
+	}
 	return decision.Option{}, false
 }
 
 // manaAbility mirrors mapping's split of gorge's activated abilities.
 func manaAbility(a *cards.SA) bool {
-	if a.API != "Mana" && a.API != "ManaReflected" {
+	// The priority offer walk skips an AB only when cards.IsManaAbilitySA
+	// says it is a mana ability and it is not a loyalty ability. A targeting
+	// or library-moving AB$ Mana is offered on the ordinary path (CR 605.1a),
+	// so it must count as a non-mana activated ability here too.
+	if !cards.IsManaAbilitySA(a) {
 		return false
 	}
 	if v, ok := a.Params["Planeswalker"]; ok && strings.EqualFold(strings.TrimSpace(v), "True") {

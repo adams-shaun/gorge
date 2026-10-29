@@ -117,6 +117,30 @@ func init() {
 	// object (or player) per option; an option ask carries the option's Kind,
 	// never its Label, which is presentation text.
 	Register("choose/object", func(env *Env, d *decision.Decision) (Transaction, error) {
+		// A named-object ask whose options include a hidden-zone card (a card
+		// looked at in a library, or a revealed hand card) cannot reference it
+		// with Obs.Ref. mixedSelect opens the seat's look and poses the same
+		// select_object choices over look ids, with the Known entries a v2
+		// client needs.
+		lookable := false
+		for _, o := range d.Options {
+			obj := env.G.E.G.Obj(o.Obj)
+			if obj == nil || observe.Visible(d.Player, obj) {
+				continue
+			}
+			// A library option is a card the resolving effect let this seat
+			// look at (dig/search/reveal), so a look id is the right
+			// reference. A hidden hand card is not projected here: the ask
+			// may not have revealed it, and an unrevealed hand stays hidden.
+			if obj.Zone != state.ZLibrary {
+				lookable = false
+				break
+			}
+			lookable = true
+		}
+		if lookable {
+			return mixedSelect("other", true)(env, d)
+		}
 		src, err := ResolveSource(env, d)
 		if err != nil {
 			return nil, err

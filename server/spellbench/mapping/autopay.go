@@ -31,7 +31,7 @@ func (t *priorityTx) addPayments(p *Pose, casts map[castKey]*castGroup, groups [
 			continue
 		}
 		if a.Cast.Face != 0 {
-			return nil, fmt.Errorf("%w: unsupported planned cast", ErrUnmapped)
+			return nil, fmt.Errorf("%w:unsupported_planned_cast", ErrUnmapped)
 		}
 		// The planner plans the plain hand/command-zone cast, the untyped
 		// may-play cast of an exile/graveyard card, and flashback. The first
@@ -56,7 +56,7 @@ func (t *priorityTx) addPayments(p *Pose, casts map[castKey]*castGroup, groups [
 			return nil, fmt.Errorf("%w: repeated planned cast", ErrDuplicate)
 		}
 		if cg.plain >= 0 && (a.BaseOptionIndex == nil || *a.BaseOptionIndex != cg.plain || len(a.Plans[0].Activations) != 0) {
-			return nil, fmt.Errorf("%w: payment differs from existing cast", ErrUnmapped)
+			return nil, fmt.Errorf("%w:payment_differs_from_existing_cast", ErrUnmapped)
 		}
 		cg.payment = &decision.PaymentSelection{ActionID: a.ID, Plan: decision.ClonePaymentPlan(a.Plans[0])}
 	}

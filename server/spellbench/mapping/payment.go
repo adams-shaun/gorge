@@ -130,7 +130,7 @@ func newManaWindow(env *Env, d *decision.Decision) (Transaction, error) {
 		}
 		s, err := env.Obs.Ref(d.Player, o.Obj)
 		if err != nil || s == nil {
-			return nil, fmt.Errorf("%w: mana source not visible", ErrUnmapped)
+			return nil, fmt.Errorf("%w:mana_source_not_visible", ErrUnmapped)
 		}
 		cs, folds, err := ExpandActivate(env, d, o, *s)
 		if err != nil {

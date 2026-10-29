@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/spellbench/observe"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
@@ -19,7 +20,7 @@ var castMethods = map[string]string{"": "normal", "mayplay": "normal", "mayflash
 	"plot_cast": "plot", "bestowed": "alternative", "surged": "alternative", "blitzed": "alternative",
 	"emerged": "alternative", "mutated": "alternative", "escape": "escape", "madness": "madness", "miracle": "miracle",
 	"foretell_cast": "foretell", "adventure_alt": "adventure", "split_alt": "split_right", "fuse": "fuse",
-	"suspend_cast": "suspend", "modal_spell": "mdfc_back",
+	"suspend_cast": "suspend", "modal_spell": "mdfc_back", "evoked": "evoke",
 	// The Omen cast (CR 720.3) has no Section 7.4 method of its own, so it
 	// rides the protocol's catch-all "other".
 	"omen_alt": "other"}
@@ -39,6 +40,13 @@ var optionalCostModes = map[string]string{"kicked": "kicker", "buyback": "buybac
 func CastMethod(o decision.Option, alternateMode string) (method, optional, special string, ok bool) {
 	if o.Mode == "plot" {
 		return "", "", "plot", true
+	}
+	// Suspend is the suspend ACTION (exile the card with time counters), not
+	// a cast: the engine offers it as a "cast" option (rules/legal_walk_hand.go)
+	// with this mode. Section 7.4 has no method for it; the protocol's
+	// special_action vocabulary does.
+	if o.Mode == "suspend" {
+		return "", "", "suspend", true
 	}
 	// Before the AltCostIndex rule: an optionalcost option's AltCostIndex
 	// numbers the card's optional-cost statics, not an alternative cost.
@@ -94,13 +102,59 @@ func NonManaAbilityIndex(o *state.Object, opt decision.Option) (uint32, error) {
 	return n, nil
 }
 
+// GrantedAbilityIndex is the Section 7.2 ability_index of an "ability" option
+// whose body is not a printed ability of the object: a keyword-granted,
+// SVar-granted or gained activated ability. Printed non-mana abilities keep
+// their face order (NonManaAbilityIndex), so a grant follows them at the next
+// index; grantOrd is the grant's zero-based position among the object's
+// granted/gained/keyword-granted ability options in the engine's offer order.
+// The observation carries no ability list of its own, so this is the stable
+// index the protocol's u32 can name: it identifies the ability within one
+// decision, and the candidate itself is the answer a v2 seat gives.
+func GrantedAbilityIndex(o *state.Object, grantOrd uint32) (uint32, error) {
+	if o == nil || o.Face() == nil {
+		return 0, fmt.Errorf("%w:ability/no_face", ErrUnmapped)
+	}
+	if len(o.MergedCards) > 0 {
+		return 0, fmt.Errorf("%w:ability/mutated_pile", ErrUnmapped)
+	}
+	n := uint32(0)
+	for _, a := range o.Face().Abilities {
+		if a.Kind == "AB" && !manaAbility(a) {
+			n++
+		}
+	}
+	return n + grantOrd, nil
+}
+
+// isGrantedAnchor reports whether an "ability" option names a body the
+// printed face does not carry.
+func isGrantedAnchor(o decision.Option) bool {
+	return o.Keyword != "" || o.SVar != "" || o.GrantSource != 0 || o.GainedSource != 0
+}
+
+// AbilityIndex is the Section 7.2 ability_index of an "ability" option: a
+// printed ability's face order, or a grant's next slot (GrantedAbilityIndex).
+func AbilityIndex(o *state.Object, opt decision.Option, grantOrd uint32) (uint32, error) {
+	if isGrantedAnchor(opt) {
+		return GrantedAbilityIndex(o, grantOrd)
+	}
+	return NonManaAbilityIndex(o, opt)
+}
+
 // manaAbility is gorge's own split of activated abilities: its priority walk
 // (rules/legal.go) offers an AB as an "ability" option unless
 // isManaAbilityAPI(ab.API) && !isLoyaltyAbility(ab), since a loyalty ability
 // is never a mana ability (CR 605.1b). Both are unexported, so this mirrors
 // them (rules/mana_activation.go, and isLoyaltyAbilityCost in rules/legal.go).
 func manaAbility(a *cards.SA) bool {
-	if a.API != "Mana" && a.API != "ManaReflected" {
+	// The engine's offered "ability" walk skips an AB only when
+	// cards.IsManaAbilitySA says it is a mana ability AND it is not a loyalty
+	// ability. IsManaAbilitySA is broader than the API word: a targeting or
+	// library-moving AB$ Mana (The Warring Triad, Chromatic Sphere) is NOT a
+	// mana ability (CR 605.1a), so it is offered on the ordinary path and
+	// must be indexed as a non-mana activated ability.
+	if !cards.IsManaAbilitySA(a) {
 		return false
 	}
 	if v, ok := a.Params["Planeswalker"]; ok && strings.EqualFold(strings.TrimSpace(v), "True") {
@@ -162,6 +216,11 @@ type priorityTx struct {
 	groups   map[int]*castGroup // final candidate index of a "cast" candidate -> its variants
 	followup *castGroup
 	follPose *Pose
+	// hidden refs this pose minted through the seat's look (a priority action
+	// on a hidden-zone card: a land playable from the top of the library).
+	hidden map[state.ObjID]protocol.ObjectRef
+	known  []protocol.Known
+	look   bool
 }
 
 func init() { Register("priority", newPriority) }
@@ -176,7 +235,23 @@ func (t *priorityTx) ref(id state.ObjID) (protocol.ObjectRef, error) {
 		return protocol.ObjectRef{}, err
 	}
 	if r == nil {
-		return protocol.ObjectRef{}, fmt.Errorf("%w: priority option on hidden object %d", ErrUnmapped, id)
+		// A priority action can name a hidden-zone card the seat may look at:
+		// a land playable from the top of its owner's library (the engine's
+		// legal walk offers the play_land option, so the seat is entitled to
+		// know the card). Section 5.1 gives it a look id, and the pose carries
+		// the Known entry the client needs.
+		if obj := t.env.G.E.G.Obj(id); obj != nil && obj.Zone == state.ZLibrary && obj.Owner == t.d.Player {
+			t.env.OpenLook(t.d.Player)
+			if lr, lerr := t.env.Obs.LookRef(t.d.Player, id); lerr == nil {
+				if t.hidden == nil {
+					t.hidden = map[state.ObjID]protocol.ObjectRef{}
+				}
+				t.hidden[id], t.look = lr, true
+				t.known = append(t.known, observe.KnownEntry(lr, "revealed", knownPosition(t.env, obj)))
+				return lr, nil
+			}
+		}
+		return protocol.ObjectRef{}, fmt.Errorf("%w:priority option on hidden object %d", ErrUnmapped, id)
 	}
 	return *r, nil
 }
@@ -190,7 +265,17 @@ func (t *priorityTx) Pose() (*Pose, error) {
 	casts := map[castKey]*castGroup{}
 	var groups []*castGroup          // in candidate order
 	byNative := map[int]*castGroup{} // native cast option -> its group
+	grants := map[state.ObjID]uint32{}
+	grantOrd := map[int]uint32{} // native option index -> grant ordinal on its object
 	for _, o := range d.Options {
+		if o.Kind != "ability" || !isGrantedAnchor(o) {
+			continue
+		}
+		grantOrd[o.Index] = grants[o.Obj]
+		grants[o.Obj]++
+	}
+	for _, o := range d.Options {
+		before := len(p.Candidates)
 		switch o.Kind {
 		case "concede":
 		case "pass":
@@ -210,11 +295,23 @@ func (t *priorityTx) Pose() (*Pose, error) {
 			if err != nil {
 				return nil, err
 			}
-			idx, err := NonManaAbilityIndex(t.env.G.E.G.Obj(o.Obj), o)
+			obj := t.env.G.E.G.Obj(o.Obj)
+			idx, err := AbilityIndex(obj, o, grantOrd[o.Index])
 			if err != nil {
 				return nil, err
 			}
 			p.Candidates = append(p.Candidates, Cand{Sem: protocol.ActivateAbility(src, idx), Op: NativeOp{Op: "choose", Option: o.Index}})
+		case "station":
+			// kw:Station (CR 702.184a) is an activated ability in the rules,
+			// but v2 has no station candidate kind and no ability anchor for
+			// it: the protocol's special_action.action vocabulary is the only
+			// closed slot that carries (source, action), and "other" is its
+			// catch-all. The engine's own follow-up tap pick is a normal KChoose.
+			src, err := t.ref(o.Obj)
+			if err != nil {
+				return nil, err
+			}
+			p.Candidates = append(p.Candidates, Cand{Sem: protocol.SpecialAction(src, "other"), Op: NativeOp{Op: "choose", Option: o.Index}})
 		case "turn_face_up", "unlock":
 			src, err := t.ref(o.Obj)
 			if err != nil {
@@ -276,6 +373,15 @@ func (t *priorityTx) Pose() (*Pose, error) {
 		default:
 			return nil, fmt.Errorf("%w:priority/%s", ErrUnmapped, o.Kind)
 		}
+		if lr, ok := t.hidden[o.Obj]; ok {
+			for i := before; i < len(p.Candidates); i++ {
+				p.Candidates[i].Hidden = true
+				if lr.CardName != nil {
+					p.Candidates[i].SortName = *lr.CardName
+				}
+				p.Candidates[i].SortID = lr.ObjectID
+			}
+		}
 	}
 	// A cast group without an optional variant is a plain choice. One with an
 	// optional-cost variant stands for it and its plain cast, and its answer
@@ -302,6 +408,8 @@ func (t *priorityTx) Pose() (*Pose, error) {
 			}
 		}
 	}
+	observe.SortKnown(t.known)
+	p.Known, p.Look = t.known, t.look
 	if err := Finalize(p); err != nil {
 		return nil, err
 	}
