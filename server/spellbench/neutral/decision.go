@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -917,9 +918,25 @@ func (s *Session) targets(sd *protocol.SeatDecision, v *view.View) ([]mapping.Na
 	// every candidate's controller is on the wire. Rebuild the same label the
 	// engine attaches so the bot's GroupAdmits pacing picks one target per
 	// controller instead of a second one from a controller already chosen.
+	// The same SA carries the cumulative caps (MaxTotalTargetPower$ /
+	// MaxTotalTargetCMC$); the wire names neither the cap nor each option's
+	// price, so the bot's Clamp would otherwise return a set the engine's
+	// budget rejects.
 	exclusive := false
+	powerCap, powerCapped := 0, false
+	cmcCap, cmcCapped := 0, false
 	if _, _, sa, _ := s.targetAsk(&sd.Observation, src, slot); sa != nil {
 		exclusive = effects.TargetsOf(sa).Flags&(effects.TgtForEachPlayer|effects.TgtDifferentControllers) != 0
+		powerCap, powerCapped = literalTargetCap(sa.Params["MaxTotalTargetPower"])
+		cmcCap, cmcCapped = literalTargetCap(sa.Params["MaxTotalTargetCMC"])
+	}
+	switch {
+	case powerCapped && cmcCapped:
+		d.MaxSum, d.Budgeted, d.MaxSum2, d.Budgeted2 = powerCap, true, cmcCap, true
+	case powerCapped:
+		d.MaxSum, d.Budgeted = powerCap, true
+	case cmcCapped:
+		d.MaxSum, d.Budgeted = cmcCap, true
 	}
 	key := fmt.Sprintf("target|%s|%d", src.ObjectID, slot)
 	return s.pick(sd, key, d, func(sem protocol.Semantic) (*protocol.TargetRef, error) {
@@ -932,8 +949,57 @@ func (s *Session) targets(sd *protocol.SeatDecision, v *view.View) ([]mapping.Na
 		if err == nil && exclusive {
 			o.Group = "target-controller-" + strconv.Itoa(int(o.Controller))
 		}
+		if err == nil && t.Object != nil && (powerCapped || cmcCapped) {
+			// The cap is over non-player targets; a face is free, exactly as
+			// the engine leaves its Value at zero.
+			var power int32
+			if powerCapped {
+				power = targetPower(&sd.Observation, s, *t.Object)
+				o.Value = int(power)
+			}
+			if cmcCapped {
+				mv := int(targetManaValue(s, t.Object.CardName))
+				if powerCapped {
+					o.Value2 = mv
+				} else {
+					o.Value = mv
+				}
+			}
+		}
 		return o, err
 	}, "finish_target_selection")
+}
+
+// literalTargetCap reads a cumulative target cap written as a plain integer.
+// A dynamic cap (X, an SVar name, a Count$ body) is not on the wire, so it
+// stays unknown rather than being invented from the observation.
+func literalTargetCap(raw string) (int, bool) {
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n < 0 {
+		return 0, false
+	}
+	return n, true
+}
+
+// targetPower is the engine's derived power for a target option, read off the
+// observation's permanent, with the printed face as the fallback.
+func targetPower(o *protocol.Observation, s *Session, r protocol.ObjectRef) int32 {
+	if p, ok := observedPower(o, r.ObjectID); ok {
+		return int32(p)
+	}
+	if f := s.B.face(r.CardName, false, nil); f != nil {
+		return int32(f.Power())
+	}
+	return 0
+}
+
+// targetManaValue is the printed mana value of a target card, the same face
+// field the engine publishes for a budget's Value.
+func targetManaValue(s *Session, name *string) int32 {
+	if f := s.B.face(name, false, nil); f != nil {
+		return botpolicy.CmcOf(f.ManaCost)
+	}
+	return 0
 }
 
 // selectKinds maps a select_object purpose to gorge's KChoose option kind.
@@ -2582,7 +2648,7 @@ func (s *Session) abilityRoots(src protocol.ObjectRef, o *protocol.Observation) 
 	switch {
 	case entry != nil && entry.StackKind == "spell":
 		if f = s.B.face(entry.CardName, false, nil); f != nil {
-			roots = append(roots, f.SpellAbility())
+			roots = addRoots(roots, f, entry, f.SpellAbility())
 		}
 	case entry != nil && entry.StackKind == "activated_ability" && entry.Source != nil:
 		// The ask names the ability object on the stack; the activated
@@ -2620,7 +2686,7 @@ func (s *Session) abilityRoots(src protocol.ObjectRef, o *protocol.Observation) 
 		if f = s.B.face(src.CardName, false, nil); f != nil {
 			for _, tr := range f.Triggers {
 				if tr.Effect != nil {
-					roots = append(roots, tr.Effect)
+					roots = addRoots(roots, f, entry, tr.Effect)
 				}
 			}
 			roots = append(roots, f.Abilities...)
@@ -2858,10 +2924,37 @@ func (s *Session) colors(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native
 
 // --- target effects ---
 
-// targetEffect describes what a target ask's ability does, as gorge's
-// engine does for its own target asks: the API of the slot-th targeting
-// ability in the source's chain, its removal shape, and a literal or X
-// damage amount.
+// chosenModeRoots expands a modal ability's chosen modes into their SVar
+// bodies. The stack entry publishes the chosen indices among the root's
+// Choices$ (modesAndX), so a Charm's mode body is recoverable even though it
+// is not on the SubAbility chain: the mode's targeting SA (and its
+// per-controller/target-budget parameters) lives there.
+func chosenModeRoots(f *cards.Face, entry *protocol.StackEntry, root *cards.SA) []*cards.SA {
+	if f == nil || entry == nil || root == nil || len(entry.Modes) == 0 || root.Params["Choices"] == "" {
+		return nil
+	}
+	choices := strings.Split(root.Params["Choices"], ",")
+	var out []*cards.SA
+	for _, m := range entry.Modes {
+		if int(m) >= len(choices) {
+			continue
+		}
+		if sa := cards.ResolveSVar(f.SVars, strings.TrimSpace(choices[m])); sa != nil {
+			out = append(out, sa)
+		}
+	}
+	return out
+}
+
+// addRoots appends root and the chosen-mode bodies of a modal root.
+func addRoots(roots []*cards.SA, f *cards.Face, entry *protocol.StackEntry, root *cards.SA) []*cards.SA {
+	if root == nil {
+		return roots
+	}
+	roots = append(roots, root)
+	return append(roots, chosenModeRoots(f, entry, root)...)
+}
+
 // targetAsk locates the slot-th targeting ability of a target ask and the
 // facts describing it: the stack entry that names the ask (nil for an
 // ability announced from a battlefield permanent), the source face, the SA
@@ -2878,7 +2971,7 @@ func (s *Session) targetAsk(o *protocol.Observation, src protocol.ObjectRef, slo
 	switch {
 	case entry != nil && entry.StackKind == "spell":
 		if f = s.B.face(entry.CardName, false, nil); f != nil {
-			roots = append(roots, f.SpellAbility())
+			roots = addRoots(roots, f, entry, f.SpellAbility())
 		}
 	case entry != nil && entry.StackKind == "activated_ability" && entry.Source != nil:
 		// The ask names the ability object on the stack; the activated
@@ -2886,7 +2979,7 @@ func (s *Session) targetAsk(o *protocol.Observation, src protocol.ObjectRef, slo
 		// printed abilities was chosen.
 		if f = s.B.face(entry.Source.CardName, false, nil); f != nil {
 			if i, ok := s.activated[entry.Source.ObjectID]; ok && i >= 0 && i < len(f.Abilities) {
-				roots = append(roots, f.Abilities[i])
+				roots = addRoots(roots, f, entry, f.Abilities[i])
 			}
 		}
 	case entry != nil && entry.StackKind == "triggered_ability":
@@ -2900,7 +2993,7 @@ func (s *Session) targetAsk(o *protocol.Observation, src protocol.ObjectRef, slo
 			// compiler folded elsewhere.
 			for _, tr := range f.Triggers {
 				if tr.Effect != nil {
-					roots = append(roots, tr.Effect)
+					roots = addRoots(roots, f, entry, tr.Effect)
 				}
 			}
 			roots = append(roots, f.Abilities...)
@@ -2952,6 +3045,10 @@ func (s *Session) targetAsk(o *protocol.Observation, src protocol.ObjectRef, slo
 	return entry, f, sa, x
 }
 
+// targetEffect describes what a target ask's ability does, as gorge's
+// engine does for its own target asks: the API of the slot-th targeting
+// ability in the source's chain, its removal shape, and a literal or X
+// damage amount.
 func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, slot int) *decision.TargetEffect {
 	entry, f, sa, x := s.targetAsk(o, src, slot)
 	if sa == nil {
