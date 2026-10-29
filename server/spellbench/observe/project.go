@@ -195,6 +195,17 @@ func (b *builder) record(id state.ObjID) (protocol.ObjectRecord, error) {
 		return rec, err
 	}
 	rec.Abilities, err = b.abilities(id)
+	// An exiled card's exiling source is a public zone relation (the card's
+	// Object.ExiledWith), and a host rebuilding the board from the
+	// observation needs it: a source whose mana or count reads "cards exiled
+	// with it" (Ugin's Labyrinth's {C}{C}) otherwise loses the link. Name the
+	// source only when the viewer can see it, the same visibility rule every
+	// other reference obeys.
+	if o.Zone == state.ZExile && o.ExiledWith != 0 {
+		if src, serr := b.p.Ref(b.viewer, o.ExiledWith); serr == nil && src != nil {
+			rec.ExiledBy = src
+		}
+	}
 	return rec, err
 }
 

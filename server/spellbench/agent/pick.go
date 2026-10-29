@@ -151,5 +151,22 @@ func Pick(p xview.Payload, sems []map[string]any, pl *Plan, ask func(decision.De
 			return i, "fallback"
 		}
 	}
+	// A combat declaration the plan cannot express in this substep's offer:
+	// the plan named another unit or a pair the engine omitted (an unblockable
+	// attacker, say), so declining for THIS unit is the faithful projection.
+	// Picking candidate 0 would substitute a block or attack the plan never
+	// chose.
+	for i, s := range sems {
+		switch s["kind"] {
+		case "declare_attack":
+			if s["defender"] == nil {
+				return i, "fallback"
+			}
+		case "declare_block":
+			if s["attacker"] == nil {
+				return i, "fallback"
+			}
+		}
+	}
 	return 0, "fallback"
 }
