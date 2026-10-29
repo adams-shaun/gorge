@@ -53,6 +53,14 @@ type PutCounterParams struct {
 
 	// Placer$, trimmed.
 	Placer string
+	// TriggeredCounterMap$ (presence, Forge's hasParam) copies the triggering
+	// CounterPlayerAddedAll batch's per-kind counter map instead of reading
+	// CounterType$/CounterNum$: one put of each kind, with that kind's batch
+	// count, on every Defined recipient. CounterMapValues$, when present,
+	// replaces every kind's count with that value (Aragorn, Company Leader's
+	// "one of each of those kinds").
+	TriggeredCounterMap bool
+	CounterMapValues    ParamText
 	// Optional$ True.
 	OptionalTrue bool
 	// Tribute$ True (CR 702.104's tribute, kw_tribute.go's expansion): the
@@ -161,7 +169,7 @@ var putCounterKnownKeys = [...]string{
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
-	"CounterNum", "CounterNumPerDefined", "CounterType", "CounterTypePerDefined", "CounterTypes",
+	"CounterMapValues", "CounterNum", "CounterNumPerDefined", "CounterType", "CounterTypePerDefined", "CounterTypes",
 	"Defined", "DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Divided",
 	"DividedAsYouChoose", "DividedRandomly", "ETB", "EachExistingCounter", "EachFromSource", "Exclude",
 	"Exhaust", "ForColor", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image", "ImprintCards", "ImprintPlayed",
@@ -185,7 +193,7 @@ var putCounterKnownKeys = [...]string{
 	"TargetsWithRelatedProperty", "TargetsWithSameCardType", "TargetsWithSameController",
 	"TargetsWithSameCreatureType", "TargetsWithSharedCardType",
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript",
-	"Tribute", "TriggerDescription", "Type", "TypeList", "Ultimate",
+	"Tribute", "TriggerDescription", "TriggeredCounterMap", "Type", "TypeList", "Ultimate",
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "UpTo", "UpToMin",
 	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage",
@@ -295,6 +303,9 @@ func compilePutCounter(sa *cards.SA) *PutCounterParams {
 	}
 
 	p.Placer = strings.TrimSpace(sa.ParamStr(cards.PKPlacer))
+	triggeredCounterMapOK := rawParamText(sa, "TriggeredCounterMap").Present
+	p.TriggeredCounterMap = triggeredCounterMapOK
+	p.CounterMapValues = rawParamText(sa, "CounterMapValues")
 	optional, optionalOK := sa.Param(cards.PKOptional)
 	p.OptionalTrue = isTrue(optional)
 	bolster, bolsterOK := sa.Param(cards.PKBolster)
@@ -334,7 +345,7 @@ func compilePutCounter(sa *cards.SA) *PutCounterParams {
 	tribute, tributeOK := sa.Param(cards.PKTribute)
 	p.Tribute = isTrue(tribute)
 
-	p.EntryFoldBlocked = optionalOK || choicesOK || rawParamText(sa, "Divided").Present || divided.Present || dividedRandomlyOK ||
+	p.EntryFoldBlocked = triggeredCounterMapOK || optionalOK || choicesOK || rawParamText(sa, "Divided").Present || divided.Present || dividedRandomlyOK ||
 		randomOK || bolsterOK || supportOK || p.Adapt.Present || p.Monstrosity.Present || renownOK ||
 		perNumOK || perTypeOK || eachFromOK || rawParamText(sa, "PerDefined").Present || tributeOK
 

@@ -1615,6 +1615,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				if batchTriggerAlreadyQueued(e.millBatchOpen, &e.millBatchIdx, &e.millBatchLog, len(e.pendingTriggers), t, key, ev) {
 					continue
 				}
+				if counterPlayerAddedAllAlreadyQueued(e.millBatchOpen, &e.counterBatchIdx, &e.counterBatchLog, len(e.pendingTriggers), t, key, ev) {
+					continue
+				}
 				// DiscardedAll inside an open discard batch (one api:Discard
 				// resolution, engine/effects/cardflow.go's effDiscard) is the discard twin
 				// of the MilledAll latch above: the batch's discarded cards reach
@@ -2352,6 +2355,29 @@ func (e *Engine) closeMillBatch() {
 	}
 	e.millBatchIdx = nil
 	e.millBatchLog = nil
+	// The CounterPlayerAddedAll cell latch rides the same action bracket: each
+	// queued instance gets its recipient's merged per-kind map and the batch's
+	// total, the values Forge's TriggerCounterPlayerAddedAll.setTriggeringObjects
+	// binds (AbilityKey.CounterMap and Amount = map size).
+	for _, ent := range e.counterBatchLog {
+		if ent.idx >= len(e.pendingTriggers) {
+			continue
+		}
+		var total int32
+		for _, cm := range ent.counters {
+			total += cm.Count
+		}
+		for i := ent.idx; i < len(e.pendingTriggers); i++ {
+			pt := &e.pendingTriggers[i]
+			if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+				break
+			}
+			pt.Ctx.TriggerContext.TriggerCounterMap = append([]effects.CounterMapEntry(nil), ent.counters...)
+			pt.Ctx.TriggerContext.TriggerAmount = total
+		}
+	}
+	e.counterBatchIdx = nil
+	e.counterBatchLog = nil
 }
 
 // BeginDiscardBatch/EndDiscardBatch are effects.Host's discard-batch bracket

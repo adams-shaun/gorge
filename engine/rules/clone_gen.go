@@ -597,6 +597,19 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			c.millBatchLog[i0].milled = append([]state.Target(nil), e.millBatchLog[i0].milled...)
 		}
 	}
+	if e.counterBatchIdx != nil {
+		c.counterBatchIdx = make(map[counterBatchKey]int, len(e.counterBatchIdx))
+		for k0, v0 := range e.counterBatchIdx {
+			c.counterBatchIdx[k0] = v0
+		}
+	}
+	if e.counterBatchLog != nil {
+		c.counterBatchLog = make([]counterBatchEntry, len(e.counterBatchLog))
+		for i0 := range e.counterBatchLog {
+			c.counterBatchLog[i0] = e.counterBatchLog[i0]
+			c.counterBatchLog[i0].counters = append([]effects.CounterMapEntry(nil), e.counterBatchLog[i0].counters...)
+		}
+	}
 	if e.discardBatchOpen {
 		c.discardBatchOpen = e.discardBatchOpen
 		c.discardBatchDepth = e.discardBatchDepth
@@ -642,6 +655,9 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			c.phaseUnknownNoted[k0] = v0
 		}
 	}
+}
+
+func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.disableTriggersNoted != nil {
 		c.disableTriggersNoted = make(map[string]bool, len(e.disableTriggersNoted))
 		for k0, v0 := range e.disableTriggersNoted {
@@ -654,9 +670,6 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 	c.replZones = copyReplZones(sp.replZones, e.replZones)
 	c.replZonesEp = e.replZonesEp
 	c.replArena = e.replArena
-}
-
-func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.tappedTurn != nil {
 		c.tappedTurn = make(map[state.ObjID]int32, len(e.tappedTurn))
 		for k0, v0 := range e.tappedTurn {

@@ -73,6 +73,17 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	if pc.OptionalTrue && putCounterOptionalDeclined(h, c, sa, n) {
 		return
 	}
+	// TriggeredCounterMap$ (Forge CountersPutEffect's hasParam branch, near
+	// line 595): copy the triggering CounterPlayerAddedAll batch's per-kind
+	// counter map onto each Defined recipient, ignoring CounterType$ and
+	// CounterNum$ exactly as Forge's branch does. CounterMapValues$ replaces
+	// each kind's count (Aragorn, Company Leader's "one of each of those
+	// kinds"). The map is event provenance (TriggerContext.TriggerCounterMap),
+	// never a parameter of this ability.
+	if pc.TriggeredCounterMap {
+		putCounterTriggeredMap(h, c, sa, pc)
+		return
+	}
 	// Bolster$ (CR 701.36's bolster keyword action; 24 raw corpus lines, every
 	// one of them a PutCounter SA -- SP/AB/DB heads alike -- so no separate
 	// DB$ Bolster API is needed): "choose a creature with the least toughness
@@ -486,6 +497,49 @@ func putCounterOptionalDeclined(h Host, c *Ctx, sa *cards.SA, n int32) bool {
 		}}
 	ans, ok := AskTape(h, d)
 	return !ok || len(ans) == 0 || ans[0].Kind != "yes"
+}
+
+// putCounterTriggeredMap is PutCounter's TriggeredCounterMap$ arm: put one
+// counter batch of each kind the triggering CounterPlayerAddedAll action put on
+// its recipient (TriggerContext.TriggerCounterMap) on each Defined recipient.
+// The kind's count is the batch total unless CounterMapValues$ names a fixed
+// value for every kind. The map is in first-seen event order, so the emitted
+// CounterChange stream is deterministic.
+func putCounterTriggeredMap(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams) {
+	cm := c.TriggerContext.TriggerCounterMap
+	if len(cm) == 0 {
+		return
+	}
+	countFor := func(e CounterMapEntry) int32 {
+		if pc.CounterMapValues.Present {
+			return numText(h, c, pc.CounterMapValues, 0)
+		}
+		return e.Count
+	}
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			p := PlayerOf(h, c, t)
+			if int(p) < 0 || int(p) >= len(h.Game().Players) {
+				continue
+			}
+			for _, e := range cm {
+				if n := countFor(e); n > 0 {
+					emitPutCounterChange(h, c, sa, events.Event{Kind: events.PlayerCounterChange, Player: p,
+						Counter: e.Kind, Amount: n})
+				}
+			}
+			continue
+		}
+		if h.Game().Obj(t.Obj) == nil {
+			continue
+		}
+		for _, e := range cm {
+			if n := countFor(e); n > 0 {
+				emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: t.Obj,
+					Counter: e.Kind, Amount: n})
+			}
+		}
+	}
 }
 
 // putCounterKindsFor is the ONE home for "which counter kinds does this
@@ -1390,8 +1444,17 @@ func putCounterPlacerFor(h Host, c *Ctx, v string) (state.PlayerID, bool) {
 		}
 		return 0, false
 	case putCounterPlacerForTriggeredSource:
+		// Forge's TriggeredSource is an AbilityKey.Source that may be an
+		// object (DamageDone's source, whose controller is the placer) or a
+		// PLAYER (CounterPlayerAddedAll names the putter there; Forge's
+		// getDefinedPlayers reads it directly). The object arm keeps its
+		// historical precedence; the player arm is the fallback for the
+		// player-valued source.
 		if o := g.Obj(c.TriggerSource); o != nil {
 			return o.Controller, true
+		}
+		if c.TriggerPlayer.IsPlayer {
+			return c.TriggerPlayer.Player, true
 		}
 		return 0, false
 	case putCounterPlacerForTriggeredSourceController:

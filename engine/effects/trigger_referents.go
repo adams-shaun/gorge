@@ -6,6 +6,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// CounterMapEntry is one kind/count pair of a CounterPlayerAddedAll batch's
+// counter map (TriggerContext.TriggerCounterMap).
+type CounterMapEntry struct {
+	Kind  string
+	Count int32
+}
+
 // TriggerContext is event provenance, not the resolving ability's Targets or
 // Source. Rules captures it when a trigger fires and retains it through stack
 // placement and suspension. A Target's IsPlayer bit distinguishes seat zero
@@ -178,6 +185,16 @@ type TriggerContext struct {
 	// and survives to resolution through the per-stack-instance
 	// triggerContexts map. Zero when the causing event carried no amount.
 	TriggerAmount int32
+	// TriggerCounterMap is the per-kind counter map a CounterPlayerAddedAll
+	// batch carried (Forge's AbilityKey.CounterMap): one entry per kind the
+	// action put on the trigger's recipient, in first-seen (event) order, each
+	// count the batch's total for that kind. A single CounterChange event has
+	// one kind, so the map is a one-entry slice outside an open action batch;
+	// rules' action-batch latch merges the events of one put action into the
+	// whole map. PutCounter's TriggeredCounterMap$ reader copies it. Not
+	// serialized into events.Event -- replay re-derives the same batch from
+	// the same events and bracket.
+	TriggerCounterMap []CounterMapEntry
 	// TriggerRememberedAmount is the per-trigger remembered Integer a rider
 	// bound on the spawning ability (Forge's SpellAbility.addRemembered):
 	// ImmediateTrigger's RememberSVarAmount$ evaluates the named SVar in the
