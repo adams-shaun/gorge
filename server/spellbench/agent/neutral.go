@@ -49,16 +49,22 @@ func (s *Server) startNeutral(q request) error {
 		autoPay = true
 	}
 	g.session.SetAutoPay(autoPay)
+	var stems []string
 	for _, d := range []*searchDeck{q.OwnDeck, q.OpponentDeck} {
 		if d == nil {
 			continue
 		}
 		rows := make([]wire.DeckRow, len(d.Decklist))
 		copy(rows, d.Decklist)
-		if _, err := neutral.ResolveDeck(s.registry, rows); err != nil {
+		deck, err := neutral.ResolveDeck(s.registry, rows)
+		if err != nil {
 			return fmt.Errorf("deck %s: %w", d.Name, err)
 		}
+		stems = append(stems, neutral.TokenStems(deck.Cards)...)
 	}
+	// The wire names a token only by its face name; the decks' TokenScript$
+	// references are the fact that says which same-named script is in play.
+	g.session.PreferTokens(stems)
 	s.neutral = g
 	return nil
 }
