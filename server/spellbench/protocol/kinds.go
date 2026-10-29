@@ -214,6 +214,14 @@ func ChooseBoolean(src *ObjectRef, purpose string, v bool) Semantic {
 func ChooseName(src *ObjectRef, purpose, v string) Semantic {
 	return sem("choose_name", "source", src, "purpose", purpose, "value", v)
 }
+
+// ChooseOption is a choose_option candidate: one option of a counted list
+// (a two-pile pick's "first pile"/"second pile", an effect's numbered
+// election). optionLabel is nullable, so an ask that numbers its options
+// without naming them sends nil and the client renders the index.
+func ChooseOption(src *ObjectRef, purpose string, idx, count uint32, optionLabel *string) Semantic {
+	return sem("choose_option", "source", src, "purpose", purpose, "option_index", idx, "option_count", count, "option_label", optionLabel)
+}
 func SelectObject(src *ObjectRef, purpose string, choice TargetRef, sel, lo, hi uint32) Semantic {
 	return sem("select_object", "source", src, "purpose", purpose, "choice", choice, "selected_count", sel, "minimum", lo, "maximum", hi)
 }

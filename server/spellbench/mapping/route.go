@@ -80,6 +80,12 @@ func Route(d *decision.Decision) string {
 			return "choose/yesno"
 		case k["graveyard"] && k["top"]:
 			return "choose/explore"
+		case k["twopiles"]:
+			return "choose/twopiles"
+		case k["pile-a"] && k["pile-b"]:
+			return "choose/pile_pick"
+		case k["hidden_pick"]:
+			return "choose/hidden_pick"
 		}
 		for _, o := range d.Options {
 			if strings.HasPrefix(o.Kind, "pay_") {
@@ -87,7 +93,7 @@ func Route(d *decision.Decision) string {
 			}
 		}
 		if len(k) == 1 {
-			for _, c := range []string{"search", "hand_move", "dig", "untap", "keep", "hidden_pick", "vote_card", "x", "number", "color", "type", "name", "division", "mana"} {
+			for _, c := range []string{"search", "hand_move", "dig", "untap", "keep", "vote_card", "x", "number", "color", "type", "name", "division", "mana"} {
 				if k[c] {
 					return "choose/" + c
 				}
