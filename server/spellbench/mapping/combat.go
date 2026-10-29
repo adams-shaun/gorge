@@ -3,7 +3,6 @@ package mapping
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -232,7 +231,19 @@ func engineOrderDivision(env *Env, d *decision.Decision) (decision.Intent, error
 		return decision.Intent{}, fmt.Errorf("%w:division_layout", ErrUnmapped)
 	}
 	for i, o := range d.Options {
-		if int32(o.Amount) != splits[i][0] || len(strings.Split(o.Label, ",")) != len(live) {
+		// The engine labels option i with the exact per-blocker amounts and
+		// printed names, comma-joined. Rebuild it here instead of splitting
+		// the label on commas: a card name may itself contain a comma
+		// ("Sram, Senior Edificer"), so a split count is not the blocker
+		// count. Amount + exact label pins the option's layout.
+		want := make([]byte, 0, 64)
+		for j, bid := range live {
+			if j > 0 {
+				want = append(want, ',')
+			}
+			want = fmt.Appendf(want, "%d to %s", splits[i][j], e.G.Obj(bid).Face().Name)
+		}
+		if int32(o.Amount) != splits[i][0] || o.Label != string(want) {
 			return decision.Intent{}, fmt.Errorf("%w:division_layout", ErrUnmapped)
 		}
 	}

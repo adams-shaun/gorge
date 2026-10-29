@@ -2,6 +2,7 @@ package mapping
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -89,7 +90,7 @@ func (t *arrangeTx) look(how string) error {
 		}
 		at := slices.Index(lib, id)
 		if at < 0 {
-			return fmt.Errorf("%w: looked-at card %d is not in the library", ErrUnmapped, id)
+			return fmt.Errorf("%w:looked_at_card %d is not in the library", ErrUnmapped, id)
 		}
 		t.refs = append(t.refs, r)
 		t.byID[r.ObjectID] = i
@@ -282,23 +283,57 @@ func digBottom(c *rules.Engine, seat state.PlayerID) *decision.Decision {
 	return n
 }
 
-// newDig: gorge asks "dig" (which eligible cards go to the hand) and then,
-// when two or more cards remain, "dig_bottom" (their order on the bottom).
-// v2 sees one arrangement over the whole DigNum window. The dig_bottom ask is
-// found by lookahead once the partition is known and carried as the
-// follow-up "dig_bottom".
+// digWindowRe reads the resolved DigNum window size out of the take ask's
+// prompt. DigNum$ X (and any other non-literal spelling) has no numeric
+// parameter to read, but effDig's prompt always names the window it looked
+// at: "Look at the top N card(s)" or "Choose from the top N card(s)".
+var digWindowRe = regexp.MustCompile(`(?:top|bottom) ([0-9]+) card\(s\)`)
+
+func digWindowSize(d *decision.Decision, raw string) (int, error) {
+	if n, err := strconv.Atoi(strings.TrimSpace(raw)); err == nil && n > 0 {
+		return n, nil
+	}
+	if m := digWindowRe.FindStringSubmatch(d.Prompt); m != nil {
+		if n, err := strconv.Atoi(m[1]); err == nil && n > 0 {
+			return n, nil
+		}
+	}
+	return 0, fmt.Errorf("%w:dig_num", ErrUnmapped)
+}
+
+// newDig: gorge asks "dig" (which eligible cards go to the primary
+// destination) and then, when two or more cards remain on the bottom,
+// "dig_bottom" (their order). v2 sees one arrangement over the whole DigNum
+// window. The dig_bottom ask is found by lookahead once the partition is
+// known and carried as the follow-up "dig_bottom".
+//
+// The primary destination is not always the hand: a library primary
+// (LibraryPosition$ 0) is an arrangement to the top, and DestinationZone2$
+// names the remainder's destination (graveyard, exile, hand, battlefield or
+// the default library bottom). A RestRandomOrder$ True remainder is shuffled
+// by the engine, so it poses no dig_bottom ask and its ordering picks are
+// presentational.
 func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	sa := d.ResumeSA
 	if sa == nil {
 		return nil, fmt.Errorf("%w:dig_shape", ErrUnmapped)
 	}
 	param := func(k string) string { return strings.TrimSpace(sa.Params[k]) }
-	dest, dest2, pos2 := param("DestinationZone"), param("DestinationZone2"), param("LibraryPosition2")
+	dest := param("DestinationZone")
+	dest2, pos2 := param("DestinationZone2"), param("LibraryPosition2")
 	if dest == "" {
-		dest = "Hand" // gorge's defaults (effects/cardflow.go)
+		dest = "Hand" // gorge's defaults (effects/dig_params.go)
 	}
+	// effects.compileDig's defaults: an omitted second destination is the
+	// library bottom, and so is an explicit Library one with no second
+	// position (Squad Rallier's older single-position spelling).
 	if dest2 == "" {
-		dest2, pos2 = "Library", "-1"
+		dest2 = "Library"
+		if pos2 == "" {
+			pos2 = "-1"
+		}
+	} else if strings.EqualFold(dest2, "Library") && pos2 == "" {
+		pos2 = "-1"
 	}
 	primary, rest := strings.ToLower(dest), strings.ToLower(dest2)
 	if rest == "library" {
@@ -307,13 +342,26 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 		}
 		rest = "bottom" // the library remainder's ordered-bottom ask
 	}
-	if primary == "library" || primary == rest || !digDestinations[primary] || !digDestinations[rest] || d.MaxSum > 0 ||
+	if primary == "library" {
+		// A library primary is placed by LibraryPosition$ after the remainder
+		// settles: 0 is the top (Gutless Plunderer), -1 the bottom.
+		switch param("LibraryPosition") {
+		case "0":
+			primary = "top"
+		case "-1":
+			primary = "bottom"
+		default:
+			return nil, fmt.Errorf("%w:dig_shape", ErrUnmapped)
+		}
+	}
+	if primary == rest || (primary != "top" && !digDestinations[primary]) || !digDestinations[rest] ||
 		strings.EqualFold(param("SkipReorder"), "True") || strings.EqualFold(param("FromBottom"), "True") {
 		return nil, fmt.Errorf("%w:dig_shape", ErrUnmapped)
 	}
-	n, err := strconv.Atoi(param("DigNum"))
-	if err != nil || n <= 0 {
-		return nil, fmt.Errorf("%w:dig_num", ErrUnmapped)
+	randomRest := strings.EqualFold(param("RestRandomOrder"), "True")
+	n, err := digWindowSize(d, param("DigNum"))
+	if err != nil {
+		return nil, err
 	}
 	src, err := ResolveSource(env, d)
 	if err != nil {
@@ -334,18 +382,23 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	}
 	t := &arrangeTx{env: env, d: d, purpose: "dig", src: src, cards: window, restOnly: map[string]bool{},
 		inside: map[string]bool{primary: true, rest: false}}
-	for _, id := range window {
+	// values parallel t.cards: the mana-value currency a WithTotalCMC$ budget
+	// (Decision.MaxSum) sums over picked options. Ineligible cards carry 0.
+	values := make([]int, len(window))
+	for i, id := range window {
 		if idx, ok := eligible[id]; ok {
 			t.native = append(t.native, idx)
 			t.dests = append(t.dests, []string{primary, rest})
+			values[i] = d.Options[idx].Value
 		} else {
 			t.native = append(t.native, -1)
 			t.dests = append(t.dests, []string{rest})
 		}
 	}
-	if rest != "bottom" {
-		// The engine fixes a non-library remainder's order (it moves in
-		// library order), so its ordering picks are presentational.
+	if rest != "bottom" || randomRest {
+		// A non-library remainder moves in library order, and a
+		// RestRandomOrder$ bottom is shuffled by the engine: neither poses an
+		// order ask, so their ordering picks are presentational.
 		t.restOnly[rest] = true
 	}
 	if err := t.look(how); err != nil {
@@ -360,17 +413,74 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 		}
 		return k
 	}
+	hasBudget := d.HasBudget()
+	// cheapest is the least mana-value sum of need eligible cards after from:
+	// the best completion a budget can offer at this decision point.
+	cheapest := func(from, need int) (int, bool) {
+		var vals []int
+		for j := from; j < t.n(); j++ {
+			if t.native[j] >= 0 {
+				vals = append(vals, values[j])
+			}
+		}
+		if len(vals) < need {
+			return 0, false
+		}
+		slices.Sort(vals)
+		sum := 0
+		for k := 0; k < need; k++ {
+			sum += vals[k]
+		}
+		return sum, true
+	}
 	t.legal = func(i int, dst string, chosen []string) bool {
-		taken := 0
-		for _, c := range chosen {
+		taken, sum := 0, 0
+		for j, c := range chosen {
 			if c == primary {
 				taken++
+				sum += values[j]
 			}
 		}
 		if dst == primary {
-			return taken+1 <= d.Max
+			if taken+1 > d.Max {
+				return false
+			}
+			taken++
+			sum += values[i]
+			// The primary picks are the ones the committed answer's Choices
+			// name, so the cap fences every one of them even when Min is
+			// already met: a Min-0 optional dig keeps taking until the budget
+			// or Max runs out.
+			if hasBudget && sum > d.MaxSum {
+				return false
+			}
+			need := d.Min - taken
+			if need <= 0 {
+				return true
+			}
+			if !hasBudget {
+				return taken+eligibleAfter(i) >= d.Min
+			}
+			// A budget choice is legal only when the rest of the ask can still
+			// meet Min within the cap: a candidate that dead-ends the
+			// arrangement must not be offered.
+			extra, ok := cheapest(i+1, need)
+			return ok && sum+extra <= d.MaxSum
 		}
-		return taken+eligibleAfter(i) >= d.Min
+		// The remainder is still completable when enough eligible cards follow
+		// to meet Min and the cheapest such completion fits the budget.
+		need := d.Min - taken
+		if need <= 0 {
+			return true
+		}
+		if taken+eligibleAfter(i) < d.Min {
+			return false
+		}
+		if !hasBudget {
+			return true
+		}
+		extra, ok := cheapest(i+1, need)
+		return ok && sum+extra <= d.MaxSum
 	}
 	sentTo := func(dst string) (cards []int) {
 		for i, c := range t.chosen {
@@ -382,8 +492,8 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	}
 	followIdx := map[state.ObjID]int{}
 	t.prepare = func() error {
-		if rest != "bottom" || len(sentTo(rest)) < 2 {
-			return nil // a non-library remainder has no order ask; a lone bottom card has none either
+		if randomRest || rest != "bottom" || len(sentTo(rest)) < 2 {
+			return nil // a random or non-library remainder has no order ask; a lone bottom card has none either
 		}
 		c, err := env.G.Probe(Intent(d, t.nativeOf(sentTo(primary))...))
 		if err != nil {
@@ -406,9 +516,10 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 		return "followup:dig_bottom", followIdx[t.cards[i]]
 	}
 	t.orderOp = func(_ int, dst string) (NativeOp, bool) {
-		if dst == rest && rest != "bottom" {
+		if dst == rest && (rest != "bottom" || randomRest) {
 			// The remainder is outside the native Choices whatever its name:
 			// "hand" is a remainder here, not the legacy inside destination.
+			// A random bottom has no native order either.
 			inside := false
 			return NativeOp{Op: "dest", Option: -1, List: rest, Inside: &inside}, true
 		}
@@ -422,7 +533,7 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	t.commit = func() ([]decision.Intent, error) {
 		dig := Intent(d, t.nativeOf(t.orderedFor(primary))...)
 		bottom := t.orderedFor(rest)
-		if rest != "bottom" || len(bottom) < 2 {
+		if randomRest || rest != "bottom" || len(bottom) < 2 {
 			return []decision.Intent{dig}, nil
 		}
 		c, err := env.G.Probe(dig)

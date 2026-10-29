@@ -159,11 +159,23 @@ bot (and, for the adapter, a fresh session).
 | native | 17,268,203 | 14,330 | 19,276,741 | 115,325 | 96 | 0.989 |
 | adapter | 51,575,111 | 42,801 | 74,181,469 | 767,036 | 637 | 0.968 |
 | adapter+json | 392,614,056 | 325,821 | 222,520,053 | 1,581,060 | 1,312 | 0.968 |
+| adapter (record compare) | 119,789,166 | 62,914 | 330,210,028 | 598,703 | 314 | 0.981 |
 
 Ratios to native:
 
 - adapter is **2.99x ns/decision** and **6.65x allocs**.
 - adapter+json is **22.7x ns/decision** and **13.7x allocs**.
+
+The adapter (record compare) row is a 2026-10-29 run of the same command, when
+the recorded corpus had grown to 2 games and 1904 decisions. Its same-run
+native path was 17,693 ns/decision and 134.5 allocs/decision, so the
+record-compare adapter is **3.56x ns/decision** and **2.34x allocs**. Gate item
+4's allocation clause passes (314 <= 318); its 2x ns clause does not, so the
+Outcome is unchanged. The cache removes the per-object rebuild (`Builder.View`
+reuses a card whose record is unchanged); the cache now decides reuse by
+comparing a deep copy of the record field by field instead of hashing it. The
+remaining adapter cost is `Session.Payload`'s candidate translation and the
+bot's own `Decide`, which this ticket does not touch.
 
 A second adapter run (5x, with a CPU profile) gave 44,212 ns/decision and
 the same allocation count. In that profile, about 60% of the adapter's own

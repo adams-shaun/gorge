@@ -56,12 +56,12 @@ func TestSVarCountScopeIsUnknownNotBothPlayers(t *testing.T) {
 		"Count$ValidGraveyard Creature.YouOwn",
 		"Count$Valid Creature.OppCtrl",
 	} {
-		if n, ok := s.svarValue(o, body); ok {
+		if n, ok := s.svarValue(o, nil, body); ok {
 			t.Errorf("%s = %d, true; a source-scoped count must stay unknown, not count both players", body, n)
 		}
 	}
 	// The control: an unscoped body still counts every player's zone.
-	if n, ok := s.svarValue(o, "Count$Valid Creature"); !ok || n != 4 {
+	if n, ok := s.svarValue(o, nil, "Count$Valid Creature"); !ok || n != 4 {
 		t.Errorf("Count$Valid Creature = %d, %v; want 4, true", n, ok)
 	}
 }
@@ -89,7 +89,7 @@ func TestSVarCountUnknownPredicateIsUnknown(t *testing.T) {
 		"Count$Valid Card.IsCommander",
 		"Count$Valid Creature.withDefender",
 	} {
-		if n, ok := s.svarValue(o, body); ok {
+		if n, ok := s.svarValue(o, nil, body); ok {
 			t.Errorf("%s = %d, true; an unreadable predicate must be unknown", body, n)
 		}
 	}
@@ -115,7 +115,7 @@ func TestSVarCountKeepsNamedAcrossAllGraveyards(t *testing.T) {
 			},
 		},
 	}
-	if got, ok := s.svarValue(o, "Count$ValidGraveyard Card.namedFeast of Flesh/Plus.1"); !ok || got != 3 {
+	if got, ok := s.svarValue(o, nil, "Count$ValidGraveyard Card.namedFeast of Flesh/Plus.1"); !ok || got != 3 {
 		t.Fatalf("Feast of Flesh count = %d, %v; want 3, true (two named cards plus Plus.1)", got, ok)
 	}
 }

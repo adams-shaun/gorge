@@ -77,6 +77,29 @@ type Builder struct {
 	// attacker's blocker count, keyed by its v2 id.
 	blocked   map[string]blockMemo
 	blockTurn uint32
+	// cards is the previous View's per-object card views, keyed by protocol
+	// object id. cachedCard.rec is a deep copy of the record that produced
+	// card; View reuses an entry only when the new record compares equal and
+	// the zone's cost projection is unchanged. gen marks the entries touched
+	// by the current View, so entries whose object left the observation are
+	// deleted and the cache never grows past one observation.
+	cards map[string]cachedCard
+	gen   uint64
+}
+
+// cachedCard is one cached card view: a deep copy of the object record that
+// built it, whether the zone lists ability costs, and the built view.
+// The copy makes an in-place mutation of the observation's record visible to
+// the next View instead of aliasing it into a stale hit. A hit reuses card by
+// value; card's Keywords, AbilityCosts, Counters map, Produces and
+// AttackingPlayer are shared with the View that built them (BlockedBy is not:
+// applyBlocks re-clones it per View). No writer in the neutral/v2 path mutates
+// those fields.
+type cachedCard struct {
+	rec   protocol.ObjectRecord
+	costs bool
+	gen   uint64
+	card  view.CardView
 }
 
 // blockMemo is one attacker's blocker count in the current combat and the
@@ -88,7 +111,7 @@ type blockMemo struct {
 
 func NewBuilder(reg *cards.Registry) *Builder {
 	b := &Builder{Reg: reg, IDs: NewIDs(), refs: map[string]Ref{}, tokens: map[string][]string{},
-		blocked: map[string]blockMemo{}}
+		blocked: map[string]blockMemo{}, cards: map[string]cachedCard{}}
 	for stem, c := range reg.Tokens {
 		if len(c.Faces) > 0 {
 			b.tokens[c.Faces[0].Name] = append(b.tokens[c.Faces[0].Name], stem)
@@ -192,6 +215,7 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 		}
 	}
 	b.rememberBlocks(o, state.Step(i), blockers)
+	b.gen++
 	for _, p := range o.Players {
 		seat, err := Seat(p.Seat)
 		if err != nil {
@@ -276,6 +300,13 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 		}
 		v.Stack = append(v.Stack, sv)
 	}
+	// Map iteration is only pruning: the view above was built in the
+	// observation's record order, never in cache order.
+	for id, c := range b.cards {
+		if c.gen != b.gen {
+			delete(b.cards, id)
+		}
+	}
 	return v, nil
 }
 
@@ -339,7 +370,46 @@ func attackTargetKey(t *protocol.TargetRef) string {
 	return ""
 }
 
+// card returns the view of one object record, reusing the previous view when
+// the record and the zone's cost projection are unchanged. BlockedBy is
+// applied after the cache lookup because it depends on other objects'
+// records, not this one's.
 func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjID, costs bool) (view.CardView, error) {
+	if b.cards == nil {
+		b.cards = map[string]cachedCard{}
+	}
+	if c, ok := b.cards[r.ObjectID]; ok && c.costs == costs && sameObjectRecord(c.rec, r) {
+		c.gen = b.gen
+		b.cards[r.ObjectID] = c
+		cv := c.card
+		applyBlocks(&cv, r, blockers)
+		return cv, nil
+	}
+	rec := cloneObjectRecord(r)
+	cv, err := b.buildCard(rec, costs)
+	if err != nil {
+		return view.CardView{}, err
+	}
+	b.cards[r.ObjectID] = cachedCard{rec: rec, costs: costs, gen: b.gen, card: cv}
+	applyBlocks(&cv, r, blockers)
+	return cv, nil
+}
+
+// applyBlocks sets the tombstone-aware BlockedBy list. A face-down card whose
+// name the viewer may not see is projected with no permanent facts at all, as
+// buildCard returns it before reading the permanent.
+func applyBlocks(cv *view.CardView, r protocol.ObjectRecord, blockers map[string][]state.ObjID) {
+	if r.CardName == nil || r.Permanent == nil {
+		return
+	}
+	if bs := blockers[r.ObjectID]; len(bs) > 0 {
+		cv.BlockedBy = slices.Clone(bs)
+	} else {
+		cv.BlockedBy = nil
+	}
+}
+
+func (b *Builder) buildCard(r protocol.ObjectRecord, costs bool) (view.CardView, error) {
 	controller, err := Seat(r.ControllerSeat)
 	if err != nil {
 		return view.CardView{}, err
@@ -382,9 +452,6 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 				return view.CardView{}, err
 			}
 			cv.AttackingPlayer = &who
-		}
-		if bs := blockers[r.ObjectID]; len(bs) > 0 {
-			cv.BlockedBy = slices.Clone(bs)
 		}
 		// permanent counters: the host normalises counter names (Section
 		// 6.10); native view.View.Counters holds the engine's own spellings
@@ -536,21 +603,49 @@ func sameTypeLine(c *protocol.Characteristics, face []string) bool {
 	if c == nil || len(face) == 0 {
 		return false
 	}
-	var obs []string
+	words := 0
 	for _, list := range [][]string{c.Supertypes, c.Types, c.Subtypes} {
-		obs = append(obs, list...)
+		words += len(list)
 	}
-	if len(obs) == 0 {
+	if words == 0 {
 		return false
 	}
-	var a, b []string
-	for _, w := range obs {
-		a = append(a, observe.Normalize(w))
+	// Build the same joined form strings.Join would, without the temporary
+	// []string allocations: this runs once per rebuilt card, and its
+	// allocations dominated an uncached View.
+	var obs, printed strings.Builder
+	first := true
+	for _, list := range [][]string{c.Supertypes, c.Types, c.Subtypes} {
+		for _, w := range list {
+			if !first {
+				obs.WriteByte('_')
+			}
+			first = false
+			writeTypeWord(&obs, w)
+		}
 	}
-	for _, w := range face {
-		b = append(b, observe.Normalize(w))
+	for i, w := range face {
+		if i > 0 {
+			printed.WriteByte('_')
+		}
+		writeTypeWord(&printed, w)
 	}
-	return strings.Join(a, "_") == strings.Join(b, "_")
+	return obs.String() == printed.String()
+}
+
+// writeTypeWord writes observe.Normalize(w), with a fast path for the words
+// Normalize leaves unchanged (the common printed type word). Only the
+// characters Normalize folds send a word down the slow path, so the two forms
+// are byte-identical.
+func writeTypeWord(b *strings.Builder, w string) {
+	for i := 0; i < len(w); i++ {
+		c := w[i]
+		if c >= 'A' && c <= 'Z' || c <= ' ' || c == '\'' || c == '-' || c >= 0x80 {
+			b.WriteString(observe.Normalize(w))
+			return
+		}
+	}
+	b.WriteString(w)
 }
 
 func (b *Builder) stack(e protocol.StackEntry) (view.StackView, error) {

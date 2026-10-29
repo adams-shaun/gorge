@@ -10,6 +10,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/rules/combat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -137,7 +138,7 @@ func (s *Session) Picked(i int) {
 			if o, ok := s.abilityOption(src, num(sem, "ability_index")); ok {
 				s.activated[src.ObjectID] = o.Ability
 				var kw []string
-				if f := s.abilityFace(src); f != nil && o.Ability < len(f.Abilities) {
+				if f := s.abilityFace(src); f != nil && o.Ability >= 0 && o.Ability < len(f.Abilities) {
 					kw = rules.PureGrantKeywords(f.Abilities[o.Ability])
 				}
 				s.grants[src.ObjectID] = append(s.grants[src.ObjectID], kw)
@@ -380,7 +381,7 @@ func name(r protocol.ObjectRef) string {
 // castModes maps a Section 7.4 method to gorge's cast option Mode.
 var castModes = map[string]string{"normal": "", "flashback": "flashback", "escape": "escape", "madness": "madness",
 	"plot": "plot_cast", "foretell": "foretell_cast", "adventure": "adventure_alt", "split_right": "split_alt",
-	"mdfc_back": "modal_spell", "miracle": "miracle", "suspend": "suspend_cast"}
+	"mdfc_back": "modal_spell", "miracle": "miracle", "suspend": "suspend_cast", "evoke": "evoked"}
 
 // hasOmenFace reports whether src names a card whose inset face is an Omen
 // spell (CR 720). It is the guard for the protocol's catch-all "other"
@@ -674,6 +675,29 @@ func (s *Session) altCost(sd *protocol.SeatDecision, src protocol.ObjectRef) boo
 		if st.Mode != "AlternativeCost" || st.Params["ValidCard"] != "Card.Self" {
 			continue
 		}
+		// The engine's alternativeCostScopeOK prices a spell cast only: a
+		// ValidSA$ naming no Spell scope (Heart of Kiran's Activated.Crew)
+		// is an ability's cost, not a cast the neutral may offer.
+		if vs := strings.TrimSpace(st.Params["ValidSA"]); vs != "" {
+			ok := false
+			for alt := range strings.SplitSeq(vs, ",") {
+				alt = strings.TrimSpace(alt)
+				kind, constraint := alt, ""
+				if i := strings.IndexByte(alt, '.'); i >= 0 {
+					kind, constraint = alt[:i], alt[i+1:]
+				}
+				if kind != "Spell" {
+					continue
+				}
+				switch strings.TrimSpace(constraint) {
+				case "", "Self":
+					ok = true // the neutral offers self-cast statics only
+				}
+			}
+			if !ok {
+				continue
+			}
+		}
 		check := st.Params["CheckSVar"]
 		if check == "" {
 			return true
@@ -718,12 +742,21 @@ func (s *Session) abilityOption(src protocol.ObjectRef, idx int) (decision.Optio
 		}
 		k++
 	}
+	// idx >= k is a granted, gained or keyword-granted ability. The plain
+	// observation carries no ability list (ObjectRecord has no abilities
+	// field), so the neutral world cannot reconstruct its body or rank it.
+	// The v2 candidate is still posed -- the seat answers candidate ids -- but
+	// this world reports it opaque rather than guessing another ability.
 	return decision.Option{}, false
 }
 
 // manaAbility mirrors mapping's split of gorge's activated abilities.
 func manaAbility(a *cards.SA) bool {
-	if a.API != "Mana" && a.API != "ManaReflected" {
+	// The priority offer walk skips an AB only when cards.IsManaAbilitySA
+	// says it is a mana ability and it is not a loyalty ability. A targeting
+	// or library-moving AB$ Mana is offered on the ordinary path (CR 605.1a),
+	// so it must count as a non-mana activated ability here too.
+	if !cards.IsManaAbilitySA(a) {
 		return false
 	}
 	if v, ok := a.Params["Planeswalker"]; ok && strings.EqualFold(strings.TrimSpace(v), "True") {
@@ -1121,7 +1154,9 @@ func (s *Session) attackRestricted(o *protocol.Observation, a protocol.ObjectRef
 				}
 				target := strings.TrimSpace(st.Params["Target"])
 				if target == "" {
-					continue
+					// A blanket restriction (Cessation, Pacifism) names no
+					// defender: it forbids every attack.
+					return true
 				}
 				// "You" is the attachment's controller; a planeswalker
 				// target is restricted when its controller is that seat.
@@ -1469,6 +1504,23 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 				if r.Permanent != nil && slices.Contains(r.Permanent.Statuses, "goaded") {
 					goaded[r.ObjectID] = true
 				}
+				// A continuous Goad$ True static on an attached Aura or
+				// Equipment (Coercive Impetus) never becomes a Goads entry,
+				// so the statuses alone miss it. Its goad applies to the
+				// creature it is attached to.
+				if r.Permanent == nil || r.Permanent.AttachedTo == nil || r.Permanent.AttachedTo.Object == nil {
+					continue
+				}
+				f := s.B.face(r.CardName, false, nil)
+				if f == nil {
+					continue
+				}
+				for _, st := range f.Statics {
+					if strings.EqualFold(strings.TrimSpace(st.Params["Goad"]), "True") {
+						goaded[r.Permanent.AttachedTo.Object.ObjectID] = true
+						break
+					}
+				}
 			}
 		}
 		// The native decision carries one unit per group substep. At the
@@ -1503,7 +1555,8 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 			}
 			for _, r := range p.Battlefield {
 				cv, ok := findCard(battlefield(v, s.seat), s.B.IDs.Of(r.ObjectID))
-				if !ok || !isCreature(cv) || cv.Tapped || hasKeyword(cv, "Defender") ||
+				if !ok || !isCreature(cv) || cv.Tapped ||
+					(hasKeyword(cv, "Defender") && !s.mayAttackThroughDefender(r.ObjectID, cv)) ||
 					(cv.SummonSick && !hasKeyword(cv, "Haste")) || s.cantAttack(cv, attached[cv.ID]) {
 					continue
 				}
@@ -2138,6 +2191,65 @@ func (s *Session) cantAttack(cv view.CardView, attached []view.CardView) bool {
 	return false
 }
 
+// mayAttackThroughDefender reports whether a printed-Defender creature has a
+// live CanAttackDefender permission the observation carries no keyword for:
+// the creature's own activated ability, activated this turn (the session's
+// ActivatedThisTurn census), delivered an Effect whose StaticAbilities$ body
+// is a self-scoped CanAttackDefender grant (Wall of One Thousand Cuts). The
+// engine's continuous-effect registry is the authority; this reads the
+// public half of it -- the printed ability and the activation census --
+// exactly as cantAttack reads a printed static. A grant that is not
+// self-scoped, is gated by a term the observation cannot evaluate, or whose
+// last recorded activation is another ability is not admitted (the engine's
+// own offer still is).
+func (s *Session) mayAttackThroughDefender(v2ID string, cv view.CardView) bool {
+	if cv.ActivatedThisTurn < 1 {
+		return false
+	}
+	f := s.B.face(&cv.Name, false, nil)
+	if f == nil {
+		return false
+	}
+	i, ok := s.activated[v2ID]
+	if !ok || i < 0 || i >= len(f.Abilities) {
+		return false
+	}
+	ab := f.Abilities[i]
+	if ab.API != "Effect" {
+		return false
+	}
+	names := strings.FieldsFunc(effects.EffectOf(ab).StaticAbilities, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
+	for _, name := range names {
+		body := strings.TrimSpace(f.SVars[name])
+		if body == "" {
+			continue
+		}
+		statics, ok := cards.ParseStaticLines(body)
+		if !ok {
+			continue
+		}
+		for _, st := range statics {
+			if st.Mode != "CanAttackDefender" || !effects.CanAttackDefenderGrantParamsReadable(st.Params) {
+				continue
+			}
+			if strings.TrimSpace(st.Params["ValidAttacked"]) != "" {
+				continue // a defender-side gate the neutral cannot evaluate
+			}
+			spec := strings.TrimSpace(st.Params["ValidCard"])
+			if spec == "" {
+				spec = strings.TrimSpace(st.Params["ValidCards"])
+			}
+			switch strings.ToLower(spec) {
+			case "card.effectsource", "card.self", "cardname":
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // cantBlockAttacker reports whether a printed CantBlockBy static forbids this
 // (blocker, attacker) pair. Forge spells the static on either side of the
 // pair: a blocker's own "can't block <filter>" (Hinterland Drake:
@@ -2712,6 +2824,22 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 				}
 			}
 			roots = append(roots, f.Abilities...)
+			// An Effect-created trigger (The Sea Devils' "deals that much
+			// damage") is an SVar body with Mode$ + Execute$, never a printed
+			// T: trigger. Its Execute$ body is the root the ask lives in.
+			for _, name := range slices.Sorted(maps.Keys(f.SVars)) {
+				tr, ok := cards.ParseTriggerLine(f.SVars[name])
+				if !ok {
+					continue
+				}
+				exec := strings.TrimSpace(tr.Params["Execute"])
+				if exec == "" {
+					continue
+				}
+				if root := cards.ResolveSVar(f.SVars, exec); root != nil {
+					roots = append(roots, root)
+				}
+			}
 			if root := f.SpellAbility(); root != nil {
 				roots = append(roots, root)
 			}
@@ -2743,6 +2871,14 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 	if sa == nil {
 		return nil
 	}
+	// The counter a Count$CardCounters.<KIND> body reads lives on the
+	// battlefield permanent. For an ability on the stack that permanent is
+	// the entry's Source; a spell or an ability announced from the
+	// permanent keeps src.
+	anchor := src
+	if entry != nil && entry.Source != nil {
+		anchor = *entry.Source
+	}
 	out := &decision.TargetEffect{API: sa.API, Removal: removal(sa)}
 	if sa.API == "Effect" {
 		out.Statics = staticModesFromFace(f, sa)
@@ -2752,7 +2888,7 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 		raw := strings.TrimSpace(sa.Params["NumDmg"])
 		switch {
 		case raw == "":
-		case raw == "X" && x != nil:
+		case raw == "X" && x != nil && xValueIsTriggerAmount(entry, f, raw):
 			n := int(*x)
 			out.Damage.Amount = &n
 		default:
@@ -2764,7 +2900,7 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 			// the v2 wire; the observation's zones can still resolve the
 			// common Count$ form, and an unresolvable body stays unknown.
 			if f != nil {
-				if v, ok := s.svarValue(o, f.SVars[raw]); ok && v >= 0 {
+				if v, ok := s.svarValue(o, &anchor, f.SVars[raw]); ok && v >= 0 {
 					n := int(v)
 					out.Damage.Amount = &n
 				}
@@ -2772,6 +2908,22 @@ func (s *Session) targetEffect(o *protocol.Observation, src protocol.ObjectRef, 
 		}
 	}
 	return out
+}
+
+// xValueIsTriggerAmount reports whether the stack entry's published x_value
+// is the amount NumDmg$ X names. A spell's x_value is its mana cost's X. An
+// ability's x_value is the causing event's magnitude, which only a
+// TriggerCount$ body reads (The Sea Devils); a Count$ body (Niv-Mizzet,
+// Guildpact's colour-pair count) must go to svarValue instead of borrowing
+// the event's amount.
+func xValueIsTriggerAmount(entry *protocol.StackEntry, f *cards.Face, raw string) bool {
+	if entry == nil || entry.XValue == nil {
+		return false
+	}
+	if entry.StackKind == "spell" {
+		return true
+	}
+	return f != nil && strings.HasPrefix(strings.TrimSpace(f.SVars[raw]), "TriggerCount$")
 }
 
 // removal is gorge's targetRemoval (rules/stack.go), which is unexported.
@@ -3177,7 +3329,11 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 		case strings.EqualFold(param("ChangeNum"), "All") || (dest2 != "" && !strings.EqualFold(dest2, "Library")):
 			n.arrange.fixed = true
 		case dest == "" || strings.EqualFold(dest, "Hand"):
-			valid := strings.Split(param("ChangeValid"), ",")
+			spec := param("ChangeValid")
+			if spec == "" {
+				spec = "Card" // effects.compileDig's default
+			}
+			valid := strings.Split(spec, ",")
 			eligible := func(id string) bool {
 				name := ""
 				for _, k := range sd.Observation.Known {
@@ -3190,7 +3346,8 @@ func (s *Session) dig(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native, e
 					return false
 				}
 				for _, v := range valid {
-					if slices.Contains(f.Types, strings.TrimSpace(v)) {
+					v = strings.TrimSpace(v)
+					if strings.EqualFold(v, "Card") || slices.Contains(f.Types, v) {
 						return true
 					}
 				}

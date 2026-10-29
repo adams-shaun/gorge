@@ -10,12 +10,15 @@ import (
 
 // svarValue evaluates the subset of Forge's SVar value grammar the neutral
 // world can read from an observation alone: a Count$ over cards in a zone the
-// observation carries, with an arithmetic suffix. A body outside that subset
-// returns ok=false, and the caller keeps the unknown-is-not-zero behaviour.
-// It exists because the target-effect projection needs a dynamic damage
-// amount (Feast of Flesh's NumDmg$ X is "1 plus the number of cards named
-// Feast of Flesh in all graveyards") that the v2 decision carries nowhere.
-func (s *Session) svarValue(o *protocol.Observation, body string) (int32, bool) {
+// observation carries, or Count$CardCounters.<KIND> read from the source
+// permanent, with an arithmetic suffix. A body outside that subset returns
+// ok=false, and the caller keeps the unknown-is-not-zero behaviour. It exists
+// because the target-effect projection needs a dynamic damage amount (Feast
+// of Flesh's NumDmg$ X is "1 plus the number of cards named Feast of Flesh in
+// all graveyards", Shrine of Burning Rage's is its charge counters) that the
+// v2 decision carries nowhere. src is the ability's source, or nil when the
+// caller has none; a counter read needs a battlefield permanent.
+func (s *Session) svarValue(o *protocol.Observation, src *protocol.ObjectRef, body string) (int32, bool) {
 	body = strings.TrimSpace(body)
 	if body == "" {
 		return 0, false
@@ -26,7 +29,7 @@ func (s *Session) svarValue(o *protocol.Observation, body string) (int32, bool) 
 			expr, op = body[:i], suffix
 		}
 	}
-	n, ok := s.countExpr(o, strings.TrimSpace(expr))
+	n, ok := s.countExpr(o, src, strings.TrimSpace(expr))
 	if !ok {
 		return 0, false
 	}
@@ -42,7 +45,7 @@ func countOpSuffix(op string) bool {
 	return false
 }
 
-func (s *Session) countExpr(o *protocol.Observation, expr string) (int32, bool) {
+func (s *Session) countExpr(o *protocol.Observation, src *protocol.ObjectRef, expr string) (int32, bool) {
 	rest, ok := strings.CutPrefix(expr, "Count$")
 	if !ok {
 		return 0, false
@@ -61,6 +64,55 @@ func (s *Session) countExpr(o *protocol.Observation, expr string) (int32, bool) 
 	// "Count$Valid <spec>" names the battlefield by default in Forge.
 	if spec, ok := strings.CutPrefix(rest, "Valid "); ok {
 		return s.countZoneSpec(o, "battlefield", strings.TrimSpace(spec))
+	}
+	// "Count$CardCounters.<KIND>" reads the source permanent's counters
+	// (engine/effects/count_body_heads.go). The wire carries counters only on
+	// a battlefield permanent, so any other source stays unknown.
+	if kind, ok := strings.CutPrefix(rest, "CardCounters."); ok {
+		return s.cardCounters(o, src, strings.TrimSpace(kind))
+	}
+	return 0, false
+}
+
+// cardCounters counts the source permanent's counters of kind. ALL is
+// Forge's wildcard over every kind. A source the observation does not carry
+// as a battlefield permanent returns unknown, never a confident zero; a
+// permanent that is present and lacks the kind is a known zero. A kind with
+// a character outside the counter-name alphabet is an unsupported count
+// operator (ALL/Mod.2, AGE/Thrice), not a kind, and stays unknown.
+func (s *Session) cardCounters(o *protocol.Observation, src *protocol.ObjectRef, kind string) (int32, bool) {
+	if src == nil || kind == "" {
+		return 0, false
+	}
+	for i := 0; i < len(kind); i++ {
+		c := kind[i]
+		if c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' {
+			continue
+		}
+		return 0, false
+	}
+	for _, p := range o.Players {
+		for _, r := range p.Battlefield {
+			if r.ObjectID != src.ObjectID {
+				continue
+			}
+			if r.Permanent == nil {
+				return 0, false
+			}
+			if strings.EqualFold(kind, "ALL") {
+				var sum uint32
+				for _, n := range r.Permanent.Counters {
+					sum += n
+				}
+				return int32(sum), true
+			}
+			for name, n := range r.Permanent.Counters {
+				if strings.EqualFold(name, kind) {
+					return int32(n), true
+				}
+			}
+			return 0, true
+		}
 	}
 	return 0, false
 }

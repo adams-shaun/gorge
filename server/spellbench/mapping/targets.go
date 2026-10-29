@@ -26,7 +26,7 @@ func TargetOf(env *Env, d *decision.Decision, o decision.Option) (protocol.Targe
 	}
 	r, err := env.Obs.Ref(d.Player, o.Obj)
 	if err != nil || r == nil {
-		return protocol.TargetRef{}, fmt.Errorf("%w: target %d not visible", ErrUnmapped, o.Obj)
+		return protocol.TargetRef{}, fmt.Errorf("%w:target %d not visible", ErrUnmapped, o.Obj)
 	}
 	return protocol.ObjectTarget(*r), nil
 }
@@ -91,7 +91,7 @@ func newCost(env *Env, d *decision.Decision) (Transaction, error) {
 	ref := func(opt int) (protocol.ObjectRef, error) {
 		r, err := env.Obs.Ref(d.Player, d.Options[opt].Obj)
 		if err != nil || r == nil {
-			return protocol.ObjectRef{}, fmt.Errorf("%w: cost object not visible", ErrUnmapped)
+			return protocol.ObjectRef{}, fmt.Errorf("%w:cost_object_not_visible", ErrUnmapped)
 		}
 		return *r, nil
 	}

@@ -363,7 +363,7 @@ The handshake: the host names the protocol, the engine answers with its profile.
 | `catalog` | five decks: Wildfire, Rally, Spy, Burn, CawGates | `catalog_id`, `name`, `decklist` |
 | `rules_supported` | `mulligan: [london, none]`, `starting_player: [host_assigned]` | |
 | `observation` | `day_night`, `designations`, `keywords`, `pending_triggers`, `permanent_details`, `player_counters` and `poison` true; `exiled_by`, `full_name`, `known_cards`, `passed_seats`, `player_progress`, `stack_text` false | Section 6.9 flags: a field behind a false flag is `null` |
-| `decision_kinds` | 24 of the 30 kinds (see [Candidate kinds](#candidate-kinds)) | |
+| `decision_kinds` | 25 of the 30 kinds (see [Candidate kinds](#candidate-kinds)) | |
 | `engine_defaults` | `combat_damage_assignment: "engine_order"`; `mana_payment: "engine_autopay"` under auto-pay, else `null`; `trigger_order` and `replacement_order` `null` | Section 7.6: choices the engine makes itself |
 | `rewind` | `false` | gorge never rewinds a decision |
 | `fairness` | `noninterference_probe: false` | no probe |
@@ -385,7 +385,8 @@ without auto-pay, so `mana_payment` is `null` and the version has no `/autopay`)
     "special_action", "choose_target", "finish_target_selection", "choose_cost_target",
     "choose_spell_mode", "choose_color", "choose_number", "choose_boolean", "choose_name",
     "select_object", "finish_selection", "optional_cost", "optional_cast", "mulligan",
-    "order_pick", "arrange_card", "choose_replacement", "declare_attack", "declare_block"],
+    "order_pick", "arrange_card", "choose_replacement", "declare_attack", "declare_block",
+    "choose_option"],
   "deck_sources": ["catalog"],
   "engine": {"card_pool_identity": "forge-unknown/corpus-796399f30625f372/catalog-ddaa89bf514cd72d",
     "name": "gorge", "rules_snapshot_id": "gorge/devel/ir-cf30b57c2e8789ca6998139416be78e8",

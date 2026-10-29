@@ -248,6 +248,11 @@ func TestCastMethodTable(t *testing.T) {
 		{decision.Option{Kind: "cast", Mode: "madness"}, "", "madness", "", ""},
 		{decision.Option{Kind: "cast", Mode: "miracle"}, "", "miracle", "", ""},
 		{decision.Option{Kind: "cast", Mode: "suspend_cast"}, "", "suspend", "", ""},
+		// Evoke is a Section 7.4 method in the protocol vocabulary.
+		{decision.Option{Kind: "cast", Mode: "evoked"}, "", "evoke", "", ""},
+		// Suspend is a special action, not a cast (the same vocabulary word
+		// as suspend_cast but a different mode).
+		{decision.Option{Kind: "cast", Mode: "suspend"}, "", "", "", "suspend"},
 		// Any alternative cost (Fireblast's), whichever it is.
 		{decision.Option{Kind: "cast", AltCostIndex: 1}, "", "alternative", "", ""},
 		{decision.Option{Kind: "cast", AltCostIndex: 2}, "", "alternative", "", ""},
@@ -276,9 +281,9 @@ func TestCastMethodTable(t *testing.T) {
 	// Every other mode gorge can offer at the pin fails closed (the engine
 	// notes list them, Task 29).
 	for _, mode := range []string{"multikicked", "kicked1", "kicked2", "kickedboth", "replicated", "squadded",
-		"evoked", "dashed", "overloaded", "warped", "morphed", "megamorphed", "disguised", "harmonize",
+		"dashed", "overloaded", "warped", "morphed", "megamorphed", "disguised", "harmonize",
 		"aftermath", "retrace", "jumpstart", "mayhem", "adventure_recast", "warp_recast", "room_alt",
-		"foretell", "suspend"} {
+		"foretell"} {
 		if _, _, _, ok := mapping.CastMethod(decision.Option{Kind: "cast", Mode: mode}, ""); ok {
 			t.Errorf("%s is mapped; it must fail closed", mode)
 		}
@@ -367,11 +372,13 @@ func TestNonManaAbilityIndexFailsClosed(t *testing.T) {
 			t.Errorf("%s: %d, %v; want %v", c.name, got, err, mapping.ErrUnmapped)
 		}
 	}
-	// The priority route halts on such an anchor rather than posing it.
+	// NonManaAbilityIndex still fails closed on a grant anchor; the priority
+	// route now indexes the grant after the printed abilities instead (see
+	// TestGrantedAbilityMapsToIndexedActivation).
 	env, d0, hand, _ := synthPosition(t)
 	d := synthetic(d0, decision.Option{Kind: "ability", Obj: hand[0], Ability: -1, Keyword: "Cycling:1 U"})
-	if err := poseErr(env, d); !errors.Is(err, mapping.ErrUnmapped) {
-		t.Errorf("keyword-granted ability option: %v, want %v", err, mapping.ErrUnmapped)
+	if err := poseErr(env, d); err != nil {
+		t.Errorf("keyword-granted ability option: %v, want a posed candidate", err)
 	}
 }
 
@@ -563,8 +570,14 @@ func TestPriorityOptionalAdditionalCost(t *testing.T) {
 // Option shapes that must halt rather than silently drop or merge a legal
 // action.
 func TestPriorityFailsClosed(t *testing.T) {
-	env, d0, hand, hidden := synthPosition(t)
+	env, d0, hand, _ := synthPosition(t)
 	a := hand[0]
+	// A hidden object the seat is not entitled to see: the other seat's hand.
+	otherHand := env.G.E.G.Zone(state.ZHand, 1-d0.Player)
+	if len(otherHand) == 0 {
+		t.Fatal("precondition: the other seat has no hand card")
+	}
+	hidden := otherHand[0]
 	for _, c := range []struct {
 		name string
 		want error
@@ -580,7 +593,6 @@ func TestPriorityFailsClosed(t *testing.T) {
 		{"unmapped cast mode", mapping.ErrUnmapped, []decision.Option{{Kind: "cast", Obj: a, Mode: "kicked1"}}},
 		{"granted", mapping.ErrUnmapped, []decision.Option{{Kind: "granted", Obj: a}}},
 		{"specialize", mapping.ErrUnmapped, []decision.Option{{Kind: "specialize", Obj: a}}},
-		{"station", mapping.ErrUnmapped, []decision.Option{{Kind: "station", Obj: a}}},
 		{"hidden object", mapping.ErrUnmapped, []decision.Option{{Kind: "cast", Obj: hidden}}},
 	} {
 		if err := poseErr(env, synthetic(d0, c.opts...)); !errors.Is(err, c.want) {

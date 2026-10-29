@@ -294,7 +294,7 @@ const shadowOpeningSeeds = 64
 func (b *Builder) shadowEngine(decks [2][]*cards.Card) *rules.Engine {
 	var e *rules.Engine
 	for seed := uint64(1); seed <= shadowOpeningSeeds; seed++ {
-		e = rules.New(rules.Config{Seed: seed, Names: []string{"s0", "s1"}, Decks: [][]*cards.Card{decks[0], decks[1]}, Tokens: b.Reg.Tokens})
+		e = rules.New(rules.Config{Seed: seed, Names: []string{"s0", "s1"}, Decks: [][]*cards.Card{decks[0], decks[1]}, Tokens: b.Reg.Tokens, NameUniverse: b.Reg.Universe()})
 		if d := e.Pending(); d == nil || len(d.Options) == 0 || d.Options[0].Kind != "opening_yes" {
 			break
 		}
