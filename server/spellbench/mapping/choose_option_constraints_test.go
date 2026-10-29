@@ -21,12 +21,11 @@ func TestNamedOptionCatchAllsSkipConstrainedAsks(t *testing.T) {
 		want string
 	}{
 		{
-			// The teamwork ask (cast_begin.go): distinct objects, Min 1,
-			// AllowNone and a MinSum threshold. Its single picks cannot reach
-			// the floor and its decline has no candidate.
-			name: "MinSum and AllowNone",
+			// The teamwork ask (cast_begin.go): distinct objects and a MinSum
+			// threshold. Its single picks cannot reach the floor.
+			name: "MinSum",
 			d: &decision.Decision{Player: 0, Kind: decision.KChoose, Min: 1, Max: 2,
-				MinSum: 5, AllowNone: true,
+				MinSum: 5,
 				Options: []decision.Option{
 					{Index: 0, Kind: "teamwork", Obj: 7, Value: 2},
 					{Index: 1, Kind: "teamwork", Obj: 8, Value: 3},
