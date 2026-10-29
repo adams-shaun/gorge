@@ -50,6 +50,32 @@ func TestRebuildSelectObjectAndArrange(t *testing.T) {
 		requireTranslated(t, tb, 1, "player select_object(single)")
 	})
 
+	t.Run("select_object proliferate", func(t *testing.T) {
+		tb := newTable(t, "Contentious Plan", "Island")
+		src := tb.spell("o-cp", "Contentious Plan")
+		a := objRef("o-pa", "Island", "battlefield")
+		b := objRef("o-pb", "Forest", "battlefield")
+		for _, r := range []protocol.ObjectRef{a, b} {
+			r := r
+			tb.obs.Players[0].Battlefield = append(tb.obs.Players[0].Battlefield, protocol.ObjectRecord{ObjectRef: r,
+				Characteristics: &protocol.Characteristics{Types: []string{"land"}, Supertypes: []string{}, Subtypes: []string{}, Colors: []string{}, Keywords: []string{}}})
+		}
+		ra, _ := json.Marshal(a)
+		rb, _ := json.Marshal(b)
+		cands := []string{
+			fmt.Sprintf(`{"kind":"select_object","source":%s,"purpose":"other","choice":{"object":%s},"selected_count":0,"minimum":0,"maximum":2}`, src, ra),
+			fmt.Sprintf(`{"kind":"select_object","source":%s,"purpose":"other","choice":{"object":%s},"selected_count":0,"minimum":0,"maximum":2}`, src, rb),
+			fmt.Sprintf(`{"kind":"finish_selection","source":%s,"purpose":"other","selected_count":0}`, src),
+		}
+		got := tb.ask(choiceCtx(src, "other"), [2]int{0, 3}, cands)
+		requireTranslated(t, tb, len(cands), "proliferate select_object")
+		// The proliferate arm takes the first Max, so the first pick is an
+		// object, not the finish option a generic first-Min fill would take.
+		if got["kind"] != "select_object" {
+			t.Fatalf("proliferate pick chose %v, want the first offered object", got["kind"])
+		}
+	})
+
 	t.Run("dig arrange_card and order_pick single", func(t *testing.T) {
 		tb := newTable(t, "Thundertrap Trainer", "Island", "Glimpse the Cosmos", "Revenge of the Drowned", "Trip Up")
 		srcRef := objRef("o-tt", "Thundertrap Trainer", "stack")

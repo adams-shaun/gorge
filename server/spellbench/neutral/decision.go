@@ -1115,6 +1115,12 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 	if sa != nil && ownHandOptions(sd) {
 		kind, ok = "hand_move", true
 	}
+	if ok && src != nil && purpose == "other" && s.hasAPI(*src, &sd.Observation, "Proliferate") {
+		// mapping routes a Proliferate pick through the protocol's "other"
+		// purpose, but the bot's proliferate arm takes the first Max options
+		// (Min 0 included), unlike the generic "other" first-Min fill.
+		kind = "proliferate"
+	}
 	if !ok {
 		return nil, nil, nil
 	}
@@ -1547,6 +1553,25 @@ func (s *Session) chainSA(src protocol.ObjectRef, want func(*cards.SA) bool) *ca
 		}
 	}
 	return nil
+}
+
+// hasAPI reports whether the source's asking ability (or, for a triggered
+// ability the observation cannot single out, any of its triggers) reaches an
+// SA with the given API. It is how the neutral world recovers the native
+// option kind a lossy protocol purpose (the "other" select_object) hides.
+func (s *Session) hasAPI(src protocol.ObjectRef, o *protocol.Observation, api string) bool {
+	f, roots := s.abilityRoots(src, o)
+	for _, root := range roots {
+		if root == nil {
+			continue
+		}
+		for _, sa := range chain(f, root) {
+			if sa.API == api {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // chain is root and the SubAbilities it leads to, in order.
