@@ -27,6 +27,18 @@ type ShuffleContext struct {
 
 type ShufflePlanner func(ShuffleContext) ([]state.ObjID, error)
 
+// ChanceContext is one non-shuffle draw past the chance prefix: Ordinal counts
+// the planner's own draws from zero, and Bound is the requested IntN bound.
+type ChanceContext struct {
+	Ordinal int
+	Bound   int
+}
+
+// ChancePlanner supplies one non-shuffle draw. The value must be in
+// [0, ctx.Bound); a planner error or an out-of-range value fails the engine's
+// chance boundary like any other chance failure.
+type ChancePlanner func(ChanceContext) (int, error)
+
 // NewHypothetical constructs an independent engine using checked chance
 // outcomes from prefix, then cfg.Seed's generator. Callers must supply their
 // own hypothetical seed and deck configuration, never the actual game's secret
@@ -46,6 +58,14 @@ func NewHypothetical(cfg Config, prefix []ChanceDraw) (e *Engine, err error) {
 // cards. Its chosen permutation is encoded into the ordinary chance transcript,
 // so replay needs no callback.
 func NewHypotheticalPlanned(cfg Config, prefix []ChanceDraw, planner ShufflePlanner) (e *Engine, err error) {
+	return NewHypotheticalChancePlanned(cfg, prefix, planner, nil)
+}
+
+// NewHypotheticalChancePlanned is NewHypotheticalPlanned with an opt-in
+// callback for every non-shuffle draw past the prefix. Its value is recorded
+// in the chance transcript exactly like a prefix value, so replay needs no
+// callback. A nil chance planner leaves such draws unplanned, as before.
+func NewHypotheticalChancePlanned(cfg Config, prefix []ChanceDraw, planner ShufflePlanner, chance ChancePlanner) (e *Engine, err error) {
 	for i, d := range prefix {
 		if d.Bound <= 0 {
 			return nil, fmt.Errorf("hypothetical chance draw %d: invalid bound %d", i, d.Bound)
@@ -56,7 +76,12 @@ func NewHypotheticalPlanned(cfg Config, prefix []ChanceDraw, planner ShufflePlan
 	}
 	defer recoverChance(&err)
 	r := newRNG(cfg.Seed)
-	r.chance = &chanceState{prefix: append([]ChanceDraw(nil), prefix...), planner: planner, shuffleOrdinals: make(map[state.PlayerID]int)}
+	r.chance = &chanceState{
+		prefix:          append([]ChanceDraw(nil), prefix...),
+		planner:         planner,
+		chancePlanner:   chance,
+		shuffleOrdinals: make(map[state.PlayerID]int),
+	}
 	e = newWithRNG(cfg, r, false)
 	return e, nil
 }
@@ -112,7 +137,14 @@ type chanceState struct {
 	draws           []ChanceDraw
 	failure         error
 	planner         ShufflePlanner
+	chancePlanner   ChancePlanner
 	shuffleOrdinals map[state.PlayerID]int
+	// nonShuffle counts the draws chancePlanner has supplied, so its ordinal
+	// counts only non-shuffle draws from zero.
+	nonShuffle int
+	// inShuffle marks the draws forcePermutation consumes as a planned
+	// library shuffle; they are not non-shuffle chance draws.
+	inShuffle bool
 	// unplanned counts draws recorded from the engine's own generator. It is
 	// a counter, not len(draws)-len(prefix): a planned shuffle materializes
 	// the already-generated suffix into prefix (rng.forcePermutation), so the
@@ -126,10 +158,11 @@ func (s *chanceState) clone() *chanceState {
 		return nil
 	}
 	return &chanceState{
-		prefix:    append([]ChanceDraw(nil), s.prefix...),
-		draws:     append([]ChanceDraw(nil), s.draws...),
-		failure:   s.failure,
-		unplanned: s.unplanned,
+		prefix:     append([]ChanceDraw(nil), s.prefix...),
+		draws:      append([]ChanceDraw(nil), s.draws...),
+		failure:    s.failure,
+		nonShuffle: s.nonShuffle,
+		unplanned:  s.unplanned,
 	}
 }
 
@@ -151,6 +184,7 @@ func (e *Engine) UnplannedDraws() int {
 func (e *Engine) ClearHypotheticalPlanner() {
 	if e != nil && e.rng != nil && e.rng.chance != nil {
 		e.rng.chance.planner = nil
+		e.rng.chance.chancePlanner = nil
 		e.rng.chance.shuffleOrdinals = nil
 	}
 }
@@ -199,6 +233,16 @@ func (s *chanceState) check(n int) {
 func (s *chanceState) record(n, value int) int {
 	if i := len(s.draws); i < len(s.prefix) {
 		value = s.prefix[i].Value
+	} else if s.chancePlanner != nil && !s.inShuffle {
+		v, err := s.chancePlanner(ChanceContext{Ordinal: s.nonShuffle, Bound: n})
+		if err != nil {
+			s.fail(fmt.Errorf("hypothetical chance planner draw %d: %w", len(s.draws), err))
+		}
+		if v < 0 || v >= n {
+			s.fail(fmt.Errorf("hypothetical chance planner draw %d: value %d outside [0,%d)", len(s.draws), v, n))
+		}
+		s.nonShuffle++
+		value = v
 	} else {
 		s.unplanned++
 	}

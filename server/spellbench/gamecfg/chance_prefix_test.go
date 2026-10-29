@@ -1,7 +1,6 @@
 package gamecfg_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -14,7 +13,7 @@ import (
 // TestChancePrefixSuppliesCoinFlip builds a game whose genesis is replayed from
 // a supplied prefix and whose next draw is a coin flip, not a shuffle: the
 // prefix value is consumed and CheckRandomness passes, while the same game
-// without a prefix reports the flip as unplanned randomness.
+// without a prefix lets the chance planner supply a different flip.
 func TestChancePrefixSuppliesCoinFlip(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	coin := chanceCoinCard(t)
@@ -39,8 +38,8 @@ func TestChancePrefixSuppliesCoinFlip(t *testing.T) {
 			len(baseline.E.ChanceTranscript())-len(genesis))
 	}
 
-	// The supplied value differs from what the seeded generator would draw, so
-	// consuming the prefix is observable even if the generator is unchanged.
+	// The supplied value differs from what the chance planner would draw, so
+	// consuming the prefix is observable even if the planner is unchanged.
 	supplied := 1 - defaultFlip
 	prefix := append(append([]rules.ChanceDraw(nil), genesis...),
 		rules.ChanceDraw{Bound: 2, Value: supplied})
@@ -61,7 +60,7 @@ func TestChancePrefixSuppliesCoinFlip(t *testing.T) {
 		t.Fatalf("transcript has %d draws, want the %d-draw prefix", len(got), len(prefix))
 	}
 	if got[len(got)-1] != (rules.ChanceDraw{Bound: 2, Value: supplied}) {
-		t.Fatalf("coin flip = %v, want the supplied %d (generator would give %d)",
+		t.Fatalf("coin flip = %v, want the supplied %d (planner would give %d)",
 			got[len(got)-1], supplied, defaultFlip)
 	}
 	if err := g.CheckRandomness(); err != nil {
@@ -110,10 +109,8 @@ func chanceCoinCard(t testing.TB) *cards.Card {
 }
 
 // castFirstCoinFlip drives g to the first draw past before, casting the coin
-// spell once and passing afterwards. The flip is the first draw no prefix or
-// planner supplied, so the submit that records it returns
-// ErrUnplannedRandomness. It returns the intents submitted and the recorded
-// flip value.
+// spell once and passing afterwards. It returns the intents submitted and the
+// recorded flip value.
 func castFirstCoinFlip(t *testing.T, g *gamecfg.Game, before int) ([]decision.Intent, int) {
 	t.Helper()
 	var intents []decision.Intent
@@ -146,19 +143,15 @@ func castFirstCoinFlip(t *testing.T, g *gamecfg.Game, before int) ([]decision.In
 		}
 		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{choice}}
 		intents = append(intents, in)
-		err := g.Submit(in)
+		if err := g.Submit(in); err != nil {
+			t.Fatalf("intent %d: %v", n, err)
+		}
 		tr := g.E.ChanceTranscript()
 		if len(tr) > before {
 			if !cast {
-				t.Fatalf("an unplanned draw appeared before the coin spell was cast: %v", tr[before:])
-			}
-			if !errors.Is(err, gamecfg.ErrUnplannedRandomness) {
-				t.Fatalf("unplanned coin flip error = %v, want %v", err, gamecfg.ErrUnplannedRandomness)
+				t.Fatalf("a draw appeared before the coin spell was cast: %v", tr[before:])
 			}
 			return intents, tr[before].Value
-		}
-		if err != nil {
-			t.Fatalf("intent %d: %v", n, err)
 		}
 	}
 	t.Fatal("coin spell did not resolve")

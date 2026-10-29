@@ -66,9 +66,11 @@ func (b *Builder) tokenStem(r protocol.ObjectRecord) string {
 
 // shadow rebuilds the game o reports. It is nil, with no error, when the
 // viewer does not hold priority (there is nothing to plan). A card in
-// handLike is placed in hand: the host offers a cast of it from another zone
-// (an exiled card the seat may play, a graveyard cast), a permission the
-// observation does not carry and the planner reads off the zone.
+// handLike is placed in the viewer's hand: the host offers a cast of it from
+// another zone (an exiled card the seat may play, a graveyard cast), a
+// permission the observation does not carry and the planner reads off the
+// zone. A card another seat owns is rebuilt as the viewer's own, so it is in
+// the hand the planner reads.
 func (b *Builder) shadow(o *protocol.Observation, handLike map[string]bool) (*shadow, error) {
 	sh, err := b.rebuild(o, handLike, o.PhaseStep)
 	if err != nil && (o.PhaseStep == "declare_attackers" || o.PhaseStep == "declare_blockers" || o.PhaseStep == "combat_damage") {
@@ -119,7 +121,7 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 			return fmt.Errorf("owner %q", r.OwnerSeat)
 		}
 		if handLike[r.ObjectID] {
-			zone = state.ZHand
+			zone, owner = state.ZHand, viewer
 		}
 		p := &placement{rec: r, zone: zone, owner: owner, stack: st}
 		if r.Token || r.Copy {
@@ -169,7 +171,7 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 			decks[i] = append(decks[i], filler)
 		}
 	}
-	e := rules.New(rules.Config{Seed: 1, Names: []string{"s0", "s1"}, Decks: [][]*cards.Card{decks[0], decks[1]}, Tokens: b.Reg.Tokens})
+	e := b.shadowEngine(decks)
 
 	// Assign each observed card a genesis object of its card.
 	free := map[state.PlayerID]map[*cards.Card][]state.ObjID{0: {}, 1: {}}
@@ -279,4 +281,23 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 		return nil, fmt.Errorf("the rebuilt game does not pose the seat's priority")
 	}
 	return sh, nil
+}
+
+// shadowOpeningSeeds bounds the shuffles shadowEngine tries.
+const shadowOpeningSeeds = 64
+
+// shadowEngine is a new game over the decks whose opening deal poses no
+// begin-the-game-with ask (a Gemstone Caverns dealt into a seat's opening
+// hand). The observed game is long past its opening, and answering the ask
+// would play the pre-game round on into a first turn the rebuild then
+// overwrites, so a deal that poses one is reshuffled under the next seed.
+func (b *Builder) shadowEngine(decks [2][]*cards.Card) *rules.Engine {
+	var e *rules.Engine
+	for seed := uint64(1); seed <= shadowOpeningSeeds; seed++ {
+		e = rules.New(rules.Config{Seed: seed, Names: []string{"s0", "s1"}, Decks: [][]*cards.Card{decks[0], decks[1]}, Tokens: b.Reg.Tokens})
+		if d := e.Pending(); d == nil || len(d.Options) == 0 || d.Options[0].Kind != "opening_yes" {
+			break
+		}
+	}
+	return e
 }
