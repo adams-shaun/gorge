@@ -191,10 +191,6 @@ func (b *builder) record(id state.ObjID) (protocol.ObjectRecord, error) {
 	if o.Zone == state.ZBattlefield {
 		rec.Permanent, err = b.permanent(o)
 	}
-	if err != nil {
-		return rec, err
-	}
-	rec.Abilities, err = b.abilities(id)
 	// An exiled card's exiling source is a public zone relation (the card's
 	// Object.ExiledWith), and a host rebuilding the board from the
 	// observation needs it: a source whose mana or count reads "cards exiled
@@ -207,46 +203,6 @@ func (b *builder) record(id state.ObjID) (protocol.ObjectRecord, error) {
 		}
 	}
 	return rec, err
-}
-
-// abilities projects the engine's ordered non-mana activated abilities 1:1,
-// in the order ObservedAbilities publishes that activate_ability.ability_index
-// names. It never drops an entry: a hidden grant source keeps its slot with a
-// null ref rather than leaking the object or shifting the list.
-func (b *builder) abilities(id state.ObjID) ([]protocol.AbilityRecord, error) {
-	opts := b.p.E.ObservedAbilities(b.viewer, id)
-	out := make([]protocol.AbilityRecord, 0, len(opts))
-	for _, o := range opts {
-		rec := protocol.AbilityRecord{Label: o.Label}
-		if o.SVar != "" {
-			s := o.SVar
-			rec.SVar = &s
-		}
-		if o.GrantSource != 0 {
-			r, err := b.p.Ref(b.viewer, o.GrantSource)
-			if err != nil {
-				return nil, err
-			}
-			rec.GrantSource = r
-		}
-		if o.GainedSource != 0 {
-			r, err := b.p.Ref(b.viewer, o.GainedSource)
-			if err != nil {
-				return nil, err
-			}
-			if r != nil {
-				rec.GainedFrom = r
-				gi := uint32(max(0, o.GainedIdx))
-				rec.GainedIndex = &gi
-			}
-		}
-		if o.Keyword != "" {
-			k := o.Keyword
-			rec.Keyword = &k
-		}
-		out = append(out, rec)
-	}
-	return out, nil
 }
 
 func (b *builder) records(cvs []view.CardView) ([]protocol.ObjectRecord, error) {

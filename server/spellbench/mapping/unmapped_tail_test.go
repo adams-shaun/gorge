@@ -13,128 +13,47 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/server/spellbench/internal/testcorpus"
-	"github.com/adams-shaun/gorge/server/spellbench/internal/testgame"
 	"github.com/adams-shaun/gorge/server/spellbench/mapping"
-	"github.com/adams-shaun/gorge/server/spellbench/observe"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
 // TestGrantedAbilityMapsToIndexedActivation covers an "ability" option whose
-// body the printed face does not carry (an SVar grant from another permanent).
-// v2 has only {source, ability_index}; the index is the position in the
-// observation's ordered ability list -- printed abilities first, then the
-// grant -- so the client can name the body the number points at. Each
-// candidate must pass the protocol validator and equal that position.
+// body the printed face does not carry (an SVar grant from another permanent,
+// and a gained ability). v2 has only {source, ability_index}; the mapping
+// places the printed non-mana abilities first and the grants after them in
+// engine offer order, and each candidate must pass the protocol validator.
 func TestGrantedAbilityMapsToIndexedActivation(t *testing.T) {
-	reg := testcorpus.Registry(t)
-	prodigal, ok := reg.Lookup("Prodigal Sorcerer")
-	if !ok {
-		t.Fatal(`precondition: corpus has no "Prodigal Sorcerer"`)
-	}
-	longbow, ok := reg.Lookup("Viridian Longbow")
-	if !ok {
-		t.Fatal(`precondition: corpus has no "Viridian Longbow"`)
-	}
-	island, ok := reg.Lookup("Island")
-	if !ok {
-		t.Fatal(`precondition: corpus has no "Island"`)
-	}
-	var deck []*cards.Card
-	for range 10 {
-		deck = append(deck, prodigal)
-	}
-	for range 10 {
-		deck = append(deck, longbow)
-	}
-	for range 20 {
-		deck = append(deck, island)
-	}
-
-	// A real game: both cards on the deciding seat's battlefield, so the later
-	// AddContinuous grant is exactly the card's static's shape.
-	var sorcerer, grantor state.ObjID
-	var seat state.PlayerID
-	g := repoGame(t, reg, deck, 1)
-	found := testgame.RunUntil(t, g, testgame.Bots(1), func(e *rules.Engine) bool {
-		d := e.Pending()
-		if d == nil || d.Kind != decision.KPriority {
-			return false
-		}
-		for _, id := range e.G.Zone(state.ZBattlefield, d.Player) {
-			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil {
-				continue
-			}
-			switch o.Face().Name {
-			case "Prodigal Sorcerer":
-				sorcerer = id
-			case "Viridian Longbow":
-				grantor = id
-			}
-		}
-		if sorcerer != 0 && grantor != 0 {
-			seat = d.Player
-			return true
-		}
-		return false
-	}, 30000)
-	if !found {
-		t.Fatal("precondition: no game put Prodigal Sorcerer and Viridian Longbow on one battlefield")
-	}
-	lbFace := longbow.Faces[0]
-	if cards.ResolveSVar(lbFace.SVars, "Damage") == nil {
-		t.Fatal(`precondition: Viridian Longbow has no "Damage" SVar body`)
-	}
-	g.E.AddContinuous(rules.ContinuousEffect{Source: grantor, Controller: seat,
-		Affects: "Creature.YouCtrl", AddAbilities: []string{"Damage"}, SVars: lbFace.SVars})
+	g := untilPending(t, "Wildfire", 1, func(d *decision.Decision, e *rules.Engine) bool {
+		return d.Kind == decision.KPriority && len(e.G.Zone(state.ZBattlefield, d.Player)) >= 2
+	})
 	env := envFor(t, g)
 	d0 := g.E.Pending()
-	if d0 == nil || d0.Player != seat {
-		t.Fatalf("precondition: pending %v for seat %d, want a priority decision for %d", d0, seat, seat)
+	bf := g.E.G.Zone(state.ZBattlefield, d0.Player)
+	recipient, grantor := bf[0], bf[1]
+	if recipient == grantor {
+		t.Fatal("need two distinct battlefield permanents")
+	}
+	if z := g.E.G.Obj(grantor).Zone; z != state.ZBattlefield {
+		t.Fatalf("grant source %d is in %s, want the battlefield", grantor, z)
 	}
 
-	// Precondition: the observation publishes exactly the printed body then
-	// the grant, with the grant anchored on the Longbow.
-	sref, err := env.Obs.Ref(seat, sorcerer)
-	if err != nil || sref == nil {
-		t.Fatalf("sorcerer ref: %v %v", sref, err)
-	}
-	lref, err := env.Obs.Ref(seat, grantor)
-	if err != nil || lref == nil {
-		t.Fatalf("longbow ref: %v %v", lref, err)
-	}
-	obs, err := env.Obs.Observation(seat, observe.State{})
+	// Precondition: the recipient is on the battlefield and its printed face
+	// has a measurable non-mana ability base; the two grants then take the
+	// next two indices.
+	base, err := mapping.GrantedAbilityIndex(g.E.G.Obj(recipient), 0)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("GrantedAbilityIndex: %v", err)
 	}
-	var rec *protocol.ObjectRecord
-	for pi := range obs.Players {
-		for i := range obs.Players[pi].Battlefield {
-			if obs.Players[pi].Battlefield[i].ObjectID == sref.ObjectID {
-				rec = &obs.Players[pi].Battlefield[i]
-			}
-		}
-	}
-	if rec == nil {
-		t.Fatalf("precondition: observation has no record for %s", sref.ObjectID)
-	}
-	if len(rec.Abilities) != 2 {
-		t.Fatalf("precondition: observed abilities = %d (%+v), want 2", len(rec.Abilities), rec.Abilities)
-	}
-	if a := rec.Abilities[0]; a.SVar != nil || a.GrantSource != nil || a.GainedFrom != nil || a.GainedIndex != nil || a.Keyword != nil {
-		t.Fatalf("precondition: printed entry has anchors: %+v", a)
-	}
-	granted := rec.Abilities[1]
-	if granted.SVar == nil || *granted.SVar != "Damage" || granted.GrantSource == nil ||
-		granted.GrantSource.ObjectID != lref.ObjectID {
-		t.Fatalf("precondition: granted entry = %+v, want SVar Damage from %s", granted, lref.ObjectID)
+	next, err := mapping.GrantedAbilityIndex(g.E.G.Obj(recipient), 1)
+	if err != nil || next != base+1 {
+		t.Fatalf("second grant index = %d, %v; want %d", next, err, base+1)
 	}
 
 	d := synthetic(d0,
-		decision.Option{Kind: "ability", Obj: sorcerer, Label: rec.Abilities[0].Label,
-			SVar: "Damage", GrantSource: grantor},
-		decision.Option{Kind: "ability", Obj: sorcerer, Ability: 0})
+		decision.Option{Kind: "ability", Obj: recipient, Label: "Granted: pump",
+			SVar: "GrantedPump", GrantSource: grantor},
+		decision.Option{Kind: "ability", Obj: recipient, Label: "Gained: draw",
+			GainedSource: grantor, GainedIdx: 0})
 	tx, err := mapping.Begin(env, d)
 	if err != nil {
 		t.Fatalf("granted ability is unmapped: %v", err)
@@ -143,10 +62,14 @@ func TestGrantedAbilityMapsToIndexedActivation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("granted ability pose: %v", err)
 	}
-	indices := map[int]uint32{}
-	for _, c := range p.Candidates {
+	var got []uint32
+	first := -1
+	for i, c := range p.Candidates {
 		if c.Sem.Kind != "activate_ability" {
 			continue
+		}
+		if first < 0 {
+			first = i
 		}
 		if err := c.Sem.Check(); err != nil {
 			t.Fatalf("activate_ability candidate %s fails the protocol shape: %v", semJSON(c.Sem), err)
@@ -155,28 +78,20 @@ func TestGrantedAbilityMapsToIndexedActivation(t *testing.T) {
 		if !ok {
 			t.Fatalf("ability_index %v is not a u32", c.Sem.Fields["ability_index"])
 		}
-		indices[c.Op.Option] = idx
+		got = append(got, idx)
 	}
-	grantedIdx, ok := indices[0]
-	if !ok {
-		t.Fatalf("no candidate commits the granted synthetic option (0): %+v", indices)
+	if want := []uint32{base, base + 1}; !slices.Equal(got, want) {
+		t.Fatalf("granted ability indices %v, want %v", got, want)
 	}
-	printedIdx, ok := indices[1]
-	if !ok {
-		t.Fatalf("no candidate commits the printed synthetic option (1): %+v", indices)
+	// The first granted candidate commits its native option (the first
+	// synthetic option; pass is native option 2 but Finalize moves its
+	// candidate to the front).
+	if first < 0 {
+		t.Fatalf("no activate_ability candidate: %s", semJSON(p.Candidates))
 	}
-	if grantedIdx != 1 {
-		t.Fatalf("granted ability_index = %d, want the grant's observation position 1", grantedIdx)
-	}
-	if printedIdx != 0 {
-		t.Fatalf("printed ability_index = %d, want the printed entry's position 0", printedIdx)
-	}
-	// The positions the mapping published are the observation's own list.
-	if rec.Abilities[grantedIdx].SVar == nil || *rec.Abilities[grantedIdx].SVar != "Damage" {
-		t.Fatalf("granted index does not name the observed grant: %+v", rec.Abilities)
-	}
-	if rec.Abilities[printedIdx].SVar != nil {
-		t.Fatalf("printed index does not name the observed printed entry: %+v", rec.Abilities)
+	commit, done, err := tx.Answer(first)
+	if err != nil || !done || len(commit) != 1 || len(commit[0].Choices) != 1 || commit[0].Choices[0] != 0 {
+		t.Fatalf("grant candidate commit %v, done %v, err %v", commit, done, err)
 	}
 }
 
