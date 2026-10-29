@@ -45,6 +45,13 @@ func openLookIfHidden(env *Env, d *decision.Decision) {
 // from the chooser: each hidden option is referenced through the seat's look,
 // as hiddenSelect does, while visible options keep their visible ids. The
 // purposes are the protocol's select_object vocabulary.
+//
+// The ask is the reveal: effects/cardflow.go's discardAsk poses its KModes
+// "discard" decision to the chooser (Mode$ RevealYouChoose and siblings) over
+// the discarder's hand, already narrowed to the cards the effect showed. So a
+// hidden option here is exactly a card this seat was revealed, and it takes
+// the look path plus a "revealed" known entry; no separate reveal event
+// exists for that shape.
 func mixedSelect(purp string, withSource bool) Builder {
 	return func(env *Env, d *decision.Decision) (Transaction, error) {
 		var src *protocol.ObjectRef
