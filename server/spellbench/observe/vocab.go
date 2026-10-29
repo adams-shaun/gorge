@@ -11,7 +11,7 @@ import (
 
 var Flags = map[string]bool{"poison": true, "player_counters": true, "designations": true, "player_progress": false,
 	"day_night": true, "passed_seats": false, "pending_triggers": true, "keywords": true, "full_name": false,
-	"exiled_by": false, "stack_text": false, "permanent_details": true, "known_cards": false}
+	"exiled_by": true, "stack_text": false, "permanent_details": true, "known_cards": false}
 
 func Seat(p state.PlayerID) string { return fmt.Sprintf("p%d", p) }
 
