@@ -223,6 +223,14 @@ type castKey struct {
 	alt    int
 }
 
+// abilityKey is the v2 identity of an activation: the source object and the
+// ability_index its observation publishes. Two engine options that share it
+// are the same activate_ability candidate (see Pose's seenAbilities).
+type abilityKey struct {
+	obj state.ObjID
+	idx uint32
+}
+
 // castGroup is the native variants behind one cast_spell candidate: a plain
 // cast and at most one optional-cost variant of it.
 type castGroup struct {
@@ -316,6 +324,14 @@ func (t *priorityTx) Pose() (*Pose, error) {
 	var groups []*castGroup          // in candidate order
 	byNative := map[int]*castGroup{} // native cast option -> its group
 	observed := map[state.ObjID][]decision.Option{}
+	// activate_ability names an ability, not a way to pay for it. One
+	// printed ability offered at its own cost and at an AlternateCost$ rider
+	// (K:Equip's fourth field, e.g. Gavel of the Righteous) projects to the
+	// same (source, ability_index); v2 has no cost field, so the first
+	// offered variant (the printed one) answers for both. Collapsing keeps
+	// the engine's option mapping: a decision that offers only the alternate
+	// still poses its option, because it is the first one seen.
+	seenAbilities := map[abilityKey]bool{}
 	// How many options with the same grant anchor this decision has already
 	// offered. Two live grants of an identical body sit at distinct
 	// inventory positions; the k-th offered one takes the k-th position.
@@ -336,7 +352,16 @@ func (t *priorityTx) Pose() (*Pose, error) {
 				face = 1
 			}
 			p.Candidates = append(p.Candidates, Cand{Sem: protocol.PlayLand(src, face), Op: NativeOp{Op: "choose", Option: o.Index}})
-		case "ability":
+		case "ability", "granted":
+			if o.Kind == "granted" && o.GrantSource == 0 {
+				// A max-speed static's "granted" option names its body only by
+				// SVar; the grant always belongs to the object carrying the
+				// static (engine/rules/legal_walk_battlefield.go and
+				// offBattlefieldGrantedWalk both offer Obj = the carrier).
+				// ObservedAbilities publishes that carrier as GrantSource, so
+				// anchor the option the same way.
+				o.GrantSource = o.Obj
+			}
 			src, err := t.ref(o.Obj)
 			if err != nil {
 				return nil, err
@@ -357,6 +382,11 @@ func (t *priorityTx) Pose() (*Pose, error) {
 			if err != nil {
 				return nil, err
 			}
+			key := abilityKey{obj: o.Obj, idx: idx}
+			if seenAbilities[key] {
+				continue // the same ability, offered at another payable cost
+			}
+			seenAbilities[key] = true
 			p.Candidates = append(p.Candidates, Cand{Sem: protocol.ActivateAbility(src, idx), Op: NativeOp{Op: "choose", Option: o.Index}})
 		case "station":
 			// kw:Station (CR 702.184a) is an activated ability in the rules,

@@ -85,7 +85,10 @@ func ObservedAbilities(e *Engine, p state.PlayerID, id state.ObjID) []decision.O
 			g.opt.Index = len(out)
 			out = append(out, g.opt)
 		}
-		return out
+		// A max-speed static can grant an activated ability from a
+		// non-battlefield zone too (engine/rules/legal_walk_offbattlefield_grants.go),
+		// so the inventory carries it after the ordinary grants.
+		return e.appendMaxSpeedObserved(out, p, id, f, labelName)
 	}
 	for _, ga := range e.grantedAbilitiesLimited(p, id, false) {
 		ab := ga.SA
@@ -118,6 +121,27 @@ func ObservedAbilities(e *Engine, p state.PlayerID, id state.ObjID) []decision.O
 	for _, g := range grants {
 		g.opt.Index = len(out)
 		out = append(out, g.opt)
+	}
+	// A max-speed static's AddAbility$ (kw:Start your engines, CR 702.179e) is
+	// a grant the continuous-effect list does not carry: engine/rules/speed.go's
+	// maxSpeedAbilities reads the printed static directly. Append it after the
+	// timed grants so the index stays object-stable across decisions. The
+	// artifact is a self-grant, so the granting object is the carrier itself.
+	return e.appendMaxSpeedObserved(out, p, id, f, labelName)
+}
+
+// appendMaxSpeedObserved adds the abilities a max-speed static grants id, in
+// face static order, after the inventory entries out already holds. It is the
+// inventory twin of the offer walk's maxSpeedAbilities loop.
+func (e *Engine) appendMaxSpeedObserved(out []decision.Option, p state.PlayerID, id state.ObjID, f *cards.Face, labelName string) []decision.Option {
+	for _, ab := range e.maxSpeedAbilities(p, id) {
+		sv := abSVarName(f, ab)
+		if sv == "" {
+			continue
+		}
+		out = append(out, decision.Option{Index: len(out), Kind: "ability",
+			Label: labelName + ": " + ab.ParamStr(cards.PKSpellDescription),
+			Obj:   id, Ability: -1, SVar: sv, GrantSource: id})
 	}
 	return out
 }
