@@ -414,6 +414,25 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 		return k
 	}
 	hasBudget := d.HasBudget()
+	// cheapest is the least mana-value sum of need eligible cards after from:
+	// the best completion a budget can offer at this decision point.
+	cheapest := func(from, need int) (int, bool) {
+		var vals []int
+		for j := from; j < t.n(); j++ {
+			if t.native[j] >= 0 {
+				vals = append(vals, values[j])
+			}
+		}
+		if len(vals) < need {
+			return 0, false
+		}
+		slices.Sort(vals)
+		sum := 0
+		for k := 0; k < need; k++ {
+			sum += vals[k]
+		}
+		return sum, true
+	}
 	t.legal = func(i int, dst string, chosen []string) bool {
 		taken, sum := 0, 0
 		for j, c := range chosen {
@@ -426,7 +445,20 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 			if taken+1 > d.Max {
 				return false
 			}
-			return !hasBudget || sum+values[i] <= d.MaxSum
+			taken++
+			sum += values[i]
+			need := d.Min - taken
+			if need <= 0 {
+				return true
+			}
+			if !hasBudget {
+				return taken+eligibleAfter(i) >= d.Min
+			}
+			// A budget choice is legal only when the rest of the ask can still
+			// meet Min within the cap: a candidate that dead-ends the
+			// arrangement must not be offered.
+			extra, ok := cheapest(i+1, need)
+			return ok && sum+extra <= d.MaxSum
 		}
 		// The remainder is still completable when enough eligible cards follow
 		// to meet Min and the cheapest such completion fits the budget.
@@ -440,17 +472,8 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 		if !hasBudget {
 			return true
 		}
-		var rest []int
-		for j := i + 1; j < t.n(); j++ {
-			if t.native[j] >= 0 {
-				rest = append(rest, values[j])
-			}
-		}
-		slices.Sort(rest)
-		for k := 0; k < need && k < len(rest); k++ {
-			sum += rest[k]
-		}
-		return sum <= d.MaxSum
+		extra, ok := cheapest(i+1, need)
+		return ok && sum+extra <= d.MaxSum
 	}
 	sentTo := func(dst string) (cards []int) {
 		for i, c := range t.chosen {

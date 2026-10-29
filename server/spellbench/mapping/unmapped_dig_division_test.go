@@ -102,6 +102,39 @@ func TestDigShapeCoversRepoSpellings(t *testing.T) {
 			"DigNum": "X", "ChangeNum": "1", "DestinationZone": "Hand", "DestinationZone2": "Graveyard"}},
 			4, "Look at the top 4 card(s) of your library", false},
 	}
+	t.Run("WithTotalCMC budget dead end", func(t *testing.T) {
+		// Min 2 over values 1, 2, 3 with a cap of 3: only the 1-value card
+		// leaves room for a second pick (1+2), so the 2- and 3-value partition
+		// candidates must not be offered at the first step.
+		sa := &cards.SA{API: "Dig", Params: map[string]string{
+			"DigNum": "3", "ChangeNum": "2", "DestinationZone": "Hand", "WithTotalCMC": "X"}}
+		d := digTakeDecision(t, g, sa, "Look at the top 3 card(s) of your library", 3)
+		d.Min, d.Max, d.MaxSum = 2, 2, 3
+		d.Options[0].Value = 1
+		d.Options[1].Value = 2
+		d.Options[2].Value = 3
+		tx, err := mapping.Begin(env, d)
+		if err != nil {
+			t.Fatalf("Begin: %v", err)
+		}
+		p, err := tx.Pose()
+		if err != nil {
+			t.Fatalf("Pose: %v", err)
+		}
+		primary := 0
+		for _, c := range p.Candidates {
+			if c.Sem.Kind == "arrange_card" && c.Sem.Fields["destination"] == "hand" {
+				primary++
+			}
+			if err := c.Sem.Check(); err != nil {
+				t.Fatalf("candidate %s fails the validator: %v", c.Sem.Kind, err)
+			}
+		}
+		if primary != 1 {
+			t.Fatalf("%d primary candidates, want only the 1-value card", primary)
+		}
+	})
+
 	t.Run("WithTotalCMC budget", func(t *testing.T) {
 		// The corpus's budgeted Dig (a sacrificed artifact's mana value as the
 		// cap): only the budget-eligible card is offered, and the picked set
