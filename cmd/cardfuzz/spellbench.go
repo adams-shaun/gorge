@@ -65,9 +65,10 @@ type sbOptions struct {
 	games                            int
 	seed                             uint64
 	workers                          int
-	// onlyPair, when >= 0, plays only that outcome pair (the fast repro of
-	// one seed); the run reports it under its original pair index.
-	onlyPair int
+	// onlyPair, when set to a non-negative index, plays only that outcome
+	// pair (the fast repro of one seed); the run reports it under its
+	// original pair index. Nil plays every pair.
+	onlyPair *int
 	// minAgree fails the twin run when a decision kind with at least
 	// sbMinAgreeSamples compared decisions agrees below this percentage
 	// (0 keeps the any-disagreement rule).
@@ -715,12 +716,12 @@ func (p sbOutcomeParity) fails(maxGapPP float64) bool {
 func runSBOutcome(reg *cards.Registry, p *pool, o sbOptions, out io.Writer) sbOutcomeParity {
 	jobs := sbJobs(p, o.seed, o.games)
 	runJobs := jobs
-	if o.onlyPair >= 0 {
-		if o.onlyPair >= len(jobs) {
-			fmt.Fprintf(out, "== spellbench outcome: -only-pair %d out of range (run has %d pairs) ==\n", o.onlyPair, len(jobs))
+	if o.onlyPair != nil && *o.onlyPair >= 0 {
+		if *o.onlyPair >= len(jobs) {
+			fmt.Fprintf(out, "== spellbench outcome: -only-pair %d out of range (run has %d pairs) ==\n", *o.onlyPair, len(jobs))
 			return sbOutcomeParity{}
 		}
-		jobs = jobs[o.onlyPair : o.onlyPair+1]
+		jobs = jobs[*o.onlyPair : *o.onlyPair+1]
 		// sbRun folds by slice position, so the chosen pair starts at 0; the
 		// report keeps its original pair number from jobs.
 		runJobs = append([]sbJob(nil), jobs[0])

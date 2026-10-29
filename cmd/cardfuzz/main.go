@@ -1136,7 +1136,7 @@ func main() {
 	}
 	sbOpts := sbOptions{mode: *sbMode, policy: *sbPolicy, autopay: apc.mode == "all", v2Both: *sbV2Both, maxSteps: uint64(*maxIntents),
 		maxTurns: *maxTurns, maxIntents: *maxIntents, maxObjects: *maxObjects, games: *games, seed: *seed, workers: *workers,
-		minAgree: *sbMinAgree, maxRebuildFail: *sbMaxRebuildFail, maxOutcomeGap: *sbMaxOutcomeGap, onlyPair: *sbOnlyPair}
+		minAgree: *sbMinAgree, maxRebuildFail: *sbMaxRebuildFail, maxOutcomeGap: *sbMaxOutcomeGap, onlyPair: sbOnlyPair}
 	if *repro != "" {
 		if *cpuProfile != "" {
 			pf, err := os.Create(*cpuProfile)
