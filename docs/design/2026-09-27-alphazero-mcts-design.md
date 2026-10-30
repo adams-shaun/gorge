@@ -212,7 +212,7 @@ Per generation, four readouts:
 - `systemd-run --user --scope -q -p MemoryMax=<cap>`, `GOMEMLIMIT=1GiB`,
   `taskset` to the granted cores.
 - Data, corpora, checkpoints and `GOTMPDIR` under
-  `/mnt/sata/gorge-training/az/`.
+  `$DATA/az/`.
 - One heavy job at a time machine-wide.
 
 ## §4 Testing and failure handling

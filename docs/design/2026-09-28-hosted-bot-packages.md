@@ -1351,7 +1351,7 @@ report records anything INFERRED that it measured.
 - **Files:** `bots/*/…` `Info` literals, this spec.
 - **Depends-On:** BP-16, BP-18. **Seat:** operator or by hand. These are
   heavy sweeps, one at a time, under `systemd-run --scope -p MemoryMax=4G`
-  with data on `/mnt/sata`.
+  with data on `$DATA`.
 - **Done means:** a report (now under `docs/design/` for living docs) holding each
   arm's command, games, CI and cost, and `Info` literals that cite it.
 

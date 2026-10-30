@@ -2,7 +2,7 @@
 #
 # Every knob is an environment variable with a default:
 #   BENCH_DIR   binaries, source snapshots, results, profiles
-#               (default /mnt/sata/gorge-training/enginebench: rebuildable scratch)
+#               (default ${TMPDIR:-/tmp}/gorge-enginebench: rebuildable scratch)
 #   DECKS       workload deck directory (default: the committed testdata/decks)
 #   CARDS       corpus directory (default: the repo's .cards)
 #   HEAVY_LOCK  optional flock file serialising heavy jobs; unset (the
@@ -19,7 +19,7 @@
 #               (default 3)
 
 REPO=$(git rev-parse --show-toplevel)
-BENCH_DIR=${BENCH_DIR:-/mnt/sata/gorge-training/enginebench}
+BENCH_DIR=${BENCH_DIR:-${TMPDIR:-/tmp}/gorge-enginebench}
 DECKS=${DECKS:-$REPO/cmd/enginebench/testdata/decks}
 CARDS=${CARDS:-$REPO/.cards}
 CARDS=$(cd "$CARDS" && pwd -P)

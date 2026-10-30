@@ -2965,10 +2965,9 @@ var structuralKeys = func() map[string]map[string]bool {
 
 // ignoredParamKeys are keys the census deliberately does NOT report, each
 // with the Forge behaviour that makes it presentation/AI-only. Verified
-// against the pinned Forge checkout (~/projects/ref/forge; grep the key to
-// see every consumer).
+// against a Forge checkout (grep the key to see every consumer).
 var ignoredParamKeys = map[string]string{
-	// Forge citations below are relative to ~/projects/ref/forge. These keys
+	// Forge citations below are relative to a Forge checkout. These keys
 	// affect Forge AI or rendered text only, never its game rules.
 	"AILogic":            "AI heuristic; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"AITgts":             "AI target hint; forge-game/src/main/java/forge/game/card/CardState.java",

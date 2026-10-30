@@ -191,7 +191,7 @@ independent importers (`pay`, `chars`, `trigmatch`, the oracle harness).
 
 Method: cold build with a private empty cache —
 `/usr/bin/time -v env GOCACHE=$PWD/.ds4/scratch/gocache-<x> GOMAXPROCS=2
-go build -o /dev/null ./engine/rules`. (`/mnt/sata/gorge-training` named in the brief
+go build -o /dev/null ./engine/rules`. (`$DATA` named in the brief
 is **read-only inside the task jail**; `mktemp -d -p` there fails with
 `Read-only file system`, so the cache lives inside the worktree.)
 

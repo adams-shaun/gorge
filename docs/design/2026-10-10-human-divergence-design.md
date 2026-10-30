@@ -77,8 +77,8 @@ Non-goals (v1):
 | Sampler starvation is real | pn20 smoke: 73 of 77 branched decisions (94.8%) were `no_world` before the redeal fallback existed | `archived 2026-09-24-pn20-hindsight-step1.md (docs/design/ARCHIVE.md)` §1 |
 | Training record the DPO path reads | `LabelRecord` "label-v1" (schema 2), with `Candidates` (index 0 = bot), `TeacherChoice`, `Margin`, `View` (seat view, `Decision` nil), `Board` (traceboard), `RescoreValues` | `lab/cmd/searchteacher/labels.go:35`, `:111`, `:121` |
 | Go reader of the same records | `policynet.labelRecord` mirror, `AcceptedLabelSchemaVersions = {1,2,3}`, `Load` | `bots/policynet/loader.go:37`, `:53`, `:154` |
-| DPO pair construction (off-repo) | `build_pairs`: Q = (8·values + 64·rescore)/72, chosen = argmax Q, rejected = candidates ≥ `--gap` (default 0.06) below; records without `rescore` are skipped | `/mnt/sata/gorge-training/llm-qlora/src/dpo.py:26-40`, `:142` (outside the repo, read 2026-10-10) |
-| Prompt rendering and game-level split (off-repo) | `render.to_example` (game key = `pair/game_index/seed`), `prep.py` splits by game | `/mnt/sata/gorge-training/llm-qlora/src/render.py`, `prep.py` |
+| DPO pair construction (off-repo) | `build_pairs`: Q = (8·values + 64·rescore)/72, chosen = argmax Q, rejected = candidates ≥ `--gap` (default 0.06) below; records without `rescore` are skipped | `$DATA/llm-qlora/src/dpo.py:26-40`, `:142` (outside the repo, read 2026-10-10) |
+| Prompt rendering and game-level split (off-repo) | `render.to_example` (game key = `pair/game_index/seed`), `prep.py` splits by game | `$DATA/llm-qlora/src/render.py`, `prep.py` |
 | Human seat, caretaker | `HumanSeat` with a deterministic caretaker bot. A timed-out or cancelled decision is answered by the caretaker, and `caretakerFires` counts each such answer | `server/host/humanseat.go:23`, `:40`, `:228` |
 | How hosted bots are built | `bots.New(name, bots.Options{Seed, AutoPayMana, Deps, DecisionDeadlineMS, ...})`, wrapped by `NewBotPolicySeatWithDeps`. The served deadline is 2000 ms | `bots/registry.go:104`, `:45`; `server/host/bot_policy.go:53`, `:69` |
 | Seat dispatch order for one decision | HumanSeat → `EnvSeat && WantsEnv` (Env with honest root) → `BoardSeat` → View | `server/host/match.go:449-516`, `server/host/botenv.go` (envData doc) |
@@ -608,7 +608,7 @@ Pipeline:
    `{divergence_id, bucket, sub_bucket, kind, checklist, text, confidence,
    reconsider}`. The view is not included; it is reachable by id. This is the
    only export that carries free text, and it stays on the training box
-   (`/mnt/sata/gorge-training/divergence/`), never in the repo.
+   (`$DATA/divergence/`), never in the repo.
 2. Clustering is off-repo, in the llm-qlora venv (it already holds the model
    weights and torch). Steps: embed the texts, cluster them, then have the LLM
    name each cluster and **propose a predicate in terms of view fields** (for

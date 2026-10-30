@@ -185,7 +185,7 @@ type config struct {
 	// artDir is the -art-dir flag: where the card-art cache (art.go) lives.
 	// Empty keeps the historical <dir>/art so every existing deployment, test
 	// and local run is byte-for-byte unchanged; a durable path — the demo deploy
-	// passes /mnt/sata/gorge-data/art — survives the persistence dir's
+	// passes one — survives the persistence dir's
 	// deploy-time wipe. A stale durable cache can never come back semantically
 	// wrong: every key is hashed under artKeyVersion (art.go), so a change in
 	// what a fetch writes rotates every key at once and the old bytes are

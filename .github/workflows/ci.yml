@@ -16,7 +16,7 @@
 #
 # Runner: pull_request jobs ALWAYS run on GitHub-hosted runners. Push, schedule
 # and dispatch jobs run on the operator's ephemeral k8s runners (label
-# gorge-box, bm-infra docs/gh-runner.md) when the repository variable
+# gorge-box) when the repository variable
 # CI_SELF_HOSTED is 'true', and on GitHub-hosted runners otherwise. The fork-PR
 # approval policy is all_external_contributors, so a fork cannot retarget a
 # job onto gorge-box without the owner approving that run.

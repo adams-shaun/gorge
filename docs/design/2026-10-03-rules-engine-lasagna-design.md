@@ -1013,7 +1013,7 @@ non-tournament (MakeCard, Planechase, Un-set stickers/contraptions, Draft).
 1. **Triage does not reuse.** A ruling is free text on one card's verdict row
    (`lab/oracle/compliance/verdicts.go:35`); the spec's shape rulings
    (`lab/oracle/compliance/rulings/<shape>.json`) were never built. Every divergence is
-   triaged by hand, and the cluster files live off-repo on `/mnt/sata`.
+   triaged by hand, and the cluster files live off-repo on `$DATA`.
 2. **The gate is fragile to unrelated change.** `canon_sha` hashes the whole
    canonical snapshot (`gate.go:197-199`) and `scenario_sha` moves with any
    generator change (`gate.go:189-191`). One engine fix cycle staled 14 of 20
@@ -1035,7 +1035,7 @@ non-tournament (MakeCard, Planechase, Un-set stickers/contraptions, Draft).
 
 | # | Change | Removes |
 |---|---|---|
-| C1 | **Commit the pass driver.** Move the std batch/write/summary scripts from `/mnt/sata/.../xmageoracle/` into `scripts/` behind `make compliance-pass SETS=…`; rerun only stale rows, under the heavy-job lock | X10 mechanical half; off-repo state |
+| C1 | **Commit the pass driver.** Move the std batch/write/summary scripts from `$DATA/.../xmageoracle/` into `scripts/` behind `make compliance-pass SETS=…`; rerun only stale rows, under the heavy-job lock | X10 mechanical half; off-repo state |
 | C2 | **Rulings by shape.** Key a ruling on `(template, field, normalised diff, IR api/mode)` in `lab/oracle/compliance/rulings/<shape>.json`; `oraclediff diff` auto-classifies matches (1-in-10 sampled for human check); `oraclediff triage` writes committed `lab/oracle/compliance/triage/<shape>.jsonl` clusters | per-card triage — Standard's 62 "choice" and 15 "class" divergences become 2 items |
 | C3 | **Field-level freezing.** Replace `canon_sha` with the frozen fields the scenario asserts (spec §7 `oracleExpect` vocabulary); one file per template under `oraclegen/templates/` with its own version, so a template change stales only that template's cards | gate fragility; `gen.go` as a hot file |
 | C4 | **Findings to tickets by class.** One `agentctl issue add` per shape or per primitive, carrying the affected cards and sets, each with a class-census ratchet (`fra_gap2_census_test.go` is the model). Retire `seed_candidates.py:321` | per-card fix tickets; duplicate fixes |

@@ -16,10 +16,10 @@ func loadBreakdownNet(b *testing.B) *Net {
 	b.Helper()
 	p := os.Getenv("NETSIMD_DZGW")
 	if p == "" {
-		p = "/mnt/sata/gorge-training/az-c6/g7.dzgw"
+		b.Skip("no network: NETSIMD_DZGW is unset")
 	}
 	if _, err := os.Stat(p); err != nil {
-		b.Skip("no network")
+		b.Skipf("no network at %s (NETSIMD_DZGW)", p)
 	}
 	g, err := Load(p, 0)
 	if err != nil {

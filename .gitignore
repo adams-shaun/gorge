@@ -3,6 +3,10 @@ bin/
 # scripts are GPL-3.0 and mtgcore is Apache-2.0.
 .cards/
 
+# Deck pools for dirac's oracle (GORGE_POOLS' default). 17Lands derivatives that
+# ship as a release asset, never in git.
+.pools/
+
 # Oracle-audit author packets (four-yay cmd/oraclepacket output): corpus-derived
 # printed card text handed to a scenario-writing seat. Never committed.
 .oracle-packets/
