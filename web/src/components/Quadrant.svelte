@@ -205,21 +205,16 @@
     background: color-mix(in srgb, var(--felt-raised) 70%, transparent);
   }
   /* An eliminated seat reads as greyed out without lying about its life
-     total. A ::after scrim with backdrop-filter dims what is painted below it
-     while leaving the (body-portalled) inspector untouched, and
-     pointer-events:none keeps every card inspectable through it. */
+     total. A ::after scrim tints what is painted below it while leaving the
+     (body-portalled) inspector untouched, and pointer-events:none keeps every
+     card inspectable through it. A plain tint, never backdrop-filter: that
+     faults the GPU on AMD iGPUs (lib/visualfx.ts). */
   .quadrant.lost::after {
     content: '';
     position: absolute;
     inset: 0;
     z-index: 2;
     pointer-events: none;
-    background: color-mix(in srgb, var(--felt-sunk) 62%, transparent);
-    backdrop-filter: grayscale(0.9) brightness(0.62);
-  }
-  /* Visual effects off (lib/visualfx): the scrim's tint alone still reads as greyed out. */
-  :global(html.fx-off) .quadrant.lost::after {
-    backdrop-filter: none;
     background: color-mix(in srgb, var(--felt-sunk) 78%, transparent);
   }
   /* A spectator's passive hand: a fixed band Board already took out of the
