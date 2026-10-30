@@ -328,8 +328,11 @@
      both are here. The mulligan hand puts real CardTiles inside the panel and
      their hover detail is such a descendant, so CardDetail portals itself to
      <body> rather than trusting `position: fixed` to mean the viewport. Do
-     not "fix" that by removing the blur: any of transform, filter,
-     backdrop-filter, will-change or contain would re-break it. */
+     not "fix" that by removing the transform: any of transform, filter,
+     backdrop-filter, will-change or contain would re-break it.
+     No backdrop-filter here or anywhere in the client: on an AMD iGPU under
+     Mesa radeonsi it makes Chrome's GPU process raise amdgpu page faults that
+     wedge the whole desktop (reproduced 2026-10-30; see lib/visualfx.ts). */
   .seat-panel {
     position: absolute;
     top: var(--sp-2);
@@ -341,19 +344,12 @@
     max-height: calc(100% - var(--sp-4));
     display: flex;
     flex-direction: column;
-    background: color-mix(in srgb, var(--instrument) 92%, transparent);
+    background: var(--instrument);
     border: 1px solid var(--edge-inst);
     border-left: 3px solid var(--edge-inst);
     border-radius: var(--radius);
-    backdrop-filter: blur(8px);
     color: var(--ink-inst);
     overflow: hidden;
-  }
-  /* Visual effects off (lib/visualfx). The transform above still makes the
-     panel the containing block the NOTE describes. */
-  :global(html.fx-off) .seat-panel {
-    backdrop-filter: none;
-    background: var(--instrument);
   }
   /* Warm: the table is stopped until this seat answers, and there is no pass.
      Cool: a window is open and passing is a legal answer. Neither: the wait

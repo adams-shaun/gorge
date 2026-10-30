@@ -1,11 +1,15 @@
 /**
  * Visual effects (GPU filters): a per-browser view setting, on / off,
- * default on. Off drops the board's backdrop-filters and the zoomed card's
- * drop-shadow, the shader-heavy paints a spectator board re-runs on every
- * repaint. It exists to isolate a GPU hang: on 2026-10-13 Chrome's GPU
- * process on an AMD iGPU raised amdgpu page faults and ring timeouts that
- * wedged the desktop while the demo was open, and backdrop-filter is the
- * prime suspect.
+ * default on. Off drops the zoomed card's drop-shadow.
+ *
+ * The client uses no backdrop-filter at all, whatever this setting says. On
+ * an AMD iGPU (Granite Ridge, Mesa radeonsi 25.2, Chrome 156) a board
+ * carrying backdrop-filter made Chrome's GPU process raise amdgpu page
+ * faults within 1.5-3 minutes; the ring resets that follow wedge the whole
+ * desktop. Measured 2026-10-30 with a guarded repro on a live 4-seat table:
+ * faults at 93 s and 180 s with backdrop-filter, a full 10 minutes clean
+ * with only backdrop-filter removed. A web page cannot fix the driver, so
+ * the client never issues the paint.
  *
  * `?fx=off` / `?fx=on` in the URL sets the value and saves it, so one link
  * reproduces either side of an A/B. Client-side only: the value lives in
