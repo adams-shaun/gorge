@@ -682,7 +682,6 @@
     max-height: none;
     border: 0;
     border-radius: 0;
-    backdrop-filter: none;
   }
 
   @media (max-width: 60rem) {
