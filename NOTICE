@@ -26,3 +26,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+17Lands. The 17Lands-derived decks in cmd/enginebench/testdata/decks derive from
+17Lands public datasets (https://www.17lands.com), licensed under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). Changes: decks filtered by
+win-rate bucket.
+
+XMage. engine/rules/testdata/sets lists card names taken from manifests derived
+from XMage (MIT, https://github.com/magefree/mage); see gorge-compliance's NOTICE.
+
+Magic: The Gathering and its card names are trademarks of Wizards of the Coast.
+gorge is not affiliated with or endorsed by Wizards of the Coast.
