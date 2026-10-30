@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // The public boundary (docs/decisions/0002-public-engines-and-draft.md): what
@@ -413,8 +414,9 @@ func verbatimBaselineProblems(found map[string]string, baseline []string, ceilin
 // baseline (forgeVerbatimBaselinePath). Failure messages name the script, never
 // the line.
 func TestNoVerbatimForgeLines(t *testing.T) {
-	folder := filepath.Join("..", "..", ".cards", "cardsfolder")
-	if _, err := os.Stat(folder); err != nil {
+	corpus, ok := testutil.SharedCorpusDir(".")
+	folder := filepath.Join(corpus, "cardsfolder")
+	if _, err := os.Stat(folder); !ok || err != nil {
 		msg := "TestNoVerbatimForgeLines (V1) needs the corpus: no " + folder + "; run make fetch-cards"
 		if os.Getenv("CI") != "" {
 			t.Fatal(msg)
