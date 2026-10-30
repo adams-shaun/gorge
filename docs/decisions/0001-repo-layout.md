@@ -2,6 +2,7 @@
 
 - **Status:** accepted 2026-10-16 (operator). Execution: phases below.
 - **Supersedes:** the flat-root layout and README's "Package layout" chain.
+- **Amended by:** [ADR 0002](0002-public-engines-and-draft.md) (2026-10-30).
 
 ## Why
 
