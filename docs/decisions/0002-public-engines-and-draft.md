@@ -45,8 +45,9 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
    unresolvable ticket tags in the moved trees. It has no allowlist.
 7. **Third-party data stays attributed.** Every data source is named in `NOTICE`:
    17Lands public datasets (CC BY 4.0), MTGJSON (MIT), XMage-derived set lists
-   (MIT), MageZero's encoder design (MIT), SpellBench (MIT). Deck pools are 17Lands
-   derivatives under CC BY 4.0 and ship as an attributed release asset, not in git.
+   (MIT), MageZero's encoder design (MIT), SpellBench (MIT), mtg-kernel's pauper deck
+   catalog (MIT). Deck pools are 17Lands derivatives under CC BY 4.0 and ship as an
+   attributed release asset, not in git.
 8. **Zero divergence.** A card dirac supports plays identically to gorge. See the
    program's decision 6 as recorded in `dirac/docs/verification.md`. gorge leads
    and dirac catches up; until then dirac refuses the card.

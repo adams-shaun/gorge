@@ -27,9 +27,10 @@ import (
 // allowlist. engine/cards/boundary_test.go stays as it is; G6 extends its check
 // to every file extension.
 //
-// The scanned set is what `git add` could reach, tracked and untracked but not
-// ignored. The test process reads each file itself and lists each parent
-// directory, so go test's result cache tracks them (see packages' doc comment).
+// The scanned set is the tracked files: what a pull request carries, so a stray
+// local file cannot fail the test. The test process reads each file itself and
+// lists each parent directory, so go test's result cache tracks them (see
+// packages' doc comment).
 //
 // Fragments that this file's own scan would catch are split into pieces.
 
@@ -217,14 +218,14 @@ func publicBoundaryViolations(path string, blob []byte) []string {
 	return out
 }
 
-// walkPublicFiles reads every file git could reach, tracked or untracked but
-// not ignored, and calls visit with its slash-separated repository path. A file
-// deleted from the working tree, a symlink and a submodule have no content here
-// to scan. It returns the paths it visited.
+// walkPublicFiles reads every tracked file and calls visit with its
+// slash-separated repository path. A file deleted from the working tree, a
+// symlink and a submodule have no content here to scan. It returns the paths it
+// visited.
 func walkPublicFiles(t *testing.T, visit func(path string, blob []byte)) map[string]bool {
 	t.Helper()
 	root := filepath.Join("..", "..")
-	cmd := exec.Command("git", "-C", root, "ls-files", "-z", "--cached", "--others", "--exclude-standard")
+	cmd := exec.Command("git", "-C", root, "ls-files", "-z", "--cached")
 	cmd.Env = cards.GitEnv()
 	out, err := cmd.Output()
 	if err != nil {

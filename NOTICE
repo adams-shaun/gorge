@@ -35,5 +35,10 @@ win-rate bucket.
 XMage. engine/rules/testdata/sets lists card names taken from manifests derived
 from XMage (MIT, https://github.com/magefree/mage); see gorge-compliance's NOTICE.
 
+mtg-kernel. bots/spellbench/decks/pauper-kernel and
+cmd/enginebench/testdata/decks/burn.json derive from the SpellBench pauper deck
+catalog in jackmaiorino/mtg-kernel (MIT, https://github.com/jackmaiorino/mtg-kernel),
+data/pauper_pool_v1.json.
+
 Magic: The Gathering and its card names are trademarks of Wizards of the Coast.
 gorge is not affiliated with or endorsed by Wizards of the Coast.
