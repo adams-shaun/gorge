@@ -123,3 +123,6 @@ gorge is licensed under Apache-2.0 (see [LICENSE](LICENSE)). Forge's card script
 pinned to a commit (`FORGE_REF` in the `Makefile`) of the
 [adams-shaun/forge](https://github.com/adams-shaun/forge) fork, and
 `engine/cards/boundary_test.go` fails the build if a script is ever tracked.
+kgen's generated card tables are also never committed: they are built from
+`.cards` into a gitignored directory. `NOTICE` names every third-party data
+source, including 17Lands public datasets (CC BY 4.0).

@@ -11,7 +11,7 @@ primitives that IR references. See
 
 ## Repository layout
 
-[ADR 0001](docs/decisions/0001-repo-layout.md) (2026-10-16) groups the tree:
+[ADR 0001](docs/decisions/0001-repo-layout.md) and [ADR 0002](docs/decisions/0002-public-engines-and-draft.md) group the tree:
 
 - `engine/`: the rules core (`cards state decision events effects rules view
   replay deck`, and `seat`, the `Seat` contract only). Imports nothing outside.
@@ -52,6 +52,7 @@ v2, and the training and adoption ladder).
   `forgec fetch` pulls the card corpus and token scripts into `.cards/`,
   pinned to a commit SHA (`FORGE_REF` in the Makefile), which is gitignored.
   `engine/cards/boundary_test.go` fails the build if any are tracked.
+- **Never commit kgen's generated card tables, or anything private.** Tables are mechanical translations of GPL-3.0 scripts and live in a gitignored directory. `internal/archtest`'s `TestPublicBoundary` fails on them, on private paths, and on any import of the private module.
 - **No cgo, no third-party deps** in the card pipeline and rules core.
   `wazero` arrives with the plugin tier in M3.
 - **All state mutation goes through `events.Apply`.** If you are writing to a

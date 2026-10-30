@@ -42,6 +42,9 @@ a fragment pasted into a test, a fixture or a doc. Tests name cards and read
 the corpus at run time. `engine/cards/boundary_test.go` fails the build if a
 script is ever tracked. If a card is wrong because its *script* is wrong,
 the fix goes to the fork and upstream, not here (see the walkthrough).
+`internal/archtest`'s `TestNoVerbatimForgeLines` enforces the no-fragment rule
+for `dirac/` and `draft/`, and holds a shrinking baseline elsewhere. kgen's
+generated tables are never committed either.
 
 ## The six rules that matter
 
@@ -61,7 +64,7 @@ with what enforces each one, is in
 4. **`events.Kind` is append-only.** A new event kind goes after the last
    constant in `engine/events/event.go`, so ordinals, the hash chain and
    every golden replay stay valid.
-5. **Never commit Forge card scripts** (the GPL boundary above).
+5. **Never commit Forge card scripts or kgen's generated tables** (the GPL boundary above).
 6. **The engine never imports the server or the application.** `engine/`
    packages do not import `server/`, `bots/` or `cmd/`; within the
    engine, `effects` never imports `rules`. `internal/archtest` enforces the
