@@ -9,11 +9,11 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRoundSevenFindingsMirror replays round-7 paymirror finding games end to
+// TestFloatRouteFindingsMirror replays paymirror games whose findings came from the float route, end to
 // end: no cast is a mismatch, the live-vs-clone control is equivalent, and
 // each named cast gets its root-caused verdict.
 //
-//   - 4038 (commander4-fresh, 14x + 11x in commander4-new):
+//   - 4038 (commander4):
 //     no_matching_mana_option on Urza's Workshop's metalcraft ability, whose
 //     non-literal Amount$ the wheel labels "Add C" exactly like its plain
 //     {T}: Add {C}; the float now proves the option on a clone
@@ -29,40 +29,12 @@ import (
 //     changes the bot's cast trajectory, so the old seq-675 Warping Wail
 //     finding is no longer reached; all reported casts remain mirrored.
 //
-// fb-20260927T163321Z-69285807 re-pinned the commander seeds (4038, 6191)
-// after the command-zone payment-plan fix: a commander in the command zone
-// now gets a plan, the auto-pay bots cast it through one, and those games
-// move. fb-20260927T212721Z-1f9fc4b0 restores active-player priority after
-// an as-enters election; this adds priority/pass events and moves seed 4038's
-// Eldrazi Monument from seq 7684 to 7696 and seed 6191's Roaming Throne cast
-// from seq 9956 to 9969. lifeLost1's replay-visible AFLifeLost publication
-// then moves seed 6191's Roaming Throne cast further, to seq 9979 on the
-// merged tree (9969 under the ETB fix alone, 9966 under lifeLost1 alone); its
-// float-trigger verdict stays. agent-20261003T030241Z-d3324728 (the exiled-with
-// fix: `Defined$ ExiledWith` and `Card.ExiledWithSource` now read the source's
-// forward ExiledCards list over every seat, and ChangeZoneAll records it)
-// moves the same cast from seq 9979 to 9983: foundations-calling-all-angels
-// runs Oblivion Ring, whose leave-the-battlefield trigger now returns the card
-// it exiled, changing the trajectory. The spell-copy cessation fix adds the
-// replay-visible cease event and moves this cast to seq 9987; the verdict is
-// unchanged.
-// cli-20261004T233422Z-38455ebd (ConditionZone$ now filters a battlefield
-// zone too: a Defined$ object that left the battlefield no longer satisfies
-// a ConditionZone$ Battlefield gate) moves seed 4038 so it never casts Eldrazi
-// Monument through Urza's Workshop's metalcraft ability; its pin is seq 0 --
-// the whole game is still replayed and every planned cast must mirror, but
-// no named cast is required.
-// cov-loyaltyrank (the bot now ranks planeswalker loyalty abilities by their
-// cost/effect facts instead of always taking the first one) moves seed 6191:
-// its Roaming Throne cast at seq 9987 is no longer reached, so it is pinned
-// at seq 0 like 4038. The float-trigger-order shape stays
-// covered by TestFloatTrimmedTriggerOrderAllowsOnlyFloatTriggers.
-// xp-b6-gaincontrol (CR 110.2a/603.3a: a card put onto the battlefield "under
-// your control" enters under the new controller, not its owner with a late
-// ControlChange) also moves seed 6191's trajectory: Oblivion Sower's exiled
-// lands now enter under the caster, so the seq-9987 Roaming Throne
-// float-trigger finding is not reached either; the seq-0 pin holds.
-func TestRoundSevenFindingsMirror(t *testing.T) {
+// 4038 and 6191 no longer reach their named casts. Their pins are seq 0: the whole
+// game is replayed and every planned cast must mirror, but no named cast is
+// required. TestFloatTrimmedTriggerOrderAllowsOnlyFloatTriggers covers the
+// float-trigger order, and TestUrzasWorkshopMetalcraftMirrorsRePin the metalcraft
+// path.
+func TestFloatRouteFindingsMirror(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	d, err := LoadDecks(reg)
@@ -81,7 +53,7 @@ func TestRoundSevenFindingsMirror(t *testing.T) {
 		{6191, []string{"foundations-wretched-ranks", "avengers-assemble", "ulalek-eldrazi", "hearthhull-worldseed-landfall"}, true, 0, ""},
 		{5108, []string{"eldrazi-stompy", "mono-red-prowess"}, false, 0, ""},
 	} {
-		reports := round6Game(t, d, GameSpec{Seed: tc.seed, Decks: tc.decks, Commander: tc.commander, Policy: "bot"})
+		reports := findingGame(t, d, GameSpec{Seed: tc.seed, Decks: tc.decks, Commander: tc.commander, Policy: "bot"})
 		found := false
 		for _, r := range reports {
 			st, key := r.Verdict()

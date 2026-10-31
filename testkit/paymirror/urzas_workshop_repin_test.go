@@ -95,8 +95,7 @@ func driveUrzasWorkshopGame(t *testing.T, d *Decks, spec GameSpec) []watchedCast
 	return out
 }
 
-// TestUrzasWorkshopMetalcraftMirrorsRePin restores the round-7 paymirror pin
-// that commit e641cc0bd (ConditionZone$) moved out of seed 4038: a named cast
+// TestUrzasWorkshopMetalcraftMirrorsRePin pins a named cast
 // paid through Urza's Workshop's metalcraft ability ("{T}: Add {C} for each
 // Urza's land you control; activate only if you control three or more
 // artifacts"). The wheel labels that non-literal Amount$ as the bare "Add C",
@@ -108,11 +107,8 @@ func driveUrzasWorkshopGame(t *testing.T, d *Decks, spec GameSpec) []watchedCast
 // cast must activate Workshop's Index-1 ability for more than one mana and
 // must mirror the planner's witness through the executor.
 //
-// The seed is 68, not the original 7: the paid-cost census default-on flip
-// (cli-20261012T170859Z) changed the bot's payment so seed 7 no longer pays
-// Cranial Plating through the Workshop's metalcraft ability at all; 68 is the
-// first seed of this list that reaches the same path (one metalcraft cast,
-// Cranial Plating, source exactly the Workshop, >1 mana).
+// Seed 68 is the first of this list that reaches the path: one metalcraft cast,
+// Cranial Plating, source exactly the Workshop, more than one mana.
 func TestUrzasWorkshopMetalcraftMirrorsRePin(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

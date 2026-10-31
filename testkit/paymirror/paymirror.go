@@ -914,7 +914,7 @@ func choosesFloatSpentSource(b *rules.Engine, rep *Report, r Recorded) bool {
 // the board -- affinity for artifacts and the other "costs {1} less for
 // each ..." statics. Floating at priority sacrifices it first, and the cast
 // is then priced without it: exactly the witnessed mana no longer pays.
-// Measured (round-10 cardfuzz mirror-r9 seed 12931427917867112207, Panther
+// Measured (cardfuzz mirror seed 12931427917867112207, Panther
 // Robot, affinity for artifacts): the plan's artifact source was sacrificed
 // for {G} on the float, the cost rose from {8} to {9}, and 8 mana floated.
 //
@@ -1142,7 +1142,7 @@ func floatCreatedTriggers(b *rules.Engine, forkObjs int) map[floatTriggerKey]int
 // two Eldrazi Spawn, Scrap Trawler's for each of two Treasures) wait
 // together and their controller orders them; the float route activates one
 // source at a time at priority, so each trigger is put on the stack alone,
-// with nothing to order (round-9 commander4 seed 11056, random4 seed 10056).
+// with nothing to order (commander4 seed 11056, random4 seed 10056).
 // A single remaining trigger is likewise put on the stack without an ask.
 // Skipping the ask proves nothing by itself: the route's end state is
 // compared as usual, through floatTriggerOnly when the float's triggers are
@@ -1644,18 +1644,18 @@ func preferLifted(d *decision.Decision, prefer int, want decision.ManaAmount) bo
 //     pip (rules' manaAmountPips: a wrong number on the wheel is worse than
 //     none), so Urza's Workshop's metalcraft "Add {C} for each Urza's land
 //     you control" reads "Add C" beside its plain {T}: Add {C} and no label
-//     can match a CC witness (round-7 commander4 seeds 4038/6130/6146);
+//     can match a CC witness (commander4 seeds 4038/6130/6146);
 //   - Leafkin Druid's "Add {G}, or {G}{G} with four creatures" reads "Add G";
 //     beside a granted "Add any color" the any-colour class matched the
 //     grant, and the float tapped it for one where the witness was GG
-//     (round-9 cardfuzz mirror seed 17348437687370656270,
+//     (cardfuzz mirror seed 17348437687370656270,
 //     production_differs);
 //   - Command Tower's "Produced$ Combo ColorIdentity" reaches the stage-1
 //     wheel as the raw "Add Combo ColorIdentity" (manaProducedLabel has no
 //     commander-identity wording), which no label class parses; the
 //     any-colour class matched a Tectonic Split-granted "Add three mana of
 //     any one color" on the same land instead and the float tapped it for
-//     three where the witness was G (round-9 commander4 seed 10860,
+//     three where the witness was G (commander4 seed 10860,
 //     production_differs).
 //
 // Only an option proven on the clone is accepted, so the fallback can never
@@ -1764,7 +1764,7 @@ func labeledAnyCount(tail string) (int, bool) {
 // anyLabelFits reports whether an any-colour option's label can produce a
 // witness of total want: a label naming a literal amount ("Add three mana of
 // any one color") produces exactly that many, so it cannot be the source of
-// a one-pip witness (round-9 commander4 seed 10860: a Tectonic Split grant
+// a one-pip witness (commander4 seed 10860: a Tectonic Split grant
 // beside Command Tower's own ability). "Add any color" names no amount (the
 // wheel spells a non-literal Amount$ that way too) and always fits.
 func anyLabelFits(label string, want decision.ManaAmount) bool {
@@ -2115,7 +2115,7 @@ func witnessViolation(a *rules.Engine, fork int, plan decision.PaymentPlan, paye
 //
 // A zone change of the source that no mana follows is not its activation:
 // the source left for another reason after it was activated. Measured
-// (round-10 paymirror commander4-r9 seed 10877 seq 2873, Infernal Plunge:
+// (paymirror commander4 seed 10877 seq 2873, Infernal Plunge:
 // "As an additional cost to cast this spell, sacrifice a creature"): the
 // plan's Treasonous Ogre paid 3 life for {R} in the CR 601.2g window, then
 // was the creature sacrificed for the spell's additional cost in CR 601.2h,

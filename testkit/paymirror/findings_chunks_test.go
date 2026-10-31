@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The round-N findings mirrors (TestRoundNineFindingsMirrorKernelChunkNN,
-// TestRoundTenFindingsMirrorChunkNN) replay a file of finding games one
+// The round-N findings mirrors (TestRecordedFindingsMirrorKernelChunkNN,
+// TestRecordedFindingsMirrorChunkNN) replay a file of finding games one
 // chunk per test: run whole, each round played its four games serially in
 // one test, ~15 s alone at 4 vCPU and 31.6 s under gate contention
 // (2026-10-12). Chunk i of K plays specs[i*n/K : (i+1)*n/K] in file order,

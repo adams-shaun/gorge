@@ -2,9 +2,9 @@ package paymirror
 
 import "testing"
 
-// TestRoundNineFindingsMirrorKernel (TestRoundNineFindingsMirrorKernelChunkNN,
-// sharded per findings_chunks_test.go) replays the round-9 paymirror finding
-// games (testdata/round9.jsonl: repo deck names or random card-name lists,
+// TestRecordedFindingsMirrorKernel (TestRecordedFindingsMirrorKernelChunkNN,
+// sharded per findings_chunks_test.go) replays recorded paymirror finding
+// games (testdata/findings_recorded_kernel.jsonl: repo deck names or random card-name lists,
 // no script text) end to end on the resolution kernel: no cast is a
 // mismatch, the live-vs-clone control is equivalent, and each named cast
 // gets its root-caused verdict:
@@ -20,8 +20,8 @@ import "testing"
 //     former Songs of the Damned finding, so that planned cast is no longer
 //     reached (verified against the pre-fix keyword expansion).
 //
-// roundNineWant holds those pins.
-var roundNineWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key ("" = equivalent)
+// recordedKernelWant holds those pins.
+var recordedKernelWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key ("" = equivalent)
 	10860: {4745: ""},
 	11056: {},
 	10056: {},
@@ -29,29 +29,29 @@ var roundNineWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key 
 }
 
 const (
-	roundNineFile   = "testdata/round9.jsonl"
-	roundNineChunks = 4
+	recordedKernelFile   = "testdata/findings_recorded_kernel.jsonl"
+	recordedKernelChunks = 4
 )
 
-func TestRoundNineFindingsMirrorKernelChunk00(t *testing.T) { runRoundNineChunk(t, 0) }
-func TestRoundNineFindingsMirrorKernelChunk01(t *testing.T) { runRoundNineChunk(t, 1) }
-func TestRoundNineFindingsMirrorKernelChunk02(t *testing.T) { runRoundNineChunk(t, 2) }
-func TestRoundNineFindingsMirrorKernelChunk03(t *testing.T) { runRoundNineChunk(t, 3) }
+func TestRecordedFindingsMirrorKernelChunk00(t *testing.T) { runRecordedKernelChunk(t, 0) }
+func TestRecordedFindingsMirrorKernelChunk01(t *testing.T) { runRecordedKernelChunk(t, 1) }
+func TestRecordedFindingsMirrorKernelChunk02(t *testing.T) { runRecordedKernelChunk(t, 2) }
+func TestRecordedFindingsMirrorKernelChunk03(t *testing.T) { runRecordedKernelChunk(t, 3) }
 
-// TestRoundNineFindingsMirrorKernelChunksPartitionTheSpecs: the chunks play
-// every round-9 spec exactly once (checkFindingPartition).
-func TestRoundNineFindingsMirrorKernelChunksPartitionTheSpecs(t *testing.T) {
-	checkFindingPartition(t, findingSpecs(t, roundNineFile, 4), roundNineChunks, []func(*testing.T){
-		TestRoundNineFindingsMirrorKernelChunk00, TestRoundNineFindingsMirrorKernelChunk01,
-		TestRoundNineFindingsMirrorKernelChunk02, TestRoundNineFindingsMirrorKernelChunk03})
+// TestRecordedFindingsMirrorKernelChunksPartitionTheSpecs: the chunks play
+// every recorded spec exactly once (checkFindingPartition).
+func TestRecordedFindingsMirrorKernelChunksPartitionTheSpecs(t *testing.T) {
+	checkFindingPartition(t, findingSpecs(t, recordedKernelFile, 4), recordedKernelChunks, []func(*testing.T){
+		TestRecordedFindingsMirrorKernelChunk00, TestRecordedFindingsMirrorKernelChunk01,
+		TestRecordedFindingsMirrorKernelChunk02, TestRecordedFindingsMirrorKernelChunk03})
 }
 
-// runRoundNineChunk is one shard of TestRoundNineFindingsMirrorKernel.
-func runRoundNineChunk(t *testing.T, i int) {
+// runRecordedKernelChunk is one shard of TestRecordedFindingsMirrorKernel.
+func runRecordedKernelChunk(t *testing.T, i int) {
 	t.Parallel()
 	d := findingDecks(t)
-	for _, spec := range findingChunk(findingSpecs(t, roundNineFile, 4), roundNineChunks, i) {
-		reports := round6Game(t, d, spec)
+	for _, spec := range findingChunk(findingSpecs(t, recordedKernelFile, 4), recordedKernelChunks, i) {
+		reports := findingGame(t, d, spec)
 		if len(reports) == 0 {
 			t.Errorf("seed %d: no planned-cast reports; clean-game assertions would be vacuous", spec.Seed)
 		}
@@ -64,7 +64,7 @@ func runRoundNineChunk(t *testing.T, i int) {
 			if r.Control == nil || r.Control.Status != Equivalent {
 				t.Errorf("seed %d seq %d %q: control %+v", spec.Seed, r.Seq, r.Card, r.Control)
 			}
-			w, ok := roundNineWant[spec.Seed][r.Seq]
+			w, ok := recordedKernelWant[spec.Seed][r.Seq]
 			if !ok {
 				continue
 			}
@@ -73,7 +73,7 @@ func runRoundNineChunk(t *testing.T, i int) {
 				t.Errorf("seed %d seq %d %q: verdict %s %q, want %q", spec.Seed, r.Seq, r.Card, st, key, w)
 			}
 		}
-		for seq := range roundNineWant[spec.Seed] {
+		for seq := range recordedKernelWant[spec.Seed] {
 			if !seen[seq] {
 				t.Errorf("seed %d: no planned cast at seq %d (the game no longer reaches the finding)", spec.Seed, seq)
 			}

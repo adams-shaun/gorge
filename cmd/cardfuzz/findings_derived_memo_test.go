@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRoundEightReplayFindings replays the round-8 cardfuzz replay-divergence
-// records (testdata/round8.jsonl: card-name deck lists, no script text) with
+// TestDerivedMemoReplayFindings replays the cardfuzz replay-divergence
+// records (testdata/findings_derived_memo.jsonl: card-name deck lists, no script text) with
 // replay verification on. Each game diverged at a priority event: the live
 // engine offered Surge Engine's second ability ("Activate only if CARDNAME
 // doesn't have defender", IsPresent$ Card.Self+!withDefender) after its first
@@ -24,9 +24,9 @@ import (
 // Seed 20814263898706950 (all-r7) diverged at 011316363 but no longer
 // reaches the same board on a base that includes 87586f456 (the fixed-count
 // sacrifice plan offer moves the game); it stays pinned as a clean replay.
-func TestRoundEightReplayFindings(t *testing.T) {
+func TestDerivedMemoReplayFindings(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	f, err := os.Open("testdata/round8.jsonl")
+	f, err := os.Open("testdata/findings_derived_memo.jsonl")
 	if err != nil {
 		t.Fatal(err)
 	}

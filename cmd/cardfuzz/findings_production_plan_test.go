@@ -12,8 +12,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRoundNineFindings replays the round-9 cardfuzz records
-// (testdata/round9.jsonl: card-name deck lists, no script text; the recorded
+// TestProductionAndPlanFindings replays the cardfuzz records
+// (testdata/findings_production_plan.jsonl: card-name deck lists, no script text; the recorded
 // diag is replaced by a one-line summary) and pins each root cause:
 //
 //   - mirror 17348437687370656270 (Coldsteel Heart): the plan's Leafkin
@@ -28,9 +28,9 @@ import (
 //     CR 601.2c, so the planned cast reversed with no legal target. The
 //     payment offer now runs the census with the card on the stack
 //     (engine/rules/castprobe.go).
-func TestRoundNineFindings(t *testing.T) {
+func TestProductionAndPlanFindings(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	f, err := os.Open("testdata/round9.jsonl")
+	f, err := os.Open("testdata/findings_production_plan.jsonl")
 	if err != nil {
 		t.Fatal(err)
 	}

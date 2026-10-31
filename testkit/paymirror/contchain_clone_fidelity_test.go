@@ -6,10 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The gate runs this package inside the affected phase's $others wave, whose
-// wall is the slowest package in it: measured on the 2026-10-09 gate logs
-// (agent-20261009T095157Z-a547477b/tm1, an engine-touching ticket),
-// testkit/paymirror was that wave's pole at 52.1s wall. The corpus-backed
+// The corpus-backed
 // tests below replay independent games and share only the read-only corpus
 // registry (testutil.CorpusRegistry's once-cached open), so they run in
 // parallel, as the effects package's oracle sweep does (commit 134da95fa);

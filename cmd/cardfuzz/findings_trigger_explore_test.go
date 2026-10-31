@@ -12,8 +12,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRoundTenFindings replays the round-10 cardfuzz records
-// (testdata/round10.jsonl: card-name deck lists, no script text; the recorded
+// TestTriggerAndExploreFindings replays the cardfuzz records
+// (testdata/findings_trigger_explore.jsonl: card-name deck lists, no script text; the recorded
 // diag is replaced by a one-line summary) and pins each root cause:
 //
 //   - mirror 6858100184279525408 (Tunnel Vision) and 9099806368093434011
@@ -28,7 +28,7 @@ import (
 //     election and the resumed effExplore restarted its Num$ count, so it
 //     explored without end. The count now rides the election
 //     (Decision.ResumeExploreDone -> Ctx.ExploreCount).
-//   - mirror-r9 12931427917867112279 (Panther Robot, affinity for artifacts):
+//   - mirror 12931427917867112279 (Panther Robot, affinity for artifacts):
 //     float_then_cast cast_not_offered_after_float. The float sacrificed the
 //     plan's artifact mana source at priority, raising the cast's price from
 //     {8} to {9}; run A's total cost was locked in (CR 601.2f) before its
@@ -39,9 +39,9 @@ import (
 //     Ante,Command,Exile,Hand,Library) started firing on the opponent's Unsummon
 //     bounce (zone-change Destination$ lists are now a zone set), which changes
 //     the game; the same decks at seed 12931427917867112279 reach the verdict.
-func TestRoundTenFindings(t *testing.T) {
+func TestTriggerAndExploreFindings(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	f, err := os.Open("testdata/round10.jsonl")
+	f, err := os.Open("testdata/findings_trigger_explore.jsonl")
 	if err != nil {
 		t.Fatal(err)
 	}

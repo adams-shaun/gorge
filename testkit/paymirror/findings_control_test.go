@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRoundEightControlFindings replays the two round-8 paymirror games whose
-// live-vs-clone control mismatched (testdata/round8.jsonl: random-deck card
+// TestLiveCloneControlFindings replays two paymirror games whose
+// live-vs-clone control mismatched (testdata/findings_control.jsonl: random-deck card
 // name lists, no script text) and requires every control equivalent.
 //
 //   - 8090 (random2, 5x control|mismatch|state_differs|pending.Options.len):
@@ -27,15 +27,15 @@ import (
 //     scratch, written on every match and read only right after it; Clone
 //     copies none of it by design, so it was excluded from the comparison like
 //     the other scratch fields. The field no longer exists: the matcher became
-//     a pure read (W5 E3) and the dispatcher reads the clause off the line.
-func TestRoundEightControlFindings(t *testing.T) {
+//     a pure read and the dispatcher reads the clause off the line.
+func TestLiveCloneControlFindings(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	d, err := LoadDecks(reg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	f, err := os.Open("testdata/round8.jsonl")
+	f, err := os.Open("testdata/findings_control.jsonl")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestRoundEightControlFindings(t *testing.T) {
 		t.Fatalf("testdata holds %d specs, want 2", len(specs))
 	}
 	for _, spec := range specs {
-		reports := round6Game(t, d, spec)
+		reports := findingGame(t, d, spec)
 		if len(reports) == 0 {
 			t.Errorf("seed %d: no planned cast checked", spec.Seed)
 		}

@@ -12,8 +12,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRoundSevenFindings replays the round-7 cardfuzz records
-// (testdata/round7.jsonl: card-name deck lists, no script text) and pins each
+// TestFloatRouteFindings replays the cardfuzz records
+// (testdata/findings_float_route.jsonl: card-name deck lists, no script text) and pins each
 // root cause:
 //
 //   - mirror 16178228601564090929 (High Stride): the float's Forest tap gave
@@ -27,9 +27,9 @@ import (
 //   - error 3286887339596248657 (Secret Tunnel): SetPropCapacity counted an
 //     amassed Sliver Army's repeated "sliver" token twice, offering a
 //     same-creature-type activation with no legal pair.
-func TestRoundSevenFindings(t *testing.T) {
+func TestFloatRouteFindings(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	f, err := os.Open("testdata/round7.jsonl")
+	f, err := os.Open("testdata/findings_float_route.jsonl")
 	if err != nil {
 		t.Fatal(err)
 	}

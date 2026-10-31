@@ -71,8 +71,8 @@ var excluded = map[excludedField]bool{
 	// Engine.Chars's answer record (host_read.go): overwritten by every Chars
 	// call outside a memo scope and valid only until the next one; Clone
 	// resets it. The trigger matchers read characteristics through Chars
-	// since W5 E3 (trigmatch.Board), so a live engine holds the last read
-	// while its control clone holds none (round-9 paymirror, seed 8175).
+	// (trigmatch.Board), so a live engine holds the last read
+	// while its control clone holds none (paymirror, seed 8175).
 	{"rules.Engine", "charsScratch"}: true,
 	// combatBoard.Statics' per-mode conversion buffer (engine/rules/combat_board.go):
 	// per-call scratch rewritten in full on every read; Clone copies none.
@@ -283,14 +283,13 @@ var excluded = map[excludedField]bool{
 	// legalActionWalks is legalActionsPriced's diagnostic call counter: the
 	// float route re-prices every offer against a hypothetical floating pool
 	// the control route never opens, so it counts the route's work, not the
-	// game (ticket cli-20260927T103840Z-0fb8a354: the field was read by this
-	// differ in round 1 and every route pair mismatched on it).
+	// game.
 	{"rules.Engine", "legalActionWalks"}: true,
 	// Harness-only observers (engine/rules/clone.go: Clone deliberately copies
 	// neither). cmd/cardfuzz installs ManaAbilityHook on its LIVE engine, so
 	// CheckLive's control -- the live run A against a clone replaying it --
-	// read "ManaAbilityHook <func> vs nil" on every planned cast (round-5
-	// cardfuzz mirror diags); botbench's stats sink is the same shape. Both
+	// read "ManaAbilityHook <func> vs nil" on every planned cast
+	// (cardfuzz mirror diags); botbench's stats sink is the same shape. Both
 	// emit nothing and mutate nothing, so they are not game state.
 	{"rules.Engine", "ManaAbilityHook"}: true,
 	{"rules.Engine", "PaymentStats"}:    true,
@@ -298,7 +297,7 @@ var excluded = map[excludedField]bool{
 	// (derived_transparent.go): derivedSeq moves with activeBuildSeq, and
 	// derivedPrev*/derivedTouched/activeBufAlt are the previous build's key
 	// and list. Never cloned, so a control clone restarts them at zero while
-	// the live run A has counted its own rebuilds (round-7 cardfuzz seed
+	// the live run A has counted its own rebuilds (cardfuzz seed
 	// 16178228601564090929: derivedSeq 9 vs 1).
 	{"rules.Engine", "derivedSeq"}:         true,
 	{"rules.Engine", "activeBufAlt"}:       true,
@@ -361,7 +360,7 @@ var excluded = map[excludedField]bool{
 	// each is a pure function of the log prefix its watermark names, and the
 	// log itself is compared semantically. The manual route answers more
 	// decisions, so its watermark names a longer prefix of an equivalent log
-	// (round-9 cardfuzz seed 8175: airbendFolded).
+	// (cardfuzz seed 8175: airbendFolded).
 	{"rules.Engine", "legalScratch"}: true,
 }
 
@@ -995,7 +994,7 @@ func normalizePath(p string) string {
 //     boundary into them left uncompared;
 //   - the event multisets are equal once since-fork ObjIDs are masked (a
 //     cast trigger removed for want of a target names its own permuted
-//     ObjID, round-9 commander4 seed 11056);
+//     ObjID, commander4 seed 11056);
 //   - a full differ walk (with the cost-move floatReorder allowance) finds
 //     nothing outside those fields and the per-object bookkeeping maps keyed
 //     by a since-fork object (trigger contexts and LKI snapshots, whose

@@ -11,7 +11,7 @@ import (
 )
 
 // TestWitnessReadsPayLifeOnlySources pins the witness over a source whose
-// cost neither taps nor moves it (round-6 commander4-fresh: 5x
+// cost neither taps nor moves it (commander4: 5x
 // a_witness:unexecuted_activation on Treasonous Ogre's "Pay 3 life: Add
 // {R}"). Its activation starts at the payer's payment of exactly its
 // disclosed Consequence.Life immediately followed by mana; two such sources
@@ -58,7 +58,7 @@ func TestWitnessReadsPayLifeOnlySources(t *testing.T) {
 }
 
 // TestFloatTriggerOnlyAllowsOnlyTriggerTiming pins the proof that gates
-// float_trigger_precedes_cast (round-6 G.Stack[*], G.Entered/ability-object
+// float_trigger_precedes_cast (G.Stack[*], G.Entered/ability-object
 // and trigger_order mirror_missing_decision mismatches): the float route's
 // own triggers reaching the stack below the spell instead of above it, under
 // permuted ObjIDs, is allowed; any other difference is still reported.
@@ -96,8 +96,8 @@ func TestFloatTriggerOnlyAllowsOnlyTriggerTiming(t *testing.T) {
 	}
 }
 
-// round6Game plays one round-6 finding game and returns every report.
-func round6Game(t *testing.T, d *Decks, spec GameSpec) []*Report {
+// findingGame plays one recorded finding game and returns every report.
+func findingGame(t *testing.T, d *Decks, spec GameSpec) []*Report {
 	t.Helper()
 	var full []*Report
 	g := PlayGame(d, spec, DriverOptions{Control: true, Resolve: true,
@@ -108,31 +108,14 @@ func round6Game(t *testing.T, d *Decks, spec GameSpec) []*Report {
 	return full
 }
 
-// TestRoundSixGainedMemberSeed3590 began as random2-fresh seed 3589 (Lorcan,
-// Warlock Collector): a Manascape Refractor had gained "Add {R}" from a
-// Mountain and from a Vivid Crag; the float route picked the Crag's while
-// run A activated the Mountain's, and the ManaActivate markers differed.
-//
-// Re-pinned to seq 0 (the round-10 convention) three times, for the same
-// reason: first by the kw:Backup ticket (CR 702.165), then by sb-job-select
-// (kw:Job select, CR 702.182), and now by cr-g21 (the Renown, Shroud,
-// Phasing, Vanishing, Rebound, Compleated and Casualty registration). Each
-// newly registered keyword made its corpus carriers eligible for the random
-// pool (NewRandomPool indexes only cards with reg.Unsupported(c, sup) ==
-// nil), so pool.Generate returned different decks for this seed and the
-// moved game no longer casts Manascape Refractor at all. The third move also
-// exposed a pre-existing engine gap: seed 3589's new game offers a Downsize
-// plan and then aborts the cast at the target gate because the only untapped
-// source is Star Compass's reflected "any colour a basic land you control
-// could produce", which castWindowReachable cannot price (ticket:
-// cast-window-reflected-any-colour). Rather than pin 58 known-bug witnesses,
-// the seed moves to the next clean random2 game, 3590. The seed keeps an
-// empty pin and asserts the whole game is mismatch-free and
-// control-equivalent; the finding's own shape stays pinned by the marker
-// unit tests above, and the gained-member witness itself stays live in
-// paymirror.go (gainedMember/answerManaAsks) for the next game that shows
-// the shape.
-func TestRoundSixGainedMemberSeed3590(t *testing.T) {
+// TestGainedMemberSeed3590 plays a random2 game with an empty pin, asserting it
+// is mismatch-free and control-equivalent. The random pool indexes only supported
+// cards, so a newly registered keyword changes what a seed deals; the finding this
+// stood for (a Manascape Refractor that gained "Add {R}" from two sources, the float
+// route picking one and run A the other) stays pinned by the marker unit tests
+// above, and the gained-member witness stays live in paymirror.go
+// (gainedMember/answerManaAsks) for the next game that shows the shape.
+func TestGainedMemberSeed3590(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	d, err := LoadDecks(reg)
@@ -147,7 +130,7 @@ func TestRoundSixGainedMemberSeed3590(t *testing.T) {
 		spec.Decks = append(spec.Decks, label)
 		spec.Lists = append(spec.Lists, list)
 	}
-	reports := round6Game(t, d, spec)
+	reports := findingGame(t, d, spec)
 	if len(reports) == 0 {
 		t.Fatal("no planned-cast reports; the clean-game assertions would be vacuous")
 	}
