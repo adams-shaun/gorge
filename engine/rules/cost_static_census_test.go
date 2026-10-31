@@ -569,7 +569,7 @@ func TestCostStaticCensus(t *testing.T) {
 		// Condition$
 		if cond, ok := p["Condition"]; ok {
 			holds := false
-			if pn := probe(func() { holds = e.costConditionHolds(sv, 0) || e.costConditionHolds(sv, 1) }); pn != "" || !holds {
+			if pn := probe(func() { holds = e.costConditionHolds(sv, 0, 0) || e.costConditionHolds(sv, 1, 0) }); pn != "" || !holds {
 				add(ccBroken, "Condition$ "+strings.TrimSpace(cond)+" unsupported", L.loc("engine/rules/statics.go", "func (e *Engine) costConditionHolds("))
 			}
 		}

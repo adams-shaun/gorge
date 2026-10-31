@@ -151,17 +151,19 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 	if !e.costTurnGateHolds(sv) {
 		return false, true
 	}
-	if spec, ok := sv.Param(cards.PKIsPresent); ok && !e.presentGate(sv, spec) {
+	sub := newCostSubject(p, id, scope)
+	uncounted := e.costUncounted(sub)
+	if spec, ok := sv.Param(cards.PKIsPresent); ok && !e.presentGateSkipping(sv, spec, uncounted) {
 		// The shared IsPresent$ gate: PresentZone$ picks the zone counted
 		// (Igneous Elemental's graveyard, Forceful Cultivator's hand) and
 		// PresentCompare$ the threshold (default GE1; Hour of Revelation's
 		// GE10, Saiba Syphoner's EQ0 "no ... cards in your hand").
 		return false, true
 	}
-	if !e.costConditionHolds(sv, p) {
+	if !e.costConditionHolds(sv, p, uncounted) {
 		return false, true
 	}
-	if !e.checkSVarHoldsFor(sv, newCostSubject(p, id, scope), targets) {
+	if !e.checkSVarHoldsFor(sv, sub, targets) {
 		return false, false
 	}
 	if spec, ok := sv.Param(cards.PKValidTarget); ok {
@@ -366,7 +368,7 @@ func (e *Engine) costTurnGateHolds(sv staticView) bool {
 // cycle). An unimplementable condition (Night) DENIES: a conditional
 // discount that silently always applies is a wrong cost, the same fail-closed
 // direction the ValidSpell$ shapes take.
-func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
+func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID, uncounted state.ObjID) bool {
 	cond, ok := sv.Param(cards.PKCondition)
 	if !ok {
 		return true
@@ -381,7 +383,7 @@ func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
 	case costConditionHoldsDelirium:
 		// The same shared census the Continuous gate and the ability-offer
 		// gate (engine/rules/legal.go's activationConditionOK) read.
-		return e.graveyardCardTypeCount(p) >= 4
+		return e.graveyardCardTypeCountSkipping(p, uncounted) >= 4
 	}
 	return false
 }
@@ -457,6 +459,7 @@ func (e *Engine) checkSVarHoldsRaw(sv staticView, raw, cmp string, sub costSubje
 	}
 	ctx := effects.NewCtxPtr(sv.Source, sv.Controller, effects.CtxInit{SVars: svars, Targets: targets})
 	ctx.AffectedObj, ctx.AffectedAbility = sub.id, sub.ab
+	ctx.PricedSpell = e.costUncounted(sub)
 	holds, evaluated := effects.CheckSVarHolds(e, ctx, raw, cmp)
 	if !evaluated {
 		return false

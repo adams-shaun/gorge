@@ -94,6 +94,19 @@ func newCostSubject(p state.PlayerID, id state.ObjID, scope costScope) costSubje
 		spell:           scope.Kind == "Spell"}
 }
 
+// costUncounted is the card a cost static's zone reads skip: a spell priced
+// before its push, which CR 601.2a has already moved to the stack by the time
+// CR 601.2f determines the total cost. The offer and the charge share it, so a
+// flashback spell does not count itself in its own graveyard at either.
+func (e *Engine) costUncounted(sub costSubject) state.ObjID {
+	if sub.spell {
+		if o := e.G.Obj(sub.id); o != nil && o.Zone != state.ZStack {
+			return sub.id
+		}
+	}
+	return 0
+}
+
 // castersView rebinds a spell's OWN cost static to its caster. CR 601.2a
 // puts the card on the stack under the control of the player casting it
 // before CR 601.2f determines the total cost, so "you" in a self cost
@@ -149,6 +162,7 @@ func (e *Engine) costAmountCtx(sv staticView, sub costSubject, x int32, targets 
 		Num: effects.NumberInputs{Chosen: sv.ChosenNumber, ChosenBound: sv.chosenNumberBound,
 			OptionalCostElected: sub.electedOptional}, Targets: targets})
 	ctx.AffectedObj, ctx.AffectedAbility = sub.id, sub.ab
+	ctx.PricedSpell = e.costUncounted(sub)
 	return ctx, svars, true
 }
 

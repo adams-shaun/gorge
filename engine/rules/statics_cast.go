@@ -1048,7 +1048,13 @@ func validSpellHasTargeting(raw string) bool {
 // Continuous gate and costStaticApplies all read it, so an EQ0/GEn threshold
 // or a hand/graveyard zone cannot mean different things on different paths.
 func (e *Engine) presentGate(sv staticView, spec string) bool {
-	n := e.countStaticPresent(sv, spec)
+	return e.presentGateSkipping(sv, spec, 0)
+}
+
+// presentGateSkipping is presentGate without one card in the zones it counts
+// outside the battlefield.
+func (e *Engine) presentGateSkipping(sv staticView, spec string, skip state.ObjID) bool {
+	n := e.countStaticPresent(sv, spec, skip)
 	cmp := sv.ParamStr(cards.PKPresentCompare)
 	if cmp == "" {
 		cmp = "GE1"
@@ -1103,7 +1109,7 @@ func (e *Engine) staticTimingGate(sv staticView) bool {
 	return true
 }
 
-func (e *Engine) countStaticPresent(sv staticView, spec string) int {
+func (e *Engine) countStaticPresent(sv staticView, spec string, skip state.ObjID) int {
 	zones, ok := presentZoneFromParam(sv.ParamStr(cards.PKPresentZone))
 	if !ok {
 		return 0
@@ -1117,7 +1123,7 @@ func (e *Engine) countStaticPresent(sv staticView, spec string) int {
 		}
 		e.forEachObject(func(id state.ObjID) {
 			o := e.G.Obj(id)
-			if o != nil && o.Zone == zone && e.matchesSpec(presentSpecForZone(spec, zone), id, sc) {
+			if o != nil && o.Zone == zone && id != skip && e.matchesSpec(presentSpecForZone(spec, zone), id, sc) {
 				n++
 			}
 		})

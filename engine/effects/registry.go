@@ -109,6 +109,10 @@ type Ctx struct {
 	// shares with the cards exiled with the Prowler. Zero means unbound; a
 	// head that reads it falls back to Source (Forge's host card).
 	AffectedObj state.ObjID
+	// PricedSpell is the spell a cost static is pricing while the card still
+	// sits in the zone it is cast from. CR 601.2a puts it on the stack before
+	// CR 601.2f determines the total cost, so a zone count skips it.
+	PricedSpell state.ObjID
 	// AffectedAbility is the activated ability being priced when AffectedObj
 	// is an ability's source (nil for a spell): the in-flight activation a
 	// Count$ThisTurnActivated_ gate counts alongside this turn's earlier ones.
