@@ -861,6 +861,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			Game:         m.g,
 			Engine:       m.e,
 			Projection:   m.projection,
+			Registry:     r.opts.BotDeps.Cards,
 			GameID:       gameID,
 			Seat:         i,
 			Seats:        len(seats),

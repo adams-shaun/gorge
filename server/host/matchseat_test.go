@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/heuristic"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/seat"
@@ -63,6 +64,7 @@ func TestHostAttachesAndEndsMatchSeats(t *testing.T) {
 	var mu sync.Mutex
 	var seats []*recordingSeat
 	o := testOptions(t)
+	o.BotDeps = bots.Deps{Cards: &cards.Registry{}}
 	o.Seats = func(names []string, seed uint64) []seat.Seat {
 		mu.Lock()
 		defer mu.Unlock()
@@ -107,6 +109,9 @@ func TestHostAttachesAndEndsMatchSeats(t *testing.T) {
 		}
 		if s.ctx.Format != "constructed" || s.ctx.OwnDeck == nil {
 			t.Fatalf("seat %d format/deck = %q/%v", i, s.ctx.Format, s.ctx.OwnDeck)
+		}
+		if s.ctx.Registry != o.BotDeps.Cards {
+			t.Fatalf("seat %d registry = %p, want the host's BotDeps.Cards", i, s.ctx.Registry)
 		}
 		if !s.ended || s.result.Classification != "natural" {
 			t.Fatalf("seat %d end = %v %+v", i, s.ended, s.result)

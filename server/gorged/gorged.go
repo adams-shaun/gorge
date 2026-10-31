@@ -30,6 +30,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
+	"github.com/adams-shaun/gorge/server/matchrecord"
+	sbenv "github.com/adams-shaun/gorge/server/spellbench/env"
 )
 
 // Command gorged runs perpetual bot tables and serves them to browsers:
@@ -485,6 +487,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := registerSBAgents(c.sbAgents); err != nil {
 		return err
 	}
+	sbenv.SetCorpusRef(matchrecord.ForgeRef(c.cards))
 	// -bot-policy and -bot-policies are validated together (BP-18, spec
 	// §9.4): a default that is not offered, or an offered set missing a
 	// registered name, must fail before any listener opens.

@@ -34,8 +34,8 @@ type MatchContext struct {
 	// blocking agent round-trip. Nil means the caller has no concurrent
 	// projector and the read runs directly.
 	Projection func(f func())
-	// Registry is the card corpus when the caller has one. Bench and command
-	// callers may leave it nil; the host does not hold a full registry.
+	// Registry is the card corpus when the caller has one; the host passes its
+	// BotDeps.Cards. Bench callers may leave it nil.
 	Registry *cards.Registry
 
 	GameID string

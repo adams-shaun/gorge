@@ -26,6 +26,8 @@ import (
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
+	"github.com/adams-shaun/gorge/server/matchrecord"
+	sbenv "github.com/adams-shaun/gorge/server/spellbench/env"
 	sbseat "github.com/adams-shaun/gorge/server/spellbench/seat"
 	"github.com/adams-shaun/gorge/testkit/bench"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -104,6 +106,7 @@ func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, 
 	if err != nil {
 		return fmt.Errorf("opening corpus at %s: %w (run `make fetch-cards compile-cards` first)", dir, err)
 	}
+	sbenv.SetCorpusRef(matchrecord.ForgeRef(dir))
 
 	decks := make([][]*cards.Card, seats)
 	for i, name := range names {
@@ -123,7 +126,7 @@ func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, 
 	failures := 0
 	for g := 0; g < games; g++ {
 		gameSeed := baseSeed + uint64(g)
-		if !playOne(out, gameSeed, names, decks, reg.Tokens, reg.Universe(), verify, policyA, policyB) {
+		if !playOne(out, gameSeed, names, decks, reg, verify, policyA, policyB) {
 			failures++
 		}
 	}
@@ -165,8 +168,8 @@ func deckNames(flagVal string, seats int) ([]string, error) {
 // its one-line summary, then -- if verify is set -- a second line reporting
 // the replay outcome. It returns false for anything Ruling §5 counts as
 // failure: non-termination, a replay error or a chain divergence.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, tokens map[string]*cards.Card, nameUniverse *cards.Universe, verify bool, policyA, policyB string) (ok bool) {
-	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: tokens, NameUniverse: nameUniverse}
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string) (ok bool) {
+	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()}
 	// The default object cap (CV-8), the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
 	// line under a bounded arena instead of growing the process until the
@@ -188,7 +191,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	// runs the R-9 default underneath it.
 	e.AskStartingPlayer()
 
-	seats, err := matchSeats(e, seed, names, policyA, policyB, out)
+	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, out)
 	if err != nil {
 		fmt.Fprintf(out, "seed %d: %d seats -- FAILED: %v\n", seed, len(names), err)
 		return false
@@ -364,7 +367,7 @@ func registerSBAgents(specs []string) error {
 	return nil
 }
 
-func matchSeats(e *rules.Engine, seed uint64, names []string, policyA, policyB string, logOut io.Writer) ([]engineseat.Seat, error) {
+func matchSeats(e *rules.Engine, reg *cards.Registry, seed uint64, names []string, policyA, policyB string, logOut io.Writer) ([]engineseat.Seat, error) {
 	seatsOut := make([]engineseat.Seat, len(names))
 	for i := range names {
 		policy := ""
@@ -391,6 +394,7 @@ func matchSeats(e *rules.Engine, seed uint64, names []string, policyA, policyB s
 		mc := &bots.MatchContext{
 			Game:         gorgegame.Game{E: e},
 			Engine:       e,
+			Registry:     reg,
 			GameID:       fmt.Sprintf("g-%016x", seed),
 			Seat:         i,
 			Seats:        len(names),
