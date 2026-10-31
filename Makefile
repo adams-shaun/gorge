@@ -83,6 +83,7 @@ help:
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
 	@echo "  make enginebench-verify [REV=.]        — memo-verify-mode smoke over the bench rows"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
+	@echo "  make draftsim       — build draftsim and play 2 verified FDN draft events"
 	@echo "  make pr [PR_BASE=main] [DRY=1] — open/refresh a GitHub PR with a generated change overview"
 	@echo "  make gorged         — run the M2a table server (browser client at the addr)"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
@@ -122,6 +123,13 @@ gorged: $(BIN_DIR)/gorged
 .PHONY: sim
 sim: $(BIN_DIR)/mtgsim
 	$(BIN_DIR)/mtgsim -seats 4 -games 20 -verify
+
+# draftsim runs two seeded FDN draft events through the in-memory event host
+# and verifies each one replays from its log.
+.PHONY: draftsim
+draftsim:
+	go build -trimpath -o $(BIN_DIR)/draftsim ./cmd/draftsim
+	$(BIN_DIR)/draftsim -set FDN -seed 1 -events 2 -verify
 
 .PHONY: fetch-cards
 # A worktree's corpus tests open the main checkout's .cards, which is outside
