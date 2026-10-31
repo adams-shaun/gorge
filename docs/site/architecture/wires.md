@@ -17,7 +17,7 @@ the corpus. `make wire-matrix` is the `commit` tier, and CI runs that as the job
 `scripts/wire-nightly.sh` is the nightly run, on a seed that moves each day. It
 plays chunks of games on each wire (`TestConformanceChunk`), fuzzed decks through
 ManaBrew, and SpellBench v2 parity. v2 parity is reported and does not fail the
-run while its bar is red. A game that diffs is written to
+run. A game that diffs is written to
 `wire-found-<date>.tsv`; once added to `testkit/conformance/testdata/found.tsv` it
 replays in `TestFoundPairs` for good.
 
