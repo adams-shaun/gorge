@@ -12,53 +12,43 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// castInfoMarkerFlags name the CastInfo events whose Amount no field stores: a
+// marker's 1, a list's length, or the mana spent that the expend trigger reads
+// from the event. payCast sets each on its own event only, so no count event
+// carries one.
+const castInfoMarkerFlags = state.FlagConspired | state.FlagTeamworkPaid | state.FlagConvoked |
+	state.FlagManaSourcesSpent | state.FlagAddsCounters | state.FlagAddsKeywords |
+	state.FlagManaColorSpent | state.FlagManaExpendCast
+
 // foldCastInfo folds Kind CastInfo into state.
 func foldCastInfo(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil {
-		o.CastFlags = FlagsFrom(e.Counter)
-		// FlagConverged's Amount is the distinct-colour spend count (CR
-		// 107.4f converge), never an X value: converge faces carrying their
-		// own {X} pip (Skyrider Elf) keep the two on separate pay-time
-		// CastInfo events, and the flag routes this Amount into the count
-		// field instead of overwriting X.
-		// FlagReplicated's Amount is the replicate payment count, never an
-		// X value (measured: no K:Replicate carrier's mana value carries
-		// {X}), so the flag routes the Amount into the count field instead
-		// of overwriting X.
-		// FlagMultikicked's Amount is CR 702.43's times-kicked count, never
-		// an X value: the count rides its own TRAILING pay-time CastInfo
-		// (engine/rules/cast.go's payCast), so a multikicker carrier that pairs
-		// {X} with Multikicker (Comet Storm) keeps the two on separate
-		// events.
-		// FlagManaSpent's Amount is the TOTAL mana actually spent to cast
-		// the spell (CR 601.2h), never an X value: the count rides its own
-		// TRAILING pay-time CastInfo (engine/rules/cast.go's payCast), so a
-		// carrier that pairs {X} with the read (none measured) keeps the
-		// two on separate events.
+		flags := FlagsFrom(e.Counter)
+		o.CastFlags = flags
 		// Conspire (CR 702.78a) is a BOOL fold, not an amount: it is set
 		// whenever the resolved cast's pay-time CastInfo carries
 		// FlagConspired, whatever other tags ride the same event. Folded
 		// OUTSIDE the exclusive switch below so a later event carrying the
 		// flag (each later event accumulates all earlier flags) cannot
 		// steal that event's Amount from its own routing case.
-		if FlagsFrom(e.Counter)&state.FlagConspired != 0 {
+		if flags&state.FlagConspired != 0 {
 			o.Conspired = true
 		}
 		// Offspring (CR 702.175a) is a BOOL fold as well: paid at most
 		// once, so it is set whenever the pay-time CastInfo carries
 		// FlagOffspringPaid, whatever other tags ride the same event
 		// (the Conspired pattern).
-		if FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0 {
+		if flags&state.FlagOffspringPaid != 0 {
 			o.OffspringPaid = true
 		}
 		// Teamwork (CR 702.194b) is a BOOL fold as well: the optional
 		// additional tap cost is paid at most once, so it is set whenever the
 		// pay-time CastInfo carries FlagTeamworkPaid, whatever other tags ride
 		// the same event (the Conspired pattern).
-		if FlagsFrom(e.Counter)&state.FlagTeamworkPaid != 0 {
+		if flags&state.FlagTeamworkPaid != 0 {
 			o.TeamworkPaid = true
 		}
-		if FlagsFrom(e.Counter)&state.FlagOptionalCostPaid != 0 {
+		if flags&state.FlagOptionalCostPaid != 0 {
 			o.OptionalCostPaid = true
 		}
 		// Convoke (CR 702.66, task connive1) is an ID-LIST fold, not an
@@ -67,13 +57,13 @@ func foldCastInfo(g *state.Game, e *Event) {
 		// event. Folded OUTSIDE the exclusive switch below (the Conspired
 		// pattern) so a later event carrying the flag cannot steal that
 		// event's Amount from its own routing case.
-		if FlagsFrom(e.Counter)&state.FlagConvoked != 0 {
+		if flags&state.FlagConvoked != 0 {
 			o.Convoked = append([]state.ObjID(nil), e.IDs...)
 		}
 		// The spent mana's producing sources (Spell.ManaFromCard provenance)
 		// are an ID-list fold too, the Convoked pattern: the trailing
 		// pay-time CastInfo's IDs, whenever the flag is present.
-		if FlagsFrom(e.Counter)&state.FlagManaSourcesSpent != 0 {
+		if flags&state.FlagManaSourcesSpent != 0 {
 			o.ManaSpentSources = append([]state.ObjID(nil), e.IDs...)
 		}
 		// AddsCounters$ (Opal Palace and siblings) is a structured-payload
@@ -85,11 +75,11 @@ func foldCastInfo(g *state.Game, e *Event) {
 		// pattern) so the Amount stays for its own consume arm; the
 		// entry-counter plan uses the stored rider verbatim, never re-reading
 		// the source's face.
-		if FlagsFrom(e.Counter)&state.FlagAddsCounters != 0 {
+		if flags&state.FlagAddsCounters != 0 {
 			o.ManaAddsCounterGrants = ManaAddsCounterGrantsFromText(e.Text)
 		}
 		// AddsKeywords$ (Carnelian Orb): the same structured-payload fold.
-		if FlagsFrom(e.Counter)&state.FlagAddsKeywords != 0 {
+		if flags&state.FlagAddsKeywords != 0 {
 			o.ManaAddsKeywordGrants = ManaAddsKeywordGrantsFromText(e.Text)
 		}
 		// The per-colour spend vector (Adamant, CR 702.5) is a
@@ -100,76 +90,38 @@ func foldCastInfo(g *state.Game, e *Event) {
 		// Compleated capture rides a trailing CastInfo with an empty Text --
 		// from resetting the folded vector to zero. Folded OUTSIDE the
 		// exclusive switch below so the Amount stays for its own consume arm.
-		if FlagsFrom(e.Counter)&state.FlagManaColorSpent != 0 && e.Text != "" {
+		if flags&state.FlagManaColorSpent != 0 && e.Text != "" {
 			o.ManaColorSpent = ManaColorSpentFromText(e.Text)
 		}
+		// payCast emits one event per count, and each later event carries the
+		// flags accumulated so far, so an event's Amount belongs to the flag
+		// emitted last. The arms run in reverse emission order. Offspring and
+		// OptionalCostPaid are mode flags on the main event, whose Amount is the
+		// announced X, so they have no arm.
 		switch {
-		// Conspire's Amount is a marker, never data: the bool was folded
-		// above, and the flag rides a LOCAL counter at the emission site
-		// (engine/rules/cast.go's payCast never ORs FlagConspired into the
-		// accumulating flags), so no later CastInfo carries it and this
-		// arm's position in the newest-flag-first ordering is
-		// order-independent. The arm exists to CONSUME the Amount: without
-		// it the event fell through to default and wrote o.X = 1 onto every
-		// conspired cast (and StackCopy propagated that onto its copies).
-		case FlagsFrom(e.Counter)&state.FlagConspired != 0:
-			// bool folded above; the Amount is deliberately unused
-		// The expend wake-up's Amount is the mana this cast spent, which the
-		// trigger matcher reads from the event. Nothing folds it. The event
-		// carries the flags accumulated so far, so this arm has to come before
-		// theirs.
-		case FlagsFrom(e.Counter)&state.FlagManaExpendCast != 0:
-		// Offspring, Teamwork and OptionalCostPaid are cast MODE flags: they
-		// ride the main pay-time CastInfo (engine/rules/cast_targets.go's
-		// modeFlags), whose Amount is the cast's X, and every trailing
-		// count event (mana spent, ...) carries them too. So they have NO
-		// arm here: the bools were folded above, and the Amount routes by
-		// the event's own count flag, or to X on the main event (an
-		// optional-cost Celestial Reunion keeps its {X}; a consuming arm
-		// here used to drop it, and every trailing count with it).
-		case FlagsFrom(e.Counter)&state.FlagManaSourcesSpent != 0:
-			// the source id list was folded above; the Amount is
-			// deliberately unused (the Conspired arm's consume shape)
-		case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
-			// the convoked id list was folded above; the Amount is
-			// deliberately unused (the Conspired arm's consume shape)
-		case FlagsFrom(e.Counter)&state.FlagAddsCounters != 0:
-			// the rider-source id list was folded above; the Amount is
-			// deliberately unused (the Conspired arm's consume shape)
-		case FlagsFrom(e.Counter)&state.FlagAddsKeywords != 0:
-			// the keyword grants were folded above; the Amount is
-			// deliberately unused (the Conspired arm's consume shape)
-		case FlagsFrom(e.Counter)&state.FlagManaColorSpent != 0:
-			// the per-colour spend vector was folded above; the Amount is
-			// deliberately unused (the Conspired arm's consume shape)
-		case FlagsFrom(e.Counter)&state.FlagCompleated != 0:
+		case flags&castInfoMarkerFlags != 0:
+		case flags&state.FlagCompleated != 0:
 			o.CompleatedLifePaid = e.Amount
-		case FlagsFrom(e.Counter)&state.FlagConverged != 0:
-			o.ConvergeColours = e.Amount
-		case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
-			o.ReplicateTimes = e.Amount
-		case FlagsFrom(e.Counter)&state.FlagSquadPaid != 0:
-			o.SquadPaid = e.Amount
-		case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
-			o.TimesKicked = e.Amount
-		// One CastInfo per captured total, each LATER event carrying ALL
-		// earlier flags (payCast's flags |= accumulation), so this switch
-		// checks the NEWEST flag first -- the reverse of the emission
-		// order -- or every later event would route into the first tag's
-		// field: Artifact, Desert, Cave, Treasure, then Snow, then the
-		// total.
-		case FlagsFrom(e.Counter)&state.FlagManaArtifactSpent != 0:
+		case flags&state.FlagManaArtifactSpent != 0:
 			o.ManaArtifactSpent = e.Amount
-		case FlagsFrom(e.Counter)&state.FlagManaDesertSpent != 0:
+		case flags&state.FlagManaDesertSpent != 0:
 			o.ManaDesertSpent = e.Amount
-		case FlagsFrom(e.Counter)&state.FlagManaCaveSpent != 0:
+		case flags&state.FlagManaCaveSpent != 0:
 			o.ManaCaveSpent = e.Amount
-		case FlagsFrom(e.Counter)&state.FlagManaTreasureSpent != 0:
+		case flags&state.FlagManaTreasureSpent != 0:
 			o.ManaTreasureSpent = e.Amount
-		case FlagsFrom(e.Counter)&state.FlagManaSnowSpent != 0:
+		case flags&state.FlagManaSnowSpent != 0:
 			o.ManaSnowSpent = e.Amount
-		case FlagsFrom(e.Counter)&state.FlagManaSpent != 0:
+		case flags&state.FlagManaSpent != 0:
 			o.ManaSpent = e.Amount
+		case flags&state.FlagMultikicked != 0:
+			o.TimesKicked = e.Amount
+		case flags&state.FlagConverged != 0:
+			o.ConvergeColours = e.Amount
+		case flags&state.FlagSquadPaid != 0:
+			o.SquadPaid = e.Amount
+		case flags&state.FlagReplicated != 0:
+			o.ReplicateTimes = e.Amount
 		default:
 			o.X = e.Amount
 		}

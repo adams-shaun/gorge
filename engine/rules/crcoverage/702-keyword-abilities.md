@@ -70,7 +70,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.31a-c | follows | `engine/rules/combat/block.go#CanBlock` | `TestHorsemanshipCanBlockOnlyHorsemanshipAttackers` |  |
 | 702.32a | not-impl | - | - | LOUD (18 cards) |
 | 702.33a,d,e,g | follows | `engine/rules/cast_altcost.go#kickerCost` `engine/rules/cast_targets.go#modeIsKicked` `engine/rules/cast_targets.go#modeFlags` | - | kicked-only targets gated; copies stay kicked |
-| 702.33b,c,f | follows | `engine/rules/cast_altcost.go#twoPartKickerCosts` `engine/rules/cast_asks.go#Engine.multikickAsk` | - |  |
+| 702.33b,c,f | follows | `engine/rules/cast_altcost.go#twoPartKickerCosts` `engine/rules/cast_asks.go#Engine.multikickAsk` `engine/events/apply_cast.go#foldCastInfo` | `TestTimesKickedSurvivesColourReader` |  |
 | 702.33h | unknown | - | - | sticker kicker (Unfinity) not checked |
 | 702.34a | follows | `engine/rules/stack_keyword_exile.go#Engine.keywordExileDeparture` `engine/effects/resolve.go#effCounter` `engine/effects/misc.go#effWard` `engine/state/object.go#ExilesLeavingStack` | `TestCR702_34aFlashbackSpellExiledWhereverItWouldGo` `TestCR702_34aRemandOrdinarySpellStillGoesToHand` `TestCR702_34aReversedFlashbackCastReturnsToGraveyard` `TestFlashbackedSpellCounteredGoesToExile` | - |
 | 702.35a | partial | `engine/rules/altcast.go#Engine.madnessReplacementApplies` `engine/rules/replacement.go#Engine.applyReplacementsDispatch` `engine/rules/altcast.go#Engine.offerMadness` | `TestCR702_35aMadnessExileIsMandatory` `TestMadnessEmrakulUsesMandatoryReplacementAndRespondableTrigger` `TestMadnessDiscardDuringARepeatExilesInPlace` | mandatory exile; granted madness ignored (printed face only) (helper) |
@@ -102,7 +102,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.53a,b | follows | `engine/cards/kw_transmute.go#kwTransmute` | `TestTransmuteAndCyclingRealHandActivations` |  |
 | 702.54a-c | follows | `engine/rules/replacement_etb.go#Engine.bloodthirstEntryMatch` `engine/rules/entry_counters.go#Engine.entryBodyCandidates` | `TestBloodthirstPrintedEntersWithCounters` |  |
 | 702.55a-c | not-impl | - | - | LOUD (10) |
-| 702.56a,b | follows | `engine/cards/kw_replicate.go#kwReplicate` `engine/rules/cast_altcost.go#replicateCost` `engine/rules/cast_asks.go#Engine.replicateAsk` | `TestReplicateCountBoundSeesReduceCostModifier` |  |
+| 702.56a,b | follows | `engine/cards/kw_replicate.go#kwReplicate` `engine/rules/cast_altcost.go#replicateCost` `engine/rules/cast_asks.go#Engine.replicateAsk` `engine/events/apply_cast.go#foldCastInfo` | `TestReplicateCountBoundSeesReduceCostModifier` `TestReplicateCountSurvivesSpendReader` |  |
 | 702.57a,b | not-impl | - | - | SILENT: upkeep/once/hand gate unmodelled |
 | 702.58a,b | follows | `engine/cards/kw_graft.go#kwGraft` | - | no intervening-if on the move trigger |
 | 702.59a | not-impl | - | - | LOUD (7) |
