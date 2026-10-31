@@ -1157,6 +1157,13 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 		}
 	}
 	d := decision.Decision{Kind: decision.KChoose, Min: lo, Max: hi, Prompt: "Choose " + purpose}
+	if src != nil && purpose == "tap" && lo == 0 && sd.Observation.PhaseStep == "declare_attackers" {
+		// The wire poses Enlist as an optional tap; gorge's ask is its own.
+		if f := s.abilityFace(*src); f != nil && f.HasKeyword("Enlist") {
+			kind = "enlist"
+			d.Options = []decision.Option{{Kind: kind, Label: "Don't enlist for " + name(*src)}}
+		}
+	}
 	if src != nil {
 		if sa := s.hiddenPickSA(*src, &sd.Observation, purpose); sa != nil {
 			// gorge asks a public-origin Hidden$ ChangeZone as a hidden_pick
@@ -1165,12 +1172,12 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 		}
 	}
 	key := "select|" + purpose
+	if purpose == "discard" && (src != nil || sd.Observation.PhaseStep != "cleanup") {
+		d.Kind = decision.KModes // gorge asks an effect's discard as a modal pick
+	}
 	if src != nil {
 		d.Source = s.B.IDs.Of(src.ObjectID)
 		key += "|" + src.ObjectID
-		if purpose == "discard" {
-			d.Kind = decision.KModes // gorge asks an effect's discard as a modal pick
-		}
 		if purpose == "tap" {
 			// A tap cost with a total-power floor publishes the floor as
 			// Decision.MinSum and each candidate's power as its Value
@@ -1220,6 +1227,13 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 	if err == nil && purpose == "search" && src != nil {
 		s.groupSearch(sd, n, *src)
 	}
+	if kind == "enlist" {
+		for i := range ops {
+			if ops[i].Op == "finish" {
+				ops[i] = mapping.NativeOp{Op: "choose", Option: 0} // gorge offers the decline as an option
+			}
+		}
+	}
 	return ops, n, err
 }
 
@@ -1252,10 +1266,10 @@ func ownHandOptions(sd *protocol.SeatDecision) bool {
 	return seen
 }
 
-// handMoveSA is the source's non-hidden ChangeZone picking from a hand, when
-// purpose is the wire purpose that move's destination has. It is the
-// hand_move sibling of hiddenPickSA: the ask the native engine poses as
-// KChoose with option kind "hand_move" (effects/zone_hand.go).
+// handMoveSA is the source's ChangeZone picking from a hand, when purpose is
+// the wire purpose that move's destination has. It is the hand_move sibling of
+// hiddenPickSA: the ask the native engine poses as KChoose with option kind
+// "hand_move" (effects/zone_hand.go).
 func (s *Session) handMoveSA(src protocol.ObjectRef, o *protocol.Observation, purpose string) *cards.SA {
 	f, roots := s.abilityRoots(src, o)
 	for _, root := range roots {
@@ -1263,10 +1277,7 @@ func (s *Session) handMoveSA(src protocol.ObjectRef, o *protocol.Observation, pu
 			continue
 		}
 		for _, sa := range chain(f, root) {
-			if sa.API != "ChangeZone" || strings.EqualFold(sa.Params["Hidden"], "True") {
-				continue
-			}
-			if !strings.Contains(strings.ToLower(sa.Params["Origin"]), "hand") {
+			if sa.API != "ChangeZone" || !strings.Contains(strings.ToLower(sa.Params["Origin"]), "hand") {
 				continue
 			}
 			dest := strings.ToLower(strings.TrimSpace(sa.Params["Destination"]))
@@ -1805,14 +1816,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 				// engine's own offer.
 				if f := s.requirementFace(r); f != nil {
 					for _, st := range f.Statics {
-						if !strings.Contains(st.Mode, "MustAttack") || unresolvedStatic(st) || strings.TrimSpace(st.Params["ValidPlayer"]) != "" {
-							continue
-						}
-						valid := strings.TrimSpace(st.Params["ValidCreature"])
-						if valid == "" {
-							valid = strings.TrimSpace(st.Params["ValidCard"])
-						}
-						if selfSpec(valid) {
+						if selfSpec(mustAttackScope(st)) {
 							required[r.ObjectID] = true
 						}
 					}
@@ -1829,13 +1833,14 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 					continue
 				}
 				for _, st := range f.Statics {
-					if strings.EqualFold(strings.TrimSpace(st.Params["Goad"]), "True") {
+					if strings.EqualFold(strings.TrimSpace(st.Params["Goad"]), "True") || attachedMustAttack(st) {
 						required[r.Permanent.AttachedTo.Object.ObjectID] = true
 						break
 					}
 				}
 			}
 		}
+		s.typeScopedRequirements(&sd.Observation, sd.ActingSeat, required)
 		// The native decision carries one unit per group substep. At the
 		// first substep the whole declaration is known from the board; the
 		// current substep's candidates are authoritative for the unit under
@@ -1871,7 +1876,7 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 				if !ok || !isCreature(cv) || cv.Tapped ||
 					(hasKeyword(cv, "Defender") && !s.mayAttackThroughDefender(r.ObjectID, cv)) ||
 					(cv.SummonSick && !hasKeyword(cv, "Haste")) || s.cantAttack(cv, attached[cv.ID]) ||
-					s.barredFromAttacking(&sd.Observation, r) {
+					s.barredByType(&sd.Observation, r, "CantAttack") {
 					continue
 				}
 				legal = append(legal, r.ObjectRef)
@@ -2052,7 +2057,7 @@ func protected(a view.CardView, colors []string) bool {
 func blockKey(blocker, attacker string) string { return blocker + ">" + attacker }
 
 // blockOption builds gorge's block option for one pair.
-func (s *Session) blockOption(n *native, b, a protocol.ObjectRef, label string, minBlockers int, required bool) int {
+func (s *Session) blockOption(v *view.View, n *native, b, a protocol.ObjectRef, label string, required bool) int {
 	key := blockKey(b.ObjectID, a.ObjectID)
 	if i, ok := n.options[key]; ok {
 		if required {
@@ -2064,9 +2069,7 @@ func (s *Session) blockOption(n *native, b, a protocol.ObjectRef, label string, 
 	o := decision.Option{Index: len(n.d.Options), Kind: "block", Label: label,
 		Obj: s.B.IDs.Of(b.ObjectID), Attacker: s.B.IDs.Of(a.ObjectID), Player: s.seat,
 		Group: "blocker:" + b.ObjectID, Required: required, BlockMust: required}
-	if minBlockers > 1 {
-		o.MinBlockers = minBlockers
-	}
+	o.MinBlockers, o.MaxBlockers = s.blockBounds(a, v)
 	n.options[key] = o.Index
 	n.d.Options = append(n.d.Options, o)
 	return o.Index
@@ -2088,9 +2091,11 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 		}
 		colors := map[string][]string{}
 		refs := map[string]protocol.ObjectRef{}
+		records := map[string]protocol.ObjectRecord{}
 		for _, p := range sd.Observation.Players {
 			for _, o := range p.Battlefield {
 				refs[o.ObjectID] = o.ObjectRef
+				records[o.ObjectID] = o
 				if o.Characteristics != nil {
 					colors[o.ObjectID] = o.Characteristics.Colors
 				}
@@ -2179,11 +2184,11 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 					if a == nil {
 						continue
 					}
-					s.blockOption(n, cb, *a, name(cb)+" blocks "+name(*a), s.attackerMinBlockers(*a, v), s.mustBlock(b, attached[b.ID]))
+					s.blockOption(v, n, cb, *a, name(cb)+" blocks "+name(*a), s.mustBlock(b, attached[b.ID]))
 				}
 				continue
 			}
-			if s.cantBlock(b, attached[b.ID]) {
+			if s.cantBlock(b, attached[b.ID]) || s.barredByType(&sd.Observation, records[bv2], "CantBlock") {
 				continue
 			}
 			for _, a := range attackers {
@@ -2194,7 +2199,7 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 				if !ok {
 					continue
 				}
-				s.blockOption(n, bref, aref, b.Name+" blocks "+a.Name, s.attackerMinBlockers(aref, v), s.mustBlock(b, attached[b.ID]))
+				s.blockOption(v, n, bref, aref, b.Name+" blocks "+a.Name, s.mustBlock(b, attached[b.ID]))
 			}
 		}
 		n.d.Max = len(n.d.Options)
@@ -2218,7 +2223,7 @@ func (s *Session) blockers(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 		k, ok := n.options[blockKey(b.ObjectID, a.ObjectID)]
 		if !ok {
 			cv, _ := s.cardByV2(v, b.ObjectID)
-			k = s.blockOption(n, b, *a, name(b)+" blocks "+name(*a), s.attackerMinBlockers(*a, v), s.mustBlock(cv, nil))
+			k = s.blockOption(v, n, b, *a, name(b)+" blocks "+name(*a), s.mustBlock(cv, nil))
 		}
 		ops[i] = mapping.NativeOp{Op: "choose", Option: k, Unit: unit}
 	}
@@ -2268,12 +2273,28 @@ func (s *Session) mustBlock(cv view.CardView, attached []view.CardView) bool {
 	return false
 }
 
-// attackerMinBlockers is the group-size floor an attacker's Menace imposes.
-func (s *Session) attackerMinBlockers(a protocol.ObjectRef, v *view.View) int {
-	if cv, ok := s.cardByV2(v, a.ObjectID); ok && hasKeyword(cv, "Menace") {
-		return 2
+// blockBounds is the blocker-count bounds an attacker's block options publish,
+// zero for no bound: the literal Min$ and Max$ of its printed MinMaxBlocker
+// statics, with Menace folded in as a floor of two. The bot declines its combat
+// simulation on any published bound.
+func (s *Session) blockBounds(a protocol.ObjectRef, v *view.View) (lo, hi int) {
+	if f := s.abilityFace(a); f != nil {
+		for _, st := range f.Statics {
+			if !slices.Contains(strings.Split(st.Mode, ","), "MinMaxBlocker") || !selfSpec(st.Params["ValidCard"]) || unresolvedStatic(st) {
+				continue
+			}
+			if n, err := strconv.Atoi(strings.TrimSpace(st.Params["Min"])); err == nil && n > lo {
+				lo = n
+			}
+			if n, err := strconv.Atoi(strings.TrimSpace(st.Params["Max"])); err == nil && (hi == 0 || n < hi) {
+				hi = n
+			}
+		}
 	}
-	return 1
+	if cv, ok := s.cardByV2(v, a.ObjectID); ok && lo < 2 && hasKeyword(cv, "Menace") {
+		lo = 2
+	}
+	return lo, hi
 }
 
 // canBlockPair is combat.CanBlock's per-pair rule rebuilt from the seat's view
@@ -2769,12 +2790,58 @@ func (s *Session) cantAttack(cv view.CardView, attached []view.CardView) bool {
 	return false
 }
 
-// barredFromAttacking reports whether an unconditional printed CantAttack
-// static on a permanent names this creature by type (Doomed Artisan:
-// "Sculptures you control can't attack or block"). A ValidCard$ scope other
-// than who controls the creature is not read, so the engine's own offer stays
-// the authority there.
-func (s *Session) barredFromAttacking(o *protocol.Observation, r protocol.ObjectRecord) bool {
+// mustAttackScope is a printed MustAttack static's creature scope, "" for a
+// static that is conditional or names a defender.
+func mustAttackScope(st cards.Static) string {
+	if !strings.Contains(st.Mode, "MustAttack") || unresolvedStatic(st) || strings.TrimSpace(st.Params["ValidPlayer"]) != "" {
+		return ""
+	}
+	if valid := strings.TrimSpace(st.Params["ValidCreature"]); valid != "" {
+		return valid
+	}
+	return strings.TrimSpace(st.Params["ValidCard"])
+}
+
+// attachedMustAttack reports whether the static of an Aura or Equipment makes
+// the creature it is attached to attack (Infectious Bloodlust).
+func attachedMustAttack(st cards.Static) bool {
+	valid := mustAttackScope(st)
+	return strings.Contains(valid, "EnchantedBy") || strings.Contains(valid, "EquippedBy")
+}
+
+// typeScopedRequirements marks the seat's creatures a printed MustAttack static
+// on any permanent names by type and controller ("Creatures your opponents
+// control attack each combat if able").
+func (s *Session) typeScopedRequirements(o *protocol.Observation, seat string, required map[string]bool) {
+	for _, p := range o.Players {
+		for _, src := range p.Battlefield {
+			f := s.requirementFace(src)
+			if f == nil {
+				continue
+			}
+			for _, st := range f.Statics {
+				valid := mustAttackScope(st)
+				for _, own := range o.Players {
+					if own.Seat != seat {
+						continue
+					}
+					for _, r := range own.Battlefield {
+						if s.typeScoped(valid, r, src) {
+							required[r.ObjectID] = true
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// barredByType reports whether an unconditional printed static of the mode on
+// a permanent names this creature by type (Doomed Artisan: "Sculptures you
+// control can't attack or block"). A ValidCard$ scope other than who controls
+// the creature is not read, so the engine's own offer stays the authority
+// there.
+func (s *Session) barredByType(o *protocol.Observation, r protocol.ObjectRecord, mode string) bool {
 	for _, p := range o.Players {
 		for _, src := range p.Battlefield {
 			f := s.B.face(src.CardName, src.Token, nil)
@@ -2782,10 +2849,10 @@ func (s *Session) barredFromAttacking(o *protocol.Observation, r protocol.Object
 				continue
 			}
 			for _, st := range f.Statics {
-				if !slices.Contains(strings.Split(st.Mode, ","), "CantAttack") || unresolvedStatic(st) {
+				if !slices.Contains(strings.Split(st.Mode, ","), mode) || unresolvedStatic(st) {
 					continue
 				}
-				if valid := strings.TrimSpace(st.Params["ValidCard"]); controllerScoped(valid) && s.presentSpec(valid, r, src.ControllerSeat) {
+				if s.typeScoped(strings.TrimSpace(st.Params["ValidCard"]), r, src) {
 					return true
 				}
 			}
@@ -2794,18 +2861,34 @@ func (s *Session) barredFromAttacking(o *protocol.Observation, r protocol.Object
 	return false
 }
 
-// controllerScoped reports whether every alternative of a ValidCard$ spec is a
-// bare type word, scoped to at most who controls it.
-func controllerScoped(valid string) bool {
+// typeScoped reports whether the static on src names the creature r by a
+// ValidCard$ spec whose every alternative is a bare type word, scoped to at
+// most who controls it, whether it is src itself and more type words. A scope
+// the creature's type words do not hold reads as not naming it.
+func (s *Session) typeScoped(valid string, r, src protocol.ObjectRecord) bool {
 	if valid == "" {
 		return false
 	}
 	for _, alt := range strings.Split(valid, ",") {
-		if _, scope, ok := strings.Cut(strings.TrimSpace(alt), "."); ok && scope != "YouCtrl" && scope != "OppCtrl" {
-			return false
+		_, scope, ok := strings.Cut(strings.TrimSpace(alt), ".")
+		if !ok {
+			continue
+		}
+		for _, q := range strings.Split(scope, "+") {
+			switch q {
+			case "YouCtrl", "OppCtrl":
+			case "Other":
+				if r.ObjectID == src.ObjectID {
+					return false
+				}
+			default:
+				if !s.recordHasWord(r, q) {
+					return false
+				}
+			}
 		}
 	}
-	return true
+	return s.presentSpec(valid, r, src.ControllerSeat)
 }
 
 // mayAttackThroughDefender reports whether a printed-Defender creature has a
