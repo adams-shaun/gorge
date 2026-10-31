@@ -11,16 +11,16 @@ const (
 	cwFaceSpellBG = "Name:Face BG\nManaCost:BG\nTypes:Instant\n" +
 		"A:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw one.\nOracle:x\n"
 	cwSwamp = "Name:Face Swamp\nTypes:Basic Land Swamp\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Makes black.\nOracle:x\n"
 	cwFaceSpellTwoBR = "Name:Face Two BR\nManaCost:2 BR\nTypes:Instant\n" +
 		"A:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw one.\nOracle:x\n"
 	cwChosenLand = "Name:Chosen Land\nTypes:Land\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ Chosen | SpellDescription$ Add one mana of the chosen color.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ Chosen | SpellDescription$ Makes the recorded colour.\nOracle:x\n"
 	cwFilterLand = "Name:Filter Land\nTypes:Land\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n" +
-		"A:AB$ Mana | Cost$ 1 T | Produced$ Any | SpellDescription$ Add one mana of any color.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Makes colourless.\n" +
+		"A:AB$ Mana | Cost$ 1 T | Produced$ Any | SpellDescription$ Makes any colour.\nOracle:x\n"
 	cwMountain = "Name:Face Mountain\nTypes:Basic Land Mountain\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Makes red.\nOracle:x\n"
 )
 
 // cwFaceAsk begins the cast of spell and returns the option kinds of its pip
