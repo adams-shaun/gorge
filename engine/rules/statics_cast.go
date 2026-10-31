@@ -1251,7 +1251,7 @@ func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, 
 	if !ok {
 		return false
 	}
-	return !needFlash || e.castWithFlash(p, id) || mayPlayFlashGranted(e.activeStatics, e.mayPlayGrantedBy, e.G.Obj(id), p)
+	return !needFlash || e.castWithFlashAsFace(p, id, f) || mayPlayFlashGranted(e.activeStatics, e.mayPlayGrantedBy, e.G.Obj(id), p)
 }
 
 // spellTimingPre is spellTimingOK's decision up to the CastWithFlash lookup:
@@ -1274,10 +1274,24 @@ func (e *Engine) spellTimingPre(p state.PlayerID, id state.ObjID, f *cards.Face,
 	if !e.activationPhasesOK(p, sa) || (sa != nil && sa.MayHaveAnyParam(spellPresentKeys) && !e.abilityPresentHolds(p, id, sa)) {
 		return false, false
 	}
-	if sorcery || f.IsInstant() || e.hasKeywordH(id, kwhFlash) || mayFlashSacFace(f) {
+	if sorcery || f.IsInstant() || e.spellFaceHasFlash(id, f) || mayFlashSacFace(f) {
 		return true, false
 	}
 	return true, true
+}
+
+// spellFaceHasFlash reads the Flash keyword off the face being cast (CR 715.3a,
+// CR 720.3a). An alternate face needs the probe only when its own printing or
+// the live face's precheck, which covers every grant on the board, leaves Flash
+// possible.
+func (e *Engine) spellFaceHasFlash(id state.ObjID, f *cards.Face) bool {
+	if o := e.G.Obj(id); o == nil || o.Face() == f {
+		return e.hasKeywordH(id, kwhFlash)
+	}
+	if !f.HasKeywordRef(kwRefFlash) && !e.mayHaveDerivedKeywordH(id, kwhFlash) {
+		return false
+	}
+	return e.offerAsFace(id, f, func() bool { return e.hasKeywordH(id, kwhFlash) })
 }
 
 // spellPresentKeys are the keys the spell cast gate reads for IsPresent$.
