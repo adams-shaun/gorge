@@ -92,7 +92,7 @@ var effectKnownKeys = [...]string{
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"Defined", "DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration",
 	"EffectOwner", "EffectZone", "Exclude", "Execute", "Exhaust", "ExileOnLost", "ExileOnMoved",
-	"ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn",
+	"FirstCombat", "ForgetCounter", "ForgetOnCast", "ForgetOnMoved", "ForgetOnPhasedIn",
 	"ForgetOtherRemembered", "ForgetOtherTargets", "FromDesc", "GameActivationLimit", "GiftDescription", "IfDesc", "Image", "ImprintCards",
 	"ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
@@ -198,6 +198,8 @@ type effectTriggerLine struct {
 	// Phase is Phase$ as written; ValidPlayer$ trimmed.
 	Phase       string
 	ValidPlayer string
+	// FirstCombat is FirstCombat$ True on a Phase trigger.
+	FirstCombat bool
 	// IsPresent$ / PresentZone$ / PresentCompare$, trimmed: a Phase
 	// registration's presence condition, carried into the registration Text
 	// as the |IP=/|PZ=/|PC= suffixes rules' delayed scan decodes (Scars of
@@ -217,6 +219,7 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		Static:          strings.TrimSpace(tr.ParamStr(cards.PKStatic)) != "",
 		Phase:           tr.ParamStr(cards.PKPhase),
 		ValidPlayer:     strings.TrimSpace(tr.ParamStr(cards.PKValidPlayer)),
+		FirstCombat:     isTrue(tr.ParamStr(cards.PKFirstCombat)),
 		IsPresent:       strings.TrimSpace(tr.ParamStr(cards.PKIsPresent)),
 		PresentZone:     strings.TrimSpace(tr.ParamStr(cards.PKPresentZone)),
 		PresentCompare:  strings.TrimSpace(tr.ParamStr(cards.PKPresentCompare)),

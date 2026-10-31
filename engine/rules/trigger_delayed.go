@@ -214,6 +214,9 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		if dt.Phase != ev.Step {
 			continue
 		}
+		if dt.FirstCombat && e.G.CombatsThisTurn != 1 {
+			continue
+		}
 		// CR 603.7 + CR 500.7 (engine/rules/saga.go, events.ExtraTurn): a delayed
 		// trigger an extra-turn grant registered carries the granted turn's
 		// number as MinTurn, so the granting turn's own occurrence of the

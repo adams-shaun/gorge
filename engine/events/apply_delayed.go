@@ -147,6 +147,10 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	if staticFlag {
 		text = strings.TrimSuffix(text, "|ST")
 	}
+	firstCombat := strings.HasSuffix(text, "|1C")
+	if firstCombat {
+		text = strings.TrimSuffix(text, "|1C")
+	}
 	// OptionalDecider$ (an api:Effect Triggers$ body's "you may"
 	// election) rides "|OD=<spec>" the same way ValidPlayer$ and MaxTurn
 	// do. It is stripped before the mode/Trigger split below so the
@@ -294,6 +298,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		DefinedPlayer:       definedPlayer,
 		ThisTurnDefined:     thisTurnDefined,
 		Static:              staticFlag,
+		FirstCombat:         firstCombat,
 	})
 	g.DelayedNext++
 }

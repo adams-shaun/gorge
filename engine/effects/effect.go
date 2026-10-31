@@ -544,6 +544,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					text += "|PC=" + tl.PresentCompare
 				}
 			}
+			if tl.FirstCombat {
+				text += "|1C"
+			}
 			// A prevention rider's delayed counter body (Sacred Boon) reads the
 			// amount this application prevented as Count$TriggerRememberAmount;
 			// "|RN=" rides last so the decode strips it first.

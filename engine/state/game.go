@@ -751,6 +751,10 @@ type DelayedTrigger struct {
 	// Static is a Static$ True Mode$ Phase registration: Forge runs its body
 	// at fire time without a stack object. Rides the bare "|ST" flag.
 	Static bool
+	// FirstCombat is an Effect Mode$ Phase registration carrying FirstCombat$
+	// True: it fires only while the first combat phase of the turn has begun
+	// and no other has. Rides the bare "|1C" flag.
+	FirstCombat bool
 }
 
 const startingLife = 20
