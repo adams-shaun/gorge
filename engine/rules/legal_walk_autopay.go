@@ -140,9 +140,10 @@ func (e *Engine) armAbilityAutoPay(pc *pendingCast, idx int) {
 // rearmAutoPay plans again for a witness its announcements outdated, before any
 // step ran: a target's reduction, a Phyrexian pip's answer, a tap or waterbend
 // helper settle only after armAbilityAutoPay armed it. No seat selected that
-// witness. A spell's plan is the seat's, but it prices a Phyrexian pip as neither
-// mana nor life (PlanManaHalf), so a pip answered with mana outdates it too, and
-// the seat's own answer is why (CR 107.4f). It reports whether pc holds a new witness.
+// witness. A spell's plan is the seat's, but it can't price the seat's own later
+// answers: a Phyrexian pip, which it counts as neither mana nor life (PlanManaHalf,
+// CR 107.4f), and a tap for a convoke-family keyword granted only once the spell is
+// cast (CR 702.51a). It reports whether pc holds a new witness.
 func (e *Engine) rearmAutoPay(pc *pendingCast) bool {
 	if pc.Announced || pc.PaymentNext != 0 {
 		return false
@@ -151,7 +152,7 @@ func (e *Engine) rearmAutoPay(pc *pendingCast) bool {
 		if pc.Payment.ActionID != decision.OptAutoFill {
 			return false
 		}
-	} else if pc.PayIdx == 0 {
+	} else if pc.PayIdx == 0 && len(pc.Convoke) == 0 {
 		return false
 	}
 	plan := e.announcedAutoFillPlan(pc, e.castPaymentMana(pc))

@@ -97,7 +97,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.48a-c | not-impl | - | - | LOUD (6) |
 | 702.49a-d | follows | `engine/cards/kw_ninjutsu.go#kwNinjutsu` | `TestNinjutsuOrochiSoulReaverAndFallenShinobiFromHand` |  |
 | 702.50a,b | not-impl | - | - | LOUD (5) |
-| 702.51a-d | follows | `engine/rules/cast_altcost.go#Engine.hasCastConvoke` `engine/rules/cast_altcost.go#Engine.convokeCost` `engine/rules/pay/castasks.go#ConvokeAsk` | `TestAncientImperiosaurEntersWithTwoCountersPerConvoker` `TestTapPaymentsReadCurrentTypes` | player chooses creatures |
+| 702.51a-d | follows | `engine/rules/cast_altcost.go#Engine.hasCastConvoke` `engine/rules/cast_altcost.go#Engine.convokeCost` `engine/rules/pay/castasks.go#ConvokeAsk` `engine/rules/legal_walk_autopay.go#Engine.rearmAutoPay` | `TestAncientImperiosaurEntersWithTwoCountersPerConvoker` `TestTapPaymentsReadCurrentTypes` `TestPlannedCastSurvivesAConvokeAnswer` | player chooses creatures |
 | 702.52a,b | follows | `engine/effects/cardflow.go#dredgeCandidates` | `TestDredgeUsesRealCorpusCard` | derived dredge (Yixlid Jailer) |
 | 702.53a,b | follows | `engine/cards/kw_transmute.go#kwTransmute` | `TestTransmuteAndCyclingRealHandActivations` |  |
 | 702.54a-c | follows | `engine/rules/replacement_etb.go#Engine.bloodthirstEntryMatch` `engine/rules/entry_counters.go#Engine.entryBodyCandidates` | `TestBloodthirstPrintedEntersWithCounters` |  |
