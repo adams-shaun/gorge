@@ -48,7 +48,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 602.5a | follows | `engine/rules/pay/managates.go#TapCostSick` `engine/rules/pay/managates.go#TapFlagsSick` | `TestCR602NewNoncreatureCanActivateTapAbility` | {T} sickness, haste, control change |
 | 602.5b | follows | `engine/rules/legal_loyalty.go#Engine.activationUsedCount` | `TestCR602OncePerTurnActivationRestriction` | per object across control change |
 | 602.5c | unknown | `engine/rules/legal_loyalty.go#Engine.activationUsedCount` | - | g granted identity = SVar name; two grantors may share tally |
-| 602.5d | follows | `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` | - | sorcery timing |
+| 602.5d | follows | `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` | `TestMaxSpeedGrantKeepsSorceryTiming` | sorcery timing |
 | 602.5e | follows | `engine/rules/pay/board.go#InstantSpeedOnly` `engine/rules/cast_paymentplan.go#Engine.untappedManaSource` | - | d no InstantSpeed$ abilities |
 | 603.1 | follows | `engine/cards/parse.go#ParseTriggerLine` `engine/rules/trigger_match.go#Engine.checkTriggers` | - | trigger lines parsed; matched on events |
 | 603.1a | unknown | - | - | not audited |
