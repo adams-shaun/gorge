@@ -30,7 +30,7 @@ func TestShadowPlaysTheObservedBackFace(t *testing.T) {
 	s := fixtureSession(t, fixturePlains,
 		"Name:Fixture Hymn\nManaCost:1 W\nTypes:Sorcery\nAlternateMode:Modal\nOracle:x\n"+
 			"ALTERNATE\n"+
-			"Name:Fixture Mire\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ W | SpellDescription$ Add {W}.\nOracle:x\n")
+			"Name:Fixture Mire\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ W | SpellDescription$ Fixture mana.\nOracle:x\n")
 	obs := seatPriority([]protocol.ObjectRecord{obsPerm("o-mire", "Fixture Mire", "p0", untapped(), "land")})
 	sh, err := s.B.shadow(&obs, nil)
 	if err != nil {

@@ -46,7 +46,7 @@ func TestRequiredAttackerReadsOtherPermanents(t *testing.T) {
 		source string
 		attach bool
 	}{
-		{"aura", "Name:Fixture Curse\nTypes:Enchantment Aura\nK:Enchant:Creature\nS:Mode$ MustAttack | ValidCreature$ Creature.EnchantedBy | Description$ Fixture duty.\n", true},
+		{"aura", "Name:Fixture Curse\nK:Enchant:Creature\nTypes:Aura Enchantment\nS:Mode$ MustAttack | Description$ Fixture duty. | ValidCreature$ Creature.EnchantedBy\n", true},
 		{"opposing static", "Name:Fixture Curse\nTypes:Enchantment\nS:Mode$ MustAttack | ValidCreature$ Creature.OppCtrl | Description$ Fixture duty.\n", false},
 		{"type scope", "Name:Fixture Curse\nTypes:Enchantment\nS:Mode$ MustAttack | ValidCreature$ Creature.Bear+Other+OppCtrl | Description$ Fixture duty.\n", false},
 	} {

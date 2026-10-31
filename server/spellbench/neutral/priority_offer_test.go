@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
-const fixturePlains = "Name:Plains\nTypes:Basic Land Plains\nA:AB$ Mana | Cost$ T | Produced$ W | SpellDescription$ Add {W}.\n"
+const fixturePlains = "Name:Plains\nTypes:Basic Land Plains\nA:AB$ Mana | Cost$ T | Produced$ W | SpellDescription$ Fixture mana.\n"
 
 // seatPriority is an own-turn main phase where p0 holds priority.
 func seatPriority(p0 []protocol.ObjectRecord) protocol.Observation {
