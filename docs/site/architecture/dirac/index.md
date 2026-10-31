@@ -1,233 +1,158 @@
-# dirty-dirac
+# dirac
 
-dirty-dirac is gorge's second rules kernel: a two-player implementation of
-Magic built so that tree search and self-play can copy and step a game
-millions of times. It began as a microkernel for two fixed card pools. It is
-now a kernel whose card compiler lowers cards from the whole Forge corpus,
-and it is being grown, one rules family at a time, toward a full engine. This
-page says what it is, how it relates to gorge, what it covers today and where
-it is going. It is for contributors who want to understand the two-kernel
-design and for bot authors who want to know what a "kernel game" is.
+dirac is a second Magic rules engine, written so that tree search and self-play can copy and step a game
+millions of times. This section is for engine and ML readers, and for bot authors who want to know what a
+dirac game is, what it supports, how it is checked and where the speed comes from.
 
-!!! warning "In development"
-    dirty-dirac is under active development toward a full engine and is not
-    finished: its card support is still growing, and gorge is the reference
-    engine it is checked against.
+!!! note "The source isn't here yet"
+    dirac's source is not in this repository, so these pages describe it and don't link into it. Package
+    names on these pages are `dirac`, `dirac/kop`, `dirac/kgen`, `dirac/oracle` and so on. Commands on
+    these pages can't be run from a clone of gorge.
 
-!!! info "Snapshot"
-    Figures in this section were read from the dirty-dirac source of
-    2026-10-25, which pins gorge
-    [`bb026728d`](https://github.com/adams-shaun/gorge/commit/bb026728d).
-    Each page says how its figures were produced.
+Figures on these pages were read from the code on 2026-10-31, with Go 1.26.3 on linux/amd64, against gorge
+`7438d92b6` and the corpus pin in the Makefile's `FORGE_REF`. Each one says how it was measured.
 
-!!! note "Where the code lives"
-    dirty-dirac lives in the maintainers' **private companion
-    module** (see [The three repositories](../../repos/index.md)). Its Go
-    package is `kernel`, with sub-packages `kop`, `cardset`, `feat`,
-    `search`, `neteval`, `oracle`, `vanilla` (a hand-written test table) and
-    one generated `cards_<pool>` package per card pool, and the commands `kgen` (the card generator), `kfuzz` (the
-    lockstep fuzzer) and `kplay` (the game runner). The source is not public;
-    these pages describe its design, what it supports and how it is
-    verified. Its speed is on the [Performance](../../performance/index.md)
-    pages.
+## Why a second engine
 
-## Why a second kernel
+gorge is built to be right for every card it can play, at up to eight seats, with a hash-chained event log
+([Events and replay](../gorge/events.md)). That shape costs time: a `state.Game` is an arena of objects
+with slices and maps, so a clone is a deep copy, and every state change goes through an event.
 
-gorge is built to be right for every card in the Forge corpus, at up to eight
-seats, with a replayable, hash-chained event log
-([Events and replay](../gorge/events.md)). That generality has a shape: a
-`state.Game` is an arena of objects linked by IDs, plus slices for zones and
-maps for continuous effects, card text and memo tables. Copying one is a deep
-copy; stepping one walks open-ended data.
-
-A search such as Monte Carlo tree search (MCTS) wants the opposite trade. Each
-simulation starts by copying the root position, plays forward a few dozen
-decisions, and throws the copy away. If everything variable-length about the
-cards lives in a read-only table, the game itself can be laid out as **one
-fixed-size Go value**:
-
-- no pointers, maps, slices, strings or interfaces anywhere inside it;
-- every zone, the battlefield, the stack and the pending triggers are
-  fixed-capacity arrays;
-- a card's behaviour is a short program of integer opcodes in a table the
-  game names by a 16-bit index, not by a pointer.
-
-Then **cloning a game is a plain assignment** (`w := *root`, one copy of
-15,240 bytes), the garbage collector never scans game state, and two equal
-positions compare equal with `==`. That is the whole idea; the rest of these
-pages are the details that make it hold up.
+A search wants the opposite trade. Each simulation copies a position, plays a few dozen decisions and
+throws the copy away. If everything variable-length about the cards lives in a read-only table, the game
+itself can be mostly one fixed-size value:
 
 ```go
-s := kernel.NewConfig(tbl, deckA, deckB, seed, kernel.Config{Mulligans: 2})
+set, _ := cardset.ByName("fdn")
+tbl, deckA, deckB, _ := set.Matchup(listA, listB)
+s := dirac.NewConfig(tbl, deckA, deckB, seed, dirac.Config{Mulligans: 2})
 for {
-    d := s.Step()               // run to the next decision
-    if d.Kind == kernel.DkNone { // the game is over
+    d := s.Step()               // run to the next question
+    if d.Kind == dirac.DkNone { // the game is over
         break
     }
-    s.Apply(d.Options[i])       // answer it with one of d.Options[:d.N]
+    s.Apply(d.Options[0])       // answer with any of d.Options[:d.N]
 }
 over, winner := s.Terminal()
 ```
 
-The API is that loop: `Step` runs the game to its next question, `Apply`
-answers it with one packed 32-bit `Action`. See
-[Step and Apply](step-apply.md).
+Copying a mid-game FDN position takes about 41 ns and allocates nothing, and a transition takes about
+2.8 µs, also allocating nothing ([Performance](../../performance/index.md#transitions-and-copies)).
 
-## What it covers
+## What it supports
 
-dirty-dirac covers cards in three steps, and each one is a stronger claim than
-the one before:
+A card moves through three states. Only the last one is a claim about play.
 
-| Step | What it means | Today |
+| State | Meaning | How to ask |
 |---|---|---|
-| **Lowered** | the generator, `kgen`, reads every rules parameter of the card's compiled IR and lowers it to kernel ops with no refusal | **17,126 of 34,072** corpus cards (50.3 %) |
-| **Generated** | the card is in a generated `cards_<pool>` package, so a kernel game can deal it | the registered pools: FDN, BLB and a set of small constructed verification pools |
-| **Verified** | games over the pool have been played in lockstep with gorge, decision by decision, with no disagreement | FDN and BLB, plus the constructed pools ([Verification](oracle.md#agreement-today)) |
+| **Lowered** | `dirac/kgen` read every rules parameter of the card's compiled IR and turned it into `dirac/kop` ops | the build ratchet: 20,730 of 34,072 corpus card names on 2026-10-31 |
+| **Not refused** | the card isn't on the short list of cards named as playing wrongly, each with a reason and a game that shows it | the list is committed with the source |
+| **Evidenced** | clean lockstep games played the card at least three times and used every ability it has | the evidence lists, committed with the source |
 
-Per-set lowering counts are on [Card support by set](../../support/sets.md#per-set-support).
-A lowered card that is not yet in a verified pool is a claim about the
-generator, not about play: the [Cards](cards.md) page explains the refusal
-contract that makes the claim mean something.
+A **supported** card is `lowered && !refused && evidenced`. `kgen -supported <pool>` prints one line per
+pool entry with that answer: on 2026-10-31 it says true for all 310 entries of the `fdn` pool and 260 of the
+288 of the `blb` pool, tokens included. Per-set lowering counts are on
+[Card support by set](../../support/sets.md#per-set-support).
+
+Evidence isn't enforced at game setup yet. A lowered card with no evidence is reported as *unverified*, not
+supported, and it can still be dealt into a game, which is how a lockstep sweep reaches it. A card that
+didn't lower or is refused can't: `Matchup` refuses the deck and names the card.
+
+### How far lockstep agrees
+
+gorge is the engine dirac is checked against ([Verification](oracle.md)). The state of that check on
+2026-10-31, on `-surface autopay` with random answers:
+
+| Run | Games | Clean | Divergent | Unmodelled stalls | Capacity stalls | Refused pairs |
+|---|--:|--:|--:|--:|--:|--:|
+| FDN, the committed slice (first 1,500 pairs of its pool, seed 1) | 1,500 | 1,500 | 0 | 0 | 0 | 0 |
+| BLB, the committed slice (first 1,500 pairs of its pool, seed 1) | 1,500 | 1,500 | 0 | 0 | 0 | 0 |
+| 20 Standard sets, 500 pairs each, deck pools | 9,067 | 8,635 | 404 | 15 | 13 | 933 |
+
+A refused pair holds a card dirac doesn't support, so it never starts a game. dirac is at zero divergence on
+FDN and BLB over those slices and is not at zero on the wider pool: 404 of 9,067 games found a difference from
+gorge. Those differences are open work, on one engine or the other.
 
 ## Scope
 
-dirty-dirac deliberately does much less than gorge.
+dirac does less than gorge on purpose.
 
-| Limit | Value | What happens past it |
+| Limit | Value | Past it |
 |---|---|---|
-| Players | exactly 2 | not representable in this build |
-| Cards | cards in a generated pool; a matchup is built from one pool | a deck with a refused card is refused when the matchup table is built |
-| Deck size | 60 cards per seat (`MaxDeck`) | rejected when the game is set up |
-| Card instances | 192: both decks plus tokens and copies (`MaxObj`) | the game ends as a draw, reason `board` |
-| Battlefield | 128 permanents (`MaxPerm`) | draw, `board` |
-| Stack | 24 entries (`MaxStack`) | draw, `stack` |
-| Waiting triggers | 24 (`MaxPending`) | draw, `pending` |
-| Triggers resolved in one turn | 2,000 | draw, `loop` (an endless mandatory loop, CR 104.4b) |
-| Every other bounded pool | delayed triggers 16, remembered objects 12, continuous-effect records 16, last-known-information records 16, general counter kinds per permanent 3, ... | draw, with that pool's own reason |
+| Players | exactly 2 | not representable |
+| Deck size | 60 cards a seat | rejected at setup |
+| Card instances, both decks plus tokens and copies | 192 | the game stalls (`board`) |
+| Battlefield | 112 permanents | stalls (`board`) |
+| Stack | 24 entries | stalls (`stack`) |
+| Triggered abilities waiting | 24 | stalls (`pending`) |
+| Delayed triggers | 16 | stalls (`delayed`) |
+| Attack or block options in one declaration | 384 | stalls (`options`) |
+| Triggers resolved in one turn | 2,000 | stalls (`loop`, an endless mandatory loop, CR 104.4b) |
 
-A game that outgrows a fixed capacity is a *capacity stall*: it ends as a draw
-and `State.StallReason` names the pool. There are 46 reasons. Most name a
-bounded pool, so no insert is ever dropped silently. The rest are not about
-capacity: they mark a combination of cards whose interaction the kernel knows
-it does not yet handle the way gorge does (two replacement effects gorge would
-ask about, for example), and the game stalls at that point rather than play
-on with a known difference. gorge has no such caps, so the oracle counts a
-stall as a stall, never as a rules disagreement.
+**Stalls are named.** A game dirac can't continue correctly ends as a draw, `Terminal` reports `(true, -1)`
+and `StallReason` gives one of about a hundred named reasons. The names fall into two classes, and every
+reason must be in one or a test fails:
 
-There is also no event log, no per-seat view, no host, no Commander, no
-concede and no manual mana: every cast is paid automatically by a planner that
-mirrors gorge's own auto-pay planner. Those are gorge's jobs.
+- **Capacity:** a fixed array or budget ran out, and gorge has no such limit. The game was right up to there.
+  These are declared limits, so they count as limits and not as failures.
+- **Unmodelled:** gorge does something at this point that dirac doesn't. These are rule gaps, and a strict
+  lockstep run fails on them.
 
-## Relationship to gorge
+Nothing is dropped silently: a full pool stalls by name, and an op the interpreter lacks panics by name.
 
-**gorge is dirty-dirac's oracle.** dirty-dirac is not a second source of rules
-truth. Its cards are generated from gorge's compiled card IR, its rules code
-follows gorge's rules code (including gorge's decision grammar and RNG), and a
-lockstep harness plays the same game through both engines and stops at the
-first difference. When the two disagree, the question is "which one is wrong
-by the Comprehensive Rules (CR)?". When gorge looks wrong, the evidence is
-checked against XMage and Forge, the fix lands in gorge, and the kernel keeps
-gorge's behaviour until its gorge pin moves past the fix. Several findings so
-far were bugs in gorge (for example gorge commits
-[`b95cf24c0`](https://github.com/adams-shaun/gorge/commit/b95cf24c0) and
-[`ff5b00f5e`](https://github.com/adams-shaun/gorge/commit/ff5b00f5e)), which
-is one reason the harness exists. See [Verification](oracle.md).
+dirac has no event log, no per-seat view, no host, no Commander, no concede and no manual mana. A cast is
+offered when untapped sources and the pool can pay, and it is paid by a planner that mirrors gorge's auto-pay
+planner. Those other jobs belong to gorge.
 
-**The import boundary.** The kernel itself imports nothing from gorge. Only
-three places may:
+## How it relates to gorge
+
+**dirac is not a second source of rules truth.** Its cards are generated from gorge's compiled card IR, its
+rules code follows gorge's (including gorge's decision grammar and random numbers), and a lockstep harness
+plays the same game through both engines. When they disagree, the question is which one is wrong under the
+Comprehensive Rules (CR). If gorge looks wrong, the evidence is checked against XMage and Forge and the fix
+lands in gorge. Several differences so far were gorge's bugs.
+
+The rules engine imports nothing from gorge. Only the tools that meet gorge do:
 
 ```mermaid
 flowchart LR
-  subgraph fy["dirty-dirac (private companion)"]
-    kernel["kernel<br/>(State, Step, Apply)"] --> kop["kop<br/>(op vocabulary, Table)"]
-    cards["cards_&lt;pool&gt;<br/>(generated tables)"] --> kop
-    cardset --> kop
-    cards --> cardset
-    feat["feat<br/>(network inputs)"] --> kernel
-    search["search<br/>(+ hbot, mull)"] --> kernel
-    neteval --> feat
-    oracle["oracle<br/>(lockstep, kfuzz)"] --> kernel
-    kgen["kgen<br/>(card generator)"] -.->|writes| cards
+  subgraph d["dirac"]
+    dirac["dirac<br/>State, Step, Apply"] --> kop["dirac/kop<br/>ops, Table"]
+    cardset["dirac/cardset<br/>loads binary tables"] --> kop
+    feat["dirac/feat<br/>network inputs"] --> dirac
+    hbot["dirac/search/hbot<br/>heuristic bot port"] --> dirac
+    oracle["dirac/oracle<br/>lockstep, kfuzz"] --> dirac
+    kgen["dirac/kgen<br/>card generator"] -.->|writes tables| cardset
   end
-  subgraph g["gorge (public)"]
-    engine["engine/...<br/>(rules, cards, state)"]
-    net["bots/netsimd<br/>bots/policynet"]
+  subgraph g["gorge"]
+    engine["engine/...<br/>rules, cards, state"]
   end
-  neteval -->|"the one bounded exception"| net
   oracle -->|"runs gorge as the reference"| engine
   kgen -->|"reads the compiled IR"| engine
 ```
 
-- `kernel`, `kop`, `cardset`, the generated `cards_<pool>` packages, `feat`
-  and `search` have no gorge package among their dependencies
-  (`go list -deps`, 2026-10-25).
-- `neteval` is the one bounded exception in the run-time path: its only
-  gorge imports are
-  [`bots/netsimd`](https://github.com/adams-shaun/gorge/tree/main/bots/netsimd)
-  (the network's forward pass) and
-  [`bots/policynet`](https://github.com/adams-shaun/gorge/tree/main/bots/policynet)
-  (its input types). `policynet` links gorge's engine types in turn, so the
-  rule is about what `neteval` calls, not what the binary links: it never
-  calls gorge's engine. See [Search](search.md).
-- `oracle` and `kgen` are tools, not the kernel, and may import any of gorge.
-
-The rule is stated in the kernel's package documentation; it is a review rule,
-not a test.
-
-## gorge and dirty-dirac compared
-
-| | gorge | dirty-dirac |
+| | gorge | dirac |
 |---|---|---|
-| **State model** | `state.Game`: an object arena addressed by `ObjID`, with slices for zones and maps for effects and memos | one `State` struct of 15,240 bytes: fixed arrays only; no pointers, maps, slices, strings or interfaces ([State](state.md)) |
-| **Mutation** | the engine proposes `events.Event`s; `events.Apply` folds each into the state and appends it to a SHA-256 hash chain | `Apply(action)` writes the value directly; no log |
-| **Clone cost** | `Engine.Clone`: a deep copy of the game plus a shared log prefix | assignment: one 15,240-byte copy, nothing for the garbage collector |
+| **State** | `state.Game`: an object arena with slices and maps | one `State` of 14,896 bytes plus one small table-sized buffer ([State](state.md)) |
+| **Mutation** | events folded by `events.Apply` into a hash chain | `Apply(action)` writes the value directly, with no log |
+| **Clone** | `Engine.Clone`, about 22 µs and 200 KB | `CopyFrom`, about 41 ns and no allocation |
 | **Players** | up to 8 | exactly 2 |
-| **Card coverage** | the whole Forge corpus: 32,337 of 34,074 scripts (94.9 %) playable ([Card support](../../support/sets.md)) | 50 % of the corpus lowers; play is per generated pool ([What it covers](#what-it-covers)) |
-| **Rules source** | Forge scripts compiled to gorge's IR, plus gorge's hand-written primitives and rules core | the same IR lowered by `kgen` into integer op programs, plus a hand-written interpreter that mirrors gorge's rules code ([Cards](cards.md)) |
-| **Decisions** | 13 decision kinds, multi-select answers | 8 decision kinds, every answer a single pick ([Step and Apply](step-apply.md)) |
-| **Verification** | golden replays and chain heads, census ratchets, the XMage and Forge compliance oracles | lockstep against gorge on every decision and every position ([Verification](oracle.md)) |
-| **Intended use** | hosting real games, the reference implementation, every card | search and self-play on the verified pools |
+| **Cards** | see [Card support](../../support/sets.md) | see [What it supports](#what-it-supports) |
+| **Decisions** | 13 kinds, multi-select answers | 8 kinds, every answer a single pick ([Step and Apply](step-apply.md)) |
+| **Checked by** | golden replays, census ratchets, XMage, Forge and Oracle-text scenarios | lockstep against gorge at every decision ([Verification](oracle.md)) |
+| **Used for** | hosting games, every card, the reference | search and self-play |
 
-## Where it is going
-
-The kernel is a work in progress. Its growth is organised so that a new set
-costs data, not a redesign:
-
-- **Close the shared card grammar, corpus-wide.** What blocks a card is
-  overwhelmingly shared grammar (filter properties, `Defined$` forms,
-  parameters, value heads, common effects and trigger modes), not the set's
-  named mechanics. The generator classifies every refusal, and the refusal
-  classes are closed in order of how many corpus cards each one unlocks.
-  Acceptance ratchets, one for the whole corpus and one per set, can only
-  rise ([Cards](cards.md#growing-the-card-grammar)).
-- **Complete the rules families.** Every recent set's mechanics compose from
-  a small catalogue of kernel blocks: costs and cast-time choices, trigger
-  events, counters and threshold gates, per-turn history, permissions,
-  continuous effects (the CR 613 layers), copies and faces, simultaneous-event
-  batches and last known information, choice points, and capacities. `State`
-  grows only when a block is built, and each block is measured against the
-  size budget ([State](state.md#the-size-budget)). Once the catalogue is
-  complete, a named mechanic is one generator entry that composes existing
-  blocks.
-- **Verify more sets in lockstep.** A lowered card is only accepted; a set is
-  trusted once a pool of its decks plays in lockstep with gorge and joins the
-  regression gate.
-- **Multiplayer.** The 2-player build bakes the seat count into array sizes,
-  the 8-bit object index and the 32-bit action. The design keeps one source
-  and makes the seat count a build-time size class: the 2-player build keeps
-  today's constants and costs nothing extra, while a multiplayer build widens
-  object and action fields, sizes per-player arrays by the seat count, and
-  adds the Commander state, with its own size budget.
+dirac can also be served as a SpellBench v2 engine: `dirac/cmd/sbv2dirac` plays the game with dirac as the
+authority and a gorge engine following in lockstep, which builds the observations and candidates. A
+disagreement ends that game as `engine_contract_failure:divergence`. See
+[SpellBench v2](../../api/spellbench-v2.md).
 
 ## Pages in this section
 
 | Page | What it covers |
 |---|---|
-| [State](state.md) | the fixed-size `State` value and its memory layout, the 128-slot battlefield and its slot masks, object identity and versioning (CR 400.7), the size budget, the canonical `Projection` |
-| [Step and Apply](step-apply.md) | the control-state machine, the `Decision` and `Action` encodings, decision kinds against gorge's, mulligans, and why the RNG is bit-compatible with gorge's |
-| [Cards](cards.md) | the `kop` op vocabulary, how `kgen` lowers gorge's compiled IR, the refusal contract, the acceptance ratchets, the layer system, what is generated and what is hand-written |
-| [Verification](oracle.md) | the lockstep oracle against gorge, the canonical vocabulary and projection, how a divergence is found, shrunk and classified, the verified pools, and what lockstep cannot see |
-| [Search](search.md) | how featurisation, the search and network evaluation sit on the kernel, and the import boundary |
-
-New terms on these pages are collected in the
-[Glossary](../../contributing/glossary.md).
+| [State](state.md) | the hot, core and cold layout, object identity, change marks, the size bar, the `Projection` |
+| [Step and Apply](step-apply.md) | the control-state machine, `Decision` and `Action`, decision kinds against gorge's, the RNG |
+| [Cards](cards.md) | the op vocabulary, how `kgen` lowers gorge's IR, refusals, binary tables, evidence, layers |
+| [Verification](oracle.md) | the lockstep oracle, what it proves and what it doesn't |
+| [Search and bots](search.md) | what dirac offers a search, the heuristic bot and mulligan ports, the network input encoder |
