@@ -6,7 +6,6 @@ something, and how the answer comes back. It is for anyone writing a seat (a
 bot or a client), a driver (a host, a test harness, a simulator), or engine
 code that needs to ask a player a question.
 
-
 ## The driving contract: Advance, Pending, Submit
 
 A host drives a game through the [`engine/game`](../index.md#the-engine-seam) interfaces,

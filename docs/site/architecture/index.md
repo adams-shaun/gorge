@@ -7,7 +7,6 @@ written for Go developers who want to read or change the engine. If you only
 want to run a game, start at [Getting started](../getting-started.md); if you
 want to fix your first card, see [Your first card fix](../contributing/first-card-fix.md).
 
-
 ## The idea in one paragraph
 
 gorge does not hand-write cards. It compiles Forge's card scripts (fetched at

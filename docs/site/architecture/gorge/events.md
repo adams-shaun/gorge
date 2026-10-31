@@ -7,7 +7,6 @@ heads, how replay works, and how clones and the resolution kernel build on it.
 Read it before you write engine code that changes anything, because the rules
 here are what keep replays, bug reports and search correct.
 
-
 ## The loop
 
 <figure markdown>

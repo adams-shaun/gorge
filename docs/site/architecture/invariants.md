@@ -7,7 +7,6 @@ anyone changing engine, server or bot code: read it before your first
 non-trivial change, and come back when a ratchet or golden test fails and you
 want to know what it is protecting.
 
-
 Where a rule is held only by convention (nothing mechanical catches you at
 the point of writing), the page says so; the after-the-fact backstop is
 usually the replay and golden-head tests.

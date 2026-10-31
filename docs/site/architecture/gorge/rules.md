@@ -8,7 +8,6 @@ who knows Magic can find the code for a rule, and one who does not can see how
 the pieces fit. It assumes you have read [Events and replay](events.md) and
 [Game loop and decisions](game-loop.md).
 
-
 ## The shape of the package
 
 `engine/rules` is the largest package in the repository. Around it sit seven
@@ -37,7 +36,6 @@ sub-packages that each compute one thing and never hold an engine:
   <text x="140" y="205" class="dg-text-muted">the CR 613 layer walk (read-only)</text>
   <rect x="522" y="180" width="248" height="40" rx="6" class="dg-box"/>
   <text x="536" y="205" class="dg-text-bold">rules/scriptfacts</text>
-  <text x="660" y="205" class="dg-text-muted"></text>
   <rect x="10" y="228" width="504" height="40" rx="6" class="dg-box"/>
   <text x="24" y="253" class="dg-text-bold">effects (+ params)</text>
   <text x="180" y="253" class="dg-text-muted">api: primitives, filters, counts</text>

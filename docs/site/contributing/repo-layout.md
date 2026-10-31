@@ -6,7 +6,6 @@ and where a given kind of change belongs. The per-package detail (every
 package with its purpose, size and importers) is generated from the source on
 [Packages](../architecture/packages.md); this page is the guided tour.
 
-
 ## The tree at a glance
 
 <figure>

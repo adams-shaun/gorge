@@ -9,7 +9,6 @@ goroutines are, what is written to disk and how clients are fed. To run a
 server, see [Getting started](../../getting-started.md); the
 [API reference](../../api/index.md) and the [bots section](../../bots/index.md) have the interfaces.
 
-
 ## Packages
 
 | Package | Role |

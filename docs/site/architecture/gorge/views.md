@@ -8,7 +8,6 @@ it hands anything to a client or a bot, and how determinism keeps the
 server's word authoritative. It is for client and bot authors and for anyone
 touching `engine/view` or the server's HTTP layer.
 
-
 ## The boundary
 
 <figure markdown>

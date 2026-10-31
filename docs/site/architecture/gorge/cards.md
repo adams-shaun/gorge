@@ -9,7 +9,6 @@ paid. For the step-by-step contributor workflow (fetch, compile, find a
 missing primitive, fix a card), see [The card pipeline](../../contributing/card-pipeline.md)
 and [Your first card fix](../../contributing/first-card-fix.md).
 
-
 ## From script to running effect
 
 <figure markdown>
