@@ -289,7 +289,7 @@ log all see it because it goes through `Host.Emit`.
 ### The Host interface
 
 `effects` never imports `rules`. It reaches the engine only through
-`effects.Host`, which is the union of 13 small role interfaces
+`effects.Host`, which is the union of small role interfaces
 ([`engine/effects/host_roles.go`](https://github.com/adams-shaun/gorge/blob/main/engine/effects/host_roles.go)),
 so each effect's needs are visible:
 

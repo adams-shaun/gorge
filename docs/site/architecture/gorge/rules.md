@@ -198,7 +198,8 @@ player would next receive priority (CR 117.5).</figcaption>
   trigger-interest class from `events/kindinfo.go`, so only faces whose
   triggers could care are examined. The per-mode verdict comes from
   `trigmatch.Match`: a dense table with one matcher per trigger `Mode$`,
-  registered from each mode's file in `rules/trigmatch` (a mode with no matcher never fires). Leaves-the-battlefield triggers are matched against
+  registered from each mode's file in `rules/trigmatch` (a mode with no matcher
+  never fires). Leaves-the-battlefield triggers are matched against
   a snapshot of the board from before the event (the CR 603.10a "look back").
 - **Queueing and order.** Matches wait in `pendingTriggers` until
   `priorityRound` calls `putTriggersOnStack`. That sorts them APNAP (active
@@ -241,8 +242,7 @@ sequenceDiagram
   Em->>Lg: log and fold the result
 ```
 
-- The replaceable events are the script's `R:Event$` vocabulary: 27 kinds,
-  among them `Moved`, `DamageDone`, `Draw`, `GainLife`, `AddCounter`,
+- The replaceable events are the script's `R:Event$` vocabulary, among them `Moved`, `DamageDone`, `Draw`, `GainLife`, `AddCounter`,
   `CreateToken`, `ProduceMana`, `Untap` and `BeginPhase`, most with their own
   `replacement_*.go` file.
 - When several apply, the affected player (the object's controller, or the
