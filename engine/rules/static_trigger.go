@@ -112,8 +112,22 @@ func (e *Engine) staticTriggerAskFree(pt pendingTrigger, line cards.Trigger, sva
 	}
 	// The engine-wide board gate: competing replacement elections (a
 	// CR 616.1 order choice) and an exiled-card return an ask-free move can
-	// sweep back onto the battlefield.
-	return !tapeBoardCompetes(e)
+	// sweep back onto the battlefield. A body with no replaceable event never
+	// meets them.
+	return staticBodyEventFree(pt.SA) || !tapeBoardCompetes(e)
+}
+
+// staticBodyEventFree reports whether every link of a static trigger's body is
+// bookkeeping that performs nothing a replacement effect can apply to.
+func staticBodyEventFree(sa *cards.SA) bool {
+	for ; sa != nil; sa = sa.Sub {
+		switch sa.API {
+		case "Animate", "Cleanup", "Effect", "Pump", "PumpAll", "StoreSVar":
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // resolveStaticTriggers resolves every queued trigger whose line carries

@@ -50,7 +50,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 602.5c | unknown | `engine/rules/legal_loyalty.go#Engine.activationUsedCount` | - | g granted identity = SVar name; two grantors may share tally |
 | 602.5d | follows | `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` | `TestMaxSpeedGrantKeepsSorceryTiming` | sorcery timing |
 | 602.5e | follows | `engine/rules/pay/board.go#InstantSpeedOnly` `engine/rules/cast_paymentplan.go#Engine.untappedManaSource` | - | d no InstantSpeed$ abilities |
-| 603.1 | follows | `engine/cards/parse.go#ParseTriggerLine` `engine/rules/trigger_match.go#Engine.checkTriggers` | - | trigger lines parsed; matched on events |
+| 603.1 | follows | `engine/cards/parse.go#ParseTriggerLine` `engine/rules/trigger_match.go#Engine.checkTriggers` `engine/rules/static_trigger.go#Engine.staticTriggerAskFree` | `TestStaticTriggerStaysOffTheStack` | trigger lines parsed; matched on events |
 | 603.1a | unknown | - | - | not audited |
 | 603.1b | unknown | - | - | not found in g |
 | 603.2 | partial | `engine/rules/trigger_match.go#maxTriggerFires` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` `engine/rules/trigmatch/actions.go#valiantFirstTimeTargetedByYouThisTurn` | `TestValiantFiresOncePerTurn` `TestValiantCountsCasterNotOwner` `TestValiantDedupesSameSpellTargets` | g silent 256-fires-per-match cap per trigger line; the "for the first time each turn" once-per-turn gate (Valiant$ ability word) is real, per-controller with the caster read off the cast's PutOnStack (never a spell card's Owner) and one fire per targeting spell (cr-g74) |
