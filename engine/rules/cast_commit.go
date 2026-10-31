@@ -1034,7 +1034,7 @@ func (e *Engine) payCast() {
 			}
 			pt.CasPayload = events.StackCopyCounterString(cc)
 		}
-		e.pendingTriggers = append(e.pendingTriggers, pt)
+		e.queueTrigger(e, pt, castEv, nil)
 	}
 	if castEv.Kind == events.PutOnStack {
 		e.fireManaSpentTriggers(castEv, castLKI)

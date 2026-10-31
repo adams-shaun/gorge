@@ -231,7 +231,7 @@ func (e *Engine) queueGrantedFlanking(id state.ObjID, o *state.Object, ev events
 				return
 			}
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			e.queueTrigger(e, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
 				Idx:        -1,
@@ -245,7 +245,7 @@ func (e *Engine) queueGrantedFlanking(id state.ObjID, o *state.Object, ev events
 						TriggerBlocker: bid,
 					},
 				}),
-			})
+			}, ev, nil)
 		}
 	}
 }
@@ -421,7 +421,7 @@ func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID
 						},
 					}
 				}
-				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				e.queueTrigger(e, pendingTrigger{
 					Source:     source,
 					Controller: controller,
 					Idx:        idx,
@@ -430,7 +430,7 @@ func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID
 					Grantor:    grantor,
 					Execute:    t.ParamStr(cards.PKExecute),
 					Ctx:        effects.NewCtx(source, controller, ctx),
-				})
+				}, ev, nil)
 			}
 		}
 		return
@@ -438,7 +438,7 @@ func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID
 	for _, pr := range e.attackerBlockedCandidates(t, source, ev) {
 		reserve()
 		e.triggerFireCount[key]++
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(e, pendingTrigger{
 			Source:     source,
 			Controller: controller,
 			Idx:        idx,
@@ -447,7 +447,7 @@ func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID
 			Grantor:    grantor,
 			Execute:    t.ParamStr(cards.PKExecute),
 			Ctx:        effects.NewCtx(source, controller, e.attackerBlockedCtx(t, pr[0], pr[1], ev)),
-		})
+		}, ev, nil)
 	}
 }
 
@@ -648,7 +648,7 @@ func (e *Engine) queueAttackerUnblockedTrigger(t cards.Trigger, source state.Obj
 				e.reserveTriggerLimits(t, key)
 			}
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			e.queueTrigger(e, pendingTrigger{
 				Source: source, Controller: controller, Idx: idx, SA: t.Effect,
 				Granted: granted, Grantor: grantor, Execute: t.ParamStr(cards.PKExecute),
 				Ctx: effects.NewCtx(source, controller, effects.CtxInit{
@@ -658,7 +658,7 @@ func (e *Engine) queueAttackerUnblockedTrigger(t cards.Trigger, source state.Obj
 						AttackingPlayer: pt(e.controllerOf(aid)), DefendingPlayer: pt(a.Attacking),
 					},
 				}),
-			})
+			}, ev, nil)
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				return
 			}
@@ -785,7 +785,7 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 			e.reserveTriggerLimits(t, key)
 			e.unblockedOnceFired[key] = stamp
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			e.queueTrigger(e, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
 				Idx:        ti,
@@ -800,7 +800,7 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 						DefendingPlayer: pt(o.Controller),
 					},
 				}),
-			})
+			}, events.Event{Kind: events.DeclareBlockers}, nil)
 		}
 	})
 }
@@ -933,7 +933,7 @@ func (e *Engine) queueBlocksTrigger(t cards.Trigger, id state.ObjID, controller 
 			e.reserveTriggerLimits(t, key)
 		}
 		e.triggerFireCount[key]++
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(e, pendingTrigger{
 			Source:     id,
 			Controller: controller,
 			Idx:        ti,
@@ -949,7 +949,7 @@ func (e *Engine) queueBlocksTrigger(t cards.Trigger, id state.ObjID, controller 
 					DefendingPlayer: defender,
 				},
 			}),
-		})
+		}, ev, nil)
 	}
 }
 

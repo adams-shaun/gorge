@@ -1877,7 +1877,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 							break
 						}
 						e.reserveTriggerLimits(t, key)
-						e.pendingTriggers = append(e.pendingTriggers, pt)
+						e.queueTrigger(observer, pt, *ev, nil)
 					}
 				}
 				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
@@ -1908,19 +1908,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 						continue
 					}
 				}
-				// A batch AttackersDeclared trigger is one placement for the
-				// whole declaration, but finishAttackers emits one event per
-				// defending player. Its ValidCause$ must see every declared
-				// attacker, not only the group of the event that latched it.
-				var causes []state.ObjID
-				if ev.Kind == events.DeclareAttackers && trigmatch.AttackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
-					causes = e.declaredAttackers
-				}
-				echoes := e.panharmoniconEchoes(observer, id, *ev, causes)
-				e.pendingTriggers = append(e.pendingTriggers, pt)
-				for k := 0; k < echoes; k++ {
-					e.pendingTriggers = append(e.pendingTriggers, pt)
-				}
+				e.queueTrigger(observer, pt, *ev, e.echoCauses(t, *ev))
 			}
 		}
 		if len(grantedStatics) > 0 {

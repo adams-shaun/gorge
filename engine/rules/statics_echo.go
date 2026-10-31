@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/trigmatch"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -24,6 +25,51 @@ func (e *Engine) panharmoniconStatics() []staticView {
 	out = append(out, printed...)
 	out = append(out, granted...)
 	return out
+}
+
+// queueTrigger queues pt, the triggering of an object's own triggered ability,
+// once for ev and once more per CR 603.2d additional time. causes narrows
+// ValidCause$ as panharmoniconEchoes reads it; nil derives it from ev. An
+// Effect's combat registration is a delayed trigger, which CR 603.2d excludes,
+// and it reaches the combat queue helpers with effectMatchOverride set.
+func (e *Engine) queueTrigger(observer *Engine, pt pendingTrigger, ev events.Event, causes []state.ObjID) {
+	e.pendingTriggers = append(e.pendingTriggers, pt)
+	if e.effectMatchOverride {
+		return
+	}
+	for n := e.panharmoniconEchoes(observer, pt.Source, ev, causes); n > 0; n-- {
+		e.pendingTriggers = append(e.pendingTriggers, pt)
+	}
+}
+
+// echoCauses is the ValidCause$ candidate set of a batch AttackersDeclared
+// trigger: one placement for the whole declaration, though finishAttackers
+// emits one event per defending player, so the static must see every declared
+// attacker. nil for any other trigger.
+func (e *Engine) echoCauses(t cards.Trigger, ev events.Event) []state.ObjID {
+	if ev.Kind == events.DeclareAttackers && trigmatch.AttackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
+		return e.declaredAttackers
+	}
+	return nil
+}
+
+// grantedTriggerInstances expands one match of a gained or granted trigger into
+// the placements it queues: one per attacker for a Mode$ Attacks line, and the
+// CR 603.2d additional times of each.
+func (e *Engine) grantedTriggerInstances(observer *Engine, t *cards.Trigger, id state.ObjID, ev events.Event, pt pendingTrigger) []pendingTrigger {
+	if t.ModeKind() == cards.TriggerAttacks {
+		echoFor := func(attacker state.ObjID) int {
+			return e.panharmoniconEchoes(observer, id, ev, []state.ObjID{attacker})
+		}
+		if insts := attacksTriggerInstances(boardOf(observer), t, id, ev, pt, echoFor); len(insts) > 0 {
+			return insts
+		}
+	}
+	insts := []pendingTrigger{pt}
+	for n := e.panharmoniconEchoes(observer, id, ev, e.echoCauses(*t, ev)); n > 0; n-- {
+		insts = append(insts, pt)
+	}
+	return insts
 }
 
 // panharmoniconEchoes reports how many ADDITIONAL trigger placements the
@@ -60,9 +106,10 @@ func (e *Engine) panharmoniconStatics() []staticView {
 //     step's own assignment (the combatDamaging flag); False is the default
 //     and matches either.
 //
-// ValidZone$ (Echoes of Eternity's "Battlefield,Stack") is honoured as a
-// filter on the triggering object's own zone; a static naming zones the
-// object is not in contributes nothing. A static with no ValidCard$
+// ValidZone$ (Echoes of Eternity's "Battlefield,Stack") filters on the
+// triggering object's own zone and defaults to the battlefield: "of a
+// permanent" does not reach a permanent spell or a card elsewhere, and a
+// look-back walk reads the object on its pre-departure board. A static with no ValidCard$
 // contributes nothing rather than matching everything -- a Panharmonicon
 // static that does not say WHAT it doubles is a script defect this build
 // will not paper over by doubling every trigger on the board. ValidTurned$
@@ -115,7 +162,11 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 				continue
 			}
 		}
-		if vz := sv.ParamStr(cards.PKValidZone); vz != "" {
+		vz := sv.ParamStr(cards.PKValidZone)
+		if vz == "" && o.Zone != state.ZBattlefield {
+			continue
+		}
+		if vz != "" {
 			zones, all, valid := effects.ParseZones(vz)
 			ok := false
 			if valid || all {
@@ -273,6 +324,8 @@ func panharmoniconModes(ev events.Event) []string {
 		// permanent face up causes a triggered ability ... to trigger" --
 		// serve this family.
 		return []string{"TurnFaceUp"}
+	case events.DungeonRoom:
+		return []string{"RoomEntered"}
 	default:
 		return nil
 	}

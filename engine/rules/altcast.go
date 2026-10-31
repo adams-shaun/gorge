@@ -71,7 +71,7 @@ func (e *Engine) altCostEnter(ev events.Event) {
 	}
 	if o.CastFlags&state.FlagPromisedGift != 0 && o.Face().IsPermanent() &&
 		cards.ResolveSVar(o.Face().SVars, "GiftAbility") != nil {
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(e, pendingTrigger{
 			Source: ev.Obj, Controller: o.Controller, Gift: true,
 			// CR 702.168c: the promised receiver is snapshotted NOW, while
 			// the entering object still carries GiftPromisedTo. The trigger
@@ -82,15 +82,15 @@ func (e *Engine) altCostEnter(ev events.Event) {
 			// resolution.
 			GiftTo: o.GiftPromisedTo,
 			Ctx:    effects.NewCtx(ev.Obj, o.Controller, effects.CtxInit{}),
-		})
+		}, ev, nil)
 	}
 	if o.CastFlags&state.FlagEvoked != 0 {
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(e, pendingTrigger{
 			Source:     ev.Obj,
 			Controller: o.Controller,
 			Evoke:      true,
 			Ctx:        effects.NewCtx(ev.Obj, o.Controller, effects.CtxInit{}),
-		})
+		}, ev, nil)
 	}
 	for _, g := range o.ManaAddsKeywordGrants {
 		e.applyManaKeywordGrant(ev.Obj, o.Controller, g)
