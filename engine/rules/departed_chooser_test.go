@@ -20,12 +20,11 @@ func kindRuns(evs []events.Event) [][2]int {
 	return runs
 }
 
-// A seat that pays its last life to a PayLife mana ability loses to
-// state-based actions while that ability's colour choice is posed. Releasing
-// the departed seat's decision must also end the flow it routed: the next
-// seat's priority is posed with no choose flow armed and no parked colour
-// activation (the A/B payment-plan mirror measured both surviving).
-func TestStateBasedLossDuringManaColourAskClearsTheFlow(t *testing.T) {
+// A seat that pays its last life to a PayLife mana ability answers that
+// ability's colour choice first: state-based actions wait for priority (CR
+// 704.3). The loss then comes with no choose flow armed and no parked colour
+// activation for the next seat's priority to inherit.
+func TestStateBasedLossAfterManaColourAskClearsTheFlow(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 3)
 	toMain1(t, e)
@@ -45,6 +44,13 @@ func TestStateBasedLossDuringManaColourAskClearsTheFlow(t *testing.T) {
 		t.Fatalf("no activate option for the fixture in %#v", d.Options)
 	}
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{pick}}); err != nil {
+		t.Fatal(err)
+	}
+	colour := e.Pending()
+	if colour == nil || colour.Player != 0 || e.G.Players[0].Lost {
+		t.Fatalf("pending = %#v, lost %v: want seat 0's colour choice before any state-based loss", colour, e.G.Players[0].Lost)
+	}
+	if err := e.Submit(decision.Intent{Seq: colour.Seq, Player: 0, Choices: []int{0}}); err != nil {
 		t.Fatal(err)
 	}
 	if !e.G.Players[0].Lost {

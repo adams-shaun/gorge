@@ -395,8 +395,10 @@ func submitCommit(e *Engine, d *decision.Decision, in decision.Intent) {
 	// (TestManaPaymentContinuesBelowZeroLife) settles. A pending activation's
 	// cost payment reuses this same pendingCast flow, so e.cast != nil covers
 	// both. The settled cast clears e.cast (payCast's tail) and the abort
-	// path clears it too, so the check runs at the boundary either way.
-	if !e.Suspended() && e.cast == nil {
+	// path clears it too, so the check runs at the boundary either way. A
+	// decision still pending means nobody receives priority yet: its answer
+	// comes back through here.
+	if !e.Suspended() && e.cast == nil && e.Pending() == nil {
 		e.checkStateBased()
 	}
 	e.Advance()
