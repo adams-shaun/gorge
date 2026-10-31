@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/draftlab/extern/wire"
 )
 
-// The hub is the process-wide batching coordinator (E5 plan §9, plan §6).
+// The hub is the process-wide batching coordinator (plan §6).
 // It decides when each session flushes its outgoing queue.
 //
 // Why process-wide, not per agent: with one hub per agent, a game whose

@@ -1,5 +1,5 @@
 // Package draftlab is the Go composition API a training program imports
-// (draft-events E5 plan §4.5, operator decision E5-Q2): open a card corpus,
+// (draft-events, operator decision E5-Q2): open a card corpus,
 // resolve built-in drafters, builders and players by name@version, open
 // packs (pod, flat, sealed pool), run a draft of 4 or 8 seats into pools
 // plus a replayable event log, and turn pools or lists into
