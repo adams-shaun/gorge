@@ -10,6 +10,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/heuristic"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -30,7 +31,7 @@ func TestStartupBudgetKillsSilentHello(t *testing.T) {
 	}
 	mc := &bots.MatchContext{
 		Context:      context.Background(),
-		Engine:       e,
+		Game:         gorgegame.Game{E: e},
 		GameID:       "g-0000000000000002",
 		Seat:         0,
 		Seats:        2,
@@ -71,7 +72,7 @@ func TestSeatSerializesDerivedReadsUnderProjection(t *testing.T) {
 	calls := 0
 	mc := &bots.MatchContext{
 		Context:      context.Background(),
-		Engine:       e,
+		Game:         gorgegame.Game{E: e},
 		Projection:   func(f func()) { mu.Lock(); calls++; mu.Unlock(); f() },
 		GameID:       "g-0000000000000003",
 		Seat:         0,

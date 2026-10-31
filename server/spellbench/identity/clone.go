@@ -3,16 +3,15 @@ package identity
 import (
 	"maps"
 
-	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // CloneFor copies the tracker for a clone of the game (the resample
 // self-check): the same move and look counters, open looks, minted ids and
-// recorded reference keys, with the shadow re-pointed at e. The copy only
+// recorded reference keys, with the shadow re-pointed at src. The copy only
 // mints; it never syncs.
-func (t *Tracker) CloneFor(e *rules.Engine) *Tracker {
-	c := &Tracker{sec: t.sec, shadow: e.G.Clone(), applied: len(e.L.Events),
+func (t *Tracker) CloneFor(src Source) *Tracker {
+	c := &Tracker{sec: t.sec, shadow: src.Board().Clone(), applied: len(src.Log().Events),
 		moves: maps.Clone(t.moves), looks: maps.Clone(t.looks),
 		sourceKeys: maps.Clone(t.sourceKeys), targetKeys: map[state.ObjID][]chosen{},
 		attackKeys: maps.Clone(t.attackKeys), blockKeys: maps.Clone(t.blockKeys), before: map[state.ObjID]uint32{}}

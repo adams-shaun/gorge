@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	_ "github.com/adams-shaun/gorge/bots/all"
 	"io"
 	"testing"
+
+	_ "github.com/adams-shaun/gorge/bots/all"
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/rules"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -179,7 +181,7 @@ func TestSpellbenchSeatAnswersUnposableDecisionWithFallback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mc := &bots.MatchContext{Context: context.Background(), Engine: e, GameID: "g-0000000000000001", Seat: 0, Seats: 2, Format: "constructed",
+	mc := &bots.MatchContext{Context: context.Background(), Game: gorgegame.Game{E: e}, GameID: "g-0000000000000001", Seat: 0, Seats: 2, Format: "constructed",
 		Seed: []byte("test"), OwnDeck: e.OwnDeck(state.PlayerID(0)), Mulligan: "none", StartingSeat: int(e.G.Active), Logf: t.Logf, Registry: reg}
 	if err := a.AttachMatch(mc); err != nil {
 		t.Fatal(err)

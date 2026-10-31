@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,6 +30,8 @@ import (
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/server/spellbench/humanseat"
+	sbseat "github.com/adams-shaun/gorge/server/spellbench/seat"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -677,4 +680,87 @@ func readJSONFields(t *testing.T, path string) map[string]json.RawMessage {
 		t.Fatal(err)
 	}
 	return fields
+}
+
+// v2Answerer is a human at the far end of a v2 seat. The refusals below never
+// reach it.
+type v2Answerer struct{}
+
+func (v2Answerer) Choose(context.Context, humanseat.Ask) (int, error) {
+	return 0, errors.New("the seat was refused")
+}
+
+func (v2Answerer) NativeOnly(humanseat.NativeOnly) {}
+
+// A v2 seat reads the game through a reader this engine does not offer: it
+// refuses at attach, naming the engine, and the match ends with that reason
+// before a decision is answered.
+func TestV2SeatsRefuseAnEngineWithoutAReader(t *testing.T) {
+	t.Parallel()
+	const reason = `the "script" engine offers no v2 reader`
+	crashed := func(t *testing.T, dir string, r *host.Registry) {
+		t.Helper()
+		if err := r.Start("s"); err != nil {
+			t.Fatal(err)
+		}
+		r.Wait("s")
+		ms, err := r.Matches("s")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(ms) != 1 || ms[0].State != protocol.MatchCrashed {
+			t.Fatalf("matches %+v", ms)
+		}
+		reports, err := filepath.Glob(filepath.Join(dir, "crash", "*"))
+		if err != nil || len(reports) != 1 {
+			t.Fatalf("crash reports %v: %v", reports, err)
+		}
+		report, err := os.ReadFile(reports[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(report), reason) {
+			t.Fatalf("crash report:\n%s", report)
+		}
+	}
+	t.Run("agent", func(t *testing.T) {
+		t.Parallel()
+		agent, err := sbseat.NewInProcess("v2", func(io.Reader, io.Writer) error {
+			t.Error("the agent was started")
+			return nil
+		}, bots.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		o := scriptBotOptions()
+		o.Dir = t.TempDir()
+		o.Seats = func([]string, uint64) []seat.Seat { return []seat.Seat{agent, agent} }
+		r, err := host.New(o)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Close()
+		if err := r.AddTable(scriptBotTable(host.BotPolicy)); err != nil {
+			t.Fatal(err)
+		}
+		crashed(t, o.Dir, r)
+	})
+	t.Run("human", func(t *testing.T) {
+		t.Parallel()
+		o := scriptOptions(t.TempDir(), scriptEngine{})
+		o.TapHuman = func(_ host.TableID, _ int, _ bool, mc *bots.MatchContext) (host.HumanTap, error) {
+			return humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: v2Answerer{}})
+		}
+		r, err := host.New(o)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Close()
+		cfg := scriptTable()
+		cfg.AutoMana, cfg.BotAutoPayMana = true, true
+		if err := r.AddTable(cfg); err != nil {
+			t.Fatal(err)
+		}
+		crashed(t, o.Dir, r)
+	})
 }

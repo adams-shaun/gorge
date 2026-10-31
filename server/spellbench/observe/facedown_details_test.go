@@ -93,11 +93,11 @@ func TestFaceDownPermanentHidesChosenClassAndDoors(t *testing.T) {
 		t.Fatalf("precondition: room door0 %v, cloaked %v", o.DoorUnlocked(0), o.Cloaked)
 	}
 
-	tr := identity.New(g.E, g.Secret)
-	if err := tr.Sync(g.E); err != nil {
+	tr := identity.New(g.R, g.Secret)
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
-	p := &observe.Projector{E: g.E, IDs: tr}
+	p := &observe.Projector{R: g.R, IDs: tr}
 
 	// The controller may look at its own face-down permanent, so the details
 	// are real and a test that always nil'd them would fail this half.

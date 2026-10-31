@@ -25,7 +25,6 @@ import (
 	"fmt"
 
 	"github.com/adams-shaun/gorge/engine/events"
-	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/spellbench/secrets"
 )
@@ -73,9 +72,16 @@ type Tracker struct {
 	before     map[state.ObjID]uint32   // move counts at the start of this Sync batch, for objects that moved in it
 }
 
-// New tracks e from its current state.
-func New(e *rules.Engine, sec *secrets.Game) *Tracker {
-	return &Tracker{sec: sec, shadow: e.G.Clone(), applied: len(e.L.Events),
+// Source is the game a Tracker follows. Log must hold every event that built
+// Board, so that folding them reproduces it.
+type Source interface {
+	Log() *events.Log
+	Board() *state.Game
+}
+
+// New tracks src from its current state.
+func New(src Source, sec *secrets.Game) *Tracker {
+	return &Tracker{sec: sec, shadow: src.Board().Clone(), applied: len(src.Log().Events),
 		moves: map[state.ObjID]uint32{}, looks: map[lookKey]uint32{},
 		seen: [2]map[string]string{{}, {}},
 		inc:  [2]map[string]uint32{{}, {}}, prev: [2]map[string]bool{{}, {}},
@@ -86,11 +92,12 @@ func New(e *rules.Engine, sec *secrets.Game) *Tracker {
 func keyOf(id state.ObjID, moves uint32) string { return fmt.Sprintf("%d:z%d", id, moves) }
 
 // Sync folds the events appended since the last call into the shadow game,
-// counting every zone change per object, then checks the shadow against the engine.
-func (t *Tracker) Sync(e *rules.Engine) error {
+// counting every zone change per object, then checks the shadow against src.
+func (t *Tracker) Sync(src Source) error {
 	clear(t.before)
-	for ; t.applied < len(e.L.Events); t.applied++ {
-		ev := e.L.Events[t.applied]
+	evs := src.Log().Events
+	for ; t.applied < len(evs); t.applied++ {
+		ev := evs[t.applied]
 		n := len(t.shadow.Objs)
 		t.zbuf = t.zbuf[:0]
 		for i := range t.shadow.Objs {
@@ -108,12 +115,13 @@ func (t *Tracker) Sync(e *rules.Engine) error {
 		}
 		t.record(ev, n)
 	}
-	if len(t.shadow.Objs) != len(e.G.Objs) {
-		return fmt.Errorf("%w: %d shadow objects, %d engine objects", ErrShadowDiverged, len(t.shadow.Objs), len(e.G.Objs))
+	objs := src.Board().Objs
+	if len(t.shadow.Objs) != len(objs) {
+		return fmt.Errorf("%w: %d shadow objects, %d engine objects", ErrShadowDiverged, len(t.shadow.Objs), len(objs))
 	}
-	for i := range e.G.Objs {
-		if e.G.Objs[i].Zone != t.shadow.Objs[i].Zone {
-			return fmt.Errorf("%w: object %d", ErrShadowDiverged, e.G.Objs[i].ID)
+	for i := range objs {
+		if objs[i].Zone != t.shadow.Objs[i].Zone {
+			return fmt.Errorf("%w: object %d", ErrShadowDiverged, objs[i].ID)
 		}
 	}
 	return nil

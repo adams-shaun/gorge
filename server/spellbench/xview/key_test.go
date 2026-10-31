@@ -27,8 +27,8 @@ func TestFollowKeysFollowTheRenumbering(t *testing.T) {
 // left without a source is dropped (G2-2).
 func TestHiddenAndZeroReferencesBecomeZero(t *testing.T) {
 	g := testgame.New(t, testcorpus.Registry(t), "Rally", "Rally", 1, "none")
-	tr := identity.New(g.E, g.Secret)
-	env := &mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{E: g.E, IDs: tr}}
+	tr := identity.New(g.R, g.Secret)
+	env := &mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{R: g.R, IDs: tr}}
 	hand, lib := g.E.G.Zone(state.ZHand, 0)[0], g.E.G.Zone(state.ZLibrary, 0)[0]
 	r, errp := New().rekey(env, 0, map[state.ObjID]bool{})
 	v := view.View{Pending: []view.PendingView{{Source: 0}, {Source: lib}, {Source: hand}},

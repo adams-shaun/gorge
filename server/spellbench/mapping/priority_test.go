@@ -911,13 +911,13 @@ func TestPriorityRealGames(t *testing.T) {
 		seed   byte
 	}{{"Wildfire", "CawGates", 3}, {"Burn", "Rally", 4}} {
 		g := testgame.New(t, reg, game.d0, game.d1, game.seed, "none")
-		tr := identity.New(g.E, g.Secret)
+		tr := identity.New(g.R, g.Secret)
 		testgame.RunUntil(t, g, testgame.Bots(uint64(game.seed)), func(e *rules.Engine) bool {
-			if err := tr.Sync(e); err != nil {
+			if err := tr.Sync(g.R); err != nil {
 				t.Fatal(err)
 			}
 			if d := e.Pending(); d != nil && d.Kind == decision.KPriority {
-				s.check(&mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{E: g.E, IDs: tr}, Slots: map[string]uint32{}}, d)
+				s.check(&mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{R: g.R, IDs: tr}, Slots: map[string]uint32{}}, d)
 			}
 			return false
 		}, 200000)

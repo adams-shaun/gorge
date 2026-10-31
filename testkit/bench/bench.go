@@ -43,6 +43,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/searchseat"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -268,6 +269,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 	for i, s := range seats {
 		mc := &bots.MatchContext{
 			Context:      context.Background(),
+			Game:         gorgegame.Game{E: e},
 			Engine:       e,
 			GameID:       gameID,
 			Seat:         i,

@@ -20,6 +20,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
@@ -388,6 +389,7 @@ func matchSeats(e *rules.Engine, seed uint64, names []string, policyA, policyB s
 	}
 	for i, s := range seatsOut {
 		mc := &bots.MatchContext{
+			Game:         gorgegame.Game{E: e},
 			Engine:       e,
 			GameID:       fmt.Sprintf("g-%016x", seed),
 			Seat:         i,

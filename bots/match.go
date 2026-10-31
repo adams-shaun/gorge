@@ -19,7 +19,9 @@ import (
 // host always sets it; a bench or command driving the rules engine itself may
 // leave it nil. Engine is that game's rules engine, nil on any other engine; a
 // seat that needs it refuses the match from AttachMatch. Both must be read,
-// never written: the host owns every mutation through events.Apply.
+// never written: the host owns every mutation through events.Apply. A host undo
+// replaces both on the match goroutine under the Projection lock, before any
+// seat's MatchRewound, so read them there or under Projection.
 type MatchContext struct {
 	Context context.Context
 	Game    game.Game

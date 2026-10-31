@@ -117,6 +117,9 @@ type match struct {
 	// each rewind until the queue is empty. Created at match build, never
 	// reassigned, and dies with the match.
 	undo *undoQueue
+	// seatContexts are the contexts the seats attached with. An undo re-points
+	// them at the replayed game. Touched only on the match goroutine.
+	seatContexts []*bots.MatchContext
 	// ledger is HD-2's per-intent provenance ledger (server/host/divergence_ledger.go):
 	// one byte per accepted intent, bit 0 caretaker, bit 1 client-auto. Host
 	// metadata like m.snaps — never replay input, never an event. Appended in
@@ -876,6 +879,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			mc.OpponentDeck = m.g.Chars().OwnDeck(state.PlayerID(1 - i))
 			mc.OpponentVisible = mc.OpponentDeck != nil
 		}
+		m.seatContexts = append(m.seatContexts, mc)
 		if err := bots.AttachMatch(s, mc); err != nil {
 			return r.crash(t, m, fmt.Errorf("seat %d: attach match: %w", i, err))
 		}

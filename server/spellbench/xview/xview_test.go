@@ -32,9 +32,9 @@ func payloadAndGame(t *testing.T, deck string, pred func(*decision.Decision, *ru
 	reg := testcorpus.Registry(t)
 	for seed := byte(1); seed <= 20; seed++ {
 		g := testgame.New(t, reg, deck, deck, seed, "none")
-		tr := identity.New(g.E, g.Secret)
+		tr := identity.New(g.R, g.Secret)
 		if !testgame.RunUntil(t, g, testgame.Bots(uint64(seed)), func(e *rules.Engine) bool {
-			if err := tr.Sync(e); err != nil {
+			if err := tr.Sync(g.R); err != nil {
 				t.Fatal(err)
 			}
 			d := e.Pending()
@@ -42,7 +42,7 @@ func payloadAndGame(t *testing.T, deck string, pred func(*decision.Decision, *ru
 		}, 30000) {
 			continue
 		}
-		env := &mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{E: g.E, IDs: tr}, Slots: map[string]uint32{}}
+		env := &mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{R: g.R, IDs: tr}, Slots: map[string]uint32{}}
 		tx, err := mapping.Begin(env, g.E.Pending())
 		if err != nil {
 			t.Fatal(err)
@@ -204,8 +204,8 @@ func TestPaymentActionsAreDroppedFromALivePriorityPose(t *testing.T) {
 func constructedEnv(t *testing.T) *mapping.Env {
 	t.Helper()
 	g := testgame.New(t, testcorpus.Registry(t), "Wildfire", "Wildfire", 1, "none")
-	tr := identity.New(g.E, g.Secret)
-	return &mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{E: g.E, IDs: tr}, Slots: map[string]uint32{}}
+	tr := identity.New(g.R, g.Secret)
+	return &mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{R: g.R, IDs: tr}, Slots: map[string]uint32{}}
 }
 
 // The choke point nils the clone's payment fields; the pose keeps its own.

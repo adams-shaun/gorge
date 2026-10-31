@@ -154,7 +154,7 @@ func TestObservationDegradationCensus(t *testing.T) {
 	for i := 0; i < observationDegradationGames; i++ {
 		name := names[i%len(names)]
 		g := observationDegradationGame(t, reg, testutil.RepoDeck(t, reg, name), byte(i))
-		tr := identity.New(g.E, g.Secret)
+		tr := identity.New(g.R, g.Secret)
 		builders := [2]*neutral.Builder{neutral.NewBuilder(reg), neutral.NewBuilder(reg)}
 		bots := testgame.Bots(uint64(i))
 		for n := 0; n < 1200; n++ {
@@ -162,11 +162,11 @@ func TestObservationDegradationCensus(t *testing.T) {
 			if g.E.G.Over || pending == nil {
 				break
 			}
-			if err := tr.Sync(g.E); err != nil {
+			if err := tr.Sync(g.R); err != nil {
 				t.Fatalf("game %d (%s) step %d: %v", i, name, n, err)
 			}
 			priority := g.E.G.Priority
-			obs, err := (&observe.Projector{E: g.E, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
+			obs, err := (&observe.Projector{R: g.R, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
 			if err != nil {
 				t.Fatalf("game %d (%s) step %d: observation: %v", i, name, n, err)
 			}

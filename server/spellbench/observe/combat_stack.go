@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
@@ -16,7 +15,7 @@ import (
 func (b *builder) blockMap() map[state.ObjID][]state.ObjID {
 	if b.blocking == nil {
 		b.blocking = map[state.ObjID][]state.ObjID{}
-		g := b.p.E.G
+		g := b.p.R.Board()
 		for i := range g.Objs {
 			a := &g.Objs[i]
 			if a.Zone == state.ZBattlefield && a.IsAttacking {
@@ -76,7 +75,7 @@ func (b *builder) permanent(o *state.Object) (*protocol.Permanent, error) {
 	hidden := o.FaceDown && !MayLook(b.viewer, o)
 	pm := &protocol.Permanent{Tapped: o.Tapped, SummoningSick: o.SummonSick, Damage: u32(o.Damage),
 		Counters: map[string]uint32{}, BlockedAttackers: []protocol.ObjectRef{},
-		Statuses: statusNames(b.p.E.G, o, hidden), Chosen: []map[string]string{}}
+		Statuses: statusNames(b.p.R.Board(), o, hidden), Chosen: []map[string]string{}}
 	if !hidden {
 		pm.Chosen, pm.ClassLevel = chosen(o), classLevel(o)
 	}
@@ -207,7 +206,7 @@ var stackKinds = map[state.StackObjKind]string{state.StackKindSpell: "spell",
 	state.StackKindActivated: "activated_ability", state.StackKindTriggered: "triggered_ability"}
 
 func (b *builder) stackAndPending(obs *protocol.Observation, v view.View) error {
-	g := b.p.E.G
+	g := b.p.R.Board()
 	for _, sv := range v.Stack {
 		o := g.Obj(sv.ID)
 		ref, err := b.p.Ref(b.viewer, sv.ID)
@@ -286,14 +285,14 @@ func (b *builder) stackAndPending(obs *protocol.Observation, v view.View) error 
 		// damage") is the causing event's magnitude, not the spell's X. The
 		// neutral target effect reads it from x_value; absent, it stays nil.
 		if o.Ability != nil {
-			if amount, ok := rules.HostTriggerAmount(b.p.E, o.ID); ok {
+			if amount, ok := b.p.R.HostTriggerAmount(o.ID); ok {
 				v := u32(amount)
 				se.XValue = &v
 			}
 		}
 		obs.Stack = append(obs.Stack, se)
 	}
-	for _, pt := range b.p.E.PendingTriggers() {
+	for _, pt := range b.p.R.Chars().PendingTriggers() {
 		src := g.Obj(pt.Source)
 		if src != nil && !Visible(b.viewer, src) {
 			continue // Section 6.6: a trigger from a hidden, unrevealed source is omitted

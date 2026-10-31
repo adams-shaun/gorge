@@ -331,7 +331,7 @@ func TestCostFoldFailsClosedOnAHiddenCostTarget(t *testing.T) {
 			t.Fatalf("construction assumption broken: %d exists in the small game", co.Obj)
 		}
 	}
-	env.Obs = &observe.Projector{E: g2.E, IDs: env.IDs}
+	env.Obs = &observe.Projector{R: g2.R, IDs: env.IDs}
 	if _, _, err := mapping.ExpandActivate(env, d, o, *src); !errors.Is(err, mapping.ErrUnmapped) ||
 		!strings.Contains(err.Error(), "cost_target_hidden") {
 		t.Fatalf("hidden cost target: %v, want ErrUnmapped:cost_target_hidden", err)

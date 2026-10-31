@@ -94,7 +94,7 @@ func (x *Extender) rekey(env *mapping.Env, seat state.PlayerID, shown map[state.
 	var firstErr error
 	t := x.tables[seat]
 	return func(id state.ObjID) state.ObjID {
-		o := env.G.E.G.Obj(id)
+		o := env.G.R.Board().Obj(id)
 		var v2 string
 		var err error
 		switch {
@@ -217,7 +217,7 @@ func facts(d *decision.Decision) Facts {
 // (card name, look id), renumbers every option, and returns old -> new
 // (perm) and new -> old (order).
 func sortHidden(env *mapping.Env, seat state.PlayerID, d *decision.Decision) (perm, order []int) {
-	g := env.G.E.G
+	g := env.G.R.Board()
 	perm, order = make([]int, len(d.Options)), make([]int, len(d.Options))
 	var hid []int
 	for i, o := range d.Options {
@@ -273,7 +273,7 @@ func followKey(k string, perm []int, fperm map[string][]int) string {
 }
 
 func (x *Extender) Extend(env *mapping.Env, p *mapping.Pose, nativeIndex uint64) (map[string]json.RawMessage, error) {
-	e := env.G.E
+	g := env.G.R
 	seat := p.Seat
 	r, errp := x.rekey(env, seat, shownBy(p))
 	// Omit the owner's own library list and deck manifest: library order is
@@ -281,8 +281,8 @@ func (x *Extender) Extend(env *mapping.Env, p *mapping.Pose, nativeIndex uint64)
 	// library card name as a leak. The seat view's honest remaining-library
 	// composition (view.OwnLibrary) does not read either field.
 	v := view.View{}
-	view.ProjectLeanInto(&v, e.G, e, seat, nil, view.OmitLibrary|view.OmitOwnDeck|view.OmitArchetype)
-	v.Round = view.RoundOf(e.G, e.L.Events)
+	view.ProjectLeanInto(&v, g.Board(), g.Chars(), seat, nil, view.OmitLibrary|view.OmitOwnDeck|view.OmitArchetype)
+	v.Round = view.RoundOf(g.Board(), g.Log().Events)
 	r.view(&v)
 	dropSourceless(&v)
 	d := p.Native.CloneValue()

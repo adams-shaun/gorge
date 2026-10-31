@@ -159,7 +159,7 @@ func TestNeutralViewCensus(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		d := catalog.Decks()[i%len(catalog.Decks())]
 		g := testgame.New(t, reg, d.CatalogID, d.CatalogID, byte(i), "none")
-		tr := identity.New(g.E, g.Secret)
+		tr := identity.New(g.R, g.Secret)
 		builders := [2]*neutral.Builder{neutral.NewBuilder(reg), neutral.NewBuilder(reg)}
 		bots := testgame.Bots(uint64(i))
 		seeded, forcePass := i != 0, false
@@ -175,11 +175,11 @@ func TestNeutralViewCensus(t *testing.T) {
 				seedCensusState(t, g)
 				seeded, forcePass = true, true
 			}
-			if err := tr.Sync(g.E); err != nil {
+			if err := tr.Sync(g.R); err != nil {
 				t.Fatalf("game %d step %d: %v", i, n, err)
 			}
 			priority := g.E.G.Priority
-			obs, err := (&observe.Projector{E: g.E, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
+			obs, err := (&observe.Projector{R: g.R, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
 			if err != nil {
 				t.Fatalf("game %d step %d: observation: %v", i, n, err)
 			}

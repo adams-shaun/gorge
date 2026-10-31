@@ -271,9 +271,12 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	// the whole doubling series a second time.
 	g.Log().Reserve(defaultExpectedEvents)
 	m.setGame(g)
+	for _, mc := range m.seatContexts {
+		mc.Game, mc.Engine = m.g, m.e
+	}
 	for _, s := range seats {
 		if rw, ok := s.(interface{ MatchRewound(any) }); ok {
-			rw.MatchRewound(m.e)
+			rw.MatchRewound(m.g)
 		}
 	}
 	m.intents = n
