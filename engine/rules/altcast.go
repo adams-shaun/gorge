@@ -214,9 +214,9 @@ func (e *Engine) madnessReplacementApplies(ev events.Event) bool {
 }
 
 // offerMadness queues the triggered ability created by madness's mandatory
-// discard replacement (CR 702.35a-b). The replacement emits a marked
-// hand-to-exile move; matching both that marker and the zone pair
-// prevents an unrelated exile from creating the cast window.
+// discard replacement (CR 702.35a-b), which turns a madness card's discard into
+// a discard to exile. An ordinary exile from hand is not a discard, so it opens
+// no cast window.
 func (e *Engine) offerMadness(ev events.Event) {
 	o := e.G.Obj(ev.Obj)
 	if o == nil || o.Face() == nil {
@@ -225,7 +225,7 @@ func (e *Engine) offerMadness(ev events.Event) {
 	if _, ok := o.Face().KeywordParam("Madness"); !ok {
 		return
 	}
-	if ev.Text != "discarded (madness exile)" {
+	if !events.IsDiscard(ev) {
 		return
 	}
 	owner := o.Owner
