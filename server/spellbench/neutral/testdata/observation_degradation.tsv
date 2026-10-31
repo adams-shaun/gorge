@@ -8,7 +8,7 @@ players[].available	44491
 players[].spells_cast_this_turn	34148
 players[].exile[].id	29968
 players[].exile[].token	29968
-players[].potential_actions[]	15021
+players[].potential_actions[]	15027
 stack[].id	13539
 stack[].text	13466
 players[].graveyard[].exiled_cards[]	13391
@@ -39,8 +39,8 @@ players[].hand[].keywords[]	201
 stack[].card.exiled_cards[]	108
 players[].battlefield[].attacking_player	80
 pending[]	77
+stack[].modes[]	59
 players[].graveyard[].types	55
 players[].hand[].exiled_cards[]	31
-stack[].modes[]	29
 stack[].kicks	28
 stack[].card.keywords[]	20
