@@ -202,7 +202,11 @@ func (s *Server) reset(req protocol.Request) []byte {
 	}
 	cfg := session.Config{AutoPay: s.autoPay, Reg: s.reg, Provenance: provenance(s.engine), Audit: s.audit}
 	if slices.Contains(r.Rules.Extensions, "x_gorge_view_v1") {
-		cfg.Ext = xview.New()
+		x := xview.New()
+		if s.autoPay {
+			x.CarryCastCensus()
+		}
+		cfg.Ext = x
 	}
 	// Section 9.2: a game the engine cannot start (for example gamecfg's
 	// CheckRandomness failure, returned by session.Start as a plain error) is

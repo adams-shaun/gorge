@@ -378,6 +378,9 @@ func Rebuild(p xview.Payload) (view.View, decision.Decision) {
 	f := p.Facts
 	d.EffectOptional, d.CopyOfCopy, d.AffordableTargets = f.EffectOptional, f.CopyOfCopy, f.AffordableTargets
 	d.TargetsWithSameController, d.SetPropMode, d.ResumeKind = f.TargetsWithSameController, decision.SetPropMode(f.SetPropMode), f.ResumeKind
+	if f.PotentialCastsKnown {
+		d.PotentialCastsKnown, d.PotentialCasts, d.PotentialUnpayableCasts = true, f.PotentialCasts, f.PotentialUnpayableCasts
+	}
 	if f.ResumeAPI != "" {
 		d.ResumeSA = &cards.SA{API: f.ResumeAPI, Params: map[string]string{"UnlessCost": f.ResumeUnlessCost}}
 	}

@@ -50,6 +50,12 @@ type Facts struct {
 	ResumeKind                string          `json:"resume_kind"`
 	ResumeAPI                 string          `json:"resume_api"`
 	ResumeUnlessCost          string          `json:"resume_unless_cost"`
+	// The cast census of a priority decision, in the payload's ids. It is
+	// engine cache data on the Decision, so it travels here for an auto-pay
+	// agent's tap gate (decision.PotentialCasts). See CarryCastCensus.
+	PotentialCastsKnown     bool          `json:"potential_casts_known,omitempty"`
+	PotentialCasts          []state.ObjID `json:"potential_casts,omitempty"`
+	PotentialUnpayableCasts []state.ObjID `json:"potential_unpayable_casts,omitempty"`
 }
 
 type Payload struct {
@@ -79,11 +85,17 @@ type Extender struct {
 	tables       [2]*table
 	last         [2][]int             // the seat's last native -> payload renumbering (audit only, Task 28a)
 	lastFollow   [2]map[string]Follow // the same for its follow-ups, by native key (audit only, Task 28a)
+	castCensus   bool
 }
 
 func New() *Extender {
 	return &Extender{tables: [2]*table{{ints: map[string]uint32{}}, {ints: map[string]uint32{}}}}
 }
+
+// CarryCastCensus puts each priority decision's cast census in the payload's
+// facts, for a table whose seats are auto-pay agents. A human client has no
+// tap gate to read it.
+func (x *Extender) CarryCastCensus() { x.castCensus = true }
 
 // rekey maps gorge object ids to the seat's small integers. Only objects the
 // seat sees, or the hidden cards this pose's own look shows (its native and
@@ -301,6 +313,11 @@ func (x *Extender) Extend(env *mapping.Env, p *mapping.Pose, nativeIndex uint64)
 	r.decision(&d, nativeIndex)
 	if env.AutoPay {
 		d.PaymentActions = paymentActions
+		if x.castCensus && d.PotentialCastsKnown {
+			pl.Facts.PotentialCastsKnown = true
+			pl.Facts.PotentialCasts = r.ids(d.PotentialCasts)
+			pl.Facts.PotentialUnpayableCasts = r.ids(d.PotentialUnpayableCasts)
+		}
 	}
 	payments, err := r.payments(&d, perm)
 	if err != nil {

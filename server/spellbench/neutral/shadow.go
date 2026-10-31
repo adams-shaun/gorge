@@ -303,6 +303,28 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 	return sh, nil
 }
 
+// census reports the cast census of the parked priority decision, read after
+// Engine.EnsurePaymentActions has built it.
+func (sh *shadow) census() castCensus {
+	d := sh.e.Pending()
+	if !d.PotentialCastsKnown {
+		return castCensus{}
+	}
+	return castCensus{known: true, casts: sh.mapIDs(d.PotentialCasts), unpayable: sh.mapIDs(d.PotentialUnpayableCasts)}
+}
+
+// mapIDs turns shadow objects into the builder's ids, dropping any the
+// observation did not place.
+func (sh *shadow) mapIDs(objs []state.ObjID) []state.ObjID {
+	out := make([]state.ObjID, 0, len(objs))
+	for _, o := range objs {
+		if id, ok := sh.ids[o]; ok {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
 // shadowOpeningSeeds bounds the shuffles shadowEngine tries.
 const shadowOpeningSeeds = 64
 
