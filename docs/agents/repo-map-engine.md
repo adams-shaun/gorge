@@ -26,8 +26,8 @@ never appear (see [invariants.md](invariants.md#1-dependency-direction)).
 | `engine/rules/combat` | Attack/block legality: `CanAttack`/`CanAttackPair`/`CanBlock`, the CR 508.1d requirement set (`AttackRequirements`), goad, restriction walks, MustBlock duties. Reads the game only through `combat.Board` (`engine/rules/combat_board.go`). The declaration flow stays in `engine/rules/combat.go` and `engine/rules/attack_cost.go`. A new Board method fails `TestCombatBoardOnlyShrinks`. |
 | `engine/rules/crcoverage` | The CR coverage tables: one file per CR chapter, one row per rule with status, the deciding code (path#Symbol) and tests. A change that alters how gorge handles a rule updates that rule's row in the same commit; TestCRCoverageIsCurrent (engine/rules/crcoverage_test.go) fails on a reference that no longer resolves. |
 | `engine/rules/cost` | The shared cost vocabulary: `Cost`, `CostPart`, the Forge cost-string parsers. A leaf (`TestCostVocabularyIsALeaf`). |
-| `engine/rules/pay` | The L5 payment-planning layer (lasagna spec §9). |
-| `engine/rules/resolve` | The L6 resolution kernel (lasagna spec §7); sole owner of the mid-resolution ask state, `Engine.tape` (`TestTapeStateOwnedOnlyByTheResolutionKernel`). |
+| `engine/rules/pay` | The payment-planning layer. |
+| `engine/rules/resolve` | The resolution kernel; sole owner of the mid-resolution ask state, `Engine.tape` (`TestTapeStateOwnedOnlyByTheResolutionKernel`). |
 | `engine/rules/scriptfacts` | Pure facts a card's printed text and compiled script imply, derived without game state. |
 | `engine/rules/trigmatch` | The trigger-mode matchers: the `Mode$` registry (`Lookup`, `Match`), one matcher per mode, reading the engine through `trigmatch.Board` (`engine/rules/trigmatch_board.go`). Queueing and latches stay in `rules`. A new trigger mode registers here. |
 | `engine/view` | Projects one seat's redacted `view.View` (`Project`, `ProjectFor`, `RedactEvents`). The only way a client reads state. `engine/view/view.go` is the orchestration; the card/battlefield family lives in `engine/view/card.go` and the stack family in `engine/view/stack.go`. A projection change goes in the family file for its seam. |
@@ -46,22 +46,22 @@ The layering design for `engine/rules` is
 |---|---|
 | `bots/botpolicy` | The one heuristic bot policy (`botpolicy.Decide`), in one copy, shared by `bots/heuristic` and rules' own fuzz driver. Reads a `Board`, never a view or an engine (archtest forbids `view`, `rules`, `seat`). Cast profiles in `bots/botpolicy/profiles/`. |
 | `bots/heuristic` | The default bot: `heuristic.Bot` (`NewBot`, `NewLethalPressureBot`, `NewAttackSimBot`, `NewExploreBot`, `NewCastProfileBot`, …), `heuristic.BoardSeat` (a seat that reads a `botpolicy.Board`), and `PolicyNetBot` (`NewPolicyNetBot`). |
-| `bots` | The closed registry of hosted policies (`bots/registry.go`, `bots.Factory`); gorge's built-ins register from `bots/bot`, `bots/lethalpressure`, `bots/sbtactical` and `bots/azredeal`, linked together by `bots/all`. Companion modules register further bots the same way; network-backed hosted bots (az-c3/c4/c5) are linked through `server/gorged.RegisterNetBot` and enabled by gorged's `-az-c*-net` flags (`server/gorged/azc3.go`, `server/gorged/azclosed.go`). |
+| `bots` | The closed registry of hosted policies (`bots/registry.go`, `bots.Factory`); gorge's built-ins register from `bots/bot`, `bots/lethalpressure`, `bots/sbtactical` and `bots/azredeal`, linked together by `bots/all`. Companion modules register further bots the same way; network-backed hosted bots are linked through `server/gorged.RegisterNetBot`, which gives each its `-<policy>-net` and related flags. |
 | `bots/sanity` | Opt-in common-sense guard decorator over engine target hints (default off). |
-| `bots/bot`, `bots/lethalpressure`, `bots/azredeal`, `bots/sbtactical` | The hosted policy packages (`az-redeal` and `sb-tactical` are BP adapters of the hosted-bot-packages design) over the inference runtime below. |
+| `bots/bot`, `bots/lethalpressure`, `bots/azredeal`, `bots/sbtactical` | The hosted policy packages (`az-redeal` and `sb-tactical` are adapters of the hosted-bot-packages design) over the inference runtime below. |
 | `bots/azmcts` | AlphaZero-style PUCT search ([`docs/design/2026-09-27-alphazero-mcts-design.md`](../design/2026-09-27-alphazero-mcts-design.md)). |
 | `bots/gonet` (+`gonettest`) | The `.dzgw` network forward pass the az bots evaluate. |
 | `bots/policynet` | Feature layer of the learned per-option policy: deterministic encoder from a seat's view, MLP, `.gpol` checkpoints. |
 | `bots/searchprobe` | Hidden-information world sampler (`Collector`, `Sample`, `Redealer`, known-card tracking). |
 | `bots/searchseat` | The PIMC search decision function (`Choose`) shared by the teacher corpus generator and `SearchBot`. |
-| `bots/spellbench` (+`builtins`, `payexec`) | The SpellBench benchmark deck catalogs (moved here from the old `lab/` tree; generator `bots/spellbench/fdn-catalog.py`), the builtin and tactical policies, and the payment-plan lowering. |
+| `bots/spellbench` (+`builtins`, `payexec`) | The SpellBench benchmark deck catalogs (generator `bots/spellbench/fdn-catalog.py`), the builtin and tactical policies, and the payment-plan lowering. |
 | `bots/traceboard` | The redacted, map-free decision-trace board schema (written by bench tools' decision traces). |
 
 ## `server/`
 
 | Package | What it owns |
 |---|---|
-| `server/gorged` | The importable server (`Main`, `Serve`): flags, persistence, demo tables, art prewarm. Extension seams: `Extensions{Events EventsPlugin; Flags}` (draft events under `/api/events`, which `cmd/gorged` fills from `draft/gorgedevents` and the zero value refuses; the binary's own flags on gorged's command line), `RegisterNetBot` (the az-c3/c4/c5 network bots) and `RegisterClosedNetBot` (further closed-list net policies, served by the az-c4/c5 machinery under their own `-<policy>-*` flags). Draft events offer every policy that does not read decklists, closed-list net policies included (`eventPolicies`). `cmd/gorged` is its thin main. |
+| `server/gorged` | The importable server (`Main`, `Serve`): flags, persistence, demo tables, art prewarm. Extension seams: `Extensions{Events EventsPlugin; Flags}` (draft events under `/api/events`, which `cmd/gorged` fills from `draft/gorgedevents` and the zero value refuses; the binary's own flags on gorged's command line), `RegisterNetBot` (network-backed bots, with their flags). |
 | `server/host` | Tables (one goroutine each), sessions, snapshots, persistence, undo, the hosted bot-policy vocabulary (`server/host/bot_policy.go`). Its only clock is an injected sleep. |
 | `server/host/httpapi` | `net/http` JSON + SSE + the embedded web client. Every seat route goes through `claimForTable`. |
 | `server/host/manabrewhttp` | The ManaBrew HTTP surface. |

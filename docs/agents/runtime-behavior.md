@@ -1,8 +1,8 @@
 # Runtime behavior notes
 
-Detailed runtime and host behavior notes moved out of the always-loaded `AGENTS.md` to keep agent context bounded. These are load-bearing behavior constraints; consult this page when working in the named areas.
+Load-bearing runtime and host behavior constraints; consult this page when working in the named areas.
 
-## Trigger-relative filter arguments (pg2)
+## Trigger-relative filter arguments
 
 `ControlledBy <ref>` and `OwnedBy <ref>` recognise exactly `TriggeredTarget`,
 `TriggeredDefendingPlayer`, `TriggeredPlayer` and `TriggeredCard`, plus a
@@ -18,7 +18,7 @@ resolution (live owner/controller is read), carrying these bindings into a
 registered continuous effect, and the Self/Other target-source normalisation
 (Flickerwisp's `Permanent.Other`).
 
-## Cast-provenance filter arguments (castprov1/2/3 + wascastfrom)
+## Cast-provenance filter arguments
 
 The `Card.wasCast*` family is a rules-side split, not a filter predicate:
 `castProvenanceAdmits` (`engine/rules/cast_provenance.go`) strips the tokens and reads
@@ -34,8 +34,7 @@ the CantBeCast walk (`castOriginAdmitsAtZone` reads the pending cast's
 origin). Still open: the tokens are not evaluated by effects' own
 ConditionPresent/ConditionDefined evaluator (such a gate runs its sub
 unconditionally), there is no `Count$wasCastFromYourGraveyard` head, and the
-may-play provenance predicates (`MayPlaySource`/`CastSa`) stay fail-closed
-(see the ValidLKI row in `AGENTS.md`'s Known approximations register).
+may-play provenance predicates (`MayPlaySource`/`CastSa`) stay fail-closed.
 
 ## Decision-arena lifetime contract
 
@@ -56,9 +55,9 @@ instead. The rules, host and view test binaries enable a poison verify mode
 so a reader that retains a decision fails loudly instead of reading a reused
 slot.
 
-## Host behaviour notes (embedder observer hooks, D15)
+## Host behaviour notes (embedder observer hooks)
 
-`OnBurst` errors crash the match like a persist failure (D15): the table
+`OnBurst` errors crash the match like a persist failure: the table
 halts and the chain does not continue. `OnMatchEnd` errors are discarded
 because the outcome is already recorded and an error cannot un-record it, so
 an embedder that persists through `OnMatchEnd` must handle its own
@@ -88,7 +87,7 @@ The same build also leaves an engine-side cast census on the decision
 `PotentialUnpayableCasts`): every object the offer builder's PotentialMana
 walk offers a cast of. The bot's tap gate (`botpolicy.tapTarget`) never aims
 a manual tap at a card absent from it or proved unpayable, which was two of
-every three manual tap runs the auto-pay bot made (botmanual, 2026-10-14). A
+every three manual tap runs the auto-pay bot made. A
 seat that never builds plans has no census, so the manual-mana bot and every
 golden game are unchanged. The manual taps that remain are planner gaps the
 V1 witness withholds by design ({X}, hybrid, convoke/delve/improvise,

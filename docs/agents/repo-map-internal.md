@@ -2,7 +2,7 @@
 
 Part of the [repo map](repo-map.md) index. Bot runtime packages are in
 [repo-map-engine.md](repo-map-engine.md#bots). `testkit/` and `cli/` are
-public (not `internal/`) so companion and other outside modules can import
+public (not `internal/`) so outside modules can import
 them.
 
 ## `internal/`
@@ -10,7 +10,7 @@ them.
 | Package | What it owns |
 |---|---|
 | `internal/archtest` | Import-graph and structural tests (dependency order, `time` allowlist, no `math/rand`, 32-bit build, root `go.mod` has no `require`, layering budgets for the `engine/rules` sub-packages, no engine leaks from host). |
-| `testkit/testutil` | Corpus registry (`CorpusRegistry` — **skips when `.cards/` is absent**), repo decks (`testkit/testutil/decks/*.json`), shared invariants, the per-test budget exception inventories (`testkit/testutil/testdata/`), and the AGENTS.md ratchet (`agentsdoc_test.go`). |
+| `testkit/testutil` | Corpus registry (`CorpusRegistry` — **skips when `.cards/` is absent**), repo decks (`testkit/testutil/decks/*.json`), shared invariants, the per-test budget exception inventories (`testkit/testutil/testdata/`), and the Known-approximations ratchet (`agentsdoc_test.go`). |
 | `testkit/testutil/feedback` | Loads player feedback snapshots; `feedback.EngineAt`. |
 | `testkit/bench` | Policy-agnostic game runner: `PlayGame`, `RunPairs`, watchdogs, livelock recovery. Shared with outside modules' bench tools. |
 | `internal/codeshape` | Code-shape metrics and ratchets for `engine/rules` and `engine/effects` (function length, interface width); `cmd/codeshape` prints them. |
