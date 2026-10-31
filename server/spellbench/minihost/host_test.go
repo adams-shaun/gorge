@@ -27,19 +27,24 @@ func hostFor(t *testing.T, s *env.Server) *minihost.Host {
 		MaxSteps: 20000, MaxDecisions: 9999}
 }
 
+// TestUniformGamesOnEveryDeckValidateAndReplay plays each deck in a parallel subtest
+// to stay inside the repo's one-minute test wall.
 func TestUniformGamesOnEveryDeckValidateAndReplay(t *testing.T) {
 	for i, d := range catalog.Decks() {
-		agents := [2]minihost.Link{&minihost.Uniform{}, &minihost.Uniform{}}
-		a, err := host(t).Play(uint64(i), d, "london", []string{"x_gorge_view_v1"}, agents)
-		if err != nil {
-			t.Fatalf("%s: %v", d.CatalogID, err)
-		}
-		if a.Terminal.Classification == "halted" {
-			t.Fatalf("%s halted: %s", d.CatalogID, a.Terminal.Reason)
-		}
-		b, _ := host(t).Play(uint64(i), d, "london", []string{"x_gorge_view_v1"}, [2]minihost.Link{&minihost.Uniform{}, &minihost.Uniform{}})
-		if a.Digest != b.Digest {
-			t.Fatalf("%s: rerun digest %s != %s", d.CatalogID, b.Digest, a.Digest)
-		}
+		t.Run(d.CatalogID, func(t *testing.T) {
+			t.Parallel()
+			agents := [2]minihost.Link{&minihost.Uniform{}, &minihost.Uniform{}}
+			a, err := host(t).Play(uint64(i), d, "london", []string{"x_gorge_view_v1"}, agents)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if a.Terminal.Classification == "halted" {
+				t.Fatalf("halted: %s", a.Terminal.Reason)
+			}
+			b, _ := host(t).Play(uint64(i), d, "london", []string{"x_gorge_view_v1"}, [2]minihost.Link{&minihost.Uniform{}, &minihost.Uniform{}})
+			if a.Digest != b.Digest {
+				t.Fatalf("rerun digest %s != %s", b.Digest, a.Digest)
+			}
+		})
 	}
 }
