@@ -6,7 +6,6 @@
 package events
 
 import (
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -329,11 +328,10 @@ func foldExtraTurn(g *state.Game, e *Event) {
 	// -- it is exactly the turn about to begin when the -1 fires. Only the
 	// -1 form registers; the +grant carries no Counter at consumption. A
 	// consumption with no source object, no Execute$ name, or a source
-	// whose face lacks the SVar degrades to no registration rather than
+	// that lacks the SVar degrades to no registration rather than
 	// panicking (the same totality stance DelayedRegister applies).
 	if e.Amount < 0 && e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
-		f := g.Obj(e.Obj).Face()
-		if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
+		if ResolveSVarAcrossFaces(g.Obj(e.Obj), e.Counter) != nil {
 			// The registered trigger's phase: IDs[0] carries the state.Step
 			// the granting DelayedTrigger SA's Phase$ named (effAddTurn
 			// parsed it through the shared parser and the consumption
@@ -418,11 +416,10 @@ func foldExtraPhase(g *state.Game, e *Event) {
 		// which the ordinary delayed-trigger drain fires on). MinTurn is
 		// the CURRENT turn -- the extra phase begins in the granting turn,
 		// unlike an extra turn's Turn+1. A consume with no source object,
-		// no Execute$ name, or a source whose face lacks the SVar degrades
-		// to no registration rather than panicking.
+		// no Execute$ name, or a source that lacks the SVar degrades to no
+		// registration rather than panicking.
 		if e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
-			f := g.Obj(e.Obj).Face()
-			if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
+			if ResolveSVarAcrossFaces(g.Obj(e.Obj), e.Counter) != nil {
 				// The registered phase: the rider's DELAY= step when the
 				// grant forwarded one, else the extra phase's own entry
 				// step (IDs[0] -- the only step a consume always carries).

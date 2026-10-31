@@ -616,7 +616,7 @@ func foldGainedAbilityPush(g *state.Game, e *Event) {
 	// re-derives -- and the live-grant recovery scans then find no owner.
 	// Setting it here (never in engine/rules/) is what makes a log-only replay
 	// reproduce the exact face the live mint resolved.
-	o.GainedFace = foreign.Face()
+	o.AbilityFace = foreign.Face()
 	o.GainedFrom = foreign.ID
 }
 
@@ -669,7 +669,7 @@ func foldGainedTriggerPush(g *state.Game, e *Event) {
 	// The same foreign-face provenance the GainedAbilityPush mint stamps
 	// (r3): the foreign face's own SVar table, OptionalDecider$ gate,
 	// intervening-if and label all stay resolvable after the grant ends.
-	o.GainedFace = foreign.Face()
+	o.AbilityFace = foreign.Face()
 	o.GainedFrom = foreign.ID
 	// pushTrigger serializes the queue-time ctx Remembered AFTER the
 	// provenance slot (IDs[0] is the foreign card): the same decode

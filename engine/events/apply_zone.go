@@ -1120,6 +1120,9 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// is battlefield-only state and is cleared here (its continuous-effect
 		// bookkeeping is dropped by active()/cleanup, since the effect's
 		// source -- this same object -- is no longer on the battlefield).
+		if o.CopyFace != nil {
+			o.LeftCopyFace = o.CopyFace
+		}
 		o.SetCopyFace(nil)
 		o.CopyGainThisAbility = false
 		o.Paired = 0

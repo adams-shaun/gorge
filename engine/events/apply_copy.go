@@ -121,10 +121,8 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// answers "as you cast this spell" with the ORIGINAL cast's facts.
 	castBattlefield := src.CastBattlefield
 	stackKind, stackKindKnown := src.StackKind, src.StackKindKnown
-	// A copy of a HAS-ALL-ABILITIES-OF wrapper keeps the minted foreign-face
-	// provenance (r3): the copy resolves the same compiled SA, so it reads
-	// the same owning face.
-	gainedFace, gainedFrom := src.GainedFace, src.GainedFrom
+	// A copy resolves the same compiled SA, so it reads the same owning face.
+	abilityFace, gainedFrom := src.AbilityFace, src.GainedFrom
 	copyNonLegendary := src.CopyNonLegendary
 	copyLoyalty, copyLoyaltySet := src.CopyLoyalty, src.CopyLoyaltySet
 	// The copy inherits the original's CastFlags -- a copy of a fused,
@@ -201,7 +199,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	o.Ability, o.Source = ability, source
 	o.CastBattlefield = castBattlefield
 	o.StackKind, o.StackKindKnown = stackKind, stackKindKnown
-	o.GainedFace, o.GainedFrom = gainedFace, gainedFrom
+	o.AbilityFace, o.GainedFrom = abilityFace, gainedFrom
 	o.Targets = targets
 	o.SubTargets = subTargets
 	if len(stamps) > 0 {

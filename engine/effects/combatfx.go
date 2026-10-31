@@ -1467,7 +1467,7 @@ func resolveGains(gains, choices string, source *state.Object) string {
 // offered ability silently did nothing and a bot re-chose it forever.
 func svarTableOwner(h Host, c *Ctx) state.ObjID {
 	if c.ResolvingObj != 0 {
-		if w := h.Game().Obj(c.ResolvingObj); w != nil && w.GainedFrom != 0 && w.GainedFace != nil {
+		if w := h.Game().Obj(c.ResolvingObj); w != nil && w.GainedFrom != 0 && w.AbilityFace != nil {
 			if f := h.Game().Obj(w.GainedFrom); f != nil && f.Face() != nil {
 				return w.GainedFrom
 			}

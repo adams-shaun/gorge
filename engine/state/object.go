@@ -1907,20 +1907,26 @@ type Object struct {
 	// CopyFace.
 	CopyGainThisAbility bool
 
-	// GainedFace is the foreign face a HAS-ALL-ABILITIES-OF ability wrapper
-	// (events.GainedAbilityPush / GainedTriggerPush) was minted from -- the
-	// per-stack-instance provenance engine/rules/pile.go's gainedOwnedFace recovers.
-	// The granting static can END between the push and the resolution (the
-	// foreign card leaves the scoped zone, the static's named set re-derives),
-	// and the live-grant recovery scans then find no owner, so a resolving
-	// wrapper must not depend on them. Set ONLY inside events.Apply from the
-	// exact face that provided the compiled SA -- the same write-site
-	// discipline CopyFace takes -- so a live game and every replay, including
-	// the log-only state reconstruction, derive it identically. nil on every
-	// wrapper that is not a gained mint (and on every permanent).
-	GainedFace *cards.Face
-	// GainedFrom is the foreign OBJECT GainedFace was taken from (the
-	// GainedAbilityPush/GainedTriggerPush IDs[0]), set beside GainedFace and
+	// LeftCopyFace is the CopyFace this object last left the battlefield with.
+	// The object is no longer a copy, but what the copy did is not undone: a
+	// leaves-the-battlefield trigger of the copied card fires, and a delayed
+	// trigger it created still needs its body (CR 603.7d, 603.10a). Set only by
+	// Move, like CopyFace.
+	LeftCopyFace *cards.Face
+	// AbilityFace is the face an ability wrapper was minted from when its source
+	// can't answer that later: the source's own for an activated ability
+	// (events.AbilityPush), a foreign one (GainedAbilityPush, GainedTriggerPush),
+	// or the departed copy's (TriggerPush). Its SVar table belongs to the ability
+	// from then on (CR 113.7a), whatever becomes of the source: it can leave the
+	// battlefield or transform, lose a copy effect or the static that lent the
+	// ability, before the ability resolves. engine/rules/pile.go's abilityOwnedFace
+	// reads it. Set ONLY inside events.Apply from the exact face that provided the
+	// compiled SA -- the same write-site discipline CopyFace takes -- so a live
+	// game and every replay, including the log-only state reconstruction, derive
+	// it identically. nil on every other object.
+	AbilityFace *cards.Face
+	// GainedFrom is the foreign OBJECT AbilityFace was taken from (the
+	// GainedAbilityPush/GainedTriggerPush IDs[0]), set beside AbilityFace and
 	// under the same Apply-only discipline. It is what lets a gained body that
 	// itself GRANTS by name (a gained Animate's Abilities$/Triggers$, Manascape
 	// Refractor animating through Spawning Pool's ability) name an object
@@ -1946,7 +1952,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [56]byte
+	_ [48]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast

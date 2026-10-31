@@ -57,6 +57,7 @@ func (o *Object) PileFaceCount() int { return 1 + len(o.MergedCards) }
 // PileAbility is one activated ability of a pile together with the merged
 // ordinal of the face that carries it (0 = top).
 type PileAbility struct {
+	Face   *cards.Face
 	SA     *cards.SA
 	Merged int
 }
@@ -93,7 +94,7 @@ func (o *Object) PileAbilityAt(i int) (PileAbility, bool) {
 			if o.Zone == ZBattlefield && f.IsRoom() && !o.DoorUnlocked(int(o.FaceIdx)) {
 				return PileAbility{}, false
 			}
-			return PileAbility{SA: f.Abilities[i]}, true
+			return PileAbility{SA: f.Abilities[i], Face: f}, true
 		}
 		i -= len(f.Abilities)
 	}
@@ -103,7 +104,7 @@ func (o *Object) PileAbilityAt(i int) (PileAbility, bool) {
 			continue
 		}
 		if i < len(f.Abilities) {
-			return PileAbility{SA: f.Abilities[i], Merged: m + 1}, true
+			return PileAbility{SA: f.Abilities[i], Face: f, Merged: m + 1}, true
 		}
 		i -= len(f.Abilities)
 	}
