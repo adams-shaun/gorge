@@ -38,7 +38,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.19c,e | deviates | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.combatDefenderTarget` `engine/cards/face.go#KeywordHead` | - | Thrasta treated as plain trample; silent |
 | 702.19f,g | follows | `engine/rules/combat.go#Engine.combatDefenderTarget` | - |  |
 | 702.20a-c | follows | `engine/rules/combat.go#Engine.finishAttackers` `engine/rules/staging.go#NewStaged` | - |  |
-| 702.21a | follows | `engine/cards/kw_ward.go#kwWard` `engine/rules/trigmatch/actions.go#becomesTargetMatches` | `TestWardDoesNotTriggerForFriendlyTargetingStackObject` | mana and life forms; triggers too |
+| 702.21a | follows | `engine/cards/kw_ward.go#kwWard` `engine/rules/trigmatch/actions.go#becomesTargetMatches` `engine/rules/trigger_granted.go#Engine.checkGrantedWardTriggers` | `TestWardDoesNotTriggerForFriendlyTargetingStackObject` `TestGrantedWardFiresBesideLivePrintedTriggers` | mana and life forms; triggers too |
 | 702.21b | unknown | - | - | ward {X} timing not located |
 | 702.22a-k,m | partial | `engine/rules/banding.go#Engine.startBandAsks` `engine/rules/banding.go#Engine.bandBlockPairs` `engine/rules/banding.go#Engine.divisionChooser` `engine/rules/banding.go#Engine.bandBlockerAssignments` `engine/effects/becomesblocked.go#effBecomesBlocked` | `TestCR702_22cBandIsDeclaredAndABlockerBlocksTheWholeBand` `TestCR702_22cBandTakesAtMostOneCreatureWithoutBanding` `TestCR702_22kActivePlayerDividesTheBandBlockersDamage` `TestCR702_22jDefendingPlayerDividesDamageBlockedByBanding` | plain banding follows; bands with other (702.22b) LOUD; a trample attacker keeps the deterministic split |
 | 702.23a-c | not-impl | - | - | LOUD printed (15); SILENT granted (Rapid Fire) |
@@ -156,7 +156,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.103e | follows | `engine/rules/stack.go#Engine.resolveTop` `engine/rules/bestow.go#Engine.bestowTargetIllegal` | `TestBoonSatyrBestowedOntoShockedBearsEntersAsCreature` `TestBoonSatyrUnbestowedIsACreatureToEntryReplacements` | REVISED: cr-g02 (e7bb8e319) resolves an illegal-target bestowed spell as a creature |
 | 702.103f-702.103g | follows | `engine/state/object.go#Object.BestowedAttached` `engine/rules/bestow.go#bestowedAttachSA` | `TestEidolonOfCountlessBattlesBestowTransition` |  |
 | 702.104 | not-impl | - | - |  |
-| 702.105 | follows | `engine/cards/kw_dethrone.go#kwDethrone` `engine/rules/trigger_granted.go#Engine.checkGrantedDethroneTriggers` | `TestDethroneCountsOnlyTheAttackedPlayersLife` `TestGrantedDethroneTriggers` |  |
+| 702.105 | follows | `engine/cards/kw_dethrone.go#kwDethrone` `engine/rules/trigger_granted.go#Engine.checkGrantedDethroneTriggers` | `TestDethroneCountsOnlyTheAttackedPlayersLife` `TestGrantedDethroneTriggers` `TestGrantedDethroneFiresBesideLivePrintedTriggers` |  |
 | 702.106 | not-impl | - | - |  |
 | 702.107 | follows | `engine/cards/kw_outlast.go#kwOutlast` | `TestOutlastExpandsToASorcerySpeedTapActivation` `TestAbzanBattlePriestOutlastIsSorcerySpeedOnly` |  |
 | 702.108 | follows | `engine/cards/kw_prowess.go#kwProwess` | `TestDoubleProwessTriggersTwice` `TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells` |  |

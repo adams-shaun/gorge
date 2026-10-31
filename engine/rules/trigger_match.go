@@ -1935,6 +1935,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		if len(grantedStatics) > 0 {
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, *ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
 		}
+		// Granted Ward and Dethrone follow the both-paths rule below.
+		e.checkGrantedWardTriggers(observer, id, o, f, *ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+		e.checkGrantedDethroneTriggers(observer, id, o, f, *ev, objLKI)
 		// A granted Afflict must fire even when the object's own printed
 		// triggers are live for this event (a Zombie with its own become-blocked
 		// trigger carrying the Monarch's grant) -- the early-return path above
