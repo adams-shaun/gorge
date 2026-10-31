@@ -137,7 +137,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 608.2 | follows | `engine/rules/stack.go#Engine.resolveTop` `engine/effects/registry.go#Resolve` | - | instant/sorcery/ability resolution steps |
 | 608.2a | follows | `engine/rules/stack.go#Engine.resolveTop` | `TestCR603InterveningIfRecheckedAtResolution` | intervening-if recheck |
 | 608.2b | partial | `engine/rules/stack.go#Engine.resolveTop` `engine/rules/stack.go#Engine.targetBecameNewObject` `engine/rules/target_legal.go#Engine.protectionSource` | `TestCR608ResolutionRechecksVinesTargetRestriction` `TestCharmAllModesIllegalDoesNotResolve` `TestCR400_7GraveyardTargetThatLeftAndReturnedIsANewObject` `TestCR400_7AnimateDeadTargetThatLeftAndReturnedIsANewObject` | fizzle, partial skip and the new-object test (any zone change) follow; protection reads live source, not LKI |
-| 608.2c | follows | `engine/effects/registry.go#Resolve` | - | order written |
+| 608.2c | follows | `engine/effects/registry.go#Resolve` `engine/effects/context.go#playerForTarget` | `TestTargetedHandOwnerIgnoresALaterLinksCreature` `TestBlightningDiscardsTwoAtEitherTarget` | order written; a player read of the chain's targets names target players, and a controller read target objects |
 | 608.2d | follows | `engine/rules/unless_payment.go#Engine.UnlessCostPayableFromCtx` | - | divided-untargeted half not audited |
 | 608.2e | deviates | `engine/effects/zone_bulk.go#effSacrifice` | - | per-player choose-then-act |
 | 608.2f | partial | `engine/effects/context.go#definedSpec` | - | g order starts at controller, not AP; d APNAP |

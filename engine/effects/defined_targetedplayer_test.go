@@ -66,7 +66,7 @@ func TestCeaseDrawsForItsTargetedPlayer(t *testing.T) {
 	}
 }
 
-func TestBlightningTargetedPlayerFallsBackToPlaneswalkerController(t *testing.T) {
+func TestBlightningAtAPlaneswalkerDiscardsFromItsController(t *testing.T) {
 	_, discard := corpusAbility(t, "Blightning", "Discard")
 	h := newHost(t, 2)
 	pw := h.g.AddObject(mkCard(t, "Name:Test Planeswalker\nTypes:Planeswalker\nPT:4\nOracle:x\n"), 1)
