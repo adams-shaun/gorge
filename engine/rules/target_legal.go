@@ -102,6 +102,7 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		// mode was settled when the cast OPTION was picked, before this ask.
 		ctx.Kicker.PendingKicked = modeIsKicked(pc.mode)
 		ctx.Kicker.PendingTeamwork = castAnswerCodes.Code(pc.mode) == castAnswerTeamworkMode
+		ctx.Kicker.PendingBargained = castModeCodes.Code(pc.mode) == castModeBargained
 		// The same pre-payment gap for the optional additional cost's
 		// election (a TargetMax$ over Count$OptionalGenericCostPaid).
 		ctx.Num.OptionalCostElected = castModeCodes.Code(pc.mode) == castModeOptionalcost

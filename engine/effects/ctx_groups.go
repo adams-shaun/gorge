@@ -199,6 +199,10 @@ type KickerInputs struct {
 	// (no pending cast, the flag actually stamped) is unaffected. Zero (false)
 	// everywhere else; it is derived data, never event-encoded.
 	PendingKicked bool
+	// PendingBargained is the same pre-payment gap for the pending cast's Bargain
+	// election (CR 702.166d): Brave the Wilds' TargetMin$ X over
+	// Count$Bargained.1.0 is read before payment stamps FlagBargained.
+	PendingBargained bool
 	// PendingTeamwork is the cast's elected intention to pay its optional
 	// Teamwork cost, available during CR 601.2c target announcement before
 	// payCast stamps TeamworkPaid on the stack object (CR 702.194b-c).

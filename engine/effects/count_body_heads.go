@@ -750,8 +750,8 @@ var evalCountBodyDottedCodes = state.NewStrCodes(
 // the <no> branch.
 func countBargainedBranch(h Host, c *Ctx, g *state.Game, branches string, depth int) int32 {
 	yesTok, noTok, _ := strings.Cut(branches, ".")
-	bargained := false
-	if o := g.Obj(c.Source); o != nil {
+	bargained := c.Kicker.PendingBargained
+	if o := g.Obj(c.Source); o != nil && !bargained {
 		bargained = o.CastFlags&state.FlagBargained != 0
 	}
 	return countBranchOperand(h, c, bargained, yesTok, noTok, depth)
