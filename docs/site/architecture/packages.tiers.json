@@ -459,6 +459,10 @@
       "tier": "tooling",
       "status": "TOOL/SUPP"
     },
+    "testkit/conformance": {
+      "tier": "tooling",
+      "status": "TOOL"
+    },
     "testkit/paymirror": {
       "tier": "tooling",
       "status": "TOOL"
