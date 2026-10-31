@@ -311,3 +311,80 @@ func TestTapCostElectionThatStrandsThePaymentReverses(t *testing.T) {
 		}
 	}
 }
+
+// A mana ability whose condition this build doesn't evaluate adds no mana (CR 106.5),
+// so a source that has only that one doesn't leave the census incomplete: the helper
+// ask still requires what the payment needs, and the window doesn't offer it.
+func TestManaAbilityThatAddsNothingLeavesTheCensusComplete(t *testing.T) {
+	t.Parallel()
+	const moot = "Name:Test Moot\nTypes:Land\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Combo Unwritten | Condition$ While the tide is out. | SpellDescription$ Unmodelled.\nOracle:x\n"
+	e, _, _ := newFixtureDeck(t, 9700, ppFiller)
+	toMain1(t, e)
+	src := onBoard(t, e, 0, testBender)
+	helpers := []state.ObjID{onBoard(t, e, 0, apaDrone), onBoard(t, e, 0, apaDrone)}
+	onBoard(t, e, 0, apaIsland)
+	onBoard(t, e, 0, moot)
+	idx := -1
+	for _, o := range ppPriority(t, e).Options {
+		if o.Kind == "ability" && o.Obj == src {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("the ability is not offered: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, idx)
+	ask := e.Pending()
+	if ask == nil || ask.Kind != decision.KChoose || ask.Min != 2 {
+		t.Fatalf("pending %+v, want a helper ask requiring both Drones", ask)
+	}
+	submitChoices(t, e, 0, 1)
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority || d.PaymentFallback != nil || len(e.G.Stack) != 1 {
+		t.Fatalf("pending %+v, stack %v: want the ability on the stack, paid", d, e.G.Stack)
+	}
+	for _, id := range helpers {
+		if !e.G.Obj(id).Tapped {
+			t.Errorf("helper %d is untapped", id)
+		}
+	}
+}
+
+// With nothing else to pay for a raised cost, the target that raises it stays out of
+// the menu although the board has a source that adds nothing.
+func TestTargetMenuPricesPastASourceThatAddsNothing(t *testing.T) {
+	t.Parallel()
+	const (
+		moot = "Name:Test Moot\nTypes:Land\n" +
+			"A:AB$ Mana | Cost$ T | Produced$ Combo Unwritten | Condition$ While the tide is out. | SpellDescription$ Unmodelled.\nOracle:x\n"
+		tax = "Name:Test Tax\nTypes:Enchantment\n" +
+			"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | ValidTarget$ Player | Type$ Spell | Amount$ 8 | Description$ Dear.\nOracle:x\n"
+		spell = "Name:Test Word\nManaCost:U\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1 | SpellDescription$ Word.\nOracle:x\n"
+	)
+	e, _, id := newFixtureDeck(t, 9700, spell)
+	toMain1(t, e)
+	onBoard(t, e, 0, apaIsland)
+	onBoard(t, e, 0, moot)
+	onBoard(t, e, 0, tax)
+	onBoard(t, e, 0, apaDrone)
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "U", Amount: 1})
+	idx := -1
+	for _, o := range ppPriority(t, e).Options {
+		if o.Kind == "cast" && o.Obj == id {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("the spell is not offered: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, idx)
+	ask := e.Pending()
+	if ask == nil || ask.Kind != decision.KTarget {
+		t.Fatalf("pending %+v, want the target ask", ask)
+	}
+	for _, o := range ask.Options {
+		if o.Kind == "player" {
+			t.Errorf("offered a target the payment can't reach: %+v", o)
+		}
+	}
+}

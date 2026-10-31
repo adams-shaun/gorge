@@ -55,7 +55,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 105.5 | unknown | - | - | not reached |
 | 106.1-106.3 | follows | `engine/state/game.go#Player.Pool` `engine/effects/mana_effect.go#effMana` `engine/rules/cast_window.go#Engine.castWindowProbeUnits` | `TestCastWindowChosenColourPaysHybridFace` | - |
 | 106.4-106.4b | follows | `engine/rules/turn.go#Engine.finishStepBoundary` `engine/events/event.go#ManaClear` | - | pool empties between steps |
-| 106.5 | unknown | - | - | not reached |
+| 106.5 | partial | `engine/rules/cast_window.go#manaAbilityAddsNothing` | `TestManaAbilityThatAddsNothingLeavesTheCensusComplete` `TestTargetMenuPricesPastASourceThatAddsNothing` | a mana ability under a Condition$ this build does not evaluate adds no mana; other undefined types not reached |
 | 106.6-106.6a | partial | `engine/effects/mana_effect.go#effMana` `engine/rules/pay/payment.go#RestrictValidMatches` | - | LOUD (gorge register RestrictValid row) |
 | 106.7-106.13 | unknown | - | - | not reached |
 | 107.1-107.1c | follows | `engine/state/game.go#Player.Life` | - | integer state throughout |

@@ -1949,6 +1949,9 @@ func (e *Engine) paymentUsefulColours(pc *pendingCast, p state.PlayerID, colours
 func (e *Engine) paymentSourceUseful(pc *pendingCast, p state.PlayerID, id state.ObjID) bool {
 	chosen := pay.ChosenProducedColour(e.G, id)
 	for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
+		if manaAbilityAddsNothing(ma) {
+			continue
+		}
 		cols := pay.AnnouncedAbilityColours(asPayer(e), p, id, ma, chosen)
 		if len(cols) == 0 {
 			cols = fixedProductionColours(ma)

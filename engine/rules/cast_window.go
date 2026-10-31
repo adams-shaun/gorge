@@ -280,15 +280,24 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 // window (appendAvailableManaAbilitiesGate's ignorePayable). InstantSpeed$
 // True abilities stay withheld exactly as the shared window walk withholds
 // them, so no ability the live payment window cannot activate is ever priced.
+// Nor is one whose Condition$ this build doesn't evaluate: it resolves to no mana
+// (CR 106.5), so it can't close a gap and says nothing about the census.
 func (e *Engine) castWindowProbeAbilities(p state.PlayerID, id state.ObjID) []*cards.SA {
 	var out []*cards.SA
 	for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
-		if pay.InstantSpeedOnly(ma) {
+		if pay.InstantSpeedOnly(ma) || manaAbilityAddsNothing(ma) {
 			continue
 		}
 		out = append(out, ma)
 	}
 	return out
+}
+
+// manaAbilityAddsNothing reports whether a mana ability's Condition$ is one the
+// effect walk skips, so its activation taps the source and adds no mana.
+func manaAbilityAddsNothing(ma *cards.SA) bool {
+	_, unmodelled := effects.UnmodelledCondition(ma)
+	return unmodelled
 }
 
 // castWindowSourceExcluded reports whether source id's probe-admitted mana
