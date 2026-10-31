@@ -201,7 +201,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.1a | partial | `engine/state/object.go#Object.CopyFace` | `TestCloneModifiersApplyAtTheirOwnLayers` | copy as face swap; see 707 slice |
 | 613.1b | follows | `engine/rules/control.go#Engine.RegisterControl` `engine/rules/control.go#Engine.expireControl` | - | grants in timestamp order |
 | 613.1c | follows | `engine/state/object.go#Object.faceSlow` `engine/events/copy_except.go#foldTextChange` | `TestCR612ChangedSpellTextOnTheStack` `TestCR612TextChangeIsNotCopiableAndEndsOnLeaving` | layer 3 rewrites Face(); not copiable (707.2); ends on a zone change except spell to permanent (400.7a) |
-| 613.1d | follows | `engine/rules/chars/types.go#TypesAndLandSubtypeSet` `engine/rules/chars/types.go#applyTypeEffect` `engine/rules/statics_cast.go#Engine.staticTimingGate` | `TestFerociousFlashReadsCurrentCreatures` |  |
+| 613.1d | follows | `engine/rules/chars/types.go#TypesAndLandSubtypeSet` `engine/rules/chars/types.go#applyTypeEffect` `engine/rules/statics_cast.go#Engine.staticTimingGate` `engine/cards/ir.go#Card.ChangesTypes` | `TestFerociousFlashReadsCurrentCreatures` `TestSweepSkipsAGodBelowItsDevotion` `TestEveryTypeChangingStaticArmsThePoolGate` |  |
 | 613.1e | follows | `engine/rules/chars/derive.go#Compute` | `TestDerivedColorsLayerCompose` |  |
 | 613.1f | partial | `engine/rules/chars/derive.go#Compute` `engine/rules/abilityloss.go#Engine.abilityLoss` `engine/rules/abilityloss.go#Engine.grantLostTo` | `TestLayer6GrantsKeywords` `TestAbilityRemovalTimestampStillDominates` | gorge: keyword counters lost regardless of ts |
 | 613.1g | partial | `engine/rules/chars/derive.go#PT` | - | layer 7; g gaps at 613.4d |
