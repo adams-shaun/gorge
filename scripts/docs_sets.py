@@ -14,8 +14,8 @@ Two sources, joined by set code:
    orphan docs-data branch. Each line is one adopt.SetStatus object; any
    non-JSON line (the ratchet summary the command also prints) is skipped.
 
-2. dirty-dirac's per-set acceptance, a committed snapshot
-   (docs/site/support/dirty-dirac-sets.json). dirty-dirac's source is
+2. dirac's per-set acceptance, a committed snapshot
+   (docs/site/support/dirac-sets.json). dirac's source is
    private, so a maintainer refreshes that file by hand from its acceptance
    ratchet and lockstep runs.
 
@@ -34,14 +34,14 @@ Per set:
                  per-set pseudo problem, not a card, so it is not subtracted.
                  For a set without a printed list this is a hard lower bound.
   Level B %    = the same over the Level B status.
-  dirty-dirac  = accepted / cards from the snapshot, over dirty-dirac's own
+  dirac  = accepted / cards from the snapshot, over dirac's own
                  card list for the set (distinct card names in XMage's
                  manifest that exist in the corpus), which can differ by a
                  few cards from gorge-compliance's count.
 
 Stdlib only. Usage:
   scripts/docs_sets.py [status-A.jsonl|-] [--level-b status-B.jsonl]
-                       [--meta meta.json] [--dirty-dirac dirty-dirac-sets.json]
+                       [--meta meta.json] [--dirac dirac-sets.json]
                        [-o docs/site/support/_generated_sets.md]
                        [--commit SHA] [--date YYYY-MM-DD]
 """
@@ -74,8 +74,8 @@ def load(stream):
     return rows
 
 
-def load_dirty_dirac(path):
-    """Read and check the dirty-dirac snapshot; raise ValueError on a bad file."""
+def load_dirac(path):
+    """Read and check the dirac snapshot; raise ValueError on a bad file."""
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
     for k in ("date", "corpus", "sets"):
@@ -178,7 +178,7 @@ def stamp_text(meta, level_b):
 def dd_stamp(dd):
     # The private module's commit is never published (privacy rule); the date
     # identifies the snapshot.
-    return "the dirty-dirac snapshot of %s" % dd["date"]
+    return "the dirac snapshot of %s" % dd["date"]
 
 
 def render_headline(rows, level_b, meta, dd):
@@ -214,9 +214,9 @@ def render_headline(rows, level_b, meta, dd):
         w("| gorge | certified Level A / B | not available to this build (gorge-compliance's docs-data was not fetched) |")
     if dd:
         c = dd["corpus"]
-        w("| dirty-dirac | lowered, whole corpus | **%s of %s** cards (%s%%) |" % (
+        w("| dirac | lowered, whole corpus | **%s of %s** cards (%s%%) |" % (
             num(c["accepted"]), num(c["cards"]), pct(c["accepted"], c["cards"])))
-        w("| dirty-dirac | sets in its acceptance ratchet | **%d** |" % len(dd["sets"]))
+        w("| dirac | sets in its acceptance ratchet | **%d** |" % len(dd["sets"]))
         ls = dd.get("lockstep") or {}
         if ls:
             parts = []
@@ -224,10 +224,10 @@ def render_headline(rows, level_b, meta, dd):
                 s = ls[code]
                 parts.append("%s: %s of %s games agree, %d stalled, %d disagree" % (
                     code, num(s["agree"]), num(s["games"]), s["stalls"], s["disagree"]))
-            w("| dirty-dirac | lockstep-verified against gorge | **%s** (%s) |" % (
+            w("| dirac | lockstep-verified against gorge | **%s** (%s) |" % (
                 ", ".join(sorted(ls)), "; ".join(parts)))
     else:
-        w("| dirty-dirac | lowered | not available to this build |")
+        w("| dirac | lowered | not available to this build |")
     w("")
     notes = []
     if rows and meta:
@@ -249,7 +249,7 @@ def render_sets(rows, level_b, meta, dd):
     unknown = sorted(c for c in codes if c not in by)
     out = []
     w = out.append
-    w("| Set | Name | Declared | Cards | Playable % | Level A % | Level B % | dirty-dirac lowered | Lockstep games |")
+    w("| Set | Name | Declared | Cards | Playable % | Level A % | Level B % | dirac lowered | Lockstep games |")
     w("|---|---|---|---:|---:|---:|---:|---:|---:|")
     problems = []
     for c in known:
@@ -316,7 +316,7 @@ def render_rollup(rows, level_b, meta, dd):
     w("")
     w("??? note \"Every set (%d), newest first\"" % len(rows))
     w("")
-    w("    | Set | Name | Type | Released | Cards | Unsupported | Not in corpus | Playable % | Level A % | dirty-dirac lowered |")
+    w("    | Set | Name | Type | Released | Cards | Unsupported | Not in corpus | Playable % | Level A % | dirac lowered |")
     w("    |---|---|---|---|---:|---:|---:|---:|---:|---:|")
     for r in rows:
         m = measure(r)
@@ -347,7 +347,7 @@ def main(argv=None):
     ap.add_argument("--meta", default="", help="docs-data meta.json (commit, gorge_pin, date)")
     ap.add_argument("--commit", default="", help="gorge-compliance commit (overrides --meta)")
     ap.add_argument("--date", default="", help="measurement date (overrides --meta)")
-    ap.add_argument("--dirty-dirac", default="", help="dirty-dirac per-set snapshot JSON")
+    ap.add_argument("--dirac", default="", help="dirac per-set snapshot JSON")
     a = ap.parse_args(argv)
 
     rows = []
@@ -370,13 +370,13 @@ def main(argv=None):
         meta["commit"] = a.commit
     if a.date:
         meta["date"] = a.date
-    dd = load_dirty_dirac(a.dirty_dirac) if a.dirty_dirac else None
+    dd = load_dirac(a.dirac) if a.dirac else None
     if not rows and not dd:
-        print("docs_sets: neither status rows nor a dirty-dirac snapshot; fragment not written", file=sys.stderr)
+        print("docs_sets: neither status rows nor a dirac snapshot; fragment not written", file=sys.stderr)
         return 1
     with open(a.out, "w", encoding="utf-8") as f:
         f.write(render(rows, meta, level_b, dd))
-    print("docs_sets: wrote %d status sets, %d dirty-dirac sets to %s" % (
+    print("docs_sets: wrote %d status sets, %d dirac sets to %s" % (
         len(rows), len((dd or {}).get("sets", {})), a.out), file=sys.stderr)
     return 0
 

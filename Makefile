@@ -85,7 +85,7 @@ help:
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
 	@echo "  make draftsim       — build draftsim and play 2 verified FDN draft events"
 	@echo "  make pr [PR_BASE=main] [DRY=1] — open/refresh a GitHub PR with a generated change overview"
-	@echo "  make gorged         — run the M2a table server (browser client at the addr)"
+	@echo "  make gorged         — run the table server (browser client at the addr)"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make web            — npm ci and build the spectator client into server/gorged/webdist"
 	@echo "  make web-dev        — run the Vite dev server for web/"

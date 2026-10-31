@@ -4,8 +4,8 @@
 #
 # The set-support tables are rendered here, not measured: the compliance
 # oracle (oraclediff) lives in gorge-compliance, whose nightly CI publishes its
-# per-set status to an orphan docs-data branch, and dirty-dirac's per-set
-# figures are a committed snapshot (docs/site/support/dirty-dirac-sets.json).
+# per-set status to an orphan docs-data branch, and dirac's per-set
+# figures are a committed snapshot (docs/site/support/dirac-sets.json).
 #
 # The engine-speed chart reads history.jsonl from the orphan `perf-data`
 # branch when that branch exists; perf data never lands on main.
@@ -85,13 +85,13 @@ jobs:
       # The per-set card-support tables (support/_generated_sets.md, included
       # by sets.md): gorge-compliance's nightly compliance job publishes its
       # per-set status (Level A for every set, Level B for the printed sets)
-      # to its orphan docs-data branch; dirty-dirac's per-set acceptance is
+      # to its orphan docs-data branch; dirac's per-set acceptance is
       # the committed snapshot. Without docs-data the tables still render,
       # with the gorge columns marked as not available.
       - name: Render the per-set support tables
         run: |
           python3 -m unittest discover -s scripts -p 'docs_sets_test.py'
-          args=(--dirty-dirac docs/site/support/dirty-dirac-sets.json)
+          args=(--dirac docs/site/support/dirac-sets.json)
           if git fetch --depth=1 https://github.com/adams-shaun/gorge-compliance.git docs-data 2>/dev/null; then
             d=$(mktemp -d)
             for f in status-A.jsonl status-B.jsonl meta.json; do git show "FETCH_HEAD:$f" > "$d/$f"; done
