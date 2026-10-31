@@ -4,6 +4,8 @@ dirac doesn't read card scripts. A generator, `dirac/kgen`, lowers gorge's compi
 integer ops, and a hand-written interpreter runs them. This page is for readers who want to know how a card gets into
 dirac, what a refusal means and why a lowered card isn't yet a supported one.
 
+The `kgen` and `kfuzz` commands on this page are dirac's tools, which aren't in this repository.
+
 ## The pipeline
 
 ```mermaid
