@@ -312,6 +312,11 @@
       "status": "TOOL",
       "purpose": "Heap-footprint ratchet (tests only)."
     },
+    "internal/schemacheck": {
+      "tier": "tooling",
+      "status": "TOOL",
+      "purpose": "JSON Schema subset the SpellBench v2 schema tests validate with (tests only)."
+    },
     "internal/testbudget": {
       "tier": "tooling",
       "status": "TOOL"

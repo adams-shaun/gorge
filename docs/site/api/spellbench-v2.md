@@ -258,7 +258,7 @@ enough.
 | `hello_ok` field | gorge's value | Meaning |
 |---|---|---|
 | `protocol_minor` | `0` | the minor version gorge speaks |
-| `engine` | `name` `gorge`; `version` `gorge-<rev>/spellbench-adapter-0.1.0`, with `/autopay` appended under auto-pay; `rules_snapshot_id` `gorge/<rev>/ir-<compiler fingerprint>`; `card_pool_identity` `forge-<corpus ref>/corpus-<hash>/catalog-<hash>`; `source_revision` from `-source-revision`, else `null` | identifies the build, rules and card pool. `<rev>` is the first 12 characters of the commit, with `+dirty` for a build from a modified tree; a tagged module version is printed whole |
+| `engine` | `name` `gorge`; `version` `gorge-<rev>/spellbench-adapter-0.1.0`, with `/autopay` appended under auto-pay; `rules_snapshot_id` `gorge/<rev>/ir-<compiler fingerprint>`; `card_pool_identity` `forge-<corpus ref>/corpus-<hash>/catalog-<hash>`, with `unknown` for a ref no `cards.lock` names, as with `-registry`; `source_revision` from `-source-revision`, else `null` | identifies the build, rules and card pool. `<rev>` is the first 12 characters of the commit, with `+dirty` for a build from a modified tree; a tagged module version is printed whole |
 | `formats` | `["pauper-bo1"]` | the only format `reset` accepts |
 | `deck_sources` | `["catalog"]` | gorge plays catalog decks, never a pasted decklist |
 | `catalog` | Wildfire, Rally, Spy, Burn, CawGates | `catalog_id`, `name`, `decklist` |
@@ -1086,6 +1086,17 @@ fails the build when `semantic.schema.json` and `kindTable` or `Vocab` disagree 
 go test -run 'TestSemanticSchemaMatchesKindTable|TestSchemaErrorCodesMatchErrorsGo' ./server/spellbench/protocol
 ```
 
-The suite doesn't run the other schemas against live messages. On 2026-10-31, every line validated: six random-play
-games through `spellbench-gorge-env` in each mana mode, a game between `spellbench-gorge-agent` and the env in each world, and
-the requests gorged's seat sent an agent, about 28,000 lines.
+Three tests hold the other schemas to live messages, through the validator in
+[`internal/schemacheck`](https://github.com/adams-shaun/gorge/blob/main/internal/schemacheck/schemacheck.go), which
+evaluates the keywords these files use and refuses a schema with any other:
+
+| Test | Validates |
+|---|---|
+| `TestEngineLinesMatchTheSchemas` | every line of the engine channel of games played through `spellbench-gorge-env`, in both mana modes and with `x_gorge_view_v1`, and the answers of `spellbench-gorge-agent`'s server |
+| `TestRequestsMatchTheSchemas` | every line gorged's seat sends an agent over one game |
+| `TestUpstreamCorpusMatchesTheSchemas` | the vendored upstream corpus, without the requests it breaks on purpose to draw `malformed_json`, `malformed_request` or `protocol_mismatch` |
+
+```text
+go test -run 'TestEngineLinesMatchTheSchemas|TestUpstreamCorpusMatchesTheSchemas' ./cmd/spellbench-gorge-env
+go test -run TestRequestsMatchTheSchemas ./server/spellbench/seat
+```

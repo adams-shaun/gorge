@@ -76,7 +76,7 @@ is strictly additive.
   interface, because it loses hidden information and is slower (see the
   numbers below).
 - **N-seat and Commander.** A v2 game has exactly two players (`players`
-  holds exactly two records, `spellbench-v2.md:793`), and gorge's headline
+  holds exactly two records, [the observation](../site/api/spellbench-v2.md#the-observation)), and gorge's headline
   modes (4-seat, Commander) can never be v2-only. The default is therefore
   "v2 for two-player constructed duels, native `seat.Seat` for N-seat",
   enforced by a hard rule in `bots/registry.go`. It is not a replacement.
