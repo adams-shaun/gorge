@@ -122,7 +122,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 117.5 | follows | `engine/rules/turn.go#Engine.priorityRound` | - | SBAs and triggers before priority |
 | 117.6 | n/a | - | - | shared team turns |
 | 117.7 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | stack LIFO |
-| 118.1-118.2 | follows | `engine/rules/pay/solve.go#ResolveManaWith` | - | - |
+| 118.1-118.2 | follows | `engine/rules/pay/solve.go#ResolveManaWith` | `TestTriggerCostReturnsPermanentToHand` | - |
 | 118.3-118.3c | follows | `engine/rules/pay/solve.go#ResolveManaWith` | - | - |
 | 118.4-118.5a | follows | `engine/rules/cast_subcounter.go#Engine.xAsk` `engine/rules/mana.go#Engine.castOfferBase` | - | X ask; zero-cost casts are explicit options |
 | 118.6-118.6a | follows | `engine/rules/nomanacost.go#isNoManaCost` `engine/rules/nomanacost.go#Engine.filterNoManaCostCasts` | - | unpayable cost |

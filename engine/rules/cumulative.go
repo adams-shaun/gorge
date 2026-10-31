@@ -124,6 +124,9 @@ type triggeredEffectCost struct {
 	// reservation list the other components keep) so the settle can emit the
 	// owner's-graveyard moves the picks name.
 	moveGraves []state.ObjID
+	// returns accumulates the settled Return picks for the settle to move to
+	// their owners' hands.
+	returns []state.ObjID
 	// evidence accumulates the cards exiled as this cost's CollectEvidence
 	// payment (CR 701.30b), and evidenceSettled marks the evidence stage
 	// complete. The settle emits events.EvidenceCost for each pick (the
@@ -1239,7 +1242,7 @@ func (e *Engine) triggeredCostPayable(tc *triggeredEffectCost) bool {
 		// decline-only ask.
 		return tc.foragePayable(e, rest)
 	}
-	if len(rest.Sac)+len(rest.Discard)+len(rest.Exile)+len(rest.MoveToGrave) > 0 || len(rest.Evidence) > 0 || len(rest.Blight) > 0 {
+	if len(rest.Sac)+len(rest.Discard)+len(rest.Exile)+len(rest.MoveToGrave)+len(rest.Return) > 0 || len(rest.Evidence) > 0 || len(rest.Blight) > 0 {
 		// A component-bearing cost is payable ONLY through the settle gate
 		// (trigcost2): the Draw arm alone would offer "pay" while silently
 		// skipping the components. An Evidence part counts here too -- an
@@ -1281,7 +1284,7 @@ func (e *Engine) triggeredCostManaHalfPayable(tc *triggeredEffectCost, rest Cost
 
 // triggeredCostComponentsPayable reports whether the window can settle a
 // non-Priceable cost's choice-bearing components for real (trigcost2): every
-// component is a Sac/Exile/Discard part (no Announced Sac -- the announced
+// component is a Sac/Exile/Discard/Return part (no Announced Sac -- the announced
 // count has no channel here), no OTHER non-mana component rides the cost,
 // no {X}/tap demand needs an announcement the window cannot make, every
 // Draw count resolves, every component is payable at ask time, and the
@@ -1292,7 +1295,7 @@ func (e *Engine) triggeredCostManaHalfPayable(tc *triggeredEffectCost, rest Cost
 // this gate replaces.
 func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	amt := tc.announcedCost()
-	if len(amt.Sac)+len(amt.Discard)+len(amt.Exile)+len(amt.MoveToGrave) == 0 && len(amt.Evidence) == 0 && len(amt.Blight) == 0 {
+	if len(amt.Sac)+len(amt.Discard)+len(amt.Exile)+len(amt.MoveToGrave)+len(amt.Return) == 0 && len(amt.Evidence) == 0 && len(amt.Blight) == 0 {
 		return false
 	}
 	if amt.Tap || amt.X != 0 {
@@ -1304,7 +1307,7 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 		}
 	}
 	// Every component outside the settleable set keeps the decline-only ask
-	// (PayEnergy, AddCounter, Return, PutToLib, Behold, Reveal, the dyn-tap
+	// (PayEnergy, AddCounter, PutToLib, Behold, Reveal, the dyn-tap
 	// election, a dynamic life/counter value) -- never a
 	// half-paid commitment (the ParseUnlessCost hard-decline convention).
 	// Forage (trigger_cost_forage.go) and the SubCounter arm
@@ -1316,7 +1319,7 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	// body with one today, and if one lands it must not be silently skipped.
 	if len(amt.SubCounter) > 0 || len(amt.Reveal) > 0 || len(amt.RevealChosen) > 0 || len(amt.Behold) > 0 ||
 		len(amt.TapPermanent) > 0 ||
-		len(amt.AddCounter) > 0 || len(amt.Return) > 0 || len(amt.PutToLib) > 0 ||
+		len(amt.AddCounter) > 0 || len(amt.PutToLib) > 0 ||
 		len(amt.LifeX) > 0 || len(amt.DamageYou) > 0 || len(amt.GainLife) > 0 || len(amt.Exert) > 0 {
 		return false
 	}
@@ -1409,7 +1412,7 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	}
 	mana := amt
 	mana.Sac, mana.Discard, mana.Exile, mana.Draw, mana.Blight = nil, nil, nil, nil, nil
-	mana.MoveToGrave = nil
+	mana.MoveToGrave, mana.Return = nil, nil
 	mana.Evidence = nil
 	if mana.HasManaPayment() || mana.Life > 0 || mana.Snow > 0 ||
 		len(mana.Hybrid) > 0 || len(mana.Phyrexian) > 0 ||
@@ -1850,7 +1853,7 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 				return
 			}
 			paid = tc.subCounterSettle(e, announced)
-		} else if len(announced.Sac)+len(announced.Discard)+len(announced.Exile)+len(announced.MoveToGrave) > 0 || len(announced.Evidence) > 0 || len(announced.Blight) > 0 {
+		} else if len(announced.Sac)+len(announced.Discard)+len(announced.Exile)+len(announced.MoveToGrave)+len(announced.Return) > 0 || len(announced.Evidence) > 0 || len(announced.Blight) > 0 {
 			// The settleable-component cost (trigcost2): the election is
 			// "pay"; walk the components (the mandatory walk's picks -- a
 			// real KChoose where a choice exists, the Hand/Random discard
@@ -1928,18 +1931,20 @@ func (e *Engine) triggeredCostDecline(tc *triggeredEffectCost) {
 
 // triggeredMandatoryParts is the flat, ordered list of choice-bearing
 // components a settle walks: every Sac part, then every Exile part, then
-// every ExiledMoveToGrave part, then every Discard part. The order is
-// deterministic (the cost grammar's own order, extended with Discard last)
-// so a replay settles the same picks in the same sequence. The mandatory
-// walk only ever carries Sac/Exile (mandatorySettleShape); the Discard and
-// MoveToGrave ranges serve the optional window's pay arm, which walks the
-// same list after the pay election (trigcost2).
+// every ExiledMoveToGrave part, then every Discard part, then every Return
+// part. The order is deterministic (the cost grammar's own order, extended with
+// Discard and Return last) so a replay settles the same picks in the same
+// sequence. The mandatory walk only ever carries Sac/Exile
+// (mandatorySettleShape); the Discard, MoveToGrave and Return ranges serve the
+// optional window's pay arm, which walks the same list after the pay election
+// (trigcost2).
 func triggeredMandatoryParts(c Cost) []CostPart {
-	parts := make([]CostPart, 0, len(c.Sac)+len(c.Exile)+len(c.MoveToGrave)+len(c.Discard))
+	parts := make([]CostPart, 0, len(c.Sac)+len(c.Exile)+len(c.MoveToGrave)+len(c.Discard)+len(c.Return))
 	parts = append(parts, c.Sac...)
 	parts = append(parts, c.Exile...)
 	parts = append(parts, c.MoveToGrave...)
 	parts = append(parts, c.Discard...)
+	parts = append(parts, c.Return...)
 	return parts
 }
 
@@ -1977,6 +1982,7 @@ func (e *Engine) triggeredMandatoryCandidates(tc *triggeredEffectCost, idx int, 
 // while the settle walk passes nil and reserves through tc's lists alone.
 func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx int, part CostPart, extra map[state.ObjID]bool) []state.ObjID {
 	isSac := idx < len(tc.amount.Sac)
+	isReturn := triggeredPartIsReturn(tc.amount, idx)
 	used := make(map[state.ObjID]bool, len(tc.sacs)+len(tc.exiles)+len(tc.discards))
 	for _, id := range tc.sacs {
 		used[id] = true
@@ -1988,6 +1994,9 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 		used[id] = true
 	}
 	for _, id := range tc.moveGraves {
+		used[id] = true
+	}
+	for _, id := range tc.returns {
 		used[id] = true
 	}
 	for id := range extra {
@@ -2002,9 +2011,9 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 		// engine/events/apply.go's zoneOwner), not tc.player's own.
 		return pay.MoveToGraveCandidates(asPayer(e), tc.player, tc.source, part.Spec, used)
 	}
-	zone := triggeredMandatoryZone(part, isSac)
+	zone := triggeredMandatoryZone(part, isSac || isReturn)
 	spec := part.Spec
-	if isSac {
+	if isSac || isReturn {
 		// NICKNAME is the same bare self-reference as CARDNAME.
 		spec = pay.SacrificeMatchSpec(spec)
 	}
@@ -2014,7 +2023,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 	// is the one home for candidate collection -- the offer gate and the
 	// settle walk both read it -- so the whole-zone reading cannot diverge
 	// between them.
-	wholeZone := !isSac && !triggeredPartIsDiscard(tc.amount, idx) && isWholeZoneExileSpec(spec)
+	wholeZone := !isSac && !isReturn && !triggeredPartIsDiscard(tc.amount, idx) && isWholeZoneExileSpec(spec)
 	// exg1: the window's trigger context rides the spec evaluation, so a
 	// cost spec naming a trigger referent (Card.TriggeredNewCard -- the
 	// "you may exile it" family) resolves the card the triggering event
@@ -2040,10 +2049,17 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 }
 
 // triggeredPartIsDiscard reports whether the component at flat index idx of
-// c's triggeredMandatoryParts list is a Discard part (the list's third
-// range, after Sac and Exile).
+// c's triggeredMandatoryParts list is a Discard part (the range after Sac,
+// Exile and MoveToGrave).
 func triggeredPartIsDiscard(c Cost, idx int) bool {
-	return idx >= len(c.Sac)+len(c.Exile)+len(c.MoveToGrave)
+	n := len(c.Sac) + len(c.Exile) + len(c.MoveToGrave)
+	return idx >= n && idx < n+len(c.Discard)
+}
+
+// triggeredPartIsReturn reports whether the component at flat index idx of
+// c's triggeredMandatoryParts list is a Return part (the list's last range).
+func triggeredPartIsReturn(c Cost, idx int) bool {
+	return idx >= len(c.Sac)+len(c.Exile)+len(c.MoveToGrave)+len(c.Discard)
 }
 
 // triggeredPartIsExile reports whether the component at flat index idx of
@@ -2070,6 +2086,8 @@ func (tc *triggeredEffectCost) recordMandatoryPick(idx int, ids []state.ObjID) {
 		tc.exiles = append(tc.exiles, ids...)
 	case idx < len(tc.amount.Sac)+len(tc.amount.Exile)+len(tc.amount.MoveToGrave):
 		tc.moveGraves = append(tc.moveGraves, ids...)
+	case triggeredPartIsReturn(tc.amount, idx):
+		tc.returns = append(tc.returns, ids...)
 	default:
 		tc.discards = append(tc.discards, ids...)
 	}
@@ -2144,6 +2162,8 @@ func (e *Engine) advanceTriggeredMandatory(tc *triggeredEffectCost) {
 			kind, noun = "discard", "card(s)"
 		case triggeredPartIsMoveToGrave(tc.amount, tc.part):
 			kind, noun = "graveyard_cost", "card(s)"
+		case triggeredPartIsReturn(tc.amount, tc.part):
+			kind, noun = "returncost", "permanent(s)"
 		case !isSac:
 			kind, noun = "exile_cost", "card(s)"
 		}
@@ -2245,7 +2265,7 @@ func (e *Engine) triggeredMandatoryAnswer(chosen []decision.Option) {
 func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	stripped := tc.announcedCost()
 	stripped.Sac, stripped.Discard, stripped.Exile, stripped.Draw, stripped.Blight = nil, nil, nil, nil, nil
-	stripped.MoveToGrave = nil
+	stripped.MoveToGrave, stripped.Return = nil, nil
 	stripped.Evidence = nil
 	if (stripped.HasManaPayment() || stripped.Life > 0) &&
 		!pay.PayManaConv(asPayer(e), tc.player, stripped.WithoutEnergy(), asEval(e).Conv(tc.player, tc.source, false)) {
@@ -2316,6 +2336,11 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	for _, id := range tc.moveGraves {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZGraveyard, Text: "moved to its owner's graveyard as a cost"})
+		}
+	}
+	for _, id := range tc.returns {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.ReturnCost(id, o.Zone))
 		}
 	}
 	pay.PayDiscardCost(asPayer(e), tc.discards, "")

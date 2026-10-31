@@ -149,10 +149,10 @@ func (tc *triggeredEffectCost) evidenceNeed() int32 {
 // (Lamplight Phoenix's `ExileAnyGrave<1/...> CollectEvidence<4>` must exile
 // the triggering card AND then collect evidence from disjoint cards).
 func (tc *triggeredEffectCost) reservedComponents() map[state.ObjID]bool {
-	if len(tc.sacs)+len(tc.exiles)+len(tc.discards)+len(tc.moveGraves) == 0 {
+	if len(tc.sacs)+len(tc.exiles)+len(tc.discards)+len(tc.moveGraves)+len(tc.returns) == 0 {
 		return nil
 	}
-	m := make(map[state.ObjID]bool, len(tc.sacs)+len(tc.exiles)+len(tc.discards)+len(tc.moveGraves))
+	m := make(map[state.ObjID]bool, len(tc.sacs)+len(tc.exiles)+len(tc.discards)+len(tc.moveGraves)+len(tc.returns))
 	for _, id := range tc.sacs {
 		m[id] = true
 	}
@@ -163,6 +163,9 @@ func (tc *triggeredEffectCost) reservedComponents() map[state.ObjID]bool {
 		m[id] = true
 	}
 	for _, id := range tc.moveGraves {
+		m[id] = true
+	}
+	for _, id := range tc.returns {
 		m[id] = true
 	}
 	return m
