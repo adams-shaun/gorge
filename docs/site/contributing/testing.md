@@ -1,14 +1,11 @@
 # Testing
 
-gorge has a large test suite (over 12,000 top-level `Test` functions on
-2026-10-21). The full run happens in CI and after merge. Day to day you run
+gorge has a large test suite. The full run happens in CI and after merge. Day to day you run
 **focused** tests and learn to read the handful of ratchet and golden tests
 that guard the whole engine. This page is for contributors writing or
 debugging tests; setup and the worktree workflow are on
 [Contributing](index.md), and the reasons behind each guard on
 [Invariants](../architecture/invariants.md).
-
-*Test names and paths re-checked on `develop` @ `25d71cadc`, 2026-10-27.*
 
 ## Focused runs
 
@@ -68,9 +65,7 @@ their locations in
 An oracle scenario is a JSON file that states what a card does according to
 its printed text and the CR; gorge's runner (`engine/rules/oracle_run.go`)
 sets up a real game, drives it through player actions only, and asserts
-observable state. The scenario corpora (3,227 hand-authored audit
-scenarios in 1,001 files and 543 XMage-ported ones, counted at
-gorge-compliance `ae5a17f`, 2026-10-21) live in
+observable state. The scenario corpora live in
 [gorge-compliance](https://github.com/adams-shaun/gorge-compliance)
 (`scenarios/oracle/`, `scenarios/xmageport/`), whose `audit/` drivers
 `TestOracleAudit` and `TestXMagePortScenarios` play them against a pinned
@@ -98,8 +93,7 @@ the residual files.
 A **ratchet** is a test whose expected value is a committed table, and which
 fails in *both* directions. A new gap is a regression. A listed gap that your
 change closed is a stale entry, and you delete it in the same commit. A
-branch never adds an entry or raises a ceiling. The maintainers' merge gate
-rejects that.
+branch never adds an entry or raises a ceiling.
 
 | Test | Where | When it fails |
 |---|---|---|
@@ -110,9 +104,11 @@ rejects that.
 | `TestValueHeadRegistryMatchesEvaluator` | `engine/rules/value_heads_test.go` | A `count:` value head was added to the evaluator but not to `modelledValueHeads` in `engine/effects/value_heads.go`, or the reverse. |
 | `internal/archtest` (`TestDependencyOrderHolds`, `TestTimeIsImportedOnlyByTheHost`, `TestRootModuleHasNoRequires`, the `layering_*` tests, …) | `internal/archtest/` | You added a forbidden import edge (for example `effects` → `rules`, `view` → `rules`), imported `time` outside the host tier and its allowlist, or added a `require` to `go.mod`. Restructure the code; do not edit the allowlists. |
 | `TestClassificationIsComplete` | `cmd/pkgmap/main_test.go` | A package has no tier entry in `docs/site/architecture/packages.tiers.json`. Also run by the `pre-commit` hook (`go run ./cmd/pkgmap -check`). |
-| `TestKnownApproximationsOnlyShrinks` | `testkit/testutil/agentsdoc_test.go` | `AGENTS.md`'s *Known approximations* table grew. It only shrinks. |
-| `internal/codeshape` (`TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink`) | `internal/codeshape/ratchet_test.go` | Shrink-only ceilings on function length, interface width and string-keyed dispatch in `engine/rules` and `engine/effects` (`go run ./cmd/codeshape -table` measures them). Both tests are currently skipped by the maintainers (since 2026-10-06), but the ceilings still describe the direction: do not grow a function past 300 lines. |
+| `TestKnownApproximationsOnlyShrinks` | `testkit/testutil/agentsdoc_test.go` | The register in `docs/agents/known-approximations/` grew. It only shrinks. |
+| `internal/codeshape` (`TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink`) | `internal/codeshape/ratchet_test.go` | Shrink-only ceilings on function length, interface width and string-keyed dispatch in `engine/rules` and `engine/effects` (`go run ./cmd/codeshape -table` measures them). Both tests are currently skipped, but the ceilings still describe the direction: do not grow a function past 300 lines. |
 | `TestNoForgeScriptsTracked` | `engine/cards/boundary_test.go` | A Forge script is tracked in git. Remove it. |
+| `TestPublicBoundary`, `TestNoVerbatimForgeLines` | `internal/archtest/` | A generated card table, a binary, a private path or a fragment of a Forge script is tracked. Remove it. |
+| `TestConformance*`, `TestManaBrew*`, `TestFoundPairs` | `testkit/conformance/` | A client wire says something different between two sessions of one game. `scripts/wire-matrix.sh commit` runs every [wire cell](../architecture/wires.md). |
 
 ## Before you open a PR
 

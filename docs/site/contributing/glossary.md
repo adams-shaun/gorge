@@ -2,8 +2,8 @@
 
 The words gorge's code, commits, reviews and this site use, for a Go
 developer who knows neither Magic engine internals nor Forge. The first
-group is about cards and the engine; the [second](#repositories-kernels-and-process)
-about the repositories, the second kernel and how changes land.
+group is about cards and the engine; the [second](#repositories-engines-and-process)
+about the repositories, the second engine and how changes land.
 
 **Card script.** One text file per card in Forge's corpus,
 `.cards/cardsfolder/<letter>/<name>.txt` (token definitions are under
@@ -103,7 +103,7 @@ decisions are hidden. Clients and bots read state only through a view.
 **Replay.** Re-running a match from its `Config` plus recorded intents and
 checking the rebuilt event stream event for event (`engine/replay`,
 `make sim`'s `-verify`, `cmd/repro`). Because all mutation is in the log,
-replay is also how a server resumes after a restart.
+replay is also how a server serves finished matches and rebuilds a past position.
 
 **Ratchet.** A test whose expected value is a committed table and which fails
 in both directions. A new gap fails, and a listed gap that is now closed
@@ -132,8 +132,8 @@ by rule number: "CR 113.6" (where abilities function), "CR 704.5a"
 messages cite the rule a line enforces.
 
 **Known approximation.** A place where a registered primitive behaves more
-narrowly than the card text, listed in `AGENTS.md`'s *Known approximations*
-table. The table only shrinks (`TestKnownApproximationsOnlyShrinks`; see
+narrowly than the card text, listed in `docs/agents/known-approximations/`.
+The list only shrinks (`TestKnownApproximationsOnlyShrinks`; see
 [Invariants](../architecture/invariants.md#ratchets-only-shrink)).
 Deliberate behaviour that only looks like an approximation is an *engine
 contract*, recorded in `docs/design/2026-09-22-engine-contracts.md`.
@@ -143,7 +143,7 @@ is an open-source Java Magic engine whose card scripts gorge compiles. gorge
 reads them from its fork [adams-shaun/forge](https://github.com/adams-shaun/forge)
 at the commit pinned by `FORGE_REF` in the `Makefile`.
 
-## Repositories, kernels and process
+## Repositories, engines and process
 
 **gorge-compliance.** The public companion repository that checks gorge card
 by card against XMage, Forge and hand-written Oracle-text scenarios, and
@@ -151,7 +151,7 @@ holds the certification ratchet. It imports gorge; gorge never imports it.
 See [The three repositories](../repos/index.md).
 
 **Private companion.** The maintainers' private companion module: machine
-learning, private experiments and the dirty-dirac kernel. It imports gorge at
+learning and private experiments. It imports gorge at
 a pinned commit; nothing in gorge needs it.
 
 **`GORGE_PIN`.** A file at the root of each companion repository holding the
@@ -160,28 +160,24 @@ pseudo-version in its `go.mod`. Moving it is a pull request in the companion
 ([Pinning](../repos/index.md#pinning)).
 
 **`develop` / `main`.** Changes land on `develop` by pull request. The
-maintainers' pipeline periodically opens a `develop → main` snapshot pull
-request and merges it, when its checks are green, with a merge commit. `main` is what this site and
+maintainers periodically merge a `develop → main` snapshot, when its checks are
+green, with a merge commit. `main` is what this site and
 the published coverage are built from ([Branch flow](../repos/index.md#branch-flow)).
 
-**dirty-dirac.** A second, much faster rules kernel, in the private
-companion module. Its whole game is one fixed-size value (no pointers, maps
-or slices, so a copy is a clone) driven as a `Step`/`Apply` state machine,
-and its cards are tables of *kop* instructions, mostly generated ahead of
-time from gorge's compiled cards. It began as a two-player microkernel for
-two fixed card pools and is growing toward a full engine: `kgen` now lowers
-cards from the whole corpus, and play is checked against gorge by a
-*lockstep oracle*. Work in progress. See
-[the dirty-dirac kernel](../architecture/dirty-dirac/index.md).
+**dirac.** A second, much faster rules engine, for two players. Its whole game is one
+fixed-size value (no pointers, maps or slices, so a copy is a clone) driven as a `Step`/`Apply`
+state machine, and its cards are tables of *kop* instructions, mostly generated ahead of time from
+gorge's compiled cards. Play is checked against gorge by a *lockstep oracle*. Its source isn't in this
+repository yet. See [dirac](../architecture/dirty-dirac/index.md).
 
-**kop.** dirty-dirac's card-effect vocabulary: a closed, append-only set of
+**kop.** dirac's card-effect vocabulary: a closed, append-only set of
 ops, and the tables (`kop.Table`, one entry per card) its interpreter runs.
 The generator that lowers a card's gorge IR into kop tables is `kgen`.
 
 **Lockstep oracle.** A check that plays the same game in two engines at once,
 feeding both the same answers, and at every decision compares their
 projected state and the options each offers; the first difference is
-reported as a divergence. dirty-dirac is
+reported as a divergence. dirac is
 held to gorge this way. (Distinct from the *compliance oracles*, which
 compare gorge with XMage and Forge scenario by scenario.)
 
@@ -192,17 +188,17 @@ turn, step and mana. Two engines agree at a decision when their projections
 are equal (`==` on fixed arrays) and they offer the same canonical options.
 See [Verification](../architecture/dirty-dirac/oracle.md).
 
-**Capacity stall.** A lockstep game dirty-dirac stops on purpose because the
+**Capacity stall.** A lockstep game dirac stops on purpose because the
 position no longer fits its fixed-size state (more objects, board slots or
 stack entries than the arrays hold). It is reported separately from a
 divergence: a stall is a known limit, not a rules disagreement. A few stall
-reasons mark interactions whose ordering dirty-dirac does not model yet,
+reasons mark interactions whose ordering dirac does not model,
 rather than capacity.
 
 **kgen.** The generator that lowers gorge's compiled card IR into
-dirty-dirac's kop tables, as generated Go card packages. It reads every
+dirac's kop tables, as generated Go card packages. It reads every
 parameter of a card or refuses the card. A refused card stays out of every
-deck dirty-dirac accepts. A card kgen *accepts* has lowered without a
+deck dirac accepts. A card kgen *accepts* has lowered without a
 refusal; that is weaker than a card verified in lockstep. See [Cards](../architecture/dirty-dirac/cards.md).
 
 **SpellBench v2.** An external, engine-neutral benchmark protocol for Magic
@@ -219,7 +215,11 @@ is a bot entrant: a drafter, a builder and a game policy. See
 
 **Seam.** An exported extension point other modules plug into without gorge
 importing them: `bots.Register`, `server/gorged.RegisterNetBot`,
-`server/gorged.Extensions`, and the exported oracle runner.
+`server/gorged.Extensions`, and the exported oracle runner. The *engine seam*,
+`engine/game`, is what a host needs from a running game; each engine implements it.
+
+**Wire.** A client protocol a game can be played through: gorge's native HTTP API,
+ManaBrew or SpellBench v2. See [Wires](../architecture/wires.md).
 
 **Golden / goldens.** Committed expected outputs a test compares against
 byte for byte: the chain heads in `engine/rules/testdata/heads/`, wire

@@ -6,9 +6,6 @@ change a card, a parser or a primitive. The runtime internals (the IR types
 in depth, how the engine dispatches primitives during play) are in
 [the card pipeline architecture page](../architecture/gorge/cards.md).
 
-*Function names and files re-checked on `develop` @ `25d71cadc`,
-2026-10-27.*
-
 ```mermaid
 flowchart LR
   fetch["forgec fetch<br/>.cards/cardsfolder/"] --> parse["cards.ParseBytes<br/>script → Card"]
@@ -65,7 +62,9 @@ the output is byte-identical run to run.
 The fingerprint is `cards.CompilerFingerprint`, a hash of the `engine/cards`
 sources that affect the IR (`engine/cards/fingerprint.go`). So a branch that
 changes the parser writes and reads its own cache file, and never reads one
-built by a different parser. At most a few sibling caches are kept.
+built by a different parser. Beside it sits a binary image of the same corpus,
+`.cards/ir-<fingerprint>.seg`, which keeps the loaded corpus out of the garbage collector's
+way. Compiling prunes older sibling caches.
 
 Programs and tests open the corpus with `cards.OpenCorpus(dir)` or
 `cards.SharedCorpus(dir)`. Both load the cache, or recompile from
@@ -114,7 +113,7 @@ is a card's missing primitives. An empty result means the card is
 *playable*. `Registry.Coverage` aggregates that over the corpus.
 
 ```sh
-make report     # cards: 34074  playable: 32337 (94.9%) on 2026-10-27, then the top missing primitives
+make report     # cards: 34074  playable: 32390 (95.1%) on 2026-10-31, then the top missing primitives
 make coverage   # the same as markdown tables in .coverage/ (gitignored), by type, colour, mana value
 ```
 
@@ -127,8 +126,6 @@ that gap:
 - the oracle scenarios, which check behaviour against the printed text;
 - the compliance oracles, which compare gorge with XMage and Forge.
 
-The scenarios and the oracles live in the public companion repository [gorge-compliance](https://github.com/adams-shaun/gorge-compliance),
-which measures a pinned gorge revision; the results are summarised on the
-sets page.
-
-The per-set figures are on [Support by set](../support/sets.md).
+The scenarios and the oracles live in the public companion repository
+[gorge-compliance](https://github.com/adams-shaun/gorge-compliance), which measures a pinned
+gorge revision. The per-set figures are on [Support by set](../support/sets.md).

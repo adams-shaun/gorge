@@ -70,7 +70,7 @@ to the larger one.
 </svg>
 <figcaption>gorge is the authority. dirac imports nothing from gorge at
 run time; its oracle package plays the same decks, seed and answers through
-both kernels and requires the same canonical option list at every decision and
+both engines and requires the same canonical option list at every decision and
 the same canonical board projection after every action.</figcaption>
 </figure>
 
