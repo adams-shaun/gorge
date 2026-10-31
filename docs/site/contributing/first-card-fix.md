@@ -2,7 +2,8 @@
 
 This walkthrough takes one report, "a card plays wrong", from triage to a
 merged fix. The worked example is the first outside contribution to gorge,
-[`786510b3f`](https://github.com/adams-shaun/gorge/commit/786510b3f):
+[`786510b3f`](https://github.com/adams-shaun/gorge/commit/786510b3f) (it predates the
+`engine/` directory, so its diff says `rules/` where this page says `engine/rules/`):
 *Omniscience* in its owner's hand offered a free cast of itself, and *Future
 Sight* on top of its library let its owner cast it from there. Both cards
 were reading their own static ability in a zone where it does not function.
