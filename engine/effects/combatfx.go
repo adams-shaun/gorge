@@ -338,6 +338,9 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	grant := compilePumpGrant(sa)
 	g := h.Game()
 	scope := targetPlayerKindScope(h, c, sa)
+	// Read before the walk (CR 608.2h): a pump registered below must not change
+	// the amount the next object gets.
+	numAtt, numDef := Num(h, c, sa, "NumAtt", 0), Num(h, c, sa, "NumDef", 0)
 	var ateotIDs []state.ObjID
 	for si, p := range g.AliveFrom(0) {
 		if zone != "" {
@@ -382,8 +385,8 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 							c.Remembered = append(c.Remembered, state.Target{Obj: id})
 							eventRemember(h, c, id)
 						}
-						att := NumForObject(h, c, sa, "NumAtt", 0, id)
-						def := NumForObject(h, c, sa, "NumDef", 0, id)
+						att := NumForObject(h, sa, "NumAtt", numAtt, id)
+						def := NumForObject(h, sa, "NumDef", numDef, id)
 						registerPumpEffects(h, c, id, att, def, false, false, &grant, zone, nil)
 						ateotIDs = append(ateotIDs, id)
 					}
@@ -400,8 +403,8 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 					c.Remembered = append(c.Remembered, state.Target{Obj: id})
 					eventRemember(h, c, id)
 				}
-				att := NumForObject(h, c, sa, "NumAtt", 0, id)
-				def := NumForObject(h, c, sa, "NumDef", 0, id)
+				att := NumForObject(h, sa, "NumAtt", numAtt, id)
+				def := NumForObject(h, sa, "NumDef", numDef, id)
 				registerPumpEffects(h, c, id, att, def, false, false, &grant, "", nil)
 				ateotIDs = append(ateotIDs, id)
 			}

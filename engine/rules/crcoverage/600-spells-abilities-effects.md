@@ -142,7 +142,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 608.2e | deviates | `engine/effects/zone_bulk.go#effSacrifice` | - | per-player choose-then-act |
 | 608.2f | partial | `engine/effects/context.go#definedSpec` | - | g order starts at controller, not AP; d APNAP |
 | 608.2g | follows | `engine/rules/cast_targets.go#Engine.finishTargetedCast` `engine/rules/unless_payment.go#Engine.answerUnlessMana` | - | d ward/unless mana tapped in battlefield order |
-| 608.2h | partial | `engine/effects/registry.go#Resolve` | `TestConditionTargetedReadsLKIState` | LKI field sets limited |
+| 608.2h | partial | `engine/effects/registry.go#Resolve` `engine/effects/pump.go#effPump` `engine/effects/combatfx.go#effPumpAll` | `TestConditionTargetedReadsLKIState` `TestPumpAmountIsReadOnce` | LKI field sets limited |
 | 608.2i | follows | `engine/effects/count_body_paid.go#evalCountBodyPaid` | - | d not reached |
 | 608.2j | follows | `engine/effects/filter_compiled.go#compileSpec` `engine/effects/filter_compiled.go#compiledBaseMatch` | - | d not reached |
 | 608.2k | follows | `engine/effects/context.go#definedSpec` | - | d not reached |
