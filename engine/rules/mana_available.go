@@ -228,7 +228,7 @@ func (e *Engine) windowManaUnitsWith(p state.PlayerID, only []state.ObjID, pre [
 // two red), and an unrecognised token ("ColorIdentity", a "Special ..."
 // word) claims no mana at all -- never the phantom colourless a rune walk of
 // the word itself used to count. The amount comes from Amount$ with the
-// executor's default of 1 and the T14-f negative clamp; an Indeterminate
+// executor's default of 1 and the negative clamp; an Indeterminate
 // amount ("X", "Y", a Count$, "Sacrificed$...") resolves to zero,
 // contributing nothing.
 //

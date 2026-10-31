@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestEntryCounterStageReplacementBody is the brief's replacement-body clause:
+// TestEntryCounterStageReplacementBody is the replacement-body clause:
 // a real ReplaceWith$ body emits a nested battlefield ENTRY while the
 // replacement is resolving (applyingReplacement), and that entry carries a
 // non-commuting entry-counter grant. The CR 616.1 order ask must park BEFORE

@@ -206,7 +206,7 @@ func placeTargetedLibraryObjects(h Host, c *Ctx, cz *ChangeZoneParams, moved []s
 // a re-sorted one.
 func placeLibraryObjects(h Host, c *Ctx, cz *ChangeZoneParams, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
 	// An ABSENT LibraryPosition$ is Forge's TOP default on the searched-library
-	// path too (agent-20260928T191540Z): Forge computes libPos = 0 when the
+	// path too: Forge computes libPos = 0 when the
 	// parameter is absent in BOTH resolvers -- changeKnownOriginResolve
 	// (ChangeZoneEffect.java:484) and changeHiddenOriginResolve (:994) -- the
 	// same default the object-target and ChangeZoneAll paths apply

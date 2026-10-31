@@ -29,7 +29,7 @@ import (
 // was not a count ref at all, so X read zero, changeZoneChosenTargets' explicit
 // zero bound skipped the ask entirely, and the graveyard cards never came
 // back. The first test pins the whole flow; the second pins the empty-discard
-// no-op the brief calls out (0 discarded -> X = 0 -> no ask, no wedge).
+// no-op (0 discarded -> X = 0 -> no ask, no wedge).
 
 // loamcrafterEngine seats seat 0 a deck headed by Loamcrafter Faun, drives to
 // Main 1, puts `lands` Forests into seat 0's hand, `graveyard` Grizzly Bears
@@ -230,7 +230,7 @@ func TestLoamcrafterFaunWhenYouDoReturnsThatMany(t *testing.T) {
 	}
 }
 
-// TestLoamcrafterFaunEmptyDiscardIsASilentNoOp pins the brief's empty-set
+// TestLoamcrafterFaunEmptyDiscardIsASilentNoOp pins the empty-set
 // requirement: answering the optional discard with ZERO cards leaves the
 // ConditionDefined$ Remembered / ConditionCompare$ GE1 gate false, so the
 // ImmediateTrigger never runs, no return ask is posed, and the graveyard

@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestDigOpponentLibraryMovesAreTheChoosersSecret (cr-g47): a Dig resolved
+// TestDigOpponentLibraryMovesAreTheChoosersSecret: a Dig resolved
 // by seat 0 over seat 1's library records BOTH of its piles' Secret moves --
 // the taken card to exile and the rest to the graveyard -- with Player 0,
 // the seat that looked (the chooser), never seat 1, the library's owner, who
@@ -61,7 +61,7 @@ func digSecretMoves(t *testing.T, log []events.Event) []events.Event {
 	return out
 }
 
-// TestDigMayLookExileIsTheLookersSecret (cr-g47): Ixhel, Scion of Atraxa's
+// TestDigMayLookExileIsTheLookersSecret: Ixhel, Scion of Atraxa's
 // shape -- a no-choice WithMayLook$ face-down exile of seat 0's top card,
 // resolved by seat 1 -- records no look Note, but the may-look grant names
 // seat 1 as the one player who may see the face (Amount), so the Secret
@@ -84,11 +84,11 @@ func TestDigMayLookExileIsTheLookersSecret(t *testing.T) {
 	}
 }
 
-// TestDigBlindFaceDownExileStaysTheOwnersSecret (cr-g47 guard): Pyxis of
+// TestDigBlindFaceDownExileStaysTheOwnersSecret (guard): Pyxis of
 // Pandemonium's shape -- "each player exiles the top card of their library
 // face down", no look, no may-look grant -- shows the resolving player
-// nothing, so the move of seat 1's card stays seat 1's Secret exactly as
-// before cr-g47 (the activator must not gain the card).
+// nothing, so the move of seat 1's card stays seat 1's Secret
+// (the activator must not gain the card).
 func TestDigBlindFaceDownExileStaysTheOwnersSecret(t *testing.T) {
 	h := &askHost{}
 	h.g = state.NewGame(names(2))

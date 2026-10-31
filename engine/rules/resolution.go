@@ -218,7 +218,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		svars = f.SVars
 	}
 	effects.SetSVars(ctx, svars)
-	// Task mvts1: carry the SA whose targeting the placement/announcement ask
+	// Carry the SA whose targeting the placement/announcement ask
 	// covered, exactly as resolveTop's first pass does.
 	if offeredSA := offeredTargetSA(o, svars); offeredSA != nil {
 		ctx.OfferedSA = offeredSA

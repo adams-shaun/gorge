@@ -20,7 +20,7 @@ import (
 // shared beginUnlessPayment continuation -- one public Note naming the secret
 // designation, emitted on the paid path only. The gate is
 // hasRevealChosenDesignation on the source: no designation declines.
-func TestKr8RevealChosenUnlessCostParsesAndPays(t *testing.T) {
+func TestKernelRevealChosenUnlessCostParsesAndPays(t *testing.T) {
 	t.Parallel()
 	// Grammar half: both spellings parse to a RevealChosen part with no
 	// generic mana and no decline.

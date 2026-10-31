@@ -21,7 +21,7 @@ import (
 )
 
 // chooseCast and chooseMiracle extend chooseFor (engine/rules/engine.go
-// declares chooseNone = iota, the only value Task 8 needed). iota+1 here
+// declares chooseNone = iota). iota+1 here
 // keeps every value distinct from chooseNone without redeclaring it --
 // nothing outside this package compares chooseFor values, so the exact
 // numbers only need to be pairwise different, not contiguous with the other
@@ -71,7 +71,7 @@ const (
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
-// commitCast (or an abort). ability is -1 for a spell; Task 10 (activated
+// commitCast (or an abort). ability is -1 for a spell (activated
 // abilities) sets it to a real Face().Abilities index and reuses this same
 // flow for a cost with X/Sac/Delve of its own.
 type pendingCast struct {
@@ -79,7 +79,7 @@ type pendingCast struct {
 	card    state.ObjID    `clone:"deep"`
 	from    state.Zone     `clone:"deep"`
 	mode    string         `clone:"deep"` // "", "kicked", "surged", "flashback", "miracle", and the alternative-cost modes this file offers
-	ability int            `clone:"deep"` // -1 for a spell (Task 10 uses >= 0)
+	ability int            `clone:"deep"` // -1 for a spell (abilities use >= 0)
 	// abilityMerged is the pile position of the activated ability pc.ability
 	// names: 0 for the top face, i+1 for the i-th card merged beneath it
 	// (CR 702.140d). It selects the SVar table a computed cost/limit resolves

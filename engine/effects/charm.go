@@ -507,7 +507,7 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 //   - a GenericChoice whose Defined$ is absent, resolves to exactly the
 //     resolving controller (Defined$ You), or resolves to anything that is
 //     not all players (Defined$ Targeted on a spell's creature, Defined$
-//     Valid <filter>): those keep the existing ask, so this ticket cannot
+//     Valid <filter>): those keep the existing ask, so this cannot
 //     change an object-defined carrier.
 //
 // A GenericChoice whose Defined$ is one of the PLAYER-role selectors
@@ -835,8 +835,8 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// param:api:Charm.Random (Random$ True / Random$ Compare with
 	// RandomCompareSVar$/RandomCompare$): a Charm whose mode is picked AT
-	// RANDOM rather than asked. The direction is the card oracle's, not the
-	// brief's gloss: Typhoid Mary, Fractured ("choose one at random. If you
+	// RANDOM rather than asked. The direction is the card oracle's:
+	// Typhoid Mary, Fractured ("choose one at random. If you
 	// discarded a card this turn, you choose one instead", RandomCompare$
 	// LT1 over SVar Y = CardsDiscardedThisTurn) is random exactly while the
 	// comparison HOLDS, and a failed comparison reverts to the ordinary
@@ -937,7 +937,7 @@ func charmRunModes(h Host, c *Ctx, sa *cards.SA, names []string) {
 	if charmCrossModeRun(h, c, sa, names) {
 		return
 	}
-	// Task mvts1, two guards the generic ValidTgts$ pre-ask needs here.
+	// Two guards the generic ValidTgts$ pre-ask needs here.
 	//
 	// Coverage: a placement-announced modal resolution asked every CHOSEN
 	// target-bearing mode's targeting in its placement ask (the combined
@@ -998,8 +998,8 @@ func charmRunModes(h Host, c *Ctx, sa *cards.SA, names []string) {
 //   - `Random$ True` is always random (Outlaws' Merriment, Cult of Skaro,
 //     Umaru the Raging Yeti, Summon the Magus Sisters);
 //   - `Random$ Compare` is random exactly while the RandomCompareSVar$
-//     comparison holds -- the card oracle's direction, NOT the brief's
-//     gloss. Typhoid Mary, Fractured's own oracle quote ("choose one at
+//     comparison holds -- the card oracle's direction.
+//     Typhoid Mary, Fractured's own oracle quote ("choose one at
 //     random. If you discarded a card this turn, you choose one instead")
 //     with RandomCompare$ LT1 over Y = CardsDiscardedThisTurn reads: zero
 //     discards (LT1 holds) -> random; a discard this turn (LT1 fails) ->

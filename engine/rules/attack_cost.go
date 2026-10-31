@@ -243,7 +243,7 @@ type blockCharge struct {
 	phyrexian []byte
 	// unpriceable is set when a static that MATCHES the pair charges a Cost$
 	// this build cannot price (a hybrid, an announced Sac<X>, a dynamic tap
-	// head, ...). Such a pair is never offered and never settles: the brief's
+	// head, ...). Such a pair is never offered and never settles: the
 	// fail-closed direction. It is deliberately NOT a zero() component -- a
 	// caller that only reads the priced parts keeps working -- every offer and
 	// affordability gate tests it explicitly.
@@ -1179,8 +1179,8 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 	// excludes (windowManaUnits skips every "Any"/"Combo"/"Chosen" shape: the
 	// unless-cost window cannot tap one without a mid-resolution colour
 	// sub-ask). A generic attack tax is payable by ANY colour, so the attack
-	// window admits them through its own walk and pins the choice (ticket
-	// cli-20260922T225137Z-c670f42d) -- every source counted here is also
+	// window admits them through its own walk and pins the choice
+	// -- every source counted here is also
 	// tappable, so the wedge guard still holds.
 	out = append(out, e.attackChoiceManaSources(p)...)
 	return out

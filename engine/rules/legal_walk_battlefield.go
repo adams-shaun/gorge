@@ -136,7 +136,7 @@ func (w *legalWalk) manaSection() walkBoardFacts {
 						continue
 					}
 					opt := decision.Option{Index: len(*out), Kind: "activate", Label: w.manaLabel(f), Obj: id}
-					// fb-led1: a mana ability that costs more than a bare tap is the
+					// A mana ability that costs more than a bare tap is the
 					// play the window exists for — carry its cost so the client's
 					// empty-priority-window floor stops instead of passing it away.
 					if marker := e.manaActivationCostMarker(mas); marker != "" {
@@ -163,7 +163,7 @@ func (w *legalWalk) battlefieldWalk() {
 	if !castsOnly {
 		board := w.manaSection()
 
-		// Activated abilities (Task 10): every non-mana AB$ ability on a
+		// Activated abilities: every non-mana AB$ ability on a
 		// permanent p controls, and every one on a card in p's graveyard whose
 		// ActivationZone$ names the graveyard, offered as an "ability" option the
 		// way a cast is (engine/rules/activate.go resolves one). Each is gated on the
@@ -173,11 +173,11 @@ func (w *legalWalk) battlefieldWalk() {
 		// is neither tapped nor (for a creature, CR 302.6) summoning-sick without
 		// Haste, and -- the totality gate -- the whole cost must be castable
 		// (mana payable, every Sac/Discard/SubCounter part satisfiable) before the option
-		// is ever offered. Equip (Task 14's attachments) is carried by this same
+		// is ever offered. Equip is carried by this same
 		// loop -- its K:Equip expansion (engine/cards/keywords.go) is an AB$ Attach with
 		// SorcerySpeed$ True, so the gates above cover it with no carve-out, and
 		// engine/rules/activate.go resolves it exactly like any other ability. This was
-		// not always true: Task 14 round 1 shipped a second, Equip-only loop and
+		// not always true: a second, Equip-only loop
 		// deleted it again on the main merge (one offer path, one activation
 		// path), so do not resurrect one.
 		for _, z := range []state.Zone{state.ZBattlefield, state.ZStack, state.ZGraveyard, state.ZHand, state.ZExile} {

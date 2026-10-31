@@ -89,7 +89,7 @@ func TestChaosEnsuesRecordsTheNoPlanarDeckDegrade(t *testing.T) {
 }
 
 // TestPlanechaseVerbsNeverEmitUnimplemented is the regression guard for the
-// gap the brief named: a registered verb must not reach Resolve's
+// gap: a registered verb must not reach Resolve's
 // "unimplemented API" fallback.
 func TestPlanechaseVerbsNeverEmitUnimplemented(t *testing.T) {
 	for _, api := range []string{"BlankLine", "Planeswalk", "ChaosEnsues"} {
@@ -121,7 +121,7 @@ func voteFixtureSA(t *testing.T, line string) (*fakeHost, *cards.SA, map[string]
 	return h, c.Faces[0].Abilities[0], c.Faces[0].SVars, &order
 }
 
-// TestVoteFixedListRunsTheWinningOutcome is the core of the brief's premise
+// TestVoteFixedListRunsTheWinningOutcome is the core premise
 // correction: the fixed-list Vote used to resolve NOTHING, so the Path
 // cycle's DBPlaneswalk/DBChaos never ran and the registered planechase verbs
 // were unreachable from a vote. Every voter takes the first option (the
@@ -175,7 +175,7 @@ func TestVoteWinnerPicksTheHighestAndReportsTies(t *testing.T) {
 }
 
 // TestVoteSplitEmptyBallotBindsNeitherSet is the empty-ballot regression
-// (review finding): when a vote offered no ballot option at all -- a card
+// when a vote offered no ballot option at all -- a card
 // ballot whose VoteCard$ matched no permanent, or a fixed-list Vote with no
 // Choices$ -- no voter cast a real vote, so every pick is -1. The anchorPick
 // != -1 guard must NOT then route every voting opponent into the diff set:

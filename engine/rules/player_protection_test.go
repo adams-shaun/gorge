@@ -9,14 +9,14 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task player-protection (CR 702.16c follow-up to approx-player-shroud): the
-// PLAYER half of a protection grant was dead -- `Affected$ You | AddKeyword$
-// Protection:<quality>` statics (Gor Muldrak, Absolute Virtue) emitted their
-// ContinuousEffect like every other static, playerKeywords already returned
-// the grant, but NO target walk consulted it: candidatesFor's player offer
-// arm and legalTargets's player recheck both read only playerShroudBlocksTarget
-// and playerHexproofBlocksTarget. A player with matching protection stayed an
-// offered, legal target while a permanent with the same grant was withheld.
+// CR 702.16c: the PLAYER half of a protection grant was dead -- `Affected$
+// You | AddKeyword$ Protection:<quality>` statics (Gor Muldrak, Absolute
+// Virtue) emitted their ContinuousEffect like every other static,
+// playerKeywords already returned the grant, but NO target walk consulted it:
+// candidatesFor's player offer arm and legalTargets's player recheck both
+// read only playerShroudBlocksTarget and playerHexproofBlocksTarget. A player
+// with matching protection stayed an offered, legal target while a permanent
+// with the same grant was withheld.
 //
 // Every test here asserts its own precondition: the granting card IS on the
 // battlefield, the grant DID reach the player keyword surface (wantPlayerKeyword),

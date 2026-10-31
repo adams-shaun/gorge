@@ -89,7 +89,7 @@ func demonstrateBearsOnBattlefield(e *Engine, p state.PlayerID, name string) (to
 	return tokens, real
 }
 
-// TestSilverquillLecturerDemonstrateCopyAndOpponentToken is the brief's pin
+// TestSilverquillLecturerDemonstrateCopyAndOpponentToken is the pin
 // (kw-demonstrate): casting a creature spell with Silverquill Lecturer on the
 // battlefield poses the may-copy election, then the opponent choice, and both
 // copies materialise as creature tokens when they resolve (the caster's copy

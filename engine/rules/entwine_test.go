@@ -1,10 +1,10 @@
 package rules
 
-// Task agent-20260925T000311Z-22c4c559: kw:Entwine (CR 702.42) was unread --
-// a modal spell with `K:Entwine:<cost>` had no cast option to pay the optional
-// additional cost, the CR 601.2b mode announcement always capped at its
-// CharmNum$ default, and the coverage walk reported `kw:Entwine` unsupported,
-// leaving Spectral Shift (the api:ChangeText carrier) unplayable.
+// kw:Entwine (CR 702.42) -- a modal spell with `K:Entwine:<cost>` had no cast
+// option to pay the optional additional cost, the CR 601.2b mode announcement
+// always capped at its CharmNum$ default, and the coverage walk reported
+// `kw:Entwine` unsupported, leaving Spectral Shift (the api:ChangeText
+// carrier) unplayable.
 //
 // The fix: legal.go offers an "entwined" cast option priced base + entwine
 // cost through the shared offerCastable gate; beginCast's "entwined" case

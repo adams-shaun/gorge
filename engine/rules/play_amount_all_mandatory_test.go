@@ -1,6 +1,6 @@
 package rules
 
-// cr-g246: a "DB$ Play | Amount$ All" WITHOUT "Optional$" is "cast the
+// A "DB$ Play | Amount$ All" WITHOUT "Optional$" is "cast the
 // copies if able" -- every castable candidate must be cast, the player only
 // orders them. Only with "Optional$ True" is the ask a declinable "choose any
 // number" (Min 0).
@@ -75,7 +75,7 @@ func TestPlayAmountAllWithoutOptionalCastsEveryCopy(t *testing.T) {
 	replayCheck(t, run.e, run.cfg)
 }
 
-// TestPlayAmountAllOptionalStillDeclinable pins the other side of cr-g246:
+// TestPlayAmountAllOptionalStillDeclinable pins the other side:
 // an Optional$ True Amount$ All carrier (Epic Experiment's DB$ Play) stays
 // declinable -- its Play ask is Min 0, Max 2 over the two exiled spells.
 func TestPlayAmountAllOptionalStillDeclinable(t *testing.T) {

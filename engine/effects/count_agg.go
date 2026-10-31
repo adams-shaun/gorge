@@ -130,7 +130,7 @@ func aggregateCastProperty(h Host, ids []state.ObjID, prop string) (int32, bool)
 // the ref-property form. The engine's OWN status markers ("Shield"/"Deathtouched",
 // state.InternalCounterMarker) are excluded, the same exclusion
 // state.Object.Counter("ALL") applies -- the two ALL reads cannot disagree
-// (the marker-exclusion fix, branch agent-20260920T071934Z-c2f52dab).
+// (the marker exclusion).
 func sumCounters(cs []state.Counter) int32 {
 	var n int32
 	for i := range cs {

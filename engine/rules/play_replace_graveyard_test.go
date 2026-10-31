@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task replplay1: a DB$ Play SA's ReplaceGraveyard$ Exile rider ("If that
+// A DB$ Play SA's ReplaceGraveyard$ Exile rider ("If that
 // spell would be put into your graveyard this turn, exile it instead" —
 // Goblin Dark-Dwellers' ETB) was never read: the played spell resolved and
 // rested in the graveyard. The fix stamps the played spell's pay-time

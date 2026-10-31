@@ -1,20 +1,14 @@
 // Package rules: state-based actions (CR 704) and game end (CR 104.4).
 //
-// checkStateBased, checkGameOver and destroyLethalDamage all predate this
-// file: Task 21 added destroyLethalDamage (combat depends on lethal-damage
-// and zero-toughness destruction, and nothing in this codebase checked
-// either before then), and stubs.go carried checkStateBased/checkGameOver
-// as a placeholder ever since Task 3 -- a checkGameOver call and nothing
-// else. This task deletes stubs.go outright and relocates all three here
-// rather than losing them with it, and fills in the state-based actions M1
-// actually specifies: a player at 0 or less life loses (CR 704.5a); an
-// eliminated player's permanents leave the battlefield; the game ends in a
-// win when exactly one seat remains and a draw (CR 104.4a) when none do --
-// not, as stubs.go's own checkGameOver used to, an unconditional win for
-// seat 0 when nobody survived. An attempted draw from an empty library
-// (CR 121.4) only marks the player (events.DrawEmpty); the CR 704.5b loss is
-// emitted here, at the next check, beside 704.5a's life loss and 704.5c's
-// poison loss, so simultaneous losses end the game in a draw (CR 104.4a).
+// checkStateBased, checkGameOver and destroyLethalDamage live here, with the
+// state-based actions CR 704 specifies: a player at 0 or less life loses (CR
+// 704.5a); an eliminated player's permanents leave the battlefield; the game
+// ends in a win when exactly one seat remains and a draw (CR 104.4a) when
+// none do -- not an unconditional win for seat 0 when nobody survived. An
+// attempted draw from an empty library (CR 121.4) only marks the player
+// (events.DrawEmpty); the CR 704.5b loss is emitted here, at the next check,
+// beside 704.5a's life loss and 704.5c's poison loss, so simultaneous losses
+// end the game in a draw (CR 104.4a).
 
 package rules
 
@@ -770,14 +764,13 @@ func (e *Engine) worldPermanents() []state.ObjID {
 // entered at the same instant, so neither has held it longer) puts ALL of them
 // into their owners' graveyards.
 //
-// APPROXIMATION (recorded in the commit message and the ticket report, not in
-// AGENTS.md): the engine tracks when a permanent ENTERED, not when it gained
-// the world supertype. For the printed World permanents the two coincide (they
-// have the supertype as they enter); a layer-4 effect that GRANTS World to an
-// older permanent makes "shortest amount of time" really mean "most recently
-// granted", which would need a supertype-gain timestamp the engine does not
-// record. Entry order is therefore the honest stand-in, and the tie case still
-// fires exactly as the CR requires.
+// APPROXIMATION (not in AGENTS.md): the engine tracks when a permanent ENTERED,
+// not when it gained the world supertype. For the printed World permanents the
+// two coincide (they have the supertype as they enter); a layer-4 effect that
+// GRANTS World to an older permanent makes "shortest amount of time" really
+// mean "most recently granted", which would need a supertype-gain timestamp the
+// engine does not record. Entry order is therefore the honest stand-in, and the
+// tie case still fires exactly as the CR requires.
 //
 // The departures are placements, not destruction: an ordinary MoveZone
 // battlefield->graveyard with Text "world rule", so no regeneration or
@@ -1014,7 +1007,7 @@ func (e *Engine) ceaseSweepLeavesBattlefield(p state.PlayerID) bool {
 }
 
 // casualty is one creature destroyLethalDamage has found lethal, together
-// with which CR 704.5 clause is why -- Ruling T22-i (fix round 1): 704.5f
+// with which CR 704.5 clause is why: 704.5f
 // (toughness <= 0) and 704.5g (lethal damage/deathtouch) are rules-distinct
 // (only one of them is actually "destruction", so only one of them is
 // something Indestructible or a replacement effect keyed on Destroy could
@@ -1035,10 +1028,10 @@ type casualty struct {
 // This is general state-based-action logic, not combat-specific -- a
 // creature killed by an ordinary DealDamage spell dies here exactly the same
 // way one killed in combat does -- which is why it lives here rather than in
-// combat.go, where Task 21 first added it.
+// combat.go.
 //
 // The Indestructible check reads the same way effDestroy/effDestroyAll
-// (engine/effects/zone.go) already do; it is not one of the eight keywords Task 21
+// (engine/effects/zone.go) already do; it is not a keyword this build
 // registers as implemented, so a card that actually carries it still reads
 // as unsupported for deck-routing purposes, but a creature that is
 // Indestructible for some other already-working reason should not
@@ -1248,15 +1241,14 @@ func (e *Engine) battleZeroDefense(b *sbaBatch, tried *sbaAttempts) {
 	}
 }
 
-// ceaseDeadTokens is CR 704.5d: a token ceases to exist the instant it
-// leaves the battlefield. The state-based action is a plain zone check --
-// any token whose CURRENT zone is neither the battlefield nor the stack nor
-// already ceased is moved to ZCeased, the replay-stable arena tombstone with
-// no game-zone membership, with Text "ceased to exist". The stack is excluded
+// ceaseDeadTokens is CR 704.5d: a token ceases to exist the instant it leaves
+// the battlefield. The state-based action is a plain zone check -- any token
+// whose CURRENT zone is neither the battlefield nor the stack nor already
+// ceased is moved to ZCeased, the replay-stable arena tombstone with no
+// game-zone membership, with Text "ceased to exist". The stack is excluded
 // for the same reason Ephemeral's own IsCopy half exists: a token copy of a
-// spell or ability legitimately sits there without being a permanent yet
-// (Task 13 does not implement CopySpellAbility, so no card can produce this
-// today, but the exclusion costs nothing and matches the brief exactly).
+// spell or ability legitimately sits there without being a permanent yet (no
+// card can produce this today, but the exclusion costs nothing).
 //
 // tried.tokens bounds a replacement PERMANENTLY blocking the move (some "cards
 // can't leave your graveyard" effect intercepting the move FROM graveyard): an object
@@ -1296,13 +1288,12 @@ func (e *Engine) gameEndsNow() bool {
 	return len(e.G.AliveFrom(0)) <= 1
 }
 
-// checkGameOver ends the game once at most one seat remains (CR 104.2a's
-// "the last player left in the game wins", CR 104.4a's draw when nobody is).
-// A concession is a way to be Lost (M2d-3 emits the same PlayerLost the
-// life-loss path does), so a conceded game ends here exactly like one whose
-// losers lost to life or the library.
-// Ruling T22-b: this used to default the winner to seat 0 whenever nobody
-// survived -- PlayerID's zero value is a real seat, so an unconditional
+// checkGameOver ends the game once at most one seat remains (CR 104.2a's "the
+// last player left in the game wins", CR 104.4a's draw when nobody is). A
+// concession is a way to be Lost (M2d-3 emits the same PlayerLost the life-loss
+// path does), so a conceded game ends here exactly like one whose losers lost
+// to life or the library. This must not default the winner to seat 0 whenever
+// nobody survived -- PlayerID's zero value is a real seat, so an unconditional
 // `w := state.PlayerID(0)` silently crowned it every time elimination was
 // simultaneous. There is no winner in that case; Amount: 1 tells Apply's
 // GameOver case to record a draw (Game.Draw) instead of a winner.
@@ -1395,16 +1386,15 @@ func (e *Engine) dropDepartedFlow(d *decision.Decision) {
 // can never come. With two seats checkGameOver above has already cleared
 // e.pending, so this is the three-or-more case.
 //
-// Fix round 1, review finding F2: this used to fire only for Task 27's two
-// trigger kinds, on the stated grounds that they were the only decisions
-// asked from inside handle -- Submit runs handle, then this, then Advance, so
-// a decision asked from inside handle is the only one state-based actions run
-// underneath. That premise was FALSE, and the review traced the
-// counterexample: handlePriority (legal.go) -> castSpell (stack.go) ->
-// askTarget asks a KTarget decision from inside handle too. It is now
-// deliberately keyed on nothing but "the player cannot answer", because
-// enumerating which decisions can reach this state is precisely the reasoning
-// that was wrong the first time.
+// This must not fire only for the two trigger kinds it once covered, which
+// are not the only decisions asked from inside handle -- Submit runs handle,
+// then this, then Advance, so a decision asked from inside handle is the only
+// one state-based actions run underneath. That premise was FALSE, and the
+// review traced the counterexample: handlePriority (legal.go) -> castSpell
+// (stack.go) -> askTarget asks a KTarget decision from inside handle too. It
+// is now deliberately keyed on nothing but "the player cannot answer",
+// because enumerating which decisions can reach this state is precisely the
+// reasoning that was wrong the first time.
 //
 // The continuation is resumeTriggerDrain for every kind, and it is the right
 // one for all of them: state-based actions to a fixed point, then any queued
@@ -1413,9 +1403,9 @@ func (e *Engine) dropDepartedFlow(d *decision.Decision) {
 // a second checkStateBased call on priorityRound's own path, where step() has
 // already reached the same fixed point -- giving a replacement-blocked
 // state-based action a second attempt per step and moving sba.go's own
-// measured firing counts (Ruling T22-p; see resumeTriggerDrain's header in
-// turn.go). (Ruling T28-b: this used to say re-entering priorityRound "would
-// re-run the draw step's draw" -- true before Task 28 moved the draw out of
+// measured firing counts (see resumeTriggerDrain's header in
+// turn.go). (Re-entering priorityRound "would
+// re-run the draw step's draw" -- true before the draw moved out of
 // priorityRound entirely; the reason above is what actually survives that
 // move.)
 //

@@ -817,34 +817,33 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 // matching permanents on p's battlefield; every Discard part is payable from
 // p's hand; every SubCounter part's N does
 // not exceed id's own current counters of that kind; and Tap requires id
-// (an already-battlefield source -- Task 10 activates from there) to be
+// (an already-battlefield source activates from there) to be
 // untapped.
 //
 // The Sac check is a distinct-candidate feasibility check, not N independent
-// head-counts against the same board (fix round 1, reviewer Important 1):
-// the Sac parts of ONE cost are paid one after another, each consuming its
-// chosen permanents, so a cost with TWO Sac parts cannot be paid by the same
-// permanent twice. A `Sac<1/Creature> Sac<1/Creature>` cost must therefore
-// not be offered with a single creature on the battlefield, and a
-// `Sac<1/Creature.Red> Sac<1/Creature.Green> Sac<1/Creature.White>` cost
-// cannot count one red-and-green creature towards both the red and the green
-// part. Each part's N candidates are reserved (distinct, in zone-walk order)
-// as the parts are walked, mirroring exactly what sacAsk offers; a part with
-// fewer than N un-reserved candidates makes the whole cost unpayable, so the
-// option is never offered (the totality rule an option that cannot be paid
-// should never be offered). Reserving the first N matches in zone order is a
-// sound test -- it never reports payable when no distinct assignment exists --
-// and never illegal: a truly-payable cost where the FIRST N happen to collide
-// with a scarcer later part is conservatively withheld (the engine's standing
-// rule is that wrongly withholding a legal option is safe, while wrongly
-// offering an unpayable one is an illegal game action).
-// castable is the ordinary offer gate's price check. The mana half resolves
-// through costPayable -- the seat's RESTRICTION-ADJUSTED floating pool
-// (manaAvailableFor), exactly the pool payManaFor will charge -- because the
-// engine must never offer a cast whose payment would later fail: restricted
-// mana (a RestrictValid$ batch, e.g. Eldrazi Temple's "colorless mana that
-// can be used only to pay Eldrazi costs") that does not match this payment
-// is invisible here, the same way it is invisible to the payment. The
+// head-counts against the same board: the Sac parts of ONE cost are paid one
+// after another, each consuming its chosen permanents, so a cost with TWO Sac
+// parts cannot be paid by the same permanent twice. A `Sac<1/Creature>
+// Sac<1/Creature>` cost must therefore not be offered with a single creature
+// on the battlefield, and a `Sac<1/Creature.Red> Sac<1/Creature.Green>
+// Sac<1/Creature.White>` cost cannot count one red-and-green creature towards
+// both the red and the green part. Each part's N candidates are reserved
+// (distinct, in zone-walk order) as the parts are walked, mirroring exactly
+// what sacAsk offers; a part with fewer than N un-reserved candidates makes
+// the whole cost unpayable, so the option is never offered (the totality rule
+// an option that cannot be paid should never be offered). Reserving the first
+// N matches in zone order is a sound test -- it never reports payable when no
+// distinct assignment exists -- and never illegal: a truly-payable cost where
+// the FIRST N happen to collide with a scarcer later part is conservatively
+// withheld (the engine's standing rule is that wrongly withholding a legal
+// option is safe, while wrongly offering an unpayable one is an illegal game
+// action). castable is the ordinary offer gate's price check. The mana half
+// resolves through costPayable -- the seat's RESTRICTION-ADJUSTED floating
+// pool (manaAvailableFor), exactly the pool payManaFor will charge -- because
+// the engine must never offer a cast whose payment would later fail:
+// restricted mana (a RestrictValid$ batch, e.g. Eldrazi Temple's "colorless
+// mana that can be used only to pay Eldrazi costs") that does not match this
+// payment is invisible here, the same way it is invisible to the payment. The
 // potential-action walk does NOT go through castable: it prices against an
 // explicitly hypothetical pool (castablePriced below), where the over-bound
 // direction is deliberate. Every non-mana part -- Sac candidates, Discard

@@ -11,7 +11,7 @@ package rules
 // (beginCast's "retrace" mode) build the additional part through retraceExtra,
 // so they cannot drift.
 //
-// Embrace the Unknown is the corpus carrier named by the brief: an OTC precon
+// Embrace the Unknown is the corpus carrier: an OTC precon
 // card whose SP$ Dig -> DB$ Effect MayPlay body is otherwise implemented, and
 // which before this work could not be cast at all because its only zone after
 // the first cast is the graveyard.
@@ -48,7 +48,7 @@ func graveyardCorpus(t *testing.T, e *Engine) state.ObjID {
 	return id
 }
 
-// TestEmbraceTheUnknownRetraceOfferedAndDiscardsALand pins the brief's
+// TestEmbraceTheUnknownRetraceOfferedAndDiscardsALand pins the
 // end-to-end shape on the real corpus card: with a land in hand and the
 // printed {2}{R} payable, the graveyard cast is offered, the discard ask
 // offers exactly the land, and answering it moves that land from hand to

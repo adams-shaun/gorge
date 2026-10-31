@@ -59,17 +59,15 @@ func damageOptionalPrompt(h Host, c *Ctx, sa *cards.SA, n int32) string {
 }
 
 // effDealDamage implements "SP$/AB$/DB$ DealDamage" against players and
-// permanents. Absorbed from Task 14's stopgap (formerly primitives.go, now
-// folded in here): the negative-NumDmg clamp and its default of 0 (not 1) are
-// Ruling T14-f, kept verbatim -- events.Apply's Damage case is a plain
-// subtraction from Life, so an unclamped negative value would heal instead of
-// doing nothing, and TestDealDamageDefaultsMissingNumDmgToZero already locks
-// in the zero default.
+// permanents. ( folded in here): the negative-NumDmg clamp and its default of 0
+// (not 1) are events.Apply's Damage case is a plain subtraction from Life, so
+// an unclamped negative value would heal instead of doing nothing, and
+// TestDealDamageDefaultsMissingNumDmgToZero already locks in the zero default.
 //
 // Folded in on top of that stopgap: a permanent that has already left the
 // battlefield (destroyed or sacrificed in response, say) is not a legal
 // recipient any more -- the effect does nothing to it rather than marking
-// damage on a card sitting in a graveyard. See the Task 18 report for how
+// damage on a card sitting in a graveyard.
 // this (and Destroy/ChangeZone/Sacrifice/Counter, which can make exactly that
 // happen) interacts with CR 608.2b target rechecking.
 //
@@ -150,7 +148,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// damage. Ctx is threaded by pointer through Resolve, so appending here is
 	// visible to the sub-ability without any state write -- the remembered set
 	// is per-resolution context, not game state, and replay re-derives it by
-	// re-running the same resolution (Task ce1).
+	// re-running the same resolution.
 	remember := dp.RememberDamaged
 	// DividedAsYouChoose$ N (Fury's "deals 4 damage divided as you choose
 	// among any number of target creatures and/or planeswalkers", Forked
@@ -436,9 +434,9 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 // that source's nothing (fail closed inside, never a guessed pairing). A
 // source no longer on the battlefield contributes nothing (Forge reads its
 // LKI; the corpus multi-source lines all name live battlefield permanents, so
-// the narrower liveness rule is unreachable there and is recorded in the
-// ticket report). Returns false when the arm did not run -- fewer than two
-// resolvable sources, a shared recipient arm that resolved to nothing, or a
+// the narrower liveness rule is unreachable there and is recorded in the).
+// Returns false when the arm did not run -- fewer than two resolvable
+// sources, a shared recipient arm that resolved to nothing, or a
 // DividedAsYouChoose resolution (no corpus line combines the two) -- so the
 // caller falls through to its single-rider path unchanged.
 func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sources []state.ObjID, n int32,

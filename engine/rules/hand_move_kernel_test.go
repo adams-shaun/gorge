@@ -48,10 +48,10 @@ func kr1NotesAfter(e *Engine, mark int) []string {
 	return out
 }
 
-// TestKr1HandMoveChangeZoneMovesExactlyTheAnswer (was
+// TestKernelHandMoveChangeZoneMovesExactlyTheAnswer (was
 // TestHandMoveChangeZoneReentryMovesExactlyTheAnswer): the Mandatory$ take
 // offers only the two Isles; answering the SECOND moves exactly it.
-func TestKr1HandMoveChangeZoneMovesExactlyTheAnswer(t *testing.T) {
+func TestKernelHandMoveChangeZoneMovesExactlyTheAnswer(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, ids := kr1HandBoard(t, 300, "A:SP$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | Mandatory$ True")
 	d := kr1Cast(t, e, id)
@@ -66,14 +66,14 @@ func TestKr1HandMoveChangeZoneMovesExactlyTheAnswer(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1HandMoveChangeZoneExileCounters (was
+// TestKernelHandMoveChangeZoneExileCounters (was
 // TestHandMoveChangeZoneExileAppliesTimeCounters,
 // TestHandMoveChangeZoneExileDynamicCounterAmountIsLoud and
 // TestHandMoveChangeZoneCounterlessDestinationStaysSilent): a hand move to
 // exile carries WithCountersType$ TIME counters — a literal amount silently,
 // an unresolvable X as the default 1 with the malformed-amount Note — while
 // a counterless destination (graveyard) neither counts nor notes.
-func TestKr1HandMoveChangeZoneExileCounters(t *testing.T) {
+func TestKernelHandMoveChangeZoneExileCounters(t *testing.T) {
 	t.Parallel()
 	for i, tc := range []struct {
 		name, dest, amount string
@@ -145,11 +145,11 @@ func kr1ContainsAny(s string, subs ...string) bool {
 	return false
 }
 
-// TestKr1HandMoveChangeZoneHonoursRememberChanged (was
+// TestKernelHandMoveChangeZoneHonoursRememberChanged (was
 // TestHandMoveChangeZoneHonoursRememberChanged): RememberChanged$ makes the
 // moved card the resolution's Remembered (a Defined$ Remembered sub puts a
 // counter on exactly it), and with no Tapped$ the land enters untapped.
-func TestKr1HandMoveChangeZoneHonoursRememberChanged(t *testing.T) {
+func TestKernelHandMoveChangeZoneHonoursRememberChanged(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, ids := kr1HandBoard(t, 304, "A:SP$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | Mandatory$ True | RememberChanged$ True | SubAbility$ DBMark\n"+
 		"SVar:DBMark:DB$ PutCounter | Defined$ Remembered | CounterType$ P1P1 | CounterNum$ 1")
@@ -168,14 +168,14 @@ func TestKr1HandMoveChangeZoneHonoursRememberChanged(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1HandMoveChangeZoneLibraryPlacement (was
+// TestKernelHandMoveChangeZoneLibraryPlacement (was
 // TestHandMoveChangeZonePutsBackOnTopInAnswerOrder,
 // TestHandMoveChangeZoneLibraryPositionZeroIsTop and
 // TestHandMoveChangeZoneLibraryPositionMinusOneIsBottom): a put-back to the
 // library lands in the player's ANSWER order — on top by default (with a
 // LibraryOrder placement) and for LibraryPosition$ 0, at the bottom for
 // LibraryPosition$ -1 — and the unchosen cards stay in hand.
-func TestKr1HandMoveChangeZoneLibraryPlacement(t *testing.T) {
+func TestKernelHandMoveChangeZoneLibraryPlacement(t *testing.T) {
 	t.Parallel()
 	for i, tc := range []struct {
 		name, params string
@@ -221,11 +221,11 @@ func TestKr1HandMoveChangeZoneLibraryPlacement(t *testing.T) {
 	}
 }
 
-// TestKr1HandMoveChangeZoneOptionalTakeAsksWithMinZero (was
+// TestKernelHandMoveChangeZoneOptionalTakeAsksWithMinZero (was
 // TestHandMoveChangeZoneOptionalTakeAsksWithMinZero): Optional$ poses the
 // yes/no confirmation first; the accepted pick is Min 0 / Max 1 and an
 // empty answer moves nothing, while Mandatory$ True keeps the pick's Min 1.
-func TestKr1HandMoveChangeZoneOptionalTakeAsksWithMinZero(t *testing.T) {
+func TestKernelHandMoveChangeZoneOptionalTakeAsksWithMinZero(t *testing.T) {
 	t.Parallel()
 	for i, mandatory := range []bool{false, true} {
 		mandatory := mandatory
@@ -264,10 +264,10 @@ func TestKr1HandMoveChangeZoneOptionalTakeAsksWithMinZero(t *testing.T) {
 	}
 }
 
-// TestKr1HandMoveChangeZoneShuffleParamShufflesTheLibrary (was
+// TestKernelHandMoveChangeZoneShuffleParamShufflesTheLibrary (was
 // TestHandMoveChangeZoneShuffleParamShufflesTheLibrary): Shuffle$ True on a
 // put-back moves the card then shuffles, with no placement on top of it.
-func TestKr1HandMoveChangeZoneShuffleParamShufflesTheLibrary(t *testing.T) {
+func TestKernelHandMoveChangeZoneShuffleParamShufflesTheLibrary(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, ids := kr1HandBoard(t, 310, "A:SP$ ChangeZone | Origin$ Hand | Destination$ Library | ChangeType$ Card | Mandatory$ True | Shuffle$ True | RememberChanged$ True")
 	d := kr1Cast(t, e, id)
@@ -292,12 +292,12 @@ func TestKr1HandMoveChangeZoneShuffleParamShufflesTheLibrary(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1HERBIEScoutUnitHandMoveEntersTapped (was
+// TestKernelHERBIEScoutUnitHandMoveEntersTapped (was
 // TestHERBIEScoutUnitHandMoveEntersTapped) runs the REAL H.E.R.B.I.E. Scout
 // Unit: its ETB draws, then its hand mover (Tapped$ True) puts the chosen
 // land onto the battlefield TAPPED with exactly one entry Tap, no retired
 // "not implemented" Note, and not attacking.
-func TestKr1HERBIEScoutUnitHandMoveEntersTapped(t *testing.T) {
+func TestKernelHERBIEScoutUnitHandMoveEntersTapped(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	herbie, ok := reg.Lookup("H.E.R.B.I.E. Scout Unit")
@@ -339,13 +339,13 @@ func TestKr1HERBIEScoutUnitHandMoveEntersTapped(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1KastralMixedHandOriginOffersBothZones (was
+// TestKernelKastralMixedHandOriginOffersBothZones (was
 // TestKastralMixedHandOriginOffersBothZones, Kastral's DBChangeZone shape):
 // Optional$ You asks the search_confirm yes/no first; then ONE search
 // offers the Bird in hand and the Bird in the graveyard, nothing moving
 // before the answer; the answered graveyard Bird enters with its finality
 // counter.
-func TestKr1KastralMixedHandOriginOffersBothZones(t *testing.T) {
+func TestKernelKastralMixedHandOriginOffersBothZones(t *testing.T) {
 	t.Parallel()
 	crow := "Name:Crow\nManaCost:U\nTypes:Creature Bird\nPT:1/2\nOracle:x\n"
 	e, cfg, id := kr1New(t, 312, kr1Sorcery("KastralFx",
@@ -390,13 +390,13 @@ func kr1OwnersBoard(t *testing.T, seed uint64, body string) (*Engine, Config, st
 	return e, cfg, id, hand0, hand1
 }
 
-// TestKr1HandMoveOwnersChainsOneAskPerPlayer (was
+// TestKernelHandMoveOwnersChainsOneAskPerPlayer (was
 // TestHandMoveOwnersChainsOneAskPerPlayer and
 // TestHandMoveOwnersSkipAnsweredOwnersOnReentry, Kynaios and Tiro's shape):
 // each owner in turn gets its own confirmation then its own Min 0 / Max 1
 // pick over only its own Isles; the answered lands move, each exactly once,
 // and the Bears stay.
-func TestKr1HandMoveOwnersChainsOneAskPerPlayer(t *testing.T) {
+func TestKernelHandMoveOwnersChainsOneAskPerPlayer(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, hand0, hand1 := kr1OwnersBoard(t, 313,
 		"A:SP$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1 | RememberChanged$ True | Optional$ True")
@@ -432,11 +432,11 @@ func TestKr1HandMoveOwnersChainsOneAskPerPlayer(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1HandMoveOwnersOptionalSingleEligibleCanDecline (was
+// TestKernelHandMoveOwnersOptionalSingleEligibleCanDecline (was
 // TestHandMoveOwnersOptionalSingleEligibleCanDecline): declining owner 0's
 // confirmation poses no pick; owner 1, whose pool is empty, still gets its
 // own confirmation, and accepting it completes with no pick and no move.
-func TestKr1HandMoveOwnersOptionalSingleEligibleCanDecline(t *testing.T) {
+func TestKernelHandMoveOwnersOptionalSingleEligibleCanDecline(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, hand0, hand1 := kr1OwnersBoard(t, 314,
 		"A:SP$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1 | Optional$ True")

@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// cr-g122: a battlefield ChangeZone SubAbility$ link's target is announced as
+// A battlefield ChangeZone SubAbility$ link's target is announced as
 // the spell is cast or the ability activated (CR 601.2c, 602.2b), not asked
 // mid-resolution after the earlier instructions have already happened. The
 // cards are the corpus scripts; the permanents are inline fixtures.

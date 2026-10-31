@@ -319,20 +319,19 @@ var triggerModeEventRows = [...]struct {
 	// face's mask narrow for every other kind.
 	{cards.TriggerDiscover, 0},
 	{cards.TriggerSeekAll, 0},
-	// trig:Foretell (task agent-20260923T032009Z-3b9d3432): "Whenever you
-	// foretell a card, ..." (CR 702.126b; Dream Devourer, the corpus's
-	// sole carrier at the pin -- measured 1 file). It matches the {2}
-	// Foretell special action's pay-time FlagForetold CastInfo
-	// (engine/rules/cast.go's foretell branch, card still in hand; ordinal 29,
-	// inside the 64-bit mask's reach) and the effect-designation exile
-	// MoveZone markers (applyFaceDownMarker's Foretold$ True
-	// composition); both shapes existed before the mode did. The exact
-	// event shapes are the full matcher's (trigmatch.foretellMatches,
-	// engine/rules/trigmatch/foretell.go) -- the MoveZone bit is needed for the
-	// designation arm and is over-approximate for every other zone
-	// change, which the mask is for by design. Naming the mode here
-	// rather than letting it fall to the allTriggerEvents default keeps
-	// a Foretell-only face's mask narrow for every other kind.
+	// trig:Foretell: "Whenever you foretell a card, ..." (CR 702.126b; Dream
+	// Devourer, the corpus's sole carrier at the pin -- measured 1 file). It
+	// matches the {2} Foretell special action's pay-time FlagForetold
+	// CastInfo (engine/rules/cast.go's foretell branch, card still in hand;
+	// ordinal 29, inside the 64-bit mask's reach) and the effect-designation
+	// exile MoveZone markers (applyFaceDownMarker's Foretold$ True
+	// composition); both shapes existed before the mode did. The exact event
+	// shapes are the full matcher's (trigmatch.foretellMatches,
+	// engine/rules/trigmatch/foretell.go) -- the MoveZone bit is needed for
+	// the designation arm and is over-approximate for every other zone
+	// change, which the mask is for by design. Naming the mode here rather
+	// than letting it fall to the allTriggerEvents default keeps a
+	// Foretell-only face's mask narrow for every other kind.
 	{cards.TriggerForetell, 1<<events.CastInfo | 1<<events.MoveZone},
 	// The Surveil marker's ordinal (79, task trig-surveil) is past the
 	// 64-bit mask's reach, the Discover/SeekAll shape: a mask bit is not
@@ -343,7 +342,7 @@ var triggerModeEventRows = [...]struct {
 	// default keeps a Surveil-only face's mask narrow for every other
 	// kind.
 	{cards.TriggerSurveil, 0},
-	// The elemental-bend marker's ordinal (task agent-20260929T010346Z
+	// The elemental-bend marker's ordinal
 	// -ae55d89d, appended after Crew) is past the 64-bit mask's reach,
 	// the Surveil/Proliferate shape: a mask bit is not encodable and
 	// allows() fails open for every kind at or past triggerMaskKindBits,
@@ -394,14 +393,13 @@ var triggerModeEventRows = [...]struct {
 	// letting it fall to the allTriggerEvents default keeps a
 	// ChaosEnsues-only face's mask narrow for every other kind.
 	{cards.TriggerChaosEnsues, 0},
-	// The AlterAttribute carrier's ordinal is past the 64-bit mask's
-	// reach, the Exploited/Investigated shape: a mask bit is not encodable
-	// and allows() fails open for every kind at or past
-	// triggerMaskKindBits, so the mode is admitted through that fail-open
-	// path and gated by the full matcher (trigmatch.becomeMonstrousMatches, task
-	// agent-20260919T190014Z). Naming the mode here rather than letting it
-	// fall to the allTriggerEvents default keeps a BecomeMonstrous-only
-	// face's mask narrow for every other kind.
+	// The AlterAttribute carrier's ordinal is past the 64-bit mask's reach,
+	// the Exploited/Investigated shape: a mask bit is not encodable and
+	// allows() fails open for every kind at or past triggerMaskKindBits, so
+	// the mode is admitted through that fail-open path and gated by the full
+	// matcher (trigmatch.becomeMonstrousMatches, task). Naming the mode here
+	// rather than letting it fall to the allTriggerEvents default keeps a
+	// BecomeMonstrous-only face's mask narrow for every other kind.
 	{cards.TriggerBecomeMonstrous, 0},
 	// CaseSolved reads the same AlterAttribute carrier ("Solved" grant),
 	// admitted through the same fail-open path and gated by
@@ -415,8 +413,7 @@ var triggerModeEventRows = [...]struct {
 	// rather than letting it fall to the allTriggerEvents default keeps
 	// an Evolved-only face's mask narrow for every other kind.
 	{cards.TriggerEvolved, 0},
-	// CR 709.5's "whenever you fully unlock a Room" (task
-	// agent-20260919T191104Z-95f1e316): the Eerie enchantments' other-
+	// CR 709.5's "whenever you fully unlock a Room" (task): the Eerie enchantments' other-
 	// permanent half, matched by trigmatch.fullyUnlockMatches (engine/rules/
 	// trigmatch/room.go). It fires on the single DoorUnlock transition
 	// event the unlock activation emits, whose ordinal (41) is inside the
@@ -471,7 +468,7 @@ var triggerModeEventRows = [...]struct {
 	{cards.TriggerEnlisted, 0},
 	{cards.TriggerTaps, 1 << events.Tap},
 	{cards.TriggerTapsForMana, 1 << events.Tap},
-	// Aggregate tap modes (task cli-20261005T075020Z-05241a06): TapAll reads
+	// Aggregate tap modes: TapAll reads
 	// the Tap events of one tapping action, UntapAll the Untap events of one
 	// untapping action. Naming them here keeps a TapAll/UntapAll-only face's
 	// mask narrow to the one kind it can fire on.
@@ -538,13 +535,12 @@ var triggerModeEventRows = [...]struct {
 	// multi-face object and scopes ValidCard$/ValidPlayer$ against
 	// the transformed object's destination face.
 	{cards.TriggerTransformed, 1 << events.FlipFace},
-	// CR 708.6/702.36e: the turn-up marker events.TurnFaceUp (task
-	// agent-20260919T183249Z-0fb8ed97). Its ordinal is past the 64-bit
-	// mask's reach -- the Mutates/Investigated shape -- so a mask bit is
-	// not encodable and allows() fails open for it, gated by the full
-	// matcher (trigmatch.turnFaceUpMatches). Returning 0 here rather than the
-	// allTriggerEvents default keeps a TurnFaceUp-only face's mask narrow
-	// for every other kind.
+	// CR 708.6/702.36e: the turn-up marker events.TurnFaceUp (task). Its
+	// ordinal is past the 64-bit mask's reach -- the Mutates/Investigated
+	// shape -- so a mask bit is not encodable and allows() fails open for it,
+	// gated by the full matcher (trigmatch.turnFaceUpMatches). Returning 0
+	// here rather than the allTriggerEvents default keeps a TurnFaceUp-only
+	// face's mask narrow for every other kind.
 	{cards.TriggerTurnFaceUp, 0},
 	// A token-creation trigger fires on a plain TokenCreate mint, on Encore's
 	// CardToken mint (the fold seats it straight onto the battlefield with no

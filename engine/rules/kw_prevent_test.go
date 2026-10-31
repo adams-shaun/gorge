@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task prevent-keyword-expansion: the corpus's printed `K:Prevent <english
+// The corpus's printed `K:Prevent <english
 // sentence>` keyword (9 card files, three sentence shapes, plus one token
 // script) expands into the bodyless DamageDone `Prevent$ True` printed
 // replacement (engine/cards/kw_prevent.go), which rules' damage dispatch matches
@@ -141,7 +141,7 @@ func TestPreventKeywordDealsByDirectionPrevented(t *testing.T) {
 }
 
 // TestGuardGomazoaKeywordPreventsCombatDamageToIt: the second corpus carrier
-// the brief names, the to-only combat sentence (no "dealt by" half), on the
+// the to-only combat sentence (no "dealt by" half), on the
 // real script.
 func TestGuardGomazoaKeywordPreventsCombatDamageToIt(t *testing.T) {
 	t.Parallel()

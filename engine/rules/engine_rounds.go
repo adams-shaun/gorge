@@ -54,7 +54,7 @@ type engineRounds struct {
 	// pregame projection read it before turn one.
 	opening openingRound `clone:"deep"`
 	// blockerRound is the declare-blockers step's per-defender cursor
-	// (engine/rules/combat.go, Task m34): an attack may be split across several
+	// (engine/rules/combat.go): an attack may be split across several
 	// defending players, and each declares its own blocks, one KBlockers
 	// decision at a time. Plain-value state (a defender list plus an index),
 	// never a closure, so Clone copies it like the mulligan round.
@@ -95,7 +95,7 @@ type engineRounds struct {
 	stationing state.ObjID `clone:"deep"`
 
 	// combatRound is the combat damage step's continuation state
-	// (engine/rules/combat.go, Task jj-cmb): which damage passes are done, and any
+	// (engine/rules/combat.go): which damage passes are done, and any
 	// controller damage-division choices still being collected or awaiting an
 	// answer (CR 510.1c multi-block division, CR 510.3/4 double-strike).
 	// Plain-value data (slices plus scalars), never a closure, so Clone

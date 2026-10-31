@@ -72,7 +72,7 @@ func (e *Engine) finishRestart() {
 	// from an empty library is real immediately, but the terminal GameOver
 	// waits until every remaining short seat has been accounted for, so an
 	// all-undersized restart reaches CR 104.4a's draw instead of crowning an
-	// undealt short deck (T22-c).
+	// undealt short deck.
 	e.deferGameOver = true
 	alive := e.G.AliveFrom(0)
 	for i, p := range alive {
@@ -93,7 +93,7 @@ func (e *Engine) finishRestart() {
 			e.drawCard(p)
 		}
 		if e.G.AliveCount() <= 1 {
-			// Genesis's T22-c boundary: once at most one seat remains, no
+			// Genesis's boundary: once at most one seat remains, no
 			// later hand is dealt. Account for any later seat whose library
 			// could not supply seven cards, then finish the terminal deal.
 			for _, next := range alive[i+1:] {

@@ -107,7 +107,7 @@ const (
 // cheap precomputed shape the proof's count over-approximates the part's
 // Forge filter spec with. incl is the type mask a candidate must intersect
 // (0 = any type -- a subtype base such as "Goblin" has no cheap bit, and the
-// bare count the brief calls the coarse version), excl the types a candidate
+// bare count is the coarse version), excl the types a candidate
 // must have none of (a "nonLand" predicate), exclSelf the ".Other" predicate
 // (the source itself is not a candidate), and self a CARDNAME/NICKNAME spec
 // (the source is the ONLY candidate). kindStr carries a SubCounter part's

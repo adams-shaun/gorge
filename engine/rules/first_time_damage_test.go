@@ -55,8 +55,7 @@ func TestDamageDoneOnceFirstTimeOnlyTriggersOnFirstDamage(t *testing.T) {
 // marked damage, and a 0-power combat assignment emits Amount == 0 too. None
 // of those may consume the FirstTime$ slot, so a later real hit still fires
 // the trigger. Before the helper filtered Amount, a 0-amount event earlier in
-// the turn permanently suppressed the recipient's trigger (review finding,
-// task agent-20261001T020044Z-134bc272).
+// the turn permanently suppressed the recipient's trigger.
 func TestDamageDoneOnceFirstTimeIgnoresNonPositiveDamage(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

@@ -66,7 +66,7 @@ func ringLogHasNoHostNote(log []events.Event) bool {
 	return false
 }
 
-// TestRingTemptsYouKeepsTheExistingBearer is the brief's second leaf: a
+// TestRingTemptsYouKeepsTheExistingBearer: a
 // second temptation increments the count to 2 and does NOT re-designate
 // away from the existing Ring-bearer — CR 701.54a: the creature "becomes
 // your Ring-bearer until another creature becomes your Ring-bearer", so a

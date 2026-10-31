@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// cr-g08: a Dig over ANOTHER player's library (Jace, the Mind Sculptor's
+// A Dig over ANOTHER player's library (Jace, the Mind Sculptor's
 // [+2] on an opponent; fateseal, CR 701.29a) is chosen by the resolving
 // ability's CONTROLLER, not the library's owner, unless the card names a
 // Choser$. The private look goes to that chooser, and fateseal's "the rest

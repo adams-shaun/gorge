@@ -318,7 +318,7 @@ func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	if s.Depth > 1 {
 		// Re-entrant (a nested Derived mid-build): own private buffers rather
 		// than overwrite the outer call's backing arrays mid-range. Same guard
-		// Task A2 uses for forEachObject and rules uses for active(). (This
+		// forEachObject uses and rules uses for active(). (This
 		// path is effectively unreachable — MatchesSpecFrom reads faces, never
 		// calls Derived — but it keeps the buffer discipline airtight.)
 		kw = nil

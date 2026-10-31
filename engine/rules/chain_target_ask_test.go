@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task mvts1's three pins, end to end on real corpus cards. A trigger chain's
+// Three pins, end to end on real corpus cards. A trigger chain's
 // deeper ValidTgts$ sub -- the Execute$ body's SubAbility$ chain -- never got
 // a target ask: pushTrigger's placement ask covers only the depth-1 body, so
 // the sub either read an empty target set (silent no-op) or inherited the

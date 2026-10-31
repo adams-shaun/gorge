@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Task sac1 leaf tests. Each card under test is an authored fixture (the
+// The leaf tests. Each card under test is an authored fixture (the
 // licensing rule forbids copying a Forge .txt into the repo); each mirrors the
 // real compiled corpus card's ability shape and its SVar exactly, and the
 // Sacrificed$ head being exercised is the part under test.

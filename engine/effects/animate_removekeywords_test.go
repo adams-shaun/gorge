@@ -13,7 +13,7 @@ import (
 // named entries BEFORE this same effect's AddKeywords apply (Animate Dead's
 // "it loses 'enchant creature card in a graveyard'" in the same pass that
 // grants "enchant creature put onto the battlefield with CARDNAME").
-// AnimateAll's RemoveKeywords$/RemoveAllAbilities$ are READ since cr-g134:
+// AnimateAll's RemoveKeywords$/RemoveAllAbilities$ are read:
 // the sweep carries them per object through registerAnimateEffects, so the
 // registered unit-level shape is pinned here beside the single-target read.
 

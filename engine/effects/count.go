@@ -187,7 +187,7 @@ func numResolvedText(h Host, c *Ctx, p ParamText, def int32) (int32, bool) {
 		}
 	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
-	// Minus1, Task 17) is a body in its own right, not an SVar name -- a
+	// Minus1) is a body in its own right, not an SVar name -- a
 	// param value of "Count$..." evaluates directly rather than being
 	// mistaken for an SVar lookup (which would fail and degrade the count to
 	// zero, silencing the whole SpellCopy/amount the expression was meant to
@@ -411,7 +411,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// counters. The /Op suffix (e.g. Sacrificed$Amount/Plus.1) is applied the
 	// same way Count$ applies it. It sits BEFORE evalRefProperty because that
 	// function's defined-targets fallback now also names the `Sacrificed` paid
-	// list (cr-g261) and would read the live graveyard object's power.
+	// list and would read the live graveyard object's power.
 	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
 		return evalSacrificedOK(h, c, strings.TrimSpace(body))
 	}

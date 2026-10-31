@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestReflexiveSacrificedPowerUsesLKIOfTransformedFace is cr-g297: the
+// TestReflexiveSacrificedPowerUsesLKIOfTransformedFace: the
 // reflexive half of Bolg of the North's ETB trigger sizes its damage with
 // `Spawner>Sacrificed$CardPower`. The sacrificed creature is Eddie Brock
 // transformed into Venom, Lethal Protector (a 5/5 permanent), so CR 608.2h

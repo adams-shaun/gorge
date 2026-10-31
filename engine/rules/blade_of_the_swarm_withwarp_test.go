@@ -1,6 +1,6 @@
 package rules
 
-// cr-g293: Blade of the Swarm's mode 2 is `ValidTgts$ Card.withWarp` over
+// Blade of the Swarm's mode 2 is `ValidTgts$ Card.withWarp` over
 // Origin$ Exile ("target exiled card with warp"). The with<Keyword> filter
 // vocabulary did not register Warp, so keywordPredicateFor("withWarp") failed
 // closed and the mode was withheld as having no legal target. This drives the

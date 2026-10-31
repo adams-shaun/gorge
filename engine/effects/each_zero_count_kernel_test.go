@@ -7,12 +7,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestKr1EachStructuredOptionsExplicitZeroOffersNothing is the option-builder
+// TestKernelEachStructuredOptionsExplicitZeroOffersNothing is the option-builder
 // half of the deleted TestEachExplicitZeroChangeNumSelectsNothing (the
 // engine halves live in engine/rules/each_changezone_kernel_test.go): an explicit
 // per-type ChangeNum$ 0 is a zero ceiling, never the default one, and
 // builds no options.
-func TestKr1EachStructuredOptionsExplicitZeroOffersNothing(t *testing.T) {
+func TestKernelEachStructuredOptionsExplicitZeroOffersNothing(t *testing.T) {
 	h := newHost(t, 2)
 	crea := h.g.AddObject(mkCard(t, "Name:ZeroCreature\nTypes:Creature Bear\nOracle:x\n"), 0)
 	land := h.g.AddObject(mkCard(t, "Name:ZeroLand\nTypes:Land Forest\nOracle:x\n"), 0)

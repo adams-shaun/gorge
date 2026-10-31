@@ -77,7 +77,7 @@ func TestAdditionalSacrificeCostGatesTheOffer(t *testing.T) {
 // (suppressedCast: hold the option out for the rest of the priority window,
 // lift it on the first state-changing event -- see cast_liveness_test.go for
 // the Delve decline), but this abort site hand-rolled its teardown and never
-// engaged it. Ruling F05-2 (CR 733.2) delays the hold-out to the SECOND
+// engaged it. CR 733.2 delays the hold-out to the SECOND
 // identical no-progress abort, so a single abort leaves the option offered as
 // a legal retry.
 //
@@ -105,7 +105,7 @@ func TestUnpayableSacrificeAbortHoldsTheOptionOut(t *testing.T) {
 	}
 	// CR 733.2: the FIRST no-progress abort leaves the option offered, so a
 	// reversed illegal action may be redone legally -- the identical board
-	// re-offers the doomed cast once, which is exactly the retry the ruling
+	// re-offers the doomed cast once, which is exactly the retry CR 733.2
 	// wants, not yet a livelock.
 	if e.castSuppressed(0, rites) {
 		t.Fatal("a first no-progress sacrifice abort wrongly held the option out; CR 733.2 allows a legal retry")

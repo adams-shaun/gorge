@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// The cost-paid list selectors (cr-g261): `Defined$ Tapped`, `Defined$
+// The cost-paid list selectors: `Defined$ Tapped`, `Defined$
 // AttachedBy Returned` and `Defined$ Sacrificed` name the objects the cost was
 // paid with, driven through real cards.
 

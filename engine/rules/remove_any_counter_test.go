@@ -159,7 +159,7 @@ func TestRemoveAnyCounterRealCorpusFainPays(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestRemoveAnyCounterMultiUnitSpansKinds closes the fix-round MAJOR: a
+// TestRemoveAnyCounterMultiUnitSpansKinds: a
 // wildcard cost of TWO counters (`RemoveAnyCounter<2/Any/Creature>`, the
 // Quilled Greatwurm / Reaping Willow shape) may be paid by one creature
 // carrying one +1/+1 counter and one CHARGE counter -- two counters of two
@@ -241,7 +241,7 @@ func TestRemoveAnyCounterMultiUnitSpansKinds(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestRemoveAnyCounterMixedFixedAndWildcardParts closes the fix-round MAJOR
+// TestRemoveAnyCounterMixedFixedAndWildcardParts:
 // on pick indexing: a cost mixing a fixed-kind filtered SubCounter part before
 // a wildcard RemoveAnyCounter part must settle the WILDCARD from the player's
 // selected kind, not from a positional list that the fixed part's empty entry

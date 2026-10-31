@@ -142,7 +142,7 @@ type zoneCountFold struct {
 	// only through len.
 	seenCreatureTypes map[string]bool
 	// seenPlaneswalkerTypes is the PlaneswalkerType spelling's distinct set
-	// (cr-g222): planeswalker-subtype words among the matched faces, read
+	// planeswalker-subtype words among the matched faces, read
 	// only through len.
 	seenPlaneswalkerTypes map[string]bool
 	colorsSeen            ColorMask

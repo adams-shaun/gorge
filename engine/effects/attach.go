@@ -82,7 +82,7 @@ func emitPlayerAttach(h Host, c *Ctx, p *AttachParams, attachObj state.ObjID, se
 	}
 }
 
-// Attachable reports whether obj may legally be attached to target. Task 14
+// Attachable reports whether obj may legally be attached to target.
 // leaves this always-true: the full check includes "the target is not
 // protected from the attachment's colours" (CR 702.16e for being attached
 // despite protection). That half is NOT added here, and is deliberately NOT

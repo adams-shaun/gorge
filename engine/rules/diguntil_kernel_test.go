@@ -21,11 +21,11 @@ const (
 	kr1Songbird = "A:SP$ DigUntil | Valid$ Aura | FoundDestination$ Battlefield | OptionalFoundMove$ True | OptionalNoDestination$ Hand | RevealedDestination$ Library | RevealedLibraryPosition$ -1"
 )
 
-// TestKr1DigUntilAuraEntryAsksForBearer (was TestDigUntilAuraEntryAsksForBearer):
+// TestKernelDigUntilAuraEntryAsksForBearer (was TestDigUntilAuraEntryAsksForBearer):
 // a found Aura entering the battlefield (CR 303.4f) asks for its bearer
 // over both eligible creatures before it moves, and the answer — the
 // SECOND creature, not an option-zero default — is what it attaches to.
-func TestKr1DigUntilAuraEntryAsksForBearer(t *testing.T) {
+func TestKernelDigUntilAuraEntryAsksForBearer(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := kr1New(t, 140, kr1Sorcery("AuraDig", "A:SP$ DigUntil | Valid$ Aura | FoundDestination$ Battlefield"),
 		[]string{kr1BearOne, kr1BearTwo, kr1Halo}, nil)
@@ -50,10 +50,10 @@ func TestKr1DigUntilAuraEntryAsksForBearer(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1DigUntilAuraCanEnchantOpponentsCreature (was
+// TestKernelDigUntilAuraCanEnchantOpponentsCreature (was
 // TestDigUntilAuraCanEnchantOpponentsCreature): the bearer ask offers the
 // opponent's creature too, and answering it attaches the Aura there.
-func TestKr1DigUntilAuraCanEnchantOpponentsCreature(t *testing.T) {
+func TestKernelDigUntilAuraCanEnchantOpponentsCreature(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := kr1New(t, 141, kr1Sorcery("AuraDig", "A:SP$ DigUntil | Valid$ Aura | FoundDestination$ Battlefield"),
 		[]string{kr1BearOne, kr1Halo}, []string{kr1OppBear})
@@ -89,13 +89,13 @@ func kr1PublicReveals(e *Engine, mark, n int) int {
 	return c
 }
 
-// TestKr1DigUntilOptionalFoundMoveAsksAndHonoursBothBranches (was
+// TestKernelDigUntilOptionalFoundMoveAsksAndHonoursBothBranches (was
 // TestDigUntilOptionalFoundMoveAsksAndHonoursBothBranches, Songbirds'
 // Blessing's shape): the found card is offered as a yes/no to the library's
 // owner after the public reveal and before anything moves; "no" sends it to
 // OptionalNoDestination$ Hand with the revealed rest at the bottom; "yes"
 // puts it onto the battlefield attached; the reveal is recorded once.
-func TestKr1DigUntilOptionalFoundMoveAsksAndHonoursBothBranches(t *testing.T) {
+func TestKernelDigUntilOptionalFoundMoveAsksAndHonoursBothBranches(t *testing.T) {
 	t.Parallel()
 	for i, answer := range []string{"no", "yes"} {
 		answer := answer
@@ -144,12 +144,12 @@ func TestKr1DigUntilOptionalFoundMoveAsksAndHonoursBothBranches(t *testing.T) {
 	}
 }
 
-// TestKr1DigUntilRidersEmitOnceAcrossTheOptionalAsk (was
+// TestKernelDigUntilRidersEmitOnceAcrossTheOptionalAsk (was
 // TestDigUntilRidersEmitOnceAcrossTheOptionalAsk): ImprintFound$ and
 // Shuffle$ are recorded exactly once across the OptionalFoundMove$ ask —
 // none before the answer, one each after, the imprint carrying the found
 // Aura.
-func TestKr1DigUntilRidersEmitOnceAcrossTheOptionalAsk(t *testing.T) {
+func TestKernelDigUntilRidersEmitOnceAcrossTheOptionalAsk(t *testing.T) {
 	t.Parallel()
 	body := "A:SP$ DigUntil | Valid$ Aura | FoundDestination$ Battlefield | OptionalFoundMove$ True | OptionalNoDestination$ Hand | RevealedDestination$ Library | RevealedLibraryPosition$ -1 | ImprintFound$ True | Shuffle$ True"
 	e, cfg, id := kr1New(t, 144, kr1Sorcery("RiderDig", body), []string{kr1BearOne, kr1Halo}, nil)

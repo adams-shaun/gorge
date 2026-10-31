@@ -7,7 +7,6 @@ package rules
 // number and the precombat-main lore counter all read the Saga's CURRENT
 // abilities, so a Saga that has lost all abilities (CR 613.1f) gets no
 // lore counter, triggers no chapter and is not sacrificed.
-// (ticket cr-g07-saga-conclusion-sacrifice)
 
 import (
 	"testing"

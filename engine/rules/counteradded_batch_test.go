@@ -17,7 +17,7 @@ package rules
 // drives the same mode through the trigger queue and a body that reads
 // TriggerCount$Amount. Since ds2-fathommage a plain line fires once per counter
 // (CR 603.2c), so the batch now queues one instance per counter and the payoff
-// driver lives in ds2_counteradded_per_counter_test.go; this test pins the
+// driver lives in counteradded_per_counter_test.go; this test pins the
 // queue count per event instead.
 
 import (
@@ -96,7 +96,7 @@ func TestCounterAddedBatchAmountIsReadByTheBody(t *testing.T) {
 
 	// One batch of three queues ONE INSTANCE PER COUNTER (CR 603.2c, since
 	// ds2-fathommage); that is the count gate here. Driving them to a payoff
-	// is ds2_counteradded_per_counter_test.go's job -- a fixture that drains
+	// is counteradded_per_counter_test.go's job -- a fixture that drains
 	// them by hand must first answer the CR 603.3b order question they pose.
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 3})
 	if len(e.pendingTriggers) != 3 {

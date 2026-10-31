@@ -15,12 +15,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestKr8RestrictValidDotlessPaymentTermsAbilityPayments pins the non-spell
+// TestKernelRestrictValidDotlessPaymentTermsAbilityPayments pins the non-spell
 // side of the two "can't cast" dotless terms on their real corpus producers:
 // Hydraulic Helper's CantCastNonArtifactSpells {U} and Heartwood Crafter's
 // CantCastSpellFromHand {C} both pay a nonartifact permanent's {1} activated
 // ability, and the restricted batch is consumed by that payment.
-func TestKr8RestrictValidDotlessPaymentTermsAbilityPayments(t *testing.T) {
+func TestKernelRestrictValidDotlessPaymentTermsAbilityPayments(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
 

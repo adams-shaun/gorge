@@ -35,7 +35,7 @@ type DealDamageParams struct {
 	// (typed_params.go's identity rule).
 	paramBinding
 
-	// NumDmg is NumDmg$, the per-recipient amount (default 0, Ruling T14-f).
+	// NumDmg is NumDmg$, the per-recipient amount (default 0).
 	NumDmg ParamText
 	// Divided is a non-empty DividedAsYouChoose$; DividedTotal is its value
 	// text (the named total divided among the chosen targets).

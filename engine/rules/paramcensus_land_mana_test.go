@@ -44,7 +44,7 @@ func wallopersDeck(t *testing.T, reg *cards.Registry, named ...string) [][]*card
 }
 
 // TestEldraziTempleRestrictValidGatesTheProducedMana pins the RestrictValid$
-// read the census no longer labels (the brief's premise that it was unread
+// read the census no longer labels (the premise that it was unread
 // did not reproduce — restrictValidMatches genuinely prices it): the temple's
 // second ability adds {C}{C} whose pool batch carries the spend restriction,
 // so a colourless Eldrazi spell ({2}{C} Matter Reshaper) is payable with the

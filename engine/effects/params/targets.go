@@ -462,7 +462,7 @@ func SpecTargetsStack(spec string) bool {
 // "Creature.YouCtrl" IS an object filter (its ".YouCtrl" clause scopes the
 // creature's controller, not the target being a player). The old substring
 // form matched the "You" inside "YouCtrl" and wrongly offered players as
-// Equip targets (Task 14 found it: an Equip onto Creature.YouCtrl offered
+// Equip targets (an Equip onto Creature.YouCtrl offered
 // both players as options, which effAttach then had to refuse).
 func SpecTargetsPlayers(spec string) bool {
 	for alt := range strings.SplitSeq(spec, ",") {

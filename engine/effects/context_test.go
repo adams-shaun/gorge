@@ -364,7 +364,7 @@ func (h *fakeHost) BeginTokenCreation() {}
 func (h *fakeHost) EndTokenCreation()   {}
 func (h *fakeHost) EndZoneBatch()       {}
 
-// CastThisTurn has no real turn log to count here (Task 17); the effects
+// CastThisTurn has no real turn log to count here; the effects
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }
 

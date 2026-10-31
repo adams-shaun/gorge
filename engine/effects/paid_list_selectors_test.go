@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestPaidListSelectors pins the cost-paid list spellings (cr-g261) and the
+// TestPaidListSelectors pins the cost-paid list spellings and the
 // `AttachedBy <referent>` prefix selector in definedSpec.
 func TestPaidListSelectors(t *testing.T) {
 	ids := func(ts []state.Target) []state.ObjID {

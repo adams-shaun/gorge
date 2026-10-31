@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// These tests are the TriggerRemembered sibling of cr-g297's
+// These tests are the TriggerRemembered sibling of
 // TestReflexiveSacrificedPowerUsesLKIOfTransformedFace: the reflexive body's
 // X is `TriggerRemembered$CardPower`/`CardToughness`, a different referent
 // spelling over the same sacrificed object. Eddie Brock transformed into

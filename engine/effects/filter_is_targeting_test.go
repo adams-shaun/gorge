@@ -181,7 +181,7 @@ func TestSpellIsTargetingRejectsSplitConjunction(t *testing.T) {
 	}
 }
 
-// TestSpellIsTargetingBaseQualifiedOnly pins the confinement the brief
+// TestSpellIsTargetingBaseQualifiedOnly pins the confinement
 // requires: the form is recognised only under the `Spell`/`SpellAbility`
 // bases. Any other base carrying the `IsTargeting` token is an unknown
 // predicate (census and matcher agree), so a `Creature.IsTargeting` or a

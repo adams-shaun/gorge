@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task tgtplayer1 end-to-end pins on the REAL corpus cards (built from the
+// End-to-end pins on the REAL corpus cards (built from the
 // compiled corpus only -- no Forge script text is committed here, per the
 // licensing rule). Both carriers were silent zeros before the
 // TargetedPlayer$ count arm: Knollspine Dragon drew nothing, The Mouth of

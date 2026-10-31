@@ -261,7 +261,7 @@ type Ctx struct {
 	// resolving -- rules' e.resolvingObj (resolveTop's ability and spell
 	// branches) and rp.obj (resumeResolution) -- set at those two ctx
 	// construction sites. For an ability resolution Ctx.Source is the source
-	// PERMANENT (Ruling T20-b: Defined$ Self must resolve to something with a
+	// PERMANENT (Defined$ Self must resolve to something with a
 	// face), so a ValidStack qualifier that means "not the ability resolving
 	// right now" (Ulalek's `Ability.YouCtrl+otherAbility`) cannot anchor on
 	// Source: the permanent is not on the stack and excludes nothing. This
@@ -499,7 +499,7 @@ type Ctx struct {
 	// Restarted is set by effRestartGame once the host accepted a CR 727
 	// restart: Resolve stops the chain there. The remainder is not followed
 	// yet -- CR 727.4's "finishes resolving just before the first turn's
-	// untap step" is cr-g33b.
+	// untap step" is not modelled here.
 	Restarted bool
 }
 
@@ -695,7 +695,7 @@ func Supported() map[string]bool {
 }
 
 // supportedNonAPI holds keyword, trigger, static and replacement primitives,
-// which are implemented in rules rather than as effect functions. Tasks 18-20
+// which are implemented in rules rather than as effect functions. Later files
 // fill it in.
 var supportedNonAPI = newAtomicMap[bool]()
 
@@ -1244,7 +1244,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			c.TargetableObjects = nil
 		}
-		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
+		// Condition* gate: a sub whose supported condition
 		// is evaluated and not met is skipped and the chain continues — the
 		// per-SA read the corpus's own gated pairs rely on (Gruesome
 		// Discovery's morbid pair: the outer gated EQ0, the inner — its
@@ -1431,7 +1431,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if c.Restarted {
 			// CR 727.4: the game restarted. The host performs the restart;
-			// the chain's remainder (cr-g33b) is not followed here.
+			// the chain's remainder is not followed here.
 			return
 		}
 		if h.Suspended() {

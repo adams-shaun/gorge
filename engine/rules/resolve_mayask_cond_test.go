@@ -28,7 +28,7 @@ const (
 		"K:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseColor | Defined$ You | SpellDescription$ x\nOracle:x\n"
 )
 
-func TestKr8ParentSubTargetWithoutCandidateIsExempt(t *testing.T) {
+func TestKernelParentSubTargetWithoutCandidateIsExempt(t *testing.T) {
 	_, st := kr8Kernel(t, 2, 9301, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Bear", state.ZBattlefield)
 		tapeCastAndResolve(t, e, "Tape Fiery", "R")
@@ -38,7 +38,7 @@ func TestKr8ParentSubTargetWithoutCandidateIsExempt(t *testing.T) {
 	}
 }
 
-func TestKr8ParentSubTargetWithCandidateIsCheckpointed(t *testing.T) {
+func TestKernelParentSubTargetWithCandidateIsCheckpointed(t *testing.T) {
 	_, st := kr8Kernel(t, 2, 9302, func(t *testing.T, e *Engine) {
 		bear := moveByName(t, e, 0, "Tape Bear", state.ZBattlefield)
 		sword := moveByName(t, e, 0, "Tape Sword", state.ZBattlefield)
@@ -55,7 +55,7 @@ func TestKr8ParentSubTargetWithCandidateIsCheckpointed(t *testing.T) {
 	}
 }
 
-func TestKr8TargetEntryWithoutEntryAskIsExempt(t *testing.T) {
+func TestKernelTargetEntryWithoutEntryAskIsExempt(t *testing.T) {
 	_, st := kr8Kernel(t, 2, 9303, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Bear", state.ZGraveyard)
 		tapeCastAndResolve(t, e, "Tape Reanimate", "B")
@@ -65,7 +65,7 @@ func TestKr8TargetEntryWithoutEntryAskIsExempt(t *testing.T) {
 	}
 }
 
-func TestKr8TargetEntryWithEntryAskIsCheckpointed(t *testing.T) {
+func TestKernelTargetEntryWithEntryAskIsCheckpointed(t *testing.T) {
 	_, st := kr8Kernel(t, 2, 9304, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Chooser", state.ZGraveyard)
 		tapeCastAndResolve(t, e, "Tape Reanimate", "B")

@@ -1,13 +1,13 @@
 package rules
 
-// Task param:api:Effect.ForgetOnCast — the Effect primitive's ForgetOnCast$
-// cast-driven lifetime and the Effect-delivered cost-modifier statics
-// (Mode$ AlternativeCost / Mode$ ReduceCost) it rides. The filing carrier is
-// Marshland Bloodcaster's "Rather than pay the mana cost of the NEXT spell
-// you cast this turn, you may pay life equal to that spell's mana value":
-// the activated AB$ Effect registers an AlternativeCost static whose Cost$
-// is the dynamic PayLife<ConvertedManaCost>, and ForgetOnCast$ Card.YouCtrl
-// ends the grant once one qualifying spell is cast.
+// The Effect primitive's ForgetOnCast$ cast-driven lifetime and the
+// Effect-delivered cost-modifier statics (Mode$ AlternativeCost / Mode$
+// ReduceCost) it rides. The filing carrier is Marshland Bloodcaster's "Rather
+// than pay the mana cost of the NEXT spell you cast this turn, you may pay
+// life equal to that spell's mana value": the activated AB$ Effect registers
+// an AlternativeCost static whose Cost$ is the dynamic
+// PayLife<ConvertedManaCost>, and ForgetOnCast$ Card.YouCtrl ends the grant
+// once one qualifying spell is cast.
 
 import (
 	"testing"

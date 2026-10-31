@@ -96,7 +96,7 @@ func TestNameCardWithoutUniverseKeepsTheR9StandIn(t *testing.T) {
 }
 
 // TestNameDescriptionOnlyStaysUnrestrictedButSafetyMaps pins the
-// ValidDescription$ semantics the brief names. Forge reads ValidDescription$
+// ValidDescription$ semantics. Forge reads ValidDescription$
 // as prompt TEXT, not a filter (ChooseCardNameEffect.resolve; the
 // ignoredParamKeys citation), so a description is never a second filter while
 // ValidCards$ is present. When ValidCards$ is absent, the builder maps the
@@ -164,7 +164,7 @@ func containsLabel(opts []decision.Option, want string) bool {
 // TestNameChoicesUnrestrictedPrefersThePersistedSnapshot closes the sol3
 // MINOR: the snapshot preference in nameUniverseSnapshot was only covered on
 // the FILTERED path, where the persisted list also acts as an allowlist. The
-// UNRESTRICTED path -- Pithing Needle, the brief's headline card, which
+// UNRESTRICTED path -- Pithing Needle, which
 // carries no ValidCards$ -- returns the snapshot directly, and nothing pinned
 // that. Without the preference a corpus ADDITION that sorts before an
 // existing name renumbers every later option, so a persisted numeric answer

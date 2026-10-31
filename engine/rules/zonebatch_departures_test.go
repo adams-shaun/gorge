@@ -5,7 +5,7 @@ package rules
 // trig:ChangesZoneAll, so Vengeful Townsfolk's "whenever one or more other
 // creatures you control die" queues ONCE per batch, not once per permanent.
 //
-// The brief's two live gorge-compliance rows (VengefulTownsfolkTest
+// Two gorge-compliance rows (VengefulTownsfolkTest
 // test-on-non-token and test-double-sacrifice) are exactly these two shapes.
 // The bracket that fixes them is Engine.BatchDepartures -- the one structural
 // place every simultaneous departure batch already goes through

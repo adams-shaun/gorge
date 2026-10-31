@@ -169,16 +169,14 @@ func TestImproviseCommittedArtifactExcludedFromManaWindow(t *testing.T) {
 	}
 }
 
-// TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice is the
-// brief's named corpus pin (agent-20260919T185907Z): Bottle-Cap Blast
-// ({4}{R}, Improvise) cast for its full price from a pool holding only
-// the {R} -- the CR 601.2c target ask opens the flow, the CR 601.2b
-// announcement offers exactly exactly the four untapped artifacts, both are
-// committed and TAPPED, and the pool pays exactly the {R}. Resolution
-// then runs the card's own excess rider: against a 2/2 the CR 120.10
-// excess is 5 - 2 = 3, so exactly three TAPPED Treasure tokens are
-// created (ExcessSVar$ Excess -> DBToken's TokenAmount$ Excess,
-// TokenTapped$ True).
+// TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice is the named corpus
+// pin: Bottle-Cap Blast ({4}{R}, Improvise) cast for its full price from a pool
+// holding only the {R} -- the CR 601.2c target ask opens the flow, the CR
+// 601.2b announcement offers exactly exactly the four untapped artifacts, both
+// are committed and TAPPED, and the pool pays exactly the {R}. Resolution then
+// runs the card's own excess rider: against a 2/2 the CR 120.10 excess is 5 - 2
+// = 3, so exactly three TAPPED Treasure tokens are created (ExcessSVar$ Excess
+// -> DBToken's TokenAmount$ Excess, TokenTapped$ True).
 func TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice(t *testing.T) {
 	t.Parallel()
 	e := handEngineTokens(t, corpusAlternativeCard(t, "Bottle-Cap Blast"))

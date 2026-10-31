@@ -669,7 +669,7 @@ func (e *Engine) restrictionGateHolds(sv staticView, target state.ObjID) bool {
 
 // abilityRestricted reports whether id's specific ability ab is forbidden
 // from being activated (CantBeActivated), scoped by the restriction's
-// ValidSA$ to the ability being considered (Task 10: p, the would-be
+// ValidSA$ to the ability being considered (p, the would-be
 // activator, scopes Activator$; ab, the exact activated ability, scopes
 // ValidSA$). A nonexistent object has no ability to restrict, so it degrades
 // to false rather than dereferencing a nil Object.
@@ -746,7 +746,7 @@ func (e *Engine) abilityRestrictionApplies(sv staticView, p state.PlayerID, id s
 // Within the Activated kind: no constraint matches everything; "!ManaAbility"
 // matches everything but a mana ability (ab.API == "Mana"); "ManaAbility"
 // matches only a mana ability, and "ManaAbility<Produce:C>" the subset that
-// produces colour C (test-only grammar, fix round 1 -- see the case below);
+// produces colour C (test-only grammar -- see the case below);
 // and a constraint this build cannot evaluate --
 // Loyalty, Equip, Crew+Vehicle, hasTapCost, ... -- DENIES, per the "a
 // restriction that cannot be evaluated must deny, not silently allow" rule:
@@ -793,7 +793,7 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 			}
 			// Bare ManaAbility matches every mana ability. A
 			// ManaAbility<Produce:C> scopes to a mana ability that produces
-			// colour C (fix round 1, reviewer Important 2): a permanent with
+			// colour C: a permanent with
 			// several mana abilities can then have one singled out by a
 			// CantBeActivated while the others stay activatable -- the shape
 			// that exposed the gate/activation disagreement Test

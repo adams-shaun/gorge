@@ -1,4 +1,4 @@
-// cr-g01a: CR 903.9a / 704.6d (2026-09-25). A commander put into a
+// CR 903.9a / 704.6d. A commander put into a
 // graveyard or exile goes there FOR REAL -- "dies" and "put into a
 // graveyard" triggers fire and every other replacement effect applies to
 // that move -- and only then, as a state-based action, may its owner put it

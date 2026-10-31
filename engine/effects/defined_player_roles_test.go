@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g259: Defined$ ActivePlayer / AttackingPlayer / EnchantedController /
+// Defined$ ActivePlayer / AttackingPlayer / EnchantedController /
 // EnchantedOwner are player selectors, never the source fallback.
 
 func TestDefinedPlayerRoleSelectors(t *testing.T) {

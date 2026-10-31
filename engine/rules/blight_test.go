@@ -294,7 +294,7 @@ func TestBlightDoseOfDawnglowBlightsOutsideMainPhase(t *testing.T) {
 // ability: the cost half (PayLife<1> Blight<2>) pays one life and blights the
 // activator's own chosen creature, and the effect body makes the TARGETED
 // OPPONENT (not the activator) blight 2. The cost half working here is also
-// the regression guard the brief asks for.
+// the regression guard.
 func TestBlightChampionOfTheWeirdActivationEndToEnd(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

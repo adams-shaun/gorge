@@ -1533,7 +1533,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	case definedSpecEquipped:
 		// The corpus spells this three ways depending on whether the source
 		// is Equipment, an Aura, or a generic script; all three name the
-		// same field (Task 14 wires its producer).
+		// same field.
 		if o := g.Obj(c.Source); o != nil {
 			if o.AttachedTo != 0 && g.Obj(o.AttachedTo) != nil {
 				return []state.Target{{Obj: o.AttachedTo}}, true
@@ -2019,7 +2019,7 @@ func definedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 // Jailer), Targeted (Loch Larent), Player.IsRemembered (Chandra, Fire of
 // Kaladesh). Every spelling is resolved through the SHARED referent grammar
 // (definedSpec/knownDefinedTargets), so the effect-owner read and every
-// other Defined$ consumer cannot drift apart. (Task tgtowner1 moved
+// other Defined$ consumer cannot drift apart. (Moved
 // TargetedOwner into definedSpec, deleting this function's own ownersOf
 // arm: the grammar resolves the same set from the same resolved targets.)
 //
@@ -2604,8 +2604,8 @@ func PlayerOf(h Host, c *Ctx, t state.Target) state.PlayerID {
 //     currently RESOLVING, nor any other instance or copy of that same
 //     printed ability. The anchor is Ctx.ResolvingObj -- the stack-object
 //     wrapper rules knows as e.resolvingObj / rp.obj -- NOT Ctx.Source,
-//     which for an ability resolution is the source PERMANENT (Ruling
-//     T20-b) and is not on the stack, so a Source-anchored exclusion would
+//     which for an ability resolution is the source PERMANENT
+//     and is not on the stack, so a Source-anchored exclusion would
 //     exclude nothing and Ulalek's trigger would copy itself (each copy
 //     asking its pay question again -- an unbounded regress). The family
 //     half (same Source permanent AND same Ability pointer -- StackCopy

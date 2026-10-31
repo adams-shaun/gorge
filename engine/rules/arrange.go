@@ -10,7 +10,7 @@ import (
 
 // handleArrange applies an answered KArrange decision -- the ordered-subset
 // ask a mid-resolution library-arranging effect (RearrangeTopOfLibrary,
-// Ponder; later Scry/Surveil/Dig) poses through effects.Host.Ask (Ruling
+// Ponder; later Scry/Surveil/Dig) poses through effects.Host.Ask
 // J0). It is the engine's one KArrange handler, the mid-resolution sibling
 // of handleModes.
 //
@@ -24,12 +24,12 @@ import (
 // to the top -- the next card drawn.
 //
 // The reorder is recorded as a single events.LibraryOrder carrying the
-// complete new library (Ruling J1), which is also what makes the answer
-// replay-legitimate (Ruling J2): the logged intent plus this one event
+// complete new library, which is also what makes the answer
+// replay-legitimate: the logged intent plus this one event
 // re-derive the same order on a reconstruction, and a fresh engine fed the
 // same logged intents re-poses the same question.
 //
-// Ruling J4: pile B's destination is the shared Option.Kind, read off
+// Pile B's destination is the shared Option.Kind, read off
 // Options[0]. An arrange with a non-empty pile B the old handler would have
 // placed directly beneath pile A is only correct when pile B is empty --
 // (rearrange, whose Min == Max == N) -- so the handler now dispatches on
@@ -52,7 +52,7 @@ import (
 // (Scry/Surveil, the only asks whose pile B can be non-empty AND ordered);
 // Validate enforces the partition rule (validateRest is its one home).
 //
-// Ruling J5: the Kind is uniform across one decision; a decision whose
+// The Kind is uniform across one decision; a decision whose
 // options disagree is a programming error, never something a client can
 // send, so it degrades with a Note and applies the Options[0] destination.
 //
@@ -106,7 +106,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 			}
 		}
 	}
-	// Ruling J5: every option in one KArrange shares its Kind. A decision
+	// Every option in one KArrange shares its Kind. A decision
 	// whose options disagree is a programming error, never something a client
 	// can send; degrade with a Note and apply the Options[0] destination.
 	kind := ""
@@ -167,7 +167,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner,
 			IDs: newLib, Secret: true})
 	case arrangeAnswerRecordBottom:
-		// Ruling J4: pile B goes to the END of the library, BELOW the
+		// Pile B goes to the END of the library, BELOW the
 		// untouched remainder. One LibraryOrder carrying pileA + remainder +
 		// pileB.
 		newLib := make([]state.ObjID, 0, len(pileA)+len(pileB)+len(remainder))
@@ -191,7 +191,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 				Obj: d.Source, Amount: int32(len(pileB))})
 		}
 	case arrangeAnswerRecordGraveyard:
-		// Ruling J4: pile B leaves the library. The LibraryOrder for
+		// Pile B leaves the library. The LibraryOrder for
 		// pileA + remainder is emitted FIRST, then one MoveZone per pile-B
 		// card in offered order. The order is a contract: a replay that
 		// applies the moves before the reorder gets a different library.

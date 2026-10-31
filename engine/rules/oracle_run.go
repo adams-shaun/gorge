@@ -1079,7 +1079,7 @@ func (r *oracleRun) forceRequiredAttackers(d *decision.Decision, choices []int, 
 }
 
 // arrangeSharedKind is the option Kind every option of a KArrange shares (its
-// destination, ruling J5), or "" for an empty or disagreeing option list.
+// destination), or "" for an empty or disagreeing option list.
 func arrangeSharedKind(d *decision.Decision) string {
 	if len(d.Options) == 0 {
 		return ""

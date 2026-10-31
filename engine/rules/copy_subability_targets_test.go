@@ -16,7 +16,7 @@ const nonElectingCopierSrc = "Name:Test Plain Copier\nTypes:Artifact\n" +
 	"A:AB$ CopySpellAbility | Cost$ 2 T Sac<1/CARDNAME> | ValidTgts$ Instant.YouCtrl,Sorcery.YouCtrl | TargetType$ Spell | SpellDescription$ Copy target instant or sorcery spell you control.\n" +
 	"Oracle:x\n"
 
-// copyChainBoard is the cr-g206 board: seat 0 holds the real Vibrant Outburst
+// copyChainBoard is the board: seat 0 holds the real Vibrant Outburst
 // ("deals 3 damage to any target. Tap up to one target creature.", a
 // SubAbility$ link with its own ValidTgts$) and a copier on the battlefield;
 // seat 1 has two Grizzly Bears. The spell is cast at the opponent tapping

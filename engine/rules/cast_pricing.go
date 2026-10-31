@@ -541,7 +541,7 @@ func faceWantsConvoked(f *cards.Face) bool {
 // census would attribute). Keeping it a value scan is the point: the
 // share-family referent can ride any spec-bearing parameter, and a key
 // whitelist here would silently miss the next one -- exactly the silent gap
-// (sharesCreatureTypeWith Convoked classifying wordUnknown) this ticket
+// (sharesCreatureTypeWith Convoked classifying wordUnknown) this
 // fixed.
 func abilityParamsUseConvoked(params map[string]string) bool {
 	for _, v := range params {

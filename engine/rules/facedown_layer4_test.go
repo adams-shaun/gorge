@@ -64,7 +64,7 @@ func facedownLayer4Engine(t *testing.T, reg *cards.Registry, seat0, seat1 []*car
 // "via castAtOpponent" against seat 1's creature; measured, that shape lands
 // the manifest under seat 1 (Reality Shift's DefinedPlayer$ TargetedController
 // is the exiled creature's controller). Targeting seat 0's OWN creature is
-// the same defect with the controller matching the brief's intent, and the
+// the same defect with the controller matching the intent, and the
 // separate scoping control below covers the seat-1 shape.
 func TestMaskwoodNexusGrantsEveryCreatureTypeToAFaceDownCreature(t *testing.T) {
 	t.Parallel()

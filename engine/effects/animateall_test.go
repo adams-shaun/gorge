@@ -132,7 +132,7 @@ func TestAnimateAllPermanentDurationIsPermanent(t *testing.T) {
 // Triggers$ is READ since the Animate Triggers$ ticket: a named body the
 // parser refuses (no SVar table here, so TrigSomething resolves to
 // nothing) gets its own loud refuse-note instead of joining the unread
-// list. RemoveKeywords$/RemoveAllAbilities$ are READ since cr-g134
+// list. RemoveKeywords$/RemoveAllAbilities$ are read
 // (animate_removekeywords_test.go), so their absence from the note is
 // pinned here too.
 func TestAnimateStaticAbilitiesRegistersCantSacrifice(t *testing.T) {

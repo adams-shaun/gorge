@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task api-prevent-damage: effects' PreventDamage primitive installs a real
+// Effects' PreventDamage primitive installs a real
 // prevention shield ("prevent the next N damage this turn", CR 615) — the
 // one-shot, rules-generated shape the printed prevention REPLACEMENT machinery
 // (R:DamageDone Prevent$ True, DB$ ReplaceDamage bodies) cannot create. The

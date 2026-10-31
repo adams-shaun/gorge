@@ -138,7 +138,7 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		e.tape.ResolutionDone()
 
 	case optAbility:
-		// Task 10: an activated ability (non-mana AB$) was chosen. Reset the
+		// An activated ability (non-mana AB$) was chosen. Reset the
 		// pass count the same way every other non-pass action does, then drive
 		// the same cost flow a cast drives (engine/rules/activate.go's
 		// beginActivation -> pendingCast -> continueCast -> commitCast).

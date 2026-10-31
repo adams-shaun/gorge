@@ -935,7 +935,7 @@ func TestConditionPlayerTurnGatesTheReduction(t *testing.T) {
 // composition requires whole-cost feasibility: generic modifiers change the
 // shared remainder just as Color$/floor modifiers do.
 // TestColorReductionAssignedToLaterHybridPip pins the CR 601.2f/601.2b rule
-// the controller ruling names (instance 2): a Color$ reduction is legally
+// this pins: a Color$ reduction is legally
 // assignable to a LATER pip, so the announcement menus must evaluate the
 // whole cost over full assignments, never each pip against the modifiers in
 // announcement order. {W/U}{W/U} under a {W} reduction with only {U} in the

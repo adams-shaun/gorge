@@ -279,22 +279,20 @@ func TestNoDecisionIsIssuedAfterGameOver(t *testing.T) {
 	}
 }
 
-// TestDestroyLethalDamageDoesNotAmplifyWhenAReplacementKeepsThePermanent is
-// the fix-round-1 regression test for the blocking finding: a MoveZone
-// replacement that keeps a lethally-damaged permanent on the battlefield
-// (a regeneration shield, "sacrifice a Clue instead", or -- as reproduced
-// here -- a straight life-gain substitute) must not make checkStateBased's
-// fixed-point loop believe something changed on every one of its
-// maxSBAPasses passes. Before the fix, destroyLethalDamage reported
-// "changed" from the MoveZone it emitted, not from whether the shield
-// actually left; two checkStateBased calls per Submit (one directly, one
-// via Advance -> step) times 32 wasted passes each meant 64 replacement
-// firings and +64 life for a single "pass" intent. After the fix, each
-// checkStateBased call attempts the destruction exactly once, sees the
-// shield is still on the battlefield, and stops: 2 firings, +2 life --
-// which is also exactly what one checkStateBased call per Submit produced
-// before this task existed at all (BASE dec046a had no pass loop to
-// exhaust in the first place).
+// TestDestroyLethalDamageDoesNotAmplifyWhenAReplacementKeepsThePermanent is a
+// regression test: a MoveZone replacement that keeps a lethally-damaged
+// permanent on the battlefield (a regeneration shield, "sacrifice a Clue
+// instead", or -- as reproduced here -- a straight life-gain substitute) must
+// not make checkStateBased's fixed-point loop believe something changed on
+// every one of its maxSBAPasses passes. Before the fix, destroyLethalDamage
+// reported "changed" from the MoveZone it emitted, not from whether the shield
+// actually left; two checkStateBased calls per Submit (one directly, one via
+// Advance -> step) times 32 wasted passes each meant 64 replacement firings and
+// +64 life for a single "pass" intent. After the fix, each checkStateBased call
+// attempts the destruction exactly once, sees the shield is still on the
+// battlefield, and stops: 2 firings, +2 life -- which is also exactly what one
+// checkStateBased call per Submit produced before this task existed at all
+// (BASE dec046a had no pass loop to exhaust in the first place).
 func TestDestroyLethalDamageDoesNotAmplifyWhenAReplacementKeepsThePermanent(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 2)
@@ -338,9 +336,9 @@ Oracle:x
 }
 
 // TestDepartureSweepDoesNotAmplifyWhenAReplacementKeepsThePermanent is the
-// fix-round-1 regression test for the second instance of finding 1,
-// updated in fix round 3 for the tighter bound T22-n's swept set achieves
-// and in fix round 4 for CR 800.4a's exile step. An eliminated player's own
+// a regression test for the eliminated player's sweep,
+// with the tighter bound its swept set achieves
+// and CR 800.4a's exile step. An eliminated player's own
 // permanent staying on the battlefield (via a replacement effect an alive
 // player's own permanent carries -- ValidCard$ on a replacement is matched
 // against the MOVING object, not scoped to the mover's controller, so an
@@ -361,7 +359,7 @@ Oracle:x
 // prior attempt: pass 1 attempts the sweep (blocked); pass 2 finds the
 // zone still non-empty and attempts it AGAIN before finally reporting no
 // change and stopping -- 2 attempts, 2 life, 6 events. Fix round 3's swept
-// set (T22-n, mirroring destroyLethalDamage's attempted from round 2)
+// set (mirroring destroyLethalDamage's attempted)
 // remembers that player 1 was already swept on pass 1, so pass 2 skips the
 // attempt entirely instead of repeating it: exactly 1 blocked attempt per
 // player per checkStateBased call. The life delta below measures that bound
@@ -399,7 +397,7 @@ Oracle:x
 	beforeLife := e.G.Players[0].Life
 	beforeEvents := len(e.L.Events)
 	// CR 800.4a emits one move per card the departing player owns (the
-	// cessation of fix round 3's shape) plus the battlefield-to-exile move
+	// cessation of that shape) plus the battlefield-to-exile move
 	// for anything it still controls, so the old fixed count of 5 no longer
 	// holds. It is still exactly determined, though, and dropping the
 	// assertion would retire the only tripwire that catches amplification in
@@ -435,7 +433,7 @@ Oracle:x
 	}
 }
 
-// TestStateBasedActionsExhaustingThePassBudgetAreReported is the fix-round-1
+// TestStateBasedActionsExhaustingThePassBudgetAreReported is the
 // regression test for the should-fix finding: maxSBAPasses exhaustion used
 // to fall out of checkStateBased's loop with no trace at all. A chain of
 // creatures, each independently lethal (1 damage on a 1-toughness body) but
@@ -491,12 +489,11 @@ func TestStateBasedActionsExhaustingThePassBudgetAreReported(t *testing.T) {
 	}
 }
 
-// TestDestructionTextDistinguishesToughnessFromLethalDamage is the
-// fix-round-1 regression test for the reviewer's note: CR 704.5f
-// (toughness <= 0) and CR 704.5g (lethal damage/deathtouch) are
-// rules-distinct -- only one of them is actually "destruction" -- and the
-// log should be able to tell them apart even though Text carries no rules
-// weight of its own.
+// TestDestructionTextDistinguishesToughnessFromLethalDamage is the a
+// regression test: CR 704.5f (toughness <= 0) and CR 704.5g (lethal
+// damage/deathtouch) are rules-distinct -- only one of them is actually
+// "destruction" -- and the log should be able to tell them apart even though
+// Text carries no rules weight of its own.
 func TestDestructionTextDistinguishesToughnessFromLethalDamage(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
@@ -532,9 +529,9 @@ func TestDestructionTextDistinguishesToughnessFromLethalDamage(t *testing.T) {
 	}
 }
 
-// TestNoPendingDecisionWithAZeroLifePlayerNotYetLost is the fix-round-2
+// TestNoPendingDecisionWithAZeroLifePlayerNotYetLost is the
 // regression test for the re-review's N1 finding: the outcome-keyed
-// termination fix-round-1 shipped (destroyLethalDamage reporting "changed"
+// termination fix (destroyLethalDamage reporting "changed"
 // only from what actually left the battlefield) can under-report when a
 // replacement effect keeps the permanent in play but its substitute effect
 // still changes SBA-relevant state -- here, draining the caster's own life
@@ -587,8 +584,8 @@ Oracle:x
 }
 
 // TestNoPendingDecisionWithAZeroLifePlayerNotYetLostViaRemovalSweep is the
-// fix-round-3 regression test: checkLoseConditions' removal sweep had the
-// identical under-report shape as destroyLethalDamage (fix round 2's N1),
+// a regression test: checkLoseConditions' removal sweep had the
+// identical under-report shape as destroyLethalDamage,
 // one loop over -- "changed" came from whether a swept player's
 // battlefield actually shrank, so a replacement that blocks the exile but
 // changes SBA-relevant state elsewhere (another player's life total) was
@@ -646,11 +643,10 @@ Oracle:x
 	}
 }
 
-// TestLethalDamageIsRetriedWhenTheReplacementsControllerIsEliminatedMidCall
-// is the fix-round-4 regression test for the re-review's N6 finding: the
-// attempted-set discipline rounds 2 and 3 introduced (one attempt per
-// object and per player per checkStateBased call) can under-COMPLETE, which
-// is the mirror image of the under-report round 2 fixed.
+// TestLethalDamageIsRetriedWhenTheReplacementsControllerIsEliminatedMidCall is
+// a regression test: the attempted-set discipline rounds 2 and 3 introduced
+// (one attempt per object and per player per checkStateBased call) can
+// under-COMPLETE, which is the mirror image of the under-report round 2 fixed.
 //
 // Whether a destruction attempt succeeds is decided by the replacement
 // effects that apply to it, and applyReplacements only ever looks at
@@ -728,12 +724,12 @@ Oracle:x
 }
 
 // TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain pins the bound
-// fix round 3 established and fix round 4's re-arm had to preserve: a
+// the budget established and its re-arm has to preserve: a
 // removal sweep that a replacement keeps blocking fires exactly ONCE per
 // checkStateBased call, no matter how many passes something else drives the
 // fixed-point loop through.
 //
-// Ruling F45 (fx1): this used to assert the literal constant 2 -- "twice per
+// This must not assert the literal constant 2 -- "twice per
 // Submit, which makes two such calls (its own, then step's before it hands
 // out the next decision)". That constant was never the invariant; it was a
 // COUNT OF CALL SITES, and it silently depended on a bug. This fixture is a
@@ -766,14 +762,13 @@ Oracle:x
 // previous one has died) that forces the loop through N passes with nothing
 // to do with the sweep at all.
 //
-// This was measured but never committed as a test in fix round 3; it is
-// committed now because fix round 4 makes a blocked attempt retryable, and
-// the whole point of keying that re-arm on the alive-player count alone is
-// that an unrelated death chain must not pay for one. Keying it on the
-// wider "some other state-based action actually succeeded" instead gives
-// 2/3/7/22/61 for these five chain lengths -- 29fa00d's own pre-round-3
-// amplification, measured by building that variant, not assumed -- so this
-// is the assertion that catches that mistake being made again.
+// This pins the behaviour, because a blocked attempt is retryable, and the
+// whole point of keying that re-arm on the alive-player count alone is that
+// an unrelated death chain must not pay for one. Keying it on the wider "some
+// other state-based action actually succeeded" instead gives 2/3/7/22/61 for
+// these five chain lengths -- 29fa00d's own pre-round-3 amplification,
+// measured by building that variant, not assumed -- so this is the assertion
+// that catches that mistake being made again.
 func TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain(t *testing.T) {
 	t.Parallel()
 	// Filled by the chain=0 run, which must come first: the per-submit
@@ -851,7 +846,7 @@ Oracle:x
 				t.Fatalf("chain=%d submit=%d: blocked sweep fired %d times, want %d "+
 					"(one per checkStateBased call, as measured at chain=0) regardless of "+
 					"chain length -- a sweep that scales with an unrelated death chain is "+
-					"the T22-h amplification returning", chain, submit, got, want[submit])
+					"the attempt amplification returning", chain, submit, got, want[submit])
 			}
 		}
 	}
@@ -862,9 +857,9 @@ Oracle:x
 // GPL-3.0 corpus's own .cards/tokenscripts -- so a live Engine built from
 // this Config has something in Game.Tokens for a TokenCreate event to mint.
 // Duplicated rather than threading a Tokens parameter through
-// newFixtureDeck itself: that helper is shared by every Task 26/29 test in
+// newFixtureDeck itself: that helper is shared by every test in
 // this package, and none of them needs Tokens, so widening its signature
-// for this file alone would touch a file Task 13 has no reason to modify.
+// for this file alone would touch a shared file.
 func newFixtureDeckWithTokens(t *testing.T, seed uint64, fixtureSrc string) (*Engine, Config, state.ObjID) {
 	t.Helper()
 	fixture := card(t, fixtureSrc)
@@ -1012,8 +1007,8 @@ func TestATokenOnTheStackIsNotPrematurelyCeased(t *testing.T) {
 }
 
 // TestCeaseDeadTokensDoesNotAmplifyWhenAReplacementBlocksTheMove is the
-// regression test for Task 13 fix round 1's tried.tokens addition (review
-// finding "minor 1"): Ward intercepts any move out of a graveyard and
+// regression test for the tried.tokens addition:
+// Ward intercepts any move out of a graveyard and
 // substitutes a 1-life gain instead, permanently keeping a dead token in
 // the graveyard rather than letting it reach ZCeased. Before tried.tokens,
 // ceaseDeadTokens had no memory of the attempt and rediscovered the same

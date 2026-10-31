@@ -33,7 +33,7 @@ func init() {
 // with no validation of its own, and Game.Zone computes
 // int(p)*numZones+int(z) and indexes a fixed-size slice without checking
 // that p names a real seat -- an out-of-range PlayerID reaches that
-// arithmetic and panics with index out of range (Ruling T18-a). Every call
+// arithmetic and panics with index out of range. Every call
 // site in this file that reads a zone to decide what to move goes through
 // this rather than g.Zone directly, mirroring count.go's own PlayerID bounds
 // check ahead of g.Players[c.Controller]. An invalid seat degrades to nil --
@@ -1086,7 +1086,7 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 
 // moveRestToBottom moves the untaken Dig window cards to the BOTTOM of
 // their owner's library, as one Secret events.LibraryOrder carrying the
-// complete reordered library (Ruling J1) -- the same single-event record
+// complete reordered library --  the same single-event record
 // rules' handleArrange emits for an answered arrange, so a replay re-derives
 // the same order either way. The emit is skipped when the move would change
 // nothing (the cards already sit on the bottom).
@@ -1218,8 +1218,8 @@ func digDestPhrase(dest state.Zone) string {
 	}
 }
 
-// effReveal backs Reveal, RevealHand and PeekAndReveal, which the brief
-// specifies as one row sharing a single Amount param (NumCards, default 1)
+// effReveal backs Reveal, RevealHand and PeekAndReveal, which are
+// one row sharing a single Amount param (NumCards, default 1)
 // and one behaviour: reveal cards without disturbing them, recorded via a
 // non-Secret Note carrying their identities so view projection stops
 // redacting them. PeekAndReveal looks at the library; Reveal and RevealHand
@@ -1271,7 +1271,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			amt = 0
 		}
 	}
-	// The may-reveal ask (task fb-3f1cc033, Delver of Secrets' peek; widened
+	// The may-reveal ask (Delver of Secrets' peek; widened
 	// to Optional$ by the round-2 review's Look$ task): the deciding player
 	// is asked whether to reveal before the Note goes out. The ask is the
 	// KChoose yes/no, answered in place via AskTape. No-host deterministically
@@ -1616,8 +1616,8 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// the NoReveal$ arm above — ask-first, then the note. The
 			// Look$+Optional$ combination keeps the reveal_optional ask ALONE:
 			// the player who just answered "yes — look" has consented to the
-			// follow-through, so no second gate (the brief's scope boundary;
-			// measured at the corpus pin: zero corpus lines combine Look$ with
+			// follow-through, so no second gate
+			// (measured at the corpus pin: zero corpus lines combine Look$ with
 			// Optional$/RevealOptional$).
 			if !optional && !random {
 				// The same Random$ re-derivation guard the NoReveal$ arm
@@ -1632,7 +1632,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// the client's only data path for hidden-zone ids in a reveal. A
 			// Text-carrying Note would need the names baked in at emit time,
 			// duplicating Describe's obj() naming; an empty Text with ids keeps
-			// the naming in one place. Ruling T23-w still passes the Note
+			// the naming in one place. view redaction still passes the Note
 			// through RedactEvents unchanged (it is non-Secret).
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
 			// The opening-hand RevealCard ability of Impatient Iguana carries
@@ -1644,7 +1644,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		if remember {
-			// RememberRevealed$ (task fb-3f1cc033): the revealed cards join
+			// RememberRevealed$ : the revealed cards join
 			// the walk's Remembered set, where a chained ConditionDefined$
 			// Remembered gate (Delver's transform) reads them. Fresh backing
 			// array: Ctx.Remembered can alias the stack object's own
@@ -1714,12 +1714,12 @@ func revealPickSelected(pool, picks []state.ObjID) []state.ObjID {
 
 // effRearrangeTopOfLibrary looks at the top NumCards of Defined$'s library
 // and poses a KArrange decision over them: the player picks the order, and
-// rules' handleArrange applies it as an events.LibraryOrder (Ruling J0/J1
-// - the one general decision shape Scry, Surveil and Dig later share).
+// rules' handleArrange applies it as an events.LibraryOrder -- the one general
+// decision shape Scry, Surveil and Dig share.
 //
 // Unlike effReveal's Note (a deliberate reveal, public to every seat), the
 // private-look record is a Secret Note: only p, the library's own owner, may
-// know what sat on top. Ruling T23-w makes a Note public by default
+// know what sat on top. Redaction makes a Note public by default
 // (view.RedactEvents' rule 3 exempts Note entirely, on the theory that a
 // Note IS the engine's "tell everyone" channel), so the one Note that must
 // stay private has to opt OUT by being Secret -- the same shape
@@ -2118,7 +2118,7 @@ func destinationPhrase(kind string) string {
 
 // effNameCard records a card-name choice. The real name is asked at cast
 // time and recorded with a Choose event before this ever resolves (plan
-// ruling R-6), so a source already carrying ChosenName is a no-op. Without
+// R-9 no-host path), so a source already carrying ChosenName is a no-op. Without
 // one -- a script that uses NameCard outside an ETB replacement -- it names
 // the first card in the controller's library, which is at least a
 // deterministic, legal name for whatever downstream sub-ability expects

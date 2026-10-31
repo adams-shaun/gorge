@@ -1,6 +1,6 @@
 package rules
 
-// Task trigcount1: the TriggerCount$ heads (SVar bodies like
+// The TriggerCount$ heads (SVar bodies like
 // TriggerCount$DamageAmount) were unimplemented, so "whenever CARDNAME deals
 // damage, you gain that much life" resolved as zero. These tests pin the
 // end-to-end fix through the real trigger machinery: a Damage event fires a
@@ -16,8 +16,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestTriggerCountDamageAmountGainsThatMuchLife is the brief's primary leaf.
-// The card is the exact shape the brief names -- a creature with "whenever
+// TestTriggerCountDamageAmountGainsThatMuchLife is the primary leaf.
+// The card is the exact shape -- a creature with "whenever
 // this deals damage to a player, you gain that much life". It is synthetic
 // because every real corpus card with this wording is not currently able to
 // fire through the engine: it either uses the unregistered DamageDoneOnce

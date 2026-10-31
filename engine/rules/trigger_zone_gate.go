@@ -22,7 +22,7 @@ import (
 // ValidCard$ Card.Self, default TriggerZones$ Battlefield) would never see
 // its own source "in" the battlefield, because by the time checkTriggers
 // runs the move has already happened and o.Zone reads Graveyard. CR 603.10's
-// full "look back in time" is not modeled, but the one case Task 20's own
+// full "look back in time" is not modeled, but the one case its own
 // ChangesZone mode needs it for is narrow and self-contained: when the event
 // under test is itself the zone change of this trigger's own source (source
 // == ev.Obj), the zone it was in immediately before (ev.From) counts as well
@@ -123,7 +123,7 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 // lists want. It scans the string by slicing comma-separated parts apart with
 // strings.Cut, which shares the backing string and allocates nothing, instead
 // of strings.Split (whose []string is a fresh allocation per call). zoneGate
-// runs from the per-event trigger walk -- the same hot path Task A2 fixed the
+// runs from the per-event trigger walk -- the same hot path as the
 // zone copy in -- so this avoids churning an allocation for every trigger on
 // every event. Parts are handed to effects.ParseZone unchanged (it trims each
 // name itself), so the result is byte-identical to the old

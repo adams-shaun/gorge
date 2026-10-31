@@ -1,4 +1,4 @@
-// cr-g101 follow-up: the ConditionDefined$ TriggeredAttackerLKICopy gate must
+// The ConditionDefined$ TriggeredAttackerLKICopy gate must
 // bind the SINGLE triggering attacker, not the whole DeclareAttackers batch.
 // A second attacker declared alongside the carrier must neither satisfy the
 // Ordeals' counter gate nor Viv Vision's power gate.

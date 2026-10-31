@@ -1,12 +1,12 @@
-// Task cli-20260923T060000Z-equip-altcost (the eqcm1 row's AlternateCost$
-// sub-shape): the K:Equip expansion dropped an equip's AlternateCost$ rider,
-// so an equip with an alternative cost offered only the printed one. These
-// leaves pin the corrected behaviour on the real corpus cards the row names:
-// Transmogrant's Crown (`K:Equip:2:::AlternateCost$ B`, an alternative MANA
-// cost), Bloodthorn Flail (`AlternateCost$ Discard<1/Card>`, a non-mana cost
-// paid through the ordinary payment stages) and Gavel of the Righteous
-// (`AlternateCost$ RemoveAnyCounter<...>`), each through the ordinary
-// offer/charge path, never copied script text.
+// Equip's AlternateCost$ ( sub-shape): the K:Equip expansion dropped an
+// equip's AlternateCost$ rider, so an equip with an alternative cost offered
+// only the printed one. These leaves pin the corrected behaviour on the real
+// corpus cards the row names: Transmogrant's Crown
+// (`K:Equip:2:::AlternateCost$ B`, an alternative MANA cost), Bloodthorn
+// Flail (`AlternateCost$ Discard<1/Card>`, a non-mana cost paid through the
+// ordinary payment stages) and Gavel of the Righteous (`AlternateCost$
+// RemoveAnyCounter<...>`), each through the ordinary offer/charge path, never
+// copied script text.
 package rules
 
 import (

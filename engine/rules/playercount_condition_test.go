@@ -2,7 +2,7 @@ package rules
 
 // The PlayerCount<group>$Condition<OP><RHS> <property> family and its
 // companions (PlayerCountHasLost$Amount, the relative-player StartingLife
-// property). Every fixture drives the REAL compiled corpus card. The brief's
+// property). Every fixture drives the REAL compiled corpus card. The
 // three carriers are the observable surface:
 //
 //   - Smuggler's Share: `PlayerCountOpponents$ConditionGE2 CardsDrawn` (the
@@ -19,7 +19,7 @@ package rules
 // (engine/rules/trigger_condition.go's `!evaluated || !holds` and
 // engine/rules/statics.go's `!evaluated` branch), so the pre-fix behaviour was
 // wrong-DEAD, not wrong-wide; these tests pin the post-fix CORRECT firing
-// (fires exactly at the threshold), which is the defect the brief named.
+// (fires exactly at the threshold), which is the defect.
 
 import (
 	"testing"

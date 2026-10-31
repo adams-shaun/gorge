@@ -88,14 +88,13 @@ func TestReduceCostFloorsAtZero(t *testing.T) {
 }
 
 // TestReduceCostAffectsActualPayment goes past option visibility (which the
-// brief's own gating covers) to the mana actually spent when the option is
-// submitted. This is not one of the brief's eight rows, but adjustedCost's
-// own doc says it computes what a spell costs, and legalActions' gate is the
-// only consumer the brief wires up; without also routing castSpell's payment
-// through adjustedCost, a reduced-cost spell would still be charged its
-// printed cost at resolution, which -- since payMana silently no-ops on an
-// unpayable cost -- means the pool holding only the reduced amount would
-// leave the spell cast for free instead of for the reduced price.
+// gating covers) to the mana actually spent when the option is submitted.
+// adjustedCost's own doc says it computes what a spell costs, and legalActions'
+// gate is the only consumer wired up; without also routing castSpell's payment
+// through adjustedCost, a reduced-cost spell would still be charged its printed
+// cost at resolution, which -- since payMana silently no-ops on an unpayable
+// cost -- means the pool holding only the reduced amount would leave the spell
+// cast for free instead of for the reduced price.
 func TestReduceCostAffectsActualPayment(t *testing.T) {
 	t.Parallel()
 	zap := card(t, "Name:Zap\nManaCost:1 R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n")
@@ -317,7 +316,7 @@ func TestActiveStaticsIsDeterministicallyOrdered(t *testing.T) {
 	}
 }
 
-// --- Fix round 1: Ruling T19b-b -- alternative-cost casting must pay the
+// --- Alternative-cost casting must pay the
 // alternative, and a failed payment must not put the spell on the stack ---
 //
 // The bug this closes: legalActions offers an alt-cost "cast" option gated
@@ -399,7 +398,7 @@ func TestUnpayableCastDoesNotReachTheStack(t *testing.T) {
 	}
 }
 
-// --- Fix round 1: Ruling T19b-c -- parseAmount bounds and sign validation ---
+// --- parseAmount bounds and sign validation ---
 //
 // Unlike mana.go's ParseCost (which checks 0 <= n <= math.MaxInt32 before
 // ever casting to int32), parseAmount cast straight to int32 with no check

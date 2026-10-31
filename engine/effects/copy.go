@@ -15,7 +15,7 @@ func init() {
 	Register("CopySpellAbility", effCopySpellAbility)
 }
 
-// effCopySpellAbility duplicates the spell named by Defined$ (Task 17). Two
+// effCopySpellAbility duplicates the spell named by Defined$. Two
 // shapes exist in the corpus:
 //
 //   - Defined$ Parent: the spell currently resolving (c.Source) — Chain

@@ -64,15 +64,15 @@ type engineCastWindows struct {
 
 	// drainAwaitsTarget is true while a decision asked from inside the trigger
 	// drain is pending, so its answer resumes the drain rather than granting
-	// priority. Task 7 sets it for a TargetMin/TargetMax-bearing triggered
+	// priority. It is set for a TargetMin/TargetMax-bearing triggered
 	// ability's own KTarget decision (pushTrigger, cleared by handleTarget);
-	// Task 18 sets it for a Miracle cast's own X/Delve/Sac decision
+	// It is also set for a Miracle cast's own X/Delve/Sac decision
 	// (castMiracle, cleared by handleChoose once the cast commits). When set,
 	// the handler for the pending decision calls resumeTriggerDrain (the same
 	// continuation handleTriggerOrder uses) instead of granting the caster
 	// priority, so a later, unrelated trigger in the same batch is still
 	// placed before any player acts. Plain scalar, so Clone copies it like
-	// every other field here. (Tasks 7, 18.)
+	// every other field here. 
 	drainAwaitsTarget bool `clone:"deep"`
 
 	// drainAwaitsModes is the CR 603.3c twin of drainAwaitsTarget: true while

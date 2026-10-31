@@ -13,7 +13,7 @@ import (
 )
 
 // trig:Exerted ("Whenever you exert a creature, ...") pinned end to end on
-// real corpus cards. Task exert1 built the attack-time exert ELECTION
+// real corpus cards. The attack-time exert ELECTION is separate
 // (S:Mode$ OptionalAttackCost, events.Exert, the untap-step skip) and the
 // static's own Trigger$ rider; this mode is the separate listener a different
 // script line carries. Vizier of the True drives the main flow: its Exerted

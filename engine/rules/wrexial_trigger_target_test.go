@@ -13,7 +13,7 @@ import (
 // `DB$ Play | TgtZone$ Graveyard | ValidTgts$ Instant.OwnedBy
 // Player.TriggeredTarget,Sorcery.OwnedBy Player.TriggeredTarget |
 // WithoutManaCost$ True ...`. Player.TriggeredTarget is the damaged player's
-// player-spec spelling; before cr-g242 the control/ownership referent
+// player-spec spelling; without its grammar the control/ownership referent
 // classifier did not admit it, so the trigger offered no target and nothing
 // was cast. This runs the real corpus script: the damaged player's Lava Spike
 // is offered, cast for free (3 damage back to them), and exiled by the

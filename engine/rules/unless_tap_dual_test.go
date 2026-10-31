@@ -11,7 +11,7 @@ import (
 )
 
 // These tests pin the unless-cost payment window against the REAL corpus cards
-// the brief names (Mana Leak/Daze/Spell Pierce/Chain Lightning) and the real
+// (Mana Leak/Daze/Spell Pierce/Chain Lightning) and the real
 // dual lands in the repo decks. The pre-fix window walked
 // windowManaUnits, which dropped every permanent with more than one free mana
 // ability -- so an untapped Volcanic Island (intrinsics {U} and {R}) could not

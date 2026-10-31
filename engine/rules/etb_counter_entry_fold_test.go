@@ -28,7 +28,7 @@ import (
 // per the licensing rule) and carries a REAL K:etbCounter line, so the real
 // engine/cards/kw_etbcounter.go expansion produces the body under test.
 
-// etbCounterEntryReader is the brief's observer: a creature that enters with
+// etbCounterEntryReader is the observer: a creature that enters with
 // two +1/+1 counters (K:etbCounter:P1P1:2) and whose ETB trigger reads its own
 // +1/+1 counters, drawing one card per counter. The log then records exactly
 // what an observer saw at entry, and the assertion is on the log, not on a
@@ -110,7 +110,7 @@ func entryLabelHas(label, want string) bool {
 }
 
 // etbCounterEntryChargeReader is a real K:etbCounter carrier whose kind
-// (CHARGE) is not one of the fixed-index table kinds, plus the brief's ETB
+// (CHARGE) is not one of the fixed-index table kinds, plus the ETB
 // observer: it draws one card per charge counter on it, so the log records
 // exactly what an ETB observer saw at entry. The historic Pairs tag could
 // not encode CHARGE, so this entry used to stay on the body path. The general

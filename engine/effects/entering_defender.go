@@ -121,7 +121,7 @@ func enteringDefenderFallback(h Host, c *Ctx, controller state.PlayerID, objects
 // resolveEnteringDefender is CR 508.4's defender for one "enters attacking"
 // effect call whose text does not name the defender (Attacking$ True,
 // TokenAttacking$ True). ok false means the creature enters but does not
-// attack (no combat defender exists for it). See the cr-g11b spec.
+// attack (no combat defender exists for it).
 func resolveEnteringDefender(h Host, c *Ctx, controller state.PlayerID, objects bool, noun string) (enteringDefender, bool) {
 	fb, ok := enteringDefenderFallback(h, c, controller, objects)
 	if !ok {

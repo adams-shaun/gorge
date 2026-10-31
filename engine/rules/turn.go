@@ -285,7 +285,7 @@ func (e *Engine) finishUntapStep(next int) bool {
 	}
 	// CR 502.3: the active player untaps their permanents as ONE turn-based
 	// action, so the untaps this step emits are ONE untapping action for the
-	// aggregate Mode$ UntapAll trigger (task cli-20261005T075020Z-05241a06):
+	// aggregate Mode$ UntapAll trigger:
 	// the shared action bracket makes it fire once for the whole step, not
 	// once per permanent. It is opened after the phase-in scan above so the
 	// PhaseOut events that scan emits are never caught by this bracket, and
@@ -407,11 +407,11 @@ func (e *Engine) finishUntapStep(next int) bool {
 //	receives priority, full stop. It is not conditioned on priority state
 //	in any way.
 //
-//	Ruling T23-x: before this, the draw lived in priorityRound, gated on
+//	The draw must not live in priorityRound, gated on
 //	`Passes == 0 && Priority == Active` -- a PROXY for "the step just
-//	began" that Task 23's own test author measured is also exactly the
+//	began" that is also exactly the
 //	state resolveTop's callers restore after every resolution (CR 117.3b --
-//	Priority{Player: e.G.Active, Amount: 0}; see the T14-e comments in
+//	Priority{Player: e.G.Active, Amount: 0}; see the comments in
 //	stack.go / legal.go). So a mandatory "whenever you draw a card" trigger
 //	that resolved during the draw step made the proxy true again, drew a
 //	SECOND card, queued a second trigger, and so on until the library ran
@@ -426,10 +426,10 @@ func (e *Engine) finishUntapStep(next int) bool {
 //	(skipFirstDrawStep), so this action is never reached for it. !Lost
 //	keeps an eliminated active player from drawing.
 //
-//	Ruling T28-b (fix round 1): the Lost guard is REACHABLE in ordinary
+//	The Lost guard is REACHABLE in ordinary
 //	play, not a defensive leftover -- an earlier draft of this comment
 //	called it "unreachable today" on the theory that an empty-library draw
-//	was the only way to become Lost before this point, and Task 22 already
+//	was the only way to become Lost before this point, and
 //	falsified that: any state-based action can eliminate the active player
 //	during their OWN turn, before their OWN draw step, for a reason that
 //	has nothing to do with drawing at all (CR 704.5a life loss is the
@@ -715,7 +715,7 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step, start ...int) 
 		// of combat step ends, not when it begins. Keeping the leaving-step
 		// boundary here covers every transition made through setStep exactly
 		// once; the former cleanup safety net would emit a duplicate reset.
-		// Ruling T21-e keeps the reset event-sourced so a log-only replay also
+		// This keeps the reset event-sourced so a log-only replay also
 		// learns that IsAttacking and BlockedBy were cleared.
 		e.emit(events.Event{Kind: events.EndCombatReset})
 		// CR 511.3: "until end of combat" control effects end with the step.
@@ -737,7 +737,7 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step, start ...int) 
 // step performs the smallest unit of automatic engine work.
 func (e *Engine) step() {
 	e.checkStateBased()
-	// The CR 903.9 commander replacement (Task m32) can leave a decision
+	// The CR 903.9 commander replacement can leave a decision
 	// pending from inside checkStateBased: a state-based action that moves a
 	// commander parks the move and asks its owner, and checkStateBased
 	// returns with that decision outstanding. The CR 704.5j legend rule
@@ -850,7 +850,7 @@ func (e *Engine) priorityRound() {
 	// pass (CR 514.3a/b).
 	if e.G.Step == state.StepUntap || (e.G.Step == state.StepCleanup && !e.cleanupWindow) {
 		if e.G.Step == state.StepCleanup {
-			// CR 514.1 (Task D1): the discard-down-to-maximum-hand-size
+			// CR 514.1: the discard-down-to-maximum-hand-size
 			// turn-based action runs FIRST, then CR 514.2. cleanupStep asks a
 			// KChoose "discard" decision when the active player's hand is
 			// over seven and returns with e.pending set; when it does, the
@@ -863,14 +863,12 @@ func (e *Engine) priorityRound() {
 			// same CR 514.3 tail as the no-discard path (finishCleanupStep).
 			//
 			// CR 514.2: cleanup removes damage and "until end of turn"
-			// effects. Wired in here by Task 21 -- Engine.EndOfTurnCleanup
-			// (layers.go) has existed since Task 19c, but nothing ever called
-			// it, so a resolved pump effect used to survive forever instead
-			// of expiring at the end of the turn it was cast in. This must
-			// run before advanceStep, not after: cleanup logically belongs to
-			// the step being left, not the one being entered, regardless of
-			// what advanceStep itself does on the way into the next one.
-			// (Ruling T23-x: this comment used to justify that by naming the
+			// effects. Engine.EndOfTurnCleanup (layers.go) runs here, so a
+			// resolved pump effect expires at the end of the turn it was cast
+			// in. This must run before advanceStep, not after: cleanup
+			// logically belongs to the step being left, not the one being
+			// entered, regardless of what advanceStep itself does on the way
+			// into the next one. (This used to be justified by naming the
 			// draw-step's own Passes-gated draw, which advanceStep's Passes
 			// reset was load-bearing for; the draw is now a turn-based action
 			// run unconditionally on entry to the step, so there is no such
@@ -890,7 +888,7 @@ func (e *Engine) priorityRound() {
 	// CR 117.5: state-based actions and triggered abilities are handled
 	// before any player receives priority.
 	//
-	// Task 27: putTriggersOnStack can now ASK -- a controller with two or
+	// putTriggersOnStack can ASK -- a controller with two or
 	// more simultaneous triggers orders them, and an optional trigger's
 	// decider says yes or no -- so it reports whether it finished. Returning
 	// here on a true is load-bearing: it stops askPriority from immediately
@@ -899,7 +897,7 @@ func (e *Engine) priorityRound() {
 	// function -- see resumeTriggerDrain's own comment for why a fresh
 	// checkStateBased has to run ahead of the resumed drain.
 	//
-	// (Ruling T23-x: this function used to also perform the draw step's own
+	// (This function does not perform the draw step's own
 	// draw here, gated on a Passes/Priority proxy for "the step just began"
 	// -- see advanceStep -- and re-entering this function mid-round used to
 	// draw a second card for exactly that reason: nothing between that draw
@@ -1060,14 +1058,13 @@ func (e *Engine) finishCleanupStep() {
 // once the queue runs dry. It is the continuation for every decision that is
 // asked from inside handle.
 //
-// The leading checkStateBased is fix round 1, review finding F1, and it is
-// what makes this a faithful continuation rather than a shortcut. Before Task
-// 27 EVERY decision was created from inside Advance -> step(), whose first
-// statement is checkStateBased() -- so a decision was never handed out with
-// state-based actions outstanding. This function runs from inside handle,
-// which Submit calls BEFORE its own tail checkStateBased, and Advance is a
-// no-op once handle has set e.pending. Without this line two things follow,
-// both reproduced:
+// The leading checkStateBased is what makes this a faithful continuation
+// rather than a shortcut. Most decisions are created from inside Advance ->
+// step(), whose first statement is checkStateBased() -- so such a decision is
+// never handed out with state-based actions outstanding. This
+// function runs from inside handle, which Submit calls BEFORE its own tail
+// checkStateBased, and Advance is a no-op once handle has set e.pending.
+// Without this line two things follow, both reproduced:
 //
 //   - CR 117.5 is violated: a creature a state-based action is about to sweep
 //     is still alive when the drain finishes, so its death trigger reaches
@@ -1080,8 +1077,7 @@ func (e *Engine) finishCleanupStep() {
 // Running it here rather than inside grantPriority keeps it off
 // priorityRound's own path, where step() has already reached the same fixed
 // point -- a second call there would give a replacement-blocked state-based
-// action a second attempt per step and change sba.go's measured firing counts
-// (Ruling T22-p).
+// action a second attempt per step and change sba.go's measured firing counts.
 //
 // This cannot recurse. checkStateBased's own tail calls
 // releasePendingDecisionOfDepartedPlayer, which does nothing unless
@@ -1109,7 +1105,7 @@ func (e *Engine) resumeTriggerDrain() {
 	// statement-reorder away from failing: swapping the release hook's
 	// `e.pending = nil` and its call to this function makes recursion run
 	// away immediately, and the failure mode is a stack overflow, i.e. a
-	// totality violation. Task 22 is this repo's standing evidence for what
+	// totality violation. This repo's standing evidence is what
 	// such an argument is worth (wrong four times out of four). One line
 	// converts it into something the compiler's own control flow enforces
 	// and no future reader has to re-derive.
@@ -1119,7 +1115,7 @@ func (e *Engine) resumeTriggerDrain() {
 	// answering player's back and overwrite the very question they were
 	// asked. TestResumeTriggerDrainIsInertWhileADecisionIsPending pins that.
 	//
-	// Task fx39 settled a competing suspicion: that the guard should be
+	// A competing suspicion was that the guard should be
 	// e.Suspended() (e.resume != nil) instead of e.pending != nil. It is
 	// NOT. The two are not the same state in principle -- a resolution can
 	// be suspended with no decision pending for a moment, and a decision
@@ -1297,7 +1293,7 @@ func (e *Engine) advanceStep() {
 		return
 	}
 	if e.G.Step == state.StepCombatDamage && e.combatRound.hasFirst && e.combatRound.firstDone && !e.combatRound.regularDone {
-		// CR 510.3/4 (Task jj-cmb F37): the between-passes priority round just
+		// CR 510.3/4: the between-passes priority round just
 		// completed, so the regular damage pass still owes before the step can
 		// advance. Running it here may suspend again on a controller
 		// damage-division decision (CR 510.1c); if it does, a decision is
@@ -1472,7 +1468,7 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		// drain flag distinguishes their continuations (engine/rules/resolution.go).
 		e.handleModes(d, in)
 	case decision.KArrange:
-		// The mid-resolution ordered-subset pick (Ruling J0): the engine's
+		// The mid-resolution ordered-subset pick : the engine's
 		// one KArrange handler applies an answered library-arranging effect
 		// (RearrangeTopOfLibrary, Ponder) -- the KArrange sibling of the
 		// KModes case above, only ever asked mid-resolution.
@@ -1487,8 +1483,8 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 
 // handleChoose routes a choose answer to whichever flow asked it. The flows
 // are data on the engine (never closures, so Clone copies them): the cast
-// flow (Task 9), a miracle offer (Task 18), an "as this enters" choice
-// (Task 12). A choose nobody is waiting for -- only reachable from a
+// flow, a miracle offer, an "as this enters" choice
+// A choose nobody is waiting for -- only reachable from a
 // hand-built decision -- is dropped with a Note and priority resumes.
 func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
@@ -1552,11 +1548,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			return
 		}
 		e.continueCast()
-		// Task 18: a Miracle cast originated inside the trigger drain (castMiracle
+		// A Miracle cast originated inside the trigger drain (castMiracle
 		// set drainAwaitsTarget when it paused on this X/Delve/Sac ask). Once the
 		// cast commits -- continueCast reached commitCast and asked nothing more,
 		// so no decision is pending -- the drain must resume through the SAME
-		// continuation Task 7's target path uses, not hand caster priority: a
+		// continuation the target path uses, not hand caster priority: a
 		// later, unrelated trigger in the same batch is still placed before any
 		// player acts, and re-entering a fresh step would run a second state-based
 		// pass. If commitCast instead asked a target, handleTarget honours the
@@ -1743,7 +1739,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// the SBA/step structure, never from inside one.
 		e.defeatedCastAnswer(chosen)
 	case chooseCleanup:
-		// Task D1 (CR 514.1): the cleanup-step discard decision was answered.
+		// CR 514.1: the cleanup-step discard decision was answered.
 		// discardCleanup moves the chosen cards hand -> graveyard, runs the
 		// CR 514.2 body, and advances the step -- the cleanup step's resume,
 		// the mirror of the cast-flow resume cases above. There is no drain
@@ -1768,7 +1764,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// kw:Echo's pay-or-sacrifice election (engine/rules/echo.go) was answered.
 		e.echoAnswer(chosen)
 	case chooseDamageDivision:
-		// Task jj-cmb (F40): the combat damage step's controller
+		// The combat damage step's controller
 		// damage-division decision (CR 510.1c) was answered.
 		// handleDamageDivision records the chosen split and either asks the
 		// next undone division or deals the pass -- the combat damage step's
@@ -1921,7 +1917,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 				e.continueCast()
 			}
 		}
-	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.
+	// Other flows add their cases here, including chooseCleanup.
 	default:
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})
 		e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})

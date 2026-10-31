@@ -1,6 +1,6 @@
 package rules
 
-// The AlternativeDecider$ Defined$ grammar (cr-g221). Jailbreak Scheme's
+// The AlternativeDecider$ Defined$ grammar. Jailbreak Scheme's
 // second Spree mode spells its decider `AlternativeDecider$ ThisTargetedOwner`
 // -- the owner of THIS ability's target, the mode's own creature -- while the
 // engine used to accept only the literal `TargetedOwner`, emit a Note and take
@@ -140,7 +140,7 @@ func TestJailbreakSchemeOwnerChoosesTop(t *testing.T) {
 // the same fix: a spelling the shared Defined$ grammar does not model names
 // nobody, so the Note stays and the primary (top) destination is taken.
 //
-// The brief's example spelling for this case was `Opponent`, but `Opponent`
+// `Opponent` is not this spelling: `Opponent`
 // is a REAL Defined$ selector (definedSpecCodes): in a two-seat game it names
 // exactly one player, so under this fix it is a legal decider and the owner
 // ask is posed. The loud fallback therefore has to be tested with a spelling

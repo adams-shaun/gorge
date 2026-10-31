@@ -1,6 +1,6 @@
 package rules
 
-// dig_exilewithcounters_test.go pins api:Dig's ExileWithCounters$ (cr-g190):
+// dig_exilewithcounters_test.go pins api:Dig's ExileWithCounters$:
 // a card a Dig moves to exile gets one counter of the named kind there
 // (CR 122.1/122.6), on both the primary arm and the DestinationZone2$ rest
 // arm, and a Dig without the key leaves the exiled card counterless. The

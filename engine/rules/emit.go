@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// emit is the engine's single mutation entry point. Task 20 inserts
+// emit is the engine's single mutation entry point. It inserts
 // replacement effects ahead of logging and trigger discovery behind it:
 // applyReplacements runs first (skipped, via applyingReplacement, while
 // another replacement's own resolution is already in flight, which is what
@@ -63,7 +63,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.pendingTriggers, e.orderedTriggers = nil, 0
 		e.endTurnRequested = true
 	}
-	// Task 15 (CR 702.16d/e): prevent protected Damage and Attach events before
+	// CR 702.16d/e: prevent protected Damage and Attach events before
 	// replacement, reporting prevention as a Note. Damage uses the published
 	// source (or e.damaging); zero means no source. This precedes planeswalker
 	// loyalty conversion, and CantPreventDamage bypasses the prevention gate.
@@ -166,16 +166,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 			Text: "aura entry withheld (CR 303.4g)"}
 	}
-	// Entry-counter staging (task agent-20260923T084704Z-b2386c25): an entry
-	// whose characteristic counters compete under non-commuting AddCounter
-	// replacements stages behind CR 616.1's order choice, BEFORE anything
-	// folds -- no observer (an ETB trigger, an SBA, a chapter queue) may see
-	// the un-replaced entry while the ask is outstanding. The pre-pass sits
-	// here, before the replacement dispatch and the whole fold tail, so a
-	// staged entry returns the same handled shape a parked replacement does
-	// and the re-drive after the answer runs the ordinary emit exactly once.
-	// A completed stage returns false and falls through: the fold below
-	// consumes it (engine/rules/entry_counters.go).
+	// Entry-counter staging: an entry whose characteristic counters compete
+	// under non-commuting AddCounter replacements stages behind CR 616.1's
+	// order choice, BEFORE anything folds -- no observer (an ETB trigger, an
+	// SBA, a chapter queue) may see the un-replaced entry while the ask is
+	// outstanding. The pre-pass sits here, before the replacement dispatch
+	// and the whole fold tail, so a staged entry returns the same handled
+	// shape a parked replacement does and the re-drive after the answer runs
+	// the ordinary emit exactly once. A completed stage returns false and
+	// falls through: the fold below consumes it
+	// (engine/rules/entry_counters.go).
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield &&
 		e.entryCounterOrderParks(ev) {
 		return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,

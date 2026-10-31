@@ -29,11 +29,11 @@ func kr1Sorcery(name, body string) string {
 
 const kr1BudgetDig = "A:SP$ Dig | Defined$ You | DigNum$ 4 | ChangeNum$ Any | ChangeValid$ Artifact | WithTotalCMC$ 4 | DestinationZone$ Hand"
 
-// TestKr1DigWithTotalCMCNarrowsEligible (was TestDigWithTotalCMCNarrowsEligible):
+// TestKernelDigWithTotalCMCNarrowsEligible (was TestDigWithTotalCMCNarrowsEligible):
 // a card whose own mana value exceeds the WithTotalCMC$ budget is never
 // offered; window [5,2,2,2] budget 4 offers exactly the three 2-MV cards,
 // each carrying its mana value, under a prompt naming the budget.
-func TestKr1DigWithTotalCMCNarrowsEligible(t *testing.T) {
+func TestKernelDigWithTotalCMCNarrowsEligible(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := kr1New(t, 101, kr1Sorcery("BudgetDig", kr1BudgetDig),
 		[]string{kr1Artifact("ArtA", 5), kr1Artifact("ArtB", 2), kr1Artifact("ArtC", 2), kr1Artifact("ArtD", 2)}, nil)
@@ -73,10 +73,10 @@ func TestKr1DigWithTotalCMCNarrowsEligible(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1DigWithTotalCMCCapsCumulative (was TestDigWithTotalCMCCapsCumulative):
+// TestKernelDigWithTotalCMCCapsCumulative (was TestDigWithTotalCMCCapsCumulative):
 // the budget is cumulative: window [2,2,2,2] budget 4 rejects a four-pick
 // and accepts a two-pick, which moves exactly those two to hand.
-func TestKr1DigWithTotalCMCCapsCumulative(t *testing.T) {
+func TestKernelDigWithTotalCMCCapsCumulative(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := kr1New(t, 102, kr1Sorcery("BudgetDig", kr1BudgetDig),
 		[]string{kr1Artifact("ArtA", 2), kr1Artifact("ArtB", 2), kr1Artifact("ArtC", 2), kr1Artifact("ArtD", 2)}, nil)
@@ -100,12 +100,12 @@ func TestKr1DigWithTotalCMCCapsCumulative(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1DigNoLooking (was TestDigNoLooking): NoLooking$ True hides the
+// TestKernelDigNoLooking (was TestDigNoLooking): NoLooking$ True hides the
 // window (no secret look, no names in prompt or options) while an ordinary
 // Dig names the cards under a secret look and Reveal$ wins over NoLooking$
 // with a public reveal of the whole window. In every case the answer moves
 // the chosen object.
-func TestKr1DigNoLooking(t *testing.T) {
+func TestKernelDigNoLooking(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name                              string
@@ -179,10 +179,10 @@ func TestKr1DigNoLooking(t *testing.T) {
 	}
 }
 
-// TestKr1DigOptionalPromptParametersAskForOptionalTake (was
+// TestKernelDigOptionalPromptParametersAskForOptionalTake (was
 // TestDigOptionalPromptParametersAskForOptionalTake): both optional-prompt
 // spellings make the take a 0..ChangeNum ask, and declining moves nothing.
-func TestKr1DigOptionalPromptParametersAskForOptionalTake(t *testing.T) {
+func TestKernelDigOptionalPromptParametersAskForOptionalTake(t *testing.T) {
 	t.Parallel()
 	for i, param := range []string{"PromptToSkipOptionalAbility$ True", "OptionalAbilityPrompt$ Would you like to put the land onto the battlefield tapped?"} {
 		param := param
@@ -213,11 +213,11 @@ func TestKr1DigOptionalPromptParametersAskForOptionalTake(t *testing.T) {
 	}
 }
 
-// TestKr1DigNumXUsesTheTriggerSvar (was TestDigNumXUsesTheTriggerSvarOnARealDig,
+// TestKernelDigNumXUsesTheTriggerSvar (was TestDigNumXUsesTheTriggerSvarOnARealDig,
 // Keldon Flamesage's shape): a triggered Dig has no paid X, so DigNum$ X with
 // SVar:X:Count$CardPower sizes the window by the source's power (2) — the
 // instant at position 2 is offered, which a zero or one-card window misses.
-func TestKr1DigNumXUsesTheTriggerSvar(t *testing.T) {
+func TestKernelDigNumXUsesTheTriggerSvar(t *testing.T) {
 	t.Parallel()
 	src := "Name:Flamer\nManaCost:R\nTypes:Creature Human Shaman\nPT:2/3\n" +
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDig | TriggerDescription$ x\n" +

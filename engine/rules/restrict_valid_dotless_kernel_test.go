@@ -24,7 +24,7 @@ import (
 // Helper), CantCastSpellFromHand (Vhal, paid by a genuine from-graveyard
 // flashback cast), and CumulativeUpkeep (Adarkar Unicorn, paying Mystic
 // Remora's real upkeep window but no ordinary payment).
-func TestKr8RestrictValidDotlessPaymentTerms(t *testing.T) {
+func TestKernelRestrictValidDotlessPaymentTerms(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
 

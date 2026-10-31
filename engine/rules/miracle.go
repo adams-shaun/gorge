@@ -1,4 +1,4 @@
-// miracle.go implements the Miracle keyword (CR 702.94), Task 18.
+// miracle.go implements the Miracle keyword (CR 702.94).
 //
 // Miracle is not a triggered ability in the T: sense -- it has no trigger
 // line to fire -- but it shares the trigger machinery's queue: when a card
@@ -32,7 +32,7 @@ import (
 // reaches exactly the same conclusion. The card is owned by ev.Player (the
 // draw moved it from that player's library to their hand, so the object's
 // Controller at this instant is also that player; ev.Player is the source of
-// truth the brief's interface names).
+// truth the interface names).
 //
 // The offer is queued as a trivial Miracle pendingTrigger. Idx/SA are zero/
 // nil (there is no T: line); the drain and decider read the Miracle flag
@@ -91,7 +91,7 @@ func (e *Engine) drawsThisTurn(p state.PlayerID) int {
 // which makes cast.go charge the printed miracle cost (KeywordParam Miracle)
 // and sets FlagMiracle on the spell.
 //
-// Because this runs inside the trigger drain, the same continuation Task 7
+// Because this runs inside the trigger drain, the same continuation
 // introduced for a trigger asking its targets applies to whatever decision
 // the cast flow pauses on: the drain stays interrupted while castMiracle's
 // own X/target ask is outstanding, and the handler that answers it

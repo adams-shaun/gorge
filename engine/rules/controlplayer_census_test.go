@@ -9,7 +9,7 @@ package rules
 // runs every validator and handler for that seat
 // (controlplayer_actor_test.go pins the behaviour on Mindslaver).
 //
-// It is a two-direction ratchet (Ruling R-20): the measured class must equal
+// It is a two-direction ratchet: the measured class must equal
 // controlRedirectClass. A new corpus card that grants control of a player
 // fails here, so whoever bumps FORGE_REF checks it reaches one of the two
 // redirects (a new delivery shape would answer as the controller and act for

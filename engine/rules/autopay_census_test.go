@@ -1813,7 +1813,7 @@ func (cz *autopayCensus) writeClasses(path string, rows []censusRow) {
 	}
 }
 
-// censusStaples is the audit brief's explicit staples list. Tokens are named
+// censusStaples is the explicit staples list. Tokens are named
 // by script stem.
 var censusStaples = []string{
 	"Chrome Mox", "Mox Diamond", "Mox Opal", "Mox Amber", "Lotus Petal", "Black Lotus", "Lion's Eye Diamond",

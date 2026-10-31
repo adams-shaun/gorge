@@ -308,7 +308,7 @@ func (e *Engine) anySetNameActive() bool {
 // agrees with the layer walk. It is the ONE seam for those literals -- cast
 // legality, cost sites, may-play, replacement, the target offer -- so a new
 // such context cannot silently miss a layer table the way one more site of
-// this ticket's class would.
+// this class would.
 func (e *Engine) withNames(sc effects.SpecContext) effects.SpecContext {
 	sc.Layers.EffectiveNames = e.renames
 	sc.Layers.DerivedTypes = e.layer4Types

@@ -7,10 +7,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestFightCorpusShapeCensus pins the Fight class by shape (cr-g18). fightPairs
+// TestFightCorpusShapeCensus pins the Fight class by shape. fightPairs
 // models exactly three shapes -- Defined$+ValidTgts$, ValidTgts$ only, and
 // Defined$ only -- and a Fight with neither is a loud no-op. The targetless
-// Defined$-only shape was a SILENT no-op before cr-g18 (it read its opponent
+// Defined$-only shape was a SILENT no-op without its own reader (it read its opponent
 // from chosen targets it never asked for), so its members are pinned by name
 // in both directions: a new targetless carrier fails until it is checked
 // against fightPairs' first-two-Defined$ pairing and listed here.

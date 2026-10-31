@@ -91,7 +91,7 @@ func findByName(e *Engine, name string, p state.PlayerID) state.ObjID {
 // parameter is the seat an enriched caller might restrict to, kept for
 // signature clarity; the engine only ever activates from the priority
 // holder, so the pending decision is the right scope. (Renamed from
-// findAbilityOption so Task 10's own findAbilityOption -- which searches
+// findAbilityOption so the other findAbilityOption -- which searches
 // the "ability" option kind by Ability index -- does not collide.)
 func findManaAbilityOption(e *Engine, obj state.ObjID, _ state.PlayerID) (decision.Option, bool) {
 	d := e.Pending()
@@ -106,7 +106,7 @@ func findManaAbilityOption(e *Engine, obj state.ObjID, _ state.PlayerID) (decisi
 	return decision.Option{}, false
 }
 
-// TestEtbCounterUsesTheChosenX pins kw:etbCounter (Task 12): the replacement
+// TestEtbCounterUsesTheChosenX pins kw:etbCounter: the replacement
 // that "enters with N counters, N = {X} paid" reads the cast-time X off the
 // moving object (replacement.go's Ctx.X), not zero. X=3 -> 3/3 on the
 // battlefield; X=0 -> a 0/0 that dies to state-based actions.

@@ -1,6 +1,6 @@
 package rules
 
-// cr-g229 review round: an Effect copies the host's chosen card name at
+// An Effect copies the host's chosen card name at
 // REGISTRATION (Forge's EffectEffect copies the named card onto the effect
 // card it creates), so a chain's `DB$ Cleanup | ClearNamedCard$ True` that
 // follows it must not retract the name the effect already captured. The

@@ -514,7 +514,7 @@ func TestMultiPlayerSurveilAsksTheFirstOptionalCarrier(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestEnhancedSurveillanceWithRealConsiderLooksAtThree is the brief's corpus
+// TestEnhancedSurveillanceWithRealConsiderLooksAtThree is the corpus
 // leaf end to end on REAL cards only: the corpus Enhanced Surveillance static
 // and the corpus Consider (`SP$ Surveil | Amount$ 1 | SubAbility$ DBDraw`)
 // as the Surveil 1 source. Accepting the election raises the look to three

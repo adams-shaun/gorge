@@ -1,6 +1,6 @@
 package rules
 
-// Task diffcount1 end-to-end pin on the real corpus carrier: Eris, Roar of
+// End-to-end pin on the real corpus carrier: Eris, Roar of
 // the Storm carries
 //   S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ X | EffectZone$ All ...
 //   SVar:X:Count$ValidGraveyard Instant.YouOwn,Sorcery.YouOwn$DifferentCardManaCost/Times.2

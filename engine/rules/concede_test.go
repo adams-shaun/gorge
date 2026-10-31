@@ -249,7 +249,7 @@ func TestConcedeInFourSeatsLeavesTheRestPlayingOn(t *testing.T) {
 		if d.Player == 0 {
 			t.Fatalf("the conceded seat was asked again: %+v", d)
 		}
-		// CR 514.1 (Task D1): a cleanup discard is a real decision a living
+		// CR 514.1: a cleanup discard is a real decision a living
 		// active player answers now. It is not a priority decision, has no
 		// "concede"/"pass" option, and is never addressed to a conceded seat
 		// (seat 0 never becomes active), so answer it naively (first-Max) and

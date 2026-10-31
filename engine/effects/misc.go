@@ -310,12 +310,11 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 // object mid-match (a copy of a spell or ability already on the stack), and
 // every state mutation in this engine goes through events.Apply -- there is
 // no Apply case yet that mints an ID and decides how a copy's Card/FaceIdx/
-// Ability/Targets carry over. Token had the identical shape (see the Task
-// 18 report for the original analysis of both) and closed it in Task 13 via
+// Ability/Targets carry over. Token has the identical shape and closes it via
 // events.TokenCreate, whose Apply case mints the new object from
 // Game.Tokens; see token.go. CopySpellAbility's own object comes from
 // wherever it is on the stack already, not a registry, so it needs its own
-// event kind (StackCopy exists as of Task 12) wired up rather than reusing
+// event kind (StackCopy) wired up rather than reusing
 // TokenCreate's shape verbatim. Registering it as a Note-only stub would
 // make Supported()/Coverage claim a card is playable when it cannot
 // actually do what its text says. Left unregistered, Resolve's existing

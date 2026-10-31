@@ -86,7 +86,7 @@ func crossIntoBeginCombat(t *testing.T, e *Engine) {
 	passUntilStackEmpty(t, e, 20)
 }
 
-// TestTerritorialHellkiteChoosesAndBindsAttackDefender is the brief's leaf:
+// TestTerritorialHellkiteChoosesAndBindsAttackDefender:
 // with two un-remembered opponents the random pick is a real choice (one of
 // seats 1/2), the chosen player is recorded on the source, and the
 // declare-attackers offer list contains ONLY that defender for the dragon,

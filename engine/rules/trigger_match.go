@@ -32,9 +32,9 @@ import (
 // pendingTrigger is a matched trigger waiting to be placed on the stack.
 //
 // Idx is Source's own Face().Triggers index for the matched T: line. SA is
-// kept alongside it (the brief's own interface names both Source and SA)
+// kept alongside it (the interface names both Source and SA)
 // even though putTriggersOnStack ends up re-deriving the ability from
-// Source+Idx rather than using SA directly: Ruling T20-a means the eventual
+// Source+Idx rather than using SA directly: the eventual
 // stack object is created inside events.Apply, which cannot carry a raw
 // *cards.SA pointer through the log -- only data (an ObjID and a small
 // index) that lets Apply find the same *cards.SA a live engine already
@@ -52,7 +52,7 @@ type pendingTrigger struct {
 	// moves onto the stack object at TriggerPush.
 	sourceCharLKI      sourceCharSnapshot
 	sourceCharLKIValid bool
-	// Miracle marks a keyword offer (Task 18) rather than a matched T: line: a
+	// Miracle marks a keyword offer rather than a matched T: line: a
 	// Miracle drawing queued with Idx/SA unset, which the drain treats as an
 	// optional trigger whose decider is the owner and routes a yes through
 	// castMiracle (miracle.go) instead of minting a triggered-ability stack
@@ -456,7 +456,7 @@ type combatFires struct {
 }
 
 // actionTriggerModes are the event-trigger modes the sacrifice/discard/tap/
-// crime/attack-declaration ticket registered. The trigger-level parameters
+// crime/attack-declaration change registered. The trigger-level parameters
 // only they honour -- PlayerTurn$ and a CheckDefinedPlayer$ predicate this
 // build cannot evaluate failing closed -- are scoped to these modes, so no
 // trigger of another mode that fired before stops firing or fires less
@@ -542,7 +542,7 @@ var actionTriggerModes = map[string]bool{
 	"Attached": true,
 	// LifeGained joins them for the same reason: it is an event mode
 	// registered from the start (trigmatch.lifeGainedMatches over events.LifeChange,
-	// the api:RemoveCounter ticket's Prize Pig pin), so the trigger-level
+	// the api:RemoveCounter Prize Pig pin), so the trigger-level
 	// parameters Forge scopes to every event mode -- PlayerTurn$ (5 corpus
 	// lines: Vampire Scrivener, Wax//Wane Witness, Moonstone Harbinger,
 	// Cat Collector), ActivationLimit$ (2 lines) and an unevaluable
@@ -552,7 +552,7 @@ var actionTriggerModes = map[string]bool{
 	// once-per-turn latch trigmatch.lifeLostMatches implements without the map.
 	// LifeGained joins them for the same reason: it is an event mode
 	// registered from the start (trigmatch.lifeGainedMatches over events.LifeChange,
-	// the api:RemoveCounter ticket's Prize Pig pin), so the trigger-level
+	// the api:RemoveCounter Prize Pig pin), so the trigger-level
 	// parameters Forge scopes to every event mode -- PlayerTurn$ (5 corpus
 	// lines: Vampire Scrivener, Wax//Wane Witness, Moonstone Harbinger,
 	// Cat Collector), ActivationLimit$ (2 lines) and an unevaluable
@@ -1225,7 +1225,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		}
 		f := o.Face()
 		if f == nil {
-			// Ruling F3: an ability or token object has no Face and
+			// An ability or token object has no Face and
 			// therefore no printed Triggers to check -- only real cards
 			// carry triggered abilities.
 			return
@@ -2521,7 +2521,7 @@ func (e *Engine) closeZoneBatch() {
 // actually attacking, the same value a two-player game always produced.
 //
 // effects.context.go's Defined already recognises Defined$
-// TriggeredDefendingPlayer/TriggeredPlayer (Task 5's playersOf(Remembered),
+// TriggeredDefendingPlayer/TriggeredPlayer (playersOf(Remembered),
 // merged after this task started). The trailing entry only matters once it
 // survives onto the stack, which needed FL-41's fix: pushTrigger
 // (trigger_queue.go) could not just write tgt.Obj for this entry into the
@@ -2996,14 +2996,14 @@ func init() {
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
 		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblocked", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll", "trig:CounterAddedAll", "trig:CounterTypeAddedAll",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana", "trig:Untaps",
-		// Aggregate tap trigger modes (task cli-20261005T075020Z-05241a06),
-		// matched by trigmatch.tapAllMatches/untapAllMatches off the ordinary
-		// Tap/Untap events, batched once per tapping/untapping action.
+		// Aggregate tap trigger modes, matched by
+		// trigmatch.tapAllMatches/untapAllMatches off the ordinary Tap/Untap
+		// events, batched once per tapping/untapping action.
 		"trig:TapAll", "trig:UntapAll",
 		"trig:ClassLevelGained", "trig:BecomeMonstrous",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:DamageAll",
-		// ExcessDamageAll (agent-20261005T061534Z-7ace93d1): dispatched by the
+		// ExcessDamageAll: dispatched by the
 		// aggregate damage-batch matcher; declaring support keeps real card
 		// carriers eligible for deck validation and coverage.
 		"trig:ExcessDamageAll", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
@@ -3012,12 +3012,11 @@ func init() {
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated", "trig:SearchedLibrary",
 		"trig:Exploited",
-		// trig:TurnFaceUp (task cli-20260924T031747Z-6d0658fc): "When
-		// CARDNAME is turned face up" (CR 702.36e for morph/megamorph,
-		// CR 708.6 for manifest/cloak; Master of Pearls, Kheru
-		// Spellsnatcher and the mode's 125 corpus carriers). Matched by
-		// trigmatch.turnFaceUpMatches (engine/rules/trigmatch/faceup.go) off the
-		// events.TurnFaceUp marker the morph-family special action and
+		// trig:TurnFaceUp: "When CARDNAME is turned face up" (CR 702.36e for
+		// morph/megamorph, CR 708.6 for manifest/cloak; Master of Pearls,
+		// Kheru Spellsnatcher and the mode's 125 corpus carriers). Matched by
+		// trigmatch.turnFaceUpMatches (engine/rules/trigmatch/faceup.go) off
+		// the events.TurnFaceUp marker the morph-family special action and
 		// effSetState's Mode$ TurnFaceUp arm emit; proved by
 		// engine/rules/turnup_replacement_test.go's
 		// TestMasterOfPearlsTurnFaceUpSelfTriggerFiresOnce.
@@ -3050,7 +3049,7 @@ func init() {
 		// TestCR701RingTemptsYouCallOfTheRingUpkeep).
 		"trig:DamagePreventedOnce", "trig:RingTemptsYou",
 		"repl:Moved",
-		// Task 16 keyword triggers, expanded by engine/cards/keywords.go into ordinary
+		// Keyword triggers, expanded by engine/cards/keywords.go into ordinary
 		// ChangesZone / Attacks / SpellCast triggers routed through the modes
 		// above: Undying and Evolve are ChangesZone triggers, Exalted is
 		// (Alone$) Attacks, Prowess is SpellCast.
@@ -3085,9 +3084,9 @@ func init() {
 		// here so the coverage walk stops naming kw:Firebending as a gap now
 		// that the expansion and the granted walk supply the whole rule.
 		"kw:Firebending",
-		// Task 17: Storm's expansion (engine/cards/keywords.go) is a SpellCast
+		// Storm's expansion (engine/cards/keywords.go) is a SpellCast
 		// trigger whose effect is CopySpellAbility -- the expansion existed
-		// since Task 11; registering the keyword here completes its
+		// already; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
 		"kw:Storm", "kw:Ward", "kw:Annihilator", "kw:Mobilize",
 		// Afflict's expansion (engine/cards/keywords.go) is a become-blocked trigger
@@ -3117,7 +3116,7 @@ func init() {
 		// by effects/exploit.go.
 		"kw:Exploit",
 		// Mass effects, extra turns and new-set mechanics (the
-		// inbox-engine-gap-mass-turn-new-mechanics ticket):
+		// mass-turn mechanics):
 		//   - trig:UnlockDoor: a Room's unlock trigger (engine/rules/rooms.go),
 		//     queued off the DoorUnlock event the unlock activation emits.
 		//   - kw:Station: the Spacecraft station activation (engine/rules/station.go).
@@ -3147,7 +3146,7 @@ func init() {
 		// filter-grammar shape, not this keyword -- so the registration
 		// asserts the corpus shape is understood, not that the second-commander
 		// seating exists (the deck.IsPartnerPair extension is a separate
-		// ticket; the Partner precedent above is the same class).
+		// change; the Partner precedent above is the same class).
 		"kw:Doctor's companion",
 		// kw:Companion is the deck-construction keyword (CR 702.139), in the
 		// same registration class as Partner above. This asserts the corpus

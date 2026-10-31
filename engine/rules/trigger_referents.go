@@ -358,13 +358,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerEnlisted = ev.IDs[0]
 		}
 	case cards.TriggerBecomeMonstrous:
-		// The monstrous mark's roles (task agent-20260919T190014Z):
-		// TriggerCard is the creature that just became monstrous (ev.Obj, the
-		// trigger's own source for ValidCard$ Card.Self, so
-		// TriggeredCard/TriggeredCardLKICopy resolve against it) and
-		// TriggerAmount is the monstrosity COUNT the mark event carried --
-		// what Hydra Broodmaster's `SVar:MonstrosityX:TriggerCount$Amount` and
-		// Vitality Hunter's `SVar:MaxTgts:TriggerCount$Amount` read back.
+		// The monstrous mark's roles: TriggerCard is the creature that just
+		// became monstrous (ev.Obj, the trigger's own source for ValidCard$
+		// Card.Self, so TriggeredCard/TriggeredCardLKICopy resolve against
+		// it) and TriggerAmount is the monstrosity COUNT the mark event
+		// carried -- what Hydra Broodmaster's
+		// `SVar:MonstrosityX:TriggerCount$Amount` and Vitality Hunter's
+		// `SVar:MaxTgts:TriggerCount$Amount` read back.
 		c.TriggerCard = ev.Obj
 		c.TriggerSource = ev.Obj
 		c.TriggerAmount = ev.Amount

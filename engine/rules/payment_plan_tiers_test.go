@@ -175,7 +175,7 @@ func TestPaymentPlanNormalSourceRejectsRider(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Proofs ported from the 2026-09-26 audit branches (see the brief's Evidence
+// Proofs ported from an audit (see the Evidence
 // section), converted to plain assertions of the tiered contract.
 
 // tierPlanUses reports whether a plan outcome's witness activates id.

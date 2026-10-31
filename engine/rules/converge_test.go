@@ -39,7 +39,7 @@ const radiantFlamesSrc = "Name:Radiant Flames\nManaCost:2 R\nTypes:Sorcery\n" +
 	"AI:RemoveDeck:All\n" +
 	"Oracle:Converge — Radiant Flames deals X damage to each creature, where X is the number of colors of mana spent to cast this spell.\n"
 
-// TestConvergeCrawlerEntersWithColourCount is the brief's own probe on the
+// TestConvergeCrawlerEntersWithColourCount is the probe on the
 // real corpus carrier: {4} paid with two colours enters with exactly 2
 // +1/+1 counters, the SAME cast shape paid with one colour enters with
 // exactly 1. Two different values on purpose -- the defect is a silent

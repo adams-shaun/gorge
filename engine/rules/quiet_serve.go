@@ -22,9 +22,9 @@ import (
 
 // quietOff disables the quiet serve. It follows the prio-memo flag pattern
 // inverted: the serve is ON only when GORGE_QUIET_SKIP=1 is set. The Q2
-// default flip is NOT landed: the az-row pair measured the serve net-negative
-// (see the ticket report), so the path stays opt-in until the proof cost falls
-// (Q4). The design's §6 Q2 flip is conditional on the az-row gate passing.
+// default flip is NOT landed: the az-row pair measured the serve
+// net-negative, so the path stays opt-in until the proof cost falls (Q4). The
+// design's §6 Q2 flip is conditional on the az-row gate passing.
 var quietOff = os.Getenv("GORGE_QUIET_SKIP") != "1"
 
 // quietServed counts the windows priorityOptions served from the proof

@@ -56,13 +56,13 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	}
 	ctx := effects.NewCtxPtr(0, p, effects.CtxInit{})
 	// A trigger's dynamic target bound reading the causing event (Vitality
-	// Hunter's `TargetMax$ MaxTgts` with `SVar:MaxTgts:TriggerCount$Amount`,
-	// task agent-20260919T190014Z): the trigger context recorded for this
-	// stack wrapper carries TriggerAmount, so the bound reads the mark/damage
-	// magnitude instead of degrading to the clamp's 1. Measured corpus: the
-	// ONLY two TargetMax$ TriggerCount$Amount shapes (one inline, one behind
-	// the MaxTgts SVar name) are Vitality Hunter's; every other dynamic bound
-	// names a Count$ body targetBoundCtx's SVar table already resolves.
+	// Hunter's `TargetMax$ MaxTgts` with `SVar:MaxTgts:TriggerCount$Amount`):
+	// the trigger context recorded for this stack wrapper carries
+	// TriggerAmount, so the bound reads the mark/damage magnitude instead of
+	// degrading to the clamp's 1. Measured corpus: the ONLY two TargetMax$
+	// TriggerCount$Amount shapes (one inline, one behind the MaxTgts SVar
+	// name) are Vitality Hunter's; every other dynamic bound names a Count$
+	// body targetBoundCtx's SVar table already resolves.
 	if tc, ok := e.triggerContexts[source]; ok {
 		ctx.TriggerContext = tc
 		// The trigger's own Remembered and fire-time LKI are bound here for
@@ -275,7 +275,7 @@ func targetZones(sa *cards.SA) []state.Zone {
 		// the default battlefield census offered no candidate and withheld the
 		// cast entirely. The inZone<X> words in the comma-split ValidTgts$
 		// alternatives name the census zones directly. Deliberately narrow, the
-		// same shape as the fb-20260916 Origin$ precedent below: Attach-only,
+		// same shape as the Origin$ precedent below: Attach-only,
 		// inZone-words-only -- every other API keeps its existing zone
 		// resolution, so the ~37 corpus specs carrying non-battlefield inZone<X>
 		// outside this API are untouched. An explicit Origin$ outranks this
@@ -605,19 +605,18 @@ func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
 }
 
 // protectionSource resolves the object whose characteristics decide whether
-// "protection from X" filters out a candidate target or a Damage recipient
-// (Task 15 fix round 1, Critical C2): for an ability stack object -- the
-// top-of-stack wrapper events.Apply mints via AbilityPush/TriggerPush with no
-// Face -- that is the Source permanent that carries the ability, because
-// effects.ColorsOf and the Face-type reads in sourceHasQuality both return
-// nothing for a Face-less object (CR 606.3: targeting checks the spell or
-// ability's source, and for an activated or triggered ability that source is
-// the permanent that granted it). For everything else -- a spell's own stack
-// object, which IS the card and so carries a Face, or a plain permanent -- it
-// is the object itself. This is the single definition both askTarget (which
-// in the same round discovered it was passing the Face-less ability object)
-// and legalTargets consult, so the two sites always agree on what "the
-// source" is.
+// "protection from X" filters out a candidate target or a Damage recipient.
+// For an ability stack object -- the top-of-stack wrapper events.Apply mints
+// via AbilityPush/TriggerPush with no Face -- that is the Source permanent
+// that carries the ability, because effects.ColorsOf and the Face-type reads
+// in sourceHasQuality both return nothing for a Face-less object (CR 606.3:
+// targeting checks the spell or ability's source, and for an activated or
+// triggered ability that source is the permanent that granted it). For
+// everything else -- a spell's own stack object, which IS the card and so
+// carries a Face, or a plain permanent -- it is the object itself. This is
+// the single definition both askTarget (which in the same round discovered it
+// was passing the Face-less ability object) and legalTargets consult, so the
+// two sites always agree on what "the source" is.
 func (e *Engine) protectionSource(source state.ObjID) state.ObjID {
 	if o := e.G.Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
 		return o.Source

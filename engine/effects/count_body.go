@@ -434,7 +434,7 @@ const (
 	evalCountBodyCostIsPrime
 	evalCountBodyCostImprintedSize
 	evalCountBodyCostFinishedEndOfTurnsThisTurn
-	// The two scalar heads the part-2 ticket landed: the reflexive trigger's
+	// The two scalar heads: the reflexive trigger's
 	// remembered Integer and the "last state battlefield, else current"
 	// battlefield count.
 	evalCountBodyCostTriggerRememberAmount

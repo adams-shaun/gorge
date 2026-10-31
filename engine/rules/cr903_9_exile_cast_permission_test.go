@@ -1,4 +1,4 @@
-// cr-g49: CR 903.9a's command-zone ask for a commander that went to exile
+// CR 903.9a's command-zone ask for a commander that went to exile
 // with a standing cast-from-exile permission (an Adventure's CR 715.3d
 // return, a foretold card's CR 702.143a later cast, a plotted card's CR
 // 702.170 free cast). Moving it to the command zone ends that permission

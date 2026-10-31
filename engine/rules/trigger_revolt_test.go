@@ -13,7 +13,7 @@ package rules
 // spellings answer identically.
 //
 // The fixtures drive the REAL compiled corpus cards (never a re-written
-// copy): Aid from the Cowl (the Phase end-step carrier the brief names),
+// copy): Aid from the Cowl (the Phase end-step carrier),
 // Decommission (the corpus's only bare Condition$ Revolt line) and Lifecraft
 // Cavalry (the Count$Revolt.1.0 etbCounter gate). Aid's own Dig body carries
 // the separately-ledgered primary LibraryPosition$ approximation -- firing,
@@ -41,7 +41,7 @@ func leaveForRevolt(t *testing.T, e *Engine, id state.ObjID) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
 }
 
-// TestAidFromTheCowlRevoltGatesTheEndStepTrigger is the brief's named card:
+// TestAidFromTheCowlRevoltGatesTheEndStepTrigger is the named card:
 // the end-step trigger queues only after a permanent seat 0 controlled left
 // the battlefield this turn, and the window resets at the next TurnChange.
 func TestAidFromTheCowlRevoltGatesTheEndStepTrigger(t *testing.T) {

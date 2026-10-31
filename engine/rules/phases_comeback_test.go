@@ -37,7 +37,7 @@ func comebackEffectRegistrations(e *Engine, source state.ObjID) int {
 	return n
 }
 
-// TestOutOfTimeComebackPhasesCreaturesBackIn is the brief's Out of Time
+// TestOutOfTimeComebackPhasesCreaturesBackIn is the Out of Time
 // acceptance: it enters, untaps all creatures then phases them out, is
 // genuinely hidden mid-flight, carries a TIME counter per phased-out creature
 // from its own Count$RememberedSize, holds WontPhaseInNormal through its

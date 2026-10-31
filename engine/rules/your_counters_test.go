@@ -39,8 +39,8 @@ func yourCountersCard(t *testing.T, name string) *cards.Card {
 }
 
 // resolveSVarOf resolves one named SVar body from a face; a nil result means
-// the brief's premise about that SVar is stale. DB$/T: bodies resolve here;
-// bare Count$ bodies go through svarBodyOf instead.
+// the SVar did not resolve. DB$/T: bodies resolve here; bare Count$ bodies go
+// through svarBodyOf instead.
 func resolveSVarOf(t *testing.T, f *cards.Face, name string) *cards.SA {
 	t.Helper()
 	sa := cards.ResolveSVar(f.SVars, name)

@@ -1,4 +1,4 @@
-// cr-g101: ConditionDefined$ TriggeredAttackerLKICopy must resolve to the
+// ConditionDefined$ TriggeredAttackerLKICopy must resolve to the
 // attacking creature an Attacks trigger captured, so the Theros Ordeals
 // sacrifice themselves at three +1/+1 counters and Viv Vision draws with
 // power 4. Both drive the real corpus cards' own trigger chains.

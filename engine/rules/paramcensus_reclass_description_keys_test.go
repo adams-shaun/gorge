@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// cr-g193: census-only reclassification. Seven stack-description,
+// Census-only reclassification. Seven stack-description,
 // dialog-title and AI-hint keys are in ignoredParamKeys because every Forge
 // reader is text or AI only (see the entries' cites). The ignore is
 // key-global, so it is only sound while no gorge primitive reads them.

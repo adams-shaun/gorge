@@ -52,11 +52,11 @@ type Derived = effects.Chars
 // the clock themselves; the layer tests that DO care set Timestamp
 // explicitly and bypass this.
 //
-// Ruling T19-a: the clock advances only through a logged ClockTick event,
+// The clock advances only through a logged ClockTick event,
 // never a direct write to e.G.Clock. Object.Timestamp (see events.Move) is
 // stamped from this same clock whenever a permanent enters the battlefield,
 // so a direct write here would leave a game reconstructed from the log alone
-// off by one on every later Timestamp — the same bug class Ruling T11-a
+// off by one on every later Timestamp — the same bug class
 // already fixed for Passes/Priority.
 func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	if ce.SourceIncarnation == 0 && strings.EqualFold(strings.TrimSpace(ce.Affects), "Card.Self") {

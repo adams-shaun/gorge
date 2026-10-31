@@ -274,7 +274,7 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 			return true
 		}
 	}
-	// The Effect-registered CantBlock restrictions (cr-g156): a
+	// The Effect-registered CantBlock restrictions: a
 	// `DB$ Effect | StaticAbilities$ KWPump` whose SVar body is
 	// `Mode$ CantBlock | ValidCard$ Creature.OppCtrl` -- Cosmotronic Wave's
 	// "creatures your opponents control can't block this turn", the same

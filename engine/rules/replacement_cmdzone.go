@@ -35,7 +35,7 @@ func init() {
 	// shape plus the CantGainLife static's replacement arm) and
 	// repl:LifeReduced (the ReplaceCount$Amount/Twice shape), both applied by
 	// applyLifeReplacements. repl:DamageDone and repl:Counter are this
-	// ticket's own additions, matched by replacementMatches's DamageDone case
+	// additions, matched by replacementMatches's DamageDone case
 	// and CounterAllowed respectively.
 	// kw:Bloodthirst (CR 702.54) is implemented by this file's
 	// bloodthirstEntryMatch: the keyword line (printed K:Bloodthirst:<N> or a
@@ -63,7 +63,7 @@ func init() {
 		// engine/rules/cantlose.go; this registration is what makes the coverage
 		// ratchet see the heads as supported.
 		"repl:GameLoss", "repl:GameWin",
-		// repl:Draw / repl:DrawCards (task cli-20261004T233421Z-ff9b2344) are
+		// repl:Draw / repl:DrawCards are
 		// the draw-replacement class (Bard King of Dale's "draw two instead",
 		// Notion Thief's redirect, Breathstealer's Crypt's unless-pay, and the
 		// DrawCards multi-card alias Quantum Riddler and Alms Collector read as
@@ -75,7 +75,7 @@ func init() {
 		// repl:Draw's events.Draw match (replacementEventNameMatches's one
 		// alias), so both names register together.
 		"repl:Draw", "repl:DrawCards", "repl:Mill",
-		// repl:TurnFaceUp (task cli-20260924T031747Z-6d0658fc) is the "as this
+		// repl:TurnFaceUp is the "as this
 		// is turned face up" class (Hooded Hydra's five +1/+1 counters, Karlov
 		// Watchdog's CantHappen, Gift of Doom's attach), matched by
 		// replacementMatches's TurnFaceUp case and applied by
@@ -91,7 +91,7 @@ func init() {
 }
 
 // cmdZoneMove is one commander command-zone ask. For CR 903.9b it is a parked
-// zone change (Task m32): the MoveZone event a commander is about to undergo,
+// zone change: the MoveZone event a commander is about to undergo,
 // deferred until its owner decides whether to put it into the command zone
 // instead. The answer re-emits the park as a real MoveZone -- to ZCommand on
 // an accept, to the parked destination verbatim on a decline -- so the event

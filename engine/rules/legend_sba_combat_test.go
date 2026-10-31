@@ -1,11 +1,10 @@
-// Ticket cli-20260922T225140Z-68ca4d95, fix round 2: the CR 704.5j legend
-// choice is a STATE-BASED-action decision, and the SBA pass can be reached
-// from inside a combat-damage tail that then poses its own priority round.
-// Before this fix that tail overwrote the legend ask and -- because the SBA
-// pass halts while a batch is parked -- no state-based action ever applied
-// again for the rest of the match. These tests pin the two halves: the
-// combat-damage tails DEFER to the ask, and a parked batch whose ask is lost
-// re-poses it rather than wedging.
+// The CR 704.5j legend choice is a STATE-BASED-action decision, and the SBA
+// pass can be reached from inside a combat-damage tail that then poses its
+// own priority round. Before this fix that tail overwrote the legend ask and
+// -- because the SBA pass halts while a batch is parked -- no state-based
+// action ever applied again for the rest of the match. These tests pin the
+// two halves: the combat-damage tails DEFER to the ask, and a parked batch
+// whose ask is lost re-poses it rather than wedging.
 package rules
 
 import (

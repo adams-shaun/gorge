@@ -29,11 +29,10 @@ func cardOwnerScopeFixture(t *testing.T) (*Engine, state.ObjID) {
 
 // TestCantPutCounterValidPlayerCardOwnerStaysSourceLess pins the SCOPE of the
 // Player.CardOwner resolution: only CantAttack's Target$ walk passes the
-// restriction source (the brief's scope; the review finding that reverted the
-// PutCounterBlocked expansion). A CantPutCounter ValidPlayer$ Player.CardOwner
-// selector with the source object's OWN owner as the affected player must
-// behave exactly as it did before the CardOwner resolution existed — fail
-// closed, block nobody.
+// restriction source (not the PutCounterBlocked expansion). A CantPutCounter
+// ValidPlayer$ Player.CardOwner selector with the source object's OWN owner
+// as the affected player must behave exactly as it did before the CardOwner
+// resolution existed — fail closed, block nobody.
 func TestCantPutCounterValidPlayerCardOwnerStaysSourceLess(t *testing.T) {
 	t.Parallel()
 	e, id := cardOwnerScopeFixture(t)

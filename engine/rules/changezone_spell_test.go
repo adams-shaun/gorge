@@ -114,7 +114,7 @@ func chooseObj(t *testing.T, e *Engine, kind string, obj state.ObjID) {
 // countered spell, proving the answer decoupled from Ctx.Targets -- moves to
 // the library on "yes", and the may-shuffle election appears and is honoured
 // on both branches: "no" leaves the card in the graveyard (the "may" covers
-// the whole shuffle-in, cr-g09).
+// the whole shuffle-in).
 func TestPutAwaySubAsksGraveyardTarget(t *testing.T) {
 	t.Parallel()
 	for _, accept := range []bool{true, false} {

@@ -491,7 +491,7 @@ func MillCostTotal(parts []CostPart) (int64, bool) {
 
 // AddClampedGeneric adds n to the int32 generic count, saturating at
 // math.MaxInt32 on top and refusing to go below zero, so no accumulation of
-// numeric tokens (nor a WithX fold) can ever wrap Generic negative. Task 20.
+// numeric tokens (nor a WithX fold) can ever wrap Generic negative.
 func AddClampedGeneric(v int32, n int64) int32 {
 	total := int64(v) + n
 	if total > math.MaxInt32 {

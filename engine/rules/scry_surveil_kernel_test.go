@@ -1,7 +1,7 @@
 package rules
 
 // Kernel-era restorations of scry_surveil_test.go's legacy-only leaves: the
-// Scry arrange decision's shape, and the Ruling J5 mixed-destination degrade.
+// Scry arrange decision's shape, and the mixed-destination degrade.
 
 import (
 	"testing"
@@ -13,7 +13,7 @@ import (
 // Resolving a Scry 3 poses a KArrange decision with Min 0, Max 3, one
 // "bottom" option per top card in top-down order, for the library owner,
 // with the spell still resolving on the stack (a posed tape resolution).
-func TestKr8ScryPosesArrange(t *testing.T) {
+func TestKernelScryPosesArrange(t *testing.T) {
 	e, _, id := scryFixture(t, 201)
 	d := scryDecision(t, e, id)
 	if d.Min != 0 || d.Max != 3 {
@@ -44,12 +44,12 @@ func TestKr8ScryPosesArrange(t *testing.T) {
 	}
 }
 
-// Ruling J5: a KArrange whose options disagree on a destination is a
+// A KArrange whose options disagree on a destination is a
 // programming error, so the handler emits a Note and applies the Options[0]
 // destination. A posed tape decision is rebuilt when its answer re-runs the
 // resolution, so the disagreeing copy is handed to the answer record (the
 // handler every arrange answer goes through) directly.
-func TestKr8ArrangeMixedKindDegradesWithNote(t *testing.T) {
+func TestKernelArrangeMixedKindDegradesWithNote(t *testing.T) {
 	e, _, id := scryFixture(t, 205)
 	d := scryDecision(t, e, id)
 	top := []state.ObjID{d.Options[0].Obj, d.Options[1].Obj, d.Options[2].Obj}

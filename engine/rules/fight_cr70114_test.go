@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// CR 701.14 (Fight), cr-g18. 701.14a: each creature deals damage equal to
+// CR 701.14 (Fight). 701.14a: each creature deals damage equal to
 // its power to the other -- the two hits are dealt simultaneously and each
 // hit's source is the creature. 701.14b: a creature no longer on the
 // battlefield or no longer a creature means neither deals damage. 701.14c:

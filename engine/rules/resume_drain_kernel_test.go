@@ -19,7 +19,7 @@ import (
 // Chain Lightning's DealDamage->CopySpellAbility chain poses a genuine
 // mid-resolution UnlessCost$ ("unless_pay") ask for the damaged seat. Three
 // seats so the game keeps running while the ask sits.
-func TestKr8ResumeTriggerDrainIsInertWhileAResolutionAsks(t *testing.T) {
+func TestKernelResumeTriggerDrainIsInertWhileAResolutionAsks(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	cfg := Config{Seed: 42, Tokens: reg.Tokens}
 	for _, n := range []string{"ur-delver", "death-n-taxes", "ur-delver"} {

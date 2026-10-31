@@ -64,7 +64,7 @@ type Config struct {
 	// pre-game round between the opening deal and turn 1. 0 (the zero value)
 	// skips the round entirely, so every Config that never sets it is
 	// unchanged (all standalone fixture Configs). It sits in the same Config
-	// replay is handed, so a replay reproduces the round (Ruling R-8.4): the
+	// replay is handed, so a replay reproduces the round: the
 	// acceptance config sets it so the 12-deck suite exercises keep/mulligan
 	// and bottoming.
 	Mulligans int
@@ -224,7 +224,7 @@ func submitValidate(e *Engine, d *decision.Decision, in decision.Intent) error {
 	// logs the answering seat's intent exactly as submitted.
 	d, in = actingView(d, in)
 	if d.Kind == decision.KAttackers {
-		// Ruling m34: the KAttackers option list offers every (attacker,
+		// The KAttackers option list offers every (attacker,
 		// defender) pair, so an intent naming the same creature twice --
 		// against two different defenders -- passes Validate's per-index
 		// checks while declaring it attacking two players (CR 506.2).
@@ -414,10 +414,9 @@ func submitCommit(e *Engine, d *decision.Decision, in decision.Intent) {
 // Draw primitive so the draw step and a card that says "draw a card" can
 // never disagree about what drawing means.
 //
-// Ruling T22-d: this used to call checkGameOver alone -- correct as far as
-// it went (an empty-library draw is itself a loss, via the PlayerLost
-// DrawFor emits directly), but it skipped destroyLethalDamage and, now,
-// checkLoseConditions' own permanent-removal sweep. checkStateBased runs
+// checkGameOver alone is not enough: an empty-library draw is itself a loss,
+// via the PlayerLost DrawFor emits directly, but it skips destroyLethalDamage
+// and checkLoseConditions' own permanent-removal sweep. checkStateBased runs
 // both of those in addition to checkGameOver, so a player who decks out
 // here has their battlefield cleaned up the same way one who hits 0 life
 // does, rather than only on whatever later checkStateBased call happens to

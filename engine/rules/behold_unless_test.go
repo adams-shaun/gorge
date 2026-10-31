@@ -64,7 +64,7 @@ var beholdUnlessCarriers = []string{
 // in Cost.Behold with its count and spec, and a BeholdExile token stays a hard
 // decline (the then-exile settlement is a distinct behaviour not yet tested).
 // Without the parser hunk this test fails on the first case, so it is the
-// fail-without-the-fix proof for the root cause the brief names.
+// fail-without-the-fix proof for the root cause.
 func TestParseUnlessCostBehold(t *testing.T) {
 	t.Parallel()
 	c, ok := ParseUnlessCost("Behold<1/Elf>")

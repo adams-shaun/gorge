@@ -240,7 +240,7 @@ func TestTriggerChainPreAskCensus(t *testing.T) {
 }
 
 // chainHasTargetingLink reports whether ANY SubAbility$ link of the trigger
-// body declares a ValidTgts$ -- the brief's raw class, wider than the
+// body declares a ValidTgts$ -- the raw class, wider than the
 // collector's: it includes the ChangeZone link whose ask changeZoneChosenTargets
 // owns and the Defined$-reuse link that is never asked. The census pins every
 // such card as either in scope or an exclusion with a reason, so the raw set

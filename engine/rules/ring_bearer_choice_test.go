@@ -9,7 +9,7 @@ import (
 )
 
 // TestCR701RingTemptsYouAsksThePlayerOnTheRealEngine is the integration pin
-// for the brief's defect: at the REAL engine (not the effects double) a
+// for the defect: at the REAL engine (not the effects double) a
 // player controlling two eligible creatures is posed a ring_bearer KChoose
 // when Call of the Ring's upkeep trigger resolves DB$ RingTemptsYou, and the
 // answer -- a creature other than the deterministic first-in-zone-order

@@ -317,7 +317,7 @@ func registerTextSet(h Host, c *Ctx, id state.ObjID, text string, keywordGrant [
 	// NOTE: this exchanges keywords, not ACTIVATED/TRIGGERED abilities, which
 	// the engine still enumerates off the printed face (the same limitation
 	// that keeps a Humility'd creature's triggered abilities firing); that
-	// remainder is documented in the ticket report, not silently claimed.
+	// remainder is not claimed.
 	ceAbilities := state.ContinuousEffect{
 		Source: id, DurationSource: c.Source, Affects: "Card.Self", Controller: c.Controller,
 		Layer: state.LAbilities, RemoveAbilities: true,

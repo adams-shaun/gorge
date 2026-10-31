@@ -60,7 +60,7 @@ func TestThrivingBluffEntryRecordsFallbackAndAsksFixedOrChosen(t *testing.T) {
 // TestThrivingBluffChosenEqualsFixedResolvesDirectly pins the single-colour
 // shortcut: with the recorded as-enters colour EQUAL to the fixed letter
 // (hand-planted Choose "color" event for R on the real card -- the driver
-// the brief offers for this branch), the substitution yields "Combo R", a
+// for this branch), the substitution yields "Combo R", a
 // decision nobody could answer differently, so the activation resolves
 // directly with no stage-2 ask and pools one red.
 func TestThrivingBluffChosenEqualsFixedResolvesDirectly(t *testing.T) {

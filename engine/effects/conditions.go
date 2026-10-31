@@ -14,17 +14,16 @@ import (
 //
 //  1. `ConditionDefined$ Remembered` + optional `ConditionPresent$ <spec>` +
 //     optional `ConditionCompare$ <op><n>` — Delver of Secrets' "transform
-//     only if the revealed card was an instant or sorcery" shape (task
-//     fb-3f1cc033).
+//     only if the revealed card was an instant or sorcery" shape (task).
 //  2. `ConditionPresent$ <spec>` with NO `ConditionDefined$`, whose Forge
 //     default group is the whole battlefield — the conditional
 //     enters-tapped land family (Blooming Marsh and the fast / check lands,
-//     task fb-9d2338cc: `Land.YouCtrl` GT2 / `Plains.YouCtrl,Island.YouCtrl`
+//     `Land.YouCtrl` GT2 / `Plains.YouCtrl,Island.YouCtrl`
 //     EQ0). See conditionMetBattlefield for the entering-object exclusion
 //     that makes "two or fewer OTHER lands" mean what the oracle says.
 //
 // Forge spells the compare without a space ("EQ1"; 793 corpus lines) and the
-// brief's "EQ 1" spelling is accepted too.
+// "EQ 1" spelling is accepted too.
 //
 // Two more shapes landed with the action-level SVar-condition task (the
 // paramcensus Draw/LoseLife/ChangeZone/Reveal/DealDamage cluster):
@@ -65,21 +64,21 @@ import (
 //     unresolved shape; the walk's fail direction for it is in the scope
 //     note below.
 //
-// Scope (task fb-3f1cc033, extended by the condition-gate work): this file
-// itself enumerates the ConditionDefined$ groups in conditionSupportedDefined
-// and the bare Condition$ values in conditionSupportedBare. The wider
-// vocabulary the corpus still carries but this file does not evaluate —
-// ConditionZone$ (60), ConditionNotPresent$ over an
-// unenumerable group, a bare ConditionCompare$ with no group, and the other
-// ConditionDefined$/bare values — is classified unmodelled by
-// engine/effects/condition_census.go, so the walk fails it CLOSED with a Note. A
-// supported key whose remaining gap the census does not classify stays the
-// residual fail-open described below. Whatever the shape, conditionMet
-// reports resolved=false, and Resolve's walk decides its fail direction from
-// the ONE census classifier (engine/effects/condition_census.go) rather than
-// running the sub unconditionally: a shape the classifier names fails CLOSED
-// with a replay-visible Note; a shape it does not name still falls through.
-// Every unresolved key family is listed in the task report's Issues section.
+// Scope: this file itself enumerates the ConditionDefined$ groups in
+// conditionSupportedDefined and the bare Condition$ values in
+// conditionSupportedBare. The wider vocabulary the corpus still carries but
+// this file does not evaluate — ConditionZone$ (60), ConditionNotPresent$
+// over an unenumerable group, a bare ConditionCompare$ with no group, and the
+// other ConditionDefined$/bare values — is classified unmodelled by
+// engine/effects/condition_census.go, so the walk fails it CLOSED with a
+// Note. A supported key whose remaining gap the census does not classify
+// stays the residual fail-open described below. Whatever the shape,
+// conditionMet reports resolved=false, and Resolve's walk decides its fail
+// direction from the ONE census classifier
+// (engine/effects/condition_census.go) rather than running the sub
+// unconditionally: a shape the classifier names fails CLOSED with a
+// replay-visible Note; a shape it does not name still falls through. Every
+// unresolved key family is listed in the task report's Issues section.
 //
 // The classifier has two halves (UnmodelledCondition and
 // unmodelledConditionDetail): an unmodelled Condition* KEY, an unmodelled
@@ -90,8 +89,7 @@ import (
 // evaluated. A shape that is unresolved WITHOUT the classifier naming it --
 // an unmodelled ConditionCheckSVar$ count body, an absent binding on a
 // supported ConditionDefined$ group -- still runs: that residual fail-OPEN is
-// deliberate and NOT this ticket's scope (the unknown-predicate extension is
-// ticket agent-20261005T013526Z's).
+// deliberate and out of scope here.
 //
 // The sacrifice chooser additionally needs one narrower bridge for a
 // post-sacrifice loop body: a `Defined$ Player.IsRemembered` effect — or its
@@ -221,21 +219,18 @@ func CheckSVarCompare(h Host, c *Ctx, check string, cmp Compare) (holds, evaluat
 //     this class.
 //   - a sub with no Condition* key at all is not gated: (true, false).
 //
-// Two more keys landed with the Unbreakable Formation task
-// (agent-20260918T200326Z-10b49320): `ConditionPlayerTurn$ True|False` —
-// the resolving controller's turn vs. not — and `ConditionPhases$ <list>`
-// (Main1,Main2 — the Addendum family), both read through the ONE shared
-// phase-name parser state.ParsePhases and AND-ed with whatever group gate
-// the SA also carries.
-// conditionMet evaluates sa's Condition* gate against the resolving
+// Two more keys landed with the Unbreakable Formation task: `ConditionPlayerTurn$
+// True|False` — the resolving controller's turn vs. not — and `ConditionPhases$
+// <list>` (Main1,Main2 — the Addendum family), both read through the ONE shared
+// phase-name parser state.ParsePhases and AND-ed with whatever group gate the SA
+// also carries. conditionMet evaluates sa's Condition* gate against the resolving
 // context. It is conditionMetCore (the primary ConditionDefined$/
 // ConditionPresent$/ConditionCheckSVar$/bare-Condition$ shape) AND-ed with
 // Forge's SECOND presence group (ConditionPresent2$/ConditionCompare2$):
 // Super-Adaptoid's `ConditionPresent$ Creature.targetedBy+withHaste |
 // ConditionPresent2$ Card.Self+withoutHaste` needs both legs, and the two are
-// independent groups. A lone ConditionPresent2$ (no primary key) is still a
-// real gate, so the wrapper evaluates it even when the core reports "not
-// gated".
+// independent groups. A lone ConditionPresent2$ (no primary key) is still a real
+// gate, so the wrapper evaluates it even when the core reports "not gated".
 func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	met, resolved = conditionMetCore(h, c, sa)
 	cp := &ActivationOf(sa).Cond
@@ -500,7 +495,7 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// ConditionPresent$ with NO ConditionDefined$: Forge's default group
 		// is the battlefield (the conditional enters-tapped land family —
 		// fast lands' Land.YouCtrl GT2, check lands' Plains.YouCtrl,Island.
-		// YouCtrl EQ0). This is the shape task fb-9d2338cc resolves; it was
+		// YouCtrl EQ0). This is the shape this resolves; it was
 		// previously removed (round 2) for changing unrelated cards through
 		// the global Resolve hook, and re-authorizing it is this task's
 		// scope. The battlefield scan, including the entering-object
@@ -772,16 +767,16 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		// a Target-bearing ability always has a definite target list, and a
 		// gate over an empty list genuinely denies.
 		//
-		// ORDERING (task agent-20261001T034046Z-5fea0e4d): this gate runs in
-		// Resolve's loop BEFORE chosenTargetsFor poses the SA's own
-		// ValidTgts$ ask. A gate whose SA declares its own targets, whose ask
-		// has NOT been covered yet, and whose group is therefore empty is NOT
-		// the resolved zero above -- it is UNRESOLVED, so Resolve dispatches
-		// the sub and chosenTargetsFor poses the ask inside that dispatch. A
-		// recorded cast-time answer is visible (targetedGateGroup reads
-		// Ctx.SubPreAsk), so the gate resolves for real and the ask is never
-		// re-posed. Guard Dogs' DBPrevent is the one measured carrier (a DB sub of an ACTIVATED
-		// ability, reached by no placement or charm ask).
+		// ORDERING: this gate runs in Resolve's loop BEFORE chosenTargetsFor
+		// poses the SA's own ValidTgts$ ask. A gate whose SA declares its own
+		// targets, whose ask has NOT been covered yet, and whose group is
+		// therefore empty is NOT the resolved zero above -- it is UNRESOLVED,
+		// so Resolve dispatches the sub and chosenTargetsFor poses the ask
+		// inside that dispatch. A recorded cast-time answer is visible
+		// (targetedGateGroup reads Ctx.SubPreAsk), so the gate resolves for
+		// real and the ask is never re-posed. Guard Dogs' DBPrevent is the
+		// one measured carrier (a DB sub of an ACTIVATED ability, reached by
+		// no placement or charm ask).
 		group = targetedGateGroup(c, sa)
 		if len(group) == 0 && TargetsOf(sa).Targeted() &&
 			!targetedAskCovered(c, sa) {
@@ -1247,7 +1242,7 @@ func conditionMetZone(h Host, c *Ctx, zone, present, compare string, targets map
 
 // conditionMetBattlefield resolves a ConditionPresent$ (with an optional
 // ConditionCompare$ but NO ConditionDefined$) against Forge's default group
-// for that shape: every permanent on the battlefield. Task fb-9d2338cc (the
+// for that shape: every permanent on the battlefield. The later form (the
 // conditional enters-tapped land family — Blooming Marsh and the fast / check
 // lands) is what needs it.
 //
@@ -1701,7 +1696,7 @@ func hasCastSaFlag(spec string) bool {
 // A copy was never cast (CR 707.10) and carries no provenance bit for the
 // flags state.CastProvenanceFlags strips at the copy; FlagWarped is
 // deliberately NOT in that set (a warp cast's alternative cost is a choice
-// the copy rules carry), so a warp copy reads true — the same ruling the
+// the copy rules carry), so a warp copy reads true — the same reading the
 // FlagWarped entry hook takes. Both spellings of each token (positive and
 // !-negated) are handled; the spend spellings of the CastSa family and the
 // sibling task mayplay-src's Spell.MayPlaySource stay fail-closed here, the

@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// knownUnsupported is the M1 coverage RATCHET (Ruling P12/D2-a): the exact
+// knownUnsupported is the coverage RATCHET: the exact
 // card -> missing-primitive set TestEveryRepoDeckIsFullySupported measures
 // over the repo decks. It lives one file per card,
 // testdata/known-unsupported/<slug>.json, {"card": "<Card>", "labels":
@@ -21,7 +21,7 @@ import (
 // directions -- a newly-missing card is a regression, a file whose card is
 // now fully supported is stale and must be deleted -- so, for a fixed deck
 // catalogue, the set only ever shrinks, and only by implementing a real
-// primitive (Ruling W2: this project does not grow the "supported" set just
+// primitive (this project does not grow the "supported" set just
 // to make the ratchet green). A newly imported deck can extend it; its
 // entries must be measured from the compiled corpus, never marked supported
 // without an implementation. Which task retired an entry goes in the commit
@@ -128,7 +128,7 @@ func sameSet(a, b []string) bool {
 // silently drift apart from each other.
 //
 // The pool is LegacyDeckNames, never RepoDeckNames (which also lists the
-// five interim commander decks, Ruling M38-P): the golden heads are
+// five interim commander decks): the golden heads are
 // byte-identical games over the 12 constructed decks, and seating them by
 // index over a directory that grew would move every head for no behavioural
 // reason.
@@ -163,8 +163,8 @@ func acceptanceHead(t *testing.T, reg *cards.Registry, seats int) string {
 // decks, round-robined across 2, 4, 6 and 8 seats, must each play a
 // complete game -- termination under budget, every invariant holding
 // throughout -- with the cards knownUnsupported lists still shuffled in and
-// simply inert (Ruling: this task is about the engine surviving real Forge
-// data at scale, not about every card's fidelity, which is M4's separate
+// simply inert (this test is about the engine surviving real Forge
+// data at scale, not about every card's fidelity, which is a separate
 // worklist).
 func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 	t.Parallel()
@@ -182,7 +182,7 @@ func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 				seenStart = true
 			case e.G.Over:
 				label = fmt.Sprintf("%d-seat end", seats)
-				// Ruling P14: Draw before Winner -- Winner's zero value is
+				// Draw before Winner -- Winner's zero value is
 				// seat 0, a real seat, so reading it unconditionally would
 				// misreport a drawn game as "seat 0 won".
 				result := "draw"
@@ -199,7 +199,7 @@ func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 
 // TestRepoDeckGamesReplayExactly ties acceptance to the replay guarantee:
 // five seeded 4-seat games over the pinned Legacy decks (the same 12
-// LegacyDeckNames the golden seat-count games and heads use, Ruling M38-P),
+// LegacyDeckNames the golden seat-count games and heads use),
 // each re-run from its own recorded (Config, Log) through the package-local
 // replayFor helper, must reach the same chain Head as the original run.
 func TestRepoDeckGamesReplayExactly(t *testing.T) {
@@ -245,9 +245,9 @@ func TestRepoDeckGamesReplayExactly(t *testing.T) {
 	}
 }
 
-// replayFor is a thin, package-local mirror of replay.Replay (Task 24):
+// replayFor is a thin, package-local mirror of replay.Replay:
 // this test file is package rules and the replay package imports rules, so
-// importing it here would be a cycle (Ruling in the supplement's ¶0). It
+// importing it here would be a cycle. It
 // reruns l's recorded Intents against a fresh Engine built from cfg -- the
 // same (Config, Log) contract replay.Replay documents -- and returns the
 // resulting engine; the replay package's own exported API and its own

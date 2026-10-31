@@ -98,7 +98,7 @@ func TestCumulativeUpkeepSnowCostIsPayableWithSnowMana(t *testing.T) {
 	}
 }
 
-// TestGrantedCumulativeUpkeepPumpGrantTriggers is the KW$ route the brief
+// TestGrantedCumulativeUpkeepPumpGrantTriggers is the KW$ route
 // names: activating an A:AB$ Pump | KW$ Cumulative upkeep:1 grant must give
 // the permanent the keyword, and the next upkeep must run the ordinary
 // age-counter + pay/sacrifice window.

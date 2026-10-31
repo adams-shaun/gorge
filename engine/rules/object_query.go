@@ -43,7 +43,7 @@ var objectWalkZones = [...]state.Zone{
 // would be a bug. The copy is kept and grown with append(buf[:0], zone...),
 // so it settles at the size of the largest zone seen and stops allocating;
 // a fresh []state.ObjID allocation per zone per event used to be this
-// package's single largest allocation site (Task A2). fn is NEVER called
+// package's single largest allocation site. fn is NEVER called
 // after the zone it is walking mutates.
 //
 // Re-entry safety: each rendering passes its snapshot buffer separately --

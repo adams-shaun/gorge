@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestPumpSpellChangesPowerAndToughnessThroughTheLayerSystem is Task 19c's
+// TestPumpSpellChangesPowerAndToughnessThroughTheLayerSystem is the
 // headline end-to-end test: it casts a real Giant-Growth-shaped Pump spell
 // through the public engine surface (New/Advance/Submit, exactly as a client
 // would) and asserts the target's Power/Toughness -- read through the layer

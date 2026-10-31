@@ -1,6 +1,6 @@
 package rules
 
-// Task greatestpower1: the extreme-reduction property suffixes
+// The extreme-reduction property suffixes
 // ($GreatestCardPower and siblings) were not recognised by the zone-count
 // dispatch, so a card whose amount is "the greatest power among creatures you
 // control" sized itself to zero. This leaf drives the REAL Orcish Siegemaster
@@ -29,7 +29,7 @@ const greatBeastSrc = "Name:Great Beast\nManaCost:4 G\nTypes:Creature Beast\nPT:
 
 const smallBeastSrc = "Name:Small Beast\nManaCost:1 G\nTypes:Creature Beast\nPT:1/1\nOracle:x\n"
 
-// TestOrcishSiegemasterAttackPumpSizesFromGreatestPower is the brief's
+// TestOrcishSiegemasterAttackPumpSizesFromGreatestPower is the
 // end-to-end leaf: the attacker's pump is exactly the greatest power among
 // the controller's creatures, measured twice on different boards (5 then 7,
 // when the Beast is pumped by +2/+2 counters), so a value hard-coded to a

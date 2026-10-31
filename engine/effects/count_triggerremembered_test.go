@@ -131,11 +131,9 @@ func TestTriggerRememberedRefProperty(t *testing.T) {
 	if got, ok := EvalCountOK(h, c, "TriggerRemembered$Amount"); !ok || got != 2 {
 		t.Errorf("EvalCountOK(TriggerRemembered$Amount) = (%d, %v), want (2, true): head not admitted", got, ok)
 	}
-	// Pin the EXOTIC verdicts the brief asks about, because a plain
-	// EvalCount assertion cannot tell a modelled zero from a fail-closed
-	// one. CastTotalManaSpent and CardManaCostLKI are both modelled by the
-	// shared property switch today (the brief listed them as still-degraded;
-	// re-measured here they resolve), and
+	// Pin the EXOTIC verdicts, because a plain EvalCount assertion cannot
+	// tell a modelled zero from a fail-closed one. CastTotalManaSpent and
+	// CardManaCostLKI are both modelled by the shared property switch, and
 	// GreatestCardManaCost is modelled for this ref (ok=true).
 	for _, tc := range []struct {
 		expr string

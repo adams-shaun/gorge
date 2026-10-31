@@ -832,7 +832,7 @@ func digRevealOptional(h Host, c *Ctx, sa *cards.SA, p state.PlayerID, top []sta
 // chooser nothing, so its payload stays where it was. When the owner, the
 // chooser and the controller are one seat (every Dig of your own library)
 // every arm returns that seat, so those moves encode byte-identically
-// (cr-g47; CR 401.2, CR 406.3, CR 701.20e).
+// (CR 401.2, CR 406.3, CR 701.20e).
 func digSecretTo(ev *events.Event, chooser, owner state.PlayerID, saw bool) state.PlayerID {
 	switch ev.Counter {
 	case "exiled_with_face_down_maylook", "exiled_with_face_down_maylook_foretold",

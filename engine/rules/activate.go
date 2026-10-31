@@ -148,7 +148,7 @@ func (e *Engine) beginActivationPaid(p state.PlayerID, opt decision.Option, auto
 // it stamps the minted SA with `Keyword$ <kw>` (Equip or Fortify -- the kw
 // the SVar grants to its target is a different param family, and a corpus
 // scan finds no AB$ line carrying Keyword$ Equip/Fortify, so the exact value
-// is an unambiguous marker). This is the ONLY ability family this ticket's
+// is an unambiguous marker). This is the ONLY ability family this
 // AlternateCost$ read covers: an AB$ line's own AlternateCost$ parameter
 // (Heartwood Shard, Bullseye Death Dealer, the five shards) is a separate
 // activation feature this build deliberately does not model, and reading the

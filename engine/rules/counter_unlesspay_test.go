@@ -103,7 +103,7 @@ func counterFixture(t *testing.T, reg *cards.Registry, counter, creature string)
 	return e, casterID, creatureID
 }
 
-// TestCounterUnlessCostEmptyPoolCannotPayAndCounters is test 4 of the brief:
+// TestCounterUnlessCostEmptyPoolCannotPayAndCounters:
 // payMana (engine/rules/stack.go) spends only the payer's FLOATING mana pool
 // (state.Player.Pool); there is no tap-lands-to-pay flow mid-resolution. So
 // a payer who said "pay" but has an empty pool cannot actually pay, and the
@@ -146,7 +146,7 @@ func TestCounterUnlessCostEmptyPoolCannotPayAndCounters(t *testing.T) {
 	}
 }
 
-// TestCounterWithSubAbilityRunsChainExactlyOnce is test 7 of the brief and
+// TestCounterWithSubAbilityRunsChainExactlyOnce is a test and
 // the chain-suspension guarantee we now depend on: an ASKING counterspell
 // that also carries a SubAbility$ (Runeboggle: Counter | UnlessCost$ 1 |
 // SubAbility$ DBDraw) must run that sub-ability EXACTLY ONCE, on the resume

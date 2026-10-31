@@ -1,14 +1,12 @@
 package rules
 
-// Task cascade-resulting-mv, fix round. The round-1 premise -- that a
-// cascade free cast announces a chosen {X} whose resulting mana value must
-// be rechecked against the cascade source's -- was false. CR 107.3b: when a
-// player casts a spell with {X} in its mana cost without paying that cost
-// (and X isn't defined by the spell's text), X is considered to be 0. The
-// "announce X=1 on Villainous Wealth" scenario is therefore not a legal cast
-// scenario at all, and the cascadeXAsk the round-1 commit added was itself
-// the rules violation: it offered illegal X>0 choices in the election's
-// place.
+// A cascade free cast does not announce a chosen {X} whose resulting mana value
+// must be rechecked against the cascade source's. CR 107.3b: when a player
+// casts a spell with {X} in its mana cost without paying that cost (and X isn't
+// defined by the spell's text), X is considered to be 0. The "announce X=1 on
+// Villainous Wealth" scenario is therefore not a legal cast scenario at all,
+// and the cascadeXAsk the round-1 commit added was itself the rules violation:
+// it offered illegal X>0 choices in the election's place.
 //
 // The engine's behavior without that ask is already right, and CR 702.85a's
 // strict inequality holds by construction: the exile-until scan compared the

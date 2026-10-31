@@ -1,6 +1,6 @@
 package effects
 
-// Task trigcount1: the TriggerCount$ heads (SVar bodies) were unimplemented
+// The TriggerCount$ heads (SVar bodies) were unimplemented
 // and degraded to zero. These pin the head resolution in EvalCount against a
 // Ctx whose TriggerContext.TriggerAmount carries the magnitude the triggering
 // event dealt (captured by rules into the per-stack-instance triggerContexts
@@ -131,7 +131,7 @@ func TestTriggerCountMaxResultReadsTheBatchHighRoll(t *testing.T) {
 	}
 }
 
-// TestVitoTriggerCountLifeAmount pins the second head the brief names
+// TestVitoTriggerCountLifeAmount pins the second head
 // (LifeAmount) with the exact SVar body of a real corpus card: Vito, Thorn of
 // the Dusk Rose declares `SVar:X:TriggerCount$LifeAmount` and its trigger
 // loses the target opponent `that much` life (DB$ LoseLife | LifeAmount$ X).

@@ -178,7 +178,7 @@ func (e *Engine) searchControlRedirect(d *decision.Decision) {
 // decision's Player, exactly the mechanism searchControlRedirect above uses,
 // so Validate/Submit, the host's seat routing and the replay log all agree
 // that the controller is the answering seat. The controlled player's own
-// hidden information is not widened here (a later ticket's view concern);
+// hidden information is not widened here (that is the view's concern);
 // what this proves is the interval -- the redirect applies only while the
 // grant is live and stops the turn it expires (engine/rules/turn.go beginTurn).
 func (e *Engine) controlPlayerRedirect(d *decision.Decision) {
@@ -193,7 +193,7 @@ func (e *Engine) controlPlayerRedirect(d *decision.Decision) {
 	// of that interval -- the grant armed on turn T is live only while the
 	// controlled seat is active on a strictly later turn, the same Turn >
 	// armed test expirePlayerControl uses -- and the view's CR 723.4 widening
-	// reads it too, so who answers and who may look cannot disagree (cr-g57).
+	// reads it too, so who answers and who may look cannot disagree.
 	// Without it the redirect spilled across the whole interval (findings-t2
 	// MAJOR).
 	ctl, ok := e.G.LiveController(d.Player)

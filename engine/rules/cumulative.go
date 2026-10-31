@@ -408,7 +408,7 @@ func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.S
 //     window could only offer decline-only, which for a mandatory payment
 //     would be the WORSE regression (the body would never run AND the payment
 //     would never happen). Those bodies keep the established free-executor
-//     semantics (follow-up ticket), EXCEPT the shapes the existing gate
+//     semantics, EXCEPT the shapes the existing gate
 //     already served: the Untap/ImmediateTrigger APIs and the dynamic
 //     tapXType election (yotia_declares_war's "Mandatory tapXType<X/Artifact>")
 //     -- the tap election is the payment there, so the window stays right.

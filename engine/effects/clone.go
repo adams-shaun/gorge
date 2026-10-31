@@ -307,7 +307,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 
 	// Optional$ True: the copier -- the resolving controller, who for every
 	// corpus carrier is also the become object's controller -- takes the real
-	// may-copy election (ticket api-clone-trigger-copy; Sarkhan Soul Aflame's
+	// may-copy election (Sarkhan Soul Aflame's
 	// "you may have CARDNAME become a copy of it"), answered in place via
 	// AskTape; the answered decline returns without copying. A no-host run (an effects test double, a fuzz run)
 	// keeps the deterministic take stand-in the pre-election build shipped,

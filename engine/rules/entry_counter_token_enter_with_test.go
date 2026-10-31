@@ -1,13 +1,12 @@
 package rules
 
-// cr-g102-entry-counters-enter-with: a token created with
-// WithCountersType$/WithCountersAmount$ must ENTER the battlefield with those
-// counters (CR 701.53a, 122.6, 614.1c), not receive them after the entry
-// event. The difference is observable: an entry trigger whose condition reads
-// the entering permanent's counters must see them. The other tests here pin
-// the neighbouring behaviour that must not change -- the AddCounter
-// replacement applies exactly once, and the entry-counter notification still
-// fires the "whenever counters are put on" trigger exactly once.
+// A token created with WithCountersType$/WithCountersAmount$ must ENTER the
+// battlefield with those counters (CR 701.53a, 122.6, 614.1c), not receive them
+// after the entry event. The difference is observable: an entry trigger whose
+// condition reads the entering permanent's counters must see them. The other
+// tests here pin the neighbouring behaviour that must not change -- the
+// AddCounter replacement applies exactly once, and the entry-counter notification
+// still fires the "whenever counters are put on" trigger exactly once.
 
 import (
 	"strconv"

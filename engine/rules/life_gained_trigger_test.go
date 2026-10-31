@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The trigger-level gates Mode$ LifeGained honours (the r2 fix round):
+// The trigger-level gates Mode$ LifeGained honours:
 // FirstTime$ (8 corpus lines over 7 files), PlayerTurn$ (5 lines over 5
 // files) and the actionTriggerModes membership that makes ActivationLimit$
 // (2 lines) apply at queue time. Before this round the mode matched every

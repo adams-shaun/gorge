@@ -111,7 +111,7 @@ func hawkCastAndAccept(t *testing.T, e *Engine, id state.ObjID) *decision.Decisi
 	return d
 }
 
-// TestSquadronHawkSearchFindsUpToThreeNamed is the brief's headline: cast the
+// TestSquadronHawkSearchFindsUpToThreeNamed is the headline: cast the
 // Hawk, accept the optional ETB trigger, and the search offers the library's
 // Hawks (up to ChangeNum 3); taking all of them moves exactly those cards to
 // the hand and shuffles once.

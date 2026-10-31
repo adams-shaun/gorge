@@ -41,7 +41,7 @@ func declineTriggerCost(t *testing.T, e *Engine) {
 	submitChoices(t, e, decline)
 }
 
-// TestCR701RingTemptsYouCallOfTheRingUpkeep is the leaf the brief names,
+// TestCR701RingTemptsYouCallOfTheRingUpkeep is the leaf,
 // pinned on the real corpus card. CR 701.54a: "Each time the Ring tempts
 // you, choose a creature you control. It becomes your Ring-bearer until
 // another creature becomes your Ring-bearer or another player gains control

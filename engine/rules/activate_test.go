@@ -255,7 +255,7 @@ func TestSorcerySpeedAndSummoningSicknessGates(t *testing.T) {
 // TestRealCorpusSacCostWithAlternationAndDescriptionPays drives a REAL
 // corpus activated-ability line end to end -- the return-to-hand template
 // shared by the graveyard-recursion creatures -- exercising exactly the
-// token shapes Task 20's ParseCost fix (Ruling FL-54) targets: the trailing
+// token shapes ParseCost handles: the trailing
 // "/artifact or creature" description inside the Sac<...> group (which a
 // naive whitespace split would tear apart before MatchesSpec could see the
 // spec) and the ";" OR alternation folded into MatchesSpec's "," (so a
@@ -310,8 +310,8 @@ func TestCantBeActivatedValidSASparesManaAbilities(t *testing.T) {
 	}
 }
 
-// TestDoubleSacCostRequiresDistinctCandidates closes fix round 1's reviewer
-// Important 1: a cost with TWO Sac parts of the same spec cannot be paid by
+// TestDoubleSacCostRequiresDistinctCandidates:
+// a cost with TWO Sac parts of the same spec cannot be paid by
 // the same permanent twice, so it must not be offered with only one legal
 // candidate. castable checks each part independently against the same board,
 // so a naive gate would let a single creature satisfy an offered
@@ -370,8 +370,8 @@ func TestDoubleSacCostRequiresDistinctCandidates(t *testing.T) {
 	replayCheck(t, e2, cfg2)
 }
 
-// TestActivateSkipsRestrictedManaAbility closes fix round 1's reviewer
-// Important 2: the tap-for-mana "activate" option must resolve exactly the
+// TestActivateSkipsRestrictedManaAbility:
+// the tap-for-mana "activate" option must resolve exactly the
 // mana abilities whose restriction the offer gate checked. Mint has two
 // mana abilities -- the first produces {B}, the second {U} -- and a
 // CantBeActivated scoped to ManaAbility<Produce:B> singles out only the

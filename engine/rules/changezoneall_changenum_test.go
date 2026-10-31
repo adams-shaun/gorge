@@ -46,7 +46,7 @@ func inHand(e *Engine, id state.ObjID) bool {
 	return false
 }
 
-// TestExpertLevelSafeChangeNumAllReturnsEveryExiledCard is the brief's named
+// TestExpertLevelSafeChangeNumAllReturnsEveryExiledCard is the named
 // real-card pin: Expert-Level Safe's matched branch (DBSacrifice ->
 // DBOpenSafe) writes `DB$ ChangeZoneAll | ChangeNum$ All | Origin$ Exile |
 // Destination$ Hand | ChangeType$ Card.ExiledWithSource`, and "All" must

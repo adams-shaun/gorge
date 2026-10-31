@@ -1,4 +1,4 @@
-// Task att-optional: api:Attach.Optional was unread -- a may-attach Attach
+// api:Attach.Optional was unread -- a may-attach Attach
 // always attached, and (for Ajani's Chosen) attached the WRONG object, because
 // Object$ TriggeredCardLKICopy also fell to the Self default. Both defects are
 // fixed in effAttach (engine/effects/attach.go): the optional election is a real

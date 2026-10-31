@@ -1,6 +1,6 @@
 package rules
 
-// cr-g204: the compound `S:Mode$ CantAttack,CantBlock,CantBeActivated |
+// The compound `S:Mode$ CantAttack,CantBlock,CantBeActivated |
 // ValidCard$ Card.EnchantedBy | ValidSA$ Activated.!ManaAbility` line on
 // Realmbreaker's Grasp and Intercessor's Arrest. The parse-time split
 // (engine/cards/parse.go, commit f81f996e) gives each mode its own static but
@@ -111,7 +111,7 @@ func TestRealmbreakersGraspStopsAttackAndBlock(t *testing.T) {
 }
 
 // TestIntercessorsArrestStopsAttack is the same rule on the other Standard
-// carrier, whose line also lists CantCrew (cr-g182's half): the attack half
+// carrier, whose line also lists CantCrew: the attack half
 // must bind, not only the block half.
 func TestIntercessorsArrestStopsAttack(t *testing.T) {
 	t.Parallel()

@@ -296,8 +296,8 @@ func tapChoices(h Host, c *Ctx, sa *cards.SA, p tapParams) []state.ObjID {
 
 // effPump, effPumpAll, effAnimate and effProtection are all continuous
 // effects: they build a state.ContinuousEffect and hand it to the Host,
-// which is rules.Engine.AddContinuous, so the CR 613 layer system Task 19
-// built actually has a caller (Task 19c). Every one of them is a temporary
+// which is rules.Engine.AddContinuous, so the CR 613 layer system
+// has a caller. Every one of them is a temporary
 // grant from a resolving spell or ability, never a permanent's own printed
 // static, so they always set UntilEOT: true -- the layer system's existing
 // EndOfTurnCleanup already drops those on schedule, and Engine.active()
@@ -307,7 +307,7 @@ func tapChoices(h Host, c *Ctx, sa *cards.SA, p tapParams) []state.ObjID {
 //
 // Each one scopes its effect to exactly the object it targets with
 // Affects: "Card.Self" and Source: <that object's ID> -- not the resolving
-// ability's own source -- reusing the same Self-predicate pattern Task 19's
+// ability's own source -- reusing the same Self-predicate pattern
 // own lord-effect tests already established (layers_test.go), rather than
 // inventing a new filter form. effPump itself lives in pump.go, its
 // parameters compiled once in pump_params.go.
@@ -1199,8 +1199,8 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		})
 	}
 	// Keywords$ and HiddenKeywords$ are ONE keyword grant: both are layer-6
-	// derived keywords, and the brief's "do not let ability removal erase its
-	// own simultaneous grant" needs HiddenKeywords$ to ride the SAME
+	// derived keywords, and not letting ability removal erase its
+	// own simultaneous grant needs HiddenKeywords$ to ride the SAME
 	// AddKeywords list as Keywords$, AFTER RemoveAbilities clears. Concatenate
 	// only when HiddenKeywords$ is present so an ordinary animation's list is
 	// the parser's own slice, byte-identical to before.
@@ -1331,7 +1331,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	// destroy" (Spectacular Pileup) really strips.
 	ag.replacements = nil
 	// AnimateAll's HiddenKeywords$ stays unread too (the corpus carries no
-	// AnimateAll HiddenKeywords$ line, and this ticket scopes the derived
+	// AnimateAll HiddenKeywords$ line, and this scopes the derived
 	// restriction to Animate): clear what the shared parser read so the
 	// sweep below cannot apply it behind animateAllUnreadNote's note.
 	ag.hiddenKws = nil

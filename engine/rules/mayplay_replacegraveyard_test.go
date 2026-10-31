@@ -1,6 +1,6 @@
 package rules
 
-// cr-g201: a may-play static's ReplaceGraveyard$ Exile rider ("if a spell cast
+// A may-play static's ReplaceGraveyard$ Exile rider ("if a spell cast
 // this way would be put into your graveyard, exile it instead") was unread.
 // Maestros Ascendancy (SNC) and Kess, Dissident Mage carry it on their
 // Mode$ Continuous MayPlay$ grant. Forge installs the same replacement a DB$
@@ -45,7 +45,7 @@ func mrgZone(e *Engine, id state.ObjID) any {
 	return "absent"
 }
 
-// mrgBoard builds the cr-g201 scenario: seat 0 has the grant permanent and a
+// mrgBoard builds the scenario: seat 0 has the grant permanent and a
 // creature to sacrifice on the battlefield, Lightning Bolt in the graveyard,
 // {R} in the pool, and seat 1 has the fixture counterspell in hand and {U} in
 // the pool. It is seat 0's turn, main 1, with seat 0 holding priority. The

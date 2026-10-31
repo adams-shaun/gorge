@@ -49,7 +49,7 @@ func castTarget(t *testing.T, e *Engine, id state.ObjID, want state.PlayerID) {
 	passUntilStackEmpty(t, e, 20)
 }
 
-// TestStormCopiesTheSpellOncePerSpellCastBefore is Task 17's end-to-end
+// TestStormCopiesTheSpellOncePerSpellCastBefore is the end-to-end
 // Storm carrier: two Instants are cast before a Storm sorcery, so Storm's
 // amount is two copies on top of the original. Each copy (and the original)
 // lives/dies on its own, and every resolved copy sits in exile (CR 707.10a:

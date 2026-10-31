@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g223: the two corpus behaviours whose census classification this ticket
-// relies on. Both already hold at the brief's base -- the tests pin them so a
+// The two corpus behaviours whose census classification this
+// relies on. Both already hold -- the tests pin them so a
 // later change to the mover or the replacement order cannot silently make the
 // classification wrong. They also pin the runtime half: the ChangeZone
 // unread Note must go silent for ETB$ (the census fix alone would leave it).
@@ -27,11 +27,11 @@ func g223OptionFor(t *testing.T, d *decision.Decision, id state.ObjID) int {
 	return -1
 }
 
-// TestG223MimeoplasmXIsTheEnteringX casts Mimeoplasm, Revered One for X=2
+// TestMimeoplasmXIsTheEnteringX casts Mimeoplasm, Revered One for X=2
 // with two creature cards in its owner's graveyard, picks both for the
 // as-enters exile, and asserts the OLD probe's result: six +1/+1 counters
 // (three per exiled card) and no "ignores unread parameter(s) ETB$" Note.
-func TestG223MimeoplasmXIsTheEnteringX(t *testing.T) {
+func TestMimeoplasmXIsTheEnteringX(t *testing.T) {
 	t.Parallel()
 	mimeo := tokenReplCorpusCard(t, "Mimeoplasm, Revered One")
 	bears := corpusCard(t, "Grizzly Bears")
@@ -115,12 +115,12 @@ func TestG223MimeoplasmXIsTheEnteringX(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestG223MeliraCapsPoisonAtOneAfterReplacement casts two fixture Poison
+// TestMeliraCapsPoisonAtOneAfterReplacement casts two fixture Poison
 // spells (A:SP$ Poison | Defined$ You | Num$ 3) with Melira, the Living Cure
 // on the battlefield. Her ReplaceCounter body caps the first at one; the
 // ImmediateTrigger with AfterReplacement$ installs the this-turn lock after
 // the replacement finishes, so the second places nothing. Poison stays 1.
-func TestG223MeliraCapsPoisonAtOneAfterReplacement(t *testing.T) {
+func TestMeliraCapsPoisonAtOneAfterReplacement(t *testing.T) {
 	t.Parallel()
 	melira := tokenReplCorpusCard(t, "Melira, the Living Cure")
 	poisonOne := card(t, "Name:G223 Poison One\nManaCost:0\nTypes:Sorcery\n"+

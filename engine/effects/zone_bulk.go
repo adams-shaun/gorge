@@ -15,7 +15,7 @@ import (
 // still exist, and is it still on the battlefield" -- a target that stayed on
 // the battlefield but became newly ineligible some other way (e.g. it gained
 // Indestructible in response, or protection from the source) between
-// targeting and resolution is not rechecked. See the Task 18 report.
+// targeting and resolution is not rechecked.
 func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 	// Forge's ForgetOtherTargets$ replaces the prior remembered set before
 	// this Destroy. Resolve records chosen targets after the body, including

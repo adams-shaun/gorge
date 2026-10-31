@@ -41,7 +41,7 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // already evaluates it, so excluding the keys only skipped the attack half
 // whole while the block half (combat.BlockRestricted's CantBlock loop, which runs
 // continuousGateHolds with no whitelist) bound at runtime -- the asymmetry
-// this ticket fixes.
+// this fixes.
 //
 // Measured over the corpus: of the 24 real `Mode$ CantAttack` files carrying
 // this family, 20 spell the battlefield IsPresent$/PresentCompare$ count shape
@@ -345,7 +345,7 @@ func CantBlockByRestrictionParamsReadable(params map[string]string) bool {
 
 // CantBlockRestrictionParamsReadable is the parameter whitelist an
 // Effect-registered CantBlock static must pass before this build enforces it
-// (cr-g156; the same discipline CantBlockByRestrictionParamsReadable enforces
+// (the same discipline CantBlockByRestrictionParamsReadable enforces
 // for CantBlockBy, so the registration and consultation paths cannot
 // disagree): the blocker-side spec the continuous consultation reads
 // (engine/rules/combat/restrictions.go BlockRestricted's registered-effects

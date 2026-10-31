@@ -8,7 +8,7 @@ package rules
 // through its ordinary `DB$ Animate`/`DB$ Pump` parsing and gated on the
 // target being another creature.
 //
-// Guardian Scalelord is the brief's pinned real-corpus carrier: its
+// Guardian Scalelord is the pinned real-corpus carrier: its
 // `SVar:BackupAbilities` prints `DB$ Animate | Keywords$ Flying | Triggers$
 // AttackTrig | sVars$ AE`, so one ETB observable covers the counter, the
 // keyword grant and the granted-trigger grant.
@@ -120,7 +120,7 @@ func backupAnswerTarget(t *testing.T, e *Engine, want state.ObjID, limit int) ma
 	return nil
 }
 
-// TestGuardianScalelordBackupCountersAndCopiesAbilities is the brief's core
+// TestGuardianScalelordBackupCountersAndCopiesAbilities is the core
 // leg: a cast Guardian Scalelord's ETB puts one +1/+1 counter on another
 // target creature AND grants it the card's copied rules text (Flying),
 // leaving the Scalelord itself untouched.

@@ -31,7 +31,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	// (differentPropertyKindOf's case above): distinct powers/names/mana
 	// values among the matches, the Augur of Autumn Coven gate's shape.
 	// CreatureType, PlaneswalkerType and CardTypesPermanent (task
-	// diffcount2, cr-g222) are the same distinct-set shape over a narrower
+	// diffcount2) are the same distinct-set shape over a narrower
 	// vocabulary; PlaneswalkerType reads the matched planeswalker's own
 	// printed subtypes (CR 205.3j), so it has no roster to fall behind. The four extreme
 	// reductions (GreatestCardPower 64 files,
@@ -80,7 +80,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		if prop == "CreatureType" {
 			seenCreatureTypes = make(map[string]bool)
 		}
-		// PlaneswalkerType (cr-g222) is the planeswalker-subtype sibling of
+		// PlaneswalkerType is the planeswalker-subtype sibling of
 		// CreatureType: Tam, the Possibility's "the number of planeswalker
 		// types among planeswalkers you control".
 		var seenPlaneswalkerTypes map[string]bool

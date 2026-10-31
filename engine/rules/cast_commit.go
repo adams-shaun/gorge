@@ -194,7 +194,7 @@ func (e *Engine) payCast() {
 		sourceControllerLKI = sourceObj.Controller
 	}
 	if pc.isAbility() {
-		// Task 10: an activated ability. The shared stages above (X, Delve --
+		// An activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
 		// recorded; what differs from a spell here is the cost's remaining
 		// non-mana parts. Pay mana, then each Tap (a Tap event), each
@@ -369,7 +369,7 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.Exert, Obj: pc.card, Player: pc.player})
 			}
 		}
-		// Capture the sacrifice LKI (Task sac1) BEFORE the MoveZone events
+		// Capture the sacrifice LKI BEFORE the MoveZone events
 		// drain the permanents: each chosen object is still on the battlefield
 		// here, so SacrificedInfoOf reads its live face and +1/+1 counters (the
 		// layer-7d portion of its P/T, which Move will reset). The resulting
@@ -663,12 +663,12 @@ func (e *Engine) payCast() {
 		// Both events are the foreteller's Secret (Player pc.player): CR
 		// 406.3 hides a card exiled face down from every other player, and
 		// without Secret the exile is a public zone, so view.RedactEvent
-		// would keep the Obj and every transcript would name the card
-		// (cr-g62). The move uses the may-look layout naming the foreteller
+		// would keep the Obj and every transcript would name the card.
+		// The move uses the may-look layout naming the foreteller
 		// (CR 702.143a: "That player may look at that card as long as it
 		// remains in exile"; Amount the looker, no IDs: no exiling source),
-		// so the view shows its face to the foreteller and nobody else
-		// (cr-g64); any move NOT to exile clears FaceDown and the look, so
+		// so the view shows its face to the foreteller and nobody else;
+		// any move NOT to exile clears FaceDown and the look, so
 		// the later foretell-cost cast reveals automatically.
 		e.emit(events.Event{Kind: events.CastInfo, Player: pc.player, Obj: pc.card, Counter: events.FlagsString(state.FlagForetold), Secret: true})
 		e.emit(events.Event{Kind: events.MoveZone, Player: pc.player, Obj: pc.card, From: pc.from, To: state.ZExile,
@@ -1329,7 +1329,7 @@ func svarBodyForObject(o *state.Object, name string) string {
 // a cast from any other zone (hand, graveyard-flashback, ...) is never
 // counted here.
 //
-// The count it maintains is DERIVED state, and the brief's "derived from
+// The count it maintains is DERIVED state, and "derived from
 // events on replay" is the right of its two options for exactly this reason:
 // CmdCasts[k] is a deterministic pure function of the already-logged
 // PutOnStack events (From == ZCommand, per commander id). The generic,

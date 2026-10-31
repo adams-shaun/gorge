@@ -40,8 +40,8 @@ import (
 // is mapped to its equivalent predicate as a SAFETY fallback (see
 // descriptionSpec): it only ever narrows an otherwise-unrestricted offer,
 // never widens one, so it cannot change real corpus behaviour (no corpus
-// NameCard carries ValidDescription$ without ValidCards$). This keeps the
-// brief's "ValidCards$/ValidDescription semantics" honest without
+// NameCard carries ValidDescription$ without ValidCards$). This keeps
+// ValidCards$/ValidDescription semantics honest without
 // re-implementing Forge's message localisation.
 //
 // A spec this build cannot evaluate for a printed face (a dynamic

@@ -226,9 +226,9 @@ Oracle:x
 	}
 }
 
-// --- Additional coverage beyond the brief's mandatory six, for the five
+// --- Additional coverage for the five
 // trigger modes those tests don't otherwise exercise, and for the totality
-// concerns (cascade bound, SVar threading, F3 compliance) the brief calls
+// concerns (cascade bound, SVar threading, no-Face compliance) the
 // out by name. ---
 
 func TestSpellCastTriggerMatchesValidCardAndPlayer(t *testing.T) {
@@ -258,7 +258,7 @@ Oracle:x
 func TestSpellCastTriggerIgnoresATriggeredAbilityEnteringTheStack(t *testing.T) {
 	t.Parallel()
 	// A SpellCast trigger with a bare "Any" filter must not fire for a
-	// triggered ability object (no Face -- Ruling F3) entering the stack;
+	// triggered ability object (no Face) entering the stack;
 	// only an actual spell (a card) counts as "casting a spell".
 	src := `Name:Watcher
 ManaCost:1 U
@@ -621,8 +621,8 @@ Oracle:x
 
 // --- Fix round 1: Findings 1-4. These specifically verify the effect of a
 // resolved trigger lands on the *correct* object -- Defined$ You/Player (as
-// every test above uses) read c.Controller and are immune to both Ruling
-// T20-b (Ctx.Source) and T20-c (Ctx.Remembered), which is exactly why the
+// every test above uses) read c.Controller and are immune to both
+// Ctx.Source and Ctx.Remembered, which is exactly why the
 // first round's 246 passing tests gave false confidence. NumAtt$ here is
 // always a literal, never an SVar reference, so these are not entangled
 // with the separate engine/effects/count.go gaps the report already flags for
@@ -630,7 +630,7 @@ Oracle:x
 
 func TestTriggerEffectAppliesToTheSourceNotTheAbilityWrapper(t *testing.T) {
 	t.Parallel()
-	// Ruling T20-b regression: resolveTop's ability branch used to build
+	// Regression: resolveTop's ability branch used to build
 	// Ctx.Source from the transient stack-object id instead of o.Source, so
 	// Defined$ Self -- the single most common Defined$ value in real
 	// trigger scripts -- pointed at the wrapper rather than the permanent,
@@ -661,7 +661,7 @@ Oracle:x
 
 func TestTriggerEffectAppliesToTheRememberedObject(t *testing.T) {
 	t.Parallel()
-	// Ruling T20-c regression: events.Move's zone-leave reset used to wipe
+	// Regression: events.Move's zone-leave reset used to wipe
 	// Object.Remembered on the very MoveZone that placed the ability on the
 	// stack (ZStack falls into Move's "leaving play" default case, the same
 	// as every non-battlefield destination), so Defined$ Remembered always
@@ -696,7 +696,7 @@ Oracle:x
 	}
 }
 
-// TestReplayFromLogAloneReconstructsTriggeredAbilities is Ruling T20-a's
+// TestReplayFromLogAloneReconstructsTriggeredAbilities is the
 // regression test: a game log folded into a fresh Game with no rules.Engine
 // behind it -- exactly what a real replay-from-log-alone does -- must
 // reconstruct the same state a live game reached, triggered abilities

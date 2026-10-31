@@ -1,6 +1,6 @@
 package rules
 
-// The cr-g280 count heads: Count$EachSpentToCast.<colour> (Bladecoil Serpent,
+// Count heads: Count$EachSpentToCast.<colour> (Bladecoil Serpent,
 // Clay Champion, Dawnglow Infusion), Count$TotalDamageDoneByThisTurn
 // (Corrupt and the other "equal to the damage dealt" riders) and the summed
 // PlayerCountPlayers$/PlayerCountOpponents$CardsDiscardedThisTurn (The Raven

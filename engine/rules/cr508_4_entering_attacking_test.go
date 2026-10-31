@@ -1,13 +1,12 @@
 package rules
 
-// CR 508.4 / CR 110.5b (cr-g11-entering-attacking-untapped): a creature put
-// onto the battlefield attacking enters UNTAPPED unless the effect says
-// "tapped and attacking". Sigiled Sword of Valeron (repo deck
-// cavalry-charge.json) says "create a 2/2 white Knight creature token with
-// vigilance that's attacking" and its script carries TokenAttacking$ True
-// with NO TokenTapped$; Hero of Bladehold (same deck) says "tapped and
-// attacking" and carries TokenTapped$ True. Forge corroborates:
-// TokenEffectBase.java:131 taps only on TokenTapped, and
+// CR 508.4 / CR 110.5b: a creature put onto the battlefield attacking enters
+// UNTAPPED unless the effect says "tapped and attacking". Sigiled Sword of
+// Valeron (repo deck cavalry-charge.json) says "create a 2/2 white Knight
+// creature token with vigilance that's attacking" and its script carries
+// TokenAttacking$ True with NO TokenTapped$; Hero of Bladehold (same deck)
+// says "tapped and attacking" and carries TokenTapped$ True. Forge
+// corroborates: TokenEffectBase.java:131 taps only on TokenTapped, and
 // SpellAbilityEffect.addToCombat (SpellAbilityEffect.java:758) never taps.
 
 import (

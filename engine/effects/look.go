@@ -32,7 +32,7 @@ import (
 // every other seat and a Public spectator get the bare shape (and the
 // generic "looks at hidden cards" transcript line), and an Omniscient
 // spectator keeps the payload only for a HAND look (From == ZHand — their
-// visibility already includes every hand, per Ruling FL-9's library-order
+// visibility already includes every hand, per the library-order
 // carve-out not applying to one). The looked-at zone rides From so the
 // looker's transcript line can name it even after the cards have moved on;
 // existing library-top callers pass ZLibrary, which is also the zero value

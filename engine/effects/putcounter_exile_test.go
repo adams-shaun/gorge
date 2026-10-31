@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task putcounter-anyzone (CR 122.1): counters can exist on an object in ANY
+// CR 122.1: counters can exist on an object in ANY
 // zone, not just the battlefield -- a suspended card's time counters sit on
 // its exiled card (CR 702.62a), and The Tenth Doctor's recalled permanent
 // takes them in exile. effPutCounter's ordinary target loop carried a

@@ -9,7 +9,7 @@ import (
 // The `Card.OwnedBy|ControlledBy Player.<qualifier>` control/ownership
 // referent is Forge's player-property grammar applied to the candidate's
 // owner/controller (CardProperty.OwnedBy/ControlledBy tests
-// player.isValid first). Before cr-g242 only a hand-listed few Player.*
+// player.isValid first). Not only a hand-listed few Player.*
 // spellings were admitted, so Wrexial's `Instant.OwnedBy
 // Player.TriggeredTarget` offered no target and Ashiok's, Marisi's and
 // Glen Elendra's player-scoped filters matched nothing. These tests pin the

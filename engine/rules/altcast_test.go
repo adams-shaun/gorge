@@ -642,7 +642,7 @@ func TestMadnessEmrakulUsesMandatoryReplacementAndRespondableTrigger(t *testing.
 	}
 	submitChoices(t, e, emrakulIdx, emberIdx)
 	// CR 702.35a: Madness's replacement is mandatory -- the discard goes
-	// straight to exile, with no replacement ask (cr-g29).
+	// straight to exile, with no replacement ask.
 	if e.G.Obj(emrakul).Zone != state.ZExile || e.G.Obj(ember).Zone != state.ZGraveyard {
 		t.Fatalf("discard destinations: Emrakul=%s Ember=%s", e.G.Obj(emrakul).Zone, e.G.Obj(ember).Zone)
 	}

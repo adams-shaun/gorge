@@ -22,7 +22,7 @@
 //   - when the sacrifice cost consumed the only other creature, the turn-up
 //     replacement refuses the attach with its Note and the now face-up,
 //     unattached Aura goes to the graveyard at the next checkpoint (the
-//     brief's declined branch, CR 704.5m again).
+//     declined branch, CR 704.5m again).
 //
 // No Forge script text is committed: every card comes from the compiled
 // corpus through the search/manifest helpers. The helpers come from

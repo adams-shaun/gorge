@@ -10,7 +10,7 @@ package rules
 // SAME parsed set ParsePhases produced -- one parser, so the two cannot
 // disagree.
 //
-// The Lost Monarch of Ifnir fixture (Eternal Might, drc) is the brief's named
+// The Lost Monarch of Ifnir fixture (Eternal Might, drc) is the named
 // card. Its real compiled trigger carries an intervening-if (`CheckSVar$ X`,
 // "if a player was dealt combat damage by a Zombie this turn") whose count
 // body -- `PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
@@ -40,7 +40,7 @@ func stepOnce(e *Engine, s state.Step) {
 	e.pendingTriggers = nil
 }
 
-// TestLostMonarchOfIfnirPhaseCountSecondMain pins the brief's card at the
+// TestLostMonarchOfIfnirPhaseCountSecondMain pins the card at the
 // gate: the real compiled `Mode$ Phase | Phase$ Main | PhaseCount$ 2` trigger
 // passes the Phase/PhaseCount gate at the second main phase only -- NOT the
 // first, nor any other step.

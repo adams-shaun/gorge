@@ -156,7 +156,7 @@ func TestMasterMultipliedTriggeredSacrificeBlocked(t *testing.T) {
 // actually discriminates: the same static's `Triggered.YouCtrl` must NOT
 // block a SPELL-caused sacrifice, so Innocent Blood ("each player sacrifices
 // a creature", resolving as a spell) still takes the token -- and a
-// whitelist-without-evaluation fix (the over-restriction the brief warns
+// whitelist-without-evaluation fix (the over-restriction to avoid
 // about) would fail this leaf.
 func TestMasterMultipliedSpellCauseSacrificeAllowed(t *testing.T) {
 	t.Parallel()

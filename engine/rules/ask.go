@@ -12,8 +12,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/rules/resolve"
 )
 
-// chooseFor names the flow a pending KChoose decision belongs to. Task 9
-// declares chooseCast (engine/rules/cast.go); Tasks 12 and 18 add the "as this
+// chooseFor names the flow a pending KChoose decision belongs to.
+// engine/rules/cast.go declares chooseCast; other files add the "as this
 // enters" and miracle cases in their own files.
 type chooseFor uint8
 

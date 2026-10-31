@@ -1,10 +1,10 @@
 package rules
 
-// Task agent-20261009T091513Z-3c5153cc: a Forge "AB$ ChooseColor |
-// SubAbility$ DBMana" head is an activated mana ability (CR 605.1a), so it
-// must be offered by the mana wheel, resolve off the stack at the activation
-// checkpoint, and never also appear as an ordinary priority "ability". These
-// leaves drive the four real corpus carriers end to end.
+// A Forge "AB$ ChooseColor | SubAbility$ DBMana" head is an activated mana
+// ability (CR 605.1a), so it must be offered by the mana wheel, resolve off
+// the stack at the activation checkpoint, and never also appear as an
+// ordinary priority "ability". These leaves drive the four real corpus
+// carriers end to end.
 
 import (
 	"strings"

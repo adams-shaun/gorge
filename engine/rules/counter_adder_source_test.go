@@ -140,7 +140,7 @@ func TestCounterAdderValidSourceYouFiresOwnNotOpponent(t *testing.T) {
 }
 
 // TestCounterAdderFailClosedWithoutPublishedAdder pins the conservative
-// default the brief requires: a placement with NO published adder and NO stack
+// default: a placement with NO published adder and NO stack
 // cause (the SBA / turn-based shape) must never match a ValidSource$ line.
 // Vorinclex's two lines both carry ValidSource$, so a bare emit on an empty
 // stack leaves the placement verbatim (3 stays 3) rather than guessing an
@@ -202,7 +202,7 @@ func TestCounterAdderPublishesAtCostSite(t *testing.T) {
 // a 0/0 whose entry +1/+1 counter comes from K:Modular, and kw:Modular is a
 // separate, still-missing expansion, so the real card dies to the toughness
 // SBA before any counter is placed and its ActiveZones$ Battlefield gate then
-// fails closed -- the brief's "the real card stays unplayable on the separate
+// fails closed -- "the real card stays unplayable on the separate
 // kw:Modular gap". This fixture carries Zabaz's R: line and both SVars
 // verbatim, on a survivable 2/2, so the ValidCause$ Triggered.Modular arm is
 // exercised on the real compiled shape without the unrelated blocker.

@@ -382,9 +382,9 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 	case etbOptionsEvenodd:
 		return []decision.Option{{Index: 0, Kind: "evenodd", Label: "Odd"}, {Index: 1, Kind: "evenodd", Label: "Even"}}
 	default: // "number"
-		// The shared 0..N list (task cli-20260923T060000Z-choose-number:
-		// engine/effects/number_choices.go is the ONE home), so the as-enters ask
-		// and the mid-resolution ChooseNumber ask cannot disagree.
+		// The shared 0..N list ( engine/effects/number_choices.go is the ONE
+		// home), so the as-enters ask and the mid-resolution ChooseNumber ask
+		// cannot disagree.
 		return effects.NumberChoices()
 	}
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task 27's card fixtures. Gainer and Drainer are deliberately NOT
+// Card fixtures. Gainer and Drainer are deliberately NOT
 // commutative: Drainer loses life equal to the current life total, so which
 // of the two resolves first is visible in the final life total and not merely
 // in the order two log lines appear.
@@ -121,7 +121,7 @@ func TestOneTriggerIsNeverAskedAbout(t *testing.T) {
 }
 
 // TestTwoSimultaneousTriggersAskTheirController is definition-of-done item 1
-// and requirement R1, plus Ruling U2's wire-format claim: the ordering
+// plus the wire-format claim: the ordering
 // decision really is Min == Max == N over that controller's own N triggers,
 // so Decision.Validate's existing rules already mean "a permutation".
 func TestTwoSimultaneousTriggersAskTheirController(t *testing.T) {
@@ -147,7 +147,7 @@ func TestTwoSimultaneousTriggersAskTheirController(t *testing.T) {
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v, want nothing placed before the player answered", e.G.Stack)
 	}
-	// The permutation semantics Ruling U2 leans on, asserted rather than
+	// The permutation semantics, asserted rather than
 	// assumed: a repeated index and a short answer are both already rejected.
 	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0, 0}}); err == nil {
 		t.Error("Validate accepted a duplicate index, so this is not a permutation")
@@ -157,7 +157,7 @@ func TestTwoSimultaneousTriggersAskTheirController(t *testing.T) {
 	}
 }
 
-// TestTriggerOrderChoiceDecidesResolutionOrder is Ruling U2's direction
+// TestTriggerOrderChoiceDecidesResolutionOrder is the direction
 // assertion, and it deliberately asserts the order the two effects RUN rather
 // than the order they were pushed -- getting the direction backwards is
 // silent, and a push-order assertion would agree with either convention.
@@ -248,7 +248,7 @@ func TestOptionalTriggerNeedsAnExplicitYes(t *testing.T) {
 
 // TestDecliningAnOptionalTriggerLeavesTheGameUntouched is definition-of-done
 // item 4. Asserted as a whole-game diff rather than "the stack is empty",
-// because Ruling T20-d exists precisely because stack-depth assertions missed
+// because stack-depth assertions missed
 // real bugs: a "no" must emit nothing that changes state at all.
 func TestDecliningAnOptionalTriggerLeavesTheGameUntouched(t *testing.T) {
 	t.Parallel()
@@ -277,7 +277,7 @@ func TestDecliningAnOptionalTriggerLeavesTheGameUntouched(t *testing.T) {
 	after := e.G.Clone()
 	// The declined ability was on the stack and departed to exile having done
 	// nothing. Everything else must be byte-identical to before the trigger
-	// fired (Ruling T20-d's whole-game diff, kept honest for CR 603.5): strip
+	// fired (a whole-game diff, kept honest for CR 603.5): strip
 	// exactly the ability's own came-and-gone footprint — one transient Objs
 	// slot, one exile entry, one NextID increment — and diff the rest.
 	stripTransientAbilities(before, after)
@@ -288,7 +288,7 @@ func TestDecliningAnOptionalTriggerLeavesTheGameUntouched(t *testing.T) {
 		t.Fatalf("queue = %d entries / %d ordered, want the declined trigger discarded",
 			len(e.pendingTriggers), e.orderedTriggers)
 	}
-	// The inverted pin (Ruling T20-d, re-authorized for CR 603.5): a declined
+	// The inverted pin (CR 603.5): a declined
 	// optional trigger DID go on the stack, so a TriggerPush is emitted even
 	// though the effect never runs. The old build asserted the opposite.
 	found := false
@@ -338,7 +338,7 @@ func TestOptionalDeciderCanBeSomeoneOtherThanTheController(t *testing.T) {
 	}
 }
 
-// TestTriggerArrivingDuringADecisionCannotCorruptTheQueue is Ruling U3's own
+// TestTriggerArrivingDuringADecisionCannotCorruptTheQueue is the
 // hazard, built and measured rather than reasoned about. checkStateBased is a
 // fixed-point loop that emits events, every emit runs checkTriggers, and
 // Submit runs it AFTER handle -- so a creature dying to a state-based action
@@ -418,7 +418,7 @@ func TestTriggerArrivingDuringADecisionCannotCorruptTheQueue(t *testing.T) {
 		t.Fatalf("queue = %d entries, want fully drained", len(e.pendingTriggers))
 	}
 	// Nothing lost, nothing duplicated, settled order preserved, late arrival
-	// last: the whole of Ruling U3 in one assertion.
+	// last: resumability in one assertion.
 	want := []state.ObjID{c, b, a, mourner}
 	if len(e.G.Stack) != len(want) {
 		t.Fatalf("stack = %v, want four abilities", e.G.Stack)
@@ -428,7 +428,7 @@ func TestTriggerArrivingDuringADecisionCannotCorruptTheQueue(t *testing.T) {
 			t.Fatalf("stack[%d] is from %d, want %d (stack = %v)", i, got, src, e.G.Stack)
 		}
 	}
-	// And the effects, not just the depth (Ruling T20-d): resolving the whole
+	// And the effects, not just the depth: resolving the whole
 	// stack must run all four. Resolution is top-down: Mourner, Gainer,
 	// Chooser (DoGain, +4), Drainer.
 	// 20 -> +8 (Mourner) -> +5 (Gainer) -> +4 (Chooser) -> -37 (Drainer) = 0.
@@ -441,7 +441,7 @@ func TestTriggerArrivingDuringADecisionCannotCorruptTheQueue(t *testing.T) {
 }
 
 // TestTriggersOfADepartedControllerAreDropped is CR 800.4a: an ability
-// controlled by a player who has left the game ceases to exist. Before Task 27
+// controlled by a player who has left the game ceases to exist. Otherwise
 // these sorted after every living seat and went on the stack anyway.
 func TestTriggersOfADepartedControllerAreDropped(t *testing.T) {
 	t.Parallel()
@@ -576,7 +576,7 @@ func driveTriggerGame(t *testing.T, e *Engine, limit int, orders [][]int, yesNo 
 		var choices []int
 		switch d.Kind {
 		case decision.KChoose:
-			// CR 514.1 (Task D1): a cleanup discard. Answer it naively
+			// CR 514.1: a cleanup discard. Answer it naively
 			// (first-Max, the botpolicy policy) and continue -- it is not a
 			// priority, ordering or optional decision.
 			if len(d.Options) == 0 || d.Options[0].Kind != "discard" {
@@ -625,7 +625,7 @@ func driveTriggerGame(t *testing.T, e *Engine, limit int, orders [][]int, yesNo 
 	return
 }
 
-// TestReplayFromLogAloneReconstructsOrderedAndOptionalTriggers is Ruling U4.
+// TestReplayFromLogAloneReconstructsOrderedAndOptionalTriggers pins ordering's replay.
 // A real multi-turn game that exercises both a reordering and an optional
 // trigger (once accepted, once declined) is folded from its log ALONE into a
 // fresh state.Game -- no rules.Engine behind it, exactly what a real
@@ -720,27 +720,26 @@ func TestReplayFromLogAloneReconstructsOrderedAndOptionalTriggers(t *testing.T) 
 // priorityRound: an ordering decision asked mid-draw-step, once answered,
 // must not cause a second draw.
 //
-// Ruling T28-a (rewritten for Task 28): before Task 28, the draw step's draw
-// lived in priorityRound, and this test drove to its scenario by FORGING the
-// draw step's state directly -- raw TurnChange/StepChange/Priority emits,
-// never calling advanceStep at all -- because the property under test was
-// specifically that priorityRound's OWN draw-step guard is not idempotent:
-// nothing between its draw and the priority emit that followed it changed
-// Passes or Priority, so re-entering priorityRound mid-round (which is what
-// Advance would do if the trigger handlers simply returned and let the
-// engine take another step) drew the active player a second card. Task 28
-// deleted that guard and moved the draw to advanceStep, run once on entry to
-// the step and never again -- which removes this test's old PREMISE (there
-// is no more irreversible draw-step work sitting in priorityRound for a
-// re-entry to repeat) but not the PROPERTY it exists to pin: answering an
-// ordering decision asked in the draw step must still resume the round
-// without drawing again. This now drives the real path -- genesis, then
-// Advance/Submit passes through turn 1 and into turn 2's own draw step --
-// so the draw happens exactly where advanceStep performs it today, and the
-// property is pinned against the CURRENT mechanism rather than the deleted
-// one. See the Task 28 report for the mutant this now catches (the old one,
-// "point resumeTriggerDrain at priorityRound", no longer does, precisely
-// because priorityRound no longer draws at all).
+// The draw step's draw lived in priorityRound, and this test drove to its
+// scenario by FORGING the draw step's state directly -- raw
+// TurnChange/StepChange/Priority emits, never calling advanceStep at all --
+// because the property under test was specifically that priorityRound's OWN
+// draw-step guard is not idempotent: nothing between its draw and the
+// priority emit that followed it changed Passes or Priority, so re-entering
+// priorityRound mid-round (which is what Advance would do if the trigger
+// handlers simply returned and let the engine take another step) drew the
+// active player a second card. The guard is gone and the draw moved to
+// advanceStep, run once on entry to the step and never again -- which removes
+// this test's old PREMISE (there is no more irreversible draw-step work
+// sitting in priorityRound for a re-entry to repeat) but not the PROPERTY it
+// exists to pin: answering an ordering decision asked in the draw step must
+// still resume the round without drawing again. This now drives the real path
+// -- genesis, then Advance/Submit passes through turn 1 and into turn 2's own
+// draw step -- so the draw happens exactly where advanceStep performs it
+// today, and the property is pinned against the CURRENT mechanism rather than
+// the deleted one. This catches a mutant (the old one, "point resumeTriggerDrain at
+// priorityRound", no longer does, precisely because priorityRound no longer
+// draws at all).
 func TestOrderingDecisionInTheDrawStepDoesNotDrawTwice(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 2)
@@ -782,7 +781,7 @@ func TestOrderingDecisionInTheDrawStepDoesNotDrawTwice(t *testing.T) {
 // --- Fix round 1 -----------------------------------------------------------
 
 // TestPriorityIsNeverGrantedWithTriggersStillQueued is CR 117.5, and review
-// finding F1(a). Task 27 made grantPriority reachable from inside handle,
+// grantPriority is reachable from inside handle,
 // which runs BEFORE Submit's tail checkStateBased -- so a creature that a
 // state-based action is about to sweep was still alive when the drain
 // finished, and its death trigger reached the stack only after the priority
@@ -828,7 +827,7 @@ func TestPriorityIsNeverGrantedWithTriggersStillQueued(t *testing.T) {
 	}
 }
 
-// TestPriorityIsNeverGrantedToAPlayerAboutToBeSweptOut is review finding
+// TestPriorityIsNeverGrantedToAPlayerAboutToBeSweptOut:
 // F1(b), the hang. Three seats, so the elimination does not end the game.
 // Seat 2 holds priority and is already at zero life with no state-based
 // action run yet; seat 0 answers an ordering decision. Before the fix,
@@ -876,7 +875,7 @@ func TestPriorityIsNeverGrantedToAPlayerAboutToBeSweptOut(t *testing.T) {
 }
 
 // TestADecisionAgainstADepartedPlayerIsReleased covers the widened release
-// hook directly, for a decision kind that is not one of Task 27's. Review
+// hook directly, for a decision kind that is not one of the trigger kinds.
 // finding F2: the old hook's justification -- that the two trigger decisions
 // were the only ones asked from inside handle -- is false. handlePriority ->
 // castSpell (stack.go) -> askTarget asks a KTarget decision from inside
@@ -904,7 +903,7 @@ func TestADecisionAgainstADepartedPlayerIsReleased(t *testing.T) {
 	}
 }
 
-// TestAnsweredOptionalTriggerIsNeverAskedTwice is review finding F4. The
+// TestAnsweredOptionalTriggerIsNeverAskedTwice . The
 // front-of-queue guard in handleTriggerOptional used to fail into doing
 // nothing at all, so the drain immediately asked the SAME trigger's optional
 // question again: the player's answer was consumed (its Seq is spent) and
@@ -916,7 +915,7 @@ func TestAnsweredOptionalTriggerIsNeverAskedTwice(t *testing.T) {
 	// CR 603.5 moved the ordinary OptionalDecider$ trigger's yes/no to
 	// resolution, so the placement KTriggerOptional no longer exists for it.
 	// The one place a placement KTriggerOptional survives is a Miracle offer
-	// (Task 18) -- a keyword CAST offer, not a 603.5 optional triggered
+	// -- a keyword CAST offer, not a 603.5 optional triggered
 	// ability -- so this test re-points there: a declined Miracle offer must be
 	// answered once, never re-asked, never left queued, and the card stays in
 	// hand.
@@ -961,8 +960,8 @@ func TestAnsweredOptionalTriggerIsNeverAskedTwice(t *testing.T) {
 	}
 }
 
-// TestDiffGamesSeesTheGameResult is review finding F6. diffGames is the
-// harness every replay proof in this package leans on, and Task 24 inherits
+// TestDiffGamesSeesTheGameResult . diffGames is the
+// harness every replay proof in this package leans on, and replay inherits
 // it. It compared Players, Objs, Stack, the zones and most turn scalars, but
 // not Winner, Draw or NextID -- so a game that ended in a draw compared equal
 // to one seat 0 won.
@@ -988,12 +987,12 @@ func TestDiffGamesSeesTheGameResult(t *testing.T) {
 	}
 }
 
-// TestTriggerDrainInvariantsUnderRandomizedPlay is the measurement fix round
+// TestTriggerDrainInvariantsUnderRandomizedPlay is a measurement
 // 1 owes the re-drain that resumeTriggerDrain now performs. The concern is
 // specific: re-entering putTriggersOnStack after state-based actions have
 // queued more work must not re-sort or re-offer triggers whose order a player
 // has already fixed. Rather than argue that from e.orderedTriggers, this
-// plays many games and asserts it, alongside the two properties fix round 1
+// plays many games and asserts it, alongside the two properties
 // exists to restore.
 //
 // Invariants checked after every single Submit, on every game:
@@ -1122,8 +1121,8 @@ func TestTriggerDrainInvariantsUnderRandomizedPlay(t *testing.T) {
 
 // --- Fix round 2 -----------------------------------------------------------
 
-// TestASpellWhoseTargetDecisionWasReleasedDoesNotResolve is re-review finding
-// N1, which fix round 1 introduced: widening the release hook turned a stall
+// TestASpellWhoseTargetDecisionWasReleasedDoesNotResolve:
+// widening the release hook turned a stall
 // into a spell that RESOLVES with no targets at all. resolveTop's CR 608.2b
 // fizzle branch was gated on `spec != "" && len(targets) > 0`, using "has
 // targets" as a proxy for "needs targets" -- so a spell whose target decision
@@ -1154,7 +1153,7 @@ Oracle:x
 	}
 
 	// Eliminate the caster while their target decision is outstanding. The
-	// release hook (fix round 1) clears it so the match can continue.
+	// release hook clears it so the match can continue.
 	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -20})
 	e.checkStateBased()
 	if !e.G.Players[0].Lost {
@@ -1182,8 +1181,8 @@ Oracle:x
 	}
 }
 
-// TestATriggerWhoseControllerLeftIsNotPushedByItsDecider is re-review finding
-// N2, and Ruling U6: an ability controlled by a player who has left the game
+// TestATriggerWhoseControllerLeftIsNotPushedByItsDecider:
+// an ability controlled by a player who has left the game
 // ceases to exist (CR 800.4a). Under CR 603.5 the optional trigger is now
 // pushed while its controller is alive, so the harder case is the ON-STACK
 // one: the controller leaves after the ability is already on the stack, and
@@ -1227,12 +1226,12 @@ func TestATriggerWhoseControllerLeftIsNotPushedByItsDecider(t *testing.T) {
 	}
 }
 
-// TestOptionalTriggerWhoseDeciderLeftTheGameCeasesToExist is fix round 1's
-// unpinned-branch leaf -- the reason this fix round exists. The CR 603.5 block
+// TestOptionalTriggerWhoseDeciderLeftTheGameCeasesToExist is the
+// unpinned-branch leaf. The CR 603.5 block
 // in resolveTop has a branch for an OptionalDecider$ trigger whose decider has
 // left the game (CR 800.4a: the ability ceases to exist rather than being
 // offered to the departed seat for a yes/no nobody can answer), guarded by
-// `if !askable`. Nothing observed that branch: the controller's own fix round
+// `if !askable`. Nothing else observes that branch: the controller's own
 // swapped it for `if false && !askable`, `go test ./engine/rules` stayed green, and
 // the departed decider's question was posed to a seat that cannot answer. This
 // leaf pins the branch against exactly that regression: an OptionalDecider$
@@ -1325,13 +1324,13 @@ func TestOptionalTriggerWhoseDeciderLeftTheGameCeasesToExist(t *testing.T) {
 	}
 }
 
-// TestResumeTriggerDrainIsInertWhileADecisionIsPending pins fix round 2's
+// TestResumeTriggerDrainIsInertWhileADecisionIsPending pins the
 // structural guard. resumeTriggerDrain's termination used to rest entirely on
 // the argument that it is never entered with e.pending set -- true of all
 // three callers, but an argument every future reader has to re-derive, and
 // the re-review showed it is one statement-reorder away from unbounded
 // recursion (swapping releasePendingDecisionOfDepartedPlayer's two lines
-// makes it run away immediately). Task 22 is this repo's standing evidence
+// makes it run away immediately). This repo's standing evidence is
 // for what such an argument is worth: wrong four times out of four.
 //
 // The guard turns it into a control-flow property, and this is the failure it
@@ -1361,9 +1360,9 @@ func TestResumeTriggerDrainIsInertWhileADecisionIsPending(t *testing.T) {
 	}
 }
 
-// --- Task 23 -----------------------------------------------------------
+// --- Pending triggers -----------------------------------------------------------
 
-// TestPendingTriggersReportsQueueOrderAndOptionality is Task 23's Ruling
+// TestPendingTriggersReportsQueueOrderAndOptionality is the
 // F2/R3 accessor: view.Project needs the trigger queue without importing
 // rules, so PendingTriggers exposes it built from the same
 // pendingTriggers/triggerLabel/optionalDecider machinery the drain itself
@@ -1417,7 +1416,7 @@ func TestPendingTriggersReportsOptionalDecider(t *testing.T) {
 	}
 }
 
-// TestPendingTriggersReturnsAFreshSlice guards Task 23 §10's no-aliasing
+// TestPendingTriggersReturnsAFreshSlice guards the no-aliasing
 // rule: a caller mutating the returned slice must not corrupt the engine's
 // own queue, nor a slice returned by an earlier call.
 func TestPendingTriggersReturnsAFreshSlice(t *testing.T) {
@@ -1442,7 +1441,7 @@ func TestPendingTriggersIsEmptyWithNoQueue(t *testing.T) {
 }
 
 // hunterSrc is a permanent whose upkeep trigger takes a single target
-// (Task 7): the shape a target-bearing trigger's own KTarget decision runs.
+// the shape a target-bearing trigger's own KTarget decision runs.
 const hunterSrc = `Name:Hunter
 ManaCost:B
 Types:Artifact Creature
@@ -1452,7 +1451,7 @@ SVar:TrigHunt:DB$ ChangeZone | ValidTgts$ Permanent | TargetMin$ 1 | TargetMax$ 
 Oracle:x
 `
 
-// TestTriggerTargetAskResumesTheDrain is Task 7's drain-continuation test.
+// TestTriggerTargetAskResumesTheDrain is the drain-continuation test.
 // A trigger that takes targets is asked right after its TriggerPush; the
 // answer must resume the SAME drain (handleTarget -> resumeTriggerDrain, the
 // continuation handleTriggerOrder already uses -- not a parallel path through

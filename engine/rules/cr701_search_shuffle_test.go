@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g09: CR 701.23 / 701.24. "Search your library ..., then shuffle" makes
+// CR 701.23 / 701.24. "Search your library ..., then shuffle" makes
 // the shuffle part of the instruction: once the library is searched the
 // player cannot decline it, and CR 701.24c/d shuffle even when nothing was
 // found. Forge's ShuffleNonMandatory$ is NOT a "you may shuffle" marker on a

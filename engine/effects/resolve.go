@@ -413,7 +413,7 @@ func setStateChoose(h Host, c *Ctx, sa *cards.SA, sp *SetStateParams, optional, 
 // countered by an earlier effect in the same response), it is simply skipped
 // rather than moved from wherever it now sits.
 //
-// Task 9 fix round 1 (Important 2): a spell cast for its flashback cost is
+// A spell cast for its flashback cost is
 // exiled "any time it would leave the stack" (CR 702.33b), which includes
 // being countered -- spellRestZone (engine/rules/stack.go) covers every exit in
 // resolveTop, but this primitive hard-coded the graveyard, so a countered
@@ -589,7 +589,7 @@ func encodeRemembered(remembered []state.Target) []state.ObjID {
 }
 
 // effRepeat runs RepeatSubAbility$ MaxRepeat$ times -- the fetched corpus's
-// real parameter name. RepeatNum$ (the Task 18 brief's name, which real
+// real parameter name. RepeatNum$ (which real
 // cards never use) is still honoured, as a fallback for anything that
 // predates MaxRepeat$. Either way the run count goes through Num(), so an
 // SVar-indirected Count$ works for either name. It is capped at 1000 so a

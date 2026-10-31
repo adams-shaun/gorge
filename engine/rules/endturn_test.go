@@ -53,7 +53,7 @@ func TestEndTurnPrimitiveRegisteredForEveryCorpusCarrier(t *testing.T) {
 			t.Logf("carrier %q still missing other primitives: %v", name, miss)
 		}
 	}
-	// The 9 corpus carriers named in the brief. If the corpus pin moves and
+	// The 9 corpus carriers. If the corpus pin moves and
 	// this count changes, the new carrier must be examined, not assumed.
 	if carriers != 9 {
 		t.Errorf("corpus carriers of api:EndTurn = %d, want 9", carriers)

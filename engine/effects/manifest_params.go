@@ -110,7 +110,7 @@ type manifestParams struct {
 
 func compileManifest(sa *cards.SA) manifestParams {
 	raw, present := sa.Param(cards.PKAmount)
-	// Shuffle$ True is the pile shuffle (cr-g150's Cloak ruling): no library
+	// Shuffle$ True is the pile shuffle (as Cloak's rulings read it): no library
 	// shuffle and no event. Read so the parameter census sees it read.
 	_ = sa.ParamStr(cards.PKShuffle)
 	return manifestParams{

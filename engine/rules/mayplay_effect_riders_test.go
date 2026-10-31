@@ -1,7 +1,7 @@
 package rules
 
 // mayplay_effect_riders_test.go pins the two riders an Effect-delivered
-// may-play grant shares with the printed route (cr-g219): MayPlayAltManaCost$
+// may-play grant shares with the printed route: MayPlayAltManaCost$
 // (Inside Information's "pay life equal to its mana value rather than pay its
 // mana cost") and a grant over the top card of the library with its
 // MayLookAt$ look (The Belligerent, Gwenom, Remorseless). Every other unread

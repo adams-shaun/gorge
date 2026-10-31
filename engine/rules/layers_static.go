@@ -308,7 +308,7 @@ func (e *Engine) libraryTopLook(p state.PlayerID, all bool) bool {
 // looker; a MayPlayPlayer$ Exiler value (Shared Fate) names the player
 // recorded in Object.ExiledBy instead. The view's optional
 // MayLookAtFaceDown capability (engine/view/card.go mayLookFaceDown), so the
-// face is shown to exactly the seat the grant names (CR 406.3; cr-g64). A
+// face is shown to exactly the seat the grant names (CR 406.3). A
 // read over active()'s sorted slice; the answer is boolean.
 func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 	o := e.G.Obj(id)
@@ -333,7 +333,7 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 		// A printed static may grant a look at another zone (Enduring
 		// Renewal's hand reveal, Oracle of Mul Daya's library top): only an
 		// exile-scoped grant can name a face-down exiled card. The
-		// Effect-delivered route sets AffectedZone Exile (cr-g64).
+		// Effect-delivered route sets AffectedZone Exile.
 		if ce.AffectedZone != "" && ce.AffectedZone != "Exile" {
 			continue
 		}

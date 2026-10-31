@@ -38,10 +38,10 @@ var manaTaggedLetters, manaSnowLetters = func() (tagged [len(state.ManaUnitTags)
 // write to Players[p].Pool: it emits one ManaAdd event per colour bucket
 // actually spent, with a negative Amount. That reuses the existing ManaAdd
 // kind rather than adding a new one -- Apply's ManaAdd case is a plain "+=",
-// so a negative Amount already subtracts correctly, the same trick Ruling F4
+// so a negative Amount already subtracts correctly, the same trick
 // uses for clearing damage.
 //
-// Ruling T19b-b: this used to be silent on failure (a no-op the caller could
+// This must not be silent on failure (a no-op the caller could
 // not observe), on the theory that legalActions always gates "cast" on
 // CanPay first so failure here was unreachable. That theory held for the
 // base cost but not for an alternative one: legalActions gates an alt-cost

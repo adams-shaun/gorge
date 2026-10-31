@@ -262,7 +262,7 @@ func TestSetColorStaticAmpersandListMakesWitnessProtectionBearerGreenWhite(t *te
 	}
 }
 
-// TestSetColorStaticMakesImprisonedBearerColourless is the brief's card pin:
+// TestSetColorStaticMakesImprisonedBearerColourless is the card pin:
 // Imprisoned in the Moon's `SetColor$ Colorless` static is a layer-5 colour
 // SET, so the enchanted permanent's derived colours become the empty set (it
 // is colourless), and the change is visible to a real colour-based rules

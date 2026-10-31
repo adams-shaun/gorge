@@ -1,4 +1,4 @@
-// Task ds4 (paramcensus ConditionCheckSVar/CheckSVar + Sacrifice Optional):
+// ConditionCheckSVar/CheckSVar and Sacrifice Optional:
 // corpus-carried behaviour tests for the gates the task taught the engine to
 // read. The cards are pulled from the real compiled corpus (choiceCorpusCard)
 // so the fixtures pin the cards' ACTUAL script shapes, not a paraphrase; the

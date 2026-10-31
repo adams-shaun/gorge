@@ -1,6 +1,6 @@
 package rules
 
-// Kernel-era restorations of the fx43_replacement_ask_test.go behaviour tests the W3
+// Kernel-era restorations of the replacement_ask_test.go behaviour tests the W3
 // legacy removal deleted: the same scenarios, driven through the resolution
 // kernel (engine/rules/resolve) instead of the suspend/resume protocol.
 
@@ -117,7 +117,7 @@ func TestReplacementMidResolutionAskResumes(t *testing.T) {
 			"Mox Diamond's replacement must discard exactly one land", landCount)
 	}
 
-	// T21-e: the same event log must replay to the identical Game. If the
+	// The same event log must replay to the identical Game. If the
 	// discard answer resumed (or the parked move emitted) through a path that
 	// mutated state without emitting an event, a log-only fold would diverge.
 	fresh := replayFromLog(t, cfg, e.L.Events)

@@ -229,7 +229,7 @@ type HostContinuous interface {
 	// AddContinuous registers one continuous effect against the CR 613 layer
 	// system (rules.Engine.AddContinuous). This is how Pump, PumpAll, Animate
 	// and Protection reach the layer system without effects importing rules,
-	// which would be an import cycle (effects sits below rules). Task 19c.
+	// which would be an import cycle (effects sits below rules).
 	AddContinuous(state.ContinuousEffect)
 	// ContinuousNamed reports whether an ACTIVE continuous effect registered
 	// by controller carries the given Name — the ask effEffect's Stackable$
@@ -288,7 +288,7 @@ type HostRestrictions interface {
 	// "can't be regenerated this turn"). Consulted by ReplaceDestruction before
 	// it would consume a shield, so a banned regeneration is never honoured.
 	// Implemented by rules.Engine against its continuous-effect registry; the
-	// effects test double reports false (no engine to consult). Task ce1.
+	// effects test double reports false (no engine to consult).
 	RegenerationDisallowed(id state.ObjID) bool
 	// SacrificeBlocked reports whether id is forbidden from being sacrificed
 	// at all this turn — an Effect-registered CantSacrifice restriction (Call
@@ -450,7 +450,7 @@ type HostTriggers interface {
 type HostCastLedger interface {
 	// CastThisTurn counts the spells cast this turn by anyone, derived from
 	// the event log so a replay that rebuilds the game arrives at the same
-	// number (Task 17's Count$ThisTurnCast backing — a copy/Storm count
+	// number (the Count$ThisTurnCast backing — a copy/Storm count
 	// must be replay-derivable, never a live-only engine counter).
 	CastThisTurn() int
 	// SpellsCastThisTurnMatching counts the spells put on the stack this turn

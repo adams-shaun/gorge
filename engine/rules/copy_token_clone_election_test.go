@@ -18,7 +18,7 @@ import (
 // on Mimic Vat, then the Vat copies the exiled Clone card; lionPick answers
 // the token's election.
 func mimicVatCloneScenario(lionPick string) string {
-	return `{"name":"mimic-vat-clone","cr":["614.12","707.2"],"why":"cr-g274","setup":{` +
+	return `{"name":"mimic-vat-clone","cr":["614.12","707.2"],"why":"a clone election on a copy token","setup":{` +
 		`"p0":{"hand":["Clone"],"battlefield":["Mimic Vat"]},"p1":{"battlefield":["Silvercoat Lion"]}},` +
 		`"steps":[{"op":"cast","seat":0,"card":"p0:Clone","mana":"CCCU"},` +
 		`{"op":"resolve","seat":0,"answers":[{"kind":"choose","pick":["p1:Silvercoat Lion"]}],"expect":[` +
@@ -87,7 +87,7 @@ func TestTokenCopyOfCloneCardDeclineEntersAsItself(t *testing.T) {
 // Lion and keeps Visage Bandit's Shapeshifter Rogue exception.
 func TestNahiriTokenCopyOfVisageBanditAppliesElection(t *testing.T) {
 	t.Parallel()
-	raw := `{"name":"nahiri-visage","cr":["614.12"],"why":"cr-g274","setup":{` +
+	raw := `{"name":"nahiri-visage","cr":["614.12"],"why":"a clone election on a copy token","setup":{` +
 		`"p0":{"graveyard":["Visage Bandit"],"battlefield":["Nahiri, the Unforgiving","Silvercoat Lion"]}},` +
 		`"steps":[{"op":"activate","seat":0,"card":"p0:Nahiri, the Unforgiving","ability_index":2,"targets":["p0:Visage Bandit"]},` +
 		`{"op":"resolve","seat":0}],"expect":[` +

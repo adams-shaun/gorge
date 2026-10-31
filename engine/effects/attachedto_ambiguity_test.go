@@ -1,17 +1,16 @@
 package effects
 
 // This file pins the cardinality rule of the resolution-time referent
-// arguments of `AttachedTo <ref>` (review finding on agent-...27e19c88
-// round 1): the supported binding is EXACTLY ONE object. A plural binding --
-// a resolution with several object targets, or a trigger that remembered
-// several objects -- is ambiguous, so the referent is UNBOUND and both the
-// positive and the leading-'!' negated spelling fail closed as unknown
-// (matchPositive returns ok=false), never an any-of guess over the plural
-// list. The corpus carriers of the bare referents (Strip Bare, Hubris,
-// Fiery Annihilation, Silence the Believers' single-target strive cast, Arna,
-// Rhuk) bind singly; Silence the Believers at >= 2 targets is the one
-// measured plural-capable carrier and it now fails closed rather than
-// guessing which bearer is meant.
+// arguments of `AttachedTo <ref>`: the supported binding is EXACTLY ONE
+// object. A plural binding -- a resolution with several object targets, or a
+// trigger that remembered several objects -- is ambiguous, so the referent is
+// UNBOUND and both the positive and the leading-'!' negated spelling fail
+// closed as unknown (matchPositive returns ok=false), never an any-of guess
+// over the plural list. The corpus carriers of the bare referents (Strip
+// Bare, Hubris, Fiery Annihilation, Silence the Believers' single-target
+// strive cast, Arna, Rhuk) bind singly; Silence the Believers at >= 2 targets
+// is the one measured plural-capable carrier and it now fails closed rather
+// than guessing which bearer is meant.
 
 import (
 	"testing"

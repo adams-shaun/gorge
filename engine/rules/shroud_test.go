@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task kw-shroud1: K:Shroud arrived in the derived keyword set but NO rule
+// K:Shroud arrived in the derived keyword set but NO rule
 // ever read it, so the CR 702.14 targeting gate was entirely absent — a
 // shrouded permanent (printed, or granted by Lightning Greaves) was offered
 // to every targeting spell or ability, its controller's included. The fix

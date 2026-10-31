@@ -34,7 +34,7 @@ func corpusUnlessCost(c *cards.Card) string {
 }
 
 // TestUnlessCostPayableNeedsEnoughAndRightColourFromRealCards pins the offer
-// gate against the real corpus cards the brief names. Mana Leak's {3} is
+// gate against the real corpus cards. Mana Leak's {3} is
 // reachable from three untapped Islands but not from one; Chain Lightning's
 // {R}{R} needs two red sources and an Island cannot pay it at all. Before the
 // fix the gate was pool-only, so every pool-empty payer looked unable to pay
@@ -95,7 +95,7 @@ func TestUnlessCostPayableNeedsEnoughAndRightColourFromRealCards(t *testing.T) {
 // TestCounterUnlessCostManaLeakTapsRealManaSources is the end-to-end pin: a
 // real Mana Leak counters a real creature spell, the payer (empty pool) is
 // offered the pay branch, taps three real Islands one at a time through the
-// mana window, and the creature survives. This is the brief's headline
+// mana window, and the creature survives. This is the headline
 // defect -- before the fix Mana Leak was a hard counter against a
 // pool-empty payer because no window existed.
 func TestCounterUnlessCostManaLeakTapsRealManaSources(t *testing.T) {

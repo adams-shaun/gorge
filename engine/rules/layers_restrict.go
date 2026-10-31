@@ -10,7 +10,7 @@ import (
 )
 
 // RegenerationDisallowed implements effects.Host for the CantRegenerate
-// restriction (Task ce1): reports whether an Effect-registered restriction
+// restriction: reports whether an Effect-registered restriction
 // forbids id from regenerating. Consulted by effects.ReplaceDestruction, so
 // Incinerate's "creature can't be regenerated this turn" actually blocks the
 // shield-consumption path instead of being a Note. Scanning e.active() keeps

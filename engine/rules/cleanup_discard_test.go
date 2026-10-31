@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This file is the CR 514.1 regression spec (Task D1): the cleanup step
+// This file is the CR 514.1 regression spec: the cleanup step
 // that used to do nothing about an oversized hand must now ask the active
 // player to discard down to maxHandSize, and must handle the exactly-at-the-
 // limit and non-active cases. The regression tests were written before the
@@ -254,7 +254,7 @@ func Test3141DiscardedCardsAreTheIntentNamed(t *testing.T) {
 }
 
 // Test3141ChoosingIsClearedByDiscardCleanup pins that answering the cleanup
-// discard does NOT leave e.choosing = chooseCleanup behind (Task D1 finding
+// discard does NOT leave e.choosing = chooseCleanup behind (
 // 1). cleanupStep sets e.choosing before it asks and discardCleanup must set
 // it back to chooseNone, the invariant the cast flows maintain explicitly
 // (cast.go: e.cast, e.choosing = nil, chooseNone at the end of their flow).

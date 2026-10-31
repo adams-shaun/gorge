@@ -1,6 +1,6 @@
 package rules
 
-// RearrangeTopOfLibrary's chooser (cr-g46). "Look at the top three cards of
+// RearrangeTopOfLibrary's chooser. "Look at the top three cards of
 // target player's library, then put them back in any order. You may have
 // that player shuffle." (Natural Selection, Portent): the player who looks,
 // orders and decides the shuffle is the spell's controller -- "you" -- not

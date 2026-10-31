@@ -7,14 +7,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task agent-20261001T013350Z-826f1c20: a DealDamage with RememberDamaged$
-// True that damages a PLAYER must remember that player on both halves of the
-// remembered state -- the resolution-local Ctx.Remembered set AND the source
-// object's event-backed persistent list -- the same way rememberPlayerBothHalves
-// already records RememberDiscardingPlayers$ (Professor Onyx, Snort). Before
-// the fix the four player-recipient emit arms in engine/effects/damage.go skipped the
-// remember write entirely, so Screaming Nemesis's follow-up DBEffect
-// RememberObjects$ Player.IsRemembered captured nobody.
+// A DealDamage with RememberDamaged$ True that damages a PLAYER must remember
+// that player on both halves of the remembered state -- the resolution-local
+// Ctx.Remembered set AND the source object's event-backed persistent list --
+// the same way rememberPlayerBothHalves already records
+// RememberDiscardingPlayers$ (Professor Onyx, Snort). Before the fix the four
+// player-recipient emit arms in engine/effects/damage.go skipped the remember
+// write entirely, so Screaming Nemesis's follow-up DBEffect RememberObjects$
+// Player.IsRemembered captured nobody.
 
 // playerRememberCount counts {Player: p, IsPlayer: true} entries in ts.
 func playerRememberCount(ts []state.Target, p state.PlayerID) int {

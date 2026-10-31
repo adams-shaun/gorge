@@ -22,7 +22,7 @@ func runRememberedImprintedScenario(t *testing.T, raw string) (fails, transcript
 // `Defined$ DirectRemembered` names the returned creature's LKI, so p0 gets a
 // Grizzly Bears token while the original sits in p1's hand.
 func TestRememberedImprintedSelectorsSupplantForm(t *testing.T) {
-	raw := `{"name":"supplant-form","why":"cr-g260","setup":{` +
+	raw := `{"name":"supplant-form","why":"remembered and imprinted selectors","setup":{` +
 		`"p0":{"hand":["Supplant Form"]},"p1":{"battlefield":["Grizzly Bears"]}},` +
 		`"steps":[{"op":"cast","seat":0,"card":"p0:Supplant Form","mana":"UUCCCC","answers":[` +
 		`{"kind":"target","pick":["p1:Grizzly Bears"]}]},` +
@@ -40,7 +40,7 @@ func TestRememberedImprintedSelectorsSupplantForm(t *testing.T) {
 // imprints it, and `Defined$ Imprinted.ExiledWithSource` names that card for
 // the copy: one Grizzly Bears token with haste.
 func TestRememberedImprintedSelectorsMimicVat(t *testing.T) {
-	raw := `{"name":"mimic-vat","why":"cr-g260","setup":{` +
+	raw := `{"name":"mimic-vat","why":"remembered and imprinted selectors","setup":{` +
 		`"p0":{"battlefield":["Mimic Vat","Grizzly Bears"]}},` +
 		`"steps":[{"op":"move","seat":0,"card":"p0:Grizzly Bears","to":"graveyard"},` +
 		`{"op":"resolve","seat":0,"answers":[{"kind":"trigger_optional","pick":["yes"]}],"expect":[` +
@@ -60,7 +60,7 @@ func TestRememberedImprintedSelectorsMimicVat(t *testing.T) {
 // ChangeZone reader of DirectRemembered: Fiend Hunter exiles p1's creature,
 // and the creature returns when Fiend Hunter leaves.
 func TestRememberedImprintedSelectorsFiendHunter(t *testing.T) {
-	raw := `{"name":"fiend-hunter","why":"cr-g260","setup":{` +
+	raw := `{"name":"fiend-hunter","why":"remembered and imprinted selectors","setup":{` +
 		`"p0":{"hand":["Fiend Hunter"]},"p1":{"battlefield":["Grizzly Bears"]}},` +
 		`"steps":[{"op":"cast","seat":0,"card":"p0:Fiend Hunter","mana":"WWC"},` +
 		`{"op":"resolve","seat":0,"answers":[{"kind":"trigger_optional","pick":["yes"]},{"kind":"target","pick":["p1:Grizzly Bears"]}],"expect":[` +

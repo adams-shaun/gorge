@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// These tests pin the std3 unread/fail-closed parameter fixes for the shapes
-// the brief names: Animate Colors$ ChosenColor (Puca's Eye), PutCounter
+// These tests pin the unread/fail-closed parameter fixes for the shapes
+// : Animate Colors$ ChosenColor (Puca's Eye), PutCounter
 // CounterTypes$ (Abigale), Pump ReplaceDyingDefined$ (Gnashing of Teeth),
 // ChangeZone ThisDefinedAndTgts$ TopOfLibrary (Suspend Aggression) and
 // DigUntil MinTotalCMC$ (Dream Harvest). Each asserts the precondition the

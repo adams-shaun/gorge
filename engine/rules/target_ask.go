@@ -609,7 +609,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		e.ensureLeftTheStack(source, rest, "a replacement fully discarded this "+
 			"spell's 'countered: no legal targets' move without relocating it anywhere; sent "+
 			"to its resting zone instead of re-resolving forever")
-		// Ruling T14-e: p, the casting player, not e.G.Active -- CR 117.3c,
+		// p, the casting player, not e.G.Active -- CR 117.3c,
 		// the caster keeps priority even when it fizzles. Only a SPELL keeps
 		// priority this way: an ability fizzling is parked in exile (ceases
 		// to exist) mid-drain, and handing out priority from inside the
@@ -634,8 +634,8 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	e.ask(d)
 }
 
-// handleTarget records the chosen target(s) via TargetsChosen events (Ruling
-// T14-b) rather than writing state.Object.Targets directly: apply.go clears
+// handleTarget records the chosen target(s) via TargetsChosen events
+// rather than writing state.Object.Targets directly: apply.go clears
 // Targets on a zone change but nothing else ever set it, so a direct write
 // here would leave a replayed game with no targets while the live game had
 // them. N targets record as TargetMin$ asks for: the first option replaces
@@ -811,7 +811,7 @@ func (e *Engine) finishPlacedTargets(obj state.ObjID, player state.PlayerID) {
 		return
 	}
 	// A target decision asked by a trigger drain (putTriggersOnStack's
-	// pushTrigger, immediately after the trigger's TriggerPush -- Task 20's
+	// pushTrigger, immediately after the trigger's TriggerPush -- the
 	// checkTriggers never asked targets, so only a spell's cast-time ask
 	// reached here before) does not hand out priority: the drain's own tail
 	// does, through the SAME continuation handleTriggerOrder uses
@@ -823,7 +823,7 @@ func (e *Engine) finishPlacedTargets(obj state.ObjID, player state.PlayerID) {
 		e.resumeTriggerDrain()
 		return
 	}
-	// Ruling T14-e: the submitting player, not e.G.Active -- CR 117.3c, the
+	// The submitting player, not e.G.Active -- CR 117.3c, the
 	// player who chose the target (the caster) keeps priority.
 	e.emit(events.Event{Kind: events.Priority, Player: player, Amount: 0})
 }
@@ -848,13 +848,12 @@ func targetOptions(chosen []decision.Option) []state.Target {
 
 // recordChosenTargets emits the TargetsChosen events for a set of chosen
 // target options onto the given object. Amount discriminates the target shape
-// (Ruling T14-b, extended by Task 4): 0 replace-with-object, 1
-// replace-with-player, 2 append-object, 3 append-player. It is the shared
-// recording path for both a cast-flow target decision (onto the stack object,
-// after the push) and a triggered ability's own post-TriggerPush ask.
-// appendFirst makes even the first option an APPEND: a Fuse cast records the
-// front half's targets first and must not have the alternate half's first
-// target replace them on the stack object.
+// 0 replace-with-object, 1 replace-with-player, 2 append-object, 3
+// append-player. It is the shared recording path for both a cast-flow target
+// decision (onto the stack object, after the push) and a triggered ability's
+// own post-TriggerPush ask. appendFirst makes even the first option an
+// APPEND: a Fuse cast records the front half's targets first and must not
+// have the alternate half's first target replace them on the stack object.
 func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Option, appendFirst bool) {
 	// One target answer is one BATCH for Mode$ BecomesTargetOnce (Forge fires
 	// TriggerBecomesTargetOnce once per targeting action, not once per
@@ -902,7 +901,7 @@ func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Op
 // ability to exile per CR 608.2m just below) with no effect -- not even a
 // SubAbility chained onto it that names no target of its own (Defined$ You
 // and the like). That distinguishes this from the per-target nil-checks
-// primitives like effDealDamage already had (Task 18, engine/effects/damage.go):
+// primitives like effDealDamage already had (engine/effects/damage.go):
 // those already skip a target that individually vanished, but nothing
 // before this stopped the OTHER, untargeted parts of the same spell's
 // script from running anyway once every target it had was gone. With only

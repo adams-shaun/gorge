@@ -1,6 +1,6 @@
 package rules
 
-// Kernel-era restoration of engine/effects/fx42_reentry_scope_test.go's
+// Kernel-era restoration of engine/effects/reentry_scope_test.go's
 // TestNestedDiscardDoesNotInheritOuterAnswer on the REAL corpus Gruesome
 // Discovery: its TgtChoose Discard chains a RevealYouChoose Discard
 // (MorbidDiscard), and the two legs are mutually exclusive on the Morbid
@@ -16,7 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-func TestKr1NestedDiscardDoesNotInheritOuterAnswer(t *testing.T) {
+func TestKernelNestedDiscardDoesNotInheritOuterAnswer(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	gd, ok := reg.Lookup("Gruesome Discovery")

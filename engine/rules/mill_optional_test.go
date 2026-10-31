@@ -1,6 +1,6 @@
 package rules
 
-// cr-g96: DB$ Mill | Optional$ True is a real may-mill election. effMill used
+// DB$ Mill | Optional$ True is a real may-mill election. effMill used
 // to ignore Optional$ and always milled; this drives an inline "you may mill
 // two cards" spell through the resolution kernel and pins both answers.
 

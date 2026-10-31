@@ -84,7 +84,7 @@ func compilePlayerSpec(spec string) *playerSpecCompiled {
 				c.dealt, c.dealtRef = true, ref
 			} else if !c.bare {
 				if !strings.Contains(clause, ".") && playerSpecBaseCodes.Code(clause) == 0 {
-					// agent-20261009T174731Z-42d5e0f4: a dotless clause after
+					// A dotless clause after
 					// `+` is a qualifier on the SAME candidate, not an
 					// independent spec with a base of its own; it used to
 					// compile to an unknown base ("Active") that matched

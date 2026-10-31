@@ -9,7 +9,7 @@ package rules
 //
 // The two carriers are Rotating Fireplace ({4}, {T}: time travel) and The
 // Tenth Doctor ({7}: time travel three times, Amount$ 3, "Activate only as a
-// sorcery"), the two shapes the brief names.
+// sorcery"), the two shapes.
 
 import (
 	"testing"
@@ -261,7 +261,7 @@ func TestTimeTravelMultipleObjectsRemovedToZeroEachAskedOnce(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestTenthDoctorTimeyWimeySorcerySpeedOnly pins the brief's second named
+// TestTenthDoctorTimeyWimeySorcerySpeedOnly pins the second named
 // carrier: The Tenth Doctor's {7} Time Travel, Amount$ 3, "Activate only as
 // a sorcery". The ability is withheld with a spell on the stack, offered on
 // an empty-stack main phase, and its three repetitions each re-enumerate the

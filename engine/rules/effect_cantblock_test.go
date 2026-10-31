@@ -1,4 +1,4 @@
-// cr-g156: an Effect-delivered `Mode$ CantBlock` (Cosmotronic Wave's
+// An Effect-delivered `Mode$ CantBlock` (Cosmotronic Wave's
 // "creatures your opponents control can't block this turn", and the sibling
 // carriers Ahn-Crop Crasher, Ember Gale, Hazardous Blast, Headliner Scarlett,
 // Immobilizer Eldrazi, Rumbling Ruin, Sontaran General) must register as a

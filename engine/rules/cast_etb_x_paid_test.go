@@ -50,7 +50,7 @@ const wanShiTongSrc = "Name:Wan Shi Tong, Librarian\nManaCost:X U U\nTypes:Legen
 	"SVar:X:Count$xPaid\nSVar:Y:SVar$X/HalfDown\n" +
 	"Oracle:Flash\\nFlying, vigilance\\nWhen Wan Shi Tong enters, put X +1/+1 counters on him. Then draw half X cards, rounded down.\n"
 
-// TestHydroidKrasisSpellCastTriggerReadsThePaidX is the brief's own probe:
+// TestHydroidKrasisSpellCastTriggerReadsThePaidX is the probe:
 // cast Krasis for X=4 and its SpellCast trigger must gain half X (2 life) and
 // draw half X (2 cards) -- not 0 of either -- while the ETB counter
 // replacement keeps its pre-existing correct X=4.
@@ -81,7 +81,7 @@ func TestHydroidKrasisSpellCastTriggerReadsThePaidX(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestGenesisHydraCastTriggerFiresAndEtbReadsThePaidX covers the brief's
+// TestGenesisHydraCastTriggerFiresAndEtbReadsThePaidX covers the
 // Genesis Hydra leg. Its cast trigger (Mode$ SpellCast, Card.Self) fires only
 // because zoneGate now lets a spell's own cast trigger qualify while the
 // source is the spell on the stack (CR 601.2i); its Dig then resolves silently

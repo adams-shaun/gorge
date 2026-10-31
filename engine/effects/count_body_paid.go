@@ -241,7 +241,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	case evalCountBodyPaidPlayerCountOpponents:
 		return int32(g.AliveCount() - 1), true, true
 	case evalCountBodyPaidThisTurnCast:
-		// Task 17 (Storm): spells cast this turn by anyone, read off the
+		// Storm: spells cast this turn by anyone, read off the
 		// log via h.CastThisTurn() so a replay derives the same count. The
 		// classic idiom is Count$ThisTurnCast/Minus1 (storm copies the spell
 		// once per spell cast before it, i.e. everyone's casts minus itself).

@@ -1,14 +1,11 @@
-// Task 21: combat. CR 508-510 in miniature -- declare attackers, declare
-// blockers, then damage -- plus the CR 514.2 cleanup that combat depends on
-// and that nothing in this codebase implemented before now. The lethal-
-// damage and Deathtouch state-based actions this file's own damage marking
-// depends on were also added here by Task 21, as destroyLethalDamage, but
-// moved to sba.go by Task 22 -- they are general state-based-action logic,
-// not combat-specific, and now live alongside the rest of CR 704.
+// Combat. CR 508-510 in miniature -- declare attackers, declare blockers, then
+// damage -- plus the CR 514.2 cleanup that combat depends on. The lethal-damage
+// and Deathtouch state-based actions this file's own damage marking depends on
+// live in sba.go, as destroyLethalDamage, with the rest of CR 704.
 //
-// M1's own simplifications, matching the brief this task was built from:
+// Simplifications:
 //   - Only the active player attacks. The defending player is a real, per-
-//     attacker choice since Task m34: each attacking creature may be declared
+//     attacker choice: each attacking creature may be declared
 //     against ANY one living opponent, independently (CR 506.2 / CR 903.14),
 //     and the KAttackers decision offers one option per (attacker, defender)
 //     pair -- decision.Option.Player carries the pair's defender, so widening
@@ -47,7 +44,7 @@ import (
 // defender) pair: every creature passing combat.CanAttack, offered once against
 // every living opponent of the active player (CR 506.2: each attacking
 // creature's controller announces which opponent it is attacking, one
-// independent choice per creature). Task m34 replaces M1's single fixed
+// independent choice per creature), not a single fixed
 // defender (the next living seat) with this real choice; each option's
 // Player field carries its own defender, and handleAttackers groups the
 // chosen options back into one DeclareAttackers event per defender. Options
@@ -334,7 +331,7 @@ func (e *Engine) askAttackers() {
 // 508.1f, 702.20b).
 //
 // Each chosen option carries its own defender (the KAttackers option list is
-// one entry per (attacker, defender) pair, Task m34), so the declaration is
+// one entry per (attacker, defender) pair), so the declaration is
 // grouped by defender into one DeclareAttackers event per defending player,
 // emitted in ascending seat order -- deterministic, and the same order the
 // declare-blockers step asks the defenders in. The chosen set is guaranteed
@@ -492,9 +489,9 @@ func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID
 		}
 	}
 	// CR 508.1f: declaring attackers is ONE turn-based action, so the taps it
-	// applies are ONE tapping action for the aggregate Mode$ TapAll trigger
-	// (task cli-20261005T075020Z-05241a06): the shared action bracket makes
-	// the trigger fire once for the whole declaration, not once per attacker.
+	// applies are ONE tapping action for the aggregate Mode$ TapAll trigger:
+	// the shared action bracket makes the trigger fire once for the whole
+	// declaration, not once per attacker.
 	e.openMillBatch()
 	for _, opt := range chosen {
 		if !e.hasKeywordH(opt.Obj, kwhVigilance) {
@@ -623,7 +620,7 @@ func (e *Engine) exertAnswer(d *decision.Decision, in decision.Intent) {
 }
 
 // validateAttackers is the KAttackers legality guard behind Option A's
-// cross-product option list (Task m34). One creature may be declared
+// cross-product option list. One creature may be declared
 // attacking at most one opponent (CR 506.2, CR 903.14), but the option list
 // offers every (attacker, defender) pair, so an intent naming the same
 // creature twice -- against two different defenders -- passes decision.
@@ -637,7 +634,7 @@ func (e *Engine) exertAnswer(d *decision.Decision, in decision.Intent) {
 // was offered). With a single opponent the pair list has exactly one option
 // per creature, so this guard is inert in two-player games.
 //
-// Task jj-cmb (F38) adds the CR 508.1c/d requirement and restriction checks
+// This adds the CR 508.1c/d requirement and restriction checks
 // on top of the duplicate-defender guard: validateAttackDeclaration rejects
 // a declaration that does not maximise must-attack requirements subject to
 // attack restrictions (e.g. Silent Arbiter's MaxAttackers).
@@ -1106,7 +1103,7 @@ func (e *Engine) admissiblePair(scope *blockPairScope, defender state.PlayerID, 
 
 // blockerRound is the declare-blockers step's plain-value cursor, the same
 // one-decision-at-a-time pattern as the London mulligan round (engine/rules/
-// mulligan.go): Task m34 lets one attack split across several defending
+// mulligan.go): one attack split across several defending
 // players (CR 506.2), and each defender declares its own blocks (CR
 // 509.1c). order lists the defenders that have at least one attacking
 // creature, in APNAP turn order starting after the active player; cursor is
@@ -1354,17 +1351,16 @@ func (e *Engine) blockerAloneRestricted(blocker state.ObjID) bool {
 // (CR 509.1): every battlefield object under the active player's control
 // marked IsAttacking with Attacking == defender and a Face().
 //
-// Ruling T21-c (Task 21 fix round 1): the census additionally requires
-// Face() != nil. DeclareAttackers's own events.Apply case sets IsAttacking
-// on any existing object with no such check (Player is validated, but
-// nothing about the object it names), so a malformed or tampered event -- or
-// a nil-Card object such as an ability's own stack object (Ruling F3) --
-// reaching IsAttacking used to make it as far as the label build in the
-// single-defender askBlockers, which read e.G.Obj(aid).Face().Name
-// unconditionally: a nil-pointer panic, and therefore a remote kill of the
-// whole match (one goroutine runs it). combat.CanAttack already requires this for a
-// real attacker, so no legitimate attacker is excluded by requiring it here
-// too.
+// The census additionally requires Face() != nil. DeclareAttackers's own
+// events.Apply case sets IsAttacking on any existing object with no such
+// check (Player is validated, but nothing about the object it names), so a
+// malformed or tampered event -- or a nil-Card object such as an ability's
+// own stack object -- reaching IsAttacking used to make it as far as the
+// label build in the single-defender askBlockers, which read
+// e.G.Obj(aid).Face().Name unconditionally: a nil-pointer panic, and
+// therefore a remote kill of the whole match (one goroutine runs it).
+// combat.CanAttack already requires this for a real attacker, so no
+// legitimate attacker is excluded by requiring it here too.
 func (e *Engine) blockAttackers(defender state.PlayerID) []state.ObjID {
 	var out []state.ObjID
 	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
@@ -1383,7 +1379,7 @@ func (e *Engine) blockAttackers(defender state.PlayerID) []state.ObjID {
 // append per pair) and so what dealCombatDamage's damage-assignment loop
 // below reads as "blocker order" for CR 510.1c's ordered damage assignment.
 //
-// Task m34: this advances only the blockers-round cursor, never the step.
+// This advances only the blockers-round cursor, never the step.
 // Each defending player declares its own blocks (CR 509.1c -- a split attack
 // can involve several), and the Advance loop re-enters askBlockers for the
 // next defender, which is what decides when the step moves to combat damage.
@@ -1422,7 +1418,7 @@ func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 	e.blockerRound.cursor++
 }
 
-// combatRound is the combat damage step's continuation state (Task jj-cmb):
+// combatRound is the combat damage step's continuation state:
 // which damage passes remain, and any controller damage-division choices
 // being collected or awaiting an answer. It is the same plain-value state
 // class as blockerRound -- scalars plus slices, never a closure -- so Clone
@@ -1759,7 +1755,7 @@ func (e *Engine) askNextCombatAsk() bool {
 // above zero (an election over zero damage is a decision nobody could answer
 // differently), not in the one shape where the outcome is already identical
 // (Trample with no live blocker left routes the whole power to the player
-// either way, Ruling T21-d), and whose static match is OPTIONAL (Optional$
+// either way), and whose static match is OPTIONAL (Optional$
 // True -- every printed corpus carrier). A mandatory match (no Optional$) is
 // auto-accepted into doneElect without an ask: the election is the
 // controller's only when the card says "may", and a mandatory reading
@@ -2072,7 +2068,7 @@ func (e *Engine) liveBlockers(a *state.Object) []state.ObjID {
 // single regular damage step happens. Double Strike is not among the eight
 // keywords this task registers as implemented (see the init below) -- a card
 // that actually has it is not routed into real decks by the coverage gate --
-// but the check costs nothing to leave in exactly as the brief specified it,
+// but the check costs nothing to leave in,
 // so a Double-Strike creature that reaches combat some other way (a test, a
 // future task) still behaves correctly rather than merely "not being asked
 // about".
@@ -2182,7 +2178,7 @@ func (e *Engine) collectFirstStrikers(dst []state.ObjID) []state.ObjID {
 // commander tally from the Damage events it already has. Recording the tally
 // in a CmdDamage event -- appended after every earlier Kind, so no ordinal,
 // hash chain or golden replay is affected -- makes that same log-only replay
-// fold the tally back exactly, which is the deciding question the brief poses
+// fold the tally back exactly, which is the deciding question
 // (and answers "carried in an event of its own"). It also keeps every state
 // mutation on the events.Apply path, the build's standing invariant.
 func (e *Engine) tallyCmdDamage(p state.PlayerID, from state.ObjID, amount int32) {
@@ -2201,7 +2197,7 @@ func (e *Engine) tallyCmdDamage(p state.PlayerID, from state.ObjID, amount int32
 // creatures that would each kill the other both actually die instead of the
 // first one's death sparing the second.
 //
-// Ruling T21-a (Task 21 fix round 1): a first-strike attacker's own forward
+// A first-strike attacker's own forward
 // damage (to its blockers or the defending player) is gated on
 // actsThisDamageStep, exactly as before, but the "blockers hit back" section
 // below is not -- it used to sit inside the same gate, so a first-strike
@@ -2262,7 +2258,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// accepted election routes the WHOLE power to the defending
 					// player and nothing to any blocker -- the same shape an
 					// unblocked attacker takes. This case sits first so it also
-					// covers Ruling T21-d's blocked-but-blockers-all-left shape
+					// covers the blocked-but-blockers-all-left shape
 					// (an accepted election deals to the player even without
 					// Trample) and the ordinary blocked shape. The blockers
 					// still hit back below; only the ATTACKER's assignment is
@@ -2274,7 +2270,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					damageToDefender(pw)
 
 				case len(blockers) == 0:
-					// Ruling T21-d (CR 509.1h): a creature that was blocked
+					// CR 509.1h: a creature that was blocked
 					// stays blocked for the rest of combat even if every
 					// creature blocking it has since left -- it deals no
 					// combat damage at all, unless Trample lets the whole
@@ -2285,7 +2281,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					}
 
 				default:
-					// Ruling T21-b (CR 510.1c): lethal damage to each
+					// CR 510.1c: lethal damage to each
 					// blocker, in declaration order, before any spills to
 					// the next. Which blocker(s) receive more than lethal
 					// when Trample is absent and power exceeds every
@@ -2298,7 +2294,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// every blocker, spilling any true excess to the
 					// defending player below).
 					//
-					// Task jj-cmb (F40): a NON-trample attacker with more than
+					// A NON-trample attacker with more than
 					// one blocker and few enough legal divisions has already
 					// had its division chosen by its controller (a CR 510.1c
 					// KChoose, collected in combatRound.done by the combat
@@ -2346,7 +2342,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 		}
 
 		// Blockers hit back -- independent of whether the attacker itself
-		// acted this step above (Ruling T21-a).
+		// acted this step above.
 		for _, bid := range blockers {
 			if !e.actsThisDamageStep(bid, firstStrike) {
 				continue
@@ -2426,7 +2422,7 @@ func (e *Engine) runCombatAssignments() {
 	for i := e.combatRound.damageNext; i < len(e.combatRound.assignments); i++ {
 		x := e.combatRound.assignments[i]
 		// e.damaging names the dealing creature for the whole of this
-		// assignment so emit's protection check (Task 15) can prevent the
+		// assignment so emit's protection check can prevent the
 		// damage when the recipient is protected from it (CR 702.16d); reset
 		// before the next assignment.
 		e.damaging = x.from
@@ -2438,19 +2434,19 @@ func (e *Engine) runCombatAssignments() {
 		var prevented bool
 		dealt := x.amount
 		if x.toObj != 0 {
-			// Task 15 fix round 1 (Critical C1): the return value of the
-			// Damage emit is read here. emit swallows a protected permanent's
-			// damage and returns a Note instead of a Damage event, but the
-			// FOLLOW-ON emits that ride the damage -- the deathtouch marker and
-			// the lifelink life gain -- used to run regardless, so a 2/2 blue
-			// Merfolk with Lifelink + Deathtouch blocked by a creature with
-			// protection from blue would both slap a Deathtouched counter on
-			// it (lethal under CR 704.5g) and gain its controller life (CR
-			// 702.15a: lifelink triggers only on damage actually dealt) even
-			// though the damage itself was prevented. Checking the emitted
-			// event's Kind -- the recipient-armed bet here is that a Note (or
-			// any replacement-substituted non-Damage kind) means the damage
-			// did NOT land -- skips both riders for a prevented assignment.
+			// The return value of the Damage emit is read here. emit swallows
+			// a protected permanent's damage and returns a Note instead of a
+			// Damage event, but the FOLLOW-ON emits that ride the damage --
+			// the deathtouch marker and the lifelink life gain -- used to run
+			// regardless, so a 2/2 blue Merfolk with Lifelink + Deathtouch
+			// blocked by a creature with protection from blue would both slap
+			// a Deathtouched counter on it (lethal under CR 704.5g) and gain
+			// its controller life (CR 702.15a: lifelink triggers only on
+			// damage actually dealt) even though the damage itself was
+			// prevented. Checking the emitted event's Kind -- the
+			// recipient-armed bet here is that a Note (or any
+			// replacement-substituted non-Damage kind) means the damage did
+			// NOT land -- skips both riders for a prevented assignment.
 			dam := events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount}
 			if x.infect && e.IsCreature(x.toObj) {
 				// CR 702.90b: a CREATURE recipient takes infect damage as
@@ -2482,10 +2478,10 @@ func (e *Engine) runCombatAssignments() {
 					Counter: "Deathtouched", Amount: 1})
 			}
 		} else {
-			// Combat damage to a player. The existing (Task 15) protection
+			// Combat damage to a player. The existing protection
 			// prevention path only armed the Obj branch; the player branch
 			// never read the emit's return value. In a Commander-format game
-			// (CR 903.10, Task m33) this branch must know whether the damage
+			// (CR 903.10) this branch must know whether the damage
 			// actually landed before it tallies commander damage -- so it
 			// reads the returned kind exactly the way the Obj branch already
 			// does, and only tallies when it is still a Damage event (a
@@ -2651,7 +2647,7 @@ func (e *Engine) runCombatAssignments() {
 
 // maxHandSize is CR 514.1's DEFAULT maximum: at the beginning of a player's
 // cleanup step, if their hand contains more cards than their effective
-// maximum, they discard down to it. Task D1 verified no corpus effect
+// maximum, they discard down to it. No corpus effect
 // modified it then; Reliquary Tower and Thought Vessel (SetMaxHandSize$
 // Unlimited) do now, so cleanupStep reads the effective maximum through
 // maxHandSizeFor below and this constant is only that read's default.
@@ -2755,8 +2751,8 @@ func setMaxHandSizeSVar(h effects.Host, sv staticView, raw string) (int, bool) {
 	return int(n), true
 }
 
-// cleanupStep is the CR 514 cleanup step's turn-based actions, Task D1
-// adding CR 514.1 on top of the CR 514.2 body Task 21 owns. Ordering:
+// cleanupStep is the CR 514 cleanup step's turn-based actions,
+// CR 514.1 on top of the CR 514.2 body. Ordering:
 // CR 514.1 (discard down to maxHandSize) runs first, then the 514.2 body --
 // the two are simultaneous under the rules (nothing about the discard
 // affects what the 514.2 body clears and vice versa), so the engine picks
@@ -2804,7 +2800,7 @@ func (e *Engine) cleanupStep() {
 // Adamantoise; Engine.noCleanupDamageKeeps), clears this turn's Deathtouched markers (a deathtouch mark lasts
 // only as long as the damage it accompanied, CR 702.2c), and drops every
 // "until end of turn" continuous effect the layer system is holding
-// (Engine.EndOfTurnCleanup, layers.go -- built and tested since Task 19c, but
+// (Engine.EndOfTurnCleanup, layers.go, but
 // nothing ever called it, so a resolved pump effect such as Giant Growth used
 // to survive forever instead of expiring at the end of the turn it was cast
 // in). Called either directly from cleanupStep when no discard is owed, or
@@ -2874,7 +2870,7 @@ func (e *Engine) cleanupBody() {
 const chooseCleanup chooseFor = iota + 4
 
 // chooseDamageDivision is the chooseFor for the combat damage step's
-// controller damage-division decision (CR 510.1c, Task jj-cmb F40): it lets
+// controller damage-division decision (CR 510.1c): it lets
 // handleChoose route the KChoose answer to handleDamageDivision (combat.go)
 // rather than to a cast/miracle flow or the no-flow Note fallback. Like
 // chooseCleanup, it extends the chooseFor enum in combat.go; iota+5 is
@@ -2942,7 +2938,7 @@ type exertAsk struct {
 // turn loop re-entering itself to grant priority and then redoing cleanup --
 // was judged not a small, clearly-correct addition at this point of
 // priorityRound; an honest recorded gap beats a speculative turn-loop
-// change, and the brief directs exactly that).
+// change).
 //
 // mayflashsac2 implemented exactly that tail (finishCleanupStep, turn.go):
 // the discard and the 514.2 body are followed by the CR 514.3 tail the

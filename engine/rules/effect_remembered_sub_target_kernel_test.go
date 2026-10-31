@@ -17,7 +17,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-func TestKr1EffectRememberedTargetFeedsTheChangeZoneSub(t *testing.T) {
+func TestKernelEffectRememberedTargetFeedsTheChangeZoneSub(t *testing.T) {
 	t.Parallel()
 	src := "Name:JunoFx\nManaCost:B\nTypes:Sorcery\n" +
 		"A:SP$ Effect | RememberObjects$ Targeted & Self | ReplacementEffects$ ETBCreat | SubAbility$ DBReturn\n" +

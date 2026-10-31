@@ -40,7 +40,7 @@ import (
 // foretold card's controller -- in a hand a card is controlled by its owner,
 // and CR 702.126a's action is the owner's own, so the read is the same seat
 // the action's {2} came from. The action's CastInfo names the foreteller in
-// Player only to address its Secret payload (cr-g62); the controller stays
+// Player only to address its Secret payload; the controller stays
 // the read, so an effect-designation MoveZone, which names no foreteller,
 // resolves the same way. An effect that designates an
 // exiled card foretold from someone else's hand therefore names THAT hand's

@@ -1,6 +1,6 @@
 package rules
 
-// Task av3 Job 1: a computed ActivationLimit is enforced, not silently
+// A computed ActivationLimit is enforced, not silently
 // ignored. activationLimitReached used to strconv.Atoi the limit and return
 // false (unenforced) for anything not a plain integer, so Withering Wisps'
 // "ActivationLimit$ X" (SVar:X:Count$Valid Swamp.Snow+YouCtrl) was offered
@@ -138,7 +138,7 @@ func TestActivationLimitLiteralStillEnforcedExactly(t *testing.T) {
 	}
 }
 
-// TestActivationLimitInlineCountWithheldAtComputedCount is the fix-round-1
+// TestActivationLimitInlineCountWithheldAtComputedCount is the inline-count
 // leaf. The Withering Wisps leaves above reach the counted limit through the
 // SVar-indirection arm (ActivationLimit$ X -> SVar body Count$Valid ...), so
 // deleting the DIRECT-RAW arm of resolveActivationLimit -- the one that

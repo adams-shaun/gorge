@@ -1,6 +1,6 @@
 package rules
 
-// cr-g125: an untapped RestrictValid$ mana source funds a planned cast or an
+// An untapped RestrictValid$ mana source funds a planned cast or an
 // autopaid activation exactly when its restriction admits that payment
 // (CR 601.2g-h, 602.2b, 106.6). Every producer is a real corpus card; the
 // payers are inline fixtures.

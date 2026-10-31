@@ -211,7 +211,7 @@ func TestPlayerCountDefinedRegisteredUnknownPropertyFailsClosed(t *testing.T) {
 	for _, body := range []string{
 		"Count$PlayerCountDefinedRegistered$HasPropertySomeUnmodelledThing",
 		"Count$PlayerCountDefinedRegistered.Other$HasPropertySomeUnmodelledThing",
-		// The sibling groups the brief scopes OUT: they need referent
+		// The sibling groups left out: they need referent
 		// machinery this head does not build and must stay fail-closed.
 		"Count$PlayerCountDefinedRememberedOwner$HasPropertyLostLifeThisTurn",
 		"Count$PlayerCountDefinedNonTriggeredTarget$HasPropertyLostLifeThisTurn",

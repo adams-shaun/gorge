@@ -1,6 +1,6 @@
 package rules
 
-// cr-g85: CR 712.8a -- outside the battlefield and the stack a double-faced
+// CR 712.8a -- outside the battlefield and the stack a double-faced
 // card has only its front face's characteristics. A modal DFC cast as its
 // nonland back face is on the stack as the back face (CR 712.4d / 712.8); once
 // it resolves, or is countered, into the graveyard it must be the front face

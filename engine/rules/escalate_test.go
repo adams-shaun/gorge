@@ -1,6 +1,6 @@
 package rules
 
-// Task escalate1: kw:Escalate (the modal additional cost "pay this cost for
+// kw:Escalate (the modal additional cost "pay this cost for
 // each mode chosen beyond the first") was unread -- a Charm cast choosing
 // extra modes charged only the printed mana and never tapped/discarded/paid
 // the escalate cost. The fix: beginCast captures the raw keyword parameter

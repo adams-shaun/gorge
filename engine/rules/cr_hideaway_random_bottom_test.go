@@ -1,6 +1,6 @@
 package rules
 
-// Hideaway's remainder (cr-g63). CR 702.75a: "look at the top N cards of
+// Hideaway's remainder. CR 702.75a: "look at the top N cards of
 // your library. Exile one of them face down and put the rest on the bottom
 // of your library in a random order." The order is the engine's seeded
 // draw, never a player's arrangement.

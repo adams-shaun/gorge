@@ -1,6 +1,6 @@
 package rules
 
-// mayplay_riders_test.go pins the printed may-play riders cr-g129 consumes:
+// mayplay_riders_test.go pins the printed may-play riders:
 // MayPlayPlayer$ Player / ActivePlayer / Player.Active (Aluren, Weftwalking:
 // the beneficiary is every player / the active player, not the static's
 // controller) and MayPlayWithFlash$ True (Azula, Cunning Usurper; Aluren:

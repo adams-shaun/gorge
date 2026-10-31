@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task api:SetState.Optional: Optional$ True was unread -- every "you may
+// api:SetState.Optional: Optional$ True -- every "you may
 // transform" SetState ALWAYS transformed, unconditionally, with no election
 // recorded anywhere in the log. effSetState (engine/effects/misc.go) now poses a real
 // yes/no KChoose through the shared Ask boundary as a "setstate_optional"

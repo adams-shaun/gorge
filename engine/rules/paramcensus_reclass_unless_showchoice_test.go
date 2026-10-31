@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// cr-g178: census-only reclassification. ShowChoice$ (GenericChoice) and
+// Census-only reclassification. ShowChoice$ (GenericChoice) and
 // NoPeek$ (PeekAndReveal) are descriptive (Forge's notifyOfValue / the
 // skip-the-private-look flag; gorge's ModeChosen answer and its reveal path
 // are already public), and an UnlessCost$ whose whole value names a face

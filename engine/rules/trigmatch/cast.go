@@ -74,7 +74,7 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 	// Face()-less object could otherwise satisfy a bare "Any"/"Spell"
 	// ValidCard$ regardless (matchesBase's Spell/Any cases don't consult
 	// Face()), so this guard holds regardless of how a future ability-object
-	// path might reach here. Ruling F3.
+	// path might reach here.
 	obj := e.Game().Obj(ev.Obj)
 	if obj == nil || obj.Face() == nil {
 		return false

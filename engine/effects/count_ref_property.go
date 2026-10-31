@@ -138,7 +138,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		// cannot disagree.
 		//
 		// The same read applies to the sacrifice paid-list refs themselves
-		// (`Sacrificed`/`SacrificedCards`, cr-g297): the bare `Sacrificed$…`
+		// (`Sacrificed`/`SacrificedCards`): the bare `Sacrificed$…`
 		// head is cut by evalCountExprOK before it reaches this evaluator,
 		// but its `Spawner>Sacrificed$…` chained spelling (Bolg of the North,
 		// Heart-Piercer Manticore -- the resolving reflexive trigger's
@@ -475,7 +475,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 // ref TriggeredPlayersTargets (trig:DamageAll; both refs' only property
 // is Amount) returns false, and the caller degrades to zero
 // exactly as evalRefProperty's default always did. CardsDiscardedThisTurn
-// is the one optional head the brief allowed in: the shared Host predicate
+// is the one optional head: the shared Host predicate
 // already existed.
 func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	ref, prop, found := strings.Cut(expr, "$")
@@ -500,7 +500,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		// count head and a Defined$ spelling of the ref cannot disagree.
 		// Lullmage's Domination's SVar:CheckTgt reads
 		// `TargetedController$CardsInGraveyard` through the ReduceCost
-		// static's Count$Compare (agent-20260928T043626Z-b7e271c1).
+		// static's Count$Compare.
 		src := c.Targets
 		if c.PickedTargets != nil {
 			src = c.PickedTargets
@@ -522,10 +522,10 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		// through definedSpec -- the SAME resolver the body's own Defined$
 		// spelling goes through -- and keep its player entries, so the ref
 		// list is not a hand-maintained duplicate that can miss the next
-		// sibling. This ticket (rv2b-countheads) wires the LifeTotal head for
+		// sibling. This wires the LifeTotal head for
 		// those refs (Quietus Spike's / Ebonblade Reaper's
 		// TriggeredTarget$LifeTotal/HalfUp). The property is confined to the
-		// one head the ticket names so the change cannot widen the family's
+		// one head so the change cannot widen the family's
 		// other player count semantics (CardsInHand, Valid, Counters.Poison,
 		// ...) for refs that used to fail closed; an unknown ref or property
 		// still fails closed to (0, false).

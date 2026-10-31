@@ -227,8 +227,8 @@ var changeTextCarriers = []string{
 // alike -- so the gate cannot pass by scoping itself to the text family, and a
 // card whose gap later closes (or opens) makes this table stale and fails.
 //
-// The one non-nil entry is unrelated to text modification. The operator's
-// 2026-09-25 ruling explicitly leaves this keyword out of scope here:
+// The one non-nil entry is unrelated to text modification.
+// this keyword is out of scope here:
 //   - Spectral Shift: now fully playable. Its former kw:Entwine gap closed
 //     when agent-20260925T000311Z-22c4c559 landed CR 702.42 Entwine (the
 //     optional additional cost whose payment forces all Charm modes).
@@ -252,8 +252,8 @@ var changeTextCarrierGaps = map[string][]string{
 	"Trait Doctoring":        nil,
 }
 
-// TestChangeTextCarriersUnsupportedIsExact implements the operator's
-// 2026-09-25 registration ruling: assert the COMPLETE Unsupported result for
+// TestChangeTextCarriersUnsupportedIsExact :
+// Assert the COMPLETE Unsupported result for
 // all 14 carriers. Twelve must be fully playable; the other two must report
 // exactly their unrelated keyword gaps, not any text primitive. A card that
 // gains or loses any unsupported primitive makes this table stale and fails.

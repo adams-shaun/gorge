@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// cantloselife_test.go pins cr-g158: `Mode$ CantLoseLife` delivered by a
+// cantloselife_test.go pins `Mode$ CantLoseLife` delivered by a
 // DB$ Effect (Everybody Lives!, Courageous Resolve). Damage is still dealt
 // but no life is lost (CR 119.8); a LoseLife effect is swallowed; gain is
 // unaffected; a positive life payment is refused.

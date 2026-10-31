@@ -1,6 +1,6 @@
 package effects
 
-// cr-g11b review finding (MAJOR): a non-True TokenAttacking$ selector names
+// A non-True TokenAttacking$ selector names
 // its own defender, so CopyPermanent must keep that seat for the CopyToken
 // fold. The True arm alone owns CR 508.4's chooser.
 

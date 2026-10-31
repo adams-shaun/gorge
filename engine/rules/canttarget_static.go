@@ -10,7 +10,7 @@ import (
 // Silence; Ground Seal; Karplusan Strider; ...) and the Effect-delivered body
 // Vines of Vastwood and Autumn's Veil register through StaticAbilities$. Its
 // own init keeps the registration out of the shared statics.go list, where a
-// concurrent ticket also adds a mode.
+// other change also adds a mode.
 func init() { effects.RegisterNonAPI("stat:CantTarget") }
 
 // cantTargetBody is the scoping grammar a CantTarget restriction carries,

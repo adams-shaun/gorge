@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task kw-hexproof1: K:Hexproof arrived in the derived keyword set but NO
+// K:Hexproof arrived in the derived keyword set but NO
 // rule read it, so the CR 702.11 targeting gate was absent — a hexproof
 // permanent (Lotus Field, Tectonic Split, Witchstalker) was offered to every
 // targeting spell or ability, its opponents' included. The fix wires

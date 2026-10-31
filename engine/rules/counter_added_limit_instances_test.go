@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// cr-g197: a plain Mode$ CounterAdded line is one occurrence per counter in a
+// A plain Mode$ CounterAdded line is one occurrence per counter in a
 // CounterChange batch (CR 603.2c), but ActivationLimit$/GameActivationLimit$
 // still caps the TOTAL. The batch instance expansion in trigger_match.go must
 // therefore re-run both limit gates and reserve per extra instance; before

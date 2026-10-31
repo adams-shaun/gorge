@@ -169,7 +169,7 @@ func WithDefaultObjectCap(g *LoopGuard) *LoopGuard {
 // budget -- rather than a stuck resolution. The harnesses (testkit/bench's
 // drive loop, the host's play recover) record a game that tripped a volume
 // reason as a stalled game under the cardfuzz "bigboard" vocabulary, never
-// as an engine-bug abort (Ruling CV-2). "token plan" is deliberately NOT
+// as an engine-bug abort. "token plan" is deliberately NOT
 // volume here: it predates the classification and its callers classify it
 // themselves.
 func IsVolumeReason(reason string) bool {
@@ -451,7 +451,7 @@ func (w *livelockWatcher) observeFrom(ev *events.Event, damageSource state.ObjID
 	}
 
 	// A ClockTick is pure bookkeeping -- AddContinuous stamps one per
-	// registered effect (Ruling T19-a) -- and carries no object, so a single
+	// registered effect -- and carries no object, so a single
 	// resolution that legitimately registers one effect per affected
 	// permanent (a PumpAll over a 400-creature board: Moogles' Valor at the
 	// end of a token-doubling game, cardfuzz batch5 line 4) is a run of

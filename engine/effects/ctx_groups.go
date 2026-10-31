@@ -404,7 +404,7 @@ type ETBRecords struct {
 	// o.ChosenColor guard also suppressed a FRESH resolution-time ask after
 	// an earlier ChooseColor had set the field (a second sequential SA in
 	// one resolution, or an ability activation on an already-chosen
-	// permanent) -- the stale-source-state bug the same ticket's review
+	// permanent) -- the stale-source-state bug the same review
 	// named. Consumed and cleared by the effect, so a nested ChooseColor
 	// deeper in the same chain poses its own fresh ask.
 	ColorRecorded bool
@@ -417,7 +417,7 @@ type ETBRecords struct {
 	// historical no-op for it alone. Without the flag an unconditional
 	// o.ChosenNumber guard also suppressed a FRESH resolution-time ask after an
 	// earlier ChooseNumber had set the field -- the stale-source-state bug the
-	// sibling colour ticket's review named. The flag is what makes the entry
+	// sibling colour review named. The flag is what makes the entry
 	// no-op exact even when the recorded entry answer is 0 (the value a bare
 	// o.ChosenNumber guard cannot distinguish from unset). Consumed and cleared
 	// by the effect, so a nested ChooseNumber deeper in the same chain poses

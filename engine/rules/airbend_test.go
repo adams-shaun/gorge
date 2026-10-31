@@ -257,7 +257,7 @@ func TestAirbenderAscensionUpToOneTargetNeverAsks(t *testing.T) {
 	}
 }
 
-// TestAirbendRecastFiresAppaCastFromExileTrigger checks the brief-named
+// TestAirbendRecastFiresAppaCastFromExileTrigger checks the named
 // interaction: Appa, Steadfast Guardian's "Whenever you cast a spell from
 // exile, create a 1/1 white Ally creature token" must see the airbend recast
 // as a cast from exile (Card.wasCastFromExile reads the logged cast's origin

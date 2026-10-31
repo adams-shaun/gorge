@@ -1,6 +1,6 @@
 package rules
 
-// cr-g57: CR 723.4 widens what the CONTROLLER of another player may see to
+// CR 723.4 widens what the CONTROLLER of another player may see to
 // what that player could see, but only while the control is live -- CR
 // 723.1's "during that player's next turn". The grant is folded into
 // state.Game.ControlledBy the moment Mindslaver's ability resolves, on the

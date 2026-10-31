@@ -1,4 +1,4 @@
-// Task 28 (Ruling T23-x): the draw-step draw is a turn-based action (CR
+// The draw-step draw is a turn-based action (CR
 // 504.1) that must run exactly once, on entry to the step, no matter what
 // resolves later in the step. Before this fix it was inferred inside
 // priorityRound from a Passes/Priority proxy for "the step just began" --
@@ -17,7 +17,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// drawTriggerSrc is the Forge shape the brief names: a MANDATORY (no
+// drawTriggerSrc is the Forge shape: a MANDATORY (no
 // OptionalDecider$) "whenever you draw a card" trigger, scoped to its own
 // controller's draws only (ValidCard$ Card.YouOwn) so it does not also fire
 // on an opponent's draw step in the 4-seat variant.
@@ -115,9 +115,8 @@ func passThroughStep(t *testing.T, e *Engine, step state.Step, limit int) int {
 	return n
 }
 
-// assertDrawPrecedesPriorityInStep is Fix round 1 (review Important #1b):
-// the brief calls "the Draw event now precedes the step's own Priority
-// event" the one externally observable consequence of moving the draw from
+// assertDrawPrecedesPriorityInStep: the Draw event precedes the step's own
+// Priority event, the one externally observable consequence of moving the draw from
 // priorityRound to advanceStep, and nothing had asserted it -- moving the
 // e.drawCard call to AFTER advanceStep's trailing Priority emit (instead of
 // before it) left the whole rules suite green.
@@ -162,13 +161,13 @@ func assertDrawPrecedesPriorityInStep(t *testing.T, e *Engine, since int) {
 	}
 }
 
-// TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw is the brief's own
+// TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw is the
 // measurement case. Against the pre-fix code, resolveTop's post-resolution
 // Priority{Active, 0} emit (CR 117.3b) recreates exactly the state
 // priorityRound's old guard read as "the step just began", so the mandatory
 // trigger this test attaches makes the engine draw again, and again, until
 // the library runs dry -- a large hand delta instead of exactly 1. See the
-// RED measurement pasted into the Task 28 report for the actual pre-fix
+// RED measurement for the actual pre-fix
 // number.
 func TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw(t *testing.T) {
 	t.Parallel()
@@ -441,7 +440,7 @@ func TestDrawStepDeckOutEndsTheGameBeforePriority(t *testing.T) {
 	}
 }
 
-// TestReplayFoldsADrawTriggerFaithfully is Ruling U4 (see
+// TestReplayFoldsADrawTriggerFaithfully pins that replay folds it (see
 // TestReplayFromLogAloneReconstructsOrderedAndOptionalTriggers) applied to
 // this task: a game whose log contains a draw-step trigger firing folds,
 // from the log alone via events.Apply, into exactly the live game. The draw

@@ -237,7 +237,7 @@ func CounterRemovedInstances(t *cards.Trigger, ev *events.Event) int32 {
 // player recipient and vice versa). A line with no ValidObject$ admits both
 // forms. ValidCard$/ValidPlayer$ keep the generic trigger read through
 // eventCardAndPlayerMatch for scripts that spell the recipient that way
-// (no corpus line of this mode does; measured at the ticket pin).
+// (no corpus line of this mode does; measured at the corpus pin).
 //
 // ValidSource$ names the player CAUSING the placement (Generous Patron's
 // ValidSource$ You): a role the CounterChange event does not carry (it

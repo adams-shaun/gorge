@@ -62,9 +62,9 @@ func (e *Engine) resolveTop() {
 				return
 			}
 		}
-		// A triggered or activated ability with no printed card: Ruling
-		// T14-c / F3 -- Face() returns nil for these, so this branch must
-		// run before anything below touches it. Task 20 is what actually
+		// A triggered or activated ability with no printed card:
+		// Face() returns nil for these, so this branch must
+		// run before anything below touches it. The trigger path
 		// puts objects like this on the stack.
 		//
 		// CR 603.4 (intervening-if): a triggered ability's condition is
@@ -106,7 +106,7 @@ func (e *Engine) resolveTop() {
 			}
 		}
 		// No triggered or activated ability this build produces ever
-		// actually populates Targets (only Remembered): Task 20's
+		// actually populates Targets (only Remembered): the
 		// checkTriggers never calls askTarget, which is the only place
 		// TargetsChosen is ever emitted from. So this is unreachable in
 		// practice today, but a stack object is a stack object, and CR
@@ -349,7 +349,7 @@ func (e *Engine) resolveTop() {
 		// unchanged, and an activated ability finds no trigger at all and
 		// falls through to Face() exactly as before.
 		svars := e.abilityResolutionSVars(id, o)
-		// Ruling T20-b: Source must be o.Source (the permanent that has this
+		// Source must be o.Source (the permanent that has this
 		// ability), not id (the transient stack-object wrapper) -- Defined$
 		// Self, the most common Defined$ value in real trigger scripts,
 		// resolves to Ctx.Source, and a wrapper ID means "Self" refers to a
@@ -392,7 +392,7 @@ func (e *Engine) resolveTop() {
 		ctx.ActivationsThisTurn = e.activationsThisTurnFor(o.Source, o.Ability)
 		// The resolving stack-object wrapper: ValidStack's otherAbility
 		// exclusion (Ulalek's sub-copy) anchors here, not on Source --
-		// Source is the source permanent (Ruling T20-b), which is not on
+		// Source is the source permanent, which is not on
 		// the stack and would exclude nothing.
 		ctx.ResolvingObj = id
 		// alltargeted1: the cast flow's pre-asked SubAbility$ target
@@ -597,7 +597,7 @@ func (e *Engine) resolveTop() {
 		// A half that suspended on a mid-resolution ask hands back the
 		// continuation (the rest of that half plus a fuse-rest frame for any
 		// unrun half); link it onto the ask's fresh resume point here, the
-		// resolution machinery's own write (ruling T21-e).
+		// resolution machinery's own write.
 		e.resolveFused(o)
 		return
 	}
@@ -644,7 +644,7 @@ func (e *Engine) resolveTop() {
 		// legality recheck at resolution. (targetSA is hoisted above.)
 		// Fix round 2 (re-review N1), the same correction as the ability
 		// branch above, and the one that was actually reachable. Widening the
-		// departed-player release hook in fix round 1 turned a stall into a
+		// departed-player release hook turned a stall into a
 		// spell that RESOLVES with no targets at all: the caster is
 		// eliminated while their target decision is outstanding, the hook
 		// clears it so the match can continue, and the spell is left on the
@@ -849,8 +849,8 @@ func spellFizzleZone(o *state.Object) state.Zone {
 // off the stack itself and the guard never engages. The guard is for the
 // replacements whose ReplaceWith$ truly leaves the card where it was.
 //
-// Originally added by Task 29 (Ruling T26-a) for the permanent-ETB exit
-// alone; the final whole-branch review (Critical C1) measured the identical
+// Originally for the permanent-ETB exit
+// alone; a review measured the identical
 // hazard, independently reachable, on the other four exits -- a two-card
 // deck (an instant or an ability-granting permanent, plus a Rest-in-Peace-
 // shaped enchantment already on the battlefield) reliably hung a real match
@@ -863,7 +863,7 @@ func spellFizzleZone(o *state.Object) state.Zone {
 //
 // Held under applyingReplacement (saved and restored, not just set, in case
 // a future caller ever reaches here already inside one) for the same reason
-// the original ETB guard was (Task 29 review finding I-1): "ceases to
+// the original ETB guard was: "ceases to
 // exist" is engine bookkeeping, not a game event a card's own replacement
 // gets to intercept a second time. why becomes the Note's Text, tailored by
 // each call site to name which of the five moves was actually being

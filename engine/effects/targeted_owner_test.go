@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task tgtowner1: `Defined$ TargetedOwner` joined the shared referent
+// `Defined$ TargetedOwner` joined the shared referent
 // grammar (definedSpec), so every consumer that resolves a Defined$/
 // DefinedPlayer$/Chooser$/RememberObjects$ spelling resolves the target's
 // OWNER (CR 108.3) instead of falling back to the resolving source. Chaos

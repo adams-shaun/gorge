@@ -1,4 +1,4 @@
-// Task put-optional: api:PutCounter.Optional$ True was unread -- every "you
+// api:PutCounter.Optional$ True -- every "you
 // may put a counter" PutCounter ALWAYS put, unconditionally, with no
 // election recorded anywhere in the log. effPutCounter
 // (engine/effects/counters.go) now poses a real yes/no KChoose through the shared

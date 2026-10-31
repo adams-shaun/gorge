@@ -321,7 +321,7 @@ func TestMaelstromWandererCascadesTwice(t *testing.T) {
 }
 
 // TestDarkApostleGrantedCascadeRegistersAndOffers is the GRANTED route's
-// carrier, on the REAL corpus card whose grant is exactly the shape the brief
+// carrier, on the REAL corpus card whose grant is exactly the shape
 // names: AB$ Effect | StaticAbilities$ GrantCascade, with
 // SVar:GrantCascade:Mode$ Continuous | Affected$ Card.nonCreature+YouCtrl |
 // AffectedZone$ Stack | AddKeyword$ Cascade. Activating the ability

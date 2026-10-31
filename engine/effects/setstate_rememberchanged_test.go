@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task RememberChanged$ on DB$ SetState: effSetState emitted the face change
+// RememberChanged$ on DB$ SetState: effSetState emitted the face change
 // but never joined the resolution's Remembered, so every chained consumer of
 // the change read an empty list -- Megatron, Tyrant's DBMana produced nothing,
 // Enduring Angel's lose-game gate saw the empty Remembered and INVERTED the

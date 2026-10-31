@@ -8,7 +8,7 @@
 // hand -- modelled as a Return<1/Creature.YouCtrl+tapped> part and settled by
 // the cast flow's ordinary Return machinery: nonManaCastable censuses the
 // candidates at the offer gate (an option that cannot be paid is never
-// offered, the offerCastable ruling), returnAsk asks which permanent, and
+// offered, the offerCastable rule), returnAsk asks which permanent, and
 // payCast moves it to its OWNER's hand beside the other payments. The pieces:
 //
 //   - webSlingingCosts is the ONE cost reader the offer and the charge call,

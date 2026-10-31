@@ -1,6 +1,6 @@
 package rules
 
-// Task destaltsvar1: DestAltSVar$ / DestinationAlternative$ corpus-carried
+// DestAltSVar$ / DestinationAlternative$ corpus-carried
 // regression tests. Every fixture card is loaded from the real compiled
 // corpus (searchTestRegistry) so the tests pin the cards' ACTUAL script
 // shapes. The bug these cover: effChangeZone computed Destination$ once and

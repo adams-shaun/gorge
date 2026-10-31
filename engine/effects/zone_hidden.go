@@ -77,7 +77,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 	// ordinary case; a card OWNED by another player but sitting in this hidden
 	// zone would enter under its real owner (Move's default), so the ask here
 	// would name the zone owner instead. No corpus carrier exercises that
-	// shape (see the cr-g11b report's Issues); the pick's actual owner is only
+	// shape; the pick's actual owner is only
 	// known after the hidden pick, which is asked below.
 	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
 		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, players, cz.Riders.GainControl))

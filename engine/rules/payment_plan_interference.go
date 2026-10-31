@@ -1,10 +1,10 @@
 package rules
 
-// Mana/tap interference scoping for payment plans (spec §3.2 as amended
-// 2026-09-26, ticket aph-interference-scope). Like payment_plan.go this file
-// contains no call to emit: every read below is a pure query of the current
-// state, run against a HYPOTHETICAL tap and production of one candidate
-// source through the engine's own trigger and replacement matchers.
+// Mana/tap interference scoping for payment plans (spec §3.2 as amended).
+// Like payment_plan.go this file contains no call to emit: every read below
+// is a pure query of the current state, run against a HYPOTHETICAL tap and
+// production of one candidate source through the engine's own trigger and
+// replacement matchers.
 //
 // A trigger or replacement on source S affects only S's tier:
 //

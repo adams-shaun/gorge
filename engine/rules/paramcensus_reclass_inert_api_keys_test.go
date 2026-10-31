@@ -2,7 +2,7 @@ package rules
 
 import "testing"
 
-// cr-g202: census-only reclassification, no behaviour change. Six keys that
+// Census-only reclassification, no behaviour change. Six keys that
 // Forge's own effect for the named API never reads are reported unread on six
 // Standard cards. Each is read by OTHER primitives (CounterNum by PutCounter,
 // NumCards by Draw, ETB by Tap/PutCounter/Untap, Hidden by ChangeZone), so

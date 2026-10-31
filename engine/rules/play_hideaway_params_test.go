@@ -10,7 +10,7 @@ import (
 )
 
 // The api:Play parameter-family pin (ticket agent-20260918T221252Z-d504b33b)
-// on REAL compiled corpus cards. The brief's four parameters:
+// on REAL compiled corpus cards. The four parameters:
 //
 //   - WithoutManaCost$ True gates the free cast end to end (rules'
 //     resumeResolution "play" arm -> beginPlay): the played card's printed

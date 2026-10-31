@@ -104,8 +104,8 @@ func TestMirrorEntityAnimateAllGrantsBasePTAndAllCreatureTypes(t *testing.T) {
 // TestVedalkenHumiliatorAnimateAllResolution completes the resolution half the
 // existing metalcraft-gate pin (trigger_metalcraft_test.go) deliberately
 // deferred while AnimateAll was unimplemented: the trigger resolves, the
-// opponent's creatures get base 1/1, and RemoveAllAbilities$ is READ since
-// cr-g134 (rules/animateall_remove_test.go) -- no unread note may name it.
+// opponent's creatures get base 1/1, and RemoveAllAbilities$ is read.
+// See rules/animateall_remove_test.go -- no unread note may name it.
 func TestVedalkenHumiliatorAnimateAllResolution(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

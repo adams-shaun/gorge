@@ -20,7 +20,7 @@ import (
 // sees it. The spec group runs up to the first "/"; the trailing
 // "/description" is captured into CostPart.Desc (display only, read by
 // costPhrase); the ";" alternation is folded to "," (MatchesSpec's own
-// separator) at the parse site. Ruling FL-54.
+// separator) at the parse site.
 const nonManaCost = `^(Sac|SubCounter|Discard|Draw)<(\d+)/([^/>]+)(?:/([^>]*))?>$`
 
 // drawDynCost matches Forge's non-literal Draw amount, Draw<X/Spec> -- the
@@ -160,7 +160,7 @@ const exileFromTopCost = `^ExileFromTop<(\d+)/([^/>]+)(?:/([^>]*))?>$`
 // engine/rules/cast.go's ability branch beside the SubCounter settle. The corpus's
 // other 8 AddCounter tokens (Devoted Druid's M1M1 untap, Wall of Roots' M0M1
 // mana ability, two UnlessCost$ SVars) are NOT matched by this regex and keep
-// today's one-generic fallback, per the brief's scope boundary -- their
+// today's one-generic fallback -- their
 // counter semantics (M1M1/M0M1 kinds, mid-resolution UnlessCost payers) are
 // their own work.
 const addCounterCost = `^AddCounter<(\d+)/(LOYALTY)(?:/([^>]*))?>$`
@@ -1025,7 +1025,7 @@ func (c *Cost) reportUnknown(sym string) {
 // splitCostTokens splits a cost string on whitespace, but keeps each <...>
 // group atomic so Forge's non-mana tokens -- whose trailing "/description"
 // can contain spaces -- are not torn apart by a plain Fields split before
-// nonManaCost can see them. Ruling FL-54.
+// nonManaCost can see them.
 func splitCostTokens(s string) []string {
 	var out []string
 	for toks := (TokenIter{s: s}); ; {

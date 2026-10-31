@@ -295,7 +295,7 @@ func TestTokenOwnerOpponentPicksTheNextAliveSeat(t *testing.T) {
 }
 
 // TestTokenOwnerDefaultsToYou: with no TokenOwner$ at all (the corpus's most
-// common shape -- "You" is the default per the brief), the token belongs to
+// common shape -- "You" is the default), the token belongs to
 // the controller, mirroring TestTokenCreatesEachScriptTheGivenNumberOfTimes'
 // own explicit "You" but proving the parameter is genuinely optional.
 func TestTokenOwnerDefaultsToYou(t *testing.T) {
@@ -308,7 +308,7 @@ func TestTokenOwnerDefaultsToYou(t *testing.T) {
 
 // TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController: a
 // TokenOwner$ value the shared Defined$ player-selector grammar does not
-// know at all still creates the token under the controller -- the brief's
+// know at all still creates the token under the controller -- the
 // own stated fallback -- but says so with a Note, so a genuine fidelity gap
 // is visible in the log rather than silently indistinguishable from the
 // ordinary "You" default.

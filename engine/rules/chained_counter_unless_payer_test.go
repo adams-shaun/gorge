@@ -146,8 +146,8 @@ func chainedOfferedObj(d *decision.Decision, obj state.ObjID) int {
 	return -1
 }
 
-// TestChainedCounterUnlessEmptyTargetPosesNoAsk pins the second half of the
-// cr-g294 contract: when the chained link's OWN target answer is the explicit
+// TestChainedCounterUnlessEmptyTargetPosesNoAsk pins the second half of the contract:
+// when the chained link's OWN target answer is the explicit
 // EMPTY set, no "its controller" exists, so no unless_pay ask is posed and the
 // unpaid orientation applies (the Counter body runs over the empty target set,
 // a no-op). Both ways an optional chained target answers empty are covered:

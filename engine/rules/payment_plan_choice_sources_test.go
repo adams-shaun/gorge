@@ -337,7 +337,7 @@ func TestPaymentPlanChoiceSourcesComboAnyStaysDeferred(t *testing.T) {
 	}
 }
 
-// TestPaymentPlanChoiceSourcesPathOfAncestryStaysDeferred pins the brief's
+// TestPaymentPlanChoiceSourcesPathOfAncestryStaysDeferred pins the
 // TriggersWhenSpent exclusion on the real corpus card.
 func TestPaymentPlanChoiceSourcesPathOfAncestryStaysDeferred(t *testing.T) {
 	t.Parallel()

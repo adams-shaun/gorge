@@ -5,18 +5,18 @@ import (
 	"testing"
 )
 
-// cr-g223: census-only reclassification, no rules change. Eight keys Forge's
+// Census-only reclassification, no rules change. Eight keys Forge's
 // own effect for the named API never reads (or reads only for presentation)
 // are reported unread, and six of them are then loud-degraded by the API's
 // runtime unread Note. Each is either read by OTHER primitives or is a real
 // presentation/setup key, so each entry must be API-scoped in
 // ignoredAbilityParams, never key-global in ignoredParamKeys.
 
-// TestG223InertKeysAreScopedNotGlobal pins the eight API-scoped entries and
+// TestInertKeysAreScopedNotGlobal pins the eight API-scoped entries and
 // the sibling primitives' silence on the same keys. A key moved into the
 // key-global ignoredParamKeys makes the sibling primitive's genuine read
 // disappear (M1: ETB on api:SetState), so the still-read probes fail.
-func TestG223InertKeysAreScopedNotGlobal(t *testing.T) {
+func TestInertKeysAreScopedNotGlobal(t *testing.T) {
 	t.Parallel()
 	scoped := []struct{ prim, key string }{
 		{"api:ChangeZone", "AlreadyRevealed"},

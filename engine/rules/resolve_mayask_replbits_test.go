@@ -50,7 +50,7 @@ const tapeGainAskerSrc = "Name:Tape Gain Asker\nManaCost:W\nTypes:Enchantment\n"
 	"R:Event$ GainLife | ActiveZones$ Battlefield | ValidPlayer$ You | ReplaceWith$ DBChoose | Description$ x\n" +
 	"SVar:DBChoose:DB$ ChooseColor | Defined$ You\nOracle:x\n"
 
-func TestKr8GainLifeOnlyReplacementBodyAskIsCheckpointed(t *testing.T) {
+func TestKernelGainLifeOnlyReplacementBodyAskIsCheckpointed(t *testing.T) {
 	_, st := kr8Kernel(t, 2, 9204, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Gain Asker", state.ZBattlefield)
 		if !tapeAnyReplBodyMayAsk(e) {

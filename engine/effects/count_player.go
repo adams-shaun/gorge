@@ -361,7 +361,7 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 	// bare name; the suffix applies inside hasPropertyLostLifeCount.
 	base, _, _ := strings.Cut(prop, "/")
 	base = strings.TrimSpace(base)
-	// Deliberately NO lifeExtreme call here: the brief names exactly three
+	// Deliberately NO lifeExtreme call here: this group has exactly three
 	// resolvable properties on this group, and the life-TOTAL extremes
 	// (HighestLifeTotal/LowestLifeTotal) are not among them — they stay
 	// (0, false) on DefinedRegistered[.Other]$ even though the sibling

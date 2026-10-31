@@ -127,7 +127,7 @@ var attachLKICarriers = []string{
 
 // attachLKIShapeRE matches an activated-ability line carrying BOTH a
 // self-sacrifice cost of the source and a Defined$ Enchanted|Equipped|
-// AttachedTo read, in either order -- the brief's Census A shape. It is the
+// AttachedTo read, in either order. It is the
 // same expression the pinned grep in attachLKICarriers' comment uses.
 var attachLKIShapeRE = regexp.MustCompile(`(?m)^A:.*Sac<1/CARDNAME[^>]*>.*Defined\$ (Enchanted|Equipped|AttachedTo)\b|^A:.*Defined\$ (Enchanted|Equipped|AttachedTo)\b.*Sac<1/CARDNAME`)
 

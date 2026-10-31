@@ -143,7 +143,7 @@ func TestNumericComparatorNEAndM2(t *testing.T) {
 // TestNumericPredicateUnknownComparatorFailsClosed: an unrecognised
 // comparator is "not recognised" (ok=false) whatever its right-hand side --
 // literal, resolvable or not -- and whatever object it is probed with, so
-// UnknownPredicates reports it and the filter fails closed. Before cr-g03 an
+// UnknownPredicates reports it and the filter fails closed. An
 // unresolvable RHS or a faceless probe object answered (false, recognised)
 // first, which is how cmcEven read as understood.
 func TestNumericPredicateUnknownComparatorFailsClosed(t *testing.T) {
@@ -189,7 +189,7 @@ var numericCensusValues = [...]int32{-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 1
 var numericCensusNotFilters = map[string]bool{"cmc": true, "power": true, "toughness": true}
 
 // TestNumericPredicateCorpusCensus is the class ratchet for numericPred's
-// grammar (cr-g03). Over every distinct numeric-field filter token in the
+// grammar. Over every distinct numeric-field filter token in the
 // corpus it asserts:
 //
 //  1. recognition does not depend on the object or the resolver: the

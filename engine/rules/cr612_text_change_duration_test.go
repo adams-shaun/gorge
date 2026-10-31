@@ -1,6 +1,6 @@
 package rules
 
-// CR 612 text-change durations (cr-g36b). Crystal Spray, Trait Doctoring
+// CR 612 text-change durations. Crystal Spray, Trait Doctoring
 // and Whim of Volrath change text "until end of turn" and carry no
 // Duration$; only `Duration$ Permanent` ("This effect lasts indefinitely":
 // Magical Hack, Sleight of Mind, New Blood) is indefinite. An

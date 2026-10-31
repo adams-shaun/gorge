@@ -94,8 +94,8 @@ func fillGraveyardByEvents(t *testing.T, e *Engine, p state.PlayerID, n int) {
 }
 
 // TestMastersCouncillorsGraveyardCountCensus names every corpus card that
-// carries a HasCardsInGraveyard head, so the family the brief calls out is
-// pinned: the brief's own census (5 files) is this test's expected list, and a
+// carries a HasCardsInGraveyard head, so the family is
+// pinned: the census (5 files) is this test's expected list, and a
 // new carrier or a lost one fails here rather than silently.
 func TestMastersCouncillorsGraveyardCountCensus(t *testing.T) {
 	t.Parallel()

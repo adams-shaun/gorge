@@ -82,7 +82,7 @@ func (e *Engine) tossOutcome(cfg Config, toss int) (seat int, note string, confi
 // a seat-scoped projection or bot input suppresses every hand-derived fact
 // while it holds. It is the read side of tossChoice.active for the view and
 // botpolicy layers, which reach it through an optional capability interface
-// rather than importing rules (Ruling F7).
+// rather than importing rules.
 func (e *Engine) StartingChoicePending() bool {
 	return e != nil && e.tossChoice.active
 }

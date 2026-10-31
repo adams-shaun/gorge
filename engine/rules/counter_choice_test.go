@@ -167,7 +167,7 @@ func aorPassPriorityOnce(t *testing.T, e *Engine, d *decision.Decision) {
 // clockspinningFixtureBear is the authored battlefield counter carrier.
 const clockspinningFixtureBear = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 
-// TestClockspinningAddOrRemoveCounterChoice is the brief's headline: the
+// TestClockspinningAddOrRemoveCounterChoice is the headline: the
 // instant targets across TgtZone$ Battlefield,Exile (the ask offers BOTH the
 // battlefield permanent and the suspended card), enumerates the chosen
 // target's counters (the suspended card carries only TIME, so no kind pick —
@@ -403,7 +403,7 @@ func amyPondAttack(t *testing.T, e *Engine, amyID state.ObjID) *decision.Decisio
 	return nil
 }
 
-// TestAmyPondRemovesChosenSuspendedCounters is the brief's second pin, end to
+// TestAmyPondRemovesChosenSuspendedCounters is the second pin, end to
 // end on the real corpus card: Amy Pond deals 2 combat damage to a player,
 // the trigger asks the CHOICE over the TWO suspended cards you own in exile
 // (the shared "counter_pick" arm), and the answer removes that many time
@@ -510,7 +510,7 @@ func TestEtchedHostConditionRemovesDefenseFromAnOppProtectedBattle(t *testing.T)
 	}
 	// Invasion's ETB search ("library, graveyard, and/or sideboard") finds no
 	// instant or sorcery in this mountain-only fixture; its shuffle is
-	// mandatory (CR 701.24d). The cr-g51 zone election is answered with every
+	// mandatory (CR 701.24d). The zone election is answered with every
 	// zone by passUntilStackEmpty's drain (the pre-election board).
 	passUntilStackEmpty(t, e, 60)
 	hostID, _ := findSeededCard(t, e, 0, "Etched Host Doombringer")

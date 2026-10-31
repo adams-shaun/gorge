@@ -1,6 +1,6 @@
 package rules
 
-// cr-g134: AnimateAll reads RemoveKeywords$ and RemoveAllAbilities$ (the
+// AnimateAll reads RemoveKeywords$ and RemoveAllAbilities$ (the
 // shared Animate parser already parsed both; the sweep used to clear them
 // behind an unread note). The end-to-end consequence is pinned on the two
 // corpus carriers whose whole point is the strip: Spectacular Pileup ("all
@@ -54,7 +54,7 @@ func animateAllEngine(t *testing.T, seed uint64, spell, perm string) (*Engine, C
 }
 
 // TestAnimateAllRemoveKeywordsSpectacularPileup: the "lose indestructible,
-// then destroy" carrier. The Darksteel Myr must DIE — before cr-g134 the
+// then destroy" carrier. The Darksteel Myr must DIE — without those reads the
 // sweep dropped RemoveKeywords$, the Myr stayed indestructible through
 // DBDestroyAll and the board kept it.
 func TestAnimateAllRemoveKeywordsSpectacularPileup(t *testing.T) {

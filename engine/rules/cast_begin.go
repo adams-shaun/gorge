@@ -152,8 +152,8 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 	}
 
 	var optionalCost Cost
-	// Which cost this pays is opt.AltCostIndex, not always adjustedCost
-	// (Ruling T19b-b): legalActions gates each "cast" option on that
+	// Which cost this pays is opt.AltCostIndex, not always adjustedCost:
+	// legalActions gates each "cast" option on that
 	// specific option's own cost being payable, so beginCast must charge
 	// that same cost. An out-of-range AltCostIndex (a stale option from a
 	// board state that no longer holds the granting static) falls back to
@@ -365,7 +365,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			cost = cost.Plus(raise)
 		}
 	case castModeMiracle:
-		// Task 18: a Miracle cast pays the printed Miracle cost (CR 702.93d) in
+		// A Miracle cast pays the printed Miracle cost (CR 702.93d) in
 		// place of the card's normal cost. KeywordCostParam reads the keyword's
 		// first colon-field off the face;
 		// a missing keyword (offer routed here only from a Miracle offer, and

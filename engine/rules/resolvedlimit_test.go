@@ -1,6 +1,6 @@
 package rules
 
-// Task resolvedlimit1: ResolvedLimit$ ("Do this only once each turn.") is a
+// ResolvedLimit$ ("Do this only once each turn.") is a
 // trigger-mode variant parameter Forge's TriggeredAbility counts as
 // resolvedThisTurn -- the RESOLUTION-counted cousin of ActivationLimit$ (which
 // counts trigger OCCURRENCES). Before this fix nothing in the Go tree read it,

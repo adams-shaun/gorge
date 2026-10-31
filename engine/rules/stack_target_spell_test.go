@@ -11,7 +11,7 @@ import (
 const manaLeakSpellSrc = "Name:Mana Leak\nManaCost:U\nTypes:Instant\n" +
 	"A:SP$ Counter | TargetType$ Spell | TgtPrompt$ Select target spell | ValidTgts$ Card | SpellDescription$ Counter target spell.\nOracle:x\n"
 
-// targetSpellFixture builds the scenario the brief names: a real-corpus-shaped
+// targetSpellFixture builds the scenario: a real-corpus-shaped
 // counterspell (TargetType$ Spell + ValidTgts$ Card, no TgtZone$) in seat 0's
 // hand, a creature spell in seat 0's hand, and an opponent-controlled
 // battlefield creature -- the "Gurmag Angler #304" a broken askTarget used to
@@ -253,7 +253,7 @@ func TestTgtZoneGraveyardTargetOfferedAndResolves(t *testing.T) {
 	}
 }
 
-// wrennShapeSrc is the brief's inline minimal fixture, shaped like Wrenn and
+// wrennShapeSrc is an inline minimal fixture, shaped like Wrenn and
 // Six's [+1] targeting parameters (exact Origin$ Graveyard, Destination$
 // Hand, TargetMin$ 0, TargetMax$ 1, ValidTgts$ Land.YouOwn, NO TgtZone$) on
 // an ordinary activated ability -- no planeswalker/loyalty machinery needed

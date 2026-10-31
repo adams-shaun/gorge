@@ -1,4 +1,4 @@
-// Task fb-9d2338cc: the conditional enters-tapped land family. Blooming
+// The conditional enters-tapped land family. Blooming
 // Marsh ("enters tapped unless you control two or fewer OTHER lands") and the
 // fast / check lands gate their entry Tap on a ConditionPresent$ whose Forge
 // default group is the battlefield. effects/conditionMet now resolves that

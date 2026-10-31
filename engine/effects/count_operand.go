@@ -112,7 +112,7 @@ func countOperandValue(h Host, c *Ctx, operand string, depth int) (int32, bool) 
 // Count$Valid/ValidZone body whose property is one of the bounded
 // distinct-set reads -- Colors's one corpus op suffix (happily_ever_after's
 // Permanent.YouCtrl$Colors/LimitMax.5) and CreatureType's two (Valiant
-// Changeling's /LimitMax.5, Saavik's /LimitMax.10). PlaneswalkerType (cr-g222)
+// Changeling's /LimitMax.5, Saavik's /LimitMax.10). PlaneswalkerType
 // joins the bounded distinct-set reads so the same clamp applies. It is called from
 // evalCountExprOK's generic /Op site, which cuts the suffix off the whole
 // body BEFORE the head dispatch, so the countZone branch never sees it;
@@ -407,7 +407,7 @@ func validConvokedCountOp(op string) bool {
 
 // applyCountOp applies the /Op suffix of a Count$ expression. The arithmetic
 // runs in int64 and the result clamps to [math.MinInt32, math.MaxInt32], so a
-// huge count can neither overflow to a sign-flipped value nor panic. Task 20
+// huge count can neither overflow to a sign-flipped value nor panic.
 // hygiene: the old raw-int32 version made MaxInt32 doubled, negated or nudged
 // silently wrap.
 func applyCountOp(n int32, op string) int32 {
@@ -523,7 +523,7 @@ func applyCountOp(n int32, op string) int32 {
 		// non-numeric divisor (DivideEvenlyDown.NumOpps, .Y -- an SVar name)
 		// is a DIFFERENT class: this op has no Ctx to resolve it against and
 		// deliberately leaves the value alone, the same silent standing no-op
-		// every SVar-named operand gets (see the open ticket for the
+		// every SVar-named operand gets (see the known gap for the
 		// /Plus.Y / /Minus.X / /Times.Y family, 215 raw corpus lines).
 		if x, err := strconv.Atoi(divisionOperand(op)); err == nil && x > 0 {
 			v = divideCountOp(v, int64(x), strings.HasPrefix(op, "DivideEvenlyUp"))

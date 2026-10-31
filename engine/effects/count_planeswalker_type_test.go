@@ -1,6 +1,6 @@
 package effects
 
-// cr-g222: the `$PlaneswalkerType` property on the Count$Valid<zone> head is
+// The `$PlaneswalkerType` property on the Count$Valid<zone> head is
 // the planeswalker-subtype sibling of `$CreatureType` (count_type_distinct_
 // test.go). Before this the property was unrecognised, so the whole token
 // became the spec and matched nothing -- Tam, the Possibility counted zero

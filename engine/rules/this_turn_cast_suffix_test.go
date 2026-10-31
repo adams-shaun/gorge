@@ -60,7 +60,7 @@ func srcName(t testing.TB, src string) string {
 	return card(t, src).Faces[0].Name
 }
 
-// TestRoothaGreatestManaValueAmongInstantsAndSorceries is the brief's primary
+// TestRoothaGreatestManaValueAmongInstantsAndSorceries is the primary
 // leaf: two differently sized boards, each casting one instant and one
 // sorcery of DIFFERENT mana values, then evaluating Rootha's exact Y body.
 // The greatest mana value must win. On the buggy build the body counts the

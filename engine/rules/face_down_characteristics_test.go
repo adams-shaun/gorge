@@ -1,7 +1,7 @@
 package rules
 
 // CR 708.2a face-down characteristics in the filter grammar
-// (cr-g13-face-characteristics-mvc). A face-down permanent is a 2/2 creature
+// A face-down permanent is a 2/2 creature
 // with no text, no name, no subtypes and no mana cost, so it has mana value 0
 // and no colour, and it has the same name as nothing (CR 201.2a). The layer
 // walk already hides its printed face (Derived Colors and Name are empty);

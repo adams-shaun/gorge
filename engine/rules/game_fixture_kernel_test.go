@@ -1,6 +1,6 @@
 package rules
 
-// kr3_fixture_kernel_test.go: the shared fixture of the batch-3 kernel-era
+// game_fixture_kernel_test.go: the shared fixture of the batch-3 kernel-era
 // restorations (the tests the W3 legacy removal deleted because they drove
 // the old suspend/resume protocol through a fake host). Every board here is
 // a real engine reached through logged events, so a test can answer each

@@ -19,7 +19,7 @@ package rules
 //
 // A NEW non-filter word that would silently become an unmatched filter fails
 // the census, naming the token and its carriers; an entry in the table the
-// corpus no longer carries fails too (Ruling R-20's two-direction contract).
+// corpus no longer carries fails too.
 //
 // It also censuses every `Mode$ AlternativeCost` static that carries a
 // CheckSVar$ gate: the gate must be evaluable by effects.CheckSVarHolds, or
@@ -38,7 +38,7 @@ import (
 )
 
 // costHeadRe matches the cost heads whose type slot can name a non-filter
-// word. It mirrors the brief's census grep, plus RevealOrChoose.
+// word. It mirrors a census grep, plus RevealOrChoose.
 var costHeadRe = map[string]bool{
 	"Reveal": true, "RevealOrChoose": true, "ChooseCard": true, "Discard": true,
 	"Exile": true, "ExileFromHand": true, "Return": true,

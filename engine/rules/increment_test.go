@@ -28,7 +28,7 @@ import (
 // `/usr/bin/grep -rlE '^K:Increment' .cards/cardsfolder` -> 10 files. Nine are
 // Secrets of Strixhaven (sos) carriers; the tenth, Scalar Scholar, is not in
 // the audit's 271-card sos list (its oracle's "perpetually gains" is the
-// Alchemy rider), which matches the brief's "10 corpus files (9 sos)".
+// Alchemy rider), giving 10 corpus files (9 sos).
 var incrementCorpusCarriers = []string{
 	"Ambitious Augmenter",
 	"Berta, Wise Extrapolator",

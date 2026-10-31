@@ -81,7 +81,7 @@ func turnUp(t *testing.T, e *Engine, probe state.ObjID) {
 	answerQuiet(t, e, 60)
 }
 
-// TestPanopticProjektorDoublesTurnFaceUpTrigger is the brief's positive: with
+// TestPanopticProjektorDoublesTurnFaceUpTrigger is the positive: with
 // Panoptic Projektor on the battlefield, a permanent you control's
 // Mode$ TurnFaceUp trigger fires an additional time.
 func TestPanopticProjektorDoublesTurnFaceUpTrigger(t *testing.T) {
@@ -123,7 +123,7 @@ func TestPanharmoniconValidTurnedScopesTheTurnedPermanent(t *testing.T) {
 	}
 }
 
-// TestPanharmoniconTurnFaceUpModeDoesNotDoubleOtherTriggers is the brief's
+// TestPanharmoniconTurnFaceUpModeDoesNotDoubleOtherTriggers is the
 // negative: the static's ValidMode$ TurnFaceUp restricts it to turn-up
 // triggers, so an unrelated ChangesZone trigger on the same board is never
 // doubled.

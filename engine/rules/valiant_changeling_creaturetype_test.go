@@ -1,6 +1,6 @@
 package rules
 
-// Task diffcount2 end-to-end pin on the real corpus carrier: Valiant
+// End-to-end pin on the real corpus carrier: Valiant
 // Changeling carries
 //   S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ X |
 //     EffectZone$ All | Description$ This spell costs {1} less to cast for

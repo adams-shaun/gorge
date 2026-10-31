@@ -1525,7 +1525,7 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 		// owner is not admitted by default. A Foretold$ designation grants
 		// the same look (CR 702.143a: "That player may look at that card";
 		// Forge's ChangeZoneEffect adds the look for WithMayLook OR
-		// Foretold), so it rides this arm too (cr-g64).
+		// Foretold), so it rides this arm too.
 		ev.Counter = "exiled_with_face_down_maylook"
 		if foretold {
 			ev.Counter = "exiled_with_face_down_maylook_foretold"
@@ -1568,7 +1568,7 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 // move out of a public zone is left public: every seat already saw that
 // card. An emitter that has already made the move Secret owns its Player,
 // so it is left alone; effDig's take re-addresses its moves after this runs
-// (digSecretTo) (cr-g62).
+// (digSecretTo).
 func secretFaceDownMove(ev *events.Event, looker state.PlayerID) {
 	if ev.Secret || !ev.From.Hidden() {
 		return
@@ -1605,7 +1605,7 @@ func movedCardOwner(h Host, ev *events.Event) state.PlayerID {
 // card". events.Apply folds the looker into Object.MayLookPlayer, the one
 // seat the view then shows the face to, and a Secret move is addressed to
 // it. A move already in the may-look layout, or not a plain face-down exile,
-// is unchanged (cr-g64).
+// is unchanged.
 func seenFaceDownExile(ev *events.Event, looker state.PlayerID, source state.ObjID) {
 	if ev.To != state.ZExile || ev.Counter != "exiled_with_face_down" {
 		return

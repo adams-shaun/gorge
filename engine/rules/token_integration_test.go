@@ -1,13 +1,11 @@
-// Task 13 fix round 1, review finding "Important 1": TestHeads and
-// TestRepoDecksPlayAtEverySeatCount passing unchanged after api:Token's
-// registration proved nothing about whether the primitive actually
+// TestHeads and TestRepoDecksPlayAtEverySeatCount passing unchanged after
+// api:Token's registration proved nothing about whether the primitive actually
 // resolves end-to-end in a real game. Two of the ratchet's own
-// api:Token-carrying cards ARE drawn into the acceptance games those tests
-// play -- Batterskull (death-n-taxes, every seat count 2/4/6/8) and Empty
-// the Warrens (the-epic-storm, 8 seats) -- so the unchanged chain heads
-// mean the testbot never chose to cast either one, not that Token has any
-// coverage there. This file closes that gap with a direct, real-corpus
-// integration test.
+// api:Token-carrying cards ARE drawn into the acceptance games those tests play
+// -- Batterskull (death-n-taxes, every seat count 2/4/6/8) and Empty the
+// Warrens (the-epic-storm, 8 seats) -- so the unchanged chain heads mean the
+// testbot never chose to cast either one, not that Token has any coverage
+// there. This file closes that gap with a direct, real-corpus integration test.
 //
 // The real Batterskull card and the real b_0_0_phyrexian_germ token
 // definition both come from the compiled corpus registry at test time --
@@ -33,7 +31,7 @@ import (
 // (api:Token's own job), and Ctx.Remembered carries that token far enough
 // for the trigger's chained SubAbility$ -- __kwLWAttach, `DB$ Attach |
 // Defined$ Remembered | Object$ Self` -- to actually run and hit
-// Resolve's "unimplemented API" fallback (Attach is Task 14's job, not
+// Resolve's "unimplemented API" fallback (Attach is separate, not
 // registered yet). That Note is today's correct, honest outcome; once Task
 // 14 registers Attach, this test's last assertion should flip to checking
 // the token is actually attached instead of checking the fallback fired.
@@ -145,7 +143,7 @@ func TestBatterskullLivingWeaponCreatesAGermAndReachesAttach(t *testing.T) {
 	// Cross-check against the resulting object: a 0/0 Phyrexian Germ with no
 	// Attach to grant Batterskull's own +4/+4 (Attach is unregistered -- Task
 	// 14) is immediately lethal to itself under CR 704.5f, and this build's
-	// own ceaseDeadTokens (Task 13) correctly cleans it up the moment it
+	// own ceaseDeadTokens correctly cleans it up the moment it
 	// dies -- so by the time passUntilStackEmpty returns, the germ is
 	// legitimately gone from the battlefield again. That is the CORRECT,
 	// expected interaction of two working systems (Token creation,
@@ -170,7 +168,7 @@ func TestBatterskullLivingWeaponCreatesAGermAndReachesAttach(t *testing.T) {
 	if got := germ.Face().Name; got != wantGermName {
 		t.Fatalf("token name = %q, want %q (b_0_0_phyrexian_germ)", got, wantGermName)
 	}
-	// Task 14: the Living Weapon's __kwLWAttach sub-ability now reaches a
+	// The Living Weapon's __kwLWAttach sub-ability now reaches a
 	// working effects.Attach, so the germ is actually attached to Batterskull
 	// and Batterskull's own EquippedBy static (+4/+4) keeps the 0/0 germ alive
 	// at 4/4 -- the reason the token is still on the battlefield at the end,

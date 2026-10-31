@@ -9,7 +9,7 @@ package rules
 // validateMinMaxBlockers (behind Submit's validateBlockers) and the
 // option-list filter in askBlockers.
 //
-// The corpus carriers the brief names are driven as REAL compiled cards:
+// The corpus carriers are driven as REAL compiled cards:
 // Troll of Khazad-dûm (Min$ 3), Krosan Vorine (Max$ 1) and Tromokratis
 // (Min$ All). The non-self scope and the Min-impossible option filter use an
 // inline authored fixture, because a scoped static's own static line is rules
@@ -62,7 +62,7 @@ func submitBlocks(t *testing.T, e *Engine, d *decision.Decision, n int) error {
 	return e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices})
 }
 
-// TestMinMaxBlockerCorpusTrollMinThree is the brief's core leaf on the real
+// TestMinMaxBlockerCorpusTrollMinThree is the core leaf on the real
 // compiled card: Troll of Khazad-dûm's `Min$ 3` refuses a two-creature block
 // (CR 509.1a: the declaration is illegal) and admits the three-creature one.
 // The unblocked declaration is always legal.

@@ -10,22 +10,20 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// ChooseType, ChooseNumber and ChooseColor record a choice on the source.
-// With the choice already present -- for ChooseColor only the as-enters
-// ENTRY-choice body, flagged Ctx.ETBColorRecorded by rules' replCtx (the
-// entry ask machinery recorded it with a Choose event before the body runs,
-// plan ruling R-6) -- these do nothing. Without one -- a script that
-// uses them at RESOLUTION time -- ChooseType poses a real KChoose ask over
-// its Type$ CATEGORY's option list (task ct1; engine/effects/type_choices.go is the
-// one home for the non-creature lists) and ChooseColor poses a real KChoose
-// ask over the WUBRG colour list (task cli-20260923T060000Z-choose-color),
-// each answered in place via AskTape and falling back to its deterministic
-// pick only when the host cannot ask, the option list is empty, or the SA
-// carries a list shape this build cannot ask honestly. ChooseNumber likewise
-// poses a real KChoose over its number list (task
-// cli-20260923T060000Z-choose-number), falling back to the deterministic 0
-// only when the host cannot ask or it is the as-enters ENTRY-choice body (the
-// entry machinery already asked).
+// ChooseType, ChooseNumber and ChooseColor record a choice on the source. With
+// the choice already present -- for ChooseColor only the as-enters ENTRY-choice
+// body, flagged Ctx.ETBColorRecorded by rules' replCtx (the entry ask machinery
+// recorded it with a Choose event before the body runs, the no-host path) --
+// these do nothing. Without one -- a script that uses them at RESOLUTION time
+// -- ChooseType poses a real KChoose ask over its Type$ CATEGORY's option list
+// (task ct1; engine/effects/type_choices.go is the one home for the
+// non-creature lists) and ChooseColor poses a real KChoose ask over the WUBRG
+// colour list, each answered in place via AskTape and falling back to its
+// deterministic pick only when the host cannot ask, the option list is empty,
+// or the SA carries a list shape this build cannot ask honestly. ChooseNumber
+// likewise poses a real KChoose over its number list (task falling back to the
+// deterministic 0 only when the host cannot ask or it is the as-enters
+// ENTRY-choice body (the entry machinery already asked).
 func init() {
 	Register("ChooseType", effChooseType)
 	Register("ChooseNumber", effChooseNumber)

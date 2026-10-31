@@ -16,7 +16,7 @@ import (
 
 // A Draw-instead result can itself suspend on Dredge. The answered draw must
 // complete the remaining replaced draws AND the Scry spell's next ability.
-func TestKr8ScryReplacementOrderDrawDredgeResumesSpell(t *testing.T) {
+func TestKernelScryReplacementOrderDrawDredgeResumesSpell(t *testing.T) {
 	t.Parallel()
 	const spell = "Name:ScryThenLife\nManaCost:U\nTypes:Sorcery\n" +
 		"A:SP$ Scry | Defined$ You | ScryNum$ 3 | SubAbility$ DBLife\n" +

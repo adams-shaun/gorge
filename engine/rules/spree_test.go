@@ -87,7 +87,7 @@ func targetOptionFor(t *testing.T, e *Engine, obj state.ObjID) int {
 }
 
 // TestRequisitionRaidSpreeChargesEachChosenMode pins the whole Spree family end
-// to end on the brief's own card: the total price is the printed {W} PLUS the
+// to end on the card: the total price is the printed {W} PLUS the
 // ModeCost$ of every chosen mode. One mode costs {W}{1} (printed {W} + its
 // {1}), two modes cost {W}{2}. Before this the modes resolved free for the
 // printed {W}.

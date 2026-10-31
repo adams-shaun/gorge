@@ -12,13 +12,12 @@ import (
 // through Go's field promotion. Clone's per-field copy classes
 // (engine/rules/clone.go) are unchanged by the move.
 type engineContinuation struct {
-	// choosing says which flow is waiting on the current KChoose decision
-	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
-	// branch, not yet in this worktree) can copy it like any other field --
-	// a closure captured over this Engine's own pointers would not survive a
-	// clone at all. handleChoose (turn.go) switches on it; Task 9 adds
-	// chooseCast in cast.go, and Tasks 12 and 18 add the "as this enters" and
-	// miracle cases in their own files.
+	// choosing says which flow is waiting on the current KChoose decision. It
+	// is plain data, not a closure, so Engine.Clone can copy it like any
+	// other field -- a closure captured over this Engine's own pointers would
+	// not survive a clone at all. handleChoose (turn.go) switches on it;
+	// cast.go adds chooseCast, and other flows add the "as
+	// this enters" and miracle cases in their own files.
 	choosing chooseFor `clone:"deep"`
 
 	// cleanupWindow is true while a cleanup step's CR 514.3a priority
@@ -73,7 +72,7 @@ type engineContinuation struct {
 	// resolution's own move. Zero outside a resolution.
 	resolvingObj state.ObjID `clone:"reset"`
 	// cast holds the in-progress cast-flow state while choosing ==
-	// chooseCast (Task 9, engine/rules/cast.go). Nil whenever no cast is mid-flow.
+	// chooseCast (engine/rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast `clone:"deep"`
 	// castIssued / castFree are the pendingCast recycling pair
 	// (cast_pool.go): the last cast storage newCast handed out, and a
@@ -105,15 +104,14 @@ type engineContinuation struct {
 	// is the candidate walk's scratch buffer.
 	auraEntry      auraEntryState  `clone:"deep"`
 	auraEntryCands []auraEntryCand `clone:"reset"`
-	// turnUpMove parks the events.TurnFaceUp marker of a morph-family
-	// turn-up while an "as this is turned face up" replacement body's own
-	// answer is outstanding (task cli-20260924T031747Z-6d0658fc): the
-	// transition must not fold until the body finishes, or the body and the
-	// turn-up's triggers would observe a face the transition already
-	// revealed. Unlike etbMove the park is consumed synchronously inside
-	// resolveReplacementBody -- before any decision can be answered -- so it
-	// need not survive a clone; the re-emit frame it installs on the body's
-	// suspension chain is what crosses the decision boundary.
+	// turnUpMove parks the events.TurnFaceUp marker of a morph-family turn-up
+	// while an "as this is turned face up" replacement body's own answer is
+	// outstanding: the transition must not fold until the body finishes, or
+	// the body and the turn-up's triggers would observe a face the transition
+	// already revealed. Unlike etbMove the park is consumed synchronously
+	// inside resolveReplacementBody -- before any decision can be answered --
+	// so it need not survive a clone; the re-emit frame it installs on the
+	// body's suspension chain is what crosses the decision boundary.
 	turnUpMove *events.Event `clone:"reset"`
 	// causePin is the action cause an entry-settle preview pins while its
 	// cloned stack no longer holds the entrant (engine/rules/entry_counters.go).

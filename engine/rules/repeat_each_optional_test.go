@@ -1,6 +1,6 @@
 package rules
 
-// Task rpteachopt1: RepeatEach's RepeatOptionalForEachPlayer$ per-subject
+// RepeatEach's RepeatOptionalForEachPlayer$ per-subject
 // election. Each subject of the loop gets its own yes/no offer (the line's
 // RepeatOptionalMessage$ is the prompt); a yes runs that subject's body once,
 // a no skips only that subject and the loop continues with the next.

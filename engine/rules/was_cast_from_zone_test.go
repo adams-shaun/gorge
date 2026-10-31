@@ -14,7 +14,7 @@ import (
 
 // The wasCastFrom<Zone> filter predicate family (task wascastfrom): the
 // origin-zone cast provenance readable in object filter specs. Sevinne's
-// Reclamation is the real corpus carrier the brief names (Desert Bloom, otc):
+// Reclamation is the real corpus carrier (Desert Bloom, otc):
 // its DBCopy sub gates on ConditionDefined$ Self | ConditionPresent$
 // Card.wasCastFromGraveyard, so the flashback cast must produce the copy and
 // an ordinary hand cast must not.

@@ -134,7 +134,7 @@ func untapRider(t *testing.T, e *Engine, obj state.ObjID) {
 // produced by ONE rider ability and both spent on the same creature spell must
 // place the rider twice. The old capture deduplicated by source and broke
 // after one grant, so the creature entered with one counter instead of two;
-// the brief's own finding spells this out for Biophagus and for Opal Palace.
+// this holds for Biophagus and for Opal Palace.
 func TestAddsCountersRiderTwoUnitsOneSource(t *testing.T) {
 	t.Parallel()
 	e, cfg := riderGame(t, 501, card(t, riderShamanSrc), card(t, riderDoubleSrc))

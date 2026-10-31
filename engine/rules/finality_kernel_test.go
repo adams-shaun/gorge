@@ -1,6 +1,6 @@
 package rules
 
-// Kernel-era restorations of the finality_review_test.go behaviour tests the W3
+// Kernel-era restorations of the finality_test.go behaviour tests the W3
 // legacy removal deleted: the same scenarios, driven through the resolution
 // kernel (engine/rules/resolve) instead of the suspend/resume protocol.
 

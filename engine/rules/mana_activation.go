@@ -1068,7 +1068,7 @@ func (e *Engine) commitManaDiscard() {
 	// paths. The Tap events carry the same "tapped as a cost" text the cast
 	// path uses, so a replay rebuilds the identical chain. One mana ability's
 	// elected taps are ONE cost action, so the aggregate Mode$ TapAll trigger
-	// fires once for the whole cost (task cli-20261005T075020Z-05241a06).
+	// fires once for the whole cost.
 	e.openMillBatch()
 	for _, id := range md.Taps {
 		e.emit(events.Event{Kind: events.Tap, Obj: id, Text: "tapped as a cost"})
@@ -1814,7 +1814,7 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 	// appear: activateManaFor resolves a one-ability source directly, with
 	// no stage-1 wheel to name the cost (Mount Doom's "{T}, Pay 1 life: Add
 	// {B} or {R}"). Name it on every colour option, so a paid activation
-	// never offers a bare "Add B" that hides the life (fb-bbe4fd8f); a
+	// never offers a bare "Add B" that hides the life; a
 	// multi-ability wheel's prefix is repeated here for the same reason.
 	prefix := pay.ManaAbilityCostPrefix(ma)
 	// CR 601.2b/601.2g: inside a cast or ability payment window the added

@@ -1,13 +1,13 @@
 package rules
 
-// Task agent-20260919T192133Z-5a0279a8: the trigger-side `Delirium$ True`
-// intervening-if (CR 207.2c, "four or more card types among cards in your
-// graveyard"). engine/rules/trigger_condition.go's triggerConditionHoldsWithSVars
-// read LifeAmount$/IsPresent$/PresentCompare$/CheckSVar$/Metalcraft$/Revolt$
+// The trigger-side `Delirium$ True` intervening-if (CR 207.2c, "four or
+// more card types among cards in your graveyard").
+// engine/rules/trigger_condition.go's triggerConditionHoldsWithSVars read
+// LifeAmount$/IsPresent$/PresentCompare$/CheckSVar$/Metalcraft$/Revolt$
 // but had no Delirium$ case, so every `T:... | Delirium$ True | ...` line
-// fired UNCONDITIONALLY -- the over-fire direction. The measured population
-// at this corpus pin is 22 raw T: lines across 21 files, all named in the
-// carrier table below.
+// fired UNCONDITIONALLY -- the over-fire direction. The measured
+// population at this corpus pin is 22 raw T: lines across 21 files, all
+// named in the carrier table below.
 //
 // The gate reuses the ONE graveyardCardTypeCount census every other Delirium
 // spelling reads (engine/rules/replacement.go's Delirium$ clause, engine/rules/layers.go's
@@ -165,7 +165,7 @@ func TestTriggerDeliriumValueFailsClosed(t *testing.T) {
 	}
 }
 
-// TestWinterDeliriumEndStepTriggerGatesOnGraveyardTypes drives the brief's
+// TestWinterDeliriumEndStepTriggerGatesOnGraveyardTypes drives the
 // named deck card end to end: Winter, Cynical Opportunist's Delirium end-step
 // trigger is on the stack only once the controller's graveyard holds four
 // distinct core card types. With four cards but only three distinct types it

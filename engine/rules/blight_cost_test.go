@@ -3,7 +3,7 @@ package rules
 // Blight<N> (CR 701.68a) is a cost: "put N -1/-1 counters on a creature you
 // control" as a payment. Doubling Season's EffectOnly$ AddCounter replacement
 // ("If an EFFECT would put one or more counters ...") must leave it alone,
-// exactly like the [+N] loyalty cost (cr_g72_cost_counter_test.go), on all
+// exactly like the [+N] loyalty cost (cost_counter_test.go), on all
 // three payment sites: an activation, a spell cast and a triggered-cost window.
 
 import (

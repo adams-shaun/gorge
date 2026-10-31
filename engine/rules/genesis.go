@@ -428,12 +428,12 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 	e.deferGameOver = true
 	for i, deck := range cfg.Decks {
 		if i >= len(cfg.Names) {
-			// Ruling T22-m (fix round 2): a malformed Config with more
+			// A malformed Config with more
 			// decks than named seats has nowhere to put the rest --
 			// state.NewGame above sizes g.zones from len(cfg.Names) alone,
 			// so PlayerID(i) here would index outside it and panic
 			// (SetZone -> zoneIndex -> an out-of-range g.zones write).
-			// Task 25 wires Config from a client, so a malformed one must
+			// Config comes from a client, so a malformed one must
 			// degrade, not crash the one goroutine running the whole
 			// match; the excess decks are simply never dealt, the same
 			// spirit as the zero-alive guard below for a Config with no
@@ -509,7 +509,7 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 			e.drawCard(p)
 		}
 		if e.G.AliveCount() <= 1 {
-			// Preserve T22-c's terminal-deal boundary: once at most one seat
+			// Preserve the terminal-deal boundary: once at most one seat
 			// remains, do not shuffle or deal a later hand. A later seat whose
 			// configured library could not supply seven cards is nevertheless
 			// also doomed by this same opening deal; account for that loss so
@@ -572,13 +572,12 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 	// preserving the historic event stream keeps recorded matches replayable.
 	events.Apply(e.G, events.Event{Kind: events.StartingPlayerChange, Player: start})
 	// The starting seat is the toss winner resolved over the survivors --
-	// never seat 0 (the pre-toss assumption Ruling T22-f removed) and never a
-	// seat the deal eliminated: an early seat that decked out during its own
-	// opening draw (Over still false, since other seats remain, but that
-	// seat's own Lost is true) must not receive turn 1. A player already out
-	// of the game is simply skipped in turn order everywhere else (NextAlive,
-	// priority); resolveToss is genesis's own equivalent for the very first
-	// turn.
+	// never seat 0 and never a seat the deal eliminated: an early seat that
+	// decked out during its own opening draw (Over still false, since other
+	// seats remain, but that seat's own Lost is true) must not receive turn
+	// 1. A player already out of the game is simply skipped in turn order
+	// everywhere else (NextAlive, priority); resolveToss is genesis's own
+	// equivalent for the very first turn.
 	if !e.G.Over && !choicePending {
 		// CR 103.1's resolution, now that the deal has fixed the survivors:
 		// beginTurn records start in its ordinary TurnChange. The resolved seat
@@ -615,7 +614,7 @@ func (e *Engine) startPostDealSetup() {
 // effects round, or turn 1 directly.
 func (e *Engine) startMulliganOrTurn() {
 	if e.mulligans > 0 {
-		// Ruling R-8.4: the London mulligan round lives between the deal
+		// The London mulligan round lives between the deal
 		// and turn 1. e.pregame makes step() dispatch to stepPregame
 		// (engine/rules/mulligan.go) instead of the ordinary turn steps; the
 		// round's end calls beginTurn below. Over is already false (the
@@ -643,7 +642,7 @@ func (e *Engine) startMulliganOrTurn() {
 // finishTerminalGenesis finalizes a game whose opening deal left at most one
 // survivor. The toss was already announced before the first shuffle (the
 // pre-deal Note in New); terminal genesis therefore needs no additional Note.
-// Ruling T22-e: nobody survived genesis is CR 104.4a's draw; one survivor is
+// Nobody survived genesis is CR 104.4a's draw; one survivor is
 // CR 104.2a's winner. GameOver remains the final genesis event for the host's
 // persistence/replay burst boundaries.
 func (e *Engine) finishTerminalGenesis() bool {

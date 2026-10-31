@@ -1,6 +1,6 @@
 package rules
 
-// cr-g229: Forge's `DB$ Cleanup | ClearNamedCard$ True` must wipe the host's
+// Forge's `DB$ Cleanup | ClearNamedCard$ True` must wipe the host's
 // chosen card name when the ability resolves, so a repeatable "choose a card
 // name" ability (Wood Sage) names afresh on its next activation instead of
 // silently reusing the first name (CR 201.4).

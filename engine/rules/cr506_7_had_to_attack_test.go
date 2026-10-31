@@ -1,6 +1,6 @@
 package rules
 
-// CR 506.7 (cr-g56): "A creature had to attack if one or more effects were
+// CR 506.7: "A creature had to attack if one or more effects were
 // requiring that creature to attack at the time attackers were declared in
 // that combat." Firkraag, Cunning Instigator's second trigger reads it as
 // `ValidSource$ Creature.hadToAttackThisCombat`: "Whenever a creature deals

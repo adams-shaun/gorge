@@ -458,7 +458,7 @@ func TestMorphTurnFaceUpSacExcludesTheSource(t *testing.T) {
 // TestMorphTurnFaceUpBotAnswerValidates drives every turn-up cost ask through
 // the SAME bot policy the hosted seat uses (botpolicy.Decide via newTestBot /
 // BoardFromGame) and submits the bot's own answer through Engine.Submit, which
-// runs Decision.Validate. It pins the class the brief worries about: a new
+// runs Decision.Validate. It pins the class: a
 // decision constraint that the bot's answer violates would let the
 // deterministic bot re-submit the same rejected intent forever (a livelock).
 // Each subtest asserts a real ask was reached (a non-vacuous one) and that the

@@ -114,7 +114,7 @@ func kr8OnField(e *Engine, p state.PlayerID, name string) bool {
 
 // Scry, Surveil and RearrangeTopOfLibrary (one and every player, optional,
 // Ponder's may-shuffle) pose their arrange asks and are served from the tape.
-func TestKr8ConvertArrange(t *testing.T) {
+func TestKernelConvertArrange(t *testing.T) {
 	cases := []struct {
 		name, src string
 		served    int64
@@ -160,7 +160,7 @@ func TestKr8ConvertArrange(t *testing.T) {
 // Paper's name and creature type) is answered as the Attach happens: the
 // Attach applies before the rest of the spell's chain and before the spell
 // leaves the stack.
-func TestKr8ParkAttached(t *testing.T) {
+func TestKernelParkAttached(t *testing.T) {
 	for i, eq := range []string{"Tape Blade", "Tape Paper"} {
 		t.Run(eq, func(t *testing.T) {
 			name := "Tape Equip " + eq
@@ -198,7 +198,7 @@ func TestKr8ParkAttached(t *testing.T) {
 // An entry an effect makes mid-chain (a mass return from the graveyard)
 // asks its as-enters choices -- and its entry replacement body's ask -- in
 // place: each permanent enters, answered, before the spell leaves the stack.
-func TestKr8ParkMidChainEntry(t *testing.T) {
+func TestKernelParkMidChainEntry(t *testing.T) {
 	name := "Tape Mass Return"
 	src := "Name:" + name + "\nManaCost:U\nTypes:Sorcery\n" +
 		"A:SP$ ChangeZoneAll | ChangeType$ Creature.YouOwn,Artifact.YouOwn | Origin$ Graveyard | Destination$ Battlefield | SubAbility$ DBGain\n" +
@@ -233,7 +233,7 @@ func TestKr8ParkMidChainEntry(t *testing.T) {
 
 // A CR 616.1 order competition posed mid-resolution (two rewriters of the
 // same destroy) is answered in place: the chosen replacement applies.
-func TestKr8ParkReplacementOrder(t *testing.T) {
+func TestKernelParkReplacementOrder(t *testing.T) {
 	toHand := "Name:Tape Hand Rewriter\nTypes:Enchantment\n" +
 		"R:Event$ Moved | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature | ReplaceWith$ Back | Description$ x\n" +
 		"SVar:Back:DB$ ChangeZone | Origin$ Battlefield | Destination$ Hand | Defined$ ReplacedCard\nOracle:x\n"
@@ -262,7 +262,7 @@ func TestKr8ParkReplacementOrder(t *testing.T) {
 
 // --- resolve_convert_unless_test.go ---
 
-func TestKr8ConvertUnlessPay(t *testing.T) {
+func TestKernelConvertUnlessPay(t *testing.T) {
 	const gain = "\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
 	cases := []struct {
 		name, body string
@@ -321,7 +321,7 @@ func TestKr8ConvertUnlessPay(t *testing.T) {
 
 // A choice-bearing unless cost: the served election's component step (the
 // discard pick) is served from the tape too, and the paid discard happens.
-func TestKr8ConvertUnlessComponents(t *testing.T) {
+func TestKernelConvertUnlessComponents(t *testing.T) {
 	src := tapeUnlessSorcery("Tape Discard Tithe",
 		"A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ Discard<1/Card> | UnlessPayer$ You | UnlessSwitched$ True")
 	var life int32
@@ -346,7 +346,7 @@ func TestKr8ConvertUnlessComponents(t *testing.T) {
 
 // --- resolve_convert_window_test.go ---
 
-func TestKr8ConvertTriggerCost(t *testing.T) {
+func TestKernelConvertTriggerCost(t *testing.T) {
 	cases := []struct {
 		name, cost, body string
 		mana             string
@@ -391,7 +391,7 @@ func TestKr8ConvertTriggerCost(t *testing.T) {
 	}
 }
 
-func TestKr8ConvertUpkeepWindows(t *testing.T) {
+func TestKernelConvertUpkeepWindows(t *testing.T) {
 	cases := []struct {
 		name, src string
 		lands     int
@@ -428,7 +428,7 @@ func TestKr8ConvertUpkeepWindows(t *testing.T) {
 
 // An "as this enters" choice is served from the tape and recorded on the
 // permanent.
-func TestKr8ConvertETBChoice(t *testing.T) {
+func TestKernelConvertETBChoice(t *testing.T) {
 	srcs := []string{
 		"Name:Tape Prism Bear\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:ChooseColor\nSVar:ChooseColor:DB$ ChooseColor\nOracle:x\n",
 		"Name:Tape Totem\nManaCost:B\nTypes:Artifact\nK:ETBReplacement:Other:ChooseCT\nSVar:ChooseCT:DB$ ChooseType | Type$ Creature\nOracle:x\n",
@@ -446,7 +446,7 @@ func TestKr8ConvertETBChoice(t *testing.T) {
 
 // Ward's pay-or-countered election is served from the tape: paid, the pump
 // resolves; declined, it is countered.
-func TestKr8ConvertWard(t *testing.T) {
+func TestKernelConvertWard(t *testing.T) {
 	const wardBear = "Name:Tape Ward Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nK:Ward:1\nOracle:x\n"
 	const pump = "Name:Tape Pump\nManaCost:B\nTypes:Instant\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +1\nOracle:x\n"
 	cases := []struct {
@@ -495,7 +495,7 @@ func TestKr8ConvertWard(t *testing.T) {
 
 // A resolving permanent spell's own entry replacement body asks after its
 // move took it off the stack: served from the tape in line.
-func TestKr8ConvertOwnEntryReplacement(t *testing.T) {
+func TestKernelConvertOwnEntryReplacement(t *testing.T) {
 	srcs := []string{
 		"Name:Tape Sower\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n",
 		"Name:Tape Charm Gate\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:DBCharm\nSVar:DBCharm:DB$ Charm | Choices$ DBA,DBB\nSVar:DBA:DB$ GainLife | LifeAmount$ 1 | SpellDescription$ a\nSVar:DBB:DB$ GainLife | LifeAmount$ 2 | SpellDescription$ b\nOracle:x\n",
@@ -514,7 +514,7 @@ func TestKr8ConvertOwnEntryReplacement(t *testing.T) {
 // Riptide Replicator's shape: an as-enters colour choice, then the entry
 // replacement body's own ask; both served in place, and the resolution
 // completes with the CR 117.3b priority grant to the active player.
-func TestKr8ETBThenEntryReplacement(t *testing.T) {
+func TestKernelETBThenEntryReplacement(t *testing.T) {
 	src := "Name:Tape Replicator\nManaCost:B\nTypes:Artifact\nK:ETBReplacement:Other:ChooseColor\nSVar:ChooseColor:DB$ ChooseColor\n" +
 		"K:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n"
 	e, _ := kr8Run(t, 2, 13750, 2, tapeUnlessScenario("Tape Replicator", "B", 2, tapePick), src)
@@ -537,7 +537,7 @@ func TestKr8ETBThenEntryReplacement(t *testing.T) {
 // the paid trigger gains the life. The window is reached through the
 // election's manual route (the auto route's planner names the exact ability
 // and colour, so it poses neither): election, tap, wheel/colour.
-func TestKr8ConvertWindowManaChoices(t *testing.T) {
+func TestKernelConvertWindowManaChoices(t *testing.T) {
 	const dual = "Name:Tape Dual\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ r\nA:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ g\nOracle:x\n"
 	const prism = "Name:Tape Prism\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ any\nOracle:x\n"
 	for i, land := range []string{"Tape Dual", "Tape Prism"} {
@@ -558,7 +558,7 @@ func TestKr8ConvertWindowManaChoices(t *testing.T) {
 
 // A copy's CR 707.10c new-target choice is served from the tape and its
 // continuation resolves the copy in line: two pings land.
-func TestKr8ConvertCopyTargets(t *testing.T) {
+func TestKernelConvertCopyTargets(t *testing.T) {
 	for i, rider := range []string{"", " | UnlessCost$ PayLife<1> | UnlessPayer$ Player"} {
 		t.Run(fmt.Sprintf("rider%d", i), func(t *testing.T) {
 			bolt := "Name:Tape Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1" + rider + "\nOracle:x\n"
@@ -592,7 +592,7 @@ func TestKr8ConvertCopyTargets(t *testing.T) {
 // A Play whose cast commits synchronously (a free creature) is served from
 // the tape and begun in line; one whose cast asks (a target) is answered in
 // place: the cast's target is answered before the rest of the chain runs.
-func TestKr8ConvertPlay(t *testing.T) {
+func TestKernelConvertPlay(t *testing.T) {
 	const bear = "Name:Tape Free Bear\nManaCost:4 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 	const bolt = "Name:Tape Free Bolt\nManaCost:4 R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
 	const gain = "\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
@@ -649,7 +649,7 @@ func TestKr8ConvertPlay(t *testing.T) {
 // Madness's cast-or-not choice at the MadnessCast ability's resolution is
 // posed and served from the tape: declined, the card goes to the graveyard;
 // cast, it reaches the battlefield.
-func TestKr8ConvertMadness(t *testing.T) {
+func TestKernelConvertMadness(t *testing.T) {
 	const bear = "Name:Tape Mad Bear\nManaCost:3 B\nTypes:Creature Bear\nPT:2/2\nK:Madness:B\nOracle:x\n"
 	rot := tapeUnlessSorcery("Tape Rot", "A:SP$ Discard | Defined$ You | NumCards$ 1 | Mode$ TgtChoose")
 	for i, yes := range []bool{false, true} {
@@ -695,7 +695,7 @@ func TestKr8ConvertMadness(t *testing.T) {
 
 // --- resolve_convert_zone_test.go ---
 
-func TestKr8ConvertZone(t *testing.T) {
+func TestKernelConvertZone(t *testing.T) {
 	gain := "\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2"
 	cases := []struct {
 		name, src string
@@ -776,7 +776,7 @@ func TestKr8ConvertZone(t *testing.T) {
 // Each yes/no election answered both ways: the election named by kind takes
 // option `answer`, every other decision tapePick's; both answers are served
 // and replay.
-func TestKr8ConvertZoneElectionsBothWays(t *testing.T) {
+func TestKernelConvertZoneElectionsBothWays(t *testing.T) {
 	cases := []struct{ name, src, kind string }{
 		{"Tape Sweep Confirm", tapeZoneSorcery("Tape Sweep Confirm", "A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | Optional$ True"), "search_confirm"},
 		{"Tape Sweep Fetch", tapeZoneSorcery("Tape Sweep Fetch", "A:SP$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Graveyard | Optional$ True"), "defined_library_optional"},
@@ -814,7 +814,7 @@ func TestKr8ConvertZoneElectionsBothWays(t *testing.T) {
 // ask is posed as an ordinary boundary decision and the tape serves the roll
 // itself (minServed 0); the assertion is that the roll's result still reaches
 // the mill.
-func TestKr8RollSurvivesTargetAsk(t *testing.T) {
+func TestKernelRollSurvivesTargetAsk(t *testing.T) {
 	src := tapeZoneETB("Tape Jelly", "SVar:TrigBody:DB$ RollDice | ResultSVar$ Result | SubAbility$ DBMill\nSVar:DBMill:DB$ Mill | ValidTgts$ Player | NumCards$ Result")
 	var before int
 	e, _ := kr8Run(t, 2, 33001, 0, func(t *testing.T, e *Engine) {
@@ -830,7 +830,7 @@ func TestKr8RollSurvivesTargetAsk(t *testing.T) {
 // (the Wave of Vitriol shape): an Optional$ search per sacrificed land,
 // fetched by ImprintedController. Every confirmation is followed by its
 // search, and every sacrificed land is replaced.
-func TestKr8NestedAskKeepsRepeatSubject(t *testing.T) {
+func TestKernelNestedAskKeepsRepeatSubject(t *testing.T) {
 	src := tapeZoneSorcery("Tape Vitriol",
 		"A:SP$ SacrificeAll | ValidCards$ Land | RememberSacrificed$ True | SubAbility$ DBRepeat\n"+
 			"SVar:DBRepeat:DB$ RepeatEach | DefinedCards$ DirectRemembered.Land | UseImprinted$ True | RepeatSubAbility$ DBSearch | ClearRemembered$ True\n"+
@@ -859,7 +859,7 @@ func TestKr8NestedAskKeepsRepeatSubject(t *testing.T) {
 // Caldera Hellion shape): Devour's sacrifice is asked from the entry
 // replacement of a mass return, as the devourer enters, before the next
 // creature moves.
-func TestKr8ReplacementBodyAskInPlace(t *testing.T) {
+func TestKernelReplacementBodyAskInPlace(t *testing.T) {
 	devourer := "Name:Tape Devourer\nManaCost:B\nTypes:Creature Hellion\nPT:1/1\nK:Devour:1\nOracle:x\n"
 	raise := tapeZoneSorcery("Tape Mass Raise", "A:SP$ ChangeZoneAll | ChangeType$ Creature | Origin$ Graveyard | Destination$ Battlefield")
 	var dev, bear state.ObjID

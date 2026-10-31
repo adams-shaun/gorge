@@ -578,7 +578,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 	// adds the spell's own additional parts) with retraceExtra folded on top.
 	// The discard is a real hand cost, so the offer is withheld unless a land
 	// card is actually there to discard -- an option that cannot be paid must
-	// never be offered (the offerCastable/withSpellAbilityExtras ruling).
+	// never be offered (the offerCastable/withSpellAbilityExtras rule).
 	for _, id := range grave {
 		o := e.G.Obj(id)
 		f := o.Face()
@@ -608,7 +608,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 	// Gated on the derived keyword (HasKeyword), so a continuous-effect grant
 	// would count; the same timing/target/restriction gates as every other
 	// graveyard alt-cast, and the discount payable gate -- an option whose
-	// discard cannot be paid must never be offered (the offerCastable ruling).
+	// discard cannot be paid must never be offered (the offerCastable rule).
 	for _, id := range grave {
 		o := e.G.Obj(id)
 		f := o.Face()

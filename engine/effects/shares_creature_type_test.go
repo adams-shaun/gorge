@@ -37,7 +37,7 @@ func TestSharesCreatureTypeWithClassified(t *testing.T) {
 			t.Errorf("UnknownPredicates(%q) = %v, want []", spec, got)
 		}
 	}
-	// The exotic referents the brief scopes OUT stay unknown (fail closed).
+	// The exotic referents stay unknown (fail closed).
 	for _, spec := range []string{
 		"Creature.sharesCreatureTypeWith Sacrificed",
 		"Creature.sharesCreatureTypeWith TriggeredAttacker",

@@ -1,13 +1,12 @@
 package rules
 
-// CR 508.4 (cr-g11b-entering-attacking-defender-choice): "If a creature is
-// put onto the battlefield attacking, its controller chooses which defending
-// player, planeswalker a defending player controls, or battle a defending
-// player protects it's attacking ... (unless the effect ... specifies what
-// it's attacking)." Hero of Bladehold (repo deck cavalry-charge.json)
-// creates two Soldiers "tapped and attacking" without naming a defender, so
-// with a planeswalker on the defending side its controller is asked.
-// Forge corroborates: SpellAbilityEffect.addToCombat
+// CR 508.4: "If a creature is put onto the battlefield attacking, its
+// controller chooses which defending player, planeswalker a defending player
+// controls, or battle a defending player protects it's attacking ... (unless
+// the effect ... specifies what it's attacking)." Hero of Bladehold (repo
+// deck cavalry-charge.json) creates two Soldiers "tapped and attacking"
+// without naming a defender, so with a planeswalker on the defending side its
+// controller is asked. Forge corroborates: SpellAbilityEffect.addToCombat
 // (SpellAbilityEffect.java:758-790) has the activating player choose from
 // combat.getDefenders() for "True".
 

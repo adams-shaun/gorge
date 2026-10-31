@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g141: a DB$ Play SA's ManaConversion$ rider ("mana of any type can be
+// A DB$ Play SA's ManaConversion$ rider ("mana of any type can be
 // spent to cast that spell") scopes to the one spell the Play casts. Forge's
 // PlayEffect copies the parameter onto the cast spell ability, so the
 // conversion is per-cast provenance on pendingCast, parsed with the same
@@ -36,7 +36,7 @@ func pmcMoveTo(t *testing.T, e *Engine, p state.PlayerID, name string, to state.
 	return 0
 }
 
-// pmcQuistisBoard is the brief's probe board: seat 0 holds Quistis Trepe,
+// pmcQuistisBoard is the probe board: seat 0 holds Quistis Trepe,
 // a Lightning Bolt is in seat 0's graveyard, turn 3 main 1, pool {U}{U}{U}{U}.
 func pmcQuistisBoard(t *testing.T) (*Engine, Config, state.ObjID, state.ObjID) {
 	t.Helper()
@@ -124,7 +124,7 @@ func pmcDrivePlayBolt(t *testing.T, e *Engine, boltID state.ObjID, stop func() b
 	return false, false
 }
 
-// TestPlayManaConversionQuistisCastsRedWithBlue is the brief's probe: the
+// TestPlayManaConversionQuistisCastsRedWithBlue is the probe: the
 // graveyard Lightning Bolt is cast with the leftover {U} (mana of any type
 // can be spent), deals 3, and is exiled on resolution by ReplaceGraveyard$.
 func TestPlayManaConversionQuistisCastsRedWithBlue(t *testing.T) {

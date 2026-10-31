@@ -62,7 +62,7 @@ type engineTriggerMaps struct {
 	triggerLKI map[state.ObjID]triggerObjectLKI `clone:"deep"`
 	// sacrificedLKI maps a stack object id to the last-known-information
 	// snapshot of every permanent that object sacrificed (as a cost), captured
-	// at the instant of the sacrifice (Task sac1). It is engine-only, never
+	// at the instant of the sacrifice. It is engine-only, never
 	// written to a state.Object, because a log-only state.Game reconstruction
 	// (replayFromLog) rebuilds the stack object from the AbilityPush event
 	// alone and would not reproduce an object field we set in cast.go -- the

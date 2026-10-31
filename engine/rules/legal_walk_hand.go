@@ -285,7 +285,7 @@ func (w *legalWalk) handWalk() {
 		// reader beginCast's charge calls too, and offerCastable's shared tail
 		// (nonManaCastable) censuses the Return part's candidates: an option
 		// whose return cannot be paid must never be offered (the offerCastable
-		// ruling). castRestricted/castSuppressed bind the offer exactly as they
+		// rule). castRestricted/castSuppressed bind the offer exactly as they
 		// do the plain cast.
 		if e.sneakTimingOK(p) && !e.castSuppressed(p, id) {
 			// sneakCosts is computed BEFORE the target census so a hand card
@@ -424,13 +424,13 @@ func (w *legalWalk) handWalk() {
 			if w.castRestrictedCost(p, id, gate) {
 				continue
 			}
-			// Ruling (Task 9 fix round 1, Important 1): this used to gate on
-			// mana-only alt.CanPay, but ParseCost now produces Sac/SubCounter/
-			// Tap parts that the cast flow enforces -- an AlternativeCost whose
-			// Cost$ carries Sac<N/...> was offered without checking that N
-			// matching permanents exist, and beginCast then asked a sacrifice
-			// decision with zero options that no answer could escape. castable
-			// is the same gate every other "cast" option uses.
+			// This must not gate on mana-only alt.CanPay, but ParseCost now
+			// produces Sac/SubCounter/ Tap parts that the cast flow enforces
+			// -- an AlternativeCost whose Cost$ carries Sac<N/...> was
+			// offered without checking that N matching permanents exist, and
+			// beginCast then asked a sacrifice decision with zero options
+			// that no answer could escape. castable is the same gate every
+			// other "cast" option uses.
 			if w.offerCastable(p, id, gate, spellScope(""), false) && targetsAvailable() {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
@@ -608,15 +608,15 @@ func (w *legalWalk) handWalk() {
 		}
 		// Web-slinging (CR 702.186a-family, Marvel's Spider-Man): the printed
 		// (or granted) web-slinging cost replaces the mana cost, and the cast
-		// carries the mandatory additional cost of returning a tapped creature
-		// you control to its owner's hand -- the composed Cost the shared
-		// reader (webslinging.go's webSlingingCosts) prices for BOTH this offer
-		// and beginCast's charge, so the two stages cannot drift. The same
-		// timing/restriction gates the plain cast above ran apply unchanged
-		// (the keyword adds no timing rider), and offerCastable's shared tail
-		// (nonManaCastable) censuses the Return part's candidates: an option
-		// whose return cannot be paid must never be offered (the offerCastable
-		// ruling).
+		// carries the mandatory additional cost of returning a tapped
+		// creature you control to its owner's hand -- the composed Cost the
+		// shared reader (webslinging.go's webSlingingCosts) prices for BOTH
+		// this offer and beginCast's charge, so the two stages cannot drift.
+		// The same timing/restriction gates the plain cast above ran apply
+		// unchanged (the keyword adds no timing rider), and offerCastable's
+		// shared tail (nonManaCastable) censuses the Return part's
+		// candidates: an option whose return cannot be paid must never be
+		// offered (the offerCastable rule).
 		for _, wc := range e.webSlingingCosts(p, id) {
 			if w.castRestrictedCost(p, id, wc.cost) ||
 				!w.offerCastable(p, id, wc.cost, spellScope(wc.mode), false) || !targetsAvailable() {

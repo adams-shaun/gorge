@@ -369,7 +369,7 @@ func (e *Engine) manaWindowAsk() bool {
 			Obj: id, Label: "Activate " + e.G.Obj(id).Face().Name + " for mana"}
 		// The same beyond-tap cost marker legal.go's priority-window offer
 		// carries, so the one "activate" option shape stays consistent across
-		// both ask sites (fb-led1); this ask sits on a choose decision, which
+		// both ask sites; this ask sits on a choose decision, which
 		// every auto path refuses, so the marker changes no classification.
 		if marker := e.manaActivationCostMarker(e.availableManaAbilities(pc.player, id)); marker != "" {
 			opt.Cost = marker

@@ -14,7 +14,7 @@ import (
 // re-run as well as the inner world's own -- else the re-run diverges at the
 // first of them (the azmcts "re-executed event differs: recorded
 // hidden_identity / library_order" panics, ~4% of all az simulations).
-func TestKr8NestedHypotheticalRedealWorld(t *testing.T) {
+func TestKernelNestedHypotheticalRedealWorld(t *testing.T) {
 	for _, innerRedeal := range []bool{false, true} {
 		e, _ := kr8Fixture(t, 2, 9901, tapeDrawVoteSrc,
 			"Name:Tape Filler A\nManaCost:1\nTypes:Artifact\nOracle:x\n",

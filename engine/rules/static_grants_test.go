@@ -347,7 +347,7 @@ func TestOracleOfMulDayaRevealsTopCard(t *testing.T) {
 		t.Fatalf("seat 0's view carries no revealed top card (want %d): %+v", top, own.Players[0].LibraryTop)
 	}
 	// "Play with the top card of your library revealed" (MayLookAt$ Player):
-	// revealed to every player (CR 401.5; cr-g28), so seat 1 sees it too.
+	// revealed to every player (CR 401.5), so seat 1 sees it too.
 	other := view.Project(e.G, e, 1, e.Pending())
 	if lt := other.Players[0].LibraryTop; lt == nil || lt.ID != top {
 		t.Fatalf("seat 1's view does not carry seat 0's revealed top card (want %d): %+v", top, lt)
@@ -371,7 +371,7 @@ func TestNumericSetMaxHandSize(t *testing.T) {
 	}
 }
 
-// TestReliquaryTowerNoCleanupDiscard is the brief's end-to-end leaf for
+// TestReliquaryTowerNoCleanupDiscard is the end-to-end leaf for
 // S:Mode$ Continuous | Affected$ You | SetMaxHandSize$ Unlimited: with the
 // real corpus Reliquary Tower on seat 0's battlefield, the CR 514.1 cleanup
 // step must ask NOTHING even though the hand is well over seven, and the

@@ -180,7 +180,7 @@ func (e *Engine) beginGainedActivation(p state.PlayerID, opt decision.Option) {
 // beginGrantedActivation activates an SVar-anchored granted ability: the
 // max-speed static's "granted" option (engine/rules/speed.go's own offer) and the
 // AddAbilities grant's "ability" option (engine/rules/legal.go, beginActivation's
-// SVar branch) both route here. Task grantcost1: the activation is routed
+// SVar branch) both route here. The activation is routed
 // through the SAME cast flow a printed activated ability uses
 // (pendingCast/continueCast/payCast) instead of a bespoke mana-only payment,
 // so every non-mana cost part (Sac, Discard, SubCounter, AddCounter, Exile,

@@ -33,7 +33,7 @@ func init() { Register("Token", effToken) }
 // objects with the same IDs. events.Apply's TokenCreate case is what
 // actually mints the object from Game.Tokens; this function only ever
 // proposes the event through h.Emit, so it stays a pure proposer like every
-// other primitive in this package (Ruling: effects never writes state.Game
+// other primitive in this package (effects never writes state.Game
 // directly, only events.Apply does).
 //
 // An unknown TokenScript$ key is a Note ("unknown token script <key>") and

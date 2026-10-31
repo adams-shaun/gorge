@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This file pins the fix-round findings on the planechase machinery (task
-// agent-20260920T064028Z-27dc1b07, review t2):
+// This file pins findings on the planechase machinery:
 //
 //   - [MAJOR] Norn's Seedcore's `DB$ Planeswalk | Defined$ Remembered |
 //     DontPlaneswalkAway$ True` must actually land on the remembered plane

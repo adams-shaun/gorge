@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task lb-rempollute (Level B TLA Avatar Destiny): a dies trigger whose body
+// Avatar Destiny (TLA): a dies trigger whose body
 // mills with RememberMilled$ True and then fetches ChangeType$
 // Creature.IsRemembered must offer only the milled creature cards. The
 // engine seeds the firing trigger's ctx Remembered with its event capture

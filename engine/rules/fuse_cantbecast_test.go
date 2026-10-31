@@ -58,7 +58,7 @@ func fuseTestEngine(t *testing.T, reg *cards.Registry, carrier string, teeg bool
 	return e, cfg, id
 }
 
-// TestFuseCantBeCastEitherHalf is the brief's pair of directions on two real
+// TestFuseCantBeCastEitherHalf is the pair of directions on two real
 // corpus fuse carriers:
 //
 //  1. Breaking // Entering -- front (Breaking, mv 2) UNRESTRICTED, alternate

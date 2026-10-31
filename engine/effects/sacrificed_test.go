@@ -8,7 +8,7 @@ import (
 )
 
 // TestEvalSacrificedHeads pins the Sacrificed$<Property> resolution added for
-// the Ghoulcaller Gisa bug (Task sac1): a Sacrificed$... body answers a
+// the Ghoulcaller Gisa bug: a Sacrificed$... body answers a
 // characteristic of the object(s) this resolving spell/ability sacrificed,
 // read from the last-known-information snapshot captured at the instant of
 // the sacrifice (state.SacrificedInfo), never from the (now-graveyard, layer-

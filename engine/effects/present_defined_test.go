@@ -57,7 +57,7 @@ func presentDefinedCtx(t *testing.T, types string, faceDown bool) (*fakeHost, *s
 	return h, o, &Ctx{Controller: 0, Source: o.ID, TriggerContext: TriggerContext{TriggerSource: o.ID}}
 }
 
-// TestPresentDefinedGateDeniesWithZeroMatchingReferents pins the brief's
+// TestPresentDefinedGateDeniesWithZeroMatchingReferents pins the
 // zero-referent outcome on the real group (TriggeredSourceLKICopy): the
 // resolving source is a LAND, the gate's filter is IsPresent$ Creature, so
 // the count over the group is 0 and the gate RESOLVES to not-met -- the body

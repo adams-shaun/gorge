@@ -370,30 +370,27 @@ func strictUnpriceableCards(reg *cards.Registry) []string {
 // are chargeable mid-resolution (Sac/Discard/Reveal/Return/Exile through the
 // payer-choice continuation); everything else is a hard decline (a
 // decline-only ask is still posed and recorded), except the DamageYou<N>
-// damage payment, which any API's unless-pay arm offers.
-// A corpus or grammar change that
-// adds or removes a name here is a real scope change that must be
-// understood, not silently absorbed.
-// Task exil1 removed the 15 ExileFromGrave/AnyGrave carriers (Egon, God of
-// Death through Web of Inertia): the Exile head is now a priceable
-// choice-bearing component, so those cards left this list. Dragon's Approach
-// (ExileFromStack<1/Card.Self>) and The War Games (Exile<1/Creature.!token>)
-// stay: their spellings are outside the exileCost grammar.
-// Task cr-g113 removed the 16 carriers whose every UnlessCost$ now parses
-// raw (CR 118.12a, 118.3): tapXType<N/Spec> (Charismatic Conqueror, Command
-// Bridge, Koskun Falls, Public Thoroughfare, Rent Is Due, Reservoir Kraken,
-// Saheeli, Filigree Master), AddCounter<N/Kind/Defined> (Cheering Crowd,
-// Sanctuary Wall, Thelon's Chant, Tourach's Chant), Waterbend<N>
-// (Waterbending Lesson), Blight<N> (Gutsplitter Gang), CollectEvidence<N>
-// (Memory Vampire) and ExileFromStack<1/Card.Self> (Sphinx's Approach,
-// Dragon's Approach). Combustion Man, Craig Boone, Novac Guard
-// (DamageYou<X>) and Armor Wars (Draw<X/You>) STAY: their raw token keeps X,
-// so it is the resolution-time fold (effects.UnlessCostResolved), not the
-// parser, that prices them. The other DamageYou<N> carriers stay for the same
-// reason the parser never reads the head: the damage payment is its own arm.
-// Task hob-elven-passage-behold removed Elven Passage: its UnlessCost$
-// Behold<1/Elf> is now a priceable CR 702.176 choice part, so it no longer
-// belongs in the strict-decline population.
+// damage payment, which any API's unless-pay arm offers. A corpus or grammar
+// change that adds or removes a name here is a real scope change that must be
+// understood, not silently absorbed. The 15 are gone: ExileFromGrave/AnyGrave
+// carriers (Egon, God of Death through Web of Inertia): the Exile head is now
+// a priceable choice-bearing component, so those cards left this list.
+// Dragon's Approach (ExileFromStack<1/Card.Self>) and The War Games
+// (Exile<1/Creature.!token>) stay: their spellings are outside the exileCost
+// grammar. The 16 carriers whose every UnlessCost$ parses are gone raw (CR
+// 118.12a, 118.3): tapXType<N/Spec> (Charismatic Conqueror, Command Bridge,
+// Koskun Falls, Public Thoroughfare, Rent Is Due, Reservoir Kraken, Saheeli,
+// Filigree Master), AddCounter<N/Kind/Defined> (Cheering Crowd, Sanctuary
+// Wall, Thelon's Chant, Tourach's Chant), Waterbend<N> (Waterbending Lesson),
+// Blight<N> (Gutsplitter Gang), CollectEvidence<N> (Memory Vampire) and
+// ExileFromStack<1/Card.Self> (Sphinx's Approach, Dragon's Approach).
+// Combustion Man, Craig Boone, Novac Guard (DamageYou<X>) and Armor Wars
+// (Draw<X/You>) STAY: their raw token keeps X, so it is the resolution-time
+// fold (effects.UnlessCostResolved), not the parser, that prices them. The
+// other DamageYou<N> carriers stay for the same reason the parser never reads
+// the head: the damage payment is its own arm. Elven Passage is gone: its
+// UnlessCost$ Behold<1/Elf> is now a priceable CR 702.176 choice part, so it
+// no longer belongs in the strict-decline population.
 func TestUnlessCostStrictParsePopulation(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

@@ -1,6 +1,6 @@
 package rules
 
-// cr-g277: an activated ability whose DB$ Mana sits on a sub-ability of a
+// An activated ability whose DB$ Mana sits on a sub-ability of a
 // non-Mana head is a mana ability (CR 605.1a). Sacellum Godspeaker's
 // "{T}: Reveal any number of creature cards with power 5 or greater from your
 // hand. Add {G} for each card revealed this way." must be classified as one,

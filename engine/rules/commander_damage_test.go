@@ -1,4 +1,4 @@
-// Task m33: commander damage, and the 21-damage state-based action (CR
+// Commander damage, and the 21-damage state-based action (CR
 // 903.10). Combat damage dealt to a player by a commander is tallied
 // per-commander (state.Player.CmdDamage, keyed by the match-wide dense
 // commander index m30's genesis assigns); a player with 21 or more from the
@@ -369,7 +369,7 @@ func TestCommanderDamageReplaysFromTheLogAlone(t *testing.T) {
 	}
 }
 
-// TestCommanderDamageSurvivesClone is the Clone half of the brief's first
+// TestCommanderDamageSurvivesClone is the Clone half of the first
 // line: both the per-commander tally and the format gate travel through
 // Engine.Clone (Game.Clone deep-copies CmdDamage; clone.go carries format),
 // so a cloned engine sees the identical tally and stays a Commander game.

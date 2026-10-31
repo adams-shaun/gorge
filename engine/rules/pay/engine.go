@@ -125,9 +125,8 @@ const (
 	BatchMill
 	// BatchTap brackets one tapping action (Mode$ TapAll): the tap cost parts
 	// of one payment tap their elected permanents as ONE action, so the
-	// aggregate trigger fires once for the whole cost (task
-	// cli-20261005T075020Z-05241a06). It rides the shared action bracket the
-	// rules engine already exposes to effects.
+	// aggregate trigger fires once for the whole cost (task). It rides the
+	// shared action bracket the rules engine already exposes to effects.
 	BatchTap
 	// BatchSacrifice brackets one sacrifice action (Mode$ SacrificedOnce): the
 	// Sac parts of one payment are one action, so the "one or more" watcher

@@ -212,7 +212,7 @@ const UnlimitedHandSize = 1 << 20
 //
 // rest reports whether any grant key beyond Mode/Affected/AffectedZone/
 // Description remains. Any other value, zone or an unread Condition$/
-// CheckSVar$ gate reports !ok and leaves params untouched (cr-g64).
+// CheckSVar$ gate reports !ok and leaves params untouched.
 func mayLookAtGrantFromLine(params staticLineParams) (ce state.ContinuousEffect, rest, ok bool) {
 	v := strings.TrimSpace(params["MayLookAt"])
 	zone := strings.TrimSpace(params["AffectedZone"])

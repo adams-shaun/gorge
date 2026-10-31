@@ -207,7 +207,7 @@ func TestOptionalChooseTypeBeholdKeepsX(t *testing.T) {
 // modelled, each ChooseCreatureType token parses to Cost.ChooseType, and
 // each cost spec comparing against an X the source binds to its targets is
 // a Sac or Discard part spelled with X -- the shapes cost_target_bound.go
-// serves. Each carrier list is pinned in both directions (Ruling R-20).
+// serves. Each carrier list is pinned in both directions.
 func TestCostGrammarCensus(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	group, chooseType, targetBound := map[string]bool{}, map[string]bool{}, map[string]bool{}

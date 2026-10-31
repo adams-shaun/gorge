@@ -34,7 +34,7 @@ func canEnchantEquippedBy(g *state.Game, o *state.Object, _ state.PlayerID, src 
 	// The resolving source may be the Face-less ability/trigger wrapper a
 	// TriggerPush minted (the placement ask's SpecContext.Source is that
 	// wrapper, engine/rules/trigger_queue.go pushTrigger) -- its Source field names
-	// the permanent that carries the ability (Ruling T20-b). Unwrap before
+	// the permanent that carries the ability. Unwrap before
 	// reading the creature/attach referent, or Mantle's own placement ask
 	// would see an unattached Face-less object and admit nothing.
 	if s.Face() == nil && s.Source != 0 {

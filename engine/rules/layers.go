@@ -30,12 +30,9 @@ var emptySVars = map[string]string{}
 // statics into ContinuousEffects, so a card whose entire rules text is a
 // static (an Equipment's EquippedBy pump, an Aura's EnchantedBy pump, a
 // vanilla lord's global pump) actually applies instead of silently doing
-// nothing. Task 14 is what first wires static text into the layer system:
-// until it, every S: line this build cared about was a play restriction
-// (CantBeCast etc.), and the Mode$ Continuous statics every creature-lord
-// and echo of Equipment/Enchant text carries were parsed but never turned
-// into an effect -- a card with nothing but static text read as "does
-// nothing".
+// nothing. Without this, the Mode$ Continuous statics every creature-lord and
+// echo of Equipment/Enchant text carries would be parsed but never turned
+// into an effect.
 //
 // Reading these live off the battlefield permanent (the same scan activeStatics
 // performs for restrictions) rather than registering them at ETB means a
@@ -47,7 +44,7 @@ var emptySVars = map[string]string{}
 // AddToughness is a layer-7 modify, AddKeyword a layer-6 grant, AddTypes a
 // layer-4 type change -- so the layer ordering Derived applies (CR 613) still
 // holds when one static carries both a pump and a keyword (exactly the Sword
-// of Fire and Ice / Umezawa shape Task 14's tests build). The scan order is
+// of Fire and Ice / Umezawa shape). The scan order is
 // deterministic: AliveFrom(0) walks seats in fixed APNAP order, each
 // battlefield zone is a slice, and each face's Statics is its parsed script
 // order -- nothing here ranges a map, so the resulting option/view/settle
@@ -894,7 +891,7 @@ func (e *Engine) activeBuild() []ContinuousEffect {
 	buf := e.activeBufAlt[:0]
 	if e.activeDepth > 1 {
 		// Re-entrant (a nested Derived mid-rebuild): own a private list rather
-		// than overwrite the outer call's result mid-range. Same guard Task A2
+		// than overwrite the outer call's result mid-range. Same guard
 		// uses for forEachObject. (This path is effectively unreachable — a
 		// Derived call never emits an event, so the epoch cannot move mid-
 		// range — but it keeps the buffer discipline airtight.

@@ -11,7 +11,7 @@ package rules
 // exile destination is modeFlags' FlagJumpstart, read by
 // spellRestZone/spellFizzleZone.
 //
-// Radical Idea is the Quick Draw census carrier named by the brief: a {1}{U}
+// Radical Idea is the Quick Draw census carrier: a {1}{U}
 // instant whose only effect is "draw a card", so before this work it could
 // never be cast a second time from the graveyard.
 
@@ -34,7 +34,7 @@ func jumpstartOptions(e *Engine, p state.PlayerID) []decision.Option {
 	return out
 }
 
-// TestRadicalIdeaJumpstartCastsDiscardsAndExiles pins the brief's end-to-end
+// TestRadicalIdeaJumpstartCastsDiscardsAndExiles pins the end-to-end
 // shape on the real corpus card: with any card in hand and the printed {1}{U}
 // payable, the graveyard cast is offered, the discard ask offers exactly the
 // hand card, and answering it moves that card from hand to graveyard and puts

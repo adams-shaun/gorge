@@ -14,7 +14,7 @@ import (
 // Whiskervale Forerunner's shape: the chosen card fetched to the battlefield
 // past an Optional$ confirmation keeps its binding, so only the EQ1 leg
 // gains (1).
-func TestKr8ChosenBindingAcrossAsk(t *testing.T) {
+func TestKernelChosenBindingAcrossAsk(t *testing.T) {
 	var life int32
 	e, _ := kr8Kernel(t, 2, 33417, func(t *testing.T, e *Engine) {
 		life = e.G.Players[0].Life
@@ -27,7 +27,7 @@ func TestKr8ChosenBindingAcrossAsk(t *testing.T) {
 
 // Shrouded Lore's shape: a second ChooseCard replaces the first's choice, so
 // Defined$ ChosenCard fetches exactly the last choice's one card.
-func TestKr8ChooseCardRecordLeavesNoStaleAnswer(t *testing.T) {
+func TestKernelChooseCardRecordLeavesNoStaleAnswer(t *testing.T) {
 	var hand int
 	e, _ := kr8Kernel(t, 2, 33418, func(t *testing.T, e *Engine) {
 		hand = len(e.G.Zone(state.ZHand, 0))
@@ -40,7 +40,7 @@ func TestKr8ChooseCardRecordLeavesNoStaleAnswer(t *testing.T) {
 
 // Rhystic Circle's shape: every payer declines the unless cost, so the body
 // chooses a land (its own chooser walk starting at zero) and fetches it.
-func TestKr8UnlessElectionCursorDoesNotReachTheBody(t *testing.T) {
+func TestKernelUnlessElectionCursorDoesNotReachTheBody(t *testing.T) {
 	var hand int
 	e, _ := kr8Kernel(t, 2, 33419, func(t *testing.T, e *Engine) {
 		hand = len(e.G.Zone(state.ZHand, 0))

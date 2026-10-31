@@ -38,7 +38,7 @@ import (
 )
 
 // std3 param census labels: one constant label per shape naming the mechanism
-// (mirroring oracle_fix_census_test.go's censusLabelSacrificedPower style).
+// (mirroring oracle_carrier_census_test.go's censusLabelSacrificedPower style).
 // The values are the label strings carried by every file in the matching
 // engine/rules/testdata/corpus-std3-* directory.
 const (

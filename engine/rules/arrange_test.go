@@ -152,7 +152,7 @@ func sameObjSet(a, b []state.ObjID) bool {
 	return true
 }
 
-// TestArrangeReplaysByteIdentically is the Ruling J2 leaf: a match containing
+// TestArrangeReplaysByteIdentically: a match containing
 // an answered arrange replays byte-identically. replayCheck rebuilds the game
 // from the log alone (no Engine), so a reorder that mutated state without a
 // LibraryOrder event -- or an event that did not actually set the order --

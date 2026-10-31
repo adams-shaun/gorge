@@ -92,7 +92,7 @@ func castEmergeSacrificing(t *testing.T, e *Engine, id, sacObj state.ObjID) {
 func TestEmergeCastPaysReducedCost(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := altCostEngine(t, 4242, []string{"Elder Deep-Fiend"}, []string{emergeFuelSrc}, nil)
-	// The primitive must be registered (Ruling W1): without it the coverage
+	// The primitive must be registered: without it the coverage
 	// census rejects every Emerge card as unsupported, so reverting the
 	// registration alone fails this test.
 	if !effects.Supported()["kw:Emerge"] {

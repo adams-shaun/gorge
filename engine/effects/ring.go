@@ -87,7 +87,7 @@ func effRingTemptsYou(h Host, c *Ctx, sa *cards.SA) {
 	// fallback) answer "keep the existing Ring-bearer" exactly as the
 	// no-host stand-in and the pre-choice engine did. Ordering the offered
 	// list any other way would silently switch a bot's bearer off the
-	// deterministic default -- a regression the brief forbids.
+	// deterministic default.
 	ordered := make([]state.ObjID, 0, len(eligible))
 	defaultEligible := false
 	for _, id := range eligible {

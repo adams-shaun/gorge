@@ -428,16 +428,15 @@ var predicates = map[string]predFn{
 	"IsSaddled": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o != nil && o.SaddledTurn == g.Turn
 	},
-	// IsMonstrous is CR 701.31b's monstrous designation (task
-	// agent-20260919T190014Z): the 8 corpus statics keyed on it
-	// (`Affected$ Card.Self+IsMonstrous` -- Domesticated Hydra's trample,
-	// Fleecemane Lion, Colossus of Akros, ...) grant through the ordinary
-	// layer walk, and Polis Crusher's trigger-side `IsPresent$
+	// IsMonstrous is CR 701.31b's monstrous designation (task): the 8 corpus
+	// statics keyed on it (`Affected$ Card.Self+IsMonstrous` -- Domesticated
+	// Hydra's trample, Fleecemane Lion, Colossus of Akros, ...) grant through
+	// the ordinary layer walk, and Polis Crusher's trigger-side `IsPresent$
 	// Card.Self+IsMonstrous` intervening-if evaluates through the shared
 	// gate. It reads the event-backed status the events.AlterAttribute fold
 	// (the Monstrous case) maintains; a permanent that left the battlefield
-	// has already been cleared by the Move fold, so the predicate cannot
-	// read a stale designation.
+	// has already been cleared by the Move fold, so the predicate cannot read
+	// a stale designation.
 	"IsMonstrous": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Monstrous
 	},
@@ -1019,7 +1018,7 @@ func init() {
 	// it), the same tracked ExiledWith field ExiledWithSource reads.
 	predicates["ExiledWithEffectSource"] = predicates["ExiledWithSource"]
 	// EquippedBy / EnchantedBy / AttachedBy: the candidate is the permanent
-	// source is attached to (attachedBy below). Task 14 wires all three to the
+	// source is attached to (attachedBy below). All three are wired to the
 	// same predicate -- Forge spells "attached to" three ways depending on
 	// whether the source is Equipment, an Aura, or a generic script.
 	predicates["EquippedBy"] = attachedBy
@@ -1294,8 +1293,7 @@ func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc 
 // both or unknown to both. Two referents are bound: TriggeredProduced
 // (C.A.M.P.'s mana set) and ChosenCard (Guard Dogs' chosen permanent).
 //
-// ChosenCard was held back until the sub-target-before-gate ordering landed
-// (task agent-20261001T030154Z-694d075b's stop rule): its carrier's
+// ChosenCard was held back until the sub-target-before-gate ordering landed: its carrier's
 // ConditionDefined$ Targeted gate is evaluated by effects.conditionMet BEFORE
 // the DB sub's own mid-resolution target ask is posed, so on the empty group
 // a recognised predicate resolved the gate false and the whole sub -- target
@@ -1581,15 +1579,15 @@ func FilterAlternatives(spec string) iter.Seq[string] { return filterAlternative
 
 // SpecReadsKeywords reports whether the spec consults the walk's derived
 // KEYWORD list when a caller binds SpecContext.ExtraKeywords -- i.e. whether
-// applying another layer-6 effect could change what the spec matches (the
-// CR 613.8 dependency test). Exactly two shapes read it: a
-// `with<Keyword>`/`without<Keyword>` predicate (keywordPredicates, matched
-// by the same exact token lookup the evaluator uses) and the Affinity base,
+// applying another layer-6 effect could change what the spec matches (the CR
+// 613.8 dependency test). Exactly two shapes read it: a
+// `with<Keyword>`/`without<Keyword>` predicate (keywordPredicates, matched by
+// the same exact token lookup the evaluator uses) and the Affinity base,
 // whose context-aware match reads ExtraKeywords directly. rules' layer walk
-// (cli-20260923T060000Z-layers-dep613) uses this to detect CR 613.6
-// dependencies among layer-6 effects without paying for a full spec match
-// per candidate pair; a spec that reads no keyword can never gain or lose
-// its match to a keyword grant, so it always keeps timestamp order.
+// uses this to detect CR 613.6 dependencies among layer-6 effects without
+// paying for a full spec match per candidate pair; a spec that reads no
+// keyword can never gain or lose its match to a keyword grant, so it always
+// keeps timestamp order.
 //
 // The answer is a pure function of the spec, cached in a direct-mapped front
 // keyed by the string's data pointer and length (specFront's pattern): the
@@ -3743,7 +3741,7 @@ func hasAbilityToken(p string) bool {
 //
 // Reads the PRINTED face plus counter keywords only. A keyword or ability
 // granted by a continuous effect (CR 113.12's granted-flying case) is not
-// visible here -- predFn carries no SpecContext and this ticket does not
+// visible here -- predFn carries no SpecContext and this does not
 // thread one through the map. That is a known deviation, recorded in the
 // commit message.
 //

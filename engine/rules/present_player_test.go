@@ -22,7 +22,7 @@ func presentPlayerClause(e *Engine, tr cards.Trigger, source state.ObjID, you st
 		presentPlayerKeys[0], presentPlayerKeys[1], presentPlayerKeys[2], presentPlayerKeys[3], presentPlayerKeys[4])
 }
 
-// presentPlayerGixianProbe is the brief's probe board: Gixian Skullflayer on
+// presentPlayerGixianProbe is the probe board: Gixian Skullflayer on
 // seat 0's battlefield and n Grizzly Bears on bearsSeat's battlefield, moved
 // to bearsSeat's graveyard through logged MoveZone events.
 func presentPlayerGixianProbe(t *testing.T, bearsSeat state.PlayerID, n int) (*Engine, state.ObjID, *cards.Trigger) {
@@ -57,7 +57,7 @@ func presentPlayerGixianProbe(t *testing.T, bearsSeat state.PlayerID, n int) (*E
 	return e, gix, tr
 }
 
-// TestPresentPlayerGixianCountsOnlyYourGraveyard is the brief's measured
+// TestPresentPlayerGixianCountsOnlyYourGraveyard is the measured
 // probe: with three creature cards only in seat 1's graveyard the clause must
 // not hold, and with three in seat 0's it must.
 func TestPresentPlayerGixianCountsOnlyYourGraveyard(t *testing.T) {

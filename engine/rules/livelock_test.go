@@ -14,7 +14,7 @@ import (
 // report it. These tests drive the engine's own emit with synthetic
 // non-terminating patterns: the same (object, event-kind) shape repeating
 // forever is the I-1 failure family (a stack object re-resolving 700+ times
-// in a 13-event cycle), and the tests pin the diagnostic the brief asks
+// in a 13-event cycle), and the tests pin the diagnostic
 // for: object id, event kind, repeat count and cycle length.
 
 // drivePattern emits n events through the real engine emit path, recovering
@@ -42,7 +42,7 @@ func livelockTestEngine(t *testing.T, g *LoopGuard) *Engine {
 	return New(Config{Seed: 1, Names: []string{"A", "B"}, LoopGuard: g})
 }
 
-// TestLivelockWatcherAbortsSameObjectSameKindRepeats is the brief's minimum
+// TestLivelockWatcherAbortsSameObjectSameKindRepeats is the minimum
 // shape: the same (object, event-kind) pair emitting forever is detected
 // within a bounded number of repeats and aborts with the object id, event
 // kind, repeat count and cycle length -- not a silent hang.

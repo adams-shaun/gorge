@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestWallOfRootsM0M1CountersLowerToughness is the brief's instance test:
+// TestWallOfRootsM0M1CountersLowerToughness is the instance test:
 // Wall of Roots (0/5) puts a -0/-1 counter on itself as the cost of its mana
 // ability (CR 122.1a: a -0/-1 counter gives -0/-1; CR 613.4c layer 7c),
 // so after one activation it is 0/4 and after a second activation on a later
@@ -65,7 +65,7 @@ func TestWallOfRootsM0M1CountersLowerToughness(t *testing.T) {
 	}
 }
 
-// TestPTCounterKindsRaiseAndLowerDerivedPT is the brief's class census as a
+// TestPTCounterKindsRaiseAndLowerDerivedPT is the class census as a
 // running test: every P/T counter kind the corpus scripts is stamped on a
 // vanilla 2/2 through a real CounterChange, and the layer-7d derived P/T must
 // honour each one. The kind->delta table is the measured corpus census

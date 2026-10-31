@@ -1,4 +1,4 @@
-// cr-g55 review finding: CopyPermanent's TokenAttacking$ rider is an
+// CopyPermanent's TokenAttacking$ rider is an
 // "enters attacking" emitter too, so it must re-check a captured defender at
 // the moment of entry (CR 506.3c, 508.4a-b). The battle half of
 // EnteringAttackLegal is pinned here in both directions: an unprotected

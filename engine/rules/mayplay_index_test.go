@@ -29,7 +29,7 @@ import (
 // server-side-only fields the wire omits -- Option.Key (the typed may-play
 // permission a cast consumes), MayPlayPerm and Controller, and whether a
 // server-side Grant rides the option. Byte-identical across two runs is the
-// brief's offer-surface equivalence.
+// offer-surface equivalence.
 func capturePending(e *Engine) string {
 	d := e.Pending()
 	if d == nil {

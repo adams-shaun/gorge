@@ -230,12 +230,12 @@ func gameStateDiff(a, b *state.Game) string {
 			}
 		}
 	}
-	// Ruling F6 (Task 27 fix round 1): Winner, Draw and NextID are compared
+	// Winner, Draw and NextID are compared
 	// too. They were missing, so "a whole-game diff of empty" claimed more
-	// than this helper delivered -- most sharply for Draw, which Task 22
+	// than this helper delivered -- most sharply for Draw, which GameOver
 	// added precisely because Winner's zero value is a real seat, so a game
-	// that ended in a draw compared equal to one seat 0 won. Task 24 is the
-	// replay task and inherits this harness; a replay comparison that cannot
+	// that ended in a draw compared equal to one seat 0 won. Replay
+	// inherits this harness; a comparison that cannot
 	// see who won is a bad foundation to hand it.
 	if a.Turn != b.Turn || a.Active != b.Active || a.Clock != b.Clock ||
 		a.Priority != b.Priority || a.Passes != b.Passes || a.Step != b.Step ||

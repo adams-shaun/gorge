@@ -677,7 +677,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// inline; an ask the body poses parks through the ordinary direct
 		// resume machinery.
 		if f.static {
-			// Fail-closed guard (cli-20260923T060218Z round 2): a static
+			// Fail-closed guard: a static
 			// delayed registration carrying an OptionalDecider$ spec has no
 			// election channel on this path -- the body resolves inline,
 			// never minting a stack object, so resolveTop's CR 603.5 gate
@@ -854,8 +854,8 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 	if ev.Kind != events.PutOnStack {
 		return false
 	}
-	// Casting a spell means an actual card entering the stack (Ruling F3,
-	// the same guard trigmatch.spellCastMatches carries).
+	// Casting a spell means an actual card entering the stack
+	// (the same guard trigmatch.spellCastMatches carries).
 	obj := e.G.Obj(ev.Obj)
 	if obj == nil || obj.Face() == nil {
 		return false

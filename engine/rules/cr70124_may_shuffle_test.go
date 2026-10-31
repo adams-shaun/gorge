@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g09 (ticket b): Put Away -- "Counter target spell. You may shuffle up
+// Put Away -- "Counter target spell. You may shuffle up
 // to one target card from your graveyard into your library." The "may"
 // covers the whole shuffle-in: declining leaves the card in the graveyard
 // and the library untouched. (gorge used to move the card first and ask

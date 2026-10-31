@@ -1,6 +1,6 @@
 package rules
 
-// CR 202.3 object mana value (cr-g13-face-characteristics-mva). A mana-value
+// CR 202.3 object mana value. A mana-value
 // read asks for the OBJECT's mana value, which differs from its current
 // face's printed cost for a transformed back face (CR 712.8e/202.3b: the
 // front face's cost), a melded permanent (CR 712.8g/202.3c: the sum of both

@@ -14,7 +14,7 @@ import (
 // from where, read from the event log.
 
 // CastThisTurn satisfies effects.Host's CastThisTurn for Count$ThisTurnCast
-// (Task 17/Storm): the spells cast this turn by ANY player, counted from
+// (Storm): the spells cast this turn by ANY player, counted from
 // the same event log spellsCastThisTurn reads, so a replay that rebuilds the
 // game derives the identical number -- never a live-only engine counter.
 // Storm subtracts one (Count$ThisTurnCast/Minus1) because the resolving

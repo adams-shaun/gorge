@@ -80,7 +80,7 @@ func nlPutOnStack(e *Engine, id state.ObjID) bool {
 	return false
 }
 
-// TestManaPaymentContinuesBelowZeroLife is the brief's repro: at 1 life the
+// TestManaPaymentContinuesBelowZeroLife is the repro: at 1 life the
 // caster pays a {2}{U} instant with an Island and Ancient Tomb ({C}{C} plus
 // its own 2 damage), both inside the CR 601.2g payment window. The tomb's
 // damage lands mid-payment and drops the payer to -1; the payment must still

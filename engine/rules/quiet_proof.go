@@ -179,7 +179,7 @@ func (e *Engine) quietBlocker(p state.PlayerID) quietBlockerID {
 	// static walk) take the walk's caches only inside a derived-memo scope
 	// (engine/rules/walkcache.go walkKeyNow). At depth 0 every board static read
 	// misses and rescans the whole board, which made the serve net-negative
-	// on the az row (Q4 ticket report: quietBlocker 9.99 s / 11.49%). Open a
+	// on the az row (measured: quietBlocker 9.99 s / 11.49%). Open a
 	// scope around the read when the caller is not already inside one, so the
 	// scans WRITE the board-only cache entries the walk (and the serve's own
 	// nested scope, same generation) then hit. The depth guard keeps a direct

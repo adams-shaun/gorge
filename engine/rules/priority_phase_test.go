@@ -21,8 +21,8 @@ var priorityHistSteps = []state.Step{
 
 // TestTestBotOnlyActivatesInAMainPhase is engine/seat/integration_test.go's
 // TestBotOnlyActivatesInAMainPhase, driven against this package's own
-// mirror (Ruling F7) instead of the real heuristic.Bot: same regression (Ruling
-// T25-g), same real engine shapes, driving one whole SampleDecks(t,4) game
+// mirror instead of the real heuristic.Bot: same regression,
+// same real engine shapes, driving one whole SampleDecks(t,4) game
 // to completion and tallying every "activate" choice by the step it was
 // made in (e.G.Step read before each Submit) -- so a divergence between the
 // two mirrors on this exact defect would show up here even if it somehow
@@ -71,8 +71,8 @@ func TestTestBotOnlyActivatesInAMainPhase(t *testing.T) {
 	}
 }
 
-// TestBotMatchIsDeterministicAcrossRuns confirms fix round 2's changes did
-// not disturb determinism (Ruling T25-g item 4): the same (engine seed, bot
+// TestBotMatchIsDeterministicAcrossRuns confirms the pass rule does
+// not disturb determinism: the same (engine seed, bot
 // seed) pair, driven to completion twice, must produce the identical event
 // log -- Log.Head() folds in every event's full content, so an equal head
 // after a full game is a strong statement, not merely "the first few

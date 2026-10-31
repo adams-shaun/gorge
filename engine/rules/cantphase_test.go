@@ -1,6 +1,6 @@
 package rules
 
-// CR 702.26 -- "can't phase in" / "can't phase out" (task cr-g159). The
+// CR 702.26 -- "can't phase in" / "can't phase out". The
 // Effect-delivered Mode$ CantPhaseOut (Ertai's Familiar, Spatial Binding)
 // and Mode$ CantPhaseIn (The Phasing of Zhalfir) bodies register a
 // restriction that phaseBlocked (engine/rules/cantphase.go) reads at the emit

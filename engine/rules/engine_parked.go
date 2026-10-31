@@ -79,7 +79,7 @@ type engineParked struct {
 	// blockPay holds the declare-blockers CantBlockUnless payment window.
 	blockPay *blockPayWindow `clone:"deep"`
 
-	// cmdZone is the queue of commander command-zone asks (CR 903.9, Task m32,
+	// cmdZone is the queue of commander command-zone asks (CR 903.9,
 	// engine/rules/replacement.go): the CR 903.9b parked hand/library moves a
 	// commander is about to undergo, deferred until its owner answers the
 	// KCommanderZone decision for the FRONT entry, plus at most one CR 903.9a

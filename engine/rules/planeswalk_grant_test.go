@@ -13,7 +13,7 @@ import (
 
 // timeLordSrc is a freely-authored Time Lord creature standing in for the
 // intervening-if condition TARDIS's own script gates on
-// (IsPresent$ Card.Time Lord+YouCtrl). The brief's carrier is TARDIS; the
+// (IsPresent$ Card.Time Lord+YouCtrl). The carrier is TARDIS; the
 // creature that satisfies the gate is a fixture.
 const timeLordSrc = "Name:Time Lord Fixture\nManaCost:1 U\nTypes:Legendary Creature Time Lord\nPT:1/1\nOracle:x\n"
 

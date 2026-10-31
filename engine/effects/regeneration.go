@@ -71,7 +71,7 @@ func ReplaceDestruction(h Host, id state.ObjID) bool {
 	if o == nil || o.Zone != state.ZBattlefield || o.Counter("Shield") <= 0 {
 		return false
 	}
-	// Task ce1: an Effect-registered CantRegenerate restriction (Incinerate)
+	// An Effect-registered CantRegenerate restriction (Incinerate)
 	// forbids regeneration outright, so even a shield in place is never
 	// consumed. This is the single choke point every destruction path
 	// (effDestroy, effDestroyAll and engine/rules/sba.go's lethal-damage sweep) funnels

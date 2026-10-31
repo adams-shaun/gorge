@@ -101,7 +101,7 @@ func TestCountMostCardNameReadsTheGreatestSameNameCount(t *testing.T) {
 	}
 }
 
-// TestMechanizedProductionWinsWithEightSameNamedArtifacts is the brief's
+// TestMechanizedProductionWinsWithEightSameNamedArtifacts is the
 // end-to-end pin: the real corpus card, eight same-named artifacts under its
 // controller, the upkeep trigger fired, and the game ends with seat 0 the
 // winner. Seat 1 is left alive, so this is the alt-win path (CR 104.2a), not

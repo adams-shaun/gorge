@@ -1,11 +1,10 @@
 package rules
 
-// Task agent-20260918T222201Z-e27469dd: the two Desert-Bloom/OTC deck cards
-// the brief names, pinned end to end on the REAL corpus cards (never inline
-// scripts -- these are corpus pins, so the corpus registry is the source of
-// truth and a corpus pin change fails loudly).
+// The two Desert-Bloom/OTC deck cards pinned end to end on the REAL corpus
+// cards (never inline scripts -- these are corpus pins, so the corpus
+// registry is the source of truth and a corpus pin change fails loudly).
 //
-// WHAT PROVES WHICH ROUND (r2 review finding 1): the extreme-property
+// WHAT PROVES WHICH ROUND: the extreme-property
 // GRAMMAR itself was merged in `1a16e76e`, an ancestor of this worktree's
 // base -- so leaf 1 (TestReturnOfTheWildspeakerDrawMode…) exercises ONLY
 // that merged grammar (`Count$Valid …$GreatestCardPower`) and PASSES with

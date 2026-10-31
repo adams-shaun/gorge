@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task vow1: Promise of Loyalty end to end on the REAL corpus card.
+// Promise of Loyalty end to end on the REAL corpus card.
 //
 // The card is a total chain: SP$ RepeatEach (RepeatPlayers$ Player) asks each
 // player -- via DBPutCounter's bare Choices$ pick (Chooser$

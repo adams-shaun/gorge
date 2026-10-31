@@ -144,7 +144,7 @@ func seedInternalQueues(t *testing.T, e *Engine) state.ObjID {
 	e.damageBatchLog = []damageBatchEntry{{key: onceKey, idx: 0, amount: 3}}
 	e.sourceLifelinkLKI = map[state.ObjID]bool{src: true}
 
-	// A pending cast (Task 9), with its own non-empty slices -- delve/sacs
+	// A pending cast, with its own non-empty slices -- delve/sacs
 	// and the cost's own Sac/SubCounter parts -- so a Clone that omits,
 	// aliases, or only shallow-copies e.cast shows up as a real assertion
 	// failure the same way an omitted continuous/pendingTriggers would.

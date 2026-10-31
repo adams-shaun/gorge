@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task vow1: the bare-Choices$ PutCounter pick (no DividedAsYouChoose$) and
+// The bare-Choices$ PutCounter pick (no DividedAsYouChoose$) and
 // the RememberCards$ read. Promise of Loyalty is the reported carrier; these
 // leaves pin the primitive itself on synthetic scripts, and the full chain on
 // the real corpus card lives in rules/promise_of_loyalty_test.go.

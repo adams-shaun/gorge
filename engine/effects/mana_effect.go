@@ -440,7 +440,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// derives both identically. The {S} pips a cost may carry are paid only
 	// from that tally (engine/rules/mana.go's resolveMana).
 	//
-	// Task castfilter2: mana produced by a Treasure/Cave/Desert permanent is
+	// Mana produced by a Treasure/Cave/Desert permanent is
 	// likewise tagged — Counter "<Tag><colour>" — into Player.TypedMana so
 	// the filtered Count$CastTotalManaSpent Treasure/Cave/Desert heads can
 	// read the per-unit producer provenance (Marut, Bat Colony, Cataclysmic

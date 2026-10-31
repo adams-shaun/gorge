@@ -20,14 +20,14 @@ package rules
 //	                             scopes its blocker restriction to its own
 //	                             attacker
 //
-// The brief's two other cards (Adaptive Automaton's ChooseType.Type, Delver
+// Two other cards (Adaptive Automaton's ChooseType.Type, Delver
 // of Secrets' PeekAndReveal.PeekAmount) turned out to be already-read at
 // current main -- the census never listed them -- but their tests still pin
 // the behaviours, and Adaptive Automaton's test exposed and now covers the
 // adjacent AddType$ ChosenType resolution (engine/rules/layers.go).
 //
 // Deliberately inline fixtures, never corpus .txt (the licensing rule), and
-// deliberately only the targeted runs the brief's test budget names.
+// deliberately only the targeted runs the test budget allows.
 
 import (
 	"strings"

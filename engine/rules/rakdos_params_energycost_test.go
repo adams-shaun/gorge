@@ -1,7 +1,7 @@
 package rules
 
 // The Rakdos-params brief, gaps 2 and 3: the PayEnergy<X> and
-// Return<N/Spec> cost tokens. Chthonian Nightmare is the brief's named
+// Return<N/Spec> cost tokens. Chthonian Nightmare is the named
 // corpus card: "Pay X {E}, Sacrifice a creature, Return Chthonian Nightmare
 // to its owner's hand: Return target creature card with mana value X from
 // your graveyard to the battlefield." Before this work ParseCost degraded

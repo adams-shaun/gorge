@@ -11,7 +11,7 @@ import (
 // MayFlashCost (Forge's K:MayFlashCost, the "as though it had flash" casting
 // option behind CR 702.8) is pinned end to end on the real filing card,
 // Tegwyll's Scouring, whose keyword parameter is the tap cost
-// `tapXType<3/Creature.withFlying/creatures with flying>`. The brief's premise
+// `tapXType<3/Creature.withFlying/creatures with flying>`. The premise
 // is measured below: the keyword appears in exactly 11 corpus files (9 plain
 // `K:MayFlashCost:2`, 1 Behold, and this one tap shape).
 
@@ -63,7 +63,7 @@ func TestTegwyllsScouringMayflashCastTapsThreeFlyers(t *testing.T) {
 	// Build the board through logged MoveZone events (moveSeeded), then stop
 	// in the begin-combat step: seat 0 still has priority there, but it is
 	// not a main phase, so spellTimingOK withholds the sorcery and only the
-	// MayFlashCost permission can offer it -- the brief's "cast it any time
+	// MayFlashCost permission can offer it -- the "cast it any time
 	// you could cast an instant".
 	flyers := []state.ObjID{
 		moveSeeded(t, e, 0, mayflashFlyerSrc, state.ZBattlefield),

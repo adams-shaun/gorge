@@ -1,7 +1,7 @@
 package rules
 
 // knownBrokenCostStatics / knownWrongCostStatics are TestCostStaticCensus'
-// committed baseline (Ruling R-20's two-direction contract, the
+// committed baseline (the two-direction contract, the
 // knownUnsupported shape): card name -> its sorted reason classes, measured
 // over the whole corpus. The census fails on a card that newly measures
 // BROKEN/WRONG (naming the finding and the engine file:line) AND on an entry

@@ -433,7 +433,7 @@ func zoneNoun(z state.Zone) string {
 }
 
 // countPhrase renders a cost part's count as digits ("2"), or "X" for an
-// announced part. No number-to-word table: the brief pins digits.
+// announced part. No number-to-word table: digits only.
 func countPhrase(n int32) string {
 	return strconv.FormatInt(int64(n), 10)
 }

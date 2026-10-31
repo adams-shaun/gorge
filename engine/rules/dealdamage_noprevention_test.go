@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g195: DealDamage's NoPrevention$ True ("the damage can't be prevented",
+// DealDamage's NoPrevention$ True ("the damage can't be prevented",
 // CR 615.12) is published around each Damage event the ability emits, and
 // cantPreventDamage honours it for protection (CR 702.16e) and prevention
 // shields alike. These fixtures copy the printed lines of Combust, Lava Burst

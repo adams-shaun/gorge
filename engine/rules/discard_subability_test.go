@@ -91,7 +91,7 @@ func TestThoughtseizeLosesExactlyTwoLife(t *testing.T) {
 // generically for every asking primitive (not just Discard), so a Charm with
 // a SubAbility$ fires that SubAbility once, after the chosen mode.
 //
-// The shape is deliberately the one the brief says must keep working: a Charm
+// The shape is deliberately one that must keep working: a Charm
 // carrying a SubAbility$. Net effect with the mode "Lose 5 life" chosen:
 // -5 (the mode) +1 (the SubAbility) = -4. The buggy build stacked a second
 // +1 on the first pass for a net -3.

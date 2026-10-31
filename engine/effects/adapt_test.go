@@ -1,6 +1,6 @@
 package effects
 
-// Task param-adapt (CR 702.35a), the DB-body half: a chained
+// CR 702.35a, the DB-body half: a chained
 // `DB$ PutCounter | Adapt$ N` body reads N as the count and its put is
 // conditional on the recipient holding no +1/+1 counters. Jetfire,
 // Ingenious Scientist // Jetfire, Air Guardian is the measured corpus

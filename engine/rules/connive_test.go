@@ -16,7 +16,7 @@ import (
 //     that convoked the cast draws one, discards one (a real KModes ask when
 //     the hand holds more than one card — the strict-supersets rule), and a
 //     nonland discard puts the +1/+1 counter on the conniver (a land discard
-//     puts none). This is the corpus carrier the brief names, and it pins
+//     puts none). This is the corpus carrier, and it pins
 //     the Defined$ Convoked selector through the real convoke announcement
 //     (engine/rules/cast.go's convokeAsk -> the pay-time FlagConvoked CastInfo ->
 //     Object.Convoked -> effects' definedSpec).
@@ -203,7 +203,7 @@ func castLethalSchemeAtBear(t *testing.T, e *Engine, opponentBear, convokeWith s
 	return passUntilNonPriority(t, e, 30)
 }
 
-// TestLethalSchemeConvokedConniveNonlandDiscardCounters is the brief's main
+// TestLethalSchemeConvokedConniveNonlandDiscardCounters is the main
 // pin: the convoked creature connives (draws one, is ASKED which card to
 // discard), and discarding a nonland card puts the +1/+1 counter on it.
 func TestLethalSchemeConvokedConniveNonlandDiscardCounters(t *testing.T) {

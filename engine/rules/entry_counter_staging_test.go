@@ -202,7 +202,7 @@ func entryStagingCounterLock(t testing.TB) *cards.Card {
 		"Oracle:x\n")
 }
 
-// TestEntryCounterStagingZeroLoyaltySBASeesCompletedEntry is the brief's SBA
+// TestEntryCounterStagingZeroLoyaltySBASeesCompletedEntry is the SBA
 // canary: a walker whose starting-loyalty placement is prevented enters AT
 // ZERO and the zero-loyalty SBA sees the COMPLETED entry -- the walker is
 // swept, never parked at printed loyalty. The un-prevented precondition
@@ -276,7 +276,7 @@ func TestEntryCounterStagingVorinclexHalvesOpponentWalker(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestEntryCounterStagingDoublingSeasonDoublesRiotElection is the brief's
+// TestEntryCounterStagingDoublingSeasonDoublesRiotElection is the
 // Doubling Season half. Season's line carries EffectOnly$ True, so the entry
 // must ride a REAL cast -- the resolving spell on the stack is the effect the
 // line admits -- which is why this test casts the goblin instead of emitting

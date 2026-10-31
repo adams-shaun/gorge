@@ -1,4 +1,4 @@
-// cr-g53b: CR 702.22j-k (and 510.1d). Banding's damage half: a blocker that
+// CR 702.22j-k (and 510.1d). Banding's damage half: a blocker that
 // blocks a band (so more than one attacker) divides its combat damage among
 // them, and because it blocks a creature with banding the ACTIVE player
 // chooses the division; an attacker blocked by a creature with banding has

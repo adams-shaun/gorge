@@ -1,15 +1,14 @@
-// Final whole-branch review, Critical C1: Task 29 added a totality guard
-// (ensureLeftTheStack, engine/rules/stack.go) for exactly one of resolveTop's five
-// stack exits -- a permanent spell's ETB Move onto the battlefield. The
-// other four (askTarget's cast-time "countered: no legal targets", an
-// ability object's fizzle and its normal ceases-to-exist move, a spell's
-// resolution-time fizzle, and -- the two cases this file covers -- an
-// instant/sorcery's normal resolution and the ability-object exile move
-// once more, from a different trigger source) carried the identical hazard,
+// A totality guard (ensureLeftTheStack, engine/rules/stack.go) for exactly
+// one of resolveTop's five stack exits -- a permanent spell's ETB Move onto
+// the battlefield. The other four (askTarget's cast-time "countered: no legal
+// targets", an ability object's fizzle and its normal ceases-to-exist move, a
+// spell's resolution-time fizzle, and -- the two cases this file covers -- an
+// instant/sorcery's normal resolution and the ability-object exile move once
+// more, from a different trigger source) carried the identical hazard,
 // unguarded, since c19097f: a ReplacementResult$-absent R:Event$ Moved
 // replacement that matches one of those moves and does not itself relocate
-// the card leaves the object on the stack forever. The reviewer measured
-// this as a genuine non-terminating match (100 000+ intents, still turn 1)
+// the card leaves the object on the stack forever. The reviewer measured this
+// as a genuine non-terminating match (100 000+ intents, still turn 1)
 // reachable from 24 corpus cards this build's own coverage gate calls fully
 // playable, including Rest in Peace and Dryad Militant.
 //
@@ -47,7 +46,7 @@ Oracle:x
 
 // graveyardBlockingSpellsReplacementSrc is a NON-relocating "would go to a
 // graveyard" replacement narrowed to ValidCard$ Instant,Sorcery -- the shape
-// the stack-totality guard exists to protect. The controller ruling (fx28fix1)
+// the stack-totality guard exists to protect. The
 // established that the earlier fixture (Militant Ward / Dryad Militant's
 // printed shape, ReplaceWith$ ChangeZone Origin$ All ... Defined$ ReplacedCard)
 // was only ever a no-op because of the Origin$ All defect, and that with that
@@ -86,7 +85,7 @@ Oracle:x
 `
 
 // TestInstantResolvingUnderAGraveyardReplacementDoesNotStickOnTheStack is
-// C1's regression test (a): an ordinary instant, cast and resolved while a
+// Regression test: an ordinary instant, cast and resolved while a
 // graveyard-blocking replacement is on the battlefield. Before the guard
 // (resolveTop's else branch had no ensureLeftTheStack call), this hangs: the
 // instant's own Stack->Graveyard Move is discarded by the replacement, which
@@ -129,7 +128,7 @@ func TestInstantResolvingUnderAGraveyardReplacementDoesNotStickOnTheStack(t *tes
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v after %d bounded priority passes with a graveyard-blocking "+
 			"replacement in play -- the instant/sorcery resolve exit is unguarded (final "+
-			"review Critical C1)", e.G.Stack, bound)
+			"the totality guard)", e.G.Stack, bound)
 	}
 	if n != 2 {
 		t.Fatalf("passes to drain the stack = %d, want exactly 2", n)
@@ -152,16 +151,15 @@ func TestInstantResolvingUnderAGraveyardReplacementDoesNotStickOnTheStack(t *tes
 }
 
 // TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack is
-// C1's regression test (b), and independently closes Task 29's own I-2
-// ("the ability-object branch has the identical hazard... not fixed here"):
-// a triggered ability (watcherSrc's plain ETB trigger, fired here by playing
-// a harmless land) resolving normally while an exile-blocking replacement is
-// on the battlefield. Before the guard, the ability object's own
-// Stack->Exile "ceases to exist" Move is discarded by the replacement,
-// which (deliberately, see the fixture's doc) does not relocate it, so it
-// re-resolves forever (final review measured intents=300000, never
-// terminating, on an equivalent board). The guard's rescue is the single
-// exile move that finally lands it there.
+// Regression test, which also covers ("the ability-object branch has the
+// identical hazard... not fixed here"): a triggered ability (watcherSrc's
+// plain ETB trigger, fired here by playing a harmless land) resolving
+// normally while an exile-blocking replacement is on the battlefield. Before
+// the guard, the ability object's own Stack->Exile "ceases to exist" Move is
+// discarded by the replacement, which (deliberately, see the fixture's doc)
+// does not relocate it, so it re-resolves forever (final review measured
+// intents=300000, never terminating, on an equivalent board). The guard's
+// rescue is the single exile move that finally lands it there.
 func TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack(t *testing.T) {
 	t.Parallel()
 	e, _, landID := newFixtureDeck(t, 111, plainLandSrc)
@@ -195,7 +193,7 @@ func TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack(t *
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v after %d bounded priority passes with an exile-blocking "+
 			"replacement in play -- the ability-object resolve exit is unguarded (final "+
-			"review Critical C1 / Task 29 I-2)", e.G.Stack, bound)
+			"the totality guard)", e.G.Stack, bound)
 	}
 	if n != 2 {
 		t.Fatalf("passes to drain the stack = %d, want exactly 2", n)
@@ -222,14 +220,14 @@ func TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack(t *
 // watcherSrc's untargeted GainLife -- the shape the review names for
 // stack.go:216, the ability branch's own CR 608.2b recheck.
 //
-// No board state is needed to make the target illegal: under Task 7 a
+// No board state is needed to make the target illegal: a
 // triggered ability with ValidTgts$ pops askTarget the instant it is placed
 // (pushTrigger, immediately after its TriggerPush), so with no matching
 // creature anywhere this trigger is miscast at ASK time -- askTarget's CR
 // 608.2b fizzle moves the just-created ability object straight to exile,
 // before it ever sits on the stack to be rechecked at resolution. That means
 // the totality guard tested below (ensureLeftTheStack under an exile-blocking
-// replacement) is now exercised at ask time, not at resolution -- the C1
+// replacement) is now exercised at ask time, not at resolution -- the
 // hang this file exists to forbid cannot occur either way.
 const damageWatcherSrc = `Name:Reflex Sentinel
 ManaCost:1
@@ -240,7 +238,7 @@ Oracle:x
 `
 
 // TestAbilityFizzlingAtResolutionUnderAnExileReplacementDoesNotStickOnTheStack
-// is final review R1(a): the ability branch's own CR 608.2b fizzle. Task 7
+// the ability branch's own CR 608.2b fizzle.
 // moved WHEN that fizzle runs for a ValidTgts$ trigger from resolution-time
 // (resolveTop's recheck) to ask-time: pushTrigger now asks targets the
 // instant the trigger is placed, and askTarget with no legal target fizzles
@@ -281,7 +279,7 @@ func TestAbilityFizzlingAtResolutionUnderAnExileReplacementDoesNotStickOnTheStac
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
 		t.Fatalf("submit play_land: %v", err)
 	}
-	// Task 7: the Sentinel's ValidTgts ETB trigger fizzles AT ASK TIME (no
+	// The Sentinel's ValidTgts ETB trigger fizzles AT ASK TIME (no
 	// creature to target), so the ability object never finishes its turn on
 	// the stack -- it is created by its own TriggerPush and immediately
 	// fizzled by askTarget's CR 608.2b exit. Find the ability object by its
@@ -550,7 +548,7 @@ func TestSpellFizzlingAtResolutionUnderAGraveyardReplacementDoesNotStickOnTheSta
 
 // TestAbilityFizzlesAtResolutionWhenItsTargetDiesBeforeResolving closes the
 // resolution-time gap the reworked ask-time test above deliberately leaves:
-// Task 7 moved the WHEN of a ValidTgts$ trigger's fizzle for a trigger that
+// This moves the WHEN of a ValidTgts$ trigger's fizzle for a trigger that
 // finds no legal target AT ASK TIME to askTarget, so the legacy fixture no
 // longer drives resolveTop's ability-branch recheck. That recheck (CR 608.2b)
 // is still reachable for a target that WAS legal when chosen and stops being

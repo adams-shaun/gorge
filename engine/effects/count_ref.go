@@ -178,8 +178,8 @@ func evalSacrificedOK(h Host, c *Ctx, body string) (int32, bool) {
 			n = int32(len(seen))
 		default:
 			// An out-of-scope head (CardNumColors, CardCounters)
-			// degrades to zero, exactly as before the fix -- the conservative
-			// same-as-before no-op the brief scopes out. NOT evaluated: a gate
+			// degrades to zero, a conservative
+			// no-op. NOT evaluated: a gate
 			// over one of these fails open.
 			return 0, false
 		}
@@ -466,7 +466,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// (Loamcrafter Faun's TriggerAmount$/a direct Execute read) or an
 		// instance ctx -- answers the chain's remembered set and never the
 		// fire-time capture. A plain Ctx.Remembered read (what the sibling
-		// ticket first landed) overcounts by that capture in the outer ctx;
+		// first landed) overcounts by that capture in the outer ctx;
 		// the helper is idempotent with effImmediateTrigger's own exclusion
 		// (the instance capture is disjoint from its remembered set), so the
 		// instance read is unchanged. The members the corpus writes (Amount/

@@ -21,7 +21,7 @@ import (
 //     one (the path cycle's DBChaos), else the first tied option's SVar.
 //     Before this the fixed-list shape resolved nothing at all, so a Path
 //     of the Ghosthunter vote recorded its Notes and then did nothing --
-//     the "chosen outcome" the brief expected to hit Planeswalk/
+//     the "chosen outcome" meant to hit Planeswalk/
 //     ChaosEnsues never ran. The tie branch takes its tally from Ctx.Votes
 //     when a caller has answered one (the seam a real per-player ask fills,
 //     and what lets the tie be pinned against a real compiled SA); absent,

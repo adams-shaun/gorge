@@ -30,11 +30,11 @@ import (
 // when the chosen effect completes the event and when remaining effects are
 // reconsidered.
 //
-// Task 29 (Ruling T26-a): what happens to the ORIGINAL event once a
+// What happens to the ORIGINAL event once a
 // replacement matches depends on Forge's ReplacementResult$, which this used
 // to ignore entirely -- every match was treated as ReplacementResult$
 // Replaced, discarding the original event unconditionally. That is right for
-// "Replaced" (and for no ReplacementResult$ at all: Task 22's four pins were
+// "Replaced" (and for no ReplacementResult$ at all: the four pins were
 // measured against fixtures with neither, and must keep reading as
 // Replaced), but wrong for ReplacementResult$ Updated -- Forge's idiom for
 // "the event still happens, augmented" (CR 616.1's "an effect that modifies
@@ -44,7 +44,7 @@ import (
 // Fountain, Celestial Colonnade, Geralf's Messenger, ...). Treating Updated
 // as a full replace discarded the permanent's own MoveZone onto the
 // battlefield, so it never left the stack and resolveTop kept re-resolving
-// the same object forever (see Task 26's report and the resolveTop guard
+// the same object forever (see the resolveTop guard
 // below for the other half of this fix).
 func (e *Engine) finalityReplacementApplies(id state.ObjID) bool {
 	o := e.G.Obj(id)
@@ -97,7 +97,7 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		// recognises damage-caused loss (lifeLoss/trigger_match.go). A card
 		// with both classes active competing for the SAME event is not in
 		// the corpus this build measures against; that composition is left
-		// for whichever ticket first needs it.
+		// for whatever first needs it.
 		replaced, handled := e.applyReplacementsDispatch(ev)
 		if handled {
 			return replaced, true
@@ -184,7 +184,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if e.applySiegeProtector(ev) {
 		return ev, true
 	}
-	// CR 903.9b (Task m32, narrowed by cr-g01a): a commander about to be put
+	// CR 903.9b: a commander about to be put
 	// into its owner's hand or library from anywhere may instead be put into
 	// the command zone by its OWNER. A construct-rule replacement, matched
 	// before any card-text replacement; matching parks the event and asks
@@ -883,11 +883,11 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		// ValidPlayer$.
 		return cards.ReplAddCounter
 	case events.TurnFaceUp:
-		// The turn-up boundary itself (CR 614.1a with CR 708.6/702.36e, task
-		// cli-20260924T031747Z-6d0658fc): Hooded Hydra's five +1/+1 counters,
-		// Karlov Watchdog's CantHappen prohibition, Gift of Doom's attach.
-		// These match the marker events.TurnFaceUp that the morph-family
-		// special action and the SetState effect's turn-up arm emit.
+		// The turn-up boundary itself (CR 614.1a with CR 708.6/702.36e,
+		// task): Hooded Hydra's five +1/+1 counters, Karlov Watchdog's
+		// CantHappen prohibition, Gift of Doom's attach. These match the
+		// marker events.TurnFaceUp that the morph-family special action and
+		// the SetState effect's turn-up arm emit.
 		return cards.ReplTurnFaceUp
 	case events.LifeChange:
 		if ev.Text == pay.PayLifeProposalText && ev.Amount > 0 {
@@ -1067,22 +1067,22 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	// resumeETBEntry) already posed the entry ask and recorded the answer on
 	// the entering object before this body runs at the re-emitted move, so
 	// effChooseColor keeps the historical no-op for THIS invocation rather
-	// than posing a second ask (task cli-20260923T060000Z-choose-color; the
-	// flag is what keeps a FRESH resolution-time ask after an earlier
-	// ChooseColor's answer askable -- the stale-source-state guard cannot be
-	// unconditional). The effect consumes the flag, so a nested ChooseColor
-	// in the same chain poses its own fresh ask.
+	// than posing a second ask (the flag is what keeps a FRESH
+	// resolution-time ask after an earlier ChooseColor's answer askable --
+	// the stale-source-state guard cannot be unconditional). The effect
+	// consumes the flag, so a nested ChooseColor in the same chain poses its
+	// own fresh ask.
 	if o != nil && m.repl != nil && m.repl.ParamStr(cards.PKKeyword) == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "ChooseColor" {
 		ctx.ETB.ColorRecorded = true
 	}
 	// The as-enters NUMBER-choice body (K:ETBReplacement:Other:ChooseNumber,
-	// Talion the Kindly Lord) marks itself the same way: resumeETBEntry already
-	// posed the entry ask and recorded the answer on the entering object, so
-	// effChooseNumber keeps the historical no-op for THIS invocation rather
-	// than posing a second ask (task cli-20260923T060000Z-choose-number). The
-	// flag is exact where a bare o.ChosenNumber guard is not: a recorded entry
-	// answer of 0 is indistinguishable from unset on the object, but the flag
-	// is set precisely when the machinery recorded one.
+	// Talion the Kindly Lord) marks itself the same way: resumeETBEntry
+	// already posed the entry ask and recorded the answer on the entering
+	// object, so effChooseNumber keeps the historical no-op for THIS
+	// invocation rather than posing a second ask. The flag is exact where a
+	// bare o.ChosenNumber guard is not: a recorded entry answer of 0 is
+	// indistinguishable from unset on the object, but the flag is set
+	// precisely when the machinery recorded one.
 	if o != nil && m.repl != nil && m.repl.ParamStr(cards.PKKeyword) == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "ChooseNumber" {
 		ctx.ETB.NumberRecorded = true
 	}
@@ -1258,7 +1258,7 @@ func (e *Engine) resolveReplacementBody(ctx *effects.Ctx, with *cards.SA) {
 // An "Updated" match emits the original event, fires triggers (in the M1
 // order: before the With resolves -- the I-3 caveat stands), then resolves
 // the With; anything else ("Replaced", or no ReplacementResult$ at all --
-// Task 22's four pins must keep reading as a full replace) discards the
+// The four pins must keep reading as a full replace) discards the
 // original and only the With's own effect happens. Returns the event to log
 // (stored for Updated, ev for Replaced) and handled=true.
 func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, bool) {
@@ -1346,20 +1346,20 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 
 // resolveReplacementWith runs a ReplaceWith$ effect with e.damaging set to
 // the permanent that owns the replacement and then restores whatever it was
-// beforehand (Task 15 fix round 1, Important I3). A ReplaceWith$ resolves
-// inside emit, where the only write to e.damaging so far was around
-// resolveTop's own resolution calls and damageStep's assignment loop -- so a
-// replacement that emits damage normally inherited whichever value that outer
-// context happened to hold: the combat attacker when the replaced event came
-// from damageStep's loop, or 0 (no source) during ordinary turn structure.
-// Either way the damage was attributed to the wrong thing, or to nothing.
-// The reading chosen here is: the damage a replacement emits is dealt by the
-// permanent whose R: line owns the replacement (ctx.Source) -- it is an
-// effect of that permanent, exactly as resolveTop attributes a resolved
-// ability's damage to its source -- and CR 609.7a asks for the source of the
-// effect, which is the permanent granting the replacement. The PREVIOUS
-// damaging is saved and restored (never zeroed) so an outer in-flight
-// assignment keeps its own attribution once the replacement returns.
+// beforehand. A ReplaceWith$ resolves inside emit, where the only write to
+// e.damaging so far was around resolveTop's own resolution calls and
+// damageStep's assignment loop -- so a replacement that emits damage normally
+// inherited whichever value that outer context happened to hold: the combat
+// attacker when the replaced event came from damageStep's loop, or 0 (no
+// source) during ordinary turn structure. Either way the damage was
+// attributed to the wrong thing, or to nothing. The reading chosen here is:
+// the damage a replacement emits is dealt by the permanent whose R: line owns
+// the replacement (ctx.Source) -- it is an effect of that permanent, exactly
+// as resolveTop attributes a resolved ability's damage to its source -- and
+// CR 609.7a asks for the source of the effect, which is the permanent
+// granting the replacement. The PREVIOUS damaging is saved and restored
+// (never zeroed) so an outer in-flight assignment keeps its own attribution
+// once the replacement returns.
 func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
 	// ReplaceEffect rewrites the held event and must retain e.damaging as the
 	// ORIGINAL damage source (Affected$ ReplacedSourceController needs it).

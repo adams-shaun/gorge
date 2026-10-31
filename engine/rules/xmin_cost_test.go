@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task cost-xmin1: Forge's XMin<N> cost token -- the announced-X LOWER BOUND
+// Forge's XMin<N> cost token -- the announced-X LOWER BOUND
 // ("X can't be 0", XMin1) -- was not modelled by ParseCost. It reached the
 // unrecognised-symbol fallback, which charged one phantom generic pip AND
 // reported a cost:XMin1 census label, and the X ask then offered X = 0 for a

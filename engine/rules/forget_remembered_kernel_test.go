@@ -91,13 +91,13 @@ func kr1Opt(t *testing.T, d *decision.Decision, k string) int {
 	return -1
 }
 
-// TestKr1HandMoveForgetOtherRememberedOwnersAsk (was
+// TestKernelHandMoveForgetOtherRememberedOwnersAsk (was
 // TestHandMoveForgetOtherRememberedOwnersAsk): the owner-selected hand walk
 // (DefinedPlayer$ RememberedOwner). Owner A's answer settles and clears the
 // set, yet owner B's ask still offers B's two pre-clear candidates and B's
 // answer moves; the source ends remembering exactly the two moved cards and
 // the clear is recorded once.
-func TestKr1HandMoveForgetOtherRememberedOwnersAsk(t *testing.T) {
+func TestKernelHandMoveForgetOtherRememberedOwnersAsk(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 200,
 		"ChangeZone | Origin$ Hand | Destination$ Exile | DefinedPlayer$ RememberedOwner | ChangeType$ Creature.IsRemembered | ChangeNum$ 1 | Mandatory$ True | RememberChanged$ True | ForgetOtherRemembered$ True",
@@ -128,12 +128,12 @@ func TestKr1HandMoveForgetOtherRememberedOwnersAsk(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1HandMoveForgetOtherRememberedHandAsk (was
+// TestKernelHandMoveForgetOtherRememberedHandAsk (was
 // TestHandMoveForgetOtherRememberedHandAsk and
 // TestChangeZoneHandForgetOtherRememberedAnsweredSelector): the whole-hand
 // shape offers both remembered hand cards; the answered one is exiled, the
 // other stays, the source remembers only the moved card, the clear is once.
-func TestKr1HandMoveForgetOtherRememberedHandAsk(t *testing.T) {
+func TestKernelHandMoveForgetOtherRememberedHandAsk(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 201,
 		"ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card.IsRemembered | ChangeNum$ 1 | Mandatory$ True | RememberChanged$ True | ForgetOtherRemembered$ True",
@@ -157,12 +157,12 @@ func TestKr1HandMoveForgetOtherRememberedHandAsk(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1DigForgetOtherRememberedAsk (was TestDigForgetOtherRememberedAsk):
+// TestKernelDigForgetOtherRememberedAsk (was TestDigForgetOtherRememberedAsk):
 // a two-player Dig over Creature.IsRemembered: player 0's answered take
 // clears the set, and player 1's window ask still offers its pre-clear
 // remembered cards; both answered takes are exiled, the untaken stay in the
 // libraries, the clear is once.
-func TestKr1DigForgetOtherRememberedAsk(t *testing.T) {
+func TestKernelDigForgetOtherRememberedAsk(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 202,
 		"Dig | DigNum$ 2 | ChangeNum$ 1 | ChangeValid$ Creature.IsRemembered | DestinationZone$ Exile | Defined$ You & Opponent | RememberChanged$ True | ForgetOtherRemembered$ True",
@@ -189,13 +189,13 @@ func TestKr1DigForgetOtherRememberedAsk(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1DigUntilForgetOtherRememberedAsk (was
+// TestKernelDigUntilForgetOtherRememberedAsk (was
 // TestDigUntilForgetOtherRememberedAsk): the found-move election over a
 // Creature.IsRemembered walk; accepting moves the found card to hand
 // and RememberFound$ makes it the resolution's Remembered (a Defined$
 // Remembered sub moves exactly it on); the filler below it is untouched and
 // the clear is once.
-func TestKr1DigUntilForgetOtherRememberedAsk(t *testing.T) {
+func TestKernelDigUntilForgetOtherRememberedAsk(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 203,
 		"DigUntil | Valid$ Creature.IsRemembered | OptionalFoundMove$ True | FoundDestination$ Hand | RememberFound$ True | ForgetOtherRemembered$ True | SubAbility$ DBRead\n"+
@@ -224,11 +224,11 @@ func TestKr1DigUntilForgetOtherRememberedAsk(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1ChooseCardForgetOtherRememberedAsk (was
+// TestKernelChooseCardForgetOtherRememberedAsk (was
 // TestChooseCardForgetOtherRememberedAsk): chooser 0's answer clears the
 // set, chooser 1's pool still holds its pre-clear remembered creature, and
 // the source ends remembering both picks with one clear.
-func TestKr1ChooseCardForgetOtherRememberedAsk(t *testing.T) {
+func TestKernelChooseCardForgetOtherRememberedAsk(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 204,
 		"ChooseCard | Defined$ You & Opponent | Amount$ 1 | Choices$ Creature.IsRemembered | ChoiceZone$ Graveyard | Mandatory$ True | RememberChosen$ True | ForgetOtherRemembered$ True",
@@ -257,12 +257,12 @@ func TestKr1ChooseCardForgetOtherRememberedAsk(t *testing.T) {
 
 const kr1OptionalHandFetch = "ChangeZone | Origin$ Hand | Destination$ Exile | DefinedPlayer$ You | ChangeType$ Creature.IsRemembered | ChangeNum$ 1 | Optional$ True | ForgetOtherRemembered$ True"
 
-// TestKr1ChangeZoneHandOwnersForgetOtherRememberedOptionalConfirm (was
+// TestKernelChangeZoneHandOwnersForgetOtherRememberedOptionalConfirm (was
 // TestChangeZoneHandOwnersForgetOtherRememberedOptionalConfirm): Optional$
 // asks a yes/no BEFORE the pick and before any clear. Declining keeps the
 // memory and picks nothing; accepting clears before the pick, whether the
 // pick then takes nothing (the card stays) or takes the card (exiled).
-func TestKr1ChangeZoneHandOwnersForgetOtherRememberedOptionalConfirm(t *testing.T) {
+func TestKernelChangeZoneHandOwnersForgetOtherRememberedOptionalConfirm(t *testing.T) {
 	t.Parallel()
 	for i, branch := range []string{"decline", "accept pick-none", "accept pick"} {
 		branch := branch
@@ -303,12 +303,12 @@ func TestKr1ChangeZoneHandOwnersForgetOtherRememberedOptionalConfirm(t *testing.
 	}
 }
 
-// TestKr1ChangeZoneForgetOtherRememberedFetchEmpty (was
+// TestKernelChangeZoneForgetOtherRememberedFetchEmpty (was
 // TestChangeZoneForgetOtherRememberedFetchEmpty): the remembered card is not
 // in the hand, so the pool is empty. Optional$ still asks whether to
 // proceed: decline keeps the memory, accept clears it with no pick; a
 // Mandatory$ empty fetch asks nothing and clears.
-func TestKr1ChangeZoneForgetOtherRememberedFetchEmpty(t *testing.T) {
+func TestKernelChangeZoneForgetOtherRememberedFetchEmpty(t *testing.T) {
 	t.Parallel()
 	mandatory := "ChangeZone | Origin$ Hand | Destination$ Exile | DefinedPlayer$ You | ChangeType$ Creature.IsRemembered | ChangeNum$ 1 | Mandatory$ True | ForgetOtherRemembered$ True"
 	for i, branch := range []string{"optional decline", "optional accept", "mandatory"} {
@@ -356,11 +356,11 @@ func TestKr1ChangeZoneForgetOtherRememberedFetchEmpty(t *testing.T) {
 	}
 }
 
-// TestKr1ChangeZoneDefinedForgetOtherRememberedFetchEmpty (was
+// TestKernelChangeZoneDefinedForgetOtherRememberedFetchEmpty (was
 // TestChangeZoneDefinedForgetOtherRememberedFetchEmpty): an Optional$
 // Defined$ Remembered library fetch whose card is in exile asks yes/no;
 // declining keeps the memory, accepting clears it and moves nothing.
-func TestKr1ChangeZoneDefinedForgetOtherRememberedFetchEmpty(t *testing.T) {
+func TestKernelChangeZoneDefinedForgetOtherRememberedFetchEmpty(t *testing.T) {
 	t.Parallel()
 	for i, accept := range []bool{false, true} {
 		accept := accept
@@ -392,12 +392,12 @@ func TestKr1ChangeZoneDefinedForgetOtherRememberedFetchEmpty(t *testing.T) {
 	}
 }
 
-// TestKr1ChangeZoneHandOwnersForgetOtherRememberedOptionalConfirmPerOwner
+// TestKernelChangeZoneHandOwnersForgetOtherRememberedOptionalConfirmPerOwner
 // (was TestChangeZoneHandOwnersForgetOtherRememberedOptionalConfirmPerOwner):
 // each remembered owner gets its own confirmation; owner 0 declining keeps
 // the memory and does not consume owner 1's; owner 1 accepting its empty
 // fetch clears the memory and moves nothing.
-func TestKr1ChangeZoneHandOwnersForgetOtherRememberedOptionalConfirmPerOwner(t *testing.T) {
+func TestKernelChangeZoneHandOwnersForgetOtherRememberedOptionalConfirmPerOwner(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 213,
 		"ChangeZone | Origin$ Hand | Destination$ Exile | DefinedPlayer$ RememberedOwner | ChangeType$ Creature.IsRemembered | ChangeNum$ 1 | Optional$ True | ForgetOtherRemembered$ True",
@@ -421,13 +421,13 @@ func TestKr1ChangeZoneHandOwnersForgetOtherRememberedOptionalConfirmPerOwner(t *
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1ChangeZoneHandOwnersForgetOtherRememberedResume (was
+// TestKernelChangeZoneHandOwnersForgetOtherRememberedResume (was
 // TestChangeZoneHandOwnersForgetOtherRememberedResume): Optional$, owner
 // selector RememberedOwner, NO RememberChanged$. Owner 0 confirms and
 // exiles its card (clearing the memory to nothing); owner 1 must still be
 // confirmed and offered its pre-clear remembered card, which then moves;
 // the unremembered creature in owner 1's hand stays.
-func TestKr1ChangeZoneHandOwnersForgetOtherRememberedResume(t *testing.T) {
+func TestKernelChangeZoneHandOwnersForgetOtherRememberedResume(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 214,
 		"ChangeZone | Origin$ Hand | Destination$ Exile | DefinedPlayer$ RememberedOwner | ChangeType$ Creature.IsRemembered | ChangeNum$ 1 | Optional$ True | ForgetOtherRemembered$ True",
@@ -461,13 +461,13 @@ func TestKr1ChangeZoneHandOwnersForgetOtherRememberedResume(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1ChangeZoneForgetOtherRememberedMultiOwner (was
+// TestKernelChangeZoneForgetOtherRememberedMultiOwner (was
 // TestChangeZoneHiddenForgetOtherRememberedMultiOwner and
 // TestChangeZoneSearchForgetOtherRememberedMultiOwner): the hidden-pick
 // (graveyard) and library-search walks over two remembered owners offer
 // each owner its pre-clear remembered card even after the first move
 // clears the memory; both move and the source remembers both.
-func TestKr1ChangeZoneForgetOtherRememberedMultiOwner(t *testing.T) {
+func TestKernelChangeZoneForgetOtherRememberedMultiOwner(t *testing.T) {
 	t.Parallel()
 	for i, tc := range []struct {
 		name, body string
@@ -507,11 +507,11 @@ func TestKr1ChangeZoneForgetOtherRememberedMultiOwner(t *testing.T) {
 	}
 }
 
-// TestKr1ChangeZoneHiddenForgetOtherRememberedSelector (was
+// TestKernelChangeZoneHiddenForgetOtherRememberedSelector (was
 // TestChangeZoneHiddenForgetOtherRememberedSelector): a hidden pick over
 // Graveyard,Exile offers both remembered candidates; the answer returns the
 // graveyard one and the source remembers only it.
-func TestKr1ChangeZoneHiddenForgetOtherRememberedSelector(t *testing.T) {
+func TestKernelChangeZoneHiddenForgetOtherRememberedSelector(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 217,
 		"ChangeZone | Hidden$ True | Origin$ Graveyard,Exile | Destination$ Hand | ChangeType$ Creature.IsRemembered | ChangeNum$ 1 | RememberChanged$ True | ForgetOtherRemembered$ True",
@@ -528,10 +528,10 @@ func TestKr1ChangeZoneHiddenForgetOtherRememberedSelector(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1ChangeZoneSearchForgetOtherRememberedReplacesSet (was
+// TestKernelChangeZoneSearchForgetOtherRememberedReplacesSet (was
 // TestChangeZoneSearchForgetOtherRememberedReplacesSet, Myr Incubator): the
 // library search replaces the source's memory with the found card.
-func TestKr1ChangeZoneSearchForgetOtherRememberedReplacesSet(t *testing.T) {
+func TestKernelChangeZoneSearchForgetOtherRememberedReplacesSet(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 218,
 		"ChangeZone | Origin$ Library | Destination$ Exile | ChangeType$ Artifact | ChangeNum$ 1 | RememberChanged$ True | ForgetOtherRemembered$ True",
@@ -548,12 +548,12 @@ func TestKr1ChangeZoneSearchForgetOtherRememberedReplacesSet(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1ChangeZoneHandForgetOtherRememberedClearsBeforeMoving (was
+// TestKernelChangeZoneHandForgetOtherRememberedClearsBeforeMoving (was
 // TestChangeZoneHandForgetOtherRememberedClearsBeforeMoving): a hand move
 // with RememberChanged$ replaces the stale memory with the moved card. (The
 // old fixture carried no Optional$/Mandatory$ marker; a markerless hand move
 // now fails loud with no move by design, so this one is Mandatory$.)
-func TestKr1ChangeZoneHandForgetOtherRememberedClearsBeforeMoving(t *testing.T) {
+func TestKernelChangeZoneHandForgetOtherRememberedClearsBeforeMoving(t *testing.T) {
 	t.Parallel()
 	e, cfg, src := kr1ForgetBoard(t, 219,
 		"ChangeZone | Origin$ Hand | Destination$ Exile | ChangeNum$ 1 | Mandatory$ True | ForgetOtherRemembered$ True | RememberChanged$ True",
@@ -569,13 +569,13 @@ func TestKr1ChangeZoneHandForgetOtherRememberedClearsBeforeMoving(t *testing.T) 
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1ChooseCardForgetChosen (was
+// TestKernelChooseCardForgetChosen (was
 // TestChooseCardForgetChosenRemovesOnlyTheChosenObject and
 // TestChooseCardWithoutForgetChosenKeepsBoth): ForgetChosen$ True removes
 // exactly the chosen card from the source's memory (one forget-remembered
 // event naming it) while the choice itself is still recorded as Chosen;
 // without the parameter both stay remembered.
-func TestKr1ChooseCardForgetChosen(t *testing.T) {
+func TestKernelChooseCardForgetChosen(t *testing.T) {
 	t.Parallel()
 	for i, forget := range []bool{true, false} {
 		forget := forget

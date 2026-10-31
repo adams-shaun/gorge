@@ -1,6 +1,6 @@
 package rules
 
-// lb5_engine_gaps_test.go pins three engine gaps the Level B wave-5 driver
+// engine_gaps_test.go pins three engine gaps the Level B wave-5 driver
 // class exposed, each through the real corpus card that names it.
 
 import (

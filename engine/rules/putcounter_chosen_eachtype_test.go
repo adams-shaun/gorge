@@ -11,7 +11,7 @@ import (
 )
 
 // PutCounter's CounterTypes$ ChosenFromList (with TypeList$) and
-// EachType_<spec> entries (cr-g225): Elspeth Resplendent's +1 puts a +1/+1
+// EachType_<spec> entries: Elspeth Resplendent's +1 puts a +1/+1
 // counter and a keyword counter chosen from four; Exotic Pets puts one
 // counter of each kind among your creatures on either of its two Fish.
 

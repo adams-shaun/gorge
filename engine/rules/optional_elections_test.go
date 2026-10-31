@@ -1,4 +1,4 @@
-// cr-g128: the five "you may" elections that were never asked, or were asked
+// The five "you may" elections that were never asked, or were asked
 // of the wrong player. Each test drives the real corpus card end to end and
 // answers the election both ways: Animate's Optional$ (Crawling Barrens),
 // AlterAttribute's Optional$ (Rubblebelt Braggart), DealDamage's

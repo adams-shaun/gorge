@@ -1,13 +1,13 @@
-// Task agent-20260923T105645Z-f1e41416 (the cr6012g-window row):
-// affordableTargetCandidates proves a repriced weak target fundable through
-// the CR 601.2g window, but the window probe (castWindowUnits ->
-// windowManaUnits) priced only free-cost abilities with LITERAL Amount$ and
-// dropped every dynamic-amount or paid-cost source. So a Belt of Giant
-// Strength equip against the 2-power target ({10} - {2} = {8}) was withheld
-// from the target menu even though a Viridian-Joiner-shaped source could
-// produce the difference while paying. These leaves pin the repro on the
-// real corpus Belt plus an inline funding source, and the superset/anti-abort
-// invariant: every source the probe promises is one manaWindowAsk offers.
+// The CR 601.2g window: affordableTargetCandidates proves a repriced weak
+// target fundable through the CR 601.2g window, but the window probe
+// (castWindowUnits -> windowManaUnits) priced only free-cost abilities with
+// LITERAL Amount$ and dropped every dynamic-amount or paid-cost source. So a
+// Belt of Giant Strength equip against the 2-power target ({10} - {2} = {8})
+// was withheld from the target menu even though a Viridian-Joiner-shaped
+// source could produce the difference while paying. These leaves pin the
+// repro on the real corpus Belt plus an inline funding source, and the
+// superset/anti-abort invariant: every source the probe promises is one
+// manaWindowAsk offers.
 package rules
 
 import (
@@ -93,7 +93,7 @@ func equipWindowGame(t *testing.T, seed uint64, extra ...string) equipWindowBoar
 	return equipWindowBoard{engine: e, cfg: cfg, belt: beltID, brute: bruteID, small: smallID, joiner: joiner, byName: byName}
 }
 
-// TestEquipReduceWindowFundedTargetIsOffered is the brief's repro: with {6}
+// TestEquipReduceWindowFundedTargetIsOffered is the repro: with {6}
 // floating and an untapped Joiner (power 2 -> {G}{G}), the 2/2's repriced {8}
 // is fundable in the CR 601.2g window, so the 2/2 must be offered as a target,
 // and completing the activation must charge exactly the 2/2's {8} price.

@@ -69,7 +69,7 @@ func DistinctNameCandidates(e Engine, spec string, ids []state.ObjID) []state.Ob
 }
 
 // manaAbilityLabel renders a mana ability's Produced$ value as the label the
-// stage-1 "choose a mana ability" wheel shows (task fb-e079def5), with a
+// stage-1 "choose a mana ability" wheel shows, with a
 // recorded "Chosen" token already substituted (the combo-Chosen family), so
 // the wheel shows "Add R", never the raw "Combo R Chosen" jargon. The raw
 // script token ("Combo B R", "Any") is engine jargon a player cannot read,
@@ -131,8 +131,8 @@ func ManaAbilitiesProduce(mas []*cards.SA, color string) bool {
 	return false
 }
 
-// Two riders make a paid ability recognisable on the wheel (fb-877b8f8f,
-// fb-bbe4fd8f: Phyrexian Tower's "{T}, Sacrifice a creature: Add {B}{B}"
+// Two riders make a paid ability recognisable on the wheel (
+// Phyrexian Tower's "{T}, Sacrifice a creature: Add {B}{B}"
 // read "Add B", so the player saw no way to sacrifice): a cost beyond the
 // shared {T} is named in front of the production (manaAbilityCostPrefix,
 // "Sacrifice 1 creature: Add BB"), and a literal Amount$ repeats a single

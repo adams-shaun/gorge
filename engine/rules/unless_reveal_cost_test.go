@@ -153,7 +153,7 @@ func TestUnlessRevealPortTownAsksRevealCost(t *testing.T) {
 	}
 }
 
-// TestUnlessRevealFurycalmSnarlPayEntersUntapped is the brief's named carrier
+// TestUnlessRevealFurycalmSnarlPayEntersUntapped is the named carrier
 // (Furycalm Snarl's UnlessCost$ Reveal<1/Mountain;Plains/...>): paying with a
 // Mountain in hand reveals it (one public Note, the card stays in hand) and
 // the land enters UNTAPPED; a decline keeps the old tapped entry.

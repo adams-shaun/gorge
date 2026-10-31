@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The AddsKeywords$ mana-spend rider (cr-g144; CR 106.6, 400.7a, 702.10).
+// The AddsKeywords$ mana-spend rider (CR 106.6, 400.7a, 702.10).
 // Inline script SHAPES of Carnelian Orb of Dragonkind and Hall of the Bandit
 // Lord; never a .cards/ .txt.
 

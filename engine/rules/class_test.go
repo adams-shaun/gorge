@@ -75,7 +75,7 @@ func classMove(t *testing.T, e *Engine, name string, to state.Zone) state.ObjID 
 	return 0
 }
 
-// TestPaladinClassEntersAtLevel1LevelsUpAndTurnsOnItsStatic is the brief's
+// TestPaladinClassEntersAtLevel1LevelsUpAndTurnsOnItsStatic is the
 // done shape on Paladin Class: the Class enters at level 1, its level-2
 // activator is offered as a sorcery for {2}{W}, and once the level is gained
 // the level-2 SPump static ("Creatures you control get +1/+1") is actually
@@ -236,7 +236,7 @@ func classHasTriggerMode(f *cards.Face, mode string) bool {
 	return false
 }
 
-// TestFortuneTellersTalentLevelTwoGrantsPlayFromTop pins the brief's own
+// TestFortuneTellersTalentLevelTwoGrantsPlayFromTop pins the
 // carrier end to end: Fortune Teller's Talent's level-2 grant is the
 // Mode$ Continuous MayPlay$ True static over Affected$ Card.TopLibrary+YouCtrl
 // gated on CheckSVar$ X ("as long as you've cast a spell this turn, you may

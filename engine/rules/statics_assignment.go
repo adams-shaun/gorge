@@ -205,7 +205,7 @@ func (e *Engine) combatDamageAmount(id state.ObjID) int32 {
 // continuous walk does. The assignment family's broader zone walk
 // (assignmentStatics) is not needed: no corpus TapPowerValue source
 // functions from outside the battlefield, and admitting one would be a new
-// ticket, not this read.
+// change, not this read.
 func (e *Engine) tapPowerValueStatics() []staticView {
 	return e.activeStatics("TapPowerValue")
 }

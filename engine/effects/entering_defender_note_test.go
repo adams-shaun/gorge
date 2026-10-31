@@ -1,9 +1,9 @@
 package effects
 
-// cr-g11b review finding (MINOR): the CR 508.4 entering-controller
-// classification must not emit the "unrecognised GainControl$" diagnostic a
-// second time, and must not run at all for a selector rider that names its
-// own defender. emitEntryMove's own move is the one place the Note belongs.
+// The CR 508.4 entering-controller classification must not emit the
+// "unrecognised GainControl$" diagnostic a second time, and must not run at
+// all for a selector rider that names its own defender. emitEntryMove's own
+// move is the one place the Note belongs.
 
 import (
 	"testing"

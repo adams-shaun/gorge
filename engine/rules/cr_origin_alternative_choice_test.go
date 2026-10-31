@@ -1,6 +1,6 @@
 package rules
 
-// OriginAlternative$ zone election (cr-g51). Tower Winder: "search your
+// OriginAlternative$ zone election. Tower Winder: "search your
 // library and/or graveyard for a card named Command Tower ... If you search
 // your library this way, shuffle." "and/or" is the searcher's choice of
 // zones: one, the other or both. A search that skips the library offers no

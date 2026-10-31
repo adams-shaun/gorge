@@ -1,6 +1,6 @@
 package rules
 
-// cr-g64: CR 406.3 -- cards "exiled face down" can't be examined by any
+// CR 406.3 -- cards "exiled face down" can't be examined by any
 // player except when instructions allow it; a player instructed to look and
 // then exile, or allowed to look, may keep looking. The face of a face-down
 // exiled card is therefore visible to EXACTLY the seats that may look:

@@ -597,7 +597,7 @@ func (e *Engine) targetAsk() bool {
 		}
 	}
 	if pickOwed {
-		// The multi-opponent Opponent form (agent-20260925T085158Z-c861188d):
+		// The multi-opponent Opponent form:
 		// the controller first names WHICH opponent answers. The selection
 		// ask is posed here, at the cast flow's suspension boundary, and
 		// the answer re-enters continueCast, whose targetAsk re-run reads

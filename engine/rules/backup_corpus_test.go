@@ -131,7 +131,7 @@ func TestSaibaCryptomancerBackup(t *testing.T) {
 	})
 }
 
-// TestEnduringBondwardenBackupGrantsANonKeywordAbility is the brief's
+// TestEnduringBondwardenBackupGrantsANonKeywordAbility is the
 // non-keyword-ability leg: Enduring Bondwarden's BackupAbility SVar is
 // `DB$ Animate | Triggers$ DiesTrig` -- a triggered ability and nothing else,
 // so a passing run proves the grant path carries an ability that is not a

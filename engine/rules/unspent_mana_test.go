@@ -82,7 +82,7 @@ func bankAtEndStep(t *testing.T, e *Engine, pool state.Mana) state.Mana {
 	return e.G.Players[0].Pool
 }
 
-// TestLeylineTyrantRedManaSurvivesBoundaries is the brief's Done pin: the
+// TestLeylineTyrantRedManaSurvivesBoundaries is the pin: the
 // controller's floating {R}{R} survives the end-step boundary (and a further
 // boundary after it) while the same pool's {G} and the opponent's mana still
 // empty — banking red for the card's death trigger is its whole reason to

@@ -151,7 +151,7 @@ func castBallista(t *testing.T, e *Engine, p state.PlayerID, x int) state.ObjID 
 	return id
 }
 
-// TestMoxiteRefineryAnyKindRemovesFromTheChosenArtifact is the brief's
+// TestMoxiteRefineryAnyKindRemovesFromTheChosenArtifact is the
 // carrier pin end to end: the X/Any cost with an artifact-creature target
 // announces the REAL X bound (the Ballista's 2 counters), removes 2 counters
 // from the CHOSEN artifact (not the silent no-op on the source), and the

@@ -13,7 +13,7 @@ import (
 // The whole-emit-path benchmark for the cardfuzz bigboard class is
 // BenchmarkEmitTokenCreateOnLargeBoard in emit_scale_test.go (added on main by
 // the trigger-walk ticket, seed 6181111140895991800). It is the emit-path
-// witness the brief asks for, so this file does not declare a second copy: the
+// witness, so this file does not declare a second copy: the
 // two pins below cover the layer-4 refresh in isolation, which is the residual
 // linear term this ticket removed.
 

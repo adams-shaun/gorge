@@ -18,7 +18,7 @@ import (
 
 // kinnanTriggerScript is Kinnan, Bonder Prodigy's real triggered-mana shape
 // (a nonland-permanent TapsForMana trigger), reduced to the parts the reflect
-// reads. ValidCard$ Permanent.nonLand is the nonland filter the brief's
+// reads. ValidCard$ Permanent.nonLand is the nonland filter the
 // "Kinnan + Forest = {G} only" case pins.
 const kinnanTriggerScript = "Name:Kinnan, Bonder Prodigy\nManaCost:G U\nTypes:Legendary Creature Human Druid\nPT:2/2\n" +
 	"T:Mode$ TapsForMana | ValidCard$ Permanent.nonLand | Activator$ You | Execute$ TrigMana | TriggerZones$ Battlefield | Static$ True | TriggerDescription$ Whenever you tap a nonland permanent for mana, add one mana of any type that permanent produced.\n" +

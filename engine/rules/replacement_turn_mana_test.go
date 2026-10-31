@@ -135,7 +135,7 @@ func TestNecropotenceSkipsItsControllersDrawStep(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestWildWastelandSkipsItsControllersDrawStep pins the brief's named deck
+// TestWildWastelandSkipsItsControllersDrawStep pins the named deck
 // carrier (Hail, Caesar pip census 2026-09-18): Wild Wasteland's real
 // R:Event$ BeginPhase | ActiveZones$ Battlefield | ValidPlayer$ You |
 // Phase$ Draw | Skip$ True line -- character-for-character the Necropotence

@@ -1,6 +1,6 @@
 package rules
 
-// RememberDrawn$ AllReplaced (cr-g244): Forge's AllReplaced marker counts
+// RememberDrawn$ AllReplaced: Forge's AllReplaced marker counts
 // every card the draw machinery moves into the drawing player's own hand
 // under the cause, including the cards a replacement instruction draws
 // (CR 121.6c/614.1). RememberDrawn$ True keeps recording only the effect's

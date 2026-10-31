@@ -22,14 +22,14 @@ func kr1ThreeSeats(t *testing.T, seed uint64, fixtureSrc string, ex0, ex1, ex2 [
 	return kr1Build(t, seed, card(t, fixtureSrc), kr1Cards(t, ex0), kr1Cards(t, ex1), kr1Cards(t, ex2))
 }
 
-// TestKr1GainControlVariantInniazCasterChoosesForEachRecipient (was
+// TestKernelGainControlVariantInniazCasterChoosesForEachRecipient (was
 // TestGainControlVariantInniazCasterChoosesForEachRecipient, Inniaz's
 // ChooseFromPlayerToTheirRight shape): the effect's controller chooses, for
 // each recipient, a nonland permanent of that recipient's right neighbour;
 // only recipient 1's pool (seat 0's two permanents) is a real choice, so
 // seat 0 — the caster, not the recipient — is asked, and the SECOND option
 // is what changes control.
-func TestKr1GainControlVariantInniazCasterChoosesForEachRecipient(t *testing.T) {
+func TestKernelGainControlVariantInniazCasterChoosesForEachRecipient(t *testing.T) {
 	t.Parallel()
 	src := kr1Sorcery("InniazFx", "A:SP$ GainControlVariant | AllValid$ Permanent.nonLand | ChangeController$ ChooseFromPlayerToTheirRight")
 	e, cfg, id := kr1ThreeSeats(t, 230, src,
@@ -66,13 +66,13 @@ func TestKr1GainControlVariantInniazCasterChoosesForEachRecipient(t *testing.T) 
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1GainControlVariantOrderEachRecipientChoosesForThemself (was
+// TestKernelGainControlVariantOrderEachRecipientChoosesForThemself (was
 // TestGainControlVariantOrderEachRecipientChoosesForThemself, Order of
 // Succession): after the caster picks "left", each recipient chooses for
 // themself a creature of the next player in that direction; only seat 2's
 // pool (seat 0's two creatures) is a real choice, so seat 2 is asked and
 // its SECOND option is what it gains.
-func TestKr1GainControlVariantOrderEachRecipientChoosesForThemself(t *testing.T) {
+func TestKernelGainControlVariantOrderEachRecipientChoosesForThemself(t *testing.T) {
 	t.Parallel()
 	src := "Name:OrderFx\nManaCost:B\nTypes:Sorcery\nA:SP$ ChooseDirection | SubAbility$ DBGainControl\n" +
 		"SVar:DBGainControl:DB$ GainControlVariant | AllValid$ Creature | ChangeController$ ChooseNextPlayerInChosenDirection\nOracle:x\n"

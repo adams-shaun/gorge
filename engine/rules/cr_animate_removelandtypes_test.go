@@ -1,6 +1,6 @@
 package rules
 
-// Animate/AnimateAll RemoveLandTypes$ (cr-g48). CR 305.7: "If an effect
+// Animate/AnimateAll RemoveLandTypes$. CR 305.7: "If an effect
 // sets a land's subtype to one or more of the basic land types, the land no
 // longer has its old land type." Graceful Antelope's "target land become a
 // Plains" and Nightcreep's "all lands become Swamps" are written

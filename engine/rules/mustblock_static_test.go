@@ -87,7 +87,7 @@ func TestMustBlockPrimitiveIsRegistered(t *testing.T) {
 	}
 }
 
-// mustBlockCarriers is the class census the brief demands: every corpus face
+// mustBlockCarriers is the class census: every corpus face
 // whose compiled statics carry `Mode$ MustBlock`, pinned so a corpus-pin bump
 // that adds a new carrier fails loudly rather than silently joining an
 // untested set. Names are the face names (a split card contributes both

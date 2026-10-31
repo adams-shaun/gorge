@@ -9,7 +9,7 @@ import (
 )
 
 // cast_liveness_test.go pins the E2 property that a no-progress Delve cast can
-// never spin (nor kill the match), as tightened by Ruling F05-2 (CR 733.2):
+// never spin (nor kill the match), per CR 733.2:
 // the FIRST no-progress cast/activation abort leaves the declined card's
 // option offered, so a merely-reversed illegal action may be redone legally,
 // and only the SECOND identical no-progress abort of the SAME card in the SAME
@@ -154,13 +154,12 @@ func driveDeclinedSpin(t *testing.T, e *Engine, angler state.ObjID) (asks int, a
 	return asks, false
 }
 
-// TestDeclineThenOtherLegalPlayDoesNotEndTheMatch is the finding-1 regression
-// (and would fail against round 1's counting fatal), tightened for Ruling
-// F05-2 (CR 733.2): a seat that declines a Delve cast and then does anything
-// else legal must not lose the match, and a productive action brings the
-// declined card's option back so a re-attempt is even still possible. Under
-// F05-2 the FIRST decline leaves the option offered (the legal retry), and
-// only the SECOND identical one holds it out.
+// TestDeclineThenOtherLegalPlayDoesNotEndTheMatch is a regression (a counting
+// fatal fails it), for CR 733.2: a seat that declines a Delve cast and then
+// does anything else legal must not lose the match, and a productive action
+// brings the declined card's option back so a re-attempt is even still
+// possible. Under F05-2 the FIRST decline leaves the option offered (the
+// legal retry), and only the SECOND identical one holds it out.
 func TestDeclineThenOtherLegalPlayDoesNotEndTheMatch(t *testing.T) {
 	t.Parallel()
 	e, cfg, angler := newFixtureDeck(t, 50, livenessAngler, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
@@ -213,7 +212,7 @@ func TestDeclineThenOtherLegalPlayDoesNotEndTheMatch(t *testing.T) {
 }
 
 // TestDeclinesOnDifferentCardsDoNotEndTheMatch is the finding-2 regression,
-// strengthened for Ruling F05-2 (CR 733.2): two DIFFERENT unpayable casts in
+// strengthened for CR 733.2: two DIFFERENT unpayable casts in
 // a row (decline on spell A, then spell B) are ordinary exploration and must
 // never be treated as one accumulating spin. Each card's no-progress count is
 // per-card, so one decline on each of two different cards combines into
@@ -279,7 +278,7 @@ func TestDeclinesOnDifferentCardsDoNotEndTheMatch(t *testing.T) {
 
 // TestDeclinedDelveSpinIsBounded is the "an unbounded spin is still bounded"
 // property, asserted with a tiny, specific number rather than round 1's baked
-// stall-threshold. Under Ruling F05-2 (CR 733.2) the FIRST no-progress decline
+// stall-threshold. Under CR 733.2 the FIRST no-progress decline
 // leaves the card offered (the legal retry), and only the SECOND identical one
 // holds it out -- so a seat can ask the delve ask exactly twice before the
 // engine no longer re-offers the card. No match dies and no card moves.
@@ -309,8 +308,8 @@ func TestDeclinedDelveSpinIsBounded(t *testing.T) {
 }
 
 // TestAuthorizedDelveAnswersStayLegal pins that the honest, legal Delve
-// answers the brief calls out still work after the liveness fix, and that
-// none of them leaves any card held out of future windows.
+// answers still work, and that none of them leaves any card held out of
+// future windows.
 func TestAuthorizedDelveAnswersStayLegal(t *testing.T) {
 	t.Parallel()
 	// (1) Paying the full shortfall still casts, and a successful cast leaves
@@ -374,7 +373,7 @@ func TestAuthorizedDelveAnswersStayLegal(t *testing.T) {
 	// (3) Exiling nothing when nothing is required still works: with a big
 	// enough pool the delve ask is skipped entirely and the cast just goes
 	// through (already pinned by TestDelveSkipsCleanlyWithAnEmptyGraveyard;
-	// re-asserted here so the honest "nothing required" arm of the brief is
+	// re-asserted here so the honest "nothing required" arm is
 	// covered in the regression that guards the liveness bound).
 	t.Run("nothing required casts", func(t *testing.T) {
 		e, cfg, angler := newFixtureDeck(t, 49, livenessAngler)

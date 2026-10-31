@@ -294,7 +294,7 @@ func TestPrintedContinuousAddAbilityCorpusKusariGama(t *testing.T) {
 	}
 }
 
-// TestPrintedContinuousAddAbilityCorpusGoldspanDragon is the brief's own
+// TestPrintedContinuousAddAbilityCorpusGoldspanDragon is the
 // done-criterion carrier: the real corpus Goldspan Dragon's
 // `S:Mode$ Continuous | Affected$ Card.Treasure+YouCtrl | AddAbility$ Mana`
 // ("Treasures you control have '{T}, Sacrifice this artifact: Add two mana of

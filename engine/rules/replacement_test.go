@@ -1,4 +1,4 @@
-// Task 19: Defined$ ReplacedCard. A replacement's ReplaceWith$ could not
+// Defined$ ReplacedCard. A replacement's ReplaceWith$ could not
 // name the object the replaced event was about: engine/effects/context.go's Defined
 // fell back to Ctx.Targets (nil for a replacement context) for every
 // "ReplacedCard" script, so a Rest in Peace / Dryad Militant / Leyline of
