@@ -328,10 +328,9 @@ type Option struct {
 	// Decision.Validate enforces it and the shared repair
 	// (Decision.FitAlone, which botpolicy.Clamp runs) derives its rule from
 	// this same field, so the published fact cannot drift from the check.
-	// Server-side only, like BlockMust: a client needs the flag, not the
-	// obligation to enforce it. omitempty: an unrestricted option emits no
-	// field, so every ordinary option list serialises byte-identically.
-	AloneRestricted bool `json:"-"`
+	// omitempty: an unrestricted option emits no field, so every ordinary
+	// option list serialises byte-identically.
+	AloneRestricted bool `json:"alone_restricted,omitempty"`
 	// Mode distinguishes a "cast" option's payment kind: "" the card's own
 	// cost, "kicked", "surged", "flashback", "miracle" -- what the engine
 	// reads in beginCast's switch. A client renders a kicked/surged/

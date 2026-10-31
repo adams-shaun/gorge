@@ -2458,6 +2458,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "alone_restricted": {
+            "description": "AloneRestricted marks a KAttackers or KBlockers option whose creature is restricted from being declared ALONE (CR 506.5): declaring it is legal only when at least one other creature is declared as an attacker (a KAttackers option) or as a blocker (a KBlockers option) in the same declaration. The engine REJECTS a lone declaration (combat.DeclaresAlone, read by both declaration validators), so a rules-ignorant client -- the bot policy included -- needs the fact on the wire to build a legal declaration rather than have one refused. Decision.Validate enforces it and the shared repair (Decision.FitAlone, which botpolicy.Clamp runs) derives its rule from this same field, so the published fact cannot drift from the check. omitempty: an unrestricted option emits no field, so every ordinary option list serialises byte-identically.",
+            "type": "boolean"
+          },
           "alt_cost_index": {
             "description": "AltCostIndex says which cost a \"cast\" option pays: 0 is the card's own (RaiseCost/ReduceCost-adjusted) cost, i+1 is alternativeCosts(p, id)[i] -- an AlternativeCost static's cost instead -- so a client can show which of several costs the option pays. An \"ability\" option uses the same field for the same purpose: 0 is the ability's printed Cost$, 1 is its own AlternateCost$ rider (engine/rules/activate.go's abilityAlternateCost, the K:Equip expansion's fourth colon field), so an equip offering its alternate cost is distinguishable from the printed-cost option without parsing the label. omitempty mirrors Obj: an option paying the card's own cost (the common case, and the default every other Option literal in the tree relies on) carries no field, so today's payloads are unchanged for it.",
             "format": "int64",

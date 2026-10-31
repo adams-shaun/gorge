@@ -122,7 +122,7 @@ data: {"v":1,"t":"match_end","id":2085,"table":"t2","match":5,"seq":1788,"body":
 | `match_start` | yes | yes | A match begins on the table |
 | `snapshot` | | yes | At once on a focus subscribe, when the table has a live match; at every match start |
 | `event` | | yes | One per engine event, in seq order |
-| `decision` | | yes | After each burst, when a decision is pending, for any seat, bot or human. It names the seat, kind and prompt only. |
+| `decision` | | yes | When a match first parks on a decision, then after each burst when a decision is pending, for any seat, bot or human. It names the seat, kind and prompt only. |
 | `rewind` | | yes | An undo rolled the live match back (see below) |
 | `match_end` | yes | yes | A match ends: `result`, `winner`, chain `head` |
 | `table_state` | yes | yes | A **series** table's lifecycle state changed (`idle`, `live`, `between_games`); ordinary tables never send it |
