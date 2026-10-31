@@ -61,9 +61,6 @@ type Facts struct {
 	PotentialCastsKnown     bool          `json:"potential_casts_known,omitempty"`
 	PotentialCasts          []state.ObjID `json:"potential_casts,omitempty"`
 	PotentialUnpayableCasts []state.ObjID `json:"potential_unpayable_casts,omitempty"`
-	// The helpers a Convoke or Improvise announcement needs (decision.PaymentHelpers),
-	// as indices into this payload's options.
-	PaymentHelpers []int `json:"payment_helpers,omitempty"`
 }
 
 type Payload struct {
@@ -321,9 +318,6 @@ func (x *Extender) Extend(env *mapping.Env, p *mapping.Pose, nativeIndex uint64)
 	pl.Facts.Produces = produces(&v)
 	perm, order := sortHidden(env, seat, &d)
 	x.last[seat] = perm
-	for _, i := range d.PaymentHelpers {
-		pl.Facts.PaymentHelpers = append(pl.Facts.PaymentHelpers, at(perm, i))
-	}
 	if f := pl.Facts.Options; len(f) == len(order) {
 		nf := make([]OptionFacts, len(f))
 		for newIdx, old := range order {
