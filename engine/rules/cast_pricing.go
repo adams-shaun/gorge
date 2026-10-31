@@ -966,9 +966,11 @@ func (e *Engine) convokeCountCredit(pc *pendingCast, m Cost) Cost {
 			continue
 		}
 		c := candidate{}
-		if o.EffectiveIsCreature() {
+		if e.IsCreature(id) {
 			if isConvoke {
 				c.colors = e.objColors(o)
+				c.convoke = true
+				c.generic = true
 			}
 			if isHarmonize {
 				if p := e.Derived(id).Power; p > 0 {
@@ -976,11 +978,7 @@ func (e *Engine) convokeCountCredit(pc *pendingCast, m Cost) Cost {
 				}
 			}
 		}
-		if isConvoke && o.EffectiveIsCreature() {
-			c.convoke = true
-			c.generic = true
-		}
-		if isImprovise && o.EffectiveIsArtifact() {
+		if isImprovise && e.IsArtifact(id) {
 			c.generic = true
 		}
 		if c.convoke || c.power > 0 || c.generic {

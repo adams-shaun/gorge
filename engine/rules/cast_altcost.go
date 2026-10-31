@@ -358,7 +358,7 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 	var bestPower int32
 	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() || co.ReconfiguredAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !e.IsCreature(cid) || co.BestowedAttached() || co.ReconfiguredAttached() {
 			continue
 		}
 		// The reduction is the creature's ACTUAL power (CR 702.46a: "reduce
@@ -614,7 +614,7 @@ func (e *Engine) improviseCost(p state.PlayerID, id state.ObjID, c Cost, committ
 			break
 		}
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsArtifact() || co.BestowedAttached() || skip[cid] {
+		if co == nil || co.Tapped || co.Face() == nil || !e.IsArtifact(cid) || co.BestowedAttached() || skip[cid] {
 			continue
 		}
 		c.Generic--
@@ -637,7 +637,7 @@ func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []
 	var tapped []state.ObjID
 	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() || co.ReconfiguredAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !e.IsCreature(cid) || co.BestowedAttached() || co.ReconfiguredAttached() {
 			continue
 		}
 		used := false

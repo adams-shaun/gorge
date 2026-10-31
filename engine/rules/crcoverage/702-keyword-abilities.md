@@ -97,7 +97,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.48a-c | not-impl | - | - | LOUD (6) |
 | 702.49a-d | follows | `engine/cards/kw_ninjutsu.go#kwNinjutsu` | `TestNinjutsuOrochiSoulReaverAndFallenShinobiFromHand` |  |
 | 702.50a,b | not-impl | - | - | LOUD (5) |
-| 702.51a-d | follows | `engine/rules/cast_altcost.go#Engine.hasCastConvoke` `engine/rules/cast_altcost.go#Engine.convokeCost` `engine/rules/pay/castasks.go#ConvokeAsk` | `TestAncientImperiosaurEntersWithTwoCountersPerConvoker` | player chooses creatures |
+| 702.51a-d | follows | `engine/rules/cast_altcost.go#Engine.hasCastConvoke` `engine/rules/cast_altcost.go#Engine.convokeCost` `engine/rules/pay/castasks.go#ConvokeAsk` | `TestAncientImperiosaurEntersWithTwoCountersPerConvoker` `TestTapPaymentsReadCurrentTypes` | player chooses creatures |
 | 702.52a,b | follows | `engine/effects/cardflow.go#dredgeCandidates` | `TestDredgeUsesRealCorpusCard` | derived dredge (Yixlid Jailer) |
 | 702.53a,b | follows | `engine/cards/kw_transmute.go#kwTransmute` | `TestTransmuteAndCyclingRealHandActivations` |  |
 | 702.54a-c | follows | `engine/rules/replacement_etb.go#Engine.bloodthirstEntryMatch` `engine/rules/entry_counters.go#Engine.entryBodyCandidates` | `TestBloodthirstPrintedEntersWithCounters` |  |
@@ -183,7 +183,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.124m | partial | `engine/deck/partner.go#isDoctorCard` | `TestDoctorCompanionSeatsBothCommanders` `TestIsPartnerPairDoctorCompanionCorpus` | Accepts any Doctor |
 | 702.124n | follows | `engine/deck/partner.go#partnerHead` | - |  |
 | 702.125 | follows | `engine/cards/kw_undaunted.go#kwUndaunted` | `TestUndauntedReducesGenericAndNotColoredCost` `TestUndauntedDoesNotReducePlainSpell` |  |
-| 702.126 | follows | `engine/rules/cast_altcost.go#Engine.improviseCost` `engine/rules/cast_altcost.go#Engine.hasCastImprovise` | `TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice` `TestImproviseArtifactCreatureQualifies` |  |
+| 702.126 | follows | `engine/rules/cast_altcost.go#Engine.improviseCost` `engine/rules/cast_altcost.go#Engine.hasCastImprovise` | `TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice` `TestImproviseArtifactCreatureQualifies` `TestTapPaymentsReadCurrentTypes` |  |
 | 702.127 | follows | `engine/rules/legal.go#aftermathAlternateFace` `engine/state/object.go#ExilesLeavingStack` `engine/rules/stack_keyword_exile.go#Engine.keywordExileDeparture` | `TestAftermathCastsAlternateFaceFromGraveyardAndExiles` `TestAftermathCounteredGoesToExile` | Second half from graveyard only |
 | 702.128 | follows | `engine/cards/kw_embalm.go#kwEmbalm` `engine/effects/copypermanent.go#effCopyPermanent` `engine/events/copy_except.go#foldCopyExcept` | `TestAngelOfSanctionsEmbalmExilesAndMintsAWhiteZombieCopy` `TestEmbalmOnlyOfferedFromTheGraveyard` `TestEmbalmedTokenHasNoManaCost` | white, no mana cost and Zombie are the token's copiable values |
 | 702.129 | follows | `engine/cards/kw_embalm.go#kwEmbalm` `engine/effects/copypermanent.go#effCopyPermanent` `engine/events/copy_except.go#foldCopyExcept` | `TestTimelessDragonEternalizeExilesAndMintsAFourFourBlackZombieCopy` `TestCloneOfAnEternalizedTokenCopiesTheExceptions` | black, 4/4, no mana cost and Zombie are the token's copiable values |
@@ -238,7 +238,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.177b | unknown | `engine/rules/legal_loyalty.go#Engine.additionalActivationLimit` | - |  |
 | 702.178 | follows | `engine/rules/speed.go#Engine.maxSpeedAbilities` | `TestMaxSpeedAddAbilityOfferedExactlyOnce` `TestMaxSpeedPlayerProperty` |  |
 | 702.179 | follows | `engine/rules/speed.go#Engine.checkSpeedStart` `engine/rules/speed.go#Engine.checkSpeedGain` | `TestStartYourEnginesSpeedLifecycle` `TestStartYourEnginesSpeedStartsWithControlChange` | Speed starts at 1 |
-| 702.180 | follows | `engine/rules/cast_altcost.go#harmonizeCost` `engine/rules/cast_altcost.go#Engine.harmonizePayment` | `TestHarmonizePaysDerivedPowerNotPrinted` `TestHarmonizeAnnouncementSkipsNonCreaturePower` | Graveyard cast; tap one creature to reduce by power |
+| 702.180 | follows | `engine/rules/cast_altcost.go#harmonizeCost` `engine/rules/cast_altcost.go#Engine.harmonizePayment` | `TestHarmonizePaysDerivedPowerNotPrinted` `TestHarmonizeAnnouncementSkipsNonCreaturePower` `TestHarmonizeTapsAnimatedLandForItsPower` | Graveyard cast; tap one creature to reduce by power |
 | 702.181 | follows | `engine/cards/kw_mobilize.go#kwMobilize` | `TestMobilizeSacrificesAtTheNextEndStep` `TestMobilizeSecondTriggerCountsOnlyItsOwnTokens` |  |
 | 702.182 | follows | `engine/cards/kw_jobselect.go#kwJobSelect` | `TestJobSelectExpandsToHeroEtbAttach` `TestBlackMagesRodJobSelectCreatesHeroAndAttaches` |  |
 | 702.183 | follows | `engine/rules/spree.go#modeCost` | `TestFireMagicTieredChargesTheChosenMode` |  |

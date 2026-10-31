@@ -133,7 +133,7 @@ func (e *Engine) creatureManaOfferCredit(p state.PlayerID, id state.ObjID, base 
 		return 0
 	}
 	var credit int32
-	for _, oid := range pay.CreatureManaCandidates(e.G, p, id, base.Tap) {
+	for _, oid := range pay.CreatureManaCandidates(asPayer(e), p, id, base.Tap) {
 		if !e.untappedManaSource(p, oid) {
 			credit++
 		}

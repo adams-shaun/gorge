@@ -507,7 +507,7 @@ func (e *Engine) withWaterbendOfferCredit(p state.PlayerID, id state.ObjID, xMin
 		}
 		o := e.G.Obj(oid)
 		if oid == id || o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() ||
-			!(o.EffectiveIsArtifact() || o.EffectiveIsCreature()) || e.untappedManaSource(p, oid) {
+			!(e.IsArtifact(oid) || e.IsCreature(oid)) || e.untappedManaSource(p, oid) {
 			continue
 		}
 		credit++

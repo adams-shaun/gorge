@@ -2193,7 +2193,7 @@ func (o *Object) FaceDownTypeWords() []string {
 // honouring CR 708.5: while a battlefield object is face down its PRINTED face
 // does not exist, so creature-ness comes from the folded FaceDownSetType$
 // (default Creature). Every printed-face "is this a creature" read that gates
-// a creature rule (combat, the creature SBAs, convoke, protection) must go
+// a creature rule (combat, the creature SBAs, protection) must go
 // through here, or a manifested non-creature or a face-down set type that
 // drops Creature reads the wrong answer.
 //
@@ -2219,27 +2219,6 @@ func (o *Object) EffectiveIsCreature() bool {
 	}
 	f := o.Face()
 	return f != nil && f.IsCreature()
-}
-
-// EffectiveIsArtifact reports whether this object is an artifact right now,
-// honouring CR 708.5 like EffectiveIsCreature: while a battlefield object is
-// face down its PRINTED face does not exist, so a manifested or cloaked
-// artifact reads its folded face-down type set (which never names Artifact
-// today, but the fold, not the corpus, decides). The Improvise announcement
-// and its offer-gate credit (engine/rules/cast.go) are the readers; other artifact
-// reads (e.g. the Affinity keyword's Count$Valid spec path) go through the
-// ordinary filter grammar and do not call this.
-func (o *Object) EffectiveIsArtifact() bool {
-	if o.faceDownEffective() {
-		for _, w := range o.FaceDownTypeWords() {
-			if w == "Artifact" {
-				return true
-			}
-		}
-		return false
-	}
-	f := o.Face()
-	return f != nil && f.IsArtifact()
 }
 
 // MergedFaceAt returns the face of the i-th card stacked beneath the top card
