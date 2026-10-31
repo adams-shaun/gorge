@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 // The x_gorge_own_deck_v1 extension (seat-deck-manifest spec, interface

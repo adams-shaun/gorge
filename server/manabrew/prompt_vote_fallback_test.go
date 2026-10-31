@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 // MBX-7: the api:Vote asks must be answerable on the ManaBrew wire, and any

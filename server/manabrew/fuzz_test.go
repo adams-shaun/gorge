@@ -1,4 +1,4 @@
-//go:build fuzz && manabrew
+//go:build fuzz
 
 package manabrew
 

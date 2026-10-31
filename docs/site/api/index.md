@@ -59,7 +59,7 @@ and what is only a convention.
 | SpellBench | protocol string `spellbench/v2`; `protocol_minor` (gorge answers 0) | Any other protocol string is `protocol_mismatch`. New features arrive as `x_` extensions. | The request decoder (`server/spellbench/protocol`), the goldens in `server/spellbench/testdata/goldens`, and `TestSemanticSchemaMatchesKindTable` / `TestSchemaErrorCodesMatchErrorsGo` for the published schemas |
 | gorge-agent | protocol string `gorge-agent/1`, `wire.Version` = **1**, the `v` field of every line | The version bumps only on a breaking change. Additive fields do not bump it, and both sides ignore unknown fields. | The golden messages in `draft/draftlab/extern/wire/testdata` |
 | Go packages | none: the module has no release tags | Any commit may change an exported signature. Pin a commit. | Nothing, beyond the import-layering tests in `internal/archtest` and the `server/host` contract harnesses (`RunContractTable` and friends) that embedders can run in their own tests. See [Go: Stability](go.md#stability). |
-| ManaBrew adapter | `/api/manabrew/v0/` | Deprioritised; not part of this reference | its own tests under `-tags manabrew` |
+| ManaBrew adapter | `/api/manabrew/v0/` | Deprioritised; not part of this reference | its own tests in the ordinary suite |
 
 gorge has no contract registry and no deprecation process. When a surface changes, the commit
 that changes it regenerates the artifacts above, and that diff is the changelog.

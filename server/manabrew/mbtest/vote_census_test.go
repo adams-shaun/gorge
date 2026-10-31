@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package mbtest
 
 // MBX-7: a live vote card played through TranslatingSeat with the MBX-3

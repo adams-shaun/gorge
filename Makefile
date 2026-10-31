@@ -204,14 +204,7 @@ gc-gate:
 # test` and CI; run by hand or at night.
 .PHONY: fuzz
 fuzz:
-	go test $(GO_TEST_FLAGS) -tags fuzz,manabrew -count=1 -run 'Fuzz' ./engine/rules ./server/protocol/manabrew ./server/manabrew
-
-# test-manabrew runs the ManaBrew wire/translator tests (build tag `manabrew`).
-# ManaBrew work is deprioritised (operator, 2026-10-02), so these test files
-# are excluded from `go test ./...`, `make test` and CI.
-.PHONY: test-manabrew
-test-manabrew:
-	go test $(GO_TEST_FLAGS) -tags manabrew -count=1 ./server/protocol/manabrew ./server/manabrew/... ./server/host/manabrewhttp ./cmd/gorged ./cmd/cardfuzz
+	go test $(GO_TEST_FLAGS) -tags fuzz -count=1 -run 'Fuzz' ./engine/rules ./server/protocol/manabrew ./server/manabrew
 
 # Engine-speed benchmarking (cmd/enginebench; scripts in scripts/enginebench-*.sh,
 # workload decks committed in cmd/enginebench/testdata/decks). Every run is

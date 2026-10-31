@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrewhttp
 
 // TestGoldenTranscript is MB-11's end-to-end golden (scoping spec §8 item 6):
