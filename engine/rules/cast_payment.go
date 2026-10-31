@@ -184,32 +184,16 @@ func (e *Engine) reverseStrandedPayment(pc *pendingCast) bool {
 	return true
 }
 
-// paymentStranded reports whether no way through the window pays pc's mana. Only
-// a census that prices every source can say so: one that leaves a source out, or
-// whose production a replacement or tap trigger would change, may understate the
-// reach.
+// paymentStranded reports whether no way through the window pays pc's mana, which
+// only a complete census can say.
 func (e *Engine) paymentStranded(pc *pendingCast) bool {
 	mana := e.castPaymentMana(pc)
 	if !mana.HasManaPayment() {
 		return false
 	}
 	units := e.castWindowUnits(pc)
-	if !e.castWindowCensusComplete(pc, units) || e.paymentPlanManaInterference() {
+	if !e.castWindowCensusComplete(pc, units) {
 		return false
-	}
-	for _, z := range []state.Zone{state.ZHand, state.ZGraveyard} {
-		for _, id := range e.G.Zone(z, pc.player) {
-			if e.untappedManaSource(pc.player, id) {
-				return false
-			}
-		}
-	}
-	for _, u := range units {
-		for _, a := range u.Alts {
-			if e.manaProductionAltered(u.ID, a.Ma) {
-				return false
-			}
-		}
 	}
 	return !e.castWindowPays(pc, mana, units)
 }

@@ -369,9 +369,28 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 // unpriced ability might be the production that closes the gap the probe
 // measured short. A census that is complete lets a pool-short target-menu
 // candidate be judged on the concrete reachability search alone; an
-// incomplete one falls back to keeping the historical offer.
+// incomplete one falls back to keeping the historical offer. So do a mana ability
+// in hand or graveyard, which the census doesn't walk, and a production a tap
+// trigger or a replacement would change, which it doesn't price (CR 605.1b).
 func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUnit) bool {
 	p := pc.player
+	for _, z := range []state.Zone{state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, p) {
+			if e.untappedManaSource(p, id) {
+				return false
+			}
+		}
+	}
+	if e.paymentPlanManaInterference() {
+		return false
+	}
+	for _, u := range units {
+		for _, a := range u.Alts {
+			if e.manaProductionAltered(u.ID, a.Ma) {
+				return false
+			}
+		}
+	}
 	priced := make(map[state.ObjID]bool, len(units))
 	for _, u := range units {
 		priced[u.ID] = true

@@ -104,7 +104,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 604.7 | unknown | - | - | g not traced |
 | 605.1 | definition | - | - | mana ability criteria header |
 | 605.1a | follows | `engine/cards/ability_class.go#IsManaAbilitySA` `engine/cards/ability_class.go#movesLibraryCard` | `TestCR605_1aManaAbilityLibraryGateMovesTheLibraryCarriers` `TestCR605_1aLibraryMoveShapes` `TestCR605_1aLibraryMovingManaAbilitiesUseTheStack` | target, loyalty (rules-side `isLoyaltyAbility`) and library-move criteria |
-| 605.1b | partial | `engine/rules/mana_activation.go#Engine.isTriggeredManaAbility` | - | g only TapsForMana shape; d no triggered mana |
+| 605.1b | partial | `engine/rules/mana_activation.go#Engine.isTriggeredManaAbility` `engine/rules/cast_window.go#Engine.castWindowCensusComplete` | `TestTargetMenuKeepsATargetATapTriggerPaysFor` | g only TapsForMana shape; d no triggered mana |
 | 605.2 | follows | `engine/cards/ability_class.go#IsManaAbilitySA` | - | - |
 | 605.3 | follows | `engine/rules/mana_activation.go#Engine.activateManaFor` | - | header; exceptions below |
 | 605.3a | partial | `engine/rules/legal_walk_battlefield.go#legalWalk.manaSection` `engine/rules/cast_paymentplan.go#Engine.manaWindowAsk` `engine/rules/paid_mana_census.go#Engine.unlessWindowUnits` | `TestUnlessCostReachesChoiceMana` `TestCounterUnlessPaidFromChoiceMana` | g window gated |

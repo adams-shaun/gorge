@@ -388,3 +388,46 @@ func TestTargetMenuPricesPastASourceThatAddsNothing(t *testing.T) {
 		}
 	}
 }
+
+// A tap trigger that adds mana is reach the census doesn't price, so it can't withhold
+// a target the payment can reach only with that mana (CR 605.1b).
+func TestTargetMenuKeepsATargetATapTriggerPaysFor(t *testing.T) {
+	t.Parallel()
+	const (
+		bounty = "Name:Test Bounty\nTypes:Enchantment\n" +
+			"T:Mode$ TapsForMana | ValidCard$ Land | Activator$ You | TriggerZones$ Battlefield | Static$ True | Execute$ Extra | TriggerDescription$ More.\n" +
+			"SVar:Extra:DB$ Mana | Produced$ U | Amount$ 1\nOracle:x\n"
+		tax = "Name:Test Tax\nTypes:Enchantment\n" +
+			"S:Mode$ RaiseCost | ValidCard$ Card | ValidTarget$ Player | Type$ Spell | Amount$ 2 | Description$ Dear.\nOracle:x\n"
+		spell = "Name:Test Word\nManaCost:2\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1 | SpellDescription$ Word.\nOracle:x\n"
+	)
+	e, _, id := newFixtureDeck(t, 9700, spell)
+	toMain1(t, e)
+	land := onBoard(t, e, 0, apaIsland)
+	onBoard(t, e, 0, apaIsland)
+	onBoard(t, e, 0, bounty)
+	onBoard(t, e, 0, tax)
+	onBoard(t, e, 0, apaDrone)
+	pick := func(kind string, obj state.ObjID) {
+		t.Helper()
+		for _, o := range ppPriority(t, e).Options {
+			if o.Kind == kind && o.Obj == obj {
+				submitChoices(t, e, o.Index)
+				return
+			}
+		}
+		t.Fatalf("no %s of %d: %+v", kind, obj, e.Pending().Options)
+	}
+	pick("activate", land)
+	pick("cast", id)
+	ask := e.Pending()
+	if ask == nil || ask.Kind != decision.KTarget {
+		t.Fatalf("pending %+v, want the target ask", ask)
+	}
+	for _, o := range ask.Options {
+		if o.Kind == "player" {
+			return
+		}
+	}
+	t.Errorf("withheld the player targets the Islands can pay for: %+v", ask.Options)
+}
