@@ -4635,7 +4635,7 @@ paths:
                               - 0
                             version: 1
                     player: 0
-                    prompt: "turn 1, main1 — You has priority"
+                    prompt: "turn 1, main1 — You have priority"
                     seq: 38
                 starting_player:
                   summary: "a real `starting_player` decision"

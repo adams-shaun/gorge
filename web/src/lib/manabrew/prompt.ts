@@ -164,7 +164,8 @@ export function bindPrompt(p: AgentPrompt, ctx: PromptContext): PromptBinding {
       }
       add({ kind: 'pass', label: 'Pass priority' }, { t: 'pass' });
       add({ kind: 'concede', label: 'Concede' }, { t: 'concede' });
-      const prompt = v ? `turn ${v.turn}, ${v.step} — ${playerName(v, player)} has priority` : 'Priority';
+      const holder = playerName(v, player);
+      const prompt = v ? `turn ${v.turn}, ${v.step} — ${holder} ${holder === 'You' ? 'have' : 'has'} priority` : 'Priority';
       d = { ...base, kind: 'priority', prompt, min: 1, max: 1, options: opts, ...(payment.length ? { payment_actions: payment } : {}) };
       break;
     }

@@ -1164,8 +1164,6 @@ func (e *Engine) askPriority(p state.PlayerID) {
 	ep, ver, objs := len(e.L.Events), e.continuousVersion, len(e.G.Objs)
 	*d = decision.Decision{
 		Player: p, Kind: decision.KPriority, Min: 1, Max: 1,
-		// Byte-identical to fmt.Sprintf("turn %d, %s — %s has priority",
-		// ...) without fmt's boxing: every priority walk builds it.
 		Prompt:  e.priorityPrompt(p),
 		Options: e.priorityOptions(p, window),
 	}

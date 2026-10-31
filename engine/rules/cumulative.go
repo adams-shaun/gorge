@@ -843,8 +843,12 @@ func (e *Engine) continueCumulativeAction() {
 		d := &decision.Decision{Player: cu.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: "Choose a graveyard", Source: cu.source}
 		for _, p := range owners {
+			label := "Your graveyard"
+			if name := seatFacingName(e.G, p); name != "You" {
+				label = name + "'s graveyard"
+			}
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "cumulative_action_grave",
-				Player: p, Label: seatFacingName(e.G, p) + "'s graveyard"})
+				Player: p, Label: label})
 		}
 		windowAsk(e, d, chooseCumulative)
 	}

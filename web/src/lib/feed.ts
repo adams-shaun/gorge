@@ -41,9 +41,10 @@ export function pushFeed(lines: FeedLine[], l: FeedLine, cap = 200): FeedLine[] 
  *
  * The shapes come from view/describe.go: events.Priority renders as
  * "<player> has priority" and a priority DecisionAsk as
- * "<player> is asked: priority".
+ * "<player> is asked: priority", or "You have priority" and "You are asked:
+ * priority" for a seat displayed as You.
  */
-const ROUTINE = /(?: has priority| is asked: priority)$/;
+const ROUTINE = /(?: ha(?:s|ve) priority| (?:is|are) asked: priority)$/;
 
 export function isRoutineLine(line: string): boolean {
   return ROUTINE.test(line);

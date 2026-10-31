@@ -214,7 +214,7 @@ option at all. It arrives as a **payment action** on the priority decision,
 with one or more complete plans saying which permanents the engine will tap:
 
 ```json
-{"seq":44,"player":0,"kind":"priority","prompt":"turn 1, main1 — You has priority","min":1,"max":1,
+{"seq":44,"player":0,"kind":"priority","prompt":"turn 1, main1 — You have priority","min":1,"max":1,
  "options":[{"index":0,"kind":"activate","label":"Activate Forest for mana","obj":11,"player":0},
             {"index":1,"kind":"pass","label":"Pass priority","player":0},
             {"index":2,"kind":"concede","label":"Concede","player":0}],

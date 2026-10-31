@@ -200,6 +200,9 @@ func keepMulliganPrompt(starterName string, bottom, taken, limit, freeMulligans 
 	} else {
 		choice = fmt.Sprintf("Keep your hand (%s)", penalty)
 	}
+	if starterName == "You" {
+		return "You play first. " + choice
+	}
 	return starterName + " plays first. " + choice
 }
 

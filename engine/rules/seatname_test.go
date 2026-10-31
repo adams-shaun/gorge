@@ -37,22 +37,29 @@ func seatNamesGame(t *testing.T, withPlayerNames bool) *Engine {
 	return e
 }
 
-// TestPriorityPromptUsesSeatFacingName pins the fb-20260917T004304Z report:
-// the seat panel's text box read "turn 2, main1 — foundations-keen-engineering
-// has priority" to a player whose display name is "You". The prompt is
-// decision content, not chain content, so it must compose from the table's
-// PlayerNames; the transcript convention is "You has priority"
-// (engine/view/describe.go), and the box matching the transcript is the point.
+// TestPriorityPromptUsesSeatFacingName: the seat panel's text box must not read
+// "turn 2, main1 — foundations-keen-engineering has priority" to a player whose
+// display name is "You". The prompt is decision content, not chain content, so
+// it composes from the table's PlayerNames, and it reads as the transcript does
+// (engine/view/describe.go, addressYou).
 func TestPriorityPromptUsesSeatFacingName(t *testing.T) {
 	t.Parallel()
 	e := seatNamesGame(t, true)
 	d := e.Pending()
-	want := "turn 1, " + e.G.Step.String() + " — You has priority"
+	want := "turn 1, " + e.G.Step.String() + " — You have priority"
 	if d.Prompt != want {
 		t.Fatalf("priority prompt = %q, want %q", d.Prompt, want)
 	}
 	if strings.Contains(d.Prompt, "foundations") {
 		t.Fatalf("priority prompt leaks the deck slug: %q", d.Prompt)
+	}
+}
+
+func TestMulliganPromptAddressesYou(t *testing.T) {
+	t.Parallel()
+	want := "You play first. Keep your hand (put 1 card on the bottom of your library) or take a mulligan?"
+	if got := keepMulliganPrompt("You", 1, 0, 3, 0); got != want {
+		t.Fatalf("mulligan prompt = %q, want %q", got, want)
 	}
 }
 

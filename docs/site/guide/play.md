@@ -309,7 +309,7 @@ replayed 4 of 4 recorded intents (34 events); recorded head 7f24e17580718ec6
 turn 1, round 1, beginning (step upkeep) — active: seat 1, priority: seat 0
 seat 0 You: life 20, library 53, hand 7, graveyard 0, exile 0
 seat 1 Bot: life 20, library 53, hand 7, graveyard 0, exile 0
-pending: seat 0 priority: turn 1, upkeep — You has priority (2 options)
+pending: seat 0 priority: turn 1, upkeep — You have priority (2 options)
 ```
 
 `-list` prints the timeline of recorded answers, `-at N` stops at answer N, `-omniscient` shows every hand,
