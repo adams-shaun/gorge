@@ -44,8 +44,8 @@ intermediate representation on first use and caches it as `.cards/ir-<fingerprin
 with a `.seg` file beside it (about 26 MB together). `make compile-cards` does that step
 ahead of time, and `make report` prints the corpus coverage
 ([Getting started](../getting-started.md#1-fetch-and-compile-the-card-corpus) explains its
-output). The fingerprint is a hash of the compiler, so each engine version you build writes
-its own files. Old ones are safe to delete.
+output). The fingerprint is a hash of the card compiler's source, so a build that changes
+`engine/cards` writes its own files. A compile keeps the newest four caches and removes the rest.
 
 ## 2. Build the browser client, if you want one
 

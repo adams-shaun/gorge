@@ -170,7 +170,8 @@ package can report `ok` in a couple of milliseconds having tested almost
 nothing. In a fresh clone or a new git worktree, fetch or link `.cards` first.
 See [Testing](../contributing/testing.md).
 
-### `.cards` keeps growing
+### `.cards` holds several `ir-*` files
 
-Each engine build that compiles the corpus writes its own `.cards/ir-<fingerprint>.gob.gz` and
-`.seg` (about 26 MB together). Old ones are safe to delete; the next run recompiles.
+Each build that changes `engine/cards` writes its own `.cards/ir-<fingerprint>.gob.gz` and `.seg`
+(about 26 MB together). A compile keeps the newest four and removes the rest. Any of them is safe
+to delete; the next run recompiles.

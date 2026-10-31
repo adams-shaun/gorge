@@ -95,7 +95,7 @@ mtg-kernel has no row here. Its searchers are wired to its training contracts an
   numbers. The min-max spread shows repeatability at that load and doesn't promise the same value on an idle machine.
 - **JVM warm-up.** A JVM starts interpreted, so each run plays `WARM` seconds of games and discards them before measuring. Start-up and
   warm-up are excluded from the per-game numbers but included in peak RSS.
-- **The card cache is private.** Every compile prunes other builds' IR caches from its directory, so a timed run on a shared `.cards` could pay a
+- **The card cache is private.** Every compile keeps only the newest four IR caches in its directory, so a timed run on a shared `.cards` could pay a
   whole-corpus recompile. The harness makes a private hardlink copy of the corpus under `$OUT/work`, warms each engine's cache there with one
   untimed run, and records in `run.txt` any batch whose reps changed it.
 

@@ -184,8 +184,8 @@ on every push to `main`.
 total (`compiled 34074 cards, 854 tokens, 2 diagnostics`).
 
 !!! warning "Compile into a copy if `.cards` is shared"
-    `forgec compile` rewrites the IR cache and prunes every other cache file in
-    the directory. If several checkouts share one `.cards` (a symlinked
+    `forgec compile` rewrites the IR cache and prunes all but the newest four
+    cache files in the directory. If several checkouts share one `.cards` (a symlinked
     worktree), compile into a scratch copy instead. The walker doesn't follow
     symlinks, so copy the folders:
 
