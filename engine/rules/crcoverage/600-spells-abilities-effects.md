@@ -107,7 +107,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 605.1b | partial | `engine/rules/mana_activation.go#Engine.isTriggeredManaAbility` | - | g only TapsForMana shape; d no triggered mana |
 | 605.2 | follows | `engine/cards/ability_class.go#IsManaAbilitySA` | - | - |
 | 605.3 | follows | `engine/rules/mana_activation.go#Engine.activateManaFor` | - | header; exceptions below |
-| 605.3a | partial | `engine/rules/legal_walk_battlefield.go#legalWalk.manaSection` `engine/rules/cast_paymentplan.go#Engine.manaWindowAsk` | - | g window gated |
+| 605.3a | partial | `engine/rules/legal_walk_battlefield.go#legalWalk.manaSection` `engine/rules/cast_paymentplan.go#Engine.manaWindowAsk` `engine/rules/paid_mana_census.go#Engine.unlessWindowUnits` | `TestUnlessCostReachesChoiceMana` `TestCounterUnlessPaidFromChoiceMana` | g window gated |
 | 605.3b | follows | `engine/rules/mana_activation.go#Engine.activateManaFor` `engine/rules/mana_activation.go#Engine.commitManaDiscard` | `TestManaCostAbilityGoesOnTheStackAndResolves` | no stack |
 | 605.3c | follows | `engine/rules/mana_activation.go#Engine.activateManaFor` | - | activation completes atomically |
 | 605.4-605.4a | follows | `engine/rules/mana_activation.go#Engine.resolveTriggeredManaAbilities` `engine/rules/mana_activation.go#Engine.isTriggeredManaAbility` | - | resolve immediately; d none in pool |
