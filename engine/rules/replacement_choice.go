@@ -931,7 +931,10 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		}
 		e.applySimpleReplacement(rc.ev, rc.cands[chosen[0].Index])
 		if rc.untap != nil && e.pending == nil {
-			e.finishUntapStep(rc.untap.next)
+			e.triggerBefore = before
+			if e.finishUntapStep(rc.untap.next) {
+				e.finishEnteredStep()
+			}
 		}
 	default:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
