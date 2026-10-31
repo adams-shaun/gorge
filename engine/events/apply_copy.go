@@ -253,13 +253,13 @@ func foldStackCopy(g *state.Game, e *Event) {
 
 // foldPair folds Kind Pair into state.
 func foldPair(g *state.Game, e *Event) {
-	// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
+	// CR 702.95: a Soulbond pairing. Obj is the pairing permanent and
 	// IDs[0] its chosen partner; both fields are set reciprocally when
-	// both are battlefield permanents. Neither half is written when a
-	// pairing ends (the paired field is reset by each object's own
-	// Move when one leaves the battlefield).
+	// both are battlefield permanents. No IDs ends Obj's pairing.
 	if len(e.IDs) > 0 {
 		applyPair(g, e.Obj, e.IDs[0])
+	} else if o := g.Obj(e.Obj); o != nil {
+		endPairing(g, o)
 	}
 }
 

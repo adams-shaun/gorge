@@ -143,7 +143,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.93a | follows | `engine/cards/kw_undying.go#kwUndying` | `TestUndyingReturnsOnceWithACounter` |  |
 | 702.94a,b | follows | `engine/rules/miracle.go#Engine.offerMiracle` `engine/rules/miracle.go#Engine.drawsThisTurn` | `TestMiracleOffersOnTheFirstDrawOnly` |  |
 | 702.95a-d | follows | `engine/cards/kw_soulbond.go#kwSoulbond` `engine/effects/soulbond.go#effPair` | `TestSoulbondPairsCurrentCreatures` |  |
-| 702.95e | unknown | - | - | unpair conditions not located |
+| 702.95e | follows | `engine/rules/sba.go#Engine.unpairNoncreatures` `engine/events/apply_player.go#foldControlChange` `engine/events/apply_zone.go#foldMoveZone` | `TestSoulbondPairEnds` | checked with the state-based actions: the rule names no time, and no player can act before the next check |
 | 702.96 | follows | `engine/rules/altcast_modes.go#altCastModes` `engine/rules/stack.go#Engine.resolveTop` | `TestOverloadedCastTargetsEachNotOne` `TestOverloadIsCastableWhenOnlyProtectedObjectsMatch` | Alt cost |
 | 702.97 | not-impl | - | - |  |
 | 702.98 | follows | `engine/rules/unleash.go#Engine.applyUnleashReplacement` `engine/rules/combat/block.go#CanBlock` | `TestUnleashChoicePosedAndCounterApplied` `TestGrantedUnleashCounteredDogCantBlock` | Entry +1/+1 election |

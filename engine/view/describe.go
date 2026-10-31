@@ -164,6 +164,9 @@ func Describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " imprints " + objs(g, ev.IDs)
 	case events.Pair:
+		if len(ev.IDs) == 0 {
+			return obj(g, ev.Obj) + " is no longer paired"
+		}
 		return obj(g, ev.Obj) + " pairs with " + obj(g, firstID(ev.IDs))
 	case events.MyriadCopy:
 		return obj(g, ev.Obj) + " creates a Myriad copy attacking " + player(g, state.PlayerID(firstID(ev.IDs)))

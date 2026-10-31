@@ -319,8 +319,9 @@ const (
 	// ordinals (log.json serializes kind numerically; a committed fixture's
 	// replay pins them).
 	StartingPlayerChange
-	// Pair records a Soulbond pairing (CR 702.103): Obj is the pairing
-	// permanent and IDs[0] is its chosen partner. Appended after
+	// Pair records a Soulbond pairing (CR 702.95): Obj is the pairing
+	// permanent and IDs[0] is its chosen partner. With no IDs it ends Obj's
+	// pairing because a member stopped being a creature. Appended after
 	// StartingPlayerChange (the merge kept main's kinds at their main
 	// ordinals), following the same append-only precedent, so all earlier
 	// Kinds keep their numeric values and the hash chain and golden replays

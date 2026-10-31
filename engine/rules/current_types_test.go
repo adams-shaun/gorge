@@ -181,3 +181,55 @@ func TestSoulbondPairsCurrentCreatures(t *testing.T) {
 		}
 	})
 }
+
+// TestSoulbondPairEnds pins CR 702.95e: a pairing ends when another player gains
+// control of a member or a member stops being a creature, and stays ended.
+func TestSoulbondPairEnds(t *testing.T) {
+	t.Parallel()
+	const bear = "Name:Plain Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	const strip = "Name:Stripper\nManaCost:1\nTypes:Artifact\n" +
+		"S:Mode$ Continuous | Affected$ Bear.Other+nonHuman | AddType$ Land | RemoveCardTypes$ True | Description$ Bears are lands.\nOracle:x\n"
+	pair := func(t *testing.T) (*Engine, state.ObjID, state.ObjID) {
+		t.Helper()
+		e, _, _ := newFixtureDeck(t, 197, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+		a, b := onBoard(t, e, 0, bear), onBoard(t, e, 0, bear)
+		e.emit(events.Event{Kind: events.Pair, Obj: a, IDs: []state.ObjID{b}})
+		if e.G.Obj(a).Paired != b || e.G.Obj(b).Paired != a {
+			t.Fatal("the pair did not form")
+		}
+		return e, a, b
+	}
+	wantUnpaired := func(t *testing.T, e *Engine, a, b state.ObjID) {
+		t.Helper()
+		if e.G.Obj(a).Paired != 0 || e.G.Obj(b).Paired != 0 {
+			t.Fatalf("paired %d and %d, want both unpaired", e.G.Obj(a).Paired, e.G.Obj(b).Paired)
+		}
+	}
+	t.Run("another player gains control", func(t *testing.T) {
+		t.Parallel()
+		e, a, b := pair(t)
+		e.emit(events.Event{Kind: events.ControlChange, Obj: b, Player: 1})
+		wantUnpaired(t, e, a, b)
+	})
+	t.Run("the same controller again keeps it", func(t *testing.T) {
+		t.Parallel()
+		e, a, b := pair(t)
+		e.emit(events.Event{Kind: events.ControlChange, Obj: b, Player: 0})
+		if e.G.Obj(a).Paired != b {
+			t.Fatal("no change of controller ended the pairing")
+		}
+	})
+	t.Run("a member stops being a creature", func(t *testing.T) {
+		t.Parallel()
+		e, a, b := pair(t)
+		stripper := onBoard(t, e, 0, strip)
+		e.checkStateBased()
+		wantUnpaired(t, e, a, b)
+		e.emit(events.Event{Kind: events.MoveZone, Obj: stripper, From: state.ZBattlefield, To: state.ZGraveyard})
+		e.checkStateBased()
+		if !e.IsCreature(a) {
+			t.Fatal("the bear did not become a creature again")
+		}
+		wantUnpaired(t, e, a, b)
+	})
+}
