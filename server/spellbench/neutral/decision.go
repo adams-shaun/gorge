@@ -1845,7 +1845,8 @@ func (s *Session) attackers(sd *protocol.SeatDecision, v *view.View) ([]mapping.
 				cv, ok := findCard(battlefield(v, s.seat), s.B.IDs.Of(r.ObjectID))
 				if !ok || !isCreature(cv) || cv.Tapped ||
 					(hasKeyword(cv, "Defender") && !s.mayAttackThroughDefender(r.ObjectID, cv)) ||
-					(cv.SummonSick && !hasKeyword(cv, "Haste")) || s.cantAttack(cv, attached[cv.ID]) {
+					(cv.SummonSick && !hasKeyword(cv, "Haste")) || s.cantAttack(cv, attached[cv.ID]) ||
+					s.barredFromAttacking(&sd.Observation, r) {
 					continue
 				}
 				legal = append(legal, r.ObjectRef)
@@ -2741,6 +2742,45 @@ func (s *Session) cantAttack(cv view.CardView, attached []view.CardView) bool {
 		}
 	}
 	return false
+}
+
+// barredFromAttacking reports whether an unconditional printed CantAttack
+// static on a permanent names this creature by type (Doomed Artisan:
+// "Sculptures you control can't attack or block"). A ValidCard$ scope other
+// than who controls the creature is not read, so the engine's own offer stays
+// the authority there.
+func (s *Session) barredFromAttacking(o *protocol.Observation, r protocol.ObjectRecord) bool {
+	for _, p := range o.Players {
+		for _, src := range p.Battlefield {
+			f := s.B.face(src.CardName, src.Token, nil)
+			if f == nil {
+				continue
+			}
+			for _, st := range f.Statics {
+				if !slices.Contains(strings.Split(st.Mode, ","), "CantAttack") || unresolvedStatic(st) {
+					continue
+				}
+				if valid := strings.TrimSpace(st.Params["ValidCard"]); controllerScoped(valid) && s.presentSpec(valid, r, src.ControllerSeat) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// controllerScoped reports whether every alternative of a ValidCard$ spec is a
+// bare type word, scoped to at most who controls it.
+func controllerScoped(valid string) bool {
+	if valid == "" {
+		return false
+	}
+	for _, alt := range strings.Split(valid, ",") {
+		if _, scope, ok := strings.Cut(strings.TrimSpace(alt), "."); ok && scope != "YouCtrl" && scope != "OppCtrl" {
+			return false
+		}
+	}
+	return true
 }
 
 // mayAttackThroughDefender reports whether a printed-Defender creature has a
