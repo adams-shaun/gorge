@@ -217,7 +217,9 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// precedes its first decision, so the captured frames' stack moves.
 		// Measured after: frames 126, attempts 64, accepted 4, worlds 8, ESS 4
 		// (land exclusion: accepted 25, ESS 25).
-		{"pre-optimisation sampler", true, "1e7df4d6ca1595dd000618c11501418d3e7879612ae105d2cde94b8134e1727b"},
+		// Re-measured when a permanent's activation count began to end as it
+		// leaves (CR 400.7): frames 126, accepted 13.
+		{"pre-optimisation sampler", true, "5894fd6141273d864ed1d74189b96e666c4ccf97c6204f044a7f06894b9ed98c"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
@@ -225,7 +227,8 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// again for the damage-provenance fact (see above); see the
 		// pre-optimisation entry for the archetype-posterior re-measure.
 		// Re-measured for cr-g67b (CR 602.2a): frames 126, accepted 25, ESS 25.
-		{"land exclusion", false, "bba783b430332248182a73dc58e3dba12c31bea0d4d0556b28b592d66318cc76"},
+		// Re-measured for the activation count (CR 400.7): accepted 31, ESS 31.
+		{"land exclusion", false, "1813cef8bfc6eaaad8c13ee238d3ebcfa3ca71c2204af75efc144669d731cc4f"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -474,7 +477,9 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// Re-measured for cr-g67b (CR 602.2a): the captured frames' stack moves
 	// when an activation's mint precedes its first decision, so the teacher's
 	// decoded frames and rollouts move with them.
-	const want = "52f8e0b29b017f836f4649fcd00c5ac4516c84cb464c8bfec88012358114faba"
+	// Re-measured for the activation count (CR 400.7), which the replayed frames
+	// carry: Submits 5458, the rest as above.
+	const want = "ff35082eb0f81979fff3361757d5ca2edda6d72802fdbf08fdd23a29e1378c9d"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

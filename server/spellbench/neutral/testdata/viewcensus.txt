@@ -18,7 +18,6 @@ players[].exile[].id
 players[].exile[].keywords[]
 players[].exile[].summon_sick
 players[].exile[].token
-players[].graveyard[].activated_this_turn
 players[].graveyard[].exiled_cards[]
 players[].graveyard[].id
 players[].graveyard[].imprinted[]
