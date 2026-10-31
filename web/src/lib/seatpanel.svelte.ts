@@ -185,6 +185,8 @@ export class SeatPanelState {
    * auto-pay switch available; it never reaches the pass policy, so a player
    * who leaves the switch off plays exactly as on a capability-less table. */
   autoManaAvailable = $state(false);
+  /** The card of a plan-less cast Auto-pay announced, until its mana window is filled. */
+  private autoFillCard: number | null = null;
 
   setAutoManaAvailable(on: boolean) {
     this.autoManaAvailable = on;
@@ -847,6 +849,22 @@ export class SeatPanelState {
     if (fill === null) return false;
     this.click(fill.index);
     return true;
+  }
+
+  /**
+   * maybeAutoFill answers the window of a cast Auto-pay announced, once any
+   * target or mode asks before it are done. It runs when a decision is adopted
+   * and when a post settles, because the wire can pose the window while the
+   * announce is still in flight. Priority coming back ends the cast.
+   */
+  private maybeAutoFill() {
+    const d = this.pending;
+    if (this.autoFillCard === null || d === null) return;
+    if (d.kind === 'priority') {
+      this.autoFillCard = null;
+      return;
+    }
+    if (manaWindow(d)?.mana_payment.card === this.autoFillCard && this.autoPay()) this.autoFillCard = null;
   }
 
   /**
@@ -1763,6 +1781,7 @@ export class SeatPanelState {
     // cards of the next one.
     this.searchFilter = '';
     if (!this.maybeAutoOrderTriggers()) this.maybeRememberedTrigger();
+    this.maybeAutoFill();
   }
 
   /**
@@ -2117,8 +2136,9 @@ export class SeatPanelState {
         this.submitPayment(action, plan, holdPriority);
         return;
       }
-      // ManaBrew carries no payment plan; announce is its supported route to
-      // the select-mana window, in both Auto-pay modes.
+      // ManaBrew carries no payment plan: announce, then answer the
+      // select-mana window with its Auto-fill.
+      this.autoFillCard = action.cast.object;
       this.submitAnnounce(action, holdPriority);
       return;
     }
@@ -2216,6 +2236,7 @@ export class SeatPanelState {
       // the old promise settling must not clear that new post's lock.
       if (epoch === this.seqEpoch) this.busy = false;
     }
+    this.maybeAutoFill();
   }
 
   /** refreshPending re-reads the current decision from /pending: the recovery path after a rejection, and the not-yet-viewed case at mount. A 409 conflict IS the normal "nothing pending" answer (the wait is on someone else), not an error. */

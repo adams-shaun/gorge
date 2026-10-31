@@ -188,6 +188,25 @@ describe('announce-then-pay seat routing', () => {
     expect(postIntentMock.mock.calls[0][2]).toEqual({ seq: 24, player: 0, choices: [], announce: { action_id: 'planless' } });
   });
 
+  it('with Auto-pay on, the window a plan-less cast opens is answered with its Auto-fill', async () => {
+    const p = new SeatPanelState('table', 1, ctx, null);
+    p.setAutoManaAvailable(true);
+    p.setAutoPayMana(true);
+    const d = priority(24, [action('planless', null, [])]);
+    p.adoptView(d);
+    p.castAction(d.payment_actions![0]);
+    await vi.waitFor(() => expect(postIntentMock).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(p.busy).toBe(false));
+    // A target ask comes first and is the player's to answer.
+    p.adoptView({ seq: 25, player: 0, kind: 'target', prompt: 'Choose a target', min: 1, max: 1, options: [{ index: 0, player: 1, kind: 'player', label: 'Bo' }] });
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    const w = windowDecision(26);
+    p.adoptView({ ...w, mana_payment: { ...w.mana_payment!, card: 22 } });
+    const fill = w.options.find((o) => o.kind === 'autofill')!;
+    await vi.waitFor(() => expect(postIntentMock).toHaveBeenCalledTimes(2));
+    expect(postIntentMock.mock.calls[1][2]).toMatchObject({ seq: 26, choices: [fill.index] });
+  });
+
   it('a stale announce button is inert; planless announces post and double clicks post once', async () => {
     const p = new SeatPanelState('table', 1, ctx, null);
     p.setAutoManaAvailable(true);
