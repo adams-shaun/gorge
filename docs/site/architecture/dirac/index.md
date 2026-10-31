@@ -137,7 +137,8 @@ flowchart LR
 | **Mutation** | events folded by `events.Apply` into a hash chain | `Apply(action)` writes the value directly, with no log |
 | **Clone** | `Engine.Clone`, about 22 µs and 200 KB | `CopyFrom`, about 41 ns and no allocation |
 | **Players** | up to 8 | exactly 2 |
-| **Cards** | see [Card support](../../support/sets.md) | see [What it supports](#what-it-supports) |
+| **Cards** | every Forge script is compiled; a card is playable when every primitive it names is implemented ([Card support](../../support/sets.md)) | the cards its generator lowers with no refusal; supported sets are verified in lockstep ([What it supports](#what-it-supports)) |
+| **Comparing two games** | the chain head: the same head means the same history | its `Projection` (fixed arrays): equal positions project `==`; two States in the same position may differ in bookkeeping |
 | **Decisions** | 13 kinds, multi-select answers | 8 kinds, every answer a single pick ([Step and Apply](step-apply.md)) |
 | **Checked by** | golden replays, census ratchets, XMage, Forge and Oracle-text scenarios | lockstep against gorge at every decision ([Verification](oracle.md)) |
 | **Used for** | hosting games, every card, the reference | search and self-play |

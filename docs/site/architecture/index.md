@@ -73,15 +73,7 @@ both engines and requires the same canonical option list at every decision and
 the same canonical board projection after every action.</figcaption>
 </figure>
 
-| | gorge | dirac |
-|---|---|---|
-| Card pool | every Forge script is compiled; a card is playable when every primitive it names is implemented | the cards its generator lowers with no refusal; supported sets are verified in lockstep ([per set](../support/sets.md#per-set-support)) |
-| Players | up to 8 per hosted table; the golden games cover 2, 4, 6 and 8 | 2 |
-| Game state | `state.Game`: an arena of `state.Object` values plus maps and slices | one fixed-size value plus one small buffer it owns |
-| Mutation | events proposed by the engine, folded by `events.Apply`, hash-chained | `Apply(action)` on the value |
-| Copying a game | `Engine.Clone` (deep copy, shared log prefix) | `CopyFrom`: one or two memory copies |
-| Comparing two games | the chain head: the same head means the same history | its `Projection` (fixed arrays): equal positions project `==`; two States in the same position may differ in bookkeeping |
-| Who checks it | its own golden replays, the compliance oracles | gorge, in lockstep |
+[dirac](dirac/index.md#how-it-relates-to-gorge) has the two engines side by side.
 
 A general engine that handles every card in the corpus needs open-ended data: arbitrary card
 text, variable-length zones, continuous effects that come and go. That shape makes it correct
