@@ -82,6 +82,7 @@ in this repository yet; [its pages](architecture/dirac/index.md) describe the de
 | fixing a card or a rule | to set up, find the code, land a change | [Contributing](contributing/index.md), [Your first card fix](contributing/first-card-fix.md) |
 | an engine or ML person | how it is built and how fast it is | [Architecture](architecture/index.md), [Performance](performance/index.md) |
 | choosing a card pool | what is supported, set by set | [Card support](support/sets.md) |
+| deciding whether to trust it | what is checked, by what, and what isn't | [Card support](support/sets.md#what-supported-means-engine-by-engine), [Invariants](architecture/invariants.md), [The three repositories](repos/index.md#gorge-compliance) |
 
 gorge is Apache-2.0. It ships a compiler for Forge's GPL-3.0 scripts and never the scripts:
 [The three repositories](repos/index.md) has the licensing, and what lives in the public compliance repository and
