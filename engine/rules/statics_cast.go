@@ -314,6 +314,25 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 // lookahead would begin). The mana value is read off the PRINTED cost with
 // X folded in (CR 202.3b), never off cost -- an alternative cost's
 // non-mana parts add no mana.
+//
+// The walk stops as soon as no larger X can change the answer, because the
+// bound is not a count of real mana: one open source (Produced$ Any, an
+// indeterminate Amount$) prices the potential pool at potentialUnbounded, so
+// an unrestricted count from minX to the bound would never return. Two facts
+// make stopping exact, and verifyXEscape holds both against the full walk in
+// the rules test binary:
+//
+//   - Payability only falls as X grows. These two helpers apply no cost
+//     modifier (the reason xAsk's own loop cannot break: a ReduceCost reading
+//     the paid X), so X only adds generic mana, and Delve's credit never takes
+//     back more than it adds. The first unpayable X ends the walk.
+//   - The spec reads the announced X only through cmcValue, and only as a
+//     comparison with a number or as parity (effects.ManaValueReads records
+//     each). Past every number the spec compared, a larger mana value answers
+//     every comparison the same way, so the match can only differ by parity:
+//     two consecutive X past every number read leave nothing new to see, and
+//     a spec that read no mana value at all ("Card", Voice of Victory's) has
+//     its answer at the first payable X.
 func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana, asPrototype bool) bool {
 	if cost.X <= 0 {
 		return false
@@ -339,39 +358,96 @@ func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.Player
 	// the payment cannot settle. The raw tally is only a ceiling, never the
 	// priced pool: RestrictedMana provenance is honoured by castable's own
 	// AvailableFor read, and the bound is a pure mana ceiling (castablePriced).
+	// An announcement is an int32, so the ceiling is too: Total saturates at
+	// potentialUnbounded and the credit can only pass it.
 	bound := e.G.Players[p].Pool
 	if pool != nil {
 		bound = *pool
 	}
-	ceiling := int64(bound.Total()) + int64(e.delveCredit(p, id, math.MaxInt32))
-	minX := int32(cost.XMin)
+	ceiling := min(int64(bound.Total())+int64(e.delveCredit(p, id, math.MaxInt32)), math.MaxInt32)
+	minX := int64(cost.XMin)
 	if minX < 1 {
 		minX = 1
 	}
-	for x := minX; int64(x) <= ceiling; x++ {
-		paid := cost.WithX(x)
-		// pool nil prices the real cast (castable, the restriction-adjusted
-		// floating pool); the potential walk's hypothetical bound prices
-		// through castablePriced -- the same split legalWalk.affordable runs,
-		// so a potential action and the offer it mirrors cannot disagree.
-		if pool == nil {
-			if !e.castable(p, id, paid, false) {
-				continue
-			}
-		} else if !e.castablePriced(p, id, paid, false, *pool) {
+	escapes, witness := false, int64(0)
+	var reads effects.ManaValueReads
+	settled := 0
+	for x := minX; x <= ceiling; x++ {
+		if !e.xAnnouncementPayable(p, id, cost, int32(x), pool) {
+			break
+		}
+		mv := printed.WithX(int32(x)).CMC()
+		if !e.xAnnouncementMatches(sv, spec, id, mv, asPrototype, &reads) {
+			escapes, witness = true, x
+			break
+		}
+		if !reads.Any {
+			break
+		}
+		if int64(mv) <= reads.Highest {
+			settled = 0
 			continue
 		}
-		sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
-		if asPrototype {
-			sc = e.prototypeSpellSpecCtx(sc, id)
-		}
-		sc.HasManaValue = true
-		sc.ManaValue = printed.WithX(x).CMC()
-		if !e.matchesSpec(spec, id, sc) {
-			return true
+		if settled++; settled == 2 {
+			break
 		}
 	}
-	return false
+	if xEscapeVerify {
+		e.verifyXEscape(sv, spec, p, id, cost, printed, pool, asPrototype, minX, ceiling, escapes, witness)
+	}
+	return escapes
+}
+
+// xAnnouncementPayable prices cost at announced x: castable against the
+// seat's restriction-adjusted floating pool (pool nil), castablePriced against
+// the potential walk's hypothetical bound -- the same split
+// legalWalk.affordable runs, so a potential action and the offer it mirrors
+// cannot disagree.
+func (e *Engine) xAnnouncementPayable(p state.PlayerID, id state.ObjID, cost Cost, x int32, pool *state.Mana) bool {
+	paid := cost.WithX(x)
+	if pool == nil {
+		return e.castable(p, id, paid, false)
+	}
+	return e.castablePriced(p, id, paid, false, *pool)
+}
+
+// xAnnouncementMatches reports whether the restriction's spec matches id at
+// mana value mv, recording in reads what the match read of it (nil records
+// nothing).
+func (e *Engine) xAnnouncementMatches(sv staticView, spec string, id state.ObjID, mv int32, asPrototype bool, reads *effects.ManaValueReads) bool {
+	sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
+	if asPrototype {
+		sc = e.prototypeSpellSpecCtx(sc, id)
+	}
+	sc.HasManaValue = true
+	sc.ManaValue = mv
+	sc.ManaValueReads = reads
+	return e.matchesSpec(spec, id, sc)
+}
+
+// xEscapeVerify makes xAnnouncementEscapes check its early stops against the
+// unrestricted walk and panic on a difference. Set by the rules test binary
+// (derivedmemo_verify_test.go), or at link time with derivedMemoVerifyFlag.
+var xEscapeVerify = derivedMemoVerifyFlag != ""
+
+// xEscapeVerifyLimit caps how far verifyXEscape walks a bound that is not a
+// real count of mana. No corpus restriction compares a number near it.
+const xEscapeVerifyLimit = 64
+
+// verifyXEscape runs xAnnouncementEscapes' walk without its early stops, over
+// the whole bound or the first xEscapeVerifyLimit announcements of it, and
+// panics unless it finds the same answer. An escape the capped walk cannot
+// reach is the one answer it cannot judge.
+func (e *Engine) verifyXEscape(sv staticView, spec string, p state.PlayerID, id state.ObjID, cost, printed Cost, pool *state.Mana, asPrototype bool, minX, ceiling int64, escapes bool, witness int64) {
+	last := min(ceiling, minX+xEscapeVerifyLimit)
+	want := false
+	for x := minX; x <= last && !want; x++ {
+		want = e.xAnnouncementPayable(p, id, cost, int32(x), pool) &&
+			!e.xAnnouncementMatches(sv, spec, id, printed.WithX(int32(x)).CMC(), asPrototype, nil)
+	}
+	if want != escapes && !(escapes && witness > last) {
+		panic("rules: xAnnouncementEscapes stopped early on a different answer than the full walk for " + spec)
+	}
 }
 
 // spellSpecCtx binds the mana value of the SPELL id is about to become

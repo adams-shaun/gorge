@@ -27,6 +27,7 @@ func init() {
 	castsOnlyWalkVerify = true
 	potentialMembersVerify = true
 	walkCacheVerify = true
+	xEscapeVerify = true
 	trigZoneSkipVerify = true
 	manaPayFastVerify = true
 	activeSummaryVerify = true
