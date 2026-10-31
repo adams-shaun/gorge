@@ -26,7 +26,10 @@ import "testing"
 //     confirmed by reverting the planner hunk: 4928 returns, same card and
 //     verdict; then the X-bound target offer (CR 601.2c: a cast with no possible
 //     target is no longer offered) to seq 4866, same card and verdict; then that
-//     offer pricing its X (CR 601.2b) to seq 4681, same card and verdict);
+//     offer pricing its X (CR 601.2b) to seq 4681, same card and verdict; then an
+//     effect's tapped entry yielding to "enters untapped" (CR 614.12: one Tap event
+//     fewer) to seq 4680, confirmed by undoing that check: 4681 returns, same card
+//     and verdict);
 //   - 11056: the Artisan finding is no longer reached; a clean,
 //     control-equivalent game;
 //   - 10056: Lagomos, Hand of Hatred was equivalent at seq 6750 (the
@@ -40,7 +43,7 @@ import "testing"
 //
 // roundNineWant holds those pins.
 var roundNineWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key ("" = equivalent)
-	10860: {4681: ""},
+	10860: {4680: ""},
 	11056: {},
 	10056: {},
 	8175:  {},
