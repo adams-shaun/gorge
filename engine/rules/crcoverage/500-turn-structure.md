@@ -69,7 +69,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 508.1a | follows | `engine/rules/combat/attack.go#AttackableCreature` | - | battle-creature exclusion absent (see 506.3f-g) |
 | 508.1b | follows | `engine/rules/combat.go#Engine.askAttackers` `engine/rules/combat/attack.go#CanAttackPair` | `TestBattleIsOfferedAsAnAttackerOption` | GorgeMustAttack mirrors gorge |
 | 508.1c | partial | `engine/rules/combat/restrictions.go#AttackBlocked` `engine/rules/combat.go#Engine.validateAttackDeclarationChosen` | `TestCantAttackConditionGate` | unwhitelisted restriction shapes skipped (AGENTS combatrestriction1, D15) |
-| 508.1d | partial | `engine/rules/combat.go#Engine.mustAttackRequired` `engine/rules/combat/attack.go#AttackRequirements` | `TestCR508CorpusRequirementsUnderAttackRestriction` | RequiredQuota counts creatures, not requirements (D15) |
+| 508.1d | partial | `engine/rules/combat.go#Engine.mustAttackRequired` `engine/rules/combat/attack.go#AttackRequirements` `engine/decision/alone.go#Decision.alonePartner` | `TestCR508CorpusRequirementsUnderAttackRestriction` `TestFitRequiredBringsAPartnerForARequiredLoneAttacker` `TestRequiredLoneAttackerWithoutAPartnerIsNotRequired` | RequiredQuota counts creatures, not requirements (D15) |
 | 508.1e | not-impl | - | - | LOUD: banding unregistered |
 | 508.1f | follows | `engine/rules/combat.go#Engine.finishAttackers` `engine/rules/host_emit.go#Engine.emitTap` | - | D16 minor: taps emitted after attack triggers are checked |
 | 508.1g | follows | `engine/rules/combat.go#Engine.startExertAsks` | - | exert election |

@@ -45,7 +45,20 @@ import (
 // ChargeOptionConstraints drops such an option outright (the wire cannot
 // verify it), while the required set leaves it to the engine's board-aware
 // payment -- the pre-existing contract.
+//
+// A lone required attacker that can't attack alone (CR 506.5) binds only while
+// it has a partner: with none, no declaration obeys the requirement without
+// breaking the restriction (CR 508.1d).
 func (d *Decision) requiredCore() []int {
+	core := d.requiredPicks()
+	if len(core) == 1 && d.Kind == KAttackers && d.Options[core[0]].AloneRestricted && d.alonePartner(core[0]) < 0 {
+		return nil
+	}
+	return core
+}
+
+// requiredPicks is requiredCore before the alone restriction.
+func (d *Decision) requiredPicks() []int {
 	// No Required option: both the greedy and the knapsack below pick
 	// nothing and return nil, so skip building their tables.
 	if !d.anyRequired() {
@@ -334,8 +347,19 @@ func (d *Decision) requiredAt(c int) bool {
 // stays within budget (one option per Obj: an attacker attacks one defender),
 // any other choice is appended while the budget, Max and option Groups allow.
 // Neither step can lower the count of Required Objs, so the rebuilt answer
-// keeps the quota.
+// keeps the quota. A required attacker left alone that can't attack alone gets
+// its partner (CR 506.5, alonePartner).
 func (d *Decision) FitRequired(choices []int) []int {
+	out := d.fitRequiredPreferred(choices)
+	if len(out) == 1 && d.Kind == KAttackers && d.requiredAt(out[0]) && d.Options[out[0]].AloneRestricted {
+		if p := d.alonePartner(out[0]); p >= 0 {
+			return []int{out[0], p}
+		}
+	}
+	return out
+}
+
+func (d *Decision) fitRequiredPreferred(choices []int) []int {
 	if d.Kind == KBlockers && d.hasRequiredBlocks() {
 		core := d.blockRequiredCoreChargeFeasible()
 		// An already legal preferred declaration retains its damage-order
