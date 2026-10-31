@@ -281,7 +281,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 615.12 | deviates | `engine/rules/replacement_damage.go#Engine.applicableDamageReplacements` `engine/rules/replacement.go#Engine.applyNonMoveReplacements` | - | shields skipped; riders never run |
 | 615.12a | follows | `engine/rules/replacement_damage.go#Engine.applicableDamageReplacements` | - | follows from skip (applied 0 times) |
 | 615.13 | follows | `engine/rules/replacement_damage.go#Engine.applyReplaceDamageTail` | `TestDamagePreventedOnceFiresPerPrevention` | - |
-| 616.1 | follows | `engine/rules/replacement.go#Engine.replacementAskPlayer` `engine/rules/replacement.go#Engine.applyReplacementsDispatch` | `TestCR616AffectedControllerChoosesReplacement` | affected player/controller orders |
+| 616.1 | follows | `engine/rules/replacement.go#Engine.replacementAskPlayer` `engine/rules/replacement.go#Engine.applyReplacementsDispatch` | `TestCR616AffectedControllerChoosesReplacement` `TestParkedDeathsAskOncePerCreature` | affected player/controller orders |
 | 616.1a | follows | `engine/effects/registry.go#Resolve` | - | structural: self-replacement inline before emit |
 | 616.1b | not-impl | `engine/cards/kw_etbreplacement.go#kwETBReplacement` | - | SILENT; Layer$ Control never read |
 | 616.1c | not-impl | `engine/cards/kw_etbreplacement.go#kwETBReplacement` | - | SILENT; ETBReplacement Copy layer dropped |
