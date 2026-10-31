@@ -10,10 +10,8 @@ wire reference for people plugging a SpellBench agent or harness into gorge: fra
 JSON, the digests, every message with a real example, the candidate kinds, the vocabularies and
 the error codes, all as gorge implements them.
 
-*Everything here was read from the code at commit `ad3777023` (2026-10-20) and checked
-against the goldens in
+This page is read from the code and checked against the goldens in
 [`server/spellbench/testdata/goldens`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/testdata/goldens).
-The `-h` outputs and the smoke test were re-run at `513a2a0c3` (2026-10-21).*
 
 !!! note "Where this comes from"
     gorge's SpellBench packages are ported from the SpellBench repository's gorge adapter
@@ -56,7 +54,7 @@ it should not see.
 ### Running the binaries
 
 Both commands need the compiled Forge card corpus (`make fetch-cards`; see
-[Getting started](../getting-started.md)). `-h` prints, at `513a2a0c3`:
+[Getting started](../getting-started.md)). `-h` prints:
 
 ```text
 $ go build -o bin/ ./cmd/spellbench-gorge-env ./cmd/spellbench-gorge-agent
@@ -756,9 +754,8 @@ classification `forfeit` and reason `forfeit:<cause>`. From the upstream golden
 !!! note "gorged's outcome for halted and forfeited games"
     Like the upstream host, `gorged`'s seat writes `"outcome":"halted"` for a match that ended
     without a result and the winner's `pN_win` for a forfeit
-    ([`seat.go`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/seat/seat.go) `EndMatch`;
-    rechecked at `25d71cadc`). Earlier builds wrote `"outcome":""`, which the schema still
-    admits.
+    ([`seat.go`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/seat/seat.go) `EndMatch`).
+    The schema also admits `"outcome":""`.
 
 ### Agent errors
 
@@ -992,7 +989,8 @@ but cannot replay it: its rows surround a fake engine with a different catalog.
 ## Extensions on the HTTP human seat
 
 `/api/sbv2/v1/tables/<table>/matches/<match>` is gorge's opt-in HTTP transport for a human
-seat. Its `state` and `stream` responses carry the usual SpellBench v2 `choose` request plus
+seat, with `GET .../state`, `GET .../stream` (Server-Sent Events) and `POST .../send`. It takes the
+native wire's seat token, and a table outside two seats and constructed answers 409. Its `state` and `stream` responses carry the usual SpellBench v2 `choose` request plus
 two `seat_decision.extensions` entries. They are emitted only on these human routes, always
 both, and never to a bot agent: the stdio bot-agent wire (`server/spellbench/env` and
 `server/spellbench/seat`) is byte-unchanged and still offers no extensions.
@@ -1040,8 +1038,8 @@ registered under the prefix and the native wire is byte-identical. The package's
 [`server/host/sbv2http/testdata/golden/2seat.ndjson.gz`](https://github.com/adams-shaun/gorge/blob/main/server/host/sbv2http/testdata/golden/2seat.ndjson.gz),
 pins one fixed-seed two-seat game: after a leading meta line, each NDJSON line is a `state`
 response, a `stream` frame, a `send` body, or the native fallback answer for a decision the
-wire could not pose, captured byte for byte (`TestSBV2Golden`; regenerate only with operator
-sign-off via `SBV2_GOLDEN_REGEN=1`). `TestSBV2ParityLegacyDecks` plays 20 fixed seeds over the two-seat
+wire could not pose, captured byte for byte (`TestSBV2Golden`; regenerate with
+`SBV2_GOLDEN_REGEN=1`, and only with a maintainer's sign-off). `TestSBV2ParityLegacyDecks` plays 20 fixed seeds over the two-seat
 Legacy deck pairs and requires the scripted v2 client and the native table to end on the same
 chain head, and `TestSBV2NativeOnlyCensus` ratchets the server-signalled `native_only`
 decisions by kind in `testdata/native_only.tsv`, which may only shrink. The handful of

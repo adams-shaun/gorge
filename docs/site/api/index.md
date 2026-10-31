@@ -1,12 +1,9 @@
 # API reference
 
-gorge has five public interfaces. You can watch and play games over **HTTP** with a live
-**event stream**, plug in agents and harnesses over **SpellBench v2**, answer draft and game
-batches over **gorge-agent/1**, or import gorge as a **Go library**. This section is the authoritative reference for each one: every endpoint,
-message and signature, the versioning rule that applies, and the machine-readable files that
-client generators can consume. The tutorials elsewhere on the site link here for detail; start
-with [Bots](../bots/index.md) or the [User's guide](../guide/index.md) if you want a
-walkthrough.
+This section is the reference for gorge's public interfaces: watch and play games over **HTTP** with a live **event stream**, plug in
+agents and harnesses over **SpellBench v2**, play a seat from a **ManaBrew** client, answer draft and game batches over
+**gorge-agent/1**, or import gorge as a **Go library**. For a walkthrough, start with [Bots](../bots/index.md) or the
+[User's guide](../guide/index.md).
 
 ## Which API for which job
 
@@ -38,10 +35,11 @@ flowchart LR
 | Decode stream frames or view JSON in another language | The wire types | [Wire protocol](protocol.md), [`gorge-protocol.schema.json`](schemas/gorge-protocol.schema.json) |
 | Play a seat from any language | `pending` / `intent` over HTTP | [HTTP API: the decision loop](http.md#the-decision-loop), walkthrough in [Playing a seat over HTTP](../bots/http.md) |
 | Run gorge as the engine behind a SpellBench host, or seat a SpellBench agent at a gorge table | SpellBench v2 | [SpellBench v2](spellbench-v2.md) |
+| Play a seat from a ManaBrew client | The ManaBrew wire (`-manabrew`) | [ManaBrew](manabrew.md) |
 | Answer draft picks, deck builds and game decisions in batches from another language | `gorge-agent/1` | [gorge-agent/1](gorge-agent.md) |
 | Write a bot in Go, embed the engine, or run your own server | The Go packages | [Go embedding API](go.md) |
 
-All five sit on one engine contract. The engine asks a **decision** that lists every legal
+All of them sit on one engine contract. The engine asks a **decision** that lists every legal
 option, and the player answers with an **intent** naming option indices. No rules knowledge
 crosses any of these boundaries, and the engine validates every answer. A client of any API can
 play badly, but never illegally.
@@ -59,7 +57,7 @@ and what is only a convention.
 | SpellBench | protocol string `spellbench/v2`; `protocol_minor` (gorge answers 0) | Any other protocol string is `protocol_mismatch`. New features arrive as `x_` extensions. | The request decoder (`server/spellbench/protocol`), the goldens in `server/spellbench/testdata/goldens`, and `TestSemanticSchemaMatchesKindTable` / `TestSchemaErrorCodesMatchErrorsGo` for the published schemas |
 | gorge-agent | protocol string `gorge-agent/1`, `wire.Version` = **1**, the `v` field of every line | The version bumps only on a breaking change. Additive fields do not bump it, and both sides ignore unknown fields. | The golden messages in `draft/draftlab/extern/wire/testdata` |
 | Go packages | none: the module has no release tags | Any commit may change an exported signature. Pin a commit. | Nothing, beyond the import-layering tests in `internal/archtest` and the `server/host` contract harnesses (`RunContractTable` and friends) that embedders can run in their own tests. See [Go: Stability](go.md#stability). |
-| ManaBrew adapter | `/api/manabrew/v0/` | Deprioritised; not part of this reference | its own tests in the ordinary suite |
+| ManaBrew | `/api/manabrew/v0/` | Follows the published ManaBrew protocol; gorge's additions are `x_`-prefixed optional members | `server/protocol/manabrew`'s schema equivalence tests and the [wire matrix](../architecture/wires.md) |
 
 gorge has no contract registry and no deprecation process. When a surface changes, the commit
 that changes it regenerates the artifacts above, and that diff is the changelog.
@@ -78,7 +76,7 @@ URL (`https://adams-shaun.github.io/gorge/api/<file>`):
 | [`web/src/protocol.ts`](https://github.com/adams-shaun/gorge/blob/main/web/src/protocol.ts) | TypeScript | The wire types, for the web client | `cmd/gentypes` (`make gentypes`) |
 
 To generate a client, point your generator at `openapi.json`. For example, with
-[openapi-generator](https://openapi-generator.tech) (not run for this page):
+[openapi-generator](https://openapi-generator.tech):
 
 ```sh
 openapi-generator generate -i https://adams-shaun.github.io/gorge/api/openapi.json -g python -o gorge-client

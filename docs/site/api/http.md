@@ -25,7 +25,7 @@ The machine-readable spec is the authority, and this page is a reading of it:
     of httpapi's operations is actually routed. Every schema marked `x-go-type` is generated
     from that Go type's source, so a renamed field or a new one fails the test until the spec
     is regenerated. The decision-kind enum is compared with `decision.Kinds`. The examples are
-    real responses, captured from a live server on 2026-10-20 at commit `ad3777023`.
+    real responses captured from a live server.
 
     After you change a route or a wire type, regenerate the derived parts and then document
     any new route by hand in `openapi.json`:
@@ -36,16 +36,15 @@ The machine-readable spec is the authority, and this page is a reading of it:
 
 ## Try it
 
-Start a server (see [Install and build](../guide/install.md)), then:
+Start a server (`go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-api -tables 2 -seats 2 -humans 0`), then:
 
 ```sh
-GORGE=http://127.0.0.1:8080
+GORGE=http://127.0.0.1:8090
 curl -s $GORGE/api/tables | python3 -m json.tool | head -20
 curl -sN --max-time 2 $GORGE/api/stream | head -c 300
 ```
 
-Against a two-table server started with `-tables 2 -seats 2 -humans 0`, the first command
-printed this (2026-10-20, the server on another port):
+The first command prints:
 
 ```json
 [
@@ -101,7 +100,7 @@ You get a seat token in one of three ways:
 - `POST /api/games` returns one for the seat it creates. That response is the only place
   the token ever leaves the server.
 - With `-humans 0,2`, gorged mints one per human slot of table `t1` and prints the join URL
-  for each at startup: `table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=…`.
+  for each at startup: `table t1 seat 0 joins at http://127.0.0.1:8090/t/t1?seat=0&token=…`.
 - `-seat-token TOKEN` fixes the first human slot's token. It is meant for tests and local use.
 
 ## Which routes exist
@@ -118,11 +117,12 @@ JSON 404 `no such endpoint`, and a non-API path falls through to the web client.
 | `-pprof` | `/debug/pprof/…`. gorged refuses the flag unless `-addr` is a loopback address. |
 | `-events` | `/api/events…`, off by default. gorge's `cmd/gorged` links the runtime ([Draft events](../guide/draft.md)); an embedding program whose [`server/gorged.Extensions`](go.md) has no `Events` is refused at startup. |
 | `gorged review` | A separate, read-only mode: the lobby, match and stream routes over saved games, plus `GET …/decisions`. Every seat route answers 403. |
-| `-manabrew` | The ManaBrew adapter under `/api/manabrew/v0/tables/`. This is a separate, deprioritised protocol and is not covered here (see [below](#not-covered)). |
+| `-manabrew` | The [ManaBrew wire](manabrew.md) under `/api/manabrew/v0/tables/`. Needs `-humans` or `-vsbot`. |
+| `-sbv2` | [SpellBench v2 seats over HTTP](spellbench-v2.md#extensions-on-the-http-human-seat) under `/api/sbv2/v1/tables/`. Needs `-humans` or `-vsbot`. |
 
 Every other path (`/`, `/t/t1`, …) serves the embedded web client with an SPA fallback to
 `index.html`. A binary built without the web bundle answers those paths with
-`503 web build missing`.
+`503 web build missing — run make web`; the bundle is embedded at build time, so `make web` comes before `go build`.
 
 ## Endpoints
 
@@ -278,8 +278,8 @@ The set of kinds is closed (`decision.Kinds`), and the spec's `Kind` enum is che
 |---|---|---|
 | `priority` | 1 / 1 | One option per legal action (`play_land`, `cast`, `activate`, `ability`, …), plus `pass` and `concede`. |
 | `target` | per spell | One option per legal target (`player` or an object). `target_effect` says what the targeting does: damage, removal or granted statics. |
-| `attackers` | 0 / N | One `attacker` option per (creature, defender) pair. `player` is the defender seat; `battle` is a permanent being attacked. Options sharing a `group` are mutually exclusive. |
-| `blockers` | 0 / N | One `block` option per (blocker, attacker) pair, with `attacker` naming the attacker. `group` keeps each blocker on one attacker; `min_blockers`/`max_blockers` bound an attacker's blocker count. |
+| `attackers` | 0 / N | One `attacker` option per (creature, defender) pair. `player` is the defender seat; `battle` is a permanent being attacked. Options sharing a `group` are mutually exclusive, and so are two options with the same `obj`. An option with `alone_restricted` is legal only when another creature is declared too ("can't attack alone"). |
+| `blockers` | 0 / N | One `block` option per (blocker, attacker) pair, with `attacker` naming the attacker. `group` keeps each blocker on one attacker; `min_blockers`/`max_blockers` bound an attacker's blocker count. `alone_restricted` means legal only with another blocker declared. |
 | `mulligan` | 1 / 1, or k / k | Keep phase: `keep`, plus `mulligan` while one remains. Bottom phase: one `bottom` option per card in hand; choose as many cards as you took mulligans. |
 | `modes` | MinCharmNum / CharmNum | One `mode` option per mode, in printed order. An unless-pay ask uses option `mode` `unless_pay` / `unless_decline`. |
 | `trigger_order` | N / N | A permutation of your simultaneous triggers. `choices[0]` goes on the stack **first**, so it resolves **last**. |
@@ -326,10 +326,9 @@ Every `/api/` error has the same body, `protocol.ErrorBody`:
   as strings, not as JS doubles. `viewer` is 255 for a spectator view.
 - **Seats** are 0-indexed (`player`, `seat`). Match indices are 1-indexed.
 
-## Not covered
+## Other wires
 
-- **ManaBrew** (`-manabrew`, `server/host/manabrewhttp`): a separate, deprioritised adapter
-  protocol, mounted under `/api/manabrew/v0/tables/{t}/matches/{k}/{stream,send,state}`. The
-  drift guard does not cover it, because its routes are mounted under a computed prefix.
-- **The SpellBench seat** (`-sb-agent`) is not HTTP. It speaks
-  [SpellBench v2](spellbench-v2.md) to an agent subprocess.
+- **ManaBrew** (`-manabrew`) and **SpellBench v2 over HTTP** (`-sbv2`) mount under computed prefixes, so the OpenAPI drift guard doesn't
+  cover them; [Wires](../architecture/wires.md) lists the tests that do. See [ManaBrew](manabrew.md) and
+  [SpellBench v2](spellbench-v2.md#extensions-on-the-http-human-seat).
+- **The SpellBench seat** (`-sb-agent`) isn't HTTP. It speaks [SpellBench v2](spellbench-v2.md) to an agent subprocess.
