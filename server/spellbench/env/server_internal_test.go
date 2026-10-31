@@ -60,3 +60,19 @@ func TestStartFailureIsUnsupportedDeckAndConsumesNothing(t *testing.T) {
 		t.Fatalf("the game id was not reusable after a failed start: %s", ok)
 	}
 }
+
+func TestShortNamesTheCommit(t *testing.T) {
+	for in, want := range map[string]string{
+		"v0.0.0-20261031120000-96610c40a1f8":       "96610c40a1f8",
+		"v0.0.0-20261031120000-96610c40a1f8+dirty": "96610c40a1f8+dirty",
+		"v1.2.4-0.20261031120000-96610c40a1f8":     "96610c40a1f8",
+		"v1.2.3":                                   "v1.2.3",
+		"v1.20.300-rc.1":                           "v1.20.300-rc.1",
+		"96610c40a1f8e23ba93c45430171d9be288d5523": "96610c40a1f8",
+		"devel": "devel",
+	} {
+		if got := short(in); got != want {
+			t.Errorf("short(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
