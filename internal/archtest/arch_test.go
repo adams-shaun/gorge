@@ -375,10 +375,10 @@ func TestManaBrewWireIsStdlibOnly(t *testing.T) {
 }
 
 // TestNoExportLeaksAnEngineGame is D6's compile-time half: no exported
-// function or method of host or server/host/httpapi may expose a *state.Game or a
-// *rules.Engine through its signature — by return type, or by any parameter
-// shape a caller could funnel back into a leaked live game. Every value that
-// crosses either package is already a view.View, a protocol.* or a
+// function or method of host or server/host/httpapi may expose a game.Game, a
+// *state.Game or a *rules.Engine through its signature — by return type, or by
+// any parameter shape a caller could funnel back into a leaked live game. Every
+// value that crosses either package is already a view.View, a protocol.* or a
 // decision.* payload; the engine and its game never leave engine/rules/ at all (a
 // client layer must read state only through view).
 //
@@ -397,11 +397,12 @@ func TestNoExportLeaksAnEngineGame(t *testing.T) {
 	// so a source change invalidates this test's cached result (see its doc
 	// comment); the returned map is unused here.
 	packages(t)
-	// These exact type names (state.Game, rules.Engine) are what a leak's
-	// signature would carry; a legitimate client-facing type never has an
-	// element in either package. Word boundaries stop the match from
+	// These exact type names (game.Game, state.Game, rules.Engine) are what a
+	// leak's signature would carry; a legitimate client-facing type never has an
+	// element in any of these packages. Word boundaries stop the match from
 	// prefix-colliding with a hypothetical longer identifier.
 	leaks := []*regexp.Regexp{
+		regexp.MustCompile(`\bgame\.Game\b`),
 		regexp.MustCompile(`\bstate\.Game\b`),
 		regexp.MustCompile(`\brules\.Engine\b`),
 	}
