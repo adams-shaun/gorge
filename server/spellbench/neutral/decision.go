@@ -270,7 +270,7 @@ func (s *Session) Payload(sd *protocol.SeatDecision) (xview.Payload, error) {
 	// world has no extension to read them from, so publish the decision's
 	// own resume fields. Without the kind, a counter's unless-pay ask loses
 	// its pay/decline arm and the bot pays a tax natively declined.
-	facts := xview.Facts{ResumeKind: string(d.ResumeKind)}
+	facts := xview.Facts{ResumeKind: string(d.ResumeKind), EffectOptional: d.EffectOptional}
 	if d.ResumeSA != nil {
 		facts.ResumeAPI = d.ResumeSA.API
 		facts.ResumeUnlessCost = d.ResumeSA.Params["UnlessCost"]
@@ -3081,6 +3081,9 @@ func (s *Session) yesNo(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native,
 		d.Options[0].Kind, d.Options[1].Kind = "trigger_cost_pay", "trigger_cost_decline"
 	case str(first, "purpose") == "optional_trigger" || str(first, "purpose") == "may_ability":
 		d.Kind = decision.KTriggerOptional
+		if src, _ := optRef(first, "source"); src != nil && str(first, "purpose") == "optional_trigger" {
+			d.EffectOptional = s.effectOptional(*src)
+		}
 		if src, _ := optRef(first, "source"); src != nil && str(first, "purpose") == "may_ability" {
 			if sa := s.repeatOptionalSA(*src, &sd.Observation); sa != nil {
 				// RepeatOptional$'s election is a plain choose with its own
@@ -3109,6 +3112,30 @@ func (s *Session) yesNo(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native,
 		ops[i] = mapping.NativeOp{Op: "choose", Option: k}
 	}
 	return ops, n, nil
+}
+
+// effectOptional reports whether a source's optional trigger is one an Effect
+// it created carries (an emblem's "you may"): the source prints no optional
+// trigger, and an SVar body of its is one. gorge marks that election on the
+// decision, and the bot declines it.
+func (s *Session) effectOptional(src protocol.ObjectRef) bool {
+	f := s.abilityFace(src)
+	if f == nil {
+		return false
+	}
+	for _, tr := range f.Triggers {
+		if _, ok := tr.Params["OptionalDecider"]; ok {
+			return false
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(f.SVars)) {
+		if tr, ok := cards.ParseTriggerLine(f.SVars[name]); ok {
+			if _, optional := tr.Params["OptionalDecider"]; optional {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // repeatOptionalSA is the RepeatOptional$ Repeat of the ability the source

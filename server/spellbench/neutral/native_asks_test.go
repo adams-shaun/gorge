@@ -170,3 +170,26 @@ func TestHandDiscardsKeepNativeKinds(t *testing.T) {
 		t.Fatalf("a hand-origin Hidden$ ChangeZone offers %q, want hand_move", k)
 	}
 }
+
+// TestEffectOptionalIsMarked: an emblem's "you may" trigger is gorge's
+// EffectOptional election, which the bot declines. The wire says only that a
+// trigger of the walker is optional.
+func TestEffectOptionalIsMarked(t *testing.T) {
+	s := fixtureSession(t, "Name:Fixture Walker\nManaCost:2 G\nTypes:Legendary Planeswalker Fixture\nLoyalty:3\n"+
+		"A:AB$ Effect | Cost$ SubCounter<3/LOYALTY> | Planeswalker$ True | Triggers$ Later | Duration$ Permanent | SpellDescription$ Fixture emblem.\n"+
+		"SVar:Later:Mode$ Phase | Phase$ End of Turn | ValidPlayer$ You | Execute$ Body | OptionalDecider$ You | TriggerDescription$ Fixture may.\n"+
+		"SVar:Body:DB$ Draw | NumCards$ 1\n")
+	src := obsRef("o-trigger", "Fixture Walker", "p0")
+	src.Zone = "stack"
+	obs := testObservation("p0", "end_step", nil, nil)
+	obs.Stack = []protocol.StackEntry{{ObjectRef: src, StackKind: "triggered_ability"}}
+	p := translated(t, s, protocol.SeatDecision{ActingSeat: "p0", Group: protocol.Group{SubstepCount: 1},
+		Context: protocol.Context{Kind: "choice"}, Observation: obs,
+		Candidates: []protocol.Candidate{
+			{Semantic: protocol.ChooseBoolean(&src, "optional_trigger", true)},
+			{Semantic: protocol.ChooseBoolean(&src, "optional_trigger", false)},
+		}})
+	if p.Decision.Kind != decision.KTriggerOptional || !p.Facts.EffectOptional {
+		t.Fatalf("decision kind %q, EffectOptional %v", p.Decision.Kind, p.Facts.EffectOptional)
+	}
+}
