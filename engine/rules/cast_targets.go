@@ -1363,7 +1363,7 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 // no reversal is owed.
 func (e *Engine) pushCast() bool {
 	pc := e.cast
-	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.mode == "plot" || pc.mode == "foretell" || pc.isAbility() {
+	if pc == nil || pc.isSpecialAction() || pc.isAbility() {
 		return false
 	}
 	if pc.pushed {

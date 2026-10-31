@@ -105,7 +105,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 116.2c-116.2e | unknown | - | - | not reached |
 | 116.2f | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` `engine/rules/cast_commit.go#Engine.payCast` | - | suspend exile |
 | 116.2g | not-impl | `engine/rules/trigger_match.go#init` | - | companion to hand absent; SILENT |
-| 116.2h | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` `engine/rules/cast_commit.go#Engine.payCast` | - | foretell exile |
+| 116.2h | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` `engine/rules/cast_commit.go#Engine.payCast` `engine/rules/cast_asks.go#Engine.castModeAsk` | `TestForetellingAModalCardAnnouncesNoModes` | foretell exile |
 | 116.2i | not-impl | - | - | Planechase decks accepted, no planar-die roll; SILENT |
 | 116.2j | n/a | - | - | no Conspiracy |
 | 116.2k | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | follows 702.170a (main phase); 116.2k text broader |

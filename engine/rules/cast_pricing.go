@@ -23,6 +23,12 @@ func (pc *pendingCast) isAbility() bool {
 	return pc.ability >= 0 || pc.grantSVar != "" || pc.gainedFrom != 0 || pc.grantKeyword != ""
 }
 
+// isSpecialAction reports a proposal that is no spell (CR 116.2): the card never
+// reaches the stack, so nothing of a cast is announced for it.
+func (pc *pendingCast) isSpecialAction() bool {
+	return pc.mode == "land" || pc.mode == "suspend" || pc.mode == "plot" || pc.mode == "foretell"
+}
+
 // pcAbility resolves the proposal's ability body. A printed activation reads
 // its Face().Abilities index; a granted activation (task grantcost1) resolves
 // the SVar anchor off the GRANTOR's face -- the recipient's face has no such
