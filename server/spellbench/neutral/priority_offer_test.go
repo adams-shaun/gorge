@@ -1,6 +1,7 @@
 package neutral
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -91,5 +92,30 @@ func TestLoyaltyFactsComeFromTheShadow(t *testing.T) {
 	}
 	if l := p.Decision.Options[op.Option].Loyalty; l == nil || l.Delta != 1 {
 		t.Fatalf("loyalty facts %+v, want a delta of 1", l)
+	}
+}
+
+// TestAutopayCensusHoldsOnlyOfferedCasts: the planner declines a multikicker
+// card, and only tapping by hand could cast it, which an engine_autopay host
+// does not offer. It must leave the census, or the bot reads it as a stranded
+// cast, answers with the manual policy and passes with a planned spell in hand.
+func TestAutopayCensusHoldsOnlyOfferedCasts(t *testing.T) {
+	s := fixtureSession(t, fixturePlains,
+		"Name:Fixture Note\nManaCost:W\nTypes:Sorcery\nA:SP$ Draw | NumCards$ 1 | SpellDescription$ Fixture draw.\n",
+		"Name:Fixture Rider\nManaCost:W\nTypes:Creature Human\nPT:1/1\nK:Multikicker:1 W\n")
+	s.SetAutoPay(true)
+	hand := func(id, name string) protocol.ObjectRecord {
+		r := obsRef(id, name, "p0")
+		r.Zone = "hand"
+		return protocol.ObjectRecord{ObjectRef: r}
+	}
+	obs := seatPriority([]protocol.ObjectRecord{obsPerm("o-plains", "Plains", "p0", untapped(), "land")})
+	obs.Players[0].Hand = []protocol.ObjectRecord{hand("o-note", "Fixture Note"), hand("o-rider", "Fixture Rider")}
+	p := translated(t, s, priorityDecision(obs, protocol.CastSpell(obs.Players[0].Hand[0].ObjectRef, "normal")))
+	if !p.Decision.PotentialCastsKnown || !slices.Contains(p.Decision.PotentialCasts, s.B.IDs.Of("o-note")) {
+		t.Fatalf("the offered cast is not in the census: %v", p.Decision.PotentialCasts)
+	}
+	if slices.Contains(p.Decision.PotentialCasts, s.B.IDs.Of("o-rider")) {
+		t.Fatalf("the unoffered cast is in the census: %v", p.Decision.PotentialCasts)
 	}
 }

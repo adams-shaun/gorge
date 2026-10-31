@@ -77,6 +77,16 @@ type castKey struct {
 	flashbck bool
 }
 
+// offersCast reports whether the host offers a cast of the object.
+func (c *candidates) offersCast(id state.ObjID) bool {
+	for k := range c.cast {
+		if k.obj == id {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Session) candidates(sd *protocol.SeatDecision) *candidates {
 	c := &candidates{srcs: map[state.ObjID][]int{}, cast: map[castKey]int{}, pass: -1, handLike: map[string]bool{}}
 	for i, cd := range sd.Candidates {
@@ -138,9 +148,10 @@ type prepared struct {
 
 // castCensus is the rebuilt board's account of what can be cast this window,
 // in the builder's object ids. The bot's tap gate reads it to tell a card
-// worth floating mana for from one no amount of mana can cast, so an autopay
-// seat without it reads every unplanned card as a stranded cast and answers
-// with the manual policy, whose taps that host does not offer.
+// worth floating mana for from one no amount of mana can cast. An autopay host
+// offers no taps, so a card it does not offer to cast is one of those; a card
+// left in the census reads as a stranded cast, and the bot answers with the
+// manual policy, whose taps that host does not offer.
 type castCensus struct {
 	known     bool
 	casts     []state.ObjID
@@ -179,6 +190,11 @@ func (s *Session) prepay(sd *protocol.SeatDecision, v *view.View) *prepared {
 	}
 	var actions []decision.PaymentAction
 	actions, pre.floats, pre.census, pre.shadow = s.plans(sd, c)
+	if pre.planOnly {
+		pre.census.casts = slices.DeleteFunc(pre.census.casts, func(id state.ObjID) bool {
+			return !c.offersCast(id)
+		})
+	}
 	for _, a := range actions {
 		pl := &planned{action: a, sel: &decision.PaymentSelection{ActionID: a.ID, Plan: decision.ClonePaymentPlan(a.Plans[0])}, cand: -1,
 			poolOnly: len(a.Plans[0].Activations) == 0}

@@ -290,6 +290,16 @@ func followKey(k string, perm []int, fperm map[string][]int) string {
 	return out
 }
 
+// offeredCasts is the decision's cast census reduced to what an autopay host
+// offers: its taps are hidden, so an unoffered card is not one the seat can cast
+// this window, whatever tapping the census prices.
+func offeredCasts(d *decision.Decision) []state.ObjID {
+	return slices.DeleteFunc(slices.Clone(d.PotentialCasts), func(id state.ObjID) bool {
+		return !slices.ContainsFunc(d.Options, func(o decision.Option) bool { return o.Kind == "cast" && o.Obj == id }) &&
+			!slices.ContainsFunc(d.PaymentActions, func(a decision.PaymentAction) bool { return a.Cast.Object == id })
+	})
+}
+
 func (x *Extender) Extend(env *mapping.Env, p *mapping.Pose, nativeIndex uint64) (map[string]json.RawMessage, error) {
 	g := env.G.R
 	seat := p.Seat
@@ -316,12 +326,13 @@ func (x *Extender) Extend(env *mapping.Env, p *mapping.Pose, nativeIndex uint64)
 		pl.Facts.Options = nf
 	}
 	paymentActions := d.PaymentActions
+	potentialCasts := offeredCasts(&d)
 	r.decision(&d, nativeIndex)
 	if env.AutoPay {
 		d.PaymentActions = paymentActions
 		if x.castCensus && d.PotentialCastsKnown {
 			pl.Facts.PotentialCastsKnown = true
-			pl.Facts.PotentialCasts = r.ids(d.PotentialCasts)
+			pl.Facts.PotentialCasts = r.ids(potentialCasts)
 			pl.Facts.PotentialUnpayableCasts = r.ids(d.PotentialUnpayableCasts)
 		}
 	}
