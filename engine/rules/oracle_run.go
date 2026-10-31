@@ -2157,7 +2157,22 @@ func (r *oracleRun) do(st oracleStep) error {
 		if err != nil {
 			return err
 		}
-		return r.submit(d, []int{pickPass(d)}, "pass")
+		if err := r.submit(d, []int{pickPass(d)}, "pass"); err != nil {
+			return err
+		}
+		// A pass that resolves a permanent spell can open its trigger's target
+		// ask. Answers scripted on the pass settle it, so the step can stop with
+		// the trigger on the stack.
+		for len(r.answers) > 0 {
+			d := e.Pending()
+			if d == nil || d.Kind == decision.KPriority || e.G.Over {
+				break
+			}
+			if err := r.answer(d, "pass"); err != nil {
+				return err
+			}
+		}
+		return nil
 	case oracleOpPassTo:
 		var want state.Step
 		if st.Step != "" {

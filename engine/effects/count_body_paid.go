@@ -7,6 +7,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// castProvenanceSource is the object the cast-provenance heads read off: the
+// source, or for a trigger whose source has left the battlefield, what it was as
+// it left (CR 608.2h). The move clears these fields on the live object.
+func castProvenanceSource(g *state.Game, c *Ctx) *state.Object {
+	o := g.Obj(c.Source)
+	if c.LKI != nil && c.LKI.ID == c.Source && (o == nil || o.Zone != state.ZBattlefield) {
+		return c.LKI
+	}
+	return o
+}
+
 // evalCountBodyPaid evaluates the second half of the original head switch:
 // the paid-cost, chosen, remembered, life-log and commander heads
 // (OptionalGenericCostPaid through ColorsColorIdentity). The dispatcher has
@@ -52,7 +63,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		if c.Num.OptionalCostElected {
 			return paid, true, true
 		}
-		if o := g.Obj(c.Source); o != nil && o.OptionalCostPaid {
+		if o := castProvenanceSource(g, c); o != nil && o.OptionalCostPaid {
 			return paid, true, true
 		}
 		return unpaid, true, true
@@ -67,7 +78,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// spell became (the stack->battlefield move preserves the field) -- so
 		// a replay derives the same value; a copy of the spell was never cast
 		// and reads 0 (so a minted 1/1 copy mints no further copies).
-		if o := g.Obj(c.Source); o != nil {
+		if o := castProvenanceSource(g, c); o != nil {
 			if o.OffspringPaid {
 				return 1, true, true
 			}
@@ -88,7 +99,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		if c.Kicker.TimesKicked != 0 {
 			return c.Kicker.TimesKicked, true, true
 		}
-		if o := g.Obj(c.Source); o != nil {
+		if o := castProvenanceSource(g, c); o != nil {
 			return o.TimesKicked, true, true
 		}
 		return 0, true, true
@@ -99,7 +110,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// (Vadrok, Apex of Thunder's "where X is the number of times this
 		// creature has mutated") resolve against the mutated permanent, which
 		// is c.Source at resolution.
-		if o := g.Obj(c.Source); o != nil {
+		if o := castProvenanceSource(g, c); o != nil {
 			return o.TimesMutated, true, true
 		}
 		return 0, true, true
@@ -111,7 +122,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// replay derives the same answer; a COPY of the spell was never cast
 		// and reads 0. The keyword expansion's copy trigger uses this as its
 		// Amount, so a declined Conspire (false) emits nothing.
-		if o := g.Obj(c.Source); o != nil && o.Conspired {
+		if o := castProvenanceSource(g, c); o != nil && o.Conspired {
 			return 1, true, true
 		}
 		return 0, true, true
@@ -124,7 +135,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// K:etbCounter ETB replacement the same object after the
 		// stack->battlefield move preserves it -- so a replay derives the
 		// same count; a copy of the spell was never cast and reads 0.
-		if o := g.Obj(c.Source); o != nil {
+		if o := castProvenanceSource(g, c); o != nil {
 			return o.ConvergeColours, true, true
 		}
 		return 0, true, true
@@ -157,7 +168,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// to 0, which is strictly closer to the truth than the unfiltered
 		// total the head used to return. Every resolved form is a real
 		// per-unit count, not an approximation.
-		if o := g.Obj(c.Source); o != nil {
+		if o := castProvenanceSource(g, c); o != nil {
 			// The typed tags are the SAME table the producer-side tagging
 			// reads (state.TypedManaTags), so a modelled type counts and a
 			// type the pool cannot tag stays the fail-closed 0.
