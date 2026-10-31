@@ -15,6 +15,7 @@ engine/: cards → state → decision → events → effects → rules → repla
 bots/:   botpolicy (→ effects) → heuristic (→ seat) → searchprobe/searchseat/azmcts (→ rules) → bots registry
 server/: protocol (→ view) → host (→ rules, bots registry) → server/host/httpapi
 server/gorged (→ host, httpapi, bots/all) → cmd/gorged
+draft/:  limited (→ engine/cards, engine/deck) → event → eventhost (→ bots, host) → gorgedevents (→ server/gorged) → cmd/gorged; draftlab (→ event, testkit/bench)
 cmd/*
 (outside the repo: companion modules import gorge; gorge never imports them)
 ```
@@ -23,9 +24,12 @@ A package imports only packages to its left or in an earlier group. `deck`
 sits beside the engine chain: it imports `cards` only and is imported by
 `rules`, `view`, `host` and the test fixtures. `engine/seat` is the contract
 only and imports just `decision` and `view`. That is the measured import graph
-(`go list`, 2026-10-16, after the ADR 0001 restructure). Draft events and
-the companion bots live in a private companion module and reach gorge only
-through `server/gorged.Extensions`, `server/gorged.RegisterNetBot` and
+(`go list`, 2026-10-16, after the ADR 0001 restructure). The draft stack sits
+above that chain in `draft/`: only `cmd/gorged`, `cmd/draftsim`, `cmd/labdemo`
+and `cmd/extagent` may depend on it (`TestDraftTreeStaysAbove`), and
+`cmd/gorged` hands it to the server through `server/gorged.Extensions`. The
+companion bots live in a private companion module and reach gorge only
+through `server/gorged.RegisterNetBot` and
 `bots.Register`; nothing in gorge can import a companion, because the root
 `go.mod` has no `require` lines (invariant 7). The enforced contract is the set of
 edges that must never appear: `effects` never imports `rules` (effects reaches
@@ -79,8 +83,10 @@ The engine is a pure function of `(Config, intents)`.
     deadlines);
   - measurement and developer CLIs that read the clock only to bound a run or
     report elapsed time (`cmd/enginebench`, `cmd/cardfuzz`, `cmd/paymirror`);
-    the other clock-reading CLIs and the draft-event runtime moved out of
-    gorge;
+    the other clock-reading CLIs moved out of gorge;
+  - the draft-event runtime `draft/eventhost`, for its lobby, idle and pick
+    timers (`Options.Now`, `Options.Clock`): the log records their outcome as
+    entries, and replay never reads the clock;
   - nothing in the engine, card pipeline, effects, view or bot policies.
 
   Research libraries that need timing take an injected `Millis` hook instead

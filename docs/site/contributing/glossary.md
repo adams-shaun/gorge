@@ -150,9 +150,9 @@ by card against XMage, Forge and hand-written Oracle-text scenarios, and
 holds the certification ratchet. It imports gorge; gorge never imports it.
 See [The three repositories](../repos/index.md).
 
-**Private companion.** The maintainers' private companion module: draft
-events, the dirty-dirac kernel and the demo server. It imports gorge at a
-pinned commit; nothing in gorge needs it.
+**Private companion.** The maintainers' private companion module: machine
+learning, private experiments and the dirty-dirac kernel. It imports gorge at
+a pinned commit; nothing in gorge needs it.
 
 **`GORGE_PIN`.** A file at the root of each companion repository holding the
 full gorge commit SHA it builds against, mirrored by the gorge
@@ -211,6 +211,11 @@ gorge serves it in both roles: as an environment
 (`server/spellbench`, `cmd/spellbench-gorge-env`) and as an agent wrapping any
 registered gorge bot (`cmd/spellbench-gorge-agent`). `gorged` and `mtgsim`
 can also seat a v2 agent as a bot (`-sb-agent`).
+
+**Draft event, pod, persona.** A draft event is a whole limited tournament,
+not to be confused with an event in a game's log. A pod is its seats. A persona
+is a bot entrant: a drafter, a builder and a game policy. See
+[Draft events](../guide/draft.md).
 
 **Seam.** An exported extension point other modules plug into without gorge
 importing them: `bots.Register`, `server/gorged.RegisterNetBot`,

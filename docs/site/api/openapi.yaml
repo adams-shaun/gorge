@@ -3246,7 +3246,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3286,7 +3286,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3321,7 +3321,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3358,7 +3358,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3393,7 +3393,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3438,7 +3438,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3481,7 +3481,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3524,7 +3524,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3559,7 +3559,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3596,7 +3596,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3641,7 +3641,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3676,7 +3676,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3721,7 +3721,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3764,7 +3764,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3803,7 +3803,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -5876,7 +5876,7 @@ tags:
     name: "stream"
   - description: "On-demand play-vs-bot games (gorged -vsbot)."
     name: "games"
-  - description: "Draft events. Served only by a gorged binary that links a draft-event runtime (server/gorged.Extensions.Events) and runs with -events; gorge's own binary refuses -events, and every path here is then the JSON 404."
+  - description: "Draft events. Served only by a gorged running with -events, which is off by default; without it every path here is the JSON 404."
     name: "draft-events"
   - description: "gorged's same-origin card art and printed-text cache (fetched from Scryfall on first request)."
     name: "cards"

@@ -61,8 +61,8 @@ undo, search clones and bug reproduction are all one mechanism.
 
 !!! info "Status"
     gorge plays full two- to eight-player games, including Commander, serves
-    bot tables and play-against-a-bot games to a browser, and replays every
-    game byte for byte. It is **not** yet at rules parity with mature engines
+    bot tables, play-against-a-bot games and 4-player draft events to a
+    browser, and replays every game byte for byte. It is **not** yet at rules parity with mature engines
     and is not ready for production use.
 
 ## Who this site is for
@@ -90,7 +90,7 @@ dependencies and no cgo.
 ## Three repositories at a glance
 
 <figure>
-<svg viewBox="0 0 780 330" width="100%" role="img" aria-label="The three repositories. gorge, public, holds the engine, server, bots and tools. gorge-compliance, public, checks gorge against XMage and Forge. A private companion holds the maintainers' extensions. Both companions import gorge at a pinned commit; gorge imports neither.">
+<svg viewBox="0 0 780 330" width="100%" role="img" aria-label="The three repositories. gorge, public, holds the engine, server, bots and tools. gorge-compliance, public, checks gorge against XMage and Forge. A private companion holds machine learning, private experiments and the dirty-dirac kernel. Both companions import gorge at a pinned commit; gorge imports neither.">
 <defs><marker id="hm-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-arrow-accent"/></marker></defs>
 <rect x="270" y="10" width="240" height="250" rx="12" class="dg-box-accent"/>
 <rect x="270" y="10" width="240" height="40" rx="12" class="dg-box-solid"/>
@@ -101,8 +101,9 @@ dependencies and no cgo.
 <text x="288" y="142" class="dg-text">reference server gorged</text>
 <text x="288" y="164" class="dg-text">browser client (web/)</text>
 <text x="288" y="186" class="dg-text">baseline and hosted bots</text>
-<text x="288" y="208" class="dg-text">replay, bench, audit tools</text>
-<text x="390" y="242" text-anchor="middle" class="dg-text-muted">imports nothing but the stdlib</text>
+<text x="288" y="208" class="dg-text">draft events (draft/)</text>
+<text x="288" y="230" class="dg-text">replay, bench, audit tools</text>
+<text x="390" y="250" text-anchor="middle" class="dg-text-muted">imports nothing but the stdlib</text>
 <rect x="10" y="40" width="210" height="190" rx="12" class="dg-box"/>
 <text x="115" y="68" text-anchor="middle" class="dg-text-bold">gorge-compliance</text>
 <text x="115" y="88" text-anchor="middle" class="dg-text-muted">public · Apache-2.0</text>
@@ -114,9 +115,9 @@ dependencies and no cgo.
 <rect x="560" y="40" width="210" height="190" rx="12" class="dg-box-muted"/>
 <text x="665" y="68" text-anchor="middle" class="dg-text-bold">private companion</text>
 <text x="665" y="88" text-anchor="middle" class="dg-text-muted">private</text>
-<text x="576" y="116" class="dg-text">draft events,</text>
-<text x="576" y="136" class="dg-text">the dirty-dirac kernel,</text>
-<text x="576" y="156" class="dg-text">the demo server</text>
+<text x="576" y="116" class="dg-text">machine learning,</text>
+<text x="576" y="136" class="dg-text">private experiments,</text>
+<text x="576" y="156" class="dg-text">the dirty-dirac kernel</text>
 <text x="576" y="206" class="dg-text-muted">not needed to use gorge</text>
 <line x1="220" y1="135" x2="266" y2="135" class="dg-line-accent" marker-end="url(#hm-arr)"/>
 <line x1="560" y1="135" x2="514" y2="135" class="dg-line-accent" marker-end="url(#hm-arr)"/>

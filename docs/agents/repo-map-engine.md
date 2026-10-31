@@ -58,7 +58,7 @@ The layering design for `engine/rules` is
 
 | Package | What it owns |
 |---|---|
-| `server/gorged` | The importable server (`Main`, `Serve`): flags, persistence, demo tables, art prewarm. Extension seams: `Extensions{Events EventsPlugin; Flags}` (draft events under `/api/events`, refused without a plugin; the binary's own flags on gorged's command line), `RegisterNetBot` (the az-c3/c4/c5 network bots) and `RegisterClosedNetBot` (further closed-list net policies, served by the az-c4/c5 machinery under their own `-<policy>-*` flags). Draft events offer every policy that does not read decklists, closed-list net policies included (`eventPolicies`). `cmd/gorged` is its thin main. |
+| `server/gorged` | The importable server (`Main`, `Serve`): flags, persistence, demo tables, art prewarm. Extension seams: `Extensions{Events EventsPlugin; Flags}` (draft events under `/api/events`, which `cmd/gorged` fills from `draft/gorgedevents` and the zero value refuses; the binary's own flags on gorged's command line), `RegisterNetBot` (the az-c3/c4/c5 network bots) and `RegisterClosedNetBot` (further closed-list net policies, served by the az-c4/c5 machinery under their own `-<policy>-*` flags). Draft events offer every policy that does not read decklists, closed-list net policies included (`eventPolicies`). `cmd/gorged` is its thin main. |
 | `server/host` | Tables (one goroutine each), sessions, snapshots, persistence, undo, the hosted bot-policy vocabulary (`server/host/bot_policy.go`). Its only clock is an injected sleep. |
 | `server/host/httpapi` | `net/http` JSON + SSE + the embedded web client. Every seat route goes through `claimForTable`. |
 | `server/host/manabrewhttp` | The ManaBrew HTTP surface. |
@@ -68,4 +68,14 @@ The layering design for `engine/rules` is
 | `server/matchrecord` | The portable per-game match record (`gorge-match-1`, `<id>.match.json.gz`): the Config's replay-input subset, the log, the head and provenance; `Write`/`Load`/`Verify`, and `Match.Config`, the Config builder `feedback.Load` shares. Written by `testkit/bench`'s `Hooks.Record`; `cmd/repro` replays it. Never carries token text; never commit a record. |
 | `server/spellbench` (+`cmd/spellbench-gorge-env`) | The SpellBench Protocol v2 environment adapter: catalog, protocol, mapping, session, validation, minihost and goldens. `cmd/spellbench-gorge-env` serves it over stdio. Engine auto-pay is the default (agents never see mana taps); `-manual-mana` restores interactive mana taps. Ported from SpellBench's gorge adapter; see `NOTICE`. |
 
-The draft stack lives in a private companion module, which plugs it into `server/gorged` as an `EventsPlugin`.
+## `draft/`
+
+The design of record is [`docs/design/2026-10-13-draft-events-design.md`](../design/2026-10-13-draft-events-design.md); `spec §N` in these packages' comments refers to it.
+
+| Package | What it owns |
+|---|---|
+| `draft/limited` (+`setdata`, `booster`, `draft`, `build`, `pickbot`) | The pure limited pipeline: set data generated from trimmed MTGJSON, pack opening, the pod, deck rules, the drafter and builder with the embedded 17Lands ratings. No clock, files, network or engine state; each package's `imports_test.go` holds that. |
+| `draft/event` | The event lifecycle: the append-only log, `Apply`, `ReplayLog`, pairings, standings, 17Lands-shaped CSV export. Pure, and never imports the engine. |
+| `draft/eventhost` | The runtime inside gorged: store under `<dir>/events`, seat tokens, timers, restart resume, series on host tables. The only package of the stack allowed the clock. |
+| `draft/gorgedevents` | Adapts `eventhost` to `server/gorged.EventsPlugin`; `cmd/gorged` passes its `Plugin{}`. `server/gorged` cannot import it: that would be a cycle. |
+| `draft/draftlab` (+`extern`, `extern/wire`, `extern/refagent`) | The Go composition API, and out-of-process agents over the `gorge-agent/1` wire (`docs/site/api/gorge-agent.md`, goldens in `extern/wire/testdata`). |

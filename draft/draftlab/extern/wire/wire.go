@@ -8,7 +8,7 @@
 // with the decision to answer; a result answers every item id exactly once
 // with a pick, a protocol.DeckRequest, a decision.Intent or a per-item
 // error. The protocol of record is
-// docs/design/2026-10-14-draft-events-e5d-plan.md §4.
+// docs/site/api/gorge-agent.md.
 package wire
 
 import (

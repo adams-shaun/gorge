@@ -60,11 +60,13 @@ no current documented use. (L)
   `benchmark.md`, `patches/`, `cmd/autopayaudit`, `cmd/manamodelstats`,
   `internal/hindsight`, `cmd/hindsight`): restructured or deleted on
   2026-10-16 ([ADR 0001](https://github.com/adams-shaun/gorge/blob/main/docs/decisions/0001-repo-layout.md)).
-- **Out-of-scope code in gorge**: draft events and the bots that are not
-  hosted by gorge moved to the private companion module; the
-  compliance oracles and scenario corpora to
+- **Out-of-scope code in gorge**: the bots that are not hosted by gorge moved
+  to the private companion module, and the compliance oracles and scenario
+  corpora to
   [gorge-compliance](https://github.com/adams-shaun/gorge-compliance)
-  ([The three repositories](../repos/index.md)).
+  ([The three repositories](../repos/index.md)). Draft events left with them on
+  2026-10-16 and returned as the public `draft/` tree on 2026-10-30
+  ([ADR 0002](https://github.com/adams-shaun/gorge/blob/main/docs/decisions/0002-public-engines-and-draft.md)).
 - **A third-party dependency**: the GPU game pool that required
   `github.com/ebitengine/purego` moved out; `TestRootModuleHasNoRequires`
   keeps `go.mod` empty.

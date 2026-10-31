@@ -116,7 +116,7 @@ JSON 404 `no such endpoint`, and a non-API path falls through to the web client.
 | `-humans 0,…` | Seat claims for those slots of `t1` |
 | `-feedback DIR` | `POST /api/feedback`. The binary's default directory is `feedback`; an empty value disarms the route. |
 | `-pprof` | `/debug/pprof/…`. gorged refuses the flag unless `-addr` is a loopback address. |
-| `-events` | `/api/events…`. It needs a binary that links a draft-event runtime through [`server/gorged.Extensions`](go.md); gorge's own `cmd/gorged` refuses it at startup. |
+| `-events` | `/api/events…`, off by default. gorge's `cmd/gorged` links the runtime ([Draft events](../guide/draft.md)); an embedding program whose [`server/gorged.Extensions`](go.md) has no `Events` is refused at startup. |
 | `gorged review` | A separate, read-only mode: the lobby, match and stream routes over saved games, plus `GET …/decisions`. Every seat route answers 403. |
 | `-manabrew` | The ManaBrew adapter under `/api/manabrew/v0/tables/`. This is a separate, deprioritised protocol and is not covered here (see [below](#not-covered)). |
 
@@ -197,8 +197,8 @@ gorged-owned routes (`/art/`, `/cards/`, `/api/feedback`, `/debug/`) are `text/p
 
 ### Draft events
 
-These 15 operations appear only on a binary that links a draft-event runtime and runs with
-`-events`. A seat is identified by an event token (`Authorization: Bearer` or `?token=`), and a
+These 15 operations appear only on a server running with `-events`, and otherwise answer the
+JSON 404. The walkthrough is in the [user guide](../guide/draft.md#run-an-event-over-http). A seat is identified by an event token (`Authorization: Bearer` or `?token=`), and a
 request without one is a spectator. The backend picks the status and `code` of its own refusals.
 
 | Method | Path | Body in → out |

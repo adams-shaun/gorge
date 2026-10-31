@@ -116,6 +116,7 @@ Three properties follow from this design and come up again in the guide:
 |---|---|
 | install Go tools, the corpus and the client | [Install and build](install.md) |
 | play against a bot, or against friends on a LAN | [Play in the browser](play.md) |
+| run a 4-player draft pod, or draft events headless | [Draft events](draft.md) |
 | compare two bot strategies, or watch bots play | [Bot-vs-bot games](bot-games.md) |
 | replay a game, or read why a bot made each choice | [Replays](replays.md) |
 | connect a bot written in Python, Java or over HTTP | [External bots](../bots/index.md) |

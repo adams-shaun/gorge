@@ -2,16 +2,19 @@
 
 Part of the [repo map](repo-map.md) index. The platform chain is in
 [repo-map-engine.md](repo-map-engine.md), `internal/` in
-[repo-map-internal.md](repo-map-internal.md). The former `lab/` tree moved
-to a private companion module.
+[repo-map-internal.md](repo-map-internal.md). Machine learning and private
+experiments live in a private companion module.
 
 ## `cmd/`
 
 | Command | Purpose |
 |---|---|
 | `forgec` | Fetch and compile the Forge corpus; `report`, `coverage`. |
-| `gorged` | The server's thin main over `server/gorged` (perpetual bot tables, vs-bot games, web client), linking gorge's `bots/all`. The demo server is a companion module's main over the same package. |
+| `gorged` | The server's thin main over `server/gorged` (perpetual bot tables, vs-bot games, web client), linking gorge's `bots/all` and, with `-events`, the draft stack. The maintainers' hosted demo is a companion module's main over the same package that adds trained-network bots. |
 | `mtgsim` | Headless self-play over the repo decks with replay verification (`make sim`). |
+| `draftsim` | Headless draft events with replay verification (`make draftsim`). |
+| `labdemo` | The `draftlab` example workflow; writes 17Lands-shaped artefacts with `-out`. |
+| `extagent` | The reference `gorge-agent/1` agent as a process. |
 | `repro` | Replays a player feedback snapshot; `-emit-test` writes a failing test. |
 | `headdiff` | Plays the `TestHeads` acceptance games; `-dump` records their event streams, `-against` names the first divergent event between two builds. |
 | `cardfuzz` | Random mono-colour decks over the supported corpus; hunts panics, livelocks, divergences. |
@@ -23,7 +26,7 @@ to a private companion module.
 | `deckimport` | Plain-text decklist → repo deck JSON. |
 | `keywordbench` / `paymirror` | Keyword presence stats / payment A/B CLI. |
 
-Draft and training commands moved to a private companion module; the compliance commands (`oraclediff`, `compliance`, `xmageport`, `oraclepacket`) to gorge-compliance's `cmd/` (public).
+Training commands live in a private companion module; the compliance commands (`oraclediff`, `compliance`, `xmageport`, `oraclepacket`) to gorge-compliance's `cmd/` (public).
 
 gorge carries no maintainer automation or demo-deploy machinery.
 
@@ -32,6 +35,7 @@ gorge carries no maintainer automation or demo-deploy machinery.
 | Path | What it is |
 |---|---|
 | `web/` | Svelte + Vite client. `web/src/protocol.ts` is **generated** — never hand-edit. |
+| `examples/` | Example bots and agents; `examples/extagent` is the Python `gorge-agent/1` agent. |
 | `docs/design/` | Living designs and contracts, flat, `YYYY-MM-DD-<slug>[-design].md`, plus `cast-payment-plans/` and `seat-deck-manifest/` brief sets. Deliberate contracts (not debt) are in `docs/design/2026-09-22-engine-contracts.md`. |
 | `docs/design/ARCHIVE.md` | Index of the parked historical design records; their text is in git history and the operator's local `.superpowers/archive/`. |
 | `docs/decisions/` | Numbered architecture decisions (`0001-repo-layout.md`). |

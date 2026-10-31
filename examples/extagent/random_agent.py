@@ -4,8 +4,7 @@
 answers. Standard library only (json, random, sys); it writes nothing but
 protocol lines to stdout and logs diagnostics to stderr.
 
-The wire protocol of record is section 4 of
-docs/design/2026-10-14-draft-events-e5d-plan.md. This is the
+The wire protocol of record is docs/site/api/gorge-agent.md. This is the
 Python twin of draft/draftlab/extern/refagent (it need not agree with it bit for
 bit): a training team's starting point, not a good player.
 

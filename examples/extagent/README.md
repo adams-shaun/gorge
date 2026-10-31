@@ -1,21 +1,21 @@
 # External agents: the Python example
 
-`random_agent.py` is a ~150-line, standard-library-only Python agent that
+`random_agent.py` is a ~200-line, standard-library-only Python agent that
 speaks gorge's external-agent wire, `gorge-agent/1`. It is the starting point
 for a training team: it handshakes, answers draft picks, builds a deck from a
 pool, and answers game decisions — all uniformly at random, so it plays badly
 on purpose. It is the Python twin of `draft/draftlab/extern/refagent` and need not
 agree with it bit for bit.
 
-The wire protocol of record is section 4 of
-[`docs/design/2026-10-14-draft-events-e5d-plan.md`](../../docs/design/2026-10-14-draft-events-e5d-plan.md):
+The wire protocol of record is
+[`docs/site/api/gorge-agent.md`](../../docs/site/api/gorge-agent.md):
 one JSON object per line, `{"v":1,"type":...}`, gorge writing `hello`,
 `batch`, `stream_end` and `bye`, and the agent writing `hello`, `result` and
 `error`.
 
 ## Run the example
 
-Through the lab (once `cmd/labdemo` accepts `ext:` players, E5d-5):
+Through the lab:
 
 ```sh
 go run ./cmd/labdemo -player ext:exec:examples/extagent/random_agent.py -seed 1

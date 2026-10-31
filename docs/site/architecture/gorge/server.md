@@ -20,7 +20,7 @@ counts are `wc -l` over non-test files. Code links point at `main`.*
 | `server/host/httpapi` | 1,368 | REST routes and the server-sent event (SSE) stream over `host.Registry` |
 | `server/protocol` | 758 | wire types only: frames, snapshots, events; never imports `rules` |
 | `server/gorged` | 5,358 | the importable server: flags, wiring, seat tokens, extension points |
-| `cmd/gorged` | | a thin `main`: `os.Exit(gorged.Main(os.Args[1:], gorged.Extensions{Review: reviewLoad}))`, plus the loader `gorged review` uses |
+| `cmd/gorged` | | a thin `main`: `os.Exit(gorged.Main(os.Args[1:], extensions()))`, where `extensions()` names the [draft-event plugin](../draft.md) and the loader `gorged review` uses |
 
 The package doc of `server/host` is a good summary of its intent: "one
 goroutine per table that plays match after match with bot seats, sessions
@@ -202,11 +202,11 @@ binary:
 - `gorged.Extensions` is what a binary links in beyond the platform: an
   events plugin (organised events such as drafts), extra flags, and the
   loader `gorged review` uses to turn a saved game into a recorded match.
-  gorge's own `cmd/gorged` sets only the review loader.
+  gorge's own `cmd/gorged` sets the events plugin and the review loader.
 - `gorged.RegisterNetBot` and `RegisterClosedNetBot` link trained-network bot
   policies into the binary before `Main` runs; bot policies in general come
   from the `bots` registry.
 
-gorge's own `cmd/gorged` links only gorge's bots. The private companion
-module builds its own main over `server/gorged` to add draft events and
-further bots; gorge never imports it.
+gorge's own `cmd/gorged` links gorge's bots and [draft events](../draft.md),
+which serve only with `-events`. The private companion module builds its own
+main over `server/gorged` to add further bots; gorge never imports it.

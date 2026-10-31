@@ -594,12 +594,15 @@ type Extensions struct {
 }
 ```
 
-The zero `Extensions` is the live server without review mode; gorge's own
-`cmd/gorged` sets only `Review`. `EventsPlugin`, `EventsWiring`,
-`EventsEnv` and `EventRuntime` are the interfaces a draft-event runtime
-implements to be served under `/api/events`. A private companion module of
-the maintainers' links its draft events and network-backed policies through
-exactly these seams; gorge itself ships neither.
+The zero `Extensions` is the live server with no draft events and no review
+mode, so `-events` is refused at startup. gorge's own `cmd/gorged` sets `Review`
+and sets `Events` to `gorgedevents.Plugin{}` from
+[`draft/gorgedevents`](https://pkg.go.dev/github.com/adams-shaun/gorge/draft/gorgedevents).
+`server/gorged` cannot import that package itself, because it imports
+`server/gorged`. `EventsPlugin`, `EventsWiring`, `EventsEnv` and `EventRuntime`
+are the interfaces a draft-event runtime implements to be served under
+`/api/events`. A private companion module of the maintainers' links its
+network-backed policies through `RegisterNetBot`; gorge's own binary links none.
 
 ## 4. The host: `server/host`
 

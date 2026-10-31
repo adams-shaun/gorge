@@ -110,6 +110,7 @@ nav:
           - Cards: architecture/dirty-dirac/cards.md
           - Verification: architecture/dirty-dirac/oracle.md
           - Search: architecture/dirty-dirac/search.md
+      - Draft events: architecture/draft.md
       - Invariants: architecture/invariants.md
       - Packages: architecture/packages.md
       - Cleanup roadmap: architecture/cleanup.md
@@ -124,6 +125,7 @@ nav:
       - guide/index.md
       - Install and build: guide/install.md
       - Play in the browser: guide/play.md
+      - Draft events: guide/draft.md
       - Bot-vs-bot games: guide/bot-games.md
       - Replays: guide/replays.md
       - Troubleshooting: guide/troubleshooting.md
@@ -142,6 +144,7 @@ nav:
       - Event stream (SSE): api/sse.md
       - Wire protocol: api/protocol.md
       - SpellBench v2: api/spellbench-v2.md
+      - gorge-agent/1: api/gorge-agent.md
       - Go embedding API: api/go.md
   - Performance:
       - performance/index.md

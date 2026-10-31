@@ -25,6 +25,9 @@ so replay, history and undo, bug reproduction and search all reuse the same
 machinery. Players never touch the engine: each seat gets a redacted
 **view** and answers **decisions** drawn from a closed set of kinds.
 
+Limited play sits above this: [draft events](draft.md) drive whole events through
+the same tables and engine, and no draft concept reaches the rules core.
+
 ## Two kernels
 
 gorge contains one rules engine. A second, much smaller kernel,

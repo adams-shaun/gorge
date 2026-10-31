@@ -280,9 +280,8 @@ gorged: -bot-opt "bot.depth=3": bot policy "bot" declares no options
 
 A few flags host trained-network bots whose weight files are not distributed
 with gorge (`gorged -h` lists them); without the files they do nothing.
-`-events` (draft pods) needs an extension that the public `gorged`
-binary does not link, so the lobby's *Draft* button does not work on a plain
-build. `-manabrew` mounts an adapter for a third-party client protocol; leave
+`-events` turns on [draft events](draft.md), which adds a *Draft a 4-player
+pod* entry to the lobby. `-manabrew` mounts an adapter for a third-party client protocol; leave
 the lobby's *Protocol* switch on *Native*.
 
 ## Persistence and restarts

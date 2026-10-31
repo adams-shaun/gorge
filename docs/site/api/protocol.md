@@ -84,7 +84,7 @@ the TypeScript union are both checked against them.
 | `series_update` | `SeriesUpdate` | [series_update.json](https://github.com/adams-shaun/gorge/blob/main/server/protocol/testdata/series_update.json) | Draft events only |
 
 The draft-event frames are part of the package, and so of the wire. They are sent only by a
-server that runs a draft-event runtime (see [HTTP API: Draft events](http.md#draft-events)).
+server running with `-events` (see [HTTP API: Draft events](http.md#draft-events)).
 
 ## Vocabularies
 

@@ -9,7 +9,7 @@ imports run and what enforces that, licensing, how the companions pin gorge,
 and how changes reach `main`.
 
 *Verified 2026-10-27 against gorge `develop` @ `25d71cadc` and the two
-companions as they stood that day.*
+companions as they stood that day. The draft move was re-checked on 2026-10-30.*
 
 ## At a glance
 
@@ -18,7 +18,7 @@ companions as they stood that day.*
 | Visibility | public | public | private |
 | Licence | Apache-2.0 | Apache-2.0 | (private) |
 | Module | `github.com/adams-shaun/gorge` | `github.com/adams-shaun/gorge-compliance` | (private) |
-| Holds | the rules engine, the reference server `gorged`, the baseline and hosted bots, the browser client, contributor tooling | the compliance oracles (gorge vs XMage vs Forge), the hand-written Oracle-text scenarios, the XMage-ported scenarios, the certification ratchet | the maintainers' extensions: draft events, the [dirty-dirac kernel](../architecture/dirty-dirac/index.md) and the demo server |
+| Holds | the rules engine, the reference server `gorged` with [draft events](../guide/draft.md), the baseline and hosted bots, the browser client, contributor tooling | the compliance oracles (gorge vs XMage vs Forge), the hand-written Oracle-text scenarios, the XMage-ported scenarios, the certification ratchet | machine learning and private experiments: training, networks, research bots; and the [dirty-dirac kernel](../architecture/dirty-dirac/index.md) |
 | Depends on | nothing (the root `go.mod` has no `require` lines) | gorge, pinned by commit | gorge, pinned by commit |
 | You need it to… | build, run, test or embed the engine | measure gorge against independent engines | nothing in gorge |
 
@@ -28,7 +28,7 @@ companions as they stood that day.*
 <rect x="270" y="20" width="220" height="150" rx="10" class="dg-box-accent"/>
 <text x="380" y="48" text-anchor="middle" class="dg-text-bold">gorge</text>
 <text x="380" y="66" text-anchor="middle" class="dg-text-muted">public · Apache-2.0</text>
-<text x="380" y="92" text-anchor="middle" class="dg-text">engine/  server/  bots/</text>
+<text x="380" y="92" text-anchor="middle" class="dg-text">engine/  server/  bots/  draft/</text>
 <text x="380" y="112" text-anchor="middle" class="dg-text">cmd/  web/  testkit/  cli/</text>
 <text x="380" y="138" text-anchor="middle" class="dg-text-muted">imports nothing outside</text>
 <text x="380" y="154" text-anchor="middle" class="dg-text-muted">the standard library</text>
@@ -40,8 +40,8 @@ companions as they stood that day.*
 <rect x="550" y="40" width="200" height="110" rx="10" class="dg-box-muted"/>
 <text x="650" y="68" text-anchor="middle" class="dg-text-bold">private companion</text>
 <text x="650" y="86" text-anchor="middle" class="dg-text-muted">private</text>
-<text x="650" y="110" text-anchor="middle" class="dg-text">draft events,</text>
-<text x="650" y="128" text-anchor="middle" class="dg-text">dirty-dirac, demo server</text>
+<text x="650" y="110" text-anchor="middle" class="dg-text">training, networks,</text>
+<text x="650" y="128" text-anchor="middle" class="dg-text">research bots, dirty-dirac</text>
 <line x1="210" y1="95" x2="266" y2="95" class="dg-line-accent" marker-end="url(#rp-arr)"/>
 <line x1="550" y1="95" x2="494" y2="95" class="dg-line-accent" marker-end="url(#rp-arr)"/>
 <text x="238" y="200" text-anchor="middle" class="dg-text-muted">imports gorge at</text>
@@ -61,7 +61,8 @@ companions as they stood that day.*
 The deterministic, event-sourced rules engine and everything needed to use
 it: the card compiler (`engine/cards`), the rules core (`engine/`), the
 reference server (`server/gorged`, with its thin main in `cmd/gorged`), the
-default and hosted bots (`bots/`), the Svelte browser client (`web/`), public
+limited stack (`draft/`), the default and hosted bots (`bots/`), the Svelte
+browser client (`web/`), public
 test support for outside modules (`testkit/`, `cli/`), the architecture
 ratchets (`internal/`), and the developer commands (`cmd/`). The full tree is
 on [Repository layout](../contributing/repo-layout.md).
@@ -74,7 +75,7 @@ gorge API:
 |---|---|
 | `bots.Register` (`bots/registry.go`) | a bot policy joins the registry the server offers |
 | `server/gorged.RegisterNetBot` | a network-backed hosted bot, with its flags |
-| `server/gorged.Extensions` | a draft-event runtime under `/api/events`; with none, `gorged -events` is refused at startup (`TestEventsNeedAPlugin`) |
+| `server/gorged.Extensions` | what a binary links into the server beyond the platform. gorge's own `cmd/gorged` fills it with `draft/gorgedevents`, and a binary that leaves `Events` empty is refused `-events` at startup (`TestEventsNeedAPlugin`) |
 | `engine/rules`' exported oracle runner (`RunOracleScenarioJSON`, `RunOracleAuditScenarioJSON`, `CheckOracleScenarioJSON`) | gorge-compliance's scenario drivers |
 | `testkit/` (`testutil`, `bench`, `paymirror`) and `cli/` | test fixtures, the head-to-head game runner, command-line plumbing |
 
@@ -118,8 +119,9 @@ workflow runs the `drift` check described under [Pinning](#pinning).
 ## The private companion
 
 The maintainers' **private** companion module holds work built on top of
-gorge that is not part of the public surface: draft events, the dirty-dirac
-kernel and the demo server. It imports gorge at a pinned commit, the same way
+gorge that is not part of the public surface: machine learning, reinforcement
+learning, private experiments and the dirty-dirac kernel. It imports gorge at a
+pinned commit, the same way
 gorge-compliance does ([Pinning](#pinning)); gorge never imports it, and
 nothing in gorge needs it to build or test. The
 [dirty-dirac pages](../architecture/dirty-dirac/index.md) describe that

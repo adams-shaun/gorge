@@ -115,12 +115,6 @@ every unauthenticated spectator; do that only on a table with no people at it
 Undo works only when you are the table's only human. With two or more people
 at a table it is refused, because the other player cannot be asked.
 
-### The Draft button does nothing useful
-
-Draft pods (`-events`) need an extension that the public `gorged` binary does
-not include, so the lobby's *Draft a 4-player pod* entry fails on a plain
-build.
-
 ### Card images are missing, and the log shows `429, retrying`
 
 Card art comes from Scryfall through the server's cache. On a fresh cache the
