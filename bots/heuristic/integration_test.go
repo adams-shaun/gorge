@@ -396,8 +396,8 @@ func agreeOverWholeGame(t testing.TB, newBot func(uint64) *Bot) {
 // bench's -max-intents cap. The fix reads the attachment state (AttachedTo)
 // instead of predicting the target, so the re-attach is declined and the
 // game ends (measured: over=true turn=35). Names, deck order, bot seeds and
-// the intent cap reproduce the four-yay cmd/botbench pair exactly: seat k's bot is
-// seeded seed^(k+1) (four-yay cmd/botbench's playMatch wiring),
+// the intent cap reproduce the a bench runner pair exactly: seat k's bot is
+// seeded seed^(k+1) (a bench runner's playMatch wiring),
 // foundations-keen-engineering is dealt as a constructed pile (the bench's
 // default -format constructed), and 20000 is the bench's default
 // -max-intents — the cap the broken build reached before recording the

@@ -19,7 +19,7 @@ type RefusalAnswerer interface {
 // Fallbacks are the ladder's non-seat rungs, in order: the minimal answer
 // (pass at priority, else botpolicy.Clamp of the empty answer), then
 // botpolicy.Decide on brd with PCG(d.Seq, seatIdx+1). It is exactly
-// four-yay cmd/botbench/spellbench.go:262-283 lifted out, and deterministic.
+// a bench runner/spellbench.go:262-283 lifted out, and deterministic.
 //
 // The returned intents carry d's Seq and Player, so a caller may Submit each
 // in order without repairing them. brd is the deciding seat's board, built by

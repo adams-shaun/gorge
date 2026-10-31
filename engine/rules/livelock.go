@@ -21,7 +21,7 @@ import (
 // event, so a game that does not trip it is byte-identical to an
 // un-watched one (the chain-head goldens in engine/rules/heads_test.go pin that).
 // A game that DOES trip it is a bug by definition -- the harnesses
-// (cmd/mtgsim, four-yay cmd/botbench) recover the panic, report the diagnostic
+// (cmd/mtgsim, a bench runner) recover the panic, report the diagnostic
 // against that game's seed/deck, and move on; anywhere else the panic is
 // the bug surfacing, exactly as the determinism invariant intends.
 //

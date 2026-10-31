@@ -12,12 +12,11 @@ import (
 
 // The deterministic acceptance game's finished chain head, one file per seat
 // count: engine/rules/testdata/heads/<seats>.txt holds the 16-hex-digit head and a
-// newline, nothing else (R-14). A change to one is a change to what the 12
+// newline, nothing else. A change to one is a change to what the 12
 // repo decks do; the commit that makes it names the first diverging event
 // and the behaviour that moved it IN THE COMMIT MESSAGE -- the files carry no
 // prose, so two branches re-pinning heads conflict only when they really pin
-// different values. The prose these goldens used to carry is frozen in
-// docs/agents/heads-history.md. The game is engine/rules/acceptance_game.go's,
+// different values. The game is engine/rules/acceptance_game.go's,
 // shared with TestRepoDecksPlayAtEverySeatCount and cmd/headdiff.
 const (
 	headsDir       = "testdata/heads"
@@ -64,8 +63,7 @@ func TestHeads(t *testing.T) {
 				return
 			}
 			// The "<n> seats: chain head <got>, golden <want>" prefix is parsed by
-			// the maintainers' gate hook (four-yay's ops/orchestrator/hooks.py,
-			// _HEAD_RE); keep it.
+			// tooling outside this repo; keep it.
 			if want := pinnedHead(t, seats); got != want {
 				t.Errorf("%d seats: chain head %s, golden %s -- if this move is intended, re-pin with `%s` "+
 					"and name the first diverging event and its cause in the COMMIT MESSAGE (not in a file). "+

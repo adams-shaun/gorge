@@ -16,7 +16,7 @@ import (
 
 // SearchBot is the playable seat: the default bot wrapped with the teacher
 // (Choose) answering the covered kinds, everything else delegated unchanged.
-// It is the playing half of the same pair four-yay cmd/searchteacher is the measuring
+// It is the playing half of the same pair the search teacher is the measuring
 // half of: candidate building, world sampling, teacher scoring and root
 // matching are the ONE extracted function (Choose), so a seat that plays the
 // teacher and the corpus a student learns from cannot drift.
@@ -90,7 +90,7 @@ type Env struct {
 }
 
 // Diag is one Choose outcome as a cost-report consumer sees it, fired through
-// Watch. It mirrors the DecisionRecord four-yay cmd/searchteacher writes -- a record
+// Watch. It mirrors the DecisionRecord the search teacher writes -- a record
 // exists only when the decision was ASKED (Eligible and at least two
 // candidates built), which is exactly the population a per-decision cost and
 // coverage report aggregates.

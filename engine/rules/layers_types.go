@@ -108,7 +108,7 @@ func (e *Engine) matchesWithCharsPT(ce *ContinuousEffect, id state.ObjID, types,
 	// just the bare Card.Self: the station spacecraft's normalised
 	// `AffectedDefined$ Self | Affected$ Card.counters_GE<N>_CHARGE`
 	// (Card.Self+counters_GE<N>_CHARGE) was matched in full against every
-	// object of every layer walk (four-yay TestStationLockstep).
+	// object of every layer walk.
 	if id != ce.Source && affectsSelfBound(ce.Affects) {
 		if layer4PrecheckVerify {
 			selfRejectVerify.Add(1)

@@ -186,9 +186,6 @@ func TestHostedPoliciesReplayDeterministically(t *testing.T) {
 		if !reflect.DeepEqual(defaultRun.log.Events, explicitBot.log.Events) || !reflect.DeepEqual(defaultRun.log.Intents, explicitBot.log.Intents) || defaultRun.info.Head != explicitBot.info.Head || defaultRun.info.Result != explicitBot.info.Result || !reflect.DeepEqual(defaultRun.info.Winner, explicitBot.info.Winner) {
 			t.Fatalf("omitted policy and explicit %q differ: %+v vs %+v", BotPolicy, defaultRun.info, explicitBot.info)
 		}
-		// The cast-profile rows (intent-identical to the explicit bot on the
-		// embedded default profile) moved with the policy to four-yay
-		// (bots/hosttest TestCastProfileReplaysLikeTheBot).
 	})
 }
 

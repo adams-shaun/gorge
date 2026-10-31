@@ -181,7 +181,7 @@ func TestSearchSeatWithoutCoveredKindsIsTheBotExactly(t *testing.T) {
 // depend on. The intent cap keeps the package inside its test budget; the
 // full-game shape is what the botbench gate runs. Wall-clock hooks stay nil
 // here: the seat must be answer-identical untimed, and the timing assertions
-// belong to four-yay cmd/botbench's cost report.
+// belong to a bench runner's cost report.
 func TestSearchSeatGameCompletesWithCoverage(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	da, err := testutil.LoadRepoDeck(reg, "mono-red-prowess")

@@ -190,7 +190,7 @@ independent importers (`pay`, `chars`, `trigmatch`, the oracle harness).
 ## 6. Measurements (this box: 2 vCPU, 14 GB free)
 
 Method: cold build with a private empty cache —
-`/usr/bin/time -v env GOCACHE=$PWD/.ds4/scratch/gocache-<x> GOMAXPROCS=2
+`/usr/bin/time -v env GOCACHE=$PWD/scratch/gocache-<x> GOMAXPROCS=2
 go build -o /dev/null ./engine/rules`. (`$DATA` named in the brief
 is **read-only inside the task jail**; `mktemp -d -p` there fails with
 `Read-only file system`, so the cache lives inside the worktree.)

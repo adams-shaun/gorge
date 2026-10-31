@@ -11,7 +11,7 @@ import (
 
 // Staging (NewStaged) builds a hypothetical engine at an arbitrary point of a
 // two-player game from a rules-level description (Stage), for research
-// harnesses that start from a reconstructed position (four-yay training/searchbench).
+// harnesses that start from a reconstructed position (a search bench).
 // It is deliberately spec-agnostic: no JSON, no seat letters, no aliases.
 //
 // Contract:

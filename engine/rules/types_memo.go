@@ -18,7 +18,7 @@ import (
 // misses the walk-scoped Derived memo (derivedmemo.go) -- which outside a
 // legal-actions walk or a BeginDerivedReads scope is every one of them: a
 // resolution's IsCreature census, the kernel's commit, a host projection.
-// Measured on four-yay's TestStationLockstep (the station spacecraft's
+// Measured on dirac's station lockstep test (the station spacecraft's
 // `Card.Self+counters_GE<N>_CHARGE` AddType$ Creature statics are live
 // layer-4 effects matched against every object), the walk was 57% of the
 // test's CPU, almost all of it re-deriving an unchanged object at an

@@ -22,9 +22,8 @@ import (
 // that burst's events (the slice appended since the previous burst), in is
 // the intent that drove it (nil for the genesis burst, which has no
 // decision). t is the producing table and k the match number, so one sink
-// can serve many tables and matches (Task M2c-1, FL-81: mtgserve runs the
-// registry in-process and persists every match to SQLite through this
-// hook).
+// can serve many tables and matches (an embedder can run the registry in-process and persist every match to its
+// own store through this hook).
 //
 // The callback runs on the match's own goroutine, while the table's match
 // lock is held — so it must NOT call back into the Registry (that re-enters
@@ -230,8 +229,7 @@ type Options struct {
 
 	// OnBurst, when non-nil, is invoked after every recorded burst of every
 	// match created by this registry, including the genesis burst, so an
-	// embedder sees the whole chain from its first event (Task M2c-1). It is
-	// the SQLite-persistence hook for mtgserve. See OnBurstFunc for the
+	// embedder sees the whole chain from its first event. See OnBurstFunc for the
 	// contract — most importantly, the callback runs on the match goroutine
 	// holding the match lock and must not re-enter the Registry.
 	OnBurst OnBurstFunc

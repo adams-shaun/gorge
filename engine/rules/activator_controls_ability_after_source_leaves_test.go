@@ -12,7 +12,7 @@ import (
 // later happens to its source. Squad Rallier is p0's, stolen by p1, who
 // activates its Dig; with the ability on the stack the Rallier leaves the
 // battlefield (the sacrifice shape), and the Dig must still look at p1's
-// library, not at the card owner's (dirac K1m pairs 39244 92575).
+// library, not at the card owner's (dirac pairs 39244 92575).
 func TestStolenSourceAbilityResolvesUnderItsActivator(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Squad Rallier"))

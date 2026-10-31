@@ -16,7 +16,7 @@ import (
 // Familiar died with revival counters; while its dies trigger sat on the
 // stack another effect returned it and it died again; when the first trigger
 // then resolved, the card in the graveyard was a new object, and the first
-// trigger's delayed return must move nothing. dirac K5p pairs 12963
+// trigger's delayed return must move nothing. dirac pairs 12963
 // and 80097. TestDelayedReturnFindsOnlyTheRememberedObject is the sibling:
 // there the trigger resolved BEFORE the round trip, so the registration-time
 // stamp was already the first graveyard incarnation, and the control arm of

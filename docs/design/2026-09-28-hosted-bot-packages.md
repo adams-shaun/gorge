@@ -3,9 +3,8 @@
 **Status:** design of record for the "hosted bot packages" series. Nothing here
 is implemented.
 **Base:** `origin/spellbench-prep` at `f297a3123dde0f51a5214e8518508165dc3b2332`.
-Every `path:line` below was read at that SHA. It is about to land on `main` via
-agentctl ticket `cli-20260928T193741Z-5822d0cd`, and every ticket in §11
-depends on that ticket.
+Every `path:line` below was read at that SHA. It is about to land on `main`, and every ticket in §11
+depends on it.
 **Notation:** a claim not read from code or a report is marked **INFERRED**.
 A ticket must measure or test an INFERRED claim before it builds on it.
 
@@ -888,8 +887,8 @@ does not apply to them (Q4).
 
 ## 11. Tickets (ordered)
 
-Every ticket has `Depends-On: cli-20260928T193741Z-5822d0cd` plus the tickets
-listed. "Pipeline" means the agentctl engine seats. Commands follow the box
+Every ticket depends on that landing plus the tickets
+listed. "Pipeline" means the implementation queue. Commands follow the box
 rules: one at a time, `-p 1`, `GOMAXPROCS=3 GOMEMLIMIT=1GiB`. Each ticket's
 report records anything INFERRED that it measured.
 
@@ -1443,5 +1442,5 @@ everything from BP-02 to BP-16.
 ### 12.1 Operator answers (2026-09-28)
 
 The operator accepted every recommendation above, Q1 through Q10, as written.
-Tickets BP-01 to BP-18 are queued in agentctl. BP-19 (the UI) is done by hand
+Tickets BP-01 to BP-18 are queued. BP-19 (the UI) is done by hand
 or by codex. BP-20 (heavy re-measurement) runs at night.

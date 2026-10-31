@@ -4,13 +4,10 @@ BIN_DIR    := bin
 # transitive npm deps) or .worktrees (sibling task checkouts): go's ./...
 # skips dot-directories and stops at web/go.mod, but find/gofmt do not.
 #
-# .ds4 and .superpowers are pruned for the same reason: both are agent scratch
-# trees, neither carries a single TRACKED .go file (verified: `git ls-files
-# '.ds4/**/*.go' '.superpowers/**/*.go'` is empty), and both are gitignored.
-# Without the prune `make lint` fails on the formatting of files nobody can
-# commit -- an archived agent's scratch main.go was enough to turn the lane
-# red -- and GO_SRC picks them up as build dependencies, so dropping a stray
-# .go file into a scratch directory needlessly rebuilds every binary.
+# .ds4 and .superpowers are pruned for the same reason: both are gitignored
+# local scratch trees with no tracked .go file. Without the prune `make lint`
+# fails on the formatting of files nobody can commit, and GO_SRC picks them up
+# as build dependencies.
 GO_FILES   := find . \( -name node_modules -o -name .worktrees -o -name .ds4 -o -name .superpowers \) -prune -o -type f -name '*.go' -print
 GO_SRC     := $(shell $(GO_FILES) 2>/dev/null) go.mod
 
@@ -252,8 +249,7 @@ tidy:
 # "eslint: not found" / "vite: not found".
 web/node_modules/.package-lock.json: web/package-lock.json
 	@# REFUSE to install through a symlink. Task worktrees may get web/node_modules
-	@# as a symlink to the main checkout's install (four-yay's
-	@# ops/scripts/agent-worktree.sh --web moved there 2026-10-16), so
+	@# as a symlink to the main checkout's install, so
 	@# ~166MB is shared instead of copied. `npm ci` DELETES node_modules before
 	@# installing, and through a symlink that delete lands on the SHARED
 	@# directory -- wiping web tooling for the main checkout and every other

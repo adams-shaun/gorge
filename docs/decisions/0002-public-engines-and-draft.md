@@ -23,15 +23,15 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
    tools. `cmd/gorged` links draft events directly, so the public binary is the
    demo server.
 2. **What is private.** Machine learning, reinforcement learning and private
-   experimentation stay in the private module four-yay: trainers, networks and
+   experimentation stay in a private companion module: trainers, networks and
    weights, the az bots, `dzgorge`, `kplay`'s research keys, draft RL and its
    networks, `dirac`'s search and network evaluator until promoted, and operations
    and deploy scripts. Nothing public needs it to build or test. No new repository.
-3. **Dependency direction.** gorge never imports four-yay. four-yay imports gorge
-   at a pinned commit. The root `go.mod` still has no `require` line
+3. **Dependency direction.** gorge never imports the companion module, which imports
+   gorge at a pinned commit. The root `go.mod` still has no `require` line
    (`TestRootModuleHasNoRequires`); `TestPublicBoundary` adds a direct check.
 4. **No git history is imported.** Moves are squashed commits with a provenance
-   line naming the four-yay commit. four-yay remains the archive.
+   line naming the companion module's commit, which remains the archive.
 5. **Generated card tables are never committed.** `kgen`'s output is a mechanical
    translation of GPL-3.0 Forge scripts. It is written from `.cards` into a
    gitignored directory, as gorge's IR cache is. A fresh clone builds;
@@ -40,7 +40,7 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
    committed, in any file, of any length, including a fragment in a test under
    `dirac/` or `draft/`. Existing gorge fixtures are a shrinking baseline.
 6. **The ratchet.** `internal/archtest/public_boundary_test.go` fails on generated
-   tables, binaries under `dirac/`, private paths, four-yay imports and
+   tables, binaries under `dirac/`, private paths, private imports and
    unresolvable ticket tags in the moved trees and the draft commands. It has no allowlist.
 7. **Third-party data stays attributed.** Every data source is named in `NOTICE`:
    17Lands public datasets (CC BY 4.0), MTGJSON (MIT), XMage-derived set lists
@@ -65,11 +65,11 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
 - The first amendment's `server/gorged.Extensions{Events}` seam stays as an API:
   `cmd/gorged` passes the plugin, and `server/gorged` itself still does not import
   `draft/`, so `TestEventsNeedAPlugin` still holds for a bare library caller.
-  `RegisterNetBot` and `bots.Register` stay for four-yay's az bots.
+  `RegisterNetBot` and `bots.Register` stay for the companion module's bots.
 - "Private companion" in gorge's docs now means only the machine-learning and
-  private-experiment work above. Where a doc says draft or dirty-dirac lives there,
+  private-experiment work above. Where a doc says draft or dirac lives there,
   it is out of date from the commit that moves that tree.
-- dirty-dirac is called dirac. The code path changes from `kernel/` to `dirac/`.
+- The second engine is called dirac. The code path changes from `kernel/` to `dirac/`.
 
 ## Not in scope
 

@@ -3,7 +3,7 @@ package rules
 // The engine-internal half of the seat-deck-manifest acceptance (ticket
 // seat-deck-03-acceptance). The cross-interface contract leaf moved to
 // engine/seat/seatdeck_manifest_acceptance_test.go so the rules test binary no longer
-// imports seat (and, through it, bots/policynet, four-yay training/spellbench and
+// imports seat (and, through it, bots/policynet, a SpellBench bench and
 // bots/traceboard). This leaf keeps its home in package rules because it
 // drives the engine's internal search fixture (searchEngine, addMana,
 // castFixture, moveHiddenForTest) and does not need seat.

@@ -32,10 +32,10 @@ trained in stage 1 is loadable, and deployable, in stage 2.
 
 | Evidence | Consequence here |
 |---|---|
-| mtgbld: PUCT over a weak prior lost 11–20pp; "search whose rollouts are the baseline is capped at the baseline" | No bot rollouts at the leaf; the value head is the leaf. Gen 0 must beat `bot` with a heuristic leaf before any training (stage 0 kill). |
+| Earlier work: PUCT over a weak prior lost 11–20pp; "search whose rollouts are the baseline is capped at the baseline" | No bot rollouts at the leaf; the value head is the leaf. Gen 0 must beat `bot` with a heuristic leaf before any training (stage 0 kill). |
 | pn12: argmax teacher labels are near-ties plus world luck, unlearnable | Train on the visit distribution π, not the pick. |
-| pn09 / mtgbld: value heads predict outcomes but don't rank moves | Measure value-head discrimination at decision points per turn bucket, not state log loss. |
-| mtgbld: ungated iteration random-walks | Every generation is gated against a fixed eval block. |
+| Earlier work: value heads predict outcomes but don't rank moves | Measure value-head discrimination at decision points per turn bucket, not state log loss. |
+| Earlier work: ungated iteration random-walks | Every generation is gated against a fixed eval block. |
 | MageZero trains against a fixed minimax pool, not self-play | Train against a fixed `bot`. This also keeps `searchprobe.Sample`'s assumption (the opponent plays like `bot`) true in stage 2. |
 
 ## §1 Components

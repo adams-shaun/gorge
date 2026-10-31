@@ -18,7 +18,7 @@ import (
 
 // LabelExtras is the pn12 label-record extension (schema 3): enough raw
 // state to re-encode one label under every feature set and action encoding
-// of the pn12 grid without regenerating the corpus. four-yay cmd/searchteacher writes
+// of the grid without regenerating the corpus. The search teacher writes
 // it under -label-extras; it is the "extras" object of the record.
 //
 // The Diag* fields are HIDDEN INFORMATION read off the real engine at the

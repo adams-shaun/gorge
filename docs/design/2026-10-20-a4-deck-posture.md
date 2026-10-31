@@ -1,8 +1,6 @@
 # A4 deck-shape posture: aggro / midrange / control from the own-deck manifest
 
 Date: 2026-10-20.
-Ticket: A4 of four-yay's
-`docs/design/2026-10-19-forge-heuristics-go-port-design.md`.
 Outcome: **implemented and armed only on the experimental `forge-heuristic`
 policy.** The default `bot` is unchanged (`TestHeads` untouched) and no win
 rate is claimed.
@@ -103,8 +101,8 @@ arming constructor. `heuristic.Bot.EnablePostureRules`/`PostureRules()` carry
 it, and `forgeheuristic.New` arms `{Attack: true, Reserve: true}`. The default
 `bot` never sets it.
 
-`forge-heuristic` is seated as a manual `heuristic.NewBot` in four-yay's
-botbench, which builds no attack simulation, so R2 and R4 fire on that path
+`forge-heuristic` is seated as a manual `heuristic.NewBot` in a bench runner,
+which builds no attack simulation, so R2 and R4 fire on that path
 and R3 does not. R3 fires for the policy only on an attack-sim seat, which
 the hosted auto-pay tables get after F0.
 

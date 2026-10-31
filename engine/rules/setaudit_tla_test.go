@@ -4,14 +4,12 @@ package rules
 // named mechanics and its corner cases.
 //
 // The brief for this file: every finding gets a FAILING unit test, guarded by
-// GORGE_SET_AUDIT so the committed suite stays green (a skip is allowed), and a
-// follow-up ticket under .ds4/new-tickets/. A test that asserts behaviour the
+// GORGE_SET_AUDIT so the committed suite stays green (a skip is allowed). A test that asserts behaviour the
 // engine already gets right stays unguarded: that is regression coverage.
 //
 // The named mechanics come first (the set's own Airbend/Earthbend/Waterbend/
 // Firebending/Exhaust), then evergreen and keyword-action interactions. CR
-// citations are the 2026-08-07 Comprehensive Rules text in
-// .ds4/MagicCompRules-20260807.txt.
+// citations are the 2026-08-07 Comprehensive Rules text.
 
 import (
 	"os"

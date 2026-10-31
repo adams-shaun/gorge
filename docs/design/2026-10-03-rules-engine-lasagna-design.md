@@ -71,9 +71,8 @@ These hold and are mechanically enforced; nothing in this spec weakens them:
 
 ### 1.3 Why changes are hard: the evidence
 
-Sources: `git log --numstat`, a blame sample, `.ds4/orchestrator/journal.jsonl`
-(26,857 rows), 2,983 review verdicts, 1,681 gate logs,
-`ops/scripts/reward_collect.py flow`.
+Sources: `git log --numstat`, a blame sample, the landing pipeline's journal
+(26,857 rows), 2,983 review verdicts, 1,681 gate logs.
 
 - **Fixes land on fresh code.** Blaming the lines 70 random fixes (3–10 days
   old) modified in `engine/rules/`/`engine/effects/`: 389 of 687 (57%) were under 72 hours
@@ -947,9 +946,9 @@ cost-static pricing (its own seam or nothing), the interference matchers
 - **Refactor lane.** W1–W5 tickets run in one lane, in sequence, with
   `Depends-On` chains. While a ticket in the lane holds a subsystem, the
   seeder does not dispatch feature tickets that touch that subsystem's files.
-  agentctl has no such file-set lock today (only `Depends-On` and the
+  The landing pipeline has no such file-set lock today (only `Depends-On` and the
   serialized landing lane), and tickets do not declare a file footprint up
-  front, so this needs new agentctl work and a daemon restart: a ticket field
+  front, so this needs new pipeline work: a ticket field
   naming the locked path set, and an intake check against it. Until then the
   operator holds conflicting feature tickets by hand. This replaces hot-file
   notes with scheduling.
@@ -1038,7 +1037,7 @@ non-tournament (MakeCard, Planechase, Un-set stickers/contraptions, Draft).
 | C1 | **Commit the pass driver.** Move the std batch/write/summary scripts from `$DATA/.../xmageoracle/` into `scripts/` behind `make compliance-pass SETS=…`; rerun only stale rows, under the heavy-job lock | X10 mechanical half; off-repo state |
 | C2 | **Rulings by shape.** Key a ruling on `(template, field, normalised diff, IR api/mode)` in `lab/oracle/compliance/rulings/<shape>.json`; `oraclediff diff` auto-classifies matches (1-in-10 sampled for human check); `oraclediff triage` writes committed `lab/oracle/compliance/triage/<shape>.jsonl` clusters | per-card triage — Standard's 62 "choice" and 15 "class" divergences become 2 items |
 | C3 | **Field-level freezing.** Replace `canon_sha` with the frozen fields the scenario asserts (spec §7 `oracleExpect` vocabulary); one file per template under `oraclegen/templates/` with its own version, so a template change stales only that template's cards | gate fragility; `gen.go` as a hot file |
-| C4 | **Findings to tickets by class.** One `agentctl issue add` per shape or per primitive, carrying the affected cards and sets, each with a class-census ratchet (`fra_gap2_census_test.go` is the model). Retire `seed_candidates.py:321` | per-card fix tickets; duplicate fixes |
+| C4 | **Findings to tickets by class.** One ticket per shape or per primitive, carrying the affected cards and sets, each with a class-census ratchet (`fra_gap2_census_test.go` is the model). | per-card fix tickets; duplicate fixes |
 | C5 | **Primitive impact table.** `oraclediff gen` (or `forgec report`) emits primitive → cards → sets unlocked, ranked by declared-target formats. The 58 primitives blocking 10+ cards are the queue | guessing what to implement next |
 | C6 | **Level B (X9).** Templates for activated abilities, trigger modes, attacks/blocks and statics; a fixture library for the 734 "no castable fixture" cards and Phyrexian mana. Make the meaning of level A explicit in the gate output | shallow certification |
 | C7 | **Honest claims.** Printed lists for every tournament set; the gate refuses to declare a set without one (closes the `gate.go:140` fallback). Exclude non-tournament primitives from the "all sets" target | silent drop-outs |
@@ -1102,7 +1101,7 @@ Tracked weekly; baselines from this spec:
 - **W3 is the large bet.** It is gated by W1a, the clone-fidelity fuzz and
   S3 with explicit kill criteria and a defined fallback; its park-and-continue
   paths are a deliberate behaviour change with a planned re-pin (§7.2).
-- **The lane lock (W6) is new agentctl work**; until it exists the operator
+- **The lane lock (W6) is new pipeline work**; until it exists the operator
   sequences conflicting feature tickets by hand.
 - **Perf.** W1a generated clone, W1c constructors and W4 typed params all sit
   on hot paths; each must pass the perf-sb gate. W4 should *improve* hot
@@ -1133,7 +1132,7 @@ code and attacked W3. Changes made in this revision:
   blocker.
 - **Archtest**: sibling ordering and prefix matching instead of redundant
   `{rules/X, rules}` rows; three more non-recursive census globs listed in W0.
-- **W6** lane lock marked as new agentctl work.
+- **W6** lane lock marked as new pipeline work.
 - Corrected counts: 9 Suspend/Suspended Host methods; `resumeAnswerBinding`
   64 arms; `ParseCost` 80 call sites; `controllerOf` 124 sites in 47 files;
   six suspension holders besides `e.resume`; case-literal metric definition.
@@ -1152,10 +1151,7 @@ All run from the repo root against `main` at `49bd9af8d`, with `/usr/bin/grep`
 - String literals on case lines: all `"…"` literals on lines matching `^\s*case ` over the same files (the W0 `cmd/codeshape` metric is the authoritative definition)
 - Fix-on-fresh-lines: `git blame` of lines modified by 70 random `fix` commits
   (3–10 days old) in `engine/rules/` and `engine/effects/`; line age at the fix commit.
-- Pipeline rounds: `.ds4/orchestrator/journal.jsonl`; verdicts:
-  `.ds4/orchestrator/archive/*/verdict-*.md`; gate failures:
-  `.ds4/orchestrator/gates/*/*/go-test-module.log`;
-  `python3 ops/scripts/reward_collect.py flow`.
+- Pipeline rounds, verdicts and gate failures: the landing pipeline's records.
 - Resolution machinery: `engine/rules/resolution_point.go:48-428` (fields),
   `rules/resolution_answer.go:29-1109`, `rules/resolution_answer_rest.go:22-749`
   (case arms), `grep -c 'Ask(' engine/effects/*.go` (call sites).

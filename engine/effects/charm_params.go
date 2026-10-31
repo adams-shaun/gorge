@@ -56,7 +56,7 @@ type CharmParams struct {
 	// Option.Value -- Decision.Validate's cumulative-budget rule is the
 	// legality check, so a client, the shared repair (Clamp/FitRequired) and
 	// the bot arm all derive the same rule from the published fields
-	// (four-yay's kernel copies this shape when it re-pins).
+	// (dirac copies this shape when it re-pins).
 	Pawprint ParamText
 	// CanRepeatModes$ True.
 	CanRepeatModes bool

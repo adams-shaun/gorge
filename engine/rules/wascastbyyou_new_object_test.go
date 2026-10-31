@@ -13,7 +13,7 @@ import (
 // object other than the resolution's stack -> battlefield entry makes a new
 // object that was never cast. A Nine-Lives Familiar that is countered
 // (stack -> graveyard) and reanimated by Zombify enters with no revival
-// counters (dirac K1l pairs 36065 62776); before the fix only a
+// counters (dirac pairs 36065 62776); before the fix only a
 // departure FROM the battlefield ended the provenance, so it entered with
 // eight. The same read governs WasCastFromHandByYou ("if you cast it from
 // your hand").

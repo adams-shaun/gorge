@@ -466,7 +466,7 @@ func LethalPressureDecide(b Board, d *decision.Decision, r *rand.Rand) decision.
 // per-attacker lethal test (LethalPressureDecide), a combat attack whose
 // ATTACKING SET is lethal once the defender's minimum blocking response is
 // subtracted is made even when no single attacker would be. It is exposed to
-// four-yay cmd/botbench as the "ar8" policy and is NEVER wired into the hosted or
+// a bench runner as the "ar8" policy and is NEVER wired into the hosted or
 // production bot (the default Decide carries only AR7 lethal pressure, never
 // the combined-lethal test).
 func CombinedLethalDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
@@ -476,7 +476,7 @@ func CombinedLethalDecide(b Board, d *decision.Decision, r *rand.Rand) decision.
 // BlocksDecide is the opt-in BLK bench policy: identical to Decide except
 // that KBlockers is answered by the whole-assignment heuristic in
 // blocks.go (chooseBlockAssignment, rules B0-B3) instead of the per-blocker
-// chooseBlockers. It is exposed to four-yay cmd/botbench as the "blocks" policy and
+// chooseBlockers. It is exposed to a bench runner as the "blocks" policy and
 // is NEVER wired into the hosted or production bot.
 func BlocksDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	return decide(b, d, r, true, false, true)

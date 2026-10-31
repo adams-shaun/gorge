@@ -60,7 +60,7 @@ type SampleOptions struct {
 	// Parallelism is how many goroutines run the frozen sampling phase's
 	// attempts (<=1: sequential). It changes wall clock only, never the
 	// result. A caller that already saturates its cores with whole games
-	// (four-yay cmd/searchteacher -workers) leaves it at 1; a live seat answering one
+	// (the search teacher -workers) leaves it at 1; a live seat answering one
 	// decision at a time is what it is for.
 	Parallelism int
 	// KnownCards turns on the known-card constraint (pn21): the History's

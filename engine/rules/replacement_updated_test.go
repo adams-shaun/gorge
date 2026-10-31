@@ -4,10 +4,8 @@
 // wrong for the corpus's dominant shape, ReplacementResult$ Updated ("the
 // event still happens, augmented"): a permanent's own MoveZone onto the
 // battlefield got swallowed, so it never left the stack and resolveTop
-// (engine/rules/stack.go) re-resolved the same object forever. See
-// .superpowers/sdd/2026-09-03-mtgcore-m0-m1/task-29-brief.md and Task 26's
-// report (grep ReplacementResult) for the corpus measurements and the
-// Geralf's Messenger / Hallowed Fountain / Celestial Colonnade repro.
+// (engine/rules/stack.go) re-resolved the same object forever. Repro: Geralf's
+// Messenger / Hallowed Fountain / Celestial Colonnade.
 //
 // Card text below is authored for this test, in the same R:/SVar$ shape as
 // the corpus cards that found the bug -- never copied from Forge's

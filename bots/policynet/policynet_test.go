@@ -341,7 +341,7 @@ func TestEncodeDeterminism(t *testing.T) {
 
 // ---------------------------------------------------------------------------
 // Loader tests. The corpus fixture is GENERATED in the test (never checked
-// in) with the same JSON shape four-yay cmd/searchteacher -labels writes.
+// in) with the same JSON shape the search teacher -labels writes.
 // ---------------------------------------------------------------------------
 
 func fixtureRecords() []labelRecord {

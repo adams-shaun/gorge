@@ -8,7 +8,7 @@ import (
 )
 
 // This file is the BLK block-assignment policy: an opt-in KBlockers policy
-// (botpolicy.BlocksDecide, exposed to four-yay cmd/botbench as the "blocks" policy and
+// (botpolicy.BlocksDecide, exposed to a bench runner as the "blocks" policy and
 // to nothing else — never the hosted or production bot) that considers the
 // whole defender assignment instead of choosing chump/trade per blocker the
 // way chooseBlockers does. The rules, each stated for what it reads:

@@ -7,7 +7,7 @@ bin/
 # ship as a release asset, never in git.
 .pools
 
-# Oracle-audit author packets (four-yay cmd/oraclepacket output): corpus-derived
+# Oracle-audit author packets (oraclepacket output): corpus-derived
 # printed card text handed to a scenario-writing seat. Never committed.
 .oracle-packets/
 
@@ -20,16 +20,13 @@ cmd/repro/testdata/.tokens/
 coverage.out
 coverage.html
 
-# SDD orchestration scratch (ledger, briefs, review packages).
+# Local scratch.
 .superpowers/
 
 # Per-task git worktrees for fleet execution (SDD).
 .worktrees/
 
-# Agent scratch: task briefs, reports, pi session transcripts. Written inside
-# whichever worktree an agent runs in, so a `git add -A` sweeps them into the
-# diff -- which is how one branch's reports reached a merge before this line
-# existed. Orchestration records belong in .superpowers/, not in history.
+# Agent scratch, written inside whichever worktree an agent runs in.
 .ds4/
 
 # web/ (Svelte + Vite spectator client) build artefacts and tooling state.
@@ -70,8 +67,7 @@ __pycache__/
 # published by the `card coverage` CI job, never committed.
 .coverage/
 
-# Operator-local scratch (the CUDA game-pool PoC, since ported to
-# four-yay training/gamepool). Never committed.
+# Local scratch. Never committed.
 /scratch/
 
 # MkDocs build output (mkdocs.yml site_dir) and the docs workflow's

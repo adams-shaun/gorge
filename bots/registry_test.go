@@ -29,8 +29,8 @@ func TestNormalize(t *testing.T) {
 
 func TestEntries(t *testing.T) {
 	entries := bots.Entries()
-	// gorge links six built-ins (bots/all); the research policies register
-	// from four-yay. The count pin and name-based blocks below move together
+	// gorge links six built-ins (bots/all); other policies register from
+	// companion modules. The count pin and name-based blocks below move together
 	// with the built-in set; update this test deliberately on the next policy.
 	if len(entries) != 6 {
 		t.Fatalf("Entries() has %d entries, want 6", len(entries))

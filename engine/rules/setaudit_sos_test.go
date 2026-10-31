@@ -1,6 +1,6 @@
 package rules
 
-// Set audit: Secrets of Strixhaven (sos) — 271 cards (.ds4/brief.md).
+// Set audit: Secrets of Strixhaven (sos) — 271 cards.
 //
 // Every card named here is a real corpus card. The audit examines:
 //
@@ -2108,8 +2108,7 @@ func TestSetAudit_sos_ChelonianTackle_TargetDiesInResponse(t *testing.T) {
 }
 
 // (b) Control change (CR 800.4a), inline fixture — the sos set has NO
-// gain-control carrier (checked against .superpowers/set-audit/sos.json's
-// 271 oracles): a sorcery `A:SP$ GainControl | ValidTgts$ Creature` takes
+// gain-control carrier (checked against the set's 271 oracles): a sorcery `A:SP$ GainControl | ValidTgts$ Creature` takes
 // an sos-flavoured creature. The object KEEPS ITS IDENTITY: same state.ObjID,
 // same card, same zone, only the controller moved — a control change never
 // re-enters the battlefield (CR 800.4a/304.2 contrast with CR 613.6).

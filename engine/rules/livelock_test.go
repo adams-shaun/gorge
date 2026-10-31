@@ -10,7 +10,7 @@ import (
 
 // The livelock watcher (engine/rules/livelock.go) aborts a game whose event stream
 // provably never terminates by panicking with a *LivelockError from inside
-// the emit path -- the harnesses (cmd/mtgsim, four-yay cmd/botbench) recover it and
+// the emit path -- the harnesses (cmd/mtgsim, a bench runner) recover it and
 // report it. These tests drive the engine's own emit with synthetic
 // non-terminating patterns: the same (object, event-kind) shape repeating
 // forever is the I-1 failure family (a stack object re-resolving 700+ times

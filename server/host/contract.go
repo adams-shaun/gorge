@@ -1,9 +1,9 @@
 package host
 
 // The hosted-policy contract harness: the gates every hosted bot policy owes
-// the host (spec 2026-09-28-hosted-bot-packages §5.3 and §8, the az-c4
+// the host (docs/design/2026-09-28-hosted-bot-packages.md §5.3 and §8, and the
 // closed-list privacy proof), exported so a module that registers its own
-// policies (four-yay's az-c3/c4/c5, search, sb-*) runs EXACTLY the harness
+// policies runs EXACTLY the harness
 // gorge runs on the policies it links, through the real host internals the
 // properties are about. gorge's own rows (server/host/*_test.go) call these
 // same functions.

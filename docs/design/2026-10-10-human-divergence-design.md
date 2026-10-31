@@ -686,9 +686,7 @@ Rules, each with its enforcement:
 
 ## 12. Ticket breakdown
 
-Seat routing follows the operator's standing rules: Go engine and server work
-goes to agentctl seats. **UI work never goes to the local ds4 seat**; it goes to
-a codex seat or is done by hand. Every Go test runs focused and capped:
+Every Go test runs focused and capped:
 
 ```sh
 systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB \

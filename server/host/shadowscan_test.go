@@ -25,8 +25,7 @@ import (
 // host's own dispatch is, to the scan, indistinguishable from its shadow:
 // ShadowScan reports 0 divergences over every decision the seat answered.
 // Run for the Board path ("bot") and an EnvSeat policy (sb-tactical) through
-// the exported contract (RunShadowParityContract); four-yay runs the same
-// contract for the search policy it hosts, capped at 400 intents.
+// the exported contract (RunShadowParityContract).
 func TestShadowParityZeroDivergences(t *testing.T) {
 	t.Parallel()
 	for _, policy := range []string{bots.Default, sbtactical.Policy} {
@@ -234,7 +233,7 @@ func TestSnapshotMatchNamesMatchK(t *testing.T) {
 // ends the match, so that answer never reaches the log. The contract's
 // "scan visited every decision the seat answered" precondition counts only
 // the answers the log records, so a cap that lands on the seat's own
-// decision does not fail the row (four-yay's capped search-policy run).
+// decision does not fail the row.
 func TestShadowParityCappedOnASeatDecision(t *testing.T) {
 	t.Parallel()
 	o := testOptions(t)

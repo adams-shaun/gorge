@@ -9,8 +9,7 @@ import (
 // that fixture's D6 exists to keep off the wire. A result whose concrete
 // element type lives in either — *rules.Engine, *state.Game, *[]state.Game,
 // and so on — is a handle a caller could type-assert straight into a live
-// engine game, exactly the defect the mtgserve snapshot shipped to
-// production. No view./protocol./decision. carrier ever has an element in
+// engine game, a defect an embedding server once shipped. No view./protocol./decision. carrier ever has an element in
 // either package, so a result here means a leak.
 const (
 	rulesPkg = "github.com/adams-shaun/gorge/engine/rules"

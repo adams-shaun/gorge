@@ -191,7 +191,7 @@ type Seat struct {
 	note func(explain.Note)
 }
 
-// SetRecorder installs the visit-corpus recorder (M1b; four-yay cmd/botbench
+// SetRecorder installs the visit-corpus recorder (M1b; a bench runner
 // -az-corpus). The records carry the searched decision (redacted state,
 // the candidates' options, visits, prior, Q, root value, the played
 // candidate) and the diagnostic opponent-hand rows; the driver fills the

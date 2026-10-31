@@ -15,7 +15,7 @@ import (
 // only ever there for a dependency.
 //
 // An experiment that genuinely needs a third-party module lives in its own
-// module of its own (four-yay's training/experimental/gamepool requires purego for its CUDA binding)
+// module of its own (a companion module's game pool requires purego for its CUDA binding)
 // and imports the root module through a replace; the root never requires it
 // back. wazero, the one planned exception (the M3 plugin tier), lands by
 // changing this test in the same commit, under an operator decision.

@@ -15,7 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// LabelSchemaVersion and LabelRecordType mirror four-yay cmd/searchteacher/labels.go's
+// LabelSchemaVersion and LabelRecordType mirror the search teacher's
 // writer constants. The record type itself is mirrored below (the writer is
 // package main and cannot be imported); a drift between the two shapes is a
 // decoder error on the fields that matter, not a silent misread.
@@ -32,7 +32,7 @@ const (
 // reader accepts, in ascending order. Callers must treat it as read-only.
 //
 // Schema 3 (pn12) is schema 2 plus the optional "extras" object
-// (LabelExtras, written by four-yay cmd/searchteacher -label-extras): Load reads a
+// (LabelExtras, written by the search teacher -label-extras): Load reads a
 // schema 3 record exactly as schema 2 and ignores the extras; LoadWith reads
 // them.
 var AcceptedLabelSchemaVersions = []int{1, 2, 3}
@@ -47,7 +47,7 @@ func LabelSchemaAccepted(v int) bool {
 	return false
 }
 
-// labelRecord mirrors four-yay cmd/searchteacher/labels.go's LabelRecord: the merged
+// labelRecord mirrors the search teacher's LabelRecord: the merged
 // search-teacher label corpus record, one JSON object per line. Field names
 // and JSON tags must match the writer's exactly.
 type labelRecord struct {
@@ -83,7 +83,7 @@ type labelRecord struct {
 	Explore bool `json:"explore,omitempty"`
 }
 
-// labelCandidate mirrors four-yay cmd/searchteacher/labels.go's LabelCandidate.
+// labelCandidate mirrors the search teacher's LabelCandidate.
 type labelCandidate struct {
 	Choices []int   `json:"choices"`
 	Bot     bool    `json:"bot"`
