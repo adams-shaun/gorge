@@ -573,6 +573,11 @@ func describe(g *state.Game, ev events.Event) string {
 			return obj(g, ev.Obj) + " targets " + player(g, ev.Player)
 		}
 		return obj(g, ev.Obj) + " targets " + objs(g, ev.IDs)
+	case events.SubTargetRemoved:
+		if ev.Amount == 3 {
+			return obj(g, ev.Obj) + " no longer targets " + player(g, ev.Player)
+		}
+		return obj(g, ev.Obj) + " no longer targets " + objs(g, ev.IDs)
 	case events.ClockTick:
 		return ""
 	case events.CastInfo:

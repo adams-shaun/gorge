@@ -7,6 +7,7 @@
 package rules
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -1247,7 +1248,7 @@ func (e *Engine) filterTargetValidTargeting(in []targetCandidate, sa *cards.SA, 
 		if o == nil {
 			continue
 		}
-		for _, t := range o.Targets {
+		for _, t := range slices.Concat(o.Targets, o.SubTargets) {
 			if t.IsPlayer || t.Obj == 0 {
 				continue
 			}

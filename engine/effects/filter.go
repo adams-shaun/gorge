@@ -1267,25 +1267,24 @@ func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc 
 	if o == nil || sc == nil {
 		return false
 	}
-	targets := o.Targets
-	if sc.ProposedTargets != nil {
-		targets = sc.ProposedTargets
-	}
-	for _, tgt := range targets {
-		if tgt.IsPlayer {
-			if MatchesPlayerSpecCtx(g, spec, tgt.Player, sc.You, PlayerSpecCtx{Source: sc.Source}) {
+	matches := func(targets []state.Target) bool {
+		for _, tgt := range targets {
+			if tgt.IsPlayer {
+				if MatchesPlayerSpecCtx(g, spec, tgt.Player, sc.You, PlayerSpecCtx{Source: sc.Source}) {
+					return true
+				}
+				continue
+			}
+			if tgt.Obj != 0 && MatchesSpecCtx(g, spec, tgt.Obj, *sc) {
 				return true
 			}
-			continue
 		}
-		if tgt.Obj == 0 {
-			continue
-		}
-		if MatchesSpecCtx(g, spec, tgt.Obj, *sc) {
-			return true
-		}
+		return false
 	}
-	return false
+	if sc.ProposedTargets != nil {
+		return matches(sc.ProposedTargets)
+	}
+	return matches(o.Targets) || matches(o.SubTargets)
 }
 
 // sharesColorBareReferent reports whether a `SharesColorWith ` argument is

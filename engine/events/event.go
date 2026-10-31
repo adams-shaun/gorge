@@ -1306,10 +1306,16 @@ const (
 	// (2); Text is the state's name. Appended after HadToAttack so every
 	// earlier ordinal, hash chain and golden replay is unchanged.
 	DayNightChange
+	// SubTargetRemoved records a target leaving a chain link when an effect
+	// changes it (CR 115.7), with TargetsChosen's append shapes: Amount 2 for
+	// the object in IDs, 3 for Player. It is not a targeting. Appended after
+	// DayNightChange so every earlier ordinal, hash chain and golden replay is
+	// unchanged.
+	SubTargetRemoved
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(DayNightChange) + 1
+	NumKinds = int(SubTargetRemoved) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

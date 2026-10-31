@@ -1716,3 +1716,22 @@ func TestSubTargetsChosenFoldsApartFromRootTargets(t *testing.T) {
 		t.Fatalf("a zone change kept targets: %+v / %+v", o.Targets, o.SubTargets)
 	}
 }
+
+// TestSubTargetRemoved: the fold drops one entry naming the target, so a second
+// link holding the same target keeps its own.
+func TestSubTargetRemoved(t *testing.T) {
+	g, l := twoPlayer(t)
+	spell := g.Zone(state.ZLibrary, 0)[0]
+	Emit(g, l, Event{Kind: MoveZone, Obj: spell, From: state.ZLibrary, To: state.ZStack})
+	sub := g.Zone(state.ZLibrary, 0)[1]
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 2, IDs: []state.ObjID{sub}, Text: SubTargetNotice})
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 3, Player: 1, Text: SubTargetNotice})
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 2, IDs: []state.ObjID{sub}, Text: SubTargetNotice})
+
+	Emit(g, l, Event{Kind: SubTargetRemoved, Obj: spell, Amount: 2, IDs: []state.ObjID{sub}})
+	Emit(g, l, Event{Kind: SubTargetRemoved, Obj: spell, Amount: 3, Player: 1})
+	want := []state.Target{{Obj: sub}}
+	if got := g.Obj(spell).SubTargets; !reflect.DeepEqual(got, want) {
+		t.Fatalf("sub targets = %+v, want %+v", got, want)
+	}
+}

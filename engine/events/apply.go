@@ -512,6 +512,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldHadToAttack(g, e)
 	case DayNightChange:
 		foldDayNightChange(g, e)
+	case SubTargetRemoved:
+		foldSubTargetRemoved(g, e)
 	case Exert:
 		foldExert(g, e)
 	case KeywordTriggerPush:

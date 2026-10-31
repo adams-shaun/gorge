@@ -6,6 +6,7 @@
 package events
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/adams-shaun/gorge/engine/state"
@@ -278,6 +279,26 @@ func foldTargetsChosen(g *state.Game, e *Event) {
 			}
 			o.Targets = targets
 		}
+	}
+}
+
+// foldSubTargetRemoved folds Kind SubTargetRemoved into state: the first entry
+// of Object.SubTargets naming the target goes. The list is flat, so a second
+// link holding the same target keeps its entry.
+func foldSubTargetRemoved(g *state.Game, e *Event) {
+	o := g.Obj(e.Obj)
+	if o == nil {
+		return
+	}
+	want := state.Target{Player: e.Player, IsPlayer: true}
+	if e.Amount != 3 {
+		if len(e.IDs) != 1 {
+			return
+		}
+		want = state.Target{Obj: e.IDs[0]}
+	}
+	if i := slices.Index(o.SubTargets, want); i >= 0 {
+		o.SubTargets = append(o.SubTargets[:i:i], o.SubTargets[i+1:]...)
 	}
 }
 

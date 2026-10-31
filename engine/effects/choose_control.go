@@ -1730,10 +1730,14 @@ func changeTargetChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 	return c.Controller
 }
 
-// effChangeTargets derives candidates through Host.LegalTargets, the exact
-// rules-side target census used at announcement. The redirect's own
-// TargetRestriction narrows that set; it can never widen the subject spell's
-// legality. Fixed magnets and random redirects use the same intersection.
+// effChangeTargets changes the targets of a spell or ability on the stack: its
+// root declaration and then each chain link holding announced targets (CR
+// 601.2c puts them all on the one object). Each declaration's candidates come
+// from Host.LegalRetargets, the rules-side census judged as the subject. The
+// redirect's own TargetRestriction narrows that set; it can never widen the
+// subject spell's legality. Fixed magnets and random redirects use the same
+// intersection. Every answer is applied after the last ask, so a re-entry on
+// a later ask has recorded nothing.
 func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 	var target *state.Object
 	for _, t := range Defined(h, c, sa) {
@@ -1747,63 +1751,95 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 	if target == nil {
 		return
 	}
-
 	subject := effectSA(target)
-	if subject == nil || len(target.Targets) == 0 {
+	if subject == nil {
 		return
 	}
+
 	chooser := changeTargetChooser(h, c, sa)
 	restriction := strings.TrimSpace(sa.ParamStr(cards.PKTargetRestriction))
-	if strings.EqualFold(sa.ParamStr(cards.PKRandomTarget), "True") && sa.ParamStr(cards.PKRandomTargetRestriction) != "" {
+	random := strings.EqualFold(sa.ParamStr(cards.PKRandomTarget), "True")
+	if random && sa.ParamStr(cards.PKRandomTargetRestriction) != "" {
 		restriction = sa.ParamStr(cards.PKRandomTargetRestriction)
 	}
-	var candidates []state.Target
-	// CR 115.7: a changed target must be one the spell or ability could
-	// legally target, which is decided from its own controller's side
-	// ("target creature an opponent controls" names the redirected spell's
-	// opponents, not the redirecting player's).
-	for _, t := range h.LegalTargets(target.Controller, target.ID, subject) {
-		if targetAllowed(h, c, restriction, t) {
-			candidates = append(candidates, t)
-		}
-	}
+	magnet := strings.TrimSpace(sa.ParamStr(cards.PKDefinedMagnet))
+	single := strings.EqualFold(sa.ParamStr(cards.PKChangeSingleTarget), "True")
 
-	if magnet := strings.TrimSpace(sa.ParamStr(cards.PKDefinedMagnet)); magnet != "" {
+	type retarget struct {
+		link *cards.SA // nil for the root's own targets
+		ts   []state.Target
+	}
+	var changes []retarget
+	var parent []state.Target // nil while judging the root
+	for link := subject; link != nil; link = link.Sub {
+		old := target.Targets
+		if link != subject {
+			old = h.AnnouncedLinkTargets(target.ID, link)
+		}
+		if len(old) == 0 {
+			if link == subject {
+				parent = []state.Target{}
+			}
+			continue
+		}
+		var candidates []state.Target
+		for _, t := range h.LegalRetargets(target.ID, link, parent) {
+			if targetAllowed(h, c, restriction, t) {
+				candidates = append(candidates, t)
+			}
+		}
+		count := len(old)
+		if single {
+			count = 1
+		}
 		var picked []state.Target
-		for _, t := range DefinedSpec(h, c, magnet) {
-			if targetIn(candidates, t) {
-				picked = append(picked, t)
+		switch {
+		case magnet != "":
+			for _, t := range DefinedSpec(h, c, magnet) {
+				if targetIn(candidates, t) {
+					picked = []state.Target{t}
+					break
+				}
+			}
+		case random:
+			pool := append([]state.Target(nil), candidates...)
+			for len(picked) < count && len(pool) > 0 {
+				i := h.Rand(len(pool))
+				picked = append(picked, pool[i])
+				pool = append(pool[:i], pool[i+1:]...)
+			}
+		default:
+			picked = askNewTargets(h, c, sa, chooser, candidates, count)
+		}
+		parent = old
+		if len(picked) > 0 {
+			// A shorter answer keeps the remaining old targets.
+			if len(picked) < len(old) {
+				picked = append(picked, old[len(picked):]...)
+			}
+			r := retarget{ts: picked}
+			if link != subject {
+				r.link = link
+			}
+			changes = append(changes, r)
+			parent = picked
+			if single {
 				break
 			}
 		}
-		if len(picked) > 0 {
-			picked = append(picked, target.Targets[1:]...)
-			recordTargets(h, target.ID, picked)
-		}
-		return
 	}
+	for _, r := range changes {
+		if r.link == nil {
+			recordTargets(h, target.ID, r.ts)
+		} else {
+			h.RetargetLink(target.ID, r.link, r.ts)
+		}
+	}
+}
 
-	count := len(target.Targets)
-	if strings.EqualFold(sa.ParamStr(cards.PKChangeSingleTarget), "True") {
-		count = 1
-	}
-	if strings.EqualFold(sa.ParamStr(cards.PKRandomTarget), "True") {
-		pool := append([]state.Target(nil), candidates...)
-		var picked []state.Target
-		for len(picked) < count && len(pool) > 0 {
-			i := h.Rand(len(pool))
-			picked = append(picked, pool[i])
-			pool = append(pool[:i], pool[i+1:]...)
-		}
-		if len(picked) > 0 {
-			if len(picked) < len(target.Targets) {
-				picked = append(picked, target.Targets[len(picked):]...)
-			}
-			recordTargets(h, target.ID, picked)
-		}
-		return
-	}
-
+// askNewTargets poses one declaration's "choose new target" ask. An empty
+// answer, or none served, keeps every target.
+func askNewTargets(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID, candidates []state.Target, count int) []state.Target {
 	min, max := count, count
 	if strings.EqualFold(sa.ParamStr(cards.PKOptional), "True") {
 		min = 0
@@ -1827,24 +1863,11 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 		}
 		d.Options = append(d.Options, o)
 	}
-	if ans, ok := AskTape(h, d); ok {
-		// Answered in place: apply the redirect.
-		changeTargetsApply(h, sa, target, ChoiceAnswerTargets(ans))
+	ans, ok := AskTape(h, d)
+	if !ok {
+		return nil
 	}
-}
-
-// changeTargetsApply records an answered ChangeTargets redirect: the chosen
-// new targets, padded with the subject's remaining old ones. An empty
-// (Optional) answer keeps every target.
-func changeTargetsApply(h Host, sa *cards.SA, target *state.Object, choice []state.Target) {
-	if len(choice) == 0 {
-		return
-	}
-	out := append([]state.Target(nil), choice...)
-	if strings.EqualFold(sa.ParamStr(cards.PKChangeSingleTarget), "True") || len(out) < len(target.Targets) {
-		out = append(out, target.Targets[len(out):]...)
-	}
-	recordTargets(h, target.ID, out)
+	return ChoiceAnswerTargets(ans)
 }
 
 func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {

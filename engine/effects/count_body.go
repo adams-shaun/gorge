@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -227,7 +228,7 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 			if inner == nil {
 				continue
 			}
-			for _, it := range inner.Targets {
+			for _, it := range slices.Concat(inner.Targets, inner.SubTargets) {
 				if it.IsPlayer || it.Obj == 0 {
 					continue
 				}

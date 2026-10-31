@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -1229,7 +1230,7 @@ func (e *Engine) replacementCauseMatches(spec string, replacementSource, cause s
 		return true
 	}
 	if strings.HasPrefix(quals, "IsTargeting Self") {
-		for _, t := range o.Targets {
+		for _, t := range slices.Concat(o.Targets, o.SubTargets) {
 			if !t.IsPlayer && t.Obj == replacementSource {
 				return true
 			}

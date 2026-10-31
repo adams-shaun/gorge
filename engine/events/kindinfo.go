@@ -233,6 +233,7 @@ var kindInfo = [NumKinds]KindInfo{
 	TextChange:            {Name: "text_change", Trigger: TriggerNone, Describe: "{obj}'s text changes"},                                                 // CR 612 layer-3 text change; no trigger
 	HadToAttack:           {Name: "had_to_attack", Trigger: TriggerNone, Describe: "the attackers that had to attack are recorded"},                      // CR 506.7 bookkeeping; no trigger
 	DayNightChange:        {Name: "day_night_change", Trigger: TriggerNone, Describe: "It becomes {text}"},                                               // CR 731; no registered trigger mode reads it
+	SubTargetRemoved:      {Name: "sub_target_removed", Trigger: TriggerNone},
 }
 
 // Info returns k's descriptor; ok is false for a value past the enum.

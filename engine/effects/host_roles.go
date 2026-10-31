@@ -404,6 +404,19 @@ type HostTargeting interface {
 	// referents (SpecContext.ParentTargets) -- "exile up to one target
 	// Equipment attached to THAT creature".
 	LegalSubTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA, parent []state.Target) []state.Target
+	// LegalRetargets is the census for changing a target of the stack object
+	// obj (CR 115.7): what obj's declaration sa could legally target, judged
+	// from obj's controller and source rather than the effect changing it.
+	// parent is nil for obj's root declaration and, for a chain link, non-nil
+	// and the targets its Targeted*/ParentTarget referents read.
+	LegalRetargets(obj state.ObjID, sa *cards.SA, parent []state.Target) []state.Target
+	// AnnouncedLinkTargets returns the targets announced for the chain link
+	// link of the stack object obj (CR 601.2c).
+	AnnouncedLinkTargets(obj state.ObjID, link *cards.SA) []state.Target
+	// RetargetLink replaces the announced targets of the chain link link of
+	// the stack object obj. A target it adds is targeted anew; one it keeps is
+	// not.
+	RetargetLink(obj state.ObjID, link *cards.SA, ts []state.Target)
 	// ChooserFor resolves the seat that answers a target ask declared by sa,
 	// per Forge's TargetingPlayer$ ("an opponent chooses the target"). The
 	// mid-resolution ValidTgts$ asks (chosenTargetsFor, changeZoneChosenTargets)

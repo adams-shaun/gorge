@@ -144,7 +144,7 @@ on them. A client must treat an unknown kind as displayable but opaque, and use
     `forage_action` `manifest_dread_action` `collect_evidence_action` `ability_triggered`
     `cast_battlefield` `draw_batch_proposal` `spell_cast_reversed` `hidden_identity`
     `draw_empty` `setup_settled` `blocked_by_effect` `copy_except` `game_restart`
-    `activation_reversed` `text_change` `had_to_attack` `day_night_change`
+    `activation_reversed` `text_change` `had_to_attack` `day_night_change` `sub_target_removed`
 
     Listed in ordinal order, from `events.Kind.String()`. The list here isn't generated; `engine/events` is the authority.
 
