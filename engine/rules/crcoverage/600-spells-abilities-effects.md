@@ -57,7 +57,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.2a | follows | `engine/rules/trigger_match.go#Engine.triggerMatchesWithSVars` | - | no cast/activate gate on triggers |
 | 603.2b | follows | `engine/rules/trigger_match.go#Engine.checkTriggers` | - | beginning-of-step triggers |
 | 603.2c | follows | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` `engine/rules/trigger_match.go#triggerTurnLimitFor` | `TestCR603_2cRaiseThePastIsOneEntryEvent` `TestSacrificedOncePerBatch` `TestTokenCreatedOncePerBatch` | once per occurrence; Mode$ SacrificedOnce / TokenCreatedOnce are "one or more" batches (one per sacrifice action / token-creation resolution, not per turn), and OnlyFirst$ keeps its per-turn cap |
-| 603.2d | follows | `engine/rules/statics_echo.go#Engine.panharmoniconEchoes` | - | d no Panharmonicon-style cards |
+| 603.2d | partial | `engine/rules/statics_echo.go#Engine.panharmoniconEchoes` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` `engine/rules/rooms.go#Engine.queueUnlockTriggers` | `TestUnlockTriggerDoubledByFracturedRealm` `TestEntryScopedDoublerLeavesUnlockTriggerAlone` | printed triggers and door triggers double; triggers queued outside the face walk (Saga chapters, blocks, granted triggers) do not |
 | 603.2e | follows | `engine/rules/trigmatch/tap.go#tapsMatches` `engine/effects/combatfx.go#effTap` | - | d not reached |
 | 603.2f | unknown | - | - | g no hidden-object gate found |
 | 603.2g | follows | `engine/rules/trigmatch/combat.go#DamageMatchesWithCapture` | `TestCR603_2gDamageRemovalIsNotDamageDealt` `TestCR603_2gHealIsNotPreventedByProtection` | REVISED: g non-positive Damage never matches (cr-g06); d removal fires nothing, zero guard unverified |

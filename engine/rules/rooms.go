@@ -142,15 +142,20 @@ func (e *Engine) queueUnlockTriggers(o *state.Object, face *cards.Face) {
 		if exec == "" || t.Effect == nil {
 			continue
 		}
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-			Source:     o.ID,
-			Controller: o.Controller,
-			Delayed:    true,
-			DelayedID:  ^uint32(0),
-			Execute:    exec,
-			SA:         t.Effect,
-			Ctx:        effects.NewCtx(o.ID, o.Controller, effects.CtxInit{}),
-		})
+		// CR 603.2d. The unlock is the cause even when it happens on entry, so a
+		// static scoped to entering permanents reads a DoorUnlock, not the move.
+		echoes := e.panharmoniconEchoes(e, o.ID, events.Event{Kind: events.DoorUnlock, Obj: o.ID}, nil)
+		for n := 0; n <= echoes; n++ {
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     o.ID,
+				Controller: o.Controller,
+				Delayed:    true,
+				DelayedID:  ^uint32(0),
+				Execute:    exec,
+				SA:         t.Effect,
+				Ctx:        effects.NewCtx(o.ID, o.Controller, effects.CtxInit{}),
+			})
+		}
 	}
 }
 
