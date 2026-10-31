@@ -14,7 +14,8 @@ primitives that IR references. See
 [ADR 0001](docs/decisions/0001-repo-layout.md) and [ADR 0002](docs/decisions/0002-public-engines-and-draft.md) group the tree:
 
 - `engine/`: the rules core (`cards state decision events effects rules view
-  replay deck`, and `seat`, the `Seat` contract only). Imports nothing outside.
+  replay eventdiff deck`, `game` and its `gorgegame`, the seam a host runs an
+  engine through, and `seat`, the `Seat` contract only). Imports nothing outside.
 - `server/`: `gorged` (the importable server; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`), `protocol`, `manabrew`, `divergence`.
 - `bots/`: `botpolicy`, `heuristic` (the default bot), the registry, hosted bots and their inference runtime.
 - `cmd/`: product and developer tools. `internal/`: ratchets, test support, generators.

@@ -33,6 +33,9 @@ never appear (see [invariants.md](invariants.md#1-dependency-direction)).
 | `engine/view` | Projects one seat's redacted `view.View` (`Project`, `ProjectFor`, `RedactEvents`). The only way a client reads state. `engine/view/view.go` is the orchestration; the card/battlefield family lives in `engine/view/card.go` and the stack family in `engine/view/stack.go`. A projection change goes in the family file for its seam. |
 | `engine/seat` | The seat contract only: `seat.Seat`, `PaymentPlanConsumer`, `TargetHintConsumer`. Imports only `decision` and `view`. Concrete bots live in `bots/`. |
 | `engine/replay` | Re-executes `(Config, Log)` and names the first divergent event (`Replay`, `ReplayTo`). |
+| `engine/eventdiff` | Compares two event streams and names the first difference (`Divergence`, `First`). A leaf over `events`, shared by `replay` and `game`. |
+| `engine/game` | What a host needs from a running game, whichever engine runs it: `game.Game` (board, derived facts, log, pending decision, submit, fork, capabilities), `game.Engine`, the neutral `game.Config`. Never imports `rules` or `replay`. |
+| `engine/game/gorgegame` | The rules engine behind `game.Game` and `game.Engine`; `RulesConfig` maps `game.Config` to `rules.Config`, `Rules` returns the engine for gorge-only paths. |
 
 The layering design for `engine/rules` is
 [`docs/design/2026-10-03-rules-engine-lasagna-design.md`](../design/2026-10-03-rules-engine-lasagna-design.md).

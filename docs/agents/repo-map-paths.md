@@ -42,7 +42,7 @@ gorge carries no maintainer automation or demo-deploy machinery.
 | `docs/site/` | The public MkDocs site (`mkdocs.yml`); `docs/site/architecture/packages.tiers.json` classifies every package. |
 | `docs/agents/` | This guide. |
 | `.githooks/` | pre-commit and pre-merge-commit (run `pkgmap-check`), pre-push (the opt-in `RACE=1` race gate on a push of main) (`core.hooksPath=.githooks`). |
-| `scripts/` | Contributor/CI only: `ci_shard.sh`, `smoke.sh`, `enginebench-*.sh`, `docs_sets.py`. (Maintainer-only scripts live outside the repo.) |
+| `scripts/` | Contributor/CI only: `ci_shard.sh`, `smoke.sh`, `enginebench-*.sh`, `hostbench-pair.sh`, `docs_sets.py`. (Maintainer-only scripts live outside the repo.) |
 | `.github/workflows/` | `ci.yml`; `docs.yml` (builds the site, regenerates the package map); `coverage.yml` (on push to main: `make coverage`, publishes `.coverage/` as the `card-coverage` artifact; commits nothing). |
 | `testkit/testutil/testdata/wall_exceptions.txt`, `rss_exceptions.txt` | Shrink-only inventories of tests over the per-test wall / RSS budget. |
 

@@ -238,6 +238,18 @@
       "tier": "engine",
       "status": "CORE"
     },
+    "engine/eventdiff": {
+      "tier": "engine",
+      "status": "CORE"
+    },
+    "engine/game": {
+      "tier": "engine",
+      "status": "CORE"
+    },
+    "engine/game/gorgegame": {
+      "tier": "engine",
+      "status": "CORE"
+    },
     "engine/replay": {
       "tier": "engine",
       "status": "CORE"

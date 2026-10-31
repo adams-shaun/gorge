@@ -181,6 +181,18 @@ func TestDependencyOrderHolds(t *testing.T) {
 	forbidden := []struct{ from, to string }{
 		{module + "/engine/effects", module + "/engine/rules"},
 		{module + "/engine/view", module + "/engine/rules"},
+		// engine/game is what a host sees of any engine: above view, below the
+		// host, and blind to the engine it fronts. engine/view's own tests
+		// import engine/replay, so replay reaching view would be a test import
+		// cycle; replay's shared divergence type lives in engine/eventdiff.
+		{module + "/engine/game", module + "/engine/rules"},
+		{module + "/engine/game", module + "/engine/replay"},
+		{module + "/engine/view", module + "/engine/game"},
+		{module + "/engine/seat", module + "/engine/game"},
+		{module + "/engine/rules", module + "/engine/game"},
+		{module + "/engine/replay", module + "/engine/game"},
+		{module + "/engine/eventdiff", module + "/engine/view"},
+		{module + "/engine/eventdiff", module + "/engine/rules"},
 		{module + "/bots/botpolicy", module + "/engine/view"},
 		{module + "/bots/botpolicy", module + "/engine/rules"},
 		{module + "/bots/botpolicy", module + "/engine/seat"},
