@@ -9,6 +9,13 @@ reading it.
 cell, and exits non-zero if any fails. A skipped test counts as a failure. CI runs
 the `commit` tier as the job `wire-matrix`.
 
+`scripts/wire-nightly.sh` is the nightly run, on a seed that moves each day. It
+plays chunks of games on each wire (`TestConformanceChunk`), fuzzed decks through
+ManaBrew, and SpellBench v2 parity. v2 parity is reported and does not fail the
+run while its bar is red. A game that diffs is written to
+`wire-found-<date>.tsv`; once added to `testkit/conformance/testdata/found.tsv` it
+replays in `TestFoundPairs` for good.
+
 | Cell | Engine / wire / consumer | Asserts | Test or command | Tiers |
 |---|---|---|---|---|
 | 1 | gorge / native / harness | Two sessions of one game agree on every frame, with at least 100 frames per game | `TestNativeConformanceGorgeSelf` | commit nightly pr |

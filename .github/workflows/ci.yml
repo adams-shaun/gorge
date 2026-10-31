@@ -198,6 +198,9 @@ jobs:
           grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
       - name: Run the commit tier
         run: scripts/wire-matrix.sh commit
+      - name: Run the nightly chunks, fuzz and parity
+        if: github.event_name == 'schedule'
+        run: scripts/wire-nightly.sh
 
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
