@@ -165,8 +165,8 @@ green, with a merge commit. `main` is what this site and
 the published coverage are built from ([Branch flow](../repos/index.md#branch-flow)).
 
 **dirac.** A second, much faster rules engine, for two players. Its whole game is one
-fixed-size value (no pointers, maps or slices, so a copy is a clone) driven as a `Step`/`Apply`
-state machine, and its cards are tables of *kop* instructions, mostly generated ahead of time from
+mostly fixed-size value, cloned with one or two memory copies and driven as a `Step`/`Apply`
+state machine, and its cards are tables of *kop* instructions, generated from
 gorge's compiled cards. Play is checked against gorge by a *lockstep oracle*. Its source isn't in this
 repository yet. See [dirac](../architecture/dirac/index.md).
 
@@ -188,18 +188,16 @@ turn, step and mana. Two engines agree at a decision when their projections
 are equal (`==` on fixed arrays) and they offer the same canonical options.
 See [Verification](../architecture/dirac/oracle.md).
 
-**Capacity stall.** A lockstep game dirac stops on purpose because the
-position no longer fits its fixed-size state (more objects, board slots or
-stack entries than the arrays hold). It is reported separately from a
-divergence: a stall is a known limit, not a rules disagreement. A few stall
-reasons mark interactions whose ordering dirac does not model,
-rather than capacity.
+**Stall.** A game dirac ends as a draw with a named reason because it can't continue
+correctly. A *capacity* stall means the position no longer fits a fixed array, and it is a declared
+limit. An *unmodelled* stall means gorge does something there that dirac doesn't, and a strict
+lockstep run fails on it. Neither is reported as a divergence.
 
 **kgen.** The generator that lowers gorge's compiled card IR into
-dirac's kop tables, as generated Go card packages. It reads every
+dirac's kop tables, as generated binary tables that are never committed. It reads every
 parameter of a card or refuses the card. A refused card stays out of every
-deck dirac accepts. A card kgen *accepts* has lowered without a
-refusal; that is weaker than a card verified in lockstep. See [Cards](../architecture/dirac/cards.md).
+deck dirac accepts. A card that lowers without a refusal
+isn't yet supported: that also takes evidence from lockstep games. See [Cards](../architecture/dirac/cards.md).
 
 **SpellBench v2.** An external, engine-neutral benchmark protocol for Magic
 agents ([jackmaiorino/spellbench](https://github.com/jackmaiorino/spellbench)).

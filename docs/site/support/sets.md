@@ -108,7 +108,7 @@ with a CR citation), 11 harness, 3 diverge and 2 `gorge_wrong`.
 ### dirac: lowered and lockstep-verified
 
 dirac is a second, much faster rules engine, and gorge is the reference it is checked against. Its
-source isn't in this repository yet, and its supported sets are published here. It doesn't interpret
+source isn't in this repository yet, and its per-set figures are published here. It doesn't interpret
 card scripts. Instead, a generator (`kgen`) **lowers** each card's gorge IR into fixed op tables. A card
 it cannot lower is *refused* with a named reason. kgen runs over the whole Forge corpus. An acceptance
 ratchet pins the number of cards accepted, corpus-wide and per set. A fall fails, and a rise is re-pinned.
@@ -116,9 +116,8 @@ ratchet pins the number of cards accepted, corpus-wide and per set. A fall fails
 Being lowered is weaker than being verified. **Lockstep** verification runs
 the engine beside gorge on the same decks and seed. It compares the options
 offered at every decision and the state after every action. Each verified set
-has a fixed pool of 1,500 seeded games. A game that hits a turn, decision or
-capacity cap before it ends, with no disagreement up to that point, counts as
-*stalled*. Lockstep-verified sets are marked in the per-set table below. See
+has a fixed slice of 1,500 seeded games. A game that hits a capacity limit, with
+no disagreement up to that point, counts as *stalled*. Lockstep-verified sets are marked in the per-set table below. See
 [dirac](../architecture/dirac/index.md) for the design.
 
 dirac's per-set card list is the distinct card names in XMage's manifest

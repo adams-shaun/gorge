@@ -73,7 +73,7 @@ The mechanic masks show the idea at its smallest. A mask that almost no pool use
 and so on) gets an index only if a card in the table uses it. Any other mechanic's index is past the end of the
 mask array, so the bounds test is also the off switch and the unused mechanic touches no memory.
 
-A full cold array stalls by name, and an empty one is simply full. A table that can't write to one never gets
+A full cold array stalls by name, and an empty one counts as full. A table that can't write to one never gets
 there, because its size follows the same flags that switch its writers on.
 
 A rules probe (does this option leave a legal play?) runs on a fork from the `ForkPool`, one `State` per
