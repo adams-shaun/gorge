@@ -37,6 +37,7 @@ web/dist/
 web/test-results/
 web/playwright-report/
 gorged-data/
+/feedback/
 wire-found-*
 __pycache__/
 *.pyc
