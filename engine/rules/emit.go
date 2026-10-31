@@ -336,6 +336,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 		}
 	}
+	if ev.Kind == events.MoveZone && lki != nil {
+		e.settleFollowedObject(lki, lkiPower, lkiToughness, lkiPTValid)
+	}
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	timeBefore := int32(0)
 	if lki != nil && ev.Kind == events.CounterChange {

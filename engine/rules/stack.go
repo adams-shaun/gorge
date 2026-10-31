@@ -430,7 +430,7 @@ func (e *Engine) resolveTop() {
 			ctx.OfferedSA = offeredSA
 		}
 		reflexiveCaptured(ctx)
-		if lki, ok := e.triggerLKI[id]; ok {
+		if lki, ok := e.triggerLKI[id]; ok && lki.object != nil {
 			ctx.LKI = lki.object
 			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
 				lki.power, lki.toughness, lki.ptValid

@@ -143,10 +143,16 @@ type Config struct {
 	Spare *Spare
 }
 
+// triggerObjectLKI is what a trigger on the stack knows about the object of
+// its causing event. An object that did not leave its zone (it entered the
+// battlefield, was cast, changed controller) is read live, so object is nil
+// and follows names it until it moves; follows is then cleared and object
+// holds what it was just before it moved (CR 608.2h).
 type triggerObjectLKI struct {
 	object           *state.Object
 	power, toughness int32
 	ptValid          bool
+	follows          state.ObjID
 }
 
 // counterAddedThisTurn is engine-only provenance for positive object counter

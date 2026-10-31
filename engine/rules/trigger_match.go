@@ -44,6 +44,9 @@ type pendingTrigger struct {
 	Controller state.PlayerID
 	Idx        int
 	SA         *cards.SA
+	// follows names the object of a causing event the trigger reads live
+	// until it moves (see triggerObjectLKI).
+	follows state.ObjID
 	// sourceCharLKI is the source's last-known characteristics when it left
 	// the battlefield while this trigger waited (source_char_lki.go); it
 	// moves onto the stack object at TriggerPush.
@@ -853,6 +856,13 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	if e.holdEntryCheck(ev, lki) {
 		return
 	}
+	queued := len(e.pendingTriggers)
+	e.checkTriggersNow(ev, lki, lkiPower, lkiToughness, lkiPTValid)
+	e.followTriggerObject(ev, queued)
+}
+
+func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
+	lkiPower, lkiToughness int32, lkiPTValid bool) {
 	batch := e.triggerBefore != nil && ev.Kind == events.MoveZone &&
 		ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
 	noop := batch && e.lookBackProvenNoop()

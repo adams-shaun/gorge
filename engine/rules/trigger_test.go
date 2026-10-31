@@ -801,19 +801,10 @@ func TestDiesTriggerSeesTheCreatureAsItWas(t *testing.T) {
 	}
 }
 
-// TestETBTriggerLKIDoesNotAliasCountersEnteringPlay is the aliasing check
-// TestDiesTriggerSeesTheCreatureAsItWas above cannot actually make: a move
-// OUT of the battlefield resets Counters to nil (engine/events/apply.go's Move,
-// default case) regardless of whether emit's LKI capture aliased them, so
-// mutating lki.Counters there can never reach the live object's Counters --
-// it's already nil by the time the assertion runs, deep copy or not. Moving
-// INTO the battlefield is the one shape where Move does NOT reset Counters
-// (Move's ZBattlefield case only sets SummonSick/Damage/Timestamp), so the
-// live object keeps whatever counters it already had, and a shallow LKI
-// copy (a bare `cp := *o` with no independent Counters backing array) would
-// let mutating the LKI's copy mutate the live object's counters too. Fix
-// round 1, Minor 3.
-func TestETBTriggerLKIDoesNotAliasCountersEnteringPlay(t *testing.T) {
+// TestEntryTriggerFollowsTheEnteredObject: a trigger on an entry holds no
+// snapshot from before the move. It reads the object live, and takes its
+// snapshot only when that object leaves.
+func TestEntryTriggerFollowsTheEnteredObject(t *testing.T) {
 	t.Parallel()
 	src := "Name:Geist\nManaCost:G G\nTypes:Creature Spirit\nPT:2/1\n" +
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigNote | TriggerDescription$ x\n" +
@@ -825,16 +816,13 @@ func TestETBTriggerLKIDoesNotAliasCountersEnteringPlay(t *testing.T) {
 	if len(e.pendingTriggers) != 1 {
 		t.Fatalf("%d pending triggers", len(e.pendingTriggers))
 	}
+	if pt := e.pendingTriggers[0]; pt.Ctx.LKI != nil || pt.follows != id {
+		t.Fatalf("LKI %+v follows %d", pt.Ctx.LKI, pt.follows)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
 	lki := e.pendingTriggers[0].Ctx.LKI
-	if lki == nil || lki.Counter("P1P1") != 2 {
-		t.Fatalf("LKI %+v", lki)
-	}
-	if e.G.Obj(id).Counter("P1P1") != 2 {
-		t.Fatal("entering the battlefield should not reset counters (Move's ZBattlefield case)")
-	}
-	lki.AddCounter("P1P1", 5)
-	if e.G.Obj(id).Counter("P1P1") != 2 {
-		t.Fatal("LKI aliases the live object's Counters array")
+	if lki == nil || lki.Counter("P1P1") != 2 || e.pendingTriggers[0].follows != 0 {
+		t.Fatalf("LKI %+v follows %d", lki, e.pendingTriggers[0].follows)
 	}
 }
 

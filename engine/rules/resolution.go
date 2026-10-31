@@ -192,7 +192,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.XAnnounced = true
 		}
 		reflexiveCaptured(ctx)
-		if lki, ok := e.triggerLKI[rp.obj]; ok {
+		if lki, ok := e.triggerLKI[rp.obj]; ok && lki.object != nil {
 			ctx.LKI = lki.object
 			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
 				lki.power, lki.toughness, lki.ptValid

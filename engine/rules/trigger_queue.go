@@ -1134,15 +1134,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 		}
 		e.triggerContexts[id] = pt.Ctx.TriggerContext
-		if pt.Ctx.LKI != nil {
-			if e.triggerLKI == nil {
-				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
-			}
-			lki := pt.Ctx.LKI.CloneDeep()
-			e.triggerLKI[id] = triggerObjectLKI{object: &lki,
-				power: pt.Ctx.Snap.Power, toughness: pt.Ctx.Snap.Toughness,
-				ptValid: pt.Ctx.Snap.PTValid}
-		}
+		e.keepTriggerLKI(id, &pt)
 		if pt.Ctx.Snap.SourceLifelinkValid {
 			if e.sourceLifelinkLKI == nil {
 				e.sourceLifelinkLKI = make(map[state.ObjID]bool)

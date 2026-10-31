@@ -73,7 +73,7 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		// the TriggerPush capture; triggerLKI is the snapshot taken before the
 		// move (engine/rules/emit.go), the same one resolution reads.
 		ctx.Remembered = append([]state.Target(nil), o.Remembered...)
-		if lki, ok := e.triggerLKI[source]; ok {
+		if lki, ok := e.triggerLKI[source]; ok && lki.object != nil {
 			ctx.LKI = lki.object
 			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
 				lki.power, lki.toughness, lki.ptValid
