@@ -778,6 +778,9 @@ agent's tap gate reads: `potential_casts_known`, `potential_unpayable_casts`, an
 what the host offers to cast in this window. Taps are hidden on that table, so a card the host doesn't offer isn't one
 the seat can cast, whatever tapping the engine's census priced. The HTTP seat doesn't carry the census.
 
+A Convoke or Improvise announcement the mana window can't finish alone carries `payment_helpers` in its `policy_facts`:
+option indices that let the window finish. It is advice, and an answer tapping too few reverses the cast.
+
 Object ids in this payload are small integers, 0 for null; see [below](#what-a-v2-client-cant-see-or-do). From a Rally
 game, the `ops` entry of a `cast_spell` candidate:
 

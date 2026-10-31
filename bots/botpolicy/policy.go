@@ -1328,10 +1328,14 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 }
 
 // tapHelperChoices answers an ask that taps permanents to help pay a cost: the
-// first offers (Min of them, at least one, as any other ask's first offer) that make
+// helpers the engine says the payment can't finish without, else the first offers
+// (Min of them, at least one, as any other ask's first offer) that make
 // no mana, since one that does may be needed for the rest of the payment and can't
 // do both. Clamp tops an answer short of Min up in offer order.
 func (b Board) tapHelperChoices(d *decision.Decision) []int {
+	if len(d.PaymentHelpers) > 0 {
+		return slices.Clone(d.PaymentHelpers)
+	}
 	want := max(d.Min, 1)
 	var picks []int
 	used := map[string]bool{} // membership only -- never ranged.

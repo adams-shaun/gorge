@@ -388,6 +388,7 @@ func Rebuild(p xview.Payload) (view.View, decision.Decision) {
 	if f.PotentialCastsKnown {
 		d.PotentialCastsKnown, d.PotentialCasts, d.PotentialUnpayableCasts = true, f.PotentialCasts, f.PotentialUnpayableCasts
 	}
+	d.PaymentHelpers = f.PaymentHelpers
 	if f.ResumeAPI != "" {
 		d.ResumeSA = &cards.SA{API: f.ResumeAPI, Params: map[string]string{"UnlessCost": f.ResumeUnlessCost}}
 	}

@@ -671,6 +671,12 @@ type Decision struct {
 	// data, not part of the wire, and is clone-copied by Decision.CloneInto
 	// (engine/decision/payment_plan.go).
 	PotentialUnpayableCasts []state.ObjID `json:"-"`
+	// PaymentHelpers is, on a Convoke or Improvise announcement, an answer (option
+	// indices) that leaves the mana window able to finish the cast, where an
+	// answer tapping too few reverses it. It is empty when the window pays with
+	// none. It is advice, not a bound, and like PotentialUnpayableCasts not part
+	// of the wire.
+	PaymentHelpers []int `json:"-"`
 	// PotentialCasts is the same build's cast census: every object the
 	// offer builder's PotentialMana walk offers at least one cast of (any
 	// mode, any castable zone), in walk order without repeats. The walk is

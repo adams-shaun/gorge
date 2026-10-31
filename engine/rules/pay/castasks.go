@@ -40,6 +40,9 @@ type ConvokeOffer struct {
 	WaterbendOpen bool
 	// MinTaps is how many contributions the payment can't finish without.
 	MinTaps int
+	// Helpers fills the ask's Decision.PaymentHelpers when it offers Convoke or
+	// Improvise.
+	Helpers func(d *decision.Decision) []int
 }
 
 // harmonizePaymentGroup is the one exclusivity group every harmonize option
@@ -193,6 +196,9 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		d.Max = 1
 	}
 	d.Min = min(in.MinTaps, d.Max)
+	if in.Convoke || in.Improvise {
+		d.PaymentHelpers = in.Helpers(d)
+	}
 	e.Ask(AskCast, d)
 	return true
 }

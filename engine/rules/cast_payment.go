@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -124,7 +125,87 @@ func (e *Engine) convokeAsk() bool {
 		CreatureMana: creatureMana, SourceTaps: pc.cost.Tap,
 		Mana: e.manaToPay(pc), HasX: pc.cost.X > 0,
 		WaterbendN: pc.mods.Waterbend, WaterbendOpen: pc.mods.RaiseX != 0 || pc.mods.WaterbendX,
+		Helpers: func(d *decision.Decision) []int { return e.paymentHelpers(pc, d) },
 	})
+}
+
+// paymentHelpers is an answer to the announcement d that leaves the mana window
+// able to finish the cast at its lowest X (CR 601.2g-h): the Convoke and Improvise
+// offers it can't finish without, which make no mana themselves. It is nil when
+// the window pays with none, no such offers finish it, or the census is incomplete.
+// Each offer pays a pip of its colour or one generic, so it walks the offers
+// taking what each can pay, then returns any it turns out not to need.
+func (e *Engine) paymentHelpers(pc *pendingCast, d *decision.Decision) []int {
+	units := e.castWindowUnits(pc)
+	if !e.castWindowCensusComplete(pc, units) {
+		return nil
+	}
+	cost := e.manaToPay(pc)
+	if pc.cost.X > 0 {
+		cost = e.manaToPayX(pc, pc.cost.XMin)
+	}
+	if e.castWindowPays(pc, cost, units) {
+		return nil
+	}
+	type helper struct {
+		option int
+		pip    int // the coloured pip it pays, -1 for one generic
+	}
+	var helpers []helper
+	var taken []string
+	for i := range d.Options {
+		o := &d.Options[i]
+		pip, offered := helperPip(o.Kind)
+		if !offered || slices.Contains(taken, o.Group) || len(e.availableManaAbilities(pc.player, o.Obj)) > 0 {
+			continue
+		}
+		if pip >= 0 {
+			if cost.Colored[pip] <= 0 {
+				continue
+			}
+			cost.Colored[pip]--
+		} else if cost.Generic > 0 {
+			cost.Generic--
+		} else {
+			continue
+		}
+		h := helper{option: o.Index, pip: pip}
+		taken = append(taken, o.Group)
+		helpers = append(helpers, h)
+		if e.castWindowPays(pc, cost, units) {
+			break
+		}
+	}
+	if !e.castWindowPays(pc, cost, units) {
+		return nil
+	}
+	picks := make([]int, 0, len(helpers))
+	for _, h := range helpers {
+		back := cost
+		if h.pip >= 0 {
+			back.Colored[h.pip]++
+		} else {
+			back.Generic++
+		}
+		if e.castWindowPays(pc, back, units) {
+			cost = back
+			continue
+		}
+		picks = append(picks, h.option)
+	}
+	return picks
+}
+
+// helperPip reads a Convoke or Improvise offer's kind: the coloured pip it pays,
+// -1 for one generic, and whether it is such an offer at all.
+func helperPip(kind string) (pip int, offered bool) {
+	switch {
+	case kind == "convoke_generic" || kind == "improvise_generic":
+		return -1, true
+	case len(kind) == len("convoke_W") && kind[:len("convoke_")] == "convoke_":
+		return state.ManaIndex(kind[len("convoke_")]), true
+	}
+	return 0, false
 }
 
 // waterbendTapsNeeded is the fewest taps a fixed waterbend announcement can make

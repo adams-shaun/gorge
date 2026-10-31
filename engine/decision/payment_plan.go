@@ -332,6 +332,7 @@ func (d *Decision) CloneInto(dst *Decision) {
 	opts, reasons, pays := dst.Options[:0], dst.WindowReasons[:0], dst.PaymentActions[:0]
 	unpayable := dst.PotentialUnpayableCasts[:0]
 	potential := dst.PotentialCasts[:0]
+	helpers := dst.PaymentHelpers[:0]
 	fb, mp := dst.PaymentFallback, dst.ManaPayment
 	*dst = *d
 	dst.Options, dst.WindowReasons = nil, nil
@@ -350,6 +351,7 @@ func (d *Decision) CloneInto(dst *Decision) {
 	dst.PaymentActions = pays
 	dst.PotentialUnpayableCasts = append(unpayable, d.PotentialUnpayableCasts...)
 	dst.PotentialCasts = append(potential, d.PotentialCasts...)
+	dst.PaymentHelpers = append(helpers, d.PaymentHelpers...)
 	if d.PaymentFallback != nil {
 		if fb == nil {
 			fb = new(PaymentFallback)
