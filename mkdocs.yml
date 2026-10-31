@@ -137,7 +137,6 @@ nav:
       - SpellBench v2 agents: bots/spellbench.md
       - Training and adoption: bots/training-and-adoption.md
       - MageZero replication: bots/magezero-replication.md
-      - Interface review: bots/interfaces-review.md
   - API reference:
       - api/index.md
       - HTTP API: api/http.md
