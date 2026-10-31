@@ -5,7 +5,7 @@
 # Local preview (needs only uv or a virtualenv):
 #   uvx --with mkdocs-material==9.7.7 mkdocs serve
 site_name: gorge
-site_description: A deterministic, event-sourced Magic rules engine in pure Go.
+site_description: A Magic rules engine in pure Go, with a server and browser client; every game is a replayable, hash-chained event log.
 site_url: https://adams-shaun.github.io/gorge/
 repo_url: https://github.com/adams-shaun/gorge
 repo_name: adams-shaun/gorge
@@ -93,17 +93,17 @@ nav:
   - Home:
       - index.md
       - Getting started: getting-started.md
-      - The three repos: repos/index.md
+      - The three repositories: repos/index.md
   - Architecture:
       - architecture/index.md
-      - gorge kernel:
+      - gorge engine:
           - Events and replay: architecture/gorge/events.md
           - Game loop and decisions: architecture/gorge/game-loop.md
           - Cards and primitives: architecture/gorge/cards.md
           - The rules core: architecture/gorge/rules.md
           - Views and hidden information: architecture/gorge/views.md
           - The server tier: architecture/gorge/server.md
-      - dirty-dirac kernel:
+      - dirac:
           - architecture/dirty-dirac/index.md
           - State: architecture/dirty-dirac/state.md
           - Step and Apply: architecture/dirty-dirac/step-apply.md
@@ -114,7 +114,6 @@ nav:
       - Invariants: architecture/invariants.md
       - Wires: architecture/wires.md
       - Packages: architecture/packages.md
-      - Cleanup roadmap: architecture/cleanup.md
   - Contributing:
       - contributing/index.md
       - Repository layout: contributing/repo-layout.md
