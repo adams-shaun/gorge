@@ -147,7 +147,7 @@ func (t *Translator) playerZones(viewer state.PlayerID, p view.PlayerView) []mb.
 	if p.Hand == nil {
 		out = append(out, mb.ZoneDto{Zone: mb.ZoneHand, OwnerID: owner, Cards: []mb.CardView{}, Count: p.HandSize})
 	} else {
-		out = append(out, t.zone(mb.ZoneHand, owner, p.Hand, len(p.Hand)))
+		out = append(out, t.zone(mb.ZoneHand, owner, p.Hand, p.HandSize))
 	}
 	library := make([]mb.CardView, 0, 1)
 	if p.ID == viewer && p.LibraryTop != nil {

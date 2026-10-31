@@ -112,6 +112,20 @@ func TestStateProjectionGolden(t *testing.T) {
 	}
 }
 
+// TestWithheldOwnHandKeepsItsCount: while the play/draw choice is open the
+// seat's own hand lists no cards (CR 103.5) and the view still carries its size.
+func TestWithheldOwnHandKeepsItsCount(t *testing.T) {
+	fixture := projectionFixture()
+	fixture.Players[0].Hand = []view.CardView{}
+	fixture.Players[0].HandSize = 7
+	tr := New("t", 1, nil)
+	for _, z := range tr.playerZones(0, fixture.Players[0]) {
+		if z.Zone == mb.ZoneHand && (z.Count != 7 || len(z.Cards) != 0) {
+			t.Fatalf("hand zone: count %d, %d cards; want count 7, no cards", z.Count, len(z.Cards))
+		}
+	}
+}
+
 func TestHiddenZonesNeverVisible(t *testing.T) {
 	got, err := json.Marshal(New("table", 2, nil).gameView(projectionFixture()))
 	if err != nil {
