@@ -78,7 +78,7 @@ Open the table in the lobby and pick a finished match, or go straight to
 table's spectator view has the same transport with one extra button: **Live**
 while you follow the game as it happens, **Go live** (with how far behind you
 are) after you step back. See
-[Spectating and replays](play.md#spectating-and-replays) for the spectator
+[Spectating](play.md#spectating) for the spectator
 flags.
 
 ### Review a saved game
