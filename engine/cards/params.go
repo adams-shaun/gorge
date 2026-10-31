@@ -849,6 +849,11 @@ const (
 	// strips of those subtype sets. Appended: earlier ordinals stay stable.
 	PKRemoveArtifactTypes
 	PKRemoveEnchantmentTypes
+	// Boon$ True on an Effect and BoonAmount$ on its trigger: a one-time boon
+	// ends after its trigger has fired that many times. Appended: earlier
+	// ordinals stay stable.
+	PKBoon
+	PKBoonAmount
 	paramKeyCount
 )
 
@@ -1317,6 +1322,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRemoveLandTypes:                  "RemoveLandTypes",
 	PKRemoveArtifactTypes:              "RemoveArtifactTypes",
 	PKRemoveEnchantmentTypes:           "RemoveEnchantmentTypes",
+	PKBoon:                             "Boon",
+	PKBoonAmount:                       "BoonAmount",
 	PKRemoveTypes:                      "RemoveTypes",
 	PKRepeatCheckSVar:                  "RepeatCheckSVar",
 	PKRepeatCompare:                    "RepeatCompare",

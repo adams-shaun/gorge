@@ -127,6 +127,12 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	if effectRepeat {
 		text = strings.TrimSuffix(text, "|EF")
 	}
+	var firesLeft int32
+	if i := strings.LastIndex(text, "|BN="); i >= 0 {
+		n, _ := strconv.Atoi(text[i+4:])
+		firesLeft = int32(n)
+		text = text[:i]
+	}
 	// DelayedTriggerDefinedPlayer$ rides "|DP=<seat+1>" (+ a bare "|TD" for
 	// ThisTurn$) and Static$ True a bare "|ST", all appended after the
 	// IsPresent$ triple and before |RN=, so they strip here (reverse append
@@ -150,6 +156,15 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	firstCombat := strings.HasSuffix(text, "|1C")
 	if firstCombat {
 		text = strings.TrimSuffix(text, "|1C")
+	}
+	var checkSVar, svarCompare string
+	if i := strings.LastIndex(text, "|SC="); i >= 0 {
+		svarCompare = text[i+4:]
+		text = text[:i]
+	}
+	if i := strings.LastIndex(text, "|CS="); i >= 0 {
+		checkSVar = text[i+4:]
+		text = text[:i]
 	}
 	// OptionalDecider$ (an api:Effect Triggers$ body's "you may"
 	// election) rides "|OD=<spec>" the same way ValidPlayer$ and MaxTurn
@@ -299,6 +314,9 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		ThisTurnDefined:     thisTurnDefined,
 		Static:              staticFlag,
 		FirstCombat:         firstCombat,
+		CheckSVar:           checkSVar,
+		SVarCompare:         svarCompare,
+		FiresLeft:           firesLeft,
 	})
 	g.DelayedNext++
 }
@@ -363,8 +381,11 @@ func foldDelayedPush(g *state.Game, e *Event) {
 			if g.Delayed[i].ID == uint32(e.Amount) {
 				dt := g.Delayed[i]
 				registration = &dt
-				if !dt.EffectRepeat {
+				switch {
+				case !dt.EffectRepeat, dt.FiresLeft == 1:
 					g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+				case dt.FiresLeft > 1:
+					g.Delayed[i].FiresLeft--
 				}
 				break
 			}

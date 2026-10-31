@@ -755,6 +755,14 @@ type DelayedTrigger struct {
 	// True: it fires only while the first combat phase of the turn has begun
 	// and no other has. Rides the bare "|1C" flag.
 	FirstCombat bool
+	// CheckSVar and SVarCompare are an Effect Mode$ Phase registration's "if"
+	// condition, read at the phase occurrence against the source's SVars. They
+	// ride "|CS=" and "|SC=".
+	CheckSVar   string
+	SVarCompare string
+	// FiresLeft is how many more firings a boon's recurring registration lasts
+	// (zero: no such limit). It rides "|BN=".
+	FiresLeft int32
 }
 
 const startingLife = 20

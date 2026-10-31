@@ -2,6 +2,7 @@ package effects
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 	"sync/atomic"
 
@@ -63,6 +64,7 @@ type EffectParams struct {
 	RememberLKI     string
 	SetChosenNumber string
 	EffectOwner     string
+	Boon            bool
 	// RemembersObjects is RememberObjects$ present and non-blank: the
 	// Effect's own trigger bodies then read its capture, not the resolving
 	// spell's memory.
@@ -83,7 +85,7 @@ var effectKnownKeys = [...]string{
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
 	"Activator",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
-	"AlternativeCost", "Announce", "AnnounceTitle", "BecomeStartingPlayer", "Boast",
+	"AlternativeCost", "Announce", "AnnounceTitle", "BecomeStartingPlayer", "Boast", "Boon", "BoonAmount",
 	"CantCopy", "ChangeNumDesc", "ChangeTypeDesc", "ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceDesc", "ChoiceTitle",
 	"ChoiceTitleAppend", "ChoiceZone", "Choices", "ChooseFromList", "ClassBand", "ClearImprinted",
 	"Condition", "ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
@@ -173,6 +175,7 @@ func compileEffect(sa *cards.SA) *EffectParams {
 	p.RememberLKI = strings.TrimSpace(sa.ParamStr(cards.PKRememberLKI))
 	p.SetChosenNumber = strings.TrimSpace(sa.ParamStr(cards.PKSetChosenNumber))
 	p.EffectOwner = strings.TrimSpace(sa.ParamStr(cards.PKEffectOwner))
+	p.Boon = isTrue(sa.ParamStr(cards.PKBoon))
 	p.RemembersObjects = strings.TrimSpace(sa.ParamStr(cards.PKRememberObjects)) != ""
 	// NoShuffle$ is the opt-out twopiles' noShuffleBody forces onto EVERY pile
 	// body (a pile split is not a search, so the shared library-origin tail's
@@ -200,6 +203,12 @@ type effectTriggerLine struct {
 	ValidPlayer string
 	// FirstCombat is FirstCombat$ True on a Phase trigger.
 	FirstCombat bool
+	// CheckSVar$ and SVarCompare$, trimmed: a Phase trigger's "if" condition.
+	CheckSVar   string
+	SVarCompare string
+	// BoonAmount is BoonAmount$ as a literal: how many firings a boon's trigger
+	// lasts. Zero means once.
+	BoonAmount int
 	// IsPresent$ / PresentZone$ / PresentCompare$, trimmed: a Phase
 	// registration's presence condition, carried into the registration Text
 	// as the |IP=/|PZ=/|PC= suffixes rules' delayed scan decodes (Scars of
@@ -211,7 +220,9 @@ type effectTriggerLine struct {
 
 // readEffectTriggerLine reads one parsed Triggers$ body's parameters.
 func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
+	boonAmount, _ := strconv.Atoi(strings.TrimSpace(tr.ParamStr(cards.PKBoonAmount)))
 	return effectTriggerLine{
+		BoonAmount:      boonAmount,
 		Execute:         strings.TrimSpace(tr.ParamStr(cards.PKExecute)),
 		OptionalDecider: strings.TrimSpace(tr.ParamStr(cards.PKOptionalDecider)),
 		ThisTurn:        strings.TrimSpace(tr.ParamStr(cards.PKThisTurn)),
@@ -220,6 +231,8 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		Phase:           tr.ParamStr(cards.PKPhase),
 		ValidPlayer:     strings.TrimSpace(tr.ParamStr(cards.PKValidPlayer)),
 		FirstCombat:     isTrue(tr.ParamStr(cards.PKFirstCombat)),
+		CheckSVar:       strings.TrimSpace(tr.ParamStr(cards.PKCheckSVar)),
+		SVarCompare:     strings.TrimSpace(tr.ParamStr(cards.PKSVarCompare)),
 		IsPresent:       strings.TrimSpace(tr.ParamStr(cards.PKIsPresent)),
 		PresentZone:     strings.TrimSpace(tr.ParamStr(cards.PKPresentZone)),
 		PresentCompare:  strings.TrimSpace(tr.ParamStr(cards.PKPresentCompare)),
