@@ -555,14 +555,16 @@ type ZoneEntry struct {
 	// player's graveyard received a permanent card this turn (CR 700.11).
 	Owner         PlayerID
 	PermanentCard bool
+	// Controller is the object's controller as it left From, read before the
+	// move resets it to the owner (CR 400.7): for a battlefield departure, who
+	// "controlled" the permanent as it last existed (CR 603.10a).
+	Controller PlayerID
 	// Sacrificed marks a battlefield departure made under the sacrifice
-	// action marker (events.IsSacrifice, CR 701.21a), and Sacrificer is the
-	// permanent's controller at that instant -- the player who sacrificed
-	// it (a stolen permanent its taker sacrifices is the taker's). Both are
-	// folded by events.Apply's MoveZone case, so the
+	// action marker (events.IsSacrifice, CR 701.21a); Controller is then the
+	// player who sacrificed it (a stolen permanent its taker sacrifices is the
+	// taker's). Folded by events.Apply's MoveZone case, so the
 	// PlayerCount*$SacrificedThisTurn heads read a replay-derived record.
 	Sacrificed bool
-	Sacrificer PlayerID
 	// WasCreature is, for a battlefield departure (From == ZBattlefield),
 	// whether the permanent was a creature as it last existed on the
 	// battlefield (CR 603.10a last known information), folded by

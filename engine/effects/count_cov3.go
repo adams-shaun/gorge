@@ -113,7 +113,7 @@ func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 			if en.From != from || seen[en.Obj] {
 				continue
 			}
-			if matchesZoneSpecCtx(g, spec, en.Obj, c.SpecContext(c.Controller), en.To) {
+			if matchesEnteredEntry(g, spec, en, c.SpecContext(c.Controller)) {
 				seen[en.Obj] = true
 				n++
 			}
@@ -291,7 +291,7 @@ func sacrificedThisTurn(g *state.Game, c *Ctx, players []state.PlayerID, spec st
 		}
 		member := false
 		for _, p := range players {
-			if p == en.Sacrificer {
+			if p == en.Controller {
 				member = true
 				break
 			}
@@ -299,7 +299,7 @@ func sacrificedThisTurn(g *state.Game, c *Ctx, players []state.PlayerID, spec st
 		if !member {
 			continue
 		}
-		if matchesZoneSpecCtx(g, spec, en.Obj, c.SpecContext(en.Sacrificer), en.To) {
+		if matchesZoneSpecCtx(g, spec, en.Obj, c.SpecContext(en.Controller), en.To) {
 			n++
 		}
 	}
@@ -706,7 +706,7 @@ func cov3RememberedOwners(g *state.Game, c *Ctx) []state.PlayerID {
 func sacrificedPermanentTypes(g *state.Game, players []state.PlayerID) int32 {
 	seen := map[string]bool{}
 	for _, en := range g.Entered {
-		if !en.Sacrificed || en.From != state.ZBattlefield || !slices.Contains(players, en.Sacrificer) {
+		if !en.Sacrificed || en.From != state.ZBattlefield || !slices.Contains(players, en.Controller) {
 			continue
 		}
 		o := g.Obj(en.Obj)

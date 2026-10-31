@@ -3398,7 +3398,8 @@ func matchesInOwnZone(g *state.Game, spec string, o *state.Object, sc SpecContex
 // (Extravagant Replication's Healer's Hawk) still died (CR 700.4, 603.10a),
 // so a morbid count includes it. Every other entry keeps matchesZoneSpecCtx's
 // CR 707.10h rejection (a resolved Storm copy parked in exile is not a card
-// that was exiled).
+// that was exiled). A departure's controller is the one it left under: the
+// object itself has reverted to its owner (CR 400.7).
 func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecContext) bool {
 	if e.From != state.ZBattlefield {
 		return matchesZoneSpecCtx(g, spec, e.Obj, sc, e.To)
@@ -3406,6 +3407,11 @@ func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecC
 	o := g.Obj(e.Obj)
 	if o == nil {
 		return false
+	}
+	if o.Controller != e.Controller {
+		lki := *o
+		lki.Controller = e.Controller
+		o = &lki
 	}
 	return matchesZoneSpecObj(g, spec, o, sc, e.To)
 }

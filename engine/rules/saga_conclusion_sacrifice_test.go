@@ -125,7 +125,7 @@ func TestSagaConclusionIsASacrifice(t *testing.T) {
 	}
 	sacrificed := false
 	for _, z := range e.G.Entered {
-		if z.Obj == saga && z.From == state.ZBattlefield && z.Sacrificed && z.Sacrificer == 0 {
+		if z.Obj == saga && z.From == state.ZBattlefield && z.Sacrificed && z.Controller == 0 {
 			sacrificed = true
 		}
 	}

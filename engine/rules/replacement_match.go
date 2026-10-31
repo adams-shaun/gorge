@@ -1122,19 +1122,13 @@ func (e *Engine) countPresentInZone(spec string, source state.ObjID, you state.P
 	return n
 }
 
+// revoltThisTurn reads "a permanent you controlled left the battlefield this
+// turn" off the per-turn entry list, whose Controller is the one the permanent
+// left under.
 func (e *Engine) revoltThisTurn(controller state.PlayerID) bool {
-	for i := len(e.L.Events) - 1; i >= 0; i-- {
-		ev := e.L.Events[i]
-		if ev.Kind == events.TurnChange {
-			break
-		}
-		if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield {
-			// Move preserves the object's pre-move controller outside the
-			// battlefield, so this is the controller at the moment it left —
-			// exactly Revolt's "a permanent you controlled" test (not owner).
-			if o := e.G.Obj(ev.Obj); o != nil && o.Controller == controller {
-				return true
-			}
+	for i := range e.G.Entered {
+		if en := &e.G.Entered[i]; en.From == state.ZBattlefield && en.Controller == controller {
+			return true
 		}
 	}
 	return false

@@ -95,13 +95,7 @@ func foldMoveZone(g *state.Game, e *Event) {
 			wasCreature = DepartureDefaultCreature(o) != (e.Step == DepartureCreatureFlip)
 		}
 	}
-	var sacrificer state.PlayerID
 	sacrificed := IsSacrifice(*e)
-	if sacrificed {
-		if o := g.Obj(e.Obj); o != nil {
-			sacrificer = o.Controller
-		}
-	}
 	if e.Kind == MoveZone && countersRemain {
 		MoveCountersRemain(g, e.Obj, e.From, e.To)
 	} else {
@@ -131,11 +125,10 @@ func foldMoveZone(g *state.Game, e *Event) {
 	if sacrificed {
 		// Stamp the sacrifice onto this move's own zone entry (the
 		// latest one naming the object: a mutated pile's under-cards
-		// append after it). The controller was read BEFORE Move reset
-		// it to the owner (CR 400.7).
+		// append after it).
 		for i := len(g.Entered) - 1; i >= 0; i-- {
 			if g.Entered[i].Obj == e.Obj {
-				g.Entered[i].Sacrificed, g.Entered[i].Sacrificer = true, sacrificer
+				g.Entered[i].Sacrificed = true
 				break
 			}
 		}
@@ -549,6 +542,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// real-zone-over-claimed-zone rule this function already applies to the
 	// removal itself, a few lines below).
 	enteredFrom := o.Zone
+	leftController := o.Controller
 	wasBattlefield := enteredFrom == state.ZBattlefield
 	wasStack := enteredFrom == state.ZStack
 	o.SplitFrom, o.SplitDep = 0, 0
@@ -865,7 +859,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// A ceased ability is no zone entry: a Count$ThisTurnEntered_Exile
 		// head counts cards put into exile, never retired abilities.
 		g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom,
-			Owner: o.Owner, PermanentCard: permanentCard})
+			Owner: o.Owner, PermanentCard: permanentCard, Controller: leftController})
 	}
 	switch to {
 	case state.ZBattlefield:

@@ -34,7 +34,7 @@ func TestPlayerCountPropertyOpSuffix(t *testing.T) {
 			From:       state.ZBattlefield,
 			To:         state.ZGraveyard,
 			Sacrificed: true,
-			Sacrificer: 0,
+			Controller: 0,
 		})
 	}
 
