@@ -23,7 +23,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 502.1 | follows | `engine/rules/turn.go#Engine.finishUntapStep` | `TestCR702PhasedOutPermanentPhasesInAtUntap` `TestCR702PhasingKeywordTogglesAtUntapStep` |  |
 | 502.2 | follows | `engine/rules/daynight.go#Engine.dayNightUntapCheck` `engine/rules/turn.go#Engine.finishUntapStep` | `TestCR731DayBecomesNightWhenThePreviousActivePlayerCastNothing` `TestCR731NightBecomesDayAfterTwoSpells` | after the phasing scan; a skipped untap step skips it |
 | 502.2a | n/a | - | - | shared team turns not offered |
-| 502.3 | follows | `engine/rules/turn.go#Engine.finishUntapStep` | `TestBasaltMonolithStaysTappedThroughItsUntapStep` |  |
+| 502.3 | follows | `engine/rules/turn.go#Engine.finishUntapStep` `engine/rules/replacement_phase.go#Engine.continueUntapReplacements` | `TestBasaltMonolithStaysTappedThroughItsUntapStep` `TestTwoDoesntUntapEffectsAskNothing` |  |
 | 502.4 | follows | `engine/rules/turn.go#Engine.priorityRound` | - |  |
 | 503.1 | follows | `engine/rules/turn.go#Engine.finishEnteredStep` | - |  |
 | 503.1a | follows | `engine/rules/trigger_queue.go#Engine.putTriggersOnStack` | - |  |

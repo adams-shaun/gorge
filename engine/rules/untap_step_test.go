@@ -10,17 +10,15 @@ import (
 
 // TestUntapOrderAnswerGivesActivePlayerUpkeepPriority: answering the CR 616.1
 // order ask over one Untap finishes the untap step and enters upkeep, where the
-// active player receives priority (CR 117.3a). Two Sleep Magic on one creature
-// pose the ask to the creature's controller on their own untap step.
+// active player receives priority (CR 117.3a). Two Freyalise's Winds pose the
+// ask to the creature's controller on their own untap step.
 func TestUntapOrderAnswerGivesActivePlayerUpkeepPriority(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	sc, err := decodeOracleScenario([]byte(`{"name":"sleep-magic-x2-upkeep-priority","cr":["117.3a"],"why":"priority after the order ask",
-"setup":{"p0":{"hand":["Sleep Magic","Sleep Magic"],"mana":"UU"},"p1":{"battlefield":["Hill Giant"]}},
-"steps":[{"op":"cast","seat":0,"card":"p0:Sleep Magic","mana":"U","targets":["p1:Hill Giant"]},{"op":"resolve"},{"op":"resolve"},
-{"op":"cast","seat":0,"card":"p0:Sleep Magic#1","mana":"U","targets":["p1:Hill Giant"]},{"op":"resolve"},{"op":"resolve"},
-{"op":"pass_to","step":"upkeep","active":"p1","answers":[{"kind":"any","pick":["Sleep Magic"]}]}],
-"expect":[{"card":"p1:Hill Giant","tapped":true}]}`))
+	sc, err := decodeOracleScenario([]byte(`{"name":"freyalises-winds-x2-upkeep-priority","cr":["117.3a","616.1"],"why":"priority after the order ask",
+"setup":{"p0":{"battlefield":["Freyalise's Winds","Freyalise's Winds"],"hand":["Sleep Magic"],"mana":"U"},"p1":{"battlefield":["Hill Giant"],"counters":{"Hill Giant":{"WIND":1}},"tapped":["Hill Giant"]}},
+"steps":[{"op":"pass_to","step":"upkeep","active":"p1","answers":[{"kind":"any","pick":["Freyalise's Winds"]}]}],
+"expect":[{"card":"p1:Hill Giant","tapped":true,"counters":{}}]}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,6 +35,13 @@ func TestUntapOrderAnswerGivesActivePlayerUpkeepPriority(t *testing.T) {
 	if d := run.e.Pending(); d == nil || d.Player != 1 {
 		t.Fatalf("pending %+v, want p1's priority decision", d)
 	}
+}
+
+// TestTwoDoesntUntapEffectsAskNothing: a "doesn't untap" effect is a restriction,
+// not a replacement, so two on one creature pose no CR 616.1 order ask.
+func TestTwoDoesntUntapEffectsAskNothing(t *testing.T) {
+	t.Parallel()
+	playRuleScenario(t, `{"name":"sleep-magic-x2-no-ask","cr":["502.3","616.1"],"why":"no order ask","setup":{"p0":{"hand":["Sleep Magic","Sleep Magic"],"mana":"UU"},"p1":{"battlefield":["Hill Giant"]}},"steps":[{"op":"cast","seat":0,"card":"p0:Sleep Magic","mana":"U","targets":["p1:Hill Giant"]},{"op":"resolve"},{"op":"resolve"},{"op":"cast","seat":0,"card":"p0:Sleep Magic#1","mana":"U","targets":["p1:Hill Giant"]},{"op":"resolve"},{"op":"resolve"},{"op":"pass_to","step":"upkeep","active":"p1"}],"expect":[{"card":"p1:Hill Giant","tapped":true}]}`)
 }
 
 // TestStunCounterStaysOnADoesntUntapPermanent: CR 122.1d's replacement applies

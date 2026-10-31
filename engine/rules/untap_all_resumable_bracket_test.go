@@ -30,7 +30,8 @@ func TestUntapAllStaysOneBatchAcrossReplacementOrder(t *testing.T) {
 	}
 	for _, name := range []string{"Prevent One", "Prevent Two"} {
 		onBoard(t, e, 0, "Name:"+name+"\nTypes:Enchantment\n"+
-			"R:Event$ Untap | ActiveZones$ Battlefield | ValidCard$ Creature | Layer$ CantHappen\nOracle:x\n")
+			"R:Event$ Untap | ActiveZones$ Battlefield | ValidCard$ Creature | ReplaceWith$ Rep\n"+
+			"SVar:Rep:DB$ Cleanup | ClearRemembered$ True\nOracle:x\n")
 	}
 	spell := e.G.AddObject(card(t, "Name:Untap All\nManaCost:1\nTypes:Sorcery\n"+
 		"A:SP$ UntapAll | ValidCards$ Artifact\nOracle:x\n"), 0)

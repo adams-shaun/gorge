@@ -89,8 +89,8 @@ func TestBoardGateCompetingReplacementsAsk(t *testing.T) {
 	}, {
 		name: "Untap/UntapAll",
 		board: []string{
-			gateRepl("Gate Frost A", "Event$ Untap | ActiveZones$ Battlefield | ValidCard$ Creature | Layer$ CantHappen | Description$ x"),
-			gateRepl("Gate Frost B", "Event$ Untap | ActiveZones$ Battlefield | ValidCard$ Creature | Layer$ CantHappen | Description$ x"),
+			gateRepl("Gate Frost A", "Event$ Untap | ActiveZones$ Battlefield | ValidCard$ Creature | ReplaceWith$ Rep | Description$ x", "Rep:DB$ Cleanup | ClearRemembered$ True"),
+			gateRepl("Gate Frost B", "Event$ Untap | ActiveZones$ Battlefield | ValidCard$ Creature | ReplaceWith$ Rep | Description$ x", "Rep:DB$ Cleanup | ClearRemembered$ True"),
 		},
 		extra: []string{bear},
 		spell: "Name:Gate Untap\nManaCost:0\nTypes:Sorcery\nA:SP$ UntapAll | ValidCards$ Creature | SpellDescription$ x\nOracle:x\n",

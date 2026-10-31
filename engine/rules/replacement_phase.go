@@ -50,7 +50,16 @@ func (e *Engine) extraTurnSkipped(seat state.PlayerID) (skip, unsupported bool) 
 // the chosen effect completes the event and the others get no second pass.
 // This is the same CR 616.1 affected-player choice as MoveZone, with Untap's
 // event-specific applySimpleReplacement semantics.
+//
+// A bodyless match is "doesn't untap" (Sleep Magic), a restriction rather than
+// a replacement (CR 502.3, 614.1): there is no untap for anything to replace,
+// so it ends the event ahead of any ask, and two of them offer no choice.
 func (e *Engine) continueUntapReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	for _, m := range matches {
+		if m.repl.With == nil {
+			return e.applySimpleReplacement(ev, m)
+		}
+	}
 	if len(matches) == 1 {
 		return e.applySimpleReplacement(ev, matches[0])
 	}
