@@ -1,4 +1,4 @@
-import type { Decision, Intent, Option, PaymentAction, View } from '../../protocol';
+import type { Decision, Intent, ManaPaymentWindow, Option, PaymentAction, PaymentCost, View } from '../../protocol';
 import { objOfCardId, objOfStackId, seatOfPlayerId } from './ids';
 import type { AgentPrompt, ClientMessage, PromptOutput, PromptType, TargetRef } from './wire';
 
@@ -94,6 +94,38 @@ function pickVerb(title: string): string {
 }
 
 const out = (type: PromptType, output: PromptOutput['output']): PromptOutput => ({ type, output });
+
+const MANA_SLOTS = ['W', 'U', 'B', 'R', 'G', 'C'];
+
+/** parseManaCost reads the "1 G G" form the server writes for an announced window's cost. */
+function parseManaCost(cost: string): PaymentCost {
+  const parsed: PaymentCost = { generic: 0, mana: [0, 0, 0, 0, 0, 0] };
+  for (const symbol of cost.split(' ').filter(Boolean)) {
+    const slot = MANA_SLOTS.indexOf(symbol);
+    if (slot >= 0) parsed.mana[slot] += 1;
+    else parsed.generic += Number.parseInt(symbol, 10) || 0;
+  }
+  return parsed;
+}
+
+/**
+ * manaWindowReadout rebuilds the native window's readout from what the wire
+ * carries: the total cost and the seat's floating pool. Still owed is what
+ * the pool does not cover, coloured pips first and then generic. The sources
+ * Auto-fill would tap travel only as words in its label, so none is marked.
+ */
+function manaWindowReadout(card: number, cost: string, floating: Record<string, number> | undefined): ManaPaymentWindow {
+  const total = parseManaCost(cost);
+  const pool = MANA_SLOTS.map((c) => floating?.[c] ?? 0) as ManaPaymentWindow['pool'];
+  const left = [...pool];
+  const owedPips = total.mana.map((need, i) => {
+    const used = Math.min(need, left[i]);
+    left[i] -= used;
+    return need - used;
+  }) as PaymentCost['mana'];
+  const owedGeneric = Math.max(0, total.generic - left.reduce((sum, n) => sum + n, 0));
+  return { card, cost: total, owed: { generic: owedGeneric, mana: owedPips }, pool };
+}
 
 /**
  * decisionFor reconstructs the Decision for a prompt, and its binding.
@@ -240,16 +272,25 @@ export function bindPrompt(p: AgentPrompt, ctx: PromptContext): PromptBinding {
       d = { ...base, kind: 'arrange', min: 0, max: opts.length, options: opts, restable: true };
       break;
     }
-    case 'payManaCost':
+    case 'payManaCost': {
       for (const a of input.actions) {
         const kind = a.type === 'undoMana' ? 'undo_tap' : a.type === 'autofill' ? 'autofill' : 'mana';
         if (kind === 'autofill') add({ kind, label: a.description ?? 'Auto-pay' }, { t: 'pay', auto: true });
         else add({ kind, label: a.description ?? '', obj: objOfCardId(a.cardId) ?? undefined }, { t: 'act', actionId: a.id });
       }
       if (input.canConfirmFromPool) add({ kind: 'done', label: 'Done' }, { t: 'pay', auto: false });
-      add({ kind: 'cancel_cast', label: 'Cancel' }, { t: 'cancel' });
-      d = { ...base, kind: 'choose', prompt: title || `Pay ${input.manaCost} for ${input.cardName}`, min: 1, max: 1, options: opts };
+      // Only the announced window offers Cancel. A table without automatic
+      // mana poses the older window: it always has Done, never Auto-fill or an
+      // undo, and refuses a cancel.
+      const announced = !input.canConfirmFromPool || input.actions.some((a) => a.type === 'autofill' || a.type === 'undoMana');
+      if (announced) add({ kind: 'cancel_cast', label: 'Cancel cast' }, { t: 'cancel' });
+      const pool = v?.players.find((pl) => pl.seat === player)?.pool;
+      d = {
+        ...base, kind: 'choose', prompt: title || `Pay ${input.manaCost} for ${input.cardName}`, min: 1, max: 1, options: opts,
+        ...(announced ? { mana_payment: manaWindowReadout(objOfCardId(input.cardId) ?? 0, input.manaCost, pool) } : {}),
+      };
       break;
+    }
     case 'revealCards':
     case 'diceRolled':
       add({ kind: 'yes', label: 'Continue' }, { t: 'ack' });

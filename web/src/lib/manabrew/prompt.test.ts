@@ -176,10 +176,27 @@ describe('bindPrompt (captured from a real gorged -manabrew)', () => {
     expect(pay.respond({ seq: 5, player: 0, choices: [1] })).toMatchObject({ action: { output: { type: 'pay', auto: true } } });
     expect(pay.respond({ seq: 5, player: 0, choices: [3] })).toMatchObject({ action: { output: { type: 'cancel' } } });
 
+    const older = bindPrompt(synth({ type: 'payManaCost', cardId: 'o9', cardName: 'Bolt', manaCost: 'R', canConfirmFromPool: true, actions: [{ id: 'opt-0', type: 'activateAbility', cardId: 'o3', description: 'Tap Mountain' }] }), { view: null });
+    expect(older.decision!.options.map((o) => o.kind)).toEqual(['mana', 'done']);
+    expect(older.decision!.mana_payment).toBeUndefined();
+
     const scry = bindPrompt(synth({ type: 'scry', cards: [{ id: 'o1', identity: { name: 'A' }, controllerId: 'player-0', ownerId: 'player-0' }, { id: 'o2', identity: { name: 'B' }, controllerId: 'player-0', ownerId: 'player-0' }], zones: ['libraryTop', 'libraryBottom'] }), { view: null });
     expect(scry.decision!.kind).toBe('arrange');
     expect(scry.respond({ seq: 5, player: 0, choices: [1] })).toMatchObject({ action: { output: { type: 'scryDecision', zoneCardIds: [['o2'], ['o1']] } } });
 
     expect(bindPrompt(synth({ type: 'gameOver' }), { view: null }).decision).toBeNull();
+  });
+});
+
+describe('the announced mana window', () => {
+  const window = (manaCost: string, manaPool: Record<string, number>) => bindPrompt({
+    promptId: 5, decidingPlayerId: 'player-0',
+    input: { type: 'payManaCost', cardId: 'o9', cardName: 'Thing', manaCost, canConfirmFromPool: false, actions: [{ id: 'opt-0', type: 'autofill', description: 'Auto-fill' }] },
+  }, { view: projectView({ gameId: 'g/1', turn: 1, step: 'main1', activePlayerId: 'player-0', priorityPlayerId: 'player-0', players: [{ id: 'player-0', name: 'A', life: 20, manaPool }], zones: [], stack: [], gameOver: false }, { viewer: 0 }) });
+
+  it('reads the cost, and owes what the pool does not cover', () => {
+    expect(window('2 U G', {}).decision!.mana_payment).toEqual({ card: 9, cost: { generic: 2, mana: [0, 1, 0, 0, 1, 0] }, owed: { generic: 2, mana: [0, 1, 0, 0, 1, 0] }, pool: [0, 0, 0, 0, 0, 0] });
+    // A green pays its pip; the red and the second green pay the generic.
+    expect(window('2 U G', { G: 2, R: 1 }).decision!.mana_payment!.owed).toEqual({ generic: 0, mana: [0, 1, 0, 0, 0, 0] });
   });
 });
