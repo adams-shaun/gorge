@@ -146,7 +146,16 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
 	}
 	desc := pay.DescriptorFor(cast.Object, false, cost)
-	return pay.PlanPaymentCost(asPayer(e), p, cast, pay.PlanManaHalf(cost), &desc)
+	mana := pay.PlanManaHalf(cost)
+	if len(cost.Sac) == 0 && len(cost.TapPermanent) == 0 {
+		return pay.PlanPaymentCost(asPayer(e), p, cast, mana, &desc)
+	}
+	// The mana abilities run first (CR 601.2g-h), so a source that sacrifices
+	// itself can use up what an additional cost must sacrifice.
+	parts, _ := planCostParts(cost, cast.Object, false)
+	return e.planReserving(p, cast.Object, cost, false, false, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
+		return pay.PlanPaymentCostWithout(asPayer(e), p, cast, mana, &desc, tapR, nil, keptR)
+	})
 }
 
 // paymentPlanCastCandidate deliberately delegates timing, mandatory-target
