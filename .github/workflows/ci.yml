@@ -166,11 +166,44 @@ jobs:
       - name: Play the examples
         run: scripts/examples-smoke.sh 8097
 
+  # Each engine / wire / consumer cell that has a test (docs/site/architecture/wires.md).
+  wire-matrix:
+    runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Read the corpus pin
+        id: pin
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Restore the corpus
+        id: corpus
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Refuse to run without the corpus
+        run: |
+          test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
+          grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Run the commit tier
+        run: scripts/wire-matrix.sh commit
+
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
     if: always()
-    needs: [lint, test, examples]
+    needs: [lint, test, examples, wire-matrix]
     runs-on: ubuntu-24.04
     steps:
       - run: |
-          [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.test.result }}" = success ] && [ "${{ needs.examples.result }}" = success ] || { echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }}"; exit 1; }
+          [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.test.result }}" = success ] && [ "${{ needs.examples.result }}" = success ] && [ "${{ needs.wire-matrix.result }}" = success ] || { echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }}"; exit 1; }

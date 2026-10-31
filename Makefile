@@ -95,6 +95,7 @@ help:
 	@echo "  make test lint cover"
 	@echo "  make seat-check     — structural seat gate: gofmt, gentypes -check, archtest, codeshape"
 	@echo "  make conformance    — run the CR 601/733 conformance suites (see the target's comment)"
+	@echo "  make wire-matrix    — run every engine / wire / consumer cell of the commit tier (docs/site/architecture/wires.md)"
 	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
 .PHONY: build
@@ -177,6 +178,10 @@ test:
 conformance:
 	@echo "== CR 601/733 conformance: all audited leaves fixed; ordinary-suite assertions =="
 	go test $(GO_TEST_FLAGS) -count=1 ./engine/rules -run TestCR -v
+
+.PHONY: wire-matrix
+wire-matrix:
+	scripts/wire-matrix.sh commit
 
 # The Oracle-text card audit (scenarios written from printed card text and
 # the CR, docs/design/2026-09-27-oracle-text-card-audit.md) and the XMage

@@ -112,6 +112,7 @@ nav:
           - Search: architecture/dirty-dirac/search.md
       - Draft events: architecture/draft.md
       - Invariants: architecture/invariants.md
+      - Wires: architecture/wires.md
       - Packages: architecture/packages.md
       - Cleanup roadmap: architecture/cleanup.md
   - Contributing:
