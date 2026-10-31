@@ -44,6 +44,11 @@ func TestSingleTargetPredicateCountsExactlyOneTarget(t *testing.T) {
 	if MatchesSpec(g, "Instant.!singleTarget", id["myInstant"], 0) {
 		t.Fatal("!singleTarget must not match a one-target spell")
 	}
+	o.SubTargets = []state.Target{{Player: 1, IsPlayer: true}}
+	if MatchesSpec(g, "Instant.singleTarget", id["myInstant"], 0) {
+		t.Fatal("a spell with a chain link's target matched singleTarget")
+	}
+	o.SubTargets = nil
 	o.Targets = append(o.Targets, state.Target{Player: 1, IsPlayer: true})
 	if MatchesSpec(g, "Instant.singleTarget", id["myInstant"], 0) {
 		t.Fatal("a two-target spell matched singleTarget")

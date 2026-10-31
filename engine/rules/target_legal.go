@@ -528,10 +528,13 @@ func (e *Engine) stackKindAdmits(toks []targetTypeToken, k stackObjKind, o *stat
 		if !state.StackKindAdmits([]state.StackKindToken{tok}, k, o, controller, you) {
 			continue
 		}
-		if tok.SingleTarget && len(o.Targets) != 1 {
+		// A chain link's targets (The Last Agni Kai's second) are the spell's
+		// targets too, though they ride SubTargets, not Targets.
+		n := len(o.Targets) + len(o.SubTargets)
+		if tok.SingleTarget && n != 1 {
 			continue
 		}
-		if tok.NumTargetsOp != "" && !targetCountMatches(len(o.Targets), tok.NumTargetsOp, tok.NumTargets) {
+		if tok.NumTargetsOp != "" && !targetCountMatches(n, tok.NumTargetsOp, tok.NumTargets) {
 			continue
 		}
 		if k == stackSpell {

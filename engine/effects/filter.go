@@ -127,7 +127,8 @@ var predicates = map[string]predFn{
 			cards.ManaCostColours(o.Face().ManaCost)&cards.ColourBlue != 0
 	},
 	// singleTarget is Forge's SpellAbility property singleTarget: the spell
-	// on the stack carries exactly ONE chosen target (object or player).
+	// on the stack carries exactly ONE chosen target (object or player),
+	// counting every SubAbility$ link's targets with the root's.
 	// It is the ValidSA$ shape's predicate (Spinerock Tyrant's
 	// `Instant.singleTarget,Sorcery.singleTarget`, and the sibling
 	// `Spell.singleTarget` carriers Captured by the Consulate and
@@ -137,7 +138,7 @@ var predicates = map[string]predFn{
 	// match -- exactly one target was chosen, not one at most -- and the
 	// predicate fails closed on a nil object.
 	"singleTarget": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return o != nil && len(o.Targets) == 1
+		return o != nil && len(o.Targets)+len(o.SubTargets) == 1
 	},
 	// DrawnThisTurn is Forge's Card.getDrawnThisTurn (Captain Eberhart's
 	// "spells cast from among cards you drew this turn"): the object's last

@@ -88,6 +88,13 @@ func TestTargetTypeQualifiersReadAllNamedQualifiers(t *testing.T) {
 	if !containsID(got, ids.spell) || !containsID(got, ids.activated) || containsID(got, ids.triggered) {
 		t.Fatalf("singleTarget census = %v, want only stack objects with one target", got)
 	}
+	// A chain link's target is the spell's second target: Redirect Lightning
+	// can't be aimed at The Last Agni Kai.
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: ids.spell, Text: events.SubTargetNotice, Amount: 2, IDs: []state.ObjID{ids.perm}})
+	got = censusOf(t, e, 0, corpusSA(t, reg, "Redirect Lightning", ""))
+	if containsID(got, ids.spell) || !containsID(got, ids.activated) {
+		t.Fatalf("singleTarget census = %v, want the chain-targeting spell left out", got)
+	}
 
 	// Wylls Reversal's real body asks for a stack object with one or more
 	// targets. The un-targeted trigger is the precondition proving GE1 binds.

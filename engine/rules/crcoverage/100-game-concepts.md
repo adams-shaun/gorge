@@ -95,7 +95,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 115.4 | follows | `engine/rules/target_legal.go#Engine.legalTargetCandidates` | - | any target |
 | 115.5 | follows | `engine/rules/target_legal.go#Engine.candidatesForLimitInto` `engine/rules/cast_targets.go#Engine.targetAsk` | - | spell not its own target |
 | 115.6 | follows | `engine/rules/target_legal.go#Engine.resolvedTargetMin` | - | TargetMin$ 0 |
-| 115.7-115.7f | partial | `engine/effects/choose_control.go#effChangeTargets` | - | gorge redirect not all-or-none; copies root-only |
+| 115.7-115.7f | partial | `engine/effects/choose_control.go#effChangeTargets` `engine/rules/target_legal.go#Engine.stackKindAdmits` | `TestTargetTypeQualifiersReadAllNamedQualifiers` | "a single target" counts the whole chain; gorge redirect not all-or-none and changes root targets only, so a spell whose one target is on a chain link (Wild Slash) stays as chosen; copies root-only |
 | 115.8 | unknown | - | - | not reached |
 | 115.9-115.9c | unknown | - | - | not reached |
 | 115.10-115.10b | follows | `engine/effects/context.go#Defined` | - | Defined$ / Ref affect without targeting |
