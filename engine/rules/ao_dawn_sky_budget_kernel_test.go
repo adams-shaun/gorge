@@ -8,8 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Restored from the W3 legacy removal.
-
 // TestAoTheDawnSkyBudgetDigEndToEnd is the real-corpus pin: Ao's death trigger
 // asks its Charm modes, the chosen Dig mode poses a budget ask whose options
 // exclude the 5- and 6-MV permanents, an over-budget answer is rejected on

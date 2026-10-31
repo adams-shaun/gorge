@@ -75,7 +75,7 @@ func ugPushTrigger(e *Engine, src state.ObjID, controller state.PlayerID, target
 		ability := e.G.Stack[len(e.G.Stack)-1]
 		e.emit(events.Event{Kind: events.TargetsChosen, Obj: ability, IDs: targets})
 	}
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 }
 
 // ugBridge is Command Bridge as it is when its enters-tapped replacement has

@@ -24,15 +24,15 @@ func TestMillOptionalAsks(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			e := kr2Engine(t, 2)
-			spell := kr2Put(t, e, 0, kr2Sorcery(t, "Optional Mill",
+			e := kernelEngine(t, 2)
+			spell := putCardIn(t, e, 0, sorceryCard(t, "Optional Mill",
 				"A:SP$ Mill | NumCards$ 2 | Optional$ True"), state.ZHand, false)
 			libBefore := len(e.G.Zone(state.ZLibrary, 0))
 			from := len(e.L.Events)
 			if libBefore < 2 {
 				t.Fatalf("precondition: seat 0 library holds %d cards, want at least 2", libBefore)
 			}
-			d := kr2Cast(t, e, 0, spell)
+			d := castWithMana(t, e, 0, spell)
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "mill_optional" || d.Player != 0 {
 				t.Fatalf("pending = %+v, want seat 0's mill_optional KChoose", d)
 			}
@@ -40,7 +40,7 @@ func TestMillOptionalAsks(t *testing.T) {
 			if tc.accept {
 				kind = "yes"
 			}
-			kr2Answer(t, e, d, kr2Kind(t, d, kind))
+			answerDecision(t, e, d, optionKindIndex(t, d, kind))
 			milled := 0
 			for _, ev := range e.L.Events[from:] {
 				if events.IsMill(ev) {

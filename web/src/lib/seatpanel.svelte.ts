@@ -177,7 +177,7 @@ export class SeatPanelState {
    * play settings it is not persisted, so a different seat or match starts
    * manual and toggling cannot send an engine intent.  It is also the ONE
    * auto-pay input to the autopilot (derivePass/deriveActPass hand it to
-   * emptyPriorityWindow and decide(); spec §8): while it is on, a plan-bearing
+   * emptyPriorityWindow and decide()): while it is on, a plan-bearing
    * payment action is a real play and Auto resolves the seat's own spell.
    * Toggling it never re-runs that classification by itself. */
   autoPayMana = $state(false);
@@ -1346,8 +1346,8 @@ export class SeatPanelState {
     // policy of its own, so there is deliberately no auto-pay guard here (the
     // blanket one that held every window carrying a plan was removed by
     // 4757be4e9, squashed into 7022042e6). It reaches this classification
-    // only as the seat PREFERENCE handed to the one shared actionable test
-    // (spec §8): while it is on, a plan-bearing payment action is a real play,
+    // only as the seat PREFERENCE handed to the one shared actionable test:
+    // while it is on, a plan-bearing payment action is a real play,
     // so neither the floor nor decide() passes a window whose only play is a
     // plan-only cast. The table capability (autoManaAvailable) never reaches
     // here: with the preference off this is exactly the capability-less policy.
@@ -1399,7 +1399,7 @@ export class SeatPanelState {
       // main-phase floor. Persistent Auto keeps the default (the floor
       // applies); ffwd never reaches here.
       skipOwnTurnFloor: this.oneShot !== 'none',
-      // The seat's auto-pay PREFERENCE, never the table capability (spec §8).
+      // The seat's auto-pay PREFERENCE, never the table capability.
       autoPayMana: this.autoPayMana,
       breakpointsFired: this.bpFired,
     });
@@ -2124,7 +2124,7 @@ export class SeatPanelState {
    * CAST shortcut, the panel's cast row): Auto-pay ON submits the suggested
    * plan, as before; OFF posts the legacy cast when the pool already pays
    * (base_option_index) and otherwise announces the cast so the player picks
-   * the mana (announce-then-pay spec §8). A plan-less action (ManaBrew only —
+   * the mana (announce, then pay). A plan-less action (ManaBrew only —
    * the native planner never publishes one, rules/payment_plan.go appends an
    * action only with a plan) has no plan to submit in either mode, so it
    * falls back to announce-then-pay under Auto-pay ON too. Never a
@@ -2203,7 +2203,7 @@ export class SeatPanelState {
       // auto-pay branch for a legacy cast) posts no choices, only its payment
       // selection; actedPayment counts it exactly as actedOption counts the
       // same cast's legacy option, under the same gates: accepted posts only,
-      // the preference on, and Ctrl (holdPriority) exempt (spec §8).
+      // the preference on, and Ctrl (holdPriority) exempt.
       if (this.actPass && !holdPriority && (actedOption(d, choices) || actedPayment(d, payment))) this.actPassArmed = true;
       // If a new decision was adopted while the intent was in flight (a
       // rapid successive ask), keep it; only drop the decision we answered.

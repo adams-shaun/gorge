@@ -19,7 +19,7 @@ func castMimicNaming(t *testing.T, e *Engine, id state.ObjID, typ string) {
 	e.G.Players[0].Pool[state.MC] += 2
 	castMode(t, e, id, "")
 	chooseETBType(t, e, typ)
-	kr5FinishCast(t, e, id)
+	finishCastAsks(t, e, id)
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("Mimic %d did not reach the battlefield", id)
 	}

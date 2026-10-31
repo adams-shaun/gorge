@@ -780,13 +780,9 @@ func TestCombatDamageUsesDerivedPowerNotPrinted(t *testing.T) {
 	}
 }
 
-// TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects is the regression
-// test for a gap outside this task's own 11 named tests but explicitly in its
-// scope: EndOfTurnCleanup (layers.go) was
-// never called from anywhere in the engine, so a resolved pump effect used to
-// survive forever instead of expiring at the end of its own turn -- and
-// nothing cleared marked damage or the Deathtouched counter this task
-// introduces either. This drives the real cleanup path (priorityRound, not a
+// TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects pins that cleanup
+// expires a resolved pump effect at the end of its own turn and clears marked
+// damage and the Deathtouched counter. This drives the real cleanup path (priorityRound, not a
 // direct EndOfTurnCleanup call) so the wiring itself is under test, not just
 // the primitive layers_test.go already covers in isolation.
 func TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects(t *testing.T) {

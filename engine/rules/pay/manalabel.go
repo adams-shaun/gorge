@@ -131,9 +131,9 @@ func ManaAbilitiesProduce(mas []*cards.SA, color string) bool {
 	return false
 }
 
-// Two riders make a paid ability recognisable on the wheel (
-// Phyrexian Tower's "{T}, Sacrifice a creature: Add {B}{B}"
-// read "Add B", so the player saw no way to sacrifice): a cost beyond the
+// ManaAbilityLabel adds two riders that make a paid ability recognisable on
+// the wheel (a bare "Add B" on Phyrexian Tower's "{T}, Sacrifice a creature:
+// Add {B}{B}" shows no way to sacrifice): a cost beyond the
 // shared {T} is named in front of the production (manaAbilityCostPrefix,
 // "Sacrifice 1 creature: Add BB"), and a literal Amount$ repeats a single
 // pip (manaAmountPips, "Add BB"). An ability with neither keeps the bare

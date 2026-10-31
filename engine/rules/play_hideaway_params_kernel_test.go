@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from play_hideaway_params_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Mosswort Bridge's gate and costed free play, and a Play controller that
+// resolves to nobody, driven through the resolution kernel (the only ask path).
 
 import (
 	"testing"
@@ -23,7 +23,7 @@ import (
 func TestMosswortBridgeGateAndCostedFreePlayKernel(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
-	e, cfg, bridgeID, bearID, playIdx := kr7MosswortEngine(t, reg)
+	e, cfg, bridgeID, bearID, playIdx := mosswortBridgeEngine(t, reg)
 	if o := e.G.Obj(bearID); o == nil || o.Zone != state.ZExile {
 		t.Fatalf("precondition: the Hideaway-exiled card is %v, want face down in exile", o)
 	}
@@ -104,7 +104,7 @@ func TestMosswortBridgeGateAndCostedFreePlayKernel(t *testing.T) {
 // battlefield permanent).
 func TestPlayControllerUnresolvableNamesNobodyKernel(t *testing.T) {
 	reg := searchTestRegistry(t)
-	e, _, bridgeID, bearID, playIdx := kr7MosswortEngine(t, reg)
+	e, _, bridgeID, bearID, playIdx := mosswortBridgeEngine(t, reg)
 	// The gate's count body needs the real board: two Craw Wurms make the
 	// GE10 gate pass so the walk dispatches effPlay and the exercise is
 	// genuinely about the Controller$ read.
@@ -137,10 +137,10 @@ func TestPlayControllerUnresolvableNamesNobodyKernel(t *testing.T) {
 	}
 }
 
-// kr7MosswortEngine is mosswortEngine with the Bridge PLAYED (a real Submit)
+// mosswortBridgeEngine is mosswortEngine with the Bridge PLAYED (a real Submit)
 // instead of raw-emitted onto the battlefield: a raw MoveZone outside any
 // resolution no longer poses the Hideaway ask.
-func kr7MosswortEngine(t *testing.T, reg *cards.Registry) (*Engine, Config, state.ObjID, state.ObjID, int) {
+func mosswortBridgeEngine(t *testing.T, reg *cards.Registry) (*Engine, Config, state.ObjID, state.ObjID, int) {
 	t.Helper()
 	forest := searchCorpusCard(t, reg, "Forest")
 	mountain := searchCorpusCard(t, reg, "Mountain")

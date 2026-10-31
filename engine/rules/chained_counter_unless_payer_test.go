@@ -31,17 +31,17 @@ func TestChainedCounterUnlessPayerIsCounteredController(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			e := kr2Engine(t, 2)
-			bear := kr2Put(t, e, 0,
-				kr2Src(t, "Name:Chained Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
+			e := kernelEngine(t, 2)
+			bear := putCardIn(t, e, 0,
+				cardOfSrc(t, "Name:Chained Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
 				state.ZBattlefield, false)
-			oppSpell := kr2Put(t, e, 1, kr2Src(t, chainedCounterOppSpellSrc), state.ZStack, false)
-			mutation := kr2Put(t, e, 0, kr2Corpus(t, "Repulsive Mutation"), state.ZHand, false)
+			oppSpell := putCardIn(t, e, 1, cardOfSrc(t, chainedCounterOppSpellSrc), state.ZStack, false)
+			mutation := putCardIn(t, e, 0, corpusFixtureCard(t, "Repulsive Mutation"), state.ZHand, false)
 			// The countered spell's controller must be able to pay the toll,
 			// or the pay branch is not offered at all.
-			kr2Fund(e, 1)
+			fundMana(e, 1)
 
-			d := kr2Cast(t, e, 0, mutation)
+			d := castWithMana(t, e, 0, mutation)
 			var unless *decision.Decision
 			sawX, sawRoot, sawLink := false, false, false
 			for i := 0; d != nil && i < 40; i++ {
@@ -54,13 +54,13 @@ func TestChainedCounterUnlessPayerIsCounteredController(t *testing.T) {
 					// X = 1: the first half puts a counter on the Bear, and
 					// the unless cost reads the greatest power (3).
 					sawX = true
-					d = kr2Answer(t, e, d, chainedXOption(d))
+					d = answerDecision(t, e, d, chainedXOption(d))
 				case d.Kind == decision.KTarget && chainedOfferedObj(d, bear) >= 0:
 					sawRoot = true
-					d = kr2Answer(t, e, d, chainedOfferedObj(d, bear))
+					d = answerDecision(t, e, d, chainedOfferedObj(d, bear))
 				case d.Kind == decision.KTarget && chainedOfferedObj(d, oppSpell) >= 0:
 					sawLink = true
-					d = kr2Answer(t, e, d, chainedOfferedObj(d, oppSpell))
+					d = answerDecision(t, e, d, chainedOfferedObj(d, oppSpell))
 				default:
 					t.Fatalf("unexpected decision while casting Repulsive Mutation: kind=%s resume=%q player=%d options=%+v",
 						d.Kind, d.ResumeKind, d.Player, d.Options)
@@ -98,7 +98,7 @@ func TestChainedCounterUnlessPayerIsCounteredController(t *testing.T) {
 			if pick < 0 {
 				t.Fatalf("unless ask offers no %q option: %+v", want, unless.Options)
 			}
-			d = kr2Answer(t, e, unless, pick)
+			d = answerDecision(t, e, unless, pick)
 			// A mana-only toll with a funded pool charges without opening the
 			// CR 601.2g window; tolerate the window if one is posed anyway.
 			for i := 0; d != nil && d.ResumeKind == unlessManaKind && i < 10; i++ {
@@ -108,7 +108,7 @@ func TestChainedCounterUnlessPayerIsCounteredController(t *testing.T) {
 						done = o.Index
 					}
 				}
-				d = kr2Answer(t, e, d, done)
+				d = answerDecision(t, e, d, done)
 			}
 			passUntilStackEmpty(t, e, 20)
 
@@ -165,35 +165,35 @@ func TestChainedCounterUnlessEmptyTargetPosesNoAsk(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			e := kr2Engine(t, 2)
-			bear := kr2Put(t, e, 0,
-				kr2Src(t, "Name:Chained Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
+			e := kernelEngine(t, 2)
+			bear := putCardIn(t, e, 0,
+				cardOfSrc(t, "Name:Chained Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
 				state.ZBattlefield, false)
-			mutation := kr2Put(t, e, 0, kr2Corpus(t, "Repulsive Mutation"), state.ZHand, false)
+			mutation := putCardIn(t, e, 0, corpusFixtureCard(t, "Repulsive Mutation"), state.ZHand, false)
 			var oppSpell state.ObjID
 			if tc.oppSpell {
-				oppSpell = kr2Put(t, e, 1, kr2Src(t, chainedCounterOppSpellSrc), state.ZStack, false)
+				oppSpell = putCardIn(t, e, 1, cardOfSrc(t, chainedCounterOppSpellSrc), state.ZStack, false)
 			}
-			kr2Fund(e, 0)
-			kr2Fund(e, 1)
+			fundMana(e, 0)
+			fundMana(e, 1)
 
-			d := kr2Cast(t, e, 0, mutation)
+			d := castWithMana(t, e, 0, mutation)
 			sawX, sawRoot, sawLinkAsk, sawUnless := false, false, false, false
 			for i := 0; d != nil && i < 40; i++ {
 				switch {
 				case d.Kind == decision.KModes && d.ResumeKind == "unless_pay":
 					// The defect: an ask for a target that was never chosen.
 					sawUnless = true
-					d = kr2Answer(t, e, d, len(d.Options)-1)
+					d = answerDecision(t, e, d, len(d.Options)-1)
 				case d.Kind == decision.KChoose && chainedXOption(d) >= 0:
 					sawX = true
-					d = kr2Answer(t, e, d, chainedXOption(d))
+					d = answerDecision(t, e, d, chainedXOption(d))
 				case d.Kind == decision.KTarget && chainedOfferedObj(d, bear) >= 0:
 					sawRoot = true
-					d = kr2Answer(t, e, d, chainedOfferedObj(d, bear))
+					d = answerDecision(t, e, d, chainedOfferedObj(d, bear))
 				case d.Kind == decision.KTarget && tc.oppSpell && chainedOfferedObj(d, oppSpell) >= 0:
 					sawLinkAsk = true
-					d = kr2Answer(t, e, d) // explicit empty answer
+					d = answerDecision(t, e, d) // explicit empty answer
 				default:
 					t.Fatalf("unexpected decision: kind=%s resume=%q player=%d options=%+v",
 						d.Kind, d.ResumeKind, d.Player, d.Options)

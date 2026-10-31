@@ -51,7 +51,7 @@ func TestClivesHideawayETBTrigger(t *testing.T) {
 		t.Fatalf("library before trigger resolution = %d, want %d (only Clive's Hideaway left)", got, libraryBefore-1)
 	}
 
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	pick := e.Pending()
 	if pick == nil || pick.Kind != decision.KChoose || len(pick.Options) != 4 {
 		t.Fatalf("Hideaway pick = %+v, want four-card choice after trigger resolution", pick)

@@ -128,7 +128,7 @@ export interface PlaySettings {
   passAfterAct: boolean;
   /** auto-order identical simultaneous triggers; consumed by prio6, not decide() */
   autoOrderIdenticalTriggers: boolean;
-  /** auto-order EVERY simultaneous-trigger ask , not only identical ones; consumed by seatpanel's auto-order path, not decide() */
+  /** auto-order EVERY simultaneous-trigger ask, not only identical ones; consumed by seatpanel's auto-order path, not decide() */
   autoOrderAllTriggers: boolean;
   /** artificial pacing for auto-passing; consumed by prio5, not decide() */
   pacing: { stepMs: number; resolveMs: number };

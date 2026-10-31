@@ -257,7 +257,7 @@ func TestHideawayControllerStillSeesTheHiddenFace(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
 	e.putTriggersOnStack()
 	mark := len(e.L.Events)
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	pick := e.Pending()
 	if pick == nil || pick.Kind != decision.KChoose || pick.Player != 1 {
 		t.Fatalf("Hideaway pick = %+v, want seat 1's choice", pick)

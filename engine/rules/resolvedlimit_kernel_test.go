@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of resolvedlimit_test.go's accepted-resolution
-// leaves (ResolvedLimit$, "Do this only once each turn."): the first accepted
+// The accepted-resolution leaves of ResolvedLimit$ ("Do this only once each
+// turn."): the first accepted
 // resolution spends the per-turn limit, a mandatory line without the param
 // does not, and the count survives Engine.Clone. The helpers (enterCreature,
 // drainQueuedTrigger, putInHand) are resolvedlimit_test.go's; direct

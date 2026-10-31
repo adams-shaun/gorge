@@ -63,7 +63,7 @@ func TestGenerousPatronSupportPutsCountersAndDrawsOncePerBatch(t *testing.T) {
 	// Support puts ONE counter per creature: answer with only the opponent's
 	// creature (the YouDontCtrl half).
 	submitChoices(t, e, d.Options[1].Index)
-	kr5Settle(e)
+	settleResolve(e)
 	passUntilStackEmpty(t, e, 60)
 
 	if got := e.G.Obj(bear).Counter("P1P1"); got != 1 {
@@ -122,11 +122,11 @@ func TestGenerousPatronSupportPutsCountersAndDrawsOncePerBatch(t *testing.T) {
 	}
 }
 
-// kr5Settle continues the engine after a kernel probe's answering Submit:
+// settleResolve continues the engine after a kernel probe's answering Submit:
 // the probe re-executes only its own function, so the turn loop that a real
 // priority pass would run afterwards (queued triggers onto the stack, the
 // next priority ask) runs here when nothing is posed.
-func kr5Settle(e *Engine) {
+func settleResolve(e *Engine) {
 	if e.Pending() == nil && !e.G.Over {
 		e.Advance()
 	}

@@ -84,11 +84,11 @@ func TestCROriginAlternativeGraveyardOnlySkipsLibrary(t *testing.T) {
 	if s == nil || s.ResumeKind != "search" {
 		t.Fatalf("pending = %+v, want the search pick", s)
 	}
-	if kr4Offers(s, lib) || !kr4Offers(s, gy) {
+	if offersObj(s, lib) || !offersObj(s, gy) {
 		t.Fatalf("graveyard-only search options = %+v, want the graveyard tower %d and not the library tower %d", s.Options, gy, lib)
 	}
 	submitChoices(t, e, s.Options[0].Index)
-	kr4Settle(e)
+	settlePassing(e)
 	passUntilStackEmpty(t, e, 30)
 	if o := e.G.Obj(gy); o.Zone != state.ZHand {
 		t.Fatalf("graveyard tower zone = %s, want hand", o.Zone)
@@ -116,11 +116,11 @@ func TestCROriginAlternativeLibraryOnlyOmitsGraveyard(t *testing.T) {
 	if s == nil || s.ResumeKind != "search" {
 		t.Fatalf("pending = %+v, want the search pick", s)
 	}
-	if kr4Offers(s, gy) || !kr4Offers(s, lib) {
+	if offersObj(s, gy) || !offersObj(s, lib) {
 		t.Fatalf("library-only search options = %+v, want the library tower %d and not the graveyard tower %d", s.Options, lib, gy)
 	}
 	submitChoices(t, e, s.Options[0].Index)
-	kr4Settle(e)
+	settlePassing(e)
 	passUntilStackEmpty(t, e, 30)
 	if !originAltShuffled(e, logBefore) {
 		t.Fatal("a library search must shuffle")

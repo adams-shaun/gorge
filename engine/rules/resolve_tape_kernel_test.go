@@ -1,9 +1,7 @@
 package rules
 
-// Kernel-era restorations of resolve_kernel_test.go's scenarios. The
-// originals were dual runs (legacy resume machinery against the tape kernel,
-// logs required identical); the kernel is now the only path, so each runs on
-// the kernel alone and keeps its kernel-counter and game-outcome assertions.
+// The resolve_kernel_test.go scenarios on the tape kernel, each with its
+// kernel-counter and game-outcome assertions.
 
 import (
 	"fmt"
@@ -20,12 +18,12 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// kr8Kernel runs scenario on a fresh kernel fixture, checks a log-only
+// runScenarioKernel runs scenario on a fresh kernel fixture, checks a log-only
 // replay, and returns the engine and the kernel counter deltas.
-func kr8Kernel(t *testing.T, seats int, seed uint64, scenario func(t *testing.T, e *Engine), srcs ...string) (*Engine, resolve.Stats) {
+func runScenarioKernel(t *testing.T, seats int, seed uint64, scenario func(t *testing.T, e *Engine), srcs ...string) (*Engine, resolve.Stats) {
 	t.Helper()
 	before := resolve.ReadStats()
-	e, cfg := kr8Fixture(t, seats, seed, srcs...)
+	e, cfg := kernelFixture(t, seats, seed, srcs...)
 	scenario(t, e)
 	st := resolve.ReadStats().Sub(before)
 	replayCheck(t, e, cfg)
@@ -37,7 +35,7 @@ func kr8Kernel(t *testing.T, seats int, seed uint64, scenario func(t *testing.T,
 // the rider after it runs.
 func TestKernelChooseColorStopAsk(t *testing.T) {
 	var life int32
-	e, st := kr8Kernel(t, 2, 9101, func(t *testing.T, e *Engine) {
+	e, st := runScenarioKernel(t, 2, 9101, func(t *testing.T, e *Engine) {
 		life = e.G.Players[0].Life
 		tapeCastAndResolve(t, e, "Tape Wash", "U")
 	}, tapeChooseColorSrc)
@@ -55,7 +53,7 @@ func TestKernelVoteLoop(t *testing.T) {
 	for _, seats := range []int{2, 4, 8} {
 		t.Run(fmt.Sprintf("seats%d", seats), func(t *testing.T) {
 			var life int32
-			e, st := kr8Kernel(t, seats, 9200+uint64(seats), func(t *testing.T, e *Engine) {
+			e, st := runScenarioKernel(t, seats, 9200+uint64(seats), func(t *testing.T, e *Engine) {
 				life = e.G.Players[0].Life
 				tapeCastAndResolve(t, e, "Tape Council", "B")
 			}, tapeVoteSrc())
@@ -76,7 +74,7 @@ func TestKernelCardAndPlayerBallots(t *testing.T) {
 	for _, seats := range []int{2, 4} {
 		t.Run(fmt.Sprintf("card%d", seats), func(t *testing.T) {
 			var bear, angel state.ObjID
-			e, st := kr8Kernel(t, seats, 9950+uint64(seats), func(t *testing.T, e *Engine) {
+			e, st := runScenarioKernel(t, seats, 9950+uint64(seats), func(t *testing.T, e *Engine) {
 				bear = moveByName(t, e, 0, "ParentLink Bear", state.ZBattlefield)
 				angel = moveByName(t, e, 0, "ParentLink Angel", state.ZBattlefield)
 				tapeCastAndResolve(t, e, "Tape Judgment", "W")
@@ -89,7 +87,7 @@ func TestKernelCardAndPlayerBallots(t *testing.T) {
 			}
 		})
 		t.Run(fmt.Sprintf("player%d", seats), func(t *testing.T) {
-			_, st := kr8Kernel(t, seats, 9960+uint64(seats), func(t *testing.T, e *Engine) {
+			_, st := runScenarioKernel(t, seats, 9960+uint64(seats), func(t *testing.T, e *Engine) {
 				tapeCastAndResolve(t, e, "Tape Verdict", "R")
 			}, tapePlayerVoteSrc)
 			if st.Served != int64(seats*(seats+1)/2) {
@@ -104,7 +102,7 @@ func TestKernelCardAndPlayerBallots(t *testing.T) {
 // link after the served discard.
 func TestKernelParentTargetChain(t *testing.T) {
 	var bear, angel state.ObjID
-	e, st := kr8Kernel(t, 2, 9301, func(t *testing.T, e *Engine) {
+	e, st := runScenarioKernel(t, 2, 9301, func(t *testing.T, e *Engine) {
 		bear = moveByName(t, e, 0, "ParentLink Bear", state.ZBattlefield)
 		angel = moveByName(t, e, 0, "ParentLink Angel", state.ZBattlefield)
 		spell := fixtureInHand(t, e, "Parent Link Between")
@@ -123,7 +121,7 @@ func TestKernelParentTargetChain(t *testing.T) {
 // Every player discards a card of their choice (TgtChoose over Defined$
 // Player): the per-player asks are served and every hand shrinks by one.
 func TestKernelEachPlayerDiscardLoop(t *testing.T) {
-	e, st := kr8Kernel(t, 4, 9701, func(t *testing.T, e *Engine) {
+	e, st := runScenarioKernel(t, 4, 9701, func(t *testing.T, e *Engine) {
 		tapeCastAndResolve(t, e, "Tape Each Discard", "B")
 	}, tapeEachDiscardSrc)
 	if st.Served == 0 {
@@ -144,7 +142,7 @@ func TestKernelEachPlayerDiscardLoop(t *testing.T) {
 // from the same checkpoint and leaves the original untouched, and both end
 // identical.
 func TestKernelCloneAtPosedDecision(t *testing.T) {
-	e, _ := kr8Fixture(t, 4, 9801, tapeVoteSrc())
+	e, _ := kernelFixture(t, 4, 9801, tapeVoteSrc())
 	addMana(t, e, 0, "B")
 	submitChoices(t, e, castOptionFor(t, e, fixtureInHand(t, e, "Tape Council")).Index)
 	for e.Pending().Kind == decision.KPriority {
@@ -169,13 +167,13 @@ func TestKernelCloneAtPosedDecision(t *testing.T) {
 // An ask-free resolution skips the checkpoint; one that asks still takes it
 // and is served from the tape.
 func TestKernelMayAskExemptsAskFreeResolutions(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9201, func(t *testing.T, e *Engine) {
+	_, st := runScenarioKernel(t, 2, 9201, func(t *testing.T, e *Engine) {
 		tapeCastAndResolve(t, e, "Tape Gain", "W")
 	}, tapeNoAskSrc)
 	if st.Checkpoints != 0 || st.Exempt != 1 || st.Misses != 0 {
 		t.Fatalf("the ask-free spell was not exempted: %+v", st)
 	}
-	_, st = kr8Kernel(t, 2, 9202, func(t *testing.T, e *Engine) {
+	_, st = runScenarioKernel(t, 2, 9202, func(t *testing.T, e *Engine) {
 		tapeCastAndResolve(t, e, "Tape Wash", "U")
 	}, tapeChooseColorSrc)
 	if st.Checkpoints != 1 || st.Served != 1 {
@@ -195,7 +193,7 @@ func TestKernelMayAskMissDegradesInPlace(t *testing.T) {
 	prev := SetTapeLegacyObserver(func(class string) { classes = append(classes, class) })
 	t.Cleanup(func() { SetTapeLegacyObserver(prev) })
 	var life int32
-	e, st := kr8Kernel(t, 2, 9203, func(t *testing.T, e *Engine) {
+	e, st := runScenarioKernel(t, 2, 9203, func(t *testing.T, e *Engine) {
 		life = e.G.Players[0].Life
 		tapeCastAndResolve(t, e, "Tape Wash", "U")
 	}, tapeChooseColorSrc)
@@ -228,7 +226,7 @@ func TestKernelMayAskMissDegradesInPlace(t *testing.T) {
 // REDEALT world -- the card drawn after the vote is the redealt library's
 // top -- while the real engine draws the true top.
 func TestKernelHypotheticalRedealWorld(t *testing.T) {
-	e, _ := kr8Fixture(t, 2, 9901, tapeDrawVoteSrc,
+	e, _ := kernelFixture(t, 2, 9901, tapeDrawVoteSrc,
 		"Name:Tape Filler A\nManaCost:1\nTypes:Artifact\nOracle:x\n",
 		"Name:Tape Filler B\nManaCost:2\nTypes:Artifact\nOracle:x\n",
 		"Name:Tape Filler C\nManaCost:3\nTypes:Artifact\nOracle:x\n")

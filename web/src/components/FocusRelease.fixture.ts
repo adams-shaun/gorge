@@ -220,7 +220,7 @@ mount(WireNotice, {
   props: { text: 'reconnected', onDismiss: () => { win.__dismissed = true; } },
 });
 
-// F8: a battlefield CardTile. The role="button" + tabindex=0 tile is inside
+// A battlefield CardTile. The role="button" + tabindex=0 tile is inside
 // hotkeys.ts's ACTIVATABLE set, so before lib/pointer.ts's release a pointer
 // click parked focus on it and Space re-targeted the tile instead of passing.
 // Mounted with the plain card() card: the detail panel it opens on focus is

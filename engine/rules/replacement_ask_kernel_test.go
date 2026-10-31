@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the replacement_ask_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// A replacement's mid-resolution ask resuming the resolution, driven through
+// the resolution kernel (engine/rules/resolve).
 
 import (
 	"strings"
@@ -14,8 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestReplacementMidResolutionAskResumes (kernel era; restored from the
-// legacy fx43 pin): Mox Diamond's R: line replaces its own stack->battlefield
+// TestReplacementMidResolutionAskResumes: Mox Diamond's R: line replaces its own stack->battlefield
 // move with "you may discard a land card; if you do, put Mox Diamond onto
 // the battlefield, otherwise it goes to your graveyard". The ReplaceWith body
 // is a Mode$ TgtChoose discard, a mid-resolution ask inside a REPLACEMENT.

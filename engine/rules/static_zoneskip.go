@@ -31,7 +31,7 @@ import (
 // answers yes to any of the probes the zone's collectors share, or when it
 // carries merged cards (a pile is never skipped by the collectors).
 //
-// The battlefield joined the four hidden-ish zones (task): staticEffects
+// The battlefield is summarised with the four hidden-ish zones: staticEffects
 // re-scans once per emitted event, and on a mass-token board almost every
 // permanent is a vanilla token with no statics at all, so the scan's cost is
 // O(board) per event for a result no object changes. A face with NO statics

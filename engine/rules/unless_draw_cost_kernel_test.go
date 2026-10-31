@@ -13,7 +13,7 @@ import (
 // Kuroki, Thief of Talents' targeted unless-draw (Draw<4/Player.targetedBy>)
 // and Tresserhorn's Lord's compound unless cost, driven under the kernel.
 
-func kr9DriveKurokiTrig(t *testing.T) (*Engine, state.ObjID) {
+func driveKurokiTrigger(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	e := stealEngine(t, 741)
@@ -25,7 +25,7 @@ func kr9DriveKurokiTrig(t *testing.T) (*Engine, state.ObjID) {
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: kuroki, Player: 0, Amount: 0})
 	ability := e.G.Stack[len(e.G.Stack)-1]
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: ability, Player: 1, Amount: 1})
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 	if d := e.Pending(); d == nil || d.ResumeKind != "unless_pay" || d.Player != 1 {
 		t.Fatalf("pending = %+v, want the unless-pay ask for seat 1", d)
 	}
@@ -34,7 +34,7 @@ func kr9DriveKurokiTrig(t *testing.T) (*Engine, state.ObjID) {
 
 func TestUnlessDrawCostKurokiPayKernel(t *testing.T) {
 	t.Parallel()
-	e, kuroki := kr9DriveKurokiTrig(t)
+	e, kuroki := driveKurokiTrigger(t)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "unless_pay" {
 		t.Fatalf("pending = %+v, want the unless-pay ask", d)
@@ -54,7 +54,7 @@ func TestUnlessDrawCostKurokiPayKernel(t *testing.T) {
 
 func TestUnlessDrawCostKurokiDeclineKernel(t *testing.T) {
 	t.Parallel()
-	e, _ := kr9DriveKurokiTrig(t)
+	e, _ := driveKurokiTrigger(t)
 	before := countDraw(e)
 	answerUnlessPay(t, e, false)
 	if got := countDraw(e) - before; got != 0 {
@@ -80,7 +80,7 @@ func TestUnlessCostTresserhornPaysSacLifeAndDrawKernel(t *testing.T) {
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: lord, Player: 0, Amount: 0})
 	ability := e.G.Stack[len(e.G.Stack)-1]
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: ability, Player: 1, Amount: 1})
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 	answerUnlessPay(t, e, true)
 
 	d := e.Pending()

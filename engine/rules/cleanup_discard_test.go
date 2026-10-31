@@ -254,8 +254,8 @@ func Test3141DiscardedCardsAreTheIntentNamed(t *testing.T) {
 }
 
 // Test3141ChoosingIsClearedByDiscardCleanup pins that answering the cleanup
-// discard does NOT leave e.choosing = chooseCleanup behind (
-// 1). cleanupStep sets e.choosing before it asks and discardCleanup must set
+// discard does NOT leave e.choosing = chooseCleanup behind.
+// cleanupStep sets e.choosing before it asks and discardCleanup must set
 // it back to chooseNone, the invariant the cast flows maintain explicitly
 // (cast.go: e.cast, e.choosing = nil, chooseNone at the end of their flow).
 // A stale chooseCleanup sitting in the engine would turn handleChoose's

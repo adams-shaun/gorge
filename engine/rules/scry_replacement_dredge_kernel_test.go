@@ -1,7 +1,6 @@
 package rules
 
-// Kernel-era restoration of scry_replacement_dredge_test.go: a Draw-instead
-// Scry replacement (Eligeth after Kenessos) whose first draw is itself
+// A Draw-instead Scry replacement (Eligeth after Kenessos) whose first draw is itself
 // replaced by Dredge. The answered draw must complete the remaining replaced
 // draws AND the Scry spell's next ability, all derived from the log.
 

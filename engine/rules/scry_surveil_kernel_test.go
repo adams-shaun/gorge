@@ -1,7 +1,6 @@
 package rules
 
-// Kernel-era restorations of scry_surveil_test.go's legacy-only leaves: the
-// Scry arrange decision's shape, and the mixed-destination degrade.
+// The Scry arrange decision's shape, and the mixed-destination degrade.
 
 import (
 	"testing"

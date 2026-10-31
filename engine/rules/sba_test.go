@@ -284,15 +284,13 @@ func TestNoDecisionIsIssuedAfterGameOver(t *testing.T) {
 // permanent on the battlefield (a regeneration shield, "sacrifice a Clue
 // instead", or -- as reproduced here -- a straight life-gain substitute) must
 // not make checkStateBased's fixed-point loop believe something changed on
-// every one of its maxSBAPasses passes. Before the fix, destroyLethalDamage
-// reported "changed" from the MoveZone it emitted, not from whether the shield
-// actually left; two checkStateBased calls per Submit (one directly, one via
-// Advance -> step) times 32 wasted passes each meant 64 replacement firings and
-// +64 life for a single "pass" intent. After the fix, each checkStateBased call
-// attempts the destruction exactly once, sees the shield is still on the
-// battlefield, and stops: 2 firings, +2 life -- which is also exactly what one
-// checkStateBased call per Submit produced before this task existed at all
-// (BASE dec046a had no pass loop to exhaust in the first place).
+// every one of its maxSBAPasses passes. If destroyLethalDamage reported
+// "changed" from the MoveZone it emitted, not from whether the shield actually
+// left, two checkStateBased calls per Submit (one directly, one via Advance ->
+// step) times 32 wasted passes each would mean 64 replacement firings and +64
+// life for a single "pass" intent. Instead each checkStateBased call attempts
+// the destruction exactly once, sees the shield is still on the battlefield,
+// and stops: 2 firings, +2 life.
 func TestDestroyLethalDamageDoesNotAmplifyWhenAReplacementKeepsThePermanent(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 2)
@@ -353,13 +351,8 @@ Oracle:x
 // too); Victim, owned by player 1 (who is eliminated), is what the sweep
 // tries and fails to move off the battlefield.
 //
-// Against the unfixed 7b68be7 code (no bound at all) this scenario gains 32
-// life and grows the log by 36 events from one Submit. Fix round 1's
-// before/after-zone-length check bounded that, but with no memory of a
-// prior attempt: pass 1 attempts the sweep (blocked); pass 2 finds the
-// zone still non-empty and attempts it AGAIN before finally reporting no
-// change and stopping -- 2 attempts, 2 life, 6 events. Fix round 3's swept
-// set (mirroring destroyLethalDamage's attempted)
+// With no bound this scenario would gain 32 life and grow the log by 36 events
+// from one Submit. The swept set (mirroring destroyLethalDamage's attempted)
 // remembers that player 1 was already swept on pass 1, so pass 2 skips the
 // attempt entirely instead of repeating it: exactly 1 blocked attempt per
 // player per checkStateBased call. The life delta below measures that bound
@@ -529,10 +522,9 @@ func TestDestructionTextDistinguishesToughnessFromLethalDamage(t *testing.T) {
 	}
 }
 
-// TestNoPendingDecisionWithAZeroLifePlayerNotYetLost is the
-// regression test for the re-review's N1 finding: the outcome-keyed
-// termination fix (destroyLethalDamage reporting "changed"
-// only from what actually left the battlefield) can under-report when a
+// TestNoPendingDecisionWithAZeroLifePlayerNotYetLost pins the case where
+// outcome-keyed termination (destroyLethalDamage reporting "changed"
+// only from what actually left the battlefield) can under-report: a
 // replacement effect keeps the permanent in play but its substitute effect
 // still changes SBA-relevant state -- here, draining the caster's own life
 // instead of moving the shield. Because checkLoseConditions runs BEFORE
@@ -583,14 +575,12 @@ Oracle:x
 	}
 }
 
-// TestNoPendingDecisionWithAZeroLifePlayerNotYetLostViaRemovalSweep is the
-// a regression test: checkLoseConditions' removal sweep had the
-// identical under-report shape as destroyLethalDamage,
-// one loop over -- "changed" came from whether a swept player's
-// battlefield actually shrank, so a replacement that blocks the exile but
-// changes SBA-relevant state elsewhere (another player's life total) was
-// invisible to this sweep and denied the later pass that would have caught
-// it.
+// TestNoPendingDecisionWithAZeroLifePlayerNotYetLostViaRemovalSweep pins the
+// same under-report shape on checkLoseConditions' removal sweep: if "changed"
+// came only from whether a swept player's battlefield actually shrank, a
+// replacement that blocks the exile but changes SBA-relevant state elsewhere
+// (another player's life total) would be invisible to this sweep and deny the
+// later pass that catches it.
 //
 // Ward, seat 1's own permanent, intercepts ANY Battlefield -> Exile move
 // (ValidCard$ Card, not scoped to a controller) and substitutes a 1-life
@@ -644,9 +634,9 @@ Oracle:x
 }
 
 // TestLethalDamageIsRetriedWhenTheReplacementsControllerIsEliminatedMidCall is
-// a regression test: the attempted-set discipline rounds 2 and 3 introduced
-// (one attempt per object and per player per checkStateBased call) can
-// under-COMPLETE, which is the mirror image of the under-report round 2 fixed.
+// a regression test: the attempted-set discipline (one attempt per object and
+// per player per checkStateBased call) can under-COMPLETE, the mirror image of
+// the under-report pinned above.
 //
 // Whether a destruction attempt succeeds is decided by the replacement
 // effects that apply to it, and applyReplacements only ever looks at
@@ -723,35 +713,18 @@ Oracle:x
 	}
 }
 
-// TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain pins the bound
-// the budget established and its re-arm has to preserve: a
-// removal sweep that a replacement keeps blocking fires exactly ONCE per
-// checkStateBased call, no matter how many passes something else drives the
-// fixed-point loop through.
+// TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain pins the bound a
+// blocked sweep's re-arm has to preserve: a removal sweep that a replacement
+// keeps blocking fires exactly ONCE per checkStateBased call, no matter how
+// many passes something else drives the fixed-point loop through.
 //
-// This must not assert the literal constant 2 -- "twice per
-// Submit, which makes two such calls (its own, then step's before it hands
-// out the next decision)". That constant was never the invariant; it was a
-// COUNT OF CALL SITES, and it silently depended on a bug. This fixture is a
-// THREE-seat game, and before F45 the engine wrongly skipped the starting
-// player's first draw at every seat count (CR 103.8a is two-player only).
-// Restoring that draw adds a third checkStateBased call on the one Submit
-// that crosses the draw step, because drawCard's tail runs it
-// (engine/rules/engine.go:637). Measured at the F45 merge gate, before and after:
-//
-//	chain    0    1    5   20   60
-//	before  2/2/2 across every chain and submit
-//	after   2/3/2 across every chain -- submit 1 gained the draw's call
-//
-// So the assertion is now written as the invariant itself: the firing count
-// must not vary with chain length. The chain=0 run supplies the expected
-// count per submit and every longer chain must match it exactly. This still
-// catches the mistake it was built to catch -- keying the re-arm on "some
-// other state-based action actually succeeded" gives 2/3/7/22/61 for these
-// five chain lengths (29fa00d's pre-round-3 amplification, measured by
-// building that variant), which diverges from chain=0 at the second entry.
-// A future change that legitimately adds or removes a call site now moves
-// the recorded baseline instead of forcing a hand-edited constant.
+// The assertion is the invariant itself, not a literal firing count: that
+// count follows the number of checkStateBased call sites on a Submit (one that
+// crosses the draw step gets a third, because drawCard's tail runs it). So the
+// chain=0 run supplies the expected count per submit and every longer chain
+// must match it exactly. Keying the re-arm on "some other state-based action
+// actually succeeded" gives 2/3/7/22/61 for these five chain lengths, which
+// diverges from chain=0 at the second entry.
 //
 // Ward (seat 0, alive) turns any cessation or exile of another card into a
 // 1-life gain, so seat 0's life total counts blocked sweep attempts exactly
@@ -762,13 +735,9 @@ Oracle:x
 // previous one has died) that forces the loop through N passes with nothing
 // to do with the sweep at all.
 //
-// This pins the behaviour, because a blocked attempt is retryable, and the
-// whole point of keying that re-arm on the alive-player count alone is that
-// an unrelated death chain must not pay for one. Keying it on the wider "some
-// other state-based action actually succeeded" instead gives 2/3/7/22/61 for
-// these five chain lengths -- 29fa00d's own pre-round-3 amplification,
-// measured by building that variant, not assumed -- so this is the assertion
-// that catches that mistake being made again.
+// A blocked attempt is retryable, and the whole point of keying that re-arm on
+// the alive-player count alone is that an unrelated death chain must not pay
+// for one.
 func TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain(t *testing.T) {
 	t.Parallel()
 	// Filled by the chain=0 run, which must come first: the per-submit

@@ -23,7 +23,7 @@ func TestSetAudit_eoe_FamishedWorldsire_DevourLandKernel(t *testing.T) {
 		placeOnBattlefield(t, e, id)
 	}
 	ws := searchMoveByName(t, e, "Famished Worldsire", state.ZHand)
-	kr9Probe(e, func() {
+	probeAfterPass(e, func() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: ws, From: state.ZHand, To: state.ZBattlefield})
 	})
 	d := e.Pending()

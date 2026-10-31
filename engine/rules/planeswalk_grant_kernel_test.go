@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from planeswalk_grant_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// The TARDIS planeswalk ask resolving its chain, driven through the resolution
+// kernel (the only ask path).
 
 import (
 	"strings"
@@ -33,7 +33,7 @@ func TestTardisPlaneswalkAskResolvesChainKernel(t *testing.T) {
 	for _, want := range []string{"yes", "no"} {
 		t.Run(want, func(t *testing.T) {
 			e, cfg := corpusEngineCfg(t, reg, []*cards.Card{tardis, timeLord}, nil)
-			tardisID := kr7DriveTardisToPlaneswalkElection(t, e, tardis)
+			tardisID := driveTardisToElection(t, e, tardis)
 			d := e.Pending()
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "planeswalk_optional" {
 				t.Fatalf("TARDIS chain did not reach the planeswalk election: %+v", d)
@@ -44,7 +44,7 @@ func TestTardisPlaneswalkAskResolvesChainKernel(t *testing.T) {
 				t.Fatalf("no %q option in %+v", want, d.Options)
 			}
 			submitChoices(t, e, idx)
-			kr7Settle(e)
+			settleKernel(e)
 			passUntilStackEmpty(t, e, 40)
 			// The chain completes: the seeded body and its Sub leave the stack.
 			if len(e.G.Stack) != 0 {
@@ -89,9 +89,9 @@ func TestTardisPlaneswalkAskResolvesChainKernel(t *testing.T) {
 	}
 }
 
-// kr7DriveTardisToPlaneswalkElection is driveTardisToPlaneswalkElection
+// driveTardisToElection is driveTardisToPlaneswalkElection
 // resolving the chain with no priority decision pending.
-func kr7DriveTardisToPlaneswalkElection(t *testing.T, e *Engine, tardis *cards.Card) state.ObjID {
+func driveTardisToElection(t *testing.T, e *Engine, tardis *cards.Card) state.ObjID {
 	t.Helper()
 	if len(tardis.Faces[0].Triggers) == 0 || tardis.Faces[0].Triggers[0].Effect == nil {
 		t.Fatal("TARDIS has no compiled attack trigger")

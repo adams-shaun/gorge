@@ -41,22 +41,22 @@ func TestSacrificeChangeNumIsInert(t *testing.T) {
 		t.Fatal("Glacial Chasm's ChangeNum$ 1 was refused; the Forge default is 1")
 	}
 
-	e, cfg := kr3Game(t, 901, []*cards.Card{chasm}, nil)
+	e, cfg := fixtureGame(t, 901, []*cards.Card{chasm}, nil)
 	// A second land is already on the battlefield, so the entering Chasm
 	// leaves a real one-of-two sacrifice choice: exactly one land is taken.
-	mountain := kr3Move(t, e, 0, "Mountain", state.ZBattlefield)
-	chasmID := kr3Move(t, e, 0, "Glacial Chasm", state.ZBattlefield)
+	mountain := moveNamedTo(t, e, 0, "Mountain", state.ZBattlefield)
+	chasmID := moveNamedTo(t, e, 0, "Glacial Chasm", state.ZBattlefield)
 	e.pending = nil
 	e.priorityRound()
-	d := kr3Next(t, e)
+	d := nextPending(t, e)
 	if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 {
 		t.Fatalf("Glacial Chasm ETB decision = %+v, want one-of-two land sacrifice", d)
 	}
-	offered := kr3OptionObjs(d)
+	offered := optionObjIDs(d)
 	if !slices.Contains(offered, mountain) || !slices.Contains(offered, chasmID) {
 		t.Fatalf("sacrifice options = %v, want both lands %d and %d", offered, mountain, chasmID)
 	}
-	if d := kr3Answer(t, e, kr3OptionObj(t, d, mountain)); d != nil {
+	if d := answerChoices(t, e, optionObjOrFail(t, d, mountain)); d != nil {
 		t.Fatalf("unexpected follow-up after the sacrifice = %+v", d)
 	}
 	if got := e.G.Obj(mountain).Zone; got != state.ZGraveyard {

@@ -1,8 +1,8 @@
 package rules
 
-// Kernel-era restorations of the W3 step 2 dual-run tests of
-// resolve_convert_flow_test.go: one kernel run per scenario (kr7Run), the
-// asks served from the tape, the named asks posed, the replay identical.
+// The card-flow asks (reveal, discard, dig, look, name): one kernel run per
+// scenario (runScenarioSetup), the asks served from the tape, the named asks posed, the
+// replay identical.
 
 import (
 	"testing"
@@ -11,11 +11,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kr7RunFlowCases runs every case over seeds base, base+1, ... (n seeds:
+// runFlowCases runs every case over seeds base, base+1, ... (n seeds:
 // the deterministic driver answers by decision sequence, so different seeds
 // reach both arms of a yes/no) and requires each case's kinds posed at least
 // once and its asks served from the tape.
-func kr7RunFlowCases(t *testing.T, base uint64, seeds int, cases []tapeFlowCase) {
+func runFlowCases(t *testing.T, base uint64, seeds int, cases []tapeFlowCase) {
 	t.Helper()
 	for ci, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -36,7 +36,7 @@ func kr7RunFlowCases(t *testing.T, base uint64, seeds int, cases []tapeFlowCase)
 			seen := map[string]int{}
 			for s := 0; s < seeds; s++ {
 				kinds := map[string]int{}
-				_, st := kr7Dual(t, seats, base+uint64(100*ci+s), func(t *testing.T, e *Engine) {
+				_, st := runKernelScenario(t, seats, base+uint64(100*ci+s), func(t *testing.T, e *Engine) {
 					if tc.setup != nil {
 						tc.setup(t, e)
 					}
@@ -60,7 +60,7 @@ func kr7RunFlowCases(t *testing.T, base uint64, seeds int, cases []tapeFlowCase)
 }
 
 func TestKernelAskFlowReveal(t *testing.T) {
-	kr7RunFlowCases(t, 31000, 3, []tapeFlowCase{
+	runFlowCases(t, 31000, 3, []tapeFlowCase{
 		{name: "Tape Bauble", src: "A:SP$ PeekAndReveal | Defined$ You | NoReveal$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"look_ack"}, served: 1},
 		{name: "Tape Each Bauble", src: "A:SP$ PeekAndReveal | Defined$ Player | NoReveal$ True",
@@ -79,7 +79,7 @@ func TestKernelAskFlowReveal(t *testing.T) {
 }
 
 func TestKernelAskFlowDiscard(t *testing.T) {
-	kr7RunFlowCases(t, 32000, 3, []tapeFlowCase{
+	runFlowCases(t, 32000, 3, []tapeFlowCase{
 		{name: "Tape Duress All", src: "A:SP$ Discard | Defined$ Player | Mode$ RevealYouChoose | NumCards$ 1 | RememberDiscarded$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"discard"}, served: 2},
 		{name: "Tape Thirst", src: "A:SP$ Discard | Defined$ You | Mode$ TgtChoose | NumCards$ 2 | UnlessType$ Land",
@@ -99,14 +99,14 @@ func TestKernelAskFlowDiscard(t *testing.T) {
 // re-entry handed target 0 a later target's election and re-ran its
 // discard; the tape path never could, so the two diverged.
 func TestKernelAskFlowDiscardUnlessEachTarget(t *testing.T) {
-	kr7RunFlowCases(t, 32500, 3, []tapeFlowCase{
+	runFlowCases(t, 32500, 3, []tapeFlowCase{
 		{name: "Tape Each Thirst", src: "A:SP$ Discard | Defined$ Player | Mode$ TgtChoose | NumCards$ 2 | UnlessType$ Land",
 			kinds: []string{"discard_unless", "discard"}, served: 2},
 	})
 }
 
 func TestKernelAskFlowDig(t *testing.T) {
-	kr7RunFlowCases(t, 33000, 3, []tapeFlowCase{
+	runFlowCases(t, 33000, 3, []tapeFlowCase{
 		{name: "Tape Impulse", src: "A:SP$ Dig | DigNum$ 4 | ChangeNum$ 1 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"dig", "dig_arrange"}, served: 2},
 		{name: "Tape Each Dig", src: "A:SP$ Dig | Defined$ Player | DigNum$ 3 | ChangeNum$ 1",
@@ -126,21 +126,21 @@ func TestKernelAskFlowDig(t *testing.T) {
 
 func TestKernelAskFlowSurveilLook(t *testing.T) {
 	onField := func(t *testing.T, e *Engine) { moveByName(t, e, 0, "Tape Enhanced", state.ZBattlefield) }
-	kr7RunFlowCases(t, 34000, 3, []tapeFlowCase{
+	runFlowCases(t, 34000, 3, []tapeFlowCase{
 		{name: "Tape Surveil Look", src: "A:SP$ Surveil | Amount$ 2 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"surveil_look_optional", "arrange"}, served: 2, extra: []string{tapeEnhancedSrc}, setup: onField},
 	})
 }
 
 func TestKernelAskFlowHideaway(t *testing.T) {
-	kr7RunFlowCases(t, 35000, 2, []tapeFlowCase{
+	runFlowCases(t, 35000, 2, []tapeFlowCase{
 		{name: "Tape Hideaway", src: "A:SP$ Hideaway | Amount$ 4 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"hideaway_pick"}, served: 1},
 	})
 }
 
 func TestKernelAskFlowNameCard(t *testing.T) {
-	kr7RunFlowCases(t, 36000, 2, []tapeFlowCase{
+	runFlowCases(t, 36000, 2, []tapeFlowCase{
 		{name: "Tape Name", src: "A:SP$ NameCard | Defined$ You | SubAbility$ DBDig\nSVar:DBDig:DB$ Dig | DigNum$ 3 | ChangeNum$ 1 | ChangeValid$ Card.NamedCard",
 			kinds: []string{"name"}, served: 1},
 	})
@@ -149,7 +149,7 @@ func TestKernelAskFlowNameCard(t *testing.T) {
 func TestKernelAskFlowDraw(t *testing.T) {
 	inYard := func(t *testing.T, e *Engine) { moveByName(t, e, 0, "Tape Dredger", state.ZGraveyard) }
 	dredger := []string{tapeDredgerSrc}
-	kr7RunFlowCases(t, 37000, 3, []tapeFlowCase{
+	runFlowCases(t, 37000, 3, []tapeFlowCase{
 		{name: "Tape Remora", src: "A:SP$ Draw | NumCards$ 2 | OptionalDecider$ You | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"draw_optional"}, served: 1},
 		{name: "Tape Truce", src: "A:SP$ Draw | NumCards$ 2 | Upto$ True | Defined$ Player | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
@@ -173,7 +173,7 @@ func TestKernelAskFlowDraw(t *testing.T) {
 func TestKernelAskFlowDredgeOptionalDraw(t *testing.T) {
 	inYard := func(t *testing.T, e *Engine) { moveByName(t, e, 0, "Tape Dredger", state.ZGraveyard) }
 	dredger := []string{tapeDredgerSrc}
-	kr7RunFlowCases(t, 37500, 3, []tapeFlowCase{
+	runFlowCases(t, 37500, 3, []tapeFlowCase{
 		{name: "Tape Dredge Remora", src: "A:SP$ Draw | NumCards$ 2 | OptionalDecider$ You",
 			kinds: []string{"draw_optional", "dredge"}, served: 2, extra: dredger, setup: inYard,
 			// The case needs the election answered yes (a no draws nothing
@@ -188,7 +188,7 @@ func TestKernelAskFlowDigUntil(t *testing.T) {
 		moveByName(t, e, 0, "Tape Bear A", state.ZBattlefield)
 		moveByName(t, e, 0, "Tape Bear B", state.ZBattlefield)
 	}
-	kr7RunFlowCases(t, 38000, 3, []tapeFlowCase{
+	runFlowCases(t, 38000, 3, []tapeFlowCase{
 		{name: "Tape Songbirds", src: "A:SP$ DigUntil | Valid$ Card.Land | FoundDestination$ Battlefield | OptionalFoundMove$ True | RevealedDestination$ Graveyard | RememberFound$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"diguntil_move"}, served: 1},
 		{name: "Tape Each Songbirds", src: "A:SP$ DigUntil | Defined$ Player | Valid$ Card.Land | FoundDestination$ Hand | OptionalFoundMove$ True | RevealedDestination$ Library | RevealedLibraryPosition$ -1",
@@ -210,11 +210,11 @@ func TestKernelAskFlowExcessSVarAcrossAsk(t *testing.T) {
 	onField := func(t *testing.T, e *Engine) { moveByName(t, e, 0, "Tape Bear A", state.ZBattlefield) }
 	src := "A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ 5 | ExcessSVar$ X | SubAbility$ DBDig\n" +
 		"SVar:DBDig:DB$ Dig | DigNum$ X | ChangeNum$ 1 | Optional$ True | DestinationZone$ Exile | RestRandomOrder$ True"
-	kr7RunFlowCases(t, 39000, 3, []tapeFlowCase{
+	runFlowCases(t, 39000, 3, []tapeFlowCase{
 		{name: "Tape Warcrafting", src: src, kinds: []string{"dig"}, served: 1,
 			extra: []string{tapeBearASrc}, setup: onField},
 	})
-	e, _ := kr7Fixture(t, 2, 39000, "Name:Tape Warcrafting\nManaCost:U\nTypes:Sorcery\n"+src+"\nOracle:x\n", tapeBearASrc)
+	e, _ := tapeFixtureEngine(t, 2, 39000, "Name:Tape Warcrafting\nManaCost:U\nTypes:Sorcery\n"+src+"\nOracle:x\n", tapeBearASrc)
 	onField(t, e)
 	tapeCastAndResolveKinds(t, e, "Tape Warcrafting", "U", map[string]int{})
 	exiled := 0

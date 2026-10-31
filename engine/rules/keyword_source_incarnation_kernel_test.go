@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the keyword_source_incarnation_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// A granted ward surviving its source's removal, driven through the resolution
+// kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -58,7 +57,7 @@ func TestGrantedWardSurvivesSourceRemoval(t *testing.T) {
 		t.Fatalf("precondition: incarnation did not change (%d -> %d)", before, after)
 	}
 
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KModes || d.Player != 1 {
 		t.Fatalf("granted ward fizzled on source removal: no pay ask (pending %+v, stack %v)", d, e.G.Stack)

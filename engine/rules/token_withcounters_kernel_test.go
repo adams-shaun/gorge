@@ -35,7 +35,7 @@ func TestLittjaraMirrorlakeCopyEntersWithACounterKernel(t *testing.T) {
 	if sa.Params["WithCountersType"] != "P1P1" {
 		t.Fatalf("compiled WithCountersType$ = %q, want P1P1", sa.Params["WithCountersType"])
 	}
-	kr9Probe(e, func() {
+	probeAfterPass(e, func() {
 		effects.Resolve(e, &effects.Ctx{Source: lake, Controller: 0,
 			Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, sa)
 	})

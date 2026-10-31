@@ -764,7 +764,7 @@ func (e *Engine) worldPermanents() []state.ObjID {
 // entered at the same instant, so neither has held it longer) puts ALL of them
 // into their owners' graveyards.
 //
-// APPROXIMATION (not in AGENTS.md): the engine tracks when a permanent ENTERED,
+// APPROXIMATION: the engine tracks when a permanent ENTERED,
 // not when it gained the world supertype. For the printed World permanents the
 // two coincide (they have the supertype as they enter); a layer-4 effect that
 // GRANTS World to an older permanent makes "shortest amount of time" really
@@ -1290,7 +1290,7 @@ func (e *Engine) gameEndsNow() bool {
 
 // checkGameOver ends the game once at most one seat remains (CR 104.2a's "the
 // last player left in the game wins", CR 104.4a's draw when nobody is). A
-// concession is a way to be Lost (M2d-3 emits the same PlayerLost the life-loss
+// concession is a way to be Lost (it emits the same PlayerLost the life-loss
 // path does), so a conceded game ends here exactly like one whose losers lost
 // to life or the library. This must not default the winner to seat 0 whenever
 // nobody survived -- PlayerID's zero value is a real seat, so an unconditional
@@ -1386,15 +1386,12 @@ func (e *Engine) dropDepartedFlow(d *decision.Decision) {
 // can never come. With two seats checkGameOver above has already cleared
 // e.pending, so this is the three-or-more case.
 //
-// This must not fire only for the two trigger kinds it once covered, which
-// are not the only decisions asked from inside handle -- Submit runs handle,
-// then this, then Advance, so a decision asked from inside handle is the only
-// one state-based actions run underneath. That premise was FALSE, and the
-// review traced the counterexample: handlePriority (legal.go) -> castSpell
-// (stack.go) -> askTarget asks a KTarget decision from inside handle too. It
-// is now deliberately keyed on nothing but "the player cannot answer",
-// because enumerating which decisions can reach this state is precisely the
-// reasoning that was wrong the first time.
+// This is deliberately keyed on nothing but "the player cannot answer", not on
+// a list of decision kinds. Submit runs handle, then this, then Advance, so a
+// decision asked from inside handle is the one state-based actions run
+// underneath, and the trigger kinds are not the only such decisions:
+// handlePriority (legal.go) -> castSpell (stack.go) -> askTarget asks a KTarget
+// decision from inside handle too.
 //
 // The continuation is resumeTriggerDrain for every kind, and it is the right
 // one for all of them: state-based actions to a fixed point, then any queued

@@ -20,9 +20,8 @@ import (
 // chooseNumberMaxOffer is the inclusive upper bound of the deterministic
 // number list, matching the historical as-enters number ask (0..12). It is a
 // build default, NOT the card's own range: Max$ (a dynamic or literal bound
-// such as a mana pool or energy total) is out of scope and
-// remains unread here, so every ChooseNumber currently offers this fixed
-// list. The bound is deliberately finite so the ask is answerable by a list
+// such as a mana pool or energy total) is read by chooseNumberAsk below.
+// The bound is deliberately finite so the ask is answerable by a list
 // pick; an unbounded card (Void's bare "Choose a number") stays a real ask
 // over the values a game can plausibly need rather than a silent 0.
 const chooseNumberMaxOffer = 12
@@ -46,8 +45,7 @@ const chooseNumberBoundedCeiling = 1000
 
 // chooseNumberAsk derives the option list and prompt the mid-resolution
 // ChooseNumber ask (engine/effects/choose.go effChooseNumber) offers, reading the
-// card's own bound parameters here so the ask has ONE home for them (task
-// bounded1):
+// card's own bound parameters here so the ask has ONE home for them:
 //
 //   - Max$ names the inclusive upper bound of the offered list, through the
 //     ordinary parameter grammar (engine/effects/count.go NumResolved): a literal

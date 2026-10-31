@@ -1,6 +1,6 @@
 package rules
 
-// Restores engine/effects/look_test.go on the kernel: every looker-scoped effect
+// Every looker-scoped effect
 // records its look as exactly one Secret Note scoped to the entitled looker
 // (a library-top look carrying its Text clause), the Dig look carries the
 // whole window, and Slayer's Bounty's RevealType$ Creature look shows only
@@ -18,13 +18,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kr2AnswerAll answers every remaining non-priority decision: targets with
+// answerAllTargets answers every remaining non-priority decision: targets with
 // seat tgt, anything else with its first Min options (at least one).
-func kr2AnswerAll(t *testing.T, e *Engine, d *decision.Decision, tgt state.PlayerID) {
+func answerAllTargets(t *testing.T, e *Engine, d *decision.Decision, tgt state.PlayerID) {
 	t.Helper()
 	for i := 0; d != nil && i < 20; i++ {
 		if d.Kind == decision.KTarget {
-			d = kr2Answer(t, e, d, kr2PlayerIdx(t, d, tgt))
+			d = answerDecision(t, e, d, playerOptionIndex(t, d, tgt))
 			continue
 		}
 		n := d.Min
@@ -38,7 +38,7 @@ func kr2AnswerAll(t *testing.T, e *Engine, d *decision.Decision, tgt state.Playe
 		for j := 0; j < n && j < len(d.Options); j++ {
 			picks = append(picks, d.Options[j].Index)
 		}
-		d = kr2Answer(t, e, d, picks...)
+		d = answerDecision(t, e, d, picks...)
 	}
 	if d != nil {
 		t.Fatalf("decisions never settled: %+v", d)
@@ -60,23 +60,23 @@ func TestEveryLookerScopedEffectRecordsItsLook(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			e := kr2Engine(t, 2)
+			e := kernelEngine(t, 2)
 			var hand []state.ObjID
 			for _, n := range []string{"Bear", "Isle", "Bolt"} {
-				hand = append(hand, kr2Put(t, e, 1, kr2Src(t, "Name:"+n+"\nTypes:Sorcery\nOracle:x\n"), state.ZHand, false))
+				hand = append(hand, putCardIn(t, e, 1, cardOfSrc(t, "Name:"+n+"\nTypes:Sorcery\nOracle:x\n"), state.ZHand, false))
 			}
 			window := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
-			spell := kr2Put(t, e, 0, kr2Sorcery(t, "Looker", tc.line), state.ZHand, false)
+			spell := putCardIn(t, e, 0, sorceryCard(t, "Looker", tc.line), state.ZHand, false)
 			from := len(e.L.Events)
-			d := kr2Cast(t, e, 0, spell)
+			d := castWithMana(t, e, 0, spell)
 			if d == nil {
 				t.Fatal("no ask posed alongside the look")
 			}
-			kr2AnswerAll(t, e, d, 1)
+			answerAllTargets(t, e, d, 1)
 			// A library look over an arrange ask carries its cards in the
 			// decision, so its Note may carry no ids: count every Secret Note.
 			var notes []events.Event
-			for _, ev := range kr2Events(e, from, events.Note) {
+			for _, ev := range eventsOfKindFrom(e, from, events.Note) {
 				if ev.Secret {
 					notes = append(notes, ev)
 				}
@@ -103,24 +103,24 @@ func TestEveryLookerScopedEffectRecordsItsLook(t *testing.T) {
 
 func TestSlayersBountyLookShowsOnlyCreatureCards(t *testing.T) {
 	t.Parallel()
-	e := kr2Engine(t, 2)
-	bear := kr2Put(t, e, 1, kr2Src(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), state.ZHand, false)
-	kr2Put(t, e, 1, kr2Src(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n"), state.ZHand, false)
-	kr2Put(t, e, 1, kr2Src(t, "Name:Bolt\nManaCost:R\nTypes:Instant\nOracle:x\n"), state.ZHand, false)
-	bounty := kr2Put(t, e, 0, kr2Corpus(t, "Slayer's Bounty"), state.ZHand, false)
+	e := kernelEngine(t, 2)
+	bear := putCardIn(t, e, 1, cardOfSrc(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), state.ZHand, false)
+	putCardIn(t, e, 1, cardOfSrc(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n"), state.ZHand, false)
+	putCardIn(t, e, 1, cardOfSrc(t, "Name:Bolt\nManaCost:R\nTypes:Instant\nOracle:x\n"), state.ZHand, false)
+	bounty := putCardIn(t, e, 0, corpusFixtureCard(t, "Slayer's Bounty"), state.ZHand, false)
 	from := len(e.L.Events)
-	d := kr2Cast(t, e, 0, bounty)
+	d := castWithMana(t, e, 0, bounty)
 	for i := 0; d != nil && d.Kind == decision.KTarget && i < 3; i++ {
-		d = kr2Answer(t, e, d, kr2PlayerIdx(t, d, 1))
+		d = answerDecision(t, e, d, playerOptionIndex(t, d, 1))
 	}
-	d = kr2Want(t, d, "look_ack")
+	d = requireResumeAsk(t, d, "look_ack")
 	if d.Player != 0 || !strings.Contains(d.Prompt, "Bear") {
 		t.Fatalf("ack = %+v, want a look_ack for seat 0 naming the creature card", d)
 	}
-	if d = kr2Answer(t, e, d, 0); d != nil {
+	if d = answerDecision(t, e, d, 0); d != nil {
 		t.Fatalf("unexpected ask after the ack: %+v", d)
 	}
-	notes := kr2SecretLooks(e, from)
+	notes := secretLooksFrom(e, from)
 	if len(notes) != 1 {
 		t.Fatalf("got %d Secret look Notes (%+v), want exactly one", len(notes), notes)
 	}

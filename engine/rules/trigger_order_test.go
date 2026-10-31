@@ -903,8 +903,8 @@ func TestADecisionAgainstADepartedPlayerIsReleased(t *testing.T) {
 	}
 }
 
-// TestAnsweredOptionalTriggerIsNeverAskedTwice . The
-// front-of-queue guard in handleTriggerOptional used to fail into doing
+// TestAnsweredOptionalTriggerIsNeverAskedTwice: the front-of-queue guard in
+// handleTriggerOptional used to fail into doing
 // nothing at all, so the drain immediately asked the SAME trigger's optional
 // question again: the player's answer was consumed (its Seq is spent) and
 // silently discarded. This forces that guard's mismatch by hand -- nothing on
@@ -960,8 +960,8 @@ func TestAnsweredOptionalTriggerIsNeverAskedTwice(t *testing.T) {
 	}
 }
 
-// TestDiffGamesSeesTheGameResult . diffGames is the
-// harness every replay proof in this package leans on, and replay inherits
+// TestDiffGamesSeesTheGameResult: diffGames is the harness every replay proof
+// in this package leans on, and replay inherits
 // it. It compared Players, Objs, Stack, the zones and most turn scalars, but
 // not Winner, Draw or NextID -- so a game that ended in a draw compared equal
 // to one seat 0 won.

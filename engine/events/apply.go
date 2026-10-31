@@ -249,9 +249,8 @@ func applyKind(g *state.Game, e *Event) {
 	case KeywordAbilityPush:
 		foldKeywordAbilityPush(g, e)
 	case Discover, Seek, Surveil, Scry, Proliferate, ElementalBend:
-		// The discover (CR 701.57), seek (task trigdisc1), surveil (CR
-		// 701.42, task trig-surveil), scry (CR 701.18, task scrybottom) and
-		// proliferate (CR 701.27, task trig-proliferate) records are pure
+		// The discover (CR 701.57), seek, surveil (CR 701.42), scry (CR
+		// 701.18) and proliferate (CR 701.27) records are pure
 		// markers, exactly like Explore/Investigate: the action's own state
 		// changes (the exiles/reveals, the sought card's move, the KArrange
 		// answer's LibraryOrder, the counter batch per chosen recipient) are
@@ -265,7 +264,7 @@ func applyKind(g *state.Game, e *Event) {
 		// what trig:ElementalBend matches; its Text carries the verb
 		// (water/earth/fire/air) the per-turn all-four ledger folds.
 	case Exploit:
-		// The exploit record (CR 702.58a, task exploit1) is a pure marker,
+		// The exploit record (CR 702.58a) is a pure marker,
 		// exactly like Explore/Investigate: the sacrifice's own state change
 		// (the battlefield-to-graveyard MoveZone) is its own event that
 		// preceded this one, and the record is what trig:Exploited matches.

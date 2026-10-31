@@ -108,7 +108,7 @@ func mosswortEngine(t *testing.T, reg *cards.Registry) (*Engine, Config, state.O
 	if o := e.G.Obj(bridgeID); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("Mosswort Bridge entry = %+v, want battlefield before Hideaway resolves", o)
 	}
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "hideaway" {
 		t.Fatalf("after the Bridge entered: %+v, want the Hideaway pick ask", d)

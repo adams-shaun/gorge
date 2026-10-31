@@ -40,7 +40,7 @@ func TestErthaJoAbilityCastTargetsValidEndToEndKernel(t *testing.T) {
 	if n := triggersFromSource(e, erthaID); n != 1 {
 		t.Fatalf("Ertha Jo queued %d triggers for an ability targeting her, want 1", n)
 	}
-	kr9Drain(t, e, 60, nil)
+	drainDecisions(t, e, 60, nil)
 	if got := e.Power(erthaID); got != 4 {
 		t.Fatalf("Ertha Jo power %d, want 4 (printed 2/4 + the activation's and the copy's +1/+0)", got)
 	}

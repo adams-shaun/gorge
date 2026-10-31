@@ -4,11 +4,10 @@ package rules
 // must be rechecked against the cascade source's. CR 107.3b: when a player
 // casts a spell with {X} in its mana cost without paying that cost (and X isn't
 // defined by the spell's text), X is considered to be 0. The "announce X=1 on
-// Villainous Wealth" scenario is therefore not a legal cast scenario at all,
-// and the cascadeXAsk the round-1 commit added was itself the rules violation:
-// it offered illegal X>0 choices in the election's place.
+// Villainous Wealth" scenario is therefore not a legal cast scenario at all:
+// an X ask here would offer illegal X>0 choices in the election's place.
 //
-// The engine's behavior without that ask is already right, and CR 702.85a's
+// Without such an ask the engine's behavior is right, and CR 702.85a's
 // strict inequality holds by construction: the exile-until scan compared the
 // candidate at its X=0 printed value while it sat in the library (CR
 // 202.3b), the free cast poses no X announcement and casts at X=0, so the
@@ -69,9 +68,7 @@ func cascadeIntoWealth(t *testing.T, seed uint64) (*Engine, Config, state.ObjID,
 // accepting the election poses CR 601.2c's target ask and NO value-of-X
 // choice anywhere in the cast -- the candidate is cast at X=0, its resulting
 // mana value is the X=0 value the scan already qualified, and the spell
-// resolves. This is the CR-legal regression for the round-1 finding: the
-// cascadeXAsk that commit added posed a KChoose offering X values right
-// here, and this test fails against it.
+// resolves. An ask posing a KChoose over X values right here fails this test.
 func TestCascadeFreeCastAnnouncesNoX(t *testing.T) {
 	t.Parallel()
 	e, cfg, elfID, wealthID, idx := cascadeIntoWealth(t, 9231)

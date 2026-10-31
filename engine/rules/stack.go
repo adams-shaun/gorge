@@ -849,9 +849,7 @@ func spellFizzleZone(o *state.Object) state.Zone {
 // off the stack itself and the guard never engages. The guard is for the
 // replacements whose ReplaceWith$ truly leaves the card where it was.
 //
-// Originally for the permanent-ETB exit
-// alone; a review measured the identical
-// hazard, independently reachable, on the other four exits -- a two-card
+// The hazard is reachable on all five exits -- a two-card
 // deck (an instant or an ability-granting permanent, plus a Rest-in-Peace-
 // shaped enchantment already on the battlefield) reliably hung a real match
 // at 100 000+ intents, never terminating, on turn 1. 24 corpus cards this

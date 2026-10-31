@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from paramcensus_gates_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Desecration Demon's multi-target optional trigger not wedging the game, driven
+// through the resolution kernel (the only ask path).
 
 import (
 	"testing"

@@ -2065,13 +2065,7 @@ func (e *Engine) liveBlockers(a *state.Object) []state.ObjID {
 // anyFirstStrike reports whether any attacker or its live blockers has First
 // Strike or Double Strike, which is what decides whether dealCombatDamage
 // runs a separate first-strike step at all (CR 510.5): with none, only the
-// single regular damage step happens. Double Strike is not among the eight
-// keywords this task registers as implemented (see the init below) -- a card
-// that actually has it is not routed into real decks by the coverage gate --
-// but the check costs nothing to leave in,
-// so a Double-Strike creature that reaches combat some other way (a test, a
-// future task) still behaves correctly rather than merely "not being asked
-// about".
+// single regular damage step happens.
 func (e *Engine) anyFirstStrike() bool {
 	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
 		a := e.G.Obj(id)
@@ -2167,7 +2161,7 @@ func (e *Engine) collectFirstStrikers(dst []state.ObjID) []state.ObjID {
 // step, for a Player-targeted assignment whose damage actually landed (not
 // prevented or replaced), in a Commander-format game -- the caller in
 // damageStep arms all three, and the Apply case derives the commander's
-// match-wide dense index (the same slot m30's genesis sizes and New's
+// match-wide dense index (the same slot genesis sizes and New's
 // Commanders bookkeeping names) from g.Players[].Commanders, which is what
 // keeps a commander keyed to the same slot for the whole match.
 //
@@ -2178,9 +2172,8 @@ func (e *Engine) collectFirstStrikers(dst []state.ObjID) []state.ObjID {
 // commander tally from the Damage events it already has. Recording the tally
 // in a CmdDamage event -- appended after every earlier Kind, so no ordinal,
 // hash chain or golden replay is affected -- makes that same log-only replay
-// fold the tally back exactly, which is the deciding question
-// (and answers "carried in an event of its own"). It also keeps every state
-// mutation on the events.Apply path, the build's standing invariant.
+// fold the tally back exactly. It also keeps every state mutation on the
+// events.Apply path, the build's standing invariant.
 func (e *Engine) tallyCmdDamage(p state.PlayerID, from state.ObjID, amount int32) {
 	// CR 903.3b-c: a melded or merged permanent with a commander among its
 	// cards is that commander; the event names the commander card's object.
@@ -2647,10 +2640,10 @@ func (e *Engine) runCombatAssignments() {
 
 // maxHandSize is CR 514.1's DEFAULT maximum: at the beginning of a player's
 // cleanup step, if their hand contains more cards than their effective
-// maximum, they discard down to it. No corpus effect
-// modified it then; Reliquary Tower and Thought Vessel (SetMaxHandSize$
-// Unlimited) do now, so cleanupStep reads the effective maximum through
-// maxHandSizeFor below and this constant is only that read's default.
+// maximum, they discard down to it. Reliquary Tower and Thought Vessel
+// (SetMaxHandSize$ Unlimited) modify it, so cleanupStep reads the effective
+// maximum through maxHandSizeFor below and this constant is only that read's
+// default.
 const maxHandSize = 7
 
 // unlimitedHandSize is the stand-in value SetMaxHandSize$ Unlimited maps to:
@@ -2751,8 +2744,8 @@ func setMaxHandSizeSVar(h effects.Host, sv staticView, raw string) (int, bool) {
 	return int(n), true
 }
 
-// cleanupStep is the CR 514 cleanup step's turn-based actions,
-// CR 514.1 on top of the CR 514.2 body. Ordering:
+// cleanupStep is the CR 514 cleanup step's turn-based actions: CR 514.1 on top
+// of the CR 514.2 body. Ordering:
 // CR 514.1 (discard down to maxHandSize) runs first, then the 514.2 body --
 // the two are simultaneous under the rules (nothing about the discard
 // affects what the 514.2 body clears and vice versa), so the engine picks
@@ -2800,10 +2793,7 @@ func (e *Engine) cleanupStep() {
 // Adamantoise; Engine.noCleanupDamageKeeps), clears this turn's Deathtouched markers (a deathtouch mark lasts
 // only as long as the damage it accompanied, CR 702.2c), and drops every
 // "until end of turn" continuous effect the layer system is holding
-// (Engine.EndOfTurnCleanup, layers.go, but
-// nothing ever called it, so a resolved pump effect such as Giant Growth used
-// to survive forever instead of expiring at the end of the turn it was cast
-// in). Called either directly from cleanupStep when no discard is owed, or
+// (Engine.EndOfTurnCleanup, layers.go). Called either directly from cleanupStep when no discard is owed, or
 // from discardCleanup after the discard answer is recorded -- never both, so
 // the 514.2 actions are never doubled.
 func (e *Engine) cleanupBody() {
@@ -2930,22 +2920,12 @@ type exertAsk struct {
 // then the CR 514.2 body runs (cleanupBody), then the turn hands to the next player's
 // turn (advanceStep). The move events ride the ordinary emit path, so
 // state-based actions and triggered abilities matched by the discard are
-// queued exactly as for any other zone change and handled by the same
-// machinery the next priority round already drives (see the 514.3 follow-up
-// note in the task report: a cleanup-created trigger is placed at the next
-// player's first priority rather than in a repeated cleanup step, because
-// implementing the CR 514.3 repeated-step control flow -- the no-priority
-// turn loop re-entering itself to grant priority and then redoing cleanup --
-// was judged not a small, clearly-correct addition at this point of
-// priorityRound; an honest recorded gap beats a speculative turn-loop
-// change).
+// queued exactly as for any other zone change.
 //
-// mayflashsac2 implemented exactly that tail (finishCleanupStep, turn.go):
-// the discard and the 514.2 body are followed by the CR 514.3 tail the
-// no-discard path shares -- a trigger the discard or the body queued is
-// placed during the cleanup step and the players get priority while it
-// resolves, instead of the old gap where a cleanup-created trigger waited
-// until the next turn's first priority. advanceStep is reached only after
+// The discard and the 514.2 body are followed by the CR 514.3 tail the
+// no-discard path shares (finishCleanupStep, turn.go): a trigger the discard
+// or the body queued is placed during the cleanup step and the players get
+// priority while it resolves. advanceStep is reached only after
 // EVERY part of the cleanup has run and nothing is waiting, so the step is
 // never advanced mid-cleanup.
 func (e *Engine) discardCleanup(chosen []decision.Option) {

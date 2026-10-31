@@ -8,11 +8,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The new (dp1) policy rules: the four decisions that used to be answered
-// without reading the game state -- a trigger_order shuffle, a
-// trigger_optional coin flip, a fixed commander_zone answer, and a
-// first-Max discard/sacrifice/exile -- now read the board's card facts.
-// Each test pins the new rule against the board facts it reads.
+// The policy rules for four decisions that read the board's card facts:
+// trigger_order, trigger_optional, commander_zone and a
+// discard/sacrifice/exile pick. Each test pins a rule against those facts.
 
 // TestTriggerOrderRanksBySourceWorth is the trigger_order rule: the order is
 // a deterministic permutation of the offered indices ordered by the source

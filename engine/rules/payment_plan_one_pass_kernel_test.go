@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from payment_plan_one_pass_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// The one-pass payment plan matching its reference over auto-pay games, driven
+// through the resolution kernel (the only ask path).
 
 import (
 	"testing"

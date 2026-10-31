@@ -51,7 +51,7 @@ func TestTokenOwnerTargetedControllerSurvivesAMidResolutionAsk(t *testing.T) {
 		t.Fatalf("precondition: chain not Destroy -> ChoosePlayer -> Token: %+v", head.Sub)
 	}
 
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("expected the ChoosePlayer ask mid-resolution, got %+v", d)

@@ -1,9 +1,7 @@
 package rules
 
-// Kernel-era restorations of resolve_legacy_chosen_test.go: the three
-// cardfuzz shapes whose chosen-card binding, Choice channel and unless payer
-// cursor the legacy re-entry got wrong. Each now runs on the kernel alone and
-// keeps the game outcome the originals pinned.
+// Three cardfuzz shapes: the chosen-card binding, the Choice channel and the
+// unless payer cursor. Each runs on the kernel and pins the game outcome.
 
 import (
 	"testing"
@@ -16,7 +14,7 @@ import (
 // gains (1).
 func TestKernelChosenBindingAcrossAsk(t *testing.T) {
 	var life int32
-	e, _ := kr8Kernel(t, 2, 33417, func(t *testing.T, e *Engine) {
+	e, _ := runScenarioKernel(t, 2, 33417, func(t *testing.T, e *Engine) {
 		life = e.G.Players[0].Life
 		legacyChosenScenario(t, e)
 	}, legacyChosenAcrossAskSrc)
@@ -29,7 +27,7 @@ func TestKernelChosenBindingAcrossAsk(t *testing.T) {
 // Defined$ ChosenCard fetches exactly the last choice's one card.
 func TestKernelChooseCardRecordLeavesNoStaleAnswer(t *testing.T) {
 	var hand int
-	e, _ := kr8Kernel(t, 2, 33418, func(t *testing.T, e *Engine) {
+	e, _ := runScenarioKernel(t, 2, 33418, func(t *testing.T, e *Engine) {
 		hand = len(e.G.Zone(state.ZHand, 0))
 		tapeCastAndResolve(t, e, "Tape Twice Chosen", "B")
 	}, legacyStaleChoiceSrc)
@@ -42,7 +40,7 @@ func TestKernelChooseCardRecordLeavesNoStaleAnswer(t *testing.T) {
 // chooses a land (its own chooser walk starting at zero) and fetches it.
 func TestKernelUnlessElectionCursorDoesNotReachTheBody(t *testing.T) {
 	var hand int
-	e, _ := kr8Kernel(t, 2, 33419, func(t *testing.T, e *Engine) {
+	e, _ := runScenarioKernel(t, 2, 33419, func(t *testing.T, e *Engine) {
 		hand = len(e.G.Zone(state.ZHand, 0))
 		tapeUnlessScenario("Tape Rhystic Pick", "B", 0, tapeUnlessPick(false))(t, e)
 	}, legacyUnlessCursorSrc)

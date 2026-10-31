@@ -38,11 +38,11 @@ func TestChangeZoneOriginAlternativeTowerWinderGraveyardKernel(t *testing.T) {
 	if len(d.Options) != 1 || d.Options[0].Obj != tower {
 		t.Fatalf("search options = %+v, want exactly the graveyard Command Tower %d", d.Options, tower)
 	}
-	if kr4Offers(d, towerHand) {
+	if offersObj(d, towerHand) {
 		t.Fatalf("hand Command Tower offered although hand is not a named origin: %+v", d.Options)
 	}
 	submitChoices(t, e, d.Options[0].Index)
-	kr4Settle(e)
+	settlePassing(e)
 	passUntilStackEmpty(t, e, 30)
 	if o := e.G.Obj(tower); o == nil || o.Zone != state.ZHand || o.Controller != 0 {
 		t.Fatalf("Command Tower = %+v, want in the searcher's hand", o)

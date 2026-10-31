@@ -24,8 +24,8 @@ import { stackYieldKey } from './yields';
  * exactly the window the player is about to need. actionable() consults
  * castableAfterTap so both auto-pass paths stop there.
  *
- * The SECOND exception is the response rules' own blind spot (fb-20260914T114244Z,
- * the same float-then-cast model seen from the other side): respondable()'s
+ * The SECOND exception is the response rules' own blind spot (the same
+ * float-then-cast model seen from the other side): respondable()'s
  * option-kind test reads the window as dead exactly when the player is
  * holding a counterspell and the untapped lands to pay for it, because the
  * cast option does not exist until the mana floats. respondableFor() is the
@@ -116,7 +116,7 @@ export function turnSide(view: View, seat: number): TurnSide {
  *    smart step rule — tapping mana with nothing to spend it on is not a play
  *    (it also armed pass-after-acting, machine-passing the very
  *    window the floated mana unlocked). The one exception is the COSTLY
- *    activation (fb-20260917T192520Z): since the engine marks an activate
+ *    activation: since the engine marks an activate
  *    option whose mana ability costs more than a bare tap with Option.cost,
  *    that option IS a play — it is the sac-for-mana / pay-life activation a
  *    ritual-combo deck needs the window for, and with a dead hand it is the
@@ -199,11 +199,11 @@ function announcedCasts(decision: Decision, autoPayMana: boolean): string[] {
 }
 
 /**
- * actionables is actionable()'s descriptive twin (fb-20260916T225211Z): the SAME
+ * actionables is actionable()'s descriptive twin: the SAME
  * scan, returned as the human labels of what made the window actionable — an
  * action-kind option's own wire label ("Cast Deadly Rollick (alternative cost)"),
- * the costly mana activation's label ("Activate Lion's Eye Diamond for mana",
- * fb-20260917T192520Z), else — only while the seat's auto-pay preference is on —
+ * the costly mana activation's label ("Activate Lion's Eye Diamond for mana"),
+ * else — only while the seat's auto-pay preference is on —
  * plannedCasts()'s labels for the casts an offered plan pays in one click ("Cast
  * Opt (with suggested mana)"), then — also only with the preference on —
  * announcedCasts()'s labels for the plan-less ManaBrew casts the panel offers as
@@ -319,7 +319,7 @@ export function respondableFor(view: View, seat: number, decision: Decision): bo
  * that becomes castable after tapping IS actionable now (lib/castable: the
  * float-then-cast payment model hides the cast behind the tap), and so is a
  * window whose only action is a COSTLY mana activation carrying the engine's
- * cost marker (fb-20260917T192520Z — Lion's Eye Diamond with a dead hand). So this
+ * cost marker (Lion's Eye Diamond with a dead hand). So this
  * covers the only-pass-and-concede shape and the mana-only shape whose hand
  * is dead mana-wise, and deliberately does NOT cover the post-land window
  * holding a spell the player is about to want -- that window stops, in
@@ -411,8 +411,7 @@ export function decide(args: {
    * own-turn main-phase floor below is bypassed for them. Persistent Auto
    * and every other caller keep the default (false), and ffwd keeps it too:
    * a fast-forward honours the floor — it is one press, the player is
-   * present, and the floor only fires where there is a real play
-   * (fb-20260917T231311Z-e392fcc0).
+   * present, and the floor only fires where there is a real play.
    */
   skipOwnTurnFloor?: boolean;
   /**
@@ -506,7 +505,7 @@ export function decide(args: {
     return { act: 'stop', reason: 'stop-set' };
   }
 
-  // 3b. The own-turn main-phase floor (fb-20260917T231311Z-e392fcc0): with
+  // 3b. The own-turn main-phase floor: with
   // Auto on and the step rule 'off', a plain pass never consulted the
   // potential-mana hand scan at all — on the player's own main phase that
   // means the machine plays their turn even while they hold a castable

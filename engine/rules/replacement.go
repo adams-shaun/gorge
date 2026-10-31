@@ -883,8 +883,8 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		// ValidPlayer$.
 		return cards.ReplAddCounter
 	case events.TurnFaceUp:
-		// The turn-up boundary itself (CR 614.1a with CR 708.6/702.36e,
-		// task): Hooded Hydra's five +1/+1 counters, Karlov Watchdog's
+		// The turn-up boundary itself (CR 614.1a with CR 708.6/702.36e):
+		// Hooded Hydra's five +1/+1 counters, Karlov Watchdog's
 		// CantHappen prohibition, Gift of Doom's attach. These match the
 		// marker events.TurnFaceUp that the morph-family special action and
 		// the SetState effect's turn-up arm emit.

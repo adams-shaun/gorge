@@ -124,7 +124,7 @@ func TestRipDifferentPowersRejectsEqualPowers(t *testing.T) {
 	}
 
 	sa := cards.ResolveSVar(e.G.Obj(ripID).Face().SVars, "TrigDig")
-	d := kr0Run(t, e, sa, func() *effects.Ctx {
+	d := runProbeSA(t, e, sa, func() *effects.Ctx {
 		return &effects.Ctx{Source: ripID, Controller: 0, SVars: selectionSVars(e.G.Obj(ripID).Face())}
 	}, nil)
 	if d == nil || d.ResumeKind != "dig" {
@@ -145,7 +145,7 @@ func TestRipDifferentPowersRejectsEqualPowers(t *testing.T) {
 	if e.Pending() == nil {
 		t.Fatal("the rejected intent consumed the pending decision")
 	}
-	kr0Answer(t, e, p3[0], p2[0])
+	answerAsk(t, e, p3[0], p2[0])
 
 	hand := e.G.Zone(state.ZHand, 0)
 	if !zoneContains(hand, chosen[0]) || !zoneContains(hand, chosen[1]) {
@@ -172,7 +172,7 @@ func TestKlawRevealNumberTargetChoosesReveal(t *testing.T) {
 	})
 	klawID := ids.Permanents[0]
 	sa := cards.ResolveSVar(e.G.Obj(klawID).Face().SVars, "TrigDiscard")
-	d := kr0Run(t, e, sa, func() *effects.Ctx {
+	d := runProbeSA(t, e, sa, func() *effects.Ctx {
 		return &effects.Ctx{
 			Source:     klawID,
 			Controller: 0,
@@ -191,7 +191,7 @@ func TestKlawRevealNumberTargetChoosesReveal(t *testing.T) {
 	if chosen[0] == chosen[1] {
 		t.Fatal("fixture picked the same card twice")
 	}
-	d2 := kr0Answer(t, e, d.Options[0].Index, d.Options[2].Index)
+	d2 := answerAsk(t, e, d.Options[0].Index, d.Options[2].Index)
 	if d2 == nil || d2.Player != 0 || d2.Kind != decision.KModes || d2.ResumeKind != "discard" {
 		t.Fatalf("discard decision %+v", d2)
 	}
@@ -206,7 +206,7 @@ func TestKlawRevealNumberTargetChoosesReveal(t *testing.T) {
 		t.Fatalf("no public reveal Note naming %v", chosen)
 	}
 	discardIdx := d2.Options[0].Index
-	kr0Answer(t, e, discardIdx)
+	answerAsk(t, e, discardIdx)
 	if e.G.Obj(chosen[0]).Zone != state.ZGraveyard {
 		t.Fatalf("chosen card %d in %v, want graveyard", chosen[0], e.G.Obj(chosen[0]).Zone)
 	}
@@ -247,7 +247,7 @@ func TestGhostVacuumReturnsWithFlyingCounter(t *testing.T) {
 	if sa.API != "ChangeZoneAll" {
 		t.Fatalf("ability[1] is %q, want ChangeZoneAll", sa.API)
 	}
-	kr0Run(t, e, sa, func() *effects.Ctx {
+	runProbeSA(t, e, sa, func() *effects.Ctx {
 		return &effects.Ctx{Source: gvID, Controller: 0, SVars: selectionSVars(o.Face())}
 	}, nil)
 
@@ -301,7 +301,7 @@ func TestFightExcessBindsRhinosRampage(t *testing.T) {
 	face := e.G.Obj(rhinoID).Face()
 	var last *effects.Ctx
 	pumpSA := face.Abilities[0]
-	d := kr0Run(t, e, pumpSA, func() *effects.Ctx {
+	d := runProbeSA(t, e, pumpSA, func() *effects.Ctx {
 		return &effects.Ctx{
 			Source:     rhinoID,
 			Controller: 0,
@@ -321,13 +321,13 @@ func TestFightExcessBindsRhinosRampage(t *testing.T) {
 		if d.Kind != decision.KChoose {
 			t.Fatalf("excess decision %+v", d)
 		}
-		kr0Answer(t, e, kr0Opt(t, d, artifact))
+		answerAsk(t, e, optionIdxForObj(t, d, artifact))
 	} else {
 		if len(e.pendingTriggers) == 0 {
 			t.Fatal("the reflexive destroy trigger was not queued")
 		}
 		e.putTriggersOnStack()
-		kr0Answer(t, e, kr0Opt(t, e.Pending(), artifact))
+		answerAsk(t, e, optionIdxForObj(t, e.Pending(), artifact))
 		passUntilStackEmpty(t, e, 20)
 	}
 	if e.G.Obj(artifact).Zone != state.ZGraveyard {
@@ -362,7 +362,7 @@ func TestFightExcessNoExcessDoesNotTrigger(t *testing.T) {
 	face := e.G.Obj(rhinoID).Face()
 	var last *effects.Ctx
 	pumpSA := face.Abilities[0]
-	d := kr0Run(t, e, pumpSA, func() *effects.Ctx {
+	d := runProbeSA(t, e, pumpSA, func() *effects.Ctx {
 		return &effects.Ctx{
 			Source:     rhinoID,
 			Controller: 0,
@@ -407,7 +407,7 @@ func TestRepeatEachStartingWithYou(t *testing.T) {
 	yangchenID := ids.Permanents[0]
 	face := e.G.Obj(yangchenID).Face()
 	sa := cards.ResolveSVar(face.SVars, "DBRepeatEach")
-	d := kr0Run(t, e, sa, func() *effects.Ctx {
+	d := runProbeSA(t, e, sa, func() *effects.Ctx {
 		return &effects.Ctx{Source: yangchenID, Controller: 1, SVars: selectionSVars(face)}
 	}, nil)
 	if selectionNoteContains(e, "StartingWith") {
@@ -437,7 +437,7 @@ func TestRepeatEachStartingWithYou(t *testing.T) {
 			}
 		}
 		chosen = append(chosen, pick.Obj)
-		kr0Answer(t, e, pick.Index)
+		answerAsk(t, e, pick.Index)
 	}
 	for _, id := range chosen {
 		if e.G.Obj(id).Zone != state.ZExile {
@@ -468,7 +468,7 @@ func TestKlawRevealNumberCoversHand(t *testing.T) {
 	})
 	klawID := ids.Permanents[0]
 	sa := cards.ResolveSVar(e.G.Obj(klawID).Face().SVars, "TrigDiscard")
-	d := kr0Run(t, e, sa, func() *effects.Ctx {
+	d := runProbeSA(t, e, sa, func() *effects.Ctx {
 		return &effects.Ctx{
 			Source:     klawID,
 			Controller: 0,
@@ -487,7 +487,7 @@ func TestKlawRevealNumberCoversHand(t *testing.T) {
 		t.Fatal("N covering the hand must not ask for or note a reveal")
 	}
 	discarded := d.Options[0].Obj
-	kr0Answer(t, e, d.Options[0].Index)
+	answerAsk(t, e, d.Options[0].Index)
 	if e.G.Obj(discarded).Zone != state.ZGraveyard {
 		t.Fatalf("discarded card %d in %v, want graveyard", discarded, e.G.Obj(discarded).Zone)
 	}
@@ -520,7 +520,7 @@ func TestFightExcessUsesLandedDamage(t *testing.T) {
 	face := e.G.Obj(rhinoID).Face()
 	var last *effects.Ctx
 	pumpSA := face.Abilities[0]
-	d := kr0Run(t, e, pumpSA, func() *effects.Ctx {
+	d := runProbeSA(t, e, pumpSA, func() *effects.Ctx {
 		return &effects.Ctx{
 			Source:     rhinoID,
 			Controller: 0,

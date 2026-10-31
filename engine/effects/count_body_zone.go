@@ -30,8 +30,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	// anyway. The Different* distinct family IS read since diffcount1
 	// (differentPropertyKindOf's case above): distinct powers/names/mana
 	// values among the matches, the Augur of Autumn Coven gate's shape.
-	// CreatureType, PlaneswalkerType and CardTypesPermanent (task
-	// diffcount2) are the same distinct-set shape over a narrower
+	// CreatureType, PlaneswalkerType and CardTypesPermanent are the same distinct-set shape over a narrower
 	// vocabulary; PlaneswalkerType reads the matched planeswalker's own
 	// printed subtypes (CR 205.3j), so it has no roster to fall behind. The four extreme
 	// reductions (GreatestCardPower 64 files,
@@ -66,7 +65,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// count each real card type (CR 205.1) represented among the
 		// selected cards once. The map is read only through len, so its
 		// iteration order never reaches an event or a view. The two
-		// siblings (task diffcount2) are the same distinct-set shape over a
+		// siblings are the same distinct-set shape over a
 		// narrower vocabulary: CreatureType counts distinct creature
 		// subtypes (Valiant Changeling's per-type reduction),
 		// CardTypesPermanent the six CR 205.2 permanent types (Korvold,

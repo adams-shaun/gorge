@@ -29,7 +29,7 @@ const (
 )
 
 func TestKernelParentSubTargetWithoutCandidateIsExempt(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9301, func(t *testing.T, e *Engine) {
+	_, st := runScenarioKernel(t, 2, 9301, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Bear", state.ZBattlefield)
 		tapeCastAndResolve(t, e, "Tape Fiery", "R")
 	}, tapeCondFierySrc, tapeCondBearSrc)
@@ -39,7 +39,7 @@ func TestKernelParentSubTargetWithoutCandidateIsExempt(t *testing.T) {
 }
 
 func TestKernelParentSubTargetWithCandidateIsCheckpointed(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9302, func(t *testing.T, e *Engine) {
+	_, st := runScenarioKernel(t, 2, 9302, func(t *testing.T, e *Engine) {
 		bear := moveByName(t, e, 0, "Tape Bear", state.ZBattlefield)
 		sword := moveByName(t, e, 0, "Tape Sword", state.ZBattlefield)
 		e.emit(events.Event{Kind: events.Attach, Obj: sword, IDs: []state.ObjID{bear}})
@@ -56,7 +56,7 @@ func TestKernelParentSubTargetWithCandidateIsCheckpointed(t *testing.T) {
 }
 
 func TestKernelTargetEntryWithoutEntryAskIsExempt(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9303, func(t *testing.T, e *Engine) {
+	_, st := runScenarioKernel(t, 2, 9303, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Bear", state.ZGraveyard)
 		tapeCastAndResolve(t, e, "Tape Reanimate", "B")
 	}, tapeCondReanimSrc, tapeCondBearSrc)
@@ -66,7 +66,7 @@ func TestKernelTargetEntryWithoutEntryAskIsExempt(t *testing.T) {
 }
 
 func TestKernelTargetEntryWithEntryAskIsCheckpointed(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9304, func(t *testing.T, e *Engine) {
+	_, st := runScenarioKernel(t, 2, 9304, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Chooser", state.ZGraveyard)
 		tapeCastAndResolve(t, e, "Tape Reanimate", "B")
 	}, tapeCondReanimSrc, tapeCondChooserSrc)

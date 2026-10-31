@@ -53,7 +53,7 @@ func TestMoltenEchoesCopiesEnteringCreatureExilesAtNextEndStep(t *testing.T) {
 	if got := e.G.Obj(molten).ChosenType; got != "Bear" {
 		t.Fatalf("Molten Echoes chosen type = %q, want Bear", got)
 	}
-	kr5Settle(e)
+	settleResolve(e)
 
 	bear := searchMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
 	e.putTriggersOnStack()

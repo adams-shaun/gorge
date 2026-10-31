@@ -1205,14 +1205,14 @@ func fillerDeck(t *testing.T, n int) []*cards.Card {
 	return out
 }
 
-const r3GainerSrc = `Name:R3Gainer
+const gainerSrc = `Name:Gainer
 Types:Enchantment
 T:Mode$ Phase | Phase$ Upkeep | Execute$ TrigGain | TriggerDescription$ gain 5 life
 SVar:TrigGain:DB$ GainLife | LifeAmount$ 5 | Defined$ You
 Oracle:x
 `
 
-const r3DrainerSrc = `Name:R3Drainer
+const drainerSrc = `Name:Drainer
 Types:Enchantment
 T:Mode$ Phase | Phase$ Upkeep | Execute$ TrigDrain | TriggerDescription$ lose life equal to your life total
 SVar:TrigDrain:DB$ LoseLife | LifeAmount$ X | Defined$ You
@@ -1220,7 +1220,7 @@ SVar:X:Count$YourLifeTotal
 Oracle:x
 `
 
-const r3OptionalSrc = `Name:R3Almsgiver
+const optionalSrc = `Name:Almsgiver
 Types:Enchantment
 T:Mode$ Phase | Phase$ Upkeep | OptionalDecider$ You | Execute$ TrigGain | TriggerDescription$ you may gain 4 life
 SVar:TrigGain:DB$ GainLife | LifeAmount$ 4 | Defined$ You
@@ -1230,7 +1230,7 @@ Oracle:x
 // shockSrc is a targeted instant, free to cast. StackView.Targets and the
 // spell-side half of Text (SpellDescription$, not a T: line's
 // TriggerDescription$) had no assertion anywhere in the suite.
-const shockSrc = `Name:R3Shock
+const shockSrc = `Name:Shock
 Types:Instant
 A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 2 | SpellDescription$ Deal 2 damage to any target.
 Oracle:x
@@ -1295,17 +1295,17 @@ func submitChoices(t *testing.T, e *rules.Engine, choices ...int) {
 	}
 }
 
-// TestPendingTriggersAndStackAreObservableThroughAFullEngine is the R3
+// TestPendingTriggersAndStackAreObservableThroughAFullEngine is the
 // integration test: two of the controller's own permanents trigger
 // simultaneously off a real upkeep, reached by playing the game forward
 // through the engine's public surface (never by poking pendingTriggers
-// directly, per §12). It asserts the whole observable chain: every seat's
+// directly). It asserts the whole observable chain: every seat's
 // Pending lists both triggers, only the controller sees the ordering
 // Decision (whose Options line up with Pending by position), and once that
 // decision is answered the queue empties and the Stack shows both abilities
 // in the chosen order.
 func TestPendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
-	deck0 := append([]*cards.Card{cardFromSrc(t, r3GainerSrc), cardFromSrc(t, r3DrainerSrc)}, fillerDeck(t, 5)...)
+	deck0 := append([]*cards.Card{cardFromSrc(t, gainerSrc), cardFromSrc(t, drainerSrc)}, fillerDeck(t, 5)...)
 	deck1 := fillerDeck(t, 7)
 	e := rules.New(rules.Config{Seed: 7, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
@@ -1314,7 +1314,7 @@ func TestPendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
 	// Advance() immediately after New.
 	e.Advance()
 
-	driveThroughPriority(t, e, []string{"R3Gainer", "R3Drainer"})
+	driveThroughPriority(t, e, []string{"Gainer", "Drainer"})
 
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTriggerOrder {
@@ -1328,9 +1328,9 @@ func TestPendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
 	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
 		if f := e.G.Obj(id).Face(); f != nil {
 			switch f.Name {
-			case "R3Gainer":
+			case "Gainer":
 				gainerID = id
-			case "R3Drainer":
+			case "Drainer":
 				drainerID = id
 			}
 		}
@@ -1412,8 +1412,8 @@ func TestPendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
 		name   string
 		text   string // TriggerDescription$, by Effect pointer identity (supplement §3c)
 	}{
-		{gainerID, "R3Gainer", "gain 5 life"},
-		{drainerID, "R3Drainer", "lose life equal to your life total"},
+		{gainerID, "Gainer", "gain 5 life"},
+		{drainerID, "Drainer", "lose life equal to your life total"},
 	}
 	for i, w := range want {
 		sv := v.Stack[i]
@@ -1448,13 +1448,13 @@ func TestPendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
 // resolves — so a test that looked for the optionality on a Pending entry
 // would find nothing.
 func TestStackTriggerReportsOptionalityAtResolution(t *testing.T) {
-	deck0 := append([]*cards.Card{cardFromSrc(t, r3OptionalSrc)}, fillerDeck(t, 6)...)
+	deck0 := append([]*cards.Card{cardFromSrc(t, optionalSrc)}, fillerDeck(t, 6)...)
 	deck1 := fillerDeck(t, 7)
 	e := rules.New(rules.Config{Seed: 3, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
 
-	driveThroughPriority(t, e, []string{"R3Almsgiver"})
+	driveThroughPriority(t, e, []string{"Almsgiver"})
 
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTriggerOptional {
@@ -1497,13 +1497,13 @@ func TestStackTriggerReportsOptionalityAtResolution(t *testing.T) {
 // something still queued for another reason keeps reporting its optionality
 // where it sits.
 func TestQueuedTriggerStillReportsOptionalityOnThePendingEntry(t *testing.T) {
-	deck0 := append([]*cards.Card{cardFromSrc(t, r3OptionalSrc), cardFromSrc(t, r3DrainerSrc)}, fillerDeck(t, 5)...)
+	deck0 := append([]*cards.Card{cardFromSrc(t, optionalSrc), cardFromSrc(t, drainerSrc)}, fillerDeck(t, 5)...)
 	deck1 := fillerDeck(t, 7)
 	e := rules.New(rules.Config{Seed: 17, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
 
-	driveThroughPriority(t, e, []string{"R3Almsgiver", "R3Drainer"})
+	driveThroughPriority(t, e, []string{"Almsgiver", "Drainer"})
 
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTriggerOrder {
@@ -1541,7 +1541,7 @@ func TestStackViewShowsTextAndTargetsForATargetedSpell(t *testing.T) {
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
 
-	driveThroughPriority(t, e, []string{"R3Shock"})
+	driveThroughPriority(t, e, []string{"Shock"})
 
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
@@ -1586,7 +1586,7 @@ func TestStackViewShowsTextAndTargetsForATargetedSpell(t *testing.T) {
 	if len(sv.Targets) != 1 || !sv.Targets[0].IsPlayer || sv.Targets[0].Player != 1 {
 		t.Fatalf("Targets = %+v, want a single player-1 target", sv.Targets)
 	}
-	if sv.Card == nil || sv.Card.Name != "R3Shock" {
+	if sv.Card == nil || sv.Card.Name != "Shock" {
 		t.Fatalf("Card = %+v, want the spell's own CardView", sv.Card)
 	}
 }

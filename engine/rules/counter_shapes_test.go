@@ -53,7 +53,7 @@ func TestWishingWellCoinCounterCastsMatchingManaValue(t *testing.T) {
 // g120Chain resolves sa (and its SubAbility$ chain) for source on seat 0
 // through the real kernel, with targets as the root's chosen targets.
 func g120Chain(e *Engine, face *cards.Face, src state.ObjID, sa *cards.SA, targets []state.Target, remembered []state.Target) {
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		return &effects.Ctx{Source: src, Controller: 0, SVars: face.SVars, Targets: targets, Remembered: remembered, TargetsOffered: len(targets) > 0}
 	}, sa)
 }
@@ -261,7 +261,7 @@ func TestPutCounterAllSubLinkPlayerTarget(t *testing.T) {
 	theirs := onBoardCard(t, e, 1, mshCorpusCard(t, "Grizzly Bears"))
 	victim := onBoardCard(t, e, 1, mshCorpusCard(t, "Ornithopter"))
 	face := e.G.Obj(fates).Face()
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		c := &effects.Ctx{Source: fates, Controller: 0, SVars: face.SVars,
 			Targets: []state.Target{{Obj: victim}}, TargetsOffered: true}
 		c.PickedTargets = []state.Target{{Player: 0, IsPlayer: true}}

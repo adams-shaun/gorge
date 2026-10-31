@@ -1,8 +1,6 @@
 package rules
 
-// Restores engine/effects/putcounter_optional_test.go,
-// engine/effects/putcounter_exile_test.go and engine/effects/putcounter_rememberput_test.go
-// on the kernel: an Optional$ PutCounter poses a put_optional yes/no to the
+// An Optional$ PutCounter poses a put_optional yes/no to the
 // controller (option 0 = yes) and places nothing until it is answered; "no"
 // places nothing, "yes" places exactly the stated counters -- on an object
 // (Talus Paladin's real DBCounter), on an EXILED remembered object, and on a
@@ -25,9 +23,9 @@ func TestTalusPaladinOptionalCounterAskAndAnswers(t *testing.T) {
 	}{{"decline", false}, {"accept", true}} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			e := kr2Engine(t, 2)
-			paladin := kr2Put(t, e, 0, kr2Corpus(t, "Talus Paladin"), state.ZHand, false)
-			d := kr2Cast(t, e, 0, paladin)
+			e := kernelEngine(t, 2)
+			paladin := putCardIn(t, e, 0, corpusFixtureCard(t, "Talus Paladin"), state.ZHand, false)
+			d := castWithMana(t, e, 0, paladin)
 			// The lifelink grant's own Optional$ comes first: decline it.
 			for i := 0; d != nil && d.ResumeKind != "put_optional" && i < 4; i++ {
 				idx := d.Options[len(d.Options)-1].Index
@@ -37,12 +35,12 @@ func TestTalusPaladinOptionalCounterAskAndAnswers(t *testing.T) {
 					}
 				}
 				if d.Min == 0 && d.Kind == decision.KModes {
-					d = kr2Answer(t, e, d)
+					d = answerDecision(t, e, d)
 					continue
 				}
-				d = kr2Answer(t, e, d, idx)
+				d = answerDecision(t, e, d, idx)
 			}
-			d = kr2Want(t, d, "put_optional")
+			d = requireResumeAsk(t, d, "put_optional")
 			if d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || d.Player != 0 {
 				t.Fatalf("election = %+v, want a 1-of KChoose for the controller", d)
 			}
@@ -57,7 +55,7 @@ func TestTalusPaladinOptionalCounterAskAndAnswers(t *testing.T) {
 			if tc.accept {
 				choice = 0
 			}
-			if d = kr2Answer(t, e, d, choice); d != nil {
+			if d = answerDecision(t, e, d, choice); d != nil {
 				t.Fatalf("unexpected ask after the election: %+v", d)
 			}
 			want := int32(0)
@@ -68,7 +66,7 @@ func TestTalusPaladinOptionalCounterAskAndAnswers(t *testing.T) {
 				t.Fatalf("Talus Paladin P1P1 = %d, want %d", got, want)
 			}
 			n := 0
-			for _, ev := range kr2Events(e, from, events.CounterChange) {
+			for _, ev := range eventsOfKindFrom(e, from, events.CounterChange) {
 				if ev.Obj == paladin {
 					n++
 					if ev.Counter != "P1P1" || ev.Amount != 1 {
@@ -85,23 +83,23 @@ func TestTalusPaladinOptionalCounterAskAndAnswers(t *testing.T) {
 
 func TestPutCounterOptionalAsksOverExiledObject(t *testing.T) {
 	t.Parallel()
-	e := kr2Engine(t, 2)
-	victim := kr2Put(t, e, 1, kr2Src(t, "Name:Victim\n"+kr2CreatureSrc), state.ZBattlefield, false)
-	spell := kr2Put(t, e, 0, kr2Sorcery(t, "Suspender",
+	e := kernelEngine(t, 2)
+	victim := putCardIn(t, e, 1, cardOfSrc(t, "Name:Victim\n"+creatureKernelSrc), state.ZBattlefield, false)
+	spell := putCardIn(t, e, 0, sorceryCard(t, "Suspender",
 		"A:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | SubAbility$ DBPut",
 		"SVar:DBPut:DB$ PutCounter | Defined$ Remembered | CounterType$ TIME | CounterNum$ 3 | Optional$ True"), state.ZHand, false)
-	d := kr2Cast(t, e, 0, spell)
+	d := castWithMana(t, e, 0, spell)
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("cast = %+v, want the creature target ask", d)
 	}
-	d = kr2Want(t, kr2Answer(t, e, d, kr2ObjIdx(t, d, victim)), "put_optional")
+	d = requireResumeAsk(t, answerDecision(t, e, d, objOptionIndex(t, d, victim)), "put_optional")
 	if z := e.G.Obj(victim).Zone; z != state.ZExile {
 		t.Fatalf("victim is on %s at the election, want exile", z)
 	}
 	if got := e.G.Obj(victim).Counter("TIME"); got != 0 {
 		t.Fatalf("placed %d TIME counters before the election", got)
 	}
-	if d = kr2Answer(t, e, d, kr2Kind(t, d, "yes")); d != nil {
+	if d = answerDecision(t, e, d, optionKindIndex(t, d, "yes")); d != nil {
 		t.Fatalf("unexpected ask: %+v", d)
 	}
 	if got := e.G.Obj(victim).Counter("TIME"); got != 3 {
@@ -117,21 +115,21 @@ func TestPutCounterOptionalPlayerRecipientRemembersThePlayer(t *testing.T) {
 	}{{"decline", false}, {"accept", true}} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			e := kr2Engine(t, 2)
-			spell := kr2Put(t, e, 0, kr2Sorcery(t, "Charger",
+			e := kernelEngine(t, 2)
+			spell := putCardIn(t, e, 0, sorceryCard(t, "Charger",
 				"A:SP$ PutCounter | Defined$ You | CounterType$ ENERGY | CounterNum$ 2 | RememberPut$ True | Optional$ True | SubAbility$ DBGain",
 				"SVar:DBGain:DB$ GainLife | Defined$ Remembered | LifeAmount$ 3"), state.ZHand, false)
 			life := e.G.Players[0].Life
 			from := len(e.L.Events)
-			d := kr2Want(t, kr2Cast(t, e, 0, spell), "put_optional")
-			choice := kr2Kind(t, d, "no")
+			d := requireResumeAsk(t, castWithMana(t, e, 0, spell), "put_optional")
+			choice := optionKindIndex(t, d, "no")
 			if tc.accept {
-				choice = kr2Kind(t, d, "yes")
+				choice = optionKindIndex(t, d, "yes")
 			}
-			if d = kr2Answer(t, e, d, choice); d != nil {
+			if d = answerDecision(t, e, d, choice); d != nil {
 				t.Fatalf("unexpected ask: %+v", d)
 			}
-			pcs := kr2Events(e, from, events.PlayerCounterChange)
+			pcs := eventsOfKindFrom(e, from, events.PlayerCounterChange)
 			if !tc.accept {
 				if len(pcs) != 0 || e.G.Players[0].Life != life {
 					t.Fatalf("decline placed %+v / life %d->%d, want nothing", pcs, life, e.G.Players[0].Life)

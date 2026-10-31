@@ -1,6 +1,6 @@
 package rules
 
-// Mana/tap interference scoping for payment plans (spec §3.2 as amended).
+// Mana/tap interference scoping for payment plans.
 // Like payment_plan.go this file contains no call to emit: every read below
 // is a pure query of the current state, run against a HYPOTHETICAL tap and
 // production of one candidate source through the engine's own trigger and

@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cast_liveness_test.go pins the E2 property that a no-progress Delve cast can
+// cast_liveness_test.go pins the property that a no-progress Delve cast can
 // never spin (nor kill the match), per CR 733.2:
 // the FIRST no-progress cast/activation abort leaves the declined card's
 // option offered, so a merely-reversed illegal action may be redone legally,
@@ -16,10 +16,7 @@ import (
 // priority window holds that card's option out of the current window
 // (suppressedCast, cast.go) -- so the re-offer loop can run at most twice
 // before the thing being repeated is no longer offered, while every legal
-// answer stays legal and the match stays alive. Round 1 shipped a counting
-// fatal instead (two declines killed the match permanently -- a legal human
-// action, b7dead); round 2 replaced it with per-card suppression; F05-2
-// delays only the suppression, not the no-match-ever-dies guarantee.
+// answer stays legal and the match stays alive.
 //
 // The sequence the engine reaches for an ordinary declined Delve cast:
 //
@@ -158,7 +155,7 @@ func driveDeclinedSpin(t *testing.T, e *Engine, angler state.ObjID) (asks int, a
 // fatal fails it), for CR 733.2: a seat that declines a Delve cast and then
 // does anything else legal must not lose the match, and a productive action
 // brings the declined card's option back so a re-attempt is even still
-// possible. Under F05-2 the FIRST decline leaves the option offered (the
+// possible. The FIRST decline leaves the option offered (the
 // legal retry), and only the SECOND identical one holds it out.
 func TestDeclineThenOtherLegalPlayDoesNotEndTheMatch(t *testing.T) {
 	t.Parallel()
@@ -277,7 +274,7 @@ func TestDeclinesOnDifferentCardsDoNotEndTheMatch(t *testing.T) {
 }
 
 // TestDeclinedDelveSpinIsBounded is the "an unbounded spin is still bounded"
-// property, asserted with a tiny, specific number rather than round 1's baked
+// property, asserted with a tiny, specific number rather than a baked
 // stall-threshold. Under CR 733.2 the FIRST no-progress decline
 // leaves the card offered (the legal retry), and only the SECOND identical one
 // holds it out -- so a seat can ask the delve ask exactly twice before the
@@ -395,7 +392,7 @@ func TestAuthorizedDelveAnswersStayLegal(t *testing.T) {
 // {R}). Under the shared feasibility primitive the bench's strand is
 // structurally gone -- the pip ask offers only the life face (pay_R cannot
 // complete the generic) and the activation then completes legally -- so the
-// no-progress abort the F05-2 discipline governs is driven instead by the
+// no-progress abort this discipline governs is driven instead by the
 // target-conditional RaiseCost below: the offer gate prices the ability
 // pre-target, the CR 601.2c target answer reprices with the {2} raise, every
 // target reprices unaffordable, and the proposal reverses (CR 733.1) with no
@@ -411,7 +408,7 @@ const livenessPhyrexianDrawer = "Name:Drawer\nManaCost:1 R\nTypes:Creature Human
 const livenessTaxer = "Name:Taxer\nManaCost:2\nTypes:Creature\nPT:1/1\n" +
 	"S:Mode$ RaiseCost | ValidTarget$ Creature | Activator$ You | Type$ Ability | Amount$ 2 | Description$ Abilities you activate that target a creature cost {2} more.\nOracle:x\n"
 
-// TestAbilityNoProgressAbortHoldsTheAbilityOut pins the F05-2 (CR 733.2)
+// TestAbilityNoProgressAbortHoldsTheAbilityOut pins the CR 733.2
 // discipline at the ACTIVATION abort sites and the ability-offer path's duty
 // to read it. Before this pin the abort bookkeeping (suppressedCast/
 // castAborts) was written for "cast/activation" aborts alike, but only the

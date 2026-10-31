@@ -11,7 +11,7 @@ import (
 // engine's type vocabulary directly.
 func TestResolutionChooseTypeCreatureHonoursValidTypes(t *testing.T) {
 	t.Parallel()
-	e, _, mk := kr0ChooseSource(t)
+	e, _, mk := chooseSourceBoard(t)
 	all := e.TypeChoices(0, "Creature", "", "")
 	if len(all) <= 100 {
 		t.Fatalf("precondition: unfiltered creature vocabulary has %d options, want >100", len(all))
@@ -20,7 +20,7 @@ func TestResolutionChooseTypeCreatureHonoursValidTypes(t *testing.T) {
 		t.Fatal("precondition: ValidTypes$ Elf,Goblin must differ from the full vocabulary")
 	}
 
-	d := kr0Run(t, e, kr0SA(t, "SP$ ChooseType | Defined$ You | Type$ Creature | ValidTypes$ Elf,Goblin"), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseType | Defined$ You | Type$ Creature | ValidTypes$ Elf,Goblin"), mk, nil)
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosetype" {
 		t.Fatalf("resolution-time ChooseType ask = %+v, want a choosetype decision", d)
 	}
@@ -33,7 +33,7 @@ func TestResolutionChooseTypeCreatureHonoursValidTypes(t *testing.T) {
 // resolution-time exclusion path and guards against a vacuous empty offer.
 func TestResolutionChooseTypeCreatureHonoursInvalidTypes(t *testing.T) {
 	t.Parallel()
-	e, _, mk := kr0ChooseSource(t)
+	e, _, mk := chooseSourceBoard(t)
 	all := e.TypeChoices(0, "Creature", "", "")
 	if len(all) <= 100 {
 		t.Fatalf("precondition: unfiltered creature vocabulary has %d options, want >100", len(all))
@@ -43,7 +43,7 @@ func TestResolutionChooseTypeCreatureHonoursInvalidTypes(t *testing.T) {
 		t.Fatalf("precondition: InvalidTypes$ removes %d entries, want exactly 2", len(all)-len(unfiltered))
 	}
 
-	d := kr0Run(t, e, kr0SA(t, "SP$ ChooseType | Defined$ You | Type$ Creature | InvalidTypes$ Elf,Goblin"), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseType | Defined$ You | Type$ Creature | InvalidTypes$ Elf,Goblin"), mk, nil)
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosetype" {
 		t.Fatalf("resolution-time ChooseType ask = %+v, want a choosetype decision", d)
 	}

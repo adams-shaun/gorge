@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the life_draw_dredge_stack_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// A life-gain replacement of a draw meeting Dredge while resolving from the
+// stack, driven through the resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"

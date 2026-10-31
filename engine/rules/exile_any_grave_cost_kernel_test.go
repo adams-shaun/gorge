@@ -75,7 +75,7 @@ func TestCavalierOfThornsDiesPaysTheExileAndResumes(t *testing.T) {
 	submitChoices(t, e, tpick[0])
 	e.pending = nil
 	e.resolveTop()
-	d = kr5WaitForWindow(t, e)
+	d = waitForCostWindow(t, e)
 	if len(d.Options) < 2 || d.Options[0].Kind != "trigger_cost_pay" || d.Options[1].Kind != "trigger_cost_decline" {
 		t.Fatalf("Cavalier's dies trigger did not open a pay/decline window: %+v", d)
 	}
@@ -95,7 +95,7 @@ func TestCavalierOfThornsDiesPaysTheExileAndResumes(t *testing.T) {
 	if e.G.Obj(decoy).Zone != state.ZGraveyard {
 		t.Fatalf("the Bear decoy moved: %v", e.G.Obj(decoy).Zone)
 	}
-	kr5Settle(e)
+	settleResolve(e)
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(mountain).Zone != state.ZLibrary {
 		t.Fatalf("the chosen card did not move back to the library: %v", e.G.Obj(mountain).Zone)
@@ -137,13 +137,13 @@ func TestCavalierOfThornsDiesPaysTheExileAndResumes(t *testing.T) {
 	}
 	e2.pending = nil
 	e2.resolveTop()
-	d = kr5WaitForWindow(t, e2)
+	d = waitForCostWindow(t, e2)
 	if d.Options[0].Kind != "trigger_cost_pay" {
 		t.Fatalf("decline engine's window = %+v", d)
 	}
 	mark := len(e2.L.Events)
 	submitChoices(t, e2, d.Options[1].Index)
-	kr5Settle(e2)
+	settleResolve(e2)
 	passUntilStackEmpty(t, e2, 20)
 	if e2.G.Obj(cav2).Zone != state.ZGraveyard {
 		t.Fatalf("a declined exile-cost window still moved the Cavalier: %v", e2.G.Obj(cav2).Zone)
@@ -178,7 +178,7 @@ func TestDoombotHarbingerExileCostWindowPaysTheExile(t *testing.T) {
 	e.putTriggersOnStack()
 	e.pending = nil
 	e.resolveTop()
-	kr5DeclineOptional(t, e) // the ETB's "you may mill four"
+	declineOptional(t, e) // the ETB's "you may mill four"
 	e.emit(events.Event{Kind: events.MoveZone, Obj: harb, From: state.ZBattlefield,
 		To: state.ZGraveyard, Text: "destroyed"})
 	e.putTriggersOnStack()
@@ -194,7 +194,7 @@ func TestDoombotHarbingerExileCostWindowPaysTheExile(t *testing.T) {
 	}
 	// The body: return target creature card from your graveyard to hand. The
 	// reflexive trigger is placed by the turn loop after the window's run.
-	kr5Settle(e)
+	settleResolve(e)
 	d = e.Pending()
 	var tpick []int
 	for _, o := range d.Options {
@@ -206,7 +206,7 @@ func TestDoombotHarbingerExileCostWindowPaysTheExile(t *testing.T) {
 		t.Fatalf("body target ask lost the creature: %+v", d.Options)
 	}
 	submitChoices(t, e, tpick[0])
-	kr5Settle(e)
+	settleResolve(e)
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(creature).Zone != state.ZHand {
 		t.Fatalf("the body did not return the creature to hand: %v", e.G.Obj(creature).Zone)
@@ -221,7 +221,7 @@ func TestDoombotHarbingerExileCostWindowPaysTheExile(t *testing.T) {
 	e2.putTriggersOnStack()
 	e2.pending = nil
 	e2.resolveTop()
-	kr5DeclineOptional(t, e2)
+	declineOptional(t, e2)
 	e2.emit(events.Event{Kind: events.MoveZone, Obj: harb2, From: state.ZBattlefield,
 		To: state.ZGraveyard, Text: "destroyed"})
 	e2.putTriggersOnStack()
@@ -233,7 +233,7 @@ func TestDoombotHarbingerExileCostWindowPaysTheExile(t *testing.T) {
 	}
 	mark := len(e2.L.Events)
 	submitChoices(t, e2, d.Options[1].Index)
-	kr5Settle(e2)
+	settleResolve(e2)
 	passUntilStackEmpty(t, e2, 20)
 	if e2.G.Obj(harb2).Zone != state.ZGraveyard {
 		t.Fatalf("a declined window still exiled the Harbinger: %v", e2.G.Obj(harb2).Zone)
@@ -249,10 +249,10 @@ func TestDoombotHarbingerExileCostWindowPaysTheExile(t *testing.T) {
 	replayCheck(t, e2, cfg2)
 }
 
-// kr5WaitForWindow is waitForWindow under the resolution kernel: each
+// waitForCostWindow is waitForWindow under the resolution kernel: each
 // resolveTop runs as a kernel probe from a quiet engine, so the
 // triggered-cost window's ask is posed inside the run that serves it.
-func kr5WaitForWindow(t *testing.T, e *Engine) *decision.Decision {
+func waitForCostWindow(t *testing.T, e *Engine) *decision.Decision {
 	t.Helper()
 	for i := 0; i < 4; i++ {
 		d := e.Pending()
@@ -273,9 +273,9 @@ func kr5WaitForWindow(t *testing.T, e *Engine) *decision.Decision {
 	return nil
 }
 
-// kr5DeclineOptional answers a posed optional ("you may") ask with its
+// declineOptional answers a posed optional ("you may") ask with its
 // decline, failing if what is posed is not one.
-func kr5DeclineOptional(t *testing.T, e *Engine) {
+func declineOptional(t *testing.T, e *Engine) {
 	t.Helper()
 	d := e.Pending()
 	if d == nil || d.Kind == decision.KPriority {

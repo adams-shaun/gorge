@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the finality_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Winter, Cynical Opportunist's check for insufficient card types, driven
+// through the resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -65,7 +64,7 @@ func TestWinterCynicalOpportunistRejectsInsufficientTypes(t *testing.T) {
 	if ability.Params["WithTotalCardTypes"] != "4" {
 		t.Fatalf("precondition: compiled Winter param = %q, params=%v", ability.Params["WithTotalCardTypes"], ability.Params)
 	}
-	kr6Probe(e, func() { effects.Resolve(e, &effects.Ctx{Source: wid, Controller: 0, X: 2}, ability) })
+	probeDroppingPending(e, func() { effects.Resolve(e, &effects.Ctx{Source: wid, Controller: 0, X: 2}, ability) })
 	if e.Pending() == nil || e.Pending().Kind != decision.KChoose {
 		t.Fatalf("precondition: Winter did not ask for its hidden pick: %+v", e.Pending())
 	}

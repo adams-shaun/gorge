@@ -30,7 +30,7 @@ func TestClashChainedInOneContextRevealsFreshKernel(t *testing.T) {
 		t.Fatalf("seat 1 library precondition: %v", lib1)
 	}
 	svars := e.G.Obj(src).Face().SVars
-	kr4Resolve(e, func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0, SVars: svars} }, sa)
+	resolveUnderProbe(e, func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0, SVars: svars} }, sa)
 	for i := 0; i < 4; i++ {
 		answerClashPlacement(t, e, state.PlayerID(i%2), "top")
 	}
@@ -88,7 +88,7 @@ func TestClashPlacementCloneIndependenceKernel(t *testing.T) {
 
 	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{marvo}})
 	e.putTriggersOnStack()
-	kr4PassToDecision(t, e, 10)
+	passUntilPosed(t, e, 10)
 	answerClashPlacement(t, e, 0, "bottom")
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "clash_placement" || d.Player != 1 {
@@ -156,7 +156,7 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCastKernel(t *testing.T) {
 	if len(e.G.Stack) == 0 {
 		t.Fatal("Marvo's attack trigger was not queued by the declaration")
 	}
-	kr4PassToDecision(t, e, 10)
+	passUntilPosed(t, e, 10)
 	for owner, want := range []string{"top", "bottom"} {
 		d := e.Pending()
 		if d == nil || d.Player != state.PlayerID(owner) || d.Kind != decision.KChoose || len(d.Options) != 2 || d.Options[0].Kind != "bottom" || d.Options[1].Kind != "top" {
@@ -192,14 +192,14 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCastKernel(t *testing.T) {
 	if lib1 := e.G.Zone(state.ZLibrary, 1); len(lib1) < 2 || lib1[len(lib1)-1] != low || lib1[0] != filler1 {
 		t.Fatalf("seat 1 bottom election order = %v", lib1)
 	}
-	d := kr4PassToDecision(t, e, 20)
+	d := passUntilPosed(t, e, 20)
 	if got := len(e.G.Zone(state.ZHand, 0)); got != hand0+1 {
 		t.Fatalf("seat 0 hand = %d after winning the clash, want %d", got, hand0+1)
 	}
 	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "play" {
 		t.Fatalf("expected Marvo's optional free-cast ask, got %+v", d)
 	}
-	submitChoices(t, e, kr4Option(t, d, freeSpell.ID))
+	submitChoices(t, e, optionOfObj(t, d, freeSpell.ID))
 	passUntilStackEmpty(t, e, 20)
 	if got := e.G.Obj(freeSpell.ID).Zone; got != state.ZBattlefield {
 		t.Fatalf("accepted free-cast spell in %s, want battlefield", got)

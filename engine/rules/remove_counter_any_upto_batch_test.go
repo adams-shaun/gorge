@@ -36,7 +36,7 @@ func TestRemoveCounterAnyUpToBatchesCounterRemovedOnce(t *testing.T) {
 	}
 	lifeBefore := e.G.Players[0].Life
 
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		return &effects.Ctx{Controller: 0, Targets: []state.Target{{Obj: reg}}, TargetsOffered: true}
 	}, mode)
 	// Remove two TIME counters through the per-counter election, then Done.

@@ -72,7 +72,7 @@ type engineCastWindows struct {
 	// continuation handleTriggerOrder uses) instead of granting the caster
 	// priority, so a later, unrelated trigger in the same batch is still
 	// placed before any player acts. Plain scalar, so Clone copies it like
-	// every other field here. 
+	// every other field here.
 	drainAwaitsTarget bool `clone:"deep"`
 
 	// drainAwaitsModes is the CR 603.3c twin of drainAwaitsTarget: true while

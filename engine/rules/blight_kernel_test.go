@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kr4BlightCtx is a fresh resolution context for a corpus card's own SVars.
-func kr4BlightCtx(t *testing.T, reg *cards.Registry, name string, src state.ObjID) func() *effects.Ctx {
+// blightCtx is a fresh resolution context for a corpus card's own SVars.
+func blightCtx(t *testing.T, reg *cards.Registry, name string, src state.ObjID) func() *effects.Ctx {
 	svars := searchCorpusCard(t, reg, name).Faces[0].SVars
 	return func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0, SVars: svars} }
 }
@@ -26,7 +26,7 @@ func TestBlightShadowUchinAsksOnlyWithTwoCreaturesKernel(t *testing.T) {
 
 	e, _ := blightEngine(t, reg, 2, "Shadow Urchin")
 	urchin := blightMove(t, e, 0, "Shadow Urchin", state.ZBattlefield)
-	kr4Resolve(e, kr4BlightCtx(t, reg, "Shadow Urchin", urchin), blight)
+	resolveUnderProbe(e, blightCtx(t, reg, "Shadow Urchin", urchin), blight)
 	if d := pendingBlightAsk(e); d != nil {
 		t.Fatalf("ask posed %+v with a single controlled creature", d)
 	}
@@ -37,7 +37,7 @@ func TestBlightShadowUchinAsksOnlyWithTwoCreaturesKernel(t *testing.T) {
 	e2, _ := blightEngine(t, reg, 2, "Shadow Urchin")
 	urchin2 := blightMove(t, e2, 0, "Shadow Urchin", state.ZBattlefield)
 	bear2 := blightMove(t, e2, 0, "Grizzly Bears", state.ZBattlefield)
-	kr4Resolve(e2, kr4BlightCtx(t, reg, "Shadow Urchin", urchin2), blight)
+	resolveUnderProbe(e2, blightCtx(t, reg, "Shadow Urchin", urchin2), blight)
 	d := blightAnswerBlight(t, e2)
 	got := blightCounters(t, e2)
 	want := d.Options[0].Obj
@@ -58,7 +58,7 @@ func TestBlightHighPerfectMorcantAsksEachOpponentKernel(t *testing.T) {
 	opp1b := blightMove(t, e, 1, "Grizzly Bears", state.ZBattlefield)
 	blightMove(t, e, 2, "Grizzly Bears", state.ZGraveyard)
 	blightMove(t, e, 2, "Grizzly Bears", state.ZGraveyard)
-	kr4Resolve(e, kr4BlightCtx(t, reg, "High Perfect Morcant", morcant),
+	resolveUnderProbe(e, blightCtx(t, reg, "High Perfect Morcant", morcant),
 		blightSVar(t, reg, "High Perfect Morcant", "TrigBlight"))
 	d := e.Pending()
 	if d == nil || d.ResumeKind != "blight" || d.Player != 1 {
@@ -89,7 +89,7 @@ func TestBlightChaosSpewerUnlessGateKernel(t *testing.T) {
 	spewer := blightMove(t, e, 0, "Chaos Spewer", state.ZBattlefield)
 	blightMove(t, e, 0, "Grizzly Bears", state.ZBattlefield)
 	addMana(t, e, 0, "CC")
-	kr4Resolve(e, kr4BlightCtx(t, reg, "Chaos Spewer", spewer), trig)
+	resolveUnderProbe(e, blightCtx(t, reg, "Chaos Spewer", spewer), trig)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "unless_pay" {
 		t.Fatalf("pending %+v, want the unless-pay offer", d)
@@ -110,7 +110,7 @@ func TestBlightChaosSpewerUnlessGateKernel(t *testing.T) {
 	spewer2 := blightMove(t, e2, 0, "Chaos Spewer", state.ZBattlefield)
 	bear2 := blightMove(t, e2, 0, "Grizzly Bears", state.ZBattlefield)
 	addMana(t, e2, 0, "CC")
-	kr4Resolve(e2, kr4BlightCtx(t, reg, "Chaos Spewer", spewer2), trig)
+	resolveUnderProbe(e2, blightCtx(t, reg, "Chaos Spewer", spewer2), trig)
 	d2 := e2.Pending()
 	if d2 == nil || d2.ResumeKind != "unless_pay" || len(d2.Options) != 2 {
 		t.Fatalf("pending %+v, want the pay/decline unless offer", d2)

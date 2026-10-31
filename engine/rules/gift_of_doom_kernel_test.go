@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the gift_of_doom_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Gift of Doom staying face down through the attachment SBA and turning face
+// up, driven through the resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"

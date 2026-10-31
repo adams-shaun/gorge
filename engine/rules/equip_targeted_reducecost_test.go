@@ -1,16 +1,12 @@
 // Equip's Targeted$ sub-shape: an equip cost reduction whose body reads a
-// ROOT target ref used to resolve to 0 at the OFFER gate, so the ability was
-// withheld at full price unless the controller happened to have the
-// undiscounted amount available. The charge became target-aware earlier
-// (alltargeted1's repriceForTargets), but the offer gate and beginActivation
-// still folded a nil-target read of 0, so a `{10}` equip against a 4-power
-// creature cost `{6}` yet was not offered from a `{6}` pool.
-// ownReduceCostOffer now resolves the body against the best legal root target
-// for the offer price (and beginActivation folds the same amount), while
-// repriceForTargets still charges the amount for the target actually chosen
-// at CR 601.2c. These leaves pin both halves on the real corpus Belt of Giant
-// Strength (`K:Equip:10:::ReduceCost$ X` with `SVar:X:Targeted$CardPower`),
-// the card the row names.
+// ROOT target ref must not resolve to 0 at the OFFER gate, or the ability is
+// withheld at full price: a `{10}` equip against a 4-power creature costs `{6}`
+// yet is not offered from a `{6}` pool. ownReduceCostOffer resolves the body
+// against the best legal root target for the offer price (and beginActivation
+// folds the same amount), while repriceForTargets charges the amount for the
+// target actually chosen at CR 601.2c. These leaves pin both halves on the real
+// corpus Belt of Giant Strength (`K:Equip:10:::ReduceCost$ X` with
+// `SVar:X:Targeted$CardPower`).
 package rules
 
 import (

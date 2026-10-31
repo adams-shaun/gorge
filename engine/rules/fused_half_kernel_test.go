@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the fused_half_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Fused spells: each half's sub-ability reads its own half's targets, driven
+// through the resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"

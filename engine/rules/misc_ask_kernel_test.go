@@ -1,8 +1,6 @@
 package rules
 
-// Restored from engine/effects/cmc_budget_test.go, copy_test.go,
-// counter_pick_test.go, defined_remembered_consumers_test.go and
-// dice_test.go (W3 legacy removal): asks whose answers drive a game outcome,
+// Asks whose answers drive a game outcome,
 // answered through the resolution kernel on a real engine.
 
 import (
@@ -23,14 +21,14 @@ import (
 // those two.
 func TestLivelyDirgeReturnBudgetCapsCumulativeKernel(t *testing.T) {
 	t.Parallel()
-	e := kr0Engine(t, 2)
-	src := kr0Src(t, e, 0, "Name:Dirge\nTypes:Sorcery\nOracle:x\n", state.ZBattlefield)
+	e := fixtureEngine(t, 2)
+	src := placeSrc(t, e, 0, "Name:Dirge\nTypes:Sorcery\nOracle:x\n", state.ZBattlefield)
 	var ids []state.ObjID
 	for i, mv := range []int{3, 3, 2} {
-		ids = append(ids, kr0Src(t, e, 0, "Name:Creature"+string(rune('A'+i))+"\nTypes:Creature\nManaCost:"+
+		ids = append(ids, placeSrc(t, e, 0, "Name:Creature"+string(rune('A'+i))+"\nTypes:Creature\nManaCost:"+
 			strings.Repeat("{W}", mv)+"\nPT:1/1\nOracle:x\n", state.ZGraveyard))
 	}
-	d := kr0Run(t, e, kr0SA(t, "DB$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | "+
+	d := runProbeSA(t, e, parseFixtureSA(t, "DB$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | "+
 		"WithTotalCMC$ 5 | ChangeNum$ 2 | Hidden$ True | ChangeType$ Creature.YouOwn"),
 		func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0} }, nil)
 	if d == nil {
@@ -39,24 +37,24 @@ func TestLivelyDirgeReturnBudgetCapsCumulativeKernel(t *testing.T) {
 	if d.MaxSum != 5 {
 		t.Fatalf("MaxSum = %d, want 5", d.MaxSum)
 	}
-	a, b, c := kr0Opt(t, d, ids[0]), kr0Opt(t, d, ids[1]), kr0Opt(t, d, ids[2])
+	a, b, c := optionIdxForObj(t, d, ids[0]), optionIdxForObj(t, d, ids[1]), optionIdxForObj(t, d, ids[2])
 	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{a, b}}); err == nil {
 		t.Fatal("a 3+3 pair exceeding the budget passed Validate")
 	}
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{a, b}}); err == nil {
 		t.Fatal("the engine accepted an over-budget 3+3 answer")
 	}
-	kr0Answer(t, e, a, c)
-	kr0Zone(t, e, ids[0], state.ZBattlefield)
-	kr0Zone(t, e, ids[2], state.ZBattlefield)
-	kr0Zone(t, e, ids[1], state.ZGraveyard)
+	answerAsk(t, e, a, c)
+	requireZone(t, e, ids[0], state.ZBattlefield)
+	requireZone(t, e, ids[2], state.ZBattlefield)
+	requireZone(t, e, ids[1], state.ZGraveyard)
 }
 
-// kr0CopySA finds a corpus card's CopySpellAbility SA (abilities and
+// corpusCopySA finds a corpus card's CopySpellAbility SA (abilities and
 // trigger bodies, following sub-ability chains).
-func kr0CopySA(t *testing.T, name string) *cards.SA {
+func corpusCopySA(t *testing.T, name string) *cards.SA {
 	t.Helper()
-	c := kr0Corpus(t, name)
+	c := corpusCardNamed(t, name)
 	var found *cards.SA
 	walk := func(sa *cards.SA) {
 		for ; sa != nil && found == nil; sa = sa.Sub {
@@ -87,7 +85,7 @@ func kr0CopySA(t *testing.T, name string) *cards.SA {
 // one.
 func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopiesKernel(t *testing.T) {
 	t.Parallel()
-	s := kr0CopySA(t, "Wandering Archaic")
+	s := corpusCopySA(t, "Wandering Archaic")
 	if _, ok := s.Params["UnlessSwitched"]; ok {
 		t.Fatalf("Wandering Archaic copy SA unexpectedly carries UnlessSwitched$: %+v", s.Params)
 	}
@@ -99,7 +97,7 @@ func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopiesKernel(t *testing.T)
 		copies     int
 	}
 	for _, l := range []leg{{"pay", "", 0}, {"decline", "no", 0}, {"decline", "yes", 1}} {
-		e := kr0Engine(t, 2)
+		e := fixtureEngine(t, 2)
 		e.G.Players[0].Pool[state.MC] = 2
 		spell := e.G.AddObject(card(t, "Name:Blast\nManaCost:R\nTypes:Sorcery\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"), 1)
 		spell.Zone = state.ZStack
@@ -107,7 +105,7 @@ func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopiesKernel(t *testing.T)
 		id := spell.ID
 		e.G.Stack = append(e.G.Stack, id)
 		start := len(e.L.Events)
-		d := kr0Run(t, e, s, func() *effects.Ctx {
+		d := runProbeSA(t, e, s, func() *effects.Ctx {
 			return &effects.Ctx{Source: id, Controller: 0, Remembered: []state.Target{{Obj: id}}}
 		}, nil)
 		if d == nil || d.Kind != decision.KModes || d.Player != 0 || d.Min != 1 || d.Max != 1 {
@@ -116,28 +114,28 @@ func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopiesKernel(t *testing.T)
 		if len(d.Options) != 2 || d.Options[0].Label != "Pay 2 — no copy" || d.Options[1].Label != "Don't pay — make a copy" {
 			t.Fatalf("%v: options = %+v, want the inverted pay/decline pair", l, d.Options)
 		}
-		if n := kr0Count(kr0Since(e, start), events.StackCopy); n != 0 {
+		if n := countEventKind(eventsSince(e, start), events.StackCopy); n != 0 {
 			t.Fatalf("%v: %d copies before the pay decision was answered", l, n)
 		}
 		idx := 1
 		if l.pay == "pay" {
 			idx = 0
 		}
-		d = kr0Answer(t, e, idx)
+		d = answerAsk(t, e, idx)
 		if l.elect != "" {
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "copy_optional" || d.Player != 0 ||
 				len(d.Options) != 2 || d.Options[0].Kind != "yes" || d.Options[1].Kind != "no" {
 				t.Fatalf("%v: may-copy election = %+v, want seat 0's yes/no copy_optional", l, d)
 			}
-			if n := kr0Count(kr0Since(e, start), events.StackCopy); n != 0 {
+			if n := countEventKind(eventsSince(e, start), events.StackCopy); n != 0 {
 				t.Fatalf("%v: %d copies before the election was answered", l, n)
 			}
-			d = kr0Answer(t, e, kr0Kind(t, d, l.elect))
+			d = answerAsk(t, e, optionOfKind(t, d, l.elect))
 		}
 		if d != nil {
 			t.Fatalf("%v: unexpected further decision %+v", l, d)
 		}
-		if n := kr0Count(kr0Since(e, start), events.StackCopy); n != l.copies {
+		if n := countEventKind(eventsSince(e, start), events.StackCopy); n != l.copies {
 			t.Fatalf("%v: %d copies, want %d", l, n, l.copies)
 		}
 	}
@@ -150,25 +148,25 @@ func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopiesKernel(t *testing.T)
 // records exactly it.
 func TestPutCounterChoicesPickAsksAndPlacesTheAnswerKernel(t *testing.T) {
 	t.Parallel()
-	e := kr0Engine(t, 2)
-	src := kr0Src(t, e, 0, "Name:Asker\nTypes:Sorcery\nOracle:x\n", state.ZHand)
+	e := fixtureEngine(t, 2)
+	src := placeSrc(t, e, 0, "Name:Asker\nTypes:Sorcery\nOracle:x\n", state.ZHand)
 	var ids []state.ObjID
 	for _, n := range []string{"Bear A", "Bear B", "Bear C"} {
-		ids = append(ids, kr0Src(t, e, 0, "Name:"+n+"\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", state.ZBattlefield))
+		ids = append(ids, placeSrc(t, e, 0, "Name:"+n+"\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", state.ZBattlefield))
 	}
 	var last *effects.Ctx
-	d := kr0Run(t, e, kr0SA(t, "DB$ PutCounter | Choices$ Creature.YouCtrl | ChoiceTitle$ Choose a creature you control | Chooser$ You | CounterType$ VOW | CounterNum$ 1 | RememberCards$ True"),
+	d := runProbeSA(t, e, parseFixtureSA(t, "DB$ PutCounter | Choices$ Creature.YouCtrl | ChoiceTitle$ Choose a creature you control | Chooser$ You | CounterType$ VOW | CounterNum$ 1 | RememberCards$ True"),
 		func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0} }, &last)
 	if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || d.Player != 0 || d.ResumeKind != "counter_pick" {
 		t.Fatalf("decision = %+v, want seat 0's 1/1 counter_pick KChoose", d)
 	}
-	kr0OfferSet(t, d, ids...)
+	requireOfferSet(t, d, ids...)
 	for _, id := range ids {
 		if e.G.Obj(id).Counter("VOW") != 0 {
 			t.Fatal("a counter was placed before the choice was made")
 		}
 	}
-	kr0Answer(t, e, kr0Opt(t, d, ids[1]))
+	answerAsk(t, e, optionIdxForObj(t, d, ids[1]))
 	for i, id := range ids {
 		want := int32(0)
 		if i == 1 {
@@ -190,13 +188,13 @@ func TestPutCounterChoicesPickAsksAndPlacesTheAnswerKernel(t *testing.T) {
 // seat's "whenever you tap a creature" watcher.
 func TestTapOrUntapTapperPlainRememberedExcludesCardControllerKernel(t *testing.T) {
 	t.Parallel()
-	e := kr0Engine(t, 3)
-	remembered := kr0Src(t, e, 1, "Name:Remembered Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", state.ZBattlefield)
-	target := kr0Src(t, e, 0, "Name:Tap Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", state.ZBattlefield)
+	e := fixtureEngine(t, 3)
+	remembered := placeSrc(t, e, 1, "Name:Remembered Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", state.ZBattlefield)
+	target := placeSrc(t, e, 0, "Name:Tap Target\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", state.ZBattlefield)
 	const watcher = "Types:Enchantment\nT:Mode$ Taps | ValidCard$ Creature | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigGain | TriggerDescription$ x\nSVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
-	w1 := kr0Src(t, e, 1, "Name:Watcher One\n"+watcher, state.ZBattlefield)
-	w2 := kr0Src(t, e, 2, "Name:Watcher Two\n"+watcher, state.ZBattlefield)
-	d := kr0Run(t, e, &cards.SA{Kind: "DB", API: "TapOrUntap", Params: map[string]string{"Defined": "Self", "Tapper": "Remembered"}},
+	w1 := placeSrc(t, e, 1, "Name:Watcher One\n"+watcher, state.ZBattlefield)
+	w2 := placeSrc(t, e, 2, "Name:Watcher Two\n"+watcher, state.ZBattlefield)
+	d := runProbeSA(t, e, &cards.SA{Kind: "DB", API: "TapOrUntap", Params: map[string]string{"Defined": "Self", "Tapper": "Remembered"}},
 		func() *effects.Ctx {
 			return &effects.Ctx{Source: target, Controller: 0,
 				Remembered: []state.Target{{Obj: remembered}, {Player: 2, IsPlayer: true}}}
@@ -204,7 +202,7 @@ func TestTapOrUntapTapperPlainRememberedExcludesCardControllerKernel(t *testing.
 	if d == nil || d.ResumeKind != "taporuntap" {
 		t.Fatalf("TapOrUntap posed %+v, want the tap/untap election", d)
 	}
-	kr0Answer(t, e, kr0Kind(t, d, "tap"))
+	answerAsk(t, e, optionOfKind(t, d, "tap"))
 	if !e.G.Obj(target).Tapped {
 		t.Fatal("the \"tap\" answer did not tap the target")
 	}
@@ -224,7 +222,7 @@ func TestTapOrUntapTapperPlainRememberedExcludesCardControllerKernel(t *testing.
 // as Y (DBToken's TokenAmount$).
 func TestValiantEndeavorAsksThenPublishesChosenAndOtherKernel(t *testing.T) {
 	t.Parallel()
-	ve := kr0Corpus(t, "Valiant Endeavor")
+	ve := corpusCardNamed(t, "Valiant Endeavor")
 	var roll *cards.SA
 	for _, a := range ve.Faces[0].Abilities {
 		if a.API == "RollDice" {
@@ -234,15 +232,15 @@ func TestValiantEndeavorAsksThenPublishesChosenAndOtherKernel(t *testing.T) {
 	if roll == nil {
 		t.Fatal("corpus fixture: Valiant Endeavor has no RollDice ability")
 	}
-	e := kr0EngineCorpus(t, 2)
-	src := kr0Place(t, e, 0, ve, state.ZBattlefield)
+	e := corpusFixtureEngine(t, 2)
+	src := placeCard(t, e, 0, ve, state.ZBattlefield)
 	powers := []int{1, 2, 4, 6}
 	cre := make([]state.ObjID, len(powers))
 	for i, p := range powers {
-		cre[i] = kr0Src(t, e, state.PlayerID(i%2), "Name:C"+strconv.Itoa(i)+"\nTypes:Creature\nPT:"+strconv.Itoa(p)+"/1\nOracle:x\n", state.ZBattlefield)
+		cre[i] = placeSrc(t, e, state.PlayerID(i%2), "Name:C"+strconv.Itoa(i)+"\nTypes:Creature\nPT:"+strconv.Itoa(p)+"/1\nOracle:x\n", state.ZBattlefield)
 	}
 	var last *effects.Ctx
-	d := kr0Run(t, e, roll, func() *effects.Ctx {
+	d := runProbeSA(t, e, roll, func() *effects.Ctx {
 		return &effects.Ctx{Controller: 0, Source: src, SVars: ve.Faces[0].SVars}
 	}, &last)
 	if d == nil || d.Kind != decision.KChoose || d.Player != 0 || d.Min != 1 || d.Max != 1 || d.ResumeKind != "roll" {
@@ -258,7 +256,7 @@ func TestValiantEndeavorAsksThenPublishesChosenAndOtherKernel(t *testing.T) {
 		}
 	}
 	x, y := int(d.Rolls[1]), int(d.Rolls[0])
-	kr0Answer(t, e, 1)
+	answerAsk(t, e, 1)
 	if last.Roll.LastName != "X" || int(last.Roll.Last) != x {
 		t.Fatalf("chosen publication = %s/%d, want X/%d", last.Roll.LastName, last.Roll.Last, x)
 	}

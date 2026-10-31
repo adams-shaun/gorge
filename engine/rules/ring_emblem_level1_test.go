@@ -87,12 +87,12 @@ func TestCR70154cRingLevel1GreaterPowerCantBlockBearer(t *testing.T) {
 // old bearer -- and the game still replays from its log.
 func TestCR70154cRingLevel1LegendaryFollowsTheBearer(t *testing.T) {
 	t.Parallel()
-	e, cfg, bear, gorilla := kr3RingBoard(t, 93)
-	d := kr3Cast(t, e, "Ring Sorcery", "B", -1)
+	e, cfg, bear, gorilla := ringBoard(t, 93)
+	d := castNamedSpell(t, e, "Ring Sorcery", "B", -1)
 	if d == nil || d.ResumeKind != "ring_bearer" {
 		t.Fatalf("decision = %+v, want a ring_bearer ask", d)
 	}
-	kr3Answer(t, e, kr3OptionObj(t, d, gorilla))
+	answerChoices(t, e, optionObjOrFail(t, d, gorilla))
 	registered := 0
 	for i := range e.continuous {
 		if e.continuous[i].Affects == "Card.IsRingbearer+YouCtrl" {
@@ -114,11 +114,11 @@ func TestCR70154cRingLevel1LegendaryFollowsTheBearer(t *testing.T) {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZHand})
 		}
 	}
-	d = kr3Cast(t, e, "Ring Sorcery", "B", -1)
+	d = castNamedSpell(t, e, "Ring Sorcery", "B", -1)
 	if d == nil || d.ResumeKind != "ring_bearer" {
 		t.Fatalf("second decision = %+v, want a ring_bearer ask", d)
 	}
-	kr3Answer(t, e, kr3OptionObj(t, d, bear))
+	answerChoices(t, e, optionObjOrFail(t, d, bear))
 	if legendaryUnderLayers(e, gorilla) || !legendaryUnderLayers(e, bear) {
 		t.Fatalf("after choosing the bear: legendary gorilla=%v bear=%v, want false/true",
 			legendaryUnderLayers(e, gorilla), legendaryUnderLayers(e, bear))

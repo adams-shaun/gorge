@@ -7,8 +7,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
  * a Ctrl-click on a card-menu cast/ability must reach SeatPanelState.click's
  * `{ holdPriority: true }` through the tile post path — the pure helpers are
  * tested in cardoptions.test.ts, but the thread from a REAL click through
- * CardTile → OptionPicker → TileOptions.post is what the r2 review broke by
- * code trace, so it is held here by a mounted run against the fixture.
+ * CardTile → OptionPicker → TileOptions.post is not, so it is held here by a
+ * mounted run against the fixture.
  */
 
 let browser: Browser;

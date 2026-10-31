@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Restored from the W3 legacy removal: Transmute / Cycling / TypeCycling
+// Transmute / Cycling / TypeCycling
 // activations from hand, their searches answered through the kernel.
 
 func TestTransmuteAndCyclingRealHandActivations(t *testing.T) {

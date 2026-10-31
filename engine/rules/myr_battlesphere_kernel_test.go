@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the myr_battlesphere_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Myr Battlesphere's attack trigger asking for and paying its tap-X cost,
+// driven through the resolution kernel (engine/rules/resolve).
 
 import (
 	"reflect"

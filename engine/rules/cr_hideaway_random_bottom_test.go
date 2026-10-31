@@ -34,7 +34,7 @@ func TestCRHideawayRestGoesToBottomInRandomOrder(t *testing.T) {
 	id := e.G.Objs[0].ID
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
 	e.putTriggersOnStack()
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	pick := e.Pending()
 	if pick == nil || pick.Kind != decision.KChoose || len(pick.Options) != 4 {
 		t.Fatalf("Hideaway pick = %+v, want the four-card exile choice", pick)

@@ -1,10 +1,8 @@
 package rules
 
-// Shared fixtures for the batch-2 kernel-era restorations (the W3 legacy
-// removal deleted the effects-package tests that drove the old
-// suspend/resume protocol through fake hosts; these re-host their behaviour
-// on a real engine, where every mid-resolution ask is posed by the
-// resolution kernel and answered with Submit).
+// Shared fixtures for tests that run on a real engine, where every
+// mid-resolution ask is posed by the resolution kernel and answered with
+// Submit.
 
 import (
 	"strings"
@@ -17,17 +15,17 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// kr2Engine builds a seats-player engine at seat 0's precombat main phase,
+// kernelEngine builds a seats-player engine at seat 0's precombat main phase,
 // every hand empty (the dealt cards are put back on the library so a hand
 // count reads only what the test seats), with the corpus token table so
 // Clue and other token scripts resolve.
-func kr2Engine(t *testing.T, seats int) *Engine {
+func kernelEngine(t *testing.T, seats int) *Engine {
 	t.Helper()
-	return kr2EngineWith(t, seats, nil)
+	return kernelEngineWith(t, seats, nil)
 }
 
-// kr2EngineWith is kr2Engine with a hook to adjust the Config first.
-func kr2EngineWith(t *testing.T, seats int, mod func(*Config)) *Engine {
+// kernelEngineWith is kernelEngine with a hook to adjust the Config first.
+func kernelEngineWith(t *testing.T, seats int, mod func(*Config)) *Engine {
 	t.Helper()
 	names := make([]string, seats)
 	decks := make([][]*cards.Card, seats)
@@ -56,8 +54,8 @@ func kr2EngineWith(t *testing.T, seats int, mod func(*Config)) *Engine {
 	return e
 }
 
-// kr2Corpus returns the named corpus card.
-func kr2Corpus(t *testing.T, name string) *cards.Card {
+// corpusFixtureCard returns the named corpus card.
+func corpusFixtureCard(t *testing.T, name string) *cards.Card {
 	t.Helper()
 	c, ok := testutil.CorpusRegistry(t).Lookup(name)
 	if !ok {
@@ -66,9 +64,9 @@ func kr2Corpus(t *testing.T, name string) *cards.Card {
 	return c
 }
 
-// kr2Put adds c for owner p into zone z (appended; for the library, top
+// putCardIn adds c for owner p into zone z (appended; for the library, top
 // puts it on top instead), eventlessly, and returns its id.
-func kr2Put(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card, z state.Zone, top bool) state.ObjID {
+func putCardIn(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card, z state.Zone, top bool) state.ObjID {
 	t.Helper()
 	o := e.G.AddObject(c, p)
 	o.Zone = z
@@ -91,65 +89,65 @@ func kr2Put(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card, z state.Zo
 	return o.ID
 }
 
-// kr2Src parses an inline fixture script.
-func kr2Src(t *testing.T, src string) *cards.Card { t.Helper(); return card(t, src) }
+// cardOfSrc parses an inline fixture script.
+func cardOfSrc(t *testing.T, src string) *cards.Card { t.Helper(); return card(t, src) }
 
-// kr2Sorcery is an inline sorcery named name whose script lines are body.
-func kr2Sorcery(t *testing.T, name string, body ...string) *cards.Card {
+// sorceryCard is an inline sorcery named name whose script lines are body.
+func sorceryCard(t *testing.T, name string, body ...string) *cards.Card {
 	t.Helper()
 	return card(t, "Name:"+name+"\nManaCost:B\nTypes:Sorcery\n"+strings.Join(body, "\n")+"\nOracle:x\n")
 }
 
-// kr2Fund fills p's pool with plenty of every colour.
-func kr2Fund(e *Engine, p state.PlayerID) {
+// fundMana fills p's pool with plenty of every colour.
+func fundMana(e *Engine, p state.PlayerID) {
 	for _, c := range []int{state.MW, state.MU, state.MB, state.MR, state.MG} {
 		e.G.Players[p].Pool[c] = 10
 	}
 }
 
-// kr2Priority re-poses p's priority decision over the current state.
-func kr2Priority(e *Engine, p state.PlayerID) {
+// givePriority re-poses p's priority decision over the current state.
+func givePriority(e *Engine, p state.PlayerID) {
 	e.pending = nil
 	e.askPriority(p)
 }
 
-// kr2Cast funds seat p, gives it priority and casts id; it returns the next
+// castWithMana funds seat p, gives it priority and casts id; it returns the next
 // non-priority decision (cast-time or mid-resolution), or nil once the stack
 // has emptied at a priority decision.
-func kr2Cast(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID) *decision.Decision {
+func castWithMana(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID) *decision.Decision {
 	t.Helper()
-	kr2Fund(e, p)
-	kr2Priority(e, p)
+	fundMana(e, p)
+	givePriority(e, p)
 	d := e.Pending()
 	for _, o := range d.Options {
 		if o.Kind == "cast" && o.Obj == id {
 			submitChoices(t, e, o.Index)
-			return kr2Next(t, e)
+			return nextAfterSettle(t, e)
 		}
 	}
 	t.Fatalf("no cast option for %d (%s): %+v", id, e.G.Obj(id).Face().Name, d.Options)
 	return nil
 }
 
-// kr2Activate funds seat p and activates id's first offered ability.
-func kr2Activate(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID) *decision.Decision {
+// activatePermanentAbility funds seat p and activates id's first offered ability.
+func activatePermanentAbility(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID) *decision.Decision {
 	t.Helper()
-	kr2Fund(e, p)
-	kr2Priority(e, p)
+	fundMana(e, p)
+	givePriority(e, p)
 	d := e.Pending()
 	for _, o := range d.Options {
 		if o.Kind == "ability" && o.Obj == id {
 			submitChoices(t, e, o.Index)
-			return kr2Next(t, e)
+			return nextAfterSettle(t, e)
 		}
 	}
 	t.Fatalf("no ability option for %d: %+v", id, d.Options)
 	return nil
 }
 
-// kr2Next passes priority until a non-priority decision is pending (and
+// nextAfterSettle passes priority until a non-priority decision is pending (and
 // returns it) or the stack is empty at a priority decision (nil).
-func kr2Next(t *testing.T, e *Engine) *decision.Decision {
+func nextAfterSettle(t *testing.T, e *Engine) *decision.Decision {
 	t.Helper()
 	for i := 0; i < 60; i++ {
 		d := e.Pending()
@@ -164,13 +162,13 @@ func kr2Next(t *testing.T, e *Engine) *decision.Decision {
 		}
 		passFirst(t, e)
 	}
-	t.Fatal("kr2Next: the stack never settled")
+	t.Fatal("nextAfterSettle: the stack never settled")
 	return nil
 }
 
-// kr2Answer submits choices to the pending decision d and returns the next
+// answerDecision submits choices to the pending decision d and returns the next
 // non-priority decision (nil once the stack is empty).
-func kr2Answer(t *testing.T, e *Engine, d *decision.Decision, choices ...int) *decision.Decision {
+func answerDecision(t *testing.T, e *Engine, d *decision.Decision, choices ...int) *decision.Decision {
 	t.Helper()
 	if cur := e.Pending(); cur == nil || cur.Seq != d.Seq {
 		t.Fatalf("decision %+v is not the pending one (%+v)", d, cur)
@@ -178,11 +176,11 @@ func kr2Answer(t *testing.T, e *Engine, d *decision.Decision, choices ...int) *d
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
 		t.Fatalf("submit %v to %s/%s: %v", choices, d.Kind, d.ResumeKind, err)
 	}
-	return kr2Next(t, e)
+	return nextAfterSettle(t, e)
 }
 
-// kr2Kind returns the index of d's option whose Kind is kind.
-func kr2Kind(t *testing.T, d *decision.Decision, kind string) int {
+// optionKindIndex returns the index of d's option whose Kind is kind.
+func optionKindIndex(t *testing.T, d *decision.Decision, kind string) int {
 	t.Helper()
 	for _, o := range d.Options {
 		if o.Kind == kind {
@@ -193,8 +191,8 @@ func kr2Kind(t *testing.T, d *decision.Decision, kind string) int {
 	return -1
 }
 
-// kr2ObjIdx returns the index of d's option naming obj.
-func kr2ObjIdx(t *testing.T, d *decision.Decision, obj state.ObjID) int {
+// objOptionIndex returns the index of d's option naming obj.
+func objOptionIndex(t *testing.T, d *decision.Decision, obj state.ObjID) int {
 	t.Helper()
 	for _, o := range d.Options {
 		if o.Obj == obj {
@@ -205,8 +203,8 @@ func kr2ObjIdx(t *testing.T, d *decision.Decision, obj state.ObjID) int {
 	return -1
 }
 
-// kr2PlayerIdx returns the index of d's option naming player p.
-func kr2PlayerIdx(t *testing.T, d *decision.Decision, p state.PlayerID) int {
+// playerOptionIndex returns the index of d's option naming player p.
+func playerOptionIndex(t *testing.T, d *decision.Decision, p state.PlayerID) int {
 	t.Helper()
 	for _, o := range d.Options {
 		if o.Obj == 0 && o.Player == p {
@@ -217,8 +215,8 @@ func kr2PlayerIdx(t *testing.T, d *decision.Decision, p state.PlayerID) int {
 	return -1
 }
 
-// kr2Want fails unless d is a decision with the given resume kind.
-func kr2Want(t *testing.T, d *decision.Decision, resume string) *decision.Decision {
+// requireResumeAsk fails unless d is a decision with the given resume kind.
+func requireResumeAsk(t *testing.T, d *decision.Decision, resume string) *decision.Decision {
 	t.Helper()
 	if d == nil || d.ResumeKind != resume {
 		t.Fatalf("decision = %+v, want a %q ask", d, resume)
@@ -226,8 +224,8 @@ func kr2Want(t *testing.T, d *decision.Decision, resume string) *decision.Decisi
 	return d
 }
 
-// kr2Events returns the events of kind k logged at or after from.
-func kr2Events(e *Engine, from int, k events.Kind) []events.Event {
+// eventsOfKindFrom returns the events of kind k logged at or after from.
+func eventsOfKindFrom(e *Engine, from int, k events.Kind) []events.Event {
 	var out []events.Event
 	for _, ev := range e.L.Events[from:] {
 		if ev.Kind == k {
@@ -237,9 +235,9 @@ func kr2Events(e *Engine, from int, k events.Kind) []events.Event {
 	return out
 }
 
-// kr2SecretLooks returns the Secret look Notes carrying ids logged at or
+// secretLooksFrom returns the Secret look Notes carrying ids logged at or
 // after from.
-func kr2SecretLooks(e *Engine, from int) []events.Event {
+func secretLooksFrom(e *Engine, from int) []events.Event {
 	var out []events.Event
 	for _, ev := range e.L.Events[from:] {
 		if ev.Kind == events.Note && ev.Secret && len(ev.IDs) > 0 {
@@ -249,9 +247,9 @@ func kr2SecretLooks(e *Engine, from int) []events.Event {
 	return out
 }
 
-// kr2PublicReveals returns the public Notes carrying ids logged at or after
+// publicRevealsFrom returns the public Notes carrying ids logged at or after
 // from.
-func kr2PublicReveals(e *Engine, from int) []events.Event {
+func publicRevealsFrom(e *Engine, from int) []events.Event {
 	var out []events.Event
 	for _, ev := range e.L.Events[from:] {
 		if ev.Kind == events.Note && !ev.Secret && len(ev.IDs) > 0 {

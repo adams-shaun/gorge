@@ -1,8 +1,6 @@
 package rules
 
-// Kernel-era restorations of the RepeatOptional$ behaviour pins
-// (effects/repeat_optional_test.go and engine/effects/resume_oneshot_test.go before
-// the W3 legacy removal): the do/while election's iteration count, with a
+// RepeatOptional$: the do/while election's iteration count, with a
 // body that itself asks, and a stop answer that must not leak into the next
 // Repeat on the chain.
 
@@ -25,11 +23,11 @@ func TestRepeatOptionalResumeStatesAreDistinct(t *testing.T) {
 		"A:SP$ Repeat | RepeatSubAbility$ Body | RepeatOptional$ True\n" +
 		"SVar:Body:DB$ Scry | Defined$ You | ScryNum$ 2 | SubAbility$ Gain\n" +
 		"SVar:Gain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
-	e, cfg := kr3Game(t, 81, kr3Cards(t, spell), nil)
-	kr3Move(t, e, 0, "Repeat Ritual", state.ZHand)
+	e, cfg := fixtureGame(t, 81, cardsOfSrcs(t, spell), nil)
+	moveNamedTo(t, e, 0, "Repeat Ritual", state.ZHand)
 	life := e.G.Players[0].Life
 	arranges, elections := 0, 0
-	d := kr3Cast(t, e, "Repeat Ritual", "U", -1)
+	d := castNamedSpell(t, e, "Repeat Ritual", "U", -1)
 	for d != nil {
 		switch {
 		case d.Kind == decision.KArrange:
@@ -37,7 +35,7 @@ func TestRepeatOptionalResumeStatesAreDistinct(t *testing.T) {
 			if arranges != elections+1 {
 				t.Fatalf("body %d ran after %d elections: a body ran before its election", arranges, elections)
 			}
-			d = kr3Answer(t, e, tapePick(d)...)
+			d = answerChoices(t, e, tapePick(d)...)
 		case d.Kind == decision.KChoose && d.ResumeKind == "repeat_optional":
 			elections++
 			if elections != arranges {
@@ -46,11 +44,11 @@ func TestRepeatOptionalResumeStatesAreDistinct(t *testing.T) {
 			if got := e.G.Players[0].Life; got != life+int32(arranges) {
 				t.Fatalf("life at election %d = %d, want %d (each completed body gains 1 first)", elections, got, life+int32(arranges))
 			}
-			ans := kr3OptionKind(t, d, "yes")
+			ans := optionKindOrFail(t, d, "yes")
 			if elections == 2 {
-				ans = kr3OptionKind(t, d, "no")
+				ans = optionKindOrFail(t, d, "no")
 			}
-			d = kr3Answer(t, e, ans)
+			d = answerChoices(t, e, ans)
 		default:
 			t.Fatalf("unexpected decision %+v", d)
 		}
@@ -74,14 +72,14 @@ func TestRepeatOptionalContinuationIsConsumedByItsRepeat(t *testing.T) {
 		"SVar:DBSecond:DB$ Repeat | RepeatSubAbility$ Second | RepeatNum$ 2\n" +
 		"SVar:First:DB$ GainLife | Defined$ You | LifeAmount$ 1\n" +
 		"SVar:Second:DB$ GainLife | Defined$ You | LifeAmount$ 10\nOracle:x\n"
-	e, cfg := kr3Game(t, 82, kr3Cards(t, spell), nil)
-	kr3Move(t, e, 0, "Repeat Chain", state.ZHand)
+	e, cfg := fixtureGame(t, 82, cardsOfSrcs(t, spell), nil)
+	moveNamedTo(t, e, 0, "Repeat Chain", state.ZHand)
 	life := e.G.Players[0].Life
-	d := kr3Cast(t, e, "Repeat Chain", "U", -1)
+	d := castNamedSpell(t, e, "Repeat Chain", "U", -1)
 	if d == nil || d.ResumeKind != "repeat_optional" {
 		t.Fatalf("decision = %+v, want the repeat election after the first body", d)
 	}
-	if d := kr3Answer(t, e, kr3OptionKind(t, d, "no")); d != nil {
+	if d := answerChoices(t, e, optionKindOrFail(t, d, "no")); d != nil {
 		t.Fatalf("the stopped repeat posed %+v", d)
 	}
 	if got := e.G.Players[0].Life; got != life+21 {

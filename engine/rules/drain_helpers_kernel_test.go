@@ -6,13 +6,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// kr9Drain passes priority and answers every other decision with answer
-// (kr9FirstAnswer when nil) until the stack is empty with no queued
+// drainDecisions passes priority and answers every other decision with answer
+// (firstAnswer when nil) until the stack is empty with no queued
 // triggers, the game ends, or the budget runs out (a fatal).
-func kr9Drain(t *testing.T, e *Engine, limit int, answer func(d *decision.Decision) []int) {
+func drainDecisions(t *testing.T, e *Engine, limit int, answer func(d *decision.Decision) []int) {
 	t.Helper()
 	if answer == nil {
-		answer = kr9FirstAnswer
+		answer = firstAnswer
 	}
 	for i := 0; i < limit; i++ {
 		if e.G.Over {
@@ -37,13 +37,13 @@ func kr9Drain(t *testing.T, e *Engine, limit int, answer func(d *decision.Decisi
 			t.Fatalf("submit %s/%s %v: %v", d.Kind, d.ResumeKind, answer(d), err)
 		}
 	}
-	t.Fatalf("kr9Drain did not settle within %d steps", limit)
+	t.Fatalf("drainDecisions did not settle within %d steps", limit)
 }
 
-// kr9FirstAnswer takes the leading max(Min,1) options (none when the
+// firstAnswer takes the leading max(Min,1) options (none when the
 // decision offers none), and the full offered order for an arrange whose
 // Min covers every option.
-func kr9FirstAnswer(d *decision.Decision) []int {
+func firstAnswer(d *decision.Decision) []int {
 	n := d.Min
 	if n < 1 {
 		n = 1
@@ -58,23 +58,23 @@ func kr9FirstAnswer(d *decision.Decision) []int {
 	return out
 }
 
-// kr9Probe runs f as a kernel probe with no stale decision pending: a
+// probeAfterPass runs f as a kernel probe with no stale decision pending: a
 // fixture that drives the engine's internals directly (an entry emit, a
 // resolveTop) at a seat's priority snapshot would otherwise leave that
 // snapshot pending, and the kernel serves no ask behind a pending decision.
 // The probe's ask (if any) is the pending decision afterwards.
-func kr9Probe(e *Engine, f func()) {
+func probeAfterPass(e *Engine, f func()) {
 	e.pending = nil
 	e.probe(f)
 }
 
-// kr9ResolveTop resolves the top of the stack as a kernel probe.
-func kr9ResolveTop(e *Engine) { kr9Probe(e, e.resolveTop) }
+// resolveTopAfterPass resolves the top of the stack as a kernel probe.
+func resolveTopAfterPass(e *Engine) { probeAfterPass(e, e.resolveTop) }
 
-// kr9Settle re-asks priority (which first stacks queued triggers, CR 117.5)
+// settleAfterPass re-asks priority (which first stacks queued triggers, CR 117.5)
 // when a probe's answering Submit left nothing pending: a probe re-runs only
 // its own step, so the next priority round is the fixture's to start.
-func kr9Settle(e *Engine) {
+func settleAfterPass(e *Engine) {
 	if e.Pending() == nil && !e.G.Over {
 		e.priorityRound()
 	}

@@ -16,7 +16,7 @@ func TestGorgerWurmDevourAsksAndCountsTheSacrificed(t *testing.T) {
 		corpusAlternativeCard(t, "Grizzly Bears"))
 	fodder := devourFodder(t, e, "Grizzly Bears", "Grizzly Bears")
 
-	d := kr5EnterDevourer(t, e, "Gorger Wurm")
+	d := enterDevourerAsk(t, e, "Gorger Wurm")
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("on the wurm's entry: %+v, want a KChoose sacrifice ask", d)
 	}
@@ -55,7 +55,7 @@ func TestGorgerWurmDevourDeclineEntersWithoutCounters(t *testing.T) {
 		corpusAlternativeCard(t, "Grizzly Bears"))
 	fodder := devourFodder(t, e, "Grizzly Bears")
 
-	d := kr5EnterDevourer(t, e, "Gorger Wurm")
+	d := enterDevourerAsk(t, e, "Gorger Wurm")
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "sacrifice" {
 		t.Fatalf("on the wurm's entry: %+v, want the sacrifice ask", d)
 	}
@@ -78,7 +78,7 @@ func TestThunderThrashElderDevourThreeCountsSixPerCreature(t *testing.T) {
 		corpusAlternativeCard(t, "Grizzly Bears"))
 	fodder := devourFodder(t, e, "Grizzly Bears", "Grizzly Bears")
 
-	d := kr5EnterDevourer(t, e, "Thunder-Thrash Elder")
+	d := enterDevourerAsk(t, e, "Thunder-Thrash Elder")
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "sacrifice" || d.Min != 0 || d.Max != 2 {
 		t.Fatalf("sacrifice ask: %+v, want sacrifice 0..2", d)
 	}
@@ -105,7 +105,7 @@ func TestThromokDevourXSquaresTheCount(t *testing.T) {
 		corpusAlternativeCard(t, "Grizzly Bears"))
 	devourFodder(t, e, "Grizzly Bears", "Grizzly Bears")
 
-	d := kr5EnterDevourer(t, e, "Thromok the Insatiable")
+	d := enterDevourerAsk(t, e, "Thromok the Insatiable")
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "sacrifice" {
 		t.Fatalf("sacrifice ask: %+v, want the KChoose sacrifice ask", d)
 	}
@@ -126,7 +126,7 @@ func TestFeastingHobbitDevourFiltersFoods(t *testing.T) {
 		corpusAlternativeCard(t, "Grizzly Bears"))
 	fodder := devourFodder(t, e, "Gingerbrute", "Grizzly Bears")
 
-	d := kr5EnterDevourer(t, e, "Feasting Hobbit")
+	d := enterDevourerAsk(t, e, "Feasting Hobbit")
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "sacrifice" || d.Min != 0 || d.Max != 1 {
 		t.Fatalf("sacrifice ask: %+v, want sacrifice 0..1 (only the Food is eligible)", d)
 	}
@@ -145,11 +145,11 @@ func TestFeastingHobbitDevourFiltersFoods(t *testing.T) {
 	}
 }
 
-// kr5EnterDevourer is enterDevourer under the resolution kernel: the
+// enterDevourerAsk is enterDevourer under the resolution kernel: the
 // devourer's hand->battlefield entry runs as a kernel probe from a quiet
 // engine, so the ETB replacement's sacrifice ask is posed and its answer
 // re-executes the entry with the choice served.
-func kr5EnterDevourer(t *testing.T, e *Engine, name string) *decision.Decision {
+func enterDevourerAsk(t *testing.T, e *Engine, name string) *decision.Decision {
 	t.Helper()
 	id := searchMoveByName(t, e, name, state.ZHand)
 	e.pending = nil

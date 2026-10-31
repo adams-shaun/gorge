@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the rest_in_peace_swords_token_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Ponder's arrange resuming its draw exactly once, driven through the
+// resolution kernel (engine/rules/resolve).
 
 import (
 	"slices"

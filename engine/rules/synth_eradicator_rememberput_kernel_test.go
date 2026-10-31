@@ -22,7 +22,7 @@ func TestSynthEradicatorRememberPutGatesTheExiledCardKernel(t *testing.T) {
 			t.Fatal("precondition: Synth Eradicator is not on the battlefield")
 		}
 		e.emit(events.Event{Kind: events.TriggerPush, Obj: synth, Player: 0})
-		kr9ResolveTop(e)
+		resolveTopAfterPass(e)
 		d := e.Pending()
 		if d == nil || d.ResumeKind != "put_optional" {
 			t.Fatalf("attack trigger did not reach the optional energy election: %+v", d)

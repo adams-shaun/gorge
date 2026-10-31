@@ -35,7 +35,7 @@ func TestAtEOTPurphorosHandMoveIsSacrificedAtEOTKernel(t *testing.T) {
 	if sa == nil {
 		t.Fatal("Purphoros has no ChangeZone ability")
 	}
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		return &effects.Ctx{Source: purph, Controller: 0, SVars: card.Faces[0].SVars}
 	}, sa)
 	d := e.Pending()
@@ -47,8 +47,8 @@ func TestAtEOTPurphorosHandMoveIsSacrificedAtEOTKernel(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" {
 		t.Fatalf("pending %+v, want the hand_move KChoose", d)
 	}
-	submitChoices(t, e, kr4Option(t, d, gob))
-	kr4Settle(e)
+	submitChoices(t, e, optionOfObj(t, d, gob))
+	settlePassing(e)
 	passUntilStackEmpty(t, e, 20)
 
 	if o := e.G.Obj(gob); o == nil || o.Zone != state.ZBattlefield || o.Controller != 0 {

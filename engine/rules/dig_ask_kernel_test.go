@@ -1,7 +1,6 @@
 package rules
 
-// Restored from engine/effects/dig_ask_test.go (W3 legacy removal): Dig's
-// look-and-take ask, its Optional$/mandatory bounds, the bottom choice, the
+// Dig's look-and-take ask, its Optional$/mandatory bounds, the bottom choice, the
 // ordered-bottom arrange and the multi-library walk, answered through the
 // resolution kernel on a real engine.
 
@@ -17,19 +16,19 @@ import (
 )
 
 const (
-	kr0DigBear = "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n"
-	kr0DigIsle = "Name:Isle\nTypes:Basic Land Island\nOracle:x\n"
-	kr0DigSA   = "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand"
+	digBearSrc   = "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n"
+	digIsleSrc   = "Name:Isle\nTypes:Basic Land Island\nOracle:x\n"
+	digFixtureSA = "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand"
 )
 
-// kr0DigBoard sets seat 0's library to [bear, land, land, bear] with an
+// digBoard sets seat 0's library to [bear, land, land, bear] with an
 // empty hand and returns the library ids and a Ctx maker.
-func kr0DigBoard(t *testing.T) (*Engine, []state.ObjID, func() *effects.Ctx) {
+func digBoard(t *testing.T) (*Engine, []state.ObjID, func() *effects.Ctx) {
 	t.Helper()
-	e := kr0Engine(t, 2)
-	src := kr0Src(t, e, 0, "Name:Digger\nTypes:Sorcery\nOracle:x\n", state.ZBattlefield)
-	ids := kr0SetLibrary(t, e, 0, kr0DigBear, kr0DigIsle, kr0DigIsle, kr0DigBear)
-	kr0SetHand(t, e, 0)
+	e := fixtureEngine(t, 2)
+	src := placeSrc(t, e, 0, "Name:Digger\nTypes:Sorcery\nOracle:x\n", state.ZBattlefield)
+	ids := setLibrarySrcs(t, e, 0, digBearSrc, digIsleSrc, digIsleSrc, digBearSrc)
+	setHandSrcs(t, e, 0)
 	return e, ids, func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0} }
 }
 
@@ -41,9 +40,9 @@ func kr0DigBoard(t *testing.T) (*Engine, []state.ObjID, func() *effects.Ctx) {
 // top in order.
 func TestDigAsksWhenTheWindowHoldsMoreEligibleCardsThanChangeNumKernel(t *testing.T) {
 	t.Parallel()
-	e, ids, mk := kr0DigBoard(t)
+	e, ids, mk := digBoard(t)
 	start := len(e.L.Events)
-	d := kr0Run(t, e, kr0SA(t, kr0DigSA), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, digFixtureSA), mk, nil)
 	if d == nil || d.Kind != decision.KChoose || d.Player != 0 || d.Min != 0 || d.Max != 1 || d.ResumeKind != "dig" {
 		t.Fatalf("decision = %+v, want a Min 0 / Max 1 dig KChoose for seat 0", d)
 	}
@@ -54,7 +53,7 @@ func TestDigAsksWhenTheWindowHoldsMoreEligibleCardsThanChangeNumKernel(t *testin
 		t.Fatalf("options = %+v, want the two lands in library order, Kind \"dig\"", d.Options)
 	}
 	var look *events.Event
-	for _, ev := range kr0Since(e, start) {
+	for _, ev := range eventsSince(e, start) {
 		if ev.Kind == events.Note && ev.Text == "looks at the top of the library" {
 			ev := ev
 			look = &ev
@@ -67,7 +66,7 @@ func TestDigAsksWhenTheWindowHoldsMoreEligibleCardsThanChangeNumKernel(t *testin
 	if len(e.G.Zone(state.ZHand, 0)) != 0 {
 		t.Fatal("cards moved before the answer")
 	}
-	kr0Answer(t, e, kr0Opt(t, d, ids[2]))
+	answerAsk(t, e, optionIdxForObj(t, d, ids[2]))
 	if hand := e.G.Zone(state.ZHand, 0); !slices.Equal(hand, []state.ObjID{ids[2]}) {
 		t.Fatalf("hand = %v, want [%d] (the SECOND land)", hand, ids[2])
 	}
@@ -75,7 +74,7 @@ func TestDigAsksWhenTheWindowHoldsMoreEligibleCardsThanChangeNumKernel(t *testin
 		t.Fatalf("library = %v, want [%d %d %d]", lib, ids[0], ids[1], ids[3])
 	}
 	found := false
-	for _, ev := range kr0Since(e, start) {
+	for _, ev := range eventsSince(e, start) {
 		found = found || ev.Kind == events.MoveZone && ev.Obj == ids[2] && ev.Secret && ev.Player == 0
 	}
 	if !found {
@@ -88,8 +87,8 @@ func TestDigAsksWhenTheWindowHoldsMoreEligibleCardsThanChangeNumKernel(t *testin
 // selecting the second land bottoms exactly it.
 func TestDigBottomChoiceExplainsBothOutcomesKernel(t *testing.T) {
 	t.Parallel()
-	e, ids, mk := kr0DigBoard(t)
-	d := kr0Run(t, e, kr0SA(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Library | LibraryPosition$ -1 | SkipReorder$ True"), mk, nil)
+	e, ids, mk := digBoard(t)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Library | LibraryPosition$ -1 | SkipReorder$ True"), mk, nil)
 	if d == nil {
 		t.Fatal("no decision was posed")
 	}
@@ -99,7 +98,7 @@ func TestDigBottomChoiceExplainsBothOutcomesKernel(t *testing.T) {
 	if len(d.Options) != 2 || d.Options[0].Label != "Put Isle on bottom" || d.Options[1].Label != "Put Isle on bottom" {
 		t.Fatalf("options = %+v, want explicit bottom actions", d.Options)
 	}
-	kr0Answer(t, e, kr0Opt(t, d, ids[2]))
+	answerAsk(t, e, optionIdxForObj(t, d, ids[2]))
 	if got, want := e.G.Zone(state.ZLibrary, 0), []state.ObjID{ids[0], ids[1], ids[3], ids[2]}; !slices.Equal(got, want) {
 		t.Fatalf("library = %v, want %v", got, want)
 	}
@@ -109,11 +108,11 @@ func TestDigBottomChoiceExplainsBothOutcomesKernel(t *testing.T) {
 // take moves nothing.
 func TestDigOptionalDeclineMovesNothingKernel(t *testing.T) {
 	t.Parallel()
-	e, ids, mk := kr0DigBoard(t)
-	if d := kr0Run(t, e, kr0SA(t, kr0DigSA), mk, nil); d == nil {
+	e, ids, mk := digBoard(t)
+	if d := runProbeSA(t, e, parseFixtureSA(t, digFixtureSA), mk, nil); d == nil {
 		t.Fatal("no decision was posed")
 	}
-	kr0Answer(t, e)
+	answerAsk(t, e)
 	if lib := e.G.Zone(state.ZLibrary, 0); len(lib) != 4 || lib[0] != ids[0] || lib[3] != ids[3] {
 		t.Fatalf("library = %v, want the decline to move nothing", lib)
 	}
@@ -126,8 +125,8 @@ func TestDigOptionalDeclineMovesNothingKernel(t *testing.T) {
 // is ChangeNum.
 func TestDigMandatoryAskMinsAtChangeNumKernel(t *testing.T) {
 	t.Parallel()
-	e, _, mk := kr0DigBoard(t)
-	d := kr0Run(t, e, kr0SA(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand"), mk, nil)
+	e, _, mk := digBoard(t)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand"), mk, nil)
 	if d == nil || d.Min != 1 || d.Max != 1 {
 		t.Fatalf("decision = %+v, want Min/Max 1/1 for a mandatory take of 1", d)
 	}
@@ -138,12 +137,12 @@ func TestDigMandatoryAskMinsAtChangeNumKernel(t *testing.T) {
 // leaves the window unchanged.
 func TestDigOptionalAsksEvenWhenTheEligibleSetFitsTheCapKernel(t *testing.T) {
 	t.Parallel()
-	e, ids, mk := kr0DigBoard(t)
-	d := kr0Run(t, e, kr0SA(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 2 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand | SkipReorder$ True"), mk, nil)
+	e, ids, mk := digBoard(t)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 2 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand | SkipReorder$ True"), mk, nil)
 	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 2 {
 		t.Fatalf("decision = %+v, want an optional 0..2 take ask", d)
 	}
-	kr0Answer(t, e)
+	answerAsk(t, e)
 	if hand := e.G.Zone(state.ZHand, 0); len(hand) != 0 {
 		t.Fatalf("hand = %v, want empty after the optional decline", hand)
 	}
@@ -157,8 +156,8 @@ func TestDigOptionalAsksEvenWhenTheEligibleSetFitsTheCapKernel(t *testing.T) {
 // in-window answer is the only card that moves.
 func TestDigReentryIgnoresIdsOutsideTheWindowKernel(t *testing.T) {
 	t.Parallel()
-	e, ids, mk := kr0DigBoard(t)
-	d := kr0Run(t, e, kr0SA(t, kr0DigSA), mk, nil)
+	e, ids, mk := digBoard(t)
+	d := runProbeSA(t, e, parseFixtureSA(t, digFixtureSA), mk, nil)
 	if d == nil {
 		t.Fatal("no decision was posed")
 	}
@@ -167,7 +166,7 @@ func TestDigReentryIgnoresIdsOutsideTheWindowKernel(t *testing.T) {
 			t.Fatalf("option %+v names a card outside the eligible window", o)
 		}
 	}
-	kr0Answer(t, e, kr0Opt(t, d, ids[1]))
+	answerAsk(t, e, optionIdxForObj(t, d, ids[1]))
 	if hand := e.G.Zone(state.ZHand, 0); !slices.Equal(hand, []state.ObjID{ids[1]}) {
 		t.Fatalf("hand = %v, want [%d] (only the in-window pick moved)", hand, ids[1])
 	}
@@ -179,8 +178,8 @@ func TestDigReentryIgnoresIdsOutsideTheWindowKernel(t *testing.T) {
 // card.
 func TestDigZeroChangeNumSkipsTheTakeAskKernel(t *testing.T) {
 	t.Parallel()
-	e, ids, mk := kr0DigBoard(t)
-	d := kr0Run(t, e, kr0SA(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 0 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand"), mk, nil)
+	e, ids, mk := digBoard(t)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 0 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand"), mk, nil)
 	if d == nil || d.Kind != decision.KArrange {
 		t.Fatalf("decision = %+v, want the ordered-bottom KArrange", d)
 	}
@@ -191,20 +190,20 @@ func TestDigZeroChangeNumSkipsTheTakeAskKernel(t *testing.T) {
 		t.Fatal("ChangeNum$ 0 took a card")
 	}
 	order := []state.ObjID{d.Options[2].Obj, d.Options[0].Obj, d.Options[1].Obj}
-	kr0Answer(t, e, 2, 0, 1)
+	answerAsk(t, e, 2, 0, 1)
 	want := append([]state.ObjID{ids[3]}, order...)
 	if lib := e.G.Zone(state.ZLibrary, 0); !slices.Equal(lib, want) {
 		t.Fatalf("library = %v, want %v (the window bottomed in the answered order)", lib, want)
 	}
 }
 
-// kr0DigLibraries gives seats 0..n-1 the given libraries and empty hands.
-func kr0DigLibraries(t *testing.T, e *Engine, libs ...[]string) [][]state.ObjID {
+// digLibraries gives seats 0..n-1 the given libraries and empty hands.
+func digLibraries(t *testing.T, e *Engine, libs ...[]string) [][]state.ObjID {
 	t.Helper()
 	out := make([][]state.ObjID, len(libs))
 	for p, srcs := range libs {
-		out[p] = kr0SetLibrary(t, e, state.PlayerID(p), srcs...)
-		kr0SetHand(t, e, state.PlayerID(p))
+		out[p] = setLibrarySrcs(t, e, state.PlayerID(p), srcs...)
+		setHandSrcs(t, e, state.PlayerID(p))
 	}
 	return out
 }
@@ -217,13 +216,13 @@ func kr0DigLibraries(t *testing.T, e *Engine, libs ...[]string) [][]state.ObjID 
 // one land taken and its remainder bottomed.
 func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 	t.Parallel()
-	e := kr0Engine(t, 3)
-	src := kr0Src(t, e, 0, "Name:Digger\nTypes:Sorcery\nOracle:x\n", state.ZBattlefield)
-	libs := kr0DigLibraries(t, e,
-		[]string{kr0DigIsle, kr0DigBear},
-		[]string{kr0DigIsle, kr0DigBear, kr0DigIsle},
-		[]string{kr0DigIsle, kr0DigBear, kr0DigIsle})
-	d := kr0Run(t, e, kr0SA(t, "SP$ Dig | Defined$ Player | DigNum$ 3 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand"),
+	e := fixtureEngine(t, 3)
+	src := placeSrc(t, e, 0, "Name:Digger\nTypes:Sorcery\nOracle:x\n", state.ZBattlefield)
+	libs := digLibraries(t, e,
+		[]string{digIsleSrc, digBearSrc},
+		[]string{digIsleSrc, digBearSrc, digIsleSrc},
+		[]string{digIsleSrc, digBearSrc, digIsleSrc})
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ Dig | Defined$ Player | DigNum$ 3 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand"),
 		func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0} }, nil)
 	if d == nil || d.Player != 0 || d.ResumeTarget != 1 || d.Kind != decision.KChoose {
 		t.Fatalf("first decision = %+v, want seat 1's take, chosen by the controller (seat 0; CR 701.29a)", d)
@@ -238,7 +237,7 @@ func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 		t.Fatal("seat 2 was processed before seat 1's ask")
 	}
 	picked := libs[1][2]
-	d = kr0Answer(t, e, kr0Opt(t, d, picked))
+	d = answerAsk(t, e, optionIdxForObj(t, d, picked))
 	if d == nil || d.Kind != decision.KArrange || d.Player != 0 || d.ResumeTarget != 1 || d.Min != 2 || d.Max != 2 {
 		t.Fatalf("decision = %+v, want seat 1's 2/2 ordered-bottom arrange, chosen by seat 0", d)
 	}
@@ -252,7 +251,7 @@ func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 		t.Fatal("seat 2 was processed before seat 1's arrange")
 	}
 	order1 := []state.ObjID{d.Options[1].Obj, d.Options[0].Obj}
-	d = kr0Answer(t, e, 1, 0)
+	d = answerAsk(t, e, 1, 0)
 	if lib := e.G.Zone(state.ZLibrary, 1); !slices.Equal(lib, order1) {
 		t.Fatalf("seat 1 library = %v, want the answered bottom order %v", lib, order1)
 	}
@@ -265,7 +264,7 @@ func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 		if d.Player != 0 || d.ResumeTarget != 2 {
 			t.Fatalf("unexpected decision %+v after seat 2's walk began", d)
 		}
-		d = kr0Answer(t, e, tapePick(d)...)
+		d = answerAsk(t, e, tapePick(d)...)
 	}
 	if d != nil {
 		t.Fatalf("seat 2's walk never completed: %+v", d)
@@ -284,13 +283,13 @@ func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 // first-eligible take, and its answer is what moves.
 func TestDigTakeResumeContinuesToLaterLibraryKernel(t *testing.T) {
 	t.Parallel()
-	e := kr0Engine(t, 3)
-	src := kr0Src(t, e, 0, "Name:Digger\nTypes:Sorcery\nOracle:x\n", state.ZBattlefield)
-	libs := kr0DigLibraries(t, e,
-		[]string{kr0DigIsle, kr0DigBear},
-		[]string{kr0DigIsle, kr0DigIsle},
-		[]string{kr0DigIsle, kr0DigIsle})
-	d := kr0Run(t, e, kr0SA(t, "SP$ Dig | Defined$ Player | DigNum$ 2 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand"),
+	e := fixtureEngine(t, 3)
+	src := placeSrc(t, e, 0, "Name:Digger\nTypes:Sorcery\nOracle:x\n", state.ZBattlefield)
+	libs := digLibraries(t, e,
+		[]string{digIsleSrc, digBearSrc},
+		[]string{digIsleSrc, digIsleSrc},
+		[]string{digIsleSrc, digIsleSrc})
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ Dig | Defined$ Player | DigNum$ 2 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand"),
 		func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0} }, nil)
 	if d == nil || d.Player != 0 || d.ResumeTarget != 1 {
 		t.Fatalf("first decision = %+v, want seat 1's take at target index 1, chosen by seat 0", d)
@@ -299,7 +298,7 @@ func TestDigTakeResumeContinuesToLaterLibraryKernel(t *testing.T) {
 		t.Fatal("seat 2 was processed before seat 1's ask")
 	}
 	picked := libs[1][1]
-	d = kr0Answer(t, e, kr0Opt(t, d, picked))
+	d = answerAsk(t, e, optionIdxForObj(t, d, picked))
 	if d == nil || d.Player != 0 || d.ResumeTarget != 2 || d.Kind != decision.KChoose {
 		t.Fatalf("later library did not get its own take ask: %+v", d)
 	}
@@ -310,7 +309,7 @@ func TestDigTakeResumeContinuesToLaterLibraryKernel(t *testing.T) {
 		t.Fatal("seat 2 was completed before its own ask was answered")
 	}
 	later := libs[2][1]
-	if next := kr0Answer(t, e, kr0Opt(t, d, later)); next != nil {
+	if next := answerAsk(t, e, optionIdxForObj(t, d, later)); next != nil {
 		t.Fatalf("another ask remained after the last library: %+v", next)
 	}
 	if hand := e.G.Zone(state.ZHand, 2); !slices.Equal(hand, []state.ObjID{later}) {

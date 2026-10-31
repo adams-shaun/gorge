@@ -1,6 +1,5 @@
 package rules
 
-// Kernel-era restoration of revealchosen_cost_test.go's
 // TestRevealChosenUnlessCostParsesAndPays: a RevealChosen<Spec> UnlessCost$
 // parses, and paying it settles with one public Note naming the secret
 // designation (paid path only; no designation declines). The trigger's

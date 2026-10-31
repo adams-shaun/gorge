@@ -1,7 +1,6 @@
 package rules
 
-// Restores engine/effects/library_position_absent_test.go on the kernel: a hidden
-// library-to-library search with no LibraryPosition$ puts the found card on
+// A hidden library-to-library search with no LibraryPosition$ puts the found card on
 // TOP of its owner's library (Forge's default position 0) with one Secret
 // LibraryOrder and no degradation Note -- on a synthetic search and on the
 // real Knowledge Exploitation, whose declined may-cast leaves the card in
@@ -17,15 +16,15 @@ import (
 
 func TestSearchAbsentLibraryPositionIsTop(t *testing.T) {
 	t.Parallel()
-	e := kr2Engine(t, 2)
-	found := kr2Put(t, e, 0, kr2Src(t, "Name:Found\nTypes:Sorcery\nOracle:x\n"), state.ZLibrary, false)
+	e := kernelEngine(t, 2)
+	found := putCardIn(t, e, 0, cardOfSrc(t, "Name:Found\nTypes:Sorcery\nOracle:x\n"), state.ZLibrary, false)
 	rest := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
 	rest = rest[:len(rest)-1]
-	spell := kr2Put(t, e, 0, kr2Sorcery(t, "Seeker",
+	spell := putCardIn(t, e, 0, sorceryCard(t, "Seeker",
 		"A:SP$ ChangeZone | Origin$ Library | Destination$ Library | ChangeType$ Sorcery | Shuffle$ False"), state.ZHand, false)
-	d := kr2Want(t, kr2Cast(t, e, 0, spell), "search")
+	d := requireResumeAsk(t, castWithMana(t, e, 0, spell), "search")
 	from := len(e.L.Events)
-	if d = kr2Answer(t, e, d, kr2ObjIdx(t, d, found)); d != nil {
+	if d = answerDecision(t, e, d, objOptionIndex(t, d, found)); d != nil {
 		t.Fatalf("the answered search posed another ask: %+v", d)
 	}
 	lib := e.G.Zone(state.ZLibrary, 0)
@@ -53,25 +52,25 @@ func TestSearchAbsentLibraryPositionIsTop(t *testing.T) {
 
 func TestKnowledgeExploitationSearchPlacesChosenOnTop(t *testing.T) {
 	t.Parallel()
-	e := kr2Engine(t, 2)
-	found := kr2Put(t, e, 1, kr2Src(t, "Name:Found\nManaCost:R\nTypes:Sorcery\nA:SP$ GainLife | LifeAmount$ 1\nOracle:x\n"), state.ZLibrary, true)
-	g1 := kr2Put(t, e, 1, kr2Src(t, "Name:G1\nManaCost:G\nTypes:Creature\nPT:1/1\nOracle:x\n"), state.ZLibrary, true)
-	g0 := kr2Put(t, e, 1, kr2Src(t, "Name:G0\nManaCost:G\nTypes:Creature\nPT:1/1\nOracle:x\n"), state.ZLibrary, true)
-	ke := kr2Put(t, e, 0, kr2Corpus(t, "Knowledge Exploitation"), state.ZHand, false)
-	d := kr2Cast(t, e, 0, ke)
+	e := kernelEngine(t, 2)
+	found := putCardIn(t, e, 1, cardOfSrc(t, "Name:Found\nManaCost:R\nTypes:Sorcery\nA:SP$ GainLife | LifeAmount$ 1\nOracle:x\n"), state.ZLibrary, true)
+	g1 := putCardIn(t, e, 1, cardOfSrc(t, "Name:G1\nManaCost:G\nTypes:Creature\nPT:1/1\nOracle:x\n"), state.ZLibrary, true)
+	g0 := putCardIn(t, e, 1, cardOfSrc(t, "Name:G0\nManaCost:G\nTypes:Creature\nPT:1/1\nOracle:x\n"), state.ZLibrary, true)
+	ke := putCardIn(t, e, 0, corpusFixtureCard(t, "Knowledge Exploitation"), state.ZHand, false)
+	d := castWithMana(t, e, 0, ke)
 	if d != nil && d.Kind == decision.KTarget {
-		d = kr2Answer(t, e, d, kr2PlayerIdx(t, d, 1))
+		d = answerDecision(t, e, d, playerOptionIndex(t, d, 1))
 	}
-	d = kr2Want(t, d, "search")
+	d = requireResumeAsk(t, d, "search")
 	if len(d.Options) != 1 || d.Options[0].Obj != found {
 		t.Fatalf("search offered %+v, want only the instant/sorcery Found", d.Options)
 	}
 	from := len(e.L.Events)
-	d = kr2Want(t, kr2Answer(t, e, d, d.Options[0].Index), "play")
+	d = requireResumeAsk(t, answerDecision(t, e, d, d.Options[0].Index), "play")
 	if d.Player != 0 {
 		t.Fatalf("may-cast posed to seat %d, want the searching seat 0", d.Player)
 	}
-	kr2ObjIdx(t, d, found)
+	objOptionIndex(t, d, found)
 	orderAt := -1
 	for i, ev := range e.L.Events[from:] {
 		if ev.Kind == events.LibraryOrder && ev.Player == 1 && ev.Secret && len(ev.IDs) >= 3 &&
@@ -90,7 +89,7 @@ func TestKnowledgeExploitationSearchPlacesChosenOnTop(t *testing.T) {
 	}
 	// Decline the may-cast: Found stays in the library and the shuffle
 	// follows the placement.
-	if d = kr2Answer(t, e, d); d != nil {
+	if d = answerDecision(t, e, d); d != nil {
 		t.Fatalf("unexpected ask after the declined may-cast: %+v", d)
 	}
 	if z := e.G.Obj(found).Zone; z != state.ZLibrary {

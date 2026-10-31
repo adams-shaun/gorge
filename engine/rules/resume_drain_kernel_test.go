@@ -1,10 +1,8 @@
 package rules
 
-// Kernel-era restoration of resume_drain_suspended_test.go: resumeTriggerDrain
-// is inert while a resolution's mid-resolution ask is outstanding. On the
-// kernel the resolving object stays on the stack with its ask posed (a held
-// tape checkpoint) instead of a suspended resume frame; the drain must still
-// run no SBA, place no trigger, grant no priority, move nothing and leave the
+// resumeTriggerDrain is inert while a resolution's mid-resolution ask is
+// outstanding. The resolving object stays on the stack with its ask posed (a
+// held tape checkpoint); the drain must run no SBA, place no trigger, grant no priority, move nothing and leave the
 // outstanding ask untouched.
 
 import (

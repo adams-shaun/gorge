@@ -1,14 +1,12 @@
-// A totality guard (ensureLeftTheStack, engine/rules/stack.go) for exactly
-// one of resolveTop's five stack exits -- a permanent spell's ETB Move onto
-// the battlefield. The other four (askTarget's cast-time "countered: no legal
-// targets", an ability object's fizzle and its normal ceases-to-exist move, a
-// spell's resolution-time fizzle, and -- the two cases this file covers -- an
-// instant/sorcery's normal resolution and the ability-object exile move once
-// more, from a different trigger source) carried the identical hazard,
-// unguarded, since c19097f: a ReplacementResult$-absent R:Event$ Moved
-// replacement that matches one of those moves and does not itself relocate
-// the card leaves the object on the stack forever. The reviewer measured this
-// as a genuine non-terminating match (100 000+ intents, still turn 1)
+// The totality guard (ensureLeftTheStack, engine/rules/stack.go) on resolveTop's
+// stack exits: a permanent spell's ETB Move onto the battlefield, askTarget's
+// cast-time "countered: no legal targets", an ability object's fizzle and its
+// normal ceases-to-exist move, a spell's resolution-time fizzle and -- the two
+// cases this file covers -- an instant/sorcery's normal resolution and the
+// ability-object exile move from a different trigger source. A
+// ReplacementResult$-absent R:Event$ Moved replacement that matches one of
+// those moves and does not itself relocate the card would leave the object on
+// the stack forever: a non-terminating match (100 000+ intents, still turn 1)
 // reachable from 24 corpus cards this build's own coverage gate calls fully
 // playable, including Rest in Peace and Dryad Militant.
 //
@@ -150,16 +148,13 @@ func TestInstantResolvingUnderAGraveyardReplacementDoesNotStickOnTheStack(t *tes
 	}
 }
 
-// TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack is
-// Regression test, which also covers ("the ability-object branch has the
-// identical hazard... not fixed here"): a triggered ability (watcherSrc's
-// plain ETB trigger, fired here by playing a harmless land) resolving
-// normally while an exile-blocking replacement is on the battlefield. Before
-// the guard, the ability object's own Stack->Exile "ceases to exist" Move is
-// discarded by the replacement, which (deliberately, see the fixture's doc)
-// does not relocate it, so it re-resolves forever (final review measured
-// intents=300000, never terminating, on an equivalent board). The guard's
-// rescue is the single exile move that finally lands it there.
+// TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack: a
+// triggered ability (watcherSrc's plain ETB trigger, fired here by playing a
+// harmless land) resolving normally while an exile-blocking replacement is on
+// the battlefield. Without the guard, the ability object's own Stack->Exile
+// "ceases to exist" Move is discarded by the replacement, which (deliberately,
+// see the fixture's doc) does not relocate it, so it re-resolves forever. The
+// guard's rescue is the single exile move that finally lands it there.
 func TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack(t *testing.T) {
 	t.Parallel()
 	e, _, landID := newFixtureDeck(t, 111, plainLandSrc)

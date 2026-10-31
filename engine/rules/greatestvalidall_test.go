@@ -4,21 +4,6 @@ package rules
 // cards (never inline scripts -- these are corpus pins, so the corpus
 // registry is the source of truth and a corpus pin change fails loudly).
 //
-// WHAT PROVES WHICH ROUND: the extreme-property
-// GRAMMAR itself was merged in `1a16e76e`, an ancestor of this worktree's
-// base -- so leaf 1 (TestReturnOfTheWildspeakerDrawMode…) exercises ONLY
-// that merged grammar (`Count$Valid …$GreatestCardPower`) and PASSES with
-// this round's diff reverted: it is regression coverage for `1a16e76e`, not
-// this round's proof. This round's proof is leaf 2
-// (TestCactusPreserveAnimatesAtGreatestCommanderManaValue -- the ValidAll
-// all-zones scan, unknown before r1) and the effects-level
-// TestEvalCountValidAllScansEveryCardZone / TestEvalCountValidZoneScanIsAllocationFree
-// pins: the Cactus Preserve leaf and the alloc pin FAIL on the r1-base
-// diff (verified by scratch-revert); TestEvalCountValidAllScansEveryCardZone
-// passes on r1's count.go too (r1 already had the ValidAll branch -- only
-// the pre-r1 base kills it), so it pins the head's zone semantics, not the
-// round boundary.
-//
 // 1. Return of the Wildspeaker's draw mode sizes from
 //    `Count$Valid Creature.YouCtrl+nonHuman$GreatestCardPower`: with two
 //    tied 5-power non-Humans and a 6-power HUMAN on the battlefield the

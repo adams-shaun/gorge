@@ -53,7 +53,7 @@ func TestCassHandOfVengeanceReturnsOnlyTheWereAttachedAurasKernel(t *testing.T) 
 	if dba.Params["Object"] != "AttachedTo TriggeredCardLKICopy.Equipment" || dba.Params["Defined"] != "Targeted" || dba.Params["Optional"] != "True" {
 		t.Fatalf("precondition: DBAttach params %v", dba.Params)
 	}
-	kr4Resolve(eA, ctxFor(cassA, idsA), dba)
+	resolveUnderProbe(eA, ctxFor(cassA, idsA), dba)
 	da := eA.Pending()
 	if da == nil || da.Kind != decision.KChoose || len(da.Options) < 2 || da.Options[0].Kind != "yes" {
 		t.Fatalf("DBAttach's Optional$ True election was not posed as yes/no: %+v", da)
@@ -73,15 +73,15 @@ func TestCassHandOfVengeanceReturnsOnlyTheWereAttachedAurasKernel(t *testing.T) 
 	if cfd := sa.Params["ChooseFromDefined"]; cfd != "AttachedTo TriggeredCardLKICopy.Aura" {
 		t.Fatalf("precondition: ChooseFromDefined = %q", cfd)
 	}
-	kr4Resolve(e, ctxFor(cass, ids), sa)
+	resolveUnderProbe(e, ctxFor(cass, ids), sa)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("the ChooseFromDefined pick was not posed: %+v", d)
 	}
-	if kr4Offers(d, ids["decoy"]) {
+	if offersObj(d, ids["decoy"]) {
 		t.Fatalf("the decoy Aura %d was offered by ChooseFromDefined", ids["decoy"])
 	}
-	submitChoices(t, e, kr4Option(t, d, ids["aura"]))
+	submitChoices(t, e, optionOfObj(t, d, ids["aura"]))
 	if z := e.G.Obj(ids["aura"]).Zone; z != state.ZBattlefield {
 		t.Fatalf("the returned Aura zone = %s, want battlefield", z)
 	}

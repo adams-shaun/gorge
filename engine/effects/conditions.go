@@ -9,12 +9,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// conditions.go implements the TWO Condition* shapes this build gates a
+// conditions.go implements the Condition* shapes this build gates a
 // sub-ability on:
 //
 //  1. `ConditionDefined$ Remembered` + optional `ConditionPresent$ <spec>` +
 //     optional `ConditionCompare$ <op><n>` — Delver of Secrets' "transform
-//     only if the revealed card was an instant or sorcery" shape (task).
+//     only if the revealed card was an instant or sorcery" shape.
 //  2. `ConditionPresent$ <spec>` with NO `ConditionDefined$`, whose Forge
 //     default group is the whole battlefield — the conditional
 //     enters-tapped land family (Blooming Marsh and the fast / check lands,
@@ -25,8 +25,8 @@ import (
 // Forge spells the compare without a space ("EQ1"; 793 corpus lines) and the
 // "EQ 1" spelling is accepted too.
 //
-// Two more shapes landed with the action-level SVar-condition task (the
-// paramcensus Draw/LoseLife/ChangeZone/Reveal/DealDamage cluster):
+// Three more shapes gate actions in the param census's
+// Draw/LoseLife/ChangeZone/Reveal/DealDamage cluster and beyond:
 //
 //  3. `ConditionCheckSVar$` + optional `ConditionSVarCompare$` — the SVar
 //     gate (544 corpus SAs carry the pair): the named SVar (or inline
@@ -77,8 +77,7 @@ import (
 // direction from the ONE census classifier
 // (engine/effects/condition_census.go) rather than running the sub
 // unconditionally: a shape the classifier names fails CLOSED with a
-// replay-visible Note; a shape it does not name still falls through. Every
-// unresolved key family is listed in the task report's Issues section.
+// replay-visible Note; a shape it does not name still falls through.
 //
 // The classifier has two halves (UnmodelledCondition and
 // unmodelledConditionDetail): an unmodelled Condition* KEY, an unmodelled
@@ -89,7 +88,7 @@ import (
 // evaluated. A shape that is unresolved WITHOUT the classifier naming it --
 // an unmodelled ConditionCheckSVar$ count body, an absent binding on a
 // supported ConditionDefined$ group -- still runs: that residual fail-OPEN is
-// deliberate and out of scope here.
+// deliberate.
 //
 // The sacrifice chooser additionally needs one narrower bridge for a
 // post-sacrifice loop body: a `Defined$ Player.IsRemembered` effect — or its
@@ -212,19 +211,19 @@ func CheckSVarCompare(h Host, c *Ctx, check string, cmp Compare) (holds, evaluat
 //   - (…, true)  the gate is one of the supported shapes and met says
 //     whether the sub should run;
 //   - (…, false) the gate carries something unsupported — the caller runs
-//     the sub anyway (the pre-condition-engine behaviour, documented in
-//     the task report). A ConditionNotPresent$, a non-Remembered
+//     the sub anyway (the pre-condition-engine behaviour). A
+//     ConditionNotPresent$, a non-Remembered
 //     ConditionDefined$, a bare ConditionCompare$ with no group, a bare
 //     Condition$ whose value is not Kicked, and the mixed shapes are all in
 //     this class.
 //   - a sub with no Condition* key at all is not gated: (true, false).
 //
-// Two more keys landed with the Unbreakable Formation task: `ConditionPlayerTurn$
-// True|False` — the resolving controller's turn vs. not — and `ConditionPhases$
-// <list>` (Main1,Main2 — the Addendum family), both read through the ONE shared
-// phase-name parser state.ParsePhases and AND-ed with whatever group gate the SA
-// also carries. conditionMet evaluates sa's Condition* gate against the resolving
-// context. It is conditionMetCore (the primary ConditionDefined$/
+// Two more keys: `ConditionPlayerTurn$ True|False` — the resolving controller's
+// turn vs. not — and `ConditionPhases$ <list>` (Main1,Main2 — the Addendum
+// family), both read through the ONE shared phase-name parser state.ParsePhases
+// and AND-ed with whatever group gate the SA also carries.
+//
+// conditionMet is conditionMetCore (the primary ConditionDefined$/
 // ConditionPresent$/ConditionCheckSVar$/bare-Condition$ shape) AND-ed with
 // Forge's SECOND presence group (ConditionPresent2$/ConditionCompare2$):
 // Super-Adaptoid's `ConditionPresent$ Creature.targetedBy+withHaste |

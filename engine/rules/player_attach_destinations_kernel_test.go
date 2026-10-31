@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from player_attach_destinations_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Curse of Leeches transforming and attaching to a chosen player, driven through
+// the resolution kernel (the only ask path).
 
 import (
 	"testing"
@@ -72,7 +72,7 @@ func TestCurseOfLeechesTransformAttachesToChosenPlayerKernel(t *testing.T) {
 				t.Fatalf("both seats offered at the same slot: %+v", d.Options)
 			}
 			submitChoices(t, e, seatIdx)
-			kr7Settle(e)
+			settleKernel(e)
 			if got := e.Name(id); got != "Curse of Leeches" {
 				t.Fatalf("the second flip did not land back on Curse of Leeches: %q", got)
 			}

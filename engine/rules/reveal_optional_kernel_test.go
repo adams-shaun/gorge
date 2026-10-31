@@ -1,10 +1,6 @@
 package rules
 
-// Kernel-era restorations of the may-reveal and reveal-pick behaviour pins
-// (engine/effects/reveal_optional_test.go, reveal_decline_test.go,
-// reveal_optional_multitarget_test.go, reveal_optional_pick_multitarget_test.go,
-// reveal_pick_multitarget_test.go and revealhand_test.go before the W3 legacy
-// removal). Each drives a real engine: the spell is cast, every posed
+// The may-reveal and reveal-pick behaviour pins. Each drives a real engine: the spell is cast, every posed
 // decision is answered with Submit, and the reveal Notes on the log are the
 // observable outcome.
 
@@ -19,28 +15,28 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-const kr3BoltSrc = "Name:Bolt\nManaCost:R\nTypes:Instant\nOracle:3 damage\n"
+const boltFixtureSrc = "Name:Bolt\nManaCost:R\nTypes:Instant\nOracle:3 damage\n"
 
-// kr3RememberGain is a rider that gains 5 life only when the chain's
+// rememberGainBody is a rider that gains 5 life only when the chain's
 // Remembered holds a card: the observable trace of RememberRevealed$.
-const kr3RememberGain = "SVar:DBGain:DB$ GainLife | LifeAmount$ 5 | ConditionDefined$ Remembered | ConditionPresent$ Card | ConditionCompare$ GE1\n"
+const rememberGainBody = "SVar:DBGain:DB$ GainLife | LifeAmount$ 5 | ConditionDefined$ Remembered | ConditionPresent$ Card | ConditionCompare$ GE1\n"
 
-// kr3PeekSpell is a sorcery resolving line, chained to the Remembered rider.
-func kr3PeekSpell(name, line string) string {
-	return "Name:" + name + "\nManaCost:U\nTypes:Sorcery\nA:" + line + " | SubAbility$ DBGain\n" + kr3RememberGain + "Oracle:x\n"
+// peekSpellSrc is a sorcery resolving line, chained to the Remembered rider.
+func peekSpellSrc(name, line string) string {
+	return "Name:" + name + "\nManaCost:U\nTypes:Sorcery\nA:" + line + " | SubAbility$ DBGain\n" + rememberGainBody + "Oracle:x\n"
 }
 
-// kr3PeekBoard is a 2-seat game whose seat 0 holds spell, with Bolt on top
+// peekBoard is a 2-seat game whose seat 0 holds spell, with Bolt on top
 // of seat 0's library. Returns the engine, its config and Bolt's id.
-func kr3PeekBoard(t *testing.T, spell string) (*Engine, Config, state.ObjID) {
+func peekBoard(t *testing.T, spell string) (*Engine, Config, state.ObjID) {
 	t.Helper()
-	e, cfg := kr3Game(t, 31, kr3Cards(t, spell, kr3BoltSrc), nil)
-	kr3Move(t, e, 0, card(t, spell).Faces[0].Name, state.ZHand)
-	bolt := kr3Find(e, 0, state.ZLibrary, "Bolt")
+	e, cfg := fixtureGame(t, 31, cardsOfSrcs(t, spell, boltFixtureSrc), nil)
+	moveNamedTo(t, e, 0, card(t, spell).Faces[0].Name, state.ZHand)
+	bolt := findNamedInZone(e, 0, state.ZLibrary, "Bolt")
 	if bolt == 0 {
-		bolt = kr3Move(t, e, 0, "Bolt", state.ZLibrary)
+		bolt = moveNamedTo(t, e, 0, "Bolt", state.ZLibrary)
 	}
-	kr3LibraryTop(t, e, 0, bolt)
+	libraryTopOrder(t, e, 0, bolt)
 	return e, cfg, bolt
 }
 
@@ -50,11 +46,11 @@ func kr3PeekBoard(t *testing.T, spell string) (*Engine, Config, state.ObjID) {
 // card), with nothing revealed and the chained rider not yet run.
 func TestRevealOptionalPeekPosesTheYesNoAsk(t *testing.T) {
 	t.Parallel()
-	spell := kr3PeekSpell("Peek Optional", "SP$ PeekAndReveal | Defined$ You | NumCards$ 1 | RevealOptional$ True | RememberRevealed$ True")
-	e, _, bolt := kr3PeekBoard(t, spell)
+	spell := peekSpellSrc("Peek Optional", "SP$ PeekAndReveal | Defined$ You | NumCards$ 1 | RevealOptional$ True | RememberRevealed$ True")
+	e, _, bolt := peekBoard(t, spell)
 	life := e.G.Players[0].Life
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Peek Optional", "U", -1)
+	d := castNamedSpell(t, e, "Peek Optional", "U", -1)
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "reveal_optional" || d.Player != 0 {
 		t.Fatalf("decision = %+v, want seat 0's reveal_optional KChoose", d)
 	}
@@ -67,7 +63,7 @@ func TestRevealOptionalPeekPosesTheYesNoAsk(t *testing.T) {
 	if !strings.Contains(d.Prompt, "Bolt") {
 		t.Fatalf("prompt = %q, want it to name the top card", d.Prompt)
 	}
-	if n := kr3PublicNotes(e, mark); len(n) != 0 {
+	if n := publicNotesFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a reveal Note landed before the answer: %+v", n)
 	}
 	if e.G.Players[0].Life != life {
@@ -80,18 +76,18 @@ func TestRevealOptionalPeekPosesTheYesNoAsk(t *testing.T) {
 // so the chained Remembered rider fires.
 func TestRevealOptionalAnsweredYesRevealsAndRemembers(t *testing.T) {
 	t.Parallel()
-	spell := kr3PeekSpell("Peek Optional", "SP$ PeekAndReveal | Defined$ You | NumCards$ 1 | RevealOptional$ True | RememberRevealed$ True")
-	e, cfg, bolt := kr3PeekBoard(t, spell)
+	spell := peekSpellSrc("Peek Optional", "SP$ PeekAndReveal | Defined$ You | NumCards$ 1 | RevealOptional$ True | RememberRevealed$ True")
+	e, cfg, bolt := peekBoard(t, spell)
 	life := e.G.Players[0].Life
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Peek Optional", "U", -1)
+	d := castNamedSpell(t, e, "Peek Optional", "U", -1)
 	if d == nil || d.ResumeKind != "reveal_optional" {
 		t.Fatalf("decision = %+v, want reveal_optional", d)
 	}
-	if d := kr3Answer(t, e, kr3OptionKind(t, d, "yes")); d != nil {
+	if d := answerChoices(t, e, optionKindOrFail(t, d, "yes")); d != nil {
 		t.Fatalf("the accepted reveal posed another decision: %+v", d)
 	}
-	notes := kr3PublicNotes(e, mark)
+	notes := publicNotesFrom(e, mark)
 	if len(notes) != 1 || len(notes[0].IDs) != 1 || notes[0].IDs[0] != bolt || notes[0].Text != "" {
 		t.Fatalf("reveal notes = %+v, want one text-less public Note carrying Bolt %d", notes, bolt)
 	}
@@ -105,18 +101,18 @@ func TestRevealOptionalAnsweredYesRevealsAndRemembers(t *testing.T) {
 // Note and remembers nothing, so the chained rider does not fire.
 func TestRevealOptionalAnsweredNoRevealsNothing(t *testing.T) {
 	t.Parallel()
-	spell := kr3PeekSpell("Peek Optional", "SP$ PeekAndReveal | Defined$ You | NumCards$ 1 | RevealOptional$ True | RememberRevealed$ True")
-	e, cfg, _ := kr3PeekBoard(t, spell)
+	spell := peekSpellSrc("Peek Optional", "SP$ PeekAndReveal | Defined$ You | NumCards$ 1 | RevealOptional$ True | RememberRevealed$ True")
+	e, cfg, _ := peekBoard(t, spell)
 	life := e.G.Players[0].Life
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Peek Optional", "U", -1)
+	d := castNamedSpell(t, e, "Peek Optional", "U", -1)
 	if d == nil || d.ResumeKind != "reveal_optional" {
 		t.Fatalf("decision = %+v, want reveal_optional", d)
 	}
-	if d := kr3Answer(t, e, kr3OptionKind(t, d, "no")); d != nil {
+	if d := answerChoices(t, e, optionKindOrFail(t, d, "no")); d != nil {
 		t.Fatalf("the declined reveal posed another decision: %+v", d)
 	}
-	if n := kr3PublicNotes(e, mark); len(n) != 0 {
+	if n := publicNotesFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a declined reveal emitted a Note: %+v", n)
 	}
 	if got := e.G.Players[0].Life; got != life {
@@ -138,44 +134,44 @@ func TestMayRevealAskKeysOnTheFlagNotTheAPI(t *testing.T) {
 		"SP$ PeekAndReveal | Defined$ You | NumCards$ 1 | RevealOptional$ True",
 	} {
 		t.Run(line, func(t *testing.T) {
-			spell := kr3PeekSpell("May Reveal", line)
-			e, _ := kr3Game(t, uint64(40+i), kr3Cards(t, spell, kr3Creature("Bear")), nil)
-			kr3EmptyHand(t, e, 0)
-			kr3Move(t, e, 0, "May Reveal", state.ZHand)
-			kr3Move(t, e, 0, "Bear", state.ZHand)
+			spell := peekSpellSrc("May Reveal", line)
+			e, _ := fixtureGame(t, uint64(40+i), cardsOfSrcs(t, spell, creatureLineSrc("Bear")), nil)
+			emptyHand(t, e, 0)
+			moveNamedTo(t, e, 0, "May Reveal", state.ZHand)
+			moveNamedTo(t, e, 0, "Bear", state.ZHand)
 			mark := len(e.L.Events)
-			d := kr3Cast(t, e, "May Reveal", "U", -1)
+			d := castNamedSpell(t, e, "May Reveal", "U", -1)
 			if d == nil || d.Player != 0 || d.ResumeKind != "reveal_optional" || len(d.Options) != 2 || d.Options[0].Kind != "yes" {
 				t.Fatalf("decision = %+v, want a reveal_optional yes/no for seat 0", d)
 			}
-			if n := kr3PublicNotes(e, mark); len(n) != 0 {
+			if n := publicNotesFrom(e, mark); len(n) != 0 {
 				t.Fatalf("revealed before the answer: %+v", n)
 			}
 		})
 	}
 	t.Run("no flag", func(t *testing.T) {
-		spell := kr3PeekSpell("Plain Peek", "SP$ PeekAndReveal | Defined$ You | NumCards$ 1")
-		e, _, _ := kr3PeekBoard(t, spell)
-		if d := kr3Cast(t, e, "Plain Peek", "U", -1); d != nil {
+		spell := peekSpellSrc("Plain Peek", "SP$ PeekAndReveal | Defined$ You | NumCards$ 1")
+		e, _, _ := peekBoard(t, spell)
+		if d := castNamedSpell(t, e, "Plain Peek", "U", -1); d != nil {
 			t.Fatalf("a PeekAndReveal without a may-reveal flag posed %+v", d)
 		}
 	})
 }
 
-// kr3HandBoard is a 2-seat game whose seat 0 holds exactly spell plus the
+// spellHandBoard is a 2-seat game whose seat 0 holds exactly spell plus the
 // named creatures (returned in hand order, spell excluded).
-func kr3HandBoard(t *testing.T, seed uint64, spell string, names ...string) (*Engine, Config, []state.ObjID) {
+func spellHandBoard(t *testing.T, seed uint64, spell string, names ...string) (*Engine, Config, []state.ObjID) {
 	t.Helper()
 	srcs := []string{spell}
 	for _, n := range names {
-		srcs = append(srcs, kr3Creature(n))
+		srcs = append(srcs, creatureLineSrc(n))
 	}
-	e, cfg := kr3Game(t, seed, kr3Cards(t, srcs...), nil)
-	kr3EmptyHand(t, e, 0)
-	kr3Move(t, e, 0, card(t, spell).Faces[0].Name, state.ZHand)
+	e, cfg := fixtureGame(t, seed, cardsOfSrcs(t, srcs...), nil)
+	emptyHand(t, e, 0)
+	moveNamedTo(t, e, 0, card(t, spell).Faces[0].Name, state.ZHand)
 	var hand []state.ObjID
 	for _, n := range names {
-		hand = append(hand, kr3Move(t, e, 0, n, state.ZHand))
+		hand = append(hand, moveNamedTo(t, e, 0, n, state.ZHand))
 	}
 	return e, cfg, hand
 }
@@ -186,16 +182,16 @@ func kr3HandBoard(t *testing.T, seed uint64, spell string, names ...string) (*En
 func TestOptionalHandRevealDeclinePosesNoPick(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Hand Reveal\nManaCost:U\nTypes:Sorcery\nA:SP$ Reveal | Defined$ You | Optional$ True\nOracle:x\n"
-	e, cfg, _ := kr3HandBoard(t, 51, spell, "Alpha", "Beta")
+	e, cfg, _ := spellHandBoard(t, 51, spell, "Alpha", "Beta")
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Hand Reveal", "U", -1)
+	d := castNamedSpell(t, e, "Hand Reveal", "U", -1)
 	if d == nil || d.ResumeKind != "reveal_optional" {
 		t.Fatalf("decision = %+v, want the reveal_optional ask", d)
 	}
-	if d := kr3Answer(t, e, kr3OptionKind(t, d, "no")); d != nil {
+	if d := answerChoices(t, e, optionKindOrFail(t, d, "no")); d != nil {
 		t.Fatalf("a declined optional hand reveal posed another ask: %+v", d)
 	}
-	if n := kr3PublicNotes(e, mark); len(n) != 0 {
+	if n := publicNotesFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a declined optional hand reveal revealed: %+v", n)
 	}
 	replayCheck(t, e, cfg)
@@ -208,18 +204,18 @@ func TestOptionalHandRevealDeclineWithRevealValidPosesNoPick(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Gambit Reveal\nManaCost:U\nTypes:Sorcery\n" +
 		"A:SP$ Reveal | NumCards$ 5 | Optional$ True | RevealValid$ Card.nonLand+YouOwn | RememberRevealed$ True | SubAbility$ DBGain\n" +
-		kr3RememberGain + "Oracle:x\n"
-	e, cfg, _ := kr3HandBoard(t, 52, spell, "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta")
+		rememberGainBody + "Oracle:x\n"
+	e, cfg, _ := spellHandBoard(t, 52, spell, "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta")
 	life := e.G.Players[0].Life
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Gambit Reveal", "U", -1)
+	d := castNamedSpell(t, e, "Gambit Reveal", "U", -1)
 	if d == nil || d.ResumeKind != "reveal_optional" {
 		t.Fatalf("decision = %+v, want the reveal_optional ask", d)
 	}
-	if d := kr3Answer(t, e, kr3OptionKind(t, d, "no")); d != nil {
+	if d := answerChoices(t, e, optionKindOrFail(t, d, "no")); d != nil {
 		t.Fatalf("a declined NumCards$ 5 optional reveal posed a pick: %+v", d)
 	}
-	if n := kr3PublicNotes(e, mark); len(n) != 0 {
+	if n := publicNotesFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a declined NumCards$ 5 optional reveal revealed: %+v", n)
 	}
 	if e.G.Players[0].Life != life {
@@ -228,23 +224,23 @@ func TestOptionalHandRevealDeclineWithRevealValidPosesNoPick(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// kr3OppHands is a 3-seat game whose seat 0 holds spell and whose seats 1 and
+// oppHandsBoard is a 3-seat game whose seat 0 holds spell and whose seats 1 and
 // 2 each hold exactly two named cards. Returns the engine, config and the
 // four opponent card ids (seat 1's two, then seat 2's two).
-func kr3OppHands(t *testing.T, seed uint64, spell string) (*Engine, Config, [4]state.ObjID) {
+func oppHandsBoard(t *testing.T, seed uint64, spell string) (*Engine, Config, [4]state.ObjID) {
 	t.Helper()
-	e, cfg := kr3Game(t, seed,
-		kr3Cards(t, spell),
-		kr3Cards(t, kr3Creature("Seat1Alpha"), kr3Creature("Seat1Beta")),
-		kr3Cards(t, kr3Creature("Seat2Alpha"), kr3Creature("Seat2Beta")))
-	kr3Move(t, e, 0, card(t, spell).Faces[0].Name, state.ZHand)
+	e, cfg := fixtureGame(t, seed,
+		cardsOfSrcs(t, spell),
+		cardsOfSrcs(t, creatureLineSrc("Seat1Alpha"), creatureLineSrc("Seat1Beta")),
+		cardsOfSrcs(t, creatureLineSrc("Seat2Alpha"), creatureLineSrc("Seat2Beta")))
+	moveNamedTo(t, e, 0, card(t, spell).Faces[0].Name, state.ZHand)
 	var ids [4]state.ObjID
 	for i, n := range []string{"Seat1Alpha", "Seat1Beta", "Seat2Alpha", "Seat2Beta"} {
 		p := state.PlayerID(1 + i/2)
 		if i%2 == 0 {
-			kr3EmptyHand(t, e, p)
+			emptyHand(t, e, p)
 		}
-		ids[i] = kr3Move(t, e, p, n, state.ZHand)
+		ids[i] = moveNamedTo(t, e, p, n, state.ZHand)
 	}
 	for p := state.PlayerID(1); p <= 2; p++ {
 		if got := e.G.Zone(state.ZHand, p); len(got) != 2 {
@@ -261,23 +257,23 @@ func kr3OppHands(t *testing.T, seed uint64, spell string) (*Engine, Config, [4]s
 func TestOptionalRevealPosesOncePerDefinedTarget(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Opp Reveal\nManaCost:U\nTypes:Sorcery\nA:SP$ RevealHand | Defined$ Player.Opponent | Optional$ True\nOracle:x\n"
-	e, cfg, ids := kr3OppHands(t, 61, spell)
+	e, cfg, ids := oppHandsBoard(t, 61, spell)
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Opp Reveal", "U", -1)
+	d := castNamedSpell(t, e, "Opp Reveal", "U", -1)
 	if d == nil || d.ResumeKind != "reveal_optional" || d.Player != 1 {
 		t.Fatalf("first ask = %+v, want seat 1's reveal_optional", d)
 	}
-	d = kr3Answer(t, e, kr3OptionKind(t, d, "no"))
-	if n := kr3PublicNotes(e, mark); len(n) != 0 {
+	d = answerChoices(t, e, optionKindOrFail(t, d, "no"))
+	if n := publicNotesFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a declined reveal emitted a note: %+v", n)
 	}
 	if d == nil || d.ResumeKind != "reveal_optional" || d.Player != 2 {
 		t.Fatalf("second ask = %+v, want seat 2's own reveal_optional (a no must not leak)", d)
 	}
-	if d := kr3Answer(t, e, kr3OptionKind(t, d, "yes")); d != nil {
+	if d := answerChoices(t, e, optionKindOrFail(t, d, "yes")); d != nil {
 		t.Fatalf("the walk re-posed after every target answered: %+v", d)
 	}
-	notes := kr3PublicNotes(e, mark)
+	notes := publicNotesFrom(e, mark)
 	if len(notes) != 1 || notes[0].Player != 2 || !slices.Equal(notes[0].IDs, []state.ObjID{ids[2], ids[3]}) {
 		t.Fatalf("notes = %+v, want exactly seat 2's hand %v", notes, ids[2:])
 	}
@@ -290,14 +286,14 @@ func TestOptionalRevealPosesOncePerDefinedTarget(t *testing.T) {
 func TestOptionalRevealAcceptDoesNotAcceptLaterTargets(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Opp Reveal\nManaCost:U\nTypes:Sorcery\nA:SP$ RevealHand | Defined$ Player.Opponent | Optional$ True\nOracle:x\n"
-	e, _, ids := kr3OppHands(t, 62, spell)
+	e, _, ids := oppHandsBoard(t, 62, spell)
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Opp Reveal", "U", -1)
+	d := castNamedSpell(t, e, "Opp Reveal", "U", -1)
 	if d == nil || d.ResumeKind != "reveal_optional" || d.Player != 1 {
 		t.Fatalf("first ask = %+v, want seat 1's reveal_optional", d)
 	}
-	d = kr3Answer(t, e, kr3OptionKind(t, d, "yes"))
-	notes := kr3PublicNotes(e, mark)
+	d = answerChoices(t, e, optionKindOrFail(t, d, "yes"))
+	notes := publicNotesFrom(e, mark)
 	if len(notes) != 1 || notes[0].Player != 1 || !slices.Equal(notes[0].IDs, []state.ObjID{ids[0], ids[1]}) {
 		t.Fatalf("after seat 1 accepted notes = %+v, want exactly seat 1's hand", notes)
 	}
@@ -312,31 +308,31 @@ func TestOptionalRevealAcceptDoesNotAcceptLaterTargets(t *testing.T) {
 func TestOptionalPickableRevealAsksEachTarget(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Opp Pick\nManaCost:U\nTypes:Sorcery\nA:SP$ Reveal | Defined$ Player.Opponent | Optional$ True\nOracle:x\n"
-	e, cfg, ids := kr3OppHands(t, 63, spell)
+	e, cfg, ids := oppHandsBoard(t, 63, spell)
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Opp Pick", "U", -1)
+	d := castNamedSpell(t, e, "Opp Pick", "U", -1)
 	if d == nil || d.ResumeKind != "reveal_optional" || d.Player != 1 {
 		t.Fatalf("ask 1 = %+v, want seat 1's optional gate", d)
 	}
-	d = kr3Answer(t, e, kr3OptionKind(t, d, "yes"))
+	d = answerChoices(t, e, optionKindOrFail(t, d, "yes"))
 	if d == nil || d.ResumeKind != "reveal_pick" || d.Player != 1 {
 		t.Fatalf("ask 2 = %+v, want seat 1's reveal pick", d)
 	}
-	d = kr3Answer(t, e, kr3OptionObj(t, d, ids[1]))
-	if n := kr3PublicNotes(e, mark); len(n) != 1 || n[0].Player != 1 || !slices.Equal(n[0].IDs, []state.ObjID{ids[1]}) {
+	d = answerChoices(t, e, optionObjOrFail(t, d, ids[1]))
+	if n := publicNotesFrom(e, mark); len(n) != 1 || n[0].Player != 1 || !slices.Equal(n[0].IDs, []state.ObjID{ids[1]}) {
 		t.Fatalf("after seat 1's pick notes = %+v, want its chosen card", n)
 	}
 	if d == nil || d.ResumeKind != "reveal_optional" || d.Player != 2 {
 		t.Fatalf("ask 3 = %+v, want seat 2's own optional gate", d)
 	}
-	d = kr3Answer(t, e, kr3OptionKind(t, d, "yes"))
+	d = answerChoices(t, e, optionKindOrFail(t, d, "yes"))
 	if d == nil || d.ResumeKind != "reveal_pick" || d.Player != 2 {
 		t.Fatalf("ask 4 = %+v, want seat 2's reveal pick", d)
 	}
-	if d := kr3Answer(t, e, kr3OptionObj(t, d, ids[2])); d != nil {
+	if d := answerChoices(t, e, optionObjOrFail(t, d, ids[2])); d != nil {
 		t.Fatalf("walk re-posed after both picks: %+v", d)
 	}
-	notes := kr3PublicNotes(e, mark)
+	notes := publicNotesFrom(e, mark)
 	if len(notes) != 2 || notes[1].Player != 2 || !slices.Equal(notes[1].IDs, []state.ObjID{ids[2]}) {
 		t.Fatalf("final notes = %+v, want seat 2's chosen card", notes)
 	}
@@ -349,32 +345,32 @@ func TestOptionalPickableRevealAsksEachTarget(t *testing.T) {
 func TestHandRevealPickPosesOncePerDefinedTarget(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Opp Must Pick\nManaCost:U\nTypes:Sorcery\nA:SP$ Reveal | Defined$ Player.Opponent | RememberRevealed$ True\nOracle:x\n"
-	e, cfg, ids := kr3OppHands(t, 64, spell)
+	e, cfg, ids := oppHandsBoard(t, 64, spell)
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Opp Must Pick", "U", -1)
+	d := castNamedSpell(t, e, "Opp Must Pick", "U", -1)
 	if d == nil || d.ResumeKind != "reveal_pick" || d.Player != 1 {
 		t.Fatalf("pick 1 = %+v, want seat 1's reveal_pick", d)
 	}
-	if got := kr3OptionObjs(d); !slices.Equal(got, []state.ObjID{ids[0], ids[1]}) {
+	if got := optionObjIDs(d); !slices.Equal(got, []state.ObjID{ids[0], ids[1]}) {
 		t.Fatalf("pick 1 options = %v, want seat 1's hand %v", got, ids[:2])
 	}
-	if n := kr3PublicNotes(e, mark); len(n) != 0 {
+	if n := publicNotesFrom(e, mark); len(n) != 0 {
 		t.Fatalf("a reveal note landed before any answer: %+v", n)
 	}
-	d = kr3Answer(t, e, kr3OptionObj(t, d, ids[0]))
-	if n := kr3PublicNotes(e, mark); len(n) != 1 || n[0].Player != 1 || !slices.Equal(n[0].IDs, []state.ObjID{ids[0]}) {
+	d = answerChoices(t, e, optionObjOrFail(t, d, ids[0]))
+	if n := publicNotesFrom(e, mark); len(n) != 1 || n[0].Player != 1 || !slices.Equal(n[0].IDs, []state.ObjID{ids[0]}) {
 		t.Fatalf("after seat 1's answer notes = %+v, want exactly seat 1's chosen card", n)
 	}
 	if d == nil || d.ResumeKind != "reveal_pick" || d.Player != 2 {
 		t.Fatalf("pick 2 = %+v, want seat 2's reveal_pick", d)
 	}
-	if got := kr3OptionObjs(d); !slices.Equal(got, []state.ObjID{ids[2], ids[3]}) {
+	if got := optionObjIDs(d); !slices.Equal(got, []state.ObjID{ids[2], ids[3]}) {
 		t.Fatalf("pick 2 options = %v, want seat 2's hand %v", got, ids[2:])
 	}
-	if d := kr3Answer(t, e, kr3OptionObj(t, d, ids[3])); d != nil {
+	if d := answerChoices(t, e, optionObjOrFail(t, d, ids[3])); d != nil {
 		t.Fatalf("the walk re-posed after every target answered: %+v", d)
 	}
-	notes := kr3PublicNotes(e, mark)
+	notes := publicNotesFrom(e, mark)
 	if len(notes) != 2 || notes[0].IDs[0] != ids[0] || notes[1].Player != 2 || notes[1].IDs[0] != ids[3] {
 		t.Fatalf("notes = %+v, want seat 1 revealing %d then seat 2 revealing %d", notes, ids[0], ids[3])
 	}
@@ -397,16 +393,16 @@ func TestGitaxianProbeLookIsAPrivateLookScopedToTheActivator(t *testing.T) {
 		t.Fatal("corpus pin moved: Gitaxian Probe now carries NumCards$")
 	}
 	names := []string{"Bolt", "Bear", "Wrenn", "Snares"}
-	e, cfg := kr3Game(t, 71, []*cards.Card{probe},
-		kr3Cards(t, kr3Creature("Bolt"), kr3Creature("Bear"), kr3Creature("Wrenn"), kr3Creature("Snares")))
-	kr3Move(t, e, 0, "Gitaxian Probe", state.ZHand)
-	kr3EmptyHand(t, e, 1)
+	e, cfg := fixtureGame(t, 71, []*cards.Card{probe},
+		cardsOfSrcs(t, creatureLineSrc("Bolt"), creatureLineSrc("Bear"), creatureLineSrc("Wrenn"), creatureLineSrc("Snares")))
+	moveNamedTo(t, e, 0, "Gitaxian Probe", state.ZHand)
+	emptyHand(t, e, 1)
 	var hand []state.ObjID
 	for _, n := range names {
-		hand = append(hand, kr3Move(t, e, 1, n, state.ZHand))
+		hand = append(hand, moveNamedTo(t, e, 1, n, state.ZHand))
 	}
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Gitaxian Probe", "U", 1)
+	d := castNamedSpell(t, e, "Gitaxian Probe", "U", 1)
 	if d == nil || d.Player != 0 || d.Kind != decision.KChoose || d.ResumeKind != "look_ack" {
 		t.Fatalf("ack = %+v, want a look_ack KChoose for the caster", d)
 	}
@@ -418,10 +414,10 @@ func TestGitaxianProbeLookIsAPrivateLookScopedToTheActivator(t *testing.T) {
 			t.Fatalf("ack prompt = %q, want it to name every hand card", d.Prompt)
 		}
 	}
-	if kr3Count(e, mark, events.Note) != 0 {
+	if countKindFrom(e, mark, events.Note) != 0 {
 		t.Fatal("a look Note landed before the ack")
 	}
-	if d := kr3Answer(t, e, 0); d != nil {
+	if d := answerChoices(t, e, 0); d != nil {
 		t.Fatalf("the acknowledged look posed a second ask: %+v", d)
 	}
 	var looks []events.Event

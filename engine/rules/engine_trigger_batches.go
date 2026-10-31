@@ -117,7 +117,7 @@ type engineTriggerBatches struct {
 	exileReturnHeld []state.ObjID `clone:"deep"`
 	// millBatch is the shared "one or more" ACTION batch: one api:Mill
 	// resolution (Mode$ MilledAll), one api TapAll/UntapAll resolution or
-	// turn-based tapping/untapping action (Mode$ TapAll/UntapAll, task) is
+	// turn-based tapping/untapping action (Mode$ TapAll/UntapAll) is
 	// ONE action, so the batch mode fires once for the whole call, not once
 	// per event. The damage/zone batches' shape, but keyed by trigger LINE
 	// alone (the DamageAll "one or more" reading): the first matching event

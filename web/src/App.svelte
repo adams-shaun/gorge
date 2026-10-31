@@ -42,7 +42,7 @@
   seat={getSeat()?.seat ?? null}
 />
 
-<!-- The stale-client banner : non-intrusive by design —
+<!-- The stale-client banner: non-intrusive by design —
      it overlays nothing and steals no focus; the player reloads when ready. -->
 {#if versionWatch.stale}
   <div class="stale-banner" role="status">

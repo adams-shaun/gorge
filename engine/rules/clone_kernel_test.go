@@ -167,17 +167,17 @@ func TestVesuvanShapeshifterCloneEndsOnTurnFaceDownKernel(t *testing.T) {
 	if sa == nil || sa.API != "Clone" || sa.Params["Duration"] != "UntilFacedown" || turnDown == nil || turnDown.API != "SetState" || turnDown.Params["Mode"] != "TurnFaceDown" {
 		t.Fatalf("Vesuvan copy/turn-down bodies missing: %+v / %+v", sa, turnDown)
 	}
-	kr4Resolve(e, func() *effects.Ctx { return &effects.Ctx{Source: mimic, Controller: 0, SVars: svars} }, sa)
+	resolveUnderProbe(e, func() *effects.Ctx { return &effects.Ctx{Source: mimic, Controller: 0, SVars: svars} }, sa)
 	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
-		if !kr4Offers(d, bear) {
+		if !offersObj(d, bear) {
 			t.Fatalf("the clone pick does not offer the Bear: %+v", d)
 		}
-		submitChoices(t, e, kr4Option(t, d, bear))
+		submitChoices(t, e, optionOfObj(t, d, bear))
 	}
 	if o := e.G.Obj(mimic); o.Face().Name != "Grizzly Bears" || o.FaceDown {
 		t.Fatalf("live face-up copy missing before expiry: %q facedown %v", o.Face().Name, o.FaceDown)
 	}
-	kr4Resolve(e, func() *effects.Ctx { return &effects.Ctx{Source: mimic, Controller: 0, SVars: svars} }, turnDown)
+	resolveUnderProbe(e, func() *effects.Ctx { return &effects.Ctx{Source: mimic, Controller: 0, SVars: svars} }, turnDown)
 	if o := e.G.Obj(mimic); !o.FaceDown || o.CopyFace != nil || o.Face().Name != "Vesuvan Shapeshifter" {
 		t.Fatalf("turn-down did not clear copy: facedown %v copyface %v name %q", o.FaceDown, o.CopyFace != nil, o.Face().Name)
 	}

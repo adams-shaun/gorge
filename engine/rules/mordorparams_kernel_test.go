@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the mordorparams_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Arcane Denial's slow-trip drawing up to two, driven through the resolution
+// kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -60,7 +59,7 @@ func TestArcaneDenialSlowtripDrawsUpToTwo(t *testing.T) {
 	// shape every subtest shares.
 	uptoAsk := func(t *testing.T, e *Engine, ctx *effects.Ctx, wantMax int) *decision.Decision {
 		t.Helper()
-		kr6Probe(e, func() { c := *ctx; effects.Resolve(e, &c, drawTwo) })
+		probeDroppingPending(e, func() { c := *ctx; effects.Resolve(e, &c, drawTwo) })
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != wantMax {
 			t.Fatalf("upto ask = %+v, want KChoose Min 0 Max %d", d, wantMax)

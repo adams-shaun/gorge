@@ -1,7 +1,6 @@
 package rules
 
-// Kernel-era restoration of TestReplacementQueueSurvivesNestedAskMidResolution
-// (replacement_queue_nested_ask_test.go): several lands returned at once, each
+// TestReplacementQueueSurvivesNestedAskMidResolution: several lands returned at once, each
 // with a CR 616.1 entry competition, one of whose bodies asks (a shock land's
 // pay-2-life): every order ask and the nested ask are posed, every land
 // enters, and the trigger resolves (and its GainLife rider runs) exactly once.
@@ -27,11 +26,11 @@ func TestReplacementQueueSurvivesNestedAskMidResolutionKernel(t *testing.T) {
 		{"nested ask on the last competition", []string{horizonTaplandSrc, shockLandSrc}},
 		{"lone competition asks", []string{shockLandSrc}},
 	} {
-		t.Run(tc.name, func(t *testing.T) { kr7ReplacementQueueNestedAsk(t, tc.lands) })
+		t.Run(tc.name, func(t *testing.T) { replacementQueueNestedAsk(t, tc.lands) })
 	}
 }
 
-func kr7ReplacementQueueNestedAsk(t *testing.T, landSrcs []string) {
+func replacementQueueNestedAsk(t *testing.T, landSrcs []string) {
 	e := layerEngine(t)
 	e.pending = nil
 	onBoard(t, e, 0, horizonExplorerSrc)

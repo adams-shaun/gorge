@@ -43,7 +43,7 @@ func TestRepeatEachAsksEachRepeatedPlayerToSacrifice(t *testing.T) {
 		}
 		spell := onBoard(t, e, 0, fmt.Sprintf(repeatEachSacSpell, tc.players))
 		sa := e.G.Obj(spell).Face().SpellAbility()
-		kr9Probe(e, func() {
+		probeAfterPass(e, func() {
 			effects.Resolve(e, &effects.Ctx{Source: spell, Controller: 0, SVars: e.G.Obj(spell).Face().SVars}, sa)
 		})
 		var asked []state.PlayerID

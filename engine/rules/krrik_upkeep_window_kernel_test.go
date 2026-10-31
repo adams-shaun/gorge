@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the krrik_upkeep_window_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// K'rrik's cumulative-upkeep mana window, driven through the resolution kernel
+// (engine/rules/resolve).
 
 import (
 	"testing"
@@ -19,7 +18,7 @@ func TestKrrikCumulativeUpkeepPosesManaWindowWhenSourceCanPay(t *testing.T) {
 		t.Fatalf("precondition: ParseCost(B) = %+v, want one plain {B} pip", c)
 	}
 
-	kr6ResolveUpkeepCumulative(t, e)
+	resolveCumulativeUpkeep(t, e)
 
 	// The window must be posed: the pool alone cannot pay the {B} pip, but
 	// the untapped Swamp can. Before the fix the grant made the gate count
@@ -50,7 +49,7 @@ func TestKrrikCumulativeUpkeepWindowDonePaysLife(t *testing.T) {
 	e, cfg, bear, swamp := krrikUpkeepWindowEngine(t, krrikCumulativeFixture)
 	krrikUpkeepPreconditions(t, e, bear, swamp, "Cumulative upkeep")
 
-	kr6ResolveUpkeepCumulative(t, e)
+	resolveCumulativeUpkeep(t, e)
 
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Source != bear {

@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the flipcoin_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Coin flips (Karplusan Minotaur) and their deterministic replay, driven
+// through the resolution kernel (engine/rules/resolve).
 
 import (
 	"reflect"
@@ -24,7 +23,7 @@ import (
 func TestFlippedCoinKarplusanMinotaur(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	e, _ := kr6KarplusanScenario(t, reg)
+	e, _ := karplusanFlipGame(t, reg)
 	wins, losses := 0, 0
 	for _, win := range flipNotes(e) {
 		if win {
@@ -44,8 +43,8 @@ func TestFlippedCoinKarplusanMinotaur(t *testing.T) {
 func TestFlipCoinReplaysDeterministically(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	e1, cfg := kr6KarplusanScenario(t, reg)
-	e2, _ := kr6KarplusanScenario(t, reg)
+	e1, cfg := karplusanFlipGame(t, reg)
+	e2, _ := karplusanFlipGame(t, reg)
 	if !reflect.DeepEqual(e1.L.Events, e2.L.Events) {
 		t.Fatalf("same seed produced different event chains")
 	}
@@ -58,13 +57,13 @@ func TestFlipCoinReplaysDeterministically(t *testing.T) {
 	replayCheck(t, e1, cfg)
 }
 
-// kr6KarplusanScenario is karplusanScenario (flipcoin_test.go) for the
+// karplusanFlipGame is karplusanScenario (flipcoin_test.go) for the
 // kernel era: each upkeep's cumulative-upkeep trigger resolves as a kernel
-// probe (kr6ResolveTop). It drives seat 0's Karplusan Minotaur through three upkeeps
+// probe (resolveTopProbe). It drives seat 0's Karplusan Minotaur through three upkeeps
 // (1+2+3 = six cumulative-upkeep flips), paying every upkeep and resolving
 // every FlippedCoin trigger. Returns the engine and the config a same-seed
 // rerun can be compared against.
-func kr6KarplusanScenario(t *testing.T, reg *cards.Registry) (*Engine, Config) {
+func karplusanFlipGame(t *testing.T, reg *cards.Registry) (*Engine, Config) {
 	t.Helper()
 	e, cfg := flipEngine(t, reg, 42,
 		[]*cards.Card{lookup(t, reg, "Karplusan Minotaur")}, []*cards.Card{})
@@ -85,7 +84,7 @@ func kr6KarplusanScenario(t *testing.T, reg *cards.Registry) (*Engine, Config) {
 		if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Ability.API != "CumulativeUpkeep" {
 			t.Fatalf("turn %d: cumulative upkeep not placed: %v", turn, e.G.Stack)
 		}
-		kr6ResolveTop(e)
+		resolveTopProbe(e)
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 ||
 			d.Options[0].Kind != "cumulative_pay" {

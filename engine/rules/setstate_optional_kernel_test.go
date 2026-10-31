@@ -22,7 +22,7 @@ func TestSetStateOptionalDaggerDeclineAndAcceptKernel(t *testing.T) {
 		{"accept", 918, 0, 1, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			e, cfg, id := kr9SetStateDagger(t, tc.seed)
+			e, cfg, id := setStateDaggerGame(t, tc.seed)
 			submitChoices(t, e, tc.answer)
 			// Dagger's independent enter-the-battlefield token trigger may
 			// still be pending and ask for an opponent target. It does not
@@ -49,7 +49,7 @@ func TestSetStateOptionalDaggerDeclineAndAcceptKernel(t *testing.T) {
 
 func TestSetStateOptionalBotClampAnswerValidKernel(t *testing.T) {
 	t.Parallel()
-	e, cfg, id := kr9SetStateDagger(t, 919)
+	e, cfg, id := setStateDaggerGame(t, 919)
 	d := e.Pending()
 	// The bot's deterministic first-option clamp has one home in botpolicy;
 	// check its actual output against the real decision's validator.
@@ -67,10 +67,10 @@ func TestSetStateOptionalBotClampAnswerValidKernel(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// kr9SetStateDagger is setStateDagger with the trigger resolved as a kernel
+// setStateDaggerGame is setStateDagger with the trigger resolved as a kernel
 // probe: the real Dowsing Dagger damage trigger driven to its Optional$
 // Transform election.
-func kr9SetStateDagger(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
+func setStateDaggerGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
 	t.Helper()
 	e, cfg, _ := gateFixture(t, seed, "Dowsing Dagger")
 	id := gateMoveFromLibrary(t, e, "Dowsing Dagger", state.ZBattlefield)
@@ -81,7 +81,7 @@ func kr9SetStateDagger(t *testing.T, seed uint64) (*Engine, Config, state.ObjID)
 		t.Fatalf("precondition: Dagger's second trigger must be Optional$ SetState, got %+v", f)
 	}
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: id, Player: 0, Amount: 1})
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "setstate_optional" || d.Min != 1 || d.Max != 1 {
 		t.Fatalf("pending = %+v, want SetState optional election", d)

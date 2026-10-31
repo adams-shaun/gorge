@@ -1,6 +1,5 @@
 package rules
 
-// Kernel-era restoration of restrict_valid_dotless_test.go's
 // TestRestrictValidDotlessPaymentTerms: the cost-keyed and remaining dotless
 // RestrictValid$ terms, each on its real corpus producer's own batch. The
 // helpers (dotlessEngine, tapForRestrictedBatch, restrictedBatchesOf, the

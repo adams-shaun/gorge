@@ -358,10 +358,10 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
   return tile.list.reduce((first, option) => option.index < first.index ? option : first);
 }
 
-/** Post one displayed option by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action.
+/** Post one displayed option by its WIRE index, never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action.
  *
- * Every picker post declares a possible card follow-up (
- * the arm is SeatPanelState.followUpArm's, `activate`/`mana` answers only):
+ * Every picker post declares a possible card follow-up (the arm is
+ * SeatPanelState.followUpArm's, `activate`/`mana` answers only):
  * every option a picker posts is card-anchored (it comes from optionsByObj /
  * optionsByPlayer, so its `obj` names the card the choice was made on), and a
  * card-anchored choice can hand the server a follow-up decision for the SAME
@@ -371,9 +371,9 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
  * self-disarming: Table.svelte's $effect decodes it through
  * resolveCardFollowUp, which re-opens the MANA colour wheel only -- the next
  * decision must carry 2-6 options on the expected object AND every option
- * must be of kind 'mana' (fb-20260917T233137Z: without the kind gate a
- * shock land's "pay 2 life?" election -- 2 'mode' options on the land --
- * auto-opened the radial wheel and presented as the mana bubble). */
+ * must be of kind 'mana' (without the kind gate a shock land's "pay 2 life?"
+ * election -- 2 'mode' options on the land -- would auto-open the radial wheel
+ * and present as the mana bubble). */
 export function postTileOption(tile: TileOptions, option: Option, holdPriority = false): void {
   tile.post(option.index, true, holdPriority);
 }

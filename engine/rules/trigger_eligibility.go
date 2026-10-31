@@ -397,7 +397,7 @@ var triggerModeEventRows = [...]struct {
 	// the Exploited/Investigated shape: a mask bit is not encodable and
 	// allows() fails open for every kind at or past triggerMaskKindBits, so
 	// the mode is admitted through that fail-open path and gated by the full
-	// matcher (trigmatch.becomeMonstrousMatches, task). Naming the mode here
+	// matcher (trigmatch.becomeMonstrousMatches). Naming the mode here
 	// rather than letting it fall to the allTriggerEvents default keeps a
 	// BecomeMonstrous-only face's mask narrow for every other kind.
 	{cards.TriggerBecomeMonstrous, 0},
@@ -409,12 +409,12 @@ var triggerModeEventRows = [...]struct {
 	// GiveGift/Surveil shape: a mask bit is not encodable and allows()
 	// fails open for every kind at or past triggerMaskKindBits, so the
 	// mode is admitted through that fail-open path and gated by the full
-	// matcher (trigmatch.evolvedMatches, task trig:Evolved). Naming the mode here
+	// matcher (trigmatch.evolvedMatches). Naming the mode here
 	// rather than letting it fall to the allTriggerEvents default keeps
 	// an Evolved-only face's mask narrow for every other kind.
 	{cards.TriggerEvolved, 0},
-	// CR 709.5's "whenever you fully unlock a Room" (task): the Eerie enchantments' other-
-	// permanent half, matched by trigmatch.fullyUnlockMatches (engine/rules/
+	// CR 709.5's "whenever you fully unlock a Room": the Eerie enchantments'
+	// other-permanent half, matched by trigmatch.fullyUnlockMatches (engine/rules/
 	// trigmatch/room.go). It fires on the single DoorUnlock transition
 	// event the unlock activation emits, whose ordinal (41) is inside the
 	// 64-bit mask's reach, so an exact bit is encodable -- naming the mode
@@ -535,7 +535,7 @@ var triggerModeEventRows = [...]struct {
 	// multi-face object and scopes ValidCard$/ValidPlayer$ against
 	// the transformed object's destination face.
 	{cards.TriggerTransformed, 1 << events.FlipFace},
-	// CR 708.6/702.36e: the turn-up marker events.TurnFaceUp (task). Its
+	// CR 708.6/702.36e: the turn-up marker events.TurnFaceUp. Its
 	// ordinal is past the 64-bit mask's reach -- the Mutates/Investigated
 	// shape -- so a mask bit is not encodable and allows() fails open for it,
 	// gated by the full matcher (trigmatch.turnFaceUpMatches). Returning 0

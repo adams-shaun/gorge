@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from parent_target_resume_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// The parent-target link record cloning with a suspended resolution, driven
+// through the resolution kernel (the only ask path).
 
 import (
 	"testing"

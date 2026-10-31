@@ -93,7 +93,7 @@ func MatchesPlayerSpecCtx(g *state.Game, spec string, p, you state.PlayerID, pc 
 // `Choices$ Player.Opponent+!IsRemembered` ("choose an opponent at random
 // that CARDNAME didn't attack"), `Player.Opponent+lifeEQX`,
 // `Player.Opponent+!EnchantedBy`. Before this the whole `+` string was cut on
-// the first `.` and fell into the unknown- qualifier branch, so every such
+// the first `.` and fell into the unknown-qualifier branch, so every such
 // spec matched NOBODY -- a Choices$ pool that is silently empty (Territorial
 // Hellkite could never choose an opponent, so its random pick always took the
 // no-candidate arm) and a ValidTgts$ pool that admits no target. A clause
@@ -103,8 +103,8 @@ func MatchesPlayerSpecCtx(g *state.Game, spec string, p, you state.PlayerID, pc 
 // compiled as `Player.<clause>` (the same reading matchesPlayerSpecSVars
 // gives a dotless clause), so each clause stays an independent candidate
 // property and the conjunction conjoins them -- `Player.Opponent+Active` is
-// "candidate is an opponent of `you` AND candidate is the active player" (
-// Unstable Glyphbridge's back face). An unknown qualifier still fails that
+// "candidate is an opponent of `you` AND candidate is the active player"
+// (Unstable Glyphbridge's back face). An unknown qualifier still fails that
 // clause closed, exactly as a dotted `Player.<unknown>` does.
 func matchesPlayerCompoundCtx(g *state.Game, alt []playerClause, p, you state.PlayerID, pc PlayerSpecCtx) bool {
 	for i := range alt {

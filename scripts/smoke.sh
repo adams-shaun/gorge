@@ -4,7 +4,7 @@
 #
 # Builds the REAL client and the REAL binary, starts FIVE `gorged` servers on
 # smoke ports (8090-8099 by default) — public and omniscient spectators, a SEATED 1v1,
-# the shared ui24/wheel1 board fixture, and the Talisman two-stage
+# the shared mana-wheel board fixture, and the Talisman two-stage
 # continuation fixture — then drives
 # the headless-browser smoke test in web/e2e against all five, and tears
 # every server down (and removes its temp dir) whether the gate passes or
@@ -311,7 +311,7 @@ start_farm() {
   start_server "$OMNPORT" "$OMNDIR" omniscient "$OMNDIR/server.log"
   start_seated_server "$SEATPORT" "$SEATDIR" "$SEATDIR/server.log"
 
-  # ui24/wheel1: deterministic human hands with zero-cost Memnites plus the
+  # The mana-wheel board: deterministic human hands with zero-cost Memnites plus the
   # Underground Sea that exercises the two-stage mana wheel. The tracked fixture
   # is a deck list (names/counts), never Forge card text.
   ./bin/gorged -addr "127.0.0.1:$FIXTUREPORT" -dir "$FIXTUREDIR" -spectator omniscient \

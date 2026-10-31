@@ -59,17 +59,14 @@ func damageOptionalPrompt(h Host, c *Ctx, sa *cards.SA, n int32) string {
 }
 
 // effDealDamage implements "SP$/AB$/DB$ DealDamage" against players and
-// permanents. ( folded in here): the negative-NumDmg clamp and its default of 0
-// (not 1) are events.Apply's Damage case is a plain subtraction from Life, so
-// an unclamped negative value would heal instead of doing nothing, and
-// TestDealDamageDefaultsMissingNumDmgToZero already locks in the zero default.
+// permanents. A negative NumDmg clamps to 0 because events.Apply's Damage case
+// is a plain subtraction from Life, so an unclamped negative value would heal
+// instead of doing nothing; a missing NumDmg defaults to 0, not 1
+// (TestDealDamageDefaultsMissingNumDmgToZero).
 //
-// Folded in on top of that stopgap: a permanent that has already left the
-// battlefield (destroyed or sacrificed in response, say) is not a legal
-// recipient any more -- the effect does nothing to it rather than marking
-// damage on a card sitting in a graveyard.
-// this (and Destroy/ChangeZone/Sacrifice/Counter, which can make exactly that
-// happen) interacts with CR 608.2b target rechecking.
+// A permanent that has already left the battlefield (destroyed or sacrificed
+// in response, say) is not a legal recipient any more -- the effect does
+// nothing to it rather than marking damage on a card sitting in a graveyard.
 //
 // CR 609.7a provenance: the damage's source is DamageSource$ when the script
 // names one, the resolving source otherwise, and SetDamageSource makes that
@@ -434,7 +431,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 // that source's nothing (fail closed inside, never a guessed pairing). A
 // source no longer on the battlefield contributes nothing (Forge reads its
 // LKI; the corpus multi-source lines all name live battlefield permanents, so
-// the narrower liveness rule is unreachable there and is recorded in the).
+// the narrower liveness rule is unreachable there).
 // Returns false when the arm did not run -- fewer than two resolvable
 // sources, a shared recipient arm that resolved to nothing, or a
 // DividedAsYouChoose resolution (no corpus line combines the two) -- so the

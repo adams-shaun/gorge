@@ -16,7 +16,7 @@ import (
 // hidden_identity / library_order" panics, ~4% of all az simulations).
 func TestKernelNestedHypotheticalRedealWorld(t *testing.T) {
 	for _, innerRedeal := range []bool{false, true} {
-		e, _ := kr8Fixture(t, 2, 9901, tapeDrawVoteSrc,
+		e, _ := kernelFixture(t, 2, 9901, tapeDrawVoteSrc,
 			"Name:Tape Filler A\nManaCost:1\nTypes:Artifact\nOracle:x\n",
 			"Name:Tape Filler B\nManaCost:2\nTypes:Artifact\nOracle:x\n",
 			"Name:Tape Filler C\nManaCost:3\nTypes:Artifact\nOracle:x\n")

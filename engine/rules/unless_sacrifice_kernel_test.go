@@ -25,7 +25,7 @@ func TestBraidsOpponentChoosesItsSacrificeKernel(t *testing.T) {
 	life := e.G.Players[1].Life
 
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: braids, Player: 0, Amount: 0})
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 
 	// Seat 0's optional sacrifice: give up the relic, keep Braids.
 	answerSacrifice(t, e, "Relic")
@@ -59,7 +59,7 @@ func TestBraidsOpponentDeclinesItsSacrificeKernel(t *testing.T) {
 	life := e.G.Players[1].Life
 
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: braids, Player: 0, Amount: 0})
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 
 	answerSacrifice(t, e, "Relic")
 	answerSacrifice(t, e, "")
@@ -86,7 +86,7 @@ func TestPowerTaintUnlessPayerEnchantedControllerKernel(t *testing.T) {
 	if sa == nil || sa.Params["UnlessPayer"] != "EnchantedController" || sa.Params["UnlessCost"] != "2" {
 		t.Fatalf("Power Taint TrigLoseLife = %+v, want priceable EnchantedController unless", sa)
 	}
-	kr9Probe(e, func() {
+	probeAfterPass(e, func() {
 		effects.Resolve(e, &effects.Ctx{Source: taint, Controller: 0,
 			TriggerContext: effects.TriggerContext{TriggerPlayer: state.Target{Player: 1, IsPlayer: true}}}, sa)
 	})

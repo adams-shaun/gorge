@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the W3 step 2 dual-run tests of
-// resolve_convert_ctr_test.go: one kernel run per scenario (kr7Run), the
-// asks served from the tape, the named asks posed, the replay identical.
+// The counter-family asks: one kernel run per scenario (runScenarioSetup), the asks
+// served from the tape, the named asks posed, the replay identical.
 
 import (
 	"testing"
@@ -14,18 +13,18 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// kr7CtrRun is kr7Run over a ctrSetup.
-func kr7CtrRun(t *testing.T, s ctrSetup, scenario func(t *testing.T, e *Engine)) (*Engine, resolve.Stats) {
+// runCtrScenario is runScenarioSetup over a ctrSetup.
+func runCtrScenario(t *testing.T, s ctrSetup, scenario func(t *testing.T, e *Engine)) (*Engine, resolve.Stats) {
 	t.Helper()
-	return kr7Run(t, kr7Setup(s), scenario)
+	return runScenarioSetup(t, scenarioSetup(s), scenario)
 }
 
-func kr7RunCtrSpellCases(t *testing.T, seed uint64, cases []ctrSpellCase) {
+func runCtrSpellCases(t *testing.T, seed uint64, cases []ctrSpellCase) {
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			srcs := []string{ctrSorcery(tc.name, tc.body), ctrBearSrc, ctrBearSrc, ctrGiantSrc, ctrOgreSrc}
 			s := ctrSetup{seats: 2, seed: seed + uint64(i), seat0: ctrCards(t, srcs...)}
-			_, st := kr7CtrRun(t, s, func(t *testing.T, e *Engine) {
+			_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {
 				ctrBoard(t, e, 0, tc.board, tc.counters...)
 				tapeCastAndResolve(t, e, tc.name, "R")
 			})
@@ -37,7 +36,7 @@ func kr7RunCtrSpellCases(t *testing.T, seed uint64, cases []ctrSpellCase) {
 func TestKernelAskPutCounter(t *testing.T) {
 	two := []string{"Ctr Bear", "Ctr Bear"}
 	three := []string{"Ctr Bear", "Ctr Bear", "Ctr Giant"}
-	kr7RunCtrSpellCases(t, 31000, []ctrSpellCase{
+	runCtrSpellCases(t, 31000, []ctrSpellCase{
 		{name: "Ctr Maybe Counter", body: "A:SP$ PutCounter | ValidTgts$ Creature | CounterType$ P1P1 | CounterNum$ 2 | Optional$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
 			board: two, served: 1},
 		// The election then the pick; the two variants answer the election
@@ -68,7 +67,7 @@ func TestKernelAskPutCounter(t *testing.T) {
 func TestKernelAskCounterChoices(t *testing.T) {
 	p1 := map[string]int32{"P1P1": 2}
 	mixed := map[string]int32{"P1P1": 2, "TIME": 1, "CHARGE": 3}
-	kr7RunCtrSpellCases(t, 32000, []ctrSpellCase{
+	runCtrSpellCases(t, 32000, []ctrSpellCase{
 		{name: "Ctr Remove Pick", body: "A:SP$ RemoveCounter | Choices$ Creature.YouCtrl | ChoiceOptional$ True | CounterType$ P1P1 | CounterNum$ 1 | RememberAmount$ True",
 			board: []string{"Ctr Bear", "Ctr Bear", "Ctr Giant"}, counters: []map[string]int32{p1, p1, p1}, served: 1},
 		{name: "Ctr Aor Named", body: "A:SP$ AddOrRemoveCounter | ValidTgts$ Creature | CounterType$ P1P1 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
@@ -88,7 +87,7 @@ func TestKernelAskCounterChoices(t *testing.T) {
 
 func TestKernelAskResolutionLoops(t *testing.T) {
 	two := []string{"Ctr Bear", "Ctr Giant"}
-	kr7RunCtrSpellCases(t, 33000, []ctrSpellCase{
+	runCtrSpellCases(t, 33000, []ctrSpellCase{
 		{name: "Ctr Blight", body: "A:SP$ Blight | Defined$ Player | Num$ 1",
 			board: two, served: 1},
 		// A root DealDamage's division is announced while casting (CR
@@ -114,7 +113,7 @@ func TestKernelAskTwoPiles(t *testing.T) {
 		"SVar:DBGain:DB$ GainLife | LifeAmount$ 2")
 	for i, seats := range []int{2, 3} {
 		s := ctrSetup{seats: seats, seed: 34000 + uint64(i), seat0: ctrCards(t, src)}
-		_, st := kr7CtrRun(t, s, func(t *testing.T, e *Engine) {
+		_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {
 			tapeCastAndResolve(t, e, "Ctr Fiction", "R")
 		})
 		ctrRequireServed(t, "Ctr Fiction", st, 2)
@@ -126,7 +125,7 @@ func TestKernelAskTwoPiles(t *testing.T) {
 func TestKernelAskExplore(t *testing.T) {
 	src := ctrSorcery("Ctr Explore", "A:SP$ Explore | Defined$ Valid Creature.YouCtrl | Num$ 2 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2")
 	s := ctrSetup{seats: 2, seed: 35000, seat0: ctrCards(t, src, ctrBearSrc, ctrGiantSrc, ctrOgreSrc, ctrOgreSrc, ctrOgreSrc, ctrOgreSrc)}
-	_, st := kr7CtrRun(t, s, func(t *testing.T, e *Engine) {
+	_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {
 		ctrBoard(t, e, 0, []string{"Ctr Bear", "Ctr Giant"})
 		var ogres []state.ObjID
 		for i := 0; i < 4; i++ {
@@ -150,7 +149,7 @@ func TestKernelAskBlightEachPlayer(t *testing.T) {
 	s := ctrSetup{seats: 2, seed: 36000,
 		seat0: ctrCards(t, src, ctrBearSrc, ctrGiantSrc),
 		seat1: ctrCards(t, ctrOgreSrc, ctrOgreSrc)}
-	_, st := kr7CtrRun(t, s, func(t *testing.T, e *Engine) {
+	_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {
 		ctrBoard(t, e, 0, []string{"Ctr Bear", "Ctr Giant"})
 		ctrBoard(t, e, 1, []string{"Ctr Ogre", "Ctr Ogre"})
 		tapeCastAndResolve(t, e, "Ctr Blight All", "R")
@@ -163,7 +162,7 @@ func TestKernelAskEmpower(t *testing.T) {
 	src := ctrSorcery("Ctr Empower", "A:SP$ Token | TokenScript$ ctr_jace | TokenAmount$ 2 | SubAbility$ DBEmpower\nSVar:DBEmpower:DB$ Empower | Type$ Jace | Num$ 2")
 	jace := card(t, "Name:Jace Token\nManaCost:no cost\nTypes:Planeswalker Jace\nLoyalty:3\nOracle:\n")
 	s := ctrSetup{seats: 2, seed: 37000, seat0: ctrCards(t, src), tokens: map[string]*cards.Card{"ctr_jace": jace}}
-	_, st := kr7CtrRun(t, s, func(t *testing.T, e *Engine) {
+	_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {
 		tapeCastAndResolve(t, e, "Ctr Empower", "R")
 	})
 	ctrRequireServed(t, "Ctr Empower", st, 1)
@@ -174,7 +173,7 @@ func TestKernelAskInvestigateOptional(t *testing.T) {
 	src := ctrSorcery("Ctr Investigate", "A:SP$ Investigate | Defined$ Player | Optional$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2")
 	clue := card(t, "Name:Clue Token\nManaCost:no cost\nTypes:Artifact Clue\nOracle:\n")
 	s := ctrSetup{seats: 3, seed: 38000, seat0: ctrCards(t, src), tokens: map[string]*cards.Card{"c_a_clue_draw": clue}}
-	_, st := kr7CtrRun(t, s, func(t *testing.T, e *Engine) {
+	_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {
 		tapeCastAndResolve(t, e, "Ctr Investigate", "R")
 	})
 	ctrRequireServed(t, "Ctr Investigate", st, 3)
@@ -189,7 +188,7 @@ func TestKernelAskDemonstrate(t *testing.T) {
 	best := int64(0)
 	for i, seats := range []int{3, 4, 3, 4} {
 		s := ctrSetup{seats: seats, seed: 39000 + uint64(i)*7, seat0: []*cards.Card{tech}, seat1: ctrCards(t, ctrBearSrc), tokens: reg.Tokens}
-		_, st := kr7CtrRun(t, s, func(t *testing.T, e *Engine) {
+		_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {
 			ctrBoard(t, e, 1, []string{"Ctr Bear"})
 			tapeCastAndResolve(t, e, "Excavation Technique", "WWWW")
 		})

@@ -1,9 +1,7 @@
 package rules
 
-// Kernel-era restoration of TestPathOfTheAnimistTiedVoteRunsTheTiedBranch
-// (planechase_animist_test.go). The old test filled the legacy Ctx.Votes seam;
-// the per-voter ballot is now a real tape ask, so the tie is produced by the
-// voters' own answers.
+// TestPathOfTheAnimistTiedVoteRunsTheTiedBranch: the per-voter ballot is a real
+// tape ask, so the tie is produced by the voters' own answers.
 
 import (
 	"testing"

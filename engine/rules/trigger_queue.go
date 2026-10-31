@@ -67,10 +67,9 @@ func ringEmblemLabel(level int) string {
 // asserts it by the order the two effects actually RUN, not by the order they
 // were pushed.
 //
-// The between-player order is not the player's : it is CR 603.3b's
-// APNAP, kept here as the same sort.SliceStable by controller rank the
-// pre-Task-27 version used. Ties within one controller keep checkTriggers'
-// discovery order (seat, then zone, then zone position); that is the order the
+// The between-player order is not the player's: it is CR 603.3b's APNAP, kept
+// here as a sort.SliceStable by controller rank. Ties within one controller
+// keep checkTriggers' discovery order (seat, then zone, then zone position); that is the order the
 // options are OFFERED in, and which of them actually goes first is then the
 // controller's answer rather than the engine's.
 //
@@ -1436,7 +1435,7 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // the yes/no question, and whether that seat can still answer it.
 //
 // The spelling is Forge's, established by grepping .cards/cardsfolder rather
-// than guessed . On a T: line optionality is spelled OptionalDecider$ and
+// than guessed. On a T: line optionality is spelled OptionalDecider$ and
 // nothing else: 1496 T: lines carry it, and the bare Optional$ form -- 1143
 // occurrences (SVar 884, A 225, R 19, S 15) -- never once appears on a T:
 // line, because it is a different thing (a "you may" inside an ability's own

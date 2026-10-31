@@ -1,7 +1,6 @@
 package rules
 
-// Restored from engine/effects/chooseeach_test.go (W3 legacy removal): ChooseCard's
-// ChooseEach$ per-group walk, answered through the resolution kernel on a
+// ChooseCard's ChooseEach$ per-group walk, answered through the resolution kernel on a
 // real engine.
 
 import (
@@ -21,20 +20,20 @@ import (
 // one reveal Note per answered group.
 func TestChooseCardChooseEachTragicArroganceAsksPerGroupKernel(t *testing.T) {
 	t.Parallel()
-	ta := kr0Corpus(t, "Tragic Arrogance")
-	s := kr0SVar(t, ta, "YouChoose")
+	ta := corpusCardNamed(t, "Tragic Arrogance")
+	s := svarSA(t, ta, "YouChoose")
 	if s.API != "ChooseCard" || s.Params["ChooseEach"] != "Artifact & Creature & Enchantment & Planeswalker" {
 		t.Fatalf("Tragic Arrogance's YouChoose SA changed: %+v", s)
 	}
-	e := kr0Engine(t, 2)
-	src := kr0Place(t, e, 0, ta, state.ZBattlefield)
-	art := kr0Src(t, e, 1, "Name:TA Art\nTypes:Artifact\nOracle:x\n", state.ZBattlefield)
-	cre1 := kr0Src(t, e, 1, "Name:TA Cre One\nTypes:Creature\nPT:1/1\nOracle:x\n", state.ZBattlefield)
-	cre2 := kr0Src(t, e, 1, "Name:TA Cre Two\nTypes:Creature\nPT:1/1\nOracle:x\n", state.ZBattlefield)
-	ench := kr0Src(t, e, 1, "Name:TA Ench\nTypes:Enchantment\nOracle:x\n", state.ZBattlefield)
+	e := fixtureEngine(t, 2)
+	src := placeCard(t, e, 0, ta, state.ZBattlefield)
+	art := placeSrc(t, e, 1, "Name:TA Art\nTypes:Artifact\nOracle:x\n", state.ZBattlefield)
+	cre1 := placeSrc(t, e, 1, "Name:TA Cre One\nTypes:Creature\nPT:1/1\nOracle:x\n", state.ZBattlefield)
+	cre2 := placeSrc(t, e, 1, "Name:TA Cre Two\nTypes:Creature\nPT:1/1\nOracle:x\n", state.ZBattlefield)
+	ench := placeSrc(t, e, 1, "Name:TA Ench\nTypes:Enchantment\nOracle:x\n", state.ZBattlefield)
 	start := len(e.L.Events)
 	var last *effects.Ctx
-	d := kr0Run(t, e, s, func() *effects.Ctx {
+	d := runProbeSA(t, e, s, func() *effects.Ctx {
 		return &effects.Ctx{Source: src, Controller: 0, SVars: ta.Faces[0].SVars,
 			Remembered: []state.Target{{Player: 1, IsPlayer: true}}}
 	}, &last)
@@ -44,15 +43,15 @@ func TestChooseCardChooseEachTragicArroganceAsksPerGroupKernel(t *testing.T) {
 	if len(d.Options) != 1 || d.Options[0].Obj != art {
 		t.Fatalf("Artifact group options = %+v, want exactly %d", d.Options, art)
 	}
-	d = kr0Answer(t, e, 0)
+	d = answerAsk(t, e, 0)
 	if d == nil || len(d.Options) != 2 || d.Options[0].Obj != cre1 || d.Options[1].Obj != cre2 {
 		t.Fatalf("Creature ask = %+v, want both creatures in order", d)
 	}
-	d = kr0Answer(t, e, kr0Opt(t, d, cre2))
+	d = answerAsk(t, e, optionIdxForObj(t, d, cre2))
 	if d == nil || len(d.Options) != 1 || d.Options[0].Obj != ench {
 		t.Fatalf("Enchantment ask = %+v, want the enchantment alone", d)
 	}
-	if next := kr0Answer(t, e, 0); next != nil {
+	if next := answerAsk(t, e, 0); next != nil {
 		t.Fatalf("a fourth ask was posed (the empty Planeswalker group must be silent): %+v", next)
 	}
 	wantPicks := []state.ObjID{art, cre2, ench}
@@ -73,7 +72,7 @@ func TestChooseCardChooseEachTragicArroganceAsksPerGroupKernel(t *testing.T) {
 		}
 	}
 	reveals := 0
-	for _, ev := range kr0Since(e, start) {
+	for _, ev := range eventsSince(e, start) {
 		if ev.Kind != events.Note {
 			continue
 		}
@@ -94,25 +93,25 @@ func TestChooseCardChooseEachTragicArroganceAsksPerGroupKernel(t *testing.T) {
 // Warrior groups ask, the empty groups and the non-party Goblin never show.
 func TestChooseCardChooseEachPartyExpandsKernel(t *testing.T) {
 	t.Parallel()
-	e := kr0Engine(t, 2)
-	cleric := kr0Src(t, e, 0, "Name:Party Cleric\nTypes:Creature Cleric\nPT:1/1\nOracle:x\n", state.ZBattlefield)
-	warrior := kr0Src(t, e, 0, "Name:Party Warrior\nTypes:Creature Warrior\nPT:1/1\nOracle:x\n", state.ZBattlefield)
-	goblin := kr0Src(t, e, 0, "Name:Not Party\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n", state.ZBattlefield)
+	e := fixtureEngine(t, 2)
+	cleric := placeSrc(t, e, 0, "Name:Party Cleric\nTypes:Creature Cleric\nPT:1/1\nOracle:x\n", state.ZBattlefield)
+	warrior := placeSrc(t, e, 0, "Name:Party Warrior\nTypes:Creature Warrior\nPT:1/1\nOracle:x\n", state.ZBattlefield)
+	goblin := placeSrc(t, e, 0, "Name:Not Party\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n", state.ZBattlefield)
 	var last *effects.Ctx
-	d := kr0Run(t, e, kr0SA(t, "SP$ ChooseCard | Defined$ You | Choices$ Creature | ChooseEach$ Party | Mandatory$ True | Reveal$ True"),
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseCard | Defined$ You | Choices$ Creature | ChooseEach$ Party | Mandatory$ True | Reveal$ True"),
 		func() *effects.Ctx { return &effects.Ctx{Source: cleric, Controller: 0} }, &last)
 	if d == nil || len(d.Options) != 1 || d.Options[0].Obj != cleric {
 		t.Fatalf("first party ask = %+v, want the cleric alone", d)
 	}
 	first := d.ResumeTarget
-	d = kr0Answer(t, e, 0)
+	d = answerAsk(t, e, 0)
 	if d == nil || len(d.Options) != 1 || d.Options[0].Obj != warrior {
 		t.Fatalf("second party ask = %+v, want the warrior alone", d)
 	}
 	if d.ResumeTarget <= first {
 		t.Fatalf("party ResumeTarget %d did not advance past %d", d.ResumeTarget, first)
 	}
-	if next := kr0Answer(t, e, 0); next != nil {
+	if next := answerAsk(t, e, 0); next != nil {
 		t.Fatalf("a third party ask was posed: %+v", next)
 	}
 	if len(last.Chosen) != 2 || last.Chosen[0].Obj != cleric || last.Chosen[1].Obj != warrior {

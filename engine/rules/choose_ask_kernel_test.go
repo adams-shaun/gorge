@@ -1,9 +1,6 @@
 package rules
 
-// Restored from engine/effects/choose_color_ask_test.go, choose_number_ask_test.go,
-// choose_number_bounds_test.go, choose_type_ask_test.go,
-// choose_type_categories_test.go and charm_suspension_test.go (W3 legacy
-// removal): the resolution-time choose asks, answered through the
+// The resolution-time choose asks, answered through the
 // resolution kernel on a real engine.
 
 import (
@@ -16,8 +13,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kr0ChooseEvents collects the Choose events of the given Counter in evs.
-func kr0ChooseEvents(evs []events.Event, counter string) []events.Event {
+// chooseEventsFor collects the Choose events of the given Counter in evs.
+func chooseEventsFor(evs []events.Event, counter string) []events.Event {
 	var out []events.Event
 	for _, ev := range evs {
 		if ev.Kind == events.Choose && ev.Counter == counter {
@@ -27,11 +24,11 @@ func kr0ChooseEvents(evs []events.Event, counter string) []events.Event {
 	return out
 }
 
-// kr0ChooseSource is a land source on seat 0's battlefield and a Ctx maker.
-func kr0ChooseSource(t *testing.T) (*Engine, state.ObjID, func() *effects.Ctx) {
+// chooseSourceBoard is a land source on seat 0's battlefield and a Ctx maker.
+func chooseSourceBoard(t *testing.T) (*Engine, state.ObjID, func() *effects.Ctx) {
 	t.Helper()
-	e := kr0Engine(t, 2)
-	src := kr0Src(t, e, 0, "Name:Source\nTypes:Land\nOracle:x\n", state.ZBattlefield)
+	e := fixtureEngine(t, 2)
+	src := placeSrc(t, e, 0, "Name:Source\nTypes:Land\nOracle:x\n", state.ZBattlefield)
 	return e, src, func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0} }
 }
 
@@ -42,9 +39,9 @@ func kr0ChooseSource(t *testing.T) (*Engine, state.ObjID, func() *effects.Ctx) {
 // second ask is posed.
 func TestChooseColorAsksAndReEntryEmitsTheAnsweredLetterOnceKernel(t *testing.T) {
 	t.Parallel()
-	e, src, mk := kr0ChooseSource(t)
+	e, src, mk := chooseSourceBoard(t)
 	start := len(e.L.Events)
-	d := kr0Run(t, e, kr0SA(t, "SP$ ChooseColor | Defined$ You"), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseColor | Defined$ You"), mk, nil)
 	if d == nil || d.Kind != decision.KChoose || d.Player != 0 || d.Min != 1 || d.Max != 1 ||
 		d.ResumeKind != "choosecolor" || d.Source != src || d.Prompt != "Choose a color" {
 		t.Fatalf("ChooseColor ask shape wrong: %+v", d)
@@ -58,13 +55,13 @@ func TestChooseColorAsksAndReEntryEmitsTheAnsweredLetterOnceKernel(t *testing.T)
 			t.Fatalf("option %d = %+v, want color %q", i, d.Options[i], w)
 		}
 	}
-	if evs := kr0ChooseEvents(kr0Since(e, start), "color"); len(evs) != 0 {
+	if evs := chooseEventsFor(eventsSince(e, start), "color"); len(evs) != 0 {
 		t.Fatalf("Choose event(s) before the answer: %+v", evs)
 	}
-	if next := kr0Answer(t, e, kr0Label(t, d, "Black")); next != nil {
+	if next := answerAsk(t, e, optionIdxWithLabel(t, d, "Black")); next != nil {
 		t.Fatalf("the answer posed a second ask: %+v", next)
 	}
-	evs := kr0ChooseEvents(kr0Since(e, start), "color")
+	evs := chooseEventsFor(eventsSince(e, start), "color")
 	if len(evs) != 1 || evs[0].Text != "B" || evs[0].Obj != src {
 		t.Fatalf("Choose events = %+v, want exactly one Choose \"B\" on the source", evs)
 	}
@@ -78,18 +75,18 @@ func TestChooseColorAsksAndReEntryEmitsTheAnsweredLetterOnceKernel(t *testing.T)
 // choice is forced and recorded without an ask.
 func TestChooseColorChoicesRestrictsTheAskAndForcesASingleOfferKernel(t *testing.T) {
 	t.Parallel()
-	e, src, mk := kr0ChooseSource(t)
-	d := kr0Run(t, e, kr0SA(t, "SP$ ChooseColor | Defined$ You | Choices$ black,red"), mk, nil)
+	e, src, mk := chooseSourceBoard(t)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseColor | Defined$ You | Choices$ black,red"), mk, nil)
 	if d == nil || len(d.Options) != 2 || d.Options[0].Label != "Black" || d.Options[1].Label != "Red" {
 		t.Fatalf("Choices$ ask = %+v, want one ask over Black/Red", d)
 	}
-	kr0Answer(t, e, kr0Label(t, d, "Red"))
+	answerAsk(t, e, optionIdxWithLabel(t, d, "Red"))
 	if got := e.G.Obj(src).ChosenColor; got != "R" {
 		t.Fatalf("ChosenColor = %q, want R", got)
 	}
 
-	e2, src2, mk2 := kr0ChooseSource(t)
-	if d := kr0Run(t, e2, kr0SA(t, "SP$ ChooseColor | Defined$ You | Choices$ Red"), mk2, nil); d != nil {
+	e2, src2, mk2 := chooseSourceBoard(t)
+	if d := runProbeSA(t, e2, parseFixtureSA(t, "SP$ ChooseColor | Defined$ You | Choices$ Red"), mk2, nil); d != nil {
 		t.Fatalf("single-offer Choices$ posed %+v, want no ask", d)
 	}
 	if got := e2.G.Obj(src2).ChosenColor; got != "R" {
@@ -102,18 +99,18 @@ func TestChooseColorChoicesRestrictsTheAskAndForcesASingleOfferKernel(t *testing
 // still asks, and its answer replaces the stale colour.
 func TestChooseColorFreshAskAfterAnEarlierChoiceOnTheSourceKernel(t *testing.T) {
 	t.Parallel()
-	e, src, mk := kr0ChooseSource(t)
+	e, src, mk := chooseSourceBoard(t)
 	e.emit(events.Event{Kind: events.Choose, Obj: src, Counter: "color", Text: "G"})
 	if got := e.G.Obj(src).ChosenColor; got != "G" {
 		t.Fatalf("precondition: the earlier choice did not record: %q", got)
 	}
 	start := len(e.L.Events)
-	d := kr0Run(t, e, kr0SA(t, "SP$ ChooseColor | Defined$ You"), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseColor | Defined$ You"), mk, nil)
 	if d == nil || d.ResumeKind != "choosecolor" || len(d.Options) != 5 {
 		t.Fatalf("fresh ask = %+v, want the five-colour choosecolor ask", d)
 	}
-	kr0Answer(t, e, kr0Label(t, d, "Black"))
-	evs := kr0ChooseEvents(kr0Since(e, start), "color")
+	answerAsk(t, e, optionIdxWithLabel(t, d, "Black"))
+	evs := chooseEventsFor(eventsSince(e, start), "color")
 	if len(evs) != 1 || evs[0].Text != "B" {
 		t.Fatalf("Choose events = %+v, want exactly one Choose \"B\"", evs)
 	}
@@ -129,9 +126,9 @@ func TestChooseColorFreshAskAfterAnEarlierChoiceOnTheSourceKernel(t *testing.T) 
 func TestChooseNumberAsksAndReEntryEmitsTheAnsweredNumberOnceKernel(t *testing.T) {
 	t.Parallel()
 	for _, pick := range []int{4, 0} {
-		e, src, mk := kr0ChooseSource(t)
+		e, src, mk := chooseSourceBoard(t)
 		start := len(e.L.Events)
-		d := kr0Run(t, e, kr0SA(t, "SP$ ChooseNumber | Defined$ You"), mk, nil)
+		d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseNumber | Defined$ You"), mk, nil)
 		if d == nil || d.Kind != decision.KChoose || d.Player != 0 || d.Min != 1 || d.Max != 1 ||
 			d.ResumeKind != "choosenumber" || d.Source != src || d.Prompt != "Choose a number" {
 			t.Fatalf("ChooseNumber ask shape wrong: %+v", d)
@@ -144,13 +141,13 @@ func TestChooseNumberAsksAndReEntryEmitsTheAnsweredNumberOnceKernel(t *testing.T
 				t.Fatalf("option %d = %+v, want Kind number and Amount %d", i, o, i)
 			}
 		}
-		if evs := kr0ChooseEvents(kr0Since(e, start), "number"); len(evs) != 0 {
+		if evs := chooseEventsFor(eventsSince(e, start), "number"); len(evs) != 0 {
 			t.Fatalf("Choose event(s) before the answer: %+v", evs)
 		}
-		if next := kr0Answer(t, e, pick); next != nil {
+		if next := answerAsk(t, e, pick); next != nil {
 			t.Fatalf("the answer posed a second ask: %+v", next)
 		}
-		evs := kr0ChooseEvents(kr0Since(e, start), "number")
+		evs := chooseEventsFor(eventsSince(e, start), "number")
 		if len(evs) != 1 || int(evs[0].Amount) != pick || evs[0].Obj != src {
 			t.Fatalf("pick %d: Choose events = %+v, want exactly one Choose Amount %d", pick, evs, pick)
 		}
@@ -164,16 +161,16 @@ func TestChooseNumberAsksAndReEntryEmitsTheAnsweredNumberOnceKernel(t *testing.T
 // ChosenNumber already on the source does not short-circuit a fresh ask.
 func TestChooseNumberFreshAskAfterAnEarlierChoiceOnTheSourceKernel(t *testing.T) {
 	t.Parallel()
-	e, src, mk := kr0ChooseSource(t)
+	e, src, mk := chooseSourceBoard(t)
 	e.emit(events.Event{Kind: events.Choose, Obj: src, Counter: "number", Amount: 5})
 	if got := e.G.Obj(src).ChosenNumber; got != 5 {
 		t.Fatalf("precondition: the earlier choice did not record: %d", got)
 	}
-	d := kr0Run(t, e, kr0SA(t, "SP$ ChooseNumber | Defined$ You"), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseNumber | Defined$ You"), mk, nil)
 	if d == nil || d.ResumeKind != "choosenumber" || len(d.Options) < 2 {
 		t.Fatalf("fresh ask = %+v, want a choosenumber ask", d)
 	}
-	kr0Answer(t, e, 2)
+	answerAsk(t, e, 2)
 	if got := e.G.Obj(src).ChosenNumber; got != 2 {
 		t.Fatalf("ChosenNumber = %d, want the new answer 2", got)
 	}
@@ -184,10 +181,10 @@ func TestChooseNumberFreshAskAfterAnEarlierChoiceOnTheSourceKernel(t *testing.T)
 // records it.
 func TestChooseNumberBoundAnswerResumeReEntryKernel(t *testing.T) {
 	t.Parallel()
-	e, src, mk := kr0ChooseSource(t)
+	e, src, mk := chooseSourceBoard(t)
 	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "ENERGY", Amount: 2})
 	start := len(e.L.Events)
-	d := kr0Run(t, e, kr0SA(t, "DB$ ChooseNumber | Max$ Count$YourCountersEnergy"), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, "DB$ ChooseNumber | Max$ Count$YourCountersEnergy"), mk, nil)
 	if d == nil || len(d.Options) != 3 {
 		t.Fatalf("bounded ask = %+v, want the three options 0..2", d)
 	}
@@ -200,8 +197,8 @@ func TestChooseNumberBoundAnswerResumeReEntryKernel(t *testing.T) {
 	if two < 0 {
 		t.Fatalf("the bounded list offers no 2: %+v", d.Options)
 	}
-	kr0Answer(t, e, two)
-	evs := kr0ChooseEvents(kr0Since(e, start), "number")
+	answerAsk(t, e, two)
+	evs := chooseEventsFor(eventsSince(e, start), "number")
 	if len(evs) != 1 || evs[0].Amount != 2 {
 		t.Fatalf("Choose events = %+v, want exactly one Amount 2", evs)
 	}
@@ -215,9 +212,9 @@ func TestChooseNumberBoundAnswerResumeReEntryKernel(t *testing.T) {
 // the Defined$ player, no Choose before the answer, exactly one after.
 func TestChooseTypeAsksAndReEntryEmitsTheAnsweredTypeOnceKernel(t *testing.T) {
 	t.Parallel()
-	e, src, mk := kr0ChooseSource(t)
+	e, src, mk := chooseSourceBoard(t)
 	start := len(e.L.Events)
-	d := kr0Run(t, e, kr0SA(t, "SP$ ChooseType | Defined$ You | Type$ Creature"), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseType | Defined$ You | Type$ Creature"), mk, nil)
 	if d == nil || d.Kind != decision.KChoose || d.Player != 0 || d.Min != 1 || d.Max != 1 ||
 		d.ResumeKind != "choosetype" || d.Source != src || d.Prompt != "Choose a creature type" {
 		t.Fatalf("ChooseType ask shape wrong: %+v", d)
@@ -227,14 +224,14 @@ func TestChooseTypeAsksAndReEntryEmitsTheAnsweredTypeOnceKernel(t *testing.T) {
 			t.Fatalf("option %+v is not a \"type\" option", o)
 		}
 	}
-	if evs := kr0ChooseEvents(kr0Since(e, start), "type"); len(evs) != 0 {
+	if evs := chooseEventsFor(eventsSince(e, start), "type"); len(evs) != 0 {
 		t.Fatalf("Choose event(s) before the answer: %+v", evs)
 	}
-	if next := kr0Answer(t, e, kr0Label(t, d, "Zombie")); next != nil {
+	if next := answerAsk(t, e, optionIdxWithLabel(t, d, "Zombie")); next != nil {
 		t.Fatalf("the answer posed a second ask: %+v", next)
 	}
 	var got []events.Event
-	for _, ev := range kr0Since(e, start) {
+	for _, ev := range eventsSince(e, start) {
 		if ev.Kind == events.Choose && ev.Obj == src && ev.Text == "Zombie" {
 			got = append(got, ev)
 		}
@@ -252,9 +249,9 @@ func TestChooseTypeAsksAndReEntryEmitsTheAnsweredTypeOnceKernel(t *testing.T) {
 // land-type prompt and no loud Note; the answer is recorded.
 func TestChooseTypeBasicLandOffersTheFiveBasicLandTypesKernel(t *testing.T) {
 	t.Parallel()
-	e, src, mk := kr0ChooseSource(t)
+	e, src, mk := chooseSourceBoard(t)
 	start := len(e.L.Events)
-	d := kr0Run(t, e, kr0SA(t, "SP$ ChooseType | Defined$ You | Type$ Basic Land"), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ ChooseType | Defined$ You | Type$ Basic Land"), mk, nil)
 	if d == nil || d.Prompt != "Choose a land type" {
 		t.Fatalf("ask = %+v, want the land-type ask", d)
 	}
@@ -267,12 +264,12 @@ func TestChooseTypeBasicLandOffersTheFiveBasicLandTypesKernel(t *testing.T) {
 			t.Fatalf("option %d = %+v, want %q", i, d.Options[i], w)
 		}
 	}
-	for _, ev := range kr0Since(e, start) {
+	for _, ev := range eventsSince(e, start) {
 		if ev.Kind == events.Note {
 			t.Fatalf("an enumerable category emitted a Note: %q", ev.Text)
 		}
 	}
-	kr0Answer(t, e, kr0Label(t, d, "Mountain"))
+	answerAsk(t, e, optionIdxWithLabel(t, d, "Mountain"))
 	if e.G.Obj(src).ChosenType != "Mountain" {
 		t.Fatalf("ChosenType = %q, want Mountain", e.G.Obj(src).ChosenType)
 	}
@@ -284,8 +281,8 @@ func TestChooseTypeBasicLandOffersTheFiveBasicLandTypesKernel(t *testing.T) {
 // nested pick and then DoLose both run, once.
 func TestCharmModeLoopStopsAtAMidModeSuspensionKernel(t *testing.T) {
 	t.Parallel()
-	e := kr0Engine(t, 2)
-	src := kr0Src(t, e, 0, "Name:Source\nTypes:Land\nOracle:x\n", state.ZBattlefield)
+	e := fixtureEngine(t, 2)
+	src := placeSrc(t, e, 0, "Name:Source\nTypes:Land\nOracle:x\n", state.ZBattlefield)
 	svars := map[string]string{
 		"DoAsk":  "DB$ Charm | Choices$ InnerA,InnerB",
 		"InnerA": "DB$ GainLife | Defined$ You | LifeAmount$ 1 | SpellDescription$ Gain 1",
@@ -296,7 +293,7 @@ func TestCharmModeLoopStopsAtAMidModeSuspensionKernel(t *testing.T) {
 		t.Fatal("precondition: the DoAsk SVar did not resolve")
 	}
 	life := e.G.Players[0].Life
-	d := kr0Run(t, e, kr0SA(t, "SP$ Charm | Choices$ DoAsk,DoLose"), func() *effects.Ctx {
+	d := runProbeSA(t, e, parseFixtureSA(t, "SP$ Charm | Choices$ DoAsk,DoLose"), func() *effects.Ctx {
 		return &effects.Ctx{Source: src, Controller: 0, SVars: svars, Modes: []string{"DoAsk", "DoLose"}}
 	}, nil)
 	if d == nil || d.Kind != decision.KModes || len(d.Options) != 2 {
@@ -305,7 +302,7 @@ func TestCharmModeLoopStopsAtAMidModeSuspensionKernel(t *testing.T) {
 	if got := e.G.Players[0].Life; got != life {
 		t.Fatalf("life = %d, want %d: a later mode ran while the nested ask was pending", got, life)
 	}
-	if next := kr0Answer(t, e, 1); next != nil {
+	if next := answerAsk(t, e, 1); next != nil {
 		t.Fatalf("unexpected further ask %+v", next)
 	}
 	if got := e.G.Players[0].Life; got != life+2-5 {

@@ -18,13 +18,11 @@ import (
 // legalWalk.manaSection() and legalWalk.postWalkTail() -- the same code the
 // walk runs for those parts -- and nothing else. Byte-identity is the
 // acceptance test (TestLegalWalkDigest), and quietVerifyOn hosts compare
-// every served window with the real walk (§4.1).
+// every served window with the real walk.
 
 // quietOff disables the quiet serve. It follows the prio-memo flag pattern
-// inverted: the serve is ON only when GORGE_QUIET_SKIP=1 is set. The Q2
-// default flip is NOT landed: the az-row pair measured the serve
-// net-negative, so the path stays opt-in until the proof cost falls (Q4). The
-// design's §6 Q2 flip is conditional on the az-row gate passing.
+// inverted: the serve is ON only when GORGE_QUIET_SKIP=1 is set. The serve
+// measured net-negative, so the path stays opt-in until the proof cost falls.
 var quietOff = os.Getenv("GORGE_QUIET_SKIP") != "1"
 
 // quietServed counts the windows priorityOptions served from the proof
@@ -38,7 +36,7 @@ var quietServed atomic.Uint64
 // (potentialFullDemand && WalkRecDemand) is required false: on such an
 // engine the walk's record feeds PotentialMana's membership lists and the
 // decision's potential tail (walk_block_reuse.go), so a recorder-armed
-// engine keeps the walk (design §6 Q2 "out of scope"). An inert hold-out is
+// engine keeps the walk. An inert hold-out is
 // deliberately NOT required: the tail filter runs on the served list too.
 func (e *Engine) quietUsable() bool {
 	return e.hostAsking == 0 && e.cast == nil && !e.Suspended() && e.offStackMana == nil &&

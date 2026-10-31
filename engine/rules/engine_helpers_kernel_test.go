@@ -1,9 +1,6 @@
 package rules
 
-// Batch-0 test-restoration helpers (prefix kr0): the W3 legacy removal
-// deleted effects-package tests that drove the suspend/resume ask protocol
-// through fake hosts. Their behaviour is restored here against a REAL engine:
-// a synthetic SA resolves under a kernel probe (e.probe), the ask it poses is
+// Test helpers against a REAL engine: a synthetic SA resolves under a kernel probe (e.probe), the ask it poses is
 // read off e.Pending, and the answering Submit re-executes the resolution
 // from its checkpoint with the answer served by the tape.
 
@@ -17,20 +14,20 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kr0Engine is a seats-player engine (all-Mountain decks) driven to seat 0's
+// fixtureEngine is a seats-player engine (all-Mountain decks) driven to seat 0's
 // first main phase, ready for eventless fixture placement.
-func kr0Engine(t *testing.T, seats int) *Engine {
+func fixtureEngine(t *testing.T, seats int) *Engine {
 	t.Helper()
-	return kr0EngineTokens(t, seats, map[string]*cards.Card{})
+	return tokenFixtureEngine(t, seats, map[string]*cards.Card{})
 }
 
-// kr0EngineCorpus is kr0Engine with the corpus token scripts available.
-func kr0EngineCorpus(t *testing.T, seats int) *Engine {
+// corpusFixtureEngine is fixtureEngine with the corpus token scripts available.
+func corpusFixtureEngine(t *testing.T, seats int) *Engine {
 	t.Helper()
-	return kr0EngineTokens(t, seats, searchTestRegistry(t).Tokens)
+	return tokenFixtureEngine(t, seats, searchTestRegistry(t).Tokens)
 }
 
-func kr0EngineTokens(t *testing.T, seats int, tokens map[string]*cards.Card) *Engine {
+func tokenFixtureEngine(t *testing.T, seats int, tokens map[string]*cards.Card) *Engine {
 	t.Helper()
 	names := []string{"a", "b", "c", "d"}[:seats]
 	decks := make([][]*cards.Card, seats)
@@ -43,8 +40,8 @@ func kr0EngineTokens(t *testing.T, seats int, tokens map[string]*cards.Card) *En
 	return e
 }
 
-// kr0SA parses one ability line ("SP$ ..." / "DB$ ...") into a linked SA.
-func kr0SA(t *testing.T, line string, svars ...string) *cards.SA {
+// parseFixtureSA parses one ability line ("SP$ ..." / "DB$ ...") into a linked SA.
+func parseFixtureSA(t *testing.T, line string, svars ...string) *cards.SA {
 	t.Helper()
 	src := "Name:T\nTypes:Sorcery\nA:" + line + "\n"
 	for _, s := range svars {
@@ -53,9 +50,9 @@ func kr0SA(t *testing.T, line string, svars ...string) *cards.SA {
 	return card(t, src+"Oracle:x\n").Faces[0].Abilities[0]
 }
 
-// kr0Place adds a card eventlessly to p's zone (appended at the end; for a
+// placeCard adds a card eventlessly to p's zone (appended at the end; for a
 // library that is the bottom).
-func kr0Place(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card, z state.Zone) state.ObjID {
+func placeCard(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card, z state.Zone) state.ObjID {
 	t.Helper()
 	if z == state.ZBattlefield {
 		return onBoardCard(t, e, p, c)
@@ -68,14 +65,14 @@ func kr0Place(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card, z state.
 	return o.ID
 }
 
-// kr0Src is kr0Place for a script string.
-func kr0Src(t *testing.T, e *Engine, p state.PlayerID, src string, z state.Zone) state.ObjID {
+// placeSrc is placeCard for a script string.
+func placeSrc(t *testing.T, e *Engine, p state.PlayerID, src string, z state.Zone) state.ObjID {
 	t.Helper()
-	return kr0Place(t, e, p, card(t, src), z)
+	return placeCard(t, e, p, card(t, src), z)
 }
 
-// kr0Library replaces p's library with n fresh copies of src (top first).
-func kr0Library(t *testing.T, e *Engine, p state.PlayerID, src string, n int) []state.ObjID {
+// addToLibrary replaces p's library with n fresh copies of src (top first).
+func addToLibrary(t *testing.T, e *Engine, p state.PlayerID, src string, n int) []state.ObjID {
 	t.Helper()
 	c := card(t, src)
 	for _, id := range e.G.Zone(state.ZLibrary, p) {
@@ -92,11 +89,11 @@ func kr0Library(t *testing.T, e *Engine, p state.PlayerID, src string, n int) []
 	return ids
 }
 
-// kr0Run resolves sa under a kernel probe with a fresh Ctx from mk on every
+// runProbeSA resolves sa under a kernel probe with a fresh Ctx from mk on every
 // (re-)execution. It returns the posed decision, or nil when the resolution
 // completed without asking. *last (when non-nil) receives the Ctx of the
 // latest execution, so a test can read what the resolution left on it.
-func kr0Run(t *testing.T, e *Engine, sa *cards.SA, mk func() *effects.Ctx, last **effects.Ctx) *decision.Decision {
+func runProbeSA(t *testing.T, e *Engine, sa *cards.SA, mk func() *effects.Ctx, last **effects.Ctx) *decision.Decision {
 	t.Helper()
 	e.pending = nil
 	e.probe(func() {
@@ -109,13 +106,13 @@ func kr0Run(t *testing.T, e *Engine, sa *cards.SA, mk func() *effects.Ctx, last 
 	return e.Pending()
 }
 
-// kr0Answer submits choices to the pending decision and returns whatever is
+// answerAsk submits choices to the pending decision and returns whatever is
 // pending afterwards (nil once the probed resolution completed).
-func kr0Answer(t *testing.T, e *Engine, choices ...int) *decision.Decision {
+func answerAsk(t *testing.T, e *Engine, choices ...int) *decision.Decision {
 	t.Helper()
 	d := e.Pending()
 	if d == nil {
-		t.Fatal("kr0Answer: no decision pending")
+		t.Fatal("answerAsk: no decision pending")
 	}
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
 		t.Fatalf("submit %v to %s/%s: %v", choices, d.Kind, d.ResumeKind, err)
@@ -123,8 +120,8 @@ func kr0Answer(t *testing.T, e *Engine, choices ...int) *decision.Decision {
 	return e.Pending()
 }
 
-// kr0Opt returns the index of d's option carrying obj, failing when absent.
-func kr0Opt(t *testing.T, d *decision.Decision, obj state.ObjID) int {
+// optionIdxForObj returns the index of d's option carrying obj, failing when absent.
+func optionIdxForObj(t *testing.T, d *decision.Decision, obj state.ObjID) int {
 	t.Helper()
 	for _, o := range d.Options {
 		if o.Obj == obj {
@@ -135,8 +132,8 @@ func kr0Opt(t *testing.T, d *decision.Decision, obj state.ObjID) int {
 	return -1
 }
 
-// kr0Kind returns the index of d's option of the given Kind, failing when absent.
-func kr0Kind(t *testing.T, d *decision.Decision, kind string) int {
+// optionOfKind returns the index of d's option of the given Kind, failing when absent.
+func optionOfKind(t *testing.T, d *decision.Decision, kind string) int {
 	t.Helper()
 	for _, o := range d.Options {
 		if o.Kind == kind {
@@ -147,8 +144,8 @@ func kr0Kind(t *testing.T, d *decision.Decision, kind string) int {
 	return -1
 }
 
-// kr0Label returns the index of d's option labelled label, failing when absent.
-func kr0Label(t *testing.T, d *decision.Decision, label string) int {
+// optionIdxWithLabel returns the index of d's option labelled label, failing when absent.
+func optionIdxWithLabel(t *testing.T, d *decision.Decision, label string) int {
 	t.Helper()
 	for _, o := range d.Options {
 		if o.Label == label {
@@ -159,13 +156,13 @@ func kr0Label(t *testing.T, d *decision.Decision, label string) int {
 	return -1
 }
 
-// kr0Since returns the events logged from index start on.
-func kr0Since(e *Engine, start int) []events.Event {
+// eventsSince returns the events logged from index start on.
+func eventsSince(e *Engine, start int) []events.Event {
 	return append([]events.Event(nil), e.L.Events[start:]...)
 }
 
-// kr0Count counts the events of kind in evs.
-func kr0Count(evs []events.Event, kind events.Kind) int {
+// countEventKind counts the events of kind in evs.
+func countEventKind(evs []events.Event, kind events.Kind) int {
 	n := 0
 	for _, ev := range evs {
 		if ev.Kind == kind {
@@ -175,14 +172,14 @@ func kr0Count(evs []events.Event, kind events.Kind) int {
 	return n
 }
 
-// kr0Corpus looks a corpus card up by name (skipping without .cards).
-func kr0Corpus(t *testing.T, name string) *cards.Card {
+// corpusCardNamed looks a corpus card up by name (skipping without .cards).
+func corpusCardNamed(t *testing.T, name string) *cards.Card {
 	t.Helper()
 	return searchCorpusCard(t, searchTestRegistry(t), name)
 }
 
-// kr0SVar resolves a corpus card's named SVar into its SA.
-func kr0SVar(t *testing.T, c *cards.Card, name string) *cards.SA {
+// svarSA resolves a corpus card's named SVar into its SA.
+func svarSA(t *testing.T, c *cards.Card, name string) *cards.SA {
 	t.Helper()
 	sa := cards.ResolveSVar(c.Faces[0].SVars, name)
 	if sa == nil {
@@ -191,9 +188,9 @@ func kr0SVar(t *testing.T, c *cards.Card, name string) *cards.SA {
 	return sa
 }
 
-// kr0SetHand replaces p's hand with fresh cards from srcs (in order), the
+// setHandSrcs replaces p's hand with fresh cards from srcs (in order), the
 // previous hand set aside in exile.
-func kr0SetHand(t *testing.T, e *Engine, p state.PlayerID, srcs ...string) []state.ObjID {
+func setHandSrcs(t *testing.T, e *Engine, p state.PlayerID, srcs ...string) []state.ObjID {
 	t.Helper()
 	for _, id := range e.G.Zone(state.ZHand, p) {
 		e.G.Obj(id).Zone = state.ZExile
@@ -202,18 +199,18 @@ func kr0SetHand(t *testing.T, e *Engine, p state.PlayerID, srcs ...string) []sta
 	e.G.SetZone(state.ZHand, p, nil)
 	ids := make([]state.ObjID, 0, len(srcs))
 	for _, s := range srcs {
-		ids = append(ids, kr0Src(t, e, p, s, state.ZHand))
+		ids = append(ids, placeSrc(t, e, p, s, state.ZHand))
 	}
 	return ids
 }
 
-// kr0Creature is a vanilla 1/1 creature script named name.
-func kr0Creature(name string) string {
+// vanillaCreatureSrc is a vanilla 1/1 creature script named name.
+func vanillaCreatureSrc(name string) string {
 	return "Name:" + name + "\nTypes:Creature\nPT:1/1\nOracle:x\n"
 }
 
-// kr0In reports whether id sits in p's zone z.
-func kr0In(e *Engine, z state.Zone, p state.PlayerID, id state.ObjID) bool {
+// objectInZone reports whether id sits in p's zone z.
+func objectInZone(e *Engine, z state.Zone, p state.PlayerID, id state.ObjID) bool {
 	for _, v := range e.G.Zone(z, p) {
 		if v == id {
 			return true
@@ -222,9 +219,9 @@ func kr0In(e *Engine, z state.Zone, p state.PlayerID, id state.ObjID) bool {
 	return false
 }
 
-// kr0SetLibrary replaces p's library with fresh cards from srcs (top first),
+// setLibrarySrcs replaces p's library with fresh cards from srcs (top first),
 // the previous library set aside in exile.
-func kr0SetLibrary(t *testing.T, e *Engine, p state.PlayerID, srcs ...string) []state.ObjID {
+func setLibrarySrcs(t *testing.T, e *Engine, p state.PlayerID, srcs ...string) []state.ObjID {
 	t.Helper()
 	for _, id := range e.G.Zone(state.ZLibrary, p) {
 		e.G.Obj(id).Zone = state.ZExile
@@ -233,13 +230,13 @@ func kr0SetLibrary(t *testing.T, e *Engine, p state.PlayerID, srcs ...string) []
 	e.G.SetZone(state.ZLibrary, p, nil)
 	ids := make([]state.ObjID, 0, len(srcs))
 	for _, s := range srcs {
-		ids = append(ids, kr0Src(t, e, p, s, state.ZLibrary))
+		ids = append(ids, placeSrc(t, e, p, s, state.ZLibrary))
 	}
 	return ids
 }
 
-// kr0OfferSet asserts d offers exactly want's objects, in order.
-func kr0OfferSet(t *testing.T, d *decision.Decision, want ...state.ObjID) {
+// requireOfferSet asserts d offers exactly want's objects, in order.
+func requireOfferSet(t *testing.T, d *decision.Decision, want ...state.ObjID) {
 	t.Helper()
 	got := make([]state.ObjID, 0, len(d.Options))
 	for _, o := range d.Options {
@@ -255,8 +252,8 @@ func kr0OfferSet(t *testing.T, d *decision.Decision, want ...state.ObjID) {
 	}
 }
 
-// kr0Zone asserts id sits in zone z.
-func kr0Zone(t *testing.T, e *Engine, id state.ObjID, z state.Zone) {
+// requireZone asserts id sits in zone z.
+func requireZone(t *testing.T, e *Engine, id state.ObjID, z state.Zone) {
 	t.Helper()
 	if got := e.G.Obj(id).Zone; got != z {
 		t.Fatalf("object %d (%s) in %v, want %v", id, e.G.Obj(id).Face().Name, got, z)

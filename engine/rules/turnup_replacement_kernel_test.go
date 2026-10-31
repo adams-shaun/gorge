@@ -28,7 +28,7 @@ func TestVesuvanShapeshifterCanAcceptItsTurnFaceUpReplacementKernel(t *testing.T
 	submitChoices(t, e, d.Options[0].Index)
 	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
 		// The copy choice (the sibling below pins it): pick the Bear.
-		kr9AnswerObj(t, e, bear)
+		answerObj(t, e, bear)
 	}
 	passUntilStackEmpty(t, e, 20)
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.FaceDown || o.Face() == nil || o.Face().Name != "Grizzly Bears" {
@@ -78,7 +78,7 @@ func TestTurnFaceUpReplacementAskParksTheTransitionKernel(t *testing.T) {
 		t.Fatalf("precondition: Aquamorph Entity did not turn face down: %+v", o)
 	}
 	mark := len(e.L.Events)
-	kr9Probe(e, func() { e.emit(events.Event{Kind: events.TurnFaceUp, Obj: id}) })
+	probeAfterPass(e, func() { e.emit(events.Event{Kind: events.TurnFaceUp, Obj: id}) })
 	if d := e.Pending(); d == nil || d.Kind != decision.KModes {
 		t.Fatalf("expected Aquamorph's replacement choice, got %+v", d)
 	}
@@ -95,7 +95,7 @@ func TestTurnFaceUpReplacementAskParksTheTransitionKernel(t *testing.T) {
 		t.Fatalf("replacement choice has no options: %+v", d)
 	}
 	submitChoices(t, e, d.Options[0].Index)
-	kr9Settle(e)
+	settleAfterPass(e)
 	passUntilStackEmpty(t, e, 20)
 	if o := e.G.Obj(id); o == nil || o.FaceDown {
 		t.Fatalf("answered replacement did not complete turn-up: %+v", o)
@@ -103,8 +103,8 @@ func TestTurnFaceUpReplacementAskParksTheTransitionKernel(t *testing.T) {
 	assertTurnUpEventOnce(t, e, id, mark)
 }
 
-// kr9AnswerObj answers the pending decision with the option naming obj.
-func kr9AnswerObj(t *testing.T, e *Engine, obj state.ObjID) {
+// answerObj answers the pending decision with the option naming obj.
+func answerObj(t *testing.T, e *Engine, obj state.ObjID) {
 	t.Helper()
 	d := e.Pending()
 	for _, o := range d.Options {

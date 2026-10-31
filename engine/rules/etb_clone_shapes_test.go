@@ -166,8 +166,8 @@ func TestSuperiorSpiderManCopiesGraveyardCreatureAndExilesIt(t *testing.T) {
 		t.Fatal("the exile ran inline: no reflexive trigger was put on the stack")
 	}
 	for i := 0; i < 8 && len(e.G.Stack) > 0; i++ {
-		kr6ResolveTop(e)
-		kr6Settle(e)
+		resolveTopProbe(e)
+		settleDrain(e)
 	}
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
 		t.Fatalf("unexpected pending decision: %+v", d)

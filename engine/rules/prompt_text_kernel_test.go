@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from prompt_text_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Decision text carrying no engine syntax over whole games, driven through the
+// resolution kernel (the only ask path).
 
 import (
 	"fmt"

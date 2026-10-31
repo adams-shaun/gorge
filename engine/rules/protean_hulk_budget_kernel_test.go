@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from protean_hulk_budget_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Protean Hulk's budgeted search end to end, driven through the resolution
+// kernel (the only ask path).
 
 import (
 	"testing"

@@ -227,7 +227,7 @@ func (e *Engine) applyTransformReplacement(ev events.Event, matches []replMatch)
 }
 
 // applyTurnFaceUpReplacements is the TurnFaceUp event's replacement pass
-// (R:Event$ TurnFaceUp, CR 614.1a with CR 708.6/702.36e, task). The bodies
+// (R:Event$ TurnFaceUp, CR 614.1a with CR 708.6/702.36e). The bodies
 // resolve BEFORE the turn-up event is folded: the counters Hooded Hydra's
 // body places land on the permanent as it turns face up, and only then does
 // events.Apply retire the CR 708.5 face-down set. An augmenting body never

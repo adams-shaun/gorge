@@ -428,7 +428,7 @@ var predicates = map[string]predFn{
 	"IsSaddled": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o != nil && o.SaddledTurn == g.Turn
 	},
-	// IsMonstrous is CR 701.31b's monstrous designation (task): the 8 corpus
+	// IsMonstrous is CR 701.31b's monstrous designation: the 8 corpus
 	// statics keyed on it (`Affected$ Card.Self+IsMonstrous` -- Domesticated
 	// Hydra's trample, Fleecemane Lion, Colossus of Akros, ...) grant through
 	// the ordinary layer walk, and Polis Crusher's trigger-side `IsPresent$

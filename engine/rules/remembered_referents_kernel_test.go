@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from remembered_referents_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Myrkul's Edict sacrificing the chosen greatest-power creature, ties included,
+// driven through the resolution kernel (the only ask path).
 
 import (
 	"testing"

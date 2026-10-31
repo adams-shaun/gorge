@@ -695,7 +695,7 @@ func TestTotalityGuardSurvivesABroadGraveyardReplacement(t *testing.T) {
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v after %d bounded priority passes with a broad graveyard "+
 			"replacement in play -- the totality guard's own escape hatch got blocked "+
-			"the same way the original Move was ", e.G.Stack, bound)
+			"the same way the original Move was", e.G.Stack, bound)
 	}
 	if n != 2 {
 		t.Fatalf("passes to drain the stack = %d, want exactly 2 -- the same as with no "+

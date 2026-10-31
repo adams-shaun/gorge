@@ -291,10 +291,9 @@ func TestAttachedToTokenCensusNamesCarriers(t *testing.T) {
 // rules coverage rather than silently joining an untested class.
 //
 // The IR keys a split card's FACE, so `Tony Stark` contributes its back face
-// "The Invincible Iron Man". Measured 2026-10-04: 9 carriers (
-// the two extras are `Inventory Management` and `Vault 101: Birthday Party`,
-// whose Object$/Defined$ keys sit in a different param order than the
-// `DB$ Attach | Object$ Remembered` grep).
+// "The Invincible Iron Man". `Inventory Management` and `Vault 101: Birthday
+// Party` are carriers whose Object$/Defined$ keys sit in a different param order
+// than the `DB$ Attach | Object$ Remembered` spelling.
 func TestAttachRememberedCensusNamesCarriers(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	got := attachRememberedCarriers(reg)

@@ -1644,8 +1644,8 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		if remember {
-			// RememberRevealed$ : the revealed cards join
-			// the walk's Remembered set, where a chained ConditionDefined$
+			// RememberRevealed$: the revealed cards join the walk's Remembered
+			// set, where a chained ConditionDefined$
 			// Remembered gate (Delver's transform) reads them. Fresh backing
 			// array: Ctx.Remembered can alias the stack object's own
 			// Remembered slice, and appending in place would

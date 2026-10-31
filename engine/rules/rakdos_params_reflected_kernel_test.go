@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from rakdos_params_reflected_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Chrome Mox reflecting the imprinted card's colour, driven through the
+// resolution kernel (the only ask path).
 
 import (
 	"testing"

@@ -18,7 +18,7 @@ import (
 // each other player follow in turn order, so the round starts at the toss
 // winner, not at seat 0 (kept[i], taken[i] and seats[i] correspond by
 // position). limit is Config.Mulligans, which is the PERMITTED
-// COUNT -- the most mulligans one seat may take (rule R-8.4).
+// COUNT -- the most mulligans one seat may take.
 // It is NOT the CR 103.5b multiplayer free mulligan, which is derived from the
 // seat count and exempts a seat from the bottoming PENALTY, never from the
 // allowance; an earlier version of this comment called limit "the

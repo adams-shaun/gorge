@@ -1,7 +1,6 @@
 package rules
 
-// Kernel-era restorations of the W3 step 2a(choose) dual-run tests. The
-// legacy arm is gone; each scenario now resolves once on the resolution
+// The choose-family asks: each scenario resolves once on the resolution
 // kernel, must pose its named ask, must have its answers served from the
 // tape, and must replay byte-identically (replayCheck).
 
@@ -16,17 +15,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kr7Setup is one kernel scenario's table: seat 0's deck opens with seat0
+// scenarioSetup is one kernel scenario's table: seat 0's deck opens with seat0
 // (moved to hand), seat 1's with seat1 (left where the deal put them), every
 // other card a Mountain, and the token table tokens.
-type kr7Setup struct {
+type scenarioSetup struct {
 	seats        int
 	seed         uint64
 	seat0, seat1 []*cards.Card
 	tokens       map[string]*cards.Card
 }
 
-func kr7Build(t *testing.T, s kr7Setup) (*Engine, Config) {
+func buildSetup(t *testing.T, s scenarioSetup) (*Engine, Config) {
 	t.Helper()
 	names := make([]string, s.seats)
 	decks := make([][]*cards.Card, s.seats)
@@ -60,18 +59,18 @@ func kr7Build(t *testing.T, s kr7Setup) (*Engine, Config) {
 	return e, cfg
 }
 
-// kr7Fixture is the kernel-only tapeFixture: seat 0 holds the given
+// tapeFixtureEngine is the kernel-only tapeFixture: seat 0 holds the given
 // fixture cards in hand over a Mountain deck.
-func kr7Fixture(t *testing.T, seats int, seed uint64, srcs ...string) (*Engine, Config) {
+func tapeFixtureEngine(t *testing.T, seats int, seed uint64, srcs ...string) (*Engine, Config) {
 	t.Helper()
-	return kr7Build(t, kr7Setup{seats: seats, seed: seed, seat0: ctrCards(t, srcs...)})
+	return buildSetup(t, scenarioSetup{seats: seats, seed: seed, seat0: ctrCards(t, srcs...)})
 }
 
-// kr7Run builds s, runs scenario on the kernel, requires the replay to
+// runScenarioSetup builds s, runs scenario on the kernel, requires the replay to
 // match, and returns the kernel counters the run moved.
-func kr7Run(t *testing.T, s kr7Setup, scenario func(t *testing.T, e *Engine)) (*Engine, resolve.Stats) {
+func runScenarioSetup(t *testing.T, s scenarioSetup, scenario func(t *testing.T, e *Engine)) (*Engine, resolve.Stats) {
 	t.Helper()
-	e, cfg := kr7Build(t, s)
+	e, cfg := buildSetup(t, s)
 	before := resolve.ReadStats()
 	scenario(t, e)
 	st := resolve.ReadStats().Sub(before)
@@ -80,21 +79,21 @@ func kr7Run(t *testing.T, s kr7Setup, scenario func(t *testing.T, e *Engine)) (*
 	return e, st
 }
 
-// kr7Dual is the kernel-only tapeDual (the name is kept from the dual-run
+// runKernelScenario is the kernel-only tapeDual (the name is kept from the dual-run
 // era's call sites; there is one run now).
-func kr7Dual(t *testing.T, seats int, seed uint64, scenario func(t *testing.T, e *Engine), srcs ...string) (*Engine, resolve.Stats) {
+func runKernelScenario(t *testing.T, seats int, seed uint64, scenario func(t *testing.T, e *Engine), srcs ...string) (*Engine, resolve.Stats) {
 	t.Helper()
-	return kr7Run(t, kr7Setup{seats: seats, seed: seed, seat0: ctrCards(t, srcs...)}, scenario)
+	return runScenarioSetup(t, scenarioSetup{seats: seats, seed: seed, seat0: ctrCards(t, srcs...)}, scenario)
 }
 
-func kr7DualTokens(t *testing.T, seats int, seed uint64, tokens map[string]*cards.Card, scenario func(t *testing.T, e *Engine), srcs ...string) (*Engine, resolve.Stats) {
+func runKernelScenarioTokens(t *testing.T, seats int, seed uint64, tokens map[string]*cards.Card, scenario func(t *testing.T, e *Engine), srcs ...string) (*Engine, resolve.Stats) {
 	t.Helper()
-	return kr7Run(t, kr7Setup{seats: seats, seed: seed, seat0: ctrCards(t, srcs...), tokens: tokens}, scenario)
+	return runScenarioSetup(t, scenarioSetup{seats: seats, seed: seed, seat0: ctrCards(t, srcs...), tokens: tokens}, scenario)
 }
 
-func kr7Converted(t *testing.T, seats int, seed uint64, name, mana string, minServed int64, srcs ...string) resolve.Stats {
+func convertedAskGame(t *testing.T, seats int, seed uint64, name, mana string, minServed int64, srcs ...string) resolve.Stats {
 	t.Helper()
-	_, st := kr7Dual(t, seats, seed, func(t *testing.T, e *Engine) {
+	_, st := runKernelScenario(t, seats, seed, func(t *testing.T, e *Engine) {
 		tapeCastAndResolve(t, e, name, mana)
 	}, srcs...)
 	if st.Served < minServed || st.LegacySwitch != 0 || st.Aborts != 0 {
@@ -103,12 +102,12 @@ func kr7Converted(t *testing.T, seats int, seed uint64, name, mana string, minSe
 	return st
 }
 
-func kr7ChooseRun(t *testing.T, seed uint64, tc tapeChooseCase) {
+func runChooseCase(t *testing.T, seed uint64, tc tapeChooseCase) {
 	t.Helper()
-	kr7ChooseRunWith(t, seed, tc)
+	runChooseCaseWith(t, seed, tc)
 }
 
-func kr7ChooseRunWith(t *testing.T, seed uint64, tc tapeChooseCase, extra ...string) {
+func runChooseCaseWith(t *testing.T, seed uint64, tc tapeChooseCase, extra ...string) {
 	t.Helper()
 	src := "Name:" + tc.name + "\nManaCost:U\nTypes:Sorcery\n" + tc.src + "\nOracle:x\n"
 	srcs := append([]string{src, ptResumeBearSrc, ptResumeAngelSrc}, extra...)
@@ -117,7 +116,7 @@ func kr7ChooseRunWith(t *testing.T, seed uint64, tc tapeChooseCase, extra ...str
 		seats = 2
 	}
 	var kinds []string
-	_, st := kr7Dual(t, seats, seed, func(t *testing.T, e *Engine) {
+	_, st := runKernelScenario(t, seats, seed, func(t *testing.T, e *Engine) {
 		for _, n := range tc.board {
 			moveByName(t, e, 0, n, state.ZBattlefield)
 		}
@@ -143,7 +142,7 @@ func TestKernelAskChooseValues(t *testing.T) {
 				"SVar:DBGainA:DB$ GainLife | LifeAmount$ 1\nSVar:DBGainB:DB$ GainLife | LifeAmount$ 3", served: 2},
 	}
 	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) { kr7ChooseRun(t, 13000+uint64(i), tc) })
+		t.Run(tc.name, func(t *testing.T) { runChooseCase(t, 13000+uint64(i), tc) })
 	}
 }
 
@@ -167,7 +166,7 @@ func TestKernelAskChoice(t *testing.T) {
 			src: "A:SP$ SetLife | PlayerChoices$ Player | ChoiceAmount$ Any | ChoicePrompt$ Choose players | Redistribute$ True", served: 2},
 	}
 	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) { kr7ChooseRun(t, 13100+uint64(i), tc) })
+		t.Run(tc.name, func(t *testing.T) { runChooseCase(t, 13100+uint64(i), tc) })
 	}
 }
 
@@ -181,7 +180,7 @@ func TestKernelAskAttachCloneCopy(t *testing.T) {
 			src: "A:SP$ ChangeText | ValidTgts$ Creature | ChangeTypeWord$ ChooseCreatureType ChooseCreatureType | Duration$ Permanent", served: 1},
 	}
 	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) { kr7ChooseRun(t, 13200+uint64(i), tc) })
+		t.Run(tc.name, func(t *testing.T) { runChooseCase(t, 13200+uint64(i), tc) })
 	}
 }
 
@@ -199,7 +198,7 @@ func TestKernelAskAttach(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.board = append([]string(nil), tc.board...)
-			kr7ChooseRunWith(t, 13300+uint64(i), tc, tapeSwordSrc, tapeAxeSrc)
+			runChooseCaseWith(t, 13300+uint64(i), tc, tapeSwordSrc, tapeAxeSrc)
 		})
 	}
 }
@@ -218,7 +217,7 @@ func TestKernelAskCopyCipherVariant(t *testing.T) {
 			src: "A:SP$ Clone | Defined$ Valid Creature.namedParentLink Angel | CloneTarget$ Valid Creature.namedParentLink Bear | Optional$ True", served: 1},
 	}
 	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) { kr7ChooseRun(t, 13400+uint64(i), tc) })
+		t.Run(tc.name, func(t *testing.T) { runChooseCase(t, 13400+uint64(i), tc) })
 	}
 }
 
@@ -226,7 +225,7 @@ func TestKernelAskCopyCipherVariant(t *testing.T) {
 // instant on the stack, then the redirect cast over it.
 func TestKernelAskChangeTargets(t *testing.T) {
 	var kinds []string
-	_, st := kr7Dual(t, 2, 13501, func(t *testing.T, e *Engine) {
+	_, st := runKernelScenario(t, 2, 13501, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "ParentLink Bear", state.ZBattlefield)
 		moveByName(t, e, 0, "ParentLink Angel", state.ZBattlefield)
 		addMana(t, e, 0, "RU")
@@ -269,7 +268,7 @@ func TestKernelAskChangeTargets(t *testing.T) {
 // with the passes reset (CR 117.3b) -- on the legacy resume as on the tape.
 func TestKernelOwnMovedReplacementPriorityReset(t *testing.T) {
 	{
-		e, cfg := kr7Fixture(t, 3, 13601, tapePendantSrc)
+		e, cfg := tapeFixtureEngine(t, 3, 13601, tapePendantSrc)
 		addMana(t, e, 0, "U")
 		submitChoices(t, e, castOptionFor(t, e, fixtureInHand(t, e, "Tape Pendant")).Index)
 		asked := false
@@ -294,15 +293,15 @@ func TestKernelOwnMovedReplacementPriorityReset(t *testing.T) {
 		}
 		replayCheck(t, e, cfg)
 	}
-	kr7Dual(t, 3, 13601, func(t *testing.T, e *Engine) { tapeCastAndResolve(t, e, "Tape Pendant", "U") }, tapePendantSrc)
+	runKernelScenario(t, 3, 13601, func(t *testing.T, e *Engine) { tapeCastAndResolve(t, e, "Tape Pendant", "U") }, tapePendantSrc)
 }
 
-// kr7Settle grants the priority window a probe-resolved resolution leaves
+// settleKernel grants the priority window a probe-resolved resolution leaves
 // unposted: a kernel probe (a test's direct resolveTop or e.probe) re-runs
 // only its own function when its ask is answered, so the completion's
 // priority grant -- and the state-based actions checked before it -- that a
 // Submit-driven resolution performs is the test's to trigger.
-func kr7Settle(e *Engine) {
+func settleKernel(e *Engine) {
 	if e.Pending() == nil && !e.G.Over {
 		e.priorityRound()
 	}
