@@ -397,6 +397,60 @@ func (b Board) chooseTap(d *decision.Decision) int {
 	return b.tapToward(d, c)
 }
 
+// chooseManaColour answers a tapped source's "which mana" ask (every option a
+// "mana" option naming one colour) with the first colour the card the tap gate
+// is aiming at still needs, or -1 to leave the ask to the ordinary fallback. A
+// dual tapped toward a blue spell should not float its first colour, white. A
+// payment window charges for a spell on the stack, which that card is not, so it
+// is left alone.
+func (b Board) chooseManaColour(d *decision.Decision) int {
+	if d.ManaPayment != nil || d.ResumeKind == decision.ResumeManaPayment || d.Options[0].Kind != "mana" {
+		return -1
+	}
+	var offered [5]bool
+	syms := make([]int, len(d.Options))
+	for i := range d.Options {
+		o := &d.Options[i]
+		if o.Kind != "mana" {
+			return -1
+		}
+		syms[i] = manaOptionColour(o)
+		if syms[i] >= 0 {
+			offered[syms[i]] = true
+		}
+	}
+	_, c, ok := b.bestUnpayable(d, offered)
+	if !ok {
+		return -1
+	}
+	need := b.neededColours(c)
+	for i, sym := range syms {
+		if sym >= 0 && need[sym] {
+			return d.Options[i].Index
+		}
+	}
+	return -1
+}
+
+// manaOptionColour is the WUBRG slot of the one colour a "mana" option adds, or
+// -1 for an option that doesn't name exactly one, or that has a cost, whose
+// payment moves the pool the ask is read against: a v2 seat answers it before
+// paying. A flattened colour carries its ManaSymbol; a source with one ability per
+// colour (a typed dual) says it only in its label, "Add U".
+func manaOptionColour(o *decision.Option) int {
+	if strings.Contains(o.Label, ":") {
+		return -1
+	}
+	sym := o.ManaSymbol
+	if sym == "" {
+		sym, _ = strings.CutPrefix(o.Label, "Add ")
+	}
+	if len(sym) != 1 {
+		return -1
+	}
+	return strings.IndexByte("WUBRG", sym[0])
+}
+
 // tapToward picks the "activate" option that best advances card c toward
 // castability in this window. It is the tail of chooseTap extracted verbatim
 // (T1/T3 and the colour-need ranking), so a timing rule that has already

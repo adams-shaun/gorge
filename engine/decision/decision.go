@@ -639,6 +639,10 @@ type WindowReason struct {
 	Reason string      `json:"reason"`
 }
 
+// ResumeManaPayment marks a source's "which mana" ask (Decision.ResumeKind) that a
+// payment window posed: the mana goes to the cost being paid.
+const ResumeManaPayment = "mana_payment"
+
 // Decision is the engine asking one player for one answer.
 type Decision struct {
 	Seq     uint64         `json:"seq"`

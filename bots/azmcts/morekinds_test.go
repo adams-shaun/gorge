@@ -208,7 +208,7 @@ func TestChooseSkipsLongListsAndPaymentWindows(t *testing.T) {
 		{"name of 11", "death-n-taxes", "uw-tempo", testSeed, func(d *decision.Decision) bool {
 			return d.Kind == decision.KChoose && len(d.Options) > 6
 		}},
-		{"payment window", "foundations-tramplesaurus-rex", "dimir-tempo", testSeed, func(d *decision.Decision) bool {
+		{"payment window", "deadly-disguise", "uw-tempo", testSeed, func(d *decision.Decision) bool {
 			return d.Kind == decision.KChoose && len(d.Options) >= 2 && len(d.Options) <= 6 && d.Options[0].Kind == "activate"
 		}},
 	} {

@@ -910,6 +910,9 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 	o := e.G.Obj(source)
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a mana ability of " + o.Face().Name, Source: source}
+	if !atPriority {
+		d.ResumeKind = decision.ResumeManaPayment
+	}
 	chosen := pay.ChosenProducedColour(e.G, source)
 	for i, ma := range abilities {
 		// An explicit multi-colour "Produced$ Combo <colours>" ability is
@@ -1429,6 +1432,9 @@ func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger,
 	}
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: min, Max: max,
 		Prompt: pay.ManaColourPrompt(mana), Source: pt.Source}
+	if cast || cumulative {
+		d.ResumeKind = decision.ResumeManaPayment
+	}
 	for unit := 0; unit < max; unit++ {
 		for _, color := range colours {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: pt.Source, Label: "Add " + color, ManaSymbol: color})
@@ -1801,6 +1807,9 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: min, Max: max,
 		Prompt: pay.ManaColourPrompt(ma), Source: source}
+	if cast || cumulative {
+		d.ResumeKind = decision.ResumeManaPayment
+	}
 	// The colour ask is the ONLY place a single-ability source's cost can
 	// appear: activateManaFor resolves a one-ability source directly, with
 	// no stage-1 wheel to name the cost (Mount Doom's "{T}, Pay 1 life: Add

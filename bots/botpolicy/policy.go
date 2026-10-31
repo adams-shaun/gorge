@@ -774,6 +774,12 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		if len(d.Options) == 0 {
 			break
 		}
+		if !b.explore {
+			if pick := b.chooseManaColour(d); pick >= 0 {
+				in.Choices = []int{pick}
+				return Clamp(d, in)
+			}
+		}
 		if b.explore {
 			// X5 (ExploreDecide): a mana-ability or mana-colour pick (every
 			// option a "mana" option: the stage-1 "choose a mana ability of
