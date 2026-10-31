@@ -192,6 +192,6 @@ building blocks for benches, not registered policies.
 | **Many games at once** | goroutines (`testkit/bench.RunPairs`) | one token per seat, up to `-max-on-demand-tables` | one process per seat per match |
 | **On a timeout** | hosted search seats fall back to their heuristic after 2 s | none: `gorged` waits, and the seat's caretaker bot answers only when the table shuts down | forfeit: the seat concedes at its next priority, with the default bot answering until then |
 
-Per-decision costs: about 30 µs for a two-seat game step in process (`cmd/duel` on
+Per-decision costs: about 30 µs for a two-seat game step in process (`examples/bots/go/cmd/duel`, on
 [Writing a native Go bot](native-go.md#play-it-against-the-default-bot)), a few tenths of a millisecond over HTTP on loopback
 ([Latency](http.md#latency)), and about the same over stdio ([SpellBench latency](spellbench.md#latency)).
