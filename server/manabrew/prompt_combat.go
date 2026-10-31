@@ -2,6 +2,7 @@ package manabrew
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -56,10 +57,38 @@ func (t *Translator) promptAttackers(d *decision.Decision, v *view.View) (mb.Pro
 			MustAttack:     opt.Required,
 		})
 	}
-	in := mb.ChooseAttackersInput{Attackers: attackers, AttackTargets: targets}
+	in := mb.ChooseAttackersInput{Attackers: attackers, AttackTargets: targets, Presentation: alonePresentation(d, v, "attack")}
 	return mb.PromptMessage{Kind: "prompt", AgentPrompt: mb.AgentPrompt{
 		PromptID: promptID(d), DecidingPlayerID: playerID(d.Player),
 		Input: mb.PromptInput{Value: in}}}, nil
+}
+
+// alonePresentation frames a declaration with a creature that can't be declared
+// alone (CR 506.5), and is nil when there is none. The sentence gives each
+// creature the id an answer names it by. Its wording is a contract with the
+// clients that read it, mbtest's mock among them.
+func alonePresentation(d *decision.Decision, v *view.View, verb string) *mb.PromptPresentation {
+	var names []string
+	seen := make(map[state.ObjID]bool)
+	for _, opt := range d.Options {
+		if !opt.AloneRestricted || seen[opt.Obj] {
+			continue
+		}
+		seen[opt.Obj] = true
+		name := "A creature"
+		if c := findCard(v, opt.Obj); c != nil && c.Printing.Name != "" {
+			name = c.Printing.Name
+		}
+		names = append(names, fmt.Sprintf("%s (%s)", name, cardID(opt.Obj)))
+	}
+	if names == nil {
+		return nil
+	}
+	return &mb.PromptPresentation{
+		Title:       d.Prompt,
+		Description: fmt.Sprintf("Can't %s alone: %s.", verb, strings.Join(names, ", ")),
+		Targets:     []mb.TargetRef{},
+	}
 }
 
 // attackTargetID is the wire ref id of an attacker option's target: the
@@ -145,6 +174,7 @@ func (t *Translator) promptBlockers(d *decision.Decision, v *view.View) (mb.Prom
 	in := mb.ChooseBlockersInput{
 		Attackers:           attackers,
 		AvailableBlockerIDs: blockers,
+		Presentation:        alonePresentation(d, v, "block"),
 	}
 	return mb.PromptMessage{Kind: "prompt", AgentPrompt: mb.AgentPrompt{
 		PromptID: promptID(d), DecidingPlayerID: playerID(d.Player),

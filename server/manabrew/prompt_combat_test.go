@@ -93,6 +93,31 @@ func TestAttackersBlockersAttackersPromptAndResponse(t *testing.T) {
 	wantErrCode(t, o, mb.CodeInvalidShape)
 }
 
+func TestAttackersPromptSaysWhoCannotAttackAlone(t *testing.T) {
+	v := smallView()
+	attack := &decision.Decision{Seq: 21, Player: 0, Kind: decision.KAttackers, Max: 2, Prompt: "Declare attackers",
+		Options: []decision.Option{
+			{Index: 0, Kind: "attacker", Obj: 2, Player: 1, AloneRestricted: true},
+			{Index: 1, Kind: "attacker", Obj: 2, Battle: 5, AloneRestricted: true},
+			{Index: 2, Kind: "attacker", Obj: 4, Player: 1},
+		}}
+	in := pendingMustBuild(t, attack, v).Input.Value.(mb.ChooseAttackersInput)
+	if in.Presentation == nil || in.Presentation.Description != "Can't attack alone: Bear (o2)." {
+		t.Fatalf("presentation = %+v, want the sentence naming the Bear once", in.Presentation)
+	}
+	attack.Options[0].AloneRestricted, attack.Options[1].AloneRestricted = false, false
+	if in := pendingMustBuild(t, attack, v).Input.Value.(mb.ChooseAttackersInput); in.Presentation != nil {
+		t.Fatalf("presentation = %+v, want none when no creature is restricted", in.Presentation)
+	}
+
+	block := &decision.Decision{Seq: 22, Player: 1, Kind: decision.KBlockers, Max: 2, Prompt: "Declare blockers",
+		Options: []decision.Option{{Index: 0, Kind: "block", Obj: 2, Attacker: 3, AloneRestricted: true}}}
+	blockIn := pendingMustBuild(t, block, v).Input.Value.(mb.ChooseBlockersInput)
+	if blockIn.Presentation == nil || blockIn.Presentation.Description != "Can't block alone: Bear (o2)." {
+		t.Fatalf("presentation = %+v, want the sentence naming the Bear", blockIn.Presentation)
+	}
+}
+
 // TestBlockersPromptAndResponse covers the §6.3 chooseBlockers build (the
 // per-attacker bounds and must-be-blocked flag, the blocker pool) and the
 // declareBlockers response mapping.

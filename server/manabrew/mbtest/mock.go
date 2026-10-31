@@ -278,7 +278,18 @@ func (c *MockClient) answerAttackers(in mb.ChooseAttackersInput) mb.PromptOutput
 		}
 		assignments = append(assignments, mb.AttackerAssignment{AttackerID: a.AttackerID, TargetID: target})
 	}
+	if len(assignments) == 1 && cannotGoAlone(in.Presentation, "attack", assignments[0].AttackerID) {
+		assignments = nil
+	}
 	return mb.DeclareAttackersDecision{Assignments: assignments}
+}
+
+// cannotGoAlone reports whether the prompt's presentation names the creature
+// in the translator's "Can't attack alone" or "Can't block alone" sentence
+// (prompt_combat.go's alonePresentation). Declaring nothing is always legal, so
+// a lone declaration of such a creature becomes none.
+func cannotGoAlone(p *mb.PromptPresentation, verb, id string) bool {
+	return p != nil && strings.Contains(p.Description, "Can't "+verb+" alone: ") && strings.Contains(p.Description, "("+id+")")
 }
 
 // answerBlockers assigns every MustBeBlocked attacker a blocker not already
@@ -349,6 +360,9 @@ func (c *MockClient) answerBlockers(in mb.ChooseBlockersInput) mb.PromptOutputVa
 			// bounds demand it.
 			assign(a, a.MinBlockers)
 		}
+	}
+	if len(assignments) == 1 && cannotGoAlone(in.Presentation, "block", assignments[0].BlockerID) {
+		assignments = nil
 	}
 	return mb.DeclareBlockersDecision{Assignments: assignments}
 }
