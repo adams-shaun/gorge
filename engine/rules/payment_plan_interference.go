@@ -141,7 +141,13 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 			// takes: the consequence is the largest, not the sum.
 			c.Damage = max(c.Damage, dmg)
 		}
-		if by, ok := e.paymentPlanProductionReplaced(id, controller, produced, availableAmount(ma), cost.Tap); ok {
+		// A dynamic Amount$ (Gaea's Cradle) is sized now: Damping Sphere's
+		// ManaAmount$ GE2 reads how much the production really is.
+		amount := availableAmount(ma)
+		if amount == 0 {
+			amount = e.manaEffectAmount(controller, id, ma, nil, pay.GainedManaRef{})
+		}
+		if by, ok := e.paymentPlanProductionReplaced(id, controller, produced, amount, cost.Tap); ok {
 			return deferredBy(by)
 		}
 	}

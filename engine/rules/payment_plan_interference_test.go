@@ -298,6 +298,24 @@ func TestPaymentPlanInterferenceCelestialDawnIsGlobal(t *testing.T) {
 	}
 }
 
+// Damping Sphere gates on the size of the production, so a land with a dynamic
+// Amount$ is measured: Gaea's Cradle tapping for two would make {C}, not {G}{G}.
+func TestPaymentPlanInterferenceSizesADynamicProduction(t *testing.T) {
+	t.Parallel()
+	e, _, spell := newFixtureDeck(t, 9909, interferenceOneInstant)
+	cradle := onBoard(t, e, 0, "Name:Cradle Test\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ G | Amount$ X | SpellDescription$ Add G.\nSVar:X:Count$Valid Creature.YouCtrl\nOracle:x\n")
+	onBoard(t, e, 0, "Name:Bear Test\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	got := e.PlanCastPayment(0, paymentCast(spell))
+	if got.Plan == nil || len(got.Plan.Activations) != 1 || got.Plan.Activations[0].Source != cradle {
+		t.Fatalf("plan with one creature = %+v, want the land taps for one", got)
+	}
+	onBoard(t, e, 0, "Name:Bear Test\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	onBoard(t, e, 1, "Name:Sphere Test\nTypes:Artifact\nR:Event$ ProduceMana | ActiveZones$ Battlefield | ValidCard$ Land | ManaAmount$ GE2 | ReplaceWith$ ProduceC\nSVar:ProduceC:DB$ ReplaceMana | ReplaceMana$ C\nOracle:x\n")
+	if got = e.PlanCastPayment(0, paymentCast(spell)); got.Plan != nil {
+		t.Fatalf("plan with two creatures = %+v, want the replaced production deferred", got)
+	}
+}
+
 // An effect-created ProduceMana replacement WITH a matchable filter is scoped
 // by the real matcher: ValidCard$ Card.Self on Island A defers A only, and a
 // ValidActivator$ You effect of seat 1 leaves seat 0 alone. (The unscoped
