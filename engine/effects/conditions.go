@@ -670,6 +670,11 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 		if defined == "Remembered" || defined == "RememberedLKI" {
 			o = rememberedControllerLKI(c, o)
 		}
+		// CR 608.2h: "if it was kicked" asks about the source as it last
+		// existed once it has left (Sphinx of Lost Truths killed in response).
+		if defined == "Self" {
+			o = castProvenanceSource(g, c)
+		}
 		if present == "" {
 			count++
 			continue

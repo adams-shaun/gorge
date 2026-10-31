@@ -15,3 +15,9 @@ func TestDepartedCreatureKeepsItsColoursSpent(t *testing.T) {
 	t.Parallel()
 	playRuleScenario(t, `{"name":"epicure-bounced-converge","cr":["608.2h"],"why":"three colours spent; bounced in response X is still 3","setup":{"p0":{"hand":["Radiant Epicure"],"mana":"WUBBB"},"p1":{"hand":["Unsummon"],"mana":"U"}},"steps":[{"op":"cast","seat":0,"card":"p0:Radiant Epicure","mana":"WUBBB"},{"op":"pass","seat":0},{"op":"pass","seat":1,"expect":[{"stack_size":1}]},{"op":"pass","seat":0},{"op":"cast","seat":1,"card":"p1:Unsummon","mana":"U","targets":["p0:Radiant Epicure"]},{"op":"resolve"}],"expect":[{"card":"p0:Radiant Epicure","zone":"hand"},{"life":{"p1":17,"p0":23}}]}`)
 }
+
+// CR 608.2h: "if it wasn't kicked" reads the creature as it last existed.
+func TestDepartedCreatureStaysKicked(t *testing.T) {
+	t.Parallel()
+	playRuleScenario(t, `{"name":"sphinx-kicked-killed","cr":["608.2h"],"why":"kicked, killed in response: no discard","setup":{"p0":{"hand":["Sphinx of Lost Truths"],"library":["Island","Island","Island"],"mana":"UUUUUUU"},"p1":{"hand":["Terror"],"mana":"BB"}},"steps":[{"op":"cast","seat":0,"card":"p0:Sphinx of Lost Truths","mana":"UUUUUUU","kicked":true},{"op":"pass","seat":0},{"op":"pass","seat":1,"expect":[{"stack_size":1}]},{"op":"pass","seat":0},{"op":"cast","seat":1,"card":"p1:Terror","mana":"BB","targets":["p0:Sphinx of Lost Truths"]},{"op":"resolve"}],"expect":[{"card":"p0:Sphinx of Lost Truths","zone":"graveyard"},{"hand_size":{"p0":3}}]}`)
+}
