@@ -6,9 +6,6 @@
 # oracle (oraclediff) lives in gorge-compliance, whose nightly CI publishes its
 # per-set status to an orphan docs-data branch, and dirac's per-set
 # figures are a committed snapshot (docs/site/support/dirac-sets.json).
-#
-# The engine-speed chart reads history.jsonl from the orphan `perf-data`
-# branch when that branch exists; perf data never lands on main.
 name: docs
 
 on:
@@ -71,16 +68,6 @@ jobs:
       # (cmd/pkgmap, classification in docs/site/architecture/packages.tiers.json).
       - name: Generate the package map
         run: go run ./cmd/pkgmap > docs/site/architecture/_generated_packages.md
-
-      - name: Fetch the perf history
-        run: |
-          if git fetch --depth=1 origin perf-data 2>/dev/null; then
-            mkdir -p docs/site/perf
-            git show FETCH_HEAD:history.jsonl > docs/site/perf/history.jsonl 2>/dev/null \
-              || rm -f docs/site/perf/history.jsonl
-          else
-            echo "no perf-data branch yet; the tracking page shows 'no data yet'"
-          fi
 
       # The per-set card-support tables (support/_generated_sets.md, included
       # by sets.md): gorge-compliance's nightly compliance job publishes its

@@ -46,9 +46,7 @@ deploys from `main` on a push, on the daily 17:17 UTC rebuild (after gorge-compl
 run. Before the build, it:
 
 1. generates the package map (`go run ./cmd/pkgmap`);
-2. fetches the engine-speed history from gorge's orphan `perf-data` branch
-   when it exists (no such branch on 2026-10-31);
-3. runs `scripts/docs_sets_test.py`, then `scripts/docs_sets.py`. The renderer
+2. runs `scripts/docs_sets_test.py`, then `scripts/docs_sets.py`. The renderer
    reads the committed dirac snapshot and, when the fetch succeeds,
    **gorge-compliance's orphan `docs-data` branch** (`status-A.jsonl`,
    `status-B.jsonl`, `meta.json`).

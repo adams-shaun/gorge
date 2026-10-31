@@ -75,12 +75,10 @@ __pycache__/
 /scratch/
 
 # MkDocs build output (mkdocs.yml site_dir) and the docs workflow's
-# build-time inputs: the generated set and package tables and the perf history fetched
-# from the perf-data branch. Never committed.
+# build-time inputs: the generated set and package tables. Never committed.
 /site/
 docs/site/support/_generated_sets.md
 docs/site/architecture/_generated_packages.md
-docs/site/perf/history.jsonl
 
 # The cards.IR cache's single-flight lock: a run whose test cwd is a
 # command package can drop one next to the sources. Never

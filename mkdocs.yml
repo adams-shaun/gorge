@@ -86,9 +86,6 @@ extra_css:
   - stylesheets/diagrams.css
   - stylesheets/theme.css
 
-extra_javascript:
-  - javascripts/perf-tracking.js
-
 nav:
   - Home:
       - index.md
@@ -148,10 +145,9 @@ nav:
       - Go embedding API: api/go.md
   - Performance:
       - performance/index.md
-      - Methodology: performance/methodology.md
-      - Engine speed: performance/engine.md
-      - "Bots: cost and strength": performance/bots.md
-      - Tracking over time: performance/tracking.md
+      - How it is measured: performance/methodology.md
+      - "gorge's speed": performance/engine.md
+      - Bot speed: performance/bots.md
   - Card support:
       - Support by set: support/sets.md
       - Regenerating the tables: support/regenerating.md
