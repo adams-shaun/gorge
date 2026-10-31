@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"math"
 	"strings"
 	"testing"
 
@@ -56,35 +57,51 @@ func TestSpellbenchMinAgreeFailsBelowThreshold(t *testing.T) {
 	}
 }
 
-// TestSpellbenchOutcomeGapThreshold: a 20 pp gap with an interval that
-// excludes zero fails -max-outcome-gap 10; a 2 pp gap whose interval includes
-// zero passes, and 0 disables the check.
-func TestSpellbenchOutcomeGapThreshold(t *testing.T) {
-	wide := sbOutcomeParityOf(40, 100, 60, 100)
-	if !wide.ok {
-		t.Fatal("40/100 vs 60/100: parity not computed")
+// TestOutcomeParityPaired reads the gap and its interval from the discordant
+// pairs alone, and gates on the interval and the bar together.
+func TestOutcomeParityPaired(t *testing.T) {
+	even := sbOutcomeParityOf(12, 12, 200, 0, 0)
+	if !even.ok || even.gapPP != 0 {
+		t.Fatalf("12/12 of 200: ok=%v gap %+.1f, want gap 0", even.ok, even.gapPP)
 	}
-	if wide.loPP <= 0 && wide.hiPP >= 0 {
-		t.Fatalf("40/100 vs 60/100: CI [%.1f, %.1f] includes 0; the gap-exclusion precondition is not met", wide.loPP, wide.hiPP)
-	}
-	if !wide.fails(10) {
-		t.Fatalf("40/100 vs 60/100 (gap %+.1f pp, CI [%.1f, %.1f]) does not fail -max-outcome-gap 10", wide.gapPP, wide.loPP, wide.hiPP)
-	}
-	if wide.fails(25) {
-		t.Fatalf("40/100 vs 60/100 (gap %+.1f pp) fails -max-outcome-gap 25", wide.gapPP)
-	}
-	if wide.fails(0) {
-		t.Fatalf("40/100 vs 60/100 fails -max-outcome-gap 0 (disabled)")
+	if even.fails(2) {
+		t.Fatal("12/12 of 200 fails with no gap")
 	}
 
-	close := sbOutcomeParityOf(50, 100, 48, 100)
-	if !close.ok {
-		t.Fatal("50/100 vs 48/100: parity not computed")
+	loss := sbOutcomeParityOf(18, 8, 200, 1, 0)
+	if math.Abs(loss.gapPP+5) > 1e-9 {
+		t.Fatalf("18/8 of 200: gap %+.2f, want -5.00", loss.gapPP)
 	}
-	if close.loPP > 0 || close.hiPP < 0 {
-		t.Fatalf("50/100 vs 48/100: CI [%.1f, %.1f] excludes 0; the pass case must be a zero-including interval", close.loPP, close.hiPP)
+	if math.Abs(loss.halfPP-5) > 0.05 {
+		t.Fatalf("18/8 of 200: half-width %.2f, want 5.0", loss.halfPP)
 	}
-	if close.fails(10) {
-		t.Fatalf("50/100 vs 48/100 (gap %+.1f pp, CI [%.1f, %.1f]) fails -max-outcome-gap 10", close.gapPP, close.loPP, close.hiPP)
+
+	clear := sbOutcomeParityOf(146, 81, 1995, 5, 0)
+	if !clear.fails(2) {
+		t.Fatalf("146/81 of 1995 (%+.2f +/- %.2f) does not fail -max-outcome-gap 2", clear.gapPP, clear.halfPP)
+	}
+	if clear.fails(4) {
+		t.Fatalf("146/81 of 1995 (%+.2f) fails -max-outcome-gap 4", clear.gapPP)
+	}
+	if clear.fails(0) {
+		t.Fatal("146/81 of 1995 fails -max-outcome-gap 0 (disabled)")
+	}
+
+	// A gap over the bar whose interval still includes zero is not a failure.
+	if wide := sbOutcomeParityOf(5, 1, 100, 0, 0); wide.fails(2) {
+		t.Fatalf("5/1 of 100 (%+.2f +/- %.2f) fails with an interval that includes 0", wide.gapPP, wide.halfPP)
+	}
+
+	if none := sbOutcomeParityOf(0, 0, 0, 3, 0); none.ok || none.fails(2) {
+		t.Fatalf("no finished pair: ok=%v fails=%v, want neither", none.ok, none.fails(2))
+	}
+}
+
+// TestOutcomeParityFailsOnForfeit: one forfeit fails at any bar, even with no
+// gap and with the gap check off.
+func TestOutcomeParityFailsOnForfeit(t *testing.T) {
+	p := sbOutcomeParityOf(12, 12, 200, 0, 1)
+	if !p.fails(2) || !p.fails(0) {
+		t.Fatalf("a forfeit passes: fails(2)=%v fails(0)=%v", p.fails(2), p.fails(0))
 	}
 }
