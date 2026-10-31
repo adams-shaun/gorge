@@ -33,6 +33,8 @@ The framing rules
   so framing resynchronises at the next line.
 - **Strict JSON**: integers only (no floats), within ±(2^53 − 1); no
   duplicate keys; nesting at most 64 deep; precomposed (NFC) card names.
+  gorge's engine role enforces this; its agent and seat adapters read lines
+  more loosely, and upstream's hosts and engines are strict.
 - **Every message** carries `"protocol": "spellbench/v2"` and a
   `request_id`, echoed in the response.
 - **Canonical JSON** (RFC 8785, for this integer-only subset) is what the
@@ -120,7 +122,7 @@ for line in sys.stdin.buffer:
 `name`, in `mtgsim` and in `gorged`. The path is executed directly with no
 arguments and no shell, so wrap any arguments in a script. The adapter
 ([`server/spellbench/seat`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/seat))
-starts one process per match, handshakes, translates every gorge decision
+starts one process per seat per match, handshakes, translates every gorge decision
 into v2 candidates and the answer back into an intent.
 
 ```console
@@ -178,9 +180,9 @@ It has two worlds:
   candidates of *any* v2 engine, and needs the card corpus (`-corpus .cards`)
   or a frozen registry (`-registry file -registry-sha256 digest`). It
   translates the candidate kinds gorge's own engine never poses
-  (`choose_cast_method`, `choose_option`, `choose_cost_option`, `distribute`,
-  `choose_pile`) onto the nearest gorge decision, so only a genuinely
-  unmappable kind reaches the agent's fallback.
+  (`choose_cast_method`, `choose_cost_option`, `distribute`, `choose_pile`)
+  onto the nearest gorge decision, so only a genuinely unmappable kind reaches
+  the agent's fallback.
 
 Because `-sb-agent` passes no arguments, wrap the command:
 
@@ -240,5 +242,5 @@ interactive taps instead).
 ## Offer v2 seats over HTTP
 
 `gorged -sbv2` (with `-vsbot` or `-humans`) mounts `/api/sbv2/v1/tables/{t}/matches/{k}/` with `state`, `stream` and `send` routes. These
-give a seat the same `choose` content as the stdio protocol, under the native wire's bearer token. It is two-player and constructed only; a
-table outside that answers 409 and a client falls back to native. [SpellBench v2 reference](../api/spellbench-v2.md) has the details.
+give a seat the same `choose` content as the stdio protocol, without its `clock`, under the native wire's bearer token. It is two-player,
+constructed and automatic-mana only; a table outside that answers 409 and a client falls back to native. [SpellBench v2 reference](../api/spellbench-v2.md) has the details.
