@@ -42,8 +42,8 @@ The flags in that command:
   see [On a network](#on-a-network).
 - `-dir` is the persistence directory. Give each server its own
   ([why](#persistence-and-restarts)).
-- `-feedback` is where bug reports go. Its default, `feedback/` in the current directory, isn't
-  gitignored, so point it outside your checkout.
+- `-feedback` is where bug reports go. The default is `feedback/` in the current directory, which
+  is gitignored at the root of a checkout.
 
 The server fetches card images from [Scryfall](https://scryfall.com) and caches them under
 `<dir>/art`, or under `-art-dir` if you set it. At startup it fills that cache in the
@@ -183,8 +183,28 @@ you give it into two pools by one rule: a file that names a commander is a Comma
 else is constructed. Each Commander deck is validated at startup, and a card the corpus can't resolve
 stops the server before it listens.
 
-`cmd/deckimport` converts the usual "`4 Lightning Bolt`" export format: it drops the sideboard, turns a
-Commander section into the `commander` field and reports any card the corpus lacks.
+`cmd/deckimport` converts a plain-text decklist, the usual export format with one card per line and the
+count first, into a deck file. It drops the sideboard, turns a Commander section into the `commander` field
+and reports any card the corpus lacks. Save a list as `/tmp/burn.txt`:
+
+```text
+4 Lightning Bolt
+4 Chain Lightning
+4 Lava Spike
+4 Rift Bolt
+4 Monastery Swiftspear
+4 Goblin Guide
+4 Eidolon of the Great Revel
+4 Skullcrack
+4 Searing Blaze
+4 Light Up the Stage
+20 Mountain
+
+Sideboard
+2 Smash to Smithereens
+```
+
+Then convert it:
 
 ```sh
 mkdir -p /tmp/mydecks
@@ -199,6 +219,8 @@ all cards present in corpus
 written: /tmp/mydecks/my-burn.json
 ```
 
+The command exits non-zero if the corpus lacks a card, and `-force` writes the file anyway.
+
 `-decks` replaces the built-in pool, so copy the built-in files in too if you want both:
 
 ```sh
@@ -207,14 +229,14 @@ go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-mine -feedback /tmp/gor
   -decks /tmp/mydecks -tables 0 -vsbot
 ```
 
-The new deck shows in the lobby's pickers under its file name. "Present in corpus" means every card has
+The new deck shows in the lobby's pickers under its `-name`. "Present in corpus" means every card has
 a Forge script, not that gorge implements every ability on it: [Card support](../support/sets.md) says
 what is supported.
 
 ## Bots at the table
 
 Every bot seat runs a registered **policy**, a named bot strategy
-([the list](bot-games.md#the-registered-policies)). Policies run inside the `gorged` process,
+([the list](../bots/index.md#the-bots-gorge-ships)). Policies run inside the `gorged` process,
 deterministically from the match seed.
 
 | Flag | Default | Meaning |

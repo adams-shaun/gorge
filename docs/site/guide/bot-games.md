@@ -39,21 +39,10 @@ lethal-pressure	Lethal Pressure	experimental
 sb-tactical	sb-tactical (SpellBench tactical heuristic)	experimental
 ```
 
-[Bots](../bots/index.md#the-bots-gorge-ships) describes each one. In short:
+[Bots](../bots/index.md#the-bots-gorge-ships) describes each one, with its formats and seats.
 
-| Policy | Formats, seats | What it does |
-|---|---|---|
-| `bot` | constructed and Commander, any | the production heuristic. With automatic mana payment it simulates combat to choose attacks and blocks; Forge's London mulligan rule |
-| `forge-heuristic` | constructed and Commander, any | `bot` plus rule families re-expressed from Forge's AI: removal timing, targeting, AI hints, deck-shape posture, attachments, spell timing and gang blocks |
-| `forge-heuristic-hold` | constructed and Commander, any | `forge-heuristic` with its `hold-instant` option armed: it holds instants outside the respond, opponent post-combat and combat-trick windows |
-| `lethal-pressure` | constructed and Commander, any | the plain heuristic with the lethal-pressure attack rule, no combat simulation and the coin mulligan; `gorged`'s default `-bot-policy` |
-| `sb-tactical` | constructed, 2 seats | a scored tactical heuristic that values creatures, timing, races and removal from what the seat can see. Needs the card registry |
-| `az-redeal` | constructed, 2 seats | AlphaZero-style tree search with no network: 100 simulations per searched decision over hidden cards redealt from its own observations, and `bot` everywhere else |
-
-`sb-tactical` and `az-redeal` are *environment* policies: the driver hands them a rebuilt game to search
-or score, and that rebuild uses each seat's real decklist, never the hidden cards themselves. So a server
-never seats them against a person, and they need a driver that supports them: the matchup program below
-does, and `mtgsim` doesn't.
+`sb-tactical` and `az-redeal` need a driver that supplies a rebuilt game to search or score: the
+matchup program below does, and `mtgsim` doesn't.
 
 A policy may declare options (`bots.Info.Options`). `gorged` sets them with `-bot-opt`, `-bot-config` or the
 environment ([Bots at the table](play.md#bots-at-the-table)); your own program passes
