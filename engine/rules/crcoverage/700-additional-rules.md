@@ -167,7 +167,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.58g-h | n/a | - | - | no turn-face-up path exists; 58h cross-reference |
 | 701.59a-b | follows | `engine/rules/pay/evidence.go#EvidenceGraveCandidates` `engine/rules/cast_targets.go#Engine.evidenceAsk` `engine/rules/cumulative.go#Engine.triggeredCostXAsk` `engine/rules/evidence_cost.go#triggeredEffectCost.evidenceStage` | `TestConditionCollectedGatesOnEvidence` `TestTriggerCollectEvidenceXAnnouncesAndPays` |  |
 | 701.59c | follows | `engine/effects/conditions.go#conditionDefinedGroup` `engine/rules/cast_targets.go#castSubTargetsOwed` | - | linked via OptionalCost (traced shallowly) |
-| 701.60a | deviates | `engine/events/apply_player.go#foldControlChange` | - | suspected cleared on control change |
+| 701.60a | follows | `engine/events/apply_player.go#foldControlChange` | `TestSuspectedSurvivesControlChange` |  |
 | 701.60b-d | follows | `engine/rules/chars/derive.go#BaseKeywords` `engine/rules/combat/block.go#CanBlock` `engine/effects/misc.go#effAlterAttribute` | - |  |
 | 701.61a | follows | `engine/rules/cast_asks.go#Engine.forageAsk` `engine/rules/pay/castparts.go#NonManaCastableP` `engine/rules/pay/sacparts.go#ManaForagePayable` `engine/rules/trigger_cost_forage.go#triggeredEffectCost.foragePayable` | `TestTriggeredForageCanBePaid` |  |
 | 701.62a | follows | `engine/effects/zone_manifest.go#effManifestDread` | - |  |

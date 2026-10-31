@@ -114,15 +114,9 @@ func foldControlChange(g *state.Game, e *Event) {
 					g.Players[i].RingBearer = 0
 				}
 			}
-			// CR 702.157b: the suspected designation ends the moment
-			// ANOTHER player gains control of the permanent -- the same
-			// condition the Ring-bearer designation keys on, evaluated on
-			// the still-old controller (o.Controller is still the old seat
-			// here). A same-controller ControlChange (no real change of
-			// controller) keeps the designation. A Soulbond pairing ends
-			// the same way (CR 702.95e).
+			// CR 702.95e: a Soulbond pairing ends when another player gains
+			// control of either creature.
 			if o.Controller != e.Player {
-				o.Suspected = false
 				endPairing(g, o)
 			}
 			changeControl(g, o, e.Player)
