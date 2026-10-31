@@ -274,7 +274,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	if pc.Payment != nil {
 		reason, units, step, ready := e.paymentPlanCheckUnits(pc)
-		if reason != "" && e.rearmAbilityAutoPay(pc) {
+		if reason != "" && e.rearmAutoPay(pc) {
 			reason, units, step, ready = e.paymentPlanCheckUnits(pc)
 		}
 		if reason != "" {

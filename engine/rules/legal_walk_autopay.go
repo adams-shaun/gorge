@@ -137,19 +137,27 @@ func (e *Engine) armAbilityAutoPay(pc *pendingCast, idx int) {
 	pc.PaymentNext = 0
 }
 
-// rearmAbilityAutoPay plans again for a witness armAbilityAutoPay armed before
-// the activation's announcements, once they outdated it and before any step ran:
-// a target's reduction, a Phyrexian pip's answer, a tap or waterbend helper
-// settle only after the arming. No seat selected that witness, so a new one for
-// the settled cost breaks nothing. It reports whether pc holds a new witness.
-func (e *Engine) rearmAbilityAutoPay(pc *pendingCast) bool {
-	if !pc.isAbility() || pc.Announced || pc.PaymentNext != 0 || pc.Payment.ActionID != decision.OptAutoFill {
+// rearmAutoPay plans again for a witness its announcements outdated, before any
+// step ran: a target's reduction, a Phyrexian pip's answer, a tap or waterbend
+// helper settle only after armAbilityAutoPay armed it. No seat selected that
+// witness. A spell's plan is the seat's, but it prices a Phyrexian pip as neither
+// mana nor life (PlanManaHalf), so a pip answered with mana outdates it too, and
+// the seat's own answer is why (CR 107.4f). It reports whether pc holds a new witness.
+func (e *Engine) rearmAutoPay(pc *pendingCast) bool {
+	if pc.Announced || pc.PaymentNext != 0 {
+		return false
+	}
+	if pc.isAbility() {
+		if pc.Payment.ActionID != decision.OptAutoFill {
+			return false
+		}
+	} else if pc.PayIdx == 0 {
 		return false
 	}
 	plan := e.announcedAutoFillPlan(pc, e.castPaymentMana(pc))
 	if plan == nil {
 		return false
 	}
-	pc.Payment = &plannedCastPayment{ActionID: decision.OptAutoFill, Plan: *plan}
+	pc.Payment = &plannedCastPayment{ActionID: pc.Payment.ActionID, Plan: *plan}
 	return true
 }
