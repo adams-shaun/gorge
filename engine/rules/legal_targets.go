@@ -483,5 +483,33 @@ func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *c
 		// xPending is never read for this shape (targetsReadXPending).
 		return e.targetsAvailable(p, id, excludeSelf, ab, false)
 	}
-	return e.targetsAvailable(p, id, excludeSelf, ab, costAnnouncesX(e.abilityCompiledCost(ab).Cost))
+	cost := e.abilityCompiledCost(ab).Cost
+	return e.targetsAvailable(p, id, excludeSelf, ab, costAnnouncesX(cost)) &&
+		e.xBoundTargetPayable(p, id, excludeSelf, ab, cost, abilityScope(ab), true)
+}
+
+// xBoundTargetPayable reports whether some announcement of base's {X} both pays,
+// from the pool plus every untapped source, and leaves sa a legal target (CR
+// 601.2b, 601.2c, 601.2h). A target bounded by an {X} cost is otherwise judged
+// without a value for X, so Rydia, Summoner of Mist would be offered with one
+// mana available and only a mana value 4 Saga in the graveyard. A reduction that
+// reads the paid X breaks the price's monotony and is not judged here.
+func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, base Cost, scope costScope, ability bool) bool {
+	if base.X <= 0 || !effects.TargetsOf(sa).Has(effects.TgtValidXBound) || costAnnouncesPaidX(base) {
+		return true
+	}
+	bound := e.PotentialMana(p)
+	statics := e.collectCostStatics()
+	prev := e.cast
+	defer func() { e.cast = prev }()
+	for x := base.XMin; ; x++ {
+		announced := base.WithX(x)
+		if !e.offerCastableUsing(statics, p, id, &announced, scope, ability, &bound) {
+			return false
+		}
+		e.cast = &pendingCast{player: p, card: id, ability: -1, x: x}
+		if e.targetSAAvailable(p, id, excludeSelf, sa, x, false) {
+			return true
+		}
+	}
 }

@@ -25,7 +25,8 @@ import "testing"
 //     restriction admits, so the bots' trajectory moves) to seq 4916,
 //     confirmed by reverting the planner hunk: 4928 returns, same card and
 //     verdict; then the X-bound target offer (CR 601.2c: a cast with no possible
-//     target is no longer offered) to seq 4866, same card and verdict);
+//     target is no longer offered) to seq 4866, same card and verdict; then that
+//     offer pricing its X (CR 601.2b) to seq 4681, same card and verdict);
 //   - 11056: the Artisan finding is no longer reached; a clean,
 //     control-equivalent game;
 //   - 10056: Lagomos, Hand of Hatred was equivalent at seq 6750 (the
@@ -39,7 +40,7 @@ import "testing"
 //
 // roundNineWant holds those pins.
 var roundNineWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key ("" = equivalent)
-	10860: {4866: ""},
+	10860: {4681: ""},
 	11056: {},
 	10056: {},
 	8175:  {},
