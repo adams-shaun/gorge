@@ -7,7 +7,8 @@
  *
  * The token is a bearer credential for a local fixture. It is held here and
  * built into request URLs in api.ts, the SSE stream URL in
- * session.svelte.ts (and, for the ManaBrew wire, lib/manabrew/transport.ts),
+ * session.svelte.ts (and, for the opt-in wires, lib/manabrew/transport.ts and
+ * lib/sbv2/transport.ts),
  * and nowhere else: never logged, never put in the transcript, never
  * rendered, never echoed in an error message.
  * The render path (routes/components) receives only SeatCtx via getSeat,
@@ -29,11 +30,13 @@ import { safeStorage } from './storage';
 
 /**
  * SeatTransport is an alternative game channel for the seat's answers (the
- * ManaBrew adapter, lib/manabrew). When a SeatCtx carries one, api.ts's
- * seat calls (postIntent, fetchPending, postUndo) go through it instead of
- * the native routes; the seat panel never knows which wire answered.
+ * opt-in wires, lib/wire). When a SeatCtx carries one, api.ts's seat calls
+ * (postIntent, fetchPending, postUndo) go through it instead of the native
+ * routes; the seat panel never knows which wire answered.
  */
 export interface SeatTransport {
+  /** The wire has no mana window: a planned cast pays with its plan, so the Auto-pay switch has no off. */
+  readonly autoPayOnly?: boolean;
   postIntent(t: string, k: number, intent: Intent): Promise<void>;
   fetchPending(t: string, k: number): Promise<Decision>;
   postUndo(t: string, k: number): Promise<void>;

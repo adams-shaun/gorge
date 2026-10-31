@@ -1,8 +1,7 @@
 <script lang="ts">
-  // The ManaBrew adapter's visible voice (plan: "errors surface in a
-  // banner"): a fallback to Native, a refused answer, a prompt the server
-  // could not translate. Small and dismissable; it never covers the hand or
-  // the action strip.
+  // An opt-in wire's visible voice: a fallback to Native, a refused answer, a
+  // prompt the server could not translate. Small and dismissable; it never
+  // covers the hand or the action strip.
   let { text, onDismiss }: { text: string; onDismiss: () => void } = $props();
   import { pointerRelease } from '../lib/pointer';
 </script>

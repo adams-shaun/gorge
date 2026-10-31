@@ -4,13 +4,14 @@ import { ApiError, fetchPending, postIntent, postUndo } from '../api';
 import type { ModelEvent } from '../clientmodel/types';
 import { ManaBrewMatch } from './source.svelte';
 import { runs, stateOf, promptOf } from './testdata/fixture';
-import { MbError, type Transport } from './transport';
+import { WireError } from '../wire/http';
+import type { Transport } from './transport';
 import type { ClientMessage, EngineMessage } from './wire';
 
 const seats = [{ name: 'You', deck: 'a', colour: '', human: true }, { name: 'Bot', deck: 'b', colour: '' }];
 const info: MatchInfo = { table: 'g1', match: 1, seed: 1, seats, state: 'live', winner: null, events: 10, turns: 1, bot_policy: 'bot' };
 
-function fake(first: EngineMessage[], opts: { stateError?: MbError; sendError?: MbError } = {}) {
+function fake(first: EngineMessage[], opts: { stateError?: WireError; sendError?: WireError } = {}) {
   const sent: ClientMessage[] = [];
   const urls: string[] = [];
   let push: ((m: EngineMessage) => void) | null = null;
@@ -90,7 +91,7 @@ describe('ManaBrewMatch', () => {
   });
 
   it('falls back with a clear reason when the server has no ManaBrew routes', async () => {
-    const { res, f } = await started('start', { stateError: new MbError(404, 'not_found', 'no route') });
+    const { res, f } = await started('start', { stateError: new WireError(404, 'not_found', 'no route') });
     expect(res.ok).toBe(false);
     expect(!res.ok && res.reason).toMatch(/not enabled/);
     expect(f.urls).toEqual([]);
@@ -137,7 +138,7 @@ describe('ManaBrewMatch', () => {
   });
 
   it('surfaces a refused answer as an ApiError and a visible notice', async () => {
-    const { m } = await started('start', { sendError: new MbError(409, 'stalePrompt', 'response names promptId 1', 2) });
+    const { m } = await started('start', { sendError: new WireError(409, 'stalePrompt', 'response names promptId 1', 2) });
     const d = m.clientDecision!;
     await expect(postIntent('g1', 1, { seq: d.seq, player: 0, choices: [0] }, m.ctx)).rejects.toBeInstanceOf(ApiError);
     expect(m.notice).toMatch(/stalePrompt/);

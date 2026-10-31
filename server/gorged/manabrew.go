@@ -59,7 +59,7 @@ func (c config) manabrewThinkTimeout() time.Duration {
 }
 
 // manabrewMetaTag is how the browser client learns, with no request of its
-// own, that this origin serves the ManaBrew routes (web/src/lib/manabrew/pref.ts).
+// own, that this origin serves the ManaBrew routes (web/src/lib/wire/pref.ts).
 const manabrewMetaTag = `<meta name="gorge-manabrew">`
 
 // offerManaBrew adds manabrewMetaTag to the web build when the routes share
@@ -69,7 +69,7 @@ func (c config) offerManaBrew(web fs.FS) fs.FS {
 	if web == nil || !c.manabrew || c.manabrewAddr != "" {
 		return web
 	}
-	return withManaBrewMeta(web)
+	return withMeta(web, manabrewMetaTag)
 }
 
 // mountManaBrew wires server/host/manabrewhttp onto either topMux (the default:

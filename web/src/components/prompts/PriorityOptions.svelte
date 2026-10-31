@@ -30,7 +30,7 @@
   const primary = $derived(primaryOf(decision));
   const paymentActions = $derived(logic.autoManaAvailable && logic.autoPayMana ? (decision.payment_actions ?? []) : []);
   const paymentBases = $derived(new Set(paymentActions.flatMap((action) => action.base_option_index === undefined || action.base_option_index === null ? [] : [action.base_option_index])));
-  const hideManualMana = $derived(manualManaHidden(decision, view, seat, logic.autoPayMana));
+  const hideManualMana = $derived(manualManaHidden(decision, view, seat, logic.hidesManualMana));
   const announceCasts = $derived(announceActions(decision, logic.autoManaAvailable, logic.autoPayMana));
 
   // holdPriority is the Ctrl modifier, exactly as on every other option

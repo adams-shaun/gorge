@@ -27,9 +27,9 @@ func withCardMeta(inner fs.FS) fs.FS {
 	return metaFS{inner: inner, inject: injectCardMeta}
 }
 
-// withManaBrewMeta adds manabrewMetaTag to the index.html inner serves.
-func withManaBrewMeta(inner fs.FS) fs.FS {
-	return metaFS{inner: inner, inject: func(raw []byte) []byte { return injectMeta(raw, []byte(manabrewMetaTag)) }}
+// withMeta adds tag to the index.html inner serves.
+func withMeta(inner fs.FS, tag string) fs.FS {
+	return metaFS{inner: inner, inject: func(raw []byte) []byte { return injectMeta(raw, []byte(tag)) }}
 }
 
 type metaFS struct {

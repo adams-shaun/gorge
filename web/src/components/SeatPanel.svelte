@@ -235,7 +235,7 @@
             <span class="dot" aria-hidden="true"></span>
             <span class="word">{logic.machinePaused ? 'Paused' : logic.auto ? 'Auto' : 'Manual'}</span>
           </button>
-          {#if logic.autoManaAvailable}
+          {#if logic.autoManaAvailable && !logic.autoPayOnly}
           <button
             class="skiptoggle"
             class:on={logic.autoPayMana}

@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"io/fs"
 	"net/http"
+	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 )
 
@@ -205,5 +208,26 @@ func TestSBV2TokenIsTheSeat(t *testing.T) {
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("serve: %v", err)
+	}
+}
+
+// TestSBV2OfferedOnlyWhenOn pins the tag the browser client reads.
+func TestSBV2OfferedOnlyWhenOn(t *testing.T) {
+	t.Parallel()
+	web := fstest.MapFS{"index.html": &fstest.MapFile{Data: []byte("<html><head></head></html>")}}
+	for _, tc := range []struct {
+		c    config
+		want bool
+	}{{config{}, false}, {config{sbv2: true}, true}} {
+		page, err := fs.ReadFile(tc.c.offerSBV2(web), "index.html")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Contains(string(page), sbv2MetaTag); got != tc.want {
+			t.Errorf("sbv2=%v: tag served = %v, want %v:\n%s", tc.c.sbv2, got, tc.want, page)
+		}
+	}
+	if (config{sbv2: true}).offerSBV2(nil) != nil {
+		t.Error("a server with no web build must stay without one")
 	}
 }

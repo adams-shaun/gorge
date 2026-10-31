@@ -90,8 +90,9 @@ trigger auto-ordering, a step delay and the board layout. Settings live in your 
 storage.
 
 The **Protocol** switch, in the lobby and in Options, chooses how a seat talks to the server when a
-table loads: *Native*, gorge's own stream, or *ManaBrew* ([Wires](../architecture/wires.md)). On a server
-started without `-manabrew` the ManaBrew option is disabled and every table plays over Native.
+table loads: *Native*, gorge's own stream, *ManaBrew* or *SpellBench v2* ([Wires](../architecture/wires.md)).
+ManaBrew needs a server started with `-manabrew`, and SpellBench v2 one started with `-sbv2`. A wire the server
+doesn't offer is disabled, and every table plays over Native with your choice kept for a server that does.
 
 A ManaBrew seat plays the same game with the same board and prompts. Three things differ, because the
 protocol has no event log and no payment plans: the game log holds only what the page has seen and
@@ -99,6 +100,16 @@ starts empty after a reload, Auto-pay taps through the Auto-fill of the mana win
 doesn't mark which sources Auto-fill would tap. **Auto-pass when all I could do is make mana**, on by
 default, skips the priority stops ManaBrew's own engine never poses, including the rest of your main
 phase once you have nothing left to play.
+
+A SpellBench v2 seat also plays the same game with the same board and prompts. The protocol is two players,
+so a Commander table or one with more seats plays over Native, with no warning. These differ:
+
+- The board moves when you're asked something, not between your decisions.
+- CAST always pays with the suggested plan, so there is no **Auto-pay** switch and no mana window. To pay
+  another way, or to pay an X above 0, tap your lands first. The taps are always on offer.
+- A land that makes any colour gives the first one, and the server answers a triggered cost and the division
+  of an attacker's damage among several blockers for you.
+- The log holds what the page has seen and starts empty after a reload, and an undo leaves the undone lines in it.
 
 ### Mulligans and mana
 

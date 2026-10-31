@@ -867,6 +867,23 @@ priority `activate` candidates, are ratcheted in
 The routes have no `terminal` or `game_over`. When a match ends, `request` stays `null`; read the result from the
 [native routes](http.md), for example `over` and `winner` in `GET /api/tables/{t}/matches/{k}/view`.
 
+### On a native seat
+
+`-sbv2` taps every human seat of a covered table, whichever wire its client uses. A seat playing over the native
+routes gets the same host answers as a v2 seat: a mana ability's colour ask, a triggered cost's pay-or-decline and
+the division of combat damage are answered before it sees them. Its think timeout doesn't change.
+
+### The browser client
+
+gorge's web client plays a seat over these routes when the player's Protocol setting is SpellBench v2 and the page
+carries `<meta name="gorge-sbv2">`, which gorged serves with `-sbv2`. It renders from `x_gorge_view_v1`. The panel
+answers a whole native decision, so `ops` turn that answer into one candidate per substep, and a substep ordering a
+`followups` decision is shown as that decision.
+
+A mana-costed play with no payment plan, such as an X spell or an equip, is offered only once the mana floats, and
+v2 has no candidate for a tap. The client posts a tap on the native routes with the same token, and the next request
+carries the board with the mana floating. A 409 from the state route plays the table over Native without a notice.
+
 | Status | Body | When |
 |---|---|---|
 | 400 | `{"error":"bad_request"}` | `{k}` isn't a positive integer; an unreadable or over-64-KiB body; more than one action; a `choose_name` the decision doesn't offer |

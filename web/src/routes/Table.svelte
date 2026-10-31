@@ -4,7 +4,9 @@
   import { tables } from '../lib/tables.svelte';
   import { MatchState } from '../lib/match.svelte';
   import { ManaBrewMatch } from '../lib/manabrew/source.svelte';
-  import { activeWire, tableProtocol } from '../lib/manabrew/pref';
+  import { Sbv2Match } from '../lib/sbv2/source.svelte';
+  import { activeWire, tableProtocol } from '../lib/wire/pref';
+  import { SnapshotMatch } from '../lib/wire/snapshot.svelte';
   import WireNotice from '../components/WireNotice.svelte';
   import BoardStage from '../components/BoardStage.svelte';
   import Arrows from '../components/Arrows.svelte';
@@ -126,21 +128,22 @@
   let railPreview = $state<number | null>(null);
   const displayedRailWidth = $derived(railPreview ?? railWidth);
   const tableStyle = $derived(`--rail-width:${displayedRailWidth * 100}%`);
-  // The game wire (ManaBrew adapter plan): a live seat whose protocol
-  // setting is ManaBrew plays through ManaBrewMatch; everything else — and a
-  // ManaBrew probe that fails — is the native MatchState. Both expose the
-  // surface this route reads, so nothing below knows which wire is live.
+  // The game wire: a live seat whose protocol setting is ManaBrew or SpellBench
+  // v2 plays through that wire's SnapshotMatch; everything else — and a probe
+  // that fails — is the native MatchState. Both expose the surface this route
+  // reads, so nothing below knows which wire is live.
+  const chosenWire = tableProtocol();
   // svelte-ignore state_referenced_locally
-  const mb = liveSeated && seatCtx !== null && tableProtocol() === 'manabrew' ? new ManaBrewMatch(table, seatCtx) : null;
+  const wire = liveSeated && seatCtx !== null && chosenWire !== 'native' ? (chosenWire === 'manabrew' ? new ManaBrewMatch(table, seatCtx) : new Sbv2Match(table, seatCtx)) : null;
   // svelte-ignore state_referenced_locally
-  let m = $state<MatchState | ManaBrewMatch>(mb ?? new MatchState(table, seatCtx ?? undefined));
-  // The seat panel answers through the ManaBrew adapter when it is live.
-  const panelCtx = $derived(m instanceof ManaBrewMatch ? m.ctx : seatCtx);
+  let m = $state<MatchState | SnapshotMatch>(wire ?? new MatchState(table, seatCtx ?? undefined));
+  // The seat panel answers through the wire's source when one is live.
+  const panelCtx = $derived(m instanceof SnapshotMatch ? m.ctx : seatCtx);
   let wireFallback = $state<string | null>(null);
-  const wireNotice = $derived(wireFallback ?? (m instanceof ManaBrewMatch ? m.notice : null));
+  const wireNotice = $derived(wireFallback ?? (m instanceof SnapshotMatch ? m.notice : null));
   function dismissWireNotice() {
     wireFallback = null;
-    if (m instanceof ManaBrewMatch) m.notice = null;
+    if (m instanceof SnapshotMatch) m.notice = null;
   }
 
   // idle: the table has no live match and none imminent, so the match list
@@ -406,7 +409,7 @@
     // Treasure) is a play of its own, never hidden. WHEN and WHICH are the
     // one shared rule the option list and the hot strip read too
     // (lib/manualmana.ts, §8).
-    if (manualManaHidden(d, m.view, seatCtx?.seat, panel.autoPayMana)) {
+    if (manualManaHidden(d, m.view, seatCtx?.seat, panel.hidesManualMana)) {
       for (const [obj, offered] of byObj) {
         const visible = offered.filter((option) => !isPlainManualTap(option));
         if (visible.length === 0) byObj.delete(obj);
@@ -537,13 +540,14 @@
         void session.unfocus(table);
       };
     };
-    if (mb) {
-      activeWire.current = 'manabrew';
-      mb.onRewind = () => panelCache?.state.rewind();
-      void mb.start().then((r) => {
+    if (wire) {
+      activeWire.current = wire.protocol;
+      wire.onRewind = () => panelCache?.state.rewind();
+      void wire.start().then((r) => {
         if (r.ok || closed) return;
-        mb.close();
-        wireFallback = `${r.reason} — playing over Native.`;
+        wire.close();
+        activeWire.outOfScope = r.quiet === true;
+        if (!r.quiet) wireFallback = `${r.reason} — playing over Native.`;
         const nm = new MatchState(table, seatCtx ?? undefined);
         m = nm;
         native(nm);
@@ -551,7 +555,7 @@
     } else if (m instanceof MatchState) native(m);
     return () => {
       closed = true;
-      mb?.close();
+      wire?.close();
       offNative?.();
     };
   });

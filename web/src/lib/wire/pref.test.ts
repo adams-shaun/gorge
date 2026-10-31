@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { loadProtocol, PROTOCOL_KEY, saveProtocol, tableProtocol } from './pref';
+import { loadProtocol, PROTOCOL_KEY, saveProtocol, tableProtocol, wireOffered } from './pref';
 
 class Mem implements Storage {
   m = new Map<string, string>();
@@ -20,14 +20,17 @@ describe('protocol setting', () => {
     expect(loadProtocol(s)).toBe('manabrew');
     saveProtocol('native', s);
     expect(s.getItem(PROTOCOL_KEY)).toBeNull();
+    saveProtocol('sbv2', s);
+    expect(loadProtocol(s)).toBe('sbv2');
     s.setItem(PROTOCOL_KEY, 'bogus');
     expect(loadProtocol(s)).toBe('native');
     expect(loadProtocol(null)).toBe('native');
   });
 
-  describe('a table loads over ManaBrew only where the server offers it', () => {
+  describe('a table loads over a wire only where the server offers it', () => {
     afterEach(() => vi.unstubAllGlobals());
     const page = (offered: boolean) => vi.stubGlobal('document', { querySelector: () => (offered ? {} : null) });
+    const tags = (...names: string[]) => vi.stubGlobal('document', { querySelector: (q: string) => (names.some((n) => q.includes(n)) ? {} : null) });
 
     it('keeps the stored choice but plays Native when the tag is absent', () => {
       const s = new Mem();
@@ -37,6 +40,18 @@ describe('protocol setting', () => {
       expect(loadProtocol(s)).toBe('manabrew');
       page(true);
       expect(tableProtocol(s)).toBe('manabrew');
+    });
+
+    it('reads each wire from its own tag', () => {
+      const s = new Mem();
+      saveProtocol('sbv2', s);
+      tags('gorge-manabrew');
+      expect(tableProtocol(s)).toBe('native');
+      expect(loadProtocol(s)).toBe('sbv2');
+      tags('gorge-sbv2');
+      expect(tableProtocol(s)).toBe('sbv2');
+      expect(wireOffered('native')).toBe(true);
+      expect(wireOffered('manabrew')).toBe(false);
     });
   });
 });
