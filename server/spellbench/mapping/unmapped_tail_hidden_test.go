@@ -1,6 +1,6 @@
 package mapping_test
 
-// Review round for sbp-unmapped-tail-priority: the hidden own-library
+// The hidden own-library
 // priority ref must mint one look id and one Known entry per object even when
 // several options name it, and choose/object over hidden library cards must
 // stay validator-clean.

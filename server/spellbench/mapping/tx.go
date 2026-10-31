@@ -181,8 +181,9 @@ func Intent(d *decision.Decision, choices ...int) decision.Intent {
 
 func purpose(s string) *string { return &s }
 
-// ExpandActivate turns one native "activate" option into candidates. Task 15
-// replaces it with the lookahead version that folds colour and cost follow-ups.
+// ExpandActivate turns one native "activate" option into candidates. It is a
+// variable so the lookahead version that folds colour and cost follow-ups can
+// replace it.
 var ExpandActivate = func(env *Env, d *decision.Decision, o decision.Option, src protocol.ObjectRef) ([]Cand, map[string]*decision.Decision, error) {
 	return []Cand{{Sem: protocol.ActivateManaAbility(src, 0, nil, nil), Op: NativeOp{Op: "choose", Option: o.Index}}}, nil, nil
 }

@@ -10,7 +10,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// promptCombat (scoping spec §6.3): attackers are grouped per creature (the
+// promptCombat: attackers are grouped per creature (the
 // engine offers one option per creature×defender pair), blockers are the
 // per-defender (blocker, attacker) pairs the engine asks one defender at a
 // time. The per-attacker CR 509.1a/509.1c bounds ride the BlockableAttacker
@@ -139,7 +139,7 @@ func (t *Translator) attackTarget(opt decision.Option, v *view.View) mb.AttackTa
 // first-occurrence position map (the same shape promptAttackers uses) --
 // the earlier "append to the last group" shortcut silently moved a
 // blocker's later attackers onto whichever attacker happened to be last
-// (MBX-4 seed 2004: option [4: 82->36] landed in o39's ValidBlockerIDs, so
+// (seed 2004: option [4: 82->36] landed in o39's ValidBlockerIDs, so
 // a real client could never block o82 against o36).
 func (t *Translator) promptBlockers(d *decision.Decision, v *view.View) (mb.PromptMessage, error) {
 	attackers := make([]mb.BlockableAttackerDto, 0, len(d.Options))

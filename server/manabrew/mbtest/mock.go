@@ -201,8 +201,7 @@ func (c *MockClient) answerChooseAction(in mb.ChooseActionInput) mb.PromptOutput
 	idx := 0
 	if c.mode == ModeSeededRandom {
 		// Sometimes pass even when actions are advertised: an always-act
-		// policy livelocks on a repeatable zero-cost ability (MBX-6 smoke,
-		// Ghost Town's "{0}: becomes a creature" with an empty hand -- the
+		// policy livelocks on a repeatable zero-cost ability (Ghost Town's "{0}: becomes a creature" with an empty hand -- the
 		// one advertised action, re-offered at every priority window).
 		// Passing priority is always legal (CR 117.3b), so the extra
 		// out-of-range draw meaning "pass" keeps the answer in-policy.
@@ -216,8 +215,7 @@ func (c *MockClient) answerChooseAction(in mb.ChooseActionInput) mb.PromptOutput
 
 // answerBoardTargets picks MinTargets candidates -- the smallest legal
 // count, since MinTargets is on the wire (unlike a scry ask's Min).
-// A set-level target constraint the wire cannot express per candidate (spec
-// gap G-4) arrives as the translator's sentence in presentation.description
+// A set-level target constraint the wire cannot express per candidate arrives as the translator's sentence in presentation.description
 // (prompt_target_set.go's targetSetSentences), and the translator orders the
 // candidates so the first MinTargets form one legal set (orderTargetOptions).
 // For such an ask this client takes the offered prefix in order, in BOTH
@@ -397,7 +395,7 @@ func (c *MockClient) answerChooseNumber(in mb.ChooseNumberInput) mb.PromptOutput
 // answerChooseCards picks the smallest legal number of offered cards (Min).
 // A value constraint the prompt carries (chooseConstraint's
 // "Total value must be at least N." / "Total value must not exceed N."
-// sentences -- the spec's G-4 fence made machine-readable; engine/rules/cast.go's
+// sentences; engine/rules/cast.go's
 // tapcost asks pose that floor over Option.Value=power, which the
 // translator renders as the cards' power) is honoured from the cards'
 // power: the smallest count in [Min, Max] for which some subset's power sum
@@ -408,8 +406,7 @@ func (c *MockClient) answerChooseNumber(in mb.ChooseNumberInput) mb.PromptOutput
 // modes pick the same way -- a constraint-bound ask's legal answer is
 // near-forced. (A stat:TapPowerValue static that trades power for toughness
 // -- Tapestry Warden -- is invisible on the wire: the prompt's power is the
-// view's layer-derived power, so such an ask can still be under-shot; that
-// lossiness is spec gap G-4.)
+// view's layer-derived power, so such an ask can still be under-shot.)
 func (c *MockClient) answerChooseCards(in mb.ChooseCardsInput) mb.PromptOutputValue {
 	n := len(in.Cards)
 	if n == 0 {
@@ -600,7 +597,7 @@ func (c *MockClient) answerChooseFromSelection(in mb.ChooseFromSelectionInput) m
 // though the wire ScryInput carries no min/max field at all -- there is no
 // way for a real ManaBrew client to learn the lower bound except by this
 // same reasoning or a rejection, which is worth flagging if it is ever
-// wrong (see the MB-8 report). ModeSeededRandom instead splits each card
+// wrong (see the report). ModeSeededRandom instead splits each card
 // independently by coin flip, still legal under the same Min:0 fact, and
 // exercises the "keep something on top" path the deterministic client never
 // reaches.
@@ -643,7 +640,7 @@ func (c *MockClient) answerReorder(in mb.ReorderInput) mb.PromptOutputValue {
 // via pay{auto:true}, then confirming from the pool (pay{auto:false}), and
 // cancels only when none of those is offered. "autofill"-typed entries in
 // Actions cannot be sent through act (only mana/activate/undoMana can); this
-// client tells them apart by PaymentAction.Type, exactly as G-3/the payment
+// client tells them apart by PaymentAction.Type, as the payment
 // doc requires of a well-behaved client.
 func (c *MockClient) answerPayManaCost(in mb.PayManaCostInput) mb.PromptOutputValue {
 	var stepActions, autofillActions []mb.PaymentAction

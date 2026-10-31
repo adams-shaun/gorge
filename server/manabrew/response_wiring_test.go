@@ -9,9 +9,8 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// This file closes the gap the controller found after MB-4/5/6 landed:
-// translateResponse (errors.go) only routed the six MB-4 prompt types, so
-// every prompt type MB-5/6's own builders emit (promptChoose's five
+// translateResponse (errors.go) must route every prompt type a builder emits
+// (promptChoose's five
 // wire shapes, promptArrange's two, promptOrder's one, promptPayment's one)
 // fell into the "has no response mapping" default arm -- a client could
 // receive the prompt but never have its answer accepted. Each test below

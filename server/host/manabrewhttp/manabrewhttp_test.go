@@ -1,9 +1,8 @@
 package manabrewhttp
 
-// MB-10's Done-means fixtures: a tiny 4-seat table (bots fill every non-human
+// Fixtures: a tiny 4-seat table (bots fill every non-human
 // slot) served over the ManaBrew transport through an httptest.Server. Every
-// test drives the real host.Registry — no fakes — because the ticket's own
-// review risk is goroutine lifetimes, SSE flushing and lock ordering against
+// test drives the real host.Registry — no fakes — because the risk here is goroutine lifetimes, SSE flushing and lock ordering against
 // the live match loop, which only a real engine can exercise honestly.
 
 import (
@@ -137,7 +136,7 @@ func send(t *testing.T, ts *testServer, token string, msg mb.ClientMessage) (int
 }
 
 // pollState is a client for GET .../state: the first element must be a
-// StateUpdate (§5.2's contract), returned decoded.
+// StateUpdate, returned decoded.
 func pollState(t *testing.T, ts *testServer, token string) mb.GameViewDto {
 	t.Helper()
 	req, err := http.NewRequest(http.MethodGet, ts.srv.URL+"/t1/matches/1/state", nil)
@@ -225,7 +224,7 @@ func (s *sseStream) next(t *testing.T) mb.EngineMessage {
 	}
 }
 
-// TestStreamSendsStateThenPrompt pins §5.2's connect contract: the very
+// TestStreamSendsStateThenPrompt pins the connect contract: the very
 // first two frames are a StateUpdate carrying this match's gameId, then the
 // PromptMessage for the decision already parked on the claimed seat, with a
 // matching promptId and decidingPlayerId.
@@ -261,7 +260,7 @@ func TestStreamSendsStateThenPrompt(t *testing.T) {
 	}
 }
 
-// TestOtherSeatTokenForbidden pins the claim boundary MB-10 owns: a token
+// TestOtherSeatTokenForbidden pins the claim boundary: a token
 // bound to a different table is refused before any match state is
 // consulted, on every route, and an unresolved token is 401. There is no
 // ?seat= to cross here at all — the seat comes only from the claim
@@ -315,7 +314,7 @@ func TestOtherSeatTokenForbidden(t *testing.T) {
 	}
 }
 
-// assertNoForeignHand is §8 item 7's core property: viewer's own gameView
+// assertNoForeignHand is the privacy property: viewer's own gameView
 // never carries a visible card in foreign's hand zone entry, only a count.
 func assertNoForeignHand(t *testing.T, gv mb.GameViewDto, viewer, foreign state.PlayerID) {
 	t.Helper()
@@ -338,7 +337,7 @@ func assertNoForeignHand(t *testing.T, gv mb.GameViewDto, viewer, foreign state.
 	}
 }
 
-// TestNoForeignHandEverVisible pins §8 item 7's privacy fence over both the
+// TestNoForeignHandEverVisible pins the privacy fence over both the
 // poll route and the stream's own first frame, in both directions: neither
 // human seat's gameView ever exposes the other's hand as visible cards.
 func TestNoForeignHandEverVisible(t *testing.T) {
@@ -358,7 +357,7 @@ func TestNoForeignHandEverVisible(t *testing.T) {
 	assertNoForeignHand(t, su.GameView, 0, 1)
 }
 
-// TestStaleAfterCaretaker pins the caretaker/stale contract (§5.2): once a
+// TestStaleAfterCaretaker pins the caretaker/stale contract: once a
 // HumanSeat's ThinkTimeout fires and its caretaker turns the decision, a
 // client answering the old promptId gets stalePrompt, and the prompt it
 // names stays exactly what it was — nothing in the caretaker path lets a
@@ -391,7 +390,7 @@ func TestStaleAfterCaretaker(t *testing.T) {
 	}
 }
 
-// TestConcedeQueuedToPriority pins G-2: a concede directive sent while the
+// TestConcedeQueuedToPriority: a concede directive sent while the
 // seat's open decision is NOT priority (here, the London mulligan ask) is
 // queued rather than rejected or silently dropped, and the transport itself
 // — not the client — answers the seat's very next priority decision with
@@ -452,7 +451,7 @@ func headSeqFor(t *testing.T, r *host.Registry, table host.TableID, k int) uint6
 	return seq
 }
 
-// TestReconnectIdempotent pins §5.2's reconnect contract: a fresh stream
+// TestReconnectIdempotent pins the reconnect contract: a fresh stream
 // after a disconnect, with nothing answered in between, gets the identical
 // promptId — derived from the decision's own Seq, never a per-connection
 // counter — so a client that drops and reopens the connection can tell it
@@ -485,6 +484,5 @@ func TestReconnectIdempotent(t *testing.T) {
 	}
 }
 
-// Narrower cases (restoreSnapshot on a two-human table, a malformed body's
-// exact 400 shape, the write-timeout path) are left to a follow-up: the six
-// Done-means tests above are this ticket's gate.
+// Not covered here: restoreSnapshot on a two-human table, a malformed body's
+// exact 400 shape, the write-timeout path.

@@ -643,7 +643,7 @@ func TestPriorityLandFacesAndSpecialActions(t *testing.T) {
 // The activate path passes ExpandActivate's candidates and folded
 // follow-ups through untouched, and an answer commits the option then each
 // folded follow-up. A stand-in replaces ExpandActivate, so this holds for
-// Task 15's lookahead as for the stub.
+// the lookahead version as for the stub.
 func TestPriorityActivateUsesExpandActivate(t *testing.T) {
 	env, d0, hand, _ := synthPosition(t)
 	a := hand[0]

@@ -1,7 +1,6 @@
 package manabrewhttp
 
-// The x_gorge_own_deck_v1 extension end to end (seat-deck-manifest spec,
-// interface mapping item 4 and its "Security and regression requirements"):
+// The x_gorge_own_deck_v1 extension end to end:
 // the seat's own genesis deck manifest rides every state path this transport
 // serves -- one-shot poll, stream connect, reconnect, state after an intent
 // -- as exactly the native view's own_deck manifest rendered as name/count

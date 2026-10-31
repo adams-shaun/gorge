@@ -26,8 +26,8 @@ func chosenValue(entries []map[string]string, kind string) string {
 	return ""
 }
 
-// TestFaceDownPermanentHidesChosenClassAndDoors pins that the permanent
-// details this ticket added never leak a face-down permanent's hidden identity
+// TestFaceDownPermanentHidesChosenClassAndDoors pins that these permanent
+// details never leak a face-down permanent's hidden identity
 // to an opponent: class_level stays null, chosen stays empty and the Room door
 // statuses are omitted, while the public morph-like statuses still ride along.
 // The controller, who may look, still sees all of them.

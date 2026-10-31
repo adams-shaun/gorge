@@ -11,10 +11,10 @@ import (
 )
 
 // promptChoose maps a KChoose ask onto its wire prompt. The bool it returns
-// is the MBX-7 fallback flag: true exactly when the ask had no specific
+// is the fallback flag: true exactly when the ask had no specific
 // mapping (an option shape this package does not know) and the prompt is
 // fallbackChoose's generic, always-answerable selection over the native
-// option labels instead. The MB-8 census rejects a pose that ERRORS
+// option labels instead. The census rejects a pose that ERRORS
 // (ErrUnmapped) -- that is the unanswerable prompt that deadlocked the ManaBrew
 // seat on Council's Judgment -- so no live KChoose returns one any more:
 // every miss falls back, and the census counts the fallback separately
@@ -42,8 +42,7 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 		return msg, false, err
 	}
 	pres := mb.PromptBase{Presentation: mb.PromptPresentation{Title: d.Prompt, Description: chooseConstraint(d), Targets: []mb.TargetRef{}}}
-	// The DividedAsYouChoose$ ask (engine/effects/damage.go:97-166, spec §6.3's
-	// "damage_split" row) is a real KChoose whose options name the chosen
+	// The DividedAsYouChoose$ ask (engine/effects/damage.go) is a real KChoose whose options name the chosen
 	// targets themselves -- Option.Kind is "card" or "player", freely mixed,
 	// never the literal string "damage_split". Its ResumeKind is the only
 	// marker, so it is recognised before the uniform-option-kind gate below
@@ -67,8 +66,7 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 	// reused here because these asks are modelled as KChoose rather than
 	// KTarget (an existing engine-side inconsistency, not something to
 	// change here) -- so it maps onto the identical chooseBoardTargets wire
-	// prompt (MB-8 census fb-20260929: found via real repo-deck games, seed
-	// 8004, ResumeKind "tgts").
+	// prompt (found via real repo-deck games, seed 8004, ResumeKind "tgts").
 	if isTargetRefOptions(d.Options) {
 		intent, hostile := targetingIntent(d.TargetEffect)
 		in := boardTargetInput(d, intent, hostile)
@@ -90,8 +88,8 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 	// creature -- each non-harmonize object's options in one payment Group,
 	// and every harmonize option in one shared group, so an object is
 	// committed to at most one payment.
-	// The payment GROUPS are not expressible on the wire (spec G-4:
-	// Validate is the fence, rejections counted in the census), but the ask
+	// The payment GROUPS are not expressible on the wire (Validate is the
+	// fence, rejections counted in the census), but the ask
 	// itself is a plain multi-select over labelled alternatives:
 	// chooseFromSelection by index (chooseCards would be ambiguous -- the
 	// same creature carries several options), the engine's own
@@ -142,8 +140,7 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 	}
 	if !uniform {
 		// A mixed-Kind list none of the recognised mixed shapes above claims:
-		// MBX-7's class closure. Before this ticket such a list returned
-		// ErrUnmapped -- the unanswerable prompt that deadlocked a ManaBrew
+		// it must not return ErrUnmapped -- the unanswerable prompt that deadlocks a ManaBrew
 		// seat -- so any new option shape a card poses falls back to the
 		// generic label selection instead, answered by native option index.
 		return t.fallbackChoose(d, v, true)
@@ -238,7 +235,7 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 	case "exile", "sacrifice", "discard", "search", "dig", "keep",
 		"exilecost", "revealcost", "beholdcost", "returncost", "hand_move", "hidden_pick", "reveal", "vote_card":
 		// "vote_card" is api:Vote's candidate ballot (engine/effects/misc.go's
-		// askCardVote, MBX-7): one option per ballot permanent, Obj the
+		// askCardVote): one option per ballot permanent, Obj the
 		// permanent's id, Label its name, Player its controller (CR 400.2,
 		// the fact the voter's own policy needs to prefer a foreign permanent
 		// over its own). It maps onto chooseCards like the other card-pick
@@ -279,7 +276,7 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 		in = mb.ChooseFromSelectionInput{PromptBase: pres, Options: options, MinTotal: d.Min, MaxTotal: d.Max}
 	case "name", "type", "dungeon", "room", "roll", "look_ack", "choice", "vote":
 		// "vote" is api:Vote's fixed-list ballot (engine/effects/misc.go's
-		// askFixedVote, MBX-7): one option per named choice (the SVar names a
+		// askFixedVote): one option per named choice (the SVar names a
 		// card's Choices$ list holds, e.g. Expropriate's branches), with a
 		// SYNTHETIC Obj (index+1) that is not any view object -- which is why
 		// it must map onto the label-only selection, never chooseCards.
@@ -291,7 +288,7 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 		}
 		in = mb.ChooseFromSelectionInput{PromptBase: pres, Options: options, MinTotal: d.Min, MaxTotal: d.Max}
 	default:
-		// The object-pick fallback (MBX-6): a uniform-kind pick this switch
+		// The object-pick fallback: a uniform-kind pick this switch
 		// has no kind-specific shape for whose options all carry an object
 		// reference is a card-selection over those objects
 		// (engine/effects/counters.go putCounterChoose's "counter_pick": pick
@@ -300,7 +297,7 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 		// stay distinct. Every other unmapped shape -- plain labelled
 		// alternatives such as engine/rules/cast.go's additional-cost pick (kind
 		// "altaddcost"), or any option shape this package does not know --
-		// falls back to MBX-7's generic label selection, which is
+		// falls back to the generic label selection, which is
 		// always-answerable and cannot widen what Decision.Validate accepts.
 		if allOptionsHaveObjects(d.Options) {
 			cards := make([]mb.CardDto, 0, len(d.Options))
@@ -315,7 +312,7 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 	return mb.PromptMessage{Kind: "prompt", AgentPrompt: mb.AgentPrompt{PromptID: promptID(d), DecidingPlayerID: playerID(d.Player), SourceCard: t.sourceCard(v, d.Source), Input: mb.PromptInput{Value: in}}}, false, nil
 }
 
-// fallbackChoose is the MBX-7 class closer: any KChoose this package has no
+// fallbackChoose is the class closer: any KChoose this package has no
 // specific mapping for -- a mixed-Kind list no recognised shape claims, an
 // unknown single Kind, or (degenerately) an option-less ask -- still poses
 // an ANSWERABLE prompt instead of the ErrUnmapped error that left a ManaBrew
@@ -341,7 +338,7 @@ func (t *Translator) fallbackChoose(d *decision.Decision, v *view.View, fallback
 	return mb.PromptMessage{Kind: "prompt", AgentPrompt: mb.AgentPrompt{PromptID: promptID(d), DecidingPlayerID: playerID(d.Player), SourceCard: t.sourceCard(v, d.Source), Input: mb.PromptInput{Value: in}}}, fallback, nil
 }
 
-// parseChooseNumber maps chooseNumber's numberDecision (§6.4) for the two
+// parseChooseNumber maps chooseNumber's numberDecision for the two
 // promptChoose shapes that build it -- a contiguous "x"/"number" range --
 // back to the one option whose Amount equals the chosen value.
 func (t *Translator) parseChooseNumber(out mb.PromptOutputValue, p *Pending) Outcome {
@@ -372,7 +369,7 @@ func (t *Translator) parseChooseNumber(out mb.PromptOutputValue, p *Pending) Out
 	return Outcome{Intent: &in}
 }
 
-// parseChooseCards maps chooseCards's chosenCardIds (§6.4) back to the
+// parseChooseCards maps chooseCards's chosenCardIds back to the
 // offered options by the card each carries in Obj, reusing the same
 // card-id-keyed matcher the KArrange scry parser uses (matchCardIDs):
 // unlike an action-id list, a chooseCards prompt's Cards carry no separate
@@ -395,7 +392,7 @@ func (t *Translator) parseChooseCards(out mb.PromptOutputValue, p *Pending) Outc
 	return Outcome{Intent: &in}
 }
 
-// parseChooseColor maps chooseColor's colorDecision (§6.4): chosenColors is a
+// parseChooseColor maps chooseColor's colorDecision: chosenColors is a
 // count per colour code, expanded into that many repeats of the matching
 // option's index. The map is walked in sorted key order -- never Go's own
 // map range order -- so the resulting Choices list, and therefore any event
@@ -437,7 +434,7 @@ func (t *Translator) parseChooseColor(out mb.PromptOutputValue, p *Pending) Outc
 	return Outcome{Intent: &in}
 }
 
-// parseChooseBoolean maps chooseBoolean's decision{value} (§6.4) -- shared by
+// parseChooseBoolean maps chooseBoolean's decision{value} -- shared by
 // promptChoose's yes/no/asunblocked shape, promptModes' unless-pay shape and
 // promptMisc's trigger-optional/commander-zone/replacement-apply shapes --
 // back to whichever option is the confirm or deny side (booleanOptionIndex).
@@ -500,7 +497,7 @@ func booleanOptionIndex(d *decision.Decision, value bool) (int, error) {
 }
 
 // parseChooseFromSelection maps chooseFromSelection's selectionDecision
-// (§6.4) back to the offered options: every ChooseFromSelectionInput this
+// back to the offered options: every ChooseFromSelectionInput this
 // package builds (promptChoose's several kinds, promptModes, promptMisc's
 // replacement/starting-player shapes) lists its SelectionOptions in the same
 // order as d.Options, so ChosenIndices is Choices with no remapping --
@@ -655,7 +652,7 @@ func colorCode(symbol, label string) string {
 // presentation description every ManaBrew client sees. The wording is a
 // CONTRACT: mbtest's MockClient parses "Total value must be at least N."
 // and "Total value must not exceed N." to honour a Decision.MinSum/MaxSum
-// the wire shape itself cannot express (spec gap G-4), so rewording these
+// the wire shape itself cannot express, so rewording these
 // sentences changes what the mock can answer.
 func chooseConstraint(d *decision.Decision) string {
 	if d == nil {

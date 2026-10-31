@@ -749,10 +749,9 @@ func playGame(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIn
 					rerr = fmt.Errorf("replay panic: %v", r)
 				}
 			}()
-			// The replay runs on the kernel the game ran on: since W3 step 5
-			// the kernel answers park-and-continue asks in place (lasagna
-			// spec §7.2), so a kernel game no longer replays on the legacy
-			// resume path byte for byte.
+			// The replay runs on the kernel the game ran on: the kernel answers
+			// park-and-continue asks in place, so a kernel game does not replay
+			// on the legacy resume path byte for byte.
 			rcfg := cfg
 			var re *rules.Engine
 			re, rerr = replay.Replay(e.L, rcfg)
@@ -1093,7 +1092,7 @@ func main() {
 	journalPath := flag.String("journal", "", "append 'start <goroutine> <seed>' / 'end <seed>' around every game: a fatal runtime error (a stack overflow) kills the whole process past any recover, and the journal names the game the crashing goroutine was playing")
 	skipPath := flag.String("skip", "", "JSONL of games not to play ({seed, sig, diag} per line, from a -journal crash): each is recorded as a 'fatal' failure instead")
 	flag.Uint64Var(&dumpAt, "dump-at", 0, "with -repro: print the first pending decision whose Seq is at least this log index (options, payment actions, pool, battlefield)")
-	flag.BoolVar(&tapeDual, "tape", false, "print the W3 resolution kernel (engine/rules/resolve, the default engine path) counters, the legacy-ask census and the predicate-miss census at the end")
+	flag.BoolVar(&tapeDual, "tape", false, "print the resolution kernel (engine/rules/resolve, the default engine path) counters, the legacy-ask census and the predicate-miss census at the end")
 	flag.BoolVar(&tapeWorlds, "tape-worlds", false, "with -tape: fork a redealt hypothetical world at every posed tape decision and drive it 6 random intents")
 	flag.BoolVar(&planFailures, "plan-failures", true, "record a game whose planned cast was reversed (kind planrev) or fell back to the manual window (planfb) as a failure")
 	sbMode := flag.String("spellbench", "", "twin|outcome: measure a gorge bot through the SpellBench v2 neutral world against its native play on fuzzed decks (spellbench.go); -autopay off|all applies, -failures takes the twin disagreements, -repro replays one")

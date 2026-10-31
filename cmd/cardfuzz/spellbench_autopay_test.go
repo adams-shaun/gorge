@@ -12,16 +12,14 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestSpellbenchTwinAutopayMapsNativePick pins the example position from
-// sbp-twin-autopay-pass: seed 13757245211066428519 (run seed 2, game 1),
+// TestSpellbenchTwinAutopayMapsNativePick pins a recorded position:
+// seed 13757245211066428519 (run seed 2, game 1),
 // priority choose index 258. The native bot wants to float mana by hand
 // there (the native decision offers an "activate" option), but an
 // engine_autopay wire never offers a manual tap. Asked the full native
-// decision the adapter picked the activation, Pick could not name it, and
-// the twin reported candidate 0 (pass) against the neutral world's
-// play_land. The view agent must instead ask the bot only the actions the
-// wire offers, so the pick is the matching land candidate and the decision
-// agrees.
+// decision, the adapter would pick an activation Pick cannot name. The view
+// agent asks the bot only the actions the wire offers, so the pick is the
+// matching land candidate and the decision agrees.
 func TestSpellbenchTwinAutopayMapsNativePick(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	p, err := buildPool(reg)

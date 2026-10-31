@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestPlainObservationRebuildFillsCarriedFacts pins the sbc-7b rebuild facts:
+// TestPlainObservationRebuildFillsCarriedFacts pins the rebuild facts:
 // the observation's turn (round is derived from it), pool, land-drop count,
 // and the printed facts the registry the session already holds supplies. Every
 // asserted field is one the plain v2 observation carries or the registry
@@ -73,7 +73,7 @@ func TestPlainObservationRebuildFillsCarriedFacts(t *testing.T) {
 		t.Fatal(err)
 	}
 	// One round is two turns in the v2 observation's two-seat profile: turn 5
-	// opens round 3. A zero or turn-echoed round is the sbc-7b bug.
+	// opens round 3. A zero or turn-echoed round is wrong.
 	if v.Round != 3 {
 		t.Errorf("Round = %d, want 3 for turn 5", v.Round)
 	}

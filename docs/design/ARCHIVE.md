@@ -187,6 +187,14 @@ The `evidence/token-art/` directory also held 8 screenshots
 |---|---|---|---|
 | `evidence/token-art/REPORT.md` | 2026-10-15 | Token card art renders blank in the web UI — root cause, fix, and proof | Token art rendered blank in the web UI; root cause and fix with before/after screenshots (8 PNGs archived alongside). |
 
+## Parked in `docs/design/`
+
+These stay in the tree, under this directory.
+
+| File | Date | Title | Outcome |
+|---|---|---|---|
+| `v2-default-interface.md` | 2026-10-28 | SpellBench v2 as gorge's default two-player bot interface | Designed and measured, not switched: the adapter agrees with native but costs about 3x; native `seat.Seat` stays the default. |
+
 ## Agent guide
 
 | File | Date | Title | Outcome |

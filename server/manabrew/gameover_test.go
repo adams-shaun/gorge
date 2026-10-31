@@ -35,7 +35,7 @@ func TestGameOverPromptShape(t *testing.T) {
 	}
 }
 
-// TestPromptIDSpacesAreDisjoint pins MBX-2's namespace fix over the whole
+// TestPromptIDSpacesAreDisjoint pins the id namespaces over the whole
 // reachable id range: an ordinary promptId (a bare decision.Seq, >= 0) can
 // never equal a synthetic promptId (always < 0 for any event seq the shift
 // cannot overflow) or the terminal GameOverPromptID, and the three-way split
@@ -66,7 +66,7 @@ func TestPromptIDSpacesAreDisjoint(t *testing.T) {
 		t.Fatalf("syntheticPromptID at the top of the non-overflowing range = %d, want < 0", id)
 	}
 	// The terminal id is neither a reachable ordinary id nor a reachable
-	// synthetic id: it is outside [0, 2^53) (the spec's own safety margin for
+	// synthetic id: it is outside [0, 2^53) (the safety margin for
 	// ordinary ids) and outside the synthetic range (every synthetic id for a
 	// non-overflowing seq is > -2^55, i.e. bounded far away from MaxInt64).
 	if GameOverPromptID != math.MaxInt64 {

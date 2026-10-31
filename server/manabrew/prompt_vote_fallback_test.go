@@ -1,6 +1,6 @@
 package manabrew
 
-// MBX-7: the api:Vote asks must be answerable on the ManaBrew wire, and any
+// The api:Vote asks must be answerable on the ManaBrew wire, and any
 // KChoose this package cannot specifically map must fall back to an
 // answerable prompt rather than the ErrUnmapped error that left a live
 // ManaBrew seat (a web-client session casting Council's Judgment) waiting
@@ -179,14 +179,14 @@ func TestVotePlayerBallotIsAnswerable(t *testing.T) {
 	}
 }
 
-// TestChooseFallbackIsAnswerable is the MBX-7 class closure: a KChoose with
+// TestChooseFallbackIsAnswerable is the class closure: a KChoose with
 // an option shape the translator has no specific mapping for -- here a
 // single-Kind list of a Kind that does not exist yet, and a mixed-Kind list
 // none of the recognised mixed shapes claims -- must still build an
 // answerable prompt (chooseFromSelection over the native option labels,
 // flagged as fallback), and every option must be selectable with the answer
-// mapping back to exactly that native option index. Before this ticket both
-// shapes returned ErrUnmapped, and a ManaBrew seat then waited forever.
+// mapping back to exactly that native option index: an ErrUnmapped here
+// would leave a ManaBrew seat waiting forever.
 func TestChooseFallbackIsAnswerable(t *testing.T) {
 	v := voteView()
 	cases := []struct {

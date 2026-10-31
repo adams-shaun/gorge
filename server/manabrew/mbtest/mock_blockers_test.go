@@ -6,7 +6,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// Tests for mock.go's blocker policy (MBX-6 fix round, seed 20260929): the
+// Tests for mock.go's blocker policy (seed 20260929): the
 // mock's declarations must be legal under the CR 509.1a/509.1c bounds the
 // prompt itself carries (MinBlockers/MaxBlockers/MustBeBlocked), or the game
 // fails the lane with an illegal block declaration.

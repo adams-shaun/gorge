@@ -13,7 +13,7 @@ import (
 // unconditional "cancel_cast" tail -- no "done" here, since this fixture has
 // no pay-life grant. Source points at a real battlefield permanent (the Bear)
 // so findCard resolves it; a card mid-cast (on the stack, not yet on the
-// battlefield) is a known gap findCard does not yet cover -- see the report.
+// battlefield) is a known gap findCard does not yet cover.
 func TestPayManaCostAnnounce(t *testing.T) {
 	v := smallView()
 	d := &decision.Decision{Seq: 1, Player: 1, Kind: decision.KChoose, Min: 1, Max: 1, Source: 2,
@@ -88,7 +88,7 @@ func TestPayManaCostAnnounce(t *testing.T) {
 
 // TestPayManaCostLegacy covers the pre-announce window (engine/rules/cast.go's
 // manaWindowAsk): ManaPayment nil, one "activate" option per untapped source
-// and an unconditional "done" -- no autofill, no undo, and (G-3) no cancel:
+// and an unconditional "done" -- no autofill, no undo, and no cancel:
 // this window has none, so a cancel response must come back invalidShape,
 // never succeed.
 func TestPayManaCostLegacy(t *testing.T) {
@@ -137,8 +137,8 @@ func TestPayManaCostLegacy(t *testing.T) {
 		t.Fatalf("pay auto with no autofill: want invalidShape, got %+v", o)
 	}
 
-	// cancel -> invalidShape (G-3): the legacy window has no cancel.
+	// cancel -> invalidShape: the legacy window has no cancel.
 	if o := tr.parsePayManaCost(mb.CancelOutput{}, pending); o.Err == nil || o.Err.Code != mb.CodeInvalidShape {
-		t.Fatalf("cancel on the legacy window: want invalidShape (G-3), got %+v", o)
+		t.Fatalf("cancel on the legacy window: want invalidShape, got %+v", o)
 	}
 }

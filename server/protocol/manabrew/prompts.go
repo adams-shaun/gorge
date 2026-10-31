@@ -53,7 +53,7 @@ type PromptBase struct {
 	Presentation PromptPresentation `json:"presentation"`
 }
 
-// --- inputs, in the Appendix A.4 order ---
+// --- inputs, in the protocol's order ---
 
 // ChooseNumberInput: chooseNumber.
 type ChooseNumberInput struct {
@@ -323,7 +323,7 @@ type GameOverInput struct{}
 func (GameOverInput) isPromptInput()     {}
 func (GameOverInput) PromptType() string { return "gameOver" }
 
-// --- outputs, in the Appendix A.4 order ---
+// --- outputs, in the protocol's order ---
 
 // NumberDecision: chooseNumber's answer. Nil ChosenNumber is the null that is
 // legal only where cancel is legal.

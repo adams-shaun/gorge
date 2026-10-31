@@ -23,7 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/server/spellbench/xview"
 )
 
-// This file is the sbp-9 spike for docs/design/v2-default-interface.md: the
+// This file measures, for docs/design/v2-default-interface.md, the
 // heuristic bot deciding through the v2 candidate path (the observation and
 // candidates alone, translated by neutral.Session) against the same bot on
 // gorge's own view and decision (x_gorge_view_v1), over a recorded corpus.

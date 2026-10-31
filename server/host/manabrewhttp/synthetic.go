@@ -8,7 +8,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// drainSynthetic is the MBX-2 delivery step both the stream's refresh and
+// drainSynthetic is the delivery step both the stream's refresh and
 // the /state poll run after writing their state frame: it turns the match
 // events this seat has not yet been shown into synthetic ack-only prompts
 // (a public reveal, a dice roll -- internal/manabrew.Translator.Synthetic)

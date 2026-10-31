@@ -9,7 +9,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// MB-7: response fuzzing (scoping spec §9). Fuzz tests are opt-in
+// Response fuzzing. Fuzz tests are opt-in
 // (docs/agents/do-not.md): this file is excluded from the default suite and
 // every pipeline gate, and runs only via `make fuzz` or `go test -tags fuzz`.
 //
@@ -17,13 +17,7 @@ import (
 // the one entry point that maps a ManaBrew client->engine message against a
 // Pending prompt into an Outcome. It is fed mb.ClientResponse/ClientDirective
 // values built directly from fuzzer-supplied primitives (string, int, bool),
-// not decoded from fuzzer-supplied JSON bytes: server/protocol/manabrew's own
-// strict decoders currently hand PromptOutputData a pointer-typed
-// PromptOutputValue (a bug MB-11 is fixing concurrently, in a package this
-// ticket must not touch), so every message decoded off the wire today fails
-// translateResponse's very first type-switch case before reaching a single
-// per-kind parser. Fuzzing that path would only rediscover the MB-11 bug,
-// not exercise this package's own mapping. Constructing the union values
+// not decoded from fuzzer-supplied JSON bytes. Constructing the union values
 // directly reaches the real parsers (parseChooseNumber, parseChooseCards,
 // parseChooseColor, parseChooseBoolean, parseChooseFromSelection,
 // parseArrangeScry, parseArrangeReorder/parseTriggerOrder,
@@ -31,17 +25,15 @@ import (
 // parseBoardTargets, parseChooseAction*), each of which parses attacker-
 // supplied strings (ManaBrew ids) and slices with no schema-level bound.
 //
-// The invariant (ticket MB-7):
+// The invariant:
 //  1. TranslateResponse never panics, on any Pending (one representative per
-//     decision.Kind, covering every wire prompt type MB-4 through MB-6
-//     wired) and any fuzzer-shaped response or directive.
+//     decision.Kind, covering every wire prompt type) and any fuzzer-shaped response or directive.
 //  2. Whenever it returns a non-error Outcome, that Outcome's Intent passes
 //     decision.Validate against the SAME pending decision it answers -- the
 //     one property that would let a malformed or adversarial client
 //     response reach events.Apply as though it were a legal answer.
 //
-// The seed corpus below is drawn from the recorded fixtures MB-4 through
-// MB-6 already committed (errors_test.go's smallView/battleView,
+// The seed corpus below is drawn from recorded fixtures (errors_test.go's smallView/battleView,
 // prompt_arrange_test.go's arrangeView, and the option/id shapes those
 // files' Test* functions send through TranslateResponse): real actionIds
 // ("opt-0", "opt-1"), real card/player ids ("o1", "o2", "player-0",
@@ -144,7 +136,7 @@ func fuzzOutputs(s string, n int, flag bool) []mb.PromptOutputValue {
 
 // fuzzPendings builds one Pending per decision.Kind, mirroring
 // TestEveryDecisionKindTranslates' representative set (errors_test.go) plus
-// the extra KChoose/KModes/KReplacement/KArrange shapes MB-5/MB-6 wired to
+// the extra KChoose/KModes/KReplacement/KArrange shapes wired to
 // their OWN wire prompt type (chooseNumber, chooseCards, chooseColor,
 // chooseBoolean/chooseFromSelection, payManaCost, scry, reorder), so every
 // case translateResponse's switch can reach gets a live Pending to fuzz
@@ -196,8 +188,8 @@ func fuzzPendings(tr *Translator) []*Pending {
 	// (discard), chooseColor (repeatable mana), chooseBoolean (yes/no,
 	// asunblocked), the KArrange scry split and single-list reorder, the
 	// KTriggerOrder reorder, and both payManaCost windows (announced and
-	// legacy) -- built against smallView/arrangeView the way the MB-4/5/6
-	// tests already do (errors_test.go, prompt_arrange_test.go).
+	// legacy) -- built against smallView/arrangeView the way the prompt
+	// tests do (errors_test.go, prompt_arrange_test.go).
 	number := &decision.Decision{Seq: 40, Player: 0, Kind: decision.KChoose, Min: 1, Max: 1, Prompt: "Choose X",
 		Options: []decision.Option{
 			{Index: 0, Kind: "x", Label: "X = 0", Amount: 0},

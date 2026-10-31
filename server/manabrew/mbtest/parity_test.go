@@ -1,7 +1,7 @@
 package mbtest
 
-// MBX-4's in-process leg: the ManaBrew wire is a lossless transport for a
-// REAL bot. For every MB-8 repo-deck game (the census seed scheme: seeds
+// The in-process leg of bot parity: the ManaBrew wire is a lossless transport for a
+// REAL bot. For every repo-deck game (the census seed scheme: seeds
 // seats*1000+g at 2 and 4 seats over the Legacy decks), the same production
 // bot (heuristic.NewBot at the game's seed) plays the game twice:
 //
@@ -12,7 +12,7 @@ package mbtest
 //
 // The two games must finish with the same event-log chain head, the same
 // outcome and the same intent stream. On any mismatch, firstDivergence
-// (mirroring four-yay training/spellbench/v2engine/parity_test.go's helper) replays
+// replays
 // the common intent prefix on a fresh engine and names the decision where
 // the runs part. The census of the wire run must also record zero unmapped
 // prompts and zero rejections: a game that never got an answer onto the
@@ -84,7 +84,7 @@ func playBotParityGame(t *testing.T, cfg rules.Config, seats func(int) seat.Seat
 	return o, e, recs
 }
 
-// TestManaBrewNativeParity runs the MB-8 game set twice per game -- native
+// TestManaBrewNativeParity runs the game set twice per game -- native
 // bot vs the same bot over the ManaBrew mapping -- and asserts the chain
 // heads, outcomes and intent streams are identical.
 func TestManaBrewNativeParity(t *testing.T) {
@@ -160,10 +160,7 @@ func TestManaBrewNativeParity(t *testing.T) {
 }
 
 // firstDivergence replays the common prefix of two intent streams on a fresh
-// engine and describes the decision where they part. Mirrors
-// four-yay training/spellbench/v2engine/parity_test.go's helper of the same name; the
-// spellbench copy is test-only, so the shape is reproduced here rather than
-// imported.
+// engine and describes the decision where they part.
 func firstDivergence(cfg rules.Config, a, b []decision.Intent) string {
 	i := 0
 	for i < len(a) && i < len(b) && fmt.Sprint(a[i].Choices, a[i].Rest, a[i].Payment != nil) == fmt.Sprint(b[i].Choices, b[i].Rest, b[i].Payment != nil) {

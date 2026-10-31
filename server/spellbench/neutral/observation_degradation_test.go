@@ -2,7 +2,7 @@ package neutral_test
 
 // TestObservationDegradationCensus measures what a v2 client loses by rendering
 // from the plain observation instead of the native view carried in
-// x_gorge_view_v1. It is the sbp-2 view census (viewcensus_test.go) over a
+// x_gorge_view_v1. It is the view census (viewcensus_test.go) over a
 // larger, production-shaped corpus with a frequency baseline of its own.
 //
 // For every decision of 100 seeded two-seat games, the production heuristic
@@ -62,7 +62,7 @@ func observationDegradationGame(t *testing.T, reg *cards.Registry, deck []*cards
 // that died still reads summon-sick in the graveyard; the observation carries
 // summoning_sick only inside a battlefield permanent and no activated count at
 // all. Comparing those fields off the battlefield measures gorge's transient
-// storage, not a fact a seat can lose (the brief's class (c)), so both planes
+// storage, not a fact a seat can lose, so both planes
 // are normalised to the battlefield's own answer.
 func normalizeOffBattlefield(v *view.View) {
 	for i := range v.Players {

@@ -10,7 +10,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// Shared builders for the MB-4 response tests. Every synthetic decision is
+// Shared builders for the response tests. Every synthetic decision is
 // one the real engine's builders could pose (the same option kinds, bounds
 // and Min/Max), so the tests exercise the mapping without standing up the
 // rules engine.
@@ -94,7 +94,7 @@ func battleView() view.View {
 	return v
 }
 
-// TestErrorCodesMapping walks the §6.4 table row by row: each ManaBrew check
+// TestErrorCodesMapping walks the table row by row: each ManaBrew check
 // maps to its code, with the open prompt's id attached when something is
 // pending.
 func TestErrorCodesMapping(t *testing.T) {
@@ -145,8 +145,7 @@ func TestErrorCodesMapping(t *testing.T) {
 	if o := tr.TranslateResponse(respFor(pe, mb.ActOutput{ActionID: "pay-x"}), pe, 1); o.Err == nil || o.Err.Code != mb.CodeUnknownActionID {
 		t.Fatalf("payment action not offered at all: want unknownActionId, got %v", o)
 	}
-	// dispatch.go's default arm: an unrecognised Kind (every real Kind is
-	// mapped as of MB-6) is ErrUnmapped, not a panic.
+	// dispatch.go's default arm: an unrecognised Kind is ErrUnmapped, not a panic.
 	km := newDec(3, 1, decision.Kind("not_a_real_kind"), decision.Option{Index: 0, Kind: "trigger", Label: "Trigger A"})
 	msg, err := tr.Prompt(km, &v)
 	if !errors.Is(err, ErrUnmapped) {
@@ -157,19 +156,16 @@ func TestErrorCodesMapping(t *testing.T) {
 
 // TestEveryDecisionKindTranslates iterates decision.Kinds (the same closed
 // universe the engine asks within) and fails on a kind whose prompt mapper
-// does not match its MB ticket: the five MB-4 kinds must build, everything
-// else must still be an explicit ErrUnmapped. The set is explicit, so MB-5
-// and MB-6 empty it by deleting rows -- a new engine kind fails the test the
+// does not build: a new engine kind fails the test the
 // way a new option kind fails TestKindsListsEveryKindOnce.
 func TestEveryDecisionKindTranslates(t *testing.T) {
-	// Every kind is filled as of MB-6: pendingKinds is empty.
 	pendingKinds := map[decision.Kind]string{}
 	translated := map[decision.Kind]string{
-		decision.KPriority: "MB-4", decision.KTarget: "MB-4", decision.KAttackers: "MB-4",
-		decision.KBlockers: "MB-4", decision.KMulligan: "MB-4",
-		decision.KModes: "MB-5", decision.KTriggerOptional: "MB-5", decision.KCommanderZone: "MB-5",
-		decision.KChoose: "MB-5", decision.KReplacement: "MB-5", decision.KStartingPlayer: "MB-5",
-		decision.KTriggerOrder: "MB-6", decision.KArrange: "MB-6",
+		decision.KPriority: "mapped", decision.KTarget: "mapped", decision.KAttackers: "mapped",
+		decision.KBlockers: "mapped", decision.KMulligan: "mapped",
+		decision.KModes: "mapped", decision.KTriggerOptional: "mapped", decision.KCommanderZone: "mapped",
+		decision.KChoose: "mapped", decision.KReplacement: "mapped", decision.KStartingPlayer: "mapped",
+		decision.KTriggerOrder: "mapped", decision.KArrange: "mapped",
 	}
 	if len(translated)+len(pendingKinds) != len(decision.Kinds) {
 		t.Fatalf("kind universe moved: %d kinds, %d translated, %d pending",

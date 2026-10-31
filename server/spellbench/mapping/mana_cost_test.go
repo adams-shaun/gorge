@@ -147,8 +147,7 @@ func replayCommit(t *testing.T, g *gamecfg.Game, commit []decision.Intent) *rule
 // Phyrexian Altar's sacrifice cost poses a pick and, past it, a colour ask:
 // the fold carries one candidate per (creature, colour), each naming its
 // cost_target, and its three-intent commit replayed on a clone sacrifices the
-// creature and adds the mana (Task 15 fix round: the cost fold's first live
-// coverage).
+// creature and adds the mana.
 func TestCostFoldExpandsPerCreatureAndColour(t *testing.T) {
 	g := altarPosition(t, "Phyrexian Altar", 2)
 	env := envFor(t, g)

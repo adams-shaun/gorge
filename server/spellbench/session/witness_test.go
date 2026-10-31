@@ -186,7 +186,7 @@ func runWitnessGame(t *testing.T, deck string, seed uint64) (blocks, realizedBlo
 // runWitnessGame pairs each entry with the historical second word 7.
 //
 // One fixed policy seed is trajectory-fragile: a correct engine change that
-// removes a decision (cr-g93's singleton self-discard ask) shifts every later
+// removes a decision (a singleton self-discard ask) shifts every later
 // random pick, and the single double block that used to pose a division can
 // disappear. Search a small fixed seed list instead, stopping at the first
 // seed whose games witness both.

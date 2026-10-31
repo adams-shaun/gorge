@@ -9,7 +9,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// TestAttackersPromptAndResponse covers the §6.3 chooseAttackers build (the
+// TestAttackersPromptAndResponse covers the chooseAttackers build (the
 // per-creature grouping, the per-attacker CR 509.1d requirement, the target
 // labels/kinds) and the declareAttackers response mapping.
 func TestAttackersBlockersAttackersPromptAndResponse(t *testing.T) {
@@ -116,7 +116,7 @@ func TestAttackersPromptSaysWhoCannotAttackAlone(t *testing.T) {
 	}
 }
 
-// TestBlockersPromptAndResponse covers the §6.3 chooseBlockers build (the
+// TestBlockersPromptAndResponse covers the chooseBlockers build (the
 // per-attacker bounds and must-be-blocked flag, the blocker pool) and the
 // declareBlockers response mapping.
 func TestAttackersBlockersBlockersPromptAndResponse(t *testing.T) {
@@ -171,7 +171,7 @@ func TestAttackersBlockersBlockersPromptAndResponse(t *testing.T) {
 		{BlockerID: "o2", AttackerID: "o7"}}}), p, 1), mb.CodeInvalidShape)
 }
 
-// TestAttackTargetIDPinsRefMint pins the §6.1 ref mint each side of an
+// TestAttackTargetIDPinsRefMint pins the ref mint each side of an
 // attacker option uses, so a player/battle ref mix-up fails here rather
 // than on a live table.
 func TestAttackersBlockersRefMint(t *testing.T) {

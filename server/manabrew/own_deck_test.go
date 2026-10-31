@@ -1,7 +1,6 @@
 package manabrew
 
-// The x_gorge_own_deck_v1 extension (seat-deck-manifest spec, interface
-// mapping item 4): the translator-level contract for how the seat's native
+// The x_gorge_own_deck_v1 extension: the translator-level contract for how the seat's native
 // own-deck manifest (view.View.OwnDeck) is rendered into the optional
 // gameView member. The end-to-end owner-only/stream/poll agreement lives in
 // server/host/manabrewhttp/own_deck_test.go; this file pins the payload shape and
@@ -63,7 +62,7 @@ func TestOwnDeckExtensionCarriesTheNativeManifest(t *testing.T) {
 	}
 }
 
-// TestOwnDeckExtensionZeroShape pins the spec's zero-card contract: an empty
+// TestOwnDeckExtensionZeroShape pins the zero-card contract: an empty
 // main is [] not null, an empty sideboard is omitted, and a manifest-less
 // seat state omits the member entirely.
 func TestOwnDeckExtensionZeroShape(t *testing.T) {

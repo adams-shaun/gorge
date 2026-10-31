@@ -9,8 +9,8 @@ import (
 // (https://docs.manabrew.app/protocol/).
 //
 // The published spec leaves the outer envelope of `state` and `prompt`
-// unspecified (its prompt examples show a bare AgentPrompt). INFERRED, per the
-// scoping spec §1: engine→client messages are wrapped as
+// unspecified (its prompt examples show a bare AgentPrompt). INFERRED:
+// engine→client messages are wrapped as
 // {"kind":<kind>,…} and the prompt envelope flattens AgentPrompt into the
 // prompt object.
 
@@ -59,7 +59,7 @@ type StateUpdate struct {
 }
 
 // StateDelta carries a patch plus base and fingerprint. gorge only *decodes*
-// stateDelta (patches are optional for engines; MB-1 encodes none).
+// stateDelta (patches are optional for engines; gorge encodes none).
 type StateDelta struct {
 	Kind        string          `json:"kind"`
 	Base        string          `json:"base"`

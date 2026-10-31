@@ -1,6 +1,6 @@
 package manabrewhttp
 
-// MBX-4's HTTP leg: the ManaBrew wire is a lossless transport for a real bot
+// The HTTP leg of bot parity: the ManaBrew wire is a lossless transport for a real bot
 // over the real transport. For each seed the registry hosts TWO tables with
 // identical config (same decks, same Seed, same mulligans, no auto-mana) and
 // the same production default bot policy:
@@ -12,8 +12,7 @@ package manabrewhttp
 //     reconstructs the engine's current (view, decision) the same way the
 //     transport does, asks the production bot (heuristic.NewBot at the hosted
 //     bot's own seed) for the native intent it would submit, converts that
-//     intent to a ManaBrew response with mbtest.ResponseForIntent (MBX-3's
-//     inverse helper) and POSTs it to /send.
+//     intent to a ManaBrew response with mbtest.ResponseForIntent and POSTs it to /send.
 //
 // Both matches must finish with the same event-log chain head. The
 // production bot on the wire table sees the same projected view the
@@ -51,7 +50,7 @@ import (
 )
 
 // paritySeedCases is the smoke-sized HTTP set: two seeds per seat count over
-// the MB-8 seed scheme (seats*1000+g), Legacy repo decks throughout. Games
+// the seed scheme (seats*1000+g), Legacy repo decks throughout. Games
 // are ~2-5k events each; the whole test stays well under a minute.
 var paritySeedCases = []struct {
 	seats int

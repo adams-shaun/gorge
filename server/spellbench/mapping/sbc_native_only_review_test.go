@@ -1,6 +1,6 @@
 package mapping_test
 
-// Review follow-ups for sbc-native-only-shrink: mixedSelect must carry the
+// mixedSelect must carry the
 // Section 7.1 hidden order, hidden_pick's Destination must choose the select
 // purpose, the generalized newDig's presentational remainder op must set
 // Inside, and a yes/no ask about a hidden card must open the look.
@@ -253,7 +253,7 @@ func TestChooseYesnoOpensLookForAHiddenNamedCard(t *testing.T) {
 // wrong and only answer by the single-candidate "forced" path.
 func TestDigRemainderOrderOpSetsInside(t *testing.T) {
 	reg := testcorpus.Registry(t)
-	deck := catalog.Deck{CatalogID: "sbc-review", Rows: []wire.DeckRow{
+	deck := catalog.Deck{CatalogID: "review", Rows: []wire.DeckRow{
 		{Name: "Make Your Own Luck", Count: 8},
 		{Name: "Island", Count: 26}, {Name: "Forest", Count: 26}}}
 	cs, err := catalog.Resolve(reg, deck)

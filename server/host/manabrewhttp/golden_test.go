@@ -1,23 +1,14 @@
 package manabrewhttp
 
-// TestGoldenTranscript is MB-11's end-to-end golden (scoping spec §8 item 6):
+// TestGoldenTranscript is the end-to-end golden:
 // a fixed-seed 2-seat game driven entirely through the real HTTP transport
 // (httptest, no port binding), with a first-legal mock client answering
 // every prompt. The complete sequence of engine->client messages seat 0
 // observes is compared byte for byte with testdata/golden/2seat.ndjson.
 //
-// The spec's §8 item 6 names server/manabrew/testdata/golden/*.ndjson as
-// the location; this ticket's own Files line -- and the fact that the
-// fixture is produced by this package's httptest transport, not by
-// server/manabrew in isolation -- puts it at
-// server/host/manabrewhttp/testdata/golden/ instead. Following the ticket over the
-// spec citation here, per this ticket's brief's own instruction to do so.
-//
 // # Why the capture uses GET .../state, not the SSE stream
 //
-// The obvious design reads seat 0's raw SSE bytes. It was tried first and
-// found genuinely non-deterministic, for a reason that is a property of the
-// transport's own documented design, not a bug this ticket introduces:
+// Seat 0's raw SSE bytes are non-deterministic by the transport's design:
 // stream.go's own comment says bursts are coalesced by draining the
 // session's wake-up channel before each re-read, so how many separate
 // `state` frames a run of several engine-internal steps (untap, an
@@ -42,8 +33,8 @@ package manabrewhttp
 // just sourced from the deterministic endpoint. SSE's own framing and
 // wake-up contract are covered elsewhere (TestStreamSendsStateThenPrompt,
 // TestReconnectIdempotent, TestNoForeignHandEverVisible in
-// manabrewhttp_test.go); this ticket's addition is the golden byte-pin,
-// which needs a deterministic source to mean anything.
+// manabrewhttp_test.go); the golden byte-pin needs a deterministic source to
+// mean anything.
 //
 // # What the fixture exercises
 //
@@ -56,23 +47,14 @@ package manabrewhttp
 // reach one KChoose shape (the cleanup hand-size discard, once a
 // never-discarding hand grows past the max). KTriggerOrder and KArrange are
 // never exercised, since nothing in this fixture ever puts more than one
-// trigger on the stack at once or asks for a reorder/scry/etc. ask. A
-// follow-up ticket that wants those covered should extend
-// firstLegalAnswer, which fails loudly (not silently) on any prompt shape
+// trigger on the stack at once or asks for a reorder/scry/etc. ask. To cover
+// those, extend firstLegalAnswer, which fails loudly (not silently) on any prompt shape
 // it does not recognise -- that failure names exactly where to add the new
 // case before regenerating the fixture.
 //
-// The transcript also never contains a "gameOver" prompt:
-// server/manabrew/dispatch.go has no case that ever builds
-// mb.GameOverInput -- GameOver is not a decision.Kind the engine asks
-// about, it is a state.View field the final `state` message carries
-// (view.Over / GameViewDto.GameOver). This test detects termination by that
-// field instead of by a prompt the current translator can never emit.
-// Whether the spec intends the engine to also synthesize a terminal
-// gameOver AgentPrompt with no decision.Kind behind it is an open question
-// this ticket surfaces but does not resolve: MB-11 wires the transport and
-// the fixture, not new decision kinds or dispatch.go cases (see this
-// ticket's final report).
+// GameOver is not a decision.Kind the engine asks about: it is a view field the
+// final `state` message carries (view.Over / GameViewDto.GameOver), so this
+// test detects termination by that field.
 
 import (
 	"bytes"
@@ -92,12 +74,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// MBX-2's golden delta, up front: the transcript gains exactly ONE line, the
-// terminal gameOver prompt at the very end (see the report and commit
-// message). The file doc above still says the transcript "never contains a
-// gameOver prompt" -- that was true when MB-11 landed; MBX-2 closes exactly
-// that open question, and the last line of the committed fixture is now the
-// prompt the spec's Appendix A "end of match" row promises. The synthetic
+// The last line of the fixture is the terminal gameOver prompt. The synthetic
 // ack-only prompts (reveal/dice) are wired through the same poll path but
 // mint nothing in this fixture: it never casts a spell, never attacks, so no
 // public-reveal or dice Note event ever exists for Synthetic to read.
@@ -180,7 +157,7 @@ func gameOverIn(t *testing.T, msgs []json.RawMessage) bool {
 // firstLegalAnswer builds the minimal always-legal response to pm: pass
 // priority, decline every attack/block, and discard the first Min offered
 // cards for a cleanup hand-size ask. Priority's pass option is always
-// offered (§6.3's mapping keeps it out of the AvailableAction list, but the
+// offered (the mapping keeps it out of the AvailableAction list, but the
 // decision itself always carries one), CR 508.1a/509.1c make the empty
 // attacker/blocker declaration legal unconditionally, and a discard-to-
 // hand-size choice carries no ordering rule over which cards go.
@@ -266,8 +243,8 @@ func runGoldenGame(t *testing.T) [][]byte {
 				// would otherwise burn the whole overall deadline on every
 				// ordinary game-over. Poll ONCE, and if it is over record THAT
 				// poll: the gameOver prompt is delivered exactly once per seat
-				// (MBX-2's seatConn latch), so the former second poll would
-				// have re-captured the state but not the terminal prompt.
+				// (the seatConn latch), so a second poll would re-capture the
+				// state but not the terminal prompt.
 				msgs := pollSeat0Raw(t, ts)
 				if gameOverIn(t, msgs) {
 					for _, m := range msgs {
@@ -318,7 +295,7 @@ func runGoldenGame(t *testing.T) [][]byte {
 	}
 }
 
-// TestGoldenTranscript is this ticket's Done-means gate.
+// TestGoldenTranscript compares the fixture byte for byte.
 func TestGoldenTranscript(t *testing.T) {
 	transcript := runGoldenGame(t)
 	got := bytes.Join(transcript, []byte("\n"))

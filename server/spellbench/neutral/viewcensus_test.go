@@ -108,7 +108,7 @@ func censusBaseline(t *testing.T) map[string]bool {
 	return out
 }
 
-// seedCensusState makes one seeded game carry the fields this ticket added:
+// seedCensusState makes one seeded game carry the fields under census:
 // a permanent with two P1P1 counters, a title-case keyword counter, two status
 // designations, player poison and experience counters, the monarch and
 // initiative designations, and CR 731's day. Without it a pauper catalog game

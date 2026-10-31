@@ -1,6 +1,6 @@
 package mbtest
 
-// MBX-7: a live vote card played through TranslatingSeat with the MBX-3
+// A live vote card played through TranslatingSeat with the
 // reachability check. The reported bug: casting Council's Judgment posed a
 // KChoose (api:Vote) the translator did not map; the client's answer came
 // back invalidShape and the seat then waited forever. The unit half of the
@@ -14,9 +14,9 @@ package mbtest
 //     "vote_card" -- the reported card).
 //   - Mob Verdict: the PLAYER ballot (effPlayerVote, options Kind "player").
 //
-// Both games assert the MB-8 census recorded no unmapped pose, no rejected
+// Both games assert the census recorded no unmapped pose, no rejected
 // answer and no fallback (the votes go through their SPECIFIC prompts,
-// never the MBX-7 generic fallback), that the MBX-3 sweep reached every
+// never the generic fallback), that the sweep reached every
 // vote option (reach key "choose:vote_card" / "choose:player", zero
 // unreachable keys in the whole game), and that the vote itself RESOLVED
 // the way the card reads: the most-voted permanent is exiled; the
@@ -187,7 +187,7 @@ func notOnBattlefield(e *rules.Engine, id state.ObjID) bool {
 
 // assertVoteCensus asserts the shared invariants over one vote game's
 // census: nothing unmapped, nothing rejected, and (because these votes have
-// SPECIFIC prompts since MBX-7) no fallback pose either.
+// specific prompts) no fallback pose either.
 func assertVoteCensus(t *testing.T, census *Census) {
 	t.Helper()
 	if census.Games == 0 {
@@ -272,7 +272,7 @@ func TestVoteCouncilsJudgmentThroughWire(t *testing.T) {
 	}
 	_ = e
 
-	// Game B: the MBX-3 reachability check over the same game.
+	// Game B: the reachability check over the same game.
 	censusB := NewCensus()
 	r := NewReach()
 	obsB := &voteObs{spell: "Council's Judgment", plans: [][]string{{"Council's Judgment"}, {"Grizzly Bears"}, {"Grizzly Bears"}}}
@@ -362,7 +362,7 @@ func TestVoteMobVerdictThroughWire(t *testing.T) {
 	}
 	t.Logf("mob-verdict life totals: %v", lives)
 
-	// Game B: the MBX-3 reachability check over the same game.
+	// Game B: the reachability check over the same game.
 	censusB := NewCensus()
 	obsB := &voteObs{spell: "Mob Verdict", plans: [][]string{{"Mob Verdict"}, {}, {}}}
 	r := NewReach()

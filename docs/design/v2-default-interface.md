@@ -1,14 +1,9 @@
 # SpellBench v2 as gorge's default two-player bot interface
 
-Date: 2026-10-28.
-Ticket: sbp-9 (design and adapter benchmark; no bot behaviour changes).
-Source: the operator's request ("consider evolving the default API/interface
-for gorge to be spellbench v2"), with the proposal in four-yay's
-`.ds4/sb-v2-parity/PLAN.md` §4. This document follows §4's decisions word for
-word and adds the sbp-9 measurements.
+Date: 2026-10-28. Parked; see `ARCHIVE.md`.
 Outcome: **designed and measured, not switched.** The adapter agrees with
 native on every comparable recorded decision. It costs about 3x native
-ns/decision and about 6.7x the allocations, which fails gate item 4
+ns/decision and about 6.7x the allocations, which fails the cost item of the gate below
 (<= 2x native, with no allocation regression). Native `seat.Seat` stays the
 default.
 
@@ -42,10 +37,9 @@ running unchanged. Its path is the `mapping.Pose` already built by
 `server/spellbench/mapping`, then `Picked` back to an `Intent`. For a bot that
 only sees the bare observation, it uses the neutral translation:
 `neutral.Session.Payload`, then `agent.Rebuild`, then `seat.Seat.Decide`, then
-`agent.Pick`, then `Session.Picked`. The sbp-9 spike's `v2Seat`
+`agent.Pick`, then `Session.Picked`. The benchmark's `v2Seat`
 (`server/spellbench/neutral/v2_adapter_bench_test.go`) is exactly this shape.
-The package itself is not created yet: the brief allowed a skeleton, but one
-with no callers would only be a stub, so the spike stays in a test file.
+The package does not exist: with no callers it would be a stub.
 
 ## Phases
 
@@ -92,24 +86,21 @@ is strictly additive.
 `bots` defaults to the v2 canonical path for 2-player constructed ONLY when
 ALL of these hold, measured at the same head:
 
-1. The M-G1 and M-G2 thresholds pass on `sb-parity-fuzz` (N >= 200 games,
-   3 bots).
-2. M-D1: 0 diffs over 1,000 games on dirac-supported decks (sbp-7), or
-   dirac is explicitly out of scope.
-3. M-K1/M-K2 are inside their bounds on mtg-kernel (sbp-8), with the
-   operator's sign-off on the card pool.
-4. The sbp-9 benchmark: the v2 adapter is <= 2x native ns/decision, with no
+1. The twin and outcome thresholds of `scripts/sb-parity.sh` pass (N >= 200
+   games, 3 bots).
+2. 0 diffs over 1,000 games on dirac-supported decks, or dirac is explicitly
+   out of scope.
+3. The benchmark below: the v2 adapter is <= 2x native ns/decision, with no
    allocation regression on the heuristic hot path.
-5. `go test ./server/host/... ./server/gorged/... ./view/...` and the
-   existing web-client e2e suite pass unmodified (the operator constraint),
-   and the `engine/rules` golden heads (`TestHeads`) are unchanged.
+4. `go test ./server/host/... ./server/gorged/... ./view/...` and the
+   existing web-client e2e suite pass unmodified, and the `engine/rules` golden heads (`TestHeads`) are unchanged.
 
 Until then v2 remains the compatibility and benchmark surface, and the native
 seat stays the default.
 
-## Measurement (sbp-9)
+## Measurement
 
-Spike: `server/spellbench/neutral/v2_adapter_bench_test.go`.
+Benchmark: `server/spellbench/neutral/v2_adapter_bench_test.go`.
 
 - **Corpus.** gorge bot mirrors played on gorge's own engine through
   `minihost`, with `x_gorge_view_v1` on and no engine auto-pay (as in
@@ -143,7 +134,7 @@ battlefield makes it fail with 18 disagreements.
 
 ### Cost: `BenchmarkV2Adapter`
 
-The command (the done-means command, with `-v`):
+The command:
 
 ```
 systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB \
@@ -169,13 +160,12 @@ Ratios to native:
 The adapter (record compare) row is a 2026-10-29 run of the same command, when
 the recorded corpus had grown to 2 games and 1904 decisions. Its same-run
 native path was 17,693 ns/decision and 134.5 allocs/decision, so the
-record-compare adapter is **3.56x ns/decision** and **2.34x allocs**. Gate item
-4's allocation clause passes (314 <= 318); its 2x ns clause does not, so the
-Outcome is unchanged. The cache removes the per-object rebuild (`Builder.View`
-reuses a card whose record is unchanged); the cache now decides reuse by
-comparing a deep copy of the record field by field instead of hashing it. The
-remaining adapter cost is `Session.Payload`'s candidate translation and the
-bot's own `Decide`, which this ticket does not touch.
+record-compare adapter is **3.56x ns/decision** and **2.34x allocs**. The gate's
+allocation clause passes (314 <= 318); its 2x ns clause does not, so the
+outcome is unchanged. The cache removes the per-object rebuild (`Builder.View`
+reuses a card whose record is unchanged), deciding reuse by comparing a deep
+copy of the record field by field. The remaining adapter cost is
+`Session.Payload`'s candidate translation and the bot's own `Decide`.
 
 A second adapter run (5x, with a CPU profile) gave 44,212 ns/decision and
 the same allocation count. In that profile, about 60% of the adapter's own
@@ -183,30 +173,15 @@ time is in `Session.Payload`, almost all of it `Builder.View`, which rebuilds
 a `view.View` (card faces, printed characteristics) from the observation on
 every decision. About 36% is the bot's own `Decide`.
 
-### Where the measurement contradicts the plan
+### Reading the numbers
 
-- **Native is faster than the plan assumed.** The plan quotes 21-34
-  us/decision for native. This corpus measures 14.3 us per v2 decision. The
-  units differ: the plan counts per native decision, and here one native
-  decision can span several v2 substeps. The machine is also different.
-  Either way, the baseline the 2x budget is measured against is lower than
-  §4 assumed.
-- **The in-process adapter is ~3x, not "likely 10x", and still over the 2x
-  budget.** Gate item 4 fails on both counts: 2.99x > 2x, and allocations
-  grow 6.65x where the gate asks for no regression. The plan's mitigation
-  (build the candidate structs without JSON, cache ids per game) is already
-  what `neutral.Session` does for ids, so the remaining cost is the
-  per-decision `view.View` rebuild. Getting under 2x needs `Builder.View` to
-  reuse the previous decision's card views and diff the observation, instead
-  of rebuilding the view.
+- **The in-process adapter is about 3x native and over the 2x budget.**
+  Allocations grow 6.65x where the gate asks for no regression. Getting under
+  2x needs `Builder.View` to reuse the previous decision's card views and diff
+  the observation, instead of rebuilding the view.
 - **JSON is the dominant external cost.** With JSON decoding, the path is
-  22.7x native. The plan's estimate of "likely 10x" holds only for the wire
-  path, and is optimistic there. This confirms §4's rule that training loops
-  stay on the native path.
+  22.7x native, so training loops stay on the native path.
 - **Decide calls differ slightly** (0.968 vs 0.989 per decision). The extra
-  native calls are most likely follow-ups on the decisions that float mana (not traced), which the
-  neutral world never poses. This is not a disagreement: those decisions are
-  excluded from the comparison.
-
-No docs/design index lists live design documents (`ARCHIVE.md` indexes only
-parked ones), so no index entry was added.
+  native calls are most likely follow-ups on the decisions that float mana (not
+  traced), which the neutral world never poses. This is not a disagreement:
+  those decisions are excluded from the comparison.

@@ -1,6 +1,6 @@
 package manabrewhttp
 
-// MBX-2's Done-means test: a real 2-seat game (Goblin Guide's mandatory
+// A real 2-seat game (Goblin Guide's mandatory
 // "defending player reveals the top card of their library" on every attack;
 // Krazy Kow's "at the beginning of your upkeep, roll a six-sided die") over
 // the ManaBrew transport proves, end to end through the real HTTP layer and
@@ -352,8 +352,8 @@ func parkedAny(t *testing.T, r *host.Registry) {
 	}
 }
 
-// TestSyntheticPromptsOverStream is the brief's whole Done-means list in one
-// deterministic game.
+// TestSyntheticPromptsOverStream checks the list at the top of this file in
+// one deterministic game.
 func TestSyntheticPromptsOverStream(t *testing.T) {
 	ts := syntheticServer(t)
 	tr := manabrew.New("t1", 1, nil)

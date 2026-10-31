@@ -13,20 +13,10 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// Answer-A pin for agent-20260930T235845Z-1d63329c (ManaBrew gameOver
-// delivery semantics). The scoping brief asked the operator to choose
-// between once-per-seat (Answer A) and once-per-connection (Answer B); no
-// answer was recorded, so the brief's stated default applies: per-seat is
-// correct, matching the scoping spec's Appendix A row ("end of match
-// (View.Over) -> gameOver prompt, no response", per-seat language) and
-// MBX-2's asserted "exactly one gameOver prompt per seat".
-//
-// The defect this test closes is not the semantics but a claim about them:
-// state.go's comment used to say "reconnect-based clients get it from the
-// stream's own latch". That is false -- the latch is seatConn.gameOverSent,
-// created once per seat (connFor; a seatConn is never removed), so a
-// reconnecting stream shares the ALREADY CONSUMED latch and receives
-// nothing. This test makes the real rule explicit and enforceable: a stream
+// The gameOver prompt is delivered once per seat, not once per connection.
+// The latch is seatConn.gameOverSent, created once per seat (connFor; a
+// seatConn is never removed), so a reconnecting stream shares the already
+// consumed latch and receives nothing: a stream
 // connected ACROSS match end gets the terminal prompt once; a stream that
 // connects AFTER match end is deliberately state-only (the re-served state
 // already carries GameViewDto.gameOver = true), and no second terminal
@@ -42,7 +32,7 @@ func TestReconnectGameOverIsDeliberatelyStateOnly(t *testing.T) {
 	// Seat 0 keeps its stream open ACROSS match end -- this is what earns
 	// the terminal prompt the pin contrasts against. Seat 1 is the conceder
 	// and needs a live stream so its queued concede is drained at its first
-	// priority (G-2).
+	// priority.
 	s0 := openStream(t, ts.srv, "/t1/matches/1/stream", "s0")
 	defer s0.close()
 	c0 := &syntheticCollector{}

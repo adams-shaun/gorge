@@ -144,7 +144,7 @@ func orderAdvanceUntilTriggerOrder(t *testing.T, e *rules.Engine, limit int) *de
 // LifeChange (amount 2) land in the event log BEFORE Alpha's (amount 1) --
 // the opposite of gorge's own "Choices[0] placed first, resolves last"
 // convention, which is exactly the bug a non-reversing adapter would produce
-// silently (the whole reason the ticket calls for a live-engine test here).
+// silently, which is why this is a live-engine test.
 func TestTriggerOrderFirstIdResolvesFirst(t *testing.T) {
 	alphaCard := parseOrderFixtureCard(t, "order-watcher-alpha.txt", orderWatcherAlphaSrc)
 	betaCard := parseOrderFixtureCard(t, "order-watcher-beta.txt", orderWatcherBetaSrc)

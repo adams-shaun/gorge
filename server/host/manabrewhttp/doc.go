@@ -1,5 +1,4 @@
-// Package manabrewhttp is MB-10 of the ManaBrew protocol scoping spec
-// (archived 2026-09-28-manabrew-protocol-scope.md (docs/design/ARCHIVE.md) §5.2): the
+// Package manabrewhttp is the
 // wire transport that carries server/manabrew's translation over HTTP.
 //
 // It is stdlib-only SSE plus POST, at the host tier: it drives a
@@ -11,10 +10,10 @@
 //
 // Support is opt-in: nothing in this package is imported by any engine
 // package, server/host/httpapi, or the rest of the host tier (internal/archtest
-// pins the reverse rows), and cmd/gorged (MB-9) decides whether to mount it
-// at all. An unmounted server behaves byte-identically to today.
+// pins the reverse rows), and cmd/gorged decides whether to mount it
+// at all. An unmounted server serves no ManaBrew route.
 //
-// Routes (§5.2), mounted by NewHandler under the caller's own prefix:
+// Routes, mounted by NewHandler under the caller's own prefix:
 //
 //   - GET  .../stream — one SSE connection per client: the current state,
 //     the open prompt if one exists, and a live feed of engine→client
@@ -27,7 +26,7 @@
 //   - GET  .../state  — one-shot state plus the open prompt, for poll-only
 //     clients that never open a stream.
 //
-// Gorge extension (seat-deck-manifest spec, interface mapping item 4): every
+// Gorge extension: every
 // state message's gameView carries the additive optional member
 // `x_gorge_own_deck_v1` — the authenticated seat's own genesis deck manifest
 // as name/count rows, the same data the native view's `own_deck` member

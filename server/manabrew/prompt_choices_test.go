@@ -28,7 +28,7 @@ func TestChooseKinds(t *testing.T) {
 		{"color", "color", "", []decision.Option{{Index: 0, Kind: "color", Label: "White"}}, "chooseColor"},
 		{"mana color", "mana", "", []decision.Option{{Index: 0, Kind: "mana", Label: "Add W", ManaSymbol: "W"}}, "chooseColor"},
 		{"yes no", "yes", "", []decision.Option{{Index: 0, Kind: "yes", Label: "Yes"}, {Index: 1, Kind: "no", Label: "No"}}, "chooseBoolean"},
-		// MBX-6: a ONE-option election goes out as a one-option
+		// A ONE-option election goes out as a one-option
 		// chooseFromSelection, never a chooseBoolean -- a boolean prompt
 		// would advertise a confirm side the decision does not offer
 		// (booleanElection's contract).

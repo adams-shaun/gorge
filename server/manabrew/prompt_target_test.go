@@ -8,8 +8,8 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// TestBoardTargetsPromptAndResponse covers the §6.3 target build (the
-// TargetEffect.API → TargetingIntent table) and the §6.4 response mapping.
+// TestBoardTargetsPromptAndResponse covers the target build (the
+// TargetEffect.API → TargetingIntent table) and the response mapping.
 func TestBoardTargetsPromptAndResponse(t *testing.T) {
 	tr := New("table", 2, nil)
 	v := battleView()
@@ -51,7 +51,7 @@ func TestBoardTargetsPromptAndResponse(t *testing.T) {
 		t.Fatalf("presentation title = %q, want the engine prompt text", in.Presentation.Title)
 	}
 	if in.Cancellable {
-		t.Fatal("Cancellable must stay false while G-3 gates it on AutoMana")
+		t.Fatal("Cancellable must stay false: only AutoMana offers it")
 	}
 
 	p := pendingFor(d, v)
@@ -82,7 +82,7 @@ func TestBoardTargetsPromptAndResponse(t *testing.T) {
 	}
 }
 
-// TestTargetingIntentTable pins the §6.3 intent table rows the corpus
+// TestTargetingIntentTable pins the intent table rows the corpus
 // reaches today, row by row, so a code change that reclassifies an API is
 // caught here.
 func TestBoardTargetsIntentTable(t *testing.T) {
@@ -110,7 +110,7 @@ func TestBoardTargetsIntentTable(t *testing.T) {
 		{&decision.TargetEffect{API: "ChangeZone", Removal: &decision.RemovalEffect{Kind: "exile", Destination: "Exile"}}, mb.IntentExile, true},
 		{&decision.TargetEffect{API: "ChangeZone", Removal: &decision.RemovalEffect{Kind: "bounce", Destination: "Hand"}}, mb.IntentBounce, false},
 		{&decision.TargetEffect{Removal: &decision.RemovalEffect{Kind: "graveyard"}}, mb.IntentMill, true},
-		// No effect context at all: intent empty, hostile false (§6.3).
+		// No effect context at all: intent empty, hostile false.
 		{nil, "", false},
 		// An unknown API with no context: no intent is claimed either way.
 		{&decision.TargetEffect{API: "Venture"}, "", false},

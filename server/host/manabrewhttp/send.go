@@ -13,13 +13,13 @@ import (
 // legal message here is a handful of ids and booleans.
 const maxSendBody = 64 << 10
 
-// send is POST .../send (§5.2): the client's one message, decoded leniently
+// send is POST .../send: the client's one message, decoded leniently
 // and mapped against the seat's currently pending decision through
 // internal/manabrew.Translator.TranslateResponse. A response becomes a
 // decision.Intent submitted through Registry.SubmitIntent; a directive
-// answers or queues a concession (G-2); restoreSnapshot asks Registry.Undo.
+// answers or queues a concession; restoreSnapshot asks Registry.Undo.
 // A rejection is written to the HTTP reply AND pushed onto any open stream
-// for the seat (§5.2), so a client polling GET .../state without a stream
+// for the seat, so a client polling GET .../state without a stream
 // still sees exactly what a streamed client would.
 func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 	t, k, ok := matchKey(w, r)
@@ -44,7 +44,7 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 	if _, err := mb.Decode(body, &msg); err != nil {
 		// A body that is not a well-formed ClientToServerMessage at all
 		// (bad JSON, or neither "response" nor "directive") cannot be
-		// mapped to any of the protocol's five error codes either — §6.4's
+		// mapped to any of the protocol's five error codes either — that
 		// table starts from an already-decoded message. It is the same
 		// "never became a ManaBrew message" shape as a claim failure.
 		writeError(w, http.StatusBadRequest, "bad_request", "malformed ManaBrew message: "+err.Error())
@@ -53,7 +53,7 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 	sc := h.connFor(connKey{table: t, match: k, seat: claim.Seat})
 	tr := manabrew.New(string(t), int64(k), h.opts.Text)
 
-	// A response naming an OPEN synthetic prompt's id (MBX-2) never reaches
+	// A response naming an OPEN synthetic prompt's id never reaches
 	// the engine or the ordinary translator: AcknowledgeSynthetic validates
 	// it against exactly what this seat was shown, the ack is recorded, and
 	// the engine log is untouched. The open-synthetic lookup doubles as the
