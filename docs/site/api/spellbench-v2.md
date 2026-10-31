@@ -76,7 +76,7 @@ go build -trimpath -o bin/ ./cmd/spellbench-gorge-env ./cmd/spellbench-gorge-age
 | `-source-revision REV` | env | reported as `engine.source_revision` |
 | `-policy KEY` | agent | a registered bot policy, default `bot`; `-list-policies` prints them |
 | `-world WORLD` | agent | `gorge` (the default) or `neutral`; see below |
-| `-audit-dir DIR` | agent | write aggregate policy coverage there when the process closes (or `$GORGE_AGENT_AUDIT_DIR`) |
+| `-audit-dir DIR` | agent | write aggregate policy coverage there, one file before each `game_over` ack and one if the process closes mid-game (or `$GORGE_AGENT_AUDIT_DIR`) |
 
 `-corpus` defaults to `$GORGE_CARDS`. The env needs `-corpus` or the pair `-registry` + `-registry-sha256`,
 and exits 2 without them, or when a catalog deck doesn't resolve.
