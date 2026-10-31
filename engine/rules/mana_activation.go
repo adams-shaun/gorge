@@ -625,12 +625,6 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 			out = append(out, ma)
 		}
 	}
-	if faceDown {
-		// Only the CR 305.6 intrinsics above exist on a face-down permanent:
-		// its printed ManaReflected abilities and any Continuous AddAbility$
-		// grant are hidden with the rest of its printed face (CR 708.8).
-		return out
-	}
 	// CR 605.2a: a mana ability functions only while its source object is in
 	// the zone its ActivationZone$ names -- the battlefield when printed
 	// none is. The plain AB$ Mana branch above gates on abilityZoneOK; this
@@ -676,7 +670,7 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 	// resolves its own face's table. A single face the walk facts show
 	// carries none (walk_face_facts.go) has nothing for the scan to find.
 	pileFaces := o.PileFaceCount()
-	if lost {
+	if lost || faceDown {
 		pileFaces = 0
 	}
 	if pileFaces == 1 && !walkSkipVerify {
