@@ -12,8 +12,8 @@ worktrees and what CI runs, is [docs/site/contributing/index.md](docs/site/contr
 
 ## Set up
 
-You need Go (the version on the `go` line of `go.mod`; with an older Go installed,
-`GOTOOLCHAIN=<that version>` fetches it), `git`, `make` and `bash`. Node 22.12 or
+You need Go (the version on the `go` line of `go.mod`; Go 1.21 or later downloads it
+itself under the default `GOTOOLCHAIN=auto`), `git`, `make` and `bash`. Node 22.12 or
 newer is needed only for `web/`. There is no cgo and no C toolchain.
 
 ```sh

@@ -20,7 +20,7 @@ flowchart LR
 
 | Need | Version | Why |
 |---|---|---|
-| Go | the `go` line in `go.mod` | with an older Go installed, `GOTOOLCHAIN=<that version>` fetches the right one |
+| Go | the `go` line in `go.mod` | Go 1.21 or later downloads it itself under the default `GOTOOLCHAIN=auto` |
 | `git`, `make`, `bash` | any recent | the Makefile and scripts |
 | Node | 22.12 or newer, **only** for `web/` | the browser client build and its tests (`web/README.md`) |
 
