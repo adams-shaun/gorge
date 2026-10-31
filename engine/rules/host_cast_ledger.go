@@ -316,8 +316,10 @@ func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) boo
 	if o := e.G.Obj(obj); o != nil {
 		src = o.Source
 	}
+	// A cast of the source names it too but mints no wrapper: the source can leave
+	// and be cast again with its ability still on the stack.
 	isOwn := func(ev events.Event) bool {
-		return mintsStackObject(ev) && (ev.Obj == obj || (src != 0 && ev.Obj == src))
+		return mintsStackObject(ev) && (ev.Obj == obj || (src != 0 && ev.Obj == src && ev.Kind != events.PutOnStack))
 	}
 	// A source's later activations and triggers are later pushes naming it, each
 	// with a newer stack object: skip those to reach the push that minted obj.

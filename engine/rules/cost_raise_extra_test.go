@@ -784,3 +784,40 @@ func TestCostMovesEndAtEveryKindOfPush(t *testing.T) {
 		}
 	}
 }
+
+// An ability on the stack reads its own cost after its source has been cast again
+// (CR 602.2a): the recast's push names the source but minted no wrapper.
+func TestCostMovesSurviveTheSourceBeingCastAgain(t *testing.T) {
+	t.Parallel()
+	const altar = "Name:Altar\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 3 | SpellDescription$ Gain three.\nOracle:x\n"
+	e := handEngine(t, card(t, "Name:Beast\nManaCost:1\nTypes:Creature Bear\nPT:5/5\nOracle:x\n"))
+	id := onBoardReady(t, e, 0, altar)
+	e.priorityRound()
+	hand := e.G.Zone(state.ZHand, 0)
+	beast := hand[len(hand)-1]
+	for _, o := range e.Pending().Options {
+		if o.Kind == "ability" && o.Obj == id {
+			submitChoices(t, e, o.Index)
+			break
+		}
+	}
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
+		for _, c := range d.Options {
+			if c.Obj == beast {
+				submitChoices(t, e, c.Index)
+				break
+			}
+		}
+	}
+	wrapper := e.G.Stack[len(e.G.Stack)-1]
+	want := e.CostMovesInWindow(wrapper, events.CostMoveDiscard)
+	if len(want) != 1 {
+		t.Fatalf("the ability paid %v, want one discard", want)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZHand})
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: id, Player: 0, From: state.ZHand, To: state.ZStack})
+	if got := e.CostMovesInWindow(wrapper, events.CostMoveDiscard); len(got) != 1 || got[0] != want[0] {
+		t.Fatalf("after the recast the ability reads %v, want %v", got, want)
+	}
+}
