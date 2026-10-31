@@ -18,9 +18,8 @@ primitives that IR references. See
 - `server/`: `gorged` (the importable server; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`), `protocol`, `manabrew`, `divergence`.
 - `bots/`: `botpolicy`, `heuristic` (the default bot), the registry, hosted bots and their inference runtime.
 - `cmd/`: product and developer tools. `internal/`: ratchets, test support, generators.
-- Draft events and the maintainers' extensions live in a private companion
-  module, which imports gorge at a pinned commit; gorge never imports it, and
-  nothing in gorge needs it to build or test (ADR 0001 amendment, 2026-10-16).
+- `draft/`: the limited stack (`limited`, `event`, `eventhost`, `gorgedevents`, `draftlab`); `cmd/gorged` links it (ADR 0002).
+- Machine learning and private experiments live in a private companion module, which imports gorge at a pinned commit; gorge never imports it, and nothing in gorge needs it to build or test.
 - The compliance oracles and the oracle-scenario corpora (hand Oracle-text audit, XMage ports)
   live in the public gorge-compliance (`github.com/adams-shaun/gorge-compliance`), which pins
   gorge and plays the corpora through `engine/rules`' exported oracle runner (ADR 0001

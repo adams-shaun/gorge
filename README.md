@@ -57,6 +57,7 @@ two servers at one `-dir`.
 | `engine/` | The deterministic rules core: `cards` (script → IR compiler), `state`, `decision`, `events`, `effects`, `rules`, `view`, `replay`, `deck`, and `seat` (the `Seat` contract only) | Anyone fixing a card or a rule |
 | `server/` | The reference server: `gorged` (the importable server, with an `Extensions` seam and `RegisterNetBot`), `host` (tables, sessions, persistence) with `host/httpapi` and `host/manabrewhttp`, `protocol` (the wire types), `manabrew`, `divergence` | Server and client work |
 | `bots/` | Bot players: `botpolicy`, `heuristic` (the default bot), the `registry`, and the hosted bots (`bot`, `lethal-pressure`, `forge-heuristic`, `forge-heuristic-hold`, `sb-tactical`, `az-redeal`) with their inference code | Bot authors |
+| `draft/` | The limited stack: `limited` (boosters, pods, deck building, pick bots, set data), `event`, `eventhost`, `gorgedevents` (the plugin `cmd/gorged` links, serving events with `-events`) and `draftlab` with its external-agent wire | Draft and limited work |
 | `web/` | The TypeScript/Svelte browser client | Front-end work |
 | `cmd/` | Product and developer binaries: `gorged`, `forgec`, `repro`, `mtgsim`, `gentypes`, `pkgmap`, `headdiff`, `enginebench`, `cardfuzz`, `deckimport`, … | Everyone |
 | `testkit/`, `cli/` | Public support packages for outside modules: `testkit/testutil` (fixtures, corpus registry), `testkit/bench` (the game runner), `testkit/paymirror`, and `cli` (command-line flags, env and config) | Contributors, downstream modules |
@@ -73,12 +74,10 @@ layout and its reasons are in [ADR 0001](docs/decisions/0001-repo-layout.md).
 
 ### The private companion module
 
-Draft events and the maintainers' extensions live in a **private**
-companion module that imports gorge at a pinned commit; gorge never imports
-it. It plugs in through three seams: `bots.Register` (its bots join the
-registry), `server/gorged.RegisterNetBot` (network-backed hosted bots) and
-`server/gorged.Extensions` (draft events under `/api/events`). Nothing in
-gorge needs it to build or test.
+Machine learning, reinforcement learning and private experiments live in a
+**private** companion module that imports gorge at a pinned commit; gorge never
+imports it. It plugs in through `bots.Register` and
+`server/gorged.RegisterNetBot`. Nothing in gorge needs it to build or test.
 
 ### gorge-compliance, the public compliance repository
 

@@ -55,7 +55,9 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
 ## Target root, additions to ADR 0001
 
     dirac/     kop cardset vanilla feat crcoverage search/{hbot,mull} oracle sbv2 cmd/ docs/
-    draft/     limited/ event eventhost gorgedevents draftlab cmd/ examples/
+    draft/     limited/ event eventhost gorgedevents draftlab
+    cmd/       adds draftsim labdemo extagent
+    examples/  adds extagent
 
 ## What this replaces in ADR 0001
 

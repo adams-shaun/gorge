@@ -168,16 +168,16 @@ example of the shape we like.
 
 The per-package map is [docs/agents/repo-map.md](docs/agents/repo-map.md)
 and `go run ./cmd/pkgmap` prints every package with its purpose and tier.
-Draft events and the maintainers' extensions are not in this repository:
-they live in a private companion module that imports gorge (README,
-"The private companion module"). The compliance oracles and the
+Machine learning and private experiments are not in this repository: they live
+in a private companion module that imports gorge (README, "The private companion
+module"). The compliance oracles and the
 oracle-scenario corpora (the hand Oracle-text audit, the XMage ports) live in
 the public [gorge-compliance](https://github.com/adams-shaun/gorge-compliance),
 which measures a pinned gorge revision; gorge keeps the oracle runner
 (`engine/rules/oracle_*.go`) and a small residual scenario set as its
 contract check (`engine/rules/oracle_contract_test.go`). A change in
 gorge never needs it, but a change to a seam it uses (`bots.Register`,
-`server/gorged.Extensions`, `server/gorged.RegisterNetBot`, `testkit/`, `cli/`)
+`server/gorged.RegisterNetBot`, `testkit/`, `cli/`)
 is an API change for it.
 Behaviour that looks like a bug but is deliberate is recorded in
 `docs/design/2026-09-22-engine-contracts.md` and in `AGENTS.md`'s
