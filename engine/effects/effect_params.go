@@ -114,7 +114,7 @@ var effectKnownKeys = [...]string{
 	"TargetsWithRelatedProperty", "TargetsWithSameCardType", "TargetsWithSameController",
 	"TargetsWithSameCreatureType", "TargetsWithSharedCardType",
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "ThisTurn", "TokenScript",
-	"TriggerDescription", "Triggers", "Type", "Ultimate",
+	"TriggerController", "TriggerDescription", "Triggers", "Type", "Ultimate",
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched",
 	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidPlayer", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XMax", "XMin",

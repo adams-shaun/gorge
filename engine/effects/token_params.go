@@ -227,7 +227,7 @@ var tokenKnownKeys = [...]string{
 	"TokenScript",
 	"TokenTapped",
 	"TokenToughness",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"Type",
 	"Ultimate",
 	"UnlessAI",

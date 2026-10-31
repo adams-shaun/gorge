@@ -358,7 +358,7 @@ var pumpKnownKeys = [...]string{
 	"TgtPrompt",
 	"TgtZone",
 	"ThisDefinedAndTgts", "TokenScript",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"Type",
 	"Ultimate",
 	"UnlessAI",

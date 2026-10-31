@@ -222,7 +222,7 @@ var attachKnownKeys = [...]string{
 	"TgtPrompt",
 	"TgtZone",
 	"TokenScript",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"Type",
 	"Ultimate",
 	"Unattach",

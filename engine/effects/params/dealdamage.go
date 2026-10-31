@@ -108,7 +108,7 @@ var dealDamageKnownKeys = [...]string{
 	"TargetsWithRelatedProperty", "TargetsWithSameCardType", "TargetsWithSameController",
 	"TargetsWithSameCreatureType", "TargetsWithSharedCardType",
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript",
-	"TriggerDescription", "Type", "Ultimate", "UnlessAI",
+	"TriggerController", "TriggerDescription", "Type", "Ultimate", "UnlessAI",
 	"UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "ValidCard",
 	"ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage",

@@ -170,7 +170,7 @@ var cloneKnownKeys = [...]string{
 	"TargetsWithDifferentCMC", "TargetsWithDifferentControllers",
 	"TargetsWithDifferentNames", "TargetsWithEqualToughness", "TargetsWithRelatedProperty", "TargetsWithSameCardType",
 	"TargetsWithSameController", "TargetsWithSameCreatureType", "TargetsWithSharedCardType",
-	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript", "TriggerDescription",
+	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript", "TriggerController", "TriggerDescription",
 	"Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
 	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost",

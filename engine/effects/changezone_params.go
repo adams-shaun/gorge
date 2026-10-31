@@ -432,7 +432,7 @@ var changeZoneKnownKeys = [...]string{
 	"ThisDefinedAndTgts",
 	"TokenScript",
 	"Transformed",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"Type",
 	"Ultimate",
 	"Unearth",

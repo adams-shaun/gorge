@@ -266,7 +266,7 @@ var digUntilKnownKeys = [...]string{
 	"TgtPrompt",
 	"TgtZone",
 	"TokenScript",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"Type",
 	"Ultimate",
 	"UnlessAI",
