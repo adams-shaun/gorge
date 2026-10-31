@@ -183,7 +183,7 @@ one. Its memory isn't comparable, since it compiles its few hundred cards into t
 |---|---|
 | Machine | AMD Ryzen 9 9950X (16 cores, 32 threads), 120 GB, Linux 6.17, `performance` governor |
 | gorge | `17767dd48` (2026-10-31), Go 1.26.3, `cmd/enginebench` |
-| dirac | the source of 2026-10-31, built against gorge `7438d92b6`, its game runner and `go test -bench`, with `-trimpath` |
+| dirac | the source of 2026-10-31 (not in this repository), built against gorge `7438d92b6`, its game runner and `go test -bench`, with `-trimpath` |
 | XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance), 2026-10-20 |
 | Forge | gorge's Forge fork at `da1c712c31`, JDK 17.0.20.1, driver `forge.oracle.GameReplay`, 2026-10-20 |
 | mtg-kernel | `jackmaiorino/mtg-kernel` `058d075e3`, Rust 1.94.1, release build of `examples/bench_kernel` with gorge's `--xengine-json` mode, 2026-10-20 |

@@ -64,7 +64,8 @@ agreement per kind. `ksbt` does the same for sb-tactical, through a view built f
 
 ## Running it
 
-`kfuzz` is the driver. A pool run plays seeded pairs of decks:
+`kfuzz` is the driver, and like the rest of dirac it isn't in this repository, so this shows what a run looks
+like rather than something you can run from a clone of gorge. A pool run plays seeded pairs of decks:
 
 ```sh
 kfuzz -kernel fdn -first-pair 0 -pairs 2 -seed 1 -keep-going -surface autopay -shrink 0
