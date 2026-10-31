@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	matrixScriptRow = regexp.MustCompile(`(?m)^row (\d+) (\S+) '([a-z ]+)' `)
-	matrixPageRow   = regexp.MustCompile(`(?m)^\| (\d+) \| ([^|]+) \|.*\| ([a-z ]+) \|$`)
+	matrixScriptRow = regexp.MustCompile(`(?m)^row (\S+) '([a-z ]+)' `)
+	matrixPageRow   = regexp.MustCompile(`(?m)^\| ([a-z0-9]+ / [^|]+) \|.*\| ([a-z ]+) \|$`)
 )
 
 func matrixRows(t *testing.T, path string, row *regexp.Regexp) map[string]string {
@@ -22,10 +22,11 @@ func matrixRows(t *testing.T, path string, row *regexp.Regexp) map[string]string
 	}
 	rows := map[string]string{}
 	for _, m := range row.FindAllStringSubmatch(string(b), -1) {
-		if _, dup := rows[m[1]]; dup {
-			t.Errorf("%s: cell %s twice", path, m[1])
+		cell := strings.ReplaceAll(m[1], " ", "")
+		if _, dup := rows[cell]; dup {
+			t.Errorf("%s: cell %s twice", path, cell)
 		}
-		rows[m[1]] = strings.ReplaceAll(m[2], " ", "") + " in " + m[3]
+		rows[cell] = m[2]
 	}
 	if len(rows) == 0 {
 		t.Fatalf("%s: no cells", path)
@@ -40,7 +41,7 @@ func TestWireMatrixPageMatchesScript(t *testing.T) {
 		if got, ok := page[cell]; !ok {
 			t.Errorf("cell %s (%s) is in the script and not on the page", cell, script[cell])
 		} else if got != script[cell] {
-			t.Errorf("cell %s: the script says %s, the page says %s", cell, script[cell], got)
+			t.Errorf("cell %s: the script says tiers %q, the page says %q", cell, script[cell], got)
 		}
 	}
 	for _, cell := range slices.Sorted(maps.Keys(page)) {

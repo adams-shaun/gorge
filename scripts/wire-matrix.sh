@@ -35,19 +35,19 @@ port=${WIRE_MATRIX_PORT:-8097}
 seed=${CONFORMANCE_SEED:-$((($(date -u +%s) - $(date -u -d 2026-01-01 +%s)) / 86400))}
 failed=0
 
-# row CELL NAME TIERS COMMAND...: runs COMMAND when TIERS holds this run's tier.
+# row CELL TIERS COMMAND...: runs COMMAND when TIERS holds this run's tier.
 row() {
-	local cell=$1 name=$2 tiers=$3
-	log="$work/cell-$1.log"
-	shift 3
+	local cell=$1 tiers=$2
+	log="$work/${cell//\//-}.log"
+	shift 2
 	case " $tiers " in
 	*" $tier "*) ;;
 	*) return 0 ;;
 	esac
 	if "$@" >"$log" 2>&1 && ! grep -q -- '--- SKIP' "$log"; then
-		echo "$cell $name PASS"
+		echo "$cell PASS"
 	else
-		echo "$cell $name FAIL"
+		echo "$cell FAIL"
 		grep -- '--- SKIP' "$log" || true
 		tail -20 "$log"
 		failed=1
@@ -66,7 +66,7 @@ tests() {
 	done
 }
 
-# Cell 3 is several commands.
+# The hosted-bots cell is several commands.
 hosted_bots() {
 	tests ./engine/rules TestHeads &&
 		make sim &&
@@ -80,13 +80,13 @@ fuzz() {
 		[ ! -s "$work/fuzz.jsonl" ]
 }
 
-row 1 gorge/native/harness 'commit nightly pr' tests ./testkit/conformance TestNativeConformanceGorgeSelf
-row 3 gorge/native/hosted-bots 'commit nightly pr' hosted_bots
-row 4 gorge/native/http-agent 'commit nightly pr' scripts/examples-smoke.sh "$port"
-row 5 gorge/manabrew/harness 'commit nightly pr' tests ./testkit/conformance TestManaBrewConformanceGorgeSelf TestManaBrewNormaliserLines TestManaBrewCatchesAWrongLife TestManaBrewCatchesAMissingAction
-row 6 gorge/manabrew/bot 'commit nightly pr' go test -v -timeout 10m ./server/manabrew/mbtest ./server/host/manabrewhttp
-row 7 gorge/manabrew/fuzz 'nightly' fuzz
-row 9 gorge/v2/harness 'commit nightly pr' go test -v -timeout 15m ./server/spellbench/... ./server/host/sbv2http
-row 11 gorge/v2/stdio-agent 'commit nightly pr' tests ./server/spellbench/seat TestV2AgentSeatPlaysGorgeAgent TestSpellbenchSeatAppliesAgentPick TestSpellbenchSeatAnswersUnposableDecisionWithFallback
+row gorge/native/harness 'commit nightly pr' tests ./testkit/conformance TestNativeConformanceGorgeSelf
+row gorge/native/hosted-bots 'commit nightly pr' hosted_bots
+row gorge/native/http-agent 'commit nightly pr' scripts/examples-smoke.sh "$port"
+row gorge/manabrew/harness 'commit nightly pr' tests ./testkit/conformance TestManaBrewConformanceGorgeSelf TestManaBrewNormaliserLines TestManaBrewCatchesAWrongLife TestManaBrewCatchesAMissingAction
+row gorge/manabrew/bot 'commit nightly pr' go test -v -timeout 10m ./server/manabrew/mbtest ./server/host/manabrewhttp
+row gorge/manabrew/fuzz 'nightly' fuzz
+row gorge/v2/harness 'commit nightly pr' go test -v -timeout 15m ./server/spellbench/... ./server/host/sbv2http
+row gorge/v2/stdio-agent 'commit nightly pr' tests ./server/spellbench/seat TestV2AgentSeatPlaysGorgeAgent TestSpellbenchSeatAppliesAgentPick TestSpellbenchSeatAnswersUnposableDecisionWithFallback
 
 exit "$failed"
