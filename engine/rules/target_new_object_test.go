@@ -15,7 +15,7 @@ import (
 // resolves, even though gorge's ObjID survives the round trip. The stack
 // object stamps the target's Incarnation when it is chosen
 // (state.Object.TargetStamps) and the resolution recheck drops a target
-// whose Incarnation has moved. dirty-dirac pairs 1699 3455 (Fleeting
+// whose Incarnation has moved. dirac pairs 1699 3455 (Fleeting
 // Distraction / Stab on a returned Infernal Vessel / Infestation Sage) and
 // 14299 46767 66849 (Axgard Cavalry's haste, Sower of Chaos's can't-block
 // on a returned Reassembling Skeleton / Infernal Vessel). The control arm

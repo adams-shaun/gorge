@@ -10,7 +10,7 @@ import (
 
 // TestEntryPreviewDoesNotWriteTheLiveStaticMemo pins the entry preview's
 // memo isolation (CR 611.3a: a static ability stops applying once its source
-// leaves the battlefield). The census shape (dirty-dirac K1l pairs 21961
+// leaves the battlefield). The census shape (dirac K1l pairs 21961
 // 37823 66869 74406): Stroke of Midnight destroys Empyrean Eagle ("other
 // creatures you control with flying get +1/+1") and creates a Human token in
 // the same resolution, with no read in between, and Giada, Font of Hope's

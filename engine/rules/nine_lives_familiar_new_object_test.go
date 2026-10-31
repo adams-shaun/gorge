@@ -16,7 +16,7 @@ import (
 // nothing. The registration stamps each remembered object's Incarnation
 // (state.DelayedTrigger.RememberedStamps) and ChangeZone's Defined$
 // DelayTriggerRemembered[LKI] mover skips one that moved since
-// (effects.dropDelayedRememberedMoved). dirty-dirac K1h pair 4347. The
+// (effects.dropDelayedRememberedMoved). dirac K1h pair 4347. The
 // control arm has no round trip and must return the Familiar.
 func TestDelayedReturnFindsOnlyTheRememberedObject(t *testing.T) {
 	t.Parallel()

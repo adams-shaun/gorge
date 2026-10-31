@@ -864,7 +864,7 @@ func (e *Engine) refreshEntryPreviewStatics() {
 // engine's unchanged key: a lord destroyed earlier in the same resolution
 // lost its entry, the live refresh then judged the lord's departure cold and
 // re-stamped the memo, and the live active list kept the lord's buff (CR
-// 611.3a; Stroke of Midnight on Empyrean Eagle, dirty-dirac K1l pairs 21961
+// 611.3a; Stroke of Midnight on Empyrean Eagle, dirac K1l pairs 21961
 // 37823 66869 74406). The served lists are copied, so every cache hit the
 // preview inherits stays valid; the pure scratch buffers start empty; the
 // per-object memo tables start empty exactly as a clone's do (their clone
