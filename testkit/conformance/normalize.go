@@ -208,6 +208,8 @@ func (n *objectNames) rewrite(v any) {
 				x[k] = n.renameTag(val)
 			case k == "group":
 				x[k] = n.renameGroup(val)
+			case k == "groupLimits":
+				x[k] = n.renameGroupKeys(val)
 			case k == "cmd_damage":
 				x[k] = n.renameKeys(val)
 			case !objectFields[k]:
@@ -257,6 +259,19 @@ func (n *objectNames) renameGroup(v any) any {
 		return v
 	}
 	return prefix + ":" + n.of(state.ObjID(id))
+}
+
+// renameGroupKeys applies renameGroup to the groups keying a map.
+func (n *objectNames) renameGroupKeys(v any) any {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return v
+	}
+	out := make(map[string]any, len(m))
+	for _, k := range slices.Sorted(maps.Keys(m)) {
+		out[n.renameGroup(k).(string)] = m[k]
+	}
+	return out
 }
 
 // renameKeys renames the object ids keying a map.

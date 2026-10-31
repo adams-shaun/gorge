@@ -252,10 +252,10 @@ func TestNormaliseRenamesTokens(t *testing.T) {
 // optionFrame is a choice between a named value and an object with a per-object
 // group, under the given object id.
 func optionFrame(value, label string, id int) nativeRaw {
-	d := fmt.Sprintf(`{"seq":1,"player":0,"kind":"choose","prompt":"Pick","min":1,"max":1,"options":[
-		{"index":0,"kind":"name","label":%q,"player":0},
-		{"index":1,"kind":"block","label":%q,"player":0,"obj":%d,"group":"blocker:%d"},
-		{"index":2,"kind":"choice","label":"Other","player":0,"obj":%d,"group":"power:3"}]}`, value, label, id, id, id)
+	d := fmt.Sprintf(`{"seq":1,"player":0,"kind":"choose","prompt":"Pick","min":1,"max":1,"groupLimits":{"blocker:%[3]d":2},"options":[
+		{"index":0,"kind":"name","label":%[1]q,"player":0},
+		{"index":1,"kind":"block","label":%[2]q,"player":0,"obj":%[3]d,"group":"blocker:%[3]d"},
+		{"index":2,"kind":"choice","label":"Other","player":0,"obj":%[3]d,"group":"power:3"}]}`, value, label, id)
 	view := func(viewer int, decision string) []byte {
 		return []byte(fmt.Sprintf(`{"viewer":%d,"players":[],"stack":[],"pending":[]%s}`, viewer, decision))
 	}
