@@ -225,7 +225,7 @@ func TestCreateEventValidation(t *testing.T) {
 		_, err := h.CreateEvent(tc.req)
 		wantErr(t, err, tc.want, 400)
 	}
-	// E3-5: two humans are legal at the default cap (4, asserted in
+	// Two humans are legal at the default cap (4, asserted in
 	// sideboard_test.go); a cap of 1 refuses the second one.
 	lim, _ := newHost(t, func(o *Options) { o.MaxHumans = 1 })
 	_, err := lim.CreateEvent(twoHumans)

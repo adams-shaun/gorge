@@ -507,7 +507,7 @@ func TestStandingsCountBo3Games(t *testing.T) {
 // floor33 is MTR Appendix C's 33% floor, spelled out for the expectations.
 const floor33 = 0.33
 
-// TestParseLogAcceptsSideboarded proves the new kind parses, round-trips
+// TestParseLogAcceptsSideboarded proves the Sideboarded kind parses, round-trips
 // through MarshalLog/ReplayLog byte-identically, and that a round-phase
 // DeckSaved deck stays hidden from other seats before COMPLETE.
 func TestParseLogAcceptsSideboarded(t *testing.T) {

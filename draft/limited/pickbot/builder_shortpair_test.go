@@ -9,14 +9,14 @@ import (
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
 )
 
-// shortPairPoolNames is a 34-card FDN pool built to expose the thin-pair
-// padding bug: 26 white/green cards (17Lands FDN.json GIH win rates
+// shortPairPoolNames is a 34-card FDN pool built to expose thin-pair
+// padding: 26 white/green cards (17Lands FDN.json GIH win rates
 // 0.5202-0.5676, the mid tier) that fill white-green's 23 maindeck slots
 // several times over, and 8 bombs rated 0.5817-0.6038 spread over blue,
 // black and red (three per colour, so no pair containing white or green
 // holds more than 3 of them). Scored on in-pair cards with a short-pair
-// penalty, white-green's full 23 beat every padded pair; scored the old
-// way, with the pool's best remaining cards credited to every short pair,
+// penalty, white-green's full 23 beat every padded pair; scored
+// with the pool's best remaining cards credited to every short pair,
 // white-blue's bombs plus fill outscores white-green and wins the scan.
 var shortPairPoolNames = []string{
 	// white/green, 0.52-0.57
@@ -72,7 +72,7 @@ func shortPairPool(t *testing.T) []limited.CardRef {
 	return pool
 }
 
-// TestBuilderBest23IgnoresThinPairPaddedWithBombs pins the spec §4.6 step 1
+// TestBuilderBest23IgnoresThinPairPaddedWithBombs pins the
 // contract: the pair scan scores a colour pair on its in-pair cards, so the
 // deck's maindeck stays inside the pair it chose even when other colours
 // hold higher-rated cards. On a pool whose white-green cards are all mid

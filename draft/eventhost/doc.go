@@ -5,7 +5,7 @@
 // rounds on host tables, per-event SSE frames, and restart resume for every
 // phase.
 //
-// # Series (E3-4)
+// # Series
 //
 // An event is best-of-one (the default) or best-of-three (create's
 // best_of: 3). A Bo3 event's series run on one host series table each:
@@ -35,14 +35,14 @@
 // guards each run. Host.mu is a leaf: no code path holding a run.mu may
 // take Host.mu, so the exported methods take Host.mu only to find the run,
 // release it, and then take run.mu for the whole call. run.mu also orders
-// against the host.Registry (Session/Publish now; AddTable/Start in E1-5):
+// against the host.Registry (Session, Publish, AddTable, Start):
 // take run.mu first, call the Registry beneath it, never the reverse.
 //
 // # Clock
 //
 // eventhost is the only package of the event stack that may read the
-// clock. The abandonment sweep reads it through E1-8's Options.Now.
-// E3-6's pick timers read and arm through Options.Clock (Now and
+// clock. The abandonment sweep reads it through Options.Now.
+// The pick timers read and arm through Options.Clock (Now and
 // AfterFunc; nil = the real clock): in a pod with two or more humans every
 // human pick has a deadline — XMage's table by the cards left in the pack,
 // ×1.5 relaxed, replaced by a positive Options.PickTimeout — and an

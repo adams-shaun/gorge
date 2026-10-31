@@ -63,7 +63,7 @@ func (h *Host) checkTimeouts(now time.Time) {
 
 // expire is one sweep pass for one run. It closes an abandoned lobby —
 // cancelled outright when no human ever joined, filled with bot seats when
-// at least one did (E3-5) — and acts for human seats
+// at least one did — and acts for human seats
 // whose idle window closed with a decision owed. The sweep clock only ever
 // APPENDS entries (LobbyTimeout / IdleTimeout markers, then the ordinary
 // entries the actions take); replay never reads the clock. It is called
@@ -137,7 +137,7 @@ func (r *run) joinedHumans() int {
 }
 
 // fillLobbyWithBots converts every unjoined human seat of an abandoned
-// lobby into a bot seat (E3-5): the default drafter
+// lobby into a bot seat: the default drafter
 // persona and the host's default game policy, named like a created bot.
 // The seat's invite token dies with its humanity — the stored sha256 is
 // cleared, so a stale join link can no longer act for the seat. The
@@ -225,7 +225,7 @@ func (r *run) owesDecision(seat int) bool {
 			if !r.ev.Started(sp.A, sp.B) || r.inFlight(sp.A, sp.B) != nil {
 				return true
 			}
-			// E3-5: between games, a side still to submit its deck owes
+			// Between games, a side still to submit its deck owes
 			// one sideboarding submission.
 			if v, ok := r.ev.SeriesState(sp.A, sp.B); ok && v.Between {
 				side := 0
@@ -276,7 +276,7 @@ func (r *run) idleActions(now time.Time) bool {
 				}
 			}
 		case event.RoundPhase(1), event.RoundPhase(2), event.RoundPhase(3):
-			// E3-5: an idle human in its series' between window keeps the
+			// An idle human in its series' between window keeps the
 			// deck it played last game (one auto-keep per window) before
 			// the concession path can end the series.
 			if r.idleSideboard(now) {
@@ -375,12 +375,12 @@ func (r *run) concedeIdle(now time.Time) bool {
 	return acted
 }
 
-// concedeSeries closes one series by concession (E1-8). Every game the
+// concedeSeries closes one series by concession. Every game the
 // series still owes is logged as a GameEnded with head "conceded": the
 // in-flight game under its own attempt number, a never-started one under
 // attempt 0. The absent human's side loses every remaining game; two
 // absent humans draw every remaining game. A Bo3 series' SeriesEnded
-// score is the wins its played games produced (E3-4), so a forfeited
+// score is the wins its played games produced, so a forfeited
 // series keeps the games its humans actually finished. A game attempt
 // still in flight has its table deregistered first-class, so a late
 // result from the stalled match is dropped by OnMatchEnd's table lookup.
@@ -444,7 +444,7 @@ func (r *run) concedeSeries(sp event.SeriesSpec, idle map[int]bool) error {
 }
 
 // idleSideboard locks the deck an idle human seat played last game for its
-// series' next game (E3-5: one auto-keep per between window, the host's
+// series' next game (one auto-keep per between window, the host's
 // action, Auto on the entry). When the next game then goes live and the
 // seat still owes its game decisions, the sweep's concession path ends
 // the series. It reports whether anything was applied. The caller holds

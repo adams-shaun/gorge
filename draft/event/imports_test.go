@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// forbiddenImports are the imports the draft-spec invariant bans from the
+// forbiddenImports are the imports banned from the
 // pure packages: no clock, no file or network I/O, no legacy math/rand, and
 // none of the engine tiers. event may import only the standard library and
 // the limited stack (limited, draft/limited/draft, draft/limited/build).
@@ -64,11 +64,11 @@ func TestImportsStayPure(t *testing.T) {
 			p := strings.Trim(imp.Path.Value, `"`)
 			for _, bad := range forbiddenImports {
 				// math/rand is matched exactly so its v2 successor — the
-				// spec's only sanctioned randomness (spec §3: seeded
+				// only sanctioned randomness (seeded
 				// rand.New(rand.NewPCG(seed, salt))) — is not caught by the
 				// subpackage prefix.
 				if p == bad || (bad != "math/rand" && strings.HasPrefix(p, bad+"/")) {
-					t.Errorf("%s imports %q: %s must stay pure (spec invariant 3)", f.Name.Name, p, dir)
+					t.Errorf("%s imports %q: %s must stay pure", f.Name.Name, p, dir)
 				}
 			}
 		}

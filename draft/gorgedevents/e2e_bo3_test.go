@@ -23,7 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The E3-7 brief: one 2-human + 2-bot Bo3 FDN draft event, driven through
+// The scenario: one 2-human + 2-bot Bo3 FDN draft event, driven through
 // the served HTTP surface only, reaching COMPLETE with a standings table
 // that matches the log. The script, fixed because the engine is
 // deterministic at a fixed seed:

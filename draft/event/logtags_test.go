@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/event"
 )
 
-// TestOldLogReplaysAfterTagChange proves logs written before E1-8's
+// TestOldLogReplaysAfterTagChange proves logs written before the
 // snake_case tags (capitalised Main/Basics, a seats block on every line)
 // still parse, replay and rebuild the same event: JSON field decoding is
 // case-insensitive, so a stored log from an older binary survives the tag
@@ -21,7 +21,7 @@ func TestOldLogReplaysAfterTagChange(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Rewrite the wire into the pre-E1-8 spelling: every entry carries
+	// Rewrite the wire into the untagged spelling: every entry carries
 	// "seats":[{},{},{},{}] (the old field had no omitempty) and the deck
 	// object's keys are capitalised.
 	lines := strings.Split(strings.TrimRight(string(wire), "\n"), "\n")
@@ -78,7 +78,7 @@ func TestOldLogReplaysAfterTagChange(t *testing.T) {
 		t.Errorf("standings diverged")
 	}
 
-	// The new spelling round-trips entry for entry.
+	// The snake_case spelling round-trips entry for entry.
 	again, err := event.ParseLog(wire)
 	if err != nil {
 		t.Fatalf("event.ParseLog(wire): %v", err)

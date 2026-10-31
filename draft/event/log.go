@@ -1,4 +1,4 @@
-// Package event implements the draft-event lifecycle of spec §4.7: the
+// Package event implements the draft-event lifecycle: the
 // LOBBY → DRAFT → BUILD → ROUND(1..3) → COMPLETE state machine, the
 // append-only log with its Apply mutator, the circle-method pairings, the
 // MTR Appendix C standings and the 17Lands draft-data export.
@@ -20,8 +20,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/limited/build"
 )
 
-// Kind discriminates one log entry's shape. The kind names follow spec
-// §4.7's entry list.
+// Kind discriminates one log entry's shape.
 type Kind string
 
 // The log entry kinds.
@@ -37,17 +36,17 @@ const (
 	KindEventEnded    Kind = "EventEnded"
 	KindGameStarted   Kind = "GameStarted"
 	KindGameAborted   Kind = "GameAborted"
-	// The two timeout entries (E1-8) are appended after every earlier kind.
+	// The two timeout entries are appended after every earlier kind.
 	// A LobbyTimeout cancels an event nobody joined in time; an IdleTimeout
 	// marks one seat the host acted for because its human went quiet. The
 	// timer appends entries only; replay never reads the clock.
 	KindLobbyTimeout Kind = "LobbyTimeout"
 	KindIdleTimeout  Kind = "IdleTimeout"
-	// Sideboarded (E3-3) is appended after every earlier kind: it locks one
+	// Sideboarded is appended after every earlier kind: it locks one
 	// side's deck revision for its series' next game. Auto marks the server
 	// keeping the deck for an absent human.
 	KindSideboarded Kind = "Sideboarded"
-	// RoundPaired (E5-b3) is appended after every earlier kind: it opens a
+	// RoundPaired is appended after every earlier kind: it opens a
 	// Swiss round with the pairs the driver chose (normally
 	// SuggestedPairings). Apply validates the pairs' shape only and never
 	// equality with SuggestedPairings — the same reason packs are logged in
@@ -122,7 +121,7 @@ type Entry struct {
 	// game's chooser after a draw). nil in every Bo1 log.
 	Chooser *int `json:"chooser,omitempty"`
 
-	// Mode, Structure, Packs, Rounds and Collation are the E5-b2
+	// Mode, Structure, Packs, Rounds and Collation are the pod-shape
 	// EventCreated fields; zero values mean the defaults (draft,
 	// roundrobin, the mode's pack count, the structure's round count, no
 	// collation), so a 4-seat draft round-robin EventCreated marshals

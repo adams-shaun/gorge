@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// RatingColour is the spec §4.6 drafter, v1: it scores every pack card as
+// RatingColour is the default drafter: it scores every pack card as
 // its centred rating plus the colour term, which ramps in over pack 1, and
 // breaks ties with the seeded rng. The zero value is ready to use with the
 // default tuning; set Lookup to give the heuristic and the colour term

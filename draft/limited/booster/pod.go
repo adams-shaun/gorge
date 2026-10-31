@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/limited/setdata"
 )
 
-// OpenPod opens a draft pod's packs (draft-events spec §4.4 feeds them to
+// OpenPod opens a draft pod's packs (they feed
 // draft/limited/draft): out[seat][pack] is that seat's copy of that pack, seat
 // major and pack index second. Every pack is opened from its own
 // rand.NewPCG(seed, salt) stream salted with the seat and pack index, so two

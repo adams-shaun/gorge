@@ -28,7 +28,7 @@ func TestDeckJSONTagsSnakeCase(t *testing.T) {
 	}
 }
 
-// TestDeckDecodesLegacySpelling proves the pre-E1-8 wire shape
+// TestDeckDecodesLegacySpelling proves the older wire shape
 // (capitalised Main/Basics) still decodes, so stored drafts saved by an
 // older binary reopen.
 func TestDeckDecodesLegacySpelling(t *testing.T) {

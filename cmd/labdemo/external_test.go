@@ -142,11 +142,11 @@ func TestLabdemoExternalVersionPin(t *testing.T) {
 	}
 }
 
-// TestLabdemoDefaultFlagsUnchanged: the smoke workflow run with the new
+// TestLabdemoDefaultAgentFlags: the smoke workflow run with the agent
 // fields at their zero values and with them at their explicit defaults
 // produces identical stdout and artifacts — the registry resolves the
-// defaults to exactly the built-ins the workflow hard-coded before E5d-5.
-func TestLabdemoDefaultFlagsUnchanged(t *testing.T) {
+// defaults to the built-ins.
+func TestLabdemoDefaultAgentFlags(t *testing.T) {
 	out1, out2 := t.TempDir(), t.TempDir()
 	var so1, so2 bytes.Buffer
 	if err := run(smokeOptions(t, out1), &so1); err != nil {

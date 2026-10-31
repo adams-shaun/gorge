@@ -1,6 +1,6 @@
 package event
 
-// The event modes. ModeDraft is the zero Mode: a booster draft (spec §4.4).
+// The event modes. ModeDraft is the zero Mode: a booster draft.
 // ModeSealed: every seat opens PacksPerSeat packs straight into its pool,
 // then builds.
 const (

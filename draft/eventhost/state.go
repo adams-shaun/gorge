@@ -17,7 +17,7 @@ func (r *run) stateFor(seat int) protocol.EventState {
 		Event: r.meta.ID, Set: r.meta.Set,
 		Phase: string(r.ev.Phase()), Round: r.ev.Round(),
 		BestOf: r.bestOf(),
-		// E3-6: the pick-timer mode as the meta stores it; a meta written
+		// The pick-timer mode as the meta stores it; a meta written
 		// before the field existed reads back as "" (no timer).
 		PickTimer: r.meta.PickTimer,
 		Error:     firstNonEmpty(r.halted, r.blocked),
@@ -42,7 +42,7 @@ func (r *run) stateFor(seat int) protocol.EventState {
 			st.Series = append(st.Series, r.seriesFor(seat, results, rd, p[0], p[1]))
 		}
 	}
-	// E1-8: no standings rows until the first series has ended — a
+	// No standings rows until the first series has ended — a
 	// pre-result table is empty, not a table of floor percentages.
 	if len(results) > 0 {
 		for _, s := range r.ev.Standings() {
@@ -120,12 +120,11 @@ func (r *run) seriesFor(seat int, results []event.SeriesOutcome, rd, a, b int) p
 	return ser
 }
 
-// seriesForBo3 builds one Bo3 pairing's row for a viewer (E3-4). An ended
+// seriesForBo3 builds one Bo3 pairing's row for a viewer. An ended
 // series shows its score, winner and per-game winners from the event's
 // results; a live one its in-flight game, chooser and running score; a
 // between one the next game, its chooser and the seats still to sideboard.
-// A Bo1 series row never carries these fields, so a Bo1 event's state JSON
-// is byte-identical to E1's.
+// A Bo1 series row never carries these fields.
 func (r *run) seriesForBo3(seat int, results []event.SeriesOutcome, rd, a, b int) protocol.EventSeries {
 	ser := protocol.EventSeries{Round: rd, A: a, B: b, BestOf: 3}
 	for _, res := range results {
@@ -190,7 +189,7 @@ func (r *run) seriesForBo3(seat int, results []event.SeriesOutcome, rd, a, b int
 }
 
 // joinLink fills ser.Join for a viewer seated in the series: its own
-// slot's game token (E3-5 — both humans of a series carry distinct ones)
+// slot's game token (both humans of a series carry distinct ones)
 // and the event id, so the game client knows which event the table
 // belongs to. A spectator's row carries none.
 func joinLink(r *run, ser *protocol.EventSeries, seat, a, b int, table string) {
@@ -238,7 +237,7 @@ func (r *run) packFor(seat int) protocol.DraftPack {
 	}
 	out.Round, out.PickNo = v.Round, v.PickNo
 	out.Pack = r.draftCards(v.Pack)
-	// E3-6: the seat's armed pick deadline, when its armed key is still
+	// The seat's armed pick deadline, when its armed key is still
 	// the pack at its queue head.
 	if t := r.timers[seat]; t.stop != nil && t.round == v.Round && t.pickNo == v.PickNo {
 		out.TimeLimitMS = t.limit.Milliseconds()

@@ -9,7 +9,7 @@ imports run and what enforces that, licensing, how the companions pin gorge,
 and how changes reach `main`.
 
 *Verified 2026-10-27 against gorge `develop` @ `25d71cadc` and the two
-companions as they stood that day. The draft move was re-checked on 2026-10-30.*
+companions as they stood that day, and the `draft/` tree on 2026-10-30.*
 
 ## At a glance
 

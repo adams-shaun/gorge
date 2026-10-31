@@ -16,7 +16,7 @@ const pickSaltBase = 0x5011C1
 
 // DraftResult is one finished draft: the pools in pick order and the
 // replayable event log through the end of the draft (the event stands in
-// BUILD; playing the built decks is E5-c2).
+// BUILD).
 type DraftResult struct {
 	// Set is the drafted set code, from the packs' CardRefs.
 	Set string

@@ -15,8 +15,7 @@ import (
 var updateGolden = flag.Bool("update", false, "rewrite the scripted-event golden files")
 
 // TestScriptedEventStateGolden pins the full scripted 4-seat event's
-// marshalled StateJSON and log bytes, so a refactor of the event shape
-// (E5-b2's move from fixed 4-seat arrays to N-seat slices) must keep a
+// marshalled StateJSON and log bytes, so a refactor of the event shape must keep a
 // default 4-seat draft round-robin event byte-for-byte identical. Regenerate
 // only with -update on an unmodified tree, and never as part of a behaviour
 // change.

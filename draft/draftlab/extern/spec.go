@@ -33,11 +33,10 @@ var (
 	// ErrAgentGone wraps every error a dead or misbehaving session produces,
 	// for pending calls, queued calls and later calls alike.
 	ErrAgentGone = errors.New("extern: agent is gone")
-	// ErrRefused marks an agent's per-item refusal (E5d-4's adapters turn it
+	// ErrRefused marks an agent's per-item refusal (the adapters turn it
 	// into a fallback or an error; the session layer delivers it verbatim).
 	ErrRefused = errors.New("extern: agent answer refused")
-	// ErrRole marks an agent whose hello does not serve the role asked of it
-	// (E5d-4's adapters).
+	// ErrRole marks an agent whose hello does not serve the role asked of it.
 	ErrRole = errors.New("extern: agent does not serve this role")
 )
 

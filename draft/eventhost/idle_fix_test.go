@@ -34,7 +34,7 @@ func pumpSweep(t *testing.T, h *Host, id string, now func() time.Time, phase str
 }
 
 // TestIdleSavedButUnreadiedDeckAutoCompletes covers the saved-but-unreadied
-// half of the E1-8 idle build rule: a human who saves a deck during BUILD
+// half of the idle build rule: a human who saves a deck during BUILD
 // and then vanishes without readying must not hold the event in BUILD —
 // the sweep readies the saved revision on its own and drives the rest of
 // the event to COMPLETE, freeing the -max-events slot.
@@ -99,7 +99,7 @@ func TestIdleSavedButUnreadiedDeckAutoCompletes(t *testing.T) {
 	}
 }
 
-// TestCheckDeckDoesNotRefreshIdleWindow pins the read-only side of the E1-8
+// TestCheckDeckDoesNotRefreshIdleWindow pins the read-only side of the
 // idle rule: polling CheckDeck is not a human action, so a looping client
 // cannot keep an otherwise-idle event live past its idle window. Only
 // state-changing actions (join, pick, save, ready) refresh the window.

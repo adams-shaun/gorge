@@ -1,7 +1,7 @@
 // Package extern connects gorge to out-of-process Magic agents over the
 // gorge-agent/1 wire: one dialed session (a child's stdio or a Unix socket)
 // serves any number of concurrent games, batched by the process-wide hub.
-// E5d-2 landed the transports, the handshake and the batching hub; E5d-4
+// The package holds the transports, the handshake and the batching hub, and
 // turns a dialed Agent into the three draftlab value types a training
 // workflow composes.
 //

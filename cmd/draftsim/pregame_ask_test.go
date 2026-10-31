@@ -13,8 +13,7 @@ import (
 
 // TestDraftsimPregameAskIsPosed pins the mtgsim-shaped pregame: every game
 // draftsim drives is built with rules.NewStartingPlayerChoice and poses CR
-// 103.1's winner-chooses ask before its first Advance (the brief's Facts
-// line), so the engine log carries the ask and the game still replays from
+// 103.1's winner-chooses ask before its first Advance, so the engine log carries the ask and the game still replays from
 // its config. Without the pose the log carries no starting_player ask at
 // all, so a zero ask count fails loudly.
 func TestDraftsimPregameAskIsPosed(t *testing.T) {

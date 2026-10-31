@@ -70,8 +70,6 @@ The layering design for `engine/rules` is
 
 ## `draft/`
 
-The design of record is [`docs/design/2026-10-13-draft-events-design.md`](../design/2026-10-13-draft-events-design.md); `spec §N` in these packages' comments refers to it.
-
 | Package | What it owns |
 |---|---|
 | `draft/limited` (+`setdata`, `booster`, `draft`, `build`, `pickbot`) | The pure limited pipeline: set data generated from trimmed MTGJSON, pack opening, the pod, deck rules, the drafter and builder with the embedded 17Lands ratings. No clock, files, network or engine state; each package's `imports_test.go` holds that. |

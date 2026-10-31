@@ -38,7 +38,7 @@ type Tape struct {
 // cursor; a game is serial — one seat answers at a time — so it needs no
 // lock. A nil tape and a tape recorded under a different mulligan round are
 // refused; intents left over after the re-drive are an error. The re-drive
-// enforces Ruling P2, as replay.Replay does: every recorded intent is
+// is strict, as replay.Replay is: every recorded intent is
 // submitted verbatim and ANY engine rejection is a tape divergence error,
 // never a fallback re-answer.
 func (l *Lab) ReplayTape(a, b Deck, seed uint64, t *Tape) (string, error) {

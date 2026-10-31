@@ -20,7 +20,7 @@ type (
 )
 
 // newPersona builds one fresh drafter/builder pair for a named persona.
-// Only the concrete v1 types the registry ships are supported: the pair is
+// Only the concrete types the registry ships are supported: the pair is
 // rebuilt with the caller's Lookup so no persona ever shares a card-facts
 // closure with the registry's zero values.
 func (h *Host) newPersona(name string, lookup pickbotCardLookup) (pickbotDrafter, pickbotBuilder, error) {

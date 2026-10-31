@@ -156,9 +156,9 @@ func TestXEscapesOnUnboundedPoolMatchesWalkOfSmallX(t *testing.T) {
 }
 
 // TestXEscapesBoundedOnHugePool: the posed decision's potential walk returns
-// promptly over a bound far past any board, the spin kfuzz hung on (Voice of
+// promptly over a bound far past any board, the spin a fuzzer hung on (Voice of
 // Victory and Spectral Denial with an open mana source reached X = 588,502 and
-// still climbing, TDM scratch pair 1366). Its offers are the rule's: a
+// still climbing). Its offers are the rule's: a
 // restriction on every spell binds at every X, and one on even mana values
 // has an escape at X = 1. Not parallel: the budget is wall time.
 func TestXEscapesBoundedOnHugePool(t *testing.T) {

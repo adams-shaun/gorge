@@ -269,11 +269,11 @@ func TestDraftsimShapeFlagRefusals(t *testing.T) {
 	}
 }
 
-// TestDraftsimDefaultOutputUnchanged pins the byte-identical contract: a
+// TestDraftsimDefaultOutputShape pins the default log and header: a
 // run with every shape flag at its default logs an EventCreated with no
 // mode/structure/rounds/packs/collation key at all and prints the header
-// line exactly as it has always been.
-func TestDraftsimDefaultOutputUnchanged(t *testing.T) {
+// line with no shape in it.
+func TestDraftsimDefaultOutputShape(t *testing.T) {
 	dir := corpusReady(t)
 	o := options{
 		set: "FDN", seed: 1, events: 1, players: "bot,bot,bot,bot",

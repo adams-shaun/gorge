@@ -54,15 +54,15 @@ func bestPairNonLand(reg *cards.Registry, pool []limited.CardRef) (string, int) 
 	return bestLabel, best
 }
 
-// TestDraftsimPoolCommitsToColourPair is E4-2's draft-only gate: with the
+// TestDraftsimPoolCommitsToColourPair is a draft-only check: with the
 // default tuning (ColourFitMax 8) a seeded pod's every seat ends the draft
 // with at least 23 non-land cards inside its best colour pair, the depth
 // the best23 builder needs to field a real two-colour main. The drafter and
 // builder come through personaPair, so the registry path with the lookup
 // injected is what the pod actually runs. No games are played.
 //
-// The seeds cover one event each because the brief's single seed 1 does not
-// bind: measured on this corpus, seed 1's four pools clear 23 under the old
+// The seeds cover one event each because seed 1 alone does not
+// bind: measured on this corpus, seed 1's four pools clear 23 under
 // k=4 too. Seeds 1..4 is the smallest window that separates the two knobs —
 // k=4 leaves seeds 3 and 4 with a 22-card best pair, while k=8 holds 23 or
 // better throughout (its rare thin pools, 3 of 192 probed, live at seeds

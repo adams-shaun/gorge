@@ -11,7 +11,7 @@ import (
 )
 
 // loadSpec loads the set's booster spec at the collation. An empty
-// collation means setdata's default (E5-a1's play-arena default, because
+// collation means setdata's default (play-arena, because
 // the pick ratings are 17Lands Arena data).
 func (l *Lab) loadSpec(set string, c setdata.Collation) (setdata.Spec, error) {
 	if c == "" {
@@ -78,7 +78,7 @@ func (l *Lab) SealedPool(set string, c setdata.Collation, seed uint64, packs int
 // CardNames lists the set's sheet-card universe at the collation — every
 // distinct card name the booster sheets can put in a pack, sorted unique.
 // An empty collation means setdata's default. These are the CSV columns
-// (E5-c4) and the pack/pool shape a training program reports against.
+// and the pack/pool shape a training program reports against.
 func (l *Lab) CardNames(set string, c setdata.Collation) ([]string, error) {
 	spec, err := l.loadSpec(set, c)
 	if err != nil {

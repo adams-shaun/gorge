@@ -57,7 +57,7 @@ type GameResult struct {
 
 // PlayGame plays one Bo1 game between entrants a (player 0) and b (player 1)
 // with an explicit engine seed. It names the two players by their deck name
-// ("p0"/"p1" for an empty name); E5-c3's events pass "p<seat>" instead. The
+// ("p0"/"p1" for an empty name); events pass "p<seat>" instead. The
 // result is a pure function of the entrants and the seed.
 func (l *Lab) PlayGame(a, b Entrant, seed uint64) (GameResult, error) {
 	names := [2]string{a.Deck.Name, b.Deck.Name}
@@ -72,7 +72,7 @@ func (l *Lab) PlayGame(a, b Entrant, seed uint64) (GameResult, error) {
 // playGame is the shared game body: PlayGame (deck-name labels) and Play
 // (seat labels) both funnel through it. names is the engine config's deck
 // identity for each player, not the GameResult.Decks display name. verbatim
-// selects Ruling P2 (ReplayTape's contract): every seat answer is submitted
+// selects ReplayTape's contract: every seat answer is submitted
 // verbatim and any Submit rejection is a fatal error, not the refusal
 // ladder's fallback re-answer — it rides a parameter, never a Lab field,
 // because games run concurrently through runGames pools.
@@ -98,7 +98,7 @@ func (l *Lab) playGame(a, b Entrant, names [2]string, seed uint64, verbatim bool
 		return GameResult{}, err
 	}
 
-	// E5-d: the GameScoped seats learn their game's begin here; its end is
+	// The GameScoped seats learn their game's begin here; its end is
 	// signalled exactly once — right after the engine stops (before Verify's
 	// replay and foldHand, so the barrier is released as soon as the engine
 	// stops), and on every other return path through the guarded defer.
@@ -189,7 +189,7 @@ func (l *Lab) playGame(a, b Entrant, names [2]string, seed uint64, verbatim bool
 // reports whether either player reads every seat's real decklist (a
 // NamedPlayer that declares ReadsDecklists, or whose constructed seat
 // implements bots.EnvSeat -- fail closed). With the opt-in such a game runs
-// through the bench Env driver (Hooks.EnvSeats, E5-c5), so the hosted wrapper
+// through the bench Env driver (Hooks.EnvSeats), so the hosted wrapper
 // is driven with its bots.Env instead of silently playing without it; the
 // returned bit is what selects those hooks.
 func (l *Lab) envGate(players [2]NamedPlayer, seats [2]seat.Seat) (bool, error) {
@@ -210,7 +210,7 @@ func (l *Lab) envGateList(players []NamedPlayer, seats []seat.Seat) error {
 // NamedPlayer that declares ReadsDecklists or a constructed seat that
 // implements bots.EnvSeat, refuses the first such player without the
 // AllowDecklistBots opt-in, and reports whether any player reads every seat's
-// real decklist. E5-c5 lifted the refusal: with the opt-in the player is
+// real decklist. With the opt-in the player is
 // admitted, and the returned bit selects the bench Env driver.
 func (l *Lab) envGateResult(players []NamedPlayer, seats []seat.Seat) (bool, error) {
 	env := false

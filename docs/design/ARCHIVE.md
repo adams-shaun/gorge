@@ -52,7 +52,7 @@ The `evidence/token-art/` directory also held 8 screenshots
 | `specs/2026-09-17-search-probe-profile-optimization-design.md` | 2026-09-17 | Search-probe profile optimization design | Search-probe profile optimisation design; executed. |
 | `specs/2026-09-17-search-proposal-coverage-design.md` | 2026-09-17 | History-Conditioned Proposal Coverage Design | History-conditioned proposal coverage; implemented. |
 | `specs/2026-09-17-search-world-sampler-design.md` | 2026-09-17 | History-conditioned search probe design | History-conditioned search probe design; implemented. |
-| `specs/2026-09-18-agentctl-library-design.md` | 2026-09-18 | agentctl — moved | Stub: agentctl design moved to its own repo (the agentctl repository). |
+| `specs/2026-09-18-agentctl-library-design.md` | 2026-09-18 | agentctl — moved | Stub: agentctl design moved to its own repo. |
 | `specs/2026-09-18-botbench-decision-trace-design.md` | 2026-09-18 | Botbench decision-trace design | Botbench JSONL decision trace; implemented. |
 | `specs/2026-09-18-compiled-predicate-cost-design.md` | 2026-09-18 | Compiled Predicate and Cost Design | Compiled filter/cost predicates; implemented. |
 | `specs/2026-09-19-hosted-bot-policy-selection-design.md` | 2026-09-19 | Hosted bot policy selection | Hosted bot selection by name; implemented, then extended by hosted-bot-packages. |

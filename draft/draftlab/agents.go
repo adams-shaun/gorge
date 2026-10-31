@@ -16,7 +16,7 @@ import (
 
 // Role says which kind of agent an AgentRef names: the pickbot drafter or
 // builder a draft seat plays, or the engine player policy a game seat
-// plays (E5-c2 onward).
+// plays.
 type Role string
 
 // The three agent roles.
@@ -111,15 +111,15 @@ type NamedBuilder struct {
 
 // NamedPlayer is one resolved player policy. New builds a fresh seat for
 // one game from the seat's own seed; it may be called from several
-// goroutines at once (E5-c2's workers). ReadsDecklists marks an Env player
-// — refused by Player unless Options.AllowDecklistBots (E5-c5 lifted the
-// refusal; the game driver then runs it through the bench Env driver).
+// goroutines at once. ReadsDecklists marks an Env player
+// — refused by Player unless Options.AllowDecklistBots; with it, the game driver runs it through the
+// bench Env driver.
 type NamedPlayer struct {
 	Ref AgentRef
 	New func(seed uint64) (seat.Seat, error)
 	// ReadsDecklists reports whether the policy reads every seat's real
 	// decklist (bots.Info.Env). A caller-built NamedPlayer declares it, and
-	// the game driver (E5-c2) refuses a true one without the opt-in.
+	// the game driver refuses a true one without the opt-in.
 	ReadsDecklists bool
 }
 
@@ -194,7 +194,7 @@ func (l *Lab) Builder(ref AgentRef) (NamedBuilder, error) {
 // Options.AllowDecklistBots is set, by design. With the
 // opt-in it is admitted and its NamedPlayer declares ReadsDecklists: true, so
 // the game driver runs it through the bench Env driver (Hooks.EnvSeats) and
-// manifests can mark the result. E5-c3's NewManifest sets
+// manifests can mark the result. NewManifest sets
 // Manifest.AllowDecklistBots when Options.AllowDecklistBots and any game's
 // players include such a ref; the detection is bots.ReadsDecklists over each
 // ref's name (strip the "@version", bots.Normalize).

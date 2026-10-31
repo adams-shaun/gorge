@@ -6,7 +6,7 @@ protocol lines to stdout and logs diagnostics to stderr.
 
 The wire protocol of record is docs/site/api/gorge-agent.md. This is the
 Python twin of draft/draftlab/extern/refagent (it need not agree with it bit for
-bit): a training team's starting point, not a good player.
+bit): a starting point, not a good player.
 
 Run it under gorge's lab with:
 

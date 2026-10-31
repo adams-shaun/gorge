@@ -26,7 +26,7 @@ type seriesAnswer struct {
 }
 
 // Series is the Host's host.SeriesFunc: it plans match k of a series table
-// the run started (E3-4). It reads the event's state and answers ready
+// the run started. It reads the event's state and answers ready
 // with the in-flight game's decks and play/draw chooser, stop when the
 // series has ended or moved to another table, or — between games, before
 // advanceRounds has logged the next GameStarted — parks on the run until

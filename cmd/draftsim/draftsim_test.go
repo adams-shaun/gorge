@@ -19,7 +19,7 @@ func corpusReady(t *testing.T) string {
 	return testutil.CorpusDirOrSkip(t)
 }
 
-// TestDraftsimEventRunsAndVerifies is E0-6's exit gate: one FDN event with
+// TestDraftsimEventRunsAndVerifies is the end-to-end check: one FDN event with
 // a fixed seed, four `bot` personas, played end to end with -verify
 // semantics inside the per-test budget. It asserts the event reached
 // COMPLETE, its log replays byte-identically, every game's chain head
@@ -108,7 +108,7 @@ func firstKind(entries []event.Entry) event.Kind {
 	return entries[0].Kind
 }
 
-// TestDraftsimCollationIsSelectableAndValidated pins E5-a1's flag contract:
+// TestDraftsimCollationIsSelectableAndValidated pins the flag contract:
 // an unknown -collation is refused before anything runs, naming the
 // collations the set carries, and -collation play runs a real event — its
 // line names the collation and its packs come off the play config.

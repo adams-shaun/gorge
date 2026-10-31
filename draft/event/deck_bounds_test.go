@@ -40,7 +40,7 @@ func eventAtBuild(t *testing.T) *event.Event {
 }
 
 // TestDeckSavedRejectsOutOfBoundsDecks proves the event path inherits the
-// hosting bounds E1-0 adds to build.Validate: a negative basic, 41 of one
+// hosting bounds of build.Validate: a negative basic, 41 of one
 // basic, a 101-card deck and an overflowing count are all rejected, while a
 // legal deck is still accepted.
 func TestDeckSavedRejectsOutOfBoundsDecks(t *testing.T) {

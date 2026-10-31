@@ -47,7 +47,7 @@ type pickTimer struct {
 }
 
 // optsNow is the clock read of an Options: the injected pick-timer clock,
-// else E1-8's Options.Now, else the real clock.
+// else Options.Now, else the real clock.
 func optsNow(o Options) time.Time {
 	if o.Clock != nil {
 		return o.Clock.Now()

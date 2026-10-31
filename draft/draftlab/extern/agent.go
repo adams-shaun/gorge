@@ -38,7 +38,7 @@ const (
 	// an error wrapping ErrAgentGone.
 	FailError Failure = "error"
 	// FailFallback answers later requests with the built-in fallback instead
-	// of failing them (counted in Stats.Fallbacks; E5d-4 implements it).
+	// of failing them (counted in Stats.Fallbacks).
 	FailFallback Failure = "fallback"
 )
 
@@ -50,8 +50,8 @@ type Options struct {
 	// 256; always capped at 1024.
 	MaxBatch int
 	// OnFailure selects the failure mode; "" means FailError. StrictRefusals
-	// and OnFailure are consumed by E5d-4's adapters; here they are only
-	// carried.
+	// and OnFailure are consumed by the adapters; the session only carries
+	// them.
 	OnFailure Failure
 	// StrictRefusals makes a refused or illegal answer an error (ErrRefused)
 	// instead of a fallback.
@@ -72,7 +72,7 @@ type Stats struct {
 	Batches int64
 	// MaxBatch is the largest batch sent.
 	MaxBatch int
-	// Forced, Refused and Fallbacks are E5d-4's adapters' counters; the
+	// Forced, Refused and Fallbacks are the adapters' counters; the
 	// session layer leaves them at zero.
 	Forced, Refused, Fallbacks int64
 	// Dead reports a session that died (an agent error, a protocol
@@ -82,7 +82,7 @@ type Stats struct {
 
 // Agent is one external agent session: a gorge-agent/1 peer dialed once
 // (over a child's stdio or a Unix socket) that many concurrently running
-// games share, batched by the process-wide hub. E5d-4's adapters wrap one
+// games share, batched by the process-wide hub. The adapters wrap one
 // in a Drafter, Builder and Player.
 type Agent struct {
 	opts     Options

@@ -40,7 +40,7 @@ func openPacks(t *testing.T, spec setdata.Spec, seed uint64, n int, colourOf boo
 	return out
 }
 
-// TestBoosterFDNArenaStats is the E5-a1 statistics gate over 10,000
+// TestBoosterFDNArenaStats is the statistics check over 10,000
 // Foundations packs at the default (play-arena) collation from a fixed
 // seed: 14 cards each, no duplicate names, the special-guest packs at the
 // collation's 1.5% share (the weight-3 variant), every land card drawn off

@@ -26,10 +26,10 @@ type Options struct {
 	// this is a bot-only opt-in, by design.
 	// Default false.
 	AllowDecklistBots bool
-	// Workers is how many games run at once (E5-c2); 0 or 1 = serial. It
+	// Workers is how many games run at once; 0 or 1 = serial. It
 	// never changes a result.
 	Workers int
-	// Verify replays every game's chain (E5-c2); a mismatch is an error.
+	// Verify replays every game's chain; a mismatch is an error.
 	Verify bool
 	// MaxTurns caps a game's turns; 0 = 150 (draftsim).
 	MaxTurns int
@@ -39,7 +39,7 @@ type Options struct {
 	// a game whose object arena passes it stops as a stall instead of
 	// growing without bound (a token-doubling board such as Doubling Season
 	// with Extravagant Replication doubles every upkeep until the turn cap,
-	// and one such game held 20 GB). 0 = off, the historical default.
+	// and one such game held 20 GB). 0 = off.
 	MaxObjs int
 	// Mulligans is the London mulligan round per seat; 0 = 2 (draftsim);
 	// < 0 = none.

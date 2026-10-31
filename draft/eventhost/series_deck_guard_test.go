@@ -16,7 +16,7 @@ import (
 // TestBo3CorruptLockedDeckBlocksEvent drives a bot-only Bo3 event whose
 // seat-0 deck file is corrupted the moment round-1 series (0,3) game 1
 // ends. The between-games path must read both locked decks through
-// Store.readDeck BEFORE it logs the continuing GameStarted (brief §2), so
+// Store.readDeck BEFORE it logs the continuing GameStarted, so
 // the corrupt file blocks the event loudly in the state's Error instead of
 // starting game 2 on a table whose deck cannot load.
 func TestBo3CorruptLockedDeckBlocksEvent(t *testing.T) {

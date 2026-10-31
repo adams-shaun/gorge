@@ -131,15 +131,7 @@ sequenceDiagram
   H-->>E: match results, plans for the next game in a series
 ```
 
-With `-events` off, none of this runs. The server keeps its old deck loader and options,
+With `-events` off, none of this runs. The server keeps its plain deck loader and options,
 and never creates `<dir>/events`. Linking the tree adds about 1.7 MB (4.7 %) to
 `cmd/gorged`'s binary and about a quarter of a millisecond to its init, measured with
-`GODEBUG=inittrace=1` when the tree moved in; nothing else changes.
-
-## The design document
-
-Comments under `draft/` cite `spec §N`, or a phase such as `E1-5` or `E5-c`. Both refer to
-[`docs/design/2026-10-13-draft-events-design.md`](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-10-13-draft-events-design.md):
-section numbers for the design's sections, and E0 to E5 for the phases it lists in its
-sections 5 and 7. The document records the design as accepted, so where it and the code
-differ the code is right. Its opening note lists the differences that matter.
+`GODEBUG=inittrace=1`; nothing else changes.

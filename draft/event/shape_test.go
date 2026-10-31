@@ -81,9 +81,9 @@ func TestEventCreatedShapeValidation(t *testing.T) {
 	}
 }
 
-// TestOldShapeEventCreatedMarshalsUnchanged pins that an EventCreated with
-// no new shape fields marshals without any of them.
-func TestOldShapeEventCreatedMarshalsUnchanged(t *testing.T) {
+// TestEventCreatedOmitsDefaultShape pins that an EventCreated with no shape
+// fields marshals without any of them.
+func TestEventCreatedOmitsDefaultShape(t *testing.T) {
 	e := event.New()
 	if err := e.Apply(event.Entry{Kind: event.KindEventCreated, Seed: 42, Set: "TST", Seats: testSeats()}); err != nil {
 		t.Fatalf("Apply: %v", err)

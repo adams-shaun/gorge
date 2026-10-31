@@ -83,8 +83,8 @@ func TestWeightedDrawHonoursAllowDuplicates(t *testing.T) {
 	}
 }
 
-// TestRareMythicWeightedShareMatchesCardWeights is the brief's
-// rare-vs-mythic gate: 100,000 draws from the FDN arena rareMythic sheet,
+// TestRareMythicWeightedShareMatchesCardWeights is the
+// rare-vs-mythic check: 100,000 draws from the FDN arena rareMythic sheet,
 // whose 60 rares at weight 2 and 20 mythics at weight 1 give a mythic share
 // of 20/140 ≈ 0.1429, land within ±0.015 of that.
 func TestRareMythicWeightedShareMatchesCardWeights(t *testing.T) {

@@ -47,8 +47,7 @@ func TestRatingsOverrideColdStartScale(t *testing.T) {
 	}
 }
 
-// TestNewRatingsOverrideKeepsValues: the raw constructor (a kernel
-// draft loop's) neither rescales nor shares the caller's map, and a card it
+// TestNewRatingsOverrideKeepsValues: the raw constructor neither rescales nor shares the caller's map, and a card it
 // lacks is neutral and listed in Missing.
 func TestNewRatingsOverrideKeepsValues(t *testing.T) {
 	in := map[string]float64{"Abrade": 0.61, "Llanowar Elves": 0.52}

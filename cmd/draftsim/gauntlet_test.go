@@ -82,7 +82,7 @@ func countSeatLines(t *testing.T, out, side string, wantSeats, wantGamesEach int
 	}
 }
 
-// TestGauntletSummaryLinesParseAndCount is E0-7's exit gate: one FDN event
+// TestGauntletSummaryLinesParseAndCount is the gauntlet's end-to-end check: one FDN event
 // with the gauntlet on, one game per pairing, against a 2-deck human subset
 // (the internal test cap), with the random baseline. It asserts the event
 // itself ran (the gauntlet's input decks exist), that the pooled built,

@@ -7,7 +7,7 @@ import (
 )
 
 // Sideboard submits one human seat's deck for its current series' next
-// game (E3-5). Keep re-locks the revision the seat played last game; a
+// game. Keep re-locks the revision the seat played last game; a
 // Deck request is validated against the seat's pool and saved as a new
 // revision first. Exactly one of the two is set. The series must be in its
 // between window, the request's Game must be the series' next game, and

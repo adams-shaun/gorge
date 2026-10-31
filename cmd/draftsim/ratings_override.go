@@ -10,7 +10,7 @@ import (
 
 // applyRatingsOverride swaps the drafter's and builder's rating source for
 // the -ratings-file values (a sim/training-only path; no server or client
-// route reaches it). Only the v1 persona types carry the override.
+// route reaches it). Only the concrete persona types carry the override.
 func applyRatingsOverride(o options, r *runner, out io.Writer) error {
 	if o.ratingsFile == "" {
 		return nil

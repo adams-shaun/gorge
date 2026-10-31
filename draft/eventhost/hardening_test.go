@@ -36,7 +36,7 @@ func (c *testClock) Add(d time.Duration) {
 	c.mu.Unlock()
 }
 
-// TestLobbyTimeoutCancelsAndFreesSlot covers the lobby half of E1-8: an
+// TestLobbyTimeoutCancelsAndFreesSlot covers the lobby timeout: an
 // event abandoned in LOBBY (an unjoined human seat past the window) is
 // cancelled by the sweep, the cancellation is a replayable log entry, the
 // cancelled event's capacity is released and JoinEvent against it is a
@@ -90,7 +90,7 @@ func TestLobbyTimeoutDisabled(t *testing.T) {
 	}
 }
 
-// TestIdleSeatAutoActsAndEventCompletes covers the idle half of E1-8: after
+// TestIdleSeatAutoActsAndEventCompletes covers the idle timeout: after
 // one real pick the human seat vanishes, and the sweep alone drives the rest
 // of the event — auto-picking the draft, auto-submitting the build and
 // conceding every series — to COMPLETE, with the idle actions visible in the
@@ -146,7 +146,7 @@ func TestIdleSeatAutoActsAndEventCompletes(t *testing.T) {
 	}
 }
 
-// TestSubscribePublishesPodProgress covers the E1-8 subscribe gap: a
+// TestSubscribePublishesPodProgress covers subscribing mid-draft: a
 // subscriber attaching during the draft gets the current pod progress
 // immediately, before any pack frame, and spectators get it too.
 func TestSubscribePublishesPodProgress(t *testing.T) {
@@ -190,7 +190,7 @@ func TestSubscribePublishesPodProgress(t *testing.T) {
 	}
 }
 
-// TestDraftCardCarriesFacts covers the E1-8 card-facts wiring: every card a
+// TestDraftCardCarriesFacts covers the card facts: every card a
 // pack offers carries mana_cost/mana_value/colors/type_line, agreeing with
 // the corpus's spelling for known cards (cost text, WUBRG-ordered colours,
 // the printed face types).
@@ -248,7 +248,7 @@ func TestDraftCardCarriesFacts(t *testing.T) {
 // wubrgOrder reports whether colours a then b are in WUBRG order.
 func wubrgOrder(a, b byte) bool { return strings.IndexByte("WUBRG", a) < strings.IndexByte("WUBRG", b) }
 
-// TestEventSetsAndPersonasContent covers the E1-8 discovery endpoints at the
+// TestEventSetsAndPersonasContent covers the discovery endpoints at the
 // host boundary: every loadable set appears with a pack size and a rating
 // source, and the drafter/builder persona lists are non-empty and include
 // the rating-colour / best23 defaults.
@@ -298,7 +298,7 @@ func TestEventSetsAndPersonasContent(t *testing.T) {
 	}
 }
 
-// TestStandingsEmptyBeforeFirstResult covers the E1-8 standings gate: an
+// TestStandingsEmptyBeforeFirstResult pins when standings appear: an
 // event in ROUND1 with no series result yet reports an empty standings list,
 // and the list fills once the round completes.
 func TestStandingsEmptyBeforeFirstResult(t *testing.T) {

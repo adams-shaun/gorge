@@ -1,5 +1,5 @@
 // Package booster opens seeded packs from a draft/limited/setdata Spec's MTGJSON
-// collation config (draft-events spec §4.3, E5-a1): it picks a pack variant
+// collation config: it picks a pack variant
 // by weight, fills each contents sheet by the cards' collation weights,
 // never puts the same card name twice in one pack, honours a sheet's
 // allow_duplicates and fixed flags, and colour-balances the sheets marked
@@ -233,14 +233,14 @@ func drawWeighted(rng *rand.Rand, sheet setdata.Sheet, st *drawState) (setdata.S
 }
 
 // balanceColours tops up the colour coverage of one balance_colors sheet's
-// freshly drawn slot (spec §4.3): while some W/U/B/R/G colour has no
+// freshly drawn slot: while some W/U/B/R/G colour has no
 // mono-coloured card in the slot, it replaces one card with an unpacked mono
 // card of the missing colour, up to five tries. The replaced card is a
 // colourless or multicoloured one when the slot has any (swapping a mono
 // card for a mono card of another colour can never reach five covered
 // colours, and dropping the victim costs no coverage, so each try strictly
 // gains a colour); when the whole slot is mono, it is a card of the
-// most-represented colour as the spec spells it — with every colour covered
+// most-represented colour — with every colour covered
 // but one and seven mono cards in play, that colour holds at least two, so
 // the trade empties nothing. Every choice is deterministic (missing colour,
 // most-represented colour and replaced position all break ties in
@@ -279,7 +279,7 @@ func balanceColours(rng *rand.Rand, slot []limited.CardRef, sheet []setdata.Shee
 		}
 		// Victim: the first non-mono card — losing it costs no colour
 		// coverage and each try then strictly gains a colour. When the whole
-		// slot is mono, the spec's most-represented colour, which with six
+		// slot is mono, the most-represented colour, which with six
 		// mono cards left after one trade holds at least two copies.
 		pos := -1
 		for i := range slot {

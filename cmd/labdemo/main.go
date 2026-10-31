@@ -1,4 +1,4 @@
-// Command labdemo runs the draft-lab example workflow (E5-c4): play some
+// Command labdemo runs the draft-lab example workflow: play some
 // random-deck games, freeze the player policy, build decks from sealed
 // pools, draft 8-seat pods under Swiss, and gauntlet the built decks
 // against a spellbench catalog — writing every 17Lands-shaped artifact to

@@ -133,9 +133,9 @@ func TestGameAttemptRejections(t *testing.T) {
 	}
 }
 
-// TestE0LogShapeUnchanged pins that an E0 log (no GameStarted) marshals
-// without any of the new fields.
-func TestE0LogShapeUnchanged(t *testing.T) {
+// TestLogWithoutGameStartedShape pins that a log with no GameStarted marshals
+// without the attempt, table, game seed or reason fields.
+func TestLogWithoutGameStartedShape(t *testing.T) {
 	e := newScriptedEvent(t)
 	if !e.Done() {
 		t.Fatalf("scripted event ended in phase %s, want COMPLETE", e.Phase())
@@ -146,7 +146,7 @@ func TestE0LogShapeUnchanged(t *testing.T) {
 	}
 	for _, frag := range []string{`"attempt"`, `"table"`, `"game_seed"`, `"reason"`} {
 		if strings.Contains(string(wire), frag) {
-			t.Errorf("E0 log contains %s; existing log shape changed", frag)
+			t.Errorf("log without GameStarted contains %s", frag)
 		}
 	}
 }

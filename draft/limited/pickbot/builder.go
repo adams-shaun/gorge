@@ -28,14 +28,14 @@ type candidate struct {
 	creature bool
 }
 
-// Best23 is the spec §4.6 builder, v1: it picks the colour pair whose best
+// Best23 is the default builder: it picks the colour pair whose best
 // 23 playable cards rate highest, plays those 23 preferring MinCreatures
 // creatures and capping mana value 6+ at 3, and fills the rest with basics
 // through
 // build.AutoLands. A pool too thin to field 23 in-pair playables is filled
 // with the best remaining cards of any colour. The caller owns the deck's
 // name and is the one who can say so in it (build.Deck carries no name
-// field), which is what the spec's "say so in the deck name" lands on.
+// field).
 type Best23 struct {
 	// Lookup resolves card names to card facts (colour identity, mana
 	// pips, type line, mana value). The FDN rated path needs it only to
@@ -112,13 +112,13 @@ func (b *Best23) Build(set string, pool []limited.CardRef) build.Deck {
 	all := b.candidates(set, pool)
 
 	// 1. The colour pair whose best MainSize playable cards rate highest,
-	// scored on its in-pair cards alone (spec §4.6 step 1): a pair short of
+	// scored on its in-pair cards alone: a pair short of
 	// MainSize playables pays ShortPairPenalty per unfilled slot instead of
 	// being credited with the off-colour cards the build would pad it with,
 	// so a thin pair padded with other colours' best cards cannot outscore
 	// a deep real pair. The build itself still pads the chosen pair with the
-	// best remaining cards of any colour (spec §4.6 step 4's off-colour
-	// fill) — that fill is never scored.
+	// best remaining cards of any colour; that off-colour fill is never
+	// scored.
 	var best, bestAll []candidate
 	bestSum := 0.0
 	for _, pair := range colourPairs {
@@ -191,8 +191,8 @@ func (b *Best23) Build(set string, pool []limited.CardRef) build.Deck {
 
 // preferCreatures swaps the lowest-rated non-creatures out for the
 // best-rated untaken creatures until the deck carries at least
-// MinCreatures of them, respecting the high-mana-value cap. The spec's
-// "preferring" is unconditional: a creature comes in even when the
+// MinCreatures of them, respecting the high-mana-value cap. The
+// preference is unconditional: a creature comes in even when the
 // non-creature it replaces rates higher.
 func (b *Best23) preferCreatures(main, inPair []candidate, taken map[string]bool, high *int) []candidate {
 	t := b.tuning()
@@ -226,8 +226,8 @@ func (b *Best23) preferCreatures(main, inPair []candidate, taken map[string]bool
 }
 
 // fillToMainSize tops a short main up with the best remaining cards, the
-// in-pair ones first and then the off-colour rest — the spec's off-colour
-// fill for a thin pool.
+// in-pair ones first and then the off-colour rest, for a
+// thin pool.
 func (b *Best23) fillToMainSize(main, inPair, all []candidate, taken map[string]bool, high *int) []candidate {
 	t := b.tuning()
 	for len(main) < t.MainSize {

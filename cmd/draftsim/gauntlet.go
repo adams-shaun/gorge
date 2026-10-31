@@ -66,8 +66,8 @@ func gauntletFromOptions(o options) (*gauntletOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	// The gauntlet seats one policy on BOTH sides, and the same operator
-	// ruling the draft seats follow applies: a policy that builds its
+	// The gauntlet seats one policy on BOTH sides, and the rule the
+	// draft seats follow applies: a policy that builds its
 	// search over every seat's REAL decklist must never seat here either.
 	if _, err := bots.Normalize(o.gauntletPlayer); err != nil {
 		return nil, fmt.Errorf("-gauntlet-player: %w", err)

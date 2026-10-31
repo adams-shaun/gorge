@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots"
@@ -170,10 +169,8 @@ func TestPlayRefusals(t *testing.T) {
 	// Without the opt-in: refused outright.
 	if _, err := l.PlayGame(env, es[1], 2); !errors.Is(err, ErrDecklistBot) {
 		t.Errorf("Env player without opt-in: err = %v, want ErrDecklistBot", err)
-	} else if strings.Contains(err.Error(), "E5-c5") {
-		t.Errorf("Env player without opt-in: got the E5-c5 error %q, want the opt-in refusal", err)
 	}
-	// With the opt-in: admitted; the game plays (E5-c5 lifted the refusal).
+	// With the opt-in: admitted; the game plays.
 	l2 := testLabOpts(t, Options{AllowDecklistBots: true})
 	if _, err := l2.PlayGame(env, es[1], 2); err != nil {
 		t.Errorf("Env player with opt-in: err = %v, want a played game", err)

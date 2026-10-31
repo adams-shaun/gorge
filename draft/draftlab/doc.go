@@ -8,10 +8,7 @@
 // Every call is a pure function of its inputs and seed: the same (Lab,
 // arguments, seed) triple yields byte-identical results, and the
 // Options.Workers count never reaches a result. The corpus registry is
-// read-only after Open (cards.SharedCorpus); nothing here mutates game
-// state — playing games is E5-c2's seam, gauntlet/events/manifests are
-// E5-c3's, CSV artifacts the demo is E5-c4's, and the bench Env driver
-// that lifts the Env refusal is E5-c5's.
+// read-only after Open (cards.SharedCorpus).
 //
 // Agents are named "name" or "name@version". A ref without a version
 // resolves to the version this build's table lists for the agent (or
@@ -27,9 +24,9 @@
 // opt-in such a game runs through the bench Env driver
 // (bench.Hooks{EnvSeats: true, HonestRoot: true}), so the hosted wrapper is
 // driven with its bots.Env — the honest root, never the live engine — and
-// its result is marked for the manifest (E5-c3's AllowDecklistBots).
+// its result is marked for the manifest (AllowDecklistBots).
 //
-// The E5-d seam (out-of-process agents): an external drafter/builder plugs
+// Out-of-process agents: an external drafter/builder plugs
 // in as a pickbot.Drafter / pickbot.Builder adapter and may implement
 // FallibleDrafter / FallibleBuilder to report a failure; adapters describe
 // cards through Lab.Card; a game seat whose answers are batched across

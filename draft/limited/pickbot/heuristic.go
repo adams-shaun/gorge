@@ -7,8 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// rarityBase is the heuristic's starting score by printing rarity (the
-// spec's C 0, U 2, R 5, M 6); anything else — basic lands, special
+// rarityBase is the heuristic's starting score by printing rarity (C 0, U 2,
+// R 5, M 6); anything else — basic lands, special
 // printings — starts at 0.
 func rarityBase(r limited.Rarity) float64 {
 	switch r {

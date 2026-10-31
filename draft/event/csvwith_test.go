@@ -9,9 +9,9 @@ import (
 	"github.com/adams-shaun/gorge/draft/event"
 )
 
-// TestDraftDataCSVWithOptionsPerSeat carries E5-c4's option form: a custom
+// TestDraftDataCSVWithOptionsPerSeat exercises the option form: a custom
 // event_type and one draft_id per drafter ("<seed>-s<seat>") reach every
-// row, the header shape is unchanged, and the legacy entry points stay
+// row, the header shape is unchanged, and the plain entry points stay
 // byte-identical to the option form's defaults.
 func TestDraftDataCSVWithOptionsPerSeat(t *testing.T) {
 	e := newCSVEvent(t)
@@ -68,10 +68,9 @@ func TestDraftDataCSVWithOptionsPerSeat(t *testing.T) {
 	}
 }
 
-// TestDraftDataCSVWithOptionsDefaults pins the two legacy entry points
+// TestDraftDataCSVWithOptionsDefaults pins the two plain entry points
 // against the option form: DraftDataCSV is With({Header: true}) and
-// DraftDataCSVRows is With({}) byte for byte, so the E5-c4 rewrite changed
-// no default output.
+// DraftDataCSVRows is With({}) byte for byte.
 func TestDraftDataCSVWithOptionsDefaults(t *testing.T) {
 	e := newCSVEvent(t)
 	names := []string{"Gamma", "Alpha", "Beta"}
@@ -101,7 +100,7 @@ func TestDraftDataCSVWithOptionsDefaults(t *testing.T) {
 
 // TestDraftDataCSVWithOptionsSealed: a created-but-sealed event carries no
 // picks, so the option form writes the header only (or nothing without
-// one), like the legacy entry points.
+// one), like the plain entry points.
 func TestDraftDataCSVWithOptionsSealed(t *testing.T) {
 	e := event.New()
 	mustApply(t, e, event.Entry{Kind: event.KindEventCreated, Seed: 7, Set: "TST", Seats: []event.SeatSpec{

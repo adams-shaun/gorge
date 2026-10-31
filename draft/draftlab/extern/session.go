@@ -147,7 +147,7 @@ func (s *session) isClosing() bool {
 }
 
 // beginGame returns the game key's process-wide number (assigned at its
-// first begin). E5d-4 names streams "g<n>.<seat>" with it.
+// first begin). Streams are named "g<n>.<seat>" with it.
 func (a *Agent) beginGame(game any) uint64 { return a.hub.beginGame(game) }
 
 // endGame drops the game key's last reference; when the count reaches zero

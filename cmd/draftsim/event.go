@@ -73,8 +73,8 @@ func runOneEvent(r *runner, seed uint64, verify bool) (*event.Event, *eventResul
 		}
 	}
 	en := event.Entry{Kind: event.KindEventCreated, Seed: seed, Set: r.spec.Code, Seats: seats, Collation: sh.collation}
-	// The shape fields are logged only when non-default, so the
-	// default-flag logs stay byte-identical to the pre-shape-flag ones.
+	// The shape fields are logged only when non-default, so a
+	// default-flag log omits them.
 	if sh.mode != event.ModeDraft {
 		en.Mode = sh.mode
 	}
@@ -171,7 +171,7 @@ func runOneEvent(r *runner, seed uint64, verify bool) (*event.Event, *eventResul
 
 // podShapeOr returns the runner's resolved pod shape, filling the zero
 // shape an options-literal runner carries (the tests build those directly)
-// with the legacy defaults: the players list's length (or 4), draft mode,
+// with the defaults: the players list's length (or 4), draft mode,
 // round robin, 3 packs per seat.
 func (r *runner) podShapeOr() podShape {
 	sh := r.shape
@@ -198,7 +198,7 @@ func (r *runner) podShapeOr() podShape {
 }
 
 // drafterLabel names the drafter in the event log's Persona strings; the
-// concrete v1 persona types are the only drafter the tool builds, so the
+// concrete persona types are the only drafter the tool builds, so the
 // label is fixed.
 func drafterLabel(r *runner) string {
 	if _, ok := r.drafter.(*pickbot.RatingColour); ok {

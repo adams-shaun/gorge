@@ -14,9 +14,7 @@ import (
 // PCG stream key every game table is seeded from (cmd/draftsim/event.go).
 const gameSeedSalt = 0x6A111E
 
-// gameSeed derives one game table's seed from the event seed. E1 is Bo1
-// only — game is always 1 here; E3 adds a games-played accessor and passes
-// the real game number through.
+// gameSeed derives one game table's seed from the event seed.
 func gameSeed(seed uint64, round, a, b, game, attempt int) uint64 {
 	salt := gameSeedSalt<<32 | uint64(round)<<24 | uint64(a)<<20 |
 		uint64(b)<<16 | uint64(game)<<8 | uint64(attempt)
@@ -31,7 +29,7 @@ func gameTableID(ev string, round, a, b, game, attempt int) host.TableID {
 }
 
 // startGame logs and launches one series' next game attempt on its own
-// OnDemand table — game 1 of a Bo1 series (E1's shape), or the next game
+// OnDemand table — game 1 of a Bo1 series, or the next game
 // of a Bo3 series on a NEW series table (its game 1, a retry after a
 // crash, or a between-games resume). A Bo3 game continuing on the event's
 // live series table is logged by advanceRounds instead, so the table keeps
@@ -96,7 +94,7 @@ func (r *run) startGame(sp event.SeriesSpec, game int) error {
 		if err != nil {
 			return fail(err)
 		}
-		// E3-5: each human slot gets its own game token, so both humans of
+		// Each human slot gets its own game token, so both humans of
 		// a series join their own side.
 		toks := r.tokens[id]
 		toks[slot] = tok
@@ -189,7 +187,7 @@ func (r *run) policyOrEmpty(seat int) string {
 // under r.mu and reports whether it applied anything. A blocked event
 // starts no more games until the process restarts.
 //
-// A Bo3 event (E3-4) drives its series through advanceSeriesBo3 instead of
+// A Bo3 event drives its series through advanceSeriesBo3 instead of
 // the Bo1 body; a bot-only Bo3 event processes only the first pending
 // series per pass — its series' tables start one at a time, and advance's
 // loop drains the rest.
@@ -271,7 +269,7 @@ func (r *run) botOnly() bool {
 // Sideboarded, then the next GameStarted, then the series' SeriesEnded.
 // The series' own entries are a pure function of the seed and the game
 // outcomes, so a restart mid-series resumes on the same path. A human side
-// still to sideboard waits here (its submission API is E3-5); a bot side
+// still to sideboard waits here; a bot side
 // not locked keeps the deck it played last game.
 func (r *run) advanceSeriesBo3(sp event.SeriesSpec) (bool, error) {
 	if !r.ev.Started(sp.A, sp.B) {
@@ -290,7 +288,7 @@ func (r *run) advanceSeriesBo3(sp event.SeriesSpec) (bool, error) {
 		return false, nil
 	}
 	if v.Started && v.NextGame == 0 {
-		// §3 step 4: the series is over — its table is done, so the live
+		// The series is over — its table is done, so the live
 		// series table row goes too (the hook's stop answer drops the
 		// table's ref; this drops the run's row).
 		delete(r.seriesTable, [2]int{sp.A, sp.B})
@@ -317,7 +315,7 @@ func (r *run) advanceSeriesBo3(sp event.SeriesSpec) (bool, error) {
 			continue
 		}
 		if r.meta.Seats[seat].Kind != "bot" {
-			return false, nil // human sideboarding waits for E3-5
+			return false, nil // a human side waits until it sideboards
 		}
 		if err := r.apply(event.Entry{
 			Kind: event.KindSideboarded, Round: sp.Round, A: sp.A, B: sp.B,
@@ -328,7 +326,7 @@ func (r *run) advanceSeriesBo3(sp event.SeriesSpec) (bool, error) {
 		return true, nil
 	}
 	// Both sides locked: game 2/3 starts. On the series' own table it is
-	// logged here (§3 step 5); a game whose table died restarts on a new
+	// logged here; a game whose table died restarts on a new
 	// table through startGame.
 	id, hasTable := r.seriesTable[[2]int{sp.A, sp.B}]
 	v, ok = r.ev.SeriesState(sp.A, sp.B)

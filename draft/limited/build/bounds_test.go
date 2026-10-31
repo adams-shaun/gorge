@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/limited/build"
 )
 
-// TestValidateRejectsOutOfBoundsBasics covers the hosting bounds E1-0 adds:
+// TestValidateRejectsOutOfBoundsBasics covers the hosting bounds:
 // a negative count, a count over MaxBasicsPerType, and an overflowing count
 // are each rejected before the count can reach the engine.
 func TestValidateRejectsOutOfBoundsBasics(t *testing.T) {

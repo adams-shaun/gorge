@@ -1,10 +1,9 @@
-// Command draftsim runs headless draft pods (draft-events spec §4.8, E0's
-// exit gate): 4 or 8 seats draft (or open sealed packs) with
+// Command draftsim runs headless draft pods: 4 or 8 seats draft (or open sealed packs) with
 // draft/limited/pickbot, every seat builds its deck, and the pod's series are
 // played as Bo1 games through the rules engine the way cmd/mtgsim drives
 // one — round robin by default, Swiss with -structure swiss, or build-only
 // with -structure none — with -verify replaying each event from its own
-// log. It is the only E0 package that touches the engine; everything under
+// log. The command touches the engine so that everything under
 // draft/limited/ and draft/event/ stays pure.
 //
 //	draftsim -set FDN -seed 1 -events 5 -verify
@@ -12,8 +11,7 @@
 // The event seed drives everything: the packs (booster.OpenPod), the picks
 // (one seeded rand per seat) and the game seeds (derived per
 // round/series/game), so the same seed and set rebuild the same event log
-// byte for byte. With the default flags the log and output are byte
-// identical to the pre-shape-flag runs.
+// byte for byte.
 package main
 
 import (
@@ -54,8 +52,7 @@ func main() {
 	dir := fs.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	fs.Parse(os.Args[1:])
 	// Collation is logged on the event only when the flag was set
-	// explicitly, so the default-flag logs stay byte-identical to the
-	// pre-collation ones (podShape.collation).
+	// explicitly, so a default-flag log omits it (podShape.collation).
 	fs.Visit(func(f *flag.Flag) {
 		if f.Name == "collation" {
 			o.collationSet = true
@@ -150,7 +147,7 @@ type podShape struct {
 	packs     int    // packs per seat
 	rounds    int    // the event's round count (0 for structure none)
 	// collation is the EventCreated's Collation value, "" unless -collation
-	// was set explicitly (so default-flag logs stay byte-identical).
+	// was set explicitly (so a default-flag log omits them).
 	collation string
 }
 

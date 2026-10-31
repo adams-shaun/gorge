@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// The two timeout entries (E1-8) let the host tear down or carry an
+// The two timeout entries let the host tear down or carry an
 // abandoned event without the clock ever reaching a replay: the timer only
 // APPENDS entries, and these two apply purely from the log state.
 

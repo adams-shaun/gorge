@@ -23,8 +23,8 @@ type Relay struct {
 func (r *Relay) Set(fn host.OnMatchEndFunc) { r.target.Store(&fn) }
 
 // SetSeries installs the Host's Series hook as the relay's target. A
-// series table created before the set answers a series plan never (E3-4:
-// eventhost mints the tables itself, so a live series table without the
+// series table created before the set answers a series plan never
+// (eventhost mints the tables itself, so a live series table without the
 // hook cannot exist in a gorged process).
 func (r *Relay) SetSeries(fn host.SeriesFunc) { r.series.Store(&fn) }
 

@@ -1,8 +1,8 @@
 # External agents: the Python example
 
 `random_agent.py` is a ~200-line, standard-library-only Python agent that
-speaks gorge's external-agent wire, `gorge-agent/1`. It is the starting point
-for a training team: it handshakes, answers draft picks, builds a deck from a
+speaks gorge's external-agent wire, `gorge-agent/1`. It is a starting point
+for your own agent: it handshakes, answers draft picks, builds a deck from a
 pool, and answers game decisions — all uniformly at random, so it plays badly
 on purpose. It is the Python twin of `draft/draftlab/extern/refagent` and need not
 agree with it bit for bit.

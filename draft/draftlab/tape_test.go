@@ -80,7 +80,7 @@ func TestReplayTapeRejectsTamper(t *testing.T) {
 	}
 	base := *res.Tape
 
-	// P2 contract: every recorded intent is submitted verbatim and any
+	// Strict replay: every recorded intent is submitted verbatim and any
 	// engine rejection refuses the tape — there is no fallback re-answer, so
 	// the flip may target the FIRST intent, not only post-pregame ones. Flip
 	// the pregame asks (a starting_player ask at intent 0, a mulligan ask at
@@ -107,9 +107,8 @@ func TestReplayTapeRejectsTamper(t *testing.T) {
 		}
 	}
 
-	// A flipped post-pregame choice refuses the same way (the triage case
-	// that already failed before P2 only by luck — its fallback happened to
-	// diverge): flip the first intent after the pregame asks.
+	// A flipped post-pregame choice refuses the same way (a fallback re-answer
+	// would only sometimes diverge here): flip the first intent after the pregame asks.
 	flipped := base
 	flipped.Intents = append([]decision.Intent(nil), base.Intents...)
 	for i := 2; i < len(flipped.Intents); i++ {

@@ -30,18 +30,18 @@ type Options struct {
 	Cards          *cards.Registry
 	Policies       []string // bot game policies offered; empty = every non-Env policy
 	DefaultPolicy  string   // "" = bots.Default
-	MaxHumans      int      // 0 = 4 (E3-5)
+	MaxHumans      int      // 0 = 4
 	MaxLiveEvents  int      // 0 = 4
-	MaxAttempts    int      // 0 = 3 (E1-5 uses this)
+	MaxAttempts    int      // 0 = 3
 	Mulligans      int
 	AutoMana       bool
 	BotAutoPayMana bool
 	BotCommonSense bool
-	MintSeat       func(table host.TableID, seat int) (string, error) // E1-5
+	MintSeat       func(table host.TableID, seat int) (string, error)
 	// PickTimeout, when positive, replaces the standard per-pick limit
-	// table for every pick-timer mode (E3-6); 0 uses the table.
+	// table for every pick-timer mode; 0 uses the table.
 	PickTimeout time.Duration
-	// Clock is the pick-timer seam (E3-6): Now reads the time the armed
+	// Clock is the pick-timer seam: Now reads the time the armed
 	// timers and their pack views count against, AfterFunc arms one; nil
 	// is the real clock.
 	Clock interface {
@@ -49,13 +49,13 @@ type Options struct {
 		AfterFunc(d time.Duration, f func()) (stop func() bool)
 	}
 
-	// Seed mints every new event's seed (E1-8: the seed is never a client
+	// Seed mints every new event's seed (the seed is never a client
 	// field). nil = crypto/rand.
 	Seed func() uint64
 	// LobbyTimeout is how long an event may sit in LOBBY with an unjoined
 	// human seat before the sweep acts: at least one human joined fills
 	// every unjoined seat with a bot and starts the event, zero joined
-	// cancels it (E3-5). 0 = 15 minutes, negative =
+	// cancels it. 0 = 15 minutes, negative =
 	// disabled. IdleTimeout is how long a human seat may owe a decision
 	// without acting before the sweep acts for it (auto-pick, auto-submit
 	// or concede): 0 = 2 hours, negative = disabled.
@@ -66,7 +66,7 @@ type Options struct {
 	Now func() time.Time
 }
 
-// The timeout defaults and the sweep cadence (E1-8).
+// The timeout defaults and the sweep cadence.
 const (
 	defaultLobbyTimeout = 15 * time.Minute
 	defaultIdleTimeout  = 2 * time.Hour
@@ -84,26 +84,26 @@ type run struct {
 	subs     []subscriber // {session, seat}, subscription order
 	lastPack [4]string    // last draft_pack key sent per seat
 	halted   string       // persistence/replay failure: read-only, 503 on writes
-	blocked  string       // E1-5: why a game could not start
-	// E3-5: each live game table's per-slot game tokens — index 0 is event
+	blocked  string       // why a game could not start
+	// Each live game table's per-slot game tokens — index 0 is event
 	// seat a (table slot 0), 1 event seat b. Empty string = not minted.
 	tokens map[host.TableID][2]string
-	// E1-5: finished matches awaiting their pairing-order log slot, and
+	// Finished matches awaiting their pairing-order log slot, and
 	// each series' last published public JSON. Both guarded by mu.
 	outcomes   map[[2]int]outcome
 	lastSeries map[[3]int]string
-	// E3-4: each Bo3 series' live table id, and the parked Series-hook
+	// Each Bo3 series' live table id, and the parked Series-hook
 	// calls per live series table. Both guarded by mu; the waiters map is
 	// answered in sorted table-id order, never map order.
 	seriesTable map[[2]int]host.TableID
 	waiters     map[host.TableID]waiter
 	live        atomic.Bool // phase not COMPLETE or CANCELLED; read under Host.mu for the capacity bound
 	justDraft   bool        // the draft ended since the last broadcast: one last pod_progress
-	// E1-8: when the event was created, and when each human seat last
+	// When the event was created, and when each human seat last
 	// acted successfully. The sweep reads them under mu; replay never does.
 	createdAt time.Time
 	lastAct   [draft.Seats]time.Time
-	// E3-6: each human seat's armed pick timer, guarded by mu. A timer
+	// Each human seat's armed pick timer, guarded by mu. A timer
 	// with stop == nil is not armed.
 	timers [4]pickTimer
 }
@@ -184,7 +184,7 @@ func New(o Options) (*Host, error) {
 			continue
 		}
 		r.meta = m
-		// E1-8: a meta written before CreatedAt existed (or a halted run)
+		// A meta written before CreatedAt existed (or a halted run)
 		// gets fresh timeout windows from now.
 		now := optsNow(o)
 		if m.CreatedAt.IsZero() {
@@ -363,7 +363,7 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 		h.mu.Unlock()
 		return protocol.CreateEventResponse{}, errBadRequest("eventhost: best_of must be 1 or 3, got %d", req.BestOf)
 	}
-	// E3-6: the pick-timer mode is a bounded create option, decided here
+	// The pick-timer mode is a bounded create option, decided here
 	// from the seat list, never echoed straight into the meta.
 	switch req.PickTimer {
 	case "", "off", "standard", "relaxed":
@@ -418,7 +418,7 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 		}
 		m.Seats[s] = ms
 	}
-	// E3-6: two or more humans draft against the clock (standard unless
+	// Two or more humans draft against the clock (standard unless
 	// the request named a mode); one human or none has no timer at all.
 	m.PickTimer = req.PickTimer
 	if humans <= 1 {
@@ -718,7 +718,7 @@ func (h *Host) SubscribeEvent(id, token, session string) error {
 	}
 	r.publish(s, protocol.TEventState, r.stateFor(seat))
 	if r.ev.Phase() == event.PhaseDraft {
-		// E1-8: a mid-draft subscriber learns the pod's progress before
+		// A mid-draft subscriber learns the pod's progress before
 		// its pack, so a fresh UI renders the table first.
 		r.publish(s, protocol.TPodProgress, r.progress())
 		if seat >= 0 {

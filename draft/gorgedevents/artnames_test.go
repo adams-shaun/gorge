@@ -25,7 +25,7 @@ func TestSetCardNamesCoverTheDraftSets(t *testing.T) {
 		}
 		seen[n] = true
 	}
-	// Cards seen blank in an FDN draft pack on the demo (2026-10-14), and one BLB card.
+	// Cards once seen blank in an FDN draft pack, and one BLB card.
 	for _, want := range []string{"Make Your Move", "Macabre Waltz", "Lunar Insight", "Faebloom Trick", "Mindwhisker"} {
 		if !seen[want] {
 			t.Errorf("setCardNames lacks %q", want)

@@ -2,7 +2,7 @@
 // uniform-random, first-legal (and deliberately illegal, for tests) agent
 // used by tests, benchmarks and as a worked example of the wire. It is not
 // a training artifact and makes no effort to play well; the Python twin
-// (examples/extagent/, E5d-6) need not agree with it bit for bit.
+// (examples/extagent/) need not agree with it bit for bit.
 package refagent
 
 import (

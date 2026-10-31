@@ -61,7 +61,7 @@ func TestDrafterPicksHighestRated(t *testing.T) {
 	}
 }
 
-// TestDrafterPrefersColourAfterEightPicks constructs the spec case: with an
+// TestDrafterPrefersColourAfterEightPicks constructs the case: with an
 // empty pool the drafter picks the higher-rated green card; after eight
 // black picks it prefers the slightly lower-rated black card, because the
 // colour term at pick 9 outweighs the one-point rating gap.

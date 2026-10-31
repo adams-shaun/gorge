@@ -167,8 +167,7 @@ func driveGame(r *runner, seed uint64, players, names [2]string, deckA, deckB []
 		seats[i] = st
 	}
 	oc, eng, err := bench.PlayGame(gameConfig(r, seed, names, deckA, deckB), seats, gameMaxTurns, gameMaxIntents, bench.Hooks{
-		// The pregame ask, the way cmd/mtgsim's playOne poses it (the
-		// brief's Facts line): the engine is built with
+		// The pregame ask, the way cmd/mtgsim's playOne poses it: the engine is built with
 		// rules.NewStartingPlayerChoice, which defers the pregame rounds,
 		// and Setup poses CR 103.1's winner-chooses decision before the
 		// first Advance. botpolicy.Decide answers it deterministically

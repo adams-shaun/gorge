@@ -238,7 +238,7 @@ func seriesRow(st protocol.EventState, a, b int) *protocol.EventSeries {
 func TestMaxHumansDefaultsToFour(t *testing.T) {
 	h, _ := newHost(t, nil)
 	if got := h.maxHumans(); got != 4 {
-		t.Fatalf("maxHumans() = %d, want 4 (E3-5)", got)
+		t.Fatalf("maxHumans() = %d, want 4", got)
 	}
 	for n := 2; n <= 4; n++ {
 		if _, err := h.CreateEvent(humanSeatsReq([]int{0, 1, 2, 3}[:n], 1)); err != nil {
@@ -247,7 +247,7 @@ func TestMaxHumansDefaultsToFour(t *testing.T) {
 	}
 }
 
-// TestTwoHumanBo3SeriesSideboardAndKeep is the E3-5 end-to-end: two humans
+// TestTwoHumanBo3SeriesSideboardAndKeep is the sideboarding end-to-end: two humans
 // (seats 0 and 3) meet in round 1 of a Bo3, play game 1 driven through the
 // registry's Pending/SubmitIntent, both sideboard (one Keep, one a new
 // deck revision) and the next game starts on the series' own table with
@@ -609,7 +609,7 @@ func TestSideboardErrors(t *testing.T) {
 	}
 }
 
-// TestIdleSeatAutoKeepsBetweenGames is the E1-8 half: a human that played
+// TestIdleSeatAutoKeepsBetweenGames is the idle half: a human that played
 // game 1 and then goes idle keeps the deck it played for game 2 (one
 // auto-keep, Auto on the entry) and — still idle once game 2 is live —
 // loses the series by concession in the same sweep.

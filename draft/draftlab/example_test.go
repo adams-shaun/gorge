@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/draftlab"
 )
 
-// Example shows the E5-c4 artifact writers: the 17Lands-shaped draft_data,
+// Example shows the artifact writers: the 17Lands-shaped draft_data,
 // game_data and decks.json exports. It compiles the calls only (no Output
 // comment), so the example runs with no corpus.
 func Example() {

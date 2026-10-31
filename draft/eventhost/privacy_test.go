@@ -54,7 +54,7 @@ func TestSeatResponsesHideOtherSeatsPacks(t *testing.T) {
 		for id := range hidden {
 			// Search for the QUOTED id: draft ids are sequential c1..cN, so a
 			// raw needle like "c14" prefix-matches seat 0's own "c140" in the
-			// JSON body and reports a spurious leak (E1-4 review round 1).
+			// JSON body and reports a spurious leak.
 			if strings.Contains(string(body.b), `"`+id+`"`) {
 				t.Fatalf("%s for seat 0 leaks seat 1's card %q: %s", body.name, id, body.b)
 			}

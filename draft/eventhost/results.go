@@ -7,7 +7,7 @@ import (
 )
 
 // gameRef is the event game attempt one host table is playing for its run.
-// A series ref (E3-4) stays registered until its series ends: firstGame is
+// A series ref stays registered until its series ends: firstGame is
 // the game the table's match 1 plays, so match k plays game firstGame+k-1
 // with the ref's attempt for k == 1 and attempt 1 for later matches (a
 // series game's attempt counter restarts after each GameEnded).
@@ -37,7 +37,7 @@ type outcome struct {
 // match terminal state arrives here. It ignores non-event tables, aborted
 // and still-live matches, and tables it does not know. A series ref
 // accepts any match number k (one table plays a whole best-of-three); a
-// Bo1 ref keeps E1's k == 1. It never calls back into the Registry and
+// Bo1 ref accepts only k == 1. It never calls back into the Registry and
 // never takes a run mutex on the calling goroutine — the match goroutine
 // that fires it holds nothing this run may wait on — so the handling moves
 // onto the Host's wait group.
@@ -69,7 +69,7 @@ func (h *Host) OnMatchEnd(t host.TableID, k int, m protocol.MatchInfo) error {
 // caller holds r.mu. A callback whose attempt is no longer the series'
 // in-flight game — a duplicate or stale callback for a table the log has
 // already moved past — is dropped. A Bo1 match is buffered for flush's
-// pairing-order log slot; a series match (E3-4) is logged at once, because
+// pairing-order log slot; a series match is logged at once, because
 // its series' own entries are a pure function of the seed and the game
 // outcomes.
 func (r *run) gameOver(ref gameRef, k int, m protocol.MatchInfo) {

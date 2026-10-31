@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/server/protocol"
 )
 
-// TestLobbyTimeoutFillsPartialLobbyWithBots covers E3-5's lobby rule:
+// TestLobbyTimeoutFillsPartialLobbyWithBots covers the lobby rule:
 // an abandoned lobby where at least one human joined does NOT cancel —
 // every unjoined human seat becomes a bot (default persona, the host's
 // default game policy, named like a created bot), the event starts and the

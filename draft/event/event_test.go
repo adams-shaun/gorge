@@ -11,8 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/draft/limited/draft"
 )
 
-// packSize is the scripted event's pack size (spec §4.7's fixture opens
-// packs of 14 distinct fake cards).
+// packSize is the scripted event's pack size: packs of 14 distinct fake
+// cards.
 const packSize = 14
 
 // packCards builds one fake pack of packSize distinct CardRefs whose IDs

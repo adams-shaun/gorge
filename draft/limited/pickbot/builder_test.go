@@ -65,7 +65,7 @@ func builderPool(t *testing.T) []limited.CardRef {
 }
 
 // TestBuilderBest23TwoColourDeck builds from the fixed FDN pool and asserts
-// the spec's contract: a valid 40-card deck, two-coloured (white-green
+// the contract: a valid 40-card deck, two-coloured (white-green
 // here), at least DefaultTuning.MinCreatures creatures (the pool carries 22
 // in-pair creatures, so the preference is fully satisfiable), at most 3
 // cards of mana value 6+, and deterministic across calls.
@@ -93,7 +93,7 @@ func TestBuilderBest23TwoColourDeck(t *testing.T) {
 	}
 
 	// Every maindeck card is white, green or colourless — the winning
-	// colour pair — and the counts the spec caps hold.
+	// colour pair — and the capped counts hold.
 	creatures, highMV := 0, 0
 	for _, id := range deck.Main {
 		name := poolName(t, pool, id)
@@ -194,10 +194,9 @@ func TestBuilderCapsHighManaValue(t *testing.T) {
 	if min := pb.DefaultTuning.MinCreatures; creatures < min {
 		t.Fatalf("built deck runs %d creatures, want at least %d", creatures, min)
 	}
-	_ = rand.NewPCG // referenced only to keep the rng import honest for later tests
 }
 
-// TestBuilderRegistryEntries pins the registry: the two spec names are
+// TestBuilderRegistryEntries pins the registry: the two names are
 // registered with both halves, sorted, and the registered drafter answers a
 // pick through the same rated path the direct type does.
 func TestBuilderRegistryEntries(t *testing.T) {

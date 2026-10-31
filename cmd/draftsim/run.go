@@ -27,7 +27,7 @@ type runner struct {
 	players []string
 	verbose bool
 	// shape is the run's resolved pod shape (options.shape). The tests
-	// build runners as literals without one; podShape fills the legacy
+	// build runners as literals without one; podShape fills the
 	// defaults in (4 seats, draft, round robin, 3 packs).
 	shape podShape
 	// noGames stops an event after the build phase (the draft-only mode
@@ -239,7 +239,7 @@ func personaNamesOK(drafter, builder string) error {
 // personaPair builds the drafter and builder the -drafter and -builder
 // flags name: fresh instances from the pickbot registry with the corpus
 // lookup injected, so the flags choose the persona instead of the tool
-// hard-coding the v1 types. personaNamesOK has already validated the names
+// hard-coding the types. personaNamesOK has already validated the names
 // before the corpus opens; the errors here keep the function total for
 // direct callers.
 func personaPair(drafter, builder string, lookup pickbot.CardLookup) (pickbot.Drafter, pickbot.Builder, error) {

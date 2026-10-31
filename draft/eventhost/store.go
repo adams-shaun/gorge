@@ -19,7 +19,7 @@ import (
 
 // meta is one stored event's header, the <dir>/<id>/event.json file. It
 // carries everything a run needs before (and without) its log: the drafted
-// set, the seed, the four seats and when the event was created (E1-8's
+// set, the seed, the four seats and when the event was created (the
 // lobby-timeout window; a meta written before the field existed resumes
 // with a fresh window). A seat's token is stored only as its sha256; the
 // clear token is returned once by CreateEvent and never written.
@@ -30,11 +30,11 @@ type meta struct {
 	Seats     [4]metaSeat `json:"seats"`
 	CreatedAt time.Time   `json:"created_at,omitempty"`
 	// BestOf is the event's series format: 1 (Bo1, the default, stored
-	// omitted) or 3 (Bo3, E3-4). Stored so a restart replays the same
+	// omitted) or 3 (Bo3). Stored so a restart replays the same
 	// format; the log's SeriesStarted/GameStarted entries re-derive the
 	// game state either way.
 	BestOf int `json:"best_of,omitempty"`
-	// PickTimer is the event's pick-timer mode (E3-6): "off", "standard"
+	// PickTimer is the event's pick-timer mode: "off", "standard"
 	// or "relaxed". Stored so a restart re-arms the same deadlines; a
 	// meta written before the field existed reads back as "" (= off).
 	PickTimer string `json:"pick_timer,omitempty"`

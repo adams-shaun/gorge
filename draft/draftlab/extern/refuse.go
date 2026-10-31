@@ -17,7 +17,7 @@ func (a *Agent) refused(kind, reason string, fallback func()) error {
 	return nil
 }
 
-// failed answers one session failure per Options.OnFailure (E5d-2's rule):
+// failed answers one session failure per Options.OnFailure:
 // FailError (the default) returns the error wrapping ErrAgentGone;
 // FailFallback counts Stats.Fallbacks, logs one line and runs the caller's
 // fallback answer.

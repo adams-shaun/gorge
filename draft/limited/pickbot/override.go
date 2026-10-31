@@ -108,8 +108,7 @@ func ParseRatingsOverride(b []byte, path, field, set string) (*RatingsOverride, 
 
 // NewRatingsOverride is a RatingsOverride over values taken as they are, with
 // no rescale: each value is already a gih_wr-equivalent win rate (a 17Lands
-// ratings file, or ratings derived from simulated games' GIH win rates, doc
-// 039's kernel draft loop). A card values lacks gets neutral; Missing lists
+// ratings file, or ratings derived from simulated games' GIH win rates). A card values lacks gets neutral; Missing lists
 // the set's 17Lands-rated cards values lacks (empty for a set with no
 // embedded rating file). values is copied.
 func NewRatingsOverride(values map[string]float64, neutral float64, set string) *RatingsOverride {

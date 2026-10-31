@@ -171,7 +171,7 @@ func TestSetdataSheetWeightsAreCardSums(t *testing.T) {
 	}
 }
 
-// goodSpec is a minimal valid v2 spec the validator cases break in one
+// goodSpec is a minimal valid spec the validator cases break in one
 // place each.
 func goodSpec() setdata.Spec {
 	card := func(name, number string, r limited.Rarity, w int) setdata.SheetCard {

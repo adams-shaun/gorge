@@ -63,8 +63,7 @@ type runResult struct {
 // byte-identical, artifacts included. The -drafter/-builder/-player/
 // -opponent-players agents resolve through extern.Registry, so any of them
 // may be an ext: spec (dialed once per endpoint and shared across roles);
-// with default flags every resolved agent is exactly the built-in the
-// workflow hard-coded before E5d-5.
+// with default flags every resolved agent is a built-in.
 func run(o options, out io.Writer) (retErr error) {
 	switch {
 	case o.randomGames < 0:

@@ -10,12 +10,12 @@ import (
 	"testing"
 )
 
-// forbiddenImports are the imports the draft-spec invariant bans from the
+// forbiddenImports are the imports banned from the
 // pure draft/limited/ packages: no clock, no file or network I/O, and none of the
 // engine tiers. cards, deck and sibling limited packages are allowed.
 var forbiddenImports = []string{
 	"time",
-	"math/rand", // exact: math/rand/v2 with a seeded source is the spec's only randomness
+	"math/rand", // exact: math/rand/v2 with a seeded source is the only randomness
 	"os",
 	"io/fs",
 	"net",
@@ -62,10 +62,10 @@ func TestImportsStayPure(t *testing.T) {
 			p := strings.Trim(imp.Path.Value, `"`)
 			for _, bad := range forbiddenImports {
 				// "math/rand" bans only the v1 package: math/rand/v2 with an
-				// explicitly seeded source is what the draft spec mandates.
+				// explicitly seeded source is the only randomness allowed.
 				hit := p == bad || (bad != "math/rand" && strings.HasPrefix(p, bad+"/"))
 				if hit {
-					t.Errorf("%s imports %q: %s must stay pure (spec invariant 3)", f.Name.Name, p, dir)
+					t.Errorf("%s imports %q: %s must stay pure", f.Name.Name, p, dir)
 				}
 			}
 		}

@@ -1,7 +1,6 @@
 # 0002: dirac and draft are public; the line between public and private
 
-- **Status:** accepted 2026-10-30 (operator). Execution: open-source program,
-  workstreams A to H.
+- **Status:** accepted 2026-10-30.
 - **Amends:** ADR 0001 decision 2 (identity), decision 3 and its amendment's
   fence (draft moves back inside), decision 5 (draft seam) and the first
   amendment's "What moved" and "seams" for draft and for
@@ -42,15 +41,15 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
    `dirac/` or `draft/`. Existing gorge fixtures are a shrinking baseline.
 6. **The ratchet.** `internal/archtest/public_boundary_test.go` fails on generated
    tables, binaries under `dirac/`, private paths, four-yay imports and
-   unresolvable ticket tags in the moved trees. It has no allowlist.
+   unresolvable ticket tags in the moved trees and the draft commands. It has no allowlist.
 7. **Third-party data stays attributed.** Every data source is named in `NOTICE`:
    17Lands public datasets (CC BY 4.0), MTGJSON (MIT), XMage-derived set lists
    (MIT), MageZero's encoder design (MIT), SpellBench (MIT), mtg-kernel's pauper deck
    catalog (MIT). Deck pools are 17Lands derivatives under CC BY 4.0 and ship as an
    attributed release asset, not in git.
-8. **Zero divergence.** A card dirac supports plays identically to gorge. See the
-   program's decision 6 as recorded in `dirac/docs/verification.md`. gorge leads
-   and dirac catches up; until then dirac refuses the card.
+8. **Zero divergence.** A card dirac supports plays identically to gorge, decision
+   by decision. gorge leads and dirac catches up; until it has, dirac refuses the
+   card.
 
 ## Target root, additions to ADR 0001
 

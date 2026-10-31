@@ -50,7 +50,7 @@ const (
 )
 
 // draftCards converts a CardRef list to its wire shape, carrying the
-// printed facts the draft UI renders (E1-8): mana value, colours, cost and
+// printed facts the draft UI renders: mana value, colours, cost and
 // type line, read from the corpus. A card the corpus does not know keeps
 // only its ref fields. Colours are the card's colour identity — the union
 // of every face's colours, exactly what booster's colourOf reads — as a

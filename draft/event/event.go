@@ -15,7 +15,7 @@ import (
 type Phase string
 
 // The lifecycle phases. LOBBY is a fresh event before its EventCreated;
-// COMPLETE is reached only through the EventEnded entry; CANCELLED (E1-8)
+// COMPLETE is reached only through the EventEnded entry; CANCELLED
 // is reached only through the LobbyTimeout entry, when nobody joined an
 // event within its lobby window.
 //
@@ -44,7 +44,7 @@ type SeatSpec struct {
 }
 
 // SeriesSpec is one series the caller must play: the two seats and the
-// round, with the series length (always 1 for now).
+// round, with the series length.
 type SeriesSpec struct {
 	Round  int `json:"round"`
 	A      int `json:"a"`
@@ -203,7 +203,7 @@ func (e *Event) SavedDeck(seat int) (build.Deck, bool) {
 }
 
 // DeckRev returns the seat's saved deck at the given revision, if any
-// (E3-5: the pool view's Playing deck names a specific revision).
+// (the pool view's Playing deck names a specific revision).
 func (e *Event) DeckRev(seat, rev int) (build.Deck, bool) {
 	if seat < 0 || seat >= e.NumSeats() || rev < 1 {
 		return build.Deck{}, false
@@ -521,7 +521,7 @@ func (e *Event) applyPicked(en *Entry) error {
 }
 
 // applyDeckSaved saves one seat's deck revision. It is a BUILD-phase entry,
-// and (E3-3) also legal in a round phase for a seat whose current series is
+// and also legal in a round phase for a seat whose current series is
 // between games with its side not yet sideboarded — a mid-series deck change
 // only takes effect when the seat Sideboards the new revision, so a round
 // phase DeckSaved does not touch the seat's readiness.
@@ -999,7 +999,7 @@ func (e *Event) StateJSON() ([]byte, error) {
 		Set   string `json:"set"`
 		// Mode, Structure, Packs and Rounds appear only when the event's
 		// shape is not the default, so a 4-seat draft round-robin event
-		// marshals exactly as it did before the shape fields existed.
+		// marshals without them.
 		Mode      string              `json:"mode,omitempty"`
 		Structure string              `json:"structure,omitempty"`
 		Packs     int                 `json:"packs,omitempty"`

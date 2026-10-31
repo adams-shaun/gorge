@@ -1,5 +1,4 @@
-// Package build turns a drafted pool into an engine-loadable deck: the
-// spec §4.5 half of the draft stack. It is pure — a deck is validated
+// Package build turns a drafted pool into an engine-loadable deck. It is pure — a deck is validated
 // against the pool it came from, lands are split by coloured-pip share and
 // the result is written out as a deck.File. It imports only the limited
 // vocabulary and the deck-list format.

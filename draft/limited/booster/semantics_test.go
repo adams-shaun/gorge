@@ -23,7 +23,7 @@ func TestBoosterFixedSheetYieldsListedCards(t *testing.T) {
 			sheetCard("F3", "3", limited.Common, 1), sheetCard("F4", "4", limited.Common, 1),
 		}},
 	}
-	pack, err := booster.Open(v2spec(2, []setdata.Variant{{Weight: 1, Contents: map[string]int{"fixedS": 2}}}, sheets),
+	pack, err := booster.Open(handSpec(2, []setdata.Variant{{Weight: 1, Contents: map[string]int{"fixedS": 2}}}, sheets),
 		rand.New(rand.NewPCG(5, 6)), &booster.IDs{}, nil)
 	if err != nil {
 		t.Fatalf("Open: %v", err)
@@ -37,7 +37,7 @@ func TestBoosterFixedSheetYieldsListedCards(t *testing.T) {
 		}
 	}
 	// Four draws from the four-card fixed sheet fill the pack exactly once.
-	full, err := booster.Open(v2spec(4, []setdata.Variant{{Weight: 1, Contents: map[string]int{"fixedS": 4}}}, sheets),
+	full, err := booster.Open(handSpec(4, []setdata.Variant{{Weight: 1, Contents: map[string]int{"fixedS": 4}}}, sheets),
 		rand.New(rand.NewPCG(5, 6)), &booster.IDs{}, nil)
 	if err != nil {
 		t.Fatalf("Open full fixed pack: %v", err)
@@ -61,7 +61,7 @@ func TestBoosterNamesStayUniqueAcrossSheets(t *testing.T) {
 			sheetCard("Shared", "10", limited.Uncommon, 1), sheetCard("Uncommon1", "11", limited.Uncommon, 1),
 		}},
 	}
-	spec := v2spec(2, []setdata.Variant{{Weight: 1, Contents: map[string]int{"common": 1, "uncommon": 1}}}, sheets)
+	spec := handSpec(2, []setdata.Variant{{Weight: 1, Contents: map[string]int{"common": 1, "uncommon": 1}}}, sheets)
 	const packs = 500
 	for i := 0; i < packs; i++ {
 		pack, err := booster.Open(spec, rand.New(rand.NewPCG(uint64(i), 19)), &booster.IDs{}, nil)

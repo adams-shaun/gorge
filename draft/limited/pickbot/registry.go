@@ -1,6 +1,5 @@
 // Package pickbot answers a draft's pick and build decisions the way a bot
-// seat does: the spec §4.6 Drafter (rating-colour v1) and Builder (best23
-// v1). Ratings come from the embedded 17Lands FDN file where it covers the
+// seat does: the rating-colour Drafter and the best23 Builder. Ratings come from the embedded 17Lands FDN file where it covers the
 // set, and from a card-facts heuristic elsewhere. The same functions back
 // the human UI's Auto lands and Reset-to-bot-suggestion buttons.
 //
@@ -20,8 +19,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// PickView is one seat's view at a pick decision; it is draft.PickView
-// spelled the spec §4.6 way, so the pod and the bot share one type.
+// PickView is one seat's view at a pick decision; it is draft.PickView,
+// so the pod and the bot share one type.
 type PickView = draft.PickView
 
 // Lookup resolves a card name to its card facts. It is supplied by the
@@ -32,7 +31,7 @@ type PickView = draft.PickView
 type CardLookup func(name string) *cards.Card
 
 // Tuning is every constant the drafter and builder read, so the draftsim
-// tuning loop (spec §4.8) turns one knob set.
+// tuning loop turns one knob set.
 type Tuning struct {
 	// RatingCentre is the win rate a centred rating of zero stands for
 	// ((gih_wr - RatingCentre) * RatingScale).
@@ -45,7 +44,7 @@ type Tuning struct {
 	HeuristicScale  float64
 	// ColourFitMax is the full weight k of the colour term; ColourFitRamp
 	// is how many picks of pack 1 ramp k from 0 to it (full by pick
-	// ColourFitRamp+1, per the spec's "by pack 1 pick 10").
+	// ColourFitRamp+1).
 	ColourFitMax  float64
 	ColourFitRamp int
 	// ColourlessFit is the colour term a colourless card earns (0.5 of the
@@ -64,14 +63,14 @@ type Tuning struct {
 	// ShortPairPenalty is what the builder's pair scan charges a colour pair
 	// per maindeck slot its own cards cannot fill, so a thin pair padded
 	// with the pool's best off-colour cards cannot outscores a deep real
-	// pair (spec §4.6 step 1 scores a pair on its in-pair cards; the
+	// pair (a pair is scored on its in-pair cards; the
 	// off-colour fill is build-side only). The default −15 puts one
 	// unfilled slot at about what a 0.40-GIH card would earn on the centred
 	// rating scale, and is insensitive between −5 and −30.
 	ShortPairPenalty float64
 }
 
-// DefaultTuning is the spec §4.6 default knob set.
+// DefaultTuning is the default knob set.
 var DefaultTuning = Tuning{
 	RatingCentre:     0.55,
 	RatingScale:      100,

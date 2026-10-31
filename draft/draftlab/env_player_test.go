@@ -34,11 +34,9 @@ func TestEnvPlayerNeedsOptIn(t *testing.T) {
 }
 
 // TestEnvPlayerPlaysWithOptIn: with Options.AllowDecklistBots an Env player
-// (sb-tactical) is admitted, resolves as ReadsDecklists (the flag E5-c3's
+// (sb-tactical) is admitted, resolves as ReadsDecklists (the flag
 // NewManifest marks the result with), and its game runs through the bench Env
-// driver to completion and deterministically. E5-c3's Manifest type is not on
-// this base, so the manifest's allow_decklist_bots assertion is exercised by
-// that ticket; this test pins the precondition it reads.
+// driver to completion and deterministically.
 func TestEnvPlayerPlaysWithOptIn(t *testing.T) {
 	l := testLabOpts(t, Options{AllowDecklistBots: true})
 	p, err := l.Player(AgentRef{Name: "sb-tactical"})

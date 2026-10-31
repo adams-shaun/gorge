@@ -1,5 +1,5 @@
 // Package draft runs an N-seat (2..8) booster-draft state machine — the
-// pure pod half of spec §4.4; the hosted pod is 4 seats × 3 rounds. Packs
+// pure half of a pod; the hosted pod is 4 seats × 3 rounds. Packs
 // are supplied by the caller (draft/limited/booster generates them from the event
 // seed), so this package depends only on the limited vocabulary.
 //
@@ -39,8 +39,8 @@ var (
 	ErrNotYourTurn = errors.New("draft: no pack waiting for seat")
 )
 
-// PickView is one seat's view at a pick decision, with the field names spec
-// §4.6 gives so draft/limited/pickbot can reuse the type as-is. Every slice is a
+// PickView is one seat's view at a pick decision; draft/limited/pickbot reuses the
+// type as-is. Every slice is a
 // copy: mutating a view never touches the pod.
 type PickView struct {
 	// Set is the printing set of the pack on offer (all of a pack's cards

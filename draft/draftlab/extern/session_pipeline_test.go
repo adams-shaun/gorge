@@ -11,14 +11,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// TestPipelinedHelloAndErrorKillsSession is the regression for the r2
-// finding: the handshake must be read from the session's own reader, so an
-// agent that pipelines its hello and its next message (an error) in one
-// coalesced write keeps both lines. Before the fix the handshake read went
-// through a throwaway *wire.Reader whose bufio buffer swallowed the
-// pipelined second line: the session stayed alive, the error line was
-// never seen, and the agent then answered the batch normally — the call
-// returned an answer instead of failing ErrAgentGone.
+// TestPipelinedHelloAndErrorKillsSession: the handshake must be read from the
+// session's own reader, so an agent that pipelines its hello and its next
+// message (an error) in one coalesced write keeps both lines. A throwaway
+// *wire.Reader's bufio buffer would swallow the second line: the session would
+// stay alive and the call would return an answer instead of failing
+// ErrAgentGone.
 func TestPipelinedHelloAndErrorKillsSession(t *testing.T) {
 	toAgentR, toAgentW := io.Pipe()
 	fromAgentR, fromAgentW := io.Pipe()

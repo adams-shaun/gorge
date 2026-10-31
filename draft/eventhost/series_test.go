@@ -286,11 +286,10 @@ func TestBotOnlyBo3EventIsDeterministic(t *testing.T) {
 	}
 }
 
-// TestBo1EventUnchanged pins the Bo1 shape against the Bo3 additions: the
-// event state carries best_of 1 and every series row keeps exactly the E1
-// fields (no game, games, chooser or waiting), and the log has no
+// TestBo1EventShape pins the Bo1 shape: the event state carries best_of 1 and
+// every series row keeps exactly the Bo1 fields (no game, games, chooser or waiting), and the log has no
 // Sideboarded, no chooser and no best-of-three SeriesStarted.
-func TestBo1EventUnchanged(t *testing.T) {
+func TestBo1EventShape(t *testing.T) {
 	p := startGamePair(t, "", nil)
 	r := playBotEvent(t, p)
 
