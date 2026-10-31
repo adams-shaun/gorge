@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"go/parser"
-	"go/token"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -36,10 +34,11 @@ import (
 // Fragments that this file's own scan would catch are split into pieces.
 
 const (
-	// privateModule is the private companion's module path. gorge never imports it.
-	privateModule = "github.com/adams-shaun/" + "four-yay"
-	// privateName is that module's short name.
+	// privateName is the private companion module's short name. No tracked file
+	// mentions it, so gorge can import it from nowhere.
 	privateName = "four-" + "yay"
+	// privateModule is that module's path.
+	privateModule = "github.com/adams-shaun/" + privateName
 
 	// binaryProbe is how far into a file the NUL byte test looks, as git's own
 	// text heuristic does.
@@ -159,33 +158,7 @@ var boundaryRules = []boundaryRule{
 		}
 		return ""
 	}},
-	{"private-import", func(p string, blob []byte) string {
-		if !strings.HasSuffix(p, ".go") || !bytes.Contains(blob, []byte(privateModule)) {
-			return ""
-		}
-		// The parser sees testdata and build-tag-excluded files alike, and
-		// returns what it could read of a file that does not parse.
-		f, _ := parser.ParseFile(token.NewFileSet(), p, blob, parser.ImportsOnly)
-		if f == nil {
-			return ""
-		}
-		for _, imp := range f.Imports {
-			if v, err := strconv.Unquote(imp.Path.Value); err == nil && strings.HasPrefix(v, privateModule) {
-				return "imports the private module: " + v
-			}
-		}
-		return ""
-	}},
-	{"private-require", func(p string, blob []byte) string {
-		if (p == "go.mod" || p == "go.work") && bytes.Contains(blob, []byte(privateModule)) {
-			return "names the private module"
-		}
-		return ""
-	}},
-	{"private-name", func(p string, blob []byte) string {
-		if !inMovedTree(p) && !strings.HasPrefix(p, "scripts/kernelbench") {
-			return ""
-		}
+	{"private-name", func(_ string, blob []byte) string {
 		if !isBinary(blob) && bytes.Contains(blob, []byte(privateName)) {
 			return "mentions the private module"
 		}
@@ -590,22 +563,16 @@ func TestPublicBoundaryDetection(t *testing.T) {
 		{"engine/x.md", "in .ds4/" + "x and a.b@example.org", ""},
 		{"draft/x.go", "// @v1.2.3 and x@y and a@b.C\n", ""},
 
-		{"testdata/x/x.go", importing, "private-import"},
-		{"engine/x.go", "//go:build never\n\n" + importing, "private-import"},
-		{"engine/x.go", "package x\n\n// see " + privateModule + "/kernel\n", ""},
-		{"engine/x.md", importing, ""},
-
-		{"go.mod", "module m\n\nreplace " + privateModule + " => ../x\n", "private-require"},
-		{"go.work", "use ../x // " + privateModule + "\n", "private-require"},
-		{"go.mod", "module m\n", ""},
-		{"examples/go.mod", "module m\n\nreplace " + privateModule + " => ../x\n", ""},
-
+		{"testdata/x/x.go", importing, "private-name"},
+		{"engine/x.go", "//go:build never\n\n" + importing, "private-name"},
+		{"engine/x.go", "package x\n\n// see " + privateModule + "/kernel\n", "private-name"},
+		{"go.mod", "module m\n\nreplace " + privateModule + " => ../x\n", "private-name"},
+		{"go.work", "use ../x // " + privateModule + "\n", "private-name"},
+		{"examples/go.mod", "module m\n\nreplace " + privateModule + " => ../x\n", "private-name"},
 		{"dirac/x.md", "in " + privateName, "private-name"},
-		{"draft/x.md", "in " + privateName, "private-name"},
-		{"scripts/kernelbench.sh", privateName, "private-name"},
-		{"scripts/kernelbench/x.py", privateName, "private-name"},
-		{"scripts/enginebench.sh", privateName, ""},
-		{"docs/x.md", privateName, ""},
+		{"scripts/enginebench.sh", privateName, "private-name"},
+		{"docs/x.md", privateName, "private-name"},
+		{"go.mod", "module m\n", ""},
 
 		{"dirac/x.go", "// kr-loop fixed this\n", "unresolvable-reference"},
 		{"draft/x.go", "// DESIGN §3.1\n", "unresolvable-reference"},
@@ -644,7 +611,7 @@ func TestPublicBoundaryDetection(t *testing.T) {
 	}
 	for _, id := range []string{
 		"generated-table-dir", "kgen-output", "generated-table-file", "kgen-report", "dirac-binary", "forge-script",
-		"private-fragment", "private-detail", "private-import", "private-require", "private-name", "unresolvable-reference",
+		"private-fragment", "private-detail", "private-name", "unresolvable-reference",
 	} {
 		if !covered[id] {
 			t.Errorf("rule %s has no positive case", id)
