@@ -1070,6 +1070,8 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0 := *e.legendBatch
 		p0.group.ids = append([]state.ObjID(nil), e.legendBatch.group.ids...)
 		p0.dead = append([]casualty(nil), e.legendBatch.dead...)
+		p0.acts = append([]events.Event(nil), e.legendBatch.acts...)
+		p0.counters = append([]events.Event(nil), e.legendBatch.counters...)
 		c.legendBatch = &p0
 	}
 }

@@ -62,9 +62,14 @@ func (e *Engine) playerLoses(p state.PlayerID, reason, text string) bool {
 	if e.gameLossPrevented(p, reason) {
 		return false
 	}
+	e.losePlayer(p, text)
+	return true
+}
+
+// losePlayer makes a loss nothing prevented.
+func (e *Engine) losePlayer(p state.PlayerID, text string) {
 	e.emit(events.Event{Kind: events.PlayerLost, Player: p, Text: text})
 	e.initiativeHandoffOnDeparture(p)
-	return true
 }
 
 // initiativeHandoffOnDeparture implements CR 726.4: "If the player who has

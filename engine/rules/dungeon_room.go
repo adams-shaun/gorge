@@ -87,8 +87,7 @@ func (e *Engine) checkDungeonRoomTriggers(ev events.Event) {
 // increment (DungeonComplete, latched once by DungeonCompleted) and then the
 // token leaving the command zone (DungeonRemove). Both are needed: the
 // count must survive a replayed log even though the object is gone.
-func (e *Engine) dungeonCompletion(tried *sbaAttempts) bool {
-	changed := false
+func (e *Engine) dungeonCompletion(b *sbaBatch, tried *sbaAttempts) {
 	for p := range e.G.Players {
 		pl := state.PlayerID(p)
 		id := e.G.Players[p].DungeonObj
@@ -137,10 +136,8 @@ func (e *Engine) dungeonCompletion(tried *sbaAttempts) bool {
 		}
 		markTried(&tried.dungeons, id)
 		if !e.G.Players[p].DungeonCompleted {
-			e.emit(events.Event{Kind: events.DungeonComplete, Player: pl, Obj: id})
+			b.add(events.Event{Kind: events.DungeonComplete, Player: pl, Obj: id})
 		}
-		e.emit(events.Event{Kind: events.DungeonRemove, Player: pl, Obj: id})
-		changed = true
+		b.add(events.Event{Kind: events.DungeonRemove, Player: pl, Obj: id})
 	}
-	return changed
 }

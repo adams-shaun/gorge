@@ -47,17 +47,21 @@ func (e *Engine) setDayNight(d state.DayNight) {
 // CR 616 "as this transforms" pass and "whenever this transforms" triggers see
 // it. A permanent ENTERING at night is not transformed here: it enters back
 // face up through the fold in engine/events/daynight_entry.go (CR 702.145b).
-// It reports whether any permanent transformed.
-func (e *Engine) syncDayNightFaces() bool {
+func (e *Engine) syncDayNightFaces() {
+	for _, ev := range e.dayNightFlips() {
+		e.emit(ev)
+	}
+}
+
+// dayNightFlips lists the transforms syncDayNightFaces performs.
+func (e *Engine) dayNightFlips() []events.Event {
 	dn := e.G.DayNight
 	if dn == state.DayNightNeither {
-		return false
+		return nil
 	}
-	changed := false
+	var flips []events.Event
 	for _, p := range e.G.AliveFrom(0) {
-		zone := e.G.Zone(state.ZBattlefield, p)
-		for i := 0; i < len(zone); i++ {
-			id := zone[i]
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
 			if o == nil || o.PhasedOut || o.FaceDown || o.Card == nil || !o.Card.IsTransformingDFC() {
 				continue
@@ -69,15 +73,12 @@ func (e *Engine) syncDayNightFaces() bool {
 			case dn == state.DayNightDay && o.FaceIdx != 0 && e.hasKeywordH(id, kwhNightbound):
 				to = 0
 			}
-			if to < 0 {
-				continue
+			if to >= 0 {
+				flips = append(flips, events.Event{Kind: events.FlipFace, Obj: id, Amount: to, Text: "Transformed"})
 			}
-			e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: to, Text: "Transformed"})
-			changed = true
-			zone = e.G.Zone(state.ZBattlefield, p)
 		}
 	}
-	return changed
+	return flips
 }
 
 // dayNightUntapCheck is CR 731.2 / 502.2 / 703.4b: in the untap step, after
@@ -100,11 +101,12 @@ func (e *Engine) dayNightUntapCheck() {
 // dayNightStateCheck is CR 702.145d / 702.145g: with neither designation, a
 // phased-in daybound permanent makes it day, and with none of those a
 // phased-in nightbound permanent makes it night. With a designation it is
-// CR 702.145c/f's "any time" re-check of the faces. It reports whether it
-// changed the designation or a face.
-func (e *Engine) dayNightStateCheck() bool {
+// CR 702.145c/f's "any time" re-check of the faces. A designation it queues
+// transforms the faces on the next pass's re-check.
+func (e *Engine) dayNightStateCheck(b *sbaBatch) {
 	if e.G.DayNight != state.DayNightNeither {
-		return e.syncDayNightFaces()
+		b.acts = append(b.acts, e.dayNightFlips()...)
+		return
 	}
 	day, night := false, false
 	for _, p := range e.G.AliveFrom(0) {
@@ -122,11 +124,8 @@ func (e *Engine) dayNightStateCheck() bool {
 	}
 	switch {
 	case day:
-		e.setDayNight(state.DayNightDay)
-		return true
+		b.add(events.Event{Kind: events.DayNightChange, Amount: int32(state.DayNightDay), Text: state.DayNightDay.String()})
 	case night:
-		e.setDayNight(state.DayNightNight)
-		return true
+		b.add(events.Event{Kind: events.DayNightChange, Amount: int32(state.DayNightNight), Text: state.DayNightNight.String()})
 	}
-	return false
 }

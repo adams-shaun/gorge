@@ -119,8 +119,8 @@ type engineParked struct {
 	cmdZoneDeclined state.ObjID `clone:"reset"`
 	// legendBatch is the parked CR 704.5j legend-rule application (engine/rules/
 	// sba.go): the duplicate legendary set whose controller is choosing which
-	// member to keep, the lethal-damage casualties found in the same SBA pass,
-	// and the pre-batch look-back board. Parked and asked atomically by
+	// member to keep, everything else found in the same SBA check, and the
+	// pre-batch look-back board. Parked and asked atomically by
 	// parkLegendChoice; cleared and applied by legendAnswer. Parked ONLY
 	// together with its ask (the pose is one step), so a clone taken at an
 	// intent boundary either sees the zero value or a batch whose decision is

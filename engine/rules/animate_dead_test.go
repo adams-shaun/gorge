@@ -240,7 +240,7 @@ func TestAnimateDeadGraveyardWindowSurvivesSBA(t *testing.T) {
 	// bearer, exactly as it sits between entry and the reanimate trigger.
 	e.emit(events.Event{Kind: events.Attach, Obj: adID, IDs: []state.ObjID{bearGY}})
 	e.pending = nil
-	if e.attachmentSBAs() {
+	if runAttachmentSBAs(e) {
 		t.Fatal("the pre-reanimate window attachment was swept; CR 704.5m must admit the graveyard-enchant bearer")
 	}
 	if o := e.G.Obj(adID); o == nil || o.Zone != state.ZBattlefield || o.AttachedTo != bearGY {
@@ -253,7 +253,7 @@ func TestAnimateDeadGraveyardWindowSurvivesSBA(t *testing.T) {
 	// -- the exemption is zone-POSITIVE and must never fire for it).
 	e.emit(events.Event{Kind: events.MoveZone, Obj: cubBF, From: state.ZBattlefield, To: state.ZGraveyard})
 	e.pending = nil
-	if !e.attachmentSBAs() {
+	if !runAttachmentSBAs(e) {
 		t.Fatal("the ordinary Aura's illegal attachment was not swept after its bearer left the battlefield")
 	}
 	if o := e.G.Obj(usaID); o == nil || o.Zone != state.ZGraveyard {
@@ -304,11 +304,20 @@ func TestAnimateDeadDerivedEnchantDrivesTheSBA(t *testing.T) {
 	e.pending = nil
 
 	assertDerivedEnchantSwapped(t, e, adID)
-	if e.attachmentSBAs() {
+	if runAttachmentSBAs(e) {
 		t.Fatal("the post-animate raw board was swept; the SBA read the printed enchant instead of the derived one")
 	}
 	if o := e.G.Obj(adID); o == nil || o.Zone != state.ZBattlefield || o.AttachedTo != bearID {
 		t.Fatalf("post-animate state: zone %s attachedTo %d; want battlefield attached to bear %d",
 			o.Zone, o.AttachedTo, bearID)
 	}
+}
+
+// runAttachmentSBAs runs the attachment family alone and reports whether it did
+// anything.
+func runAttachmentSBAs(e *Engine) bool {
+	var b sbaBatch
+	e.attachmentSBAs(&b)
+	e.applySBABatch(&b)
+	return !b.empty()
 }
