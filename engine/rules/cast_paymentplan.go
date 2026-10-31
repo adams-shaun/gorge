@@ -281,7 +281,13 @@ func (e *Engine) manaWindowAsk() bool {
 			if e.reverseStrandedPayment(pc) {
 				return true
 			}
-			e.paymentPlanFallback(pc, reason)
+			if e.autoPayArmedOnly(pc) {
+				// The ordinary window armAbilityAutoPay leaves when the planner
+				// declines; no seat chose this witness, so nothing fell back.
+				pc.Payment = nil
+			} else {
+				e.paymentPlanFallback(pc, reason)
+			}
 		} else if pc.PaymentNext < len(pc.Payment.Plan.Activations) && e.executePlannedManaActivationUnits(pc, units, step, ready) {
 			return true
 		}

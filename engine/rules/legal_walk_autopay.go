@@ -137,6 +137,12 @@ func (e *Engine) armAbilityAutoPay(pc *pendingCast, idx int) {
 	pc.PaymentNext = 0
 }
 
+// autoPayArmedOnly reports whether pc's witness is one armAbilityAutoPay armed and
+// no step of it has run: the seat activated the ability and chose no plan.
+func (e *Engine) autoPayArmedOnly(pc *pendingCast) bool {
+	return pc.isAbility() && !pc.Announced && pc.PaymentNext == 0 && pc.Payment.ActionID == decision.OptAutoFill
+}
+
 // rearmAutoPay plans again for a witness its announcements outdated, before any
 // step ran: a target's reduction, a Phyrexian pip's answer, a tap or waterbend
 // helper settle only after armAbilityAutoPay armed it. No seat selected that

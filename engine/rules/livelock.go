@@ -467,7 +467,10 @@ func (w *livelockWatcher) observeFrom(ev *events.Event, damageSource state.ObjID
 		w.unshare()
 	}
 	sig := eventSignature(ev)
-	if ev.Kind == events.Damage && damageSource != 0 {
+	// Each damage dealer's own events are its own signature, its lifelink gain
+	// (CR 510.2 deals one step's combat damage at once) included: a thousand
+	// blocked lifelinkers are a finite batch of alternating gains, not a loop.
+	if (ev.Kind == events.Damage || ev.Kind == events.LifeChange) && damageSource != 0 {
 		sig = sigMix(sig, uint64(damageSource)|livelockDamageTag)
 	}
 	if mintingKinds.has(ev.Kind) {

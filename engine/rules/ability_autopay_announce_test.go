@@ -98,3 +98,54 @@ func apaAnnouncementChoice(d *decision.Decision, drone state.ObjID) []int {
 	}
 	return []int{d.Options[0].Index}
 }
+
+// A witness no seat chose stops without a fallback: tapping fewer waterbend
+// helpers than it priced leaves mana only a land with an activation fee can finish,
+// which no plan funds, and the payer gets the ordinary window.
+func TestAbilityAutoPayOutdatedByHelpersOpensThePlainWindow(t *testing.T) {
+	t.Parallel()
+	e, _, _ := newFixtureDeck(t, 9700, ppFiller)
+	toMain1(t, e)
+	e.paidManaCensus = true
+	src := onBoard(t, e, 0, "Name:Bending Rite\nTypes:Artifact\nA:AB$ GainLife | Cost$ Waterbend<4> | LifeAmount$ 1 | SpellDescription$ x\nOracle:x\n")
+	for range 2 {
+		e.G.Obj(onBoard(t, e, 0, apaForest)).SummonSick = false
+	}
+	e.G.Obj(onBoard(t, e, 0, "Name:Filter Land\nTypes:Land\nA:AB$ Mana | Cost$ 1 T | Produced$ G | Amount$ 2 | SpellDescription$ x\nOracle:x\n")).SummonSick = false
+	for range 2 {
+		e.G.Obj(onBoard(t, e, 0, apaDrone)).SummonSick = false
+	}
+	d := ppPriority(t, e)
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == src {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no ability offered: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	if e.cast == nil || e.cast.Payment == nil {
+		t.Fatalf("no witness armed: %+v", e.cast)
+	}
+	for i := 0; ; i++ {
+		d = e.Pending()
+		if d == nil || i == 8 {
+			t.Fatalf("no window: %+v", d)
+		}
+		if d.PaymentFallback != nil {
+			t.Fatalf("payment fell back %+v at %q", *d.PaymentFallback, d.Prompt)
+		}
+		if d.Kind == decision.KChoose && d.Options[len(d.Options)-1].Kind == "done" && d.Options[0].Kind == "activate" {
+			return
+		}
+		var least []int
+		for _, o := range d.Options[:d.Min] {
+			least = append(least, o.Index)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: least}); err != nil {
+			t.Fatalf("answer %q: %v", d.Prompt, err)
+		}
+	}
+}

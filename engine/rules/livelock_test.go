@@ -336,3 +336,45 @@ func TestLivelockDetectMatchesReference(t *testing.T) {
 		}
 	}
 }
+
+// Blocked lifelinkers gain life alternately for each seat, and a gain names no
+// object; each is still its own creature's event (CR 510.2). One pair gaining
+// over and over is still a cycle.
+func TestLivelockWatcherLifelinkBatchIsNotACycle(t *testing.T) {
+	gains := func(w *livelockWatcher, source func(int) state.ObjID) {
+		for i := 0; i < 500; i++ {
+			w.observeFrom(&events.Event{Seq: uint64(i + 1), Kind: events.LifeChange, Player: state.PlayerID(i % 2), Amount: 1}, source(i), 0)
+		}
+	}
+	w := newLivelockWatcher(nil)
+	gains(&w, func(i int) state.ObjID { return state.ObjID(1000 + i) })
+	w = newLivelockWatcher(nil)
+	defer func() {
+		if _, ok := recover().(*LivelockError); !ok {
+			t.Fatal("one pair's gains over and over did not trip the watcher")
+		}
+	}()
+	gains(&w, func(i int) state.ObjID { return state.ObjID(77 + i%2) })
+}
+
+// Ending a registration does not walk the registrations again, so each of a
+// departed seat's Effects is removed once.
+func TestDepartedSeatsEffectsAreRemovedOnce(t *testing.T) {
+	t.Parallel()
+	e, _, _ := newFixtureDeck(t, 9700, "Name:Filler\nTypes:Sorcery\nOracle:x\n")
+	e.G.Players[1].Lost = true
+	for id := uint32(1); id <= 5; id++ {
+		e.G.Delayed = append(e.G.Delayed, state.DelayedTrigger{ID: id, Controller: 1, EventMode: "ChangesZone", EffectRepeat: true})
+	}
+	from := len(e.L.Events)
+	e.emit(events.Event{Kind: events.Note, Text: "any event"})
+	removed := 0
+	for _, ev := range e.L.Events[from:] {
+		if ev.Kind == events.DelayedRemove {
+			removed++
+		}
+	}
+	if removed != 5 || len(e.G.Delayed) != 0 {
+		t.Fatalf("%d removals, %d left; want 5 and 0", removed, len(e.G.Delayed))
+	}
+}

@@ -921,11 +921,13 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	}
 	// An Effect-created trigger may name any registered event mode (damage,
 	// attacks, taps, etc.), not only the delayed modes with a matcher of
-	// their own, so a live EffectRepeat registration widens the event gate.
+	// their own, so a live EffectRepeat registration widens the event gate. A
+	// removal never fires one, and the walk that issued it already holds every
+	// registration it is ending, so walking again would only end them twice.
 	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone || ev.Kind == events.MonarchChange ||
 		ev.Kind == events.ControlChange || ev.Kind == events.Damage || ev.Kind == events.DeclareAttackers ||
 		(ev.IsActivationMint() && len(e.G.Delayed) > 0) ||
-		e.hasEffectRepeatDelayed() {
+		(ev.Kind != events.DelayedRemove && e.hasEffectRepeatDelayed()) {
 		e.checkEventDelayedTriggers(*ev, lki)
 	}
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the one
