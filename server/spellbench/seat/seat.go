@@ -44,6 +44,10 @@ const (
 	// archtest clock rule allows only the host and named tools to read it).
 	startupMS     = 300000
 	startupBudget = startupMS * 1_000_000
+
+	// gameOverGrace bounds how long a finished match waits for the agent to
+	// read game_over and answer, in nanoseconds like startupBudget.
+	gameOverGrace = 1_000_000_000
 )
 
 var (
@@ -89,6 +93,9 @@ type Agent struct {
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
 	reader *wire.Reader
+	// abort unblocks a write or read in flight when a round trip's deadline
+	// passes, even if a process the agent started still holds the pipes.
+	abort func()
 }
 
 // New builds a v2 agent seat. argv is the agent command line; the first
@@ -235,6 +242,7 @@ func (a *Agent) start() error {
 		go func() { outW.CloseWithError(a.serve(inR, outW)); inR.Close() }()
 		a.stdin = inW
 		a.reader = wire.NewReader(outR)
+		a.abort = func() { inW.Close(); outR.Close() }
 		return nil
 	}
 	cmd := exec.CommandContext(a.ctx, a.argv[0], a.argv[1:]...)
@@ -254,6 +262,7 @@ func (a *Agent) start() error {
 	a.cmd = cmd
 	a.stdin = stdin
 	a.reader = wire.NewReader(stdout)
+	a.abort = func() { _ = cmd.Process.Kill(); _ = stdin.Close(); _ = stdout.Close() }
 	return nil
 }
 
@@ -415,12 +424,10 @@ func (a *Agent) roundTrip(ctx context.Context, req any) ([]byte, error) {
 	}
 	// The deadline covers the WRITE as well as the read: a child that never
 	// drains its stdin blocks Write, not ReadBytes, and the handshake budget
-	// must still end it. Killing the process unblocks both sides.
-	if ctx != nil {
-		if cmd := a.cmd; cmd != nil && cmd.Process != nil {
-			stopKill := context.AfterFunc(ctx, func() { _ = cmd.Process.Kill() })
-			defer stopKill()
-		}
+	// must still end it.
+	if ctx != nil && a.abort != nil {
+		stopAbort := context.AfterFunc(ctx, a.abort)
+		defer stopAbort()
 	}
 	if _, err := a.stdin.Write(append(b, '\n')); err != nil {
 		if ctx != nil && ctx.Err() != nil {
@@ -451,7 +458,7 @@ func (a *Agent) stop() {
 	if a.cmd != nil {
 		_ = a.cmd.Wait()
 	}
-	a.stdin, a.reader, a.cmd = nil, nil, nil
+	a.stdin, a.reader, a.cmd, a.abort = nil, nil, nil, nil
 }
 
 // Decide answers one gorge decision. Once the agent has forfeited, a priority
@@ -797,8 +804,10 @@ func (a *Agent) fallbackAnswer(ctx context.Context, v view.View, d decision.Deci
 	return mapping.Intent(&d)
 }
 
-// EndMatch sends the v2 game_over notice (when the process is still alive)
-// and stops the agent process. A forfeited seat reports classification
+// EndMatch sends the v2 game_over notice (when the process is still alive),
+// waits at most gameOverGrace for any answer, and stops the agent process. The
+// answer can't change a finished match, so it isn't checked, and a cancelled
+// match context ends the wait at once. A forfeited seat reports classification
 // "forfeit" with its cause, overriding the host's natural result.
 func (a *Agent) EndMatch(result bots.MatchResult) {
 	a.mu.Lock()
@@ -841,9 +850,9 @@ func (a *Agent) EndMatch(result bots.MatchResult) {
 				Winner:         wp,
 			},
 		}
-		if b, err := json.Marshal(req); err == nil {
-			_, _ = a.stdin.Write(append(b, '\n'))
-		}
+		ctx, cancel := context.WithTimeout(a.ctx, gameOverGrace)
+		defer cancel()
+		_, _ = a.roundTrip(ctx, req)
 	}
 	a.stop()
 }

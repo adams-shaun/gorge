@@ -176,7 +176,8 @@ gorged -vsbot -sb-agent mybot=/path/to/mybot
 
 The name must match `^[a-z0-9-]+$` and must not collide with a registered policy. The path must be
 executable. gorged runs it directly, with no shell and no arguments (put arguments in a wrapper
-script), discards its stderr, starts one process per seat per match and stops it at match end. The agent
+script), discards its stderr, starts one process per seat per match and stops it at match end, after
+[`game_over`](#game_over-ack). The agent
 becomes a bot policy, so `POST /api/games` with `"bot_policy":"mybot"` plays against it; see
 [Bot-vs-bot games](../guide/bot-games.md) for matches between policies. The policy is two-seat,
 constructed-only and needs automatic mana. The adapter reads gorge's own engine: on a table whose engine
@@ -257,7 +258,7 @@ enough.
 | `hello_ok` field | gorge's value | Meaning |
 |---|---|---|
 | `protocol_minor` | `0` | the minor version gorge speaks |
-| `engine` | `name` `gorge`; `version` `gorge-<rev>/spellbench-adapter-0.1.0`, with `/autopay` appended under auto-pay; `rules_snapshot_id` `gorge/<rev>/ir-<compiler fingerprint>`; `card_pool_identity` `forge-<corpus ref>/corpus-<hash>/catalog-<hash>`; `source_revision` from `-source-revision`, else `null` | identifies the build, rules and card pool. `<rev>` is the first 12 characters of the module version or the VCS revision |
+| `engine` | `name` `gorge`; `version` `gorge-<rev>/spellbench-adapter-0.1.0`, with `/autopay` appended under auto-pay; `rules_snapshot_id` `gorge/<rev>/ir-<compiler fingerprint>`; `card_pool_identity` `forge-<corpus ref>/corpus-<hash>/catalog-<hash>`; `source_revision` from `-source-revision`, else `null` | identifies the build, rules and card pool. `<rev>` is the first 12 characters of the commit, with `+dirty` for a build from a modified tree; a tagged module version is printed whole |
 | `formats` | `["pauper-bo1"]` | the only format `reset` accepts |
 | `deck_sources` | `["catalog"]` | gorge plays catalog decks, never a pasted decklist |
 | `catalog` | Wildfire, Rally, Spy, Burn, CawGates | `catalog_id`, `name`, `decklist` |
@@ -589,9 +590,11 @@ The agent doesn't echo the semantic; the host does.
 ### game_over → ack
 
 Tells the agent the game ended. Schema: [`$defs/game_over`](schemas/spellbench-v2/requests.schema.json).
-`terminal` is `{classification, outcome, reason, seat_step_count, winner}`. gorged's seat writes it and stops the
-process at once, without reading the `ack`, so the line is best effort and often lost: the process can die before reading it. Don't keep state you can only
-flush on `game_over`. What an agent that did read it saw, after forfeiting:
+`terminal` is `{classification, outcome, reason, seat_step_count, winner}`. gorged's seat writes it, gives the agent
+up to 1,000 ms to read it and answer, then kills the process. The kill comes as soon as the answer arrives, so finish
+any work before answering. The answer's content isn't checked and can't change the result. A host shutting down, which
+cancels the match, doesn't wait, and an agent that has already died or timed out doesn't get the line. What an agent
+saw after forfeiting:
 
 ```json
 {"request_type":"game_over","protocol":"spellbench/v2","request_id":"r-6","game_id":"g-4eb9ed22ea3d3dad","terminal":{"classification":"forfeit","outcome":"p0_win","reason":"forfeit:agent_error","seat_step_count":2,"winner":"p0"}}
