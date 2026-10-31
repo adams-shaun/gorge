@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -96,6 +97,8 @@ func (r recTap) MatchRewound(e any) {
 	}
 }
 
+var nativeInLog = regexp.MustCompile(`#[0-9]|answers [a-z_]+:`)
+
 func TestSBV2ExtensionCarriesLogLabelsPlans(t *testing.T) {
 	const seed = 3000
 	reg := testutil.CorpusRegistry(t)
@@ -179,6 +182,11 @@ func TestSBV2ExtensionCarriesLogLabelsPlans(t *testing.T) {
 		}
 		if len(ext.Log) > 0 {
 			sawLog = true
+		}
+		for _, line := range ext.Log {
+			if nativeInLog.MatchString(line) {
+				t.Fatalf("decision %d: log line carries a native id: %q", decisions, line)
+			}
 		}
 		if len(ext.Labels) != len(doc.Request.Decision.Candidates) {
 			t.Fatalf("decision %d: %d labels for %d candidates", decisions, len(ext.Labels), len(doc.Request.Decision.Candidates))
