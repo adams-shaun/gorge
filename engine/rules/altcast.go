@@ -477,23 +477,24 @@ func (e *Engine) mayhemCastCost(id state.ObjID) (Cost, bool) {
 }
 
 // mayhemDiscardedThisTurn is Mayhem's provenance gate ("if you discarded it
-// this turn"): some events.IsDiscard move of id since the last TurnChange
-// naming p as the discarder -- the ordinary discard by its Player field, the
-// cost form (events.DiscardCost carries no Player) by the card's owner,
-// since a cost discard is paid from the payer's own hand (CR 118.2a, the
-// same read CardsDiscardedThisTurn takes). Log-derived so a replayed game
-// derives the same answer, like warpRecastAvailable and
-// foretellCastAvailable; the last TurnChange bounds the window, so a card
-// discarded LAST turn has no offer even while it still sits in the
-// graveyard.
+// this turn"): id's last move since the last TurnChange is an events.IsDiscard
+// move naming p as the discarder -- the ordinary discard by its Player field,
+// the cost form (events.DiscardCost carries no Player) by the card's owner,
+// since a cost discard is paid from the payer's own hand (CR 118.2a, the same
+// read CardsDiscardedThisTurn takes). Only the last move counts: a card that
+// left the graveyard and came back is a new object nobody discarded (CR 400.7).
+// Log-derived so a replayed game derives the same answer, like
+// warpRecastAvailable and foretellCastAvailable; the last TurnChange bounds the
+// window, so a card discarded LAST turn has no offer even while it still sits
+// in the graveyard.
 func (e *Engine) mayhemDiscardedThisTurn(p state.PlayerID, id state.ObjID) bool {
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			return false
 		}
-		if ev.Obj == id && events.IsDiscard(ev) && events.Discarder(e.G, ev) == p {
-			return true
+		if ev.Kind == events.MoveZone && ev.Obj == id {
+			return events.IsDiscard(ev) && events.Discarder(e.G, ev) == p
 		}
 	}
 	return false
