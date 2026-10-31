@@ -84,7 +84,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 113.1-113.3d | follows | `engine/cards/ir.go#SA` | - | ability IR categories |
 | 113.4 | follows | `engine/rules/mana_activation.go#Engine.activateMana` | - |  |
 | 113.5 | follows | `engine/rules/legal_loyalty.go#Engine.loyaltyAbilityLimit` | `TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly` | - |
-| 113.6 | unknown | - | - | not reached |
+| 113.6 | partial | `engine/rules/layers_static.go#Engine.stackSelfStaticOK` | `TestSpellOnTheStackGrantsNoStatic` | a spell's static functions on the battlefield unless it names the stack; the other subrules not reached |
 | 113.7a | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` `engine/rules/pile.go#abilityOwnedFace` | `TestNegatedCopiedSpellTriggersCountExiledCard` `TestActivatedAbilityResolvesWithItsFacesSVars` | an ability object's stack exit is not a card changing zones |
 | 113.7b-113.12 | unknown | - | - | not reached |
 | 114.1-114.5 | follows | `engine/effects/effect.go#effEffect` | `TestKaitoEmblemOutlivesKaito` `TestTezzeretCruelCaptainEmblemFiresEveryCombat` `TestEffectPhaseTriggerRecursEachUpkeep` | an Effect's Mode$ Phase trigger recurs at every occurrence for the Effect's lifetime (OneOff$ True and a self-exiling body end it) |

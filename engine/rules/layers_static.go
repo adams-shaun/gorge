@@ -12,21 +12,19 @@ import (
 
 // stackSelfStaticOK admits a printed Continuous static with NO EffectZone$
 // whose SOURCE sits on the stack, when the static's own text scopes itself to
-// the stack (an IsPresent$/PresentZone$ or AffectedZone$ naming Stack).
-// effectZoneOK's default admission is the battlefield -- right for a
-// permanent's continuous statics, wrong for a spell's own on-the-stack
-// static: Molten Disaster's kicked split second (IsPresent$ Card.Self+kicked
-// | PresentZone$ Stack) names the stack as the zone it functions from, and
-// CR 113.6 has it live exactly there, while an unqualified lord static (a
-// creature spell's "creatures you control get +1/+1") still stays
-// battlefield-only. PresentZone$ is a comma list in the grammar, hence the
+// the stack by an IsPresent$/PresentZone$ naming it. effectZoneOK's default
+// admission is the battlefield -- right for a permanent's continuous statics,
+// wrong for a spell's own on-the-stack static: Molten Disaster's kicked split
+// second (IsPresent$ Card.Self+kicked | PresentZone$ Stack) names the stack as
+// the zone it functions from. AffectedZone$ Stack does not count: it says what a
+// static affects, and "spells you cast have cascade" functions only from the
+// battlefield (CR 113.6). PresentZone$ is a comma list in the grammar, hence the
 // substring read.
 func (e *Engine) stackSelfStaticOK(st cards.Static, o *state.Object) bool {
 	if o == nil || o.Zone != state.ZStack || st.ParamStr(cards.PKEffectZone) != "" {
 		return false
 	}
-	return strings.Contains(st.ParamStr(cards.PKPresentZone), "Stack") ||
-		st.ParamStr(cards.PKAffectedZone) == "Stack"
+	return strings.Contains(st.ParamStr(cards.PKPresentZone), "Stack")
 }
 
 // continuousGateKeys are the keys continuousGateHolds reads to decide

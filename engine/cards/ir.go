@@ -227,7 +227,7 @@ var typeStaticParams = [...]string{"AddType", "AddTypes", "AddAllCreatureTypes",
 // half over-approximates rules' zone gate (chars.StaticZoneAdmits ||
 // stackSelfStaticOK): with no EffectZone$ and no ExcludeZone$ a static is
 // battlefield-only, unless it is the stack-self shape (PresentZone$ naming
-// Stack, or AffectedZone$ Stack). An AddStaticAbility$ grant's inner static
+// Stack). An AddStaticAbility$ grant's inner static
 // is only reached once the OUTER static passed that same gate, so the outer
 // static's zone keys decide for it too.
 func staticMayChangeTypes(st *Static) (has, offBF bool) {
@@ -252,11 +252,11 @@ func staticMayChangeTypes(st *Static) (has, offBF bool) {
 // zone gate (chars.StaticZoneAdmits || stackSelfStaticOK) for a source NOT on the
 // battlefield: with no EffectZone$ and no ExcludeZone$ key, chars.StaticZoneAdmits
 // admits only the battlefield, and stackSelfStaticOK needs PresentZone$
-// naming Stack or AffectedZone$ Stack.
+// naming Stack.
 func staticMayFunctionOffBattlefield(st *Static) bool {
 	ez := st.HasParam(PKEffectZone)
 	xz := st.HasParam(PKExcludeZone)
-	return ez || xz || strings.Contains(st.ParamStr(PKPresentZone), "Stack") || st.ParamStr(PKAffectedZone) == "Stack"
+	return ez || xz || strings.Contains(st.ParamStr(PKPresentZone), "Stack")
 }
 
 // deriveTypeStatics binds the layer-4 static probe to the face's current
@@ -317,7 +317,7 @@ func (f *Face) typeStaticsCurrent() bool {
 // ContinuousStaticsMayFunctionOffBattlefield reports whether any of the face's
 // Mode$ Continuous statics could pass rules' source-zone gate while its object
 // is in a zone other than the battlefield (an EffectZone$ or ExcludeZone$
-// key, or the stack-self PresentZone$/AffectedZone$ Stack shape). rules'
+// key, or the stack-self PresentZone$ Stack shape). rules'
 // staticEffects skips an off-battlefield object whose face answers false: no
 // static on it could emit. CONSERVATIVE like StaticsMayChangeTypes -- an
 // unbound or stale probe answers true.
