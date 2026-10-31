@@ -8,13 +8,10 @@ who knows Magic can find the code for a rule, and one who does not can see how
 the pieces fit. It assumes you have read [Events and replay](events.md) and
 [Game loop and decisions](game-loop.md).
 
-*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Line
-counts are `wc -l` over non-test files. Code links point at `main`.*
 
 ## The shape of the package
 
-`engine/rules` is the largest package in the repository: 436 non-test files
-and 140,300 lines at the top level, plus 2,713 test files. Around it sit seven
+`engine/rules` is the largest package in the repository. Around it sit seven
 sub-packages that each compute one thing and never hold an engine:
 
 <figure markdown>
@@ -22,31 +19,31 @@ sub-packages that each compute one thing and never hold an engine:
   <rect x="10" y="10" width="760" height="50" rx="6" class="dg-box-accent"/>
   <text x="24" y="32" class="dg-text-bold">rules</text>
   <text x="120" y="32" class="dg-text">turn, step, priority, casting, stack, SBAs, triggers, replacements, layers' lifecycle, Clone</text>
-  <text x="120" y="50" class="dg-text-muted">131,840 lines; implements effects.Host and every sub-package's Board</text>
+  <text x="120" y="50" class="dg-text-muted">implements effects.Host and every sub-package's Board</text>
   <rect x="10" y="68" width="760" height="40" rx="6" class="dg-box"/>
   <text x="24" y="93" class="dg-text-bold">rules/resolve</text>
-  <text x="200" y="93" class="dg-text-muted">716 lines: checkpoint, answer tape, re-execution of a resolution</text>
+  <text x="200" y="93" class="dg-text-muted">checkpoint, answer tape, re-execution of a resolution</text>
   <rect x="10" y="116" width="248" height="56" rx="6" class="dg-box"/>
   <text x="24" y="138" class="dg-text-bold">rules/trigmatch</text>
-  <text x="24" y="158" class="dg-text-muted">5,892 lines: one matcher per Mode$</text>
+  <text x="24" y="158" class="dg-text-muted">one matcher per Mode$</text>
   <rect x="266" y="116" width="248" height="56" rx="6" class="dg-box"/>
   <text x="280" y="138" class="dg-text-bold">rules/combat</text>
-  <text x="280" y="158" class="dg-text-muted">1,939 lines: attack/block legality</text>
+  <text x="280" y="158" class="dg-text-muted">attack/block legality</text>
   <rect x="522" y="116" width="248" height="56" rx="6" class="dg-box"/>
   <text x="536" y="138" class="dg-text-bold">rules/pay</text>
-  <text x="536" y="158" class="dg-text-muted">12,693 lines: mana and payment plans</text>
+  <text x="536" y="158" class="dg-text-muted">mana and payment plans</text>
   <rect x="10" y="180" width="504" height="40" rx="6" class="dg-box"/>
   <text x="24" y="205" class="dg-text-bold">rules/chars</text>
-  <text x="140" y="205" class="dg-text-muted">2,163 lines: the CR 613 layer walk (read-only)</text>
+  <text x="140" y="205" class="dg-text-muted">the CR 613 layer walk (read-only)</text>
   <rect x="522" y="180" width="248" height="40" rx="6" class="dg-box"/>
   <text x="536" y="205" class="dg-text-bold">rules/scriptfacts</text>
-  <text x="660" y="205" class="dg-text-muted">393 lines</text>
+  <text x="660" y="205" class="dg-text-muted"></text>
   <rect x="10" y="228" width="504" height="40" rx="6" class="dg-box"/>
   <text x="24" y="253" class="dg-text-bold">effects (+ params)</text>
-  <text x="180" y="253" class="dg-text-muted">83,311 lines: api: primitives, filters, counts</text>
+  <text x="180" y="253" class="dg-text-muted">api: primitives, filters, counts</text>
   <rect x="522" y="228" width="248" height="40" rx="6" class="dg-box"/>
   <text x="536" y="253" class="dg-text-bold">rules/cost</text>
-  <text x="640" y="253" class="dg-text-muted">4,008 lines (leaf)</text>
+  <text x="640" y="253" class="dg-text-muted">(leaf)</text>
   <rect x="10" y="276" width="760" height="44" rx="6" class="dg-box-muted"/>
   <text x="24" y="303" class="dg-text-bold">events, state, decision, cards</text>
   <text x="300" y="303" class="dg-text-muted">the vocabulary every layer above shares</text>
@@ -57,19 +54,8 @@ implements; nothing below the top band emits an event. <code>internal/archtest</
 pins the imports, and each <code>Board</code>'s method count may only shrink.</figcaption>
 </figure>
 
-Where to look inside `rules` itself (non-test files by name prefix):
-
-| Mechanism | Files | Lines |
-|---|---|---|
-| Casting (`cast*`) | 23 | 14,270 |
-| Triggers (`trigger*`, `triggered_*`) | 32 | 14,794 |
-| Replacement effects (`replace*`) | 24 | 10,195 |
-| Layers (`layer*`) | 12 | 5,881 |
-| Mana (`mana*`) | 11 | 4,152 |
-| Combat (`combat*`) | 4 | 3,378 |
-| State-based actions (`sba*`) | 3 | 2,419 |
-| Turn structure (`turn*`) | 3 | 2,310 |
-| The stack (`stack.go`) | 1 | 1,225 |
+Inside `rules` itself, a mechanism's files share a name prefix: `cast*`, `trigger*` and
+`triggered_*`, `replace*`, `layer*`, `mana*`, `combat*`, `sba*`, `turn*`, and `stack.go`.
 
 ## Casting (CR 601)
 
@@ -212,9 +198,7 @@ player would next receive priority (CR 117.5).</figcaption>
   trigger-interest class from `events/kindinfo.go`, so only faces whose
   triggers could care are examined. The per-mode verdict comes from
   `trigmatch.Match`: a dense table with one matcher per trigger `Mode$`,
-  registered from each mode's file in `rules/trigmatch` (97 of the 102 modes
-  in the `cards.TriggerMode` vocabulary have a matcher, counted with
-  `trigmatch.LookupMode`; a mode with no matcher never fires). Leaves-the-battlefield triggers are matched against
+  registered from each mode's file in `rules/trigmatch` (a mode with no matcher never fires). Leaves-the-battlefield triggers are matched against
   a snapshot of the board from before the event (the CR 603.10a "look back").
 - **Queueing and order.** Matches wait in `pendingTriggers` until
   `priorityRound` calls `putTriggersOnStack`. That sorts them APNAP (active
@@ -443,7 +427,7 @@ fresh ID would make the log harder to read and every cross-zone reference
 (the card a trigger "remembered", the creature an Aura was cast on) a lookup
 through a forwarding table. A stable ID keeps the log and the views simple,
 and the incarnation stamp keeps the rules exact. It also gives a fixed
-mapping from each deck card to one object, which the dirty-dirac oracle relies
+mapping from each deck card to one object, which dirac's oracle relies
 on.
 
 **The game record.** `state.Game`

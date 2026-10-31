@@ -174,7 +174,7 @@
     "cmd/kcensus": {
       "tier": "cmd",
       "status": "TOOL",
-      "purpose": "Mechanic census of a deck pool against the compiled IR, for the dirty-dirac kernel's card planning."
+      "purpose": "Mechanic census of a deck pool against the compiled IR, for dirac's card planning."
     },
     "cmd/keywordbench": {
       "tier": "cmd",

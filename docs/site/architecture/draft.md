@@ -132,6 +132,4 @@ sequenceDiagram
 ```
 
 With `-events` off, none of this runs. The server keeps its plain deck loader and options,
-and never creates `<dir>/events`. Linking the tree adds about 1.7 MB (4.7 %) to
-`cmd/gorged`'s binary and about a quarter of a millisecond to its init, measured with
-`GODEBUG=inittrace=1`; nothing else changes.
+and never creates `<dir>/events`.

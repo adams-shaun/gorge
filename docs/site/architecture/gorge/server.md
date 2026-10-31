@@ -1,34 +1,37 @@
 # The server tier
 
-The engine is a library: it runs one game when something calls `Advance` and
-`Submit`. Package `server/host` is that something for real play. It keeps
+An engine is a library: it runs one game when something asks it the next decision and
+submits the answer. Package `server/host` is that something for real play. It keeps
 tables running, seats bots and humans, persists every match as an
 append-only log, and fans events out to connected clients. This page
 describes that architecture: how a table drives its engine, where locks and
 goroutines are, what is written to disk and how clients are fed. To run a
-server, see [Getting started](../../getting-started.md); the HTTP API and the
-bot interfaces have their own pages in the user's and bot author's guides.
+server, see [Getting started](../../getting-started.md); the
+[API reference](../../api/index.md) and the [bots section](../../bots/index.md) have the interfaces.
 
-*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Line
-counts are `wc -l` over non-test files. Code links point at `main`.*
 
 ## Packages
 
-| Package | Lines | Role |
-|---|---|---|
-| [`server/host`](https://github.com/adams-shaun/gorge/blob/main/server/host/doc.go) | 9,422 | the table registry, the match loop, seats, persistence, fan-out, undo, history |
-| `server/host/httpapi` | 1,368 | REST routes and the server-sent event (SSE) stream over `host.Registry` |
-| `server/protocol` | 758 | wire types only: frames, snapshots, events; never imports `rules` |
-| `server/gorged` | 5,358 | the importable server: flags, wiring, seat tokens, extension points |
-| `cmd/gorged` | | a thin `main`: `os.Exit(gorged.Main(os.Args[1:], extensions()))`, where `extensions()` names the [draft-event plugin](../draft.md) and the loader `gorged review` uses |
+| Package | Role |
+|---|---|
+| [`server/host`](https://github.com/adams-shaun/gorge/blob/main/server/host/doc.go) | the table registry, the match loop, seats, persistence, fan-out, undo, history |
+| `server/host/httpapi` | REST routes and the server-sent event (SSE) stream over `host.Registry` |
+| `server/host/manabrewhttp`, `server/host/sbv2http` | the ManaBrew and SpellBench v2 routes ([Wires](../wires.md)) |
+| `server/protocol` | wire types only: frames, snapshots, events; never imports `rules` |
+| `server/manabrew`, `server/spellbench/*` | the ManaBrew and SpellBench v2 adapters |
+| `server/matchrecord` | the portable one-file record of a played game that `gorged review` serves |
+| `server/divergence` | records of where a human and a bot would have chosen differently |
+| `server/gorged` | the importable server: flags, wiring, seat tokens, extension points |
+| `cmd/gorged` | a thin `main`: `os.Exit(gorged.Main(os.Args[1:], extensions()))`, where `extensions()` names the [draft-event plugin](../draft.md) and the loader `gorged review` uses |
 
 The package doc of `server/host` is a good summary of its intent: "one
 goroutine per table that plays match after match with bot seats, sessions
 that subscribe to overview widgets or a focused table's event stream,
 turn-start snapshots that answer 'view at seq N', append-only persistence,
 and crash handling that halts a table rather than hiding a bug. It imports
-rules and seat but exposes neither." It is also the first package allowed to
-import `time`, and the only clock it uses is an injected `Sleep`.
+rules and seat but exposes neither." The only clock it uses is an injected `Sleep`.
+Each table runs on an engine through the [`engine/game`](../index.md#the-engine-seam)
+interfaces: `Options.Engines` holds what the binary links and `TableConfig.Engine` picks one.
 
 ## Tables and matches
 
@@ -39,7 +42,7 @@ flowchart LR
     T1["table A<br/>(own goroutine)"]
     T2["table B<br/>(own goroutine)"]
   end
-  T1 --> M1["match k<br/>rules.Engine + log"]
+  T1 --> M1["match k<br/>game.Game + log"]
   M1 --> M1b["match k+1 ..."]
   Registry --> S["sessions<br/>(SSE subscribers)"]
   Registry --> D[("persistence dir<br/>tables.json, per-match logs")]
@@ -50,7 +53,7 @@ policies, which seats are human, spectator visibility, whether it is
 perpetual or part of a series) plus a goroutine. `Registry.Start` launches
 `run`, which loops: build a match, mark it live, play it, retire it, then
 either stop (single-shot, aborted, crashed) or wait out a cooldown and start
-the next one (perpetual). A **match** owns one `rules.Engine`, its files and
+the next one (perpetual). A **match** owns one `game.Game`, its files and
 its turn-start snapshots.
 
 Each match's seed is `MatchSeed(tableSeed, k)`, a splitmix64 mix of the
@@ -63,10 +66,10 @@ function of its configuration".
 sequenceDiagram
   autonumber
   participant Run as table goroutine (play)
-  participant Eng as rules.Engine
+  participant Eng as game.Game
   participant Seat as seat (bot or HumanSeat)
   participant Out as persistence + fan-out
-  Run->>Eng: NewStartingPlayerChoice(cfg), AskStartingPlayer, Advance
+  Run->>Eng: Engine.New(cfg)
   loop until the game is over
     Note over Run,Eng: under match.mu (exclusive)
     Run->>Eng: Pending()
@@ -83,8 +86,8 @@ sequenceDiagram
   end
 ```
 
-- **Genesis.** A match starts with `rules.NewStartingPlayerChoice`, poses the
-  starting-player decision and runs `Advance`; with persistence on, the
+- **Genesis.** A match starts with `Engine.New`, which builds the game and runs it
+  to its first decision; with persistence on, the
   sidecar and the genesis events are written before the first decision.
 - **Projection for the right kind of seat.** `projectNext` reads the pending
   decision and builds what that seat consumes: a `view.View` (humans and most
@@ -138,7 +141,7 @@ With a data directory configured, each match writes three files under
 
 and `tables.json` holds each table's configuration and current match number.
 Sidecars carry no timestamp. A finished match is served by
-`replay.Replay(log, cfg)` with the config rebuilt from its sidecar, so the
+`Engine.Replay(log, cfg)` with the config rebuilt from its sidecar, so the
 server keeps no finished engine in memory.
 
 !!! note "No resume"
@@ -170,21 +173,19 @@ flowchart LR
   `POST .../intent` and `.../undo`. The view is projected in seat mode and
   carries the decision only for that seat at the live head
   ([Views](views.md#what-the-server-checks)).
-- **Frames** are a small closed set (`hello`, `widget`, `match_start`,
-  `snapshot`, `event`, `decision`, `match_end`, `table_halted`,
-  `table_state`, `overflow`, `error`, `rewind`, plus four draft-event frames
-  that only an events plugin sends) in a versioned envelope; the TypeScript
-  client's types are generated from the Go structs.
+- **Frames** are a small closed set (`FrameType` in `server/protocol`) in a
+  versioned envelope, including four draft-event frames that only an events plugin
+  sends; the TypeScript client's types are generated from the Go structs.
 
 ## History and undo
 
 The host clones the engine at every turn start. A request for the board at
 an earlier point (`ViewAt`) starts from the nearest snapshot (or from genesis
-with `replay.ReplayTo`) and re-submits the logged intents up to the requested
+with `Engine.ReplayTo`) and re-submits the logged intents up to the requested
 point.
 
 Undo is a **rewind in place, never a fork**: the engine is rebuilt at the
-requester's last decision with `replay.ReplayTo`, swapped into the live
+requester's last decision with `Engine.ReplayTo`, swapped into the live
 match, and the log is truncated in memory and on disk; snapshots past the new
 head are dropped and a `rewind` frame tells clients to discard later state.
 The seed is not changed, because reseeding "would fork the hash chain and
@@ -200,9 +201,10 @@ binary:
 - `gorged.Main(args, ext)` parses flags, listens and serves until a signal;
   `Serve` is the same without signals or the bind, for tests.
 - `gorged.Extensions` is what a binary links in beyond the platform: an
-  events plugin (organised events such as drafts), extra flags, and the
-  loader `gorged review` uses to turn a saved game into a recorded match.
-  gorge's own `cmd/gorged` sets the events plugin and the review loader.
+  events plugin (organised events such as drafts), extra flags, the
+  loader `gorged review` uses to turn a saved game into a recorded match,
+  and further engines for `-engine`. gorge's own `cmd/gorged` sets the events
+  plugin and the review loader.
 - `gorged.RegisterNetBot` and `RegisterClosedNetBot` link trained-network bot
   policies into the binary before `Main` runs; bot policies in general come
   from the `bots` registry.

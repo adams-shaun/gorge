@@ -9,8 +9,6 @@ paid. For the step-by-step contributor workflow (fetch, compile, find a
 missing primitive, fix a card), see [The card pipeline](../../contributing/card-pipeline.md)
 and [Your first card fix](../../contributing/first-card-fix.md).
 
-*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Code links
-point at `main`.*
 
 ## From script to running effect
 
@@ -64,26 +62,25 @@ measure coverage statically, dispatch at run time.</figcaption>
 
 ## Fetching and compiling
 
-`cmd/forgec` has four subcommands (`fetch`, `compile`, `report`, `coverage`).
-The Makefile wraps the first three:
+`cmd/forgec` has four subcommands, and the Makefile wraps them:
 
 ```sh
 make fetch-cards     # forgec fetch -dir .cards -repo $(FORGE_REPO) -ref $(FORGE_REF)
 make compile-cards   # forgec compile -dir .cards
 make report          # forgec report -dir .cards
+make coverage        # forgec coverage -dir .cards -out .coverage
 ```
 
 `fetch` does a sparse clone of the card and token folders from gorge's Forge
-fork at the pinned commit (`FORGE_REF` in the Makefile, currently
-`91402ac511046c0b7ed0bb691a8a446ca7dfc873`) and writes `.cards/cards.lock`.
+fork at the pinned commit (`FORGE_REF` in the Makefile) and writes `.cards/cards.lock`.
 Pinning matters: the corpus is input to every golden replay, so a corpus bump
 is a deliberate change, never a side effect of upstream moving.
 
-`make report` on `25d71cadc` (2026-10-27) printed:
+`make report` on 2026-10-31 printed:
 
 ```text
 corpus: 91402ac511046c0b7ed0bb691a8a446ca7dfc873 @ 91402ac511046c0b7ed0bb691a8a446ca7dfc873 (GPL-3.0, 34074 files)
-cards: 34074  playable: 32337 (94.9%)
+cards: 34074  playable: 32390 (95.1%)
 tokens: 854
 
 top missing primitives (cards unlocked):
@@ -216,8 +213,9 @@ the rules core reads them directly.
 
 ### The IR cache
 
-Compiling 34,074 scripts takes a while, and every test binary needs the
-corpus, so the result is cached at `.cards/ir-<fingerprint>.gob.gz`:
+Compiling the corpus takes a while, and every test binary needs it, so the
+result is cached at `.cards/ir-<fingerprint>.gob.gz`, with a binary image of the
+same corpus beside it, `.cards/ir-<fingerprint>.seg`:
 
 - **The fingerprint** (`cards.CompilerFingerprint`,
   [`engine/cards/fingerprint.go`](https://github.com/adams-shaun/gorge/blob/main/engine/cards/fingerprint.go))
@@ -232,8 +230,8 @@ corpus, so the result is cached at `.cards/ir-<fingerprint>.gob.gz`:
   rebuilt. An exclusive advisory lock beside the cache stops dozens of test
   binaries from recompiling at once; the write is temp-file-plus-rename
   either way.
-- **Loading** keeps an immutable, pointer-free image of the corpus resident
-  and materialises a `*cards.Card` only when something first looks it up. The
+- **Loading** keeps the immutable, pointer-free image resident (rebuilt in memory
+  when `.cards` is read-only) and materialises a `*cards.Card` only when something first looks it up. The
   garbage collector then scans the cards in play, not the whole corpus.
 
 ## Primitives
@@ -244,22 +242,19 @@ walks a face's abilities, sub-ability chains, SVars, triggers, statics,
 replacements and keywords and lists them as prefixed labels. The Ember
 Courier above needs `kw:Haste`, `trig:ChangesZone` and `api:DealDamage`.
 
-Measured by a scratch program that calls `effects.Supported()` with
-`engine/rules` linked in (2026-10-27, `25d71cadc`):
+`effects.Supported()` returns what this build implements, in the same form:
 
-| Prefix | From | Implemented where | Registered |
-|---|---|---|---|
-| `api:` | `SP$`/`AB$`/`DB$ <Name>` | an `effects.Effect` function, `effects.Register` | 169 |
-| `trig:` | `T:Mode$ <Mode>` | `engine/rules` and `rules/trigmatch`, declared with `RegisterNonAPI` | 99 |
-| `stat:` | `S:Mode$ <Mode>` | `engine/rules` (statics, layers), `RegisterNonAPI` | 54 |
-| `repl:` | `R:Event$ <Event>` | `engine/rules` replacement code, `RegisterNonAPI` | 24 |
-| `kw:` | `K:<Keyword>` | `engine/rules`, or an expander in `engine/cards` | 185 |
-| `count:` | a `Count$<Head>` value an SVar reads | the evaluator in `engine/effects/count*.go` | 201 |
-| | | **total** | **732** |
+| Prefix | From | Implemented where |
+|---|---|---|
+| `api:` | `SP$`/`AB$`/`DB$ <Name>` | an `effects.Effect` function, `effects.Register` |
+| `trig:` | `T:Mode$ <Mode>` | `engine/rules` and `rules/trigmatch`, declared with `RegisterNonAPI` |
+| `stat:` | `S:Mode$ <Mode>` | `engine/rules` (statics, layers), `RegisterNonAPI` |
+| `repl:` | `R:Event$ <Event>` | `engine/rules` replacement code, `RegisterNonAPI` |
+| `kw:` | `K:<Keyword>` | `engine/rules`, or an expander in `engine/cards` |
+| `count:` | a `Count$<Head>` value an SVar reads | the evaluator in `engine/effects/count*.go` |
 
-(165 of the 169 `api:` labels are `Register` calls in `engine/effects`; the
-other four are replacement helpers in `engine/rules` declared with
-`RegisterNonAPI`.) `forgec report` also checks `shape:` labels: a script
+A few `api:` labels are replacement helpers in `engine/rules` declared with
+`RegisterNonAPI`. `forgec report` also checks `shape:` labels: a script
 *shape* whose body the engine deliberately declines at run time.
 
 ### Registering an effect
@@ -357,17 +352,15 @@ it, and two ratchets in `engine/rules` hold the repository's own decks to it:
 - `TestEveryRepoDeckIsFullySupported` compares every repo deck card's gap
   with a per-card file in `engine/rules/testdata/known-unsupported/` **in
   both directions**: a newly unsupported card fails, and so does a stale entry
-  for a card that is now supported. On `25d71cadc` the directory holds two
-  files (Incinerate, `stat:CantRegenerate`; Vines of Vastwood,
-  `stat:CantTarget`).
+  for a card that is now supported.
 - `TestEveryRepoDeckParamsAreRead` (the *param census*) catches the subtler
   gap: a primitive that is registered but ignores one of the card's
   parameters. It parses the `engine/effects` and `engine/rules` sources,
   derives every `Params["Key"]` read, attributes it to a primitive, and
   reports `param:<Primitive>.<Key>` for a key nothing reads, plus `cost:` for
-  a cost token the parser does not model. Its baseline lives in
-  `engine/rules/testdata/paramcensus/` (3 files) and is also checked both
-  ways.
+  a cost token the parser does not model. Its baseline is one file per card under
+  `engine/rules/testdata/paramcensus/`, a directory that doesn't exist while nothing is
+  outstanding, and is also checked both ways.
 
 **At run time**, an unregistered API is "loud but harmless":
 

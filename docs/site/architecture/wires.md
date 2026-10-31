@@ -1,13 +1,18 @@
 # Wires
 
-gorge serves three client protocols: its native HTTP API, ManaBrew and SpellBench
-v2. A wire counts as supported only where a test says so, in a gate that fails on
-it. This table is every such cell. A cell is an engine, a wire and the consumer
-reading it.
+gorge serves three client protocols: its native HTTP API, ManaBrew (`gorged -manabrew`)
+and SpellBench v2 (`gorged -sbv2`). This page is for anyone writing a client or changing
+a wire. A wire counts as supported only where a test says so, in a gate that fails on it.
+This table is every such cell. A cell is an engine, a wire and the consumer reading it.
+A number missing from the first column has no test in this repository.
+`testkit/conformance` is the harness: it plays one game through a wire and diffs what two
+sessions read, after a normaliser named per wire removes what that wire documents as
+representation. `TestWireMatrixPageMatchesScript` holds this table to the script.
 
 `scripts/wire-matrix.sh commit|nightly|pr` runs the cells of a tier, one line per
-cell, and exits non-zero if any fails. A skipped test counts as a failure. CI runs
-the `commit` tier as the job `wire-matrix`.
+cell, and exits non-zero if any fails. A skipped test counts as a failure, so it needs
+the corpus. `make wire-matrix` is the `commit` tier, and CI runs that as the job
+`wire-matrix`.
 
 `scripts/wire-nightly.sh` is the nightly run, on a seed that moves each day. It
 plays chunks of games on each wire (`TestConformanceChunk`), fuzzed decks through

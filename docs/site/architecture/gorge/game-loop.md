@@ -6,12 +6,12 @@ something, and how the answer comes back. It is for anyone writing a seat (a
 bot or a client), a driver (a host, a test harness, a simulator), or engine
 code that needs to ask a player a question.
 
-*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Code links
-point at `main`.*
 
 ## The driving contract: Advance, Pending, Submit
 
-A `rules.Engine` exposes three calls to whoever drives it
+A host drives a game through the [`engine/game`](../index.md#the-engine-seam) interfaces,
+and a test or simulator can drive the rules engine directly. A `rules.Engine` exposes three
+calls to whoever drives it
 ([`engine/rules/engine.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/engine.go),
 [`engine_host.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/engine_host.go)):
 
@@ -233,9 +233,7 @@ holds only the interface, so anything can be a seat without importing the
 engine:
 
 ```go
-// Seat is anything that answers decisions: a bot, a scripted test seat, or
-// (later) a WebSocket-backed human. ctx lets a human seat time out; a bot
-// ignores it and never returns an error (Ruling P8).
+// ctx lets a human seat time out; a bot ignores it and never returns an error.
 type Seat interface {
 	Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error)
 }
@@ -343,8 +341,8 @@ the log side.
 
 A fuzzer, a test harness or a seat that has left must never wedge the engine.
 Every asking primitive therefore carries a deterministic fallback that
-completes the resolution (the "R-9" contract in
-[`docs/design/2026-09-22-engine-contracts.md`](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-22-engine-contracts.md)):
+completes the resolution (one of the
+[engine contracts](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-22-engine-contracts.md)):
 a charm takes its first mode, Scry keeps every card on top, a quantity-only
 library search takes the first cards, and so on. The fallback is recorded as
 a `Note` event, so it is visible in the log and replays identically. It is
