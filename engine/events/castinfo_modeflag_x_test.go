@@ -31,3 +31,19 @@ func TestCastInfoModeFlagsKeepX(t *testing.T) {
 		t.Error("the OptionalCostPaid bool was not folded")
 	}
 }
+
+// TestCastInfoManaExpendStoresNothing: the expend wake-up's Amount is the
+// trigger matcher's, read from the event. It carries the flags accumulated by
+// earlier CastInfo events but must not write any field those events set.
+func TestCastInfoManaExpendStoresNothing(t *testing.T) {
+	for _, flag := range []uint64{0, state.FlagReplicated, state.FlagConverged, state.FlagManaSpent} {
+		g, id := gameWithOneCard(t)
+		o := g.Obj(id)
+		o.X, o.ReplicateTimes, o.ConvergeColours, o.ManaSpent = 1, 2, 3, 4
+		Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 9, Counter: FlagsString(flag | state.FlagManaExpendCast)})
+		if o.X != 1 || o.ReplicateTimes != 2 || o.ConvergeColours != 3 || o.ManaSpent != 4 {
+			t.Errorf("flag %v: X=%d ReplicateTimes=%d ConvergeColours=%d ManaSpent=%d, want 1 2 3 4",
+				flag, o.X, o.ReplicateTimes, o.ConvergeColours, o.ManaSpent)
+		}
+	}
+}

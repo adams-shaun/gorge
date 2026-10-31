@@ -114,6 +114,11 @@ func foldCastInfo(g *state.Game, e *Event) {
 		// conspired cast (and StackCopy propagated that onto its copies).
 		case FlagsFrom(e.Counter)&state.FlagConspired != 0:
 			// bool folded above; the Amount is deliberately unused
+		// The expend wake-up's Amount is the mana this cast spent, which the
+		// trigger matcher reads from the event. Nothing folds it. The event
+		// carries the flags accumulated so far, so this arm has to come before
+		// theirs.
+		case FlagsFrom(e.Counter)&state.FlagManaExpendCast != 0:
 		// Offspring, Teamwork and OptionalCostPaid are cast MODE flags: they
 		// ride the main pay-time CastInfo (engine/rules/cast_targets.go's
 		// modeFlags), whose Amount is the cast's X, and every trailing
