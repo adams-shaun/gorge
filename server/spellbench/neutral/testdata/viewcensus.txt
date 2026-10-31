@@ -1,5 +1,5 @@
 own_deck
-pending[]
+pending[]	rare
 players[].archetype
 players[].available
 players[].battlefield[].activated_this_turn
@@ -7,11 +7,14 @@ players[].battlefield[].blocked_by[]
 players[].battlefield[].exiled_cards[]
 players[].battlefield[].id
 players[].battlefield[].keywords[]
+players[].battlefield[].power	rare
 players[].battlefield[].token
+players[].battlefield[].toughness	rare
 players[].command[].id
 players[].command[].keywords[]
 players[].command[].mana_cost
 players[].command[].token
+players[].completed_dungeons	rare
 players[].dungeon
 players[].exile[].exiled_cards[]
 players[].exile[].id
@@ -24,7 +27,8 @@ players[].graveyard[].imprinted[]
 players[].graveyard[].keywords[]
 players[].graveyard[].summon_sick
 players[].graveyard[].token
-players[].graveyard_size
+players[].graveyard_size	rare
+players[].hand[].activated_this_turn	rare
 players[].hand[].effective_mana_cost
 players[].hand[].id
 players[].hand[].keywords[]
@@ -37,15 +41,16 @@ players[].potential_actions[]
 players[].spells_cast_this_turn
 players[].tokens_created_this_turn
 stack[].card
+stack[].card.activated_this_turn	rare
 stack[].card.id
-stack[].card.keywords[]
-stack[].card.summon_sick
+stack[].card.keywords[]	rare
+stack[].card.summon_sick	rare
 stack[].card.token
 stack[].decider
 stack[].id
-stack[].kicks
+stack[].kicks	rare
 stack[].modes[]
-stack[].name
+stack[].name	rare
 stack[].optional
 stack[].source
 stack[].targets[]
