@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/protocol"
 )
@@ -115,8 +116,10 @@ func (r *Registry) SubmitIntentFrom(id TableID, k int, player state.PlayerID, in
 				if m.state != protocol.MatchLive {
 					return fmt.Errorf("host: match %d is %s, nothing pending", k, m.state)
 				}
-				if err := m.e.ValidateCastAnnounce(player, action.Cast); err != nil {
-					return fmt.Errorf("host: announce rejected: %w", err)
+				if pp, ok := m.g.(game.PaymentPlanner); ok {
+					if err := pp.ValidateCastAnnounce(player, action.Cast); err != nil {
+						return fmt.Errorf("host: announce rejected: %w", err)
+					}
 				}
 				return nil
 			})
@@ -127,7 +130,8 @@ func (r *Registry) SubmitIntentFrom(id TableID, k int, player state.PlayerID, in
 		// and verbatim offered witness.  It cannot prove the witness against
 		// the live rules state: it intentionally has no engine dependency.
 		// Do that proof here, before the channel send is allowed to acknowledge
-		// the intent to a parked match.
+		// the intent to a parked match. A game that is no PaymentPlanner has no
+		// such proof, so Validate stands alone.
 		var action *decision.PaymentAction
 		for i := range d.PaymentActions {
 			if d.PaymentActions[i].ID == admitted.Payment.ActionID {
@@ -142,8 +146,10 @@ func (r *Registry) SubmitIntentFrom(id TableID, k int, player state.PlayerID, in
 			if m.state != protocol.MatchLive {
 				return fmt.Errorf("host: match %d is %s, nothing pending", k, m.state)
 			}
-			if err := m.e.ValidateCastPayment(player, action.Cast, admitted.Payment.Plan); err != nil {
-				return fmt.Errorf("host: payment plan rejected: %w", err)
+			if pp, ok := m.g.(game.PaymentPlanner); ok {
+				if err := pp.ValidateCastPayment(player, action.Cast, admitted.Payment.Plan); err != nil {
+					return fmt.Errorf("host: payment plan rejected: %w", err)
+				}
 			}
 			return nil
 		})

@@ -8,6 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -269,7 +270,7 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	// one: its log starts empty-capped and would otherwise climb through
 	// the whole doubling series a second time.
 	e.L.Reserve(defaultExpectedEvents)
-	m.e = e
+	m.setGame(&gorgegame.Game{E: e})
 	for _, s := range seats {
 		if rw, ok := s.(interface{ MatchRewound(any) }); ok {
 			rw.MatchRewound(e)

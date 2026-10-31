@@ -749,13 +749,13 @@ func (r *Registry) retire(t *table, m *match) {
 // snapshot engine it copied out from under the read lock (viewAt).
 // Called with m.mu held for writing, after the match's last event.
 func (m *match) trimLog() {
-	old := m.e.L.Events
+	old := m.g.Log().Events
 	if len(old) == 0 || cap(old) == len(old) {
 		return
 	}
 	evs := make([]events.Event, len(old)) // exact capacity; slices.Clone rounds up
 	copy(evs, old)
-	m.e.L.Events = evs
+	m.g.Log().Events = evs
 	snaps := make([]snapshot, len(m.snaps))
 	for i, s := range m.snaps {
 		snaps[i] = s

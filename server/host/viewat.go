@@ -7,6 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -344,9 +345,11 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		// trimmed recording.
 		l = e.L
 	}
-	return &match{table: t, k: sc.Match, seed: sc.Seed, cfg: cfg, seats: sc.Seats, decks: sc.Decks, e: e,
+	m := &match{table: t, k: sc.Match, seed: sc.Seed, cfg: cfg, seats: sc.Seats, decks: sc.Decks,
 		bounds: boundsOf(l.Events), turnStarts: turnStartsIn(l.Events, 0), state: sc.State, result: sc.Result,
-		winner: sc.Winner, head: sc.Head, reason: sc.Reason}, nil
+		winner: sc.Winner, head: sc.Head, reason: sc.Reason}
+	m.setGame(&gorgegame.Game{E: e})
+	return m, nil
 }
 
 // cutTailReplayed reports whether err — a *replay.Divergence that
