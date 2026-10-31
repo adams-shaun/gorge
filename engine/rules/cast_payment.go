@@ -114,13 +114,46 @@ func (e *Engine) convokeAsk() bool {
 	// mana. It nevertheless makes every creature a possible generic payment;
 	// the subsequent xAsk prices the selected contributions against the real
 	// X total.
+	minTaps := 0
+	if isWaterbend && !isConvoke && !isHarmonize && !isImprovise && !creatureMana {
+		minTaps = e.waterbendTapsNeeded(pc)
+	}
 	return pay.ConvokeAsk(asPayer(e), &pc.CastPayment, &pc.PaidCost, pay.ConvokeOffer{
-		Player: pc.player, Card: pc.card,
+		Player: pc.player, Card: pc.card, MinTaps: minTaps,
 		Convoke: isConvoke, Harmonize: isHarmonize, Improvise: isImprovise, Waterbend: isWaterbend,
 		CreatureMana: creatureMana, SourceTaps: pc.cost.Tap,
 		Mana: e.manaToPay(pc), HasX: pc.cost.X > 0,
 		WaterbendN: pc.mods.Waterbend, WaterbendOpen: pc.mods.RaiseX != 0 || pc.mods.WaterbendX,
 	})
+}
+
+// waterbendTapsNeeded is the fewest taps a fixed waterbend announcement can make
+// and still leave the mana window able to finish (CR 601.2g-h, 701.67a): an answer
+// below it strands the payment. It counts a helper's own mana abilities as if the
+// helper stayed untapped, so it never demands a tap the payment could do without.
+// An unknown amount or an incomplete census asks for none.
+func (e *Engine) waterbendTapsNeeded(pc *pendingCast) int {
+	if pc.cost.X > 0 || pc.mods.WaterbendX || pc.mods.RaiseX != 0 {
+		return 0
+	}
+	units := e.castWindowUnits(pc)
+	if !e.castWindowCensusComplete(pc, units) {
+		return 0
+	}
+	cost := e.manaToPay(pc)
+	pl := &e.G.Players[pc.player]
+	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
+	for n := range min(pc.mods.Waterbend, cost.Generic) + 1 {
+		c := cost
+		c.Generic -= n
+		desc := paymentForCast(pc, c)
+		av := pay.AvailableFor(asPayer(e), pc.player, desc)
+		conv := asEval(e).Conv(pc.player, desc.ID, desc.Class == paymentActivated)
+		if e.castWindowReachable(pc.player, c, av.Pool, pl.Snow, av.Typed, pl.Life, conv, rider, units) {
+			return int(n)
+		}
+	}
+	return 0
 }
 
 func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {

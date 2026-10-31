@@ -38,6 +38,8 @@ type ConvokeOffer struct {
 	// yet known (a Waterbend<X> or an X-raised amount).
 	WaterbendN    int32
 	WaterbendOpen bool
+	// MinTaps is how many contributions the payment can't finish without.
+	MinTaps int
 }
 
 // harmonizePaymentGroup is the one exclusivity group every harmonize option
@@ -190,6 +192,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 	if harmonizeOnly {
 		d.Max = 1
 	}
+	d.Min = min(in.MinTaps, d.Max)
 	e.Ask(AskCast, d)
 	return true
 }
