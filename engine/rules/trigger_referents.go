@@ -229,8 +229,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 	case cards.TriggerDiscardedAll:
 		// The discard batch's roles mirror MilledAll's: the discarded card is
-		// ev.Obj (what ValidCard$ matched) and the discarding player is
-		// ev.Player (what ValidPlayer$ matched), so TriggerPlayer names whose
+		// ev.Obj (what ValidCard$ matched) and the discarding player is what
+		// ValidPlayer$ matched, so TriggerPlayer names whose
 		// discard this was. One discarded card is one event, so TriggerAmount
 		// is 1 per event; the DiscardedAll batch close overrides it with the
 		// batch's matching-card count (the TriggerCount$Amount head Magmakin
@@ -238,7 +238,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// its Remembered/Captured with the discarded set (Pure Intentions'
 		// Defined$ TriggeredCards).
 		c.TriggerCard = ev.Obj
-		c.TriggerPlayer = player(ev.Player)
+		c.TriggerPlayer = player(events.Discarder(e.G, ev))
 		c.TriggerAmount = 1
 	case cards.TriggerDrawn:
 		c.TriggerCard = ev.Obj

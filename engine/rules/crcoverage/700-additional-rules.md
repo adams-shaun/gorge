@@ -47,7 +47,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.7b | partial | `engine/rules/token_entry_replacements.go#Engine.applyTokenEntryUpdates` | - | Clone/Animate entry replacements skipped on tokens silently |
 | 701.7c | n/a | - | - | errata |
 | 701.8a-c | follows | `engine/effects/zone_bulk.go#effDestroy` `engine/rules/sba.go#Engine.applyLegendBatch` `engine/rules/sba.go#Engine.destroyLethalDamage` | - | trig Destroyed unregistered (LOUD) |
-| 701.9a-b | follows | `engine/effects/cardflow.go#effDiscard` | - | random via seeded RNG |
+| 701.9a-b | follows | `engine/effects/cardflow.go#effDiscard` `engine/events/actions.go#Discarder` | `TestCostDiscardBelongsToThePayer` | random via seeded RNG; a cost discard is its payer's |
 | 701.9c | unknown | - | - | not reached |
 | 701.10a-c | follows | `engine/effects/count.go#NumForObject` `engine/effects/pump_params.go#numForObjectText` | - | signed +X covers negative case |
 | 701.10d | follows | `engine/effects/life.go#effSetLife` `engine/events/event.go#LifeChange` | - |  |

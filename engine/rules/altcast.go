@@ -492,16 +492,7 @@ func (e *Engine) mayhemDiscardedThisTurn(p state.PlayerID, id state.ObjID) bool 
 		if ev.Kind == events.TurnChange {
 			return false
 		}
-		if ev.Kind != events.MoveZone || ev.Obj != id || !events.IsDiscard(ev) {
-			continue
-		}
-		if events.IsDiscardCost(ev) {
-			if o := e.G.Obj(id); o != nil && o.Owner == p {
-				return true
-			}
-			continue
-		}
-		if ev.Player == p {
+		if ev.Obj == id && events.IsDiscard(ev) && events.Discarder(e.G, ev) == p {
 			return true
 		}
 	}
