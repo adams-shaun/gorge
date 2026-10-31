@@ -1,24 +1,17 @@
 # The three repositories
 
-gorge's work is split across three Git repositories with one-way
-dependencies: the public engine, a public compliance repository that checks
-it, and a private companion module that builds on it. This page is for anyone
-deciding where a change belongs, or wondering why a file they expected is not
-in this repository. It covers what each repository holds, which way the
-imports run and what enforces that, licensing, how the companions pin gorge,
-and how changes reach `main`.
-
-*Verified 2026-10-27 against gorge `develop` @ `25d71cadc` and the two
-companions as they stood that day, and the `draft/` tree on 2026-10-30.*
-
-## At a glance
+gorge's work spans three Git repositories with one-way dependencies: the public engine, a public
+compliance repository that checks it, and a private module that builds on it. This page is for
+anyone deciding where a change belongs, or wondering why a file they expected isn't here. It
+covers what each holds, which way the imports run, licensing, pinning, and how changes reach
+`main`.
 
 | | **gorge** | **gorge-compliance** | **private companion** |
 |---|---|---|---|
 | Visibility | public | public | private |
 | Licence | Apache-2.0 | Apache-2.0 | (private) |
 | Module | `github.com/adams-shaun/gorge` | `github.com/adams-shaun/gorge-compliance` | (private) |
-| Holds | the rules engine, the reference server `gorged` with [draft events](../guide/draft.md), the baseline and hosted bots, the browser client, contributor tooling | the compliance oracles (gorge vs XMage vs Forge), the hand-written Oracle-text scenarios, the XMage-ported scenarios, the certification ratchet | machine learning and private experiments: training, networks, research bots; and the [dirty-dirac kernel](../architecture/dirty-dirac/index.md) |
+| Holds | the rules engine, the reference server `gorged` with [draft events](../guide/draft.md), the bots, the browser client, contributor tooling | the compliance oracles (gorge vs XMage vs Forge), the hand-written Oracle-text scenarios, the XMage-ported scenarios, the certification ratchet | machine learning and private experiments: training, networks, research bots |
 | Depends on | nothing (the root `go.mod` has no `require` lines) | gorge, pinned by commit | gorge, pinned by commit |
 | You need it to… | build, run, test or embed the engine | measure gorge against independent engines | nothing in gorge |
 
@@ -41,7 +34,7 @@ companions as they stood that day, and the `draft/` tree on 2026-10-30.*
 <text x="650" y="68" text-anchor="middle" class="dg-text-bold">private companion</text>
 <text x="650" y="86" text-anchor="middle" class="dg-text-muted">private</text>
 <text x="650" y="110" text-anchor="middle" class="dg-text">training, networks,</text>
-<text x="650" y="128" text-anchor="middle" class="dg-text">research bots, dirty-dirac</text>
+<text x="650" y="128" text-anchor="middle" class="dg-text">research bots</text>
 <line x1="210" y1="95" x2="266" y2="95" class="dg-line-accent" marker-end="url(#rp-arr)"/>
 <line x1="550" y1="95" x2="494" y2="95" class="dg-line-accent" marker-end="url(#rp-arr)"/>
 <text x="238" y="200" text-anchor="middle" class="dg-text-muted">imports gorge at</text>
@@ -58,24 +51,16 @@ companions as they stood that day, and the `draft/` tree on 2026-10-30.*
 
 ## gorge (this repository)
 
-The deterministic, event-sourced rules engine and everything needed to use
-it: the card compiler (`engine/cards`), the rules core (`engine/`), the
-reference server (`server/gorged`, with its thin main in `cmd/gorged`), the
-limited stack (`draft/`), the default and hosted bots (`bots/`), the Svelte
-browser client (`web/`), public
-test support for outside modules (`testkit/`, `cli/`), the architecture
-ratchets (`internal/`), and the developer commands (`cmd/`). The full tree is
-on [Repository layout](../contributing/repo-layout.md).
-
-gorge is meant to build, test and run on its own: nothing here needs either
-companion. It exposes a few **extension seams**, which are ordinary exported
-gorge API:
+The engine and everything needed to use it; [Repository layout](../contributing/repo-layout.md) has the
+tree. dirac, the [second engine](../architecture/dirty-dirac/index.md), isn't in this repository yet. gorge
+builds, tests and runs on its own. It exposes a few **extension seams**, which are ordinary exported API:
 
 | Seam | What plugs in |
 |---|---|
 | `bots.Register` (`bots/registry.go`) | a bot policy joins the registry the server offers |
 | `server/gorged.RegisterNetBot` | a network-backed hosted bot, with its flags |
-| `server/gorged.Extensions` | what a binary links into the server beyond the platform. gorge's own `cmd/gorged` fills it with `draft/gorgedevents`, and a binary that leaves `Events` empty is refused `-events` at startup (`TestEventsNeedAPlugin`) |
+| `server/gorged.Extensions` | what a binary links into the server: its events plugin, extra flags, the `gorged review` loader, and further engines for `-engine`. gorge's own `cmd/gorged` passes `draft/gorgedevents`, and a binary that leaves `Events` empty is refused `-events` at startup (`TestEventsNeedAPlugin`) |
+| `engine/game` | what a host needs from a running game; each engine implements it |
 | `engine/rules`' exported oracle runner (`RunOracleScenarioJSON`, `RunOracleAuditScenarioJSON`, `CheckOracleScenarioJSON`) | gorge-compliance's scenario drivers |
 | `testkit/` (`testutil`, `bench`, `paymirror`) and `cli/` | test fixtures, the head-to-head game runner, command-line plumbing |
 
@@ -113,19 +98,14 @@ orphan **`docs-data`** branch: per-set status rows for Level A and Level B,
 and a `meta.json` naming the gorge-compliance commit, the gorge pin,
 `FORGE_REF` and the date. gorge's docs build fetches that branch and renders
 the per-set table on [Card support](../support/sets.md); if the branch is
-missing, the page falls back to its committed snapshot. The same nightly
+missing, the gorge columns say the data isn't available. The same nightly
 workflow runs the `drift` check described under [Pinning](#pinning).
 
 ## The private companion
 
-The maintainers' **private** companion module holds work built on top of
-gorge that is not part of the public surface: machine learning, reinforcement
-learning, private experiments and the dirty-dirac kernel. It imports gorge at a
-pinned commit, the same way
-gorge-compliance does ([Pinning](#pinning)); gorge never imports it, and
-nothing in gorge needs it to build or test. The
-[dirty-dirac pages](../architecture/dirty-dirac/index.md) describe that
-kernel's design.
+The maintainers' private companion module holds machine learning, reinforcement learning and private
+experiments. It imports gorge at a pinned commit, the same way gorge-compliance does
+([Pinning](#pinning)). gorge never imports it, and nothing in gorge needs it to build or test.
 
 ## Dependency direction and what enforces it
 
@@ -140,7 +120,8 @@ flowchart LR
 | Boundary | Enforced by |
 |---|---|
 | gorge imports no other module at all | `internal/archtest/gomod_test.go` `TestRootModuleHasNoRequires`: the root `go.mod` may carry no `require` directive and `go.sum` must be empty or absent. With no `require`, gorge *cannot* import either companion. |
-| `engine/` imports nothing outside `engine/` | measured, not yet one test: `go list -deps ./engine/...` has no gorge package outside `engine/` and no non-standard-library package (checked 2026-10-20). Individual forbidden edges are pinned by `internal/archtest` `TestDependencyOrderHolds`; see [Invariants](../architecture/invariants.md#engine-imports-nothing-outside-engine). |
+| `engine/` imports nothing outside `engine/` | named edges in `internal/archtest` (`TestDependencyOrderHolds`, `TestEngineTierImportsNeitherDraftNorDirac`); see [Invariants](../architecture/invariants.md#engine-imports-nothing-outside-engine). |
+| Nothing private or generated is committed | `internal/archtest` `TestPublicBoundary`: no generated card tables, private paths, or imports of the private module. |
 | The companions use only exported gorge API | Go's own visibility rules, plus gorge's `internal/` packages, which no other module can import. |
 
 The direction matters for two reasons. gorge stays usable by anyone without
@@ -162,18 +143,16 @@ compiler for the script format and never the scripts themselves:
   (`TestNoForgeScriptsTracked`) fails the build if a Forge script is tracked
   in the working tree, the index or `HEAD`. It recognises a script by its
   content, not its path.
-- Replay fixtures strip embedded token-script text before they are committed
-  (into the gitignored `cmd/repro/testdata/.tokens/`).
+- Replay fixtures strip embedded token-script text before they are committed.
 - Tests, docs and coverage tables name cards; they never contain script text.
-- A script that disagrees with the printed card is fixed on the fork's
-  `gorge` branch and offered upstream, never patched inside gorge.
+- A script that disagrees with the printed card is fixed on the fork and offered
+  upstream, never patched inside gorge.
 
-gorge-compliance follows the same rule with its own guard
-(`internal/boundary`) and reaches the corpus through a gitignored link to a
-gorge checkout's `.cards/`. Its `NOTICE` credits XMage (MIT), from which its
-set manifests and ported scenarios derive. gorge's own `NOTICE` credits the
-MIT-licensed SpellBench adapter that `server/spellbench` and the
-`cmd/spellbench-gorge-*` commands are derived from.
+gorge-compliance follows the same rule with its own guard and reaches the corpus
+through a gitignored link to a gorge checkout's `.cards/`. Its `NOTICE` credits XMage
+(MIT), from which its set manifests and ported scenarios derive.
+[gorge's `NOTICE`](https://github.com/adams-shaun/gorge/blob/main/NOTICE) names every
+third-party data source gorge uses.
 
 ## Pinning
 
@@ -213,11 +192,11 @@ flowchart LR
 ```
 
 1. Changes land on **`develop`**, through a pull request whose `ci` workflow
-   (lint plus a sharded test run with the corpus fetched) is green.
-2. The maintainers' pipeline periodically snapshots
-   `develop` to a `promote/develop-<stamp>` branch and opens a `develop → main`
-   pull request from it, superseding older snapshot PRs. When its checks are
-   green it is merged; a red snapshot is parked for a person.
+   (lint, a sharded test run with the corpus fetched, the example agents and the
+   [wire matrix](../architecture/wires.md)) is green.
+2. The maintainers periodically snapshot `develop` to a `promote/develop-<stamp>`
+   branch and open a `develop → main` pull request from it. It merges when its
+   checks are green.
 3. Merges use **a merge commit, not a squash**, so
    `develop` and `main` keep sharing history. Nothing pushes `main` directly.
 4. Pushes to `main` publish this site (`docs.yml`) and the card-coverage

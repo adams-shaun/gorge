@@ -1,127 +1,89 @@
 # gorge
 
-> [!NOTE]
-> **Documentation: [adams-shaun.github.io/gorge](https://adams-shaun.github.io/gorge/)**
->
-> | I want to… | Start at |
-> |---|---|
-> | understand how the engine works | [Architecture](https://adams-shaun.github.io/gorge/architecture/) |
-> | run the demo or bot-vs-bot games | [User's guide](https://adams-shaun.github.io/gorge/guide/) |
-> | connect a bot (Go, Python, Java) | [Bots](https://adams-shaun.github.io/gorge/bots/) and the [API reference](https://adams-shaun.github.io/gorge/api/) |
-> | fix a card or a rule | [Contributing](https://adams-shaun.github.io/gorge/contributing/) |
-> | compare speed or card coverage | [Performance](https://adams-shaun.github.io/gorge/performance/) and [Card support](https://adams-shaun.github.io/gorge/support/sets/) |
+gorge is a *Magic: The Gathering* rules engine in pure Go, with a server and
+browser client to play on it. It compiles [Forge](https://github.com/Card-Forge/forge)'s
+card scripts instead of hand-coding cards, and records every game as a
+deterministic, hash-chained event log that replays byte for byte.
 
-A deterministic, event-sourced *Magic: The Gathering* rules engine, written in
-pure Go. Card behaviour is not hand-written per card: gorge compiles
-[Forge](https://github.com/Card-Forge/forge)'s card scripts into an
-intermediate representation (IR), and the engine implements the primitives
-that IR references (effects, triggers, keywords, statics, value expressions).
-A card is playable when every primitive it uses is implemented; today that is
-about 95% of Forge's ~34,000 scripts (`make report` prints the live figure).
+**Documentation: [adams-shaun.github.io/gorge](https://adams-shaun.github.io/gorge/)**
 
-Around the engine sit a reference server (`gorged`: bot tables, play-vs-bot,
-HTTP + server-sent events, a Svelte browser client), baseline and hosted bot
-players, and developer tools for replaying, benchmarking and auditing games.
-gorge plays full games and replays them byte for byte, but it is **not** yet
-at rules parity with mature engines and is not ready for production use.
+| I want to… | Start at |
+|---|---|
+| try it in five minutes | [Getting started](https://adams-shaun.github.io/gorge/getting-started/) |
+| host games, play in a browser, run a draft | [User's guide](https://adams-shaun.github.io/gorge/guide/) |
+| connect a bot (Go, Python, Java) | [Bots](https://adams-shaun.github.io/gorge/bots/) and the [API reference](https://adams-shaun.github.io/gorge/api/) |
+| fix a card or a rule | [CONTRIBUTING.md](CONTRIBUTING.md) and [Your first card fix](https://adams-shaun.github.io/gorge/contributing/first-card-fix/) |
+| see how it is built | [Architecture](https://adams-shaun.github.io/gorge/architecture/) |
+| compare speed or card coverage | [Performance](https://adams-shaun.github.io/gorge/performance/) and [Card support](https://adams-shaun.github.io/gorge/support/sets/) |
 
-## The one design rule
+## What runs
 
-Every state mutation goes through `events.Apply`. Nothing writes a
-`state.Game` field except by emitting an event into the hash-chained log. So a
-match is fully described by its config plus its event log: replaying a log and
-resuming a match from any point in it are the same operation, and search
-clones and bug reproductions reuse that one mechanism. A write that bypasses
-`events.Apply` is a replay bug.
+- **The engine** (`engine/`) plays two- to eight-player games, Constructed and
+  Commander. A card is playable when every primitive its compiled script names
+  is implemented; `make report` prints the current share of Forge's corpus.
+  gorge plays full games and replays them exactly, but it is not at rules parity
+  with mature engines and is not ready for production use.
+- **The server** (`gorged`) hosts perpetual bot tables, play-against-a-bot games
+  and 4-seat draft events over HTTP and server-sent events. It speaks three
+  client protocols: its native API, SpellBench v2 and ManaBrew.
+- **Bots** (`bots/`): a default heuristic bot and several hosted policies. Any
+  program can play a seat over HTTP.
+- **Tools** (`cmd/`): `mtgsim` plays verified bot games, `repro` turns a player's
+  bug report into a failing test, `forgec` fetches and compiles the cards.
+
+A second, much faster two-player engine, dirac, is checked against gorge decision
+by decision. Its source isn't in this repository yet;
+[its pages](https://adams-shaun.github.io/gorge/architecture/dirty-dirac/) describe its design.
 
 ## Quickstart
 
-You need Go (the version in `go.mod`), `git`, `make` and `bash`.
+You need Go (the version in `go.mod`), `git`, `make` and `bash`. There is no cgo
+and there are no third-party Go modules.
 
 ```sh
-make fetch-cards compile-cards               # one-time: Forge corpus (~240 MB) into .cards/, then the IR cache
-go test -run 'TestHeads$' ./engine/rules/    # a focused test; corpus tests SKIP without .cards/
-make sim                                     # 20 verified 4-seat bot games; each prints "replay OK"
-go build -o bin/gorged ./cmd/gorged
-bin/gorged -addr :8090 -dir /tmp/gorge-local -tables 2 -seats 4 -vsbot   # then open http://localhost:8090/
+make fetch-cards compile-cards    # one-time: Forge's scripts into .cards/ (about 140 MB), then the compiled cache
+make sim                          # 20 verified 4-seat bot games; each prints "replay OK"
+go build -trimpath -o bin/gorged ./cmd/gorged
+bin/gorged -addr :8090 -dir /tmp/gorge-local -tables 2 -seats 4 -vsbot
 ```
 
-The browser client is built separately with `make web` (needs Node); until
-then the web root answers `503`, but the `/api/*` endpoints work. Never point
-two servers at one `-dir`.
+`curl localhost:8090/api/tables` lists the running tables. The browser client is
+embedded at build time, so run `make web` (needs Node) before `go build` to get it;
+without it the web root answers `503` and the `/api/*` routes still work. Never
+point two servers at one `-dir`. [Getting started](docs/site/getting-started.md)
+walks through this and the tests.
 
-## Repository map
+## The one design rule
 
-| Directory | What it holds | Who it is for |
-|---|---|---|
-| `engine/` | The deterministic rules core: `cards` (script → IR compiler), `state`, `decision`, `events`, `effects`, `rules`, `view`, `replay`, `deck`, and `seat` (the `Seat` contract only) | Anyone fixing a card or a rule |
-| `server/` | The reference server: `gorged` (the importable server, with an `Extensions` seam and `RegisterNetBot`), `host` (tables, sessions, persistence) with `host/httpapi` and `host/manabrewhttp`, `protocol` (the wire types), `manabrew`, `divergence` | Server and client work |
-| `bots/` | Bot players: `botpolicy`, `heuristic` (the default bot), the `registry`, and the hosted bots (`bot`, `lethal-pressure`, `forge-heuristic`, `forge-heuristic-hold`, `sb-tactical`, `az-redeal`) with their inference code | Bot authors |
-| `draft/` | The limited stack: `limited` (boosters, pods, deck building, pick bots, set data), `event`, `eventhost`, `gorgedevents` (the plugin `cmd/gorged` links, serving events with `-events`) and `draftlab` with its external-agent wire | Draft and limited work |
-| `web/` | The TypeScript/Svelte browser client | Front-end work |
-| `cmd/` | Product and developer binaries: `gorged`, `forgec`, `repro`, `mtgsim`, `gentypes`, `pkgmap`, `headdiff`, `enginebench`, `cardfuzz`, `deckimport`, … | Everyone |
-| `testkit/`, `cli/` | Public support packages for outside modules: `testkit/testutil` (fixtures, corpus registry), `testkit/bench` (the game runner), `testkit/paymirror`, and `cli` (command-line flags, env and config) | Contributors, downstream modules |
-| `internal/` | Ratchets and generators: `archtest` (import-graph rules), `codeshape`, `testbudget`, `tsgen`, `corpusheap` | Contributors |
-| `scripts/` | Contributor and CI scripts (`smoke.sh`, `enginebench-*`, `ci_shard.sh`, `docs_sets.py`) | Contributors, CI |
-| `docs/` | `decisions/` (ADRs), `site/` (the public docs site), `agents/` (the guide for AI coding agents) | Everyone |
+Every state change goes through `events.Apply`. Engine code never writes a
+`state.Game` field; it emits an event into the log. A match is therefore its
+configuration plus its log, and replay, undo, search clones and bug reproduction
+all reuse that one mechanism. A write that bypasses `events.Apply` is a replay bug.
 
-Dependencies run one way, in tiers: `engine/` imports nothing above it,
-`server/` and `bots/` build on `engine/`, and `cmd/` sits on top.
-What is actually enforced is a list of forbidden import edges (for example,
-`effects` never imports `rules`, `view` and `protocol` never import `rules`)
-in `internal/archtest`'s `TestDependencyOrderHolds`, not a total order. The
-layout and its reasons are in [ADR 0001](docs/decisions/0001-repo-layout.md).
+## The repository
 
-### The private companion module
+| Directory | What it holds |
+|---|---|
+| `engine/` | The rules core: the card compiler, game state, events, effects, rules, views, replay, and `engine/game`, the seam a host runs an engine through |
+| `server/` | The reference server `gorged`, its tables and persistence (`host`), and the wire adapters |
+| `bots/` | The bot registry, the default bot and the hosted policies |
+| `draft/` | The limited stack: boosters, pods, deck building, draft events |
+| `web/` | The Svelte browser client |
+| `cmd/` | Product and developer binaries |
+| `testkit/`, `cli/` | Public support packages: test fixtures, game runner, wire conformance, command-line layer |
+| `internal/` | Import-graph and determinism ratchets, generators |
+| `scripts/`, `docs/` | Contributor and CI scripts; the site (`docs/site`) and decision records (`docs/decisions`) |
 
-Machine learning, reinforcement learning and private experiments live in a
-**private** companion module that imports gorge at a pinned commit; gorge never
-imports it. It plugs in through `bots.Register` and
-`server/gorged.RegisterNetBot`. Nothing in gorge needs it to build or test.
-
-### gorge-compliance, the public compliance repository
-
-The compliance oracles (gorge vs XMage vs Forge, card by card), the
-hand-authored Oracle-text scenario audit, the XMage-ported interaction
-scenarios and their coverage targets live in
-[gorge-compliance](https://github.com/adams-shaun/gorge-compliance)
-(`github.com/adams-shaun/gorge-compliance`, public). It measures a **pinned**
-gorge revision through gorge's exported oracle runner
-(`rules.RunOracleScenarioJSON`, `rules.RunOracleAuditScenarioJSON`,
-`rules.CheckOracleScenarioJSON`); gorge never imports it and does not gate on
-it. gorge keeps the runner, its unit tests and nine residual scenario files
-its own card tests load (`engine/rules/testdata/oracle/`), played by
-`engine/rules/oracle_contract_test.go` as the runner's contract check.
-
-## Where to go next
-
-- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) covers setup, the rules
-  that matter, testing and the PR checklist. Fixing a card that plays wrong is
-  walked through in
-  [docs/site/contributing/first-card-fix.md](docs/site/contributing/first-card-fix.md).
-- **Docs site:** <https://adams-shaun.github.io/gorge/> has the architecture,
-  per-set card support, performance numbers and the contributor guides
-  (sources in [docs/site/](docs/site/)).
-- **Design decisions:** [docs/decisions/](docs/decisions/).
-- **If you are an AI agent:** start at [AGENTS.md](AGENTS.md) and
-  [docs/agents/](docs/agents/README.md).
-
-## Bot player training and adoption guidelines
-
-Moved to [docs/site/bots/training-and-adoption.md](docs/site/bots/training-and-adoption.md):
-the decision contract a bot answers, the engine's search and RL capabilities
-and the adoption ladder a policy climbs before it plays real users. Writing a
-bot in Go, Python or Java starts at [docs/site/bots/](docs/site/bots/index.md)
-(published at https://adams-shaun.github.io/gorge/bots/).
+`engine/` imports nothing outside itself. [Repository layout](docs/site/contributing/repo-layout.md)
+has the import rules and where each kind of change goes;
+[The three repositories](docs/site/repos/index.md) covers the public compliance
+repository and the private module that build on gorge. An AI coding agent should
+start at [AGENTS.md](AGENTS.md).
 
 ## License
 
-gorge is licensed under Apache-2.0 (see [LICENSE](LICENSE)). Forge's card scripts are GPL-3.0, so gorge ships a
-*compiler* for the script format and never the scripts themselves:
-`make fetch-cards` downloads them into the gitignored `.cards/` directory,
-pinned to a commit (`FORGE_REF` in the `Makefile`) of the
-[adams-shaun/forge](https://github.com/adams-shaun/forge) fork, and
-`engine/cards/boundary_test.go` fails the build if a script is ever tracked.
-kgen's generated card tables are also never committed: they are built from
-`.cards` into a gitignored directory. `NOTICE` names every third-party data
-source, including 17Lands public datasets (CC BY 4.0).
+gorge is Apache-2.0 ([LICENSE](LICENSE)). Forge's card scripts are GPL-3.0, so gorge
+ships a compiler for the format and never the scripts: `make fetch-cards` downloads
+them into the gitignored `.cards/` at a commit pinned by `FORGE_REF` in the
+`Makefile`, and `engine/cards/boundary_test.go` fails the build if one is tracked.
+[NOTICE](NOTICE) names the third-party data sources.
