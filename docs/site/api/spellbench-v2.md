@@ -163,7 +163,7 @@ print("sha256:" + chain.d.hex())
 ```text
 $ python3 minimal_host.py bin/spellbench-gorge-env -corpus .cards
 p0_win natural p1_decked 1860 1860
-sha256:7a33a7527020ddd30cf827ecdf8fe9d83a5d5286751004ea8acfa649071a0e1d
+sha256:b5a8040b7008a7594de53345a67e02be2777638b39e9da7a5c9ae7a4bceebb9c
 ```
 
 Candidate 0 is `pass` whenever a pass is offered, so nobody plays a card and p1 decks first.
@@ -274,8 +274,8 @@ The `engine` block on this build:
 
 ```json
 {"card_pool_identity": "forge-91402ac51104/corpus-a59b417462be378f/catalog-ddaa89bf514cd72d",
- "name": "gorge", "rules_snapshot_id": "gorge/v0.0.0-20261/ir-71fa985afcdf0384c637f7724452c47d",
- "source_revision": null, "version": "gorge-v0.0.0-20261/spellbench-adapter-0.1.0/autopay"}
+ "name": "gorge", "rules_snapshot_id": "gorge/3a3ffb962e9c/ir-e75c8c4eca7565be05788becfbe41c3c",
+ "source_revision": null, "version": "gorge-3a3ffb962e9c/spellbench-adapter-0.1.0/autopay"}
 ```
 
 ### reset → decision or terminal
@@ -347,8 +347,8 @@ see it:
 {
   "game_id": "g-1", "protocol": "spellbench/v2",
   "provenance": {"card_pool_identity": "forge-91402ac51104/corpus-a59b417462be378f/catalog-ddaa89bf514cd72d",
-    "engine_name": "gorge", "engine_version": "gorge-v0.0.0-20261/spellbench-adapter-0.1.0/autopay",
-    "rules_snapshot_id": "gorge/v0.0.0-20261/ir-71fa985afcdf0384c637f7724452c47d"},
+    "engine_name": "gorge", "engine_version": "gorge-3a3ffb962e9c/spellbench-adapter-0.1.0/autopay",
+    "rules_snapshot_id": "gorge/3a3ffb962e9c/ir-e75c8c4eca7565be05788becfbe41c3c"},
   "request_id": "q-1", "response_type": "decision", "step": 0,
   "seat_decision": {
     "acting_seat": "p0", "seat_step": 0,
@@ -427,7 +427,7 @@ The game is over. Schema: [`$defs/terminal`](schemas/spellbench-v2/responses.sch
 From a Wildfire against CawGates game:
 
 ```json
-{"classification":"natural","decision_count":1274,"game_id":"game-3","outcome":"p1_win","protocol":"spellbench/v2","provenance":{"card_pool_identity":"forge-91402ac51104/corpus-a59b417462be378f/catalog-ddaa89bf514cd72d","engine_name":"gorge","engine_version":"gorge-v0.0.0-20261/spellbench-adapter-0.1.0/autopay","rules_snapshot_id":"gorge/v0.0.0-20261/ir-71fa985afcdf0384c637f7724452c47d"},"reason":"p0_decked","request_id":"s-2322","response_type":"terminal","step_count":1303,"winner":"p1","x_gorge":{"autopay_fallbacks":3}}
+{"classification":"natural","decision_count":1274,"game_id":"game-3","outcome":"p1_win","protocol":"spellbench/v2","provenance":{"card_pool_identity":"forge-91402ac51104/corpus-a59b417462be378f/catalog-ddaa89bf514cd72d","engine_name":"gorge","engine_version":"gorge-3a3ffb962e9c/spellbench-adapter-0.1.0/autopay","rules_snapshot_id":"gorge/3a3ffb962e9c/ir-e75c8c4eca7565be05788becfbe41c3c"},"reason":"p0_decked","request_id":"s-2322","response_type":"terminal","step_count":1303,"winner":"p1","x_gorge":{"autopay_fallbacks":3}}
 ```
 
 ### validate_deck → deck_ok or error
@@ -531,9 +531,9 @@ What gorged's seat sent an agent, with decklists, names, `decision_kinds` and th
   "request_type": "game_start", "protocol": "spellbench/v2", "request_id": "r-2",
   "agent_seed": 608617540958772, "game_id": "g-0faf80117d331ab5", "seat": "p1",
   "format": "constructed",
-  "engine": {"name": "gorge", "version": "gorge-v0.0.0-20261/spellbench-adapter-0.1.0", "source_revision": null,
-    "rules_snapshot_id": "gorge/v0.0.0-20261/ir-71fa985afcdf0384c637f7724452c47d",
-    "card_pool_identity": "forge-unknown/corpus-unknown/catalog-ddaa89bf514cd72d"},
+  "engine": {"name": "gorge", "version": "gorge-3a3ffb962e9c/spellbench-adapter-0.1.0", "source_revision": null,
+    "rules_snapshot_id": "gorge/3a3ffb962e9c/ir-e75c8c4eca7565be05788becfbe41c3c",
+    "card_pool_identity": "forge-91402ac51104/corpus-a59b417462be378f/catalog-ddaa89bf514cd72d"},
   "engine_profile": {"decision_kinds": ["activate_ability", "activate_mana_ability", "arrange_card"],
     "engine_defaults": {"combat_damage_assignment": "engine_order", "mana_payment": "engine_autopay",
       "replacement_order": null, "trigger_order": null},

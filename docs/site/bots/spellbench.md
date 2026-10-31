@@ -52,7 +52,7 @@ always answers candidate 0) through a relay that logged every line:
 | `hello` | once, at process start | `hello_ok`, naming the bot and any observation or extension requirements |
 | `game_start` | once per match | `ack` |
 | `choose` | every decision | `choice` with a `selection.candidate_id` |
-| `game_over` | at the end, best effort | `ack` |
+| `game_over` | at the end | `ack` |
 
 ```json
 {"request_type":"hello","protocol":"spellbench/v2","protocol_minor":0,"request_id":"r-1"}
@@ -151,8 +151,8 @@ forfeit cause (`timeout`, `transport_error`, `agent_error`,
 `invalid_selection`), concedes at its next priority decision, and answers
 with the default bot until then. The decision budget is the host's: 2 s per
 decision in `gorged`, unbounded in `mtgsim` and the benches. `game_over` is
-written and the process stopped immediately, so an agent must not rely on
-receiving it.
+written and the agent gets 1 s to answer it before its process is killed. An
+agent that has died or timed out doesn't receive it.
 
 ## Serve a gorge bot as a v2 agent
 
