@@ -204,7 +204,7 @@ func TestReplayTapeStalledGame(t *testing.T) {
 
 // TestReplayTapeEnvPlayer: a game recorded under the bench Env driver
 // (sb-tactical, the AllowDecklistBots opt-in) re-drives with plain hooks and
-// the tape alone to the same head — the plan §7 claim that payment-action
+// the tape alone to the same head — the claim that payment-action
 // and target-hint offers are pure derived reads, so a tape seat need not
 // mirror the original seat's Wants* flags.
 func TestReplayTapeEnvPlayer(t *testing.T) {

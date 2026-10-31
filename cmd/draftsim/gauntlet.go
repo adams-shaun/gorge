@@ -73,7 +73,7 @@ func gauntletFromOptions(o options) (*gauntletOpts, error) {
 		return nil, fmt.Errorf("-gauntlet-player: %w", err)
 	}
 	if bots.ReadsDecklists(o.gauntletPlayer) {
-		return nil, fmt.Errorf("-gauntlet-player %q reads every seat's real decklist (bots.Info.Env); draftsim refuses Env policies (operator ruling 2026-10-13)", o.gauntletPlayer)
+		return nil, fmt.Errorf("-gauntlet-player %q reads every seat's real decklist (bots.Info.Env); by design, draftsim refuses Env policies", o.gauntletPlayer)
 	}
 	return &gauntletOpts{
 		catalog:  cat,

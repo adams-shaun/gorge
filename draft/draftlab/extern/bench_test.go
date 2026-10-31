@@ -16,8 +16,8 @@ import (
 )
 
 // BenchmarkGames measures what the external-agent path costs against the
-// built-in bot, in games per hour, for the configurations the operator must
-// choose between (plan §11, §15 Q1). Every sub-benchmark plays b.N games
+// built-in bot, in games per hour, for the configurations a caller can
+// choose between. Every sub-benchmark plays b.N games
 // through ONE Lab.Games call: the first two fdn-limited catalog decks, the
 // opponent always bot@1, and the measured player alternating sides. Games
 // run under a 40-turn / 4000-intent watchdog so a random agent that wanders

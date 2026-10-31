@@ -226,7 +226,7 @@ func (l *Lab) envGateResult(players []NamedPlayer, seats []seat.Seat) (bool, err
 		}
 		env = true
 		if !l.opts.AllowDecklistBots {
-			return false, fmt.Errorf("%w: player %d (%s) reads every seat's real decklist; the lab's AllowDecklistBots opt-in (operator ruling 2026-10-13) is off", ErrDecklistBot, i, players[i].Ref)
+			return false, fmt.Errorf("%w: player %d (%s) reads every seat's real decklist; the lab's AllowDecklistBots opt-in is off", ErrDecklistBot, i, players[i].Ref)
 		}
 	}
 	return env, nil

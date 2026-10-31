@@ -30,7 +30,7 @@ func TestPythonExampleAgent(t *testing.T) {
 	}
 
 	// The script carries its own shebang and mode 755, so ext:exec: runs it
-	// directly (operator decision 2026-10-14 #4: ext:exec: takes no argv).
+	// directly (by design, ext:exec: takes no argv).
 	a, err := Dial(context.Background(), Endpoint{Transport: "exec", Target: path}, Options{Stderr: io.Discard})
 	if err != nil {
 		t.Fatalf("dial example agent: %v", err)

@@ -22,8 +22,8 @@ go run ./cmd/labdemo -player ext:exec:examples/extagent/random_agent.py -seed 1
 ```
 
 The script has a `#!/usr/bin/env python3` shebang and mode 755, so
-`ext:exec:` runs it directly — `ext:exec:` takes no arguments (operator
-decision 2026-10-14 #4); a wrapper script selects a checkpoint.
+`ext:exec:` runs it directly — by design, `ext:exec:` takes no arguments; a
+wrapper script selects a checkpoint.
 
 ## Serve it yourself
 

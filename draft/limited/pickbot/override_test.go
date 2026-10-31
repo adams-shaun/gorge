@@ -27,7 +27,7 @@ func TestRatingsOverrideRescalesToSetScale(t *testing.T) {
 	}
 }
 
-// TestRatingsOverrideColdStartScale is DR-11: a set with no embedded
+// TestRatingsOverrideColdStartScale: a set with no embedded
 // 17Lands file (BLB) parses onto the fixed fallback scale.
 func TestRatingsOverrideColdStartScale(t *testing.T) {
 	if _, ok := rated["BLB"]; ok {
@@ -47,8 +47,8 @@ func TestRatingsOverrideColdStartScale(t *testing.T) {
 	}
 }
 
-// TestNewRatingsOverrideKeepsValues: the raw constructor (doc 039's kernel
-// draft loop) neither rescales nor shares the caller's map, and a card it
+// TestNewRatingsOverrideKeepsValues: the raw constructor (a kernel
+// draft loop's) neither rescales nor shares the caller's map, and a card it
 // lacks is neutral and listed in Missing.
 func TestNewRatingsOverrideKeepsValues(t *testing.T) {
 	in := map[string]float64{"Abrade": 0.61, "Llanowar Elves": 0.52}

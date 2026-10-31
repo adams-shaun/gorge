@@ -29,7 +29,7 @@ func (o *RatingsOverride) Value(name string) float64 {
 }
 
 // The fixed gih_wr-equivalent scale an override takes on a set with no
-// embedded 17Lands file (DR-11): roughly FDN's own gih_wr mean and
+// embedded 17Lands file: roughly FDN's own gih_wr mean and
 // population std, so the drafter's tuning constants keep their meaning.
 const (
 	FallbackScaleMean = 0.5425

@@ -191,7 +191,7 @@ func (l *Lab) Builder(ref AgentRef) (NamedBuilder, error) {
 // cmd/draftsim's game driver applies) — and is safe to call concurrently.
 //
 // An Env policy (bots.ReadsDecklists) is refused with ErrDecklistBot unless
-// Options.AllowDecklistBots is set (operator ruling 2026-10-13). With the
+// Options.AllowDecklistBots is set, by design. With the
 // opt-in it is admitted and its NamedPlayer declares ReadsDecklists: true, so
 // the game driver runs it through the bench Env driver (Hooks.EnvSeats) and
 // manifests can mark the result. E5-c3's NewManifest sets
@@ -209,7 +209,7 @@ func (l *Lab) Player(ref AgentRef) (NamedPlayer, error) {
 	}
 	readsDecklists := bots.ReadsDecklists(name)
 	if readsDecklists && !l.opts.AllowDecklistBots {
-		return NamedPlayer{}, fmt.Errorf("%w: policy %q reads every seat's real decklist (bots.Info.Env); the lab's AllowDecklistBots opt-in (operator ruling 2026-10-13) is off", ErrDecklistBot, name)
+		return NamedPlayer{}, fmt.Errorf("%w: policy %q reads every seat's real decklist (bots.Info.Env); the lab's AllowDecklistBots opt-in is off", ErrDecklistBot, name)
 	}
 	return NamedPlayer{
 		Ref: AgentRef{Name: ref.Name, Version: v},

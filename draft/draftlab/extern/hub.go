@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/draftlab/extern/wire"
 )
 
-// The hub is the process-wide batching coordinator (plan §6).
+// The hub is the process-wide batching coordinator.
 // It decides when each session flushes its outgoing queue.
 //
 // Why process-wide, not per agent: with one hub per agent, a game whose
@@ -15,7 +15,7 @@ import (
 // deadlock. Counting "waiting on ANY agent" under one lock removes it
 // (TestTwoAgentsNoDeadlock pins it).
 //
-// Liveness argument (plan §6.1): between beginGame and endGame a lab game
+// Liveness argument: between beginGame and endGame a lab game
 // is either computing (the engine or a built-in seat — finite work) or
 // blocked on the hub, because a caller with nothing queued has either
 // answered or is about to enqueue. So when nothing can make progress,

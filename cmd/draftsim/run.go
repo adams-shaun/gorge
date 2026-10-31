@@ -70,14 +70,14 @@ func run(o options, out io.Writer) (*result, error) {
 	// The Env refusal comes before anything else: a policy that builds its
 	// search over every seat's REAL decklist must never seat in a draft,
 	// where the whole point is that the decks are not known until the build
-	// phase (operator ruling 2026-10-13, the rule host's
-	// TableConfig.AllowDecklistBots gate enforces for tables).
+	// phase (by design, the rule host's TableConfig.AllowDecklistBots gate
+	// enforces for tables).
 	for i, p := range players {
 		if _, err := bots.Normalize(p); err != nil {
 			return nil, fmt.Errorf("seat %d: %w", i, err)
 		}
 		if bots.ReadsDecklists(p) {
-			return nil, fmt.Errorf("seat %d policy %q reads every seat's real decklist (bots.Info.Env); draftsim refuses Env policies (operator ruling 2026-10-13)", i, p)
+			return nil, fmt.Errorf("seat %d policy %q reads every seat's real decklist (bots.Info.Env); by design, draftsim refuses Env policies", i, p)
 		}
 	}
 	if err := personaNamesOK(o.drafter, o.builder); err != nil {

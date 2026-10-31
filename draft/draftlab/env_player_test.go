@@ -25,7 +25,7 @@ func envDeck(t *testing.T, l *Lab, seed uint64) Deck {
 
 // TestEnvPlayerNeedsOptIn: an Env policy (sb-tactical, bots.Info.Env) is
 // refused by Player with ErrDecklistBot unless Options.AllowDecklistBots is
-// set (the bot-only opt-in of the operator ruling of 2026-10-13).
+// set (a bot-only opt-in, by design).
 func TestEnvPlayerNeedsOptIn(t *testing.T) {
 	l := testLab(t)
 	if _, err := l.Player(AgentRef{Name: "sb-tactical"}); !errors.Is(err, ErrDecklistBot) {

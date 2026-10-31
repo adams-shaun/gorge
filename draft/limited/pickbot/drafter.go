@@ -132,7 +132,7 @@ func (d *RatingColour) ratingWeight(set string, ref limited.CardRef) float64 {
 // into dst (grown as needed) and returns it: the centred rating plus k
 // times the colour fit, where k ramps linearly from 0 at pack 1 pick 1 to
 // its full value by pack 1 pick 10 and holds after. Pick takes the best of
-// exactly these scores; behaviour cloning (draft-RL DR-8) records them as
+// exactly these scores; behaviour cloning records them as
 // the teacher's soft targets.
 func (d *RatingColour) Scores(v PickView, dst []float64) []float64 {
 	dst = dst[:0]

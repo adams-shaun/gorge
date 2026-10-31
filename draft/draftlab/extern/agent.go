@@ -23,10 +23,10 @@ type FlushMode string
 const (
 	// FlushBarrier (the default; "" means it) flushes when every live game
 	// is waiting on an external agent, or a session's queue holds maxBatch
-	// items (plan §6.1).
+	// items.
 	FlushBarrier FlushMode = "barrier"
 	// FlushReady flushes whatever is queued whenever the session is idle
-	// (inferbroker's rule, plan §6.2).
+	// (inferbroker's rule).
 	FlushReady FlushMode = "ready"
 )
 
@@ -145,7 +145,7 @@ func effectiveMaxBatch(o Options, hello wire.Message) int {
 // Options.Stderr (or os.Stderr). On unix it dials the socket with a plain
 // net.Dialer. The Dial ctx bounds the whole session: when it ends, the
 // session dies and every request fails with ErrAgentGone. There is no
-// other deadline and no clock here (plan §8.3); a hung agent hangs its
+// other deadline and no clock here; a hung agent hangs its
 // games, and a training program wanting a timeout builds its own ctx.
 func Dial(ctx context.Context, ep Endpoint, o Options) (*Agent, error) {
 	switch ep.Transport {

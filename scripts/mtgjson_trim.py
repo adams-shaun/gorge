@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """mtgjson_trim.py -- regenerate draft/limited/setdata/mtgjson/<SET>.json.
 
-Usage (operator; needs network, writes nothing but the output file):
+Usage (needs network, writes nothing but the output file):
 
     D=$(mktemp -d)   # an empty directory for the downloads
     for f in Meta.json SET.json.gz SPG.json.gz; do curl -sSLo "$D/$f" https://mtgjson.com/api/v5/$f; done

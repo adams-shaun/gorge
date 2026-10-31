@@ -151,7 +151,7 @@ func TestDraftsimCollationIsSelectableAndValidated(t *testing.T) {
 	}
 }
 
-// TestDraftsimRefusesEnvPolicy pins the operator ruling: a -players entry
+// TestDraftsimRefusesEnvPolicy pins the rule: a -players entry
 // whose bots.Info.Env is true (it searches over every seat's REAL
 // decklist) refuses to seat, naming the rule, before anything runs.
 func TestDraftsimRefusesEnvPolicy(t *testing.T) {

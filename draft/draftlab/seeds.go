@@ -9,7 +9,7 @@ import "math/rand/v2"
 const gameSaltBase = 0x6A111E
 
 // gamesSaltBase tags the parallel Games batch's per-matchup streams
-// (E5-plan §5: lab Games i = rand.NewPCG(seed, 0x1AB6A3<<32|i)).
+// (lab Games i = rand.NewPCG(seed, 0x1AB6A3<<32|i)).
 const gamesSaltBase = 0x1AB6A3
 
 // gameSeed derives one game's engine seed from a run seed and the game's

@@ -156,5 +156,5 @@ func (s *tapeSeat) Decide(_ context.Context, _ view.View, d decision.Decision) (
 	return in, nil
 }
 
-// ViewOmit omits every part: the seat reads nothing (E5-d plan §7).
+// ViewOmit omits every part: the seat reads nothing.
 func (s *tapeSeat) ViewOmit(*decision.Decision) view.Omit { return tapeOmitAll }

@@ -55,7 +55,7 @@ type Options struct {
 	// LobbyTimeout is how long an event may sit in LOBBY with an unjoined
 	// human seat before the sweep acts: at least one human joined fills
 	// every unjoined seat with a bot and starts the event, zero joined
-	// cancels it (E3-5 operator decision 3). 0 = 15 minutes, negative =
+	// cancels it (E3-5). 0 = 15 minutes, negative =
 	// disabled. IdleTimeout is how long a human seat may owe a decision
 	// without acting before the sweep acts for it (auto-pick, auto-submit
 	// or concede): 0 = 2 hours, negative = disabled.

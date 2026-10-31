@@ -6,8 +6,8 @@ import (
 	"math/rand/v2"
 )
 
-// gauntletSaltBase tags the gauntlet's per-game seed streams (E5-plan §5:
-// game (j, n) = rand.NewPCG(seed, 0x1AB6A4<<32|j<<16|n)). It sits next to
+// gauntletSaltBase tags the gauntlet's per-game seed streams
+// (game (j, n) = rand.NewPCG(seed, 0x1AB6A4<<32|j<<16|n)). It sits next to
 // Games' 0x1AB6A3 so the two batch shapes never share a stream.
 const gauntletSaltBase = 0x1AB6A4
 

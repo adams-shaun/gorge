@@ -1,5 +1,5 @@
 // Package draftlab is the Go composition API a training program imports
-// (draft-events, operator decision E5-Q2): open a card corpus,
+// (draft events): open a card corpus,
 // resolve built-in drafters, builders and players by name@version, open
 // packs (pod, flat, sealed pool), run a draft of 4 or 8 seats into pools
 // plus a replayable event log, and turn pools or lists into
@@ -23,7 +23,7 @@
 //
 // Env rule: a Player policy whose bots.Info.Env is true reads every seat's
 // REAL decklist, so it is refused unless Options.AllowDecklistBots was set
-// (the bot-only opt-in of the operator ruling of 2026-10-13). With the
+// (a bot-only opt-in, by design). With the
 // opt-in such a game runs through the bench Env driver
 // (bench.Hooks{EnvSeats: true, HonestRoot: true}), so the hosted wrapper is
 // driven with its bots.Env — the honest root, never the live engine — and

@@ -23,7 +23,7 @@ const (
 type Options struct {
 	// AllowDecklistBots admits Player policies whose bots.Info.Env is true
 	// (they read every seat's real decklist). The lab seats bots only, so
-	// this is the bot-only opt-in of the operator ruling of 2026-10-13.
+	// this is a bot-only opt-in, by design.
 	// Default false.
 	AllowDecklistBots bool
 	// Workers is how many games run at once (E5-c2); 0 or 1 = serial. It

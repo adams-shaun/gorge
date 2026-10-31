@@ -9,7 +9,7 @@ import (
 )
 
 // TestCV1PumpProtectionReplay plays the exact game that used to abort the
-// engine mid-resolution (ticket CV-1, cardval game 80175, seed
+// engine mid-resolution (cardval game 80175, seed
 // 16588193633715634951): deck A (BR) controls Akroma's Memorial, so its
 // Drakuseth, Maw of Flames derives "Protection from red", and deck A's
 // Embercleave-equipped red creature (obj 16) targets that Drakuseth with a

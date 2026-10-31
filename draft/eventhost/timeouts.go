@@ -63,7 +63,7 @@ func (h *Host) checkTimeouts(now time.Time) {
 
 // expire is one sweep pass for one run. It closes an abandoned lobby —
 // cancelled outright when no human ever joined, filled with bot seats when
-// at least one did (E3-5 operator decision 3) — and acts for human seats
+// at least one did (E3-5) — and acts for human seats
 // whose idle window closed with a decision owed. The sweep clock only ever
 // APPENDS entries (LobbyTimeout / IdleTimeout markers, then the ordinary
 // entries the actions take); replay never reads the clock. It is called
@@ -137,7 +137,7 @@ func (r *run) joinedHumans() int {
 }
 
 // fillLobbyWithBots converts every unjoined human seat of an abandoned
-// lobby into a bot seat (E3-5 operator decision 3): the default drafter
+// lobby into a bot seat (E3-5): the default drafter
 // persona and the host's default game policy, named like a created bot.
 // The seat's invite token dies with its humanity — the stored sha256 is
 // cleared, so a stale join link can no longer act for the seat. The
