@@ -185,6 +185,46 @@ func AbilityIndex(o *state.Object, opt decision.Option, observed []decision.Opti
 	return n, nil
 }
 
+// AbilityIndexer numbers the "ability" options of one priority decision, in
+// offered order, as Section 7.2's ability_index. Observed is the seat's
+// rules.ObservedAbilities and Object the object the option names.
+type AbilityIndexer struct {
+	Observed func(state.ObjID) []decision.Option
+	Object   func(state.ObjID) *state.Object
+	lists    map[state.ObjID][]decision.Option
+	grants   map[grantAnchor]int
+}
+
+// Index is the ability_index of the option o. Two live grants of an identical
+// body sit at distinct inventory positions, so the k-th option offered with a
+// grant anchor takes the k-th observed entry with it.
+func (x *AbilityIndexer) Index(o decision.Option) (uint32, error) {
+	if o.Kind == "granted" && o.GrantSource == 0 {
+		// A max-speed static's "granted" option names its body only by SVar;
+		// the grant always belongs to the object carrying the static
+		// (engine/rules/legal_walk_battlefield.go and
+		// offBattlefieldGrantedWalk both offer Obj = the carrier).
+		// ObservedAbilities publishes that carrier as GrantSource, so anchor
+		// the option the same way.
+		o.GrantSource = o.Obj
+	}
+	if x.lists == nil {
+		x.lists, x.grants = map[state.ObjID][]decision.Option{}, map[grantAnchor]int{}
+	}
+	list, ok := x.lists[o.Obj]
+	if !ok {
+		list = x.Observed(o.Obj)
+		x.lists[o.Obj] = list
+	}
+	occurrence := 0
+	if isGrantedAnchor(o) {
+		key := anchorOfGrant(o)
+		occurrence = x.grants[key]
+		x.grants[key]++
+	}
+	return AbilityIndex(x.Object(o.Obj), o, list, occurrence)
+}
+
 // manaAbility is gorge's own split of activated abilities: its priority walk
 // (rules/legal.go) offers an AB as an "ability" option unless
 // isManaAbilityAPI(ab.API) && !isLoyaltyAbility(ab), since a loyalty ability
@@ -323,7 +363,10 @@ func (t *priorityTx) Pose() (*Pose, error) {
 	casts := map[castKey]*castGroup{}
 	var groups []*castGroup          // in candidate order
 	byNative := map[int]*castGroup{} // native cast option -> its group
-	observed := map[state.ObjID][]decision.Option{}
+	abilities := AbilityIndexer{
+		Observed: func(id state.ObjID) []decision.Option { return t.env.G.R.ObservedAbilities(d.Player, id) },
+		Object:   t.env.G.R.Board().Obj,
+	}
 	// activate_ability names an ability, not a way to pay for it. One
 	// printed ability offered at its own cost and at an AlternateCost$ rider
 	// (K:Equip's fourth field, e.g. Gavel of the Righteous) projects to the
@@ -332,10 +375,6 @@ func (t *priorityTx) Pose() (*Pose, error) {
 	// the engine's option mapping: a decision that offers only the alternate
 	// still poses its option, because it is the first one seen.
 	seenAbilities := map[abilityKey]bool{}
-	// How many options with the same grant anchor this decision has already
-	// offered. Two live grants of an identical body sit at distinct
-	// inventory positions; the k-th offered one takes the k-th position.
-	seenGrants := map[grantAnchor]int{}
 	for _, o := range d.Options {
 		before := len(p.Candidates)
 		switch o.Kind {
@@ -353,32 +392,11 @@ func (t *priorityTx) Pose() (*Pose, error) {
 			}
 			p.Candidates = append(p.Candidates, Cand{Sem: protocol.PlayLand(src, face), Op: NativeOp{Op: "choose", Option: o.Index}})
 		case "ability", "granted":
-			if o.Kind == "granted" && o.GrantSource == 0 {
-				// A max-speed static's "granted" option names its body only by
-				// SVar; the grant always belongs to the object carrying the
-				// static (engine/rules/legal_walk_battlefield.go and
-				// offBattlefieldGrantedWalk both offer Obj = the carrier).
-				// ObservedAbilities publishes that carrier as GrantSource, so
-				// anchor the option the same way.
-				o.GrantSource = o.Obj
-			}
 			src, err := t.ref(o.Obj)
 			if err != nil {
 				return nil, err
 			}
-			obj := t.env.G.R.Board().Obj(o.Obj)
-			list, ok := observed[o.Obj]
-			if !ok {
-				list = t.env.G.R.ObservedAbilities(t.d.Player, o.Obj)
-				observed[o.Obj] = list
-			}
-			occurrence := 0
-			if isGrantedAnchor(o) {
-				key := anchorOfGrant(o)
-				occurrence = seenGrants[key]
-				seenGrants[key]++
-			}
-			idx, err := AbilityIndex(obj, o, list, occurrence)
+			idx, err := abilities.Index(o)
 			if err != nil {
 				return nil, err
 			}

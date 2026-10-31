@@ -147,6 +147,8 @@ func (s *Session) Picked(i int) {
 					kw = rules.PureGrantKeywords(f.Abilities[o.Ability])
 				}
 				s.grants[src.ObjectID] = append(s.grants[src.ObjectID], kw)
+			} else {
+				delete(s.activated, src.ObjectID) // a granted body names no printed ability
 			}
 		}
 	case "arrange_card":
@@ -403,6 +405,10 @@ func name(r protocol.ObjectRef) string {
 
 // --- priority ---
 
+// castActions names the special_action actions gorge offers as casts, by the
+// word its option label starts with. The action is the option's Mode.
+var castActions = map[string]string{"suspend": "Suspend", "plot": "Plot"}
+
 // castModes maps a Section 7.4 method to gorge's cast option Mode.
 var castModes = map[string]string{"normal": "", "flashback": "flashback", "escape": "escape", "madness": "madness",
 	"plot": "plot_cast", "foretell": "foretell_cast", "adventure": "adventure_alt", "split_right": "split_alt",
@@ -560,16 +566,35 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 					ops[i] = mapping.NativeOp{Op: "cast", Option: -1, Covers: all, Payment: ops[i].Payment}
 				}
 			}
+		case "special_action":
+			src, err := ref(sem, "source")
+			if err != nil {
+				return nil, nil, err
+			}
+			// gorge offers suspending or plotting a card as a cast of its own
+			// mode, which the bot ranks with the other casts.
+			if label, ok := castActions[str(sem, "action")]; ok {
+				ops[i] = mapping.NativeOp{Op: "choose", Option: add(decision.Option{Kind: "cast", Label: label + " " + name(src),
+					Obj: s.B.IDs.Of(src.ObjectID), Mode: str(sem, "action")})}
+			}
 		case "activate_ability":
 			src, err := ref(sem, "source")
 			if err != nil {
 				return nil, nil, err
 			}
-			o, ok := s.abilityOption(src, num(sem, "ability_index"))
-			if !ok {
+			// The rebuilt board's own offer knows what gorge's option carries
+			// (a loyalty cost's facts, a grant the printed face lacks). The
+			// printed face answers for a board that could not be rebuilt.
+			idx := num(sem, "ability_index")
+			o, offered := pre.offeredAbility(s.B.IDs.Of(src.ObjectID), idx)
+			if printed, ok := s.abilityOption(src, idx); ok {
+				if !offered {
+					o = printed
+				}
+				o.Grant = s.grantFact(src, printed, v, pendingGrant)
+			} else if !offered {
 				continue
 			}
-			o.Grant = s.grantFact(src, o, v, pendingGrant)
 			ops[i] = mapping.NativeOp{Op: "choose", Option: add(o)}
 		}
 		// activate_mana_ability stays untranslated here: gorge's bot never

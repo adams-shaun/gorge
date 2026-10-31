@@ -389,6 +389,8 @@ func Rebuild(p xview.Payload) (view.View, decision.Decision) {
 			o := f.Options[i]
 			d.Options[i].Attach, d.Options[i].Grant, d.Options[i].Controller = o.Attach, o.Grant, state.PlayerID(o.Controller)
 			d.Options[i].SetProps, d.Options[i].BlockMust, d.Options[i].AttackMust = o.SetProps, o.BlockMust, o.AttackMust
+			d.Options[i].Loyalty, d.Options[i].SelfSkipTurns = o.Loyalty, o.SelfSkipTurns
+			d.Options[i].ForeignSource, d.Options[i].GrantStatics = o.ForeignSource, o.GrantStatics
 		}
 	}
 	flags := map[state.ObjID]xview.ProducesFacts{}

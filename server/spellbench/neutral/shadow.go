@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/spellbench/mapping"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
@@ -311,6 +312,44 @@ func (sh *shadow) census() castCensus {
 		return castCensus{}
 	}
 	return castCensus{known: true, casts: sh.mapIDs(d.PotentialCasts), unpayable: sh.mapIDs(d.PotentialUnpayableCasts)}
+}
+
+// abilityPlace names an ability the way the wire does: its object, in the
+// builder's ids, and its ability_index.
+type abilityPlace struct {
+	obj state.ObjID
+	idx int
+}
+
+// abilityOptions is the parked decision's "ability" options by place, in the
+// builder's ids. An offer's first option at a place answers for it, as the
+// pose's does.
+func (sh *shadow) abilityOptions() map[abilityPlace]decision.Option {
+	d := sh.e.Pending()
+	indexer := mapping.AbilityIndexer{
+		Observed: func(obj state.ObjID) []decision.Option { return rules.ObservedAbilities(sh.e, d.Player, obj) },
+		Object:   sh.e.G.Obj,
+	}
+	out := map[abilityPlace]decision.Option{}
+	for _, o := range d.Options {
+		if o.Kind != "ability" && o.Kind != "granted" {
+			continue
+		}
+		n, err := indexer.Index(o)
+		id, ok := sh.ids[o.Obj]
+		if err != nil || !ok {
+			continue
+		}
+		place := abilityPlace{id, int(n)}
+		if _, dup := out[place]; dup {
+			continue
+		}
+		o.Obj = id
+		o.GrantSource = sh.ids[o.GrantSource]
+		o.GainedSource = sh.ids[o.GainedSource]
+		out[place] = o
+	}
+	return out
 }
 
 // mapIDs turns shadow objects into the builder's ids, dropping any the

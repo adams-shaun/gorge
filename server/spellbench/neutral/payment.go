@@ -126,6 +126,10 @@ type prepared struct {
 	resume   int                  // the candidate a pending lowering takes now, -1 for none
 	resumed  payexec.Status
 	census   castCensus
+	shadow   *shadow
+	// abilities is the shadow's "ability" offer, read on the first candidate
+	// that asks.
+	abilities map[abilityPlace]decision.Option
 	// resumedCast reports that the pending lowering takes a cast candidate
 	// now. A manual host decides the cast's method at that window (it has no
 	// plan to apply), so the plan is not put back in the decision's actions.
@@ -174,7 +178,7 @@ func (s *Session) prepay(sd *protocol.SeatDecision, v *view.View) *prepared {
 		return pre
 	}
 	var actions []decision.PaymentAction
-	actions, pre.floats, pre.census = s.plans(sd, c)
+	actions, pre.floats, pre.census, pre.shadow = s.plans(sd, c)
 	for _, a := range actions {
 		pl := &planned{action: a, sel: &decision.PaymentSelection{ActionID: a.ID, Plan: decision.ClonePaymentPlan(a.Plans[0])}, cand: -1,
 			poolOnly: len(a.Plans[0].Activations) == 0}
@@ -313,14 +317,14 @@ func (s *Session) PickedPayment(sel *decision.PaymentSelection) {
 
 // plans runs gorge's planner on the rebuilt board and returns the actions
 // the host can carry out, in the builder's object ids.
-func (s *Session) plans(sd *protocol.SeatDecision, c *candidates) ([]decision.PaymentAction, []decision.Option, castCensus) {
+func (s *Session) plans(sd *protocol.SeatDecision, c *candidates) ([]decision.PaymentAction, []decision.Option, castCensus, *shadow) {
 	sh, err := s.B.shadow(&sd.Observation, c.handLike)
 	if err != nil {
 		s.Counts[countNoShadow]++
-		return nil, nil, castCensus{}
+		return nil, nil, castCensus{}, nil
 	}
 	if sh == nil {
-		return nil, nil, castCensus{}
+		return nil, nil, castCensus{}, nil
 	}
 	var floats []decision.Option
 	for _, o := range sh.e.Pending().Options {
@@ -369,7 +373,22 @@ func (s *Session) plans(sd *protocol.SeatDecision, c *candidates) ([]decision.Pa
 			out = append(out, t)
 		}
 	}
-	return out, floats, sh.census()
+	return out, floats, sh.census(), sh
+}
+
+// offeredAbility is the rebuilt board's "ability" option at ability_index idx
+// of the object id. The wire names an ability only by that place in the object's
+// inventory, and a grant the board does not show (a body chosen as its source
+// entered) has no option.
+func (pre *prepared) offeredAbility(id state.ObjID, idx int) (decision.Option, bool) {
+	if pre.shadow == nil {
+		return decision.Option{}, false
+	}
+	if pre.abilities == nil {
+		pre.abilities = pre.shadow.abilityOptions()
+	}
+	o, ok := pre.abilities[abilityPlace{id, idx}]
+	return o, ok
 }
 
 func playOf(a decision.PaymentAction) payexec.Play {
