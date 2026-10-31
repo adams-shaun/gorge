@@ -4,9 +4,8 @@ package gorged
 // decklist (bots.Info.Env) is never offered on gorged's public
 // /api/bot-policies list and is never the vs-bot default, because every
 // request the offered set feeds always seats a human. The server's own
-// bot-only tables (today only the az-c3 demo table) may run one behind the
-// explicit -allow-decklist-bots opt-in; az-c3 cannot be served without it
-// and is unreachable from the vs-bot flow either way.
+// bot-only tables may run one behind the explicit -allow-decklist-bots opt-in;
+// it cannot be served without it and is unreachable from the vs-bot flow either way.
 
 import (
 	"strings"

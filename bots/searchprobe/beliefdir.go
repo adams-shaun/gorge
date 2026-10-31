@@ -16,7 +16,7 @@ import (
 // split, or every deck file in dir when pool is "". A deck the corpus cannot
 // resolve is skipped. Errors name dir or pool; callers wrap them with the
 // flag that supplied the path. It is the one reader behind gorged's
-// -az-c3-belief/-az-c4-belief and the draft-RL pilots.
+// -<policy>-belief flags.
 func LoadBeliefDir(reg *cards.Registry, dir, pool string) (*Belief, error) {
 	names, err := beliefDeckNames(dir, pool)
 	if err != nil {

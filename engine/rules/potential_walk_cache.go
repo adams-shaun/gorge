@@ -258,7 +258,7 @@ func (e *Engine) potentialWalkCarries() bool {
 // once, and that Submit's validation (ValidateCastPayment ->
 // planCastPaymentAtDecision) ran the walk and the cast plan again from
 // cold at the very state the stored engine's offer builder had memoised
-// them: measured on the az-c6 cached-worlds bench, 3% of all CPU.
+// them: measured on a cached-worlds bench, 3% of all CPU.
 //
 // Exact because the entry is a pure function of the state (the file
 // comment) and the clone's state is e's; verify mode (walkCacheVerify)

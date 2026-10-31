@@ -188,7 +188,7 @@ func Names() []string {
 // server/host/botenv.go's envData). The single discriminator for the operator
 // ruling of 2026-10-13: such a policy seats only on a bot-only table that
 // set TableConfig's AllowDecklistBots, and never against a human. A
-// closed-list policy (az-c4) is an Env policy that does NOT read decklists.
+// closed-list policy is an Env policy that does NOT read decklists.
 // An unknown name is false.
 func ReadsDecklists(name string) bool {
 	e, ok := Lookup(name)

@@ -41,7 +41,7 @@ import (
 const closedTestPolicy = "test-closed-az"
 
 // closedTestBeliefDecks is the belief corpus: the five Foundations repo
-// decks (az-c4's test belief).
+// decks.
 var closedTestBeliefDecks = []string{
 	"foundations-calling-all-angels", "foundations-keen-engineering", "foundations-reign-of-dragons",
 	"foundations-tramplesaurus-rex", "foundations-wretched-ranks",

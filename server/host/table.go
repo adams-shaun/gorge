@@ -285,7 +285,7 @@ func (c TableConfig) validated(load func(string) (Deck, error), engines map[stri
 		return TableConfig{}, fmt.Errorf("host: table %s: %w", c.ID, err)
 	}
 	c.BotPolicy = policy
-	// A policy with no manual-tap mode (az-c3) cannot be built on a table
+	// A policy with no manual-tap mode cannot be built on a table
 	// without payment plans: the factory refuses, and a refusal at the first
 	// seat would crash the match. Refuse the table instead.
 	if e, ok := bots.Lookup(policy); ok && e.NeedsAutoPay && !c.autoPayManaEnabled() {
@@ -302,7 +302,7 @@ func (c TableConfig) validated(load func(string) (Deck, error), engines map[stri
 	// binary without the opt-in) from a validation failure it must still
 	// fail the start over — an unknown policy name, bad seats, missing decks.
 	//
-	// A closed-list policy (bots.Info.ClosedLists, az-c4) is an Env policy
+	// A closed-list policy (bots.Info.ClosedLists) is an Env policy
 	// that does not read decklists: it needs no opt-in and may seat against
 	// a human. The declaration alone is not trusted -- at a table with a
 	// human, play checks every built seat at match start and envData

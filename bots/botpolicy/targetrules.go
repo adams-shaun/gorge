@@ -6,8 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This file is ticket A2 of
-// docs/design/2026-10-19-forge-heuristics-go-port-design.md: three small,
+// This file holds three small,
 // pure target-selection rules re-expressed from Forge's ComputerUtilCard
 // behaviour in gorge's own vocabulary. Nothing here is translated from Forge
 // Java; each rule is stated as a sentence over Board facts and is measured by

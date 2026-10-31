@@ -2003,7 +2003,7 @@ func definedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 		// controls the SOURCE. They differ once the source has left the
 		// battlefield (a stolen permanent sacrificed as the activation's cost
 		// or in response resets to its owner, CR 400.7), while the ability
-		// stays under its activator (CR 113.8, 602.2): K1m pairs 39244 92575.
+		// stays under its activator (CR 113.8, 602.2).
 		return []state.PlayerID{c.Controller}
 	}
 	return playerIDsFromTargets(h, c, r.Raw, DefinedRef(h, c, r, sa))

@@ -913,7 +913,7 @@ const cloneObjectHeadroom = 8
 // as the game mints objects: a recycled arena is accepted while it keeps
 // cloneObjectHeadroom past the objects, and one allocated with exactly that
 // stops fitting as soon as the game has minted a token or two since --
-// measured on the az-c6 cached-worlds bench (2026-10-17), a fifth of the
+// measured on a cached-worlds bench, a fifth of the
 // node cache's recycled arenas were a few objects short. Capacity only.
 const cloneObjectReserve = 32
 

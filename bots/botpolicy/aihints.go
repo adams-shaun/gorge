@@ -2,8 +2,7 @@ package botpolicy
 
 import "github.com/adams-shaun/gorge/engine/cards"
 
-// This file is ticket A3 of
-// docs/design/2026-10-19-forge-heuristics-go-port-design.md: two small cast
+// This file holds two small cast
 // rules over Forge's AI-hint vocabulary, re-expressed in gorge's own words.
 // Nothing here is translated from Forge Java.
 //
