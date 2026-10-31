@@ -128,3 +128,45 @@ func TestCR610_3dReturnsFromOneEventAreSimultaneous(t *testing.T) {
 		t.Fatalf("%d triggers, want 2: each returning creature sees the other", got)
 	}
 }
+
+// A sacrifice over several players is one event: a card its host held stays
+// exiled while the next player chooses, and comes back once every player has
+// answered. The second answer re-executes the resolution from its checkpoint,
+// which fails on anything logged after the posed ask.
+func TestCR610_3ReturnWaitsForTheNextPlayersSacrifice(t *testing.T) {
+	t.Parallel()
+	const cull = "Name:Test Mutual Cull\nManaCost:W\nTypes:Sorcery\n" +
+		"A:SP$ Sacrifice | Defined$ Player | SacValid$ Creature | Amount$ 2 | SpellDescription$ Everyone gives up a pair of creatures.\nOracle:x\n"
+	e := handEngine(t, card(t, cull))
+	warden := onBoard(t, e, 0, testWarden)
+	for _, p := range []state.PlayerID{0, 0, 1, 1, 1} {
+		onBoard(t, e, p, testWarden)
+	}
+	held := holdUntilHostLeaves(t, e, warden, testColossus)
+	e.G.Players[0].Pool[state.MW] = 1
+	e.askPriority(0)
+	castFirst(t, e, "cast")
+
+	answered := 0
+	for answered < 2 {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no pending decision before both players sacrificed")
+		}
+		if d.Kind == decision.KPriority {
+			submitChoices(t, e, passPriorityOption(t, d))
+			continue
+		}
+		if got := e.L.Events[len(e.L.Events)-1].Kind; got != events.DecisionAsk {
+			t.Fatalf("last event of a posed sacrifice is %v, want its ask", got)
+		}
+		if got := e.G.Obj(held).Zone; got != state.ZExile {
+			t.Fatalf("held card zone = %s while seat %d chooses, want exile", got, d.Player)
+		}
+		submitChoices(t, e, 0, 1)
+		answered++
+	}
+	if got := e.G.Obj(held).Zone; got != state.ZBattlefield {
+		t.Fatalf("held card zone = %s after every sacrifice, want the battlefield", got)
+	}
+}

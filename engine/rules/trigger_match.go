@@ -2478,7 +2478,7 @@ func (e *Engine) closeZoneBatch() {
 	if e.zoneBatchDepth == 0 {
 		return
 	}
-	if e.zoneBatchDepth == 1 && len(e.entryHeld) > 0 {
+	if e.zoneBatchDepth == 1 && len(e.entryHeld) > 0 && !e.tape.Unwinding() {
 		e.flushHeldEntries()
 	}
 	e.zoneBatchDepth--
@@ -2506,7 +2506,7 @@ func (e *Engine) closeZoneBatch() {
 	}
 	e.zoneBatchIdx = nil
 	e.zoneBatchLog = nil
-	if len(e.exileReturnHeld) > 0 {
+	if len(e.exileReturnHeld) > 0 && !e.tape.Unwinding() {
 		e.flushExileReturns()
 	}
 }

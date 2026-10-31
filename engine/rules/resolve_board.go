@@ -76,6 +76,9 @@ func (e *Engine) TapeAnswer(d *decision.Decision) (decision.Intent, bool) {
 	return e.tape.Answer(asResolve(e), d)
 }
 
+// TapeUnwinding implements effects' tapeUnwinding seam.
+func (e *Engine) TapeUnwinding() bool { return e.tape.Unwinding() }
+
 // SetTapeAnswerer installs (nil removes) e's synchronous answerer: an engine
 // whose every seat is a policy answers a converted mid-resolution ask inline,
 // so the kernel takes no checkpoint and re-executes nothing. A clone never
