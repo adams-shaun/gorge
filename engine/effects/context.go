@@ -2341,13 +2341,12 @@ func copyTargets(s []state.Target) []state.Target {
 // cards only, never the creature whose death fired the trigger. Only a
 // context holding nothing but the capture keeps it.
 func resolvedRemembered(h Host, c *Ctx) []state.Target {
-	if c.SelfLeaves && c.RepeatSubject == (state.Target{}) && len(c.DelayedRemembered) == 0 && len(sourceRemembered(h, c)) == 0 {
-		// A leaves-the-battlefield trigger on its own source: the capture is
-		// the leaver, never a Remembered fallback (see TriggerContext.SelfLeaves). A
-		// RepeatEach iteration (Giant Albatross) binds its own subject, kept as is.
-		return excludeCaptureOccurrences(c.Remembered, c.Captured)
-	}
-	return selectRemembered(c.Remembered, c.Captured, c.DelayedRemembered, sourceRemembered(h, c))
+	// A leaves-the-battlefield trigger on its own source, or a chain past a link
+	// that remembers: the capture is no fallback (TriggerContext.SelfLeaves,
+	// TriggerContext.RememberWriterAbove). A RepeatEach iteration (Giant
+	// Albatross) binds its own subject, kept as is.
+	noFallback := (c.SelfLeaves || c.RememberWriterAbove) && c.RepeatSubject == (state.Target{})
+	return selectRemembered(c.Remembered, c.Captured, c.DelayedRemembered, sourceRemembered(h, c), noFallback)
 }
 
 // selectRemembered is resolvedRemembered over plain slices -- the ONE home of
@@ -2355,9 +2354,13 @@ func resolvedRemembered(h Host, c *Ctx) []state.Target {
 // (filter.go), which reads a SpecContext rather than a Ctx. remembered is the
 // resolution's set, captured its fire-time seed, delayedRemembered a delayed
 // registration's saved set, persistent the source object's event-backed list.
+// noFallback reads a resolution that still holds only the capture as empty.
 // The result never aliases remembered or persistent.
-func selectRemembered(remembered, captured, delayedRemembered, persistent []state.Target) []state.Target {
+func selectRemembered(remembered, captured, delayedRemembered, persistent []state.Target, noFallback bool) []state.Target {
 	if len(captured) > 0 && len(delayedRemembered) == 0 && len(persistent) == 0 {
+		if noFallback && sameTargets(remembered, captured) {
+			return nil
+		}
 		// The ordinary trigger whose source wrote nothing (the second shape
 		// above): the capture is a fallback, kept only when the resolution
 		// wrote nothing of its own.

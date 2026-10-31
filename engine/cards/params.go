@@ -1977,6 +1977,22 @@ func (sa *SA) HasParam(k ParamKey) bool { _, ok := paramGet(sa.ps, sa.Params, k)
 // mask.
 func (sa *SA) MayHaveAnyParam(mask ParamMask) bool { return paramMayHaveAny(sa.ps, sa.Params, mask) }
 
+// HasAnyParam reports whether the ability holds a key of mask, exactly: an
+// unbound ability walks the mask's keys.
+func (sa *SA) HasAnyParam(mask ParamMask) bool {
+	if sa.ps.bound(sa.Params) {
+		return paramMayHaveAny(sa.ps, sa.Params, mask)
+	}
+	for w, keys := range mask {
+		for ; keys != 0; keys &= keys - 1 {
+			if _, ok := sa.Params[paramKeyNames[w<<6|bits.TrailingZeros64(keys)]]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // ExhaustValue reports the compiled Exhaust$ True activation qualifier.
 // Parsed abilities bind it once; synthetic abilities read their parameter.
 func (sa *SA) ExhaustValue() bool {

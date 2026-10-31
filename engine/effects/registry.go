@@ -1108,6 +1108,24 @@ func prefetchRememberedChangeZoneTarget(h Host, c *Ctx, sa *cards.SA) ([]state.T
 	return ts, true, false
 }
 
+// rememberObjectMask holds the params that write objects or players to the
+// source's memory. The numeric writers (RememberAmount$ and its like) store
+// counts and are left out.
+var rememberObjectMask = cards.ParamMaskOf(
+	cards.PKRememberAffected, cards.PKRememberAltered, cards.PKRememberAmass, cards.PKRememberAnimated,
+	cards.PKRememberAttached, cards.PKRememberCards, cards.PKRememberChanged, cards.PKRememberChosen,
+	cards.PKRememberClasher, cards.PKRememberCloaked, cards.PKRememberControlled, cards.PKRememberCopies,
+	cards.PKRememberCountered, cards.PKRememberDamaged, cards.PKRememberDestroyed, cards.PKRememberDiscarded,
+	cards.PKRememberDiscardingPlayers, cards.PKRememberDiscovered, cards.PKRememberDrawn, cards.PKRememberExchanged,
+	cards.PKRememberFound, cards.PKRememberGoaded, cards.PKRememberInvestigatingPlayers, cards.PKRememberKept,
+	cards.PKRememberLKI, cards.PKRememberLoser, cards.PKRememberManifested, cards.PKRememberMilled,
+	cards.PKRememberMoved, cards.PKRememberNewCard, cards.PKRememberObjects, cards.PKRememberOriginalTokens,
+	cards.PKRememberPeeked, cards.PKRememberPlayed, cards.PKRememberPumped, cards.PKRememberPut,
+	cards.PKRememberRemovedCards, cards.PKRememberRemovedFromCombat, cards.PKRememberRevealed, cards.PKRememberSacrificed,
+	cards.PKRememberSearched, cards.PKRememberTapped, cards.PKRememberTargets, cards.PKRememberTokens,
+	cards.PKRememberUntapped, cards.PKRememberVotedObjects,
+)
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// One resolution is one Mode$ TokenCreatedOnce batch (CR 603.2c), however
 	// many tokens its body creates. Nested Resolve calls share the outer
@@ -1208,9 +1226,15 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// the Ctx (a body resolving its own sub-chain) must not leave its links
 		// behind as "parents" of the enclosing chain's later links.
 		defer func(n int) { c.parentLinks = c.parentLinks[:n] }(len(c.parentLinks))
+		defer func(above bool) { c.RememberWriterAbove = above }(c.RememberWriterAbove)
 	}
 	reg := registry.load()
+	var above *cards.SA
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {
+		if above != nil && above.HasAnyParam(rememberObjectMask) {
+			c.RememberWriterAbove = true
+		}
+		above = sa
 		// Earlier bodies in this chain may emit events that change the
 		// derived characteristics. Refresh at each body boundary, not only at
 		// Resolve entry, so the next body's filters see the current snapshot.
