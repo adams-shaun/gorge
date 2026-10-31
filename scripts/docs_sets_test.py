@@ -116,6 +116,19 @@ class RenderTest(unittest.TestCase):
         self.assertIn("on Forge corpus `76fd7691a`.*", section(out, "sets"))
         self.assertNotIn("is now", out)
 
+    def test_caption_counts_failed_ratchet_checks(self):
+        out = docs_sets.render(A_ROWS, dict(META, ratchet_failures=7), B_ROWS, DD)
+        want = "measured 2026-10-21, with 7 compliance ratchet checks failing.*"
+        self.assertIn(want, section(out, "sets"))
+        self.assertIn(want, section(out, "rollup"))
+        out = docs_sets.render(A_ROWS, dict(META, ratchet_failures=1), B_ROWS, DD)
+        self.assertIn("with 1 compliance ratchet check failing.*", section(out, "sets"))
+
+    def test_caption_without_failed_ratchet_checks_is_unchanged(self):
+        old = docs_sets.render(A_ROWS, META, B_ROWS, DD)
+        self.assertEqual(docs_sets.render(A_ROWS, dict(META, ratchet_failures=0), B_ROWS, DD), old)
+        self.assertNotIn("ratchet check", old)
+
     def test_without_status(self):
         out = docs_sets.render([], {}, {}, DD)
         self.assertIn("not available to this build", section(out, "headline"))

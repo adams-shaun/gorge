@@ -10,12 +10,14 @@ Two sources, joined by set code:
        go run ./cmd/oraclediff status -all -json -level B -procs 4 \\
            -sets <every set whose Level A row has "printed": true> > status-B.jsonl
 
-   with a meta.json ({"commit", "gorge_pin", "forge_ref", "date"}) to its
-   orphan docs-data branch. Each line is one adopt.SetStatus object; any
-   non-JSON line (the ratchet summary the command also prints) is skipped.
-   The job publishes only when its ratchet passes, so the data can be older
-   than the build. Each table's caption gives the data's date and corpus, and
-   says so when gorge's FORGE_REF has moved past that corpus.
+   with a meta.json ({"commit", "gorge_pin", "forge_ref", "date",
+   "ratchet_failures"}) to its orphan docs-data branch. Each line is one
+   adopt.SetStatus object; any non-JSON line is skipped. The job publishes
+   whenever its measurement finishes, so the data can be older than the build
+   only when one didn't. Each table's caption gives the data's date and corpus,
+   says so when gorge's FORGE_REF has moved past that corpus, and counts the
+   ratchet checks that measurement failed. A meta.json without the count reads
+   as none.
 
 2. dirac's per-set acceptance, a committed snapshot
    (docs/site/support/dirac-sets.json). dirac's source is
@@ -212,6 +214,9 @@ def data_caption(meta):
         parts.append("measured " + meta["date"])
     if meta and corpus_text(meta):
         parts.append("on " + corpus_text(meta))
+    failures = meta.get("ratchet_failures") if meta else 0
+    if failures:
+        parts.append("with %d compliance ratchet check%s failing" % (failures, "" if failures == 1 else "s"))
     return "*gorge figures %s.*" % ", ".join(parts) if parts else ""
 
 
@@ -389,7 +394,7 @@ def main(argv=None):
     ap.add_argument("input", nargs="?", default=None, help="Level A status JSONL ('-' for stdin)")
     ap.add_argument("-o", "--out", default=DEFAULT_OUT, help="fragment path (default: %(default)s)")
     ap.add_argument("--level-b", default="", help="Level B status JSONL")
-    ap.add_argument("--meta", default="", help="docs-data meta.json (commit, gorge_pin, forge_ref, date)")
+    ap.add_argument("--meta", default="", help="docs-data meta.json (commit, gorge_pin, forge_ref, date, ratchet_failures)")
     ap.add_argument("--commit", default="", help="gorge-compliance commit (overrides --meta)")
     ap.add_argument("--date", default="", help="measurement date (overrides --meta)")
     ap.add_argument("--dirac", default="", help="dirac per-set snapshot JSON")
