@@ -16,15 +16,15 @@ Turn them on with `-events`:
 ```sh
 make fetch-cards   # once: the pinned card corpus, into .cards/
 make web           # once, before gorged is built: the browser client
-go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-draft -events
+go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-draft -events
 ```
 
 ```text
-gorged: 4 tables of 4 on 127.0.0.1:8090 (dir /tmp/gorge-draft)
+gorged: 4 tables of 4 on 127.0.0.1:8080 (dir /tmp/gorge-draft)
 gorged: draft events on (/api/events, dir /tmp/gorge-draft/events)
 ```
 
-Open `http://127.0.0.1:8090/` and use *Draft a 4-player pod* in the lobby. That
+Open `http://127.0.0.1:8080/` and use *Draft a 4-player pod* in the lobby. That
 entry appears only on a server that serves events, and goes to `/events/new`.
 A `gorged` built before `make web` still serves the whole API, but pages answer
 `503 web build missing`.
@@ -141,7 +141,7 @@ in [HTTP API: Draft events](../api/http.md#draft-events). Four bots need no one 
 join, so the event runs straight through the draft and the build:
 
 ```sh
-curl -s -X POST http://127.0.0.1:8090/api/events -H 'content-type: application/json' -d '{
+curl -s -X POST http://127.0.0.1:8080/api/events -H 'content-type: application/json' -d '{
   "set": "FDN",
   "seats": [{"kind":"bot"}, {"kind":"bot","policy":"lethal-pressure"},
             {"kind":"bot","policy":"forge-heuristic"}, {"kind":"bot"}]}'

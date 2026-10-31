@@ -65,15 +65,15 @@ log. The numbers move when a change alters what the games do.
 ```sh
 make web                                     # optional: build the browser client
 go build -trimpath -o bin/gorged ./cmd/gorged
-bin/gorged -addr :8090 -dir /tmp/gorge-local -tables 2 -seats 4 -vsbot
+bin/gorged -dir /tmp/gorge-local -tables 2 -seats 4 -vsbot
 ```
 
 This runs two perpetual four-seat bot tables and arms the play-against-a-bot flow. Open
-`http://localhost:8090/`. The client is embedded when `gorged` is built, so build it first;
+`http://localhost:8080/`. The client is embedded when `gorged` is built, so build it first;
 without it the web root answers `503 web build missing`, and the API still works:
 
 ```sh
-curl localhost:8090/api/tables
+curl localhost:8080/api/tables
 ```
 
 `bin/gorged -h` lists every flag. A bare `gorged` uses `:8080`, `gorged-data/` and, for bug reports, `feedback/`. Two servers

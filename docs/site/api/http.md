@@ -36,10 +36,10 @@ The machine-readable spec is the authority, and this page is a reading of it:
 
 ## Try it
 
-Start a server (`go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-api -tables 2 -seats 2 -humans 0`), then:
+Start a server (`go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-api -tables 2 -seats 2 -humans 0`), then:
 
 ```sh
-GORGE=http://127.0.0.1:8090
+GORGE=http://127.0.0.1:8080
 curl -s $GORGE/api/tables | python3 -m json.tool | head -20
 curl -sN --max-time 2 $GORGE/api/stream | head -c 300
 ```
@@ -100,7 +100,7 @@ You get a seat token in one of three ways:
 - `POST /api/games` returns one for the seat it creates. That response is the only place
   the token ever leaves the server.
 - With `-humans 0,2`, gorged mints one per human slot of table `t1` and prints the join URL
-  for each at startup: `table t1 seat 0 joins at http://127.0.0.1:8090/t/t1?seat=0&token=…`.
+  for each at startup: `table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=…`.
 - `-seat-token TOKEN` fixes the first human slot's token. It is meant for tests and local use.
 
 ## Which routes exist

@@ -16,9 +16,9 @@ needs no browser client):
 === "On demand: POST /api/games"
 
     ```console
-    $ ./gorged -addr 127.0.0.1:8092 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
+    $ ./gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
         -tables 0 -vsbot -max-on-demand-tables 0 -pace 0 -prewarm=false -bot-policy bot
-    gorged: 0 tables of 4 on 127.0.0.1:8092 (dir /tmp/gorge-bots)
+    gorged: 0 tables of 4 on 127.0.0.1:8080 (dir /tmp/gorge-bots)
     ```
 
     `-vsbot` arms `POST /api/games`, which creates a private two-seat table,
@@ -31,10 +31,10 @@ needs no browser client):
 === "Fixed seat: -humans"
 
     ```console
-    $ ./gorged -addr 127.0.0.1:8092 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
+    $ ./gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
         -tables 1 -seats 2 -humans 0 -seat-token docs-token -pace 0 -prewarm=false -bot-policy bot
-    gorged: 1 tables of 2 on 127.0.0.1:8092 (dir /tmp/gorge-bots)
-    gorged: table t1 seat 0 joins at http://127.0.0.1:8092/t/t1?seat=0&token=docs-token
+    gorged: 1 tables of 2 on 127.0.0.1:8080 (dir /tmp/gorge-bots)
+    gorged: table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=docs-token
     ```
 
     `-humans 0` makes seat 0 of table `t1` an HTTP seat; `-seat-token`
@@ -49,7 +49,7 @@ corrupt each other.
 The commands below use two shell variables:
 
 ```sh
-GORGE=http://127.0.0.1:8092
+GORGE=http://127.0.0.1:8080
 TOKEN=<the seat's token>      # from the POST /api/games reply; docs-token on the fixed seat
 ```
 
@@ -344,7 +344,7 @@ from `Last-Event-ID` within 30 s of a disconnect, and closes with an
 over loopback on a Ryzen 9 9950X with `gorged -pace 0`:
 
 ```console
-$ python3 measure_latency.py http://127.0.0.1:8092 10
+$ python3 measure_latency.py http://127.0.0.1:8080 10
 poll GET pending  median 0.12 ms, p95 0.19 ms (n=2116)
 poll GET view     median 0.50 ms, p95 1.09 ms (n=2116)
 poll POST intent  median 0.11 ms, p95 0.16 ms (n=2116)

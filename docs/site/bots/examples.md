@@ -32,7 +32,7 @@ Start a server with the play-vs-bot flow armed (see
 [Start a server](http.md#start-a-server-that-has-a-seat-for-you)):
 
 ```console
-$ ./gorged -addr 127.0.0.1:8092 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
+$ ./gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
     -tables 0 -vsbot -max-on-demand-tables 0 -pace 0 -prewarm=false -bot-policy bot
 ```
 
@@ -47,7 +47,7 @@ and prints a summary. `-v` prints every answer. `--policy random` or
 
     ```console
     $ cd examples/bots/python
-    $ python3 gorge_agent.py --server http://127.0.0.1:8092 --policy simple \
+    $ python3 gorge_agent.py --server http://127.0.0.1:8080 --policy simple \
         --deck mono-green-stompy --bot-deck mono-red-goblins -v
     created table g1 match 1, seat 0 vs bot
     seq 18    starting_player  -> [0]
@@ -65,7 +65,7 @@ and prints a summary. `-v` prints every answer. `--policy random` or
 
     ```console
     $ cd examples/bots/java
-    $ java Agent.java --server http://127.0.0.1:8092 --policy simple \
+    $ java Agent.java --server http://127.0.0.1:8080 --policy simple \
         --deck mono-green-stompy --bot-deck mono-red-goblins -v
     created table g3 match 1, seat 0 vs bot
     seq 18    starting_player  -> [0]
@@ -79,7 +79,7 @@ and prints a summary. `-v` prints every answer. `--policy random` or
     ```
 
     `java Agent.java` compiles the file in memory; the example uses Java 21 features, tested on OpenJDK 21.0.11.
-    The Java default server is port 8093; pass `--server` for another.
+    Both agents default to `http://127.0.0.1:8080`, `gorged`'s default address; pass `--server` for another.
 
 ## How they are built
 

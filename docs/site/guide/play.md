@@ -12,16 +12,16 @@ client's behaviour was checked against its source in `web/src`.
 ## Play against a bot
 
 ```sh
-go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-play \
+go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-play \
   -feedback /tmp/gorge-play-feedback -vsbot
 ```
 
 ```text
-gorged: 4 tables of 4 on 127.0.0.1:8090 (dir /tmp/gorge-play)
+gorged: 4 tables of 4 on 127.0.0.1:8080 (dir /tmp/gorge-play)
 gorged: art prewarm: 1124 distinct card names from testkit/testutil/decks
 ```
 
-Leave it running; Ctrl-C stops it. Open <http://127.0.0.1:8090/>. The lobby lists the bot-only
+Leave it running; Ctrl-C stops it. Open <http://127.0.0.1:8080/>. The lobby lists the bot-only
 tables the server is running and, because of `-vsbot`, a **Play 1v1 vs a bot** panel:
 
 <figure markdown>
@@ -38,8 +38,8 @@ The flags in that command:
 
 - `-vsbot` arms the panel. Without it the server is spectator-only: you can watch bot tables,
   but nothing can sit down.
-- `-addr 127.0.0.1:8090` listens on loopback. The default, `:8080`, listens on every interface;
-  see [On a network](#on-a-network).
+- `-addr 127.0.0.1:8080` listens on loopback only. Without the flag `gorged` listens on `:8080`,
+  every interface; see [On a network](#on-a-network).
 - `-dir` is the persistence directory. Give each server its own
   ([why](#persistence-and-restarts)).
 - `-feedback` is where bug reports go. The default is `feedback/` in the current directory, which
@@ -130,14 +130,14 @@ A human or mixed game uses table `t1` of the startup tables. `-humans` names whi
 are people, and the rest are bots.
 
 ```sh
-go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-pvp -feedback /tmp/gorge-play-feedback \
+go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-pvp -feedback /tmp/gorge-play-feedback \
   -tables 1 -seats 2 -humans 0,1 -prewarm=false
 ```
 
 ```text
-gorged: 1 tables of 2 on 127.0.0.1:8090 (dir /tmp/gorge-pvp)
-gorged: table t1 seat 0 joins at http://127.0.0.1:8090/t/t1?seat=0&token=355b74faa5e846cd7071dc95e1cff758
-gorged: table t1 seat 1 joins at http://127.0.0.1:8090/t/t1?seat=1&token=9579ac2e8bcbdd267ded59a62195d63e
+gorged: 1 tables of 2 on 127.0.0.1:8080 (dir /tmp/gorge-pvp)
+gorged: table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=355b74faa5e846cd7071dc95e1cff758
+gorged: table t1 seat 1 joins at http://127.0.0.1:8080/t/t1?seat=1&token=9579ac2e8bcbdd267ded59a62195d63e
 ```
 
 Send each player their own line. A token is random per start, grants one seat at one table, and is
@@ -225,7 +225,7 @@ The command exits non-zero if the corpus lacks a card, and `-force` writes the f
 
 ```sh
 cp testkit/testutil/decks/*.json /tmp/mydecks/
-go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-mine -feedback /tmp/gorge-play-feedback \
+go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-mine -feedback /tmp/gorge-play-feedback \
   -decks /tmp/mydecks -tables 0 -vsbot
 ```
 
@@ -312,7 +312,7 @@ matched the recording event for event. [Troubleshooting](troubleshooting.md#repr
 
 ## On a network
 
-To let other machines connect, listen on a reachable address, for example `-addr :8090`. The join lines the
+To let other machines connect, listen on a reachable address, such as the default `:8080`. The join lines the
 server prints say `127.0.0.1`; replace that with the machine's LAN address when you send them.
 
 `gorged` has **no login, no TLS and no rate limiting**. The only credential is the per-seat token in a join

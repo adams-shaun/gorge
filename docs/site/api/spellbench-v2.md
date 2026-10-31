@@ -806,10 +806,10 @@ covered when it's two-seat, constructed and has automatic mana; `-auto-mana` is 
 string counting up per seat, and `decision` is the `seat_decision`:
 
 ```text
-$ gorged -addr 127.0.0.1:8098 -dir /tmp/gorge-v2 -vsbot -sbv2
-$ curl -s -X POST http://127.0.0.1:8098/api/games -d '{"format":"constructed","human_deck":"mono-red-goblins","bot_deck":"mono-green-stompy","bot_policy":"bot"}'
+$ gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-v2 -vsbot -sbv2
+$ curl -s -X POST http://127.0.0.1:8080/api/games -d '{"format":"constructed","human_deck":"mono-red-goblins","bot_deck":"mono-green-stompy","bot_policy":"bot"}'
 {"table":"g1","match":1,"seed":18138067177183697358,"seat":0,"token":"<token>","bot_policy":"bot","join":"/t/g1?seat=0\u0026token=<token>"}
-$ curl -s -H "Authorization: Bearer <token>" http://127.0.0.1:8098/api/sbv2/v1/tables/g1/matches/1/state
+$ curl -s -H "Authorization: Bearer <token>" http://127.0.0.1:8080/api/sbv2/v1/tables/g1/matches/1/state
 {"request":{"request_type":"choose","protocol":"spellbench/v2","request_id":"1","game_id":"g-ec04ed07432c6aeb","decision":{"acting_seat":"p0","seat_step":0,"group":{"group_id":0,"substep_index":0,"substep_count":1}, ...}}}
 ```
 

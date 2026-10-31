@@ -247,7 +247,7 @@ To see a policy in action rather than count its wins, run bot-only tables and op
 [browser client](install.md#2-build-the-browser-client-if-you-want-one)):
 
 ```sh
-go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-watch -feedback /tmp/gorge-play-feedback \
+go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-watch -feedback /tmp/gorge-play-feedback \
   -tables 4 -seats 2 -format constructed,commander -commander-seats 4 \
   -bot-policy forge-heuristic -pace 1s
 ```

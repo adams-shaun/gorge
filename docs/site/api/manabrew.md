@@ -8,7 +8,7 @@ gorge's code is written independently from the published specification (CC BY 4.
 ## Serve it
 
 ```sh
-go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-mb -vsbot -manabrew
+go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-mb -vsbot -manabrew
 ```
 
 ```text

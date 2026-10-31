@@ -27,14 +27,14 @@ you): the bundle is compiled into the binary, so one built before `make web` kee
 ### `bind: address already in use`
 
 ```text
-gorged: listen tcp 127.0.0.1:8090: bind: address already in use
+gorged: listen tcp 127.0.0.1:8080: bind: address already in use
 ```
 
 Another process holds the port, often a `gorged` you started earlier. Find it
 by its port, then stop that process id:
 
 ```sh
-ss -ltnp | grep ':8090 '      # or: lsof -iTCP:8090 -sTCP:LISTEN
+ss -ltnp | grep ':8080 '      # or: lsof -iTCP:8080 -sTCP:LISTEN
 kill <pid>
 ```
 
@@ -48,7 +48,7 @@ contains the word, including your own shell or editor. Or pick another `-addr`.
 | `-bot-policies: bot policy "sb-tactical" reads opponents' decklists and cannot be offered` | `sb-tactical` and `az-redeal` are never seated against a person; leave them out of `-bot-policies` |
 | `-bot-opt "bot.depth=3": bot policy "bot" declares no options` | only `forge-heuristic` declares an option, `hold-instant` ([Bot-vs-bot games](bot-games.md#the-registered-policies)) |
 | `-bot-policy "az-redeal" reads opponents' decklists and cannot be the default` | the default policy must be one a person can play against: `bot`, `forge-heuristic`, `forge-heuristic-hold` or `lethal-pressure` |
-| `-pprof requires a loopback listener (got [::]:8091)` | `-pprof` needs `-addr 127.0.0.1:…` |
+| `-pprof requires a loopback listener (got [::]:8080)` | `-pprof` needs `-addr 127.0.0.1:…` |
 | `-manabrew requires a seat gate: pass -humans or -vsbot`, and the same for `-sbv2` | these wires only serve seats |
 | `-engine: engine "x" is not linked into this server (available: gorge)` | a plain build links one engine, `gorge`, which is the default |
 

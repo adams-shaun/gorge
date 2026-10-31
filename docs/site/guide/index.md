@@ -11,9 +11,9 @@ another language, see [Bots](../bots/index.md).
 git clone https://github.com/adams-shaun/gorge && cd gorge
 make fetch-cards   # the pinned Forge card scripts, into .cards/
 make web           # the browser client; must come before the next line
-go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-play \
+go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-play \
   -feedback /tmp/gorge-play-feedback -vsbot
-# open http://127.0.0.1:8090/ and press "Start game"
+# open http://127.0.0.1:8080/ and press "Start game"
 ```
 
 [Install and build](install.md) lists the prerequisites and explains

@@ -136,10 +136,10 @@ In `gorged` the agent becomes one more offered policy, so a play-vs-bot
 game, or an [HTTP bot](http.md), can play against it:
 
 ```console
-$ ./gorged -addr 127.0.0.1:8093 ... -vsbot -sb-agent sb-gorge-bot=/path/to/gorge-as-v2.sh
-$ curl -s http://127.0.0.1:8093/api/bot-policies | jq -c '[.policies[] | [.name, .label]]'
+$ ./gorged -addr 127.0.0.1:8080 ... -vsbot -sb-agent sb-gorge-bot=/path/to/gorge-as-v2.sh
+$ curl -s http://127.0.0.1:8080/api/bot-policies | jq -c '[.policies[] | [.name, .label]]'
 [["bot","Bot"],["forge-heuristic","Forge heuristic"],["forge-heuristic-hold","Forge heuristic + hold"],["lethal-pressure","Lethal Pressure"],["sb-gorge-bot","SpellBench v2 agent"]]
-$ python3 examples/bots/python/gorge_agent.py --server http://127.0.0.1:8093 --bot-policy sb-gorge-bot
+$ python3 examples/bots/python/gorge_agent.py --server http://127.0.0.1:8080 --bot-policy sb-gorge-bot
 ```
 
 A v2 seat is two-player and constructed-only, and plays only on tables with

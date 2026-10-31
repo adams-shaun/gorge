@@ -271,10 +271,10 @@ func main() { os.Exit(gorged.Main(os.Args[1:], gorged.Extensions{})) }
 
 ```console
 $ go build -o gorged-allin ./cmd/gorged-allin
-$ ./gorged-allin -addr 127.0.0.1:8093 -cards ../../../.cards -decks ../../../testkit/testutil/decks \
+$ ./gorged-allin -addr 127.0.0.1:8080 -cards ../../../.cards -decks ../../../testkit/testutil/decks \
     -dir /tmp/gorge-allin -feedback /tmp/gorge-allin/feedback -tables 0 -vsbot -pace 0 -prewarm=false \
     -bot-policy bot -bot-opt allin.min-power=2
-$ curl -s http://127.0.0.1:8093/api/bot-policies | jq -r '.policies[].name'
+$ curl -s http://127.0.0.1:8080/api/bot-policies | jq -r '.policies[].name'
 bot
 allin
 forge-heuristic
@@ -286,7 +286,7 @@ lethal-pressure
 the browser's play-vs-bot picker. The Python example agent played it:
 
 ```console
-$ python3 gorge_agent.py --server http://127.0.0.1:8093 --bot-policy allin --policy simple
+$ python3 gorge_agent.py --server http://127.0.0.1:8080 --bot-policy allin --policy simple
 created table g1 match 1, seat 0 vs allin
 ...
 match finished after 13 turns in 0.7 s: winner us (seat 0, mono-red-prowess)
