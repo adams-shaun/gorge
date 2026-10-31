@@ -67,7 +67,8 @@
           "enum": [
             "day",
             "night",
-            "none"
+            "none",
+            ""
           ]
         },
         {
