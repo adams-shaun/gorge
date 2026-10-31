@@ -319,7 +319,7 @@ listener is loopback, and a proxy in front of it would expose it anyway.
 | `-sbv2` | serve SpellBench v2 seats over HTTP ([SpellBench v2](../api/spellbench-v2.md)) |
 | `-engine` | the engine tables run on; a plain build links only `gorge` |
 | `-prewarm-art-only`, `-prewarm-art-budget`, `-prewarm-art-max-consecutive-failures` | fill the art cache and exit, with optional limits |
-| `-allow-decklist-bots`, `-az-*` | host trained-network bots whose weight files aren't distributed with gorge. Without the files they do nothing |
+| `-allow-decklist-bots` | lets a binary that links a trained-network bot run one that reads opponents' deck lists, on its bot-only table. A plain `gorged` links none |
 
 Everything the browser does goes through the [HTTP API](../api/http.md), so you can drive or inspect a server
 with `curl`.

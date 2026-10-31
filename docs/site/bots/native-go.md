@@ -143,7 +143,7 @@ build's first test rather than a server start. The fields that matter:
 | `Env`, `ClosedLists`, `Search` | an Env policy builds search over every seat's real decklist and is never seated against a human; `ClosedLists` marks one that closes opponents' lists and may be; `Search` lets the host bound concurrent searches |
 | `NeedsAutoPay` | the policy has no manual-tap mode; a table without payment plans refuses it |
 | `Caretaker` | a registered, non-`Env` policy named as this one's stand-in (`bots.Validate` checks it); a human seat's timeout caretaker is the table's own policy, not this field |
-| `Strength`, `Cost` | measurement metadata that `GET /api/bot-policies` publishes |
+| `Cost` | the per-decision cost `GET /api/bot-policies` publishes |
 | `Options` | the keys the factory reads (next section) |
 
 ### Options

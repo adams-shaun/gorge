@@ -35,7 +35,7 @@ integration surfaces; [Writing a native Go bot](native-go.md) the
 
 Engine speed (turns per second, clone and step costs, search rates) is on
 [Engine speed](../performance/engine.md), and bot cost on
-[Bots: cost and strength](../performance/bots.md).
+[Bot speed](../performance/bots.md).
 
 ## Evaluating a policy
 

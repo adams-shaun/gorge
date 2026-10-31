@@ -204,9 +204,9 @@ binary:
   loader `gorged review` uses to turn a saved game into a recorded match,
   and further engines for `-engine`. gorge's own `cmd/gorged` sets the events
   plugin and the review loader.
-- `gorged.RegisterNetBot` and `RegisterClosedNetBot` link trained-network bot
-  policies into the binary before `Main` runs; bot policies in general come
-  from the `bots` registry.
+- `gorged.RegisterNetBot` links a trained-network bot policy into the binary
+  before `Main` runs, with its flags; bot policies in general come from the
+  `bots` registry.
 
 gorge's own `cmd/gorged` links gorge's bots and [draft events](../draft.md),
 which serve only with `-events`. The private companion module builds its own

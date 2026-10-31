@@ -27,7 +27,7 @@ Six policies register themselves in the bot registry
 ([`bots/registry.go`](https://github.com/adams-shaun/gorge/blob/main/bots/registry.go)) from the
 packages [`bots/all`](https://github.com/adams-shaun/gorge/blob/main/bots/all/all.go) links, so every
 binary that imports `bots/all` has them. Each entry's `bots.Info` carries its label, tier, formats, seat
-limit, description and cost. [Bots: cost and strength](../performance/bots.md) measures them.
+limit, description and cost. [Bot speed](../performance/bots.md) measures them.
 
 | Name | Formats, seats | Offered by `gorged` | Package |
 |---|---|---|---|
@@ -106,10 +106,9 @@ same seeds. Start `gorged` with `-bot-policy bot` to make it the default.
 ### Other policies at runtime
 
 - **A SpellBench v2 agent** registered with `-sb-agent name=/path/to/agent` becomes a policy like any other.
-- **Network-backed search bots.** `gorged` reserves a few policy names and flags for search bots that need a trained network;
-  a downstream binary links an implementation in through `gorged.RegisterNetBot`
-  ([`server/gorged/netbots.go`](https://github.com/adams-shaun/gorge/blob/main/server/gorged/netbots.go)). gorge ships the
-  inference code but no trained networks, so on a plain `gorged` those flags refuse to start.
+- **Network-backed search bots.** A binary links a search bot that needs a trained network through `gorged.RegisterNetBot`
+  ([`server/gorged/netbots.go`](https://github.com/adams-shaun/gorge/blob/main/server/gorged/netbots.go)), which gives it its
+  `-<policy>-*` flags. gorge ships the inference code but no trained networks, so a plain `gorged` has no such flags.
 - **Your own Go policy**, linked into a binary of your own ([Writing a native Go bot](native-go.md)).
 
 `bots/searchseat` (a determinized rollout seat), `bots/searchprobe` and the learned-policy runtime in `bots/policynet` are

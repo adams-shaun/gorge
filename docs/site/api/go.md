@@ -428,7 +428,7 @@ is what makes the policy exist; `bots/all` links every built-in one.
 | `NeedsAutoPay bool` | The policy only plays through payment plans; the host refuses a table without them. |
 | `Caretaker string` | A registered, non-`Env` policy declared as this one's stand-in; `bots.Validate` checks it exists and is not an `Env` policy. The host does not read it: a human seat's think-timeout caretaker is built from the table's own `BotPolicy`. |
 | `Env, Search, ClosedLists bool` | For search policies that build an engine from the decklists. A policy with `Env` and without `ClosedLists` reads every seat's real decklist, so the host never seats it against a human. |
-| `Strength []Measurement`, `Cost Cost` | Published claims about strength and per-decision cost, shown by `/api/bot-policies`. |
+| `Cost Cost` | The published per-decision cost, shown by `/api/bot-policies`. |
 
 `Options` is what a factory receives: `Seed`, `AutoPayMana` (play through
 payment plans), `SearchParallelism`, `DecisionDeadlineMS`, `CommonSense`,
@@ -492,8 +492,7 @@ A binary that wants more (a bot, a plugin) is the same one line with something e
 | `func ServeReview(ctx context.Context, args []string, ln net.Listener, ext Extensions) error` | `gorged review` (which `Main` runs when `args[0]` is `review`) without signal handling or the bind: serves saved games read-only on `ln` until `ctx` is done. Needs `ext.Review`. |
 | `func ServeFlagSet() *flag.FlagSet` | A fresh copy of the flag set `Main` parses (`ContinueOnError`, no output), so a caller can check an argument list against the real flags. |
 | `func ServeFlagSetFor(ext Extensions) *flag.FlagSet` | The same, including the extensions' own flags. |
-| `func RegisterNetBot(policy string, nb NetBot)` | Links the implementation of a network-backed policy that gorged already names (its flags and deck-list handling live in gorged). Call before `Main`. |
-| `func RegisterClosedNetBot(policy, netHelp string, enable func(path string, closed *searchprobe.Belief) error)` | Links a network-backed policy gorged does not name; gorged gives it its own `-<policy>-net` and related flags. Call before `Main`. |
+| `func RegisterNetBot(policy string, nb NetBot)` | Links a network-backed policy into this binary; gorged gives it `-<policy>-net`, `-decks`, `-belief`, `-belief-pool` and `-demo-table`. Call before `Main`. |
 
 ```go
 type Extensions struct {
