@@ -91,3 +91,41 @@ func TestOwnTapSourcePaysNoMana(t *testing.T) {
 		t.Errorf("the source tapped %d times, want once", taps)
 	}
 }
+
+// A source that can't help this payment says nothing about the taps it needs: one
+// tapped already, or one whose mana this ability can't spend (CR 106.6).
+func TestWaterbendAskIgnoresASourceThatCantHelp(t *testing.T) {
+	t.Parallel()
+	const spellOnly = "Name:Test Scholar\nTypes:Creature Human\nPT:1/1\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ U | RestrictValid$ Spell.Instant | SpellDescription$ Spell mana.\nOracle:x\n"
+	for _, tapped := range []bool{false, true} {
+		e, _, _ := newFixtureDeck(t, 9700, ppFiller)
+		toMain1(t, e)
+		src := onBoardCard(t, e, 0, corpusCard(t, "Yue, the Moon Spirit"))
+		e.G.Obj(src).SummonSick = false
+		for range 2 {
+			e.G.Obj(onBoard(t, e, 0, apaDrone)).SummonSick = false
+		}
+		for range 3 {
+			e.G.Obj(onBoard(t, e, 0, apaIsland)).SummonSick = false
+		}
+		scholar := onBoard(t, e, 0, spellOnly)
+		e.G.Obj(scholar).SummonSick = false
+		e.G.Obj(scholar).Tapped = tapped
+		d := ppPriority(t, e)
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "ability" && o.Obj == src {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("tapped %v: the ability is not offered: %+v", tapped, d.Options)
+		}
+		submitChoices(t, e, idx)
+		ask := e.Pending()
+		if ask == nil || ask.Kind != decision.KChoose || ask.Min != 2 {
+			t.Errorf("tapped %v: pending %+v, want a helper ask requiring two", tapped, ask)
+		}
+	}
+}

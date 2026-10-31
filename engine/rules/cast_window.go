@@ -301,20 +301,24 @@ func (e *Engine) castWindowProbeAbilities(p state.PlayerID, id state.ObjID) []*c
 // untaps, so it leaves the census complete rather than failing it open:
 // "priced everything the window can offer" and "priced everything, because
 // the one unpriced source simply has nothing to offer right now" are the
-// same fact. The gates mirror castWindowProbeUnits' skip order so the
-// verdict describes that loop's own reason for leaving no unit.
-func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID) bool {
+// same fact. So is a RestrictValid$ ability this payment can't spend (CR 106.6).
+// The gates mirror castWindowProbeUnits' skips so the verdict describes
+// that loop's own reason for leaving no unit.
+func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc pay.Descriptor) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return false
 	}
 	for _, ma := range e.castWindowProbeAbilities(p, id) {
 		mp := effects.ManaOf(ma)
-		if mp.RestrictValid != "" {
-			return true
-		}
 		cost := e.abilityCompiledCost(ma).Cost
 		if pay.ActivationTapCostUnavailable(o, &cost) {
+			continue
+		}
+		if mp.RestrictValid != "" {
+			if pay.RestrictValidMatches(asPayer(e), p, desc, mp.RestrictValid, id) {
+				return true
+			}
 			continue
 		}
 		free := pay.ManaFreeCost(cost)
@@ -374,7 +378,7 @@ func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUni
 			}
 			continue
 		}
-		if len(e.castWindowProbeAbilities(p, id)) > 0 && e.castWindowSourceExcluded(p, id) {
+		if len(e.castWindowProbeAbilities(p, id)) > 0 && e.castWindowSourceExcluded(p, id, desc) {
 			return false
 		}
 	}
