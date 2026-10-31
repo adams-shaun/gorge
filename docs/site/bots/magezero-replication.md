@@ -4,7 +4,7 @@
 agent built on an XMage fork. It encodes every decision as a typed graph and
 trains a graph network ("NetGraph") on MCTS self-play. In October 2026 we
 replicated its published results and then ran the same experiments on
-dirty-dirac, the search kernel described under
+dirac, the search kernel described under
 [Architecture](../architecture/dirty-dirac/index.md). The goal was to decide
 whether MageZero's encoding or network should replace ours.
 
@@ -17,9 +17,9 @@ whether MageZero's encoding or network should replace ours.
       30x cheaper to run. On our data, NetGraph is no better either.
     - **The two engines play the same decks differently.** On identical lists,
       at the same search budget, with no network, Faeries wins more on
-      dirty-dirac than on XMage against four of seven opponents. Matching the
+      dirac than on XMage against four of seven opponents. Matching the
       option list, the leaf evaluator and the search math does not close that gap.
-    - **Training from scratch, same schedule:** UWTempo on dirty-dirac goes
+    - **Training from scratch, same schedule:** UWTempo on dirac goes
       from their gen0 (0.38 vs 0.35) to 0.78 by gen17, where theirs reaches
       0.65, against an opponent calibrated to their gen0.
     - **Adopted:** the encoder ships as an opt-in, off-by-default recording
@@ -45,7 +45,7 @@ trained net as the prior and value function.
 |---|---|
 | **ver4** | Their published gen0 Pauper training data (v0.3 encoding), 2,576 games |
 | **jar rerun** | Their v0.3.0-alpha release jar, run on our hardware with their gen0 config (Java 21, no rebuild) |
-| **dirty-dirac** | Our kernel (`kplay`) with research card sets built from their lists |
+| **dirac** | Our kernel (`kplay`) with research card sets built from their lists |
 | **NetGraph** | Their network, trained by their unmodified `train.py` |
 | **d64 MLP** | Our small production-family net: 1 residual block, d=64, 166K parameters |
 
@@ -62,8 +62,8 @@ far its two sides were actually matched.
 | Their `test.py` "classic test" table | model, data, code | nothing material | **like-for-like** |
 | d64 MLP vs NetGraph on their data | test states, candidates, metric | priority objective: theirs is unmasked over every ability node | **like-for-like on value and target only** |
 | NetGraph vs d64 MLP on our data | records, candidates, metric | NetGraph sees our states through a Go port of their encoder | **like-for-like, through a verified port** (id-parity tested) |
-| Faeries gen0: XMage vs dirty-dirac | lists (no substitutes), budget, clairvoyance, leaf, PUCT scale, option list | tree reuse, duplicate-state merging, combat factorisation, rules implementation | **close; residual = engine** |
-| UWTempo vs monos: **dirty-dirac 0.642 vs MageZero gen0 0.347** (earlier version of this page) | deck lists (2 substitutes), 300 sims | **opponent pilot** (our heuristic vs XMage depth-6 minimax); their gen0 ran at **150** sims | **not like-for-like**; replaced by [the training curve](#uwtempo-training-curve) |
+| Faeries gen0: XMage vs dirac | lists (no substitutes), budget, clairvoyance, leaf, PUCT scale, option list | tree reuse, duplicate-state merging, combat factorisation, rules implementation | **close; residual = engine** |
+| UWTempo vs monos: **dirac 0.642 vs MageZero gen0 0.347** (earlier version of this page) | deck lists (2 substitutes), 300 sims | **opponent pilot** (our heuristic vs XMage depth-6 minimax); their gen0 ran at **150** sims | **not like-for-like**; replaced by [the training curve](#uwtempo-training-curve) |
 | UWTempo training curve, gen0 → gen17 (this page) | lists (no substitutes), schedule (150 → 300 sims, prior off → on at gen12), games per generation, TD 0.92, gen0 anchor | opponent pilot (calibrated search, not minimax; misses the heuristic anchor), network, engine | **close**: same start, shapes comparable; absolute levels carry the opponent mismatch |
 | UWTempo heuristic pilot 0.261 vs their minimax pilot 0.16 | deck lists | both pilots *and* both opponents differ | **not comparable** |
 
@@ -85,7 +85,7 @@ objects ≪ bag of nodes (degenerate, as in theirs).
     Validation total = their `test.py` sum of losses. It compares within one
     data set only.
 
-    | their run | arch | theirs (ver4) | their code on their data | their code on dirty-dirac gen0 |
+    | their run | arch | theirs (ver4) | their code on their data | their code on dirac gen0 |
     |---|---|---|---|---|
     | s6 d256-drop0 (default) | d256, ff512, 2 sequential passes | 0.905 | 0.885 | 0.484, 0.492 (2 seeds) |
     | s8 d256-seq1-drop0 | 1 pass | 1.006 | not run | 0.501 |
@@ -124,17 +124,17 @@ theirs.
 
 - **Combat is factorised differently.** XMage asks one target question per
   attacking or blocking creature (pick one, or stop). That is 30% of all
-  their recorded states. dirty-dirac asks one subset question per declare
+  their recorded states. dirac asks one subset question per declare
   step. A net trained on one learns per-creature marginals; a net trained on
   the other learns a joint choice.
 - **XMage records 36% more decisions per game** (81.7 vs 52.4). The gap is
   combat plus main-phase priority. Most of the main-phase gap is land plays,
-  which dirty-dirac's default search does not treat as a decision.
+  which dirac's default search does not treat as a decision.
 - **Matched:** mana payment (both auto-pay), priority stops (every step on
   both turns; a lone Pass is auto-passed), mulligans (off) and pass semantics.
 
 Two follow-ups showed that combat structure does not explain the win-rate
-differences below. Widening dirty-dirac's six-candidate cap to 16 moved the
+differences below. Widening dirac's six-candidate cap to 16 moved the
 gen0 win rate by +0.008 [−0.018, +0.033] over 650 paired deals. Asking per
 creature, XMage-style, moved it by −0.023 [−0.052, +0.006], and by −0.022 at
 equal time.
@@ -146,7 +146,7 @@ equal time.
 </figure>
 
 The grey band runs from their published number to our rerun of their jar,
-which is the range XMage itself produces. "Default search" is dirty-dirac's
+which is the range XMage itself produces. "Default search" is dirac's
 gen0 spec on MageZero's exact lists. "Matched" adds every opt-in key that
 copies MCTS2:
 
@@ -163,7 +163,7 @@ pooled XMage data). What we measured on the way:
 - **The PUCT scale is the one search key that moves results**, by 3–6
   points toward XMage on Spy, Affinity and Elves. The other search keys are
   noise-level.
-- **One rules bug, now fixed.** dirty-dirac could not activate Saruli
+- **One rules bug, now fixed.** dirac could not activate Saruli
   Caretaker's `{T}, tap an untapped creature` mana ability. Fixing it moved
   Faeries vs Spy from 0.786 to 0.710, about a quarter of that gap. The fix
   also made the kernel refuse the 96 cards whose mana ability it still cannot
@@ -179,7 +179,7 @@ pooled XMage data). What we measured on the way:
   87.8% of offers, and the same timing. Removing all eight ninjas moves both
   engines, but by different amounts against Wildfire.
 - **Open: combat.** On XMage, Faeries gets a combat-damage draw ask 2.09
-  times per game against 1.12 on dirty-dirac, yet wins less. The next step is
+  times per game against 1.12 on dirac, yet wins less. The next step is
   unblocked-attacker and block rates per engine.
 
 ??? note "Search-matching ladder, all arms (400 games per matchup, paired deals)"
@@ -202,13 +202,13 @@ pooled XMage data). What we measured on the way:
 ??? note "Behaviour probe on the Pauper pool, three sources"
     Their `behaviour.py`, pooled over the seven non-mirror opponents.
 
-    | | theirs ver4 | jar rerun | dirty-dirac |
+    | | theirs ver4 | jar rerun | dirac |
     |---|---|---|---|
     | games / Faeries win | 2,177 / 0.438 | 270 / 0.437 | 4,334 / 0.493 |
     | Seer / Miscreant top move, no Miscreant out | 0.38 / 0.44 | 0.36 / 0.37 | 0.33 / 0.39 |
     | Seer / Miscreant top move, a Miscreant out | 0.06 / 0.79 | 0.07 / 0.87 | 0.11 / 0.75 |
 
-    | chosen per game (own-turn share) | theirs ver4 | jar rerun | dirty-dirac |
+    | chosen per game (own-turn share) | theirs ver4 | jar rerun | dirac |
     |---|---|---|---|
     | Faerie Seer | 1.38 (1.00) | 1.54 (1.00) | 1.45 (1.00) |
     | Spellstutter Sprite | 1.31 (0.92) | 1.48 (0.93) | 1.33 (0.90) |
@@ -243,7 +243,7 @@ MLP 1.05M (34x).
 
 ### Our data, both nets
 
-Same records and candidates for both, from dirty-dirac gen0 games on the real
+Same records and candidates for both, from dirac gen0 games on the real
 lists. NetGraph reads them through a Go port of their `StateEncoder`.
 
 | net | value MSE | priority KL | target top-1 |
@@ -277,7 +277,7 @@ training run; over all five, their curve runs 35% → 65%. Their gen7 (49%,
 the first generation after the switch to 300 simulations) is in their log
 but not in their chart; it is drawn here.
 
-**The dirty-dirac run.** dirty-dirac trained UWTempo from scratch on their
+**The dirac run.** dirac trained UWTempo from scratch on their
 schedule:
 
 - 1,000 games per generation (200 per mono), no exploration noise and a
@@ -298,7 +298,7 @@ against both of their anchors:
 | heuristic | 0.163 | 0.117 | 0.100 | 0.092 | 0.16 |
 | gen0 search, 150 sims | 0.513 | 0.445 | 0.399 | 0.372 | 0.347 |
 
-No dirty-dirac pilot matches both anchors. Our heuristic opponent matches
+No dirac pilot matches both anchors. Our heuristic opponent matches
 minimax against a heuristic UWTempo but is far easier for search. The
 300-simulation search opponent matches the gen0 anchor (0.372 vs 0.347,
 inside the 95% interval) but beats a heuristic UWTempo harder than minimax
@@ -308,17 +308,17 @@ absolute levels with that mismatch in mind.
 | gen | 0 | 1 | 3 | 6 | 7 | 11 | 12 | 13 | 17 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | MageZero | .347 | .361 | .502 | .543 | .489 | .599 | .608 | .574 | .646 |
-| dirty-dirac, calibrated opponents | .379 | .493 | .560 | .605 | .642 | .675 | .735 | .765 | .776 |
+| dirac, calibrated opponents | .379 | .493 | .560 | .605 | .642 | .675 | .735 | .765 | .776 |
 | same recipe, second seed | .380 | .494 | .595 | .593 | .664 | .677 | .747 | .763 | .784 |
-| dirty-dirac, heuristic opponents | .506 | .610 | .701 | .728 | .772 | .776 | .838 | .856 | .868 |
+| dirac, heuristic opponents | .506 | .610 | .701 | .728 | .772 | .776 | .838 | .856 | .868 |
 
 Each generation's figure is ±0.03 (95%, 1,000 games). Reading:
 
 - **Same shape.** Both systems gain about 0.3–0.4 over 17 generations, climb
   slowly through the value-only phase and step up when the policy prior turns
-  on at gen12. The two dirty-dirac seeds agree within noise at every
+  on at gen12. The two dirac seeds agree within noise at every
   generation.
-- **dirty-dirac learns faster from the same start.** Its first net is worth
+- **dirac learns faster from the same start.** Its first net is worth
   +0.11 where theirs is worth +0.01, and it ends 0.13 higher (0.78 vs 0.65).
   Why is not separated: network, engine, opponent and training details all
   differ. One hypothesis, not tested: 1,000 games per generation suits a
@@ -346,7 +346,7 @@ inside run-to-run noise.
 
 - **Combat.** Why XMage's Faeries gets twice the combat-damage draw asks and
   still wins less. This is the remaining engine lead.
-- **Opponent strength.** No dirty-dirac pilot matches XMage's depth-6 minimax
+- **Opponent strength.** No dirac pilot matches XMage's depth-6 minimax
   on both anchors. A direct match (minimax-piloted monos on their jar against
   our UWTempo nets) would remove the last calibration caveat from the
   training curve.
