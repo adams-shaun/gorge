@@ -41,8 +41,8 @@ sb-tactical	sb-tactical (SpellBench tactical heuristic)	experimental
 
 [Bots](../bots/index.md#the-bots-gorge-ships) describes each one, with its formats and seats.
 
-`sb-tactical` and `az-redeal` need a driver that supplies a rebuilt game to search or score: the
-matchup program below does, and `mtgsim` doesn't.
+`sb-tactical` and `az-redeal` are *environment* policies: they need a driver that supplies a rebuilt
+game to search or score. The matchup program below does, and `mtgsim` doesn't.
 
 A policy may declare options (`bots.Info.Options`). `gorged` sets them with `-bot-opt`, `-bot-config` or the
 environment ([Bots at the table](play.md#bots-at-the-table)); your own program passes

@@ -1,6 +1,6 @@
 # Build the public documentation site (mkdocs.yml, docs/site/) and publish it
-# to GitHub Pages. Every push to develop and every PR runs the same strict
-# build as a check; only main (push, cron, manual run) deploys.
+# to GitHub Pages. A push to develop or a PR that touches the paths below runs
+# the same strict build as a check; only main (push, cron, manual run) deploys.
 #
 # The set-support tables are rendered here, not measured: the compliance
 # oracle (oraclediff) lives in gorge-compliance, whose nightly CI publishes its

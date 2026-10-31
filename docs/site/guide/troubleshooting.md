@@ -46,7 +46,7 @@ contains the word, including your own shell or editor. Or pick another `-addr`.
 | Message | Cause |
 |---|---|
 | `-bot-policies: bot policy "sb-tactical" reads opponents' decklists and cannot be offered` | `sb-tactical` and `az-redeal` are never seated against a person; leave them out of `-bot-policies` |
-| `-bot-opt "bot.depth=3": bot policy "bot" declares no options` | only `forge-heuristic` declares an option, `hold-instant` ([Bot-vs-bot games](bot-games.md#the-registered-policies)) |
+| `-bot-opt "bot.depth=3": bot policy "bot" declares no options` | only `forge-heuristic` declares an option, `hold-instant` ([Bots](../bots/index.md#the-bots-gorge-ships)) |
 | `-bot-policy "az-redeal" reads opponents' decklists and cannot be the default` | the default policy must be one a person can play against: `bot`, `forge-heuristic`, `forge-heuristic-hold` or `lethal-pressure` |
 | `-pprof requires a loopback listener (got [::]:8080)` | `-pprof` needs `-addr 127.0.0.1:…` |
 | `-manabrew requires a seat gate: pass -humans or -vsbot`, and the same for `-sbv2` | these wires only serve seats |
