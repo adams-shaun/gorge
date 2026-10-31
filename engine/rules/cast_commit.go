@@ -856,8 +856,8 @@ func (e *Engine) payCast() {
 		mkCount = 2
 	}
 	if mkCount > 0 && (pc.mode == "multikicked" || faceWantsTimesKicked(e.G.Obj(pc.card).Face())) {
-		mkFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagKicked | state.FlagMultikicked)
-		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: mkCount, Counter: mkFlags})
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagKicked | state.FlagMultikicked)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: mkCount, Counter: flags})
 	}
 	// Conspire and Teamwork are paid-cost provenance. Emit no marker when
 	// declined so plain casts retain their byte-identical CastInfo stream.

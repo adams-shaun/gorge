@@ -1213,7 +1213,7 @@ func (e *Engine) spellMatchesValidSA(f *cards.Face, raw string, id, staticSource
 					return true
 				}
 				o := e.G.Obj(id)
-				if e.cast == nil && o != nil && o.Zone == state.ZStack && o.CastFlags&state.FlagTeamworkPaid != 0 {
+				if e.cast == nil && o != nil && o.Zone == state.ZStack && o.TeamworkPaid {
 					return true
 				}
 			}

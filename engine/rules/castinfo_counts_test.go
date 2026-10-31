@@ -154,3 +154,27 @@ func TestTimesKickedSurvivesColourReader(t *testing.T) {
 		})
 	}
 }
+
+// CR 702.33d: a multikicked spell is kicked, and the spend event that follows the
+// kick event assigns the object's flags whole.
+func TestMultikickedStaysKickedThroughASpendReader(t *testing.T) {
+	t.Parallel()
+	const src = "Name:Counted Kicks\nManaCost:W\nK:Multikicker:W\nTypes:Sorcery\n" +
+		"A:SP$ GainLife | Defined$ You | LifeAmount$ S | Condition$ Kicked\n" +
+		"SVar:S:Count$CastTotalManaSpent\nOracle:x\n"
+	e, cfg, id := newFixtureDeck(t, 316, src)
+	addMana(t, e, 0, "WW")
+	submitChoices(t, e, castOptMode(t, e.Pending().Options, id, "multikicked").Index)
+	d := e.Pending()
+	submitChoices(t, e, d.Options[len(d.Options)-1].Index)
+	o := e.G.Obj(id)
+	if o.CastFlags&state.FlagKicked == 0 || o.TimesKicked != 1 || o.ManaSpent != 2 {
+		t.Fatalf("flags %b, TimesKicked = %d, ManaSpent = %d, want kicked, 1 and 2", o.CastFlags, o.TimesKicked, o.ManaSpent)
+	}
+	life := e.G.Players[0].Life
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Players[0].Life - life; got != 2 {
+		t.Fatalf("gained %d life, want 2", got)
+	}
+	replayCheck(t, e, cfg)
+}
