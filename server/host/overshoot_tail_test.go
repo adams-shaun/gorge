@@ -73,7 +73,7 @@ const (
 	// ("ceased to exist") after the ask. assertOvershootShape now requires that
 	// token-cleanup tail rather than a lethal-damage sweep. The capture was
 	// re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents,
-	// head 6d7b5325284ddbc4 (one more event after the develop rebase).
+	// head 8f92486feb45ce6b at the last re-record (see the capture's history below).
 	overshootIntents = 664 // intents recorded when parked on the overshoot burst's pending ask
 )
 
@@ -676,6 +676,11 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // token-cleanup tail rather than a lethal-damage sweep. The capture was
 // re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents,
 // head 6d7b5325284ddbc4 (one more event after the develop rebase).
+// Entered-object reads (2026-10-31, CR 608.2h): Righteous Valkyrie's life gain
+// on Selfless Spirit, sacrificed in response, reads its last toughness 3 under
+// the Valkyrie's own +2/+2 rather than the card's printed 1, so event 3623 gains
+// 3. Re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents, head
+// 8f92486feb45ce6b; the parked ask and its tail are unchanged.
 const committedCaptureRel = "../../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
