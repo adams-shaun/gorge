@@ -64,7 +64,7 @@ far its two sides were actually matched.
 | d64 MLP vs NetGraph on their data | test states, candidates, metric | priority objective: theirs is unmasked over every ability node | **like-for-like on value and target only** |
 | NetGraph vs d64 MLP on our data | records, candidates, metric | NetGraph sees our states through a Go port of their encoder | **like-for-like, through a verified port** (id-parity tested) |
 | Faeries gen0: XMage vs dirac | lists (no substitutes), budget, clairvoyance, leaf, PUCT scale, option list | tree reuse, duplicate-state merging, combat factorisation, rules implementation | **close; residual = engine** |
-| UWTempo vs monos: **dirac 0.642 vs MageZero gen0 0.347** (earlier version of this page) | deck lists (2 substitutes), 300 sims | **opponent pilot** (our heuristic vs XMage depth-6 minimax); their gen0 ran at **150** sims | **not like-for-like**; replaced by [the training curve](#uwtempo-training-curve) |
+| UWTempo vs monos: **dirac 0.642 vs MageZero gen0 0.347** | deck lists (2 substitutes), 300 sims | **opponent pilot** (our heuristic vs XMage depth-6 minimax); their gen0 ran at **150** sims | **not like-for-like**; replaced by [the training curve](#uwtempo-training-curve) |
 | UWTempo training curve, gen0 → gen17 (this page) | lists (no substitutes), schedule (150 → 300 sims, prior off → on at gen12), games per generation, TD 0.92, gen0 anchor | opponent pilot (calibrated search, not minimax; misses the heuristic anchor), network, engine | **close**: same start, shapes comparable; absolute levels carry the opponent mismatch |
 | UWTempo heuristic pilot 0.261 vs their minimax pilot 0.16 | deck lists | both pilots *and* both opponents differ | **not comparable** |
 
