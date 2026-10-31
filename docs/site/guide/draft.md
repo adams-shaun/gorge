@@ -6,9 +6,7 @@ bot, and bots take part in every phase. This page shows how to host events with
 `gorged`, how to run them headless with `draftsim`, and how to compose your own
 workflows with `labdemo` and the `draftlab` library.
 
-*The commands and the output below were run on 2026-10-30 at commit
-`834ac7d9a` (corpus pin `FORGE_REF` `91402ac5`). The browser steps are read from
-the client's source and its tests; they were not clicked through for this page.*
+The commands and output below are from 2026-10-31.
 
 ## Host events with `gorged -events`
 
@@ -17,7 +15,7 @@ Turn them on with `-events`:
 
 ```sh
 make fetch-cards   # once: the pinned card corpus, into .cards/
-make web           # once: the browser client (needs Node 20+)
+make web           # once, before gorged is built: the browser client (needs Node 20+)
 go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-draft -events
 ```
 
@@ -28,8 +26,8 @@ gorged: draft events on (/api/events, dir /tmp/gorge-draft/events)
 
 Open `http://127.0.0.1:8090/` and use *Draft a 4-player pod* in the lobby. That
 entry appears only on a server that serves events, and goes to `/events/new`.
-Without `make web` the server still runs and serves the whole API, but pages
-answer `503 web build missing`.
+A `gorged` built before `make web` still serves the whole API, but pages answer
+`503 web build missing`.
 
 With `-events`, the startup art fill also covers every card in every draftable
 set (553 card names) as well as the deck files, so a first start spends a while
@@ -84,11 +82,11 @@ Boosters (`play`).
 | `FDN` | Foundations | 14 | 17Lands games-in-hand win rate |
 | `BLB` | Bloomburrow | 13 | a heuristic from card facts |
 
-**Bot seats** have a game policy and a drafter. `GET /api/events/personas` lists
-two names, `rating-colour` (the default) and `best23`. Today both name the same
-pair: the `rating-colour` drafter, which scores a card by its rating plus how well
-it fits the colours picked so far, and the `best23` builder, which plays the colour
-pair with the best 23 cards and adds 17 basics.
+**Bot seats** have a game policy, a drafter and a builder. `GET /api/events/personas`
+lists the drafter and builder names, `rating-colour` (the default) and `best23`. Both
+name the same pair: the `rating-colour` drafter, which scores a card by its rating plus
+how well it fits the colours picked so far, and the `best23` builder, which plays the
+colour pair with the best 23 cards and adds 17 basics.
 
 The game policy is any hosted policy that does not read opponents' decklists:
 `bot`, `lethal-pressure`, `forge-heuristic` and `forge-heuristic-hold` in a plain
@@ -254,7 +252,7 @@ hero p7 FDN draft / bot@1: 8-12-0 0.400 ci95 [0.219, 0.613]
 artifacts: /tmp/labdemo
 ```
 
-That run took about 2 seconds. Those figures are from one small seeded run and say
+That run took about 3 seconds. Its figures come from one small seeded run and say
 nothing about bot strength. `-out` writes:
 
 | File | What |
@@ -277,9 +275,8 @@ and read
 
 The FDN pick ratings come from [17Lands](https://www.17lands.com) public datasets,
 licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). They are
-per-card games-in-hand win rates computed from 791,159 FDN Premier Draft games, and
-the file `draft/limited/pickbot/ratings/FDN.json` carries its own source and
-attribution. The client shows the credit on any page those ratings shape. The set
+per-card games-in-hand win rates from FDN Premier Draft games, and the file
+`draft/limited/pickbot/ratings/FDN.json` records its source and attribution. The client shows the credit on any page those ratings shape. The set
 and booster data is trimmed from [MTGJSON](https://mtgjson.com) (MIT). Both are
 credited in
 [`NOTICE`](https://github.com/adams-shaun/gorge/blob/main/NOTICE).
