@@ -50,7 +50,7 @@
       {#if lines.length === 0}
         <p class="none">Nothing is attacking yet.</p>
       {:else}
-        {#each lines as line (line)}<p class="line attack">{line}</p>{/each}
+        {#each lines as line, i (i)}<p class="line attack">{line}</p>{/each}
       {/if}
     {:else}
       {#each blocks as b (b.attacker)}

@@ -45,6 +45,19 @@ describe('PromptSurface', () => {
     await page.close();
   });
 
+  it('summarises two attackers of one name', async () => {
+    const page = await browser.newPage();
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=attackers`);
+    await page.locator('[data-option="0"]').click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-combat-summary] .line').length === 1);
+    await page.locator('[data-option="1"]').click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-combat-summary] .line').length === 2);
+    expect(errors).toEqual([]);
+    await page.close();
+  });
+
   it('keeps an initiative decision open until it is answered', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/PromptSurface.fixture.html`);

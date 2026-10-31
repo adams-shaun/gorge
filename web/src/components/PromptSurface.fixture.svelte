@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Decision, PlayerView, SeatInfo, View } from '../protocol';
+  import type { CardView, Decision, PlayerView, SeatInfo, View } from '../protocol';
   import { SeatPanelState } from '../lib/seatpanel.svelte';
   import HotButtonStrip from './HotButtonStrip.svelte';
 
@@ -29,9 +29,11 @@
    *    discard picks, so the faces toggle and the submit button commits.
    *  - 'charm' — a KModes MODAL list (option kind "mode", no Obj): the
    *    non-discard control, which must keep rendering the generic text list.
+   *  - 'attackers' — two creatures of one name can attack the same player, so
+   *    the summary shows the same line twice.
    */
 
-  let { case: which = 'initiative' }: { case?: 'initiative' | 'arrange' | 'scry' | 'surveil' | 'seqswap' | 'discard1' | 'discard2' | 'charm' } = $props();
+  let { case: which = 'initiative' }: { case?: 'initiative' | 'arrange' | 'scry' | 'surveil' | 'seqswap' | 'discard1' | 'discard2' | 'charm' | 'attackers' } = $props();
 
   const seats: SeatInfo[] = [
     { name: 'Ari', deck: 'burn', colour: '#e5484d' },
@@ -88,7 +90,7 @@
   };
   function initialDecision(): Decision {
     return which === 'arrange' ? arrange : which === 'scry' ? scry : which === 'surveil' ? surveil : which === 'seqswap' ? arrange
-      : which === 'discard1' ? discard1 : which === 'discard2' ? discard2 : which === 'charm' ? charm : target;
+      : which === 'discard1' ? discard1 : which === 'discard2' ? discard2 : which === 'charm' ? charm : which === 'attackers' ? attackers : target;
   }
   // The Thoughtseize shape (effects/cardflow.go's RevealYouChoose branch):
   // KModes, every option a "discard" pick with the card id and the
@@ -122,10 +124,24 @@
       { index: 1, kind: 'mode', label: 'Draw a card', player: 0 },
     ],
   };
+  const attackers: Decision = {
+    seq: 14, player: 0, kind: 'attackers', min: 0, max: 2,
+    prompt: 'Declare attackers',
+    options: [
+      { index: 0, kind: 'attacker', label: 'Attack with Geist at Bo', obj: 21, player: 1 },
+      { index: 1, kind: 'attacker', label: 'Attack with Geist at Bo', obj: 22, player: 1 },
+    ],
+  };
   const decision = initialDecision();
   // The seqswap case's view is state: the swap button replaces its decision
   // under the mounted panel, exactly as the next SSE view would.
-  let view = $state<View>({ ...base, decision });
+  const geist = (id: number): CardView => ({
+    id, name: 'Geist', types: 'Creature', printing: { name: 'Geist' }, token: `#${id}`, tapped: false, power: 2, toughness: 1, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false,
+  });
+  function initialPlayers(): PlayerView[] {
+    return which === 'attackers' ? [{ ...player(0), battlefield: [geist(21), geist(22)] }, player(1)] : base.players;
+  }
+  let view = $state<View>({ ...base, players: initialPlayers(), decision });
   const swapTo: Decision = arrangeB;
 
   const ctx = { seat: 0, token: 'tok' };
