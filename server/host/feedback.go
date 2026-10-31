@@ -307,7 +307,7 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 		d = &cp
 	}
 	snaps := append([]snapshot(nil), m.snaps...)
-	cfg := m.cfg
+	cfg, src := m.cfg, m.replaySource()
 	// headSeq comes from the copy the view below is projected from, not
 	// from the live log: the two agree for every non-crashed match (the
 	// clone is not trimmed), but a crashed match's reconciled copy is
@@ -339,7 +339,7 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 		},
 	}
 	if seat != nil {
-		v, err := viewAt(cfg, l, snaps, headSeq, *seat, view.Seat, d)
+		v, err := viewAt(src, l, snaps, headSeq, *seat, view.Seat, d)
 		if err != nil {
 			snap.ViewErr = err.Error()
 		} else {

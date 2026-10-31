@@ -130,11 +130,11 @@ type match struct {
 	feeds *matchFeeds
 }
 
-// snapshot is a cloned engine at an intent boundary that began a turn.
+// snapshot is a forked game at an intent boundary that began a turn.
 type snapshot struct {
 	intent int
 	seq    uint64 // Task 12: the persisted burst boundary this snapshot lines up with on disk.
-	e      *rules.Engine
+	g      game.Game
 }
 
 // newMatch is the pre-E3 constructor, still called directly by tests and
@@ -275,7 +275,7 @@ func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, erro
 	e.Advance()
 	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, state: protocol.MatchLive,
 		undo: newUndoQueue()}
-	m.setGame(&gorgegame.Game{E: e})
+	m.setGame(gorgegame.Game{E: e})
 	m.bounds = []uint64{uint64(len(m.g.Log().Events))}
 	m.turnStarts = turnStartsIn(m.g.Log().Events, 0)
 	m.snapshotGenesis()

@@ -759,13 +759,13 @@ func (m *match) trimLog() {
 	snaps := make([]snapshot, len(m.snaps))
 	for i, s := range m.snaps {
 		snaps[i] = s
-		se := s.e.L.Events
+		se := s.g.Log().Events
 		if len(se) == 0 || len(se) > len(evs) || &se[0] != &old[0] {
 			continue
 		}
-		ne := s.e.Clone()
-		ne.L.Events = evs[:len(se):len(se)]
-		snaps[i].e = ne
+		ne := s.g.Fork()
+		ne.Log().Events = evs[:len(se):len(se)]
+		snaps[i].g = ne
 	}
 	m.snaps = snaps
 }

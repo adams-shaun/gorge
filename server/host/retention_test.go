@@ -314,7 +314,7 @@ func TestMemoryModeHistoryIsBounded(t *testing.T) {
 		// array; they must now share the trimmed one instead, or the
 		// reserved array stays reachable through them.
 		for j, sn := range m.snaps {
-			if se := sn.e.L.Events; len(se) > 0 && &se[0] != &m.e.L.Events[0] {
+			if se := sn.g.Log().Events; len(se) > 0 && &se[0] != &m.e.L.Events[0] {
 				t.Fatalf("match %d snapshot %d still holds the untrimmed log", m.k, j)
 			}
 		}

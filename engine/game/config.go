@@ -11,7 +11,7 @@ const (
 )
 
 // Config builds a game. A replay must be given the values the live game had;
-// only ExpectedEvents may differ.
+// only the guard fields and ExpectedEvents may differ.
 type Config struct {
 	Seed uint64
 	// Names is each seat's deck identity, which reaches event text.
@@ -35,6 +35,9 @@ type Config struct {
 	// GuardDisabled means the host's per-turn guard is off, so the engine's
 	// livelock watcher is too.
 	GuardDisabled bool
+	// NoObjectCap leaves the engine's watcher at its defaults with no bound on
+	// the board's size, for rebuilding a recording that may have grown past it.
+	NoObjectCap bool
 	// ExpectedEvents is a log capacity hint.
 	ExpectedEvents int
 	// Key is an engine-specific replay key the host records beside the log.

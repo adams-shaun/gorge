@@ -209,11 +209,11 @@ var rulesOnly = map[string]string{
 	"PlanarDecks": "no host table plays Planechase",
 	"NamedCorpus": "the oracle harness's own corpus",
 	"Spare":       "a batch runner's recycled storage",
-	"LoopGuard":   "derived from GuardDisabled",
+	"LoopGuard":   "derived from GuardDisabled and NoObjectCap",
 }
 
 // gameOnly names the game.Config fields with no rules.Config counterpart.
-var gameOnly = map[string]bool{"GuardDisabled": true, "Key": true}
+var gameOnly = map[string]bool{"GuardDisabled": true, "NoObjectCap": true, "Key": true}
 
 func TestRulesConfigCarriesEveryField(t *testing.T) {
 	var c game.Config
@@ -266,6 +266,9 @@ func TestRulesConfigCarriesEveryField(t *testing.T) {
 	if g := RulesConfig(game.Config{}).LoopGuard; g == nil || g.Disabled || g.MaxObjs != rules.DefaultMaxObjs {
 		t.Errorf("default: LoopGuard %+v", g)
 	}
+	if g := RulesConfig(game.Config{NoObjectCap: true}).LoopGuard; g != nil {
+		t.Errorf("NoObjectCap: LoopGuard %+v", g)
+	}
 
 	// A field the host sets but game.Config cannot carry would be lost on the
 	// way to the engine, so no host file may name one.
@@ -304,6 +307,21 @@ func TestRulesConfigCarriesEveryField(t *testing.T) {
 	for name, why := range rulesOnly {
 		if name != "LoopGuard" && named[name] {
 			t.Errorf("server/host names %s, which game.Config does not carry (%s)", name, why)
+		}
+	}
+}
+
+func TestGameConfigInvertsRulesConfig(t *testing.T) {
+	var c game.Config
+	cv := reflect.ValueOf(&c).Elem()
+	for i := range cv.NumField() {
+		fill(t, cv.Field(i))
+	}
+	c.Key = ""
+	for _, guard := range []struct{ disabled, noCap bool }{{false, false}, {true, false}, {false, true}} {
+		c.GuardDisabled, c.NoObjectCap = guard.disabled, guard.noCap
+		if got := GameConfig(RulesConfig(c)); !reflect.DeepEqual(got, c) {
+			t.Errorf("guard %+v: %+v, want %+v", guard, got, c)
 		}
 	}
 }

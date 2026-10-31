@@ -5,11 +5,13 @@ import (
 	"errors"
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -188,7 +190,7 @@ func TestViewAtFromSnapshotsEqualsViewAtFromGenesis(t *testing.T) {
 		if seq > head {
 			continue
 		}
-		fast, err := viewAt(m.cfg, m.e.L, m.snaps, seq, view.NoSeat, view.Omniscient, nil)
+		fast, err := viewAt(m.replaySource(), m.e.L, m.snaps, seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatalf("seq %d (snapshots): %v", seq, err)
 		}
@@ -200,11 +202,11 @@ func TestViewAtFromSnapshotsEqualsViewAtFromGenesis(t *testing.T) {
 	// viewAt's own snapshot-less branch (a full replay per call) still has
 	// to agree; three seqs cover its from==j==0, mid-log, and head cases.
 	for _, seq := range []uint64{0, seqs[len(seqs)/2], head} {
-		fast, err := viewAt(m.cfg, m.e.L, m.snaps, seq, view.NoSeat, view.Omniscient, nil)
+		fast, err := viewAt(m.replaySource(), m.e.L, m.snaps, seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatalf("seq %d (snapshots): %v", seq, err)
 		}
-		slow, err := viewAt(m.cfg, m.e.L, nil, seq, view.NoSeat, view.Omniscient, nil)
+		slow, err := viewAt(m.replaySource(), m.e.L, nil, seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatalf("seq %d (genesis): %v", seq, err)
 		}
@@ -244,11 +246,11 @@ func TestViewAtTracksIntraBurstStateChanges(t *testing.T) {
 		if ev.Kind != events.LifeChange || ev.Amount == 0 {
 			continue
 		}
-		before, err := viewAt(m.cfg, m.e.L, m.snaps, ev.Seq-1, view.NoSeat, view.Omniscient, nil)
+		before, err := viewAt(m.replaySource(), m.e.L, m.snaps, ev.Seq-1, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		after, err := viewAt(m.cfg, m.e.L, m.snaps, ev.Seq, view.NoSeat, view.Omniscient, nil)
+		after, err := viewAt(m.replaySource(), m.e.L, m.snaps, ev.Seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -294,11 +296,11 @@ func TestViewAtSurvivesATruncatedFinalBurst(t *testing.T) {
 	l, k := truncatedMidBurst(t, m)
 	head := uint64(len(l.Events) - 1)
 
-	fromSnaps, err := viewAt(m.cfg, l, m.snaps, head, view.NoSeat, view.Omniscient, nil)
+	fromSnaps, err := viewAt(m.replaySource(), l, m.snaps, head, view.NoSeat, view.Omniscient, nil)
 	if err != nil {
 		t.Fatalf("viewAt(head) with snapshots panicked or errored: %v", err)
 	}
-	fromGenesis, err := viewAt(m.cfg, l, nil, head, view.NoSeat, view.Omniscient, nil)
+	fromGenesis, err := viewAt(m.replaySource(), l, nil, head, view.NoSeat, view.Omniscient, nil)
 	if err != nil {
 		t.Fatalf("viewAt(head) from genesis panicked or errored: %v", err)
 	}
@@ -449,4 +451,82 @@ func TestEventsSinceReturnsRedactedDescribedTail(t *testing.T) {
 		}
 	}
 	_ = protocol.TEvent
+}
+
+// replayRecorder names the boundaries a replay was asked to reach.
+type replayRecorder struct {
+	game.Engine
+	asked []int
+}
+
+func (e *replayRecorder) ReplayTo(l *events.Log, c game.Config, n int) (game.Game, error) {
+	e.asked = append(e.asked, n)
+	return e.Engine.ReplayTo(l, c, n)
+}
+
+func TestViewAtRoundsToBurstWithoutSubBurstViews(t *testing.T) {
+	t.Parallel()
+	_, m := finishedTable(t)
+	src := m.replaySource()
+	if !src.caps.SubBurstViews {
+		t.Fatal("gorge reports no sub-burst views")
+	}
+	rec := &replayRecorder{Engine: src.engine}
+	bare := replaySource{engine: rec, config: src.config, caps: game.Caps{Engine: "stub"}}
+	project := func(s replaySource, snaps []snapshot, seq uint64) string {
+		t.Helper()
+		v, err := viewAt(s, m.e.L, snaps, seq, view.NoSeat, view.Omniscient, nil)
+		if err != nil {
+			t.Fatalf("viewAt(%d): %v", seq, err)
+		}
+		return viewJSON(t, v)
+	}
+
+	// The first burst whose first event already changes what the board shows,
+	// so the rounded answer cannot pass for the exact one.
+	oracle := newForwardOracle(t, m)
+	for j := 1; j < len(m.bounds); j++ {
+		seq, end := m.bounds[j-1], m.bounds[j]-1
+		exact := project(src, m.snaps, seq)
+		if a := viewJSON(t, oracle.viewAt(seq)); exact != a {
+			t.Fatalf("seq %d: gorge's answer moved\n%s\n%s", seq, exact, a)
+		}
+		atEnd := project(src, m.snaps, end)
+		if seq == end || exact == atEnd {
+			continue
+		}
+		if got := project(bare, m.snaps, seq); got != atEnd {
+			t.Fatalf("seq %d from a snapshot: not the end of its burst\n%s\n%s", seq, got, atEnd)
+		}
+		if got := project(bare, nil, seq); got != atEnd {
+			t.Fatalf("seq %d from genesis: not the end of its burst\n%s\n%s", seq, got, atEnd)
+		}
+		if len(rec.asked) != 1 || rec.asked[0] != j {
+			t.Fatalf("seq %d asked for boundaries %v, want %d", seq, rec.asked, j)
+		}
+		if got := project(bare, m.snaps, end); got != atEnd {
+			t.Fatalf("seq %d, a burst's last event, moved\n%s\n%s", end, got, atEnd)
+		}
+		return
+	}
+	t.Fatal("no burst changes the view between its first and last event")
+}
+
+// A burst that never ended has no end to round to, and the boundary before it
+// is not the board at seq.
+func TestViewAtRefusesAnUnfinishedBurstWithoutSubBurstViews(t *testing.T) {
+	t.Parallel()
+	_, m := finishedTable(t)
+	l, k := truncatedMidBurst(t, m)
+	src := m.replaySource()
+	bare := replaySource{engine: src.engine, config: src.config, caps: game.Caps{Engine: "stub"}}
+	head := uint64(len(l.Events) - 1)
+	for _, snaps := range [][]snapshot{m.snaps, nil} {
+		if _, err := viewAt(bare, l, snaps, head, view.NoSeat, view.Omniscient, nil); err == nil || !strings.Contains(err.Error(), "never ended") {
+			t.Fatalf("viewAt(%d) in an unfinished burst: %v", head, err)
+		}
+		if _, err := viewAt(bare, l, snaps, m.bounds[k]-1, view.NoSeat, view.Omniscient, nil); err != nil {
+			t.Fatalf("viewAt(%d) at the last finished burst: %v", m.bounds[k]-1, err)
+		}
+	}
 }

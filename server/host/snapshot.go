@@ -21,8 +21,8 @@ import (
 // shedding snapshots once persisted) is dispatched separately; this task
 // takes the straightforward Clone the brief specifies.
 func (r *Registry) afterBurst(t *table, m *match, before int) error {
-	if len(turnStartsIn(m.e.L.Events, before)) > 0 {
-		m.snaps = append(m.snaps, snapshot{intent: m.intents, seq: m.bounds[len(m.bounds)-1] - 1, e: m.e.Clone()})
+	if len(turnStartsIn(m.g.Log().Events, before)) > 0 {
+		m.snaps = append(m.snaps, snapshot{intent: m.intents, seq: m.bounds[len(m.bounds)-1] - 1, g: m.g.Fork()})
 	}
 	if err := r.persistBurst(t, m, before); err != nil { // Task 12
 		return err
@@ -48,10 +48,10 @@ func (r *Registry) observeBurst(t *table, m *match, before int) error {
 		return nil
 	}
 	var in *decision.Intent
-	if n := len(m.e.L.Intents); n > 0 {
-		in = &m.e.L.Intents[n-1]
+	if n := len(m.g.Log().Intents); n > 0 {
+		in = &m.g.Log().Intents[n-1]
 	}
-	evs := append([]events.Event(nil), m.e.L.Events[before:]...)
+	evs := append([]events.Event(nil), m.g.Log().Events[before:]...)
 	return r.opts.OnBurst(t.cfg.ID, m.k, evs, in)
 }
 
@@ -87,7 +87,7 @@ func (r *Registry) callOnMatchEnd(t TableID, k int, m protocol.MatchInfo) {
 // never replays from scratch either. FL-44 (see afterBurst) applies here
 // too.
 func (m *match) snapshotGenesis() {
-	m.snaps = append(m.snaps, snapshot{intent: 0, seq: m.bounds[0] - 1, e: m.e.Clone()})
+	m.snaps = append(m.snaps, snapshot{intent: 0, seq: m.bounds[0] - 1, g: m.g.Fork()})
 }
 
 // boundsOf derives the intent boundaries from the log alone: every burst
@@ -146,10 +146,10 @@ func (r *Registry) persistBurst(t *table, m *match, before int) error {
 	if m.files == nil {
 		return nil
 	}
-	in := m.e.L.Intents[len(m.e.L.Intents)-1]
-	if err := m.files.append(m.e.L.Events[before:], &in); err != nil {
+	in := m.g.Log().Intents[len(m.g.Log().Intents)-1]
+	if err := m.files.append(m.g.Log().Events[before:], &in); err != nil {
 		return err
 	}
-	m.persisted = len(m.e.L.Events)
+	m.persisted = len(m.g.Log().Events)
 	return nil
 }
