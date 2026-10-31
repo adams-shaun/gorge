@@ -108,6 +108,7 @@ branch never adds an entry or raises a ceiling.
 | `internal/codeshape` (`TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink`) | `internal/codeshape/ratchet_test.go` | Shrink-only ceilings on function length, interface width and string-keyed dispatch in `engine/rules` and `engine/effects` (`go run ./cmd/codeshape -table` measures them). Both tests are currently skipped, but the ceilings still describe the direction: do not grow a function past 300 lines. |
 | `TestNoForgeScriptsTracked` | `engine/cards/boundary_test.go` | A Forge script is tracked in git. Remove it. |
 | `TestPublicBoundary`, `TestNoVerbatimForgeLines` | `internal/archtest/` | A generated card table, a binary, a private path or a fragment of a Forge script is tracked. Remove it. |
+| `TestWireMatrixPageMatchesScript` | `testkit/conformance/` | A cell in `scripts/wire-matrix.sh` and [Wires](../architecture/wires.md) disagree. Change both. |
 | `TestConformance*`, `TestManaBrew*`, `TestFoundPairs` | `testkit/conformance/` | A client wire says something different between two sessions of one game. `scripts/wire-matrix.sh commit` runs every [wire cell](../architecture/wires.md). |
 
 ## Before you open a PR

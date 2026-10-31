@@ -112,9 +112,6 @@ systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% \
   `cards.LoadRegistry`: the shared registry opens once per test binary,
   while a fresh one costs hundreds of MB.
 
-[Testing](testing.md) covers the test helpers, oracle scenarios, and what
-each ratchet failure means.
-
 ## Lint
 
 ```sh
@@ -135,19 +132,8 @@ now a stale entry that fails too. You delete the entry in the same commit;
 you never add one. The why behind each is on
 [Invariants](../architecture/invariants.md#ratchets-only-shrink).
 
-| Fails as | Means | Do |
-|---|---|---|
-| `TestEveryRepoDeckIsFullySupported` | a card in the 30 repo decks (`testkit/testutil/decks/`) needs a primitive this build lacks, or a card listed in `engine/rules/testdata/known-unsupported/` is now supported | fix the regression, or delete the stale file |
-| `TestEveryRepoDeckParamsAreRead` | the same, for script parameters no code reads (`engine/rules/testdata/paramcensus/`) | same |
-| `TestValueHeadRegistryMatchesEvaluator` | a `count:` value head is in the evaluator but not `modelledValueHeads`, or the reverse | add it to both |
-| `TestHeads` | the golden bot games at 2/4/6/8 seats ended with a different chain head | if intended, re-pin with `GORGE_UPDATE_HEADS=1 go test ./engine/rules/ -run '^TestHeads$'` and name the first diverging event (`cmd/headdiff`) in the commit message |
-| `TestRepoDeckGamesReplayExactly` | a game's replay diverged from the live run | something wrote state outside `events.Apply`, or something nondeterministic reached an event |
-| `internal/archtest` (`TestDependencyOrderHolds`, `TestTimeIsImportedOnlyByTheHost`, `TestRootModuleHasNoRequires`, the `layering_*` tests) | a forbidden import edge, a `time` import outside the allowlist, or a `require` in `go.mod` | restructure the code; do not edit the allowlists |
-| `TestClassificationIsComplete` / `go run ./cmd/pkgmap -check` | a package has no entry in `packages.tiers.json` | classify it ([Repository layout](repo-layout.md#tiers-and-import-direction)) |
-| `TestKnownApproximationsOnlyShrinks` | the register in `docs/agents/known-approximations/` grew | it only shrinks; put a deviation in the commit message |
-| `internal/codeshape` (`TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink`) | function length and interface width ceilings in `engine/rules`, `engine/effects` | currently skipped, but keep functions under 300 lines; `go run ./cmd/codeshape -table` measures |
-| `TestNoForgeScriptsTracked`, `TestPublicBoundary` | a Forge script, a generated card table or a private path is tracked in git | remove it |
-| `TestWireMatrixPageMatchesScript` | a cell in `scripts/wire-matrix.sh` and [Wires](../architecture/wires.md) disagree | change both |
+[Testing](testing.md#ratchets-and-goldens-what-a-failure-means) lists each one, what its failure means and
+what to do.
 
 ## Commits and pull requests
 
