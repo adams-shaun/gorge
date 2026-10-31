@@ -4,7 +4,7 @@
   import { tables } from '../lib/tables.svelte';
   import { MatchState } from '../lib/match.svelte';
   import { ManaBrewMatch } from '../lib/manabrew/source.svelte';
-  import { activeWire, loadProtocol } from '../lib/manabrew/pref';
+  import { activeWire, tableProtocol } from '../lib/manabrew/pref';
   import WireNotice from '../components/WireNotice.svelte';
   import BoardStage from '../components/BoardStage.svelte';
   import Arrows from '../components/Arrows.svelte';
@@ -132,7 +132,7 @@
   // ManaBrew probe that fails — is the native MatchState. Both expose the
   // surface this route reads, so nothing below knows which wire is live.
   // svelte-ignore state_referenced_locally
-  const mb = liveSeated && seatCtx !== null && loadProtocol() === 'manabrew' ? new ManaBrewMatch(table, seatCtx) : null;
+  const mb = liveSeated && seatCtx !== null && tableProtocol() === 'manabrew' ? new ManaBrewMatch(table, seatCtx) : null;
   // svelte-ignore state_referenced_locally
   let m = $state<MatchState | ManaBrewMatch>(mb ?? new MatchState(table, seatCtx ?? undefined));
   // The seat panel answers through the ManaBrew adapter when it is live.

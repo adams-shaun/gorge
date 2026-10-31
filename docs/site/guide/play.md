@@ -89,9 +89,16 @@ The default keys, which **Options → Keymap** rebinds and `?` lists:
 trigger auto-ordering, a step delay and the board layout. Settings live in your browser's local
 storage.
 
-The lobby's **Protocol** switch chooses how a seat talks to the server: *Native*, gorge's own
-stream, or *ManaBrew*, which needs a server started with `-manabrew`
-([Wires](../architecture/wires.md)). Leave it on *Native* unless you're testing that wire.
+The **Protocol** switch, in the lobby and in Options, chooses how a seat talks to the server when a
+table loads: *Native*, gorge's own stream, or *ManaBrew* ([Wires](../architecture/wires.md)). On a server
+started without `-manabrew` the ManaBrew option is disabled and every table plays over Native.
+
+A ManaBrew seat plays the same game with the same board and prompts. Three things differ, because the
+protocol has no event log and no payment plans: the game log holds only what the page has seen and
+starts empty after a reload, Auto-pay taps through the Auto-fill of the mana window, and the window
+doesn't mark which sources Auto-fill would tap. **Auto-pass when all I could do is make mana**, on by
+default, skips the priority stops ManaBrew's own engine never poses, including the rest of your main
+phase once you have nothing left to play.
 
 ### Mulligans and mana
 

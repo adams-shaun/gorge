@@ -2,6 +2,7 @@ package gorged
 
 import (
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -55,6 +56,20 @@ func (c config) manabrewThinkTimeout() time.Duration {
 		return 0
 	}
 	return c.manabrewThink
+}
+
+// manabrewMetaTag is how the browser client learns, with no request of its
+// own, that this origin serves the ManaBrew routes (web/src/lib/manabrew/pref.ts).
+const manabrewMetaTag = `<meta name="gorge-manabrew">`
+
+// offerManaBrew adds manabrewMetaTag to the web build when the routes share
+// its origin. A separate -manabrew-addr is another origin, which the client
+// doesn't reach, so it is not offered.
+func (c config) offerManaBrew(web fs.FS) fs.FS {
+	if web == nil || !c.manabrew || c.manabrewAddr != "" {
+		return web
+	}
+	return withManaBrewMeta(web)
 }
 
 // mountManaBrew wires server/host/manabrewhttp onto either topMux (the default:

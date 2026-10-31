@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { PROTOCOLS, activeWire, loadProtocol, saveProtocol, type WireProtocol } from '../lib/manabrew/pref';
+  import { PROTOCOLS, activeWire, manabrewOffered, saveProtocol, tableProtocol, type WireProtocol } from '../lib/manabrew/pref';
   import { loadCompat, saveCompat } from '../lib/manabrew/compat';
 
   // The client-side "Protocol" setting (ManaBrew adapter plan): which wire a
@@ -9,9 +9,11 @@
   // the live game's wire underneath the seat panel.
   const active = activeWire.current;
   let chosen = $state<WireProtocol>('native');
+  let offered = $state(false);
   let compat = $state(true);
   onMount(() => {
-    chosen = loadProtocol();
+    offered = manabrewOffered();
+    chosen = tableProtocol();
     compat = loadCompat();
   });
   function setCompat(on: boolean) {
@@ -28,7 +30,7 @@
   <span class="label" id="protocol-label">Protocol</span>
   <div class="segments" role="radiogroup" aria-labelledby="protocol-label">
     {#each PROTOCOLS as p (p.value)}
-      <button type="button" role="radio" class="seg" class:on={chosen === p.value} aria-checked={chosen === p.value} data-protocol={p.value} onclick={() => choose(p.value)}>{p.label}</button>
+      <button type="button" role="radio" class="seg" class:on={chosen === p.value} aria-checked={chosen === p.value} data-protocol={p.value} disabled={p.value === 'manabrew' && !offered} onclick={() => choose(p.value)}>{p.label}</button>
     {/each}
   </div>
   {#if chosen === 'manabrew'}
@@ -39,8 +41,10 @@
   {/if}
   {#if active !== null && active !== chosen}
     <p class="note">This table is playing over {active === 'manabrew' ? 'ManaBrew' : 'Native'}. <button type="button" class="link" data-protocol-reconnect onclick={() => location.reload()}>Reconnect now</button></p>
+  {:else if offered}
+    <p class="note">Native is gorge's own stream; ManaBrew plays the seat over the ManaBrew protocol. Applies when a table loads.</p>
   {:else}
-    <p class="note">Native is gorge's own stream; ManaBrew plays the seat over the ManaBrew protocol (server needs <code>-manabrew</code>). Applies when a table loads.</p>
+    <p class="note" data-protocol-unavailable>This server plays over Native. ManaBrew needs a server started with <code>-manabrew</code>.</p>
   {/if}
 </div>
 
@@ -70,6 +74,10 @@
     color: var(--ink-inst);
     font: var(--t-11) var(--font-ui);
     cursor: pointer;
+  }
+  .seg:disabled {
+    color: var(--ink-dim);
+    cursor: not-allowed;
   }
   .seg.on {
     background: var(--offered);

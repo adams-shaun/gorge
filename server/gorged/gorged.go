@@ -608,7 +608,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := r.StartAll(); err != nil {
 		return err
 	}
-	opts := httpapi.Options{Web: webFS(), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine()}
+	opts := httpapi.Options{Web: c.offerManaBrew(webFS()), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine()}
 	var gate *seatGate
 	if len(c.humans) > 0 {
 		// R-E3-3: arm Options.Seat with a real token check — one opaque

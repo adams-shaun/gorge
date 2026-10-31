@@ -24,10 +24,18 @@ const cardMetaTag = `<meta name="gorge-cards" content="/">`
 // httpapi as Options.Web, so the SPA fallback path (server/host/httpapi/static.go)
 // serves the tag with the page that needs it.
 func withCardMeta(inner fs.FS) fs.FS {
-	return metaFS{inner: inner}
+	return metaFS{inner: inner, inject: injectCardMeta}
 }
 
-type metaFS struct{ inner fs.FS }
+// withManaBrewMeta adds manabrewMetaTag to the index.html inner serves.
+func withManaBrewMeta(inner fs.FS) fs.FS {
+	return metaFS{inner: inner, inject: func(raw []byte) []byte { return injectMeta(raw, []byte(manabrewMetaTag)) }}
+}
+
+type metaFS struct {
+	inner  fs.FS
+	inject func([]byte) []byte
+}
 
 func (m metaFS) Open(name string) (fs.File, error) {
 	f, err := m.inner.Open(name)
@@ -39,7 +47,7 @@ func (m metaFS) Open(name string) (fs.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newTextFile(injectCardMeta(raw)), nil
+	return newTextFile(m.inject(raw)), nil
 }
 
 // injectCardMeta inserts the tag right after <head> — where the client's
@@ -52,7 +60,10 @@ func injectCardMeta(raw []byte) []byte {
 	if bytes.Contains(raw, []byte(`name="gorge-cards"`)) {
 		return raw
 	}
-	meta := []byte(cardMetaTag)
+	return injectMeta(raw, []byte(cardMetaTag))
+}
+
+func injectMeta(raw, meta []byte) []byte {
 	if i := bytes.Index(raw, []byte("<head>")); i >= 0 {
 		head := i + len("<head>")
 		out := make([]byte, 0, len(raw)+len(meta)+1)

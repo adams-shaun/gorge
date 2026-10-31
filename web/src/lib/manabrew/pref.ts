@@ -5,7 +5,8 @@ import { safeStorage } from '../storage';
  * plays over. Native (gorge's own stream) is the default; ManaBrew is the
  * opt-in. It is a property of the player's browser, never sent to the
  * server, and read once when a table mounts (a change applies on the next
- * table load).
+ * table load). A server that doesn't offer ManaBrew plays every table over
+ * Native and the stored choice waits, untouched.
  */
 
 export type WireProtocol = 'native' | 'manabrew';
@@ -23,6 +24,16 @@ export function loadProtocol(store: Storage | null = safeStorage()): WireProtoco
   } catch {
     return 'native';
   }
+}
+
+/** manabrewOffered reads the <meta name="gorge-manabrew"> tag gorged serves when its ManaBrew routes share this origin. */
+export function manabrewOffered(): boolean {
+  return typeof document !== 'undefined' && document.querySelector('meta[name="gorge-manabrew"]') !== null;
+}
+
+/** tableProtocol is the wire a table loads over: the setting, where this server can serve it. */
+export function tableProtocol(store: Storage | null = safeStorage()): WireProtocol {
+  return manabrewOffered() ? loadProtocol(store) : 'native';
 }
 
 export function saveProtocol(p: WireProtocol, store: Storage | null = safeStorage()): void {

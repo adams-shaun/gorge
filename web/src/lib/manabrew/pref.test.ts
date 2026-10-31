@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { loadProtocol, PROTOCOL_KEY, saveProtocol } from './pref';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loadProtocol, PROTOCOL_KEY, saveProtocol, tableProtocol } from './pref';
 
 class Mem implements Storage {
   m = new Map<string, string>();
@@ -23,5 +23,20 @@ describe('protocol setting', () => {
     s.setItem(PROTOCOL_KEY, 'bogus');
     expect(loadProtocol(s)).toBe('native');
     expect(loadProtocol(null)).toBe('native');
+  });
+
+  describe('a table loads over ManaBrew only where the server offers it', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const page = (offered: boolean) => vi.stubGlobal('document', { querySelector: () => (offered ? {} : null) });
+
+    it('keeps the stored choice but plays Native when the tag is absent', () => {
+      const s = new Mem();
+      saveProtocol('manabrew', s);
+      page(false);
+      expect(tableProtocol(s)).toBe('native');
+      expect(loadProtocol(s)).toBe('manabrew');
+      page(true);
+      expect(tableProtocol(s)).toBe('manabrew');
+    });
   });
 });

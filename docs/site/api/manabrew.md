@@ -19,7 +19,9 @@ gorged: manabrew routes mounted at /api/manabrew/v0/tables/
 and implies `-manabrew`. `-manabrew-think` sets a think timeout for human seats while the wire is on, after which the seat's caretaker
 bot answers; without it a seat waits indefinitely. Without the flags nothing is mounted, and these paths answer the JSON 404.
 
-The browser client's **Protocol** switch plays a seat over this wire ([Play in the browser](../guide/play.md#the-table)).
+The browser client's **Protocol** switch plays a seat over this wire ([Play in the browser](../guide/play.md#the-table)). With the routes on
+the main listener, gorged adds `<meta name="gorge-manabrew">` to the page it serves, and the client offers the switch only when it finds that
+tag. A separate `-manabrew-addr` is another origin, so the page doesn't carry the tag there.
 
 ## Routes
 
