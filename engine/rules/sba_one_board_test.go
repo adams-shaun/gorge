@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -75,6 +76,28 @@ func TestCR704_3DepartureFamiliesShareOneLookBackBoard(t *testing.T) {
 	}
 	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != observer {
 		t.Fatalf("queued %d triggers, want the observer's one", len(e.pendingTriggers))
+	}
+}
+
+// TestCR704_3ALosersCreatureWithLethalDamageStillDies: a player's loss and their
+// creature's lethal damage are found in one check, so the creature dies before its
+// owner's departure removes it.
+func TestCR704_3ALosersCreatureWithLethalDamageStillDies(t *testing.T) {
+	t.Parallel()
+	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b", "c"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}))
+	onBoard(t, e, 0, "Name:Watcher\nTypes:Creature Bear\nPT:2/2\n"+
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature | TriggerZones$ Battlefield | Execute$ WatcherGain | TriggerDescription$ x\n"+
+		"SVar:WatcherGain:DB$ GainLife | Defined$ You | LifeAmount$ 3\nOracle:x\n")
+	bear := onBoard(t, e, 1, "Name:Doomed\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.Damage, Obj: bear, Amount: 2})
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -e.G.Players[1].Life})
+	e.checkStateBased()
+	if !e.G.Players[1].Lost {
+		t.Fatal("the player at 0 life did not lose")
+	}
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("queued %d triggers, want the watcher seeing the creature die", len(e.pendingTriggers))
 	}
 }
 

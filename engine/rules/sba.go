@@ -335,14 +335,12 @@ func (e *Engine) checkStateBased() {
 		}
 		// The losses are made first: a player who has left makes no CR 704.5j
 		// choice (CR 800.4a), and rearm below must see the alive set the batch's
-		// own attempts are made under.
+		// own attempts are made under. That player's permanents stay until the
+		// batch has applied, so one that dies in this check still dies.
 		for _, l := range b.losses {
 			e.losePlayer(l.player, l.text)
 		}
 		tried.rearm(e.G.AliveCount())
-		if e.sweepDepartedPlayers(tried) {
-			changed = true
-		}
 		// CR 704.5j: a duplicate legendary set asks its controller which member
 		// to keep. The whole batch parks with the ask (parkLegendChoice): nothing
 		// applies while it is pending, and the answer applies all of it. If a pose
@@ -351,6 +349,7 @@ func (e *Engine) checkStateBased() {
 		// wait for the pass after the answer.
 		if g := e.firstLegendGroup(groups); g != nil {
 			if e.pending == nil && e.choosing == chooseNone && e.legendBatch == nil {
+				e.sweepDepartedPlayers(tried)
 				e.parkLegendChoice(*g, b)
 				if e.legendBatch != nil {
 					if quiet {
@@ -370,6 +369,9 @@ func (e *Engine) checkStateBased() {
 			markTried(&tried.objs, c.id)
 		}
 		e.applySBABatch(&b)
+		if e.sweepDepartedPlayers(tried) {
+			changed = true
+		}
 		if !changed {
 			stable = true
 			break
