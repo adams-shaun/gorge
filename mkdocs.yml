@@ -133,7 +133,6 @@ nav:
       - Python and Java examples: bots/examples.md
       - SpellBench v2 agents: bots/spellbench.md
       - Training and adoption: bots/training-and-adoption.md
-      - MageZero replication: bots/magezero-replication.md
   - API reference:
       - api/index.md
       - HTTP API: api/http.md
@@ -148,6 +147,8 @@ nav:
       - How it is measured: performance/methodology.md
       - "gorge's speed": performance/engine.md
       - Bot speed: performance/bots.md
+  - Research:
+      - MageZero replication: bots/magezero-replication.md
   - Card support:
       - Support by set: support/sets.md
       - Regenerating the tables: support/regenerating.md

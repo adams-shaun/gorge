@@ -101,7 +101,7 @@ def fig_faeries():
         y = top + rh * i + rh / 2
         s.text(x0 - 12, y + 4, opp, "", "end")
         a, b = sorted([v4[0], jar[0]])
-        s.add(f'<g><title>{esc(f"XMage: published ver4 {v4[0]:.3f} ({v4[1]} games), our jar rerun {jar[0]:.2f} ({jar[1]} games)")}</title>'
+        s.add(f'<g><title>{esc(f"XMage: published ver4 {v4[0]:.3f} ({v4[1]} games), jar rerun {jar[0]:.2f} ({jar[1]} games)")}</title>'
               f'<rect class="mz-band" x="{X(a) - 3:.1f}" y="{y - 11:.1f}" width="{X(b) - X(a) + 6:.1f}" height="22" rx="4"/></g>')
         for p, n, cls, lab in ((kb[0], kb[1], "s2", "default search"), (km[0], km[1], "s1", "matched search")):
             lo, hi = ci(p, n)
@@ -118,16 +118,16 @@ def fig_gen1():
             ("MonoW", 0.210, (0.575, 186), (0.480, 100))]
     W, top, rh = 760, 64, 38
     H = top + rh * len(rows) + 40
-    s = SVG(W, H, "Faeries gen1 win rate vs the Standard monos: MageZero's published gen1 against our rerun of their model and jar")
+    s = SVG(W, H, "Faeries gen1 win rate vs the Standard monos: MageZero's published gen1 against a rerun of their model and jar")
     s.text(16, 20, "Their gen1 model on their jar: published vs rerun here", "mz-title")
     legend(s, 16, 44, [("", "their gen0", "grey"), ("s1", "their gen1 (published)", "dot"), ("s2", "gen1 rerun here", "dot")])
     x0, x1 = 110, W - 24
     X = xaxis(s, x0, x1, top - 6, top + rh * len(rows), 0.0, 0.9, 0.1)
-    for i, (opp, g0, g1, ours) in enumerate(rows):
+    for i, (opp, g0, g1, rerun) in enumerate(rows):
         y = top + rh * i + rh / 2
         s.text(x0 - 12, y + 4, opp, "", "end")
         s.add(f'<g><title>Their gen0 vs {opp}: {g0:.3f} (about 2,000 games)</title><circle class="mz-grey" cx="{X(g0):.1f}" cy="{y:.1f}" r="4.5"/></g>')
-        for (p, n), cls, lab, off in ((g1, "s1", "their gen1", -5), (ours, "s2", "rerun here", 5)):
+        for (p, n), cls, lab, off in ((g1, "s1", "their gen1", -5), (rerun, "s2", "rerun here", 5)):
             lo, hi = ci(p, n)
             s.add(f'<line class="{cls} ci" x1="{X(lo):.1f}" y1="{y + off:.1f}" x2="{X(hi):.1f}" y2="{y + off:.1f}"/>')
             s.dot(X(p), y + off, cls, f"Faeries vs {opp}, {lab}: {p:.3f} [{lo:.3f}, {hi:.3f}], {n} games")

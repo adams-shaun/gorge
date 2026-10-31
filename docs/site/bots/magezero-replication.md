@@ -2,8 +2,8 @@
 
 [MageZero](https://github.com/WillWroble/MageZero) is an AlphaZero-style Magic
 agent built on an XMage fork. It encodes every decision as a typed graph and
-trains a graph network ("NetGraph") on MCTS self-play. In October 2026 we
-replicated its published results and then ran the same experiments on
+trains a graph network ("NetGraph") on MCTS self-play. In October 2026 gorge's
+maintainers replicated its published results and then ran the same experiments on
 [dirac](../architecture/dirac/index.md), gorge's second engine. The goal was to
 decide whether MageZero's encoding or network should replace the maintainers' own.
 This page reports results: dirac, its game runner `kplay` and the training code
@@ -11,11 +11,11 @@ aren't in this repository, so these runs can't be repeated from a clone of gorge
 
 !!! abstract "Verdict"
     - **The replication is faithful.** Their code on their data, their release
-      jar on our hardware, and their gen1 model rerun here all land within noise
+      jar on the maintainers' hardware, and their gen1 model rerun here all land within noise
       of their published numbers.
-    - **Their encoding is not a gain for us.** On their own data our 166K-parameter
-      MLP ties their 8.8M-parameter NetGraph on value and targets and is about
-      30x cheaper to run. On our data, NetGraph is no better either.
+    - **Their encoding is not a gain for dirac.** On MageZero's data the maintainers'
+      166K-parameter MLP ties their 8.8M-parameter NetGraph on value and targets and is
+      about 30x cheaper to run. On dirac's data, NetGraph is no better either.
     - **The two engines play the same decks differently.** On identical lists,
       at the same search budget, with no network, Faeries wins more on
       dirac than on XMage against four of seven opponents. Matching the
@@ -45,10 +45,10 @@ trained net as the prior and value function.
 | Term | Meaning |
 |---|---|
 | **ver4** | Their published gen0 Pauper training data (v0.3 encoding), 2,576 games |
-| **jar rerun** | Their v0.3.0-alpha release jar, run on our hardware with their gen0 config (Java 21, no rebuild) |
+| **jar rerun** | Their v0.3.0-alpha release jar, run on the maintainers' hardware with their gen0 config (Java 21, no rebuild) |
 | **dirac** | dirac's game runner (`kplay`) with research card sets built from their lists |
 | **NetGraph** | Their network, trained by their unmodified `train.py` |
-| **d64 MLP** | Our small production-family net: 1 residual block, d=64, 166K parameters |
+| **d64 MLP** | The maintainers' own small net: 1 residual block, d=64, 166K parameters |
 
 ## Which comparisons are like-for-like
 
@@ -57,32 +57,32 @@ far its two sides were actually matched.
 
 | Comparison | Matched | Not matched | Status |
 |---|---|---|---|
-| Their `train.py` on their data, ours vs theirs | code, data, settings | seed, GPU instead of CPU | **like-for-like** |
+| Their `train.py` on their data, this rerun vs theirs | code, data, settings | seed, GPU instead of CPU | **like-for-like** |
 | Their jar's gen0 Faeries win rate, rerun vs published | jar, config, decks | sample size (399 vs 2,576 games) | **like-for-like** |
 | Their gen1 model on their jar, rerun vs published | model, jar, recipe, opponents | 100 vs about 200 games per opponent | **like-for-like** |
 | Their `test.py` "classic test" table | model, data, code | nothing material | **like-for-like** |
 | d64 MLP vs NetGraph on their data | test states, candidates, metric | priority objective: theirs is unmasked over every ability node | **like-for-like on value and target only** |
-| NetGraph vs d64 MLP on our data | records, candidates, metric | NetGraph sees our states through a Go port of their encoder | **like-for-like, through a verified port** (id-parity tested) |
+| NetGraph vs d64 MLP on dirac's data | records, candidates, metric | NetGraph sees dirac's states through a Go port of their encoder | **like-for-like, through a verified port** (id-parity tested) |
 | Faeries gen0: XMage vs dirac | lists (no substitutes), budget, clairvoyance, leaf, PUCT scale, option list | tree reuse, duplicate-state merging, combat factorisation, rules implementation | **close; residual = engine** |
-| UWTempo vs monos: **dirac 0.642 vs MageZero gen0 0.347** | deck lists (2 substitutes), 300 sims | **opponent pilot** (our heuristic vs XMage depth-6 minimax); their gen0 ran at **150** sims | **not like-for-like**; replaced by [the training curve](#uwtempo-training-curve) |
+| UWTempo vs monos: **dirac 0.642 vs MageZero gen0 0.347** | deck lists (2 substitutes), 300 sims | **opponent pilot** (dirac's heuristic vs XMage depth-6 minimax); their gen0 ran at **150** sims | **not like-for-like**; replaced by [the training curve](#uwtempo-training-curve) |
 | UWTempo training curve, gen0 → gen17 (this page) | lists (no substitutes), schedule (150 → 300 sims, prior off → on at gen12), games per generation, TD 0.92, gen0 anchor | opponent pilot (calibrated search, not minimax; misses the heuristic anchor), network, engine | **close**: same start, shapes comparable; absolute levels carry the opponent mismatch |
 | UWTempo heuristic pilot 0.261 vs their minimax pilot 0.16 | deck lists | both pilots *and* both opponents differ | **not comparable** |
 
-The two UWTempo rows were the weak point of the first write-up. They crossed
-opponent strength with pilot strength, so "our gen0 search already matches
-their best RL generation" said more about how weak our opponent pilot is than
-about our search. The [training curve](#uwtempo-training-curve) section
-redoes the comparison against an opponent calibrated to their minimax.
+The two UWTempo rows are the weak point. They cross opponent strength with
+pilot strength, so "dirac's gen0 search already matches MageZero's best RL
+generation" says more about how weak dirac's opponent pilot is than about its
+search. The [training curve](#uwtempo-training-curve) section redoes the
+comparison against an opponent calibrated to their minimax.
 
 ## Their results reproduce
 
 **Architecture table.** Their `train.py` on their data gives a validation
 total of 0.885 against their published 0.905 (their seed noise is about
-0.04). On our engine's data in their encoding, their architecture ranking
+0.04). On dirac's data in their encoding, their architecture ranking
 holds: default ≈ d128 < one message-passing pass < parallel passes < flat
 objects ≪ bag of nodes (degenerate, as in theirs).
 
-??? note "Architecture table, theirs and ours"
+??? note "Architecture table, their runs and the reruns"
     Validation total = their `test.py` sum of losses. It compares within one
     data set only.
 
@@ -94,9 +94,9 @@ objects ≪ bag of nodes (degenerate, as in theirs).
     | s10 parallel | parallel passes | 1.143 | not run | 0.659 |
     | s9 flat | flat objects | 1.472 | not run | 0.782 |
     | s1 bag | no edges | degenerate | not run | 4.824 (degenerate) |
-    | ours: perfect info off | opponent hand hidden | – | – | 0.485 |
+    | rerun only: perfect info off | opponent hand hidden | – | – | 0.485 |
 
-**Gen0 win rate.** Their jar on our hardware, 399 games, gives Faeries
+**Gen0 win rate.** Their jar on the maintainers' hardware, 399 games, gives Faeries
 **0.449**, the same as ver4's 0.449 over 2,576 games. Decisions per
 seat-game match too (86.7 vs 81.7).
 
@@ -104,7 +104,7 @@ seat-game match too (86.7 vs 81.7).
 value-only at 300 visits with TD discount 0.92 against the gen0 opponents.
 Every rerun beats its gen0 baseline and lands within about two standard
 errors of their figure. Pooled over the five monos, the rerun wins **0.410**
-against their **0.396**. Their behaviour probe (`behaviour.py`) on our games
+against their **0.396**. Their behaviour probe (`behaviour.py`) on the rerun's games
 reproduces gen1's "patient" style: more Pass, far fewer Ninja casts.
 
 <figure class="mzfig">
@@ -146,7 +146,7 @@ equal time.
 --8<-- "bots/magezero/faeries-gen0.svg"
 </figure>
 
-The grey band runs from their published number to our rerun of their jar,
+The grey band runs from their published number to the rerun of their jar,
 which is the range XMage itself produces. "Default search" is dirac's
 gen0 spec on MageZero's exact lists. "Matched" adds every opt-in key that
 copies MCTS2:
@@ -159,7 +159,7 @@ copies MCTS2:
 
 Once matched, Elves sits inside the band and the mirror at its edge. Spy, Affinity,
 Wildfire and Burn stay above it, by +0.08 to +0.15 (z 1.9 to 3.1 against the
-pooled XMage data). What we measured on the way:
+pooled XMage data). Also measured on the way:
 
 - **The PUCT scale is the one search key that moves results**, by 3–6
   points toward XMage on Spy, Affinity and Elves. The other search keys are
@@ -229,20 +229,20 @@ the legal candidates and renormalised.
 | net | params | value MSE | target top-1 | priority non-pass top-1 |
 |---|---:|---:|---:|---:|
 | NetGraph d256 (theirs, their `train.py`) | 8.8M | **0.0366** | 0.720 | 0.457 |
-| d64 MLP (ours, via a bag-of-nodes bridge) | 166K | 0.0373 | **0.738** | **0.837** |
+| d64 MLP (the maintainers', via a bag-of-nodes bridge) | 166K | 0.0373 | **0.738** | **0.837** |
 
 Value and target are the fair encoding comparison, and they are equal. The
 priority gap is mostly the training objective, not the encoding. NetGraph is
 trained with a softmax over all ~80 ability nodes in the graph, including
-uncastable ones, so it has to learn legality; ours sees only legal
-candidates. Their own reported non-pass recall (0.42–0.49) matches our
-measurement of their checkpoint.
+uncastable ones, so it has to learn legality; the MLP sees only legal
+candidates. Their own reported non-pass recall (0.42–0.49) matches the
+measurement of their checkpoint here.
 
 **Cost.** On CPU at batch 1, NetGraph takes 4.9 ms per state and the d64 MLP
 0.18 ms (27x). On one GPU at batch 512, NetGraph does 31K states/s and the
 MLP 1.05M (34x).
 
-### Our data, both nets
+### dirac's data, both nets
 
 Same records and candidates for both, from dirac gen0 games on the real
 lists. NetGraph reads them through a Go port of their `StateEncoder`.
@@ -252,7 +252,7 @@ lists. NetGraph reads them through a Go port of their `StateEncoder`.
 | NetGraph (their encoding, ported) | 0.0591 | 0.0287 | 0.473 |
 | d64 MLP (their targets) | 0.0589 | **0.0272** | **0.546** |
 
-On our data their net is no better: value is equal, priority is within 0.002
+On dirac's data their net is no better: value is equal, priority is within 0.002
 KL, and the MLP leads on targets.
 
 ## UWTempo training curve
@@ -286,12 +286,12 @@ schedule:
 - 150 simulations for gens 0–6 and 300 from gen7;
 - a uniform prior (the net guides search by value only) through gen11, then
   the net's policy prior from gen12;
-- our d64 MLP trained on UWTempo's decisions only, value target TD-discounted
+- the d64 MLP trained on UWTempo's decisions only, value target TD-discounted
   at 0.92, a 10-generation replay window, each net started from the previous
   one;
 - their exact lists, with no substitutes.
 
-We have no port of XMage's minimax, so the opponent pilot was calibrated
+dirac has no port of XMage's minimax, so the opponent pilot was calibrated
 against both of their anchors:
 
 | UWTempo pilot ↓ / opponent pilot → | heuristic | search, 25 sims | search, 100 sims | search, 300 sims | their minimax |
@@ -299,7 +299,7 @@ against both of their anchors:
 | heuristic | 0.163 | 0.117 | 0.100 | 0.092 | 0.16 |
 | gen0 search, 150 sims | 0.513 | 0.445 | 0.399 | 0.372 | 0.347 |
 
-No dirac pilot matches both anchors. Our heuristic opponent matches
+No dirac pilot matches both anchors. The heuristic opponent matches
 minimax against a heuristic UWTempo but is far easier for search. The
 300-simulation search opponent matches the gen0 anchor (0.372 vs 0.347,
 inside the 95% interval) but beats a heuristic UWTempo harder than minimax
@@ -326,10 +326,9 @@ Each generation's figure is ±0.03 (95%, 1,000 games). Reading:
   166K-parameter net better than an 8.8M-parameter one. On their own data
   the small net already matches NetGraph on value
   ([above](#their-data-both-nets)).
-- **The weak-opponent arm** starts at 0.51, where the first version of this
-  page compared it against their 0.35, and climbs to 0.87. That gap was the
-  opponent, not the search.
-- **One difference we know of.** From gen12 our policy prior also shapes the
+- **The weak-opponent arm** starts at 0.51, against their 0.35, and climbs to
+  0.87. That gap is the opponent, not the search.
+- **One known difference.** From gen12 dirac's policy prior also shapes the
   opponent's moves inside UWTempo's search tree. That prior is untrained,
   because the net learns from UWTempo's decisions only. Their opponent nodes
   never used a prior.
@@ -338,7 +337,7 @@ Each generation's figure is ±0.03 (95%, 1,000 games). Reading:
 
 `kplay -mzxgraph FILE` writes MageZero's graph encoding (a Go port of their
 `StateEncoder`, id-parity tested against their Python vocabulary) as a
-sidecar beside the training corpus. `-mzgraph FILE` writes our own features
+sidecar beside the training corpus. `-mzgraph FILE` writes dirac's own features
 as a typed graph. Both are off by default. Off, games are byte-identical in
 12 of 12 benchmark runs, and the instruction-count ratio is 1.0008 median,
 inside run-to-run noise.
@@ -349,8 +348,8 @@ inside run-to-run noise.
   still wins less. This is the remaining engine lead.
 - **Opponent strength.** No dirac pilot matches XMage's depth-6 minimax
   on both anchors. A direct match (minimax-piloted monos on their jar against
-  our UWTempo nets) would remove the last calibration caveat from the
+  dirac's UWTempo nets) would remove the last calibration caveat from the
   training curve.
-- **Why our nets learn faster.** Network size, engine and the opponent are
-  all confounded in the training curve. Their NetGraph trained on our
-  generations' data would separate the network.
+- **Why dirac's nets learn faster.** Network size, engine and the opponent are
+  all confounded in the training curve. Their NetGraph trained on data from
+  dirac's generations would separate the network.
