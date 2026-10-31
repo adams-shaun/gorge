@@ -169,7 +169,7 @@ func firstPayable(d *decision.Decision, obj state.ObjID) int {
 // and AltCostIndex 0) of an object with a plan submits that plan; every
 // other payable object gains one plan-only cast. A plan pays its cost
 // atomically, so the player never floats mana it then loses, and its games
-// run as long as the kernel's random player's (dirac kplay -a random,
+// run as long as dirac's random player's (dirac kplay -a random,
 // which always autopays) instead of the manual row's ~42 turns on pair A.
 func autopayIntent(d *decision.Decision, r *rand.Rand, s *intentScratch) decision.Intent {
 	c := s.cand[:0]

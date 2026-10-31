@@ -171,7 +171,7 @@ cleanup() {
     # No servers were recorded (a probe mode, a build failure, an
     # allocation-failure exit): nothing to kill and nothing to re-report —
     # but the temp dirs the run created must STILL go. A teardown that
-    # leaks on a failure path is exactly the class this ticket closes.
+    # leaks on a failure path would keep a port busy.
     # The selftest sets every dir to "" so this is a silent no-op there.
     rm -rf "${PUBDIR:-}" "${OMNDIR:-}" "${SEATDIR:-}" "${FIXTUREDIR:-}" "${TALISDIR:-}" "${VITE_CACHE_DIR:-}"
   fi
@@ -198,7 +198,7 @@ if [[ "${SMOKE_TEARDOWN_SELFTEST:-}" == 1 ]]; then
   # Before the bounded-strict teardown this mode is the "fails without the
   # fix" witness: the old TERM-and-wait-only cleanup left the sleeper alive
   # after PASS/FAIL was already reported, which is exactly how a leaked farm
-  # blocked every later run on this box.
+  # blocked every later run.
   echo "== smoke: teardown selftest =="
   PUBDIR="" OMNDIR="" SEATDIR="" FIXTUREDIR="" TALISDIR="" VITE_CACHE_DIR=""
   SERVER_PIDS=()

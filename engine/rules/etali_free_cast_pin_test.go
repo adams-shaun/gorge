@@ -7,7 +7,7 @@ import (
 )
 
 // TestEtaliFreeCastElectionEmptyWithOnlyAnInfeasibleSpellExiled pins the
-// lockstep pair 23256 divergence triage at decision 695 (kernel-land): Etali,
+// lockstep pair 23256 divergence triage at decision 695 (dirac): Etali,
 // Primal Storm's attack trigger exiles the top of each library and then may
 // cast any number of the remembered spells without paying their mana costs.
 // With an opposing side that controls no creature, the only remembered

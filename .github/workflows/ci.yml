@@ -15,7 +15,7 @@
 # Fork PRs get a read-only token and no secrets; nothing here needs either.
 #
 # Runner: pull_request jobs ALWAYS run on GitHub-hosted runners. Push, schedule
-# and dispatch jobs run on the operator's ephemeral k8s runners (label
+# and dispatch jobs run on the maintainers' ephemeral k8s runners (label
 # gorge-box) when the repository variable
 # CI_SELF_HOSTED is 'true', and on GitHub-hosted runners otherwise. The fork-PR
 # approval policy is all_external_contributors, so a fork cannot retarget a

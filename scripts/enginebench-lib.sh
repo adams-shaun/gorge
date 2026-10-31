@@ -12,8 +12,7 @@
 #   BENCH_GOMEMLIMIT  GOMEMLIMIT inside the scope (default 16GiB)
 #   NO_SCOPE    set to run without a systemd scope
 #   BUDGET      wall seconds for ONE script's whole measured phase -- every row
-#               and rep together, builds excluded (default 60, operator
-#               2026-10-06). Each run's -secs is derived from it (budget_secs),
+#               and rep together, builds excluded (default 60). Each run's -secs is derived from it (budget_secs),
 #               and a run that would start past the deadline is skipped.
 #   LOAD_S      per-run startup estimate (corpus load) budget_secs reserves
 #               (default 3)

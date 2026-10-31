@@ -12,9 +12,8 @@ GO_FILES   := find . \( -name node_modules -o -name .worktrees -o -name .ds4 -o 
 GO_SRC     := $(shell $(GO_FILES) 2>/dev/null) go.mod
 
 # Resource caps for every Go invocation below. `go test ./...` defaults -p to
-# GOMAXPROCS (32 on this box), so the full tree can hold 32 test binaries
-# resident at once; with a second worktree gating at the same time and the
-# local agent fleet on the machine, that OOMed and locked the box. -p bounds
+# GOMAXPROCS, so the full tree can hold that many test binaries resident at
+# once, which has run a machine out of memory. -p bounds
 # how many package binaries run concurrently, and GOMEMLIMIT gives each one's
 # GC a soft ceiling to collect against instead of growing until the kernel
 # steps in (server/host/ peaks at 8.5G unbounded, 5.2G under this limit, and
@@ -30,12 +29,12 @@ GO_SRC     := $(shell $(GO_FILES) 2>/dev/null) go.mod
 #
 # Both ?= so a caller can raise them for a deliberate one-off measurement.
 export GOMEMLIMIT ?= 5GiB
-# -trimpath (operator, 2026-10-05): without it each worktree's absolute path
+# -trimpath: without it each worktree's absolute path
 # keys every compile, so no worktree reuses another's build cache.
 export GOFLAGS ?= -p=2 -trimpath
 GO_TEST_FLAGS ?= -p=2
 
-# seat-check's two structural test runs. systemd-run bounds them when this box
+# seat-check's two structural test runs. systemd-run bounds them when the machine
 # offers it; otherwise they fall back to the plain env caps (and -p 1 limits
 # them to one package binary at a time).
 SEAT_CAP ?= $(shell systemd-run --user --scope -q true >/dev/null 2>&1 && echo 'systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400%')
@@ -46,8 +45,7 @@ CARDS_DIR  ?= .cards
 # gorge's fork of Card-Forge/forge: its `gorge` branch is upstream plus
 # script corrections against the printed card, each also sent upstream.
 FORGE_REPO ?= https://github.com/adams-shaun/forge.git
-# Pinned to the lock's commit for M2r; a corpus bump is a deliberate,
-# ledgered change, not a side effect of Forge's master moving.
+# Pinned to the lock's commit; a corpus bump is a deliberate change, not a side effect of Forge's master moving.
 # 25a608a4f = fb4d80911 (Card-Forge master 2026-10-02) + Card-Forge/forge#12153
 # (Bard's Company P/T, Voice of Victory type, Yip Yip! target) + #12160
 # (Demonic Pact's discard mode targets an opponent).
@@ -90,7 +88,7 @@ help:
 	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make smoke          — headless-browser smoke gate vs two real gorged servers (public+omniscient); fails on any browser error or a hung loading state"
 	@echo "  make test lint cover"
-	@echo "  make seat-check     — structural seat gate: gofmt, gentypes -check, archtest, codeshape"
+	@echo "  make seat-check     — fast structural gate: gofmt, gentypes -check, archtest, codeshape"
 	@echo "  make conformance    — run the CR 601/733 conformance suites (see the target's comment)"
 	@echo "  make wire-matrix    — run every engine / wire / consumer cell of the commit tier (docs/site/architecture/wires.md)"
 	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
@@ -111,7 +109,7 @@ $(BIN_DIR)/gorged: $(GO_SRC)
 	CGO_ENABLED=0 go build -o $@ ./cmd/gorged
 
 .PHONY: gorged
-# gorged runs the M2a table server: perpetual bot tables served to a browser
+# gorged runs the table server: perpetual bot tables served to a browser
 # at the listen address. make web builds the Svelte client it embeds first.
 # -vsbot arms the landing page's play-a-human-vs-bot entry point; without it
 # the server is spectator-only, exactly as before the feature existed.
@@ -308,10 +306,10 @@ lint: lint-web
 	go vet ./...
 	go run ./cmd/gentypes -check
 
-# seat-check is the fast structural gate a seat runs before DONE: formatting,
-# the generated wire types, and the two architecture/shape ratchets. It
-# deliberately leaves out `go vet ./...` and `lint-web` (make lint), which the
-# daemon's gates cover; it must stay a ~10 s check.
+# seat-check is the fast structural gate to run before finishing a change:
+# formatting, the generated wire types, and the two architecture/shape ratchets.
+# It deliberately leaves out `go vet ./...` and `lint-web` (make lint); it must
+# stay a ~10 s check.
 .PHONY: seat-check
 seat-check:
 	@out=$$(gofmt -l $$($(GO_FILES)) 2>&1); \

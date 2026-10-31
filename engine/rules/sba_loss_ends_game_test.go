@@ -5,7 +5,7 @@ import "testing"
 // A player's loss by a state-based action ends a two-player game at once
 // (CR 104.2a) even when the same pass also carries a legend-rule choice for
 // the survivor (CR 704.5j). gorge parked the legend ask and returned before
-// checkGameOver, so the finished game posed a decision (kernel lockstep pair
+// checkGameOver, so the finished game posed a decision (dirac lockstep pair
 // 1366: Banishing Light leaving with its departed controller returned a
 // second Tinybones).
 func TestSBALossEndsTheGameBeforeALegendAsk(t *testing.T) {
