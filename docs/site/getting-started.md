@@ -77,7 +77,7 @@ without it the web root answers `503 web build missing`, and the API still works
 curl localhost:8090/api/tables
 ```
 
-`bin/gorged -h` lists every flag. A bare `gorged` uses `:8080` and `gorged-data/`. Two servers
+`bin/gorged -h` lists every flag. A bare `gorged` uses `:8080`, `gorged-data/` and, for bug reports, `feedback/`. Two servers
 must never share one `-dir`, because they silently corrupt each other's matches. At startup the
 server fetches card art for the dealt decks into `<dir>/art`; pass `-prewarm=false` to skip that
 when you are offline. [Play in the browser](guide/play.md) walks through the rest.

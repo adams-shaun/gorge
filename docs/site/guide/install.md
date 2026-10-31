@@ -13,8 +13,8 @@ on Linux only.
 |---|---|---|
 | Go | the `go` line of [`go.mod`](https://github.com/adams-shaun/gorge/blob/main/go.mod). An older Go 1.21 or later downloads the right toolchain itself under the default `GOTOOLCHAIN=auto` | builds everything |
 | git | any recent | `make fetch-cards` runs a sparse, depth-1 `git fetch` |
-| GNU make | any recent | the build targets |
-| Node.js and npm | Node 20 or later | only the browser client. Its unit tests need Node 22 or later ([`web/README.md`](https://github.com/adams-shaun/gorge/blob/main/web/README.md)) |
+| GNU make, bash | any recent | the build targets; the `Makefile` runs its recipes under bash |
+| Node.js and npm | Node 20 or later | only the browser client. Its unit tests need Node 22.12 or later ([`web/README.md`](https://github.com/adams-shaun/gorge/blob/main/web/README.md)) |
 
 gorge has no cgo and no third-party Go dependencies.
 

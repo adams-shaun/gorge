@@ -16,7 +16,7 @@ go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-play \
 # open http://127.0.0.1:8090/ and press "Start game"
 ```
 
-You need Go, git and make; Node only for `make web`. [Install and build](install.md) explains
+You need Go, git, make and bash; Node only for `make web`. [Install and build](install.md) explains
 each step. For bot games alone, skip the client and run `make sim` after `make fetch-cards`:
 it plays 20 verified bot games in a few seconds.
 
