@@ -281,9 +281,6 @@ func (e *Engine) poseUntapReplacementChoice(ev events.Event, matches []replMatch
 // only when no other decision is already pending (the caller has already
 // ruled out a departed controller, which makes no choices under CR 800.4a).
 func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
-	if e.moveAlreadyParked(ev) {
-		return
-	}
 	p := ev.Player
 	kind := replChoiceMove
 	if ev.Kind == events.ManaClear {
@@ -325,9 +322,9 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 }
 
 // moveAlreadyParked reports a zone change whose CR 616.1 choice is still
-// waiting. Answering one death of a batch runs state-based actions again while
-// the batch's other creatures stay on the battlefield, so they propose the same
-// death; it is one event and gets one choice.
+// waiting. State-based actions can run again under the ask, with the object still
+// on the battlefield, and propose the same death: it is one event and gets one
+// choice, even if one of the competing replacements has left in the meantime.
 func (e *Engine) moveAlreadyParked(ev events.Event) bool {
 	if ev.Kind != events.MoveZone {
 		return false
