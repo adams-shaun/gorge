@@ -192,6 +192,7 @@ games.
 | `-seats N` | 4 | seats per table, 1 to 8 |
 | `-format list` | `constructed` | comma-separated `constructed`, `commander`; table *i* takes `formats[(i-1) mod n]`, so `-format commander,constructed` alternates |
 | `-commander-seats N` | 0 (= `-seats`) | seat count of the commander tables only, e.g. 2-seat constructed beside 4-seat pods |
+| `-engine NAME` | `gorge` | the engine the numbered tables and vs-bot games run on; a name this binary does not link fails at startup and lists those it does |
 | `-seed S` | 1 | seed of `t1`; table *i* uses `S+i-1`, and match *k* of a table derives its seed from that |
 | `-pace D` | 50ms | sleep after every decision on bot tables; `0` is flat out, `1.5s` is watchable |
 | `-cooldown D` | 5s | pause between matches on a perpetual table |
@@ -422,7 +423,7 @@ writing a bot that way is covered in [External bots](../bots/index.md).
 | Group | Flags |
 |---|---|
 | Listening and storage | `-addr`, `-dir`, `-feedback`, `-art-dir`, `-cards`, `-decks` |
-| Tables | `-tables`, `-seats`, `-commander-seats`, `-format`, `-seed`, `-pace`, `-cooldown`, `-perpetual`, `-mulligans`, `-spectator` |
+| Tables | `-engine`, `-tables`, `-seats`, `-commander-seats`, `-format`, `-seed`, `-pace`, `-cooldown`, `-perpetual`, `-mulligans`, `-spectator` |
 | People | `-humans`, `-seat-token`, `-vsbot`, `-vsbot-spectator`, `-max-on-demand-tables`, `-auto-mana` |
 | Bots | `-bot-policy`, `-bot-policies`, `-bot-opt`, `-bot-config`, `-bot-auto-mana`, `-bot-common-sense`, `-bot-search-slots`, `-bot-search-parallelism`, `-max-search-tables`, `-sb-agent` |
 | Card art | `-prewarm`, `-prewarm-art-only`, `-prewarm-art-budget`, `-prewarm-art-max-consecutive-failures` |

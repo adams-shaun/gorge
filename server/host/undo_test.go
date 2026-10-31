@@ -416,7 +416,7 @@ func TestUndoRewindsToTheRequesterLastDecisionAndReplaysIdentically(t *testing.T
 	// live match cannot have — the prefix check above already pins it).
 	m.mu.RLock()
 	continued := m.e.L.Clone()
-	cfg := m.cfg
+	cfg := m.rulesConfig()
 	m.mu.RUnlock()
 	e, err := replay.ReplayTo(continued, cfg, n)
 	if err != nil {

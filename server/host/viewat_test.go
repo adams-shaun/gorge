@@ -111,7 +111,7 @@ type forwardOracle struct {
 
 func newForwardOracle(t *testing.T, m *match) *forwardOracle {
 	t.Helper()
-	e, err := replay.ReplayTo(m.e.L, m.cfg, 0)
+	e, err := replay.ReplayTo(m.e.L, m.rulesConfig(), 0)
 	if err != nil {
 		t.Fatalf("oracle genesis: %v", err)
 	}
@@ -315,7 +315,7 @@ func TestViewAtSurvivesATruncatedFinalBurst(t *testing.T) {
 	// confirm by reconstructing the same state the hard way, from the
 	// previous complete boundary plus a direct events.Apply of the one
 	// straggler event — no Submit involved anywhere past boundary k.
-	base, err := replay.ReplayTo(l, m.cfg, k)
+	base, err := replay.ReplayTo(l, m.rulesConfig(), k)
 	if err != nil {
 		t.Fatalf("replay to the last complete boundary: %v", err)
 	}

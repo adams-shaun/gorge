@@ -7,6 +7,8 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/heuristic"
+	"github.com/adams-shaun/gorge/engine/game"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/view"
 	sbseat "github.com/adams-shaun/gorge/server/spellbench/seat"
@@ -51,7 +53,7 @@ func TestTableRefusesDefaultPolicyOverItsMaxSeats(t *testing.T) {
 	_, err := (TableConfig{
 		ID: "t1", Seats: 3, BotPolicy: name, Decks: []string{"a", "b", "c"},
 		Spectator: view.Public, AutoMana: true, BotAutoPayMana: true,
-	}).validated(func(string) (Deck, error) { return Deck{}, nil })
+	}).validated(func(string) (Deck, error) { return Deck{}, nil }, map[string]game.Engine{gorgegame.Name: gorgegame.Engine{}})
 	if err == nil || !strings.Contains(err.Error(), "seats at most 2") {
 		t.Fatalf("validation error = %v, want a MaxSeats refusal", err)
 	}

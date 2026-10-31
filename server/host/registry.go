@@ -12,6 +12,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/server/protocol"
 )
@@ -64,6 +66,9 @@ type Options struct {
 	// alike, for the same reason Tokens is (the replay must offer the same
 	// options the live match did).
 	NameUniverse *cards.Universe
+	// Engines holds the engines a table may name in TableConfig.Engine, by the
+	// name each reports. Nil is gorge alone.
+	Engines map[string]game.Engine
 	// Sleep is the table's only clock read (PL-11): run calls it between
 	// matches for Cooldown, and play calls it after every decision for
 	// Pace. It must return once d elapses OR stop closes, whichever comes
@@ -320,6 +325,9 @@ func New(o Options) (*Registry, error) {
 	if o.BotSearchParallelism < 0 {
 		return nil, fmt.Errorf("host: BotSearchParallelism %d, want >= 0", o.BotSearchParallelism)
 	}
+	if o.Engines == nil {
+		o.Engines = map[string]game.Engine{gorgegame.Name: gorgegame.Engine{}}
+	}
 	var gate *searchSlots
 	if o.SearchSlots > 0 {
 		gate = newSearchSlots(o.SearchSlots)
@@ -336,9 +344,17 @@ func New(o Options) (*Registry, error) {
 // AddTable registers (and persists) a table without starting it.
 func (r *Registry) AddTable(c TableConfig) error {
 	var err error
-	c, err = c.validated(r.opts.LoadDeck)
+	c, err = c.validated(r.opts.LoadDeck, r.opts.Engines)
 	if err != nil {
 		return err
+	}
+	// A deck the engine cannot play fails here, not as a halted table at its
+	// first match. A series table's decks are the hook's, chosen match by match,
+	// and gorge accepts every config, so its tables skip the deck loads.
+	if c.Engine != "" && !c.Series {
+		if err := r.checkAccepted(c); err != nil {
+			return err
+		}
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -399,6 +415,23 @@ func (r *Registry) AddTable(c TableConfig) error {
 	}
 	r.tables[c.ID] = newTable(r, c)
 	return r.saveLocked() // Task 12; a no-op in memory mode
+}
+
+// checkAccepted asks a validated table's engine whether it can play the table's
+// first match.
+func (r *Registry) checkAccepted(c TableConfig) error {
+	engine, err := LookupEngine(r.opts.Engines, c.Engine)
+	if err != nil {
+		return fmt.Errorf("host: table %s: %w", c.ID, err)
+	}
+	gc, _, _, err := r.matchConfig(c, 1, nil)
+	if err != nil {
+		return err
+	}
+	if err := engine.Accepts(gc); err != nil {
+		return fmt.Errorf("host: table %s: %w", c.ID, err)
+	}
+	return nil
 }
 
 // searchGateFor returns the registry's search-slot gate for t's decisions, or

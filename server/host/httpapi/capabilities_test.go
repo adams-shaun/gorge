@@ -70,3 +70,27 @@ func TestCapabilitiesReportEvents(t *testing.T) {
 		})
 	}
 }
+
+func TestCapabilitiesOmitEngineForGorge(t *testing.T) {
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	for engine, want := range map[string]string{"": `{"events":false}`, "other": `{"events":false,"engine":"other"}`} {
+		srv := httptest.NewServer(NewHandler(r, Options{Engine: engine}))
+		resp, err := http.Get(srv.URL + "/api/capabilities")
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		srv.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.TrimSpace(string(body)); got != want {
+			t.Errorf("engine %q: GET /api/capabilities = %s, want %s", engine, got, want)
+		}
+	}
+}

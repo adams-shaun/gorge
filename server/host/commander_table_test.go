@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -122,8 +122,8 @@ func TestCommanderTableBuildsACommanderMatch(t *testing.T) {
 	// is what turns on the CR 903.8 tax, the CR 903.9 return and the CR
 	// 903.10 clock — the commands the deck declares would otherwise be
 	// inert pile cards.
-	if m.cfg.Format != rules.FormatCommander {
-		t.Fatalf("commander match built with format %v, want FormatCommander", m.cfg.Format)
+	if m.gc.Format != game.FormatCommander {
+		t.Fatalf("commander match built with format %v, want FormatCommander", m.gc.Format)
 	}
 
 	v, err := r.ViewAt("t1", 1, uint64(len(m.e.L.Events)-1))
@@ -181,8 +181,8 @@ func TestCommanderTableBuildsACommanderMatch(t *testing.T) {
 // disease.
 func TestCommanderTableDefaultsLife40(t *testing.T) {
 	r, _, m, _ := finishedCommanderMatch(t)
-	if m.cfg.StartingLife != 40 {
-		t.Fatalf("commander match config life %d, want 40 (CR 903.6 default)", m.cfg.StartingLife)
+	if m.gc.StartingLife != 40 {
+		t.Fatalf("commander match config life %d, want 40 (CR 903.6 default)", m.gc.StartingLife)
 	}
 	g, err := r.ViewAt("t1", 1, 0)
 	if err != nil {
@@ -228,14 +228,14 @@ func TestConstructedTableStays20Life(t *testing.T) {
 	if m == nil || m.state != protocol.MatchFinished {
 		t.Fatalf("constructed table did not finish: %+v", m)
 	}
-	if m.cfg.Format != 0 {
-		t.Fatalf("constructed match config format %v, want 0", m.cfg.Format)
+	if m.gc.Format != 0 {
+		t.Fatalf("constructed match config format %v, want 0", m.gc.Format)
 	}
-	if m.cfg.StartingLife != 0 {
-		t.Fatalf("constructed match config life %d, want 0 (engine's 20)", m.cfg.StartingLife)
+	if m.gc.StartingLife != 0 {
+		t.Fatalf("constructed match config life %d, want 0 (engine's 20)", m.gc.StartingLife)
 	}
-	if len(m.cfg.Commanders) != 0 {
-		t.Fatalf("constructed match carries commander indices %v, want none", m.cfg.Commanders)
+	if len(m.gc.Commanders) != 0 {
+		t.Fatalf("constructed match carries commander indices %v, want none", m.gc.Commanders)
 	}
 	v, err := r.ViewAt("t1", 1, 0)
 	if err != nil {

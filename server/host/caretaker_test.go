@@ -154,7 +154,7 @@ func TestThinkTimeoutCaretakerTurnsADecisionAndReplays(t *testing.T) {
 	if m.state != protocol.MatchAborted {
 		t.Fatalf("match state %s, want aborted", m.state)
 	}
-	e, err := replay.Replay(m.e.L, m.cfg)
+	e, err := replay.Replay(m.e.L, m.rulesConfig())
 	if err != nil {
 		t.Fatalf("replay of the caretaker game diverged: %v", err)
 	}

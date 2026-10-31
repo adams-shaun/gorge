@@ -346,7 +346,7 @@ func TestParkedOvershootSnapshotForFeedbackIsComplete(t *testing.T) {
 	// The head is the chain over the captured events, and the log replays
 	// byte-exactly to it — the contract cmd/repro verifies a capture with.
 	m.mu.RLock()
-	cfg := m.cfg
+	cfg := m.rulesConfig()
 	m.mu.RUnlock()
 	if want := snap.Log.HeadAt(len(snap.Log.Events)); snap.Log.Head != want {
 		t.Fatalf("captured head %q, chain over its own events %q", snap.Log.Head, want)

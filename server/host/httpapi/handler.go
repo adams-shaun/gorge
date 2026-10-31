@@ -29,6 +29,8 @@ type Options struct {
 	KeepAlive      time.Duration             // SSE comment cadence; 0 = 15s (Task 15)
 	ResumeGrace    time.Duration             // how long a disconnected session survives; 0 = 30s (Task 15)
 	Web            fs.FS                     // the built client (has index.html); nil = 503 for non-API paths (Task 15)
+	// Engine is the engine GET /api/capabilities reports; "" is gorge.
+	Engine string
 	// Seat resolves which seat a request may act for, separately from
 	// Authorize: nil — the default — keeps today's spectator-only behaviour,
 	// nobody may act as a seat, so any request that names one is refused

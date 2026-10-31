@@ -78,8 +78,8 @@ func TestNameUniverseSnapshotReplaysAcrossCorpusChange(t *testing.T) {
 	if got, want := replayed.e.L.Head(), m.e.L.Head(); got != want {
 		t.Fatalf("snapshot replay head %s, live head %s", got, want)
 	}
-	if len(replayed.cfg.NameUniverseNames) != len(sc.NameUniverseNames) {
-		t.Fatalf("replay name snapshot length = %d, sidecar = %d", len(replayed.cfg.NameUniverseNames), len(sc.NameUniverseNames))
+	if len(replayed.gc.NameUniverseNames) != len(sc.NameUniverseNames) {
+		t.Fatalf("replay name snapshot length = %d, sidecar = %d", len(replayed.gc.NameUniverseNames), len(sc.NameUniverseNames))
 	}
 
 	// This is the same post-feature sidecar except for the new immutable
@@ -88,6 +88,6 @@ func TestNameUniverseSnapshotReplaysAcrossCorpusChange(t *testing.T) {
 	unpinned := sc
 	unpinned.NameUniverseNames = nil
 	if unpinnedReplay, err := r.matchForLog(tb, unpinned, m.e.L); err == nil {
-		t.Fatalf("replay without the persisted name list survived a corpus addition (first replay name %q, added %q)", unpinnedReplay.cfg.NameUniverseNames[0], added.Faces[0].Name)
+		t.Fatalf("replay without the persisted name list survived a corpus addition (first replay name %q, added %q)", unpinnedReplay.gc.NameUniverseNames[0], added.Faces[0].Name)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -23,6 +24,8 @@ import (
 	_ "github.com/adams-shaun/gorge/bots/all"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/game"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
@@ -45,6 +48,10 @@ type config struct {
 	mulligans int
 	// ext is what the binary links in beyond the platform (Main's argument).
 	ext Extensions
+	// engine is -engine: what every table this server creates runs on, except
+	// the az-c3, az-c4 and az-c5 demo tables and draft event tables, which read
+	// gorge's engine. "" is gorge.
+	engine string
 	// formatsRaw is the -format flag: a comma-separated table-format list,
 	// table i taking formats[(i-1) mod n]. "constructed" (the default) and
 	// "commander" are the two names — the smallest thing that lets a person
@@ -383,6 +390,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.StringVar(&c.addr, "addr", ":8080", "listen address")
 	fs.StringVar(&c.cards, "cards", ".cards", "corpus directory (ir.gob.gz / cardsfolder)")
 	fs.StringVar(&c.decks, "decks", "testkit/testutil/decks", "directory of deck JSON files")
+	fs.StringVar(&c.engine, "engine", gorgegame.Name, "the engine this server's tables and vs-bot games run on; one this binary does not link fails at startup, naming those it does")
 	fs.IntVar(&c.tables, "tables", 4, "number of tables")
 	fs.IntVar(&c.seats, "seats", 4, "seats per table")
 	fs.IntVar(&c.commanderSeats, "commander-seats", 0, "seats per commander table; 0 = -seats")
@@ -464,6 +472,9 @@ func serveFlags() (*flag.FlagSet, *config) {
 func serve(ctx context.Context, c config, ln net.Listener) error {
 	if c.pprof && !isLoopbackListener(ln) {
 		return fmt.Errorf("-pprof requires a loopback listener (got %s)", ln.Addr())
+	}
+	if _, err := host.LookupEngine(c.engines(), c.engine); err != nil {
+		return fmt.Errorf("-engine: %w", err)
 	}
 	vis, err := view.ParseVisibility(c.spectator)
 	if err != nil {
@@ -639,7 +650,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := r.StartAll(); err != nil {
 		return err
 	}
-	opts := httpapi.Options{Web: webFS(), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies)}
+	opts := httpapi.Options{Web: webFS(), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine()}
 	var gate *seatGate
 	if len(c.humans) > 0 {
 		// R-E3-3: arm Options.Seat with a real token check — one opaque
@@ -1003,7 +1014,7 @@ func (c config) tableConfigs(cmdPool, conPool []string, vis view.Visibility) []h
 		}
 		cfg := host.TableConfig{ID: host.TableID(fmt.Sprintf("t%d", i)), Name: fmt.Sprintf("Table %d", i), Seats: seats,
 			Decks: pool, Seed: c.seed + uint64(i-1), Pace: c.pace, Spectator: vis, Perpetual: c.perpetual,
-			Mulligans: c.mulligans, Format: format, BotPolicy: c.botPolicy, BotAutoPayMana: c.botAutoPayMana, BotCommonSense: c.botCommonSense, AutoMana: c.autoMana}
+			Mulligans: c.mulligans, Format: format, BotPolicy: c.botPolicy, BotAutoPayMana: c.botAutoPayMana, BotCommonSense: c.botCommonSense, AutoMana: c.autoMana, Engine: c.engine}
 		if i == 1 && len(c.humans) > 0 {
 			cfg.Humans = c.humans
 			cfg.Perpetual = false
@@ -1011,6 +1022,22 @@ func (c config) tableConfigs(cmdPool, conPool []string, vis view.Visibility) []h
 		cfgs = append(cfgs, cfg)
 	}
 	return cfgs
+}
+
+// engines is every engine this binary links.
+func (c config) engines() map[string]game.Engine {
+	out := map[string]game.Engine{gorgegame.Name: gorgegame.Engine{}}
+	maps.Copy(out, c.ext.Engines)
+	return out
+}
+
+// capabilityEngine is -engine as GET /api/capabilities reports it: absent for
+// gorge.
+func (c config) capabilityEngine() string {
+	if c.engine == gorgegame.Name {
+		return ""
+	}
+	return c.engine
 }
 
 // hostOptions builds the Registry options for a config, threading the FL-40
@@ -1046,7 +1073,8 @@ func (g config) hostOptions(reg *cards.Registry, load func(string) (host.Deck, e
 		// registry, so a policy that reads printed card facts (sb-tactical)
 		// builds with the same corpus the table deals.
 		BotDeps:   bots.Deps{Cards: reg},
-		BotConfig: g.botConfig}
+		BotConfig: g.botConfig,
+		Engines:   g.engines()}
 }
 
 // artCacheDir resolves where the card-art cache lives: -art-dir when set,

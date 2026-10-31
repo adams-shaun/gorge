@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/bots/searchseat"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -59,14 +60,14 @@ func (r *Registry) shadowScan(id TableID, k int, seat state.PlayerID, policy str
 	entry, _ := bots.Lookup(pol)
 
 	m.mu.RLock()
-	if int(seat) >= len(m.cfg.Decks) {
-		n := len(m.cfg.Decks)
+	if int(seat) >= len(m.gc.Decks) {
+		n := len(m.gc.Decks)
 		m.mu.RUnlock()
 		return nil, 0, fmt.Errorf("host: table %s: seat %d out of range (%d seats)", id, seat, n)
 	}
 	l := m.e.L.Clone()
 	ledger := append([]uint8(nil), m.ledger...)
-	cfg := m.cfg
+	cfg := gorgegame.RulesConfig(m.gc)
 	seed := m.seed
 	m.mu.RUnlock()
 	if len(ledger) < len(l.Intents) {

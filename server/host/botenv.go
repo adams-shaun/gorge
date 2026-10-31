@@ -182,7 +182,7 @@ func (m *match) envData(p state.PlayerID, dc *decision.Decision, brd *botpolicy.
 	// sees the game without its opponents' lists: its honest root and the
 	// Setup its search reads are both closed.
 	setup := searchseat.SeatSetup(searchprobe.PublicGame{
-		Names: m.cfg.Names, Decks: m.cfg.Decks, Tokens: m.cfg.Tokens, StartingLife: m.cfg.StartingLife,
+		Names: m.gc.Names, Decks: m.gc.Decks, Tokens: m.gc.Tokens, StartingLife: m.gc.StartingLife,
 	}, es, p)
 	// At a table with a human the Setup must be closed (server/host/closedlist.go);
 	// an open one is cut to the actor's own list and gets no root.

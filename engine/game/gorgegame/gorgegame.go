@@ -11,7 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-const name = "gorge"
+// Name is the name the rules engine reports and a host selects it by.
+const Name = "gorge"
 
 var (
 	_ game.Game           = Game{}
@@ -38,7 +39,7 @@ func (g Game) Submit(in decision.Intent) error { return g.E.Submit(in) }
 func (g Game) Fork() game.Game { return Game{E: g.E.Clone()} }
 
 func (g Game) Caps() game.Caps {
-	return game.Caps{Engine: name, SubBurstViews: true, ManualMana: true, SearchRoots: true, StartingAsk: true}
+	return game.Caps{Engine: Name, SubBurstViews: true, ManualMana: true, SearchRoots: true, StartingAsk: true}
 }
 
 func (g Game) EnsurePaymentActions() { g.E.EnsurePaymentActions() }
@@ -123,7 +124,7 @@ func GameConfig(cfg rules.Config) game.Config {
 // Engine builds rules-engine games.
 type Engine struct{}
 
-func (Engine) Name() string { return name }
+func (Engine) Name() string { return Name }
 
 // Accepts is nil: the rules engine plays every format and seat count a Config
 // can name.

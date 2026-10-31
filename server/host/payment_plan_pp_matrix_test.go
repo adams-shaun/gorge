@@ -79,7 +79,7 @@ func TestPaymentPlanUndoRepostsAndReacceptsAPlannedIntent(t *testing.T) {
 	}
 	m := liveMatch(t, r, "t1")
 	m.mu.RLock()
-	l, cfg := m.e.L.Clone(), m.cfg
+	l, cfg := m.e.L.Clone(), m.rulesConfig()
 	m.mu.RUnlock()
 	if _, err := replay.ReplayTo(l, cfg, n); err != nil {
 		t.Fatalf("ReplayTo(%d) after planned undo: %v", n, err)

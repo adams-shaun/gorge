@@ -52,16 +52,19 @@ const defaultExpectedEvents = 80000
 
 // match is one game on a table: the engine, the intent boundaries and
 // turn starts a view request needs, and the outcome. mu guards everything
-// below cfg: the run loop holds it for the duration of each Submit and its
+// below gc: the run loop holds it for the duration of each Submit and its
 // bookkeeping; readers (ViewAt, Events, fan-out) hold it for reads only and
 // never drive the engine.
 type match struct {
 	table *table
 	k     int
 	seed  uint64
-	cfg   rules.Config
-	seats []protocol.SeatInfo
-	decks []string
+	// engine built g and rebuilds its past boards. gc is the config it was
+	// built from, without the live log's capacity hint.
+	engine game.Engine
+	gc     game.Config
+	seats  []protocol.SeatInfo
+	decks  []string
 	// slots is the actual []seat.Seat the current match built in play().
 	// Registry methods that must reach a per-seat *HumanSeat (Pending,
 	// SubmitIntent, Task M2b-2) go through it. Installed once at the top
@@ -144,16 +147,66 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	return r.newMatchWith(t, k, nil)
 }
 
-// newMatchWith resolves decks, seeds and builds the engine through genesis
-// and the first Advance, so the returned match is at intent boundary 0.
-// When persistence is on it also opens the match's files, writes the live
-// sidecar and appends the genesis events; any error halts the table. A
-// non-nil plan (E3-2) replaces the rotated deck list with the series hook's
-// per-seat decks and, when plan.Chooser >= 0, poses CR 103.1's
-// starting-player choice to that seat in place of the toss winner.
+// newMatchWith resolves decks, seeds and builds the game through genesis and
+// the first Advance, so the returned match is at intent boundary 0. When
+// persistence is on it also opens the match's files, writes the live sidecar
+// and appends the genesis events; any error halts the table. A non-nil plan
+// replaces the rotated deck list with the series hook's per-seat decks and,
+// when plan.Chooser >= 0, poses CR 103.1's starting-player choice to that seat
+// in place of the toss winner.
 func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, error) {
 	c := t.cfg
-	seed := MatchSeed(c.Seed, k)
+	engine, err := LookupEngine(r.opts.Engines, c.Engine)
+	if err != nil {
+		return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+	}
+	gc, infos, deckNames, err := r.matchConfig(c, k, plan)
+	if err != nil {
+		return nil, err
+	}
+	// Events growEvents was the top allocator in ./server/host (2.87 GB of the test
+	// binary's profile: every live match log reallocated ~2x its final length
+	// on the way up). Preallocating the live log to just above a real match's
+	// event count makes the common case grow without reallocating at all, and
+	// the one make costs less than the doubling series it replaces. The value
+	// is a hint, sized from the measured top of a real match (the 4-seat
+	// repo-deck match runs ~74k events; stays under defaultMaxIntents); a match
+	// that overruns it doubles once and is still correct. It is a pure capacity
+	// hint on the live log and cannot leak spare capacity to a clone (Clone
+	// truncates to len), so the clone-sharing invariant is intact.
+	live := gc
+	live.ExpectedEvents = defaultExpectedEvents
+	g, err := engine.New(live)
+	if err != nil {
+		return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+	}
+	m := &match{table: t, k: k, seed: gc.Seed, engine: engine, gc: gc, seats: infos, decks: deckNames, state: protocol.MatchLive,
+		undo: newUndoQueue()}
+	m.setGame(g)
+	m.bounds = []uint64{uint64(len(m.g.Log().Events))}
+	m.turnStarts = turnStartsIn(m.g.Log().Events, 0)
+	m.snapshotGenesis()
+	if r.opts.Dir != "" {
+		m.files, err = openMatchFiles(r.opts.Dir, t.cfg.ID, k, r.opts.Sync)
+		if err != nil {
+			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+		}
+		if err := writeSidecar(r.opts.Dir, m.sidecar(), r.opts.Sync); err != nil {
+			m.files.close()
+			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+		}
+		if err := m.files.append(m.g.Log().Events, nil); err != nil {
+			m.files.close()
+			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+		}
+		m.persisted = len(m.g.Log().Events) // genesis is durable once appended
+	}
+	return m, nil
+}
+
+// matchConfig resolves match k of table c: the game's config, each seat's wire
+// summary and each seat's deck id.
+func (r *Registry) matchConfig(c TableConfig, k int, plan *SeriesGame) (game.Config, []protocol.SeatInfo, []string, error) {
 	names := make([]string, c.Seats)
 	decks := make([][]*cards.Card, c.Seats)
 	sideboards := make([][]*cards.Card, c.Seats)
@@ -182,13 +235,13 @@ func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, erro
 	for i := 0; i < c.Seats; i++ {
 		dn := c.Decks[(i+k)%len(c.Decks)]
 		if plan != nil {
-			// E3-2: a series plan indexes decks by SEAT — the hook decides
-			// who plays what this match; no k rotation.
+			// A series plan indexes decks by SEAT — the hook decides who plays
+			// what this match; no k rotation.
 			dn = plan.Decks[i]
 		}
 		d, err := r.opts.LoadDeck(dn)
 		if err != nil {
-			return nil, fmt.Errorf("host: table %s match %d: deck %q: %w", c.ID, k, dn, err)
+			return game.Config{}, nil, nil, fmt.Errorf("host: table %s match %d: deck %q: %w", c.ID, k, dn, err)
 		}
 		if d.Name == "" {
 			d.Name = dn
@@ -206,96 +259,45 @@ func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, erro
 			}
 		}
 	}
-	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Archetypes: archetypes, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, NameUniverse: r.opts.NameUniverse, Mulligans: c.Mulligans, WindowDiagnostics: c.WindowDiagnostics}
-	// The engine's own livelock watcher (engine/rules/livelock.go) is the same
-	// non-terminating-loop protection as this file's per-turn decision
-	// guard, one level down: an embedder that opted out of the host guard
-	// (MaxDecisionsPerTurn == 0, the supervised-infinite-loop shape the
-	// stall tests drive) must not have the engine crash the match instead
-	// at its own 400-event cycle threshold. Propagate the opt-out; every
-	// Config with the host guard at its default keeps the watcher on.
-	if r.opts.MaxDecisionsPerTurn == 0 {
-		cfg.LoopGuard = &rules.LoopGuard{Disabled: true}
-	} else {
-		// The default object cap (CV-8): a hosted table's degenerate token
-		// storm ends as a recorded stalled match (the play recover below
-		// re-classifies it) instead of growing the arena and event log
-		// until the process OOMs. The same volume bound the shared harness
-		// drive loop (testkit/bench) arms; an explicit caller guard would
-		// win, and no host path sets one.
-		cfg.LoopGuard = rules.WithDefaultObjectCap(cfg.LoopGuard)
-	}
+	gc := game.Config{Seed: MatchSeed(c.Seed, k), Names: names, PlayerNames: playerNames, Decks: decks, Archetypes: archetypes, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, NameUniverse: r.opts.NameUniverse, Mulligans: c.Mulligans, WindowDiagnostics: c.WindowDiagnostics,
+		// An engine's own livelock watcher is the same non-terminating-loop
+		// protection as this package's per-turn decision guard, one level
+		// down: an embedder that opted out of the host guard (the
+		// supervised-infinite-loop shape the stall tests drive) must not have
+		// the engine crash the match instead at its own 400-event cycle
+		// threshold.
+		GuardDisabled: r.opts.MaxDecisionsPerTurn == 0}
 	// The format the table was configured with is threaded into the engine
-	// once, here, so the match's rules.Config is the single value both the
-	// live game and its replay are built from (R-8.4). A commander table
-	// also resolves its starting life — CR 903.6's 40 (TableConfig's
-	// 0-means-format-default convention) — and its per-seat commanders
-	// from the loaded decks; validate has already rejected a commander
-	// table whose deck names no commander, so a seat can never silently
-	// play without a command zone.
+	// once, here, so the match's config is the single value both the live
+	// game and its replay are built from. A commander table also
+	// resolves its starting life — CR 903.6's 40 (TableConfig's
+	// 0-means-format-default convention) — and its per-seat commanders from
+	// the loaded decks; validate has already rejected a commander table whose
+	// deck names no commander, so a seat can never silently play without a
+	// command zone.
 	switch c.Format {
 	case FormatCommander:
-		cfg.Format = rules.FormatCommander
+		gc.Format = game.FormatCommander
 		life := c.StartingLife
 		if life == 0 {
 			life = 40
 		}
-		cfg.StartingLife = life
-		cfg.Commanders = make([][]int, c.Seats)
-		for i := range cfg.Commanders {
-			cfg.Commanders[i] = append([]int(nil), cmds[i]...)
+		gc.StartingLife = life
+		gc.Commanders = make([][]int, c.Seats)
+		for i := range gc.Commanders {
+			gc.Commanders[i] = append([]int(nil), cmds[i]...)
 		}
-	default: // FormatConstructed: the zero rules.Config, every field stays unset.
+	default: // FormatConstructed: the zero game.Config, every field stays unset.
 	}
 	if plan != nil && plan.Chooser >= 0 {
-		// E3-2: the series hook chose the seat posed CR 103.1's
-		// starting-player choice in place of the toss winner (rules.
-		// Config.StartChooser). A fresh int, so the plan can never be
+		// The series hook chose the seat posed CR 103.1's
+		// starting-player choice in place of the toss winner
+		// (game.Config.StartChooser). A fresh int, so the plan can never be
 		// aliased into the match's Config.
 		chooser := plan.Chooser
-		cfg.StartChooser = &chooser
+		gc.StartChooser = &chooser
 	}
-	e := rules.NewStartingPlayerChoice(cfg)
-	// Events growEvents was the top allocator in ./server/host (2.87 GB of the test
-	// binary's profile: every live match log reallocated ~2x its final length
-	// on the way up). Preallocating the live log to just above a real match's
-	// event count makes the common case grow without reallocating at all, and
-	// the one make at Reserve time costs less than the doubling series it
-	// replaces. The value is a hint, sized from the measured top of a real
-	// match (the 4-seat repo-deck match runs ~74k events; stays under defaultMaxIntents);
-	// a match that overruns it doubles once and is still correct. Reserve is a
-	// pure capacity hint on the live log and cannot leak spare capacity to a
-	// clone (Clone truncates to len), so the clone-sharing invariant is intact.
-	e.L.Reserve(defaultExpectedEvents)
-	// CR 103.1's second half: the toss winner chooses who takes the first
-	// turn. Pose that choice BEFORE advancing so the play loop's parking
-	// conveys it to the winner's seat; a caller with no decision channel
-	// gets the deterministic fallback from Advance instead.
-	e.AskStartingPlayer()
-	e.Advance()
-	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, state: protocol.MatchLive,
-		undo: newUndoQueue()}
-	m.setGame(gorgegame.Game{E: e})
-	m.bounds = []uint64{uint64(len(m.g.Log().Events))}
-	m.turnStarts = turnStartsIn(m.g.Log().Events, 0)
-	m.snapshotGenesis()
-	if r.opts.Dir != "" {
-		var err error
-		m.files, err = openMatchFiles(r.opts.Dir, t.cfg.ID, k, r.opts.Sync)
-		if err != nil {
-			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
-		}
-		if err := writeSidecar(r.opts.Dir, m.sidecar(), r.opts.Sync); err != nil {
-			m.files.close()
-			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
-		}
-		if err := m.files.append(m.g.Log().Events, nil); err != nil {
-			m.files.close()
-			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
-		}
-		m.persisted = len(m.g.Log().Events) // genesis is durable once appended
-	}
-	return m, nil
+	return gc, infos, deckNames, nil
 }
 
 // setGame installs g as the match's game, at build or under m.mu.
@@ -366,15 +368,15 @@ func (m *match) sidecar() sidecar {
 	if m.files != nil && m.state == protocol.MatchCrashed {
 		events = m.persisted
 	}
-	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.cfg.Names,
-		PlayerNames: m.cfg.PlayerNames, Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
-		Head: m.head, Events: events, Turns: m.g.Board().Turn, Reason: m.reason, Mulligans: m.cfg.Mulligans,
-		NameUniverse:      m.cfg.NameUniverse.Len() > 0,
+	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.gc.Names,
+		PlayerNames: m.gc.PlayerNames, Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
+		Head: m.head, Events: events, Turns: m.g.Board().Turn, Reason: m.reason, Mulligans: m.gc.Mulligans,
+		NameUniverse:      m.gc.NameUniverse.Len() > 0,
 		NameUniverseNames: append([]string(nil), m.g.Board().NameUniverseNames...),
-		PaidManaCensus:    !m.cfg.DisablePaidManaCensus,
-		Format:            Format(m.cfg.Format), StartingLife: m.cfg.StartingLife, Commanders: m.cfg.Commanders, BotPolicy: m.table.cfg.BotPolicy,
-		StartChooser: m.cfg.StartChooser,
-		Refusals:     m.refusals, Fallbacks: m.fallbacks, RootRefusals: m.rootRefusals}
+		PaidManaCensus:    !m.gc.DisablePaidManaCensus,
+		Format:            Format(m.gc.Format), StartingLife: m.gc.StartingLife, Commanders: m.gc.Commanders, BotPolicy: m.table.cfg.BotPolicy,
+		StartChooser: m.gc.StartChooser, Engine: m.table.cfg.Engine, EngineKey: m.gc.Key,
+		Refusals: m.refusals, Fallbacks: m.fallbacks, RootRefusals: m.rootRefusals}
 }
 
 // defaultSeats is PL-14: one bot per seat, seeded from the match seed.
@@ -768,15 +770,15 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	if r.opts.BotUnboundedDecisions {
 		budget = 0
 	}
-	seats := defaultSeatsWithAutoPayMana(t.cfg.BotPolicy, autoPayMana, t.cfg.BotCommonSense, m.cfg.Names, m.seed, r.opts.BotSearchParallelism, r.opts.BotDeps, budget, r.opts.BotConfig)
+	seats := defaultSeatsWithAutoPayMana(t.cfg.BotPolicy, autoPayMana, t.cfg.BotCommonSense, m.gc.Names, m.seed, r.opts.BotSearchParallelism, r.opts.BotDeps, budget, r.opts.BotConfig)
 	if len(t.cfg.SeatBotPolicies) > 0 {
 		// E1-2: a table with per-seat bot policies rebuilds its bots from
 		// SeatBotPolicies (seat i plays seatBotPolicy(i)); the embedder's
 		// r.opts.Seats override below still wins over it.
-		seats = seatPolicySeats(t.cfg, autoPayMana, m.cfg.Names, m.seed, r.opts.BotSearchParallelism, r.opts.BotDeps, budget, r.opts.BotConfig)
+		seats = seatPolicySeats(t.cfg, autoPayMana, m.gc.Names, m.seed, r.opts.BotSearchParallelism, r.opts.BotDeps, budget, r.opts.BotConfig)
 	}
 	if r.opts.Seats != nil {
-		seats = r.opts.Seats(m.cfg.Names, m.seed)
+		seats = r.opts.Seats(m.gc.Names, m.seed)
 	}
 	// Task M2c-2: honor the TableConfig.Humans plan — every listed slot is a
 	// real person, so replace the bot that Options.Seats built for it (by
@@ -854,11 +856,11 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			GameID:       gameID,
 			Seat:         i,
 			Seats:        len(seats),
-			Format:       tableFormatName(m.cfg.Format),
+			Format:       tableFormatName(m.gc.Format),
 			Seed:         []byte(fmt.Sprintf("%d/%d", m.seed, m.k)),
 			Secret:       secret,
-			OwnDeck:      m.e.OwnDeck(state.PlayerID(i)),
-			Mulligan:     mulliganName(m.cfg.Mulligans),
+			OwnDeck:      m.g.Chars().OwnDeck(state.PlayerID(i)),
+			Mulligan:     mulliganName(m.gc.Mulligans),
 			StartingSeat: int(m.g.Board().Active),
 			DeadlineMS:   budget,
 			Logf: func(format string, args ...any) {
@@ -866,7 +868,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			},
 		}
 		if t.cfg.AllowDecklistBots && len(seats) == 2 {
-			mc.OpponentDeck = m.e.OwnDeck(state.PlayerID(1 - i))
+			mc.OpponentDeck = m.g.Chars().OwnDeck(state.PlayerID(1 - i))
 			mc.OpponentVisible = mc.OpponentDeck != nil
 		}
 		if err := bots.AttachMatch(s, mc); err != nil {
@@ -1342,8 +1344,8 @@ func matchIdentity(seed uint64, k int) (gameID string, secret []byte) {
 	return gameID, sum[:]
 }
 
-func tableFormatName(f rules.Format) string {
-	if f == rules.FormatCommander {
+func tableFormatName(f game.Format) string {
+	if f == game.FormatCommander {
 		return "commander"
 	}
 	return "constructed"

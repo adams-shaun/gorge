@@ -24,6 +24,7 @@ package host
 
 import (
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/server/protocol"
 )
@@ -82,7 +83,7 @@ func RunContractTable(t ContractT, o Options, cfg TableConfig) ContractRun {
 	tbl.mu.RUnlock()
 	m.mu.RLock()
 	run := ContractRun{Info: m.info(), Log: m.e.L.Clone(), Reason: m.reason, RootRefusals: m.rootRefusals, Feeds: m.feeds != nil}
-	rulesCfg := m.cfg
+	rulesCfg := gorgegame.RulesConfig(m.gc)
 	m.mu.RUnlock()
 	t.Logf("%s: %s turn %d intents %d events %d rootRefusals %d feeds %v reason %q", cfg.Name, run.Info.State, run.Info.Turns,
 		len(run.Log.Intents), len(run.Log.Events), run.RootRefusals, run.Feeds, run.Reason)

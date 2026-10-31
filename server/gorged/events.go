@@ -9,6 +9,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
@@ -32,6 +33,9 @@ type Extensions struct {
 	// into a recorded match with (review.go). Without it review mode refuses
 	// to start; the live server ignores it entirely.
 	Review ReviewLoader
+	// Engines are the engines this binary links beside gorge, by the name
+	// -engine selects them with.
+	Engines map[string]game.Engine
 }
 
 // EventsPlugin is a draft-event runtime: it owns a store under the server's

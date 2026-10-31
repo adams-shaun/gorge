@@ -8,6 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -289,7 +290,7 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	// same lock and before projectNext (its observe appends the rewound
 	// pending decision's frame to whatever feeds are installed). An error is
 	// fatal for the match (D15): a feed and its log must never disagree.
-	if err := m.feeds.rebuild(m.cfg, m.g.Log(), m.intents); err != nil {
+	if err := m.feeds.rebuild(gorgegame.RulesConfig(m.gc), m.g.Log(), m.intents); err != nil {
 		return nil, fmt.Errorf("host: undo feed rebuild for match %d: %w", m.k, err)
 	}
 	if err := r.truncatePersisted(t, m); err != nil {

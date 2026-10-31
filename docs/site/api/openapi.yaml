@@ -280,6 +280,9 @@ components:
     Capabilities:
       description: "Capabilities is GET /api/capabilities: which optional surfaces this server serves, so a client can decide what to draw without probing a route that 404s when the surface is off. Additive, and always 200. Events is true when the /api/events routes are mounted."
       properties:
+        engine:
+          description: "Engine names the engine this server creates tables on; absent for gorge."
+          type: "string"
         events:
           type: "boolean"
       required:
@@ -2767,6 +2770,9 @@ components:
           type: "boolean"
         bot_policy:
           description: "BotPolicy is the effective hosted policy for bot seats and human-seat caretakers. It is public table configuration, never private game state."
+          type: "string"
+        engine:
+          description: "Engine names the engine this table runs on; absent for gorge."
           type: "string"
         event:
           description: "Event marks a table owned by a draft event (TableConfig.Event): its games are the event's to schedule, so the client offers no restart (a fresh vs-bot game) from it. omitempty, like Series: a non-event table is byte-identical to a table before the field existed."

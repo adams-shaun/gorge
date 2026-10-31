@@ -15,7 +15,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
+	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -40,6 +42,9 @@ func sampleLoader(t *testing.T) func(string) (Deck, error) {
 		return Deck{Name: name, Cards: cs}, nil
 	}
 }
+
+// rulesConfig is the config m's game was built from, as package rules takes it.
+func (m *match) rulesConfig() rules.Config { return gorgegame.RulesConfig(m.gc) }
 
 func testOptions(t *testing.T) Options {
 	t.Helper()
@@ -120,7 +125,7 @@ func TestHostedPoliciesReplayDeterministically(t *testing.T) {
 		m := tab.history[0]
 		tab.mu.RUnlock()
 		m.mu.RLock()
-		info, log, rulesCfg := m.info(), m.e.L.Clone(), m.cfg
+		info, log, rulesCfg := m.info(), m.e.L.Clone(), m.rulesConfig()
 		m.mu.RUnlock()
 		replayed, err := replay.Replay(log, rulesCfg)
 		if err != nil {

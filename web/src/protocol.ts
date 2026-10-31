@@ -105,6 +105,10 @@ export interface TableInfo {
    * table before the field existed.
    */
   review?: boolean;
+  /**
+   * Engine names the engine this table runs on; absent for gorge.
+   */
+  engine?: string;
 }
 
   /**
@@ -1871,6 +1875,10 @@ export interface BotPolicyList {
    */
 export interface Capabilities {
   events: boolean;
+  /**
+   * Engine names the engine this server creates tables on; absent for gorge.
+   */
+  engine?: string;
 }
 
   /**

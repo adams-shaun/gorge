@@ -134,7 +134,7 @@ func (r *Registry) AddReviewTable(id string, m ReviewMatch) error {
 		}
 		seats[i] = protocol.SeatInfo{Name: name, Deck: deck, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
 	}
-	mt := &match{table: t, k: 1, seed: cfg.Seed, cfg: cfg, seats: seats, decks: tc.Decks,
+	mt := &match{table: t, k: 1, seed: cfg.Seed, engine: gorgegame.Engine{}, gc: gorgegame.GameConfig(cfg), seats: seats, decks: tc.Decks,
 		bounds: boundsOf(e.L.Events), turnStarts: turnStartsIn(e.L.Events, 0), snaps: snaps,
 		intents: len(e.L.Intents), head: e.L.Head()}
 	mt.setGame(gorgegame.Game{E: e})

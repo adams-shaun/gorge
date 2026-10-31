@@ -8,8 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/game"
-	"github.com/adams-shaun/gorge/engine/game/gorgegame"
-	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
@@ -284,11 +282,15 @@ func (r *Registry) loadArchived(t *table, sc sidecar) (*match, error) {
 // disk). The engine's Replay is the gate: a log that does not reproduce the
 // engine's own event stream is refused here, before it can be served.
 //
-// The rebuilt Config leaves LoopGuard nil: the watcher runs at its defaults
-// with no object cap. The sidecar does not record the guard a match ran
+// The rebuilt Config sets NoObjectCap: the watcher runs at its defaults with
+// no object cap. The sidecar does not record the guard a match ran
 // under, and the cap must not refuse a recording that was allowed to grow
 // past it.
 func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, error) {
+	engine, err := LookupEngine(r.opts.Engines, sc.Engine)
+	if err != nil {
+		return nil, fmt.Errorf("host: %s/%d: %w", t.cfg.ID, sc.Match, err)
+	}
 	decks := make([][]*cards.Card, len(sc.Decks))
 	sideboards := make([][]*cards.Card, len(sc.Decks))
 	archetypes := make([]string, len(sc.Decks))
@@ -301,7 +303,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		sideboards[i] = d.Sideboard
 		archetypes[i] = d.Archetype
 	}
-	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Archetypes: archetypes, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, Mulligans: sc.Mulligans, WindowDiagnostics: t.cfg.WindowDiagnostics, DisablePaidManaCensus: !sc.PaidManaCensus}
+	gc := game.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Archetypes: archetypes, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, Mulligans: sc.Mulligans, WindowDiagnostics: t.cfg.WindowDiagnostics, DisablePaidManaCensus: !sc.PaidManaCensus, NoObjectCap: true, Key: sc.EngineKey}
 	// E3-2: a configured starting-player chooser (the seat posed CR 103.1's
 	// choice in place of the toss winner) is replay input exactly like
 	// Mulligans — the genesis Note names it, so a replay rebuilt without it
@@ -309,15 +311,15 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 	// pointer is never aliased into a rebuilt Config.
 	if sc.StartChooser != nil {
 		chooser := *sc.StartChooser
-		cfg.StartChooser = &chooser
+		gc.StartChooser = &chooser
 	}
 	// NameUniverse is a match MODE, not just data, and NameUniverseNames pins
 	// the exact ordered labels it offered. A pre-feature sidecar (no field)
 	// gets neither and therefore takes the legacy no-universe path, so a log
 	// that recorded no name decision still reproduces (R-8.4).
 	if sc.NameUniverse {
-		cfg.NameUniverse = r.opts.NameUniverse
-		cfg.NameUniverseNames = append([]string(nil), sc.NameUniverseNames...)
+		gc.NameUniverse = r.opts.NameUniverse
+		gc.NameUniverseNames = append([]string(nil), sc.NameUniverseNames...)
 	}
 	// A persisted Commander match carries its format, the opening life it
 	// played with and its per-seat commander indices, so the replay
@@ -326,11 +328,11 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 	// zone — and a 40-life start — off exactly those values). An old
 	// sidecar's zero Format is constructed, which needs none of this.
 	if sc.Format == FormatCommander {
-		cfg.Format = rules.FormatCommander
-		cfg.StartingLife = sc.StartingLife
-		cfg.Commanders = sc.Commanders
+		gc.Format = game.FormatCommander
+		gc.StartingLife = sc.StartingLife
+		gc.Commanders = sc.Commanders
 	}
-	g, err := gorgegame.Engine{}.Replay(l, gorgegame.GameConfig(cfg))
+	g, err := engine.Replay(l, gc)
 	if err != nil {
 		// fb-20260915T094418Z: readLog's reconcileLog trims the file to the
 		// last burst's ask boundary (the crash-cut protection, kept — see
@@ -351,7 +353,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		// trimmed recording.
 		l = g.Log()
 	}
-	m := &match{table: t, k: sc.Match, seed: sc.Seed, cfg: cfg, seats: sc.Seats, decks: sc.Decks,
+	m := &match{table: t, k: sc.Match, seed: sc.Seed, engine: engine, gc: gc, seats: sc.Seats, decks: sc.Decks,
 		bounds: boundsOf(l.Events), turnStarts: turnStartsIn(l.Events, 0), state: sc.State, result: sc.Result,
 		winner: sc.Winner, head: sc.Head, reason: sc.Reason}
 	m.setGame(g)
@@ -396,9 +398,9 @@ type replaySource struct {
 	caps   game.Caps
 }
 
-// replaySource reads m.g and m.cfg, so call it under m.mu.
+// replaySource reads m.g, so call it under m.mu.
 func (m *match) replaySource() replaySource {
-	return replaySource{engine: gorgegame.Engine{}, config: gorgegame.GameConfig(m.cfg), caps: m.g.Caps()}
+	return replaySource{engine: m.engine, config: m.gc, caps: m.g.Caps()}
 }
 
 // viewAt is PL-1: find the last intent boundary j with bounds[j] <= seq+1,

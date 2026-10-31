@@ -155,6 +155,8 @@ type TableInfo struct {
 	// no restart. omitempty, like Series: a live table is byte-identical to a
 	// table before the field existed.
 	Review bool `json:"review,omitempty"`
+	// Engine names the engine this table runs on; absent for gorge.
+	Engine string `json:"engine,omitempty"`
 }
 
 // Widget is the overview cell: enough to draw a 2x2 life grid, a turn
@@ -376,4 +378,6 @@ type BotPolicyList struct {
 // the /api/events routes are mounted.
 type Capabilities struct {
 	Events bool `json:"events"`
+	// Engine names the engine this server creates tables on; absent for gorge.
+	Engine string `json:"engine,omitempty"`
 }

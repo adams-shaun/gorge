@@ -157,7 +157,7 @@ func TestObserverPersistedLogServesIdenticallyToTheLiveMatch(t *testing.T) {
 		l.Append(ev)
 	}
 	l.Intents = sinkIns
-	rep, err := replay.Replay(l, m.cfg)
+	rep, err := replay.Replay(l, m.rulesConfig())
 	if err != nil {
 		t.Fatalf("sink log does not replay: %v", err)
 	}
