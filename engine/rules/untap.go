@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -42,6 +43,12 @@ func hasUntapStepChoice(o *state.Object) bool {
 // kind of untap identically (CR 122.1d).
 func (e *Engine) untapTurnPermanent(subject state.ObjID) {
 	effects.TryUntap(e, subject)
+}
+
+// UntapBlocked reports whether a CantHappen Untap replacement would stop id from
+// becoming untapped at this point in the turn.
+func (e *Engine) UntapBlocked(id state.ObjID) bool {
+	return e.gameEventCantHappen("Untap", events.Event{Kind: events.Untap, Obj: id})
 }
 
 // staticPresentHolds implements a static's IsPresent$/PresentCompare$ gate.

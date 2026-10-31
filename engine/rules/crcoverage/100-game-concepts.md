@@ -159,7 +159,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 122.1-122.1a | follows | `engine/rules/chars/derive.go#PT` `engine/state/object.go#Object.CounterPTTotals` `engine/effects/filter_type.go#canReceiveCounter` | `TestPresentDefinedGateOverTheRealCorpusBodies` | P/T counters in layer 7c; any permanent can hold one |
 | 122.1b | follows | `engine/cards/counter_keyword.go#CounterKeyword` | - |  |
 | 122.1c | follows | `engine/effects/regeneration.go#ReplaceShieldCounter` `engine/rules/shield_counter.go#Engine.shieldCounterDamageMatches` | `TestCR122_1cShieldCounterReplacesDestruction` `TestCR122_1cShieldCounterPreventsDamage` | destruction order regen > shield > umbra is a deterministic CR 616.1 stand-in |
-| 122.1d | deviates | `engine/effects/untap.go#TryUntap` | `TestBalothPrimeSacrificeTriggerRemovesAStunCounterInsteadOfUntapping` | stun spent on a doesn't-untap permanent |
+| 122.1d | follows | `engine/effects/untap.go#TryUntap` `engine/rules/untap.go#Engine.UntapBlocked` | `TestBalothPrimeSacrificeTriggerRemovesAStunCounterInsteadOfUntapping` `TestStunCounterStaysOnADoesntUntapPermanent` | a permanent that doesn't untap keeps its stun counter |
 | 122.1e | follows | `engine/rules/sba.go#Engine.planeswalkerZeroLoyalty` | `TestCombatDamageToPlaneswalkerAtZeroLoyaltyAppliesStateBasedAction` | - |
 | 122.1f | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | - | poison SBA; none in pools |
 | 122.1g | follows | `engine/rules/sba.go#Engine.battleZeroDefense` | `TestBattleEntersWithPrintedDefense` | - |

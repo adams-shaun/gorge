@@ -306,6 +306,9 @@ type HostRestrictions interface {
 	// Implemented by rules.Engine (engine/rules/layers.go); the
 	// effects test double reports false (no engine to consult).
 	SacrificeBlocked(id state.ObjID, forCost bool) bool
+	// UntapBlocked reports whether a live "doesn't untap" prohibition (a
+	// bodyless R:Event$ Untap line) stops id from becoming untapped right now.
+	UntapBlocked(id state.ObjID) bool
 	// ExileBlocked reports whether id is forbidden from being exiled by the
 	// given cause -- an Effect-registered CantExile restriction or a face
 	// CantExile static (The Master, Multiplied: "Triggered abilities you

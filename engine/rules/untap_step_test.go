@@ -38,3 +38,19 @@ func TestUntapOrderAnswerGivesActivePlayerUpkeepPriority(t *testing.T) {
 		t.Fatalf("pending %+v, want p1's priority decision", d)
 	}
 }
+
+// TestStunCounterStaysOnADoesntUntapPermanent: CR 122.1d's replacement applies
+// only when the permanent "would become untapped"; Sleep Magic means it would
+// not, so the untap step leaves the stun counter in place.
+func TestStunCounterStaysOnADoesntUntapPermanent(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	res, err := RunOracleAuditScenarioJSON(reg, []byte(`{"name":"stun-with-doesnt-untap","cr":["122.1d"],"why":"the stun counter is not spent",
+"setup":{"p0":{"hand":["Sleep Magic"],"mana":"U"},"p1":{"battlefield":["Hill Giant"],"counters":{"Hill Giant":{"STUN":1}}}},
+"steps":[{"op":"cast","seat":0,"card":"p0:Sleep Magic","mana":"U","targets":["p1:Hill Giant"]},{"op":"resolve"},{"op":"resolve"},
+{"op":"pass_to","step":"upkeep","active":"p1"}],
+"expect":[{"card":"p1:Hill Giant","tapped":true,"counters":{"STUN":1}}]}`), true)
+	if err != nil || len(res.Fails) != 0 {
+		t.Fatalf("err=%v fails=%v", err, res.Fails)
+	}
+}

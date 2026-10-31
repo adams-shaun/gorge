@@ -296,6 +296,9 @@ func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 	return h.sacrificeBlocked[id]
 }
 
+// UntapBlocked has no replacement registry to consult here.
+func (h *fakeHost) UntapBlocked(id state.ObjID) bool { return false }
+
 // ExileBlocked has no registry to consult here (the engine-side CantExile
 // restriction lives in rules.Engine), the same discipline as SacrificeBlocked
 // above: the double reports the per-object answers exileBlocked configures
