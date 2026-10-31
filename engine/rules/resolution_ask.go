@@ -147,7 +147,8 @@ func (e *Engine) snapshotDepartingTargetCounters(oid state.ObjID) {
 		if c.Snap.TargetPT == nil {
 			c.Snap.TargetPT = make(map[state.ObjID]effects.TargetPT)
 		}
-		c.Snap.TargetPT[oid] = effects.TargetPT{Power: e.Power(oid), Toughness: e.Toughness(oid)}
+		c.Snap.TargetPT[oid] = effects.TargetPT{Power: e.Power(oid), Toughness: e.Toughness(oid),
+			Tapped: o.Tapped, Attacking: o.IsAttacking}
 	}
 	if len(o.Counters) == 0 {
 		delete(c.Snap.TargetCounters, oid)

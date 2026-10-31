@@ -743,8 +743,11 @@ func CloneTargetCountersLKI(m map[state.ObjID][]state.Counter) map[state.ObjID][
 }
 
 // TargetPT is one TargetPTLKI entry: a departed target's last battlefield
-// power and toughness.
-type TargetPT struct{ Power, Toughness int32 }
+// power and toughness, and the tapped and attacking status its move clears.
+type TargetPT struct {
+	Power, Toughness  int32
+	Tapped, Attacking bool
+}
 
 // CloneTargetPTLKI returns an independent copy of a target P/T LKI map
 // threaded across a suspension (rules' resumePoint), for the reason
@@ -1184,7 +1187,8 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 					if c.Snap.TargetPT == nil {
 						c.Snap.TargetPT = make(map[state.ObjID]TargetPT)
 					}
-					c.Snap.TargetPT[target.Obj] = TargetPT{Power: h.Power(target.Obj), Toughness: h.Toughness(target.Obj)}
+					c.Snap.TargetPT[target.Obj] = TargetPT{Power: h.Power(target.Obj), Toughness: h.Toughness(target.Obj),
+						Tapped: object.Tapped, Attacking: object.IsAttacking}
 				}
 			}
 		}
