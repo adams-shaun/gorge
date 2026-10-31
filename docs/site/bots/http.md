@@ -46,6 +46,13 @@ needs no browser client):
 Use a persistence directory of your own (`-dir`); two servers sharing one
 corrupt each other.
 
+The commands below use two shell variables:
+
+```sh
+GORGE=http://127.0.0.1:8092
+TOKEN=<the seat's token>      # from the POST /api/games reply; docs-token on the fixed seat
+```
+
 ## The round trip
 
 ```mermaid
@@ -99,9 +106,9 @@ is the credential: the server derives the table and seat from it and refuses
 any request whose table or `?seat=` disagrees.
 
 ```console
-$ curl -s -w ' [%{http_code}]\n' "$B/api/tables/t1/matches/1/pending?seat=0"
+$ curl -s -w ' [%{http_code}]\n' "$GORGE/api/tables/t1/matches/1/pending?seat=0"
 {"code":"unauthorized","message":"request does not hold a seat claim"} [401]
-$ curl -s -w ' [%{http_code}]\n' -H 'Authorization: Bearer docs-token' "$B/api/tables/t1/matches/1/pending?seat=1"
+$ curl -s -w ' [%{http_code}]\n' -H 'Authorization: Bearer docs-token' "$GORGE/api/tables/t1/matches/1/pending?seat=1"
 {"code":"forbidden","message":"claim holds seat 0, not the requested seat 1"} [403]
 ```
 
@@ -126,7 +133,7 @@ network you trust, or behind TLS.
 ### Create a game
 
 ```console
-$ curl -s -X POST -d '{"format":"constructed","bot_policy":"bot","human_deck":"mono-green-stompy","bot_deck":"mono-red-goblins"}' $B/api/games
+$ curl -s -X POST -d '{"format":"constructed","bot_policy":"bot","human_deck":"mono-green-stompy","bot_deck":"mono-red-goblins"}' $GORGE/api/games
 {"table":"g7","match":1,"seed":6673408969535470007,"seat":0,"token":"b63edb2dcd4ea366426123ebd99fe424","bot_policy":"bot","join":"/t/g7?seat=0&token=b63edb2dcd4ea366426123ebd99fe424"}
 ```
 
@@ -139,7 +146,7 @@ appears a moment after the response, so retry a `404` on its first poll briefly.
 ### Read the pending decision
 
 ```console
-$ curl -s -H "Authorization: Bearer $TOK" "$B/api/tables/g2/matches/1/pending?seat=0"
+$ curl -s -H "Authorization: Bearer $TOKEN" "$GORGE/api/tables/g2/matches/1/pending?seat=0"
 {"seq":18,"player":0,"kind":"starting_player","prompt":"You won the toss. Choose who takes the first turn.","min":1,"max":1,"options":[{"index":0,"kind":"player","label":"You","player":0},{"index":1,"kind":"player","label":"Bot","player":1}]}
 ```
 
@@ -158,7 +165,7 @@ When nothing is pending the answer is `409` with the server's reason:
 ### Read the view
 
 ```console
-$ curl -s -H "Authorization: Bearer $TOK" "$B/api/tables/g208/matches/1/view?seat=0" | jq '{viewer, visibility, turn, step, active, over, winner, me: .players[0] | {life, hand_size, library_size}, them: .players[1] | {life, hand_size, hand}}'
+$ curl -s -H "Authorization: Bearer $TOKEN" "$GORGE/api/tables/g208/matches/1/view?seat=0" | jq '{viewer, visibility, turn, step, active, over, winner, me: .players[0] | {life, hand_size, library_size}, them: .players[1] | {life, hand_size, hand}}'
 {
   "viewer": 0,
   "visibility": "seat",
@@ -190,7 +197,7 @@ policy that always wants the board can skip `/pending` and read both from one
 ### Answer
 
 ```console
-$ curl -s -i -X POST -H 'Authorization: Bearer docs-token' -d '{"seq":22,"player":0,"choices":[0]}' "$B/api/tables/t1/matches/1/intent"
+$ curl -s -i -X POST -H 'Authorization: Bearer docs-token' -d '{"seq":22,"player":0,"choices":[0]}' "$GORGE/api/tables/t1/matches/1/intent"
 HTTP/1.1 204 No Content
 ```
 
@@ -319,8 +326,8 @@ data: {"v":1,"t":"decision","id":7,"table":"t1","match":1,"seq":38,"body":{"play
 ```
 
 ```console
-$ curl -sN -H "Authorization: Bearer $TOK" $B/api/stream      # keep this open
-$ curl -s -X POST -d '{"session":"sc4947f140c989e0c79de167ffc8caac7","table":"g2","mode":"focus"}' $B/api/subscribe
+$ curl -sN -H "Authorization: Bearer $TOKEN" $GORGE/api/stream      # keep this open
+$ curl -s -X POST -d '{"session":"sc4947f140c989e0c79de167ffc8caac7","table":"g2","mode":"focus"}' $GORGE/api/subscribe
 ```
 
 The stream is a *spectator* stream: it shows what the table's spectator

@@ -33,6 +33,8 @@ same 401 and 403 rules apply.
 | `POST` | `send` | One client message: a prompt response, a directive such as a concession, or `restoreSnapshot`, which asks for an undo |
 | `GET` | `state` | The same state and open prompt, as a one-shot JSON array, for a client that never opens a stream |
 
+`$GORGE` is the server's URL and `$TOKEN` the seat's token:
+
 ```console
 $ curl -s -H "Authorization: Bearer $TOKEN" $GORGE/api/manabrew/v0/tables/g2/matches/1/state
 [{"kind":"state","gameView":{"gameId":"g2/1","turn":0,"step":"untap", …}},
