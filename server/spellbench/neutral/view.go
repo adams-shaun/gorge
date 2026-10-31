@@ -265,10 +265,11 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 	}
 	v := view.View{Viewer: viewer, Visibility: "seat", Turn: int32(o.Turn), Round: roundOf(o.Turn),
 		Players: []view.PlayerView{}, Stack: []view.StackView{}, Pending: []view.PendingView{}}
-	// day_night: the observation spells out CR 731's designation. A null
-	// field means the host declared the flag absent; the view then keeps its
-	// zero (neither), never inventing a day/night state.
-	if o.DayNight != nil {
+	// day_night: the observation spells out CR 731's designation. "none" is
+	// neither, which the view spells as its zero. A null field means the host
+	// declared the flag absent; the view keeps the same zero, never inventing
+	// a day/night state.
+	if o.DayNight != nil && *o.DayNight != "none" {
 		v.DayNight = *o.DayNight
 	}
 	// pregame is gorge's untap step of turn 0.

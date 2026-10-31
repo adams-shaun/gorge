@@ -234,9 +234,12 @@ func (p *Projector) Observation(viewer state.PlayerID, st State) (obs protocol.O
 	if obs.Known == nil {
 		obs.Known = []protocol.Known{}
 	}
-	// day_night is always present under the true flag: the empty string is
-	// CR 731.1's "neither", exactly as view.View.DayNight omits it.
+	// day_night is always present under the true flag. The protocol spells
+	// CR 731.1's "neither" as "none"; state.DayNight's String is empty for it.
 	dayNight := g.DayNight.String()
+	if dayNight == "" {
+		dayNight = "none"
+	}
 	obs.DayNight = &dayNight
 	if v.Active != view.NoSeat {
 		s := Seat(v.Active)

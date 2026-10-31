@@ -361,7 +361,7 @@ see it:
     "extensions": {},
     "group": {"group_id": 0, "substep_count": 1, "substep_index": 0},
     "observation": {
-      "active_seat": "p0", "day_night": "", "known": [], "passed_seats": null,
+      "active_seat": "p0", "day_night": "none", "known": [], "passed_seats": null,
       "pending_triggers": [], "phase_step": "pregame", "priority_seat": null,
       "stack": [], "turn": 0, "viewer": "p0",
       "players": [
@@ -698,7 +698,7 @@ holds the types and [observation.schema.json](schemas/spellbench-v2/observation.
 | `phase_step` | string | `pregame`, `untap`, `upkeep`, `draw`, `precombat_main`, `beginning_of_combat`, `declare_attackers`, `declare_blockers`, `combat_damage`, `end_of_combat`, `postcombat_main`, `end_step`, `cleanup` |
 | `active_seat`, `priority_seat` | seat or null | `priority_seat` is set at a priority decision and through the rest of that seat's action |
 | `passed_seats` | null | the flag is false |
-| `day_night` | string | `day`, `night`, or `""` for neither. The schema also lists upstream's `none`, which gorge doesn't send |
+| `day_night` | string | `day`, `night`, or `none` for neither |
 | `players` | exactly two, p0 then p1 | below |
 | `stack` | array | below |
 | `pending_triggers` | array | triggers waiting to go on the stack: `source`, `source_name`, `controller_seat`, `optional`, `label` (null). One from a hidden source is omitted |
