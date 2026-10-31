@@ -369,3 +369,11 @@ type BotPolicyList struct {
 	Default  string          `json:"default"`
 	Policies []BotPolicyInfo `json:"policies"`
 }
+
+// Capabilities is GET /api/capabilities: which optional surfaces this server
+// serves, so a client can decide what to draw without probing a route that
+// 404s when the surface is off. Additive, and always 200. Events is true when
+// the /api/events routes are mounted.
+type Capabilities struct {
+	Events bool `json:"events"`
+}

@@ -1864,6 +1864,16 @@ export interface BotPolicyList {
 }
 
   /**
+   * Capabilities is GET /api/capabilities: which optional surfaces this server
+   * serves, so a client can decide what to draw without probing a route that
+   * 404s when the surface is off. Additive, and always 200. Events is true when
+   * the /api/events routes are mounted.
+   */
+export interface Capabilities {
+  events: boolean;
+}
+
+  /**
    * EventSeat is one entrant of a draft event. Kind is "human" or "bot";
    * Policy and Drafter name a bot seat's game policy and pickbot persona.
    * Picks is the public count of cards drafted so far, never the cards.
