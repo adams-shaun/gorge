@@ -327,8 +327,12 @@ func (c TableConfig) validated(load func(string) (Deck, error), engines map[stri
 	case c.Spectator != view.Public && c.Spectator != view.Omniscient:
 		return TableConfig{}, fmt.Errorf("host: table %s: spectator visibility must be public or omniscient", c.ID)
 	}
-	if _, err := LookupEngine(engines, c.Engine); err != nil {
+	engine, err := LookupEngine(engines, c.Engine)
+	if err != nil {
 		return TableConfig{}, fmt.Errorf("host: table %s: %w", c.ID, err)
+	}
+	if e, ok := bots.Lookup(policy); ok && e.Search && !engine.Caps().SearchRoots {
+		return TableConfig{}, fmt.Errorf("host: table %s: bot policy %q searches, and engine %q deals no search roots", c.ID, policy, engine.Name())
 	}
 	if c.Engine == gorgegame.Name {
 		c.Engine = ""
@@ -359,7 +363,7 @@ func (c TableConfig) validated(load func(string) (Deck, error), engines map[stri
 			seen[h] = true
 		}
 	}
-	if c, err = c.validatedSeatPolicies(); err != nil {
+	if c, err = c.validatedSeatPolicies(engine); err != nil {
 		return TableConfig{}, err
 	}
 	for _, d := range c.Decks {

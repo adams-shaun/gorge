@@ -88,6 +88,9 @@ func TestGorgeGameMatchesEngine(t *testing.T) {
 	if got := g.Caps(); got != want {
 		t.Fatalf("Caps = %+v", got)
 	}
+	if got := (Engine{}).Caps(); got != want {
+		t.Fatalf("Engine.Caps = %+v", got)
+	}
 	if got := (Engine{}).Name(); got != want.Engine {
 		t.Fatalf("Name = %q", got)
 	}

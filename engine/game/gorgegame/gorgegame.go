@@ -38,9 +38,7 @@ func (g Game) Submit(in decision.Intent) error { return g.E.Submit(in) }
 
 func (g Game) Fork() game.Game { return Game{E: g.E.Clone()} }
 
-func (g Game) Caps() game.Caps {
-	return game.Caps{Engine: Name, SubBurstViews: true, ManualMana: true, SearchRoots: true, StartingAsk: true}
-}
+func (g Game) Caps() game.Caps { return Engine{}.Caps() }
 
 func (g Game) EnsurePaymentActions() { g.E.EnsurePaymentActions() }
 
@@ -125,6 +123,10 @@ func GameConfig(cfg rules.Config) game.Config {
 type Engine struct{}
 
 func (Engine) Name() string { return Name }
+
+func (Engine) Caps() game.Caps {
+	return game.Caps{Engine: Name, SubBurstViews: true, ManualMana: true, SearchRoots: true, StartingAsk: true}
+}
 
 // Accepts is nil: the rules engine plays every format and seat count a Config
 // can name.

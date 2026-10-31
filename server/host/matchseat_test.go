@@ -41,7 +41,7 @@ var _ bots.MatchEnd = (*recordingSeat)(nil)
 func TestTableRefusesPolicyOverItsMaxSeats(t *testing.T) {
 	const name = "host-test-two-seat-policy"
 	sbseat.Register(name, []string{"true"})
-	_, err := (TableConfig{ID: "t1", Seats: 3, SeatBotPolicies: []string{name}, AutoMana: true, BotAutoPayMana: true}).validatedSeatPolicies()
+	_, err := (TableConfig{ID: "t1", Seats: 3, SeatBotPolicies: []string{name}, AutoMana: true, BotAutoPayMana: true}).validatedSeatPolicies(gorgegame.Engine{})
 	if err == nil || !strings.Contains(err.Error(), "seats at most 2") {
 		t.Fatalf("validation error = %v, want a MaxSeats refusal", err)
 	}
@@ -99,7 +99,7 @@ func TestHostAttachesAndEndsMatchSeats(t *testing.T) {
 		if s.ctx == nil {
 			t.Fatalf("seat %d was not attached", i)
 		}
-		if s.ctx.Engine == nil || s.ctx.Seats != 2 || s.ctx.Seat != i {
+		if s.ctx.Engine == nil || gorgegame.Rules(s.ctx.Game) != s.ctx.Engine || s.ctx.Seats != 2 || s.ctx.Seat != i {
 			t.Fatalf("seat %d context = %+v", i, s.ctx)
 		}
 		if !strings.HasPrefix(s.ctx.GameID, "g-") || len(s.ctx.Secret) == 0 {

@@ -46,6 +46,11 @@ type Info struct {
 	// therefore never seats against a human, and on a bot-only table only
 	// with TableConfig.AllowDecklistBots (enforced by host's table
 	// validation and gorged's offered-set gate).
+	//
+	// Search marks a policy that cannot play without an honest root: the host
+	// refuses it at table creation on an engine that deals none
+	// (game.Caps.SearchRoots). An Env policy without Search seats there and
+	// answers with Env.RootRefused set.
 	Env, Search bool
 	// ClosedLists marks an Env policy whose every seat closes its
 	// opponents' deck lists: the seat is a searchseat.ClosedListSeat whose

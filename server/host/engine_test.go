@@ -1,6 +1,7 @@
 package host_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,12 +12,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/bots"
+	"github.com/adams-shaun/gorge/bots/azredeal"
+	"github.com/adams-shaun/gorge/bots/forgeheuristic"
+	"github.com/adams-shaun/gorge/bots/sbtactical"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
+	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
@@ -34,6 +40,8 @@ type scriptEngine struct{ refuse error }
 func (scriptEngine) Name() string { return scriptName }
 
 func (e scriptEngine) Accepts(game.Config) error { return e.refuse }
+
+func (scriptEngine) Caps() game.Caps { return game.Caps{Engine: scriptName} }
 
 func (scriptEngine) New(c game.Config) (game.Game, error) {
 	g := &scriptGame{board: state.NewGame(c.Names), log: events.NewLog(c.Seed)}
@@ -111,7 +119,7 @@ func (g *scriptGame) Fork() game.Game {
 	return f
 }
 
-func (g *scriptGame) Caps() game.Caps { return game.Caps{Engine: scriptName} }
+func (g *scriptGame) Caps() game.Caps { return scriptEngine{}.Caps() }
 
 // scriptChars answers for a board with no objects.
 type scriptChars struct{}
@@ -227,6 +235,149 @@ func TestStubEngineServesAMatch(t *testing.T) {
 	}
 	if len(v.Players) != 2 {
 		t.Fatalf("view %+v", v)
+	}
+}
+
+// scriptBotOptions serve bot seats that read an empty card registry: the script
+// game holds no cards for them to look up.
+func scriptBotOptions() host.Options {
+	o := scriptOptions("", scriptEngine{})
+	o.BotDeps = bots.Deps{Cards: &cards.Registry{}}
+	return o
+}
+
+// scriptBotTable is scriptTable with policy in both seats.
+func scriptBotTable(policy string) host.TableConfig {
+	c := scriptTable()
+	c.Humans = nil
+	c.BotPolicy = policy
+	c.AllowDecklistBots = true
+	return c
+}
+
+// playToWinner runs table s to its end and fails unless seat 1 won its match.
+func playToWinner(t *testing.T, r *host.Registry) {
+	t.Helper()
+	if err := r.Start("s"); err != nil {
+		t.Fatal(err)
+	}
+	r.Wait("s")
+	ms, err := r.Matches("s")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ms) != 1 || ms[0].State != protocol.MatchFinished || ms[0].Winner == nil || *ms[0].Winner != 1 {
+		t.Fatalf("matches %+v", ms)
+	}
+}
+
+func TestBotPoliciesPlayWithoutSearchRoots(t *testing.T) {
+	t.Parallel()
+	for _, policy := range []string{host.BotPolicy, forgeheuristic.Policy, forgeheuristic.HoldPolicy, "lethal-pressure", sbtactical.Policy} {
+		t.Run(policy, func(t *testing.T) {
+			t.Parallel()
+			r, err := host.New(scriptBotOptions())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer r.Close()
+			if err := r.AddTable(scriptBotTable(policy)); err != nil {
+				t.Fatal(err)
+			}
+			playToWinner(t, r)
+		})
+	}
+}
+
+func TestSearchPolicyRefusedWithoutSearchRoots(t *testing.T) {
+	t.Parallel()
+	r, err := host.New(scriptBotOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	bySeat := scriptBotTable("")
+	bySeat.SeatBotPolicies = []string{"", azredeal.Policy}
+	for _, cfg := range []host.TableConfig{scriptBotTable(azredeal.Policy), bySeat} {
+		err := r.AddTable(cfg)
+		if err == nil || !strings.Contains(err.Error(), strconv.Quote(azredeal.Policy)) || !strings.Contains(err.Error(), strconv.Quote(scriptName)) {
+			t.Fatalf("AddTable: %v", err)
+		}
+	}
+	if len(r.Tables()) != 0 {
+		t.Fatalf("a refused table registered: %+v", r.Tables())
+	}
+
+	gorge, err := host.New(scriptOptions("", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer gorge.Close()
+	cfg := scriptBotTable(azredeal.Policy)
+	cfg.Engine = ""
+	if err := gorge.AddTable(cfg); err != nil {
+		t.Fatalf("gorge refused the policy: %v", err)
+	}
+}
+
+// envRecorder keeps what the host hands the Env seat it wraps.
+type envRecorder struct {
+	bots.EnvSeat
+	mc      *bots.MatchContext
+	refused []string
+}
+
+func (s *envRecorder) AttachMatch(mc *bots.MatchContext) error {
+	s.mc = mc
+	return nil
+}
+
+func (s *envRecorder) DecideEnv(ctx context.Context, env bots.Env, d decision.Decision) (decision.Intent, error) {
+	if env.Search.Engine != nil {
+		return decision.Intent{}, errors.New("a root from an engine that deals none")
+	}
+	s.refused = append(s.refused, env.RootRefused)
+	return s.EnvSeat.DecideEnv(ctx, env, d)
+}
+
+func TestEnvSeatGetsRefusedRootWithoutSearchRoots(t *testing.T) {
+	t.Parallel()
+	o := scriptBotOptions()
+	var recorders []*envRecorder
+	o.Seats = func(names []string, seed uint64) []seat.Seat {
+		seats := make([]seat.Seat, len(names))
+		for i := range names {
+			s, err := bots.New(sbtactical.Policy, bots.Options{Seed: seed ^ uint64(i+1), Deps: o.BotDeps})
+			if err != nil {
+				t.Error(err)
+				return seats
+			}
+			rec := &envRecorder{EnvSeat: s.(bots.EnvSeat)}
+			recorders = append(recorders, rec)
+			seats[i] = rec
+		}
+		return seats
+	}
+	r, err := host.New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := r.AddTable(scriptBotTable(sbtactical.Policy)); err != nil {
+		t.Fatal(err)
+	}
+	playToWinner(t, r)
+
+	if len(recorders) != 2 {
+		t.Fatalf("built %d seats", len(recorders))
+	}
+	for i, rec := range recorders {
+		if rec.mc.Game == nil || rec.mc.Game.Caps().Engine != scriptName || rec.mc.Engine != nil {
+			t.Fatalf("seat %d context: game %v, engine %v", i, rec.mc.Game, rec.mc.Engine)
+		}
+		if len(rec.refused) != 1 || !strings.Contains(rec.refused[0], "search roots") {
+			t.Fatalf("seat %d refusals %q", i, rec.refused)
+		}
 	}
 }
 

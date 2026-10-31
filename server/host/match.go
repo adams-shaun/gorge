@@ -126,10 +126,11 @@ type match struct {
 	// feeds owns the live observation feed of every non-human bots.EnvSeat on
 	// this match (server/host/botenv.go, spec §5.2 Create/Observe/Record). Nil when
 	// no seat implements bots.EnvSeat — the allocation-free fast path every
-	// pure-bot table takes today. Installed once at the top of play, after
-	// the seats are final, and never reassigned. The match goroutine is its
-	// only writer; every read (projectNext's Observe, the Submit section's
-	// Record, and the tests' post-match inspection) is under m.mu.
+	// pure-bot table takes today — and on an engine that deals no search roots.
+	// Installed once at the top of play, after the seats are final, and never
+	// reassigned. The match goroutine is its only writer; every read
+	// (projectNext's Observe, the Submit section's Record, and the tests'
+	// post-match inspection) is under m.mu.
 	feeds *matchFeeds
 }
 
@@ -794,9 +795,12 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	m.slots = seats
 	// Create the per-seat observation feeds once the seats are final (after
 	// the Humans replacement above, which can swap a bot for a HumanSeat and
-	// so must precede the EnvSeat scan). A table with no EnvSeat gets nil, and
-	// every Observe/Record below is a nil-receiver no-op (§5.2 Create).
-	m.feeds = newMatchFeeds(seats)
+	// so must precede the EnvSeat scan). A table with no EnvSeat, or on an engine
+	// that deals no search roots, gets nil, and every Observe/Record below is a
+	// nil-receiver no-op (§5.2 Create).
+	if m.g.Caps().SearchRoots {
+		m.feeds = newMatchFeeds(seats)
+	}
 	m.mu.Unlock()
 	// Decklist privacy (server/host/closedlist.go): at a table with a human, every
 	// search seat must close its opponents' lists, checked on the seats
@@ -851,6 +855,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	for i, s := range seats {
 		mc := &bots.MatchContext{
 			Context:      ctx,
+			Game:         m.g,
 			Engine:       m.e,
 			Projection:   m.projection,
 			GameID:       gameID,

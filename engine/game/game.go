@@ -59,6 +59,9 @@ type Stalled interface {
 // stopped. n counts recorded intents and clamps to the log's range.
 type Engine interface {
 	Name() string
+	// Caps is what this engine's games report, for a host deciding before it
+	// has one.
+	Caps() Caps
 	// Accepts says why c cannot play here, naming the limit or card, or nil.
 	Accepts(c Config) error
 	// New builds a game through genesis and the first Advance.

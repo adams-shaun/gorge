@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/adams-shaun/gorge/bots"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/seat"
 )
 
@@ -11,7 +12,7 @@ import (
 // the per-seat bot policies and the owning draft event. It is called from
 // validated just before the deck-loading loop, so every refusal happens at
 // registration (and at a restart's re-validation) before any seat is built.
-func (c TableConfig) validatedSeatPolicies() (TableConfig, error) {
+func (c TableConfig) validatedSeatPolicies(engine game.Engine) (TableConfig, error) {
 	if len(c.SeatBotPolicies) > c.Seats {
 		return TableConfig{}, fmt.Errorf("host: table %s: %d seat bot policies for %d seats", c.ID, len(c.SeatBotPolicies), c.Seats)
 	}
@@ -33,6 +34,9 @@ func (c TableConfig) validatedSeatPolicies() (TableConfig, error) {
 			}
 			policies[i] = policy
 			if e, ok := bots.Lookup(policy); ok {
+				if e.Search && !engine.Caps().SearchRoots {
+					return TableConfig{}, fmt.Errorf("host: table %s: seat %d: bot policy %q searches, and engine %q deals no search roots", c.ID, i, policy, engine.Name())
+				}
 				if e.ReadsDecklists() {
 					return TableConfig{}, fmt.Errorf("host: table %s: seat %d: bot policy %q reads opponents' decklists", c.ID, i, policy)
 				}
