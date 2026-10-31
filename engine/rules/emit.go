@@ -149,6 +149,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			return events.Event{}
 		}
 	}
+	if ev.Kind == events.Tap && ev.Text == "entered tapped" && e.entersUntappedApplies(ev.Obj) {
+		return events.Event{}
+	}
 	// CR 702.34a and its family: a keyword-cast spell leaving the stack is
 	// exiled wherever it would go, before any replacement sees the move.
 	e.keywordExileDeparture(&ev)
