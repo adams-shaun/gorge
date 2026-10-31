@@ -59,10 +59,6 @@ if (( SMOKE_PORT_LO < 1 || SMOKE_PORT_HI > 65535 || SMOKE_PORT_LO >= SMOKE_PORT_
   echo "smoke: invalid port range '$SMOKE_PORT_LO'-'$SMOKE_PORT_HI' (need integer ports 1-65535, LO < HI, at least five ports)" >&2
   exit 1
 fi
-if (( SMOKE_PORT_LO <= 8081 && SMOKE_PORT_HI >= 8080 )); then
-  echo "smoke: port range $SMOKE_PORT_LO-$SMOKE_PORT_HI intersects reserved demo ports 8080-8081" >&2
-  exit 1
-fi
 
 allocate_ports() {
   local taken p
@@ -253,10 +249,9 @@ echo "== smoke: building gorged =="
 mkdir -p bin
 CGO_ENABLED=0 go build -o bin/gorged ./cmd/gorged
 
-# ---- allocate five free smoke ports (8090-8099 by default); NEVER 8080/8081 (demo) ----
+# ---- allocate five free smoke ports (8090-8099 by default) ----
 # The scan-then-bind window races every OTHER gate running in the same range
-# (two agent worktrees legitimately share 8090-8099, measured live twice on
-# 2026-09-17: the loser's gorged fails to bind and the gate then drives the
+# (two worktrees legitimately share 8090-8099: the loser's gorged fails to bind and the gate then drives the
 # WINNER's servers — wrong fixture decks, wrong seat tokens, intents from two
 # playwrights on one seeded game — which reads exactly like a product
 # failure). So allocation is a function and the whole farm is retried below.

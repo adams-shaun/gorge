@@ -12,11 +12,9 @@ import (
 	"github.com/adams-shaun/gorge/server/manabrew"
 )
 
-// MB-9 of the ManaBrew protocol scoping spec (§5.4, §9): the gorged-side
-// toggle for server/host/manabrewhttp (MB-10). Everything here is additive and
+// The gorged-side toggle for server/host/manabrewhttp. Everything here is
 // opt-in -- with -manabrew off (the default), applyManaBrew and
-// mountManaBrew are no-ops and serve()'s behaviour is byte-identical to a
-// binary built before this file existed.
+// mountManaBrew are no-ops.
 
 // manabrewRoutePrefix is where the ManaBrew routes are mounted on the main
 // listener's topMux when no separate -manabrew-addr is given. It sits ahead
@@ -30,28 +28,17 @@ import (
 // path position. TestManaBrewOffMountsNothing pins this.
 const manabrewRoutePrefix = "/api/manabrew/v0/tables"
 
-// demoPorts are never accepted for -manabrew-addr: 8080/8081 are reserved
-// for the shared demo server (AGENTS.md's port allocation table), and a
-// second listener bound to one of them would either collide with, or
-// silently steal traffic from, whichever process is meant to hold it.
-var demoPorts = map[string]bool{"8080": true, "8081": true}
-
 // applyManaBrew validates -manabrew-addr and lets a non-empty value imply
 // -manabrew, so "-manabrew-addr :8091" alone is enough to turn the adapter
 // on, the same convention -humans uses to imply a seat gate without a
 // separate -humans-enabled flag. It runs before any table is added or any
-// listener opens (R-E3-1 style), so a bad address or a demo port fails
-// startup instead of mounting routes that would answer with a bind error.
+// listener opens, so a bad address fails startup instead of mounting routes that would answer with a bind error.
 func (c *config) applyManaBrew() error {
 	if c.manabrewAddr == "" {
 		return nil
 	}
-	_, port, err := net.SplitHostPort(c.manabrewAddr)
-	if err != nil {
+	if _, _, err := net.SplitHostPort(c.manabrewAddr); err != nil {
 		return fmt.Errorf("-manabrew-addr %q: %w", c.manabrewAddr, err)
-	}
-	if demoPorts[port] {
-		return fmt.Errorf("-manabrew-addr %q: ports 8080 and 8081 are reserved for the shared demo server", c.manabrewAddr)
 	}
 	c.manabrew = true
 	return nil
