@@ -126,3 +126,56 @@ func TestEachPlayerSacrificesReplays(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// CR 101.4 for a discard: each player chooses in turn order, and the chosen cards
+// are discarded together, one action for a "one or more cards" trigger. The
+// choices cross the tape's re-execution with nothing discarded, and the game
+// replays.
+func TestEachPlayerDiscardsChoosesThenMovesTogether(t *testing.T) {
+	t.Parallel()
+	const purge = "Name:Common Purge\nManaCost:B\nTypes:Sorcery\n" +
+		"A:SP$ Discard | Defined$ Player | NumCards$ 1 | Mode$ TgtChoose | SpellDescription$ All lose a card.\nOracle:x\n"
+	const bell = "Name:Mourning Bell\nManaCost:1\nTypes:Artifact\n" +
+		"T:Mode$ DiscardedAll | ValidCard$ Card | TriggerZones$ Battlefield | Execute$ BellGain | TriggerDescription$ Ring once.\n" +
+		"SVar:BellGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	reg := testutil.CorpusRegistry(t)
+	two := []*cards.Card{lookup(t, reg, "Grizzly Bears"), lookup(t, reg, "Hill Giant")}
+	spell := append([]*cards.Card{card(t, purge)}, two...)
+	e := corpusEngineThree(t, reg, spell, two, two)
+	for p := state.PlayerID(0); p < 3; p++ {
+		moveByName(t, e, p, "Grizzly Bears", state.ZHand)
+		moveByName(t, e, p, "Hill Giant", state.ZHand)
+	}
+	onBoard(t, e, 0, bell)
+	moveByName(t, e, 0, "Common Purge", state.ZHand)
+	addMana(t, e, 0, "B")
+	castNamed(t, e, "Common Purge")
+	life := e.G.Players[0].Life
+
+	mark := len(e.L.Events)
+	for want := state.PlayerID(0); want < 3; want++ {
+		d := passToNonPriorityAsk(t, e)
+		if d.Kind != decision.KModes || d.Player != want {
+			t.Fatalf("ask %d: %v of seat %d, want the discard of seat %d", want, d.Kind, d.Player, want)
+		}
+		for _, ev := range e.L.Events[mark:] {
+			if ev.Kind == events.MoveZone && ev.From == state.ZHand {
+				t.Fatalf("obj %d left a hand before seat %d chose", ev.Obj, want)
+			}
+		}
+		submitChoices(t, e, d.Options[0].Index)
+	}
+	passUntilStackEmpty(t, e, 20)
+	moves := 0
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.MoveZone && ev.From == state.ZHand && ev.To == state.ZGraveyard {
+			moves++
+		}
+	}
+	if moves != 3 {
+		t.Fatalf("%d cards discarded, want 3", moves)
+	}
+	if got := e.G.Players[0].Life - life; got != 1 {
+		t.Fatalf("the one-or-more trigger gained %d life, want 1", got)
+	}
+}

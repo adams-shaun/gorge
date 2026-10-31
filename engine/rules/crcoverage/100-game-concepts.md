@@ -10,7 +10,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 100.5-100.7 | n/a | - | - | deck legality / tournament / casual-only cards |
 | 101.1 | unknown | - | - | general principle; not reached |
 | 101.2-101.2a | follows | `engine/rules/cantlose.go#Engine.gameWinPrevented` | - | "can't" funnels |
-| 101.3-101.4e | partial | `engine/effects/zone_bulk.go#effSacrifice` | `TestEachPlayerSacrificesChoosesThenMovesTogether` `TestEachPlayerSacrificesReplays` | each player's sacrifice chooses in order and moves together; other per-player effects not reached |
+| 101.3-101.4e | partial | `engine/effects/zone_bulk.go#effSacrifice` `engine/effects/cardflow.go#effDiscard` | `TestEachPlayerSacrificesChoosesThenMovesTogether` `TestEachPlayerSacrificesReplays` `TestEachPlayerDiscardsChoosesThenMovesTogether` | each player's sacrifice or discard chooses in order and moves together; other per-player effects not reached |
 | 102.1-102.2 | follows | `engine/state/game.go#Game.Active` | - | - |
 | 102.3-102.4 | n/a | - | - | no team modes |
 | 103.1 | follows | `engine/rules/starting_player_choice.go#TossWinner` `engine/rules/starting_player_choice.go#Engine.AskStartingPlayer` | `TestMulliganRoundAsksTheTossWinnerFirst` |  |
