@@ -36,6 +36,7 @@ type placement struct {
 	zone  state.Zone
 	owner state.PlayerID
 	card  *cards.Card // nil for a token
+	face  int         // the face the observed name is printed on
 	stem  string      // the token script, for a token
 	stack *protocol.StackEntry
 	obj   state.ObjID // the shadow object, once assigned
@@ -130,7 +131,8 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 				return nil
 			}
 		} else {
-			if p.card = b.ref(r.CardName).Card; p.card == nil {
+			ref := b.ref(r.CardName)
+			if p.card, p.face = ref.Card, ref.Face; p.card == nil {
 				return nil
 			}
 			decks[owner] = append(decks[owner], p.card)
@@ -265,6 +267,9 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 		pm := p.rec.Permanent
 		if p.zone != state.ZBattlefield || pm == nil || p.obj == 0 {
 			continue
+		}
+		if p.face != 0 {
+			emit(events.Event{Kind: events.FlipFace, Obj: p.obj, Amount: int32(p.face)})
 		}
 		if !pm.SummoningSick {
 			emit(events.Event{Kind: events.SetupSettled, Obj: p.obj})

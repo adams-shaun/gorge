@@ -524,19 +524,17 @@ func (b *Builder) buildCard(r protocol.ObjectRecord, costs bool) (view.CardView,
 		cv.AbilityCosts = printedAbilityCosts(f)
 	}
 	if c := r.Characteristics; c != nil {
-		// Native's ViewCharacteristics fast path answers the printed P/T for
-		// a base-difference object no layer-7 effect reaches -- including an
-		// attached Reconfigure Equipment whose derived form has no P/T. The
-		// observation omits that pair; the printed face is the fact native's
-		// board carries. Other non-creatures keep the observed absence.
+		// The observation gives P/T only to a creature. Native's board carries
+		// the printed pair of any other object with one: a Vehicle, in play or
+		// in hand, or an attached Reconfigure Equipment.
 		if c.Power != nil {
 			cv.Power = *c.Power
-		} else if f != nil && (cv.AttachedTo != 0 || cv.IsCopy) {
+		} else if f != nil {
 			cv.Power = int32(f.Power())
 		}
 		if c.Toughness != nil {
 			cv.Toughness = *c.Toughness
-		} else if f != nil && (cv.AttachedTo != 0 || cv.IsCopy) {
+		} else if f != nil {
 			cv.Toughness = int32(f.Toughness())
 		}
 		cv.Keywords = keywordLines(f, c.Keywords)
