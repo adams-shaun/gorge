@@ -733,6 +733,19 @@ func (b Board) commandTax(id state.ObjID) int32 {
 	return b.castWeights().CommanderTaxScale * b.Commanders.Get(id).Casts * b.Cards.Get(id).CMC
 }
 
+// diesAtZeroX reports whether a cast from a zone other than hand is of a creature
+// with no toughness of its own whose {X} the floating pool, which bounds the X ask,
+// can't raise above 0. It would go straight to the graveyard (CR 704.5f), and if that
+// is the zone it came from the bot would repeat the cast forever.
+func (b Board) diesAtZeroX(o decision.Option) bool {
+	c := b.Cards.Get(o.Obj)
+	if o.Mode == "" || !c.Creature || c.Toughness > 0 || !costHasX(c.ManaCost) {
+		return false
+	}
+	perX := int32(strings.Count(braceForm.Replace(c.ManaCost), "X"))
+	return b.Pool.Total() < CmcOf(c.ManaCost)+perX
+}
+
 // chooseCast is the KPriority cast ranking: it picks ONE of the offered
 // "cast" options, or returns -1 when none is offered. The rules, each
 // stated for what it reads:
@@ -879,6 +892,9 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		// while the opt-in rule is armed. The zero value reads no hint and
 		// leaves the ranking untouched.
 		if b.aiHintsVetoCast(card) {
+			continue
+		}
+		if b.diesAtZeroX(*o) {
 			continue
 		}
 		// A1: hold a one-shot removal spell until the best opposing
@@ -1241,7 +1257,7 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 		}
 		// AIHints: the cast veto applies to C11's candidate table too, so a
 		// SetValue subset search cannot price a card chooseCast refuses.
-		if b.aiHintsVetoCast(b.Cards.Get(o.Obj)) {
+		if b.aiHintsVetoCast(b.Cards.Get(o.Obj)) || b.diesAtZeroX(*o) {
 			continue
 		}
 		if !b.removalNow(d, *o) {
