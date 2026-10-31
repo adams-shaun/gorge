@@ -435,6 +435,9 @@ func foldDelayedPush(g *state.Game, e *Event) {
 	Move(g, o.ID, state.ZLibrary, state.ZStack)
 	o.Ability = sa
 	o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
+	if e.Text == "granted ability" {
+		o.StackKind = state.StackKindActivated
+	}
 	if !radiationDrain && !speedIncrease && !initiativeVenture {
 		o.Source = e.Obj
 	}
