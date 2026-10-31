@@ -35,7 +35,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 303.4c | follows | `engine/rules/attach.go#Engine.attachmentSBAs` `engine/rules/attach.go#Engine.auraStillMatchesEnchant` | `TestCR704AuraBecomesIllegalAfterProtection` | - |
 | 303.4d | not-impl | - | - | SILENT; no self-attach check |
 | 303.4e | unknown | - | - | - |
-| 303.4f-303.4g | follows | `engine/rules/aura_entry.go#auraEntryChoice` `engine/rules/aura_entry.go#auraEntryGate` | `TestCopiedAuraEntryAsksEnchant` `TestAuraTokenWithNothingToEnchantIsNotCreated` | - |
+| 303.4f-303.4g | follows | `engine/rules/aura_entry.go#auraEntryChoice` `engine/rules/aura_entry.go#auraEntryGate` | `TestCopiedAuraEntryAsksEnchant` `TestAuraTokenWithNothingToEnchantIsNotCreated` `TestCR610_3AuraReturnFindsTheBoardAfterTheDestroyAll` | - |
 | 303.4h | unknown | - | - | - |
 | 303.4i | follows | `engine/rules/aura_entry.go#auraEntryGate` | - | - |
 | 303.4j | partial | `engine/effects/attach.go#Attachable` | - | Aura moved then SBA bins it |

@@ -2503,6 +2503,9 @@ func (e *Engine) closeZoneBatch() {
 	}
 	e.zoneBatchIdx = nil
 	e.zoneBatchLog = nil
+	if len(e.exileReturnHeld) > 0 {
+		e.flushExileReturns()
+	}
 }
 
 // triggerRemembered is what a matched trigger's Ctx.Remembered holds: the

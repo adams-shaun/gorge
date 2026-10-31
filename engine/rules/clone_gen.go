@@ -582,6 +582,7 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 		}
 	}
 	c.entryHeld = cloneHeldEntryChecks(e.entryHeld)
+	c.exileReturnHeld = append([]state.ObjID(nil), e.exileReturnHeld...)
 	c.millBatchOpen = e.millBatchOpen
 	c.millBatchDepth = e.millBatchDepth
 	if e.millBatchIdx != nil {
