@@ -86,12 +86,13 @@ export function seatStateOf(view: View, p: PlayerView): SeatState {
 }
 
 /** stateLabel is the state as WORDS, for the row's accessible name. The table itself says it with a rule and a dot — the same vocabulary IdentityBar uses on the felt — so nothing is shouted twice. */
-export function stateLabel(s: SeatState): string {
+export function stateLabel(s: SeatState, name = ''): string {
+  const you = name === 'You';
   switch (s) {
     case 'lost': return 'out of the game';
-    case 'acting': return 'their turn, has priority';
-    case 'active': return 'their turn';
-    case 'priority': return 'has priority';
+    case 'acting': return you ? 'your turn, you have priority' : 'their turn, has priority';
+    case 'active': return you ? 'your turn' : 'their turn';
+    case 'priority': return you ? 'you have priority' : 'has priority';
     default: return '';
   }
 }

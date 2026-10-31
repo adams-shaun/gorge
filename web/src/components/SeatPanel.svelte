@@ -185,11 +185,13 @@
   // kind/min/max). Null facts are omitted; the line itself is omitted when
   // neither is known (priority, mulligan).
   const ctxText = $derived(decision !== null ? promptContextText(promptContext(decision, view)) : null);
+
+  const winLine = (name: string) => (name === 'You' ? 'You win' : `${name} wins`);
 </script>
 
 {#if view.over}
   <div class="seat-panel over" data-tone="idle" role="status">
-    <p class="prompt result">{view.draw ? 'Draw' : `${seats[view.winner ?? -1]?.name ?? view.players.find((p) => p.seat === view.winner)?.name ?? `Seat ${view.winner}`} wins`}</p>
+    <p class="prompt result">{view.draw ? 'Draw' : winLine(seats[view.winner ?? -1]?.name ?? view.players.find((p) => p.seat === view.winner)?.name ?? `Seat ${view.winner}`)}</p>
     <p class="sub">Match over</p>
   </div>
 {:else}

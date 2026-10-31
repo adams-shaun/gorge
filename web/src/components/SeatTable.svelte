@@ -51,7 +51,7 @@
     if (deck) parts.push(deck);
     if (state === 'lost') parts.push(lostReason ? `eliminated — ${lostReason}` : 'eliminated');
     else {
-      const word = stateLabel(state);
+      const word = stateLabel(state, name);
       if (word) parts.push(word);
     }
     return parts.join(' — ');

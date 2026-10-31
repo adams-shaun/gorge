@@ -357,6 +357,12 @@ describe('SeatPanel — match over', () => {
     expect(html).toContain('Match over');
   });
 
+  it('agrees the verb with a seat displayed as You', () => {
+    const v = { ...view(null), over: true, winner: 0 };
+    const { html } = render(SeatPanel, { props: { ...props(v), seats: [{ name: 'You', deck: '', colour: '', human: true }] } });
+    expect(html).toContain('You win');
+  });
+
   it('a draw says draw', () => {
     const v = { ...view(null), over: true, draw: true, winner: null };
     expect(render(SeatPanel, { props: props(v) }).html).toContain('Draw');
