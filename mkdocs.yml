@@ -143,6 +143,7 @@ nav:
       - Event stream (SSE): api/sse.md
       - Wire protocol: api/protocol.md
       - SpellBench v2: api/spellbench-v2.md
+      - ManaBrew: api/manabrew.md
       - gorge-agent/1: api/gorge-agent.md
       - Go embedding API: api/go.md
   - Performance:
