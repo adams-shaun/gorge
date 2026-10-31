@@ -90,7 +90,7 @@ A policy moves up one rung at a time, and each rung has a gate.
   anything that reaches a decision or a checkpoint. No `time` in library
   code: inject a clock hook the way `searchseat` and `azmcts` do. Only the
   host and a few allow-listed commands may read a clock, and only for
-  deadlines and reporting.
+  deadlines and reporting; a search seat's deadline arrives as its `ctx`.
 - **Pure Go, in-repo.** No cgo, no third-party modules, and no external ML
   runtime for anything that ships.
 - **Honesty.** A policy or value model that will play must read the redacted

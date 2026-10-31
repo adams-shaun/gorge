@@ -296,16 +296,7 @@ match finished after 13 turns in 0.7 s: winner us (seat 0, mono-red-prowess)
 (`Review`); `gorged.Serve` runs the same server on a listener you supply, which is how a test drives it. The full Go embedding surface is on
 the [Go API reference](../api/go.md).
 
-## Rules for bot code that will ship
+## Bot code that will ship
 
-- **Determinism.** Seeded `math/rand/v2` only, no `map` order in anything
-  that reaches a decision or a checkpoint, no `time` in library code: inject
-  a clock hook the way `searchseat` and `azmcts` do. Only the host may read
-  the clock, and a search seat's deadline arrives as its `ctx`.
-- **Pure Go.** No cgo and no third-party modules in anything gorge links.
-- **Honesty.** A policy that plays people reads the redacted View, or an
-  honest root, and nothing else. Clairvoyant worlds and oracle feature sets
-  are for diagnostic ceilings in benches.
-
-[Training and adoption](training-and-adoption.md) covers the gates a policy passes on its way from a bench to the
-default bot.
+A bot that will ship follows the [rules for bot code](training-and-adoption.md#rules-for-bot-code),
+and that page covers the gates a policy passes on its way from a bench to the default bot.
