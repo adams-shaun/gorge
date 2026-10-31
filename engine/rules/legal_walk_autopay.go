@@ -136,3 +136,20 @@ func (e *Engine) armAbilityAutoPay(pc *pendingCast, idx int) {
 	pc.Payment = &plannedCastPayment{ActionID: decision.OptAutoFill, Plan: decision.ClonePaymentPlan(*out.Plan)}
 	pc.PaymentNext = 0
 }
+
+// rearmAbilityAutoPay plans again for a witness armAbilityAutoPay armed before
+// the activation's announcements, once they outdated it and before any step ran:
+// a target's reduction, a Phyrexian pip's answer, a tap or waterbend helper
+// settle only after the arming. No seat selected that witness, so a new one for
+// the settled cost breaks nothing. It reports whether pc holds a new witness.
+func (e *Engine) rearmAbilityAutoPay(pc *pendingCast) bool {
+	if !pc.isAbility() || pc.Announced || pc.PaymentNext != 0 || pc.Payment.ActionID != decision.OptAutoFill {
+		return false
+	}
+	plan := e.announcedAutoFillPlan(pc, e.castPaymentMana(pc))
+	if plan == nil {
+		return false
+	}
+	pc.Payment = &plannedCastPayment{ActionID: decision.OptAutoFill, Plan: *plan}
+	return true
+}

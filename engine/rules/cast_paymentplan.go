@@ -273,7 +273,11 @@ func (e *Engine) manaWindowAsk() bool {
 		return false
 	}
 	if pc.Payment != nil {
-		if reason, units, step, ready := e.paymentPlanCheckUnits(pc); reason != "" {
+		reason, units, step, ready := e.paymentPlanCheckUnits(pc)
+		if reason != "" && e.rearmAbilityAutoPay(pc) {
+			reason, units, step, ready = e.paymentPlanCheckUnits(pc)
+		}
+		if reason != "" {
 			e.paymentPlanFallback(pc, reason)
 		} else if pc.PaymentNext < len(pc.Payment.Plan.Activations) && e.executePlannedManaActivationUnits(pc, units, step, ready) {
 			return true
