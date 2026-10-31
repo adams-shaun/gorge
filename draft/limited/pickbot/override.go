@@ -8,8 +8,8 @@ import (
 )
 
 // RatingsOverride is a training-only replacement for the embedded rating
-// file: per-card values from an external JSON file (cmd/cardval output,
-// {"Card": {"gih": x, ...}}), affinely rescaled onto the set's 17Lands
+// file: per-card values from an external JSON file
+// ({"Card": {"gih": x, ...}}), affinely rescaled onto the set's 17Lands
 // gih_wr scale (same mean and population std) so the drafter's tuning
 // constants keep their meaning. A card the file lacks gets the 17Lands
 // mean, i.e. a centred-neutral value; it never falls back to 17Lands.

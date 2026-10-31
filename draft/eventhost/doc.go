@@ -1,10 +1,9 @@
 // Package eventhost is the draft-event runtime that lives inside gorged:
 // the event store (<dir>/events/<id>/event.json + log.jsonl), create and
-// join, the full DRAFT phase (humans pick over the API, bots pick
-// synchronously and deterministically between their picks), per-event SSE
-// frames, and restart resume for LOBBY and DRAFT. BUILD (E1-4) and the
-// games (E1-5) slot into the two stubs this package carries
-// (advanceBuild/advanceRounds and Options.MintSeat).
+// join, the DRAFT phase (humans pick over the API, bots pick
+// synchronously and deterministically between their picks), BUILD, the
+// rounds on host tables, per-event SSE frames, and restart resume for every
+// phase.
 //
 // # Series (E3-4)
 //
@@ -20,9 +19,9 @@
 // wakeWaiters when the log moves) until the next GameStarted is logged.
 // A crashed series match aborts its attempt and restarts the game on a
 // fresh table; past MaxAttempts the game logs as a draw and the series
-// goes on. A human seat's sideboarding submission is E3-5: until then a
-// Bo3 series with a human side waits between games with the bot side
-// already locked. The lock order extends the host's rule: Host.Series
+// goes on. A Bo3 series with a human side waits between games for that
+// seat's sideboarding submission, with the bot side already locked. The
+// lock order extends the host's rule: Host.Series
 // takes Host.mu alone to find the run, then run.mu alone; a parked call
 // waits holding nothing, and advance answers the waiters (in sorted
 // table-id order) under run.mu.

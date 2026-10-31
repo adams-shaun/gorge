@@ -49,8 +49,8 @@ type Options struct {
 	// VerifyEventTapes). Off by default.
 	RecordTape bool
 	// OnEngine, when set, is handed each finished game's engine (its event
-	// log included) before the result is built. A spike hook for analysis
-	// tooling (cmd/cardval's note census); it must not mutate the engine.
+	// log included) before the result is built. A hook for analysis tooling;
+	// it must not mutate the engine.
 	OnEngine func(seed uint64, eng *rules.Engine)
 }
 
