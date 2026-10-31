@@ -114,7 +114,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 117.1-117.1c | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | - |
 | 117.1d | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | no manual mana abilities (documented) |
 | 117.2-117.2e | follows | `engine/rules/turn.go#Engine.priorityRound` | - | - |
-| 117.3-117.3a | follows | `engine/rules/turn.go#Engine.priorityRound` | - | GorgeQuirks off |
+| 117.3-117.3a | follows | `engine/rules/turn.go#Engine.priorityRound` | - | - |
 | 117.3b | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | AP priority after resolution |
 | 117.3c | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | - |
 | 117.3d | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | - |

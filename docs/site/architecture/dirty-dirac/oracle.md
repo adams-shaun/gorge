@@ -219,10 +219,8 @@ When a game diverges:
    re-verified by reverting the fix and watching the pair diverge again; a few
    are coverage pairs that only show a card plays to the end.
 
-Where gorge changed behaviour on purpose, the kernel keeps a switch that
-reproduces the older gorge (`Config.GorgeQuirks`, `GorgeCopyPriority`), so an
-old recorded game can still be compared; the default is the current, correct
-rules.
+The kernel keeps no switch for older gorge behaviour: when gorge fixes a rule,
+the kernel follows it, so lockstep compares one configuration of each engine.
 
 ## Replaying a kernel game in gorge
 

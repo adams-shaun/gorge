@@ -288,5 +288,4 @@ exactly.
 | `AutoDivide` | off: damage division among blockers is asked | divided automatically (lethal in block order, the rest to the last), which a search may use to cut branching |
 | `GorgeAutopaySurface`, `GorgeUnpriced`, `GorgeLowering` | off: every castable spell is offered and paid | casts gorge's payment planner does not price are offered only the way gorge offers them |
 | `GorgeAltAdd`, `GorgeMustAttack` | off | either-or additional costs and must-attack creatures are posed gorge's way |
-| `GorgeQuirks`, `GorgeCopyPriority` | off | reproduce older gorge behaviour, fixed since, for comparison against an older gorge build |
 | `RecordChance` | off | record every random draw for cross-engine replay |
