@@ -363,8 +363,15 @@ func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUni
 	for _, u := range units {
 		priced[u.ID] = true
 	}
+	desc := paymentForCast(pc, pc.resolvedMana())
 	for _, id := range pay.BattlefieldManaSourceIDs(e.G, p) {
-		if priced[id] || e.convokeCommitted(pc, id) {
+		if e.convokeCommitted(pc, id) {
+			continue
+		}
+		if priced[id] {
+			if e.castWindowRestrictedAdmits(p, id, desc) {
+				return false
+			}
 			continue
 		}
 		if len(e.castWindowProbeAbilities(p, id)) > 0 && e.castWindowSourceExcluded(p, id) {
@@ -372,6 +379,19 @@ func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUni
 		}
 	}
 	return true
+}
+
+// castWindowRestrictedAdmits reports whether a source priced by its plain mana
+// abilities also has a RestrictValid$ one this payment may spend (CR 106.6,
+// Tablet of Discovery's {R}{R} for an instant or sorcery): its units understate
+// what the window can produce.
+func (e *Engine) castWindowRestrictedAdmits(p state.PlayerID, id state.ObjID, desc pay.Descriptor) bool {
+	for _, ma := range e.castWindowProbeAbilities(p, id) {
+		if valid := effects.ManaOf(ma).RestrictValid; valid != "" && pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+			return true
+		}
+	}
+	return false
 }
 
 // castWindowAmount resolves a window mana ability's Amount$ the way the
