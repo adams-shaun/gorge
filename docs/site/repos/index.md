@@ -97,8 +97,9 @@ compliance status at the pinned gorge and force-pushes it as one commit to an
 orphan **`docs-data`** branch: per-set status rows for Level A and Level B,
 and a `meta.json` naming the gorge-compliance commit, the gorge pin,
 `FORGE_REF` and the date. gorge's docs build fetches that branch and renders
-the per-set table on [Card support](../support/sets.md); if the branch is
-missing, the gorge columns say the data isn't available. The same nightly
+the per-set table on [Card support](../support/sets.md), with that date and
+corpus in its caption; if the branch is missing, the gorge columns say the data
+isn't available. The same nightly
 workflow runs the `drift` check described under [Pinning](#pinning).
 
 ## The private companion

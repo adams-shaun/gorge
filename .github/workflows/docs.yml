@@ -29,8 +29,8 @@ on:
       - cmd/pkgmap/**
       - .github/workflows/docs.yml
   # A daily rebuild picks up gorge-compliance's docs-data, written by its
-  # nightly job (cron 09:41 UTC; the first run finished at 14:50), so this
-  # runs well after it.
+  # nightly job (cron 09:41 UTC, which GitHub often starts hours late), so
+  # this runs well after it.
   schedule:
     - cron: '17 17 * * *'
   workflow_dispatch:

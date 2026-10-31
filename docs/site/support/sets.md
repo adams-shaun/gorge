@@ -10,7 +10,8 @@ the most leverage.
     - **Generated at every docs build:** the engine headline table, the per-set
       table and the roll-ups. They join gorge-compliance's nightly per-set
       status with dirac's committed per-set snapshot. Each table's
-      caption names the commits it measured.
+      caption gives the date and Forge corpus it measured, which can trail the
+      corpus pin below.
     - **Measured by hand on 2026-10-31:** the corpus figures, the leverage
       ranking and the repo-deck ratchets. These were measured at gorge
       `develop` @ `fb7579ace` with the Forge corpus pin (`FORGE_REF`)

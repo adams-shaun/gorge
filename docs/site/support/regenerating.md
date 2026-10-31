@@ -55,8 +55,10 @@ gorge-compliance's nightly `compliance` job (09:41 UTC) writes `docs-data`.
 After `make compliance-status`, it runs two status commands. The first covers
 Level A over every set. The second covers Level B over the sets whose Level A
 row says `"printed": true`. The job then force-pushes the results as one
-commit, so only the latest state is kept. gorge-compliance is public, so the
-docs build needs no token. If the branch is missing or the fetch fails, the
+commit, so only the latest state is kept. It publishes only when
+`make compliance-status` passes, so after a failed night the tables keep the last
+published data, and their captions give its date and corpus. gorge-compliance is
+public, so the docs build needs no token. If the branch is missing or the fetch fails, the
 tables still render from the dirac snapshot, and the gorge columns say
 the data was not available.
 
@@ -68,7 +70,7 @@ for `pymdownx.snippets`, and `sets.md` includes each one by name:
 
 | Section | Contents |
 |---|---|
-| `headline` | one row per engine and measure, with the commits measured |
+| `headline` | one row per engine and measure, with the commits and corpus measured |
 | `sets` | the per-set table: every set gorge-compliance audits against a printed list, plus every set in dirac's snapshot, joined by set code |
 | `rollup` | the roll-up by set type, then every one of the 589 sets |
 

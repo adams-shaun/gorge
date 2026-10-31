@@ -102,6 +102,20 @@ class RenderTest(unittest.TestCase):
         self.assertNotIn("`012345678`", head)
         self.assertIn("the dirac snapshot of 2026-10-21", head)
 
+    def test_caption_names_date_and_corpus(self):
+        meta = dict(META, forge_ref="76fd7691ab45", current_forge_ref="91402ac51104")
+        out = docs_sets.render(A_ROWS, meta, B_ROWS, DD)
+        want = "measured 2026-10-21, on Forge corpus `76fd7691a` (gorge's `FORGE_REF` is now `91402ac51`)"
+        self.assertIn(want, section(out, "sets"))
+        self.assertIn(want, section(out, "rollup"))
+        self.assertIn("Forge corpus `76fd7691a` (gorge's", section(out, "headline"))
+
+    def test_caption_is_quiet_when_the_corpus_is_current(self):
+        meta = dict(META, forge_ref="76fd7691ab45", current_forge_ref="76fd7691ab45")
+        out = docs_sets.render(A_ROWS, meta, B_ROWS, DD)
+        self.assertIn("on Forge corpus `76fd7691a`.*", section(out, "sets"))
+        self.assertNotIn("is now", out)
+
     def test_without_status(self):
         out = docs_sets.render([], {}, {}, DD)
         self.assertIn("not available to this build", section(out, "headline"))
@@ -114,6 +128,10 @@ class RenderTest(unittest.TestCase):
 
 
 class MainTest(unittest.TestCase):
+    def test_forge_pin_reads_the_makefile(self):
+        self.assertRegex(docs_sets.forge_pin(), r"^[0-9a-f]{40}$")
+        self.assertEqual(docs_sets.forge_pin("/nonexistent/Makefile"), "")
+
     def test_needs_some_input(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(docs_sets.main(["-o", os.path.join(d, "x.md")]), 1)

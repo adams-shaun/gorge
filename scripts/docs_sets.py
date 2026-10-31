@@ -13,6 +13,9 @@ Two sources, joined by set code:
    with a meta.json ({"commit", "gorge_pin", "forge_ref", "date"}) to its
    orphan docs-data branch. Each line is one adopt.SetStatus object; any
    non-JSON line (the ratchet summary the command also prints) is skipped.
+   The job publishes only when its ratchet passes, so the data can be older
+   than the build. Each table's caption gives the data's date and corpus, and
+   says so when gorge's FORGE_REF has moved past that corpus.
 
 2. dirac's per-set acceptance, a committed snapshot
    (docs/site/support/dirac-sets.json). dirac's source is
@@ -48,6 +51,8 @@ Stdlib only. Usage:
 
 import argparse
 import json
+import os
+import re
 import sys
 from collections import OrderedDict
 
@@ -56,6 +61,7 @@ NOT_IN_CORPUS = "not in corpus"
 UNSUPPORTED = "unsupported"
 
 DEFAULT_OUT = "docs/site/support/_generated_sets.md"
+MAKEFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Makefile")
 DASH = "—"
 
 
@@ -161,18 +167,52 @@ def section(name, body):
     return "<!-- --8<-- [start:%s] -->\n%s<!-- --8<-- [end:%s] -->\n" % (name, body, name)
 
 
+def forge_pin(path=MAKEFILE):
+    """gorge's current corpus pin, FORGE_REF in the Makefile, or "" without one."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            m = re.search(r"^FORGE_REF\s*\??=\s*(\S+)", f.read(), re.M)
+    except OSError:
+        return ""
+    return m.group(1) if m else ""
+
+
+def corpus_text(meta):
+    """The data's corpus, and gorge's current pin when that has moved on."""
+    ref = meta.get("forge_ref")
+    if not ref:
+        return ""
+    text = "Forge corpus `%s`" % ref[:9]
+    pin = meta.get("current_forge_ref")
+    if pin and pin != ref:
+        text += " (gorge's `FORGE_REF` is now `%s`)" % pin[:9]
+    return text
+
+
 def stamp_text(meta, level_b):
     if not meta:
         return ""
     parts = []
     if meta.get("date"):
         parts.append("measured " + meta["date"])
+    if corpus_text(meta):
+        parts.append(corpus_text(meta))
     if meta.get("commit"):
         parts.append("gorge-compliance @ `%s`" % meta["commit"][:9])
     if meta.get("gorge_pin"):
         parts.append("measuring gorge `%s`" % meta["gorge_pin"][:9])
     return "gorge-compliance's `oraclediff status -all -json -level A`%s, %s" % (
         " and `-level B`" if level_b else "", ", ".join(parts))
+
+
+def data_caption(meta):
+    """One line under a table with gorge columns: the data's date and corpus."""
+    parts = []
+    if meta and meta.get("date"):
+        parts.append("measured " + meta["date"])
+    if meta and corpus_text(meta):
+        parts.append("on " + corpus_text(meta))
+    return "*gorge figures %s.*" % ", ".join(parts) if parts else ""
 
 
 def dd_stamp(dd):
@@ -277,6 +317,9 @@ def render_sets(rows, level_b, meta, dd):
     if not rows:
         w("*gorge-compliance's status was not available to this build, so the gorge columns are empty.*")
         w("")
+    elif data_caption(meta):
+        w(data_caption(meta))
+        w("")
     if problems:
         w("**Level B problems:** " + "; ".join(problems) + ".")
         w("")
@@ -295,6 +338,8 @@ def render_rollup(rows, level_b, meta, dd):
     for r in sorted(rows, key=set_type):
         groups.setdefault(set_type(r), []).append(r)
     w("A card reprinted in several sets is counted once per set.")
+    if data_caption(meta):
+        w(data_caption(meta))
     w("")
     w("| Set type | Sets | Entries | Unsupported | Not in corpus | Playable % | Level A % |")
     w("|---|---:|---:|---:|---:|---:|---:|")
@@ -344,7 +389,7 @@ def main(argv=None):
     ap.add_argument("input", nargs="?", default=None, help="Level A status JSONL ('-' for stdin)")
     ap.add_argument("-o", "--out", default=DEFAULT_OUT, help="fragment path (default: %(default)s)")
     ap.add_argument("--level-b", default="", help="Level B status JSONL")
-    ap.add_argument("--meta", default="", help="docs-data meta.json (commit, gorge_pin, date)")
+    ap.add_argument("--meta", default="", help="docs-data meta.json (commit, gorge_pin, forge_ref, date)")
     ap.add_argument("--commit", default="", help="gorge-compliance commit (overrides --meta)")
     ap.add_argument("--date", default="", help="measurement date (overrides --meta)")
     ap.add_argument("--dirac", default="", help="dirac per-set snapshot JSON")
@@ -370,6 +415,8 @@ def main(argv=None):
         meta["commit"] = a.commit
     if a.date:
         meta["date"] = a.date
+    if meta:
+        meta["current_forge_ref"] = forge_pin()
     dd = load_dirac(a.dirac) if a.dirac else None
     if not rows and not dd:
         print("docs_sets: neither status rows nor a dirac snapshot; fragment not written", file=sys.stderr)
