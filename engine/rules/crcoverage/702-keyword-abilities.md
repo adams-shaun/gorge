@@ -28,7 +28,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.14a-e | follows | `engine/rules/combat/block.go#CanBlock` `engine/rules/combat/block.go#LandwalkSpec` | - | layer-4 land types; nonbasic/snow forms |
 | 702.15a-d,f | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` | - |  |
 | 702.15e | deviates | `engine/rules/combat.go#Engine.runCombatAssignments` `engine/events/event.go#LifeChange` | - | one source to two recipients = two gain events |
-| 702.16a-j,m | follows | `engine/rules/protection.go#Engine.protectedFrom` `engine/rules/protection.go#Engine.sourceHasQuality` `engine/rules/combat/block.go#CanBlock` | - |  |
+| 702.16a-j,m | follows | `engine/rules/protection.go#Engine.protectedFrom` `engine/rules/protection.go#Engine.sourceHasQuality` `engine/rules/combat/block.go#CanBlock` | `TestProtectionFromATypeReadsTheSourceNow` |  |
 | 702.16k | unknown | - | - | protection from a player not located |
 | 702.16n,p | unknown | - | - | "doesn't remove" Auras not located |
 | 702.17a-c | follows | `engine/rules/combat/block.go#CanBlock` | - |  |
@@ -142,7 +142,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.92a | follows | `engine/cards/kw_livingweapon.go#kwLivingWeapon` | `TestBatterskullLivingWeaponCreatesAGermAndReachesAttach` |  |
 | 702.93a | follows | `engine/cards/kw_undying.go#kwUndying` | `TestUndyingReturnsOnceWithACounter` |  |
 | 702.94a,b | follows | `engine/rules/miracle.go#Engine.offerMiracle` `engine/rules/miracle.go#Engine.drawsThisTurn` | `TestMiracleOffersOnTheFirstDrawOnly` |  |
-| 702.95a-d | follows | `engine/cards/kw_soulbond.go#kwSoulbond` | - |  |
+| 702.95a-d | follows | `engine/cards/kw_soulbond.go#kwSoulbond` `engine/effects/soulbond.go#effPair` | `TestSoulbondPairsCurrentCreatures` |  |
 | 702.95e | unknown | - | - | unpair conditions not located |
 | 702.96 | follows | `engine/rules/altcast_modes.go#altCastModes` `engine/rules/stack.go#Engine.resolveTop` | `TestOverloadedCastTargetsEachNotOne` `TestOverloadIsCastableWhenOnlyProtectedObjectsMatch` | Alt cost |
 | 702.97 | not-impl | - | - |  |

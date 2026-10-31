@@ -122,8 +122,9 @@ func TestPresentDefinedGateIgnoresThePhantomPresentKey(t *testing.T) {
 // with their OWN filter specs:
 //
 //   - DBPutCounter: `IsPresent$ Card.canReceiveCounters P1P1` over the
-//     TriggeredSourceLKICopy group -- a creature source counts 1 (run), a
-//     land source counts 0 (deny).
+//     TriggeredSourceLKICopy group -- a land on the battlefield counts 1 (run,
+//     any permanent can hold the counter), a source gone from the battlefield
+//     counts 0 (deny).
 //   - DBTurnFaceUp: `IsPresent$ Card.canBeTurnedFaceUp+faceDown` -- a
 //     face-down source counts 1 (run), a face-up source counts 0 (deny).
 //
@@ -136,9 +137,10 @@ func TestPresentDefinedGateOverTheRealCorpusBodies(t *testing.T) {
 		runDown  bool
 		noTypes  string
 		noDown   bool
+		noZone   state.Zone
 	}{
-		{"DBPutCounter", "Creature", false, "Land", false},
-		{"DBTurnFaceUp", "Creature", true, "Creature", false},
+		{"DBPutCounter", "Land", false, "Land", false, state.ZGraveyard},
+		{"DBTurnFaceUp", "Creature", true, "Creature", false, state.ZBattlefield},
 	} {
 		t.Run(tc.svar, func(t *testing.T) {
 			body := corpusStaffRoomBody(t, tc.svar)
@@ -164,6 +166,7 @@ func TestPresentDefinedGateOverTheRealCorpusBodies(t *testing.T) {
 
 			// Deny case: the same real filter, a source it excludes.
 			h2, o2, ctx2 := presentDefinedCtx(t, tc.noTypes, tc.noDown)
+			o2.Zone = tc.noZone
 			if got := o2.FaceDown && o2.Zone == state.ZBattlefield; got != tc.noDown {
 				t.Fatalf("precondition: deny fixture face-down = %v, want %v", got, tc.noDown)
 			}

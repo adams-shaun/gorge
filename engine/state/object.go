@@ -2189,22 +2189,16 @@ func (o *Object) FaceDownTypeWords() []string {
 	return out
 }
 
-// EffectiveIsCreature reports whether this object is a creature right now,
-// honouring CR 708.5: while a battlefield object is face down its PRINTED face
-// does not exist, so creature-ness comes from the folded FaceDownSetType$
-// (default Creature). Every printed-face "is this a creature" read that gates
-// a creature rule (combat, the creature SBAs, protection) must go
-// through here, or a manifested non-creature or a face-down set type that
-// drops Creature reads the wrong answer.
+// EffectiveIsCreature reports whether this object's characteristics before any
+// continuous effect include Creature: its printed face, or while it is face
+// down on the battlefield the folded FaceDownSetType$ (CR 708.2a; default
+// Creature), and never while impending-dormant (CR 702.176a).
 //
-// CR 702.176a is folded in here rather than repeated at each caller: an
-// impending-dormant permanent (cast for its impending cost, still carrying a
-// time counter) is not a creature, and every printed-face creature read in
-// the engine reaches the answer through this one function. The derived-type
-// path has its own twin (engine/rules/chars/types.go's impendingTypeSwitch, which
-// e.IsCreature/b.IsCreature read), so the layer-4 answer agrees; a reader that
-// bypasses both (engine/rules/sba_prefilter.go's no-layer-4 fast path) checks
-// ImpendingDormant explicitly.
+// It is for the base values the layer walk starts from (a face-down permanent's
+// copiable values and base P/T) and for a filter with no derived-type entry for
+// the object. A rule that asks what a permanent is now reads the layer-derived
+// types instead (e.IsCreature, b.IsCreature, Host.IsCreature), whose
+// impendingTypeSwitch agrees on impending.
 func (o *Object) EffectiveIsCreature() bool {
 	if o.ImpendingDormant() {
 		return false

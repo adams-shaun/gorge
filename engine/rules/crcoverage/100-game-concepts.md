@@ -156,7 +156,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 121.4 | follows | `engine/rules/sba.go#Engine.checkLoseConditions` `engine/rules/cantlose.go#Engine.markDrawEmpty` | `TestDrawStepDeckOutEndsTheGameBeforePriority` | - |
 | 121.5 | follows | `engine/events/event.go#MoveZone` | - | library-to-hand move is not a draw |
 | 121.6-121.9 | unknown | - | - | not reached |
-| 122.1-122.1a | follows | `engine/rules/chars/derive.go#PT` `engine/state/object.go#Object.CounterPTTotals` | - | P/T counters in layer 7c |
+| 122.1-122.1a | follows | `engine/rules/chars/derive.go#PT` `engine/state/object.go#Object.CounterPTTotals` `engine/effects/filter_type.go#canReceiveCounter` | `TestPresentDefinedGateOverTheRealCorpusBodies` | P/T counters in layer 7c; any permanent can hold one |
 | 122.1b | follows | `engine/cards/counter_keyword.go#CounterKeyword` | - |  |
 | 122.1c | follows | `engine/effects/regeneration.go#ReplaceShieldCounter` `engine/rules/shield_counter.go#Engine.shieldCounterDamageMatches` | `TestCR122_1cShieldCounterReplacesDestruction` `TestCR122_1cShieldCounterPreventsDamage` | destruction order regen > shield > umbra is a deterministic CR 616.1 stand-in |
 | 122.1d | deviates | `engine/effects/untap.go#TryUntap` | `TestBalothPrimeSacrificeTriggerRemovesAStunCounterInsteadOfUntapping` | stun spent on a doesn't-untap permanent |

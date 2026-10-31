@@ -1087,7 +1087,7 @@ func (e *Engine) staticTimingGate(sv staticView) bool {
 	case condFerocious:
 		found := false
 		for _, id := range e.G.Zone(state.ZBattlefield, sv.Controller) {
-			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && !o.ReconfiguredAttached() && e.Derived(id).Power >= 4 {
+			if e.IsCreature(id) && e.Derived(id).Power >= 4 {
 				found = true
 				break
 			}
