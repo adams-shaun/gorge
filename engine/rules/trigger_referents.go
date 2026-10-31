@@ -289,7 +289,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// same id and re-runs this capture at the same point -- no event
 		// schema change, the TriggerPaidX/TriggerConverge mechanism). Absent
 		// for PutOnStack: a spell cast's ev.Obj IS the spell object.
-		if ev.Kind == events.AbilityPush || ev.Kind == events.KeywordAbilityPush {
+		if ev.IsActivationMint() {
 			c.TriggerAbility = e.abilityCastStackObject(ev.Obj)
 		}
 	case cards.TriggerAttached:

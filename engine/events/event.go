@@ -1782,6 +1782,22 @@ const (
 	DamageProvenanceSourceTypeSeparator = "\x1b"
 )
 
+// TextGrantedAbility is the Text of the DelayedPush that mints a self-granted
+// activated ability rather than a delayed trigger.
+const TextGrantedAbility = "granted ability"
+
+// IsActivationMint reports whether e puts an activated ability on the stack
+// (CR 602.2a). The ability's provenance selects the kind.
+func (e *Event) IsActivationMint() bool {
+	switch e.Kind {
+	case AbilityPush, KeywordAbilityPush, GrantAbilityPush, GainedAbilityPush:
+		return true
+	case DelayedPush:
+		return e.Text == TextGrantedAbility
+	}
+	return false
+}
+
 // Event is one replayable state transition.
 type Event struct {
 	Seq     uint64           `json:"seq"`

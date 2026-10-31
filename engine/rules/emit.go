@@ -381,8 +381,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	var abilityMintWant state.ObjID
-	switch ev.Kind {
-	case events.AbilityPush, events.KeywordAbilityPush, events.GrantAbilityPush, events.GainedAbilityPush:
+	if ev.IsActivationMint() {
 		abilityMintWant = e.G.NextID
 	}
 	var tokenMintWant state.ObjID

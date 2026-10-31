@@ -443,7 +443,7 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		// Text, so already-logged firings mint exactly as before.
 		return
 	}
-	if e.Text == "granted ability" {
+	if e.Text == TextGrantedAbility {
 		// A SELF-granted activation (rules' shared activation flow mints
 		// it through this delayed shape): count it on the per-source
 		// activation census exactly as GrantAbilityPush counts a
@@ -461,7 +461,7 @@ func foldDelayedPush(g *state.Game, e *Event) {
 	Move(g, o.ID, state.ZLibrary, state.ZStack)
 	o.Ability = sa
 	o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
-	if e.Text == "granted ability" {
+	if e.Text == TextGrantedAbility {
 		o.StackKind = state.StackKindActivated
 	}
 	if !radiationDrain && !speedIncrease && !initiativeVenture {

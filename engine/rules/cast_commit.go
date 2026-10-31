@@ -485,7 +485,7 @@ func (e *Engine) payCast() {
 		if !pc.targetedFinish {
 			// No target-recording continuation: dispatch at the completed
 			// AbilityPush boundary while the spent-source capture is still live.
-			e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
+			e.fireManaSpentTriggers(pc.activationMintEvent(e), nil)
 		}
 		e.cast, e.choosing = nil, chooseNone
 		return
@@ -1237,7 +1237,7 @@ func (e *Engine) fireDeferredActivationTrigger() {
 func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 	sources := e.ManaSpentSources
 	e.ManaSpentSources = nil
-	if len(sources) == 0 || (ev.Kind != events.PutOnStack && ev.Kind != events.AbilityPush && ev.Kind != events.KeywordAbilityPush) {
+	if len(sources) == 0 || (ev.Kind != events.PutOnStack && !ev.IsActivationMint()) {
 		return
 	}
 	for _, src := range sources {
