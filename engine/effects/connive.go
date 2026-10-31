@@ -63,6 +63,11 @@ func init() {
 // SubAbility$ chains are resolved by the ordinary Resolve walk, not here.
 func effConnive(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "ConniveNum", 1)
+	if n <= 0 {
+		// CR 701.50e: connive 0 is no event, so nothing that watches for one
+		// applies (Spymaster's Vault with no creature dead this turn).
+		return
+	}
 	tgts := Defined(h, c, sa)
 	// The draw cursor. A Dredge replacement on one of the draws leaves
 	// ctx.Draw.Done set, and the walk must skip every target already fully
@@ -71,7 +76,7 @@ func effConnive(h Host, c *Ctx, sa *cards.SA) {
 	// conniver is Draw.Done-1 divided by n.
 	start := 0
 
-	if c.Draw.Done > 0 && n > 0 {
+	if c.Draw.Done > 0 {
 		start = int((c.Draw.Done - 1) / n)
 		if start >= len(tgts) {
 			start = len(tgts) - 1
@@ -155,7 +160,7 @@ func conniveOnce(h Host, c *Ctx, sa *cards.SA, conniver state.ObjID, targetIdx, 
 	if n2 > int32(len(hand)) {
 		n2 = int32(len(hand))
 	}
-	if n2 <= 0 {
+	if n2 == 0 {
 		emitConniveRecord(h, conniver, ctrl, nil, 0)
 		return false
 	}

@@ -147,7 +147,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.50a,d,f | follows | `engine/effects/connive.go#effConnive` `engine/effects/connive.go#conniveOnce` | `TestConnivesTriggerFiresForIronMonger` |  |
 | 701.50b | follows | `engine/effects/connive.go#conniveOnce` `engine/effects/connive.go#lastKnownController` | `TestDepartedConniverStillDrawsAndDiscards` |  |
 | 701.50c | partial | `engine/effects/connive.go#effConnive` | - | Defined order, not APNAP |
-| 701.50e | deviates | `engine/effects/connive.go#conniveOnce` | - | connive 0 still fires Connives triggers |
+| 701.50e | follows | `engine/effects/connive.go#effConnive` | `TestConniveZeroIsNoEvent` |  |
 | 701.51a-c | not-impl | `engine/effects/registry.go#Supported` | - | OpenAttraction unregistered |
 | 701.52a | n/a | - | - | no Attraction deck |
 | 701.53a-b | follows | `engine/effects/incubate.go#effIncubate` `engine/effects/incubate.go#incubateLoop` | `TestIncubateMintsTokenWithTheCounters` `TestIncubatorTokenTransformsIntoThePhyrexianFace` |  |

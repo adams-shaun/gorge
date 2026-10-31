@@ -456,6 +456,13 @@ func TestLedgerShredderConnivesWithOneCardHandWithoutAsking(t *testing.T) {
 	}
 }
 
+// CR 701.50e: with no creature dead this turn the Vault's connive is connive 0,
+// which is no event, so Iron Monger doesn't trigger.
+func TestConniveZeroIsNoEvent(t *testing.T) {
+	t.Parallel()
+	playRuleScenario(t, `{"name":"vault-connive-zero","cr":["701.50e"],"why":"connive 0 triggers nothing","setup":{"p0":{"battlefield":["Spymaster's Vault","Iron Monger, Sadistic Tycoon","Grizzly Bears"],"hand":["Island"],"mana":"B"},"p1":{}},"steps":[{"op":"activate","seat":0,"card":"p0:Spymaster's Vault","ability":"connives","mana":"B","targets":["p0:Grizzly Bears"]},{"op":"resolve","expect":[{"stack_size":0}]}],"expect":[{"card":"p0:Iron Monger, Sadistic Tycoon","counters":{}},{"hand_size":{"p0":1}}]}`)
+}
+
 // TestConnivesTriggerFiresForIronMonger pins trig:Connives end to end: Iron
 // Monger (itself a Villain) gets its +1/+1 counter when a creature you
 // control connives — the record the matcher reads.
