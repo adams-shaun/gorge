@@ -484,12 +484,11 @@ func (e *Engine) resolveTop() {
 				evolveCountersBefore = src.Counter("P1P1")
 			}
 		}
-		// CR 603.3c: the mode choice was announced at placement (pushTrigger
-		// asked KModes and handleModes recorded the answer into ChosenModes).
-		// Pre-seeding Ctx.Modes makes effCharm take its re-entry branch and
-		// run exactly the chosen modes rather than asking again at
-		// resolution. Nil for a non-modal trigger, for an activated ability,
-		// and for any trigger the placement ask never reached.
+		// CR 603.3c, 602.2b: the mode choice was announced at placement or
+		// activation and recorded into ChosenModes. Pre-seeding Ctx.Modes makes
+		// effCharm take its re-entry branch and run exactly the chosen modes
+		// rather than asking again at resolution. Nil for a non-modal ability
+		// and for any modal one the announcement never reached.
 		ctx.Modes = o.ChosenModes
 		e.damaging = o.Source
 		e.endTurnRequested = false

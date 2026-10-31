@@ -18,11 +18,11 @@ import (
 )
 
 // driveModalActivation answers the mode and target asks an activated Charm
-// poses after activation, then drains the stack. target is the object the
+// poses as it is activated, then drains the stack. target is the object the
 // caller wants named (the mode's only legal target in both leaves).
 func driveModalActivation(t *testing.T, e *Engine, modeLabel string, target state.ObjID) {
 	t.Helper()
-	for i := 0; i < 8 && e.Pending() != nil; i++ {
+	for i := 0; i < 8 && e.Pending() != nil && e.Pending().Kind != decision.KPriority; i++ {
 		d := e.Pending()
 		switch d.Kind {
 		case decision.KModes:

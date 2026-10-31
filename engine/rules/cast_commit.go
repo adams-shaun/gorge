@@ -434,6 +434,9 @@ func (e *Engine) payCast() {
 		if pc.x != 0 {
 			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.stackObj, Amount: pc.x})
 		}
+		if so := e.G.Obj(pc.stackObj); so != nil && pc.modeChosen {
+			effects.RecordCharmChoices(e, pc.card, so.Ability, so.ChosenModes)
+		}
 		if e.sacrificedLKI == nil {
 			e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
 		}
@@ -1156,7 +1159,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	// CR 733.1 applies identically to a mode announced during the proposal.
 	// ModeChosen is a marker event, so the cache is restored beside the reverse
 	// marker just as handleModes maintains it beside the forward marker.
-	if pc.modeChosen {
+	if pc.modeChosen && !pc.isAbility() {
 		if o := e.G.Obj(pc.card); o != nil {
 			if sa := o.Face().SpellAbility(); sa != nil {
 				e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.card, Player: pc.player,

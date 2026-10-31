@@ -56,7 +56,7 @@ func (e *Engine) chosenModesTargetableAt(pc *pendingCast, x int32) bool {
 	defer func() { pc.x = saved }()
 	for _, name := range o.ChosenModes {
 		sub := cards.ResolveSVar(f.SVars, name)
-		if !modeTargetsAvailable(e, pc.player, pc.card, sub, x, false) {
+		if !modeTargetsAvailable(e, pc.player, pc.card, pc.card, sub, x, false) {
 			return false
 		}
 	}

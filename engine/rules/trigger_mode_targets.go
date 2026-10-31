@@ -19,7 +19,7 @@ import (
 func triggerModesWithTargets(e *Engine, p state.PlayerID, obj state.ObjID, svars map[string]string, choices []string) []string {
 	out := choices[:0:0]
 	for _, name := range choices {
-		if sub := cards.ResolveSVar(svars, name); sub != nil && !modeTargetsAvailable(e, p, obj, sub, 0, false) {
+		if sub := cards.ResolveSVar(svars, name); sub != nil && !modeTargetsAvailable(e, p, obj, obj, sub, 0, false) {
 			continue
 		}
 		out = append(out, name)

@@ -145,12 +145,12 @@ func uniqueChainTargetsFeasible(e *Engine, p state.PlayerID, id, excludeSelf sta
 // census (charmTargetsAvailable) and the post-push mode ask (castModeAsk)
 // both filter modes through it, so a mode the ask offers can always be
 // announced in full.
-func modeTargetsAvailable(e *Engine, p state.PlayerID, id state.ObjID, sub *cards.SA, x int32, xPending bool) bool {
+func modeTargetsAvailable(e *Engine, p state.PlayerID, id, excludeSelf state.ObjID, sub *cards.SA, x int32, xPending bool) bool {
 	if sub == nil {
 		return true
 	}
-	return (!effects.TargetsOf(sub).Targeted() || e.targetSAAvailable(p, id, id, sub, x, xPending)) &&
-		e.chainTargetsAvailable(p, id, id, sub, x, xPending, nil)
+	return (!effects.TargetsOf(sub).Targeted() || e.targetSAAvailable(p, id, excludeSelf, sub, x, xPending)) &&
+		e.chainTargetsAvailable(p, id, excludeSelf, sub, x, xPending, nil)
 }
 
 // castSubAskLinks is the chain links subTargetAsk announces for this cast,
@@ -168,14 +168,17 @@ func castSubAskLinks(e *Engine, pc *pendingCast, root *cards.SA) []*cards.SA {
 	// callers on their existing resolution-time path.
 	var roots []*cards.SA
 	var charm *cards.SA
-	if !pc.isAbility() {
-		if o := e.G.Obj(pc.card); o != nil && o.Face() != nil {
+	if o := e.G.Obj(pc.card); o != nil && o.Face() != nil {
+		chosen := o
+		if pc.isAbility() {
+			charm, chosen = e.pcAbility(pc), e.G.Obj(pc.stackObj)
+		} else {
 			charm = o.Face().SpellAbility()
-			if isCharmWithChoices(charm) && len(o.ChosenModes) > 0 {
-				for _, name := range o.ChosenModes {
-					if mode := cards.ResolveSVar(o.Face().SVars, name); mode != nil {
-						roots = append(roots, mode)
-					}
+		}
+		if isCharmWithChoices(charm) && chosen != nil {
+			for _, name := range chosen.ChosenModes {
+				if mode := cards.ResolveSVar(o.Face().SVars, name); mode != nil {
+					roots = append(roots, mode)
 				}
 			}
 		}

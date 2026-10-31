@@ -65,6 +65,9 @@ func (e *Engine) fuseCost(front, alt *cards.Face) Cost {
 // names its own modes.
 func (e *Engine) castStageSA(pc *pendingCast, o *state.Object, f *cards.Face) *cards.SA {
 	if pc.isAbility() {
+		if so := e.G.Obj(pc.stackObj); so != nil {
+			return modalTargetSA(f, e.pcAbility(pc), so.ChosenModes)
+		}
 		return e.pcAbility(pc)
 	}
 	if pc.mode == "fuse" {

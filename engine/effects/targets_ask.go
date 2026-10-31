@@ -319,8 +319,8 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 }
 
 // recordActivatedCharmTargets records the targets a modal ACTIVATED ability
-// asks for while its modes resolve. A modal ability's modes are chosen at
-// resolution, not at activation (rules' castModeAsk skips abilities), so the
+// asks for while its modes resolve. An ability rules' castModeAsk did not ask
+// (one gained from another object) chooses its modes at resolution, so the
 // targets its modes name are never covered by the activation-time target ask
 // and the ability would otherwise leave the stack with no TargetsChosen event
 // at all -- no CR 700.13 crime and no BecomesTarget trigger.

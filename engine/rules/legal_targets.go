@@ -220,7 +220,7 @@ func (e *Engine) targetChoiceFeasible(sa *cards.SA, candidates []targetCandidate
 // mandatory minimum are removed from the possible announcement set, using
 // the same target census castModeAsk uses after the spell reaches the stack.
 // A mode whose target count depends on an announcement remains offerable.
-func (e *Engine) charmTargetsAvailable(p state.PlayerID, id state.ObjID, sa *cards.SA, xPending bool) bool {
+func (e *Engine) charmTargetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, xPending bool) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return true
@@ -235,7 +235,7 @@ func (e *Engine) charmTargetsAvailable(p state.PlayerID, id state.ObjID, sa *car
 	for _, name := range choices {
 		name = strings.TrimSpace(name)
 		sub := cards.ResolveSVar(o.Face().SVars, name)
-		if sub != nil && !modeTargetsAvailable(e, p, id, sub, 0, xPending) {
+		if sub != nil && !modeTargetsAvailable(e, p, id, excludeSelf, sub, 0, xPending) {
 			continue
 		}
 		legal = append(legal, name)
@@ -356,7 +356,7 @@ func (e *Engine) chainTargetsAvailable(p state.PlayerID, id, excludeSelf state.O
 
 func (e *Engine) rootTargetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, xPending bool, gift *bool) bool {
 	if sa.API == "Charm" && effects.CharmOf(sa).HasChoices {
-		return e.charmTargetsAvailable(p, id, sa, xPending)
+		return e.charmTargetsAvailable(p, id, excludeSelf, sa, xPending)
 	}
 	// An Announce$ value can change the target restriction itself; its value
 	// is not available until the cast transaction reaches the announcement

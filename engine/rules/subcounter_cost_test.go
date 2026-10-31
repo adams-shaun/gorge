@@ -169,34 +169,10 @@ func TestMoxiteRefineryAnyKindRemovesFromTheChosenArtifact(t *testing.T) {
 	addMana(t, e, p, "GG") // Moxite's {2}
 	submitChoices(t, e, abilityOption(t, e, moxite, 0).Index)
 
-	// CR 601.2b: the announced X is bounded by the largest candidate's
-	// counter count -- 2, the Ballista's -- not by the source's (0), so
-	// three values are offered. Pre-fix the bound read the source's
-	// o.Counter("Any") = 0 and only X=0 was offered.
+	// CR 602.2b: the mode comes first, then X, then the mode's target.
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "x" {
-		t.Fatalf("X decision for the Moxite activation: %+v", d)
-	}
-	if len(d.Options) != 4 {
-		t.Fatalf("X bound offered %d values, want 4 (X=0..3, bounded by the Ballista's 3 counters): %+v",
-			len(d.Options), d.Options)
-	}
-	submitChoices(t, e, d.Options[2].Index) // X = 2
-
-	// The removal's sole candidate is the Ballista (the only Artifact or
-	// Creature you control with >= 2 counters of any kind), so no
-	// subcounter ask is posed (strict supersets) -- the ability pushes.
-	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("expected priority after the activation settled, got %+v", d)
-	}
-	passOne(t, e)
-	passOne(t, e)
-
-	// Resolution: the Charm asks its mode; the Artifact mode then asks its
-	// target. Remove the counters, put X charge counters on the artifact.
-	d = e.Pending()
 	if d == nil || d.Kind != decision.KModes {
-		t.Fatalf("expected the Charm mode ask at resolution, got %+v", d)
+		t.Fatalf("expected the Charm mode ask at activation, got %+v", d)
 	}
 	art := -1
 	for _, o := range d.Options {
@@ -208,8 +184,23 @@ func TestMoxiteRefineryAnyKindRemovesFromTheChosenArtifact(t *testing.T) {
 		t.Fatalf("artifact mode not offered: %+v", d.Options)
 	}
 	submitChoices(t, e, art)
+
+	// CR 601.2b: the announced X is bounded by the largest candidate's
+	// counter count -- 2, the Ballista's -- not by the source's (0), so
+	// three values are offered. Pre-fix the bound read the source's
+	// o.Counter("Any") = 0 and only X=0 was offered.
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "tgts" {
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "x" {
+		t.Fatalf("X decision for the Moxite activation: %+v", d)
+	}
+	if len(d.Options) != 4 {
+		t.Fatalf("X bound offered %d values, want 4 (X=0..3, bounded by the Ballista's 3 counters): %+v",
+			len(d.Options), d.Options)
+	}
+	submitChoices(t, e, d.Options[2].Index) // X = 2
+
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("expected the artifact-mode target ask, got %+v", d)
 	}
 	bIdx := -1
@@ -222,6 +213,13 @@ func TestMoxiteRefineryAnyKindRemovesFromTheChosenArtifact(t *testing.T) {
 		t.Fatalf("Ballista not offered as the mode's target: %+v", d.Options)
 	}
 	submitChoices(t, e, bIdx)
+
+	// The removal's sole candidate is the Ballista (the only Artifact or
+	// Creature you control with >= 2 counters of any kind), so no
+	// subcounter ask is posed (strict supersets) -- the ability pushes.
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("expected priority after the activation settled, got %+v", d)
+	}
 	passOne(t, e)
 	passOne(t, e)
 

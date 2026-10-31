@@ -933,16 +933,17 @@ func (e *Engine) moveGraveAsk() bool {
 	return false
 }
 
-// castModeAsk poses CR 601.2b's mode announcement for a modal spell. It uses
-// KModes like the placement and resolution paths, but ResumeKind distinguishes
-// this cast-transaction continuation from both: handleModes records the answer
-// on the proposed spell and re-enters continueCast rather than resuming an
-// effect or the trigger drain. Activated abilities retain their existing
-// resolution-time behaviour; CR 603.3c triggered abilities remain owned by
-// askTriggerModes.
+// castModeAsk poses the mode announcement of a modal spell (CR 601.2b) or
+// activated ability (CR 602.2b). It uses KModes like the placement and
+// resolution paths, but ResumeKind distinguishes this cast-transaction
+// continuation from both: handleModes records the answer on the proposed stack
+// object and re-enters continueCast rather than resuming an effect or the
+// trigger drain. An ability gained from another object, or one choosing more
+// than one mode (no card has both), still chooses at resolution. CR 603.3c
+// triggered abilities remain owned by askTriggerModes.
 func (e *Engine) castModeAsk() bool {
 	pc := e.cast
-	if pc == nil || pc.isAbility() || pc.isSpecialAction() || pc.modesDone {
+	if pc == nil || pc.isSpecialAction() || pc.modesDone {
 		return false
 	}
 	pc.modesDone = true
@@ -952,6 +953,13 @@ func (e *Engine) castModeAsk() bool {
 	}
 	f := o.Face()
 	sa := f.SpellAbility()
+	excludeSelf := pc.card
+	if pc.isAbility() {
+		if pc.ability < 0 {
+			return false
+		}
+		sa, excludeSelf = e.pcAbility(pc), 0
+	}
 	if sa == nil || sa.API != "Charm" || !effects.CharmOf(sa).HasChoices {
 		return false
 	}
@@ -990,7 +998,7 @@ func (e *Engine) castModeAsk() bool {
 		// CR 601.2b: X is announced after the modes, so an X-bounded mode
 		// (Kozilek's Command's Creature.cmcLEX exile) is judged with X
 		// pending here, not as X = 0; xAsk re-filters at the announced X.
-		if sub != nil && !modeTargetsAvailable(e, pc.player, pc.card, sub, pc.x, !pc.xDone) {
+		if sub != nil && !modeTargetsAvailable(e, pc.player, pc.card, excludeSelf, sub, pc.x, !pc.xDone) {
 			continue
 		}
 		// CR 601.2b/702.171b: a Spree/Tiered mode's own ModeCost$ is an
@@ -1026,6 +1034,9 @@ func (e *Engine) castModeAsk() bool {
 	// triggered and mid-resolution asks do.
 	legal = effects.CharmEligibleModes(e, pc.card, sa, legal)
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
+	if pc.isAbility() && max > 1 {
+		return false
+	}
 	// Entwine (CR 702.42b): "If the entwine cost was paid, follow the
 	// instructions of all its modes." So an entwined cast announces EVERY
 	// eligible mode -- Min and Max both move to the filtered legal count, and
