@@ -588,3 +588,83 @@ func TestRaiseCostAetherTideDiscardsXCreatureCards(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestWaterbendAbilityOfferedFromSourcesAndHelpers pins CR 601.2g and 701.67a: the
+// taps pay part of the waterbend amount and untapped lands the rest, so the
+// ability is offered with nothing floating, and the activation still asks for the
+// taps before the lands pay the remainder. The source helps too unless its own {T} is
+// part of the cost.
+func TestWaterbendAbilityOfferedFromSourcesAndHelpers(t *testing.T) {
+	t.Parallel()
+	const bear = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	const forest = "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"
+	koi := func(cost string) string {
+		return "Name:Koi\nTypes:Creature Fish\nPT:1/1\n" +
+			"A:AB$ Pump | Cost$ " + cost + " | KW$ Hexproof | Defined$ Self | SpellDescription$ Hide.\nOracle:x\n"
+	}
+	setup := func(t *testing.T, cost string, lands int) (*Engine, state.ObjID) {
+		e := handEngine(t)
+		id := onBoardReady(t, e, 0, koi(cost))
+		onBoardReady(t, e, 0, bear)
+		onBoardReady(t, e, 0, bear)
+		for i := 0; i < lands; i++ {
+			onBoardReady(t, e, 0, forest)
+		}
+		e.priorityRound()
+		return e, id
+	}
+	abilityOption := func(e *Engine, id state.ObjID) *decision.Option {
+		for _, o := range e.Pending().Options {
+			if o.Kind == "ability" && o.Obj == id {
+				return &o
+			}
+		}
+		return nil
+	}
+	tapHelpers := func(t *testing.T, e *Engine, want int) {
+		t.Helper()
+		var helpers []int
+		for _, c := range e.Pending().Options {
+			if c.Kind == "waterbend_generic" {
+				helpers = append(helpers, c.Index)
+			}
+		}
+		if len(helpers) != want {
+			t.Fatalf("activation offers %d waterbend taps, want %d", len(helpers), want)
+		}
+		submitChoices(t, e, helpers...)
+	}
+	t.Run("one short", func(t *testing.T) {
+		t.Parallel()
+		e, id := setup(t, "Waterbend<3> T", 0)
+		if abilityOption(e, id) != nil {
+			t.Fatal("offered one short of the waterbend amount")
+		}
+	})
+	t.Run("two helpers and a land", func(t *testing.T) {
+		t.Parallel()
+		e, id := setup(t, "Waterbend<3> T", 1)
+		o := abilityOption(e, id)
+		if o == nil {
+			t.Fatal("not offered with two helpers and a land")
+		}
+		submitChoices(t, e, o.Index)
+		tapHelpers(t, e, 2)
+		if len(e.G.Stack) != 1 {
+			t.Fatalf("stack %v after the taps and the land, want the ability", e.G.Stack)
+		}
+	})
+	t.Run("the source helps", func(t *testing.T) {
+		t.Parallel()
+		e, id := setup(t, "Waterbend<3>", 0)
+		o := abilityOption(e, id)
+		if o == nil {
+			t.Fatal("not offered with the source and two helpers")
+		}
+		submitChoices(t, e, o.Index)
+		tapHelpers(t, e, 3)
+		if len(e.G.Stack) != 1 {
+			t.Fatalf("stack %v after three taps, want the ability", e.G.Stack)
+		}
+	})
+}

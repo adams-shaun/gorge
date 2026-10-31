@@ -689,6 +689,16 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		cost.Phyrexian = nil
 	}
 	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
+	out := e.planComposedCost(p, id, composed, true, true)
+	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
+		return out
+	}
+	// A Waterbend<N> part's taps pay its generic (CR 701.67a): what the sources
+	// cannot fund, the offer's credit may. The taps are asked before the mana, so
+	// a smaller answer falls back to the manual window.
+	for _, red := range e.withWaterbendOfferCredit(p, id, cost.Tap, cost.XMin, costMods{Waterbend: cost.Waterbend}).Reduces {
+		composed.Generic -= red.Generic
+	}
 	return e.planComposedCost(p, id, composed, true, true)
 }
 

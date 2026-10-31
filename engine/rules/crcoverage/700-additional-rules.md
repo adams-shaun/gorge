@@ -178,7 +178,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.65a-b | follows | `engine/effects/airbend.go#effAirbend` `engine/rules/airbend.go#Engine.airbendCastAvailable` | `TestAirbendRecastCastsExiledCardForTwo` | exile, owner may cast for {2}; ElementalBend air fires only if something exiled |
 | 701.66a | deviates | `engine/cards/link.go#builtinSVars` | - | returns under owner, not earthbender |
 | 701.66b | follows | `engine/effects/earthbend.go#effEarthbend` | - |  |
-| 701.67a-b | follows | `engine/rules/pay/castpayment.go#ConvokePayment` `engine/rules/pay/castasks.go#ConvokeOffer` | `TestWaterbendTapsEarthbentLand` `TestTapPaymentsReadCurrentTypes` |  |
+| 701.67a-b | follows | `engine/rules/pay/castpayment.go#ConvokePayment` `engine/rules/pay/castasks.go#ConvokeOffer` `engine/rules/potential_plan.go#Engine.planAbilityPaymentLifePips` | `TestWaterbendTapsEarthbentLand` `TestTapPaymentsReadCurrentTypes` `TestWaterbendAbilityOfferedFromSourcesAndHelpers` | a spell's waterbend cast is offered once the pool plus the taps pay: the cast planner declines the shape |
 | 701.67c | deviates | `engine/rules/pay/paidcost.go#EmitConvokeTaps` | - | waterbend trigger only if something tapped |
 | 701.68a-b | follows | `engine/effects/blight.go#effBlight` `engine/rules/pay/castparts.go#NonManaCastableP` | `TestBlightOpponentBlightsTheirOwnCreature` |  |
 | 701.68c | unknown | - | - | not reached |

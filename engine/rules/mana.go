@@ -252,7 +252,7 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	// withWaterbendOfferCredit returns mods unchanged unless some waterbend
 	// credit is wanted (its want is 0 when both counts are).
 	if mods.Waterbend != 0 || mods.WaterbendPartX != 0 {
-		mods = e.withWaterbendOfferCredit(p, id, base.XMin, mods)
+		mods = e.withWaterbendOfferCredit(p, id, base.Tap, base.XMin, mods)
 	}
 	// Heirloom Epic's ability replaces generic mana with elected creature taps.
 	// Offer only a conservative bound: never count a creature also relied on as
