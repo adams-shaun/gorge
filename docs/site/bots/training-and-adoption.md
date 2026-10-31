@@ -1,11 +1,9 @@
 # Training and adoption
 
-This page is for people who build, search with, train or ship a bot policy
-for gorge. It covers what the engine offers search and learning code, how to
-evaluate a policy honestly, and the ladder a policy climbs from a bench
-experiment to the default bot that plays real users. gorge ships the
-engine-side interfaces, the hosted bots and their inference code; training
-tools live outside this repository and are not covered here.
+This page is for people who build, search with, train or ship a bot policy for gorge. It covers
+what the engine offers search and learning code, how to evaluate a policy, and the ladder a policy
+climbs from a bench experiment to the default bot. gorge ships the engine-side interfaces, the hosted
+bots and their inference code; training tools aren't in this repository.
 
 ## The contract a policy answers
 
@@ -13,7 +11,7 @@ Everything a bot does is answer a `decision.Decision`: the engine lists every
 legal option, the bot names option indices in a `decision.Intent`, and
 `Decision.Validate` rejects anything not offered. A policy must answer every
 decision kind, usually by delegating the kinds it does not specialise in to
-the default bot. [Bots and strategies](index.md) has the kinds and the
+the default bot. [Bots](index.md) has the kinds and the
 integration surfaces; [Writing a native Go bot](native-go.md) the
 `seat.Seat` interface and its optional extensions.
 
@@ -36,8 +34,8 @@ integration surfaces; [Writing a native Go bot](native-go.md) the
 | Learned policies | `bots/policynet`, `heuristic.NewPolicyNetBot` | Pure-Go hashed features, an MLP scorer and an optional value head, hand-derived gradients; `.gpol` checkpoints refuse to load on an encoder-hash mismatch. Kinds the net does not answer go to the default bot. |
 
 Engine speed (turns per second, clone and step costs, search rates) is on
-[Engine speed](../performance/engine.md); measured bot results on
-[Bots and learned policies](../performance/bots.md).
+[Engine speed](../performance/engine.md), and bot cost on
+[Bots: cost and strength](../performance/bots.md).
 
 ## Evaluating a policy
 
@@ -45,7 +43,7 @@ Engine speed (turns per second, clone and step costs, search rates) is on
 between any `seat.Seat` implementations, and `RunPairs` runs a deck-pair
 matrix with seats traded, across workers.
 
-- Game *i* is seeded `base + i`, and seats trade policies every game.
+- Game *g* of pair *p* is seeded `base + p·games + g`, and seats trade policies every game.
 - Always run the incumbent against itself on the same seeds as a control:
   deck matchups and seat order are not 50/50.
 - Report the command, seeds, game count and a confidence interval against
@@ -67,40 +65,24 @@ matchup.
 
 A policy moves up one rung at a time, and each rung has a gate.
 
-```mermaid
-flowchart LR
-  b[1. Bench-only<br/>a seat.Seat in testkit/bench] -->|seat-honest, deterministic,<br/>fits the budget, host test,<br/>operator decision| h[2. Hosted, opt-in<br/>bots.Register + bots/all]
-  h -->|held-out gate: +3pp pooled,<br/>no pair below -5pp,<br/>zero new stalls| d[3. Default bot]
-```
-
-1. **Bench-only.** A `seat.Seat` you drive through `testkit/bench`. No gate
-   beyond the rules below. Research modes (clairvoyant worlds, oracle
-   features) stay here.
-2. **Hosted, opt-in.** Registered in the bot registry (`bots.Register` from
-   an `init`) and linked from `bots/all`, so `POST /api/games` can select it
-   with `bot_policy` (unless it reads every seat's decklist, like
-   `sb-tactical` and `az-redeal`: those stay off tables with people).
-   `forge-heuristic` is a hosted, opt-in policy today. Requirements:
-    - It is seat-honest: no clairvoyance, nothing the view does not show
-      (an Env seat reads only its honest root).
+1. **Bench-only.** A `seat.Seat` you drive through `testkit/bench`, with no gate beyond the rules below.
+   Research modes (clairvoyant worlds, oracle features) stay here.
+2. **Hosted, opt-in.** Registered with `bots.Register` from an `init` and linked from `bots/all`, so
+   `POST /api/games` can select it with `bot_policy`, unless it reads every seat's decklist. A maintainer accepts
+   it when:
+    - It is seat-honest: nothing the view doesn't show, and an Env seat reads only its honest root.
     - It is deterministic from (match seed, seat).
-    - It fits the hosted latency budget: a hosted search seat has 2 s per
-      decision before it falls back to its heuristic.
-    - A host test pins it: the hosted-policy determinism and contract rows
-      (`host.RunContractTable` and friends) run on every registered entry.
-    - An operator decision.
-3. **Default `bot`.** Requirements:
-    - It passes the **held-out gate**: seed 1,000,000, 400 games per deck
-      pair, seats traded.
-    - It gains **at least +3 percentage points pooled** over the current
-      `bot`.
-    - **No pair falls below −5 points.**
-    - **Zero new stalls or errors.**
-    - The same merge regenerates the golden replay heads (`TestHeads`),
-      naming the policy change as the cause.
-    - Development iterations are gated at +1.96σ against the current best
-      before they spend a held-out run.
-    - Promotion is the operator's decision.
+    - It fits the hosted latency budget: a hosted search seat has 2 s per decision before it falls back to its
+      heuristic.
+    - A host test pins it: the hosted-policy determinism and contract rows (`host.RunContractTable` and friends) run on
+      every registered entry.
+3. **Default `bot`.** A maintainer promotes it when it passes a held-out run of 400 games per deck pair at a seed nobody
+   developed against, seats traded, with these results against the current `bot`:
+    - at least 3 percentage points pooled;
+    - no pair below −5 points;
+    - no new stalls or errors.
+
+    The same change regenerates the golden replay heads (`TestHeads`), naming the policy change as the cause.
 
 ## Rules for bot code
 
@@ -116,9 +98,7 @@ flowchart LR
   worlds are diagnostic ceilings: `policynet.WriteCheckpoint` refuses the
   oracle feature sets, and the one exception, `WriteOracleCheckpoint`,
   exists only for a search leaf scored inside an already-sampled world.
-- **Artifacts.** Small JSON weight profiles may be committed. Neural
-  checkpoints are not committed without an operator decision. Nothing
-  derived from Forge card-script text is ever committed (the scripts are
-  GPL-3.0).
+- **Artifacts.** Small JSON weight profiles may be committed; neural checkpoints aren't, unless a maintainer agrees.
+  Nothing derived from Forge card-script text is ever committed (the scripts are GPL-3.0).
 - **Report what you measured,** with the command, the seeds, the game count
   and a confidence interval against a same-seed control.
