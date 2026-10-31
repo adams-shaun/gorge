@@ -318,17 +318,18 @@ func (s *Seat) projected(f func()) {
 // section runs f against the engine for driver generation gen, or reports
 // false without running it when the driver is stale: superseded by a newer
 // park, the seat gave up the decision (gone), or the engine no longer asks it.
-// The seat lock is held throughout, so only one driver touches the
-// transaction; gone and the pending decision are checked inside the
+// The projection lock is taken before the seat lock, the order a host undo
+// holds them in when it calls MatchRewound. Both are held throughout, so only
+// one driver touches the transaction, and every check runs inside the
 // projection lock, which every engine mutation also takes.
 func (s *Seat) section(gen uint64, gone <-chan struct{}, d *decision.Decision, f func()) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.gen != gen {
-		return false
-	}
 	live := false
 	s.projected(func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if s.gen != gen {
+			return
+		}
 		select {
 		case <-gone:
 			return
