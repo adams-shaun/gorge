@@ -1011,6 +1011,9 @@ playLoop:
 				return r.crash(t, m, fmt.Errorf("engine stalled: game not over and no decision pending"))
 			}
 			parked = parkSeat(ctx, seats, data, m.undo.signal, gate, t.stop)
+			// onMatchStart's frames went out before this park and no Submit has
+			// run yet, so nothing else tells a waiting client about this decision.
+			r.fanout(t, m, len(m.g.Log().Events))
 		}
 		// Await the answer to the parked decision (parked at the first live
 		// iteration or at the end of the previous one). A bot seat resolved
