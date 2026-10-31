@@ -14,6 +14,9 @@ import (
 
 const AdapterVersion = "0.1.0"
 
+// AutoPayVersionSuffix ends the engine version of a table that pays mana itself.
+const AutoPayVersionSuffix = "/autopay"
+
 // DecisionKinds are the 25 kinds the engine emits. distribute is not one:
 // combat damage follows the declared engine_order default (Section 7.6).
 // choose_option is the two-pile pick (a counted option list); it joins the

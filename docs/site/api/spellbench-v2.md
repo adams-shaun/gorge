@@ -531,7 +531,7 @@ What gorged's seat sent an agent, with decklists, names, `decision_kinds` and th
   "request_type": "game_start", "protocol": "spellbench/v2", "request_id": "r-2",
   "agent_seed": 608617540958772, "game_id": "g-0faf80117d331ab5", "seat": "p1",
   "format": "constructed",
-  "engine": {"name": "gorge", "version": "gorge-3a3ffb962e9c/spellbench-adapter-0.1.0", "source_revision": null,
+  "engine": {"name": "gorge", "version": "gorge-3a3ffb962e9c/spellbench-adapter-0.1.0/autopay", "source_revision": null,
     "rules_snapshot_id": "gorge/3a3ffb962e9c/ir-e75c8c4eca7565be05788becfbe41c3c",
     "card_pool_identity": "forge-91402ac51104/corpus-a59b417462be378f/catalog-ddaa89bf514cd72d"},
   "engine_profile": {"decision_kinds": ["activate_ability", "activate_mana_ability", "arrange_card"],
