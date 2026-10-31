@@ -4,9 +4,10 @@
 agent built on an XMage fork. It encodes every decision as a typed graph and
 trains a graph network ("NetGraph") on MCTS self-play. In October 2026 we
 replicated its published results and then ran the same experiments on
-dirac, the search kernel described under
-[Architecture](../architecture/dirac/index.md). The goal was to decide
-whether MageZero's encoding or network should replace ours.
+[dirac](../architecture/dirac/index.md), gorge's second engine. The goal was to
+decide whether MageZero's encoding or network should replace the maintainers' own.
+This page reports results: dirac, its game runner `kplay` and the training code
+aren't in this repository, so these runs can't be repeated from a clone of gorge.
 
 !!! abstract "Verdict"
     - **The replication is faithful.** Their code on their data, their release
@@ -22,7 +23,7 @@ whether MageZero's encoding or network should replace ours.
     - **Training from scratch, same schedule:** UWTempo on dirac goes
       from their gen0 (0.38 vs 0.35) to 0.78 by gen17, where theirs reaches
       0.65, against an opponent calibrated to their gen0.
-    - **Adopted:** the encoder ships as an opt-in, off-by-default recording
+    - **Adopted:** the encoder ships in `kplay` as an opt-in, off-by-default recording
       flag, measured free when off. NetGraph is not adopted.
 
 Their sources are `results/experiments.md`, `results/generations.md`,
@@ -45,7 +46,7 @@ trained net as the prior and value function.
 |---|---|
 | **ver4** | Their published gen0 Pauper training data (v0.3 encoding), 2,576 games |
 | **jar rerun** | Their v0.3.0-alpha release jar, run on our hardware with their gen0 config (Java 21, no rebuild) |
-| **dirac** | Our kernel (`kplay`) with research card sets built from their lists |
+| **dirac** | dirac's game runner (`kplay`) with research card sets built from their lists |
 | **NetGraph** | Their network, trained by their unmodified `train.py` |
 | **d64 MLP** | Our small production-family net: 1 residual block, d=64, 166K parameters |
 
@@ -166,7 +167,7 @@ pooled XMage data). What we measured on the way:
 - **One rules bug, now fixed.** dirac could not activate Saruli
   Caretaker's `{T}, tap an untapped creature` mana ability. Fixing it moved
   Faeries vs Spy from 0.786 to 0.710, about a quarter of that gap. The fix
-  also made the kernel refuse the 96 cards whose mana ability it still cannot
+  also made dirac refuse the 96 cards whose mana ability it still cannot
   activate, instead of playing them silently wrong.
 - **Not tree reuse.** XMage with tree reuse switched off plays the same:
   Faeries vs Affinity 0.51, attack rate 0.93, pre-combat cast share 0.80.
