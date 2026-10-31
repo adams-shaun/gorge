@@ -278,6 +278,9 @@ func (e *Engine) manaWindowAsk() bool {
 			reason, units, step, ready = e.paymentPlanCheckUnits(pc)
 		}
 		if reason != "" {
+			if e.reverseStrandedPayment(pc) {
+				return true
+			}
 			e.paymentPlanFallback(pc, reason)
 		} else if pc.PaymentNext < len(pc.Payment.Plan.Activations) && e.executePlannedManaActivationUnits(pc, units, step, ready) {
 			return true
@@ -299,6 +302,9 @@ func (e *Engine) manaWindowAsk() bool {
 	if pay.CostPayableClassLife(asPayer(e), pc.player, paymentForCast(pc, mana),
 		pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, mana, false) {
 		return false
+	}
+	if e.reverseStrandedPayment(pc) {
+		return true
 	}
 	if pc.Announced {
 		// Announce then pay: the "select mana" window, posed even with no

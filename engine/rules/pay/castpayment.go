@@ -29,6 +29,9 @@ type CastPayment struct {
 	// WindowDone is set when the 601.2g mana window was answered "done", so
 	// the payment proceeds straight to settling instead of re-offering it.
 	WindowDone bool `clone:"deep"`
+	// WindowChecked is set once the cast has been priced against its window
+	// (reverseStrandedPayment), which an activation made from it can't reopen.
+	WindowChecked bool `clone:"deep"`
 	// ManaConvertDone records the Optional$ ManaConvert election. Before the
 	// election, feasibility uses the union so the cast remains offerable;
 	// after it, the payment's conversion set uses only the selected optional

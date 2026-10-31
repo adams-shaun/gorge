@@ -141,19 +141,77 @@ func (e *Engine) waterbendTapsNeeded(pc *pendingCast) int {
 		return 0
 	}
 	cost := e.manaToPay(pc)
-	pl := &e.G.Players[pc.player]
-	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
 	for n := range min(pc.mods.Waterbend, cost.Generic) + 1 {
 		c := cost
 		c.Generic -= n
-		desc := paymentForCast(pc, c)
-		av := pay.AvailableFor(asPayer(e), pc.player, desc)
-		conv := asEval(e).Conv(pc.player, desc.ID, desc.Class == paymentActivated)
-		if e.castWindowReachable(pc.player, c, av.Pool, pl.Snow, av.Typed, pl.Life, conv, rider, units) {
+		if e.castWindowPays(pc, c, units) {
 			return int(n)
 		}
 	}
 	return 0
+}
+
+// castWindowPays reports whether the floating pool and the window's sources
+// units can pay cost.
+func (e *Engine) castWindowPays(pc *pendingCast, cost Cost, units []windowManaUnit) bool {
+	pl := &e.G.Players[pc.player]
+	desc := paymentForCast(pc, cost)
+	av := pay.AvailableFor(asPayer(e), pc.player, desc)
+	conv := asEval(e).Conv(pc.player, desc.ID, desc.Class == paymentActivated)
+	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
+	return e.castWindowReachable(pc.player, cost, av.Pool, pl.Snow, av.Typed, pl.Life, conv, rider, units)
+}
+
+// reverseStrandedPayment reverses a cast or activation whose helpers or tap-cost
+// election left a mana payment the window can't finish. A permanent so committed
+// can't also tap for mana (CR 601.2g-h, 602.2b), and the ask's Min can't say which
+// picks leave too little, so that answer is an illegal action, undone before any
+// mana is activated (CR 733.1). An announced cast keeps its window, whose Cancel is
+// the same reversal. It reports whether it reversed pc.
+func (e *Engine) reverseStrandedPayment(pc *pendingCast) bool {
+	if pc.Announced || pc.WindowChecked || (len(pc.Convoke) == 0 && len(pc.Taps) == 0) {
+		return false
+	}
+	pc.WindowChecked = true
+	if !e.paymentStranded(pc) {
+		return false
+	}
+	text := "cast aborted: cost no longer payable"
+	if pc.isAbility() {
+		text = "activation aborted: cost no longer payable"
+	}
+	e.abortCast(pc, text, true)
+	return true
+}
+
+// paymentStranded reports whether no way through the window pays pc's mana. Only
+// a census that prices every source can say so: one that leaves a source out, or
+// whose production a replacement or tap trigger would change, may understate the
+// reach.
+func (e *Engine) paymentStranded(pc *pendingCast) bool {
+	mana := e.castPaymentMana(pc)
+	if !mana.HasManaPayment() {
+		return false
+	}
+	units := e.castWindowUnits(pc)
+	if !e.castWindowCensusComplete(pc, units) || e.paymentPlanManaInterference() {
+		return false
+	}
+	for _, z := range []state.Zone{state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, pc.player) {
+			if e.untappedManaSource(pc.player, id) {
+				return false
+			}
+		}
+	}
+	for _, u := range units {
+		for _, a := range u.Alts {
+			if e.manaProductionAltered(u.ID, a.Ma) {
+				return false
+			}
+		}
+	}
+	return !e.castWindowPays(pc, mana, units)
 }
 
 func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
