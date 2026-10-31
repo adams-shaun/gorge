@@ -458,14 +458,13 @@ func TestCostStaticCensus(t *testing.T) {
 		// ValidCard$
 		if spec, ok := p["ValidCard"]; ok {
 			var dead []string
-			n, prov := 0, false
+			n := 0
 			for alt := range effects.FilterAlternatives(spec) {
 				if strings.TrimSpace(alt) == "" {
 					continue
 				}
 				n++
-				why, pv := objAltDead(alt, spellOnly)
-				prov = prov || pv
+				why, _ := objAltDead(alt, spellOnly)
 				if why != "" {
 					dead = append(dead, strings.TrimSpace(alt)+": "+why)
 				}
@@ -479,10 +478,6 @@ func TestCostStaticCensus(t *testing.T) {
 				add(ccBroken, "ValidCard$ dead: "+strings.Join(dead, "; "), locVC)
 			case len(dead) > 0:
 				add(ccWrong, "ValidCard$ partially dead (narrower): "+strings.Join(dead, "; "), locVC)
-			}
-			if prov && (strings.Contains(spec, "wasCastFromYourHand") || strings.Contains(spec, "wasCastByYou")) {
-				add(ccOffer, "ValidCard$ hand-provenance token: denied pre-push, repriced after push",
-					L.loc("engine/rules/cast_provenance.go", "func (e *Engine) castProvenanceAdmitsPending("))
 			}
 		}
 		// ValidSpell$

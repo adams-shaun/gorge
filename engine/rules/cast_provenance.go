@@ -236,8 +236,8 @@ func (e *Engine) castProvenanceAdmits(spec string, objID state.ObjID, you state.
 // castFromHandAdmitsWindow): the layer walk's AffectedZone$ Stack read sets
 // pendingCast, every other match site passes false and keeps the log-only
 // semantics. The origin-zone family (castOriginAdmits) is appended after
-// them log-only — its own pre-push shape is castOriginAdmitsAtZone, taken
-// by castProvenanceAdmitsPending. The chain order is unchanged: ByYou before bare.
+// them log-only — its own pre-push shape is castOriginAdmitsAtZone, which
+// castProvenanceAdmitsPending takes first. The chain order is unchanged: ByYou before bare.
 func (e *Engine) castProvenanceAdmitsWindow(spec string, objID state.ObjID, you state.PlayerID, pendingCast bool) (string, bool) {
 	gate := specProvenanceGate(spec)
 	if provenanceGateVerify {
@@ -675,20 +675,14 @@ func (e *Engine) webSlingedAdmits(spec string, objID state.ObjID) (string, bool)
 	return admitProvenanceAlternatives(spec, "webSlinged", holds)
 }
 
-// castProvenanceAdmitsPending is castProvenanceAdmits with the pending-cast
-// guard the two COST paths need (the ReduceCost/RaiseCost statics'
-// ValidCard$, and the RestrictValid$ mana-restriction read): a
-// provenance-keyed spec is UNRESOLVABLE while the priced object has no cast
-// in the log yet. The offer-side walk (castable → costPayable) and the
-// option-selection snapshot (costModifiers) both evaluate pre-push, where
-// the log scan reads false and the NEGATED spellings would wrongly hold —
-// a hand cast would be offered as payable on mana the payment then refuses,
-// or priced at a reduction the payment must not take. Such a spec denies
-// the whole match while the object is off the stack (the fail-closed
-// direction both call sites document); continueCast re-prices the pending
-// cast right after CR 601.2a's push, once the PutOnStack is in the log. A
-// spec without a provenance token is returned unchanged, so every
-// unrelated cost evaluation is byte-identical.
+// castProvenanceAdmitsPending is castProvenanceAdmits for the two COST paths
+// (the ReduceCost/RaiseCost statics' ValidCard$, and the RestrictValid$
+// mana-restriction read). The offer-side walk (castable → costPayable) and the
+// option-selection snapshot (costModifiers) both evaluate pre-push, where the
+// log holds at most an earlier cast of the object, so they read the cast being
+// priced from the object itself. Once it is on the stack the log answers. A
+// spec without a provenance token is returned unchanged, so every unrelated
+// cost evaluation is byte-identical.
 func (e *Engine) castProvenanceAdmitsPending(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
 	if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastByYou") &&
 		!specCarriesCastOrigin(spec) && !strings.Contains(spec, bareGraveyardCastToken) {
@@ -709,19 +703,17 @@ func (e *Engine) castProvenanceAdmitsPending(spec string, objID state.ObjID, you
 		}
 	}
 	if o.Zone != state.ZStack {
-		// The origin-zone family is priceable PRE-push, unlike the hand
-		// families: the origin a cast from here will carry is the object's
-		// CURRENT zone (every cast evaluation site's pending origin — see
-		// castOriginAdmitsAtZone), so the affordability walk can honestly
-		// admit the restricted/reduced cost instead of the blanket deny that
-		// made a RestrictValid$ Spell.wasCastFromYourGraveyard batch unable to
-		// fund the very cast it names (Lord of the Forsaken's payment path).
-		// The hand families keep the deny: their ByYou cast is not yet in the
-		// log and the negated spellings would wrongly hold.
-		if specCarriesCastOrigin(spec) {
-			return e.castOriginAdmitsAtZone(spec, objID, o.Zone)
+		// Every provenance token is priceable PRE-push: the origin a cast from
+		// here will carry is the object's CURRENT zone (see
+		// castOriginAdmitsAtZone and the hand families' OFFER window). So the
+		// offer prices what the charge will: a restricted
+		// mana batch can fund the cast it names (Lord of the Forsaken), and
+		// Sage of the Beyond's reduction reaches a flashback's plan.
+		var ok bool
+		if spec, ok = e.castOriginAdmitsAtZone(spec, objID, o.Zone); !ok {
+			return "", false
 		}
-		return "", false
+		return e.castProvenanceAdmitsWindow(spec, objID, you, true)
 	}
 	return e.castProvenanceAdmits(spec, objID, you)
 }

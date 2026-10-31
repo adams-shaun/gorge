@@ -75,16 +75,12 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 		return false, true
 	}
 	if spec, ok := sv.Param(cards.PKValidCard); ok {
-		// The provenance-keyed ValidCard$ (castprov3: Bilbo's
-		// "!wasCastFromYourHand" ReduceCost) is unresolvable while the priced
-		// object has no cast in the log yet — the offer walk and the
-		// option-selection snapshot both evaluate pre-push, where the negated
-		// spelling would wrongly hold for the hand cast it must not cover.
-		// Deny the modifier (full price, this gate chain's documented
-		// fail-closed direction); continueCast re-prices the pending cast
-		// right after CR 601.2a's push, once the PutOnStack is in the log.
-		// The capture (noCounterSpend's shape) tells the pending-cast flow a
-		// re-price is owed; the read stays inside the attributed cost-static
+		// A provenance-keyed ValidCard$ (Bilbo's "!wasCastFromYourHand"
+		// ReduceCost) reads the cast being priced from the object while it is
+		// off the stack, and the log after CR 601.2a's push, which also knows
+		// a caster other than the object's controller. The capture
+		// (noCounterSpend's shape) has continueCast re-price the pending cast
+		// after that push; the read stays inside the attributed cost-static
 		// pass, so the param census sees no new Params site.
 		if strings.Contains(spec, "wasCastFromYourHand") || strings.Contains(spec, "wasCastByYou") {
 			e.CostProvenanceSeen = true
