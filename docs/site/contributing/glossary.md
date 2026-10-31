@@ -219,6 +219,18 @@ importing them: `bots.Register`, `server/gorged.RegisterNetBot`,
 **Wire.** A client protocol a game can be played through: gorge's native HTTP API,
 ManaBrew or SpellBench v2. See [Wires](../architecture/wires.md).
 
+**Repo decks.** The 30 deck files in `testkit/testutil/decks/`: 15 60-card constructed
+and 15 Commander. Twelve of the constructed ones are the *pinned* list
+(`testutil.LegacyDeckNames`, after the Legacy format) that the golden games and `mtgsim`
+seat from.
+
+**Honest root, `Env` policy.** An honest root is a copy of the game with every hidden card
+redealt from what the seat has seen, for a search to read. An `Env` policy (`bots.Info.Env`)
+builds one from every seat's real decklist, so it is never seated against a person.
+
+**Caretaker.** The bot that answers for a human seat when nobody will: at table shutdown, or
+after `-manabrew-think`. It is the table's own bot policy.
+
 **Golden / goldens.** Committed expected outputs a test compares against
 byte for byte: the chain heads in `engine/rules/testdata/heads/`, wire
 frames, replay fixtures. A golden moves only with a named cause.
