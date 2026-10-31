@@ -181,6 +181,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	remembered := effectRemembered(h, c, sa)
+	// CR 611.2c: an effect on several permanents locks them in as it resolves,
+	// so one of them leaving ends it only for that one (Secret Tunnel's two
+	// creatures). Elsewhere ExileOnMoved$ means a choice has been used.
+	if len(remembered) > 1 && forgetOn == "" && strings.EqualFold(exileOn, "Battlefield") {
+		forgetOn, exileOn = exileOn, ""
+	}
 	// Capture the effect's own subjects before discarding older source memory.
 	forgetOtherRemembered(h, c, sa)
 	if imprintOnHost && len(remembered) > 0 {

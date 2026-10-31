@@ -177,7 +177,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 611.2 | follows | `engine/rules/layers_effect.go#Engine.AddContinuous` | - | resolution-generated continuous effects |
 | 611.2a | follows | `engine/state/continuous.go#ContinuousEffect` | `TestCR611IndefinitePumpSurvivesCleanup` | no duration = game |
 | 611.2b | follows | `engine/effects/choose_control.go#effGainControl` | - |  |
-| 611.2c | follows | `engine/effects/combatfx.go#effPumpAll` | - | set locked at resolution; d per-perm EOT deltas |
+| 611.2c | follows | `engine/effects/combatfx.go#effPumpAll` `engine/effects/effect.go#effEffect` | `TestEffectGoesOnForTheOtherTarget` | set locked at resolution; d per-perm EOT deltas |
 | 611.2d | follows | `engine/effects/pump.go#effPump` | - | X fixed at resolution |
 | 611.2e | unknown | - | - | Valkyrie's Call return would test it |
 | 611.2f | unknown | - | - | - |
