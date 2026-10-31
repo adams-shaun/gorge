@@ -551,8 +551,7 @@ var (
 	supertypeWords = []string{"Basic", "Legendary", "Ongoing", "Snow", "World"}
 )
 
-// IsSupertype reports whether t is a supertype word (the only thing a
-// RemoveCardTypes strip keeps: card types and their subtypes go).
+// IsSupertype reports whether t is a supertype word.
 func IsSupertype(t string) bool {
 	for _, w := range supertypeWords {
 		if strings.EqualFold(w, t) {
@@ -670,15 +669,13 @@ func landTypesSetOnSource(b Board, group []state.ContinuousEffect, ce *state.Con
 func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatureTypes, full bool) ([]string, bool, bool) {
 	n := len(ty)
 	if ce.RemoveCardTypes {
-		// RemoveCardTypes$ keeps only the SUPERTYPES: a subtype is tied to
-		// its card type (CR 205.2-family), so losing the card type loses
-		// its subtypes, and the flat type list cannot attribute a subtype
-		// word to a surviving type. Both flags together are therefore
-		// "everything but supertypes" -- Darksteel Mutation's oracle.
-		allCreatureTypes = false
+		// CR 205.1a: the supertypes stay, and so do the subtypes of a card
+		// type this effect leaves the object with.
+		subtypes := effects.SubtypesKeptBy(ce.AddTypes)
+		allCreatureTypes = allCreatureTypes && subtypes.Creature()
 		kept := ty[:0]
 		for _, t := range ty {
-			if IsSupertype(t) {
+			if IsSupertype(t) || subtypes.Has(t) {
 				kept = append(kept, t)
 			}
 		}

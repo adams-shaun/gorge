@@ -894,8 +894,8 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 		ag.removeTypes = append(ag.removeTypes, strings.Fields(part)...)
 	}
 	// RemoveCardTypes$ True (state.ContinuousEffect.RemoveCardTypes, the
-	// Darksteel Mutation strip) keeps only the object's supertypes in the
-	// layer-4 walk -- one line on the shared path, so both primitives read it.
+	// Darksteel Mutation strip) applies in the layer-4 walk -- one line on the
+	// shared path, so both primitives read it.
 	ag.removeCardTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveCardTypes)), "True")
 	// RemoveLandTypes$ True ("target land becomes a Swamp", Nightcreep's
 	// "all lands become Swamps"): the layer-4 land-subtype strip the

@@ -498,8 +498,10 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 	// allocation. A granted intrinsic (no ActivationZone$, no Activator$)
 	// passes the loop's zone and Activator$ gates only on the battlefield and
 	// only for its controller, so for any other object the block would add
-	// nothing the loop keeps: it is skipped, with its layer read.
-	if !faceDown && len(e.landTypeWords) > 0 && o.Zone == state.ZBattlefield && e.controllerOf(id) == p &&
+	// nothing the loop keeps: it is skipped, with its layer read. A layer-6
+	// removal (a nonzero lossStamp; CR 305.7's loss has none) takes these
+	// abilities too, whatever its timestamp.
+	if !faceDown && lossStamp == 0 && len(e.landTypeWords) > 0 && o.Zone == state.ZBattlefield && e.controllerOf(id) == p &&
 		manaWalkHasLType(e, statics) {
 		for _, typ := range e.derivedTypesOf(id) {
 			color, ok := cards.IntrinsicManaColor(typ)
