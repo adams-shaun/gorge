@@ -169,7 +169,7 @@ func (a *Agent) AttachMatch(mc *bots.MatchContext) error {
 	tracker := identity.New(mc.Engine, sec)
 	a.env = &mapping.Env{
 		AutoPay: true,
-		G:       &gamecfg.Game{E: mc.Engine, Secret: sec},
+		G:       gamecfg.Wrap(mc.Engine, sec),
 		IDs:     tracker,
 		Obs:     &observe.Projector{E: mc.Engine, IDs: tracker},
 		Domain:  nameSet(domainNames(mc.Engine.G.NameUniverseNames, mc.OwnDeck, mc.OpponentDeck)),

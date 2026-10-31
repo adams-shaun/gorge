@@ -39,7 +39,7 @@ func knownPosition(env *Env, obj *state.Object) *uint32 {
 	if obj == nil || obj.Zone != state.ZLibrary {
 		return nil
 	}
-	lib := env.G.E.G.Zone(state.ZLibrary, obj.Owner)
+	lib := env.G.R.Board().Zone(state.ZLibrary, obj.Owner)
 	if at := slices.Index(lib, obj.ID); at >= 0 {
 		p := uint32(at)
 		return &p
@@ -52,7 +52,7 @@ func openLookIfHidden(env *Env, d *decision.Decision) {
 		if o.Obj == 0 {
 			continue
 		}
-		if obj := env.G.E.G.Obj(o.Obj); obj != nil && !observe.Visible(d.Player, obj) {
+		if obj := env.G.R.Board().Obj(o.Obj); obj != nil && !observe.Visible(d.Player, obj) {
 			env.OpenLook(d.Player)
 			return
 		}
@@ -85,7 +85,7 @@ func mixedSelect(purp string, withSource bool) Builder {
 		var known []protocol.Known
 		look := false
 		for i, o := range d.Options {
-			obj := env.G.E.G.Obj(o.Obj)
+			obj := env.G.R.Board().Obj(o.Obj)
 			if obj == nil {
 				return nil, fmt.Errorf("%w:%s option %d has no object", ErrUnmapped, purp, o.Index)
 			}
@@ -206,7 +206,7 @@ func hiddenSelect(env *Env, d *decision.Decision, purp, how string) (Transaction
 	var known []protocol.Known
 	look := false
 	for i, o := range d.Options {
-		obj := env.G.E.G.Obj(o.Obj)
+		obj := env.G.R.Board().Obj(o.Obj)
 		if obj != nil && observe.Visible(d.Player, obj) {
 			r, err := env.Obs.Ref(d.Player, o.Obj)
 			if err != nil {
@@ -254,7 +254,7 @@ func newHandMove(env *Env, d *decision.Decision) (Transaction, error) {
 	if d.ResumeSA != nil {
 		dest = d.ResumeSA.Params["Destination"]
 	}
-	owner := env.G.E.G.Obj(d.Options[0].Obj).Owner
+	owner := env.G.R.Board().Obj(d.Options[0].Obj).Owner
 	switch {
 	case dest == "Library":
 		if f, ok := builders["hand_move/library"]; ok {

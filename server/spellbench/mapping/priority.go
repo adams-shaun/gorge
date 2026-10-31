@@ -298,7 +298,7 @@ func (t *priorityTx) ref(id state.ObjID) (protocol.ObjectRef, error) {
 		// legal walk offers the play_land option, so the seat is entitled to
 		// know the card). Section 5.1 gives it a look id, and the pose carries
 		// the Known entry the client needs.
-		if obj := t.env.G.E.G.Obj(id); obj != nil && obj.Zone == state.ZLibrary && obj.Owner == t.d.Player {
+		if obj := t.env.G.R.Board().Obj(id); obj != nil && obj.Zone == state.ZLibrary && obj.Owner == t.d.Player {
 			t.env.OpenLook(t.d.Player)
 			if lr, lerr := t.env.Obs.LookRef(t.d.Player, id); lerr == nil {
 				if t.hidden == nil {
@@ -366,10 +366,10 @@ func (t *priorityTx) Pose() (*Pose, error) {
 			if err != nil {
 				return nil, err
 			}
-			obj := t.env.G.E.G.Obj(o.Obj)
+			obj := t.env.G.R.Board().Obj(o.Obj)
 			list, ok := observed[o.Obj]
 			if !ok {
-				list = rules.ObservedAbilities(t.env.G.E, t.d.Player, o.Obj)
+				list = t.env.G.R.ObservedAbilities(t.d.Player, o.Obj)
 				observed[o.Obj] = list
 			}
 			occurrence := 0
@@ -430,7 +430,7 @@ func (t *priorityTx) Pose() (*Pose, error) {
 			if err != nil {
 				return nil, err
 			}
-			obj := t.env.G.E.G.Obj(o.Obj)
+			obj := t.env.G.R.Board().Obj(o.Obj)
 			method, optional, special, ok := CastMethod(o, obj.Card.AlternateMode)
 			if !ok {
 				return nil, fmt.Errorf("%w:cast_mode/%s", ErrUnmapped, o.Mode)
