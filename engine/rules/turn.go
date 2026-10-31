@@ -925,17 +925,20 @@ func (e *Engine) grantPriority() {
 		// game must not hand out a fresh priority decision.
 		return
 	}
-	holder := e.G.Priority
+	holder, passes := e.G.Priority, e.G.Passes
+	if e.G.Step == state.StepCleanup && !e.cleanupWindow {
+		// CR 514.3a: the window opens with the active player. A repeated
+		// cleanup step would otherwise inherit the last passer and their pass.
+		holder, passes = e.G.Active, 0
+		e.cleanupWindow = true
+	}
 	if e.G.Players[holder].Lost {
 		holder = e.G.NextAlive(holder)
 	}
 	if priorityFlowVerify && (e.cast != nil || e.choosing != chooseNone) {
 		panic(fmt.Sprintf("rules: priority granted to seat %d mid-flow (cast pending=%v, choosing=%d)", holder, e.cast != nil, e.choosing))
 	}
-	if e.G.Step == state.StepCleanup {
-		e.cleanupWindow = true
-	}
-	e.emit(events.Event{Kind: events.Priority, Player: holder, Amount: e.G.Passes})
+	e.emit(events.Event{Kind: events.Priority, Player: holder, Amount: passes})
 	e.askPriority(holder)
 }
 

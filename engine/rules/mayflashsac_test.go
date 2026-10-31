@@ -818,6 +818,7 @@ func TestCleanupEmptyStackPassRepeatsCleanup(t *testing.T) {
 	// different route -- that route is covered by the two end-to-end tests
 	// above; this one isolates the empty-stack arm itself.)
 	e.G.Passes = int32(e.G.AliveCount()) - 1
+	e.cleanupWindow = true
 	e.grantPriority()
 
 	d := e.Pending()

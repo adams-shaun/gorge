@@ -345,3 +345,59 @@ func Test3143SecondCleanupStep(t *testing.T) {
 	t.Parallel()
 	t.Skip("CR 514.3: a trigger created by cleanup (a discard or 514.2 action) is placed at the NEXT player's first priority instead of in a repeated cleanup step. Follow-up: make priorityRound re-run cleanup after granting priority when a cleanup action left pendingTriggers non-empty or performed a state-based action.")
 }
+
+// TestCleanupRepeatGivesActivePlayerPriority: the players pass on an empty
+// stack to repeat the step, and the repeat's discard triggers again. CR 514.3a
+// gives priority to the active player with no passes counted, not to the last
+// passer with their pass still counted.
+func TestCleanupRepeatGivesActivePlayerPriority(t *testing.T) {
+	t.Parallel()
+	for name, body := range map[string]string{
+		"placed without asking": "DB$ Draw | NumCards$ 1",
+		"placed after an ask":   "DB$ Draw | ValidTgts$ Player | NumCards$ 1",
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			e := layerEngine(t)
+			e.G.Active, e.G.Priority = 0, 0
+			e.G.Step = state.StepCleanup
+			onBoard(t, e, 0, "Name:Test Ledger\nManaCost:2\nTypes:Artifact\n"+
+				"T:Mode$ Discarded | ValidCard$ Card.YouOwn | TriggerZones$ Battlefield | Execute$ TestLedgerDraw | TriggerDescription$ A discard of yours replaces itself.\n"+
+				"SVar:TestLedgerDraw:"+body+"\nOracle:x\n")
+			onHand(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+
+			e.priorityRound()
+			// Two cleanup procedures: the first starts the step, the second is
+			// the repeat after the first trigger has resolved and both players
+			// have passed.
+			for round := 1; round <= 2; round++ {
+				hand := e.G.Zone(state.ZHand, 0)
+				submitDiscard(t, e, hand[len(hand)-1])
+				d := e.Pending()
+				if d != nil && d.Kind == decision.KTarget {
+					submitChoices(t, e, d.Options[0].Index)
+					d = e.Pending()
+				}
+				if d == nil || d.Kind != decision.KPriority {
+					t.Fatalf("round %d: pending %+v, want the cleanup priority window", round, d)
+				}
+				if d.Player != 0 || e.G.Passes != 0 || len(e.G.Stack) != 1 {
+					t.Fatalf("round %d: priority to seat %d with %d passes and %d on the stack, want the active seat 0, no passes, the trigger",
+						round, d.Player, e.G.Passes, len(e.G.Stack))
+				}
+				for e.Pending() != nil && e.Pending().Kind == decision.KPriority {
+					d := e.Pending()
+					if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
+						Choices: []int{passPriorityOption(t, d)}}); err != nil {
+						t.Fatalf("round %d: submit pass: %v", round, err)
+					}
+				}
+				if round == 1 {
+					if d := e.Pending(); d == nil || d.Kind != decision.KChoose || e.G.Step != state.StepCleanup {
+						t.Fatalf("after the first trigger: step %s pending %+v, want the repeated discard", e.G.Step, d)
+					}
+				}
+			}
+		})
+	}
+}
