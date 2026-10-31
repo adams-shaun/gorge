@@ -711,3 +711,76 @@ func TestCostMovesReadOwnActivation(t *testing.T) {
 		})
 	}
 }
+
+// TestCostMovesEndAtEveryKindOfPush pins that a resolving ability reads only its
+// own cost (CR 602.2b) however the other ability reached the stack: a gained or
+// a granted ability pushed after it names the same source, and each must both
+// close the first window and open its own.
+func TestCostMovesEndAtEveryKindOfPush(t *testing.T) {
+	t.Parallel()
+	const gained = "Name:Altar\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 3 | ConditionDefined$ Discarded | ConditionPresent$ Creature | SpellDescription$ Gain 3 for a creature.\n" +
+		"S:Mode$ Continuous | Affected$ Card.Self | EffectZone$ Battlefield | GainsAbilitiesOf$ Artifact.Other+YouCtrl | GainsAbilitiesOfZones$ Battlefield | Description$ It has what the others have.\n" +
+		"Oracle:x\n"
+	const donor = "Name:Donor\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 5 | ConditionDefined$ Discarded | ConditionPresent$ Creature | SpellDescription$ Gain 5 for a creature.\n" +
+		"Oracle:x\n"
+	const granted = "Name:Altar\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 3 | ConditionDefined$ Discarded | ConditionPresent$ Creature | SpellDescription$ Gain 3 for a creature.\n" +
+		"Oracle:x\n"
+	const granter = "Name:Donor\nTypes:Enchantment\n" +
+		"S:Mode$ Continuous | Affected$ Artifact.YouCtrl | AddAbility$ Extra | Description$ It has the extra.\n" +
+		"SVar:Extra:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 5 | ConditionDefined$ Discarded | ConditionPresent$ Creature | SpellDescription$ Gain 5 for a creature.\n" +
+		"Oracle:x\n"
+	const beast = "Name:Beast\nManaCost:1\nTypes:Creature Bear\nPT:5/5\nOracle:x\n"
+	const dirt = "Name:Dirt\nTypes:Land\nOracle:x\n"
+	printed := func(o decision.Option) bool { return o.GainedSource == 0 && o.GrantSource == 0 }
+	other := func(o decision.Option) bool { return !printed(o) }
+	for _, tc := range []struct {
+		name          string
+		source, extra string
+	}{{"gained", gained, donor}, {"granted", granted, granter}} {
+		for _, order := range []struct {
+			name          string
+			first, second func(decision.Option) bool
+			discard       [2]string
+			want          int32
+		}{
+			{"printed first", printed, other, [2]string{"Dirt", "Beast"}, 5},
+			{"printed first, its creature", printed, other, [2]string{"Beast", "Dirt"}, 3},
+			{"other first", other, printed, [2]string{"Beast", "Dirt"}, 5},
+			{"other first, its land", other, printed, [2]string{"Dirt", "Beast"}, 3},
+		} {
+			t.Run(tc.name+"/"+order.name, func(t *testing.T) {
+				t.Parallel()
+				e := handEngine(t, card(t, beast), card(t, dirt))
+				id := onBoardReady(t, e, 0, tc.source)
+				onBoardReady(t, e, 0, tc.extra)
+				activate := func(which func(decision.Option) bool, discard string) {
+					t.Helper()
+					e.priorityRound()
+					for _, o := range e.Pending().Options {
+						if o.Kind == "ability" && o.Obj == id && which(o) {
+							submitChoices(t, e, o.Index)
+							for _, c := range e.Pending().Options {
+								if c.Label == discard {
+									submitChoices(t, e, c.Index)
+									return
+								}
+							}
+							return // the last card in hand pays without an ask
+						}
+					}
+					t.Fatalf("the ability was not offered: %+v", e.Pending().Options)
+				}
+				activate(order.first, order.discard[0])
+				activate(order.second, order.discard[1])
+				life := e.G.Players[0].Life
+				passUntilStackEmpty(t, e, 20)
+				if got := e.G.Players[0].Life - life; got != order.want {
+					t.Fatalf("gained %d life, want %d", got, order.want)
+				}
+			})
+		}
+	}
+}

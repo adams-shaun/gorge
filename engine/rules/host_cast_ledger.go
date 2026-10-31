@@ -316,12 +316,8 @@ func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) boo
 	if o := e.G.Obj(obj); o != nil {
 		src = o.Source
 	}
-	isPush := func(k events.Kind) bool {
-		return k == events.PutOnStack || k == events.AbilityPush || k == events.TriggerPush ||
-			k == events.DelayedPush || k == events.GrantTriggerPush
-	}
 	isOwn := func(ev events.Event) bool {
-		return isPush(ev.Kind) && (ev.Obj == obj || (src != 0 && ev.Obj == src))
+		return mintsStackObject(ev) && (ev.Obj == obj || (src != 0 && ev.Obj == src))
 	}
 	// A source's later activations and triggers are later pushes naming it, each
 	// with a newer stack object: skip those to reach the push that minted obj.
@@ -354,7 +350,7 @@ func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) boo
 			}
 			continue
 		}
-		if isPush(ev.Kind) || ev.Kind == events.StepChange || ev.Kind == events.TurnChange ||
+		if mintsStackObject(ev) || ev.Kind == events.StepChange || ev.Kind == events.TurnChange ||
 			ev.Kind == events.ManaClear || ev.Kind == events.PlayerLost {
 			break
 		}
@@ -373,7 +369,7 @@ back:
 			if match(ev) {
 				before = append(before, ev.Obj)
 			}
-		case isPush(ev.Kind):
+		case mintsStackObject(ev):
 			break back
 		case ev.Kind == events.StepChange, ev.Kind == events.TurnChange, ev.Kind == events.ManaClear, ev.Kind == events.PlayerLost:
 			break back
@@ -407,17 +403,34 @@ func (e *Engine) castWindowMoves(obj state.ObjID, match func(events.Event) bool)
 	var out []state.ObjID
 	for i := anchor + 1; i < len(e.L.Events); i++ {
 		ev := e.L.Events[i]
+		if mintsStackObject(ev) {
+			return out
+		}
 		switch ev.Kind {
 		case events.MoveZone:
 			if match(ev) {
 				out = append(out, ev.Obj)
 			}
-		case events.PutOnStack, events.AbilityPush, events.TriggerPush, events.DelayedPush, events.GrantTriggerPush,
-			events.StepChange, events.TurnChange, events.ManaClear, events.PlayerLost:
+		case events.StepChange, events.TurnChange, events.ManaClear, events.PlayerLost:
 			return out
 		}
 	}
 	return out
+}
+
+// mintsStackObject reports an event that puts an object on the stack. A static
+// delayed trigger's DelayedPush only consumes its registration: the body
+// resolves inline.
+func mintsStackObject(ev events.Event) bool {
+	switch ev.Kind {
+	case events.PutOnStack, events.AbilityPush, events.TriggerPush, events.GrantTriggerPush,
+		events.GrantAbilityPush, events.GainedAbilityPush, events.GainedTriggerPush,
+		events.KeywordAbilityPush, events.KeywordTriggerPush, events.MergedTriggerPush, events.RingEmblemPush:
+		return true
+	case events.DelayedPush:
+		return ev.Text != "static"
+	}
+	return false
 }
 
 // reverseIDs restores log order to a backward scan's collection.
