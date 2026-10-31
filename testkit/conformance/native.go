@@ -14,16 +14,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/engine/view"
-	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
-	"github.com/adams-shaun/gorge/server/protocol"
 )
 
-const (
-	nativeTable = "conformance"
-	nativeMatch = "/api/tables/" + nativeTable + "/matches/1"
-)
+const nativeMatch = "/api/tables/" + tableName + "/matches/1"
 
 // Native is the HTTP API a browser plays through: a host table in process with
 // every seat a HumanSeat answered through /intent, and an omniscient spectator.
@@ -31,71 +25,16 @@ type Native struct{}
 
 func (Native) Name() string { return "native" }
 
-// Open starts c on e. A table takes c's deck identity from Names, so two seats
-// may share a name only by sharing a deck.
+// Open starts c on e.
 func (Native) Open(t testing.TB, e game.Engine, c game.Config) Session {
 	t.Helper()
-	if c.StartChooser != nil || c.DisablePaidManaCensus || c.NoObjectCap || c.NameUniverseNames != nil || c.Key != "" {
-		t.Fatal("native wire: a table cannot express StartChooser, DisablePaidManaCensus, NoObjectCap, NameUniverseNames or Key")
-	}
 	seats := len(c.Decks)
-	decks := make(map[string]host.Deck, seats)
-	tableDecks := make([]string, seats)
-	humans := make([]int, seats)
-	for i, name := range c.Names {
-		if prior, ok := decks[name]; ok && !slices.Equal(prior.Cards, c.Decks[i]) {
-			t.Fatalf("native wire: two different decks are named %q", name)
-		}
-		d := host.Deck{Name: name, Cards: c.Decks[i]}
-		if c.Sideboards != nil {
-			d.Sideboard = c.Sideboards[i]
-		}
-		if c.Archetypes != nil {
-			d.Archetype = c.Archetypes[i]
-		}
-		if c.Commanders != nil {
-			d.Commanders = c.Commanders[i]
-		}
-		decks[name] = d
-		// Seat i of a table's match k plays Decks[(i+k)%len], and this is match 1.
-		tableDecks[(i+1)%seats] = name
-		humans[i] = i
-	}
-	guard := host.DefaultMaxDecisionsPerTurn
-	if c.GuardDisabled {
-		guard = 0
-	}
-	r, err := host.New(host.Options{
-		LoadDeck: func(name string) (host.Deck, error) {
-			d, ok := decks[name]
-			if !ok {
-				return host.Deck{}, fmt.Errorf("no deck %q", name)
-			}
-			return d, nil
-		},
-		Tokens:              c.Tokens,
-		NameUniverse:        c.NameUniverse,
-		Engines:             map[string]game.Engine{e.Name(): e},
-		MaxDecisionsPerTurn: guard,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { r.Close() })
-	cfg := host.TableConfig{ID: nativeTable, Name: nativeTable, Seats: seats, Decks: tableDecks, Seed: c.Seed,
-		PlayerNames: c.PlayerNames, Spectator: view.Omniscient, Humans: humans, AutoMana: true, Mulligans: c.Mulligans,
-		WindowDiagnostics: c.WindowDiagnostics, Format: host.Format(c.Format), StartingLife: c.StartingLife, Engine: e.Name()}
-	if err := r.AddTable(cfg); err != nil {
-		t.Fatal(err)
-	}
-	if err := r.Start(nativeTable); err != nil {
-		t.Fatal(err)
-	}
+	r := startTable(t, "native", e, c)
 	s := &nativeSession{t: t, spectator: httpapi.NewHandler(r, httpapi.Options{})}
 	for i := range seats {
 		s.seats = append(s.seats, httpapi.NewHandler(r, httpapi.Options{
 			Seat: func(*http.Request) (httpapi.SeatClaim, bool) {
-				return httpapi.SeatClaim{Table: nativeTable, Seat: state.PlayerID(i)}, true
+				return httpapi.SeatClaim{Table: tableName, Seat: state.PlayerID(i)}, true
 			},
 		}))
 	}
@@ -224,14 +163,7 @@ func (s *nativeSession) submit(in decision.Intent) error {
 func (s *nativeSession) poll() (*decision.Decision, []byte) {
 	s.t.Helper()
 	for {
-		var infos []protocol.MatchInfo
-		if err := json.Unmarshal(s.get(s.spectator, "/api/tables/"+nativeTable+"/matches"), &infos); err != nil {
-			s.t.Fatal(err)
-		}
-		if len(infos) == 1 && infos[0].State != protocol.MatchLive {
-			if infos[0].State != protocol.MatchFinished {
-				s.t.Fatalf("native wire: match ended %s, seed %d: %s", infos[0].State, infos[0].Seed, infos[0].Result)
-			}
+		if tableFinished(s.t, "native", s.spectator) {
 			return nil, nil
 		}
 		for i := range s.seats {
