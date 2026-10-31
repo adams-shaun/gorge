@@ -119,7 +119,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 117.3c | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | - |
 | 117.3d | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | - |
 | 117.4 | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | all pass: resolve or advance |
-| 117.5 | follows | `engine/rules/turn.go#Engine.priorityRound` | - | SBAs and triggers before priority |
+| 117.5 | partial | `engine/rules/turn.go#Engine.priorityRound` `engine/rules/turn.go#Engine.resumeTriggerDrain` | `TestOrderedDrainSacrificesASagaWhoseFinalChapterHadNoTarget` | SBAs and triggers before priority; an answered drain repeats them, but a drain straight from priorityRound grants priority without a further check |
 | 117.6 | n/a | - | - | shared team turns |
 | 117.7 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | stack LIFO |
 | 118.1-118.2 | follows | `engine/rules/pay/solve.go#ResolveManaWith` | `TestTriggerCostReturnsPermanentToHand` | - |

@@ -1117,8 +1117,23 @@ func (e *Engine) resumeTriggerDrain() {
 	if e.G.Over {
 		return
 	}
-	if e.putTriggersOnStack() {
-		return
+	for {
+		placing := len(e.pendingTriggers) > 0
+		if e.putTriggersOnStack() {
+			return
+		}
+		if !placing {
+			break
+		}
+		// CR 117.5: state-based actions and triggers repeat until neither has
+		// anything left, and only then does a player receive priority. A drain
+		// can make one due: a final chapter removed for want of a legal target
+		// (CR 603.3d) leaves its Saga to be sacrificed (CR 714.4). submitCommit's
+		// own check waits for the answer to this round's priority decision.
+		e.checkStateBased()
+		if e.G.Over || e.pending != nil {
+			return
+		}
 	}
 	e.grantPriority()
 }
