@@ -16,10 +16,11 @@ import (
 
 // Extensions are what a binary links into gorged beyond the platform. The
 // zero value is the bare platform: no draft events and no review loader
-// (gorge's own cmd/gorged links only the feedback-snapshot review loader).
+// (gorge's own cmd/gorged links draft events and the feedback-snapshot review
+// loader).
 type Extensions struct {
 	// Events, when set, serves draft events under /api/events with -events
-	// (four-yay's draft runtime). Without it -events is refused at startup.
+	// (draft/gorgedevents). Without it -events is refused at startup.
 	Events EventsPlugin
 	// Flags, when set, registers the extensions' own flags on gorged's
 	// command line (Main, Serve and ServeFlagSetFor call it on the fresh
@@ -74,7 +75,7 @@ type EventRuntime interface {
 	Close() error
 }
 
-var errEventsNeedPlugin = errors.New("-events needs a binary with draft events linked in (four-yay's gorged)")
+var errEventsNeedPlugin = errors.New("-events needs a binary with draft events linked in (gorge's cmd/gorged links them)")
 
 // eventsWiring is serve's handle on a prepared runtime; the zero value means
 // -events is off.

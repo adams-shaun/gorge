@@ -18,7 +18,7 @@ const (
 )
 
 // NetBot is a hosted policy whose seat loads a trained network at startup
-// (az-c3/az-c4/az-c5, linked in by four-yay's gorged). gorged owns the
+// (az-c3/az-c4/az-c5, linked in by a binary that carries them). gorged owns the
 // policy names, their flags and the closed deck-list machinery; the binary
 // supplies the implementation with RegisterNetBot before Main.
 type NetBot struct {
@@ -118,5 +118,5 @@ func netBot(policy string) (NetBot, bool) {
 // notLinked is the startup refusal for a net flag naming a policy this
 // binary does not carry.
 func notLinked(flag, policy string) error {
-	return fmt.Errorf("%s: %s is not linked into this binary (build four-yay's gorged)", flag, policy)
+	return fmt.Errorf("%s: %s is not linked into this binary (a net policy's implementation is registered with gorged.RegisterNetBot)", flag, policy)
 }

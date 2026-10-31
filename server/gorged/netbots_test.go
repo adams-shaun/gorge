@@ -30,7 +30,7 @@ func TestNetBotNotLinked(t *testing.T) {
 	}
 	for _, policy := range closedPolicies {
 		c := withClosedAZ(config{autoMana: true, botAutoPayMana: true}, policy, closedAZ{net: "n.dzgw", decks: "d", belief: "b"})
-		want := "-" + policy + "-net: " + policy + " is not linked into this binary (build four-yay's gorged)"
+		want := "-" + policy + "-net: " + policy + " is not linked into this binary (a net policy's implementation is registered with gorged.RegisterNetBot)"
 		if err := c.checkClosedAZFlags(); err == nil || err.Error() != want {
 			t.Errorf("%s unlinked: error %v, want %q", policy, err, want)
 		}

@@ -153,10 +153,14 @@ func set(s string) map[string]bool {
 // deadlines. No game, event, view or replay reads the clock, and intents reach
 // the engine only through SubmitIntent.
 //
+// draft/eventhost reads the clock only for lobby, idle and pick timers, through
+// Options.Now/Options.Clock; the event log records their outcome as entries, and
+// replay never reads the clock.
+//
 // The research tools that also read the clock (botbench, searchteacher, the
-// SpellBench agents, the draft-event runtime and the rest) moved to four-yay
-// with the lab tree, and the pipeline's issue ledger (cmd/ledger) with the ops
-// tree (docs/decisions/0001-repo-layout.md and its amendments).
+// SpellBench agents and the rest) moved to four-yay with the lab tree, and the
+// pipeline's issue ledger (cmd/ledger) with the ops tree
+// (docs/decisions/0001-repo-layout.md and its amendments).
 func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	allowed := map[string]bool{
 		module + "/server/host":              true,
@@ -166,6 +170,7 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 		module + "/cmd/paymirror":            true,
 		module + "/cmd/enginebench":          true,
 		module + "/server/host/manabrewhttp": true,
+		module + "/draft/eventhost":          true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {

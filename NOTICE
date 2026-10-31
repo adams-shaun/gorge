@@ -27,10 +27,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-17Lands. The 17Lands-derived decks in cmd/enginebench/testdata/decks derive from
-17Lands public datasets (https://www.17lands.com), licensed under CC BY 4.0
-(https://creativecommons.org/licenses/by/4.0/). Changes: decks filtered by
-win-rate bucket.
+17Lands. draft/limited/pickbot/ratings/FDN.json and the 17Lands-derived decks in
+cmd/enginebench/testdata/decks derive from 17Lands public datasets
+(https://www.17lands.com), licensed under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). Changes: per-card aggregates;
+decks filtered by win-rate bucket.
+
+MTGJSON. draft/limited/setdata/mtgjson and draft/limited/setdata/sets are trimmed
+from MTGJSON (https://mtgjson.com, MIT, copyright Zachary Halpern); see
+draft/limited/setdata/mtgjson/LICENSE-MTGJSON.txt.
 
 XMage. engine/rules/testdata/sets lists card names taken from manifests derived
 from XMage (MIT, https://github.com/magefree/mage); see gorge-compliance's NOTICE.
