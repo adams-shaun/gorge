@@ -39,7 +39,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 602.1e | unknown | - | - | not traced |
 | 602.2 | follows | `engine/rules/legal_activation.go#Engine.activatorAllows` `engine/events/apply_delayed.go#foldDelayedPush` | `TestSelfGrantedActivationIsAnActivatedAbility` | controller-only unless Activator$; a self-granted activation is an activated ability on the stack |
 | 602.2a | follows | `engine/rules/cast_targets.go#Engine.pushActivation` `engine/rules/cast_commit.go#Engine.abortCast` | `TestCR602_2aAbilityIsOnTheStackBeforeItsTarget` `TestCR602_2aAbortedActivationKeepsItsOncePerTurnUse` | ability pushed before every 602.2b choice; reversal undoes the census (ActivationReversed) |
-| 602.2b | follows | `engine/rules/activate.go#Engine.beginActivationPaid` `engine/rules/cast_begin.go#Engine.continueCast` | `TestCR602ActivationTargetsPrecedePayment` `TestCR602ManaWindowDuringActivation` `TestCR602ActivationCostIncludesReduction` `TestCostMovesReadOwnActivation` `TestCostMovesEndAtEveryKindOfPush` | shared build path |
+| 602.2b | follows | `engine/rules/activate.go#Engine.beginActivationPaid` `engine/rules/cast_begin.go#Engine.continueCast` `engine/rules/announce_pay.go#Engine.announcedAutoFillPlan` | `TestCR602ActivationTargetsPrecedePayment` `TestCR602ManaWindowDuringActivation` `TestCR602ActivationCostIncludesReduction` `TestCostMovesReadOwnActivation` `TestCostMovesEndAtEveryKindOfPush` `TestAbilityAutoPaySurvivesItsAnnouncements` | shared build path |
 | 602.3 | follows | `engine/rules/target_ask.go#Engine.targetAskChooser` | - | d none in pool |
 | 602.3a | follows | `engine/rules/target_ask.go#Engine.opponentPicker` | - | as 601.7a; d two players |
 | 602.3b | unknown | - | - | as 601.7b, not traced |

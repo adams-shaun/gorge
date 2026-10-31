@@ -11,6 +11,7 @@ const (
 	apaIsland = "Name:Test Island\nTypes:Land Island\nA:AB$ Mana | Cost$ T | Produced$ U | SpellDescription$ Blue mana.\nOracle:x\n"
 	apaForest = "Name:Test Forest\nTypes:Land Forest\nA:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Green mana.\nOracle:x\n"
 	apaDrone  = "Name:Test Drone\nManaCost:1\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n"
+	apaDork   = "Name:Test Dork\nManaCost:1\nTypes:Creature Elf\nPT:1/1\nA:AB$ Mana | Cost$ T | Produced$ C | Amount$ 2 | SpellDescription$ Two colourless.\nOracle:x\n"
 )
 
 // An activation's auto-pay witness is priced before its announcements. One they
@@ -28,6 +29,9 @@ func TestAbilityAutoPaySurvivesItsAnnouncements(t *testing.T) {
 		{"target reduces the cost", "Ghostfire Blade", []string{apaDrone, apaIsland, apaIsland, apaIsland}, 1},
 		// The Phyrexian pip of {1}{G/P} settles as mana only once it is chosen.
 		{"Phyrexian pip settled", "Birthing Pod", []string{apaDrone, apaForest, apaForest}, 2},
+		// The creature tapped for {2}, tap a creature can also be the witness's
+		// source (CR 602.2b: one permanent can't pay both), and another remains.
+		{"helper was the witness", "Volrath's Gardens", []string{apaDork, apaDork}, 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
