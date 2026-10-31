@@ -63,25 +63,21 @@ func effExplore(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// exploreOnce runs one explore process for explorer. An explorer that has
-// left the battlefield, an already-replaced explore or an empty library
-// explores nothing (an empty library cannot reveal a card, so the process has
-// nothing to record — no events.Explore marker, so no trigger fires).
+// exploreOnce runs one explore process for explorer. An explorer that has left
+// the battlefield still explores, by its last known controller (CR 701.44c), and
+// an empty library still counts as exploring (CR 701.44b).
 func exploreOnce(h Host, c *Ctx, sa *cards.SA, explorer state.ObjID) {
 	g := h.Game()
-	o := g.Obj(explorer)
-	if o == nil || o.Zone != state.ZBattlefield {
-		return
-	}
+	ctrl := lastKnownController(g, c, explorer)
 	// CR 614.4: the replacement window is before the process. A matching
 	// R:Event$ Explore replacement's body has now run (inside the host call)
 	// and this explorer's own process is replaced whole.
-	if h.ActionReplaced(events.Event{Kind: events.Explore, Obj: explorer, Player: o.Controller}) {
+	if h.ActionReplaced(events.Event{Kind: events.Explore, Obj: explorer, Player: ctrl}) {
 		return
 	}
-	ctrl := o.Controller
 	lib := g.Zone(state.ZLibrary, ctrl)
 	if len(lib) == 0 {
+		h.Emit(events.Event{Kind: events.Explore, Obj: explorer, Player: ctrl})
 		return
 	}
 	top := lib[0]
@@ -116,27 +112,24 @@ func exploreOnce(h Host, c *Ctx, sa *cards.SA, explorer state.ObjID) {
 	if ans, ok := AskTape(h, d); ok {
 		// The "explore" answer in hand (any answer but "top" sends the
 		// card to the graveyard).
-		applyNonlandExplore(h, explorer, top, len(ans) == 0 || ans[0].Kind != "top")
+		applyNonlandExplore(h, explorer, ctrl, top, len(ans) == 0 || ans[0].Kind != "top")
 		return
 	}
 
 	// No host (an effects-package test double, a fuzz run): option 0, the
 	// state-changing choice — the exact mirror of botpolicy's clamp answer.
-	applyNonlandExplore(h, explorer, top, true)
+	applyNonlandExplore(h, explorer, ctrl, top, true)
 }
 
 // applyNonlandExplore applies a nonland explore's outcome: the +1/+1 counter
-// on the explorer (CR 701.35a's counter comes before the card's destination),
-// then the destination move (into the graveyard, or back on top — a stay, no
-// event), then the one events.Explore record both shapes share.
-func applyNonlandExplore(h Host, explorer, card state.ObjID, toGraveyard bool) {
+// on the explorer if it is still there (the counter comes before the card's
+// destination), then the destination move (into the graveyard, or back on top
+// — a stay, no event), then the one events.Explore record both shapes share.
+func applyNonlandExplore(h Host, explorer state.ObjID, ctrl state.PlayerID, card state.ObjID, toGraveyard bool) {
 	g := h.Game()
-	o := g.Obj(explorer)
-	if o == nil {
-		return
+	if o := g.Obj(explorer); o != nil && o.Zone == state.ZBattlefield {
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: explorer, Counter: "P1P1", Amount: 1})
 	}
-	ctrl := o.Controller
-	h.Emit(events.Event{Kind: events.CounterChange, Obj: explorer, Counter: "P1P1", Amount: 1})
 	if toGraveyard {
 		if co := g.Obj(card); co != nil && co.Zone == state.ZLibrary {
 			ev := events.Event{Kind: events.MoveZone, Obj: card,

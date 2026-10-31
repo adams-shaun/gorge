@@ -62,10 +62,11 @@ func cycledMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 // The revealed card is matched in whatever zone the explore left it in (hand
 // or graveyard, or back on top): the plain type predicates both carriers use
 // are zone-independent, and the reveal Note that precedes the record already
-// made the card public, so no LKI capture is needed. A record with no
-// revealed card is unreachable (an empty library records nothing).
+// made the card public, so no LKI capture is needed. An empty library reveals
+// no card: the permanent still explores (CR 701.44b), but no ValidExplored$
+// holds.
 func exploresMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if ev.Kind != events.Explore || len(ev.IDs) == 0 {
+	if ev.Kind != events.Explore {
 		return false
 	}
 	ctrl := e.ControllerOf(source)
@@ -78,7 +79,7 @@ func exploresMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Eve
 		return false
 	}
 	if v := t.ParamStr(cards.PKValidExplored); v != "" &&
-		!e.MatchesSpec(v, ev.IDs[0], source, ctrl, SpecOpts{}) {
+		(len(ev.IDs) == 0 || !e.MatchesSpec(v, ev.IDs[0], source, ctrl, SpecOpts{})) {
 		return false
 	}
 	return true

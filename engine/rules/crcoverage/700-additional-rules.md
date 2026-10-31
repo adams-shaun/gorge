@@ -134,8 +134,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.41a | deviates | `engine/effects/counters_put.go#putCounterSupport` | `TestLeadByExampleSpellSupportOffersEveryCreature` | support not targeted: ignores hexproof/ward |
 | 701.42a-c | follows | `engine/effects/meld.go#Meld` `engine/effects/meld.go#meldRoles` `engine/effects/meld_api.go#effMeld` | - |  |
 | 701.43a-d | follows | `engine/rules/combat.go#Engine.startExertAsks` `engine/rules/combat.go#Engine.exertAnswer` `engine/rules/turn.go#Engine.finishUntapStep` | - |  |
-| 701.44a | follows | `engine/effects/explore.go#effExplore` `engine/effects/explore.go#exploreOnce` | - |  |
-| 701.44b-c | deviates | `engine/effects/explore.go#exploreOnce` | - | empty library / departed explorer: nothing, no trigger |
+| 701.44a | follows | `engine/effects/explore.go#effExplore` `engine/effects/explore.go#exploreOnce` | `TestDepartedExplorerNonlandFiresExploresTrigger` |  |
+| 701.44b-c | follows | `engine/effects/explore.go#exploreOnce` `engine/effects/connive.go#lastKnownController` | `TestDepartedExplorerStillPutsLandInHand` `TestDepartedExplorerNonlandFiresExploresTrigger` `TestExploreWithEmptyLibraryStillExplores` |  |
 | 701.44d | partial | `engine/effects/explore.go#effExplore` | - | Defined order, not APNAP |
 | 701.45a | n/a | - | - | - |
 | 701.46a | follows | `engine/effects/counters_put.go#effPutCounter` | `TestAdaptDBBodyCountsAndConditionsOnNoP1P1` |  |
