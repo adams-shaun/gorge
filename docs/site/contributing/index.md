@@ -16,18 +16,9 @@ flowchart LR
   pr --> ci["ci green,<br/>review, merge"]
 ```
 
-## Prerequisites
-
-| Need | Version | Why |
-|---|---|---|
-| Go | the `go` line in `go.mod` | Go 1.21 or later downloads it itself under the default `GOTOOLCHAIN=auto` |
-| `git`, `make`, `bash` | any recent | the Makefile and scripts |
-| Node | 22.12 or newer, **only** for `web/` | the browser client build and its tests (`web/README.md`) |
-
-No cgo and no C toolchain are needed; gorge has no third-party Go
-dependencies.
-
 ## Clone and fetch the card corpus
+
+[Install and build](../guide/install.md#prerequisites) lists the prerequisites.
 
 ```sh
 git clone https://github.com/adams-shaun/gorge && cd gorge
@@ -82,35 +73,10 @@ cd ../gorge-myfix
     `SKIP ... no .cards/ corpus present`. CI refuses to run without the
     corpus for exactly this reason.
 
-## Run tests focused, inside the budget
+## Run tests
 
-Run **one package and one `-run` pattern at a time**:
-
-```sh
-go test -run 'TestOmniscienceInHandGrantsNothing' ./engine/rules/
-go test -v -run '^TestHeads$/^2seats$' ./engine/rules/
-```
-
-On a shared Linux machine with systemd, the maintainers cap every run at the
-per-test budget, and you can do the same:
-
-```sh
-systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% \
-  env GOMAXPROCS=4 GOMEMLIMIT=3GiB \
-  go test -timeout 2m -run 'TestEveryRepoDeckIsFullySupported' -v ./engine/rules/
-```
-
-- **The budget.** Every single test fits **4 GB RSS, 4 vCPU and 1 minute of
-  wall time**. A test outside it is a defect: split it into chunk tests that
-  share fixtures, never trim what it checks. `cmd/testbudget` enforces it in
-  the post-merge suite ([why](../architecture/invariants.md#every-test-fits-the-budget)).
-- **Do not use `go test ./...` as your inner loop.** `make test` runs exactly
-  that (with `-p=2`): the full suite, which CI runs.
-- **Never `-count=1`.** It defeats the test cache and buys nothing: Go
-  already reruns a test whose inputs changed.
-- **Load the corpus only through `testutil.CorpusRegistry(t)`**, never
-  `cards.LoadRegistry`: the shared registry opens once per test binary,
-  while a fresh one costs hundreds of MB.
+Run one package and one `-run` pattern at a time, inside the per-test budget.
+[Testing](testing.md#focused-runs) has the rules and the capped command.
 
 ## Lint
 
@@ -183,7 +149,7 @@ docs build.
 
 ## Reproduce a feedback report
 
-A player bug report filed from a game on a gorge server carries a replayable
+A player bug report filed from a game on `gorged` carries a replayable
 snapshot (`match.json`, `log.json`, the seat's `view.json`). `cmd/repro`
 turns it into a failing test:
 

@@ -15,7 +15,7 @@ Turn them on with `-events`:
 
 ```sh
 make fetch-cards   # once: the pinned card corpus, into .cards/
-make web           # once, before gorged is built: the browser client (needs Node 20+)
+make web           # once, before gorged is built: the browser client
 go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-draft -events
 ```
 

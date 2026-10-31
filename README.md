@@ -37,8 +37,7 @@ by decision. Its source isn't in this repository yet;
 
 ## Quickstart
 
-You need Go (the version in `go.mod`), `git`, `make` and `bash`. There is no cgo
-and there are no third-party Go modules.
+[Install and build](docs/site/guide/install.md#prerequisites) lists the prerequisites.
 
 ```sh
 make fetch-cards compile-cards    # one-time: Forge's scripts into .cards/ (about 140 MB), then the compiled cache
@@ -48,7 +47,7 @@ bin/gorged -addr :8090 -dir /tmp/gorge-local -tables 2 -seats 4 -vsbot
 ```
 
 `curl localhost:8090/api/tables` lists the running tables. The browser client is
-embedded at build time, so run `make web` (needs Node) before `go build` to get it;
+embedded at build time, so run `make web` before `go build` to get it;
 without it the web root answers `503` and the `/api/*` routes still work. Never
 point two servers at one `-dir`. [Getting started](docs/site/getting-started.md)
 walks through this and the tests.

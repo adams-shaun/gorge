@@ -12,9 +12,7 @@ worktrees and what CI runs, is [docs/site/contributing/index.md](docs/site/contr
 
 ## Set up
 
-You need Go (the version on the `go` line of `go.mod`; Go 1.21 or later downloads it
-itself under the default `GOTOOLCHAIN=auto`), `git`, `make` and `bash`. Node 22.12 or
-newer is needed only for `web/`. There is no cgo and no C toolchain.
+[Install and build](docs/site/guide/install.md#prerequisites) lists the prerequisites.
 
 ```sh
 make fetch-cards      # Forge card and token scripts into .cards/ (about 140 MB)
@@ -51,24 +49,11 @@ The full list, with what enforces each, is
 6. **Imports run one way.** `engine/` packages import nothing outside `engine/`, and
    `effects` never imports `rules`.
 
-## Run tests focused
+## Run tests
 
-```sh
-go test -run 'TestOmniscienceInHandGrantsNothing' ./engine/rules/
-go test -run '^TestHeads$' ./engine/rules/
-```
-
-- One package and one `-run` pattern at a time. `go test ./...` is the full suite,
-  which CI runs.
-- Never add `-count=1`. Go already re-runs a test whose inputs changed.
-- Corpus tests **skip** without `.cards/`, so a package can print `ok` in 2 ms having
-  run almost nothing. If a run looks fast, re-run with `-v` and look for `SKIP`. A git
-  worktree has no `.cards/` until you link it: `ln -s <main checkout>/.cards .cards`.
-- Every test must fit 4 GB RSS, 4 vCPU and one minute. A test over budget gets split
-  into chunks, never trimmed.
-
-What each ratchet and golden failure means is in
-[Testing](docs/site/contributing/testing.md).
+Run one package and one `-run` pattern at a time.
+[Testing](docs/site/contributing/testing.md#focused-runs) has the rules, and what
+each ratchet and golden failure means.
 
 ## Pull request checklist
 

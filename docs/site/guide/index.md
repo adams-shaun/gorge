@@ -10,13 +10,13 @@ another language, see [Bots](../bots/index.md).
 ```sh
 git clone https://github.com/adams-shaun/gorge && cd gorge
 make fetch-cards   # the pinned Forge card scripts, into .cards/
-make web           # the browser client; needs Node 20+ and must come before the next line
+make web           # the browser client; must come before the next line
 go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-play \
   -feedback /tmp/gorge-play-feedback -vsbot
 # open http://127.0.0.1:8090/ and press "Start game"
 ```
 
-You need Go, git, make and bash; Node only for `make web`. [Install and build](install.md) explains
+[Install and build](install.md) lists the prerequisites and explains
 each step. For bot games alone, skip the client and run `make sim` after `make fetch-cards`:
 it plays 20 verified bot games in a few seconds.
 

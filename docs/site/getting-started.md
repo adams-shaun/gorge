@@ -5,8 +5,7 @@ focused test run, in about five minutes plus one download. The
 [User's guide](guide/index.md) goes further on hosting and playing;
 [Contributing](contributing/index.md) on changing the code.
 
-You need Go (the version on the `go` line of `go.mod`), `make`, `git` and `bash`. Node is
-needed only to build the browser client.
+[Install and build](guide/install.md#prerequisites) lists the prerequisites.
 
 ## 1. Fetch and compile the card corpus
 
@@ -64,7 +63,7 @@ log. The numbers move when a change alters what the games do.
 ## 3. Run a local server
 
 ```sh
-make web                                     # optional: build the browser client (needs Node)
+make web                                     # optional: build the browser client
 go build -trimpath -o bin/gorged ./cmd/gorged
 bin/gorged -addr :8090 -dir /tmp/gorge-local -tables 2 -seats 4 -vsbot
 ```
@@ -84,18 +83,15 @@ when you are offline. [Play in the browser](guide/play.md) walks through the res
 
 ## 4. Run the tests
 
-Run tests focused, one package and a `-run` pattern at a time:
-
 ```sh
 go test -run '^TestHeads$' ./engine/rules/
 go test -run 'TestOracleRunnerContract' ./engine/rules/
 ```
 
 `TestHeads` plays one golden bot game at each of 2, 4, 6 and 8 seats and compares each game's
-chain head with a committed value. Avoid `make test` (`go test ./...`) as an everyday command:
-the full suite is large and runs in CI. Tests that need the corpus **skip** when `.cards/` is
-missing, so a fast green run without it has tested very little.
-[Testing](contributing/testing.md) has the helpers and what each failure means.
+chain head with a committed value. [Testing](contributing/testing.md#focused-runs) has how to run
+tests without the whole suite, how to tell a skipped corpus test from a pass, and what each failure
+means.
 
 ## 5. Reproduce a reported game
 
