@@ -250,8 +250,10 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			if free {
 				// A free plain literal production is windowManaUnits' domain
 				// (already counted); a free choice-shaped one is not, and a
-				// free dynamic amount is the shape this layer adds.
-				if !any && availableAmountOf(mp) > 0 {
+				// free dynamic amount is the shape this layer adds. The shape
+				// is the printed one: that census withholds a recorded Chosen
+				// although the substitution above reads as a plain colour.
+				if !mp.CountsAny && availableAmountOf(mp) > 0 {
 					continue
 				}
 			}
@@ -324,13 +326,13 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID) bool
 		if _, ok := e.castWindowAmount(p, id, o, ma); !ok {
 			return true
 		}
-		counts, any := mp.Counts, mp.CountsAny
+		counts := mp.Counts
 		if mp.NeedsChosen {
 			chosen := pay.ChosenProducedColour(e.G, id)
 			if chosen == "" {
 				return true
 			}
-			counts, any = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
+			counts, _ = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
 		}
 		total := int32(0)
 		for _, n := range counts {
@@ -339,7 +341,7 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID) bool
 		if total <= 0 {
 			return true
 		}
-		if free && !any && availableAmountOf(mp) > 0 {
+		if free && !mp.CountsAny && availableAmountOf(mp) > 0 {
 			return true
 		}
 	}
@@ -480,6 +482,11 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 // each caller already applies it.
 func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 	typed [7]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
+	// CR 119.8: under a CantChangeLife static no positive life may be paid,
+	// whether by the cost or by a PayLife source's activation.
+	if asEval(e).LifeChangeForbidden(p) {
+		life = 0
+	}
 	payable := func(pool, snowPool state.Mana, lifeNow int32) bool {
 		_, ok := resolveManaWith(cost, pool, snowPool, typed, lifeNow,
 			asEval(e).PayLifeInsteadOfB(p), rider, conv)
@@ -488,6 +495,17 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 	}
 	if payable(spellPool, snow, life) {
 		return true
+	}
+	// Every activation adds at least one mana and a minimal sequence spends
+	// some of each, so it needs no more activations than the cost's pips plus
+	// the fees it pays.
+	budget := cost.ManaPipCount()
+	for _, u := range units {
+		fee := int32(0)
+		for _, a := range u.Alts {
+			fee = max(fee, a.CostGeneric)
+		}
+		budget += int(fee)
 	}
 	free := e.unrestrictedWindowPool(p)
 	// Stable free-first ordering: a free alt sorts before a paid one; ties
@@ -514,10 +532,13 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 	// ran out before the right production was tried: a payable {G}{U}
 	// activation was judged unreachable and every target dropped off its
 	// Min 0 ask (lockstep pairs 1509 3986, Zimone, Paradox Sculptor).
-	var rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree int) bool
-	rec = func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree int) bool {
+	var rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool
+	rec = func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool {
 		if payable(pool, spellSnow, lifeLeft) {
 			return true
+		}
+		if remaining <= 0 {
+			return false
 		}
 		nodes++
 		if nodes > 1<<18 {
@@ -563,7 +584,7 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 				}
 				used[i] = true
 				found := rec(pay.ManaAdd(nextPool, produced), nextSpellSnow,
-					pay.ManaAdd(nextActivation, produced), nextActivationSnow, lifeLeft-a.Life, next)
+					pay.ManaAdd(nextActivation, produced), nextActivationSnow, lifeLeft-a.Life, next, remaining-1)
 				used[i] = false
 				if found {
 					return true
@@ -572,7 +593,7 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 		}
 		return false
 	}
-	return rec(spellPool, snow, free, snow, life, -1)
+	return rec(spellPool, snow, free, snow, life, -1, budget)
 }
 
 func manaSub(a, b state.Mana) state.Mana {

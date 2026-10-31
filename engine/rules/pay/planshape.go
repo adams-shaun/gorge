@@ -573,16 +573,6 @@ var paymentPlanSelfDamageTriggerCodes = state.NewStrCodes(
 // supplies) and by a hard node budget; beyond that it fails closed, which is
 // the conservative direction (never offer a Pay the window cannot complete).
 func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, conv *Conv, units []WindowUnit) bool {
-	return ManaReachable(e, p, cost, pool, snow, typed, life, PipRider{}, conv, units)
-}
-
-// ManaReachable reports whether cost can be paid from pool plus at most one
-// production alternative per mana source.  The cast announcement path uses a
-// non-empty rider here: a MayPlayIgnoreColor grant must widen the same
-// candidate face test as it widens the eventual payment.  The unless-payment
-// callers deliberately retain their ordinary no-rider semantics through the
-// wrapper above.
-func ManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, rider PipRider, conv *Conv, units []WindowUnit) bool {
 	// CR 119.7/119.8: under a CantChangeLife static no positive life may be
 	// paid, so neither the charge's own fixed life nor a PayLife source's
 	// activation is reachable -- exactly the solver's answer for a payer
@@ -594,7 +584,7 @@ func ManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, snow s
 	}
 	payable := func(pool state.Mana, lifeNow int32) bool {
 		_, ok := ResolveManaWith(cost, pool, snow, typed, lifeNow,
-			e.Eval().PayLifeInsteadOfB(p), rider, conv)
+			e.Eval().PayLifeInsteadOfB(p), PipRider{}, conv)
 
 		return ok
 	}

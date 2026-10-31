@@ -208,8 +208,9 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// Gitaxian Probe with an Island offered only "Pay 2 life".  Probe the same
 	// concrete source alternatives that manaWindowAsk can subsequently offer,
 	// after composing exactly the modifiers, commander tax, and Delve credit
-	// that payCast will charge.  This is an offer-side read only; the chosen
-	// face still reaches the ordinary mana window and is paid there.
+	// that payCast will charge, activation fees included.  This is an offer-side
+	// read only; the chosen face still reaches the ordinary mana window and is
+	// paid there.
 	charged := pc.mods.Apply(c)
 	charged.Generic = addClampedGeneric(charged.Generic, int64(pc.taxGeneric))
 	charged.Generic -= delve
@@ -220,9 +221,9 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 		return false
 	}
 	av := pay.AvailableFor(asPayer(e), pc.player, payment)
-	return pay.ManaReachable(asPayer(e), pc.player, charged, av.Pool, e.G.Players[pc.player].Snow,
-		av.Typed, e.G.Players[pc.player].Life, rider,
-		asEval(e).Conv(pc.player, payment.ID, payment.Class == paymentActivated), e.castWindowUnits(pc))
+	return e.castWindowReachable(pc.player, charged, av.Pool, e.G.Players[pc.player].Snow,
+		av.Typed, e.G.Players[pc.player].Life,
+		asEval(e).Conv(pc.player, payment.ID, payment.Class == paymentActivated), rider, e.castWindowUnits(pc))
 }
 
 // hasRemainingManaComponent reports whether c still demands a mana payment

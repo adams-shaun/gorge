@@ -53,7 +53,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 105.1-105.3 | follows | `engine/rules/layer5colors.go#Engine.derivedColorTable` | - |  |
 | 105.4 | follows | `engine/effects/choose.go#effChooseColor` | - | - |
 | 105.5 | unknown | - | - | not reached |
-| 106.1-106.3 | follows | `engine/state/game.go#Player.Pool` `engine/effects/mana_effect.go#effMana` | - | - |
+| 106.1-106.3 | follows | `engine/state/game.go#Player.Pool` `engine/effects/mana_effect.go#effMana` `engine/rules/cast_window.go#Engine.castWindowProbeUnits` | `TestCastWindowChosenColourPaysHybridFace` | - |
 | 106.4-106.4b | follows | `engine/rules/turn.go#Engine.finishStepBoundary` `engine/events/event.go#ManaClear` | - | pool empties between steps |
 | 106.5 | unknown | - | - | not reached |
 | 106.6-106.6a | partial | `engine/effects/mana_effect.go#effMana` `engine/rules/pay/payment.go#RestrictValidMatches` | - | LOUD (gorge register RestrictValid row) |
@@ -61,7 +61,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 107.1-107.1c | follows | `engine/state/game.go#Player.Life` | - | integer state throughout |
 | 107.2 | unknown | - | - | not reached |
 | 107.3-107.3p | follows | `engine/rules/cast_subcounter.go#Engine.xAsk` | - | cast X ask |
-| 107.4-107.6 | follows | `engine/rules/cost/parse.go#ParseCost` | - | mana/tap/untap symbols parsed |
+| 107.4-107.6 | follows | `engine/rules/cost/parse.go#ParseCost` `engine/rules/cast_payment.go#Engine.announceFeasible` | `TestCastWindowChosenColourPaysHybridFace` `TestCastWindowFaceChargesActivationFee` | mana/tap/untap symbols parsed; a hybrid face is offered only if the window can pay it |
 | 107.7 | follows | `engine/rules/ability_loyalty.go#abilityLoyaltyFact` | - | loyalty cost symbols |
 | 107.8-107.13 | unknown | - | - | not reached; not in pools |
 | 107.14 | follows | `engine/rules/pay/board.go#EnergyPayable` | - | no energy in pools |

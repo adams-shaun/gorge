@@ -73,7 +73,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 508.1e | not-impl | - | - | LOUD: banding unregistered |
 | 508.1f | follows | `engine/rules/combat.go#Engine.finishAttackers` `engine/rules/host_emit.go#Engine.emitTap` | - | D16 minor: taps emitted after attack triggers are checked |
 | 508.1g | follows | `engine/rules/combat.go#Engine.startExertAsks` | - | exert election |
-| 508.1h-508.1j | follows | `engine/rules/attack_cost.go#Engine.attackPairCharge` `engine/rules/attack_cost.go#Engine.openCombatPayPlan` `engine/rules/attack_cost.go#Engine.payCombatExtras` | `TestGhostlyPrisonChargesPerAttackerFromThePool` `TestAtomicChargePaysGenericAndPipFromOnePool` |  |
+| 508.1h-508.1j | follows | `engine/rules/attack_cost.go#Engine.attackPairCharge` `engine/rules/attack_cost.go#Engine.openCombatPayPlan` `engine/rules/attack_cost.go#Engine.payCombatExtras` | `TestGhostlyPrisonChargesPerAttackerFromThePool` `TestAtomicChargePaysGenericAndPipFromOnePool` `TestAttackWindowCountsChosenColour` |  |
 | 508.1k | follows | `engine/rules/combat.go#Engine.finishAttackers` `engine/events/apply_combat.go#foldDeclareAttackers` | - |  |
 | 508.1m | follows | `engine/rules/combat.go#Engine.finishAttackers` | `TestAttacksTriggerFiresForTheDeclaredAttacker` |  |
 | 508.2 | follows | `engine/rules/turn.go#Engine.step` `engine/rules/turn.go#Engine.priorityRound` | `TestCR508PriorityAfterAttackDeclaration` |  |

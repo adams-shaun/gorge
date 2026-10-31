@@ -9,8 +9,8 @@
 // dead payer and strands casts the window can pay: the 20000-game census
 // measured ~450 extra "cast aborted: no legal target" notes without it.
 // The guard lives in TWO search sites that must answer identically:
-// castWindowReachable (engine/rules/cast_window.go) and the shared pay.ManaReachable
-// plan-shape search (engine/rules/pay/planshape.go).
+// castWindowReachable (engine/rules/cast_window.go) and the shared
+// pay.UnlessManaReachable plan-shape search (engine/rules/pay/planshape.go).
 //
 // No Forge .txt is committed: the Rebuke and probe fixtures are authored
 // inline (the same shapes cast_target_menu_reprice_test.go and
@@ -140,9 +140,9 @@ func zdPaidBeforeLost(t *testing.T, e *Engine, id state.ObjID) {
 	}
 }
 
-// TestZeroDebitManaReachableSurvivesNegativeLife runs the SECOND guard site,
-// the shared pay.ManaReachable plan-shape search announceFeasible reaches
-// (engine/rules/cast_payment.go), at the payer's real life of -1: the {U} face of
+// TestZeroDebitManaReachableSurvivesNegativeLife runs the search
+// announceFeasible reaches (engine/rules/cast_payment.go) at the payer's real
+// life of -1: the {U} face of
 // {2}{U/P} prices only from the untapped Island's zero-debit window, the
 // 2-life face is beyond the payer, so the pip ask offers pay_U and the
 // payment completes through the real cast flow.
@@ -173,7 +173,7 @@ func TestZeroDebitManaReachableSurvivesNegativeLife(t *testing.T) {
 	}
 
 	// Direct guard-site read, the exact invocation cast_payment.go makes:
-	// pool-only feasibleAny refuses the {U} face, and pay.ManaReachable must
+	// pool-only feasibleAny refuses the {U} face, and castWindowReachable must
 	// accept it from the Island's zero-debit alt at the payer's life of -1.
 	pc := &pendingCast{player: 0, card: probe, from: state.ZHand, ability: -1,
 		cost: e.parseCost("2 UP")}
@@ -189,9 +189,9 @@ func TestZeroDebitManaReachableSurvivesNegativeLife(t *testing.T) {
 		t.Fatalf("precondition: window census = %+v, want one zero-debit Island alt", units)
 	}
 	conv := asEval(e).Conv(0, payment.ID, payment.Class == paymentActivated)
-	if !pay.ManaReachable(asPayer(e), 0, face, av.Pool, e.G.Players[0].Snow,
-		av.Typed, e.G.Players[0].Life, rider, conv, units) {
-		t.Fatal("pay.ManaReachable refused {2}{U} from the zero-debit window at life -1")
+	if !e.castWindowReachable(0, face, av.Pool, e.G.Players[0].Snow,
+		av.Typed, e.G.Players[0].Life, conv, rider, units) {
+		t.Fatal("castWindowReachable refused {2}{U} from the zero-debit window at life -1")
 	}
 
 	// The real flow: the pip ask prices the {U} face (the guard site) and

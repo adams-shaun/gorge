@@ -1227,16 +1227,16 @@ func (e *Engine) attackChoiceManaSources(p state.PlayerID) []attackManaSource {
 			// Combo R Chosen land recorded as G has only R/G slots, never the
 			// raw parser's source-agnostic WUBRG superset. Without a valid record
 			// it cannot produce a colour and stays out of this payment window.
-			counts, choice := mp.Counts, mp.CountsAny
+			counts := mp.Counts
 			if mp.NeedsChosen {
 				chosen := pay.ChosenProducedColour(e.G, id)
 				if chosen == "" {
 					continue
 				}
-				counts, choice = cards.ProducedCounts(pay.SubstituteChosenProduced(produced, chosen))
+				counts, _ = cards.ProducedCounts(pay.SubstituteChosenProduced(produced, chosen))
 			}
 			units := int32(0)
-			if choice {
+			if mp.CountsAny {
 				// A choice-shaped production produces exactly ONE unit of mana
 				// per activation, of a colour chosen when the source is tapped
 				// ("Any" / "Combo Any" / "Combo B R" / "Chosen", CR 106.1b). One
