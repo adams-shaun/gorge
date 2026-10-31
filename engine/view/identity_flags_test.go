@@ -100,6 +100,53 @@ func TestFaceDownProjectionDoesNotRevealTokenFlag(t *testing.T) {
 	}
 }
 
+// faceDownChars answers a face-down permanent's derived characteristics.
+type faceDownChars struct{ flatChars }
+
+func (faceDownChars) Power(state.ObjID) int32       { return 3 }
+func (faceDownChars) Toughness(state.ObjID) int32   { return 2 }
+func (faceDownChars) Keywords(state.ObjID) []string { return []string{"Ward:2"} }
+
+// TestFaceDownPermanentKeepsItsPublicState: CR 708.2 makes a face-down
+// permanent's characteristics public, and its state on the battlefield is public
+// like any permanent's. A viewer who may not look reads all of it and no printed
+// fact.
+func TestFaceDownPermanentKeepsItsPublicState(t *testing.T) {
+	g := state.NewGame([]string{"a", "b"})
+	bear, d := cards.ParseBytes("b.txt", []byte("Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
+	if len(d) != 0 {
+		t.Fatalf("diags: %v", d)
+	}
+	bear.Link()
+	fd := g.AddObject(bear, 1)
+	fd.FaceDown, fd.Zone = true, state.ZBattlefield
+	fd.Tapped, fd.Damage, fd.SummonSick, fd.IsAttacking, fd.Attacking = true, 1, true, true, 0
+	fd.BlockedBy = []state.ObjID{9}
+	fd.AddCounter("P1P1", 1)
+	fd.Suspected = true
+	g.SetZone(state.ZBattlefield, 1, []state.ObjID{fd.ID})
+
+	cv := Project(g, faceDownChars{flatChars{g}}, 0, nil).Players[1].Battlefield[0]
+	if !cv.FaceDown || cv.Name != "" || cv.Types != "" || cv.ManaCost != "" || cv.PrintedPT != "" {
+		t.Fatalf("a printed fact survived: %+v", cv)
+	}
+	if cv.Power != 3 || cv.Toughness != 2 || len(cv.Keywords) != 1 {
+		t.Fatalf("characteristics = %d/%d %v, want the derived 3/2 with ward", cv.Power, cv.Toughness, cv.Keywords)
+	}
+	if !cv.Tapped || cv.Damage != 1 || !cv.SummonSick || !cv.Attacking || cv.AttackingPlayer == nil || *cv.AttackingPlayer != 0 ||
+		len(cv.BlockedBy) != 1 || cv.Counters["P1P1"] != 1 || cv.Flags&FlagSuspected == 0 {
+		t.Fatalf("public state lost: %+v", cv)
+	}
+
+	// Off the battlefield there is no such state to read.
+	fd.Zone = state.ZExile
+	g.SetZone(state.ZBattlefield, 1, nil)
+	g.SetZone(state.ZExile, 1, []state.ObjID{fd.ID})
+	if cv := Project(g, faceDownChars{flatChars{g}}, 0, nil).Players[1].Exile[0]; cv.Power != 0 || cv.Tapped || cv.Counters != nil {
+		t.Fatalf("a face-down exiled card = %+v, want only its identity", cv)
+	}
+}
+
 // TestStackCopyProjectsIsCopy covers the copy flag's other home: a copy on
 // the stack is a public fact (CR 707.10), and the stack spell's embedded
 // CardView carries it like a battlefield copy does.

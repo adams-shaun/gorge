@@ -480,13 +480,12 @@ func (p *projector) zoneCard(cv *CardView, id state.ObjID, includeAbilityCosts b
 	// every seat, including its owner; only the face-up current plane is
 	// public.
 	//
-	// The redacted card is decided first and never built: none of the
-	// derived facts the full card would read survives the blanking, so asking
-	// Chars for them would only spend storage the blank card then drops.
+	// The redacted card is decided first and never built: its printed facts
+	// are what the blanking removes, so asking for them would only spend
+	// storage the blank card then drops.
 	hidden := o.FaceDown && (o.Zone == state.ZPlanarDeck || (!revealFaceDown && !p.mayLookFaceDown(o, alsoVisible)))
 	if hidden {
-		*cv = CardView{ID: id, FaceDown: true, Token: p.token(id),
-			Controller: o.Controller, Owner: o.Owner}
+		p.faceDownCard(cv, o)
 	} else {
 		p.cardView(cv, id)
 		if p.effective != nil {
@@ -504,6 +503,50 @@ func (p *projector) zoneCard(cv *CardView, id state.ObjID, includeAbilityCosts b
 		}
 	}
 	return true
+}
+
+// faceDownCard writes the card a viewer who may not look at face-down o sees:
+// no printed fact, and for a permanent what is public about one (CR 708.2): its
+// characteristics, usually a 2/2 with no abilities, and its state on the
+// battlefield. It reuses cv's storage as cardView does.
+func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
+	atk, ctr := cv.AttackingPlayer, cv.Counters
+	blk, kws := cv.BlockedBy[:0], cv.Keywords[:0]
+	*cv = CardView{ID: o.ID, FaceDown: true, Token: p.token(o.ID), Controller: o.Controller, Owner: o.Owner}
+	if o.Zone != state.ZBattlefield {
+		return
+	}
+	cv.Tapped, cv.Damage, cv.Attacking = o.Tapped, o.Damage, o.IsAttacking
+	cv.SummonSick, cv.AttachedTo = o.SummonSick, o.AttachedTo
+	// A Room's doors are printed text, which the face-down permanent has none of.
+	cv.Flags = cardFlags(p.g, o) &^ (FlagLeftDoor | FlagRightDoor)
+	if o.IsAttacking {
+		if atk == nil {
+			atk = new(state.PlayerID)
+		}
+		*atk = o.Attacking
+		cv.AttackingPlayer = atk
+	}
+	if len(o.BlockedBy) > 0 {
+		cv.BlockedBy = append(blk, o.BlockedBy...)
+	}
+	if !p.noDerived && p.ch != nil {
+		cv.Power, cv.Toughness = p.ch.Power(o.ID), p.ch.Toughness(o.ID)
+		if kw := p.ch.Keywords(o.ID); len(kw) > 0 {
+			cv.Keywords = append(kws, kw...)
+		}
+	}
+	if len(o.Counters) > 0 {
+		if ctr == nil {
+			ctr = make(map[string]int32, len(o.Counters))
+		} else {
+			clear(ctr)
+		}
+		for _, c := range o.Counters {
+			ctr[c.Kind] = c.N
+		}
+		cv.Counters = ctr
+	}
 }
 
 // mayLookFaceDown reports whether the viewer may see face-down o's face.
