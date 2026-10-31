@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package mbtest
 
 import (
@@ -21,8 +19,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// MBX-3 reachability tests. TestManaBrewReachability is the census over the
-// same 20 repo-deck games as the MB-8 census (TestManaBrewCensusNoUnmapped's
+// Reachability tests. TestManaBrewReachability is the census over the
+// same 20 repo-deck games as the census (TestManaBrewCensusNoUnmapped's
 // seed set), asserting the ratchet: every native option a game posed must be
 // selectable through the ManaBrew wire, or its (decision kind, option kind)
 // must be an allowlisted entry naming the reason the protocol cannot express
@@ -289,8 +287,8 @@ func playReachGame(t *testing.T, reg *cards.Registry, seats int, seed uint64, cl
 // fail: two options that share one Obj cannot both be selected through the
 // wire (the card-id matcher resolves both to the first option), and
 // ProbeReach must report the (decision kind, option kind) unreachable --
-// while the distinct-Obj control reaches everything. This is the suspected
-// class the ticket named (spec gap G-4: two options differing only in cost/kind/group); the 20-game census did not pose one, so the detector is
+// while the distinct-Obj control reaches everything. This is the class of
+// two options differing only in cost/kind/group); the 20-game census did not pose one, so the detector is
 // pinned here.
 func TestProbeReachDetectsSameObjCollapse(t *testing.T) {
 	v := reachView()
@@ -339,7 +337,7 @@ func TestProbeReachDetectsSameObjCollapse(t *testing.T) {
 // delete its row.
 var reachAllowlist = map[string]string{}
 
-// TestManaBrewReachability plays the same 20 repo-deck games as the MB-8
+// TestManaBrewReachability plays the same 20 repo-deck games as the
 // census and sweeps every posed decision for per-option reachability. Done
 // means the log line reports total options tried / unreachable; a non-zero
 // unreachable count must be fully allowlisted, and every allowlist entry

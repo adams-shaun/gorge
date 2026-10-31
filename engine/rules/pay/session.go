@@ -58,11 +58,10 @@ type Session struct {
 	ManaAbScratch []*cards.SA `clone:"reset"`
 
 	// CostProvenanceSeen is the transient capture of the last cost-modifier
-	// pass (castprov3): true when that pass evaluated a cost static whose
-	// ValidCard$ carries a cast-provenance token (Bilbo's
-	// "!wasCastFromYourHand" ReduceCost) — such a static is unresolvable
-	// pre-push, so the pass denied it and the pending cast's payment needs
-	// the post-push re-price continueCast runs right after CR 601.2a's push.
+	// pass: true when that pass evaluated a cost static whose ValidCard$
+	// carries a cast-provenance token (Bilbo's "!wasCastFromYourHand"
+	// ReduceCost), so the pending cast's payment takes the log-read re-price
+	// continueCast runs right after CR 601.2a's push.
 	// Set inside costStaticApplies (inside the costModifiers attribution
 	// roots, so the param census sees no new read), cleared at the top of
 	// every costModifiersWithTargets[ X]Using pass. Like noCounterSpend it

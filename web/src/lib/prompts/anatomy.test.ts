@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CardView, Decision, Option, PlayerView, StackView, View } from '../../protocol';
 import { countWord, promptAnatomy, promptSource, selectionStatus, submitLabel } from './anatomy';
-import { attackAllPicks, attackLines, blockLines, damageText, noBlocksAllowed, unblockedDamage } from './combat';
+import { attackAllPicks, attackLines, attackOptionText, blockLines, blockOptionText, damageText, noBlocksAllowed, unblockedDamage } from './combat';
 
 const card = (id: number, name: string, controller: number, extra: Partial<CardView> = {}): CardView => ({
   id, name, types: 'Creature — Bear', printing: { name } as CardView['printing'], token: '', tapped: false,
@@ -124,5 +124,13 @@ describe('combat summaries', () => {
     expect(attackAllPicks(attack)).toEqual([3, 0]);
     expect(attackAllPicks({ ...attack, max: 5 })).toEqual([3, 0, 2]);
     expect(attackLines(attack, v, [0])).toEqual(['Dark Confidant → Mira']);
+  });
+
+  it('says on the row which creature cannot go alone', () => {
+    const attacker = opt(0, 'attacker', 'a', { obj: 10, player: 1, alone_restricted: true });
+    expect(attackOptionText(dec('attackers', [attacker]), v, attacker)).toBe("Dark Confidant → Mira (can't attack alone)");
+    const blocker = { ...blocks.options[0], alone_restricted: true };
+    expect(blockOptionText(blocks, v, blocker)).toBe("Dark Confidant blocks Thragtusk (can't block alone)");
+    expect(blockOptionText(blocks, v, blocks.options[0])).toBe('Dark Confidant blocks Thragtusk');
   });
 });

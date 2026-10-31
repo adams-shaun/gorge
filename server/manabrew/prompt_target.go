@@ -6,7 +6,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// promptTarget (scoping spec §6.3): one candidate per option, in option
+// promptTarget: one candidate per option, in option
 // order; the intent comes from TargetEffect.API/Removal/Damage so a
 // ManaBrew client can colour the ask without learning any rules, and the
 // hostile bit is derived from the same intent (unknown APIs fall back to
@@ -47,7 +47,7 @@ func boardTargetInput(d *decision.Decision, intent mb.TargetingIntent, hostile b
 	}
 }
 
-// targetingIntent is the §6.3 TargetEffect.API → TargetingIntent table: one
+// targetingIntent is the TargetEffect.API → TargetingIntent table: one
 // row per recognised API or removal kind, and a conservative default. It is
 // PRESENTATION only -- the engine's own gates still rule the answer.
 func targetingIntent(e *decision.TargetEffect) (mb.TargetingIntent, bool) {
@@ -135,7 +135,7 @@ func removalIntent(kind string) mb.TargetingIntent {
 	}
 }
 
-// hostileIntent is the hostile half of the §6.3 table: intents a defender
+// hostileIntent is the hostile half of the table: intents a defender
 // should fear. attack/block stay out -- those kinds are answered only by
 // combat prompts, never by a target prompt.
 func hostileIntent(i mb.TargetingIntent) bool {
@@ -162,7 +162,7 @@ func targetRefKind(optKind string) mb.TargetRefKind {
 	}
 }
 
-// targetRefID maps a target option onto the wire ref id (§6.1's id mints).
+// targetRefID maps a target option onto the wire ref id.
 func targetRefID(opt decision.Option) string {
 	switch opt.Kind {
 	case "player":

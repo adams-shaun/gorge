@@ -1,7 +1,7 @@
 package main
 
-// tape.go is cardfuzz's dual-run harness for the W3 resolution kernel
-// (engine/rules/resolve; lasagna spec §7.7): -tape plays every game on the kernel
+// tape.go is cardfuzz's dual-run harness for the resolution kernel
+// (engine/rules/resolve): -tape plays every game on the kernel
 // and verifies its replay on the kernel, -tape-worlds forks a
 // redealt hypothetical world at every posed tape decision, and the
 // predicate-miss census classes every resolution the ask-free predicate
@@ -103,8 +103,7 @@ func printTapeReport() {
 
 // tapeWorldProbe forks a hypothetical world at a posed tape decision,
 // redeals every other seat's hand and library through Secret events (the
-// searchprobe redealer's mechanism) and drives it a few random intents
-// (spec §7.3 at scale). A prefix divergence panics.
+// searchprobe redealer's mechanism) and drives it a few random intents. A prefix divergence panics.
 func tapeWorldProbe(e *rules.Engine, r *rand.Rand) {
 	d := e.Pending()
 	w := e.CloneHypothetical(r.Uint64())

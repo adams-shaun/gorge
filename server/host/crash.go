@@ -24,12 +24,12 @@ func (r *Registry) writeCrashReport(t *table, m *match, reason string) {
 	// because the crashed Submit's events never fully reached the files, so
 	// only the durable prefix is safe to name in a report meant to agree
 	// with the log it points at.
-	persisted := len(m.e.L.Events) - 1
+	persisted := len(m.g.Log().Events) - 1
 	if m.files != nil {
 		persisted = m.persisted - 1
 	}
 	body := fmt.Sprintf("table: %s\nmatch: %d\nseed: %d\nhead: %s\nseq: %d\nintents: %d\nturn: %d\nrefusals: %d\nfallbacks: %d\nroot_refusals: %d\nreason:\n%s\n",
-		t.cfg.ID, m.k, m.seed, m.head, persisted, m.intents, m.e.G.Turn, m.refusals, m.fallbacks, m.rootRefusals, reason)
+		t.cfg.ID, m.k, m.seed, m.head, persisted, m.intents, m.g.Board().Turn, m.refusals, m.fallbacks, m.rootRefusals, reason)
 	m.mu.RUnlock()
 	_ = os.WriteFile(filepath.Join(dir, string(t.cfg.ID)+"-"+strconv.Itoa(m.k)+".txt"), []byte(body), 0o644)
 }

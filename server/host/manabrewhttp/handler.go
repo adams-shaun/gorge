@@ -14,8 +14,7 @@ import (
 )
 
 // SeatClaim names the (table, seat) an authenticated connection may act as.
-// It is server/host/httpapi's own type (the scoping spec's §9 MB-10 goal explicitly
-// accepts this import for the type rather than defining a local twin): the
+// It is server/host/httpapi's own type, not a local twin: the
 // claim boundary is one fence, shared by the native wire and by ManaBrew, so
 // a token minted for one is meaningful to the other and the two can never
 // disagree about which seat it names.
@@ -27,14 +26,13 @@ type SeatClaim = httpapi.SeatClaim
 // server/host/httpapi uses for its spectator-only default, so a server that never
 // wires ManaBrew support serves nothing an unauthenticated caller can act
 // through. Whether it is an error to run at all with a nil Seat is a
-// cmd/gorged (MB-9) concern, out of scope here.
+// cmd/gorged concern, out of scope here.
 type Options struct {
 	// Seat resolves a request to the seat claim it may act for. nil refuses
 	// every request with 403, matching server/host/httpapi's spectator-only shape.
 	Seat func(*http.Request) (SeatClaim, bool)
-	// Text is the operator-approved card-text seam (scoping spec §10.1 Q9),
-	// forwarded to every internal/manabrew.Translator this handler builds.
-	// nil (the default) means every CardDto carries empty text (gap G-7).
+	// Text is the card-text seam, forwarded to every internal/manabrew.Translator
+	// this handler builds. nil (the default) means every CardDto carries empty text.
 	Text manabrew.CardText
 	// KeepAlive is the SSE comment cadence; 0 defaults to 15s, the same
 	// default server/host/httpapi/sse.go uses.
@@ -83,9 +81,8 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 }
 
 // NewHandler builds the ManaBrew routes as their own http.Handler, rooted at
-// whatever prefix the caller mounts it under (cmd/gorged, MB-9, mounts it at
-// "/api/manabrew/v0/tables/" ahead of httpapi's own handler — see the
-// scoping spec §5.2 and §5.4). It is the package's only exported
+// whatever prefix the caller mounts it under (cmd/gorged mounts it at
+// "/api/manabrew/v0/tables/" ahead of httpapi's own handler). It is the package's only exported
 // constructor; callers that need the handler's internals (tests) use
 // newHandler.
 func NewHandler(r *host.Registry, o Options) http.Handler {

@@ -6,7 +6,7 @@ from gorge-compliance's XMage manifests; names the corpus lacks are dropped
 here, so a list never names a card the corpus cannot load:
 
     python3 -c 'import json,sys; print("\n".join(sorted({c["name"] for c in json.load(open(sys.argv[1]))["cards"]})))' \
-      ~/projects/gorge-compliance/oracle/compliance/manifests/<SET>.json > <SET>.txt
+      <gorge-compliance checkout>/oracle/compliance/manifests/<SET>.json > <SET>.txt
 
 Dropped names: DMU Tura Kennerud, Skyknight; HOB Dain Ironfoot, Dain's
 Company, Dain, Lord of the Iron Hills, Fili the Pathfinder, Gloin the Mighty,

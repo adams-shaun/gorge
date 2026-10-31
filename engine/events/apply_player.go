@@ -119,9 +119,11 @@ func foldControlChange(g *state.Game, e *Event) {
 			// condition the Ring-bearer designation keys on, evaluated on
 			// the still-old controller (o.Controller is still the old seat
 			// here). A same-controller ControlChange (no real change of
-			// controller) keeps the designation.
+			// controller) keeps the designation. A Soulbond pairing ends
+			// the same way (CR 702.95e).
 			if o.Controller != e.Player {
 				o.Suspected = false
+				endPairing(g, o)
 			}
 			changeControl(g, o, e.Player)
 			// An AsLongAsControl goad ends the moment its controller

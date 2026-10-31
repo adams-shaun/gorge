@@ -276,6 +276,7 @@ var auraEntryCensusRules = map[string]string{
 	"replacement_token.go:Engine.emitChosenCopyToken":           "token: chosen-copy token replacement",
 	"replacement_token.go:Engine.emitTokenPlanMints":            "token: replacement plan mints",
 	"replacement_token.go:Engine.tokenReplacementMatchesMint":   "token: a match probe, never emitted",
+	"replacement_updated.go:Engine.entersUntappedApplies":       "noentry: a synthetic match event, never emitted",
 	"resolution_chain.go:Engine.moveResolvedOffStack":           "stack: a resolved permanent spell enters from the stack",
 	"resolve_board.go:resolveBoard.Emit":                        "raw: the W3 kernel's bookkeeping emit",
 	"split.go:Engine.resolveFused":                              "stack: fused split spell",

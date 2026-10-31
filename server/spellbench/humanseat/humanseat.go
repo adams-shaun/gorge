@@ -29,7 +29,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/events"
-	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/gamecfg"
@@ -136,7 +136,7 @@ type Seat struct {
 
 	mu       sync.Mutex
 	mc       *bots.MatchContext
-	e        *rules.Engine
+	g        game.Game
 	env      *mapping.Env
 	gameID   string
 	gen      uint64 // the driver generation; a new park supersedes the last
@@ -186,7 +186,7 @@ func (s *Seat) NativeOnlyCount() int {
 	return s.nativeOnly
 }
 
-// AttachMatch receives the live engine (bots.MatchSeat).
+// AttachMatch receives the live game (bots.MatchSeat).
 func (s *Seat) AttachMatch(mc *bots.MatchContext) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -199,49 +199,52 @@ func (s *Seat) AttachMatch(mc *bots.MatchContext) error {
 	if err := checkTable(mc.Seats, mc.Format); err != nil {
 		return err
 	}
-	if mc.Engine == nil {
-		return errors.New("v2 human seat: match context has no engine")
+	if mc.Game == nil {
+		return errors.New("v2 human seat: match context has no game")
+	}
+	if err := gamecfg.Readable(mc.Game); err != nil {
+		return fmt.Errorf("v2 human seat: %w", err)
 	}
 	if mc.OwnDeck == nil {
 		return errors.New("v2 human seat: match context has no own deck")
 	}
 	s.mc = mc
-	s.e = mc.Engine
+	s.g = mc.Game
 	s.gameID = mc.GameID
-	s.attachEnv(mc)
+	s.attachEnv()
 	return nil
 }
 
-// attachEnv (re)builds the mapping environment against mc.Engine. Called with
-// the seat lock held.
-func (s *Seat) attachEnv(mc *bots.MatchContext) {
-	sec := secrets.NewGame(mc.Secret)
-	tracker := identity.New(mc.Engine, sec)
+// attachEnv (re)builds the mapping environment against s.g. Called with the
+// seat lock held.
+func (s *Seat) attachEnv() {
+	gc := gamecfg.Over(s.g, secrets.NewGame(s.mc.Secret))
+	tracker := identity.New(s.g, gc.Secret)
 	s.env = &mapping.Env{
 		AutoPay: true,
-		G:       &gamecfg.Game{E: mc.Engine, Secret: sec},
+		G:       gc,
 		IDs:     tracker,
-		Obs:     &observe.Projector{E: mc.Engine, IDs: tracker},
-		Domain:  nameSet(domainNames(mc.Engine.G.NameUniverseNames, mc.OwnDeck, mc.OpponentDeck)),
+		Obs:     &observe.Projector{R: gc.R, IDs: tracker},
+		Domain:  nameSet(domainNames(s.g.Board().NameUniverseNames, s.mc.OwnDeck, s.mc.OpponentDeck)),
 		Slots:   map[string]uint32{},
 
 		NameWindow: s.nameWindow,
 	}
 }
 
-// MatchRewound replaces the engine a host undo swapped in. The host calls it
-// on the match goroutine under the match lock, before re-parking the rewound
-// decision, so a v2 tap never compares or commits against the discarded
-// engine. The old driver (if any) is invalidated; the following Parked call
-// starts a fresh one.
+// MatchRewound replaces the game a host undo swapped in. The host calls it on
+// the match goroutine under the match lock, before re-parking the rewound
+// decision, so a v2 tap never compares or commits against the discarded game.
+// The old driver (if any) is invalidated; the following Parked call starts a
+// fresh one.
 func (s *Seat) MatchRewound(v any) {
-	e, ok := v.(*rules.Engine)
+	g, ok := v.(game.Game)
 	if !ok {
 		return
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if e == nil || s.mc == nil || s.e == e {
+	if s.mc == nil {
 		return
 	}
 	if s.cancel != nil {
@@ -249,8 +252,7 @@ func (s *Seat) MatchRewound(v any) {
 		s.cancel = nil
 	}
 	s.gen++
-	s.e = e
-	s.mc.Engine = e
+	s.g = g
 	if s.env != nil {
 		s.env.CloseLooks()
 	}
@@ -258,7 +260,7 @@ func (s *Seat) MatchRewound(v any) {
 	s.queue = nil
 	s.native = nil
 	s.contSeq, s.queueSeq = 0, 0
-	s.attachEnv(s.mc)
+	s.attachEnv()
 }
 
 func (s *Seat) logf(format string, args ...any) {
@@ -316,23 +318,24 @@ func (s *Seat) projected(f func()) {
 // section runs f against the engine for driver generation gen, or reports
 // false without running it when the driver is stale: superseded by a newer
 // park, the seat gave up the decision (gone), or the engine no longer asks it.
-// The seat lock is held throughout, so only one driver touches the
-// transaction; gone and the pending decision are checked inside the
+// The projection lock is taken before the seat lock, the order a host undo
+// holds them in when it calls MatchRewound. Both are held throughout, so only
+// one driver touches the transaction, and every check runs inside the
 // projection lock, which every engine mutation also takes.
 func (s *Seat) section(gen uint64, gone <-chan struct{}, d *decision.Decision, f func()) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.gen != gen {
-		return false
-	}
 	live := false
 	s.projected(func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if s.gen != gen {
+			return
+		}
 		select {
 		case <-gone:
 			return
 		default:
 		}
-		if p := s.e.Pending(); p == nil || p.Seq != d.Seq || p.Player != d.Player {
+		if p := s.g.Pending(); p == nil || p.Seq != d.Seq || p.Player != d.Player {
 			return
 		}
 		live = true
@@ -364,10 +367,10 @@ func (s *Seat) signalNativeOnly(gen uint64, v view.View, d *decision.Decision, e
 	s.env.CloseLooks()
 	s.nativeOnly++
 	canUndo := s.canUndo(d.Player)
-	gameID, game, evs := s.gameID, s.e.G, s.e.L.Events
+	gameID, board, evs := s.gameID, s.g.Board(), s.g.Log().Events
 	s.mu.Unlock()
 	s.logf("v2 human seat %d: native only (%s): %v", d.Player, mapping.Route(d), err)
-	s.answerer.NativeOnly(NativeOnly{Seat: d.Player, Seq: d.Seq, Route: mapping.Route(d), Err: err, Decision: *d, View: v, GameID: gameID, Game: game, Events: evs, CanUndo: canUndo})
+	s.answerer.NativeOnly(NativeOnly{Seat: d.Player, Seq: d.Seq, Route: mapping.Route(d), Err: err, Decision: *d, View: v, GameID: gameID, Game: board, Events: evs, CanUndo: canUndo})
 }
 
 // drive answers one parked native decision: queued folded follow-ups first,
@@ -376,7 +379,7 @@ func (s *Seat) signalNativeOnly(gen uint64, v view.View, d *decision.Decision, e
 func (s *Seat) drive(ctx context.Context, cancel context.CancelFunc, gen uint64, gone <-chan struct{}, v view.View, d decision.Decision, answer func(decision.Intent) error) {
 	defer cancel()
 	var syncErr error
-	if !s.section(gen, gone, &d, func() { syncErr = s.env.IDs.Sync(s.e) }) {
+	if !s.section(gen, gone, &d, func() { syncErr = s.env.IDs.Sync(s.g) }) {
 		return
 	}
 	if syncErr != nil {
@@ -526,7 +529,7 @@ func (s *Seat) seatDecision(p *mapping.Pose, v view.View) (protocol.SeatDecision
 	}
 	if s.extend != nil {
 		sd.Extensions, err = s.extend(Extension{
-			Seat: p.Seat, Env: s.env, Pose: p, View: v, Game: s.e.G, Events: s.e.L.Events,
+			Seat: p.Seat, Env: s.env, Pose: p, View: v, Game: s.g.Board(), Events: s.g.Log().Events,
 			NativeIndex: p.Native.Seq, CanUndo: s.canUndo(p.Seat),
 		})
 		if err != nil {
@@ -539,8 +542,9 @@ func (s *Seat) seatDecision(p *mapping.Pose, v view.View) (protocol.SeatDecision
 // canUndo reports whether the seat has an intent the host's undo queue can
 // rewind. Called under the seat lock.
 func (s *Seat) canUndo(seat state.PlayerID) bool {
-	for i := range s.e.L.Intents {
-		if s.e.L.Intents[i].Player == seat {
+	intents := s.g.Log().Intents
+	for i := range intents {
+		if intents[i].Player == seat {
 			return true
 		}
 	}
@@ -553,7 +557,7 @@ func (s *Seat) commit(gen uint64, gone <-chan struct{}, d *decision.Decision, p 
 		op := p.Candidates[i].Op
 		if p.Context.Kind == "priority" {
 			if obj := s.actionObject(op); obj != 0 {
-				s.env.Action = &mapping.ActionContext{Seat: p.Seat, Obj: obj, Since: s.e.G.NextID}
+				s.env.Action = &mapping.ActionContext{Seat: p.Seat, Obj: obj, Since: s.g.Board().NextID}
 			}
 		}
 		commit, done, err = s.tx.Answer(i)

@@ -15,7 +15,7 @@
  * is "" and "" is indistinguishable from "no tag" in the string alone — the
  * empty base must still issue a request. No tag at all stays the
  * no-request default: an embedding that ships no catalog (the local
- * fixture, a bare mtgserve) resolves null immediately, which is the honest
+ * fixture, a bare embedder) resolves null immediately, which is the honest
  * answer, not an error.
  */
 

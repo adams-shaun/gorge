@@ -136,3 +136,35 @@ func (e *Engine) armAbilityAutoPay(pc *pendingCast, idx int) {
 	pc.Payment = &plannedCastPayment{ActionID: decision.OptAutoFill, Plan: decision.ClonePaymentPlan(*out.Plan)}
 	pc.PaymentNext = 0
 }
+
+// autoPayArmedOnly reports whether pc's witness is one armAbilityAutoPay armed and
+// no step of it has run: the seat activated the ability and chose no plan.
+func (e *Engine) autoPayArmedOnly(pc *pendingCast) bool {
+	return pc.isAbility() && !pc.Announced && pc.PaymentNext == 0 && pc.Payment.ActionID == decision.OptAutoFill
+}
+
+// rearmAutoPay plans again for a witness its announcements outdated, before any
+// step ran: a target's reduction, a Phyrexian pip's answer, a tap or waterbend
+// helper settle only after armAbilityAutoPay armed it. No seat selected that
+// witness. A spell's plan is the seat's, but it can't price the seat's own later
+// answers: a Phyrexian pip, which it counts as neither mana nor life (PlanManaHalf,
+// CR 107.4f), and a tap for a convoke-family keyword granted only once the spell is
+// cast (CR 702.51a). It reports whether pc holds a new witness.
+func (e *Engine) rearmAutoPay(pc *pendingCast) bool {
+	if pc.Announced || pc.PaymentNext != 0 {
+		return false
+	}
+	if pc.isAbility() {
+		if pc.Payment.ActionID != decision.OptAutoFill {
+			return false
+		}
+	} else if pc.PayIdx == 0 && len(pc.Convoke) == 0 {
+		return false
+	}
+	plan := e.announcedAutoFillPlan(pc, e.castPaymentMana(pc))
+	if plan == nil {
+		return false
+	}
+	pc.Payment = &plannedCastPayment{ActionID: pc.Payment.ActionID, Plan: *plan}
+	return true
+}

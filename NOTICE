@@ -26,3 +26,24 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+17Lands. draft/limited/pickbot/ratings/FDN.json and the 17Lands-derived decks in
+cmd/enginebench/testdata/decks derive from 17Lands public datasets
+(https://www.17lands.com), licensed under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). Changes: per-card aggregates;
+decks filtered by win-rate bucket.
+
+MTGJSON. draft/limited/setdata/mtgjson and draft/limited/setdata/sets are trimmed
+from MTGJSON (https://mtgjson.com, MIT, copyright Zachary Halpern); see
+draft/limited/setdata/mtgjson/LICENSE-MTGJSON.txt.
+
+XMage. engine/rules/testdata/sets lists card names taken from manifests derived
+from XMage (MIT, https://github.com/magefree/mage); see gorge-compliance's NOTICE.
+
+mtg-kernel. bots/spellbench/decks/pauper-kernel and
+cmd/enginebench/testdata/decks/burn.json derive from the SpellBench pauper deck
+catalog in jackmaiorino/mtg-kernel (MIT, https://github.com/jackmaiorino/mtg-kernel),
+data/pauper_pool_v1.json.
+
+Magic: The Gathering and its card names are trademarks of Wizards of the Coast.
+gorge is not affiliated with or endorsed by Wizards of the Coast.

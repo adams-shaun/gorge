@@ -1,6 +1,6 @@
 package host
 
-// Task M2c-3 pins the contract mtgserve's match_events adapter will rely
+// This pins the contract an embedder's persistence adapter relies
 // on: an embedder that persists every OnBurst into its own store must be
 // able to serve a finished match's EventsSeat/ViewAtSeat from that store
 // exactly as the live match served them. In gorge terms this test is that
@@ -37,7 +37,7 @@ import (
 // TestObserverPersistedLogServesIdenticallyToTheLiveMatch is Task M2c-3's
 // one acceptance test. The table is a real human-seated one
 // (TableConfig.Humans, seat 0 answered through Pending/SubmitIntent) — the
-// configuration mtgserve will actually run — played to a finished, archived
+// configuration an embedder runs — played to a finished, archived
 // match on a disk registry while OnBurst captured every burst. Like the
 // package's other human-driven integration test it is deliberately not
 // t.Parallel: it is a full repo-deck match plus two full replays, and the
@@ -157,7 +157,7 @@ func TestObserverPersistedLogServesIdenticallyToTheLiveMatch(t *testing.T) {
 		l.Append(ev)
 	}
 	l.Intents = sinkIns
-	rep, err := replay.Replay(l, m.cfg)
+	rep, err := replay.Replay(l, m.rulesConfig())
 	if err != nil {
 		t.Fatalf("sink log does not replay: %v", err)
 	}

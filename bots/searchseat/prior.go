@@ -54,7 +54,7 @@ func (o Options) priorTopK() int {
 
 // PriorBudget reports the EFFECTIVE prior budget -- PriorTopK and PriorWiden
 // with their zero-value defaults applied -- for a caller that logs the
-// budget it ran (four-yay cmd/searchteacher's summary header). It ignores whether a
+// budget it ran (the search teacher's summary header). It ignores whether a
 // Prior is set.
 func (o Options) PriorBudget() (topK, widen int) {
 	return o.priorTopK(), o.priorWiden()

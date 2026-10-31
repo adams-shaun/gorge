@@ -320,8 +320,7 @@ func (p *apProbe) finish() *apStats {
 
 // contractFailure reports the game's first plan-contract violation as a
 // failure (kind, diag, sig), or ok false: "planrev" -- an offered, submitted
-// plan whose cast was then reversed (the spec's "no landed stage may
-// advertise an unexecutable action") -- ahead of "planfb", a PaymentFallback
+// plan whose cast was then reversed -- ahead of "planfb", a PaymentFallback
 // window (the executor abandoned the plan for the manual window). Only a
 // game with no engine failure reaches this check (playGame).
 func (p *apProbe) contractFailure() (kind, diag, sig string, ok bool) {

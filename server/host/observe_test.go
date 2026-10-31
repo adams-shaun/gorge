@@ -123,7 +123,7 @@ func TestOnBurstSinksTheWholeChainAndReplaysToTheSameHead(t *testing.T) {
 		l.Append(ev)
 	}
 	l.Intents = gotIns
-	rep, err := replay.Replay(l, m.cfg)
+	rep, err := replay.Replay(l, m.rulesConfig())
 	if err != nil {
 		t.Fatalf("replay of sink log diverged: %v", err)
 	}

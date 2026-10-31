@@ -422,3 +422,27 @@ func TestForetellOrdinaryExiledCardNeverGetsTheCastOffer(t *testing.T) {
 		t.Error("foretell cast offered on the foretell turn itself")
 	}
 }
+
+// TestForetellingAModalCardAnnouncesNoModes: foretelling is a special action (CR
+// 116.2h, 702.143a), so a modal card names no modes until it is cast. Asked anyway,
+// the answer had no spell to land on, the seat kept its priority and the same
+// action was offered again.
+func TestForetellingAModalCardAnnouncesNoModes(t *testing.T) {
+	t.Parallel()
+	const src = "Name:Two Roads\nManaCost:2 B\nTypes:Instant\nK:Foretell:B\n" +
+		"A:SP$ Charm | Choices$ Left,Right\n" +
+		"SVar:Left:DB$ GainLife | Defined$ You | LifeAmount$ 1 | SpellDescription$ Take the left road.\n" +
+		"SVar:Right:DB$ GainLife | Defined$ You | LifeAmount$ 2 | SpellDescription$ Take the right road.\n" +
+		"Oracle:x\n"
+	e := handEngine(t, card(t, src))
+	id := e.G.Zone(state.ZHand, 0)[0]
+	addMana(t, e, 0, "CC")
+	e.priorityRound()
+	submitChoices(t, e, castModeOption(t, e, id, "foretell"))
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending %+v, want priority after the special action", d)
+	}
+	if o := e.G.Obj(id); o.Zone != state.ZExile {
+		t.Fatalf("Two Roads is in zone %v, want exile", o.Zone)
+	}
+}

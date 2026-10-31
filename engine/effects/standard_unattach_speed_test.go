@@ -60,7 +60,9 @@ func TestStandardChangeSpeedHarrierHighestOnly(t *testing.T) {
 	if h.g.Players[0].Speed != 2 || h.g.Players[1].Speed != 2 {
 		t.Fatal("precondition: speeds not tied at two")
 	}
-	c.Targets = []state.Target{{Player: 1, IsPlayer: true}}
+	target := h.g.AddObject(mkCard(t, "Name:Speed Target\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	target.Zone = state.ZBattlefield
+	c.Targets = []state.Target{{Obj: target.ID}}
 	body := sa(t, "DB$ ChangeSpeed | Mode$ Decrease | Defined$ TargetedController | ConditionCheckSVar$ TargetedController$Speed | ConditionSVarCompare$ GTPlayerCountDefinedNonTargetedController$HighestSpeed")
 	before := len(h.log)
 	Resolve(h, c, body)
@@ -80,7 +82,9 @@ func TestStandardChangeSpeedDecrease(t *testing.T) {
 	if h.g.Players[1].Speed != 3 {
 		t.Fatal("precondition: speed not three")
 	}
-	c.Targets = []state.Target{{Player: 1, IsPlayer: true}}
+	target := h.g.AddObject(mkCard(t, "Name:Speed Target\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	target.Zone = state.ZBattlefield
+	c.Targets = []state.Target{{Obj: target.ID}}
 	before := len(h.log)
 	Resolve(h, c, sa(t, "DB$ ChangeSpeed | Mode$ Decrease | Defined$ TargetedController"))
 	if h.g.Players[1].Speed != 2 || h.g.Players[0].Speed != 0 {

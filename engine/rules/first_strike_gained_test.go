@@ -10,7 +10,7 @@ import (
 // TestFirstStrikeGainedAfterTheFirstStepStillDealsRegularDamage pins CR
 // 510.4 / 702.7c: the regular combat damage step is for the creatures that
 // had neither first strike nor double strike AS THE FIRST-STRIKE STEP BEGAN.
-// A creature that gains first strike between the two steps (dirty-dirac pair
+// A creature that gains first strike between the two steps (dirac pair
 // 5692: Ajani's Pridemate gets its +1/+1 counter from a first-strike lifelink
 // trigger, and Inspiring Paladin then gives it first strike) still deals
 // regular damage; one that had first strike then is held out even if it lost

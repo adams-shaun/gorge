@@ -814,11 +814,10 @@ func (w *legalWalk) battlefieldWalk() {
 		// kw:Start your engines (CR 702.179e, engine/rules/speed.go): a max-speed
 		// static grants its AddAbility$ while its controller has speed 4, and
 		// the granted ability is offered through the same cost/target gates
-		// every other activation uses. NOT sorcery-gated: the grant is an
-		// ordinary activated ability (Amonkhet Raceway's {T}: pump) whose timing
-		// is its own cost's -- it needs a priority window, not a main phase, so
-		// the offer sits outside the sorcery block with the other activation
-		// offers.
+		// every other activation uses. The grant is an ordinary activated ability
+		// with its own timing (Amonkhet Raceway's {T}: pump needs a priority
+		// window, Perilous Snare's counter a sorcery one), so the offer sits
+		// outside the sorcery block with the other activation offers.
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
 			if o == nil || o.Face() == nil {
@@ -831,6 +830,9 @@ func (w *legalWalk) battlefieldWalk() {
 				continue
 			}
 			for _, ab := range e.maxSpeedAbilities(p, id) {
+				if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
+					continue
+				}
 				// castSuppressed: the F05-2 no-progress hold-out every other
 				// activation offer reads (an aborted activation is keyed on its
 				// source).

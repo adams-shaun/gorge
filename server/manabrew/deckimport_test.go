@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 import (
@@ -77,8 +75,8 @@ func TestDeckImport(t *testing.T) {
 
 	t.Run("diacritic fold fallback", func(t *testing.T) {
 		// The corpus's own spelling is "Lim-Dûl's Vault" (with the accent);
-		// a client sending the plain-ASCII spelling must still resolve, per
-		// spec §6.1's borrowed diacritic fold.
+		// a client sending the plain-ASCII spelling must still resolve, through
+		// the diacritic fold.
 		d := mb.Deck{
 			Name:  "diacritic test",
 			Cards: []mb.DeckCard{deckCard("Lim-Dul's Vault")},

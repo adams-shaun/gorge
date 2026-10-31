@@ -8,11 +8,11 @@ but never illegally.
 
 Run it against a gorged started with -vsbot (it creates its own game):
 
-    python3 gorge_agent.py --server http://127.0.0.1:8092 --policy simple
+    python3 gorge_agent.py --server http://127.0.0.1:8080 --policy simple
 
 or join a seat you already hold (gorged -humans 0 -seat-token TOKEN):
 
-    python3 gorge_agent.py --server http://127.0.0.1:8092 \
+    python3 gorge_agent.py --server http://127.0.0.1:8080 \
         --table t1 --match 1 --seat 0 --token TOKEN
 
 To write your own strategy, subclass Agent and override choose(); see
@@ -369,7 +369,7 @@ def play(client, agent, verbose=False):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--server", default="http://127.0.0.1:8092")
+    ap.add_argument("--server", default="http://127.0.0.1:8080")
     ap.add_argument("--policy", choices=("random", "simple"), default="simple")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--format", default="constructed")

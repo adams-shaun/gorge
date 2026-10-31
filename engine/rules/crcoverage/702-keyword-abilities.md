@@ -28,7 +28,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.14a-e | follows | `engine/rules/combat/block.go#CanBlock` `engine/rules/combat/block.go#LandwalkSpec` | - | layer-4 land types; nonbasic/snow forms |
 | 702.15a-d,f | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` | - |  |
 | 702.15e | deviates | `engine/rules/combat.go#Engine.runCombatAssignments` `engine/events/event.go#LifeChange` | - | one source to two recipients = two gain events |
-| 702.16a-j,m | follows | `engine/rules/protection.go#Engine.protectedFrom` `engine/rules/protection.go#Engine.sourceHasQuality` `engine/rules/combat/block.go#CanBlock` | - |  |
+| 702.16a-j,m | follows | `engine/rules/protection.go#Engine.protectedFrom` `engine/rules/protection.go#Engine.sourceHasQuality` `engine/rules/combat/block.go#CanBlock` | `TestProtectionFromATypeReadsTheSourceNow` |  |
 | 702.16k | unknown | - | - | protection from a player not located |
 | 702.16n,p | unknown | - | - | "doesn't remove" Auras not located |
 | 702.17a-c | follows | `engine/rules/combat/block.go#CanBlock` | - |  |
@@ -38,7 +38,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.19c,e | deviates | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.combatDefenderTarget` `engine/cards/face.go#KeywordHead` | - | Thrasta treated as plain trample; silent |
 | 702.19f,g | follows | `engine/rules/combat.go#Engine.combatDefenderTarget` | - |  |
 | 702.20a-c | follows | `engine/rules/combat.go#Engine.finishAttackers` `engine/rules/staging.go#NewStaged` | - |  |
-| 702.21a | follows | `engine/cards/kw_ward.go#kwWard` `engine/rules/trigmatch/actions.go#becomesTargetMatches` | `TestWardDoesNotTriggerForFriendlyTargetingStackObject` | mana and life forms; triggers too |
+| 702.21a | follows | `engine/cards/kw_ward.go#kwWard` `engine/rules/trigmatch/actions.go#becomesTargetMatches` `engine/rules/trigger_granted.go#Engine.checkGrantedWardTriggers` | `TestWardDoesNotTriggerForFriendlyTargetingStackObject` `TestGrantedWardFiresBesideLivePrintedTriggers` `TestManaWindowsServeAnInlineAnswerer` | mana and life forms; triggers too |
 | 702.21b | unknown | - | - | ward {X} timing not located |
 | 702.22a-k,m | partial | `engine/rules/banding.go#Engine.startBandAsks` `engine/rules/banding.go#Engine.bandBlockPairs` `engine/rules/banding.go#Engine.divisionChooser` `engine/rules/banding.go#Engine.bandBlockerAssignments` `engine/effects/becomesblocked.go#effBecomesBlocked` | `TestCR702_22cBandIsDeclaredAndABlockerBlocksTheWholeBand` `TestCR702_22cBandTakesAtMostOneCreatureWithoutBanding` `TestCR702_22kActivePlayerDividesTheBandBlockersDamage` `TestCR702_22jDefendingPlayerDividesDamageBlockedByBanding` | plain banding follows; bands with other (702.22b) LOUD; a trample attacker keeps the deterministic split |
 | 702.23a-c | not-impl | - | - | LOUD printed (15); SILENT granted (Rapid Fire) |
@@ -70,7 +70,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.31a-c | follows | `engine/rules/combat/block.go#CanBlock` | `TestHorsemanshipCanBlockOnlyHorsemanshipAttackers` |  |
 | 702.32a | not-impl | - | - | LOUD (18 cards) |
 | 702.33a,d,e,g | follows | `engine/rules/cast_altcost.go#kickerCost` `engine/rules/cast_targets.go#modeIsKicked` `engine/rules/cast_targets.go#modeFlags` | - | kicked-only targets gated; copies stay kicked |
-| 702.33b,c,f | follows | `engine/rules/cast_altcost.go#twoPartKickerCosts` `engine/rules/cast_asks.go#Engine.multikickAsk` | - |  |
+| 702.33b,c,f | follows | `engine/rules/cast_altcost.go#twoPartKickerCosts` `engine/rules/cast_asks.go#Engine.multikickAsk` `engine/events/apply_cast.go#foldCastInfo` | `TestTimesKickedSurvivesColourReader` `TestMultikickedStaysKickedThroughASpendReader` |  |
 | 702.33h | unknown | - | - | sticker kicker (Unfinity) not checked |
 | 702.34a | follows | `engine/rules/stack_keyword_exile.go#Engine.keywordExileDeparture` `engine/effects/resolve.go#effCounter` `engine/effects/misc.go#effWard` `engine/state/object.go#ExilesLeavingStack` | `TestCR702_34aFlashbackSpellExiledWhereverItWouldGo` `TestCR702_34aRemandOrdinarySpellStillGoesToHand` `TestCR702_34aReversedFlashbackCastReturnsToGraveyard` `TestFlashbackedSpellCounteredGoesToExile` | - |
 | 702.35a | partial | `engine/rules/altcast.go#Engine.madnessReplacementApplies` `engine/rules/replacement.go#Engine.applyReplacementsDispatch` `engine/rules/altcast.go#Engine.offerMadness` | `TestCR702_35aMadnessExileIsMandatory` `TestMadnessEmrakulUsesMandatoryReplacementAndRespondableTrigger` `TestMadnessDiscardDuringARepeatExilesInPlace` | mandatory exile; granted madness ignored (printed face only) (helper) |
@@ -97,12 +97,12 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.48a-c | not-impl | - | - | LOUD (6) |
 | 702.49a-d | follows | `engine/cards/kw_ninjutsu.go#kwNinjutsu` | `TestNinjutsuOrochiSoulReaverAndFallenShinobiFromHand` |  |
 | 702.50a,b | not-impl | - | - | LOUD (5) |
-| 702.51a-d | follows | `engine/rules/cast_altcost.go#Engine.hasCastConvoke` `engine/rules/cast_altcost.go#Engine.convokeCost` `engine/rules/pay/castasks.go#ConvokeAsk` | `TestAncientImperiosaurEntersWithTwoCountersPerConvoker` | player chooses creatures |
+| 702.51a-d | follows | `engine/rules/cast_altcost.go#Engine.hasCastConvoke` `engine/rules/cast_altcost.go#Engine.convokeCost` `engine/rules/pay/castasks.go#ConvokeAsk` `engine/rules/legal_walk_autopay.go#Engine.rearmAutoPay` | `TestAncientImperiosaurEntersWithTwoCountersPerConvoker` `TestTapPaymentsReadCurrentTypes` `TestPlannedCastSurvivesAConvokeAnswer` | player chooses creatures |
 | 702.52a,b | follows | `engine/effects/cardflow.go#dredgeCandidates` | `TestDredgeUsesRealCorpusCard` | derived dredge (Yixlid Jailer) |
 | 702.53a,b | follows | `engine/cards/kw_transmute.go#kwTransmute` | `TestTransmuteAndCyclingRealHandActivations` |  |
 | 702.54a-c | follows | `engine/rules/replacement_etb.go#Engine.bloodthirstEntryMatch` `engine/rules/entry_counters.go#Engine.entryBodyCandidates` | `TestBloodthirstPrintedEntersWithCounters` |  |
 | 702.55a-c | not-impl | - | - | LOUD (10) |
-| 702.56a,b | follows | `engine/cards/kw_replicate.go#kwReplicate` `engine/rules/cast_altcost.go#replicateCost` `engine/rules/cast_asks.go#Engine.replicateAsk` | `TestReplicateCountBoundSeesReduceCostModifier` |  |
+| 702.56a,b | follows | `engine/cards/kw_replicate.go#kwReplicate` `engine/rules/cast_altcost.go#replicateCost` `engine/rules/cast_asks.go#Engine.replicateAsk` `engine/events/apply_cast.go#foldCastInfo` | `TestReplicateCountBoundSeesReduceCostModifier` `TestReplicateCountSurvivesSpendReader` |  |
 | 702.57a,b | not-impl | - | - | SILENT: upkeep/once/hand gate unmodelled |
 | 702.58a,b | follows | `engine/cards/kw_graft.go#kwGraft` | - | no intervening-if on the move trigger |
 | 702.59a | not-impl | - | - | LOUD (7) |
@@ -142,8 +142,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.92a | follows | `engine/cards/kw_livingweapon.go#kwLivingWeapon` | `TestBatterskullLivingWeaponCreatesAGermAndReachesAttach` |  |
 | 702.93a | follows | `engine/cards/kw_undying.go#kwUndying` | `TestUndyingReturnsOnceWithACounter` |  |
 | 702.94a,b | follows | `engine/rules/miracle.go#Engine.offerMiracle` `engine/rules/miracle.go#Engine.drawsThisTurn` | `TestMiracleOffersOnTheFirstDrawOnly` |  |
-| 702.95a-d | follows | `engine/cards/kw_soulbond.go#kwSoulbond` | - |  |
-| 702.95e | unknown | - | - | unpair conditions not located |
+| 702.95a-d | follows | `engine/cards/kw_soulbond.go#kwSoulbond` `engine/effects/soulbond.go#effPair` | `TestSoulbondPairsCurrentCreatures` |  |
+| 702.95e | follows | `engine/rules/sba.go#Engine.unpairNoncreatures` `engine/events/apply_player.go#foldControlChange` `engine/events/apply_zone.go#foldMoveZone` | `TestSoulbondPairEnds` | checked with the state-based actions: the rule names no time, and no player can act before the next check |
 | 702.96 | follows | `engine/rules/altcast_modes.go#altCastModes` `engine/rules/stack.go#Engine.resolveTop` | `TestOverloadedCastTargetsEachNotOne` `TestOverloadIsCastableWhenOnlyProtectedObjectsMatch` | Alt cost |
 | 702.97 | not-impl | - | - |  |
 | 702.98 | follows | `engine/rules/unleash.go#Engine.applyUnleashReplacement` `engine/rules/combat/block.go#CanBlock` | `TestUnleashChoicePosedAndCounterApplied` `TestGrantedUnleashCounteredDogCantBlock` | Entry +1/+1 election |
@@ -156,7 +156,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.103e | follows | `engine/rules/stack.go#Engine.resolveTop` `engine/rules/bestow.go#Engine.bestowTargetIllegal` | `TestBoonSatyrBestowedOntoShockedBearsEntersAsCreature` `TestBoonSatyrUnbestowedIsACreatureToEntryReplacements` | REVISED: cr-g02 (e7bb8e319) resolves an illegal-target bestowed spell as a creature |
 | 702.103f-702.103g | follows | `engine/state/object.go#Object.BestowedAttached` `engine/rules/bestow.go#bestowedAttachSA` | `TestEidolonOfCountlessBattlesBestowTransition` |  |
 | 702.104 | not-impl | - | - |  |
-| 702.105 | follows | `engine/cards/kw_dethrone.go#kwDethrone` `engine/rules/trigger_granted.go#Engine.checkGrantedDethroneTriggers` | `TestDethroneCountsOnlyTheAttackedPlayersLife` `TestGrantedDethroneTriggers` |  |
+| 702.105 | follows | `engine/cards/kw_dethrone.go#kwDethrone` `engine/rules/trigger_granted.go#Engine.checkGrantedDethroneTriggers` | `TestDethroneCountsOnlyTheAttackedPlayersLife` `TestGrantedDethroneTriggers` `TestGrantedDethroneFiresBesideLivePrintedTriggers` |  |
 | 702.106 | not-impl | - | - |  |
 | 702.107 | follows | `engine/cards/kw_outlast.go#kwOutlast` | `TestOutlastExpandsToASorcerySpeedTapActivation` `TestAbzanBattlePriestOutlastIsSorcerySpeedOnly` |  |
 | 702.108 | follows | `engine/cards/kw_prowess.go#kwProwess` | `TestDoubleProwessTriggersTwice` `TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells` |  |
@@ -183,7 +183,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.124m | partial | `engine/deck/partner.go#isDoctorCard` | `TestDoctorCompanionSeatsBothCommanders` `TestIsPartnerPairDoctorCompanionCorpus` | Accepts any Doctor |
 | 702.124n | follows | `engine/deck/partner.go#partnerHead` | - |  |
 | 702.125 | follows | `engine/cards/kw_undaunted.go#kwUndaunted` | `TestUndauntedReducesGenericAndNotColoredCost` `TestUndauntedDoesNotReducePlainSpell` |  |
-| 702.126 | follows | `engine/rules/cast_altcost.go#Engine.improviseCost` `engine/rules/cast_altcost.go#Engine.hasCastImprovise` | `TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice` `TestImproviseArtifactCreatureQualifies` |  |
+| 702.126 | follows | `engine/rules/cast_altcost.go#Engine.improviseCost` `engine/rules/cast_altcost.go#Engine.hasCastImprovise` | `TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice` `TestImproviseArtifactCreatureQualifies` `TestTapPaymentsReadCurrentTypes` |  |
 | 702.127 | follows | `engine/rules/legal.go#aftermathAlternateFace` `engine/state/object.go#ExilesLeavingStack` `engine/rules/stack_keyword_exile.go#Engine.keywordExileDeparture` | `TestAftermathCastsAlternateFaceFromGraveyardAndExiles` `TestAftermathCounteredGoesToExile` | Second half from graveyard only |
 | 702.128 | follows | `engine/cards/kw_embalm.go#kwEmbalm` `engine/effects/copypermanent.go#effCopyPermanent` `engine/events/copy_except.go#foldCopyExcept` | `TestAngelOfSanctionsEmbalmExilesAndMintsAWhiteZombieCopy` `TestEmbalmOnlyOfferedFromTheGraveyard` `TestEmbalmedTokenHasNoManaCost` | white, no mana cost and Zombie are the token's copiable values |
 | 702.129 | follows | `engine/cards/kw_embalm.go#kwEmbalm` `engine/effects/copypermanent.go#effCopyPermanent` `engine/events/copy_except.go#foldCopyExcept` | `TestTimelessDragonEternalizeExilesAndMintsAFourFourBlackZombieCopy` `TestCloneOfAnEternalizedTokenCopiesTheExceptions` | black, 4/4, no mana cost and Zombie are the token's copiable values |
@@ -238,7 +238,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.177b | unknown | `engine/rules/legal_loyalty.go#Engine.additionalActivationLimit` | - |  |
 | 702.178 | follows | `engine/rules/speed.go#Engine.maxSpeedAbilities` | `TestMaxSpeedAddAbilityOfferedExactlyOnce` `TestMaxSpeedPlayerProperty` |  |
 | 702.179 | follows | `engine/rules/speed.go#Engine.checkSpeedStart` `engine/rules/speed.go#Engine.checkSpeedGain` | `TestStartYourEnginesSpeedLifecycle` `TestStartYourEnginesSpeedStartsWithControlChange` | Speed starts at 1 |
-| 702.180 | follows | `engine/rules/cast_altcost.go#harmonizeCost` `engine/rules/cast_altcost.go#Engine.harmonizePayment` | `TestHarmonizePaysDerivedPowerNotPrinted` `TestHarmonizeAnnouncementSkipsNonCreaturePower` | Graveyard cast; tap one creature to reduce by power |
+| 702.180 | follows | `engine/rules/cast_altcost.go#harmonizeCost` `engine/rules/cast_altcost.go#Engine.harmonizePayment` | `TestHarmonizePaysDerivedPowerNotPrinted` `TestHarmonizeAnnouncementSkipsNonCreaturePower` `TestHarmonizeTapsAnimatedLandForItsPower` | Graveyard cast; tap one creature to reduce by power |
 | 702.181 | follows | `engine/cards/kw_mobilize.go#kwMobilize` | `TestMobilizeSacrificesAtTheNextEndStep` `TestMobilizeSecondTriggerCountsOnlyItsOwnTokens` |  |
 | 702.182 | follows | `engine/cards/kw_jobselect.go#kwJobSelect` | `TestJobSelectExpandsToHeroEtbAttach` `TestBlackMagesRodJobSelectCreatesHeroAndAttaches` |  |
 | 702.183 | follows | `engine/rules/spree.go#modeCost` | `TestFireMagicTieredChargesTheChosenMode` |  |

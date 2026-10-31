@@ -250,8 +250,10 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			if free {
 				// A free plain literal production is windowManaUnits' domain
 				// (already counted); a free choice-shaped one is not, and a
-				// free dynamic amount is the shape this layer adds.
-				if !any && availableAmountOf(mp) > 0 {
+				// free dynamic amount is the shape this layer adds. The shape
+				// is the printed one: that census withholds a recorded Chosen
+				// although the substitution above reads as a plain colour.
+				if !mp.CountsAny && availableAmountOf(mp) > 0 {
 					continue
 				}
 			}
@@ -278,15 +280,24 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 // window (appendAvailableManaAbilitiesGate's ignorePayable). InstantSpeed$
 // True abilities stay withheld exactly as the shared window walk withholds
 // them, so no ability the live payment window cannot activate is ever priced.
+// Nor is one whose Condition$ this build doesn't evaluate: it resolves to no mana
+// (CR 106.5), so it can't close a gap and says nothing about the census.
 func (e *Engine) castWindowProbeAbilities(p state.PlayerID, id state.ObjID) []*cards.SA {
 	var out []*cards.SA
 	for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
-		if pay.InstantSpeedOnly(ma) {
+		if pay.InstantSpeedOnly(ma) || manaAbilityAddsNothing(ma) {
 			continue
 		}
 		out = append(out, ma)
 	}
 	return out
+}
+
+// manaAbilityAddsNothing reports whether a mana ability's Condition$ is one the
+// effect walk skips, so its activation taps the source and adds no mana.
+func manaAbilityAddsNothing(ma *cards.SA) bool {
+	_, unmodelled := effects.UnmodelledCondition(ma)
+	return unmodelled
 }
 
 // castWindowSourceExcluded reports whether source id's probe-admitted mana
@@ -299,20 +310,24 @@ func (e *Engine) castWindowProbeAbilities(p state.PlayerID, id state.ObjID) []*c
 // untaps, so it leaves the census complete rather than failing it open:
 // "priced everything the window can offer" and "priced everything, because
 // the one unpriced source simply has nothing to offer right now" are the
-// same fact. The gates mirror castWindowProbeUnits' skip order so the
-// verdict describes that loop's own reason for leaving no unit.
-func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID) bool {
+// same fact. So is a RestrictValid$ ability this payment can't spend (CR 106.6).
+// The gates mirror castWindowProbeUnits' skips so the verdict describes
+// that loop's own reason for leaving no unit.
+func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc pay.Descriptor) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return false
 	}
 	for _, ma := range e.castWindowProbeAbilities(p, id) {
 		mp := effects.ManaOf(ma)
-		if mp.RestrictValid != "" {
-			return true
-		}
 		cost := e.abilityCompiledCost(ma).Cost
 		if pay.ActivationTapCostUnavailable(o, &cost) {
+			continue
+		}
+		if mp.RestrictValid != "" {
+			if pay.RestrictValidMatches(asPayer(e), p, desc, mp.RestrictValid, id) {
+				return true
+			}
 			continue
 		}
 		free := pay.ManaFreeCost(cost)
@@ -324,13 +339,13 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID) bool
 		if _, ok := e.castWindowAmount(p, id, o, ma); !ok {
 			return true
 		}
-		counts, any := mp.Counts, mp.CountsAny
+		counts := mp.Counts
 		if mp.NeedsChosen {
 			chosen := pay.ChosenProducedColour(e.G, id)
 			if chosen == "" {
 				return true
 			}
-			counts, any = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
+			counts, _ = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
 		}
 		total := int32(0)
 		for _, n := range counts {
@@ -339,7 +354,7 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID) bool
 		if total <= 0 {
 			return true
 		}
-		if free && !any && availableAmountOf(mp) > 0 {
+		if free && !mp.CountsAny && availableAmountOf(mp) > 0 {
 			return true
 		}
 	}
@@ -354,22 +369,61 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID) bool
 // unpriced ability might be the production that closes the gap the probe
 // measured short. A census that is complete lets a pool-short target-menu
 // candidate be judged on the concrete reachability search alone; an
-// incomplete one falls back to keeping the historical offer.
+// incomplete one falls back to keeping the historical offer. So do a mana ability
+// in hand or graveyard, which the census doesn't walk, and a production a tap
+// trigger or a replacement would change, which it doesn't price (CR 605.1b).
 func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUnit) bool {
 	p := pc.player
+	for _, z := range []state.Zone{state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, p) {
+			if e.untappedManaSource(p, id) {
+				return false
+			}
+		}
+	}
+	if e.paymentPlanManaInterference() {
+		return false
+	}
+	for _, u := range units {
+		for _, a := range u.Alts {
+			if e.manaProductionAltered(u.ID, a.Ma) {
+				return false
+			}
+		}
+	}
 	priced := make(map[state.ObjID]bool, len(units))
 	for _, u := range units {
 		priced[u.ID] = true
 	}
+	desc := paymentForCast(pc, pc.resolvedMana())
 	for _, id := range pay.BattlefieldManaSourceIDs(e.G, p) {
-		if priced[id] || e.convokeCommitted(pc, id) {
+		if e.convokeCommitted(pc, id) {
 			continue
 		}
-		if len(e.castWindowProbeAbilities(p, id)) > 0 && e.castWindowSourceExcluded(p, id) {
+		if priced[id] {
+			if e.castWindowRestrictedAdmits(p, id, desc) {
+				return false
+			}
+			continue
+		}
+		if len(e.castWindowProbeAbilities(p, id)) > 0 && e.castWindowSourceExcluded(p, id, desc) {
 			return false
 		}
 	}
 	return true
+}
+
+// castWindowRestrictedAdmits reports whether a source priced by its plain mana
+// abilities also has a RestrictValid$ one this payment may spend (CR 106.6,
+// Tablet of Discovery's {R}{R} for an instant or sorcery): its units understate
+// what the window can produce.
+func (e *Engine) castWindowRestrictedAdmits(p state.PlayerID, id state.ObjID, desc pay.Descriptor) bool {
+	for _, ma := range e.castWindowProbeAbilities(p, id) {
+		if valid := effects.ManaOf(ma).RestrictValid; valid != "" && pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+			return true
+		}
+	}
+	return false
 }
 
 // castWindowAmount resolves a window mana ability's Amount$ the way the
@@ -480,6 +534,11 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 // each caller already applies it.
 func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 	typed [7]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
+	// CR 119.8: under a CantChangeLife static no positive life may be paid,
+	// whether by the cost or by a PayLife source's activation.
+	if asEval(e).LifeChangeForbidden(p) {
+		life = 0
+	}
 	payable := func(pool, snowPool state.Mana, lifeNow int32) bool {
 		_, ok := resolveManaWith(cost, pool, snowPool, typed, lifeNow,
 			asEval(e).PayLifeInsteadOfB(p), rider, conv)
@@ -488,6 +547,17 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 	}
 	if payable(spellPool, snow, life) {
 		return true
+	}
+	// Every activation adds at least one mana and a minimal sequence spends
+	// some of each, so it needs no more activations than the cost's pips plus
+	// the fees it pays.
+	budget := cost.ManaPipCount()
+	for _, u := range units {
+		fee := int32(0)
+		for _, a := range u.Alts {
+			fee = max(fee, a.CostGeneric)
+		}
+		budget += int(fee)
 	}
 	free := e.unrestrictedWindowPool(p)
 	// Stable free-first ordering: a free alt sorts before a paid one; ties
@@ -514,10 +584,13 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 	// ran out before the right production was tried: a payable {G}{U}
 	// activation was judged unreachable and every target dropped off its
 	// Min 0 ask (lockstep pairs 1509 3986, Zimone, Paradox Sculptor).
-	var rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree int) bool
-	rec = func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree int) bool {
+	var rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool
+	rec = func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool {
 		if payable(pool, spellSnow, lifeLeft) {
 			return true
+		}
+		if remaining <= 0 {
+			return false
 		}
 		nodes++
 		if nodes > 1<<18 {
@@ -563,7 +636,7 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 				}
 				used[i] = true
 				found := rec(pay.ManaAdd(nextPool, produced), nextSpellSnow,
-					pay.ManaAdd(nextActivation, produced), nextActivationSnow, lifeLeft-a.Life, next)
+					pay.ManaAdd(nextActivation, produced), nextActivationSnow, lifeLeft-a.Life, next, remaining-1)
 				used[i] = false
 				if found {
 					return true
@@ -572,7 +645,7 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 		}
 		return false
 	}
-	return rec(spellPool, snow, free, snow, life, -1)
+	return rec(spellPool, snow, free, snow, life, -1, budget)
 }
 
 func manaSub(a, b state.Mana) state.Mana {
@@ -691,6 +764,39 @@ func (e *Engine) striveAffordableTargets(pc *pendingCast, max int) int {
 	best := 1
 	for n := 2; n <= max; n++ {
 		if !affordable(n) {
+			break
+		}
+		best = n
+	}
+	return best
+}
+
+// targetCountAffordable is the Decision.AffordableTargets hint for a spell whose
+// own cost reads how many targets it announces (Fireball, Officious
+// Interrogation): the largest n in [1, limit] whose total cost CR 601.2f composes,
+// with X already announced, the pool and the window can pay. Only the count is
+// read, so any n of the candidates price it. It returns 0 (no hint) for any
+// other spell. A pure read, like striveAffordableTargets.
+func (e *Engine) targetCountAffordable(pc *pendingCast, candidates []targetCandidate, limit int) int {
+	o := e.G.Obj(pc.card)
+	if pc.isAbility() || limit <= 1 || o == nil || o.Face() == nil || !o.Face().Mentions("TargetedObjects$Amount") {
+		return 0
+	}
+	scope, ok := e.pendingCastScope(pc)
+	if !ok {
+		return 0
+	}
+	targets := make([]state.Target, limit)
+	for i := range targets {
+		targets[i] = candidateTarget(candidates[i])
+	}
+	units := e.castWindowUnits(pc)
+	best := 1
+	for n := 2; n <= limit; n++ {
+		mods := pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, targets[:n]))
+		cost := e.paymentManaXUsing(pc, pc.x, mods)
+		cost.Generic = max(cost.Generic-int32(len(pc.delve)), 0)
+		if !e.castWindowPays(pc, cost, units) {
 			break
 		}
 		best = n

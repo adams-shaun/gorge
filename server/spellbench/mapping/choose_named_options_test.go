@@ -1,6 +1,6 @@
 package mapping_test
 
-// sbp-unmapped-choose-option: named-option choose asks route to the v2
+// Named-option choose asks route to the v2
 // choose_option / select_object vocabulary instead of unmapped:choose/....
 
 import (

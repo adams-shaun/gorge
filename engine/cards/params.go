@@ -845,6 +845,15 @@ const (
 	// NoPrevention$ True on DealDamage: this ability's damage can't be
 	// prevented (CR 615.12). Appended: earlier ordinals stay stable.
 	PKNoPrevention
+	// RemoveArtifactTypes$ and RemoveEnchantmentTypes$ True: the layer-4
+	// strips of those subtype sets. Appended: earlier ordinals stay stable.
+	PKRemoveArtifactTypes
+	PKRemoveEnchantmentTypes
+	// Boon$ True on an Effect and BoonAmount$ on its trigger: a one-time boon
+	// ends after its trigger has fired that many times. Appended: earlier
+	// ordinals stay stable.
+	PKBoon
+	PKBoonAmount
 	paramKeyCount
 )
 
@@ -1311,6 +1320,10 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRememberUntapped:                 "RememberUntapped",
 	PKRemoveConditionSVar:              "RemoveConditionSVar",
 	PKRemoveLandTypes:                  "RemoveLandTypes",
+	PKRemoveArtifactTypes:              "RemoveArtifactTypes",
+	PKRemoveEnchantmentTypes:           "RemoveEnchantmentTypes",
+	PKBoon:                             "Boon",
+	PKBoonAmount:                       "BoonAmount",
 	PKRemoveTypes:                      "RemoveTypes",
 	PKRepeatCheckSVar:                  "RepeatCheckSVar",
 	PKRepeatCompare:                    "RepeatCompare",
@@ -1963,6 +1976,22 @@ func (sa *SA) HasParam(k ParamKey) bool { _, ok := paramGet(sa.ps, sa.Params, k)
 // MayHaveAnyParam is false only when the ability provably holds no key of
 // mask.
 func (sa *SA) MayHaveAnyParam(mask ParamMask) bool { return paramMayHaveAny(sa.ps, sa.Params, mask) }
+
+// HasAnyParam reports whether the ability holds a key of mask, exactly: an
+// unbound ability walks the mask's keys.
+func (sa *SA) HasAnyParam(mask ParamMask) bool {
+	if sa.ps.bound(sa.Params) {
+		return paramMayHaveAny(sa.ps, sa.Params, mask)
+	}
+	for w, keys := range mask {
+		for ; keys != 0; keys &= keys - 1 {
+			if _, ok := sa.Params[paramKeyNames[w<<6|bits.TrailingZeros64(keys)]]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // ExhaustValue reports the compiled Exhaust$ True activation qualifier.
 // Parsed abilities bind it once; synthetic abilities read their parameter.

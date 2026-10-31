@@ -2,8 +2,7 @@ package rules
 
 // Set audit: Marvel's Spider-Man (spm). Most of this file is AUDIT-only: it
 // records defects found in the set, one test per card/mechanic, each guarded
-// by GORGE_SET_AUDIT so a failing finding does not break the gates. Findings
-// are filed as tickets under .ds4/new-tickets/. See .ds4/report-t0.md. The
+// by GORGE_SET_AUDIT so a failing finding does not break the gates. The
 // Web-slinging finding is the exception: the alternative cost was implemented
 // in engine/rules/webslinging.go, so its test is a permanent green regression guard
 // without the skip guard.

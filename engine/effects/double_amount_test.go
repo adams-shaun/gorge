@@ -63,7 +63,7 @@ func TestDoubleAmountResolvesPerAffectedObject(t *testing.T) {
 // object to read, `Double` is not resolvable and Num degrades it to the
 // present-but-unresolvable zero -- never to an arbitrary object's stat. This is
 // the fail-closed half of removing the old first-Defined read, and it also
-// pins that NumForObject is a drop-in for Num on ordinary values.
+// pins that NumForObject keeps the caller's reading of an ordinary value.
 func TestDoubleAmountScalarDegradesToZero(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}
@@ -71,11 +71,10 @@ func TestDoubleAmountScalarDegradesToZero(t *testing.T) {
 		t.Fatalf("scalar NumAtt$ Double = %d, want 0 (present-but-unresolvable degrades to zero)", got)
 	}
 	// A per-object call with no object keeps the same degrade.
-	if got := NumForObject(h, &Ctx{}, sa(t, "SP$ Pump | NumAtt$ Double"), "NumAtt", 0, 0); got != 0 {
+	if got := NumForObject(h, sa(t, "SP$ Pump | NumAtt$ Double"), "NumAtt", 0, 0); got != 0 {
 		t.Fatalf("NumForObject NumAtt$ Double with no object = %d, want 0", got)
 	}
-	// A non-Double value must behave exactly as Num (the drop-in superset).
-	if got := NumForObject(h, &Ctx{}, sa(t, "SP$ Pump | NumAtt$ +3"), "NumAtt", 0, 1); got != 3 {
+	if got := NumForObject(h, sa(t, "SP$ Pump | NumAtt$ +3"), "NumAtt", 3, 1); got != 3 {
 		t.Fatalf("NumForObject NumAtt$ +3 = %d, want 3", got)
 	}
 }
@@ -86,7 +85,7 @@ func TestDoubleAmountScalarDegradesToZero(t *testing.T) {
 func TestDoubleAmountToughnessKey(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	if got := NumForObject(h, &Ctx{}, sa(t, "SP$ Pump | NumDef$ Double"), "NumDef", 0, ids["myFlier"]); got != 1 {
+	if got := NumForObject(h, sa(t, "SP$ Pump | NumDef$ Double"), "NumDef", 0, ids["myFlier"]); got != 1 {
 		t.Fatalf("NumDef$ Double on the 1/1 flier = %d, want 1 (its toughness)", got)
 	}
 }

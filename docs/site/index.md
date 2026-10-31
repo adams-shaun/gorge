@@ -46,155 +46,44 @@ hide:
 
 </div>
 
-**gorge** is a deterministic, event-sourced *Magic: The Gathering* rules
-engine written in pure Go. It does not hand-code cards: it compiles
-[Forge](https://github.com/Card-Forge/forge)'s card scripts into an
-intermediate representation (IR), and the engine implements the primitives
-that IR references (effects, triggers, keywords, static abilities, value
-expressions). Around the engine sit a reference server with a browser client,
-baseline and hosted bots, and tools to replay, benchmark and audit games.
+**gorge** is a *Magic: The Gathering* rules engine in pure Go, and a server and browser client
+to play on it. It doesn't hand-code cards: it compiles [Forge](https://github.com/Card-Forge/forge)'s
+card scripts into an intermediate representation and implements the primitives that representation
+names (effects, triggers, keywords, static abilities, value expressions).
 
-Every state change goes through one function, `events.Apply`, into a
-SHA-256 hash-chained event log. A game is therefore a pure function of its
-configuration and the players' answers, so replay, resume after a restart,
-undo, search clones and bug reproduction are all one mechanism.
+Every state change goes through one function, `events.Apply`, into a SHA-256 hash-chained log. A game
+is a pure function of its configuration and its players' answers, so replay, undo, search clones and bug
+reproduction are one mechanism.
 
-!!! info "Status"
-    gorge plays full two- to eight-player games, including Commander, serves
-    bot tables and play-against-a-bot games to a browser, and replays every
-    game byte for byte. It is **not** yet at rules parity with mature engines
-    and is not ready for production use.
+## What runs
 
-## Who this site is for
+- **Games** for two to eight players, Constructed and Commander, against bots or people.
+- **`gorged`**, a server with perpetual bot tables, play-against-a-bot games and 4-seat draft events, a
+  browser client, and three client protocols: native HTTP, SpellBench v2 and ManaBrew
+  ([Wires](architecture/wires.md)).
+- **Bots**: a default heuristic and several hosted policies. A bot in any language can play a seat over HTTP.
+- **Tools** to play verified bot games, replay any game, and turn a player's bug report into a failing test.
+
+gorge plays full games and replays them byte for byte. It is not at rules parity with mature engines and is
+not ready for production use. `make report` on 2026-10-31 counted 32,390 of Forge's 34,074 scripts (95.1%) as
+playable, meaning every primitive they name is implemented; [Card support](support/sets.md) has the stronger
+per-set certification against XMage and Forge, rebuilt with this site.
+
+dirac is a second, much faster two-player engine, checked against gorge decision by decision. Its source isn't
+in this repository yet; [its pages](architecture/dirac/index.md) describe the design.
+
+## Where to go
 
 | You are… | You want… | Start at |
 |---|---|---|
-| a **Go developer** who wants to fix a card or a rule | to set up, find the code, and land a change | [Contributing](contributing/index.md) |
-| an **engine user** running the demo or bot matches | to run a server, play, watch, replay | [User's guide](guide/index.md) |
-| a **bot author** (Python, Java or Go) | to wire a strategy to the engine's decisions | [Bots](bots/index.md) |
-| curious how it works | the design and its trade-offs | [Architecture](architecture/index.md) |
+| trying it out | a local server and verified games in five minutes | [Getting started](getting-started.md) |
+| a player or host | to run a server, play, draft, replay | [User's guide](guide/index.md) |
+| a bot author (Go, Python, Java) | to answer the engine's decisions | [Bots](bots/index.md), [API reference](api/index.md) |
+| fixing a card or a rule | to set up, find the code, land a change | [Contributing](contributing/index.md), [Your first card fix](contributing/first-card-fix.md) |
+| an engine or ML person | how it is built and how fast it is | [Architecture](architecture/index.md), [Performance](performance/index.md) |
+| choosing a card pool | what is supported, set by set | [Card support](support/sets.md) |
+| deciding whether to trust it | what is checked, by what, and what isn't | [Card support](support/sets.md#what-supported-means-engine-by-engine), [Invariants](architecture/invariants.md), [The three repositories](repos/index.md#gorge-compliance) |
 
-## At a glance
-
-**94.9%** of Forge's 34,074 card scripts are playable in gorge at the pinned
-corpus commit (`make report`, 2026-10-27, `25d71cadc`). Every Standard set is
-certified against XMage at Level A or better. dirty-dirac, the second kernel,
-lowers 50% of the corpus and is lockstep-verified against gorge on
-Foundations and Bloomburrow; it is under active development toward a full
-engine, its card support is still growing, and gorge is the reference engine. [Card support](support/sets.md) has the figures
-by engine and by set, regenerated at every docs build, and
-[Performance](performance/index.md) has engine speed. Golden bot games at 2,
-4, 6 and 8 seats replay byte-identically, and the root `go.mod` has no
-dependencies and no cgo.
-
-## Three repositories at a glance
-
-<figure>
-<svg viewBox="0 0 780 330" width="100%" role="img" aria-label="The three repositories. gorge, public, holds the engine, server, bots and tools. gorge-compliance, public, checks gorge against XMage and Forge. A private companion holds the maintainers' extensions. Both companions import gorge at a pinned commit; gorge imports neither.">
-<defs><marker id="hm-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-arrow-accent"/></marker></defs>
-<rect x="270" y="10" width="240" height="250" rx="12" class="dg-box-accent"/>
-<rect x="270" y="10" width="240" height="40" rx="12" class="dg-box-solid"/>
-<text x="390" y="36" text-anchor="middle" class="dg-text-on">gorge</text>
-<text x="390" y="70" text-anchor="middle" class="dg-text-muted">public · Apache-2.0 · this site</text>
-<text x="288" y="98" class="dg-text">rules engine (engine/)</text>
-<text x="288" y="120" class="dg-text">Forge-script compiler</text>
-<text x="288" y="142" class="dg-text">reference server gorged</text>
-<text x="288" y="164" class="dg-text">browser client (web/)</text>
-<text x="288" y="186" class="dg-text">baseline and hosted bots</text>
-<text x="288" y="208" class="dg-text">replay, bench, audit tools</text>
-<text x="390" y="242" text-anchor="middle" class="dg-text-muted">imports nothing but the stdlib</text>
-<rect x="10" y="40" width="210" height="190" rx="12" class="dg-box"/>
-<text x="115" y="68" text-anchor="middle" class="dg-text-bold">gorge-compliance</text>
-<text x="115" y="88" text-anchor="middle" class="dg-text-muted">public · Apache-2.0</text>
-<text x="26" y="116" class="dg-text">checks gorge, card by</text>
-<text x="26" y="136" class="dg-text">card, against XMage,</text>
-<text x="26" y="156" class="dg-text">Forge and hand-written</text>
-<text x="26" y="176" class="dg-text">Oracle-text scenarios</text>
-<text x="26" y="206" class="dg-text-muted">certification ratchet</text>
-<rect x="560" y="40" width="210" height="190" rx="12" class="dg-box-muted"/>
-<text x="665" y="68" text-anchor="middle" class="dg-text-bold">private companion</text>
-<text x="665" y="88" text-anchor="middle" class="dg-text-muted">private</text>
-<text x="576" y="116" class="dg-text">draft events,</text>
-<text x="576" y="136" class="dg-text">the dirty-dirac kernel,</text>
-<text x="576" y="156" class="dg-text">the demo server</text>
-<text x="576" y="206" class="dg-text-muted">not needed to use gorge</text>
-<line x1="220" y1="135" x2="266" y2="135" class="dg-line-accent" marker-end="url(#hm-arr)"/>
-<line x1="560" y1="135" x2="514" y2="135" class="dg-line-accent" marker-end="url(#hm-arr)"/>
-<text x="115" y="262" text-anchor="middle" class="dg-text-muted">pins gorge by commit</text>
-<text x="115" y="280" text-anchor="middle" class="dg-text-mono">GORGE_PIN + go.mod</text>
-<text x="665" y="262" text-anchor="middle" class="dg-text-muted">pins gorge by commit</text>
-<text x="665" y="280" text-anchor="middle" class="dg-text-mono">GORGE_PIN + go.mod</text>
-<text x="390" y="300" text-anchor="middle" class="dg-text">arrows: importer → imported</text>
-<text x="390" y="318" text-anchor="middle" class="dg-text-muted">gorge never imports either companion</text>
-</svg>
-<figcaption>gorge is self-contained. The two companions build on it at a pinned commit; see <a href="repos/">The three repositories</a>.</figcaption>
-</figure>
-
-## Where to go next
-
-<div class="grid cards" markdown>
-
--   **[Repos](repos/index.md)**
-
-    ---
-
-    What lives in gorge, gorge-compliance and the private companion, which way the
-    imports run, licensing, pinning and the branch flow.
-
--   **[Architecture: the gorge kernel](architecture/index.md)**
-
-    ---
-
-    The event log, the rules engine, the card pipeline, views and the
-    server, and the [invariants](architecture/invariants.md) that hold them
-    together.
-
--   **[Architecture: the dirty-dirac kernel](architecture/dirty-dirac/index.md)**
-
-    ---
-
-    A fixed-size, much faster second kernel, in active development toward a
-    full engine and checked decision by decision against gorge.
-
--   **[Contributing](contributing/index.md)**
-
-    ---
-
-    Set up, run the tests inside the budget, read the ratchets, and land
-    your [first card fix](contributing/first-card-fix.md).
-
--   **[User's guide](guide/index.md)**
-
-    ---
-
-    Run a local server, play against a bot, watch tables, replay a game.
-
--   **[Bots](bots/index.md)**
-
-    ---
-
-    The decision contract a bot answers, the built-in bots, and how to
-    connect your own.
-
--   **[Performance](performance/index.md)**
-
-    ---
-
-    How engine speed is measured and the current numbers.
-
--   **[Card support](support/sets.md)**
-
-    ---
-
-    Card coverage by engine and by set: gorge playable and certified,
-    dirty-dirac lowered and lockstep-verified.
-
-</div>
-
-## Licensing
-
-gorge is Apache-2.0. Forge's card scripts are GPL-3.0, so gorge ships a
-*compiler* for the script format and never the scripts themselves: they are
-fetched into a gitignored `.cards/` directory at a pinned commit, and a test
-(`TestNoForgeScriptsTracked`) fails the build if one is ever tracked. Details
-are on [The three repositories](repos/index.md#licensing-and-the-forge-card-scripts).
+gorge is Apache-2.0. It ships a compiler for Forge's GPL-3.0 scripts and never the scripts:
+[The three repositories](repos/index.md) has the licensing, and what lives in the public compliance repository and
+the private module that build on gorge.

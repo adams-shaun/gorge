@@ -413,9 +413,11 @@ func singleColour(m decision.ManaAmount) (int, bool) {
 // witness colour. A single pick tries, in order: an option whose label's
 // "Add ..." tail is exactly the witness production; an option whose
 // ManaSymbol is the witness's single colour; an any-colour or "X or Y"
-// option that can make it (its colour ask follows). Within a class the
-// option whose cost prefix ("Sacrifice ...: Add B") agrees with whether the
-// step discloses a Consequence leads, then engine order.
+// option that can make it (its colour ask follows); a single pip of the
+// witness's colour, which is how a colour ask and a non-literal Amount$ label
+// an ability adding several mana. Within a class the option whose cost prefix
+// ("Sacrifice ...: Add B") agrees with whether the step discloses a Consequence
+// leads, then engine order.
 func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, bool) {
 	want := act.Produces
 	if d.Min > 1 && d.Min == d.Max {
@@ -446,6 +448,10 @@ func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, boo
 				return anyLabelFits(o.Label, want)
 			}
 			return want[col] == 1 && containsInt(combo, col)
+		},
+		func(o *decision.Option) bool {
+			amt, any, combo, ok := labelProduction(o.Label)
+			return single && ok && !any && combo == nil && total(amt) == 1 && amt[col] == 1
 		},
 	}
 	costly := act.Consequence != nil

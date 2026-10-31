@@ -1,6 +1,6 @@
 # Seat deck manifest contract
 
-Status: implementation specification, ready for agentctl intake.
+Status: implementation specification.
 
 ## Decision
 

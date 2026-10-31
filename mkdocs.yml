@@ -5,7 +5,7 @@
 # Local preview (needs only uv or a virtualenv):
 #   uvx --with mkdocs-material==9.7.7 mkdocs serve
 site_name: gorge
-site_description: A deterministic, event-sourced Magic rules engine in pure Go.
+site_description: A Magic rules engine in pure Go, with a server and browser client; every game is a replayable, hash-chained event log.
 site_url: https://adams-shaun.github.io/gorge/
 repo_url: https://github.com/adams-shaun/gorge
 repo_name: adams-shaun/gorge
@@ -86,33 +86,31 @@ extra_css:
   - stylesheets/diagrams.css
   - stylesheets/theme.css
 
-extra_javascript:
-  - javascripts/perf-tracking.js
-
 nav:
   - Home:
       - index.md
       - Getting started: getting-started.md
-      - The three repos: repos/index.md
+      - The three repositories: repos/index.md
   - Architecture:
       - architecture/index.md
-      - gorge kernel:
+      - gorge engine:
           - Events and replay: architecture/gorge/events.md
           - Game loop and decisions: architecture/gorge/game-loop.md
           - Cards and primitives: architecture/gorge/cards.md
           - The rules core: architecture/gorge/rules.md
           - Views and hidden information: architecture/gorge/views.md
           - The server tier: architecture/gorge/server.md
-      - dirty-dirac kernel:
-          - architecture/dirty-dirac/index.md
-          - State: architecture/dirty-dirac/state.md
-          - Step and Apply: architecture/dirty-dirac/step-apply.md
-          - Cards: architecture/dirty-dirac/cards.md
-          - Verification: architecture/dirty-dirac/oracle.md
-          - Search: architecture/dirty-dirac/search.md
+      - dirac:
+          - architecture/dirac/index.md
+          - State: architecture/dirac/state.md
+          - Step and Apply: architecture/dirac/step-apply.md
+          - Cards: architecture/dirac/cards.md
+          - Verification: architecture/dirac/oracle.md
+          - Search: architecture/dirac/search.md
+      - Draft events: architecture/draft.md
       - Invariants: architecture/invariants.md
+      - Wires: architecture/wires.md
       - Packages: architecture/packages.md
-      - Cleanup roadmap: architecture/cleanup.md
   - Contributing:
       - contributing/index.md
       - Repository layout: contributing/repo-layout.md
@@ -124,6 +122,7 @@ nav:
       - guide/index.md
       - Install and build: guide/install.md
       - Play in the browser: guide/play.md
+      - Draft events: guide/draft.md
       - Bot-vs-bot games: guide/bot-games.md
       - Replays: guide/replays.md
       - Troubleshooting: guide/troubleshooting.md
@@ -134,21 +133,22 @@ nav:
       - Python and Java examples: bots/examples.md
       - SpellBench v2 agents: bots/spellbench.md
       - Training and adoption: bots/training-and-adoption.md
-      - MageZero replication: bots/magezero-replication.md
-      - Interface review: bots/interfaces-review.md
   - API reference:
       - api/index.md
       - HTTP API: api/http.md
       - Event stream (SSE): api/sse.md
       - Wire protocol: api/protocol.md
       - SpellBench v2: api/spellbench-v2.md
+      - ManaBrew: api/manabrew.md
+      - gorge-agent/1: api/gorge-agent.md
       - Go embedding API: api/go.md
   - Performance:
       - performance/index.md
-      - Methodology: performance/methodology.md
-      - Engine speed: performance/engine.md
-      - "Bots: cost and strength": performance/bots.md
-      - Tracking over time: performance/tracking.md
+      - How it is measured: performance/methodology.md
+      - "gorge's speed": performance/engine.md
+      - Bot speed: performance/bots.md
+  - Research:
+      - MageZero replication: bots/magezero-replication.md
   - Card support:
       - Support by set: support/sets.md
       - Regenerating the tables: support/regenerating.md

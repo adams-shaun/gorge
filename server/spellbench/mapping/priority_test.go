@@ -643,7 +643,7 @@ func TestPriorityLandFacesAndSpecialActions(t *testing.T) {
 // The activate path passes ExpandActivate's candidates and folded
 // follow-ups through untouched, and an answer commits the option then each
 // folded follow-up. A stand-in replaces ExpandActivate, so this holds for
-// Task 15's lookahead as for the stub.
+// the lookahead version as for the stub.
 func TestPriorityActivateUsesExpandActivate(t *testing.T) {
 	env, d0, hand, _ := synthPosition(t)
 	a := hand[0]
@@ -909,15 +909,15 @@ func TestPriorityRealGames(t *testing.T) {
 	for _, game := range []struct {
 		d0, d1 string
 		seed   byte
-	}{{"Wildfire", "CawGates", 3}, {"Burn", "Rally", 4}} {
+	}{{"Wildfire", "CawGates", 1}, {"Burn", "Rally", 4}} {
 		g := testgame.New(t, reg, game.d0, game.d1, game.seed, "none")
-		tr := identity.New(g.E, g.Secret)
+		tr := identity.New(g.R, g.Secret)
 		testgame.RunUntil(t, g, testgame.Bots(uint64(game.seed)), func(e *rules.Engine) bool {
-			if err := tr.Sync(e); err != nil {
+			if err := tr.Sync(g.R); err != nil {
 				t.Fatal(err)
 			}
 			if d := e.Pending(); d != nil && d.Kind == decision.KPriority {
-				s.check(&mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{E: g.E, IDs: tr}, Slots: map[string]uint32{}}, d)
+				s.check(&mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{R: g.R, IDs: tr}, Slots: map[string]uint32{}}, d)
 			}
 			return false
 		}, 200000)

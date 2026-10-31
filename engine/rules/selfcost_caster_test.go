@@ -23,7 +23,7 @@ const sorceryFiller = "Name:Filler Sorcery\nManaCost:R\nTypes:Sorcery\nA:SP$ Dra
 // the card is on the stack under the caster's control when its total cost
 // is determined), also when the card is cast from another player's zone
 // through a may-play permission (Tinybones' stash). gorge counted the
-// OWNER's graveyard for Tolarian Terror cast by the opponent (kernel lockstep
+// OWNER's graveyard for Tolarian Terror cast by the opponent (dirac lockstep
 // pairs 1, 8835, 9227, 9239) and the owner's Wizards for Arcane Epiphany
 // (pair 4716).
 func TestSelfCostStaticReadsTheCaster(t *testing.T) {

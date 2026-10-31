@@ -523,3 +523,50 @@ func TestWorldAtWarAfterTheFirstPostcombatMainGrantsNothing(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestEffectFirstCombatPhaseTriggerFiresOnce: an Effect's "at the end of the
+// first combat phase" trigger holds its FirstCombat$ gate (CR 603.2b), so the
+// additional combat it grants does not grant another. Unread, the gate let the
+// trigger add a combat at every end of combat, and the turn never ended.
+func TestEffectFirstCombatPhaseTriggerFiresOnce(t *testing.T) {
+	t.Parallel()
+	const src = "Name:War Horn\nTypes:Artifact\n" +
+		"A:AB$ Effect | Cost$ 0 | Triggers$ Sounded | Duration$ Permanent | SpellDescription$ Sound the horn.\n" +
+		"SVar:Sounded:Mode$ Phase | Phase$ EndCombat | ValidPlayer$ You | FirstCombat$ True | Execute$ Another | TriggerDescription$ One more combat.\n" +
+		"SVar:Another:DB$ AddPhase | ExtraPhase$ Combat | AfterPhase$ EndCombat | SubAbility$ Tally\n" +
+		"SVar:Tally:DB$ GainLife | Defined$ You | LifeAmount$ 1\n" +
+		"Oracle:x\n"
+	e := handEngine(t)
+	id := onBoardReady(t, e, 0, src)
+	e.priorityRound()
+	abilityOption := -1
+	for _, o := range e.Pending().Options {
+		if o.Kind == "ability" && o.Obj == id {
+			abilityOption = o.Index
+		}
+	}
+	if abilityOption < 0 {
+		t.Fatal("the ability was not offered")
+	}
+	submitChoices(t, e, abilityOption)
+	passUntilStackEmpty(t, e, 20)
+	life, turn := e.G.Players[0].Life, e.G.Turn
+	combats := int32(0)
+	for i := 0; e.G.Turn == turn; i++ {
+		if i > 400 {
+			t.Fatalf("turn %d did not end: %d combats, life %d", turn, e.G.CombatsThisTurn, e.G.Players[0].Life)
+		}
+		combats = e.G.CombatsThisTurn
+		if d := e.Pending(); d != nil && d.Kind == decision.KAttackers {
+			submitAttackersOnly(t, e)
+			continue
+		}
+		passAll(t, e, 1)
+	}
+	if got := e.G.Players[0].Life - life; got != 1 {
+		t.Fatalf("gained %d life, want 1", got)
+	}
+	if combats != 2 {
+		t.Fatalf("%d combat phases, want 2", combats)
+	}
+}

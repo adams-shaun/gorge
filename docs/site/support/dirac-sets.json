@@ -1,0 +1,39 @@
+{
+  "about": "dirac per-set card acceptance, rendered by scripts/docs_sets.py. dirac's source is not in this repository: a maintainer re-runs its acceptance ratchet and lockstep runs and edits this file. accepted = cards kgen lowers with no refusal; cards = distinct names in XMage's manifest for the set that exist in the corpus (corpus: distinct card names in the Forge corpus at FORGE_REF). lockstep = seeded games played in both engines, compared at every decision.",
+  "date": "2026-10-31",
+  "gorge_pin": "7438d92b6",
+  "corpus": {"accepted": 20730, "cards": 34072},
+  "lockstep": {
+    "BLB": {"games": 1500, "agree": 1500, "stalls": 0, "disagree": 0},
+    "FDN": {"games": 1500, "agree": 1500, "stalls": 0, "disagree": 0}
+  },
+  "sets": {
+    "BIG": {"accepted": 23, "cards": 30},
+    "BLB": {"accepted": 253, "cards": 278},
+    "BRO": {"accepted": 206, "cards": 280},
+    "DFT": {"accepted": 242, "cards": 276},
+    "DMU": {"accepted": 189, "cards": 270},
+    "DSK": {"accepted": 230, "cards": 276},
+    "ECL": {"accepted": 230, "cards": 273},
+    "EOE": {"accepted": 236, "cards": 266},
+    "FDN": {"accepted": 505, "cards": 517},
+    "FIN": {"accepted": 263, "cards": 312},
+    "FRA": {"accepted": 240, "cards": 269},
+    "HOB": {"accepted": 151, "cards": 172},
+    "LCI": {"accepted": 244, "cards": 290},
+    "MKM": {"accepted": 227, "cards": 279},
+    "MOM": {"accepted": 195, "cards": 296},
+    "MSH": {"accepted": 221, "cards": 276},
+    "NEO": {"accepted": 195, "cards": 287},
+    "ONE": {"accepted": 193, "cards": 271},
+    "OTJ": {"accepted": 235, "cards": 276},
+    "SNC": {"accepted": 182, "cards": 266},
+    "SOS": {"accepted": 246, "cards": 270},
+    "SPM": {"accepted": 158, "cards": 192},
+    "TDM": {"accepted": 242, "cards": 276},
+    "TLA": {"accepted": 242, "cards": 285},
+    "TMT": {"accepted": 167, "cards": 194},
+    "TRK": {"accepted": 73, "cards": 81},
+    "WOE": {"accepted": 250, "cards": 281}
+  }
+}

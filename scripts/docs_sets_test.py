@@ -14,21 +14,21 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import docs_sets  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SNAPSHOT = os.path.join(ROOT, "docs", "site", "support", "dirty-dirac-sets.json")
+SNAPSHOT = os.path.join(ROOT, "docs", "site", "support", "dirac-sets.json")
 
 A_ROWS = [
-    # audited, declared B, also in dirty-dirac
+    # audited, declared B, also in dirac
     {"set": "FDN", "name": "Foundations", "set_type": "EXPANSION", "released": "2024-11-15",
      "level": "A", "declared": "B", "printed": True, "cards": 517, "outstanding": 0},
     # audited, gorge only
     {"set": "BIG", "name": "The Big Score", "set_type": "SUPPLEMENTAL_STANDARD_LEGAL",
      "released": "2024-04-19", "level": "A", "declared": "B", "printed": True, "cards": 30,
      "outstanding": 0},
-    # not audited, but dirty-dirac has it
+    # not audited, but dirac has it
     {"set": "BRO", "name": "The Brothers' War", "set_type": "EXPANSION", "released": "2022-11-18",
      "level": "A", "printed": False, "cards": 280, "outstanding": 263, "problem_cards": 263,
      "buckets": {"no printed list": 1, "no verdict": 241, "unsupported": 21}},
-    # not audited, no dirty-dirac: only in the roll-up
+    # not audited, no dirac: only in the roll-up
     {"set": "LEA", "name": "Limited Edition Alpha", "set_type": "CORE", "released": "1993-08-05",
      "level": "A", "printed": False, "cards": 284, "outstanding": 256, "problem_cards": 256,
      "buckets": {"no printed list": 1, "unsupported": 17}},
@@ -78,17 +78,17 @@ class RenderTest(unittest.TestCase):
         # gorge only
         self.assertEqual(row(sets, "BIG")[7], "—")
         self.assertEqual(row(sets, "BIG")[6], "96.7")
-        # dirty-dirac set without a printed list: Level A is a lower bound
+        # dirac set without a printed list: Level A is a lower bound
         bro = row(sets, "BRO")
         self.assertEqual(bro[5], "≥ 6.4")
         self.assertEqual(bro[6], "—")
-        # a code only dirty-dirac has still renders
+        # a code only dirac has still renders
         self.assertEqual(row(sets, "ZZZ")[7], "1 / 2 (50.0%)")
-        # an unaudited set dirty-dirac lacks stays out of the by-engine table
+        # an unaudited set dirac lacks stays out of the by-engine table
         self.assertIsNone(row(sets, "LEA"))
         self.assertIn("BIG: 1 harness", sets)
 
-    def test_rollup_carries_dirty_dirac(self):
+    def test_rollup_carries_dirac(self):
         rollup = section(self.out, "rollup")
         self.assertIn("| BRO | The Brothers' War |", rollup)
         self.assertIn("144 / 280 (51.4%) |", rollup)
@@ -100,20 +100,51 @@ class RenderTest(unittest.TestCase):
         self.assertIn("`671efbb30`", head)
         # The private module's commit is never published.
         self.assertNotIn("`012345678`", head)
-        self.assertIn("the dirty-dirac snapshot of 2026-10-21", head)
+        self.assertIn("the dirac snapshot of 2026-10-21", head)
+
+    def test_caption_names_date_and_corpus(self):
+        meta = dict(META, forge_ref="76fd7691ab45", current_forge_ref="91402ac51104")
+        out = docs_sets.render(A_ROWS, meta, B_ROWS, DD)
+        want = "measured 2026-10-21, on Forge corpus `76fd7691a` (gorge's `FORGE_REF` is now `91402ac51`)"
+        self.assertIn(want, section(out, "sets"))
+        self.assertIn(want, section(out, "rollup"))
+        self.assertIn("Forge corpus `76fd7691a` (gorge's", section(out, "headline"))
+
+    def test_caption_is_quiet_when_the_corpus_is_current(self):
+        meta = dict(META, forge_ref="76fd7691ab45", current_forge_ref="76fd7691ab45")
+        out = docs_sets.render(A_ROWS, meta, B_ROWS, DD)
+        self.assertIn("on Forge corpus `76fd7691a`.*", section(out, "sets"))
+        self.assertNotIn("is now", out)
+
+    def test_caption_counts_failed_ratchet_checks(self):
+        out = docs_sets.render(A_ROWS, dict(META, ratchet_failures=7), B_ROWS, DD)
+        want = "measured 2026-10-21, with 7 compliance ratchet checks failing.*"
+        self.assertIn(want, section(out, "sets"))
+        self.assertIn(want, section(out, "rollup"))
+        out = docs_sets.render(A_ROWS, dict(META, ratchet_failures=1), B_ROWS, DD)
+        self.assertIn("with 1 compliance ratchet check failing.*", section(out, "sets"))
+
+    def test_caption_without_failed_ratchet_checks_is_unchanged(self):
+        old = docs_sets.render(A_ROWS, META, B_ROWS, DD)
+        self.assertEqual(docs_sets.render(A_ROWS, dict(META, ratchet_failures=0), B_ROWS, DD), old)
+        self.assertNotIn("ratchet check", old)
 
     def test_without_status(self):
         out = docs_sets.render([], {}, {}, DD)
         self.assertIn("not available to this build", section(out, "headline"))
         self.assertEqual(row(section(out, "sets"), "FDN")[7], "471 / 517 (91.1%)")
 
-    def test_without_dirty_dirac(self):
+    def test_without_dirac(self):
         out = docs_sets.render(A_ROWS, META, B_ROWS, None)
         self.assertEqual(row(section(out, "sets"), "FDN")[7], "—")
         self.assertIsNone(row(section(out, "sets"), "BRO"))
 
 
 class MainTest(unittest.TestCase):
+    def test_forge_pin_reads_the_makefile(self):
+        self.assertRegex(docs_sets.forge_pin(), r"^[0-9a-f]{40}$")
+        self.assertEqual(docs_sets.forge_pin("/nonexistent/Makefile"), "")
+
     def test_needs_some_input(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(docs_sets.main(["-o", os.path.join(d, "x.md")]), 1)
@@ -132,7 +163,7 @@ class MainTest(unittest.TestCase):
             with open(meta, "w") as f:
                 json.dump(META, f)
             out = os.path.join(d, "out.md")
-            self.assertEqual(docs_sets.main([a, "--meta", meta, "--dirty-dirac", dd, "-o", out]), 0)
+            self.assertEqual(docs_sets.main([a, "--meta", meta, "--dirac", dd, "-o", out]), 0)
             with open(out) as f:
                 self.assertIn("471 / 517", f.read())
 
@@ -143,10 +174,10 @@ class MainTest(unittest.TestCase):
             with open(p, "w") as f:
                 json.dump(bad, f)
             with self.assertRaises(ValueError):
-                docs_sets.load_dirty_dirac(p)
+                docs_sets.load_dirac(p)
 
     def test_committed_snapshot(self):
-        dd = docs_sets.load_dirty_dirac(SNAPSHOT)
+        dd = docs_sets.load_dirac(SNAPSHOT)
         for code in dd["sets"]:
             self.assertRegex(code, r"^[0-9A-Z]{3,5}$")
         for code in dd.get("lockstep", {}):

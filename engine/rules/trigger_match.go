@@ -921,11 +921,13 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	}
 	// An Effect-created trigger may name any registered event mode (damage,
 	// attacks, taps, etc.), not only the delayed modes with a matcher of
-	// their own, so a live EffectRepeat registration widens the event gate.
+	// their own, so a live EffectRepeat registration widens the event gate. A
+	// removal never fires one, and the walk that issued it already holds every
+	// registration it is ending, so walking again would only end them twice.
 	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone || ev.Kind == events.MonarchChange ||
 		ev.Kind == events.ControlChange || ev.Kind == events.Damage || ev.Kind == events.DeclareAttackers ||
-		((ev.Kind == events.AbilityPush || ev.Kind == events.KeywordAbilityPush) && len(e.G.Delayed) > 0) ||
-		e.hasEffectRepeatDelayed() {
+		(ev.IsActivationMint() && len(e.G.Delayed) > 0) ||
+		(ev.Kind != events.DelayedRemove && e.hasEffectRepeatDelayed()) {
 		e.checkEventDelayedTriggers(*ev, lki)
 	}
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the one
@@ -1795,15 +1797,6 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				if objLKI != nil && id == ev.Obj && leftBattlefield(*ev) {
 					controller = objLKI.Controller
 				}
-				// TriggerController$ TriggeredCardController assigns the
-				// ChangesZone ability to the controller of the card whose move
-				// caused it. For a permanent leaving the battlefield, use that
-				// event's LKI: the live object has already returned to its owner.
-				if (t.Mode == "ChangesZone" || t.Mode == "ChangesZoneAll") &&
-					t.ParamStr(cards.PKTriggerController) == "TriggeredCardController" &&
-					objLKI != nil && leftBattlefield(*ev) {
-					controller = objLKI.Controller
-				}
 				// The non-active face of an unlocked Room must be minted through
 				// the delayed-shape push: TriggerPush re-derives an ability from
 				// the object's active Face(), while the delayed push resolves the
@@ -1886,7 +1879,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 							break
 						}
 						e.reserveTriggerLimits(t, key)
-						e.pendingTriggers = append(e.pendingTriggers, pt)
+						e.queueTrigger(observer, pt, *ev, nil)
 					}
 				}
 				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
@@ -1917,24 +1910,15 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 						continue
 					}
 				}
-				// A batch AttackersDeclared trigger is one placement for the
-				// whole declaration, but finishAttackers emits one event per
-				// defending player. Its ValidCause$ must see every declared
-				// attacker, not only the group of the event that latched it.
-				var causes []state.ObjID
-				if ev.Kind == events.DeclareAttackers && trigmatch.AttackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
-					causes = e.declaredAttackers
-				}
-				echoes := e.panharmoniconEchoes(observer, id, *ev, causes)
-				e.pendingTriggers = append(e.pendingTriggers, pt)
-				for k := 0; k < echoes; k++ {
-					e.pendingTriggers = append(e.pendingTriggers, pt)
-				}
+				e.queueTrigger(observer, pt, *ev, e.echoCauses(t, *ev))
 			}
 		}
 		if len(grantedStatics) > 0 {
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, *ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
 		}
+		// Granted Ward and Dethrone follow the both-paths rule below.
+		e.checkGrantedWardTriggers(observer, id, o, f, *ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+		e.checkGrantedDethroneTriggers(observer, id, o, f, *ev, objLKI)
 		// A granted Afflict must fire even when the object's own printed
 		// triggers are live for this event (a Zombie with its own become-blocked
 		// trigger carrying the Monarch's grant) -- the early-return path above
@@ -2475,7 +2459,7 @@ func (e *Engine) closeZoneBatch() {
 	if e.zoneBatchDepth == 0 {
 		return
 	}
-	if e.zoneBatchDepth == 1 && len(e.entryHeld) > 0 {
+	if e.zoneBatchDepth == 1 && len(e.entryHeld) > 0 && !e.tape.Unwinding() {
 		e.flushHeldEntries()
 	}
 	e.zoneBatchDepth--
@@ -2503,6 +2487,9 @@ func (e *Engine) closeZoneBatch() {
 	}
 	e.zoneBatchIdx = nil
 	e.zoneBatchLog = nil
+	if len(e.exileReturnHeld) > 0 && !e.tape.Unwinding() {
+		e.flushExileReturns()
+	}
 }
 
 // triggerRemembered is what a matched trigger's Ctx.Remembered holds: the

@@ -18,11 +18,16 @@ import (
 // AddReviewTable's load walk. Only a review table has one; a live table, a
 // missing table and a missing match are all ErrNotFound, so the route that
 // serves this (mounted only by `gorged review`) can never reach a live
-// match's state. The slice is shared and read-only.
+// match's state. A table on another engine refuses with ErrEngineUnsupported:
+// the index is built by a walk of gorge's engine. The slice is shared and
+// read-only.
 func (r *Registry) ReviewDecisions(id TableID, k int) ([]protocol.ReviewDecision, error) {
 	r.mu.RLock()
 	t, ok := r.tables[id]
 	r.mu.RUnlock()
+	if ok && t.cfg.Engine != "" {
+		return nil, engineRefusal("a decision index", t.cfg.Engine)
+	}
 	if !ok || !t.review || k != 1 {
 		return nil, fmt.Errorf("%w: no review decisions for table %s match %d", ErrNotFound, id, k)
 	}

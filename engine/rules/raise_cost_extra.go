@@ -495,7 +495,7 @@ func waterbendCap(mods costMods, x int32) int32 {
 // gate. The credit is conservative -- an untapped mana source is excluded
 // because the offer's mana walk may already be spending it -- so the gate
 // can withhold a legal cast but cannot offer one payment cannot settle.
-func (e *Engine) withWaterbendOfferCredit(p state.PlayerID, id state.ObjID, xMin int32, mods costMods) costMods {
+func (e *Engine) withWaterbendOfferCredit(p state.PlayerID, id state.ObjID, sourceTaps bool, xMin int32, mods costMods) costMods {
 	want := addClampedGeneric(mods.Waterbend, int64(mods.WaterbendPartX)*int64(xMin))
 	if want <= 0 {
 		return mods
@@ -506,8 +506,8 @@ func (e *Engine) withWaterbendOfferCredit(p state.PlayerID, id state.ObjID, xMin
 			break
 		}
 		o := e.G.Obj(oid)
-		if oid == id || o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() ||
-			!(o.EffectiveIsArtifact() || o.EffectiveIsCreature()) || e.untappedManaSource(p, oid) {
+		if oid == id && sourceTaps || o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() ||
+			!(e.IsArtifact(oid) || e.IsCreature(oid)) || e.untappedManaSource(p, oid) {
 			continue
 		}
 		credit++

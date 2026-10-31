@@ -165,6 +165,20 @@ func (e *Engine) paymentPlanTapExtraMana(id state.ObjID, produced string) state.
 	return extra
 }
 
+// manaProductionAltered reports whether a tap trigger or a replacement would change
+// what id's activation of ma adds to the pool.
+func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
+	if tier, _, _ := e.paymentPlanSourceInterference(id, ma); tier == pay.TierDeferred {
+		return true
+	}
+	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
+		if e.paymentPlanTapExtraMana(id, produced) != (state.Mana{}) {
+			return true
+		}
+	}
+	return false
+}
+
 // paymentPlanTapObservers runs every Taps/TapsForMana trigger that could see
 // a mana tap of id (activated by activator, declaring produced) through the
 // real matcher. It returns the source's own City-of-Brass damage, or ok=false

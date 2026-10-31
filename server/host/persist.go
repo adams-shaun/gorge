@@ -98,6 +98,11 @@ type sidecar struct {
 	// bots.EnvSeat decisions were answered from a REFUSED root (nil engine).
 	// Same counter-only contract as Refusals above.
 	RootRefusals int `json:"root_refusals,omitempty"`
+	// Engine names the engine the match ran on, absent for gorge, so a
+	// sidecar written before the field existed reads as what it played.
+	// EngineKey is that engine's replay key, game.Config.Key.
+	Engine    string `json:"engine,omitempty"`
+	EngineKey string `json:"engine_key,omitempty"`
 }
 
 func (sc sidecar) info() protocol.MatchInfo {

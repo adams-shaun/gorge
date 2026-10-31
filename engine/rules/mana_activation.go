@@ -199,13 +199,14 @@ func (e *Engine) askOffStackMana(d *decision.Decision) bool {
 	act.triggers = append([]pendingTrigger(nil), f.act.triggers...)
 	e.manaColorActivation = &act
 	f.asked = true
-	if e.tape.InRun() {
+	if e.tape.Serving() {
 		// Inside a tape run the colour choice is answered in place: the
 		// activation's own continuation (answerManaColor) is what windowAsk
 		// runs, and its holder (this frame) is open by design.
+		prev := e.tapeOffStackAsking
 		e.tapeOffStackAsking = true
 		windowAsk(e, d, chooseManaColor)
-		e.tapeOffStackAsking = false
+		e.tapeOffStackAsking = prev
 		return true
 	}
 	e.choosing = chooseManaColor
@@ -498,8 +499,10 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 	// allocation. A granted intrinsic (no ActivationZone$, no Activator$)
 	// passes the loop's zone and Activator$ gates only on the battlefield and
 	// only for its controller, so for any other object the block would add
-	// nothing the loop keeps: it is skipped, with its layer read.
-	if !faceDown && len(e.landTypeWords) > 0 && o.Zone == state.ZBattlefield && e.controllerOf(id) == p &&
+	// nothing the loop keeps: it is skipped, with its layer read. A layer-6
+	// removal (a nonzero lossStamp; CR 305.7's loss has none) takes these
+	// abilities too, whatever its timestamp.
+	if !faceDown && lossStamp == 0 && len(e.landTypeWords) > 0 && o.Zone == state.ZBattlefield && e.controllerOf(id) == p &&
 		manaWalkHasLType(e, statics) {
 		for _, typ := range e.derivedTypesOf(id) {
 			color, ok := cards.IntrinsicManaColor(typ)
@@ -623,12 +626,6 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 			out = append(out, ma)
 		}
 	}
-	if faceDown {
-		// Only the CR 305.6 intrinsics above exist on a face-down permanent:
-		// its printed ManaReflected abilities and any Continuous AddAbility$
-		// grant are hidden with the rest of its printed face (CR 708.8).
-		return out
-	}
 	// CR 605.2a: a mana ability functions only while its source object is in
 	// the zone its ActivationZone$ names -- the battlefield when printed
 	// none is. The plain AB$ Mana branch above gates on abilityZoneOK; this
@@ -674,7 +671,7 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 	// resolves its own face's table. A single face the walk facts show
 	// carries none (walk_face_facts.go) has nothing for the scan to find.
 	pileFaces := o.PileFaceCount()
-	if lost {
+	if lost || faceDown {
 		pileFaces = 0
 	}
 	if pileFaces == 1 && !walkSkipVerify {
@@ -749,7 +746,11 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 		if lost && lossStamp > source.LayerTimestamp() {
 			continue
 		}
-		ma := cards.ResolveSVar(source.Face().SVars, name)
+		svars := sv.SVars
+		if svars == nil {
+			svars = source.Face().SVars
+		}
+		ma := cards.ResolveSVar(svars, name)
 		if ma == nil || ma.Kind != "AB" {
 			continue
 		}
@@ -1948,6 +1949,9 @@ func (e *Engine) paymentUsefulColours(pc *pendingCast, p state.PlayerID, colours
 func (e *Engine) paymentSourceUseful(pc *pendingCast, p state.PlayerID, id state.ObjID) bool {
 	chosen := pay.ChosenProducedColour(e.G, id)
 	for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
+		if manaAbilityAddsNothing(ma) {
+			continue
+		}
 		cols := pay.AnnouncedAbilityColours(asPayer(e), p, id, ma, chosen)
 		if len(cols) == 0 {
 			cols = fixedProductionColours(ma)

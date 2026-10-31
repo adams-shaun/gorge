@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 import (
@@ -16,7 +14,7 @@ import (
 // (state.ManaIndex order W,U,B,R,G,C).
 var cardsManaProd = cards.ManaProduction{Colour: [6]int32{1, 0, 0, 0, 0, 0}}
 
-// TestChooseActionPromptAdvertisesActions pins the §6.3 chooseAction build:
+// TestChooseActionPromptAdvertisesActions pins the chooseAction build:
 // pass and concede are never actions, the other option kinds become the
 // typed actions, the payment actions ride as pay-<ID> casts, and the
 // announcing shape names the source card.
@@ -114,7 +112,7 @@ func TestChooseActionResponses(t *testing.T) {
 	if !reflect.DeepEqual(in.Choices, []int{1}) {
 		t.Fatalf("ability intent = %+v", in)
 	}
-	// act pay-mc1: the announce arm (§6.1 pay-<ID> → Intent.Announce).
+	// act pay-mc1: the announce arm (pay-<ID> → Intent.Announce).
 	in = mustIntent(t, tr.TranslateResponse(respFor(p, mb.ActOutput{ActionID: "pay-mc1"}), p, 1))
 	if in.Announce == nil || in.Announce.ActionID != "mc1" || in.Payment != nil || len(in.Choices) != 0 {
 		t.Fatalf("announce intent = %+v", in)
@@ -130,7 +128,7 @@ func TestChooseActionResponses(t *testing.T) {
 	wantErrCode(t, tr.TranslateResponse(respFor(p, mb.RestoreSnapshotOutput{CheckpointID: 12345}), p, 1), mb.CodeInvalidShape)
 }
 
-// TestChooseActionConcedeDirective maps the G-2 queue: the concession is
+// TestChooseActionConcedeDirective maps the queue: the concession is
 // answered immediately only at an open priority decision for the seat;
 // otherwise it queues.
 func TestChooseActionConcedeDirective(t *testing.T) {
@@ -159,7 +157,7 @@ func TestChooseActionConcedeDirective(t *testing.T) {
 	if o := tr.TranslateResponse(dirFor(), tp, 1); !o.Queued || o.Intent != nil {
 		t.Fatalf("concede at a non-priority ask must queue, got %v", o)
 	}
-	// Nothing pending: queued, not an error (G-2's whole point).
+	// Nothing pending: queued, not an error.
 	if o := tr.TranslateResponse(dirFor(), nil, 1); !o.Queued || o.Err != nil {
 		t.Fatalf("concede with nothing pending must queue, got %v", o)
 	}
@@ -174,7 +172,7 @@ func TestChooseActionConcedeDirective(t *testing.T) {
 	}
 }
 
-// TestPassPolicy exercises the §6.5 auto-pass rule: the until stop, the
+// TestPassPolicy exercises the auto-pass rule: the until stop, the
 // exhaustStack stop and its early-stop edge, the clearing edges, and the
 // AutoPass arm's intent shape.
 func TestPassPolicy(t *testing.T) {
@@ -209,7 +207,7 @@ func TestPassPolicy(t *testing.T) {
 	}
 
 	// exhaustStack: pass until the stack empties; a NEW stack object stops
-	// it early (§6.5).
+	// it early.
 	stackV := smallView()
 	stackV.Stack = []view.StackView{{ID: 9}, {ID: 10}}
 	sp, err := newPassPolicy(mb.PassOutput{ExhaustStack: true}, stackV)

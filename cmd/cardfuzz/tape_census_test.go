@@ -10,11 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The resolution kernel's predicate-miss census ratchet (W3; lasagna spec
-// §7.7 and the S3b results): a "miss" is a resolution the ask-free
-// predicate exempted from its checkpoint that asked anyway. Today a miss
-// costs nothing but the legacy path in place; once legacy is deleted (§7.7
-// step 4) every miss costs a replay from the nearest retained snapshot, so
+// The resolution kernel's predicate-miss census ratchet: a "miss" is a
+// resolution the ask-free predicate exempted from its checkpoint that asked
+// anyway. Today a miss costs nothing but the legacy path in place; without the
+// legacy path every miss would cost a replay from the nearest retained snapshot, so
 // the target is 0.
 //
 // The ratchet is on the CLASS SET, not a raw count. A class (resolving shape

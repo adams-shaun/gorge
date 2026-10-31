@@ -20,7 +20,7 @@ func init() { Register("Pair", effPair) }
 func effPair(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	src := g.Obj(c.Source)
-	if src == nil || !isBattlefieldCreature(src) || src.Paired != 0 {
+	if src == nil || !isBattlefieldCreature(h, src) || src.Paired != 0 {
 		return
 	}
 
@@ -53,7 +53,7 @@ func effPair(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		o := g.Obj(id)
-		if !soulbondPartner(src, o, c.Controller) {
+		if !soulbondPartner(h, src, o, c.Controller) {
 			continue
 		}
 		options = append(options, decision.Option{Index: len(options), Kind: "pair", Label: objName(g, id), Obj: id, Player: c.Controller})
@@ -80,16 +80,16 @@ func effPair(h Host, c *Ctx, sa *cards.SA) {
 // soulbondPair pairs src with the answered partner when it is still a legal
 // Soulbond partner (one Pair event); a stale answer pairs nothing.
 func soulbondPair(h Host, g *state.Game, src *state.Object, partnerID state.ObjID, controller state.PlayerID) {
-	if partner := g.Obj(partnerID); soulbondPartner(src, partner, controller) {
+	if partner := g.Obj(partnerID); soulbondPartner(h, src, partner, controller) {
 		h.Emit(events.Event{Kind: events.Pair, Obj: src.ID, IDs: []state.ObjID{partner.ID}})
 	}
 }
 
-func soulbondPartner(src, partner *state.Object, controller state.PlayerID) bool {
+func soulbondPartner(h Host, src, partner *state.Object, controller state.PlayerID) bool {
 	return partner != nil && partner.ID != src.ID && partner.Controller == controller &&
-		partner.Paired == 0 && isBattlefieldCreature(partner)
+		partner.Paired == 0 && isBattlefieldCreature(h, partner)
 }
 
-func isBattlefieldCreature(o *state.Object) bool {
-	return o != nil && o.Zone == state.ZBattlefield && o.EffectiveIsCreature()
+func isBattlefieldCreature(h Host, o *state.Object) bool {
+	return o != nil && o.Zone == state.ZBattlefield && h.IsCreature(o.ID)
 }

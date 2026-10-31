@@ -15,7 +15,7 @@ import (
 
 // The oracle state/outcome dump (ticket pn17): a JSONL corpus of encoded
 // STATES with game outcomes and NO labelled options. It is the value-only
-// training path's input (four-yay cmd/policytrain -value-corpus): one record per
+// training path's input (the trainer -value-corpus): one record per
 // observed board state, carrying the redacted seat view the encoders read,
 // so the same record re-encodes under every feature set (v1, mz, and — for
 // measurement only — the diagnostic mz-opphand / mz-oracle with the extras'
@@ -26,8 +26,8 @@ import (
 // re-used unchanged for the hidden information) but is a DIFFERENT record
 // type: a label record trains the policy, a state record trains the value
 // head only. The record type string and schema version are the writer
-// contract; a future dump generator (four-yay cmd/searchteacher or the oracle runs)
-// mirrors them exactly the way four-yay cmd/searchteacher/labels.go mirrors
+// contract; a future dump generator (the search teacher or the oracle runs)
+// mirrors them exactly the way the search teacher's label writer mirrors
 // LabelRecordType.
 const (
 	StateDumpRecordType       = "state-v1"

@@ -4,9 +4,7 @@ package host
 // table. This file links every built-in hosted policy gorge carries
 // (bots/all) so the tests below see the full registry, and owns the two
 // whole-policy gates, both run through the exported contract harness
-// (contract*.go) that four-yay runs on the policies it hosts (search,
-// sb-search-lite-atk, sb-heuristic/sb-uniform/sb-first, cast-profile,
-// az-c3/c4/c5: four-yay bots/hosttest):
+// (contract*.go):
 //
 //   - TestEveryHostedPolicyIsDeterministic (§8): every registered hosted
 //     entry plays two in-memory 2-seat tables from the same seed — capped at
@@ -182,7 +180,7 @@ func TestHostedEnvSeatsIgnoreTheRealHiddenCardsSBTactical(t *testing.T) {
 }
 
 // builtinsPlanner is EnvLeakContract.PlannerOf for an adapter over a
-// SpellBench builtins.Seat (sb-tactical here; four-yay's sb-* adapters).
+// SpellBench builtins.Seat (sb-tactical here).
 func builtinsPlanner(t *testing.T) func(seat.Seat) any {
 	return func(s seat.Seat) any {
 		ad, ok := s.(interface{ Seat() *builtins.Seat })

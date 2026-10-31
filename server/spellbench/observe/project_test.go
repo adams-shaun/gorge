@@ -19,7 +19,7 @@ import (
 func TestObservationHidesTheOtherHandAndLibraries(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "CawGates", 4, "none")
-	p := &observe.Projector{E: g.E, IDs: identity.New(g.E, g.Secret)}
+	p := &observe.Projector{R: g.R, IDs: identity.New(g.R, g.Secret)}
 	obs, err := p.Observation(0, observe.State{})
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func TestObservationHidesTheOtherHandAndLibraries(t *testing.T) {
 func TestCharacteristicsOfBasicLandAndBolt(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Burn", 5, "none")
-	p := &observe.Projector{E: g.E, IDs: identity.New(g.E, g.Secret)}
+	p := &observe.Projector{R: g.R, IDs: identity.New(g.R, g.Secret)}
 	for _, id := range g.E.G.Zone(state.ZHand, 0) {
 		rec, err := p.Record(0, id)
 		if err != nil {
@@ -97,7 +97,7 @@ func TestCharacteristicsOfBasicLandAndBolt(t *testing.T) {
 func TestVisibleAgreesWithLookIDRefusal(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "CawGates", 4, "none")
-	tr := identity.New(g.E, g.Secret)
+	tr := identity.New(g.R, g.Secret)
 	hand := g.E.G.Zone(state.ZHand, 0)
 	own, up, down, dead, exiled, spell := hand[0], hand[1], hand[2], hand[3], hand[4], hand[5]
 	other, top := g.E.G.Zone(state.ZHand, 1)[0], g.E.G.Zone(state.ZLibrary, 0)[0]
@@ -111,7 +111,7 @@ func TestVisibleAgreesWithLookIDRefusal(t *testing.T) {
 	} {
 		events.Emit(g.E.G, g.E.L, ev)
 	}
-	if err := tr.Sync(g.E); err != nil {
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
 	for _, c := range []struct {
@@ -168,8 +168,8 @@ func listed(obs protocol.Observation) map[string]bool {
 func TestRefIsNullForObjectsTheObservationOmits(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Wildfire", 5, "none")
-	tr := identity.New(g.E, g.Secret)
-	p := &observe.Projector{E: g.E, IDs: tr}
+	tr := identity.New(g.R, g.Secret)
+	p := &observe.Projector{R: g.R, IDs: tr}
 	var stacked, parked bool // an ability on the stack had a Ref; a resolved one parked in exile had none
 	var token state.ObjID    // a token on the battlefield
 	check := func(e *rules.Engine) {
@@ -203,7 +203,7 @@ func TestRefIsNullForObjectsTheObservationOmits(t *testing.T) {
 		}
 	}
 	if !testgame.RunUntil(t, g, testgame.Bots(5), func(e *rules.Engine) bool {
-		if err := tr.Sync(e); err != nil {
+		if err := tr.Sync(g.R); err != nil {
 			t.Fatal(err)
 		}
 		token = 0
@@ -223,7 +223,7 @@ func TestRefIsNullForObjectsTheObservationOmits(t *testing.T) {
 	}
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.MoveZone, Obj: token, Player: g.E.G.Obj(token).Owner, From: state.ZBattlefield, To: state.ZGraveyard})
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PhaseOut, Obj: perm, Amount: 1})
-	if err := tr.Sync(g.E); err != nil {
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
 	if z := g.E.G.Obj(token).Zone; z != state.ZGraveyard || !g.E.G.Obj(perm).PhasedOut {

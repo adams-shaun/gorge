@@ -331,7 +331,7 @@ func (c *Collector) Capture(e *rules.Engine, burst []events.Event) (Frame, error
 
 // CaptureBoardJSON is Capture that also returns the frame's board as the
 // JSON it encoded -- the legacy Board encoding a frame used to carry -- for
-// a caller that digests that text (four-yay training/searchbench's
+// a caller that digests that text (a search bench's
 // PublicStateDigest).
 func (c *Collector) CaptureBoardJSON(e *rules.Engine, burst []events.Event) (Frame, []byte, error) {
 	keep := c.retainJSON

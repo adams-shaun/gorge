@@ -10,12 +10,12 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// promptOrder (scoping spec §6.3): KTriggerOrder -> reorder. One ReorderItem
+// promptOrder: KTriggerOrder -> reorder. One ReorderItem
 // per offered trigger, in Option order; the item id is the generic
 // actionID(index) mint (the same one prompt_priority.go uses), so an answer
 // is matched back to its option purely by id, independent of display order.
 //
-// The DIRECTION FLIP the ticket names lives entirely in the RESPONSE half
+// The direction flip lives entirely in the RESPONSE half
 // (parseTriggerOrder below), not here: gorge's KTriggerOrder doc comment says
 // Options carry no resolution order of their own -- the player's answer
 // determines placement -- so the prompt's Items array can be built in plain
@@ -41,12 +41,12 @@ func (t *Translator) promptOrder(d *decision.Decision, v *view.View) (mb.PromptM
 }
 
 // parseTriggerOrder maps reorderDecision{orderedIds} for a KTriggerOrder
-// prompt (§6.3, §6.4): OrderedIDs[0] is the trigger the client wants to
+// prompt: OrderedIDs[0] is the trigger the client wants to
 // resolve FIRST. gorge places Intent.Choices[0] on the stack FIRST, and a
 // stack resolves LIFO, so the trigger that must resolve first has to be the
 // LAST element of Choices. Reversing once here is the whole contract; get it
 // backwards and every two-or-more-trigger order silently swaps end to end,
-// which is exactly why the ticket wants a live-engine test on it
+// which is why a live-engine test covers it
 // (TestTriggerOrderFirstIdResolvesFirst).
 func (t *Translator) parseTriggerOrder(out mb.PromptOutputValue, p *Pending) Outcome {
 	d := p.Decision

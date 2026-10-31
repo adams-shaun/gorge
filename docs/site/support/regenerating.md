@@ -11,7 +11,7 @@ names the commit it was taken at.
 |---|---|---|
 | per-set playable, Level A, Level B, roll-ups, every-set table | gorge-compliance's `oraclediff status` | nightly, through its `docs-data` branch; rendered at every docs build |
 | certified-set and Level A/B headline rows | the same status | the same |
-| dirty-dirac per-set accepted / cards, corpus-wide accepted, lockstep games | dirty-dirac's acceptance ratchet and lockstep runs (private) | a committed snapshot, `docs/site/support/dirty-dirac-sets.json`, edited by a maintainer |
+| dirac per-set accepted / cards, corpus-wide accepted, lockstep games | dirac's acceptance ratchet and lockstep runs | a committed snapshot, `docs/site/support/dirac-sets.json`, edited by a maintainer |
 | corpus cards, playable, tokens, top missing primitives | gorge, `make report` | by hand |
 | playable by card type | gorge, `make coverage` | by hand |
 | parse diagnostics | gorge, `forgec compile` | by hand |
@@ -25,10 +25,10 @@ flowchart LR
     SA["oraclediff status -level A"] --> DD[("docs-data branch<br/>status-A.jsonl, status-B.jsonl, meta.json")]
     SB["oraclediff status -level B"] --> DD
   end
-  subgraph priv["private companion module"]
+  subgraph priv["dirac"]
     RK["acceptance ratchet<br/>lockstep runs"]
   end
-  RK -->|"maintainer edits"| SNAP["support/dirty-dirac-sets.json<br/>(committed)"]
+  RK -->|"maintainer edits"| SNAP["support/dirac-sets.json<br/>(committed)"]
   subgraph build["gorge docs.yml"]
     DS["scripts/docs_sets.py"] --> FR["support/_generated_sets.md<br/>(gitignored)"]
   end
@@ -46,10 +46,8 @@ deploys from `main` on a push, on the daily 17:17 UTC rebuild (after gorge-compl
 run. Before the build, it:
 
 1. generates the package map (`go run ./cmd/pkgmap`);
-2. fetches the engine-speed history from gorge's orphan `perf-data` branch
-   when it exists (it does not yet);
-3. runs `scripts/docs_sets_test.py`, then `scripts/docs_sets.py`. The renderer
-   reads the committed dirty-dirac snapshot and, when the fetch succeeds,
+2. runs `scripts/docs_sets_test.py`, then `scripts/docs_sets.py`. The renderer
+   reads the committed dirac snapshot and, when the fetch succeeds,
    **gorge-compliance's orphan `docs-data` branch** (`status-A.jsonl`,
    `status-B.jsonl`, `meta.json`).
 
@@ -57,9 +55,11 @@ gorge-compliance's nightly `compliance` job (09:41 UTC) writes `docs-data`.
 After `make compliance-status`, it runs two status commands. The first covers
 Level A over every set. The second covers Level B over the sets whose Level A
 row says `"printed": true`. The job then force-pushes the results as one
-commit, so only the latest state is kept. gorge-compliance is public, so the
-docs build needs no token. If the branch is missing or the fetch fails, the
-tables still render from the dirty-dirac snapshot, and the gorge columns say
+commit, so only the latest state is kept. It publishes only when
+`make compliance-status` passes, so after a failed night the tables keep the last
+published data, and their captions give its date and corpus. gorge-compliance is
+public, so the docs build needs no token. If the branch is missing or the fetch fails, the
+tables still render from the dirac snapshot, and the gorge columns say
 the data was not available.
 
 ## The renderer: `scripts/docs_sets.py`
@@ -70,15 +70,15 @@ for `pymdownx.snippets`, and `sets.md` includes each one by name:
 
 | Section | Contents |
 |---|---|
-| `headline` | one row per engine and measure, with the commits measured |
-| `sets` | the per-set table: every set gorge-compliance audits against a printed list, plus every set in dirty-dirac's snapshot, joined by set code |
+| `headline` | one row per engine and measure, with the commits and corpus measured |
+| `sets` | the per-set table: every set gorge-compliance audits against a printed list, plus every set in dirac's snapshot, joined by set code |
 | `rollup` | the roll-up by set type, then every one of the 589 sets |
 
 To render and build locally:
 
 ```sh
 python3 scripts/docs_sets.py status-A.jsonl --level-b status-B.jsonl --meta meta.json \
-  --dirty-dirac docs/site/support/dirty-dirac-sets.json
+  --dirac docs/site/support/dirac-sets.json
 uvx --with mkdocs-material==9.7.7 mkdocs build --strict -d /tmp/gorge-site
 python3 -m unittest discover -s scripts -p 'docs_sets_test.py'
 ```
@@ -143,23 +143,22 @@ print(len(rows), "verdicts over", len({r["card"] for r in rows}), "cards")
 print(collections.Counter(r["status"] for r in rows).most_common())'
 ```
 
-## dirty-dirac: refreshing the snapshot
+## dirac: refreshing the snapshot
 
-dirty-dirac's source is private, so no public job can re-measure it. Its
-per-set figures live in a small committed file,
-[`docs/site/support/dirty-dirac-sets.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/support/dirty-dirac-sets.json),
+dirac's source isn't in this repository, so no job here can re-measure it. Its per-set figures live in a
+small committed file,
+[`docs/site/support/dirac-sets.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/support/dirac-sets.json),
 which holds:
 
 - the snapshot date;
-- the private module's commit and the gorge commit it pins;
+- the gorge commit it pins;
 - the corpus-wide accepted / cards count;
 - accepted / cards for each set in its acceptance ratchet;
 - the games, agreements, stalls and disagreements of each lockstep-verified
   set.
 
-To refresh it, a maintainer re-runs dirty-dirac's acceptance ratchet and its
-lockstep runs in the private module. They then copy the counts into this file
-and open a pull request. The ratchet's pins are always the live counts, so the
+To refresh it, a maintainer re-runs dirac's acceptance ratchet and its
+lockstep runs, then copies the counts into this file and opens a pull request. The ratchet's pins are always the live counts, so the
 copy is mechanical. The renderer checks that every accepted count is within
 its card count and that each lockstep row adds up. `docs_sets_test.py` loads
 the committed file.
@@ -187,8 +186,8 @@ on every push to `main`.
 total (`compiled 34074 cards, 854 tokens, 2 diagnostics`).
 
 !!! warning "Compile into a copy if `.cards` is shared"
-    `forgec compile` rewrites the IR cache and prunes every other cache file in
-    the directory. If several checkouts share one `.cards` (a symlinked
+    `forgec compile` rewrites the IR cache and prunes all but the newest four
+    cache files in the directory. If several checkouts share one `.cards` (a symlinked
     worktree), compile into a scratch copy instead. The walker doesn't follow
     symlinks, so copy the folders:
 
@@ -205,10 +204,8 @@ total (`compiled 34074 cards, 854 tokens, 2 diagnostics`).
 go test ./engine/rules/ -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' -v
 ```
 
-The two log lines are the live counts (`ratchet: 2 of 1123 …` and
-`param census: 3 of 1123 …`). The named cards are the files in
+The two log lines are the live counts (`ratchet: N of 1123 …` and
+`param census: N of 1123 …`). The named cards are the files in
 [`engine/rules/testdata/known-unsupported/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/known-unsupported)
-and
-[`engine/rules/testdata/paramcensus/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/paramcensus),
-one JSON file per card. Without `.cards`, both tests skip and the package
+and `engine/rules/testdata/paramcensus/`, one JSON file per card. Without `.cards`, both tests skip and the package
 still prints `ok`, so check that the log lines are there.

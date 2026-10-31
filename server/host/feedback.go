@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -182,6 +183,9 @@ type FeedbackSnapshot struct {
 //
 // The returned snapshot is a stable copy: later bursts append to the live
 // match but never to it, so marshalling it needs no lock.
+//
+// A match on another engine refuses with ErrEngineUnsupported: match.json
+// records gorge's replay input.
 func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (FeedbackSnapshot, error) {
 	r.mu.RLock()
 	t, ok := r.tables[id]
@@ -239,6 +243,10 @@ func (r *Registry) SnapshotMatch(id TableID, k int, seat *state.PlayerID) (Feedb
 // projects the seat's view outside it.
 func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, error) {
 	m.mu.Lock()
+	if m.e == nil {
+		m.mu.Unlock()
+		return FeedbackSnapshot{}, engineRefusal("a feedback snapshot", m.engine.Name())
+	}
 	l := m.e.L.Clone()
 	// reconcileLog's trim is for crash-cut FILES, and this clone is not one:
 	// under the match lock no Submit is in flight (the match loop holds the
@@ -255,8 +263,8 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 		reconcileLog(l)
 	}
 	sc := m.sidecar()
-	deckCards := make([][]string, len(m.cfg.Decks))
-	for i, d := range m.cfg.Decks {
+	deckCards := make([][]string, len(m.gc.Decks))
+	for i, d := range m.gc.Decks {
 		names := make([]string, len(d))
 		for j, c := range d {
 			names[j] = c.Faces[0].Name
@@ -264,9 +272,9 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 		deckCards[i] = names
 	}
 	var sideboardCards [][]string
-	if len(m.cfg.Sideboards) > 0 {
-		sideboardCards = make([][]string, len(m.cfg.Sideboards))
-		for i, sb := range m.cfg.Sideboards {
+	if len(m.gc.Sideboards) > 0 {
+		sideboardCards = make([][]string, len(m.gc.Sideboards))
+		for i, sb := range m.gc.Sideboards {
 			names := make([]string, len(sb))
 			for j, c := range sb {
 				names[j] = c.Faces[0].Name
@@ -307,7 +315,7 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 		d = &cp
 	}
 	snaps := append([]snapshot(nil), m.snaps...)
-	cfg := m.cfg
+	cfg, src := gorgegame.RulesConfig(m.gc), m.replaySource()
 	// headSeq comes from the copy the view below is projected from, not
 	// from the live log: the two agree for every non-crashed match (the
 	// clone is not trimmed), but a crashed match's reconciled copy is
@@ -339,7 +347,7 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 		},
 	}
 	if seat != nil {
-		v, err := viewAt(cfg, l, snaps, headSeq, *seat, view.Seat, d)
+		v, err := viewAt(src, l, snaps, headSeq, *seat, view.Seat, d)
 		if err != nil {
 			snap.ViewErr = err.Error()
 		} else {

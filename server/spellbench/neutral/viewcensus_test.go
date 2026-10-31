@@ -108,7 +108,7 @@ func censusBaseline(t *testing.T) map[string]bool {
 	return out
 }
 
-// seedCensusState makes one seeded game carry the fields this ticket added:
+// seedCensusState makes one seeded game carry the fields under census:
 // a permanent with two P1P1 counters, a title-case keyword counter, two status
 // designations, player poison and experience counters, the monarch and
 // initiative designations, and CR 731's day. Without it a pauper catalog game
@@ -153,13 +153,14 @@ func seedCensusState(t *testing.T, g *gamecfg.Game) {
 // ratchet: testdata/viewcensus.txt lists exactly the fields that still differ,
 // and may only shrink. NEUTRAL_VIEWCENSUS_REGEN=1 rewrites the baseline.
 func TestNeutralViewCensus(t *testing.T) {
+	t.Parallel()
 	reg := testcorpus.Registry(t)
 	counts := map[string]int{}
 	checked := 0
 	for i := 0; i < 50; i++ {
 		d := catalog.Decks()[i%len(catalog.Decks())]
 		g := testgame.New(t, reg, d.CatalogID, d.CatalogID, byte(i), "none")
-		tr := identity.New(g.E, g.Secret)
+		tr := identity.New(g.R, g.Secret)
 		builders := [2]*neutral.Builder{neutral.NewBuilder(reg), neutral.NewBuilder(reg)}
 		bots := testgame.Bots(uint64(i))
 		seeded, forcePass := i != 0, false
@@ -175,11 +176,11 @@ func TestNeutralViewCensus(t *testing.T) {
 				seedCensusState(t, g)
 				seeded, forcePass = true, true
 			}
-			if err := tr.Sync(g.E); err != nil {
+			if err := tr.Sync(g.R); err != nil {
 				t.Fatalf("game %d step %d: %v", i, n, err)
 			}
 			priority := g.E.G.Priority
-			obs, err := (&observe.Projector{E: g.E, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
+			obs, err := (&observe.Projector{R: g.R, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
 			if err != nil {
 				t.Fatalf("game %d step %d: observation: %v", i, n, err)
 			}

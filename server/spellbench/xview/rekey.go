@@ -70,6 +70,14 @@ func (r rekeyer) view(v *view.View) {
 	v.Decision = nil // carried separately in Payload.Decision
 }
 
+func (r rekeyer) ids(objs []state.ObjID) []state.ObjID {
+	out := make([]state.ObjID, len(objs))
+	for i, o := range objs {
+		out[i] = r(o)
+	}
+	return out
+}
+
 func (r rekeyer) decision(d *decision.Decision, seq uint64) {
 	d.Seq = seq
 	d.PaymentActions, d.PaymentFallback = nil, nil

@@ -185,16 +185,16 @@ func compilePumpGrant(sa *cards.SA) PumpGrant {
 
 // numForObjectText is NumForObject over a compiled parameter: a
 // statAddMultiplier token ("Double", "Triple") adds that multiple of obj's own
-// power (power) or toughness, else numText. A scalar read of either token
-// still degrades to zero (fail-closed).
-func numForObjectText(h Host, c *Ctx, p ParamText, power bool, def int32, obj state.ObjID) int32 {
+// power (power) or toughness, else scalar, the caller's single reading of the
+// parameter. A scalar read of either token still degrades to zero (fail-closed).
+func numForObjectText(h Host, p ParamText, power bool, scalar int32, obj state.ObjID) int32 {
 	if m, ok := statAddMultiplier[strings.TrimSpace(p.Text)]; ok && obj != 0 {
 		if power {
 			return m * h.Power(obj)
 		}
 		return m * h.Toughness(obj)
 	}
-	return numText(h, c, p, def)
+	return scalar
 }
 
 // pumpKnownKeys is every parameter key a Pump resolution consumes or
@@ -358,7 +358,7 @@ var pumpKnownKeys = [...]string{
 	"TgtPrompt",
 	"TgtZone",
 	"ThisDefinedAndTgts", "TokenScript",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"Type",
 	"Ultimate",
 	"UnlessAI",

@@ -111,7 +111,7 @@ func settleUnlessElection(e *Engine, ctx *effects.Ctx, sa *cards.SA, obj state.O
 	}
 	if e.payUnlessCost(payOption.Player, paid, ctx, obj) {
 		ctx.UnlessPay = "pay"
-	} else if paid.HasManaPayment() && len(e.windowManaUnitsPaid(payOption.Player)) > 0 {
+	} else if paid.HasManaPayment() && len(e.unlessWindowUnits(payOption.Player)) > 0 {
 		// A failed pool-only attempt is not a decline: the continuation lets
 		// the payer assemble enough floating mana. The offer gate proved the
 		// budget reachable before Pay was offered, so sources remain while
@@ -194,7 +194,12 @@ func tapeManaWindow(e *Engine, ctx *effects.Ctx, wm *wardManaPayment) {
 			ctx.UnlessPay = "decline"
 			return
 		}
+		// Opened inside a mana ability's own rider, the window sits in that
+		// ability's off-stack frame, and the payer's activation may ask.
+		prev := e.tapeOffStackAsking
+		e.tapeOffStackAsking = e.offStackMana != nil
 		e.activateManaPayment(wm.payer, chosen[0].Obj, false)
+		e.tapeOffStackAsking = prev
 	}
 }
 

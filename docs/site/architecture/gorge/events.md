@@ -7,9 +7,6 @@ heads, how replay works, and how clones and the resolution kernel build on it.
 Read it before you write engine code that changes anything, because the rules
 here are what keep replays, bug reports and search correct.
 
-*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Code links
-point at `main`.*
-
 ## The loop
 
 <figure markdown>
@@ -170,65 +167,17 @@ proposed.
 
 ## Event kinds
 
-`events.Kind` is a `uint8`. There are **145** kinds, ordinals 0 to 144
-(`events.NumKinds == 145`, measured by printing the constant from a scratch
-program that imports `engine/events`). Each kind has exactly one entry in the
-`kindInfo` table in
+`events.Kind` is a `uint8`, listed in order in
+[`engine/events/event.go`](https://github.com/adams-shaun/gorge/blob/main/engine/events/event.go),
+with `NumKinds` as the upper bound. Each kind has exactly one entry in the `kindInfo` table in
 [`engine/events/kindinfo.go`](https://github.com/adams-shaun/gorge/blob/main/engine/events/kindinfo.go),
-which derives its log/wire name, its trigger-interest class (which triggered
-abilities could possibly care about it) and its transcript template.
-`TestEveryKindHasADescriptor` fails for a kind with no entry.
+which derives its log and wire name, its trigger-interest class (which triggered abilities could
+care about it) and its transcript template. `TestEveryKindHasADescriptor` fails for a kind with no entry.
 
-**The list is append-only.** The ordinal is part of each event's encoding,
-and the encoding is hashed, so inserting a kind in the middle would renumber
-every later kind and change the hash of every recorded game. A new kind goes
-after the last one, above the `NumKinds` line.
-
-<figure markdown>
-<svg viewBox="0 0 780 200" width="100%" role="img" aria-label="A timeline of event kind ordinals 0 to 144: the core kinds 0 to 23, then later kinds appended in order, ending at DayNightChange, ordinal 144">
-  <rect x="20.0" y="80" width="122.5" height="36" class="dg-box-accent"/>
-  <rect x="142.5" y="80" width="25.5" height="36" class="dg-box"/>
-  <rect x="168.0" y="80" width="35.7" height="36" class="dg-box-accent"/>
-  <rect x="203.7" y="80" width="556.3" height="36" class="dg-box"/>
-  <text x="20.0" y="132" text-anchor="middle" class="dg-text-mono">0</text>
-  <text x="142.5" y="132" text-anchor="middle" class="dg-text-mono">24</text>
-  <text x="168.0" y="132" text-anchor="middle" class="dg-text-mono">29</text>
-  <text x="203.7" y="132" text-anchor="middle" class="dg-text-mono">36</text>
-  <text x="760.0" y="132" text-anchor="middle" class="dg-text-mono">144</text>
-  <text x="81.2" y="103" text-anchor="middle" class="dg-text-mono">core</text>
-  <text x="481.9" y="103" text-anchor="middle" class="dg-text-mono">36-144: every later mechanic, appended in landing order</text>
-  <line x1="155.3" y1="80" x2="155.3" y2="26" class="dg-line"/>
-  <text x="159.3" y="22" class="dg-text-muted">24-28: TargetsChosen, FlipFace, ClockTick, TriggerPush, EndCombatReset</text>
-  <line x1="185.9" y1="80" x2="185.9" y2="54" class="dg-line"/>
-  <text x="189.9" y="50" class="dg-text-muted">29-35: CastInfo, Choose, TokenCreate, StackCopy, Attach, AbilityPush, ModeChosen</text>
-  <text x="20" y="156" class="dg-text-muted">0-23: GameStart, Shuffle, MoveZone, Draw, Damage, Priority, DecisionAsk, Note, LandPlayed ...</text>
-  <text x="20" y="174" class="dg-text-muted">36-144: CmdDamage, DelayedRegister, ControlChange, Mutate, Scry, Surveil, Meld, SpellCastReversed ... DayNightChange</text>
-  <text x="760" y="194" text-anchor="end" class="dg-text-bold">NumKinds = 145 (Kind is a uint8)</text>
-</svg>
-<figcaption>Kinds are grouped by when they were appended, never by topic. The
-core kinds came first; every later mechanic appended its own kind at the end
-so no earlier ordinal, hash or golden replay moved. The scale is
-proportional to ordinal.</figcaption>
-</figure>
-
-??? details "All 145 kinds by ordinal"
-    | Ordinals | Kinds |
-    |---|---|
-    | 0-9 | GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap, StepChange, TurnChange |
-    | 10-19 | Priority, PutOnStack, Resolve, ManaAdd, ManaClear, CounterChange, DeclareAttackers, DeclareBlockers, PlayerLost, GameOver |
-    | 20-29 | DecisionAsk, DecisionMade, Note, LandPlayed, TargetsChosen, FlipFace, ClockTick, TriggerPush, EndCombatReset, CastInfo |
-    | 30-39 | Choose, TokenCreate, StackCopy, Attach, AbilityPush, ModeChosen, CmdDamage, DelayedRegister, DelayedPush, LibraryOrder |
-    | 40-49 | ExtraTurn, DoorUnlock, SpeedChange, MonarchChange, ControlChange, CardToken, KeywordTriggerPush, Goad, PlayerCounterChange, Imprint |
-    | 50-59 | StartingPlayerChange, Pair, MyriadCopy, MyriadCleanup, GrantTriggerPush, ManaActivate, TokenAttacks, XChange, NoteNumber, ExtraPhase |
-    | 60-69 | CopyToken, Exert, PlanarRoll, Explore, CombatRetarget, RingTemptsYou, RingEmblemPush, GrantAbilityPush, Investigate, BlessingChange |
-    | 70-79 | ClonePermanent, Mutate, MergedTriggerPush, Discover, Seek, Connive, Enlist, Exploit, AlterAttribute, GainedAbilityPush |
-    | 80-89 | GainedTriggerPush, Surveil, Unattached, PlayerNoted, PlayerNoteCleared, DelayedRemove, TurnFaceUp, SearchedLibrary, KeywordAbilityPush, Scry |
-    | 90-99 | StoreSVar, TurnFaceDown, CloneStatic, DamageProvenance, EnduringStoryChange, PhaseOut, GiftPromise, GiveGift, RollDice, Proliferate |
-    | 100-109 | Evolved, DelayedForget, CardNoted, Cascade, Clash, PlanarDeckShuffle, PlanarReveal, PlanarWalk, Specialize, ChaosEnsues |
-    | 110-119 | ManaUndo, EndTurn, DungeonCreate, DungeonRoom, DungeonComplete, DungeonRemove, InitiativeChange, SkipTurn, ControlPlayerChange, Crew |
-    | 120-129 | ElementalBend, SetupEntered, DoorLock, Saddle, ClassLevelChange, MillProposal, Meld, ExcessDamage, ForageAction, ManifestDreadAction |
-    | 130-139 | CollectEvidenceAction, AbilityTriggered, CastBattlefield, DrawBatchProposal, SpellCastReversed, HiddenIdentity, DrawEmpty, SetupSettled, BlockedByEffect, CopyExcept |
-    | 140-144 | GameRestart, ActivationReversed, TextChange, HadToAttack, DayNightChange |
+**The list is append-only.** The ordinal is part of each event's encoding, and the encoding is hashed,
+so inserting a kind in the middle would renumber every later kind and change the hash of every recorded
+game. A new kind goes after the last one, above the `NumKinds` line. Kinds are therefore in the order
+they were added, not grouped by topic.
 
 A few kinds deserve a note because they show the design pressure:
 
@@ -240,11 +189,9 @@ A few kinds deserve a note because they show the design pressure:
   fallback taken by a host that could not answer, an unimplemented primitive.
   Notes are hashed like every other event, so a new Note moves the chain head.
 - **`TriggerPush` and `AbilityPush`** create a stack object *and* place it in
-  one event. They were added after a live engine minted stack objects with an
-  unlogged `AddObject`, which a log-only replay could never reproduce.
-- **`ClockTick`** exists because the timestamp clock used to be incremented
-  by a direct field write. Every such bug was fixed the same way: turn the
-  write into an event.
+  one event, so a replay of the log alone reproduces the object.
+- **`ClockTick`** advances the timestamp clock. Even that small piece of
+  bookkeeping is an event, because a direct field write would be invisible to replay.
 
 ## The hash chain
 
@@ -311,20 +258,19 @@ The acceptance game plays 12 pinned Legacy decks at 2, 4, 6 and 8 seats
 pins each game's chain head in `engine/rules/testdata/heads/<seats>.txt`, one
 16-hex-digit line per file (`cat engine/rules/testdata/heads/*.txt` prints
 the current four). The files are the authority, and they move whenever a
-change alters what those games do, which is often. A moved head is not automatically a bug: it
+change alters what those games do. A moved head is not automatically a bug: it
 means "this change altered gameplay", and the commit that moves it names the
 first event that diverged. To find that event and re-pin:
 
 ```sh
 go test ./engine/rules/ -run '^TestHeads$'          # fails and names the seat count
-go run ./cmd/headdiff -seats 2 -dump before.jsonl   # on the old commit: write the event stream
-go run ./cmd/headdiff -seats 2 -against before.jsonl  # on the new one: print the first divergence
+go run ./cmd/headdiff -seats 2 -dump before.json    # on the old commit: write the event stream
+go run ./cmd/headdiff -seats 2 -against before.json # on the new one: print the first divergence
 GORGE_UPDATE_HEADS=1 go test ./engine/rules/ -run '^TestHeads$'  # re-pin, once the change is intended
 ```
 
-On `25d71cadc`, `go run ./cmd/headdiff -seats 2` prints `2 seats: 2558 events,
-head 9a22e5122a3d436a (matches the pinned head)`; the 4-seat game is 5,718
-events.
+`go run ./cmd/headdiff -seats 2` prints the game's size and head, and whether it matches the pin:
+`2 seats: 2558 events, head 9a22e5122a3d436a (matches the pinned head)` on 2026-10-31.
 
 `TestRepoDeckGamesReplayExactly` is the companion check: it plays several
 seeds, replays each game, and requires the replay's head to equal the
@@ -333,7 +279,7 @@ original's.
 ## Replay
 
 Package [`engine/replay`](https://github.com/adams-shaun/gorge/blob/main/engine/replay/replay.go)
-rebuilds a match from `(Config, Log)`:
+rebuilds a match from `(Config, Log)`. A host reaches it through `game.Engine`'s methods of the same names:
 
 ```go
 func Replay(l *events.Log, cfg rules.Config) (*rules.Engine, error)
@@ -378,8 +324,8 @@ flowchart LR
 | Need | What the log gives it |
 |---|---|
 | Regression detection | One golden head per acceptance game catches any change to gameplay, down to the first differing event. |
-| Bug reports | A player's feedback report captures the match config and log; `go run ./cmd/repro <dir>` replays it to the report point and verifies the head. See the repository's AGENTS.md section *Reproduce a feedback report*. |
-| History and undo | The server rebuilds any past position with `replay.ReplayTo`, and its undo is a rewind in place: rebuild to an earlier intent, truncate the log. It never reseeds, which would fork the chain. |
+| Bug reports | A player's feedback report captures the match config and log; `go run ./cmd/repro <dir>` replays it to the report point and verifies the head ([how](../../contributing/index.md#reproduce-a-feedback-report)). |
+| History and undo | The server rebuilds any past position by replay, and its undo is a rewind in place: rebuild to an earlier intent, truncate the log. It never reseeds, which would fork the chain. |
 | Search | A clone at an intent boundary is exact: the same intents produce the same events, head and RNG draw count. |
 | Trust | The server, not the client, owns the log. A client's claim about what happened can always be checked against it. |
 
@@ -436,7 +382,7 @@ same events. The rules that guarantee it, and the tests that enforce them:
 | Rule | Enforced by |
 |---|---|
 | The engine's only randomness is a seeded PCG (`math/rand/v2`, seeded with `(seed, seed ^ 0x9e3779b97f4a7c15)`) owned by the engine, with a draw counter | `engine/rules/rng.go`; `TestNoLegacyMathRand` forbids `math/rand` v1 |
-| No wall clock in the engine | `TestTimeIsImportedOnlyByTheHost`: only the server tier and a few commands may import `time` |
+| No wall clock in the engine | `TestTimeIsImportedOnlyByTheHost`: only the server tier, `draft/eventhost` and a few commands may import `time` |
 | The payment planner touches no clock, RNG, `sync` or `os` | `TestPayStaysDeterministic` |
 | No map iteration whose order reaches an event | by convention and targeted tests (for example `TestActiveStaticsIsDeterministicallyOrdered`); caught after the fact by the golden heads |
 

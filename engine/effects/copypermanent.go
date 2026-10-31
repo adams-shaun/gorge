@@ -109,16 +109,13 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	//   - The unblocking families are the characteristic modifications: when
 	//     the source IS reachable the copy mints and these are applied to it.
 	//     AddTypes$, SetPower$, SetToughness$, SetColor$, SetCreatureTypes$,
-	//     RemoveCardTypes$, RemoveCreatureTypes$, AddKeywords$, PumpKeywords$,
-	//     RemoveKeywords$ and NonLegendary$ ARE implemented (applied to the
+	//     RemoveCardTypes$, RemoveSubTypes$, RemoveCreatureTypes$, AddKeywords$,
+	//     PumpKeywords$, RemoveKeywords$ and NonLegendary$ ARE implemented (applied to the
 	//     mint as tracked continuous effects below); the remaining
 	//     modifications that need real ability/name/attachment machinery --
 	//     AddTriggers$, AddSVars$, AddAbilities$, WithDifferentNames$,
 	//     AttachedTo$, Chooser$ -- are noted and the copy keeps the original's
-	//     printed characteristics. RemoveSubTypes$ is subsumed by
-	//     RemoveCardTypes$ (state.ContinuousEffect's strip keeps only
-	//     supertypes, so a subtype is already gone) and is accepted without a
-	//     note.
+	//     printed characteristics.
 	cp := CopyPermanentOf(sa)
 	noteUnreadParams(h, c, "CopyPermanent", cp.Unread)
 	if cp.SkippedNote != "" {
@@ -243,11 +240,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	// RemoveCardTypes$ / RemoveSubTypes$ / RemoveCreatureTypes$ are always
-	// True in the corpus. RemoveSubTypes$ is subsumed by RemoveCardTypes$
-	// (its strip keeps only supertypes, so every subtype is already gone),
-	// but a RemoveSubTypes$ WITHOUT RemoveCardTypes$ still needs the creature
-	// strip below, so both feed RemoveCreatureTypes when the types are being
-	// set or removed. A non-True value is one loud note and no strip. Each
+	// True in the corpus. A non-True value is one loud note and no strip. Each
 	// parameter is read through its LITERAL Params key (the param census
 	// rejects a dynamic key read), the value then tested by the shared
 	// stripTrue helper.
@@ -267,8 +260,9 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	if raw, ok := cp.RemoveCreatureTypes.Text, cp.RemoveCreatureTypes.Present; ok {
 		removeCreatureTypes = stripTrue("RemoveCreatureTypes$", raw) || removeCreatureTypes
 	}
+	removeSubTypes := false
 	if raw, ok := cp.RemoveSubTypes.Text, cp.RemoveSubTypes.Present; ok {
-		removeCreatureTypes = stripTrue("RemoveSubTypes$", raw) || removeCreatureTypes
+		removeSubTypes = stripTrue("RemoveSubTypes$", raw)
 	}
 	// NonLegendary$ True drops just the Legendary supertype (Multiversal
 	// Recruitment's "except it's not legendary"); always True in the corpus.
@@ -297,7 +291,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	// and PumpKeywords$ stay layer-6 effects (postEntry).
 	exc := copyExceptSpec{
 		addTypes:        append(append([]string(nil), addTypes...), setCreatureTypes...),
-		removeCardTypes: removeCardTypes, removeCreatureTypes: removeCreatureTypes, removeLegendary: removeLegendary,
+		removeCardTypes: removeCardTypes, removeCreatureTypes: removeCreatureTypes, removeSubTypes: removeSubTypes, removeLegendary: removeLegendary,
 		setColors: addColors, setColorsPresent: setColor, addColors: extraColors,
 		setPower: setPow, setPowerPresent: hasSetPow, setToughness: setTgh, setToughnessPresent: hasSetTgh,
 		noManaCost: cp.RemoveCost.Present && strings.EqualFold(strings.TrimSpace(cp.RemoveCost.Text), "True"),

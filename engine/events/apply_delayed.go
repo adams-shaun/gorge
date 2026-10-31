@@ -127,6 +127,12 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	if effectRepeat {
 		text = strings.TrimSuffix(text, "|EF")
 	}
+	var firesLeft int32
+	if i := strings.LastIndex(text, "|BN="); i >= 0 {
+		n, _ := strconv.Atoi(text[i+4:])
+		firesLeft = int32(n)
+		text = text[:i]
+	}
 	// DelayedTriggerDefinedPlayer$ rides "|DP=<seat+1>" (+ a bare "|TD" for
 	// ThisTurn$) and Static$ True a bare "|ST", all appended after the
 	// IsPresent$ triple and before |RN=, so they strip here (reverse append
@@ -146,6 +152,19 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	staticFlag := strings.HasSuffix(text, "|ST")
 	if staticFlag {
 		text = strings.TrimSuffix(text, "|ST")
+	}
+	firstCombat := strings.HasSuffix(text, "|1C")
+	if firstCombat {
+		text = strings.TrimSuffix(text, "|1C")
+	}
+	var checkSVar, svarCompare string
+	if i := strings.LastIndex(text, "|SC="); i >= 0 {
+		svarCompare = text[i+4:]
+		text = text[:i]
+	}
+	if i := strings.LastIndex(text, "|CS="); i >= 0 {
+		checkSVar = text[i+4:]
+		text = text[:i]
 	}
 	// OptionalDecider$ (an api:Effect Triggers$ body's "you may"
 	// election) rides "|OD=<spec>" the same way ValidPlayer$ and MaxTurn
@@ -294,6 +313,10 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		DefinedPlayer:       definedPlayer,
 		ThisTurnDefined:     thisTurnDefined,
 		Static:              staticFlag,
+		FirstCombat:         firstCombat,
+		CheckSVar:           checkSVar,
+		SVarCompare:         svarCompare,
+		FiresLeft:           firesLeft,
 	})
 	g.DelayedNext++
 }
@@ -358,8 +381,11 @@ func foldDelayedPush(g *state.Game, e *Event) {
 			if g.Delayed[i].ID == uint32(e.Amount) {
 				dt := g.Delayed[i]
 				registration = &dt
-				if !dt.EffectRepeat {
+				switch {
+				case !dt.EffectRepeat, dt.FiresLeft == 1:
 					g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+				case dt.FiresLeft > 1:
+					g.Delayed[i].FiresLeft--
 				}
 				break
 			}
@@ -417,7 +443,7 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		// Text, so already-logged firings mint exactly as before.
 		return
 	}
-	if e.Text == "granted ability" {
+	if e.Text == TextGrantedAbility {
 		// A SELF-granted activation (rules' shared activation flow mints
 		// it through this delayed shape): count it on the per-source
 		// activation census exactly as GrantAbilityPush counts a
@@ -435,6 +461,9 @@ func foldDelayedPush(g *state.Game, e *Event) {
 	Move(g, o.ID, state.ZLibrary, state.ZStack)
 	o.Ability = sa
 	o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
+	if e.Text == TextGrantedAbility {
+		o.StackKind = state.StackKindActivated
+	}
 	if !radiationDrain && !speedIncrease && !initiativeVenture {
 		o.Source = e.Obj
 	}
@@ -616,7 +645,7 @@ func foldGainedAbilityPush(g *state.Game, e *Event) {
 	// re-derives -- and the live-grant recovery scans then find no owner.
 	// Setting it here (never in engine/rules/) is what makes a log-only replay
 	// reproduce the exact face the live mint resolved.
-	o.GainedFace = foreign.Face()
+	o.AbilityFace = foreign.Face()
 	o.GainedFrom = foreign.ID
 }
 
@@ -669,7 +698,7 @@ func foldGainedTriggerPush(g *state.Game, e *Event) {
 	// The same foreign-face provenance the GainedAbilityPush mint stamps
 	// (r3): the foreign face's own SVar table, OptionalDecider$ gate,
 	// intervening-if and label all stay resolvable after the grant ends.
-	o.GainedFace = foreign.Face()
+	o.AbilityFace = foreign.Face()
 	o.GainedFrom = foreign.ID
 	// pushTrigger serializes the queue-time ctx Remembered AFTER the
 	// provenance slot (IDs[0] is the foreign card): the same decode

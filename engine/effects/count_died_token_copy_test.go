@@ -12,7 +12,7 @@ import (
 // count -- Slumbering Cerberus' Count$ThisTurnEntered_Graveyard_from_
 // Battlefield_Creature -- includes it. matchesZoneSpecCtx's CR 707.10h copy
 // rejection (meant for a resolved spell copy parked off the stack) used to
-// drop the entry. dirty-dirac census pairs 4548 11018 23248 52131 90596.
+// drop the entry. dirac census pairs 4548 11018 23248 52131 90596.
 // A spell copy parked in exile keeps being skipped
 // (TestThisTurnEnteredExileSkipsSpellCopies).
 func TestThisTurnEnteredCountsADeadTokenCopy(t *testing.T) {

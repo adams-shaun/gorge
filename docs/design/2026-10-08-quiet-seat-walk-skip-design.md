@@ -3,14 +3,14 @@
 - **Date:** 2026-10-08
 - **Base:** `main` at `58c014f2d`. Every `path:line` below was read at this SHA. Re-check a citation before editing near it: `engine/rules/` moves daily.
 - **Subject:** `rules.(*Engine).priorityOptions` (`engine/rules/prio_memo.go:328`), the only posed-priority caller of the legal-action walk (`askPriority`, `engine/rules/turn.go:1043-1066`).
-- **Status:** design and binding step plan (§6). No production code changed. The measurements came from a throwaway probe (§7), archived at `/mnt/sata/gorge-training/enginebench/quietseat-plan/`.
+- **Status:** design and binding step plan (§6). No production code changed. The measurements came from a throwaway probe (§7), archived at `$DATA/enginebench/quietseat-plan/`.
 - **Related:**
   - `2026-10-06-legal-walk-design.md`: S0–S4 have landed (S3 is `39f59ef78`, S4 is `eb31d3f1a`). This design does not replace or depend on S5 (§8).
   - `2026-10-08-engine-mark-rewind-design.md`: tabled. Clone is about 3% of azmcts CPU; Submit is the target.
 
 ## 0. Summary
 
-**Where the time goes.** On the azmcts row, `Engine.Submit` is 83.5% of CPU. The posed-priority walk (`priorityOptions` → `legalActionsWalkWithWindow`) is **35.8% of all CPU**, the largest single subtree. The profile is at `/mnt/sata/gorge-training/enginebench/quietseat-plan/az.pprof`; the binary is beside it. It was made with `enginebench -row az -sims 100 -secs 45`, `GOMAXPROCS=2`.
+**Where the time goes.** On the azmcts row, `Engine.Submit` is 83.5% of CPU. The posed-priority walk (`priorityOptions` → `legalActionsWalkWithWindow`) is **35.8% of all CPU**, the largest single subtree. The profile is at `$DATA/enginebench/quietseat-plan/az.pprof`; the binary is beside it. It was made with `enginebench -row az -sims 100 -secs 45`, `GOMAXPROCS=2`.
 
 **The opportunity.**
 - 60–61% of posed priority windows return only `pass` + `concede`, yet the walk still runs in full there: 2.4–3.8 µs per window, depending on box load.
@@ -413,7 +413,7 @@ Only if Q2's `-quietstats` shows proof ns > 15% of the walk ns saved. If so, per
 
 ## 7. Probe evidence
 
-- **Source:** `/mnt/sata/gorge-training/enginebench/quietseat-plan/probe-src/zz_walkprobe.go`, plus `hooks.diff`, applied to a `git archive 58c014f2d` copy.
+- **Source:** `$DATA/enginebench/quietseat-plan/probe-src/zz_walkprobe.go`, plus `hooks.diff`, applied to a `git archive 58c014f2d` copy.
 - **What it does:** at every posed window it runs the real walk and a naive proof side by side and tallies the outcomes. It reads `Params` maps and strings, so its ns figures are pessimistic for the proof. It is a measurement aid, not a template for production code.
 - **Command:** run from the repo root:
   ```sh

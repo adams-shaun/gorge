@@ -53,7 +53,7 @@ func chooseTypePurpose(d *decision.Decision) string {
 
 func init() {
 	Register("mulligan/keep", func(env *Env, d *decision.Decision) (Transaction, error) {
-		hand := uint32(len(env.G.E.G.Zone(state.ZHand, d.Player)))
+		hand := uint32(len(env.G.R.Board().Zone(state.ZHand, d.Player)))
 		taken := env.Obs.Mulls[d.Player]
 		tx, err := SingleChoice(env, d, choice(nil, ""), func(o decision.Option) (protocol.Semantic, bool, error) {
 			return protocol.Mulligan(hand, taken, o.Kind == "keep"), true, nil
@@ -124,7 +124,7 @@ func init() {
 		// entries a v2 client needs.
 		lookable := false
 		for _, o := range d.Options {
-			obj := env.G.E.G.Obj(o.Obj)
+			obj := env.G.R.Board().Obj(o.Obj)
 			if obj == nil || observe.Visible(d.Player, obj) {
 				continue
 			}

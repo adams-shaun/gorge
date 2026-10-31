@@ -37,9 +37,9 @@ package rules
 // cards knownWrongCostStatics (cost_static_census_known_test.go), each card
 // mapped to its sorted reason classes. A newly broken card fails naming its
 // finding, raw line and engine file:line; a stale entry fails too. NOTE
-// findings stay log-only. GORGE_COST_CENSUS_TSV=1 additionally writes the
-// full finding table to /mnt/sata/gorge-training/tmp/cost-census.tsv
-// (outside the repo); an ordinary run writes nothing.
+// findings stay log-only. GORGE_COST_CENSUS_TSV, when set, names a file to
+// write the full finding table to (keep it outside the repo); empty, the
+// default, writes nothing.
 
 import (
 	"fmt"
@@ -458,14 +458,13 @@ func TestCostStaticCensus(t *testing.T) {
 		// ValidCard$
 		if spec, ok := p["ValidCard"]; ok {
 			var dead []string
-			n, prov := 0, false
+			n := 0
 			for alt := range effects.FilterAlternatives(spec) {
 				if strings.TrimSpace(alt) == "" {
 					continue
 				}
 				n++
-				why, pv := objAltDead(alt, spellOnly)
-				prov = prov || pv
+				why, _ := objAltDead(alt, spellOnly)
 				if why != "" {
 					dead = append(dead, strings.TrimSpace(alt)+": "+why)
 				}
@@ -479,10 +478,6 @@ func TestCostStaticCensus(t *testing.T) {
 				add(ccBroken, "ValidCard$ dead: "+strings.Join(dead, "; "), locVC)
 			case len(dead) > 0:
 				add(ccWrong, "ValidCard$ partially dead (narrower): "+strings.Join(dead, "; "), locVC)
-			}
-			if prov && (strings.Contains(spec, "wasCastFromYourHand") || strings.Contains(spec, "wasCastByYou")) {
-				add(ccOffer, "ValidCard$ hand-provenance token: denied pre-push, repriced after push",
-					L.loc("engine/rules/cast_provenance.go", "func (e *Engine) castProvenanceAdmitsPending("))
 			}
 		}
 		// ValidSpell$
@@ -569,7 +564,7 @@ func TestCostStaticCensus(t *testing.T) {
 		// Condition$
 		if cond, ok := p["Condition"]; ok {
 			holds := false
-			if pn := probe(func() { holds = e.costConditionHolds(sv, 0) || e.costConditionHolds(sv, 1) }); pn != "" || !holds {
+			if pn := probe(func() { holds = e.costConditionHolds(sv, 0, 0) || e.costConditionHolds(sv, 1, 0) }); pn != "" || !holds {
 				add(ccBroken, "Condition$ "+strings.TrimSpace(cond)+" unsupported", L.loc("engine/rules/statics.go", "func (e *Engine) costConditionHolds("))
 			}
 		}
@@ -1322,9 +1317,9 @@ func TestCostStaticCensus(t *testing.T) {
 		}
 	}
 
-	// TSV, opt-in and outside the repo: GORGE_COST_CENSUS_TSV=1 writes
-	// /mnt/sata/gorge-training/tmp/cost-census.tsv.
-	if os.Getenv("GORGE_COST_CENSUS_TSV") == "" {
+	// TSV, opt-in: GORGE_COST_CENSUS_TSV holds the output path.
+	out := os.Getenv("GORGE_COST_CENSUS_TSV")
+	if out == "" {
 		return
 	}
 	var tsv strings.Builder
@@ -1336,7 +1331,6 @@ func TestCostStaticCensus(t *testing.T) {
 				f.class, clean(f.reason), f.loc, clean(r.raw))
 		}
 	}
-	const out = "/mnt/sata/gorge-training/tmp/cost-census.tsv"
 	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
 		t.Logf("mkdir %s: %v", filepath.Dir(out), err)
 		return

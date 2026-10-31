@@ -25,14 +25,9 @@ import (
 // (FeaturesEntity state, the decision's options, the bot's pick marked).
 // Rebuilt deterministically per process; nothing is committed.
 //
-// NETSIMD_DECKS names the deck directory (default: the dzgorge-repro FDN
-// pool); NETSIMD_DZGW the network (default: az-c6's g7). Tests skip when
-// either is missing.
-
-const (
-	defaultDecks = "/mnt/sata/gorge-training/dzgorge-repro/inputs/decks"
-	defaultNet   = "/mnt/sata/gorge-training/az-c6/g7.dzgw"
-)
+// NETSIMD_DECKS names the deck directory (an FDN pool holding corpusPairs'
+// decks); NETSIMD_DZGW the network. Neither has a default: tests skip when
+// either is unset or missing.
 
 type record struct {
 	st   policynet.State
@@ -63,7 +58,7 @@ func netPath(t testing.TB) string {
 	t.Helper()
 	p := os.Getenv("NETSIMD_DZGW")
 	if p == "" {
-		p = defaultNet
+		t.Skip("no network: NETSIMD_DZGW is unset")
 	}
 	if _, err := os.Stat(p); err != nil {
 		t.Skipf("no network at %s (NETSIMD_DZGW)", p)
@@ -99,7 +94,7 @@ func loadDeck(reg *cards.Registry, dir, name string) ([]*cards.Card, error) {
 func buildCorpus(reg *cards.Registry) ([]record, string, error) {
 	dir := os.Getenv("NETSIMD_DECKS")
 	if dir == "" {
-		dir = defaultDecks
+		return nil, "no deck directory: NETSIMD_DECKS is unset", nil
 	}
 	if _, err := os.Stat(dir); err != nil {
 		return nil, fmt.Sprintf("no deck directory at %s (NETSIMD_DECKS)", dir), nil

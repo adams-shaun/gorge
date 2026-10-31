@@ -73,16 +73,21 @@ func (e *Engine) announcedAutoFillPlan(pc *pendingCast, mana Cost) *decision.Pay
 	}
 	cast := decision.PlannedCast{Object: pc.card, Face: 0, Origin: origin}
 	desc := paymentForCast(pc, mana)
-	got := pay.PlanPaymentCost(asPayer(e), p, cast, mana, &desc)
+	// A permanent committed to a tap cost or Convoke can't also tap for mana
+	// (CR 601.2g-h, 602.2b).
+	committed := make([]state.ObjID, 0, len(pc.Convoke)+len(pc.PaidCost.Taps))
+	for _, c := range pc.Convoke {
+		committed = append(committed, c.ID)
+	}
+	committed = append(committed, pc.PaidCost.Taps...)
+	if pc.cost.Tap {
+		committed = append(committed, pc.card)
+	}
+	got := pay.PlanPaymentCostWithout(asPayer(e), p, cast, mana, &desc, committed, nil, nil)
 	if got.Plan == nil || len(got.Plan.Activations) == 0 {
 		return nil
 	}
 	plan := decision.ClonePaymentPlan(*got.Plan)
-	for _, a := range plan.Activations {
-		if e.convokeCommitted(pc, a.Source) {
-			return nil
-		}
-	}
 	if id, err := decision.PaymentPlanID(0, p, cast, plan); err == nil {
 		plan.ID = id
 	}

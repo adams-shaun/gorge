@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
-	"github.com/adams-shaun/gorge/engine/replay"
-	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
@@ -26,7 +25,7 @@ func (e ErrBeyondHead) Error() string { return fmt.Sprintf("host: seq beyond hea
 //
 // The replay viewAt does (up to a turn's worth of Submit calls) can run
 // long enough to matter, so this takes the read lock only to copy what it
-// needs — the log (m.e.L.Events/Intents are live, appended-to slices the
+// needs — the log (m.g.Log().Events/Intents are live, appended-to slices the
 // match loop still owns, so a bare pointer would race; Clone gives an
 // independent copy) and the (append-only, never-mutated-in-place) snapshot
 // list — then computes outside the lock, never blocking a concurrent
@@ -44,11 +43,11 @@ func (r *Registry) ViewAt(id TableID, k int, seq uint64) (view.View, error) {
 	// is usually small (most ViewAt calls land near head anyway) and is
 	// freed the moment this call returns — unlike a stored snapshot
 	// (FL-44), this copy never outlives the request.
-	l := m.e.L.Clone()
+	l := m.g.Log().Clone()
 	snaps := append([]snapshot(nil), m.snaps...)
-	cfg, vis := m.cfg, t.cfg.Spectator
+	src, vis := m.replaySource(), t.cfg.Spectator
 	m.mu.RUnlock()
-	return viewAt(cfg, l, snaps, seq, view.NoSeat, vis, nil)
+	return viewAt(src, l, snaps, seq, view.NoSeat, vis, nil)
 }
 
 // ViewAtSeat is one seat's own view of the board as of event seq
@@ -69,9 +68,9 @@ func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.Player
 		return view.View{}, err
 	}
 	m.mu.Lock()
-	l := m.e.L.Clone()
+	l := m.g.Log().Clone()
 	snaps := append([]snapshot(nil), m.snaps...)
-	cfg := m.cfg
+	src := m.replaySource()
 	// The decision belongs in the view only when the board is projected
 	// exactly at the live head. At an earlier seq the decision that went
 	// with that moment cannot be reconstructed here — the replayed engine
@@ -80,10 +79,10 @@ func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.Player
 	// stays nil: a historical view never misrepresents what was pending.
 	var d *decision.Decision
 	if seq == head(m) {
-		if p := m.e.Pending(); p != nil {
+		if p := m.g.Pending(); p != nil {
 			if t.cfg.AutoMana && p.Player == player && int(p.Player) < len(m.slots) {
 				if _, isHuman := m.slots[p.Player].(*HumanSeat); isHuman {
-					m.e.EnsurePaymentActions()
+					m.ensurePaymentActions()
 				}
 			}
 			cp := *p.Clone()
@@ -94,7 +93,7 @@ func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.Player
 		}
 	}
 	m.mu.Unlock()
-	return viewAt(cfg, l, snaps, seq, player, view.Seat, d)
+	return viewAt(src, l, snaps, seq, player, view.Seat, d)
 }
 
 // Events is every redacted, described event from since (inclusive) to the
@@ -113,7 +112,7 @@ func (r *Registry) Events(id TableID, k int, since uint64) ([]protocol.EventBody
 		return nil, err
 	}
 	m.mu.RLock()
-	n := uint64(len(m.e.L.Events))
+	n := uint64(len(m.g.Log().Events))
 	if n == 0 {
 		m.mu.RUnlock()
 		return nil, ErrBeyondHead{Head: 0}
@@ -123,8 +122,8 @@ func (r *Registry) Events(id TableID, k int, since uint64) ([]protocol.EventBody
 		m.mu.RUnlock()
 		return nil, ErrBeyondHead{Head: head}
 	}
-	g := m.e.G.Clone()
-	evs := append([]events.Event(nil), m.e.L.Events[since:]...)
+	g := m.g.Board().Clone()
+	evs := append([]events.Event(nil), m.g.Log().Events[since:]...)
 	vis := t.cfg.Spectator
 	m.mu.RUnlock()
 	return eventBodiesFor(view.NoSeat, vis, g, evs, false), nil
@@ -145,7 +144,7 @@ func (r *Registry) EventsSeat(id TableID, k int, since uint64, player state.Play
 		return nil, err
 	}
 	m.mu.RLock()
-	n := uint64(len(m.e.L.Events))
+	n := uint64(len(m.g.Log().Events))
 	if n == 0 {
 		m.mu.RUnlock()
 		return nil, ErrBeyondHead{Head: 0}
@@ -155,8 +154,8 @@ func (r *Registry) EventsSeat(id TableID, k int, since uint64, player state.Play
 		m.mu.RUnlock()
 		return nil, ErrBeyondHead{Head: head}
 	}
-	g := m.e.G.Clone()
-	evs := append([]events.Event(nil), m.e.L.Events[since:]...)
+	g := m.g.Board().Clone()
+	evs := append([]events.Event(nil), m.g.Log().Events[since:]...)
 	// E3-fx3: while the CR 103.1 starting-player choice is pending, no
 	// player may see any hand (CR 103.5), so the seat's own Secret events
 	// -- the opening-hand deal's Draw events -- are served shape-only,
@@ -166,7 +165,8 @@ func (r *Registry) EventsSeat(id TableID, k int, since uint64, player state.Play
 	// resolves the same request serves the hand again, and a client that
 	// cached the blind bodies during the window keeps them redacted (the
 	// view/snapshot catches it up). The recorded log is untouched.
-	blind := m.e.StartingChoicePending()
+	s, ok := m.g.Chars().(interface{ StartingChoicePending() bool })
+	blind := ok && s.StartingChoicePending()
 	m.mu.RUnlock()
 	return eventBodiesFor(player, view.Seat, g, evs, blind), nil
 }
@@ -279,9 +279,18 @@ func (r *Registry) loadArchived(t *table, sc sidecar) (*match, error) {
 // and decks and the log is replayed to its end state, so ViewAt/EventsSeat
 // serve a sink-sourced match exactly as a live or on-disk one. head views
 // are exact and mid views take the genesis path of viewAt (no snapshots on
-// disk). replay.Replay is the gate: a log that does not reproduce the
+// disk). The engine's Replay is the gate: a log that does not reproduce the
 // engine's own event stream is refused here, before it can be served.
+//
+// The rebuilt Config sets NoObjectCap: the watcher runs at its defaults with
+// no object cap. The sidecar does not record the guard a match ran
+// under, and the cap must not refuse a recording that was allowed to grow
+// past it.
 func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, error) {
+	engine, err := LookupEngine(r.opts.Engines, sc.Engine)
+	if err != nil {
+		return nil, fmt.Errorf("host: %s/%d: %w", t.cfg.ID, sc.Match, err)
+	}
 	decks := make([][]*cards.Card, len(sc.Decks))
 	sideboards := make([][]*cards.Card, len(sc.Decks))
 	archetypes := make([]string, len(sc.Decks))
@@ -294,7 +303,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		sideboards[i] = d.Sideboard
 		archetypes[i] = d.Archetype
 	}
-	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Archetypes: archetypes, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, Mulligans: sc.Mulligans, WindowDiagnostics: t.cfg.WindowDiagnostics, DisablePaidManaCensus: !sc.PaidManaCensus}
+	gc := game.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Archetypes: archetypes, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, Mulligans: sc.Mulligans, WindowDiagnostics: t.cfg.WindowDiagnostics, DisablePaidManaCensus: !sc.PaidManaCensus, NoObjectCap: true, Key: sc.EngineKey}
 	// E3-2: a configured starting-player chooser (the seat posed CR 103.1's
 	// choice in place of the toss winner) is replay input exactly like
 	// Mulligans — the genesis Note names it, so a replay rebuilt without it
@@ -302,15 +311,15 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 	// pointer is never aliased into a rebuilt Config.
 	if sc.StartChooser != nil {
 		chooser := *sc.StartChooser
-		cfg.StartChooser = &chooser
+		gc.StartChooser = &chooser
 	}
 	// NameUniverse is a match MODE, not just data, and NameUniverseNames pins
 	// the exact ordered labels it offered. A pre-feature sidecar (no field)
 	// gets neither and therefore takes the legacy no-universe path, so a log
 	// that recorded no name decision still reproduces (R-8.4).
 	if sc.NameUniverse {
-		cfg.NameUniverse = r.opts.NameUniverse
-		cfg.NameUniverseNames = append([]string(nil), sc.NameUniverseNames...)
+		gc.NameUniverse = r.opts.NameUniverse
+		gc.NameUniverseNames = append([]string(nil), sc.NameUniverseNames...)
 	}
 	// A persisted Commander match carries its format, the opening life it
 	// played with and its per-seat commander indices, so the replay
@@ -319,11 +328,11 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 	// zone — and a 40-life start — off exactly those values). An old
 	// sidecar's zero Format is constructed, which needs none of this.
 	if sc.Format == FormatCommander {
-		cfg.Format = rules.FormatCommander
-		cfg.StartingLife = sc.StartingLife
-		cfg.Commanders = sc.Commanders
+		gc.Format = game.FormatCommander
+		gc.StartingLife = sc.StartingLife
+		gc.Commanders = sc.Commanders
 	}
-	e, err := replay.Replay(l, cfg)
+	g, err := engine.Replay(l, gc)
 	if err != nil {
 		// fb-20260915T094418Z: readLog's reconcileLog trims the file to the
 		// last burst's ask boundary (the crash-cut protection, kept — see
@@ -336,21 +345,23 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		// transition, so a replayed log reaching the same head — and the
 		// same recorded event count — reproduced the cut tail byte for byte.
 		// Anything else stays the rejection it was.
-		if !(cutTailReplayed(err, e, sc.Head) && len(e.L.Events) == sc.Events) {
+		if !(cutTailReplayed(err, g, sc.Head) && len(g.Log().Events) == sc.Events) {
 			return nil, fmt.Errorf("host: %s/%d does not replay: %w", t.cfg.ID, sc.Match, err)
 		}
 		// Accepted: the engine's own log is the full, chain-verified stream,
 		// so the bookkeeping below derives from it rather than from the
 		// trimmed recording.
-		l = e.L
+		l = g.Log()
 	}
-	return &match{table: t, k: sc.Match, seed: sc.Seed, cfg: cfg, seats: sc.Seats, decks: sc.Decks, e: e,
+	m := &match{table: t, k: sc.Match, seed: sc.Seed, engine: engine, gc: gc, seats: sc.Seats, decks: sc.Decks,
 		bounds: boundsOf(l.Events), turnStarts: turnStartsIn(l.Events, 0), state: sc.State, result: sc.Result,
-		winner: sc.Winner, head: sc.Head, reason: sc.Reason}, nil
+		winner: sc.Winner, head: sc.Head, reason: sc.Reason}
+	m.setGame(g)
+	return m, nil
 }
 
-// cutTailReplayed reports whether err — a *replay.Divergence that
-// replay.Replay returned — is the one shape a recording CUT AT A BURST
+// cutTailReplayed reports whether err — a *game.Divergence that the
+// engine's Replay returned — is the one shape a recording CUT AT A BURST
 // TAIL produces, and the cut tail is nonetheless verified: every recorded
 // event reproduced byte for byte (the incremental compare passed the whole
 // recording), the replay then running past the recording's end (Missing)
@@ -364,30 +375,48 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 // accepted tail is exactly what the live engine logged. A corpus or engine
 // change that alters any event, recorded or tail, breaks the chain.
 //
-// e is the engine replay.Replay returned alongside err; recordedHead is
+// g is the game Replay returned alongside err; recordedHead is
 // the caller's own full-stream head. An empty recordedHead matches
 // nothing — a caller with no trusted full-stream head has no way to verify
 // a tail it cannot see, and must keep treating the divergence as the error
 // it is.
-func cutTailReplayed(err error, e *rules.Engine, recordedHead string) bool {
-	if err == nil || e == nil || recordedHead == "" {
+func cutTailReplayed(err error, g game.Game, recordedHead string) bool {
+	if err == nil || g == nil || recordedHead == "" {
 		return false
 	}
-	var div *replay.Divergence
+	var div *game.Divergence
 	if !errors.As(err, &div) || !div.Missing {
 		return false
 	}
-	return e.L.Head() == recordedHead
+	return g.Log().Head() == recordedHead
+}
+
+// replaySource is what viewAt rebuilds a past board from.
+type replaySource struct {
+	engine game.Engine
+	config game.Config
+	caps   game.Caps
+}
+
+// replaySource reads m.g, so call it under m.mu.
+func (m *match) replaySource() replaySource {
+	return replaySource{engine: m.engine, config: m.gc, caps: m.g.Caps()}
 }
 
 // viewAt is PL-1: find the last intent boundary j with bounds[j] <= seq+1,
 // reach it from the nearest snapshot (or genesis) by re-submitting the
-// recorded intents, apply the rest of that burst's events onto the clone's
-// own game, and project. Zones, life, damage, counters and the stack are
+// recorded intents, apply the rest of that burst's events onto the fork's
+// own board, and project. Zones, life, damage, counters and the stack are
 // exact at every seq; derived P/T from continuous effects and the pending
 // tray are as of the burst's start (at most one resolution stale) — and a seq
 // strictly inside a burst's overshoot tail (fb-20260915T094418Z) is as of the
 // tail's end, at most the one Submit's continuation ahead, the same tolerance.
+//
+// A game without Caps.SubBurstViews cannot rebuild a board from logged events,
+// so it answers with the end of the burst holding seq. A seq past the last
+// boundary and past what the replay reproduces lies in a burst that never
+// ended: that burst has no end to show and the previous boundary is not the
+// board at seq, so the request is refused.
 //
 // A reader must never crash (D15's philosophy, extended to readers by
 // fix round 1, FL-43): boundsOf already keeps a crashed match's poison
@@ -395,7 +424,7 @@ func cutTailReplayed(err error, e *rules.Engine, recordedHead string) bool {
 // the replay range, but the deferred recover below is the backstop for
 // any other way replaying a hand-built, corrupted, or future-buggy log
 // could panic — it turns that into a plain error instead.
-func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, viewer state.PlayerID, vis view.Visibility, d *decision.Decision) (v view.View, err error) {
+func viewAt(src replaySource, l *events.Log, snaps []snapshot, seq uint64, viewer state.PlayerID, vis view.Visibility, d *decision.Decision) (v view.View, err error) {
 	n := uint64(len(l.Events))
 	if n == 0 {
 		return view.View{}, ErrBeyondHead{Head: 0}
@@ -416,26 +445,29 @@ func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, viewe
 	for j+1 < len(bounds) && bounds[j+1] <= seq+1 {
 		j++
 	}
+	if !src.caps.SubBurstViews && bounds[j] <= seq && j+1 < len(bounds) {
+		j++
+	}
 	// Nearest snapshot at or before boundary j; snaps are in ascending order.
-	var e *rules.Engine
+	var g game.Game
 	from := 0
 	for i := len(snaps) - 1; i >= 0; i-- {
 		if snaps[i].intent <= j {
-			e = snaps[i].e.Clone()
+			g = snaps[i].g.Fork()
 			from = snaps[i].intent
 			break
 		}
 	}
-	if e == nil {
+	if g == nil {
 		var err error
-		e, err = replay.ReplayTo(l, cfg, j)
+		g, err = src.engine.ReplayTo(l, src.config, j)
 		if err != nil {
 			return view.View{}, fmt.Errorf("host: replay to boundary %d: %w", j, err)
 		}
 		from = j
 	}
 	for i := from; i < j && i < len(l.Intents); i++ {
-		if err := e.Submit(l.Intents[i]); err != nil {
+		if err := g.Submit(l.Intents[i]); err != nil {
 			return view.View{}, fmt.Errorf("host: replay intent %d: %w", i, err)
 		}
 	}
@@ -450,7 +482,8 @@ func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, viewe
 	// replay that stops SHORT of the boundary is an engine change or a
 	// broken log, and the incremental compare inside ReplayTo has already
 	// rejected the divergent shapes it can see.
-	got := uint64(len(e.L.Events))
+	replayed := g.Log().Events
+	got := uint64(len(replayed))
 	if got < bounds[j] {
 		return view.View{}, fmt.Errorf("host: replay reached seq %d, boundary %d is %d", got, j, bounds[j])
 	}
@@ -467,19 +500,28 @@ func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, viewe
 			return view.View{}, fmt.Errorf("host: replay produced %d events, the recording has %d", got, n)
 		}
 		for i := bounds[j]; i < got; i++ {
-			if string(e.L.Events[i].Append(nil)) != string(l.Events[i].Append(nil)) {
+			if string(replayed[i].Append(nil)) != string(l.Events[i].Append(nil)) {
 				return view.View{}, fmt.Errorf("host: replay tail event %d differs from the recording", i)
 			}
 		}
 	}
-	for s := got; s <= seq; s++ {
-		events.Apply(e.G, l.Events[s])
+	shown := seq
+	if src.caps.SubBurstViews {
+		for s := got; s <= seq; s++ {
+			events.Apply(g.Board(), l.Events[s])
+		}
+	} else {
+		if seq >= got {
+			return view.View{}, fmt.Errorf("host: seq %d lies in a burst that never ended, and %s cannot rebuild a board from logged events", seq, src.caps.Engine)
+		}
+		shown = got - 1
 	}
-	v = view.ProjectFor(e.G, e, viewer, vis, d)
+	v = view.ProjectFor(g.Board(), g.Chars(), viewer, vis, d)
 	// The round at seq is the exact round-trip count as of that moment, not
 	// the snapshot-only roundOf approximation ProjectFor fills in (ui13): fold
-	// the logged events up to and including seq. This is what makes the DVR's
-	// round match the live board clock across a mid-round elimination.
-	v.Round = view.RoundOf(e.G, l.Events[:seq+1])
+	// the logged events up to and including the event the board shows. This is
+	// what makes the DVR's round match the live board clock across a mid-round
+	// elimination.
+	v.Round = view.RoundOf(g.Board(), l.Events[:shown+1])
 	return v, nil
 }

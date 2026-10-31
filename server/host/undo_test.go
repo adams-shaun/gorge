@@ -13,9 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/bots"
+	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
+	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
@@ -416,7 +420,7 @@ func TestUndoRewindsToTheRequesterLastDecisionAndReplaysIdentically(t *testing.T
 	// live match cannot have — the prefix check above already pins it).
 	m.mu.RLock()
 	continued := m.e.L.Clone()
-	cfg := m.cfg
+	cfg := m.rulesConfig()
 	m.mu.RUnlock()
 	e, err := replay.ReplayTo(continued, cfg, n)
 	if err != nil {
@@ -867,4 +871,73 @@ func TestUndoStreamReceivesRewindThenConsistentFrames(t *testing.T) {
 		}
 	}
 	t.Fatalf("stream never saw rewind=%v decision-after=%v", rewindSeen, decisionAfter)
+}
+
+// contextSeat keeps the match context the host attaches.
+type contextSeat struct {
+	seat.Seat
+	mc *bots.MatchContext
+}
+
+func (s *contextSeat) AttachMatch(mc *bots.MatchContext) error {
+	s.mc = mc
+	return nil
+}
+
+// After an undo a seat's match context reads the replayed game, not the one the
+// seat attached to.
+func TestUndoRepointsMatchContexts(t *testing.T) {
+	t.Parallel()
+	o := testOptions(t)
+	rewound := make(chan int, 1)
+	o.OnRewind = func(_ TableID, _ int, n int, _ uint64) error { rewound <- n; return nil }
+	spy := &contextSeat{}
+	o.Seats = func(_ []string, seed uint64) []seat.Seat {
+		spy.Seat = heuristic.NewBot(seed)
+		return []seat.Seat{heuristic.NewBot(seed ^ 1), spy}
+	}
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	cfg := TableConfig{ID: "t1", Name: "undocontext", Seats: 2, Decks: []string{"a", "b"},
+		Seed: 42, Pace: 0, Spectator: view.Omniscient, Humans: []int{0}}
+	if err := r.AddTable(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	d := answerOnce(t, r, "t1", 0)
+	answerOnce(t, r, "t1", d.Seq)
+	waitIntents(t, r, "t1", 2)
+
+	m := liveMatch(t, r, "t1")
+	m.mu.RLock()
+	attached := spy.mc.Game
+	m.mu.RUnlock()
+	if err := r.Undo("t1", 1, 0); err != nil {
+		t.Fatal(err)
+	}
+	n := <-rewound
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	g := spy.mc.Game
+	if g.Log() == attached.Log() {
+		t.Fatal("the context still reads the game it attached to")
+	}
+	if g.Log() != m.g.Log() || g.Board() != m.g.Board() {
+		t.Fatal("the context does not read the live game")
+	}
+	if got := len(g.Log().Intents); got != n {
+		t.Fatalf("the context's game holds %d intents, the rewind kept %d", got, n)
+	}
+	if p := g.Pending(); p == nil || p.Player != 0 {
+		t.Fatalf("the context's game asks %+v, want the requester", p)
+	}
+	if spy.mc.Engine != m.e || gorgegame.Rules(g) != spy.mc.Engine {
+		t.Fatal("the context's Engine is not its Game's")
+	}
 }

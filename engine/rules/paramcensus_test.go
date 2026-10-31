@@ -2965,16 +2965,18 @@ var structuralKeys = func() map[string]map[string]bool {
 
 // ignoredParamKeys are keys the census deliberately does NOT report, each
 // with the Forge behaviour that makes it presentation/AI-only. Verified
-// against the pinned Forge checkout (~/projects/ref/forge; grep the key to
-// see every consumer).
+// against a Forge checkout (grep the key to see every consumer).
 var ignoredParamKeys = map[string]string{
-	// Forge citations below are relative to ~/projects/ref/forge. These keys
+	// Forge citations below are relative to a Forge checkout. These keys
 	// affect Forge AI or rendered text only, never its game rules.
 	"AILogic":            "AI heuristic; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"AITgts":             "AI target hint; forge-game/src/main/java/forge/game/card/CardState.java",
 	"AILifeThreshold":    "AI life threshold; forge-ai/src/main/java/forge/ai/AiController.java",
 	"AINoRecursiveCheck": "AI recursion guard; forge-ai/src/main/java/forge/ai/ability/DelayedTriggerAi.java",
 	"AIPhyrexianPayment": "AI payment preference; forge-ai/src/main/java/forge/ai/ComputerUtilMana.java",
+	// Not presentation: Forge reassigns the ability to whoever the key names, and
+	// CR 603.3a and CR 603.7d decide its controller here instead.
+	"TriggerController": "controller override against the rules; forge-game/src/main/java/forge/game/trigger/TriggerHandler.java:494",
 	// SpellDescription is deliberately NOT ignored: legalActions renders it.
 	"StackDescription":      "stack caption; forge-game/src/main/java/forge/game/card/CardFactory.java",
 	"TriggerDescription":    "trigger caption; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",

@@ -258,7 +258,6 @@ func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, src
 			fmt.Fprintf(stdout, "game over: seat %d wins\n", g.Winner)
 		}
 	}
-	fmt.Fprintln(stdout, "poison is not modelled in this build (no seat can have poison counters).")
 
 	printSeats(stdout, v.Players, omniscient)
 	if len(v.Stack) != 0 {

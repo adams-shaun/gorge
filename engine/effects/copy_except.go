@@ -14,11 +14,10 @@ import (
 // copiable values, so a copy of the copy inherits them (CR 707.3).
 type copyExceptSpec struct {
 	// The type exceptions, applied in the order engine/rules/chars'
-	// applyTypeEffect applies one effect's strips: removeCardTypes keeps only
-	// the supertypes; removeCreatureTypes drops the creature subtypes;
-	// removeSubTypes (Clone's RemoveSubTypes$) keeps card types and
-	// supertypes; removeLegendary drops Legendary; then addTypes append once
-	// each.
+	// applyTypeEffect applies one effect's strips: removeCardTypes keeps the
+	// supertypes and SubtypesKeptBy(addTypes); removeCreatureTypes drops the
+	// creature subtypes; removeSubTypes keeps card types and supertypes;
+	// removeLegendary drops Legendary; then addTypes append once each.
 	addTypes                                                              []string
 	removeCardTypes, removeCreatureTypes, removeSubTypes, removeLegendary bool
 	// setColors (when setColorsPresent) replaces the colour set; addColors
@@ -51,9 +50,10 @@ func copyExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
 	}
 	if s.removeCardTypes || s.removeCreatureTypes || s.removeSubTypes || s.removeLegendary || len(s.addTypes) > 0 {
 		x.TypesSet = true
+		subtypes := SubtypesKeptBy(s.addTypes)
 		for _, t := range f.Types {
 			switch {
-			case s.removeCardTypes && !copySupertype(t):
+			case s.removeCardTypes && !copySupertype(t) && !subtypes.Has(t):
 			case s.removeCreatureTypes && CreatureTypeWords(t):
 			case s.removeSubTypes && !CardTypeWord(t) && !copySupertype(t):
 			case s.removeLegendary && strings.EqualFold(t, "Legendary"):

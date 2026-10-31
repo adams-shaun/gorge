@@ -327,3 +327,77 @@ func TestMmmenonManaSpendableOnlyOnNonHandCast(t *testing.T) {
 		t.Fatalf("non-hand cast's pool wrong: pool=%+v (the plain {C} was already spent by the hand cast and must stay spent)", e.G.Players[0].Pool)
 	}
 }
+
+// The offer prices a "cast from anywhere other than your hand" reduction as the
+// charge will, so two mana affords Sage of the Beyond's discounted flashback.
+func TestNonHandReductionPricesTheOffer(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Sage of the Beyond"), corpusAlternativeCard(t, "Otterball Antics"))
+	hand := e.G.Zone(state.ZHand, 0)
+	placeOnBattlefield(t, e, hand[0])
+	otter := hand[1]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: otter, From: state.ZHand, To: state.ZGraveyard})
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 1, 1
+	e.pending = nil
+	e.priorityRound()
+	if !offersCastMode(e, otter, "flashback") {
+		t.Fatalf("flashback at {1}{U} not offered on two mana: %+v", e.Pending())
+	}
+	e.G.Players[0].Pool[state.MC] = 0
+	e.pending = nil
+	e.priorityRound()
+	if offersCastMode(e, otter, "flashback") {
+		t.Fatalf("flashback offered on one mana: %+v", e.Pending())
+	}
+}
+
+// An earlier cast from hand says nothing about the flashback being priced: the
+// reduction still applies to a card that was hand-cast and went to the graveyard.
+func TestNonHandReductionIgnoresAnEarlierHandCast(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Sage of the Beyond"), corpusAlternativeCard(t, "Otterball Antics"))
+	hand := e.G.Zone(state.ZHand, 0)
+	placeOnBattlefield(t, e, hand[0])
+	otter := hand[1]
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 1, 1
+	castMode(t, e, otter, "")
+	finishCast(t, e, otter)
+	passUntilStackEmpty(t, e, 60)
+	if o := e.G.Obj(otter); o.Zone != state.ZGraveyard {
+		t.Fatalf("Otterball after its hand cast: zone %v, want the graveyard", o.Zone)
+	}
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 1, 1
+	e.pending = nil
+	e.priorityRound()
+	if !offersCastMode(e, otter, "flashback") {
+		t.Fatalf("flashback at {1}{U} not offered after a hand cast: %+v", e.Pending())
+	}
+}
+
+// A hand cast takes no discount at the offer either.
+func TestNonHandReductionLeavesAHandCastAtFullPrice(t *testing.T) {
+	t.Parallel()
+	vanilla := card(t, "Name:Three Drop\nManaCost:2 U\nTypes:Sorcery\nA:SP$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n")
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Sage of the Beyond"), vanilla)
+	hand := e.G.Zone(state.ZHand, 0)
+	placeOnBattlefield(t, e, hand[0])
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 0, 1
+	e.pending = nil
+	e.priorityRound()
+	if offersCastMode(e, hand[1], "") {
+		t.Fatalf("a hand cast of {2}{U} offered on one mana: %+v", e.Pending())
+	}
+}
+
+func offersCastMode(e *Engine, id state.ObjID, mode string) bool {
+	d := e.Pending()
+	if d == nil {
+		return false
+	}
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == id && o.Mode == mode {
+			return true
+		}
+	}
+	return false
+}

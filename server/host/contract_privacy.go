@@ -1,8 +1,7 @@
 package host
 
 // RunClosedPrivacyContract, the privacy proof a closed-list hosted policy
-// (bots.Info.ClosedLists: az-c4, az-c5) owes before it may seat against a
-// human (docs/design/2026-10-14-az-c4-hosted.md).
+// (bots.Info.ClosedLists) owes before it may seat against a human.
 
 import (
 	"context"
@@ -104,7 +103,7 @@ func publicZone(z state.Zone) bool {
 // root engine, Board, feed and refusal reason; the Board and View the
 // non-searched paths get -- are a subset of revealed. The root engine is
 // walked whole, through unexported fields, except the fields named in
-// skipFields (each is a residual the az-c4 report's leak audit names).
+// skipFields (each is a known residual of the leak audit).
 // Every searched decision must get a root (bar posed-resolution refusals),
 // and the games must give real evidence: at least 10 roots, and at least 10
 // decisions at which a secret card was still hidden.

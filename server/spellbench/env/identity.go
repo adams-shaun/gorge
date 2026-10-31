@@ -2,7 +2,9 @@ package env
 
 import (
 	"encoding/hex"
+	"regexp"
 	"runtime/debug"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/server/spellbench/catalog"
@@ -51,8 +53,18 @@ func gorgeVersion() string {
 	return "devel"
 }
 
+// pseudoVersion matches what ends a Go pseudo-version: its timestamp, its
+// commit and any build metadata (v0.0.0-20261031120000-96610c40a1f8+dirty).
+var pseudoVersion = regexp.MustCompile(`[-.][0-9]{14}-([0-9a-f]{12})(\+[0-9A-Za-z.-]+)?$`)
+
+// short names a revision for an identity string: a pseudo-version by its commit,
+// keeping the +dirty of a build from a modified tree; a tagged version whole;
+// anything else, a commit hash, by its first 12 characters.
 func short(s string) string {
-	if len(s) > 12 {
+	if m := pseudoVersion.FindStringSubmatch(s); m != nil {
+		return m[1] + m[2]
+	}
+	if len(s) > 12 && !strings.HasPrefix(s, "v") {
 		return s[:12]
 	}
 	return s

@@ -8,9 +8,6 @@ with its body, the vocabularies the bodies use, the versioning rule, and the tes
 the wire. It is for client authors in any language who want to decode frames without reading
 Go.
 
-*Read from the code at commit `ad3777023` (2026-10-20); the event-kind list re-checked at
-`25d71cadc` (2026-10-27).*
-
 !!! note "Why a separate package"
     `server/protocol` is types only. It never imports the rules engine or the bot packages
     (`internal/archtest` forbids `server/protocol → engine/rules` and `server/protocol → bots`).
@@ -30,8 +27,7 @@ Go.
 The JSON Schema and the TypeScript are both generated from the Go source by
 [`internal/tsgen`](https://github.com/adams-shaun/gorge/blob/main/internal/tsgen), which type
 checks the structs from source. The JSON names come from the `json` tags; `omitempty` makes a
-field optional; a nil pointer, slice or map in a non-`omitempty` field is `null`. All 16
-goldens validate against the JSON Schema (checked 2026-10-20 with a stdlib validator).
+field optional; a nil pointer, slice or map in a non-`omitempty` field is `null`.
 
 ## The envelope
 
@@ -84,7 +80,7 @@ the TypeScript union are both checked against them.
 | `series_update` | `SeriesUpdate` | [series_update.json](https://github.com/adams-shaun/gorge/blob/main/server/protocol/testdata/series_update.json) | Draft events only |
 
 The draft-event frames are part of the package, and so of the wire. They are sent only by a
-server that runs a draft-event runtime (see [HTTP API: Draft events](http.md#draft-events)).
+server running with `-events` (see [HTTP API: Draft events](http.md#draft-events)).
 
 ## Vocabularies
 
@@ -122,15 +118,15 @@ the end, so existing ordinals never move. Recorded logs, hash chains and golden 
 on them. A client must treat an unknown kind as displayable but opaque, and use
 `line`.
 
-??? info "The 145 event kinds at `25d71cadc`"
+??? info "The event kinds on 2026-10-31"
     `game_start` `shuffle` `move_zone` `draw` `life` `damage` `tap` `untap` `step` `turn`
     `priority` `stack_push` `stack_resolve` `mana_add` `mana_clear` `counter`
     `declare_attackers` `declare_blockers` `player_lost` `game_over` `decision_ask`
     `decision_made` `note` `land_played` `targets_chosen` `flip_face` `clock_tick`
     `trigger_push` `end_combat_reset` `cast_info` `choose` `token_create` `stack_copy` `attach`
     `ability_push` `mode_chosen` `commander_damage` `delayed_register` `delayed_push`
-    `library_order` `extra_turn` `door_unlock` `speed_change` `monarch_change`
-    `control_change` `card_token` `keyword_trigger_push` `goad` `player_counter` `imprint`
+    `library_order` `extra_turn` `door_unlock` `speed_change` `monarch_change` `control_change`
+    `card_token` `keyword_trigger_push` `goad` `player_counter` `imprint`
     `starting_player_change` `pair` `myriad_copy` `myriad_cleanup` `grant_trigger_push`
     `mana_activate` `token_attacks` `x_change` `note_number` `extra_phase` `copy_token` `exert`
     `planar_roll` `explore` `combat_retarget` `ring_tempts_you` `ring_emblem_push`
@@ -147,9 +143,10 @@ on them. A client must treat an unknown kind as displayable but opaque, and use
     `setup_entered` `door_lock` `saddle` `class_level` `mill_proposal` `meld` `excess_damage`
     `forage_action` `manifest_dread_action` `collect_evidence_action` `ability_triggered`
     `cast_battlefield` `draw_batch_proposal` `spell_cast_reversed` `hidden_identity`
-    `draw_empty` `setup_settled` `blocked_by_effect` `copy_except` `game_restart` `activation_reversed` `text_change` `had_to_attack` `day_night_change`
+    `draw_empty` `setup_settled` `blocked_by_effect` `copy_except` `game_restart`
+    `activation_reversed` `text_change` `had_to_attack` `day_night_change`
 
-    (Listed in ordinal order, from `events.Kind.String()` over 0..255.)
+    Listed in ordinal order, from `events.Kind.String()`. The list here isn't generated; `engine/events` is the authority.
 
 ## Versioning
 
@@ -170,8 +167,7 @@ What this means in practice, and how firmly each part is held:
 There is no negotiation: a server speaks one version, and URLs carry none. A client should read
 `v` and refuse a version it does not know.
 
-## Not in this package's contract
+## Other wires
 
-`server/protocol/manabrew` is a separate wire, used by the deprioritised ManaBrew adapter. It
-has its own JSON schema and equivalence tests (`schema_equiv_test.go`), and it is not
-described here.
+`server/protocol/manabrew` is the [ManaBrew](manabrew.md) wire, with its own JSON schema and equivalence tests
+(`schema_equiv_test.go`). [Wires](../architecture/wires.md) lists all three wires and their tests.

@@ -78,13 +78,15 @@ Open the table in the lobby and pick a finished match, or go straight to
 table's spectator view has the same transport with one extra button: **Live**
 while you follow the game as it happens, **Go live** (with how far behind you
 are) after you step back. See
-[Spectating and replays](play.md#spectating-and-replays) for the spectator
+[Spectating](play.md#spectating) for the spectator
 flags.
 
 ### Review a saved game
 
 `gorged review` is a separate, read-only mode of the server. It takes one or
-more saved games and serves each one as a table you can only watch:
+more saved games and serves each one as a table you can only watch. Like any
+page of `gorged`, it needs the [browser client](install.md#2-build-the-browser-client-if-you-want-one)
+built first:
 
 ```sh
 go run ./cmd/gorged review cmd/repro/testdata/feedback/20260914T120000Z-fb01
@@ -95,7 +97,7 @@ gorged review: 1 recorded games on http://127.0.0.1:8090/
 gorged review: 20260914T120000Z-fb01 at http://127.0.0.1:8090/t/20260914T120000Z-fb01/m/1
 ```
 
-That input is the bug report committed in the repository. A saved game is
+That input is a bug report committed in the repository. A saved game is
 either:
 
 - **a feedback snapshot**: the directory a player's bug report writes
@@ -140,9 +142,8 @@ outcome, eng, err := bench.PlayGame(cfg, seats, 60, 6000, hooks)
 ```
 
 `Put` decides where each record goes and which games to keep. With no sink
-the driver records nothing and asks the seats for nothing: a run without
-`Hooks.Record` costs exactly what it did before. A two-player record is
-10 to 20 KB gzipped, and the notes add about 1 KB of that.
+the driver records nothing and asks the seats for nothing. A two-player record
+is about 10 to 20 KB gzipped, notes included.
 
 To try it without writing a driver, one test writes three example records
 (a search bot against the heuristic, twice, and a rollout search against
@@ -155,8 +156,8 @@ go run ./cmd/gorged review -art-dir /tmp/gorge-art \
   /tmp/gorge-records/*.match.json.gz
 ```
 
-It takes about 8 seconds and plays the same three games every time. The
-screenshots on this page come from the first one, `az-redeal-vs-bot`.
+It takes about 10 seconds and plays the same three games every time. The
+screenshots on this page come from `az-redeal-vs-bot`.
 
 ## Moving through a game
 
@@ -586,7 +587,7 @@ glance, so a cluster of them stands out before you step anywhere.
   game. It is never part of the replay, and two runs of the same game agree
   on everything else.
 - **Notes do not change the game.** They are stored beside the log, are
-  never replayed and never hashed. A record whose notes do not line up with
+  never replayed and never hashed. A record whose notes don't line up with
   its decisions is still served, without notes, with a warning in the
   server's output.
 

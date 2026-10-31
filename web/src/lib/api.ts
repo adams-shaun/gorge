@@ -1,4 +1,4 @@
-import type { BotPolicyList, Decision, ErrorBody, EventBody, Intent, MatchInfo, ReviewDecision, TableInfo, View } from '../protocol';
+import type { BotPolicyList, Capabilities, Decision, ErrorBody, EventBody, Intent, MatchInfo, ReviewDecision, TableInfo, View } from '../protocol';
 import type { SeatCtx } from './seat';
 import { withBase } from './basepath';
 
@@ -24,6 +24,7 @@ export const gamesURL = () => withBase('/api/games');
 export const decksURL = () => withBase('/api/decks');
 export const deckStatsURL = () => withBase('/api/stats/decks');
 export const botPoliciesURL = () => withBase('/api/bot-policies');
+export const capabilitiesURL = () => withBase('/api/capabilities');
 // decisionsURL is the review server's decision index (`gorged review` only;
 // a live server 404s it).
 export const decisionsURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/decisions`);
@@ -128,6 +129,9 @@ export const fetchDecks = () => getJSON<DeckInfo[]>(decksURL());
 
 /** The server's offered bot policies and its default (GET /api/bot-policies), for the play-vs-bot opponent picker. */
 export const fetchBotPolicies = () => getJSON<BotPolicyList>(botPoliciesURL());
+
+/** Which optional surfaces this server serves (GET /api/capabilities, always 200). */
+export const fetchCapabilities = () => getJSON<Capabilities>(capabilitiesURL());
 
 /** One row of the public deck leaderboard: finished bot-vs-bot games only. */
 export interface DeckRecord {

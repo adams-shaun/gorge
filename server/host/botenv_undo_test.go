@@ -123,7 +123,7 @@ func TestUndoRebuildsEnvSeatFeeds(t *testing.T) {
 	m = liveMatch(t, r, "t1")
 	m.mu.RLock()
 	feedAfter := m.feeds.bySlot[1]
-	lcfg := m.cfg
+	lcfg := m.rulesConfig()
 	lclone := m.e.L.Clone()
 	intents := len(m.e.L.Intents)
 	// Snapshot the rebuilt feed under the same lock as the log clone: the
@@ -180,7 +180,7 @@ func TestUndoRebuildsEnvSeatFeeds(t *testing.T) {
 	m = liveMatch(t, r, "t1")
 	m.mu.RLock()
 	finalFeed := m.feeds.bySlot[1]
-	fcfg := m.cfg
+	fcfg := m.rulesConfig()
 	fclone := m.e.L.Clone()
 	fintents := len(m.e.L.Intents)
 	// The history and the collector are snapshotted under the SAME lock that

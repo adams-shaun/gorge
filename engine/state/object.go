@@ -1907,20 +1907,26 @@ type Object struct {
 	// CopyFace.
 	CopyGainThisAbility bool
 
-	// GainedFace is the foreign face a HAS-ALL-ABILITIES-OF ability wrapper
-	// (events.GainedAbilityPush / GainedTriggerPush) was minted from -- the
-	// per-stack-instance provenance engine/rules/pile.go's gainedOwnedFace recovers.
-	// The granting static can END between the push and the resolution (the
-	// foreign card leaves the scoped zone, the static's named set re-derives),
-	// and the live-grant recovery scans then find no owner, so a resolving
-	// wrapper must not depend on them. Set ONLY inside events.Apply from the
-	// exact face that provided the compiled SA -- the same write-site
-	// discipline CopyFace takes -- so a live game and every replay, including
-	// the log-only state reconstruction, derive it identically. nil on every
-	// wrapper that is not a gained mint (and on every permanent).
-	GainedFace *cards.Face
-	// GainedFrom is the foreign OBJECT GainedFace was taken from (the
-	// GainedAbilityPush/GainedTriggerPush IDs[0]), set beside GainedFace and
+	// LeftCopyFace is the CopyFace this object last left the battlefield with.
+	// The object is no longer a copy, but what the copy did is not undone: a
+	// leaves-the-battlefield trigger of the copied card fires, and a delayed
+	// trigger it created still needs its body (CR 603.7d, 603.10a). Set only by
+	// Move, like CopyFace.
+	LeftCopyFace *cards.Face
+	// AbilityFace is the face an ability wrapper was minted from when its source
+	// can't answer that later: the source's own for an activated ability
+	// (events.AbilityPush), a foreign one (GainedAbilityPush, GainedTriggerPush),
+	// or the departed copy's (TriggerPush). Its SVar table belongs to the ability
+	// from then on (CR 113.7a), whatever becomes of the source: it can leave the
+	// battlefield or transform, lose a copy effect or the static that lent the
+	// ability, before the ability resolves. engine/rules/pile.go's abilityOwnedFace
+	// reads it. Set ONLY inside events.Apply from the exact face that provided the
+	// compiled SA -- the same write-site discipline CopyFace takes -- so a live
+	// game and every replay, including the log-only state reconstruction, derive
+	// it identically. nil on every other object.
+	AbilityFace *cards.Face
+	// GainedFrom is the foreign OBJECT AbilityFace was taken from (the
+	// GainedAbilityPush/GainedTriggerPush IDs[0]), set beside AbilityFace and
 	// under the same Apply-only discipline. It is what lets a gained body that
 	// itself GRANTS by name (a gained Animate's Abilities$/Triggers$, Manascape
 	// Refractor animating through Spawning Pool's ability) name an object
@@ -1946,7 +1952,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [56]byte
+	_ [48]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast
@@ -2189,22 +2195,16 @@ func (o *Object) FaceDownTypeWords() []string {
 	return out
 }
 
-// EffectiveIsCreature reports whether this object is a creature right now,
-// honouring CR 708.5: while a battlefield object is face down its PRINTED face
-// does not exist, so creature-ness comes from the folded FaceDownSetType$
-// (default Creature). Every printed-face "is this a creature" read that gates
-// a creature rule (combat, the creature SBAs, convoke, protection) must go
-// through here, or a manifested non-creature or a face-down set type that
-// drops Creature reads the wrong answer.
+// EffectiveIsCreature reports whether this object's characteristics before any
+// continuous effect include Creature: its printed face, or while it is face
+// down on the battlefield the folded FaceDownSetType$ (CR 708.2a; default
+// Creature), and never while impending-dormant (CR 702.176a).
 //
-// CR 702.176a is folded in here rather than repeated at each caller: an
-// impending-dormant permanent (cast for its impending cost, still carrying a
-// time counter) is not a creature, and every printed-face creature read in
-// the engine reaches the answer through this one function. The derived-type
-// path has its own twin (engine/rules/chars/types.go's impendingTypeSwitch, which
-// e.IsCreature/b.IsCreature read), so the layer-4 answer agrees; a reader that
-// bypasses both (engine/rules/sba_prefilter.go's no-layer-4 fast path) checks
-// ImpendingDormant explicitly.
+// It is for the base values the layer walk starts from (a face-down permanent's
+// copiable values and base P/T) and for a filter with no derived-type entry for
+// the object. A rule that asks what a permanent is now reads the layer-derived
+// types instead (e.IsCreature, b.IsCreature, Host.IsCreature), whose
+// impendingTypeSwitch agrees on impending.
 func (o *Object) EffectiveIsCreature() bool {
 	if o.ImpendingDormant() {
 		return false
@@ -2219,27 +2219,6 @@ func (o *Object) EffectiveIsCreature() bool {
 	}
 	f := o.Face()
 	return f != nil && f.IsCreature()
-}
-
-// EffectiveIsArtifact reports whether this object is an artifact right now,
-// honouring CR 708.5 like EffectiveIsCreature: while a battlefield object is
-// face down its PRINTED face does not exist, so a manifested or cloaked
-// artifact reads its folded face-down type set (which never names Artifact
-// today, but the fold, not the corpus, decides). The Improvise announcement
-// and its offer-gate credit (engine/rules/cast.go) are the readers; other artifact
-// reads (e.g. the Affinity keyword's Count$Valid spec path) go through the
-// ordinary filter grammar and do not call this.
-func (o *Object) EffectiveIsArtifact() bool {
-	if o.faceDownEffective() {
-		for _, w := range o.FaceDownTypeWords() {
-			if w == "Artifact" {
-				return true
-			}
-		}
-		return false
-	}
-	f := o.Face()
-	return f != nil && f.IsArtifact()
 }
 
 // MergedFaceAt returns the face of the i-th card stacked beneath the top card

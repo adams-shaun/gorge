@@ -319,8 +319,9 @@ const (
 	// ordinals (log.json serializes kind numerically; a committed fixture's
 	// replay pins them).
 	StartingPlayerChange
-	// Pair records a Soulbond pairing (CR 702.103): Obj is the pairing
-	// permanent and IDs[0] is its chosen partner. Appended after
+	// Pair records a Soulbond pairing (CR 702.95): Obj is the pairing
+	// permanent and IDs[0] is its chosen partner. With no IDs it ends Obj's
+	// pairing because a member stopped being a creature. Appended after
 	// StartingPlayerChange (the merge kept main's kinds at their main
 	// ordinals), following the same append-only precedent, so all earlier
 	// Kinds keep their numeric values and the hash chain and golden replays
@@ -1780,6 +1781,22 @@ const (
 	DamageProvenanceSourceSeparator     = "\x1c"
 	DamageProvenanceSourceTypeSeparator = "\x1b"
 )
+
+// TextGrantedAbility is the Text of the DelayedPush that mints a self-granted
+// activated ability rather than a delayed trigger.
+const TextGrantedAbility = "granted ability"
+
+// IsActivationMint reports whether e puts an activated ability on the stack
+// (CR 602.2a). The ability's provenance selects the kind.
+func (e *Event) IsActivationMint() bool {
+	switch e.Kind {
+	case AbilityPush, KeywordAbilityPush, GrantAbilityPush, GainedAbilityPush:
+		return true
+	case DelayedPush:
+		return e.Text == TextGrantedAbility
+	}
+	return false
+}
 
 // Event is one replayable state transition.
 type Event struct {

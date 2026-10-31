@@ -146,7 +146,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// rules' Derived pin holds the line on.
 		// Built once here and passed to visit as a parameter instead.
 		specCtx := c.SpecContext(c.Controller)
-		f := zoneCountFold{h: h, g: g, spec: spec,
+		f := zoneCountFold{h: h, g: g, spec: spec, pricedSpell: c.PricedSpell,
 			prop: prop, extreme: extreme, isLeast: isLeastProperty(prop),
 			hasBareHand: hasBareHand, readsPT: SpecReadsPT(spec),
 			seenTokenNames: seenTokenNames, seenCardTypes: seenCardTypes,

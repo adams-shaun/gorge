@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package mbtest
 
 import (
@@ -16,9 +14,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestManaBrewReplayEquivalent covers scoping spec §8 item 5, both bullets,
-// for a handful of seeded 2-seat games (kept small: HTTP and the golden
-// NDJSON transcript are MB-11's job, not this ticket's):
+// TestManaBrewReplayEquivalent covers a handful of seeded 2-seat games (kept
+// small: server/host/manabrewhttp covers HTTP and the golden transcript):
 //
 //  1. "replay.Replay(cfg, log) reproduces the head": the game played once
 //     through TranslatingSeat/MockClient produces a (Config, Log) that
@@ -30,8 +27,7 @@ import (
 //     engine, the same Config and seed, a fresh MockClient built from the
 //     same seed -- played again through TranslatingSeat reaches the
 //     identical head. "Natively" here means "in process, with no wire
-//     transport in between" (HTTP/JSON is explicitly out of this ticket's
-//     scope; MB-11's golden-transcript test is what proves the actual wire
+//     transport in between" (the golden-transcript test is what proves the actual wire
 //     encoding round-trips) -- so this is the reproducibility half of "the
 //     adapter is a pure bijection on the answers it forwards": the SAME
 //     seed and the SAME policy must not depend on anything but themselves,
@@ -66,7 +62,7 @@ func TestManaBrewReplayEquivalent(t *testing.T) {
 				seed, e2.L.Head(), e1.L.Head())
 		}
 
-		// MB-14: the synthetic reveal/dice ack prompts are read-only over the
+		// The synthetic reveal/dice ack prompts are read-only over the
 		// log -- Synthetic never feeds anything back to the engine, so
 		// exercising it here, after replay equivalence is already proven for
 		// the ordinary decision mapping, cannot itself change e1/e2's heads.

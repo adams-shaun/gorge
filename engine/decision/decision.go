@@ -328,10 +328,9 @@ type Option struct {
 	// Decision.Validate enforces it and the shared repair
 	// (Decision.FitAlone, which botpolicy.Clamp runs) derives its rule from
 	// this same field, so the published fact cannot drift from the check.
-	// Server-side only, like BlockMust: a client needs the flag, not the
-	// obligation to enforce it. omitempty: an unrestricted option emits no
-	// field, so every ordinary option list serialises byte-identically.
-	AloneRestricted bool `json:"-"`
+	// omitempty: an unrestricted option emits no field, so every ordinary
+	// option list serialises byte-identically.
+	AloneRestricted bool `json:"alone_restricted,omitempty"`
 	// Mode distinguishes a "cast" option's payment kind: "" the card's own
 	// cost, "kicked", "surged", "flashback", "miracle" -- what the engine
 	// reads in beginCast's switch. A client renders a kicked/surged/
@@ -837,8 +836,9 @@ type Decision struct {
 	AIRandom bool `json:"-"`
 	// AffordableTargets is a cast-time target ask's engine-computed hint:
 	// the largest number of targets whose total cost (a Strive spell's
-	// per-extra-target additional cost, CR 702.52a) the caster can provably
-	// pay from the pool and the payment window's fixed-production sources.
+	// per-extra-target additional cost, CR 702.52a, or a cost static reading
+	// the target count) the caster can provably pay from the pool and the
+	// payment window's fixed-production sources.
 	// Zero means no hint (the count does not change the price). It never
 	// narrows Max -- CR 601.2c lets the player choose any number, and the
 	// cost is determined afterwards (601.2f) -- but an unattended bot that

@@ -10,12 +10,17 @@ Two sources, joined by set code:
        go run ./cmd/oraclediff status -all -json -level B -procs 4 \\
            -sets <every set whose Level A row has "printed": true> > status-B.jsonl
 
-   with a meta.json ({"commit", "gorge_pin", "forge_ref", "date"}) to its
-   orphan docs-data branch. Each line is one adopt.SetStatus object; any
-   non-JSON line (the ratchet summary the command also prints) is skipped.
+   with a meta.json ({"commit", "gorge_pin", "forge_ref", "date",
+   "ratchet_failures"}) to its orphan docs-data branch. Each line is one
+   adopt.SetStatus object; any non-JSON line is skipped. The job publishes
+   whenever its measurement finishes, so the data can be older than the build
+   only when one didn't. Each table's caption gives the data's date and corpus,
+   says so when gorge's FORGE_REF has moved past that corpus, and counts the
+   ratchet checks that measurement failed. A meta.json without the count reads
+   as none.
 
-2. dirty-dirac's per-set acceptance, a committed snapshot
-   (docs/site/support/dirty-dirac-sets.json). dirty-dirac's source is
+2. dirac's per-set acceptance, a committed snapshot
+   (docs/site/support/dirac-sets.json). dirac's source is
    private, so a maintainer refreshes that file by hand from its acceptance
    ratchet and lockstep runs.
 
@@ -34,20 +39,22 @@ Per set:
                  per-set pseudo problem, not a card, so it is not subtracted.
                  For a set without a printed list this is a hard lower bound.
   Level B %    = the same over the Level B status.
-  dirty-dirac  = accepted / cards from the snapshot, over dirty-dirac's own
+  dirac  = accepted / cards from the snapshot, over dirac's own
                  card list for the set (distinct card names in XMage's
                  manifest that exist in the corpus), which can differ by a
                  few cards from gorge-compliance's count.
 
 Stdlib only. Usage:
   scripts/docs_sets.py [status-A.jsonl|-] [--level-b status-B.jsonl]
-                       [--meta meta.json] [--dirty-dirac dirty-dirac-sets.json]
+                       [--meta meta.json] [--dirac dirac-sets.json]
                        [-o docs/site/support/_generated_sets.md]
                        [--commit SHA] [--date YYYY-MM-DD]
 """
 
 import argparse
 import json
+import os
+import re
 import sys
 from collections import OrderedDict
 
@@ -56,6 +63,7 @@ NOT_IN_CORPUS = "not in corpus"
 UNSUPPORTED = "unsupported"
 
 DEFAULT_OUT = "docs/site/support/_generated_sets.md"
+MAKEFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Makefile")
 DASH = "—"
 
 
@@ -74,8 +82,8 @@ def load(stream):
     return rows
 
 
-def load_dirty_dirac(path):
-    """Read and check the dirty-dirac snapshot; raise ValueError on a bad file."""
+def load_dirac(path):
+    """Read and check the dirac snapshot; raise ValueError on a bad file."""
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
     for k in ("date", "corpus", "sets"):
@@ -161,12 +169,36 @@ def section(name, body):
     return "<!-- --8<-- [start:%s] -->\n%s<!-- --8<-- [end:%s] -->\n" % (name, body, name)
 
 
+def forge_pin(path=MAKEFILE):
+    """gorge's current corpus pin, FORGE_REF in the Makefile, or "" without one."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            m = re.search(r"^FORGE_REF\s*\??=\s*(\S+)", f.read(), re.M)
+    except OSError:
+        return ""
+    return m.group(1) if m else ""
+
+
+def corpus_text(meta):
+    """The data's corpus, and gorge's current pin when that has moved on."""
+    ref = meta.get("forge_ref")
+    if not ref:
+        return ""
+    text = "Forge corpus `%s`" % ref[:9]
+    pin = meta.get("current_forge_ref")
+    if pin and pin != ref:
+        text += " (gorge's `FORGE_REF` is now `%s`)" % pin[:9]
+    return text
+
+
 def stamp_text(meta, level_b):
     if not meta:
         return ""
     parts = []
     if meta.get("date"):
         parts.append("measured " + meta["date"])
+    if corpus_text(meta):
+        parts.append(corpus_text(meta))
     if meta.get("commit"):
         parts.append("gorge-compliance @ `%s`" % meta["commit"][:9])
     if meta.get("gorge_pin"):
@@ -175,10 +207,23 @@ def stamp_text(meta, level_b):
         " and `-level B`" if level_b else "", ", ".join(parts))
 
 
+def data_caption(meta):
+    """One line under a table with gorge columns: the data's date and corpus."""
+    parts = []
+    if meta and meta.get("date"):
+        parts.append("measured " + meta["date"])
+    if meta and corpus_text(meta):
+        parts.append("on " + corpus_text(meta))
+    failures = meta.get("ratchet_failures") if meta else 0
+    if failures:
+        parts.append("with %d compliance ratchet check%s failing" % (failures, "" if failures == 1 else "s"))
+    return "*gorge figures %s.*" % ", ".join(parts) if parts else ""
+
+
 def dd_stamp(dd):
     # The private module's commit is never published (privacy rule); the date
     # identifies the snapshot.
-    return "the dirty-dirac snapshot of %s" % dd["date"]
+    return "the dirac snapshot of %s" % dd["date"]
 
 
 def render_headline(rows, level_b, meta, dd):
@@ -214,9 +259,9 @@ def render_headline(rows, level_b, meta, dd):
         w("| gorge | certified Level A / B | not available to this build (gorge-compliance's docs-data was not fetched) |")
     if dd:
         c = dd["corpus"]
-        w("| dirty-dirac | lowered, whole corpus | **%s of %s** cards (%s%%) |" % (
+        w("| dirac | lowered, whole corpus | **%s of %s** cards (%s%%) |" % (
             num(c["accepted"]), num(c["cards"]), pct(c["accepted"], c["cards"])))
-        w("| dirty-dirac | sets in its acceptance ratchet | **%d** |" % len(dd["sets"]))
+        w("| dirac | sets in its acceptance ratchet | **%d** |" % len(dd["sets"]))
         ls = dd.get("lockstep") or {}
         if ls:
             parts = []
@@ -224,10 +269,10 @@ def render_headline(rows, level_b, meta, dd):
                 s = ls[code]
                 parts.append("%s: %s of %s games agree, %d stalled, %d disagree" % (
                     code, num(s["agree"]), num(s["games"]), s["stalls"], s["disagree"]))
-            w("| dirty-dirac | lockstep-verified against gorge | **%s** (%s) |" % (
+            w("| dirac | lockstep-verified against gorge | **%s** (%s) |" % (
                 ", ".join(sorted(ls)), "; ".join(parts)))
     else:
-        w("| dirty-dirac | lowered | not available to this build |")
+        w("| dirac | lowered | not available to this build |")
     w("")
     notes = []
     if rows and meta:
@@ -249,7 +294,7 @@ def render_sets(rows, level_b, meta, dd):
     unknown = sorted(c for c in codes if c not in by)
     out = []
     w = out.append
-    w("| Set | Name | Declared | Cards | Playable % | Level A % | Level B % | dirty-dirac lowered | Lockstep games |")
+    w("| Set | Name | Declared | Cards | Playable % | Level A % | Level B % | dirac lowered | Lockstep games |")
     w("|---|---|---|---:|---:|---:|---:|---:|---:|")
     problems = []
     for c in known:
@@ -277,6 +322,9 @@ def render_sets(rows, level_b, meta, dd):
     if not rows:
         w("*gorge-compliance's status was not available to this build, so the gorge columns are empty.*")
         w("")
+    elif data_caption(meta):
+        w(data_caption(meta))
+        w("")
     if problems:
         w("**Level B problems:** " + "; ".join(problems) + ".")
         w("")
@@ -295,6 +343,8 @@ def render_rollup(rows, level_b, meta, dd):
     for r in sorted(rows, key=set_type):
         groups.setdefault(set_type(r), []).append(r)
     w("A card reprinted in several sets is counted once per set.")
+    if data_caption(meta):
+        w(data_caption(meta))
     w("")
     w("| Set type | Sets | Entries | Unsupported | Not in corpus | Playable % | Level A % |")
     w("|---|---:|---:|---:|---:|---:|---:|")
@@ -316,7 +366,7 @@ def render_rollup(rows, level_b, meta, dd):
     w("")
     w("??? note \"Every set (%d), newest first\"" % len(rows))
     w("")
-    w("    | Set | Name | Type | Released | Cards | Unsupported | Not in corpus | Playable % | Level A % | dirty-dirac lowered |")
+    w("    | Set | Name | Type | Released | Cards | Unsupported | Not in corpus | Playable % | Level A % | dirac lowered |")
     w("    |---|---|---|---|---:|---:|---:|---:|---:|---:|")
     for r in rows:
         m = measure(r)
@@ -344,10 +394,10 @@ def main(argv=None):
     ap.add_argument("input", nargs="?", default=None, help="Level A status JSONL ('-' for stdin)")
     ap.add_argument("-o", "--out", default=DEFAULT_OUT, help="fragment path (default: %(default)s)")
     ap.add_argument("--level-b", default="", help="Level B status JSONL")
-    ap.add_argument("--meta", default="", help="docs-data meta.json (commit, gorge_pin, date)")
+    ap.add_argument("--meta", default="", help="docs-data meta.json (commit, gorge_pin, forge_ref, date, ratchet_failures)")
     ap.add_argument("--commit", default="", help="gorge-compliance commit (overrides --meta)")
     ap.add_argument("--date", default="", help="measurement date (overrides --meta)")
-    ap.add_argument("--dirty-dirac", default="", help="dirty-dirac per-set snapshot JSON")
+    ap.add_argument("--dirac", default="", help="dirac per-set snapshot JSON")
     a = ap.parse_args(argv)
 
     rows = []
@@ -370,13 +420,15 @@ def main(argv=None):
         meta["commit"] = a.commit
     if a.date:
         meta["date"] = a.date
-    dd = load_dirty_dirac(a.dirty_dirac) if a.dirty_dirac else None
+    if meta:
+        meta["current_forge_ref"] = forge_pin()
+    dd = load_dirac(a.dirac) if a.dirac else None
     if not rows and not dd:
-        print("docs_sets: neither status rows nor a dirty-dirac snapshot; fragment not written", file=sys.stderr)
+        print("docs_sets: neither status rows nor a dirac snapshot; fragment not written", file=sys.stderr)
         return 1
     with open(a.out, "w", encoding="utf-8") as f:
         f.write(render(rows, meta, level_b, dd))
-    print("docs_sets: wrote %d status sets, %d dirty-dirac sets to %s" % (
+    print("docs_sets: wrote %d status sets, %d dirac sets to %s" % (
         len(rows), len((dd or {}).get("sets", {})), a.out), file=sys.stderr)
     return 0
 

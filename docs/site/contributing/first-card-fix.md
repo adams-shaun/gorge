@@ -2,7 +2,8 @@
 
 This walkthrough takes one report, "a card plays wrong", from triage to a
 merged fix. The worked example is the first outside contribution to gorge,
-[`786510b3f`](https://github.com/adams-shaun/gorge/commit/786510b3f):
+[`786510b3f`](https://github.com/adams-shaun/gorge/commit/786510b3f) (it predates the
+`engine/` directory, so its diff says `rules/` where this page says `engine/rules/`):
 *Omniscience* in its owner's hand offered a free cast of itself, and *Future
 Sight* on top of its library let its owner cast it from there. Both cards
 were reading their own static ability in a zone where it does not function.
@@ -11,9 +12,6 @@ It is for a contributor fixing their first bug. You need the corpus fetched
 and compiled first (`make fetch-cards compile-cards`), and if you work in a
 git worktree, `.cards` linked into it; see [Contributing](index.md). Terms in
 *italics* are defined in the [glossary](glossary.md).
-
-*Helper locations and the example test re-checked on `develop` @
-`25d71cadc`, 2026-10-27.*
 
 ## 1. Confirm and triage
 
@@ -33,9 +31,8 @@ into a commit, a test or an issue.
 
 **Check that it is not already known or deliberate.**
 
-- [`AGENTS.md`](https://github.com/adams-shaun/gorge/blob/main/AGENTS.md)'s
-  *Known approximations* table lists primitives that knowingly behave more
-  narrowly than the card text.
+- [`docs/agents/known-approximations/`](https://github.com/adams-shaun/gorge/tree/main/docs/agents/known-approximations)
+  lists primitives that knowingly behave more narrowly than the card text.
 - `docs/design/2026-09-22-engine-contracts.md` lists behaviour
   that is a deliberate contract, not a bug.
 - `engine/rules/testdata/known-unsupported/` names repo-deck cards the build
@@ -135,21 +132,20 @@ suite holds it.
 
 Use this when the bug is about what the engine *offers* (a cast option that
 should not exist) or needs precise setup. The tests live in package `rules`
-itself, so they can call unexported helpers. The ones you will reach for
-(file:line at the time of writing):
+itself, so they can call unexported helpers. The ones you will reach for:
 
 | Helper | Where | What it does |
 |---|---|---|
-| `handEngine(t, cards...)` | `engine/rules/legal_test.go:21` | Two-seat game, 40 Mountains each, exactly these cards in seat 0's hand, turn 1 main phase, seat 0 with priority. |
-| `card(t, script)` | `engine/rules/turn_test.go:12` | Compiles a minimal inline script you write yourself (`"Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"`). Never paste a corpus script. |
-| `corpusCard(t, name)` | `engine/rules/life_draw_trigger_test.go:13` | Looks a real card up in the corpus registry (`testutil.CorpusRegistry`). |
-| `corpusAlternativeCard(t, name)` | `engine/rules/alternative_costs_test.go:13` | The same lookup; danb's test uses it. |
-| `onBoard(t, e, p, script)` / `onBoardCard(t, e, p, c)` | `engine/rules/layers_test.go:20`, `engine/rules/signed_param_test.go:15` | Put a card straight onto a player's battlefield. |
-| `castAndResolve(t, e, id)` | `engine/rules/defined_player_state_qualifier_test.go:68` | Submit the cast option for `id` and pass until the stack is empty. |
-| `passUntil(t, e, cond)` | `engine/rules/explore_triggers_test.go:92` | Pass priority (and `Advance`) until `cond()` holds; fails on an unexpected non-priority ask. |
-| `freeHandCastOption(e, p, id)` | `engine/rules/mayplay_free_hand_test.go:17` | Finds a free (no-mana-cost) cast option for a hand card. |
+| `handEngine(t, cards...)` | `engine/rules/legal_test.go` | Two-seat game, 40 Mountains each, exactly these cards in seat 0's hand, turn 1 main phase, seat 0 with priority. |
+| `card(t, script)` | `engine/rules/turn_test.go` | Compiles a minimal inline script you write yourself (`"Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"`). Never paste a corpus script. |
+| `corpusCard(t, name)` | `engine/rules/life_draw_trigger_test.go` | Looks a real card up in the corpus registry (`testutil.CorpusRegistry`). |
+| `corpusAlternativeCard(t, name)` | `engine/rules/alternative_costs_test.go` | The same lookup; the test below uses it. |
+| `onBoard(t, e, p, script)` / `onBoardCard(t, e, p, c)` | `engine/rules/layers_test.go`, `engine/rules/signed_param_test.go` | Put a card straight onto a player's battlefield. |
+| `castAndResolve(t, e, id)` | `engine/rules/defined_player_state_qualifier_test.go` | Submit the cast option for `id` and pass until the stack is empty. |
+| `passUntil(t, e, cond)` | `engine/rules/explore_triggers_test.go` | Pass priority (and `Advance`) until `cond()` holds; fails on an unexpected non-priority ask. |
+| `freeHandCastOption(e, p, id)` | `engine/rules/mayplay_free_hand_test.go` | Finds a free (no-mana-cost) cast option for a hand card. |
 
-danb's test (`engine/rules/mayplay_self_effectzone_test.go`) is the shape to
+The contribution's test (`engine/rules/mayplay_self_effectzone_test.go`) is the shape to
 copy:
 
 ```go
@@ -192,7 +188,7 @@ go run ./cmd/repro -emit-test ./engine/rules <feedback-dir>   # copy the snapsho
 
 The skeleton uses `feedback.EngineAt(t, dir, n)` from
 `testkit/testutil/feedback`. Replace its TODO with your assertion.
-`AGENTS.md`, section *Reproduce a feedback report*, has the details,
+[Contributing](index.md#reproduce-a-feedback-report) has the details,
 including why a `DIVERGED` replay can be an expected corpus change.
 
 ## 3. Find the code that implements it
@@ -225,12 +221,12 @@ by how many cards each would unlock.
 - `engine/effects` must not import `engine/rules`. If an effect needs more
   than `effects.Host` offers, the logic belongs in `rules`.
 - Comment the *rule*, with its CR number, at the line that enforces it, as
-  danb's fix does.
+  the fix does.
 
 ## 5. Measure the class, not the card
 
 A bug in one card is usually a bug in every card with the same shape. Before
-calling it done, find the siblings. danb's commit counted the 105 corpus
+calling it done, find the siblings. The example commit counted the 105 corpus
 cards with a `Continuous MayPlay$ True` static and no `EffectZone$`, checked
 placed each alone in each zone it affects, and counted the card/zone pairs
 where the card granted itself a play permission: 45 before the fix, 0 after.

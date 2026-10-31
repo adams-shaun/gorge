@@ -51,7 +51,7 @@ read once at startup from the served page's
 `<meta name="gorge-base" content="/gorge">` tag (see
 `src/lib/basepath.ts`). The default is "", so a page without the tag gets
 root-relative URLs exactly as before — `cmd/gorged` serves that way and is
-unchanged. An embedding server (e.g. mtgserve, Ruling FL-81) that mounts the
+unchanged. An embedding server that mounts the
 client under a prefix injects the tag in its template; nothing else is
 needed, and the same built bundle works at any mount point. The value may
 carry a trailing slash (`/gorge/`); it is normalised away. It is read once,

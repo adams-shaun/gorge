@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// Defaults must BE four-yay cmd/searchteacher's flag defaults, because those are the
+// Defaults must BE the search teacher's flag defaults, because those are the
 // knobs the +5.80pp +/- 1.25 paired-dev result was measured with. If someone
 // retunes a default here, "the seat plays the teacher" silently stops meaning
 // the teacher that was measured -- so the values are pinned literally rather

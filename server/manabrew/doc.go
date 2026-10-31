@@ -1,11 +1,10 @@
-// Package manabrew is gorge's ManaBrew translator (scoping spec role E, §5.1
-// and §6): a pure library that projects a seat-scoped view.View into the
+// Package manabrew is gorge's ManaBrew translator: a pure library that projects a seat-scoped view.View into the
 // ManaBrew GameViewDto and maps a pending decision.Decision into the ManaBrew
 // prompt of its decision.Kind.
 //
 // The package imports server/protocol/manabrew (wire types), view, decision and
 // state (types only). It never imports rules, effects, events, host or
-// bots/azmcts (archtest rows, MB-2), never imports time, and never ranges
+// bots/azmcts (archtest rows), never imports time, and never ranges
 // over a map in a way whose order reaches the output: the maps the DTOs carry
 // are encoded by encoding/json, which sorts map keys.
 //
@@ -15,15 +14,12 @@
 // ATTRIBUTION for the full attribution. Nothing here copies ManaBrew's AGPL
 // reference implementation.
 //
-// Layout (spec §9 ticket MB-3):
+// Layout:
 //
 //	translator.go  the Translator: CardText seam, State, Prompt
-//	ids.go         the id mint (spec §6.1): players, cards, stack, hidden
-//	state.go       view.View → GameViewDto, the step map (spec §6.2),
+//	ids.go         the id mint: players, cards, stack, hidden
+//	state.go       view.View → GameViewDto, the step map,
 //	               the x_gorge_own_deck_v1 own-deck extension
-//	               (seat-deck-manifest spec, interface mapping item 4)
 //	dispatch.go    the full switch over decision.Kinds
-//	prompt_*.go    one per-kind stub file; each stub returns ErrUnmapped
-//	               until its own MB ticket fills it in. Later tickets edit
-//	               only their own stub files, never dispatch.go.
+//	prompt_*.go    one file per decision kind
 package manabrew

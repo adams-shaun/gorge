@@ -16,7 +16,7 @@ import (
 // it, then it was sacrificed), the card in the graveyard is a new object and
 // the ability does nothing. The stack object's push stamp now records the
 // source's Incarnation whatever its zone (events.stampPushedAbilitySources),
-// and effects.sourceReturnedSincePush skips the move. dirty-dirac K1g's
+// and effects.sourceReturnedSincePush skips the move. dirac's
 // item (pair 88 and ~70 of the 10k slice). The control arm resolves with no
 // round trip and must return the Skeleton.
 func TestGraveyardSelfReturnFindsOnlyTheSameObject(t *testing.T) {

@@ -14,7 +14,7 @@ import (
 // own path.
 //
 // Every task worktree's .cards is a symlink to the main checkout's
-// (linked by hand, or by four-yay's ops/scripts/agent-worktree.sh), so the
+// (linked by hand, or by a companion module's script), so the
 // bytes are identical either way. The
 // path is not: `go test` keys a cached result on the absolute names of the
 // files the test opened, so a corpus opened as <worktree>/.cards/... misses

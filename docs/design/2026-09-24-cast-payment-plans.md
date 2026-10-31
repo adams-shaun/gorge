@@ -1,6 +1,6 @@
 # Optional payment plans on cast actions
 
-Status: implementation specification, ready for agentctl intake. Amended
+Status: implementation specification. Amended
 2026-09-26 (below); the amendment wins wherever it and older text disagree.
 Scope: one suggested payment plan per supported cast; client selection per action.
 Source inspection baseline: gorge `b4e52200d56210a08fdddc6b4a7ffc8e2236c477`;
@@ -901,7 +901,7 @@ planned executor in `engine/rules/cast.go` depend on `autopay-exec-harden`.
 The historical first-release breakdown follows.
 
 Companion briefs live in `docs/design/cast-payment-plans/`. Each is
-written for direct `agentctl issue add --brief-file` intake, not a triage task.
+written for direct intake, not a triage task.
 Use these IDs and dependencies (or rename all consistently before intake):
 
 | Ticket | Deliverable | Depends on |

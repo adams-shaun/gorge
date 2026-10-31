@@ -1,39 +1,37 @@
 # Install and build
 
-This page takes you from nothing to a checkout that can run games: the
-prerequisites, the card corpus, the binaries and the browser client. It is
-for anyone who wants to play against gorge's bots or run bot matches; a
-contributor needs the same steps, and then [Testing](../contributing/testing.md).
+This page takes you from nothing to a checkout that can run games: the prerequisites, the
+card corpus, the binaries and the browser client. Only the corpus step is required for
+bot games. A contributor needs the same steps, then [Testing](../contributing/testing.md).
 
-*Verified 2026-10-27 on Linux (x86-64, Go 1.26.3) at commit `25d71cadc`.
-Other platforms are not tested by the maintainers.*
+The output below is from 2026-10-31 on Linux x86-64 with Go 1.26.3. The maintainers test
+on Linux only.
 
 ## Prerequisites
 
 | Tool | Version | Why |
 |---|---|---|
-| Go | the `go` line of [`go.mod`](https://github.com/adams-shaun/gorge/blob/main/go.mod), **1.25.8** today | builds everything. An older Go 1.21+ downloads the right toolchain by itself when `GOTOOLCHAIN=auto` (the default). |
-| git | any recent | `make fetch-cards` uses a sparse, depth-1 `git fetch` |
-| make | GNU make | the build targets (all of them are thin wrappers you can run by hand) |
-| Node.js + npm | Node 20 or newer | **only** to build the browser client. Nothing else needs Node. |
+| Go | the `go` line of [`go.mod`](https://github.com/adams-shaun/gorge/blob/main/go.mod). An older Go 1.21 or later downloads the right toolchain itself under the default `GOTOOLCHAIN=auto` | builds everything |
+| git | any recent | `make fetch-cards` runs a sparse, depth-1 `git fetch` |
+| GNU make, bash | any recent | the build targets; the `Makefile` runs its recipes under bash |
+| Node.js and npm | Node 20.19 or later, or 22.12 or later | only the browser client. Its unit tests need Node 22.12 or later ([`web/README.md`](https://github.com/adams-shaun/gorge/blob/main/web/README.md)) |
 
-gorge has no cgo and no third-party Go dependencies, so there is nothing else
-to install. The Makefile builds with `CGO_ENABLED=0`.
+gorge has no cgo and no third-party Go dependencies.
 
-## 1. Clone and fetch the card corpus
+## 1. Fetch the card corpus
 
 ```sh
 git clone https://github.com/adams-shaun/gorge && cd gorge
 make fetch-cards
 ```
 
-gorge does not ship card definitions. It plays the card scripts of the
-[Forge](https://github.com/Card-Forge/forge) project, which are GPL-3.0 while
-gorge is Apache-2.0, so they are downloaded into `.cards/` (gitignored) and
-never committed. `make fetch-cards` builds `bin/forgec` and fetches the
-scripts from gorge's fork of Forge at the exact commit pinned by `FORGE_REF`
-in the [`Makefile`](https://github.com/adams-shaun/gorge/blob/main/Makefile).
-The pin matters: every game, replay and coverage number is a function of it.
+gorge doesn't ship card definitions. It plays the card scripts of the
+[Forge](https://github.com/Card-Forge/forge) project, which are GPL-3.0 where gorge is
+Apache-2.0, so they are downloaded into the gitignored `.cards/` and never committed.
+`make fetch-cards` builds `bin/forgec` and fetches the scripts from gorge's fork of Forge at
+the commit pinned by `FORGE_REF` in the
+[`Makefile`](https://github.com/adams-shaun/gorge/blob/main/Makefile). Every game and replay
+is a function of that pin. The fetch leaves about 140 MB on disk.
 
 ```text
 fetched 34074 card scripts and 854 token scripts from https://github.com/adams-shaun/forge.git at 91402ac5 (91402ac511046c0b7ed0bb691a8a446ca7dfc873)
@@ -41,29 +39,32 @@ These scripts are licensed GPL-3.0. They are a build input only:
 never commit them, never include them in a published image.
 ```
 
-That fetch took 5 seconds and left 137 MB on disk (`.cards/cardsfolder` and
-`.cards/tokenscripts`, plus `.cards/cards.lock` recording the commit).
+Every tool opens the corpus through one loader, which parses the scripts into gorge's
+intermediate representation on first use and caches it as `.cards/ir-<fingerprint>.gob.gz`
+with a `.seg` file beside it (about 26 MB together). `make compile-cards` does that step
+ahead of time, and `make report` prints the corpus coverage
+([Getting started](../getting-started.md#1-fetch-and-compile-the-card-corpus) explains its
+output). The fingerprint is a hash of the card compiler's source, so a build that changes
+`engine/cards` writes its own files. A compile keeps the newest four caches and removes the rest.
 
-## 2. Compile the corpus (optional but quick)
+## 2. Build the browser client, if you want one
+
+`gorged` embeds the browser client, a Svelte app in `web/`, at **compile time** from
+`server/gorged/webdist/`. A fresh clone has only an empty placeholder there, so the client
+has to be built before `gorged` is:
 
 ```sh
-make compile-cards    # bin/forgec compile -dir .cards
-make report           # coverage against the implemented primitives
+make web              # npm ci, then vite build into server/gorged/webdist/
 ```
 
-`compile-cards` parses every script into gorge's intermediate representation
-and caches it as `.cards/ir-<fingerprint>.gob.gz` (about 9 MB, plus a 17 MB
-`.seg` file beside it). It took 1.6 s here. You can skip it: every tool opens
-the corpus through the same loader, which compiles on first use when the cache
-is missing or stale.
+A `gorged` compiled before that step serves the whole API, but answers every page with:
 
-The fingerprint is a hash of the compiler that wrote the cache, so each engine
-version you build gets its own `ir-*` files and old ones pile up. They are
-safe to delete; the next run recompiles.
+```text
+HTTP 503: web build missing — run make web
+```
 
-`make report` prints the corpus coverage at the pin, for example
-`cards: 34074  playable: 32337 (94.9%)` (2026-10-27, `25d71cadc`). See
-[Card sets](../support/sets.md) for what "playable" means.
+Rebuild `gorged` after `make web`, or after any change under `web/`. `go run` rebuilds for
+you.
 
 ## 3. Build the binaries
 
@@ -71,45 +72,15 @@ safe to delete; the next run recompiles.
 make build            # bin/forgec, bin/mtgsim, bin/gorged
 ```
 
-| Binary | Source | What it is |
-|---|---|---|
-| `bin/gorged` | [`cmd/gorged`](https://github.com/adams-shaun/gorge/blob/main/cmd/gorged/main.go) | the game server: tables, the play-vs-bot lobby, the browser client ([Play in the browser](play.md)) |
-| `bin/mtgsim` | [`cmd/mtgsim`](https://github.com/adams-shaun/gorge/blob/main/cmd/mtgsim/main.go) | headless bot-vs-bot games with replay verification ([Bot-vs-bot games](bot-games.md)) |
-| `bin/forgec` | [`cmd/forgec`](https://github.com/adams-shaun/gorge/blob/main/cmd/forgec/main.go) | fetches, compiles and reports on the corpus |
+| Binary | What it is |
+|---|---|
+| `bin/gorged` | the game server: tables, play-vs-bot, draft events, the browser client ([Play in the browser](play.md)) |
+| `bin/mtgsim` | headless bot games with replay verification ([Bot-vs-bot games](bot-games.md)) |
+| `bin/forgec` | fetches, compiles and reports on the corpus |
 
-Every tool also runs straight from source with `go run ./cmd/<name>`, which is
-what the rest of this guide mostly shows. Run them from the repository root:
-the defaults (`-cards .cards`, `-decks testkit/testutil/decks`) are relative
-paths.
-
-## 4. Build the browser client
-
-`gorged` embeds the browser client (a Svelte app in `web/`) into its binary at
-**compile time**, from `server/gorged/webdist/`. A fresh clone has only an
-empty placeholder there, so a server built from a fresh clone serves the API
-but answers the page itself with:
-
-```text
-HTTP 503: web build missing — run make web
-```
-
-To get the client:
-
-```sh
-make web              # npm ci, then vite build into server/gorged/webdist/
-go build -o bin/gorged ./cmd/gorged   # rebuild: the bundle is embedded at build time
-```
-
-!!! note "Not run for this page"
-    `make web` was not run while writing this guide (the docs build machine
-    does not run npm). The target is `cd web && npm run build` after an
-    `npm ci`; see [`web/README.md`](https://github.com/adams-shaun/gorge/blob/main/web/README.md)
-    for the Node version notes. Build and lint work on Node 20; the client's
-    unit tests need Node 22 or newer.
-
-The order matters: build the client **before** `go build` or `go run`. A
-binary built earlier keeps serving the 503 (or an old client) until you
-rebuild it.
+Every tool also runs from source with `go run ./cmd/<name>`, as the rest of this guide
+shows. Run them from the repository root: the defaults (`-cards .cards`,
+`-decks testkit/testutil/decks`) are relative paths.
 
 ## Check the install
 
@@ -117,9 +88,9 @@ rebuild it.
 make sim
 ```
 
-This builds `bin/mtgsim` and plays 20 four-seat games between the built-in
-heuristic bots, replaying each one and comparing the rebuilt event chain with
-the live one. Every game prints a result line and `replay OK`:
+This plays 20 four-seat games between the built-in heuristic bots, replays each one and
+compares the rebuilt event chain with the live one. Each game prints a result line and
+`replay OK`:
 
 ```text
 seed 0: 4 seats,   1419 intents,   6941 events,  33 turns, winner=death-n-taxes, chain=c726ff7a143bef8d
@@ -128,7 +99,7 @@ seed 1: 4 seats,   1717 intents,   8409 events,  36 turns, winner=death-n-taxes,
   replay OK (chain cdf023640deb1b71)
 ```
 
-All 20 games verified in 5 s here. If you see `replay diverged` or a
-`FAILED` line, that is an engine bug worth [reporting](troubleshooting.md).
+The 20 games took about 5 seconds. A `replay diverged` or `FAILED` line is an engine bug
+worth [reporting](troubleshooting.md#a-game-prints-livelock-did-not-terminate-or-replay-diverged).
 
 Next: [Play in the browser](play.md) or [Bot-vs-bot games](bot-games.md).

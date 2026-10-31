@@ -101,6 +101,8 @@ type run struct {
 	// rerun marks a re-execution from S0, whose observers are parked until
 	// the run passes the recorded prefix.
 	rerun bool
+	// unwinding is set when the run leaves through a posed stop-ask.
+	unwinding bool
 }
 
 // unwind is the sentinel a stop-ask with an exhausted tape panics with.
@@ -428,6 +430,7 @@ func (k *Kernel) Answer(b Board, d *decision.Decision) (decision.Intent, bool) {
 	r.tapeAsked = true
 	k.inject(b, r)
 	if r.cursor == len(r.serve) {
+		r.unwinding = true
 		panic(unwind{})
 	}
 	in := r.serve[r.cursor]
@@ -480,8 +483,18 @@ func (k *Kernel) inject(b Board, r *run) {
 	}
 }
 
+// Unwinding reports whether the run is leaving through a posed stop-ask. The
+// engine's deferred closes still run then, though what they close has not
+// finished. One that would log must check this: the posed ask ends the recorded
+// prefix, and the re-execution serves its answer next and reaches the real close.
+func (k *Kernel) Unwinding() bool { return k.run != nil && k.run.unwinding }
+
 // InRun reports whether a tape run is executing its resolution.
 func (k *Kernel) InRun() bool { return k.run != nil && k.run.inRes }
+
+// Serving reports whether a converted ask is answered in place: from a tape
+// run's resolution, or by the synchronous answerer in an exempted one.
+func (k *Kernel) Serving() bool { return k.InRun() || (k.noCkpt && k.answerer != nil) }
 
 // Unservable reports a step of a served answer the kernel cannot serve: an
 // engine-posed continuation nothing answers from the tape. It always fails

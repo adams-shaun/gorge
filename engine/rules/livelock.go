@@ -21,7 +21,7 @@ import (
 // event, so a game that does not trip it is byte-identical to an
 // un-watched one (the chain-head goldens in engine/rules/heads_test.go pin that).
 // A game that DOES trip it is a bug by definition -- the harnesses
-// (cmd/mtgsim, four-yay cmd/botbench) recover the panic, report the diagnostic
+// (cmd/mtgsim, a bench runner) recover the panic, report the diagnostic
 // against that game's seed/deck, and move on; anywhere else the panic is
 // the bug surfacing, exactly as the determinism invariant intends.
 //
@@ -467,7 +467,10 @@ func (w *livelockWatcher) observeFrom(ev *events.Event, damageSource state.ObjID
 		w.unshare()
 	}
 	sig := eventSignature(ev)
-	if ev.Kind == events.Damage && damageSource != 0 {
+	// Each damage dealer's own events are its own signature, its lifelink gain
+	// (CR 510.2 deals one step's combat damage at once) included: a thousand
+	// blocked lifelinkers are a finite batch of alternating gains, not a loop.
+	if (ev.Kind == events.Damage || ev.Kind == events.LifeChange) && damageSource != 0 {
 		sig = sigMix(sig, uint64(damageSource)|livelockDamageTag)
 	}
 	if mintingKinds.has(ev.Kind) {

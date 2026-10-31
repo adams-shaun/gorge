@@ -1,6 +1,6 @@
 package mapping_test
 
-// sbp-unmapped-choose-tail: the remaining named `choose` asks that the
+// The remaining named `choose` asks that the
 // one-pick catch-alls cannot express. Each subtest drives a real game to one
 // live decision of the kind, maps it, and requires every candidate to pass
 // the protocol shape and the Section 11.3 stream validator. The old code

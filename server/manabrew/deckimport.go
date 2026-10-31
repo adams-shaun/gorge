@@ -10,8 +10,8 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// DeckImportReport is the census ImportDeck returns alongside every import
-// (spec §9 MB-15): the wire fields this importer intentionally drops from
+// DeckImportReport is the census ImportDeck returns alongside every import:
+// the wire fields this importer intentionally drops from
 // the result (counted, never silent), every deck-card name no registry
 // lookup could resolve, and every resolved card the engine cannot fully
 // play yet.
@@ -22,7 +22,7 @@ type DeckImportReport struct {
 	// dropped" -- never a silent drop with no trace.
 	Ignored map[string]int
 	// Unresolved is every DeckCardIdentity.Name (main deck, sideboard and
-	// commanders) that no registry lookup -- direct or via the §6.1
+	// commanders) that no registry lookup -- direct or via the
 	// fallbacks -- could resolve, in first-encounter order, deduplicated.
 	Unresolved []string
 	// Unsupported maps a resolved card's canonical (front-face) name to the
@@ -45,11 +45,7 @@ func (r *DeckImportReport) ignore(field string, n int) {
 
 // diacriticFold strips the Latin-1 diacritics a ManaBrew client's name field
 // may carry that cards.NormalizeName does not (it folds case, whitespace and
-// punctuation, but a marked vowel is still a distinct letter to it). It
-// mirrors four-yay training/spellbench/v2shadow's fold helper (spec §6.1: "borrow ...
-// the diacritic fold"); duplicated here rather than imported, since
-// four-yay training/spellbench is an unrelated tier this package has no business
-// depending on.
+// punctuation, but a marked vowel is still a distinct letter to it).
 var diacriticFold = strings.NewReplacer(
 	"á", "a", "à", "a", "â", "a", "ä", "a", "ã", "a", "å", "a",
 	"é", "e", "è", "e", "ê", "e", "ë", "e",
@@ -73,7 +69,7 @@ func combinedFold(s string) string {
 	return diacriticFold.Replace(cards.NormalizeName(s))
 }
 
-// buildFoldIndex is the §6.1 diacritic-fold fallback index: every face name
+// buildFoldIndex is the diacritic-fold fallback index: every face name
 // in reg, keyed by its combinedFold spelling. cards.Registry itself indexes
 // by NormalizeName only (no diacritic folding -- a corpus card keeps its
 // printed accents, e.g. "Lim-Dûl's Vault"), so a ManaBrew client that sends
@@ -98,7 +94,7 @@ func buildFoldIndex(reg *cards.Registry) map[string]*cards.Card {
 }
 
 // lookupCard resolves one ManaBrew deck-card name against reg, applying the
-// §6.1 fallback chain: reg.Lookup itself already folds an "A // B" name to
+// fallback chain: reg.Lookup itself already folds an "A // B" name to
 // its front face (cards.NormalizeName truncates at "//"), so the only
 // fallback this adds is the diacritic fold (via foldIndex), tried only when
 // the direct lookup misses.
@@ -124,7 +120,7 @@ func canonicalName(c *cards.Card, raw string) string {
 
 // tallyIgnoredIdentity records, in rep, every per-card ManaBrew field this
 // importer drops: setCode, cardNumber, oracleId, tokenScript and foil. A
-// deck's cards resolve by NAME alone (§6.1); none of these participate.
+// deck's cards resolve by NAME alone; none of these participate.
 func tallyIgnoredIdentity(id mb.DeckCardIdentity, rep *DeckImportReport) {
 	if id.SetCode != "" {
 		rep.ignore("setCode", 1)
@@ -225,9 +221,9 @@ func dedupeStable(in []string) []string {
 	return out
 }
 
-// ImportDeck converts a ManaBrew Deck (server/protocol/manabrew, §A.5, the
+// ImportDeck converts a ManaBrew Deck (server/protocol/manabrew, the
 // https://docs.manabrew.app/protocol/deck/ format) into a gorge deck.File,
-// matching every card by name (spec §6.1: "Match by name") against reg.
+// matching every card by name against reg.
 //
 // setCode, cardNumber, oracleId, tokenScript, foil, and every whole-deck
 // section a gorge deck.File has no room for (tokens, attractions,
@@ -254,7 +250,7 @@ func dedupeStable(in []string) []string {
 // import on it or only surface it.
 //
 // Custom-deck play itself -- handing this File to a running table --
-// is explicitly out of scope (spec §9 MB-15, Q11): ImportDeck only builds
+// is not here: ImportDeck only builds
 // the deck.File value.
 func ImportDeck(reg *cards.Registry, d mb.Deck, supported map[string]bool) (deck.File, DeckImportReport, error) {
 	rep := newDeckImportReport()

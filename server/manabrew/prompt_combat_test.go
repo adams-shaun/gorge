@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 import (
@@ -11,7 +9,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// TestAttackersPromptAndResponse covers the §6.3 chooseAttackers build (the
+// TestAttackersPromptAndResponse covers the chooseAttackers build (the
 // per-creature grouping, the per-attacker CR 509.1d requirement, the target
 // labels/kinds) and the declareAttackers response mapping.
 func TestAttackersBlockersAttackersPromptAndResponse(t *testing.T) {
@@ -93,7 +91,32 @@ func TestAttackersBlockersAttackersPromptAndResponse(t *testing.T) {
 	wantErrCode(t, o, mb.CodeInvalidShape)
 }
 
-// TestBlockersPromptAndResponse covers the §6.3 chooseBlockers build (the
+func TestAttackersPromptSaysWhoCannotAttackAlone(t *testing.T) {
+	v := smallView()
+	attack := &decision.Decision{Seq: 21, Player: 0, Kind: decision.KAttackers, Max: 2, Prompt: "Declare attackers",
+		Options: []decision.Option{
+			{Index: 0, Kind: "attacker", Obj: 2, Player: 1, AloneRestricted: true},
+			{Index: 1, Kind: "attacker", Obj: 2, Battle: 5, AloneRestricted: true},
+			{Index: 2, Kind: "attacker", Obj: 4, Player: 1},
+		}}
+	in := pendingMustBuild(t, attack, v).Input.Value.(mb.ChooseAttackersInput)
+	if in.Presentation == nil || in.Presentation.Description != "Can't attack alone: Bear (o2)." {
+		t.Fatalf("presentation = %+v, want the sentence naming the Bear once", in.Presentation)
+	}
+	attack.Options[0].AloneRestricted, attack.Options[1].AloneRestricted = false, false
+	if in := pendingMustBuild(t, attack, v).Input.Value.(mb.ChooseAttackersInput); in.Presentation != nil {
+		t.Fatalf("presentation = %+v, want none when no creature is restricted", in.Presentation)
+	}
+
+	block := &decision.Decision{Seq: 22, Player: 1, Kind: decision.KBlockers, Max: 2, Prompt: "Declare blockers",
+		Options: []decision.Option{{Index: 0, Kind: "block", Obj: 2, Attacker: 3, AloneRestricted: true}}}
+	blockIn := pendingMustBuild(t, block, v).Input.Value.(mb.ChooseBlockersInput)
+	if blockIn.Presentation == nil || blockIn.Presentation.Description != "Can't block alone: Bear (o2)." {
+		t.Fatalf("presentation = %+v, want the sentence naming the Bear", blockIn.Presentation)
+	}
+}
+
+// TestBlockersPromptAndResponse covers the chooseBlockers build (the
 // per-attacker bounds and must-be-blocked flag, the blocker pool) and the
 // declareBlockers response mapping.
 func TestAttackersBlockersBlockersPromptAndResponse(t *testing.T) {
@@ -148,7 +171,7 @@ func TestAttackersBlockersBlockersPromptAndResponse(t *testing.T) {
 		{BlockerID: "o2", AttackerID: "o7"}}}), p, 1), mb.CodeInvalidShape)
 }
 
-// TestAttackTargetIDPinsRefMint pins the §6.1 ref mint each side of an
+// TestAttackTargetIDPinsRefMint pins the ref mint each side of an
 // attacker option uses, so a player/battle ref mix-up fails here rather
 // than on a live table.
 func TestAttackersBlockersRefMint(t *testing.T) {

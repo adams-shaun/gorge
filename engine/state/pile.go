@@ -57,6 +57,7 @@ func (o *Object) PileFaceCount() int { return 1 + len(o.MergedCards) }
 // PileAbility is one activated ability of a pile together with the merged
 // ordinal of the face that carries it (0 = top).
 type PileAbility struct {
+	Face   *cards.Face
 	SA     *cards.SA
 	Merged int
 }
@@ -93,7 +94,7 @@ func (o *Object) PileAbilityAt(i int) (PileAbility, bool) {
 			if o.Zone == ZBattlefield && f.IsRoom() && !o.DoorUnlocked(int(o.FaceIdx)) {
 				return PileAbility{}, false
 			}
-			return PileAbility{SA: f.Abilities[i]}, true
+			return PileAbility{SA: f.Abilities[i], Face: f}, true
 		}
 		i -= len(f.Abilities)
 	}
@@ -103,7 +104,7 @@ func (o *Object) PileAbilityAt(i int) (PileAbility, bool) {
 			continue
 		}
 		if i < len(f.Abilities) {
-			return PileAbility{SA: f.Abilities[i], Merged: m + 1}, true
+			return PileAbility{SA: f.Abilities[i], Face: f, Merged: m + 1}, true
 		}
 		i -= len(f.Abilities)
 	}
@@ -173,9 +174,19 @@ type PileStatic struct {
 	Face   *cards.Face
 }
 
+// liveOtherDoor returns a battlefield Room's unlocked door other than the one
+// Face() resolves (CR 709.5): its rules text exists like the cast door's. A
+// Room's Face() door may itself be locked; readers gate that case.
+func (o *Object) liveOtherDoor() *cards.Face {
+	if o.Unlocked && o.Zone == ZBattlefield && o.RoomOtherDoorUnlocked() {
+		return o.Card.Faces[1-int(o.FaceIdx)]
+	}
+	return nil
+}
+
 // PileStaticCount is the number of statics the whole pile carries: the top
-// face's list, then each resolvable under-card's, in pile order. It is the
-// walk bound for PileStaticAt.
+// face's list, then a Room's other unlocked door's, then each resolvable
+// under-card's, in pile order. It is the walk bound for PileStaticAt.
 //
 // Count/At rather than a returned slice because the static collectors
 // (engine/rules/statics.go's collectActionStatics, activeStatics and
@@ -191,6 +202,9 @@ func (o *Object) PileStaticCount() int {
 	if f := o.Face(); f != nil {
 		n += len(f.Statics)
 	}
+	if f := o.liveOtherDoor(); f != nil {
+		n += len(f.Statics)
+	}
 	for i := range o.MergedCards {
 		if f := o.MergedFaceAt(i); f != nil {
 			n += len(f.Statics)
@@ -201,14 +215,20 @@ func (o *Object) PileStaticCount() int {
 
 // PileStaticAt returns the i-th static of the pile in the flat order
 // PileStaticCount bounds: the top face's statics first (so a non-mutated
-// permanent's indices are exactly its face's), then each under-card's in
-// pile order. A face that does not resolve contributes no entries, so the
-// flat index never has a gap; an out-of-range index reports ok=false.
+// permanent's indices are exactly its face's), then a Room's other unlocked
+// door's, then each under-card's in pile order. A face that does not resolve
+// contributes no entries, so the flat index never has a gap; an out-of-range index reports ok=false.
 func (o *Object) PileStaticAt(i int) (PileStatic, bool) {
 	if i < 0 {
 		return PileStatic{}, false
 	}
 	if f := o.Face(); f != nil {
+		if i < len(f.Statics) {
+			return PileStatic{Static: f.Statics[i], Face: f}, true
+		}
+		i -= len(f.Statics)
+	}
+	if f := o.liveOtherDoor(); f != nil {
 		if i < len(f.Statics) {
 			return PileStatic{Static: f.Statics[i], Face: f}, true
 		}

@@ -321,6 +321,23 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 	}
 }
 
+// moveAlreadyParked reports a zone change whose CR 616.1 choice is still
+// waiting. State-based actions can run again under the ask, with the object still
+// on the battlefield, and propose the same death: it is one event and gets one
+// choice, even if one of the competing replacements has left in the meantime.
+func (e *Engine) moveAlreadyParked(ev events.Event) bool {
+	if ev.Kind != events.MoveZone {
+		return false
+	}
+	for i := range e.replChoices {
+		parked := &e.replChoices[i].ev
+		if parked.Kind == events.MoveZone && parked.Obj == ev.Obj && parked.From == ev.From && parked.To == ev.To {
+			return true
+		}
+	}
+	return false
+}
+
 // shouldPoseLoneOptionalMove reports whether a MoveZone proposal matched by
 // exactly one "Optional$ True" replacement must ask its "may" (Library of
 // Leng, Nephalia Academy, Pulmonic Sliver, Forger's Foundry). A moving object

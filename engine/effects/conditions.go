@@ -646,7 +646,8 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 		// graveyard. The P/T half reads the layer-derived values captured at
 		// the departure boundary (Ctx.Snap.TargetPT), so Driftgloom Coyote's
 		// "if that creature had power 2 or less" sees a Burrowguard Mentor's
-		// last battlefield power, not a live CDA in exile. Every other
+		// last battlefield power, not a live CDA in exile. The same capture
+		// answers "if it was tapped" and "if it was attacking". Every other
 		// characteristic is read live (or via Ctx.LKI for a trigger).
 		if defined == "Targeted" || defined == "ThisTargetedCard" {
 			if cs, ok := targetCountersLKI(c, t.Obj, o); ok {
@@ -656,6 +657,9 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 			}
 			if pt, ok := targetPTLKI(c, o); ok {
 				memberSc.DerivedPower, memberSc.DerivedToughness, memberSc.HasDerivedPT = pt.Power, pt.Toughness, true
+				oc := *o
+				oc.Tapped, oc.IsAttacking = pt.Tapped, pt.Attacking
+				o = &oc
 			}
 			o = targetedPermanentLKI(c, present, o)
 		}

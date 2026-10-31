@@ -344,6 +344,17 @@ func (e *Engine) IsCreature(id state.ObjID) bool {
 	return false
 }
 
+// IsArtifact reads the current layer-derived type list -- IsCreature's twin
+// for the costs that tap an untapped artifact (CR 702.126a, 701.67a).
+func (e *Engine) IsArtifact(id state.ObjID) bool {
+	for _, typ := range e.derivedTypesOf(id) {
+		if typ == "Artifact" {
+			return true
+		}
+	}
+	return false
+}
+
 // IsPlaneswalker reads the current layer-derived type list -- IsCreature's
 // twin for CR 306.8/306.9: damage removes loyalty from, and the CR 704.5i
 // zero-loyalty action removes, only an object that IS a planeswalker now (a

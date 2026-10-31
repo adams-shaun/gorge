@@ -39,7 +39,7 @@ export function attackLines(d: Decision, view: View, picked: readonly number[]):
 /** attackOptionText is one attacker row's words, from the option's own objects rather than the engine label. */
 export function attackOptionText(d: Decision, view: View, o: Option): string {
   if (o.kind !== 'attacker') return o.label;
-  return `${nameOf(view, o.obj)} → ${attackTarget(view, o)}${o.required ? ' (must attack)' : ''}`;
+  return `${nameOf(view, o.obj)} → ${attackTarget(view, o)}${o.required ? ' (must attack)' : ''}${o.alone_restricted ? " (can't attack alone)" : ''}`;
 }
 
 /**
@@ -114,7 +114,7 @@ export function blockLines(d: Decision, view: View, picked: readonly number[]): 
 /** blockOptionText is one block row's words: "Dark Confidant blocks Thragtusk". */
 export function blockOptionText(d: Decision, view: View, o: Option): string {
   if (o.kind !== 'block' || o.attacker === undefined) return o.label;
-  return `${nameOf(view, o.obj)} blocks ${nameOf(view, o.attacker)}${o.required ? ' (must block)' : ''}`;
+  return `${nameOf(view, o.obj)} blocks ${nameOf(view, o.attacker)}${o.required ? ' (must block)' : ''}${o.alone_restricted ? " (can't block alone)" : ''}`;
 }
 
 /**

@@ -292,23 +292,16 @@ func (e *Engine) CostMovesInWindow(obj state.ObjID, k events.CostMoveKind) []sta
 // costMovesInWindow returns (in log order) every MoveZone event match admits
 // inside obj's OWN activation window — the cost acts obj's own activation
 // paid, which is what the ConditionDefined$ Discarded/Returned/Collected
-// groups enumerate. The window is anchored on obj's own latest push (the
-// PutOnStack or AbilityPush naming obj or its source) and runs both ways from
-// it, because the two cost orderings share the one rule: an ability's cost
-// parts are paid BEFORE its AbilityPush mints the wrapper (engine/rules/
-// cast.go's activation branch), a spell's AFTER its PutOnStack (the spell
-// branch).
-//
-// Backward from the push the walk stops at the first unrelated stack push,
-// step/turn change, pool clear or player loss. Forward from the push it stops
-// at the first stack push of another object (a response, CR 117.1a/405.1) or
-// the same boundary events — a response's own cost moves, or anything that
-// resolves above obj, are not obj's costs, and obj's cost is fully paid before
-// any response can exist (CR 601.2h-i). Priority passes are deliberately NOT a
-// boundary: an activated ability can sit on the stack across any number of
-// passes before it resolves. An obj with no push in the log reads the
-// backward walk from the end of the log. Derived from the log the way
-// WasCastFromHandByYou is, so a replay derives the same answer.
+// groups enumerate. The window is anchored on the push that minted obj (the
+// PutOnStack or AbilityPush naming obj or its source) and runs forward from it,
+// because a spell or ability pays after its push (CR 601.2a, 602.2a). It stops
+// at the next stack push (a response or another activation, CR 117.1a/405.1),
+// or a step/turn change, pool clear or player loss: obj's cost is fully paid
+// before any response can exist (CR 601.2h-i). Priority passes are deliberately
+// NOT a boundary: an activated ability can sit on the stack across any number
+// of passes before it resolves. An obj with no push in the log reads backward
+// from the end of the log under the same boundaries. Derived from the log the
+// way WasCastFromHandByYou is, so a replay derives the same answer.
 func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) bool) []state.ObjID {
 	if obj == 0 {
 		return nil
@@ -323,18 +316,29 @@ func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) boo
 	if o := e.G.Obj(obj); o != nil {
 		src = o.Source
 	}
-	isPush := func(k events.Kind) bool {
-		return k == events.PutOnStack || k == events.AbilityPush || k == events.TriggerPush ||
-			k == events.DelayedPush || k == events.GrantTriggerPush
-	}
+	// A cast of the source names it too but mints no wrapper: the source can leave
+	// and be cast again with its ability still on the stack.
 	isOwn := func(ev events.Event) bool {
-		return isPush(ev.Kind) && (ev.Obj == obj || (src != 0 && ev.Obj == src))
+		return mintsStackObject(ev) && (ev.Obj == obj || (src != 0 && ev.Obj == src && ev.Kind != events.PutOnStack))
+	}
+	// A source's later activations and triggers are later pushes naming it, each
+	// with a newer stack object: skip those to reach the push that minted obj.
+	skip := 0
+	if src != 0 {
+		for i := range e.G.Objs {
+			if w := &e.G.Objs[i]; w.ID > obj && w.Source == src && w.Ability != nil && !w.IsCopy {
+				skip++
+			}
+		}
 	}
 	anchor := len(e.L.Events)
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		if isOwn(e.L.Events[i]) {
-			anchor = i
-			break
+			if skip == 0 {
+				anchor = i
+				break
+			}
+			skip--
 		}
 	}
 	var out []state.ObjID
@@ -348,13 +352,16 @@ func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) boo
 			}
 			continue
 		}
-		if (isPush(ev.Kind) && !isOwn(ev)) || ev.Kind == events.StepChange || ev.Kind == events.TurnChange ||
+		if mintsStackObject(ev) || ev.Kind == events.StepChange || ev.Kind == events.TurnChange ||
 			ev.Kind == events.ManaClear || ev.Kind == events.PlayerLost {
 			break
 		}
 	}
-	// Backward half: the ability-branch payments before the push (and the
-	// whole window when obj has no push).
+	// Backward half: with no push in the log, the whole window. Costs are paid
+	// after the push (CR 602.2a), so with one this would read earlier activations.
+	if anchor < len(e.L.Events) {
+		return out
+	}
 	var before []state.ObjID
 back:
 	for i := anchor - 1; i >= 0; i-- {
@@ -364,10 +371,8 @@ back:
 			if match(ev) {
 				before = append(before, ev.Obj)
 			}
-		case isPush(ev.Kind):
-			if !isOwn(ev) {
-				break back
-			}
+		case mintsStackObject(ev):
+			break back
 		case ev.Kind == events.StepChange, ev.Kind == events.TurnChange, ev.Kind == events.ManaClear, ev.Kind == events.PlayerLost:
 			break back
 		}
@@ -400,17 +405,34 @@ func (e *Engine) castWindowMoves(obj state.ObjID, match func(events.Event) bool)
 	var out []state.ObjID
 	for i := anchor + 1; i < len(e.L.Events); i++ {
 		ev := e.L.Events[i]
+		if mintsStackObject(ev) {
+			return out
+		}
 		switch ev.Kind {
 		case events.MoveZone:
 			if match(ev) {
 				out = append(out, ev.Obj)
 			}
-		case events.PutOnStack, events.AbilityPush, events.TriggerPush, events.DelayedPush, events.GrantTriggerPush,
-			events.StepChange, events.TurnChange, events.ManaClear, events.PlayerLost:
+		case events.StepChange, events.TurnChange, events.ManaClear, events.PlayerLost:
 			return out
 		}
 	}
 	return out
+}
+
+// mintsStackObject reports an event that puts an object on the stack. A static
+// delayed trigger's DelayedPush only consumes its registration: the body
+// resolves inline.
+func mintsStackObject(ev events.Event) bool {
+	switch ev.Kind {
+	case events.PutOnStack, events.AbilityPush, events.TriggerPush, events.GrantTriggerPush,
+		events.GrantAbilityPush, events.GainedAbilityPush, events.GainedTriggerPush,
+		events.KeywordAbilityPush, events.KeywordTriggerPush, events.MergedTriggerPush, events.RingEmblemPush:
+		return true
+	case events.DelayedPush:
+		return ev.Text != "static"
+	}
+	return false
 }
 
 // reverseIDs restores log order to a backward scan's collection.

@@ -1387,6 +1387,16 @@ func (e *canonEncoder) encdecision_Option(v *decision.Option) error {
 		e.buf = append(e.buf, 1)
 		e.buf = binary.AppendVarint(e.buf, int64(v.TapPoolCost))
 	}
+	if !v.AloneRestricted {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.AloneRestricted {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
 	if len(v.Mode) == 0 {
 		e.buf = append(e.buf, 0)
 	} else {

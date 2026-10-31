@@ -3,7 +3,7 @@ package rules
 // Valiant$ True on Mode$ BecomesTarget (the BLB ability word, CR 603.2's
 // "for the first time each turn" family): Seedglaive Mentor
 // (`.cards/cardsfolder/s/seedglaive_mentor.txt`, the measured carrier from
-// four-yay's kernel B7 report). The gate is
+// a dirac report). The gate is
 // trigmatch.valiantFirstTimeTargetedByYouThisTurn: the once-each-turn count
 // is per CONTROLLER -- only targetings of a spell or ability the trigger's
 // controller controls count, so an opponent's targeting neither fires nor

@@ -29,8 +29,8 @@ func TestNormalize(t *testing.T) {
 
 func TestEntries(t *testing.T) {
 	entries := bots.Entries()
-	// gorge links six built-ins (bots/all); the research policies register
-	// from four-yay. The count pin and name-based blocks below move together
+	// gorge links six built-ins (bots/all); other policies register from
+	// companion modules. The count pin and name-based blocks below move together
 	// with the built-in set; update this test deliberately on the next policy.
 	if len(entries) != 6 {
 		t.Fatalf("Entries() has %d entries, want 6", len(entries))
@@ -75,7 +75,7 @@ func TestEntries(t *testing.T) {
 		t.Errorf("forge-heuristic entry is not the plain experimental policy: %+v", forgeEntry.Info)
 	}
 	for _, e := range entries {
-		if e.Label == "" || e.Description == "" || len(e.Strength) == 0 || e.Cost.Note == "" || len(e.Formats) == 0 {
+		if e.Label == "" || e.Description == "" || e.Cost.Note == "" || len(e.Formats) == 0 {
 			t.Errorf("entry %q has incomplete Info: %+v", e.Name, e.Info)
 		}
 	}

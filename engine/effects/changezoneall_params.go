@@ -274,7 +274,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"TgtZone",
 	"TokenScript",
 	"Transformed",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"Type",
 	"TypeLimit",
 	"Ultimate",

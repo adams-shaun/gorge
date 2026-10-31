@@ -4,7 +4,7 @@ Status: draft for operator review (workstream W3). No code is specified to
 the task level here; the implementation plan follows approval.
 
 Sources, read at: gorge worktree `wt/spellbench` @ `cc3c349d8`; SpellBench
-clone `/mnt/sata/gorge-training/spellbench` `main` @ `971a1fb` (protocol text
+clone `$DATA/spellbench` `main` @ `971a1fb` (protocol text
 `spec/SPELLBENCH_PROTOCOL_V1.md`, `spec/SPELLBENCH_PROTOCOL_V2.md`); the gorge
 engine adapter plan `origin/gorge-adapter` @ `a69b3cc`
 (`docs/design/2026-09-27-gorge-adapter-plan.md`, code through
@@ -344,7 +344,7 @@ operator rules):
 2. Rate with `lab/scripts/spellbench-rate.py --anchor sb-uniform --out <dir>/rate <dir>`, adding `--bots sb-uniform,sb-heuristic,bot,sb-heuristic-planned,sb-tactical,sb-tactical-planned` for the main table.
 3. For the held-out runs, add `-spellbench-base-seed 99991` (and `--base-seed 99991` when rating), or use `-spellbench-catalog fdn -spellbench-pairs 4` (and `--format fdn-limited-bo1` when rating).
 
-Data: `/mnt/sata/gorge-training/spellbench-work/v1b/{final-bench,heldout-seed,heldout-fdn}`.
+Data: `$DATA/spellbench-work/v1b/{final-bench,heldout-seed,heldout-fdn}`.
 
 ### 3.5 Arena on mtg-kernel (v1, measured)
 
@@ -400,8 +400,8 @@ engine, in that benchmark's shape, rated by SpellBench's own code.
   1.94.1, overridden with `RUSTUP_TOOLCHAIN`. With thin LTO off the
   release build takes 38 s:
 
-      W=/mnt/sata/gorge-training/spellbench-work/arena/mtg-kernel
-      git -C /mnt/sata/gorge-training/mtg-kernel worktree add -b sb-arena-bridge $W HEAD
+      W=$DATA/spellbench-work/arena/mtg-kernel
+      git -C $DATA/mtg-kernel worktree add -b sb-arena-bridge $W HEAD
       cp lab/scripts/spellbench-arena/agent_bridge_v1.rs $W/mtg-kernel/src/bin/
       cd $W && RUSTUP_TOOLCHAIN=1.98-x86_64-unknown-linux-gnu CARGO_BUILD_JOBS=6 \
         CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 CARGO_PROFILE_RELEASE_LTO=false \
@@ -623,7 +623,7 @@ published ledger's 7 halted games are a different, bridge-side cause:
 
 **Rerun.**
 
-    W=/mnt/sata/gorge-training/spellbench-work/arena
+    W=$DATA/spellbench-work/arena
     go build -o $W/bin/sbv1agent ./lab/cmd/sbv1agent
     go test ./lab/training/spellbench/v1agent/ ./lab/cmd/sbv1agent/
     python3 lab/scripts/spellbench-arena/mkcfg.py final.json $W/runs/final 4 20260926 \
@@ -631,7 +631,7 @@ published ledger's 7 halted games are a different, bridge-side cause:
       go:sbv1-tactical:tactical:-stats,$W/runs/final.stats
     spellbench run final.json
     python3 lab/scripts/spellbench-arena/rate.py joint.md \
-      /mnt/sata/gorge-training/spellbench/benchmarks/pauper-kernel/runs/2026-09-27 $W/runs/final
+      $DATA/spellbench/benchmarks/pauper-kernel/runs/2026-09-27 $W/runs/final
 
 **Hint-free build (sb-generic, measured 2026-09-28).** `-policy generic`
 is `Tactical` with every `hints.go` lookup and every card- or deck-named
@@ -952,7 +952,7 @@ replay snapshots by calling the unexported `(*rules.Engine).emit`
 (branch `wt/spike-17lands-value`, `rules/spike17l_replay_test.go:300-370`).
 That proved staging works — 93.8% of recorded 17lands actions were legal in
 the staged engine (25,139 of 26,805,
-`/mnt/sata/gorge-training/17lands-spike/replay2000.kept.log`) — but it is not
+`$DATA/17lands-spike/replay2000.kept.log`) — but it is not
 a supportable API. D§11 H2 proposes one.
 
 ### 4.3 Fidelity check (re-project and diff)
@@ -1059,7 +1059,7 @@ PIMC teacher as the baseline arm.
 - Measured so far: clairvoyant gen-0 `az` at 25 simulations beat `bot` 78.0%
   [72.3, 83.7] over 200 games vs a 50.0% same-seed control, at 65.8 ms mean,
   144.2 ms p95 per searched decision
-  (`/mnt/sata/gorge-training/az/stage0/az25.txt:11,17`). This is an expected upper
+  (`$DATA/az/stage0/az25.txt:11,17`). This is an expected upper
   bound: honest worlds are unmeasured.
 - Multi-world budget split: Cowling et al. found MTG strength peaks at many
   determinizations with shallow trees (best 20-100 determinizations for a
@@ -1105,7 +1105,7 @@ whole policynet checkpoint):
 - Evidence to date is against expecting much: gorge's value head reaches
   within-matchup AUC 0.805 from 1k own games and 0.833 from the full own
   corpus, while adding 17lands FDN data lowered it (0.768)
-  (`/mnt/sata/gorge-training/17lands-spike/score-all.txt:1,5,13`). MageZero
+  (`$DATA/17lands-spike/score-all.txt:1,5,13`). MageZero
   is one agent per deck [T§4]. Specialists are an experiment, not an
   assumption.
 - Resources: 16 GB per agent (§11.4 example) leaves room for many small
@@ -1231,14 +1231,14 @@ and `full_name` only (`known_cards` false), `replacement_order` and
 
 **Setup** (reference host = spellbench `protocol-v2` plus the unmerged game
 loop `protocol-v2-p23` and `-p26`, checked out at
-`/mnt/sata/gorge-training/spellbench-v2-harness`; venv `sbvenv2`):
+`$DATA/spellbench-v2-harness`; venv `sbvenv2`):
 
 ```sh
-W=/mnt/sata/gorge-training/spellbench-work/v2rev
+W=$DATA/spellbench-work/v2rev
 go build -o $W/bin/sbv2engine ./lab/cmd/sbv2engine
 go build -o $W/bin/sbagent ./lab/cmd/sbagent
 go build -o $W/bin/sbv2shadow ./lab/cmd/sbv2shadow
-PATH=/mnt/sata/gorge-training/sbvenv2/bin:$PATH python lab/cmd/sbv2engine/scripts/sbv2_reverse.py play \
+PATH=$DATA/sbvenv2/bin:$PATH python lab/cmd/sbv2engine/scripts/sbv2_reverse.py play \
   --engine $W/bin/sbv2engine --dir $PWD/.cards --sbagent $W/bin/sbagent --out $W/r1 \
   --bots uniform,heuristic,sbagent-random,sbagent-heuristic --pairs 4 --workers 3 --truth
 python lab/cmd/sbv2engine/scripts/sbv2_reverse.py report --out $W/r1
@@ -1532,7 +1532,7 @@ fit, against +180 for the clairvoyant reference.
 sampler) and hidden-list worlds (list posterior not a point mass).
 
 **Rerun** (worktree `wt/sb-m1-redeal`; outputs and the chunk runner are in
-`/mnt/sata/gorge-training/spellbench-work/m1/`: `run_chunk.sh`,
+`$DATA/spellbench-work/m1/`: `run_chunk.sh`,
 `aggregate.py`, one directory per arm):
 
 ```sh
@@ -1664,7 +1664,7 @@ passes, and a 96-game sb-tactical / sb-tactical-noearly / bot round robin
 the base commit `ee26ea630` and this branch.
 
 ```sh
-W=/mnt/sata/gorge-training/spellbench-work/search-tac
+W=$DATA/spellbench-work/search-tac
 $W/botbench -dir .cards -spellbench sb-tactical,sb-search-fast -spellbench-pairs 32 \
     -spellbench-base-seed 777 -spellbench-out $W/h2h-fast-p32 -workers 8
 # the other arms swap the policy name (sb-search, -fast-atk, -lite, -lite-atk);
@@ -1735,17 +1735,17 @@ spec keeps the clairvoyant ledger marker (`az+passguard` is recorded as
 **Gauntlet** (`lab/scripts/sb-gauntlet.sh <spec>[,<spec>...] [pairs] [decks]`).
 Rates candidate specs against a fixed reference set: `sb-uniform` (the Elo
 anchor), `sb-heuristic` and `bot`, plus every spec in
-`/mnt/sata/gorge-training/spellbench-work/gauntlet/champions.txt` when it
+`$DATA/spellbench-work/gauntlet/champions.txt` when it
 exists. Candidates play the references through `-spellbench-with <spec>`
 (full round robin's seeds and indices kept); reference-vs-reference games
-are cached under `/mnt/sata/gorge-training/spellbench-work/gauntlet/ref/<key>/`,
+are cached under `$DATA/spellbench-work/gauntlet/ref/<key>/`,
 keyed by the `git rev-parse HEAD:` tree hashes of `rules effects cards
 decision botpolicy lab/training/spellbench lab/cmd/botbench` plus pairs and decks,
 so any engine or policy change invalidates the cache, as does any change
 to the champions file's content (a new champion line must get its own
 ref-vs-ref games, not ride a cache built without it). Every relevant ledger
 is rated together with `lab/scripts/spellbench-rate.py`
-(`/mnt/sata/gorge-training/sbvenv/bin` provides the interpreter); the run
+(`$DATA/sbvenv/bin` provides the interpreter); the run
 prints a per-candidate table (spec, Elo, CI95, W-L, head-to-head vs each
 reference) and appends one JSON row per candidate to
 `.../gauntlet/results.jsonl` (`spec, elo, ci_lo, ci_hi, wins, losses,
@@ -1950,7 +1950,7 @@ lab/scripts/m1b-distill.sh eval    # student alone; student inside honest search
 python3 ops/scripts/m1b-paired.py $M/evals/search-clair/sb/matches.jsonl $M/evals/search-none/sb/matches.jsonl
 ```
 
-`M` defaults to `/mnt/sata/gorge-training/spellbench-work/m1b` (the run
+`M` defaults to `$DATA/spellbench-work/m1b` (the run
 recorded here: corpora under `clair/` and `honest/`, students and their
 `*.json` readouts under `students/`, ledgers under `evals/`). Every step runs
 under `heavy.lock` in a 4 GB scope with 8 cores.

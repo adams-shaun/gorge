@@ -2916,6 +2916,9 @@ type SpecContext struct {
 	// ordinary path (the printed cost, X as 0).
 	ManaValue    int32
 	HasManaValue bool
+	// ManaValueReads, when non-nil, records how the match read the mana value
+	// (ManaValueReads). Only a caller walking candidate mana values sets it.
+	ManaValueReads *ManaValueReads
 	// ExtraTypes optionally supplies layer-4-derived types for the ONE object
 	// the spec is being matched against -- the layer walk (engine/rules/layers.go's
 	// matchesWithTypes) binds the types its effect applications have

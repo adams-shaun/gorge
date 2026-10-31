@@ -15,11 +15,11 @@ var (
 	errNilDecision = errors.New("manabrew: nil decision")
 )
 
-// CardText is the operator-approved card-text seam (scoping spec §10.1 Q9):
+// CardText is the card-text seam:
 // the translator asks it for a card's rules text by the NAME the seat's
 // redacted CardView already shows, never by anything hidden. gorged
-// implements it over its Scryfall catalog (MB-16); nil means every CardDto
-// carries the empty text, which is the v1 default (gap G-7).
+// implements it over its Scryfall catalog; nil means every CardDto
+// carries the empty text, which is the default.
 type CardText interface {
 	Text(name string) (string, bool)
 }
@@ -38,12 +38,11 @@ func New(table string, match int64, text CardText) *Translator {
 	return &Translator{table: table, match: match, text: text}
 }
 
-// GameID mints the ManaBrew gameId (spec §6.1): "<table>/<match>".
+// GameID mints the ManaBrew gameId: "<table>/<match>".
 //
 // The published protocol's own example uses a three-segment form
-// ("table/1/matches/3"); the scoping spec pins gorge's mapping to the
-// two-segment "<table>/<match>", and the scoping spec is the source of
-// truth here. A ManaBrew client treats the id as an opaque string.
+// ("table/1/matches/3"); gorge's mapping is the two-segment "<table>/<match>".
+// A ManaBrew client treats the id as an opaque string.
 func (t *Translator) GameID() string {
 	return t.table + "/" + strconv.FormatInt(t.match, 10)
 }
@@ -57,16 +56,13 @@ func (t *Translator) State(v view.View) mb.EngineMessage {
 // decision.Kind. v is the seat view accompanying the prompt (the per-kind
 // builders read card shapes off it); a nil v is accepted where a builder
 // needs no view.
-//
-// Until each kind's MB ticket lands, its stub returns an error wrapping
-// ErrUnmapped. Later tickets edit only their own stub files, never
-// dispatch.go.
+
 func (t *Translator) Prompt(d *decision.Decision, v *view.View) (mb.PromptMessage, error) {
 	msg, _, err := t.PromptFlagged(d, v)
 	return msg, err
 }
 
-// PromptFlagged is Prompt plus the MBX-7 fallback flag: fellBack is true
+// PromptFlagged is Prompt plus the fallback flag: fellBack is true
 // exactly when the returned prompt is the generic chooseFromSelection
 // fallback -- an ask this package has no specific mapping for, answered by
 // native option index -- rather than a kind-specific prompt. The mbtest

@@ -322,6 +322,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		if oneOff {
 			efMarker = ""
 		}
+		// A one-time boon ends with its trigger's firing (Forge's
+		// TriggerHandler removes the boon once it has run BoonAmount$ times).
+		if ep.Boon {
+			efMarker = "|BN=" + strconv.Itoa(max(tl.BoonAmount, 1)) + efMarker
+		}
 		// An Effect trigger body's OptionalDecider$ is the card's own "you
 		// may" election (Beck's "whenever a creature enters this turn, you
 		// may draw a card"). The trigger is registered like any other
@@ -452,7 +457,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// the battlefield: Kaito, Cunning Infiltrator's [-9] emblem keeps
 		// making Ninjas after Kaito dies to its own loyalty cost. Every
 		// corpus emblem spells its Effect `Name$ Emblem — <name>`.
-		if dur == "permanent" && !permanentComeback && !isEmblemEffectName(effectName) &&
+		if dur == "permanent" && !permanentComeback && !isEmblemEffectName(effectName) && !ep.Boon &&
 			h.Game().Obj(c.Source) != nil && h.Game().Obj(c.Source).Zone == state.ZBattlefield {
 			expiry += "|SB"
 		}
@@ -544,6 +549,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					text += "|PC=" + tl.PresentCompare
 				}
 			}
+			if tl.CheckSVar != "" {
+				text += "|CS=" + tl.CheckSVar + "|SC=" + tl.SVarCompare
+			}
+			if tl.FirstCombat {
+				text += "|1C"
+			}
 			// A prevention rider's delayed counter body (Sacred Boon) reads the
 			// amount this application prevented as Count$TriggerRememberAmount;
 			// "|RN=" rides last so the decode strips it first.
@@ -556,6 +567,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// every later occurrence of the step until the Effect's lifetime
 			// (|TT=/|DU=/|SB, or the body's own self-exile via
 			// Host.EndEffectSource) retires it.
+			if ep.Boon {
+				text += "|BN=" + strconv.Itoa(max(tl.BoonAmount, 1))
+			}
 			if !tl.OneOff {
 				text += "|EF"
 			}

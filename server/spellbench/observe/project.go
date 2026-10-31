@@ -11,15 +11,15 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
-	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
+	"github.com/adams-shaun/gorge/server/spellbench/gamecfg"
 	"github.com/adams-shaun/gorge/server/spellbench/identity"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
 type Projector struct {
-	E     *rules.Engine
+	R     gamecfg.Reader
 	IDs   *identity.Tracker
 	Mulls [2]uint32
 }
@@ -64,10 +64,10 @@ func (p *Projector) name(viewer state.PlayerID, o *state.Object) *string {
 	if o.Ability != nil {
 		// An ability is named after its source, unless that source is face
 		// down and the viewer may not look at it.
-		if src := p.E.G.Obj(o.Source); src != nil && src.Face() != nil && (!src.FaceDown || MayLook(viewer, src)) {
+		if src := p.R.Board().Obj(o.Source); src != nil && src.Face() != nil && (!src.FaceDown || MayLook(viewer, src)) {
 			n = src.Face().Name
 		}
-	} else if n = p.E.Derived(o.ID).Name; n == "" && o.Face() != nil {
+	} else if n = p.R.Facts(o.ID).Name; n == "" && o.Face() != nil {
 		n = o.Face().Name
 	}
 	if n == "" {
@@ -86,7 +86,7 @@ func omitted(o *state.Object) bool {
 }
 
 func (p *Projector) Ref(viewer state.PlayerID, id state.ObjID) (*protocol.ObjectRef, error) {
-	o := p.E.G.Obj(id)
+	o := p.R.Board().Obj(id)
 	if o == nil || !Visible(viewer, o) || omitted(o) {
 		return nil, nil
 	}
@@ -102,7 +102,7 @@ func (p *Projector) Ref(viewer state.PlayerID, id state.ObjID) (*protocol.Object
 // object the viewer can see already has its visible id; a look id would give
 // it two.
 func (p *Projector) LookRef(viewer state.PlayerID, id state.ObjID) (protocol.ObjectRef, error) {
-	o := p.E.G.Obj(id)
+	o := p.R.Board().Obj(id)
 	if o == nil || Visible(viewer, o) {
 		return protocol.ObjectRef{}, fmt.Errorf("engine_contract_failure:look_ref_not_hidden %d", id)
 	}
@@ -124,7 +124,7 @@ func (p *Projector) Characteristics(viewer state.PlayerID, o *state.Object) *pro
 		return &protocol.Characteristics{Supertypes: []string{}, Types: []string{"creature"}, Subtypes: []string{},
 			Colors: []string{}, Power: &two, Toughness: &two, Keywords: []string{}}
 	}
-	d := p.E.Derived(o.ID)
+	d := p.R.Facts(o.ID)
 	c := &protocol.Characteristics{Supertypes: []string{}, Types: []string{}, Subtypes: []string{},
 		Colors: Colors(d.Colors), Keywords: Keywords(d.Keywords)}
 	for _, t := range d.Types {
@@ -178,7 +178,7 @@ func (p *Projector) Record(viewer state.PlayerID, id state.ObjID) (protocol.Obje
 }
 
 func (b *builder) record(id state.ObjID) (protocol.ObjectRecord, error) {
-	o := b.p.E.G.Obj(id)
+	o := b.p.R.Board().Obj(id)
 	ref, err := b.p.Ref(b.viewer, id)
 	if err != nil {
 		return protocol.ObjectRecord{}, err
@@ -226,17 +226,20 @@ func (p *Projector) Observation(viewer state.PlayerID, st State) (obs protocol.O
 			p.IDs.EndObservation(viewer)
 		}
 	}()
-	g := p.E.G
-	v := view.Project(g, p.E, viewer, nil)
+	g := p.R.Board()
+	v := view.Project(g, p.R.Chars(), viewer, nil)
 	b := &builder{p: p, viewer: viewer}
 	obs = protocol.Observation{Viewer: Seat(viewer), Turn: uint32(max(0, g.Turn)), PhaseStep: PhaseStep(g),
 		Stack: []protocol.StackEntry{}, PendingTriggers: []protocol.PendingTrigger{}, Known: st.Known}
 	if obs.Known == nil {
 		obs.Known = []protocol.Known{}
 	}
-	// day_night is always present under the true flag: the empty string is
-	// CR 731.1's "neither", exactly as view.View.DayNight omits it.
+	// day_night is always present under the true flag. The protocol spells
+	// CR 731.1's "neither" as "none"; state.DayNight's String is empty for it.
 	dayNight := g.DayNight.String()
+	if dayNight == "" {
+		dayNight = "none"
+	}
 	obs.DayNight = &dayNight
 	if v.Active != view.NoSeat {
 		s := Seat(v.Active)

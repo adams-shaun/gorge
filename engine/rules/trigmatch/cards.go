@@ -404,7 +404,7 @@ func discardedAllMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 		return false
 	}
 	ctrl := e.ControllerOf(source)
-	if v := t.ParamStr(cards.PKValidPlayer); v != "" && !effects.MatchesPlayerSpec(e.Game(), v, ev.Player, ctrl) {
+	if v := t.ParamStr(cards.PKValidPlayer); v != "" && !effects.MatchesPlayerSpec(e.Game(), v, events.Discarder(e.Game(), ev), ctrl) {
 		return false
 	}
 	if v := t.ParamStr(cards.PKValidCard); v != "" && !e.MatchesSpec(v, ev.Obj, source, ctrl, SpecOpts{}) {

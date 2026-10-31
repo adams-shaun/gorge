@@ -1,6 +1,6 @@
 package mapping_test
 
-// Tests for the v2 mapping gaps in the sbp-unmapped-tail-priority ticket:
+// Tests for v2 mapping gaps:
 // granted/gained abilities, a hand-to-exile choice, the evoke method, and the
 // station special action. Each asserts the protocol shape (Sem.Check) and the
 // native option the candidate commits.

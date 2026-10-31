@@ -66,13 +66,13 @@ func Start(cfg Config, gameID string, req *protocol.ResetReq, sec *secrets.Game,
 	if err != nil {
 		return nil, err
 	}
-	tr := identity.New(g.E, sec)
+	tr := identity.New(g.R, sec)
 	dom := map[string]bool{}
 	for _, n := range req.Rules.Names {
 		dom[n] = true
 	}
 	s := &Game{ID: gameID, cfg: cfg, g: g, maxSteps: req.MaxSteps, maxDecisions: req.MaxDecisions,
-		env: &mapping.Env{AutoPay: cfg.AutoPay, G: g, IDs: tr, Obs: &observe.Projector{E: g.E, IDs: tr}, Domain: dom, Slots: map[string]uint32{}}}
+		env: &mapping.Env{AutoPay: cfg.AutoPay, G: g, IDs: tr, Obs: &observe.Projector{R: g.R, IDs: tr}, Domain: dom, Slots: map[string]uint32{}}}
 	s.advance()
 	return s, nil
 }
@@ -84,7 +84,7 @@ func (s *Game) Pending() (*protocol.DecisionResponse, *protocol.TerminalResponse
 	return s.resp, nil
 }
 
-func (s *Game) EngineHead() string { return s.g.E.L.Head() }
+func (s *Game) EngineHead() string { return s.g.R.Log().Head() }
 
 func (s *Game) recoverPanic() {
 	if r := recover(); r != nil {
@@ -141,12 +141,11 @@ func (s *Game) advance() {
 	defer s.recoverPanic()
 	for s.term == nil {
 		if s.tx == nil {
-			e := s.g.E
-			if e.G.Over {
+			if s.g.R.Board().Over {
 				s.natural()
 				return
 			}
-			d := e.Pending()
+			d := s.g.R.Pending()
 			if d == nil {
 				s.halt("no_pending_decision")
 				return
@@ -300,7 +299,7 @@ func (s *Game) answer(i int) {
 	}
 	if p.Context.Kind == "priority" {
 		if obj := s.actionObject(op); obj != 0 {
-			s.env.Action = &mapping.ActionContext{Seat: seat, Obj: obj, Since: s.g.E.G.NextID}
+			s.env.Action = &mapping.ActionContext{Seat: seat, Obj: obj, Since: s.g.R.Board().NextID}
 		}
 	}
 	commit, done, err := s.tx.Answer(i)
@@ -369,7 +368,7 @@ func sameAsk(d, want *decision.Decision) bool {
 // pending decision only after that decision is shown to be the lookahead's
 // (want); otherwise the game halts followup_mismatch.
 func (s *Game) submit(in decision.Intent, want *decision.Decision) error {
-	d := s.g.E.Pending()
+	d := s.g.R.Pending()
 	if d == nil {
 		return errFollowup
 	}
@@ -386,5 +385,5 @@ func (s *Game) submit(in decision.Intent, want *decision.Decision) error {
 		fmt.Fprintf(os.Stderr, "gorge rejected intent %+v: %v\n", in, err)
 		return err
 	}
-	return s.env.IDs.Sync(s.g.E)
+	return s.env.IDs.Sync(s.g.R)
 }

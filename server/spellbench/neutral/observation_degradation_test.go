@@ -2,7 +2,7 @@ package neutral_test
 
 // TestObservationDegradationCensus measures what a v2 client loses by rendering
 // from the plain observation instead of the native view carried in
-// x_gorge_view_v1. It is the sbp-2 view census (viewcensus_test.go) over a
+// x_gorge_view_v1. It is the view census (viewcensus_test.go) over a
 // larger, production-shaped corpus with a frequency baseline of its own.
 //
 // For every decision of 100 seeded two-seat games, the production heuristic
@@ -62,7 +62,7 @@ func observationDegradationGame(t *testing.T, reg *cards.Registry, deck []*cards
 // that died still reads summon-sick in the graveyard; the observation carries
 // summoning_sick only inside a battlefield permanent and no activated count at
 // all. Comparing those fields off the battlefield measures gorge's transient
-// storage, not a fact a seat can lose (the brief's class (c)), so both planes
+// storage, not a fact a seat can lose, so both planes
 // are normalised to the battlefield's own answer.
 func normalizeOffBattlefield(v *view.View) {
 	for i := range v.Players {
@@ -147,6 +147,7 @@ func renderObservationDegradation(counts map[string]int) string {
 // view rebuilt from the plain v2 observation with the native view carried in
 // x_gorge_view_v1, and ratchets the differing paths by frequency.
 func TestObservationDegradationCensus(t *testing.T) {
+	t.Parallel()
 	reg := testcorpus.Registry(t)
 	names := testutil.LegacyDeckNames()
 	counts := map[string]int{}
@@ -154,7 +155,7 @@ func TestObservationDegradationCensus(t *testing.T) {
 	for i := 0; i < observationDegradationGames; i++ {
 		name := names[i%len(names)]
 		g := observationDegradationGame(t, reg, testutil.RepoDeck(t, reg, name), byte(i))
-		tr := identity.New(g.E, g.Secret)
+		tr := identity.New(g.R, g.Secret)
 		builders := [2]*neutral.Builder{neutral.NewBuilder(reg), neutral.NewBuilder(reg)}
 		bots := testgame.Bots(uint64(i))
 		for n := 0; n < 1200; n++ {
@@ -162,11 +163,11 @@ func TestObservationDegradationCensus(t *testing.T) {
 			if g.E.G.Over || pending == nil {
 				break
 			}
-			if err := tr.Sync(g.E); err != nil {
+			if err := tr.Sync(g.R); err != nil {
 				t.Fatalf("game %d (%s) step %d: %v", i, name, n, err)
 			}
 			priority := g.E.G.Priority
-			obs, err := (&observe.Projector{E: g.E, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
+			obs, err := (&observe.Projector{R: g.R, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
 			if err != nil {
 				t.Fatalf("game %d (%s) step %d: observation: %v", i, name, n, err)
 			}

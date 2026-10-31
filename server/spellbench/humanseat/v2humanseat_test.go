@@ -421,6 +421,98 @@ func TestV2HumanSeatTimeoutFallsToCaretaker(t *testing.T) {
 	}
 }
 
+// undoTap holds the seat's first engine read after the human has answered once,
+// short of the match lock, until the host is rewinding under that lock.
+type undoTap struct {
+	*humanseat.Seat
+	answered  atomic.Bool
+	hold      sync.Once
+	reading   chan struct{}
+	rewinding chan struct{}
+}
+
+func (u *undoTap) AttachMatch(mc *bots.MatchContext) error {
+	lock := mc.Projection
+	mc.Projection = func(f func()) {
+		if u.answered.Load() {
+			u.hold.Do(func() {
+				close(u.reading)
+				<-u.rewinding
+			})
+		}
+		lock(f)
+	}
+	return u.Seat.AttachMatch(mc)
+}
+
+func (u *undoTap) Parked(ctx context.Context, v view.View, d decision.Decision, answer func(decision.Intent) error, gone <-chan struct{}) {
+	u.Seat.Parked(ctx, v, d, func(in decision.Intent) error {
+		err := answer(in)
+		if err == nil {
+			u.answered.Store(true)
+		}
+		return err
+	}, gone)
+}
+
+func (u *undoTap) MatchRewound(g any) {
+	close(u.rewinding)
+	u.Seat.MatchRewound(g)
+}
+
+// TestV2HumanSeatUndoDuringARead: an undo that lands while the seat is on its
+// way into the match lock completes. The rewind holds that lock when it tells
+// the seat, so the seat must not be holding its own lock while it waits for it.
+func TestV2HumanSeatUndoDuringARead(t *testing.T) {
+	const tableSeed, limit = 3000, 30 * time.Second
+	tap := &undoTap{reading: make(chan struct{}), rewinding: make(chan struct{})}
+	rewound := make(chan struct{})
+	o := repoOptions(t)
+	o.ThinkTimeout = 5 * time.Second
+	o.OnRewind = func(host.TableID, int, int, uint64) error {
+		close(rewound)
+		return nil
+	}
+	o.TapHuman = func(_ host.TableID, _ int, _ bool, mc *bots.MatchContext) (host.HumanTap, error) {
+		var err error
+		tap.Seat, err = humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: &scripted{bot: referenceBot(t, tableSeed)}})
+		return tap, err
+	}
+	r, err := host.New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Close waits for the match goroutine, which a deadlock never returns.
+	deadlocked := false
+	defer func() {
+		if !deadlocked {
+			r.Close()
+		}
+	}()
+	cfg := tableCfg("undo", tableSeed)
+	cfg.Humans = []int{0}
+	if err := r.AddTable(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start(cfg.ID); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-tap.reading:
+	case <-time.After(limit):
+		t.Fatalf("the seat made no engine read after its first answer within %v", limit)
+	}
+	if err := r.Undo(cfg.ID, 1, 0); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-rewound:
+	case <-time.After(limit):
+		deadlocked = true
+		t.Fatalf("the rewind did not finish within %v: the table is frozen", limit)
+	}
+}
+
 // TestV2HumanSeatRefusesMultiplayer: v2 covers two seats only.
 func TestV2HumanSeatRefusesMultiplayer(t *testing.T) {
 	ans := &scripted{}

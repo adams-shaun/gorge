@@ -28,6 +28,11 @@ type OptionFacts struct {
 	SetProps   []string        `json:"set_props"`
 	BlockMust  bool            `json:"block_must"`
 	AttackMust bool            `json:"attack_must"`
+	// The facts the bot ranks an "ability" option by.
+	Loyalty       *decision.Loyalty `json:"loyalty,omitempty"`
+	SelfSkipTurns int8              `json:"self_skip_turns,omitempty"`
+	ForeignSource bool              `json:"foreign_source,omitempty"`
+	GrantStatics  []string          `json:"grant_statics,omitempty"`
 }
 
 // ProducesFacts restores a card view's server-side mana production flags
@@ -50,6 +55,12 @@ type Facts struct {
 	ResumeKind                string          `json:"resume_kind"`
 	ResumeAPI                 string          `json:"resume_api"`
 	ResumeUnlessCost          string          `json:"resume_unless_cost"`
+	// The cast census of a priority decision, in the payload's ids. It is
+	// engine cache data on the Decision, so it travels here for an auto-pay
+	// agent's tap gate (decision.PotentialCasts). See CarryCastCensus.
+	PotentialCastsKnown     bool          `json:"potential_casts_known,omitempty"`
+	PotentialCasts          []state.ObjID `json:"potential_casts,omitempty"`
+	PotentialUnpayableCasts []state.ObjID `json:"potential_unpayable_casts,omitempty"`
 }
 
 type Payload struct {
@@ -79,11 +90,17 @@ type Extender struct {
 	tables       [2]*table
 	last         [2][]int             // the seat's last native -> payload renumbering (audit only, Task 28a)
 	lastFollow   [2]map[string]Follow // the same for its follow-ups, by native key (audit only, Task 28a)
+	castCensus   bool
 }
 
 func New() *Extender {
 	return &Extender{tables: [2]*table{{ints: map[string]uint32{}}, {ints: map[string]uint32{}}}}
 }
+
+// CarryCastCensus puts each priority decision's cast census in the payload's
+// facts, for a table whose seats are auto-pay agents. A human client has no
+// tap gate to read it.
+func (x *Extender) CarryCastCensus() { x.castCensus = true }
 
 // rekey maps gorge object ids to the seat's small integers. Only objects the
 // seat sees, or the hidden cards this pose's own look shows (its native and
@@ -94,7 +111,7 @@ func (x *Extender) rekey(env *mapping.Env, seat state.PlayerID, shown map[state.
 	var firstErr error
 	t := x.tables[seat]
 	return func(id state.ObjID) state.ObjID {
-		o := env.G.E.G.Obj(id)
+		o := env.G.R.Board().Obj(id)
 		var v2 string
 		var err error
 		switch {
@@ -208,7 +225,8 @@ func facts(d *decision.Decision) Facts {
 	}
 	for _, o := range d.Options {
 		f.Options = append(f.Options, OptionFacts{Attach: o.Attach, Grant: o.Grant, Controller: uint8(o.Controller),
-			SetProps: o.SetProps, BlockMust: o.BlockMust, AttackMust: o.AttackMust})
+			SetProps: o.SetProps, BlockMust: o.BlockMust, AttackMust: o.AttackMust,
+			Loyalty: o.Loyalty, SelfSkipTurns: o.SelfSkipTurns, ForeignSource: o.ForeignSource, GrantStatics: o.GrantStatics})
 	}
 	return f
 }
@@ -217,7 +235,7 @@ func facts(d *decision.Decision) Facts {
 // (card name, look id), renumbers every option, and returns old -> new
 // (perm) and new -> old (order).
 func sortHidden(env *mapping.Env, seat state.PlayerID, d *decision.Decision) (perm, order []int) {
-	g := env.G.E.G
+	g := env.G.R.Board()
 	perm, order = make([]int, len(d.Options)), make([]int, len(d.Options))
 	var hid []int
 	for i, o := range d.Options {
@@ -272,8 +290,18 @@ func followKey(k string, perm []int, fperm map[string][]int) string {
 	return out
 }
 
+// offeredCasts is the decision's cast census reduced to what an autopay host
+// offers: its taps are hidden, so an unoffered card is not one the seat can cast
+// this window, whatever tapping the census prices.
+func offeredCasts(d *decision.Decision) []state.ObjID {
+	return slices.DeleteFunc(slices.Clone(d.PotentialCasts), func(id state.ObjID) bool {
+		return !slices.ContainsFunc(d.Options, func(o decision.Option) bool { return o.Kind == "cast" && o.Obj == id }) &&
+			!slices.ContainsFunc(d.PaymentActions, func(a decision.PaymentAction) bool { return a.Cast.Object == id })
+	})
+}
+
 func (x *Extender) Extend(env *mapping.Env, p *mapping.Pose, nativeIndex uint64) (map[string]json.RawMessage, error) {
-	e := env.G.E
+	g := env.G.R
 	seat := p.Seat
 	r, errp := x.rekey(env, seat, shownBy(p))
 	// Omit the owner's own library list and deck manifest: library order is
@@ -281,8 +309,8 @@ func (x *Extender) Extend(env *mapping.Env, p *mapping.Pose, nativeIndex uint64)
 	// library card name as a leak. The seat view's honest remaining-library
 	// composition (view.OwnLibrary) does not read either field.
 	v := view.View{}
-	view.ProjectLeanInto(&v, e.G, e, seat, nil, view.OmitLibrary|view.OmitOwnDeck|view.OmitArchetype)
-	v.Round = view.RoundOf(e.G, e.L.Events)
+	view.ProjectLeanInto(&v, g.Board(), g.Chars(), seat, nil, view.OmitLibrary|view.OmitOwnDeck|view.OmitArchetype)
+	v.Round = view.RoundOf(g.Board(), g.Log().Events)
 	r.view(&v)
 	dropSourceless(&v)
 	d := p.Native.CloneValue()
@@ -298,9 +326,15 @@ func (x *Extender) Extend(env *mapping.Env, p *mapping.Pose, nativeIndex uint64)
 		pl.Facts.Options = nf
 	}
 	paymentActions := d.PaymentActions
+	potentialCasts := offeredCasts(&d)
 	r.decision(&d, nativeIndex)
 	if env.AutoPay {
 		d.PaymentActions = paymentActions
+		if x.castCensus && d.PotentialCastsKnown {
+			pl.Facts.PotentialCastsKnown = true
+			pl.Facts.PotentialCasts = r.ids(potentialCasts)
+			pl.Facts.PotentialUnpayableCasts = r.ids(d.PotentialUnpayableCasts)
+		}
 	}
 	payments, err := r.payments(&d, perm)
 	if err != nil {

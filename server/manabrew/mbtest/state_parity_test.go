@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package mbtest
 
 import (
@@ -23,7 +21,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// MBX-5: state parity and seat privacy for the ManaBrew GameView.
+// State parity and seat privacy for the ManaBrew GameView.
 //
 // TranslatingSeat drives a whole game through the translator, but only ever
 // builds the DECIDING seat's prompt, so it never exercises Translator.State
@@ -58,10 +56,9 @@ import (
 // The ownerId of a stack object is the controller (the native StackView
 // carries no owner); see stackObject's own comment.
 
-// parityGamesPerSeatCount is the MB-8 census game count (censusGamesPerSeatCount),
+// parityGamesPerSeatCount is the census game count (censusGamesPerSeatCount),
 // and the seeds below are the census's own (seats*1000+g for the parity run,
-// seats*2000+g for the leak run), so these tests cover exactly the census games
-// the brief names, not a different set.
+// seats*2000+g for the leak run), so these tests cover exactly the census games.
 const parityGamesPerSeatCount = censusGamesPerSeatCount
 
 // gameViewOf extracts the GameViewDto from the translator's state message.
@@ -110,7 +107,7 @@ func visibleCards(t *testing.T, z mb.ZoneDto) []mb.CardDto {
 	return out
 }
 
-// compareStateParity is the field-by-field comparison the brief names: life,
+// compareStateParity is the field-by-field comparison: life,
 // zones and counts, battlefield cards (id, tapped, counters, controller, P/T,
 // attachments), stack, phase/step and the active/priority seats.
 func compareStateParity(t *testing.T, where string, v view.View, gv mb.GameViewDto) {
@@ -205,7 +202,7 @@ func comparePlayer(t *testing.T, where string, p view.PlayerView, dto mb.PlayerD
 	if dto.Status != wantStatus {
 		t.Errorf("%s: player %s status=%q native=%q", where, dto.ID, dto.Status, wantStatus)
 	}
-	// Commander casts (spec §6.2 re-keys the roster to object ids).
+	// Commander casts (the wire keys the roster by object ids).
 	wantCasts := map[string]int{}
 	for i, c := range p.Commanders {
 		n := 0
@@ -623,7 +620,7 @@ func playParityGame(t *testing.T, reg *cards.Registry, seats int, seed uint64, o
 }
 
 // TestManaBrewStateParity compares Translator.State(v) with the native
-// view.View it came from, for every seat at every posed decision of the MB-8
+// view.View it came from, for every seat at every posed decision of the
 // census games (2 and 4 seats).
 func TestManaBrewStateParity(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)

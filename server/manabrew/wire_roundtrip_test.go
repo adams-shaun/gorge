@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 import (
@@ -9,8 +7,8 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// TestWireRoundTripThenTranslate is the MB-11 regression for the pointer/
-// value mismatch normalize.go used to paper over: server/protocol/manabrew's
+// TestWireRoundTripThenTranslate covers the pointer/
+// value mismatch: server/protocol/manabrew's
 // promptOutputCases (and promptInputCases) construct pointers so
 // json.Unmarshal has an addressable target, but every consumer in this
 // package type-switches on the VALUE (out.(mb.PassOutput), not

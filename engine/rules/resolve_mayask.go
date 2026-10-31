@@ -67,7 +67,7 @@ func tapeMayAsk(e *Engine) bool {
 // The last gate is an Oblivion Ring style return (ChangeZone Duration$
 // UntilHostLeavesPlay, sweepExileReturn): any resolution that moves the
 // holder off the battlefield -- a bounce, a destroy, a sacrifice -- returns
-// its exiled cards inside the same emit, and a card coming back onto the
+// its exiled cards inside the same resolution, and a card coming back onto the
 // battlefield asks as it enters exactly as a targeted entry would (an Aura
 // choosing what it enchants, CR 303.4f: Mischievous Pup bouncing a Banishing
 // Light that holds Imprisoned in the Moon). The exile zones are read first,

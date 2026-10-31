@@ -40,8 +40,16 @@ type Rules struct {
 }
 
 type Game struct {
-	E      *rules.Engine
+	E *rules.Engine
+	// R is how the adapter reads the game.
+	R      Reader
 	Secret *secrets.Game
+}
+
+// Wrap is the Game over an engine its caller already holds: a host's live
+// engine, or a clone a resample replays on.
+func Wrap(e *rules.Engine, sec *secrets.Game) *Game {
+	return &Game{E: e, R: engineReader{e}, Secret: sec}
 }
 
 // New returns the game at its first decision, even alongside a CheckRandomness error.
@@ -76,7 +84,7 @@ func New(reg *cards.Registry, sec *secrets.Game, decks [2][]*cards.Card, r Rules
 	if err != nil {
 		return nil, err
 	}
-	g.E = e
+	g.E, g.R = e, engineReader{e}
 	if err := e.AdvanceHypothetical(); err != nil {
 		return nil, err
 	}
@@ -127,11 +135,15 @@ func (g *Game) Submit(in decision.Intent) error {
 // so no probe outcome may set a decision's shape through hidden-zone
 // contents (Section 13 F3); Task 28's resample check is the net.
 func (g *Game) Probe(ins ...decision.Intent) (*rules.Engine, error) {
-	c := g.E.Clone()
-	if !g.E.Hypothetical() {
+	return probe(g.E, ins...)
+}
+
+func probe(e *rules.Engine, ins ...decision.Intent) (*rules.Engine, error) {
+	c := e.Clone()
+	if !e.Hypothetical() {
 		// The host's live engine has no chance boundary; a probe only judges
 		// legality, so give the clone one rather than reject every option.
-		c = g.E.CloneHypothetical(0)
+		c = e.CloneHypothetical(0)
 	}
 	for _, in := range ins {
 		if err := c.SubmitHypothetical(in); err != nil {

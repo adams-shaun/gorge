@@ -32,7 +32,9 @@ func EmitPtr(g *state.Game, l *Log, e *Event) {
 // unlock this door", CR 309.5) names an SVar that lives on Face[1]'s table,
 // which src.Face() -- the active face -- does not carry. First face whose
 // table defines the name wins: deterministic, and a name defined on several
-// faces resolves to the lowest index consistently on live play and replay.
+// faces resolves to the lowest index consistently on live play and replay. A
+// source that left the battlefield as a copy (state.Object.LeftCopyFace) also
+// searches what it copied.
 func ResolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 	if name == "" {
 		return nil
@@ -47,6 +49,11 @@ func ResolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 			if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
 				return sa
 			}
+		}
+	}
+	if src.LeftCopyFace != nil {
+		if sa := cards.ResolveSVar(src.LeftCopyFace.SVars, name); sa != nil {
+			return sa
 		}
 	}
 	// CR 702.140d: a mutated permanent has all abilities of the cards beneath
@@ -69,8 +76,8 @@ func ResolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 
 // SVarAcrossFaces returns the RAW SVar body named on the source's card, in
 // the same face order ResolveSVarAcrossFaces uses (active face first, then
-// every face in index order, then recovered merged under-card faces). It is
-// the raw-text sibling of ResolveSVarAcrossFaces for callers that need the
+// every face in index order, then a departed copy's face, then recovered merged
+// under-card faces). It is the raw-text sibling of ResolveSVarAcrossFaces for callers that need the
 // trigger LINE (e.g. a delayed registration's Mode$ body) rather than a
 // parsed sub-ability. A name defined on several faces resolves to the lowest
 // index, so live play and replay agree.
@@ -88,6 +95,11 @@ func SVarAcrossFaces(src *state.Object, name string) string {
 			if raw := cf.SVars[name]; raw != "" {
 				return raw
 			}
+		}
+	}
+	if src.LeftCopyFace != nil {
+		if raw := src.LeftCopyFace.SVars[name]; raw != "" {
+			return raw
 		}
 	}
 	for i := range src.MergedCards {

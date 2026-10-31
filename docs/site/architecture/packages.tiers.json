@@ -21,6 +21,11 @@
       "intro": "Module-private ratchets and code generators (`internal/`), plus the public test support, game runner and command-line layer that outside modules may import (`testkit/`, `cli/`). Shell and Python helpers live in `scripts/` (contributor/CI); they are not Go packages."
     },
     {
+      "id": "draft",
+      "title": "Draft events (`draft/`)",
+      "intro": "The limited pipeline (boosters, pods, deck building, pick bots, set data), the draft event runtime and its server plugin, and draftlab with its external-agent wire. Imports `engine/`, `bots/`, `server/host` and `testkit/`; nothing in those imports it, and `cmd/gorged` links it through `gorged.Extensions`."
+    },
+    {
       "id": "cmd",
       "title": "Commands (`cmd/`)",
       "intro": "Product and developer binaries. No package imports a command."
@@ -169,7 +174,7 @@
     "cmd/kcensus": {
       "tier": "cmd",
       "status": "TOOL",
-      "purpose": "Mechanic census of a deck pool against the compiled IR, for the dirty-dirac kernel's card planning."
+      "purpose": "Mechanic census of a deck pool against the compiled IR, for dirac's card planning."
     },
     "cmd/keywordbench": {
       "tier": "cmd",
@@ -230,6 +235,18 @@
       "status": "CORE"
     },
     "engine/events": {
+      "tier": "engine",
+      "status": "CORE"
+    },
+    "engine/eventdiff": {
+      "tier": "engine",
+      "status": "CORE"
+    },
+    "engine/game": {
+      "tier": "engine",
+      "status": "CORE"
+    },
+    "engine/game/gorgegame": {
       "tier": "engine",
       "status": "CORE"
     },
@@ -294,6 +311,11 @@
       "tier": "tooling",
       "status": "TOOL",
       "purpose": "Heap-footprint ratchet (tests only)."
+    },
+    "internal/schemacheck": {
+      "tier": "tooling",
+      "status": "TOOL",
+      "purpose": "JSON Schema subset the SpellBench v2 schema tests validate with (tests only)."
     },
     "internal/testbudget": {
       "tier": "tooling",
@@ -442,6 +464,10 @@
       "tier": "tooling",
       "status": "TOOL/SUPP"
     },
+    "testkit/conformance": {
+      "tier": "tooling",
+      "status": "TOOL"
+    },
     "testkit/paymirror": {
       "tier": "tooling",
       "status": "TOOL"
@@ -453,6 +479,74 @@
     "testkit/testutil/feedback": {
       "tier": "tooling",
       "status": "TOOL"
+    },
+    "cmd/draftsim": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
+    "cmd/extagent": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
+    "cmd/labdemo": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
+    "draft/draftlab": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/draftlab/extern": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/draftlab/extern/refagent": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/draftlab/extern/wire": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/event": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/eventhost": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/gorgedevents": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/booster": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/build": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/draft": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/pickbot": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/setdata": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/setdata/internal/gen": {
+      "tier": "draft",
+      "status": "EXT"
     }
   }
 }

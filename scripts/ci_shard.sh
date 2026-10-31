@@ -42,10 +42,10 @@ shard_of() {
 
 # Experimental, benchmark, training-tool, fuzz and external-adapter packages,
 # plus box-calibrated measurement ratchets (corpusheap's heap ceilings are
-# tuned to the operator's box and fail on a GitHub runner). PRs and pushes skip
+# tuned to the maintainers' machine and fail on a GitHub runner). PRs and pushes skip
 # them; the nightly run sets CI_FULL=1 and runs everything. `go vet ./...` in
 # the lint job still compiles every one of them, so a build break is caught.
-EXCLUDE='^github\.com/adams-shaun/gorge/(cmd/(cardfuzz|mtgsim|enginebench|keywordbench)|server/protocol/manabrew(/.*)?|server/host/manabrewhttp|server/manabrew(/.*)?|bots/spellbench(/.*)?|internal/corpusheap|testkit/bench)$'
+EXCLUDE='^github\.com/adams-shaun/gorge/(cmd/(cardfuzz|mtgsim|enginebench|keywordbench)|bots/spellbench(/.*)?|internal/corpusheap|testkit/bench)$'
 
 pkgs=$(go list ./...)
 if [ "${CI_FULL:-0}" != 1 ]; then

@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 import (
@@ -10,7 +8,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// stubText is the fixed CardText seam the scoping spec's Q9 calls for: a
+// stubText is a fixed CardText seam: a
 // deterministic lookup that records the names it was asked for, so a test can
 // prove a hidden card was never looked up.
 type stubText struct {

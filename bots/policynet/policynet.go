@@ -2,7 +2,7 @@
 // a deterministic, dependency-light encoder from one seat's
 // view.View plus its decision surface into fixed-width dense scalars and
 // hashed sparse rows, and a streaming loader for the search-teacher label
-// corpus (four-yay cmd/searchteacher -labels).
+// corpus (the search teacher -labels).
 //
 // The design contract comes from R1 §1.4 and §2.2
 // (archived 2026-09-06-gorge-learned-policy-research.md (docs/design/ARCHIVE.md)):

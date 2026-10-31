@@ -98,6 +98,18 @@ func IsDiscard(ev Event) bool {
 	return ev.Text == discardText || ev.Text == discardCostText
 }
 
+// Discarder returns the player a discard move belongs to. The cost form names
+// none on the event; a cost is discarded from the payer's own hand (CR 118.3),
+// which holds only cards they own (CR 400.3).
+func Discarder(g *state.Game, ev Event) state.PlayerID {
+	if IsDiscardCost(ev) {
+		if o := g.Obj(ev.Obj); o != nil {
+			return o.Owner
+		}
+	}
+	return ev.Player
+}
+
 // IsDiscardCost reports whether ev records the cost form of a discard.
 func IsDiscardCost(ev Event) bool {
 	return ev.Kind == MoveZone && ev.From == state.ZHand && ev.Text == discardCostText

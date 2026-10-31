@@ -20,7 +20,9 @@ import (
 
 // TestWizardsStaffGrantedProwessUsesRealCorpusCard drives Wizard's Staff's
 // real compiled script: its equip grants the equipped Grizzly Bears Prowess,
-// and casting a noncreature spell pumps the bear +1/+1 until end of turn.
+// and casting a noncreature spell pumps the bear +1/+1 until end of turn, twice
+// over because the Staff makes the equipped creature's triggers trigger an
+// additional time.
 // Without the granted-keyword walk the grant reaches the layer system (the
 // Oracle scenario's equip-wizard-costs-one asserts the keyword is present)
 // but no trigger fires, so the bear stays 2/2.

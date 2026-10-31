@@ -8,13 +8,13 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// promptArrange (scoping spec §6.3): KArrange splits into two wire shapes,
+// promptArrange: KArrange splits into two wire shapes,
 // told apart by the shared Option.Kind every option in one decision carries
 // (Ruling J5, engine/rules/arrange.go):
 //
 //   - "bottom", "graveyard", "exile", "hand": a genuine two-pile split (a
 //     Scry/Surveil-style ask). -> scry, with the library-top zone first and
-//     the named destination second (§6.1's ScryDestination mint).
+//     the named destination second (the ScryDestination mint).
 //   - anything else -- "", "top" (a full RearrangeTopOfLibrary/Ponder
 //     reorder, pile B empty) and the two all-to-bottom kinds
 //     "hideaway_bottom"/"dig_bottom" (every offered card goes to ONE
@@ -50,9 +50,8 @@ func (t *Translator) promptArrange(d *decision.Decision, v *view.View) (mb.Promp
 // Option.Kind "bottom", the identical string a Scry/Surveil pile-B
 // destination carries, but there is no second pile at all: unlike it,
 // Scry/Surveil always pose Min 0 (engine/effects/cardflow.go's effLookAndArrange),
-// which is what actually signals "some subset may go elsewhere" (MB-8
-// census fb-20260929, found by playing real repo-deck games: this ask was
-// misrouted to promptArrangeScry, which does not carry the Min bound at all
+// which is what actually signals "some subset may go elsewhere" (found by
+// playing real repo-deck games: this ask was misrouted to promptArrangeScry, which does not carry the Min bound at all
 // on the wire, so a "put nothing on top" answer -- always legal for a real
 // Scry/Surveil -- came back invalidShape here for want 3..3).
 func arrangeIsSplit(d *decision.Decision) bool {
@@ -148,8 +147,7 @@ func (t *Translator) parseArrangeReorder(out mb.PromptOutputValue, p *Pending) O
 // parseArrangeScry maps scryDecision{zoneCardIds}, parallel to the prompt's
 // Zones ([libraryTop, <destination>]): ZoneCardIDs[0] is pile A (Choices, in
 // the player's order); ZoneCardIDs[1] is pile B, carried as Intent.Rest only
-// when the ask is Restable (§6.3: "Rest when Restable, otherwise its order
-// is dropped" -- a non-Restable ask still gets the correct legacy-contract
+// when the ask is Restable (otherwise its order is dropped -- a non-Restable ask still gets the correct legacy-contract
 // pile B, built server-side from the complement in offered order, exactly as
 // an empty Rest already means).
 func (t *Translator) parseArrangeScry(out mb.PromptOutputValue, p *Pending) Outcome {

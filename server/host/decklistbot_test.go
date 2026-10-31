@@ -2,7 +2,7 @@ package host
 
 // Operator ruling 2026-10-13: a bot policy that reads every seat's real
 // decklist (bots.Info.Env; server/host/botenv.go envData builds the search root
-// from m.cfg.Decks) never seats at a table with a human, and runs only on
+// from m.gc.Decks) never seats at a table with a human, and runs only on
 // a bot-only table that explicitly opted in via TableConfig's
 // AllowDecklistBots. These tests pin both halves of that backstop on the
 // real host table validation, using the registered sb-tactical entry (Env

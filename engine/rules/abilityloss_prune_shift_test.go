@@ -10,7 +10,7 @@ import (
 )
 
 // TestAbilityLossPruneKeepsALaterSourcesGrant pins CR 613.1f / 613.8a with
-// the list order of dirty-dirac pair 93056: Witness Protection makes one
+// the list order of dirac pair 93056: Witness Protection makes one
 // Gnarlid Colony lose all abilities, so that Colony's "each creature you
 // control with a +1/+1 counter has trample" stops applying -- but a second
 // Colony that entered after a Garruk's Uprising keeps its own grant (CR

@@ -8,9 +8,6 @@ it hands anything to a client or a bot, and how determinism keeps the
 server's word authoritative. It is for client and bot authors and for anyone
 touching `engine/view` or the server's HTTP layer.
 
-*Facts on this page are from `develop` @ `25d71cadc` (2026-10-27). Code links
-point at `main`.*
-
 ## The boundary
 
 <figure markdown>
@@ -54,7 +51,7 @@ The rule is structural, not a convention:
   signature outside the engine exposes a `*state.Game` or `*rules.Engine`,
   and `TestNoRegistryDataResultIsAnEngineGame` checks the server's results at
   run time.
-- Package `server/host` imports `rules` but exposes neither it nor the game:
+- Package `server/host` exposes neither `rules` nor the game:
   "a client sees protocol frames and view.Views only"
   ([`server/host/doc.go`](https://github.com/adams-shaun/gorge/blob/main/server/host/doc.go)).
 
@@ -181,7 +178,7 @@ the same inputs always replay to the same result.
 - **Seeds from configuration.** The server derives each match's seed from
   the table's seed and the match number through a splitmix64 finaliser, so
   "a table's whole history is a pure function of its configuration".
-- **No clock.** Only the server tier and a few commands may import `time`
+- **No clock.** Only the server tier, `draft/eventhost` and a few commands may import `time`
   (`TestTimeIsImportedOnlyByTheHost`); no game, event, view or replay reads
   the clock. `math/rand` v1 is banned (`TestNoLegacyMathRand`).
 

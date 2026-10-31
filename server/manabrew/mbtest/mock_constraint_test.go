@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package mbtest
 
 import (
@@ -89,5 +87,32 @@ func TestMockUnconstrainedBoardTargetsKeepTheirPolicy(t *testing.T) {
 	}
 	if dec.Chosen[0].ID == dec.Chosen[1].ID {
 		t.Fatalf("random chosen repeated a candidate: %v", dec.Chosen)
+	}
+}
+
+func TestMockHonoursAttackAlone(t *testing.T) {
+	alone := &mb.PromptPresentation{Description: "Can't attack alone: Bear (o2)."}
+	must := func(id string) mb.AttackerOptionDto {
+		return mb.AttackerOptionDto{AttackerID: id, ValidTargetIDs: []string{"player-1"}, MustAttack: true}
+	}
+	attacks := func(in mb.ChooseAttackersInput) int {
+		return len(NewFirstLegalClient().answerAttackers(in).(mb.DeclareAttackersDecision).Assignments)
+	}
+	if n := attacks(mb.ChooseAttackersInput{Attackers: []mb.AttackerOptionDto{must("o2")}, Presentation: alone}); n != 0 {
+		t.Fatalf("restricted creature on its own: %d attackers, want none", n)
+	}
+	if n := attacks(mb.ChooseAttackersInput{Attackers: []mb.AttackerOptionDto{must("o2"), must("o4")}, Presentation: alone}); n != 2 {
+		t.Fatalf("restricted creature with a partner: %d attackers, want both", n)
+	}
+	if n := attacks(mb.ChooseAttackersInput{Attackers: []mb.AttackerOptionDto{must("o4")}, Presentation: alone}); n != 1 {
+		t.Fatalf("unrestricted creature on its own: %d attackers, want it", n)
+	}
+
+	block := mb.ChooseBlockersInput{
+		Attackers:    []mb.BlockableAttackerDto{{AttackerID: "o3", ValidBlockerIDs: []string{"o2"}, MustBeBlocked: true}},
+		Presentation: &mb.PromptPresentation{Description: "Can't block alone: Bear (o2)."},
+	}
+	if got := NewFirstLegalClient().answerBlockers(block).(mb.DeclareBlockersDecision).Assignments; len(got) != 0 {
+		t.Fatalf("restricted blocker on its own: %v, want no block", got)
 	}
 }

@@ -1,6 +1,5 @@
 // basepath is the single value every same-origin request the client builds
-// is prefixed with (Task U0 Part A). gorge ships as a library inside
-// mtgserve (Ruling FL-81), whose router mounts it under a path prefix like
+// is prefixed with. An embedding server may mount gorge under a path prefix like
 // /gorge; without this the client's absolute /api/... URLs silently force a
 // whole-subdomain deployment.
 //

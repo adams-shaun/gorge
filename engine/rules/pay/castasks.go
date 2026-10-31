@@ -2,6 +2,7 @@ package pay
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -37,6 +38,8 @@ type ConvokeOffer struct {
 	// yet known (a Waterbend<X> or an X-raised amount).
 	WaterbendN    int32
 	WaterbendOpen bool
+	// MinTaps is how many contributions the payment can't finish without.
+	MinTaps int
 }
 
 // harmonizePaymentGroup is the one exclusivity group every harmonize option
@@ -63,7 +66,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 	var creatureMana map[state.ObjID]bool
 	if in.CreatureMana {
 		creatureMana = make(map[state.ObjID]bool)
-		for _, id := range CreatureManaCandidates(g, in.Player, in.Card, in.SourceTaps) {
+		for _, id := range CreatureManaCandidates(e, in.Player, in.Card, in.SourceTaps) {
 			creatureMana[id] = true
 		}
 	}
@@ -79,7 +82,9 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
-		if in.Harmonize && o.EffectiveIsCreature() && (mana.Generic > 0 || hasX) {
+		types := r.DerivedTypes(id)
+		creature, artifact := slices.Contains(types, "Creature"), slices.Contains(types, "Artifact")
+		if in.Harmonize && creature && (mana.Generic > 0 || hasX) {
 			// The reduction offered is the creature's ACTUAL power (CR
 			// 702.46a), the same number the Harmonize payment credits: a
 			// printed 1/1 currently boosted to 4 funds four generic, and a
@@ -95,7 +100,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 				Group: group, Label: "Tap " + o.Face().Name + " instead of paying 1"})
 			sawCreature = true
 		}
-		if in.Convoke && o.EffectiveIsCreature() {
+		if in.Convoke && creature {
 			for _, color := range []byte{'W', 'U', 'B', 'R', 'G'} {
 				if mana.Colored[state.ManaIndex(color)] > 0 && strings.Contains(r.Colors(id), string(color)) {
 					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_" + string(color), Obj: id,
@@ -115,23 +120,23 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		// Convoke and Improvise options mutually exclusive, so one artifact
 		// can never be committed to both payments.
 		genericOffered := false
-		if in.Improvise && o.EffectiveIsArtifact() && (mana.Generic > 0 || hasX) {
+		if in.Improvise && artifact && (mana.Generic > 0 || hasX) {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "improvise_generic", Obj: id,
 				Group: group, Label: "Tap " + o.Face().Name + " for 1"})
 			sawArtifact = true
 			genericOffered = true
 		}
-		if in.Convoke && o.EffectiveIsCreature() && (mana.Generic > 0 || hasX) {
+		if in.Convoke && creature && (mana.Generic > 0 || hasX) {
 			genericOffered = true
 		}
 		// Waterbend: an artifact or creature not already offered a generic
 		// payment by the spell's own Convoke/Improvise may tap for {1} of
 		// the waterbend amount (the same payment group keeps one object to
 		// one contribution).
-		if in.Waterbend && !genericOffered && (o.EffectiveIsArtifact() || o.EffectiveIsCreature()) && (mana.Generic > 0 || hasX) {
+		if in.Waterbend && !genericOffered && (artifact || creature) && (mana.Generic > 0 || hasX) {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "waterbend_generic", Obj: id,
 				Group: group, Label: "Tap " + o.Face().Name + " to waterbend for 1"})
-			if o.EffectiveIsCreature() {
+			if creature {
 				sawCreature = true
 			} else {
 				sawArtifact = true
@@ -187,6 +192,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 	if harmonizeOnly {
 		d.Max = 1
 	}
+	d.Min = min(in.MinTaps, d.Max)
 	e.Ask(AskCast, d)
 	return true
 }

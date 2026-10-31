@@ -73,7 +73,7 @@ func (r *Registry) load() error {
 			dropped = true
 			continue
 		}
-		cfg, err := rec.Config.validated(r.opts.LoadDeck)
+		cfg, err := rec.Config.validated(r.opts.LoadDeck, r.opts.Engines)
 		if err != nil && errors.Is(err, errDecklistBotRefusal) {
 			// A table written by an older binary can fail the decklist
 			// ruling the new process enforces — e.g. a decklist-reading

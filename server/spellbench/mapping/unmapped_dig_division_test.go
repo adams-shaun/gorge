@@ -1,6 +1,6 @@
 package mapping_test
 
-// sbp-unmapped-dig-division: the v2 mapping must express the Dig spellings
+// The v2 mapping must express the Dig spellings
 // the corpus actually carries (a non-hand primary, an explicit library
 // remainder with no second position, a random remainder, DigNum$ X), a
 // two-blocker combat division whose blocker names contain commas, and the

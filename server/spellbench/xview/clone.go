@@ -10,7 +10,7 @@ import (
 // Clone copies the per-seat id tables, so a rebuilt payload numbers ids
 // exactly as the real one did.
 func (x *Extender) Clone() *Extender {
-	c := &Extender{}
+	c := &Extender{castCensus: x.castCensus}
 	for s, t := range x.tables {
 		c.tables[s] = &table{ints: maps.Clone(t.ints), next: t.next}
 		c.last[s] = slices.Clone(x.last[s])

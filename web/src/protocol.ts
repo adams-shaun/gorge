@@ -105,6 +105,10 @@ export interface TableInfo {
    * table before the field existed.
    */
   review?: boolean;
+  /**
+   * Engine names the engine this table runs on; absent for gorge.
+   */
+  engine?: string;
 }
 
   /**
@@ -1102,6 +1106,22 @@ export interface Option {
    */
   tap_pool_cost?: number;
   /**
+   * AloneRestricted marks a KAttackers or KBlockers option whose creature
+   * is restricted from being declared ALONE (CR 506.5): declaring it is
+   * legal only when at least one other creature is declared as an attacker
+   * (a KAttackers option) or as a blocker (a KBlockers option) in the same
+   * declaration. The engine REJECTS a lone declaration
+   * (combat.DeclaresAlone, read by both declaration validators), so a
+   * rules-ignorant client -- the bot policy included -- needs the fact on
+   * the wire to build a legal declaration rather than have one refused.
+   * Decision.Validate enforces it and the shared repair
+   * (Decision.FitAlone, which botpolicy.Clamp runs) derives its rule from
+   * this same field, so the published fact cannot drift from the check.
+   * omitempty: an unrestricted option emits no field, so every ordinary
+   * option list serialises byte-identically.
+   */
+  alone_restricted?: boolean;
+  /**
    * Mode distinguishes a "cast" option's payment kind: "" the card's own
    * cost, "kicked", "surged", "flashback", "miracle" -- what the engine
    * reads in beginCast's switch. A client renders a kicked/surged/
@@ -1821,29 +1841,15 @@ export interface Unsubscribe {
 }
 
   /**
-   * BotMeasurement is one measured claim of a hosted bot policy. It is the wire
-   * twin of bots.Measurement: a single label with the setting and source it was
-   * measured under, never a number the client is expected to interpret.
-   */
-export interface BotMeasurement {
-  claim: string;
-  versus: string;
-  setting: string;
-  source: string;
-}
-
-  /**
    * BotPolicyInfo is one selectable hosted bot policy (GET /api/bot-policies).
-   * It is the wire twin of bots.Info, carrying only what a client needs to
-   * render a picker and disclose the measurement; protocol never imports bots,
-   * so gorged converts one to the other at startup (server/gorged/botpolicies.go).
+   * It is the wire twin of bots.Info, carrying what a client needs to render a
+   * picker; protocol never imports bots, so gorged converts one to the other at startup (server/gorged/botpolicies.go).
    */
 export interface BotPolicyInfo {
   name: string;
   label: string;
   description: string;
   tier: string;
-  strength: BotMeasurement[];
   mean_ms: number;
   p95_ms: number;
   cost_scope: string;
@@ -1861,6 +1867,20 @@ export interface BotPolicyInfo {
 export interface BotPolicyList {
   default: string;
   policies: BotPolicyInfo[];
+}
+
+  /**
+   * Capabilities is GET /api/capabilities: which optional surfaces this server
+   * serves, so a client can decide what to draw without probing a route that
+   * 404s when the surface is off. Additive, and always 200. Events is true when
+   * the /api/events routes are mounted.
+   */
+export interface Capabilities {
+  events: boolean;
+  /**
+   * Engine names the engine this server creates tables on; absent for gorge.
+   */
+  engine?: string;
 }
 
   /**

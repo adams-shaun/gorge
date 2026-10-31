@@ -8,7 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/replay"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -18,8 +18,8 @@ import (
 // Undo, dispatch fb-20260911T201015Z: a human seat's request to roll the
 // live match back to the decision point at which that seat last submitted
 // an intent — "undo my last action". The mechanism is a REWIND IN PLACE,
-// never a fork: the engine is rebuilt at the rewind point with
-// replay.ReplayTo (the same verified rebuild a DVR query and a restart
+// never a fork: the game is rebuilt at the rewind point with the engine's
+// ReplayTo (the same verified rebuild a DVR query and a restart
 // already run) and swapped into the live match, whose id, seed and hash
 // chain are unchanged. Everything AROUND the engine that assumed history
 // only grows is repaired at the rewind: the match log is truncated to the
@@ -192,7 +192,7 @@ func (r *Registry) Undo(id TableID, k int, player state.PlayerID) error {
 	// Hold m.mu across the reservation. rewindToLastIntent takes it for
 	// writing and completes one reservation only after truncating the log,
 	// so concurrent requests always count intents in the matching prefix.
-	available := intentCountOf(m.e.L.Intents, player)
+	available := intentCountOf(m.g.Log().Intents, player)
 	if err := m.undo.request(player, available); err != nil {
 		return fmt.Errorf("host: match %d: %w", k, err)
 	}
@@ -223,8 +223,8 @@ func lastIntentOf(ins []decision.Intent, p state.PlayerID) (int, bool) {
 }
 
 // rewindToLastIntent truncates the live match in place so the requester's
-// last submitted intent is pending again: the engine is rebuilt through the
-// first n intents with replay.ReplayTo (n = the requester's last intent
+// last submitted intent is pending again: the game is rebuilt through the
+// first n intents with the engine's ReplayTo (n = the requester's last intent
 // index), verified byte-for-byte against the recorded log, and swapped in.
 // Every piece of the match's own bookkeeping that describes the discarded
 // tail is re-derived from the truncated log: bounds, turn starts, DVR
@@ -239,7 +239,7 @@ func lastIntentOf(ins []decision.Intent, p state.PlayerID) (int, bool) {
 // anything. On success the returned parkedData is the rewound pending
 // decision, which is guaranteed to exist and to belong to the requester.
 func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd *botpolicy.Board, player state.PlayerID) (*parkedData, error) {
-	n, ok := lastIntentOf(m.e.L.Intents, player)
+	n, ok := lastIntentOf(m.g.Log().Intents, player)
 	if !ok {
 		return nil, fmt.Errorf("host: seat %d has no submitted intent to undo in match %d", player, m.k)
 	}
@@ -247,7 +247,8 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 		return nil, fmt.Errorf("host: undo point %d is not a recorded burst boundary of match %d", n, m.k)
 	}
 	wantEvents := int(m.bounds[n])
-	e, err := replay.ReplayTo(m.e.L.Clone(), m.cfg, n)
+	src := m.replaySource()
+	g, err := src.engine.ReplayTo(m.g.Log().Clone(), src.config, n)
 	if err != nil {
 		return nil, fmt.Errorf("host: undo replay to intent %d: %w", n, err)
 	}
@@ -255,10 +256,10 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	// ReplayTo itself; the length and pending checks below state the same
 	// fact from the match's own bookkeeping, so a future ReplayTo change
 	// that weakened the compare cannot silently truncate to a wrong point.
-	if got := len(e.L.Events); got != wantEvents {
+	if got := len(g.Log().Events); got != wantEvents {
 		return nil, fmt.Errorf("host: undo replay reached %d events, recorded boundary for intent %d is %d", got, n, wantEvents)
 	}
-	d := e.Pending()
+	d := g.Pending()
 	if d == nil {
 		return nil, fmt.Errorf("host: undo replay left match %d with no pending decision", m.k)
 	}
@@ -268,11 +269,14 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	// The capacity hint newMatch gave the old log, again for the replayed
 	// one: its log starts empty-capped and would otherwise climb through
 	// the whole doubling series a second time.
-	e.L.Reserve(defaultExpectedEvents)
-	m.e = e
+	g.Log().Reserve(defaultExpectedEvents)
+	m.setGame(g)
+	for _, mc := range m.seatContexts {
+		mc.Game, mc.Engine = m.g, m.e
+	}
 	for _, s := range seats {
 		if rw, ok := s.(interface{ MatchRewound(any) }); ok {
-			rw.MatchRewound(e)
+			rw.MatchRewound(m.g)
 		}
 	}
 	m.intents = n
@@ -280,7 +284,7 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	// the intents the log holds: drop every entry the rewind discarded.
 	m.ledgerTruncate(n)
 	m.bounds = append([]uint64(nil), m.bounds[:n+1]...)
-	m.turnStarts = turnStartsBefore(m.turnStarts, uint64(len(e.L.Events)))
+	m.turnStarts = turnStartsBefore(m.turnStarts, uint64(len(g.Log().Events)))
 	m.snaps = snapsBefore(m.snaps, n)
 	// BP-09 (spec 2026-09-28-hosted-bot-packages §5.2 Undo): the feeds are
 	// derived from (config, log prefix, actor) and the swap just invalidated
@@ -289,7 +293,7 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	// same lock and before projectNext (its observe appends the rewound
 	// pending decision's frame to whatever feeds are installed). An error is
 	// fatal for the match (D15): a feed and its log must never disagree.
-	if err := m.feeds.rebuild(m.cfg, m.e.L, m.intents); err != nil {
+	if err := m.feeds.rebuild(gorgegame.RulesConfig(m.gc), m.g.Log(), m.intents); err != nil {
 		return nil, fmt.Errorf("host: undo feed rebuild for match %d: %w", m.k, err)
 	}
 	if err := r.truncatePersisted(t, m); err != nil {
@@ -387,9 +391,9 @@ func snapsBefore(snaps []snapshot, n int) []snapshot {
 // the hook, then the sidecar — so a crash mid-way always leaves a log that
 // replays to the truncated prefix, never the discarded tail.
 func (r *Registry) truncatePersisted(t *table, m *match) error {
-	n := len(m.e.L.Events)
+	n := len(m.g.Log().Events)
 	if m.files != nil {
-		if err := m.files.truncateTo(len(m.e.L.Intents)); err != nil {
+		if err := m.files.truncateTo(len(m.g.Log().Intents)); err != nil {
 			return fmt.Errorf("host: truncating match %d's persisted log: %w", m.k, err)
 		}
 		m.persisted = n
@@ -435,7 +439,7 @@ func (r *Registry) pushRewind(t *table, m *match) {
 			if focus {
 				f := frame(protocol.TRewind, t, m.k, head(m), r.snapshotBody(t, m))
 				rewind = &f
-				if d := m.e.Pending(); d != nil {
+				if d := m.g.Pending(); d != nil {
 					df := frame(protocol.TDecision, t, m.k, head(m), protocol.DecisionBody{Player: uint8(d.Player), Kind: string(d.Kind), Prompt: d.Prompt})
 					decisionF = &df
 				}
@@ -444,7 +448,7 @@ func (r *Registry) pushRewind(t *table, m *match) {
 				// The widget's Last is re-derived over the whole truncated log —
 				// the same full-log scan onMatchStart runs — so an undone line can
 				// never be carried into the rewound overview.
-				bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.e.G, m.e.L.Events, false)
+				bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.g.Board(), m.g.Log().Events, false)
 				t.lastLine = lastLine(bodies, "")
 				widget = r.widgetFrame(t, m, t.lastLine)
 			}

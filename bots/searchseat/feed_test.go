@@ -17,7 +17,7 @@ import (
 // a hand-built History, the pos cursor -- over cfg's game, capturing at every
 // decision of every player and recording the actor's answers, and hands back
 // the history and the finished engine. It is the exact inline code the Feed
-// replaced in four-yay cmd/searchteacher's playGame, kept here as the oracle the Feed
+// replaced in the search teacher's playGame, kept here as the oracle the Feed
 // must reproduce.
 func driveTeacherStyle(t *testing.T, cfg rules.Config, actor state.PlayerID, maxIntents int) (searchprobe.History, *rules.Engine) {
 	t.Helper()

@@ -908,10 +908,37 @@ func (e *Engine) priorityRound() {
 	// again, so that specific risk is gone; resuming into grantPriority
 	// rather than back through this function is still correct, for the
 	// reason above, but is no longer load-bearing against a double draw.)
-	if e.putTriggersOnStack() {
+	if stopped, _ := e.drainTriggers(); stopped {
 		return
 	}
 	e.grantPriority()
+}
+
+// drainTriggers places every waiting trigger and repeats the state-based check
+// after each placement, until neither has anything left (CR 117.5). A placement
+// can make an action due: a final chapter removed for want of a legal target
+// (CR 603.3d) leaves its Saga to be sacrificed (CR 714.4), and a Static$ True
+// trigger resolves as it is placed. Nothing is checked when no trigger was
+// waiting, since the caller has just reached the same fixed point.
+//
+// stopped reports a decision outstanding or the game over, so the caller must
+// not grant priority; performed reports that a check emitted anything.
+func (e *Engine) drainTriggers() (stopped, performed bool) {
+	for {
+		placing := len(e.pendingTriggers) > 0
+		if e.putTriggersOnStack() {
+			return true, performed
+		}
+		if !placing {
+			return false, performed
+		}
+		before := len(e.L.Events)
+		e.checkStateBased()
+		performed = performed || len(e.L.Events) > before
+		if e.G.Over || e.pending != nil {
+			return true, performed
+		}
+	}
 }
 
 // grantPriority is the tail of a priority round: hand priority to whoever is
@@ -925,17 +952,20 @@ func (e *Engine) grantPriority() {
 		// game must not hand out a fresh priority decision.
 		return
 	}
-	holder := e.G.Priority
+	holder, passes := e.G.Priority, e.G.Passes
+	if e.G.Step == state.StepCleanup && !e.cleanupWindow {
+		// CR 514.3a: the window opens with the active player. A repeated
+		// cleanup step would otherwise inherit the last passer and their pass.
+		holder, passes = e.G.Active, 0
+		e.cleanupWindow = true
+	}
 	if e.G.Players[holder].Lost {
 		holder = e.G.NextAlive(holder)
 	}
 	if priorityFlowVerify && (e.cast != nil || e.choosing != chooseNone) {
 		panic(fmt.Sprintf("rules: priority granted to seat %d mid-flow (cast pending=%v, choosing=%d)", holder, e.cast != nil, e.choosing))
 	}
-	if e.G.Step == state.StepCleanup {
-		e.cleanupWindow = true
-	}
-	e.emit(events.Event{Kind: events.Priority, Player: holder, Amount: e.G.Passes})
+	e.emit(events.Event{Kind: events.Priority, Player: holder, Amount: passes})
 	e.askPriority(holder)
 }
 
@@ -993,8 +1023,8 @@ func (e *Engine) repeatCleanup() {
 // priority round here does: triggers are finite and one-shot registrations
 // are consumed at their DelayedPush.
 //
-// putTriggersOnStack's true return means it asked a decision (an ordering or
-// an optional-trigger ask): e.pending is set and the drain resumes through
+// drainTriggers stopping means it asked a decision (an ordering or an
+// optional-trigger ask): e.pending is set and the drain resumes through
 // resumeTriggerDrain, whose tail -- grantPriority, never a priorityRound
 // re-entry -- finishes this interrupted round exactly as it finishes every
 // other one. grantPriority's direct call below is the no-decision case: the
@@ -1014,10 +1044,11 @@ func (e *Engine) finishCleanupStep() {
 		return
 	}
 	performed := len(e.L.Events) > before
-	if e.putTriggersOnStack() {
+	stopped, again := e.drainTriggers()
+	if stopped {
 		return
 	}
-	if len(e.G.Stack) > 0 || performed {
+	if len(e.G.Stack) > 0 || performed || again {
 		e.grantPriority()
 		return
 	}
@@ -1114,7 +1145,7 @@ func (e *Engine) resumeTriggerDrain() {
 	if e.G.Over {
 		return
 	}
-	if e.putTriggersOnStack() {
+	if stopped, _ := e.drainTriggers(); stopped {
 		return
 	}
 	e.grantPriority()

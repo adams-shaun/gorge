@@ -1,16 +1,14 @@
-# gorge command-line conventions
+# The `cli` package
 
-Every gorge command follows the cobra/viper conventions: subcommands, GNU
-flags, environment variables and a config file, with one precedence order.
-gorge's root module has no third-party requires (invariant 7,
-`internal/archtest/gomod_test.go`), so these conventions are implemented on
-the standard library by package [`cli`](../cli/doc.go).
+Package [`cli`](../cli/doc.go) gives a Go command the cobra/viper conventions
+(subcommands, GNU flags, environment variables and a config file, with one
+precedence order) on the standard library, because gorge's root module has no
+third-party requires (`TestRootModuleHasNoRequires`). This page is for someone
+building a command on it, in this module or another.
 
-The first command built on it lives in a private companion module; `cli`
-is public so outside modules can use it. The examples below use a
-hypothetical command, `mytool`. All 16
-commands under gorge's `cmd/` still use the standard `flag` package; see
-[Migrating a command](#migrating-a-command).
+The commands under gorge's `cmd/` still use the standard `flag` package, so the
+conventions below don't apply to them yet; each one's `-h` lists its flags. The
+examples use a hypothetical command, `mytool`.
 
 ## Conventions
 
@@ -34,7 +32,7 @@ A config file is one JSON object:
 ```json
 {
   "$schema": "mytool-config-1",
-  "play": {"pairs": 200, "seed": 78, "a": {"kind": "az", "sims": 200, "autopay": true}, "b": "sbtactical"},
+  "play": {"pairs": 200, "seed": 78, "a": {"kind": "search", "sims": 200}, "b": "heuristic"},
   "pack": {"shard": 100000}
 }
 ```
@@ -131,11 +129,3 @@ when:
    positionals, and `cli.NoArgs` refuses a stray positional. This catches
    `-single false`, which under `flag` set `single` and silently dropped every
    flag after it.
-
-Follow-up work:
-
-- Migrate the commands under `cmd/`, user-facing ones first
-  (`gorged`, `mtgsim`, `repro`, `forgec`).
-- Shell completion (`prog completion bash|zsh`).
-- Accepting the previous config major for one release once some program's
-  config moves to v2 (a list of accepted `$schema` tags on the root).

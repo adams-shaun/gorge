@@ -3,7 +3,7 @@ package searchprobe
 import "slices"
 
 // Typed equalities for the observation types the redeal check and
-// four-yay training/searchbench compare, replacing reflect.DeepEqual. Each answers
+// a search bench compare, replacing reflect.DeepEqual. Each answers
 // exactly what DeepEqual answers for its type: a nil and an empty non-nil
 // slice DIFFER (DeepEqual's rule, which slices.Equal alone does not draw),
 // two nil decisions are equal and a nil one equals no non-nil one. Every

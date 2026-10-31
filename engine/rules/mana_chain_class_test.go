@@ -314,3 +314,166 @@ func containsSA(sas []*cards.SA, want *cards.SA) bool {
 	}
 	return false
 }
+
+const (
+	echoingGrottoSrc = "Name:Echoing Grotto\nTypes:Land\n" +
+		"A:AB$ ChooseColor | Cost$ T | SubAbility$ Yield | SpellDescription$ A colour, if nobody stops it.\n" +
+		"SVar:Yield:DB$ Mana | Produced$ Chosen | UnlessCost$ 1 | UnlessPayer$ Player\n" +
+		"Oracle:x\n"
+	forkedSpringSrc = "Name:Forked Spring\nTypes:Land\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Colourless, always.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ Whichever colour you like.\n" +
+		"Oracle:x\n"
+)
+
+// TestUnlessPayerActivatesAChoiceLandInsideAManaAbility: a mana ability's "unless
+// any player pays" rider opens a mana window for the payer, and a land with two
+// mana abilities asks which one to activate there. The ask is the payer's, inside
+// the activating player's off-stack frame (CR 605.3b).
+func TestUnlessPayerActivatesAChoiceLandInsideAManaAbility(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name   string
+		answer func(t *testing.T, e *Engine)
+	}{
+		{"colourless ability", func(t *testing.T, e *Engine) {
+			t.Helper()
+			submitChoices(t, e, 0)
+		}},
+		{"colour choice", func(t *testing.T, e *Engine) {
+			t.Helper()
+			submitChoices(t, e, 1)
+			submitChoices(t, e, e.Pending().Options[0].Index)
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			e := handEngine(t)
+			cave := onBoardReady(t, e, 0, echoingGrottoSrc)
+			spring := onBoardReady(t, e, 1, forkedSpringSrc)
+			e.priorityRound()
+			submitChoices(t, e, activateOption(t, e, cave))
+			answerChooseColor(t, e, "Blue")
+			submitChoices(t, e, optionByLabel(e.Pending().Options, "Don't pay"))
+
+			d := e.Pending()
+			if d == nil || d.ResumeKind != "unless_pay" || d.Player != 1 {
+				t.Fatalf("pending %+v, want the other seat's unless offer", d)
+			}
+			submitChoices(t, e, 1-optionByLabel(d.Options, "Don't pay"))
+			d = e.Pending()
+			if d == nil || d.ResumeKind != unlessManaKind {
+				t.Fatalf("pending %+v, want the unless mana window", d)
+			}
+			for _, o := range d.Options {
+				if o.Kind == "activate" && o.Obj == spring {
+					submitChoices(t, e, o.Index)
+				}
+			}
+			if d = e.Pending(); d == nil || d.Prompt != "Choose a mana ability of Forked Spring" {
+				t.Fatalf("pending %+v, want the mana ability choice", d)
+			}
+			tc.answer(t, e)
+			d = e.Pending()
+			if d == nil || d.ResumeKind != unlessManaKind {
+				t.Fatalf("pending %+v, want the unless mana window again", d)
+			}
+			for _, o := range d.Options {
+				if o.Kind == "done" {
+					submitChoices(t, e, o.Index)
+				}
+			}
+			if got := poolString(e.G.Players[0].Pool); got != "" {
+				t.Fatalf("activating seat's pool = %q, want nothing: the cost was paid", got)
+			}
+			if got := e.G.Players[1].Pool.Total(); got != 0 {
+				t.Fatalf("payer's pool holds %d, want the {1} spent", got)
+			}
+			if !e.G.Obj(spring).Tapped {
+				t.Fatal("the payer's land is untapped")
+			}
+		})
+	}
+}
+
+// windowPayer answers a test's asks inline: pay every unless offer the seat
+// reaches, activate land from a mana window and then finish it.
+func windowPayer(t *testing.T, payer state.PlayerID, land state.ObjID) func(*decision.Decision, error) (decision.Intent, bool) {
+	return func(d *decision.Decision, reject error) (decision.Intent, bool) {
+		if reject != nil {
+			t.Fatalf("answer to %q refused: %v", d.Prompt, reject)
+		}
+		choice := 0
+		if d.ResumeKind == "unless_pay" && d.Player == payer {
+			choice = 1 - optionByLabel(d.Options, "Don't pay")
+		}
+		for _, o := range d.Options {
+			if o.Kind == "done" && !offersActivation(d, land) {
+				choice = o.Index
+			}
+			if o.Kind == "activate" && o.Obj == land {
+				choice = o.Index
+			}
+		}
+		return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{choice}}, true
+	}
+}
+
+func offersActivation(d *decision.Decision, land state.ObjID) bool {
+	for _, o := range d.Options {
+		if o.Kind == "activate" && o.Obj == land {
+			return true
+		}
+	}
+	return false
+}
+
+// TestManaWindowsServeAnInlineAnswerer: an engine answered inline, with no tape
+// run, opens the same windows. A payer's land that asks reaches an unless window
+// inside a mana ability, and a Ward cost (CR 702.21a) opens one of its own.
+func TestManaWindowsServeAnInlineAnswerer(t *testing.T) {
+	t.Parallel()
+	t.Run("unless", func(t *testing.T) {
+		t.Parallel()
+		e := handEngine(t)
+		cave := onBoardReady(t, e, 0, echoingGrottoSrc)
+		spring := onBoardReady(t, e, 1, forkedSpringSrc)
+		SetTapeAnswerer(e, windowPayer(t, 1, spring))
+		e.priorityRound()
+		submitChoices(t, e, activateOption(t, e, cave))
+		if !e.G.Obj(spring).Tapped {
+			t.Fatal("the payer's land is untapped")
+		}
+		if got := e.G.Players[0].Pool.Total() + e.G.Players[1].Pool.Total(); got != 0 {
+			t.Fatalf("%d mana left, want the {1} spent and none produced", got)
+		}
+	})
+	t.Run("ward", func(t *testing.T) {
+		t.Parallel()
+		e := handEngine(t)
+		rod := onBoardReady(t, e, 0, "Name:Rod\nTypes:Artifact\nA:AB$ Pump | Cost$ 0 | ValidTgts$ Creature | NumAtt$ 1 | SpellDescription$ Give it +1.\nOracle:x\n")
+		warded := onBoardReady(t, e, 1, "Name:Warded\nManaCost:1\nTypes:Creature Bear\nPT:2/2\nK:Ward:1\nOracle:x\n")
+		spring := onBoardReady(t, e, 0, forkedSpringSrc)
+		SetTapeAnswerer(e, windowPayer(t, 0, spring))
+		e.priorityRound()
+		for _, o := range e.Pending().Options {
+			if o.Kind == "ability" && o.Obj == rod {
+				submitChoices(t, e, o.Index)
+				break
+			}
+		}
+		for _, o := range e.Pending().Options {
+			if o.Obj == warded {
+				submitChoices(t, e, o.Index)
+				break
+			}
+		}
+		passUntilStackEmpty(t, e, 30)
+		if !e.G.Obj(spring).Tapped {
+			t.Fatal("the land paying Ward is untapped")
+		}
+		if got := e.Power(warded); got != 3 {
+			t.Fatalf("power %d, want 3: Ward was paid", got)
+		}
+	})
+}

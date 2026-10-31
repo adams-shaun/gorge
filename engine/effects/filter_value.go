@@ -339,6 +339,7 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			return false, true
 		}
 		if field == numericFieldCmc {
+			sc.ManaValueReads.note(0)
 			return isOdd(cmcValue(g, o, sc)) == wantOdd, true
 		}
 		if lacksPT(o, sc) {
@@ -417,6 +418,7 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		case numericFieldBaseToughness:
 			have = baseToughnessValue()
 		case numericFieldCmc:
+			sc.ManaValueReads.note(n)
 			have = cmcValue(g, o, sc)
 		case numericFieldTotalPT:
 			have = currentPower() + currentToughness()
@@ -424,6 +426,28 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		return applyCmp(cmp, have, n)
 	}
 	return false, false
+}
+
+// ManaValueReads records how a match read the mana value it was given
+// (SpecContext.ManaValue), for a caller asking whether a different mana value
+// could answer differently (CR 601.3a's X lookahead). A cmc predicate reads it
+// only as a comparison with a number or as parity, so what a match did not
+// read cannot change its answer: Any false means the match never looked, and
+// a larger mana value than Highest answers every comparison read so far the
+// same way, parity aside.
+type ManaValueReads struct {
+	Any     bool
+	Highest int64
+}
+
+// note records one cmc predicate comparing against n; parity passes 0. A nil
+// receiver records nothing, the path of every ordinary match.
+func (r *ManaValueReads) note(n int) {
+	if r == nil {
+		return
+	}
+	r.Any = true
+	r.Highest = max(r.Highest, int64(n))
 }
 
 // cmcValue is the mana value a cmc predicate reads for an object with a

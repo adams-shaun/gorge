@@ -1,0 +1,2426 @@
+{
+  "format": "draftlab fingerprint packs v1",
+  "set": "FDN",
+  "collation": "play-arena",
+  "pack_seed": 20261014,
+  "seats": 8,
+  "rounds": 3,
+  "packs": [
+    [
+      [
+        {
+          "id": "c1",
+          "name": "Spitfire Lagac",
+          "set": "FDN",
+          "number": "208",
+          "rarity": "C"
+        },
+        {
+          "id": "c2",
+          "name": "Bushwhack",
+          "set": "FDN",
+          "number": "215",
+          "rarity": "C"
+        },
+        {
+          "id": "c3",
+          "name": "Mocking Sprite",
+          "set": "FDN",
+          "number": "159",
+          "rarity": "C"
+        },
+        {
+          "id": "c4",
+          "name": "Felidar Savior",
+          "set": "FDN",
+          "number": "12",
+          "rarity": "C"
+        },
+        {
+          "id": "c5",
+          "name": "Stab",
+          "set": "FDN",
+          "number": "71",
+          "rarity": "C"
+        },
+        {
+          "id": "c6",
+          "name": "Cathar Commando",
+          "set": "FDN",
+          "number": "139",
+          "rarity": "C"
+        },
+        {
+          "id": "c7",
+          "name": "Sanguine Syphoner",
+          "set": "FDN",
+          "number": "68",
+          "rarity": "C"
+        },
+        {
+          "id": "c8",
+          "name": "Prideful Parent",
+          "set": "FDN",
+          "number": "21",
+          "rarity": "C"
+        },
+        {
+          "id": "c9",
+          "name": "Blossoming Sands",
+          "set": "FDN",
+          "number": "260",
+          "rarity": "C"
+        },
+        {
+          "id": "c10",
+          "name": "Bloodthirsty Conqueror",
+          "set": "FDN",
+          "number": "58",
+          "rarity": "M"
+        },
+        {
+          "id": "c11",
+          "name": "Revenge of the Rats",
+          "set": "FDN",
+          "number": "67",
+          "rarity": "U"
+        },
+        {
+          "id": "c12",
+          "name": "An Offer You Can't Refuse",
+          "set": "FDN",
+          "number": "160",
+          "rarity": "U"
+        },
+        {
+          "id": "c13",
+          "name": "Snakeskin Veil",
+          "set": "FDN",
+          "number": "233",
+          "rarity": "U"
+        },
+        {
+          "id": "c14",
+          "name": "Mischievous Mystic",
+          "set": "FDN",
+          "number": "47",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c15",
+          "name": "Quick-Draw Katana",
+          "set": "FDN",
+          "number": "130",
+          "rarity": "C"
+        },
+        {
+          "id": "c16",
+          "name": "Healer's Hawk",
+          "set": "FDN",
+          "number": "142",
+          "rarity": "C"
+        },
+        {
+          "id": "c17",
+          "name": "Strix Lookout",
+          "set": "FDN",
+          "number": "52",
+          "rarity": "C"
+        },
+        {
+          "id": "c18",
+          "name": "Mocking Sprite",
+          "set": "FDN",
+          "number": "159",
+          "rarity": "C"
+        },
+        {
+          "id": "c19",
+          "name": "Crackling Cyclops",
+          "set": "FDN",
+          "number": "83",
+          "rarity": "C"
+        },
+        {
+          "id": "c20",
+          "name": "Sure Strike",
+          "set": "FDN",
+          "number": "209",
+          "rarity": "C"
+        },
+        {
+          "id": "c21",
+          "name": "Erudite Wizard",
+          "set": "FDN",
+          "number": "37",
+          "rarity": "C"
+        },
+        {
+          "id": "c22",
+          "name": "Koma, World-Eater",
+          "set": "FDN",
+          "number": "121",
+          "rarity": "R"
+        },
+        {
+          "id": "c23",
+          "name": "Dismal Backwater",
+          "set": "FDN",
+          "number": "261",
+          "rarity": "C"
+        },
+        {
+          "id": "c24",
+          "name": "Genesis Wave",
+          "set": "FDN",
+          "number": "221",
+          "rarity": "R"
+        },
+        {
+          "id": "c25",
+          "name": "Hidetsugu's Second Rite",
+          "set": "FDN",
+          "number": "202",
+          "rarity": "U"
+        },
+        {
+          "id": "c26",
+          "name": "Dreadwing Scavenger",
+          "set": "FDN",
+          "number": "118",
+          "rarity": "U"
+        },
+        {
+          "id": "c27",
+          "name": "Resolute Reinforcements",
+          "set": "FDN",
+          "number": "145",
+          "rarity": "U"
+        },
+        {
+          "id": "c28",
+          "name": "Youthful Valkyrie",
+          "set": "FDN",
+          "number": "149",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c29",
+          "name": "Marauding Blight-Priest",
+          "set": "FDN",
+          "number": "178",
+          "rarity": "C"
+        },
+        {
+          "id": "c30",
+          "name": "Elfsworn Giant",
+          "set": "FDN",
+          "number": "103",
+          "rarity": "C"
+        },
+        {
+          "id": "c31",
+          "name": "Soul-Shackled Zombie",
+          "set": "FDN",
+          "number": "70",
+          "rarity": "C"
+        },
+        {
+          "id": "c32",
+          "name": "Evolving Wilds",
+          "set": "FDN",
+          "number": "262",
+          "rarity": "C"
+        },
+        {
+          "id": "c33",
+          "name": "Think Twice",
+          "set": "FDN",
+          "number": "165",
+          "rarity": "C"
+        },
+        {
+          "id": "c34",
+          "name": "Burst Lightning",
+          "set": "FDN",
+          "number": "192",
+          "rarity": "C"
+        },
+        {
+          "id": "c35",
+          "name": "Fleeting Flight",
+          "set": "FDN",
+          "number": "13",
+          "rarity": "C"
+        },
+        {
+          "id": "c36",
+          "name": "Vampire Soulcaller",
+          "set": "FDN",
+          "number": "75",
+          "rarity": "C"
+        },
+        {
+          "id": "c37",
+          "name": "Scoured Barrens",
+          "set": "FDN",
+          "number": "266",
+          "rarity": "C"
+        },
+        {
+          "id": "c38",
+          "name": "High Fae Trickster",
+          "set": "FDN",
+          "number": "40",
+          "rarity": "R"
+        },
+        {
+          "id": "c39",
+          "name": "Sun-Blessed Healer",
+          "set": "FDN",
+          "number": "25",
+          "rarity": "U"
+        },
+        {
+          "id": "c40",
+          "name": "Garruk's Uprising",
+          "set": "FDN",
+          "number": "220",
+          "rarity": "U"
+        },
+        {
+          "id": "c41",
+          "name": "Heraldic Banner",
+          "set": "FDN",
+          "number": "254",
+          "rarity": "U"
+        },
+        {
+          "id": "c42",
+          "name": "Etali, Primal Storm",
+          "set": "FDN",
+          "number": "194",
+          "rarity": "R"
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "id": "c43",
+          "name": "Fleeting Flight",
+          "set": "FDN",
+          "number": "13",
+          "rarity": "C"
+        },
+        {
+          "id": "c44",
+          "name": "Giant Growth",
+          "set": "FDN",
+          "number": "223",
+          "rarity": "C"
+        },
+        {
+          "id": "c45",
+          "name": "Bake into a Pie",
+          "set": "FDN",
+          "number": "169",
+          "rarity": "C"
+        },
+        {
+          "id": "c46",
+          "name": "Involuntary Employment",
+          "set": "FDN",
+          "number": "203",
+          "rarity": "C"
+        },
+        {
+          "id": "c47",
+          "name": "Icewind Elemental",
+          "set": "FDN",
+          "number": "42",
+          "rarity": "C"
+        },
+        {
+          "id": "c48",
+          "name": "Fanatical Firebrand",
+          "set": "FDN",
+          "number": "195",
+          "rarity": "C"
+        },
+        {
+          "id": "c49",
+          "name": "Goldvein Pick",
+          "set": "FDN",
+          "number": "253",
+          "rarity": "C"
+        },
+        {
+          "id": "c50",
+          "name": "Strix Lookout",
+          "set": "FDN",
+          "number": "52",
+          "rarity": "C"
+        },
+        {
+          "id": "c51",
+          "name": "Island",
+          "set": "FDN",
+          "number": "274",
+          "rarity": "C"
+        },
+        {
+          "id": "c52",
+          "name": "Flamewake Phoenix",
+          "set": "FDN",
+          "number": "198",
+          "rarity": "R"
+        },
+        {
+          "id": "c53",
+          "name": "Stroke of Midnight",
+          "set": "FDN",
+          "number": "148",
+          "rarity": "U"
+        },
+        {
+          "id": "c54",
+          "name": "Self-Reflection",
+          "set": "FDN",
+          "number": "163",
+          "rarity": "U"
+        },
+        {
+          "id": "c55",
+          "name": "Brazen Scourge",
+          "set": "FDN",
+          "number": "191",
+          "rarity": "U"
+        },
+        {
+          "id": "c56",
+          "name": "Inspiration from Beyond",
+          "set": "FDN",
+          "number": "43",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c57",
+          "name": "Erudite Wizard",
+          "set": "FDN",
+          "number": "37",
+          "rarity": "C"
+        },
+        {
+          "id": "c58",
+          "name": "Incinerating Blast",
+          "set": "FDN",
+          "number": "90",
+          "rarity": "C"
+        },
+        {
+          "id": "c59",
+          "name": "Llanowar Elves",
+          "set": "FDN",
+          "number": "227",
+          "rarity": "C"
+        },
+        {
+          "id": "c60",
+          "name": "Sure Strike",
+          "set": "FDN",
+          "number": "209",
+          "rarity": "C"
+        },
+        {
+          "id": "c61",
+          "name": "Vampire Soulcaller",
+          "set": "FDN",
+          "number": "75",
+          "rarity": "C"
+        },
+        {
+          "id": "c62",
+          "name": "Run Away Together",
+          "set": "FDN",
+          "number": "162",
+          "rarity": "C"
+        },
+        {
+          "id": "c63",
+          "name": "Fleeting Flight",
+          "set": "FDN",
+          "number": "13",
+          "rarity": "C"
+        },
+        {
+          "id": "c64",
+          "name": "Jungle Hollow",
+          "set": "FDN",
+          "number": "263",
+          "rarity": "C"
+        },
+        {
+          "id": "c65",
+          "name": "Giada, Font of Hope",
+          "set": "FDN",
+          "number": "141",
+          "rarity": "R"
+        },
+        {
+          "id": "c66",
+          "name": "Temporal Manipulation",
+          "set": "SPG",
+          "number": "82",
+          "rarity": "M"
+        },
+        {
+          "id": "c67",
+          "name": "Mischievous Mystic",
+          "set": "FDN",
+          "number": "47",
+          "rarity": "U"
+        },
+        {
+          "id": "c68",
+          "name": "Billowing Shriekmass",
+          "set": "FDN",
+          "number": "56",
+          "rarity": "U"
+        },
+        {
+          "id": "c69",
+          "name": "Eager Trufflesnout",
+          "set": "FDN",
+          "number": "102",
+          "rarity": "U"
+        },
+        {
+          "id": "c70",
+          "name": "Fiery Annihilation",
+          "set": "FDN",
+          "number": "86",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c71",
+          "name": "Fleeting Distraction",
+          "set": "FDN",
+          "number": "155",
+          "rarity": "C"
+        },
+        {
+          "id": "c72",
+          "name": "Spitfire Lagac",
+          "set": "FDN",
+          "number": "208",
+          "rarity": "C"
+        },
+        {
+          "id": "c73",
+          "name": "Dwynen's Elite",
+          "set": "FDN",
+          "number": "218",
+          "rarity": "C"
+        },
+        {
+          "id": "c74",
+          "name": "Fake Your Own Death",
+          "set": "FDN",
+          "number": "174",
+          "rarity": "C"
+        },
+        {
+          "id": "c75",
+          "name": "Burst Lightning",
+          "set": "FDN",
+          "number": "192",
+          "rarity": "C"
+        },
+        {
+          "id": "c76",
+          "name": "Refute",
+          "set": "FDN",
+          "number": "48",
+          "rarity": "C"
+        },
+        {
+          "id": "c77",
+          "name": "Giant Growth",
+          "set": "FDN",
+          "number": "223",
+          "rarity": "C"
+        },
+        {
+          "id": "c78",
+          "name": "Tragic Banshee",
+          "set": "FDN",
+          "number": "73",
+          "rarity": "U"
+        },
+        {
+          "id": "c79",
+          "name": "Dismal Backwater",
+          "set": "FDN",
+          "number": "261",
+          "rarity": "C"
+        },
+        {
+          "id": "c80",
+          "name": "Loot, Exuberant Explorer",
+          "set": "FDN",
+          "number": "106",
+          "rarity": "R"
+        },
+        {
+          "id": "c81",
+          "name": "Fiendish Panda",
+          "set": "FDN",
+          "number": "120",
+          "rarity": "U"
+        },
+        {
+          "id": "c82",
+          "name": "Zombify",
+          "set": "FDN",
+          "number": "187",
+          "rarity": "U"
+        },
+        {
+          "id": "c83",
+          "name": "Balmor, Battlemage Captain",
+          "set": "FDN",
+          "number": "237",
+          "rarity": "U"
+        },
+        {
+          "id": "c84",
+          "name": "Billowing Shriekmass",
+          "set": "FDN",
+          "number": "56",
+          "rarity": "U"
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "id": "c85",
+          "name": "Hare Apparent",
+          "set": "FDN",
+          "number": "15",
+          "rarity": "C"
+        },
+        {
+          "id": "c86",
+          "name": "Lightshell Duo",
+          "set": "FDN",
+          "number": "157",
+          "rarity": "C"
+        },
+        {
+          "id": "c87",
+          "name": "Treetop Snarespinner",
+          "set": "FDN",
+          "number": "114",
+          "rarity": "C"
+        },
+        {
+          "id": "c88",
+          "name": "Luminous Rebuke",
+          "set": "FDN",
+          "number": "20",
+          "rarity": "C"
+        },
+        {
+          "id": "c89",
+          "name": "Gorehorn Raider",
+          "set": "FDN",
+          "number": "89",
+          "rarity": "C"
+        },
+        {
+          "id": "c90",
+          "name": "Elfsworn Giant",
+          "set": "FDN",
+          "number": "103",
+          "rarity": "C"
+        },
+        {
+          "id": "c91",
+          "name": "Sower of Chaos",
+          "set": "FDN",
+          "number": "95",
+          "rarity": "C"
+        },
+        {
+          "id": "c92",
+          "name": "Exsanguinate",
+          "set": "FDN",
+          "number": "173",
+          "rarity": "U"
+        },
+        {
+          "id": "c93",
+          "name": "Forest",
+          "set": "FDN",
+          "number": "290",
+          "rarity": "C"
+        },
+        {
+          "id": "c94",
+          "name": "Sylvan Scavenging",
+          "set": "FDN",
+          "number": "113",
+          "rarity": "R"
+        },
+        {
+          "id": "c95",
+          "name": "Micromancer",
+          "set": "FDN",
+          "number": "158",
+          "rarity": "U"
+        },
+        {
+          "id": "c96",
+          "name": "Self-Reflection",
+          "set": "FDN",
+          "number": "163",
+          "rarity": "U"
+        },
+        {
+          "id": "c97",
+          "name": "Ajani's Pridemate",
+          "set": "FDN",
+          "number": "135",
+          "rarity": "U"
+        },
+        {
+          "id": "c98",
+          "name": "Hidetsugu's Second Rite",
+          "set": "FDN",
+          "number": "202",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c99",
+          "name": "Involuntary Employment",
+          "set": "FDN",
+          "number": "203",
+          "rarity": "C"
+        },
+        {
+          "id": "c100",
+          "name": "Gutless Plunderer",
+          "set": "FDN",
+          "number": "60",
+          "rarity": "C"
+        },
+        {
+          "id": "c101",
+          "name": "Crackling Cyclops",
+          "set": "FDN",
+          "number": "83",
+          "rarity": "C"
+        },
+        {
+          "id": "c102",
+          "name": "Vanguard Seraph",
+          "set": "FDN",
+          "number": "28",
+          "rarity": "C"
+        },
+        {
+          "id": "c103",
+          "name": "Strix Lookout",
+          "set": "FDN",
+          "number": "52",
+          "rarity": "C"
+        },
+        {
+          "id": "c104",
+          "name": "Fanatical Firebrand",
+          "set": "FDN",
+          "number": "195",
+          "rarity": "C"
+        },
+        {
+          "id": "c105",
+          "name": "Spitfire Lagac",
+          "set": "FDN",
+          "number": "208",
+          "rarity": "C"
+        },
+        {
+          "id": "c106",
+          "name": "Prideful Parent",
+          "set": "FDN",
+          "number": "21",
+          "rarity": "C"
+        },
+        {
+          "id": "c107",
+          "name": "Island",
+          "set": "FDN",
+          "number": "274",
+          "rarity": "C"
+        },
+        {
+          "id": "c108",
+          "name": "Giada, Font of Hope",
+          "set": "FDN",
+          "number": "141",
+          "rarity": "R"
+        },
+        {
+          "id": "c109",
+          "name": "Essence Scatter",
+          "set": "FDN",
+          "number": "153",
+          "rarity": "U"
+        },
+        {
+          "id": "c110",
+          "name": "Reclamation Sage",
+          "set": "FDN",
+          "number": "231",
+          "rarity": "U"
+        },
+        {
+          "id": "c111",
+          "name": "Faebloom Trick",
+          "set": "FDN",
+          "number": "38",
+          "rarity": "U"
+        },
+        {
+          "id": "c112",
+          "name": "Hero's Downfall",
+          "set": "FDN",
+          "number": "175",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c113",
+          "name": "Armasaur Guide",
+          "set": "FDN",
+          "number": "3",
+          "rarity": "C"
+        },
+        {
+          "id": "c114",
+          "name": "Incinerating Blast",
+          "set": "FDN",
+          "number": "90",
+          "rarity": "C"
+        },
+        {
+          "id": "c115",
+          "name": "Elfsworn Giant",
+          "set": "FDN",
+          "number": "103",
+          "rarity": "C"
+        },
+        {
+          "id": "c116",
+          "name": "Witness Protection",
+          "set": "FDN",
+          "number": "168",
+          "rarity": "C"
+        },
+        {
+          "id": "c117",
+          "name": "Burglar Rat",
+          "set": "FDN",
+          "number": "170",
+          "rarity": "C"
+        },
+        {
+          "id": "c118",
+          "name": "Burst Lightning",
+          "set": "FDN",
+          "number": "192",
+          "rarity": "C"
+        },
+        {
+          "id": "c119",
+          "name": "Fanatical Firebrand",
+          "set": "FDN",
+          "number": "195",
+          "rarity": "C"
+        },
+        {
+          "id": "c120",
+          "name": "Apothecary Stomper",
+          "set": "FDN",
+          "number": "99",
+          "rarity": "C"
+        },
+        {
+          "id": "c121",
+          "name": "Mountain",
+          "set": "FDN",
+          "number": "288",
+          "rarity": "C"
+        },
+        {
+          "id": "c122",
+          "name": "Ghalta, Primal Hunger",
+          "set": "FDN",
+          "number": "222",
+          "rarity": "R"
+        },
+        {
+          "id": "c123",
+          "name": "Slumbering Cerberus",
+          "set": "FDN",
+          "number": "94",
+          "rarity": "U"
+        },
+        {
+          "id": "c124",
+          "name": "Empyrean Eagle",
+          "set": "FDN",
+          "number": "239",
+          "rarity": "U"
+        },
+        {
+          "id": "c125",
+          "name": "Ravenous Amulet",
+          "set": "FDN",
+          "number": "131",
+          "rarity": "U"
+        },
+        {
+          "id": "c126",
+          "name": "Prideful Parent",
+          "set": "FDN",
+          "number": "21",
+          "rarity": "C"
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "id": "c127",
+          "name": "Vampire Soulcaller",
+          "set": "FDN",
+          "number": "75",
+          "rarity": "C"
+        },
+        {
+          "id": "c128",
+          "name": "Fanatical Firebrand",
+          "set": "FDN",
+          "number": "195",
+          "rarity": "C"
+        },
+        {
+          "id": "c129",
+          "name": "Witness Protection",
+          "set": "FDN",
+          "number": "168",
+          "rarity": "C"
+        },
+        {
+          "id": "c130",
+          "name": "Soul-Shackled Zombie",
+          "set": "FDN",
+          "number": "70",
+          "rarity": "C"
+        },
+        {
+          "id": "c131",
+          "name": "Luminous Rebuke",
+          "set": "FDN",
+          "number": "20",
+          "rarity": "C"
+        },
+        {
+          "id": "c132",
+          "name": "Aegis Turtle",
+          "set": "FDN",
+          "number": "150",
+          "rarity": "C"
+        },
+        {
+          "id": "c133",
+          "name": "Dazzling Angel",
+          "set": "FDN",
+          "number": "9",
+          "rarity": "C"
+        },
+        {
+          "id": "c134",
+          "name": "Eager Trufflesnout",
+          "set": "FDN",
+          "number": "102",
+          "rarity": "U"
+        },
+        {
+          "id": "c135",
+          "name": "Swamp",
+          "set": "FDN",
+          "number": "277",
+          "rarity": "C"
+        },
+        {
+          "id": "c136",
+          "name": "Phyrexian Arena",
+          "set": "FDN",
+          "number": "180",
+          "rarity": "R"
+        },
+        {
+          "id": "c137",
+          "name": "Mild-Mannered Librarian",
+          "set": "FDN",
+          "number": "228",
+          "rarity": "U"
+        },
+        {
+          "id": "c138",
+          "name": "Adventuring Gear",
+          "set": "FDN",
+          "number": "249",
+          "rarity": "U"
+        },
+        {
+          "id": "c139",
+          "name": "Fishing Pole",
+          "set": "FDN",
+          "number": "128",
+          "rarity": "U"
+        },
+        {
+          "id": "c140",
+          "name": "Garruk's Uprising",
+          "set": "FDN",
+          "number": "220",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c141",
+          "name": "Fake Your Own Death",
+          "set": "FDN",
+          "number": "174",
+          "rarity": "C"
+        },
+        {
+          "id": "c142",
+          "name": "Lightshell Duo",
+          "set": "FDN",
+          "number": "157",
+          "rarity": "C"
+        },
+        {
+          "id": "c143",
+          "name": "Fleeting Distraction",
+          "set": "FDN",
+          "number": "155",
+          "rarity": "C"
+        },
+        {
+          "id": "c144",
+          "name": "Gorehorn Raider",
+          "set": "FDN",
+          "number": "89",
+          "rarity": "C"
+        },
+        {
+          "id": "c145",
+          "name": "Cackling Prowler",
+          "set": "FDN",
+          "number": "101",
+          "rarity": "C"
+        },
+        {
+          "id": "c146",
+          "name": "Macabre Waltz",
+          "set": "FDN",
+          "number": "177",
+          "rarity": "C"
+        },
+        {
+          "id": "c147",
+          "name": "Thrill of Possibility",
+          "set": "FDN",
+          "number": "210",
+          "rarity": "C"
+        },
+        {
+          "id": "c148",
+          "name": "Eager Trufflesnout",
+          "set": "FDN",
+          "number": "102",
+          "rarity": "U"
+        },
+        {
+          "id": "c149",
+          "name": "Jungle Hollow",
+          "set": "FDN",
+          "number": "263",
+          "rarity": "C"
+        },
+        {
+          "id": "c150",
+          "name": "Kiora, the Rising Tide",
+          "set": "FDN",
+          "number": "45",
+          "rarity": "R"
+        },
+        {
+          "id": "c151",
+          "name": "Juggernaut",
+          "set": "FDN",
+          "number": "255",
+          "rarity": "U"
+        },
+        {
+          "id": "c152",
+          "name": "Spectral Sailor",
+          "set": "FDN",
+          "number": "164",
+          "rarity": "U"
+        },
+        {
+          "id": "c153",
+          "name": "Angel of Finality",
+          "set": "FDN",
+          "number": "136",
+          "rarity": "U"
+        },
+        {
+          "id": "c154",
+          "name": "Nine-Lives Familiar",
+          "set": "FDN",
+          "number": "66",
+          "rarity": "R"
+        }
+      ],
+      [
+        {
+          "id": "c155",
+          "name": "Dazzling Angel",
+          "set": "FDN",
+          "number": "9",
+          "rarity": "C"
+        },
+        {
+          "id": "c156",
+          "name": "Goblin Boarders",
+          "set": "FDN",
+          "number": "87",
+          "rarity": "C"
+        },
+        {
+          "id": "c157",
+          "name": "Vanguard Seraph",
+          "set": "FDN",
+          "number": "28",
+          "rarity": "C"
+        },
+        {
+          "id": "c158",
+          "name": "Spitfire Lagac",
+          "set": "FDN",
+          "number": "208",
+          "rarity": "C"
+        },
+        {
+          "id": "c159",
+          "name": "Fleeting Flight",
+          "set": "FDN",
+          "number": "13",
+          "rarity": "C"
+        },
+        {
+          "id": "c160",
+          "name": "Firebrand Archer",
+          "set": "FDN",
+          "number": "196",
+          "rarity": "C"
+        },
+        {
+          "id": "c161",
+          "name": "Lightshell Duo",
+          "set": "FDN",
+          "number": "157",
+          "rarity": "C"
+        },
+        {
+          "id": "c162",
+          "name": "Micromancer",
+          "set": "FDN",
+          "number": "158",
+          "rarity": "U"
+        },
+        {
+          "id": "c163",
+          "name": "Rugged Highlands",
+          "set": "FDN",
+          "number": "265",
+          "rarity": "C"
+        },
+        {
+          "id": "c164",
+          "name": "Genesis Wave",
+          "set": "FDN",
+          "number": "221",
+          "rarity": "R"
+        },
+        {
+          "id": "c165",
+          "name": "Youthful Valkyrie",
+          "set": "FDN",
+          "number": "149",
+          "rarity": "U"
+        },
+        {
+          "id": "c166",
+          "name": "Balmor, Battlemage Captain",
+          "set": "FDN",
+          "number": "237",
+          "rarity": "U"
+        },
+        {
+          "id": "c167",
+          "name": "Bulk Up",
+          "set": "FDN",
+          "number": "80",
+          "rarity": "U"
+        },
+        {
+          "id": "c168",
+          "name": "Heartfire Immolator",
+          "set": "FDN",
+          "number": "201",
+          "rarity": "U"
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "id": "c169",
+          "name": "Gnarlid Colony",
+          "set": "FDN",
+          "number": "224",
+          "rarity": "C"
+        },
+        {
+          "id": "c170",
+          "name": "Cathar Commando",
+          "set": "FDN",
+          "number": "139",
+          "rarity": "C"
+        },
+        {
+          "id": "c171",
+          "name": "Refute",
+          "set": "FDN",
+          "number": "48",
+          "rarity": "C"
+        },
+        {
+          "id": "c172",
+          "name": "Inspiring Paladin",
+          "set": "FDN",
+          "number": "18",
+          "rarity": "C"
+        },
+        {
+          "id": "c173",
+          "name": "Spitfire Lagac",
+          "set": "FDN",
+          "number": "208",
+          "rarity": "C"
+        },
+        {
+          "id": "c174",
+          "name": "Mocking Sprite",
+          "set": "FDN",
+          "number": "159",
+          "rarity": "C"
+        },
+        {
+          "id": "c175",
+          "name": "Soul-Shackled Zombie",
+          "set": "FDN",
+          "number": "70",
+          "rarity": "C"
+        },
+        {
+          "id": "c176",
+          "name": "Broken Wings",
+          "set": "FDN",
+          "number": "214",
+          "rarity": "C"
+        },
+        {
+          "id": "c177",
+          "name": "Scoured Barrens",
+          "set": "FDN",
+          "number": "266",
+          "rarity": "C"
+        },
+        {
+          "id": "c178",
+          "name": "Loot, Exuberant Explorer",
+          "set": "FDN",
+          "number": "106",
+          "rarity": "R"
+        },
+        {
+          "id": "c179",
+          "name": "Spectral Sailor",
+          "set": "FDN",
+          "number": "164",
+          "rarity": "U"
+        },
+        {
+          "id": "c180",
+          "name": "Tragic Banshee",
+          "set": "FDN",
+          "number": "73",
+          "rarity": "U"
+        },
+        {
+          "id": "c181",
+          "name": "Arbiter of Woe",
+          "set": "FDN",
+          "number": "55",
+          "rarity": "U"
+        },
+        {
+          "id": "c182",
+          "name": "Vampire Nighthawk",
+          "set": "FDN",
+          "number": "186",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c183",
+          "name": "Goldvein Pick",
+          "set": "FDN",
+          "number": "253",
+          "rarity": "C"
+        },
+        {
+          "id": "c184",
+          "name": "Dwynen's Elite",
+          "set": "FDN",
+          "number": "218",
+          "rarity": "C"
+        },
+        {
+          "id": "c185",
+          "name": "Mocking Sprite",
+          "set": "FDN",
+          "number": "159",
+          "rarity": "C"
+        },
+        {
+          "id": "c186",
+          "name": "Run Away Together",
+          "set": "FDN",
+          "number": "162",
+          "rarity": "C"
+        },
+        {
+          "id": "c187",
+          "name": "Sure Strike",
+          "set": "FDN",
+          "number": "209",
+          "rarity": "C"
+        },
+        {
+          "id": "c188",
+          "name": "Squad Rallier",
+          "set": "FDN",
+          "number": "24",
+          "rarity": "C"
+        },
+        {
+          "id": "c189",
+          "name": "Bushwhack",
+          "set": "FDN",
+          "number": "215",
+          "rarity": "C"
+        },
+        {
+          "id": "c190",
+          "name": "Homunculus Horde",
+          "set": "FDN",
+          "number": "41",
+          "rarity": "R"
+        },
+        {
+          "id": "c191",
+          "name": "Swiftwater Cliffs",
+          "set": "FDN",
+          "number": "268",
+          "rarity": "C"
+        },
+        {
+          "id": "c192",
+          "name": "Scrawling Crawler",
+          "set": "FDN",
+          "number": "132",
+          "rarity": "R"
+        },
+        {
+          "id": "c193",
+          "name": "Cat Collector",
+          "set": "FDN",
+          "number": "4",
+          "rarity": "U"
+        },
+        {
+          "id": "c194",
+          "name": "Secluded Courtyard",
+          "set": "FDN",
+          "number": "267",
+          "rarity": "U"
+        },
+        {
+          "id": "c195",
+          "name": "Spectral Sailor",
+          "set": "FDN",
+          "number": "164",
+          "rarity": "U"
+        },
+        {
+          "id": "c196",
+          "name": "Balmor, Battlemage Captain",
+          "set": "FDN",
+          "number": "237",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c197",
+          "name": "Run Away Together",
+          "set": "FDN",
+          "number": "162",
+          "rarity": "C"
+        },
+        {
+          "id": "c198",
+          "name": "Apothecary Stomper",
+          "set": "FDN",
+          "number": "99",
+          "rarity": "C"
+        },
+        {
+          "id": "c199",
+          "name": "Goblin Boarders",
+          "set": "FDN",
+          "number": "87",
+          "rarity": "C"
+        },
+        {
+          "id": "c200",
+          "name": "Infestation Sage",
+          "set": "FDN",
+          "number": "64",
+          "rarity": "C"
+        },
+        {
+          "id": "c201",
+          "name": "Soul-Shackled Zombie",
+          "set": "FDN",
+          "number": "70",
+          "rarity": "C"
+        },
+        {
+          "id": "c202",
+          "name": "Thrill of Possibility",
+          "set": "FDN",
+          "number": "210",
+          "rarity": "C"
+        },
+        {
+          "id": "c203",
+          "name": "Lightshell Duo",
+          "set": "FDN",
+          "number": "157",
+          "rarity": "C"
+        },
+        {
+          "id": "c204",
+          "name": "Aegis Turtle",
+          "set": "FDN",
+          "number": "150",
+          "rarity": "C"
+        },
+        {
+          "id": "c205",
+          "name": "Dismal Backwater",
+          "set": "FDN",
+          "number": "261",
+          "rarity": "C"
+        },
+        {
+          "id": "c206",
+          "name": "Painful Quandary",
+          "set": "FDN",
+          "number": "179",
+          "rarity": "R"
+        },
+        {
+          "id": "c207",
+          "name": "Stroke of Midnight",
+          "set": "FDN",
+          "number": "148",
+          "rarity": "U"
+        },
+        {
+          "id": "c208",
+          "name": "Boltwave",
+          "set": "FDN",
+          "number": "79",
+          "rarity": "U"
+        },
+        {
+          "id": "c209",
+          "name": "Dwynen, Gilt-Leaf Daen",
+          "set": "FDN",
+          "number": "217",
+          "rarity": "U"
+        },
+        {
+          "id": "c210",
+          "name": "Kaito, Cunning Infiltrator",
+          "set": "FDN",
+          "number": "44",
+          "rarity": "M"
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "id": "c211",
+          "name": "Fanatical Firebrand",
+          "set": "FDN",
+          "number": "195",
+          "rarity": "C"
+        },
+        {
+          "id": "c212",
+          "name": "Infestation Sage",
+          "set": "FDN",
+          "number": "64",
+          "rarity": "C"
+        },
+        {
+          "id": "c213",
+          "name": "Prideful Parent",
+          "set": "FDN",
+          "number": "21",
+          "rarity": "C"
+        },
+        {
+          "id": "c214",
+          "name": "Vanguard Seraph",
+          "set": "FDN",
+          "number": "28",
+          "rarity": "C"
+        },
+        {
+          "id": "c215",
+          "name": "Luminous Rebuke",
+          "set": "FDN",
+          "number": "20",
+          "rarity": "C"
+        },
+        {
+          "id": "c216",
+          "name": "Goblin Boarders",
+          "set": "FDN",
+          "number": "87",
+          "rarity": "C"
+        },
+        {
+          "id": "c217",
+          "name": "Goldvein Pick",
+          "set": "FDN",
+          "number": "253",
+          "rarity": "C"
+        },
+        {
+          "id": "c218",
+          "name": "Overrun",
+          "set": "FDN",
+          "number": "230",
+          "rarity": "U"
+        },
+        {
+          "id": "c219",
+          "name": "Mountain",
+          "set": "FDN",
+          "number": "288",
+          "rarity": "C"
+        },
+        {
+          "id": "c220",
+          "name": "Sylvan Scavenging",
+          "set": "FDN",
+          "number": "113",
+          "rarity": "R"
+        },
+        {
+          "id": "c221",
+          "name": "Arcane Epiphany",
+          "set": "FDN",
+          "number": "29",
+          "rarity": "U"
+        },
+        {
+          "id": "c222",
+          "name": "Zombify",
+          "set": "FDN",
+          "number": "187",
+          "rarity": "U"
+        },
+        {
+          "id": "c223",
+          "name": "Blanchwood Armor",
+          "set": "FDN",
+          "number": "213",
+          "rarity": "U"
+        },
+        {
+          "id": "c224",
+          "name": "Aegis Turtle",
+          "set": "FDN",
+          "number": "150",
+          "rarity": "C"
+        }
+      ],
+      [
+        {
+          "id": "c225",
+          "name": "Gleaming Barrier",
+          "set": "FDN",
+          "number": "252",
+          "rarity": "C"
+        },
+        {
+          "id": "c226",
+          "name": "Crypt Feaster",
+          "set": "FDN",
+          "number": "59",
+          "rarity": "C"
+        },
+        {
+          "id": "c227",
+          "name": "Armasaur Guide",
+          "set": "FDN",
+          "number": "3",
+          "rarity": "C"
+        },
+        {
+          "id": "c228",
+          "name": "Campus Guide",
+          "set": "FDN",
+          "number": "251",
+          "rarity": "C"
+        },
+        {
+          "id": "c229",
+          "name": "Sanguine Syphoner",
+          "set": "FDN",
+          "number": "68",
+          "rarity": "C"
+        },
+        {
+          "id": "c230",
+          "name": "Luminous Rebuke",
+          "set": "FDN",
+          "number": "20",
+          "rarity": "C"
+        },
+        {
+          "id": "c231",
+          "name": "Goldvein Pick",
+          "set": "FDN",
+          "number": "253",
+          "rarity": "C"
+        },
+        {
+          "id": "c232",
+          "name": "Felidar Savior",
+          "set": "FDN",
+          "number": "12",
+          "rarity": "C"
+        },
+        {
+          "id": "c233",
+          "name": "Swamp",
+          "set": "FDN",
+          "number": "286",
+          "rarity": "C"
+        },
+        {
+          "id": "c234",
+          "name": "Consuming Aberration",
+          "set": "FDN",
+          "number": "238",
+          "rarity": "R"
+        },
+        {
+          "id": "c235",
+          "name": "Tragic Banshee",
+          "set": "FDN",
+          "number": "73",
+          "rarity": "U"
+        },
+        {
+          "id": "c236",
+          "name": "Eager Trufflesnout",
+          "set": "FDN",
+          "number": "102",
+          "rarity": "U"
+        },
+        {
+          "id": "c237",
+          "name": "Vengeful Bloodwitch",
+          "set": "FDN",
+          "number": "76",
+          "rarity": "U"
+        },
+        {
+          "id": "c238",
+          "name": "Sylvan Scavenging",
+          "set": "FDN",
+          "number": "113",
+          "rarity": "R"
+        }
+      ],
+      [
+        {
+          "id": "c239",
+          "name": "Goblin Boarders",
+          "set": "FDN",
+          "number": "87",
+          "rarity": "C"
+        },
+        {
+          "id": "c240",
+          "name": "Uncharted Voyage",
+          "set": "FDN",
+          "number": "53",
+          "rarity": "C"
+        },
+        {
+          "id": "c241",
+          "name": "Ambush Wolf",
+          "set": "FDN",
+          "number": "98",
+          "rarity": "C"
+        },
+        {
+          "id": "c242",
+          "name": "Refute",
+          "set": "FDN",
+          "number": "48",
+          "rarity": "C"
+        },
+        {
+          "id": "c243",
+          "name": "Prideful Parent",
+          "set": "FDN",
+          "number": "21",
+          "rarity": "C"
+        },
+        {
+          "id": "c244",
+          "name": "Gorehorn Raider",
+          "set": "FDN",
+          "number": "89",
+          "rarity": "C"
+        },
+        {
+          "id": "c245",
+          "name": "Bigfin Bouncer",
+          "set": "FDN",
+          "number": "31",
+          "rarity": "C"
+        },
+        {
+          "id": "c246",
+          "name": "Chandra, Flameshaper",
+          "set": "FDN",
+          "number": "81",
+          "rarity": "M"
+        },
+        {
+          "id": "c247",
+          "name": "Bloodfell Caves",
+          "set": "FDN",
+          "number": "259",
+          "rarity": "C"
+        },
+        {
+          "id": "c248",
+          "name": "Ashroot Animist",
+          "set": "FDN",
+          "number": "117",
+          "rarity": "R"
+        },
+        {
+          "id": "c249",
+          "name": "Inspiration from Beyond",
+          "set": "FDN",
+          "number": "43",
+          "rarity": "U"
+        },
+        {
+          "id": "c250",
+          "name": "Hidetsugu's Second Rite",
+          "set": "FDN",
+          "number": "202",
+          "rarity": "U"
+        },
+        {
+          "id": "c251",
+          "name": "Brazen Scourge",
+          "set": "FDN",
+          "number": "191",
+          "rarity": "U"
+        },
+        {
+          "id": "c252",
+          "name": "Scavenging Ooze",
+          "set": "FDN",
+          "number": "232",
+          "rarity": "R"
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "id": "c253",
+          "name": "Helpful Hunter",
+          "set": "FDN",
+          "number": "16",
+          "rarity": "C"
+        },
+        {
+          "id": "c254",
+          "name": "Campus Guide",
+          "set": "FDN",
+          "number": "251",
+          "rarity": "C"
+        },
+        {
+          "id": "c255",
+          "name": "Courageous Goblin",
+          "set": "FDN",
+          "number": "82",
+          "rarity": "C"
+        },
+        {
+          "id": "c256",
+          "name": "Soul-Shackled Zombie",
+          "set": "FDN",
+          "number": "70",
+          "rarity": "C"
+        },
+        {
+          "id": "c257",
+          "name": "Eaten Alive",
+          "set": "FDN",
+          "number": "172",
+          "rarity": "C"
+        },
+        {
+          "id": "c258",
+          "name": "Thrill of Possibility",
+          "set": "FDN",
+          "number": "210",
+          "rarity": "C"
+        },
+        {
+          "id": "c259",
+          "name": "Gorehorn Raider",
+          "set": "FDN",
+          "number": "89",
+          "rarity": "C"
+        },
+        {
+          "id": "c260",
+          "name": "Quick-Draw Katana",
+          "set": "FDN",
+          "number": "130",
+          "rarity": "C"
+        },
+        {
+          "id": "c261",
+          "name": "Plains",
+          "set": "FDN",
+          "number": "283",
+          "rarity": "C"
+        },
+        {
+          "id": "c262",
+          "name": "Abyssal Harvester",
+          "set": "FDN",
+          "number": "54",
+          "rarity": "R"
+        },
+        {
+          "id": "c263",
+          "name": "Dauntless Veteran",
+          "set": "FDN",
+          "number": "8",
+          "rarity": "U"
+        },
+        {
+          "id": "c264",
+          "name": "Reclamation Sage",
+          "set": "FDN",
+          "number": "231",
+          "rarity": "U"
+        },
+        {
+          "id": "c265",
+          "name": "Slumbering Cerberus",
+          "set": "FDN",
+          "number": "94",
+          "rarity": "U"
+        },
+        {
+          "id": "c266",
+          "name": "Spectral Sailor",
+          "set": "FDN",
+          "number": "164",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c267",
+          "name": "Bite Down",
+          "set": "FDN",
+          "number": "212",
+          "rarity": "C"
+        },
+        {
+          "id": "c268",
+          "name": "Uncharted Voyage",
+          "set": "FDN",
+          "number": "53",
+          "rarity": "C"
+        },
+        {
+          "id": "c269",
+          "name": "Bake into a Pie",
+          "set": "FDN",
+          "number": "169",
+          "rarity": "C"
+        },
+        {
+          "id": "c270",
+          "name": "Squad Rallier",
+          "set": "FDN",
+          "number": "24",
+          "rarity": "C"
+        },
+        {
+          "id": "c271",
+          "name": "Vampire Soulcaller",
+          "set": "FDN",
+          "number": "75",
+          "rarity": "C"
+        },
+        {
+          "id": "c272",
+          "name": "Fleeting Distraction",
+          "set": "FDN",
+          "number": "155",
+          "rarity": "C"
+        },
+        {
+          "id": "c273",
+          "name": "Elfsworn Giant",
+          "set": "FDN",
+          "number": "103",
+          "rarity": "C"
+        },
+        {
+          "id": "c274",
+          "name": "Elementalist Adept",
+          "set": "FDN",
+          "number": "36",
+          "rarity": "C"
+        },
+        {
+          "id": "c275",
+          "name": "Scoured Barrens",
+          "set": "FDN",
+          "number": "266",
+          "rarity": "C"
+        },
+        {
+          "id": "c276",
+          "name": "Skyknight Squire",
+          "set": "FDN",
+          "number": "23",
+          "rarity": "R"
+        },
+        {
+          "id": "c277",
+          "name": "Ajani's Pridemate",
+          "set": "FDN",
+          "number": "135",
+          "rarity": "U"
+        },
+        {
+          "id": "c278",
+          "name": "Faebloom Trick",
+          "set": "FDN",
+          "number": "38",
+          "rarity": "U"
+        },
+        {
+          "id": "c279",
+          "name": "Reclamation Sage",
+          "set": "FDN",
+          "number": "231",
+          "rarity": "U"
+        },
+        {
+          "id": "c280",
+          "name": "Frenzied Goblin",
+          "set": "FDN",
+          "number": "199",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c281",
+          "name": "Giant Growth",
+          "set": "FDN",
+          "number": "223",
+          "rarity": "C"
+        },
+        {
+          "id": "c282",
+          "name": "Involuntary Employment",
+          "set": "FDN",
+          "number": "203",
+          "rarity": "C"
+        },
+        {
+          "id": "c283",
+          "name": "Cathar Commando",
+          "set": "FDN",
+          "number": "139",
+          "rarity": "C"
+        },
+        {
+          "id": "c284",
+          "name": "Infestation Sage",
+          "set": "FDN",
+          "number": "64",
+          "rarity": "C"
+        },
+        {
+          "id": "c285",
+          "name": "Run Away Together",
+          "set": "FDN",
+          "number": "162",
+          "rarity": "C"
+        },
+        {
+          "id": "c286",
+          "name": "Eaten Alive",
+          "set": "FDN",
+          "number": "172",
+          "rarity": "C"
+        },
+        {
+          "id": "c287",
+          "name": "Dwynen's Elite",
+          "set": "FDN",
+          "number": "218",
+          "rarity": "C"
+        },
+        {
+          "id": "c288",
+          "name": "Etali, Primal Storm",
+          "set": "FDN",
+          "number": "194",
+          "rarity": "R"
+        },
+        {
+          "id": "c289",
+          "name": "Forest",
+          "set": "FDN",
+          "number": "291",
+          "rarity": "C"
+        },
+        {
+          "id": "c290",
+          "name": "High Fae Trickster",
+          "set": "FDN",
+          "number": "40",
+          "rarity": "R"
+        },
+        {
+          "id": "c291",
+          "name": "Meteor Golem",
+          "set": "FDN",
+          "number": "256",
+          "rarity": "U"
+        },
+        {
+          "id": "c292",
+          "name": "Bulk Up",
+          "set": "FDN",
+          "number": "80",
+          "rarity": "U"
+        },
+        {
+          "id": "c293",
+          "name": "Firespitter Whelp",
+          "set": "FDN",
+          "number": "197",
+          "rarity": "U"
+        },
+        {
+          "id": "c294",
+          "name": "Adventuring Gear",
+          "set": "FDN",
+          "number": "249",
+          "rarity": "U"
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "id": "c295",
+          "name": "Healer's Hawk",
+          "set": "FDN",
+          "number": "142",
+          "rarity": "C"
+        },
+        {
+          "id": "c296",
+          "name": "Wary Thespian",
+          "set": "FDN",
+          "number": "235",
+          "rarity": "C"
+        },
+        {
+          "id": "c297",
+          "name": "Cathar Commando",
+          "set": "FDN",
+          "number": "139",
+          "rarity": "C"
+        },
+        {
+          "id": "c298",
+          "name": "Gutless Plunderer",
+          "set": "FDN",
+          "number": "60",
+          "rarity": "C"
+        },
+        {
+          "id": "c299",
+          "name": "Grow from the Ashes",
+          "set": "FDN",
+          "number": "225",
+          "rarity": "C"
+        },
+        {
+          "id": "c300",
+          "name": "Bigfin Bouncer",
+          "set": "FDN",
+          "number": "31",
+          "rarity": "C"
+        },
+        {
+          "id": "c301",
+          "name": "Erudite Wizard",
+          "set": "FDN",
+          "number": "37",
+          "rarity": "C"
+        },
+        {
+          "id": "c302",
+          "name": "Campus Guide",
+          "set": "FDN",
+          "number": "251",
+          "rarity": "C"
+        },
+        {
+          "id": "c303",
+          "name": "Tranquil Cove",
+          "set": "FDN",
+          "number": "270",
+          "rarity": "C"
+        },
+        {
+          "id": "c304",
+          "name": "High-Society Hunter",
+          "set": "FDN",
+          "number": "61",
+          "rarity": "R"
+        },
+        {
+          "id": "c305",
+          "name": "Dauntless Veteran",
+          "set": "FDN",
+          "number": "8",
+          "rarity": "U"
+        },
+        {
+          "id": "c306",
+          "name": "Sun-Blessed Healer",
+          "set": "FDN",
+          "number": "25",
+          "rarity": "U"
+        },
+        {
+          "id": "c307",
+          "name": "Fishing Pole",
+          "set": "FDN",
+          "number": "128",
+          "rarity": "U"
+        },
+        {
+          "id": "c308",
+          "name": "Spinner of Souls",
+          "set": "FDN",
+          "number": "112",
+          "rarity": "R"
+        }
+      ],
+      [
+        {
+          "id": "c309",
+          "name": "Squad Rallier",
+          "set": "FDN",
+          "number": "24",
+          "rarity": "C"
+        },
+        {
+          "id": "c310",
+          "name": "Sure Strike",
+          "set": "FDN",
+          "number": "209",
+          "rarity": "C"
+        },
+        {
+          "id": "c311",
+          "name": "Beast-Kin Ranger",
+          "set": "FDN",
+          "number": "100",
+          "rarity": "C"
+        },
+        {
+          "id": "c312",
+          "name": "Bigfin Bouncer",
+          "set": "FDN",
+          "number": "31",
+          "rarity": "C"
+        },
+        {
+          "id": "c313",
+          "name": "Cackling Prowler",
+          "set": "FDN",
+          "number": "101",
+          "rarity": "C"
+        },
+        {
+          "id": "c314",
+          "name": "Healer's Hawk",
+          "set": "FDN",
+          "number": "142",
+          "rarity": "C"
+        },
+        {
+          "id": "c315",
+          "name": "Eaten Alive",
+          "set": "FDN",
+          "number": "172",
+          "rarity": "C"
+        },
+        {
+          "id": "c316",
+          "name": "Crackling Cyclops",
+          "set": "FDN",
+          "number": "83",
+          "rarity": "C"
+        },
+        {
+          "id": "c317",
+          "name": "Blossoming Sands",
+          "set": "FDN",
+          "number": "260",
+          "rarity": "C"
+        },
+        {
+          "id": "c318",
+          "name": "Elvish Archdruid",
+          "set": "FDN",
+          "number": "219",
+          "rarity": "R"
+        },
+        {
+          "id": "c319",
+          "name": "Dauntless Veteran",
+          "set": "FDN",
+          "number": "8",
+          "rarity": "U"
+        },
+        {
+          "id": "c320",
+          "name": "Dwynen, Gilt-Leaf Daen",
+          "set": "FDN",
+          "number": "217",
+          "rarity": "U"
+        },
+        {
+          "id": "c321",
+          "name": "Ruby, Daring Tracker",
+          "set": "FDN",
+          "number": "245",
+          "rarity": "U"
+        },
+        {
+          "id": "c322",
+          "name": "Tatyova, Benthic Druid",
+          "set": "FDN",
+          "number": "247",
+          "rarity": "U"
+        }
+      ],
+      [
+        {
+          "id": "c323",
+          "name": "Gnarlid Colony",
+          "set": "FDN",
+          "number": "224",
+          "rarity": "C"
+        },
+        {
+          "id": "c324",
+          "name": "Campus Guide",
+          "set": "FDN",
+          "number": "251",
+          "rarity": "C"
+        },
+        {
+          "id": "c325",
+          "name": "Pilfer",
+          "set": "FDN",
+          "number": "181",
+          "rarity": "C"
+        },
+        {
+          "id": "c326",
+          "name": "Beast-Kin Ranger",
+          "set": "FDN",
+          "number": "100",
+          "rarity": "C"
+        },
+        {
+          "id": "c327",
+          "name": "Make Your Move",
+          "set": "FDN",
+          "number": "143",
+          "rarity": "C"
+        },
+        {
+          "id": "c328",
+          "name": "Burst Lightning",
+          "set": "FDN",
+          "number": "192",
+          "rarity": "C"
+        },
+        {
+          "id": "c329",
+          "name": "Goldvein Pick",
+          "set": "FDN",
+          "number": "253",
+          "rarity": "C"
+        },
+        {
+          "id": "c330",
+          "name": "Twinblade Blessing",
+          "set": "FDN",
+          "number": "26",
+          "rarity": "U"
+        },
+        {
+          "id": "c331",
+          "name": "Swamp",
+          "set": "FDN",
+          "number": "286",
+          "rarity": "C"
+        },
+        {
+          "id": "c332",
+          "name": "Valkyrie's Call",
+          "set": "FDN",
+          "number": "27",
+          "rarity": "M"
+        },
+        {
+          "id": "c333",
+          "name": "Hidetsugu's Second Rite",
+          "set": "FDN",
+          "number": "202",
+          "rarity": "U"
+        },
+        {
+          "id": "c334",
+          "name": "Ruby, Daring Tracker",
+          "set": "FDN",
+          "number": "245",
+          "rarity": "U"
+        },
+        {
+          "id": "c335",
+          "name": "Revenge of the Rats",
+          "set": "FDN",
+          "number": "67",
+          "rarity": "U"
+        },
+        {
+          "id": "c336",
+          "name": "Divine Resilience",
+          "set": "FDN",
+          "number": "10",
+          "rarity": "U"
+        }
+      ]
+    ]
+  ]
+}

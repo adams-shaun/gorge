@@ -149,6 +149,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			return events.Event{}
 		}
 	}
+	if ev.Kind == events.Tap && ev.Text == "entered tapped" && e.entersUntappedApplies(ev.Obj) {
+		return events.Event{}
+	}
 	// CR 702.34a and its family: a keyword-cast spell leaving the stack is
 	// exiled wherever it would go, before any replacement sees the move.
 	e.keywordExileDeparture(&ev)
@@ -378,8 +381,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	var abilityMintWant state.ObjID
-	switch ev.Kind {
-	case events.AbilityPush, events.KeywordAbilityPush, events.GrantAbilityPush, events.GainedAbilityPush:
+	if ev.IsActivationMint() {
 		abilityMintWant = e.G.NextID
 	}
 	var tokenMintWant state.ObjID
@@ -664,16 +666,25 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// Banisher Priest pattern): the exiling permanent has just left the
 		// battlefield, so every card it exiled under that duration and that is
 		// still in exile returns to the zone it was exiled from, under its
-		// owner's control. The sweep runs BEFORE this leave event's own
-		// triggers are matched, matching Forge's command semantics (the return
-		// is not a triggered ability); the returned cards' own ETB triggers
-		// are queued by their return move's emit. events.Move prunes the
-		// marker entries when their object leaves exile by any other path, so
-		// the sweep can never return a card whose exile was another effect's
+		// owner's control. The return is not a triggered ability, so it runs
+		// BEFORE this leave event's own triggers are matched; the returned
+		// cards' own ETB triggers are queued by their return move's emit. A
+		// departure in a zone batch waits for the batch to close instead: the
+		// return follows the whole simultaneous event (CR 610.3, 610.3d), and
+		// the permanents leaving with this one are gone by then (CR 303.4g's
+		// "no legal object"). events.Move prunes the marker
+		// entries when their object leaves exile by any other path, so the
+		// sweep can never return a card whose exile was another effect's
 		// business, and a card exiled again by something else after it was
 		// once returned is equally out of reach.
 		if o := e.G.Obj(ev.Obj); o != nil && o.Zone != state.ZBattlefield {
-			e.sweepExileReturn(ev.Obj)
+			if e.zoneBatchOpen {
+				if len(o.ExileReturn) > 0 {
+					e.exileReturnHeld = append(e.exileReturnHeld, ev.Obj)
+				}
+			} else {
+				e.sweepExileReturn(ev.Obj)
+			}
 		}
 	}
 	if ev.Kind == events.MoveZone {
@@ -864,6 +875,18 @@ func (e *Engine) sweepExileReturn(source state.ObjID) {
 		if entry.Ret {
 			e.runExileReturnAbility(source, entry.Obj)
 		}
+	}
+}
+
+// flushExileReturns runs the returns a closed zone batch held, as one batch of
+// their own: cards returning after one event return together (CR 610.3d).
+func (e *Engine) flushExileReturns() {
+	held := e.exileReturnHeld
+	e.exileReturnHeld = nil
+	e.openZoneBatch()
+	defer e.closeZoneBatch()
+	for _, source := range held {
+		e.sweepExileReturn(source)
 	}
 }
 

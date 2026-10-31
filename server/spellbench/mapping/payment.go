@@ -92,7 +92,7 @@ func newManaWindow(env *Env, d *decision.Decision) (Transaction, error) {
 			done = o.Index
 		}
 	}
-	c, err := env.G.Probe(Intent(d, done))
+	c, err := env.G.R.Probe(Intent(d, done))
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func newManaWindow(env *Env, d *decision.Decision) (Transaction, error) {
 		// election. While mana sources remain, Done leaves the pool short
 		// and declines the charge. A final, Done-only window completes the
 		// preceding selection; it must not invent a second pay/decline ask.
-		if ask == nil && !c.G.Over {
+		if ask == nil && !c.Board().Over {
 			return nil, fmt.Errorf("%w:mana_window_no_continuation", ErrUnmapped)
 		}
 		sem := protocol.OptionalCost(src, unlessCost(d), false)

@@ -27,10 +27,9 @@ func writeError(w http.ResponseWriter, status int, code, msg string) {
 	writeJSON(w, status, errorBody{Code: code, Message: msg})
 }
 
-// writeProtocolError writes an mb.ProtocolError body (§6.4/Appendix A.1):
+// writeProtocolError writes an mb.ProtocolError body:
 // this is the shape a rejected /send response gets, both in the HTTP reply
-// (§5.2: "The HTTP reply body carries the same ProtocolError") and pushed
-// onto any open stream for the seat.
+// and pushed onto any open stream for the seat.
 func writeProtocolError(w http.ResponseWriter, pe mb.ProtocolError) {
 	writeJSON(w, statusForCode(pe.Code), pe)
 }

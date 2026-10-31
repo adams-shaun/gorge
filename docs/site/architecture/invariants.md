@@ -7,10 +7,6 @@ anyone changing engine, server or bot code: read it before your first
 non-trivial change, and come back when a ratchet or golden test fails and you
 want to know what it is protecting.
 
-*Every test named here was checked to exist on `develop` @ `25d71cadc`,
-2026-10-27; the ones in the summary ran green on `develop` @ `513a2a0c3`,
-2026-10-21.*
-
 Where a rule is held only by convention (nothing mechanical catches you at
 the point of writing), the page says so; the after-the-fact backstop is
 usually the replay and golden-head tests.
@@ -23,8 +19,8 @@ usually the replay and golden-head tests.
 | 2 | [`events.Kind` is append-only](#eventskind-is-append-only) | `TestEveryKindHasADescriptor`, the golden heads and replay fixtures |
 | 3 | [No nondeterminism](#no-nondeterminism) | `TestTimeIsImportedOnlyByTheHost`, `TestNoLegacyMathRand`; map order by convention |
 | 4 | [No cgo, no third-party dependencies](#no-cgo-no-third-party-dependencies) | `TestRootModuleHasNoRequires`, `TestEngineCompilesFor32Bit` |
-| 5 | [`engine/` imports nothing outside `engine/`](#engine-imports-nothing-outside-engine) | `TestDependencyOrderHolds` and the `layering_*` tests (named edges) |
-| 6 | [Never commit Forge card scripts](#never-commit-forge-card-scripts) | `TestNoForgeScriptsTracked` |
+| 5 | [`engine/` imports nothing outside `engine/`](#engine-imports-nothing-outside-engine) | `TestDependencyOrderHolds`, `TestEngineTierImportsNeitherDraftNorDirac` and the `layering_*` tests (named edges) |
+| 6 | [Never commit Forge card scripts](#never-commit-forge-card-scripts) | `TestNoForgeScriptsTracked`, `TestNoVerbatimForgeLines`, `TestPublicBoundary` |
 | 7 | [The decision kinds are a closed set](#the-decision-kinds-are-a-closed-set) | `TestKindsListsEveryKindOnce` |
 | 8 | [Seats see only their view; the server trusts no client](#seats-see-only-their-view-the-server-trusts-no-client) | `TestNoExportLeaksAnEngineGame`, the `engine/view` redaction tests, `decision.Validate`'s tests, the `httpapi` claim tests |
 | 9 | [Ratchets only shrink](#ratchets-only-shrink) | `TestEveryRepoDeckIsFullySupported`, `TestEveryRepoDeckParamsAreRead`, `TestKnownApproximationsOnlyShrinks`, … |
@@ -36,9 +32,9 @@ Two companion documents record behaviour that is *not* an invariant
 violation even though it can look like one: the
 [engine contracts](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-22-engine-contracts.md)
 (deliberate behaviour, such as the deterministic fallback every asking
-primitive uses when its host cannot answer) and the *Known approximations*
-register, one file per row in `docs/agents/known-approximations/` (real,
-shrinking debt).
+primitive uses when its host cannot answer) and the
+[known approximations](https://github.com/adams-shaun/gorge/tree/main/docs/agents/known-approximations)
+(real, shrinking debt, one file per row).
 
 ## All state mutation goes through `events.Apply`
 
@@ -72,7 +68,7 @@ heads; `engine/replay` names the first divergent event
 (`replay.FirstDivergence`).
 
 **To change.** Never. If you need new state, add an event kind
-([invariant 2](#eventskind-is-append-only)) and its `events.Apply` case.
+([append it](#eventskind-is-append-only)) and its `events.Apply` case.
 
 **Classic mistake.** A rules helper sets `obj.Tapped = true` or bumps a
 counter field directly "because it is only bookkeeping". Every test passes
@@ -113,7 +109,8 @@ comments in `event.go` show the form.
   `TestTimeIsImportedOnlyByTheHost` (`internal/archtest/arch_test.go`) may
   import `time`: the server (`server/host`, `server/host/httpapi`,
   `server/host/manabrewhttp`, `server/gorged`) for its injected sleep, SSE
-  keep-alive and deadlines, and three measurement commands (`cmd/cardfuzz`,
+  keep-alive and deadlines, `draft/eventhost` for its lobby and pick timers, and three
+  measurement commands (`cmd/cardfuzz`,
   `cmd/paymirror`, `cmd/enginebench`) that time only their own runs. Library
   code that needs timing takes an injected hook.
 - **No ambient randomness.** The engine has one seeded PCG source with a draw
@@ -161,12 +158,10 @@ structural: a module with no `require` cannot import a companion repository.
 build.
 
 **To change.** An experiment that genuinely needs a third-party module lives
-in its own module that imports gorge, never the other way round. (AGENTS.md
-records one planned exception, `wazero`, for a future plugin tier.)
+in its own module that imports gorge, never the other way round.
 
-**Classic mistake.** It happened: a GPU game pool added
-`github.com/ebitengine/purego` to `go.mod` on 2026-10-08. It moved out of
-gorge, and the test above was added so it cannot recur.
+**Classic mistake.** Adding a small helper module to `go.mod` for an experiment
+that could live outside. The test above fails as soon as a `require` appears.
 
 ## `engine/` imports nothing outside `engine/`
 
@@ -197,11 +192,9 @@ for the named edges; `TestCostVocabularyIsALeaf`,
 `TestCombatImportsStayBelowRules`, `TestTrigmatchImportsStayBelowL5`,
 `TestScriptFactsImportsStayBelowRules`, `TestCharsImportsStayBelowRules`,
 `TestResolveImportsStayBelowRules`, `TestPayImportsStayBelowRules` and the
-`*BoardOnlyShrinks` tests for the sub-packages. The group rule itself
-(`engine/` → nothing outside) is **measured, not yet one test**:
-`go list -deps ./engine/...` showed no gorge package outside `engine/` and no
-non-standard-library package on 2026-10-27. `cmd/pkgmap` draws any tier
-back-edge in red on [Packages](packages.md).
+`*BoardOnlyShrinks` tests for the sub-packages, and `TestEngineTierImportsNeitherDraftNorDirac`
+for the trees above. The group rule as a whole isn't one test: `go list -deps ./engine/...` shows
+it, and `cmd/pkgmap` draws any tier back-edge in red on [Packages](packages.md).
 
 **To change.** Adding a forbidden edge is welcome. Removing one needs a
 design discussion first.
@@ -227,10 +220,13 @@ is distributed with it.
 **Enforced by.** `TestNoForgeScriptsTracked`
 (`engine/cards/boundary_test.go`), which checks the working tree, the index
 and `HEAD` and recognises a script by content (a `Name:` first line and an
-`Oracle:` line), not by path.
+`Oracle:` line), not by path. In `internal/archtest`, `TestNoVerbatimForgeLines` catches a
+fragment in the draft stack and holds a shrinking baseline elsewhere, and `TestPublicBoundary`
+fails on generated card tables, private paths and imports of the private module. Tables
+generated from the scripts are never committed, for the same licence reason.
 
 **To change.** Not negotiable. A script that is wrong is fixed on the fork
-([adams-shaun/forge](https://github.com/adams-shaun/forge), branch `gorge`)
+([adams-shaun/forge](https://github.com/adams-shaun/forge))
 and sent upstream; gorge picks it up when `FORGE_REF` moves.
 
 **Classic mistake.** Copying a card's script into a test so the test does not
@@ -243,7 +239,7 @@ fixtures strip token-script text into the gitignored
 ## The decision kinds are a closed set
 
 **Rule.** When the engine needs a player's input it poses a
-`decision.Decision` of one of exactly thirteen kinds (`decision.Kinds` in
+`decision.Decision` of one of a fixed list of kinds (`decision.Kinds` in
 `engine/decision/decision.go`): `priority`, `target`, `attackers`,
 `blockers`, `mulligan`, `modes`, `trigger_order`, `trigger_optional`,
 `commander_zone`, `choose`, `replacement`, `arrange`, `starting_player`.
@@ -304,9 +300,7 @@ the view redaction tests such as
 new client-visible state goes through `engine/view`.
 
 **Classic mistake.** A route that takes the seat from the query string or the
-request body instead of the credential. An earlier claim format that did not
-name its table carried cross-table privilege; such claims are now refused
-outright rather than grandfathered.
+request body instead of the credential. A claim that doesn't name its table is refused outright.
 
 ## Ratchets only shrink
 
@@ -315,18 +309,15 @@ outright rather than grandfathered.
 closed is stale and fails too. A branch deletes entries; it never adds one or
 raises a ceiling.
 
-| Table | Test | Today |
-|---|---|---|
-| `engine/rules/testdata/known-unsupported/` (one file per repo-deck card the build cannot fully play) | `TestEveryRepoDeckIsFullySupported` | 2 of 1,123 cards |
-| `engine/rules/testdata/paramcensus/` (cards with a parameter no code reads) | `TestEveryRepoDeckParamsAreRead` | 3 of 1,123 cards |
-| `knownUnmodelledCountHeads` | `TestEveryRepoDeckCountHeadResolves` (`engine/rules/count_head_ratchet_test.go`) | |
-| `effects.modelledValueHeads` vs the evaluator | `TestValueHeadRegistryMatchesEvaluator` | |
-| the *Known approximations* register (`docs/agents/known-approximations/`, one file per row, each capped in `ALLOWED.txt`) | `TestKnownApproximationsOnlyShrinks` (`testkit/testutil/agentsdoc_test.go`) | 2 rows, each within its byte cap |
-| function-length and interface-width ceilings | `TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink` (`internal/codeshape`) | skipped by the maintainers since 2026-10-06; the direction still holds |
-| test-budget exception lists | `cmd/testbudget` | see [invariant 11](#every-test-fits-the-budget) |
-
-*"Today" from `go test -v -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' ./engine/rules/`
-and `docs/agents/known-approximations/ALLOWED.txt`, 2026-10-27 at `25d71cadc`.*
+| Table | Test |
+|---|---|
+| `engine/rules/testdata/known-unsupported/` (one file per repo-deck card the build cannot fully play) | `TestEveryRepoDeckIsFullySupported` |
+| `engine/rules/testdata/paramcensus/` (cards with a parameter no code reads; absent while nothing is outstanding) | `TestEveryRepoDeckParamsAreRead` |
+| `knownUnmodelledCountHeads` | `TestEveryRepoDeckCountHeadResolves` (`engine/rules/count_head_ratchet_test.go`) |
+| `effects.modelledValueHeads` vs the evaluator | `TestValueHeadRegistryMatchesEvaluator` |
+| the known approximations (`docs/agents/known-approximations/`, each file capped in `ALLOWED.txt`) | `TestKnownApproximationsOnlyShrinks` (`testkit/testutil/agentsdoc_test.go`) |
+| function-length and interface-width ceilings | `TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink` (`internal/codeshape`), currently skipped; the direction still holds |
+| test-budget exception lists | `cmd/testbudget`; see [its invariant](#every-test-fits-the-budget) |
 
 **Why.** "Supported" should only ever mean more. A two-way ratchet makes the
 table the exact truth: it cannot silently understate a regression, and it
@@ -366,7 +357,7 @@ commit message, not in a file.
 
 **Classic mistake.** Re-pinning because "the heads always move". An
 unexplained moved head is a bug, often nondeterminism
-([invariant 3](#no-nondeterminism)).
+([no nondeterminism](#no-nondeterminism)).
 
 ## Every test fits the budget
 
@@ -374,8 +365,7 @@ unexplained moved head is a bug, often nondeterminism
 wall time**. One that does not is a defect: split it into chunk tests that
 share fixtures; never trim its coverage.
 
-**Why.** The full suite (over 12,900 top-level `Test` functions on 2026-10-27) runs on shared machines after
-every merge. One unbounded test can stall or kill everything else running
+**Why.** The full suite runs on shared machines after every merge. One unbounded test can stall or kill everything else running
 there.
 
 **Enforced by.** `cmd/testbudget`, wired into the post-merge full suite: it

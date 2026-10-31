@@ -111,7 +111,7 @@ const bots = (policies: string[], drafters: string[] = []): SeatChoice[] => [
 
 describe('create request', () => {
   const p = (name: string, formats: string[]): BotPolicyInfo => ({
-    name, label: name, description: '', tier: 'production', strength: [], mean_ms: 0, p95_ms: 0, cost_scope: '', cost_note: '', search: false, formats,
+    name, label: name, description: '', tier: 'production', mean_ms: 0, p95_ms: 0, cost_scope: '', cost_note: '', search: false, formats,
   });
   it('offers only policies that play constructed', () => {
     expect(eventPolicies([p('a', ['constructed', 'commander']), p('b', ['commander'])]).map((x) => x.name)).toEqual(['a']);

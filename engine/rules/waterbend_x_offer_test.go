@@ -25,7 +25,7 @@ func requireWaterbendXOfferSetup(t *testing.T, e *Engine, id state.ObjID, taps [
 	}
 	for _, tap := range taps {
 		o := e.G.Obj(tap)
-		if o == nil || o.Zone != state.ZBattlefield || o.Controller != 0 || o.Tapped || !(o.EffectiveIsArtifact() || o.EffectiveIsCreature()) || e.untappedManaSource(0, tap) {
+		if o == nil || o.Zone != state.ZBattlefield || o.Controller != 0 || o.Tapped || !(e.IsArtifact(tap) || e.IsCreature(tap)) || e.untappedManaSource(0, tap) {
 			t.Fatalf("precondition: %d must be an untapped, eligible non-mana artifact/creature on the battlefield: %+v", tap, o)
 		}
 	}
@@ -65,7 +65,7 @@ func TestWaterbendXAbilityWithheldWithoutTaps(t *testing.T) {
 	requireWaterbendXOfferSetup(t, e, id, nil)
 	for _, oid := range e.G.Zone(state.ZBattlefield, 0) {
 		o := e.G.Obj(oid)
-		if !o.Tapped && (o.EffectiveIsArtifact() || o.EffectiveIsCreature()) {
+		if !o.Tapped && (e.IsArtifact(oid) || e.IsCreature(oid)) {
 			t.Fatalf("precondition: no untapped tap candidates, found %d", oid)
 		}
 	}

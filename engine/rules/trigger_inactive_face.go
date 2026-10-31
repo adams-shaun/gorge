@@ -21,11 +21,23 @@ func inactiveFaceLayout(c *cards.Card) bool {
 // triggerPushAmount is the TriggerPush Amount for pt: the plain trigger index
 // when the line is on the source's live face (every ordinary push), the
 // face-packed value (events.TriggerPushFaceAmount) when the compiled line pt.SA
-// is on the card's other face.
+// is on the card's other face, or the trigger's copy face
+// (events.TriggerPushLeftCopyAmount) when the source has since left the
+// battlefield.
 func triggerPushAmount(g *state.Game, pt pendingTrigger) int32 {
 	idx := pt.Idx
 	src := g.Obj(pt.Source)
-	if src == nil || !inactiveFaceLayout(src.Card) || pt.SA == nil || idx < 0 {
+	if src == nil || pt.SA == nil || idx < 0 {
+		return int32(idx)
+	}
+	if src.LeftCopyFace != nil && src.CopyFace == nil {
+		for ti := range src.LeftCopyFace.Triggers {
+			if src.LeftCopyFace.Triggers[ti].Effect == pt.SA {
+				return events.TriggerPushLeftCopyAmount(ti)
+			}
+		}
+	}
+	if !inactiveFaceLayout(src.Card) {
 		return int32(idx)
 	}
 	_, _, face, faceIdx, ok := printedFaceTrigger(src, pt.SA)

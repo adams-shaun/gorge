@@ -14,8 +14,8 @@ var benchmarkObjectTriggerEligibility bool
 
 // The mapping is an over-approximation of the CURRENT matcher, not an
 // expansion of Forge support. SpellAbilityCast is the spell-or-activate
-// union (targetsvalid1): AbilityPush on the activation arm, PutOnStack on
-// the spell arm.
+// union (targetsvalid1): the activation mints on the activation arm,
+// PutOnStack on the spell arm.
 func TestTriggerEligibilityEventMatrix(t *testing.T) {
 	for _, tc := range []struct {
 		mode  string
@@ -26,8 +26,8 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		// trigmatch_zone.go models the mint as Library -> Battlefield).
 		{"ChangesZone", []events.Kind{events.MoveZone, events.Draw, events.PutOnStack, events.TokenCreate, events.CardToken}},
 		{"SpellCast", []events.Kind{events.PutOnStack}},
-		{"AbilityCast", []events.Kind{events.AbilityPush}},
-		{"SpellAbilityCast", []events.Kind{events.AbilityPush, events.PutOnStack}},
+		{"AbilityCast", []events.Kind{events.AbilityPush, events.DelayedPush}},
+		{"SpellAbilityCast", []events.Kind{events.AbilityPush, events.DelayedPush, events.PutOnStack}},
 		{"Attacks", []events.Kind{events.DeclareAttackers}},
 		{"AttackersDeclaredOneTarget", []events.Kind{events.DeclareAttackers}},
 		{"Blocks", []events.Kind{events.DeclareBlockers}},
@@ -106,7 +106,7 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			want = cards.TriggerInterestAttackDeclaration
 		case events.TargetsChosen:
 			want = cards.TriggerInterestTargetsChosen
-		case events.AbilityPush, events.KeywordAbilityPush:
+		case events.AbilityPush, events.KeywordAbilityPush, events.GrantAbilityPush, events.GainedAbilityPush, events.DelayedPush:
 			want = cards.TriggerInterestAbilityPush
 		case events.Attach:
 			want = cards.TriggerInterestAttach

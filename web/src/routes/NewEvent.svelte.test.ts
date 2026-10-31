@@ -152,8 +152,14 @@ describe('/events/new in a browser', () => {
 });
 
 describe('Overview draft entry', () => {
-  it('links to /events/new beside play-vs-bot', () => {
+  it('is hidden until the server says it serves events', () => {
     const { body } = render(DraftEntry, {});
+    expect(body).not.toContain('data-testid="draft-entry"');
+    expect(body).not.toContain('href="/events/new"');
+  });
+
+  it('links to /events/new beside play-vs-bot on a server that serves events', () => {
+    const { body } = render(DraftEntry, { props: { initialEnabled: true } });
     expect(body).toContain('href="/events/new"');
     expect(body).toContain('>Draft<');
   });

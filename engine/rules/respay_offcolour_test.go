@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestTriggeredPayNotOfferedWithoutTheColour (dirty-dirac pair 589, Flamewake
+// TestTriggeredPayNotOfferedWithoutTheColour (dirac pair 589, Flamewake
 // Phoenix with only Tranquil Cove untapped): a triggered "you may pay {R}"
 // whose payer's one untapped source makes {W} or {U} offers decline only
 // (CR 118.3). PotentialMana prices the Cove's "Combo W U" unbounded in every
@@ -48,7 +48,7 @@ func TestTriggeredPayNotOfferedWithoutTheColour(t *testing.T) {
 	}
 }
 
-// TestTriggeredPayNotOfferedFromRestrictedMana (dirty-dirac pairs 1638 and
+// TestTriggeredPayNotOfferedFromRestrictedMana (dirac pairs 1638 and
 // 6403, Frenzied Goblin with only Secluded Courtyard, or only a white
 // Heraldic Banner and a Plains, untapped): the election offers decline only
 // when no untapped source can make mana that may pay the triggered "you may

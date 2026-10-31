@@ -338,6 +338,9 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	grant := compilePumpGrant(sa)
 	g := h.Game()
 	scope := targetPlayerKindScope(h, c, sa)
+	// Read before the walk (CR 608.2h): a pump registered below must not change
+	// the amount the next object gets.
+	numAtt, numDef := Num(h, c, sa, "NumAtt", 0), Num(h, c, sa, "NumDef", 0)
 	var ateotIDs []state.ObjID
 	for si, p := range g.AliveFrom(0) {
 		if zone != "" {
@@ -382,8 +385,8 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 							c.Remembered = append(c.Remembered, state.Target{Obj: id})
 							eventRemember(h, c, id)
 						}
-						att := NumForObject(h, c, sa, "NumAtt", 0, id)
-						def := NumForObject(h, c, sa, "NumDef", 0, id)
+						att := NumForObject(h, sa, "NumAtt", numAtt, id)
+						def := NumForObject(h, sa, "NumDef", numDef, id)
 						registerPumpEffects(h, c, id, att, def, false, false, &grant, zone, nil)
 						ateotIDs = append(ateotIDs, id)
 					}
@@ -400,8 +403,8 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 					c.Remembered = append(c.Remembered, state.Target{Obj: id})
 					eventRemember(h, c, id)
 				}
-				att := NumForObject(h, c, sa, "NumAtt", 0, id)
-				def := NumForObject(h, c, sa, "NumDef", 0, id)
+				att := NumForObject(h, sa, "NumAtt", numAtt, id)
+				def := NumForObject(h, sa, "NumDef", numDef, id)
 				registerPumpEffects(h, c, id, att, def, false, false, &grant, "", nil)
 				ateotIDs = append(ateotIDs, id)
 			}
@@ -680,6 +683,7 @@ func animateWouldChange(h Host, c *Ctx, sa *cards.SA, ag animateGrant) bool {
 func animateGrantChanges(ag animateGrant) bool {
 	return ag.hasPower || ag.hasTough || len(ag.types) > 0 || ag.removeCreatureTypes ||
 		len(ag.removeTypes) > 0 || ag.allCreatureTypes || ag.removeCardTypes || ag.removeLandTypes ||
+		ag.removeArtifactTypes || ag.removeEnchantmentTypes ||
 		ag.name != "" || ag.colorsRaw != "" || len(ag.kws) > 0 || len(ag.hiddenKws) > 0 ||
 		len(ag.abilities) > 0 || len(ag.triggers) > 0 || len(ag.svars) > 0 ||
 		len(ag.staticAbilities) > 0 || len(ag.removeKeywords) > 0 || ag.removeAbilities ||
@@ -703,6 +707,9 @@ type animateGrant struct {
 	// before this animation's Types$ apply (CR 305.7 "becomes a Swamp";
 	// state.ContinuousEffect.RemoveLandTypes, the Blood Moon field).
 	removeLandTypes bool
+	// removeArtifactTypes and removeEnchantmentTypes are the same strip of
+	// those subtype sets.
+	removeArtifactTypes, removeEnchantmentTypes bool
 	// name is the Name$ rider: the animated object's derived NAME for the
 	// animation's own lifetime (CR 613.1d, layer 3). It is registered as a
 	// real layer-3 SetName ContinuousEffect -- the same characteristic the
@@ -894,13 +901,15 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 		ag.removeTypes = append(ag.removeTypes, strings.Fields(part)...)
 	}
 	// RemoveCardTypes$ True (state.ContinuousEffect.RemoveCardTypes, the
-	// Darksteel Mutation strip) keeps only the object's supertypes in the
-	// layer-4 walk -- one line on the shared path, so both primitives read it.
+	// Darksteel Mutation strip) applies in the layer-4 walk -- one line on the
+	// shared path, so both primitives read it.
 	ag.removeCardTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveCardTypes)), "True")
 	// RemoveLandTypes$ True ("target land becomes a Swamp", Nightcreep's
 	// "all lands become Swamps"): the layer-4 land-subtype strip the
 	// printed-static family (Blood Moon) registers, on the same LType effect.
 	ag.removeLandTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveLandTypes)), "True")
+	ag.removeArtifactTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveArtifactTypes)), "True")
+	ag.removeEnchantmentTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveEnchantmentTypes)), "True")
 	// A "ChosenType" element in Types$ resolves against the resolving
 	// source's recorded type choice (Elsewhere Flask's AB$ ChooseType
 	// SubAbility$ DBAnimate chain -- choose.go records the choice on the
@@ -1151,14 +1160,15 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			AffectedZone: ag.zone,
 		})
 	}
-	if len(ag.types) > 0 || ag.removeCreatureTypes || len(ag.removeTypes) > 0 || ag.allCreatureTypes || ag.removeCardTypes || ag.removeLandTypes {
+	if len(ag.types) > 0 || ag.removeCreatureTypes || len(ag.removeTypes) > 0 || ag.allCreatureTypes || ag.removeCardTypes || ag.removeLandTypes || ag.removeArtifactTypes || ag.removeEnchantmentTypes {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LType, AddTypes: ag.types,
 			RemoveCreatureTypes: ag.removeCreatureTypes, RemoveTypes: ag.removeTypes,
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
-			RemoveLandTypes: ag.removeLandTypes,
-			Duration:        ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			RemoveLandTypes:     ag.removeLandTypes,
+			RemoveArtifactTypes: ag.removeArtifactTypes, RemoveEnchantmentTypes: ag.removeEnchantmentTypes,
+			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1460,7 +1470,7 @@ func resolveGains(gains, choices string, source *state.Object) string {
 // offered ability silently did nothing and a bot re-chose it forever.
 func svarTableOwner(h Host, c *Ctx) state.ObjID {
 	if c.ResolvingObj != 0 {
-		if w := h.Game().Obj(c.ResolvingObj); w != nil && w.GainedFrom != 0 && w.GainedFace != nil {
+		if w := h.Game().Obj(c.ResolvingObj); w != nil && w.GainedFrom != 0 && w.AbilityFace != nil {
 			if f := h.Game().Obj(w.GainedFrom); f != nil && f.Face() != nil {
 				return w.GainedFrom
 			}

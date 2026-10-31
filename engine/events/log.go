@@ -364,7 +364,7 @@ func (l *Log) CloneIntoFrom(events []Event, from *Event, n, dirty int, intents [
 // array must have for CloneInto to copy into it (RecycleFits). Copying
 // into an array the clone's appends then outgrow costs a second copy of
 // the history (growEvents), so the bar is set where that is rare: measured
-// on the az-c6 cached-worlds bench (2026-10-17), a resumed walk appends
+// on a cached-worlds bench, a resumed walk appends
 // fewer than 32 events in 65% of simulations, fewer than 64 in 84% and
 // fewer than 128 in 99%. A forked log's own growth leaves it forkMinSlack
 // (256) past where it grew, so with the bar at 256 only an array that

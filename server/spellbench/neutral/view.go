@@ -265,10 +265,11 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 	}
 	v := view.View{Viewer: viewer, Visibility: "seat", Turn: int32(o.Turn), Round: roundOf(o.Turn),
 		Players: []view.PlayerView{}, Stack: []view.StackView{}, Pending: []view.PendingView{}}
-	// day_night: the observation spells out CR 731's designation. A null
-	// field means the host declared the flag absent; the view then keeps its
-	// zero (neither), never inventing a day/night state.
-	if o.DayNight != nil {
+	// day_night: the observation spells out CR 731's designation. "none" is
+	// neither, which the view spells as its zero. A null field means the host
+	// declared the flag absent; the view keeps the same zero, never inventing
+	// a day/night state.
+	if o.DayNight != nil && *o.DayNight != "none" {
 		v.DayNight = *o.DayNight
 	}
 	// pregame is gorge's untap step of turn 0.
@@ -524,19 +525,17 @@ func (b *Builder) buildCard(r protocol.ObjectRecord, costs bool) (view.CardView,
 		cv.AbilityCosts = printedAbilityCosts(f)
 	}
 	if c := r.Characteristics; c != nil {
-		// Native's ViewCharacteristics fast path answers the printed P/T for
-		// a base-difference object no layer-7 effect reaches -- including an
-		// attached Reconfigure Equipment whose derived form has no P/T. The
-		// observation omits that pair; the printed face is the fact native's
-		// board carries. Other non-creatures keep the observed absence.
+		// The observation gives P/T only to a creature. Native's board carries
+		// the printed pair of any other object with one: a Vehicle, in play or
+		// in hand, or an attached Reconfigure Equipment.
 		if c.Power != nil {
 			cv.Power = *c.Power
-		} else if f != nil && (cv.AttachedTo != 0 || cv.IsCopy) {
+		} else if f != nil {
 			cv.Power = int32(f.Power())
 		}
 		if c.Toughness != nil {
 			cv.Toughness = *c.Toughness
-		} else if f != nil && (cv.AttachedTo != 0 || cv.IsCopy) {
+		} else if f != nil {
 			cv.Toughness = int32(f.Toughness())
 		}
 		cv.Keywords = keywordLines(f, c.Keywords)
@@ -952,6 +951,9 @@ func (b *Builder) stack(e protocol.StackEntry) (view.StackView, error) {
 	switch e.StackKind {
 	case "spell":
 		sv.Kind = "spell"
+		if e.XValue != nil {
+			sv.X = int32(*e.XValue)
+		}
 		owner, err := Seat(e.OwnerSeat)
 		if err != nil {
 			return view.StackView{}, err
