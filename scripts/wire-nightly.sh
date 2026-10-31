@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# wire-nightly.sh [-chunks N] [-games N] [-parity-games N]: the wire program's
-# nightly run, on a seed that moves each day. It plays chunks of games on every
-# wire, then fuzzed decks through ManaBrew, then SpellBench v2 parity, printing
-# one line per row and exiting non-zero if a row fails. v2 parity is reported and
-# does not fail the run: its bar starts red (docs/site/architecture/wires.md).
+# wire-nightly.sh [-chunks N] [-games N] [-parity-games N]: the wires' nightly
+# run, on a seed that moves each day. It plays chunks of games on every wire, then
+# fuzzed decks through ManaBrew, then SpellBench v2 parity, printing one line per
+# row. It exits non-zero if a chunk or the fuzz fails. A v2 parity failure is
+# printed and does not change the exit status (docs/site/architecture/wires.md).
 #
 # A failed game writes wire-found-<date>.tsv in the repo root: wire, set, seed
 # and pair, the columns of testkit/conformance/testdata/found.tsv. A fuzz failure
