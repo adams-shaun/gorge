@@ -17,6 +17,12 @@ var (
 	}
 )
 
+// ArtifactTypeWord reports whether t is an artifact subtype.
+func ArtifactTypeWord(t string) bool { return slices.Contains(artifactTypeWords, t) }
+
+// EnchantmentTypeWord reports whether t is an enchantment subtype.
+func EnchantmentTypeWord(t string) bool { return slices.Contains(enchantmentTypeWords, t) }
+
 // SubtypesKept is which of an object's subtypes survive an effect that removes
 // its card types (CR 205.1a). No such effect adds a planeswalker, battle,
 // instant or sorcery type, so those types' subtypes never survive.
@@ -44,8 +50,8 @@ func SubtypesKeptBy(added []string) SubtypesKept {
 	for _, t := range added {
 		k.creature = k.creature && !CreatureTypeWords(t)
 		k.land = k.land && !slices.Contains(chooseLandTypes, t)
-		k.artifact = k.artifact && !slices.Contains(artifactTypeWords, t)
-		k.enchantment = k.enchantment && !slices.Contains(enchantmentTypeWords, t)
+		k.artifact = k.artifact && !ArtifactTypeWord(t)
+		k.enchantment = k.enchantment && !EnchantmentTypeWord(t)
 	}
 	return k
 }
@@ -58,6 +64,6 @@ func (k SubtypesKept) Creature() bool { return k.creature }
 func (k SubtypesKept) Has(word string) bool {
 	return k.creature && CreatureTypeWords(word) ||
 		k.land && slices.Contains(chooseLandTypes, word) ||
-		k.artifact && slices.Contains(artifactTypeWords, word) ||
-		k.enchantment && slices.Contains(enchantmentTypeWords, word)
+		k.artifact && ArtifactTypeWord(word) ||
+		k.enchantment && EnchantmentTypeWord(word)
 }

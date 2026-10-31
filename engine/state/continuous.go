@@ -201,6 +201,9 @@ type ContinuousEffect struct {
 	// CR 613.1d, the Blood Moon / Zhao static family. The Land card type
 	// and the Basic supertype survive.
 	RemoveLandTypes bool
+	// RemoveArtifactTypes and RemoveEnchantmentTypes strip every subtype of
+	// that set before this effect's AddTypes apply; the card type survives.
+	RemoveArtifactTypes, RemoveEnchantmentTypes bool
 	// SetCreatureTypes strips only creature subtypes, preserving land and
 	// other subtype words; its replacement types live in AddTypes.
 	SetCreatureTypes bool

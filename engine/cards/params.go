@@ -845,6 +845,10 @@ const (
 	// NoPrevention$ True on DealDamage: this ability's damage can't be
 	// prevented (CR 615.12). Appended: earlier ordinals stay stable.
 	PKNoPrevention
+	// RemoveArtifactTypes$ and RemoveEnchantmentTypes$ True: the layer-4
+	// strips of those subtype sets. Appended: earlier ordinals stay stable.
+	PKRemoveArtifactTypes
+	PKRemoveEnchantmentTypes
 	paramKeyCount
 )
 
@@ -1311,6 +1315,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRememberUntapped:                 "RememberUntapped",
 	PKRemoveConditionSVar:              "RemoveConditionSVar",
 	PKRemoveLandTypes:                  "RemoveLandTypes",
+	PKRemoveArtifactTypes:              "RemoveArtifactTypes",
+	PKRemoveEnchantmentTypes:           "RemoveEnchantmentTypes",
 	PKRemoveTypes:                      "RemoveTypes",
 	PKRepeatCheckSVar:                  "RepeatCheckSVar",
 	PKRepeatCompare:                    "RepeatCompare",

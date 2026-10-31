@@ -358,6 +358,7 @@ func derivedEffectEqual(a, b *ContinuousEffect) bool {
 		a.RemoveSubTypes == b.RemoveSubTypes && a.SetCreatureTypes == b.SetCreatureTypes &&
 		a.AddAllCreatureTypes == b.AddAllCreatureTypes && a.CDAAllCreatureTypes == b.CDAAllCreatureTypes && a.RemoveCardTypes == b.RemoveCardTypes &&
 		a.RemoveLandTypes == b.RemoveLandTypes &&
+		a.RemoveArtifactTypes == b.RemoveArtifactTypes && a.RemoveEnchantmentTypes == b.RemoveEnchantmentTypes &&
 		a.RemoveLegendary == b.RemoveLegendary && a.RemoveAbilities == b.RemoveAbilities &&
 		slices.Equal(a.AddKeywords, b.AddKeywords) && slices.Equal(a.AddTypes, b.AddTypes) &&
 		slices.Equal(a.AddColors, b.AddColors) && slices.Equal(a.RemoveTypes, b.RemoveTypes) &&

@@ -748,6 +748,15 @@ func applyTypeEffect(b Board, ce *state.ContinuousEffect, ty []string, allCreatu
 		}
 		ty = kept
 	}
+	if ce.RemoveArtifactTypes || ce.RemoveEnchantmentTypes {
+		kept := ty[:0]
+		for _, t := range ty {
+			if !(ce.RemoveArtifactTypes && effects.ArtifactTypeWord(t)) && !(ce.RemoveEnchantmentTypes && effects.EnchantmentTypeWord(t)) {
+				kept = append(kept, t)
+			}
+		}
+		ty = kept
+	}
 	if len(ty) < n {
 		full = false
 	}

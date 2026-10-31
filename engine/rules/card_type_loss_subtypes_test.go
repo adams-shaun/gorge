@@ -34,6 +34,7 @@ func TestCardTypeLossKeepsSubtypesOfRemainingTypes(t *testing.T) {
 		{"One with the Stars", "Enduring Courage", []string{"Enchantment"}},
 		{"Minimus Containment", "Bonesplitter", []string{"Artifact", "Treasure"}},
 		{"Swift Reconfiguration", "Lizard Blades", []string{"Artifact", "Vehicle"}},
+		{"Ensoul Ring", "Bonesplitter", []string{"Artifact"}},
 	} {
 		t.Run(tc.aura+" on "+tc.permanent, func(t *testing.T) {
 			t.Parallel()
@@ -47,6 +48,69 @@ func TestCardTypeLossKeepsSubtypesOfRemainingTypes(t *testing.T) {
 				t.Fatalf("types = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+// Bludgeon Brawl removes no card type: its artifact keeps Artifact, and
+// Equipment replaces the artifact's other artifact subtypes.
+func TestBludgeonBrawlReplacesArtifactSubtypes(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := landTypesEngine(t, reg,
+		[]*cards.Card{lookup(t, reg, "Bludgeon Brawl"), lookup(t, reg, "Smuggler's Copter")}, nil)
+	copter := moveByName(t, e, 0, "Smuggler's Copter", state.ZBattlefield)
+	moveByName(t, e, 0, "Bludgeon Brawl", state.ZBattlefield)
+	got := slices.Sorted(slices.Values(e.Derived(copter).Types))
+	if want := []string{"Artifact", "Equipment"}; !slices.Equal(got, want) {
+		t.Fatalf("types = %v, want %v", got, want)
+	}
+}
+
+// Takklemaggot's animation makes it a non-Aura enchantment: no card type goes,
+// but its enchantment subtype does.
+func TestTakklemaggotAnimationStripsAura(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := landTypesEngine(t, reg,
+		[]*cards.Card{lookup(t, reg, "Takklemaggot"), lookup(t, reg, "Grizzly Bears")}, nil)
+	bears := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	maggot := lossAttach(t, e, "Takklemaggot", 0, bears)
+	animate := *resolveSourceFaceSA(t, e, maggot, "DBAnimate")
+	animate.Sub = nil
+	effects.Resolve(e, &effects.Ctx{Source: maggot, Controller: 0, SVars: e.G.Obj(maggot).Face().SVars}, &animate)
+	got := slices.Sorted(slices.Values(e.Derived(maggot).Types))
+	if want := []string{"Enchantment"}; !slices.Equal(got, want) {
+		t.Fatalf("types = %v, want %v", got, want)
+	}
+}
+
+// A Licid's animation reads the enchantment-subtype strip beside the card-type
+// one, and becomes an Aura and nothing else.
+func TestLicidAnimationStripsEnchantmentSubtypes(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := landTypesEngine(t, reg, []*cards.Card{lookup(t, reg, "Calming Licid")}, nil)
+	licid := moveByName(t, e, 0, "Calming Licid", state.ZBattlefield)
+	var sa *cards.SA
+	for _, ab := range e.G.Obj(licid).Face().Abilities {
+		if ab.API == "Animate" {
+			sa = ab
+		}
+	}
+	if sa == nil {
+		t.Fatal("Calming Licid has no Animate ability")
+	}
+	animate := *sa
+	animate.Sub = nil
+	effects.Resolve(e, &effects.Ctx{Source: licid, Controller: 0, SVars: e.G.Obj(licid).Face().SVars}, &animate)
+	got := slices.Sorted(slices.Values(e.Derived(licid).Types))
+	if want := []string{"Aura", "Enchantment"}; !slices.Equal(got, want) {
+		t.Fatalf("types = %v, want %v", got, want)
+	}
+	if !slices.ContainsFunc(e.continuous, func(ce ContinuousEffect) bool {
+		return ce.Source == licid && ce.Layer == state.LType && ce.RemoveEnchantmentTypes
+	}) {
+		t.Fatal("no layer-4 effect carries the enchantment-subtype strip")
 	}
 }
 

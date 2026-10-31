@@ -680,6 +680,7 @@ func animateWouldChange(h Host, c *Ctx, sa *cards.SA, ag animateGrant) bool {
 func animateGrantChanges(ag animateGrant) bool {
 	return ag.hasPower || ag.hasTough || len(ag.types) > 0 || ag.removeCreatureTypes ||
 		len(ag.removeTypes) > 0 || ag.allCreatureTypes || ag.removeCardTypes || ag.removeLandTypes ||
+		ag.removeArtifactTypes || ag.removeEnchantmentTypes ||
 		ag.name != "" || ag.colorsRaw != "" || len(ag.kws) > 0 || len(ag.hiddenKws) > 0 ||
 		len(ag.abilities) > 0 || len(ag.triggers) > 0 || len(ag.svars) > 0 ||
 		len(ag.staticAbilities) > 0 || len(ag.removeKeywords) > 0 || ag.removeAbilities ||
@@ -703,6 +704,9 @@ type animateGrant struct {
 	// before this animation's Types$ apply (CR 305.7 "becomes a Swamp";
 	// state.ContinuousEffect.RemoveLandTypes, the Blood Moon field).
 	removeLandTypes bool
+	// removeArtifactTypes and removeEnchantmentTypes are the same strip of
+	// those subtype sets.
+	removeArtifactTypes, removeEnchantmentTypes bool
 	// name is the Name$ rider: the animated object's derived NAME for the
 	// animation's own lifetime (CR 613.1d, layer 3). It is registered as a
 	// real layer-3 SetName ContinuousEffect -- the same characteristic the
@@ -901,6 +905,8 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	// "all lands become Swamps"): the layer-4 land-subtype strip the
 	// printed-static family (Blood Moon) registers, on the same LType effect.
 	ag.removeLandTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveLandTypes)), "True")
+	ag.removeArtifactTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveArtifactTypes)), "True")
+	ag.removeEnchantmentTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveEnchantmentTypes)), "True")
 	// A "ChosenType" element in Types$ resolves against the resolving
 	// source's recorded type choice (Elsewhere Flask's AB$ ChooseType
 	// SubAbility$ DBAnimate chain -- choose.go records the choice on the
@@ -1151,14 +1157,15 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			AffectedZone: ag.zone,
 		})
 	}
-	if len(ag.types) > 0 || ag.removeCreatureTypes || len(ag.removeTypes) > 0 || ag.allCreatureTypes || ag.removeCardTypes || ag.removeLandTypes {
+	if len(ag.types) > 0 || ag.removeCreatureTypes || len(ag.removeTypes) > 0 || ag.allCreatureTypes || ag.removeCardTypes || ag.removeLandTypes || ag.removeArtifactTypes || ag.removeEnchantmentTypes {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LType, AddTypes: ag.types,
 			RemoveCreatureTypes: ag.removeCreatureTypes, RemoveTypes: ag.removeTypes,
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
-			RemoveLandTypes: ag.removeLandTypes,
-			Duration:        ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			RemoveLandTypes:     ag.removeLandTypes,
+			RemoveArtifactTypes: ag.removeArtifactTypes, RemoveEnchantmentTypes: ag.removeEnchantmentTypes,
+			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
