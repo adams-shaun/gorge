@@ -40,6 +40,9 @@ import (
 // The shadow seed of intent n is divergence.ShadowSeed(match seed, seat, n)
 // and is recorded on the divergence, so triage can recompute B. Nothing is
 // submitted anywhere: the result is host-side metadata, never replay input.
+//
+// A match on another engine refuses with ErrEngineUnsupported: the walk and the
+// shadow's root are gorge's.
 func (r *Registry) ShadowScan(id TableID, k int, seat state.PlayerID, policy string) ([]divergence.Divergence, error) {
 	divs, _, err := r.shadowScan(id, k, seat, policy)
 	return divs, err
@@ -60,6 +63,10 @@ func (r *Registry) shadowScan(id TableID, k int, seat state.PlayerID, policy str
 	entry, _ := bots.Lookup(pol)
 
 	m.mu.RLock()
+	if m.e == nil {
+		m.mu.RUnlock()
+		return nil, 0, engineRefusal("a shadow scan", m.engine.Name())
+	}
 	if int(seat) >= len(m.gc.Decks) {
 		n := len(m.gc.Decks)
 		m.mu.RUnlock()

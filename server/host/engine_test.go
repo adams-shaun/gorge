@@ -16,6 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/azredeal"
 	"github.com/adams-shaun/gorge/bots/forgeheuristic"
 	"github.com/adams-shaun/gorge/bots/sbtactical"
+	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
@@ -378,6 +379,146 @@ func TestEnvSeatGetsRefusedRootWithoutSearchRoots(t *testing.T) {
 		if len(rec.refused) != 1 || !strings.Contains(rec.refused[0], "search roots") {
 			t.Fatalf("seat %d refusals %q", i, rec.refused)
 		}
+	}
+}
+
+// closedListRecorder is an envRecorder that declares closed lists, the one kind
+// of Env seat a table with a human may build.
+type closedListRecorder struct{ envRecorder }
+
+func (*closedListRecorder) SearchBelief() *searchprobe.Belief { return &searchprobe.Belief{} }
+
+// At a table with a human the posed-resolution check reads gorge's engine, so
+// an engine with no search roots must refuse the root before it.
+func TestClosedListSeatGetsRefusedRootWithoutSearchRoots(t *testing.T) {
+	t.Parallel()
+	o := scriptBotOptions()
+	inner, err := bots.New(sbtactical.Policy, bots.Options{Seed: 1, Deps: o.BotDeps})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := &closedListRecorder{envRecorder{EnvSeat: inner.(bots.EnvSeat)}}
+	o.Seats = func([]string, uint64) []seat.Seat { return []seat.Seat{rec, rec} }
+	r, err := host.New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	cfg := scriptTable()
+	cfg.Humans = []int{0}
+	if err := r.AddTable(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("s"); err != nil {
+		t.Fatal(err)
+	}
+	d := awaitPending(t, r, 0)
+	if err := r.SubmitIntent("s", 1, 0, decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	r.Wait("s")
+	if len(rec.refused) != 1 || !strings.Contains(rec.refused[0], "search roots") {
+		t.Fatalf("refusals %q", rec.refused)
+	}
+}
+
+// awaitPending polls until the human at seat p of table s has a decision.
+func awaitPending(t *testing.T, r *host.Registry, p state.PlayerID) *decision.Decision {
+	t.Helper()
+	deadline := time.Now().Add(time.Minute)
+	for {
+		d, err := r.Pending("s", 1, p)
+		if err == nil {
+			return d
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no decision for seat %d: %v", p, err)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func wantEngineRefusal(t *testing.T, err error) {
+	t.Helper()
+	if !errors.Is(err, host.ErrEngineUnsupported) || !strings.Contains(err.Error(), strconv.Quote(scriptName)) {
+		t.Fatalf("got %v, want a refusal naming %q", err, scriptName)
+	}
+}
+
+func TestFeedbackRefusesOtherEngines(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	r, err := host.New(scriptOptions(dir, scriptEngine{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AddTable(scriptTable()); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("s"); err != nil {
+		t.Fatal(err)
+	}
+	refused := func(r *host.Registry) {
+		t.Helper()
+		reporter := state.PlayerID(0)
+		_, err := r.SnapshotForFeedback("s", &reporter)
+		wantEngineRefusal(t, err)
+		_, err = r.SnapshotMatch("s", 1, nil)
+		wantEngineRefusal(t, err)
+	}
+	awaitPending(t, r, 0)
+	refused(r)
+	playScript(t, r)
+	refused(r)
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
+	}
+	again, err := host.New(scriptOptions(dir, scriptEngine{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer again.Close()
+	refused(again)
+}
+
+func TestShadowScanRefusesOtherEngines(t *testing.T) {
+	t.Parallel()
+	r, err := host.New(scriptOptions("", scriptEngine{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := r.AddTable(scriptTable()); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("s"); err != nil {
+		t.Fatal(err)
+	}
+	playScript(t, r)
+	_, err = r.ShadowScan("s", 1, 0, host.BotPolicy)
+	wantEngineRefusal(t, err)
+
+	// The ledger the scan reads is the host's own, so it stays readable.
+	ledger, err := r.Provenance("s", 1)
+	if err != nil || len(ledger) != 2 {
+		t.Fatalf("provenance %v, %v; want one entry per intent", ledger, err)
+	}
+}
+
+func TestReviewDecisionsRefuseOtherEngines(t *testing.T) {
+	t.Parallel()
+	r, err := host.New(scriptOptions("", scriptEngine{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := r.AddTable(scriptTable()); err != nil {
+		t.Fatal(err)
+	}
+	_, err = r.ReviewDecisions("s", 1)
+	wantEngineRefusal(t, err)
+	if _, err := r.ReviewDecisions("missing", 1); !errors.Is(err, host.ErrNotFound) {
+		t.Fatalf("missing table: %v", err)
 	}
 }
 

@@ -183,6 +183,9 @@ type FeedbackSnapshot struct {
 //
 // The returned snapshot is a stable copy: later bursts append to the live
 // match but never to it, so marshalling it needs no lock.
+//
+// A match on another engine refuses with ErrEngineUnsupported: match.json
+// records gorge's replay input.
 func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (FeedbackSnapshot, error) {
 	r.mu.RLock()
 	t, ok := r.tables[id]
@@ -240,6 +243,10 @@ func (r *Registry) SnapshotMatch(id TableID, k int, seat *state.PlayerID) (Feedb
 // projects the seat's view outside it.
 func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, error) {
 	m.mu.Lock()
+	if m.e == nil {
+		m.mu.Unlock()
+		return FeedbackSnapshot{}, engineRefusal("a feedback snapshot", m.engine.Name())
+	}
 	l := m.e.L.Clone()
 	// reconcileLog's trim is for crash-cut FILES, and this clone is not one:
 	// under the match lock no Submit is in flight (the match loop holds the
