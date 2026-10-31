@@ -65,8 +65,11 @@
   // client shows its working. They are just not the same voice, so the words
   // are set as words and the notation is set as a value, in the data face.
   const isNotation = (k: string) => /[:<>$|]/.test(k);
-  const abilities = $derived((card.keywords ?? []).filter((k) => !isNotation(k)));
-  const engineKeywords = $derived((card.keywords ?? []).filter(isNotation));
+  // A permanent can hold one keyword twice (two Rancors, a haste-granting
+  // effect on a creature with haste); it reads once.
+  const keywords = $derived([...new Set(card.keywords ?? [])]);
+  const abilities = $derived(keywords.filter((k) => !isNotation(k)));
+  const engineKeywords = $derived(keywords.filter(isNotation));
 
   // Oracle text is best-effort: the default resolver is the async catalog,
   // which with no meta tag resolves null without a request. The panel
