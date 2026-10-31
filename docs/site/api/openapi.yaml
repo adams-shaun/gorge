@@ -196,26 +196,8 @@ components:
         - "name"
         - "image_uris"
       type: "object"
-    BotMeasurement:
-      description: "BotMeasurement is one measured claim of a hosted bot policy. It is the wire twin of bots.Measurement: a single label with the setting and source it was measured under, never a number the client is expected to interpret."
-      properties:
-        claim:
-          type: "string"
-        setting:
-          type: "string"
-        source:
-          type: "string"
-        versus:
-          type: "string"
-      required:
-        - "claim"
-        - "setting"
-        - "source"
-        - "versus"
-      type: "object"
-      x-go-type: "github.com/adams-shaun/gorge/server/protocol.BotMeasurement"
     BotPolicyInfo:
-      description: "BotPolicyInfo is one selectable hosted bot policy (GET /api/bot-policies). It is the wire twin of bots.Info, carrying only what a client needs to render a picker and disclose the measurement; protocol never imports bots, so gorged converts one to the other at startup (server/gorged/botpolicies.go)."
+      description: "BotPolicyInfo is one selectable hosted bot policy (GET /api/bot-policies). It is the wire twin of bots.Info, carrying what a client needs to render a picker; protocol never imports bots, so gorged converts one to the other at startup (server/gorged/botpolicies.go)."
       properties:
         cost_note:
           type: "string"
@@ -239,12 +221,6 @@ components:
           type: "number"
         search:
           type: "boolean"
-        strength:
-          items:
-            $ref: "#/components/schemas/BotMeasurement"
-          type:
-            - "array"
-            - "null"
         tier:
           type: "string"
       required:
@@ -257,7 +233,6 @@ components:
         - "name"
         - "p95_ms"
         - "search"
-        - "strength"
         - "tier"
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.BotPolicyInfo"

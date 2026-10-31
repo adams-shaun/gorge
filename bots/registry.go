@@ -24,10 +24,6 @@ const (
 	CastProfilePolicy         = "cast-profile"
 )
 
-type Measurement struct {
-	Claim, Versus, Setting, Source string
-}
-
 type Cost struct {
 	MeanMS, P95MS       float64
 	Scope, Note, Source string
@@ -36,7 +32,6 @@ type Cost struct {
 type Info struct {
 	Name, Label, Description string
 	Tier                     Tier
-	Strength                 []Measurement
 	Cost                     Cost
 	// Env marks a policy whose seat builds a full search engine over every
 	// seat's REAL decklist (server/host/botenv.go envData: searchprobe.PublicGame

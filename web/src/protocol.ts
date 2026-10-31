@@ -1841,29 +1841,15 @@ export interface Unsubscribe {
 }
 
   /**
-   * BotMeasurement is one measured claim of a hosted bot policy. It is the wire
-   * twin of bots.Measurement: a single label with the setting and source it was
-   * measured under, never a number the client is expected to interpret.
-   */
-export interface BotMeasurement {
-  claim: string;
-  versus: string;
-  setting: string;
-  source: string;
-}
-
-  /**
    * BotPolicyInfo is one selectable hosted bot policy (GET /api/bot-policies).
-   * It is the wire twin of bots.Info, carrying only what a client needs to
-   * render a picker and disclose the measurement; protocol never imports bots,
-   * so gorged converts one to the other at startup (server/gorged/botpolicies.go).
+   * It is the wire twin of bots.Info, carrying what a client needs to render a
+   * picker; protocol never imports bots, so gorged converts one to the other at startup (server/gorged/botpolicies.go).
    */
 export interface BotPolicyInfo {
   name: string;
   label: string;
   description: string;
   tier: string;
-  strength: BotMeasurement[];
   mean_ms: number;
   p95_ms: number;
   cost_scope: string;

@@ -75,7 +75,7 @@ func TestEntries(t *testing.T) {
 		t.Errorf("forge-heuristic entry is not the plain experimental policy: %+v", forgeEntry.Info)
 	}
 	for _, e := range entries {
-		if e.Label == "" || e.Description == "" || len(e.Strength) == 0 || e.Cost.Note == "" || len(e.Formats) == 0 {
+		if e.Label == "" || e.Description == "" || e.Cost.Note == "" || len(e.Formats) == 0 {
 			t.Errorf("entry %q has incomplete Info: %+v", e.Name, e.Info)
 		}
 	}

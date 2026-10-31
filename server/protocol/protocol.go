@@ -335,32 +335,20 @@ type DeckTally struct {
 	MatchesCounted int          `json:"matches_counted"`
 }
 
-// BotMeasurement is one measured claim of a hosted bot policy. It is the wire
-// twin of bots.Measurement: a single label with the setting and source it was
-// measured under, never a number the client is expected to interpret.
-type BotMeasurement struct {
-	Claim   string `json:"claim"`
-	Versus  string `json:"versus"`
-	Setting string `json:"setting"`
-	Source  string `json:"source"`
-}
-
 // BotPolicyInfo is one selectable hosted bot policy (GET /api/bot-policies).
-// It is the wire twin of bots.Info, carrying only what a client needs to
-// render a picker and disclose the measurement; protocol never imports bots,
-// so gorged converts one to the other at startup (server/gorged/botpolicies.go).
+// It is the wire twin of bots.Info, carrying what a client needs to render a
+// picker; protocol never imports bots, so gorged converts one to the other at startup (server/gorged/botpolicies.go).
 type BotPolicyInfo struct {
-	Name        string           `json:"name"`
-	Label       string           `json:"label"`
-	Description string           `json:"description"`
-	Tier        string           `json:"tier"` // "production" | "experimental"
-	Strength    []BotMeasurement `json:"strength"`
-	MeanMS      float64          `json:"mean_ms"` // 0 = not measured
-	P95MS       float64          `json:"p95_ms"`
-	CostScope   string           `json:"cost_scope"`
-	CostNote    string           `json:"cost_note"`
-	Search      bool             `json:"search"`
-	Formats     []string         `json:"formats"`
+	Name        string   `json:"name"`
+	Label       string   `json:"label"`
+	Description string   `json:"description"`
+	Tier        string   `json:"tier"`    // "production" | "experimental"
+	MeanMS      float64  `json:"mean_ms"` // 0 = not measured
+	P95MS       float64  `json:"p95_ms"`
+	CostScope   string   `json:"cost_scope"`
+	CostNote    string   `json:"cost_note"`
+	Search      bool     `json:"search"`
+	Formats     []string `json:"formats"`
 }
 
 // BotPolicyList is GET /api/bot-policies: the offered set, in display order,

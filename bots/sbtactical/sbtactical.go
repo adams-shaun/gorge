@@ -42,23 +42,9 @@ func init() {
 		Label:       "sb-tactical (SpellBench tactical heuristic)",
 		Description: "The SpellBench scored heuristic in its hosted shape: at priority it prices its plays through the honest root as its payment planner, and answers every other decision from the seat's own view — creature values, timing, race and removal scoring over what the seat can legally see, card facts resolved from the served card registry.",
 		Tier:        bots.Experimental,
-		Strength: []bots.Measurement{
-			{
-				Claim:   "110-18 on the Pauper kernel (benchmark seed); 106-22 at seed 99991; 87-41 on FDN mirrors",
-				Versus:  "bot",
-				Setting: "SpellBench §3.4 'Measured' table: Pauper-kernel and FDN-limited mirrors vs the sb bot",
-				Source:  "docs/design/2026-09-28-spellbench-agent-design.md §3.4",
-			},
-			{
-				Claim:   "Elo 1507 vs bot 1242",
-				Versus:  "bot",
-				Setting: "SpellBench §3.4 'Measured' table, Pauper kernel",
-				Source:  "docs/design/2026-09-28-spellbench-agent-design.md §3.4",
-			},
-		},
 		Cost: bots.Cost{
-			MeanMS: 1, Scope: "per decision (INFERRED)",
-			Note:   "~80 ms per GAME vs bot on 8 workers (SB §3.4); per-decision think time never measured, ~1 ms INFERRED",
+			MeanMS: 1, Scope: "per decision",
+			Note:   "not measured; about 1 ms by inference",
 			Source: "docs/design/2026-09-28-hosted-bot-packages.md §3.2",
 		},
 		Env: true, Search: false,

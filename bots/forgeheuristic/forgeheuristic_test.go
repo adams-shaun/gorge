@@ -29,9 +29,6 @@ func TestForgeHeuristicRegistered(t *testing.T) {
 	if e.Name != Policy || e.Label == "" || e.Description == "" {
 		t.Errorf("Info = %+v, want a name, label and description", e.Info)
 	}
-	if len(e.Strength) == 0 || e.Strength[0].Claim == "" || e.Strength[0].Source == "" {
-		t.Errorf("Strength = %+v, want the measured claim and source", e.Strength)
-	}
 	botEntry, ok := bots.Lookup(bots.Default)
 	if !ok {
 		t.Fatal("the production bot is not linked into this test binary")
