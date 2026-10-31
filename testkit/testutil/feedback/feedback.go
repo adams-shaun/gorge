@@ -251,7 +251,7 @@ func Load(dir string) (*events.Log, rules.Config, Meta, error) {
 // live, uncommitted capture has it and it overrides the list the engine
 // would derive; a size-stripped committed fixture does not, and the engine
 // then derives the list from this corpus at genesis. The seed is carried
-// but replay overwrites it with the log's own seed (replay's Ruling P5).
+// but replay overwrites it with the log's own seed.
 func config(m matchJSON, reg *cards.Registry, tokens map[string]*cards.Card) (rules.Config, error) {
 	cfg, err := m.record().Config(reg, tokens)
 	if err != nil {

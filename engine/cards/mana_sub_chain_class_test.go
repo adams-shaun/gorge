@@ -1,6 +1,6 @@
 package cards
 
-// cr-g277: CR 605.1a classifies an activated ability as a mana ability by what
+// CR 605.1a classifies an activated ability as a mana ability by what
 // it can do, not by its head word, so a non-Mana head whose SubAbility$ chain
 // reaches a DB$ Mana is one -- unless the chain targets, is a loyalty ability
 // or moves a card to or from a library.

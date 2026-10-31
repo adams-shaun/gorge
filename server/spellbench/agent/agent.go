@@ -23,7 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/server/spellbench/xview"
 )
 
-// Record is how the agent played one native decision, for Task 28b's parity
+// Record is how the agent played one native decision, for the parity
 // audit: the bot's plan (its intent, and its answers to the folded follow-ups
 // it was asked, keyed as the payload keys them) and the substeps no op
 // matched: Forced when the decision had a single candidate, Fallbacks
@@ -85,7 +85,7 @@ func (s *Server) Fallbacks() int { return s.fallbacks }
 
 func (s *Server) Forced() int { return s.forced }
 
-// Records exposes the current game's native decisions to Task 28b's audit.
+// Records exposes the current game's native decisions to the audit.
 func (s *Server) Records() map[uint64]*Record { return s.records }
 
 func (s *Server) PolicyKey() string { return s.policy }

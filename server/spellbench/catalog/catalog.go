@@ -122,11 +122,10 @@ func Resolve(reg *cards.Registry, d Deck) ([]*cards.Card, error) {
 	return out, nil
 }
 
-// Preflight proves every catalog card resolves and is fully playable
-// (every primitive its script names is implemented). It does not prove that
-// the engine can offer every decision these cards raise (Section 9.2 makes
-// such a deck unsupported_deck): the plan's decision-shape census (census5)
-// and the Task 28 qualification prove decision-kind coverage.
+// Preflight proves every catalog card resolves and is fully playable (every
+// primitive its script names is implemented). It does not prove that the engine
+// can offer every decision these cards raise (Section 9.2 makes such a deck
+// unsupported_deck): the live qualification proves decision-kind coverage.
 func Preflight(reg *cards.Registry) error {
 	sup := effects.Supported()
 	for _, d := range decks {

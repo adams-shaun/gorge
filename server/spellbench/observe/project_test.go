@@ -164,7 +164,7 @@ func listed(obs protocol.Observation) map[string]bool {
 // parks a resolved ability in exile, leaves a token that left the battlefield
 // in its new zone until a state-based check, and keeps a phased-out permanent
 // on the battlefield, and its seat view omits all three. A stack object, an
-// ability included, keeps its reference (Task 12 lists the stack).
+// ability included, keeps its reference.
 func TestRefIsNullForObjectsTheObservationOmits(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Wildfire", 5, "none")

@@ -1,17 +1,17 @@
 // Package view projects one seat's view of a state.Game: a hidden zone
 // contributes a count and nothing else unless the viewer owns it, another
 // seat's decision is never attached, and everything that can or will hit
-// the stack (the user's requirement R3) is described for every seat. It is
+// the stack is described for every seat. It is
 // the only package a client-facing layer needs to read game state through —
 // nothing here leaks a rules concept the client would have to understand.
 //
 // RedactEvents (redact.go) does the same job for the event log: it is
-// state-aware, not merely Secret-flag-aware, because an event's Player
-// field does not always name the seat whose secret its payload is (a
-// trigger's controller and the owner of the card it remembered can be two
-// different seats) — see RedactEvents' own doc for the three rules. An
-// events.Note is always public unless its own emitter marks it Secret
-// (Ruling T23-w): it is the engine's explicit "tell everyone" channel.
+// state-aware, not merely Secret-flag-aware, because an event's Player field
+// does not always name the seat whose secret its payload is (a trigger's
+// controller and the owner of the card it remembered can be two different
+// seats) — see RedactEvents' own doc for the three rules. An events.Note is
+// always public unless its own emitter marks it Secret: it is the engine's
+// explicit "tell everyone" channel.
 package view
 
 import (
@@ -31,18 +31,18 @@ import (
 // satisfies it (view_test.go pins that with a compile-time assertion);
 // tests here use a flat stand-in instead of importing rules.
 //
-// Ruling F2: this is named Keywords, not Derived — Engine.Derived already
+// This is named Keywords, not Derived — Engine.Derived already
 // returns a struct, and a method of that name could not also satisfy an
 // interface expecting a slice.
 type Chars interface {
 	Power(state.ObjID) int32
 	Toughness(state.ObjID) int32
 	Keywords(state.ObjID) []string
-	// PendingTriggers is R3: everything that WILL hit the stack, once its
+	// PendingTriggers is everything that WILL hit the stack, once its
 	// controller has ordered it or its decider has accepted it, must be
 	// observable too — not only what already has.
 	PendingTriggers() []state.PendingTrigger
-	// StackOptional is Ruling VW-1: an optional triggered ability that is on
+	// StackOptional: an optional triggered ability that is on
 	// the stack, awaiting its resolution-time yes/no (CR 603.5), reports that
 	// it is optional and who answers it — the optionality lives on the stack
 	// entry, not the queue, because under CR 603.5 the ability was pushed
@@ -118,23 +118,23 @@ type View struct {
 	Draw     bool           `json:"draw"`
 	// Winner is nil unless Over && !Draw: PlayerID's zero value is seat 0, a
 	// real seat, so a bare PlayerID field could never distinguish "seat 0
-	// won" from "the game is still going" or "it was a draw" (Task 22
-	// finding 5). A JSON null is unambiguous where a bare 0 would not be.
+	// won" from "the game is still going" or "it was a draw". A JSON null is
+	// unambiguous where a bare 0 would not be.
 	Winner *state.PlayerID `json:"winner"`
 	// DayNight is the CR 731 designation: "day", "night", or omitted while the
 	// game has neither; public for every seat.
 	DayNight string `json:"day_night,omitempty"`
 	// Players, Stack and Pending (below) are every public list this type
-	// carries. All of them are built non-nil even when empty (Ruling
-	// T23-u): a client should never have to treat a bare JSON `null` and an
-	// empty `[]` as the same "nothing here" case for one of these, the way
-	// it legitimately must for Hand/Pool below.
+	// carries. All of them are built non-nil even when empty: a client should
+	// never have to treat a bare JSON `null` and an empty `[]` as the same
+	// "nothing here" case for one of these, the way it legitimately must for
+	// Hand/Pool below.
 	Players []PlayerView `json:"players"`
 	// Stack keeps g.Stack's own order: index 0 is the bottom, the last
-	// entry is the top. Public for every seat — R3.
+	// entry is the top. Public for every seat.
 	Stack []StackView `json:"stack"`
 	// Pending is the trigger queue, in the order it will be placed on the
-	// stack. Public for every seat — R3.
+	// stack. Public for every seat.
 	Pending  []PendingView      `json:"pending"`
 	Decision *decision.Decision `json:"decision,omitempty"`
 }
@@ -393,7 +393,7 @@ type PoolRestrictionView struct {
 }
 
 // PendingView is a trigger that will hit the stack once its controller has
-// ordered it / its decider has accepted it. R3.
+// ordered it / its decider has accepted it.
 type PendingView struct {
 	Source     state.ObjID     `json:"source"`
 	Controller state.PlayerID  `json:"controller"`
@@ -412,7 +412,7 @@ func displayName(p *state.Player) string {
 // Project builds one seat's view. A hidden zone contributes a count and
 // nothing else unless the viewer owns it, and a decision is attached only to
 // the player it was asked of. Total: g == nil, ch == nil, and an
-// out-of-range viewer all degrade rather than panic (supplement §7).
+// out-of-range viewer all degrade rather than panic.
 // Project is ProjectFor with Seat visibility.
 func Project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decision) View {
 	return ProjectFor(g, ch, viewer, Seat, d)
@@ -623,7 +623,7 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 	noLists := m.omit&OmitCardLists != 0
 	pr.noDerived = m.omit&OmitDerivedChars != 0
 	v.Stack = pr.stackViews(stack, g.Stack, m.revealFaceDown)
-	// Non-nil even when empty (Ruling T23-u), whether or not ch is nil.
+	// Non-nil even when empty, whether or not ch is nil.
 	var pts []state.PendingTrigger
 	if ch != nil {
 		pts = ch.PendingTriggers()
@@ -638,7 +638,7 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 	// viewer), so it is checked explicitly.
 	spectator := int(viewer) >= len(g.Players)
 
-	// Non-nil even when g.Players is empty (Ruling T23-u): an empty match
+	// Non-nil even when g.Players is empty: an empty match
 	// still marshals "players":[], never "players":null.
 	players = refill(players, len(g.Players))
 	for i := range g.Players {
@@ -692,7 +692,7 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 		// Available is public (battlefield-derived) and so projected for
 		// every seat under every visibility, like Pool; only Hand (a CR 400.2
 		// hidden zone) is filled for the viewer's own seat. A nil ch
-		// (supplement §7) degrades to an empty (zero) availability, the same
+		// degrades to an empty (zero) availability, the same
 		// way it degrades every other derived characteristic.
 		if m.omit&OmitAvailable == 0 {
 			var avail state.Mana
@@ -757,7 +757,7 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 			if pr.hideHand {
 				// CR 103.5: while the CR 103.1 play/draw choice is
 				// unresolved no player may see any hand. The viewer's own
-				// Hand stays non-nil (Ruling T23-u: a real seat's own Hand
+				// Hand stays non-nil (a real seat's own Hand
 				// is "[]", never the null another seat's hidden hand
 				// marshals) and so reads as empty-for-now, with the count
 				// still carried by HandSize; every other seat's Hand stays
@@ -809,8 +809,8 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 	v.Players = players
 
 	if m.anyDecision || !spectator && d != nil && d.Player == viewer && m.omit&OmitDecision == 0 {
-		// A copy, never the engine's own pending pointer (supplement §10):
-		// a Seat (Task 25) holds this View in-process and must not be able
+		// A copy, never the engine's own pending pointer:
+		// a Seat holds this View in-process and must not be able
 		// to corrupt the live decision through it.
 		v.Decision = copyDecisionInto(dec, d, pr.text)
 		fillVisibleOptionLabels(v)

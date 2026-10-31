@@ -123,7 +123,7 @@ func (r *Registry) widgetFrame(t *table, m *match, last string) protocol.Frame {
 // one body and can only drift through that pair. Describe runs on the
 // REDACTED event so a hidden card's name never reaches the line.
 //
-// Takes g and evs rather than a live (*table, *match) (fix round 1, FL-42)
+// Takes g and evs rather than a live (*table, *match)
 // so a caller that cannot hold m.mu for the whole call — Events, over a
 // caller-controlled since that can span the entire log — can copy g
 // (Clone) and evs (a slice copy) under a brief read lock and format them
@@ -230,7 +230,7 @@ func (r *Registry) fanout(t *table, m *match, before int) {
 	m.mu.RUnlock()
 
 	// fanMu serialises this push loop against a focus Subscribe's own
-	// snapshot build+push (Ruling FL-30) — see server/host/session.go's Subscribe
+	// snapshot build+push — see server/host/session.go's Subscribe
 	// and server/host/table.go's fanMu doc. push never blocks, so this never
 	// parks the match loop on a client.
 	t.fanMu.Lock()
@@ -301,8 +301,8 @@ func (r *Registry) onMatchStart(t *table, m *match) {
 }
 
 // onMatchEnd sends match_end (any final state) to every subscriber and a
-// final widget to overview ones. The match is archived to disk first
-// (Task 12), so the end frame and the sidecar agree.
+// final widget to overview ones. The match is archived to disk first, so the
+// end frame and the sidecar agree.
 func (r *Registry) onMatchEnd(t *table, m *match) {
 	r.archive(t, m)
 	ss, modes := r.sessionsFor(t.cfg.ID)

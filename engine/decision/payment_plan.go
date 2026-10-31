@@ -248,7 +248,7 @@ type PaymentSelection struct {
 }
 
 // PaymentFallback explains why an accepted plan returned to the ordinary
-// manual payment flow. Execution publishes it in a later ticket.
+// manual payment flow.
 type PaymentFallback struct {
 	PlanID string `json:"plan_id"`
 	Reason string `json:"reason"`

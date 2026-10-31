@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g49: a commander in exile that still holds a cast-from-exile
+// A commander in exile that still holds a cast-from-exile
 // permission (the engine names it on the "leave" option's Mode:
 // adventure_recast, foretell_cast, plot_cast) is left in exile. Casting it
 // from there is untaxed (CR 903.8 taxes only command-zone casts); the

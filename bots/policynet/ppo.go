@@ -76,7 +76,7 @@ type PPOTarget struct {
 	VDWM   bool
 	Weight float64
 	// BehaviourLogP is log π_b(C|s) of the policy that actually SAMPLED the
-	// recorded answer (ticket pn14's stochastic collection: softmax(z/T), or
+	// recorded answer (stochastic collection: softmax(z/T), or
 	// the per-option Bernoulli of σ(z/T)), when HasBehaviour. The surrogate's
 	// importance ratio is then π_new/π_b instead of π_new/π_old — the
 	// behaviour policy is not the greedy π_old the KL anchor reads. A greedy
@@ -241,7 +241,7 @@ func lossPPO(lc LossConfig, ex Example, labelled []int, ys []float64) (parts Los
 // the options inSpace marks: the softmax of z/T at the one chosen option, or
 // the summed per-option Bernoulli log-likelihood of σ(z/T) (subset). It is
 // the behaviour log-probability a sampling seat records (heuristic.PolicyNetBot's
-// stochastic collection, ticket pn14); T = 1 is PPOLogProb exactly. ok is
+// stochastic collection); T = 1 is PPOLogProb exactly. ok is
 // false for a softmax decision without exactly one chosen in-space option,
 // or T <= 0.
 func TemperedLogProb(scores []float32, inSpace, chosen []bool, subset bool, temp float64) (float64, bool) {

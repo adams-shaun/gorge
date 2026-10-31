@@ -127,7 +127,7 @@ func TestCharsBoardOnlyShrinks(t *testing.T) {
 	case n > charsBoardMethods:
 		t.Errorf("chars.Board has %d methods, above the frozen ceiling of %d. This is a SHRINK-ONLY "+
 			"ratchet: derive the fact from an existing Board method instead of adding one. A raised "+
-			"constant is a MAJOR review finding.", n, charsBoardMethods)
+			"constant needs a review.", n, charsBoardMethods)
 	case n < charsBoardMethods:
 		t.Logf("chars.Board has %d methods, below the ceiling of %d: lower charsBoardMethods in "+
 			"internal/archtest/layering_chars_test.go to %d in the same commit.", n, charsBoardMethods, n)

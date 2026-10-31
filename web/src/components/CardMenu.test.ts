@@ -3,13 +3,12 @@ import { browserURL, sharedBrowser } from '../test/browser';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
- * CardMenu.test.ts is the mounted half of the Ctrl-hold-priority requirement
- * (prio3, r2 review finding 1): a Ctrl-click on a card-menu cast/ability must
- * reach SeatPanelState.click's `{ holdPriority: true }` through the tile post
- * path — the pure helpers are tested in cardoptions.test.ts, but the thread
- * from a REAL click through CardTile → OptionPicker → TileOptions.post is
- * what the r2 review broke by code trace, so it is held here by a mounted
- * run against the fixture.
+ * CardMenu.test.ts is the mounted half of the Ctrl-hold-priority requirement:
+ * a Ctrl-click on a card-menu cast/ability must reach SeatPanelState.click's
+ * `{ holdPriority: true }` through the tile post path — the pure helpers are
+ * tested in cardoptions.test.ts, but the thread from a REAL click through
+ * CardTile → OptionPicker → TileOptions.post is what the r2 review broke by
+ * code trace, so it is held here by a mounted run against the fixture.
  */
 
 let browser: Browser;

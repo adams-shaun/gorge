@@ -162,7 +162,7 @@ export class SeatPanelState {
    * rather than read by the route's effect: reading the panel (a $derived in
    * Table) or any of its state from that effect adds a reactive edge that
    * re-ran it across the starting_player -> mulligan transition and tripped
-   * SeatPanel's null-ctx read (agent-20260924T114750Z-ba517e3b), hanging the
+   * SeatPanel's null-ctx read, hanging the
    * seated page. The effect's dependencies stay exactly the route's own.
    */
   followUpExpected: { seq: number; obj: number } | null = null;
@@ -1276,7 +1276,7 @@ export class SeatPanelState {
    * answers an identical pair — every option the same trigger
    * (identicalTriggerOrder) — when settings.autoOrderIdenticalTriggers is
    * on, with the note "Ordered N identical triggers automatically".
-   * fb-trigorder1 adds the broader path: when settings.autoOrderAllTriggers
+   * There is a broader path: when settings.autoOrderAllTriggers
    * is on, ANY trigger_order satisfying the same shape contract
    * (triggerOrderPermutation) is auto-answered too, with the distinct note
    * "Ordered N triggers automatically" — auto-ordering DIFFERENT triggers is
@@ -2183,29 +2183,27 @@ export class SeatPanelState {
         this.followUpExpected = followUpArm(d, choices);
         this.onFollowUpArm?.(this.followUpExpected);
       }
-      // The hand answers that can carry a real action are click()'s post-on-click
-      // (min == max == 1), submit()'s multi-pick commit and submitPayment()'s
-      // planned cast; all funnel through here, so the pass-after-arming test
-      // lives on the ACCEPTED post — a
-      // rejected intent never arms, and the gates are the preference itself
-      // and the hold-priority modifier: with actPass off nothing is ever
-      // armed, and a Ctrl-held action (hold priority) skips the arming for
-      // that one post. passClick/primaryClick post only pass/resolve options,
-      // the machine paths (auto, the one-shot runs, the empty-window floor,
-      // the act-pass pass itself) post only the pass verdict's index, and a
-      // non-priority decision fails the kind test, so none of them arm.
-      // A mana tap (Kind "activate" on a priority window) fails the kind
-      // test too — arming on the tap machine-passed the very window the
-      // freshly floated mana unlocked (fb-3ab6d9da).
-      // Concede never reaches here as an action: click() returns before
-      // posting it once and confirmConcede posts a concede kind, which the
-      // test rejects.
-      // A planned cast (submitPayment: the seat-panel/hot-strip plan button,
-      // the hand CAST shortcut, and click()'s auto-pay branch for a legacy
-      // cast) posts no choices, only its payment selection; actedPayment
-      // counts it exactly as actedOption counts the same cast's legacy
-      // option, under the same gates: accepted posts only, the preference on,
-      // and Ctrl (holdPriority) exempt (spec §8).
+      // The hand answers that can carry a real action are click()'s
+      // post-on-click (min == max == 1), submit()'s multi-pick commit and
+      // submitPayment()'s planned cast; all funnel through here, so the
+      // pass-after-arming test lives on the ACCEPTED post — a rejected intent
+      // never arms, and the gates are the preference itself and the
+      // hold-priority modifier: with actPass off nothing is ever armed, and a
+      // Ctrl-held action (hold priority) skips the arming for that one post.
+      // passClick/primaryClick post only pass/resolve options, the machine
+      // paths (auto, the one-shot runs, the empty-window floor, the act-pass
+      // pass itself) post only the pass verdict's index, and a non-priority
+      // decision fails the kind test, so none of them arm. A mana tap (Kind
+      // "activate" on a priority window) fails the kind test too — arming on
+      // the tap machine-passed the very window the freshly floated mana
+      // unlocked. Concede never reaches here as an action: click() returns
+      // before posting it once and confirmConcede posts a concede kind, which
+      // the test rejects. A planned cast (submitPayment: the
+      // seat-panel/hot-strip plan button, the hand CAST shortcut, and click()'s
+      // auto-pay branch for a legacy cast) posts no choices, only its payment
+      // selection; actedPayment counts it exactly as actedOption counts the
+      // same cast's legacy option, under the same gates: accepted posts only,
+      // the preference on, and Ctrl (holdPriority) exempt (spec §8).
       if (this.actPass && !holdPriority && (actedOption(d, choices) || actedPayment(d, payment))) this.actPassArmed = true;
       // If a new decision was adopted while the intent was in flight (a
       // rapid successive ask), keep it; only drop the decision we answered.

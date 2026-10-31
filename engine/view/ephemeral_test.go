@@ -7,16 +7,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestZoneListsSkipEphemeralObjects is Task 4's regression test for
+// TestZoneListsSkipEphemeralObjects covers
 // cardViews' ephemeral skip: none of a token that has left the battlefield
 // (this build parks such an object in exile rather than deleting it -- see
 // state.Object.Ephemeral), a copy sitting in exile, or a cardless ability
 // object sitting in exile may appear in any zone view, while a token
 // genuinely on the battlefield still does.
 //
-// This is a self-contained fixture (its own two-seat game and card) rather
-// than a parallel M2a task's twoSeatWith/watcherSrc helpers, which do not
-// exist on this branch (see Task 4's coordination note).
+// This is a self-contained fixture: its own two-seat game and card.
 func TestZoneListsSkipEphemeralObjects(t *testing.T) {
 	g := state.NewGame([]string{"a", "b"})
 	bear, d := cards.ParseBytes("b.txt", []byte("Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))

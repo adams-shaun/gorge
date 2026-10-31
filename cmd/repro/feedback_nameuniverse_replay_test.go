@@ -1,15 +1,14 @@
 package main
 
-// Task cli-20260922T150843Z-42f8f6dc, fix round sol3 MAJOR: the name-card
-// universe is a match MODE, and a feedback snapshot has to carry it the same
-// way host's own sidecar does. `gorged` wires Options.NameUniverse
-// unconditionally, so EVERY live match is universe-backed and a report filed
-// against a match that resolved a NameCard ask records a name intent. If
-// match.json does not record the mode, feedback.config() rebuilds a Config
-// without a universe, the replayed engine takes the legacy no-ask path, and
-// replay.run finds no decision pending at the recorded intent: cmd/repro and
-// feedback.EngineAt both fail on exactly the reports that most need
-// reproducing.
+// The name-card universe is a match MODE, and a feedback snapshot has to
+// carry it the same way host's own sidecar does. `gorged` wires
+// Options.NameUniverse unconditionally, so EVERY live match is
+// universe-backed and a report filed against a match that resolved a NameCard
+// ask records a name intent. If match.json does not record the mode,
+// feedback.config() rebuilds a Config without a universe, the replayed engine
+// takes the legacy no-ask path, and replay.run finds no decision pending at
+// the recorded intent: cmd/repro and feedback.EngineAt both fail on exactly
+// the reports that most need reproducing.
 //
 // This is the end-to-end proof for that path — a real universe-backed host
 // match, captured by the real capture code (SnapshotForFeedback), replayed

@@ -200,8 +200,8 @@ func foldMoveZone(g *state.Game, e *Event) {
 			switch moveCounter {
 			case "exiled_with_face_down", "exiled_with_face_down_foretold":
 				// A blind face-down exile (Necropotence's top-card exile; a
-				// pre-cr-g64 Hideaway/foretold log): the exiling source rides
-				// in Amount and no looker is recorded, so FaceDown is state a
+				// Hideaway or foretold card with no looker recorded): the
+				// exiling source rides in Amount, so FaceDown is state a
 				// later projection reads to withhold the face from everyone
 				// (CR 406.3). The foretold variant also records the
 				// designation after Move has reset a battlefield object's
@@ -363,15 +363,14 @@ func foldMoveZone(g *state.Game, e *Event) {
 
 // foldLibraryOrder folds Kind LibraryOrder into state.
 func foldLibraryOrder(g *state.Game, e *Event) {
-	// A library-arranging effect (Ponder, later Scry/Surveil) set a
-	// complete new order on a player's library. Mechanically identical to
-	// Shuffle's SetZone (see the same defensive copy below -- never alias
-	// the event's slice into game state), but a separate Kind on purpose
-	// (Ruling J1): Shuffle means "randomised, the old order is gone" to
-	// a decoder, while LibraryOrder means "the player chose a new order"
-	// -- a scry is not a shuffle, and a log reader must be able to tell
-	// them apart. Same totality stance as every case here: an invalid
-	// Player is a no-op, never a panic.
+	// A library-arranging effect (Ponder, later Scry/Surveil) set a complete
+	// new order on a player's library. Mechanically identical to Shuffle's
+	// SetZone (see the same defensive copy below -- never alias the event's
+	// slice into game state), but a separate Kind on purpose: Shuffle means
+	// "randomised, the old order is gone" to a decoder, while LibraryOrder
+	// means "the player chose a new order" -- a scry is not a shuffle, and a
+	// log reader must be able to tell them apart. Same totality stance as
+	// every case here: an invalid Player is a no-op, never a panic.
 	if validPlayer(g, e.Player) {
 		g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
 	}
@@ -536,7 +535,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		return
 	}
 	// The object's real (pre-move) zone, captured before o.Zone is
-	// overwritten below -- Task 4's X/CastFlags/Chosen* reset needs to know
+	// overwritten below -- the X/CastFlags/Chosen* reset needs to know
 	// whether this object is actually LEAVING the battlefield, not merely
 	// where the caller-supplied from claims it came from (the same
 	// real-zone-over-claimed-zone rule this function already applies to the

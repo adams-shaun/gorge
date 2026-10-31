@@ -25,10 +25,10 @@ type SeatClaim struct {
 // Options configures the handler. Every duration defaults when zero.
 type Options struct {
 	Authorize      func(*http.Request) error // nil allows everyone; an error is a 401
-	WidgetInterval time.Duration             // SSE widget flush cadence; 0 = 250ms (Task 15)
-	KeepAlive      time.Duration             // SSE comment cadence; 0 = 15s (Task 15)
-	ResumeGrace    time.Duration             // how long a disconnected session survives; 0 = 30s (Task 15)
-	Web            fs.FS                     // the built client (has index.html); nil = 503 for non-API paths (Task 15)
+	WidgetInterval time.Duration             // SSE widget flush cadence; 0 = 250ms
+	KeepAlive      time.Duration             // SSE comment cadence; 0 = 15s
+	ResumeGrace    time.Duration             // how long a disconnected session survives; 0 = 30s
+	Web            fs.FS                     // the built client (has index.html); nil = 503 for non-API paths
 	// Engine is the engine GET /api/capabilities reports; "" is gorge.
 	Engine string
 	// Seat resolves which seat a request may act for, separately from
@@ -90,7 +90,7 @@ type handler struct {
 	opts Options
 
 	mu       sync.Mutex
-	grace    map[string]*graceTimer // session id -> pending close after disconnect (Task 15)
+	grace    map[string]*graceTimer // session id -> pending close after disconnect
 	graceGen uint64                 // monotonic token so stale grace callbacks recognise themselves
 }
 
@@ -128,8 +128,8 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	})
 	h.mountEvents(mux)
 	h.mountDecisions(mux)
-	h.mountStream(mux) // Task 15
-	h.mountStatic(mux) // Task 15
+	h.mountStream(mux)
+	h.mountStatic(mux)
 	return h, h.authorized(mux)
 }
 

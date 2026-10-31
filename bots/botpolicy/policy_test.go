@@ -24,9 +24,7 @@ func rng(seed uint64) *rand.Rand {
 // the pick, not d.Kind -- "x" takes the highest option (the most an {X}
 // cost can pay for; options ascend), "exile", mandatory "sacrifice" and
 // cleanup "discard" rank offered cards; "yes"
-// answers yes, and "name"/"type"/"number" take the first offer. Moved here from engine/seat/bot_test.go's TestBotChoosePolicy and
-// engine/rules/testbot_test.go's mirror of it, which were the same test twice
-// (Ruling F7).
+// answers yes, and "name"/"type"/"number" take the first offer.
 func TestChoosePolicy(t *testing.T) {
 	r := rng(1)
 	choose := func(kind string, n, min, max int) decision.Intent {
@@ -73,12 +71,12 @@ func TestChoosePolicy(t *testing.T) {
 	}
 }
 
-// TestPassesOutsideMainWithNoCastOrLandDrop is Ruling T25-g's regression
+// TestPassesOutsideMainWithNoCastOrLandDrop is a regression
 // test, using the engine's REAL shape for a non-main priority decision
 // (engine/rules/legal.go's legalActions never offers play_land or cast outside
 // sorcery speed/an affordable instant): one or more "activate" options
 // followed by "pass" last -- no play_land, so the switch's un-gated
-// play_land/cast loop cannot mask the fallback path the way fix round 1's
+// play_land/cast loop cannot mask the fallback path the way an earlier
 // own regression case accidentally did. Board.IsMain false must pass, true
 // must prefer activate (when a castable card needs mana; the need gate of
 // tap.go, T1, gates the tap on the pool -- the main-phase Board carries an
@@ -223,7 +221,7 @@ func TestEveryKind(t *testing.T) {
 		t.Errorf("attackers = %+v, want every legal attacker chosen against a defender with no creatures", in)
 	}
 
-	// M2 (fix round 1): a single fixed seed is fragile -- with seed 1 the
+	// A single fixed seed is fragile -- with seed 1 the
 	// two coin flips below did not both land "block" even with the used map
 	// deleted entirely, so the assertion passed for the wrong reason. Three
 	// options share blocker 20 here, and every one of 50 seeds is checked:
@@ -373,7 +371,7 @@ func TestEveryKind(t *testing.T) {
 	}
 }
 
-// TestDeterministic is Ruling P8's point at the policy level: the same rng
+// TestDeterministic checks determinism at the policy level: the same rng
 // seed answering the same decision sequence produces identical intents, and
 // the rng is still load-bearing somewhere. dp1 made KTriggerOrder and
 // KTriggerOptional deterministic (they no longer draw from the rng), so the
@@ -442,13 +440,13 @@ func TestDeterministic(t *testing.T) {
 	}
 }
 
-// TestTotalityUnderArbitraryMinMax is I-4/Ruling T25-c's regression test:
-// every kind-specific branch used to ignore d.Min/d.Max entirely, so it only
-// validated by coincidence of the shapes today's engine happens to emit.
-// 10,000 random decisions (random kind among all eight, 0-8 options with
-// random Kind/Obj/Player fields, random 0 <= Min <= Max <= len(Options)) must
-// all validate and never panic. Moved here from the two mirror copies
-// (engine/seat/bot_test.go, engine/rules/testbot_test.go).
+// TestTotalityUnderArbitraryMinMax guards clamp's guarantee that every answer
+// honours d.Min/d.Max, rather than validating by coincidence of the shapes
+// today's engine happens to emit. 10,000 random decisions (random kind among
+// all eight, 0-8 options with random Kind/Obj/Player fields, random 0 <= Min
+// <= Max <= len(Options)) must all validate and never panic. Moved here from
+// the two mirror copies (engine/seat/bot_test.go,
+// engine/rules/testbot_test.go).
 func TestTotalityUnderArbitraryMinMax(t *testing.T) {
 	kinds := []decision.Kind{decision.KPriority, decision.KTarget, decision.KAttackers,
 		decision.KBlockers, decision.KMulligan, decision.KModes, decision.KTriggerOrder,

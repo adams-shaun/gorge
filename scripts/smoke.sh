@@ -4,7 +4,7 @@
 #
 # Builds the REAL client and the REAL binary, starts FIVE `gorged` servers on
 # smoke ports (8090-8099 by default) — public and omniscient spectators, a SEATED 1v1,
-# the shared ui24/wheel1 board fixture, and the fb-e079def5 Talisman two-stage
+# the shared ui24/wheel1 board fixture, and the Talisman two-stage
 # continuation fixture — then drives
 # the headless-browser smoke test in web/e2e against all five, and tears
 # every server down (and removes its temp dir) whether the gate passes or
@@ -319,7 +319,7 @@ start_farm() {
     -mulligans 0 -perpetual=false -humans 0,1 -seat-token ui24fixture >"$FIXTUREDIR/server.log" 2>&1 &
   SERVER_PIDS+=("$!")
 
-  # fb-e079def5: the two-stage Talisman continuation. The fixture gets a
+  # The two-stage Talisman continuation. The fixture gets a
   # Talisman of Indulgence castable by turn 2 (two Mountains for its {2} cost),
   # then stops at the priority window whose Talisman activation poses the
   # stage-1 ability wheel the browser test answers THROUGH the picker — the

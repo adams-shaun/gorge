@@ -507,7 +507,7 @@
      across the neighbour's exposed left strip and wins the hit-test there, so
      the raise gesture — `.card:hover`, and Playwright's hover actionability —
      landed on the affordance instead of the neighbour's face (the mirror of
-     the buried-button bug this ticket fixes). Starting the box a few px
+     the buried-button bug). Starting the box a few px
      inside the neighbour leaves its leftmost edge its own face, while the
      affordance centre still sits over the neighbour's face (asserted in
      HandFan.geometry.test.ts). The last card has no next face to clear, so it
@@ -528,7 +528,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    /* +25% over the pre-fb-9946410e 1.1rem, matching OptionPicker's badge. */
+    /* +25% over 1.1rem, matching OptionPicker's badge. */
     min-width: 1.375rem;
     height: 1.375rem;
     padding: 0 0.25rem;

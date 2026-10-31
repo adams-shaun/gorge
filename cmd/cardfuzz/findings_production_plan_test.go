@@ -13,8 +13,9 @@ import (
 )
 
 // TestProductionAndPlanFindings replays the cardfuzz records
-// (testdata/findings_production_plan.jsonl: card-name deck lists, no script text; the recorded
-// diag is replaced by a one-line summary) and pins each root cause:
+// (testdata/findings_production_plan.jsonl: card-name deck lists, no script
+// text; the recorded diag is replaced by a one-line summary) and pins each
+// root cause:
 //
 //   - mirror 17348437687370656270 (Coldsteel Heart): the plan's Leafkin
 //     Druid witness was GG ("Add {G}, or {G}{G} with four creatures", a

@@ -133,7 +133,7 @@ func (g *Game) Submit(in decision.Intent) error {
 // shuffles draw from the clone's generator; probes judge legality only.
 // A clone still holds the real hidden zones and the secret-seeded generator,
 // so no probe outcome may set a decision's shape through hidden-zone
-// contents (Section 13 F3); Task 28's resample check is the net.
+// contents; the resample check is the net.
 func (g *Game) Probe(ins ...decision.Intent) (*rules.Engine, error) {
 	return probe(g.E, ins...)
 }

@@ -105,7 +105,7 @@ func fetchRepo(repo, dir, ref string) (*Lock, error) {
 
 	var commit string
 	if fullCommitSHA.MatchString(ref) {
-		// FL-11: a pinned commit is not necessarily any branch's tip, so it
+		// A pinned commit is not necessarily any branch's tip, so it
 		// cannot be requested with --branch, and the earlier approach of
 		// `clone --no-checkout` first (which pulls the *whole* commit/tree
 		// history's metadata before narrowing) wastes a full-history

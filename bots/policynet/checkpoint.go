@@ -46,13 +46,13 @@ import (
 // Version 1 checkpoints are refused rather than silently loaded with
 // ResidualW 0: the version bump is the tripwire that says the body grew.
 //
-// Schema version 3 adds the value head (ticket pn08): a seventh geometry
+// Schema version 3 adds the value head: a seventh geometry
 // word, valueHidden, and the four value blocks after ResidualW. VOutB is
 // always written (one float) so the layout has no conditional block; with
 // valueHidden 0 the three sized blocks are empty and VOutB is 0. Version 2
 // (and 1) checkpoints are refused, by the same tripwire.
 //
-// Schema version 4 (ticket pn14) is written ONLY for an entity model
+// Schema version 4 is written ONLY for an entity model
 // (Model.EntK > 0; every other model is still written as version 3, byte for
 // byte): two more geometry words after valueHidden, entK and the raw entity
 // width (EntityRawWidth), and three blocks after VOutB:
@@ -130,7 +130,7 @@ func WriteCheckpoint(m *Model, w io.Writer) error {
 	return writeCheckpoint(m, w)
 }
 
-// WriteOracleCheckpoint serialises an ORACLE value model (ticket pn17-a1): a
+// WriteOracleCheckpoint serialises an ORACLE value model: a
 // model of a diagnostic feature set, whose value head scores a complete
 // state. Its one legitimate consumer is a search leaf inside a SAMPLED world
 // (searchseat.Options.OracleValue), where the "hidden" information it reads

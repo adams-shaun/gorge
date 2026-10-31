@@ -117,9 +117,9 @@ func TestArrangeReorder(t *testing.T) {
 	}
 }
 
-// TestArrangeHideawayBottomIsReorder covers the all-to-bottom deviation
-// (Ruling J4/J5): "hideaway_bottom" is a single ordered list even though
-// every offered card's destination is the bottom, not the top.
+// TestArrangeHideawayBottomIsReorder covers the all-to-bottom deviation:
+// "hideaway_bottom" is a single ordered list even though every offered card's
+// destination is the bottom, not the top.
 func TestArrangeHideawayBottomIsReorder(t *testing.T) {
 	v := arrangeView()
 	d := &decision.Decision{Seq: 7, Player: 0, Kind: decision.KArrange, Min: 2, Max: 2, Prompt: "Order cards going to the bottom",

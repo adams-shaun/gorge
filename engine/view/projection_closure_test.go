@@ -76,9 +76,9 @@ func assertKeysClosed(t *testing.T, typeName string, typ reflect.Type, want map[
 // own_deck is admitted as a strictly seat-scoped manifest; projection tests
 // prove public and omniscient views omit it. The same
 // allowlist treatment is applied to PlayerView (the type that actually
-// carries hand/pool/library_size — the leak surface D6 most protects against
-// — 16 fields, four of them this Task's public commander facts) and
-// StackView (8 fields, 10 with Ruling VW-1's optional/decider).
+// carries hand/pool/library_size — the largest leak surface
+// — 16 fields, four of them public commander facts) and
+// StackView (8 fields, 10 with optional/decider).
 //
 // Second it marshals a real OMniscient projection — the widest-everywhere
 // view, the one a leaked endpoint would send — and asserts that what is
@@ -195,9 +195,9 @@ func TestViewMarshalsClosed(t *testing.T) {
 		// carrier and never a card list.
 		"counters": true, "land_drop_spent": true,
 	})
-	// StackView is public (R3) so it is a lesser leak surface, but the
+	// StackView is public, so it is a lesser leak surface, but the
 	// reflection is the same shape and cheap, so it is pinned too. The two
-	// Ruling VW-1 keys (optional/decider) are public facts — an optional
+	// keys optional/decider are public facts — an optional
 	// triggered ability on the stack reports that it is optional and who
 	// answers it — never a hidden-zone carrier, so they join the public
 	// facts class here rather than the hidden-zone class the test guards.

@@ -14,7 +14,7 @@ import (
 
 // Seat is anything that answers decisions: a bot, a scripted test seat, or
 // (later) a WebSocket-backed human. ctx lets a human seat time out; a bot
-// ignores it and never returns an error (Ruling P8).
+// ignores it and never returns an error.
 type Seat interface {
 	Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error)
 }

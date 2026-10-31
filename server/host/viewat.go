@@ -21,7 +21,7 @@ func (e ErrBeyondHead) Error() string { return fmt.Sprintf("host: seq beyond hea
 
 // ViewAt is the board as of event seq (inclusive) in the table's
 // visibility. For a live match it uses the turn-start snapshots; a finished
-// match (Task 12) replays from its files.
+// match replays from its files.
 //
 // The replay viewAt does (up to a turn's worth of Submit calls) can run
 // long enough to matter, so this takes the read lock only to copy what it
@@ -36,13 +36,12 @@ func (r *Registry) ViewAt(id TableID, k int, seq uint64) (view.View, error) {
 		return view.View{}, err
 	}
 	m.mu.RLock()
-	// The whole log, not a prefix to seq: Log.Clone (Task 1) is a flat
-	// whole-log deep copy with no truncation parameter, and computing a
-	// correct prefix here would mean re-doing Clone's own per-event
-	// IDs/Pairs copying by hand instead of reusing it, for a saving that
-	// is usually small (most ViewAt calls land near head anyway) and is
-	// freed the moment this call returns — unlike a stored snapshot
-	// (FL-44), this copy never outlives the request.
+	// The whole log, not a prefix to seq: Log.Clone is a flat whole-log deep
+	// copy with no truncation parameter, and computing a correct prefix here
+	// would mean re-doing Clone's own per-event IDs/Pairs copying by hand
+	// instead of reusing it, for a saving that is usually small (most ViewAt
+	// calls land near head anyway) and is freed the moment this call returns
+	// — unlike a stored snapshot, this copy never outlives the request.
 	l := m.g.Log().Clone()
 	snaps := append([]snapshot(nil), m.snaps...)
 	src, vis := m.replaySource(), t.cfg.Spectator
@@ -53,8 +52,8 @@ func (r *Registry) ViewAt(id TableID, k int, seq uint64) (view.View, error) {
 // ViewAtSeat is one seat's own view of the board as of event seq
 // (inclusive): their hand and mana pool — every other seat's hidden zones
 // are counts only — and, when the projection is exactly at the live head
-// and the engine is parked on that seat, the decision asked of them (Task
-// M2b-4, FL-73). It shares viewAt with ViewAt; the two differ only in the
+// and the engine is parked on that seat, the decision asked of them. It shares
+// viewAt with ViewAt; the two differ only in the
 // (viewer, vis, decision) triple they hand it, i.e. only in how the common
 // replay calls view.ProjectFor.
 //
@@ -102,7 +101,7 @@ func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.Player
 // and Describe read "the state as of the last event in evs".
 //
 // since is caller-controlled and since=0 on a long match is the whole log,
-// so (fix round 1, FL-42) this takes the read lock only long enough to
+// so this takes the read lock only long enough to
 // clone g (state.Game.Clone) and copy the events tail, then formats
 // outside the lock — the same discipline as ViewAt, now that eventBodies
 // (server/host/fanout.go) takes a state/events pair instead of a live match.
@@ -172,7 +171,7 @@ func (r *Registry) EventsSeat(id TableID, k int, since uint64, player state.Play
 }
 
 // lookup finds a table's live or retained match, loading a finished match
-// from disk when only its sidecar is known (Task 12). The last loaded
+// from disk when only its sidecar is known. The last loaded
 // match is cached per table so a DVR session stepping through a finished
 // match does not replay it per request.
 func (r *Registry) lookup(id TableID, k int) (*table, *match, error) {
@@ -418,9 +417,9 @@ func (m *match) replaySource() replaySource {
 // ended: that burst has no end to show and the previous boundary is not the
 // board at seq, so the request is refused.
 //
-// A reader must never crash (D15's philosophy, extended to readers by
-// fix round 1, FL-43): boundsOf already keeps a crashed match's poison
-// intent (the one Submit recorded right before a panic, spec D15) out of
+// A reader must never crash (the same philosophy as the
+// match loop): boundsOf already keeps a crashed match's poison
+// intent (the one Submit recorded right before a panic) out of
 // the replay range, but the deferred recover below is the backstop for
 // any other way replaying a hand-built, corrupted, or future-buggy log
 // could panic — it turns that into a plain error instead.

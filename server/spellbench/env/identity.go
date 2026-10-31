@@ -97,7 +97,7 @@ func provenance(e protocol.Engine) protocol.Provenance {
 }
 
 // engineOrder is the declared combat damage default (Section 7.6): gorge
-// assigns combat damage in engine order (Task 16).
+// assigns combat damage in engine order.
 var engineOrder = "engine_order"
 
 func helloOK(id string, e protocol.Engine, flags map[string]bool, autoPay bool) protocol.HelloOK {

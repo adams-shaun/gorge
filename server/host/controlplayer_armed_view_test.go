@@ -1,6 +1,6 @@
 package host
 
-// cr-g57: a CR 723 grant is folded into state.Game.ControlledBy when it
+// A CR 723 grant is folded into state.Game.ControlledBy when it
 // resolves, but the control is live only during the controlled player's NEXT
 // turn (CR 723.1). projectNext's controlledSeats must not widen the
 // controller's View (CR 723.4) with the controlled seat's hand before that

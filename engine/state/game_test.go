@@ -145,7 +145,7 @@ func cardsFixture() (*cards.Card, error) {
 	return c, nil
 }
 
-// TestStepValidRejectsOutOfRange is Task 23's totality fix: engine/events/apply.go's
+// TestStepValidRejectsOutOfRange pins totality: engine/events/apply.go's
 // StepChange case stores e.Step unvalidated, so a tampered log can reach
 // Project (and rules/trigger.go's own Step.String() call) with an
 // out-of-range step. Step.Valid mirrors Zone.Valid so callers fed an
@@ -215,7 +215,7 @@ func TestCloneDeepDoesNotAliasChosenModesOrGoads(t *testing.T) {
 	}
 }
 
-// TestCloneCopiesTheNewFieldsAndSharesTokens is Task 4's regression test:
+// TestCloneCopiesTheNewFieldsAndSharesTokens:
 // Clone is a plain struct copy for Object's new scalar fields (nothing to
 // deep-copy, unlike the slice fields Clone already walks by hand), and
 // Tokens -- set once at genesis and never mutated -- is shared between the

@@ -161,9 +161,9 @@ func ProjectForControlledInto(dst *View, g *state.Game, ch Chars, viewer state.P
 // the library), a Secret Note that is NOT a hand look (a private look at a
 // library's top; a hand look rides From == ZHand and passes, because an
 // omniscient spectator's visibility already includes every hand — the
-// strip list is about library ORDER, per Ruling FL-9), or any Secret move
+// strip list is about library ORDER), or any Secret move
 // landing back IN a library (a Dig/rearrange that returns a card to a
-// hidden position reveals where in the order it went, per Ruling FL-9) —
+// hidden position reveals where in the order it went) —
 // which keep only their shape. A Secret Draw or
 // MoveZone OUT of the library still passes: the card is now in a hand the
 // omniscient viewer sees. A non-Secret move into a library (e.g. from a
@@ -218,7 +218,7 @@ func RedactEventFor(g *state.Game, e events.Event, viewer state.PlayerID, vis Vi
 // spectator viewer (NoSeat, the only viewer Public and Omniscient serve) is
 // never a Secret event's Player, so the omniscient spectator's event stream
 // is unchanged. Serving paths set it from the engine's
-// StartingChoicePending probe at serve time (Ruling F7 passes the probe
+// StartingChoicePending probe at serve time (passing the probe
 // through host, which imports rules); nothing recorded in the log, no event
 // kind and no chain head moves -- this is the redaction of what a seat is
 // SERVED, not of what happened. g may be nil: the blind arm then keys on the

@@ -923,13 +923,13 @@ export interface StackView {
   controller: number;
   source?: number;
   /**
-   * Targets is a public list (Ruling T23-u): non-nil, "[]" not "null",
+   * Targets is a public list: non-nil, "[]" not "null",
    * even when nothing has been targeted yet.
    */
   targets: TargetView[];
   card?: CardView | null;
   /**
-   * Optional and Decider are Ruling VW-1: an optional triggered ability on
+   * Optional and Decider: an optional triggered ability on
    * the stack, awaiting its resolution-time yes/no (CR 603.5), reports that
    * it is optional and names the seat that answers it. Decider is nil
    * unless Optional.
@@ -953,7 +953,7 @@ export interface StackView {
 
   /**
    * PendingView is a trigger that will hit the stack once its controller has
-   * ordered it / its decider has accepted it. R3.
+   * ordered it / its decider has accepted it.
    */
 export interface PendingView {
   source: number;
@@ -1141,7 +1141,7 @@ export interface Option {
   amount?: number;
   /**
    * Ability anchors an "ability" option to its exact activated ability:
-   * the index into the source Face().Abilities being offered (Task 10), so
+   * the index into the source Face().Abilities being offered, so
    * a client can pop that ability's own text up beside the right ability
    * on the card. The engine reads it in beginActivation, where a stale
    * index degrades to a no-op. omitempty: options that are not ability
@@ -1346,7 +1346,7 @@ export interface PaymentAction {
 
   /**
    * PaymentFallback explains why an accepted plan returned to the ordinary
-   * manual payment flow. Execution publishes it in a later ticket.
+   * manual payment flow.
    */
 export interface PaymentFallback {
   plan_id: string;
@@ -1669,8 +1669,8 @@ export interface View {
   /**
    * Winner is nil unless Over && !Draw: PlayerID's zero value is seat 0, a
    * real seat, so a bare PlayerID field could never distinguish "seat 0
-   * won" from "the game is still going" or "it was a draw" (Task 22
-   * finding 5). A JSON null is unambiguous where a bare 0 would not be.
+   * won" from "the game is still going" or "it was a draw". A JSON null is
+   * unambiguous where a bare 0 would not be.
    */
   winner: number | null;
   /**
@@ -1680,20 +1680,20 @@ export interface View {
   day_night?: string;
   /**
    * Players, Stack and Pending (below) are every public list this type
-   * carries. All of them are built non-nil even when empty (Ruling
-   * T23-u): a client should never have to treat a bare JSON `null` and an
-   * empty `[]` as the same "nothing here" case for one of these, the way
-   * it legitimately must for Hand/Pool below.
+   * carries. All of them are built non-nil even when empty: a client should
+   * never have to treat a bare JSON `null` and an empty `[]` as the same
+   * "nothing here" case for one of these, the way it legitimately must for
+   * Hand/Pool below.
    */
   players: PlayerView[];
   /**
    * Stack keeps g.Stack's own order: index 0 is the bottom, the last
-   * entry is the top. Public for every seat — R3.
+   * entry is the top. Public for every seat.
    */
   stack: StackView[];
   /**
    * Pending is the trigger queue, in the order it will be placed on the
-   * stack. Public for every seat — R3.
+   * stack. Public for every seat.
    */
   pending: PendingView[];
   decision?: Decision | null;
@@ -2281,7 +2281,7 @@ export interface Intent {
    * enforces (one rule, one home: validateRest). Every non-arrange kind
    * rejects a non-empty Rest outright. omitempty: every intent a client
    * sends today serialises byte-identically, and a recorded intent's Rest
-   * rides the log and replays exactly (Ruling P2 submits intents as
+   * rides the log and replays exactly (intents are submitted as
    * logged).
    */
   rest?: number[];

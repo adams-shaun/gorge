@@ -18,7 +18,7 @@ func foldDeclareAttackers(g *state.Game, e *Event) {
 	// it is validated once, like TurnChange/Priority above, rather than
 	// per object. Nothing reads Object.Attacking yet, so an unvalidated
 	// value cannot panic today -- but it is the same untrusted-seat-id
-	// pattern as Ruling T20-e, found in the same audit, and closing it
+	// pattern as TriggerPush's seat, and closing it
 	// now costs nothing for a well-formed event (Player is always valid
 	// there).
 	if !validPlayer(g, e.Player) {

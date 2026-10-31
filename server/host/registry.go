@@ -56,7 +56,7 @@ type Options struct {
 	// the token definitions the decks in this match can create. Passed into
 	// every rules.Config the host builds — live matches and the replays
 	// that serve finished ones from disk — so a persisted match replays
-	// with the same token definitions (Ruling FL-40).
+	// with the same token definitions.
 	Tokens map[string]*cards.Card
 	// NameUniverse is the compiled card corpus a NameCard decision ranges
 	// over (rules.Config.NameUniverse): Pithing Needle names any card, a
@@ -72,7 +72,7 @@ type Options struct {
 	// matches for Cooldown, and play calls it after every decision for
 	// Pace. It must return once d elapses OR stop closes, whichever comes
 	// first — that is what lets Close interrupt a table sitting in a long
-	// cooldown or a slow pace (Ruling FL-18) instead of blocking up to d.
+	// cooldown or a slow pace instead of blocking up to d.
 	// A nil Sleep gets defaultSleep, which does exactly that with a real
 	// timer; it is the only place in the package that touches the clock,
 	// so a caller wanting a faster-than-realtime test still goes through
@@ -140,7 +140,7 @@ type Options struct {
 	// asked to answer in the player's place (Task M2b-3, D3). 0 — the default
 	// — means "no timeout": the seat waits for a human SubmitIntent forever,
 	// and only falls back to the caretaker when the table's context is
-	// cancelled (a disconnected human seat must never wedge play, FL-17).
+	// cancelled (a disconnected human seat must never wedge play).
 	// A non-zero value is a live clock read (host is the package allowed
 	// time) that converts an unanswered decision into exactly the intent the
 	// slot's bot would have produced, so a timed-out human game replays
@@ -300,7 +300,7 @@ type Registry struct {
 }
 
 // New validates Options and, when Dir is set, reads the registry back from
-// disk (Task 12). Nothing starts running until Start/StartAll.
+// disk. Nothing starts running until Start/StartAll.
 func New(o Options) (*Registry, error) {
 	if o.LoadDeck == nil {
 		return nil, fmt.Errorf("host: Options.LoadDeck is required")
@@ -332,7 +332,7 @@ func New(o Options) (*Registry, error) {
 	}
 	r := &Registry{opts: o, searchGate: gate, tables: map[TableID]*table{}, sessions: map[string]*Session{}, done: make(chan struct{})}
 	if o.Dir != "" {
-		if err := r.load(); err != nil { // Task 12
+		if err := r.load(); err != nil {
 			return nil, err
 		}
 	}
@@ -412,7 +412,7 @@ func (r *Registry) AddTable(c TableConfig) error {
 		}
 	}
 	r.tables[c.ID] = newTable(r, c)
-	return r.saveLocked() // Task 12; a no-op in memory mode
+	return r.saveLocked() // a no-op in memory mode
 }
 
 // checkAccepted asks a validated table's engine whether it can play the table's
@@ -639,9 +639,9 @@ func (r *Registry) Wait(id TableID) {
 //
 // ctx is derived once, here, for the table's whole lifetime — not once per
 // match — and is the sole cancellation path play has into a Seat.Decide
-// call that is already blocked when Close runs (Ruling FL-17): t.stop
+// call that is already blocked when Close runs: t.stop
 // itself is only ever polled between decisions, so a seat that does not
-// return on its own (a disconnected human, Task 25) would otherwise wedge
+// return on its own (a disconnected human) would otherwise wedge
 // this goroutine, and Close's wg.Wait with it, forever. The bridging
 // goroutine below is the only consumer of ctx.Done() other than
 // play/Decide; it exits as soon as either side fires, so it never outlives
@@ -697,7 +697,7 @@ func (r *Registry) run(t *table) {
 		}
 		m, err := r.newMatchWith(t, k, plan)
 		if err != nil {
-			r.halt(t, k, err) // Task 13; sets state halted
+			r.halt(t, k, err) // sets state halted
 			return
 		}
 		t.mu.Lock()
@@ -805,7 +805,7 @@ func (m *match) trimLog() {
 // recording why. k is the match number the caller was building or had just
 // finished — not necessarily t.k, which the newMatch-failure path never
 // bumps, so a first-boot halt is addressed to the match that actually
-// failed, not match 0. Task 13 adds the crash report file.
+// failed, not match 0.
 func (r *Registry) halt(t *table, k int, err error) {
 	reason := err.Error()
 	t.mu.Lock()
@@ -915,7 +915,7 @@ func (r *Registry) Close() error {
 	close(r.done)
 	r.mu.Unlock()
 	r.wg.Wait()
-	r.closeSessions() // Task 10
+	r.closeSessions()
 	return nil
 }
 

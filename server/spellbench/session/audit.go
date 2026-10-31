@@ -17,7 +17,7 @@ import (
 
 // Realized is a completed native decision as the engine committed it, in
 // the numbering the seat's x_gorge_view_v1 showed: the native decision's
-// intent, and each folded follow-up's under its payload key (Task 28b's
+// intent, and each folded follow-up's under its payload key (the
 // parity audit compares both with the agent's plan).
 type Realized struct {
 	Seat      state.PlayerID

@@ -9,22 +9,21 @@ import (
 
 // colours cycles WUBRG's basic-land shapes in a fixed order, so seat i's
 // deck is deterministically this colour and no two seats within the first
-// five are mirror images of each other (Ruling P9).
+// five are mirror images of each other.
 var colours = [...]struct{ letter, land string }{
 	{"R", "Mountain"}, {"G", "Forest"}, {"W", "Plains"}, {"U", "Island"}, {"B", "Swamp"},
 }
 
-// SampleDecks returns n player names and n ~40-card decks authored inline,
-// so the fuzz gate runs on a clean checkout with no corpus fetched (Ruling
-// P9). Each deck is one colour's basics, a vanilla creature sized by seat
-// (so seats are not mirror images of each other), a burn spell that targets
-// a creature or a player, a pump spell, a permanent with a mandatory
-// triggered ability, and a permanent with an OptionalDecider$ You triggered
-// ability -- the shapes engine/rules/trigger_order_test.go already exercises,
-// re-authored here rather than imported (testutil cannot import rules: the
-// fuzz test using this is package rules itself). SampleDecks is a pure
-// function of n: no randomness, so the same n always yields the same decks
-// in the same order.
+// SampleDecks returns n player names and n ~40-card decks authored inline, so
+// the fuzz gate runs on a clean checkout with no corpus fetched. Each deck is
+// one colour's basics, a vanilla creature sized by seat (so seats are not
+// mirror images of each other), a burn spell that targets a creature or a
+// player, a pump spell, a permanent with a mandatory triggered ability, and a
+// permanent with an OptionalDecider$ You triggered ability -- the shapes
+// engine/rules/trigger_order_test.go already exercises, re-authored here
+// rather than imported (testutil cannot import rules: the fuzz test using
+// this is package rules itself). SampleDecks is a pure function of n: no
+// randomness, so the same n always yields the same decks in the same order.
 func SampleDecks(t testing.TB, n int) (names []string, decks [][]*cards.Card) {
 	t.Helper()
 	names = make([]string, n)
@@ -39,10 +38,7 @@ func SampleDecks(t testing.TB, n int) (names []string, decks [][]*cards.Card) {
 // deckFor builds seat i's 40-card deck: 17 basics, 7 vanilla creatures, and
 // 4 copies each of a burn spell, a pump spell, a mandatory-trigger
 // permanent and an optional-trigger permanent (17+7+4+4+4+4 = 40). Every
-// nonland card costs a single pip of the deck's own colour (Ruling T25-b,
-// fix round 1: the creature used to cost `1 %s`, two mana the bot's own
-// priority policy could never assemble at sorcery speed -- see bot.go's
-// isMain gating for the other half of that fix), so the bot's simple
+// nonland card costs a single pip of the deck's own colour, so the bot's simple
 // priority policy can actually cast them and exercise KAttackers/KBlockers
 // and real combat damage during the fuzz gate, not only KPriority/KTarget/
 // KTriggerOrder/KTriggerOptional.
@@ -56,9 +52,8 @@ func deckFor(t testing.TB, seat int) []*cards.Card {
 	creature := parseCard(t, fmt.Sprintf(
 		"Name:%s Whelp %d\nManaCost:%s\nTypes:Creature Whelp\nPT:%d/%d\nOracle:x\n",
 		c.land, seat, c.letter, size, size))
-	// burnSrc and pumpSrc are the supplement's own literal texts (Ruling
-	// P9): a spell that targets a creature or a player, and one that
-	// targets a creature only.
+	// burnSrc and pumpSrc are a spell that targets a creature or a player, and
+	// one that targets a creature only.
 	burn := parseCard(t, fmt.Sprintf(
 		"Name:%s Bolt %d\nManaCost:%s\nTypes:Instant\n"+
 			"A:SP$ DealDamage | ValidTgts$ Creature,Player | NumDmg$ 2\nOracle:x\n",

@@ -24,7 +24,7 @@ import "fmt"
 // length always equals the match's intent count, and an undo truncates it
 // beside the log (rewindToLastIntent).
 //
-// The only reader in this ticket is Provenance; HD-3's ShadowScan reads the
+// The only reader is Provenance; ShadowScan reads the
 // same slice under the match lock to exclude caretaker and auto intents from
 // the divergence scan.
 

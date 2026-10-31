@@ -47,7 +47,7 @@ import "strings"
 // command-zone half is not offered: engine/rules/legal.go's offer walk enumerates
 // only battlefield, graveyard and hand, so `ActivationZone$ Command` would
 // withhold the whole ability rather than widen it. Yuriko's hand activation
-// works; the command-zone activation is recorded in the ticket report.
+// works; the command-zone activation is not modelled.
 func kwNinjutsu(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
 	if has("A", k) {
 		return

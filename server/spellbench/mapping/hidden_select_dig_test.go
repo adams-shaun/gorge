@@ -1,9 +1,9 @@
 package mapping_test
 
-// mixedSelect must carry the
-// Section 7.1 hidden order, hidden_pick's Destination must choose the select
-// purpose, the generalized newDig's presentational remainder op must set
-// Inside, and a yes/no ask about a hidden card must open the look.
+// mixedSelect must carry the Section 7.1 hidden order, hidden_pick's
+// Destination must choose the select purpose, the generalized newDig's
+// presentational remainder op must set Inside, and a yes/no ask about a
+// hidden card must open the look.
 
 import (
 	"cmp"

@@ -10,7 +10,7 @@ import (
 
 // promptArrange: KArrange splits into two wire shapes,
 // told apart by the shared Option.Kind every option in one decision carries
-// (Ruling J5, engine/rules/arrange.go):
+// (engine/rules/arrange.go):
 //
 //   - "bottom", "graveyard", "exile", "hand": a genuine two-pile split (a
 //     Scry/Surveil-style ask). -> scry, with the library-top zone first and

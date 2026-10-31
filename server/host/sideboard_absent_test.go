@@ -1,7 +1,7 @@
 package host
 
-// The sideboard-less compatibility half of the sideboard feature (task
-// sideboards, fix round 3): rules.Config.Sideboards must be nil — not a
+// The sideboard-less compatibility half of the sideboard feature:
+// rules.Config.Sideboards must be nil — not a
 // non-nil slice of empty seats — when no deck at the table carries a
 // sideboard, or FeedbackMatch's `sideboards,omitempty` cannot omit it and
 // every ordinary match.json grows a `[null,...]` field it never had.

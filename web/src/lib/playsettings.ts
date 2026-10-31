@@ -128,7 +128,7 @@ export interface PlaySettings {
   passAfterAct: boolean;
   /** auto-order identical simultaneous triggers; consumed by prio6, not decide() */
   autoOrderIdenticalTriggers: boolean;
-  /** auto-order EVERY simultaneous-trigger ask (fb-trigorder1), not only identical ones; consumed by seatpanel's auto-order path, not decide() */
+  /** auto-order EVERY simultaneous-trigger ask , not only identical ones; consumed by seatpanel's auto-order path, not decide() */
   autoOrderAllTriggers: boolean;
   /** artificial pacing for auto-passing; consumed by prio5, not decide() */
   pacing: { stepMs: number; resolveMs: number };
@@ -364,14 +364,13 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 
 /**
  * Storage key: ONE global key, deliberately not per table (see module doc).
- * The KEY string stays `gorge.playsettings.v1` across the v1→v2 field bump
- * (fb-trigorder1): the version lives INSIDE the blob, so renaming the key
- * would orphan every existing player's settings — exactly the silent wipe
- * the version-2 migration exists to avoid. The same holds for the v2→v3
- * bump (breakpoints): validate accepts blob versions 1, 2 and 3;
- * saveSettings writes v3 into the same key.
- * Migration: the legacy per-table keys (`gorge.stop.<table>.<seat>` from
- * stops.ts and the actpass key from actpass.ts) are NOT imported. They
+ * The KEY string stays `gorge.playsettings.v1` across the v1→v2 field bump:
+ * the version lives INSIDE the blob, so renaming the key would orphan every
+ * existing player's settings — exactly the silent wipe the version-2
+ * migration exists to avoid. The same holds for the v2→v3 bump (breakpoints):
+ * validate accepts blob versions 1, 2 and 3; saveSettings writes v3 into the
+ * same key. Migration: the legacy per-table keys (`gorge.stop.<table>.<seat>`
+ * from stops.ts and the actpass key from actpass.ts) are NOT imported. They
  * encode the old mana-tap-era defaults — stop sets written when a mana tap
  * counted as an action — and importing them would resurrect those defaults
  * under the new model. A player migrating simply starts at casual.
@@ -389,7 +388,7 @@ const OWN_RULES: readonly OwnObjectRule[] = ['never', 'if-respondable'];
  * unknown rule word. Corrupt means defaults, not a partial merge — a
  * half-understood settings blob should not half-apply.
  *
- * Version migration (fb-trigorder1): blob version 1 predates
+ * Version migration: blob version 1 predates
  * `autoOrderAllTriggers`, and rejecting it outright would reset every
  * existing player to casual — a silent settings wipe. A v1 blob is
  * migrated instead: every old field is preserved as-is and the new field

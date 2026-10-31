@@ -35,8 +35,7 @@ var optionalCostModes = map[string]string{"kicked": "kicker", "buyback": "buybac
 
 // CastMethod classifies a "cast" option of a card whose AlternateMode is
 // alternateMode: a Section 7.4 method, or an optional cost over the normal
-// method, or a special action. Every mode outside the tables fails closed
-// (Task 29's engine notes list them).
+// method, or a special action. Every mode outside the tables fails closed.
 func CastMethod(o decision.Option, alternateMode string) (method, optional, special string, ok bool) {
 	if o.Mode == "plot" {
 		return "", "", "plot", true

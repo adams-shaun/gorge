@@ -127,14 +127,14 @@ type PolicyNetBot struct {
 	blockers  bool
 	target    bool
 	// record, when set (SetRecorder), receives every decision this seat
-	// SCORED and answered from its scores (ticket pn13's on-policy corpus).
+	// SCORED and answered from its scores (the on-policy corpus).
 	// nil records nothing and costs nothing.
 	record func(PolicyNetDecision)
 	// signAdmission selects the subset kinds' SIGN admission vote
 	// (SetAdmission(AdmissionSign)); false is the default AdmissionAuto.
 	signAdmission bool
 	// sampleT > 0 switches the scored kinds from the deterministic vote to
-	// SAMPLING (SetSampling, ticket pn14's stochastic collection): softmax of
+	// SAMPLING (SetSampling, for stochastic collection): softmax of
 	// score/T for the single-choice kinds, a per-option Bernoulli of
 	// σ(score/T) for the subset kinds. sampleRng is the seat's own stream,
 	// seeded from the game seed; nothing else reads it.
@@ -147,7 +147,7 @@ type PolicyNetBot struct {
 
 // SetSampling makes the seat SAMPLE its scored answers at temperature temp
 // (> 0) from a PCG stream seeded by seed — the collection-only exploration
-// mode of ticket pn14. temp <= 0 restores the default argmax/vote seat. The
+// mode. temp <= 0 restores the default argmax/vote seat. The
 // stream is the seat's own (the wrapped default bot's rng is untouched), so
 // a sampling game is a pure function of the game seed and the flags.
 //
@@ -174,7 +174,7 @@ func (b *PolicyNetBot) SetSampling(temp float64, seed uint64) {
 // Subset admission votes (SetAdmission). AdmissionAuto is the default
 // admissionThreshold rule: the calibrated sign when a decision's scores
 // straddle 0, else the decision's own mean, refusing an exact tie.
-// AdmissionSign (opt-in, ticket pn13) always votes on the calibrated sign,
+// AdmissionSign (opt-in) always votes on the calibrated sign,
 // score > 0 — the per-option inclusion probability σ(score) > ½ the BCE head
 // is trained under and the on-policy PPO objective models. Measured on the
 // pn11 gen-0 checkpoint's own games (pn13): 93% of the auto rule's attackers
@@ -369,7 +369,7 @@ func singleTarget(d *decision.Decision) bool {
 		!d.HasBudget() && len(d.Options) >= 2
 }
 
-// targetScorable is the target distribution gate, ticket 01's single-choice
+// targetScorable is the target distribution gate, the single-choice
 // CE rule: the residual prior is active (ResidualW > 0, so the zero-residual
 // plain argmax is unreachable), the decision has the teacher's singleTarget
 // shape, and the bot answered with exactly one choice (the teacher labels

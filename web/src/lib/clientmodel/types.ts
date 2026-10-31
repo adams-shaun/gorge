@@ -7,9 +7,9 @@ import type { CardView, Decision, View } from '../../protocol';
  * the Manabrew protocol replaces an adapter, not the UI.
  *
  * `ClientView` and `PendingDecision` are aliases of the gorge wire shapes
- * today (Ruling in archived 2026-09-28-ui-motion.md (docs/design/ARCHIVE.md)): the gorge
- * view already is the shape the board reads, and a Manabrew adapter projects
- * its `gameView` into it. Transitions are the new, protocol-independent part.
+ * today: the gorge view already is the shape the board reads, and a Manabrew
+ * adapter projects its `gameView` into it. Transitions are the new,
+ * protocol-independent part.
  */
 export type ClientView = View;
 export type PendingDecision = Decision;

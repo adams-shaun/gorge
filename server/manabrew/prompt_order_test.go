@@ -138,7 +138,7 @@ func orderAdvanceUntilTriggerOrder(t *testing.T, e *rules.Engine, limit int) *de
 }
 
 // TestTriggerOrderFirstIdResolvesFirst runs a two-trigger fixture through the
-// real engine (CR 603.3b / Ruling U2/R1) to prove the KTriggerOrder direction
+// real engine (CR 603.3b) to prove the KTriggerOrder direction
 // flip end to end, not just in a hand-built decision: submitting a ManaBrew
 // reorder answer that names Watcher Beta's item FIRST must make Beta's
 // LifeChange (amount 2) land in the event log BEFORE Alpha's (amount 1) --

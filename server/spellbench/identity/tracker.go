@@ -314,7 +314,7 @@ func (t *Tracker) LookID(viewer state.PlayerID, id state.ObjID) (string, error) 
 }
 
 // sees reports whether viewer sees o in its zone: every public zone, and its
-// own hand. It mirrors observe.Visible (Task 11), the rule that decides which
+// own hand. It mirrors observe.Visible, the rule that decides which
 // objects get a VisibleID; observe imports this package, so the rule cannot
 // be shared, and a change to either must be made to both.
 func sees(viewer state.PlayerID, o *state.Object) bool {

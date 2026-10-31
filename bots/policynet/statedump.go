@@ -13,7 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// The oracle state/outcome dump (ticket pn17): a JSONL corpus of encoded
+// The oracle state/outcome dump: a JSONL corpus of encoded
 // STATES with game outcomes and NO labelled options. It is the value-only
 // training path's input (the trainer -value-corpus): one record per
 // observed board state, carrying the redacted seat view the encoders read,

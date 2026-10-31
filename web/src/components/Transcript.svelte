@@ -24,14 +24,13 @@
    * lines ("Step: main-1") are hidden by default behind their own toggle,
    * independent of the noise toggle.
    *
-   * Task 3 ("each log should note the player name in colour"): `identities`
-   * is the caller's already-resolved seat name/colour list (Table.svelte
-   * builds it the same way SeatTable does, off the same view+seats), and
-   * every line is run through logcolour.ts's colourSegments so a seat's own
-   * name is coloured wherever it reads as that PLAYER rather than as part of
-   * a card's name — see logcolour.ts for how the two are told apart.
-   * Optional so a caller with no seats yet (or every existing test) renders
-   * every line as plain text, unchanged.
+   * `identities` is the caller's already-resolved seat name/colour list
+   * (Table.svelte builds it the same way SeatTable does, off the same
+   * view+seats), and every line is run through logcolour.ts's colourSegments
+   * so a seat's own name is coloured wherever it reads as that PLAYER rather
+   * than as part of a card's name — see logcolour.ts for how the two are told
+   * apart. Optional so a caller with no seats yet (or every existing test)
+   * renders every line as plain text, unchanged.
    *
    * Readable log (ui9). Beyond that task-3 colouring, each line is also run
    * through logrender.ts, which re-renders the server-described line from
@@ -418,7 +417,7 @@
   .text {
     overflow-wrap: anywhere;
   }
-  /* The seat's own identity colour (Task 3), inline with the sentence rather
+  /* The seat's own identity colour, inline with the sentence rather
      than a separate column — the same "learned once" register the rest of
      the rail uses colour for. */
   .who {

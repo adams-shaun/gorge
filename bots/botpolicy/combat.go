@@ -17,7 +17,7 @@ import (
 // view package's Chars interface already pins Engine.Power/Toughness/
 // Keywords with a compile-time assertion), so BoardFromGame derives exactly
 // the post-effects P/T and keyword set the view-shaped half reads off the
-// projected View — without botpolicy importing rules or view (Ruling F7).
+// projected View — without botpolicy importing rules or view.
 type Chars interface {
 	Power(state.ObjID) int32
 	Toughness(state.ObjID) int32

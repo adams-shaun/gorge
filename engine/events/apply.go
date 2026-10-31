@@ -249,21 +249,20 @@ func applyKind(g *state.Game, e *Event) {
 	case KeywordAbilityPush:
 		foldKeywordAbilityPush(g, e)
 	case Discover, Seek, Surveil, Scry, Proliferate, ElementalBend:
-		// The discover (CR 701.57), seek (task trigdisc1), surveil
-		// (CR 701.42, task trig-surveil), scry (CR 701.18, task
-		// scrybottom) and proliferate (CR 701.27, task trig-proliferate)
-		// records are pure markers, exactly like Explore/Investigate: the
-		// action's own state changes (the exiles/reveals, the sought card's
-		// move, the KArrange answer's LibraryOrder, the counter batch per
-		// chosen recipient) are their own events that surround this one, and
-		// the record is what trig:Discover / trig:SeekAll / trig:Surveil /
-		// trig:Scry / trig:Proliferate match. Player is the acting seat, Obj
-		// the resolving source permanent; Scry's Amount is the number of
-		// cards put on the bottom. One marker per completed action. The
-		// ElementalBend record (task agent-20260929T010346Z-ae55d89d) is
-		// the same shape: the bend's own state changes are their own
-		// events that surround it, and the record is what
-		// trig:ElementalBend matches; its Text carries the verb
+		// The discover (CR 701.57), seek (task trigdisc1), surveil (CR
+		// 701.42, task trig-surveil), scry (CR 701.18, task scrybottom) and
+		// proliferate (CR 701.27, task trig-proliferate) records are pure
+		// markers, exactly like Explore/Investigate: the action's own state
+		// changes (the exiles/reveals, the sought card's move, the KArrange
+		// answer's LibraryOrder, the counter batch per chosen recipient) are
+		// their own events that surround this one, and the record is what
+		// trig:Discover / trig:SeekAll / trig:Surveil / trig:Scry /
+		// trig:Proliferate match. Player is the acting seat, Obj the
+		// resolving source permanent; Scry's Amount is the number of cards
+		// put on the bottom. One marker per completed action. The
+		// ElementalBend record is the same shape: the bend's own state
+		// changes are their own events that surround it, and the record is
+		// what trig:ElementalBend matches; its Text carries the verb
 		// (water/earth/fire/air) the per-turn all-four ledger folds.
 	case Exploit:
 		// The exploit record (CR 702.58a, task exploit1) is a pure marker,

@@ -17,7 +17,7 @@ import "math"
 //
 // It is the one definition shared by the pn10 candidate prior
 // (bots/searchseat delegates to it), the AlphaZero search's priors
-// (bots/azmcts) and ticket 3's visit-distribution loss, which spreads a
+// (bots/azmcts) and the visit-distribution loss, which spreads a
 // subset target onto the same Bernoulli form. candidateSoftplus is kept apart
 // from the training softplus in net.go on purpose: the pn10 prior ranked with
 // this exact function before it moved here, and the training version's +/-30

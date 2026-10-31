@@ -50,7 +50,7 @@ func TestBoundsOfMatchesTheLoopsOwnBookkeeping(t *testing.T) {
 		t.Fatalf("%d snapshots for %d turn starts", len(m.snaps), len(m.turnStarts))
 	}
 
-	// FL-43 (fix round 1): a partial final burst — the shape a crashed
+	// A partial final burst — the shape a crashed
 	// match's log has, since Submit records its intent before
 	// handle/checkStateBased/Advance can panic on it — must not be
 	// mistaken for a complete boundary. boundsOf's last element must stay
@@ -70,7 +70,7 @@ func TestBoundsOfMatchesTheLoopsOwnBookkeeping(t *testing.T) {
 // burst — after at least one of its events, before the DecisionAsk or
 // GameOver that would complete it — plus k, the number of intents that
 // fully completed before the truncated (k+1-th) one. This is the shape a
-// crashed match's own log has (spec D15, FL-43): Submit appends the
+// crashed match's own log has: Submit appends the
 // intent to L.Intents before handle/checkStateBased/Advance run, so a
 // panic partway through leaves a straggler tail with no ask and no
 // GameOver, and L.Intents one entry longer than any complete boundary
@@ -92,15 +92,14 @@ func truncatedMidBurst(t *testing.T, m *match) (*events.Log, int) {
 }
 
 // forwardOracle reconstructs "the game as of seq" with none of host's
-// snapshot/genesis machinery: one engine driven forward through the
-// recorded intents exactly as replay.ReplayTo would (Submit per intent,
-// boundary j == j intents applied), cloned and event-Applied only for the
-// intra-burst tail. Asking it for seqs in ascending order costs ONE
-// replay for the whole sample instead of one per seq — the version of this
-// test that replayed from genesis per seq was 23s of a 57s package
-// (2026-09-05) and had to cut its sample to stay under the -race timeout
-// (Ruling FL-49). bounds are the loop's own bookkeeping (m.bounds), not
-// boundsOf, so a boundsOf bug cannot hide from it.
+// snapshot/genesis machinery: one engine driven forward through the recorded
+// intents exactly as replay.ReplayTo would (Submit per intent, boundary j == j
+// intents applied), cloned and event-Applied only for the intra-burst tail.
+// Asking it for seqs in ascending order costs ONE replay for the whole sample
+// instead of one per seq — the version of this test that replayed from genesis
+// per seq was 23s of a 57s package (2026-09-05) and had to cut its sample to
+// stay under the -race timeout. bounds are the loop's own bookkeeping
+// (m.bounds), not boundsOf, so a boundsOf bug cannot hide from it.
 type forwardOracle struct {
 	t      *testing.T
 	l      *events.Log
@@ -283,7 +282,7 @@ func TestViewAtAndEventsErrors(t *testing.T) {
 	}
 }
 
-// TestViewAtSurvivesATruncatedFinalBurst is FL-43's regression test: a
+// TestViewAtSurvivesATruncatedFinalBurst: a
 // log shaped like a crashed match's (a straggler tail from the last,
 // unfinished burst — see truncatedMidBurst) must not make viewAt(head)
 // resubmit the unfinished intent, whether or not it panics for real.

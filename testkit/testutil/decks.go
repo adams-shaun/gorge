@@ -19,7 +19,7 @@ import (
 // like the rest of it. Embedding these is not the licensing hazard
 // engine/cards/boundary_test.go guards against: that guard fires on a Forge
 // script's own Name:/Oracle: shape (GPL-3.0), which a JSON name-and-count
-// list never carries, no matter how it is packaged (Ruling P11).
+// list never carries, no matter how it is packaged.
 //
 //go:embed decks/*.json
 var decksFS embed.FS
@@ -28,7 +28,7 @@ const decksDir = "decks"
 
 // RepoDeckNames lists the embedded decks by file stem (e.g.
 // "mono-red-goblins"), sorted. Sorting matters: callers index into this
-// slice to assign decks to seats (Task 26's acceptance test does exactly
+// slice to assign decks to seats (the acceptance test does exactly
 // that for 2/4/6/8 seats), and embed.FS.ReadDir's own order, while already
 // alphabetical in the standard library, is not a documented guarantee this
 // package should lean on.
@@ -51,7 +51,7 @@ func RepoDeckNames() []string {
 }
 
 // legacyDeckNames is the 12 60-card constructed Legacy decks the acceptance
-// suite pins its golden games to (Ruling M38-P). The deck directory also
+// suite pins its golden games to. The deck directory also
 // holds the five interim 100-card Commander decks (foundations-*), which are
 // not part of the 12: the acceptance chain heads in engine/rules/testdata/heads/ are
 // byte-identical games over these 12, and adding commander decks earlier
@@ -105,13 +105,12 @@ func AcceptanceDecks(r *cards.Registry, seats int) ([]string, [][]*cards.Card, e
 	return names, decks, nil
 }
 
-// LoadRepoDeck reads decks/<name>.json and resolves it through the deck
-// package (deck.Parse then File.Resolve, which runs cards.NormalizeName so
-// Scryfall-shaped catalogue names and Forge script names fold to the same
-// key) into a flat, count-many-times-repeated slice of *cards.Card pointers
-// -- the shape rules.Config.Decks wants. It is the non-testing.TB variant
-// mtgsim uses directly; RepoDeck below is the t.Fatalf-on-error wrapper for
-// tests (Ruling P11).
+// LoadRepoDeck reads decks/<name>.json and resolves it through the deck package
+// (deck.Parse then File.Resolve, which runs cards.NormalizeName so
+// Scryfall-shaped catalogue names and Forge script names fold to the same key)
+// into a flat, count-many-times-repeated slice of *cards.Card pointers -- the
+// shape rules.Config.Decks wants. It is the non-testing.TB variant mtgsim uses
+// directly; RepoDeck below is the t.Fatalf-on-error wrapper for tests.
 func LoadRepoDeck(r *cards.Registry, name string) ([]*cards.Card, error) {
 	// embed.FS paths are always slash-separated regardless of host OS --
 	// filepath.Join would emit "decks\name.json" on Windows and the read
@@ -169,7 +168,7 @@ func LoadRepoDeckFile(name string) (deck.File, error) {
 // is a fixture problem the test has no useful way to continue past, so it
 // fails immediately via t.Fatalf rather than handing the caller an error to
 // (potentially inconsistently) check -- the same wrapper RepoDeck is over
-// LoadRepoDeck (Ruling P11).
+// LoadRepoDeck.
 func RepoDeckFile(t testing.TB, name string) deck.File {
 	t.Helper()
 	f, err := LoadRepoDeckFile(name)
@@ -230,7 +229,7 @@ func loadRepoCorpusRegistry() corpusRegistryResult {
 // CorpusRegistry finds the repo root the way engine/cards/boundary_test.go does --
 // `git rev-parse --show-toplevel`, not a hard-coded relative path, which is
 // exactly what silently broke that file's own license-boundary test when
-// this package was transplanted to a new module root (Ruling P11) -- and
+// this package was transplanted to a new module root -- and
 // opens its .cards/ corpus. A checkout with no .cards/ directory at all
 // (nothing ever fetched) is not a test failure: it Skips, so `go test
 // ./...` still passes on a clean clone with no network access. Once .cards/

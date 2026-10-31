@@ -17,7 +17,7 @@ import { isActionKind } from '../autopilot';
  * arming test for pass-after-acting, and it is the per-choice counterpart of
  * `actionable`'s per-decision test — the SAME shared predicate (isActionKind),
  * so the two cannot drift apart again. The activate exclusion is the fix for
- * fb-3ab6d9da. The wire fact it rests on: in a PRIORITY decision, Kind
+ * The wire fact it rests on: in a PRIORITY decision, Kind
  * "activate" is only ever the tap-for-mana option (rules/legal.go's
  * availableManaAbilities loop — `add("activate", "Tap <name> for mana", id)`);
  * non-mana activated abilities are offered as Kind "ability" (legal.go's
@@ -170,7 +170,7 @@ export function optionAt(d: Decision, index: number): Option | undefined {
  *   askManaColor (a Treasure's colour ask on the source).
  * - `mana` -- the stage-1 ability pick; answering an Any / Combo Any /
  *   Chosen ability poses askManaColor's stage-2 wheel on the same source
- *   (fb-e079def5: Talisman, Vivid Marsh).
+ *   (Talisman, Vivid Marsh).
  *
  * The rule reads option kinds, never the decision kind, because the same
  * `activate` shape appears on priority and on choose windows. Nothing else
@@ -217,9 +217,9 @@ export function toneOf(d: Decision | null): Tone {
 }
 
 /**
- * triggerOrderPermutation is the SHAPE contract every auto-order path shares
- * (fb-trigorder1 generalised the prio6 check): a trigger_order decision whose
- * min == max == options.length (the engine's permutation contract, Ruling U2)
+ * triggerOrderPermutation is the SHAPE contract every auto-order path shares:
+ * a trigger_order decision whose min == max == options.length (the engine's
+ * permutation contract)
  * with at least two options — a one-trigger ask is never posed. The check is
  * grounded in the real wire shape, measured on a live decision
  * (rules/trigger_queue.go's askTriggerOrder): each option is `kind: "trigger"`
@@ -254,7 +254,7 @@ export function identicalTriggerOrder(d: Decision): boolean {
  * MulliganPhase names which half of the London round a `mulligan` decision is
  * in, so the seat panel can lay it out. The two halves are told apart by their
  * option KINDS — `keep`/`mulligan` in the first, `bottom` in the second — and
- * never by option count, position or label text (FL-101).
+ * never by option count, position or label text.
  *
  * A mulligan decision carrying any other kind returns null and falls back to
  * the generic option list, so an option this layout does not understand is

@@ -174,11 +174,10 @@ func runWitnessGame(t *testing.T, deck string, seed uint64) (blocks, realizedBlo
 	return blocks, realizedBlocks, divisions
 }
 
-// Task 16's parked acceptance item: the audited live runs must witness a
-// declare_block candidate answered (the consistency audit's declare_block
-// branch) and a combat damage division answered (the engine-order internal
-// answer, whose failure would halt the game), in uniform games of the five
-// catalog decks — not only in fixtures.
+// The audited live runs must witness a declare_block candidate answered (the
+// consistency audit's declare_block branch) and a combat damage division
+// answered (the engine-order internal answer, whose failure would halt the
+// game), in uniform games of the five catalog decks — not only in fixtures.
 
 // witnessSeeds is the audited uniform walk's seed list. The old single seed
 // (3, 7) never reached the CawGates transform; (4, 7) is the regression that

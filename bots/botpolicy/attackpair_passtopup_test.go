@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestClampPassTopUpKeepsOneDefenderPerAttacker pins the review finding that
+// TestClampPassTopUpKeepsOneDefenderPerAttacker pins that
 // Clamp's pass-option top-up loop applies the KAttackers one-defender rule as
 // well as the ordinary loop: two pass options for the same attacker Obj must
 // not both be added, or Clamp returns an intent Decision.Validate rejects.

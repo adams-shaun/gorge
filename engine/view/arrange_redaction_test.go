@@ -7,15 +7,15 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestLibraryOrderRedaction is the Ruling J1 redaction leaf: a LibraryOrder
+// TestLibraryOrderRedaction is the redaction leaf: a LibraryOrder
 // event with Secret: true is redacted to its shape for EVERY seat, its owner
 // included -- CR 401.2: no player may know a library's order, and the
 // owner's projection lists the library's contents, so the IDs would name it
-// card by card (cr-g61).
+// card by card.
 //
 // The Omniscient arm is the one this leaf watches: view.RedactEventFor
 // redacts a Secret event revealing library order -- and LibraryOrder was
-// added to that disjunction explicitly (Ruling J1) so the chosen new order
+// added to that disjunction explicitly so the chosen new order
 // does not leak to an omniscient spectator the way a Shuffle already does
 // not.
 //
@@ -34,7 +34,7 @@ func TestLibraryOrderRedaction(t *testing.T) {
 	ev := events.Event{Seq: 7, Kind: events.LibraryOrder, Player: 0,
 		To: state.ZHand, IDs: []state.ObjID{1, 2, 3}, Secret: true}
 
-	// The owner's OWN seat is served the shape too (CR 401.2, cr-g61).
+	// The owner's OWN seat is served the shape too (CR 401.2).
 	owner := RedactEvent(g, ev, 0)
 	if len(owner.IDs) != 0 || owner.Kind != events.LibraryOrder || owner.Player != 0 || !owner.Secret {
 		t.Fatalf("owner's own LibraryOrder = %+v, want its shape only (CR 401.2)", owner)

@@ -1,15 +1,15 @@
 package host
 
-// Task cli-20260922T150843Z-42f8f6dc, fix round sol2 finding 2: the NameCard
-// decision is a match-semantic MODE, not merely data. A match played with a
-// card-name universe poses a real name decision in its log; a match played
-// without one (any pre-feature binary) never did. server/host/viewat.go rebuilds a
-// finished match's replay Config from its sidecar ALONE (R-8.4), so the mode
-// must persist: a pre-feature sidecar has no field, reads false, and its log
-// — which recorded no name decision — must still replay. The gate is
-// sidecar.NameUniverse, and TestNameUniverseModeGatesReplay is its proof:
-// flipping the field on a real universe-backed log makes the replay diverge,
-// so the flag is load-bearing, not decorative.
+// The NameCard decision is a match-semantic MODE, not merely data. A match
+// played with a card-name universe poses a real name decision in its log; a
+// match played without one (any pre-feature binary) never did.
+// server/host/viewat.go rebuilds a finished match's replay Config from its
+// sidecar ALONE (R-8.4), so the mode must persist: a pre-feature sidecar has
+// no field, reads false, and its log — which recorded no name decision — must
+// still replay. The gate is sidecar.NameUniverse, and
+// TestNameUniverseModeGatesReplay is its proof: flipping the field on a real
+// universe-backed log makes the replay diverge, so the flag is load-bearing,
+// not decorative.
 
 import (
 	"testing"

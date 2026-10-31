@@ -242,7 +242,7 @@ func TestCombatBoardOnlyShrinks(t *testing.T) {
 	case n > combatBoardMethods:
 		t.Errorf("combat.Board has %d methods, above the frozen ceiling of %d. This is a SHRINK-ONLY "+
 			"ratchet: derive the fact from an existing Board method instead of adding one. A raised "+
-			"constant is a MAJOR review finding.", n, combatBoardMethods)
+			"constant needs a review.", n, combatBoardMethods)
 	case n < combatBoardMethods:
 		t.Logf("combat.Board has %d methods, below the ceiling of %d: lower combatBoardMethods in "+
 			"internal/archtest/layering_test.go to %d in the same commit.", n, combatBoardMethods, n)

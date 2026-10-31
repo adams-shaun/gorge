@@ -28,7 +28,7 @@ type HumanSeat struct {
 	// gets its own slot, so a recv channel belongs to exactly one decision
 	// and cannot outlive her -- a late submit for an abandoned decision goes
 	// to a channel nobody will ever read again, instead of poisoning the next
-	// decision (the abandoned-slot leak this fix round is named for).
+	// decision (the abandoned-slot leak).
 	slot *pendingSlot
 	// timeout is the per-decision think budget in force (Options.ThinkTimeout
 	// at the time play configured this seat). 0 means no timeout: the seat
@@ -131,7 +131,7 @@ func NewHumanSeat() *HumanSeat {
 // Task M2b-3 wires the two exit-but-still-playable paths (timeout and ctx
 // cancel) to the caretaker: instead of erroring (which would crash the match
 // and, worse, leave a disconnected human able to wedge play's blocked Decide
-// forever -- FL-17), the seat answers with the deterministic bot's intent for
+// forever), the seat answers with the deterministic bot's intent for
 // that slot, which play submits like any other, so the logged game continues as
 // if the slot had been a bot all along (D3). A human reconnect still works via
 // SubmitIntent against the oncoming decisions (D2). With no caretaker (a bare

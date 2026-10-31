@@ -40,14 +40,14 @@ const view = (stack: StackView[]): View => ({
 });
 
 describe('StackTile', () => {
-  it('renders the card face when stack.card is present (Task 2a: use it whenever it is there)', () => {
+  it('renders the card face when stack.card is present (use it whenever it is there)', () => {
     const s = spell();
     const { html } = render(StackTile, { props: { stack: s, view: view([s]) } });
     expect(html).toContain('card-image');
     expect(html).toContain('Lightning Bolt');
   });
 
-  it('degrades gracefully with no card face — no image, no crash, no placeholder box (Task 2a)', () => {
+  it('degrades gracefully with no card face — no image, no crash, no placeholder box', () => {
     const s = spell({ card: null, kind: 'trigger', name: 'Some Permanent' });
     const { html } = render(StackTile, { props: { stack: s, view: view([s]) } });
     expect(html).not.toContain('card-image');

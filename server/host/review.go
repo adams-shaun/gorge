@@ -90,7 +90,7 @@ func (r *Registry) AddReviewTable(id string, m ReviewMatch) error {
 	}
 
 	cfg := m.Config
-	cfg.Seed = m.Log.Seed // replay's Ruling P5: the log's seed is the match's
+	cfg.Seed = m.Log.Seed // the log's seed is the match's
 	e, err := replay.Replay(m.Log, cfg)
 	if err != nil {
 		return fmt.Errorf("host: review table %s does not replay: %w", id, err)

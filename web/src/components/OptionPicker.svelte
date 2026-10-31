@@ -303,7 +303,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    /* 1.1rem + 25% (task fb-9946410e): the badge box grew, the font went up
+    /* 1.1rem + 25% : the badge box grew, the font went up
        one token step (t-10 → t-12, the scale's nearest step to +25%). */
     min-width: 1.375rem;
     height: 1.375rem;

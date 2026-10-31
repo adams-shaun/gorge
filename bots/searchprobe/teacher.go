@@ -44,7 +44,7 @@ type TeacherOptions struct {
 	// projection (view.ProjectInto): it is valid only for the call, and Leaf
 	// must not retain it or anything in it.
 	Leaf func(v view.View, actor state.PlayerID) float64
-	// LeafOmniscient (ticket pn17-a1) hands Leaf the OMNISCIENT projection of
+	// LeafOmniscient hands Leaf the OMNISCIENT projection of
 	// a non-terminal leaf (view.ProjectFor with view.Omniscient, viewer =
 	// actor: every seat's hand, never library order) instead of the actor's
 	// redacted one, so a full-information value model can score it. That is

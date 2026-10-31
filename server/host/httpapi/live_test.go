@@ -15,14 +15,13 @@ import (
 	"github.com/adams-shaun/gorge/server/protocol"
 )
 
-// TestConcurrentRESTReadsAgainstALiveMatch is controller ruling FL-46 from
-// Task 14's review: rest_test.go only ever reads a match that has already
-// finished, so "a request never blocks the match loop and the handlers
-// are safe for concurrent use" was asserted in comments but never
-// demonstrated by a test. Here several goroutines hit GET .../view (no
+// TestConcurrentRESTReadsAgainstALiveMatch: rest_test.go only ever reads a
+// match that has already finished, so "a request never blocks the match loop
+// and the handlers are safe for concurrent use" was asserted in comments but
+// never demonstrated by a test. Here several goroutines hit GET .../view (no
 // seq, so it resolves to whatever the current head is) and GET
-// .../events?since=0 concurrently, while the match goroutine is mid-game
-// and running, and the match must still finish cleanly underneath them.
+// .../events?since=0 concurrently, while the match goroutine is mid-game and
+// running, and the match must still finish cleanly underneath them.
 //
 // The match is paced with the same Sleep-gate pattern pausedServer uses
 // (sse_test): the shared loader now serves short fixture decks (see

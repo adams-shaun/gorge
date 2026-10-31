@@ -31,7 +31,7 @@ import (
 // the pool's total covers its converted cost and its coloured pips cover
 // every coloured symbol in its printed cost -- the CanPay shape
 // engine/rules/cast.go's castable runs, re-expressed over the Board's Card facts
-// because botpolicy cannot import rules (Ruling F7). The engine only ever
+// because botpolicy cannot import rules. The engine only ever
 // offers a "cast" option once the CURRENT pool can pay the cost, so
 // "nothing castable yet + tapping could help" is exactly "some castable
 // card the pool cannot pay" -- the triggers of the tap loop, and the
@@ -367,8 +367,8 @@ func (b Board) neededColours(c Card) [5]bool {
 //     tap is aimed at a specific pip. A plain conditional "Any" source
 //     (Cavern of Souls, and 500+ other corpus cards) is deliberately NOT
 //     here: widening the gate to every Any source is a separate behaviour
-//     change from the reflected-source fix and moves the botbench golden
-//     (ticket cli-20260922T225137Z), so only Produces.Reflected qualifies.
+//     change from the reflected-source fix and moves the botbench golden, so
+//     only Produces.Reflected qualifies.
 //   - tier 1: a source that demonstrably produces some mana, but none of a
 //     needed colour (a screw in colour, or a pure generic shortfall): it at
 //     least adds to the pool, so it outranks a source that may produce

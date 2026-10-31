@@ -1,7 +1,7 @@
 import { withBase } from './basepath';
 
 /**
- * versioncheck is the stale-client detector (fb-3ab6d9da, defect 2): the demo
+ * versioncheck is the stale-client detector: the demo
  * redeploys on every merge to `main`, and a browser tab that was already open
  * keeps the OLD embedded bundle until the player reloads — which is how a fix
  * deployed before a report "still" hadn't reached the reporter. There is no

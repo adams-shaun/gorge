@@ -22,12 +22,12 @@ import (
 const maxIntents = 200000
 
 // playGame drives a real 4-seat game to completion with the deterministic
-// bot (Ruling P1: Task 25's heuristic.NewBot + testutil.SampleDecks, not a
+// bot (heuristic.NewBot + testutil.SampleDecks, not a
 // replay-local stand-in) and returns both the Config that produced it and
 // the finished engine, so callers can read its Log, Head, and RNGDraws.
 // Reusing the returned cfg for a later Replay/ReplayTo call is what gives
 // the (cfg, l) contract the same deck *cards.Card pointers, in the same
-// order, that Ruling P5/T11-d requires -- calling testutil.SampleDecks a
+// order, that the contract requires -- calling testutil.SampleDecks a
 // second time would build structurally-identical but distinct *cards.Card
 // values instead.
 func playGame(t *testing.T, seed uint64) (rules.Config, *rules.Engine) {
@@ -65,15 +65,14 @@ func playGame(t *testing.T, seed uint64) (rules.Config, *rules.Engine) {
 // an independent Intents slice, so a test can mutate one Intent without
 // corrupting the original recording other tests may still read.
 //
-// Ruling T24-c (fix round 1, Important #2): copying the []decision.Intent
-// slice alone is not enough -- each decision.Intent is a plain struct, so
-// append-copying the slice copies every Intent's Choices SLICE HEADER, not
-// its backing array. A test that then writes into one copy's
-// Choices[j] (the duplicate-choice totality row did exactly this) was
-// silently corrupting orig's backing array too, since both headers still
-// pointed at the same underlying []int. Every Intent's Choices is now
-// copied independently so mutating one copy can never reach another, or
-// the original.
+// Copying the []decision.Intent slice alone is not enough -- each
+// decision.Intent is a plain struct, so append-copying the slice copies every
+// Intent's Choices SLICE HEADER, not its backing array. A test that then
+// writes into one copy's Choices[j] (the duplicate-choice totality row did
+// exactly this) was silently corrupting orig's backing array too, since both
+// headers still pointed at the same underlying []int. Every Intent's Choices
+// is now copied independently so mutating one copy can never reach another,
+// or the original.
 func copyLog(orig *events.Log) *events.Log {
 	c := *orig
 	c.Intents = make([]decision.Intent, len(orig.Intents))
@@ -123,14 +122,13 @@ func TestReplayToPrefixMatchesHeadAt(t *testing.T) {
 		t.Errorf("Head() = %s, want HeadAt(%d) = %s", got, len(rep.L.Events), want)
 	}
 
-	// Bundled fix round 1 item: supplement §3 also says ReplayTo positions
-	// the engine at the next pending decision -- the very one intent n
-	// itself answers. Check that against two independent pieces of the
-	// recording, not just one echoing the other: Seq and Player against the
-	// recorded Intent, and Kind against the DecisionAsk event's own Text
-	// (Engine.ask logs Text: string(d.Kind)) at that same Seq -- Engine.ask
-	// assigns d.Seq = len(e.L.Events) before emitting DecisionAsk, so
-	// l.Events[in.Seq] is exactly the ask this Intent answers.
+	// ReplayTo positions the engine at the next pending decision -- the very
+	// one intent n itself answers. Check that against two independent pieces
+	// of the recording, not just one echoing the other: Seq and Player
+	// against the recorded Intent, and Kind against the DecisionAsk event's
+	// own Text (Engine.ask logs Text: string(d.Kind)) at that same Seq --
+	// Engine.ask assigns d.Seq = len(e.L.Events) before emitting DecisionAsk,
+	// so l.Events[in.Seq] is exactly the ask this Intent answers.
 	in := orig.L.Intents[n]
 	p := rep.Pending()
 	if p == nil {
@@ -154,9 +152,8 @@ func TestReplayToPrefixMatchesHeadAt(t *testing.T) {
 	}
 }
 
-// TestResumeFromMidpointReachesTheSameEnd is the brief's test 3, plus the
-// bundled fix round 1 item that gives the name a real test: the brief's own
-// text uses n == len(Intents), which never resumes anything (every Intent
+// TestResumeFromMidpointReachesTheSameEnd first stops at n == len(Intents),
+// which never resumes anything (every Intent
 // fed back is one already in the log) -- so this keeps that check as its
 // own assertion, then separately stops at a genuine midpoint and drives the
 // returned engine onward with a DIFFERENT bot seed to a fresh, ordinary
@@ -167,8 +164,8 @@ func TestReplayToPrefixMatchesHeadAt(t *testing.T) {
 func TestResumeFromMidpointReachesTheSameEnd(t *testing.T) {
 	cfg, orig := playGame(t, 3)
 
-	// "Playback to" and "resume from" are the same operation (Ruling P3's
-	// doc on ReplayTo) with a different n: ReplayTo(l, cfg, len(l.Intents))
+	// "Playback to" and "resume from" are the same operation (see the doc on
+	// ReplayTo) with a different n: ReplayTo(l, cfg, len(l.Intents))
 	// -- every recorded Intent, the same prefix Replay itself would run --
 	// reaches the same Head as the original.
 	full, err := ReplayTo(orig.L, cfg, len(orig.L.Intents))
@@ -290,12 +287,12 @@ func TestDivergenceNamesTheFirstBadEvent(t *testing.T) {
 	}
 }
 
-// TestReplayRejectsAnIntentTheEngineWouldNotAskFor is the brief's test 5,
-// tightened by Ruling P2: an Intent whose Seq does not match the pending
-// decision must be refused with a clear error, not silently repaired (by
-// rewriting its Seq to match) and applied anyway. The refusal is a plain
-// wrapped error, not a *Divergence -- nothing was ever compared, because
-// Submit rejected the Intent before producing anything for compare to see.
+// TestReplayRejectsAnIntentTheEngineWouldNotAskFor: an Intent whose Seq does
+// not match the pending decision must be refused with a clear error, not
+// silently repaired (by rewriting its Seq to match) and applied anyway. The
+// refusal is a plain wrapped error, not a *Divergence -- nothing was ever
+// compared, because Submit rejected the Intent before producing anything for
+// compare to see.
 func TestReplayRejectsAnIntentTheEngineWouldNotAskFor(t *testing.T) {
 	cfg, orig := playGame(t, 5)
 
@@ -315,12 +312,12 @@ func TestReplayRejectsAnIntentTheEngineWouldNotAskFor(t *testing.T) {
 	}
 }
 
-// TestReplayTotality is the supplement's §6 table (Ruling P4): Replay and
-// ReplayTo re-execute from (cfg, intents) rather than Apply a logged event
-// directly, so a tampered or malformed log can only ever produce an error
-// (a *Divergence or a plain rejection) -- never a panic, no matter how the
-// log or cfg is broken. Every row below is one way to break it; none must
-// panic, and each must return either an error or a usable (non-nil) engine.
+// TestReplayTotality: Replay and ReplayTo re-execute from (cfg, intents)
+// rather than Apply a logged event directly, so a tampered or malformed log
+// can only ever produce an error (a *Divergence or a plain rejection) --
+// never a panic, no matter how the log or cfg is broken. Every row below is
+// one way to break it; none must panic, and each must return either an error
+// or a usable (non-nil) engine.
 func TestReplayTotality(t *testing.T) {
 	cfg, orig := playGame(t, 6)
 
@@ -370,15 +367,14 @@ func TestReplayTotality(t *testing.T) {
 		{"wrong player", func() (*rules.Engine, error) { return Replay(wrongPlayer, cfg) }, nil},
 		{"seat count mismatch", func() (*rules.Engine, error) { return Replay(orig.L, seatMismatchCfg) }, nil},
 		{"ReplayTo n negative", func() (*rules.Engine, error) { return ReplayTo(orig.L, cfg, -5) }, nil},
-		// Ruling T24-c (fix round 1, Important #2): this row shares orig.L
-		// with every hostile row above via copyLog. It is the canary for a
-		// repeat of the Choices-aliasing bug that let the duplicate-choice
-		// row above corrupt orig.L's own backing array -- a corrupted
-		// orig.L would make THIS row stop partway through with a plain
-		// rejection instead of completing, which "no panic and not both
-		// nil" alone would not catch (it did not, the first time). Assert
-		// the strong property instead: a clean, full, chain-matching
-		// replay of the untouched original log.
+		// This row shares orig.L with every hostile row above via copyLog. It
+		// is the canary for a repeat of the Choices-aliasing bug that let the
+		// duplicate-choice row above corrupt orig.L's own backing array -- a
+		// corrupted orig.L would make THIS row stop partway through with a
+		// plain rejection instead of completing, which "no panic and not both
+		// nil" alone would not catch (it did not, the first time). Assert the
+		// strong property instead: a clean, full, chain-matching replay of
+		// the untouched original log.
 		{"ReplayTo n too large", func() (*rules.Engine, error) {
 			return ReplayTo(orig.L, cfg, len(orig.L.Intents)+1000)
 		}, func(t *testing.T, e *rules.Engine, err error) {
@@ -423,7 +419,7 @@ func TestReplayTotality(t *testing.T) {
 // mismatch to land exactly at the truncated log's last valid index: the
 // replay reproduces every earlier event and then, on the very next Submit,
 // produces one the truncated log has no room left for at all (the Missing
-// case, Ruling P3), at Seq == len(truncated.Events).
+// case), at Seq == len(truncated.Events).
 func TestDivergenceOnTheVeryLastEvent(t *testing.T) {
 	cfg, orig := playGame(t, 8)
 	if len(orig.L.Events) < 2 {
@@ -451,7 +447,7 @@ func TestDivergenceOnTheVeryLastEvent(t *testing.T) {
 }
 
 // TestReplayToClampsOutOfRangeN documents ReplayTo's totality behaviour
-// (Ruling P4) beyond "does not panic": n < 0 behaves as n == 0 (genesis
+// beyond "does not panic": n < 0 behaves as n == 0 (genesis
 // only, no Intents applied), and n > len(l.Intents) behaves as the full
 // replay -- both are a clean prefix engine, not an error.
 func TestReplayToClampsOutOfRangeN(t *testing.T) {
@@ -482,17 +478,15 @@ func TestReplayToClampsOutOfRangeN(t *testing.T) {
 	}
 }
 
-// TestReplayVerifiesADeserialisedLog is fix round 1's Important #1
-// (Ruling T24-a): events.Log.chain is unexported with no json tag, while
-// Seed, Events and Intents all have one, so a Log that came off disk or the
-// wire has a zero chain and Head() reports the seedless zero hash -- even
-// when every event matches the replay byte for byte. Replay must verify
-// such a log against l.HeadAt(len(l.Events)), which recomputes the chain
-// from Seed and Events alone, not against l.Head() directly.
+// TestReplayVerifiesADeserialisedLog: events.Log.chain is unexported with no
+// json tag, while Seed, Events and Intents all have one, so a Log that came
+// off disk or the wire has a zero chain and Head() reports the seedless zero
+// hash -- even when every event matches the replay byte for byte. Replay must
+// verify such a log against l.HeadAt(len(l.Events)), which recomputes the
+// chain from Seed and Events alone, not against l.Head() directly.
 //
-// The deliberately wrong cfg.Seed is not the point of this test (Ruling P5
-// and TestReplayReproducesTheChain-adjacent coverage already establish that
-// l.Seed wins); it is here only to make sure the replay's success is not
+// The deliberately wrong cfg.Seed is not the point of this test; it is here
+// only to make sure the replay's success is not
 // somehow an artifact of the seed happening to match.
 func TestReplayVerifiesADeserialisedLog(t *testing.T) {
 	cfg, orig := playGame(t, 9)
@@ -537,8 +531,8 @@ func TestReplayVerifiesADeserialisedLog(t *testing.T) {
 // rather than fail it.
 //
 // There is no way to produce a genuinely NoHash-recorded game through the
-// public API without a rules.Config field this fix round is not scoped to
-// add (NoHash must be set before a Log's first Append, and rules.New's own
+// public API without adding a rules.Config field
+// (NoHash must be set before a Log's first Append, and rules.New's own
 // genesis already appends before returning), so this flips the flag on a
 // full copy of an ordinarily-recorded log instead. NoHash only changes
 // Log.Append's own chain bookkeeping, never the Events/Intents content, so
@@ -566,7 +560,7 @@ func TestReplayVerifiesANoHashLog(t *testing.T) {
 // exact round-trip count must be identical on a live game and on a log-only
 // reconstruction of the same game -- the property the AGENTS.md row says
 // matters most. view.RoundOf is a pure function of the ordered TurnChange
-// stream, and Replay reproduces that stream byte for byte (Ruling P3's
+// stream, and Replay reproduces that stream byte for byte (the
 // incremental compare), so the two counts must agree. The played game runs
 // to completion and therefore contains genuine mid-game eliminations (each
 // loser's PlayerLost and the shorter survivor cycles that follow), which is

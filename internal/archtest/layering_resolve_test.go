@@ -167,7 +167,7 @@ func TestResolveBoardOnlyShrinks(t *testing.T) {
 	case n > resolveBoardMethods:
 		t.Errorf("resolve.Board has %d methods, above the frozen ceiling of %d. This is a SHRINK-ONLY "+
 			"ratchet: fold the need into an existing Board method instead of adding one. A raised "+
-			"constant is a MAJOR review finding.", n, resolveBoardMethods)
+			"constant needs a review.", n, resolveBoardMethods)
 	case n < resolveBoardMethods:
 		t.Logf("resolve.Board has %d methods, below the ceiling of %d: lower resolveBoardMethods in "+
 			"internal/archtest/layering_resolve_test.go to %d in the same commit.", n, resolveBoardMethods, n)

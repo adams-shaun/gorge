@@ -280,10 +280,9 @@ var excluded = map[excludedField]bool{
 	// decisions by construction, so these count the route, not the game.
 	{"rules.Engine", "loop"}:     true,
 	{"rules.Engine", "askCount"}: true,
-	// legalActionWalks is legalActionsPriced's diagnostic call counter: the
-	// float route re-prices every offer against a hypothetical floating pool
-	// the control route never opens, so it counts the route's work, not the
-	// game.
+	// legalActionWalks is legalActionsPriced's diagnostic call counter: the float
+	// route re-prices every offer against a hypothetical floating pool the
+	// control route never opens, so it counts the route's work, not the game.
 	{"rules.Engine", "legalActionWalks"}: true,
 	// Harness-only observers (engine/rules/clone.go: Clone deliberately copies
 	// neither). cmd/cardfuzz installs ManaAbilityHook on its LIVE engine, so

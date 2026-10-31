@@ -424,12 +424,12 @@ func describe(g *state.Game, ev events.Event) string {
 		// evolving permanent (Obj is the Evolve trigger's own source).
 		return obj(g, ev.Obj) + " evolves"
 	case events.ElementalBend:
-		// The elemental-bend record (task agent-20260929T010346Z-ae55d89d)
-		// is a replay-visible pure marker: one completed bend action, whose
-		// own state change (the airbend exile, earthbend animate, firebending
-		// mana or waterbend tap) is its own line. Player is the bending seat;
-		// Text carries the verb (water/earth/fire/air), absent only for a
-		// unset hostile field, in which case the line still names the seat.
+		// The elemental-bend record is a replay-visible pure marker: one
+		// completed bend action, whose own state change (the airbend exile,
+		// earthbend animate, firebending mana or waterbend tap) is its own
+		// line. Player is the bending seat; Text carries the verb
+		// (water/earth/fire/air), absent only for a unset hostile field, in
+		// which case the line still names the seat.
 		if ev.Text == "" {
 			return player(g, ev.Player) + " elemental-bends"
 		}
@@ -517,12 +517,12 @@ func describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " wins the game"
 	case events.Note:
 		if ev.Text == "" && len(ev.IDs) > 0 && !ev.Secret {
-			// effReveal's reveal (task fb-3f1cc033): the Note carries the
+			// effReveal's reveal: the Note carries the
 			// revealed cards' ids and no text of its own, so Describe renders
 			// them — the transcript line names WHAT was revealed ("player 0
 			// reveals Mountain #82"), which is the only data path a client
 			// has for hidden-zone ids in a Note. Rule 3 of view.RedactEvents
-			// (Ruling T23-w) passes a non-Secret Note through unchanged, so
+			// passes a non-Secret Note through unchanged, so
 			// these ids are public by contract on every viewer's line.
 			return player(g, ev.Player) + " reveals " + objs(g, ev.IDs)
 		}
@@ -581,8 +581,8 @@ func describe(g *state.Game, ev events.Event) string {
 	case events.ClockTick:
 		return ""
 	case events.CastInfo:
-		// Records how a spell was cast, right before the PutOnStack line
-		// (Task 4): Amount is the value chosen for {X}, Counter the comma-
+		// Records how a spell was cast, right before the PutOnStack line:
+		// Amount is the value chosen for {X}, Counter the comma-
 		// separated mode flags ("kicked", ...). Described, not "": X and
 		// the kicker are the caster's own decisions and nothing else in the
 		// transcript shows them (mana-spend lines record totals, not what
@@ -590,7 +590,7 @@ func describe(g *state.Game, ev events.Event) string {
 		// landing on it needs no neighbouring line. The caster is the card's
 		// controller; when the event is a Secret whose payload is not for
 		// this viewer, RedactEvent zeroes Obj and keeps Player, so the caster
-		// is then that Player (cr-g62). The two lines read
+		// is then that Player. The two lines read
 		// as one cast: the how, then the fact. The same event also records an
 		// activated ability's paid {X} on the ability's stack object
 		// (engine/rules/cast.go commitCast's ability arm), and that object must not
@@ -601,10 +601,10 @@ func describe(g *state.Game, ev events.Event) string {
 		// and the stack view cannot disagree.
 		if ev.Secret {
 			// The one Secret CastInfo is the Foretell special action's
-			// provenance marker (engine/rules/cast_commit.go; cr-g62): CR
+			// provenance marker (engine/rules/cast_commit.go): CR
 			// 702.143b makes it a special action, not a cast, so it reads
 			// "foretells". Redacted for another seat it keeps Player and
-			// Secret, so that seat reads "a foretells a card" (cr-g64).
+			// Secret, so that seat reads "a foretells a card".
 			return player(g, ev.Player) + " foretells " + obj(g, ev.Obj)
 		}
 		verb := "casts"
@@ -712,7 +712,7 @@ func describe(g *state.Game, ev events.Event) string {
 		return s
 	case events.AbilityPush:
 		// An activated ability minted onto the stack (the same shape
-		// TriggerPush uses for triggers, Ruling T20-a): Player is the
+		// TriggerPush uses for triggers): Player is the
 		// activator, Obj the source permanent. The mirror of "X triggers":
 		// the IR carries no ability names, so the source permanent is what
 		// a line can name.
@@ -941,7 +941,7 @@ func objController(g *state.Game, id state.ObjID) state.PlayerID {
 // castInfoActor is the caster an ordinary CastInfo line names: the card's
 // controller. The one Secret CastInfo -- the foretell action -- returns its
 // "foretells" line in Describe's CastInfo branch before this helper is
-// reached (cr-g62/cr-g64); the ev.Obj == 0 guard is the generic redacted-
+// reached; the ev.Obj == 0 guard is the generic redacted-
 // payload fallback.
 func castInfoActor(g *state.Game, ev events.Event) state.PlayerID {
 	if ev.Obj == 0 {

@@ -4,7 +4,7 @@
 // the rules package's fuzz-test testBot, answering with only a *state.Game
 // in hand -- build a Board and call Decide. rules cannot import seat without
 // running the dependency order backwards (cards -> state -> decision ->
-// events -> effects -> rules -> view -> seat; Ruling F7), so before this
+// events -> effects -> rules -> view -> seat), so before this
 // package existed the two sides each carried a line-for-line copy of the
 // policy under a "keep the two in step" comment. This package is that
 // comment made code: there is one policy, and the two adapters are thin
@@ -104,7 +104,7 @@ type Board struct {
 	// the same whichever host asks (pinned over a whole game by
 	// engine/seat/integration_test.go's TestBotAdaptersAgreeOverWholeGame). A
 	// hand/graveyard/battlefield/command-zone fact is the deciding seat's
-	// own, so carrying it in the Board is no information leak (Ruling C0):
+	// own, so carrying it in the Board is no information leak:
 	// it is exactly what that seat may see.
 	Cards CardTable
 	// PublicCards is every player's public-zone card colour identity, keyed
@@ -125,7 +125,7 @@ type Board struct {
 	// the same pool whichever host asks (pinned non-vacuously by
 	// engine/seat/integration_test.go's pool agreement). A mana pool is the
 	// deciding seat's own private state, like its hand, so carrying it in
-	// the Board is no information leak (Ruling C0).
+	// the Board is no information leak.
 	Pool state.Mana
 	// PoolRestricted is the part of Pool, slot for slot, that carries a
 	// RestrictValid$ spend limit (Myr Reservoir's "spend this mana only to
@@ -159,10 +159,10 @@ type Board struct {
 	//	Stack is the public stack census, bottom to top in the stack's own
 	//	order (state.Game.Stack and view.View.Stack are both order-preserving,
 	//	so the census is an ordered slice and no map iteration reaches any
-	//	choice that reads it). The stack is a public zone (Ruling T23-u;
-	//	view.View.Stack already carries Controller and Kind for exactly this),
-	//	so carrying it is no information leak (Ruling C0). The casting rule
-	//	(cast.go's C8) reads it to tell whose spells are on the stack: a
+	//	choice that reads it). The stack is a public zone
+	//	(view.View.Stack already carries Controller and Kind for exactly
+	//	this), so carrying it is no information leak. The casting rule in
+	//	cast.go reads it to tell whose spells are on the stack: a
 	//	counter cast is worth its mana only when a FOREIGN spell is there to
 	//	counter, never at an own-spells-only (or empty) stack. Both adapter
 	//	halves fill it identically (engine/seat/bot.go's BoardFromView off the
@@ -171,18 +171,17 @@ type Board struct {
 	//	tests.
 	Commanders CommanderTable
 	// Stack is the public stack census, bottom to top in the stack's own
-	// order (state.Game.Stack and view.View.Stack are both
-	// order-preserving, so the census is an ordered slice and no map
-	// iteration reaches any choice that reads it). The stack is a public
-	// zone (Ruling T23-u; view.View.Stack already carries Controller and
-	// Kind for exactly this), so carrying it is no information leak
-	// (Ruling C0). The casting rule (cast.go's C8) reads it to tell whose
-	// spells are on the stack: a counter cast is worth its mana only when
-	// a FOREIGN spell is there to counter, never at an own-spells-only (or
-	// empty) stack. Both adapter halves fill it identically (engine/seat/bot.go's
-	// BoardFromView off the projected StackView list; BoardFromGame off
-	// state.Game.Stack), pinned on every intent of a whole game by
-	// engine/seat/integration_test.go's parity tests.
+	// order (state.Game.Stack and view.View.Stack are both order-preserving,
+	// so the census is an ordered slice and no map iteration reaches any
+	// choice that reads it). The stack is a public zone (view.View.Stack
+	// already carries Controller and Kind for exactly this), so carrying it
+	// is no information leak. The casting rule in cast.go reads it to tell
+	// whose spells are on the stack: a counter cast is worth its mana only
+	// when a FOREIGN spell is there to counter, never at an own-spells-only
+	// (or empty) stack. Both adapter halves fill it identically
+	// (engine/seat/bot.go's BoardFromView off the projected StackView list;
+	// BoardFromGame off state.Game.Stack), pinned on every intent of a whole
+	// game by engine/seat/integration_test.go's parity tests.
 	Stack []StackEntry
 	// Cast is the learned cast profile the cast scorer dots its feature
 	// vector with (cast.go's CastWeights). It is CONFIGURATION, not board
@@ -221,14 +220,14 @@ type Board struct {
 	// (engine/view/view.go sets Step = g.Step.String()), so both halves name the
 	// same engine step. A step is public information (the projected View
 	// already carries it for every seat), so carrying it in the Board is
-	// no information leak (Ruling C0). The zero value is StepUntap; the
+	// no information leak. The zero value is StepUntap; the
 	// new timing features are all weight 0 in the default profile, so a
 	// Board that never sets it -- every pre-timing test and adapter path --
 	// plays identically.
 	Step state.Step
 	// LibrarySize and HandSize are the deciding seat's own library and hand
 	// card counts -- public counts (view.PlayerView's library_size and
-	// hand_size), so carrying them is no information leak (Ruling C0). The
+	// hand_size), so carrying them is no information leak. The
 	// RepeatOptional$ election arm reads them: every corpus carrier whose
 	// do/while body consumes a zone (Ad Nauseam and Dance with Calamity dig
 	// the library, Kindle the Carnage discards from hand) makes no progress
@@ -303,7 +302,7 @@ type PublicCard struct {
 }
 
 // StackEntry is one object on the stack, the plain-data shape of a
-// StackView the policy can read without importing view (Ruling F7). CMC is
+// StackView the policy can read without importing view. CMC is
 // carried for target ranking, so a counter can prefer a more valuable spell.
 // IsSpell is true for a spell object (a card cast onto the stack, which a
 // counter can target) and false for an ability object (minted by a
@@ -359,9 +358,9 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 }
 
 // Decide implements every decision.Kind the engine (or a future one) can
-// ask, so the policy needs no rules knowledge either (Ruling P7):
+// ask, so the policy needs no rules knowledge either:
 //
-//   - KPriority: tap for mana only in a main phase (Ruling T25-b -- tapping
+//   - KPriority: tap for mana only in a main phase (tapping
 //     during the upkeep or combat empties the pool before there is anything
 //     worth spending it on), then make a land drop, then cast, then pass.
 //     IsMain comes from b, so whichever adapter built the Board decides
@@ -390,7 +389,7 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //   - "concede" (M2d-3): never picked. It is another priority option kind,
 //     served last after "pass", but no policy wants to leave the game it
 //     is winning; the explicit kind scans below return before any blind
-//     fallback, and clamp's top-up prefers "pass" (Ruling T25-g), which
+//     fallback, and clamp's top-up prefers "pass", which
 //     legalActions (engine/rules/legal.go) always offers. Unknown option kinds are
 //     otherwise never chosen by this switch at all.
 //   - KTarget: the targeting heuristic in target.go's chooseTargets (R1-R5,
@@ -441,13 +440,9 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 // above that found nothing to pick — falls to the last resort: pass if one
 // is offered and Min == 0, otherwise whatever clamp below tops up with.
 //
-// Ruling T25-c (fix round 1): every branch used to return its pick
-// unclamped, so it only ever validated by coincidence of the Min/Max shapes
-// today's engine happens to emit (engine/rules/stack.go's askTarget already names
-// TargetMin/TargetMax as coming). clamp is now the last thing every return
-// does, so the totality guarantee holds by construction for any Min/Max the
-// wire format allows, not only today's. Every access into d.Options remains
-// guarded against the list being empty.
+// clamp is the last thing every return does, so the totality guarantee holds
+// by construction for any Min/Max the wire format allows, not only today's.
+// Every access into d.Options remains guarded against the list being empty.
 func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	// main's 9be52252 promoted AR7 lethal pressure into the default bot, so the
 	// default carries lethalPressure; the AR8 combined-lethal test stays opt-in
@@ -604,18 +599,18 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				return Clamp(d, in)
 			}
 		}
-		// Ruling T25-g (fix round 2): explicitly pass here, before clamp
-		// ever runs. This is the common case -- outside a main phase, or
+		// Explicitly pass here, before clamp ever runs. This is the common
+		// case -- outside a main phase, or
 		// with nothing affordable in one -- and legalActions
 		// (engine/rules/legal.go) lists every "activate" option before "pass", so
 		// without this, clamp's blind first-unused-index top-up (needed
 		// because a priority decision is always Min:1/Max:1, so falling
 		// through with in.Choices empty is not itself a legal answer) would
-		// reach for an activation and reintroduce I-1(b) through the
-		// fallback path -- exactly what fix round 1 missed, because its own
-		// synthetic regression decision carried a play_land option the loop
-		// above matches unconditionally, a shape the live engine never
-		// offers outside sorcery speed. Pass is offered on every priority
+		// reach for an activation through the fallback path, spending mana
+		// on an activation the policy never chose. A test whose synthetic
+		// decision carries a play_land option cannot catch this: the loop
+		// above matches that option unconditionally, a shape the live engine
+		// never offers outside sorcery speed. Pass is offered on every priority
 		// decision the engine emits; if it is somehow absent, this falls
 		// through to the shared last resort below, same as any other kind.
 		// M2d-3: the "concede" option sits directly after "pass" in the
@@ -1453,7 +1448,7 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 }
 
 // Clamp enforces [Min, Max] on top of whatever a policy's switch (or its
-// fallback) picked (Ruling T25-c): truncate to at most Max, in the order
+// fallback) picked: truncate to at most Max, in the order
 // already chosen, then -- if that leaves fewer than Min -- top up with the
 // lowest-index unused options until Min is reached or none remain. It is the
 // shared last resort every botpolicy return runs and the one heuristic.PolicyNetBot
@@ -1461,15 +1456,14 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 // from it.
 // the ones reachable today.
 //
-// Ruling T25-g (fix round 2): the top-up prefers an unused "pass" option
+// The top-up prefers an unused "pass" option
 // over anything else. The KPriority branch above already returns "pass"
 // explicitly before clamp ever runs, so this is defense in depth for
 // whatever reaches here anyway (an absent "pass", or a future caller) --
 // without it, a blind first-unused-index top-up would reach for whatever
 // legalActions (engine/rules/legal.go) happens to list first, which is every
-// "activate" option, before "pass". That is precisely how fix round 1's own
-// clamp reintroduced I-1(b): a Min:1 priority decision falling through with
-// nothing chosen got topped up into an activation instead of a pass.
+// "activate" option, before "pass": a Min:1 priority decision falling through
+// with nothing chosen would be topped up into an activation instead of a pass.
 func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 	// A same-controller target answer must be repaired as one controller's
 	// complete decision, not by retaining the first controller in the input:

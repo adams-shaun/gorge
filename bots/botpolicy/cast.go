@@ -105,7 +105,7 @@ type Card struct {
 	InstantSpeed bool
 	// Produces is what this card's mana abilities add to the pool when a
 	// tap-for-mana activation runs them (cards.ManaProduction, plain data
-	// -- botpolicy must not import view or rules, Ruling F7). It is filled
+	// -- botpolicy must not import view or rules). It is filled
 	// by both adapter halves from the same source -- the projected
 	// CardView.Produces on the view half, cards.Face.ManaProduction on the
 	// game half -- so the tap heuristic reads the same production whichever
@@ -278,7 +278,7 @@ var braceForm = strings.NewReplacer("{", " ", "}", " ")
 // CmcOf is the converted-mana-cost count a botpolicy.Card reads, a re-read
 // of a card's Forge ManaCost string ("R", "U U", "1 BP BP", "X G", "no
 // cost"). It deliberately re-derives engine/rules/mana.go's ParseCost.CMC() by hand
-// because botpolicy cannot import rules (Ruling F7); both adapter halves
+// because botpolicy cannot import rules; both adapter halves
 // call this same exported function on the same printed field, so they can
 // only agree. {X} counts as 0 (a printed X is 0 on the stack before a value
 // is chosen — the engine's own CMC() agrees); ordinary hybrid, Phyrexian and

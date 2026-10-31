@@ -6,7 +6,7 @@
 
   /**
    * SeatPanelFollowUp.fixture.svelte is the panel-path twin of
-   * CardMenu.fixture.ts's fb-e079def5 stage-1 → stage-2 test AND the mounted
+   * CardMenu.fixture.ts's stage-1 → stage-2 test AND the mounted
    * proof of the L2 race finding for fb-20260923T050205Z. Its point is the
    * ARM and the DECODE together:
    *
@@ -42,8 +42,7 @@
   const ctx = { seat: 0, token: 'fixture-token' };
   const panel = new SeatPanelState('fixture-treasure', 1, ctx, null, null);
 
-  // ?scenario=stage1 swaps in the multi-ability mana source's stage-1 pick
-  // (fb-e079def5, the round-2 review break): a `choose` decision of Kind
+  // ?scenario=stage1 swaps in the multi-ability mana source's stage-1 pick: a `choose` decision of Kind
   // "mana" options on Vivid Marsh (obj 512), whose "Add any color" answer is
   // followed by askManaColor's five-colour wheel on the same object. The
   // default scenario is the captured treasure report.

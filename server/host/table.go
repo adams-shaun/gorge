@@ -426,8 +426,8 @@ type table struct {
 	mu    sync.RWMutex
 	state string // protocol.Table*
 	// reason is the halt error's message, set by Registry.halt; empty
-	// unless state is TableHalted. Task 13 surfaces it on the wire
-	// (protocol.TableInfo has no field for it yet); kept internal for now.
+	// unless state is TableHalted. It stays internal: protocol.TableInfo has
+	// no field for it.
 	reason string
 	k      int    // index of the current or most recent match; 0 before any
 	cur    *match // the live match, or nil
@@ -440,24 +440,22 @@ type table struct {
 	// engine (a retained engine is ~9 MB; ~535 of them were a 6 GB heap).
 	history []*match
 	// archived holds finished matches known only from disk, ascending by
-	// match index (Task 12). They are served from their files, never kept
+	// match index. They are served from their files, never kept
 	// in memory.
 	archived []sidecar
-	// loaded caches the last archived match rebuilt from disk, so a DVR
-	// session stepping through a finished match does not replay it per
-	// request (Task 12).
+	// loaded caches the last archived match rebuilt from disk, so a DVR session
+	// stepping through a finished match does not replay it per request.
 	loaded *match
 	stop   chan struct{} // closed by Registry.Close
 	done   chan struct{} // closed when the run loop exits
 
 	// fanMu serialises a focus Subscribe's snapshot build+push (session.go)
 	// against the match loop's own fan-out push loops (fanout/onMatchStart/
-	// onMatchEnd in fanout.go), so a client that joins a live table can
-	// never receive a stale snapshot after events newer than it (Ruling
-	// FL-30). push itself never blocks, so holding fanMu across a push
-	// loop never parks the match loop on a client — the only contention is
-	// a subscribing HTTP goroutine, held only as long as it takes to build
-	// and push one frame set.
+	// onMatchEnd in fanout.go), so a client that joins a live table can never
+	// receive a stale snapshot after events newer than it. push itself never
+	// blocks, so holding fanMu across a push loop never parks the match loop
+	// on a client — the only contention is a subscribing HTTP goroutine, held
+	// only as long as it takes to build and push one frame set.
 	fanMu sync.Mutex
 	// lastLine is the most recent non-empty transcript line, carried
 	// forward for the overview widget's Last field across bursts whose own

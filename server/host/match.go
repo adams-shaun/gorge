@@ -78,26 +78,26 @@ type match struct {
 	g game.Game
 	e *rules.Engine
 	// files is the live match's append-only logs; nil in memory mode and
-	// after the match is archived (Task 12).
+	// after the match is archived.
 	files *matchFiles
 	// persisted is the number of events confirmed appended to this match's
 	// events file at the last successful persist; only that prefix is
 	// durable, so a crash or kill records the head over it, never the
-	// in-memory tail (fix round 1, burst atomicity). 0 in memory mode.
+	// in-memory tail (burst atomicity). 0 in memory mode.
 	persisted int
 	// bounds[j] is len(e.L.Events) after j intents: the seq one past the
 	// end of the j-th burst. bounds[0] is genesis plus the first Advance.
 	bounds []uint64
 	// turnStarts is the seq of every TurnChange so far — the DVR's ticks.
 	turnStarts []uint64
-	snaps      []snapshot // Task 11
+	snaps      []snapshot
 	intents    int
 	state      string // protocol.Match*
 	result     string // "win", "draw" or ""
 	winner     *uint8
 	head       string
-	reason     string // crash reason (Task 13)
-	// refusals and fallbacks are BP-06 diagnostics: how many Submits the
+	reason     string // crash reason
+	// refusals and fallbacks are diagnostics: how many Submits the
 	// engine refused and how many times the fallback rungs ran. They reach
 	// the crash report and the sidecar only; they never feed an event or an
 	// answer, so they cannot change a replay. Guarded by m.mu.
@@ -140,7 +140,7 @@ type match struct {
 // snapshot is a forked game at an intent boundary that began a turn.
 type snapshot struct {
 	intent int
-	seq    uint64 // Task 12: the persisted burst boundary this snapshot lines up with on disk.
+	seq    uint64 // The persisted burst boundary this snapshot lines up with on disk.
 	g      game.Game
 }
 
@@ -366,7 +366,7 @@ func (m *match) info() protocol.MatchInfo {
 // sidecar is the on-disk summary of the match. Called with m.mu held.
 // For a crashed match the summary reflects the persisted prefix, not the
 // in-memory tail: crash() recorded m.head over it, and Events here is the
-// persisted count (fix round 1).
+// persisted count.
 func (m *match) sidecar() sidecar {
 	events := len(m.g.Log().Events)
 	if m.files != nil && m.state == protocol.MatchCrashed {
@@ -438,7 +438,7 @@ type parkedDecision struct {
 	// unblocked by Close, or the search seat unwound by the same
 	// cancellation — the play loop records a clean abort: a table being
 	// closed is not a crash. Every OTHER seat keeps the historical crash
-	// contract (Ruling FL-17, TestCloseCancelsASeatBlockedInDecide): a
+	// contract (TestCloseCancelsASeatBlockedInDecide): a
 	// cancelled plain seat crashes the match. Set only by parkSeat's gated
 	// Env branch.
 	searchSlot bool
@@ -533,16 +533,16 @@ type parkedData struct {
 }
 
 // projectNext reads the engine's current pending decision and projects the
-// board for it, copying options exactly as the old loop did (Ruling FL-19
-// minor: *d aliases the engine's pending, and dc.Options a slice header into
-// the same backing array, so the copy is required). It touches only the
-// engine — never a seat — so the loop can hold it under m.mu.Lock. That is
-// the fix's lock discipline: view.Project mutates the engine's Derived cache
-// (engine/rules/layers.go Engine.active), so projecting the live engine must not run
-// concurrently with any other live projection — a focus subscriber's own
-// snapshot build now also takes m.mu exclusively (through projectLive, see
-// fanout.go), so the two can never overlap; running it inside the Submit's
-// exclusive section keeps this projection on the same side of the rule.
+// board for it, copying options (*d aliases the engine's pending, and
+// dc.Options a slice header into the same backing array, so the copy is
+// required). It touches only the engine — never a seat — so the loop can hold
+// it under m.mu.Lock. That is the fix's lock discipline: view.Project mutates
+// the engine's Derived cache (engine/rules/layers.go Engine.active), so
+// projecting the live engine must not run concurrently with any other live
+// projection — a focus subscriber's own snapshot build now also takes m.mu
+// exclusively (through projectLive, see fanout.go), so the two can never
+// overlap; running it inside the Submit's exclusive section keeps this
+// projection on the same side of the rule.
 //
 // seats lets it type-assert the deciding seat: a seat that implements
 // heuristic.BoardSeat gets a botpolicy.Board built from the engine (under the same
@@ -654,7 +654,7 @@ func projectNextData(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedD
 // 723 player-controlling effect: at most one, the active seat, and only while
 // that control is live (state.Game.LiveController -- the controlled player's
 // next turn, CR 723.1), nil otherwise. A grant folded on the controller's own
-// turn widens nothing until the controlled turn begins (cr-g57). d.Player was
+// turn widens nothing until the controlled turn begins. d.Player was
 // already rewritten to the controller by rules' controlPlayerRedirect, which
 // reads the same predicate, so the seat answering the controlled turn's
 // decisions is exactly the seat this widens. Bots are deliberately not
@@ -731,7 +731,7 @@ func parkSeat(ctx context.Context, seats []seat.Seat, pd *parkedData, undo <-cha
 // ctx is the table's own context (run derives it once from t.stop, over the
 // table's whole lifetime, not per match): it is the only cancellation path
 // into a Seat.Decide call once the loop is blocked inside one, since t.stop
-// itself is polled only between decisions (Ruling FL-17). A bot ignores ctx
+// itself is polled only between decisions. A bot ignores ctx
 // and never blocks; a disconnected human seat is expected to select on it.
 func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) {
 	defer func() {
@@ -766,7 +766,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	// human's timeout caretaker; -bot-auto-mana only takes effect when the
 	// feature itself is enabled for the table.
 	autoPayMana := t.cfg.autoPayManaEnabled()
-	// agent-20261001T041445Z: a determinism harness comparing two runs of one
+	// A determinism harness comparing two runs of one
 	// seed must never arm the hosted wall-clock budget — a deadline bail-out
 	// answers from the non-searched fallback, so the two runs diverge under
 	// load (BP-07 §7). Served tables keep hostedDecisionDeadlineMS unchanged.
@@ -1043,12 +1043,13 @@ playLoop:
 					continue playLoop
 				}
 				// BP-10 (spec §7): a SEARCH decision (one that parked on the
-				// registry's FIFO search-slot gate) whose seat error surfaced while
-				// the table's context is cancelled — its slot wait unblocked by
-				// Close, or the search seat unwound by the same cancellation —
-				// aborts the match instead of crashing it: a table being closed is
-				// not a crash. Every other seat keeps the historical crash contract
-				// (Ruling FL-17): a cancelled plain seat crashes the match.
+				// registry's FIFO search-slot gate) whose seat error surfaced
+				// while the table's context is cancelled — its slot wait
+				// unblocked by Close, or the search seat unwound by the same
+				// cancellation — aborts the match instead of crashing it: a
+				// table being closed is not a crash. Every other seat keeps
+				// the historical crash contract: a cancelled plain seat
+				// crashes the match.
 				if parked.searchSlot && (ctx.Err() != nil || errors.Is(err, errTableClosed)) {
 					return r.abort(m)
 				}
@@ -1265,7 +1266,7 @@ playLoop:
 		// check finishes. This ordering, on the match goroutine, holds for
 		// every consumer of the published state.
 		parked = next
-		r.fanout(t, m, before) // Task 10
+		r.fanout(t, m, before)
 		r.opts.Sleep(t.cfg.Pace, t.stop)
 	}
 }
@@ -1324,9 +1325,7 @@ func (r *Registry) abort(m *match) string {
 	return protocol.MatchAborted
 }
 
-// crash is spec D15's first half: the match is marked crashed with its
-// reason. Task 13 adds the crash report, the table halt frame and tests.
-// Fix round 1 (burst atomicity): the head recorded here is over the
+// crash marks the match crashed with its reason. The head recorded here is over the
 // persisted prefix, not the in-memory log — the in-memory log can be ahead
 // of disk because the crashed Submit's events never fully reached the
 // files, and a sidecar naming a head/count that was never written would

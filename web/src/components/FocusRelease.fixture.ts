@@ -220,12 +220,11 @@ mount(WireNotice, {
   props: { text: 'reconnected', onDismiss: () => { win.__dismissed = true; } },
 });
 
-// F8: a battlefield CardTile (agent-20260929T101809Z-adba832d pin). The
-// role="button" + tabindex=0 tile is inside hotkeys.ts's ACTIVATABLE set, so
-// before lib/pointer.ts's release a pointer click parked focus on it and
-// Space re-targeted the tile instead of passing. Mounted with the plain
-// card() card: the detail panel it opens on focus is irrelevant to the
-// assertions.
+// F8: a battlefield CardTile. The role="button" + tabindex=0 tile is inside
+// hotkeys.ts's ACTIVATABLE set, so before lib/pointer.ts's release a pointer
+// click parked focus on it and Space re-targeted the tile instead of passing.
+// Mounted with the plain card() card: the detail panel it opens on focus is
+// irrelevant to the assertions.
 mount(CardTile, {
   target: document.querySelector('#board')!,
   props: { card: card(41, 'Bolt') },

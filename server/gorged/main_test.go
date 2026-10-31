@@ -210,7 +210,7 @@ func (l *fakeListener) Accept() (net.Conn, error) { return nil, nil }
 func (l *fakeListener) Close() error              { return nil }
 func (l *fakeListener) Addr() net.Addr            { return l.addr }
 
-// TestHostThreadsCorpusTokens is the FL-40 required proof that gorged
+// TestHostThreadsCorpusTokens is the proof that gorged
 // populates host.Options.Tokens from the opened corpus. A hosted table that
 // does not get the token corpus mints no tokens and every token card is
 // silently dead, so opening the corpus but dropping its Tokens onto the
@@ -700,7 +700,7 @@ func playMatchToCompletion(t *testing.T, url, seat, tok string) (census map[deci
 			for i := range in.Choices {
 				in.Choices[i] = i
 			}
-			// R-E6-1 (FL-101 in test code): the final option on every
+			// The final option on every
 			// priority decision is "concede". Report it if a choice ever
 			// names one — the driver must never pick it, and the census is
 			// the context that says what the game asked instead.
@@ -752,7 +752,7 @@ func playMatchToCompletion(t *testing.T, url, seat, tok string) (census map[deci
 	}
 }
 
-// TestAHumanPlaysAMatchToCompletion is the Ruling FL-102 gate: it plays a
+// TestAHumanPlaysAMatchToCompletion it plays a
 // complete two-seat match through the HTTP surface as a human seat and
 // asserts the census of decision kinds a real player actually meets. Every
 // other gate measures the engine against itself; this one plays the product

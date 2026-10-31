@@ -52,9 +52,9 @@ func probeDecks(t *testing.T) [][]*cards.Card {
 		t.Skipf("corpus missing Force of Will / Brainstorm")
 	}
 	return [][]*cards.Card{
-		append([]*cards.Card{probe}, r3Filler(t, 39)...),
-		append([]*cards.Card{fow, brain}, r3Filler(t, 38)...),
-		r3Filler(t, 40),
+		append([]*cards.Card{probe}, fillerDeck(t, 39)...),
+		append([]*cards.Card{fow, brain}, fillerDeck(t, 38)...),
+		fillerDeck(t, 40),
 	}
 }
 

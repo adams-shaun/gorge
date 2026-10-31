@@ -17,11 +17,11 @@ import (
 // Bot is a deterministic policy with its own RNG, independent of the
 // engine's (engine/rules/rng.go), so a match is reproducible from (engine seed, bot
 // seed). It picks from the options the engine offered and nothing else,
-// which is the same contract a human client has (Ruling P8).
+// which is the same contract a human client has.
 //
 // The policy itself lives in botpolicy (bots/botpolicy/policy.go), shared with
 // the rules package's fuzz testBot (engine/rules/testbot_test.go): rules cannot
-// import seat without running the dependency order backwards (Ruling F7),
+// import seat without running the dependency order backwards,
 // so both sides build a botpolicy.Board from what they can see and call the
 // same botpolicy.Decide. This file is the view-shaped half of that -- it
 // converts the projected View into the Board and seeds the bot's own rng.

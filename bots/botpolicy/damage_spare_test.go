@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-func TestFT1DamageRequiresDamageAPI(t *testing.T) {
+func TestDamageRequiresDamageAPI(t *testing.T) {
 	b := Board{}
 	dmg := 3
 	d := &decision.Decision{TargetEffect: &decision.TargetEffect{API: "Draw", Damage: &decision.DamageEffect{Amount: &dmg}}}
@@ -21,7 +21,7 @@ func TestFT1DamageRequiresDamageAPI(t *testing.T) {
 	}
 }
 
-func TestFT1UntappedManaSourceIsSpare(t *testing.T) {
+func TestUntappedManaSourceIsSpare(t *testing.T) {
 	b := Board{Cards: TableOf(map[state.ObjID]Card{
 		1: {OnBattlefield: true, Basic: true, Produces: manaProductionForTest()},
 	})}

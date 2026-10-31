@@ -1110,10 +1110,10 @@ type Object struct {
 	Division []int32
 	// Remembered carries a triggered ability's Ctx.Remembered from the
 	// moment it was queued (rules.checkTriggers) through to resolution. An
-	// ability object has no Face (Ruling F3) and therefore no card-script
+	// ability object has no Face and therefore no card-script
 	// route back to "the object that caused this trigger" once it is
 	// sitting on the stack, so that has to be data on the object itself,
-	// the same way Targets already is for a genuine chosen target. Task 20.
+	// the same way Targets already is for a genuine chosen target.
 	Remembered []Target
 	// RememberedStackBase is the length of Remembered when this object was
 	// most recently moved onto the stack (events.move), and 0 while the

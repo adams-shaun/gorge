@@ -83,7 +83,7 @@ func (b Board) removalHeld(d *decision.Decision, id state.ObjID) bool {
 }
 
 // isOneShotRemoval is the set of CastRemovalKind values the A1 rule holds.
-// Sacrifice, exile, library and graveyard moves are outside this ticket.
+// Sacrifice, exile, library and graveyard moves are out of scope here.
 func isOneShotRemoval(kind string) bool {
 	switch kind {
 	case "destroy", "damage", "bounce":

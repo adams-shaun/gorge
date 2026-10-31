@@ -79,7 +79,7 @@
     onToggleLog?: (() => void) | null;
     /** logbar is optional extra content for the logbar row, rendered after
      *  the LOGS toggle in normal flex flow (Table passes the concede control
-     *  as a snippet — task fb-53bd45b9). The row owns the alignment and the
+     *  as a snippet). The row owns the alignment and the
      *  height: the snippet content is pushed to the right edge by
      *  .logbar__extra, so a control sharing the row can never float over the
      *  seat table below it — the row simply grows if the content needs more

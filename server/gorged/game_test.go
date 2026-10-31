@@ -19,7 +19,7 @@ import (
 
 // gameLoader serves testutil.SampleDecks' four decks under "a".."d", so a
 // createGame test can start a real human-vs-bot match without opening the
-// corpus (the sample decks are authored inline, Ruling P9).
+// corpus (the sample decks are authored inline).
 func gameLoader(t *testing.T) func(string) (host.Deck, error) {
 	t.Helper()
 	names, decks := testutil.SampleDecks(t, 4)

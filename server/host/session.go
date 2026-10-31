@@ -323,7 +323,7 @@ func (r *Registry) Subscribe(s *Session, id TableID, mode string) error {
 	s.mu.Unlock()
 	if mode == protocol.ModeFocus {
 		// fanMu serialises this build-then-push against the match loop's
-		// own fan-out (Ruling FL-30): without it, a live burst could land
+		// own fan-out: without it, a live burst could land
 		// between this snapshot's build and its push, permanently
 		// stranding the client behind an already-stale snapshot. push
 		// never blocks, so this never parks the match loop on a client.

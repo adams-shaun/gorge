@@ -213,7 +213,7 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// that field (json:"-"): the previous digests return byte-for-byte.
 		// Measured after: frames 126, attempts 64, accepted 9, worlds 8,
 		// ESS 9 (land exclusion: accepted 32, ESS 32).
-		// Re-measured for cr-g67b (CR 602.2a): an activation's mint now
+		// Re-measured for CR 602.2a: an activation's mint now
 		// precedes its first decision, so the captured frames' stack moves.
 		// Measured after: frames 126, attempts 64, accepted 4, worlds 8, ESS 4
 		// (land exclusion: accepted 25, ESS 25).
@@ -226,7 +226,7 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// Mausoleum Wanderer unless-cost ask label (see the test comment) and
 		// again for the damage-provenance fact (see above); see the
 		// pre-optimisation entry for the archetype-posterior re-measure.
-		// Re-measured for cr-g67b (CR 602.2a): frames 126, accepted 25, ESS 25.
+		// Re-measured for CR 602.2a: frames 126, accepted 25, ESS 25.
 		// Re-measured for the activation count (CR 400.7): accepted 31, ESS 31.
 		{"land exclusion", false, "1813cef8bfc6eaaad8c13ee238d3ebcfa3ca71c2204af75efc144669d731cc4f"},
 	} {
@@ -474,7 +474,7 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// Index 0, Values [1,1,1,1], Rollouts 32, Submits 3309, Terminal 32,
 	// Capped 0, WinsByCandidate [8,8,8,8], TerminalByCandidate [8,8,8,8],
 	// WinsOverBaseline [0,0,0,0], LossesToBaseline [0,0,0,0].
-	// Re-measured for cr-g67b (CR 602.2a): the captured frames' stack moves
+	// Re-measured for CR 602.2a: the captured frames' stack moves
 	// when an activation's mint precedes its first decision, so the teacher's
 	// decoded frames and rollouts move with them.
 	// Re-measured for the activation count (CR 400.7), which the replayed frames

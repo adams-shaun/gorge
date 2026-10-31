@@ -15,7 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// var _ Chars = (*rules.Engine)(nil) is Ruling F2: rules never imports view,
+// var _ Chars = (*rules.Engine)(nil) holds because rules never imports view,
 // so this is the only place the shapes are checked against each other.
 var _ Chars = (*rules.Engine)(nil)
 
@@ -43,12 +43,12 @@ func (c flatChars) Keywords(id state.ObjID) []string {
 
 // PendingTriggers is not exercised by flatChars-driven tests: they build
 // their own board directly, never through an Engine, so there is never
-// anything queued. The R3 integration tests below drive a real
+// anything queued. The integration tests below drive a real
 // *rules.Engine instead, exactly so PendingTriggers is exercised for real.
 func (c flatChars) PendingTriggers() []state.PendingTrigger { return nil }
 
 // StackOptional is not exercised by flatChars-driven tests either: it is
-// Ruling VW-1's stack-entry answer, and flatChars reports no stack object
+// the stack-entry answer, and flatChars reports no stack object
 // as an optional awaiting trigger.
 func (c flatChars) StackOptional(state.ObjID) (bool, state.PlayerID) { return false, 0 }
 
@@ -143,7 +143,7 @@ func TestOnlyTheViewerSeesTheirHandButEverySeatsPool(t *testing.T) {
 
 // TestLibraryContentsNeverAppearInAnyProjection searches the marshalled
 // payload for every OTHER seat's library object ids (the negative checks)
-// but also, per Task 23 supplement §5, for the viewer's OWN hand ids (the
+// but also for the viewer's OWN hand ids (the
 // positive control): with Go's default "ID": key capitalisation the
 // negative checks would pass for ANY payload, proving nothing. The control
 // fails loudly if that regresses.
@@ -153,10 +153,10 @@ func TestOnlyTheViewerSeesTheirHandButEverySeatsPool(t *testing.T) {
 // inside an "ids"/"pairs" array (including nested arrays, which is what
 // "pairs" -- []["obj","obj"] pairs -- needs). This walks the WHOLE payload
 // structurally, unlike a "id":N, substring search: after PlayerView.ID's
-// "seat" rename (Ruling T23-q), the only places a leaked object id can
+// "seat" rename, the only places a leaked object id can
 // surface are exactly these keys, wherever in the tree they occur -- inside
 // "stack", "pending", the attached "decision", a nested "targets" array,
-// anything. Review finding I-3: a fixed key name misses all of those.
+// anything: a fixed key name misses all of those.
 func collectIDs(v any) []int {
 	var out []int
 	var walk func(v any, idBearing bool)
@@ -214,8 +214,8 @@ func idsFoundIn(t *testing.T, v View) map[int]bool {
 	return idSet(collectIDs(decoded))
 }
 
-// TestLibraryContentsNeverAppearInAnyProjection is Task 23 review finding
-// I-3's fix: rather than searching for one literal substring, it decodes
+// TestLibraryContentsNeverAppearInAnyProjection checks the whole payload:
+// rather than searching for one literal substring, it decodes
 // the whole payload and walks it (idsFoundIn/collectIDs) so a leak surfacing
 // under ANY id-bearing key -- not just CardView.ID -- is still caught. The
 // positive control (the viewer's own hand ids must all be findable) proves
@@ -281,8 +281,8 @@ func TestCardViewUsesDerivedCharacteristics(t *testing.T) {
 	}
 }
 
-// TestCardViewCarriesBattlefieldOnlyState is review finding I-1's mutation
-// gap: gutting Tapped/Damage/Attacking/Controller/Owner/SummonSick from
+// TestCardViewCarriesBattlefieldOnlyState closes a mutation gap: gutting
+// Tapped/Damage/Attacking/Controller/Owner/SummonSick from
 // cardView left the suite green. Controller is deliberately set to a THIRD
 // value, neither 0 nor the object's own Owner, to prove the two are read
 // independently rather than one accidentally aliasing the other (supplement
@@ -322,8 +322,8 @@ func TestCardViewCarriesBattlefieldOnlyState(t *testing.T) {
 	}
 }
 
-// TestPlayerViewProjectsGraveyardAndExileWithTheirSizes is review finding
-// I-1's other mutation gap: LibrarySize/GraveyardSize/Graveyard/Exile had
+// TestPlayerViewProjectsGraveyardAndExileWithTheirSizes closes a mutation gap:
+// LibrarySize/GraveyardSize/Graveyard/Exile had
 // no assertion anywhere in the suite. Library is given 5 cards specifically
 // so LibrarySize's assertion cannot pass merely because an int field's zero
 // value happens to match an empty zone.
@@ -361,9 +361,9 @@ func TestPlayerViewProjectsGraveyardAndExileWithTheirSizes(t *testing.T) {
 	}
 }
 
-// TestPhaseOfCoversEveryStep is review finding I-1's third mutation gap:
-// phaseOf had no dedicated test at all. Covers all 12 defined steps plus an
-// invalid one (supplement §6's own "unknown step -> \"\"" case).
+// TestPhaseOfCoversEveryStep closes a mutation gap: phaseOf had no dedicated
+// test at all. Covers all 12 defined steps plus an invalid one, which projects
+// the empty string.
 func TestPhaseOfCoversEveryStep(t *testing.T) {
 	g := fourSeatBoard(t)
 	for _, tc := range []struct {
@@ -409,7 +409,7 @@ func (c boostedChars) Toughness(id state.ObjID) int32 {
 // three the brief's own snippet happened to touch (IDs/Obj/Text). It uses a
 // Secret Note (a private look) rather than a Shuffle or a LibraryOrder
 // because those library-order kinds are hidden from their owner too (CR
-// 701.20a, CR 401.2; cr-g61); a private look stays the owner's own record.
+// 701.20a, CR 401.2); a private look stays the owner's own record.
 func TestRedactStripsSecretPayloadsFromOtherSeats(t *testing.T) {
 	g := fourSeatBoard(t)
 	evs := []events.Event{
@@ -488,14 +488,13 @@ func TestRedactEventsStripsTriggerPushRememberingAnotherSeatsHand(t *testing.T) 
 	}
 }
 
-// TestRedactEventsPassesANonSecretNoteThroughUnchanged is Ruling T23-w
-// (fix round 2): a Note is the engine's explicit "tell everyone" channel,
-// so rule 3 exempts it entirely -- only Secret opts a Note out of that, and
-// rule 1 already handles Secret. This is effReveal's own shape (Reveal/
-// RevealHand/PeekAndReveal): a non-Secret Note naming cards that are still
-// physically sitting in another seat's hand must reach every viewer whole,
-// including a spectator, because the whole point of a reveal is that
-// everyone now knows what those cards are.
+// TestRedactEventsPassesANonSecretNoteThroughUnchanged: a Note is the engine's
+// explicit "tell everyone" channel, so rule 3 exempts it entirely -- only
+// Secret opts a Note out of that, and rule 1 already handles Secret. This is
+// effReveal's own shape (Reveal/ RevealHand/PeekAndReveal): a non-Secret Note
+// naming cards that are still physically sitting in another seat's hand must
+// reach every viewer whole, including a spectator, because the whole point of a
+// reveal is that everyone now knows what those cards are.
 func TestRedactEventsPassesANonSecretNoteThroughUnchanged(t *testing.T) {
 	g := fourSeatBoard(t)
 	handIDs := append([]state.ObjID(nil), g.Zone(state.ZHand, 1)...)
@@ -518,7 +517,7 @@ func TestRedactEventsPassesANonSecretNoteThroughUnchanged(t *testing.T) {
 	}
 }
 
-// TestRedactEventsReducesASecretNoteToItsShape is Ruling T23-w's other
+// TestRedactEventsReducesASecretNoteToItsShape is the note rule's other
 // half: effRearrangeTopOfLibrary's private look opts a Note OUT of the
 // "public by default" rule by setting Secret, so it is governed entirely
 // by rule 1 (the same shape-only reduction any other Secret event gets),
@@ -608,7 +607,7 @@ func TestRedactEventsWithNilGameAppliesOnlyTheSecretRule(t *testing.T) {
 // verifies with no error).
 func TestRedactEventsDoesNotAliasTheEngineLog(t *testing.T) {
 	cfg := rules.Config{Seed: 21, Names: []string{"alice", "bob"},
-		Decks: [][]*cards.Card{r3Filler(t, 40), r3Filler(t, 40)}}
+		Decks: [][]*cards.Card{fillerDeck(t, 40), fillerDeck(t, 40)}}
 	e := rules.New(cfg)
 	e.Advance()
 
@@ -619,7 +618,7 @@ func TestRedactEventsDoesNotAliasTheEngineLog(t *testing.T) {
 
 	// The owner's-own-secret pass-through branch needs an event whose
 	// payload survives: the log's own Shuffles no longer do, and neither
-	// does a LibraryOrder (cr-g61). A private look at the library does.
+	// does a LibraryOrder. A private look at the library does.
 	ownLook := events.Event{Seq: uint64(len(e.L.Events)), Kind: events.Note, From: state.ZLibrary,
 		Player: 1, Text: "looks at the top of the library", IDs: append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 1)[:3]...), Secret: true}
 	evs := append(append([]events.Event(nil), e.L.Events...), ownLook)
@@ -680,9 +679,7 @@ func TestRedactEventsDoesNotAliasTheEngineLog(t *testing.T) {
 // library. Confirmed by instrumentation while building this test (one
 // draw-step draw ballooned to 20 in a single step, entirely within turn 2,
 // with turn 1's caster never receiving turn 3). That defect is in
-// engine/rules/turn.go, which is not on this fix round's file list and not
-// something this round's brief asked for -- noted in the fix report as a
-// new finding, not touched here. Repeated Sorcery casts, entirely within
+// engine/rules/turn.go. Repeated Sorcery casts, entirely within
 // Main1, produce the identical event shape (a ChangesZone Library->Hand
 // Draw, watched by the same trigger) without ever touching StepDraw, so the
 // measurement below is unaffected by it.
@@ -804,8 +801,8 @@ func driveRepeatedCastsWithinMainPhase(t *testing.T, e *rules.Engine, permanent,
 // the zero above is redaction actually working, not the ids being absent
 // to begin with.
 func TestRedactEventsClosesTheTriggerPushLeakMeasured(t *testing.T) {
-	deck0 := append([]*cards.Card{r3Card(t, drawWatcherSrc)}, nCopies(t, drawSpellSrc, 39)...)
-	deck1 := r3Filler(t, 40)
+	deck0 := append([]*cards.Card{cardFromSrc(t, drawWatcherSrc)}, nCopies(t, drawSpellSrc, 39)...)
+	deck1 := fillerDeck(t, 40)
 	e := rules.New(rules.Config{Seed: 20, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
@@ -853,13 +850,13 @@ func TestRedactEventsClosesTheTriggerPushLeakMeasured(t *testing.T) {
 		ownFound, pushes)
 }
 
-// nCopies is r3Filler's own pattern for an arbitrary source: one parsed
+// nCopies is fillerDeck's own pattern for an arbitrary source: one parsed
 // *cards.Card shared across n deck slots. g.AddObject (called once per
 // slot when the deck is dealt) gives each slot its own independent Object
 // and ObjID regardless of how many deck entries point at the same *Card.
 func nCopies(t *testing.T, src string, n int) []*cards.Card {
 	t.Helper()
-	c := r3Card(t, src)
+	c := cardFromSrc(t, src)
 	out := make([]*cards.Card, n)
 	for i := range out {
 		out[i] = c
@@ -870,7 +867,7 @@ func nCopies(t *testing.T, src string, n int) []*cards.Card {
 // ---------------------------------------------------------------------------
 // Supplement §4: Draw before Winner.
 
-// TestWinnerDistinguishesAWinFromADrawFromSeatZero is Task 22 finding 5:
+// TestWinnerDistinguishesAWinFromADrawFromSeatZero:
 // Winner's zero value is PlayerID(0), a real seat, so Over alone cannot say
 // whether nobody won (a draw) or seat 0 did. A JSON null must be the only
 // way a client can tell "no winner" from "seat 0 won".
@@ -1078,13 +1075,13 @@ func TestProjectAndRedactEventsAreTotal(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Review finding M-4 / fix-round item 4, Ruling T23-u: wire shape.
+// Wire shape.
 
 // TestEmptyPublicListsMarshalAsEmptyArraysNeverNull covers every public
 // list this package produces except Hand/Pool (which have their own test
 // below, because THEIR empty shape needs to coexist with a genuinely
 // different, privacy-driven null for every other seat) and Targets (which
-// TestR3StackViewShowsTextAndTargetsForATargetedSpell already covers, on a
+// TestStackViewShowsTextAndTargetsForATargetedSpell already covers, on a
 // real spell with no target chosen yet). A brand-new two-seat game with no
 // objects at all gives every list here its genuinely empty case.
 func TestEmptyPublicListsMarshalAsEmptyArraysNeverNull(t *testing.T) {
@@ -1113,7 +1110,7 @@ func TestEmptyPublicListsMarshalAsEmptyArraysNeverNull(t *testing.T) {
 }
 
 // TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthersButPoolAlwaysObject
-// is Ruling T23-u's other half, now narrowed to the hand. Hand cannot use
+// narrows the rule to the hand. Hand cannot use
 // plain non-nil-vs-nil the way the public lists above do, because it carries
 // a THIRD state a public list never needs to -- "hidden from you entirely" --
 // so it drops omitempty instead and relies on null (another seat) vs [] (the
@@ -1153,7 +1150,7 @@ func TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthersButPoolAlwaysObject
 // TestProjectDoesNotAliasEngineOrDecisionState mutates the returned view's
 // keyword slice and the attached decision's options, then asserts the
 // engine's own card face and the caller's own decision are untouched. A
-// Seat (Task 25) holds a View in-process; it must not be able to corrupt
+// Seat holds a View in-process; it must not be able to corrupt
 // live state through it.
 func TestProjectDoesNotAliasEngineOrDecisionState(t *testing.T) {
 	g := fourSeatBoard(t)
@@ -1183,10 +1180,10 @@ func TestProjectDoesNotAliasEngineOrDecisionState(t *testing.T) {
 // ---------------------------------------------------------------------------
 // Supplement §12: the R3 integration test, driven through a real engine.
 
-// r3Card parses and links a standalone card the same two-step way rules'
+// cardFromSrc parses and links a standalone card the same two-step way rules'
 // own test fixtures do (engine/rules/turn_test.go's card helper) -- view_test.go
 // cannot import that unexported helper, so it is reproduced here.
-func r3Card(t *testing.T, src string) *cards.Card {
+func cardFromSrc(t *testing.T, src string) *cards.Card {
 	t.Helper()
 	c, diags := cards.ParseBytes("t.txt", []byte(src))
 	if len(diags) != 0 {
@@ -1196,11 +1193,11 @@ func r3Card(t *testing.T, src string) *cards.Card {
 	return c
 }
 
-// r3Filler is deck padding: a basic land, never cast in these tests, whose
+// fillerDeck is deck padding: a basic land, never cast in these tests, whose
 // only job is to keep each deck at or above the seven-card opening hand so
 // genesis (rules.New) does not deck anyone out.
-func r3Filler(t *testing.T, n int) []*cards.Card {
-	m := r3Card(t, "Name:Filler\nTypes:Basic Land Mountain\nOracle:x\n")
+func fillerDeck(t *testing.T, n int) []*cards.Card {
+	m := cardFromSrc(t, "Name:Filler\nTypes:Basic Land Mountain\nOracle:x\n")
 	out := make([]*cards.Card, n)
 	for i := range out {
 		out[i] = m
@@ -1230,11 +1227,10 @@ SVar:TrigGain:DB$ GainLife | LifeAmount$ 4 | Defined$ You
 Oracle:x
 `
 
-// r3ShockSrc is a targeted instant, free to cast: review finding I-1's
-// remaining StackView gap. StackView.Targets and the spell-side half of
-// Text (SpellDescription$, not a T: line's TriggerDescription$) had no
-// assertion anywhere in the suite.
-const r3ShockSrc = `Name:R3Shock
+// shockSrc is a targeted instant, free to cast. StackView.Targets and the
+// spell-side half of Text (SpellDescription$, not a T: line's
+// TriggerDescription$) had no assertion anywhere in the suite.
+const shockSrc = `Name:R3Shock
 Types:Instant
 A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 2 | SpellDescription$ Deal 2 damage to any target.
 Oracle:x
@@ -1244,7 +1240,7 @@ Oracle:x
 // it, casting each name in toCast (in order) the moment it becomes a legal
 // option, until the pending decision stops being a priority decision or the
 // game ends. It drives the engine through nothing but New/Advance/Pending/
-// Submit -- Task 23 supplement §12 forbids poking e.pendingTriggers.
+// Submit -- never by poking e.pendingTriggers.
 func driveThroughPriority(t *testing.T, e *rules.Engine, toCast []string) {
 	t.Helper()
 	for i := 0; i < 500; i++ {
@@ -1299,7 +1295,7 @@ func submitChoices(t *testing.T, e *rules.Engine, choices ...int) {
 	}
 }
 
-// TestR3PendingTriggersAndStackAreObservableThroughAFullEngine is the R3
+// TestPendingTriggersAndStackAreObservableThroughAFullEngine is the R3
 // integration test: two of the controller's own permanents trigger
 // simultaneously off a real upkeep, reached by playing the game forward
 // through the engine's public surface (never by poking pendingTriggers
@@ -1308,9 +1304,9 @@ func submitChoices(t *testing.T, e *rules.Engine, choices ...int) {
 // Decision (whose Options line up with Pending by position), and once that
 // decision is answered the queue empties and the Stack shows both abilities
 // in the chosen order.
-func TestR3PendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
-	deck0 := append([]*cards.Card{r3Card(t, r3GainerSrc), r3Card(t, r3DrainerSrc)}, r3Filler(t, 5)...)
-	deck1 := r3Filler(t, 7)
+func TestPendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
+	deck0 := append([]*cards.Card{cardFromSrc(t, r3GainerSrc), cardFromSrc(t, r3DrainerSrc)}, fillerDeck(t, 5)...)
+	deck1 := fillerDeck(t, 7)
 	e := rules.New(rules.Config{Seed: 7, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
 	// New does not itself run the engine forward to the first decision —
@@ -1423,7 +1419,7 @@ func TestR3PendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) 
 		sv := v.Stack[i]
 		// Both are TriggerPush objects (gainer/drainer are triggered
 		// abilities the engine pushed via the ordering decision above), so
-		// Kind is "trigger", not the generic "ability" (Task 4).
+		// Kind is "trigger", not the generic "ability".
 		if sv.Kind != "trigger" {
 			t.Errorf("Stack[%d].Kind = %q, want \"trigger\"", i, sv.Kind)
 		}
@@ -1439,21 +1435,21 @@ func TestR3PendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) 
 			t.Errorf("Stack[%d].Text = %q, want %q", i, sv.Text, w.text)
 		}
 		if sv.Targets == nil {
-			t.Errorf("Stack[%d].Targets is nil, want a non-nil empty slice (Ruling T23-u)", i)
+			t.Errorf("Stack[%d].Targets is nil, want a non-nil empty slice", i)
 		}
 	}
 }
 
-// TestR3StackTriggerReportsOptionalityAtResolution is Ruling VW-1's first
+// TestStackTriggerReportsOptionalityAtResolution is the first
 // half: an optional triggered ability on the stack, awaiting its
 // resolution-time yes/no (CR 603.5), reports Optional and its Decider on the
 // STACK entry. The queue is empty at that moment — under CR 603.5 the
 // ability was pushed unconditionally and the question is posed as it
 // resolves — so a test that looked for the optionality on a Pending entry
 // would find nothing.
-func TestR3StackTriggerReportsOptionalityAtResolution(t *testing.T) {
-	deck0 := append([]*cards.Card{r3Card(t, r3OptionalSrc)}, r3Filler(t, 6)...)
-	deck1 := r3Filler(t, 7)
+func TestStackTriggerReportsOptionalityAtResolution(t *testing.T) {
+	deck0 := append([]*cards.Card{cardFromSrc(t, r3OptionalSrc)}, fillerDeck(t, 6)...)
+	deck1 := fillerDeck(t, 7)
 	e := rules.New(rules.Config{Seed: 3, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
@@ -1491,8 +1487,8 @@ func TestR3StackTriggerReportsOptionalityAtResolution(t *testing.T) {
 	}
 }
 
-// TestR3QueuedTriggerStillReportsOptionalityOnThePendingEntry is Ruling
-// VW-1's second half — the one that keeps the first honest. An optional
+// TestQueuedTriggerStillReportsOptionalityOnThePendingEntry is the second
+// half — the one that keeps the first honest. An optional
 // triggered ability that is still genuinely in the trigger queue (here,
 // awaiting its CR 603.3b ordering decision alongside its mandatory sibling)
 // still reports Optional and its Decider on the PENDING entry. The only
@@ -1500,9 +1496,9 @@ func TestR3StackTriggerReportsOptionalityAtResolution(t *testing.T) {
 // waits in the queue for its yes/no (it asks at resolution, on the stack);
 // something still queued for another reason keeps reporting its optionality
 // where it sits.
-func TestR3QueuedTriggerStillReportsOptionalityOnThePendingEntry(t *testing.T) {
-	deck0 := append([]*cards.Card{r3Card(t, r3OptionalSrc), r3Card(t, r3DrainerSrc)}, r3Filler(t, 5)...)
-	deck1 := r3Filler(t, 7)
+func TestQueuedTriggerStillReportsOptionalityOnThePendingEntry(t *testing.T) {
+	deck0 := append([]*cards.Card{cardFromSrc(t, r3OptionalSrc), cardFromSrc(t, r3DrainerSrc)}, fillerDeck(t, 5)...)
+	deck1 := fillerDeck(t, 7)
 	e := rules.New(rules.Config{Seed: 17, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
@@ -1534,14 +1530,13 @@ func TestR3QueuedTriggerStillReportsOptionalityOnThePendingEntry(t *testing.T) {
 	}
 }
 
-// TestR3StackViewShowsTextAndTargetsForATargetedSpell is review finding
-// I-1's remaining StackView gap: a real cast spell awaiting a chosen
+// TestStackViewShowsTextAndTargetsForATargetedSpell: a real cast spell awaiting a chosen
 // target, observed mid-decision (R3: castSpell emits PutOnStack before
 // askTarget, so the spell is on the stack before it has any target at
 // all), then again once the target is chosen.
-func TestR3StackViewShowsTextAndTargetsForATargetedSpell(t *testing.T) {
-	deck0 := append([]*cards.Card{r3Card(t, r3ShockSrc)}, r3Filler(t, 6)...)
-	deck1 := r3Filler(t, 7)
+func TestStackViewShowsTextAndTargetsForATargetedSpell(t *testing.T) {
+	deck0 := append([]*cards.Card{cardFromSrc(t, shockSrc)}, fillerDeck(t, 6)...)
+	deck1 := fillerDeck(t, 7)
 	e := rules.New(rules.Config{Seed: 5, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
@@ -1560,7 +1555,7 @@ func TestR3StackViewShowsTextAndTargetsForATargetedSpell(t *testing.T) {
 		t.Fatalf("Stack = %d entries, want the spell awaiting its target", len(before.Stack))
 	}
 	if before.Stack[0].Targets == nil {
-		t.Fatal("Targets is nil before a target is chosen, want a non-nil empty slice (Ruling T23-u)")
+		t.Fatal("Targets is nil before a target is chosen, want a non-nil empty slice")
 	}
 	if len(before.Stack[0].Targets) != 0 {
 		t.Fatalf("Targets = %+v before any target was chosen, want none yet", before.Stack[0].Targets)

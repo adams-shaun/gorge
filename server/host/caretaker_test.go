@@ -260,7 +260,7 @@ func TestZeroThinkTimeoutMeansNoTimeout(t *testing.T) {
 // TestCaretakerAnswersOnContextCancelWithZeroTimeout is the "0 means caretaker
 // only on ctx cancel" half of judgment point 3: a configured caretaker with a
 // zero ThinkTimeout waits forever for a submit, but a ctx cancellation is
-// converted to the caretaker's intent rather than erroring (the FL-17 exit: a
+// converted to the caretaker's intent rather than erroring (a
 // disconnected human must not wedge play).
 func TestCaretakerAnswersOnContextCancelWithZeroTimeout(t *testing.T) {
 	hs := NewHumanSeat()

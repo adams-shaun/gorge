@@ -50,7 +50,7 @@ describe('toneOf', () => {
       options: [opt(0, 'player', 'Seat 1'), opt(1, 'obj', 'Grizzly Bears')] })).toBe('initiative');
   });
 
-  // FL-101: the tone is a KIND question. A label that reads like a pass, or a
+  // The tone is a KIND question. A label that reads like a pass, or a
   // pass option sitting anywhere but last-but-one, must not move it.
   it('reads kinds, never labels or positions', () => {
     const lying: Decision = { seq: 1, player: 0, kind: 'choose', prompt: 'Choose', min: 1, max: 1,

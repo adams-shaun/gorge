@@ -25,13 +25,12 @@ var allSteps = []state.Step{
 	state.StepCombatDamage, state.StepEndCombat, state.StepMain2, state.StepEnd, state.StepCleanup,
 }
 
-// TestBotOnlyActivatesInAMainPhase is Ruling T25-g's regression test against
-// a real, whole game: fix round 1's own synthetic "priority (combat)" case
-// (bot_test.go) carried a play_land option, which the switch's un-gated
-// play_land/cast loop matches regardless of phase -- a shape the live
-// engine never actually offers outside a main phase (play_land requires
-// sorcery speed), so that test never reached the clamp-top-up fallback path
-// that reintroduced I-1(b) in real games. This drives one whole
+// TestBotOnlyActivatesInAMainPhase is a regression test against
+// a real, whole game. A synthetic "priority (combat)" case with a play_land
+// option cannot show this: the switch's un-gated play_land/cast loop matches
+// that option regardless of phase, a shape the live engine never offers
+// outside a main phase (play_land requires sorcery speed), so such a case
+// never reaches the clamp-top-up fallback path. This drives one whole
 // SampleDecks(t,4) game with the real heuristic.Bot against the real engine
 // (seat is allowed to import rules for its own tests: rules does not import
 // seat, so there is no cycle -- the same pattern view_test.go already uses)
@@ -84,7 +83,7 @@ func TestBotOnlyActivatesInAMainPhase(t *testing.T) {
 	}
 }
 
-// TestBotAdaptersAgreePerStep pins Ruling F7's "keep the two in step" as a
+// TestBotAdaptersAgreePerStep pins "keep the two in step" as a
 // measured property, per step: for every step the engine can be in, the two
 // adapter halves must build the same botpolicy.Board from the same facts --
 // the view-shaped half (BoardFromView, fed the Phase string view.PhaseOf
@@ -325,7 +324,7 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 // client), one through the rules host's game-shaped adapter (e.G.Step.IsMain
 // on the engine's own step). Every intent the two produce must be identical
 // -- same Seq/Player/Choices -- so the two chains reach the same head. This
-// is the copy-paste mirror's guarantee (Ruling F7) turned into a measured
+// is the copy-paste mirror's guarantee turned into a measured
 // property of the two real adapter halves over a whole game.
 func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 	for _, tc := range []struct {
@@ -696,14 +695,14 @@ Oracle:x
 // commanderSampleDecks returns two names and two 18-card Commander decks
 // authored inline -- the file's own parseTestCard pattern, NOT
 // testutil.SampleDecks (whose exact 17-basic/7-vanilla-creature shape every
-// other package pins, Ruling P9). Each deck is 17 basics then ONE
+// other package pins). Each deck is 17 basics then ONE
 // legendary creature at index 17, the exact index the seat's Config
 // Commanders list names, so the seat really seats a legal single commander
 // (CR 903.4: a legendary creature) in its command zone. Seat 0 is a red
 // Mountain seat with a 2/2, seat 1 a green Forest seat with a 3/3, so the
-// seats are not mirror images of each other (SampleDecks' Ruling P9
-// intent). The single-pip mana cost keeps the commander within the bot's
-// own priority policy's castability, SampleDecks' Ruling T25-b fix — so the
+// seats are not mirror images of each other, as in SampleDecks. The single-pip
+// mana cost keeps the commander within the bot's own priority policy's
+// castability, as SampleDecks' single-pip creatures do, so the
 // commander is genuinely cast from the command zone and the CR 903.8 tax
 // fact arises over the game (the CR 903.10 clock does not; see the test's
 // doc comment).

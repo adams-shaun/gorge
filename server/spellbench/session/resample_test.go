@@ -35,7 +35,7 @@ func TestResamplingHiddenStateNeverChangesTheSeatDecision(t *testing.T) {
 
 // The same self-check with x_gorge_view_v1 wired in: the twin rebuilds the
 // extension from the cloned id tables, and the whole seat decision —
-// extension included — must still be byte-equal (Task 24's re-extension path
+// extension included — must still be byte-equal (the re-extension path
 // under the resample check).
 func TestResamplingWithExtensionNeverChangesTheSeatDecision(t *testing.T) {
 	for _, deck := range []string{"Wildfire", "Rally", "Spy", "Burn", "CawGates"} {

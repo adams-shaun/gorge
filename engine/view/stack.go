@@ -14,11 +14,11 @@ type StackView struct {
 	Text       string         `json:"text"` // what it does, in the card's own words, when known
 	Controller state.PlayerID `json:"controller"`
 	Source     state.ObjID    `json:"source,omitempty"` // ability only: the permanent it came from
-	// Targets is a public list (Ruling T23-u): non-nil, "[]" not "null",
+	// Targets is a public list: non-nil, "[]" not "null",
 	// even when nothing has been targeted yet.
 	Targets []TargetView `json:"targets"`
 	Card    *CardView    `json:"card,omitempty"` // spell only
-	// Optional and Decider are Ruling VW-1: an optional triggered ability on
+	// Optional and Decider: an optional triggered ability on
 	// the stack, awaiting its resolution-time yes/no (CR 603.5), reports that
 	// it is optional and names the seat that answers it. Decider is nil
 	// unless Optional.
@@ -63,7 +63,7 @@ type TargetView struct {
 
 // stackViews maps the stack's own object ids to StackViews, bottom to top,
 // into buf's storage (refill; each slot's Targets, Card and Decider storage
-// is reused). Always non-nil (Ruling T23-u).
+// is reused). Always non-nil.
 //
 // viewer and revealFaceDown redact a face-down SPELL (CR 708.4: a
 // face-down cast's spell has no name, no types and no abilities while it
@@ -87,10 +87,10 @@ func (p *projector) stackViews(buf []StackView, ids []state.ObjID, revealFaceDow
 		// The slot's previous storage (ProjectInto's reuse).
 		targets, card, decider := sv.Targets, sv.Card, sv.Decider
 		if o.Ability != nil {
-			// An ability object has no Face (Ruling F3): Card == nil, set
+			// An ability object has no Face: Card == nil, set
 			// by engine/events/apply.go's TriggerPush case. Its display name is
 			// the face name of the permanent it came from, or "Ability"
-			// when that permanent is also gone (supplement §2). Kind
+			// when that permanent is also gone. Kind
 			// distinguishes a TriggerPush object from any other ability
 			// object (an activated ability, once the engine enumerates
 			// them) so a client can render them differently.
@@ -107,7 +107,7 @@ func (p *projector) stackViews(buf []StackView, ids []state.ObjID, revealFaceDow
 				Controller: o.Controller, Source: o.Source, Targets: targetViews(targets, o.Targets, o.SubTargets, targetLabel(o)),
 			}
 			castDetail(sv, o)
-			// Ruling VW-1: an optional triggered ability on the stack awaiting
+			// An optional triggered ability on the stack awaiting
 			// its resolution-time yes/no reports its optionality and decider
 			// here, where the ability actually is. The engine derives it (it
 			// is the one place the OptionalDecider$ spec grammar lives, via
@@ -122,7 +122,7 @@ func (p *projector) stackViews(buf []StackView, ids []state.ObjID, revealFaceDow
 					sv.Decider = decider
 				}
 			}
-			// The ability object has no face of its own (Ruling F3), so the
+			// The ability object has no face of its own, so the
 			// artwork a client shows for a trigger/ability band has to come
 			// from the permanent it was minted from -- the same cardView the
 			// spell branch uses for its own id. Fill Card only while that
@@ -162,7 +162,7 @@ func (p *projector) stackViews(buf []StackView, ids []state.ObjID, revealFaceDow
 }
 
 // abilityName is the face name of the permanent an ability object came
-// from, or "Ability" when that permanent is gone too (supplement §2).
+// from, or "Ability" when that permanent is gone too.
 func abilityName(g *state.Game, o *state.Object) string {
 	if src := g.Obj(o.Source); src != nil {
 		if f := src.Face(); f != nil && f.Name != "" {
@@ -227,8 +227,7 @@ func spellText(f *cards.Face, memo *textMemo) string {
 // hidden-zone object (e.g. the card a "whenever you draw" trigger
 // remembered) — only Targets, which is a player-visible choice already.
 // label (from targetLabel) is stamped on every entry: the object declared
-// one set of legal targets, not one per chosen target. Always non-nil
-// (Ruling T23-u).
+// one set of legal targets, not one per chosen target. Always non-nil.
 func targetViews(buf []TargetView, targets, subTargets []state.Target, label string) []TargetView {
 	out := refill(buf, len(targets)+len(subTargets))
 	for _, t := range targets {
@@ -265,7 +264,7 @@ func targetLabel(o *state.Object) string {
 }
 
 // pendingViews copies the engine's pending-trigger queue into the wire
-// shape, in the same order: R3. Always non-nil (Ruling T23-u), including
+// shape, in the same order. Always non-nil, including
 // when called with nil (Project's own default before a real Chars, if any,
 // overwrites it).
 func pendingViews(buf []PendingView, pts []state.PendingTrigger) []PendingView {

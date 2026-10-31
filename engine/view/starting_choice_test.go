@@ -12,7 +12,7 @@ import (
 // TestStartingChoiceHidesHands is the view half of CR 103.5: while the CR
 // 103.1 play/draw choice is unresolved no player may see any hand. A seat's
 // own projected Hand is a non-nil empty list (never the null another seat's
-// hidden hand marshals -- Ruling T23-u) with the count still in HandSize, the
+// hidden hand marshals) with the count still in HandSize, the
 // opponent's Hand stays nil, and no hand object id is serialised anywhere in
 // the seat view -- the hand, the library (its complement), and the
 // PotentialActions offers that would carry hand card ids are all suppressed.

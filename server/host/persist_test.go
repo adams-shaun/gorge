@@ -518,8 +518,8 @@ func TestReadLogIgnoresATrailingPartialLine(t *testing.T) {
 	}
 }
 
-// TestRestartServesAStablePrefixAfterMidBurstTruncation is fix round 1's
-// burst-atomicity regression (item 2): a crash or kill can leave a match's
+// TestRestartServesAStablePrefixAfterMidBurstTruncation covers a
+// burst-atomicity regression: a crash or kill can leave a match's
 // 3.events file cut inside its final burst, with the owning intent already
 // on disk (append writes the intent before the burst it owns). On restart
 // Events and ViewAt must succeed and return the surviving prefix — the
@@ -597,8 +597,8 @@ func TestRestartServesAStablePrefixAfterMidBurstTruncation(t *testing.T) {
 	}
 }
 
-// TestSyncLeavesNoTempFiles is fix round 1's fsync-coverage check (item
-// 3): with Options.Sync set, a full play to disk must both fsync the temp
+// TestSyncLeavesNoTempFiles is the fsync-coverage check: with Options.Sync set,
+// a full play to disk must both fsync the temp
 // files before their renames (events, intents, every sidecar, tables.json)
 // and not leave any *.tmp behind on any path.
 func TestSyncLeavesNoTempFiles(t *testing.T) {
@@ -630,8 +630,8 @@ func TestSyncLeavesNoTempFiles(t *testing.T) {
 	}
 }
 
-// TestArchivedMatchIsServedSafelyUnderConcurrentReaders is fix round 1's
-// t.loaded data-race regression (item 1): reading an archived match from
+// TestArchivedMatchIsServedSafelyUnderConcurrentReaders covers a
+// t.loaded data-race regression: reading an archived match from
 // several goroutines at once, in persist mode, must load it exactly once.
 // The first reader upgrades to the write lock and rebuilds the match; the
 // others must re-check t.loaded after the upgrade rather than race a bare

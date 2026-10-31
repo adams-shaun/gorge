@@ -109,7 +109,7 @@ func TestProjectNextRevealsControlledHandToController(t *testing.T) {
 }
 
 // TestControlledSeatsIsTheLiveActiveSeatOnly pins the host's widening set
-// directly (cr-g57): at most one seat, the ACTIVE one, and only while its
+// directly: at most one seat, the ACTIVE one, and only while its
 // control is live (state.Game.LiveController: a turn strictly after the armed
 // turn); only the viewer named as its controller gets it. Several grants can
 // be folded at once (seats 1 and 3 controlled by 0, seat 2 by 1), but only

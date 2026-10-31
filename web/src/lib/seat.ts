@@ -1,7 +1,7 @@
 /**
  * seat.ts is the page's seat identity, read ONCE from the join URL that
- * M2e-3's gorged prints on startup (FL-99): `?seat=N&token=…`. The seat is
- * "which player am I acting for" — a number and a bear credential, nothing
+ * gorged prints on startup: `?seat=N&token=…`. The seat is
+ * "which player am I acting for" — a number and a bearer credential, nothing
  * more. No rules knowledge lives here; the server's decision.Validate is
  * the whole contract.
  *

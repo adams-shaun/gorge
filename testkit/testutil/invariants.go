@@ -1,10 +1,10 @@
 // Package testutil holds fixtures and checks shared by tests that sit
-// outside the rules package's own test binary -- Task 26's acceptance
+// outside the rules package's own test binary -- the acceptance
 // harness and engine/rules/fuzz_test.go's invariant gate both need this without
 // rules importing itself, so this package sits beside state and decision in
 // the dependency order (cards -> state -> decision -> events -> effects ->
 // rules -> view -> seat -> replay -> cmd/*) and imports only cards, state
-// and decision (Ruling P9/P10).
+// and decision.
 package testutil
 
 import (
@@ -14,8 +14,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// CheckInvariants is the rules core's acceptance gate: six checks from the
-// spec's testing section plus a seventh Task 22 pinned by hand (Ruling P10).
+// CheckInvariants is the rules core's acceptance gate: seven checks.
 // Every failure names the object or player at fault, and where -- the
 // caller's own label for the point in the match this check ran at -- and
 // stops at the first violation via t.Fatalf: this is a gate, not a report.
@@ -24,7 +23,7 @@ import (
 // (e.g. the game just ended). Only invariants 3, 5 and 7 need it --
 // *state.Game alone cannot answer "is a decision pending for this player",
 // and testutil cannot import rules (the fuzz test is package rules) to ask
-// the engine directly (Ruling P10).
+// the engine directly.
 func CheckInvariants(t testing.TB, g *state.Game, d *decision.Decision, where string) {
 	t.Helper()
 	checkZones(t, g, where)       // 1, 6
@@ -69,7 +68,7 @@ func zoneEntries(g *state.Game) []zoneEntry {
 }
 
 // checkZones is invariants 1 and 6. It runs in two passes over the same
-// zoneEntries (Ruling T25-d, fix round 1):
+// zoneEntries:
 //
 //  1. Invariant 6 first, from list membership alone, before anything below
 //     ever reads Object.Zone. This ordering is load-bearing, not cosmetic:
@@ -193,7 +192,7 @@ func checkNoNegatives(t testing.TB, g *state.Game, where string) {
 
 // checkDecisionForLiveOpponent is invariants 3 and 7: no decision is ever
 // pending for an eliminated player (3), nor for a player whose Life <= 0 --
-// Task 22's measured pin, encoded here permanently (7).
+// A measured pin, encoded here permanently (7).
 func checkDecisionForLiveOpponent(t testing.TB, g *state.Game, d *decision.Decision, where string) {
 	t.Helper()
 	p := d.Player

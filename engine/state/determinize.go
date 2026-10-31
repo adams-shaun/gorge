@@ -35,7 +35,7 @@ const SearchingSeatKnowsOpponentComposition = true
 // Determinize returns a NEW game (built on Clone; the receiver is never
 // mutated) in which every fact fromSeat cannot legally see has been
 // re-randomised and every fact it can see is byte-identical -- the honest
-// information set a search agent (C2) is allowed to plan with. Ruling C0: a
+// information set a search agent is allowed to plan with: a
 // search agent searches determinizations, never the true state.
 //
 // What stays put:

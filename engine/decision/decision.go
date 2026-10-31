@@ -25,7 +25,7 @@ const (
 	// while the seat still has a free mulligan, a "mulligan") option; a
 	// bottoming ask is Min == Max == taken over one "bottom" option per kept-
 	// hand card -- exactly the distinct-index shape Validate already enforces
-	// for KTriggerOrder, so no new wire format is needed (Ruling U2).
+	// for KTriggerOrder, so no new wire format is needed.
 	KMulligan Kind = "mulligan"
 	// KModes is a modal pick: MinCharmNum$ (default CharmNum$) through
 	// CharmNum$ (default 1) over one "mode" option per Choices$ sub-ability,
@@ -40,7 +40,7 @@ const (
 	// 603.3b). It is Min == Max == len(Options) over exactly that
 	// controller's own pending triggers, so Validate's existing "N distinct
 	// in-range indices" rule already means "a permutation" and no new wire
-	// format is needed (Ruling U2).
+	// format is needed.
 	//
 	// DIRECTION, which is silent if a client gets it backwards: Choices[0]
 	// is the trigger put on the stack FIRST, and therefore the one that
@@ -104,10 +104,9 @@ const (
 	// whether it gets its opportunity. A decline continues through every
 	// remaining applicable phase replacement before the StepChange is logged.
 	KReplacement Kind = "replacement"
-	// KArrange is the ordered-subset ask a library-arranging effect poses
-	// (Ruling J0): the engine offers N cards, and the answer is an ordered
-	// subset of them -- the one general decision shape Scry, Surveil and
-	// Dig later share.
+	// KArrange is the ordered-subset ask a library-arranging effect poses:
+	// the engine offers N cards, and the answer is an ordered subset of them
+	// -- the one general decision shape Scry, Surveil and Dig share.
 	//
 	// The contract, stated once because a client that gets it backwards gets
 	// it silently wrong: the engine offers N cards. The answer is an ordered
@@ -366,7 +365,7 @@ type Option struct {
 	// that omits), which the option's own label "X = 0" already shows.
 	Amount int `json:"amount,omitempty"`
 	// Ability anchors an "ability" option to its exact activated ability:
-	// the index into the source Face().Abilities being offered (Task 10), so
+	// the index into the source Face().Abilities being offered, so
 	// a client can pop that ability's own text up beside the right ability
 	// on the card. The engine reads it in beginActivation, where a stale
 	// index degrades to a no-op. omitempty: options that are not ability
@@ -1300,7 +1299,7 @@ type Intent struct {
 	// enforces (one rule, one home: validateRest). Every non-arrange kind
 	// rejects a non-empty Rest outright. omitempty: every intent a client
 	// sends today serialises byte-identically, and a recorded intent's Rest
-	// rides the log and replays exactly (Ruling P2 submits intents as
+	// rides the log and replays exactly (intents are submitted as
 	// logged).
 	Rest []int `json:"rest,omitempty"`
 	// Payment selects an offered payment action and exact plan witness. It is

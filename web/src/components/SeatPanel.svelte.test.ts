@@ -337,7 +337,7 @@ describe('SeatPanel — the mulligan round', () => {
     expect(html).toContain('Unknown Card');
   });
 
-  // FL-101: the layout is driven by kinds. An option kind this body does not
+  // The layout is driven by kinds. An option kind this body does not
   // cover sends the whole decision to the generic list, where it is reachable.
   it('an unrecognised option kind falls back to the generic list rather than being dropped', () => {
     const d: Decision = { ...keepAsk, options: [opt(0, 'keep', 'keep'), opt(1, 'mulligan', 'mulligan'), opt(2, 'surprise', 'Something new')] };

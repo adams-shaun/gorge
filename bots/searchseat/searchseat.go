@@ -91,7 +91,7 @@ type Options struct {
 	// feature set here is a configuration error (Validate), because the
 	// redacted leaf has no opponent hand to give it.
 	Value *policynet.Model
-	// OracleValue (ticket pn17-a1), when non-nil, is an ORACLE value model: a
+	// OracleValue, when non-nil, is an ORACLE value model: a
 	// FeaturesMZOppHand checkpoint (policynet.LoadOracleCheckpointFile) whose
 	// value head scores every non-terminal rollout leaf from the OMNISCIENT
 	// projection of that leaf (searchprobe.TeacherOptions.LeafOmniscient),

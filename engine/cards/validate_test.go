@@ -50,7 +50,7 @@ func TestUnsupportedNamesTheMissingPrimitive(t *testing.T) {
 	}
 }
 
-// TestCoverageIgnoresNamelessCard guards the fix for a known Task 4 defect: a
+// TestCoverageIgnoresNamelessCard guards the fix for a known defect: a
 // zero-byte .txt parses without error into a Card holding one Face with every
 // field at its zero value. That Face has no primitives, so Unsupported
 // reports it as fully supported — a nameless, contentless artifact would

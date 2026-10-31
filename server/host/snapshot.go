@@ -7,12 +7,11 @@ import (
 )
 
 // afterBurst runs inside the loop's Lock after a successful Submit: when
-// the burst began a turn, the engine is cloned at this boundary (spec D11:
-// turn-start snapshots, dropped with the match). Task 12 appends the
-// burst to disk here too, and Task M2c-1 delivers it to the embedder's
-// OnBurst hook.
+// the burst began a turn, the engine is cloned at this boundary (turn-start
+// snapshots are dropped with the match). The burst is also appended to disk
+// here and delivered to the embedder's OnBurst hook.
 //
-// FL-44: snapshots retain the full log prefix; see ledger. Engine.Clone
+// Snapshots retain the full log prefix. Engine.Clone
 // deep-copies G, L (the whole recorded log so far) and the trigger/
 // continuous-effect bookkeeping, so every stored snapshot is roughly as
 // big as the match was at that point — measured ~5-8 MB retained per
@@ -24,14 +23,14 @@ func (r *Registry) afterBurst(t *table, m *match, before int) error {
 	if len(turnStartsIn(m.g.Log().Events, before)) > 0 {
 		m.snaps = append(m.snaps, snapshot{intent: m.intents, seq: m.bounds[len(m.bounds)-1] - 1, g: m.g.Fork()})
 	}
-	if err := r.persistBurst(t, m, before); err != nil { // Task 12
+	if err := r.persistBurst(t, m, before); err != nil {
 		return err
 	}
 	return r.observeBurst(t, m, before) // Task M2c-1
 }
 
 // observeBurst delivers the burst that just ended to the embedder's OnBurst
-// hook (Task M2c-1, FL-81), if one is set. Called with m.mu held, on the
+// hook, if one is set. Called with m.mu held, on the
 // match goroutine — after the burst has been persisted (so a replay served
 // from the hook is never ahead of what is durable) but before the match
 // loop continues, and with before == 0 it is how the genesis burst (no
@@ -56,7 +55,7 @@ func (r *Registry) observeBurst(t *table, m *match, before int) error {
 }
 
 // observeMatchEnd delivers a match's terminal MatchInfo to the embedder's
-// OnMatchEnd hook (Task M2c-1), if one is set. Called from finish/abort/
+// OnMatchEnd hook, if one is set. Called from finish/abort/
 // crash on the match goroutine after the final state is recorded; the
 // hook's error cannot change that already-decided outcome, so it is
 // surfaced only by the embedder itself (see OnMatchEndFunc). A match
@@ -84,8 +83,8 @@ func (r *Registry) callOnMatchEnd(t TableID, k int, m protocol.MatchInfo) {
 }
 
 // snapshotGenesis clones the engine at boundary 0, so a view inside turn 1
-// never replays from scratch either. FL-44 (see afterBurst) applies here
-// too.
+// never replays from scratch either. The same retention rule (see afterBurst)
+// applies here too.
 func (m *match) snapshotGenesis() {
 	m.snaps = append(m.snaps, snapshot{intent: 0, seq: m.bounds[0] - 1, g: m.g.Fork()})
 }
@@ -111,8 +110,7 @@ func (m *match) snapshotGenesis() {
 //
 // A tail past the last DecisionAsk is a real, complete final boundary only
 // when it ends in GameOver: Advance stops asking once the game is over, so
-// a naturally finished log's last burst has no trailing ask (fix round 1,
-// FL-43 — this used to synthesize that final boundary unconditionally).
+// a naturally finished log's last burst has no trailing ask.
 // Anything else back there is a partial burst: Submit records an intent
 // into L.Intents before handle/checkStateBased/Advance run, so a panic
 // during that processing (a crashed match, spec D15) leaves a straggler
@@ -141,7 +139,7 @@ func boundsOf(evs []events.Event) []uint64 {
 // held; an error propagates through afterBurst to play, which crashes the
 // match (D15) — a table whose files cannot be written must not keep going.
 // m.persisted advances only on a fully-appended burst, so it is always the
-// count of a complete, durable prefix (fix round 1).
+// count of a complete, durable prefix.
 func (r *Registry) persistBurst(t *table, m *match, before int) error {
 	if m.files == nil {
 		return nil

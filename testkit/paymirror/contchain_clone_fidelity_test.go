@@ -6,14 +6,13 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The corpus-backed
-// tests below replay independent games and share only the read-only corpus
-// registry (testutil.CorpusRegistry's once-cached open), so they run in
-// parallel, as the effects package's oracle sweep does (commit 134da95fa);
-// the corpus-free unit tests stay serial. Measured at 4 vCPU with
+// The corpus-backed tests below replay independent games and share only the
+// read-only corpus registry (testutil.CorpusRegistry's once-cached open), so
+// they run in parallel, as the effects package's oracle sweep does (commit
+// 134da95fa); the corpus-free unit tests stay serial. Measured at 4 vCPU with
 // -cpuprofile as the uncached vehicle, interleaved before/after/before/after
-// while the box stayed loaded: 33.4s/29.4s -> 16.1s/13.9s wall, peak RSS
-// 824 MiB -> ~1.25 GiB (inside the 4 GiB per-test budget).
+// while the box stayed loaded: 33.4s/29.4s -> 16.1s/13.9s wall, peak RSS 824
+// MiB -> ~1.25 GiB (inside the 4 GiB per-test budget).
 func TestCloneFidelityAtPlannedCastsSeed1068(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

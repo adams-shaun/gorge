@@ -17,7 +17,7 @@
    * shows the opening hand and two numbered choices; the bottom half shows
    * the hand as toggles (bottoming is irreversible, so even a one-card
    * bottom toggles and commits with its button). Choices are resolved by
-   * option KIND, never by count or label (FL-101).
+   * option KIND, never by count or label.
    */
   let { decision, view, logic, seat }: { decision: Decision; view: View; logic: SeatPanelState; seat: number } = $props();
 

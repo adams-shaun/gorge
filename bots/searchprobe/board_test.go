@@ -78,7 +78,7 @@ import (
 // (view.CardView.PumpOwn): the frame encoding gained one more field, so every
 // prefix digest moves; the fixture is still 126 frames, so no game moved.
 // Attributed by tagging the field json:"-": the previous digests return
-// byte-for-byte. Re-measured for cr-g67b (CR 602.2a): an activation's mint
+// byte-for-byte. Re-measured for CR 602.2a: an activation's mint
 // now precedes its first decision, so the 126-frame history moves; the 1-, 2-
 // and 17-frame digests do not.
 //

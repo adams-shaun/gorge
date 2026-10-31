@@ -12,7 +12,7 @@ import (
 )
 
 // TestTapeStateOwnedOnlyByTheResolutionKernel is the kernel-era successor of
-// TestResumeStateOwnedOnlyByTheResolutionMachinery (ruling T21-e's static
+// TestResumeStateOwnedOnlyByTheResolutionMachinery (the static
 // half for the mid-resolution ask). The legacy Engine.resume frame is gone:
 // every mid-resolution ask is now the resolution kernel's (engine/rules/resolve), and
 // its per-engine state is the Engine.tape field (a resolve.Kernel whose
@@ -47,13 +47,13 @@ func TestTapeStateOwnedOnlyByTheResolutionKernel(t *testing.T) {
 		}
 		for _, site := range sites {
 			t.Errorf("%s: %s overwrites the engine's resolution-kernel state (Engine.tape); only the clone, "+
-				"the entry preview and the kernel's own restore may (ruling T21-e: a posed checkpoint must survive)",
+				"the entry preview and the kernel's own restore may (a posed checkpoint must survive)",
 				site, fn)
 		}
 	}
 	for fn := range allowed {
 		if _, ok := writers[fn]; !ok {
-			t.Errorf("allow-list entry %s is stale: it writes no Engine.tape; prune it or the write moved (ruling T21-e)", fn)
+			t.Errorf("allow-list entry %s is stale: it writes no Engine.tape; prune it or the write moved", fn)
 		}
 	}
 	named := make([]string, 0, len(writers))

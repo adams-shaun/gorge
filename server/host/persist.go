@@ -155,7 +155,7 @@ func openMatchFiles(dir string, t TableID, k int, sync bool) (*matchFiles, error
 // here on success, so a later rewind (truncateTo) can cut both files back
 // to any recorded burst boundary in place.
 //
-// Burst atomicity (fix round 1): the intent that owns a burst is written
+// Burst atomicity: the intent that owns a burst is written
 // BEFORE the burst's events. The two live in separate files and can never
 // be committed atomically, and this ordering is the safe side: it guarantees
 // the events stream is never longer than the intents that account for it.
@@ -264,7 +264,7 @@ func (f *matchFiles) close() {
 
 // writeSidecar writes <k>.json atomically (temp file + rename). When sync
 // is set the temp is fsynced before the rename and the parent directory
-// after it (fix round 1, fsync coverage) so the rename, not just the file's
+// after it (fsync coverage) so the rename, not just the file's
 // contents, is durable. The temp file is removed on every error path and
 // consumed by the rename, so no *.tmp survives (writeFileAtomic).
 func writeSidecar(dir string, sc sidecar, sync bool) error {
@@ -362,7 +362,7 @@ func readSidecars(dir string, t TableID) ([]sidecar, error) {
 // readLog rebuilds a match's events.Log from its files. A trailing partial
 // line (a crash mid-write) is ignored; anything malformed before it is an
 // error. The Seed comes from the sidecar. The two streams are reconciled to
-// a consistent prefix (fix round 1) before returning, so Events/ViewAt of a
+// a consistent prefix before returning, so Events/ViewAt of a
 // match whose write was cut off never serve a log that cannot replay.
 func readLog(dir string, t TableID, k int) (*events.Log, error) {
 	sc, err := readSidecar(dir, t, k)
@@ -395,7 +395,7 @@ func readLog(dir string, t TableID, k int) (*events.Log, error) {
 }
 
 // reconcileLog trims a log read from disk to the consistent prefix a replay
-// can rebuild (fix round 1, burst atomicity). A burst's events and its
+// can rebuild (burst atomicity). A burst's events and its
 // owning intent live in two separate files and can never be committed
 // atomically, so a crash or kill mid-burst can leave either stream ahead of
 // the other: the events file can be cut inside its last burst (the
@@ -480,7 +480,7 @@ type tableRecord struct {
 
 // save writes tables.json (sorted by id) when persistence is on. It takes
 // the registry lock itself; callers that already hold r.mu use saveLocked.
-// fsync coverage (fix round 1): the temp file is synced before the rename
+// fsync coverage: the temp file is synced before the rename
 // and the parent directory after it (writeFileAtomic), the same guarantees
 // as the sidecar and the events files.
 func (r *Registry) save() error {

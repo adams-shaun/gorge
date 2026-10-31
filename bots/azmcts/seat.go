@@ -31,7 +31,7 @@ type SeatConfig struct {
 	// decision.Kinds members and entries >= 0 (NewSeat refuses others). Only
 	// looked up, never ranged.
 	SimsByKind map[decision.Kind]int
-	// Explore is generation mode (ticket 3's azgen): Dirichlet noise at every
+	// Explore is generation mode (azgen): Dirichlet noise at every
 	// searched root, and moves sampled proportional to visits while the game
 	// turn is <= ExploreTurns (spec §2: turns 1-4). Eval leaves it false:
 	// argmax, no noise.
@@ -162,7 +162,7 @@ var Watch func(Diag)
 // Search answering the searched kinds. It is a searchseat.SearchSeat, so
 // testkit/bench.PlayGame hands it the live engine at its own decisions --
 // the route the L10 search seat takes. Stage 1 reads only the engine; the
-// driver's observation feed is for ticket 5's sampled worlds.
+// driver's observation feed is for sampled worlds.
 type Seat struct {
 	def  *heuristic.Bot
 	seed uint64

@@ -55,7 +55,7 @@ func foldDrawEmpty(g *state.Game, e *Event) {
 
 // foldGameOver folds Kind GameOver into state.
 func foldGameOver(g *state.Game, e *Event) {
-	// Ruling T22-g (fix round 1): the first GameOver wins; a later one
+	// The first GameOver wins; a later one
 	// on an already-finished game is a no-op. Without this guard, a log
 	// carrying two GameOver events (a duplicate, a replay quirk, a
 	// tampered log) produced a game simultaneously won (Winner set by
@@ -65,13 +65,10 @@ func foldGameOver(g *state.Game, e *Event) {
 	if g.Over {
 		return
 	}
-	// Ruling T22-a (Amount is the draw/winner discriminator, the same
-	// trick TargetsChosen already uses to tell its two target shapes
-	// apart), pinned down fully by T22-g and, for Amount == 0's own
-	// Player validity, T22-l: exactly two shapes are defined, and
-	// everything else is not a GameOver this build recognizes at all.
-	//   Amount == 0: a win, but ONLY when Player validates. Ruling
-	//     T22-l (fix round 2): a fix-round-1 build of this let an
+	// Amount is the draw/winner discriminator (the same trick TargetsChosen
+	// uses to tell its target shapes apart): exactly two shapes are defined,
+	// and everything else is not a GameOver this build recognizes at all.
+	//   Amount == 0: a win, but ONLY when Player validates. Setting Over on an
 	//     invalid Player under Amount 0 still set Over, with Winner
 	//     left at its untouched zero value -- an invalid seat silently
 	//     reading as seat 0 winning, the exact defect class this whole
@@ -221,8 +218,7 @@ const SubTargetNotice = "sub-target"
 
 // foldTargetsChosen folds Kind TargetsChosen into state.
 func foldTargetsChosen(g *state.Game, e *Event) {
-	// Amount discriminates the target shape (Ruling T14-b's own
-	// discriminator, extended by Task 4 with two more shapes that
+	// Amount discriminates the target shape (two of its shapes
 	// APPEND rather than replace -- a spell can gain a second target
 	// from a later effect without losing the first):
 	//   0 (default): replace with object targets, read from IDs.
@@ -363,7 +359,7 @@ func foldAlterAttribute(g *state.Game, e *Event) {
 			}
 		case "Monstrous":
 			// CR 701.31b's monstrous designation (Giggling Skitterspike's
-			// `{5}: Monstrosity 5`, task agent-20260919T190014Z): Amount is
+			// `{5}: Monstrosity 5`): Amount is
 			// the monstrosity COUNT the resolving ability carried (the
 			// BecomeMonstrous triggers' `SVar:MonstrosityX:TriggerCount$Amount`
 			// reads it back), and Amount >= 1 sets the mark. CR 701.31 gives

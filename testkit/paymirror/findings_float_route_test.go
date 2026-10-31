@@ -9,9 +9,9 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestFloatRouteFindingsMirror replays paymirror games whose findings came from the float route, end to
-// end: no cast is a mismatch, the live-vs-clone control is equivalent, and
-// each named cast gets its root-caused verdict.
+// TestFloatRouteFindingsMirror replays paymirror games whose findings came
+// from the float route, end to end: no cast is a mismatch, the live-vs-clone
+// control is equivalent, and each named cast gets its root-caused verdict.
 //
 //   - 4038 (commander4):
 //     no_matching_mana_option on Urza's Workshop's metalcraft ability, whose
@@ -29,11 +29,11 @@ import (
 //     changes the bot's cast trajectory, so the old seq-675 Warping Wail
 //     finding is no longer reached; all reported casts remain mirrored.
 //
-// 4038 and 6191 no longer reach their named casts. Their pins are seq 0: the whole
-// game is replayed and every planned cast must mirror, but no named cast is
-// required. TestFloatTrimmedTriggerOrderAllowsOnlyFloatTriggers covers the
-// float-trigger order, and TestUrzasWorkshopMetalcraftMirrorsRePin the metalcraft
-// path.
+// 4038 and 6191 no longer reach their named casts. Their pins are seq 0: the
+// whole game is replayed and every planned cast must mirror, but no named
+// cast is required. TestFloatTrimmedTriggerOrderAllowsOnlyFloatTriggers
+// covers the float-trigger order, and TestUrzasWorkshopMetalcraftMirrorsRePin
+// the metalcraft path.
 func TestFloatRouteFindingsMirror(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

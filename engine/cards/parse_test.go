@@ -117,9 +117,9 @@ func TestParseReportsUnkeyedLine(t *testing.T) {
 	}
 }
 
-// TestTriggerCarriesOptionalDecider pins the one field Task 27 depends on
+// TestTriggerCarriesOptionalDecider pins the one field the trigger queue depends on
 // reaching cards.Trigger. Established from .cards/cardsfolder rather than
-// guessed (Ruling T12-a's precedent): on a T: line, optionality is spelled
+// guessed: on a T: line, optionality is spelled
 // OptionalDecider$ and only that -- 1496 T: lines carry it, and the bare
 // Optional$ form -- 1143 occurrences by the anchored pattern
 // (^|[^A-Za-z])Optional$, all on SVar:, A:, R: and S: lines -- never appears

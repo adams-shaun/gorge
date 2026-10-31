@@ -49,7 +49,7 @@ export type OptionTone = 'initiative' | 'offered' | 'idle';
  * click into SeatPanelState.click's `{ holdPriority }`: Ctrl held while
  * submitting a cast/ability must not arm pass-after-acting for that one
  * action. post's `expectFollowUp` declares that a card-anchored post may
- * hand back a follow-up decision for the same object (fb-e079def5: a
+ * hand back a follow-up decision for the same object (a
  * multi-ability mana source's stage-1 ability pick, answered through the
  * wheel, must re-open the wheel for its stage-2 colour ask). The ARM itself
  * is SeatPanelState's (fb-20260923T050205Z): panel.click arms it for an
@@ -360,7 +360,7 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
 
 /** Post one displayed option by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action.
  *
- * Every picker post declares a possible card follow-up (task fb-e079def5;
+ * Every picker post declares a possible card follow-up (
  * the arm is SeatPanelState.followUpArm's, `activate`/`mana` answers only):
  * every option a picker posts is card-anchored (it comes from optionsByObj /
  * optionsByPlayer, so its `obj` names the card the choice was made on), and a
@@ -380,7 +380,7 @@ export function postTileOption(tile: TileOptions, option: Option, holdPriority =
 
 /**
  * resolveCardFollowUp is the ONE decoder of an armed card-follow-up
- * expectation (task fb-e079def5, generalising the ui24 single-action arm to
+ * expectation (generalising the single-action arm to
  * every card-anchored post). After a card action is posted, the next
  * decision for the seat re-opens that card's picker exactly when it carries
  * 2-6 options on the expected object AND every option is kind 'mana' --

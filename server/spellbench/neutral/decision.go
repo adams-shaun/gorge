@@ -3204,7 +3204,7 @@ func (s *Session) optionalCost(sd *protocol.SeatDecision) ([]mapping.NativeOp, *
 
 // unlessCostObject is the object the native unless-cost decision names:
 // the ability's Source permanent for a triggered or activated ability
-// (rules' Ctx.Source is o.Source, Ruling T20-b), and the source itself
+// (rules' Ctx.Source is o.Source), and the source itself
 // for a spell (a counterspell tax names the spell on the stack). The v2
 // semantic names the ability object on the stack, so the stack entry's
 // Source is the one place the permanent is visible.

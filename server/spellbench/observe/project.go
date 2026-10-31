@@ -166,7 +166,7 @@ func manaValue(o *state.Object) uint32 {
 	return uint32(mv)
 }
 
-// builder carries per-observation caches (the inverted block map of Task 12).
+// builder carries per-observation caches (the inverted block map).
 type builder struct {
 	p        *Projector
 	viewer   state.PlayerID

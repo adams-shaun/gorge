@@ -228,7 +228,7 @@ func TestRedactEventsForOmniscientHidesOnlyLibraryOrder(t *testing.T) {
 // TestRedactEventsForOmniscientHidesOnlyLibraryOrder's hand-built
 // complement: SampleDecks (playSome's fixture) never plays a card that
 // emits a Secret Note (only effRearrangeTopOfLibrary does, a card shape not
-// in the fuzz corpus), so that branch — and Ruling FL-9's Secret-move-into-
+// in the fuzz corpus), so that branch — and the Secret-move-into-
 // a-library branch, which nothing in SampleDecks triggers either — would
 // stay green even if visibility.go's reduction condition silently dropped
 // either check. Built directly against events.Event literals, no engine:
@@ -250,7 +250,7 @@ func TestRedactEventsForOmniscientReducesExactlyLibraryOrderEvents(t *testing.T)
 			shapeOnly: true,
 		},
 		{
-			// Ruling J1: a LibraryOrder event carries the exact order a
+			// A LibraryOrder event carries the exact order a
 			// library-arranging effect chose, which would spoil every future
 			// draw for an omniscient spectator, so it reduces to its shape
 			// just like a Shuffle.
@@ -269,16 +269,16 @@ func TestRedactEventsForOmniscientReducesExactlyLibraryOrderEvents(t *testing.T)
 			shapeOnly: false,
 		},
 		{
-			// Ruling FL-9: a Dig/rearrange effect that returns a card to a
+			// A Dig/rearrange effect that returns a card to a
 			// hidden library position reveals where in the order it went.
-			name:      "a secret library-to-library move is reduced to shape (FL-9)",
+			name:      "a secret library-to-library move is reduced to shape",
 			ev:        events.Event{Seq: 5, Kind: events.MoveZone, Player: 1, From: state.ZLibrary, To: state.ZLibrary, Obj: 7, Secret: true},
 			shapeOnly: true,
 		},
 		{
-			// Ruling FL-9's other half: a move into a library that is NOT
+			// The other half: a move into a library that is NOT
 			// Secret (e.g. from a public zone) is not this kind of reveal.
-			name:      "a non-secret move into a library passes unchanged (FL-9)",
+			name:      "a non-secret move into a library passes unchanged",
 			ev:        events.Event{Seq: 6, Kind: events.MoveZone, Player: 1, From: state.ZBattlefield, To: state.ZLibrary, Obj: 8},
 			shapeOnly: false,
 		},

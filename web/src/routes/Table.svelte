@@ -56,19 +56,18 @@
   import { keymapStore } from '../lib/keymap.svelte';
 
   // match (from the /t/:table/m/:match route) names a specific, already-played
-  // match. Task 21's finished mode replays it end to end via loadFinished:
+  // match. Finished mode replays it end to end via loadFinished:
   // no stream, no session.focus — everything from the JSON GETs.
   //
-  // App.svelte keys <Table> by `${table}/${match}` (FL-38), so a route change
+  // App.svelte keys <Table> by `${table}/${match}`, so a route change
   // always remounts a fresh instance — these one-shot reads of table/match
   // are intentional, not a stale-binding bug.
   let { table, match = null }: { table: string; match?: number | null } = $props();
   // svelte-ignore state_referenced_locally
   const finished = match !== null;
 
-  // The seat identity is read once from the join URL (?seat=N&token=…,
-  // M2e-3's FL-99). With no seat, every line below is the spectator path
-  // it always was (R-E4-4).
+  // The seat identity is read once from the join URL (?seat=N&token=…).
+  // With no seat, every line below is the spectator path.
   const seatCtx = getSeat();
   const seated = seatCtx !== null;
   // The replay transport's playback settings (ReplayTransport binds them),
@@ -352,7 +351,7 @@
   // A direct card action can hand the server a first-stage choice and receive
   // a second decision for the same object (Underground Sea's activate -> Add
   // U / Add B flow; a multi-ability mana source's stage-1 ability pick -> its
-  // stage-2 colour wheel, fb-e079def5; a Treasure's activate -> its colour
+  // stage-2 colour wheel; a Treasure's activate -> its colour
   // ask, fb-20260923T050205Z). The expectation is ARMED by SeatPanelState
   // itself, on the accepted hand post -- this route no longer owns that
   // write, because the tile path (boardOptions.post) and the seat panel's own
@@ -370,7 +369,7 @@
   // the decision and the mirror: an arm that lands AFTER SSE already
   // delivered the follow-up still retriggers it (a fresh object each arm),
   // and no reactive edge reaches the panel's derived UI graph (the null-ctx
-  // hang, agent-20260924T114750Z-ba517e3b).
+  // hang).
   let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
   let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
   $effect(() => {
@@ -443,7 +442,7 @@
     };
   });
 
-  // Task 3's colour-coded log: the same name/colour resolution SeatTable's
+  // The colour-coded log: the same name/colour resolution SeatTable's
   // rows use (seats[seat].name falling back to the wire's own player name),
   // off whichever view is currently on screen. Guarded for the pre-snapshot
   // instant when m.view is still null — the template only mounts Transcript
@@ -660,8 +659,8 @@
         <div class="rail-main">
         <!-- The concede control (when a concede option is pending) is passed
              to Rail as a logbar snippet: it renders inside the rail's own
-             LOGS row, in normal flex flow at the row's right edge. fb-53bd45b9:
-             it used to be absolutely positioned at top: 3rem inside the rail,
+             LOGS row, in normal flex flow at the row's right edge.
+             It used to be absolutely positioned at top: 3rem inside the rail,
              a hand-calibrated offset that cleared the logbar but landed on
              seat row 0 (the stacked zone counts made each row taller), and
              its z-index: 9 painted over the row's life and pile counts —
@@ -899,7 +898,7 @@
   }
   /* Concede lives INSIDE the logbar row (passed to Rail as a snippet), at
      the row's right edge in normal flex flow — the row is its anchor, so it
-     cannot paint over the seat table below the row (fb-53bd45b9: the old
+     cannot paint over the seat table below the row (the old
      top: 3rem absolute anchor landed on seat row 0 and its z-index ate the
      row's pile-button clicks), and it cannot read as unanchored. The
      .logbar__extra wrapper in Rail pushes this to the right; nothing here

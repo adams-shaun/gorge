@@ -4,10 +4,10 @@ import "testing"
 
 // TestRecordedFindingsMirrorKernel (TestRecordedFindingsMirrorKernelChunkNN,
 // sharded per findings_chunks_test.go) replays recorded paymirror finding
-// games (testdata/findings_recorded_kernel.jsonl: repo deck names or random card-name lists,
-// no script text) end to end on the resolution kernel: no cast is a
-// mismatch, the live-vs-clone control is equivalent, and each named cast
-// gets its root-caused verdict:
+// games (testdata/findings_recorded_kernel.jsonl: repo deck names or random
+// card-name lists, no script text) end to end on the resolution kernel: no
+// cast is a mismatch, the live-vs-clone control is equivalent, and each named
+// cast gets its root-caused verdict:
 //
 //   - 10860 seq 4745: Worldly Tutor (the Command Tower production fix),
 //     equivalent. The seq moves whenever a rule change shifts this game's log or

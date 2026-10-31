@@ -7,7 +7,7 @@ import type { PlayerView } from '../protocol';
 import Transcript from './Transcript.svelte';
 
 /**
- * Transcript render test (ui9 fix round 1, finding F5). The repo's component
+ * Transcript render test. The repo's component
  * tests SSR via svelte/server (no DOM); the interaction under test here is the
  * render-time contract: the logrender pieces become readable text. SSR cannot
  * click the toggle, so the step-line test asserts the default (hidden); the

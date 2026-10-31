@@ -57,7 +57,7 @@ mount(CardTile, {
   },
 });
 
-// fb-e079def5: the two-stage mana continuation, the reported Talisman of
+// The two-stage mana continuation, the reported Talisman of
 // Indulgence flow. Stage 1 is the ability wheel the player answers THROUGH
 // the picker (postTileOption arms the follow-up expectation); the post
 // callback plays Table.svelte's other half — decode the follow-up decision

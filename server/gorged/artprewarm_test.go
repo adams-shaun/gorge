@@ -139,7 +139,7 @@ func TestArtCacheDirDefaultsUnderDir(t *testing.T) {
 }
 
 // TestPrewarmSurvivesACancelledFetch checks the self-heal claim THROUGH the
-// prewarm loop itself (a round-2 review finding): prewarmArt run against a
+// prewarm loop itself: prewarmArt run against a
 // dead context — a server shutting down mid-prewarm — logs every fetch's
 // error, wedges on nothing, and writes no .miss behind (only a genuine
 // Scryfall 404 does); the SAME name is then fetched for real by a retried

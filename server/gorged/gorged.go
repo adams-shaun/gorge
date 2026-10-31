@@ -109,7 +109,7 @@ type config struct {
 	// spec Q4 recommends startup tables keep policy `bot` and -bot-policy
 	// drive only on-demand games; the code (and
 	// TestServeFlagBotPolicyReachesStartupAndOnDemandTables) has long had a
-	// single flag for both. This ticket does not change that.
+	// single flag for both.
 	botPolicy string
 	// botPoliciesRaw is the -bot-policies flag: the comma-separated OFFERED
 	// set -- what GET /api/bot-policies lists and what POST /api/games
@@ -735,7 +735,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 			// a frozen snapshot and never advances. A player who joined
 			// through the lobby therefore ended up watching history while
 			// the real game waited for them. The join URL goes straight
-			// to the seat. Humans are on t1 alone (FL-97), so the table
+			// to the seat. Humans are on t1 alone, so the table
 			// is not a guess.
 			fmt.Fprintf(os.Stderr, "gorged: table t1 seat %d joins at http://%s/t/t1?seat=%d&token=%s\n",
 				s, joinHost(ln.Addr()), s, gate.token("t1", seat))
@@ -998,7 +998,7 @@ func (c config) capabilityEngine() string {
 	return c.engine
 }
 
-// hostOptions builds the Registry options for a config, threading the FL-40
+// hostOptions builds the Registry options for a config, threading the
 // token corpus (reg.Tokens) into host.Options.Tokens so every live match and
 // its replay mints the same tokens. Split from serve so TestHostThreads
 // CorpusTokens can assert the thread works without driving the whole server.

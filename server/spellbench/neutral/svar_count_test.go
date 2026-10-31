@@ -13,7 +13,7 @@ func svarRecord(id, name, seat, zone string) protocol.ObjectRecord {
 	}}
 }
 
-// TestSVarCountScopeIsUnknownNotBothPlayers pins the MAJOR review finding:
+// TestSVarCountScopeIsUnknownNotBothPlayers:
 // a scoped Count$Valid body must not be counted over every player's zones.
 // The observation here would make the naive all-players scan answer 4 for
 // Creature.YouCtrl and 3 for Creature.YouOwn (the opponent's zones change the

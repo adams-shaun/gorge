@@ -13,8 +13,9 @@ import (
 )
 
 // TestTriggerAndExploreFindings replays the cardfuzz records
-// (testdata/findings_trigger_explore.jsonl: card-name deck lists, no script text; the recorded
-// diag is replaced by a one-line summary) and pins each root cause:
+// (testdata/findings_trigger_explore.jsonl: card-name deck lists, no script
+// text; the recorded diag is replaced by a one-line summary) and pins each
+// root cause:
 //
 //   - mirror 6858100184279525408 (Tunnel Vision) and 9099806368093434011
 //     (Springleaf Drum): float_then_cast state_differs on

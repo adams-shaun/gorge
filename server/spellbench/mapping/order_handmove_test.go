@@ -1,6 +1,6 @@
 package mapping_test
 
-// Live chain test for the Task 18/19a linkage: a real CawGates game is
+// Live chain test for the order and hand-move linkage: a real CawGates game is
 // driven to Brainstorm's put-two-back ask, Begin must route it through the
 // builders map to the order handler (never ErrUnmapped), the order pose must
 // offer the selected hand cards as order_picks, and the picked order must

@@ -9,8 +9,8 @@
    *
    * It deliberately does NOT wear the danger colour ConcedeControl wears:
    * restart creates a new game, it destroys nothing. It renders inside the
-   * rail's logbar row next to the concede control, in normal flex flow (the
-   * fb-53bd45b9 ruling: no absolutely-positioned controls in this row), and
+   * rail's logbar row next to the concede control, in normal flex flow
+   * (no absolutely-positioned controls in this row), and
    * owning the markup here is what lets a geometry fixture render the REAL
    * control through Rail's `logbar` snippet seam.
    */

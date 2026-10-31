@@ -8,7 +8,7 @@
    * Geometry-fixture host for the whole rail (SeatTable.geometry.ts mounts it
    * into #rail). It exists only so the fixture can render Rail with the SAME
    * logbar snippet the live route uses — a ConcedeControl passed as Rail's
-   * `logbar` snippet, exactly as Table.svelte passes it (task fb-53bd45b9) —
+   * `logbar` snippet, exactly as Table.svelte passes it —
    * so the harness measures the real rendered control, not a probe button
    * pasted into the row. No production caller; not used by any route.
    */

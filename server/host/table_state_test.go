@@ -85,7 +85,7 @@ func TestSeriesTableEmitsBetweenGamesThenLive(t *testing.T) {
 		}
 		return SeriesGame{}, false, nil
 	}
-	// Drain on the match goroutine after each decision's burst (Ruling FL-31),
+	// Drain on the match goroutine after each decision's burst,
 	// so the subscriber channel never overflows and frame order is preserved.
 	o.Sleep = func(time.Duration, <-chan struct{}) {
 		mu.Lock()

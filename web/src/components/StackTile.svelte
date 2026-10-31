@@ -23,7 +23,7 @@
    * is clamped to two lines rather than running to a paragraph, so several
    * entries fit in the stack's now-larger, but still finite, flex share.
    *
-   * ART FALLBACK (Task 2a): `stack.card` is nil for a trigger or activated
+   * ART FALLBACK: `stack.card` is nil for a trigger or activated
    * ability today (an ability object has no card face — view/view.go), a gap
    * another task is closing on the Go side by falling back to the source
    * permanent's own card view. This component's job is only to use it
@@ -32,7 +32,7 @@
    * fix — a stack entry with no card face simply keeps rendering as it does
    * today, text only, no broken image, no placeholder box.
    *
-   * HOVER (Task 2b): a stack card could not be inspected the way a
+   * HOVER: a stack card could not be inspected the way a
    * battlefield card can — no hover at all was wired. Wired here to the same
    * HoverCard dwell/focus/CardDetail mechanism CardTile and the hand fans use.
    * `hover.supervise` is the lifecycle half of that contract (carddetail.

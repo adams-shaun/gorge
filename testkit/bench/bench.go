@@ -714,7 +714,7 @@ func searchFeed(feeds []*searchseat.Feed, seats []seat.Seat, p state.PlayerID) *
 	return feeds[p]
 }
 
-// outcomeFrom reads a finished game's result. Ruling P14: Draw must be read
+// outcomeFrom reads a finished game's result. Draw must be read
 // before Winner -- Winner's zero value is seat 0, a real seat, so reading it
 // unconditionally would misreport a drawn game as its first seat's policy
 // winning.

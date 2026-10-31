@@ -11,7 +11,7 @@ package heuristic
 // the redacted event stream carries the owner's private card names, and the
 // manifest stays static while the library it describes moves underneath it.
 //
-// The fixture is authored inline (Ruling P9): Forge scripts are GPL and must
+// The fixture is authored inline: Forge scripts are GPL and must
 // never be committed, so a synthetic card is parsed from bytes here exactly
 // as engine/deck/manifest_test.go does.
 

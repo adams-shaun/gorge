@@ -37,7 +37,7 @@ var matchSlots = newMatchLimiter(matchSlotCount())
 
 // matchSlotCount is 8, or 4 under -race (raceEnabled, fixture_race_test.go):
 // the race detector multiplies each match's memory several times over, and
-// the only -race run is the pre-push gate on main (FL-56), where not paging
+// the only -race run is the pre-push gate on main, where not paging
 // matters more than wall time.
 func matchSlotCount() int {
 	if raceEnabled {

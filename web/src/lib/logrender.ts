@@ -24,7 +24,7 @@
  * `{…}`. That is the structure this module reads. It does NOT guess a card out
  * of a free-word sentence.
  *
- * HOW A CARD NAME IS FOUND (B2, fix round 1). The first round matched card
+ * HOW A CARD NAME IS FOUND. A first version matched card
  * names with a word-shape regex (`[A-Z][\w'-]*(?: … )*`) and it was wrong in
  * three measured ways: a `,` in the `Name, Title` legendary format split the
  * name so only the tail matched ("Jace, the Mind Sculptor" → "Mind Sculptor");
@@ -100,7 +100,7 @@ export type LogPiece =
  * a set of view cards by object id. It is a function `id -> CSS colour`
  * (null for an id not in the view, never a made-up colour), and it
  * additionally carries the exact card-name keys it was built over so
- * parseLogLine can do a longest exact match against them (B2, fix round 1)
+ * parseLogLine can do a longest exact match against them
  * rather than guess at word shape.
  */
 export interface CardOwnerColour {

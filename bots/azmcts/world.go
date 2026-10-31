@@ -24,7 +24,7 @@ type World struct {
 
 // WorldSource hands each simulation a fresh world (spec §1). Nothing else in
 // the search touches hidden information. An error wrapping ErrNoWorld means
-// no world could be produced (ticket 5's sampler starving with no redeal).
+// no world could be produced (the sampler starving with no redeal).
 // The clairvoyant source (a clone of the REAL engine) lives in
 // bots/azmcts/clairvoyant and reaches the seat only through
 // SeatConfig.Source; this package keeps only the honest RedealSource.

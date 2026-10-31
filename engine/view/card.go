@@ -407,7 +407,7 @@ func (s *seatSet) has(p state.PlayerID) bool { return s[p>>6]&(1<<(p&63)) != 0 }
 // is replaced by one exactly n long when it had no storage (a fresh
 // projection allocates what Project always has), or by one with doubled
 // capacity whose slots carry buf's old ones. Never nil, even for n == 0, so a
-// refilled list marshals "[]" the way a fresh one does (Ruling T23-u).
+// refilled list marshals "[]" the way a fresh one does.
 func refill[T any](buf []T, n int) []T {
 	if cap(buf) >= n && buf != nil {
 		return buf[:0]
@@ -424,7 +424,7 @@ func refill[T any](buf []T, n int) []T {
 // cardViews maps a zone's object ids to CardViews, in zone order, into buf's
 // storage (refill). An id whose object no longer exists (a dangling entry, or
 // a defensively tampered list) is skipped rather than producing a zero
-// CardView or panicking (supplement §7). Always non-nil (Ruling T23-u), even
+// CardView or panicking. Always non-nil, even
 // for an empty or all-dangling ids: this is what lets the viewer's own
 // genuinely empty Hand marshal "[]" rather than the same "null" a hidden hand
 // would.
@@ -434,7 +434,7 @@ func refill[T any](buf []T, n int) []T {
 // here rather than re-spelled inline so it cannot drift from any other call
 // site -- and an ability object (Card == nil, so Face() == nil too) never
 // legitimately sits in a card zone at all. Both are parked in exile by the
-// engine and are skipped here (Task 4).
+// engine and are skipped here.
 func (p *projector) cardViews(buf []CardView, ids []state.ObjID, includeAbilityCosts bool, abilityPlayer state.PlayerID, revealFaceDown bool, alsoVisible *seatSet) []CardView {
 	out := refill(buf, len(ids))
 	for _, id := range ids {
@@ -566,7 +566,7 @@ func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
 //
 // Either way CR 723.4 widens it to a seat controlling that looker (the
 // alsoVisible set or a live control, controlsSeat). Forge's
-// CardView.canBeShownTo is the same rule (cr-g64).
+// CardView.canBeShownTo is the same rule.
 func (p *projector) mayLookFaceDown(o *state.Object, alsoVisible *seatSet) bool {
 	if o.Zone != state.ZExile {
 		return p.seesFor(o.Controller, alsoVisible)
@@ -654,7 +654,7 @@ func printedNonManaAbilityCosts(f *cards.Face) []string {
 // cardView writes one object's public face into cv. ch is read through
 // Power/Toughness/Keywords rather than any printed field directly — the view
 // asks the engine for derived characteristics, never the card's own text —
-// and a nil ch (supplement §7) degrades to the zero P/T with no keywords.
+// and a nil ch degrades to the zero P/T with no keywords.
 //
 // Every field of cv is rewritten. The storage cv already holds -- its
 // Produces and AttackingPlayer structs, its BlockedBy and Keywords arrays,
@@ -788,7 +788,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		cv.Toughness = p.ch.Toughness(id)
 		// A copy: Chars is an interface, and nothing guarantees an
 		// implementation hands back a slice nobody else holds a reference
-		// to (supplement §10's no-aliasing rule).
+		// to (no aliasing).
 		if kw := p.ch.Keywords(id); len(kw) > 0 {
 			cv.Keywords = append(kws, kw...)
 		}
