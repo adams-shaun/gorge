@@ -145,7 +145,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.48a | not-impl | - | - |  |
 | 701.49a-d | follows | `engine/effects/venture.go#effVenture` `engine/effects/venture.go#ventureAdvance` | `TestFirstVentureOffersTheThreeDungeons` |  |
 | 701.50a,d,f | follows | `engine/effects/connive.go#effConnive` `engine/effects/connive.go#conniveOnce` | `TestConnivesTriggerFiresForIronMonger` |  |
-| 701.50b | deviates | `engine/effects/connive.go#conniveOnce` | - | departed conniver: no draw/discard (no LKI) |
+| 701.50b | follows | `engine/effects/connive.go#conniveOnce` `engine/effects/connive.go#lastKnownController` | `TestDepartedConniverStillDrawsAndDiscards` |  |
 | 701.50c | partial | `engine/effects/connive.go#effConnive` | - | Defined order, not APNAP |
 | 701.50e | deviates | `engine/effects/connive.go#conniveOnce` | - | connive 0 still fires Connives triggers |
 | 701.51a-c | not-impl | `engine/effects/registry.go#Supported` | - | OpenAttraction unregistered |

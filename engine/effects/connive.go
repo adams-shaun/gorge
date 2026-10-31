@@ -111,20 +111,16 @@ func effConnive(h Host, c *Ctx, sa *cards.SA) {
 
 // conniveOnce runs one connive process for conniver and reports whether the
 // host suspended the resolution on a draw (the caller must stop its walk
-// immediately). A conniver that has left the battlefield connives nothing.
-// The draws all happen first; the discard ask (when the hand is larger than
-// N) is answered in place.
+// immediately). A conniver that has left the battlefield still connives, by its
+// last known controller (CR 701.50b). The draws all happen first; the discard
+// ask (when the hand is larger than N) is answered in place.
 //
 // targetIdx and done describe the draw position: targetIdx is the
 // conniver's index in the deterministic Defined$ list (the base of its
 // global draw cursors), done how many of its N draws already completed.
 func conniveOnce(h Host, c *Ctx, sa *cards.SA, conniver state.ObjID, targetIdx, n, done int32) bool {
 	g := h.Game()
-	o := g.Obj(conniver)
-	if o == nil || o.Zone != state.ZBattlefield {
-		return false
-	}
-	ctrl := o.Controller
+	ctrl := lastKnownController(g, c, conniver)
 	if h.ActionReplaced(events.Event{Kind: events.Connive, Obj: conniver,
 		Player: ctrl, Amount: -1}) {
 		return false
@@ -185,28 +181,23 @@ func conniveOnce(h Host, c *Ctx, sa *cards.SA, conniver state.ObjID, targetIdx, 
 		if ans, ok := AskTape(h, d); ok {
 			// Answered in place: the discard, counters and record, then the
 			// walk goes on to the next conniver.
-			applyConniveDiscard(h, conniver, counterAnswerObjs(ans))
+			applyConniveDiscard(h, conniver, ctrl, counterAnswerObjs(ans))
 			return false
 		}
-		applyConniveDiscard(h, conniver, hand[:n2])
+		applyConniveDiscard(h, conniver, ctrl, hand[:n2])
 		return false
 	}
 	// The whole hand is exactly the discard set: no choice to be made.
-	applyConniveDiscard(h, conniver, hand)
+	applyConniveDiscard(h, conniver, ctrl, hand)
 	return false
 }
 
 // applyConniveDiscard applies one connive's discard outcome: each picked
 // card still in the conniver's controller's hand is discarded in pick order,
-// then one +1/+1 counter per NONLAND discard (CR 702.59a), then the one
-// events.Connive record both shapes share.
-func applyConniveDiscard(h Host, conniver state.ObjID, picks []state.ObjID) {
+// then one +1/+1 counter per NONLAND discard if the conniver is still there,
+// then the one events.Connive record both shapes share.
+func applyConniveDiscard(h Host, conniver state.ObjID, ctrl state.PlayerID, picks []state.ObjID) {
 	g := h.Game()
-	o := g.Obj(conniver)
-	if o == nil {
-		return
-	}
-	ctrl := o.Controller
 	discarded := make([]state.ObjID, 0, len(picks))
 	nonland := int32(0)
 	for _, id := range picks {
@@ -220,7 +211,7 @@ func applyConniveDiscard(h Host, conniver state.ObjID, picks []state.ObjID) {
 			nonland++
 		}
 	}
-	if nonland > 0 {
+	if o := g.Obj(conniver); nonland > 0 && o != nil && o.Zone == state.ZBattlefield {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: conniver, Counter: "P1P1", Amount: nonland})
 	}
 	emitConniveRecord(h, conniver, ctrl, discarded, nonland)
@@ -231,4 +222,23 @@ func applyConniveDiscard(h Host, conniver state.ObjID, picks []state.ObjID) {
 func emitConniveRecord(h Host, conniver state.ObjID, ctrl state.PlayerID, discarded []state.ObjID, nonland int32) {
 	h.Emit(events.Event{Kind: events.Connive, Obj: conniver, Player: ctrl,
 		IDs: discarded, Amount: nonland})
+}
+
+// lastKnownController answers who controls a permanent an effect instructs to
+// act: its controller while it is on the battlefield, else who last controlled
+// it. A departed permanent's live Controller has reset to its owner.
+func lastKnownController(g *state.Game, c *Ctx, id state.ObjID) state.PlayerID {
+	if o := g.Obj(id); o != nil && o.Zone == state.ZBattlefield {
+		return o.Controller
+	}
+	if p, ok := c.Snap.TargetController[id]; ok {
+		return p
+	}
+	if c.LKI != nil && c.LKI.ID == id {
+		return c.LKI.Controller
+	}
+	if id == c.Source && c.Snap.SourceControllerValid {
+		return c.Snap.SourceController
+	}
+	return c.Controller
 }
