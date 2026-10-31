@@ -37,10 +37,12 @@ stack[].decider	293
 stack[].optional	293
 players[].hand[].keywords[]	201
 stack[].card.exiled_cards[]	108
-players[].battlefield[].attacking_player	80
+players[].battlefield[].attacking_player	80	rare
 pending[]	77
 stack[].modes[]	59
 players[].graveyard[].types	55
-players[].hand[].exiled_cards[]	31
-stack[].kicks	28
-stack[].card.keywords[]	20
+players[].hand[].exiled_cards[]	31	rare
+stack[].kicks	28	rare
+stack[].card.keywords[]	20	rare
+players[].battlefield[].counters.Deathtouched	0	rare
+players[].exile[].types	0	rare

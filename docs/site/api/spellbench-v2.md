@@ -917,9 +917,9 @@ A client that renders from the observation, and not from `x_gorge_view_v1`, has 
 
 A face-down card's printed identity is redacted on both planes. `TestObservationDegradationCensus`
 ([`server/spellbench/neutral`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/neutral/observation_degradation_test.go))
-measures the difference field by field over 100 seeded games and holds the result to
-[`observation_degradation.tsv`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/neutral/testdata/observation_degradation.tsv),
-which may only shrink.
+measures the difference field by field over 100 seeded games and holds the set of fields that differ to
+[`observation_degradation.tsv`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/neutral/testdata/observation_degradation.tsv):
+a field outside that set fails, and its counts are information only.
 
 ## Failure modes
 
