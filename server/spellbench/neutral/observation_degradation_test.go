@@ -147,6 +147,7 @@ func renderObservationDegradation(counts map[string]int) string {
 // view rebuilt from the plain v2 observation with the native view carried in
 // x_gorge_view_v1, and ratchets the differing paths by frequency.
 func TestObservationDegradationCensus(t *testing.T) {
+	t.Parallel()
 	reg := testcorpus.Registry(t)
 	names := testutil.LegacyDeckNames()
 	counts := map[string]int{}

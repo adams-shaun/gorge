@@ -62,6 +62,7 @@ func firstPermanent(o *protocol.Observation) (string, *protocol.Permanent, bool)
 // leaks a stale card. It also mutates one record between two decisions and
 // requires that card to be rebuilt rather than reused.
 func TestBuilderViewIncrementalEqualsFresh(t *testing.T) {
+	t.Parallel()
 	reg := testcorpus.Registry(t)
 	streams := v2Corpus(t, reg, 2)
 	decisions := 0

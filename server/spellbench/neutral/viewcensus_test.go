@@ -153,6 +153,7 @@ func seedCensusState(t *testing.T, g *gamecfg.Game) {
 // ratchet: testdata/viewcensus.txt lists exactly the fields that still differ,
 // and may only shrink. NEUTRAL_VIEWCENSUS_REGEN=1 rewrites the baseline.
 func TestNeutralViewCensus(t *testing.T) {
+	t.Parallel()
 	reg := testcorpus.Registry(t)
 	counts := map[string]int{}
 	checked := 0

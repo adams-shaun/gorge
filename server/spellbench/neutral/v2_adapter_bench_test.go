@@ -233,6 +233,7 @@ func sameCopy(x, y map[string]any) bool {
 }
 
 func TestV2AdapterAgreesWithNative(t *testing.T) {
+	t.Parallel()
 	reg := testcorpus.Registry(t)
 	streams := v2Corpus(t, reg, 1)
 	compared, multi, replayed := 0, 0, 0
