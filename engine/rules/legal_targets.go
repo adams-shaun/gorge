@@ -55,6 +55,11 @@ func targetSAAvailableGift(e *Engine, p state.PlayerID, id, excludeSelf state.Ob
 	if sa == nil || !effects.TargetsOf(sa).Targeted() {
 		return true
 	}
+	// An unannounced X bound cannot be read yet, but no X makes a target of an
+	// object the rest of the description rules out (CR 601.2c, 602.2b).
+	if anyX := effects.TargetsOf(sa).AnyX; xPending && anyX != nil {
+		sa = anyX
+	}
 	min, dynamic := targetOfferMin(e, p, id, sa, x, xPending, gift)
 	// The census is a pure read; the two answers that never look at the
 	// population return before walking it.
