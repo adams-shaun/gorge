@@ -2,7 +2,7 @@
 """Generate the inline-SVG figures for docs/site/bots/magezero-replication.md.
 
 The numbers are inline (they are the measured results the page reports); the
-UWTempo training curve also reads an optional TSV of dirty-dirac generations
+UWTempo training curve also reads an optional TSV of dirac generations
 (columns: arm gen opp games wins wr ci_lo ci_hi). Output: one .svg per figure
 under docs/site/bots/magezero/, included by the page through snippets. The
 SVGs carry class names only, so docs/site/stylesheets/diagrams.css (.mzc)
@@ -90,10 +90,10 @@ def fig_faeries():
     ]
     W, top, rh = 760, 64, 38
     H = top + rh * len(rows) + 40
-    s = SVG(W, H, "Faeries gen0 win rate per opponent: XMage published and rerun band against dirty-dirac before and after matching the search")
+    s = SVG(W, H, "Faeries gen0 win rate per opponent: XMage published and rerun band against dirac before and after matching the search")
     s.text(16, 20, "Faeries gen0 win rate (no network), per opponent", "mz-title")
-    legend(s, 16, 44, [("", "XMage: published ↔ jar rerun", "band"), ("s2", "dirty-dirac, default search", "dot"),
-                       ("s1", "dirty-dirac, search matched to MCTS2", "dot")])
+    legend(s, 16, 44, [("", "XMage: published ↔ jar rerun", "band"), ("s2", "dirac, default search", "dot"),
+                       ("s1", "dirac, search matched to MCTS2", "dot")])
     x0, x1 = 110, W - 24
     X = xaxis(s, x0, x1, top - 6, top + rh * len(rows), 0.30, 0.75, 0.05)
     s.add(f'<line class="mz-ref" x1="{X(0.5):.1f}" y1="{top - 6}" x2="{X(0.5):.1f}" y2="{top + rh * len(rows)}"/>')
@@ -107,8 +107,8 @@ def fig_faeries():
             lo, hi = ci(p, n)
             off = -5 if cls == "s2" else 5
             s.add(f'<line class="{cls} ci" x1="{X(lo):.1f}" y1="{y + off:.1f}" x2="{X(hi):.1f}" y2="{y + off:.1f}"/>')
-            s.dot(X(p), y + off, cls, f"Faeries vs {opp}, dirty-dirac {lab}: {p:.3f} [{lo:.3f}, {hi:.3f}], {n} games")
-    s.text(X(0.5), H - 4, "Faeries win rate (95% CI on dirty-dirac points)", "mz-muted", "middle")
+            s.dot(X(p), y + off, cls, f"Faeries vs {opp}, dirac {lab}: {p:.3f} [{lo:.3f}, {hi:.3f}], {n} games")
+    s.text(X(0.5), H - 4, "Faeries win rate (95% CI on dirac points)", "mz-muted", "middle")
     return s.done()
 
 
@@ -139,10 +139,10 @@ def fig_decisions():
     cats = [("priority", "s1"), ("combat picks", "s2"), ("other targets", "s3"), ("yes/no asks", "seg4"),
             ("choose / modes", "seg5")]
     rows = [("MageZero ver4", [45.4, 24.76, 9.04, 2.48, 0.0]), ("XMage jar rerun", [50.3, 24.48, 9.62, 2.40, 0.0]),
-            ("dirty-dirac", [35.2, 9.66, 2.94, 1.0, 3.56])]
+            ("dirac", [35.2, 9.66, 2.94, 1.0, 3.56])]
     W, top, rh = 760, 70, 40
     H = top + rh * len(rows) + 40
-    s = SVG(W, H, "Recorded decisions per seat-game by kind: XMage 82-87, dirty-dirac 52")
+    s = SVG(W, H, "Recorded decisions per seat-game by kind: XMage 82-87, dirac 52")
     s.text(16, 20, "Recorded decisions per seat-game, by kind (Faeries pool, gen0)", "mz-title")
     lx = 16
     for lab, cls in cats:
@@ -199,8 +199,8 @@ def fig_curve(curve):
     s = SVG(W, H, "UWTempo average win rate vs the five MTGA mono decks by training generation")
     s.text(16, 20, "UWTempo vs the five MTGA monos: average win rate per generation", "mz-title")
     items = [("", "MageZero per opponent", "faint"), ("s1", "MageZero average", "line")]
-    labels = {"L": "dirty-dirac, calibrated opponents", "L2": "same, second seed",
-              "K": "dirty-dirac, heuristic opponents"}
+    labels = {"L": "dirac, calibrated opponents", "L2": "same, second seed",
+              "K": "dirac, heuristic opponents"}
     cls_of = {"L": "s2", "L2": "s2", "K": "s3"}
     for arm in ("L", "L2", "K"):
         if arm in curve:
@@ -245,7 +245,7 @@ def fig_curve(curve):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--curve", help="dirty-dirac generations TSV (arm gen opp games wins ...)")
+    ap.add_argument("--curve", help="dirac generations TSV (arm gen opp games wins ...)")
     a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
     figs = {"faeries-gen0.svg": fig_faeries(), "gen1-rerun.svg": fig_gen1(), "decisions.svg": fig_decisions(),

@@ -104,12 +104,12 @@ nav:
           - Views and hidden information: architecture/gorge/views.md
           - The server tier: architecture/gorge/server.md
       - dirac:
-          - architecture/dirty-dirac/index.md
-          - State: architecture/dirty-dirac/state.md
-          - Step and Apply: architecture/dirty-dirac/step-apply.md
-          - Cards: architecture/dirty-dirac/cards.md
-          - Verification: architecture/dirty-dirac/oracle.md
-          - Search: architecture/dirty-dirac/search.md
+          - architecture/dirac/index.md
+          - State: architecture/dirac/state.md
+          - Step and Apply: architecture/dirac/step-apply.md
+          - Cards: architecture/dirac/cards.md
+          - Verification: architecture/dirac/oracle.md
+          - Search: architecture/dirac/search.md
       - Draft events: architecture/draft.md
       - Invariants: architecture/invariants.md
       - Wires: architecture/wires.md

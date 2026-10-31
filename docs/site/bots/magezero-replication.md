@@ -5,7 +5,7 @@ agent built on an XMage fork. It encodes every decision as a typed graph and
 trains a graph network ("NetGraph") on MCTS self-play. In October 2026 we
 replicated its published results and then ran the same experiments on
 dirac, the search kernel described under
-[Architecture](../architecture/dirty-dirac/index.md). The goal was to decide
+[Architecture](../architecture/dirac/index.md). The goal was to decide
 whether MageZero's encoding or network should replace ours.
 
 !!! abstract "Verdict"

@@ -33,7 +33,7 @@ deterministic, hash-chained event log that replays byte for byte.
 
 A second, much faster two-player engine, dirac, is checked against gorge decision
 by decision. Its source isn't in this repository yet;
-[its pages](https://adams-shaun.github.io/gorge/architecture/dirty-dirac/) describe its design.
+[its pages](https://adams-shaun.github.io/gorge/architecture/dirac/) describe its design.
 
 ## Quickstart
 

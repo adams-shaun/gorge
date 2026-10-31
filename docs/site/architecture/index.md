@@ -88,10 +88,10 @@ text, variable-length zones, continuous effects that come and go. That shape mak
 for everything and slower to copy and step. An engine that keeps every card's behaviour in a
 read-only generated table can lay the whole game out as a fixed-size value and step it cheaply,
 which is what large-scale self-play and tree search want. Keeping gorge as the oracle means the
-fast engine never becomes a second source of rules truth. See [dirac](dirty-dirac/index.md) for
-its [fixed-size State](dirty-dirac/state.md), its [Step/Apply loop](dirty-dirac/step-apply.md),
-how [cards are compiled](dirty-dirac/cards.md) for it and the
-[lockstep oracle](dirty-dirac/oracle.md).
+fast engine never becomes a second source of rules truth. See [dirac](dirac/index.md) for
+its [fixed-size State](dirac/state.md), its [Step/Apply loop](dirac/step-apply.md),
+how [cards are compiled](dirac/cards.md) for it and the
+[lockstep oracle](dirac/oracle.md).
 
 ## The engine seam
 

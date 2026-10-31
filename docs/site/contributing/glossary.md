@@ -168,7 +168,7 @@ the published coverage are built from ([Branch flow](../repos/index.md#branch-fl
 fixed-size value (no pointers, maps or slices, so a copy is a clone) driven as a `Step`/`Apply`
 state machine, and its cards are tables of *kop* instructions, mostly generated ahead of time from
 gorge's compiled cards. Play is checked against gorge by a *lockstep oracle*. Its source isn't in this
-repository yet. See [dirac](../architecture/dirty-dirac/index.md).
+repository yet. See [dirac](../architecture/dirac/index.md).
 
 **kop.** dirac's card-effect vocabulary: a closed, append-only set of
 ops, and the tables (`kop.Table`, one entry per card) its interpreter runs.
@@ -186,7 +186,7 @@ lockstep run are reduced to before comparison: per object its card, zone,
 position, flags, counters and derived power/toughness, then life, the stack,
 turn, step and mana. Two engines agree at a decision when their projections
 are equal (`==` on fixed arrays) and they offer the same canonical options.
-See [Verification](../architecture/dirty-dirac/oracle.md).
+See [Verification](../architecture/dirac/oracle.md).
 
 **Capacity stall.** A lockstep game dirac stops on purpose because the
 position no longer fits its fixed-size state (more objects, board slots or
@@ -199,7 +199,7 @@ rather than capacity.
 dirac's kop tables, as generated Go card packages. It reads every
 parameter of a card or refuses the card. A refused card stays out of every
 deck dirac accepts. A card kgen *accepts* has lowered without a
-refusal; that is weaker than a card verified in lockstep. See [Cards](../architecture/dirty-dirac/cards.md).
+refusal; that is weaker than a card verified in lockstep. See [Cards](../architecture/dirac/cards.md).
 
 **SpellBench v2.** An external, engine-neutral benchmark protocol for Magic
 agents ([jackmaiorino/spellbench](https://github.com/jackmaiorino/spellbench)).

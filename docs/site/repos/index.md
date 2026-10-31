@@ -52,7 +52,7 @@ covers what each holds, which way the imports run, licensing, pinning, and how c
 ## gorge (this repository)
 
 The engine and everything needed to use it; [Repository layout](../contributing/repo-layout.md) has the
-tree. dirac, the [second engine](../architecture/dirty-dirac/index.md), isn't in this repository yet. gorge
+tree. dirac, the [second engine](../architecture/dirac/index.md), isn't in this repository yet. gorge
 builds, tests and runs on its own. It exposes a few **extension seams**, which are ordinary exported API:
 
 | Seam | What plugs in |

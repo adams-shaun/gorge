@@ -70,7 +70,7 @@ playable, meaning every primitive they name is implemented; [Card support](suppo
 per-set certification against XMage and Forge, rebuilt with this site.
 
 dirac is a second, much faster two-player engine, checked against gorge decision by decision. Its source isn't
-in this repository yet; [its pages](architecture/dirty-dirac/index.md) describe the design.
+in this repository yet; [its pages](architecture/dirac/index.md) describe the design.
 
 ## Where to go
 

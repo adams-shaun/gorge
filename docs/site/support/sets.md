@@ -119,7 +119,7 @@ offered at every decision and the state after every action. Each verified set
 has a fixed pool of 1,500 seeded games. A game that hits a turn, decision or
 capacity cap before it ends, with no disagreement up to that point, counts as
 *stalled*. Lockstep-verified sets are marked in the per-set table below. See
-[dirac](../architecture/dirty-dirac/index.md) for the design.
+[dirac](../architecture/dirac/index.md) for the design.
 
 dirac's per-set card list is the distinct card names in XMage's manifest
 for the set that exist in the Forge corpus. That list can differ by a few cards
