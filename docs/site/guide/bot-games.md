@@ -17,7 +17,7 @@ gorge commit and the corpus pin, so yours may differ.
 | your program on [`testkit/bench`](https://github.com/adams-shaun/gorge/blob/main/testkit/bench/bench.go) | 2 | any two policies, any decks, parallel and deterministic | yes, every game | real comparisons |
 | `gorged` startup tables | 1-8 | one policy for every bot seat, `-decks` directory | n/a | [watching](#watching-bots-play) |
 | [`draftsim`](draft.md#run-events-headless-with-draftsim) | 4 or 8 | a policy per seat, on decks they drafted | round robin or Swiss | limited events |
-| `cmd/enginebench` | | | | engine speed, not bot strength ([Engine speed](../performance/engine.md)) |
+| `cmd/enginebench` | | | | engine speed, not bot strength ([gorge's speed](../performance/engine.md)) |
 
 ## The registered policies
 
@@ -311,4 +311,4 @@ Every game is a pure function of its configuration (decks, seed) and the answers
   `systemd-run --user --scope -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 ../matchup/matchup ...`.
 - Search policies cost far more per decision than the heuristics. On a server, `-bot-search-slots` bounds how many searched decisions
   run at once.
-- [Engine speed](../performance/engine.md) measures engine throughput.
+- [gorge's speed](../performance/engine.md) measures engine throughput.

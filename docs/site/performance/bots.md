@@ -1,7 +1,7 @@
 # Bot speed
 
 What a bot costs to run, per game, per decision and per simulation, so that a host can size a table and a bot author can budget a search. For
-what each policy does, see [Bots and strategies](../bots/index.md#the-bots-gorge-ships). This page is about speed only.
+what each policy does, see [The bots gorge ships](../bots/index.md#the-bots-gorge-ships). This page is about speed only.
 
 ## The heuristic bot
 
@@ -54,7 +54,7 @@ done
 ```
 
 The search rows' JSON line reports `sims_per_cpu_s` and `ms_per_root`. dirac's rows run its game runner with a search on both seats, `-a az:sims=N -b az:sims=N`,
-one more thing that can't be run from a clone of gorge ([dirac](methodology.md#dirac)).
+which can't be run from a clone of gorge ([dirac](methodology.md#dirac)).
 
 To measure a policy inside whole games, `testkit/bench` (`PlayGame`, `RunPairs`) plays seeded games and deck-pair matrices between any `seat.Seat`
 implementations. `cmd/enginebench -row bot` measures the default bot on the committed workload decks.

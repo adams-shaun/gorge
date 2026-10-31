@@ -34,7 +34,7 @@ integration surfaces; [Writing a native Go bot](native-go.md) the
 | Learned policies | `bots/policynet`, `heuristic.NewPolicyNetBot` | Pure-Go hashed features, an MLP scorer and an optional value head, hand-derived gradients; `.gpol` checkpoints refuse to load on an encoder-hash mismatch. Kinds the net does not answer go to the default bot. |
 
 Engine speed (turns per second, clone and step costs, search rates) is on
-[Engine speed](../performance/engine.md), and bot cost on
+[gorge's speed](../performance/engine.md), and bot cost on
 [Bot speed](../performance/bots.md).
 
 ## Evaluating a policy
