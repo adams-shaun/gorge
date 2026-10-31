@@ -305,7 +305,8 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				continue
 			}
 			f := o.Face()
-			if !hasTypeWord(effectiveTypeWords(f, id, ch), "Creature") {
+			// CR 708.2: a face-down permanent is a creature whatever it prints.
+			if !o.FaceDown && !hasTypeWord(effectiveTypeWords(f, id, ch), "Creature") {
 				continue
 			}
 			var power, toughness int32

@@ -709,7 +709,8 @@ func BoardFromView(v view.View) botpolicy.Board {
 			}
 		}
 		for _, cv := range p.Battlefield {
-			if !isCreatureView(cv) {
+			// CR 708.2: a face-down permanent is a creature whatever it prints.
+			if !cv.FaceDown && !isCreatureView(cv) {
 				continue
 			}
 			var defender state.PlayerID

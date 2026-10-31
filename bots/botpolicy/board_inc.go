@@ -277,7 +277,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				continue
 			}
 			r := inc.face(id, f, k)
-			if !hasTypeWord(effectiveTypeWords(f, id, vtypes), "Creature") {
+			if !o.FaceDown && !hasTypeWord(effectiveTypeWords(f, id, vtypes), "Creature") {
 				continue
 			}
 			inc.derive(r, id, combined, vtypes)

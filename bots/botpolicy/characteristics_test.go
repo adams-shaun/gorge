@@ -76,3 +76,27 @@ func TestBoardFromGameUsesCombinedCharacteristicsOncePerObject(t *testing.T) {
 		t.Errorf("legacy characteristic calls = %d, want 0 when combined query is supported", chars.legacyCalls)
 	}
 }
+
+// CR 708.2: a manifested sorcery is a creature, so the census holds it.
+func TestFaceDownNoncreatureIsInTheCreatureCensus(t *testing.T) {
+	g := state.NewGame([]string{"alice", "bob"})
+	downID := g.AddObject(cardFace(t, "Manifested", "Sorcery", 0, 0), 1).ID
+	upID := g.AddObject(cardFace(t, "Face Up", "Sorcery", 0, 0), 1).ID
+	g.SetZone(state.ZBattlefield, 1, []state.ObjID{downID, upID})
+	g.Obj(downID).FaceDown = true
+	chars := &combinedCharacteristics{
+		values: map[state.ObjID]struct {
+			power, toughness int32
+			keyword          string
+		}{downID: {power: 2, toughness: 2}},
+		calls:   make(map[state.ObjID]int),
+		scratch: make([]string, 1),
+	}
+	got := BoardFromGame(g, chars, 0)
+	if c := got.Creatures.Ref(downID); c == nil || c.Power != 2 || c.Toughness != 2 {
+		t.Errorf("face-down sorcery in the census = %+v, want a 2/2", c)
+	}
+	if got.Creatures.Ref(upID) != nil {
+		t.Error("a face-up sorcery is in the creature census")
+	}
+}
