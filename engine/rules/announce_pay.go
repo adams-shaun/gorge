@@ -80,6 +80,9 @@ func (e *Engine) announcedAutoFillPlan(pc *pendingCast, mana Cost) *decision.Pay
 		committed = append(committed, c.ID)
 	}
 	committed = append(committed, pc.PaidCost.Taps...)
+	if pc.cost.Tap {
+		committed = append(committed, pc.card)
+	}
 	got := pay.PlanPaymentCostWithout(asPayer(e), p, cast, mana, &desc, committed, nil, nil)
 	if got.Plan == nil || len(got.Plan.Activations) == 0 {
 		return nil

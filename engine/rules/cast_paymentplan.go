@@ -375,9 +375,10 @@ func (e *Engine) manaWindowAsk() bool {
 // tap election (pc.taps -- the election records the creatures before payCast's
 // pay.EmitChoiceCosts taps them, so an elected creature must be excluded from the
 // mana window and from a later convoke announcement, or it could be activated
-// for mana and then tapped a second time).
+// for mana and then tapped a second time), or the source of an activation
+// whose own cost has {T}.
 func (e *Engine) convokeCommitted(pc *pendingCast, id state.ObjID) bool {
-	return pc.Committed(&pc.PaidCost, id)
+	return pc.Committed(&pc.PaidCost, id) || (pc.cost.Tap && id == pc.card)
 }
 
 // untappedManaSource reports whether id is an untapped permanent under
