@@ -1,0 +1,1 @@
+{"v":1,"type":"hello","protocol":"gorge-agent/1","agent":"random","model_version":"1","kinds":["pick","build","decide"],"max_batch":256,"view_omit":["library","archetype"]}

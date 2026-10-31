@@ -1,0 +1,108 @@
+{
+ "name": "a",
+ "format": "limited",
+ "archetype": "",
+ "commander": "",
+ "cards": [
+  {
+   "name": "Crackling Cyclops",
+   "count": 1
+  },
+  {
+   "name": "Infestation Sage",
+   "count": 1
+  },
+  {
+   "name": "Bake into a Pie",
+   "count": 1
+  },
+  {
+   "name": "Twinflame Tyrant",
+   "count": 1
+  },
+  {
+   "name": "Battlesong Berserker",
+   "count": 1
+  },
+  {
+   "name": "Kellan, Planar Trailblazer",
+   "count": 1
+  },
+  {
+   "name": "Strongbox Raider",
+   "count": 1
+  },
+  {
+   "name": "Banner of Kinship",
+   "count": 1
+  },
+  {
+   "name": "Drakuseth, Maw of Flames",
+   "count": 1
+  },
+  {
+   "name": "Goblin Surprise",
+   "count": 1
+  },
+  {
+   "name": "Diregraf Ghoul",
+   "count": 1
+  },
+  {
+   "name": "Axgard Cavalry",
+   "count": 1
+  },
+  {
+   "name": "Firespitter Whelp",
+   "count": 1
+  },
+  {
+   "name": "Embercleave",
+   "count": 1
+  },
+  {
+   "name": "Leyline Axe",
+   "count": 1
+  },
+  {
+   "name": "Frenzied Goblin",
+   "count": 1
+  },
+  {
+   "name": "Sanguine Syphoner",
+   "count": 1
+  },
+  {
+   "name": "Involuntary Employment",
+   "count": 1
+  },
+  {
+   "name": "Zul Ashur, Lich Lord",
+   "count": 1
+  },
+  {
+   "name": "Tragic Banshee",
+   "count": 1
+  },
+  {
+   "name": "Grim Tutor",
+   "count": 1
+  },
+  {
+   "name": "Akroma's Memorial",
+   "count": 1
+  },
+  {
+   "name": "Hungry Ghoul",
+   "count": 1
+  },
+  {
+   "name": "Swamp",
+   "count": 6
+  },
+  {
+   "name": "Mountain",
+   "count": 11
+  }
+ ]
+}

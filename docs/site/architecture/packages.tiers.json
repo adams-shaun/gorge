@@ -21,6 +21,11 @@
       "intro": "Module-private ratchets and code generators (`internal/`), plus the public test support, game runner and command-line layer that outside modules may import (`testkit/`, `cli/`). Shell and Python helpers live in `scripts/` (contributor/CI); they are not Go packages."
     },
     {
+      "id": "draft",
+      "title": "Draft events (`draft/`)",
+      "intro": "The limited pipeline (boosters, pods, deck building, pick bots, set data), the draft event runtime and its server plugin, and draftlab with its external-agent wire. Imports `engine/`, `bots/`, `server/host` and `testkit/`; nothing in those imports it, and `cmd/gorged` links it through `gorged.Extensions`."
+    },
+    {
       "id": "cmd",
       "title": "Commands (`cmd/`)",
       "intro": "Product and developer binaries. No package imports a command."
@@ -453,6 +458,74 @@
     "testkit/testutil/feedback": {
       "tier": "tooling",
       "status": "TOOL"
+    },
+    "cmd/draftsim": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
+    "cmd/extagent": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
+    "cmd/labdemo": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
+    "draft/draftlab": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/draftlab/extern": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/draftlab/extern/refagent": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/draftlab/extern/wire": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/event": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/eventhost": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/gorgedevents": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/booster": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/build": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/draft": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/pickbot": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/setdata": {
+      "tier": "draft",
+      "status": "EXT"
+    },
+    "draft/limited/setdata/internal/gen": {
+      "tier": "draft",
+      "status": "EXT"
     }
   }
 }
