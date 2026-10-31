@@ -3461,6 +3461,11 @@ func (s *Session) option(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native
 			labels = strings.Split(sa.Params["ValidTypes"], ",")
 		}
 	}
+	// gorge asks a DestinationAlternative$ with the printed destination first.
+	var modes []string
+	if str(first, "option_label") == "destination" {
+		d.Kind, kind, modes = decision.KChoose, "destination", []string{"primary", "alternate"}
+	}
 	var idx []int
 	for _, c := range sd.Candidates {
 		idx = append(idx, num(c.Semantic, "option_index"))
@@ -3473,7 +3478,11 @@ func (s *Session) option(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native
 		if k < len(labels) {
 			label = strings.TrimSpace(labels[k])
 		}
-		n.d.Options = append(n.d.Options, decision.Option{Index: len(n.d.Options), Kind: kind, Label: label})
+		o := decision.Option{Index: len(n.d.Options), Kind: kind, Label: label}
+		if k < len(modes) {
+			o.Mode = modes[k]
+		}
+		n.d.Options = append(n.d.Options, o)
 	}
 	ops := make([]mapping.NativeOp, len(sd.Candidates))
 	for i, c := range sd.Candidates {

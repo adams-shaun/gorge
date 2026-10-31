@@ -193,3 +193,20 @@ func TestEffectOptionalIsMarked(t *testing.T) {
 		t.Fatalf("decision kind %q, EffectOptional %v", p.Decision.Kind, p.Facts.EffectOptional)
 	}
 }
+
+// TestDestinationChoiceIsItsOwnAsk: the wire poses a DestinationAlternative$ as
+// a labelled option; gorge's ask names the alternate, which the bot takes.
+func TestDestinationChoiceIsItsOwnAsk(t *testing.T) {
+	s := fixtureSession(t, "Name:Fixture Bear\nTypes:Creature Bear\nPT:2/2\n")
+	src := obsRef("o-src", "Fixture Bear", "p0")
+	label := "destination"
+	opt := func(i uint32) protocol.Candidate {
+		return protocol.Candidate{Semantic: protocol.ChooseOption(&src, "effect_option", i, 2, &label)}
+	}
+	p := translated(t, s, protocol.SeatDecision{ActingSeat: "p0", Group: protocol.Group{SubstepCount: 1},
+		Context: protocol.Context{Kind: "choice"}, Observation: testObservation("p0", "precombat_main", nil, nil),
+		Candidates: []protocol.Candidate{opt(0), opt(1)}})
+	if o := p.Decision.Options[1]; p.Decision.Kind != decision.KChoose || o.Kind != "destination" || o.Mode != "alternate" {
+		t.Fatalf("decision kind %q, second option %+v", p.Decision.Kind, o)
+	}
+}
