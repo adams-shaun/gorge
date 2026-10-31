@@ -147,7 +147,7 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 // offered when it does not read decklists -- the closed-list net policies
 // (bots.Info.ClosedLists): the event deals its own drafted decks and the
 // policy plays them, guessing its opponent's list from its belief as at any
-// table. az-c3, a reserved-pool decklist reader, stays out.
+// table. A reserved-pool decklist reader stays out.
 func (c config) eventPolicies() []string {
 	policies := make([]string, 0, len(c.botPolicies))
 	for _, p := range c.botPolicies {

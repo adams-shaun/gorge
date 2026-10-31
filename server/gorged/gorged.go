@@ -34,7 +34,7 @@ import (
 
 // Command gorged runs perpetual bot tables and serves them to browsers:
 // the host library behind a net/http server with the Svelte client
-// embedded. It is the M2a deliverable; mtgserve embeds the same packages.
+// embedded.
 type config struct {
 	addr, cards, decks, dir, spectator string
 	tables, seats                      int
@@ -49,8 +49,8 @@ type config struct {
 	// ext is what the binary links in beyond the platform (Main's argument).
 	ext Extensions
 	// engine is -engine: what every table this server creates runs on, except
-	// the az-c3, az-c4 and az-c5 demo tables and draft event tables, which read
-	// gorge's engine. "" is gorge.
+	// network policies' demo tables and draft event tables, which read gorge's
+	// engine. "" is gorge.
 	engine string
 	// formatsRaw is the -format flag: a comma-separated table-format list,
 	// table i taking formats[(i-1) mod n]. "constructed" (the default) and
@@ -149,32 +149,18 @@ type config struct {
 	// A bounded refusal preserves each existing game's credentials, feedback
 	// capture and replay routes; it never evicts a game behind a live URL.
 	maxOnDemandTables int
-	// az3Net and az3Decks are -az-c3-net and -az-c3-decks (azc3.go): the az-c3
-	// bot's network and the only decks it may play. policyPools maps a bot
-	// policy to the deck ids reserved for it; serve fills it from -az-c3-decks.
-	az3Net, az3Decks string
-	az3DemoTable     bool
-	// az3Belief and az3BeliefPool are -az-c3-belief and -az-c3-belief-pool
-	// (azc3.go): the deck corpus az-c3's closed-list search draws its
-	// opponents' lists from. Empty: the open lists (the opponent's real one).
-	az3Belief, az3BeliefPool string
-	// az4 and az5 are the az-c4 and az-c5 flags (azclosed.go): each one's
-	// network, the decks it may play, and the REQUIRED deck corpus its
-	// closed-list search guesses the opponent's list from. Neither ever
-	// reads an opponent's decklist, so both are offered against humans and
-	// need no -allow-decklist-bots.
-	az4, az5 closedAZ
-	// extraAZ is one closedAZ per RegisterClosedNetBot policy, in
-	// registration order, each carrying its policy name (serveFlags).
-	extraAZ     []closedAZ
+	// nets is one entry per RegisterNetBot policy, in registration order, each
+	// holding that policy's flags (netbots.go).
+	nets []netPolicy
+	// policyPools maps a bot policy to the deck ids reserved for it; serve
+	// fills it from each policy's -<policy>-decks.
 	policyPools map[string][]string
-	// allowDecklistBots is the -allow-decklist-bots flag (azc3.go): the
-	// operator's explicit opt-in that lets the server's own BOT-ONLY tables
-	// run a policy that reads every seat's real decklist (bots.Info.Env).
-	// Its only effect today is the az-c3 demo table (azc3Table), which needs
-	// it before -az-c3-net is accepted. It never seats such a policy against
-	// a human: the host refuses Env at any table with Humans regardless of
-	// the opt-in, and the offered set (botpolicies.go) never lists one.
+	// allowDecklistBots is the -allow-decklist-bots flag: the operator's
+	// explicit opt-in that lets the server's own BOT-ONLY tables run a policy
+	// that reads every seat's real decklist (bots.Info.Env). Its only effect is
+	// a NetBot.ReadsDecklists policy's demo table. It never seats such a policy
+	// against a human: the host refuses Env at any table with Humans regardless
+	// of the opt-in, and the offered set (botpolicies.go) never lists one.
 	allowDecklistBots bool
 	// seatToken is the -seat-token flag: a fixed bearer token for the first
 	// human slot instead of a random per-slot one. Tests and local use only
@@ -182,9 +168,7 @@ type config struct {
 	seatToken string
 	// feedback is the -feedback flag: where a player's own bug reports are
 	// written (feedback.go). It is deliberately NOT under -dir. The
-	// persistence directory is disposable by design — the demo deploy script
-	// (four-yay's ops/scripts/deploy-demo.sh)
-	// `rm -rf`s it on every deploy so a config written by an older binary
+	// persistence directory is disposable by design — a deploy may wipe it so a config written by an older binary
 	// cannot come back with zero-valued fields — which would mean a report
 	// filed against a bug was destroyed by the deploy that shipped its fix.
 	// A report is the one artifact here that cannot be regenerated.
@@ -211,9 +195,8 @@ type config struct {
 	// first (newServeArtCache).
 	prewarm bool
 	// prewarmArtOnly is the -prewarm-art-only flag: fill the card-art cache
-	// from -decks into artCacheDir() and exit, before any listener opens —
-	// what the demo deploy script runs ahead of both servers so a deploy
-	// never serves a cold cache, and what four-yay's `make prewarm-art` runs by hand.
+	// from -decks into artCacheDir() and exit, before any listener opens, so a
+	// deploy can fill the cache ahead of its servers.
 	// Exit code 1 when any name FAILED (a genuine 404 is not a failure) or
 	// the pass was stopped by one of the two bounds below.
 	prewarmArtOnly bool
@@ -242,7 +225,6 @@ type config struct {
 	manabrew bool
 	// manabrewAddr is the -manabrew-addr flag: an optional separate listener
 	// for the ManaBrew routes instead of sharing the main listener's topMux.
-	// Ports 8080/8081 are refused (AGENTS.md's port table).
 	manabrewAddr string
 	// manabrewThink is the -manabrew-think flag: an override of
 	// host.Options.ThinkTimeout, applied only while -manabrew is on
@@ -443,22 +425,15 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.DurationVar(&c.prewarmArtBudget, "prewarm-art-budget", 0, "with -prewarm-art-only: stop the fill after this much wall-clock time and exit non-zero (0 = no limit)")
 	fs.IntVar(&c.prewarmArtMaxConsecutiveFailures, "prewarm-art-max-consecutive-failures", 0, "with -prewarm-art-only: stop the fill once this many names in a row have failed and exit non-zero (0 = no limit)")
 	fs.BoolVar(&c.pprof, "pprof", false, "serve Go runtime profiles at /debug/pprof/ on the main listener; refused unless -addr is loopback, and anything proxied to that port can reach them")
-	fs.StringVar(&c.az3Net, "az-c3-net", "", "enable the az-c3 bot: the path of its .dzgw network (needs -az-c3-decks, -allow-decklist-bots, -auto-mana and -bot-auto-mana; runs only on its bot-only demo table, never against a human)")
-	fs.BoolVar(&c.az3DemoTable, "az-c3-demo-table", true, "with -az-c3-net: add one two-seat az-c3 vs az-c3 table, dealt from -az-c3-decks, for spectators")
-	fs.StringVar(&c.az3Belief, "az-c3-belief", "", "with -az-c3-net: close the opponents' deck lists -- az-c3 deals each opponent's unknown cards from lists drawn from the decks in this directory (the TRAIN split of its pool), never from the opponent's real list")
-	fs.StringVar(&c.az3BeliefPool, "az-c3-belief-pool", "", "with -az-c3-belief: a pool.tsv naming the belief decks; only its train split is read (default: every deck file in -az-c3-belief)")
-	fs.StringVar(&c.az3Decks, "az-c3-decks", "", "directory of the decks az-c3 may play: the FDN limited decks it was trained on. They are reserved for it, and it plays nothing else")
-	c.az4.registerFlags(fs, policyAZC4, "its .dzgw network")
-	c.az5.registerFlags(fs, policyAZC5, "its .dzgw network (the C5 net, trained after the payment-plan fixes)")
-	extra := extraClosedNetBots()
-	c.extraAZ = make([]closedAZ, len(extra))
-	for i, x := range extra {
-		c.extraAZ[i].policy = x.policy
-		c.extraAZ[i].registerFlags(fs, x.policy, x.netHelp)
+	for _, r := range registeredNetBots() {
+		c.nets = append(c.nets, netPolicy{policy: r.policy, bot: r.bot})
 	}
-	fs.BoolVar(&c.allowDecklistBots, "allow-decklist-bots", false, "let the server's own bot-only tables run a bot policy that reads every seat's real decklist (today only the az-c3 demo table, which needs it before -az-c3-net is accepted); such a policy never seats against a human")
+	for i := range c.nets {
+		c.nets[i].registerFlags(fs)
+	}
+	fs.BoolVar(&c.allowDecklistBots, "allow-decklist-bots", false, "let the server's own bot-only tables run a bot policy that reads every seat's real decklist; such a policy never seats against a human")
 	fs.BoolVar(&c.manabrew, "manabrew", false, "mount the ManaBrew protocol adapter (server/host/manabrewhttp) on the main listener; requires -humans or -vsbot")
-	fs.StringVar(&c.manabrewAddr, "manabrew-addr", "", "serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew; refuses :8080/:8081)")
+	fs.StringVar(&c.manabrewAddr, "manabrew-addr", "", "serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew)")
 	fs.DurationVar(&c.manabrewThink, "manabrew-think", 0, "override the human-seat think timeout while -manabrew is on (0 = inherit the server default)")
 	fs.BoolVar(&c.sbv2, "sbv2", false, "mount the SpellBench v2 human-seat HTTP routes (server/host/sbv2http) on the main listener; requires -humans or -vsbot")
 	fs.BoolVar(&c.events, "events", false, "host 4-seat draft events under /api/events (eventhost; persistence under <dir>/events)")
@@ -493,22 +468,16 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if vsbotVis == view.Seat {
 		return fmt.Errorf("-vsbot-spectator must be public or omniscient")
 	}
-	// az-c3 registers only when asked, and the offered set below is resolved
-	// from the registry, so this comes first (azc3.go).
-	if err := c.enableAZC3(); err != nil {
-		return err
-	}
-	if err := c.checkClosedAZFlags(); err != nil {
+	if err := c.checkNetFlags(); err != nil {
 		return err
 	}
 	reg, err := cards.SharedCorpus(c.cards)
 	if err != nil {
 		return fmt.Errorf("opening corpus at %s: %w (run make fetch-cards compile-cards)", c.cards, err)
 	}
-	// az-c4 and az-c5 register only when asked, like az-c3, but their
-	// beliefs are read from the corpus, so they register once the corpus is
-	// open and before the offered set is resolved (azclosed.go).
-	if err := c.enableClosedAZ(reg); err != nil {
+	// Network policies register only when asked, so this precedes resolving the
+	// offered set, and their beliefs are read from the corpus (netbots.go).
+	if err := c.enableNetBots(reg); err != nil {
 		return err
 	}
 	// -sb-agent names must be in the registry before the offered set is
@@ -524,9 +493,6 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return err
 	}
 	c.botPolicy, c.botPolicies = def, offered
-	if err := c.azc3Belief(reg); err != nil {
-		return err
-	}
 	// -humans applies to table t1 alone by configuration. Claims are now
 	// table-bound, so this is no longer a security restriction; parse it now
 	// so a malformed list or "-humans with -tables 0" fails before listening.
@@ -571,18 +537,11 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if len(cmdPool)+len(conPool) == 0 {
 		return fmt.Errorf("no deck files in %s", c.decks)
 	}
-	az3Pool, az3Catalogue, err := c.azc3Pool(reg, cmdPool, conPool)
-	if err != nil {
-		return err
-	}
-	// The closed-list policies' pools follow az-c3's; a deck shared with an
-	// earlier pool is reserved for both and catalogued once (azclosed.go).
-	reservedCatalogue := az3Catalogue
+	// A deck shared with an earlier policy's pool is reserved for both and
+	// catalogued once.
+	var reservedCatalogue []httpapi.DeckInfo
 	var reserved []reservedDir
-	if len(az3Pool) > 0 {
-		reserved = append(reserved, reservedDir{policy: policyAZC3, dir: c.az3Decks, pool: az3Pool})
-	}
-	for _, a := range c.closedAZs() {
+	for _, a := range c.nets {
 		pool, cat, err := a.loadPool(reg, cmdPool, conPool, reserved, reservedCatalogue)
 		if err != nil {
 			return err
@@ -609,8 +568,8 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return fmt.Errorf("-format includes constructed but no deck in %s is a constructed deck", c.decks)
 	}
 
-	load := deckLoaders(reg, c.decks, c.az3Decks, az3Pool)
-	for _, a := range c.closedAZs() {
+	load := deckLoader(reg, c.decks)
+	for _, a := range c.nets {
 		load = reservedLoader(reg, load, a.decks, c.policyPools[a.policy])
 	}
 	// -events chains the event store's deck loader in front of the ordinary
@@ -631,12 +590,8 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	}
 	if len(r.Tables()) == 0 {
 		cfgs := c.tableConfigs(cmdPool, conPool, vis)
-		if t := c.azc3Table(az3Pool, vis); t != nil {
-			cfgs = append(cfgs, *t)
-		}
-		// The closed-list policies' demo tables follow every other startup
-		// table: az-c4's, then az-c5's.
-		for _, a := range c.closedAZs() {
+		// The network policies' demo tables follow every other startup table.
+		for _, a := range c.nets {
 			if t := a.table(c, host.TableID(fmt.Sprintf("t%d", len(cfgs)+1)), c.seed+uint64(len(cfgs)), c.policyPools[a.policy], vis); t != nil {
 				cfgs = append(cfgs, *t)
 			}
