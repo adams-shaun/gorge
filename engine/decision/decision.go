@@ -836,8 +836,9 @@ type Decision struct {
 	AIRandom bool `json:"-"`
 	// AffordableTargets is a cast-time target ask's engine-computed hint:
 	// the largest number of targets whose total cost (a Strive spell's
-	// per-extra-target additional cost, CR 702.52a) the caster can provably
-	// pay from the pool and the payment window's fixed-production sources.
+	// per-extra-target additional cost, CR 702.52a, or a cost static reading
+	// the target count) the caster can provably pay from the pool and the
+	// payment window's fixed-production sources.
 	// Zero means no hint (the count does not change the price). It never
 	// narrows Max -- CR 601.2c lets the player choose any number, and the
 	// cost is determined afterwards (601.2f) -- but an unattended bot that

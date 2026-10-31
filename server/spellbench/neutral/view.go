@@ -951,6 +951,9 @@ func (b *Builder) stack(e protocol.StackEntry) (view.StackView, error) {
 	switch e.StackKind {
 	case "spell":
 		sv.Kind = "spell"
+		if e.XValue != nil {
+			sv.X = int32(*e.XValue)
+		}
 		owner, err := Seat(e.OwnerSeat)
 		if err != nil {
 			return view.StackView{}, err

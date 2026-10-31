@@ -60,7 +60,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 106.7-106.13 | unknown | - | - | not reached |
 | 107.1-107.1c | follows | `engine/state/game.go#Player.Life` | - | integer state throughout |
 | 107.2 | unknown | - | - | not reached |
-| 107.3-107.3p | follows | `engine/rules/cast_subcounter.go#Engine.xAsk` `engine/events/apply_cast.go#foldCastInfo` | `TestExpendWakeLeavesNonXSpellXZero` `TestExpendWakeKeepsAnnouncedX` `TestPaidTeamworkLeavesNonXSpellXZero` `TestPaidTeamworkKeepsAnnouncedX` | cast X ask |
+| 107.3-107.3p | follows | `engine/rules/cast_subcounter.go#Engine.xAsk` `engine/events/apply_cast.go#foldCastInfo` | `TestExpendWakeLeavesNonXSpellXZero` `TestExpendWakeKeepsAnnouncedX` `TestPaidTeamworkLeavesNonXSpellXZero` `TestPaidTeamworkKeepsAnnouncedX` `TestXAnnouncementReachesUntappedSources` `TestXAnnouncementStopsAtTheLegalTargets` | cast X ask, bound by the pool, what the mana window can activate and the targets the value needs |
 | 107.4-107.6 | follows | `engine/rules/cost/parse.go#ParseCost` `engine/rules/cast_payment.go#Engine.announceFeasible` | `TestCastWindowChosenColourPaysHybridFace` `TestCastWindowFaceChargesActivationFee` | mana/tap/untap symbols parsed; a hybrid face is offered only if the window can pay it |
 | 107.7 | follows | `engine/rules/ability_loyalty.go#abilityLoyaltyFact` | - | loyalty cost symbols |
 | 107.8-107.13 | unknown | - | - | not reached; not in pools |

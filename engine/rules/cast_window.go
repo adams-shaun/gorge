@@ -770,3 +770,36 @@ func (e *Engine) striveAffordableTargets(pc *pendingCast, max int) int {
 	}
 	return best
 }
+
+// targetCountAffordable is the Decision.AffordableTargets hint for a spell whose
+// own cost reads how many targets it announces (Fireball, Officious
+// Interrogation): the largest n in [1, limit] whose total cost CR 601.2f composes,
+// with X already announced, the pool and the window can pay. Only the count is
+// read, so any n of the candidates price it. It returns 0 (no hint) for any
+// other spell. A pure read, like striveAffordableTargets.
+func (e *Engine) targetCountAffordable(pc *pendingCast, candidates []targetCandidate, limit int) int {
+	o := e.G.Obj(pc.card)
+	if pc.isAbility() || limit <= 1 || o == nil || o.Face() == nil || !o.Face().Mentions("TargetedObjects$Amount") {
+		return 0
+	}
+	scope, ok := e.pendingCastScope(pc)
+	if !ok {
+		return 0
+	}
+	targets := make([]state.Target, limit)
+	for i := range targets {
+		targets[i] = candidateTarget(candidates[i])
+	}
+	units := e.castWindowUnits(pc)
+	best := 1
+	for n := 2; n <= limit; n++ {
+		mods := pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, targets[:n]))
+		cost := e.paymentManaXUsing(pc, pc.x, mods)
+		cost.Generic = max(cost.Generic-int32(len(pc.delve)), 0)
+		if !e.castWindowPays(pc, cost, units) {
+			break
+		}
+		best = n
+	}
+	return best
+}

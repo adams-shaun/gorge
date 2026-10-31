@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -62,9 +63,36 @@ func (e *Engine) chosenModesTargetableAt(pc *pendingCast, x int32) bool {
 	return true
 }
 
+// targetsAnnounceableAt reports whether the target ask that follows xAsk can be
+// answered once X is x, by the rule targetAsk reverses a cast under.
+func (e *Engine) targetsAnnounceableAt(pc *pendingCast, x int32) bool {
+	o := e.G.Obj(pc.card)
+	if o == nil || pc.faceDown {
+		return true
+	}
+	sa := e.castStageSA(pc, o, o.Face())
+	if sa == nil || !effects.TargetsOf(sa).Targeted() {
+		return true
+	}
+	saved := pc.x
+	pc.x = x
+	defer func() { pc.x = saved }()
+	if total, ok := e.castDivisionTotal(pc, sa); ok {
+		if min, _ := e.resolvedTargetBounds(pc.player, pc.card, sa, x); int(total) < min {
+			return false
+		}
+	}
+	var exclude state.ObjID
+	if !pc.isAbility() || sa.API == "Attach" {
+		exclude = pc.card
+	}
+	return e.targetSAAvailable(pc.player, pc.card, exclude, sa, x, false)
+}
+
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
 // max is the largest value the mana pool (crediting the best possible
-// Delve) can still pay. Runs at most once (xDone).
+// Delve) and the sources CR 601.2g's window can still activate can pay: X is
+// announced (CR 601.2b) before that window opens. Runs at most once (xDone).
 func (e *Engine) xAsk() bool {
 	pc := e.cast
 	if pc.xDone {
@@ -190,6 +218,14 @@ func (e *Engine) xAsk() bool {
 		}
 	}
 	bound := pool.Total() + gy + credit + 1
+	units := e.castWindowUnits(pc)
+	for _, u := range units {
+		most := int32(0)
+		for _, a := range u.Alts {
+			most = max(most, a.Mana().Total())
+		}
+		bound += most
+	}
 	// A named-announcement discount (the March cycle's "{2} less for each
 	// card exiled this way") is a generic reduction the X can spend: the
 	// ceiling rises by the composed reduction at the announced count, or an
@@ -365,6 +401,9 @@ func (e *Engine) xAsk() bool {
 		// an X payment here or every X announcement would be unpayable.
 		payable := pay.CostPayableClass(asPayer(e), pc.player, paymentForCast(pc, wx),
 			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, wx)
+		if !payable && wx.HasManaPayment() && len(units) > 0 {
+			payable = e.castWindowPays(pc, wx, units)
+		}
 		if !payable {
 			// A target-dependent reduction is absent from the nil-target
 			// composition pc.mods carries, so an X affordable only under it
@@ -432,6 +471,11 @@ func (e *Engine) xAsk() bool {
 		// only while every chosen mode still has its required targets at it.
 		if !e.chosenModesTargetableAt(pc, x) {
 			modeBlocked = true
+			continue
+		}
+		// CR 601.2c: "X target creatures" needs that many legal targets, and a
+		// division of a fixed total needs at least 1 for each (CR 601.2d).
+		if !e.targetsAnnounceableAt(pc, x) {
 			continue
 		}
 		legal = append(legal, x)

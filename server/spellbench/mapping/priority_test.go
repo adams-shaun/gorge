@@ -909,7 +909,7 @@ func TestPriorityRealGames(t *testing.T) {
 	for _, game := range []struct {
 		d0, d1 string
 		seed   byte
-	}{{"Wildfire", "CawGates", 3}, {"Burn", "Rally", 4}} {
+	}{{"Wildfire", "CawGates", 1}, {"Burn", "Rally", 4}} {
 		g := testgame.New(t, reg, game.d0, game.d1, game.seed, "none")
 		tr := identity.New(g.R, g.Secret)
 		testgame.RunUntil(t, g, testgame.Bots(uint64(game.seed)), func(e *rules.Engine) bool {

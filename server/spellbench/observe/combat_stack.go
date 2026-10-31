@@ -329,7 +329,7 @@ func modesAndX(o *state.Object) ([]uint32, *uint32) {
 		}
 	}
 	var x *uint32
-	if f != nil && o.Ability == nil && strings.Contains(f.ManaCost, "X") {
+	if f != nil && o.Ability == nil && (strings.Contains(f.ManaCost, "X") || o.X != 0) {
 		v := u32(o.X)
 		x = &v
 	}

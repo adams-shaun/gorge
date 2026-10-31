@@ -547,6 +547,9 @@ func (e *Engine) targetAsk() bool {
 			lim = len(candidates)
 		}
 		d.AffordableTargets = e.striveAffordableTargets(pc, lim)
+		if d.AffordableTargets == 0 {
+			d.AffordableTargets = e.targetCountAffordable(pc, candidates, lim)
+		}
 	}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
