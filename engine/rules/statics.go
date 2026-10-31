@@ -309,6 +309,9 @@ func (e *Engine) scanActionStaticsMode(carriersOnly bool) actionStaticViews {
 					if !ok {
 						continue
 					}
+					if z == state.ZBattlefield && isRoom(o) && pst.Face == o.Face() && !o.DoorUnlocked(int(o.FaceIdx)) {
+						continue
+					}
 					st := pst.Static
 					var dst *[]staticView
 					switch st.ModeKind() {

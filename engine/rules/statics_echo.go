@@ -109,8 +109,8 @@ func (e *Engine) grantedTriggerInstances(observer *Engine, t *cards.Trigger, id 
 // ValidZone$ (Echoes of Eternity's "Battlefield,Stack") filters on the
 // triggering object's own zone and defaults to the battlefield: "of a
 // permanent" does not reach a permanent spell or a card elsewhere, and a
-// look-back walk reads the object on its pre-departure board. A static with no ValidCard$
-// contributes nothing rather than matching everything -- a Panharmonicon
+// look-back walk reads the object on its pre-departure board. A static with no
+// ValidCard$ contributes nothing rather than matching everything -- a Panharmonicon
 // static that does not say WHAT it doubles is a script defect this build
 // will not paper over by doubling every trigger on the board. ValidTurned$
 // (Panoptic Projektor's "if turning a face-down permanent face up ...", the

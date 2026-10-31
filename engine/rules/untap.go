@@ -81,7 +81,15 @@ func (e *Engine) untapOtherStaticsMatch(subject state.ObjID) bool {
 		if o == nil || o.Face() == nil {
 			return
 		}
-		for _, st := range o.Face().Statics {
+		for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+			pst, ok := o.PileStaticAt(si)
+			if !ok {
+				continue
+			}
+			st := pst.Static
+			if isRoom(o) && pst.Face == o.Face() && !o.DoorUnlocked(int(o.FaceIdx)) {
+				continue
+			}
 			if st.Mode != "UntapOtherPlayer" || !e.staticPresentHolds(st, id) {
 				continue
 			}
