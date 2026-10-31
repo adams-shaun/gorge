@@ -1,6 +1,8 @@
 package view
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -206,7 +208,7 @@ func abilityText(g *state.Game, o *state.Object, memo *textMemo) string {
 			}
 		}
 	}
-	return memo.substitute(text, abilityName(g, o))
+	return memo.substitute(printedLines(text), abilityName(g, o))
 }
 
 // spellText is SpellDescription$ of the face's own cast ability, falling
@@ -219,7 +221,13 @@ func spellText(f *cards.Face, memo *textMemo) string {
 			text = d
 		}
 	}
-	return memo.substitute(text, f.Name)
+	return memo.substitute(printedLines(text), f.Name)
+}
+
+// printedLines turns the corpus's escaped line breaks, a backslash and an n, into
+// real ones. Scripts write Oracle text and descriptions on one line.
+func printedLines(text string) string {
+	return strings.ReplaceAll(text, `\n`, "\n")
 }
 
 // targetViews copies an object's chosen targets. Object.Remembered is NEVER
@@ -254,7 +262,7 @@ func targetLabel(o *state.Object) string {
 	valid := ""
 	for s := sa; s != nil; s = s.Sub {
 		if p := s.Params["TgtPrompt"]; p != "" {
-			return p
+			return printedLines(p)
 		}
 		if valid == "" {
 			valid = s.Params["ValidTgts"]

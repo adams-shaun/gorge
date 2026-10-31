@@ -219,7 +219,7 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// (land exclusion: accepted 25, ESS 25).
 		// Re-measured when a permanent's activation count began to end as it
 		// leaves (CR 400.7): frames 126, accepted 13.
-		{"pre-optimisation sampler", true, "5894fd6141273d864ed1d74189b96e666c4ccf97c6204f044a7f06894b9ed98c"},
+		{"pre-optimisation sampler", true, "402f31816c56e38e252fc9ae9b0694b30171d91ba10dcf15f8016972a5aac349"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
@@ -228,7 +228,7 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// pre-optimisation entry for the archetype-posterior re-measure.
 		// Re-measured for CR 602.2a: frames 126, accepted 25, ESS 25.
 		// Re-measured for the activation count (CR 400.7): accepted 31, ESS 31.
-		{"land exclusion", false, "1813cef8bfc6eaaad8c13ee238d3ebcfa3ca71c2204af75efc144669d731cc4f"},
+		{"land exclusion", false, "e9b70c702411030b14878712449d56c6c0d32f5e8bfeaa8b78b020a271debd39"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -479,7 +479,7 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// decoded frames and rollouts move with them.
 	// Re-measured for the activation count (CR 400.7), which the replayed frames
 	// carry: Submits 5458, the rest as above.
-	const want = "ff35082eb0f81979fff3361757d5ca2edda6d72802fdbf08fdd23a29e1378c9d"
+	const want = "3d031979c9fce0452030f51fc03a9b0fe99cc0d9ce7a53be3f629e6e57ec9491"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

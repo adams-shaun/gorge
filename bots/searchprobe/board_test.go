@@ -91,8 +91,8 @@ func TestHistoryDigestMatchesTheJSONBoardEncoding(t *testing.T) {
 	golden := map[int]string{
 		1:   "652d54b01f75336512ccc6a57eddf924b4497473a05b01ecdaa2569d38e65afa",
 		2:   "b3cc6c3a63b0f87c34bfb625619a0b88b9caeb811bb8a0d9f1a37f47cbb007c4",
-		17:  "bb3739b59aa1a64618684de6d6bcc780ed2961a7ddd728015caee78e158abdb6",
-		126: "f6e58383c73ad974f0513968134915280af4eaba4ff7915c562c18e7b5490e5e",
+		17:  "dc85319fbe0c8cd0bd24d597e4d5a4bffb40f56366be0866572093574bbca8c1",
+		126: "dc74e48767afd103da51f882920bffe95a11046beb54c6809f3031caa7bf7b5d",
 	}
 	if len(f.h.Frames) != 126 {
 		t.Fatalf("bench fixture has %d frames, the goldens were measured on 126", len(f.h.Frames))

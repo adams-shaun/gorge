@@ -462,6 +462,7 @@ func copyDecisionInto(dst, d *decision.Decision, text *textMemo) *decision.Decis
 // nothing the label did not. A label without a placeholder, or without the
 // prefix, is returned unchanged.
 func optionLabelText(label string) string {
+	label = printedLines(label)
 	if !hasPlaceholder(label) {
 		return label
 	}

@@ -1613,3 +1613,19 @@ func TestStackViewSpellTextFallsBackToOracleWithNoSpellDescription(t *testing.T)
 		t.Fatalf("Text = %q, want the Oracle fallback", v.Stack[0].Text)
 	}
 }
+
+// TestStackTextHasRealLineBreaks: scripts escape a line break as a backslash and
+// an n, and a client shows what the view says.
+func TestStackTextHasRealLineBreaks(t *testing.T) {
+	c, d := cards.ParseBytes("c.txt", []byte("Name:Zombie\nManaCost:2 B\nTypes:Creature Zombie\nPT:2/2\nOracle:Haste\\nUndying\n"))
+	if len(d) != 0 {
+		t.Fatalf("diags: %v", d)
+	}
+	c.Link()
+	if got := spellText(c.Faces[0], nil); got != "Haste\nUndying" {
+		t.Fatalf("spell text = %q", got)
+	}
+	if got := optionLabelText(`Choose one\n• Draw`); got != "Choose one\n• Draw" {
+		t.Fatalf("option label = %q", got)
+	}
+}
