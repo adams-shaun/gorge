@@ -193,3 +193,17 @@ func TestOracleSetupKeepsCounterAddedTrigger(t *testing.T) {
 		t.Fatalf("setup Tethermage = %s counters=%v, want 4/3 with one P1P1 counter (CounterAdded trigger kept)", teth.PT, teth.Counters)
 	}
 }
+
+// TestOracleSetupTappedIsPlacement: a permanent set up tapped did not become
+// tapped, so Freyalise's Winds puts no counter on it. It holds in both of the
+// runner's modes, because a seat's tapped list is placement in both.
+func TestOracleSetupTappedIsPlacement(t *testing.T) {
+	const sc = `{"name":"winds","setup":{"p0":{"battlefield":["Freyalise's Winds"]},"p1":{"battlefield":["Grizzly Bears"],"tapped":["Grizzly Bears"]}},"steps":[],
+		"expect":[{"card":"p1:Grizzly Bears","tapped":true,"counters":{"WIND":0}}]}`
+	for _, fixture := range []bool{false, true} {
+		res, err := RunOracleAuditScenarioJSON(testutil.CorpusRegistry(t), []byte(sc), fixture)
+		if err != nil || len(res.Fails) != 0 {
+			t.Fatalf("fixture=%v: err=%v fails=%v", fixture, err, res.Fails)
+		}
+	}
+}
