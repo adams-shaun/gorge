@@ -41,3 +41,57 @@ func TestStaticTriggerStaysOffTheStack(t *testing.T) {
 		t.Fatalf("%d counters, want 1", got)
 	}
 }
+
+// TestStaticTriggerEventBodyStack pins CR 614.1c for bodies that do make a
+// replaceable event: only a replacement of that very event, one that can ask, keeps
+// the trigger on the stack, where a resolution can serve the ask. Off the stack
+// there is nothing to resume, so that one case stays an ability.
+func TestStaticTriggerEventBodyStack(t *testing.T) {
+	t.Parallel()
+	const doubler = "Name:Doubler\nTypes:Enchantment\n" +
+		"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl | ReplaceWith$ Bigger | Description$ Twice the damage.\n" +
+		"SVar:Bigger:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ ReplaceCount$DamageAmount/Twice\nOracle:x\n"
+	counterBonus := func(name string) string {
+		return "Name:" + name + "\nTypes:Enchantment\n" +
+			"R:Event$ AddCounter | ActiveZones$ Battlefield | ValidCard$ Card | ReplaceWith$ More | Description$ One more counter.\n" +
+			"SVar:More:DB$ ReplaceCounter | ValidCounterType$ Any | Amount$ Bumped\nSVar:Bumped:ReplaceCount$CounterNum/Plus.1\nOracle:x\n"
+	}
+	const choosyDraw = "Name:Choosy Draw\nTypes:Enchantment\n" +
+		"R:Event$ Draw | ActiveZones$ Battlefield | Optional$ True | ValidPlayer$ You | ReplaceWith$ Instead | Description$ You may gain 1 instead.\n" +
+		"SVar:Instead:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	const spark = "Name:Spark\nManaCost:R\nTypes:Sorcery\nA:SP$ GainLife | Defined$ You | LifeAmount$ 1 | SpellDescription$ Gain 1.\nOracle:x\n"
+	watcher := func(body string) string {
+		return "Name:Watcher\nTypes:Creature Human\nPT:1/1\n" +
+			"T:Mode$ SpellCast | ValidCard$ Card | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Static$ True | Execute$ Body\n" +
+			"SVar:Body:" + body + "\nOracle:x\n"
+	}
+	const grow = "DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1"
+	const burn = "DB$ DealDamage | Defined$ Opponent | NumDmg$ 1"
+	for _, c := range []struct {
+		name, body string
+		board      []string
+		wantStack  int
+	}{
+		{"a counter beside another event's replacement", grow, []string{doubler}, 1},
+		{"a counter beside its own event's asking replacement", grow, []string{counterBonus("Bonus")}, 2},
+		{"a counter between two bonuses", grow, []string{counterBonus("Bonus"), counterBonus("Other Bonus")}, 2},
+		{"damage beside another event's replacement", burn, []string{choosyDraw}, 1},
+		{"damage beside its own event's asking replacement", burn, []string{doubler}, 2},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			e := handEngine(t, card(t, spark))
+			id := e.G.Zone(state.ZHand, 0)[0]
+			onBoardReady(t, e, 0, watcher(c.body))
+			for _, src := range c.board {
+				onBoard(t, e, 1, src)
+			}
+			e.G.Players[0].Pool[state.MR] = 1
+			e.priorityRound()
+			submitChoices(t, e, passToCast(t, e, id))
+			if len(e.G.Stack) != c.wantStack {
+				t.Fatalf("stack %v, want %d objects", e.G.Stack, c.wantStack)
+			}
+		})
+	}
+}

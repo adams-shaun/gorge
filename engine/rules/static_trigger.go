@@ -29,6 +29,7 @@
 package rules
 
 import (
+	mathbits "math/bits"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -110,24 +111,29 @@ func (e *Engine) staticTriggerAskFree(pt pendingTrigger, line cards.Trigger, sva
 	if st&mayAskText != 0 || mayAskOnBoard(e, st) {
 		return false
 	}
-	// The engine-wide board gate: competing replacement elections (a
-	// CR 616.1 order choice) and an exiled-card return an ask-free move can
-	// sweep back onto the battlefield. A body with no replaceable event never
-	// meets them.
-	return staticBodyEventFree(pt.SA) || !tapeBoardCompetes(e)
+	return !staticBodyCompetes(e, pt.SA, cards.ReplEventMask(st>>mayAskGateShift&mayAskGateMask))
 }
 
-// staticBodyEventFree reports whether every link of a static trigger's body is
-// bookkeeping that performs nothing a replacement effect can apply to.
-func staticBodyEventFree(sa *cards.SA) bool {
-	for ; sa != nil; sa = sa.Sub {
-		switch sa.API {
-		case "Animate", "Cleanup", "Effect", "Pump", "PumpAll", "StoreSVar":
+// staticBodyCompetes is the replacement gate of a static trigger's body, which has
+// no continuation to serve an ask. mayAskOnBoard has already judged elections and
+// competing pairs on the events the body proposes, so what is left for these APIs
+// is a replacement of those same events whose own body may ask; bookkeeping
+// proposes no event at all. The bonus stays on the stack only there (CR 614.1c
+// does not allow it, and nothing could answer the ask off it). Any other API may
+// move a permanent and sweep an exiled card back, so it takes the engine-wide gate.
+func staticBodyCompetes(e *Engine, sa *cards.SA, gates cards.ReplEventMask) bool {
+	for s := sa; s != nil; s = s.Sub {
+		switch s.API {
+		case "Animate", "Cleanup", "DealDamage", "Effect", "PutCounter", "Pump", "PumpAll", "StoreSVar", "Token":
 		default:
-			return false
+			return tapeBoardCompetes(e)
 		}
 	}
-	return true
+	var bits uint32
+	for g := gates; g != 0; g &= g - 1 {
+		bits |= replEventBits[cards.ReplEvent(mathbits.TrailingZeros32(uint32(g)))]
+	}
+	return bits != 0 && tapeReplBodyMayAsk(e, bits)
 }
 
 // resolveStaticTriggers resolves every queued trigger whose line carries

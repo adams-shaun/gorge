@@ -140,26 +140,34 @@ func tapeStepMayAsk(e *Engine) bool {
 // ask, or an Optional$ election, for any event: the broad board gate of a
 // turn-based action whose emissions can run any replacement (combat damage
 // and the deaths it causes).
-func tapeAnyReplBodyMayAsk(e *Engine) bool {
+func tapeAnyReplBodyMayAsk(e *Engine) bool { return tapeReplBodyMayAsk(e, ^uint32(0)) }
+
+// tapeReplBodyMayAsk is tapeAnyReplBodyMayAsk over the replacements of the
+// events in bits (replEventBit), all of them for a full mask.
+func tapeReplBodyMayAsk(e *Engine, bits uint32) bool {
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
-		if ce := &ceL[ceI]; ce.ReplacementEvent != "" && (cards.ReplParamsMayElect(ce.ReplacementParams) || effectReplBodyMayAsk(e, ce)) {
+		if ce := &ceL[ceI]; ce.ReplacementEvent != "" && replBitIn(replEventBit(ce.ReplacementEvent), bits) &&
+			(cards.ReplParamsMayElect(ce.ReplacementParams) || effectReplBodyMayAsk(e, ce)) {
 			return true
 		}
 	}
 	if !replArenaAskFor(e, replAskBody) {
 		// No arena object carries a line the walk below could count
 		// (replArenaMask.ask).
-		if replZoneSkipVerify && tapeAnyReplBodyWalk(e) {
+		if replZoneSkipVerify && tapeReplBodyWalk(e, bits) {
 			panic("rules: replacement ask class skipped a body walk that asks")
 		}
 		return false
 	}
-	return tapeAnyReplBodyWalk(e)
+	return tapeReplBodyWalk(e, bits)
 }
 
-// tapeAnyReplBodyWalk is tapeAnyReplBodyMayAsk's walk over every
-// replacement source.
-func tapeAnyReplBodyWalk(e *Engine) bool {
+// replBitIn reports whether an event bit is in bits; a full mask admits a line of
+// any event, a bitless one too.
+func replBitIn(bit, bits uint32) bool { return bits == ^uint32(0) || bit&bits != 0 }
+
+// tapeReplBodyWalk is tapeReplBodyMayAsk's walk over every replacement source.
+func tapeReplBodyWalk(e *Engine, bits uint32) bool {
 	ask := false
 	e.forEachReplacementSourceFor(^uint32(0), func(id state.ObjID) {
 		o := e.G.Obj(id)
@@ -172,7 +180,7 @@ func tapeAnyReplBodyWalk(e *Engine) bool {
 		}
 		for i := range f.Repls {
 			r := &f.Repls[i]
-			if r.Event == "Moved" {
+			if r.Event == "Moved" || !replBitIn(replLineBit(r), bits) {
 				continue // entries are asked where they happen (the land play, a resolution)
 			}
 			if cards.ReplMayElect(r) || (r.With != nil && (cards.SAChainMayAsk(r.With, f.SVars, nil, false) ||
