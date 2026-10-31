@@ -150,3 +150,31 @@ func TestEffectPhaseTriggerParamsAreRead(t *testing.T) {
 		t.Fatal("no carrier found")
 	}
 }
+
+// "If you have a boon" reads the boon itself, which has no object in the command zone.
+func TestUnderbridgeWarlockSeesItsBoon(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	bears := lookup(t, reg, "Grizzly Bears")
+	deck := []*cards.Card{lookup(t, reg, "Underbridge Warlock")}
+	for range 30 {
+		deck = append(deck, bears)
+	}
+	e := corpusEngine(t, reg, deck, nil)
+	if e.G.Active != 0 {
+		passUntil(t, e, func() bool { return e.G.Active == 0 && e.G.Step == state.StepMain1 })
+	}
+	moveByName(t, e, 0, "Underbridge Warlock", state.ZBattlefield)
+	e.pending = nil
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 10)
+	if e.boonsOf(0) != 1 || e.boonsOf(1) != 0 {
+		t.Fatalf("boons %d and %d, want one for the Warlock's controller", e.boonsOf(0), e.boonsOf(1))
+	}
+	life := e.G.Players[0].Life
+	turn := e.G.Turn
+	driveToStepAll(t, e, turn+1, 1, state.StepUpkeep)
+	if got := e.G.Players[0].Life; got != life-2 {
+		t.Errorf("life %d after the end step, want %d: the Warlock's trigger reads the boon", got, life-2)
+	}
+}
