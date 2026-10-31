@@ -194,7 +194,12 @@ func tapeManaWindow(e *Engine, ctx *effects.Ctx, wm *wardManaPayment) {
 			ctx.UnlessPay = "decline"
 			return
 		}
+		// Opened inside a mana ability's own rider, the window sits in that
+		// ability's off-stack frame, and the payer's activation may ask.
+		prev := e.tapeOffStackAsking
+		e.tapeOffStackAsking = e.offStackMana != nil
 		e.activateManaPayment(wm.payer, chosen[0].Obj, false)
+		e.tapeOffStackAsking = prev
 	}
 }
 

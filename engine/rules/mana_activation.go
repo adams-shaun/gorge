@@ -199,13 +199,14 @@ func (e *Engine) askOffStackMana(d *decision.Decision) bool {
 	act.triggers = append([]pendingTrigger(nil), f.act.triggers...)
 	e.manaColorActivation = &act
 	f.asked = true
-	if e.tape.InRun() {
+	if e.tape.Serving() {
 		// Inside a tape run the colour choice is answered in place: the
 		// activation's own continuation (answerManaColor) is what windowAsk
 		// runs, and its holder (this frame) is open by design.
+		prev := e.tapeOffStackAsking
 		e.tapeOffStackAsking = true
 		windowAsk(e, d, chooseManaColor)
-		e.tapeOffStackAsking = false
+		e.tapeOffStackAsking = prev
 		return true
 	}
 	e.choosing = chooseManaColor

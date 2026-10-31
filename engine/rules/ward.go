@@ -383,8 +383,8 @@ type wardManaPayment struct {
 // writing e.resume itself.
 func (e *Engine) askWardMana(rp *resumePoint, wm *wardManaPayment) {
 	wm.obj, wm.sa = rp.obj, rp.sa
-	if !e.tape.InRun() || e.resolutionCtx == nil {
-		panic(resolve.Divergence{Msg: "a mana window outside a tape run's resolution"})
+	if !e.tape.Serving() || e.resolutionCtx == nil {
+		panic(resolve.Divergence{Msg: "a mana window outside a served resolution"})
 	}
 	// The window runs in line and settles the live Ctx; the caller's "asked"
 	// leaves that settlement alone.

@@ -492,6 +492,10 @@ func (k *Kernel) Unwinding() bool { return k.run != nil && k.run.unwinding }
 // InRun reports whether a tape run is executing its resolution.
 func (k *Kernel) InRun() bool { return k.run != nil && k.run.inRes }
 
+// Serving reports whether a converted ask is answered in place: from a tape
+// run's resolution, or by the synchronous answerer in an exempted one.
+func (k *Kernel) Serving() bool { return k.InRun() || (k.noCkpt && k.answerer != nil) }
+
 // Unservable reports a step of a served answer the kernel cannot serve: an
 // engine-posed continuation nothing answers from the tape. It always fails
 // hard (a Divergence); it is an assertion that the conversion is closed.
