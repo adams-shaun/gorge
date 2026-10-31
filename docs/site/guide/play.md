@@ -231,8 +231,8 @@ deterministically from the match seed.
 person, and naming one in `-bot-policies` is refused at startup
 ([message](troubleshooting.md#a-flag-is-refused-at-startup)).
 
-Per-policy options use `-bot-opt <policy>.<key>=<value>`, `-bot-config <policy>=<file.json>` or the
-environment variable `GORGED_BOT_<POLICY>_<KEY>`, in that order of precedence. Only `forge-heuristic`
+Per-policy options use `-bot-opt <policy>.<key>=<value>`, the environment variable
+`GORGED_BOT_<POLICY>_<KEY>` or `-bot-config <policy>=<file.json>`, highest precedence first. Only `forge-heuristic`
 declares an option, `hold-instant`, a bool that defaults to `false`; `forge-heuristic-hold` is that policy
 with it armed.
 
