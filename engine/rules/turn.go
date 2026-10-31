@@ -908,10 +908,37 @@ func (e *Engine) priorityRound() {
 	// again, so that specific risk is gone; resuming into grantPriority
 	// rather than back through this function is still correct, for the
 	// reason above, but is no longer load-bearing against a double draw.)
-	if e.putTriggersOnStack() {
+	if stopped, _ := e.drainTriggers(); stopped {
 		return
 	}
 	e.grantPriority()
+}
+
+// drainTriggers places every waiting trigger and repeats the state-based check
+// after each placement, until neither has anything left (CR 117.5). A placement
+// can make an action due: a final chapter removed for want of a legal target
+// (CR 603.3d) leaves its Saga to be sacrificed (CR 714.4), and a Static$ True
+// trigger resolves as it is placed. Nothing is checked when no trigger was
+// waiting, since the caller has just reached the same fixed point.
+//
+// stopped reports a decision outstanding or the game over, so the caller must
+// not grant priority; performed reports that a check emitted anything.
+func (e *Engine) drainTriggers() (stopped, performed bool) {
+	for {
+		placing := len(e.pendingTriggers) > 0
+		if e.putTriggersOnStack() {
+			return true, performed
+		}
+		if !placing {
+			return false, performed
+		}
+		before := len(e.L.Events)
+		e.checkStateBased()
+		performed = performed || len(e.L.Events) > before
+		if e.G.Over || e.pending != nil {
+			return true, performed
+		}
+	}
 }
 
 // grantPriority is the tail of a priority round: hand priority to whoever is
@@ -996,8 +1023,8 @@ func (e *Engine) repeatCleanup() {
 // priority round here does: triggers are finite and one-shot registrations
 // are consumed at their DelayedPush.
 //
-// putTriggersOnStack's true return means it asked a decision (an ordering or
-// an optional-trigger ask): e.pending is set and the drain resumes through
+// drainTriggers stopping means it asked a decision (an ordering or an
+// optional-trigger ask): e.pending is set and the drain resumes through
 // resumeTriggerDrain, whose tail -- grantPriority, never a priorityRound
 // re-entry -- finishes this interrupted round exactly as it finishes every
 // other one. grantPriority's direct call below is the no-decision case: the
@@ -1017,10 +1044,11 @@ func (e *Engine) finishCleanupStep() {
 		return
 	}
 	performed := len(e.L.Events) > before
-	if e.putTriggersOnStack() {
+	stopped, again := e.drainTriggers()
+	if stopped {
 		return
 	}
-	if len(e.G.Stack) > 0 || performed {
+	if len(e.G.Stack) > 0 || performed || again {
 		e.grantPriority()
 		return
 	}
@@ -1117,23 +1145,8 @@ func (e *Engine) resumeTriggerDrain() {
 	if e.G.Over {
 		return
 	}
-	for {
-		placing := len(e.pendingTriggers) > 0
-		if e.putTriggersOnStack() {
-			return
-		}
-		if !placing {
-			break
-		}
-		// CR 117.5: state-based actions and triggers repeat until neither has
-		// anything left, and only then does a player receive priority. A drain
-		// can make one due: a final chapter removed for want of a legal target
-		// (CR 603.3d) leaves its Saga to be sacrificed (CR 714.4). submitCommit's
-		// own check waits for the answer to this round's priority decision.
-		e.checkStateBased()
-		if e.G.Over || e.pending != nil {
-			return
-		}
+	if stopped, _ := e.drainTriggers(); stopped {
+		return
 	}
 	e.grantPriority()
 }

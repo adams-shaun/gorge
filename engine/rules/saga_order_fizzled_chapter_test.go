@@ -48,3 +48,23 @@ func TestOrderedDrainSacrificesASagaWhoseFinalChapterHadNoTarget(t *testing.T) {
 		}
 	}
 }
+
+// A lone final chapter with no legal target goes straight from the step's own
+// priority round, with no answer in between, and its Saga is still sacrificed
+// before anyone receives priority.
+func TestDirectDrainSacrificesASagaWhoseFinalChapterHadNoTarget(t *testing.T) {
+	t.Parallel()
+	const stranded = "Name:Stranded Saga\nTypes:Enchantment Saga\nK:Chapter:1:Stranded\n" +
+		"SVar:Stranded:DB$ Pump | ValidTgts$ Creature.YouCtrl | NumAtt$ 1\nOracle:x\n"
+	e := handEngine(t)
+	toMain1(t, e)
+	a := onBoard(t, e, 0, stranded)
+	sagaAddLore(e, a, 1)
+	e.priorityRound()
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending = %+v, want priority", d)
+	}
+	if z := e.G.Obj(a).Zone; z != state.ZGraveyard {
+		t.Fatalf("priority posed with the Saga in %s, want the graveyard", z)
+	}
+}
