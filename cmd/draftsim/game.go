@@ -16,8 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/bench"
 )
 
-// The game watchdogs, the same props cmd/dzgorge's play lane uses: a
-// limited game that reaches either cap is recorded as a watchdog draw in
+// The game watchdogs: a limited game that reaches either cap is recorded as a watchdog draw in
 // its series (a GameEnded with no winner), while a livelock or a recovered
 // engine panic is a hard error — an engine bug, not a slow game.
 const (

@@ -56,7 +56,7 @@ func startGorged(t *testing.T, dir string, extra ...string) string {
 		if time.Now().After(deadline) {
 			t.Fatalf("server did not come up: %v", err)
 		}
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(time.Second)
 	}
 }
 

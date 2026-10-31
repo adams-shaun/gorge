@@ -353,7 +353,7 @@ func sideboardOf(d Deck) []string {
 }
 
 // foldHand folds the event log into each player's telemetry, splitting
-// dzgorge's "cards seen in hand" fold in two: OpeningHand is the held set at
+// the cards seen in hand in two: OpeningHand is the held set at
 // the first TurnChange (the kept hand after the mulligan round and London
 // bottoming), and Drawn is every card that moved from the library to hand
 // after that first TurnChange. Both lists are sorted.
@@ -408,7 +408,7 @@ func handCardName(eng *rules.Engine, m map[*cards.Card]string, id state.ObjID) s
 }
 
 // optionKind is the Kind of the option at idx in d, "" when idx names no
-// option (cmd/dzgorge/play.go's optionKind).
+// option.
 func optionKind(d *decision.Decision, idx int) string {
 	for _, o := range d.Options {
 		if o.Index == idx {
