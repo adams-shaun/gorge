@@ -27,7 +27,7 @@ var pairs = map[string][2]string{
 }
 
 // randomExpectedEvents is the random row's event-log size hint. Uniform-random
-// play runs far longer logs than the bot: measured 2026-10-06 over 400 random
+// play runs far longer logs than the bot: measured over 400 random
 // pair-A games, final log length was min 2201, p50 6522, p95 8867, p99 9491,
 // max 10299 -- 356 of 400 outgrew the default 4096 and paid a growEvents copy.
 // 12288 (the next multiple of the 4096 preallocation above the observed max)

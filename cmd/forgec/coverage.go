@@ -15,7 +15,7 @@ import (
 // (coverage.md) and a short summary (summary.md, the headline and the by-type
 // split) into one output directory, `.coverage/` by default.
 //
-// GENERATED, NEVER COMMITTED (W2 of the 2026-10-03 lasagna spec). These
+// GENERATED, NEVER COMMITTED. These
 // tables used to live in README.md (a spliced block) and docs/coverage.md,
 // refreshed by a CI job that committed back to main -- 90 bot commits in 14
 // days that every live branch had to rebase across. Now `.coverage/` is

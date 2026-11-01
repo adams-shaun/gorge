@@ -151,7 +151,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 }
 
 // writeFrame emits one SSE message. The id line is "<session>:<frame>"
-// (PL-6) and is omitted when the frame carries no id (widgets, the
+// and is omitted when the frame carries no id (widgets, the
 // overflow frame) or session is "".
 func writeFrame(w http.ResponseWriter, session string, f protocol.Frame) error {
 	raw, err := json.Marshal(f)
@@ -200,7 +200,7 @@ type graceTimer struct {
 }
 
 // scheduleGrace closes a disconnected session after ResumeGrace unless a
-// resume arrives first (PL-6). The callback re-checks under h.mu that its
+// resume arrives first. The callback re-checks under h.mu that its
 // generation is still the one registered for the session: time.AfterFunc's
 // contract is that once Stop returns false the callback has already started
 // and cannot be aborted, so a reconnect that won the lock first must not

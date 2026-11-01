@@ -19,7 +19,7 @@ import (
 )
 
 // ReviewLoader turns one input path given to `gorged review` into the match
-// it serves (match reviewer, design D9). It sees only the path; a loader that
+// it serves. It sees only the path; a loader that
 // needs the corpus opens it itself. The table id is derived from the path
 // (reviewTableID), not by the loader.
 type ReviewLoader func(path string) (host.ReviewMatch, error)

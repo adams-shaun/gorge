@@ -70,7 +70,7 @@ func (r *Registry) snapshotBody(t *table, m *match) protocol.Snapshot {
 	v := view.ProjectFor(m.g.Board(), m.g.Chars(), view.NoSeat, t.cfg.Spectator, nil)
 	// The board clock reads v.Round, so it must be the EXACT round-trip count
 	// (view.RoundOf, folded over the ordered event stream), not the
-	// snapshot-only roundOf approximation that ProjectFor fills in (ui13): the
+	// snapshot-only roundOf approximation that ProjectFor fills in: the
 	// log is right here at head and holds the death times the snapshot lacks,
 	// so a seat eliminated mid-round does not make the displayed round jump.
 	v.Round = view.RoundOf(m.g.Board(), m.g.Log().Events)
@@ -86,7 +86,7 @@ func (r *Registry) snapshotBody(t *table, m *match) protocol.Snapshot {
 	// subscriber that joins mid-game — which receives a snapshot but, from
 	// server/host/session.go's Subscribe, never the match's match_start frame — can
 	// still learn who is where in the CURRENT match. Without it the table
-	// route's seat list stayed empty for the whole match (ui16). A copy, like
+	// route's seat list stayed empty for the whole match. A copy, like
 	// TurnStarts, so the frame never aliases m.seats.
 	return protocol.Snapshot{
 		View: v, TurnStarts: append([]uint64{}, m.turnStarts...), Head: head(m),
@@ -131,7 +131,7 @@ func (r *Registry) widgetFrame(t *table, m *match, last string) protocol.Frame {
 // own already-held lock, passing m.g.Board() and m.g.Log().Events[from:]
 // directly: no clone needed there, since they never release the lock mid-call.
 //
-// hideOwnSecret is the CR 103.5 pregame blind (E3-fx3): when true, each
+// hideOwnSecret is the CR 103.5 pregame blind: when true, each
 // event is redacted through view.RedactEventForPregameBlind, so the seat's
 // own Secret events (the opening-hand deal) are served shape-only exactly
 // as an opponent's. Only the seat-scoped serving paths set it (probed from
@@ -332,7 +332,7 @@ func (r *Registry) onMatchEnd(t *table, m *match) {
 	r.dropOverflowed(ss)
 }
 
-// sendHalted delivers table_halted (spec D15) to every subscriber of a
+// sendHalted delivers table_halted to every subscriber of a
 // table the run loop has stopped for good.
 func (r *Registry) sendHalted(t *table, k int, reason string) {
 	ss, _ := r.sessionsFor(t.cfg.ID)

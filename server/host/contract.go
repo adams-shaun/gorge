@@ -46,7 +46,7 @@ type ContractRun struct {
 	Log *events.Log
 	// Reason is the match's end or crash reason.
 	Reason string
-	// RootRefusals counts the honest roots the host refused (BP-08).
+	// RootRefusals counts the honest roots the host refused.
 	RootRefusals int
 	// Feeds reports whether the match kept observation feeds (an Env seat).
 	Feeds bool

@@ -5,7 +5,7 @@ import (
 )
 
 // mountDecisions registers the review-only decision index route when
-// Options.Decisions is set (match reviewer, design T4). A handler without it
+// Options.Decisions is set (a review table). A handler without it
 // -- every live server -- registers nothing here.
 func (h *handler) mountDecisions(mux *http.ServeMux) {
 	if h.opts.Decisions == nil {

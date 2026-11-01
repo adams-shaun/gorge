@@ -2,7 +2,7 @@ package host
 
 // RunEnvLeakContract, the seat-level hidden-card leak row every hosted Env
 // policy owes (spec 2026-09-28-hosted-bot-packages §5.3), and the drive
-// helpers it shares with the BP-08 tests (botenv_test.go): projectNext under
+// helpers it shares with the Env tests (botenv_test.go): projectNext under
 // the match lock, parkSeat outside it, and the swap fixture.
 
 import (
@@ -86,7 +86,7 @@ func hiddenWorldsEqual(a, b *rules.Engine) bool {
 	return true
 }
 
-// envTestTable is the 2-seat table every BP-08 test seats: a spy EnvSeat at
+// envTestTable is the 2-seat table every Env test seats: a spy EnvSeat at
 // slot 0, a plain bot at slot 1, fixed seed and fixed repo decks.
 func envTestTable(id TableID, seed uint64) TableConfig {
 	return TableConfig{ID: id, Name: "env" + string(id), Seats: 2, Decks: []string{"a", "b"},

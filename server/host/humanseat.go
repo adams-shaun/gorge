@@ -13,18 +13,18 @@ import (
 )
 
 // HumanSeat is a seat.Seat that can hold one decision pending and be answered
-// from outside (Task M2b-2's SubmitIntent). It is "just another seat.Seat":
+// from outside (SubmitIntent). It is "just another seat.Seat":
 // the engine hands it the same view.View and decision.Decision it hands any
 // bot, and blocks on Decide until an intent is submitted, ctx is cancelled, or
-// ThinkTimeout elapses. It carries a caretaker seat (Task M2b-3): the
+// ThinkTimeout elapses. It carries a caretaker seat: the
 // deterministic bot that would have occupied this slot in a pure-bot game, so
 // an unanswered decision is turned by exactly the intent that bot would have
-// produced and the logged game replays byte-identically (D3).
+// produced and the logged game replays byte-identically.
 type HumanSeat struct {
 	mu sync.Mutex
 	// slot is the decision currently being answered, together with the recv
 	// channel that submits to it; nil when Decide is not parked (or has
-	// already returned). Task M2b-1's design decision D1: each Decide call
+	// already returned). Each Decide call
 	// gets its own slot, so a recv channel belongs to exactly one decision
 	// and cannot outlive her -- a late submit for an abandoned decision goes
 	// to a channel nobody will ever read again, instead of poisoning the next
@@ -39,9 +39,9 @@ type HumanSeat struct {
 	// to the bot defaultSeats would have built for this slot.
 	caretaker seat.Seat
 	// caretakerFires counts how many decisions this seat has delegated to its
-	// caretaker. Task M2b-5 reads it to assert positively that a human who
+	// caretaker. The tests read it to assert positively that a human who
 	// answered every decision was never substituted for. Without a counter it
-	// would be unobservable: by design D3 a caretaker's intent is byte-identical
+	// would be unobservable: by design a caretaker's intent is byte-identical
 	// to the human's, so absence-of-something is the only signal available, and
 	// a counter is that signal.
 	caretakerFires uint64
@@ -52,7 +52,7 @@ type HumanSeat struct {
 // configure arms the seat with its caretaker and think budget. play calls it
 // once per match, on the match goroutine, before any Decide, so it never
 // races a parked Decide; the fields are copied under the mutex in Decide
-// (M2b-2's copy-under-the-lock shape). A zero timeout still installs the
+// (a copy-under-the-lock shape). A zero timeout still installs the
 // caretaker so ctx cancellation falls back to it.
 func (s *HumanSeat) configure(timeout time.Duration, caretaker seat.Seat) {
 	s.mu.Lock()
@@ -62,7 +62,7 @@ func (s *HumanSeat) configure(timeout time.Duration, caretaker seat.Seat) {
 }
 
 // slotAnswer is what a submit sends down the slot's channel: the accepted
-// intent together with HD-2's client-autopilot bit. The flag rides the
+// intent together with the client-autopilot bit. The flag rides the
 // channel — the send the receiving await happens-before — so the accepted
 // answer's own mark is what the play loop records, and a stale duplicate
 // submit racing the receive can never overwrite it in place.
@@ -83,7 +83,7 @@ type slotAnswer struct {
 // pendingSlot binds one decision to the recv channel that answers it. Keep
 // dec by value so a mechanical copy has its own decision instance, and keep
 // recv per-call (capacity 1) so a racing submit is never silently dropped.
-// The channel carries the submit's auto flag beside the intent (HD-2,
+// The channel carries the submit's auto flag beside the intent
 // server/host/divergence_ledger.go); it never enters decision.Intent — the flag
 // must stay out of replay input.
 type pendingSlot struct {
@@ -94,7 +94,7 @@ type pendingSlot struct {
 	// with no caretaker, an undo, or an undo discard (abandon). A submit that
 	// claimed the slot before that selects on it around both the channel send
 	// and the wait for the engine's verdict, so it can never block on a match
-	// goroutine that is gone (D2). closeOnce makes the close idempotent across
+	// goroutine that is gone. closeOnce makes the close idempotent across
 	// await's defer and abandon.
 	abandoned chan struct{}
 	closeOnce sync.Once
@@ -128,13 +128,13 @@ func NewHumanSeat() *HumanSeat {
 
 // Decide records d as the pending decision and blocks until a matching intent
 // is submitted, ctx is done, or ThinkTimeout elapses. It satisfies seat.Seat.
-// Task M2b-3 wires the two exit-but-still-playable paths (timeout and ctx
+// The two exit-but-still-playable paths (timeout and ctx
 // cancel) to the caretaker: instead of erroring (which would crash the match
 // and, worse, leave a disconnected human able to wedge play's blocked Decide
 // forever), the seat answers with the deterministic bot's intent for
 // that slot, which play submits like any other, so the logged game continues as
-// if the slot had been a bot all along (D3). A human reconnect still works via
-// SubmitIntent against the oncoming decisions (D2). With no caretaker (a bare
+// if the slot had been a bot all along. A human reconnect still works via
+// SubmitIntent against the oncoming decisions. With no caretaker (a bare
 // NewHumanSeat, as today's unit tests build) or a zero ThinkTimeout, ctx
 // cancellation alone is what unblocks Decide and returns ctx.Err().
 //
@@ -168,12 +168,12 @@ type parking struct {
 	// it fires, so an undo can interrupt a parked human exactly as a
 	// submitted intent would.
 	undo <-chan state.PlayerID
-	// fires0 is the caretakerFires count at park time (HD-2): await's
+	// fires0 is the caretakerFires count at park time: await's
 	// caretaker path is the only writer of that counter, so a count above
 	// fires0 after await returns means THIS decision was answered by the
 	// caretaker — the provenance ledger's caretaker bit.
 	fires0 uint64
-	// auto is HD-2's client-autopilot bit, copied out of the slot on
+	// auto is the client-autopilot bit, copied out of the slot on
 	// receive (server/host/divergence_ledger.go). False for a caretaker answer,
 	// which never rides the channel.
 	auto bool
@@ -344,7 +344,7 @@ func (p *parking) reply(err error) {
 // argument is the copy the caller took under the mutex (and validated non-nil
 // on the same copy), so this helper performs the substitution against that
 // validated copy rather than re-reading the field -- the nil guard and the
-// dereference can never diverge. The counter is Task M2b-5's positive signal
+// dereference can never diverge. The counter is the positive signal
 // that a human answered every decision: it is incremented under the same mutex
 // that guards the seat's other fields, before the (deterministic) caretaker
 // intent is produced, so a test can read it only after Decide has returned
@@ -359,7 +359,7 @@ func (s *HumanSeat) viaCaretaker(ctx context.Context, v view.View, d decision.De
 
 // caretakerCount reports how many decisions the caretaker has answered in
 // this seat's place. 0 after a full match means every decision was answered
-// by a human submit. Package-internal; Task M2b-5 reads it to assert the
+// by a human submit. Package-internal; the tests read it to assert the
 // caretaker never fired.
 func (s *HumanSeat) caretakerCount() uint64 {
 	s.mu.Lock()
@@ -368,7 +368,7 @@ func (s *HumanSeat) caretakerCount() uint64 {
 }
 
 // pending returns whether a decision is currently being answered, and the
-// decision itself. Package-internal; Task M2b-2's Pending/SubmitIntent use it.
+// decision itself. Package-internal; Pending and SubmitIntent use it.
 // (Signature is (bool, *decision.Decision) -- ok first -- to match the task's
 // step-1 test `if ok, got := s.pending(); !ok || got.Seq != 3`.)
 func (s *HumanSeat) pending() (bool, *decision.Decision) {
@@ -408,11 +408,11 @@ func (s *HumanSeat) submitAdmitted(in decision.Intent, admit func(decision.Decis
 //
 // The slot is CLAIMED under s.mu (set to nil) before the send: exactly one
 // submit can answer a decision, so two racing POSTs cannot both be admitted
-// and hang the handler waiting for a verdict only one of them will get (D2).
+// and hang the handler waiting for a verdict only one of them will get.
 // The channel send remains outside s.mu: a receiver may be delayed and must
 // never block Pending or another stale-answer rejection while holding the seat
 // mutex. Clone before admission so the exact value admitted is the one sent.
-// auto is HD-2's client-autopilot bit: it rides the channel beside the
+// auto is the client-autopilot bit: it rides the channel beside the
 // intent, so the receiving parking's await reads the accepted answer's own
 // mark after the receive that the send happens-before — the play loop reads
 // it only there, and it never reaches decision.Intent or the log.

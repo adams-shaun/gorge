@@ -11,7 +11,7 @@ import (
 
 // defaultBotPoliciesRaw is -bot-policies' default: the empty string means
 // "every registered entry that does not read opponents' decklists"
-// (bots.ReadsDecklists, operator ruling 2026-10-13), resolved against the
+// (bots.ReadsDecklists), resolved against the
 // registry at startup rather than frozen into a literal list that would go
 // stale as entries land. A decklist-reading policy can never be offered:
 // the offered set feeds POST /api/games, and a vs-bot table always seats a

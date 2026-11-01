@@ -168,7 +168,7 @@ func deckNames(flagVal string, seats int) ([]string, error) {
 // failure: non-termination, a replay error or a chain divergence.
 func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string) (ok bool) {
 	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()}
-	// The default object cap (CV-8), the same volume bound the shared drive
+	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
 	// line under a bounded arena instead of growing the process until the
 	// box OOMs.
@@ -186,7 +186,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	// CR 103.1's winner-chooses ask: pose it before the seats attach so the
 	// table's own policy answers it, and the seat's game_start sees the
 	// choice pending. The drive loop answers the pending decision; no Advance
-	// runs the R-9 default underneath it.
+	// runs the no-host default underneath it.
 	e.AskStartingPlayer()
 
 	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, out)

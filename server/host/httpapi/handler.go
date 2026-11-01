@@ -38,9 +38,9 @@ type Options struct {
 	// an Authorize failure (401); a claim whose table or seat disagrees with
 	// the request is refused (403); only an agreeing claim reaches the
 	// seat-scoped Registry methods. See SeatClaim.
-	Seat func(*http.Request) (SeatClaim, bool) // nil = spectator-only (M2e-2)
+	Seat func(*http.Request) (SeatClaim, bool) // nil = spectator-only
 	// CreateGame, when non-nil, arms the POST /api/games endpoint that seats
-	// a human against a bot on demand (Task ui11). It builds and starts a
+	// a human against a bot on demand. It builds and starts a
 	// fresh single-shot table for the requested format and returns its
 	// identity (table, seed, the human seat and its bearer token), which the
 	// client follows to the join URL. nil — the default — leaves the
@@ -64,7 +64,7 @@ type Options struct {
 	// leaves every /api/events path the JSON 404 it is today.
 	Events EventService
 	// Decisions, when non-nil, arms GET /api/tables/{t}/matches/{k}/decisions,
-	// a review table's decision index (match reviewer, design T4). Only
+	// a review table's decision index. Only
 	// `gorged review` sets it (to host.Registry.ReviewDecisions); nil -- the
 	// default, and every live server -- leaves the route unregistered, so it
 	// answers the JSON 404 like any path the handler does not serve and the

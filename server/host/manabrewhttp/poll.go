@@ -11,7 +11,7 @@ import (
 // "no explicit ?seq=" derivation server/host/httpapi's view handler makes from
 // Matches, reused here because this package has no lower-level access to a
 // match's internals (by design: the adapter drives the engine only through
-// the exported Registry surface, D2's fence).
+// the exported Registry surface).
 func headSeq(r *host.Registry, t host.TableID, k int) (uint64, error) {
 	ms, err := r.Matches(t)
 	if err != nil {

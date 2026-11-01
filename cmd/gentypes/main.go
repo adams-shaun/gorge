@@ -31,7 +31,7 @@ func Render() (string, error) {
 		{protoPkg, "Overflow"}, {protoPkg, "ErrorBody"}, {protoPkg, "MatchInfo"},
 		{protoPkg, "Subscribe"}, {protoPkg, "Unsubscribe"},
 		{protoPkg, "BotPolicyList"}, {protoPkg, "Capabilities"},
-		// Draft-event wire types (E1-1). The four frame bodies are roots;
+		// Draft-event wire types. The four frame bodies are roots;
 		// the request/reply types below are also roots because nothing
 		// reaches them transitively.
 		{protoPkg, "EventState"}, {protoPkg, "DraftPack"}, {protoPkg, "PodProgress"},
@@ -47,7 +47,7 @@ func Render() (string, error) {
 		// needs. Every other decision type reaches the client through View,
 		// but nothing reaches it from the server's offered decisions, so
 		// without this root the wire-drift gate could never see drift on the
-		// request shape (M2e-4, R-E4-3).
+		// request shape.
 		{decisionPkg, "Intent"},
 	}
 	// The structs are read from SOURCE (go/types), not by reflection.

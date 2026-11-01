@@ -1,6 +1,6 @@
 // Command repro turns a feedback snapshot directory — the match.json /
 // log.json / view.json (plus report.json) a gorged server's feedback
-// capture (task fbrepro1) writes beside a bug report — into a working
+// capture writes beside a bug report — into a working
 // reproduction:
 //
 //	repro <feedback-dir>              replay the report, verify the head,

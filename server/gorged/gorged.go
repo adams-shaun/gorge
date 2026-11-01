@@ -45,8 +45,8 @@ type config struct {
 	perpetual                          bool
 	// mulligans is the London mulligan allowance the served tables hand the
 	// engine: each player may take up to this many mulligans between the deal
-	// and turn 1 (R-E5-1). Defaults to 1 — a mulligan is the first decision of
-	// a real game — and 0 restores the pre-task behaviour exactly (no round).
+	// and turn 1. Defaults to 1 — a mulligan is the first decision of
+	// a real game — and 0 runs no mulligan round.
 	mulligans int
 	// ext is what the binary links in beyond the platform (Main's argument).
 	ext Extensions
@@ -59,7 +59,7 @@ type config struct {
 	// "commander" are the two names — the smallest thing that lets a person
 	// run both formats on one server is a two-element list, no table
 	// configuration language. applyFormats parses it into formats at serve
-	// time so a malformed list fails before any table is added (R-E3-1).
+	// time so a malformed list fails before any table is added.
 	formatsRaw string
 	formats    []host.Format
 	// commanderSeats is the -commander-seats flag: the seat count of every
@@ -70,7 +70,7 @@ type config struct {
 	// humansRaw is the -humans flag: a comma-separated list of table t1's
 	// slot indices that are real people. Empty stays all-bot, identical to
 	// today. applyHumans parses it into humans at serve time so a malformed
-	// list fails before any table is added (R-E3-1).
+	// list fails before any table is added.
 	humansRaw string
 	humans    []int
 	// vsbot is the -vsbot flag: arm the on-demand play-vs-bot flow so the
@@ -102,7 +102,7 @@ type config struct {
 	// validateBotPolicyFlags: it must be registered, offered and support both
 	// formats and at least 2 seats, so an omitted-field request can never
 	// reach a policy that then refuses it. The flag default is
-	// host.LethalPressurePolicy (2026-10-07): the demo serves commander as
+	// host.LethalPressurePolicy: the demo serves commander as
 	// well as constructed tables, and the previous default was picked as a
 	// 1v1-constructed search policy that validateBotPolicyFlags rejects for
 	// lacking the commander format, so gorged would not even listen. NOTE:
@@ -165,8 +165,8 @@ type config struct {
 	// of the opt-in, and the offered set (botpolicies.go) never lists one.
 	allowDecklistBots bool
 	// seatToken is the -seat-token flag: a fixed bearer token for the first
-	// human slot instead of a random per-slot one. Tests and local use only
-	// (R-E3-3) — production runs mint random tokens.
+	// human slot instead of a random per-slot one. Tests and local use only;
+	// production runs mint random tokens.
 	seatToken string
 	// feedback is the -feedback flag: where a player's own bug reports are
 	// written (feedback.go). It is deliberately NOT under -dir. The
@@ -488,8 +488,8 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return err
 	}
 	sbenv.SetCorpusRef(matchrecord.ForgeRef(c.cards))
-	// -bot-policy and -bot-policies are validated together (BP-18, spec
-	// §9.4): a default that is not offered, or an offered set missing a
+	// -bot-policy and -bot-policies are validated together:
+	// a default that is not offered, or an offered set missing a
 	// registered name, must fail before any listener opens.
 	def, offered, err := validateBotPolicyFlags(c.botPolicy, c.botPoliciesRaw)
 	if err != nil {
@@ -611,7 +611,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	opts := httpapi.Options{Web: c.offerSBV2(c.offerManaBrew(webFS())), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine()}
 	var gate *seatGate
 	if len(c.humans) > 0 {
-		// R-E3-3: arm Options.Seat with a real token check — one opaque
+		// Arm Options.Seat with a real token check — one opaque
 		// token per human slot, minted at startup. With no humans the
 		// resolver stays nil and the server is spectator-only, exactly as
 		// before the flag existed.
@@ -621,7 +621,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		}
 		opts.Seat = gate.resolve
 	}
-	// Task ui11: with -vsbot on and a deck pool to deal, arm the play-vs-bot
+	// With -vsbot on and a deck pool to deal, arm the play-vs-bot
 	// flow so the landing page can seat a human against a bot on demand. This
 	// is additive — the startup tables above are untouched — and needs a gate
 	// even when there were no -humans slots, so create one (an empty store)
@@ -635,7 +635,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		opts.CreateGame = c.createGame(r, gate, cmdPool, conPool, vsbotVis)
 		opts.Seat = gate.resolve
 	}
-	// Draft events (E1): an event's human seats need game tokens minted
+	// Draft events: an event's human seats need game tokens minted
 	// through the same gate resolution the rest of the server uses, and the
 	// eventhost must exist before NewHandler mounts /api/events. A server
 	// with -events off leaves evh nil and the surface byte-identical.
@@ -741,7 +741,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 				s, joinHost(ln.Addr()), s, gate.token("t1", seat))
 		}
 	}
-	// Task fb-20260914T113850Z-682e875e: prewarm the art cache for every
+	// Prewarm the art cache for every
 	// distinct card name (plus each commander) across the dealt decks, in a
 	// background goroutine (art.go prewarmArt): after a deploy the whole pool
 	// would otherwise refill lazily, one paced Scryfall fetch per browser
@@ -807,7 +807,7 @@ func isLoopbackListener(ln net.Listener) bool {
 }
 
 // applyHumans parses the -humans flag into c.humans and rejects the
-// configurations R-E3-1 forbids up front: a malformed list, or humans with
+// configurations it forbids up front: a malformed list, or humans with
 // no table to seat them on. A slot index out of range is deliberately not
 // checked again here — TableConfig.validate owns that check, and the t1
 // AddTable fails with the same information.
@@ -836,7 +836,7 @@ func (c *config) applyHumans() error {
 // over the tables — a single -format commander makes every table a
 // Commander game, and -format commander,constructed runs one of each — and
 // a name that is neither constructed nor commander fails here, before any
-// table is added (R-E3-1), so a typo'd format can never half-start a
+// table is added, so a typo'd format can never half-start a
 // server of wrong-format tables.
 func (c *config) applyFormats() error {
 	c.formats = nil
@@ -948,7 +948,7 @@ func loadDeckCatalogue(dir string, commander, constructed []string) ([]httpapi.D
 // constructed pile. A table the -format list does not reach (fewer entries
 // than tables) is constructed, the zero value. Human slots apply to table
 // t1 alone; claims bind to their table, so a token for t1 cannot act on
-// another table. R-E3-2: a human-seated table is single-shot by definition,
+// another table. A human-seated table is single-shot by definition,
 // and the -perpetual flag
 // defaults to true, so a naive copy of the bot config would make AddTable
 // reject it (perpetual+humans); Perpetual is forced false for t1,
@@ -1021,13 +1021,13 @@ func (g config) hostOptions(reg *cards.Registry, load func(string) (host.Deck, e
 	return host.Options{Dir: g.dir, LoadDeck: load, Tokens: reg.Tokens, NameUniverse: reg.Universe(), Sync: true, Cooldown: g.cooldown,
 		MaxDecisionsPerTurn: host.DefaultMaxDecisionsPerTurn, DefaultBotAutoPayMana: g.botAutoPayMana, DefaultBotCommonSense: g.botCommonSense,
 		MaxOnDemandTables: g.maxOnDemandTables, ThinkTimeout: g.manabrewThinkTimeout(),
-		// BP-18 (spec §7): the §9.4 search-CPU flags reach the host here.
+		// The search-CPU flags reach the host here.
 		// SearchSlots bounds concurrent searched decisions registry-wide
 		// (0 would be unbounded, but gorged validates >= 1); MaxSearchTables
 		// bounds live on-demand search tables; BotSearchParallelism is the
 		// within-one-decision goroutine count (latency only).
 		SearchSlots: g.botSearchSlots, MaxSearchTables: g.maxSearchTables, BotSearchParallelism: g.botSearchParallelism,
-		// BP-13 (spec §3.2): every hosted bot factory receives the served card
+		// Every hosted bot factory receives the served card
 		// registry, so a policy that reads printed card facts (sb-tactical)
 		// builds with the same corpus the table deals.
 		BotDeps:   bots.Deps{Cards: reg},
@@ -1108,7 +1108,7 @@ func deckFiles(dir string) ([]string, error) {
 
 // deckLoader resolves a name to dir/<name>.json once and caches it: the
 // host asks for the same decks every match. The seat is named after the
-// file stem (PL-14), not the deck file's own name field; the File is read
+// file stem, not the deck file's own name field; the File is read
 // anyway because a deck that names a commander carries its command-zone
 // index on the host Deck (deck.File.CommanderIndex — the same resolution
 // rules' own commander games use, and the pool split validated up front),

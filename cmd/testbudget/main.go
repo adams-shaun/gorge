@@ -1,6 +1,5 @@
 // Command testbudget enforces the per-test budget: every single test fits
-// 4 GB RSS, 4 vCPU and 1 minute wall (operator, 2026-10-05; doubled from 2 GB /
-// 2 vCPU on 2026-10-09). It replaces the
+// 4 GB RSS, 4 vCPU and 1 minute wall. It replaces the
 // per-package TEST_HISTORY.md / ALLOC_HISTORY.md budgets, which nothing
 // enforced.
 //

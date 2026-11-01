@@ -13,7 +13,7 @@ import (
 
 const (
 	defaultWallLimitS = 60
-	// 4 GiB per test binary (operator, 2026-10-09; doubled from 2 GiB when the
+	// 4 GiB per test binary (doubled from 2 GiB when the
 	// box went to 120 GiB and the per-test env went to GOMAXPROCS=4
 	// GOMEMLIMIT=3GiB).
 	defaultRSSLimitKiB = 4 * 1024 * 1024

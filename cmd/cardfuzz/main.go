@@ -716,8 +716,8 @@ func playGame(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIn
 	case (o.StallOn == "livelock" || o.StallOn == "bigboard") && strings.HasPrefix(o.Livelock, objectCapAbortPrefix):
 		// The engine's own per-event watchdog fired the mid-resolution object
 		// cap: the object arena crossed the budget during a resolution. The
-		// drive loop already records the volume reason as a bigboard stall
-		// (CV-8), and this arm keeps cardfuzz's own diagnostic vocabulary --
+		// drive loop already records the volume reason as a bigboard stall,
+		// and this arm keeps cardfuzz's own diagnostic vocabulary --
 		// the -max-objects wording and the tail context -- so triage reads
 		// one kind either way; the tail context survives, because the
 		// resolution the abort fired inside is what a triager wants to see.
@@ -801,7 +801,7 @@ var planFailures = true
 // ends as a "bigboard" stall. The arena length bounds the live count from
 // above, so a game that never grows past max never pays the scan.
 // max <= 0 disarms THIS boundary guard -- and arms no explicit
-// mid-resolution cap either (objectCapGuard) -- but since CV-8 the shared
+// mid-resolution cap either (objectCapGuard) -- but the shared
 // drive loop still arms the default volume budget (rules.DefaultMaxObjs) on
 // the nil guard, so "0 disables" means "the harness's own scan is off" and
 // never "the whole budget is off".
@@ -895,7 +895,7 @@ func objectCapDiag(e *rules.Engine, max, count int, abort string) string {
 	if e != nil {
 		turn = e.G.Turn
 	}
-	// max <= 0 names the default budget the drive loop armed (CV-8), not an
+	// max <= 0 names the default budget the drive loop armed, not an
 	// off switch: a trip recorded under 0 crossed rules.DefaultMaxObjs.
 	label := fmt.Sprintf("-max-objects %d", max)
 	if max <= 0 {

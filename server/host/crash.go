@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-// writeCrashReport is spec D15's evidence: what the match was doing when
+// writeCrashReport is the crash evidence: what the match was doing when
 // it died, enough to reproduce from the files beside it. Best effort — a
 // failure to write the report must not mask the crash itself.
 func (r *Registry) writeCrashReport(t *table, m *match, reason string) {

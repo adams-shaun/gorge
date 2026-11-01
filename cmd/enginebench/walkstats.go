@@ -54,7 +54,7 @@ type walkStats struct {
 	timingPool, timingPoolSame           int
 	s5Timing, s5TimingSorc, s5TimingPool int
 	s5TimingPoolSame                     int
-	// W0 (action-walk.md §2): the W1/W2 admissibility classes.
+	// W0: the W1/W2 admissibility classes.
 	w1, w1Same         int
 	w2, w2Same         int
 	w1KindsSeen        [256]int // per-kind presence in a W1-admissible suffix
@@ -89,7 +89,7 @@ var s5TimingKinds = [256]bool{
 	events.StepChange: true,
 }
 
-// w1Kinds is action-walk.md §2's W1Kinds: the event classes W1 admits, before
+// w1Kinds is W1Kinds: the event classes W1 admits, before
 // the per-kind conditions (an opponent's Draw, equal pools, cold combat).
 var w1Kinds = [256]bool{
 	events.DecisionAsk: true, events.DecisionMade: true, events.Priority: true,
@@ -106,7 +106,7 @@ var w2Kinds = [256]bool{
 
 // optsSorcerySensitive reports whether any option in the marshaled list is
 // sorcery-sensitive (play_land or a cast): W0's cheap proxy for W1's
-// sorceryDecisive (action-walk.md §2, §3.3). Over-approximates (a refused
+// sorceryDecisive. Over-approximates (a refused
 // sorcery leaves no option), which is the safe direction for a bench measure.
 func optsSorcerySensitive(raw string) bool {
 	return strings.Contains(raw, "\"play_land\"") || strings.Contains(raw, "\"cast\"")
@@ -142,7 +142,7 @@ func (m *walkStats) observe(e *rules.Engine, d *decision.Decision) {
 		var ks []events.Kind
 		var seen [256]bool
 		allQuiet, allTiming, allS5Timing := true, true, true
-		// W0 classes (action-walk.md §2).
+		// W0 classes.
 		allW1, allW2 := true, true
 		drawBySef, manaAddOther := false, false
 		for _, ev := range e.L.Events[pv.ev:cur.ev] {
@@ -215,7 +215,7 @@ func (m *walkStats) observe(e *rules.Engine, d *decision.Decision) {
 				}
 			}
 		}
-		// W0 (action-walk.md §2): W1 admits the kind set, equal pools at both
+		// W0: W1 admits the kind set, equal pools at both
 		// asks, no Draw by the walking seat, and no sorcery-sensitive option in
 		// the previous list; W2 admits the tap set with all ManaAdd credit to
 		// the walking seat.

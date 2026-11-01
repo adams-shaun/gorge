@@ -17,7 +17,7 @@ import (
 // and stash the live flag, then releases it: play() installs m.slots once
 // and never reassigns it, so the returned *HumanSeat is stable past the
 // lock and can be used without holding m.mu (readers must never drive the
-// engine, D7, and a seat's channel send must not happen under a match lock).
+// engine, and a seat's channel send must not happen under a match lock).
 func (r *Registry) humanSeat(id TableID, k int, player state.PlayerID) (*HumanSeat, error) {
 	_, m, err := r.lookup(id, k)
 	if err != nil {
@@ -66,18 +66,18 @@ func (r *Registry) Pending(id TableID, k int, player state.PlayerID) (*decision.
 // SubmitIntent answers the decision pending on the human seat for player on
 // match k of table id. It never drives the engine: it validates the intent
 // exactly as decision.Decision.Validate does (stale Seq, wrong player, wrong
-// option indices, wrong min-max, duplicates are all rejected — D2) and hands
+// option indices, wrong min-max, duplicates are all rejected) and hands
 // it to the parked seat. The call blocks until the match goroutine has
 // attempted the engine Submit: it returns nil once the engine accepted the
 // intent, or the engine's refusal as its error (the HTTP layer's 409), with
 // the decision left pending for a legal answer. The actual engine Submit runs
-// inside play() on the match goroutine (D7), so a caller who sends on
+// inside play() on the match goroutine, so a caller who sends on
 // SubmitIntent can never race the log.
 func (r *Registry) SubmitIntent(id TableID, k int, player state.PlayerID, in decision.Intent) error {
 	return r.SubmitIntentFrom(id, k, player, in, false)
 }
 
-// SubmitIntentFrom is SubmitIntent with HD-2's client-autopilot bit: auto
+// SubmitIntentFrom is SubmitIntent with the client-autopilot bit: auto
 // marks the answer as produced by the client's autopilot rather than a
 // deliberate human choice (docs/design/2026-10-10-human-divergence-design.md
 // §5.2). The flag travels to the parked slot — never into decision.Intent,

@@ -56,7 +56,7 @@ type randomStats struct {
 const maxPanics = 8
 
 // intentScratch is the random client's per-game reusable buffers, so a draw
-// allocates nothing in steady state (action-walk W3). pool and perm are
+// allocates nothing in steady state. pool and perm are
 // overwritten every draw; ch is built fresh only when the answer is retained.
 type intentScratch struct {
 	pool []int
@@ -268,7 +268,7 @@ func playRandomWithPool(cfg rules.Config, st *randomStats, pool *bench.SparePool
 // autopayIntent instead of randomIntent's manual taps.
 func playRandomGame(cfg rules.Config, st *randomStats, pool *bench.SparePool, autopay bool) {
 	r := rand.New(rand.NewPCG(cfg.Seed, cfg.Seed^0x5bd1e9955bd1e995))
-	// W3: the random client's reusable draw buffers, per game.
+	// The random client's reusable draw buffers, per game.
 	var scratch intentScratch
 	// The finished game's log and object arrays back the next game this run
 	// plays (rules.Spare; reuse never changes a game). The pooled spare is

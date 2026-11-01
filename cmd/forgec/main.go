@@ -147,8 +147,8 @@ func report(dir string, top int) error {
 // engine/effects/zone.go), ValidCard/ValidBlocker (engine/rules/statics.go),
 // ValidTarget/ValidSource (rules/trigger.go), ChangeType
 // (engine/effects/zone.go's effChangeZoneAll) and ChangeValid
-// (engine/effects/cardflow.go's effDig). Fix round 1 (Important #1): ChangeType and
-// ChangeValid were missing from this list even though the doc comment
+// (engine/effects/cardflow.go's effDig). ChangeType and
+// ChangeValid are on this list because the doc comment
 // claimed a complete audit of every MatchesSpec/MatchesSpecFrom call site --
 // they were not, and adding them moved several tokens materially (Remembered
 // 1 -> 50, TargetedCard 5 -> 33, Targeted 16 -> 25, plus a dozen new ones).
