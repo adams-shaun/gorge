@@ -185,7 +185,7 @@
       {/if}
 
       {#if n?.search}
-        <SearchTable search={n.search} label={(r) => candidate(r.choices)} />
+        <SearchTable search={n.search} label={(r) => r.payment ?? candidate(r.choices ?? [])} />
       {:else if n?.net}
         <p class="foot"><span>Net value <b class:neg={n.net.value < 0}>{signed(n.net.value)}</b></span></p>
       {/if}
