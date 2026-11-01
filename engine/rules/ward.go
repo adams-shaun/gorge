@@ -295,7 +295,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		}
 		m := wardSpecialCost.FindStringSubmatch(raw)
 		n, _ := strconv.Atoi(m[2])
-		return pay.PayWaterbend(asPayer(e), payer, int32(n), ids)
+		return pay.PayWaterbend(asPayer(e), payer, ctx.Source, int32(n), ids)
 	case settleWardPaymentWardTap:
 		if len(ids) != 1 || !slices.Contains(e.wardPermanents(payer, ctx.Source, "Artifact,Creature", true), ids[0]) {
 			return false

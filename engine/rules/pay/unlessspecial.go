@@ -113,7 +113,8 @@ func WaterbendTapsOwed(g *state.Game, payer state.PlayerID, n int32) int32 {
 // PayWaterbend settles a waterbend of n: the picked permanents tap for {1}
 // each and the pool pays the rest. It reports false, having paid nothing, when
 // more permanents were picked than {1}s owed or the pool cannot cover the rest.
-func PayWaterbend(e Engine, payer state.PlayerID, n int32, taps []state.ObjID) bool {
+// Paying it waterbends, however it was paid (CR 701.67c).
+func PayWaterbend(e Engine, payer state.PlayerID, source state.ObjID, n int32, taps []state.ObjID) bool {
 	remaining := n - int32(len(taps))
 	if remaining < 0 || !PayMana(e, payer, costvocab.Cost{Generic: remaining}) {
 		return false
@@ -121,6 +122,7 @@ func PayWaterbend(e Engine, payer state.PlayerID, n int32, taps []state.ObjID) b
 	for _, id := range taps {
 		e.Emit(events.Event{Kind: events.Tap, Obj: id})
 	}
+	e.Emit(events.Event{Kind: events.ElementalBend, Obj: source, Player: payer, Text: "water"})
 	return true
 }
 
@@ -212,7 +214,7 @@ func recordUnlessSpecialPick(u *UnlessPayment, kind string, ids []state.ObjID) {
 // (the parser admits it only alone, so the pool is the whole price): false is
 // a decline with nothing paid.
 func chargeUnlessWaterbend(e Engine, u *UnlessPayment) bool {
-	return u.Cost.Waterbend == 0 || PayWaterbend(e, u.Payer, u.Cost.Waterbend, u.WaterbendTaps)
+	return u.Cost.Waterbend == 0 || PayWaterbend(e, u.Payer, u.Ctx.Source, u.Cost.Waterbend, u.WaterbendTaps)
 }
 
 // chargeUnlessSpecial emits the settled picks of the special parts: taps,

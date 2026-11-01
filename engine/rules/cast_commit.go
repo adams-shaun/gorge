@@ -244,7 +244,7 @@ func (e *Engine) payCast() {
 		// tapped as part of paying the cost, the same Tap event a cast's
 		// Convoke/Harmonize/Improvise contributions emit (CR 701.67a), and
 		// they are ONE cost action for the aggregate Mode$ TapAll trigger.
-		pay.EmitConvokeTaps(asPayer(e), pc.card, pc.player, pc.Convoke)
+		pay.EmitConvokeTaps(asPayer(e), pc.card, pc.player, pc.Convoke, pc.mods.Waterbend > 0 || pc.mods.WaterbendX)
 		for _, id := range pc.delve {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 		}
@@ -530,7 +530,7 @@ func (e *Engine) payCast() {
 	if pc.PayLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.PayLife, Text: "paylife proposal"})
 	}
-	pay.EmitConvokeTaps(asPayer(e), pc.card, pc.player, pc.Convoke)
+	pay.EmitConvokeTaps(asPayer(e), pc.card, pc.player, pc.Convoke, pc.mods.Waterbend > 0 || pc.mods.WaterbendX)
 	for _, id := range pc.delve {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 	}
