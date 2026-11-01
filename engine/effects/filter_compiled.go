@@ -449,7 +449,7 @@ func compiledMatch(cs *compiledSpec, g *state.Game, o *state.Object, sc *SpecCon
 	if o == nil {
 		return false
 	}
-	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
+	if copyCeased(o, sc) {
 		return false
 	}
 	if cs.each != nil {

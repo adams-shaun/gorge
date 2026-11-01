@@ -186,6 +186,9 @@ func (e *Engine) matchesWithCharsPTSlow(ce *ContinuousEffect, id state.ObjID, ty
 	// callable, keeps the context stack-allocated on this hot path.
 	sc := e.specCtx(ce.Source, ce.Controller)
 	sc.AsStack = atStack != 0
+	if sc.AsStack {
+		sc.PreparedSpell = e.preparedSpellOf(id)
+	}
 	sc.ExtraTypes, sc.ExtraTypesOwner = types, id
 	sc.ExtraKeywords, sc.ExtraKeywordsOwner = keywords, id
 	if hasPT {

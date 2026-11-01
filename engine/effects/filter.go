@@ -2860,6 +2860,11 @@ type SpecContext struct {
 	// inset rather than the printed face. rules' spellSpecCtx sets it for a
 	// "prototype" cast mode; absent from every other evaluation.
 	AsPrototype bool
+	// PreparedSpell names the prepared exile copy (CR 722.3c) this read treats
+	// as the spell it is about to become, the one object copyCeased spares.
+	// Rules' pre-cast reads of that spell set it; zero everywhere else, so
+	// every other read of exile keeps not seeing the copy.
+	PreparedSpell state.ObjID
 	// FrozenChosenName and ChosenNameBound are an Effect-registered static
 	// or delayed trigger's snapshot of the source's chosen card name at
 	// REGISTRATION time (state.ContinuousEffect.ChosenName /
@@ -3142,6 +3147,14 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	return matchesObjectPtr(g, spec, o, &sc)
 }
 
+// copyCeased reports CR 707.10h's rejection: a copy that is neither on the
+// stack nor on the battlefield matches nothing. A prepared exile copy (CR
+// 722.3c) is only the engine's representation of a cast the permanent permits,
+// so it stays unmatched too, unless sc is reading it as the spell being cast.
+func copyCeased(o *state.Object, sc *SpecContext) bool {
+	return o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield && o.ID != sc.PreparedSpell
+}
+
 // matchesObjectPtr is MatchesObjectCtx with the context passed by pointer:
 // SpecContext is large, and the per-object hot path must not copy it at
 // every call level.
@@ -3158,7 +3171,9 @@ func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecConte
 	cs := compiledSpecFor(spec)
 	// A split card read as the spell being cast (splitReadAsSpell) is the
 	// same kind of override: the programs read its combined colours.
-	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
+	// A ceased copy is left to compiledMatch's rejection; the programs have no
+	// such check.
+	if ps := sc.PredicatePrograms; ps != nil && !copyCeased(o, sc) && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
 		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) && !splitReadAsSpell(o, sc) &&
 		!sc.AsPrototype {
 		switch ps.evaluateCS(cs, spec, g, o, sc) {
@@ -3187,7 +3202,7 @@ func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecConte
 	// ChangesZone triggers -- exactly like any other permanent. Only reject
 	// a copy that is neither on the stack (still a spell) nor on the
 	// battlefield (still a permanent).
-	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
+	if copyCeased(o, &sc) {
 		return false
 	}
 	resolve := sc.Resolve

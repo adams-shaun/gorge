@@ -484,8 +484,18 @@ func (e *Engine) spellSpecCtx(sc effects.SpecContext, id state.ObjID) effects.Sp
 	if o := e.G.Obj(id); o != nil && o.Zone != state.ZStack && !sc.HasManaValue {
 		sc.HasManaValue, sc.ManaValue = true, state.SpellManaValue(e.G, o)
 		sc.AsSpellHalf = true
+		sc.PreparedSpell = e.preparedSpellOf(id)
 	}
 	return sc
+}
+
+// preparedSpellOf is SpecContext.PreparedSpell for a read of id as the spell
+// being cast: id when it is a prepared exile copy (CR 722.3c), else zero.
+func (e *Engine) preparedSpellOf(id state.ObjID) state.ObjID {
+	if e.G.Obj(id).PreparedExileCopy() {
+		return id
+	}
+	return 0
 }
 
 // prototypeSpellSpecCtx binds the K:Prototype inset cost's mana value and the
@@ -942,7 +952,9 @@ func (e *Engine) castWithFlashTargets(p state.PlayerID, id state.ObjID, targets 
 		if !e.spellMatchesValidSA(o.Face(), sv.ParamStr(cards.PKValidSA), id, sv.Source, p, targets, teamworkOffer) {
 			continue
 		}
-		if e.matchesSpec(sv.ParamStr(cards.PKValidCard), id, e.staticSpecCtx(sv)) {
+		sc := e.staticSpecCtx(sv)
+		sc.PreparedSpell = e.preparedSpellOf(id)
+		if e.matchesSpec(sv.ParamStr(cards.PKValidCard), id, sc) {
 			return true
 		}
 	}
@@ -1243,6 +1255,7 @@ func (e *Engine) spellMatchesValidSA(f *cards.Face, raw string, id, staticSource
 			if strings.HasPrefix(constraint, "IsTargeting") {
 				sc := e.specCtx(staticSource, you)
 				sc.AsStack = true
+				sc.PreparedSpell = e.preparedSpellOf(id)
 				sc.ProposedTargets = targets
 				if e.matchesSpec("Spell."+constraint, id, sc) {
 					return true

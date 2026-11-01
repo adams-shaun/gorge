@@ -583,6 +583,7 @@ func (e *Engine) spellConstraintMatches(sv staticView, scope costScope, p state.
 		sc := e.staticSpecCtxNamed(sv)
 		sc.You = p
 		sc.AsStack = true
+		sc.PreparedSpell = e.preparedSpellOf(id)
 		sc.ProposedTargets = targets
 		return e.matchesSpec("Spell."+c, id, sc)
 	}

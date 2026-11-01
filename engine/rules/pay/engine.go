@@ -28,6 +28,10 @@ type Engine interface {
 	// MatchesSpecFrom evaluates a ValidCard$-style filter against the live
 	// object id from source's perspective with you as its controller.
 	MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool
+	// MatchesSpellFrom is MatchesSpecFrom reading id as the spell a cast is
+	// paying for, which a prepared exile copy (CR 722.3c) is before it reaches
+	// the stack.
+	MatchesSpellFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool
 	// AsFace runs fn with object id showing its Card.Faces[faceIdx] (the
 	// face an alternate-face cast flips to; rules faceprobe.go offerAsFace),
 	// a scoped read.

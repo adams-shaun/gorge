@@ -239,6 +239,12 @@ func (pe *payer) MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID
 	}
 	return e.matchesSpecFrom(spec, id, you, source)
 }
+func (pe *payer) MatchesSpellFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {
+	e := (*Engine)(pe)
+	sc := e.specCtx(source, you)
+	sc.PreparedSpell = e.preparedSpellOf(id)
+	return e.matchesSpec(spec, id, sc)
+}
 func (pe *payer) CastProvenanceAdmitsPending(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
 	return (*Engine)(pe).castProvenanceAdmitsPending(spec, objID, you)
 }
