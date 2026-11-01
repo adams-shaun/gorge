@@ -251,7 +251,7 @@ func TestServesADiracGame(t *testing.T) {
 			Over bool `json:"over"`
 		}
 		if s == http.StatusNotFound {
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(time.Second / 100)
 			continue
 		}
 		if err := json.Unmarshal(raw, &v); err != nil {
@@ -263,7 +263,7 @@ func TestServesADiracGame(t *testing.T) {
 		s, raw = call(http.MethodGet, "/pending?seat=0", nil)
 		var d pending
 		if s != http.StatusOK || json.Unmarshal(raw, &d) != nil || d.Kind == "" || d.Player != 0 {
-			time.Sleep(2 * time.Millisecond)
+			time.Sleep(time.Second / 100)
 			continue
 		}
 		choices := []int{}
