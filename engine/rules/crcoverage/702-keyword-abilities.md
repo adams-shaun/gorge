@@ -119,7 +119,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.70a,b | not-impl | - | - | SILENT: granted keyword does nothing |
 | 702.71a | not-impl | - | - | LOUD (1) |
 | 702.72a-c | not-impl | - | - | LOUD (12) |
-| 702.73a | follows | `engine/effects/filter_type.go#IntrinsicAllCreatureTypes` `engine/effects/filter_type.go#changelingType` | `TestCloneChangelingCDAAfterEarlierStrip` |  |
+| 702.73a | follows | `engine/effects/filter_type.go#IntrinsicAllCreatureTypes` `engine/effects/filter_type.go#changelingType` `engine/rules/setprops.go#Engine.setPropTokens` | `TestCloneChangelingCDAAfterEarlierStrip` `TestChangelingSharesACreatureTypeInEveryZone` |  |
 | 702.74a | follows | `engine/rules/altcast_modes.go#altCastModes` `engine/rules/altcast.go#Engine.altCostEnter` | `TestEvokeCastPaysTheEvokeCostAndSacrifices` |  |
 | 702.75a,b | follows | `engine/cards/kw_hideaway.go#kwHideaway` `engine/effects/cardflow.go#effHideaway` `engine/effects/cardflow.go#hideawayPicked` `engine/effects/cardflow.go#hideawayBottom` | `TestRiotAndHideawayUseRealCorpusCards` `TestHideawayExileIsSeatOnesSecretNotSeatZeros` `TestHideawayNoHostExileIsTheControllersSecret` `TestHideawayControllerStillSeesTheHiddenFace` `TestCRHideawayRestGoesToBottomInRandomOrder` | the exile is the controller's secret and look, fixed at the exile (the CR's look follows the permanent's controller); the rest goes to the bottom in a seeded random order |
 | 702.76a | not-impl | - | - | LOUD (10); SILENT granted (Hunting Velociraptor) |

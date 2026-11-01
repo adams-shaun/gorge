@@ -66,7 +66,10 @@ func (e *Engine) setPropTokens(kind string, obj state.ObjID) []string {
 	case setPropTokensCardtype:
 		return cardTypeTokens(e.Derived(obj).Types)
 	case setPropTokensCreaturetype:
-		return creatureTypeTokens(e.Derived(obj).Types)
+		// The all-creature-types marker rides beside Types, and Changeling's
+		// holds in every zone (CR 702.73a, 604.3).
+		d := e.Derived(obj)
+		return creatureTypeTokens(effects.TypeMatchWords(d.Types, d.AllCreatureTypes))
 	case setPropTokensToughness:
 		return []string{strconv.Itoa(int(e.Toughness(obj)))}
 	case setPropTokensCmc:
