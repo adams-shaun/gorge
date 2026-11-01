@@ -91,15 +91,7 @@ func (w *legalWalk) handWalk() {
 			// and never charges the printed keyword parameter (the later
 			// turn-face-up cost).
 			if ph.has(phMorph | phMegamorph | phDisguise) {
-				if fam := morphDownFamily(f); fam != "" && !e.castSuppressed(p, id) &&
-					// The face-down cast pays the fixed {3}, never the printed
-					// cost, so it announces no X (CR 107.3b) and CR 601.3a's X
-					// lookahead does not apply to it.
-					!w.castRestrictedCost(p, id, Cost{Generic: 3}) && w.spellTimingOK(p, id, f, sorcery) &&
-					w.offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
-					*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-						Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
-				}
+				w.appendFaceDownCast(p, id, f, sorcery)
 			}
 			// CR 715.3a: a land front is never cast, but its Adventure half
 			// still is -- only the alternative characteristics are evaluated.
@@ -226,6 +218,11 @@ func (w *legalWalk) handWalk() {
 		// alternate-face offers above already ran, each probed against its own
 		// face.
 		if w.castRestricted(p, id) {
+			// A prohibition on the printed card doesn't reach its face-down
+			// spell, which is judged by its own characteristics (CR 708.4).
+			if ph.has(phMorph | phMegamorph | phDisguise) {
+				w.appendFaceDownCast(p, id, f, sorcery)
+			}
 			continue
 		}
 		// CR 709.5: a fuse card's fused cast is a single spell with BOTH
@@ -657,11 +654,7 @@ func (w *legalWalk) handWalk() {
 		// spellTimingOK the walk already ran above (CR 702.37a's "any time
 		// you could cast a sorcery" -- morph prints only on creature faces).
 		if ph.has(phMorph | phMegamorph | phDisguise) {
-			if fam := morphDownFamily(f); fam != "" &&
-				w.offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
-				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-					Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
-			}
+			w.appendFaceDownCast(p, id, f, sorcery)
 		}
 		// Emerge (CR 702.118a): "cast this spell by sacrificing a creature and
 		// paying the emerge cost reduced by that creature's mana value". It is

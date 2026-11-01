@@ -54,3 +54,45 @@ func TestFaceDownSpellHasOnlyFaceDownCharacteristics(t *testing.T) {
 		t.Errorf("%d pending trigger(s) from the face-down cast", len(e.pendingTriggers))
 	}
 }
+
+// TestCastingProhibitionReadsTheFaceDownSpell: CR 708.4 has "effects that care
+// about the characteristics of a spell" see only the face-down set, so a
+// prohibition judges the face-down cast by a nameless colourless 2/2 creature
+// with mana value 0, and the printed cast by the card.
+func TestCastingProhibitionReadsTheFaceDownSpell(t *testing.T) {
+	t.Parallel()
+	const blueMorph = "Name:Blue Morph\nManaCost:4 U\nTypes:Creature Bird\nPT:3/3\nK:Morph:U\nOracle:x\n"
+	const landMorph = "Name:Cave Morph\nTypes:Land\nK:Morph:2\nOracle:x\n"
+	for _, tc := range []struct {
+		name, valid, hand string
+		printed, faceDown bool
+	}{
+		{"a colour", "Creature.Blue", blueMorph, false, true},
+		{"a name", "Card.namedBlue Morph", blueMorph, false, true},
+		{"a low mana value", "Card.cmcLE3", blueMorph, true, false},
+		{"a land that casts as a creature", "Creature", landMorph, false, false},
+		{"nothing it matches", "Instant", blueMorph, true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			e := handEngine(t, card(t, tc.hand))
+			id := e.G.Zone(state.ZHand, 0)[0]
+			battlePerm(t, e, 1, "Name:Prohibitor\nTypes:Enchantment\nS:Mode$ CantBeCast | ValidCard$ "+tc.valid+" | Caster$ Player\nOracle:x\n")
+			addMana(t, e, 0, "UUUUU")
+			e.priorityRound()
+			var printed, faceDown bool
+			for _, o := range e.Pending().Options {
+				if o.Obj == id && o.Kind == "cast" {
+					if o.Mode == "morphed" {
+						faceDown = true
+					} else {
+						printed = true
+					}
+				}
+			}
+			if printed != tc.printed || faceDown != tc.faceDown {
+				t.Fatalf("printed offered %v, face-down %v; want %v, %v", printed, faceDown, tc.printed, tc.faceDown)
+			}
+		})
+	}
+}

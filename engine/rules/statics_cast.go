@@ -152,7 +152,7 @@ func (e *Engine) castRestrictedFree(p state.PlayerID, id state.ObjID) bool {
 // potential walk's hypothetical bound prices the projection (see
 // castRestrictedCost).
 func (e *Engine) castRestrictedPrinted(statics []staticView, p state.PlayerID, id state.ObjID, pool *state.Mana) bool {
-	return e.castRestrictedCostAs(statics, p, id, Cost{}, true, castPricingPool{pool: pool}, false)
+	return e.castRestrictedCostAs(statics, p, id, Cost{}, true, castPricingPool{pool: pool}, castAsPrinted)
 }
 
 // castPricingPool is the pricing pool a CantBeCast gate's CR 601.3a X
@@ -193,23 +193,32 @@ func (c castPricingPool) get() *state.Mana {
 // lift it, so it is checked before the loop, on every cast route that
 // reaches here.
 func (e *Engine) castRestrictedCost(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
-	return e.castRestrictedCostAs(statics, p, id, cost, false, castPricingPool{pool: pool}, false)
+	return e.castRestrictedCostAs(statics, p, id, cost, false, castPricingPool{pool: pool}, castAsPrinted)
 }
 
 // castRestrictedCostPrototype is castRestrictedCost for the prototyped cast
 // route: every restriction spec reads the card's K:Prototype inset mana
 // value, colours and P/T (CR 718.3a) instead of its printed face.
 func (e *Engine) castRestrictedCostPrototype(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
-	return e.castRestrictedCostAs(statics, p, id, cost, false, castPricingPool{pool: pool}, true)
+	return e.castRestrictedCostAs(statics, p, id, cost, false, castPricingPool{pool: pool}, castAsPrototype)
 }
+
+// castAs names the characteristics a cast's CantBeCast check reads.
+type castAs uint8
+
+const (
+	castAsPrinted   castAs = iota
+	castAsPrototype        // the K:Prototype inset (CR 718.3a)
+	castAsFaceDown         // the face-down spell's: a nameless colourless 2/2 creature with mana value 0 (CR 708.4)
+)
 
 // castRestrictedCostAs is the shared CantBeCast gate. printed true ignores
 // cost and uses the current face's printed cost, compiled only when a
 // restriction actually matches (the X lookahead is its only reader; almost
 // every cast check sees no restriction at all), and pp is read only when
 // the lookahead runs.
-func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, printed bool, pp castPricingPool, asPrototype bool) bool {
-	if e.legendarySpellLocked(p, id) {
+func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, printed bool, pp castPricingPool, as castAs) bool {
+	if as != castAsFaceDown && e.legendarySpellLocked(p, id) {
 		return true
 	}
 	for _, sv := range e.castRestrictionSources(statics, id) {
@@ -267,10 +276,10 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 		for _, rid := range sv.Remembered {
 			sc.Remembered = append(sc.Remembered, state.Target{Obj: rid})
 		}
-		if asPrototype {
+		if as == castAsPrototype {
 			sc = e.prototypeSpellSpecCtx(sc, id)
 		}
-		if e.matchesSpec(spec, id, sc) &&
+		if e.castRestrictionMatches(spec, id, sc, as) &&
 			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool {
 				if len(sv.Remembered) == 0 {
 					return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv))
@@ -288,13 +297,27 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 					cost = e.faceCompiledCost(o.Face()).Cost
 				}
 			}
-			if cost.X > 0 && e.xAnnouncementEscapes(sv, spec, p, id, cost, pp.get(), asPrototype) {
+			if cost.X > 0 && e.xAnnouncementEscapes(sv, spec, p, id, cost, pp.get(), as == castAsPrototype) {
 				continue
 			}
 			return true
 		}
 	}
 	return false
+}
+
+// castRestrictionMatches reads spec against the spell id would be. A face-down
+// cast's spell is judged as that spell, off a copy of the card in hand.
+func (e *Engine) castRestrictionMatches(spec string, id state.ObjID, sc effects.SpecContext, as castAs) bool {
+	if as == castAsFaceDown {
+		if o := e.G.Obj(id); o != nil {
+			spell := *o
+			spell.FaceDown, spell.Zone = true, state.ZStack
+			sc.HasManaValue, sc.ManaValue = true, 0
+			return effects.MatchesObjectCtx(e.G, spec, &spell, sc)
+		}
+	}
+	return e.matchesSpec(spec, id, sc)
 }
 
 // xAnnouncementEscapes reports whether some payable announced X gives id a
