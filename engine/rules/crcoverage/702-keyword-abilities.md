@@ -27,7 +27,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.13a-c | partial | `engine/rules/combat/block.go#CanBlock` | - | artifact test reads printed face (bf.IsArtifact), colour derived |
 | 702.14a-e | follows | `engine/rules/combat/block.go#CanBlock` `engine/rules/combat/block.go#LandwalkSpec` | - | layer-4 land types; nonbasic/snow forms |
 | 702.15a-d,f | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` | - |  |
-| 702.15e | deviates | `engine/rules/combat.go#Engine.runCombatAssignments` `engine/events/event.go#LifeChange` | - | one source to two recipients = two gain events |
+| 702.15e | follows | `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/lifelink_batch.go#Engine.flushLifelinkBatch` | `TestLifelinkTrampleOverIsOneLifeGainEvent` `TestTwoLifelinkSourcesAreTwoLifeGainEvents` |  |
 | 702.16a-j,m | follows | `engine/rules/protection.go#Engine.protectedFrom` `engine/rules/protection.go#Engine.sourceHasQuality` `engine/rules/combat/block.go#CanBlock` | `TestProtectionFromATypeReadsTheSourceNow` |  |
 | 702.16k | unknown | - | - | protection from a player not located |
 | 702.16n,p | unknown | - | - | "doesn't remove" Auras not located |
