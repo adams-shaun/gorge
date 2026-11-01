@@ -36,7 +36,7 @@ func adapterRun(t *testing.T, name string, first, n int, mulligans int, cfg Conf
 		if err != nil {
 			t.Fatal(err)
 		}
-		k, err := AdapterSide(e, set, cfg)(m, p.Seed)
+		k, err := AdapterSide(e, cfg)(m, p.Seed)
 		if err != nil {
 			continue
 		}

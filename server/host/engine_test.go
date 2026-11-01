@@ -449,7 +449,7 @@ func wantEngineRefusal(t *testing.T, err error) {
 	}
 }
 
-func TestFeedbackRefusesOtherEngines(t *testing.T) {
+func TestFeedbackCapturesOtherEngines(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	r, err := host.New(scriptOptions(dir, scriptEngine{}))
@@ -462,18 +462,24 @@ func TestFeedbackRefusesOtherEngines(t *testing.T) {
 	if err := r.Start("s"); err != nil {
 		t.Fatal(err)
 	}
-	refused := func(r *host.Registry) {
+	captured := func(r *host.Registry) {
 		t.Helper()
 		reporter := state.PlayerID(0)
-		_, err := r.SnapshotForFeedback("s", &reporter)
-		wantEngineRefusal(t, err)
-		_, err = r.SnapshotMatch("s", 1, nil)
-		wantEngineRefusal(t, err)
+		snap, err := r.SnapshotForFeedback("s", &reporter)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if snap.Match.Engine != scriptName || snap.Log.Head == "" || snap.View == nil {
+			t.Fatalf("snapshot: engine %q, head %q, view %v (%s)", snap.Match.Engine, snap.Log.Head, snap.View, snap.ViewErr)
+		}
+		if _, err := r.SnapshotMatch("s", 1, nil); err != nil {
+			t.Fatal(err)
+		}
 	}
 	awaitPending(t, r, 0)
-	refused(r)
+	captured(r)
 	playScript(t, r)
-	refused(r)
+	captured(r)
 	if err := r.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -482,7 +488,7 @@ func TestFeedbackRefusesOtherEngines(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer again.Close()
-	refused(again)
+	captured(again)
 }
 
 func TestShadowScanRefusesOtherEngines(t *testing.T) {

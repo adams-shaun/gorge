@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/adams-shaun/gorge/dirac/adapter"
-	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/game"
@@ -24,15 +23,15 @@ type adapterSide struct {
 	dirty  bool
 }
 
-// AdapterSide is a SideFactory over adapter games on set.
-func AdapterSide(e *adapter.Engine, set cardset.Set, cfg Config) SideFactory {
+// AdapterSide is a SideFactory over adapter games.
+func AdapterSide(e *adapter.Engine, cfg Config) SideFactory {
 	return func(m *Matchup, seed uint64) (Side, error) {
 		gm, err := e.New(game.Config{Seed: seed, Names: []string{"p0", "p1"}, Decks: [][]*cards.Card{m.Decks[0], m.Decks[1]}, Tokens: m.reg.Tokens, Mulligans: m.Mulligans})
 		if err != nil {
 			return nil, err
 		}
 		g := gm.(*adapter.Game)
-		k, err := SetSide(set, g.Table(), cfg)(m, seed)
+		k, err := SetSide(g.Set(), g.Table(), cfg)(m, seed)
 		if err != nil {
 			return nil, err
 		}

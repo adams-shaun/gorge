@@ -213,6 +213,9 @@ func surfaceName(s dirac.Surface) string {
 // Table is the game's card table.
 func (g *Game) Table() *kop.Table { return g.tbl }
 
+// Set is the card set the game's table came from.
+func (g *Game) Set() cardset.Set { return g.set }
+
 // CopyState copies the kernel's position into dst, for a conformance check that
 // compares it.
 func (g *Game) CopyState(dst *dirac.State) { dst.CopyFrom(&g.s) }

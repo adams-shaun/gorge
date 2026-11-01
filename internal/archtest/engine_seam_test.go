@@ -15,10 +15,9 @@ import (
 // engine/replay. Everything else in the host runs its game through engine/game,
 // so a table can run on another engine.
 var hostGorgePaths = map[string]bool{
-	// Search, review and feedback capture, which only run on gorge's engine.
+	// Search and review, which only run on gorge's engine.
 	"botenv.go":          true,
 	"closedlist.go":      true,
-	"feedback.go":        true,
 	"review.go":          true,
 	"reviewdecisions.go": true,
 	"shadowscan.go":      true,

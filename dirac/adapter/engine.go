@@ -47,6 +47,9 @@ func (*Engine) Name() string { return Name }
 
 func (*Engine) Caps() game.Caps { return game.Caps{Engine: Name} }
 
+// Autopay reports whether this engine's games play on the autopay surface.
+func (e *Engine) Autopay() bool { return e.surface == dirac.SurfaceAutopay }
+
 // Accepts says why c cannot play here, naming the limit or the card, or nil.
 func (e *Engine) Accepts(c game.Config) error {
 	_, _, err := e.table(c)
