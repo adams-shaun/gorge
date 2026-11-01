@@ -15,7 +15,7 @@ import (
 // answering the same decision sequence produces identical intents, so a
 // match is reproducible from (engine seed, bot seed) alone. The sequence
 // below deliberately includes the KMulligan keep/mulligan coin (the one
-// rng-consuming path; dp1 made KBlockers/KTriggerOrder/KTriggerOptional
+// rng-consuming path; KBlockers/KTriggerOrder/KTriggerOptional are
 // deterministic), since a bot whose rng leaked from the engine or the
 // process clock would only show it on paths that actually draw from it.
 //

@@ -7,8 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestRequiredQuotaMaximizesFeasibleSetAcrossLifeAndMana is the review-r2
-// MAJOR's reproduction at the shared rule's home: the required quota must
+// TestRequiredQuotaMaximizesFeasibleSetAcrossLifeAndMana reproduces this
+// at the shared rule's home: the required quota must
 // select a MAXIMUM-CARDINALITY set that is feasible across BOTH the life
 // (CostLife plus each pip) and the mana (MaxSum) constraints, not greedily
 // take the first option that fits one dimension. Three required options at
@@ -99,7 +99,7 @@ func TestRequiredQuotaPicksCheapestFeasibleOptionPerObj(t *testing.T) {
 	}
 }
 
-// TestBlockRequiredTeamChargeBoundKeepsTeamMinimum is the review-r2 MAJOR's
+// TestBlockRequiredTeamChargeBoundKeepsTeamMinimum is the
 // block-side reproduction: the combined charge bound must be solved WITH the
 // team minima inside the block-team search, never by filtering a finished
 // team pair by pair. Two blockers of a MinBlockers=2 attacker, each carrying

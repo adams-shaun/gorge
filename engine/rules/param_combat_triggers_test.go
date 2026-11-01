@@ -256,8 +256,8 @@ func TestSecondaryYieldsToItsPairedPrimary(t *testing.T) {
 	}
 }
 
-// TestSecondaryDoesNotSuppressAnIndependentCoFiringTrigger pins the r2
-// review's MAJOR finding on the real corpus card: Zoraline, Cosmos Caller
+// TestSecondaryDoesNotSuppressAnIndependentCoFiringTrigger pins this
+// on the real corpus card: Zoraline, Cosmos Caller
 // carries two Attacks triggers on ONE face -- her printed "Whenever a Bat
 // you control attacks, you gain 1 life" (Execute$ TrigGainLife) and the
 // Secondary$-marked "enters or attacks" half (Execute$ TrigImmediateTrig).

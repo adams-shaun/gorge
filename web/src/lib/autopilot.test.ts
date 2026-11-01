@@ -277,7 +277,7 @@ describe('decide', () => {
   });
 
   it('a max-speed granted ability or a morph turn-face-up answers a stack object; a land drop, station, unlock or specialize does not', () => {
-    // aph-web-manual-only-plays: respondable() and the projection half share
+    // respondable() and the projection half share
     // one kind test (castable.isResponseKind), so an offered response and a
     // float-gated one agree about what a response is.
     for (const kind of ['granted', 'turn_face_up']) {
@@ -950,7 +950,7 @@ describe('actionables — the labels behind actionable()', () => {
   });
 });
 
-// aph-web-autopass (spec §8 as amended 2026-09-26): with the seat's auto-pay
+// With the seat's auto-pay
 // preference ON, a payment action carrying a plan is a real play -- the panel,
 // the hand fan and the hot strip all offer it as a one-click cast -- so the
 // empty-window floor and decide()'s actionable tests (the 'smart' step rule

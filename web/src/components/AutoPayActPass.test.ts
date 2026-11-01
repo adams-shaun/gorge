@@ -3,8 +3,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { browserURL, sharedBrowser } from '../test/browser';
 
 /**
- * AutoPayActPass.test.ts is the mounted proof for aph-web-autopay-policy's
- * first half (spec §8: "Auto-pay changes which witness an explicit cast uses;
+ * AutoPayActPass.test.ts is the mounted proof of the auto-pay policy's
+ * first half ("Auto-pay changes which witness an explicit cast uses;
  * it does not otherwise change Auto/Manual policy"). A planned cast posts
  * choices=[] plus a payment selection; it must arm pass-after-acting exactly
  * as the same cast's legacy option does, and a Ctrl-held click (hold

@@ -161,8 +161,8 @@ func containsLabel(opts []decision.Option, want string) bool {
 	return false
 }
 
-// TestNameChoicesUnrestrictedPrefersThePersistedSnapshot closes the sol3
-// MINOR: the snapshot preference in nameUniverseSnapshot was only covered on
+// TestNameChoicesUnrestrictedPrefersThePersistedSnapshot:
+// the snapshot preference in nameUniverseSnapshot was only covered on
 // the FILTERED path, where the persisted list also acts as an allowlist. The
 // UNRESTRICTED path -- Pithing Needle, which
 // carries no ValidCards$ -- returns the snapshot directly, and nothing pinned

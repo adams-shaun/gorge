@@ -191,7 +191,7 @@ func TestFlickerUnattachesAura(t *testing.T) {
 		replayCheck(t, e, cfg)
 	})
 
-	// The r3-review MAJOR: between the flicker's return and the next SBA
+	// Between the flicker's return and the next SBA
 	// pass, a stale AttachedTo link would make the OLD Aura's statics apply
 	// to the returned new object, and checkStateBased runs destroyLethalDamage
 	// BEFORE attachmentSBAs -- so Dead Weight's -2/-2 (applied through the

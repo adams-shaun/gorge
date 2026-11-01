@@ -138,7 +138,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void; reject: 
   return { promise, resolve, reject };
 }
 
-// Spec §8 as amended 2026-09-26 (aph-web-autopass): auto-pay reaches the
+// Auto-pay reaches the
 // autopilot only through the SEAT preference. The table capability makes the
 // switch available and nothing else: with the preference off, a capability
 // table's pass policy is exactly a capability-less table's.

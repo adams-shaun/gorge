@@ -66,7 +66,7 @@ func oppHand(t *testing.T, e *Engine, src string) state.ObjID {
 	return o.ID
 }
 
-// Done-means (aph-hand-reserve 1, the P5 probe): {1}{W} over Forest, Island,
+// {1}{W} over Forest, Island,
 // Plains with a {G} instant in hand. Every plan ties on keys 1-5 and key 7
 // (each leaves exactly one colour), so before key 6 the typed witness's
 // object-ID compare picked Forest+Plains (Forest holds the lowest id) and

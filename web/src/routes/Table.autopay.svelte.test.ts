@@ -65,7 +65,7 @@ const player = (seat: number, battlefield: CardView[] = [], potential?: Potentia
 });
 const seats: SeatInfo[] = [{ name: 'Ari', deck: 'mono-white', colour: '#e5484d' }, { name: 'Bo', deck: 'mono-green', colour: '#22c55e' }];
 
-// The measured empty-pool window (aph-web-autopay-policy's Go probe): the
+// The measured empty-pool window: the
 // lands' manual taps, pass and concede — the Equip {1} is NOT an option yet.
 const tapWindow: Decision = {
   seq: 43, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1,

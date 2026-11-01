@@ -67,7 +67,7 @@ func witheringEngine(t *testing.T, reg *cards.Registry, swamps int) (*Engine, st
 	return e, id, swampIDs
 }
 
-// TestActivationLimitComputedZeroSnowSwampsWithholdsTheOffer is av3-1: with
+// TestActivationLimitComputedZeroSnowSwampsWithholdsTheOffer: with
 // ZERO snow Swamps the computed limit is 0, so Withering Wisps' activated
 // ability must NOT be offered at all.
 func TestActivationLimitComputedZeroSnowSwampsWithholdsTheOffer(t *testing.T) {
@@ -83,7 +83,7 @@ func TestActivationLimitComputedZeroSnowSwampsWithholdsTheOffer(t *testing.T) {
 	}
 }
 
-// TestActivationLimitComputedTwoSnowSwampsOfferedTwiceNotThird is av3-2: with
+// TestActivationLimitComputedTwoSnowSwampsOfferedTwiceNotThird: with
 // TWO snow Swamps the computed limit is 2, so the ability is offered twice
 // this turn and NOT a third time.
 func TestActivationLimitComputedTwoSnowSwampsOfferedTwiceNotThird(t *testing.T) {
@@ -115,7 +115,7 @@ func TestActivationLimitComputedTwoSnowSwampsOfferedTwiceNotThird(t *testing.T) 
 	}
 }
 
-// TestActivationLimitLiteralStillEnforcedExactly is av3-3: the literal-limit
+// TestActivationLimitLiteralStillEnforcedExactly: the literal-limit
 // shape (Basking Rootwalla's ActivationLimit$ 1) behaves exactly as it did
 // before -- offered once, withheld on the second activation the same turn.
 func TestActivationLimitLiteralStillEnforcedExactly(t *testing.T) {
@@ -292,7 +292,7 @@ func TestManaAbilityActivationLimitOfferedOnceThenWithheld(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestActivationLimitUnresolvableItDegradesToUnenforced is av3-4: an
+// TestActivationLimitUnresolvableItDegradesToUnenforced: an
 // ActivationLimit expression the evaluator genuinely cannot resolve (an SVar
 // name absent from the face's table) stays unenforced, deliberately -- the
 // ability is offered exactly as it was before the fix.

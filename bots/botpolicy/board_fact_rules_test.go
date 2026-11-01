@@ -59,8 +59,7 @@ func TestTriggerOrderTiesBreakOnIndex(t *testing.T) {
 	// Loop seeds: with two tied options a shuffle produces the identity
 	// permutation half the time, so a single seed passes against the old
 	// Fisher-Yates by coin flip and discriminates nothing. 25 seeds makes an
-	// accidental pass 2^-25. (Caught by the dp1b gate, which found this case
-	// green on unmodified main.)
+	// accidental pass 2^-25.
 	for seed := uint64(0); seed < 25; seed++ {
 		in := Decide(b, &d, rng(seed))
 		if want := []int{0, 1}; !reflect.DeepEqual(in.Choices, want) {
@@ -71,7 +70,7 @@ func TestTriggerOrderTiesBreakOnIndex(t *testing.T) {
 }
 
 // Only an api:Effect OptionalDecider$ election defaults to decline;
-// unmarked printed triggers and Miracle keep dp1's deterministic accept.
+// unmarked printed triggers and Miracle keep their deterministic accept.
 func TestTriggerOptionalEffectDeclineOnly(t *testing.T) {
 	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
 		Options: []decision.Option{

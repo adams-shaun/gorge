@@ -243,7 +243,7 @@ func TestDerivedColorsSkipsMalformedColourElements(t *testing.T) {
 // already splits -- so the enchanted creature is green AND white, not the
 // printed blue. Before the shared parser learned " & ", "Green & White" was
 // one unrecognised word, the read failed closed, and the bearer kept its
-// printed colour (the review's MAJOR finding).
+// printed colour.
 func TestSetColorStaticAmpersandListMakesWitnessProtectionBearerGreenWhite(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

@@ -208,8 +208,8 @@ func TestDemonicCovenantStaysWhenMilledCardsDifferInType(t *testing.T) {
 	covenantAssertions(t, e, covID, milled, false)
 }
 
-// TestDemonicCovenantStaysWhenMilledSpellsShareNoType is the r2-review
-// regression, end to end: the gate's count head enumerates the candidate's
+// TestDemonicCovenantStaysWhenMilledSpellsShareNoType is a
+// regression test, end to end: the gate's count head enumerates the candidate's
 // ACTUAL card types, so two milled SPELLS that share no card type (an
 // Instant and a Sorcery) must NOT fire the GE2 gate. Before the fix the
 // fixed probe list had no Instant/Sorcery entry, both trivially passed and

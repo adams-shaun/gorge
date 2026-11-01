@@ -42,7 +42,7 @@ func newTapeHost(t *testing.T, choiceIdx int) *tapeHost {
 	return &tapeHost{fakeHost: newHost(t, 2), choiceIdx: choiceIdx}
 }
 
-// TestUnlockDoorMinZeroElectedNoTargetDoesNothing pins the MAJOR-1 regression:
+// TestUnlockDoorMinZeroElectedNoTargetDoesNothing pins a regression:
 // Ghostly Keybearer is `Mode$ Unlock | ValidTgts$ Room.YouCtrl | TargetMin$ 0
 // | TargetMax$ 1`. When the announcement ask OFFERED that targeting and the
 // chooser elected ZERO targets, Ctx.Targets is empty but Ctx.TargetsOffered is

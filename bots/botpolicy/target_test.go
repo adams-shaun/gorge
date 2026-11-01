@@ -95,7 +95,7 @@ func TestTargetPreferCreatureOverFace(t *testing.T) {
 	// The 6/6 is offered at index 1, the face at index 0; a positional
 	// (Options[0]) pick would hit the face and fail this. The opponent is
 	// at a healthy 20 life, so the face is merely legal and loses to the
-	// board (the do-not-suicide half of the dp3 face rule).
+	// board (the do-not-suicide half of the face rule).
 	b := boardOf(def(1, 6, 6))
 	b.Life.Set(1, 20)
 	got, d := targetDecision(b, []tgt{face(), opp(201)}, 1, 1)

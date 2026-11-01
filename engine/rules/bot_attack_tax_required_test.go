@@ -7,8 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// TestBotRequiredAttackDeclarationFitsCombinedPhyrexianTax is the
-// review-r1 MAJOR's reproduction: the combined Phyrexian attack tax must be
+// TestBotRequiredAttackDeclarationFitsCombinedPhyrexianTax is a
+// reproduction: the combined Phyrexian attack tax must be
 // priced on the REQUIRED path too, not just the optional one. With Norn's
 // Annex out and three creatures that each MUST attack (CR 508.1d, their own
 // `S:Mode$ MustAttack | ValidCreature$ Card.Self` static) at four life, the

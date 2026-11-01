@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestAttackPropRequiredBotAnswerNeverLivelocks pins a
-// MAJOR end to end, through the real bot (botpolicy.Decide + Clamp) and the
+// TestAttackPropRequiredBotAnswerNeverLivelocks pins this
+// end to end, through the real bot (botpolicy.Decide + Clamp) and the
 // real Submit path: two Valley Dashers ("attacks each combat if able", CR
 // 508.1d) on seat 1, Ghostly Prison on seat 0, three untapped Mountains, and
 // seat 0 at 2 life. The pair list offers each Dasher at seat 0 for {2}

@@ -1,4 +1,4 @@
-// Fix round (findings-sol4 MAJOR): the draw step's turn-based draw (CR 504.1)
+// The draw step's turn-based draw (CR 504.1)
 // can SUSPEND on a Dredge replacement ask (CR 702.55) posed through the same
 // DrawFor the Draw primitive shares. advanceStep must then return without
 // emitting the step's own Priority event: CR 405.1 grants priority only after

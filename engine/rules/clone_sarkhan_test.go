@@ -94,8 +94,8 @@ func TestSarkhanDragonEntryPosesTheMayCopyElectionAndDeclineKeepsSarkhan(t *test
 	replayCheck(t, e, cfg)
 }
 
-// TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks pins the findings-sol1
-// MAJOR: Sarkhan leaves the battlefield (two Shocks, while its Dragon-entry
+// TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks:
+// Sarkhan leaves the battlefield (two Shocks, while its Dragon-entry
 // trigger waits on the stack) before that trigger resolves. Resolving the
 // trigger must NOT pose the may-copy election -- every become pair is dead
 // (the copy loop would skip Sarkhan either way), so a decision whose every

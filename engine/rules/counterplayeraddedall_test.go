@@ -165,7 +165,7 @@ func TestRikkuWindowUncontrolledWithoutThePut(t *testing.T) {
 	}
 }
 
-// TestRikkuWindowExpiresAtEndOfTurn is the expiry regression for the MAJOR: Rikku's
+// TestRikkuWindowExpiresAtEndOfTurn is an expiry regression test: Rikku's
 // `DB$ Effect` body carries no `Duration$`, but its trigger text is explicitly
 // "until end of turn". Before the fix `effectUntilEOT` read the absent duration
 // as `Permanent` and installed a restriction that only ended when Rikku left the

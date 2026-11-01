@@ -15,7 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// potential_kinds_test.go pins aph-web-manual-only-plays' server half:
+// potential_kinds_test.go pins the server half of manual-only plays:
 // rules.PotentialActions projects EVERY real play kind the priority offer walk
 // (legalActionsPriced) can emit, not only "cast", "ability" and "play_land".
 // A mana-costed non-cast play is offered FLOAT-FIRST (the walk prices it

@@ -542,8 +542,8 @@ func conniveSeedGraveyard(t *testing.T, e *Engine, p state.PlayerID, name string
 	return 0
 }
 
-// TestLethalSchemeConviveDrawReplacementDoesNotOrphanTheAsk is the
-// findings-t2 CRITICAL regression: a connive whose draw poses a Dredge
+// TestLethalSchemeConviveDrawReplacementDoesNotOrphanTheAsk is a
+// regression test: a connive whose draw poses a Dredge
 // replacement (CR 702.55) used to drive its draws through a bare DrawFor
 // loop, so the connive's discard ask was posted while the dredge ask was
 // still outstanding and the engine panicked ("ask overwrote a suspended
@@ -603,8 +603,8 @@ func TestLethalSchemeConviveDrawReplacementDoesNotOrphanTheAsk(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestLethalSchemeConviveDrawReplacementHandAtMostN covers the findings-t2
-// MAJOR shape: when the conniver's hand is at most N there is no discard ask
+// TestLethalSchemeConviveDrawReplacementHandAtMostN covers the
+// case when the conniver's hand is at most N there is no discard ask
 // at all, so the pre-fix code applied the discard, the counter and the
 // record from the PRE-draw hand while the dredge ask was still pending, and
 // the answered dredge then resumed with no sub-ability recorded. Post-fix
@@ -652,7 +652,7 @@ func TestLethalSchemeConviveDrawReplacementHandAtMostN(t *testing.T) {
 	// hand is now exactly N == 1, so no discard ask -- the connive discards
 	// the returned carrier directly and puts one counter on the conniver.
 	submitChoices(t, e, 0)
-	// If any discard ask gets posed here the CRITICAL/MAJOR class is back:
+	// If any discard ask gets posed here the orphaned ask is back:
 	// with hand == N nobody could answer differently, so the connive must
 	// not ask.
 	if pd := e.Pending(); pd != nil && pd.ResumeKind == "connive" {
@@ -681,8 +681,8 @@ func TestLethalSchemeConviveDrawReplacementHandAtMostN(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSpymastersVaultConniveTwoWithDrawReplacements covers the findings-t2
-// N >= 2 shape the review named by inspection: Spymaster's Vault's activated
+// TestSpymastersVaultConniveTwoWithDrawReplacements covers the
+// N >= 2 shape: Spymaster's Vault's activated
 // ability makes a target creature connive X where X is the creatures that
 // died this turn, so each of the two draws poses its OWN Dredge ask
 // sequentially -- the pre-fix bare-DrawFor loop posed the second over the

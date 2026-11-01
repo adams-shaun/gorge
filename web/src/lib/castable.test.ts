@@ -107,7 +107,7 @@ describe('castableAfterTap — reading the server projection', () => {
   });
 });
 
-describe('the widened projection (aph-web-manual-only-plays): every real play kind the offer walk emits', () => {
+describe('the widened projection: every real play kind the offer walk emits', () => {
   // rules.PotentialActions now projects every play kind legalActionsPriced
   // emits (rules TestPotentialActionsProjectsEveryPlayKind): a float-gated
   // Room unlock, morph turn-face-up, specialize or max-speed granted ability

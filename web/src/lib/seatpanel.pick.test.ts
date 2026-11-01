@@ -95,7 +95,7 @@ describe('pickOption — exclusivity by Group', () => {
 
 // A repeatable modal ask (a CanRepeatModes$ Charm, CR 601.2b): the answer is
 // an ORDERED MULTISET over the distinct options, so the ask's Min may exceed
-// the option count — CharmNum$ 3 over 2 legal modes. The review-r2 wedge:
+// the option count — CharmNum$ 3 over 2 legal modes. The wedge:
 // toggle-off on a re-click made len(picked) == min unreachable, so a human
 // seat could never enable the submit button on the engine's own shape.
 const repeatableModes = (seq: number, min = 3, max = 3, repeatable = true): Decision => ({

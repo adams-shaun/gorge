@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The dig1 look-and-take end-to-end leaves: an Ancient Stirrings-shaped
+// The Dig look-and-take end-to-end leaves: an Ancient Stirrings-shaped
 // Dig cast through the real engine poses the KChoose mid-resolution ask,
 // the answer moves exactly the picked card, and the whole game replays from
 // the log. The effects-package halves live in effects/dig_ask_test.go.

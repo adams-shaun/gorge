@@ -246,8 +246,8 @@ func TestInfectDamageToPlainPlaneswalkerOnlyRemovesLoyalty(t *testing.T) {
 	}
 }
 
-// TestInfectCountersRideTheCounterReplacementPath pins the
-// second MAJOR: the conversion emits REAL CounterChange/PlayerCounterChange
+// TestInfectCountersRideTheCounterReplacementPath:
+// the conversion emits REAL CounterChange/PlayerCounterChange
 // events, so the repl:AddCounter class replaces them -- Winding
 // Constrictor's "one more" lines double both the -1/-1 counters an opposing
 // infect creature puts on your blocker and the poison counters one puts on
@@ -302,8 +302,8 @@ func TestInfectCountersRideTheCounterReplacementPath(t *testing.T) {
 	}
 }
 
-// TestInfectDamageRedirectedToCreatureIsCountersOnly pins the review-sol1
-// MAJOR: a damage REDIRECT changes the event's recipient (Palisade Giant's
+// TestInfectDamageRedirectedToCreatureIsCountersOnly:
+// a damage REDIRECT changes the event's recipient (Palisade Giant's
 // `ReplaceEvent Affected$ Self` moves a player-targeted hit onto the Giant),
 // and the infect marker must be recomputed for the NEW recipient. Before the
 // fix the bare "infect" (player-form) marker survived onto the creature
@@ -461,7 +461,7 @@ func corpusInfectSrc(t *testing.T, path string) string {
 }
 
 // TestSacrificedGraftedExoskeletonBearerDealsInfectFromLKI pins CR 113.7a for
-// the granted-infect half of the damage rider, the review-sol1 MAJOR. Grafted
+// the granted-infect half of the damage rider. Grafted
 // Exoskeleton grants infect to a creature whose damage ability sacrifices that
 // creature as its cost: the sacrifice detaches the Equipment (attachment SBAs)
 // before the independent ability resolves, so the live board no longer grants

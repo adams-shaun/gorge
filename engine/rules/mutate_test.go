@@ -357,7 +357,7 @@ func mutateDrain(t *testing.T, e *Engine, limit int) {
 	}
 }
 
-// TestMergedTriggerResolvesTheUnderCardsOwnBody is the finding-r2 regression:
+// TestMergedTriggerResolvesTheUnderCardsOwnBody is a regression test:
 // the pile's top card and an under-card can both define an SVar of the SAME
 // name -- Forge's canonical token body name TrigToken -- and the under-card's
 // "whenever this creature mutates" trigger must run the UNDER-CARD's body,
@@ -576,8 +576,8 @@ func drainUntilOptional(t *testing.T, e *Engine, limit int) *decision.Decision {
 	return nil
 }
 
-// TestHuntmasterLigerUnderAForeignTopPumpsWithItsOwnSVar is the verdict-sol1
-// MAJOR-1 regression: a mutated pile's UNDER-CARD triggered ability used to
+// TestHuntmasterLigerUnderAForeignTopPumpsWithItsOwnSVar is a
+// regression test: a mutated pile's UNDER-CARD triggered ability used to
 // resolve its SVar-indirect parameters against the pile's TOP face.
 //
 // Huntmaster Liger's trigger body is "DB$ PumpAll | NumAtt$ +X | NumDef$ +X"
@@ -631,8 +631,8 @@ func TestHuntmasterLigerUnderAForeignTopPumpsWithItsOwnSVar(t *testing.T) {
 	}
 }
 
-// TestPouncingShoresharkUnderAForeignTopAsksItsOptionalDecider is the
-// verdict-sol1 MAJOR-2 regression: an under-card trigger's OptionalDecider$
+// TestPouncingShoresharkUnderAForeignTopAsksItsOptionalDecider is a
+// regression test: an under-card trigger's OptionalDecider$
 // gate was skipped entirely, so "you may return target creature an opponent
 // controls" silently became "you must".
 //

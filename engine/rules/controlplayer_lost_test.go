@@ -56,8 +56,8 @@ func grantControlPlayer(t *testing.T, e *Engine, id state.ObjID) {
 	}
 }
 
-// TestControlPlayerControlledSeatLosesClearsFold is the direction the
-// findings-t2 report named: when the CONTROLLED player loses, its own fold
+// TestControlPlayerControlledSeatLosesClearsFold:
+// when the CONTROLLED player loses, its own fold
 // entries are removed.
 func TestControlPlayerControlledSeatLosesClearsFold(t *testing.T) {
 	t.Parallel()

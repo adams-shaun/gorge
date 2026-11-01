@@ -163,8 +163,8 @@ func TestCounterUnlessCostManaLeakTapsRealManaSources(t *testing.T) {
 	}
 }
 
-// TestCounterUnlessCostManaLeakWithOneIslandPayNotOffered is the t1 review's
-// regression: with an empty pool and ONE Island the window cannot reach the
+// TestCounterUnlessCostManaLeakWithOneIslandPayNotOffered is a
+// regression test: with an empty pool and ONE Island the window cannot reach the
 // {3}, so the pay branch must not be offered at all (offering it, tapping the
 // Island and still countering the spell strands the payer). The ask is a
 // single decline option and the Bear is countered.

@@ -256,10 +256,9 @@ func checkRatchets(t *testing.T, rs []ratchet) {
 		switch {
 		case r.got > r.limit:
 			t.Errorf("%s: measured %d, above the frozen ceiling of %d.\n"+
-				"This is a SHRINK-ONLY ratchet (rules-engine refactor spec, W0): it may "+
+				"This is a SHRINK-ONLY ratchet: it may "+
 				"fall, never rise. %s\n"+
-				"Do not raise the constant to make this pass; a reviewer treats a raised "+
-				"ratchet as a MAJOR finding. Measure with `go run ./cmd/codeshape -table`.",
+				"Do not raise the constant to make this pass. Measure with `go run ./cmd/codeshape -table`.",
 				r.name, r.got, r.limit, r.advice)
 		case r.got < r.limit:
 			t.Logf("%s: measured %d, below the ceiling of %d. Lower %s in "+

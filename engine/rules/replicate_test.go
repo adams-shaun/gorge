@@ -413,7 +413,7 @@ func drainStackDecliningPlays(t *testing.T, e *Engine, limit int) {
 	}
 }
 
-// TestReplicateTapCostAskBoundedByUntappedCandidates is the r2 MAJOR's
+// TestReplicateTapCostAskBoundedByUntappedCandidates is the
 // regression pin on the clean carrier: Exterminate! (K:Replicate:tapXType<1/Dalek>,
 // {2}{B}) with TWO untapped Daleks. The count ask's max is the largest N the
 // composed cost can still pay, and the composed cost's repeated tap parts
@@ -494,7 +494,7 @@ func TestReplicateTapCostAskBoundedByUntappedCandidates(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestReplicateTapCostPsionicRitualBoundReservesCandidates is the r2 MAJOR's
+// TestReplicateTapCostPsionicRitualBoundReservesCandidates is the
 // measured shape verbatim: Psionic Ritual (K:Replicate:tapXType<1/Horror>,
 // {4}{U}{U}) with two untapped Kederekt Creepers (real corpus Horrors) and a
 // legal graveyard target. The pre-fix engine offered the count 0..64 — the

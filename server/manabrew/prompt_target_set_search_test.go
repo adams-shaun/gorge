@@ -62,7 +62,7 @@ func TestConstrainedTargetPrefixControllerAndProperty(t *testing.T) {
 }
 
 // TestConstrainedTargetPrefixDistinctPropertyFallback pins the structural
-// half of the same MAJOR: SetPropDistinct without a controller constraint,
+// half: SetPropDistinct without a controller constraint,
 // where a greedy pass takes an early option whose property blocks every later
 // one. A legal pair still exists, so the fallback search must find it.
 //

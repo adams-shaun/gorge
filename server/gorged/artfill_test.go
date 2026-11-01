@@ -658,8 +658,8 @@ func TestFetchCachesBothFacesOfAMultiFacedCard(t *testing.T) {
 	}
 }
 
-// TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached is the sol2
-// review regression: a deck name whose OWN art and facts were cached before
+// TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached is a
+// regression test: a deck name whose OWN art and facts were cached before
 // sibling faces were kept (or by a fetch killed between the requested image
 // and a sibling) has a .jpg and .json yet the client can still request an
 // uncached back face. Completeness is decided by every face the named

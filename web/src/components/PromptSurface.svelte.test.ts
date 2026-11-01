@@ -96,7 +96,7 @@ describe('ArrangeModal (via the seat panel)', () => {
     await page.locator('[data-arrange-open]').click();
     const keep = page.locator('[data-arrange-keep]');
     expect(await keep.isVisible()).toBe(true);
-    // The MINOR fix's initial state, in a real browser: a fresh pure reorder
+    // The initial state, in a real browser: a fresh pure reorder
     // opens with EVERY card in the keep row, in offered order, and no pool
     // row — it is a reorder surface from the first paint, not a picking one.
     expect(await keep.locator('[data-arrange-keep-card]').count()).toBe(5);

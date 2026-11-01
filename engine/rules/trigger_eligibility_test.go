@@ -195,8 +195,8 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// read back through state (SkipTurns, and ControlledBy/
 			// ControlArmedTurn), never a trigger mode, so both map to zero.
 			// ControlPlayerChange joins SkipTurn in eventTriggerInterest's
-			// irrelevant list (findings-t2 MAJOR: appending the kind without
-			// classifying it fell to the catch-all and failed this mapping).
+			// irrelevant list (appending the kind without
+			// classifying it falls to the catch-all and fails this mapping).
 			want = 0
 		}
 		if got := eventTriggerInterest(kind); got != want {

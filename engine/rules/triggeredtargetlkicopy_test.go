@@ -1,6 +1,6 @@
 package rules
 
-// ds2: the Defined$ TriggeredTargetLKICopy resolver (engine/effects) reads
+// The Defined$ TriggeredTargetLKICopy resolver (engine/effects) reads
 // TriggerTarget for a BecomesTarget trigger only when the capture marked the
 // event as a targeting one (TriggerStack). This test pins that capture on a
 // real card line: Cloud Cover's "return that permanent to its owner's hand"

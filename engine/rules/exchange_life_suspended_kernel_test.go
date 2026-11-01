@@ -11,8 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestExchangeLifeSettlesAfterLichDrawSuspendsOnDredge is the finding-t2
-// MAJOR repro: a consumed GainLife→Draw replacement body (Lich) that itself
+// TestExchangeLifeSettlesAfterLichDrawSuspendsOnDredge is a
+// reproduction: a consumed GainLife→Draw replacement body (Lich) that itself
 // suspends on a Dredge ask must not orphan the exchange transaction. The
 // losing side (seat 0) is emitted first and settles; the gaining side
 // (seat 1) is consumed by Lich, whose draw seats a Dredge ask and suspends.

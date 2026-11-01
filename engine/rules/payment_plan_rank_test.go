@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Boards for aph-rank-order (spec 5, amended 2026-09-26): complete plans rank
+// Boards for the plan ranking: complete plans rank
 // by irreversible cost, then creature sources, then newly activated sources,
 // surplus, flexibility consumed (distinct mana types), the hand-reserve
 // placeholder, remainder diversity, and finally the typed witness compared

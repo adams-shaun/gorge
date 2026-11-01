@@ -136,7 +136,7 @@ func TestManaPaymentContinuesBelowZeroLife(t *testing.T) {
 	if d == nil || d.Kind != decision.KPriority {
 		t.Fatalf("precondition: pending = %+v, want priority", d)
 	}
-	// Payment actions are published lazily (aph-lazy-offers): build them
+	// Payment actions are published lazily: build them
 	// for this ask, as an opted-in consumer would, before reading them.
 	e.EnsurePaymentActions()
 	for _, a := range d.PaymentActions {

@@ -228,7 +228,7 @@ func (e *Engine) attackRequiresDefender(id state.ObjID, defender state.PlayerID)
 	return n == 1
 }
 
-// TestTerritorialHellkiteNamedRequirementVersusGoad is the t2 review's
+// TestTerritorialHellkiteNamedRequirementVersusGoad is the
 // interaction case: a named MustAttack$ ChosenPlayer duty that CONFLICTS with
 // a goad by the chosen player must not cancel the attack out. The goad
 // restriction removes the (dragon, chosen-goader) pair, and the dragon's
@@ -522,8 +522,8 @@ func TestMustAttackRememberedPlayerBindsThroughRealEffectRegistration(t *testing
 	}
 }
 
-// TestMustAttackNamedDefenderBlockedLeavesAlternateOptional is the sol1
-// review's case: a named requirement whose ONE defender no pair can reach
+// TestMustAttackNamedDefenderBlockedLeavesAlternateOptional:
+// a named requirement whose ONE defender no pair can reach
 // makes the creature not required at all, instead of forcing an attack on a
 // player no duty names.
 //

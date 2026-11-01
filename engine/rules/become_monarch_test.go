@@ -143,8 +143,8 @@ func TestKnightsOfTheBlackRoseSilentWhenSelfBecomesMonarch(t *testing.T) {
 	}
 }
 
-// TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger is the
-// regression for the review MAJOR: an unconditional MonarchChange emit made
+// TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger is a
+// regression test: an unconditional MonarchChange emit made
 // a repeat DB$ BecomeMonarch on the REIGNING monarch fire "whenever you
 // become the monarch" again. The mode fires on a TRANSITION (CR 720.2), so
 // effBecomeMonarch now suppresses the event when its target already holds the

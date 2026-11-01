@@ -979,7 +979,7 @@ func gainedManaOption(e *Engine, obj state.ObjID) (decision.Option, bool) {
 	return decision.Option{}, false
 }
 
-// TestGainedManaAbilityResolvesItsOwnSVars pins the sol1 finding's SVar half:
+// TestGainedManaAbilityResolvesItsOwnSVars pins the SVar half:
 // a gained mana ability whose Amount$ X is defined only on the FOREIGN face
 // resolves X there (two artifacts: the carrier and a spare cog -> {B}{B}),
 // not against the recipient's SVar-less face (which would add nothing).
@@ -1014,7 +1014,7 @@ func gainsCagedManaSrc(t testing.TB) *cards.Card {
 		"Oracle:x\n")
 }
 
-// TestGainsLimitPerTurnCapsAGainedManaAbility pins the sol1 finding's cap
+// TestGainsLimitPerTurnCapsAGainedManaAbility pins the cap
 // half: a GainsAbilitiesLimitPerTurn$ 1 carrier may activate a gained
 // non-tap mana ability once per turn. The activation records the replayable
 // ManaActivate identity marker (IDs[0] = foreign card), and with {1} floating

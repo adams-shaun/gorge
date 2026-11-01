@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The aph-plan-diagnostics board: seat 0 holds four instants the offer
+// The plan-diagnostics board: seat 0 holds four instants the offer
 // builder plans in one build -- a plannable {R} Shock, an {X}{R} spell the
 // cost classifier declines (cost:x), a Spree spell the shape gate declines
 // (shape:modal_cost), and a {C} spell whose only colourless source is a

@@ -410,8 +410,8 @@ func TestDamageYouCostModelledAndPaid(t *testing.T) {
 	}
 }
 
-// The r2-review fixes: the SVar-priced announced PayLife<X> faces (the free
-// announcement the r2 build gave every PayLife<X> face was fail-OPEN for the
+// The SVar-priced announced PayLife<X> faces (a free
+// announcement for every PayLife<X> face would be fail-OPEN for the
 // four faces whose SVar:X fixes the value), and the plain Cost$ DamageYou<N>
 // settle branch, which the r2 round had covered only through Vexing Devil's
 // UnlessCost$ path.

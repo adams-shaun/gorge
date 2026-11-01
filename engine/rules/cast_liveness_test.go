@@ -208,8 +208,8 @@ func TestDeclineThenOtherLegalPlayDoesNotEndTheMatch(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestDeclinesOnDifferentCardsDoNotEndTheMatch is the finding-2 regression,
-// strengthened for CR 733.2: two DIFFERENT unpayable casts in
+// TestDeclinesOnDifferentCardsDoNotEndTheMatch is a regression test
+// for CR 733.2: two DIFFERENT unpayable casts in
 // a row (decline on spell A, then spell B) are ordinary exploration and must
 // never be treated as one accumulating spin. Each card's no-progress count is
 // per-card, so one decline on each of two different cards combines into

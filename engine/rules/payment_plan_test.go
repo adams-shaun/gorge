@@ -572,8 +572,7 @@ func assertPlannedCastPaid(t *testing.T, e *Engine, spell state.ObjID, from int,
 // a plan that does name such a cast is exercised directly (not through the
 // planner offer) by TestPaymentPlanExecutesAfterCastTimeChoice and
 // TestPaymentPlanShapeGateAdditionalCostExecutorPays in
-// payment_plan_shape_gate_test.go. This test is the planner half of the audit
-// story aph-cast-shape-gate owns; autopay-exec-harden owns the executor half.
+// payment_plan_shape_gate_test.go. This test is the planner half of the audit.
 func TestPaymentPlanAdditionalCostCastGetsNoPlan(t *testing.T) {
 	t.Parallel()
 	red := state.Mana{}

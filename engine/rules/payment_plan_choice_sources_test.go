@@ -231,7 +231,7 @@ func TestPaymentPlanChoiceSources(t *testing.T) {
 		e, _, _ := newFixtureDeck(t, 9409, "Name:White Probe\nManaCost:W\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 		wastes := onBoardCard(t, e, 0, choiceCard(t, "Adarkar Wastes"))
 		// The {C} ability is the only normal alternative; the coloured pain
-		// half is last resort with damage:1 (aph-last-resort-plans).
+		// half is last resort with damage:1.
 		var normal []state.Mana
 		for _, u := range e.paymentPlanManaUnits(0) {
 			if u.ID != wastes {

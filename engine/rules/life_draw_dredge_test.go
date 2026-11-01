@@ -1,4 +1,4 @@
-// Fix round (findings-sol4 MAJOR): a GainLife→Draw replacement body (Lich's
+// A GainLife→Draw replacement body (Lich's
 // "If you would gain life, draw that many cards instead") drives its draws
 // through effects.DrawFor, and each draw may suspend on a Dredge ask (CR
 // 702.55). The old `case "Draw"` loop did not check h.Suspended() between

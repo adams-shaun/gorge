@@ -101,7 +101,7 @@ describe('showSubmit — a decision a click cannot answer must offer a way to co
 });
 
 describe('continueEmpty — the Pending tray Continue answers an option-less decision', () => {
-  // The live soft-lock's wire decision (demo game g4, seat 0): the Squadron
+  // The wire decision from a live soft-lock, seat 0: the Squadron
   // Hawk search posed Min 0 / Max 0 with NO options. No picker can render
   // it, so the Pending tray's Continue is the only way to answer; it must
   // post the empty answer through the ordinary submit gate.

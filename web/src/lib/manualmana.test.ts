@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Decision, Option, PaymentAction, PotentialAction, View } from '../protocol';
 import { isManualManaOption, isPlainManualTap, manualManaHidden } from './manualmana';
 
-// Spec §8 (as amended by aph-web-manual-only-plays): with the seat's auto-pay
+// With the seat's auto-pay
 // preference on, "manual mana taps are hidden under auto-pay only when every
 // play the window can reach is reachable without them". manualManaHidden is
 // the ONE predicate all three surfaces read, and isPlainManualTap the one
@@ -180,8 +180,7 @@ describe('manualManaHidden — the predicate table (spec §8)', () => {
   });
 
   it('a payment action carrying zero plans keeps manual mana visible (the panel says "use the manual mana controls")', () => {
-    // Resolves aph-web-autopay-policy's open question under the amended §8:
-    // a cast no plan pays is reachable only by floating mana by hand. The
+    // A cast no plan pays is reachable only by floating mana by hand. The
     // engine never publishes this shape today (rules/payment_plan.go skips a
     // nil plan); the panel's own line must still be true when it does.
     const d = priority([plains, mountain, pass, concede], [planned(null, [])]);

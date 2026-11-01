@@ -1,4 +1,4 @@
-// attackcost-nonmana: the non-mana components of a combat cost. The
+// The non-mana components of a combat cost. The
 // CantAttackUnless/CantBlockUnless grammar used to price only mana (and, on
 // the block side, PayLife and a fixed tapXType), so a static charging
 // Sac/Return/tapXType/PayLife/Phyrexian left its creature free to attack or

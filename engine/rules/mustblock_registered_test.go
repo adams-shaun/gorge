@@ -54,7 +54,7 @@ func TestMustBlockKeywordIsRegistered(t *testing.T) {
 // BECAUSE of that keyword primitive. A carrier left with kw:MustBlock (or
 // the old phantom sentence primitive) in its unsupported list would mean the
 // canonicalisation moved the phantom primitive without registering the real
-// one -- the reviewer's MAJOR, caught per card. A carrier may still be
+// one, caught per card. A carrier may still be
 // unsupported for an unrelated primitive (Gorm the Great also needs the
 // two-or-more-creatures MinMaxBlocker shape).
 func TestMustBlockCensusCarriersAreNotBlockedByTheKeyword(t *testing.T) {

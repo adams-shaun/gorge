@@ -117,7 +117,7 @@ func TestRememberedValidSharesAllCount(t *testing.T) {
 	}
 }
 
-// TestSharesAllCardTypesInstantSorcery is the r2-review regression: the
+// TestSharesAllCardTypesInstantSorcery is a regression test: the
 // probe must be the candidate's ACTUAL card types, not a fixed list. An
 // Instant and a Sorcery share NO card type, so neither matches and the
 // count reads 0 (before the fix both trivially passed a list with no

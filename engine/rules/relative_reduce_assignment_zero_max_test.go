@@ -28,8 +28,8 @@ const resolvedZeroAmountSpell = "Name:Instead Target Spell\nManaCost:3\nTypes:In
 	"SVar:X:Count$Valid Creature.YouCtrl\n" +
 	"Oracle:x\n"
 
-// TestRelativeReduceCostResolvedZeroMaxEmptyOnSingleCandidate pins the
-// reviewer's MAJOR: one legal candidate plus a dynamically resolved zero bound
+// TestRelativeReduceCostResolvedZeroMaxEmptyOnSingleCandidate:
+// one legal candidate plus a dynamically resolved zero bound
 // must hand the amount evaluator NO targets, so a target-count reduction
 // cannot apply for a target the cast may not announce. The sibling assertion
 // with a resolved max of 1 and the same one-candidate census still returns the

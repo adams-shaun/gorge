@@ -672,7 +672,7 @@ func stringContains(s, sub string) bool {
 	return false
 }
 
-// TestUndoHookFiresOnceAndOnBurstStaysOneIntentPerBurst is the v1 MAJOR as a
+// TestUndoHookFiresOnceAndOnBurstStaysOneIntentPerBurst is a
 // regression test. OnRewind must fire exactly once per undo with the intent
 // index the match was rewound to, and after the rewind every OnBurst call
 // must still carry exactly ONE intent's burst — the v1 fork pushed the whole
@@ -785,7 +785,7 @@ func TestUndoHookFiresOnceAndOnBurstStaysOneIntentPerBurst(t *testing.T) {
 			}
 		}
 		if asks > 1 {
-			t.Fatalf("burst %d carries %d DecisionAsks — more than one intent's burst (the v1 MAJOR shape)", i, asks)
+			t.Fatalf("burst %d carries %d DecisionAsks — more than one intent's burst", i, asks)
 		}
 	}
 	if len(bursts) <= burstsBefore {

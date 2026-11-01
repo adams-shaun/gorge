@@ -129,7 +129,7 @@ describe('OptionPicker with later abilities', () => {
   });
 });
 
-// aph-web-manual-only-plays: rules.PotentialActions now also projects the
+// rules.PotentialActions also projects the
 // float-gated special actions and max-speed granted abilities. Avishkar
 // Raceway is the Mount Doom shape again: its live option is the mana tap, and
 // its max-speed "{3}, {T}, Discard a card: Draw a card." (kind "granted") is

@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestBotRequiredBlockTeamFitsCombinedPhyrexianTax is the review-r2 MAJOR's
+// TestBotRequiredBlockTeamFitsCombinedPhyrexianTax is the
 // end-to-end reproduction on the block side: the combined non-mana block
 // charge must be solved WITH the team minima, never by filtering a finished
 // team pair by pair. A Watchdog (CR 509.1c "must block if able", published as

@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The effAnimate lifetime pin (review r2 MAJOR finding): the LType grant
+// The effAnimate lifetime pin: the LType grant
 // honours Duration$/Permanent while the LPT (SetPower/SetToughness) grant
 // hardcoded UntilEOT, so a Duration$ Permanent land animation kept its
 // types through end-of-turn cleanup but lost its P/T — an untransformed-

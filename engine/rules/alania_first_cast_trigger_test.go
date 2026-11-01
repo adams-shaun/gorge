@@ -101,7 +101,7 @@ func castAlaniaProbe(t *testing.T, e *Engine, name string) {
 		}
 		d := e.Pending()
 		if d != nil && d.Kind == decision.KTriggerOptional {
-			// The optional-trigger asks (R2's placement ask and CR 603.5's
+			// The optional-trigger asks (the placement ask and CR 603.5's
 			// resolution ask, OptionalDecider$ You): answer yes.
 			submitChoices(t, e, 0)
 			continue

@@ -1,4 +1,4 @@
-// Findings-sol5 stack-path siblings: the committed direct-arm probe
+// Stack-path siblings: the direct-arm probe
 // (life_draw_dredge_test.go) answers the parked GainLife→Draw dredge asks
 // while the stack is EMPTY, so it exercises only handleModes' direct arm.
 // Two further defects can live ONLY in
@@ -180,8 +180,8 @@ func millEvents(t *testing.T, e *Engine, since int) int {
 	return n
 }
 
-// assertNoOrphanNote fails if the misleading no-sub-ability Note (the
-// findings-sol5 finding-1 symptom) appears since `since`.
+// assertNoOrphanNote fails if the misleading no-sub-ability Note
+// appears since `since`.
 func assertNoOrphanNote(t *testing.T, e *Engine, since int) {
 	t.Helper()
 	for _, ev := range e.L.Events[since:] {

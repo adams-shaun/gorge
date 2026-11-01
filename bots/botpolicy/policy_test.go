@@ -372,8 +372,8 @@ func TestEveryKind(t *testing.T) {
 
 // TestDeterministic checks determinism at the policy level: the same rng
 // seed answering the same decision sequence produces identical intents, and
-// the rng is still load-bearing somewhere. dp1 made KTriggerOrder and
-// KTriggerOptional deterministic (they no longer draw from the rng), so the
+// the rng is still load-bearing somewhere. KTriggerOrder and
+// KTriggerOptional are deterministic (they draw nothing from the rng), so the
 // one remaining rng consumer in this sequence is the KMulligan keep/mulligan
 // coin (a 1-in-3 mulligan); the combat kinds (KBlockers here) consume no rng
 // at all — B2, see chooseAttackers/chooseBlockers. The seat package keeps a

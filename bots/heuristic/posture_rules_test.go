@@ -12,7 +12,7 @@ import (
 )
 
 // postureAggroDeck is the R1 aggro manifest (24 lands; 18 one-drops and 18
-// two-drops: average 1.5) used by the A4 travel tests.
+// two-drops: average 1.5) used by the posture travel tests.
 func postureAggroDeck() *deck.Manifest {
 	return &deck.Manifest{
 		Main: []deck.ManifestRow{

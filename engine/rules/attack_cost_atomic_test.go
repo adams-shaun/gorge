@@ -1,4 +1,4 @@
-// attackcost-atomic: the review-round fixes on top of attackcost-nonmana.
+// Attack-cost atomicity on top of the non-mana combat costs.
 // Four defects: (1) the generic mana and the Phyrexian pips were checked
 // independently against the same pool, so a `Cost$ 2 WP` the payer could not
 // actually pay was offered and then committed unpaid; (2) a floating pool

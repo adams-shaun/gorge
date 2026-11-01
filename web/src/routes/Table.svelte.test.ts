@@ -255,7 +255,7 @@ describe('Table.svelte — the ACTIONS-anchored prompt surface', () => {
 });
 
 describe('Table.svelte — the empty-answer safety net reaches the seated Pending tray', () => {
-  // The live soft-lock's wire decision (demo game g4, seat 0): Min 0 / Max 0
+  // The wire decision from a live soft-lock, seat 0: Min 0 / Max 0
   // with NO options — nothing a picker can render.
   const emptyChoose: Decision = {
     seq: 846, player: 0, kind: 'choose', prompt: 'Search a library: choose up to 0 card(s)', min: 0, max: 0, options: [],

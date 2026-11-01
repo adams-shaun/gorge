@@ -274,7 +274,7 @@ func TestOnlyFirstSpellDiscountsOnce(t *testing.T) {
 	// The discount was spent on the first cast (the log walk counts the
 	// first covered cast), so the second Bean is the full-price {4}. Funded
 	// to exactly the still-discounted {2} first: zero options is the
-	// DISCRIMINATING assertion (review sol2) -- against a tracking that
+	// DISCRIMINATING assertion -- against a tracking that
 	// never spends, the second cast is payable at {2} and this fails -- and
 	// then to the full {4}, where exactly one plain cast is offered.
 	addMana(t, e, 0, "GG")

@@ -4,8 +4,8 @@ import { actionables } from './autopilot';
 import { offersPotential } from './castable';
 import { isManualManaOption, isPlainManualTap, manualManaHidden } from './manualmana';
 
-// "Auto never stops for something the panel hides" (aph-web-manual-only-plays,
-// spec §8 as amended: manual mana taps are hidden under auto-pay only when
+// "Auto never stops for something the panel hides":
+// manual mana taps are hidden under auto-pay only when
 // every play the window can reach is reachable without them).
 //
 // For each fixture window, with the seat's auto-pay preference ON:

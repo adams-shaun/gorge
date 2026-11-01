@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The dig1 look-and-take tests. The pinned primitives_test.go Dig tests pin
+// The Dig look-and-take tests. The pinned primitives_test.go Dig tests pin
 // the NO-CHOICE and no-host behaviour; these pin the ask itself, the look
 // Note, the Optional$ Min, the re-entry contract and the strict-supersets
 // gate, using the askHost double (primitives_test.go) whose Ask captures the
@@ -67,7 +67,7 @@ func TestDigNoHostFallbackKeepsTheFirstEligibleWithANote(t *testing.T) {
 	}
 }
 
-// TestDigNoHostFallbackNoteNamesTheLibraryOwner is the r2 minor finding: the
+// TestDigNoHostFallbackNoteNamesTheLibraryOwner: the
 // fallback Note is Secret, so it must carry Player = the library's owner;
 // without it a Dig of another player's library routed that private note to
 // seat 0 (the zero value), the one reader the note must NOT reach.

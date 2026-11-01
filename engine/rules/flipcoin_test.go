@@ -204,7 +204,7 @@ func tokensNamed(e *Engine, p state.PlayerID, name string) int {
 // lose side) and the target option the trigger's own target ask was answered
 // with (Obj/Player). Tying the recorded target to the trigger is what lets a
 // test assert the 1 damage landed where that side aimed, not merely that
-// SOME 1-damage hit happened (the review's MINOR on the Karplusan leaf).
+// SOME 1-damage hit happened.
 type flipTrig struct {
 	side   string
 	target decision.Option

@@ -154,7 +154,7 @@ func TestAskingSitesResolveAnEmptyCandidateSetSilently(t *testing.T) {
 			},
 		},
 		{
-			// Dig with a window that holds nothing eligible: dig1's own gate
+			// Dig with a window that holds nothing eligible: Dig's own gate
 			// already declines to ask (eligible <= changeNum), and the empty
 			// guard would catch it even if the gate ever moved. SkipReorder$
 			// True holds the default bottom remainder in place so this leaf

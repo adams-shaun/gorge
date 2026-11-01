@@ -51,8 +51,8 @@ func activateCloneAbilityIdx(t *testing.T, e *Engine, mimic, target state.ObjID,
 	passUntilStackEmpty(t, e, 40)
 }
 
-// TestOverlappingClonesTemporaryExpiryKeepsThePermanentCopy is the MAJOR
-// regression: a PERMANENT clone made first and an UntilEndOfTurn clone made
+// TestOverlappingClonesTemporaryExpiryKeepsThePermanentCopy is a
+// regression test: a PERMANENT clone made first and an UntilEndOfTurn clone made
 // second are two units sharing one CopyFace basis. When the temporary one
 // expires at cleanup the object must fall BACK to the permanent copy (CR
 // 613.1a: the highest-timestamp surviving copy effect applies), not revert to

@@ -137,7 +137,7 @@ func TestPaymentPlanDoesNotUseLastResortSources(t *testing.T) {
 		out := e.PlanCastPayment(0, paymentCast(spell))
 		if basics == 0 {
 			// No normal plan exists, so the Tomb funds a last-resort plan that
-			// discloses its damage (aph-last-resort-plans).
+			// discloses its damage.
 			if out.Plan == nil || len(out.Plan.Activations) != 1 || out.Plan.Activations[0].Source != tomb ||
 				out.Plan.Activations[0].Consequence == nil || *out.Plan.Activations[0].Consequence != (decision.PaymentConsequence{Damage: 2}) {
 				t.Fatalf("Tomb-only plan = %+v, want the Tomb disclosing damage:2", out)
@@ -230,7 +230,7 @@ func tierFillGraveyard(t *testing.T, e *Engine, n int) {
 // TestPaymentPlanTiersFPAncientTomb (FP-2). The {2} plan the fewest-sources
 // rank used to build from Ancient Tomb moved life 20 -> 18 on execution with
 // nothing announced in the witness. Now: tomb only is a last-resort plan
-// whose witness DISCLOSES the 2 damage (aph-last-resort-plans), and with two
+// whose witness DISCLOSES the 2 damage, and with two
 // Swamps the plan uses the Swamps and execution leaves life untouched.
 func TestPaymentPlanTiersFPAncientTomb(t *testing.T) {
 	t.Parallel()
@@ -292,8 +292,7 @@ func TestPaymentPlanTiersFPAncientTomb(t *testing.T) {
 // (deferred: life loss to each player, poison; a control-change or targeted
 // rider is no mana ability at all, CR 605.1a) or, when it is a fully
 // determined last-resort consequence (damage to you, return to hand), planned
-// only with that consequence disclosed in the witness step
-// (aph-last-resort-plans).
+// only with that consequence disclosed in the witness step.
 func TestPaymentPlanTiersFPHarmfulRiderFamily(t *testing.T) {
 	t.Parallel()
 	for _, name := range []string{"Tarnished Citadel", "Cryptolith Fragment", "Elves of Deep Shadow", "Mox Poison",

@@ -559,7 +559,7 @@ func TestQuietProofFixtures(t *testing.T) {
 			blocker: qbBattlefieldAbility,
 		},
 		{
-			// findings-t3 MAJOR 1: a NONLAND Morph creature whose face-up
+			// A NONLAND Morph creature whose face-up
 			// cost is unaffordable is still cast face down for {3} (CR
 			// 702.37a), so the down-cast arm must gate every nonland face,
 			// not only the land branch. Krosan Colossus is {6}{G}{G}{G}
@@ -593,7 +593,7 @@ func TestQuietProofFixtures(t *testing.T) {
 			blocker: qbHandSpell,
 		},
 		{
-			// findings-t3 MAJOR 2: K'rrik, Son of Yawgmoth's
+			// K'rrik, Son of Yawgmoth's
 			// AddKeyword$ PayLifeInsteadOf:B is a granted cost substitution
 			// (not a ReduceCost static), so the walk prices a black spell
 			// below its printed floor while the per-face classifier cannot
@@ -892,7 +892,7 @@ func optKinds(opts []decision.Option) []string {
 // -run 'TestQuietProofCorpusSweep$/^3-of-8$'. The shards run in parallel
 // (t.Parallel): the whole sweep is ~2x one shard's wall under the 2-vCPU cap
 // instead of 8x, so the parent test itself stays inside the per-test budget
-// that the serial run exceeded on a loaded box (74 s, round t3).
+// that the serial run exceeded on a loaded box (74 s).
 func TestQuietProofCorpusSweep(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	n := reg.Len()
