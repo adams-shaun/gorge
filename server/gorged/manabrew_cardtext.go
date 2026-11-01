@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// manabrewCardText implements internal/manabrew.CardText over the art
+// manabrewCardText implements server/manabrew.CardText over the art
 // cache's per-face facts sidecar (art.go: the six-field cardFacts record a
 // card's Scryfall named response already writes for the web client's own
 // /cards/named route). The type is the seam between that cache and ManaBrew's
@@ -35,7 +35,7 @@ func newManabrewCardText(ac *artCache) *manabrewCardText {
 	return &manabrewCardText{ac: ac}
 }
 
-// Text implements internal/manabrew.CardText. name is exactly what the
+// Text implements server/manabrew.CardText. name is exactly what the
 // seat's redacted CardView shows (the face name for a DFC/split/adventure
 // card); the caller never passes an empty name for a face-down or hidden
 // card, but an empty name is treated as a miss here too, defensively.
