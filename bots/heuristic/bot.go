@@ -415,9 +415,7 @@ func (b *Bot) paymentIntent(brd botpolicy.Board, d *decision.Decision) (decision
 		// The tap gate has a real cast to make now and the plan path will
 		// strand it: take the full manual policy, whose same tap gate aims the
 		// window's mana at that card, instead of spending it on a lesser
-		// planned spell. Once the manual taps float mana the engine withholds
-		// plans for the rest of the window (paymentPlanPoolOK), so the turn
-		// cannot oscillate back onto the plan path mid-sequence.
+		// planned spell.
 		//
 		// This is the single gate for BOTH the plan-bearing window and the
 		// no-plan window (len(payable)==0): when no cast is plausibly castable

@@ -97,9 +97,6 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 	if pain := pay.PlanRemainingPain(plan, next); pain > 0 && pain >= int64(e.G.Players[pc.player].Life) {
 		return paymentFallbackCostChanged, nil, pay.Alt{}, false
 	}
-	if next == 0 && !pay.PlanPoolOK(&e.G.Players[pc.player]) {
-		return paymentFallbackProductionChanged, nil, pay.Alt{}, false
-	}
 	if next > 0 && next < len(plan.Activations) && e.paymentPlanManaInterference() {
 		return paymentFallbackProductionChanged, nil, pay.Alt{}, false
 	}
@@ -137,7 +134,8 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 			return paymentFallbackSourceChanged, units, pay.Alt{}, false
 		}
 	}
-	pool := e.G.Players[pc.player].Pool
+	desc := paymentForCast(pc, cost)
+	pool := pay.PlanPool(asPayer(e), pc.player, &desc)
 	var first pay.Alt
 	for i, pa := range plan.Activations {
 		// A source named twice is never a V1 witness (the planner taps each

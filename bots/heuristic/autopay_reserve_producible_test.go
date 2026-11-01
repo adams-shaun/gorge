@@ -2,9 +2,8 @@ package heuristic
 
 // Test for autopay-bot-reserve-producible: C7 (the mana reserve) must fire on
 // a plan-backed cast. Under the auto-pay adapter every candidate cast is a
-// plan decision and a V1 plan is offered only when the floating pool is EMPTY
-// (engine/rules/payment_plan.go's paymentPlanPoolOK), so the cast scorer's
-// ctx.poolTotal is always 0 and C7's `poolTotal-cost >= res` can never hold:
+// plan decision and the seat floats nothing, so the cast scorer's
+// ctx.poolTotal is 0 and C7's `poolTotal-cost >= res` can never hold:
 // the auto-pay bot never prefers the cast that keeps its instant castable,
 // while the manual bot (which floats mana before casting) does.
 //

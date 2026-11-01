@@ -74,9 +74,7 @@ type PotentialPlan struct {
 //     potentialModeCastPlan, confirmed by the offer gate itself;
 //   - every other play is "unsupported".
 //
-// Inside the query the floating pool's snow, persistent and producer-typed
-// units count as ordinary mana (paymentPlanPoolAccepted). A witness that
-// sacrifices or returns a permanent is replayed on a clone
+// A witness that sacrifices or returns a permanent is replayed on a clone
 // (potentialWitnessReaches) before it is offered.
 //
 // An "insufficient" verdict is only reported as a proof: when the planner's
@@ -95,9 +93,6 @@ func (e *Engine) PotentialPaymentPlans(p state.PlayerID) []PotentialPlan {
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
 	defer pay.PaymentPlanQueryEnd(asPayer(e), e.paymentPlanQueryResumeBegin(p))
-	prevPool := e.PaymentPlanPotentialPool
-	e.PaymentPlanPotentialPool = true
-	defer func() { e.PaymentPlanPotentialPool = prevPool }()
 	hyp, opts := e.potentialWalkOf(p, true)
 	// ambiguous[i]: another potential play shares opts[i]'s (kind, object,
 	// ability, mode) identity. A pairwise scan over the walk's few plays
@@ -121,7 +116,6 @@ func (e *Engine) PotentialPaymentPlans(p state.PlayerID) []PotentialPlan {
 			}
 		}
 	}
-	poolOK := pay.PaymentPlanPoolAccepted(asPayer(e), p)
 	// Every ordinary cast verdict below names a plain cast the PotentialMana
 	// walk above listed, so the planner shares one cost-static collection
 	// and a priced candidate set across them (castPlanShare).
@@ -137,11 +131,8 @@ func (e *Engine) PotentialPaymentPlans(p state.PlayerID) []PotentialPlan {
 		pp := PotentialPlan{Action: decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode, Label: o.Label}}
 		witness := false // the verdict's Plan is the play's witness (not Decision.PaymentActions')
 		verdict := func() PaymentPlanOutcome {
-			switch {
-			case ambiguous[oi]:
+			if ambiguous[oi] {
 				return PaymentPlanOutcome{Reason: "ambiguous"}
-			case !poolOK:
-				return PaymentPlanOutcome{Reason: "unsupported", Detail: "pool"}
 			}
 			got, w := e.potentialPlayVerdictShared(p, o, &share)
 			witness = w
@@ -244,9 +235,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 				return alt, true
 			}
 		}
-		// The cast planner's witness rides Decision.PaymentActions too, but
-		// only while the pool is plain (paymentPlanPoolOK); it is carried
-		// here so a seat holding typed or snow mana can still lower it.
+		// The cast planner's witness also rides Decision.PaymentActions.
 		return got, true
 	case o.Kind == "ability" && o.SVar == "" && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0:
 		return e.planAbilityPayment(p, o.Obj, o.Ability), true

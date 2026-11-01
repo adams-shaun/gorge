@@ -58,11 +58,6 @@ const (
 //     (EnsurePaymentActions builds once per priority decision and caches the
 //     result; each PaymentActionsForPriority call is a fresh build). A build
 //     on a finished game is not counted.
-//   - PoolDeclined counts builds the builder declined wholesale because the
-//     player's floating pool holds mana the planner cannot account for
-//     (paymentPlanPoolOK: snow, persistent, restricted or unit-tagged mana).
-//     Such a build walks no candidate, so it adds nothing to Candidates,
-//     ByReason or ByDetail: it is counted once per build, here only.
 //   - Candidates is the number of ordinary plain casts the builder planned;
 //     each lands in exactly one ByReason bucket. ByReason is the planner's
 //     Reason with "" (a complete plan, no limit) spelled "ready";
@@ -80,7 +75,6 @@ const (
 //     selection; Fallbacks counts the cast flow's plan fallback by its spec §6 reason (the Fallback* vocabulary).
 type PlanStats struct {
 	DecisionsBuilt     int
-	PoolDeclined       int
 	Candidates         int
 	ActionsOffered     int
 	PlansOffered       int
@@ -100,14 +94,11 @@ func bumpPaymentStat(m *map[string]int, key string, n int) {
 	(*m)[key] += n
 }
 
-func (s *PlanStats) RecordBuild(poolDeclined bool) {
+func (s *PlanStats) RecordBuild() {
 	if s == nil {
 		return
 	}
 	s.DecisionsBuilt++
-	if poolDeclined {
-		s.PoolDeclined++
-	}
 }
 
 func (s *PlanStats) RecordOutcome(got PlanOutcome) {
@@ -161,7 +152,6 @@ func (s *PlanStats) Merge(o *PlanStats) {
 		return
 	}
 	s.DecisionsBuilt += o.DecisionsBuilt
-	s.PoolDeclined += o.PoolDeclined
 	s.Candidates += o.Candidates
 	s.ActionsOffered += o.ActionsOffered
 	s.PlansOffered += o.PlansOffered
@@ -210,7 +200,6 @@ func (s *PlanStats) WriteText(w io.Writer) error {
 	}
 	p("payment plan stats:\n")
 	p("  decisions built:       %d\n", s.DecisionsBuilt)
-	p("  pool declined builds:  %d\n", s.PoolDeclined)
 	p("  cast candidates:       %d\n", s.Candidates)
 	p("  actions offered:       %d\n", s.ActionsOffered)
 	p("  plans offered:         %d\n", s.PlansOffered)

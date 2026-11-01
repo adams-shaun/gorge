@@ -43,10 +43,6 @@ type Session struct {
 	// of every planned cost for the paid relaxed abilities it admits.
 	PaymentPlanRelaxedFee int32 `clone:"reset"`
 
-	// PaymentPlanPotentialPool marks a PotentialPaymentPlans query
-	// (paymentPlanPoolAccepted). Pure per-query scratch: Clone copies none.
-	PaymentPlanPotentialPool bool `clone:"reset"`
-
 	// WalkRecDemand: the payment offer builder has run on this engine, so
 	// its potential walk follows priority walks and they record
 	// (walk_block_reuse.go). Clone copies none.

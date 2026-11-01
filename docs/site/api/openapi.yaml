@@ -2064,7 +2064,7 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/engine/decision.PaymentFallback"
     PaymentPlan:
-      description: "PaymentPlan is a complete V1 execution witness. PoolSpend records which pre-existing mana units pay the cast; PoolAfter records the expected pool after activations and payment, and is independently revalidated by rules."
+      description: "PaymentPlan is a complete V1 execution witness. PoolSpend records which pre-existing mana units pay the cast; PoolAfter records the expected pool after activations and payment, and is independently revalidated by rules. Both count only mana this payment may spend: a restricted batch it does not admit is in neither."
       properties:
         activations:
           items:

@@ -61,9 +61,6 @@ func decisionMadeAnnounceText(kind decision.Kind, choices []int, announce *decis
 // pure, so the answer re-derives the plan the ask offered.
 func (e *Engine) announcedAutoFillPlan(pc *pendingCast, mana Cost) *decision.PaymentPlan {
 	p := pc.player
-	if !pay.PlanPoolOK(&e.G.Players[p]) {
-		return nil
-	}
 	if global, _ := e.paymentPlanGlobalManaEffect(p, pc.card); global {
 		return nil
 	}

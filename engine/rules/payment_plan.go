@@ -139,9 +139,6 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	if detail := pay.PlanNonManaAdmissible(cost); detail != "" {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
 	}
-	if !pay.PaymentPlanPoolAccepted(asPayer(e), p) {
-		return PaymentPlanOutcome{Reason: "unsupported"}
-	}
 	if global, detail := e.paymentPlanGlobalManaEffect(p, cast.Object); global {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
 	}
@@ -527,14 +524,7 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 	if e.G.Over {
 		return nil, nil, potential, false
 	}
-	// Every candidate's plan is declined on a pool the planner cannot
-	// account for (planCastPaymentChecked), and that verdict reads only the
-	// player, so no walk can change the empty result.
-	if !pay.PlanPoolOK(&e.G.Players[p]) {
-		e.PaymentStats.RecordBuild(true)
-		return nil, nil, potential, false
-	}
-	e.PaymentStats.RecordBuild(false)
+	e.PaymentStats.RecordBuild()
 	// The builder's potential walk is what the priority walk's block record
 	// serves (walk_block_reuse.go): record from now on.
 	e.WalkRecDemand = true
@@ -726,7 +716,6 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	// Rebuild only the explicitly named alternatives.  This is independent of
 	// planner ranking: a valid non-preferred witness remains legal.
 	units := pay.PaymentPlanQueryUnits(asPayer(e), p)
-	pool := e.G.Players[p].Pool
 	produced := state.Mana{}
 	var pain int64
 	lastResort := false
@@ -745,7 +734,6 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		}
 		pain += pay.ConsequencePain(step.Consequence)
 		lastResort = lastResort || step.Tier == pay.TierLastResort
-		pool = pay.ManaAdd(pool, step.Mana)
 		produced = pay.ManaAdd(produced, step.Mana)
 	}
 	// The lethal guard and the phase rule (spec 5): a witness never kills its
@@ -785,8 +773,10 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	if o := e.G.Obj(cast.Object); o != nil && plannedMayPlayZone(o.Zone) && cast.Origin != decision.OriginFlashback {
 		cost = pay.PlanManaUnderRider(cost, asPayer(e).Eval().MayPlayRider(p, cast.Object))
 	}
-	payment, ok := resolveManaWith(cost, pool, state.Mana{}, [7]state.Mana{}, e.G.Players[p].Life, false, pipRider{}, nil)
-	expected := pay.Witness(cost, e.G.Players[p].Pool, produced, nil, payment.Pool)
+	desc := pay.DescriptorFor(cast.Object, false, cost)
+	initial := pay.PlanPool(asPayer(e), p, &desc)
+	payment, ok := resolveManaWith(cost, pay.ManaAdd(initial, produced), state.Mana{}, [7]state.Mana{}, e.G.Players[p].Life, false, pipRider{}, nil)
+	expected := pay.Witness(cost, initial, produced, nil, payment.Pool)
 	if !ok || pay.ManaAmount(payment.Pool) != plan.PoolAfter || expected.PoolSpend != plan.PoolSpend {
 		return fmt.Errorf("payment witness does not settle")
 	}

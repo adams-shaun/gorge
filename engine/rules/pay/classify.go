@@ -227,34 +227,6 @@ func PlanCostOK(c Cost) bool {
 		c.ChooseType == 0
 }
 
-// PlanPoolOK reports whether p's floating mana is plain: no snow,
-// persistent or restricted mana and every producer-typed unit
-// (state.Player.ManaUnits) empty. It reads the player in place; the units
-// are formed exactly as ManaUnits forms them, without its two copies of
-// the player.
-func PlanPoolOK(p *state.Player) bool {
-	if p.Snow.Total() != 0 || p.PersistentMana.Total() != 0 || len(p.RestrictedMana) != 0 {
-		return false
-	}
-	for t := range p.TypedMana {
-		m := p.TypedMana[t]
-		if t < len(p.ArtifactTyped) {
-			for i := range m {
-				m[i] -= p.ArtifactTyped[t][i]
-			}
-		}
-		if m.Total() != 0 {
-			return false
-		}
-	}
-	for t := range p.ArtifactTyped {
-		if p.ArtifactTyped[t].Total() != 0 {
-			return false
-		}
-	}
-	return true
-}
-
 // PlanLastResortCostOK reports whether a last-resort activation cost
 // is exactly {T} (optional), Sac<1/...>, PayLife<N> and Return<1/...>: every
 // other part -- mana, X, counters, discard, exile, mill, reveal, energy, a tap

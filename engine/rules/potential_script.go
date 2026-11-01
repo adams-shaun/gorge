@@ -153,7 +153,6 @@ func (sr *scriptSearch) offered(o *decision.Option) bool {
 // from the floating pool (a witness that also reaches it); a verdict that
 // is neither a witness nor a proof marks the search unproven.
 func (sr *scriptSearch) priced(c *Engine) bool {
-	c.PaymentPlanPotentialPool = true
 	defer pay.PaymentPlanQueryEnd(asPayer(c), pay.PaymentPlanQueryBegin(asPayer(c)))
 	o := decision.Option{Kind: sr.play.Kind, Obj: sr.play.Obj, Ability: sr.play.Ability, Mode: sr.play.Mode, AltCostIndex: max(sr.altCost, 0)}
 	got, _ := c.potentialPlayVerdict(sr.p, o)
@@ -295,7 +294,6 @@ func (e *Engine) scriptNodeGaps(p state.PlayerID) []state.ObjID {
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
 	defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
-	e.PaymentPlanPotentialPool = true
 	hyp := e.PotentialMana(p)
 	return e.paymentPlanCensusOf(p, &hyp).gaps
 }
@@ -533,9 +531,6 @@ func (e *Engine) PotentialPlayScript(p state.PlayerID, a decision.PotentialActio
 		e.beginDerivedMemo()
 		defer e.endDerivedMemo()
 		defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
-		prev := e.PaymentPlanPotentialPool
-		e.PaymentPlanPotentialPool = true
-		defer func() { e.PaymentPlanPotentialPool = prev }()
 		hyp := e.PotentialMana(p)
 		census = e.paymentPlanCensusOf(p, &hyp)
 		plain, _ = e.potentialPlayVerdict(p, decision.Option{Kind: a.Kind, Obj: a.Obj, Ability: a.Ability, Mode: a.Mode})

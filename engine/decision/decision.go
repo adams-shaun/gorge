@@ -681,8 +681,7 @@ type Decision struct {
 	// engine's own gates; the hypothetical pool is every untapped source), so
 	// an object absent from it is not castable this window however much mana
 	// is floated. PotentialCastsKnown says the build ran the walk: false on an
-	// unbuilt extension and on a pool the planner declines before walking
-	// (pay.PlanPoolOK), where the census says nothing. The auto-pay bot's tap
+	// unbuilt extension, where the census says nothing. The auto-pay bot's tap
 	// gate reads both (botpolicy.Board.tapTarget) so it never floats mana
 	// toward a card the engine already knows it cannot cast. Engine cache
 	// data like PotentialUnpayableCasts: not wire, clone-copied by CloneInto.

@@ -13,19 +13,19 @@ import (
 func TestPlanStatsMergeAndReport(t *testing.T) {
 	t.Parallel()
 	var nilSink *PlanStats
-	nilSink.RecordBuild(false)
+	nilSink.RecordBuild()
 	nilSink.RecordOutcome(PlanOutcome{Reason: "insufficient", Nodes: 3})
 	nilSink.RecordOffered(1)
 	nilSink.RecordPlannedSubmission()
 	nilSink.RecordFallback(FallbackCostChanged)
 
 	a := &PlanStats{}
-	a.RecordBuild(false)
+	a.RecordBuild()
 	a.RecordOutcome(PlanOutcome{Reason: "unsupported", Detail: "cost:x"})
 	a.RecordOutcome(PlanOutcome{Plan: &decision.PaymentPlan{}, Reason: "search_limit", Nodes: 9})
 	a.RecordOffered(1)
 	b := &PlanStats{}
-	b.RecordBuild(true)
+	b.RecordBuild()
 	b.RecordOutcome(PlanOutcome{Plan: &decision.PaymentPlan{}, Nodes: 4})
 	b.RecordOutcome(PlanOutcome{Reason: "insufficient", Detail: "source:deferred", Nodes: 5})
 	b.RecordOffered(1)
@@ -38,7 +38,7 @@ func TestPlanStatsMergeAndReport(t *testing.T) {
 	sum.Merge(b)
 	sum.Merge(nil)
 	want := PlanStats{
-		DecisionsBuilt: 2, PoolDeclined: 1, Candidates: 4, ActionsOffered: 2, PlansOffered: 2,
+		DecisionsBuilt: 2, Candidates: 4, ActionsOffered: 2, PlansOffered: 2,
 		ByReason: map[string]int{"unsupported": 1, "search_limit": 1, "ready": 1, "insufficient": 1},
 		ByDetail: map[string]int{"cost:x": 1, "source:deferred": 1},
 		Nodes:    18, MaxNodes: 9, SearchLimitHits: 1, PlannedSubmissions: 1,
@@ -62,7 +62,6 @@ func TestPlanStatsMergeAndReport(t *testing.T) {
 	}
 	const wantText = `payment plan stats:
   decisions built:       2
-  pool declined builds:  1
   cast candidates:       4
   actions offered:       2
   plans offered:         2

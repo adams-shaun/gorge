@@ -19,7 +19,7 @@ import (
 // the ordinary walk asks. Every non-mana part of the cost is read for real by
 // the confirming gate, and the witness is planned so those parts stay payable.
 func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base Cost, ab *cards.SA) bool {
-	if w.hyp != nil || !w.e.paidManaCensus || !(abilityCostNeedsMana(base) || len(base.Phyrexian) > 0) || !pay.PaymentPlanPoolAccepted(asPayer(w.e), p) {
+	if w.hyp != nil || !w.e.paidManaCensus || !(abilityCostNeedsMana(base) || len(base.Phyrexian) > 0) {
 		return false
 	}
 	scope := abilityScope(ab)
@@ -122,7 +122,7 @@ func (e *Engine) armAbilityAutoPay(pc *pendingCast, idx int) {
 		return
 	}
 	mana := e.castPaymentMana(pc)
-	if !abilityCostNeedsMana(mana) || !pay.PaymentPlanPoolAccepted(asPayer(e), pc.player) {
+	if !abilityCostNeedsMana(mana) {
 		return
 	}
 	if pay.CostPayableClassLife(asPayer(e), pc.player, paymentForCast(pc, mana),

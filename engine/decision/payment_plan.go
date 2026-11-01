@@ -183,6 +183,8 @@ func (c PaymentConsequence) validate() error {
 // PaymentPlan is a complete V1 execution witness. PoolSpend records which
 // pre-existing mana units pay the cast; PoolAfter records the expected pool
 // after activations and payment, and is independently revalidated by rules.
+// Both count only mana this payment may spend: a restricted batch it does not
+// admit is in neither.
 type PaymentPlan struct {
 	Version     uint32              `json:"version"`
 	ID          string              `json:"id"`
