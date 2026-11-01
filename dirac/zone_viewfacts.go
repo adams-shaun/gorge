@@ -76,3 +76,6 @@ func (s *State) FeatResolving() bool {
 func (s *State) FeatLifeThisTurn(p uint8) (gained, lost int32) {
 	return int32(s.pl[p&1].lifeGained), int32(s.pl[p&1].lifeLost)
 }
+
+// ObjVer counts object o's zone changes (CR 400.7). It wraps at 256.
+func (s *State) ObjVer(o Obj) uint8 { return s.objs[o].ver }

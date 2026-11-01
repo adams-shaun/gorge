@@ -249,9 +249,13 @@ func (g *Game) noteExiled(before *[dirac.MaxObj]kop.Zone, top *dirac.ProjStack) 
 				g.exiled[s] = slices.DeleteFunc(g.exiled[s], func(x state.ObjID) bool { return x == id })
 			}
 		}
-		if po.Zone == kop.ZoneBattlefield && before[o] != kop.ZoneBattlefield && before[o] != kop.ZoneStack {
+		ver := g.s.ObjVer(dirac.Obj(o))
+		// a permanent that left and came back within the answer has moved all the same
+		returned := before[o] == kop.ZoneBattlefield && g.vers[o] != ver
+		if po.Zone == kop.ZoneBattlefield && (returned || before[o] != kop.ZoneBattlefield && before[o] != kop.ZoneStack) {
 			g.exiled[o] = g.exiled[o][:0]
 		}
+		g.vers[o] = ver
 	}
 	if src >= 0 && from < len(g.exiled[src]) {
 		slices.SortFunc(g.exiled[src][from:], func(a, b state.ObjID) int { return int(g.zoneIdx(a)) - int(g.zoneIdx(b)) })
@@ -310,9 +314,10 @@ func (g *Game) boardGame() {
 		b.prio = state.PlayerID(g.d.Player)
 	case kp.Turn == 0:
 		b.prio = 0
-	case g.d.Sub == dirac.ChDivide && !g.passed:
-		// a combat damage division comes before the step gives anyone priority
-	case kp.Step != b.step || !b.seen || (g.passed || b.resolving) && !g.s.FeatResolving() || g.d.Sub == dirac.ChDivide:
+	case g.d.Sub == dirac.ChDivide && (!g.passed || stepOf[kp.Step] == stepOf[b.step]):
+		// a combat damage division comes before the step gives anyone priority, and
+		// the second one follows the first-strike round without it moving
+	case kp.Step != b.step || !b.seen || (g.passed || b.resolving) && !g.s.FeatResolving():
 		b.prio = state.PlayerID(kp.Active)
 	}
 	b.step, b.seen, b.resolving = kp.Step, true, g.s.FeatResolving()

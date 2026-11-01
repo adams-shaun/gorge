@@ -41,6 +41,8 @@ type Game struct {
 
 	// exiled[o] is what kernel object o's abilities exiled and is still there.
 	exiled [][]state.ObjID
+	// vers[o] is object o's zone-change count at the last settle.
+	vers [dirac.MaxObj]uint8
 	// tally is this turn's casts and tokens, per seat.
 	tally     [2]turnTally
 	tallyTurn int32
@@ -115,7 +117,7 @@ func (g *Game) StallReason() string {
 func (g *Game) Fork() game.Game {
 	c := &Game{eng: g.eng, set: g.set, tbl: g.tbl, cfg: g.cfg, tr: g.tr,
 		d: g.d, log: g.log.Clone(), multi: g.multi, conceded: g.conceded, loser: g.loser,
-		ids: g.ids, targets: g.targets, stalled: g.stalled, poison: g.poison, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, building: g.building}
+		ids: g.ids, targets: g.targets, stalled: g.stalled, poison: g.poison, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, building: g.building, vers: g.vers}
 	c.bind()
 	c.board.prio, c.board.step, c.board.seen, c.board.resolving, c.board.landOpen = g.board.prio, g.board.step, g.board.seen, g.board.resolving, g.board.landOpen
 	for i, l := range g.board.blockers {

@@ -315,13 +315,6 @@ func viewCheck(d *viewDiffs, positions *int) func(ref *GorgeSide, a *adapter.Gam
 	}
 }
 
-// servedViewGaps are the paths a served view does not carry yet. It only shrinks.
-// priority: who last held it at a combat damage division after a first-strike step.
-// exiled_cards: a source's link to a card still in exile, across its own recast.
-var servedViewGaps = map[string]bool{
-	"priority": true, "exiled_cards[len]": true, "exiled_cards (served only)": true,
-}
-
 func TestNativeViewMatchesGorge(t *testing.T) {
 	pairs := envPairs(100)
 	for _, name := range []string{"fdn", "blb"} {
@@ -355,9 +348,7 @@ func viewCompare(t *testing.T, name string, pairs int, autopay bool) {
 	sort.Strings(keys)
 	for _, k := range keys {
 		fmt.Fprintf(&b, "%8d %s\n         %s\n", d.n[k], k, d.sample[k])
-		if !servedViewGaps[gapKey(k)] {
-			t.Errorf("view differs at %s (%d): %s", k, d.n[k], d.sample[k])
-		}
+		t.Errorf("view differs at %s (%d): %s", k, d.n[k], d.sample[k])
 	}
 	if p := os.Getenv("ADAPTER_OUT"); p != "" {
 		os.WriteFile(p+"."+name+fmt.Sprint(autopay), []byte(b.String()), 0o644)
@@ -368,14 +359,6 @@ func viewCompare(t *testing.T, name string, pairs int, autopay bool) {
 // viewSampling compares every n-th decision: a projection and its JSON cost far more
 // than the game.
 const viewSampling = 4
-
-// gapKey is a path's last field: the archetype row keeps its parents.
-func gapKey(path string) string {
-	if i := strings.Index(path, "archetype."); i >= 0 {
-		return path[i:]
-	}
-	return path[strings.LastIndex(path, ".")+1:]
-}
 
 // servedFields are the view's fields a kernel read fills, each compared on its own, and
 // shown to have been read at all: a stubbed read fails its field and no other.
