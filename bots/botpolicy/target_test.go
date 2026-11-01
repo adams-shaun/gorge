@@ -236,8 +236,8 @@ func TestChooseTargetsHonoursMinAndMaxDirect(t *testing.T) {
 	}
 }
 
-// TestTargetNeverTakesTwoOfOneGroup pins the pick loop's group discipline
-// : Decision.Validate's mutual-exclusion rule makes two options
+// TestTargetNeverTakesTwoOfOneGroup pins the pick loop's group discipline:
+// Decision.Validate's mutual-exclusion rule makes two options
 // sharing one non-empty Group mutually exclusive -- the TargetsForEachPlayer$
 // shape (one target per controller) and the cross-mode Charm ask both attach
 // it -- so a multi-target answer that took two same-group options would be

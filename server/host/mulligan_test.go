@@ -148,7 +148,7 @@ func TestAMulliganTableSurvivesARestart(t *testing.T) {
 	}
 }
 
-// TestAnOldSidecarWithoutMulligansLoadsAsZero : a sidecar written
+// TestAnOldSidecarWithoutMulligansLoadsAsZero: a sidecar written
 // with no "mulligans" key and must still load — as 0, which
 // is exactly what those matches played with, so their replays stay correct.
 // The fixture is that file shape (no key, anywhere); readSidecar is

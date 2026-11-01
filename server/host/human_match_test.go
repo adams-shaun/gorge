@@ -171,8 +171,8 @@ func TestHumanSeatPlaysAFullBotTableAndReplaysIdentically(t *testing.T) {
 	// (2) The caretaker never substituted an answer. With ThinkTimeout 0 and
 	// the match completing before Close ever cancels the table context, the
 	// only way this counter is non-zero is a decision the human left
-	// unanswered -- the exact failure the caretaker exists to paper over
-	// . Combined with (1), a finished match and a silent caretaker
+	// unanswered -- the exact failure the caretaker exists to paper over.
+	// Combined with (1), a finished match and a silent caretaker
 	// positively prove the human seat answered every decision it was asked.
 	if got := human.caretakerCount(); got != 0 {
 		t.Fatalf("the caretaker answered %d decisions; every decision was meant for the human seat", got)
