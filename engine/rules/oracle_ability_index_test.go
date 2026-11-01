@@ -135,9 +135,9 @@ func TestOracleAbilityIndexSelectsSecondManaAbility(t *testing.T) {
 // Regression: ability_index 0 on a source that ALSO offers the generic
 // "Activate <card> for mana" placeholder. The placeholder is Kind "activate"
 // and leaves decision.Option.Ability at the zero value, so its anchor equals
-// index 0 -- indistinguishable from the first real ability. Before the fix,
-// ability_index 0 selected the placeholder (activating a mana ability) instead
-// of the first non-mana ability. White Mana Battery's IR order is
+// index 0 -- indistinguishable from the first real ability. Index 0 must not
+// select the placeholder (activating a mana ability) instead of the first
+// non-mana ability. White Mana Battery's IR order is
 //
 //	AB 0: {2}, {T}: Put a charge counter on CARDNAME. (non-mana)
 //	AB 1: {T}, Remove any number of charge counters: Add {W}... (mana)

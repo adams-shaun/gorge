@@ -8,17 +8,12 @@ package rules
 //      that carries its OWN ValidTgts$: the attach destination is the targets
 //      of the ability carrying the param (the sub's own pre-ask answer in
 //      Ctx.PickedTargets), NOT the resolution's Ctx.Targets / the chain union.
-//      Before the fix the CR 303.4g Aura gate (engine/effects/token.go's
-//      auraTokenWithheld) found no legal bearer and every Role token was
-//      withheld. Reads: engine/effects/context.go's definedSpecTargeted and
+// Reads: engine/effects/context.go's definedSpecTargeted and
 //      definedSpecThisTargetedCard via abilityTargetsForParam.
 //
 //   2. `DB$ Attach | Object$ Remembered`: Object$ Remembered names the WHOLE
 //      remembered set, and Attach fastens every object whose own legality
 //      admits the destination (engine/effects/attach.go's attachObjectRemembered).
-//      Before the fix only Remembered[0] was taken, so MSH U.S.Agent's Sturdy
-//      Shield (remembered SECOND, after the triggering source) and Outfitted
-//      Jouster's two conjured Equipment never attached.
 //
 // This census pins the corpus carriers of both shapes, so a corpus-pin bump
 // that adds a new one fails here, named, rather than silently joining an

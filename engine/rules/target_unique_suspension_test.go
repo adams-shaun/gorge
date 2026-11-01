@@ -65,9 +65,7 @@ func passPriorityUntilNonPriority(t *testing.T, e *Engine) *decision.Decision {
 // TestTargetUniqueSurvivesADifferentAskKindBetweenRiders pins the row's
 // remaining gap: a Dig (ResumeKind "dig") parked between two TargetUnique$
 // riders' announced answers must not erase the first rider's pick, and must
-// not re-pose a rider's target. Pre-fix the Dig's decision carried no
-// accumulator, so the resumed Ctx rebuilt it empty and the second announced
-// rider over-offered seat 0.
+// not re-pose a rider's target.
 func TestTargetUniqueSurvivesADifferentAskKindBetweenRiders(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := newFixtureDeck(t, 7008, digBetweenRidersScript())

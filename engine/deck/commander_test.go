@@ -137,12 +137,10 @@ func partnerPairDeck() File {
 }
 
 // TestValidateCommanderPartnerPairUnionIdentity pins the CR 903.5 UNION
-// identity: a two-commander partner-pair deck validates against the union
-// of BOTH commanders' identities, so the pair's green half of the deck is
-// legal; remove one partner from the designation and the same deck is
-// rejected, because the green cards now sit outside the one remaining
-// commander's {W}{B}. (On the pre-fix validator this failed the other way
-// round: the pair itself was rejected.)
+// identity: a two-commander partner-pair deck validates against the union of
+// BOTH commanders' identities, so the pair's green half of the deck is legal;
+// remove one partner from the designation and the same deck is rejected,
+// because the green cards sit outside the one remaining commander's {W}{B}.
 func TestValidateCommanderPartnerPairUnionIdentity(t *testing.T) {
 	r := commanderFixture(t)
 	if err := partnerPairDeck().ValidateCommander(r); err != nil {
@@ -296,11 +294,11 @@ func doctorCompanionsBothDeck() File {
 
 // TestValidateCommanderTwoDoctorCompanions pins the clause's bidirectional
 // half: two DISTINCT Doctors that EACH carry Doctor's companion are a legal
-// pair, because for each card the other commander is the Doctor. The pre-fix
-// predicate required exactly one companion half (ca == cb returned false) and
-// wrongly rejected this shape. The deck is otherwise legal (100 cards,
-// singleton) and its blue card is legal only through the union identity, so
-// the test also fails if the pair is admitted but the identity is not unioned.
+// pair, because for each card the other commander is the Doctor. A predicate
+// requiring exactly one companion half (ca == cb false) would reject this
+// shape. The deck is otherwise legal (100 cards, singleton) and its blue card
+// is legal only through the union identity, so the test also fails if the
+// pair is admitted but the identity is not unioned.
 func TestValidateCommanderTwoDoctorCompanions(t *testing.T) {
 	r := commanderFixture(t)
 	d := doctorCompanionsBothDeck()
@@ -414,9 +412,9 @@ func isDoctorFace(f *cards.Face) bool {
 // singular spelling still resolves through CommanderIndex.
 // TestValidateCommanderRejectsDuplicateCommander pins CR 903.3's DISTINCT
 // half: two designations naming the SAME card are not a partner pair — the
-// engine's genesis would seat the same object twice. The pre-fix validator
-// accepted ["Plain Partner","Plain Partner"] (a plain Partner paired with
-// itself is IsPartnerPair-legal) and CommanderIndices came back [0 0].
+// engine's genesis would seat the same object twice. A plain Partner paired
+// with itself is IsPartnerPair-legal, so the validator must refuse ["Plain
+// Partner","Plain Partner"] itself, or CommanderIndices comes back [0 0].
 func TestValidateCommanderRejectsDuplicateCommander(t *testing.T) {
 	r := commanderFixture(t)
 	f := File{

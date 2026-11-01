@@ -97,10 +97,10 @@ func (p *projector) stackViews(buf []StackView, ids []state.ObjID, revealFaceDow
 			// object (an activated ability, once the engine enumerates
 			// them) so a client can render them differently.
 			kind := "ability"
-			// The stamped kind is the authority (state.StackKindOf falls
-			// back to the same triggerLine lookup the view used to make
-			// itself): a trigger whose T: line the lookup cannot find (a
-			// delayed or keyword-minted one) is still a trigger.
+			// The stamped kind is the authority (state.StackKindOf falls back
+			// to a triggerLine lookup): a trigger whose T: line the lookup
+			// cannot find (a delayed or keyword-minted one) is still a
+			// trigger.
 			if state.StackKindOf(g, o) == state.StackKindTriggered {
 				kind = "trigger"
 			}

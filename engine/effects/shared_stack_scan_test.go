@@ -41,9 +41,9 @@ func stackScanBoard(t *testing.T, name, types string) (*fakeHost, *state.Object)
 
 // TestPumpAllPumpZoneAllVisitsSharedStackOnce: PumpZone$ All includes ZStack,
 // so the sweep must register the stack card's pump grant exactly once, not
-// once per alive seat, and schedule exactly one end-of-turn expiry for it.
-// The pre-fix N-seat walk registered two P/T effects (and two AtEOT
-// registrations) for the one stack card.
+// once per alive seat, and schedule exactly one end-of-turn expiry for it. An
+// N-seat walk would register two P/T effects (and two AtEOT registrations)
+// for the one stack card.
 func TestPumpAllPumpZoneAllVisitsSharedStackOnce(t *testing.T) {
 	h, o := stackScanBoard(t, "DoomedSpell", "Instant")
 	// AtEOT$ makes the scheduled expiry observable; it schedules one
@@ -117,8 +117,8 @@ func TestRestartGameAllVisitsSharedStackOnce(t *testing.T) {
 // TestUntapConditionZoneStackVisitsSharedStackOnce: Untap's ConditionZone$
 // Stack counts the shared stack. With the counter correctly visited once, a
 // single matching stack card meets ConditionCompare$ EQ1 and the remembered
-// tapped permanent untaps. The pre-fix N-seat count made EQ1 false (the
-// stack card was counted twice), so the permanent stayed tapped.
+// tapped permanent untaps. An N-seat count would make EQ1 false (the stack
+// card counted twice), leaving the permanent tapped.
 func TestUntapConditionZoneStackVisitsSharedStackOnce(t *testing.T) {
 	h, o := stackScanBoard(t, "DoomedSpell", "Instant")
 	// The permanent Untap's Defined$ Remembered names, tapped on the
@@ -141,9 +141,9 @@ func TestUntapConditionZoneStackVisitsSharedStackOnce(t *testing.T) {
 // TestChangeZoneAllStackVisitsSharedStackOnce: both ChangeZoneAll branches
 // (RandomOrder$ false and true) must emit exactly one MoveZone for a single
 // shared stack object and reach the destination. The RandomOrder$ true branch
-// is the currently observable duplicate (it collects every snapshot before
-// emitting, so pre-fix it enqueued the object once per player); the false
-// branch guards the same invariant for the ordinary loop.
+// is where a duplicate shows (it collects every snapshot before emitting, so
+// a per-player walk enqueues the object once per player); the false branch
+// guards the same invariant for the ordinary loop.
 func TestChangeZoneAllStackVisitsSharedStackOnce(t *testing.T) {
 	for _, tc := range []struct {
 		name string

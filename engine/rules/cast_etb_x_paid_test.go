@@ -1,14 +1,14 @@
 package rules
 
 // CR 107.3m: the X a triggered ability reads is not its own. A cast trigger
-// reads the X paid for the spell it triggered on; a ChangesZone -> Battlefield
-// trigger of a permanent reads the X paid for the spell that became that
-// permanent; and a permanent that entered any other way (reanimated, blinked,
-// dropped straight onto the battlefield) reads 0. Before the fix every such
-// trigger resolved with X = 0 -- engine/rules/stack.go's ability/trigger branch bound
-// only the trigger object's own (never-paid) X -- so Hydroid Krasis X=4 gained
-// no life and drew no cards, Genesis Hydra dug 0 cards, and a Count$xPaid ETB
-// trigger reanimated a permanent with no counters.
+// reads the X paid for the spell it triggered on; a ChangesZone ->
+// Battlefield trigger of a permanent reads the X paid for the spell that
+// became that permanent; and a permanent that entered any other way
+// (reanimated, blinked, dropped straight onto the battlefield) reads 0.
+// engine/rules/stack.go's ability/trigger branch must bind more than the
+// trigger object's own (never-paid) X -- so Hydroid Krasis X=4 gained no life
+// and drew no cards, Genesis Hydra dug 0 cards, and a Count$xPaid ETB trigger
+// reanimated a permanent with no counters.
 //
 // Every fixture here is a real Forge script (or, for the third-party cast
 // trigger, a real-script SHAPE at a ValidCard$ the corpus carriers' hasXCost

@@ -32,8 +32,8 @@ func TestCompilerFingerprintIsPopulatedAndHex(t *testing.T) {
 //
 // The first fingerprint's cache is seeded from a registry holding "Island",
 // which is absent from the folder. If the second fingerprint read that cache
-// (the pre-fix behaviour, where both used ir.gob.gz) it would return Island;
-// instead it must compile the folder and return Mountain.
+// it would return Island; instead it must compile the folder and return
+// Mountain.
 func TestFingerprintCachesAreDistinctPerCompiler(t *testing.T) {
 	dir := t.TempDir()
 	writeScript(t, dir, "mountain.txt", "Name:Mountain\nTypes:Basic Land Mountain\nOracle:\n")

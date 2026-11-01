@@ -2,10 +2,9 @@ package events
 
 // This file is the ONE place a new Kind is described. Appending a Kind to the
 // const block in event.go needs exactly one more edit: its kindInfo entry
-// below. Everything that used to be a separate hand-kept per-Kind list is
-// derived from this table:
+// below. Every per-Kind list is derived from this table:
 //
-//   - Kind.String() (the log/wire name, formerly the kindNames array);
+//   - Kind.String() (the log/wire name);
 //   - rules' trigger-interest prefilter (eventTriggerInterest), from Trigger;
 //   - view.Describe's transcript line, from Describe, for every kind whose
 //     line is a plain template (view keeps a hand-written case only where the

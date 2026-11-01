@@ -58,9 +58,10 @@ func TestMockingbirdETBSpendSelector(t *testing.T) {
 				t.Fatalf("eligible creature missing from offered set: %+v", d.Options)
 			}
 			if lowerSpendAtEntry {
-				// A later spend-provenance update simulates a tighter bound while
-				// the entry ask is outstanding. Revalidation must reject the
-				// formerly legal template, not rely on the stale offered set.
+				// A later spend-provenance update simulates a tighter bound
+				// while the entry ask is outstanding. Revalidation must
+				// reject the template legal when offered, not rely on the
+				// stale offered set.
 				e.emit(events.Event{Kind: events.CastInfo, Obj: id, Counter: events.FlagsString(state.FlagManaSpent), Amount: 1})
 				if got := e.G.Obj(id).ManaSpent; got != 1 {
 					t.Fatalf("precondition: entry spend = %d, want 1", got)

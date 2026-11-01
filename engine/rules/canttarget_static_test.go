@@ -339,12 +339,10 @@ func activateObjAbility(t *testing.T, e *Engine, p state.PlayerID, obj state.Obj
 	return d
 }
 
-// TestCantTargetValidSASpellDoesNotBlockActivatedAbility pins ValidSA$ against
-// the TARGETING ABILITY, not its host permanent: Dense Foliage's
+// TestCantTargetValidSASpellDoesNotBlockActivatedAbility pins ValidSA$
+// against the TARGETING ABILITY, not its host permanent: Dense Foliage's
 // `ValidSA$ Spell` withholds a creature from the opponent's Lightning Bolt,
-// but not from the opponent's Cunning Sparkmage activation. Before the fix the
-// host permanent was classified as a Spell, so the pinger's target was
-// withheld too (and the resolution recheck dropped it).
+// but not from the opponent's Cunning Sparkmage activation.
 func TestCantTargetValidSASpellDoesNotBlockActivatedAbility(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	foliage := lookup(t, reg, "Dense Foliage")
@@ -392,11 +390,11 @@ func TestCantTargetValidSASpellDoesNotBlockActivatedAbility(t *testing.T) {
 	replayCheck(t, abilityE, abilityCfg)
 }
 
-// TestCantTargetValidSAActivatedTriggeredReadsAbility is the reverse direction:
-// Shanna's `ValidSA$ Activated,Triggered | Activator$ Player.Opponent` must
-// withhold her from an opponent's activated ability, while a spell (not in
-// the list) and her controller's own ability still target her. Before the fix
-// the host permanent classified as a Spell, so the restriction never applied.
+// TestCantTargetValidSAActivatedTriggeredReadsAbility is the reverse
+// direction: Shanna's `ValidSA$ Activated,Triggered | Activator$
+// Player.Opponent` must withhold her from an opponent's activated ability,
+// while a spell (not in the list) and her controller's own ability still
+// target her.
 func TestCantTargetValidSAActivatedTriggeredReadsAbility(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	shanna := lookup(t, reg, "Shanna, Sisay's Legacy")

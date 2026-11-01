@@ -10,15 +10,11 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// These tests pin the unless-cost payment window against the REAL corpus cards
-// (Mana Leak/Daze/Spell Pierce/Chain Lightning) and the real
-// dual lands in the repo decks. The pre-fix window walked
-// windowManaUnits, which dropped every permanent with more than one free mana
-// ability -- so an untapped Volcanic Island (intrinsics {U} and {R}) could not
-// pay even a one-pip tax, and the pay option was suppressed. The window now
-// offers each production alternative as its own option, so the tap selects a
-// colour with no nested ask, and the offer gate searches over those
-// alternatives rather than their (wrong) sum.
+// These tests pin the unless-cost payment window against the REAL corpus
+// cards (Mana Leak/Daze/Spell Pierce/Chain Lightning) and the real dual lands
+// in the repo decks. The window now offers each production alternative as its
+// own option, so the tap selects a colour with no nested ask, and the offer
+// gate searches over those alternatives rather than their (wrong) sum.
 
 // TestUnlessCostPayableRealDualLandAlternatives is the offer-gate pin: one
 // untapped dual land with an EMPTY pool must make a one-colour tax payable by
@@ -64,8 +60,7 @@ func TestUnlessCostPayableRealDualLandAlternatives(t *testing.T) {
 // TestCounterDazePaysFromRealDualLand is the end-to-end pin: a real Daze
 // counters a real creature spell, the pool-empty payer controls ONE untapped
 // Volcanic Island, and the payer taps it (choosing {U}) through the window to
-// pay Daze's {1}. Before the fix the dual was dropped from the window, the pay
-// option was suppressed, and the creature was countered.
+// pay Daze's {1}.
 func TestCounterDazePaysFromRealDualLand(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -144,7 +139,6 @@ func TestCounterDazePaysFromRealDualLand(t *testing.T) {
 // the offer gate must not offer Pay for a non-mana component the payer cannot
 // satisfy. With no creatures and no mana, the real `Sac<1/Creature>` unless
 // token (Kardur's Vicious Return) is unpayable; with a creature it is payable.
-// Before the fix the gate returned true for every parsed non-mana cost.
 func TestUnlessCostSacComponentUnpayableNotOffered(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

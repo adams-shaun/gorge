@@ -67,8 +67,8 @@ func TestNotionThiefExemptsTheDrawStepDraw(t *testing.T) {
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Notion Thief"))
 
 	// Seat 1 takes turn 2; drive into its draw step. The turn-based draw is a
-	// turn-based action on step entry, so it has already been proposed (and,
-	// before the fix, stolen) by the time we arrive.
+	// turn-based action on step entry, so it has already been proposed by the
+	// time we arrive.
 	driveToStep(t, e, 2, 1, state.StepUpkeep)
 	hand1 := len(e.G.Zone(state.ZHand, 1))
 	lib1 := len(e.G.Zone(state.ZLibrary, 1))
@@ -174,8 +174,7 @@ func TestNotFirstCardInDrawStepOnlyExemptsTheActivePlayersDraw(t *testing.T) {
 // the replacement applied in ANY step of its controller's turn (the
 // PlayerTurn$ True gate narrows it to the controller's turn and nothing
 // else), silently consuming a main-phase draw and registering the CantAttack
-// effect with no log line. stealEngine sits at Main 1, so the reported shape
-// is the pre-fix defect.
+// effect with no log line. stealEngine sits at Main 1.
 func TestIslandSanctuaryActivePhasesDrawOnlyAppliesInDrawStep(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

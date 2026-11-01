@@ -78,10 +78,9 @@ func TestUneasyAllianceDoesNotReachBouncedBearer(t *testing.T) {
 }
 
 // TestRingOfEvosIsleReturnedUnattachedGivesNoHexproof pins CR 400.7: an
-// Equipment that left the battlefield and returned unattached is a new object,
-// so its "{2}: Equipped creature gains hexproof" has no equipped creature and
-// must do nothing. Before the fix the resolver's LastBearer fallback read the
-// pre-zone-change bearer and gave the Giant hexproof.
+// Equipment that left the battlefield and returned unattached is a new
+// object, so its "{2}: Equipped creature gains hexproof" has no equipped
+// creature and must do nothing.
 func TestRingOfEvosIsleReturnedUnattachedGivesNoHexproof(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

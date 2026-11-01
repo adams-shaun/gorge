@@ -18,8 +18,7 @@ import (
 // host. The nested entry still parks its CR 616.1 order ask, but no
 // resolution pass owns e.contChain, so the body's rider must be linked onto
 // the stage's resume instead of being discarded when resolveReplacementBody
-// restores the chain. Before the fix the token enters with the right
-// counters and the controller's life stays 20 instead of 22.
+// restores the chain.
 func TestEntryCounterStageReplacementBodyTurnEmit(t *testing.T) {
 	for _, tc := range []struct {
 		name string

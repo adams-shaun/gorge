@@ -831,17 +831,16 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 
 		case effDiscardHand:
 			// Mode$ Hand is the whole-hand wheel (Reforge the Soul, Windfall,
-			// Magus of the Wheel, Dark Deal): "each player discards their hand".
-			// Forge's DiscardEffect HAND mode discards the ENTIRE hand and
-			// never reads NumCards$ there; the pre-fix engine fell through to
-			// the default arm and discarded only the front card. A mandatory
-			// Hand line has no choice to record, so there is no ask and no
-			// Note: every card in hand order, one events.Discard per card via
-			// discardAndRemember (which applies the RememberDiscarded$ /
-			// RememberDiscardingPlayers$ riders per card, exactly what Windfall's
-			// "greatest number discarded" draw reads). The measured corpus
-			// population (108 raw lines) carries no NumCards$, DiscardValid$ or
-			// AnyNumber$, so none is read here.
+			// Magus of the Wheel, Dark Deal): "each player discards their
+			// hand". Forge's DiscardEffect HAND mode discards the ENTIRE hand
+			// and never reads NumCards$ there. A mandatory Hand line has no
+			// choice to record, so there is no ask and no Note: every card in
+			// hand order, one events.Discard per card via discardAndRemember
+			// (which applies the RememberDiscarded$ /
+			// RememberDiscardingPlayers$ riders per card, exactly what
+			// Windfall's "greatest number discarded" draw reads). The
+			// measured corpus population (108 raw lines) carries no
+			// NumCards$, DiscardValid$ or AnyNumber$, so none is read here.
 			if strings.EqualFold(sa.ParamStr(cards.PKOptional), "True") {
 				// "each player MAY discard their hand and draw N" (5 corpus
 				// lines): a real may-discard election, a yes/no per acting
@@ -1393,12 +1392,10 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// TargetedPlayerCtrl): the reveal covers EVERY card in the pool
 			// matching the spec — "Target player reveals all cards with mana
 			// value 2 or greater in their hand" — so the spec narrows the
-			// pool and the count becomes the whole matching set. Pre-fix the
-			// spec was never fed to the filter, so the reveal took pool[:1],
-			// the FIRST card of the whole hand whether or not it matched. An
+			// pool and the count becomes the whole matching set. An
 			// unresolvable spec matches nothing (the fail-closed convention
-			// RevealType$ and RevealValid$ already apply above), so the
-			// n == 0 skip below cleanly emits no Note and captures no
+			// RevealType$ and RevealValid$ already apply above), so the n ==
+			// 0 skip below cleanly emits no Note and captures no
 			// RememberRevealed$; this is also the arm that keeps the
 			// revealer's own pick off the walk (the `pickable` gate reads the
 			// same parameter).
@@ -1411,17 +1408,15 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			pool = filtered
 			n = int32(len(pool))
 		}
-		// A hand reveal is a CHOICE when the eligible pool holds strictly more
-		// cards than the answer must show. Forge asks the pool's owner which
-		// cards to reveal -- Infernal Tutor's "Reveal a card from your hand"
-		// (NumCards default 1 over a seven-card hand), an AnyNumber$ miss
-		// ("Reveal any number of green cards in your hand": zero through all
-		// of them) and an Optional$ miss ("You may reveal a Dinosaur card from
-		// your hand": none or the one). Pre-fix the walk silently took
-		// pool[:n], the FRONT cards of the hand, so the chained sub read the
-		// wrong card entirely. The pick is posed as a KChoose to the pool's
-		// owner and answered in place, the same answer-shape the discard ask
-		// uses.
+		// A hand reveal is a CHOICE when the eligible pool holds strictly
+		// more cards than the answer must show. Forge asks the pool's owner
+		// which cards to reveal -- Infernal Tutor's "Reveal a card from your
+		// hand" (NumCards default 1 over a seven-card hand), an AnyNumber$
+		// miss ("Reveal any number of green cards in your hand": zero through
+		// all of them) and an Optional$ miss ("You may reveal a Dinosaur card
+		// from your hand": none or the one). The pick is posed as a KChoose
+		// to the pool's owner and answered in place, the same answer-shape
+		// the discard ask uses.
 		//
 		// Not pickable, deliberately: RevealHand (the whole hand is public, no
 		// choice), Random$ (the engine picks, deterministically), a Look$

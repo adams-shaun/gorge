@@ -234,9 +234,6 @@ func (e *Engine) attackRequiresDefender(id state.ObjID, defender state.PlayerID)
 // restriction removes the (dragon, chosen-goader) pair, and the dragon's
 // remaining legal pair (the other opponent) still satisfies the goad
 // requirement, so the dragon is required and attacks that other opponent.
-// The pre-fix single-defender filter removed the non-chosen pair as well, the
-// offer list emptied, the dragon was reported as not required, and no legal
-// declaration existed that included it.
 func TestTerritorialHellkiteNamedRequirementVersusGoad(t *testing.T) {
 	t.Parallel()
 	var cfg Config
@@ -270,8 +267,8 @@ func TestTerritorialHellkiteNamedRequirementVersusGoad(t *testing.T) {
 		t.Fatalf("expected a KAttackers decision, got %+v", d)
 	}
 	// The dragon has exactly one offered pair, against the non-goader, and it
-	// is Required. It must NOT have disappeared (the pre-fix defect) and must
-	// NOT be offered against the goader.
+	// is Required. It must NOT have disappeared and must NOT be offered
+	// against the goader.
 	sawOther, sawGoader := false, false
 	for _, opt := range d.Options {
 		if opt.Obj != hk {
@@ -532,9 +529,7 @@ func TestMustAttackRememberedPlayerBindsThroughRealEffectRegistration(t *testing
 // removes exactly that pair. Attacking player 2 obeys zero requirements and
 // so does not attacking, so CR 508.1d permits both: player 2's pair stays
 // OFFERED (it is still a legal attack) but must not be marked Required, and
-// the empty declaration must be accepted. Before the fix mustAttackRequired
-// asked only whether SOME pair survived, so it marked the player-2 pair
-// Required and the empty declaration was rejected.
+// the empty declaration must be accepted.
 func TestMustAttackNamedDefenderBlockedLeavesAlternateOptional(t *testing.T) {
 	t.Parallel()
 	e := New(seatZeroStart(Config{Seed: 3, Names: []string{"a", "b", "c"}, Decks: [][]*cards.Card{

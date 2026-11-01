@@ -45,11 +45,9 @@ func attackPropSeatUnequal(t *testing.T, propName string) (*Engine, state.ObjID)
 
 // TestAttackPropPaysTheSelectedAlternative pins the end-to-end unequal-output
 // fix: Ghostly Prison charges {2}, the payer's only source is one land whose
-// two free abilities make {C} and {C}{C}, so the budget is the MAX (2) and the
-// pair is offered; selecting the SECOND option must activate the {C}{C}
-// ability and commit the attack. Before the fix the answer resolved the first
-// alternative sharing the Obj ({C}), the payer came up short, the window found
-// no source left (the land is tapped) and ABORTED the declaration.
+// two free abilities make {C} and {C}{C}, so the budget is the MAX (2) and
+// the pair is offered; selecting the SECOND option must activate the {C}{C}
+// ability and commit the attack.
 func TestAttackPropPaysTheSelectedAlternative(t *testing.T) {
 	t.Parallel()
 	e, bear := attackPropSeatUnequal(t, "Ghostly Prison")
@@ -106,9 +104,7 @@ func TestAttackPropPaysTheSelectedAlternative(t *testing.T) {
 // TestBlockPropPaysTheSelectedAlternative pins the same identity rule on the
 // block side: Qal Sisma Behemoth charges {2} to block, the defender's only
 // source is the unequal land, and selecting the {C}{C} option must resolve
-// THAT ability and commit the block. Before the fix the answer resolved the
-// first alternative ({C}), the window found no source left, cleared itself
-// silently, and the block never committed.
+// THAT ability and commit the block.
 func TestBlockPropPaysTheSelectedAlternative(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)

@@ -1293,14 +1293,14 @@ func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc 
 // both or unknown to both. Two referents are bound: TriggeredProduced
 // (C.A.M.P.'s mana set) and ChosenCard (Guard Dogs' chosen permanent).
 //
-// ChosenCard was held back until the sub-target-before-gate ordering landed: its carrier's
-// ConditionDefined$ Targeted gate is evaluated by effects.conditionMet BEFORE
-// the DB sub's own mid-resolution target ask is posed, so on the empty group
-// a recognised predicate resolved the gate false and the whole sub -- target
-// ask included -- was skipped. That ordering is now fixed in conditionMet's
-// Targeted branch (an empty group on an SA that carries ValidTgts$ and whose
-// ask has not run is UNRESOLVED, so Resolve dispatches the sub and its ask
-// is posed there).
+// ChosenCard was held back until the sub-target-before-gate ordering landed:
+// its carrier's ConditionDefined$ Targeted gate is evaluated by
+// effects.conditionMet BEFORE the DB sub's own mid-resolution target ask is
+// posed, so on the empty group a recognised predicate resolved the gate false
+// and the whole sub -- target ask included -- was skipped. conditionMet's
+// Targeted branch handles that ordering (an empty group on an SA that carries
+// ValidTgts$ and whose ask has not run is UNRESOLVED, so Resolve dispatches
+// the sub and its ask is posed there).
 func sharesColorBareReferent(arg string) bool {
 	return arg == "TriggeredProduced" || arg == "ChosenCard"
 }

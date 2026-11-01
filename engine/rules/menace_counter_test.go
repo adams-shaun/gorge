@@ -88,9 +88,7 @@ func butchMenaceCounterEngine(t *testing.T) (*Engine, state.ObjID, state.ObjID) 
 // menace is live from a MARKER COUNTER, not just from a printed `K:Menace`:
 // the counter is on the creature and the engine reads the keyword, and the
 // declare-blockers gate then rejects a single blocker for the countered
-// creature while accepting two. Before the fix only the card's Animate leg
-// did anything and a menace-countered creature could be blocked by one
-// creature.
+// creature while accepting two.
 func TestButchDeLoriaMenaceCounterGrantsMenaceEndToEnd(t *testing.T) {
 	e, _, bear := butchMenaceCounterEngine(t)
 

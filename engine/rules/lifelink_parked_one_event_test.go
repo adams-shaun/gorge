@@ -13,9 +13,8 @@ import (
 // replacement order choice holds a hit (Battletide Alchemist's optional
 // prevention, declined here), that hit's lifelink is paid only when the
 // answer lands, and it must still merge with every other hit the same source
-// dealt in the same simultaneous batch. The pre-fix direct emit paid the
-// parked hit separately, so one source's damage produced two life-gain
-// events.
+// dealt in the same simultaneous batch. A direct emit would pay the parked
+// hit separately, so one source's damage would produce two life-gain events.
 
 // declineParkedDamageReplacements answers every parked damage replacement
 // with its decline option, resolves trigger-order asks in the offered order,

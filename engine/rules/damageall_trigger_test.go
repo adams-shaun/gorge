@@ -455,14 +455,14 @@ func faceDamageAllTrigger(o *state.Object) bool {
 	return false
 }
 
-// TestDamageAllTargetSetDrivesHordewingSkaabDrawCount pins the count head
-// end to end on Hordewing Skaab's real script: SVar:X:TriggeredPlayersTargets$Amount
-// feeds BOTH halves of its body (Cost$ Draw<X/You> and NumCards$ X), so the
-// number of opponents dealt combat damage in one batch sizes the
-// draw-then-discard loot. A split attack at two opponents draws and discards
-// TWO; a single-opponent attack draws and discards ONE. The window must
-// offer a real "pay" -- an unresolvable X lands decline-only and the card
-// does nothing (the pre-fix reading).
+// TestDamageAllTargetSetDrivesHordewingSkaabDrawCount pins the count head end
+// to end on Hordewing Skaab's real script:
+// SVar:X:TriggeredPlayersTargets$Amount feeds BOTH halves of its body (Cost$
+// Draw<X/You> and NumCards$ X), so the number of opponents dealt combat
+// damage in one batch sizes the draw-then-discard loot. A split attack at two
+// opponents draws and discards TWO; a single-opponent attack draws and
+// discards ONE. The window must offer a real "pay" -- an unresolvable X lands
+// decline-only and the card does nothing.
 func TestDamageAllTargetSetDrivesHordewingSkaabDrawCount(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

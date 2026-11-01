@@ -426,20 +426,19 @@ Oracle:x
 	}
 }
 
-// TestStateBasedActionsExhaustingThePassBudgetAreReported is the
-// regression test for the should-fix finding: maxSBAPasses exhaustion used
-// to fall out of checkStateBased's loop with no trace at all. A chain of
-// creatures, each independently lethal (1 damage on a 1-toughness body) but
-// kept alive by the PREVIOUS creature in the chain granting it +2
-// toughness -- the same one-death-per-pass shape TestSBALoopsUntilStable
-// uses for two creatures, scaled past maxSBAPasses (32) so a single
-// checkStateBased call cannot possibly reach a fixed point: creature i only
-// becomes actually lethal once creature i-1 has already died, one creature
-// per pass, and there are more creatures than passes in the budget. Before
-// the fix, a client could observe a creature sitting on the battlefield
-// with lethal damage marked and be handed priority over it, with nothing
-// in the log explaining why. After the fix, a Note event says the budget
-// was exhausted.
+// TestStateBasedActionsExhaustingThePassBudgetAreReported is the regression
+// test for the should-fix finding: maxSBAPasses exhaustion used to fall out
+// of checkStateBased's loop with no trace at all. A chain of creatures, each
+// independently lethal (1 damage on a 1-toughness body) but kept alive by the
+// PREVIOUS creature in the chain granting it +2 toughness -- the same
+// one-death-per-pass shape TestSBALoopsUntilStable uses for two creatures,
+// scaled past maxSBAPasses (32) so a single checkStateBased call cannot
+// possibly reach a fixed point: creature i only becomes actually lethal once
+// creature i-1 has already died, one creature per pass, and there are more
+// creatures than passes in the budget. Otherwise a client could observe a
+// creature sitting on the battlefield with lethal damage marked and be handed
+// priority over it, with nothing in the log explaining why. A Note event says
+// the budget was exhausted.
 func TestStateBasedActionsExhaustingThePassBudgetAreReported(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)

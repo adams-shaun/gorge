@@ -187,17 +187,16 @@ func answerChoice(t *testing.T, e *Engine, p state.PlayerID, pick state.ObjID) {
 	}
 }
 
-// TestEumidianWastewakerChoosersPickDiscardOrSacrifice is pred:CanBeSacrificedBy's
-// end-to-end pin on the real corpus card: each chooser — the defending player
-// first, then the controller — is offered BOTH halves of
-// `Choices$ Card.inZoneHand,Permanent.CanBeSacrificedBy` (before the fix the
-// permanent alternative matched nothing and only hand cards were offered).
-// The controller sacrifices a land with its pick, exercising the trigger's
-// whole chain together: DBDiscard's `DiscardValid$ Card.ChosenCard` (the
-// sacrificed chooser discards nothing — its chosen card is not in its hand),
-// DBSac's `ValidCards$ Card.ChosenCardStrict` (the chosen permanent is
-// sacrificed), and DBDraw's `Count$ValidGraveyard Land.ChosenCard` (Island +
-// Forest = 2 draws).
+// TestEumidianWastewakerChoosersPickDiscardOrSacrifice is
+// pred:CanBeSacrificedBy's end-to-end pin on the real corpus card: each
+// chooser — the defending player first, then the controller — is offered BOTH
+// halves of `Choices$ Card.inZoneHand,Permanent.CanBeSacrificedBy`. The
+// controller sacrifices a land with its pick, exercising the trigger's whole
+// chain together: DBDiscard's `DiscardValid$ Card.ChosenCard` (the sacrificed
+// chooser discards nothing — its chosen card is not in its hand), DBSac's
+// `ValidCards$ Card.ChosenCardStrict` (the chosen permanent is sacrificed),
+// and DBDraw's `Count$ValidGraveyard Land.ChosenCard` (Island + Forest = 2
+// draws).
 func TestEumidianWastewakerChoosersPickDiscardOrSacrifice(t *testing.T) {
 	t.Parallel()
 	e, eumID, ids := wastewakerFixture(t, []string{"Forest"}, true)

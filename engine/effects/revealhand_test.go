@@ -98,8 +98,8 @@ func TestThoughtKnotSeerRevealHandRevealsTheWholeHand(t *testing.T) {
 	if handMove.Player != 0 || handMove.Text != "moves the first matching card(s) from hand (no engine host to ask)" {
 		t.Fatalf("hand-move Note = %+v, want the chooser's (seat 0) no-host stand-in", handMove)
 	}
-	// The sub-ability now really moves the first eligible nonland card from
-	// the revealed hand to exile (the pre-fix silent no-op is gone).
+	// The sub-ability moves the first eligible nonland card from the revealed
+	// hand to exile.
 	if o := h.g.Obj(hand[0]); o.Zone != state.ZExile {
 		t.Fatalf("first eligible card on %s, want exile (DBExile no longer no-ops)", o.Zone)
 	}

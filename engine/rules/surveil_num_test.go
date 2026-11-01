@@ -206,8 +206,7 @@ func mandatoryStaticFixture(t *testing.T, seed uint64) (*Engine, Config, state.O
 }
 
 // countArrangeAsks counts the DecisionAsk events of the given decision kinds
-// after index mark -- the "exactly one election, exactly one arrange" probe
-// the pre-fix ping-pong failed (it re-posed both every round).
+// after index mark -- the "exactly one election, exactly one arrange" probe.
 func countArrangeAsks(e *Engine, mark int, kinds ...decision.Kind) int {
 	want := make(map[decision.Kind]bool, len(kinds))
 	for _, k := range kinds {

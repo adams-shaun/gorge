@@ -215,12 +215,10 @@ func reachScourgeStack(t *testing.T, e *Engine) *decision.Decision {
 }
 
 // TestScourgeOfTheThroneInterveningIfRecheckedAtResolution is the regression
-// for the CR 603.4 resolution-time half: the defender holds the most life when
-// Scourge attacks (so the trigger QUEUES), then loses the lead during the
-// response window -- the intervening-if is false as the ability resolves, so
-// it must be removed from the stack and do nothing. Before the fix the
-// resolution check read no AttackedPlayerWithMostLife clause at all, so the
-// queued trigger still untapped the attackers and granted the extra combat.
+// for the CR 603.4 resolution-time half: the defender holds the most life
+// when Scourge attacks (so the trigger QUEUES), then loses the lead during
+// the response window -- the intervening-if is false as the ability resolves,
+// so it must be removed from the stack and do nothing.
 func TestScourgeOfTheThroneInterveningIfRecheckedAtResolution(t *testing.T) {
 	t.Parallel()
 	e, scourge := scourgeSeat(t, [3]int32{30, 20, 20})

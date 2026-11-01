@@ -1,12 +1,9 @@
 // WithCountersType$/WithCountersAmount$ on api:Token (Printlifter Ooze:
-// "create a 0/0 green Ooze creature token with trample. The token enters
-// with X +1/+1 counters on it, where X is the number of other creatures you
+// "create a 0/0 green Ooze creature token with trample. The token enters with
+// X +1/+1 counters on it, where X is the number of other creatures you
 // control") and api:CopyPermanent (littjara_mirrorlake's "a token that's a
 // copy of target creature you control, except it enters with an additional
-// +1/+1 counter on it"): the token-creation entry counters. Before the fix
-// both primitives ignored the parameters -- a Printlifter Ooze token entered
-// as a 0/0 with no counters and died immediately to the CR 704.5f
-// zero-toughness state-based action.
+// +1/+1 counter on it"): the token-creation entry counters.
 //
 // The tests drive real compiled corpus cards (never committed Forge script
 // text). No carrier of either param family is in any repo deck, so the

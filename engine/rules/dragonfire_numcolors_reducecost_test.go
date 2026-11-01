@@ -82,8 +82,8 @@ func TestDragonfireBladeEquipOfferedAtColorDiscountedPrice(t *testing.T) {
 	if got := len(e.ObjectColors(e.G.Obj(monoID))); got != 1 {
 		t.Fatalf("mono target color count = %d, want 1 (the reduction depends on it)", got)
 	}
-	// {3} is exactly Dragonfire Blade's printed {4} minus the 1-color target's
-	// reduction. Before the fix the head read 0 and withheld the equip.
+	// {3} is exactly Dragonfire Blade's printed {4} minus the 1-color
+	// target's reduction.
 	addMana(t, e, 0, "CCC")
 	opt, ok := findAbilityOption(e, bladeID, 0)
 	if !ok {

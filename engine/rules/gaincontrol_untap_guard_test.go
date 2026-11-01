@@ -14,7 +14,6 @@ import (
 // permanent cannot untap (CR 701.26b), so no Untap event -- and no "becomes
 // untapped" trigger, Fishing Pole's -- follows for one; a tapped one untaps;
 // a tapped one with a stun counter loses the counter instead (CR 122.1d).
-// Before the fix the Untap event was emitted unconditionally.
 func TestGainControlUntapOnlyUntapsATappedPermanent(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

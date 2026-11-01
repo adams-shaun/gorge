@@ -46,11 +46,10 @@ func greatwurmGraveyardCast(e *Engine, wurm state.ObjID) int {
 
 // TestQuilledGreatwurmCountersFromAmongCreatures pins Quilled Greatwurm's
 // graveyard permission ("by removing six counters from among creatures you
-// control", RaiseCost$ RemoveAnyCounter<6/Any/Creature>): the six counters are
-// a TOTAL across the payer's creatures (CR 118.3, 601.2h), so two Bears
+// control", RaiseCost$ RemoveAnyCounter<6/Any/Creature>): the six counters
+// are a TOTAL across the payer's creatures (CR 118.3, 601.2h), so two Bears
 // carrying three counters each make the cast payable and the payment takes
-// counters from both. Before the fix the offer gate required one creature
-// carrying all six and the cast was never offered.
+// counters from both.
 func TestQuilledGreatwurmCountersFromAmongCreatures(t *testing.T) {
 	t.Parallel()
 	e, wurm, bearA, bearB := quilledGreatwurmGraveyardEngine(t, 3, 3)

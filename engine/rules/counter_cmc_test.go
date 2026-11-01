@@ -2,8 +2,7 @@
 // remembers the countered spell's mana VALUE, and the chained SubAbility$
 // reads it back through SVar:X:Count$RememberedNumber -- Electrosiphon's
 // "Counter target spell. You get an amount of {E} (energy counters) equal to
-// its mana value." Before the fix the rider was unread, so the X read the
-// list-length channel and every carrier paid out zero.
+// its mana value."
 //
 // The filing card is the real corpus card, resolved end to end through the
 // engine's own cast/target/resolve path against an opponent spell on the

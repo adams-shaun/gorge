@@ -13,9 +13,8 @@ import (
 // copy effect (DB$ CopyPermanent) is still a token being created, so Akim's
 // "whenever you create one or more tokens for the first time each turn"
 // trigger (Mode$ TokenCreatedOnce) fires for it. The copy mints through
-// events.CopyToken and enters with a separate MoveZone, not the TokenCreate
-// event the matcher used to require, so before the fix the Bird was never
-// created.
+// events.CopyToken and enters with a separate MoveZone, not a TokenCreate
+// event, so a matcher requiring one would never create the Bird.
 func TestCopyTokenFiresTokenCreated(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

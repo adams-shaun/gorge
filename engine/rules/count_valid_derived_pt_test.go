@@ -11,17 +11,15 @@ import (
 
 // TestCountValidDerivationIsNotFactorial (general; the fuzzer's "hang"
 // records: every off-lane hang game profiled 98-99% under staticAmountOn ->
-// zoneCountFold.visit -> FilterDerivedPT -> chars.PT, and 4 of 7
-// did not finish in 7 CPU-minutes): Count$Valid bound every battlefield
-// candidate's derived P/T (engine/effects/count.go zoneCountFold.visit) even when
-// the spec reads none ("Artifact.YouCtrl"), so a P/T CDA that counts
-// permanents (Master of Etherium: SetPower$ X / SetToughness$ X,
-// X:Count$Valid Artifact.YouCtrl) derived every other counted creature,
-// which counted again: the in-progress frame guard stops the cycle but not
-// the factorial fan-out. Measured on this box before the fix: 4 Masters
-// 2.9 ms, 5 44 ms, 6 577 ms, 7 10.6 s for ONE Derived. Eight must be
-// instant; SpecReadsPT (engine/effects/filter.go) now skips the bind unless the
-// spec reads a P/T comparison field.
+// zoneCountFold.visit -> FilterDerivedPT -> chars.PT, and 4 of 7 did not
+// finish in 7 CPU-minutes): Count$Valid bound every battlefield candidate's
+// derived P/T (engine/effects/count.go zoneCountFold.visit) even when the
+// spec reads none ("Artifact.YouCtrl"), so a P/T CDA that counts permanents
+// (Master of Etherium: SetPower$ X / SetToughness$ X, X:Count$Valid
+// Artifact.YouCtrl) derived every other counted creature, which counted
+// again: the in-progress frame guard stops the cycle but not the factorial
+// fan-out. Eight must be instant; SpecReadsPT (engine/effects/filter.go) now
+// skips the bind unless the spec reads a P/T comparison field.
 func TestCountValidDerivationIsNotFactorial(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)

@@ -696,15 +696,10 @@ Oracle:x
 	}
 }
 
-// TestReplayFromLogAloneReconstructsTriggeredAbilities is the
-// regression test: a game log folded into a fresh Game with no rules.Engine
-// behind it -- exactly what a real replay-from-log-alone does -- must
-// reconstruct the same state a live game reached, triggered abilities
-// included. Before the fix, the ability wrapper's ObjID was assigned by a
-// direct, unlogged Game.AddObject call; a log-only reconstruction never
-// learned that ID existed, so the MoveZone that placed it on the stack
-// silently no-op'd (events.Move's "if o == nil { return }" guard) and the
-// replayed stack permanently diverged from the live one.
+// TestReplayFromLogAloneReconstructsTriggeredAbilities is the regression
+// test: a game log folded into a fresh Game with no rules.Engine behind it --
+// exactly what a real replay-from-log-alone does -- must reconstruct the same
+// state a live game reached, triggered abilities included.
 func TestReplayFromLogAloneReconstructsTriggeredAbilities(t *testing.T) {
 	t.Parallel()
 	// The trigger-bearing creature must reach the battlefield through

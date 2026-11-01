@@ -93,8 +93,7 @@ func TestEffectCantBlockBySuspiciousBookcaseUnblocksItsTarget(t *testing.T) {
 		t.Fatalf("CantBlockBy effects registered after the ability resolved = %d, want 1", n)
 	}
 	// The readable body must have registered, NOT been refused: no
-	// unimplemented-CantBlockBy note may carry the resolution (fails pre-fix,
-	// where the stand-in Note is exactly what this ability emits).
+	// unimplemented-CantBlockBy note may carry the resolution.
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.Note && ev.Obj == bookcase &&

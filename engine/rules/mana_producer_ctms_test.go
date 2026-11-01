@@ -16,10 +16,8 @@ import (
 )
 
 // TestManaReflectedProducerTagsItsSourceType is the ManaReflected half,
-// driven end to end on the real corpus carrier Cactus Preserve (a Land
-// Desert whose {T}: ManaReflected ability reflects a land you control's
-// mana). Before the fix the reflected unit was emitted with a bare "R"
-// Counter, so it landed in the pool untagged and never counted as a Desert.
+// driven end to end on the real corpus carrier Cactus Preserve (a Land Desert
+// whose {T}: ManaReflected ability reflects a land you control's mana).
 func TestManaReflectedProducerTagsItsSourceType(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
@@ -94,8 +92,7 @@ const cumulativeDesertSource = "Name:Ctms Oasis\nManaCost:0\nTypes:Land Desert\n
 
 // TestCumulativeUpkeepAddManaTagsItsSourceType is the cumulative half: paying
 // the AddMana upkeep cost of a Desert permanent must tag the produced unit
-// Desert<colour>, so it counts as Desert in the filtered head. Before the fix
-// the action emitted a bare "C" Counter.
+// Desert<colour>, so it counts as Desert in the filtered head.
 func TestCumulativeUpkeepAddManaTagsItsSourceType(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)

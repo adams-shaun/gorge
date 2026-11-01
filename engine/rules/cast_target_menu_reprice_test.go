@@ -188,7 +188,7 @@ func TestRebukeMenuCensusIgnoresTapBlockedSource(t *testing.T) {
 
 	// Precondition for the shape this pins: the tapped Plains is
 	// probe-admitted (its {W} activation passes the gate walk) but produces
-	// no unit, and BEFORE the fix that was judged census-incomplete.
+	// no unit, which must not be judged census-incomplete.
 	windowUnits := e.castWindowUnits(&pendingCast{player: 0, card: spellID,
 		from: state.ZHand, ability: -1, cost: e.parseCost("4 W")})
 	if e.castWindowCensusComplete(&pendingCast{player: 0, card: spellID,

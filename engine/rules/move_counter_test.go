@@ -232,13 +232,13 @@ func TestWeaponRackAbilityIsOfferedAndMovesACounter(t *testing.T) {
 	}
 }
 
-// TestNestingGroundsSubTargetReceivesTheMove drives the real Nesting
-// Grounds: the {1},{T} root is a Pump whose target is the ORIGIN (Source$
+// TestNestingGroundsSubTargetReceivesTheMove drives the real Nesting Grounds:
+// the {1},{T} root is a Pump whose target is the ORIGIN (Source$
 // ParentTarget) and whose DBMove sub carries its own ValidTgts$ -- the shape
-// the generic pre-ask asks. The sub's OWN chosen target (the second
-// bear) must be the destination, never the root's target (the PickedTargets
-// convention): with the pre-fix code the -1 and +1 both landed on the root's
-// target and cancelled (land 1->1, bear 0->0).
+// the generic pre-ask asks. The sub's OWN chosen target (the second bear)
+// must be the destination, never the root's target (the PickedTargets
+// convention): otherwise the -1 and +1 both land on the root's target and
+// cancel (land 1->1, bear 0->0).
 func TestNestingGroundsSubTargetReceivesTheMove(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -309,13 +309,11 @@ func TestNestingGroundsSubTargetReceivesTheMove(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestNestingGroundsAnyKindWithOwnTargetDrains pins the movecounter1
-// livelock fix end to end: a MoveCounter sub with its OWN ValidTgts$ AND a
-// CounterType$ Any kind pick (Nesting Grounds' DBMove, an origin holding two
-// kinds) must drain -- before the fix the answered kind was lost to the
-// re-entry's fresh Ctx, the tgts pre-ask re-fired, and the two asks
-// alternated forever (measured by the reviewer: move_counter_kind:38,
-// tgts:39 over 80 drive steps, the stack never drained).
+// TestNestingGroundsAnyKindWithOwnTargetDrains pins draining end to end: a
+// MoveCounter sub with its OWN ValidTgts$ AND a CounterType$ Any kind pick
+// (Nesting Grounds' DBMove, an origin holding two kinds) must drain -- the
+// answered kind must survive the re-entry's fresh Ctx, or the tgts pre-ask
+// re-fires and the two asks alternate forever.
 func TestNestingGroundsAnyKindWithOwnTargetDrains(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -394,13 +392,11 @@ func TestNestingGroundsAnyKindWithOwnTargetDrains(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestForgottenAncientSweepDistributesAndConserves drives the real
-// Forgotten Ancient: `Source$ Self | ValidDefined$ Creature.Other |
-// CounterType$ P1P1 | CounterNum$ Any` at an upkeep. The any-number answer
-// is DISTRIBUTED across the sweep's destinations (CR 122.5: a move never
-// mints) -- 2 over two other creatures is 1 and 1, the total on the board
-// is conserved. The pre-fix code gave EACH destination the whole moved set
-// (measured: FA 4 -> 2 but bearA 2 AND bearB 2 -- total 6 from 4).
+// TestForgottenAncientSweepDistributesAndConserves drives the real Forgotten
+// Ancient: `Source$ Self | ValidDefined$ Creature.Other | CounterType$ P1P1 |
+// CounterNum$ Any` at an upkeep. The any-number answer is DISTRIBUTED across
+// the sweep's destinations (CR 122.5: a move never mints) -- 2 over two other
+// creatures is 1 and 1, the total on the board is conserved.
 func TestForgottenAncientSweepDistributesAndConserves(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

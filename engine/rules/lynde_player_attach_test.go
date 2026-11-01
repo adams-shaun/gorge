@@ -152,10 +152,7 @@ func answerLyndeUpkeep(t *testing.T, e *Engine, curse state.ObjID) (sawCardAsk, 
 // non-empty only because the `.AttachedTo You` word is recognised, (b) the
 // `PlayerChoices$ Opponent` Attach ask is posed only because effAttach reads
 // the param, and the `RememberAttached$ True` remember is what makes DBDraw's
-// ConditionPresent$ Card pass for the two cards. Before the fix the trigger
-// fired, the may ask was accepted, and one deterministic
-// `cannot attach: no legal target` Note was emitted with no Curse chosen and
-// no cards drawn.
+// ConditionPresent$ Card pass for the two cards.
 func TestLyndeUpkeepMovesCurseOntoOpponent(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -205,9 +202,7 @@ func TestLyndeUpkeepMovesCurseOntoOpponent(t *testing.T) {
 // TestAccursedWitchReturnAttachesToParentTarget is the (a) proof on a second
 // carrier: Accursed Witch's death returns it transformed as Infectious Curse
 // via `ChangeZone | AttachedToPlayer$ ParentTarget`, so the returned Curse
-// enters attached to the opponent its death trigger targeted. Before the fix
-// the param was unread, the Curse entered unattached, and the CR 704.5m
-// attachment SBA swept it to the graveyard.
+// enters attached to the opponent its death trigger targeted.
 func TestAccursedWitchReturnAttachesToParentTarget(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -390,11 +385,8 @@ func TestEnchantOpponentAuraCastAttachesToOpponent(t *testing.T) {
 }
 
 // ChangeZone AttachedToPlayer$ You brings the Curse back to the battlefield
-// ATTACHED to Lynde's controller. Before the fix AttachedToPlayer$ was unread,
-// the Curse entered unattached, the CR 704.5m attachment SBA swept it straight
-// back to the graveyard, and that re-fired Lynde's own trigger -- a
-// deterministic battlefield<->graveyard ping-pong. The test asserts the return
-// is on the battlefield and attached to seat 0, and that no second
+// ATTACHED to Lynde's controller. The test asserts the return is on the
+// battlefield and attached to seat 0, and that no second
 // battlefield->graveyard MoveZone happened in the same window.
 func TestLyndeGraveyardReturnAttachesToYou(t *testing.T) {
 	t.Parallel()

@@ -100,7 +100,7 @@ func TestManaValueTwobridCountsTheGenericComponent(t *testing.T) {
 // TestManaValueModalDFCBackFaceIsItsOwn guards CR 712.8f: a modal DFC's back
 // face up on the battlefield has that face's own characteristics, so Sink
 // into Stupor's land back face (repo deck, no cost) has mana value 0, not the
-// front face's 3. Passes before and after the fix.
+// front face's 3.
 func TestManaValueModalDFCBackFaceIsItsOwn(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

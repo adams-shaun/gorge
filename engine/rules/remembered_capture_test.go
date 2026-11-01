@@ -57,10 +57,7 @@ const captureVictimCard = "Name:Victim\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 // TestRememberedCaptureExcludedInTriggerBody drives the probe end to end at
 // the engine: the trigger's fire-time capture must NOT count as something the
 // resolution remembered, so an unsacrificed resolution leaves
-// Remembered$Amount at 0 and the EQ0-gated Draw leg fires. Before the fix the
-// phase trigger's ctx carried Remembered=[source], Amount read 1, and the leg
-// was silently skipped -- exactly Enchanter's Bane's dead damage leg (triage
-// measured zero Damage events).
+// Remembered$Amount at 0 and the EQ0-gated Draw leg fires.
 func TestRememberedCaptureExcludedInTriggerBody(t *testing.T) {
 	t.Parallel()
 	// run drives one probe card and returns (draws, victimZone).

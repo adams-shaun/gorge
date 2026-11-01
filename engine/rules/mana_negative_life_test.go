@@ -98,12 +98,11 @@ func nlPutOnStack(e *Engine, id state.ObjID) bool {
 //
 // The Island is tapped FIRST and the tomb LAST, so the tomb's damage is the
 // final activation of the window and the payment settles inside that same
-// answer. Pre-fix, resolveManaWith refused the {2}{U} at life -1 and the cast
-// reversed "cost no longer payable". The reverse order (tomb, then Island)
-// crosses a Submit boundary at life -1, where Submit's closing
-// checkStateBased runs while the cast is still mid-window, so the payer
-// loses before the Island can be tapped -- a separate CR 704.3 deviation of
-// the manual window that this test deliberately does not pin.
+// answer. The reverse order (tomb, then Island) crosses a Submit boundary at
+// life -1, where Submit's closing checkStateBased runs while the cast is
+// still mid-window, so the payer loses before the Island can be tapped -- a
+// separate CR 704.3 deviation of the manual window that this test
+// deliberately does not pin.
 //
 // The log is walked to pin the ordering: the tomb's
 // production and damage precede the pool deduction, and no PlayerLost

@@ -15,11 +15,9 @@ import (
 // The WOE/WOC Role cycle is the corpus shape: a spell's root targets one
 // permanent (a player, a destroyed permanent, a damaged creature) and its
 // DBToken sub carries its OWN ValidTgts$ plus AttachedTo$ ThisTargetedCard or
-// AttachedTo$ Targeted. Before the fix the attach read the root's targets, the
-// CR 303.4g Aura gate found no legal bearer, and the Role was never created.
-// The fixtures are authored inline (never a corpus .txt, per the licensing
-// rule); the corpus-wide carrier census is pinned separately by
-// token_attachedto_census_test.go.
+// AttachedTo$ Targeted. The fixtures are authored inline (never a corpus
+// .txt, per the licensing rule); the corpus-wide carrier census is pinned
+// separately by token_attachedto_census_test.go.
 
 // roleTokenSrc is the Aura token every fixture below mints. K:Enchant:Creature
 // is what engine/rules/aura_entry.go's auraEnchantCandidates needs, so the CR 303.4g

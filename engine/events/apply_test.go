@@ -1590,7 +1590,7 @@ func TestGrantAbilityPushResolvesTheBodyFromTheGrantor(t *testing.T) {
 	grantor := g.AddObject(grantorCard, 0)
 	grantor.Zone = state.ZBattlefield
 	// The recipient bears no Zap SVar: if the body resolved from Obj it would
-	// mint nothing, which is exactly the pre-fix silent no-op.
+	// mint nothing, a silent no-op.
 	recipient := g.Obj(g.Zone(state.ZLibrary, 0)[0])
 	recipient.Zone = state.ZBattlefield
 	g.SetZone(state.ZBattlefield, 0, []state.ObjID{grantor.ID, recipient.ID})

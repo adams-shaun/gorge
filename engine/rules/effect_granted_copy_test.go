@@ -11,11 +11,11 @@ package rules
 //   - an event-matched DB$ Effect | Triggers$ registration (Rowan, Scholar of
 //     Sparks' emblem line), queued as a DelayedPush.
 //
-// Before the fix both bodies resolved with no trigger line attached, so the
-// findTriggerForAbility gate returned false: the OptionalDecider$ ask never
-// posed, the Cost$ window never armed, and the copy resolved for FREE.
-// Engine.triggerLines (recorded by pushTrigger, resolved by
-// triggerForAbilityObject) carries the line from the push to resolution.
+// With no trigger line attached to the body, the findTriggerForAbility gate
+// returns false: the OptionalDecider$ ask never posed, the Cost$ window never
+// armed, and the copy resolved for FREE. Engine.triggerLines (recorded by
+// pushTrigger, resolved by triggerForAbilityObject) carries the line from the
+// push to resolution.
 //
 // The fixtures carry the corpus cards' lines VERBATIM (inline per the licensing
 // rule); the carriers are plain cards so the leaf under test is the grant
@@ -150,7 +150,7 @@ func drainCopyGrants(t *testing.T, e *Engine, limit int, acceptOptional, pay boo
 // Mendicant Core's verbatim lines: the granted trigger's OptionalDecider$ You
 // folds into its {1} pay election (optionalFoldsIntoCost -- one ask, not a
 // yes/no in front of it), the pay ask must pose, and paying must charge the
-// pool and copy. Pre-fix neither ask posed and the copy resolved for free.
+// pool and copy.
 func TestGrantedStaticSpellCopyPaysCost(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := newFixtureDeck(t, 902, mendicantCoreSrc, artifactSpellSrc, plainSifterSrc)

@@ -1,13 +1,13 @@
 package rules
 
-// CR 723.4 widens what the CONTROLLER of another player may see to
-// what that player could see, but only while the control is live -- CR
-// 723.1's "during that player's next turn". The grant is folded into
-// state.Game.ControlledBy the moment Mindslaver's ability resolves, on the
-// controller's own turn; before the fix view.controlsSeat read that map
-// alone, so from the resolution on the controller's projection held the
-// controlled seat's hand and every Secret event of that seat (its draws) was
-// served whole to the controller, a full turn before the control began.
+// CR 723.4 widens what the CONTROLLER of another player may see to what that
+// player could see, but only while the control is live -- CR 723.1's "during
+// that player's next turn". The grant is folded into state.Game.ControlledBy
+// the moment Mindslaver's ability resolves, on the controller's own turn;
+// view.controlsSeat reading that map alone would give the controller's
+// projection, from the resolution on, the controlled seat's hand and every
+// Secret event of that seat (its draws) was served whole to the controller, a
+// full turn before the control began.
 
 import (
 	"testing"

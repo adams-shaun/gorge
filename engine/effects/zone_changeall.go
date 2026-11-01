@@ -23,19 +23,18 @@ import (
 //
 // Both scope forms resolve through the shared player-target vocabulary
 // (`Defined` / `definedSpec`), so `ValidTgts$ Player`, `ValidTgts$ Opponent`,
-// `Defined$ You`, `Defined$ TargetedController` and the rest all work without a
-// second spelling table. On the non-targeting path, a selector we cannot
-// resolve to a PLAYER (an unknown spelling, or an object-only one) keeps the
-// pre-fix all-players sweep rather than silently moving nothing, and emits a
-// Note saying so: the unscoped sweep is the previous behaviour, so an
-// unmodelled card is never quietly inert, and a card we DO understand is
-// correctly restricted. On the TARGETING path an empty chosen set is a legal
-// answer ("any number", CR 601.2c, includes zero), so it scopes to no players
-// and moves nothing -- Thraben Charm's "exile any number of target players'
-// graveyards" cast with no targets must not sweep every graveyard. `Origin$`
-// handling is not
-// touched -- ParseZones already splits `Hand,Graveyard` into two zones and the
-// Any/All wildcard is resolved by the caller before this runs.
+// `Defined$ You`, `Defined$ TargetedController` and the rest all work without
+// a second spelling table. On the non-targeting path, a selector we cannot
+// resolve to a PLAYER (an unknown spelling, or an object-only one) keeps an
+// all-players sweep rather than silently moving nothing, and emits a Note
+// saying so, so an unmodelled card is never quietly inert, and a card we DO
+// understand is correctly restricted. On the TARGETING path an empty chosen
+// set is a legal answer ("any number", CR 601.2c, includes zero), so it
+// scopes to no players and moves nothing -- Thraben Charm's "exile any number
+// of target players' graveyards" cast with no targets must not sweep every
+// graveyard. `Origin$` handling is not touched -- ParseZones already splits
+// `Hand,Graveyard` into two zones and the Any/All wildcard is resolved by the
+// caller before this runs.
 func changeZoneAllPlayers(h Host, c *Ctx, sa *cards.SA, p *ChangeZoneAllParams) (players []state.PlayerID, scoped bool) {
 	g := h.Game()
 	if p.UseAllOriginZones {
@@ -382,10 +381,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		// (the ctx list the chain's later sub-abilities read and the source's
 		// event-backed persistent list a later resolution's IsRemembered /
 		// Remembered$ head reads -- The Mimeoplasm's MimeoChooseCopy, Gift of
-		// Immortality's return trigger). Previously this recorded the ctx
-		// entries alone and only for the ExiledWithSource provenance shape
-		// (Valakut Exploration); the persistent half is what the Mimeoplasm
-		// chain's IsRemembered/Remembered$CardPower reads need.
+		// Immortality's return trigger).
 		if cza.RememberLKI && !cza.RememberChanged {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 		}

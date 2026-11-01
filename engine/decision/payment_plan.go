@@ -528,10 +528,10 @@ func appendPaymentPlanCanonical(b []byte, p PaymentPlan) []byte {
 	}
 	b = appendMana(b, p.PoolSpend)
 	b = appendMana(b, p.PoolAfter)
-	// The consequence trailer (spec §4 amended) is appended only when some
-	// step carries a consequence, so every plan without one keeps its exact
-	// pre-trailer identity. The base encoding's length is fixed by its
-	// activation count, so the trailer's presence is unambiguous.
+	// The consequence trailer is appended only when some step carries a
+	// consequence, so every plan without one keeps its exact pre-trailer
+	// identity. The base encoding's length is fixed by its activation count,
+	// so the trailer's presence is unambiguous.
 	has := false
 	for _, a := range p.Activations {
 		if a.Consequence != nil {

@@ -69,9 +69,9 @@ func battlefieldToken(t *testing.T, e *Engine, p state.PlayerID, name string) *s
 // TestTokenEntryFiresChangesZoneTriggers is the report's carrier shape: Soul
 // Warden (Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield |
 // ValidCard$ Creature.Other) must gain life for a real creature's entry
-// (control, passes before the fix) AND for a minted creature token's entry
-// (the regression, fails before the fix). The third half asserts the minted
-// object really is a battlefield token, so the count is not vacuous.
+// (control) AND for a minted creature token's entry . The third half asserts
+// the minted object really is a battlefield token, so the count is not
+// vacuous.
 func TestTokenEntryFiresChangesZoneTriggers(t *testing.T) {
 	t.Parallel()
 	warden := tokenReplCorpusCard(t, "Soul Warden")

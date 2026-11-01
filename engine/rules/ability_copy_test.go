@@ -239,10 +239,8 @@ func allStackCopies(e *Engine) []state.ObjID {
 
 // TestUFActivationCopyResolvesTheAbility is the pin: activate an X-cost
 // ability under Unbound Flourishing, accept the trigger, and assert exactly
-// one StackCopy OF THE ABILITY WRAPPER -- and that the copy actually
-// RESOLVES (the copied Draw X draws its cards: hand +2, ability and copy one
-// each). Before the fix this emitted 0 StackCopy events (the trigger's
-// Remembered named the battlefield permanent; the copy's zone guard no-oped).
+// one StackCopy OF THE ABILITY WRAPPER -- and that the copy actually RESOLVES
+// (the copied Draw X draws its cards: hand +2, ability and copy one each).
 func TestUFActivationCopyResolvesTheAbility(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := newFixtureDeck(t, 140, unboundFlourishingSrc, changeXSifterSrc, plainSifterSrc)
@@ -360,9 +358,7 @@ func TestUnpriceableCopyCostIsHardDecline(t *testing.T) {
 // copy names ITS OWN activation -- the changex1 topmost-wrapper scan got
 // exactly this wrong; the fire-time role fixes it. Asserted through the
 // copies' {X}: the X=1 activation's copy draws 1, the X=2 activation's copy
-// draws 2 (hand +6 total: 1+1+2+2; a topmost-binding defect would copy the
-// newer wrapper twice and draw 1+1+2+2's counterpart 7, and the pre-fix
-// engine copies nothing at all).
+// draws 2 (hand +6 total: 1+1+2+2).
 func TestEachTriggerCopiesItsOwnActivation(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := newFixtureDeck(t, 145, unboundFlourishingSrc, taplessXSifterSrc, plainSifterSrc)

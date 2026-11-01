@@ -114,13 +114,13 @@ func TestBoomflingerPublishesTheDifferenceBetweenRolls(t *testing.T) {
 	}
 }
 
-// TestNeverwinterHydraPublishesTheTotalOfXRolls is the multi-roll
-// ResultSVar$ leaf (real corpus Neverwinter Hydra): Amount$ X = 3 rolls three
-// d6 (5, 2, 6 here) and publishes the TOTAL 13 under Result, which the
-// chained DBCounters reads through CounterNum$ Result — the card's own oracle
-// wording, "a number of +1/+1 counters on it equal to the total of those
-// results". Before the fix no multi-roll resolution published at all, so the
-// Hydra entered with zero counters.
+// TestNeverwinterHydraPublishesTheTotalOfXRolls is the multi-roll ResultSVar$
+// leaf (real corpus Neverwinter Hydra): Amount$ X = 3 rolls three d6 (5, 2, 6
+// here) and publishes the TOTAL 13 under Result, which the chained DBCounters
+// reads through CounterNum$ Result — the card's own oracle wording, "a number
+// of +1/+1 counters on it equal to the total of those results". A multi-roll
+// resolution that publishes nothing would have the Hydra enter with zero
+// counters.
 func TestNeverwinterHydraPublishesTheTotalOfXRolls(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	nh, ok := reg.Lookup("Neverwinter Hydra")

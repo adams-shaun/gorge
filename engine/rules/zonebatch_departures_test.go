@@ -273,11 +273,10 @@ func TestSeparateDestroysAreSeparateChangesZoneAllBatches(t *testing.T) {
 
 // TestSweeperSBALethalDeathsAreOneChangesZoneAllBatch is the SBA half of the
 // same rule: one DamageAll sweep resolves as ONE round of state-based actions
-// (CR 704.3), so the lethal-damage deaths it causes are one event for a
-// Mode$ ChangesZoneAll line (CR 603.10a/603.2c). Casting the real Pyroclasm
-// kills two real creatures, and the townsfolk must put exactly ONE +1/+1
-// counter on itself -- the pre-fix SBA path emitted one MoveZone per member
-// with no zone batch open, so the latch queued twice.
+// (CR 704.3), so the lethal-damage deaths it causes are one event for a Mode$
+// ChangesZoneAll line (CR 603.10a/603.2c). Casting the real Pyroclasm kills
+// two real creatures, and the townsfolk must put exactly ONE +1/+1 counter on
+// itself .
 func TestSweeperSBALethalDeathsAreOneChangesZoneAllBatch(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

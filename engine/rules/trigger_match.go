@@ -2764,27 +2764,26 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	if e.disableTriggersExcludes(t, source, ev) {
 		return false
 	}
-	// NotThisAbility$ True: the event being matched must not
-	// have been caused by the resolution of THIS very trigger instance
-	// (Kodama of the East Tree -- the corpus's one carrier, 1 of 38000+ card
-	// files -- is the shape: its "whenever another permanent you control
-	// enters, if it wasn't put onto the battlefield with this ability"
-	// rider would otherwise re-fire on the permanent its own Execute$
-	// ChangeZone just placed, a self-feeding loop). The cause is read the
-	// way every synchronous action matcher reads it -- actionCause(), the
-	// resolving wrapper at the top of the stack inside emit -- and compared
-	// by identity: the wrapper's Source is the trigger's source permanent
-	// and its Ability pointer is the exact compiled trigger line (the
-	// pointer TriggerPush mints the wrapper from), so two copies of the
-	// same card distinguish correctly (each wrapper names ITS source) and
-	// a sibling trigger line of the same card does not suppress its
-	// neighbour. The comparison is replay-safe with no event-schema
-	// change: trigger checks run synchronously inside emit, and a replay
-	// re-derives the same stack and the same compiled pointers. A cause
-	// that cannot be identified (no resolving wrapper, a keyword-granted
-	// trigger whose Effect is re-synthesized per scan) fails OPEN -- the
-	// trigger fires, the pre-fix behaviour -- so the gate only ever
-	// narrows when it can PROVE the cause is this ability.
+	// NotThisAbility$ True: the event being matched must not have been caused
+	// by the resolution of THIS very trigger instance (Kodama of the East
+	// Tree -- the corpus's one carrier, 1 of 38000+ card files -- is the
+	// shape: its "whenever another permanent you control enters, if it wasn't
+	// put onto the battlefield with this ability" rider would otherwise
+	// re-fire on the permanent its own Execute$ ChangeZone just placed, a
+	// self-feeding loop). The cause is read the way every synchronous action
+	// matcher reads it -- actionCause(), the resolving wrapper at the top of
+	// the stack inside emit -- and compared by identity: the wrapper's Source
+	// is the trigger's source permanent and its Ability pointer is the exact
+	// compiled trigger line (the pointer TriggerPush mints the wrapper from),
+	// so two copies of the same card distinguish correctly (each wrapper
+	// names ITS source) and a sibling trigger line of the same card does not
+	// suppress its neighbour. The comparison is replay-safe with no
+	// event-schema change: trigger checks run synchronously inside emit, and
+	// a replay re-derives the same stack and the same compiled pointers. A
+	// cause that cannot be identified (no resolving wrapper, a
+	// keyword-granted trigger whose Effect is re-synthesized per scan) fails
+	// OPEN -- the trigger fires -- so the gate only ever narrows when it can
+	// PROVE the cause is this ability.
 	if e.notThisAbilityExcludes(t, source) {
 		return false
 	}

@@ -29,8 +29,6 @@ func mustCorpusCardT(t *testing.T, name string) *cards.Card {
 // TestResourcefulDefenseCopiesEachCounterKind: a
 // 2/2 with two +1/+1 counters and a charge counter leaves the battlefield;
 // the target permanent gains exactly two +1/+1 and one charge counter.
-// Before the fix the CounterType$ EachFromSource put placed NOTHING (not a
-// real counter kind), so the trigger resolved onto an untouched target.
 func TestResourcefulDefenseCopiesEachCounterKind(t *testing.T) {
 	t.Parallel()
 	rd := mustCorpusCardT(t, "Resourceful Defense")
@@ -88,9 +86,9 @@ func TestResourcefulDefenseCopiesEachCounterKind(t *testing.T) {
 
 // TestTheOzolithCollectsTheLeftCounters pins the Defined$ Self destination:
 // The Ozolith's own trigger has NO target ask (Defined$ Self), so the copy
-// must land with no decision at all -- a KTarget here would wedge a test
-// that never answers it, and a zero-count Ozolith after the move is the
-// pre-fix silence this shape exists to disprove.
+// must land with no decision at all -- a KTarget here would wedge a test that
+// never answers it, and a zero-count Ozolith after the move is the silence
+// this shape disproves.
 func TestTheOzolithCollectsTheLeftCounters(t *testing.T) {
 	t.Parallel()
 	oz := mustCorpusCardT(t, "The Ozolith")

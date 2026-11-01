@@ -16,12 +16,12 @@ import (
 // keyword the grant had just appended. The card's own body is
 //   Mode$ Continuous | Affected$ Card.IsRemembered | RemoveAllAbilities$ True | AddKeyword$ Haste
 //
-// so pre-fix the returned Hellcat derived keywords = [] (printed Haste removed
-// and the re-grant wiped); post-fix the single combined effect applies the
-// removal and the grant in the walk's in-effect order and Haste survives.
-// Bronzehide/hellcat/harold are 3 of the 55 StaticEffect$ carriers with this
-// shape; no repo/legacy deck carries any of them, so the golden heads cannot
-// move.
+// so split effects would leave the returned Hellcat's derived keywords = []
+// (printed Haste removed and the re-grant wiped); the single combined effect
+// applies the removal and the grant in the walk's in-effect order and Haste
+// survives. Bronzehide/hellcat/harold are 3 of the 55 StaticEffect$ carriers
+// with this shape; no repo/legacy deck carries any of them, so the golden
+// heads cannot move.
 
 // hellcatEngine deals seat 0 a hand holding Hellcat, Undying Vigilante; seat
 // 1's deck is bears so nothing else interacts. All corpus cards.
@@ -92,9 +92,7 @@ func TestHellcatReturnedKeepsTheGrantedHaste(t *testing.T) {
 	if got := o.Counter("P1P1"); got != 1 {
 		t.Fatalf("+1/+1 counters = %d, want 1", got)
 	}
-	// The combined layer-6 effect must leave the granted Haste in place. The
-	// pre-fix split stamped the removal later than the grant, so the walk's
-	// clear wiped it and this read [].
+	// The combined layer-6 effect must leave the granted Haste in place.
 	if !e.HasKeyword(id, "Haste") {
 		t.Fatalf("returned keywords = %v, want the granted Haste to survive the removal", e.Derived(id).Keywords)
 	}

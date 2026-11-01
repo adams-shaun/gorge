@@ -22,9 +22,9 @@ import (
 // TestDragonsDiscipleDeclinedRevealPosesNoPick casts the real Dragon's
 // Disciple with TWO Dragons in hand (so the narrowed eligible pool is
 // strictly larger than the one card the reveal must show -- the condition
-// under which the pick exists at all) and declines the may-reveal. The
-// pre-fix build then posed a Min/Max 1/1 reveal_pick anyway; the fixed build
-// finishes the resolution with nothing revealed.
+// under which the pick exists at all) and declines the may-reveal. No Min/Max
+// 1/1 reveal_pick follows; the resolution finishes the resolution with
+// nothing revealed.
 func TestDragonsDiscipleDeclinedRevealPosesNoPick(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

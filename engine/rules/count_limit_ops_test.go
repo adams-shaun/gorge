@@ -20,10 +20,7 @@ var limitOpRe = regexp.MustCompile(`/Limit(Max|Min)\.([A-Za-z0-9_]+)$`)
 // operand the evaluator can read (a literal, a printed SVar of the same face,
 // or a name a StoreSVar on the face writes at run time -- Face to Face's
 // Losses), and every such body whose head the evaluator resolves evaluates to
-// the clamped value, not the bare head's. Before the fix the suffix was a
-// silent no-op on every head but the two distinct-set Count$Valid properties
-// (Colors, CreatureType), so 53 /LimitMax.1 presence bits read raw counts and
-// the LimitMin floors read nothing at all.
+// the clamped value, not the bare head's.
 func TestCountLimitOpsClampCorpusWide(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

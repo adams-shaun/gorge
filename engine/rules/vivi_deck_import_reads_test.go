@@ -134,9 +134,8 @@ func viviDecline(d *decision.Decision) int {
 // TestRhysticStudyPayDeclineAsksTheOptionalDraw pins api:Draw.
 // OptionalDecider$ end to end, and with it the asking-body-under-UnlessCost$
 // livelock fix: the payer declines {1}, the OptionalDecider$ player is asked
-// ("draw?"), a yes draws one, and — the class pin — the gate does NOT
-// re-pose the pay ask after the draw answer (the pre-fix cycle
-// repeated pay/choose 80 times before the livelock detector fired).
+// ("draw?"), a yes draws one, and — the class pin — the gate does NOT re-pose
+// the pay ask after the draw answer.
 func TestRhysticStudyPayDeclineAsksTheOptionalDraw(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

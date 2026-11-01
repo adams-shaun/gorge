@@ -10,11 +10,10 @@ import (
 const comboRGSource = "Name:Dual Land\nTypes:Land\n" +
 	"A:AB$ Mana | Cost$ T | Produced$ Combo R G\nOracle:x\n"
 
-// TestManaComboRGAsksOnlyRG is the leaf that FAILED before the fix: a
-// Produced$ Combo R G source was walked one rune at a time, so tapping it
-// added five colourless plus a red and a green. It must now add exactly ONE
-// mana of a colour the player chose, with no colourless in the pool, and the
-// ask must offer R and G only.
+// TestManaComboRGAsksOnlyRG is the leaf: walking a Produced$ Combo R G source
+// one rune at a time, tapping it added five colourless plus a red and a
+// green. It must now add exactly ONE mana of a colour the player chose, with
+// no colourless in the pool, and the ask must offer R and G only.
 func TestManaComboRGAsksOnlyRG(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := manaSourceEngine(t, comboRGSource)

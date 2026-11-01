@@ -47,10 +47,9 @@ func briberyEngine(t *testing.T) (*Engine, Config) {
 
 // TestBriberyEndToEndPutsFetchedCreatureUnderCastersControl is the engine
 // carrier for the hidden-library ChangeZone GainControl$ sub-shape: Bribery
-// searches the target opponent's library and puts the found creature onto
-// the battlefield under the CASTER's control (CR 610), not under the
-// library's owner. Before the fix the fetched permanent kept its existing
-// controller (seat 1).
+// searches the target opponent's library and puts the found creature onto the
+// battlefield under the CASTER's control (CR 610), not under the library's
+// owner.
 func TestBriberyEndToEndPutsFetchedCreatureUnderCastersControl(t *testing.T) {
 	t.Parallel()
 	e, cfg := briberyEngine(t)

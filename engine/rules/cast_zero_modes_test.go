@@ -24,7 +24,7 @@ func TestUpToModalCastWithNoLegalModeAnnouncesZero(t *testing.T) {
 	spell := handIDsByFace(e)["Call Damage Control"]
 	e.G.Players[0].Pool[state.MG] = 2
 	e.askPriority(0)
-	submitChoices(t, e, passToCast(t, e, spell)) // panicked before the fix
+	submitChoices(t, e, passToCast(t, e, spell))
 	if d := e.Pending(); d != nil && d.Kind == decision.KModes {
 		t.Fatalf("a zero-legal-mode cast posed a modes ask: %+v", d)
 	}

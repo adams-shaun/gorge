@@ -90,9 +90,8 @@ func revealAllHandBoard(t *testing.T, source *cards.Card, handOwner state.Player
 //
 // so with a hand of [Plains (cmc 0), Lightning Bolt (cmc 1), Grizzly Bears
 // (cmc 2), Hill Giant (cmc 4)] the reveal must show the TWO cmc>=2 cards in
-// hand order, never the first hand card. Pre-fix effReveal never fed the spec
-// to the filter and took pool[:1] -- the Plains, which matches neither half of
-// the spec.
+// hand order, never the first hand card. The first hand card is the Plains,
+// which matches neither half of the spec.
 func TestRevealAllValidBreakExpectationsRevealsEveryMatch(t *testing.T) {
 	card, main := revealAllMain(t, "Break Expectations")
 	h, ctx, ids := revealAllHandBoard(t, card, 1, []string{"Plains", "Lightning Bolt", "Grizzly Bears", "Hill Giant"})

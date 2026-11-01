@@ -15,10 +15,10 @@ import (
 // ending (CR 611.2, the source leaving the battlefield) applies ONLY when the
 // source WAS a battlefield permanent at registration. An opening-hand Effect
 // (Chancellor of the Annex -- its source stays in hand) or an emblem/
-// command-zone source has no battlefield incarnation to lose, so its Permanent
-// promise is unbounded and must survive. Before the fix the generic effEffect
-// path admitted Permanent (so the pregame registerOpeningEffectTriggers pass
-// stood down as a duplicate), then the battlefield liveness rule removed the
+// command-zone source has no battlefield incarnation to lose, so its
+// Permanent promise is unbounded and must survive. The generic effEffect path
+// admits Permanent (so the pregame registerOpeningEffectTriggers pass stood
+// down as a duplicate), then the battlefield liveness rule removed the
 // registration on the next scan: e.G.Delayed fell to empty and the opening
 // trigger never fired.
 //

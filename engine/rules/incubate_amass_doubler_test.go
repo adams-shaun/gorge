@@ -12,14 +12,14 @@ import (
 // A CreateToken replacement (Doubling Season, Anointed Procession) rewrites
 // one would-be token into a pair of mints. api:Incubate's counters and
 // api:Amass's counters/type grant/RememberAmass$ are per-token riders and
-// belong to EVERY mint the plan produced, not just the first: pre-fix both
-// primitives emitted the TokenCreate through the plain Emit and applied
-// their riders to the single pre-predicted id g.NextID, so the second mint
-// entered bare -- and an Amass Army, a 0/0, was then swept by state-based
-// actions. These four tests pin the per-mint contract through the real cast
-// path with the real corpus carriers and doublers. No doubler, no doubled
-// counters: Anointed Procession doubles the tokens only; Doubling Season
-// doubles each mint's CounterChange independently (CR 614.5/616.1e).
+// belong to EVERY mint the plan produced, not just the first: emitting the
+// TokenCreate through the plain Emit would apply their riders to the single
+// pre-predicted id g.NextID, so the second mint entered bare -- and an Amass
+// Army, a 0/0, was then swept by state-based actions. These four tests pin
+// the per-mint contract through the real cast path with the real corpus
+// carriers and doublers. No doubler, no doubled counters: Anointed Procession
+// doubles the tokens only; Doubling Season doubles each mint's CounterChange
+// independently (CR 614.5/616.1e).
 
 // doublerIncubatorTokens returns seat p's battlefield Incubator tokens, and
 // asserts the doubler precondition the caller relies on: the named enchantment
@@ -58,8 +58,7 @@ func TestIncubateAnointedProcessionCountersEveryMint(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e, cfg, toks := runIncubateUnder(t, reg, "Anointed Procession")
-	// Pre-fix: 2 tokens, counters on the first only (3/0). Procession
-	// doubles tokens, not counters.
+	// Procession doubles tokens, not counters.
 	if len(toks) != 2 {
 		t.Fatalf("Incubate under Anointed Procession minted %d Incubator tokens, want 2", len(toks))
 	}
@@ -78,8 +77,8 @@ func TestIncubateDoublingSeasonCountersEveryMint(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e, cfg, toks := runIncubateUnder(t, reg, "Doubling Season")
-	// Pre-fix: 2 tokens, counters on the first only (6/0). Doubling Season
-	// doubles the tokens AND each mint's counters independently.
+	// Doubling Season doubles the tokens AND each mint's counters
+	// independently.
 	if len(toks) != 2 {
 		t.Fatalf("Incubate under Doubling Season minted %d Incubator tokens, want 2", len(toks))
 	}
@@ -139,9 +138,8 @@ func TestAmassAnointedProcessionCountersEveryMint(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e, cfg, armies := runAmassUnder(t, reg, "Anointed Procession")
-	// Pre-fix: 1 surviving army, P1P1=1 (the second 0/0 mint was swept by
-	// state-based actions before the counters landed). Procession doubles
-	// tokens, not counters.
+	// The second 0/0 mint must not be swept by state-based actions before the
+	// counters land. Procession doubles tokens, not counters.
 	if len(armies) != 2 {
 		t.Fatalf("Amass under Anointed Procession left %d Orc Army tokens, want 2", len(armies))
 	}
@@ -166,7 +164,6 @@ func TestAmassDoublingSeasonCountersEveryMint(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e, cfg, armies := runAmassUnder(t, reg, "Doubling Season")
-	// Pre-fix: 1 surviving army, P1P1=2 (the second 0/0 mint swept).
 	// Doubling Season doubles the tokens AND each mint's counters.
 	if len(armies) != 2 {
 		t.Fatalf("Amass under Doubling Season left %d Orc Army tokens, want 2", len(armies))

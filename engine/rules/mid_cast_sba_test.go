@@ -6,11 +6,12 @@
 //
 // This is the reverse ordering of TestManaPaymentContinuesBelowZeroLife in
 // mana_negative_life_test.go: there the Island is tapped first and the tomb
-// last, so the loss fires on the same Submit that settles the payment and the
-// pre-fix bug stayed hidden. Here the tomb is tapped FIRST, crossing a Submit
-// boundary at life -1 while the cast is still mid-window. A loss recorded before the Island is tapped is the failure
-// the test asserts against; the loss at the priority boundary after the cast
-// completes is the contract.
+// last, so the loss fires on the same Submit that settles the payment and a
+// mid-cast loss stays hidden. Here the tomb is tapped FIRST, crossing a
+// Submit boundary at life -1 while the cast is still mid-window. A loss
+// recorded before the Island is tapped is the failure the test asserts
+// against; the loss at the priority boundary after the cast completes is the
+// contract.
 //
 // Every card is a REAL corpus card (Keep Watch, Ancient Tomb) or the authored
 // Island fixture; no Forge .txt text is committed here.
@@ -72,9 +73,9 @@ func TestMidCastSBADoesNotEndGameDuringManaWindow(t *testing.T) {
 	}
 
 	// Tap Ancient Tomb FIRST: its {C}{C} and its 2 damage resolve, dropping
-	// the caster to -1 while the cast is still mid-window. The pre-fix bug
-	// ran the state-based action here and recorded a loss before the Island
-	// could be tapped.
+	// the caster to -1 while the cast is still mid-window. The state-based
+	// action must not run here and record a loss before the Island could be
+	// tapped.
 	afterTomb := len(e.L.Events)
 	if !cwActivateInWindow(t, e, tombID) {
 		t.Fatalf("the window did not offer Ancient Tomb: %+v", e.Pending())

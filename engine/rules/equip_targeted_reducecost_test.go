@@ -66,8 +66,7 @@ func TestBeltOfGiantStrengthEquipOfferedAtTargetDiscountedPrice(t *testing.T) {
 	if got := e.Power(bruteID); got != 4 {
 		t.Fatalf("fixture target power = %d, want 4 (the reduction depends on it)", got)
 	}
-	// {6} is exactly {10} minus the 4-power target's reduction. Before the fix
-	// the offer gate read the reduction as 0 and withheld the equip.
+	// {6} is exactly {10} minus the 4-power target's reduction.
 	addMana(t, e, 0, "CCCCCC")
 	opt, ok := findAbilityOption(e, beltID, 0)
 	if !ok {

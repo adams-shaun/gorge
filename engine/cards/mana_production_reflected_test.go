@@ -3,13 +3,13 @@ package cards
 import "testing"
 
 // TestManaProductionSeesReflectedAbilities is the collector half of
-// api:ManaReflected: a reflected-mana ability (AB$ ManaReflected) is a
-// mana ability, so the per-face ManaProduction summary must account for it.
-// Its colours are computed at resolution, so the honest summary is the
+// api:ManaReflected: a reflected-mana ability (AB$ ManaReflected) is a mana
+// ability, so the per-face ManaProduction summary must account for it. Its
+// colours are computed at resolution, so the honest summary is the
 // conditional "Any" shape (mirroring a "Produced$ Any" source) rather than
-// silence. Before the fix Face.ManaAbilities listed only AB$ Mana, so a
-// reflected source projected as producing nothing and a bot's tap gate never
-// aimed a coloured pip at it.
+// silence. Were Face.ManaAbilities to list only AB$ Mana, a reflected source
+// would project as producing nothing and a bot's tap gate would never aim a
+// coloured pip at it.
 func TestManaProductionSeesReflectedAbilities(t *testing.T) {
 	f := &Face{Abilities: []*SA{
 		{Kind: "AB", API: "Mana", Params: map[string]string{"Produced": "W"}},

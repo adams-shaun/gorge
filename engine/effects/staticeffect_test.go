@@ -185,10 +185,10 @@ func TestStaticEffectLayers(t *testing.T) {
 			}
 		}
 		// ONE effect carrying the removal and the grants together is what
-		// makes the walk's clear-then-append order the card text's order. More
-		// than one (the pre-fix split) stamps distinct ClockTicks, so the
-		// removal runs AFTER the keyword grant and wipes it
-		// (hellcat/bronzehide/harold -- 3 of the 55 carriers).
+		// makes the walk's clear-then-append order the card text's order.
+		// More than one stamps distinct ClockTicks, so the removal runs AFTER
+		// the keyword grant and wipes it (hellcat/bronzehide/harold -- 3 of
+		// the 55 carriers).
 		if len(abilities) != 1 {
 			t.Fatalf("got %d layer-6 effects, want 1 combined: %+v", len(abilities), h.continuous)
 		}

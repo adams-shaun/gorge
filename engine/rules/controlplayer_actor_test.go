@@ -1,6 +1,6 @@
 package rules
 
-// CR 722 (formerly 720) acting-player conformance for a controlled turn.
+// CR 722 acting-player conformance for a controlled turn.
 //
 // controlPlayerRedirect hands every decision the controlled seat would be
 // offered to its controller: the controller ANSWERS. But the actions the

@@ -49,11 +49,8 @@ func TestSquadronHawkFailToFindResolvesWithoutAsking(t *testing.T) {
 	start := len(e.L.Events)
 	submitChoices(t, e, yesIdx)
 
-	// Drive the accepted trigger's resolution. The ONE assertion that is the
-	// bug: no search KChoose may ever pend. Before the fix the very next
-	// pending decision was the Min 0 / Max 0 wedge; after it the search
-	// resolves silently (its mandatory shuffle included) and the game moves
-	// on. Only a `search` KChoose is the wedge.
+	// Drive the accepted trigger's resolution. The ONE assertion: no search
+	// KChoose may ever pend. Only a `search` KChoose is the wedge.
 	searchAsked := false
 	for i := 0; i < 40 && !e.G.Over; i++ {
 		d := e.Pending()

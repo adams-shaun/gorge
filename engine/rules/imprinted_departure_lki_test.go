@@ -16,13 +16,10 @@ import (
 //	T:Mode$ ChangesZone | Origin$ Exile | Destination$ Any |
 //	ValidCard$ Card.IsImprinted | Execute$ DBForget
 //
-// The trigger's source is the pool, not the moving card, so the
-// `source == ev.Obj` LKI branch does not apply, and the move never left the
-// battlefield, so `leftBattlefield` does not either — before the fix the
-// ValidCard$ Card.IsImprinted check ran against the LIVE object, which the
-// MoveZone fold has already placed in the destination zone, where the CR
-// 607.2a exile-only association is dead. The departure must be judged against
-// the event's LKI snapshot, still in exile.
+// The trigger's source is the pool, not the moving card, so the `source ==
+// ev.Obj` LKI branch does not apply, and the move never left the battlefield,
+// so `leftBattlefield` does not either.2a exile-only association is dead. The
+// departure must be judged against the event's LKI snapshot, still in exile.
 //
 // The test drives the real dispatch (emit → checkTriggers → the registered
 // ChangesZone matcher), not just the matcher directly, and pins both the

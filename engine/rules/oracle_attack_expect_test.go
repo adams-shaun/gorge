@@ -104,12 +104,11 @@ func TestOracleAttackExpectPreSubmit(t *testing.T) {
 }
 
 // TestOracleAttackExpectPostStepStillChecked pins the per-expect split of the
-// attack op's expect handling: only the decision-dependent expects (attack_required / can_attack) are
-// evaluated pre-submit; a board read on the same step (here `tapped:true`,
-// true only AFTER the declaration) must still be evaluated on the ordinary
-// post-step path, and a WRONG board read must fail there. Before the fix the
-// whole step's expect set was skipped once marked pre-checked, so the wrong
-// read passed silently.
+// attack op's expect handling: only the decision-dependent expects
+// (attack_required / can_attack) are evaluated pre-submit; a board read on
+// the same step (here `tapped:true`, true only AFTER the declaration) must
+// still be evaluated on the ordinary post-step path, and a WRONG board read
+// must fail there.
 func TestOracleAttackExpectPostStepStillChecked(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	trueVal := true

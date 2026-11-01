@@ -7,10 +7,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The <Ref>$<Property> count family the DamageSource$ work rides on: before
-// the evaluator these bodies evaluated to zero (Kiku's Shadow dealt no
-// damage at all), so every branch here pins a formerly-dead head answering
-// its object's real property.
+// The <Ref>$<Property> count family the DamageSource$ work rides on.
+// Evaluated to zero these bodies leave Kiku's Shadow dealing no damage, so
+// every branch here pins a head answering its object's real property.
 func TestRefPropertyCounts(t *testing.T) {
 	h := newHost(t, 2)
 	power := mkCard(t, "Name:Ox\nTypes:Creature Ox\nPT:3/4\nOracle:x\n")

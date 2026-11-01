@@ -164,10 +164,10 @@ func TestArcLightningThreeTargetsKeepOneEach(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestArcLightningAllTargetsLegalDealsTheDivision is the guard that holds
-// before and after the fix: with no response, the 2/1 division is dealt as
-// chosen. It answers whichever division ask the build poses (the cast-time
-// one, or the legacy resolution-time "damage_split").
+// TestArcLightningAllTargetsLegalDealsTheDivision is the control: with no
+// response, the 2/1 division is dealt as chosen. It answers whichever
+// division ask the build poses (the cast-time one, or the legacy
+// resolution-time "damage_split").
 func TestArcLightningAllTargetsLegalDealsTheDivision(t *testing.T) {
 	t.Parallel()
 	e, cfg, _, bears, td := arcSetup(t, 1)

@@ -1,12 +1,12 @@
 package effects
 
 // The `Count$ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>$<Property>` sum
-// form (Genesis of the Daleks' `SVar:Y:..._Dalek$CardPower`): before the fix
-// the whole `Dalek$CardPower` token went to the zone-spec matcher as one
-// filter, matched nothing, and the damage evaluated to zero. It now splits
-// the recognised property off the <Valid> tail and sums each matching entry's
-// value through the shared objectProperty reader -- the same read the nearby
-// `Count$Valid <spec>$CardPower` aggregate uses.
+// form (Genesis of the Daleks' `SVar:Y:..._Dalek$CardPower`): handed whole to
+// the zone-spec matcher as one filter, the `Dalek$CardPower` token matches
+// nothing and the damage evaluates to zero. It splits the recognised property
+// off the <Valid> tail and sums each matching entry's value through the
+// shared objectProperty reader -- the same read the nearby `Count$Valid
+// <spec>$CardPower` aggregate uses.
 
 import (
 	"testing"

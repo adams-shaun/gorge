@@ -8,9 +8,9 @@
 //
 // The committed probe is exactly the finding's repro, on real card scripts:
 // Lich on the battlefield, a Golgari Thug (Dredge 4) in its controller's
-// graveyard, one LifeChange{Amount: 2} emit. Post-fix the loop parks the
-// remaining count on the ask's resume point, the answered dredge re-drives
-// the rest, and a second dredger re-parks for its own sequential ask.
+// graveyard, one LifeChange{Amount: 2} emit. The loop parks the remaining
+// count on the ask's resume point, the answered dredge re-drives the rest,
+// and a second dredger re-parks for its own sequential ask.
 package rules
 
 import (

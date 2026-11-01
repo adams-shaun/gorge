@@ -117,10 +117,10 @@ func inOwnerGraveyard(e *Engine, id state.ObjID) bool {
 
 // TestShelobExiledMoveToGravePaysExactlyAndMovesTheCard pins the Shelob,
 // Dread Weaver end-to-end shape on the real compiled face: with a pool of
-// EXACTLY {2}{B}'s worth of mana (three pips -- one fewer than the phantom
-// {3}{B} the pre-fix parse priced) the ability is offered, the cost pick is
-// a real choice over the exile zone, and paying moves the exiled card to its
-// OWNER's graveyard while the counters land and the SubAbility$ draw runs.
+// EXACTLY {2}{B}'s worth of mana (three pips) the ability is offered, the
+// cost pick is a real choice over the exile zone, and paying moves the exiled
+// card to its OWNER's graveyard while the counters land and the SubAbility$
+// draw runs.
 func TestShelobExiledMoveToGravePaysExactlyAndMovesTheCard(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

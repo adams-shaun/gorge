@@ -107,9 +107,9 @@ func TestActingPlayersPlainRememberedExcludesCardControllers(t *testing.T) {
 
 // TestVoteVotersPlainRememberedExcludesCardControllers pins both vote voter
 // walks: the fixed-list/card-ballot shape (effVote) and the player-ballot
-// shape (effPlayerVote). Each emits exactly one note for the single remembered
-// player; before the fix the remembered card's controller joined as a second
-// voter.
+// shape (effPlayerVote). Each emits exactly one note for the single
+// remembered player; the remembered card's controller must not join as a
+// second voter.
 func TestVoteVotersPlainRememberedExcludesCardControllers(t *testing.T) {
 	h, c, _ := mixedRememberedHost(t)
 	effVote(h, c, &cards.SA{Params: map[string]string{

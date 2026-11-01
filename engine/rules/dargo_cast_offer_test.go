@@ -50,8 +50,7 @@ func TestDargoCastOfferedWhenSacrificeReducesManaCost(t *testing.T) {
 	if dx == nil || dx.Kind != decision.KChoose || len(dx.Options) == 0 || dx.Options[0].Kind != "x" {
 		t.Fatalf("Sac<X> did not announce a count ask: %+v", dx)
 	}
-	// The reducing announcement (X=3) must be among the offered values; the
-	// pre-fix xAsk broke at the first unpayable X and offered none.
+	// The reducing announcement (X=3) must be among the offered values.
 	sawThree := false
 	threeIdx := -1
 	for _, o := range dx.Options {

@@ -474,9 +474,9 @@ func TestChangeZoneAllSweepsMatchingLibraryCards(t *testing.T) {
 // TestChangeZoneAllScope pins Forge ChangeZoneAllEffect's player scope: a
 // ChangeZoneAll that declares a target or a Defined$ acts only on those
 // players' zones; UseAllOriginZones$ True (and the no-target/no-Defined$
-// default) sweeps every player. Before the fix effChangeZoneAll always walked
-// g.AliveFrom(0), so "exile target player's graveyard" exiled every player's
-// graveyard. Both seats are stocked in every case.
+// default) sweeps every player. Always walking g.AliveFrom(0) would make
+// "exile target player's graveyard" exile every player's graveyard. Both
+// seats are stocked in every case.
 func TestChangeZoneAllScope(t *testing.T) {
 	stock := func(t *testing.T) (*fakeHost, map[state.PlayerID]state.ObjID) {
 		t.Helper()

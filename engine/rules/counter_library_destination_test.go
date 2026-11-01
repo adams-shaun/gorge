@@ -42,9 +42,7 @@ func counterLibraryDestinationHands(t *testing.T, e *Engine, counterName string,
 // TestCounterDestinationTopOfLibraryPutsTheCounteredSpellOnItsOwnersLibrary
 // (Memory Lapse, Lapse of Certainty -- param:api:Counter.Destination): a
 // Counter with Destination$ TopOfLibrary sends the countered card to the top
-// of its OWNER's library instead of the graveyard. Before the fix effCounter
-// knew only Hand/Graveyard/Exile and the TopOfLibrary word fell through to
-// the default -- a Note plus the graveyard.
+// of its OWNER's library instead of the graveyard.
 func TestCounterDestinationTopOfLibraryPutsTheCounteredSpellOnItsOwnersLibrary(t *testing.T) {
 	t.Parallel()
 	for _, name := range []string{"Memory Lapse", "Lapse of Certainty"} {

@@ -2,12 +2,8 @@ package rules
 
 // Focused proof for the triggered-ability Cost$ sacrifice LKI binding
 // (Rhovanion Rampager, HOB). The card's attack trigger parks an ability whose
-// Cost$ Sac<1/Creature.Other> is settled by engine/rules/cumulative.go's triggered
-// cost window (settleTriggeredMandatory). Before the fix that settle emitted
-// the sacrifice but never captured the sacrificed permanent's LKI onto the
-// stack object, so the resumed body's `CounterNum$ X` with
-// `SVar:X:Sacrificed$CardPower` read an empty list and placed zero +1/+1
-// counters.
+// Cost$ Sac<1/Creature.Other> is settled by engine/rules/cumulative.go's
+// triggered cost window (settleTriggeredMandatory).
 //
 // The assertion is the Oracle-derived scenario itself: this runs the real
 // corpus card through the real scenario runner, so it fails on the same

@@ -260,10 +260,9 @@ func TestRoundOfMatchesApproximationBeforeElimination(t *testing.T) {
 // Before the CR 103.1 toss the first TurnChange always reached seat 0, so
 // "first still-living seat" and "lowest index" coincided. Since the toss the
 // starting seat is drawn, and a fold still anchored at seat 0 ran one round
-// ahead all game for every game whose toss started another seat (measured on
-// the pre-fix code: seats=2 seed=4 start=1, turn=2, active=0: RoundOf=2,
-// These tests pin the anchored rule at these seat counts, with streams that
-// begin at seats the old rule could not handle.
+// ahead all game for every game whose toss started another seat (seats=2
+// seed=4 start=1, turn=2, active=0 would read RoundOf=2). These tests pin the
+// anchored rule at these seat counts, with streams that begin at other seats.
 
 // startLog builds a TurnChange stream for a table of n seats whose turn
 // order cycles beginning at `start` -- the shape the engine's NextAlive

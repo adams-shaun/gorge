@@ -16,8 +16,6 @@ import (
 // played through its own play_land flow must offer the four WUBRG colours
 // minus Black, in the fixed WUBRG order with the gap closed (Option.Index
 // renumbered), and the answered colour is recorded on the entering object.
-// Before the fix this ask offered all five colours and a player could record
-// the forbidden Black.
 func TestBlackDragonGateExcludesBlackFromTheColourAsk(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

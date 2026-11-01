@@ -166,8 +166,7 @@ func seedFuzzChunk(t *testing.T, k int) {
 		t.Fatalf("%d of %d seeds [%d,%d) finished", finished, seedFuzzPerChunk, first, first+seedFuzzPerChunk)
 	}
 
-	// The gate must not go vacuous silently again. Every
-	// one of these four was exactly 0 before the fix.
+	// The gate must not go vacuous silently.
 	if attackers == 0 {
 		t.Fatal("0 attackers ever declared across the chunk's seeds -- combat never happened")
 	}

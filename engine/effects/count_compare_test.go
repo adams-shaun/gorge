@@ -177,9 +177,9 @@ func TestCompareHeadSelfReferenceIsDepthCapped(t *testing.T) {
 // The PlayerCountPropertyYou$HasPropertyActive head -- Starting Town's ETB
 // gate reads SVar:Y:PlayerCountPropertyYou$HasPropertyActive and feeds it to
 // Count$Compare Y GE1.Z.4, so X is YourTurns while the controller is the
-// active player and 4 off it (tapped only when X > 3). Before the fix the
-// head matched no dispatch branch, Y degraded to 0, the Compare took the
-// ifFalse branch "4" and the gate held on EVERY turn.
+// active player and 4 off it (tapped only when X > 3). If the head matched no
+// dispatch branch, Y would degrade to 0, the Compare would take the ifFalse
+// branch "4" and the gate would hold on EVERY turn.
 func TestPlayerCountPropertyYouHasPropertyActive(t *testing.T) {
 	h, c := fixtureHost(t)
 

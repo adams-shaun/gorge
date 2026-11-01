@@ -26,9 +26,7 @@ const firetimeRecipientSrc = "Name:Test Firetime Recipient\nManaCost:2\nTypes:Cr
 // TestGrantedTriggerFiretimeCheckSVarReadsGrantor proves a cross-object
 // AddTrigger$ grant's fire-time CheckSVar$/SVarCompare$ reads the grantor's
 // SVar table. The grantor's X is 2 and the recipient's X is 1; the trigger's
-// compare is EQ2, so it fires only against the grantor's table. Under the
-// pre-fix recipient read the trigger failed closed and never queued, leaving
-// the trinket spell's own draw as the only one.
+// compare is EQ2, so it fires only against the grantor's table.
 func TestGrantedTriggerFiretimeCheckSVarReadsGrantor(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := newFixtureDeck(t, 917, firetimeGrantorSrc, firetimeRecipientSrc, artifactSpellSrc, plainSifterSrc)

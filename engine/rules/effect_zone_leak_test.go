@@ -1,18 +1,17 @@
 // effect_zone_leak_test.go pins the recurring-Effect matching scope's LIFETIME.
 //
 // checkEventDelayedTriggers armed the read-only matching overlay before each
-// registration's own matching but, before the fix, cleared it only there --
-// never after the registration loop. An emit whose delayed walk ended on a
-// live EffectRepeat registration therefore returned with the overlay still
-// armed, and the NEXT matching walk trusted it: controllerOf and the
-// trigmatch_zone CR 603.10a look-back guard consult effectMatchControllerFor
-// precisely because it is only true inside a registration's matching. The
-// concrete casualty is a permanent that (a) holds a live self-Effect
-// registration and (b) carries a PRINTED controller-relative dies trigger:
-// stolen and destroyed, the printed trigger must read the departing
-// permanent's last-known controller (the thief, CR 603.10a) -- under the
-// leaked scope it read the registration's owner instead and silently did not
-// fire.
+// registration's own matching and must clear it after the registration loop
+// too. An emit whose delayed walk ended on a live EffectRepeat registration
+// therefore returned with the overlay still armed, and the NEXT matching walk
+// trusted it: controllerOf and the trigmatch_zone CR 603.10a look-back guard
+// consult effectMatchControllerFor precisely because it is only true inside a
+// registration's matching. The concrete casualty is a permanent that (a)
+// holds a live self-Effect registration and (b) carries a PRINTED
+// controller-relative dies trigger: stolen and destroyed, the printed trigger
+// must read the departing permanent's last-known controller (the thief, CR
+// 603.10a) -- under the leaked scope it read the registration's owner instead
+// and silently did not fire.
 
 package rules
 
@@ -67,8 +66,8 @@ func TestEffectMatchScopeDoesNotLeakPastDelayedWalk(t *testing.T) {
 	// The intervening event: a DIFFERENT, seat 1's, creature dies. Its face
 	// walk runs with no scope armed yet (the printed trigger's
 	// Creature.YouCtrl does not match a seat 1 creature), then the delayed
-	// walk arms the scope for the registration and -- before the fix --
-	// returns with it still armed.
+	// walk arms the scope for the registration and must not return with it
+	// still armed.
 	by1 := onBoard(t, e, 1, "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n")
 	e.pendingTriggers = nil
 	e.emit(events.Event{Kind: events.MoveZone, Obj: by1, From: state.ZBattlefield, To: state.ZGraveyard})

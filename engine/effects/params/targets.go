@@ -453,15 +453,12 @@ func SpecTargetsStack(spec string) bool {
 	return false
 }
 
-// SpecTargetsPlayers reports whether a spec can name a player as a target,
-// by looking at each alternative's BASE type (the part before any "."),
-// never a substring scan: "Any" targets either an object or a player,
+// SpecTargetsPlayers reports whether a spec can name a player as a target, by
+// looking at each alternative's BASE type (the part before any "."), never a
+// substring scan: "Any" targets either an object or a player,
 // "Player"/"Opponent"/"You" a player, while a predicate like
 // "Creature.YouCtrl" IS an object filter (its ".YouCtrl" clause scopes the
-// creature's controller, not the target being a player). The old substring
-// form matched the "You" inside "YouCtrl" and wrongly offered players as
-// Equip targets (an Equip onto Creature.YouCtrl offered
-// both players as options, which effAttach then had to refuse).
+// creature's controller, not the target being a player).
 func SpecTargetsPlayers(spec string) bool {
 	for alt := range strings.SplitSeq(spec, ",") {
 		switch base, _, _ := strings.Cut(strings.TrimSpace(alt), "."); targetsPlayersBaseCodes.Code(base) {

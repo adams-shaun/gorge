@@ -59,9 +59,7 @@ func TestOverloadedDiscardAsksEachPlayerAcrossResume(t *testing.T) {
 // member of the same class: a two-player TgtChoose discard whose first target
 // gained shroud while the spell was on the stack resolves against the second
 // target alone. Its answered pick must be applied to that target, and the
-// resume must not walk the dropped target back in (pre-fix: the answer was
-// consumed at the shrouded seat's cursor, which held none of the chosen
-// cards, and the legal target was asked a second time).
+// resume must not walk the dropped target back in.
 func TestIllegalTargetDroppedBeforeAskStaysDroppedOnResume(t *testing.T) {
 	t.Parallel()
 	rot := "Name:Test Twin Rot\nManaCost:B\nTypes:Sorcery\n" +

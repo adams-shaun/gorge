@@ -249,10 +249,8 @@ func TestAttackRestrictPresentGateTransition(t *testing.T) {
 // the bot's own repair on the REAL offered decision: an answer naming all
 // four attackers at the MaxAttackers$ 2 defender is trimmed to two by
 // botpolicy.Clamp, and the repaired answer passes both Decision.Validate and
-// the engine's declaration check. The pre-fix decision carried no raised cap,
-// so Clamp left the over-cap answer untouched and Submit rejected it forever
-// (the deterministic-bot livelock class the one-home rule exists for). The
-// actual policy answer (newTestBot) must satisfy the same two checks.
+// the engine's declaration check. The actual policy answer (newTestBot) must
+// satisfy the same two checks.
 func TestAttackRestrictScopedLimitBotRepair(t *testing.T) {
 	t.Parallel()
 	e, _ := attackRestrictTable(t, "Crawlspace", 4)

@@ -12,10 +12,9 @@ import (
 // the body's SVar:X:TriggerCount$Amount reads the batch size, so the payoff
 // puts that many GROWTH counters on the source.
 //
-// Before the fix the mode had no matcher at all: the trigger never queued and
-// the growth counters stayed at zero. The second batch pins that the "once per
-// batch" contract is not a one-shot (a further batch triggers again), and the
-// Amount:2 case pins the size is read per event rather than hard-coded.
+// The second batch pins that the "once per batch" contract is not a one-shot
+// (a further batch triggers again), and the Amount:2 case pins the size is
+// read per event rather than hard-coded.
 func TestCounterAddedOncePutsThatManyGrowthCounters(t *testing.T) {
 	t.Parallel()
 	asc := mshCorpusCard(t, "Simic Ascendancy")

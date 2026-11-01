@@ -120,7 +120,7 @@ func TestFuseCantBeCastEitherHalf(t *testing.T) {
 	// flow, so this asserts the enforcement path directly: a pending fuse
 	// proposal of a front-unrestricted / back-restricted carrier must be
 	// judged illegal (true = reversed), not wave through on the front face's
-	// mana value the way the pre-fix recheck did.
+	// mana value.
 	t.Run("EnforcementRecheck", func(t *testing.T) {
 		e, _, id := fuseTestEngine(t, reg, "Breaking", true, 8423)
 		// Front unrestricted is the precondition that makes the OLD front-only

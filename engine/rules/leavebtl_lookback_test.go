@@ -116,8 +116,7 @@ func TestLeavesBattlefieldGrantLooksBackOnDestroy(t *testing.T) {
 
 func TestLeavesBattlefieldGrantLooksBackOnDamageDeath(t *testing.T) {
 	// The SBA-route control: the same grant, the Cleric dying to lethal
-	// damage. This already worked before the fix (the SBA paths park
-	// triggerBefore themselves) and must keep working -- the emit-level
+	// damage. The SBA paths park triggerBefore themselves -- the emit-level
 	// parking must not have changed the SBA route.
 	e, cfg, vialID := newFixtureDeck(t, 62, lbVial, lbCleric, lbZap)
 	clericID := moveSeeded(t, e, 0, lbCleric, state.ZBattlefield)

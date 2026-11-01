@@ -85,9 +85,6 @@ func labelIndex(d *decision.Decision, want string) int {
 // TestPithingNeedleNamesAnUnseenLand pins the entry-boundary "as this enters"
 // path on the real corpus card: Pithing Needle carries no ValidCards$, so
 // its name is ANY card — a Wasteland that is nowhere on the board included.
-// Before the fix the arm defaulted the filter to Card.nonLand and only
-// offered names visible in the caster's own hand/battlefield/graveyard, so
-// the land was both filtered out and unseen.
 func TestPithingNeedleNamesAnUnseenLand(t *testing.T) {
 	t.Parallel()
 	e, _ := nameCardEngine(t, "Pithing Needle")

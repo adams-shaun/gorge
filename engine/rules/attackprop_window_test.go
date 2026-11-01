@@ -59,9 +59,7 @@ func findAttackOption(d *decision.Decision, obj state.ObjID, def state.PlayerID)
 // TestAttackPropPaysWithAMultiAbilityManaSource pins the window widening:
 // Baird, Steward of Argive charges {1}, the payer's only source is one
 // untapped land with TWO free mana abilities, and the pair must be offered,
-// paid by tapping that one land, and the attack committed. Before the fix the
-// membership required exactly one free ability, so the land was excluded, the
-// budget was zero, and the pair was never offered.
+// paid by tapping that one land, and the attack committed.
 func TestAttackPropPaysWithAMultiAbilityManaSource(t *testing.T) {
 	t.Parallel()
 	e, bear := attackPropSeatDual(t, "Baird, Steward of Argive", 1)
@@ -122,8 +120,7 @@ func TestAttackPropPaysWithAMultiAbilityManaSource(t *testing.T) {
 // TestAttackPropPaysWithAMultiAbilityChoiceSource pins the same widening in
 // the choice-shaped walk: one untapped land with TWO free "Any" abilities.
 // windowManaUnits excludes choice-shaped production, so this source is
-// attackChoiceManaSources' domain; before the fix it required len(free) == 1
-// and dropped the land entirely.
+// attackChoiceManaSources' domain.
 func TestAttackPropPaysWithAMultiAbilityChoiceSource(t *testing.T) {
 	t.Parallel()
 	e, bear := attackPropSeatDual(t, "Baird, Steward of Argive", 0)

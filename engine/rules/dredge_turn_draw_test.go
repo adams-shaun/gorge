@@ -10,7 +10,6 @@
 //
 // The probe that broke this drove an ACTUAL turn draw (upkeep -> draw through
 // the turn structure, not e.drawCard directly) with Golgari Thug in its
-// controller's graveyard and failed on the pre-fix code with
-// "priority emitted while dredge decision is pending". This test is that
-// probe, committed.
+// controller's graveyard, where a bad order reads "priority emitted while
+// dredge decision is pending". This test is that probe, committed.
 package rules

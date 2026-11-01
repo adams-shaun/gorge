@@ -161,14 +161,12 @@ func assertDrawPrecedesPriorityInStep(t *testing.T, e *Engine, since int) {
 	}
 }
 
-// TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw is the
-// measurement case. Against the pre-fix code, resolveTop's post-resolution
-// Priority{Active, 0} emit (CR 117.3b) recreates exactly the state
-// priorityRound's old guard read as "the step just began", so the mandatory
-// trigger this test attaches makes the engine draw again, and again, until
-// the library runs dry -- a large hand delta instead of exactly 1. See the
-// RED measurement for the actual pre-fix
-// number.
+// TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw is the measurement case.
+// resolveTop's post-resolution Priority{Active, 0} emit (CR 117.3b) can
+// recreate exactly the state priorityRound's old guard read as "the step just
+// began", so the mandatory trigger this test attaches makes the engine draw
+// again, and again, until the library runs dry -- a large hand delta instead
+// of exactly 1.
 func TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 2)

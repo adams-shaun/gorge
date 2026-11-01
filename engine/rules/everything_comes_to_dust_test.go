@@ -16,8 +16,8 @@ import (
 // "Exile all creatures except those that share a creature type with a
 // creature that convoked this spell, all artifacts, and all enchantments."
 //
-// Before the fix, `Convoked` classified wordUnknown so the whole first
-// comma-alternative failed closed: NO creature was ever matched by
+// Classified wordUnknown, `Convoked` would fail the whole first
+// comma-alternative closed: NO creature would match
 // `Creature.!sharesCreatureTypeWith Convoked` (a negated unrecognised shape
 // is not a match), so the sweep exiled only artifacts and enchantments and
 // left every creature alive with no Note. The referent now resolves from the

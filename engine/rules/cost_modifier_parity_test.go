@@ -975,7 +975,7 @@ func TestColorReductionAssignedToLaterHybridPip(t *testing.T) {
 	if firstW < 0 || firstU < 0 {
 		t.Fatalf("both faces of the first {W/U} pip must be offered (each has a completing assignment): %+v", d.Options)
 	}
-	// Choose the formerly-rejected U-first face.
+	// Choose the U-first face.
 	submitChoices(t, e, firstU)
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose {

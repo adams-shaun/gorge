@@ -81,11 +81,8 @@ func foldGameOver(g *state.Game, e *Event) {
 	//     is both Winner's zero value and a real seat and so cannot
 	//     mean "nobody" on its own.
 	//   anything else (including Amount == 0 with an invalid Player):
-	//     not a shape this Kind defines. Previously any other Amount
-	//     still set Over unconditionally and, since Winner's own guard
-	//     only ever checked validPlayer, a tampered event naming an
-	//     out-of-range Player under some third Amount read as "seat 0
-	//     won" regardless. Changing nothing at all is the safe response
+	// not a shape this Kind defines. Changing nothing at all is the safe
+	// response
 	//     to a shape this build cannot interpret.
 	switch {
 	case e.Amount == 0 && validPlayer(g, e.Player):

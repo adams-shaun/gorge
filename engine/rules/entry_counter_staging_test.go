@@ -316,9 +316,9 @@ func TestEntryCounterStagingDoublingSeasonDoublesRiotElection(t *testing.T) {
 // Updated Moved replacements -- one tapping, one untapping. The bodies fight
 // over the same tapped bit, so the all-Updated composition parks CR 616.1's
 // order choice over the MOVE itself; the answer's resume re-folds the move.
-// This is the resume the staged entry must survive: before the fix the
-// resume emitted the move RAW, which silently dropped the entry grants -- a
-// walker entering under the park landed at zero loyalty and died to the SBA.
+// This is the resume the staged entry must survive: a resume emitting the
+// move RAW would silently drop the entry grants -- a walker entering under
+// the park landed at zero loyalty and died to the SBA.
 func entryStagingTapUntapWalker(t testing.TB) *cards.Card {
 	return card(t, "Name:Staging Tap Untap Walker\nTypes:Planeswalker Entry\nLoyalty:4\n"+
 		"R:Event$ Moved | Destination$ Battlefield | ReplacementResult$ Updated | ValidCard$ Card.Self | ReplaceWith$ TapIt | Description$ it enters tapped\n"+

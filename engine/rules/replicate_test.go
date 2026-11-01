@@ -413,12 +413,11 @@ func drainStackDecliningPlays(t *testing.T, e *Engine, limit int) {
 	}
 }
 
-// TestReplicateTapCostAskBoundedByUntappedCandidates is the
-// regression pin on the clean carrier: Exterminate! (K:Replicate:tapXType<1/Dalek>,
-// {2}{B}) with TWO untapped Daleks. The count ask's max is the largest N the
-// composed cost can still pay, and the composed cost's repeated tap parts
-// draw down ONE shared pool of untapped Daleks — the pre-fix engine checked
-// each part independently, offered 0..64 (the hard cap), and answering above
+// TestReplicateTapCostAskBoundedByUntappedCandidates is the regression pin on
+// the clean carrier: Exterminate! (K:Replicate:tapXType<1/Dalek>, {2}{B})
+// with TWO untapped Daleks. The count ask's max is the largest N the composed
+// cost can still pay, and the composed cost's repeated tap parts draw down
+// ONE shared pool of untapped Daleks..64 (the hard cap), and answering above
 // 2 aborted the whole cast at the payment stage. Here the ask must offer
 // exactly 0..2, and answering the true max 2 completes the cast end to end:
 // both Daleks tapped, the victim destroyed, two IsCopy spell copies resolved.
@@ -494,15 +493,12 @@ func TestReplicateTapCostAskBoundedByUntappedCandidates(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestReplicateTapCostPsionicRitualBoundReservesCandidates is the
-// measured shape verbatim: Psionic Ritual (K:Replicate:tapXType<1/Horror>,
-// {4}{U}{U}) with two untapped Kederekt Creepers (real corpus Horrors) and a
-// legal graveyard target. The pre-fix engine offered the count 0..64 — the
-// hard cap, every part priced against the whole unreserved candidate list —
-// and answering above the true count aborted the entire cast ("tap cost no
-// longer payable", the spell back in hand). The fixed bound is exactly the
-// board's: 0..2, and answering 2 pays, taps both Horrors and puts three
-// spell objects on the stack (original + two IsCopy copies).
+// TestReplicateTapCostPsionicRitualBoundReservesCandidates is the measured
+// shape verbatim: Psionic Ritual (K:Replicate:tapXType<1/Horror>, {4}{U}{U})
+// with two untapped Kederekt Creepers (real corpus Horrors) and a legal
+// graveyard target. The fixed bound is exactly the board's: 0..2, and
+// answering 2 pays, taps both Horrors and puts three spell objects on the
+// stack (original + two IsCopy copies).
 func TestReplicateTapCostPsionicRitualBoundReservesCandidates(t *testing.T) {
 	t.Parallel()
 	e, cfg, reg := replicateTapEngine(t, "Psionic Ritual",
@@ -567,11 +563,7 @@ func TestReplicateTapCostPsionicRitualBoundReservesCandidates(t *testing.T) {
 
 // TestReplicateEnergyCostAskBoundedByEnergyPool pins the same class on the
 // non-mana repeatable resource: Reiterating Bolt (K:Replicate:PayEnergy<3>,
-// {1}{R}) with exactly 6 energy. The pre-fix engine priced each composed
-// PayEnergy part against the whole counter total independently, so any pool
-// of 3+ offered the count 0..64; the fixed bound sums the composed parts and
-// offers exactly 0..2, and answering 2 drains all 6 energy and resolves two
-// copies.
+// {1}{R}) with exactly 6 energy.
 func TestReplicateEnergyCostAskBoundedByEnergyPool(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := replicateTapEngine(t, "Reiterating Bolt")

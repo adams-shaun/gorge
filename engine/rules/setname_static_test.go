@@ -302,10 +302,7 @@ func TestPsychicPaperIgnoresAnotherAttach(t *testing.T) {
 // applies only to the permanent it enchants. Once the bearer moves to the
 // graveyard it is a new object the Aura is not attached to, even in the
 // window before the state-based check puts the Aura away (the Aura's
-// AttachedTo still names the moved card's ObjID then). Before the fix the
-// attachedBy predicate matched the graveyard card through that stale field
-// and chars.Name renamed it there (dirac pairs 36914 45727: Liliana,
-// Dreadhorde General's -4 sacrifice ask named the card by the Aura's name).
+// AttachedTo still names the moved card's ObjID then).
 func TestWitnessProtectionNameEndsWhenTheBearerLeaves(t *testing.T) {
 	t.Parallel()
 	witness := corpusAlternativeCard(t, "Witness Protection")

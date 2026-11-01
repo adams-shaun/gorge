@@ -1,12 +1,9 @@
 // CR 601.2b flexible-pip announcement for the two upkeep payment windows:
-// Echo (kw:Echo, engine/rules/echo.go) and cumulative upkeep (K:Cumulative upkeep,
-// engine/rules/cumulative.go). Before the fix both windows gated on
-// Cost.Priceable() against the UNANNOUNCED cost, and Priceable() rejects
-// hybrid, monocolour-hybrid, Phyrexian and hybrid-Phyrexian pips -- so a
-// flexible upkeep cost was treated as unpayable and the pay option was
-// omitted (sacrifice only). No corpus card carries such a cost (measured
-// zero), so the fixtures here are inline synthetic cards; the engine under
-// test is the real one, driven through the real resolution window.
+// Echo (kw:Echo, engine/rules/echo.go) and cumulative upkeep (K:Cumulative
+// upkeep, engine/rules/cumulative.go). No corpus card carries such a cost
+// (measured zero), so the fixtures here are inline synthetic cards; the
+// engine under test is the real one, driven through the real resolution
+// window.
 package rules
 
 import (

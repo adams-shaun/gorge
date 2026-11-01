@@ -154,8 +154,7 @@ func TestEffectDeliveredNumLoyaltyActControllerScopeTwice(t *testing.T) {
 // Veil's REAL activated ability (A:AB$ Effect | StaticAbilities$ LoyaltyAbs,
 // Additional$ 1), which is the activated-ability delivery route rather than a
 // DB$ sub-ability, and covers the Additional$ 1 value on ValidCard$
-// Planeswalker.YouCtrl. Before the fix the ability emitted the
-// NumLoyaltyAct unimplemented Note and granted nothing.
+// Planeswalker.YouCtrl.
 func TestEffectDeliveredNumLoyaltyActChainVeilActivatedAbility(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

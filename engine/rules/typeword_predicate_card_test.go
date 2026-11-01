@@ -67,8 +67,7 @@ func TestTypeWordPredicateUnlocksCorpusTargeting(t *testing.T) {
 	// the activation.
 	addMana(t, e, 0, "CC")
 
-	// Before the fix the ability is not offered at all (no legal target for
-	// Creature.Artifact). With the fix it is.
+	// The ability must be offered (Creature.Artifact has a legal target).
 	opt := abilityOption(t, e, vcID, 0)
 	submitChoices(t, e, opt.Index)
 

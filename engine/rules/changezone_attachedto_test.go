@@ -276,13 +276,11 @@ func TestMantleOfTheAncientsEtbAttaches(t *testing.T) {
 	})
 	// With BOTH an Aura and an Equipment eligible the ask's bound is the
 	// RESOLVED TargetMax$ X (SVar:X:Count$ValidGraveyard
-	// Aura.CanEnchantEquippedBy,Equipment.CanEnchantEquippedBy): the placement
-	// ask (engine/rules/trigger_queue.go pushTarget's askTarget) routes through
-	// resolvedTargetBounds, which resolves the dynamic bound through the
-	// effects numeric grammar against the triggering source's SVar table --
-	// so Max is 2 and BOTH cards can be returned. Before the fix the literal
-	// reader dropped "X" and the ask was capped at Max 1; this subtest pinned
-	// that defect and was updated consciously when the bound was fixed.
+	// Aura.CanEnchantEquippedBy,Equipment.CanEnchantEquippedBy): the
+	// placement ask (engine/rules/trigger_queue.go pushTarget's askTarget)
+	// routes through resolvedTargetBounds, which resolves the dynamic bound
+	// through the effects numeric grammar against the triggering source's
+	// SVar table -- so Max is 2 and BOTH cards can be returned.
 	t.Run("both-eligible-resolved-bound", func(t *testing.T) {
 		reg := searchTestRegistry(t)
 		e, ids := attachedToFixture(t, reg, 9313, []string{"Mantle of the Ancients"},

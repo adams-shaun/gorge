@@ -84,13 +84,12 @@ func countPlayerDamageAmount(t *testing.T, e *Engine, p state.PlayerID, amount i
 	return n
 }
 
-// TestValidDamageSourceDealsFromEachSource pins the multi-source DamageSource$
-// arm on an inline probe: a DamageSource$ spec that resolves to SEVERAL
-// objects makes EACH of them a separate damager (Missy's "each artifact
-// creature you control deals 1 damage to that opponent" is the corpus shape).
-// The Valid Creature+YouCtrl walk names the conduit itself plus both bears, so
-// the opponent takes three separate 1-point hits. Pre-fix the rider took the
-// first resolved source only: one hit, the opponent two life richer.
+// TestValidDamageSourceDealsFromEachSource pins the multi-source
+// DamageSource$ arm on an inline probe: a DamageSource$ spec that resolves to
+// SEVERAL objects makes EACH of them a separate damager (Missy's "each
+// artifact creature you control deals 1 damage to that opponent" is the
+// corpus shape). The Valid Creature+YouCtrl walk names the conduit itself
+// plus both bears, so the opponent takes three separate 1-point hits.
 func TestValidDamageSourceDealsFromEachSource(t *testing.T) {
 	t.Parallel()
 	conduit := "Name:Sweep Conduit\nManaCost:3\nTypes:Creature Elemental\nPT:1/1\n" +
@@ -132,8 +131,7 @@ func TestValidDamageSourceDealsFromEachSource(t *testing.T) {
 // barbs' shape): the per-source recipients re-resolve through Defined$
 // anchored on EACH damage source, so each enchantment damages its own
 // controller -- and Defined$ CardController names that anchoring card's
-// controller. Pre-fix CardController did not resolve and the Valid walk's
-// first match was the only damager, so the opponent took nothing.
+// controller.
 func TestRelativeTargetDamagePairsEachSource(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Pairing Bolt\nManaCost:2 R\nTypes:Instant\n" +
@@ -176,8 +174,7 @@ func TestRelativeTargetDamagePairsEachSource(t *testing.T) {
 // drop the source. The probe imprints a wither creature and then deals 2
 // damage with DamageSource$ Imprinted at that same creature: the WITHER
 // source deals the damage, so it lands as two -1/-1 counters and no marked
-// damage. Pre-fix the resolving source (the probe, no wither) dealt the
-// damage: two marked, no counters.
+// damage.
 func TestImprintedDamageSourceReadsTheRawAssociation(t *testing.T) {
 	t.Parallel()
 	probe := "Name:Imprint Probe\nManaCost:2 R\nTypes:Creature Goblin Shaman\nPT:1/3\n" +
@@ -246,9 +243,7 @@ func hasKeyword(e *Engine, id state.ObjID, kw string) bool {
 // X:Spawner>TriggeredCard$CardPower, and BOTH must read the triggering
 // capture (the creature that entered), not Halana and not zero. The entering
 // Kinscaer Sentry has lifelink, so the source provenance pays its controller:
-// the victim takes 2 marked and seat 0 gains 2. Pre-fix the Spawner> spec was
-// unresolvable (loud fail-closed now) and X evaluated to zero, so nothing
-// happened at all.
+// the victim takes 2 marked and seat 0 gains 2.
 func TestSpawnerDamageSourceDealsFromTheEnteringCreature(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -299,8 +294,7 @@ func TestSpawnerDamageSourceDealsFromTheEnteringCreature(t *testing.T) {
 // (X:ChosenCard$CardPower) to the target. The chosen Giant is Kroxa and
 // Kunoros (6/6 with lifelink) and the target is that same Giant: the damage
 // comes from the LIFELINK Giant, so its controller gains 6 and the Giant dies
-// to its own lethality. Pre-fix the ChosenCard count ref did not resolve
-// (zero damage): the Giant survived and nobody gained life.
+// to its own lethality.
 func TestChosenCardDamageSourceDealsFromTheChosenCard(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

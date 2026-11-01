@@ -32,9 +32,7 @@ func runStateTriggerScenario(t *testing.T, sc string) OracleAuditResult {
 // artifacts, sacrifice CARDNAME" fires when Cloudshift exiles the only other
 // artifact (Bottle Gnomes), but Cloudshift returns Gnomes in the same
 // resolution; the trigger is already on the stack and must still sacrifice
-// the Centurion. Before the fix resolveTop's CR 603.4 gate re-evaluated the
-// IsPresent$ clause, found Gnomes back, and exiled the ability with
-// "fizzled: intervening-if no longer holds".
+// the Centurion.
 //
 // XMage port (MIT): triggers/SynodCenturionTest.json#testWithFlicker.
 func TestStateTriggerNotRecheckedOnResolution(t *testing.T) {

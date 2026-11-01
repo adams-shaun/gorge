@@ -993,11 +993,11 @@ func TestRegistryConcurrentRegisterAndReadDoesNotRace(t *testing.T) {
 }
 
 // TestKnownDefinedTargetsRecognisesBareValidBattlefieldForm pins the resolver
-// contract: the bare "Defined$ Valid <filter>"
-// battlefield form must be classified as KNOWN by knownDefinedTargets, not as
-// an unresolvable fetch list. Before the fix definedSpec recognised only the
-// zone-suffixed forms (ValidGraveyard/ValidHand/...) and ValidStack, so every
-// fail-closed caller (effCopyPermanent, effChangeZone's hidden search,
+// contract: the bare "Defined$ Valid <filter>" battlefield form must be
+// classified as KNOWN by knownDefinedTargets, not as an unresolvable fetch
+// list. A definedSpec recognising only the zone-suffixed forms
+// (ValidGraveyard/ValidHand/...) and ValidStack would leave every fail-closed
+// caller (effCopyPermanent, effChangeZone's hidden search,
 // effCopySpellAbility, the DamageSource$/ValidPlayers$ resolvers) treated a
 // bare Valid spec as "unknown" and acted on nothing -- Redoubled Stormsinger
 // (Defined$ Valid Creature.token+YouCtrl+ThisTurnEntered) minted no copy.

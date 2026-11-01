@@ -3,12 +3,11 @@ package rules
 // Count$ValidStack end-to-end: the stack is ONE shared list (state.Game.Zone
 // returns g.Stack for every seat), so the ValidStack count head must scan it
 // exactly once, not once per alive seat. The eval-level pin for that lives in
-// engine/effects/count_test.go (TestEvalCountValidStackScansTheSharedStackOnce); this
-// file pins the REAL corpus carrier end to end: Mindbreak Trap's
-// `TargetMax$ MaxTgts` with `SVar:MaxTgts:Count$ValidStack Card`, read through
-// the ordinary cast flow on a 2-seat table. Before the fix the announcement
-// ask read two spells on a table holding one (a duplicated bound); after it,
-// one.
+// engine/effects/count_test.go
+// (TestEvalCountValidStackScansTheSharedStackOnce); this file pins the REAL
+// corpus carrier end to end: Mindbreak Trap's `TargetMax$ MaxTgts` with
+// `SVar:MaxTgts:Count$ValidStack Card`, read through the ordinary cast flow
+// on a 2-seat table.
 
 import (
 	"testing"
@@ -82,9 +81,9 @@ func TestMindbreakTrapMaxTgtsCountsTheSharedStackOnce(t *testing.T) {
 		t.Fatalf("fixture precondition: stack holds %d cards, want 1", n)
 	}
 	// The double-count discriminator: read the real carrier's dynamic bound
-	// while exactly one card is on the shared stack of a 2-seat game. The
-	// pre-fix per-seat walk read 2 here. (resolvedTargetBounds is the same
-	// resolver askTarget uses for the announcement ask.)
+	// while exactly one card is on the shared stack of a 2-seat game.
+	// (resolvedTargetBounds is the same resolver askTarget uses for the
+	// announcement ask.)
 	_, directMax := e.resolvedTargetBounds(0, trapID, trapSA, 0)
 	if directMax != 1 {
 		t.Fatalf("resolvedTargetBounds Max = %d, want 1 (one card on the shared stack, two seats)", directMax)
@@ -92,8 +91,7 @@ func TestMindbreakTrapMaxTgtsCountsTheSharedStackOnce(t *testing.T) {
 
 	// Respond with Mindbreak Trap: the announcement ask's Max is the bound.
 	// The Trap itself is on the stack by the time its target is chosen, so
-	// the honest count is 2 (the Bear plus the Trap); the pre-fix
-	// double-count read 4 here.
+	// the honest count is 2 (the Bear plus the Trap).
 	submitChoices(t, e, passToCast(t, e, trapID))
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget {

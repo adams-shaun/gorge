@@ -203,10 +203,7 @@ func TestFlankingAuraGrantedAttackerDebuffsBlocker(t *testing.T) {
 // must see a flanking instance ANOTHER layer-6 effect granted, not only a
 // printed K:Flanking line. Sidewinder Sliver prints no flanking and gets its
 // first instance from its own "All Sliver creatures have flanking" static;
-// Cavalry Master then adds a second. Before the fix the layer walk bound only
-// the types-so-far list, so `withFlanking` read the printed face alone,
-// Cavalry Master's grant never matched the Sliver, and a 2/2 blocker survived
-// at 1/1 on one instance instead of dying to two.
+// Cavalry Master then adds a second.
 func TestFlankingChainedGrantsStackInstances(t *testing.T) {
 	t.Parallel()
 	sliverCard := mshCorpusCard(t, "Sidewinder Sliver")

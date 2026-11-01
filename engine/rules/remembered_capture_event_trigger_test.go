@@ -30,11 +30,9 @@ const eventCaptureVictim = "Name:EventVictim\nTypes:Creature Bear\nPT:2/2\nOracl
 
 // TestRememberedEventCaptureExcludedInTriggerBody drives an
 // EVENT-OBJECT-capture trigger end to end: the entering creature (not this
-// source) is the fire-time capture, so before the fix the resolution ctx
-// carried Remembered == [entering creature], Remembered$Amount read 1, the EQ0
-// gate failed and the Draw leg was silently skipped. resolvingRemembered does
-// not apply here (the mode is ChangesZone, not Phase and the capture is not the
-// source), so unlike the Phase probe this one is a live discriminator for the
+// source) is the fire-time capture. resolvingRemembered does not apply here
+// (the mode is ChangesZone, not Phase and the capture is not the source), so
+// unlike the Phase probe this one is a live discriminator for the
 // effects-side exclusion on current main.
 func TestRememberedEventCaptureExcludedInTriggerBody(t *testing.T) {
 	t.Parallel()

@@ -158,8 +158,7 @@ func TestTearAsunderKickedTakesOnlyTheSubTarget(t *testing.T) {
 	if o := e.G.Obj(pick); o == nil || o.Zone != state.ZExile {
 		t.Fatalf("chosen nonland permanent %d not exiled: %+v", pick, o)
 	}
-	// Exactly one exile: the pre-fix bug exiled the artifact AND the sub's
-	// pick because the main SA still demanded a target.
+	// Exactly one exile, not the artifact AND the sub's pick.
 	if n := len(e.G.Zone(state.ZExile, 0)); n != 1 {
 		t.Fatalf("exile zone has %d cards, want exactly 1", n)
 	}

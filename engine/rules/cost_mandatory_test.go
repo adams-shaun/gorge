@@ -36,9 +36,7 @@ import (
 
 // TestMandatoryCostHeadParsesWithoutGeneric is the ParseCost half: every
 // Mandatory-prefixed cost shape measured in the corpus parses with a zero
-// generic component and no Unknown token. Before the fix the Mandatory head
-// fell through to ParseCost's unknown-token default, which substitutes one
-// generic mana.
+// generic component and no Unknown token.
 func TestMandatoryCostHeadParsesWithoutGeneric(t *testing.T) {
 	t.Parallel()
 	// Every head shape the corpus carries, one representative line each

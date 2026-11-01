@@ -143,14 +143,14 @@ func (w *legalWalk) handWalk() {
 		// said_done, spring_mind). For that reason it also precedes the plain
 		// cast in the option list for a split card.
 		//
-		// The prohibition gate is castRestrictedAsFace on the HALF being cast,
-		// not the card-level castRestricted continue below (which reads the
-		// front face). A restriction matching only the front half must not
-		// withhold this half's offer, and one matching only this half must not
-		// be missed by probing the front (the same two directions the
-		// modal_spell offer fixed in e89e1a48b; regression-tested in
-		// engine/rules/alternate_face_restriction_test.go). castSuppressed above
-		// stays shared: casting a half is casting the card.
+		// The prohibition gate is castRestrictedAsFace on the HALF being
+		// cast, not the card-level castRestricted continue below (which reads
+		// the front face). A restriction matching only the front half must
+		// not withhold this half's offer, and one matching only this half
+		// must not be missed by probing the front (the same two directions as
+		// the modal_spell offer; see
+		// engine/rules/alternate_face_restriction_test.go). castSuppressed
+		// above stays shared: casting a half is casting the card.
 		if sf := splitAlternateCastFace(o); sf != nil {
 			// The target-conditional read is FACE-SCOPED (castWithFlashAsFace):
 			// a grant on one half is judged against THAT half's own potential

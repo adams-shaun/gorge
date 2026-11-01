@@ -311,9 +311,8 @@ func TestRunAwayTogetherDifferentControllersBotAnswerNeverLivelocks(t *testing.T
 // represented there is no legal set, so the ability fizzles ("countered: no
 // legal targets") instead of posing an unsatisfiable decision. The ask is
 // driven directly (askTarget, the same entry the trigger drain uses) with the
-// two same-controller creatures on the battlefield -- the exact board the
-// pre-fix code turned into a Min 2 / Max 2 decision whose two options shared
-// one Option.Group.
+// two same-controller creatures on the battlefield -- a board that must not
+// become a Min 2 / Max 2 decision whose two options share one Option.Group.
 func TestKitsuneMandatoryTwoOneControllerFizzles(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -348,9 +347,8 @@ func TestKitsuneMandatoryTwoOneControllerFizzles(t *testing.T) {
 	}
 	e.pending = nil
 	// source = Kitsune's own object, so `Creature.Other` excludes it and the
-	// two same-controller bears are the whole candidate set (the board the
-	// pre-fix code turned into an unsatisfiable Min 2 decision). The fizzle
-	// moves the SOURCE, which in real trigger resolution is the ability stack
+	// two same-controller bears are the whole candidate set. The fizzle moves
+	// the SOURCE, which in real trigger resolution is the ability stack
 	// object, not this permanent -- so the zone is deliberately not asserted
 	// on this direct-ask harness call.
 	e.askTarget(0, kitsuneID, sa)

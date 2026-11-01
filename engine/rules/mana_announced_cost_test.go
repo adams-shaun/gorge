@@ -313,9 +313,9 @@ func TestManaUntapYTypeCost(t *testing.T) {
 		t.Fatalf("Benthic reflected mana pool total = %d, want 1 from elected Mountain", got)
 	}
 	// The opponent Mountain produces R, so binding the reflection to the
-	// ELECTED permanent (Ctx.CostUntapped) adds a red unit; the pre-fix
-	// fallback read the controller's own untapped permanents (none here) and
-	// withheld the ability entirely.
+	// ELECTED permanent (Ctx.CostUntapped) adds a red unit; a fallback
+	// reading the controller's own untapped permanents (none here) withheld
+	// the ability entirely.
 	if got := e.G.Players[0].Pool[state.ManaIndex('R')]; got != 1 {
 		t.Fatalf("Benthic reflected mana red slot = %d, want 1 (the elected Mountain's colour)", got)
 	}

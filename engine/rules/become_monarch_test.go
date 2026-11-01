@@ -176,8 +176,7 @@ func TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger(t *testing.T) {
 		t.Fatal("precondition: Custodi Lich's TrigMonarch SVar did not resolve")
 	}
 	// Resolve the real DB$ BecomeMonarch body naming seat 0: the reigning
-	// monarch. Before the fix this emitted MonarchChange and queued the
-	// ValidPlayer$ You trigger.
+	// monarch.
 	effects.Resolve(e, &effects.Ctx{Source: lich, Controller: 0}, sa)
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("a repeat BecomeMonarch on the reigning monarch queued %d trigger(s), want 0",

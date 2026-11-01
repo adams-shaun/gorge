@@ -85,7 +85,7 @@ func TestEntryCounterMoveFoldIsReplacementVisible(t *testing.T) {
 
 	// Vorinclex doubles every counter its controller puts. The entry loyalty
 	// must therefore be 8, and the doubled value must be a REAL event (8 !=
-	// the printed 4, which is what the pre-fix silent fold would leave).
+	// the printed 4).
 	vori := tokenReplCorpusCard(t, "Vorinclex, Monstrous Raider")
 	walker = entryCounterWalker(t)
 	e, cfg = tokenReplGame(t, 137, vori, walker)

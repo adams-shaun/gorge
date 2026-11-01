@@ -542,16 +542,15 @@ func conniveSeedGraveyard(t *testing.T, e *Engine, p state.PlayerID, name string
 	return 0
 }
 
-// TestLethalSchemeConviveDrawReplacementDoesNotOrphanTheAsk is a
-// regression test: a connive whose draw poses a Dredge
-// replacement (CR 702.55) used to drive its draws through a bare DrawFor
-// loop, so the connive's discard ask was posted while the dredge ask was
-// still outstanding and the engine panicked ("ask overwrote a suspended
-// resolution's pending decision"), crashing the match. Post-fix the connive
-// is resumable across the draw suspension: the dredge ask is answered, the
-// remaining draws (none here, N == 1) complete, and only THEN does the
-// discard ask fire; the discard reads the post-replacement hand and the
-// connive record/counter land exactly once.
+// TestLethalSchemeConviveDrawReplacementDoesNotOrphanTheAsk is a regression
+// test: a connive whose draw poses a Dredge replacement (CR 702.55) used to
+// drive its draws through a bare DrawFor loop, so the connive's discard ask
+// was posted while the dredge ask was still outstanding and the engine
+// panicked ("ask overwrote a suspended resolution's pending decision"),
+// crashing the match. The connive is resumable across the draw suspension:
+// the dredge ask is answered, the remaining draws (none here, N == 1)
+// complete, and only THEN does the discard ask fire; the discard reads the
+// post-replacement hand and the connive record/counter land exactly once.
 func TestLethalSchemeConviveDrawReplacementDoesNotOrphanTheAsk(t *testing.T) {
 	t.Parallel()
 	e, cfg := conniveEngine(t, []string{"Lethal Scheme", "Grizzly Bears", "Grizzly Bears", "Golgari Thug"}, []string{"Grizzly Bears"})
@@ -603,13 +602,13 @@ func TestLethalSchemeConviveDrawReplacementDoesNotOrphanTheAsk(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestLethalSchemeConviveDrawReplacementHandAtMostN covers the
-// case when the conniver's hand is at most N there is no discard ask
-// at all, so the pre-fix code applied the discard, the counter and the
-// record from the PRE-draw hand while the dredge ask was still pending, and
-// the answered dredge then resumed with no sub-ability recorded. Post-fix
-// the discard runs only after the draw's replacement is settled, so the
-// record reflects what the replacement actually did.
+// TestLethalSchemeConviveDrawReplacementHandAtMostN covers the case when the
+// conniver's hand is at most N there is no discard ask at all, so the
+// discard, the counter and the record must wait for the pending dredge ask
+// rather than read the PRE-draw hand, and the answered dredge then resumes
+// with sub-ability recorded. The discard runs only after the draw's
+// replacement is settled, so the record reflects what the replacement
+// actually did.
 //
 // The Lethal Scheme convoked connive is the carrier and the hand is emptied
 // to exactly Lethal Scheme before the cast, so the connive's draw leaves one
@@ -681,14 +680,13 @@ func TestLethalSchemeConviveDrawReplacementHandAtMostN(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSpymastersVaultConniveTwoWithDrawReplacements covers the
-// N >= 2 shape: Spymaster's Vault's activated
-// ability makes a target creature connive X where X is the creatures that
-// died this turn, so each of the two draws poses its OWN Dredge ask
-// sequentially -- the pre-fix bare-DrawFor loop posed the second over the
-// first (the orphaned-decision panic). Post-fix the loop parks the first
-// ask, the answer drives the re-entry to the second, and only after both
-// draws are settled does the discard fire.
+// TestSpymastersVaultConniveTwoWithDrawReplacements covers the N >= 2 shape:
+// Spymaster's Vault's activated ability makes a target creature connive X
+// where X is the creatures that died this turn, so each of the two draws
+// poses its OWN Dredge ask sequentially -- a bare-DrawFor loop would pose the
+// second over the first (an orphaned-decision panic). The loop parks the
+// first ask, the answer drives the re-entry to the second, and only after
+// both draws are settled does the discard fire.
 func TestSpymastersVaultConniveTwoWithDrawReplacements(t *testing.T) {
 	t.Parallel()
 	e, cfg := conniveEngine(t, []string{"Spymaster's Vault", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Golgari Thug"}, nil)

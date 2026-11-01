@@ -50,8 +50,8 @@ func findOnBoard(t *testing.T, e *Engine, p state.PlayerID, name string) state.O
 }
 
 // assertGrants checks the bearer has every wanted keyword, no derived keyword
-// still carries an "&" (the pre-fix bogus joined string), and for protection
-// grants that the engine's own protectedFrom predicate sees them.
+// still carries an "&", and for protection grants that the engine's own
+// protectedFrom predicate sees them.
 func assertGrants(t *testing.T, e *Engine, bearer state.ObjID, want []string) {
 	t.Helper()
 	for _, k := range want {
@@ -69,9 +69,7 @@ func assertGrants(t *testing.T, e *Engine, bearer state.ObjID, want []string) {
 // TestEquipmentAmpersandGrantsRealKeywords drives four REAL corpus cards —
 // the Equipment the defect reported (Basilisk Collar, Loxodon Warhammer,
 // Lightning Greaves, Sword of Fire and Ice) — through a full equip and
-// asserts the bearer has BOTH members of each "A & B" grant. Before the fix
-// each grant arrived as a single bogus keyword ("Deathtouch & Lifelink")
-// that HasKeyword never matched, so none of these grants worked.
+// asserts the bearer has BOTH members of each "A & B" grant.
 func TestEquipmentAmpersandGrantsRealKeywords(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -130,11 +128,10 @@ func derivedKeywordsRegistered(t *testing.T, e *Engine, id state.ObjID, head str
 }
 
 // TestBasiliskCollarBearerNonCombatDamageGainsLife pins the second half of
-// the defect on real cards: the Collar's bearer's NON-COMBAT damage gains
-// its controller life (CR 702.15a's rider rides granted lifelink as surely
-// as printed). Prodigal Pyromancer with the Collar pings seat 1 for 1;
-// seat 0 gains that 1. Before the fix the bearer's lifelink was the bogus
-// joined keyword and nobody gained anything.
+// the defect on real cards: the Collar's bearer's NON-COMBAT damage gains its
+// controller life (CR 702.15a's rider rides granted lifelink as surely as
+// printed). Prodigal Pyromancer with the Collar pings seat 1 for 1; seat 0
+// gains that 1.
 func TestBasiliskCollarBearerNonCombatDamageGainsLife(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

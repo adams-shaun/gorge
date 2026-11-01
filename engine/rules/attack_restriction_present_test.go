@@ -138,9 +138,8 @@ func TestCantAttackPresentCreatureGT1(t *testing.T) {
 //	IsPresent$ Card.YouOwn | PresentZone$ Hand | PresentCompare$ LE6
 //
 // ("can't attack or block unless you have seven or more cards in hand"). This
-// is the PresentZone$ Hand half countStaticPresent previously returned 0 for:
-// before the fix the count was stuck at 0, LE6 always held, and Kefnet could
-// never attack. Six cards block it; the seventh releases it.
+// is the PresentZone$ Hand half of countStaticPresent. Six cards block it;
+// the seventh releases it.
 func TestCantAttackPresentHandLE6(t *testing.T) {
 	t.Parallel()
 	e := attackBlockedRegressionEngine(t)
@@ -178,12 +177,11 @@ func TestCantAttackPresentHandLE6(t *testing.T) {
 //	IsPresent$ Card | PresentZone$ Exile | PresentCompare$ LT7
 //
 // ("can't attack or block unless there are seven or more cards in exile").
-// This exercises BOTH the attack half (PresentZone$ Exile in countStaticPresent
-// previously read 0, so before the fix Ketramose could always attack) and the
-// block half (blockRestricted's CantBlock loop has no whitelist, so the same
-// stuck-at-0 count already made Ketramose ALWAYS unable to block -- a live
-// over-restriction this fix repairs). Six exiled cards block both halves;
-// the seventh releases both.
+// This exercises BOTH the attack half (PresentZone$ Exile in
+// countStaticPresent) and the block half (blockRestricted's CantBlock loop
+// has no whitelist, so the same stuck-at-0 count already made Ketramose
+// ALWAYS unable to block -- a live over-restriction this fix repairs). Six
+// exiled cards block both halves; the seventh releases both.
 func TestCantAttackPresentExileLT7(t *testing.T) {
 	t.Parallel()
 	e := attackBlockedRegressionEngine(t)

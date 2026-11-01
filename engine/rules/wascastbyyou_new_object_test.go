@@ -11,12 +11,10 @@ import (
 // TestWasCastByYouEndsOnAnyZoneChangeAfterTheCast pins CR 400.7 for the
 // cast-provenance log reads: after its latest cast, any zone change of the
 // object other than the resolution's stack -> battlefield entry makes a new
-// object that was never cast. A Nine-Lives Familiar that is countered
-// (stack -> graveyard) and reanimated by Zombify enters with no revival
-// counters (dirac pairs 36065 62776); before the fix only a
-// departure FROM the battlefield ended the provenance, so it entered with
-// eight. The same read governs WasCastFromHandByYou ("if you cast it from
-// your hand").
+// object that was never cast. A Nine-Lives Familiar that is countered (stack
+// -> graveyard) and reanimated by Zombify enters with no revival counters
+// (dirac pairs 36065 62776). The same read governs WasCastFromHandByYou ("if
+// you cast it from your hand").
 func TestWasCastByYouEndsOnAnyZoneChangeAfterTheCast(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Nine-Lives Familiar"), corpusAlternativeCard(t, "Zombify"))

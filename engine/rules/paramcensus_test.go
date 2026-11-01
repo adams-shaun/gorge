@@ -4254,17 +4254,16 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 			t.Errorf("d.stat[Continuous][%q] = true -- the MayPlay family reader still over-suppresses the generic Continuous bucket", key)
 		}
 	}
-	// The census-level effect on the real repo decks, both directions:
-	// a plain Continuous static's unread gate is labelled, a MayPlay
-	// static's genuinely evaluated gate is not, and the withheld-whole
-	// MayPlay static's recognition key is labelled under the family.
-	// Angelic Overseer/Static Orb/Auriok Steelshaper's IsPresent$ labels are
-	// GONE since the continuous-gate wave -- the formerly-labelled trio the
-	// split was first pinned with; Master of Etherium's
-	// CharacteristicDefining$ retired with the static-PT wave's genuine CDA
-	// read; and Mogis/Purphoros's RemoveType$ retired when engine/rules/layers.go's
-	// type-static emission read it (the devotion gods' "isn't a creature"
-	// gate, pinned end to end in engine/rules/remove_type_static_test.go).
+	// The census-level effect on the real repo decks, both directions: a
+	// plain Continuous static's unread gate is labelled, a MayPlay static's
+	// genuinely evaluated gate is not, and the withheld-whole MayPlay
+	// static's recognition key is labelled under the family. Angelic
+	// Overseer/Static Orb/Auriok Steelshaper's IsPresent$ labels are absent;
+	// Master of Etherium's CharacteristicDefining$ retired with the static-PT
+	// wave's genuine CDA read; and Mogis/Purphoros's RemoveType$ retired when
+	// engine/rules/layers.go's type-static emission read it (the devotion
+	// gods' "isn't a creature" gate, pinned end to end in
+	// engine/rules/remove_type_static_test.go).
 	for _, card := range []string{"Angelic Overseer", "Auriok Steelshaper", "Static Orb", "Master of Etherium", "Mogis, God of Slaughter", "Purphoros, God of the Forge"} {
 		for _, l := range res.labels[card] {
 			t.Errorf("%s: census labels %s but that gate/read is genuinely evaluated now -- the shrink regressed", card, l)

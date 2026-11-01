@@ -6,12 +6,10 @@
 // reproductions against the merged tree.
 //
 // TestFBSoftlockSearchWithNoEligibleResolvesSilently is the triage test's
-// exact scenario (rules: TestTriageSearchNoEligiblePosesEmptyChoose, which
-// reproduced the wedge on the pre-fix tree): a ChangeZone | Origin$ Library
-// sorcery whose ChangeType$ matches nothing in the library. Before the fix
-// it posted a pending `KChoose Min:0 Max:0 Options:[]`; after it the search
-// resolves silently -- one shuffle, nothing found, CR 701.23b fail-to-find
-// -- and priority returns.
+// exact scenario (rules: TestTriageSearchNoEligiblePosesEmptyChoose): a
+// ChangeZone | Origin$ Library sorcery whose ChangeType$ matches nothing in
+// the library. The search resolves silently -- one shuffle, nothing found, CR
+// 701.23b fail-to-find -- and priority returns.
 //
 // TestFBSoftlockKeenVsValgavothPlays plays the reported deck pair (the two
 // commander decks the demo game g3 used: foundations-keen-engineering with
@@ -35,12 +33,12 @@ import (
 const fbSoftlockSearchSrc = "Name:Dragon Hunt\nManaCost:1 U\nTypes:Sorcery\n" +
 	"A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Card.Dragon | ChangeNum$ 1 | SpellDescription$ Search your library for a Dragon card.\n"
 
-// fbDrivePastSearch drives the game forward, answering every priority
-// window with pass and every other (legitimate, non-empty) ask with option
-// 0, until turn 3 (the cast turn's and the next turn's cleanup are behind
-// it) or the game ends. The ONE assertion that is the bug lives inline: a
-// pending empty-answer-only decision -- the pre-fix wedge's exact shape --
-// is a failure; the boundary tripwire in Engine.ask also panics on it.
+// fbDrivePastSearch drives the game forward, answering every priority window
+// with pass and every other (legitimate, non-empty) ask with option 0, until
+// turn 3 (the cast turn's and the next turn's cleanup are behind it) or the
+// game ends. The ONE assertion lives inline: a pending empty-answer-only
+// decision is a failure; the boundary tripwire in Engine.ask also panics on
+// it.
 func fbDrivePastSearch(t *testing.T, e *Engine) {
 	t.Helper()
 	for i := 0; i < 400 && !e.G.Over && e.G.Turn < 3; i++ {
@@ -75,7 +73,7 @@ func TestFBSoftlockSearchWithNoEligibleResolvesSilently(t *testing.T) {
 	hunt := card(t, fbSoftlockSearchSrc)
 	// Seat 0's deck: the Dragon-search sorcery over Mountains -- deliberately
 	// NO Dragon anywhere in the library, so the search's eligible set is
-	// empty and the pre-fix tree posted the Min 0 / Max 0 wedge.
+	// empty and must not post a Min 0 / Max 0 wedge.
 	hd := append([]*cards.Card{hunt}, mountainDeck(t, 39)...)
 	fd := mountainDeck(t, 40)
 	cfg := seatZeroStart(func(s uint64) Config {
@@ -104,10 +102,7 @@ func TestFBSoftlockSearchWithNoEligibleResolvesSilently(t *testing.T) {
 		t.Fatalf("submit cast: %v", err)
 	}
 
-	// Both seats pass priority; the spell resolves. On the pre-fix tree the
-	// wedge pended `Kind:choose Min:0 Max:0 Options:[]` right here and the
-	// seat could never answer it; fbDrivePastSearch fails on that shape and
-	// otherwise answers every real ask until the game has moved on.
+	// Both seats pass priority; the spell resolves.
 	fbDrivePastSearch(t, e)
 
 	if e.G.Over {

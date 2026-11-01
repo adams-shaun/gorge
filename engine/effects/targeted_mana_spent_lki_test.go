@@ -109,7 +109,7 @@ func TestTargetedCastTotalManaSpentCapturedAtResolveEntry(t *testing.T) {
 // TestTargetedCastTotalManaSpentReadsTheRealCorpusSVar proves the real
 // compiled Unravel script reaches the head: its SVar:X is exactly this
 // spelling, and the same evaluation the chained DBDraw makes returns the real
-// pre-move total instead of the pre-fix zero.
+// pre-move total, not zero.
 func TestTargetedCastTotalManaSpentReadsTheRealCorpusSVar(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Unravel")

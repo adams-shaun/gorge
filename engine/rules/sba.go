@@ -232,17 +232,17 @@ func (e *Engine) sbaActStale(ev events.Event) bool {
 // state-based actions outstanding.
 func (e *Engine) checkStateBased() {
 	// A parked CR 704.5j batch whose ask is no longer outstanding re-poses it
-	// before any SBA work: the batch is parked only together with its ask, and
-	// an outstanding ask is the ONE reason the pass below refuses to apply. A
-	// caller that posed its own decision at an unguarded point (the pre-fix
-	// completeCombatPass tail) could displace the ask; without this re-pose the
-	// parked batch would never be answered and -- because the pass below halts
-	// while it is parked -- no state-based action would ever apply again. The
-	// re-pose restores exactly the invariant parkLegendChoice establishes:
-	// parked implies asked. It does not fire while another decision is
-	// outstanding (nothing is re-asked under one); a stale flow marker in
-	// e.choosing is deliberately NOT consulted, because the displaced ask left
-	// e.choosing == chooseLegend behind and askLegendChoice re-sets it anyway.
+	// before any SBA work: the batch is parked only together with its ask,
+	// and an outstanding ask is the ONE reason the pass below refuses to
+	// apply. A caller that posed its own decision at an unguarded point could
+	// displace the ask; without this re-pose the parked batch would never be
+	// answered and -- because the pass below halts while it is parked -- no
+	// state-based action would ever apply again. The re-pose restores exactly
+	// the invariant parkLegendChoice establishes: parked implies asked. It
+	// does not fire while another decision is outstanding (nothing is
+	// re-asked under one); a stale flow marker in e.choosing is deliberately
+	// NOT consulted, because the displaced ask left e.choosing ==
+	// chooseLegend behind and askLegendChoice re-sets it anyway.
 	if e.legendBatch != nil && e.pending == nil {
 		e.askLegendChoice()
 		return

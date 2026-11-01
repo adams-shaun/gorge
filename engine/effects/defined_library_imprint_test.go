@@ -18,13 +18,13 @@ import (
 //	SVar:DBDraw:DB$ Draw | Defined$ Player | ConditionDefined$ Imprinted
 //	  | ConditionPresent$ Card | ConditionCompare$ EQ0 | SubAbility$ DBCleanup
 //
-// The follow-up draw is gated on the source having imprinted NOTHING
-// (EQ0). Before the fix the moved card never reached the source's Imprinted
-// association, the gate read an empty list and the controller drew extra
-// cards. Forge records every card a ChangeZone moved through `Imprint$ True`
-// in the source card's imprintedCards list, whatever the destination, and a
-// later `Defined$ Imprinted` reads it back; the association is durable state,
-// so it must ride an `events.Imprint` folded by events.Apply.
+// The follow-up draw is gated on the source having imprinted NOTHING (EQ0).
+// If the moved card missed the source's Imprinted association, the gate would
+// read an empty list and the controller would draw extra cards. Forge records
+// every card a ChangeZone moved through `Imprint$ True` in the source card's
+// imprintedCards list, whatever the destination, and a later `Defined$
+// Imprinted` reads it back; the association is durable state, so it must ride
+// an `events.Imprint` folded by events.Apply.
 //
 // This is a real compiled-corpus regression: the SA, its `Imprint$ True`
 // parameter and the EQ0 gate all come from `.cards/cardsfolder/d/dakra_mystic.txt`.

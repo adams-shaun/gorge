@@ -203,10 +203,9 @@ func TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks(t *testing.T) {
 		t.Fatal("the Dragon-entry trigger left the stack before resolution")
 	}
 
-	// Drain the stack: with the fix the trigger resolves without posing any
-	// ask (passUntilStackEmpty fatals on a non-priority decision, so a
-	// returned election fails the test here); with the pre-fix engine the
-	// election appears exactly at this point.
+	// Drain the stack: the trigger resolves without posing any ask
+	// (passUntilStackEmpty fatals on a non-priority decision, so a returned
+	// election fails the test here).
 	passUntilStackEmpty(t, e, 40)
 	// The silence must be effClone's own dead-become return, not the
 	// generic unimplemented-API fallback (which also asks nothing and clones

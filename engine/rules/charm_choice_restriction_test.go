@@ -355,8 +355,7 @@ func TestParapetThrasherChoiceRestrictionClearsOnBlink(t *testing.T) {
 // pose, and the drain must keep placing triggers rather than wait forever for
 // an answer nobody was asked for (a stale drainAwaitsModes): the two triggers
 // resolve doing nothing, combat finishes, and no KModes decision is ever
-// offered. Pre-fix this path was unreachable by ChoiceRestriction (the filter
-// did not exist), which is why the guard ships with the feature.
+// offered.
 func TestParapetThrasherAllModesExhaustedDoesNotWedge(t *testing.T) {
 	t.Parallel()
 	e, _, pt, d1, d2 := parapetThrasherGame(t, 77)

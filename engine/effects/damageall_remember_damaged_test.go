@@ -56,13 +56,12 @@ func chooseRememberedEvents(h *fakeHost, src state.ObjID) [][]state.ObjID {
 	return out
 }
 
-// TestDamageAllRememberDamagedObjects closes the object half of the defect:
-// a DamageAll sweep with RememberDamaged$ True must write BOTH the
+// TestDamageAllRememberDamagedObjects closes the object half of the defect: a
+// DamageAll sweep with RememberDamaged$ True must write BOTH the
 // resolution-local Ctx.Remembered set and the source's event-backed
 // persistent list (aggravate, chaos_balor, anger_of_the_gods and the rest of
-// the ten-line population read one or the other). Before the fix the
-// parameter was completely unread: the creatures took the damage but no
-// remember entry and no Choose event appeared.
+// the ten-line population read one or the other). An unread parameter still
+// deals the damage but leaves no remember entry and no Choose event.
 func TestDamageAllRememberDamagedObjects(t *testing.T) {
 	h := newHost(t, 2)
 	src := damageAllSource(t, h, "Source", 0)
@@ -221,8 +220,8 @@ func TestDamageAllRememberDamagedPlayers(t *testing.T) {
 // the remembered set on the six `DamageAll | ReplaceDyingDefined$ Remembered`
 // lines: the sweep must register the battlefield-to-graveyard-to-exile Moved
 // replacement over the objects it damaged, passing the remembered set to the
-// matcher. Before the fix effDamageAll never called registerReplaceDying, so
-// the exile was never registered.
+// matcher. Without effDamageAll's registerReplaceDying call the exile is
+// never registered.
 func TestDamageAllReplaceDyingDefinedRegistersExile(t *testing.T) {
 	h := newHost(t, 2)
 	src := damageAllSource(t, h, "Source", 0)

@@ -268,8 +268,6 @@ func TestWindbornMusePropIsTheSameShape(t *testing.T) {
 // attacks the Ghostly Prison seat (charged {2}) while Craw Wurm (6/4)
 // attacks the free seat, in ONE declaration paid through the tap window; the
 // rider must still get its +1/+1 counter from the cross-defender companion.
-// Before the fix the window's finishAttackers ran with an emptied scratch and
-// the trainee got nothing.
 func TestGhostlyPrisonWindowKeepsCrossDefenderTraining(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)

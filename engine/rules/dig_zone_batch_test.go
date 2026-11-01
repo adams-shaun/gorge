@@ -1,13 +1,10 @@
 // api:Dig's zone-batch bracket.
 //
-// ONE api:Dig resolution is ONE zone-change action even when it moves
-// several cards, so Mode$ ChangesZoneAll's "one or more" reading must
-// observe the whole resolution as one batch. Before the fix effDig emitted
-// one MoveZone event per taken card with no BeginZoneBatch/EndZoneBatch
-// bracket, so a ChangesZoneAll payoff queued once per moved card: Wild
-// Wasteland's "At the beginning of your upkeep, exile the top two cards of
-// your library" put TWO +1/+1 counters on Laelia, the Blade Reforged where
-// the printed text puts ONE.
+// ONE api:Dig resolution is ONE zone-change action even when it moves several
+// cards, so Mode$ ChangesZoneAll's "one or more" reading must observe the
+// whole resolution as one batch. Wild Wasteland's "At the beginning of your
+// upkeep, exile the top two cards of your library" puts ONE +1/+1 counter on
+// Laelia, the Blade Reforged, not two.
 //
 // The pin is the real corpus carriers and observer:
 //
@@ -218,10 +215,9 @@ func resolveDigSA(t *testing.T, e *Engine, reg *cards.Registry, card, svar strin
 
 // TestDigBatchesChangesZoneAll pins the batch: Wild Wasteland's upkeep
 // trigger exiles the top TWO cards in one api:Dig resolution, and Laelia's
-// ChangesZoneAll payoff (her own printed "whenever one or more cards are
-// put into exile from your library") queues ONCE for the whole resolution
-// -- one +1/+1 counter. Before the fix the two MoveZone events queued her
-// trigger twice: two counters.
+// ChangesZoneAll payoff (her own printed "whenever one or more cards are put
+// into exile from your library") queues ONCE for the whole resolution -- one
+// +1/+1 counter.
 func TestDigBatchesChangesZoneAll(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

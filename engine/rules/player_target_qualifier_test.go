@@ -78,9 +78,7 @@ func playerTargetOptions(t *testing.T, d *decision.Decision) []state.PlayerID {
 
 // TestSleeperAgentTargetAskExcludesTheController drives Sleeper Agent's real
 // corpus ETB (DB$ GainControl | ValidTgts$ Opponent) end to end: the ask must
-// offer the opponent and NOT the spell's own controller. The pre-fix engine
-// offered every living seat (the controller was option 0) and the recheck
-// accepted any of them, so the Opponent qualifier was never enforced.
+// offer the opponent and NOT the spell's own controller.
 func TestSleeperAgentTargetAskExcludesTheController(t *testing.T) {
 	t.Parallel()
 	e, sleeper := etbTriggerEngine(t, 2, nil, choiceCorpusCard(t, "Sleeper Agent"))

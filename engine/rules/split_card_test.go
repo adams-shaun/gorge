@@ -387,16 +387,16 @@ func TestNonFuseSplitOffersBothHalvesButNoFusedCast(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets pins this:
-// the two halves' target stages record their own slices at
-// payment (Engine.fuseTargets), so a fused cast whose halves' ValidTgts
-// specs OVERLAP resolves each half against exactly the target chosen for it.
-// On the real corpus card Turn // Burn (Turn `ValidTgts$ Creature`, Burn
-// `ValidTgts$ Any`) a fused cast targeting the opponent's bear with Turn and
-// the caster's own bear with Burn must not apply Turn to Burn's target (both
-// bears turned into 0/1 Weirds and both killed by Burn's 2 damage is the
-// pre-fix mis-assignment). Turn's Animate then leaves its own target a 0/1
-// red Weird that took no damage; Burn kills its own target.
+// TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets pins this: the two
+// halves' target stages record their own slices at payment
+// (Engine.fuseTargets), so a fused cast whose halves' ValidTgts specs OVERLAP
+// resolves each half against exactly the target chosen for it. On the real
+// corpus card Turn // Burn (Turn `ValidTgts$ Creature`, Burn `ValidTgts$
+// Any`) a fused cast targeting the opponent's bear with Turn and the caster's
+// own bear with Burn must not apply Turn to Burn's target (both bears turned
+// into 0/1 Weirds and both killed by Burn's 2 damage is a mis-assignment).
+// Turn's Animate then leaves its own target a 0/1 red Weird that took no
+// damage; Burn kills its own target.
 func TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
@@ -452,9 +452,8 @@ func TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets(t *testing.T) {
 	}
 	passUntilStackEmpty(t, e, 20)
 
-	// Turn applied to ITS target only: the opponent's bear is a 0/1 red
-	// Weird that took no damage and lives. Pre-fix both bears became 0/1
-	// Weirds AND both took Burn's 2 damage, so the opponent's bear died.
+	// Turn applied to ITS target only: the opponent's bear is a 0/1 red Weird
+	// that took no damage and lives.
 	oppObj := e.G.Obj(oppBear)
 	if oppObj == nil || oppObj.Zone != state.ZBattlefield {
 		t.Fatalf("Turn's target zone=%v, want battlefield (pre-fix both halves applied to both targets)", oppObj)
@@ -479,7 +478,7 @@ func TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets(t *testing.T) {
 		t.Fatalf("Turn's target colors = %q, want R", der.Colors)
 	}
 	// Burn applied to ITS target only: my own bear took the 2 damage and is
-	// gone; pre-fix Turn's target also died.
+	// gone.
 	if mine := e.G.Obj(myBear); mine != nil && mine.Zone == state.ZBattlefield {
 		t.Fatalf("Burn's target still on the battlefield: %+v", mine)
 	}
@@ -489,15 +488,13 @@ func TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSplitInstantHalfOfferedAtInstantTiming: the split offers stand above the
-// front-face spellTimingOK gate, so a
-// front-Sorcery / alternate-Instant split card offers its instant half at
-// instant timing (CR 709.4 -- each half's own timing; carriers
-// incubation_incongruity, discovery_dispersal, said_done, spring_mind). On
-// the real corpus card Said // Done, during seat 0's own BEGIN COMBAT step
-// (sorcery timing is OFF) Said is withheld but Done is offered against a
-// creature of mine to tap. Pre-fix the front-face gate suppressed the whole
-// card's offers.
+// TestSplitInstantHalfOfferedAtInstantTiming: the split offers stand above
+// the front-face spellTimingOK gate, so a front-Sorcery / alternate-Instant
+// split card offers its instant half at instant timing (CR 709.4 -- each
+// half's own timing; carriers incubation_incongruity, discovery_dispersal,
+// said_done, spring_mind). On the real corpus card Said // Done, during seat
+// 0's own BEGIN COMBAT step (sorcery timing is OFF) Said is withheld but Done
+// is offered against a creature of mine to tap.
 func TestSplitInstantHalfOfferedAtInstantTiming(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

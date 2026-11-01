@@ -117,7 +117,7 @@ func TestCAMPFortifiedLandTapsForManaFiresCounterTrigger(t *testing.T) {
 	}
 
 	// The trigger's ValidCard$ reads the LIVE attach relation: without the
-	// FortifiedBy predicate (pre-fix behaviour) the same tap queues nothing.
+	// FortifiedBy predicate the same tap queues nothing.
 	e = nil
 	e2, _ := linkBoard(t, reg, []string{"C.A.M.P.", "Forest", "Grizzly Bears"}, nil)
 	forest2 := findOnBoard(t, e2, 0, "Forest")

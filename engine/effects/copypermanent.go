@@ -834,10 +834,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	// ImprintTokens$ True records the created tokens on the SOURCE, the same
-	// event-backed association api:Token writes (state.Object.ImprintTokens);
-	// the copy path previously skipped it entirely, so a DelTrig reading
-	// RememberObjects$ ImprintedLKI found nothing (Kharasha Foothills,
-	// Shredder, Shadow Master).
+	// event-backed association api:Token writes (state.Object.ImprintTokens).
 	if cp.ImprintTokens && c.Source != 0 {
 		ids := make([]state.ObjID, 0, len(minted))
 		for _, id := range minted {

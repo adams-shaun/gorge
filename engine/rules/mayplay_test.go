@@ -351,14 +351,13 @@ func TestKaZarGrantsPlayLandFromTopOfLibrary(t *testing.T) {
 
 // TestVergeRangersOffersTopLibraryLandWhenOpponentAhead drives Verge Rangers'
 // real static -- S:Mode$ Continuous | Affected$ Land.TopLibrary+YouCtrl |
-// AffectedZone$ Library | MayPlay$ True | CheckSVar$ X | SVarCompare$ GTY,
-// X = PlayerCountOpponents$HighestValid Land.YouCtrl, Y = Count$Valid
+// AffectedZone$ Library | MayPlay$ True | CheckSVar$ X | SVarCompare$ GTY, X
+// = PlayerCountOpponents$HighestValid Land.YouCtrl, Y = Count$Valid
 // Land.YouCtrl -- through the priority walk. The static's SVar gate is an
 // intervening-if the may-play path must EVALUATE, not withhold: with an
 // opponent controlling more lands the top-of-library land is offered, played
 // and consumes the land drop; with no opponent ahead the same board offers
-// nothing. Before the fix mayPlayGateRejected rejected the whole static on
-// CheckSVar$/SVarCompare$ and the top card was never offered.
+// nothing.
 func TestVergeRangersOffersTopLibraryLandWhenOpponentAhead(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	rangers, ok := reg.Lookup("Verge Rangers")

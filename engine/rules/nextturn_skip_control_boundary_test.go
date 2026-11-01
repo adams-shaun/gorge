@@ -102,8 +102,7 @@ func TestNextTurnForIgnoresAPendingSkippedGrant(t *testing.T) {
 // live Ugin's Nexus, so the controller takes no extra turn and their next
 // actual turn is the ordinary rotation's (turn 3). The animation must
 // therefore still be live on the opponent's turn 2 and end only at turn 2's
-// cleanup. Pre-fix, nextTurnFor counted the skipped grant as turn 2, moving
-// the boundary to 1 and dropping the animation at turn 1's cleanup.
+// cleanup.
 func TestKarnAnimateSurvivesASkippedOwnExtraTurn(t *testing.T) {
 	t.Parallel()
 	e, cfg := skipCorpusEngine(t)
@@ -173,9 +172,7 @@ func stealRealArtifact(t *testing.T, e *Engine) state.ObjID {
 // TestControlNextTurnEndsOnLateControllerExtraTurn: a GainControl's
 // UntilTheEndOfYourNextTurn boundary must move EARLIER when the controller
 // gets a late extra turn -- that extra turn IS their next turn, so the steal
-// ends at the extra turn's cleanup. Pre-fix, rescheduleNextTurnBoundaries
-// only rewrote e.continuous, leaving controlGrant.untilTurn frozen at 3 and
-// the artifact stolen through seat 0's turn 3.
+// ends at the extra turn's cleanup.
 func TestControlNextTurnEndsOnLateControllerExtraTurn(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -200,8 +197,7 @@ func TestControlNextTurnEndsOnLateControllerExtraTurn(t *testing.T) {
 // TestControlNextTurnSurvivesLateOpponentExtraTurn: a GainControl's
 // UntilTheEndOfYourNextTurn boundary must move LATER when another seat gets a
 // late extra turn -- the inserted turns precede the controller's next turn,
-// so the steal outlives them. Pre-fix the frozen untilTurn=3 ended the steal
-// at turn 3's cleanup even though seat 0's next turn had become turn 4.
+// so the steal outlives them.
 func TestControlNextTurnSurvivesLateOpponentExtraTurn(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

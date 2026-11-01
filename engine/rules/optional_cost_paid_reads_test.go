@@ -13,8 +13,8 @@
 //     ConditionOptionalPaid$ True` rider: "If this spell's additional cost was
 //     paid, whenever a creature dies this turn, you gain 1 life".
 //
-// Before the fix the Collected ref was unknown to the count evaluator (both
-// counts read zero, so the paid cast behaved as unpaid) and the bare
+// Were the Collected ref unknown to the count evaluator, both counts would
+// read zero and the paid cast would behave as unpaid; and the bare
 // OptionalCost condition was classified unmodelled (the rider failed closed).
 // None of the three cards is in a legacy golden deck, so no chain head moves.
 

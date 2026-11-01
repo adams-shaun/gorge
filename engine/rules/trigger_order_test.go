@@ -785,8 +785,6 @@ func TestOrderingDecisionInTheDrawStepDoesNotDrawTwice(t *testing.T) {
 // finished, and its death trigger reached the stack only after the priority
 // holder had already acted. That is a stack order a player can see and lose
 // to: an instant cast with that priority ends up UNDER the trigger.
-//
-// Before the fix: `stack when priority granted = 2, queued = 1`.
 func TestPriorityIsNeverGrantedWithTriggersStillQueued(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
@@ -825,16 +823,11 @@ func TestPriorityIsNeverGrantedWithTriggersStillQueued(t *testing.T) {
 	}
 }
 
-// TestPriorityIsNeverGrantedToAPlayerAboutToBeSweptOut:
-// F1(b), the hang. Three seats, so the elimination does not end the game.
-// Seat 2 holds priority and is already at zero life with no state-based
-// action run yet; seat 0 answers an ordering decision. Before the fix,
-// handle granted priority to seat 2 while they were still alive, Submit's
-// tail checkStateBased then eliminated them, and the old release hook
-// covered only the two trigger kinds -- leaving a pending priority decision
-// against a departed player with G.Over false and Advance unable to make any
-// progress. One goroutine per match, so that is a leaked goroutine and a
-// dead game.
+// TestPriorityIsNeverGrantedToAPlayerAboutToBeSweptOut: F1(b), the hang.
+// Three seats, so the elimination does not end the game. Seat 2 holds
+// priority and is already at zero life with no state-based action run yet;
+// seat 0 answers an ordering decision. One goroutine per match, so that is a
+// leaked goroutine and a dead game.
 func TestPriorityIsNeverGrantedToAPlayerAboutToBeSweptOut(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 3)

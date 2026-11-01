@@ -43,7 +43,7 @@ func AskTapeIntent(h Host, d *decision.Decision) (decision.Intent, bool) {
 // WITHOUT applying its deterministic stand-in -- the host will re-enter the
 // chain when the answer is recorded (rules' off-stack mana activation routes
 // a chain's ChooseColor ask into answerNestedChooseColor this way). A host
-// that neither serves nor takes the ask keeps the old stand-in path.
+// that neither serves nor takes the ask keeps the stand-in path.
 func AskTapeOrSuspend(h Host, d *decision.Decision) (ans []decision.Option, served, taken bool) {
 	in, ok, posable := tapeAnswer(h, d)
 	if ok {

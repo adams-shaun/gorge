@@ -34,15 +34,13 @@ func birdTokens(t *testing.T, e *Engine, p state.PlayerID) []*state.Object {
 
 // TestRendmawEachPlayerCreatesAGoadedBirdToken pins the TokenOwner$ Player
 // arm of effToken END TO END on the real compiled corpus card: Rendmaw,
-// Creaking Nest's "each player creates a tapped 2/2 black Bird creature
-// token with flying. The tokens are goaded for the rest of the game."
-// Before the fix the bare spelling fell to the unrecognised-owner default
-// and ONE Bird landed on Rendmaw's controller's battlefield (and only that
-// one was goaded). The pin drives the real ETB trigger (ChangesZone into
-// the battlefield) through the ordinary trigger drain and resolution, so
-// the whole chain is the compiled card's own: DB$ Token (TokenOwner$
-// Player, TokenTapped$ True, RememberTokens$ True) -> DB$ Goad (Defined$
-// Remembered, Duration$ Permanent) -> DB$ Cleanup.
+// Creaking Nest's "each player creates a tapped 2/2 black Bird creature token
+// with flying. The tokens are goaded for the rest of the game." The pin
+// drives the real ETB trigger (ChangesZone into the battlefield) through the
+// ordinary trigger drain and resolution, so the whole chain is the compiled
+// card's own: DB$ Token (TokenOwner$ Player, TokenTapped$ True,
+// RememberTokens$ True) -> DB$ Goad (Defined$ Remembered, Duration$
+// Permanent) -> DB$ Cleanup.
 func TestRendmawEachPlayerCreatesAGoadedBirdToken(t *testing.T) {
 	t.Parallel()
 	reg := sharedCorpus(t)

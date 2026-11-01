@@ -295,10 +295,10 @@ func TestChoosingIsClearedByDiscardCleanup(t *testing.T) {
 	// the way handleChoose's default-arm comment describes ("only reachable
 	// from a hand-built decision"), naming a real remaining hand card as the
 	// discard option. With a correct reset this hits the default (a Note is
-	// emitted and the hand is untouched); the pre-fix stale chooseCleanup
-	// instead routes it into discardCleanup, which would move that card out
-	// of the hand, re-run the CR 514.2 body and advance the step -- so the
-	// hand check below fails.
+	// emitted and the hand is untouched); a stale chooseCleanup would instead
+	// route it into discardCleanup, which would move that card out of the
+	// hand, re-run the CR 514.2 body and advance the step -- so the hand
+	// check below fails.
 	keep := e.G.Zone(state.ZHand, 0)
 	if len(keep) == 0 {
 		t.Fatal("no hand cards left to protect from a no-flow choose")

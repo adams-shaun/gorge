@@ -245,10 +245,7 @@ func CloneUnlessCtx(in effects.Ctx) effects.Ctx {
 // unpriceable cost is a hard decline: it receives only the decline option, so
 // an answer can never select a Pay that the settlement path must reject. The
 // Sacrifice arm's recognised DamageYou<N> payment is separate and never calls
-// this generic gate. The pre-fix gate skipped the non-mana components and used
-// a single-ability-per-
-// source aggregate, so it offered Pay for a `Sac<1/Creature>` with no
-// creatures and suppressed a {U} tax on an untapped dual land.
+// this generic gate.
 func UnlessCostPayable(e Engine, p state.PlayerID, raw string, ctx *effects.Ctx, stackObj state.ObjID) bool {
 	cost, ok := costvocab.ParseUnlessCost(raw)
 	if !ok {

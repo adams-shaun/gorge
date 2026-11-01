@@ -83,10 +83,9 @@ func TestVialSmasherChosenPlayerTakesDamage(t *testing.T) {
 
 // TestSleeperAgentETBControlGoesToChosenOpponent drives Sleeper Agent's real
 // ETB (T:Mode$ ChangesZone ... Execute$ TrigGainControl: DB$ GainControl |
-// Defined$ Self | ValidTgts$ Opponent, no NewController$) end to end: the
-// ask offers the opponent, the answer binds the player on the resolution
-// ctx, and the PERMANENT changes controller -- the pre-fix engine recorded
-// the choice and handed control to nobody.
+// Defined$ Self | ValidTgts$ Opponent, no NewController$) end to end: the ask
+// offers the opponent, the answer binds the player on the resolution ctx, and
+// the PERMANENT changes controller .
 func TestSleeperAgentETBControlGoesToChosenOpponent(t *testing.T) {
 	t.Parallel()
 	e := New(seatZeroStart(Config{Seed: 721, Names: []string{"a", "b"},

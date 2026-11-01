@@ -87,9 +87,9 @@ func TestOwnDeckIsOnlyInItsSeatProjection(t *testing.T) {
 // pin that OwnDeck is a member of the view.Chars INTERFACE, not an optional
 // capability probed by type assertion: a wrapper embeds the interface, so it
 // forwards every declared method and can only drop one by overriding it
-// deliberately. The pre-fix shape (assertion against the concrete ch) saw
-// only the embedded interface's methods, so this wrapper silently dropped the
-// manifest, and searchprobe's recorded and scratch captures disagreed on
+// deliberately. An assertion against the concrete ch would see only the
+// embedded interface's methods, so this wrapper would silently drop the
+// manifest, and searchprobe's recorded and scratch captures would disagree on
 // own_deck -- a whole-module gate failure.
 type forwardingChars struct{ view.Chars }
 

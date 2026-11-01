@@ -78,10 +78,9 @@ func moveNamedToGrave(t *testing.T, e *Engine, name string) state.ObjID {
 // TestTotalPowerCapOffsetRespectsTargetMax is the pin for the TargetMax$-
 // bounded offset: with TargetMax$ 2 and a cap of 0, the 2-power Bear can take
 // only ONE other target, and the best such target is a single -1, so 2-1 = 1
-// busts every selection containing it and it must be pruned. The pre-fix
-// offset summed BOTH -1s (2-2 = 0) and wrongly kept it. The two negatives
-// themselves stay offered (each can pair with the other), and the real bot's
-// answer must Validate.
+// busts every selection containing it and it must be pruned. The two
+// negatives themselves stay offered (each can pair with the other), and the
+// real bot's answer must Validate.
 func TestTotalPowerCapOffsetRespectsTargetMax(t *testing.T) {
 	t.Parallel()
 	const victim = "BigTwo"
@@ -152,10 +151,9 @@ func TestTotalPowerCapOffsetRespectsTargetMax(t *testing.T) {
 // TestTotalPowerCapOffsetUnboundedWhenTargetMaxIsEveryCandidate is the
 // companion precondition pin: the two corpus carriers' TargetMax$ is X (every
 // candidate), where TargetMax$-1 exceeds the negative count and the offset is
-// the whole negative sum -- the pre-fix behaviour, which must be preserved.
-// Under TargetMax$ X and a cap of 0 the 2-power Bear sits beside two -1s
-// (2-1-1 = 0) and MUST be offered; a fix that bounded the offset too tightly
-// would wrongly prune it.
+// the whole negative sum . Under TargetMax$ X and a cap of 0 the 2-power Bear
+// sits beside two -1s (2-1-1 = 0) and MUST be offered; a fix that bounded the
+// offset too tightly would wrongly prune it.
 func TestTotalPowerCapOffsetUnboundedWhenTargetMaxIsEveryCandidate(t *testing.T) {
 	t.Parallel()
 	const victim = "BigTwo"
@@ -226,7 +224,7 @@ func charmMaxPowerScript() string {
 // decision, reading no MaxTotalTargetPower$ at all, so a cap a caller put on
 // its first target-bearing mode never rode the wire. With the shared cap read
 // the combined ask carries the present budget (MaxSum 10, Budgeted) exactly
-// as askTarget and cast.go's targetAsk do; before the fix both were zero.
+// as askTarget and cast.go's targetAsk do.
 func TestCrossModeCharmAskReadsThePowerCap(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := newFixtureDeck(t, 9703, charmMaxPowerScript())

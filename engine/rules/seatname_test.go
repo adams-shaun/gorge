@@ -65,7 +65,7 @@ func TestMulliganPromptAddressesYou(t *testing.T) {
 
 // TestPriorityPromptFallsBackToDeckName pins the no-display-name fallback:
 // without PlayerNames (mtgsim, chain-head goldens, engine tests) the prompt
-// is byte-identical to the pre-fix composition from the deck-identity Name.
+// is composed from the deck-identity Name.
 func TestPriorityPromptFallsBackToDeckName(t *testing.T) {
 	t.Parallel()
 	e := seatNamesGame(t, false)

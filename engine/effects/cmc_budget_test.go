@@ -10,7 +10,7 @@ import (
 )
 
 // The WithTotalCMC$ budget tests on the three non-Dig pickers the parameter
-// rides (the Dig window was fixed by budget1; these are its three siblings):
+// rides (these are the Dig window's three siblings):
 //
 //   - effHiddenPick  -- Lively Dirge's DBReturn graveyard shape;
 //   - effSearchLibrary -- Protean Hulk's death-trigger library search;

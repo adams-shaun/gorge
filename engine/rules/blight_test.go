@@ -11,11 +11,9 @@ import (
 )
 
 // The Blight (CR 701.60) primitive pinned end to end on the REAL corpus
-// cards. Pre-fix, every one of these bodies hit the generic "unimplemented
-// API Blight" Note and did nothing. The helpers come from
-// search_library_test.go (searchTestRegistry, searchCorpusCard,
-// searchMoveByName), cast_test.go (submitChoices, toMain1, addMana),
-// draw_step_test.go (driveToStep), replacement_updated_test.go
+// cards. The helpers come from search_library_test.go (searchTestRegistry,
+// searchCorpusCard, searchMoveByName), cast_test.go (submitChoices, toMain1,
+// addMana), draw_step_test.go (driveToStep), replacement_updated_test.go
 // (passUntilStackEmpty) and activate_test.go (abilityOption) — all the same
 // package. The decks are built from compiled corpus cards only, so no Forge
 // script text is committed. None of the six carriers is in any repo deck or

@@ -10,9 +10,7 @@ import (
 // lb-xpending: a trigger-order ask (CR 603.3b) or a "you may pay" triggered
 // cost (CR 603.5) still pending when a step ends is answered BEFORE that
 // step's checkpoint, as XMage does inside the pass that put the trigger on
-// the stack. Before the fix gorge snapshotted an empty stack / an untapped
-// payer while XMage showed the two ordered abilities / the paid cost (Twinflame
-// Travelers, Katara, Brigid, Trystan: final states agreed, mid-steps diverged).
+// the stack.
 
 // Twinflame Travelers doubles Healer of the Glade's ETB: two identical
 // triggers, so the order ask is pending the moment the spell resolves.

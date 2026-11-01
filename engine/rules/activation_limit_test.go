@@ -292,10 +292,9 @@ func TestManaAbilityActivationLimitOfferedOnceThenWithheld(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestActivationLimitUnresolvableItDegradesToUnenforced: an
-// ActivationLimit expression the evaluator genuinely cannot resolve (an SVar
-// name absent from the face's table) stays unenforced, deliberately -- the
-// ability is offered exactly as it was before the fix.
+// TestActivationLimitUnresolvableItDegradesToUnenforced: an ActivationLimit
+// expression the evaluator genuinely cannot resolve (an SVar name absent from
+// the face's table) stays unenforced, deliberately -- the ability is offered.
 func TestActivationLimitUnresolvableItDegradesToUnenforced(t *testing.T) {
 	t.Parallel()
 	src := "Name:MysteryBeast\nManaCost:1 G\nTypes:Creature Beast\nPT:2/2\n" +

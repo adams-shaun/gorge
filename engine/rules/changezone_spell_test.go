@@ -1,12 +1,8 @@
 package rules
 
-// A targeted root's SubAbility$ ChangeZone must ask ITS OWN
-// ValidTgts$ targeting at resolution instead of silently inheriting the
-// parent's targets. Before the fix changeZoneChosenTargets' inherit guard
-// returned every non-TargetUnique$ sub to Defined's ValidTgts$ fallthrough,
-// which read Ctx.Targets -- the parent's artifact/spell -- so the graveyard
-// "may shuffle" clauses of Cathartic Parting, Put Away and Devious Cover-Up
-// never asked and the option was silently swallowed.
+// A targeted root's SubAbility$ ChangeZone must ask ITS OWN ValidTgts$
+// targeting at resolution instead of silently inheriting the parent's
+// targets.
 //
 // Both pins run REAL corpus cards. The Counter-parent carrier goes through
 // the gitignored registry (no Forge script text is committed); the
@@ -171,10 +167,8 @@ func TestPutAwaySubAsksGraveyardTarget(t *testing.T) {
 			}
 			chooseObj(t, e, "spell", bearStack)
 
-			// The sub's own graveyard target, announced with the cast
-			// (CR 601.2c): a cast_sub KTarget. Pre-fix this never fired (the sub
-			// inherited the countered spell and its Origin$ Graveyard filter
-			// silently no-oped).
+			// The sub's own graveyard target, announced with the cast (CR
+			// 601.2c): a cast_sub KTarget.
 			d = e.Pending()
 			if d == nil || d.Kind != decision.KTarget || d.ResumeKind != "cast_sub" {
 				t.Fatalf("graveyard ask = %+v, want the sub's cast-time KTarget ask", d)
@@ -259,8 +253,8 @@ func TestCatharticPartingSubAsksGraveyardTargetElectedZero(t *testing.T) {
 	castFirst(t, e, "cast")
 	chooseObj(t, e, "permanent", orb)
 
-	// The sub's own graveyard target: CR 601.2c announces it with the cast
-	// (a cast_sub KTarget), not at resolution. Pre-fix it never fired.
+	// The sub's own graveyard target: CR 601.2c announces it with the cast (a
+	// cast_sub KTarget), not at resolution.
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget || d.ResumeKind != "cast_sub" {
 		t.Fatalf("graveyard ask = %+v, want the sub's cast-time KTarget ask", d)

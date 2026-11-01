@@ -5,8 +5,8 @@ package rules
 // land an OPPONENT controls that the cost just untapped -- never to the
 // resolving controller's own untapped permanents, and an empty binding stays
 // fail-closed (no candidates -> the executor's Note). This file pins the
-// binding at the candidates level and end to end, with a controller Plains
-// on the board so the pre-fix widened scan would have answered W.
+// binding at the candidates level and end to end, with a controller Plains on
+// the board so a widened scan would answer W.
 
 import (
 	"testing"
@@ -52,8 +52,8 @@ func TestManaReflectedUntappedReflectsElectedNotController(t *testing.T) {
 		CostUntapped: []state.ObjID{plains}}, sa); len(got) != 1 || got[0] != "W" {
 		t.Fatalf("Plains-bound reflection = %v, want [W]", got)
 	}
-	// Fail-closed: an empty binding reflects nothing at all -- the pre-fix
-	// widened scan answered [W] here, from the controller's own Plains.
+	// Fail-closed: an empty binding reflects nothing at all -- a widened scan
+	// would answer [W] here, from the controller's own Plains.
 	if got := effects.ManaReflectedCandidates(e, &effects.Ctx{Source: b, Controller: 0, SVars: svars}, sa); len(got) != 0 {
 		t.Fatalf("unbound reflection = %v, want none (fail-closed)", got)
 	}

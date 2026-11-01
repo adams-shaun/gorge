@@ -79,7 +79,7 @@ func TestAttackerBlockedBlockerHalfFiresForTheBlocker(t *testing.T) {
 
 // TestAttackerBlockedBlockerFilterIsRead is the failing-first case: another
 // creature blocks, the Wall does not. "Whenever CARDNAME blocks a creature"
-// must not fire (measured pre-fix: [p0:Wall of Frost]).
+// must not fire.
 func TestAttackerBlockedBlockerFilterIsRead(t *testing.T) {
 	sc := abScenario("wall-of-frost-other-blocks", []string{"Wall of Frost", "Grizzly Bears"}, []string{"Grizzly Bears"},
 		nil, []string{"p1:Grizzly Bears"}, [][2]string{{"p0:Grizzly Bears", "p1:Grizzly Bears"}})

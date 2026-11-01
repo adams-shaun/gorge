@@ -57,8 +57,8 @@ func TestCounterAddedBatchAmountReferentOnRealCard(t *testing.T) {
 	ctx := e.triggerReferents(trig, id, events.Event{
 		Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 3,
 	}, nil)
-	// Precondition: the two values the binding must produce differ from the
-	// pre-fix zero values, so a pass cannot be the incidental zero.
+	// Precondition: the two values the binding must produce differ from zero,
+	// so a pass cannot be the incidental zero.
 	if ctx.TriggerAmount != 3 {
 		t.Fatalf("TriggerAmount = %d, want 3 (the CounterChange batch size)", ctx.TriggerAmount)
 	}

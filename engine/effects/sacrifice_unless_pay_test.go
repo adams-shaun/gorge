@@ -89,12 +89,11 @@ func playerDamage(h *fakeHost, p state.PlayerID) int {
 	return n
 }
 
-// TestVexingDevilOffersEachOpponentTheDamage: the REAL compiled Vexing Devil trigger is
-// driven through effSacrifice, and the opponent must be ASKED (the pre-fix
-// engine sacrificed the Devil unconditionally, asked nobody, dealt no
-// damage). Asserts the ask's shape, then both branches: accepting (the
-// UnlessPay "pay" answer) sacrifices the Devil;
-// declining (every opponent, here the single one) leaves it in play.
+// TestVexingDevilOffersEachOpponentTheDamage: the REAL compiled Vexing Devil
+// trigger is driven through effSacrifice, and the opponent must be ASKED.
+// Asserts the ask's shape, then both branches: accepting (the UnlessPay "pay"
+// answer) sacrifices the Devil; declining (every opponent, here the single
+// one) leaves it in play.
 func TestVexingDevilOffersEachOpponentTheDamage(t *testing.T) {
 	h, devil, sac := devilBoard(t, "Vexing Devil", 0)
 	if got := sac.Params["UnlessCost"]; got != "DamageYou<4>" {

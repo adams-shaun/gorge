@@ -2,11 +2,9 @@ package rules
 
 // Pawprint$ (CR 700.2i, CR 107.18): a modal Charm whose root carries a
 // pawprint budget -- the five BLB Seasons, "Choose up to five {P} worth of
-// modes. You may choose the same mode more than once." -- must sum the
-// chosen modes' own {P} costs against that budget. Pre-fix the budget was
-// unread and any five modes were legal (five copies of the {P}{P}{P} mode
-// spent 15 {P}). The pin is the corpus card Season of the Bold: modes cost
-// 1, 2 and 3 {P} under a budget of 5.
+// modes. You may choose the same mode more than once." -- must sum the chosen
+// modes' own {P} costs against that budget. The pin is the corpus card Season
+// of the Bold: modes cost 1, 2 and 3 {P} under a budget of 5.
 //
 // The budget rides the ONE covering KModes ask as Decision.MaxSum over each
 // option's Option.Value (Decision.Validate's cumulative-budget rule), and
@@ -133,8 +131,7 @@ func TestPawprintBudget(t *testing.T) {
 // just its value (CR 700.2i): a root Pawprint$ 0 is a real budget -- the ask
 // publishes Decision.Budgeted with MaxSum 0, HasBudget holds, and the shared
 // cumulative-budget rule refuses any priced pick -- while an absent root
-// Pawprint$ publishes no budget at all. Pre-fix a present zero read as
-// absent (MaxSum 0 alone means "no budget").
+// Pawprint$ publishes no budget at all.
 func TestModeDecisionPublishesPresentZeroBudget(t *testing.T) {
 	t.Parallel()
 	svars := map[string]string{

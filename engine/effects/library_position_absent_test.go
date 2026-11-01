@@ -170,14 +170,13 @@ const searchedAbsentCount = 42
 //	ValidTgts$ or Defined$ non-empty; NO LibraryPosition$;
 //	no Shuffle$ True; no DestinationAlternative$ / AlternativeDecider$.
 //
-// Measured: 44 ChangeZone carriers (Golgari Thug, Academy Ruins,
-// Volrath's Stronghold, Mystic Sanctuary, Unholy Grotto, Champion of Stray
-// Souls, ...) and 4 ChangeZoneAll carriers (Guiding Spirit, Head Games,
-// Jester's Mask, Mirror of Fate). One ChangeZone carrier is Origin$ Library
-// (the searched-library path, placeLibraryObjects) and is NOT fixed by
-// golgari_thug2 -- the remaining 43 route through the fixed paths. The pin is
-// bidirectional: a corpus bump or support change that alters the count fails
-// here and forces a deliberate re-measure.
+// Measured: 44 ChangeZone carriers (Golgari Thug, Academy Ruins, Volrath's
+// Stronghold, Mystic Sanctuary, Unholy Grotto, Champion of Stray Souls, ...)
+// and 4 ChangeZoneAll carriers (Guiding Spirit, Head Games, Jester's Mask,
+// Mirror of Fate). One ChangeZone carrier is Origin$ Library (the
+// searched-library path, placeLibraryObjects); the remaining 43 route through
+// the other paths. The pin is bidirectional: a corpus bump or support change
+// that alters the count fails here and forces a deliberate re-measure.
 const absentAffectedCount = 44
 const absentAffectedAllCount = 4
 

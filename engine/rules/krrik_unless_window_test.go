@@ -128,10 +128,10 @@ func windowOption(d *decision.Decision, kind string, obj state.ObjID) int {
 
 // TestKrrikGrantPosesUnlessManaWindowWhenSourceCanPay drives the standalone
 // UnlessCost$ continuation (advanceUnlessPayment) with a real mixed
-// `Sac<1/Creature> B` cost. Before the fix the gate derived the grant, so an
-// empty pool + untapped Swamp looked payable: no window opened and the {B}
-// was silently charged as 2 life. The window must now be posed, offer the
-// Swamp, and tapping it must pay the {B} with no life loss.
+// `Sac<1/Creature> B` cost. If the gate derived the grant, an empty pool +
+// untapped Swamp would look payable: no window would open and the {B} was
+// silently charged as 2 life. The window must now be posed, offer the Swamp,
+// and tapping it must pay the {B} with no life loss.
 func TestKrrikGrantPosesUnlessManaWindowWhenSourceCanPay(t *testing.T) {
 	t.Parallel()
 	e, _, _, swamp := krrikMixedUnlessFixture(t, true)

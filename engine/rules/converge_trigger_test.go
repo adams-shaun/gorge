@@ -1,15 +1,11 @@
 package rules
 
-// CR 107.4f-family converge, the TRIGGER-relative spelling (task
-// tconverge1): "creatures you control get +1/+0 until end of turn for each
-// color of mana spent to cast that spell" reads SVar:Y:TriggeredCard$Converge
-// -- a trigger reading a DIFFERENT spell's cast. Before the fix that body fell
-// off evalRefProperty's property switch to the default (0, false) and degraded
-// to the silent zero, the same signature converge1 closed for the plain
-// Count$Converge head; and the pay-time capture gate (faceWantsConverge)
-// stamped nothing on an ordinary non-converge cast, so even a fixed read site
-// would have read 0. The fix adds the Converge property (provenance snapshot
-// beside TriggerPaidX) and the reader-out second arm of the capture gate.
+// CR 107.4f-family converge, the TRIGGER-relative spelling (task tconverge1):
+// "creatures you control get +1/+0 until end of turn for each color of mana
+// spent to cast that spell" reads SVar:Y:TriggeredCard$Converge -- a trigger
+// reading a DIFFERENT spell's cast. The fix adds the Converge property
+// (provenance snapshot beside TriggerPaidX) and the reader-out second arm of
+// the capture gate.
 //
 // Every fixture here is a real Forge script SHAPE (Magmablood Archaic's trigger
 // and SVars are its corpus carrier's, minus the converge etbCounter so the

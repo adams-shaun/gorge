@@ -271,14 +271,14 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// instead of queueing once per moved card. Every ask inside the walk is
 	// answered in place, so the bracket opens here and the deferred close
 	// ends it when the walk returns. A stray close is a no-op in
-	// closeZoneBatch's depth guard, zoneBatchDepth is reentrant (a Dig
-	// inside a RepeatEach ChangeZoneTable$ loop nests inside that loop's own
+	// closeZoneBatch's depth guard, zoneBatchDepth is reentrant (a Dig inside
+	// a RepeatEach ChangeZoneTable$ loop nests inside that loop's own
 	// bracket), and a host double without the bracket interface simply queues
-	// per move (the batch-of-one pre-fix reading, the mill bracket's shape).
-	// The bracket is engine memory folded identically on replay -- no event
-	// schema change; the first trigger's queueing position does not move,
-	// later matching events stop queueing, so the event stream shrinks by
-	// N-1 trigger resolutions for an N-card Dig.
+	// per move (a batch of one, the mill bracket's shape). The bracket is
+	// engine memory folded identically on replay -- no event schema change;
+	// the first trigger's queueing position does not move, later matching
+	// events stop queueing, so the event stream shrinks by N-1 trigger
+	// resolutions for an N-card Dig.
 	noteUnreadParams(h, c, "Dig", dp.Unread)
 	if b, ok := h.(interface {
 		BeginZoneBatch()

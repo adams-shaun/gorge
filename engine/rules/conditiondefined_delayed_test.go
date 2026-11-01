@@ -1,10 +1,8 @@
 package rules
 
-// ConditionDefined$ groups that share the Defined$ resolver: Forge
-// resolves every ConditionDefined$ value with the same resolver Defined$
-// uses, so the gate reads exactly the set the guarded effect acts on
-// (CR 603.7c / 608.2c). Before the fix these groups were classified
-// unmodelled and every gated sub-ability failed CLOSED.
+// ConditionDefined$ groups that share the Defined$ resolver: Forge resolves
+// every ConditionDefined$ value with the same resolver Defined$ uses, so the
+// gate reads exactly the set the guarded effect acts on (CR 603.7c / 608.2c).
 
 import (
 	"testing"

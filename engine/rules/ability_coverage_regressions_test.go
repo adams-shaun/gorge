@@ -75,9 +75,8 @@ func TestEntersTappedPermanentMatchesTappedTrigger(t *testing.T) {
 	if !e.G.Obj(landID).Tapped {
 		t.Fatal("precondition: Guildless Commons did not enter tapped")
 	}
-	// Guildless Commons' own ETB trigger and Amulet of Vigor's both match
-	// the entry, so seat 0 orders them; before the fix only the land's own
-	// trigger matched and no order was asked.
+	// Guildless Commons' own ETB trigger and Amulet of Vigor's both match the
+	// entry, so seat 0 orders them.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTriggerOrder {
 		t.Fatalf("pending = %+v, want the trigger-order ask for the land's and Amulet of Vigor's triggers", d)

@@ -167,10 +167,10 @@ func TestEscalatePrimitiveIsRegistered(t *testing.T) {
 }
 
 // TestEscalateOneModeChargesNoExtraCost: a one-mode Collective Effort cast is
-// exactly the plain cast -- the printed {1}{W}{W} drains the pool, no creature
-// is tapped, and the chosen mode resolved (the PutCounterAll sweep put its
-// +1/+1 counter on the target player's creature). Byte-identical before and
-// after the fix by design (the negative control).
+// exactly the plain cast -- the printed {1}{W}{W} drains the pool, no
+// creature is tapped, and the chosen mode resolved (the PutCounterAll sweep
+// put its +1/+1 counter on the target player's creature). The negative
+// control.
 func TestEscalateOneModeChargesNoExtraCost(t *testing.T) {
 	t.Parallel()
 	e, cfg := escalateFixture(t, 771, fixEffortN, []string{"Fix Bear", "Fix Cub"}, []string{"Fix Bear", "Fix Cub"}, []string{"Fix Ogre"}, []string{"Fix Ogre"})
@@ -288,7 +288,7 @@ func TestEscalateExtraModeTapsAnAdditionalCreature(t *testing.T) {
 // is clamped to 1 + the affordable escalations. With NO untapped creature the
 // second mode is not offerable (Max 1, the printed-cast bound); with one
 // creature exactly one escalation is affordable (Max 2); with two creatures
-// the CharmNum$ 3 bound stands. Before the fix every board read Max 3.
+// the CharmNum$ 3 bound stands.
 func TestEscalateNotOfferedWithoutEnoughCreatures(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

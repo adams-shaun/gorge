@@ -61,8 +61,7 @@ func ctxSearchShuffleLabel(accept bool) string {
 // TestObjectPathShuffleMandatoryShufflesWithoutFlag is half (b)'s silent
 // branch: the same object-target move stating only Shuffle$ True (the 76
 // corpus "shuffle it into their library" lines that do not carry the
-// non-mandatory flag) now shuffles with no ask. Before the fix the path
-// shuffled nothing.
+// non-mandatory flag) shuffles with no ask.
 func TestObjectPathShuffleMandatoryShufflesWithoutFlag(t *testing.T) {
 	ah, ctx, gy := shuffleTailBoard(t)
 	s := sa(t, "DB$ ChangeZone | Origin$ Graveyard | Destination$ Library | ValidTgts$ Card.YouOwn | Shuffle$ True")

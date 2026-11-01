@@ -1118,12 +1118,11 @@ zoneLoop:
 			// drift the option list. Which stack objects are targetable is
 			// TargetType$'s job (CR 115.5 aside): Spell admits card objects,
 			// Instant/Sorcery admit instant/sorcery card objects only (Spider
-			// Sense, Sister of Silence), Activated/Triggered admit the ability
-			// objects AbilityPush/TriggerPush mint, SpellAbility admits all
-			// three, and a TargetType$ naming no stack kind falls back to
-			// Spell -- the pre-fix behaviour, kept for every spec that never
-			// said otherwise (the default stays the narrow one, never
-			// widened).
+			// Sense, Sister of Silence), Activated/Triggered admit the
+			// ability objects AbilityPush/TriggerPush mint, SpellAbility
+			// admits all three, and a TargetType$ naming no stack kind falls
+			// back to Spell, for every spec that never said otherwise (the
+			// default stays the narrow one, never widened).
 			toks := tp.TypeTokens
 			for _, oid := range e.G.Zone(state.ZStack, 0) {
 				o := e.G.Obj(oid)

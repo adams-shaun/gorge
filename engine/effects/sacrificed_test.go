@@ -74,7 +74,7 @@ func TestEvalSacrificedEmptyAndUnknownDegradeToZero(t *testing.T) {
 	if got := EvalCount(h, empty, "Sacrificed$Amount"); got != 0 {
 		t.Fatalf("empty Sacrificed$Amount = %d, want 0", got)
 	}
-	// An out-of-scope head still falls through to 0 (same as before the fix).
+	// An out-of-scope head still falls through to 0.
 	full := &Ctx{Sacrificed: []state.SacrificedInfo{{Obj: 1, Power: 4, Toughness: 4, ManaValue: 2}}}
 	if got := EvalCount(h, full, "Sacrificed$CardTypes"); got != 0 {
 		t.Fatalf("Sacrificed$CardTypes = %d, want 0 (out of scope)", got)

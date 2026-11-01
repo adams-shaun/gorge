@@ -11,11 +11,9 @@ import (
 
 // TestChangeZoneAllZeroPlayerTargetsMovesNothing pins CR 601.2c's "any
 // number" on a ChangeZoneAll player-target mode: Thraben Charm's "Exile any
-// number of target players' graveyards" (TargetMin$ 0) cast with zero
-// targets must exile nothing. Before the fix, the empty chosen set fell into
-// changeZoneAllPlayers' unresolved-scope fallback and swept every player's
-// graveyard. The second half pins that a real target still scopes the sweep
-// to exactly that player.
+// number of target players' graveyards" (TargetMin$ 0) cast with zero targets
+// must exile nothing. The second half pins that a real target still scopes
+// the sweep to exactly that player.
 func TestChangeZoneAllZeroPlayerTargetsMovesNothing(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

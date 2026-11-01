@@ -83,10 +83,10 @@ func TestChosenColorAskIsPosedOverTheWUBRGList(t *testing.T) {
 }
 
 // TestChosenColorAnswerGovernsTheDownstreamDevotionCount answers "Black" --
-// the OPPOSITE of the pre-fix first-WUBRG fallback ("White") -- so the
-// downstream Devotion.Chosen must count ZERO (no black pips on the board),
-// gain no life, and record the answer "B" on the object. Without the fix
-// the resolution silently chose White, counted 1, and gained the life.
+// the OPPOSITE of a first-WUBRG fallback ("White") -- so the downstream
+// Devotion.Chosen must count ZERO (no black pips on the board), gain no life,
+// and record the answer "B" on the object. Without the fix the resolution
+// silently chose White, counted 1, and gained the life.
 func TestChosenColorAnswerGovernsTheDownstreamDevotionCount(t *testing.T) {
 	t.Parallel()
 	e, rite, _ := castRite(t)

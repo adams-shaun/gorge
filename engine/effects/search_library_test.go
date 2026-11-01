@@ -74,9 +74,8 @@ func countSearchMoves(h *fakeHost) (moves, shuffles int) {
 // the no-host stand-in: a hostless quantity-only search (Demonic Tutor's
 // ChangeType$ Card) must find exactly Min (1) card, and that card must be the
 // deterministic FIRST eligible card in the decision's own option order -- not
-// just any card, and not zero. Before srch1 the stand-in found nothing; the
-// pre-fix no-host lay the quantity-only shape down as 0 cards, which is the
-// answer the decision it bypassed would itself have refused.
+// just any card, and not zero. Laying the quantity-only shape down as 0 cards
+// is the answer the bypassed decision would itself refuse.
 func TestLibrarySearchNoHostQuantityFindsDeterministicFirst(t *testing.T) {
 	reg := hostlessSearchTestRegistry(t)
 	tutor, ok := reg.Lookup("Demonic Tutor")

@@ -133,11 +133,10 @@ func countLifeChanges(t *testing.T, e *Engine, p state.PlayerID, amount int32) i
 	return n
 }
 
-// TestBrionStoutarmThrowGainsLife pins the reported defect on the real
-// corpus card: Brion Stoutarm's throw ({R}, {T}, sacrifice another creature)
-// deals damage equal to the sacrificed creature's power to a player, and
-// Brion has printed lifelink -- so his controller gains that much life with
-// the damage. Before the fix the damage landed and nobody gained any.
+// TestBrionStoutarmThrowGainsLife pins the reported defect on the real corpus
+// card: Brion Stoutarm's throw ({R}, {T}, sacrifice another creature) deals
+// damage equal to the sacrificed creature's power to a player, and Brion has
+// printed lifelink -- so his controller gains that much life with the damage.
 func TestBrionStoutarmThrowGainsLife(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

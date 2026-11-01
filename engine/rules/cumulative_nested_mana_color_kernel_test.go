@@ -17,7 +17,7 @@ func TestCumulativeWindowSubAbilityColourChoiceResumesWindow(t *testing.T) {
 	e.emit(events.Event{Kind: events.CounterChange, Obj: grotto, Counter: "LUCK", Amount: 1})
 	resolveUpkeepCumulative(t, e)
 	d := cumulativeElectByHand(t, e)
-	// Tap the grotto for mana inside the window. Before the fix this panicked.
+	// Tap the grotto for mana inside the window.
 	submitChoices(t, e, optionIndex(t, d, func(o decision.Option) bool { return o.Kind == "activate" && o.Obj == grotto }))
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || !strings.Contains(strings.ToLower(d.Prompt), "colo") {

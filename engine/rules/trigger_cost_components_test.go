@@ -523,9 +523,8 @@ func TestTriggerCostAddCounterComponentDeclinesOnly(t *testing.T) {
 // TestCardsDiscardedThisTurnCostFormCountsTheOwnerOnly pins the cost-form
 // attribution fix: an events.DiscardCost carries NO Player field (every
 // emitter constructs it without one), so it must count toward the discarded
-// card's OWNER alone and never toward seat 0 -- before the fix the
-// "ev.Player == p" match counted every seat's cost discard toward seat 0.
-// Pinned live: seat 1 pays a window discard cost; seat 0's count stays 0.
+// card's OWNER alone and never toward seat 0. Pinned live: seat 1 pays a
+// window discard cost; seat 0's count stays 0.
 func TestCardsDiscardedThisTurnCostFormCountsTheOwnerOnly(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)

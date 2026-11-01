@@ -8,7 +8,7 @@ package rules
 // ChangeZone that poses a real KChoose when the player holds more than one
 // eligible permanent. Answering it suspends the loop; the resumed body and
 // every remaining iteration then re-derive their per-player "Votes" value,
-// which the pre-fix engine read off the (now-empty) fresh Ctx as 0.
+// which a fresh Ctx would read as 0.
 //
 // This test drives the real compiled card through the real vote, a real
 // hidden-hand choice answered with a NON-FIRST option, and asserts both

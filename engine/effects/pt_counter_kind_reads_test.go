@@ -46,8 +46,8 @@ func ptCard(t *testing.T, g *state.Game, name, types, pt string, zone state.Zone
 // ptNetPT computes the net power and toughness a site is expected to honour:
 // the printed face plus the summed P/T counter deltas. It deliberately does
 // NOT call the functions under test, so these preconditions still hold when
-// the production reads are reverted to their pre-fix spellings and the
-// assertions below are the ones that fail.
+// the production reads are wrong and the assertions below are the ones that
+// fail.
 func ptNetPower(o *state.Object) int32 {
 	dp, _ := o.CounterPTTotals()
 	return int32(o.Face().Power()) + dp

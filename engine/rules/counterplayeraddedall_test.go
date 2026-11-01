@@ -166,13 +166,10 @@ func TestRikkuWindowUncontrolledWithoutThePut(t *testing.T) {
 }
 
 // TestRikkuWindowExpiresAtEndOfTurn is an expiry regression test: Rikku's
-// `DB$ Effect` body carries no `Duration$`, but its trigger text is explicitly
-// "until end of turn". Before the fix `effectUntilEOT` read the absent duration
-// as `Permanent` and installed a restriction that only ended when Rikku left the
-// battlefield, so the countered creature stayed unblockable for the rest of the
-// game. This drives the real turn boundary: the counter goes on, the window holds
-// through that turn, and by the next turn's declare-blockers the bear is a legal
-// blocker again.
+// `DB$ Effect` body carries no `Duration$`, but its trigger text is
+// explicitly "until end of turn". This drives the real turn boundary: the
+// counter goes on, the window holds through that turn, and by the next turn's
+// declare-blockers the bear is a legal blocker again.
 func TestRikkuWindowExpiresAtEndOfTurn(t *testing.T) {
 	t.Parallel()
 	counterSpell := "Name:Count Up\nManaCost:R\nTypes:Instant\n" +

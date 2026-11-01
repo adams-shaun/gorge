@@ -257,13 +257,10 @@ func TestUnrelatedEquipmentDetachDoesNotFireTheExoskeleton(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestReequipFromOneLivingCreatureToAnotherFiresUnattached is the
-// regression for the re-attach emit path: moving an Equipment
-// from one live creature to another is CR 701.3b's "becomes unattached" for
-// the former bearer, so events.Unattached must be emitted before the
-// replacement Attach. Before the fix engine/effects/attach.go emitted only Attach
-// and overwrote AttachedTo, leaving the former bearer alive and the
-// Exoskeleton's trigger silent.
+// TestReequipFromOneLivingCreatureToAnotherFiresUnattached is the regression
+// for the re-attach emit path: moving an Equipment from one live creature to
+// another is CR 701.3b's "becomes unattached" for the former bearer, so
+// events.Unattached must be emitted before the replacement Attach.
 func TestReequipFromOneLivingCreatureToAnotherFiresUnattached(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

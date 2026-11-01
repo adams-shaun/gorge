@@ -272,10 +272,9 @@ func TestPerforatingArtistSacrificeDeclinedLosesThree(t *testing.T) {
 // TestPerforatingArtistNoPayableChoiceRunsFallback pins Forge's
 // ChooseGenericEffect fallback arm: when the chooser can pay NEITHER
 // UnlessCost$ (no hand card to discard, no nonland permanent to sacrifice),
-// the GenericChoice is never posed and FallbackAbility$ -- the bare
-// LoseLife 3 -- runs against the Remembered chooser. This is also the
-// FallbackAbility$ read: before the fix the engine asked anyway and the
-// opponent could pick a choice it could not pay.
+// the GenericChoice is never posed and FallbackAbility$ -- the bare LoseLife
+// 3 -- runs against the Remembered chooser. This is also the FallbackAbility$
+// read: asking anyway would let the opponent pick a choice it could not pay.
 func TestPerforatingArtistNoPayableChoiceRunsFallback(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

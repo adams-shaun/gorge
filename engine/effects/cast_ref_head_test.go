@@ -82,9 +82,9 @@ func TestTriggeredCardCastTotalManaSpentFallsBackToTheLiveObject(t *testing.T) {
 }
 
 // TestTriggeredCardCastTotalManaSpentReadsTheRealCorpusSVar proves the real
-// compiled script path reaches the head: Aberrant Manawurm's SVar:X is exactly
-// this spelling, and the same evaluation a trigger resolution makes returns
-// the real total instead of the pre-fix zero.
+// compiled script path reaches the head: Aberrant Manawurm's SVar:X is
+// exactly this spelling, and the same evaluation a trigger resolution makes
+// returns the real total, not zero.
 func TestTriggeredCardCastTotalManaSpentReadsTheRealCorpusSVar(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Aberrant Manawurm")

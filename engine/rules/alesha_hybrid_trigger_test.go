@@ -11,13 +11,13 @@ import (
 )
 
 // This file pins the CR 601.2b / 107.4e flexible-pip payment at a
-// TRIGGERED-cost window, on a real-corpus carrier: Alesha,
-// Who Smiles at Death's attack trigger `Cost$ WB WB`. Before the fix the
-// window's pay/decline ask collapsed to a single `trigger_cost_decline`
-// because Cost.Priceable() rejects hybrid pips and no announcement ask
-// existed, so her ChangeZone body never ran. These tests drive real combat
-// from the attackers declaration, elect each hybrid face through the window's
-// own pip ask (the cast flow's `pay_W`/`pay_B` option kinds and Cost.announcePip
+// TRIGGERED-cost window, on a real-corpus carrier: Alesha, Who Smiles at
+// Death's attack trigger `Cost$ WB WB`. Cost.Priceable() rejects hybrid pips,
+// so with no announcement the window's pay/decline ask would collapse to a
+// single `trigger_cost_decline`; no announcement ask existed, so her
+// ChangeZone body never ran. These tests drive real combat from the attackers
+// declaration, elect each hybrid face through the window's own pip ask (the
+// cast flow's `pay_W`/`pay_B` option kinds and Cost.announcePip
 // alternatives), pay, and assert the returned creature's entry plus the exact
 // mana/life spent.
 

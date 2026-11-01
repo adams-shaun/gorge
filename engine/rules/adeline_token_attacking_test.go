@@ -9,9 +9,7 @@ package rules
 //
 // The RepeatEach loop binds the current opponent as the resolution's
 // Remembered PLAYER, so `TokenAttacking$ RememberedPlayer` must resolve to
-// that seat and mint the Human tapped and attacking it. Before the fix the
-// selector fell through the loud-Note degrade and every Human entered tapped,
-// unmarked -- a sitting duck.
+// that seat and mint the Human tapped and attacking it.
 
 import (
 	"strings"

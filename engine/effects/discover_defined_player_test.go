@@ -8,12 +8,12 @@ import (
 )
 
 // TestDiscoverDefinedTargetedOwnerUsesOwnersLibrary pins Zoyowa's Justice's
-// `Defined$ TargetedOwner` shape: the discover scans the OWNER of the resolving
-// ability's target, not the resolving controller (CR 701.57: "The owner of
-// target artifact ... Then that player discovers X").  Before the fix
-// effDiscover hard-coded c.Controller, so the wrong seat's library was exiled,
-// the marker named the wrong seat, and the target owner kept every card
-// (LCI: p1.library_count gorge "39", xmage "38").
+// `Defined$ TargetedOwner` shape: the discover scans the OWNER of the
+// resolving ability's target, not the resolving controller (CR 701.57: "The
+// owner of target artifact ... Then that player discovers X"). With
+// c.Controller hard-coded in effDiscover, the wrong seat's library would be
+// exiled, the marker would name the wrong seat, and the target owner would
+// keep every card (LCI: p1.library_count gorge "39", xmage "38").
 func TestDiscoverDefinedTargetedOwnerUsesOwnersLibrary(t *testing.T) {
 	h := newHost(t, 2)
 	// Distinguishable libraries: p0's cards are named so a wrong-library scan

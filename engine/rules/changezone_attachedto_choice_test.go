@@ -15,9 +15,7 @@ import (
 // Equipment" mode resolves `AttachedTo$ Creature.YouCtrl`. With two legal
 // creatures the resolving controller chooses which one the returned Aura or
 // Equipment enters attached to (the second option here); with exactly one
-// there is nothing to choose and no decision is posed. Before the fix the
-// first Defined$ match was taken silently, so the chosen-second assertions
-// failed while the one-creature shape passed vacuously.
+// there is nothing to choose and no decision is posed.
 //
 // The Aura half also pins the CR 303.4f legality narrowing: the filter's
 // candidates are screened by the entering Aura's own Enchant restriction, so

@@ -213,8 +213,7 @@ func TestMayFlashSacInstantWindowCastSacrificedAtCleanup(t *testing.T) {
 	driveToStep(t, e, e.G.Turn, 0, state.StepBeginCombat)
 
 	// Precondition: the ordinary sorcery-speed offer is absent off-main --
-	// otherwise the permission would be untested (this is exactly the shape
-	// that failed before the fix).
+	// otherwise the permission would be untested.
 	if plainCastOptionExists(e.Pending().Options, id) {
 		t.Fatal("precondition: plain cast offered off-main; the permission is untested")
 	}

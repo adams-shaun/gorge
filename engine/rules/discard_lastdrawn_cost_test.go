@@ -1,13 +1,13 @@
-// Discard<1/LastDrawn> (Jandor's Ring) — "Discard the last card you drew
-// this turn". LastDrawn is a history-keyed slot, like Random/Hand are
-// selection-method slots, not a card filter: before the fix it fell through
-// to matchesSpecFrom, which no hand card satisfies, so discardCandidates
-// returned nothing, discardCostPayable withheld the offer forever and the
-// ability was never offered. The fix reads the last events.Draw naming the
-// player since the most recent TurnChange (lastDrawnThisTurn) and returns
-// exactly that one card, and only while it is still in hand. These tests pin
-// the offer, the exact-card payment, and both unpayable shapes (the last
-// drawn card left the hand; nothing was drawn this turn).
+// Discard<1/LastDrawn> (Jandor's Ring) — "Discard the last card you drew this
+// turn". LastDrawn is a history-keyed slot, like Random/Hand are
+// selection-method slots, not a card filter: falling through to
+// matchesSpecFrom, which no hand card satisfies, discardCandidates returned
+// nothing, discardCostPayable withheld the offer forever and the ability was
+// never offered. The fix reads the last events.Draw naming the player since
+// the most recent TurnChange (lastDrawnThisTurn) and returns exactly that one
+// card, and only while it is still in hand. These tests pin the offer, the
+// exact-card payment, and both unpayable shapes (the last drawn card left the
+// hand; nothing was drawn this turn).
 //
 // Jandor's Ring is in no repo deck, so this cannot move TestHeads or the
 // botbench split.
@@ -79,8 +79,7 @@ func TestJandorsRingDiscardsTheLastCardDrawnThisTurn(t *testing.T) {
 	// priority so the offer sees the pool.
 	addMana(t, e, 0, "CC")
 
-	// The offer must carry an "ability" option for the ring (the exact defect:
-	// pre-fix there was none).
+	// The offer must carry an "ability" option for the ring.
 	opt, ok := findAbilityOption(e, id, jandorsRingAbilityIdx)
 	if !ok {
 		t.Fatalf("Jandor's Ring ability is not offered: %+v", e.Pending())

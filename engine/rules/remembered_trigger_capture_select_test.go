@@ -7,15 +7,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Avatar Destiny (TLA): a dies trigger whose body
-// mills with RememberMilled$ True and then fetches ChangeType$
-// Creature.IsRemembered must offer only the milled creature cards. The
-// engine seeds the firing trigger's ctx Remembered with its event capture
-// (the creature that died), so before the fix the dead creature -- now a
-// creature card in the graveyard -- matched Creature.IsRemembered and could
-// be returned. Forge's IsRemembered reads the host card's remembered list,
-// which never holds the triggering card (CR 603.7: the ability refers only
-// to what it says). Fixtures are inline (never corpus .txt).
+// Avatar Destiny (TLA): a dies trigger whose body mills with RememberMilled$
+// True and then fetches ChangeType$ Creature.IsRemembered must offer only the
+// milled creature cards. The engine seeds the firing trigger's ctx Remembered
+// with its event capture (the creature that died).IsRemembered and could be
+// returned. Forge's IsRemembered reads the host card's remembered list, which
+// never holds the triggering card (CR 603.7: the ability refers only to what
+// it says). Fixtures are inline (never corpus .txt).
 const remCapProbe = "Name:Destiny Probe\nManaCost:2 G G\nTypes:Enchantment\n" +
 	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.YouCtrl | TriggerZones$ Battlefield | Execute$ TrigMill | TriggerDescription$ Whenever a creature you control dies, mill cards; return up to one creature card milled this way.\n" +
 	"SVar:TrigMill:DB$ Mill | NumCards$ 60 | RememberMilled$ True | SubAbility$ DBReturnCreature\n" +

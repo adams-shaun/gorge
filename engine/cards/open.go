@@ -165,13 +165,13 @@ func loadFreshCache(dir, cache string) (*Registry, bool) {
 // home of the staleness rule -- openCorpus and the segment path in subset.go
 // both consult it, so the three sites cannot drift apart.
 //
-// The lock alone was the old rule, and fetchRepo's write order defeats it:
+// The lock alone is not enough, because fetchRepo's write order defeats it:
 // fetchRepo renames the new cardsfolder into place BEFORE it rewrites
-// cards.lock (engine/cards/fetch.go), so for that window the cache is newer than the
-// old lock and the freshly renamed folder is newer than the cache. A reader
-// that compared only the lock served the OLD corpus silently; comparing the
-// corpus folders as well closes the window without hashing the corpus at open
-// time (which would recompile on every open).
+// cards.lock (engine/cards/fetch.go), so for that window the cache is newer
+// than the old lock and the freshly renamed folder is newer than the cache. A
+// reader comparing only the lock would serve the OLD corpus silently;
+// comparing the corpus folders as well closes the window without hashing the
+// corpus at open time (which would recompile on every open).
 func cacheFresh(dir, cache string) bool {
 	ci, err := os.Stat(cache)
 	if err != nil {

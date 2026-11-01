@@ -11,8 +11,7 @@ import "embed"
 // Only the files fingerprintCensus (fingerprint_sources_test.go) marks
 // IR-affecting are listed. A file that only reads compiled IR at runtime, or
 // manages the cache without shaping its bytes (fetch, open, the cache lock,
-// coverage reports), is left out: editing one used to name a new cache
-// and make every process on the box recompile the corpus.
+// coverage reports), is left out.
 //
 // The files are listed one per directive instead of `//go:embed *.go`, because
 // that pattern also matches the _test.go files: their bytes then became part of

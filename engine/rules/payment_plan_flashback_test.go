@@ -11,10 +11,6 @@ import (
 // Payment plans for the two shapes the auto-pay bot used to tap for by hand
 // (botmanual, 2026-10-14): a graveyard card's flashback cast
 // (decision.OriginFlashback) and a fixed-count discard additional cost.
-// Measured before the fix, flashback casts were the largest planner gap in
-// both a network bot vs sb-tactical sample (Think Twice) and the constructed
-// repo-deck auto-pay mirror (Pursue the Past), and Thrill of Possibility's
-// discard the next.
 
 const (
 	paymentPlanIsland  = "Name:Island\nTypes:Basic Land Island\nOracle:x\n"

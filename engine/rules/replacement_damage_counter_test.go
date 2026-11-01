@@ -157,8 +157,7 @@ func TestBattletideAlchemistAsksItsControllerAndPreventsClerics(t *testing.T) {
 
 // TestThunderstaffPreventsExactlyItsAmount pins the single-match
 // ReplaceDamage body: Thunderstaff's "prevent 1 of that damage" must leave
-// the rest standing, not erase the whole event (the pre-fix defect applied
-// every DB$ ReplaceDamage body as a silent full prevention).
+// the rest standing, not erase the whole event.
 func TestThunderstaffPreventsExactlyItsAmount(t *testing.T) {
 	t.Parallel()
 	reg := sharedCorpus(t)

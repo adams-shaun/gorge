@@ -367,12 +367,11 @@ func mutateDrain(t *testing.T, e *Engine, limit int) {
 // exactly the bodies' own tokens and never a cross-body steal.
 //
 //   - Phoenix mutated ON TOP of Cubwarden: the top Phoenix's own trigger makes
-//     1 Feather, the under Cubwarden's makes 2 Cats (pre-fix: 0 Cats, 2
-//     Feathers -- the under-card's Execute$ resolved against the TOP face's
-//     TrigToken).
+//
+// 1 Feather, the under Cubwarden's makes 2 Cats.
 //   - Cubwarden mutated ON TOP of the Phoenix: the top Cubwarden's own trigger
-//     makes 2 Cats, the under Phoenix's makes 1 Feather (pre-fix: 4 Cats, 0
-//     Feathers -- the under Phoenix ran the top Cubwarden's body twice).
+//
+// makes 2 Cats, the under Phoenix's makes 1 Feather.
 func TestMergedTriggerResolvesTheUnderCardsOwnBody(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -492,12 +491,11 @@ func TestEssenceSymbioteWatchesATeamMutation(t *testing.T) {
 
 // TestMutateCostIsPaidInsteadOfTheManaCost pins CR 702.140a's cost
 // substitution on a card where the two costs are distinguishable: Huntmaster
-// Liger's mutate cost is {2}{W} but its printed mana cost is {3}{W}, so a
-// WWW pool pays the mutate cast and can NOT pay the plain cast. The mutated
-// cast must be offered while the plain cast is withheld, the cast must
-// complete, and the mana actually spent must be the mutate cost's 3 (not the
-// printed cost's 4 -- the pre-fix engine charged the plain cost here and
-// aborted the cast as "cost no longer payable").
+// Liger's mutate cost is {2}{W} but its printed mana cost is {3}{W}, so a WWW
+// pool pays the mutate cast and can NOT pay the plain cast. The mutated cast
+// must be offered while the plain cast is withheld, the cast must complete,
+// and the mana actually spent must be the mutate cost's 3 (not the printed
+// cost's 4).
 func TestMutateCostIsPaidInsteadOfTheManaCost(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	liger := mustCorpusCard(t, reg, "Huntmaster Liger")

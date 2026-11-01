@@ -78,10 +78,9 @@ func TestChosenNumberAskIsPosedMidResolution(t *testing.T) {
 	}
 }
 
-// TestChosenNumberAnswerRecordsTheChosenNumber answers 5 -- a value the
-// pre-fix silent fallback (0) never records -- and asserts the answered
-// number lands on the resolving object. Without the fix the resolution
-// silently chose 0, so the 5 assertion fails.
+// TestChosenNumberAnswerRecordsTheChosenNumber answers 5 -- a value a silent
+// fallback (0) never records -- and asserts the answered number lands on the
+// resolving object. A silent 0 fails the 5 assertion.
 func TestChosenNumberAnswerRecordsTheChosenNumber(t *testing.T) {
 	t.Parallel()
 	e, void, _ := castVoid(t)
@@ -104,11 +103,11 @@ func TestChosenNumberAnswerRecordsTheChosenNumber(t *testing.T) {
 	}
 }
 
-// TestChosenNumberZeroAnswerIsRecorded answers 0 -- the value the pre-fix
-// fallback also recorded, but through the ANSWERED path -- and asserts the
-// resolved spell leaves the battlefield. It proves the answered 0 does not
-// wedge the resolution (the ChosenNumberAnswered marker is consumed) and that
-// no second ask is posed for the answered 0.
+// TestChosenNumberZeroAnswerIsRecorded answers 0 -- the fallback's value too,
+// but through the ANSWERED path -- and asserts the resolved spell leaves the
+// battlefield. It proves the answered 0 does not wedge the resolution (the
+// ChosenNumberAnswered marker is consumed) and that no second ask is posed
+// for the answered 0.
 func TestChosenNumberZeroAnswerIsRecorded(t *testing.T) {
 	t.Parallel()
 	e, void, _ := castVoid(t)

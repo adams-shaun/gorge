@@ -209,8 +209,7 @@ func TestDecommissionBareRevoltCondition(t *testing.T) {
 // TestLifecraftCavalryCountRevoltGatesTheEtbCounters pins the
 // Count$Revolt.<yes>.<no> branch head through the card's real etbCounter
 // gate: two +1/+1 counters when a permanent left the battlefield this turn,
-// none otherwise (the pre-fix read degraded the unimplemented head to a
-// fail-open gate that always applied both counters).
+// none otherwise.
 func TestLifecraftCavalryCountRevoltGatesTheEtbCounters(t *testing.T) {
 	t.Parallel()
 	t.Run("no revolt", func(t *testing.T) {

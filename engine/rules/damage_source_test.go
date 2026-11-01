@@ -129,8 +129,7 @@ func moveToHand(t *testing.T, e *Engine, id state.ObjID) {
 // TestScourgeOfValkasDealsDamageFromTheEnteringDragon pins DamageSource$
 // TriggeredCard on the real card: another Dragon entering fires Scourge's
 // trigger, and the damage comes from THAT dragon -- so its lifelink pays the
-// rider. Before the fix the rider read the trigger's own source (Scourge,
-// which has no lifelink) and nobody gained life.
+// rider.
 func TestScourgeOfValkasDealsDamageFromTheEnteringDragon(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -170,8 +169,7 @@ func TestScourgeOfValkasDealsDamageFromTheEnteringDragon(t *testing.T) {
 // TestKikusShadowDamageSourceTargetedGainsLife pins DamageSource$ Targeted
 // with the Targeted$CardPower count head on the real card: the TARGETED
 // creature (Adult Gold Dragon, 4/3 with lifelink) deals 4 to itself, and its
-// own lifelink pays its controller 4. Before the fix both halves were dead:
-// X evaluated to 0 (no damage at all) and the rider read the spell.
+// own lifelink pays its controller 4.
 // TestDepartedTriggeredDamageSourceCreditsLastController proves the LKI is
 // keyed by the NAMED DamageSource$, not only the resolving trigger's source.
 // The real Scourge trigger names its entering Dragon as TriggeredCard; after
@@ -239,8 +237,7 @@ func TestKikusShadowDamageSourceTargetedGainsLife(t *testing.T) {
 // TestPestilenceAndEarthquakeHitPlayers pin the DamageAll ValidPlayers$ arm
 // on real cards: Pestilence's activation damages each creature and each
 // PLAYER, Earthquake's cast damages each player (and each non-flying
-// creature). Before the fix the player half of both sweeps silently did
-// nothing.
+// creature).
 func TestPestilenceAndEarthquakeHitPlayers(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -309,8 +306,7 @@ func ids2Card(t *testing.T, e *Engine, name string) *cards.Card {
 // visibility: Lightning Bolt at seat 0's Jace (seat 1 casting) is a real
 // Damage event against the walker object, so Flameblade Angel's DamageDone
 // trigger (ValidTarget$ You,Permanent.YouCtrl) fires, its optional ask is
-// answered, and the angel deals 1 to the bolt's controller. Before the fix
-// walker damage emitted only a CounterChange and no trigger saw it.
+// answered, and the angel deals 1 to the bolt's controller.
 func TestFlamebladeAngelTriggersOnBoltToWalker(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -468,12 +464,12 @@ func TestCreaturePlaneswalkerTakesMarkedDamageAndLoyaltyLoss(t *testing.T) {
 //   - Leg 1 (protection, CR 702.16d): a colourless artifact enabler deals 2
 //     damage with DamageSource$ Targeted at a blue creature that has
 //     protection from blue. The NAMED source is the blue creature itself, so
-//     emit-side prevention blocks the hit entirely (pre-fix the source was
-//     the colourless enabler and the damage landed).
+//
+// emit-side prevention blocks the hit entirely.
 //   - Leg 2 (triggers, CR 603.10 DamageDone): the same enabler hits a Dragon;
 //     a watcher's "whenever a Dragon deals damage" trigger (ValidSource$
-//     Dragon) fires off the NAMED source, never off the enabler (pre-fix the
-//     trigger read the stack top, the ability wrapper, and stayed silent).
+//
+// Dragon) fires off the NAMED source, never off the enabler.
 func TestDamageSourceIsTheSourceProtectionAndTriggersRead(t *testing.T) {
 	t.Parallel()
 	enabler := "Name:Awkward Robot\nManaCost:3\nTypes:Artifact Creature Golem\nPT:0/4\n" +
@@ -829,13 +825,11 @@ func TestNamedDamageSourceRealCastGainsOpponentController(t *testing.T) {
 	}
 }
 
-// TestPrintedCreatureWalkerCleanupKeepsLoyalty is the
-// printed-creature-walker clean-up probe: a face that is BOTH Creature and
-// Planeswalker takes marked damage AND loses loyalty, and the end-of-step
-// clean-up's negative Damage event must clear ONLY the marked damage -- it
-// must never re-apply the CR 306.8 loyalty conversion (which would "restore"
-// loyalty 2 -> 4). Pre-fix the clean-up restored loyalty because the
-// conversion ignored the sign of the Damage amount.
+// TestPrintedCreatureWalkerCleanupKeepsLoyalty is the printed-creature-walker
+// clean-up probe: a face that is BOTH Creature and Planeswalker takes marked
+// damage AND loses loyalty, and the end-of-step clean-up's negative Damage
+// event must clear ONLY the marked damage -- it must never re-apply the CR
+// 306.8 loyalty conversion (which would "restore" loyalty 2 -> 4).
 func TestPrintedCreatureWalkerCleanupKeepsLoyalty(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)

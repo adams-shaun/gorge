@@ -10,9 +10,8 @@ import (
 
 // TestFlipCoinMemoryFlagsAreRead pins the closure of the reviewed loud-note
 // gate: Forge's per-flip memory parameters (RememberResult$, RememberNumber$,
-// RememberLoser$) are now persisted, so a flip carrying them must NOT emit the
-// old "unread" Note. This is the inverse of the pre-fix test that asserted one
-// loud Note per flag.
+// RememberLoser$) are persisted, so a flip carrying them must NOT emit an
+// "unread" Note.
 func TestFlipCoinMemoryFlagsAreRead(t *testing.T) {
 	cases := []string{
 		"DB$ FlipCoin | RememberResult$ True",

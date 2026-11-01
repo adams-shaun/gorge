@@ -18,11 +18,11 @@ import (
 //	Static$ True | ValidCard$ Card.IsImprinted | Execute$ DBForget
 //
 // exactly the shape `wordImprinted`'s filter branch judges. A zone-change
-// trigger holds the card's pre-move snapshot, still in exile, so the predicate
-// must read the imprint association's exile liveness from the CANDIDATE's own
-// zone, not re-read the live object -- which the MoveZone fold has already
-// placed in the destination zone. The reader ignores its supplied candidate and
-// re-reads g.Obj(id), so before the fix the LKI candidate read dead.
+// trigger holds the card's pre-move snapshot, still in exile, so the
+// predicate must read the imprint association's exile liveness from the
+// CANDIDATE's own zone, not re-read the live object -- which the MoveZone
+// fold has already placed in the destination zone. A reader that ignored its
+// supplied candidate and re-read g.Obj(id) would read the LKI candidate dead.
 //
 // The two adjacent contracts must NOT move, and this test pins them:
 //

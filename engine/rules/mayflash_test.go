@@ -50,8 +50,7 @@ func plainCastOptionExists(opts []decision.Option, id state.ObjID) bool {
 // sorcery's ordinary sorcery-speed timing fails), Tegwyll's Scouring is
 // offered through its MayFlashCost permission, labelled "(may-flash)",
 // casting it asks the tap-three-fliers cost, charges the printed {4}{B}{B},
-// and resolves the DestroyAll. Before the fix the option did not exist at all
-// (the sorcery was only castable at sorcery speed at full cost).
+// and resolves the DestroyAll.
 func TestTegwyllsScouringMayflashCastTapsThreeFlyers(t *testing.T) {
 	t.Parallel()
 	teg := corpusCardText(t, "t/tegwylls_scouring.txt")

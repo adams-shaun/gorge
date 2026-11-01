@@ -136,10 +136,9 @@ func TestDelverRevealAskCarriesTheTopCardOnlyToThePeekingSeat(t *testing.T) {
 }
 
 // TestDelverWithALandOnTopAndARevealAnsweredYesDoesNotTransform pins the
-// gate's other half: revealing a LAND answers "yes" — the Note goes out —
-// but ConditionCompare$ EQ1 over Card.Instant,Card.Sorcery finds zero, so
-// Delver does not transform (the pre-fix build transformed every upkeep
-// regardless).
+// gate's other half: revealing a LAND answers "yes" — the Note goes out — but
+// ConditionCompare$ EQ1 over Card.Instant,Card.Sorcery finds zero, so Delver
+// does not transform.
 func TestDelverWithALandOnTopAndARevealAnsweredYesDoesNotTransform(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

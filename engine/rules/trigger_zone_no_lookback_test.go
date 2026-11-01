@@ -8,13 +8,11 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestEntersLineWithoutZonesDoesNotLookBack pins CR 603.6a against CR
-// 603.10a for the corpus's two ChangesZone lines that name neither Origin$
-// nor Destination$ (Ghostly Dancers, Bullseye, Death Dealer, both printed
-// "When CARDNAME enters"): the trigger fires when the card enters the
-// battlefield and NOT when it leaves it. Before the fix zoneGate admitted the
-// source's pre-move zone for every self move, so destroying Ghostly Dancers
-// fired its enters trigger a second time from the graveyard.
+// TestEntersLineWithoutZonesDoesNotLookBack pins CR 603.6a against CR 603.10a
+// for the corpus's two ChangesZone lines that name neither Origin$ nor
+// Destination$ (Ghostly Dancers, Bullseye, Death Dealer, both printed "When
+// CARDNAME enters"): the trigger fires when the card enters the battlefield
+// and NOT when it leaves it.
 func TestEntersLineWithoutZonesDoesNotLookBack(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

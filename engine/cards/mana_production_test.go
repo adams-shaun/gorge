@@ -171,9 +171,8 @@ func TestManaProductionTalismanKeepsItsRealColourless(t *testing.T) {
 }
 
 // TestManaProductionDistinctColoursUnmovedByPhantomFix pins the Any-semantics
-// guarantee: because a Combo choice keeps its flag, DistinctColours reports
-// 5 for it exactly as before the fix -- botpolicy's coloured rankings must
-// not move.
+// guarantee: because a Combo choice keeps its flag, DistinctColours reports 5
+// for it -- botpolicy's coloured rankings must not move.
 func TestManaProductionDistinctColoursUnmovedByPhantomFix(t *testing.T) {
 	mp := mpOf(t, "Name:Dual\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo B R | Oracle:x\n")
 	if mp.DistinctColours() != 5 {

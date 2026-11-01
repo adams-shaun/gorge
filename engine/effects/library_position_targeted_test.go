@@ -199,8 +199,7 @@ func TestTargetedChangeZoneLibraryPositions(t *testing.T) {
 // fail-closed direction: a LibraryPosition$ value the Num grammar cannot
 // resolve emits ONE loud Note and the MoveZone bottom append stands -- the
 // cards are never silently placed by a guessed position, and never silently
-// left at the bottom either (the pre-fix behaviour for the whole class was
-// the silent half of this).
+// left at the bottom either.
 func TestTargetedChangeZoneLibraryPositionUnresolvableValueIsLoud(t *testing.T) {
 	h := newHost(t, 2)
 	lzFills(t, h, 2)

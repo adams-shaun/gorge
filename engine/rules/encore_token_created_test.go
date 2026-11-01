@@ -79,8 +79,8 @@ func activateEncore(t *testing.T, e *Engine, id state.ObjID) {
 // TestEncoreTokenFiresTokenCreatedMirkwoodBats pins CR 702.141a/111.1: Encore
 // creates token copies, so a "whenever you create a token" watcher fires. The
 // Encore mint is events.CardToken, which lands the token on the battlefield
-// with no MoveZone, so before the fix the TokenCreated mask and matcher never
-// saw it and the opponent kept their life total.
+// with no MoveZone, so the TokenCreated mask and matcher must see it without
+// one.
 func TestEncoreTokenFiresTokenCreatedMirkwoodBats(t *testing.T) {
 	t.Parallel()
 	reg := freshEncoreRegistryWith(t, []string{"m/mirkwood_bats.txt"}, nil)

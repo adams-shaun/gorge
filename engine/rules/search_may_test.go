@@ -34,8 +34,7 @@ func shuffleCountFrom(e *Engine, start int, p state.PlayerID) int {
 // TestTurnTheEarthObjectPathShufflesIntoLibrary is half (b) on a real corpus
 // card: Turn the Earth's `DB$ ChangeZone | Origin$ Graveyard | Destination$
 // Library | Shuffle$ True` moves the chosen graveyard card into its owner's
-// library and shuffles there. Before the fix the object path shuffled
-// nothing, so the card was silently appended without a shuffle.
+// library and shuffles there.
 func TestTurnTheEarthObjectPathShufflesIntoLibrary(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

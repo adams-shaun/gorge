@@ -13,12 +13,6 @@ package rules
 //	SVar:TrigChoose:DB$ GenericChoice | Defined$ Opponent | Choices$ SacNonland,Discard
 //	SVar:SacNonland:DB$ LoseLife | Defined$ Remembered | LifeAmount$ 3 | UnlessCost$ Sac<...> | UnlessPayer$ Remembered
 //	SVar:Discard:DB$ LoseLife | Defined$ Remembered | LifeAmount$ 3 | UnlessCost$ Discard<1/Card> | UnlessPayer$ Remembered
-//
-// Before the fix the engine posed the placement ask to seat 0 (the Hag's
-// controller), recorded it on the stack, then ran that answer's body once
-// UNBOUND (so seat 0 was the one asked to pay the 3-life unless), and only
-// then asked the real chooser -- one body execution too many and the wrong
-// player asked the mode.
 
 import (
 	"testing"

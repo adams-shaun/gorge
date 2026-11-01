@@ -9,12 +9,8 @@ import (
 // TestUnlessCostOfferExcludesInstantSpeedSources is the review regression for
 // the InstantSpeed$ offer/window mismatch: UnlessCostPayable must compute its
 // reach from the SAME membership the mid-resolution window can actually tap,
-// so an InstantSpeed$ True mana ability ("Activate only as an instant", Lion's
-// Eye Diamond) must not make a {U} tax look payable. Before the fix the offer
-// gate folded in AvailableMana, which counts priority-window abilities
-// including InstantSpeed$; the window (untappedManaSource / the activation
-// gate) withholds them, so Pay was offered with no activation to complete it
-// and the payment necessarily declined.
+// so an InstantSpeed$ True mana ability ("Activate only as an instant",
+// Lion's Eye Diamond) must not make a {U} tax look payable.
 func TestUnlessCostOfferExcludesInstantSpeedSources(t *testing.T) {
 	t.Parallel()
 	// A bare-tap, single-ability U source that is ONLY activatable at priority.

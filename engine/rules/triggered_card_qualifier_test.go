@@ -65,8 +65,7 @@ func TestAuntMaySpiderEntrantGetsTheCounter(t *testing.T) {
 }
 
 // TestAuntMayNonSpiderEntrantGetsNoCounter: a non-Spider entering gains the
-// life but puts NO counter anywhere -- before the fix the dotted selector
-// missed the code table and the counter landed on Aunt May herself.
+// life but puts NO counter anywhere.
 func TestAuntMayNonSpiderEntrantGetsNoCounter(t *testing.T) {
 	t.Parallel()
 	e, may, bear, gained := enterUnderAuntMay(t, "Name:Test Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")

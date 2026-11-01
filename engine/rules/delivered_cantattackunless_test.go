@@ -374,8 +374,7 @@ func TestSivitriDeliveredInsufficientLifeIsNeverOffered(t *testing.T) {
 
 // TestSivitriDeliveredRegistrationEmitsNoUnimplementedNote pins the negative:
 // resolving the +1 must NOT emit the "continuous effect CantAttackUnless
-// unimplemented" Note that the pre-fix registration branch produced, and must
-// instead register a live restriction.
+// unimplemented" Note, and must instead register a live restriction.
 func TestSivitriDeliveredRegistrationEmitsNoUnimplementedNote(t *testing.T) {
 	t.Parallel()
 	sivCard := mshCorpusCard(t, "Sivitri, Dragon Master")

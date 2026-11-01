@@ -52,16 +52,16 @@ func gainedAbilityOffered(d *decision.Decision, obj state.ObjID) bool {
 	return false
 }
 
-// TestGainedEquipNotOfferedWithoutAnotherCreature:
-// Trazyn the Infinite has the activated abilities of the artifact cards in
-// its owner's graveyard, so a Bonesplitter there gives it "Equip {1}". An
-// attach ability can never target its own source (CR 701.3a; targetAsk
-// excludes it), so with Trazyn the only creature the Equip has no legal
-// target and must not be offered -- before the fix the offer gate let the
-// source count as its own target, the ask found none and aborted, and the
-// bot re-picked the same option forever ("cast aborted: no legal target").
-// A second creature makes the Equip legal again, and a held-out (no-progress
-// suppressed) source withholds the gained activation like a printed one.
+// TestGainedEquipNotOfferedWithoutAnotherCreature: Trazyn the Infinite has
+// the activated abilities of the artifact cards in its owner's graveyard, so
+// a Bonesplitter there gives it "Equip {1}". An attach ability can never
+// target its own source (CR 701.3a; targetAsk excludes it), so with Trazyn
+// the only creature the Equip has no legal target and must not be offered --
+// were the offer gate to let the source count as its own target, the ask
+// would find none and abort, and the bot re-picked the same option forever
+// ("cast aborted: no legal target"). A second creature makes the Equip legal
+// again, and a held-out (no-progress suppressed) source withholds the gained
+// activation like a printed one.
 func TestGainedEquipNotOfferedWithoutAnotherCreature(t *testing.T) {
 	t.Parallel()
 	e, _ := b5Engine(t, "Trazyn the Infinite", "Bonesplitter", "Grizzly Bears")

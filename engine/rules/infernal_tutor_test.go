@@ -46,9 +46,7 @@ func tutorPassIndex(t *testing.T, d *decision.Decision) int {
 // TestInfernalTutorEngineSearchUsesTheChosenCard casts the real Infernal
 // Tutor with a two-card hand (Lightning Bolt, then Forest) and a library
 // holding both names, answers the reveal pick with the Forest, and asserts
-// the chained search moves the FOREST -- never the Lightning Bolt. The
-// pre-fix build revealed the front card (Lightning Bolt) and searched for
-// Lightning Bolt.
+// the chained search moves the FOREST -- never the Lightning Bolt.
 func TestInfernalTutorEngineSearchUsesTheChosenCard(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

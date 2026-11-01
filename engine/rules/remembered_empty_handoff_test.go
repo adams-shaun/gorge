@@ -32,10 +32,7 @@ Oracle:x
 // Remembered, at both halves of a suspension. The ask's resume point must
 // carry the chain's cleared set (resolution_ask.go copied it to nil, so the
 // answered frame rebuilt the stack object's seed), and a completed frame must
-// hand its empty set to the next frame on its Ctx (resolution.go handed nil
-// to every frame but a Repeat loop frame). Before the fix the FlipCoin's Sub
-// fell back to the stale trigger capture -- the probe itself -- and put a
-// +1/+1 counter on it although the chain had cleared it.
+// hand its empty set to the next frame on its Ctx.
 func TestEmptyRememberedHandoffIsAHandoff(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

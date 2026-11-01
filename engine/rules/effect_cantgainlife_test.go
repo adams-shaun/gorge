@@ -71,8 +71,7 @@ func TestEffectCantGainLifeOpponentScopeLetsControllerGain(t *testing.T) {
 // TestEffectCantGainLifeRememberedScope pins the IsRemembered resolution:
 // ValidPlayer$ Player.IsRemembered (Screaming Nemesis / Stigma Lasher) binds
 // exactly the player the Effect captured, and an EMPTY captured set binds
-// nobody (fail closed -- the pre-fix behaviour must never become
-// "nobody gains").
+// nobody (fail closed).
 func TestEffectCantGainLifeRememberedScope(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)

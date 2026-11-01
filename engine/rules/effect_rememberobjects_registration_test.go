@@ -7,11 +7,10 @@ import (
 )
 
 // TestEffectRememberObjectsRegistration pins the registration half of the
-// RememberObjects$ selector fix: an Effect that captures a Valid <filter>
-// set must register its continuous grant against exactly those remembered
+// RememberObjects$ selector fix: an Effect that captures a Valid <filter> set
+// must register its continuous grant against exactly those remembered
 // objects, through the same Affected$ Card.IsRemembered machinery the
-// Targeted case already used. Before the fix the selector was unresolved, so
-// the registered grant matched nobody.
+// Targeted case already used.
 //
 // The board deliberately puts an opponent-controlled creature (the captured
 // set) beside the controller's own creature (the control), and the test

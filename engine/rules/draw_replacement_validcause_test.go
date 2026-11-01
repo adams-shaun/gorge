@@ -30,11 +30,10 @@ func cycloneSetup(t *testing.T, top *cards.Card) (*Engine, state.ObjID) {
 	return e, topID
 }
 
-// TestUnpredictableCycloneOrdinaryDrawIsNotReplaced is the negative leaf the
-// report's probe measured as FAILING before the fix: with Unpredictable
-// Cyclone out, a plain draw (no spell or ability on the stack) is not caused
-// by any cycling ability, so it must NOT be replaced — exactly one Draw event
-// is emitted and the card reaches the hand.
+// TestUnpredictableCycloneOrdinaryDrawIsNotReplaced is the negative leaf:
+// with Unpredictable Cyclone out, a plain draw (no spell or ability on the
+// stack) is not caused by any cycling ability, so it must NOT be replaced —
+// exactly one Draw event is emitted and the card reaches the hand.
 func TestUnpredictableCycloneOrdinaryDrawIsNotReplaced(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

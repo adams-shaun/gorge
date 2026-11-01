@@ -431,18 +431,17 @@ func (e *Engine) candidateControllerSeat(candidate targetCandidate) state.Player
 // targetAsk share it so the two ask sites cannot drift.
 //
 // It returns the (possibly rewritten) bounds, whether the constraint applies
-// at all, and the DISTINCT-CONTROLLER count. The count is the real capacity of
-// the constraint: a TargetMin$/TargetMax$ spelled OneEach asks for exactly
-// that many, and BOTH shapes cap the effective maximum at it, because no legal
-// answer can ever select more targets than there are distinct controllers.
-// Without the cap (the pre-fix state) a TargetsWithDifferentControllers$ SA
-// with a literal TargetMin$ 2 | TargetMax$ 2 asked for two picks while
-// offering only one selectable group -- an unsatisfiable decision that no
-// intent could answer (Run Away Together, Kitsune, Dragon's Daughter).
-// Callers compare min against distinct (not the raw option count) to detect
-// that no legal set exists.
-// sameControllerTargetBounds applies the TargetsWithSameController$ set
-// constraint. Unlike the one-per-controller family, this permits multiple
+// at all, and the DISTINCT-CONTROLLER count. The count is the real capacity
+// of the constraint: a TargetMin$/TargetMax$ spelled OneEach asks for exactly
+// that many, and BOTH shapes cap the effective maximum at it, because no
+// legal answer can ever select more targets than there are distinct
+// controllers. Without the cap a TargetsWithDifferentControllers$ SA with a
+// literal TargetMin$ 2 | TargetMax$ 2 asked for two picks while offering only
+// one selectable group -- an unsatisfiable decision that no intent could
+// answer (Run Away Together, Kitsune, Dragon's Daughter). Callers compare min
+// against distinct (not the raw option count) to detect that no legal set
+// exists. sameControllerTargetBounds applies the TargetsWithSameController$
+// set constraint. Unlike the one-per-controller family, this permits multiple
 // picks from one group; its capacity is therefore the largest controller
 // group, not the number of groups. The capacity is returned separately so
 // callers can reject a mandatory ask without exposing an unsatisfiable

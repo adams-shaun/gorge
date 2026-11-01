@@ -117,14 +117,14 @@ func TestRememberedValidSharesAllCount(t *testing.T) {
 	}
 }
 
-// TestSharesAllCardTypesInstantSorcery is a regression test: the
-// probe must be the candidate's ACTUAL card types, not a fixed list. An
-// Instant and a Sorcery share NO card type, so neither matches and the
-// count reads 0 (before the fix both trivially passed a list with no
-// Instant/Sorcery entry and the count read 2 — the Covenant sacrificed
-// after milling two spells). Two instants DO share theirs: both match,
-// count 2. The intersection sibling sharesCardTypeWith is pinned on the
-// same vocabulary: two instants intersect, instant/sorcery does not.
+// TestSharesAllCardTypesInstantSorcery is a regression test: the probe must
+// be the candidate's ACTUAL card types, not a fixed list. An Instant and a
+// Sorcery share NO card type, so neither matches and the count reads 0
+// (against a list with no Instant/Sorcery entry both would trivially pass and
+// the count would read 2 — the Covenant sacrificing after milling two
+// spells). Two instants DO share theirs: both match, count 2. The
+// intersection sibling sharesCardTypeWith is pinned on the same vocabulary:
+// two instants intersect, instant/sorcery does not.
 func TestSharesAllCardTypesInstantSorcery(t *testing.T) {
 	h := newHost(t, 2)
 	bolt1 := h.g.AddObject(mkCard(t, "Name:Bolt\nTypes:Instant\nOracle:x\n"), 0)

@@ -60,12 +60,12 @@ func tokenETBEngine(t *testing.T, carrierName string) (*Engine, state.ObjID) {
 	return e, makerID
 }
 
-// TestPanharmoniconDoublesTokenETB pins a defect: a Panharmonicon
-// static whose ValidMode$ names ChangesZone/ChangesZoneAll must double an ETB
+// TestPanharmoniconDoublesTokenETB pins a defect: a Panharmonicon static
+// whose ValidMode$ names ChangesZone/ChangesZoneAll must double an ETB
 // trigger caused by a TOKEN entering. A token is minted by a TokenCreate
-// event (no MoveZone), so before the fix panharmoniconModes returned nil, the
-// Destination$ gate read the event's zero To (Library) and ValidCause$ had no
-// cause, and the echo never fired.
+// event (no MoveZone), so panharmoniconModes must not return nil; the
+// Destination$ gate would read the event's zero To (Library) and ValidCause$
+// would have no cause, and the echo never fired.
 //
 // The no-carrier control proves the mint fires exactly one non-echo trigger
 // (life +1); with the carrier the same mint must resolve twice (life +2).

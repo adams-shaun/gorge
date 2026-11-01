@@ -147,9 +147,8 @@ func drainPriority(t *testing.T, e *Engine, limit int) {
 
 // TestDefinedPlayerStateQualifierShatterTheSky is the reported symptom: "Each
 // player who controls a creature with power 4 or greater draws a card. Then
-// destroy all creatures." drew for NOBODY before the fix. Seat 0 controls a
-// 5/5 (draws), seat 1 a 2/2 (does not); the destroy-all half still sweeps
-// every creature.
+// destroy all creatures." Seat 0 controls a 5/5 (draws), seat 1 a 2/2 (does
+// not); the destroy-all half still sweeps every creature.
 func TestDefinedPlayerStateQualifierShatterTheSky(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _ := qualifierEngine(t, reg, "Shatter the Sky")

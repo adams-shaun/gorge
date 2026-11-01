@@ -11,10 +11,7 @@ import (
 // unswitchedCopySrc is a self-copying spell whose copy clause is the
 // UNSWITCHED shape — an UnlessCost$ with NO UnlessSwitched$. Its oracle is
 // the inverse of Chain Lightning's: "that player may pay {2}. If they don't,
-// you may copy this spell", so paying STOPS the copy and declining MAKES
-// one. Before the fix effCopySpellAbility treated this shape as if paying
-// caused the copy — exactly the inverted orientation this engine-level
-// carrier pins as wrong.
+// you may copy this spell", so paying STOPS the copy and declining MAKES one.
 const unswitchedCopySrc = `Name:Mimic
 ManaCost:1 R
 Types:Sorcery

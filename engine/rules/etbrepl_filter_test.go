@@ -93,8 +93,8 @@ func etbreplEngine(t *testing.T, reg *cards.Registry, hand ...string) (*Engine, 
 // Ascension defect on the real corpus card:
 //
 //   - casting Veiled Ascension leaves ZERO Flying counters on the
-//     ENCHANTMENT (the pre-fix expansion scoped the replacement to
-//     Card.Self, so the body acted on its own source), and
+//
+// ENCHANTMENT, and
 //   - a face-down creature that enters while Veiled Ascension is already on
 //     the battlefield gains ONE Flying counter from the replacement.
 //

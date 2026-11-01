@@ -69,8 +69,7 @@ func indexOfObjOption(d *decision.Decision, id state.ObjID) int {
 
 // TestTokenCreatedMirkwoodBatsLosesLifePerToken is the filing card: one Food
 // token mint -> each opponent loses exactly 1 life; a second mint in the same
-// turn loses 1 more (per-token firing, NOT once-per-turn). Before the fix the
-// trigger never fired and no life moved.
+// turn loses 1 more (per-token firing, NOT once-per-turn).
 func TestTokenCreatedMirkwoodBatsLosesLifePerToken(t *testing.T) {
 	t.Parallel()
 	bats := tokenReplCorpusCard(t, "Mirkwood Bats")

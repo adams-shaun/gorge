@@ -652,19 +652,18 @@ func TestPermanentSpellWhoseEntryIsFullyReplacedDoesNotStickOnTheStack(t *testin
 	}
 }
 
-// TestTotalityGuardSurvivesABroadGraveyardReplacement:
-// the totality guard's own escape hatch -- the Note
-// and the stack->graveyard MoveZone in resolveTop -- used to go through
-// e.emit with applyingReplacement left false, so a broad "any card that
-// would go to a graveyard from anywhere" replacement already in play (the
-// shipped corpus's Rest in Peace shape, graveyardBlockingReplacementSrc
-// above) matched the GUARD'S OWN cleanup move too and discarded it, the
-// exact same way the original ETB Move was discarded -- so the object never
-// actually left the stack and the guard's Note fired again on every single
-// re-resolution (measured pre-fix: passes=120, stack=[1], notes=60). The fix
-// runs those two emits with applyingReplacement held true, since they are
-// CR 608.2m engine housekeeping, not a further game event a card's own
-// replacement should get to intercept.
+// TestTotalityGuardSurvivesABroadGraveyardReplacement: the totality guard's
+// own escape hatch -- the Note and the stack->graveyard MoveZone in
+// resolveTop -- used to go through e.emit with applyingReplacement left
+// false, so a broad "any card that would go to a graveyard from anywhere"
+// replacement already in play (the shipped corpus's Rest in Peace shape,
+// graveyardBlockingReplacementSrc above) matched the GUARD'S OWN cleanup move
+// too and discarded it, the exact same way the original ETB Move was
+// discarded -- so the object never actually left the stack and the guard's
+// Note fired again on every single re-resolution. The engine runs those two
+// emits with applyingReplacement held true, since they are CR 608.2m engine
+// housekeeping, not a further game event a card's own replacement should get
+// to intercept.
 func TestTotalityGuardSurvivesABroadGraveyardReplacement(t *testing.T) {
 	t.Parallel()
 	e, _, id := newFixtureDeck(t, 104, fullyReplacedEntrySrc)

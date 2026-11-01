@@ -9,10 +9,7 @@ import (
 
 // CR 601.2h / 106.12, the TRIGGER-relative spelling (task ctms-refhead):
 // `TriggeredCard$CastTotalManaSpent` reads the total mana actually spent to
-// cast the spell a firing trigger is about. Before the fix evalRefProperty had
-// no arm for the property, so every one of the 21 corpus SVars of that exact
-// spelling (Aberrant Manawurm, Manaform Hellkite, Muse Seeker, Aetherflux
-// Conduit, ...) read the silent zero.
+// cast the spell a firing trigger is about.
 //
 // The fixture is the real corpus carrier Aberrant Manawurm, read at runtime
 // from .cards/ (never a committed .txt, per the licensing rule): its

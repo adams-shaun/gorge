@@ -221,9 +221,9 @@ func TestEvalCountZoneScopedForms(t *testing.T) {
 // against the shared-zone double-count: state.Game.Zone returns g.Stack for
 // EVERY seat, so the zone-count scan must visit the shared stack exactly
 // once, not once per alive seat. On the two-seat fixture below one spell on
-// the stack read 2 before the fix and reads 1 after (Mindbreak Trap's
-// MaxTgts = the number of spells on the stack; Display of Power's copy
-// count). The preconditions are asserted so a vacuous setup fails loudly.
+// the stack must read 1, not 2 (Mindbreak Trap's MaxTgts = the number of
+// spells on the stack; Display of Power's copy count). The preconditions are
+// asserted so a vacuous setup fails loudly.
 func TestEvalCountValidStackScansTheSharedStackOnce(t *testing.T) {
 	h := newHost(t, 2)
 	// Precondition: both seats are alive, so a per-seat walk visits two
@@ -549,16 +549,16 @@ func TestPlayerCountGroupAmountHeadCountsTheGroup(t *testing.T) {
 }
 
 // TestNumResolvedReadsBareInlineCountBody pins the direct-parameter spelling
-// of a bare count body: Tolarian Contempt writes its
-// TargetsForEachPlayer$ bound INLINE -- TargetMax$ PlayerCountOpponents$
-// Amount, no SVar name and no Count$ prefix -- and the Num grammar must
-// resolve it exactly as it resolves the SVar-mediated spelling of the same
-// body (Havoc Eater's SVar:X:PlayerCountOpponents$Amount behind
-// TargetMax$ X). Before the fix the bare inline form fell through every
-// recognised shape in NumResolved and returned (0, false), so the bound
-// degraded to the default 1 and the "for each opponent" ask collapsed to a
-// single target. A token naming no modelled head keeps the unresolvable
-// verdict so Num's degrade-to-zero contract is unchanged.
+// of a bare count body: Tolarian Contempt writes its TargetsForEachPlayer$
+// bound INLINE -- TargetMax$ PlayerCountOpponents$ Amount, no SVar name and
+// no Count$ prefix -- and the Num grammar must resolve it exactly as it
+// resolves the SVar-mediated spelling of the same body (Havoc Eater's
+// SVar:X:PlayerCountOpponents$Amount behind TargetMax$ X). Were the bare
+// inline form to fall through every recognised shape in NumResolved and
+// return (0, false), the bound would degrade to the default 1 and the "for
+// each opponent" ask would collapse to a single target. A token naming no
+// modelled head keeps the unresolvable verdict so Num's degrade-to-zero
+// contract is unchanged.
 func TestNumResolvedReadsBareInlineCountBody(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}
@@ -643,7 +643,7 @@ func TestThisTurnEnteredGraveyardCountsPermanentBase(t *testing.T) {
 		body string
 		want int32
 	}{
-		// Permanent is the Defect-2 carrier: 0 before the fix.
+		// Permanent is the carrier that must not read 0.
 		{"Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent", 1},
 		// Creature/Card are type/identity tests and were already 1; they
 		// must stay 1 so the fix does not regress the common shape.
