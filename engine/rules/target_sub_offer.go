@@ -54,14 +54,19 @@ func (e *Engine) RetargetLink(obj state.ObjID, link *cards.SA, ts []state.Target
 			kept = slices.Delete(kept, i, i+1)
 			continue
 		}
-		ev := events.Event{Kind: events.SubTargetRemoved, Obj: obj, Amount: 2}
-		if old.IsPlayer {
-			ev.Amount, ev.Player = 3, old.Player
-		} else {
-			ev.IDs = []state.ObjID{old.Obj}
-		}
-		e.emit(ev)
+		e.removeSubTarget(obj, old)
 	}
 	e.recordCastSub(obj, link.Line, ts)
 	e.recordSubTargets(obj, kept)
+}
+
+// removeSubTarget takes one entry out of obj's flat Object.SubTargets.
+func (e *Engine) removeSubTarget(obj state.ObjID, t state.Target) {
+	ev := events.Event{Kind: events.SubTargetRemoved, Obj: obj, Amount: 2}
+	if t.IsPlayer {
+		ev.Amount, ev.Player = 3, t.Player
+	} else {
+		ev.IDs = []state.ObjID{t.Obj}
+	}
+	e.emit(ev)
 }

@@ -23,9 +23,10 @@ import (
 // hands each half exactly the targets chosen FOR it (the same split a cast
 // publishes at payment). Each CHAINED declaration's answer is the copy's
 // record for that link (castSubTargets, which resolution consumes line by
-// line) and a sub-target TargetsChosen that folds into Object.SubTargets, the
-// shape a cast's installSubPreAsk/recordSubTargets leave. chosen is the last
-// answer given, the fallback when no root declaration was answered.
+// line) and a sub-target TargetsChosen that folds into Object.SubTargets in
+// place of the link's inherited entries, the shape a cast's
+// installSubPreAsk/recordSubTargets leave. chosen is the last answer given, the
+// fallback when no root declaration was answered.
 func (e *Engine) finishCopyTargets(obj state.ObjID, chosen []decision.Option) {
 	ans := e.copyAnswerTargets[obj]
 	rootDecls, chainDecls := e.copyDeclarationSplit(e.G.Obj(obj))
@@ -63,6 +64,9 @@ func (e *Engine) finishCopyTargets(obj state.ObjID, chosen []decision.Option) {
 		ts := []state.Target{}
 		if idx := len(rootDecls) + i; idx < len(ans) {
 			ts = targetOptions(ans[idx])
+		}
+		for _, old := range e.castSubTargets[obj][sa.Line] {
+			e.removeSubTarget(obj, old)
 		}
 		e.recordCastSub(obj, sa.Line, ts)
 		e.recordSubTargets(obj, ts)

@@ -151,8 +151,8 @@ type engineTriggerMaps struct {
 	// candidate at cast time) and still consumes its line. Engine-only
 	// scratch in the fuseTargets discipline: rebuilt by replay because the
 	// cast flow re-executes, cloned with the engine at intent boundaries,
-	// removed when the stack object leaves the stack. A stack COPY of the
-	// spell has no entry and falls back to the mid-resolution asking path.
+	// removed when the stack object leaves the stack. A stack COPY takes its
+	// original's entry under its own id (CR 707.10).
 	castSubTargets map[state.ObjID]map[string][]state.Target `clone:"deep"`
 	// resolutionTargets holds the target lists resolveTop resolved a stack
 	// object against when they differ from what a resume would rebuild (an

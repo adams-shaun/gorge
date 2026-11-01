@@ -1130,34 +1130,47 @@ func (e *Engine) copyRootDeclarations(o *state.Object) []*cards.SA {
 	return []*cards.SA{sa}
 }
 
-// copyChainRoot returns the root of the SubAbility$ chain a copy announces
-// new targets for, nil when the copy's shape keeps the chain on its
-// resolution-time ask: an ability copy, a Fuse copy (two halves, no chain walk
-// on cast either), an overloaded copy ("target" reads "each", CR 702.96a) and a
-// Charm (its modes are the declarations). These mirror castSubAskLinks.
-func copyChainRoot(e *Engine, o *state.Object) *cards.SA {
-	if o == nil || o.Ability != nil || o.CastFlags&(state.FlagFused|state.FlagOverloaded) != 0 || len(o.ChosenModes) > 0 {
+// copyChainRoots returns the roots of the SubAbility$ chains a copy announces
+// new targets for: the ability's or the spell's own root, or each chosen mode of
+// a Charm (its modes are the root declarations). A fused copy (two halves, no
+// chain walk on cast either) and an overloaded one ("target" reads "each", CR
+// 702.96a) have none.
+func copyChainRoots(e *Engine, o *state.Object) []*cards.SA {
+	if o == nil || o.CastFlags&(state.FlagFused|state.FlagOverloaded) != 0 {
 		return nil
 	}
-	f := o.Face()
-	if f == nil {
+	root, face := o.Ability, o.Face()
+	if root != nil {
+		if src := e.G.Obj(o.Source); src != nil {
+			face = src.Face()
+		}
+	} else if face != nil {
+		root = stackSpellSA(o, face)
+	}
+	if root == nil || face == nil {
 		return nil
 	}
-	if root := stackSpellSA(o, f); root != nil && root.API != "Charm" {
-		return root
+	if !isCharmWithChoices(root) {
+		return []*cards.SA{root}
 	}
-	return nil
+	var modes []*cards.SA
+	for _, name := range o.ChosenModes {
+		if mode := cards.ResolveSVar(face.SVars, name); mode != nil {
+			modes = append(modes, mode)
+		}
+	}
+	return modes
 }
 
 // copyChainDeclarations is the copy's chained target declarations, in chain
-// order: the links the cast announced (collectSubTargetPreAsks, minus those
-// castSubPreAskable keeps on the resolution path), minus the ones an unpaid
-// Kicked/OptionalCost cost excuses. The cast mode is rebuilt from the copy's
-// inherited cast flags so castSubTargetsOwed judges the copy as it judged the
-// original.
+// order: the links the original announced, whose answers the copy inherited
+// (castSubTargets), minus the ones an unpaid Kicked/OptionalCost cost excuses.
+// The cast mode is rebuilt from the copy's inherited cast flags so
+// castSubTargetsOwed judges the copy as it judged the original. A link the
+// original keeps on its resolution-time ask has no record and is asked there.
 func copyChainDeclarations(e *Engine, o *state.Object) []*cards.SA {
-	root := copyChainRoot(e, o)
-	if root == nil {
+	announced := e.castSubTargets[o.ID]
+	if len(announced) == 0 {
 		return nil
 	}
 	probe := &pendingCast{}
@@ -1169,11 +1182,12 @@ func copyChainDeclarations(e *Engine, o *state.Object) []*cards.SA {
 	case o.CastFlags&state.FlagOptionalCostPaid != 0:
 		probe.mode = "optionalcost"
 	}
-	svars := o.Face().SVars
 	var out []*cards.SA
-	for _, sub := range e.collectSubTargetPreAsks(root) {
-		if !subTargetingRootUnbindable(sub, svars) && castSubTargetsOwed(probe, sub) {
-			out = append(out, sub)
+	for _, root := range copyChainRoots(e, o) {
+		for sa := root.Sub; sa != nil; sa = sa.Sub {
+			if _, ok := announced[sa.Line]; ok && effects.TargetsOf(sa).Targeted() && castSubTargetsOwed(probe, sa) {
+				out = append(out, sa)
+			}
 		}
 	}
 	return out
