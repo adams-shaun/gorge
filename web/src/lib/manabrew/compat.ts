@@ -10,7 +10,7 @@ import type { AgentPrompt, AvailableAction, ClientMessage } from './wire';
  *
  * "Nothing to do" is an empty action list, or one holding only mana
  * abilities (and undoing mana already made): mana with nothing to spend it
- * on is not a play (operator ruling 2026-09-29). A cast or a non-mana
+ * on is not a play. A cast or a non-mana
  * ability means the prompt is shown as usual.
  *
  * A client-side setting, default ON, active only on the ManaBrew wire;

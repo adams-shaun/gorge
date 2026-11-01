@@ -134,7 +134,7 @@
   // Summoning sickness is a CREATURE fact (CR 302.6): a noncreature land's
   // engine-side flag is invisible to every player action — a sick land still
   // taps for mana — and printing the chip on one made a basic land read as
-  // unable to act (fb-20260917T004545Z).
+  // unable to act.
   const states = $derived(
     [
       card.tapped ? 'tapped' : null,

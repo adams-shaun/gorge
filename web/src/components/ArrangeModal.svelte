@@ -6,7 +6,7 @@
   import CardImage from './CardImage.svelte';
 
   /**
-   * ArrangeModal is the arrange popup (brief Job 4): the card-face surface
+   * ArrangeModal is the arrange popup: the card-face surface
    * for a KArrange decision — the top-of-library reorder, Scry and Surveil
    * asks. It is portalled to body like PileModal (the rail cannot clip it)
    * and carries the modal guard markers, so the document hotkeys cannot act
@@ -36,7 +36,7 @@
    * a pure reorder, because the pool it would drop to does not exist).
    * Hovering a face shows it large beside the rows (the reporter's
    * "mouseover for full card art"), with the printed description beneath it
-   * (fb-20260914T063020Z Job 2: art AND description — resolved by name
+   * (art AND description — resolved by name
    * through lib/oracle, the way CardDetail resolves its oracle block; no
    * catalog renders no block).
    */
@@ -101,7 +101,7 @@
   }
 
   // The preview's printed description, resolved by name through the catalog
-  // (fb-20260914T063020Z: the reporter asked for art AND description; the
+  // (the reporter asked for art AND description; the
   // aside had only art and the name). Best-effort like CardDetail's oracle:
   // the default resolver is the async catalog, which with no meta tag
   // resolves null without a request, and the block renders nothing until a

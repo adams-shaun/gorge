@@ -28,8 +28,7 @@
     /** Transcript events handed straight through to Rail (and so to
      *  SeatTable's lossCauses) — the lost-seat fixture variant uses one real
      *  `player_lost` event carrying the longest real cause text so the
-     *  eliminated line is measured with the widest content it ever holds
-     *  (fb-20260917T232028Z round-2 overflow finding). */
+     *  eliminated line is measured with the widest content it ever holds. */
     events = [],
   }: {
     view: View;

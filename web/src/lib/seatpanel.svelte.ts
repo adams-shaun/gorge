@@ -81,10 +81,10 @@ function safeSessionStorage(): Storage | null {
  * SeatPanelState is everything a human seat answers with. It holds the
  * pending decision (adopted from view.decision, refreshed from /pending),
  * the user's picked options, the concede-confirmation and posted states,
- * and posts the intent. It is deliberately rules-ignorant (R-E4-2): the
+ * and posts the intent. It is deliberately rules-ignorant: the
  * options are the server's verbatim, the only selection constraints are the
  * decision's own min/max, and no option is ever chosen by position — the
- * primary button resolves its option by kind, never by index (R-E4-1), and
+ * primary button resolves its option by kind, never by index, and
  * the concede option is the LAST one on the wire precisely so that a client
  * which defaulted to the last option would concede on the very first
  * priority window. This module never does that: nothing selects, preselects
@@ -140,7 +140,7 @@ export class SeatPanelState {
    * state is its one home because it is the one place BOTH posting surfaces
    * meet: a hand click on a card's tile posts through click() exactly as a
    * click on the panel's own option button does, so arming here makes the
-   * tile and the panel behave identically (fb-20260923T050205Z: a treasure
+   * tile and the panel behave identically (a treasure
    * activated from the seat panel never armed it, so the colour ask fell
    * back to the panel's plain button list instead of raising the radial mana
    * wheel).
@@ -148,7 +148,7 @@ export class SeatPanelState {
    * The one rule: a HAND post whose answered option is of a kind that can
    * hand back a same-object mana ask (followUpArm / MANA_FOLLOW_UP_KINDS:
    * `activate` or `mana`) arms the expectation with that option's own obj
-   * (R-E4-1 — never a rebuilt position). Machine posts (auto, the one-shot runs, the empty-window
+   * (never a rebuilt position). Machine posts (auto, the one-shot runs, the empty-window
    * floor, passClick/primaryClick, the auto-order and remembered-trigger
    * submits) arm nothing: they post pass/resolve answers, whose options carry
    * no obj, and they never reach a hand post's arming branch regardless.
@@ -168,7 +168,7 @@ export class SeatPanelState {
   followUpExpected: { seq: number; obj: number } | null = null;
   /** onFollowUpArm is called with every hand post's arm (null disarms); the route mirrors it into its decode effect's own state. */
   onFollowUpArm: ((arm: { seq: number; obj: number } | null) => void) | null = null;
-  /** confirming arms the concede option's required second confirmation (R-E4-1). */
+  /** confirming arms the concede option's required second confirmation. */
   confirming = $state(false);
   /** error surfaces a rejected intent — never swallowed (a stale seq must be seen and recovered from, not silently dropped). */
   error = $state<string | null>(null);
@@ -309,8 +309,8 @@ export class SeatPanelState {
    * objects that were already on the stack when the run started (null for
    * every other run). decide() skips its stack rules for these ids, so the
    * run plays through the stack as it stands; a NEW opponent object (an id
-   * not in the set) stops the run per the settings, exactly as the brief
-   * specifies. Reset on every other run start and on begin().
+   * not in the set) stops the run per the settings.
+   * Reset on every other run start and on begin().
    */
   private resolveAllIds: ReadonlySet<number> | null = null;
   /** note is what the panel says about automatic action, as a value — autoNoteText turns it into words. */
@@ -339,7 +339,7 @@ export class SeatPanelState {
   yieldList = $state<string[]>([]);
 
   /**
-   * arrangeOpen is the arrange popup's open flag (brief Job 4). It lives on
+   * arrangeOpen is the arrange popup's open flag. It lives on
    * the shared state rather than on the SeatPanel component because a
    * component-local `$state` is undeclarable there (the component's own
    * `state` prop makes the rune ambiguous) and because both surfaces that
@@ -349,7 +349,7 @@ export class SeatPanelState {
   arrangeOpen = $state(false);
 
   /**
-   * discardOpen is the discard-pick modal's open flag (fb-20260918T201739Z),
+   * discardOpen is the discard-pick modal's open flag,
    * the twin of arrangeOpen: the same shared-state reasons (a component-local
    * `$state` is undeclarable in SeatPanel; the board and strip surfaces mount
    * against one state object) and the same reset sites — a new decision and
@@ -366,8 +366,8 @@ export class SeatPanelState {
   private autoOrderedSeq: number | null = null;
 
   /**
-   * remembered is the player's remembered trigger answers (lib/remembered.ts,
-   * fb-20260914T062319Z-88b4069a part B): one answered option index per full
+   * remembered is the player's remembered trigger answers (lib/remembered.ts):
+   * one answered option index per full
    * prompt, so an optional trigger that recurs every turn is answered once
    * and auto-answered ever after. Loaded from the ONE global localStorage key
    * at construction (SSR and a browser that refuses site data pass null and
@@ -378,8 +378,8 @@ export class SeatPanelState {
   remembered = $state<RememberedStore>(emptyRemembered());
 
   /**
-   * rememberChoice is the remember checkbox on a trigger_optional prompt
-   * (B4): when checked, the answer about to be posted is stored under the
+   * rememberChoice is the remember checkbox on a trigger_optional prompt:
+   * when checked, the answer about to be posted is stored under the
    * prompt's key. Default OFF — remembering is an explicit act, never a
    * side effect of answering. Reset on every newly adopted decision, so a
    * checkbox left ticked on one ask never silently remembers the next,
@@ -388,8 +388,8 @@ export class SeatPanelState {
   rememberChoice = $state(false);
 
   /**
-   * searchFilter is the library-search picker's display-only filter text
-   * (fb-20260916T181754Z): a case-insensitive substring over the search
+   * searchFilter is the library-search picker's display-only filter text:
+   * a case-insensitive substring over the search
    * options' card-name labels, consumed by lib/search.ts's searchOptions to
    * build the DISPLAY list. It is deliberately not part of the answer: it
    * never touches `picked`, the submit gate or the posted intent — the
@@ -479,7 +479,7 @@ export class SeatPanelState {
    * seqHigh is the highest decision seq this seat has adopted or posted in
    * the current seq space. adopt() refuses anything older: within one space
    * seqs only grow, so an older decision is a stale view re-offering an ask
-   * already answered (the 2026-09-24 g2 freeze: the board SeatPanel's mount
+   * already answered (the board SeatPanel's mount
    * re-adopted the auto-ordered trigger_order over the target ask the poll
    * had just delivered). begin() resets it, because a rewind or a match
    * boundary opens a new space where a lower seq is legitimate again.
@@ -1028,7 +1028,7 @@ export class SeatPanelState {
    * stack is non-empty, playing through the objects ALREADY on it — the
    * arm-time stack ids are captured here and decide() skips its stack
    * rules for them. It stops on a NEW opponent object (an id not in the
-   * baseline, judged by the settings — the brief's "an object id not
+   * baseline, judged by the settings — "an object id not
    * present when Resolve All was pressed"), on any non-priority decision,
    * on Escape, at the shared pass cap — and it ENDS when the stack is
    * empty, which is the run's own expiry (expireRun). A priority decision
@@ -1195,7 +1195,7 @@ export class SeatPanelState {
     // above and before expireRun, so a run that would otherwise stop on this
     // non-priority decision is cancelled by the submit path itself.
     if (this.maybeAutoOrderTriggers()) return;
-    // The remembered-answer auto-reply gets the same second chance (B5): a
+    // The remembered-answer auto-reply gets the same second chance: a
     // decision adopted while a post was still in flight returned false at
     // adopt() (busy), and this retry covers the rapid-successive-ask hole the
     // auto-order closes the same way. A decision that already auto-answered
@@ -1253,7 +1253,7 @@ export class SeatPanelState {
         this.autoActedSeq = null;
         this.note = runStopNote(mode, verdict.reason);
       } else {
-        // The stop-set note names the actionable option(s) (fb-20260916T225211Z):
+        // The stop-set note names the actionable option(s):
         // a smart step stop fired because this window offered a real play —
         // say what the play is, so "why did it pause on my own priority" is
         // answered on the panel. A 'forced' stop with nothing to do, and every
@@ -1406,7 +1406,7 @@ export class SeatPanelState {
       yields: this.yields,
       baselineStack: this.oneShot === 'resolve-all' ? (this.resolveAllIds ?? undefined) : undefined,
       // The one-shot runs are the player's explicit machine-plays-my-turn
-      // consent (fb-20260917T231311Z-e392fcc0): they bypass the own-turn
+      // consent: they bypass the own-turn
       // main-phase floor. Persistent Auto keeps the default (the floor
       // applies); ffwd never reaches here.
       skipOwnTurnFloor: this.oneShot !== 'none',
@@ -1796,7 +1796,7 @@ export class SeatPanelState {
   }
 
   /**
-   * maybeRememberedTrigger is the remembered-answer auto-reply (B5). When
+   * maybeRememberedTrigger is the remembered-answer auto-reply. When
    * the pending decision is a trigger_optional whose full-prompt key has a
    * remembered entry, the remembered option is posted through the ordinary
    * post() path — a normal visible submit, never a silent state write — with
@@ -1834,7 +1834,7 @@ export class SeatPanelState {
 
   /**
    * rememberAnswer stores the answer the seat is about to post for a
-   * trigger_optional decision under the prompt's key (B4). Only ever called
+   * trigger_optional decision under the prompt's key. Only ever called
    * from click()'s post-on-click path with rememberChoice checked, so the
    * choice is a real user answer, never a machine one. The write goes
    * through setRemembered so the store and the localStorage key move
@@ -1853,12 +1853,12 @@ export class SeatPanelState {
     saveRemembered(this.storage, next);
   }
 
-  /** removeRemembered is the management list's per-entry delete (B4): one key forgotten and persisted. */
+  /** removeRemembered is the management list's per-entry delete: one key forgotten and persisted. */
   removeRemembered(key: string) {
     this.setRemembered(withoutRemember(this.remembered, key));
   }
 
-  /** clearRemembered is the management list's clear-all (B4): the whole store emptied and persisted. */
+  /** clearRemembered is the management list's clear-all: the whole store emptied and persisted. */
   clearRemembered() {
     this.setRemembered(emptyRemembered());
   }
@@ -1905,7 +1905,7 @@ export class SeatPanelState {
    * was ever drawn to commit it or to decline — the seat could select its
    * attacker and then had no way forward at all. Attacking with two creatures
    * was fine, which is why it went unseen. KAttackers also carries no `pass`
-   * or `resolve` option, so the primary-by-kind button (R-E4-1) is not there
+   * or `resolve` option, so the primary-by-kind button is not there
    * to fall back on.
    */
   get showSubmit(): boolean {
@@ -1913,13 +1913,13 @@ export class SeatPanelState {
     return d !== null && d.seq !== this.postedSeq && !(d.min === 1 && d.max === 1);
   }
 
-  /** canSubmit gates the submit button on the decision's OWN min/max — the only selection constraints the client may enforce (R-E4-2). */
+  /** canSubmit gates the submit button on the decision's OWN min/max — the only selection constraints the client may enforce. */
   get canSubmit(): boolean {
     const d = this.pending;
     return d !== null && this.picked.length >= d.min && this.picked.length <= d.max;
   }
 
-  /** click handles one option click. A single-required-option decision posts immediately (the click IS the answer); a multi-pick toggles into `picked` for submit. The concede option never posts on the first click (R-E4-1). Passing `holdPriority` (Ctrl held) skips the pass-after-acting arming for this one action. */
+  /** click handles one option click. A single-required-option decision posts immediately (the click IS the answer); a multi-pick toggles into `picked` for submit. The concede option never posts on the first click. Passing `holdPriority` (Ctrl held) skips the pass-after-acting arming for this one action. */
   click(index: number, opts?: { holdPriority?: boolean }) {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
@@ -1952,7 +1952,7 @@ export class SeatPanelState {
     this.handAnswer();
     this.confirming = false;
     if (d.min === 1 && d.max === 1) {
-      // The remember checkbox (B4): a trigger_optional answered with the box
+      // The remember checkbox: a trigger_optional answered with the box
       // ticked stores the chosen index under the prompt's key BEFORE the
       // post, so the store records what the player answered, not whether the
       // server accepted it — an answer that stores then rejects is still the
@@ -1998,7 +1998,7 @@ export class SeatPanelState {
 
   /**
    * setPicked replaces the picked set wholesale, in the given order — the
-   * arrange surface's write path (brief Job 4): the popup's final keep order
+   * arrange surface's write path: the popup's final keep order
    * IS the answer, so it must be writable as an order, not rebuilt click by
    * click. Every index must be an option of the pending decision and no
    * index may repeat — anything else is a programming error in the surface
@@ -2178,14 +2178,14 @@ export class SeatPanelState {
       // panel (pending was cleared, the restored decision re-adopted).
       if (epoch !== this.seqEpoch) return;
       this.postedSeq = d.seq;
-      // The armed card-follow-up expectation (fb-20260923T050205Z) lives on
+      // The armed card-follow-up expectation lives on
       // the ACCEPTED hand post: a card action can hand the server a follow-up
       // decision for the same object (a treasure's activate -> its colour
       // ask; a multi-ability mana source's stage-1 pick -> its stage-2
       // wheel), and the seat panel's own option buttons post through exactly
       // this path, so arming here covers the panel exactly as the tile path
-      // used to. The obj is the answered option's OWN wire obj (R-E4-1,
-      // never a rebuilt position), and only an `activate`/`mana` answer arms
+      // used to. The obj is the answered option's OWN wire obj
+      // (never a rebuilt position), and only an `activate`/`mana` answer arms
       // (followUpArm); every other answer disarms instead, so a stale
       // expectation can never survive into an unrelated window. Only a hand
       // post arms: the machine paths post a pass/resolve index and their

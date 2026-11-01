@@ -15,11 +15,11 @@
    * face a board tile shows, in a wrapping grid — not a text index; a pile
    * is cards, not a table of contents.
    *
-   * Piles are also ACTIONABLE (fb-20260916T225802Z): with the table's
+   * Piles are also ACTIONABLE: with the table's
    * card-options bundle (options), a pile card the pending decision offers
    * something to wears the tone ring and carries the HandFan affordance —
    * one offer is a direct action icon, several a badge + menu, every item
-   * posting the option's own wire index (R-E4-1). A target option on a card
+   * posting the option's own wire index. A target option on a card
    * in ANY seat's pile glows there too (not gated by pile owner); the
    * engine validates every posted option, so a stale highlight can never do
    * damage. Without options (spectator, nothing pending) the pile is the
@@ -48,7 +48,7 @@
      *  (not gated by pile owner; the engine validates every posted option) —
      *  wears the tone ring and carries the HandFan options affordance:
      *  one offer is a direct action icon, several a badge + menu, each item
-     *  posting the option's OWN wire index (R-E4-1 — never a rebuilt
+     *  posting the option's OWN wire index (never a rebuilt
      *  position). Null for a spectator / nothing pending: the pile stays a
      *  reading surface. */
     options?: CardOptions | null;
@@ -156,7 +156,7 @@
                direct icon + menu), adapted to the pile grid: the affordance
                is a SIBLING of the inspector button (a real button is never
                nested inside one), anchored to the card's top edge. Every
-               menu item posts the option's own wire index, R-E4-1. -->
+               menu item posts the option's own wire index. -->
           {@const opt = options ? tileOptions(options, card.id) : null}
           {@const later = opt?.later ?? []}
           {@const total = (opt?.list.length ?? 0) + later.length}

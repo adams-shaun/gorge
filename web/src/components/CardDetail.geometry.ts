@@ -65,7 +65,7 @@ const squire: CardView = {
 };
 
 // A hand-card-like anchor: near the bottom of the board, so the roomier side
-// is above it and placePanel must open UPWARD (ui20). The 190px offset keeps
+// is above it and placePanel must open UPWARD. The 190px offset keeps
 // the panel tall enough that the 63:88 plate fits inside the room above at
 // every viewport the client supports, while the plate+ledger content is still
 // taller than that room — the exact shape that used to crop the plate.

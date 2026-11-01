@@ -8,7 +8,7 @@
   /**
    * Transcript.scroll.fixture.svelte: the live-tail follower and the paused
    * cursor follower of the transcript's scroll behaviour
-   * (fb-20260928T043757Z, "the log should follow its end"). The hover
+   * ("the log should follow its end"). The hover
    * fixture's mount is static — two lines, no scrollable ancestor — so it
    * cannot drive a scroll assertion. This fixture mounts the production
    * Transcript inside a bounded `overflow-y:auto` wrapper that mimics

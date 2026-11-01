@@ -4,7 +4,7 @@ import '../app.css';
 import SeatBox from './SeatBox.svelte';
 import PileHost from './PileHost.svelte';
 
-// The viewer's own seat as captured in fb-20261006T101047Z-cd69ff29: one card
+// The viewer's own seat as captured in a player's bug report: one card
 // in hand, 72 in the library, 9 in the graveyard, 10 in exile, and a floating
 // pool of three black mana that can only pay for Demon/Cleric/Vampire spells
 // (the persistent restriction text is what used to crowd the counts line).

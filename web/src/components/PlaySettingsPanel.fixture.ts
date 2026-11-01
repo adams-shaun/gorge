@@ -14,7 +14,7 @@ import { SeatPanelState } from '../lib/seatpanel.svelte';
 const state = new SeatPanelState('t1', 1, { seat: 0, token: 'tok' }, null);
 (window as unknown as { playSettingsState: SeatPanelState }).playSettingsState = state;
 
-// The game log switch (fb-20260917T231628Z) is wired to window-owned props so
+// The game log switch is wired to window-owned props so
 // the playwright test can prove a real click reaches the write path without
 // re-mounting: showLog is a static false (the seated default) and every call
 // of onToggleLog increments the counter the test reads back.

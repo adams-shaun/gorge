@@ -16,7 +16,7 @@
    * PileHost, mounted by Table.svelte — the identity bar's pile icons open
    * the same instance, so a pile cannot open twice at once) rather than
    * expanding the rail. All four zone counts (hand, library, graveyard,
-   * exile) sit on ONE line beside the life pill (fb-20260917T232028Z — the
+   * exile) sit on ONE line beside the life pill (the
    * player asked for a single row per seat instead of the old two-high
    * stack), so a seat box is one text-line tall and the name — not a count —
    * is what flexes when the rail is narrow.
@@ -30,7 +30,7 @@
    * for seats that are already out of the game.
    *
    * The pile buttons wear the same tone ring the identity bar's pile icons
-   * wear (fb-20260916T225802Z): when the pending decision offers something
+   * wear: when the pending decision offers something
    * to a card in the pile (pileTone over the table's card-options bundle,
    * the same data and the same rule — not gated by pile owner). options is
    * optional and null by default so every existing caller renders exactly
@@ -163,7 +163,7 @@
      min-content width and the ellipsis does the truncation work at any rail
      width); the life pill and the four-count line never flex. The old table
      with its fixed 2.45rem life band and 5.1rem two-column zones cell is
-     gone with the two-high stack (fb-20260917T232028Z) — a seat row is one
+     gone with the two-high stack — a seat row is one
      text-line tall and the rail's floor is the counts' content. */
   ul { margin: 0; padding: 0; list-style: none; }
   li[data-seat-row] { display: flex; align-items: center; padding: 1px 0; color: var(--ink-inst); white-space: nowrap; }
@@ -185,7 +185,7 @@
      its icon and number stay together, without changing pile actionability. */
   .pill { box-sizing: border-box; min-width: 12px; height: 12px; padding: 0 2px; border: 1px solid var(--ink-dim); border-radius: 999px; line-height: 1; }
   .pile:hover { color: var(--ink-inst); }
-  /* The perimeter tone ring (fb-20260916T225802Z), the card-tile register:
+  /* The perimeter tone ring, the card-tile register:
      a pending decision offering something to a card in this pile. */
   .pile[data-tone='initiative'] {
     box-shadow: 0 0 0 2px var(--initiative);
@@ -196,7 +196,7 @@
   [data-hand-hidden] { color: var(--ink-faint); }
   li.lost .name, li.lost .life { text-decoration: line-through; color: var(--ink-faint); }
   /* The row is nowrap for the name/counts; the lost-cause line must WRAP
-     inside the name box instead (fb-20260917T232028Z round-2 finding): the
+     inside the name box instead: the
      longest real cause ("commander damage (21 or more from one commander)",
      lib/seattable.ts) painted past the counts and the rail at the floor
      while inheriting nowrap — the pre-one-line table wrapped it, so wrap it

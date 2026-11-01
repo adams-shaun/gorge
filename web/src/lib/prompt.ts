@@ -2,7 +2,7 @@ import type { Decision, View } from '../protocol';
 import { everyVisibleCard } from './board';
 
 /**
- * prompt.ts is the prompt-context vocabulary (brief Job 3): what a prompt
+ * prompt.ts is the prompt-context vocabulary: what a prompt
  * surface needs to say about a decision beyond its own text — the source
  * card the decision resolves for, and the shape of the answer the engine
  * expects. Both come from fields already on the wire: `Decision.source`
@@ -95,7 +95,7 @@ export function sourceNameOf(d: Decision, view: View): string | null {
 }
 
 /**
- * sourceCause is the best-effort CAUSE line (brief Job 3): what kind of
+ * sourceCause is the best-effort CAUSE line: what kind of
  * thing is asking. When the source sits on the stack, its StackView.kind
  * says whether the ask came from a resolving spell, a triggered ability or
  * an activated ability — the one cause fact the wire already carries, with

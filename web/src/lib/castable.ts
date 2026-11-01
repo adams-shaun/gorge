@@ -20,7 +20,7 @@ import type { Decision, Option, PlayerView, PotentialAction, View } from '../pro
  * This module deliberately re-derives NOTHING. Its predecessor priced hand
  * cards from printed `mana_cost` on the client and drifted from the engine on
  * every cost rule the engine owns: Thalia's live RaiseCost (the Jitte report,
- * fb-20260914T145022Z — the client stopped a window the engine correctly
+ * where the client stopped a window the engine correctly
  * refused), a Medallion's live ReduceCost (the client passed a window the
  * engine would act in), every activation without a {T} in its printed cost
  * (Equip, manland animation), command-zone and graveyard (flashback) casts,
@@ -131,7 +131,7 @@ export function respondableAfterTap(view: View, seat: number): boolean {
 }
 
 /**
- * castablesAfterTap is castableAfterTap's descriptive twin (fb-20260916T225211Z):
+ * castablesAfterTap is castableAfterTap's descriptive twin:
  * the SAME projection castableAfterTap tests, returned as the human labels of
  * what would become playable -- the server's own offer label for every real
  * play (isPotentialPlay) in the seat's potential_actions, suffixed "(after

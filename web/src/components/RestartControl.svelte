@@ -2,7 +2,7 @@
   import { pointerRelease } from '../lib/pointer';
   /**
    * The seated player's page-level Restart control: the ARM-then-CONFIRM
-   * two-step (the same R-E4-1 shape as ConcedeControl, because confirming
+   * two-step (the same shape as ConcedeControl, because confirming
    * navigates the player away from the current table). Presentational only —
    * the armed state, the busy flag and the POST itself stay with the route,
    * Table.svelte, which passes the two callbacks in.

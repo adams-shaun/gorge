@@ -33,7 +33,7 @@
   let badgeEl = $state<HTMLButtonElement | null>(null);
   const tapAction = $derived(collapseTapActions ? singleTapOptionOf(tileOptions) : null);
   // later: the card's abilities the engine would offer once mana floats
-  // (cardoptions.laterByObj, fb-20260923T033148Z). Shown as disabled rows
+  // (cardoptions.laterByObj). Shown as disabled rows
   // after the live options; while any exist the card never acts directly, so
   // Mount Doom's lone mana option cannot spend the {T} its damage ability
   // needs on a click meant to find that ability.
@@ -60,7 +60,7 @@
   // The optional chain is load-bearing: when a decision swap takes a tile's
   // options away, this effect can run once with tileOptions null before the
   // parent's {#if} unmounts the picker, and a throw here aborts the whole
-  // Svelte flush -- the board stops re-rendering (the 2026-09-24 g2 freeze).
+  // Svelte flush -- the board stops re-rendering.
   $effect(() => {
     if (!tileOptions?.autoOpen) return;
     open = true;
@@ -72,7 +72,7 @@
   }
 
   /** choose posts one option; Ctrl held (holdPriority) skips pass-after-acting for this one cast/ability (prio3).
-   *  A selection option (an attacker declaration, fb-20260923T020152Z) is a
+   *  A selection option (an attacker declaration) is a
    *  pick in a still-pending multi-pick decision, so the picker stays open
    *  for the next pick; an ordinary action posts and closes as before. */
   function choose(option: Option, holdPriority = false): void {
@@ -125,7 +125,7 @@
     return { destroy: () => node.remove() };
   }
 
-  /** Immediate help-bubble placement (fb-20260917T232800Z). The bubble sits
+  /** Immediate help-bubble placement. The bubble sits
    * in the same portaled radial layer as its button — a tooltip child of the
    * button would be clipped by .wheel-button's overflow: hidden — anchored to
    * the button's own radial coordinates: centred above it when there is room,
@@ -214,7 +214,7 @@
             >
               {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{wheelFace(opt)}</span>{/if}
             </button>
-            <!-- Immediate help bubble (fb-20260917T232800Z): the option's own
+            <!-- Immediate help bubble: the option's own
                  label, revealed the moment the pointer enters or the button
                  takes keyboard focus — no dwell delay, no native title (the
                  ~1s browser tooltip this feedback replaced). Sibling of the
@@ -350,7 +350,7 @@
      are untouched; :hover and :focus-within on the slot are what reveal the
      bubble (an ancestor of the hovered/focused button is in the hover chain
      even at zero size, so no JS is involved and the reveal is immediate —
-     zero dwell, the point of fb-20260917T232800Z). */
+     zero dwell). */
   .wheel-slot { pointer-events: none; }
   .wheel-tip {
     position: fixed;

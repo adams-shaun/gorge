@@ -2,7 +2,7 @@ import type { CardView, Decision, Option } from '../protocol';
 import { cardFromPick } from './arrange';
 
 /**
- * search.ts is the library-search ask's pure half (fb-20260916T181754Z). A
+ * search.ts is the library-search ask's pure half. A
  * hidden-library search (a fetchland, Diabolic Tutor, a Squadron Hawk pick —
  * 1166 corpus card files pose one) is a KChoose whose options are CARD PICKS
  * in LIBRARY scan order: Option.kind "search", Obj the card's id, Label the
@@ -15,7 +15,7 @@ import { cardFromPick } from './arrange';
  *
  * The detection predicate and the sort/filter live here so the component
  * stays a renderer and the next consumer of the same vocabulary cannot fork
- * the shape — the same split discard.ts (fb-20260914T120705Z) established.
+ * the shape — the same split discard.ts established.
  */
 
 /**

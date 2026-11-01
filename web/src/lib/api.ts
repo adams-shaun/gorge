@@ -37,7 +37,7 @@ export const seatQuery = (ctx: SeatCtx) => `?seat=${ctx.seat}&token=${encodeURIC
 
 // viewURL appends the optional ?seq= and, for a seated request, the
 // seat/token pair. With neither, it is byte-identical to the pre-seat URL
-// (R-E4-4: no seat in the URL, no behaviour change).
+// (no seat in the URL, no behaviour change).
 export const viewURL = (t: string, k: number, seq?: number, ctx?: SeatCtx) => {
   const q = new URLSearchParams();
   if (seq !== undefined) q.set('seq', String(seq));
@@ -151,7 +151,7 @@ export interface DeckTally {
 
 export const fetchDeckStats = () => getJSON<DeckTally>(deckStatsURL());
 
-/** A game a successful POST /api/games returns: the new table's identity, the human seat and its bearer token, and the join path that carries them (Task ui11). */
+/** A game a successful POST /api/games returns: the new table's identity, the human seat and its bearer token, and the join path that carries them. */
 export interface CreateGame {
   table: string;
   match: number;

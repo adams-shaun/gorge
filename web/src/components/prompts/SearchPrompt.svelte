@@ -11,7 +11,7 @@
   import FilterInput from './FilterInput.svelte';
 
   /**
-   * SearchPrompt is the library-search ask (fb-20260916T181754Z): a filter
+   * SearchPrompt is the library-search ask: a filter
    * above the card faces SORTED A→Z. The filter is display-only state on
    * the shared SeatPanelState, reset on every newly adopted decision.
    * Selection is untouched — the click path and the picked indexes are the

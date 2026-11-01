@@ -43,7 +43,7 @@ export type DvrAction =
   // seated path receives the spectator frame stream but must not render its
   // bodies (they are redacted for the table's spectator visibility, not for
   // a seat), so it chits the public seq and backfills redacted lines via
-  // REST instead (M2e-4).
+  // REST instead.
   | { type: 'head'; seq: number }
   | { type: 'backfill'; events: EventBody[] }
   | { type: 'pause' }

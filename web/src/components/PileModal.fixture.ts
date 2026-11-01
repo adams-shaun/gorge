@@ -12,8 +12,8 @@ import SeatTable from './SeatTable.svelte';
 // `?case=shrink` mounts the reactive wrapper (PileModal.fixture.svelte): a
 // PileModal open on a live $state pile a test can shrink through
 // window.__pileRemoveFirst, for the removal-while-open and Escape-layering
-// cases. `?case=identity` mounts the identity-bar pile affordances
-// (fb-20260916T225802Z): SeatHeader + the shared PileHost, wired exactly as
+// cases. `?case=identity` mounts the identity-bar pile affordances:
+// SeatHeader + the shared PileHost, wired exactly as
 // Table.svelte wires them, over a pile the pending decision touches — the
 // tone ring and the actionable pile cards a static SeatTable mount cannot
 // carry. Without a param the fixture is the real rail path: SeatTable, as

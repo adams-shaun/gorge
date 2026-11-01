@@ -18,8 +18,8 @@ const OFFLINE_FOR = 60_000;
 // of its ~6 per-host HTTP/1.1 connections for every such fetch, so unbounded
 // art lookups starve the page's own state channel (view/events/pending) and
 // the client wedges on "waiting for the game to advance" while the SSE
-// stream — exempt from that pool — keeps arriving (task
-// fb-20260916T225456Z, seated-smoke R-E4-1 timeout). Aborting after 10s
+// stream — exempt from that pool — keeps arriving.
+// Aborting after 10s
 // frees the socket; the catch path below takes its existing 60s offline
 // rest (nothing is stored, so the name re-resolves later) while the
 // server's prewarm warms the cache meanwhile.
@@ -41,7 +41,7 @@ class ArtPending extends Error {}
 // browsers may hold a valid immutable URL whose bytes were selected by older
 // face-matching logic; changing this namespace makes them resolve the name
 // again instead of returning that stale URL before lookup() can run.
-// v3 (task fb-20260914T113850Z-682e875e): a name resolved to null while the
+// v3: a name resolved to null while the
 // server's art cache was cold (each deploy used to wipe it) is stored
 // permanently by toStorage and never re-asked. The server now keeps a
 // durable, prewarmed cache, so bumping the namespace lets such a stored null
@@ -145,8 +145,8 @@ export function createImages(src: Partial<ImageSource> = {}) {
       // A multi-faced card (Delver of Secrets / Insectile Aberration) puts no
       // top-level image_uris in the response and lists card_faces[0] = the
       // FRONT face for either name — so the front-face-only fallback resolved
-      // a back-face name to the front art forever (task
-      // fb-20260914T033246Z-3f1cc033, defect 3). Pick the face whose printed
+      // a back-face name to the front art forever.
+      // Pick the face whose printed
       // name is the requested one; fall back to the front face, then to the
       // top-level image (single-faced cards).
       const face = j.card_faces?.find((f) => f.name === name);

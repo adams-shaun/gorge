@@ -3,8 +3,8 @@ import { visibleHand } from './board';
 import { zonesFor, type ZoneName } from './zones';
 
 /**
- * pileopener.svelte.ts is the ONE shared pile-opener state (task
- * fb-20260916T225802Z): the rail's SeatTable pile buttons and the identity
+ * pileopener.svelte.ts is the ONE shared pile-opener state:
+ * the rail's SeatTable pile buttons and the identity
  * bar's new graveyard/exile icons both open the same PileModal, through one
  * store, so a pile cannot open twice at once. The store holds only WHICH
  * pile is open (seat, zone, the trigger element for focus return); the
@@ -24,7 +24,7 @@ export type PileZone = ZoneName | 'hand';
  *  opened from the KEYBOARD: a pointer click releases the opener's focus
  *  (lib/pointer.ts pointerRelease), and giving focus back to a control the
  *  pointer never meant to park the keyboard on would re-steal Space/Enter
- *  from the table hotkeys the moment the modal closes. hotkey-focus2.
+ *  from the table hotkeys the moment the modal closes.
  *  byPointer is the open click's e.detail > 0; a keyboard opener (Enter on
  *  a focused pile pill, or ViewHotkeys' open-grave/open-exile chords) keeps
  *  the accessibility focus return. */

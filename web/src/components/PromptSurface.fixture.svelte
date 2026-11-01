@@ -22,7 +22,7 @@
    *    different cards) while the panel stays mounted — the two-tab / rapid
    *    external answer path, where the old ask's popup edits must never be
    *    presented as (or submitted for) the new ask.
-   *  - 'discard1' — the Thoughtseize-shaped ask (fb-20260914T120705Z): a KModes
+   *  - 'discard1' — the Thoughtseize-shaped ask: a KModes
    *    decision whose options are discard card picks over the opponent's
    *    (redacted) hand, Min == Max == 1, so a click IS the answer.
    *  - 'discard2' — the Mind Rot-shaped multi-pick: Min == Max == 2 over five

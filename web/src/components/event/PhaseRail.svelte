@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * The event's phase rail (mockup 3d): Draft · Build · Round 1 · Round 2 ·
+   * The event's phase rail: Draft · Build · Round 1 · Round 2 ·
    * Round 3 · Results. A step is done, now, or still ahead, read from the
    * server's phase string alone.
    */

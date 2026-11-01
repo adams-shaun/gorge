@@ -7,7 +7,7 @@
   /**
    * SeatPanelFollowUp.fixture.svelte is the panel-path twin of
    * CardMenu.fixture.ts's stage-1 → stage-2 test AND the mounted
-   * proof of the L2 race finding for fb-20260923T050205Z. Its point is the
+   * proof of the follow-up race. Its point is the
    * ARM and the DECODE together:
    *
    *  - the captured treasure activate option is posted through the REAL
@@ -21,7 +21,7 @@
    *
    * Running the effect reactively (not a manual decode call) is what lets a
    * test deliver the follow-up decision BEFORE the post promise resolves —
-   * the SSE-first ordering the L2 finding named — and still see the wheel
+   * the SSE-first ordering — and still see the wheel
    * open, because each arm writes a fresh object into the mirror and so
    * retriggers the effect.
    *

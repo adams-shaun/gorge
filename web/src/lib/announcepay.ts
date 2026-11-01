@@ -7,9 +7,9 @@ import { findCardAnywhere } from './board';
  * only: which casts a seat with Auto-pay OFF may announce, and how the
  * announced CR 601.2g window ("select mana" prompt) is regrouped for display.
  *
- * R-E4-2 (the client is rules-ignorant): castability is the engine's planner
+ * The client is rules-ignorant: castability is the engine's planner
  * verdict already on the wire (a payment action with at least one plan), and
- * every button posts an option the server offered, by its own index (R-E4-1).
+ * every button posts an option the server offered, by its own index.
  * The one exception is ManaBrew, whose wire cannot carry payment plans: it
  * offers a plan-less action that the announce route answers (see
  * castableActions below).

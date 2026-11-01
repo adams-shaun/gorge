@@ -5,15 +5,14 @@
  * guard for SSR and private mode, and a swallowed throw so a browser that
  * refuses site data keeps the in-memory copy.
  *
- * The DEFAULT differs by view (Task ui21): a SEATED player is playing, not
+ * The DEFAULT differs by view: a SEATED player is playing, not
  * reading the log, so it starts hidden; a SPECTATOR leans on the log to
  * follow a game (and its scrubbing), so it stays shown. The default is
  * recorded here rather than in the component — a seat's view is a different
  * thing from a spectator's, and the two scopes get separate stored values so
  * toggling in one does not flip the other.
  *
- * The storage handle is the ONE shared guard (lib/storage.ts) since
- * fb-20260917T232814Z — this module used to carry its own private copy. The
+ * The storage handle is the ONE shared guard (lib/storage.ts). The
  * handle is passed IN by the caller (routes/Table.svelte calls safeStorage()
  * at each call site), so this module imports nothing from storage.ts itself.
  */

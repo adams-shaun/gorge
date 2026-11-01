@@ -18,7 +18,7 @@ export interface Stream {
 // Every frame kind the session stream may carry, in one place. A new kind in
 // the generated FrameType union must be added here: the exhaustiveness guard
 // below fails the build otherwise, so a kind can never be silently dropped
-// the way table_state (E3-fx2) was by the old hand-maintained list. The four
+// the way table_state was by the old hand-maintained list. The four
 // draft-event frames (event_state, draft_pack, pod_progress, series_update)
 // ride the same session stream once POST /api/events/{id}/subscribe binds the
 // session to an event.

@@ -15,7 +15,7 @@
    * other game a spectate link to its table.
    *
    * Between two games of the viewer's own Bo3 series the row carries the
-   * between-games panel (E3-9) — the place to sideboard when the table page
+   * between-games panel — the place to sideboard when the table page
    * is gone (a restart moves the series to a new table). `token` is the
    * viewer's event seat token; `onstate` adopts a submit's EventState and
    * `onstale` refetches after a 409.

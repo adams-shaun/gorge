@@ -17,7 +17,7 @@ function seatsFromInfo(info: TableInfo): SeatInfo[] {
 // spelling: the server names a series table's between-games cooldown
 // "between_games" (protocol.TableBetweenGames) while TableInfo.State and this
 // store call it "cooldown". The value set is fail-closed like the rest of the
-// frame handling: only the three states E3-fx2 emits (between_games, live,
+// frame handling: only the three states the server emits (between_games, live,
 // idle) are accepted, and anything else — including no state — leaves the
 // store alone rather than feeding an unknown string into the idle derivation.
 function tableStateName(state: string | undefined): string | null {
@@ -78,7 +78,7 @@ class Tables {
       }
       case 'match_end': {
         const t = this.find(f.table ?? '');
-        // A series table (E3-2, TableInfo.series) goes on to its next match,
+        // A series table (TableInfo.series) goes on to its next match,
         // so its match_end is the between-games state, never idle; the
         // server's table_state frame then says whether the series goes on
         // (between_games, then live) or is over (idle). A perpetual table

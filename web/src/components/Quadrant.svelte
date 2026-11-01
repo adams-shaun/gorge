@@ -44,13 +44,13 @@
    * row 1 (creatures, by default) sits nearest the centre on the far side of
    * the table — the default orientation; "same as mine" leaves it unflipped.
    *
-   * The command zone draws at the front of the creatures region (CZ2,
-   * fb-20260917T232202Z), never in the piles column, so a castable commander
+   * The command zone draws at the front of the creatures region,
+   * never in the piles column, so a castable commander
    * cannot be hidden when the column collapses.
    *
    * The keyed-each key is each group's RENDER key (the lead object's id), not
    * the mutable stacking key: a changing DOM key unmounts the tile and closes
-   * an inspector the reader had open (fb-20260915T182335Z).
+   * an inspector the reader had open.
    *
    * `passiveHand` is a spectator's view of this seat's hand (Board decides who
    * gets one and sizes it): a band of read-only card faces along the seat's

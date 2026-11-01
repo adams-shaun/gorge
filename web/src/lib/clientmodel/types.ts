@@ -1,8 +1,7 @@
 import type { CardView, Decision, View } from '../../protocol';
 
 /**
- * The normalized client model (spec 2026-09-28 "Client table UI rework",
- * sub-project 0): `ClientView` + `PendingDecision` + `Transition[]`. Every
+ * The normalized client model: `ClientView` + `PendingDecision` + `Transition[]`. Every
  * protocol adapter produces these; components read only these, so moving to
  * the Manabrew protocol replaces an adapter, not the UI.
  *

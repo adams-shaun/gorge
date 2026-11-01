@@ -2,7 +2,7 @@
   import { pointerRelease } from '../lib/pointer';
   /**
    * The seated player's page-level concede control: the ARM-then-CONFIRM
-   * two-step (R-E4-1). Presentational only — the state (SeatPanelState:
+   * two-step. Presentational only — the state (SeatPanelState:
    * which option is the pending concede, the arm click, the confirm post by
    * its own wire index) stays with the route, Table.svelte, which passes the
    * two callbacks in. Owning the markup here (not inlined in Table's snippet)

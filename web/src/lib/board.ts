@@ -43,7 +43,7 @@ export function everyVisibleCard(players: readonly PlayerView[] | null | undefin
  * cardById resolves the object a log line's `#<id>` tag names against the
  * current view's flattened cards (the same everyVisibleCard list the
  * transcript's colour resolver is built over). It is the id -> CardView half
- * of the card-name hover preview (fb-20260927T154603Z): the transcript's card
+ * of the card-name hover preview: the transcript's card
  * branch opens the detail panel for the object under the pointer, and the
  * only shared handle between a log line and the live view is the object id.
  *
@@ -79,7 +79,7 @@ export function groupBattlefield(cards: CardView[]): Record<Group, CardView[]> {
   return out;
 }
 
-/** attachedTo returns the permanents attached to host, in id order. The wire carries CardView.attached_to (W1); nothing here decides what an attachment does. */
+/** attachedTo returns the permanents attached to host, in id order. The wire carries CardView.attached_to; nothing here decides what an attachment does. */
 export function attachedTo(cards: CardView[], host: number): CardView[] {
   return cards.filter((c) => c.attached_to === host).sort((a, b) => a.id - b.id);
 }
@@ -87,7 +87,7 @@ export function attachedTo(cards: CardView[], host: number): CardView[] {
 /** A stack is one group of interchangeable permanents: everything a player would act on matches, so one tile with a count stands in for all of them. `key` is the deterministic identity the group was built from; cards are the members, id-sorted. A group of one is still a group — the caller renders it exactly like a single permanent. */
 export interface CardStackGroup {
   key: string;
-  /** render is the keyed-each LIFECYCLE key for the group's tile — the stable identity of the group's visible lead object (its first member, cards[0]) — deliberately distinct from `key`, the stacking-equivalence string. Two names on purpose: `key` must change whenever any visible state changes (that is how unlike permanents stay in separate piles), but a DOM key that changes unmounts the tile and destroys its local hover state, so a permanent that merely untapped or stopped attacking lost its open inspector (fb-20260915T182335Z). Object ids are unique across a battlefield, so the lead id is unique within its row; it changes exactly when the described object stops being rendered (it leaves the battlefield, hides behind a new pile lead, or is replaced), which is where closing the inspector is correct. */
+  /** render is the keyed-each LIFECYCLE key for the group's tile — the stable identity of the group's visible lead object (its first member, cards[0]) — deliberately distinct from `key`, the stacking-equivalence string. Two names on purpose: `key` must change whenever any visible state changes (that is how unlike permanents stay in separate piles), but a DOM key that changes unmounts the tile and destroys its local hover state, so a permanent that merely untapped or stopped attacking lost its open inspector. Object ids are unique across a battlefield, so the lead id is unique within its row; it changes exactly when the described object stops being rendered (it leaves the battlefield, hides behind a new pile lead, or is replaced), which is where closing the inspector is correct. */
   render: string;
   cards: CardView[];
 }
@@ -97,11 +97,11 @@ function attachedToId(c: CardView): number | null {
   return c.attached_to !== undefined && c.attached_to !== 0 ? c.attached_to : null;
 }
 
-/** StackOptions tunes what leaves a group's identity. Today only lands use it: a pile of Forests is a pile of Forests whether some of its members tapped for mana or not (fb-20260916T201423Z) — the readiness a tapped split used to carry moves onto the pile's tab (CardStack) instead of sharding the pile. Creatures and every other row keep the strict key, because there a tapped member really cannot do what an untapped one can (attack, block), and the split IS the gameplay information. */
+/** StackOptions tunes what leaves a group's identity. Today only lands use it: a pile of Forests is a pile of Forests whether some of its members tapped for mana or not — the readiness a tapped split used to carry moves onto the pile's tab (CardStack) instead of sharding the pile. Creatures and every other row keep the strict key, because there a tapped member really cannot do what an untapped one can (attack, block), and the split IS the gameplay information. */
 export interface StackOptions {
   /** ignoreTapped removes the tapped component from the stack identity, so same-printing permanents merge into one pile regardless of tapped state. Counters, damage, controller, keywords, attachment state and printing identity all still split. */
   ignoreTapped?: boolean;
-  /** ignoreSummonSick removes the summoning-sickness component as well (fb-20260917T004545Z). The ENGINE sets SummonSick on EVERY battlefield entry, lands included, and clears it at the next turn boundary — so a land played this turn carries a key component its older name-mates lack until then and never joins its pile (the reported third Island). For a NONCREATURE land the flag is invisible to every player action: a sick land can still tap for mana (the engine's tap gate checks the CREATURE type explicitly), so two Islands differing only in summon_sick are interchangeable and merging them hides no gameplay information. LANDS-ONLY by contract — Quadrant passes this only for the lands row: a sick CREATURE genuinely cannot attack, and there the split is the gameplay information. */
+  /** ignoreSummonSick removes the summoning-sickness component as well. The ENGINE sets SummonSick on EVERY battlefield entry, lands included, and clears it at the next turn boundary — so a land played this turn carries a key component its older name-mates lack until then and never joins its pile (the reported third Island). For a NONCREATURE land the flag is invisible to every player action: a sick land can still tap for mana (the engine's tap gate checks the CREATURE type explicitly), so two Islands differing only in summon_sick are interchangeable and merging them hides no gameplay information. LANDS-ONLY by contract — Quadrant passes this only for the lands row: a sick CREATURE genuinely cannot attack, and there the split is the gameplay information. */
   ignoreSummonSick?: boolean;
 }
 
@@ -116,10 +116,10 @@ function stackKey(c: CardView, ignoreTapped: boolean, ignoreSummonSick: boolean)
     'n=' + (c.printing.number ?? ''),
     // tapped leaves the identity ONLY when the caller says so; member order
     // stays id-sorted either way, so a tap/untap never moves the group's lead
-    // id and the render key below never churns on a tap (fb-20260915T182335Z).
+    // id and the render key below never churns on a tap.
     ...(ignoreTapped ? [] : ['t=' + c.tapped]),
     // summoning sickness leaves the identity ONLY when the caller says so
-    // (lands, fb-20260917T004545Z); for a creature the split is gameplay info.
+    // (lands); for a creature the split is gameplay info.
     ...(ignoreSummonSick ? [] : ['ss=' + c.summon_sick]),
     'a=' + c.attacking,
     'd=' + c.damage,
@@ -188,7 +188,7 @@ export function stackFaces(group: CardStackGroup, expanded: boolean): CardView[]
  */
 export const RECENT_RESOLVE_WINDOW = 100;
 
-/** recentlyMattered is the object id of the most recent stack_resolve, for the rail stack section's resolved-card display (the old board overlay's data path, kept), but only if that resolution is the newest interesting event in the trailing RECENT_RESOLVE_WINDOW: a turn or step boundary newer than it clears the display (fb-20260917T231516Z — a resolved card belongs to the phase it resolved in, so the row must not pedal forward across turn/phase changes), and a resolve further back than the window also returns null. The parameter is structural — the display's caller (Rail) carries a widened event shape — so any object whose `event` names a kind (and optionally an obj) works. */
+/** recentlyMattered is the object id of the most recent stack_resolve, for the rail stack section's resolved-card display (the old board overlay's data path, kept), but only if that resolution is the newest interesting event in the trailing RECENT_RESOLVE_WINDOW: a turn or step boundary newer than it clears the display (a resolved card belongs to the phase it resolved in, so the row must not pedal forward across turn/phase changes), and a resolve further back than the window also returns null. The parameter is structural — the display's caller (Rail) carries a widened event shape — so any object whose `event` names a kind (and optionally an obj) works. */
 export function recentlyMattered(events: { event: { kind: string; obj?: number } }[]): number | null {
   const lo = Math.max(0, events.length - RECENT_RESOLVE_WINDOW);
   for (let i = events.length - 1; i >= lo; i--) {

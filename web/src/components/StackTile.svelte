@@ -25,7 +25,7 @@
    *
    * ART FALLBACK: `stack.card` is nil for a trigger or activated
    * ability today (an ability object has no card face — view/view.go), a gap
-   * another task is closing on the Go side by falling back to the source
+   * the Go side closes by falling back to the source
    * permanent's own card view. This component's job is only to use it
    * whenever it is there and do nothing when it is not: `{#if stack.card}`
    * already does exactly that, and needs no change here to pick up the Go

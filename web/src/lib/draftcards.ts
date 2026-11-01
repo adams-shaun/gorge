@@ -4,7 +4,7 @@
  *
  * Nothing here decides legality. The facts a card is grouped and tinted by
  * — mana value, colours, printed cost, type line — come from the server on
- * the wire (protocol.DraftCard, E1-8), read from the same corpus the engine
+ * the wire (protocol.DraftCard), read from the same corpus the engine
  * plays; the client never looks them up or computes them on its own. A card
  * the server's corpus does not know carries none of them and lands in a "?"
  * column rather than being guessed at, and the server's DeckCheck stays the

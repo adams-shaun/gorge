@@ -1,5 +1,5 @@
 /**
- * eventapi.ts is the client side of /api/events (E1-6, host/httpapi/events.go).
+ * eventapi.ts is the client side of /api/events (host/httpapi/events.go).
  * Every call is an INTENT: the client sends card instance IDs, basic-land
  * counts and a display name; the server decides legality, auto lands, the
  * bot suggestion, pairings, standings and results, and this module only
@@ -65,7 +65,7 @@ export interface EventApi {
   check(id: string, token: string, deck: DeckRequest): Promise<DeckCheck>;
   save(id: string, token: string, deck: DeckRequest): Promise<DeckCheck>;
   ready(id: string, token: string, rev: number): Promise<EventState>;
-  /** sideboard locks the seat's deck for its series' next game: keep last game's, or a new list (E3-5). */
+  /** sideboard locks the seat's deck for its series' next game: keep last game's, or a new list. */
   sideboard(id: string, token: string, req: SideboardRequest): Promise<EventState>;
   log(id: string, token: string | null): Promise<EventLog>;
   subscribe(id: string, token: string | null, session: string): Promise<void>;

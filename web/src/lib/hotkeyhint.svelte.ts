@@ -2,7 +2,7 @@ import type { FocusOwnership } from './hotkeys';
 
 /**
  * hotkeyhint is the ONE home for the transient "why didn't Space reach the
- * table?" cue (fb-20260929T080219Z). The hotkey grammar deliberately gives a
+ * table?" cue. The hotkey grammar deliberately gives a
  * focused activatable control its own Space/Enter (hotkeys.ts
  * focusOwnership), so a player who Tabs to the PASS button and presses Space
  * gets no pass and — before this store — no explanation either. Both

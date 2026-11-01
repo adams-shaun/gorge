@@ -5,7 +5,7 @@ import { STOPPABLE_STEPS, type TurnSide } from './autopilot';
  * named presets (casual / no-tells / full-control), per-step stop rules, and
  * the opponent-object rules decide() (lib/autopilot) consumes. It is pure
  * TypeScript — no Svelte runes, no I/O except the two storage functions —
- * so the wiring task (prio3) can build UI on it and the tests can pin every
+ * so the UI can build on it and the tests can pin every
  * preset field exactly.
  *
  * Persistence is ONE global localStorage key, `gorge.playsettings.v1` (the
@@ -233,7 +233,7 @@ export function stopWord(rule: StepStop): string {
 
 /**
  * clampMs parses one pacing input as an integer clamped to [0, 10000]
- * (fb-20260917T004341Z: 0 keeps the instant-post path; above 10s a
+ * (0 keeps the instant-post path; above 10s a
  * wedged-looking client is a footgun we don't ship). Returns null for a
  * non-numeric/empty input — the caller then leaves the current value
  * unchanged. Exported for tests; the Custom inputs' change handlers use it.

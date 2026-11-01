@@ -1,12 +1,12 @@
 /**
  * logrender.ts turns one already-described transcript line (Transcript.svelte's
  * `e.line`, from view/describe.go) into structured, renderable pieces — the
- * client-side half of the "readable log" task (ui9), extended by lc1 for
+ * client-side half of the readable log, extended for
  * owner-coloured cards and source-named abilities.
  *
  * WHERE THE WORDS COME FROM. The line text is composed SERVER-SIDE in
  * view/describe.go, not by the client; the client receives one string per
- * event plus the event's own fields (kind, obj, player, …). This task does not
+ * event plus the event's own fields (kind, obj, player, …). This module does not
  * move that boundary: nothing in here changes events.Event or any event field
  * (their binary encoding is hash-chained and replayed), and no view-side Go
  * change was needed. Instead this module parses the server's *documented
@@ -34,10 +34,10 @@
  * resolved by a **longest exact match against the view's own card-name key
  * set**, anchored to end immediately before the `#<id>` tag — a card token is
  * recognised because it is literally a name in the view, not because it looks
- * like one. This is why B2 now works for every commander (`Jace, the Mind
+ * like one. This is why name detection works for every commander (`Jace, the Mind
  * Sculptor`, `Ghalta, Primal Hunger`, …) and for `Sign in Blood`.
  *
- * HOW A CARD IS COLOURED (lc1, replaces the B2 mana-identity colouring). A
+ * HOW A CARD IS COLOURED. A
  * card in the log takes the colour of the player who OWNs it — the same colour
  * that player's name renders in — resolved by the card's **object id**, not by
  * its name or mana identity. Name-keying could never distinguish two seats
@@ -47,10 +47,9 @@
  * colour, taken from the same seat palette that colours a seat's name in the
  * line; it additionally carries the view's exact card-name keys so the name
  * detection above keeps working. An id absent from the view resolves to null
- * (rendered uncoloured), never to a made-up colour — the B2 promise, carried
- * over to ids.
+ * (rendered uncoloured), never to a made-up colour.
  *
- * ABILITY TOKENS (lc1). describe.go now renders a faceless ability object as
+ * ABILITY TOKENS. describe.go renders a faceless ability object as
  * `"<Source>'s ability #<id>"` (e.g. "Goblin Balloon Brigade's ability #217"),
  * degrading to `"an ability #<id>"` when its source cannot be resolved. This
  * module detects the ability token by the `'s ability` possessive before the id
@@ -114,8 +113,8 @@ export interface CardOwnerColour {
  * cards. Keyed by the card's OWNER seat — via the caller-supplied
  * `colourForSeat` (the same seat palette that colours a seat's name in the
  * line) — so two copies of the same card owned by different seats resolve to
- * different colours, which is exactly what name-keying could never express
- * (lc1). It also carries the view's exact card-name keys. An id absent from
+ * different colours, which is exactly what name-keying could never express.
+ * It also carries the view's exact card-name keys. An id absent from
  * the view resolves to null (rendered uncoloured), never to a made-up colour.
  * The caller is expected to have flattened the view's zones through
  * everyVisibleCard (lib/board.ts), which defends the `hand: null` public-
@@ -167,11 +166,11 @@ const ABILITY_NAME_RE = new RegExp(`(${CARD_NAME})'s ability$`, 'u');
  * resolveObjectAt resolves the object reference whose `#<digits>` tag is at
  * `hashIndex` in `line`. The described object is one of:
  *   "<Name> #<id>"         a card / permanent / spell whose name is in the view
- *   "<Name>'s ability #id" a faceless ability object naming its source (lc1)
+ *   "<Name>'s ability #id" a faceless ability object naming its source
  *   "an ability #id"       a faceless ability object with an unresolvable source
  *   "#<id>"                an id the game could not resolve — resolved to null
  *                          here, so the caller renders the honest bare id and
- *                          invents no words (F1).
+ *                          invents no words.
  * With a name key set, a card name is the LONGEST known name that ends
  * immediately before the tag and is preceded by a word boundary, so a comma,
  * a connector like "in", or a non-ASCII letter inside the name cannot split
@@ -184,8 +183,8 @@ function resolveObjectAt(
 ): { kind: 'ability'; name: string } | { kind: 'card'; name: string } | null {
   const before = line.slice(0, hashIndex);
   const trimmed = before.replace(/\s+$/, '');
-  // An ability is the server's possessive "<Source>'s ability" (describe.go,
-  // lc1) or the older bare "an ability" fallback. Matched before the name key
+  // An ability is the server's possessive "<Source>'s ability" (describe.go)
+  // or the older bare "an ability" fallback. Matched before the name key
   // set so a card name never swallows an ability whose source is not a card
   // in the view. The possessive is extracted by name shape (not taken as the
   // whole prefix) so a mid-line reference keeps just "<Source>'s ability".
@@ -302,7 +301,7 @@ function parseByObjectShape(
       }
     } else if (m[4] !== undefined) {
       // A bare object id describe.go could not resolve: render the honest
-      // "#<id>" rather than inventing a name (F1).
+      // "#<id>" rather than inventing a name.
       pieces.push({ kind: 'text', text: '#' + m[4] });
     }
     last = re.lastIndex;

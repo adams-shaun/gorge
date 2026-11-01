@@ -149,8 +149,8 @@
   // idle: the table has no live match and none imminent, so the match list
   // is the whole page rather than a strip under a "waiting" placeholder. A
   // series table between two of its games is not idle: the table store reads
-  // it as cooldown from TableInfo.series and the server's table_state frame
-  // (E3-fx2), so the finished board stays up until the next game starts.
+  // it as cooldown from TableInfo.series and the server's table_state frame,
+  // so the finished board stays up until the next game starts.
   const idle = $derived.by(() => {
     if (finished) return false;
     const state = tables.list.find((t) => t.info.id === table)?.info.state;
@@ -315,7 +315,7 @@
       restartBusy = false;
     }
   }
-  // fb-20260917T231628Z: the log show/hide control moved into the OPTIONS drop
+  // The log show/hide control lives in the OPTIONS drop
   // (PlaySettingsPanel's Layout section) for ordinary seated play. The drop is
   // mounted only while BoardStage's controls are live, so the rail's
   // LOGS toggle must survive in exactly the states where the drop does not exist
@@ -355,7 +355,7 @@
   // a second decision for the same object (Underground Sea's activate -> Add
   // U / Add B flow; a multi-ability mana source's stage-1 ability pick -> its
   // stage-2 colour wheel; a Treasure's activate -> its colour
-  // ask, fb-20260923T050205Z). The expectation is ARMED by SeatPanelState
+  // ask). The expectation is ARMED by SeatPanelState
   // itself, on the accepted hand post -- this route no longer owns that
   // write, because the tile path (boardOptions.post) and the seat panel's own
   // option buttons (SeatPanel.svelte's onclick -> panel.click) both post
@@ -383,7 +383,7 @@
     expectedCardFollowUp = null;
   });
 
-  // The board's card-options index (ui21): the pending decision grouped by
+  // The board's card-options index: the pending decision grouped by
   // the object each option concerns. For a seated view this is exactly the
   // decision the seat must answer now — the same decision the seat panel
   // surfaces (SeatPanelState.active), so the board and the panel can never
@@ -392,8 +392,8 @@
   // seat that has nothing pending gets null — in both cases no tile is
   // marked and no tile carries a menu. Building it once here, from the
   // active decision, is what makes one index serve both 'cards with valid
-  // options' and 'valid targets' (R-E4-2: the client only regroups options
-  // the server already sent, and posts each one by its own index, R-E4-1).
+  // options' and 'valid targets' (the client only regroups options
+  // the server already sent, and posts each one by its own index).
   const boardOptions = $derived.by((): CardOptions | null => {
     if (!seated || panel === null) return null;
     const d = panel.active;
@@ -455,7 +455,7 @@
     m.view ? seatRows(m.view, m.seats).map((r) => ({ name: r.name, colour: r.colour || seatColour(r.seat, m.seats) })) : [],
   );
 
-  // Task lc1: colour each card name in the log by the colour of the seat
+  // Colour each card name in the log by the colour of the seat
   // that OWNS it — the same colour that seat's name renders in — resolved by
   // the card's object id. The described line carries the id (and the name)
   // but not the owner's colour, so it is looked up from the current view's
@@ -465,8 +465,8 @@
   // null and renders uncoloured. Rebuilt each render.
   //
   // The SAME flattened list is handed to the transcript as `cards` so a
-  // card-name hover can resolve its id to a CardView for the detail panel
-  // (fb-20260927T154603Z) — one flatten, two consumers.
+  // card-name hover can resolve its id to a CardView for the detail panel —
+  // one flatten, two consumers.
   const logCards = $derived(m.view ? everyVisibleCard(m.view.players) : []);
   const logCardColour = $derived(
     m.view
@@ -570,7 +570,7 @@
 
 <svelte:window onkeydown={closeOptions} onclick={closeOptionsOutside} />
 
-<!-- E3-9: a draft-event series game (join link carries &event=) overlays the
+<!-- A draft-event series game (join link carries &event=) overlays the
      between-games panel; it renders nothing for any other table. -->
 {#if liveSeated}<TableEventOverlay {table} />{/if}
 
@@ -607,7 +607,7 @@
           hand={seated && seatCtx && ownPlayer ? handFan : null}
         />
         <!-- The last resolved card's artwork lives in the rail's stack
-             section now (fb-20260916T225456Z): Rail renders ResolvedCard
+             section: Rail renders ResolvedCard
              from the same m.dvr.events it already receives, and the old
              RecentStrip board overlay — absolutely positioned over the
              board's bottom centre, a patchwork of two earlier complaints
@@ -638,8 +638,8 @@
         </div>
       {/if}
       {#snippet handFan({ cardWidth, visible, raise }: { cardWidth: number; visible: number; raise: boolean })}
-        <!-- The seated player's own hand (Task ui17), in the hand row the
-             layout sizes from its row unit. ui23: the hand gets the same
+        <!-- The seated player's own hand, in the hand row the
+             layout sizes from its row unit. The hand gets the same
              card-options index the board does (one mechanism, one index, one
              post path). -->
         {#if ownPlayer}
@@ -673,7 +673,7 @@
              the row is the anchor and grows if the control needs height.
              The state stays here (SeatPanelState wiring); only the markup's
              host row moved. -->
-        <!-- fb-20260917T231628Z: while the OPTIONS drop is reachable the log
+        <!-- While the OPTIONS drop is reachable the log
              switch lives there, so the rail renders no second control (its
              own {#if onToggleLog} hides the row's button when the prop is
              null). The drop is NOT mounted for a spectator, the mulligan
@@ -764,7 +764,7 @@
       {#if layoutStore.drawerOpen}
         <LayoutDrawer />
       {/if}
-      <!-- fb-20260914T121642Z: the one arrows overlay lives HERE, at the
+      <!-- The one arrows overlay lives HERE, at the
            table root, not inside the felt subtree. section.board clips its
            own content (overflow: hidden bounds the felt/cards), so an overlay
            mounted under it cannot draw a line that reaches the stack rail —
@@ -773,7 +773,7 @@
            by the table root the overlay's box contains both endpoints, and
            .table below is its positioned containing block. Still
            pointer-events: none; arrowsFor/previewArrowsFor are unchanged. -->
-      <!-- fb-20260916T225802Z: the table's ONE pile modal. The rail's pile
+      <!-- The table's ONE pile modal. The rail's pile
            buttons and the identity bar's graveyard/exile icons open it
            through the shared pileOpener store; PileHost renders the single
            instance and hands it boardOptions, so pile cards are actionable
@@ -812,11 +812,11 @@
   }
   .table {
     display: grid;
-    /* The overlay's containing block: Arrows mounts here (fb-20260914T121642Z)
+    /* The overlay's containing block: Arrows mounts here
        and positions itself absolute/inset 0 against this box, so its
        coordinates are measured over the whole table — felt and rail both. */
     position: relative;
-    /* The rail's floor is what its content measures: since fb-20260917T232028Z
+    /* The rail's floor is what its content measures:
        the seat summary is one text-line tall and its register — the life
        pill, the four one-line zone counts and the row's own chrome — measures
        ~141px (SeatTable.svelte.test.ts's geometry harness). That now sits

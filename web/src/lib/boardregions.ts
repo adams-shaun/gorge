@@ -9,8 +9,7 @@ import { REGION_KEYS, type Anchor, type LayoutProfile, type RegionKey, type Regi
  * an order. It decides nothing about the rules — which region a permanent
  * belongs to is groupBattlefield's type-word reading, and what stacks is
  * stackIdentical's strict key, with the shipped lands exception (a pile of
- * lands ignores tapped and summoning sickness, fb-20260916T201423Z and
- * fb-20260917T004545Z).
+ * lands ignores tapped and summoning sickness).
  *
  * ORDER. Every order breaks ties by ENTRY order, so equal keys never
  * reshuffle; entry order is the wire's battlefield list order (the engine

@@ -15,7 +15,7 @@
    * The count, validity and error shown are the server's DeckCheck for the
    * current working copy, never a client-side verdict.
    *
-   * `actions` replaces the Ready block: the between-games sheet (E3-9)
+   * `actions` replaces the Ready block: the between-games sheet
    * edits a sideboarding working copy with its own Keep / Submit buttons.
    */
   let { builder, ev, rated = true, actions }: { builder: DeckBuilder; ev: EventState | null; rated?: boolean; actions?: Snippet } = $props();

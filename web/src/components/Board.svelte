@@ -27,7 +27,7 @@
    * The centre strip and the hand row are snippets the stage passes in, so
    * this component knows seats and sizes, not controls. During the mulligan
    * round the strip moves to the top and there is no hand row (the opening
-   * hand owns the board centre, ui26).
+   * hand owns the board centre).
    *
    * The Arrows overlay is mounted at the table root (Table.svelte), not here:
    * the felt clips its content and an arrow must reach the rail.

@@ -1,6 +1,6 @@
 /**
  * remembered is the per-player store of "remember this answer for identical
- * future prompts" choices (fb-20260914T062319Z-88b4069a, part B).
+ * future prompts" choices.
  *
  * WHAT IT IS: the client remembers one answered option index per prompt, so
  * an optional triggered ability that recurs every turn (1496 raw corpus T:
@@ -11,7 +11,7 @@
  * zero determinism/replay impact: no engine, wire, view or protocol change
  * is involved.
  *
- * THE KEY (B2) is the full prompt string, prefixed by the decision kind:
+ * THE KEY is the full prompt string, prefixed by the decision kind:
  * `kind + '\u0000' + prompt`. The engine embeds both the source card's name
  * and the trigger's TriggerDescription$ in the prompt (triggerLabel,
  * rules/trigger_queue.go), so an equal prompt IS "the same prompt from the
@@ -20,11 +20,11 @@
  * question prefixes differ ("Put this optional triggered ability on the
  * stack?" vs "Apply this triggered ability's effect?").
  *
- * SCOPE (B1): only `trigger_optional` decisions are rememberable. The store
+ * SCOPE: only `trigger_optional` decisions are rememberable. The store
  * itself is keyed by the whole kind+prompt pair, so the kind gate lives at
  * the affordance (rememberable / the panel's checkbox), not in the data.
  *
- * PERSISTENCE (B3): ONE global localStorage key,
+ * PERSISTENCE: ONE global localStorage key,
  * `gorge.remembered-decisions.v1` — deliberately a separate key from
  * `gorge.playsettings.v1`, which is versioned/preset-governed; remembered
  * answers are an open-ended map. Entries are ordered oldest→newest and
@@ -36,10 +36,10 @@
 
 export const REMEMBERED_CAP = 200;
 
-/** The ONE global localStorage key (B3). */
+/** The ONE global localStorage key. */
 export const REMEMBERED_STORAGE_KEY = 'gorge.remembered-decisions.v1';
 
-/** The only decision kind the remember affordance is offered for (B1). */
+/** The only decision kind the remember affordance is offered for. */
 export const REMEMBERABLE_KINDS: readonly string[] = ['trigger_optional'];
 
 /** keyPrefixes is every rememberKey prefix a persisted entry may carry, derived from REMEMBERABLE_KINDS — a key whose kind is not rememberable (or that lacks the NUL separator) cannot have been written by this store, so a payload carrying one is corrupt. */
@@ -67,7 +67,7 @@ export interface RememberedStore {
   entries: RememberedEntry[];
 }
 
-/** rememberKey is the memory identity of one ask: the full prompt string under its decision kind (B2). The NUL separator cannot appear in a prompt, so kind and prompt cannot blur into each other. */
+/** rememberKey is the memory identity of one ask: the full prompt string under its decision kind. The NUL separator cannot appear in a prompt, so kind and prompt cannot blur into each other. */
 export function rememberKey(kind: string, prompt: string): string {
   return kind + '\u0000' + prompt;
 }

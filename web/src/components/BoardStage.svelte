@@ -21,7 +21,7 @@
    * sized here from the profile's row unit) in the middle, and the gilt
    * action cluster in its right corner. A spectator gets no hand row and no
    * action button; the mulligan round keeps the strip at the top and no hand
-   * row, so the opening hand owns the board centre (ui26).
+   * row, so the opening hand owns the board centre.
    */
   let {
     view,

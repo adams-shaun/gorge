@@ -76,7 +76,7 @@ export function rememberName(name: string, storage: Storage | null = safeStorage
 }
 
 /**
- * tableEventSeat is the table page's event context (E3-9). A series game's
+ * tableEventSeat is the table page's event context. A series game's
  * join link is `/t/{table}?seat=&token=&event=<id>`: its token is the GAME
  * token, so the event seat comes ONLY from the pair the event page
  * remembered for that event — the URL's seat and token are never read (or

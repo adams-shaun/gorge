@@ -116,7 +116,7 @@ mount(CardTile, {
   },
 });
 
-// fb-20260923T020152Z: the declare-attackers wheel. Attacker options are
+// The declare-attackers wheel. Attacker options are
 // SELECTIONS in a still-pending multi-pick decision (SeatPanelState.click
 // toggles them into `picked` and posts nothing), so clicking one must post
 // its own wire index and leave the wheel open for the next attacker. A third

@@ -65,7 +65,7 @@
 <div class="list-prompt" data-list-prompt>
   {@render children?.()}
   {#if decision.kind === 'trigger_optional'}
-    <!-- The remember affordance (fb-20260914T062319Z-88b4069a B4): default
+    <!-- The remember affordance: default
          OFF; when checked, click()'s post-on-click stores the chosen index
          under the full-prompt key and every identical future prompt is
          answered with it (manageable in GAME OPTIONS). It sits above the

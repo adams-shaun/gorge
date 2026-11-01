@@ -8,7 +8,7 @@
    * PickFace is one card-face option of the card-pick renderers (arrange,
    * discard, library search): the face, its key cap, and — once picked —
    * its pick ordinal. The shared CardHover gives it the dwell/focus
-   * inspector every card surface has (fb-20260914T063020Z Job 1); `press`
+   * inspector every card surface has; `press`
    * adds the touch long-press the arrange and search rows had.
    */
   let { card, index, at, digit, label, busy, hover, press = true, onclick }: {

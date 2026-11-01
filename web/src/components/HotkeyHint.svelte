@@ -4,7 +4,7 @@
 
   /**
    * HotkeyHint is the transient cue for the hotkey grammar's focus
-   * suppression (fb-20260929T080219Z): a player Tabs to a control — the PASS
+   * suppression: a player Tabs to a control — the PASS
    * button, a layout pill, a <summary> — presses Space expecting the pass
    * hotkey, and gets nothing, silently, because the focused control's native
    * activation owns Space and Enter (lib/hotkeys focusOwnership). This element

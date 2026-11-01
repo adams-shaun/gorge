@@ -85,8 +85,8 @@ export function stepLabel(step: string): string {
  * autoPassLogText words one automatic pass for the log. The stack case names
  * the object that is about to resolve (the TOP of the stack — the same
  * object decide()'s stack rules and the seat panel read); the step case
- * names whose turn and which step. Both wordings are the two the brief
- * asks to distinguish ("Auto-passed: Lightning Bolt resolving" /
+ * names whose turn and which step. Both wordings are the two to
+ * distinguish ("Auto-passed: Lightning Bolt resolving" /
  * "Auto-passed: opponent's end step"); the one-shot runs say so in their own
  * register ("End turn: passed main 2").
  */

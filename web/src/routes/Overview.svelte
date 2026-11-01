@@ -46,12 +46,12 @@
         {tables.list.length === 1 ? 'table' : 'tables'} playing
       </p>
     </header>
-    <!-- Task ui11: sit down 1v1 against a bot, alongside the spectator lobby
+    <!-- Sit down 1v1 against a bot, alongside the spectator lobby
          — not replacing it. The panel POSTs /api/games and follows the join
          path. The server decides whether the flow is enabled; a server that
          did not arm -vsbot answers 404 and the panel renders it. -->
     <div class="playstrip"><PlayVsBot /></div>
-    <!-- Draft events (E2): the pod entry point sits beside play-vs-bot; it
+    <!-- Draft events : the pod entry point sits beside play-vs-bot; it
          hides itself on a server without -events, and .playstrip:empty below
          then drops its padding so no gap remains. -->
     <div class="playstrip"><DraftEntry /></div>
@@ -84,7 +84,7 @@
    * out of the way — a large marketing header above a live board would be
    * decoration competing with the actual subject.
    *
-   * The composition rule that follows from that (Task L2): the cells fill the
+   * The composition rule that follows from that: the cells fill the
    * page. A four-table server used to draw four ~18rem chips across the top
    * and leave three quarters of the viewport empty beneath them, which read as
    * a page waiting for content it did not have. It has the content; it was
@@ -139,7 +139,7 @@
   /* The play-vs-bot card sits between the masthead and the grid: a compact
      action, not part of the grid or the rail, so the lobby below it is
      untouched. It is flex:none — it never steals the grid's share of the
-     height the way a growing footnote would (Task L2's composition rule). */
+     height the way a growing footnote would. */
   .playstrip {
     flex: none;
     padding: 0 var(--sp-4) var(--sp-2);

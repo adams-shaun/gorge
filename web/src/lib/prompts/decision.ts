@@ -64,7 +64,7 @@ export function actedPayment(d: Decision, payment: PaymentSelection | null | und
  * click identified by the option's wire index to the current picked index set and returns the
  * resulting set. It is expressed ONLY in terms of the decision's own min/max
  * (applied elsewhere) and the option Group field, never in terms of what a
- * Group's members are (R-E4-2) — the panel never learns what a blocker is.
+ * Group's members are — the panel never learns what a blocker is.
  *
  *  - A repeatable decision (`d.repeatable` — a CanRepeatModes$ Charm,
  *    CR 601.2b) is an ORDERED MULTISET over the distinct options: clicking an
@@ -123,7 +123,7 @@ export function unpickOption(index: number, picked: number[]): number[] {
   return picked.filter((_, i) => i !== at);
 }
 
-/** primaryOf resolves the "primary" option by kind — pass/resolve — never by position (R-E4-1). */
+/** primaryOf resolves the "primary" option by kind — pass/resolve — never by position. */
 export function primaryOf(d: Decision): Option | null {
   for (const o of d.options) {
     if (o.kind === 'pass' || o.kind === 'resolve') return o;
@@ -150,7 +150,7 @@ export function paymentPlanSummary(plan: PaymentPlan): string {
   return `Tap ${plan.activations.length} ${plan.activations.length === 1 ? 'source' : 'sources'} for ${produced.join(' + ') || 'mana'}`;
 }
 
-/** optionAt resolves a wire option by its own index, never by array position (R-E4-1). */
+/** optionAt resolves a wire option by its own index, never by array position. */
 export function optionAt(d: Decision, index: number): Option | undefined {
   return d.options.find((o) => o.index === index);
 }
@@ -184,7 +184,7 @@ const MANA_FOLLOW_UP_KINDS: ReadonlySet<string> = new Set(['activate', 'mana']);
  * followUpArm returns the expectation a hand post arms: the first answered
  * option whose kind can hand back a same-object mana ask
  * (MANA_FOLLOW_UP_KINDS) and that carries an obj. The obj is read from the
- * answered option itself (R-E4-1), never rebuilt from position. Anything
+ * answered option itself, never rebuilt from position. Anything
  * else returns null, which disarms.
  */
 export function followUpArm(d: Decision, choices: number[]): { seq: number; obj: number } | null {
@@ -199,7 +199,7 @@ export function followUpArm(d: Decision, choices: number[]): { seq: number; obj:
 
 /**
  * Tone is how loudly the panel presents its state, and it is resolved from
- * option KINDS alone — never a label, never a position (R-E4-1).
+ * option KINDS alone — never a label, never a position.
  *
  * `offered` is a window this seat may decline: the decision carries a `pass`
  * option, so doing nothing is a legal answer and the game moves on without
@@ -239,7 +239,7 @@ export function triggerOrderPermutation(d: Decision): boolean {
  *
  * Caveat, measured rather than assumed away: the label carries no target
  * information, so two identical-name/text triggers aimed at DIFFERENT
- * targets also read as identical. That is the brief's definition
+ * targets also read as identical. That is the definition
  * deliberately — between two copies of the same trigger the order is
  * immaterial — and it is stated here so nobody mistakes the test for a
  * target-aware one.

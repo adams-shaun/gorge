@@ -91,7 +91,7 @@ export const STEPS = [
 /**
  * STOPPABLE_STEPS is STEPS minus untap and cleanup, the two steps that
  * normally grant no priority. A stop there would be meaningless, so the UI
- * can only offer stops on these ten. Exported so the UI task cannot invent
+ * can only offer stops on these ten. Exported so the UI cannot invent
  * its own list.
  */
 export const STOPPABLE_STEPS: readonly string[] = STEPS.filter((s) => s !== 'untap' && s !== 'cleanup');
@@ -157,7 +157,7 @@ export function isCostlyManaActivation(o: Option): boolean {
 
 /**
  * plannedCasts is the auto-pay arm of actionables() (spec §8 as amended
- * 2026-09-26, aph-web-autopass): with the seat's auto-pay preference ON, every
+ * 2026-09-26): with the seat's auto-pay preference ON, every
  * payment action carrying at least one plan is a real play. The seat panel,
  * the hand fan and the hot strip all offer it as a one-click cast paid by its
  * first plan — including a PLAN-ONLY cast, which has no legacy cast option
@@ -336,7 +336,7 @@ export function respondableFor(view: View, seat: number, decision: Decision): bo
  * concede: the index always comes from the pass option that was found.
  *
  * autoPayMana is the seat's auto-pay preference, handed to actionable() so
- * this floor and decide() read the same test (spec §8, aph-web-autopass):
+ * this floor and decide() read the same test (spec §8):
  * while it is on, a window whose only play is a plan-only cast is NOT empty,
  * whether or not potential_actions lists the card (the gaps audit's third
  * probe: the floor used to pass it); off, the floor is the capability-less
