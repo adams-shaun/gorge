@@ -93,6 +93,8 @@ The **Protocol** switch, in the lobby and in Options, chooses how a seat talks t
 table loads: *Native*, gorge's own stream, *ManaBrew* or *SpellBench v2* ([Wires](../architecture/wires.md)).
 ManaBrew needs a server started with `-manabrew`, and SpellBench v2 one started with `-sbv2`. A wire the server
 doesn't offer is disabled, and every table plays over Native with your choice kept for a server that does.
+Native is the same game on any server. A seat you played over SpellBench v2 goes back to it from your next answer
+after you reload the table on Native.
 
 A ManaBrew seat plays the same game with the same board and prompts. Three things differ, because the
 protocol has no event log and no payment plans: the game log holds only what the page has seen and

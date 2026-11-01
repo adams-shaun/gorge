@@ -797,8 +797,8 @@ server's JSON 404 `{"code":"not_found","message":"no such endpoint"}`.
 
 | Route | Answers |
 |---|---|
-| `GET /api/sbv2/v1/tables/{t}/matches/{k}/state` | `{"request": R}`: the seat's open request, or `null` between decisions |
-| `GET /api/sbv2/v1/tables/{t}/matches/{k}/stream` | Server-Sent Events: `data: {"request": R}` on connect and on each change, including `null` when a request closes. A reconnect re-serves what's open |
+| `GET /api/sbv2/v1/tables/{t}/matches/{k}/state` | `{"request": R}`: the seat's open request, or `null` between decisions. [Attaches the seat](#attaching-a-seat) |
+| `GET /api/sbv2/v1/tables/{t}/matches/{k}/stream` | Server-Sent Events: `data: {"request": R}` on connect and on each change, including `null` when a request closes. A reconnect re-serves what's open. [Attaches the seat](#attaching-a-seat) |
 | `POST /api/sbv2/v1/tables/{t}/matches/{k}/send` | answers the open request; `204` with no body |
 
 The seat is the claim of the [native wire's seat token](http.md), given as `Authorization: Bearer` or
@@ -867,11 +867,27 @@ priority `activate` candidates, are ratcheted in
 The routes have no `terminal` or `game_over`. When a match ends, `request` stays `null`; read the result from the
 [native routes](http.md), for example `over` and `winner` in `GET /api/tables/{t}/matches/{k}/view`.
 
-### On a native seat
+### Attaching a seat
 
-`-sbv2` taps every human seat of a covered table, whichever wire its client uses. A seat playing over the native
-routes gets the same host answers as a v2 seat: a mana ability's colour ask, a triggered cost's pay-or-decline and
-the division of combat damage are answered before it sees them. Its think timeout doesn't change.
+`-sbv2` changes nothing for a seat until a client attaches to it. Until then its decisions go to the native routes
+exactly as they do without the flag, every ask included, and no v2 request opens.
+
+- **A `state` read or a `stream` connection attaches the seat**, given the seat's token. v2 then answers the seat,
+  starting with the decision already parked: the read that attaches can return `null`, and the request follows on the
+  stream or the next read. The host answers a mana ability's colour ask, a triggered cost's pay-or-decline and the
+  division of combat damage on an attached seat, even when a native client started that action.
+- **An answer on another wire hands the seat back, unless a `stream` connection of that seat is open.** The native
+  routes and ManaBrew count as another wire. The open request closes and every later decision goes natively, until the
+  next read attaches the seat again. With a stream open the seat stays attached: the request closes and the next
+  decision opens one. A client posts a tap natively that way.
+- **Closing a stream changes nothing by itself.** The seat keeps its open request and partial picks, so a reconnect
+  carries on, and the next native answer hands it back. A connection the server hasn't yet seen close still counts as
+  open.
+
+A native client never sees half an answer. A v2 walk stays on the server until it commits a whole native decision, so
+a native client sees that decision as it was asked and answering it drops the partial picks. The think timeout and the
+caretaker run the same on an attached seat and a passive one. The log holds only answers, so a game reads the same
+whichever wire answered it.
 
 ### The browser client
 
