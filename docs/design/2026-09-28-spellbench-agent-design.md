@@ -1,9 +1,9 @@
 # A gorge-brained SpellBench agent — design (2026-09-28)
 
-Status: draft for operator review (workstream W3). No code is specified to
+Status: draft for review. No code is specified to
 the task level here; the implementation plan follows approval.
 
-Sources, read at: gorge worktree `wt/spellbench` @ `cc3c349d8`; SpellBench
+Sources, read at: gorge @ `cc3c349d8`; SpellBench
 clone `$DATA/spellbench` `main` @ `971a1fb` (protocol text
 `spec/SPELLBENCH_PROTOCOL_V1.md`, `spec/SPELLBENCH_PROTOCOL_V2.md`); the gorge
 engine adapter plan `origin/gorge-adapter` @ `a69b3cc`
@@ -181,7 +181,7 @@ variants (840, 788); head to head each planned bot is 65-63 against its
 auto-pay twin. Aborts: 0.5-0.9% of lowerings, all on plans that sacrifice a
 mana source whose trigger stacks before a sorcery-speed cast.
 
-Closed (branch `wt/sb-actions`): every one of those aborts was recoverable,
+Closed: every one of those aborts was recoverable,
 and the seat now never loses a chosen, payable action. payexec runs
 last-resort steps after plain taps (Tinder Wall before Overgrown Battlement
 shrank the defender count), hands a foreign ask (a trigger order) back to the
@@ -337,8 +337,7 @@ gorge offers one plan per cast. The early-game and timing weights are
 unvalidated. On FDN the lead over `bot` is smaller, as expected from
 pauper-driven fixes.
 
-Rerun (worktree root, a built `botbench`, heavy-job wrapper per the
-operator rules):
+Rerun (worktree root, a built `botbench`):
 
 1. `botbench -dir .cards -workers 8 -spellbench sb-uniform,sb-heuristic,bot,sb-heuristic-planned,sb-tactical,sb-tactical-planned,sb-tactical-noearly,sb-tactical-notiming,sb-tactical-norace -spellbench-pairs 8 -spellbench-out <dir>`
 2. Rate with `lab/scripts/spellbench-rate.py --anchor sb-uniform --out <dir>/rate <dir>`, adding `--bots sb-uniform,sb-heuristic,bot,sb-heuristic-planned,sb-tactical,sb-tactical-planned` for the main table.
@@ -949,7 +948,7 @@ same reconstruction step; the extension only makes it more exact.
 Today step 2 needs package-internal access: the 17lands spike staged
 replay snapshots by calling the unexported `(*rules.Engine).emit`
 (`engine/rules/engine.go:2610`) from a `_test.go` file inside package `rules`
-(branch `wt/spike-17lands-value`, `rules/spike17l_replay_test.go:300-370`).
+(a spike branch, `rules/spike17l_replay_test.go:300-370`).
 That proved staging works — 93.8% of recorded 17lands actions were legal in
 the staged engine (25,139 of 26,805,
 `$DATA/17lands-spike/replay2000.kept.log`) — but it is not
@@ -979,7 +978,7 @@ D§11 H5 proposes moving it upstream.
 
 ### 5.1 Opponent decklist posterior
 
-Assume `opponent_decklist` is `hidden` (operator direction). When it is
+Assume `opponent_decklist` is `hidden`. When it is
 `visible` the posterior is a point mass and nothing below changes.
 
 - **Prior** by benchmark type:
@@ -1195,7 +1194,7 @@ Operator direction (2026-09-28): host a v2 environment backed by gorge and
 run our agent "in reverse" against it, so the agent plays full games on
 real gorge rules through the reference host, with every decision checked by
 the host's live validator and the agent's reconstruction compared against
-engine truth. Branch `wt/sb-v2-reverse`.
+engine truth.
 
 **Path taken: our own server, not Jack's adapter.** The newest adapter
 branch, `origin/gorge-adapter-g14` @ `62b17fa`, implements plan Tasks 1-14
@@ -1351,7 +1350,7 @@ the adapter's `ResolveSource` makes the same choice); no probe; the
 seat-private arrangement-order and search results are exact but the order
 of a pile-B remainder follows gorge's `Rest` convention unverified.
 
-**Notes for Jack's adapter** (for the operator to pass on; no contact made):
+**Notes for Jack's adapter**:
 
 - It cannot host a game yet (Tasks 15-23 missing); the pin `26257e0e` is
   hundreds of commits behind gorge HEAD.
@@ -1531,7 +1530,7 @@ fit, against +180 for the clairvoyant reference.
 **Not answered here:** Q1 (L10 on redeal-only worlds vs its rejection
 sampler) and hidden-list worlds (list posterior not a point mass).
 
-**Rerun** (worktree `wt/sb-m1-redeal`; outputs and the chunk runner are in
+**Rerun** (outputs and the chunk runner are in
 `$DATA/spellbench-work/m1/`: `run_chunk.sh`,
 `aggregate.py`, one directory per arm):
 

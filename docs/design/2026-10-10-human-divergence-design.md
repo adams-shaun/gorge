@@ -3,7 +3,7 @@
 Status: design, 2026-10-10. Not started. Base: `main` @ `6a157c31f`
 (every `path:line` below was read at that SHA; anything not read from code is
 marked **INFERRED** or **HYPOTHESIS**). Owner of the decision to build: the
-operator. Nothing here changes rules behaviour, adds an event kind, or touches
+maintainers. Nothing here changes rules behaviour, adds an event kind, or touches
 `events.Apply`.
 
 ## 0. One-paragraph summary
@@ -74,7 +74,7 @@ Non-goals (v1):
 | Honest teacher over sampled worlds | `searchprobe.TeacherIntentChoice`, with paired `WinsOverBaseline`/`LossesToBaseline` against candidate 0 | `bots/searchprobe/teacher.go:147`, `:73-89` |
 | Adaptive A/B evaluation with CIs, honest and omniscient arms | `hindsight.Evaluate(candidates, source, seed, opts)`: blocks of common-random-number worlds, stops when the top two Wilson intervals separate; `PairedDiff95`; `ClearMargin` (≥ 0.10 and paired lower bound > 0); `Seed` | `internal/hindsight/hindsight.go:270`, `:207`, `:344`, `:365` |
 | Honest world source with redeal fallback; omniscient arm | `evaluateSampled`, `evaluateOmniscient` | `cmd/hindsight/main.go:371`, `:386` |
-| Sampler starvation is real | pn20 smoke: 73 of 77 branched decisions (94.8%) were `no_world` before the redeal fallback existed | `archived 2026-09-24-pn20-hindsight-step1.md (docs/design/ARCHIVE.md)` §1 |
+| Sampler starvation is real | A hindsight smoke: 73 of 77 branched decisions (94.8%) were `no_world` before the redeal fallback existed | `archived 2026-09-24-pn20-hindsight-step1.md (docs/design/ARCHIVE.md)` §1 |
 | Training record the DPO path reads | `LabelRecord` "label-v1" (schema 2), with `Candidates` (index 0 = bot), `TeacherChoice`, `Margin`, `View` (seat view, `Decision` nil), `Board` (traceboard), `RescoreValues` | `lab/cmd/searchteacher/labels.go:35`, `:111`, `:121` |
 | Go reader of the same records | `policynet.labelRecord` mirror, `AcceptedLabelSchemaVersions = {1,2,3}`, `Load` | `bots/policynet/loader.go:37`, `:53`, `:154` |
 | DPO pair construction (off-repo) | `build_pairs`: Q = (8·values + 64·rescore)/72, chosen = argmax Q, rejected = candidates ≥ `--gap` (default 0.06) below; records without `rescore` are skipped | `$DATA/llm-qlora/src/dpo.py:26-40`, `:142` (outside the repo, read 2026-10-10) |
@@ -96,7 +96,7 @@ Non-goals (v1):
 | Layering fences | `host`, `server/host/httpapi`, `cmd/gorged` must not depend on `testkit/testutil`. Only allow-listed packages may import `time` | `internal/archtest/arch_test.go:150-160`, `:115-142` |
 | Seat privacy rules | credentials bind table and seat; every seat route goes through `claimForTable` | `docs/agents/runtime-behavior.md:67-76` |
 
-What the measured history says (operator records, **not re-measured here**):
+What the measured history says (maintainers' records, **not re-measured here**):
 an imitation policy trained on 17lands human choices scored above the bot on a
 staged benchmark, and lost in play when used as a cast veto (−1.23 pts, CI
 excluding zero). "Agreement with humans again failed to predict wins." That
@@ -380,9 +380,9 @@ Sub-buckets of `indistinguishable`, from the omniscient arm:
   tie, or a difference that the teacher's rollouts to game end with the bot as
   rollout policy cannot resolve.
 
-The 0.10 threshold and the CI rule are `ClearMargin`'s pn20 rule, reused
+The 0.10 threshold and the CI rule are `ClearMargin`'s rule, reused
 unchanged so the label semantics match the existing hindsight work. Changing
-them is an operator decision, recorded before a run.
+them is a maintainer decision, recorded before a run.
 
 ### 6.3 The teacher's bias is asymmetric, and the export respects it
 
@@ -466,7 +466,7 @@ real games measure it again.
 ### 7.4 Why not imitation
 
 Spelled out because the request invites it: an imitation target teaches
-"what humans do", and the operator's measured history says that does not turn
+"what humans do", and the measured history says that does not turn
 into wins (§2). A preference pair whose winner the teacher chose teaches "what
 wins under the teacher". The human's contribution is *search guidance*: the
 human proposed a candidate the bot never considered, and the teacher verified
@@ -615,7 +615,7 @@ Pipeline:
    example "opponent kept ≥ 2 untapped Islands and passed with ≥ 2 cards in
    hand"). This step is research tooling; the repo gets its output, not the
    code.
-3. The operator reviews a cluster and files it as a symbol entry in
+3. A maintainer reviews a cluster and files it as a symbol entry in
    `internal/divergence/symbols.go`. A registry entry is code, so it is
    deterministic, testable, and runs inside the redaction boundary.
 4. `cmd/divergence symbols-eval -triage ... -symbols name1,name2` evaluates
@@ -669,7 +669,7 @@ Rules, each with its enforcement:
   `projectNextData`, B stops being "what the bot would do". HD-3's parity test
   pins it: a host match whose bot seat is a per-decision `ShadowSeed`-seeded
   instance must yield **zero** divergences when that seat is shadowed.
-- **Sampler starvation.** pn20 measured 94.8% `no_world` before the redeal
+- **Sampler starvation.** A hindsight smoke measured 94.8% `no_world` before the redeal
   fallback. `-redeal` defaults on, `untriaged` is a first-class bucket, and its
   rate is a reported metric. If it stays high on human games, the program
   stalls on the sampler, not on this design.
@@ -815,7 +815,7 @@ HD-9 needs HD-7.
   `-block 4 -max-rollouts 8`); `TestTriageDeterministic` (two runs → identical
   bytes; the `-workers` value changes nothing).
 - **Caps:** standard. Rollout budgets in tests are capped by flags. A full triage
-  run is operator work under heavy.sh, never in a seat.
+  run is a heavy job, run by hand.
 
 ### HD-7: exports (offline, S)
 
@@ -828,7 +828,7 @@ HD-9 needs HD-7.
   `bot_better` → 0, ties absent by default); `TestExportNoOpponentHandNames`;
   `TestExportRefusesOracleValues`; `TestExportExcludesFlaggedBotBetter`;
   `TestExportReasonsOnlyFreeText` (free text appears only in `export-reasons`).
-  An operator step, outside the ticket: run the off-repo `prep.py` on a 10-record
+  A maintainer step, outside the ticket: run the off-repo `prep.py` on a 10-record
   export and confirm `dpo.build_pairs` yields one pair per record.
 
 ### HD-8: live shadow and in-game chip, server half (server, M, P2)
@@ -846,7 +846,7 @@ EnvSeat; a push frame for the chip; and `post_reveal` tagging.
   synthetic set whose symbol perfectly separates the buckets → AUC 1.0;
   deterministic output.
 
-### UI-1: opt-in on the play-vs-bot form (UI, S; codex seat or by hand)
+### UI-1: opt-in on the play-vs-bot form (UI, S)
 
 - **Files:** `web/src/components/PlayVsBot.svelte`, `web/src/lib/api.ts`
   (`CreateGameRequest.teach_bot`, from gentypes), and
@@ -855,7 +855,7 @@ EnvSeat; a push frame for the chip; and `post_reveal` tagging.
   carries `teach_bot: true`; the copy states what is recorded ("your decisions
   in this game, to train the bot").
 
-### UI-2: post-game divergence review (UI, M; codex seat or by hand)
+### UI-2: post-game divergence review (UI, M)
 
 - **Files (new):** `web/src/lib/divergence.ts` (a pure state machine:
   `list → selected → answering → revealed → reconsidered`; the pre-commit states
@@ -881,7 +881,7 @@ After HD-1 through HD-7 land and the first 20 opted-in human games are captured:
 1. The divergence rate per human decision, by material class.
 2. The bucket shares, with the `untriaged` share broken down by reason. **Kill
    criterion:** `untriaged > 70%` means the sampler is the bottleneck, and the
-   program pauses until the sampler is fixed (pn20's lesson).
+   program pauses until the sampler is fixed.
 3. The `human_better` count. **Kill criterion:** zero `human_better` in 20 games
    with fewer than 30% untriaged means the human-as-teacher hypothesis, for this
    bot and these players, is not worth the UI cost. In that case keep only the

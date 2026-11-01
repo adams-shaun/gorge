@@ -1,7 +1,7 @@
 # Rules package split: compile-time slicing plan (2026-10-06)
 
-Status: **plan + first slice landed** (`engine/rules/scriptfacts`, commit on
-`wt/cli-20261006T231747Z-a54b8662`). This plan sequences the remaining slices
+Status: **plan + first slice landed** (`engine/rules/scriptfacts`).
+This plan sequences the remaining slices
 as independent tickets; it does not queue them.
 
 Related design (the wider layering refactor this serves):
@@ -63,7 +63,7 @@ distinct Engine surface is small enough to become an interface (the
 | `trigger*` (23 files, the walk not the matchers) | ~9,000 | 110+ surface; `checkTriggers`, `putTriggersOnStack` | `trigmatch.Board` (matchers already out) | E3 remainder; blocked on the walk's Engine field reads |
 | `sba*` (3 files) + `sbaquiet` | ~2,250 | 100+ | `sbaBoardFacts` | viable after a facts-struct split, not first |
 | `oracle*` (9 files, the audit harness) | ~2,800 | 121 refs, mostly `e.emit`/`e.legalActions`/`e.Submit` | none | exported, coherent; needs a small `Board` |
-| `decision_arena.go` | ~? | Engine-owned | none | **hot** (ticket 6ab47258 live); do not touch |
+| `decision_arena.go` | ~? | Engine-owned | none | **hot**; do not touch |
 
 Evidence commands used (paste-ready):
 
@@ -117,7 +117,7 @@ Two mechanical rules from the landed slices:
 ## 4. Ordered slice list (each is one landable ticket)
 
 Order is by (fewest Engine refs first) × (avoid the two live hot-file sets:
-`engine/rules/legal*` S1–S3 and `engine/rules/decision_arena.go` 6ab47258).
+`engine/rules/legal*` S1–S3 and `engine/rules/decision_arena.go`).
 
 | # | ticket title | scope (files → package) | Engine surface | notes |
 |---|---|---|---|---|

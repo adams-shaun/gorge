@@ -33,7 +33,7 @@ trained in stage 1 is loadable, and deployable, in stage 2.
 | Evidence | Consequence here |
 |---|---|
 | Earlier work: PUCT over a weak prior lost 11–20pp; "search whose rollouts are the baseline is capped at the baseline" | No bot rollouts at the leaf; the value head is the leaf. Gen 0 must beat `bot` with a heuristic leaf before any training (stage 0 kill). |
-| pn12: argmax teacher labels are near-ties plus world luck, unlearnable | Train on the visit distribution π, not the pick. |
+| Earlier work: argmax teacher labels are near-ties plus world luck, unlearnable | Train on the visit distribution π, not the pick. |
 | Earlier work: value heads predict outcomes but don't rank moves | Measure value-head discrimination at decision points per turn bucket, not state log loss. |
 | Earlier work: ungated iteration random-walks | Every generation is gated against a fixed eval block. |
 | MageZero trains against a fixed minimax pool, not self-play | Train against a fixed `bot`. This also keeps `searchprobe.Sample`'s assumption (the opponent plays like `bot`) true in stage 2. |
@@ -52,7 +52,7 @@ Search(src WorldSource, net *policynet.Model, opts Options) (Result, error)
   - `Clairvoyant`: `(*rules.Engine).Clone()` of the real engine
     (`engine/rules/clone.go:51`). Stage 1 only; bench and training only.
   - `Sampled`: K worlds drawn once per decision by `searchprobe.Sample`
-    (`bots/searchprobe/sample.go:158`), with the pn21 redeal
+    (`bots/searchprobe/sample.go:158`), with the redeal
     (`RedealBase`, `bots/searchprobe/redeal.go:39`) as the fallback when
     the sampler starves. Worlds are used round-robin, each simulation cloning
     its world. Stage 2.
@@ -109,8 +109,8 @@ corpus, JSONL, one row per searched decision:
   schedule starting at 0.95 (MageZero's `td_discount` schedule:
   0.95, 0.92, 0.85, then 0.70).
 - The residual bot prior is 0 for this mode. The bot's answer enters through
-  candidate 0 and the tie-break, not through a pinned logit (pn13/pn14:
-  residual 2 pins the policy).
+  candidate 0 and the tie-break, not through a pinned logit
+  (residual 2 pins the policy).
 
 ### `lab/cmd/exitloop -mode az` (new mode)
 
@@ -162,7 +162,7 @@ optimisation, out of scope here unless stage 0 shows it binding.
 
 ## §3 Stages, budget, gates, kill criteria
 
-Deck set for every stage: uw-tempo against the five mono decks (the pn11–pn14
+Deck set for every stage: uw-tempo against the five mono decks (the earlier probes'
 and MageZero-comparison set). Eval block: seed 90,000,000, seats traded.
 
 ### Stage 0: measure (after ticket 2)
@@ -226,7 +226,7 @@ Per generation, four readouts:
 - **Determinism:** same seed and checkpoint → byte-identical choice and
   corpus row.
 - **Leak test (stage 2):** varying the real game's never-revealed hidden
-  cards leaves the `az` seat's choice unchanged (the pn21 test pattern).
+  cards leaves the `az` seat's choice unchanged (the redeal's test pattern).
 - **Clairvoyant refusal:** the clairvoyant source errors outside bench and
   training.
 - **Opt-in only:** default `bot`, `TestHeads` (`engine/rules/heads_test.go`) and

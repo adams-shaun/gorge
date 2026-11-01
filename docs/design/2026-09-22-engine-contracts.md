@@ -9,7 +9,7 @@ and invited a ticket that would have been wrong to write.
 If one of these ever stops being true, change it here, in the same commit as
 the code.
 
-## R-9: the no-ask host degradation contract
+## The no-ask host degradation contract
 
 A host that cannot answer a decision — the fuzzer, a test harness, a seat
 that has left — must never wedge the engine. Every asking primitive
@@ -47,7 +47,7 @@ zone order and poses one `KChoose` add/remove/skip election per object,
 (`Decision.ResumeObjects`) with its cursor and repetition in `ResumeTarget`
 and `ResumeRound`, so an answer that drops a counter cannot shift the next
 object's cursor. `engine/effects/time_travel.go` (each answer is applied in
-place). The only stand-in is R-9 above.
+place). The only stand-in is the no-ask one above.
 
 ## ActivationLimit$ is enforced for every shape the corpus carries
 

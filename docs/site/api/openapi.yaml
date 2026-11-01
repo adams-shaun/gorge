@@ -3136,7 +3136,7 @@ paths:
                           - claim: "(elided in this reference)"
                             setting: "(elided in this reference)"
                             source: "(elided in this reference)"
-                            versus: "pre-AR7 bot"
+                            versus: "earlier bot"
                         tier: "experimental"
               schema:
                 $ref: "#/components/schemas/BotPolicyList"

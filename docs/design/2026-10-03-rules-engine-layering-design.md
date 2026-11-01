@@ -1,6 +1,6 @@
 # Rules engine: layered packages — design (2026-10-03)
 
-Status: design draft for operator review. No code yet. Measured against
+Status: design draft for review. No code yet. Measured against
 `main` at `49bd9af8d`. Every number below carries the command or data source
 that produced it (Appendix A); re-measure before quoting, and treat anything
 marked *hypothesis* as a claim a spike must confirm or kill.
@@ -656,7 +656,7 @@ Measured on `main` at 41dd9f57e (after E7 slices 1-10): `engine/rules/pay` holds
 (`payment_plan*`, `cast_payment*`, `cast_payparts`, `announce_pay`,
 `unless_payment`, `mana.go`, `mana_activation.go`) is 226 Engine methods and
 ~7.7k lines. Each further slice was stalling on the same two walls, so the
-remaining work is a two-step redesign (operator decision, 2026-10-03).
+remaining work is a two-step redesign (decided 2026-10-03).
 
 **Step 1 -- leaf parameter package.** The compiled parameter records the
 ring reads on nearly every path move out of `effects` into
@@ -715,8 +715,7 @@ census, rerun with the session in place, frees only ~250 lines; the four
 blocking families it names are the work of this section. (Census:
 go/ast dump of every rules function's callees, Engine fields, effects
 references and rules types, then a fixed point over "every dependency is
-moved or a seam method"; the tool lives with the operator's scratch notes,
-not in the tree.)
+moved or a seam method"; the tool is not in the tree.)
 
 `engine/rules/chars` already holds the CR 613 layer *computation* (E4's first
 half, behind the 8-method `chars.Board`). What the ring needs is the other
@@ -950,7 +949,7 @@ cost-static pricing (its own seam or nothing), the interference matchers
   serialized landing lane), and tickets do not declare a file footprint up
   front, so this needs new pipeline work: a ticket field
   naming the locked path set, and an intake check against it. Until then the
-  operator holds conflicting feature tickets by hand. This replaces hot-file
+  maintainers hold conflicting feature tickets by hand. This replaces hot-file
   notes with scheduling.
 - **Tickets scoped by subsystem, not by card.** A card bug triggers a class
   census for its mechanism (existing practice); the fix ticket owns the
@@ -1101,8 +1100,8 @@ Tracked weekly; baselines from this spec:
 - **W3 is the large bet.** It is gated by W1a, the clone-fidelity fuzz and
   S3 with explicit kill criteria and a defined fallback; its park-and-continue
   paths are a deliberate behaviour change with a planned re-pin (§7.2).
-- **The lane lock (W6) is new pipeline work**; until it exists the operator
-  sequences conflicting feature tickets by hand.
+- **The lane lock (W6) is new pipeline work**; until it exists the maintainers
+  sequence conflicting feature tickets by hand.
 - **Perf.** W1a generated clone, W1c constructors and W4 typed params all sit
   on hot paths; each must pass the perf-sb gate. W4 should *improve* hot
   paths by replacing map lookups with struct fields.
