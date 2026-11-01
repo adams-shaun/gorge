@@ -37,6 +37,11 @@ import (
 // Command gorged runs perpetual bot tables and serves them to browsers:
 // the host library behind a net/http server with the Svelte client
 // embedded.
+
+// defaultMulligans lets a seven-card hand go all the way to nothing: CR 103.5
+// puts no number on how often a player may mulligan.
+const defaultMulligans = 7
+
 type config struct {
 	addr, cards, decks, dir, spectator string
 	tables, seats                      int
@@ -45,8 +50,7 @@ type config struct {
 	perpetual                          bool
 	// mulligans is the London mulligan allowance the served tables hand the
 	// engine: each player may take up to this many mulligans between the deal
-	// and turn 1. Defaults to 1 — a mulligan is the first decision of
-	// a real game — and 0 runs no mulligan round.
+	// and turn 1. The default is defaultMulligans, and 0 runs no mulligan round.
 	mulligans int
 	// ext is what the binary links in beyond the platform (Main's argument).
 	ext Extensions
@@ -386,7 +390,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.StringVar(&c.spectator, "spectator", "public", "spectator visibility: public (default, every hand hidden) or omniscient (every hand visible)")
 	fs.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
 	fs.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
-	fs.IntVar(&c.mulligans, "mulligans", 1, "London mulligans per player before turn 1; 0 disables the pre-game round")
+	fs.IntVar(&c.mulligans, "mulligans", defaultMulligans, "London mulligans per player before turn 1; 0 disables the pre-game round")
 	fs.StringVar(&c.formatsRaw, "format", "constructed", "comma-separated table formats (constructed, commander); table i uses formats[i-1 mod n], e.g. -format commander,constructed runs one of each")
 	fs.StringVar(&c.humansRaw, "humans", "", "comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables")
 	fs.StringVar(&c.seatToken, "seat-token", "", "fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot)")

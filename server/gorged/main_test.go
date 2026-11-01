@@ -574,7 +574,7 @@ func TestHumanSeatTakesADecisionEndToEnd(t *testing.T) {
 }
 
 // TestTheHumanSeatIsAskedToMulligan is the product half: with
-// -mulligans 1 (the flag default), the London round runs and the human
+// -mulligans 1, the London round runs and the human
 // seat receives its keep/mulligan choice after any CR 103.1 toss choice.
 // Answering "keep" must move the match past the round.
 func TestTheHumanSeatIsAskedToMulligan(t *testing.T) {

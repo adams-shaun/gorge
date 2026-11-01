@@ -116,7 +116,7 @@ so a Commander table or one with more seats plays over Native, with no warning. 
 ### Mulligans and mana
 
 A play-vs-bot game takes its London mulligan allowance from the lobby (0 to 6; the panel defaults
-to 6). Startup tables use `-mulligans` (default 1; 0 skips the pregame round).
+to 6). Startup tables use `-mulligans` (default 7; 0 skips the pregame round).
 
 The server offers **automatic mana payment plans** to human seats (`-auto-mana`, on by default):
 CAST pays with a suggested plan, and the ACTIONS menu and the payment panel let you tap by hand
@@ -191,7 +191,7 @@ games.
 | `-pace D` | 50ms | sleep after every decision on bot tables; `0` is flat out, `1.5s` is watchable |
 | `-cooldown D` | 5s | pause between matches on a perpetual table |
 | `-perpetual` | true | start a new match when one ends |
-| `-mulligans N` | 1 | London mulligans per player before turn 1 |
+| `-mulligans N` | 7 | London mulligans per player before turn 1 |
 | `-decks dir` | `testkit/testutil/decks` | the deck JSON files every table and the lobby deal from |
 | `-max-on-demand-tables N` | 32 | how many play-vs-bot tables the process keeps; these are always two seats, one human and one bot |
 
