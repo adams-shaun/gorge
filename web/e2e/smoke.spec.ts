@@ -18,8 +18,8 @@ import { test, expect, type Locator, type Page, type APIRequestContext } from '@
  * leaves its loading state.
  *
  * The servers are started by scripts/smoke.sh and handed to us as base URLs
- * in SMOKE_PUBLIC / SMOKE_OMNI. Nothing here starts or stops a server; the
- * gate's teardown lives in the script so both servers die even on failure.
+  * in the SMOKE_* variables. Nothing here starts or stops a server; the gate's
+  * teardown lives in the script so every server dies even on failure.
  */
 
 const PUBLIC = process.env.SMOKE_PUBLIC;
@@ -481,7 +481,7 @@ async function clickWithInterceptDiagnostics(badge: Locator): Promise<void> {
       rail: describe(rail),
     };
   });
-  console.log(`UI24_BADGE_INTERCEPT ${JSON.stringify(geo)}`);
+  console.log(`BOARD_BADGE_INTERCEPT ${JSON.stringify(geo)}`);
   await badge.evaluate((el) => (el as HTMLElement).click());
 }
 
@@ -557,8 +557,8 @@ const FIXTURE_DRIVE_MS = 90_000;
 // A quick Node-side readiness GET distinguishes a wedged fixture farm from a
 // starved browser. 30s is deliberately far above the measured <1ms healthy
 // response; the 35s transport cap also bounds a silent/wedged socket.
-const UI24_READINESS_BOUND_MS = 30_000;
-const UI24_READINESS_TIMEOUT_MS = 35_000;
+const BOARD_READINESS_BOUND_MS = 30_000;
+const BOARD_READINESS_TIMEOUT_MS = 35_000;
 
 /** sameOrigin reports whether url is on the same origin as base — the only
  *  requests the gate forbids from failing (fonts and other third-party
@@ -1236,13 +1236,13 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
   });
 }
 
-// wheel1 — reproduce the reported two-click path against a real game. The
+// Reproduce the reported two-click path against a real game. The
 // fixture's Underground Sea has two distinct intrinsic mana abilities. The
 // priority decision first offers one source-level activate action; answering
 // it makes the server pose Add U / Add B on that same object. One click on the
 // card's direct action must carry the user through that continuation and open
 // its radial choice without requiring a second click.
-test.describe('gorged [wheel1] Underground Sea fixture', () => {
+test.describe('gorged [wheel] Underground Sea fixture', () => {
   test.skip(!WHEEL, 'SMOKE_WHEEL unset — run via scripts/smoke.sh');
 
   test('one click opens a live two-ability mana wheel', async ({ browser, request }) => {
@@ -1459,24 +1459,24 @@ test.describe('gorged constructed board fixture', () => {
     const readinessStartedAt = Date.now();
     let readinessResponse: Awaited<ReturnType<typeof request.get>> | undefined;
     try {
-      readinessResponse = await request.get(`${b}/api/tables`, { timeout: UI24_READINESS_TIMEOUT_MS });
+      readinessResponse = await request.get(`${b}/api/tables`, { timeout: BOARD_READINESS_TIMEOUT_MS });
     } catch (error) {
       const ms = Date.now() - readinessStartedAt;
-      console.log(`UI24_READINESS ${JSON.stringify({ ms })}`);
+      console.log(`BOARD_READINESS ${JSON.stringify({ ms })}`);
       // A connection-level failure that returns in milliseconds is NOT
       // starvation: the fixture server is not listening (killed under OOM,
       // lost the bind race, wrong port). Only a request that burned its whole
       // transport budget is the starved farm this probe exists to name, so
       // keep the two diagnoses apart rather than blaming load for a dead farm.
-      const starved = ms >= UI24_READINESS_TIMEOUT_MS * 0.8;
+      const starved = ms >= BOARD_READINESS_TIMEOUT_MS * 0.8;
       const diagnosis = starved
         ? `fixture server readiness GET took ${ms}ms — box starvation, rerun before treating this as a product bug`
         : `fixture server refused the readiness GET after ${ms}ms — the fixture server is not listening (killed/wedged farm), not a product bug`;
       throw new Error(`${diagnosis} (server ${b})`, { cause: error });
     }
     const readinessMs = Date.now() - readinessStartedAt;
-    console.log(`UI24_READINESS ${JSON.stringify({ ms: readinessMs })}`);
-    if (readinessMs > UI24_READINESS_BOUND_MS) {
+    console.log(`BOARD_READINESS ${JSON.stringify({ ms: readinessMs })}`);
+    if (readinessMs > BOARD_READINESS_BOUND_MS) {
       throw new Error(`fixture server answered a readiness GET in ${readinessMs}ms — box starvation, rerun before treating this as a product bug (server ${b})`);
     }
     expect(readinessResponse.ok(), `fixture readiness GET ${b}/api/tables`).toBe(true);
@@ -1546,7 +1546,7 @@ test.describe('gorged constructed board fixture', () => {
           parent: menu.parentElement?.tagName ?? '',
         };
       });
-      console.log(`UI24_OVERFLOW ${JSON.stringify(measurement)}`);
+      console.log(`BOARD_OVERFLOW ${JSON.stringify(measurement)}`);
       expect(measurement.rows).toBeGreaterThanOrEqual(7);
       expect(measurement.parent).toBe('BODY');
       expect(measurement.menuBottom).toBeLessThanOrEqual(700);

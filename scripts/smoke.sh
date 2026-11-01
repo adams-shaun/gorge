@@ -247,7 +247,7 @@ echo "== smoke: building client =="
 ( cd web && npm run build )
 echo "== smoke: building gorged =="
 mkdir -p bin
-CGO_ENABLED=0 go build -o bin/gorged ./cmd/gorged
+CGO_ENABLED=0 go build -trimpath -o bin/gorged ./cmd/gorged
 
 # ---- allocate five free smoke ports (8090-8099 by default) ----
 # The scan-then-bind window races every OTHER gate running in the same range
