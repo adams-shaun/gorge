@@ -19,7 +19,7 @@ import (
 )
 
 // applyReplacements is called from emit before the event is logged. The
-// single M1 replacement event is "Moved" (R:Event$ Moved), which applies to
+// single base replacement event is "Moved" (R:Event$ Moved), which applies to
 // a MoveZone event and honours Origin$, Destination$, ValidCard$ and
 // ReplaceWith$.
 //
@@ -133,7 +133,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return ev, false
 	}
 	// CantPutCounter is enforced in Engine.emit before this dispatch, even
-	// while a replacement body is in flight (task addcounter1/2).
+	// while a replacement body is in flight.
 	// FINALITY (CR 122.1) is a replacement at the common move boundary:
 	// a creature with a finality counter that would go from the battlefield to
 	// a graveyard is exiled instead. This covers destruction, toughness-based
@@ -200,7 +200,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	}
 	// Collect EVERY replacement effect this event matches, in
 	// forEachObject's deterministic scan order, rather than the single first
-	// match the M1 build took.
+	// match.
 	var matches, manaCandidates []replMatch
 	// Effect-created replacements (Blood of the Martyr and the broader
 	// ReplacementEffects$ family) are active independently of their source's
@@ -242,7 +242,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			// ReplaceWith$ — stopping the event is the complete replacement,
 			// the same shape printed R: lines take (the With==nil arm below).
 			// The bodyless Prevent$ True DamageDone form (Selfless Squire's
-			// RPrevent, task dponce1; the wider bodyless prevent family it
+			// RPrevent; the wider bodyless prevent family it
 			// belongs to) is the same idiom for damage: full prevention is the
 			// complete replacement, applied by the shared damage dispatch
 			// (applyNonMoveReplacements' Prevent$ arm) exactly as a printed R:
@@ -518,7 +518,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			}
 			if strings.EqualFold(m.repl.ParamStr(cards.PKPrevent), "True") {
 				// Stored through a re-entrant emit (the ReplaceDamage arm's
-				// shape, task dponce1): the log record IS the prevention's
+				// shape): the log record IS the prevention's
 				// occurrence, so Mode$ DamagePreventedOnce triggers fire off it
 				// -- Amount carries the prevented damage (Note is an Apply
 				// no-op marker; no reader of Note.Amount predates this). Obj is
@@ -625,7 +625,7 @@ type replMatch struct {
 	chosenCards []state.ObjID
 	chosenBound bool
 	// chosen carries the Effect-created replacement's SetChosenNumber$ binding
-	// (state.ContinuousEffect.ChosenNumber, task wildgrowth1): the number the
+	// (state.ContinuousEffect.ChosenNumber): the number the
 	// Effect resolved at creation, which replCtx threads into the body Ctx so
 	// the body's Count$ChosenNumber head reads the frozen binding. Zero on
 	// every printed replacement (and on an Effect that bound nothing).
@@ -947,7 +947,7 @@ func replacementFaceHidden(o *state.Object, id state.ObjID, ev events.Event) boo
 // the {X} paid for the moving object, Replaced names the object the replaced
 // event was about (so a Defined$ ReplacedCard body finds its subject), and
 // the SVar table comes from the source's face. This is exactly the context
-// the single-match path built inline for M1; it is factored out so the
+// the single-match path builds inline; it is factored out so the
 // composition and order-choice paths reuse it.
 //
 // Ctx.Remembered deliberately starts EMPTY. The replaced object is reached
@@ -964,7 +964,7 @@ func replacementFaceHidden(o *state.Object, id state.ObjID, ev events.Event) boo
 // replacement branch).
 //
 // The rule is scoped to PRINTED replacements. An EFFECT-created replacement
-// (m.key != "", task wildgrowth1) is a different population: the effect's
+// (m.key != "") is a different population: the effect's
 // registered Remembered list IS the intended binding -- the trigger captured
 // the cast spell with RememberObjects$ and the body's Remembered$ specs (the
 // runadi_behemoth_caller / gluttonous_hellkite CounterNum$ readers) read
@@ -1254,9 +1254,9 @@ func (e *Engine) resolveReplacementBody(ctx *effects.Ctx, with *cards.SA) {
 }
 
 // applyReplacement applies the ONE chosen replacement to a MoveZone event,
-// the exact behaviour the M1 build had for its single matching replacement.
-// An "Updated" match emits the original event, fires triggers (in the M1
-// order: before the With resolves -- the I-3 caveat stands), then resolves
+// the exact behaviour for a single matching replacement.
+// An "Updated" match emits the original event, fires triggers
+// (before the With resolves), then resolves
 // the With; anything else ("Replaced", or no ReplacementResult$ at all --
 // The four pins must keep reading as a full replace) discards the
 // original and only the With's own effect happens. Returns the event to log
@@ -1299,7 +1299,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
 		// sweep) run on Engine.emit's own MoveZone path right here in the
 		// ordering; the raw events.Emit above bypasses that path, so the sweep
-		// is replayed inline (task wildgrowth1: the "enters with N additional
+		// is replayed inline (the "enters with N additional
 		// counters" Effect must end exactly after the one entry it upgraded,
 		// not linger to re-upgrade the same remembered card's next entry).
 		e.effectMoveSweep(ev)

@@ -38,7 +38,7 @@ func dedupeTargets(ts []state.Target) []state.Target {
 	return out
 }
 
-// effCopyPermanent implements DB$ CopyPermanent (task copyp1): create a token
+// effCopyPermanent implements DB$ CopyPermanent: create a token
 // that is a copy of the object each resolved source names. The mint is one
 // events.CopyToken + one MoveZone per copy -- the MyriadCopy precedent, whose
 // two-event shape keeps the token's battlefield entry a
@@ -54,7 +54,7 @@ func dedupeTargets(ts []state.Target) []state.Target {
 //   - Populate$ True with no Defined$/ValidTgts$: "a creature token you
 //     control" (CR 701.27a), scanned through the ordinary Valid filter
 //     grammar. A single eligible token is copied exactly; several keep the
-//     deterministic first-candidate stand-in under one Note (the R-9 no-host
+//     deterministic first-candidate stand-in under one Note (the no-host
 //     contract -- the controller's real choice needs an ask this primitive
 //     cannot pose); zero eligible tokens is a legitimate no-op (populate does
 //     nothing), never a Note.

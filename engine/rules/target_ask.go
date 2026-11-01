@@ -107,7 +107,7 @@ type tpCtlAnswer struct {
 // owns -- the answered selection pins of both tiers, the sole-opponent and
 // fail-closed shapes, the trigger-relative referent grammar -- plus the
 // answered-ask record (tpCtlChooser), so the offer and the recheck cannot
-// disagree about who "they" is (Critical C2's one-definition rule).
+// disagree about who "they" is (the one-definition rule).
 // p stays the ability CONTROLLER: target legality is judged from it exactly
 // as the ValidTgts$ filter judges it; only the restriction's controller
 // binding moves to the answering seat. The pending state is returned only
@@ -977,7 +977,8 @@ func (e *Engine) recheckCharmTargets(o *state.Object) ([][]state.Target, []state
 // generic ValidTgts$ pre-ask (effects' chosenTargetsFor) skips exactly the
 // covered SA on the first pass AND on every resume re-entry -- an optional
 // trigger's yes re-enters through resumeResolution, where the first pass's
-// bool marker alone is not carried (task mvts1).
+// bool marker alone is not carried.
+
 func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 	if o.Ability != nil {
 		if len(o.ChosenModes) > 0 && effects.CharmOf(o.Ability).HasChoices {

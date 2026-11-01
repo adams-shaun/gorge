@@ -45,7 +45,7 @@ const empowerTokenKey = "u_empower"
 //  4. N loyalty counters go on ONE Jace token the player controls. With
 //     several candidates (a pre-existing pair, or the two mints a CreateToken
 //     doubler such as Anointed Procession makes of the one token) the player
-//     chooses: a KChoose ("counter_pick") answered in place. The R-9 no-host fallback (and botpolicy's first-option answer)
+//     chooses: a KChoose ("counter_pick") answered in place. The no-host fallback (and botpolicy's first-option answer)
 //     take the first candidate in battlefield order. The counters are one
 //     ordinary CounterChange event, so AddCounter replacements (Doubling
 //     Season) and "whenever you put one or more loyalty counters" triggers

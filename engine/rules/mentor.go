@@ -13,7 +13,7 @@
 // `SVar:X:Count$CardPower` therefore offers an EMPTY target list. Keeping the
 // comparison in one shared helper -- called by the target offer and by the
 // CR 608.2b resolution recheck -- means offer and recheck cannot disagree
-// (Critical C2's one-definition rule).
+// (the one-definition rule).
 
 package rules
 

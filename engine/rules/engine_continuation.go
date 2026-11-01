@@ -58,7 +58,7 @@ type engineContinuation struct {
 	// deferred (effects' askSeam). Transient scratch, never logged.
 	askCount uint64 `clone:"reset"`
 	// AbortTally and LegacyAskTally attribute the notes whose event carries
-	// no source object (CV-6): note text <US> attribution label -> count.
+	// no source object: note text <US> attribution label -> count.
 	// abortCast knows the pending cast's card (the Note event does not), and
 	// Engine.Ask knows the refused decision's source; the cardval note
 	// census reads both tallies at game end. Deep-cloned, not reset: the

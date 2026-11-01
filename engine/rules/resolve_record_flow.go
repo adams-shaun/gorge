@@ -1,8 +1,8 @@
 package rules
 
 // resolve_record_flow.go holds the card-flow answer records the resolution
-// kernel writes when it serves a converted ask from its tape (W3 step 2,
-// group "flow"; resolve_record.go's per-resume-kind switch): each emits the
+// kernel writes when it serves a converted ask from its tape
+// (resolve_record.go's per-resume-kind switch): each emits the
 // answer's events in place.
 
 import (

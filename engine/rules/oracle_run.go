@@ -1461,7 +1461,7 @@ func (r *oracleRun) answer(d *decision.Decision, why string) error {
 		// (revisitsUpkeep), because the stored XMage references of the two
 		// level-B templates disagree and only the shape tells them apart:
 		//   - the activate/cast templates never revisit the phase; their
-		//     reference graveyards the SETUP ask (the D1 rows Broodheart
+		//     reference graveyards the SETUP ask (the rows Broodheart
 		//     Engine / Essence Anchor / Morcant's Eyes activate#0.0), so the
 		//     setup drive answers empty and a step-time ask keeps the
 		//     choose-all fallback;

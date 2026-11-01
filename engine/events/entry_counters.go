@@ -181,7 +181,7 @@ type EntryCounterGrant struct {
 // before the entry move folds and then places each grant through a real
 // CounterChange event, so the CR 614 AddCounter replacement class and the
 // CantPutCounter prohibition see an entry counter exactly like any other
-// placement (task addcounter1/2). A log-only replay re-derives the same
+// placement. A log-only replay re-derives the same
 // counters from those logged CounterChange events.
 //
 // The Riot "haste" election is deliberately NOT here: it grants a keyword,

@@ -24,7 +24,7 @@ func evalCountBodyProvenance(h Host, c *Ctx, body string, depth int) (int32, boo
 		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
 			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source, c.TriggerContext)), true, true
 		}
-		// The ARGUMENTED forms (task castprov2) peel the token and reuse the
+		// The ARGUMENTED forms peel the token and reuse the
 		// same Excluding read:
 		//
 		//   - !CastSaSource/<op> (thunder_salvo's /Plus.2): this form never
@@ -122,7 +122,7 @@ func evalTotalDamageDoneThisTurn(h Host, c *Ctx) int32 {
 // evalCountBodyCost evaluates the scalar heads claimed right after the
 // head/argument split: the EachSpentToCast colour read, the
 // TotalDamageReceivedThisTurn / TotalDamageDoneByThisTurn shortcuts, the
-// Convoked$/TargetedByTarget$ forms, the fuzz-cov3 heads and the first
+// Convoked$/TargetedByTarget$ forms, the count_cov3.go heads and the first
 // switch-arm group (YouDescendedThisTurn through SquadPaid).
 func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth int) (int32, bool, bool) {
 	// Count$EachSpentToCast.<colour> (Bladecoil Serpent, Clay Champion,
@@ -256,7 +256,7 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		return n, true, true
 	}
 
-	// The fuzz-cov3 heads (engine/effects/count_cov3.go): heads that previously
+	// The heads in engine/effects/count_cov3.go: heads that previously
 	// matched nothing below, so consulting them first changes no verdict
 	// another arm gave.
 	if n, ok := evalCov3Head(h, c, head, arg, depth); ok {

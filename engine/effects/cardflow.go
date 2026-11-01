@@ -526,8 +526,8 @@ func discardRevealNumber(h Host, c *Ctx, sa *cards.SA, g *state.Game, p state.Pl
 	if ans, ok := AskTape(h, d); ok {
 		revealed = revealPool(eligible, answerObjs(ans))
 	} else {
-		// Fuzz/no-engine host: the first N eligible cards in hand order
-		// (R-9), still publicly revealed.
+		// Fuzz/no-engine host: the first N eligible cards in hand order,
+		// still publicly revealed.
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "reveals its first " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
 	}
@@ -595,7 +595,7 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 			}
 
 			// Fuzz/no-engine host: the deterministic front-of-ELIGIBLE-hand
-			// stand-in (R-9) for the chooser, with the Note that records why
+			// stand-in for the chooser, with the Note that records why
 			// the richer path did not run.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
@@ -726,7 +726,7 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 			// election): a yes/no first, whose "no" discards nothing and whose
 			// "yes" poses the pick with Min 1, so "up to N" stays 1..N.
 			// AnyNumber$ is not an election -- zero is one count among many
-			// in its own pick. A host that cannot ask keeps the prior R-9
+			// in its own pick. A host that cannot ask keeps the prior no-host
 			// stand-in unchanged: straight on to the front-of-eligible
 			// discard below, with no extra event.
 			if askMin == 0 && !strings.EqualFold(sa.ParamStr(cards.PKAnyNumber), "True") {
@@ -763,7 +763,7 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 				// than must be discarded. A hand with NumCards$ eligible cards (or
 				// fewer) must drop all of them with no question: the player could
 				// not answer differently, so emitting a decision nobody can
-				// meaningfully resolve would just be noise (R-9 contract).
+				// meaningfully resolve would just be noise.
 				for _, id := range eligible {
 					discardAndRemember(h, c, riders, id, p)
 				}
@@ -791,7 +791,7 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 			}
 
 			// Fuzz/no-engine host: the deterministic front-of-ELIGIBLE-hand
-			// stand-in (R-9) for the discarding player, with the Note that
+			// stand-in for the discarding player, with the Note that
 			// records why the richer path did not run.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
@@ -839,7 +839,7 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 				}
 
 				// Fuzz/no-engine host: the deterministic stand-in takes the
-				// discard (R-9), with the Note that records why the richer path
+				// discard, with the Note that records why the richer path
 				// did not run.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "may discard resolved as discard (no engine host to ask)"})
@@ -996,7 +996,7 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 		if mp.Optional && count > 0 {
 			// Forge's MillEffect asks each affected player whether to mill when
 			// Optional$ is set ("you may mill N cards"). A no mills nothing; a
-			// host that cannot ask keeps the pre-ask mandatory mill (R-9), one
+			// host that cannot ask keeps the pre-ask mandatory mill, one
 			// loud Note per gated resolution.
 			d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 				ResumeKind: "mill_optional", ResumeSA: sa, ResumeTarget: idx,
@@ -1235,7 +1235,7 @@ func digDestPhrase(dest state.Zone) string {
 // RevealHand's Forge semantics act on the WHOLE hand ("look at target
 // player's hand", "target opponent reveals their hand" — both shapes are
 // whole-hand), so when its SA carries NO NumCards$ parameter the amount is
-// the pool's entire size, not the shared default 1 (task revealhand1:
+// the pool's entire size, not the shared default 1 (otherwise
 // Gitaxian Probe revealed exactly one card of a seven-card hand). The key's
 // PRESENCE, not its value, is the switch — a future script writing NumCards$
 // wins — and the switch keys on API so Reveal (a card-selector family:
@@ -1271,8 +1271,8 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			amt = 0
 		}
 	}
-	// The may-reveal ask (Delver of Secrets' peek; widened
-	// to Optional$ by the round-2 review's Look$ task): the deciding player
+	// The may-reveal ask (Delver of Secrets' peek, and any
+	// Optional$ reveal): the deciding player
 	// is asked whether to reveal before the Note goes out. The ask is the
 	// KChoose yes/no, answered in place via AskTape. No-host deterministically
 	// reveals; NoPeek$ and RememberRevealedPlayer$ remain unread. PeekAmount$
@@ -1464,7 +1464,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 					n = int32(len(pool))
 					pickForTarget = true
 				}
-				// No host to ask (R-9): fall through with n unchanged, so
+				// No host to ask: fall through with n unchanged, so
 				// the reveal takes the same first maxPick cards the pre-pick
 				// build did -- the reveal family's existing no-host
 				// convention (the Optional$ ask falls through the same way),
@@ -1606,9 +1606,8 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// CR 701.20e: a card looked at this way is shown only to the
 			// player the effect specifies — the activator — so the record is
 			// a Secret Note scoped to the looker (emitLook), NOT the public
-			// Note the pre-fix build emitted here (the round-2 review's
-			// Gitaxian Probe leak: every seat and spectator read the target's
-			// whole hand off it). RememberRevealed$ below still sees the
+			// Note, which every seat and spectator would read (Gitaxian Probe: the
+			// target's whole hand off it). RememberRevealed$ below still sees the
 			// looked-at cards: the chained subs that read Remembered are part
 			// of the same walk the looker's own card drives.
 			//
@@ -1793,7 +1792,7 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 		}
 
 		// Fuzz/no-engine host: the deterministic stand-in keeps the existing
-		// order -- pile A = the offered options in offered order (J3) -- with
+		// order -- pile A = the offered options in offered order -- with
 		// the LibraryOrder recording that the order was (re)set unchanged.
 		h.Emit(events.Event{Kind: events.LibraryOrder, Player: p,
 			IDs:    append([]state.ObjID(nil), lib...),
@@ -1852,7 +1851,7 @@ func rearrangeMayShuffleTape(h Host, c *Ctx, sa *cards.SA, chooser, p state.Play
 // The look is recorded as a Secret Note (the player alone may know what sat
 // on top), then the answer is applied by rules' handleArrange, which routes
 // the unchosen pile B to the destination named by the shared Kind
-// ("bottom"). The no-host stand-in (R-9)
+// ("bottom"). The no-host stand-in
 // keeps every card on top in its existing order (pile B empty), which is
 // narrower than the card text but deterministic.
 func effScry(h Host, c *Ctx, sa *cards.SA) {
@@ -1885,7 +1884,7 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // in place via AskTape; the answer applies to the ASKING player only -- the first acting player
 // carrying optionals, even when the Surveil resolves for several players
 // later libraries still arrange, but keep their own base count -- and anything
-// else (the no-host R-9 decline included) keeps the base count.
+// else (the no-host decline included) keeps the base count.
 func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Amount", 1)
 	if n <= 0 {
@@ -1911,8 +1910,7 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 			// "no"). With no answer (fuzz/effects-test double) the surveil
 			// falls through mandatory-only: declining the ELECTION must not
 			// drop the base Surveil, whose own no-host path inside
-			// effLookAndArrange applies the standing LibraryOrder stand-in
-			// (R-9).
+			// effLookAndArrange applies the standing LibraryOrder no-host stand-in.
 			if picks, ok := AskTape(h, d); ok {
 				ans = SurveilLookOptAnswer(picks)
 			}
@@ -2117,8 +2115,8 @@ func destinationPhrase(kind string) string {
 }
 
 // effNameCard records a card-name choice. The real name is asked at cast
-// time and recorded with a Choose event before this ever resolves (plan
-// R-9 no-host path), so a source already carrying ChosenName is a no-op. Without
+// time and recorded with a Choose event before this ever resolves (the
+// no-host path), so a source already carrying ChosenName is a no-op. Without
 // one -- a script that uses NameCard outside an ETB replacement -- it names
 // the first card in the controller's library, which is at least a
 // deterministic, legal name for whatever downstream sub-ability expects
@@ -2282,7 +2280,7 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 		names = restricted
 	}
 	if chooseFromDefined == "" && len(names) == 0 && (!universeBacked || chooseFromList == "") {
-		// R-9: a host without a supplied corpus still completes
+		// No-host path: a host without a supplied corpus still completes
 		// deterministically, and reproduces the exact pre-feature NameCard
 		// behaviour (name the top of the caster's own library) so a log an
 		// older binary wrote replays byte for byte (server/host/persist.go's

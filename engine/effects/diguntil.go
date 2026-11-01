@@ -30,7 +30,7 @@ import (
 // JOINS the revealed pile (the corpus oracles all say "then put all cards
 // revealed this way that weren't put onto the battlefield on the bottom":
 // Genesis Storm, Hei Bai, Aurora Awakener). No answer declines
-// deterministically (R-9); botpolicy's clamp fallback answers option 0 =
+// deterministically; botpolicy's clamp fallback answers option 0 =
 // "yes". RevealRandomOrder$ True (54 corpus lines) shuffles the pile's
 // RETURN order to the bottom of the library through the engine's seeded
 // generator (h.Rand), so it replays exactly; the public reveal Note and the
@@ -249,7 +249,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					moveAns = "yes"
 				}
 			} else {
-				// No answer: the deterministic decline (R-9) — the found
+				// No answer: the deterministic decline — the found
 				// card(s) join the decline destination.
 				moveDone = true
 				moveAns = "no"
@@ -325,7 +325,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 								}
 								bearer = auraAnsweredBearer(bearers, answered)
 							} else {
-								// R-9: a host without an answer takes the
+								// No-host path: a host without an answer takes the
 								// deterministic first candidate.
 								bearer = bearers[0]
 							}

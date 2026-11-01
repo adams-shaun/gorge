@@ -12,7 +12,7 @@ import (
 // poses.
 //
 // Every priority ask allocates its Decision and an exactly-sized Options
-// array -- measured on the play rows of enginebench's 2026-10-06 profile at
+// array -- measured on the play rows of enginebench's profile at
 // ~34% of alloc_space (arenaOptions 27.5%, arenaDecision 7.2%) and the single
 // largest GC lever after the event log. An engine switched on with the arena
 // carves those decisions out of reusable chunks instead, each Options slice
@@ -177,8 +177,8 @@ func (e *Engine) ownArena() *decisionArena {
 // while a heap priority decision costs its Decision plus its exact Options
 // (~4 KB at a typical 8 options): the chunks only pay off for an engine
 // that keeps posing, and a one-step search expansion (clone, Submit, read
-// the next ask) poses one or two. Measured on enginebench's step row
-// (2026-10-13): ~230 KB of a 535 KB clone+Submit was that first chunk.
+// the next ask) poses one or two. Measured on enginebench's step row:
+// ~230 KB of a 535 KB clone+Submit was that first chunk.
 // rules.New and SetDecisionArena create their arena explicitly and never
 // defer.
 const arenaLazyAfter = 64

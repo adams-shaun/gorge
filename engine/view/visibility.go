@@ -30,7 +30,7 @@ const (
 	// (though the pool no longer needs this arm -- project() now fills the
 	// pool for every seat, so this visibility only adds the hands) — the
 	// bot-table default — but never library order: it spoils draws and
-	// teaches nothing (spec D12).
+	// teaches nothing.
 	Omniscient
 )
 

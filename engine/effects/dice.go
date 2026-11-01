@@ -399,7 +399,7 @@ func retainedDice(dice []int32, ignoreLower int32, useHighest bool) []int32 {
 //     picked die's result and
 //     OtherSVar$ = the unpicked one's (sums, so the shape generalises past
 //     two dice) without re-rolling. A host that cannot ask (the fuzz
-//     stand-in, R-9) and botpolicy's clamp fallback both keep the FIRST die
+//     stand-in) and botpolicy's clamp fallback both keep the FIRST die
 //     -- deterministic and non-wedging. A single-die ChosenSVar$ needs no
 //     ask: that die is the chosen result.
 //   - MaxRollsResults$ True / EvenOddResults$ True (Luck Bobblehead):
@@ -485,7 +485,7 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if picked == 0 && len(rolls) > 0 {
 			// A malformed or empty answer picks nothing: the first die stands
-			// in (deterministically, the same die the R-9 and clamp fallbacks
+			// in (deterministically, the same die the no-host and clamp fallbacks
 			// keep) rather than publishing a chosen value no real choice
 			// could produce.
 			chosenSum, otherSum = rolls[0], 0
@@ -640,7 +640,7 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 			publishChosen(d.Rolls, pick)
 			return
 		}
-		// Fuzz/no-engine host (R-9): the deterministic stand-in keeps the
+		// Fuzz/no-engine host: the deterministic stand-in keeps the
 		// first die -- the exact option botpolicy's clamp fallback takes.
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "keeps the first rolled result (no engine host to ask)"})

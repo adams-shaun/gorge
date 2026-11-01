@@ -2,7 +2,7 @@ package rules
 
 import "github.com/adams-shaun/gorge/engine/effects"
 
-// Registration false gaps (CR audit S08a#15, S08b D14): each keyword below
+// Registration false gaps: each keyword below
 // is implemented and has a behaviour test, but its kw: head was never
 // registered, so the coverage walk counted every printed carrier as
 // unplayable. Registering the head is the whole fix; the behaviour lives at

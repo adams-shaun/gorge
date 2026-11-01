@@ -7,9 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// chars_board.go is package rules' side of the engine/rules/chars seam (spec
-// docs/design/2026-10-03-rules-engine-lasagna-design.md §9, W5
-// step E4): charsBoard implements chars.Board over the Engine, so the layer
+// chars_board.go is package rules' side of the engine/rules/chars seam:
+// charsBoard implements chars.Board over the Engine, so the layer
 // walk reads the game without holding the engine. Every method is a pure
 // read that forwards to the engine reader the walk called before it moved,
 // so every derived characteristic -- and every decision, event and chain

@@ -102,7 +102,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// blinked target). Both ride the registrations below.
 	forgetOn := ep.ForgetOnMoved
 	exileOn := ep.ExileOnMoved
-	// ForgetCounter$ <kind> (task vow1): a remembered card whose count of
+	// ForgetCounter$ <kind>: a remembered card whose count of
 	// that kind reaches zero after a counter-removal leaves the registered
 	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
 	// registration below.
@@ -642,7 +642,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// (the body is a DB$ ReplaceEffect damage rewrite); Event$ Moved with
 		// a PutCounter body is the "that creature enters with an additional
 		// +1/+1 counter for each ..." family (torgal_a_fine_hound,
-		// communal_brewing, wildgrowth_archaic, task wildgrowth1): the
+		// communal_brewing, wildgrowth_archaic): the
 		// Updated-shaped MoveZone dispatch already applies the original move,
 		// fires entry triggers, then runs the body, and effPutCounter handles
 		// ETB$ True on the entered object. Event$ CreateToken with a ReplaceToken
@@ -940,7 +940,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				})
 				registered = true
 			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
-				// AddKeyword$ Cascade (task cascade1): the Effect-delivered
+				// AddKeyword$ Cascade: the Effect-delivered
 				// cascade grant (TARDIS's GrantCascade, Dark Apostle's, Bigger
 				// on the Inside's), registered as a layer-6 keyword grant the
 				// same walk the printed S: statics feed (engine/rules/layers.go's

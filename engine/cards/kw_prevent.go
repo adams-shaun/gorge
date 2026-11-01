@@ -24,8 +24,9 @@ import "strings"
 
 // kwPrevent expands one K:Prevent sentence into the printed DamageDone
 // prevention replacement the engine's damage dispatch already resolves
-// end to end: a bodyless `Prevent$ True` R: line (the Selfless Squire shape,
-// task dponce1) is matched by engine/rules/replacement.go's damageReplacementMatches
+// prevention replacement the engine's damage dispatch already resolves
+// end to end: a bodyless `Prevent$ True` R: line (the Selfless Squire shape)
+// is matched by engine/rules/replacement.go's damageReplacementMatches
 // -- ValidTarget$ / ValidSource$ scope it to the permanent itself,
 // damageReplacementMatches' IsCombat$ gate applies the sentence's "combat"
 // scoping -- and applied by applyNonMoveReplacements' Prevent$ arm, which

@@ -88,8 +88,8 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// may election made by the NAMED player, resolved through the same
 	// selector grammar Draw's OptionalDecider$ arm uses. Option 0 is today's
 	// behaviour (yes), so the bot clamp keeps every bot game byte-identical.
-	// An unresolvable spec fails closed: one Note and the damage stays (the
-	// pre-ask behaviour); a host that cannot ask (R-9) does the same.
+	// An unresolvable spec fails closed: one Note and the damage stays;
+	// a host that cannot ask does the same.
 	if dp.OptionalDecider != "" && n > 0 && damageHasRecipient(h, c, sa) {
 		if seat, ok := dealDamageDecider(h, c, dp.OptionalDecider); ok {
 			d := &decision.Decision{Player: seat, Kind: decision.KChoose, Min: 1, Max: 1,
@@ -156,7 +156,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// are the shares (a target that receives nothing is simply never picked).
 	// The decision's own Min/Max/Repeatable wire rules already constrain the
 	// answer to exactly the named total over exactly the chosen target list,
-	// so no new Validate rule is needed. The deterministic R-9 no-host
+	// so no new Validate rule is needed. The deterministic no-host
 	// stand-in distributes one damage at a time,
 	// round-robin in the chosen-target order, so the batch total is exactly
 	// N. Targets beyond N take nothing, as an unchosen target would.
@@ -238,7 +238,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 					// them with the rider built on the way in.
 					split = damageSplitAnswer(ans)
 				} else {
-					// No host (R-9): the deterministic round-robin stand-in.
+					// No host: the deterministic round-robin stand-in.
 					split = roundRobinSplit(len(divTargets), total)
 				}
 

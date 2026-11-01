@@ -15,7 +15,7 @@ import (
 //     path -- the same every-entry-site convention the planeswalker starting
 //     loyalty uses -- placed through a real CounterChange event, so a search
 //     putting a Saga onto the battlefield is covered too and the CR 614
-//     replacement class sees the placement; task addcounter1/2).
+//     replacement class sees the placement).
 //   - Immediately after its controller's precombat main phase begins
 //     (engine/rules/turn.go's finishEnteredStep) it adds another.
 //   - Each lore counter triggers the chapter ability of that number: the
@@ -94,7 +94,7 @@ func (e *Engine) advanceSagas(p state.PlayerID) {
 
 // checkChapterTriggers queues one chapter trigger per lore counter the event
 // just placed. Every lore-counter placement is a real CounterChange on the
-// LORE kind -- the entry grant (rules' foldEntryMove, task addcounter1/2) and
+// LORE kind -- the entry grant (rules' foldEntryMove) and
 // the precombat-main counter (advanceSagas) alike -- so this is called for exactly
 // that one event kind. The MoveZone branch this replaced queued the SAME
 // chapter I twice on an entry (the CounterChange the engine now emits queued

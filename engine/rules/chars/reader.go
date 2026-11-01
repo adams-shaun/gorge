@@ -5,8 +5,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Reader is the read direction of the characteristics layer (lasagna spec
-// §9.2): the layer-derived characteristics of an object and the activation
+// Reader is the read direction of the characteristics layer:
+// the layer-derived characteristics of an object and the activation
 // gates every ability shares, for a package above L4 (engine/rules/pay) that may
 // not hold the engine. Package rules implements it over its Engine
 // (engine/rules/chars_reader.go) on a pointer conversion, so handing it out

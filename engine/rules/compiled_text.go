@@ -88,7 +88,7 @@ type compiledTextCacheEntry struct {
 	// catalog, which lists every face and ability of the corpus, so a strong
 	// entry pinned its whole registry (~400 MB) for the life of the process:
 	// a test binary that loads the corpus per test kept the last 64
-	// configurations' registries -- measured 2026-10-05 at 7.9 GB in use at
+	// configurations' registries -- measured at 7.9 GB in use at
 	// the end of compliance/oraclegen/templates. Held weakly, an entry
 	// serves every engine built while another engine (or a clone, or a
 	// replay) still uses its text, and is dropped once none does.
@@ -97,7 +97,7 @@ type compiledTextCacheEntry struct {
 
 // compiledTextCacheLimit bounds the shared sidecar memo. An embedder that
 // starts many games from distinct decks (cardfuzz: fresh random decks every
-// game) otherwise grows it without bound -- measured 2026-09-27 at 3-4 GB per
+// game) otherwise grows it without bound -- measured at 3-4 GB per
 // fuzz run before the process hit its memory cap. A server's tables reuse a
 // handful of deck configurations, and a game's replay reuses its own, so a
 // small bound keeps every real hit. On overflow, the oldest inserted entry

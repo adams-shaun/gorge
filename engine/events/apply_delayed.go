@@ -595,8 +595,8 @@ func foldGrantAbilityPush(g *state.Game, e *Event) {
 
 // foldGainedAbilityPush folds Kind GainedAbilityPush into state.
 func foldGainedAbilityPush(g *state.Game, e *Event) {
-	// A has-all-abilities-of activated ability (Forge's GainsAbilitiesOf$,
-	// task gains1): like AbilityPush the object is minted inside Apply so a
+	// A has-all-abilities-of activated ability (Forge's GainsAbilitiesOf$):
+	// like AbilityPush the object is minted inside Apply so a
 	// log-only replay creates the same object a live game did, but the
 	// ability is a compiled SA on a FOREIGN card's face rather than an
 	// index of the recipient's own. Obj is the recipient (o.Source, so
@@ -650,8 +650,8 @@ func foldGainedAbilityPush(g *state.Game, e *Event) {
 
 // foldGainedTriggerPush folds Kind GainedTriggerPush into state.
 func foldGainedTriggerPush(g *state.Game, e *Event) {
-	// A has-all-abilities-of triggered ability (Forge's GainsTriggerAbsOf$,
-	// task gains1): the GainedAbilityPush shape one level over, the
+	// A has-all-abilities-of triggered ability (Forge's GainsTriggerAbsOf$):
+	// the GainedAbilityPush shape one level over, the
 	// MergedTriggerPush precedent's Apply-time mint. Obj is the recipient
 	// (o.Source), IDs[0] the foreign card, Amount the index of the
 	// trigger in that face's Triggers, and Counter the Execute$ name

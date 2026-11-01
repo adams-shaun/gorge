@@ -109,7 +109,7 @@ func (e *Engine) EnsurePaymentActions() []decision.PaymentAction {
 // without display names. Decision prompts and option labels are NOT chain
 // content (engine/rules/engine.go's ask emits only DecisionAsk{Kind}), so
 // composing them from PlayerName moves no chain head — but event text must
-// stay on Name (the F3 invariant, engine/rules/playername_test.go). The final
+// stay on Name (the seat-name invariant, engine/rules/playername_test.go). The final
 // fallback is defensive: decision seats originate from AliveFrom, but
 // malformed state must not panic while constructing a client decision.
 func seatFacingName(g *state.Game, p state.PlayerID) string {

@@ -246,7 +246,7 @@ func (e *Engine) resolvedTargetMin(p state.PlayerID, source state.ObjID, sa *car
 // named a zone -- a typo'd TgtZone$ on a TargetType$ Spell card must not
 // silently widen a stack target back to the battlefield.
 //
-// fb-20260916T024739Z-b89aea46: the remaining default is wrong for one more
+// The remaining default is wrong for one more
 // shape -- the Wrenn and Six ability (`AB$ ChangeZone | Origin$ Graveyard |
 // Destination$ Hand | TargetMin$ 0 | TargetMax$ 1 | ValidTgts$ Land.YouOwn`,
 // no TgtZone$). Its census searched the battlefield, offered a land already
@@ -1043,7 +1043,7 @@ func (e *Engine) candidatesForLimitInto(dst []targetCandidate, p state.PlayerID,
 	// it) is the SOURCE PERMANENT when the ask belongs to a minted ability
 	// object -- the same object resolution-time recheck (legalTargets) already
 	// judges its specs against (engine/rules/stack.go passes o.Source there), so the
-	// offer and the recheck cannot disagree (Critical C2's one-definition
+	// offer and the recheck cannot disagree (the one-definition
 	// rule). The Face-less wrapper itself is never a creature/permanent, so
 	// a spec like Flamerush Rider's `Creature.attacking+Other` judged the
 	// wrapper id meant "every creature but nobody in particular" and offered

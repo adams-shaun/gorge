@@ -496,7 +496,7 @@ func (e *Engine) chargeObjCandidates(p state.PlayerID, r chargeObjReq, kind stri
 // uniquely needs. Each obligation takes candidates in zone order and the
 // obligations are tried in a fixed order (taps, then sacrifices, then
 // returns), so the first full assignment the search finds is deterministic
-// (R-9: the build never asks which permanents to tap/sacrifice/return). A
+// (the build never asks which permanents to tap/sacrifice/return). A
 // permanent pays at most one obligation. Returns nil, false when no assignment
 // fills every obligation. The search is bounded; beyond the bound it fails
 // closed, the conservative direction (a charge the search cannot settle is
@@ -705,9 +705,8 @@ func (e *Engine) manaSatisfied(pl *combatPayPlan) bool {
 //
 // Both branches price the charge's GENERIC component JOINTLY with the pips:
 // a `Cost$ 2 WP` with only two white mana in reach is affordable in NEITHER
-// branch, because the two white must also cover the two generic, and the
-// round-1 read checked the pips and the generic independently against the
-// same sources (the review's atomicity defect).
+// branch, because the two white must also cover the two generic, so the pips
+// and the generic cannot be checked independently against the same sources.
 //
 // manaExcluded holds only permanents withheld from the MANA HALF -- the
 // plan's own tap reservations, plus (attack direction only) the declared
@@ -1110,8 +1109,8 @@ func manaUnitsLabel(counts [6]int32, amt int32) string {
 // option's Index is its position in the list the window posed and the window
 // stores that list (attackPayWindow.sources / blockPayWindow.sources), so a
 // multi-ability permanent's second alternative resolves ITS ability, not the
-// first alternative that shares its Obj -- the round-1 defect: duplicate-Obj
-// options resolved the first ability while the budget counted the maximum.
+// first alternative that shares its Obj: otherwise duplicate-Obj
+// options resolve the first ability while the budget counts the maximum.
 // The Obj cross-check keeps a malformed answer from activating another
 // object's ability; on a mismatch or an out-of-range Index the legacy
 // first-match-by-Obj scan applies, so an old-style answer still pays.
@@ -1262,7 +1261,7 @@ func (e *Engine) attackChoiceManaSources(p state.PlayerID) []attackManaSource {
 			// nil for a window, not a suspended resolution) would silently
 			// displace that colour ask -- tapping the source for nothing. The
 			// tax is generic, so the colour cannot matter: take the
-			// deterministic first producible colour (R-9), the same rewrite
+			// deterministic first producible colour, the same rewrite
 			// the activation path performs, so the tap adds exactly one unit
 			// and poses no sub-ask. The gained identity is captured before the
 			// rewrite, which changes the SA pointer.
@@ -1277,8 +1276,8 @@ func (e *Engine) attackChoiceManaSources(p state.PlayerID) []attackManaSource {
 
 // oneColourProduced turns a choice-shaped production's slot vector into the
 // single plain Produced$ symbol the attack payment window resolves without a
-// sub-ask. It takes the first producible slot in WUBRG order (deterministic,
-// R-9) and colourless only when no colour is on offer, so a blank ability's
+// sub-ask. It takes the first producible slot in WUBRG order (deterministic)
+// and colourless only when no colour is on offer, so a blank ability's
 // one colourless unit round-trips to "C". The caller has already established
 // at least one non-zero slot.
 // producedNeedsChosen is params.ProducedNeedsChosen.

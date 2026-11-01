@@ -945,7 +945,7 @@ func (e *Engine) effectCastSweep(ev events.Event) {
 }
 
 // effectCounterSweep is the counter-driven lifetime of Effect-created
-// continuous effects (task vow1; ForgetCounter$), run from Engine.emit after
+// continuous effects (ForgetCounter$), run from Engine.emit after
 // every CounterChange has been applied: a remembered card whose count of the
 // named kind reached zero after that removal leaves the effect's Remembered
 // set -- Promise of Loyalty's "for as long as it has a vow counter on it",

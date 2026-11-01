@@ -109,8 +109,8 @@ func activationGameTypesOK(f Format, raw string) bool {
 // abilityZoneOK reports whether ability ab may be activated while the
 // source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
 // when present, the battlefield by default. Battlefield, Hand, Graveyard,
-// Exile and Stack are enumerated by the legal-action walks (Exile since
-// fuzz-cov3: Greater Gargadon's suspended sacrifice outlet; Stack since the
+// Exile and Stack are enumerated by the legal-action walks (Exile for
+// Greater Gargadon's suspended sacrifice outlet; Stack for the
 // Activator$ offer gate, for Lightning Storm's "Any player may activate this
 // ability but only if CARDNAME is on the stack"); Command is not and
 // therefore never offers an option.

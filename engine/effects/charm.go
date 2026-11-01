@@ -345,8 +345,7 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 			c.Targets = []state.Target{c.Targets[base+ti]}
 			// The combined placement ask covered THIS mode's targeting (its
 			// assignment is positional); mark it so the generic ValidTgts$
-			// pre-ask does not re-pose the cross-mode question per mode
-			// (task mvts1).
+			// pre-ask does not re-pose the cross-mode question per mode.
 			c.OfferedSA = sub
 			Resolve(h, c, sub)
 			c.OfferedSA = savedOffered
@@ -417,7 +416,7 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 
-		// R-9: an effects-only host has no chooser, so deterministically take
+		// No-host path: an effects-only host has no chooser, so deterministically take
 		// the first option and continue to the next victim.
 		if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
 			Resolve(h, c, sub)
@@ -690,7 +689,7 @@ func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool
 				}
 				noteUnreadParams(h, c, sa.API, p.Unread)
 			} else {
-				// R-9: an effects-only host has no chooser, so deterministically
+				// No-host path: an effects-only host has no chooser, so deterministically
 				// take the first option for this chooser and continue to the next
 				// -- or, for an AILogic$ Random ask, a draw from the engine rng
 				// (aiRandomNoAskPick), so a Repeat re-posing it advances.
@@ -727,7 +726,7 @@ func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool
 // reachability gate the unless ask itself uses, so the option list and the pay
 // decision cannot disagree). A choice with no UnlessCost$ is always available;
 // a host that cannot price costs (an effects-only embedder) keeps the historic
-// full list, so R-9 still degrades deterministically rather than silently
+// full list, so the no-host path still degrades deterministically rather than silently
 // dropping choices. FORGE ALSO drops a choice failing getRestrictions(); the
 // engine's cards.SA carries no such field, and no corpus GenericChoice choice
 // uses Restrictions$ today.
@@ -907,7 +906,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
-	// Fuzz/no-engine host: the deterministic first-mode default (R-9), with
+	// Fuzz/no-engine host: the deterministic first-mode default, with
 	// the Note that records why the richer path did not run.
 	if min == 1 && max == 1 && !repeat && len(choices) > 1 && aiLogicRandom(sa) {
 		// AILogic$ Random: the no-ask answer is an engine-rng draw, not the

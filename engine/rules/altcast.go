@@ -290,7 +290,7 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 }
 
 // tapeMadnessAnswer runs the legacy madness answer (resolveMadnessChoice)
-// in line for a tape-served cast-or-not choice (W3 step 4l). Both arms log
+// in line for a tape-served cast-or-not choice. Both arms log
 // their own completion -- the decline's CR 117.3b reset, or the begun
 // cast's -- so handlePriority adds none. A cast that asks (a target, a
 // payment window) reaches the ask choke point as a legacy ask and aborts the

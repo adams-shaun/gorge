@@ -71,7 +71,7 @@ var conditionDefinedSharedResolver = newConditionNames(
 // carries that conditionMetCore cannot enumerate: neither has a whole-value
 // Defined$ resolver to share (ExiledWithSource is only a filter predicate and
 // a dotted qualifier; Tapped names a cost's tapped set). Each entry is a real
-// carrier (counts measured 2026-10-04); a new value fails the census test.
+// carrier; a new value fails the census test.
 var conditionUnmodelledDefined = newConditionNames(
 	"ExiledWithSource", // 2
 	"Tapped",           // 1

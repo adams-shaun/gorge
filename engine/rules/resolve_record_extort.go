@@ -1,7 +1,7 @@
 package rules
 
-// resolve_record_extort.go holds Extort's answer record (W3 step 2;
-// engine/rules/resolve_record.go's tapeAnswerRecord): the event-emitting half of
+// resolve_record_extort.go holds Extort's answer record
+// (engine/rules/resolve_record.go's tapeAnswerRecord): the event-emitting half of
 // an answered "extort" ask, written by the resolution kernel's Record.
 
 import (

@@ -1,6 +1,6 @@
 package pay
 
-// The payment planner's search (spec 5, amended 2026-09-26): a rank-aware,
+// The payment planner's search: a rank-aware,
 // bounded, deterministic search over CLASSES of interchangeable source units.
 // Like the rest of the planner it is a pure read: no event, no state write,
 // no RNG.

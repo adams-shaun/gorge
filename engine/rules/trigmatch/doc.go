@@ -3,9 +3,7 @@
 // mode's file) and the per-mode predicates that decide whether one compiled
 // cards.Trigger fires for one events.Event.
 //
-// It is layer L5 of the rules-engine lasagna (spec
-// docs/design/2026-10-03-rules-engine-lasagna-design.md §3, W5
-// step E3). A matcher never holds a *rules.Engine: it reads the game through
+// It is a layer of the rules engine. A matcher never holds a *rules.Engine: it reads the game through
 // Board, a narrow read-only view rules implements, and returns a verdict.
 // Nothing in this package emits an event or writes engine state; every
 // side effect of a trigger check -- queueing the instance, the batch and

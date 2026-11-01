@@ -220,7 +220,7 @@ func effChangeText(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// deterministicTextWord is the R-9 no-host / empty-list stand-in: the first
+// deterministicTextWord is the no-host / empty-list stand-in: the first
 // offered word in the list's own deterministic order (the lists are fixed or
 // sorted), so a no-host run still records a concrete substitution rather than
 // inventing an off-list word.

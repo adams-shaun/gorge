@@ -43,8 +43,7 @@ func (e *Engine) TriggerModeSupported(mode string) bool {
 // is handed to EVERY trigger this event fires, not only a Card.Self trigger
 // on ev.Obj itself: a bystander's "whenever a creature you control dies"
 // wants the LKI of the creature that died, exactly the same as that
-// creature's own dies trigger would. Fix round 1, Important 2: an earlier
-// version of this doc claimed LKI was withheld from every trigger but the
+// creature's own dies trigger would. LKI is not withheld from every trigger but the
 // matching object's own, which was never what the code below does (see
 // objLKI's guard) -- lki.ID == ev.Obj is already guaranteed by construction
 // in emit (lki, when non-nil, is always built from e.G.Obj(ev.Obj)), so

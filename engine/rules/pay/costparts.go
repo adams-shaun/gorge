@@ -586,7 +586,7 @@ func ManaTapCandidates(e Engine, p state.PlayerID, source state.ObjID, spec stri
 }
 
 // ManaTapsPicked is manaTapsPayable's deterministic first-eligible pick set:
-// the R-9 no-ask stand-in for a caller that cannot pose the tap election
+// the no-host stand-in for a caller that cannot pose the tap election
 // (interactive == false). It walks the same manaTapCandidates order the
 // election offers, claiming each part's first N, so a non-interactive
 // activation taps exactly what the silent build did and a replay rebuilds

@@ -315,7 +315,7 @@ func unlessDefenderTypeCount(g *state.Game, z state.Zone, p state.PlayerID, card
 
 // CantBlockByRestrictionParamsReadable is the parameter whitelist an
 // Effect-registered CantBlockBy static must pass before this build enforces
-// it (task cbb1; the same discipline CantRestrictionParamsReadable enforces
+// it (the same discipline CantRestrictionParamsReadable enforces
 // for CantAttack/CantSacrifice, so the registration and consultation paths
 // cannot disagree): the two-side specs the continuous consultation reads
 // (engine/rules/combat/restrictions.go BlockRestricted's registered-effects walk: ValidAttacker$
@@ -465,8 +465,8 @@ func CantAttackUnlessRestrictionParamsReadable(params map[string]string) bool {
 }
 
 // CantSacrificeRestrictionParamsReadable is the parameter whitelist a face
-// CantSacrifice static must pass before rules' SacrificeBlocked enforces it
-// (task vc-static1). It is the CantAttack list above PLUS the two
+// CantSacrifice static must pass before rules' SacrificeBlocked enforces it.
+// It is the CantAttack list above PLUS the two
 // cause-scoping parameters SacrificeBlocked itself evaluates -- ValidCause$
 // against actionCause() through the shared stack-kind classifier
 // (engine/rules/layers.go causeSpecAdmits) and ForCost$ against the
@@ -1240,7 +1240,7 @@ func replacementLineCantHappen(params map[string]string) bool {
 // replacementLinePrevents reports whether a parseReplacementLine-built
 // replacement body is the bodyless full-prevention form: Prevent$ True with
 // no ReplaceWith$ body of its own -- the complete replacement is stopping
-// the damage (Selfless Squire's RPrevent, task dponce1). Factored into its
+// the damage (Selfless Squire's RPrevent). Factored into its
 // own function so the paramcensus rot guard can classify the read through a
 // tracked helper parameter rather than an unclassified local, the same shape
 // replacementLineCantHappen takes.

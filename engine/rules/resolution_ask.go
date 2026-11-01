@@ -14,7 +14,7 @@ import (
 // TapeAnswer (effects.AskTape) inside a tape run, so what reaches this method
 // is an ask no run serves: a resolution the ask-free predicate wrongly
 // exempted, or an engine driven with no run at all. It is refused with one
-// Note (the R-9 no-host degrade: the asking primitive takes its deterministic
+// Note (the no-host degrade: the asking primitive takes its deterministic
 // default) and counted by the legacy-ask census. The one ask this engine
 // still poses itself is an off-stack mana ability's colour choice, which is
 // the activation's own flow (askOffStackMana).

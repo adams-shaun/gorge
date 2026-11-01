@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The count heads the cardfuzz coverage audit (fuzz-cov3) found unmodelled
+// The count heads the cardfuzz coverage audit found unmodelled
 // while their cards sat in the "supported" pool -- every one a replay-safe
 // read of the event-derived state (zone lists, g.Entered, the player
 // records) or a Host log fold, never the wall clock or ambient randomness.
@@ -39,7 +39,7 @@ func domainCount(h Host, c *Ctx, p state.PlayerID, depth int) int32 {
 	return n
 }
 
-// evalCov3Head answers the fuzz-cov3 heads. head/arg are evalCountBody's
+// evalCov3Head answers the coverage audit's heads. head/arg are evalCountBody's
 // head/argument split.
 func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 	g := h.Game()
@@ -173,7 +173,7 @@ func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 	return 0, false
 }
 
-// cov3BranchHolds answers the fuzz-cov3 yes/no branch predicates of the
+// cov3BranchHolds answers the coverage audit's yes/no branch predicates of the
 // Count$<Predicate>.<yes>.<no> family: ok=false for a predicate this table
 // does not know.
 func cov3BranchHolds(h Host, c *Ctx, pred string, depth int) (holds, ok bool) {
@@ -307,7 +307,7 @@ func sacrificedThisTurn(g *state.Game, c *Ctx, players []state.PlayerID, spec st
 }
 
 // evalCov3PlayerHead answers the PlayerCount<group>$<Property> heads the
-// fuzz-cov3 audit added, for the three groups that name a fixed player set:
+// coverage audit added, for the three groups that name a fixed player set:
 // PlayerCountPropertyYou$ (the resolving controller), PlayerCount$ and
 // PlayerCountPlayers$ (every living player) and PlayerCountOpponents$.
 // ok=false for anything else.

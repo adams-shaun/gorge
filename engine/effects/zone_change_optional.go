@@ -11,7 +11,7 @@ import (
 // move loop would move is offered to the chooser -- Chooser$'s first player,
 // else the resolving controller -- as a yes/no; a decline drops that object
 // only and the chained SubAbility$ still runs (Resolve owns the chain). With no
-// answer (no host) "may" plays as "do" (R-9), the hand walker's fallback, so a
+// answer (no host) "may" plays as "do", the hand walker's fallback, so a
 // no-host replay is unchanged. The hand, hidden-pick and search walkers pose
 // their own confirmations before reaching the object path.
 func changeZoneOptionalConfirm(h Host, c *Ctx, cz *ChangeZoneParams, targets []state.Target, to state.Zone, originAll bool) []state.Target {

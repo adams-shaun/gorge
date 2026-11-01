@@ -149,7 +149,7 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 		// The bare wasCastFromYourHandByYou qualifier (the "if you cast it
 		// from your hand" ETB family) is split out and evaluated against the
 		// log here, where the Engine is in scope; the remainder matches as
-		// before (task castprov1).
+		// before.
 		if ev.Obj != 0 && lki != nil &&
 			(source == ev.Obj || LeftBattlefield(ev) ||
 				(ev.From == state.ZExile && ev.To != state.ZBattlefield)) {

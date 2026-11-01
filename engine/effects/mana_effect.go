@@ -40,7 +40,7 @@ func substituteManaChosen(produced, chosen string) string {
 // askManaChoice gives a resolution-time Mana effect the same colour-choice
 // boundary as an activated mana ability. A Combo's Amount$ is an allocation:
 // each selected option is one unit, allowing {U}{R} from Combo Any Amount 2.
-// A false Ask is the R-9 no-host path: Any remains the historical colourless
+// A false Ask is the no-host path: Any remains the historical colourless
 // fallback and a raw Combo list remains the historical full-listed-colours
 // fallback. A real host gets a KChoose and rules carries the answer back in
 // Ctx.ManaChoice or Ctx.ManaChoices. It returns the production (the
@@ -100,7 +100,7 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool,
 				Label: "Add " + colour, ManaSymbol: colour, Obj: c.Source, Player: chooser})
 		}
 	}
-	// The resolution kernel's answer in hand (lasagna spec §7): the
+	// The resolution kernel's answer in hand: the
 	// "mana_color" arm's binding, applied here so effMana simply continues.
 	// An answer naming no valid colour poses the same ask again. An unserved
 	// ask goes to Host.Ask, which poses the off-stack colour choice.
@@ -239,7 +239,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		}
 		produced, allocation = answered, allocation || units
 		if produced == "Any" || produced == "Combo Any" {
-			// R-9: an effects host without a decision channel retains the
+			// No-host path: an effects host without a decision channel retains the
 			// historical deterministic colourless result.
 			produced = "C"
 		}
@@ -254,7 +254,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		produced = "C"
 	}
 	// A Combo head is a colour choice, not a request to add every named
-	// colour.  A host that could not ask has already taken the R-9 fallback;
+	// colour.  A host that could not ask has already taken the no-host fallback;
 	// a resumed answer has been rewritten to one plain symbol above.  Leave a
 	// raw Combo list intact here only for the no-host fallback below.
 	//

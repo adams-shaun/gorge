@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Livelock detection: a real bug -- I-1's stack object that re-resolved
+// Livelock detection: a real bug -- a stack object that re-resolved
 // forever, and the rakdos-muscle-scam-exe run that pegged a core for 15+
 // minutes with no output -- presents to a harness as a game that never
 // returns from Advance/Submit. An outside `timeout` cannot tell "stuck"
@@ -28,7 +28,7 @@ import (
 // Two independent triggers, because two loop shapes evade each other:
 //
 //   - Repeating cycle: the trailing window of event signatures repeats a
-//     short period exactly. This catches I-1's shape (the same 13-event
+//     short period exactly. This catches the stuck-resolution shape (the same 13-event
 //     resolve cycle over and over) and stays precise enough to report the
 //     cycle itself. Signatures deliberately EXCLUDE Seq, Amount and Text:
 //     a stuck loop whose payload drifts a little each iteration (a life
@@ -46,7 +46,7 @@ import (
 
 const (
 	// defaultCycleEvents is how many consecutive events a repeating cycle
-	// must run before the watcher aborts. I-1's loop ran 700+ events in a
+	// must run before the watcher aborts. One such loop ran 700+ events in a
 	// 13-event cycle before anyone noticed; 400 trips that inside one
 	// Submit call, in well under a second, and is far past anything a
 	// legitimate resolution emits.
@@ -78,14 +78,14 @@ const (
 	// budget (rules.WithDefaultObjectCap). It is a VOLUME bound, not a
 	// bug detector: measured over 2100 ordinary games (1200 FDN-Limited
 	// pairs, 600 constructed repo-deck pairs, 300 4-seat Commander repo-deck
-	// games, CV-8 probe) the arena's end-of-game high-water (it is monotone,
+	// games, a Krenko probe) the arena's end-of-game high-water (it is monotone,
 	// so end-of-game length IS the high-water) was 554 objects (Commander,
 	// 4 seats); the widest legitimate token board on record is cardfuzz
 	// batch8's 1790 Goblins. 10000 sits ~18x above the measured ordinary
 	// maximum, equals RunawayBigBoardObjs (the same "this is volume, not a
-	// stuck resolution" population CV-2 fixed the runaway reason at), and
+	// stuck resolution" population the runaway reason names), and
 	// bounds a Krenko, Mob Boss storm well under the GB-scale RSS an
-	// unbounded one reaches (CV-8's measured 7.2 GB and climbing at 25127
+	// unbounded one reaches (a measured 7.2 GB and climbing at 25127
 	// objects) while an ordinary game never comes within an order of
 	// magnitude of it.
 	DefaultMaxObjs = RunawayBigBoardObjs

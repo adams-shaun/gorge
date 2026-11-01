@@ -55,7 +55,7 @@ type ManaCostActivation struct {
 	// Interactive records whether the caller could pose asks. A caller that
 	// cannot (the attack-cost tap window, direct-resolve tests) settles the
 	// announced SubCounter, Forage and untapYType parts with deterministic
-	// R-9 picks instead of posing an election.
+	// no-host picks instead of posing an election.
 	Interactive bool
 }
 

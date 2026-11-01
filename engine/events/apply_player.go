@@ -310,7 +310,7 @@ func stampTarget(g *state.Game, o *state.Object, id state.ObjID) {
 
 // foldAlterAttribute folds Kind AlterAttribute into state.
 func foldAlterAttribute(g *state.Game, e *Event) {
-	// The AlterAttribute fold (task alterattr1): the engine models the
+	// The AlterAttribute fold: the engine models the
 	// "Saddled" (CR 702.171), "Suspected" (CR 702.157), "Harnessed" and "Plotted"
 	// (CR 701.34, task kw-plot)
 	// attributes. Text names the attribute so a future modelled one

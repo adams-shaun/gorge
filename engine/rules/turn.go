@@ -302,7 +302,7 @@ func (e *Engine) finishUntapStep(next int) bool {
 			continue
 		}
 		if o.ExertSkipUntap {
-			// CR 702.100b (task exert1): an exerted creature won't untap
+			// CR 702.100b: an exerted creature won't untap
 			// during its controller's next untap step. The window closes
 			// here -- consumed at use, the regeneration-shield precedent: the
 			// Amount -1 Exert event's fold clears the flag, and replay
@@ -1093,20 +1093,20 @@ func (e *Engine) finishCleanupStep() {
 // games that no ordering decision is ever offered twice with nothing placed
 // in between.
 func (e *Engine) resumeTriggerDrain() {
-	// Fix round 2: the guard that makes termination a property of the
+	// The guard that makes termination a property of the
 	// control flow rather than of an argument about callers.
 	//
 	// checkStateBased -> releasePendingDecisionOfDepartedPlayer ->
 	// resumeTriggerDrain -> checkStateBased is a real cycle in the call
-	// graph. Round 1 argued it cannot run away because all three callers
-	// clear e.pending first, and the re-review confirmed that empirically
+	// graph. It cannot run away while all three callers
+	// clear e.pending first, and a measurement confirmed that empirically
 	// (sbaCalls=331491, sbaMaxDepth=2, resumeCalls=9961,
-	// resumeWithPending=0) -- but also showed the argument is one
+	// resumeWithPending=0) -- but that argument is one
 	// statement-reorder away from failing: swapping the release hook's
 	// `e.pending = nil` and its call to this function makes recursion run
 	// away immediately, and the failure mode is a stack overflow, i.e. a
-	// totality violation. This repo's standing evidence is what
-	// such an argument is worth (wrong four times out of four). One line
+	// totality violation. One line
+	// converts it into something the compiler's own control flow enforces
 	// converts it into something the compiler's own control flow enforces
 	// and no future reader has to re-derive.
 	//

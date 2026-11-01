@@ -16,7 +16,7 @@ type rng struct {
 	Draws  uint64
 	seed   [2]uint64
 	chance *chanceState // nil for ordinary games; owned by hypothetical clones
-	// splice (the resolution kernel, lasagna spec §7.3): once Draws reaches
+	// splice (the resolution kernel): once Draws reaches
 	// splice.at, continue on a copy of splice.next instead -- a hypothetical
 	// world's re-execution of a recorded resolution prefix switches from
 	// S0's generator to the world's own at the draw count the world was

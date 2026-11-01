@@ -33,7 +33,7 @@ const (
 // (Aminatou's DBControl, Order's DBGainControl), so it is left set on the
 // shared Ctx for the rest of the walk instead of being cleared.
 //
-// A no-host run takes the deterministic left fallback, the R-9 stand-in for
+// A no-host run takes the deterministic left fallback, the stand-in for
 // an ask the engine cannot pose.
 func effChooseDirection(h Host, c *Ctx, sa *cards.SA) {
 	if dir := strings.ToLower(strings.TrimSpace(c.ChosenDirection)); dir == directionLeft || dir == directionRight {

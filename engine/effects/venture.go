@@ -56,7 +56,7 @@ func init() { Register("Venture", effVenture) }
 // (`Defined$ You` or absent); a multi-Defined carrier would ask each player
 // in order.
 //
-// A host that cannot ask (R-9) takes the deterministic stand-in instead of
+// A host that cannot ask takes the deterministic stand-in instead of
 // wedging: the FIRST printed candidate (dungeons in token-key sort order,
 // rooms in NextRoom$ printed order), with one loud Note naming the
 // degradation.
@@ -195,7 +195,7 @@ func ventureEnter(h Host, g *state.Game, p state.PlayerID, key string) {
 
 // dungeonCandidates lists the dungeon token scripts the game can offer a
 // venturing player, in token-key sort order (the deterministic order the
-// choice and its R-9 stand-in both read). quality "" is plain venture
+// choice and its no-host stand-in both read). quality "" is plain venture
 // (CR 701.49a): dungeons of the Undercity quality are excluded, per the
 // Undercity card's own printed "You can't enter this dungeon unless you
 // 'venture into Undercity.'" rule. A named quality (CR 701.49d) narrows the

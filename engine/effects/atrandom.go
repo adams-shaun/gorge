@@ -144,7 +144,7 @@ func aiLogicRandom(sa *cards.SA) bool {
 	return sa != nil && CharmOf(sa).AILogicRandom
 }
 
-// aiRandomNoAskPick is the R-9 no-ask answer for a single-pick ask of n
+// aiRandomNoAskPick is the no-host answer for a single-pick ask of n
 // options: the first option, except for an AILogic$ Random ask (Face to
 // Face's throw), which draws from the engine's seeded rng instead. A
 // Repeat that re-poses a random choice until the answers differ (Face to

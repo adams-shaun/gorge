@@ -76,7 +76,7 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 			// advanceStep's own emit carries the reset pass count; the count
 			// this round reached is never itself a value anything observes.
 			//
-			// CR 514.3b (mayflashsac2, review round 3): an emptied cleanup-step
+			// CR 514.3b: an emptied cleanup-step
 			// stack is NOT licence to advance. The rules require the cleanup
 			// procedure to REPEAT, redoing its 514.1/514.2 actions, after a
 			// trigger resolves or a player acts in this window -- an instant
@@ -146,7 +146,7 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		e.beginActivationPaid(in.Player, opt, e.paidManaCensus)
 
 	case optConcede:
-		// M2d-3 (R-M3): choosing the concede option emits the existing
+		// Choosing the concede option emits the existing
 		// PlayerLost event with Text "conceded" (CR 104.3a) -- one event,
 		// the same one a 0-life elimination emits. PlayerLost's Apply marks
 		// the seat Lost; this checkStateBased then sweeps its permanents
@@ -156,7 +156,7 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// tail Advance continues the match with the Lost seat skipped
 		// everywhere (grantPriority, NextAlive, beginTurn).
 		e.emit(events.Event{Kind: events.PlayerLost, Player: in.Player, Text: "conceded"})
-		// CR 726.4 (task ds4-cr726.4): a concession is a way a player leaves
+		// CR 726.4: a concession is a way a player leaves
 		// the game, so the initiative handoff runs here too -- the concede path
 		// deliberately bypasses the playerLoses gate (CR 104.3a), which is why
 		// this is its own call rather than one inside the gate.

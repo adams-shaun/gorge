@@ -27,8 +27,7 @@ type engineDerivedTables struct {
 	renameDSeq     uint64               `clone:"reset"` // derivedSeq at the build; never cloned (0 = none)
 	renameBFSeq    uint64               `clone:"reset"` // derivedBFSeq at the build; never cloned
 	renameBuilding bool                 `clone:"reset"`
-	// renameBranchCounts is the E2 measurement diagnostic (emit-action.md
-	// §3 step 1): which exit refreshRenames took, indexed
+	// renameBranchCounts is a measurement diagnostic: which exit refreshRenames took, indexed
 	// reentry/epoch/inert/gate/derived/rebuild. Reset on clone; never read
 	// by rules.
 	renameBranchCounts [6]int `clone:"reset"`

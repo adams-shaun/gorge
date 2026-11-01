@@ -4,7 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// AskTape is the resolution kernel's ask boundary (lasagna spec §7, W3;
+// AskTape is the resolution kernel's ask boundary (engine/rules/resolve).
 // engine/rules/resolve). ok means the answer is in hand -- served from the kernel's
 // intent tape, or by an all-policy engine's synchronous answerer -- and the
 // primitive simply continues with it. !ok means no answer is served (no tape

@@ -51,7 +51,7 @@ func cycledMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 }
 
 // exploresMatches implements the "Whenever a creature you control explores
-// ..." trigger family (Forge Mode$ Explores, task explore1 — Merfolk
+// ..." trigger family (Forge Mode$ Explores — Merfolk
 // Cave-Diver, Nicanzil Current Conductor, Wildgrowth Walker, Lurking
 // Chupacabra, Shadowed Caravel; 5 files / 6 raw lines at the corpus pin).
 // The causing event is the completed events.Explore record: Obj is the
@@ -86,7 +86,7 @@ func exploresMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Eve
 }
 
 // connivesMatches implements the "Whenever a creature you control connives
-// ..." trigger family (Forge Mode$ Connives, task connive1 -- Iron Monger
+// ..." trigger family (Forge Mode$ Connives -- Iron Monger
 // Sadistic Tycoon, Glorious Purpose, Ultron Unlimited; 3 files / 3 raw lines
 // at the corpus pin). The causing event is the completed events.Connive
 // record (a pure Apply no-op marker emitted by effConnive after each
@@ -132,7 +132,7 @@ func searchedLibraryMatches(e Board, t cards.Trigger, source state.ObjID, ev eve
 }
 
 // investigatedMatches implements the "whenever you investigate" trigger
-// family (Forge Mode$ Investigated, task investtrig1 -- Erdwal Illuminator,
+// family (Forge Mode$ Investigated -- Erdwal Illuminator,
 // Val, Marooned Surveyor; 2 files / 2 raw lines at the corpus pin). The
 // causing event is the completed events.Investigate record (a pure Apply
 // no-op marker emitted by effInvestigate beside each Clue mint, so a plain
@@ -192,7 +192,7 @@ func giveGiftMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Eve
 }
 
 // discoverMatches implements the "whenever you discover" trigger family
-// (Forge Mode$ Discover, task trigdisc1 -- Val, Marooned Surveyor, Curator of
+// (Forge Mode$ Discover -- Val, Marooned Surveyor, Curator of
 // Sun's Creation; 2 corpus files / 2 raw lines at the corpus pin). The causing
 // event is the completed events.Discover record (a pure Apply no-op marker the
 // api:Discover primitive will emit beside each completed discover action, one
@@ -221,7 +221,7 @@ func discoverMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Eve
 }
 
 // seekAllMatches implements the "whenever you seek one or more cards" trigger
-// family (Forge Mode$ SeekAll, task trigdisc1 -- Vexyr, Ich-Tekik's Heir; Val,
+// family (Forge Mode$ SeekAll -- Vexyr, Ich-Tekik's Heir; Val,
 // Marooned Surveyor; Lurker in the Deep; 3 corpus files / 3 raw lines at the
 // corpus pin). The causing event is the completed events.Seek record, ONE per
 // seek ACTION: a seek of three cards is one marker and one trigger (the

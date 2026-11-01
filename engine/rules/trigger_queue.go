@@ -393,8 +393,7 @@ func (e *Engine) removeTriggerAt(i int) pendingTrigger {
 // decision was asked about.
 //
 // It is normally at the front: nothing on a reachable path removes from the
-// front of the queue between an ask and its answer. Fix round 1, review
-// finding F4: this used to be a bare front-only equality check whose failure
+// front of the queue between an ask and its answer. A bare front-only equality check whose failure
 // branch did nothing at all, so the drain went straight on to ask the SAME
 // trigger's question again -- the player's answer consumed, its Seq spent,
 // and silently discarded. Searching forward instead honours the answer
@@ -701,7 +700,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
-	// A printed-or-granted cascade (CR 702.85, task cascade1): the Ward
+	// A printed-or-granted cascade (CR 702.85): the Ward
 	// shape. The trigger is mandatory; its Counter payload "__kwCascade:" is
 	// what events.Apply rebuilds into the DB$ Cascade body both the printed
 	// K:Cascade line and every layer-6 AddKeyword$ Cascade grant share, and
@@ -1184,7 +1183,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		id := e.G.Stack[len(e.G.Stack)-1]
 		announce(id, false)
 	}
-	// Fix round 1 (reviewer minor, cheap): derive drainAwaitsTarget from
+	// Derive drainAwaitsTarget from
 	// e.Pending() rather than clearing it first. The old form set it false
 	// up front and recomputed it only inside the ask branch, so a flag an
 	// OUTER caller had already set and not yet consumed was discarded the
@@ -1205,7 +1204,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 // Obj.Face(), which is NOT static -- it follows the object's ACTIVE face. A
 // permanent whose face changed between the trigger matching and the drain
 // would be read against the new face's Triggers slice, giving the wrong
-// optionality flag and label. Nothing in M1 can reach that (effects.SetState
+// optionality flag and label. Nothing in the engine reaches that (effects.SetState
 // is the only FlipFace source and no card in play uses it), but this is
 // "correct because nothing flips faces", not "correct because the data cannot
 // change". A source that has ceased to exist, or an index the current face is

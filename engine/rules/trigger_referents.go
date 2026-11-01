@@ -325,14 +325,14 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// TriggerCount$Amount for its same-value follow-up discover.
 		c.TriggerAmount = ev.Amount
 	case cards.TriggerExplores:
-		// The explore record's roles (task explore1): TriggerCard is the
+		// The explore record's roles: TriggerCard is the
 		// EXPLORER (what ValidCard$ matched), the same ChangesZone read.
 		// The revealed card rode the record's IDs, but every corpus body
 		// reads the trigger's own source or asks its own targets, so no
 		// separate referent field is minted for it.
 		c.TriggerCard = ev.Obj
 	case cards.TriggerExploited:
-		// The exploit record's roles (task exploit1): the EXPLOITING creature
+		// The exploit record's roles: the EXPLOITING creature
 		// is ev.Obj and rides TriggerSource (Colonel Autumn's team watch has
 		// its own body, but a body reading TriggeredSource/TriggeredCard gets
 		// a defined referent); the EXPLOITED creature is ev.IDs[0] and rides
@@ -372,7 +372,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerPlayer = player(ev.Player)
 		}
 	case cards.TriggerConnives:
-		// The connive record's roles (task connive1): TriggerCard is the
+		// The connive record's roles: TriggerCard is the
 		// CONNIVER (what ValidCard$ matched), the same ChangesZone read. The
 		// discarded cards rode the record's IDs, but every corpus body reads
 		// the conniving creature or asks its own targets, so no separate

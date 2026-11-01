@@ -8,7 +8,7 @@ import (
 // matchesTargetSpec is the ONE judge of a stack-object target candidate's
 // ValidTgts$ filter, shared by the placement offer (candidatesForLimitInto's
 // ZStack arm) and the resolution recheck (legalTargets' object arm), so a
-// target offered at announcement cannot fizzle at resolution (Critical C2's
+// target offered at announcement cannot fizzle at resolution (the
 // one-definition rule).
 //
 // An activated or triggered ability on the stack is a Face-less wrapper

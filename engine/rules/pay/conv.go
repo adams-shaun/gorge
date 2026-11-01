@@ -6,8 +6,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// conv.go is the stat:ManaConvert grammar (moved from package rules'
-// mana_convert.go, E7): the ManaConversion$ from/to words and the ValidSA$
+// conv.go is the stat:ManaConvert grammar:
+// the ManaConversion$ from/to words and the ValidSA$
 // payment-kind scoping that build one payment's Conv. Pure.
 
 // stat:ManaConvert (CR 608.2i, "spend mana as though it were mana of any

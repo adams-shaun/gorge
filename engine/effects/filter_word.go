@@ -194,7 +194,7 @@ const (
 	// both on Rendmaw, Creaking Nest); the other comparison spellings stay
 	// wordUnknown and fail closed.
 	wordNumTypesGE
-	// The pc1 object/game-context predicate families (task pc1ctx), the last
+	// The object/game-context predicate families, the last
 	// of the row's named stragglers. Each reads provenance the object alone
 	// does not carry, so it is classified here and evaluated by wordMatches
 	// against SpecContext/state:

@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// PaidCost is a pending cast's or activation's payment slice (lasagna spec
-// §9.1, the pay session's cast state): the objects each non-mana cost part
+// PaidCost is a pending cast's or activation's payment slice:
+// the objects each non-mana cost part
 // was paid with, recorded by the ask stages and settled when the cost is
 // paid. Package rules embeds it in its pendingCast, so the payment layer can
 // read and announce the paid lists without the rest of the pending cast. The
@@ -44,7 +44,7 @@ type PaidCost struct {
 
 // RevealChosenText composes the public reveal line a RevealChosen<Spec> part
 // prints as it is paid. The chosen player's identity is the chain-safe
-// tossName -- the deck-identity Name, never the display PlayerName (the F3
+// tossName -- the deck-identity Name, never the display PlayerName (the
 // invariant every other event text keeps; engine/view/describe.go's player label may
 // prefer PlayerName, but that is a view projection, not chain text).
 func RevealChosenText(g *state.Game, o *state.Object, spec string) (string, bool) {
@@ -83,7 +83,7 @@ func SaHasKeyword(ab *cards.SA, want string) bool {
 }
 
 // SeatName is the identity the toss Note's text carries: the deck-identity
-// Name, else "seat N". F3 (TestPlayerNamesDoNotReachTheChain) keeps the
+// Name, else "seat N". TestPlayerNamesDoNotReachTheChain keeps the
 // per-seat PlayerName -- a display name -- out of the event chain entirely,
 // and the Note is event text, so it uses the same deck identity every other
 // event text already carries. (engine/view/describe.go's player label may prefer

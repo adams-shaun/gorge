@@ -127,7 +127,7 @@ const (
 	APIEcho                  APICode = 75
 	APIChangeX               APICode = 76
 	APIAnimateAll            APICode = 77
-	// Appended after AnimateAll (task alterattr1), following the enum's own
+	// Appended after AnimateAll, following the enum's own
 	// append-only precedent: no assigned value moves, so an existing compiled
 	// cache stays valid.
 	APIAlterAttribute APICode = 78

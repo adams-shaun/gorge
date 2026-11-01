@@ -59,7 +59,7 @@ func OpenCorpus(dir string) (*Registry, error) {
 // (landTypeWordsCache, the name-universe memos, compiledTextCache) key on its
 // pointers, so every re-opened copy stayed live: a test binary that starts
 // servers, replays captures or drives a bench many times held one ~400 MB
-// registry per call (measured 2026-09-27: cmd/repro 4.9 GB, cmd/gorged
+// registry per call (measured: cmd/repro 4.9 GB, cmd/gorged
 // 3.0 GB, host 2.4 GB, botbench 4.9 GB peak). Use it wherever a process may
 // open the corpus more than once; OpenCorpus stays uncached for callers that
 // must see a recompiled cache (the corpus-cache tests). A failed open is not
@@ -284,8 +284,8 @@ func pruneCaches(dir, keepPath string) {
 // worktree by symlink, so a cache compiled from .worktrees/<id>/.cards names
 // files under that worktree. Once the worktree is removed after its merge,
 // host's feedback capture cannot read any token script back (all of them land
-// in tokens_unread), which failed cmd/repro on main and in every worktree
-// (measured 2026-09-25). The part from the corpus subdirectory on is the
+// in tokens_unread), which failed cmd/repro on main and in every worktree.
+// The part from the corpus subdirectory on is the
 // same in every copy, so only the prefix is replaced.
 func rerootPaths(r *Registry, dir string) {
 	abs, err := filepath.Abs(dir)

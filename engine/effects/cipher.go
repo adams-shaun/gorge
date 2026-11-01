@@ -28,7 +28,7 @@ func init() { Register("Cipher", effCipher) }
 // The offer is a single mid-resolution KModes ask over the resolving
 // controller's creatures: Min 0 (an empty answer declines -- "you may"), Max
 // 1 (exactly one creature is encoded), answered in place via AskTape, and a
-// host that cannot ask takes the deterministic decline -- the R-9
+// host that cannot ask takes the deterministic decline -- the
 // no-host contract, matching every other optional keyword the engine poses.
 //
 // The performing half moves the card to exile and writes the association as
@@ -101,7 +101,7 @@ func effCipher(h Host, c *Ctx, sa *cards.SA) {
 		cipherEncode(h, c, card, controller, picked)
 		return
 	}
-	// No host to ask (the R-9 fuzz/test contract): the deterministic decline.
+	// No host to ask (the fuzz and test path): the deterministic decline.
 	h.Emit(events.Event{Kind: events.Note, Obj: card,
 		Text: "cipher encode resolved as the decline (no engine host to ask)"})
 }

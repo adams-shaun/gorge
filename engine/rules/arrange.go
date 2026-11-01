@@ -10,8 +10,8 @@ import (
 
 // handleArrange applies an answered KArrange decision -- the ordered-subset
 // ask a mid-resolution library-arranging effect (RearrangeTopOfLibrary,
-// Ponder; later Scry/Surveil/Dig) poses through effects.Host.Ask
-// J0). It is the engine's one KArrange handler, the mid-resolution sibling
+// Ponder; later Scry/Surveil/Dig) poses through effects.Host.Ask.
+// It is the engine's one KArrange handler, the mid-resolution sibling
 // of handleModes.
 //
 // The contract it applies, from the KArrange doc comment: the chosen

@@ -550,7 +550,7 @@ func effAddOrRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 
-		// No-host fallback (R-9): the first option — remove the first kind —
+		// No-host fallback: the first option — remove the first kind —
 		// the exact mirror of botpolicy's first-option KChoose answer.
 		aorApplyAct(h, c, sa, target, kinds[0], "remove", amount)
 		return
@@ -575,7 +575,7 @@ func effAddOrRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 
-		// No-host fallback (R-9): the first option — remove — the exact mirror
+		// No-host fallback: the first option — remove — the exact mirror
 		// of botpolicy's first-option KChoose answer.
 		aorApplyAct(h, c, sa, target, k, "remove", amount)
 	}
@@ -782,7 +782,7 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 					return
 				}
 			} else {
-				// No answer (R-9): the deterministic first-kind stand-in, the
+				// No answer: the deterministic first-kind stand-in, the
 				// same pick botpolicy's arm takes.
 				chosenKind = kinds[0]
 			}
@@ -817,7 +817,7 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 		maxN := origins[0].Counter(chosenKind)
-		// No answer (R-9): the deterministic take-all stand-in.
+		// No answer: the deterministic take-all stand-in.
 		num = maxN
 		if maxN > 0 {
 			chooser := c.Controller
@@ -1179,7 +1179,7 @@ func proliferateOnce(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
-	// The no-host (R-9) and empty-answer stand-in takes ALL eligible, the
+	// The no-host and empty-answer stand-in takes ALL eligible, the
 	// exact mirror of botpolicy's "proliferate" arm, so a bot-answered ask
 	// emits the same events the silent build would.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,

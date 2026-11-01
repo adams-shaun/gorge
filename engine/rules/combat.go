@@ -8,13 +8,11 @@
 //     attacker choice: each attacking creature may be declared
 //     against ANY one living opponent, independently (CR 506.2 / CR 903.14),
 //     and the KAttackers decision offers one option per (attacker, defender)
-//     pair -- decision.Option.Player carries the pair's defender, so widening
-//     M1's single-fixed-defender simplification into the true choice was
-//     additive, exactly as this comment always promised. The engine rejects
+//     pair -- decision.Option.Player carries the pair's defender. The engine rejects
 //     an intent that declares one creature against two defenders
 //     (validateAttackers), and with a single opponent the pair list is one
 //     option per attacker at that one defender, so a two-player game
-//     observes exactly the M1 surface.
+//     observes exactly a single-defender surface.
 //   - Players receive priority after attackers and blockers are declared.
 //     Combat damage remains an automatic step.
 //   - An ordinary blocking creature may block only one attacker (CR 509.1a).
@@ -395,7 +393,7 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 			return
 		}
 	}
-	// CR 702.160a (task enlist1): enlist is an "as this creature attacks"
+	// CR 702.160a: enlist is an "as this creature attacks"
 	// action that happens DURING the declaration, before the attack triggers
 	// are put on the stack. Its election is therefore posed here, BEFORE the
 	// DeclareAttackers events below are emitted, so an attack trigger whose
@@ -412,7 +410,7 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 // finishAttackers completes the declare-attackers declaration once every
 // enlist election is answered: emit one DeclareAttackers event per defending
 // player, tap the non-Vigilance attackers (CR 508.1f), then offer the exert
-// elections (CR 702.100a, task exert1). Split out of handleAttackers so the
+// elections (CR 702.100a). Split out of handleAttackers so the
 // enlist continuation (engine/rules/enlist.go) and the attack-cost payment window
 // (engine/rules/attack_cost.go's attackPayAnswer) can resume exactly here.
 //
@@ -500,7 +498,7 @@ func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID
 		}
 	}
 	e.closeMillBatch()
-	// CR 702.100a (task exert1): each attacking creature carrying an
+	// CR 702.100a: each attacking creature carrying an
 	// offerable stat:OptionalAttackCost static is offered its exert
 	// election now, still inside the declare-attackers step, before the
 	// declare-blockers step begins. The election is one KChoose per
@@ -2880,7 +2878,7 @@ const chooseDamageDivision chooseFor = iota + 5
 const chooseAsUnblockedElection chooseFor = chooseEcho + 1
 
 // chooseExert is the chooseFor for the declare-attackers step's exert
-// election (CR 702.100a, task exert1): one KChoose per attacking creature
+// election (CR 702.100a): one KChoose per attacking creature
 // carrying an offerable stat:OptionalAttackCost static, posed by askNextExert
 // after the KAttackers declaration is recorded, still inside the
 // declare-attackers step (the CR 702.100a "as it attacks" ask is a follow-up
@@ -2891,7 +2889,7 @@ const chooseAsUnblockedElection chooseFor = chooseEcho + 1
 const chooseExert chooseFor = chooseAsUnblockedElection + 1
 
 // chooseEnlist is the chooseFor for the declare-attackers step's enlist
-// election (CR 702.160a, task enlist1): one KChoose per attacking creature
+// election (CR 702.160a): one KChoose per attacking creature
 // carrying `K:Enlist` that has at least one eligible creature to tap, posed
 // by askNextEnlist (engine/rules/enlist.go) BEFORE the declaration's DeclareAttackers
 // events are emitted so an intervening-if reading enlistedThisCombat sees the
@@ -2947,7 +2945,7 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 // (Flying/Reach gate blocking in combat.CanBlock; Haste and Vigilance gate/modify
 // attacking in combat.CanAttack/handleAttackers; Deathtouch, Trample, Lifelink and
 // First Strike are all read directly in damageStep above and
-// destroyLethalDamage, sba.go), plus three the M2r ratchet adds, each with a
+// destroyLethalDamage, sba.go), plus three the keyword ratchet adds, each with a
 // named proof test in keyword_registration_test.go: Flash (legal.go's
 // instant-speed gate), Indestructible (destroyLethalDamage and, via
 // Host.HasKeyword, Destroy/DestroyAll) and Devoid (effects.ColorsOf). Double

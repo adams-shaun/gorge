@@ -25,7 +25,7 @@ func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 		return
 	}
 	if ev.Kind == events.PlanarRoll || ev.Kind == events.RollDice {
-		// The roll rewrite (task rollplanar1's Ichor Elixir pair, extended to
+		// The roll rewrite (Ichor Elixir's pair, extended to
 		// the regular-dice proposal in rolldice-repl -- Wyll, Blade of
 		// Frontiers; Barbarian Class; Pixie Guide): Number is the dice count
 		// (the held event's Amount), Ignore the ignored-result count (the held

@@ -1,5 +1,5 @@
-// pay_engine.go is package rules' side of the payment layer's seam (lasagna
-// spec §9, E7): the pay.Engine implementation (payer, a pointer conversion
+// pay_engine.go is package rules' side of the payment layer's seam:
+// the pay.Engine implementation (payer, a pointer conversion
 // of *Engine, so its methods are not Engine methods), the aliases rules keeps
 // for the payment vocabulary, and the cast-flow helpers that read rules-only
 // types (pendingCast).
@@ -25,8 +25,8 @@ var manaLetters = pay.ManaLetters
 // with the cast's recorded may-play ignore-colour rider, CR 401.5's "spend
 // mana as though it were mana of any color to cast it") returning the FULL
 // spent delta: the pre-restriction-split per-colour pool delta converge
-// counts from (task converge1), the snow-unit delta the filtered
-// Count$CastTotalManaSpent Snow head reads (task castfilter1), and the
+// counts from, the snow-unit delta the filtered
+// Count$CastTotalManaSpent Snow head reads, and the
 // per-tag typed deltas the filtered Treasure/Cave/Desert heads read (task
 // castfilter2). The spell arm's only ask stages have all completed by
 // payment, so the deltas ride pendingCast plain data to the pay-time

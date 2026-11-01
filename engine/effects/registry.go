@@ -196,7 +196,7 @@ type Ctx struct {
 	// ctx rebuilt by a resume does not carry it -- a deeper sub's targeting
 	// was genuinely never offered, which is the ask's real population.
 	//
-	// Boundary, updated by task mvts1: the flag suppresses only the depth-0
+	// Boundary: the flag suppresses only the depth-0
 	// entry SA of an effects.Resolve call (chosenTargetsFor's atRoot arm) --
 	// the SA the placement/announcement ask actually covered. A deeper sub
 	// in the SAME resolution that carries its OWN never-offered ValidTgts$
@@ -373,7 +373,7 @@ type Ctx struct {
 	// target the script meant.
 	PickedTargets []state.Target
 	// SubPreAsk carries the CAST-time pre-asked target answers for this
-	// resolution's SubAbility$ chain (task alltargeted1): Forge asks every
+	// resolution's SubAbility$ chain: Forge asks every
 	// targeting SA in the whole chain BEFORE cost payment (CR 601.2c), so
 	// the engine pre-asks them in the cast flow and the resolution must
 	// use the answers instead of re-posing the asks mid-resolution. The
@@ -386,7 +386,7 @@ type Ctx struct {
 	// unchanged).
 	SubPreAsk map[string][]state.Target
 	// AllTargets is the whole root/sub-ability target UNION Forge's
-	// AllTargeted$ count ref names (task alltargeted1), threaded by the
+	// AllTargeted$ count ref names, threaded by the
 	// cost-evaluation sites that read it before payment (ownReduceCost's
 	// CR 601.2c reprice, the CollectEvidence amount resolution) and, at
 	// resolution, by rules for a stack object whose chain-link targets were
@@ -574,7 +574,7 @@ type Effect func(h Host, c *Ctx, sa *cards.SA)
 
 // atomicMap is a copy-on-write string-keyed map. Writes are rare — native
 // primitives register themselves from init() and the only other writer is
-// M3's plugin tier overriding one at runtime — so they pay the cost of taking
+// the plugin tier overriding one at runtime — so they pay the cost of taking
 // a mutex and copying the snapshot. Reads are the hot path: Resolve does one
 // lookup per effect resolution, on every match, in its own goroutine, so
 // readers do a single atomic load and never block or contend with a writer or
@@ -672,7 +672,7 @@ var registry = newEffectRegistry()
 
 // Register installs an implementation for a Forge API name. Called from init
 // functions in this package; re-registering replaces, which is what lets the
-// plugin tier in M3 override a native primitive. Safe to call concurrently
+// plugin tier override a native primitive. Safe to call concurrently
 // with Resolve and Supported (and with itself).
 func Register(api string, fn Effect) { registry.set(api, fn) }
 
@@ -1345,7 +1345,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			}
 			continue
 		}
-		// The generic ValidTgts$ pre-ask (task mvts1): an SA the placement/
+		// The generic ValidTgts$ pre-ask: an SA the placement/
 		// announcement ask never covered -- a sub at depth >= 2 of a trigger's
 		// Execute chain (the "when you do" family: Mogg Bombers' DealDamage,
 		// Kor Outfitter's Attach, Rhino's second PutCounter) -- poses its own

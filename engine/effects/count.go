@@ -419,7 +419,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		return n, true
 	}
 	// A TargetedPlayer$/ThisTargetedPlayer$ body answers a numeric question
-	// about the PLAYERS a target reference names (task tgtplayer1): the
+	// about the PLAYERS a target reference names: the
 	// object-only evalRefProperty loop skips every IsPlayer target and its
 	// property switch is object-only, so these heads need their own arm --
 	// placed beside that call exactly like the Remembered$/Sacrificed$ arms

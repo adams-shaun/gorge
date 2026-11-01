@@ -9,7 +9,7 @@ import (
 )
 
 // parts.go holds pure reads the unless-cost and announced-cost payment
-// windows share (lasagna spec W5 E7): which part of an UnlessCost$ a window
+// windows share: which part of an UnlessCost$ a window
 // row pays, the owed remainder of an announced payment, the pool counter a
 // mana unit spends from, and the bipartite matching an any-of payment needs.
 

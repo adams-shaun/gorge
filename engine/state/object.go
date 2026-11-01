@@ -220,7 +220,7 @@ const (
 	// never sets it. Appended per the enum's own append-only precedent.
 	FlagForetold
 	// FlagManaSpent marks a cast whose pay-time CastInfo carries the TOTAL
-	// mana actually spent to cast it (CR 601.2h's payment; task castprov1's
+	// mana actually spent to cast it (CR 601.2h's payment;
 	// Count$CastTotalManaSpent capture, the FlagConverged pattern: the flag
 	// routes the Amount into Object.ManaSpent instead of overwriting X).
 	// Only a face whose SVar table reads the count (faceWantsCastSpend)
@@ -238,7 +238,7 @@ const (
 	FlagManaSnowSpent
 	// FlagManaTreasureSpent / FlagManaCaveSpent / FlagManaDesertSpent mark a
 	// cast whose pay-time CastInfo carries the TREASURE-/CAVE-/DESERT-sourced
-	// part of the total mana spent to cast it (task castfilter2's filtered
+	// part of the total mana spent to cast it (the filtered
 	// Count$CastTotalManaSpent <Type> captures, the FlagManaSnowSpent
 	// pattern: the flag routes the Amount into its Object field instead of
 	// overwriting X, the total or an earlier tag). Each rides its OWN
@@ -265,7 +265,7 @@ const (
 	// ReplaceGraveyard$ Exile rider says the played spell must not rest in
 	// the graveyard: "If that spell would be put into your graveyard this
 	// turn, exile it instead" (Goblin Dark-Dwellers). The provenance of a
-	// Play SA is cast-time (task replplay1), so the bit ORs into the same
+	// Play SA is cast-time, so the bit ORs into the same
 	// pay-time CastInfo every other mode flag rides, and the resolution
 	// reader spellRestZone (and the fizzle reader spellFizzleZone) uses it
 	// to send the played card to exile. Appended per the enum's own
@@ -895,7 +895,7 @@ type Object struct {
 	// event, so the event's own attack is already counted.
 	AttacksThisTurn int32
 
-	// ExertedThisTurn records CR 702.100a's exert election (task exert1):
+	// ExertedThisTurn records CR 702.100a's exert election:
 	// the permanent was exerted this turn. Set only by events.Apply's Exert
 	// case; reset in TurnChange's per-object loop (a per-turn fact) and
 	// cleared with ExertSkipUntap when the permanent leaves the battlefield
@@ -932,7 +932,7 @@ type Object struct {
 	CantUntapNextStep bool
 
 	// EnlistedTurn and EnlistedCombat stamp the CR 702.160 enlist action (the
-	// `K:Enlist` keyword, task enlist1): the turn and combat phase in which
+	// `K:Enlist` keyword): the turn and combat phase in which
 	// this attacking creature last enlisted another creature. They are set
 	// together by events.Apply's Enlist case, so the enlistedThisCombat
 	// filter predicate (engine/effects/filter.go) can answer "enlisted THIS combat"
@@ -1416,7 +1416,7 @@ type Object struct {
 	// ManaTreasureSpent / ManaCaveSpent / ManaDesertSpent are the
 	// TREASURE-/CAVE-/DESERT-sourced parts of ManaSpent: how many of the
 	// mana units the cast's payment spent were produced by a permanent of
-	// that type (task castfilter2, the ManaSnowSpent pattern). They are
+	// that type (the ManaSnowSpent pattern). They are
 	// carried by the pay-time CastInfo's FlagManaTreasureSpent /
 	// FlagManaCaveSpent / FlagManaDesertSpent Amounts (the X-overwrite
 	// guard: each flag routes its Amount here instead of into X, the total

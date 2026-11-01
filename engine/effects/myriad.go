@@ -52,7 +52,7 @@ func effMyriad(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		// A host without decisions takes the legal optional decline for this
-		// and every remaining opponent (R-9); it does not manufacture a token.
+		// and every remaining opponent; it does not manufacture a token.
 		return
 	}
 }

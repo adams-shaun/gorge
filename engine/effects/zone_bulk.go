@@ -579,7 +579,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 								minv, maxv = amount, amount
 							}
 						} else {
-							// R-9 no-host fallback: preserve the old deterministic pick,
+							// No-host fallback: preserve the old deterministic pick,
 							// but only as a complete strict batch.
 							h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: t.Player,
 								Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
@@ -628,7 +628,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					chosen = append(chosen, tapeAnswerObjs(ans)...)
 					continue
 				}
-				// Fuzz/no-engine host: the deterministic stand-in (R-9) keeps
+				// Fuzz/no-engine host: the deterministic stand-in keeps
 				// the pre-ask behaviour — the first Amount$ eligible permanents
 				// in zone order, so an Optional$ "may sacrifice" plays "do".
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: t.Player,

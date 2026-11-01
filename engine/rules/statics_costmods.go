@@ -269,7 +269,7 @@ func (e *Engine) withCostCompositionEvent(id state.ObjID, compose func() costMod
 	// as you've cast an instant or sorcery this turn") kept the flying Gust
 	// of Wind's own push gave it, so Gust's "costs {2} less if you control a
 	// creature with flying" was charged {1}{U} where the planner -- and CR
-	// 601.2i, the spell is not yet cast -- price {3}{U} (round-8 cardfuzz
+	// 601.2i, the spell is not yet cast -- price {3}{U} (cardfuzz
 	// mirror seed 12687133153333408407, a_witness pool_after).
 	e.retireCrossWalkMemo()
 	e.invalidateScratchLayerLists()

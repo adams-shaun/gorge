@@ -6,7 +6,7 @@ import (
 )
 
 // api:DealDamage's parameter compiler lives in the leaf package
-// engine/effects/params (params/dealdamage.go, W5 step E7): the payment planner's
+// engine/effects/params (params/dealdamage.go): the payment planner's
 // self-damage rider probe reads it there. These are the effects spellings.
 
 // DealDamageParams is one DealDamage ability's parameters

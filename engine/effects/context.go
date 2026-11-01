@@ -31,7 +31,7 @@ var zoneValidPrefixes = []struct {
 // Defined resolves a Defined$ parameter to concrete targets. With no Defined$
 // at all, Forge's own rule applies: an ability that declares ValidTgts$ (it
 // has real targets to name) acts on the chosen ones; an ability with no
-// ValidTgts$ acts on its own source (R-10's default).
+// ValidTgts$ acts on its own source.
 //
 // Every return here is a defensive copy, never a slice sharing a backing
 // array with Ctx.Targets or Ctx.Remembered: Ctx is threaded by pointer through
@@ -128,7 +128,7 @@ func DefinedRef(h Host, c *Ctx, r Ref, sa *cards.SA) []state.Target {
 	// parent's targets says so explicitly (Defined$ Targeted /
 	// ParentTarget), which every script in the corpus does.
 	if TargetsOf(sa).Has(TgtValidPresent) {
-		// The generic pre-ask's answered set (task mvts1) outranks the
+		// The generic pre-ask's answered set outranks the
 		// resolution's own Ctx.Targets: this dispatch asked for and received
 		// ITS OWN targets, and the resolution-level list is either the outer
 		// SA's (the CLOBBER inherit) or empty. Non-nil (possibly empty) only
@@ -1077,7 +1077,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return objectsOf(c.Remembered), true
 	case definedSpecTriggeredCard:
-		// M1 does not model LKI copies, new-object identity or the
+		// The engine does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
 		// TriggeredObject/TriggeredObjectLKICopy are the event-object
@@ -1158,8 +1158,8 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// PLAYER (Arcane Denial's RememberObjects$ RememberedController —
 		// "Its controller may draw up to two cards" names the countered
 		// spell's CONTROLLER, a player, never an object) must resolve to
-		// that player for the Draw the Execute$ runs; the objectsOf read the
-		// M1 comment describes dropped the entry and the whole draw silently
+		// that player for the Draw the Execute$ runs; the objectsOf read
+		// above dropped the entry and the whole draw silently
 		// no-oped. Object-remembered registrations are unchanged (the set is
 		// passed through verbatim); the LKI forms above keep the objects-only
 		// read their LKI semantics name.
@@ -1227,7 +1227,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// Greatwurm's "put that many +1/+1 counters on it", the DamageDone
 		// "destroy that creature" family). It used to be unrecognised, so
 		// Defined fell back to the ability's SOURCE and the counters or the
-		// destroy landed on the trigger's host instead of the dealer; M1 reads
+		// destroy landed on the trigger's host instead of the dealer; this reads
 		// the live object, as the TriggeredCardLKICopy spelling does. The
 		// fallback keeps a non-trigger context behaving exactly as before.
 		if c.TriggerSource != 0 {
@@ -1297,7 +1297,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return definedSpec(h, c, "TriggeredSourceController")
 	case definedSpecConvoked:
-		// CR 702.66's "each creature that convoked it" (task connive1): the
+		// CR 702.66's "each creature that convoked it": the
 		// creatures the caster tapped to help pay for the resolving spell's
 		// cast, carried by the pay-time CastInfo's FlagConvoked IDs into
 		// Object.Convoked (Lethal Scheme's connive sub while the spell is on

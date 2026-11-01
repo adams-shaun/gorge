@@ -140,7 +140,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			// degradation to Spell-only must not leak in here -- a genuinely
 			// unknown token would otherwise widen to "all spells you control"
 			// and copy every spell on the stack. Fail closed instead. The
-			// `Ability` base IS a stack kind now (task abcopy3: Activated+
+			// `Ability` base IS a stack kind (Activated+
 			// Triggered, never Spell), and its `otherAbility` qualifier
 			// excludes the resolving wrapper via Ctx.ResolvingObj, so the
 			// sub-copy cannot copy itself; the arm is PLURAL -- every admitted
@@ -236,8 +236,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// "may sacrifice a land. If the player does, they may copy" runs it on the
 	// PAY. By the time this dispatch runs the unless question is fully
 	// answered -- so the may-copy election is the SECOND ask in Forge's own sequence: posing it
-	// duplicates nothing and inverts nothing (the round-1 read that scoped
-	// this arm to UnlessCost$-free SAs was wrong, findings-r2).
+	// duplicates nothing and inverts nothing.
 	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True") {
 		d := &decision.Decision{Player: controller, Kind: decision.KChoose, Min: 1, Max: 1,
 			Source: c.Source, ResumeKind: "copy_optional", ResumeSA: sa,

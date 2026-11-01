@@ -267,7 +267,7 @@ func foldEndCombatReset(g *state.Game, e *Event) {
 
 // foldCmdDamage folds Kind CmdDamage into state.
 func foldCmdDamage(g *state.Game, e *Event) {
-	// Commander combat damage to a player (CR 903.10, Task m33): fold
+	// Commander combat damage to a player (CR 903.10): fold
 	// Amount into Player's cumulative tally at the source commander's
 	// match-wide dense index, exactly the slot m30's genesis sizes and
 	// New's Commanders bookkeeping names, so commander B keeps one slot
@@ -450,7 +450,7 @@ func foldMyriadCleanup(g *state.Game, e *Event) {
 
 // foldEnlist folds Kind Enlist into state.
 func foldEnlist(g *state.Game, e *Event) {
-	// CR 702.160's enlist action (the `K:Enlist` keyword, task enlist1):
+	// CR 702.160's enlist action (the `K:Enlist` keyword):
 	// Obj is the ATTACKING creature that enlisted (the Mode$ Enlisted
 	// trigger's source) and IDs[0] the nonattacking creature it tapped
 	// (never a state change here -- the tap is its own Tap event). The
@@ -511,7 +511,7 @@ func foldCrew(g *state.Game, e *Event) {
 
 // foldExert folds Kind Exert into state.
 func foldExert(g *state.Game, e *Event) {
-	// CR 702.100's fold (task exert1). Amount >= 0 is the exert itself:
+	// CR 702.100's fold. Amount >= 0 is the exert itself:
 	// both lifetimes stamp here -- ExertedThisTurn (the per-turn fact the
 	// notExertedThisTurn offer gate and the "as it attacks" walkers
 	// read) and ExertSkipUntap (the consumed-at-use no-untap window,

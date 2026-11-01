@@ -17,9 +17,9 @@ func kwMentor(f *Face, i int, k, head, param string, has func(kind, line string)
 	// recheck. It is NOT the corpus's powerLTX spelling: a target spec's
 	// numeric RHS resolves against the announced {X} (targetSpecContext's
 	// Resolve), not the resolving source's power, so `powerLTX` would offer
-	// an empty list for every Mentor source (measured -- see the ticket
-	// report; Unliving Psychopath's own Creature.powerLTX target offer is
-	// empty for the same reason). The marker keeps the source-relative
+	// an empty list for every Mentor source (Unliving Psychopath's own
+	// Creature.powerLTX target offer is empty for the same reason). The marker
+	// keeps the source-relative
 	// comparison in ONE rules helper shared by offer and recheck.
 	f.addKeywordTrigger(head, k,
 		"Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Mentor",

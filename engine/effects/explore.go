@@ -30,7 +30,7 @@ import (
 //     into your graveyard"). Options are ordered state-changing-first —
 //     option 0 "into your graveyard", option 1 "back on top" — so the no-host
 //     stand-in and botpolicy's clamp both bin the card deterministically (the
-//     R-9 / TapOrUntap discipline). The +1/+1 counter and the destination
+//     no-host / TapOrUntap discipline). The +1/+1 counter and the destination
 //     move are applied TOGETHER after the answer arrives, in CR order
 //     (counter before destination): one code path for the answered and
 //     no-host shapes. The ask therefore precedes the counter in

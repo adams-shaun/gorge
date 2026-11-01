@@ -23,7 +23,7 @@ import (
 // A process that plays a known card pool (a spellbench catalog, a deck-file
 // bench) needs a few hundred of the corpus's ~34k cards, but LoadRegistry
 // decodes and compiles all of them: 1.0 s and 525 MB allocated, 189 MB
-// retained (measured 2026-09-30 with a throwaway cards test over the pinned
+// retained (measured with a throwaway cards test over the pinned
 // corpus). The gob cache is one value, a []*Card, and gob cannot skip a
 // slice element without decoding it, so a subset needs a second layout:
 // the segment file, written beside every cache by Save.
@@ -542,7 +542,7 @@ func decodeCacheFile(path string) (*cacheFile, error) {
 // also builds token keys in Go -- Investigate's Clue, Recruit's Soldier,
 // Incubate, venture's dungeons, and Amass's "b_0_0_<type>_army" from the
 // card's type word -- so a textual closure could miss one and change a game,
-// and all 839 cost 4 MB allocated / 5 ms (measured 2026-09-30). A card whose
+// and all 839 cost 4 MB allocated / 5 ms. A card whose
 // face is an unresolved CopyFaceFrom stub pulls in the card it names. A name
 // that resolves to nothing is skipped: Lookup reports it missing exactly as
 // the full registry would.

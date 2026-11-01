@@ -459,8 +459,7 @@ func unlessReread(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Target) (bool
 type unlessAsk uint8
 
 const (
-	// unlessNoHost: the host could not ask; the deterministic decline (R-9)
-	// applies.
+	// unlessNoHost: the host could not ask; the deterministic decline applies.
 	unlessNoHost unlessAsk = iota
 	// unlessServed: AskTape served the answer, and the host's answer
 	// record settled it in line into the asking walk's Ctx (Ctx.UnlessPay,
@@ -490,7 +489,7 @@ func unlessSubsRun(sa *cards.SA, paid bool) bool {
 }
 
 // poseUnlessAsk offers payer payers[i] the unless cost. It reports whether
-// the answer was served and settled in place, or the host could not ask (an effects-package test double, R-9) and the
+// the answer was served and settled in place, or the host could not ask (an effects-package test double) and the
 // deterministic decline applies — with the Note the no-host path has always
 // carried.
 func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Target, i int) unlessAsk {
@@ -518,8 +517,7 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 			// The damage-payment offer (Vexing Devil, Longhorn Firebeast —
 			// the Sacrifice UnlessSwitched$ True population): "paying" is
 			// taking the damage, so the labels must say so, never "Pay the
-			// cost". The switched offer is the fb-20260916T070855Z wording;
-			// the unswitched shape (no corpus carrier today) mirrors the
+			// cost". The unswitched shape (no corpus carrier today) mirrors the
 			// plain unless orientation.
 			name := "The permanent"
 			if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
@@ -549,7 +547,7 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 	// so a Draw<.../Player.targetedBy> or RevealChosen cost is evaluated
 	// against the same targets/roles the pay path will use. A host that
 	// implements only the two-argument form is still consulted. The effects
-	// test host (and other embedders) keep the two options -- R-9 still
+	// test host (and other embedders) keep the two options -- the no-host path still
 	// declines when it cannot ask.
 	// DamageYou<N> is the one strict-parser exception: the unless-pay arm has
 	// its own rules-side payment path for it (payUnlessDamageCost, any API),
@@ -559,7 +557,7 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 	// shared gate below and exposes only decline.
 	_, damagePayment := ParseDamageUnlessCost(cost)
 	// A non-rules host cannot price a cost and keeps the historic two-option
-	// R-9 ask; its no-host fallback deterministically declines. A rules host
+	// no-host ask; its fallback deterministically declines. A rules host
 	// supplies the actual fail-closed offer gate for every non-damage cost.
 	payable := true
 	if !damagePayment {
@@ -588,7 +586,7 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 	if _, ok := AskTape(h, d); ok {
 		return unlessServed
 	}
-	// Fuzz/no-engine host: the deterministic decline (R-9). The pay was
+	// Fuzz/no-engine host: the deterministic decline. The pay was
 	// never posed, so resolve as if the player declined.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "may pay declined (UnlessCost not asked on this host)"})
@@ -893,7 +891,7 @@ func sacrificeOneLabel(cost string) (string, bool) {
 // "As Steam Vents enters, you may pay 2 life" -- and the rest of the corpus's
 // UnlessCost$ PayLife population) is equally readable: rules' ParseUnlessCost
 // prices exactly that token and charges exactly N life, so it renders "N
-// life" (fb-20260917T233137Z: the election used to say "Pay the cost, or
+// life" (the election must name the cost, not say "Pay the cost, or
 // decline" without naming the cost). A cost mixing mana with PayLife<N> (2
 // raw corpus lines, "1 PayLife<3>") renders both parts; PayLife<X>/Y keep the
 // degradation, their value being unresolved here.

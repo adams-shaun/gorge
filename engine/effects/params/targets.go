@@ -13,9 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This file is the generic TARGETING tier's parameter compiler (W4 step 3's
-// cross-API tier, docs/design/2026-10-03-rules-engine-lasagna-design.md
-// section 8: "start with APIs whose params are read on more than one path").
+// This file is the generic TARGETING tier's parameter compiler.
 // The targeting parameters -- ValidTgts$, TgtPrompt$, TargetMin$/TargetMax$,
 // TgtZone$, TargetType$, TargetUnique$, the TargetsWith*$ set constraints,
 // TargetingPlayer$/TargetingPlayerControls$, TargetValidTargeting$ and

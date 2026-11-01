@@ -26,7 +26,7 @@ type engineCastWindows struct {
 	untapChoiceObj state.ObjID `clone:"deep"`
 	// suppressedCast holds the card object ids whose cast option is held out
 	// of the current priority window because their cast attempt aborted
-	// unpayable with no state change (E2 round 2, tightened by F05-2/CR
+	// unpayable with no state change (CR
 	// 733.2). This is the no-progress answer for a hash-chained, replayable
 	// engine: instead of counting no-progress aborts and killing the match,
 	// suppress the exact card that produced one, so the re-offer loop cannot

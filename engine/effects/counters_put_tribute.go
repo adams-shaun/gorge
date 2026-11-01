@@ -5,7 +5,7 @@
 // the counters) or decline. An acceptance folds the events.AlterAttribute
 // "Tributed" designation onto the permanent and places the counters with the
 // paying opponent as the counter adder; a decline (or an unanswerable ask,
-// the R-9 stand-in) places nothing, so the "if tribute wasn't paid" ETB
+// the no-host stand-in) places nothing, so the "if tribute wasn't paid" ETB
 // trigger the same expansion minted fires.
 
 package effects
@@ -49,7 +49,7 @@ func putCounterTribute(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, n int
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 				Kind: "player", Label: g.Players[p].Name, Player: p})
 		}
-		// R-9 no-host stand-in: the first opponent in seat order -- the exact
+		// No-host stand-in: the first opponent in seat order -- the exact
 		// pick botpolicy's clamp fallback answers, so a bot-answered ask
 		// emits the same events this silent path does.
 		if ans, ok := AskTape(h, d); ok && len(ans) > 0 {
@@ -75,7 +75,7 @@ func putCounterTribute(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, n int
 				continue
 			}
 		} else {
-			// No answer: the deterministic decline stand-in (R-9) — the same
+			// No answer: the deterministic decline stand-in — the same
 			// class the put_optional election falls back to.
 			continue
 		}

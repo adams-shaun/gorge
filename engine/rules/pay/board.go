@@ -13,7 +13,7 @@ import (
 )
 
 // board.go holds the payment layer's small board reads and cost-part
-// executions (lasagna spec W5 E7): mana-source enumeration, a source's
+// executions: mana-source enumeration, a source's
 // recorded colour, a printed ability's wire identity, and the energy and
 // library-order cost parts. They read the game directly or emit through the
 // Engine seam; none is an Engine method.

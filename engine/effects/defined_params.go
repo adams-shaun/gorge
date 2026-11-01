@@ -6,7 +6,7 @@ import (
 )
 
 // The generic Defined-reference tier's compiler lives in the leaf package
-// engine/effects/params (params/defined.go, W5 step E7): the payment planner reads
+// engine/effects/params (params/defined.go): the payment planner reads
 // a compiled Ref without importing effects. These are the effects spellings.
 
 // RefKind tags the common Defined$-grammar selectors (params.RefKind).

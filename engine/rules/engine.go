@@ -130,8 +130,8 @@ type Config struct {
 	// of the previous game of a match chooses). The toss is still drawn, so
 	// the rng stream and the deal are unchanged; the genesis Note reads
 	// "<name> chooses who takes the first turn" instead of "<name> won the
-	// toss". An index outside the seats is ignored (the toss stands). nil --
-	// every Config before E3 -- is byte-identical to today. Replay must pass
+	// toss". An index outside the seats is ignored (the toss stands). nil leaves
+	// the toss as drawn. Replay must pass
 	// the same value.
 	StartChooser *int
 

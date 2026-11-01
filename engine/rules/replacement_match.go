@@ -106,8 +106,8 @@ func (e *Engine) activeZonesGateOK(r cards.Repl, source state.ObjID, ev events.E
 // entities, so their R: lines declare ActiveZones$ Command (Taii Wakeen's
 // RepDamage, 18 measured DamageDone carriers) while this engine holds the
 // registration in the continuous registry with the source on the battlefield
-// — gating on the source's zone would permanently silence every one of them
-// (task wildgrowth1). active() still ends the effect on its own lifetime.
+// — gating on the source's zone would permanently silence every one of them.
+// active() still ends the effect on its own lifetime.
 func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	return e.replacementMatchesEffectCreatedCap(r, source, ev, remembered, rememberedPlayers, chosenCapture{})
 }
@@ -288,7 +288,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 			// etbCounter gate field `ValidCard$ Card.Self+
 			// !wasCastFromYourHandByYou`: "enters with three +1/+1 counters on
 			// it if you didn't cast it from your hand") is split out and
-			// evaluated against the log here (task castprov1); the remainder
+			// evaluated against the log here; the remainder
 			// matches as before.
 			spec, ok2 := e.castProvenanceAdmits(v, ev.Obj, you)
 			sc := e.rememberedSpecContext(you, source, remembered)
@@ -518,7 +518,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 	case cards.ReplConnive:
 		return replacementMatchesConnive(e, r, source, ev, you)
 	case cards.ReplExplore:
-		// The explore replacement (R:Event$ Explore, task explore1 —
+		// The explore replacement (R:Event$ Explore —
 		// Topography Tracker, Twists and Turns); ValidExplorer$ names the
 		// proposed creature, using the replacement source's controller as You.
 		if ev.Kind != events.Explore {
@@ -814,7 +814,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplRollPlanarDice:
-		// The planar-dice replacement class (Ichor Elixir, task rollplanar1):
+		// The planar-dice replacement class (Ichor Elixir):
 		// "if you would roll one or more planar dice, instead roll that many
 		// planar dice plus one and ignore one". ValidPlayer$ scopes the roller
 		// the same way the Draw class reads it; the count/ignore rewrites are

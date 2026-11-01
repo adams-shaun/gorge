@@ -161,7 +161,7 @@ type CardView struct {
 	IsCopy  bool `json:"is_copy,omitempty"`
 	// AttackingPlayer is the seat this creature is attacking while
 	// Attacking is true, nil otherwise; BlockedBy lists the creatures
-	// blocking it. Both exist for the arrow overlay (PL-17) and come
+	// blocking it. Both exist for the arrow overlay and come
 	// straight from the object's combat fields, which EndCombatReset clears.
 	AttackingPlayer *state.PlayerID `json:"attacking_player,omitempty"`
 	BlockedBy       []state.ObjID   `json:"blocked_by,omitempty"`
@@ -340,7 +340,7 @@ type projector struct {
 	// choice is unresolved, when no player may see any hand. It is probed
 	// once from ch's optional StartingChoicePending capability
 	// (rules.Engine); a Chars without it (a hand-built snapshot, a test
-	// stand-in) never blinds, matching the R-9 no-ask host.
+	// stand-in) never blinds, matching the no-host path.
 	hideHand bool
 	// noDerived leaves every CardView's Chars-derived facts (layer-3 name,
 	// keywords, P/T) unasked: a lean projection's OmitDerivedChars.
@@ -754,7 +754,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 			cv.CombatTrick = effects.CastCombatTrick(sa)
 			cv.AuraLogic = effects.CastAuraLogic(f)
 		}
-		// The mana-production projection (Task dp2): what tapping this card
+		// The mana-production projection: what tapping this card
 		// puts in the pool, from its own abilities. A nil pointer keeps a card
 		// with no mana ability off the wire; the struct is this CardView's own
 		// (fresh, or the one it held before), so the address is never aliased

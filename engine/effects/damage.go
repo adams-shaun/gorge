@@ -19,7 +19,7 @@ func init() {
 	Register("DamageResolve", effDamageResolve)
 }
 
-// roundRobinSplit is DealDamage's R-9 no-host stand-in for a
+// roundRobinSplit is DealDamage's no-host stand-in for a
 // DividedAsYouChoose$ allocation: distribute one damage at a time over the
 // chosen-target list in order, exactly the deterministic split this build
 // shipped before the ask existed. The returned slice is indexed by target

@@ -909,7 +909,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// this move folds and places each grant through a real CounterChange
 		// event, so replacements and prohibitions see an entry counter exactly
 		// like any other placement and a log-only replay re-derives it from
-		// those logged events (task addcounter1/2). What stays here is only the
+		// those logged events. What stays here is only the
 		// Riot "haste" election (a keyword grant, not a counter) and the
 		// one-shot consumption of both elections.
 		if !wasBattlefield {

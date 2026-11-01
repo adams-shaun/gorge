@@ -185,7 +185,7 @@ func walk(l *events.Log, cfg rules.Config, n int, visit func(e *rules.Engine, i 
 	// rounds the original run deferred, and the ask is re-posed here so the
 	// recorded choice Intent lands on the decision it answered. A log that
 	// never asked is reconstructed through plain rules.New -- byte-identical
-	// to the run that produced it -- and advances through the R-9 fallback
+	// to the run that produced it -- and advances through the no-host fallback
 	// exactly as the original run did.
 	var e *rules.Engine
 	asked := startingPlayerAsked(l)
@@ -195,7 +195,7 @@ func walk(l *events.Log, cfg rules.Config, n int, visit func(e *rules.Engine, i 
 		e = rules.New(cfg)
 	}
 	if asked {
-		// Re-pose the recorded ask, before Advance's R-9 fallback would
+		// Re-pose the recorded ask, before Advance's no-host fallback would
 		// default it, so the recorded choice Intent lands on the decision it
 		// answered. The re-pose emits the same DecisionAsk event at the same
 		// log position the original run recorded.

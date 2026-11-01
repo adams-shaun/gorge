@@ -35,8 +35,8 @@ func kwEtbCounter(f *Face, i int, k, head, param string, has func(kind, line str
 	// rules/replacementConditionHolds read (CheckSVar + optional
 	// SVarCompare) instead of stuffing the whole field into one param:
 	// a whole-stuffed CheckSVar resolves no SVar, the gate fails
-	// closed, and those carriers' counters silently un-apply (the
-	// round-2 review's measured regression). Only these two condition
+	// closed, and those carriers' counters silently un-apply. Only
+	// these two condition
 	// params are passed through: a gate field can also carry real
 	// match params (the Myojin-family lines carry `ValidCard$ ...`
 	// here) that the replacement matcher honours, and passing those
@@ -70,7 +70,7 @@ func kwEtbCounter(f *Face, i int, k, head, param string, has func(kind, line str
 			case "ValidCard":
 				// A gate field's ValidCard$ is a real match param the
 				// replacement matcher honours -- epochrasite's
-				// `Card.Self+!wasCastFromYourHandByYou` (task castprov1)
+				// `Card.Self+!wasCastFromYourHandByYou`
 				// and the escape-counter family's `Card.Self+escaped`,
 				// all 11 raw carriers spelled `Card.Self+<preds>`. It
 				// replaces the default `Card.Self` ONLY when the gate's

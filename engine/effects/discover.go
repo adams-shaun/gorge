@@ -122,7 +122,7 @@ func effDiscover(h Host, c *Ctx, sa *cards.SA) {
 	play := discoverPlaySA(value, strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberDiscovered)), "True"), defined)
 	effPlay(h, c, play)
 	if !h.Suspended() {
-		// R-9's no-host fallback declines the optional Play.
+		// The no-host fallback declines the optional Play.
 		effDiscoverBottom(h, c, play.Sub)
 	}
 }

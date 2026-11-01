@@ -7,9 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects/params"
 )
 
-// SAFacts is the one per-ability compiled facts record (W4 steps 1 and 3 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 8). An ability has exactly one downstream slot (cards.ExtSlot) and a second
+// SAFacts is the one per-ability compiled facts record. An ability has
+// exactly one downstream slot (cards.ExtSlot) and a second
 // claim on it fails silently, so every compiled per-ability fact lives in this
 // one struct hung on the slot and nothing competes for it: the per-API typed
 // parameter structs (ChangeZone, ChangeZoneAll, Attach, DealDamage,
@@ -57,7 +56,7 @@ type SAFacts struct {
 	MayAsk uint32
 
 	// W4 step 3, the Charm/Pump/Draw compilers (charm_params.go,
-	// pump_params.go, draw_params.go): each is non-nil exactly when the
+	// The Charm/Pump/Draw compilers (charm_params.go,
 	// ability's API is one its compiler serves.
 	Charm *CharmParams
 	Pump  *PumpParams

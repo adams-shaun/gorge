@@ -4,9 +4,7 @@ import "github.com/adams-shaun/gorge/engine/state"
 
 // Chars is ONE object's characteristics as the game currently sees them: its
 // printed values after every applicable continuous effect in CR 613 layer
-// order, then layer-7d counters (rules-engine refactor spec W1d,
-// docs/design/2026-10-03-rules-engine-lasagna-design.md section
-// 5). It is the record rules' layer walk builds -- rules.Derived is an alias
+// order, then layer-7d counters. It is the record rules' layer walk builds -- rules.Derived is an alias
 // of this type -- so an effect, a filter and the layer walk read one shape
 // and cannot disagree about which characteristic a continuous effect moved.
 //

@@ -1,6 +1,4 @@
-// Package resolve is the L6 resolution kernel of the rules engine (lasagna
-// spec docs/design/2026-10-03-rules-engine-lasagna-design.md §7,
-// W3; spike results 2026-10-03-s3-spike-results.md): checkpoint at the intent
+// Package resolve is the resolution kernel of the rules engine: checkpoint at the intent
 // boundary that begins a resolution, and answer every decision posed while
 // that resolution is in progress by re-executing it from the checkpoint with
 // the recorded intents as an answer tape.
@@ -42,5 +40,5 @@
 //
 // The kernel is the only resolution path: there is no opt-out and no resume
 // machinery behind it. Park-and-continue asks are answered in place on the
-// kernel (spec §7.2).
+// kernel.
 package resolve

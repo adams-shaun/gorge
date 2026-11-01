@@ -1,6 +1,4 @@
-// Package pay is the L5 payment-planning layer of the rules engine (lasagna
-// spec docs/design/2026-10-03-rules-engine-lasagna-design.md §9,
-// W5 step E7, first slice): the planner's vocabulary -- a source's Alt
+// Package pay is the payment-planning layer of the rules engine: the planner's vocabulary -- a source's Alt
 // alternatives, the Consequence an activation carries, the lexicographic Rank
 // that orders plans, the Witness a chosen plan discloses -- and its bounded,
 // rank-aware Search over classes of interchangeable source units.
@@ -11,5 +9,5 @@
 // an Engine. The rest of the payment layer reaches the engine through
 // pay.Engine and its role interfaces -- chars.Reader (Engine.Chars), Eval
 // (Engine.Eval) and the engine-owned Session -- and never holds an
-// effects.Host (lasagna spec §9.2, which also lists what stays in rules).
+// effects.Host.
 package pay

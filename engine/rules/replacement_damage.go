@@ -35,7 +35,7 @@ func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMat
 	for _, m := range matches {
 		// CR 616.1's recheck must use the same matcher class the initial
 		// collection used: an Effect-created match's lifetime is active()'s,
-		// not its source's zone (task wildgrowth1), so re-gating it on
+		// not its source's zone, so re-gating it on
 		// ActiveZones$ here would silently drop every Effect-granted
 		// DamageDone replacement the scan just admitted (Taii Wakeen).
 		matched := false
@@ -322,7 +322,7 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 	// An Optional$ True damage replacement whose OptionalDecider$ names a
 	// frame this build does not resolve also fails closed: asking the damaged
 	// player would answer a "may" that belongs to somebody else (the
-	// Battletide Alchemist round-2 finding). An ABSENT parameter keeps the
+	// Battletide Alchemist). An ABSENT parameter keeps the
 	// historical default, where the affected player answers.
 	if strings.EqualFold(r.ParamStr(cards.PKOptional), "True") {
 		if v := strings.TrimSpace(r.ParamStr(cards.PKOptionalDecider)); v != "" && v != "You" {

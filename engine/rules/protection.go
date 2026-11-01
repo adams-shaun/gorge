@@ -1,6 +1,6 @@
 package rules
 
-// Protection (CR 702.16) — the third and last of the M2r ratchet's keyword
+// Protection (CR 702.16) — the third and last of the ratchet's keyword
 // families. This implements the classic protection cycle end to end:
 // a protected permanent cannot be targeted, blocked, or dealt damage by a
 // source it is protected from, and cannot be enchanted/equipped/fortified
@@ -177,8 +177,7 @@ func (e *Engine) hexproofBlocksTarget(id state.ObjID, targeting state.PlayerID, 
 	// (objColors -> e.Colors -> Derived; matchesSpec -> e.Derived), and a
 	// Derived build rewrites the shared chars scratch in place, so ranging the
 	// aliased list directly can change the remaining window mid-loop — and
-	// differently between an execution and its rewind re-execution, the CV-1
-	// divergence class.
+	// differently between an execution and its rewind re-execution.
 	kws := e.Keywords(id)
 	kws = append([]string(nil), kws...)
 	for _, kw := range kws {

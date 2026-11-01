@@ -191,7 +191,7 @@ func (e *Engine) legalActionsWalkWithWindow(p state.PlayerID, hyp *state.Mana, c
 }
 
 // postWalkTail is the offer walk's post-walk tail, extracted verbatim from
-// legalActionsWalkWithWindow (quiet-seat Q2, design
+// legalActionsWalkWithWindow (design
 // docs/design/2026-10-08-quiet-seat-walk-skip-design.md §3.3) so
 // the quiet serve (engine/rules/quiet_serve.go) runs the same code: the post-walk
 // filters, then pass, then concede, then the result build (the arena tail's
@@ -220,11 +220,11 @@ func (w *legalWalk) postWalkTail(out []decision.Option, walkHW int, tail optTail
 	}
 
 	// Pass is second-to-last. A client that wants to do nothing must choose
-	// it explicitly: from M2d-3 the FINAL option is "concede" (R-M3, always
+	// it explicitly: the FINAL option is "concede" (always
 	// last), and a client defaulting to the final option would concede on
 	// every single priority decision.
 	out = append(out, decision.Option{Index: len(out), Kind: "pass", Label: "Pass priority", Obj: 0})
-	// M2d-3 (R-M3): concession, last after pass. Choosing it emits the
+	// Concession, last after pass. Choosing it emits the
 	// existing PlayerLost event with Text "conceded" (CR 104.3a) -- see
 	// handlePriority. Offered on every priority decision, i.e. to every
 	// living seat: grantPriority never hands a Lost seat priority, so no

@@ -9,9 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// This file is api:Mana's parameter compiler (W4 step 3 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 8). compileMana is the ONLY reader of a mana ability's production
+// This file is api:Mana's parameter compiler. compileMana is the ONLY reader
+// of a mana ability's production
 // parameters (Produced$, Amount$, RestrictValid$, the AddsNoCounter$/
 // AddsCounters$/PersistentMana$/PersistentUntilEndOfCombat$/
 // TriggersWhenSpent$ riders, the Defined$ recipient presence): the

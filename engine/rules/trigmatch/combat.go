@@ -346,7 +346,7 @@ func AttackersDeclaredOneTargetMatches(e Board, t cards.Trigger, source state.Ob
 	return ok
 }
 
-// ExertedMatches is the trig:Exerted half of CR 702.100 (task exert1 built the
+// ExertedMatches is the trig:Exerted half of CR 702.100 (the exert ask builds the
 // election and the static's own Trigger$ rider; this is the separate "whenever
 // you exert a creature" listener a different script line carries). The event is
 // events.Exert: Obj is the permanent the controller exerted and Amount >= 0 is
@@ -556,7 +556,7 @@ func damageDefendingPlayer(e Board, ev events.Event) state.Target {
 	return state.Target{Player: ev.Player, IsPlayer: true}
 }
 
-// DamagePreventedMatches implements Mode$ DamagePreventedOnce (task dponce1):
+// DamagePreventedMatches implements Mode$ DamagePreventedOnce:
 // the trigger fires on a STORED prevention Note -- the re-entrant Note the
 // full-prevention replacement arm (engine/rules/replacement.go
 // applyNonMoveReplacements) and the ReplaceDamage/protection siblings emit

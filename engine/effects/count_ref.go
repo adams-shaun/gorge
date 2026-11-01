@@ -410,7 +410,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// creature, not the root's.
 		return parentLinkTargets(c), true
 	case refTargetsAllTargeted:
-		// AllTargeted (task alltargeted1) is Forge's UNION of every targeting
+		// AllTargeted is Forge's UNION of every targeting
 		// SA's targets down the root ability's sub-ability chain. The cast
 		// flow pre-asks the whole chain's targets before payment (CR 601.2c)
 		// and threads the union through Ctx.AllTargets at the cost-evaluation
@@ -455,7 +455,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// the source itself is kept.
 		return rememberedLKIGroup(h, c), true
 	case refTargetsTriggerRemembered:
-		// TriggerRemembered (task triggerremembered1) is Forge's name for the
+		// TriggerRemembered is Forge's name for the
 		// trigger's own RememberObjects$ capture -- the set the resolving
 		// body introspects ("return up to that many"). It is NOT the whole
 		// ctx list: rules seeds a firing trigger's ctx with Remembered =
@@ -739,7 +739,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 	case refTargetsTriggerObjectsAttackers:
 		// The attackers that passed THIS trigger line's own ValidAttackers$
 		// filter when a Mode$ AttackersDeclared(OneTarget) trigger fired
-		// (task tek1): the fire-time capture the queue point bound on the
+		// (Tek): the fire-time capture the queue point bound on the
 		// TriggerContext (TriggerAttackers), carried to resolution through
 		// the per-stack triggerContexts map like every other fire-time role.
 		// "Up to that many" in The Earth King's payout means the count of

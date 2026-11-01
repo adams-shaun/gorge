@@ -34,7 +34,7 @@ import (
 //     for VoteSubAbility$ (DBExile's ChangeZone Defined$ Remembered).
 //
 // Fixed and card ballots use the real per-voter ask path below; a host that
-// cannot answer retains the R-9 first-option fallback. Both VoteCard$ and
+// cannot answer retains the first-option fallback. Both VoteCard$ and
 // VoteSubAbility$ are genuinely read on the ballot path.
 func effVote(h Host, c *Ctx, sa *cards.SA) {
 	vp := VoteOf(sa)
@@ -44,7 +44,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		effCardVote(h, c, sa, vp, vp.Card)
 		return
 	}
-	// The PLAYER ballot (task votepb1): VotePlayer$ with no Choices$ list
+	// The PLAYER ballot: VotePlayer$ with no Choices$ list
 	// names the ballot entries as players (Mob Verdict's `VotePlayer$ Other`).
 	// Choices$ keeps its precedence -- Forge's VoteEffect reads Choices first,
 	// then VoteCard$, then VotePlayer$ -- so this fires only when the vote
@@ -122,7 +122,7 @@ func resolveVoteOutcomes(h Host, c *Ctx, vp *VoteParams, choices []string, count
 
 // askFixedVote poses one private KChoose per voter. The answer is encoded as
 // ObjID(index+1), avoiding a second answer channel. A host that cannot answer
-// takes option zero (R-9).
+// takes option zero.
 func askFixedVote(h Host, c *Ctx, sa *cards.SA, vp *VoteParams, choices []string, voters []state.PlayerID) []state.Target {
 	var picks []state.Target
 	for i := 0; i < len(voters); i++ {
@@ -294,7 +294,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, vp *VoteParams, ballot string) {
 		h.Emit(events.Event{Kind: events.Note, Player: t, Text: "votes for " + label})
 	}
 	// The card ballot's per-subject tally, for the chained AmountFromVotes$
-	// reader (task votepb1): one entry per ballot permanent, published behind
+	// reader: one entry per ballot permanent, published behind
 	// StoreVoteNum$ True -- the parameter Forge requires before it stores its
 	// VoteNum<card> SVars. Forge's StoreVoteNum branch (a card ballot has no
 	// Choices$) is authoritative on what the resolution REMEMBERS as well:

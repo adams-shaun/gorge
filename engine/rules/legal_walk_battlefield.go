@@ -14,7 +14,7 @@ import (
 )
 
 // manaSection is the walk's mana-activation section, extracted verbatim from
-// battlefieldWalk (quiet-seat Q2, design
+// battlefieldWalk (design
 // docs/design/2026-10-08-quiet-seat-walk-skip-design.md §3.3) so
 // the quiet serve (engine/rules/quiet_serve.go) can run exactly this block without
 // the walk's other sections, and the walk itself goes through the one copy.
@@ -376,7 +376,7 @@ func (w *legalWalk) battlefieldWalk() {
 						// (a mis-answered phyrexian pip, a pool that moved) re-offered
 						// forever inside one priority window: measured, the commander
 						// bench spun 20000 intents on Solphim's {1}{R/P}{R/P} ability
-						// (seed 1295, 2026-09-15) because the ability-offer path never
+						// (seed 1295) because the ability-offer path never
 						// read the map the abort wrote.
 						if e.castSuppressed(p, id) {
 							continue

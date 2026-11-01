@@ -89,7 +89,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// printed face carries a SetColor$ CDA contributes that colour.
 	var colorsSeen ColorMask
 	// The Different* distinct-set property family over a reference's objects
-	// (task diffcount1): `Remembered$DifferentCardManaCost` (Azor's Gateway,
+	// `Remembered$DifferentCardManaCost` (Azor's Gateway,
 	// Sanctum of the Sun settling X, Atemsis All-Seeing). The set is read
 	// through len, so no map ordering ever reaches an event or a view.
 	diffKind := differentPropertyKindOf(prop)
@@ -247,7 +247,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			// a repeated mode (CR 700.2d) counted each time it was chosen.
 			n += int32(len(o.ChosenModes))
 		case prop == "CardNumColors":
-			// The referenced object's colour count (task rv2b-countheads):
+			// The referenced object's colour count:
 			// Mana Drain's drain (Lurking Spinecrawler's
 			// TriggeredCard$CardNumColors, Moonveil Regent's and Mana
 			// Cannons' Targeted$CardNumColors), read off the object the ref
@@ -448,7 +448,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 // shared definedSpec -- the SAME resolver the body's own Defined$ spelling
 // goes through -- so the ref list is not a hand-maintained duplicate that
 // can miss the next sibling. The LifeTotal head is wired for those refs
-// (task rv2b-countheads: Quietus Spike's and Ebonblade Reaper's
+// (Quietus Spike's and Ebonblade Reaper's
 // TriggeredTarget$LifeTotal/HalfUp); every OTHER property on such a ref
 // still fails closed, so this arm's wider ref set cannot silently widen the
 // player count semantics. An unknown ref or an unmodelled property returns

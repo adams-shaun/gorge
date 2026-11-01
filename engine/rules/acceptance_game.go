@@ -51,9 +51,8 @@ func AcceptanceConfig(reg *cards.Registry, names []string, decks [][]*cards.Card
 		// The mulligan is NOT configurable off for the acceptance
 		// decks -- a mulligan the suite never exercises is a mulligan nobody
 		// tests. Mulligans = 1 makes the keep/mulligan and bottoming round run
-		// in every acceptance game (M2d-1), which is why the four golden chain
-		// heads moved when it landed; standalone fixture Configs never set it,
-		// so the zero value leaves them byte-identical to before (R-8.4).
+		// in every acceptance game; standalone fixture Configs never set it,
+		// so the zero value runs no such round for them.
 		Mulligans: 1}
 }
 

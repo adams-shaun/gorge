@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// pay_eval.go is package rules' side of pay.Eval (lasagna spec §9.2): the
+// pay_eval.go is package rules' side of pay.Eval: the
 // evaluations the payment layer runs with the engine as the effects.Host.
 // payEval is the Engine under another method set (a pointer conversion, no
 // allocation); each method is the engine call its caller made before it

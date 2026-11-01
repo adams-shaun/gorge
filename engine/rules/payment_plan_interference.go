@@ -320,7 +320,7 @@ func (e *Engine) paymentPlanExtraReplaced(oid state.ObjID, activator state.Playe
 // the registration's owner under the effect-match scope -- and restores that
 // matcher scratch before returning. A non-repeating registration with a tap
 // mode is never fired by that scan, so it observes nothing. Without this walk
-// the planner priced a Swamp at {B} while the tap added {B}{B} (round-5
+// the planner priced a Swamp at {B} while the tap added {B}{B} (cardfuzz
 // cardfuzz mirror seed 14886721532440673633: wrong_production and a
 // pool_after the witness did not promise).
 func (e *Engine) paymentPlanDelayedTapObserver(id state.ObjID, ev events.Event) (state.ObjID, bool) {

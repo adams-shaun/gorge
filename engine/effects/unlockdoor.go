@@ -61,7 +61,7 @@ func effUnlockDoor(h Host, c *Ctx, sa *cards.SA) {
 	lock := doorMode == unlockDoorChoice && !askUnlockDoorHalf(h, c, sa)
 	// Offer doors rather than Rooms: once a Room has been relocked, either
 	// face may be the locked one. Stable pool order and face order determine
-	// the R-9 no-host answer without depending on map iteration.
+	// the no-host answer without depending on map iteration.
 	type door struct {
 		obj  *state.Object
 		face int
@@ -109,7 +109,7 @@ func effUnlockDoor(h Host, c *Ctx, sa *cards.SA) {
 // askUnlockDoorHalf poses the printed `Mode$ LockOrUnlock` choice (CR
 // 709.5f/709.5g) to the resolving player and reports whether the UNLOCK half
 // was elected. The option order is fixed -- index 0 unlocked, index 1 locked
-// -- so the R-9 no-answer stand-in (the productive unlock half) is option 0,
+// -- so the no-answer stand-in (the productive unlock half) is option 0,
 // the same default every KChoose seat stand-in takes. A seat that elects the
 // lock half returns false; the caller reports the unimplemented half loudly.
 func askUnlockDoorHalf(h Host, c *Ctx, sa *cards.SA) bool {

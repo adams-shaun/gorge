@@ -161,7 +161,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// by the pool's parallel tallies and captured at payCast: <Type> ==
 		// "Snow" resolves from the snow tally the pool has always carried (CR
 		// 107.4h, Object.ManaSnowSpent), and <Type> == "Treasure"/"Cave"/
-		// "Desert" (task castfilter2 — Marut, Bat Colony, Cataclysmic
+		// "Desert" (Marut, Bat Colony, Cataclysmic
 		// Prospecting) resolves from Player.TypedMana's tagged units
 		// (Object.ManaTreasureSpent / ManaCaveSpent / ManaDesertSpent). An
 		// unknown <Type> — a producer type no tagging models — fails closed
@@ -178,7 +178,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	case evalCountBodyPaidChosenNumber:
 		// The Effect's SetChosenNumber$ binding (state.ContinuousEffect.ChosenNumber,
 		// threaded into Ctx by rules' replCtx for effect-created replacement
-		// bodies, task wildgrowth1: torgal_a_fine_hound / communal_brewing /
+		// bodies: torgal_a_fine_hound / communal_brewing /
 		// wildgrowth_archaic's "enters with an additional +1/+1 counter for
 		// each ..." body). Bound ONCE when the Effect was created, against the
 		// trigger's own context, so the body reads the frozen number wherever
@@ -199,7 +199,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// object's ChosenNumber, folded from the logged choice. Aether
 		// Spike's "counter unless its controller pays X, where X is the
 		// chosen number", Galvanic Discharge, Die Young -- 52 supported
-		// carriers whose amount read an unresolved zero (fuzz-cov3). A
+		// carriers whose amount read an unresolved zero. A
 		// source that never chose reads the field's zero, which is also
 		// Forge's reading of an unset chosen number.
 		if o := g.Obj(c.Source); o != nil {

@@ -1,5 +1,5 @@
 // Re-entry of a resolution body after a rules-side payment window. A
-// resolution that runs on the W3 kernel (engine/rules/resolve) never suspends: every
+// resolution that runs on the kernel (engine/rules/resolve) never suspends: every
 // ask inside it is answered in place from the intent tape. What remains of the
 // old suspend/resume machinery is the body re-entry three flows need after
 // they have settled their own window in line: a triggered ability's Cost$

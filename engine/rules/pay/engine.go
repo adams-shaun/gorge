@@ -8,7 +8,7 @@ import (
 )
 
 // Engine is everything the payment layer reads from, or asks of, the rules
-// engine (lasagna spec §9, E7). Package rules implements it on a pointer
+// engine. Package rules implements it on a pointer
 // conversion of its *Engine (rules' asPayer), so passing it allocates nothing.
 // Every state mutation still goes through Emit, which is rules' emit: the
 // payment layer never writes a state.Game field.
@@ -51,11 +51,10 @@ type Engine interface {
 	// configured set; CompiledCostOf, CostRef and ParseCostOf build on it.
 	ConfiguredCost(raw string) *CompiledCost
 	// Chars is the characteristics layer's read interface: derived
-	// characteristics and the activation gates every ability shares
-	// (lasagna spec §9.2).
+	// characteristics and the activation gates every ability shares.
 	Chars() chars.Reader
 	// Eval is the evaluation seam: everything that needs the engine as an
-	// effects.Host (lasagna spec §9.2).
+	// effects.Host.
 	Eval() Eval
 	// Session is the engine-owned payment state (the ring's fields).
 	Session() *Session
@@ -71,7 +70,7 @@ type Engine interface {
 	// Discard<N/Random> cost part's pick).
 	Rand(n int) int
 
-	// Ask is the flow seam (lasagna spec §9.2, E7 flow slice): it marks
+	// Ask is the flow seam: it marks
 	// flow as the engine's pending choice and poses d. Under the resolution
 	// kernel the answer is served from the tape and the flow's answer
 	// handler runs in place before Ask returns; otherwise d is posed and

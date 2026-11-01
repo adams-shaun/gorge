@@ -1,7 +1,7 @@
 package rules
 
-// resolve_board.go is the rules side of the W3 resolution kernel (lasagna
-// spec §7; engine/rules/resolve): the Engine cluster the kernel's state lives in,
+// resolve_board.go is the rules side of the resolution kernel
+// (engine/rules/resolve): the Engine cluster the kernel's state lives in,
 // and resolveBoard, which implements resolve.Board over the Engine itself so
 // the kernel drives the engine without holding it.
 
@@ -28,7 +28,7 @@ type engineResolveKernel struct {
 	// engines recycle it too.
 	tapeSpare Spare `clone:"reset"`
 	// tapeHeldHook and tapeHeldStats are the harness observers a restore
-	// parked while the recorded prefix re-executes (spec §7.5): the prefix
+	// parked while the recorded prefix re-executes: the prefix
 	// was already observed once. resolveBoard.Observe re-attaches them.
 	tapeHeldHook  func(p state.PlayerID, source state.ObjID, sa *cards.SA) `clone:"hook"`
 	tapeHeldStats *PaymentPlanStats                                        `clone:"hook"`
@@ -251,7 +251,7 @@ func tapePut(sp Spare) {
 // A hypothetical world's checkpoint carries an RNG splice (cp.World): the
 // re-run draws S0's own generator for exactly the draws the prefix had made
 // when the world was forked, then switches to the world's reseeded generator,
-// so nothing after the fork reads S0's true future (spec §7.3).
+// so nothing after the fork reads S0's true future.
 func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	e := (*Engine)(b)
 	s0 := cp.S0.(*Engine)
@@ -432,7 +432,7 @@ func SetTapeMissObserver(f func(class string)) func(class string) {
 
 // tapeLegacyObserver receives one class string per legacy ask that ends a
 // tape run (resolve.Stats' LegacySwitch and Aborts): the census of ask sites
-// not yet converted onto the kernel (W3 step 2). Process-wide, like
+// not yet converted onto the kernel. Process-wide, like
 // tapeMissObserver.
 var tapeLegacyObserver atomic.Pointer[func(class string)]
 

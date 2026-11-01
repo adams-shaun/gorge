@@ -333,8 +333,8 @@ var predicates = map[string]predFn{
 	"nonBlack": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !strings.Contains(ColorsOf(o), "B")
 	},
-	// IsSuspected is CR 702.157's suspected designation (task alterattr1;
-	// Nelly Borca's "goad all suspected creatures", Hot Pursuit's "all
+	// IsSuspected is CR 702.157's suspected designation (Nelly Borca's
+	// "goad all suspected creatures", Hot Pursuit's "all
 	// goaded and/or suspected creatures", the DBDebuff family's
 	// "Creature.OppCtrl+IsSuspected"). It reads the event-backed status the
 	// events.AlterAttribute fold maintains; a permanent that left the
@@ -601,7 +601,7 @@ var predicates = map[string]predFn{
 	"wasCastFromGraveyard": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return state.ObjectWasCastFromGraveyard(o)
 	},
-	// notExertedThisTurn is CR 702.100a's offer gate (task exert1): the
+	// notExertedThisTurn is CR 702.100a's offer gate: the
 	// object has NOT been exerted this turn. The event-backed read is
 	// events.Apply's Exert fold (state.Object.ExertedThisTurn). Combat
 	// Celebrant's `IsPresent$ Creature.Self+notExertedThisTurn` is the
@@ -626,7 +626,7 @@ var predicates = map[string]predFn{
 	"notTributed": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !o.Tributed
 	},
-	// enlistedThisCombat is CR 702.160's enlist marker (task enlist1): the
+	// enlistedThisCombat is CR 702.160's enlist marker: the
 	// creature enlisted another creature in the CURRENT combat. The stamp
 	// (state.Object.EnlistedTurn/EnlistedCombat, folded by events.Apply's
 	// Enlist case) is compared against the live game clock, so a later combat
@@ -1573,7 +1573,7 @@ func filterAlternatives(spec string) iter.Seq[string] {
 
 // FilterAlternatives exposes filterAlternatives to rules (the one package
 // above effects): rules-side spec rewriting (the cast-provenance qualifier
-// split, task castprov1) must split alternatives EXACTLY as the filter does,
+// split) must split alternatives EXACTLY as the filter does,
 // so the two cannot disagree about where a comma is a boundary.
 func FilterAlternatives(spec string) iter.Seq[string] { return filterAlternatives(spec) }
 

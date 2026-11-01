@@ -157,7 +157,7 @@ func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
 		Prompt: "Choose" + choice.promptText(), Options: choice.options}
 	e.choosing = chooseETBEntry
 	if in, ok := etbTapeAnswer(e, d, ev.Obj); ok {
-		// The resolution kernel's answer in hand (W3 step 4c): the entry is
+		// The resolution kernel's answer in hand: the entry is
 		// never parked. Re-emit it with the answer now, exactly as the legacy
 		// chooseETBEntry arm does, and let the interrupted code carry on from
 		// this emit -- the continuation the legacy arm hands back to the
@@ -619,7 +619,7 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 // etbTapeAnswer serves an as-enters choice from the tape. The resolving
 // spell's own entry is the last thing its resolution does; an entry an
 // effect makes mid-chain (a reanimation, a mass return, a token mint) is a
-// park-and-continue ask (W3 step 5, lasagna spec §7.2): the legacy park lets
+// park-and-continue ask: the legacy park lets
 // the moving effect keep running past the parked entry, while the kernel
 // answers it in place and the entry happens where the effect made it.
 func etbTapeAnswer(e *Engine, d *decision.Decision, obj state.ObjID) (decision.Intent, bool) {

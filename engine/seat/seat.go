@@ -27,8 +27,8 @@ type Seat interface {
 //
 // Bots answer true by default. A bot without plans pays by tapping mana by
 // hand, and a search seat whose fallback bot taps sees that tap as an answer
-// outside its candidates: az lost 89% of its counterspell windows that way
-// (2026-10-14). So every bot implements this interface, and a wrapper
+// outside its candidates: az lost 89% of its counterspell windows that way.
+// So every bot implements this interface, and a wrapper
 // forwards to what it wraps (or answers true). A bot opts out only with a
 // stated reason: its policy reads the manual option list and never a plan
 // (a manual-mana Bot, heuristic.PolicyNetBot, the searchteacher seat, the

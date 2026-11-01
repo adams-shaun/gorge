@@ -1,7 +1,7 @@
 package rules
 
 // window_tape.go puts the engine-posed resolution-time payment windows on
-// the W3 resolution kernel (lasagna spec §7.7, the suspension holders): the
+// the resolution kernel: the
 // triggered-effect Cost$ window (e.triggerCost), its mandatory component
 // walk, cumulative upkeep (e.cumulative) and echo (e.echo). Every one of
 // them asks through windowAsk. Inside a tape run the decision is posed and

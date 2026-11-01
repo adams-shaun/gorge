@@ -123,7 +123,7 @@ func (e *Engine) resolveTop() {
 		if charmHandled {
 			targets = charmFlatTargets
 		}
-		// Fix round 2 (re-review N1): the gate is `spec != ""` -- "this
+		// The gate is `spec != ""` -- "this
 		// ability declares a targeting requirement" -- not `len(targets) > 0`
 		// -- "this ability happens to have targets right now". The old form
 		// used the latter as a proxy for the former, so an ability that NEEDS
@@ -642,7 +642,7 @@ func (e *Engine) resolveTop() {
 		// not the outer Charm SA. Use the same selected declaration targetAsk
 		// used during CR 601.2c, so its targets receive the ordinary CR 608.2b
 		// legality recheck at resolution. (targetSA is hoisted above.)
-		// Fix round 2 (re-review N1), the same correction as the ability
+		// The same correction as the ability
 		// branch above, and the one that was actually reachable. Widening the
 		// departed-player release hook turned a stall into a
 		// spell that RESOLVES with no targets at all: the caster is
@@ -962,7 +962,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	// sees (candidatesFor's sc.Source): a source-reading predicate
 	// (CanEnchantEquippedBy -- Mantle of the Ancients' recheck) judges the
 	// chosen target at resolution exactly as the offer judged it at
-	// placement, Critical C2's one-definition rule. Before this, the recheck
+	// placement, the one-definition rule. Before this, the recheck
 	// built its SpecContext with source 0 and every source-reading predicate
 	// failed closed there -- a target the placement offer had just certified
 	// fizzled at resolution.
@@ -1065,7 +1065,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 		// is dropped from resolution too (CR 608.2b). The source is resolved
 		// through protectionSource so an ability fizzling here judges "the
 		// source" as its Source permanent, the same object askTarget's own
-		// filter has now been made to see (Critical C2 -- one definition).
+		// filter sees (one definition).
 		// CR 702.14 rides the same recheck: a target that GAINED shroud
 		// between placement and resolution (Lightning Greaves equipping in
 		// response) is dropped here, and a target with no other legal target
@@ -1240,7 +1240,7 @@ func (e *Engine) resolveAbilitySacrificing(source state.ObjID, controller state.
 	ctx.ActivationsThisTurn = e.activationsThisTurnFor(source, sa)
 	// The caller supplies the chosen targets -- the announcement or placement
 	// ask's answer -- so the generic ValidTgts$ pre-ask must not re-pose it
-	// for an SA that declares targets (task mvts1).
+	// for an SA that declares targets.
 	if sa != nil && effects.TargetsOf(sa).Targeted() {
 		ctx.TargetsOffered = true
 	}

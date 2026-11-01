@@ -86,7 +86,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		if prop == "PlaneswalkerType" {
 			seenPlaneswalkerTypes = make(map[string]bool)
 		}
-		// The bare wasCastFromYourHand qualifier (task castprov3, Approach of
+		// The bare wasCastFromYourHand qualifier (Approach of
 		// the Second Sun's Count$ValidStack Card.wasCastFromYourHand+Self):
 		// not a filter predicate — split out per CANDIDATE object through the
 		// Host's log read before the ordinary match (the ByYou family never
@@ -151,7 +151,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 			seenTokenNames: seenTokenNames, seenCardTypes: seenCardTypes,
 			seenCreatureTypes:     seenCreatureTypes,
 			seenPlaneswalkerTypes: seenPlaneswalkerTypes}
-		// The Different* distinct-set property family (task diffcount1):
+		// The Different* distinct-set property family:
 		// DifferentCardManaCost / DifferentCardPower / DifferentCardNames /
 		// DifferentColorPair count the DISTINCT values among the matching
 		// cards, not the cards themselves. Numeric values fold into a set
@@ -168,7 +168,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		if multi != nil {
 			// A comma-joined zone list (Count$ValidGraveyard,Exile,
 			// ValidBattlefield,Graveyard, ValidBattlefield,Command --
-			// fuzz-cov3): the single-zone scan over each named zone in turn,
+			// ValidBattlefield,Graveyard, ValidBattlefield,Command):
 			// the shared stack once. Each candidate is matched against its
 			// own zone, the ValidAll convention.
 			for _, z := range multi {

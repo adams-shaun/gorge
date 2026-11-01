@@ -142,9 +142,8 @@ func (e *Engine) castHasNextTargetStage(pc *pendingCast, o *state.Object) bool {
 // A suspension on the LAST half chains no fuse-rest frame: nothing is left to
 // run, and the generic completion is byte-identical because the asking
 // frame's own fusedTargets binding (resumeResolution) supplies the half's
-// targets and suppresses the spurious ValidTgts$ re-ask the empty tail was
-// once believed necessary for (review round 3, MINOR 2 -- the tail was
-// untested and redundant).
+// targets and suppresses the spurious ValidTgts$ re-ask the empty tail
+// would pose.
 //
 // It never writes the engine resume state itself (pinned by
 // internal/archtest's TestResumeStateOwnedOnlyByTheResolutionMachinery):

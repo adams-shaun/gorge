@@ -59,7 +59,7 @@ import (
 // Max is ChangeNum. The ask is answered in place (ResumeKind "dig", with the
 // asking target's index as ResumeTarget).
 //
-// A host that cannot answer (the fuzz/no-engine stand-in, R-9) and the
+// A host that cannot answer (the fuzz/no-engine stand-in) and the
 // no-choice path (eligible <= ChangeNum) keep the take deterministic: the
 // first ChangeNum eligible cards in zone order move, and the remainder takes
 // its second destination -- by default the bottom, ordered (asked; offered
@@ -145,7 +145,7 @@ func digGreedyTake(h Host, g *state.Game, ids []state.ObjID, changeNum int32, bu
 		if distinct {
 			// WithDifferentPowers$ True: the forced take is the greedy
 			// first card of each distinct power in window order, the same
-			// set the R-9 host would pick.
+			// set the no-host path would pick.
 			pow := strconv.Itoa(chooseCardPower(h, id))
 			if slices.Contains(powers, pow) {
 				continue
@@ -426,7 +426,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				// you may put it into your graveyard"; Nylea, Keen-Eyed): the
 				// remainder's move is the digging player's may election.
 				// Option 0 is today's behaviour (move), so the bot clamp keeps
-				// every bot game byte-identical. A host that cannot ask (R-9)
+				// every bot game byte-identical. A host that cannot ask
 				// keeps the mandatory move and emits one Note.
 				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 					Source: c.Source, ResumeKind: "dig_destzone2_optional", ResumeSA: sa,
@@ -497,7 +497,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					return
 				}
 
-				// R-9 no-host stand-in: the OFFERED order is the bottom order --
+				// No-host stand-in: the OFFERED order is the bottom order --
 				// the exact permutation botpolicy's clamp top-up answers, so the
 				// two deterministic readers cannot drift.
 				moveRestToBottom(h, g, p, ids, false)
@@ -596,7 +596,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// greedy is the deterministic forced take under the cumulative budget:
 		// walk budgetEligible in zone order and take each card only while the
 		// running sum of mana values still fits. This is the exact take the
-		// no-choice tail and the R-9 no-host fallback apply, and it is also
+		// no-choice tail and the no-host fallback apply, and it is also
 		// what decides whether a choice exists (below).
 		greedy := digGreedyTake(h, g, budgetEligible, changeNum, int(budget), hasBudget, dp.WithDifferentPowers)
 		// forcedAll says the forced greedy take consumes every budget-eligible
@@ -729,7 +729,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 
-			// Fuzz/no-engine host: the deterministic stand-in (R-9) takes the
+			// Fuzz/no-engine host: the deterministic stand-in takes the
 			// greedy affordable set -- the exact mirror of the budget-aware bot
 			// arm -- with the Note that records why the richer path did not run.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
@@ -749,7 +749,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			placePrimary()
 			continue
 		}
-		// No take decision to ask about (eligible <= ChangeNum): the M1 silent
+		// No take decision to ask about (eligible <= ChangeNum): the silent
 		// TAKE runs, but the tail may still act -- a Reveal$ window reveal, a
 		// Tapped$ Tap, a look Note ahead of an ordered-bottom ask, or a
 		// remainder move can each add an event, and a default-remainder card
@@ -800,7 +800,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 
 // digRevealOptional is RevealOptional$ True's election: the digging player
 // may reveal the window. Option 0 is Yes, so the bot clamp reveals; a host that
-// cannot ask (R-9) reveals and emits one Note. A yes emits the public reveal
+// cannot ask reveals and emits one Note. A yes emits the public reveal
 // Note naming the window (the Reveal$ True shape) and reports true.
 func digRevealOptional(h Host, c *Ctx, sa *cards.SA, p state.PlayerID, top []state.ObjID) bool {
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,

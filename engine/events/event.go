@@ -168,10 +168,10 @@ const (
 	// log lets replay re-derive the same branch. Appended
 	// here, after AbilityPush, following every prior Kind's own append-only
 	// precedent, so no earlier ordinal, hash chain or golden replay is
-	// affected (M2d-2).
+	// affected.
 	ModeChosen
 	// CmdDamage records a commander dealing combat damage to a player (CR
-	// 903.10, Task m33). Player is the damaged player, Obj the source
+	// 903.10). Player is the damaged player, Obj the source
 	// commander (whose Object ID is stable across zone moves), and Amount
 	// the damage that actually landed (prevented/replaced damage is never
 	// emitted). events.Apply folds it into that player's cumulative
@@ -422,7 +422,7 @@ const (
 	ExtraPhase
 	// CopyToken mints a battlefield token that is a copy of the CARD object
 	// Obj names (DB$ CopyPermanent: Flamerush Rider, Molten Echoes, the
-	// populate family -- task copyp1). Like MyriadCopy it only MINTS the
+	// populate family). Like MyriadCopy it only MINTS the
 	// object, in the untracked ZLibrary state AddObject leaves it in; the
 	// caller follows with a genuine MoveZone, so the copy's battlefield
 	// entry stays a ChangesZone-matchable event every "a creature enters"
@@ -437,7 +437,7 @@ const (
 	// every earlier Kind, so no earlier ordinal, hash chain or golden replay
 	// is affected.
 	CopyToken
-	// Exert records CR 702.100's exert election (task exert1): Obj is the
+	// Exert records CR 702.100's exert election: Obj is the
 	// permanent the controller exerted and Player is the controller at exert
 	// time. Amount >= 0 is the exert itself; Amount == -1 is the
 	// consumed-at-use marker engine/rules/turn.go's untap-step scan emits when it
@@ -447,7 +447,7 @@ const (
 	// own append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Exert
-	// PlanarRoll records one planar-dice roll (CR 901.3, task rollplanar1):
+	// PlanarRoll records one planar-dice roll (CR 901.3):
 	// Player is the roller, Obj the rolling source, Amount the number of
 	// dice rolled AFTER any planar-dice replacement rewrote the count, IDs
 	// the KEPT results (1-4 blank, 5 planeswalk, 6 chaos) in roll order and
@@ -554,7 +554,7 @@ const (
 	// is affected.
 	Investigate
 	// BlessingChange records a seat GAINING the city's blessing (CR
-	// 702.131d, task ascend1): Player is the seat. It is one-way -- Apply
+	// 702.131d): Player is the seat. It is one-way -- Apply
 	// sets the latch and nothing ever clears it (CR 702.131a: "for the
 	// rest of the game") -- and the grant's continuous re-check lives in
 	// the rules emitter (engine/rules/ascend.go), so Apply folds the bit plainly.
@@ -643,7 +643,7 @@ const (
 	// after every earlier Kind, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Seek
-	// Connive records one completed connive action (CR 702.59, task connive1):
+	// Connive records one completed connive action (CR 702.59):
 	// Obj is the conniving permanent, Player its controller, IDs the cards it
 	// discarded in discard order, and Amount the number of NONLAND cards
 	// among them (the +1/+1 counters that went on the conniver). It is an
@@ -655,8 +655,8 @@ const (
 	// Appended after Seek, still after every earlier Kind, so no earlier
 	// ordinal, hash chain or golden replay is affected.
 	Connive
-	// Enlist records one CR 702.160 enlist action (the `K:Enlist` keyword,
-	// task enlist1): Obj is the ATTACKING creature that enlisted (the
+	// Enlist records one CR 702.160 enlist action (the `K:Enlist` keyword):
+	// Obj is the ATTACKING creature that enlisted (the
 	// trigger's source for Mode$ Enlisted, so ValidCard$ Card.Self matches
 	// it) and IDs[0] the nonattacking creature it tapped, Player the
 	// attacker's controller. Apply folds the per-combat stamp the
@@ -1097,8 +1097,8 @@ const (
 	// Appended after SetupEntered so main's existing ordinals (and the oracle
 	// fixtures that encode SetupEntered) are unchanged.
 	DoorLock
-	// Saddle records one CR 702.171 saddle action (the `K:Saddle` keyword,
-	// task triage-478c51d1): Obj is the SADDLING creature (one of the
+	// Saddle records one CR 702.171 saddle action (the `K:Saddle` keyword):
+	// Obj is the SADDLING creature (one of the
 	// creatures the saddle cost tapped), Player its controller, and IDs[0]
 	// the Mount that creature saddled. It is the exact mirror of the Crew
 	// event above -- the tap itself is its own Tap event -- and exists so
@@ -1922,20 +1922,20 @@ var flagNames = [...]struct {
 	// the end per the table's own ordering rule.
 	{"conspired", state.FlagConspired},
 	{"teamwork_paid", state.FlagTeamworkPaid},
-	// Convoke's creature provenance (CR 702.66, task connive1): the flag is
+	// Convoke's creature provenance (CR 702.66): the flag is
 	// what Defined$ Convoked reads -- the creatures tapped to help pay for
 	// the cast ride the pay-time CastInfo's IDs. Emitted only for a face
 	// whose SVar table or abilities reference the selector (engine/rules/cast.go's
 	// faceWantsConvoked), so every unrelated convoke cast stays
 	// byte-identical. Appended at the end per the table's own ordering rule.
 	{"convoked", state.FlagConvoked},
-	// The total-mana-spent capture (task castprov1): a face whose SVar
+	// The total-mana-spent capture: a face whose SVar
 	// table reads the Count$CastTotalManaSpent head stamps its pay-time
 	// CastInfo with the flag, so the Amount folds into Object.ManaSpent
 	// instead of overwriting X. Appended at the end per the table's own
 	// ordering rule.
 	{"manaspent", state.FlagManaSpent},
-	// The SNOW-unit part of the total-mana-spent capture (task castfilter1):
+	// The SNOW-unit part of the total-mana-spent capture:
 	// a face whose SVar table reads the filtered Count$CastTotalManaSpent Snow
 	// head stamps its pay-time CastInfo with this flag too, so the Amount
 	// folds into Object.ManaSnowSpent instead of overwriting X or the
@@ -1943,7 +1943,7 @@ var flagNames = [...]struct {
 	// rule.
 	{"manasnowspent", state.FlagManaSnowSpent},
 	// The TREASURE-/CAVE-/DESERT-sourced parts of the total-mana-spent
-	// capture (task castfilter2): a face whose SVar table reads the filtered
+	// capture: a face whose SVar table reads the filtered
 	// Count$CastTotalManaSpent Treasure/Cave/Desert head stamps its pay-time
 	// CastInfo with these flags too, so each Amount folds into its own
 	// Object field instead of overwriting X, the total, or an earlier tag.
@@ -1959,7 +1959,7 @@ var flagNames = [...]struct {
 	// instead of overwriting X or an earlier tag. Appended at the end per
 	// the table's own ordering rule.
 	{"manaartifactspent", state.FlagManaArtifactSpent},
-	// The DB$ Play ReplaceGraveyard$ Exile rider (task replplay1): the Play
+	// The DB$ Play ReplaceGraveyard$ Exile rider: the Play
 	// SA's own provenance stamps its pay-time CastInfo with this flag, so
 	// spellRestZone/spellFizzleZone send the played card to exile instead
 	// of the graveyard. Appended at the end per the table's own ordering

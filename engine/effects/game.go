@@ -41,7 +41,7 @@ type restartHost interface {
 // Karn keeps exactly the non-Aura permanent cards exiled with him (his
 // ReturnFromExile sub-ability will act on that keep set in the new game). A
 // host that implements restartHost performs the restart; the chain stops here
-// (Ctx.Restarted). A host without one (a bare effects test host) keeps the R-9
+// (Ctx.Restarted). A host without one (a bare effects test host) keeps the no-host
 // degradation: the game ends as a draw (Amount 1, the GameOver draw shape).
 func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 	keep := restartKeepSet(h, c, sa)
@@ -92,8 +92,8 @@ func restartKeepSet(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 // DealDamage's -- events.Apply's ManaAdd case is a plain "+=", so an unclamped
 // negative would drop the pool below zero instead of doing nothing.
 //
-// A resolution-time host now gets the same CR 106.6 colour choice as the
-// activation path. A host without a decision channel keeps the R-9 fallback:
+// A resolution-time host gets the same CR 106.6 colour choice as the
+// activation path. A host without a decision channel keeps the no-host fallback:
 // Any becomes colourless and an unasked Combo list retains its old full-listed
 // output. A dual-producing ability such as "Add {R}{R}" is walked one symbol
 // at a time rather than split on whitespace, since Produced$ carries no spaces

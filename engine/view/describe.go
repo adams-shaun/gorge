@@ -226,7 +226,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " becomes a copy of " + obj(g, ev.IDs[0])
 	case events.Exert:
-		// CR 702.100 (task exert1): the exert itself, and the consume marker
+		// CR 702.100: the exert itself, and the consume marker
 		// the untap-step scan emits as it passes an exerted permanent -- the
 		// window that made it skip that untap closes there.
 		if ev.Amount < 0 {
@@ -234,7 +234,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " is exerted"
 	case events.Enlist:
-		// CR 702.160 (task enlist1): the enlist action record. Obj is the
+		// CR 702.160: the enlist action record. Obj is the
 		// ATTACKING creature that enlisted; IDs[0] the nonattacking creature
 		// it tapped (its own Tap event is a separate line) and Player the
 		// attacker's controller. The +X/+0 pump is a continuous effect, not
@@ -244,7 +244,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " enlists " + obj(g, ev.IDs[0])
 	case events.Crew:
-		// CR 702.122 (task crewedthisturn1): the crew action record. Obj is a
+		// CR 702.122: the crew action record. Obj is a
 		// CREWING creature and IDs[0] the Vehicle it crewed (the Tap event is
 		// a separate line). It is what the Creature.CrewedThisTurn filter
 		// reads, one line per crewing creature.
@@ -259,7 +259,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " saddles " + obj(g, ev.IDs[0])
 	case events.PlanarRoll:
-		// CR 901.3 (task rollplanar1): the roll record. The per-die faces ride
+		// CR 901.3: the roll record. The per-die faces ride
 		// the die-roll Notes rules emits beside this event; Amount > 1 names
 		// the post-replacement count (never render the face list here — the
 		// Describe-coverage fuzz carries arbitrary IDs values that are not
@@ -385,12 +385,12 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return s
 	case events.Explore:
-		// The explore record (task explore1): the revealed card is already
+		// The explore record: the revealed card is already
 		// public (the reveal Note that precedes the record), so the line
 		// names only the explorer.
 		return obj(g, ev.Obj) + " explores"
 	case events.Investigate:
-		// The investigate record (CR 701.36a, task investtrig1) is a pure
+		// The investigate record (CR 701.36a) is a pure
 		// marker: the Clue-token mint is its own TokenCreate line, so this
 		// line names only the investigating seat (Player; Obj is the source
 		// permanent, which may be 0 for a game-rule investigate).
@@ -406,7 +406,7 @@ func describe(g *state.Game, ev events.Event) string {
 		// The completed gift marker follows the gift action's own events.
 		return player(g, ev.Player) + " gives a gift"
 	case events.Clash:
-		// The completed clash marker (CR 701.31, task clash1), one per
+		// The completed clash marker (CR 701.31), one per
 		// clashing player: Player is the clashing seat, Amount 1 when that
 		// player WON the clash and 0 when they lost or tied (CR 701.31
 		// leaves a tie with no winner). The reveal and the top/bottom
@@ -435,7 +435,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return player(g, ev.Player) + " " + ev.Text + "bends"
 	case events.Exploit:
-		// The exploit record (CR 702.58a, task exploit1): Obj is the
+		// The exploit record (CR 702.58a): Obj is the
 		// exploiting creature, IDs[0] the exploited (sacrificed) one. The
 		// sacrifice's own MoveZone line already named the creature, so this
 		// line names both halves of the action the way the oracle reads.
@@ -445,8 +445,8 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return s
 	case events.Discover, events.Seek, events.Surveil, events.Scry, events.Proliferate:
-		// The discover (CR 701.57), seek (task trigdisc1), surveil
-		// (CR 701.42) and scry (CR 701.18, task scrybottom) records are pure
+		// The discover (CR 701.57), seek, surveil
+		// (CR 701.42) and scry (CR 701.18) records are pure
 		// markers: the action's own state changes (the exiles/reveals and the
 		// sought card's move, the surveil's or scry's KArrange answer) are
 		// their own lines, so these lines name only the acting seat (Player;
@@ -473,7 +473,7 @@ func describe(g *state.Game, ev events.Event) string {
 		// name, Amount the stored value.
 		return obj(g, ev.Obj) + " records " + ev.Text + " = " + itoa(int64(ev.Amount))
 	case events.Connive:
-		// The connive record (task connive1): the draws and discards are
+		// The connive record: the draws and discards are
 		// already their own lines (Draw/Discard events), so this line names
 		// only the conniving permanent.
 		return obj(g, ev.Obj) + " connives"
@@ -735,7 +735,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return player(g, ev.Player) + " chooses " + labels
 	case events.CmdDamage:
-		// Commander combat damage to a player (CR 903.10, task m33): Obj
+		// Commander combat damage to a player (CR 903.10): Obj
 		// is the source commander, Player the damaged player, Amount what
 		// actually landed. The ordinary Damage event already says "Bob
 		// takes N damage"; this line is the second clock -- the
@@ -1038,7 +1038,8 @@ func tossNoteText(g *state.Game, p state.PlayerID) string {
 }
 
 // chooserNoteText is the deterministic chain text a Config.StartChooser
-// genesis emits for its chooser Note (E3-1). It deliberately follows
+// genesis emits for its chooser Note. It deliberately follows
+
 // tossNoteText's deck-name fallback but excludes PlayerName, which is
 // display-only and must not reach the hash chain.
 func chooserNoteText(g *state.Game, p state.PlayerID) string {

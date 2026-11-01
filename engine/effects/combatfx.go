@@ -245,7 +245,7 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // tapChoices is the CardChoices$ pick: the battlefield permanents matching it
 // (seat order, then zone order), of which the controller chooses
 // ChoiceAmount$ (AnyNumber$: zero up to that many; the count is capped at the
-// eligible set). Unserved (no tape, no host) the R-9 stand-in is the
+// eligible set). Unserved (no tape, no host) the stand-in is the
 // minimum: none with AnyNumber$, else the first n in order.
 func tapChoices(h Host, c *Ctx, sa *cards.SA, p tapParams) []state.ObjID {
 	g := h.Game()
@@ -603,7 +603,7 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 		// election at resolution (Crawling Barrens, Ebony Fly, The Irencrag).
 		// Option 0 is today's behaviour (yes), so the bot clamp keeps every
 		// bot game byte-identical. OptionQuestion$ is the card's own prompt
-		// when it names one; a host that cannot ask (R-9) keeps the mandatory
+		// when it names one; a host that cannot ask keeps the mandatory
 		// animation and emits one Note.
 		prompt := strings.TrimSpace(sa.ParamStr(cards.PKOptionQuestion))
 		if prompt == "" {

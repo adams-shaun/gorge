@@ -47,7 +47,7 @@ func objectPathShuffleOwed(cz *ChangeZoneParams) bool {
 // and nothing is shuffled. With no object referent (an "up to N" target
 // ask elected zero, or a target ask still pending) there is nothing to
 // shuffle in and nothing is asked: false. The election is answered in place
-// via AskTape; a host that cannot ask takes the deterministic decline (R-9),
+// via AskTape; a host that cannot ask takes the deterministic decline,
 // the same stand-in the arrange_mayshuffle confirm uses.
 func objectPathMayShuffle(h Host, c *Ctx, sa *cards.SA, targets []state.Target) bool {
 	found := false
@@ -70,7 +70,7 @@ func objectPathMayShuffle(h Host, c *Ctx, sa *cards.SA, targets []state.Target) 
 	if ans, ok := AskTape(h, d); ok {
 		return tapeAnswerYes(ans)
 	}
-	// No-host stand-in (R-9): decline -- nothing moves, nothing shuffles.
+	// No-host stand-in: decline -- nothing moves, nothing shuffles.
 	return false
 }
 

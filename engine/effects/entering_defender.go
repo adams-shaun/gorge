@@ -172,7 +172,7 @@ func enteringControllerForAttack(h Host, c *Ctx, attack string, to state.Zone, o
 
 // chooseEnteringDefender asks controller which candidate the entering
 // creature attacks, fallback first; with fewer than two candidates, or with
-// no answer served (the R-9 stand-in), it is fallback.
+// no answer served (the no-host stand-in), it is fallback.
 func chooseEnteringDefender(h Host, c *Ctx, controller state.PlayerID, fallback enteringDefender, objects bool, noun string) enteringDefender {
 	cands := enteringDefenders(h, controller, objects)
 	if i := slices.Index(cands, fallback); i >= 0 {

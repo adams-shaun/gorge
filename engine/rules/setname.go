@@ -327,6 +327,6 @@ func (e *Engine) withNames(sc effects.SpecContext) effects.SpecContext {
 // refreshed by emit and continuousChanged, so it is current at Resolve entry.
 func (e *Engine) EffectiveNames() []effects.ObjectName { return e.renames }
 
-// SetNameBranchCounts reports refreshRenames' exit tally (E2 measurement,
-// emit-action.md §3 step 1): [reentry, epoch, inert, gate, derived, rebuild].
+// SetNameBranchCounts reports refreshRenames' exit tally:
+// [reentry, epoch, inert, gate, derived, rebuild].
 func (e *Engine) SetNameBranchCounts() [6]int { return e.renameBranchCounts }

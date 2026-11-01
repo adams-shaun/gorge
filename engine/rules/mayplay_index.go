@@ -7,7 +7,7 @@
 // UntilYourNextEndStep STPlay grant, one per sacrifice) and accumulates
 // exiled cards paid that scan twice per priority decision:
 // O(active grants x exiled cards) matcher calls each time, the growth the
-// 2026-09-28 loop-growth profile measured.
+// a loop-growth profile measured.
 //
 // The index removes the nesting for the dominant Affects shape. The bare
 // `Card.IsRemembered` spec (227 corpus files for the printed route; the

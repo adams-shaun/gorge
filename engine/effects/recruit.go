@@ -77,7 +77,7 @@ func effRecruit(h Host, c *Ctx, sa *cards.SA) {
 			break
 		}
 
-		// No host: the deterministic front-of-hand card (the R-9 stand-in),
+		// No host: the deterministic front-of-hand card (the no-host stand-in),
 		// byte-identical to botpolicy's KChoose clamp.
 		picks = append(picks, hand[0])
 	}

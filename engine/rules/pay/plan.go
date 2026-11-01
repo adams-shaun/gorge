@@ -1,6 +1,6 @@
 package pay
 
-// The payment planner's vocabulary and rank (spec 5, amended 2026-09-26):
+// The payment planner's vocabulary and rank:
 // the alternatives a mana source offers, the consequence an activation
 // carries, the lexicographic rank tuple that orders plans and the witness a
 // chosen plan discloses. Everything here is a pure function of its
@@ -102,7 +102,7 @@ func (c Consequence) Wire() *decision.PaymentConsequence {
 	return &decision.PaymentConsequence{Sacrifice: c.Sacrifice, Life: c.Life, Damage: c.Damage, NoUntap: c.NoUntap, ReturnToHand: c.ReturnToHand}
 }
 
-// Irreversible-cost weights (spec 5 key 1, as amended 2026-09-26). They are
+// Irreversible-cost weights. They are
 // Arena-calibrated: two self-sacrificed Treasures (20) are cheaper than one
 // Mana Vault that does not untap (25), which is cheaper than three Treasures
 // (30); a point of damage or life (3) is cheaper than any sacrifice. The key
@@ -190,7 +190,7 @@ type RankStep struct {
 	Consequence Consequence
 }
 
-// Rank is spec 5's lexicographic rank tuple (amended 2026-09-26);
+// Rank is the planner's lexicographic rank tuple;
 // less orders it, lower first, key by key in field order.
 type Rank struct {
 	Cost        int64 // 1. irreversible cost (0 for every normal-tier plan)

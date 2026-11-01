@@ -2,7 +2,7 @@ package rules
 
 import "github.com/adams-shaun/gorge/engine/state"
 
-// note_tally.go holds the CV-6 note-attribution tally: engine scratch that
+// note_tally.go holds the note-attribution tally: engine scratch that
 // names the card or ability behind the notes whose event carries no source
 // object (the aborted cast/activation Notes of abortCast, and the
 // default-answered ask Note of Engine.Ask). The cardval note census reads

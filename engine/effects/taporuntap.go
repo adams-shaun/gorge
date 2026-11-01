@@ -17,13 +17,13 @@ import (
 // resolving ability's controller, one per target, answered in place
 // (ResumeKind "taporuntap").
 //
-// Deterministic contract (the R-9 no-ask stand-in mirror): the offered
+// Deterministic contract (the no-host stand-in mirror): the offered
 // option list is ordered so option 0 is the state-CHANGING choice — "untap"
 // first when the target is tapped, "tap" first when it is untapped — and
 // option 1 is the no-op. A host that cannot ask and a bot that clamps
 // therefore both take option 0 and always move the permanent, never
 // silently nothing; the no-ask fallback emits no extra Note, the same
-// silent stand-in effChooseType's fallback applies (R-9). Both options are
+// silent stand-in effChooseType's fallback applies. Both options are
 // always legal (tapping a tapped permanent is a legal no-op, CR 701.21c's
 // tap action on an already-tapped permanent does nothing), so the
 // strict-supersets never-ask rule does not apply and the ask is posed

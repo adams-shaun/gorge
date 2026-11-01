@@ -38,7 +38,7 @@ import (
 //     in hand order), answered in place via AskTape. A host that cannot ask and botpolicy's KModes
 //     clamp both take the first N options (the front N cards), so the
 //     no-host stand-in and the bot answer are byte-identical by
-//     construction and no R-9 Note is owed (the Explore discipline).
+//     construction and no Note is owed (the Explore discipline).
 //   - The counters come last: one +1/+1 counter per NONLAND card discarded
 //     (CR 702.59a's "for each nonland card discarded this way"), one
 //     CounterChange carrying the whole count.

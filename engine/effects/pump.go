@@ -86,7 +86,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 					}
 				}
 			} else {
-				// No engine host (R-9): the deterministic first candidate, with
+				// No engine host: the deterministic first candidate, with
 				// the Note that records why the richer path did not run.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "chose its first keyword (no engine host to ask)"})

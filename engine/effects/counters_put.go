@@ -476,7 +476,7 @@ func putCounterEachType(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, n in
 }
 
 // putCounterOptionalDeclined poses Optional$'s yes/no election and reports
-// whether the put is declined (or has no answer, the R-9 stand-in): the
+// whether the put is declined (or has no answer, the no-host stand-in): the
 // election is posed only when the put would actually place something (at
 // least one live recipient and n > 0); with nothing legal to put on, decline
 // and accept are the same, so no ask (the Attach precedent's len(legal) == 0
@@ -839,7 +839,7 @@ func putCounterPickDistribute(h Host, c *Ctx, sa *cards.SA, total int32, kind st
 	// The no-choice fallbacks share one deterministic recipient list: the
 	// first maxCh eligible creatures in zone order -- for a forced set
 	// (minCh >= the eligible count) that IS the only legal answer, and for
-	// the fuzz/no-host run (R-9) it is the exact mirror of botpolicy's
+	// the fuzz/no-host run it is the exact mirror of botpolicy's
 	// "counter_dist" arm, so a bot-answered ask emits the same events the
 	// silent build did.
 	fallback := func() {
@@ -997,7 +997,7 @@ func objTargets(ids []state.ObjID) []state.Target {
 }
 
 // putCounterChoose runs the bare-Choices$ PutCounter pick shape (no
-// DividedAsYouChoose$ — task vow1; Promise of Loyalty's vow, mikey_mona's
+// DividedAsYouChoose$ — Promise of Loyalty's vow, mikey_mona's
 // "target player chooses a creature they control and puts two +1/+1 counters
 // on it", Haphazard Bombardment's four aim counters): the CHOOSER
 // (Chooser$, default the resolving controller) picks
@@ -1062,7 +1062,7 @@ func putCounterChooseTitled(h Host, c *Ctx, sa *cards.SA, n int32, kind string, 
 	// The no-choice fallback shares one deterministic pick list with the
 	// divided sibling: the first maxCh eligible objects in zone order -- for
 	// a forced set (minCh >= the eligible count) that IS the only legal
-	// answer, and for the fuzz/no-host run (R-9) it is the exact mirror of
+	// answer, and for the fuzz/no-host run it is the exact mirror of
 	// botpolicy's "counter_pick" arm, so a bot-answered ask emits the same
 	// events the silent build did.
 	fallback := func() {
@@ -1165,7 +1165,7 @@ func putCounterRememberOnce(h Host, c *Ctx, from int) {
 // CountersPutEffect chooseNumber(UpToMin..counterAmount)): the controller
 // picks how many of max counters to put, in [UpToMin$ (default 0), max]. No
 // ask when the range is a single value. The options run from max down, so
-// the first offer -- what the bot arm and the no-host fallback (R-9) take --
+// the first offer -- what the bot arm and the no-host fallback take --
 // is the full amount, today's behaviour.
 func putCounterUpToAmount(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, max int32, ti int) int32 {
 	lo := numText(h, c, pc.UpToMin, 0)
@@ -1283,7 +1283,7 @@ func putCounterPickApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, pic
 // is a real election (CR 701.39a's "choose"): a KChoose over the tied
 // creatures with the shared "counter_pick" decision shape, answered in place;
 // botpolicy's "counter_pick" arm takes the first option, so a
-// bot-answered game emits the same events the R-9 no-host fallback (the
+// bot-answered game emits the same events the no-host fallback (the
 // first tied creature in zone order) does. RememberCards$ True rides
 // putCounterPickApply, exactly like the bare Choices$ pick.
 func putCounterBolster(h Host, c *Ctx, sa *cards.SA, kind string) {
@@ -1337,7 +1337,7 @@ func putCounterBolster(h Host, c *Ctx, sa *cards.SA, kind string) {
 		return
 	}
 
-	// The R-9 no-host fallback: the first tied creature in zone order -- the
+	// The no-host fallback: the first tied creature in zone order -- the
 	// exact mirror of botpolicy's "counter_pick" first-option answer.
 	putCounterPickApply(h, c, sa, n, kind, cands[:1])
 }
@@ -1422,7 +1422,7 @@ func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string) {
 		return
 	}
 
-	// The no-host stand-in (R-9): the first max eligible creatures in zone
+	// The no-host stand-in: the first max eligible creatures in zone
 	// order -- the exact mirror of botpolicy's "counter_pick" arm, so a
 	// bot-answered ask emits the same placement events the silent fallback
 	// would.

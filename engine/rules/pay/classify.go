@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// classify.go holds the auto-pay planner's pure classification reads
-// (lasagna spec W5 E7): which cost and pool shapes a V1 witness admits, the
+// classify.go holds the auto-pay planner's pure classification reads:
+// which cost and pool shapes a V1 witness admits, the
 // last-resort consequence shapes, and the plan/step comparisons the cast flow
 // and the offer builder share. None reads the engine.
 

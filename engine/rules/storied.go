@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// K:Storied (CR 702.175, task storied1): "If you control three or more
+// K:Storied (CR 702.175): "If you control three or more
 // artifacts, legendaries, and/or Sagas, you have an enduring story for the
 // rest of the game."
 //

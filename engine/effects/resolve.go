@@ -181,7 +181,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		// Pose the yes/no election -- but only when the change would
 		// actually do something; with nothing to change, decline and accept
 		// are the same, so no ask (the Attach precedent's len(legal) == 0
-		// gate). No served answer ends the effect (R-9); the clamp-answered
+		// gate). No served answer ends the effect; the clamp-answered
 		// bot path answers option 0 = "yes", so a bot game stays
 		// byte-identical to the pre-ask always-change.
 		if setStateWouldChange(h, c, sa, turnUp, turnDown, unspecialize, transform) {
@@ -359,7 +359,7 @@ func setStateObjWouldChange(h Host, c *Ctx, sa *cards.SA, o *state.Object, turnU
 // mode would change. Forge's chooseCardsForEffect is optional unless
 // Mandatory$ True, and Optional$ True also lets the pick be declined. An empty
 // pool asks nothing and changes nothing; ok is false when no answer was
-// served (R-9).
+// served.
 func setStateChoose(h Host, c *Ctx, sa *cards.SA, sp *SetStateParams, optional, turnUp, turnDown, unspecialize, transform bool) ([]state.Target, bool) {
 	g := h.Game()
 	var eligible []state.ObjID

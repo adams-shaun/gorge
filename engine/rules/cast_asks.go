@@ -594,7 +594,7 @@ type exileCostBoard interface {
 // exAsk's `already` exclusion re-check distinctness per answer.
 //
 // It takes the narrow exileCostBoard slice rather than *Engine so it stays off
-// the engine's method surface (the lasagna rule: engine logic belongs in a free
+// the engine's method surface (engine logic belongs in a free
 // function over a small interface).
 func announcedExileCandidates(e exileCostBoard, pc *pendingCast, part CostPart) []state.ObjID {
 	var out []state.ObjID

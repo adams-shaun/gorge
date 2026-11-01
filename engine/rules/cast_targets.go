@@ -303,7 +303,7 @@ func (e *Engine) targetAsk() bool {
 	// A proposal whose resolved mana cost can no longer be paid, and with no
 	// untapped mana-ability source the 601.2g window could activate to enable
 	// it, can never complete. Reverse it (CR 733.1), which undoes the pushCast
-	// stack move (E2: no progress was made, so hold this card's option out of
+	// stack move (no progress was made, so hold this card's option out of
 	// the window rather than re-offering the same unpayable cast). When such a
 	// source exists, the window (asked later, in payCast) may still supply the
 	// mana, so the proposal is not yet dead -- it proceeds to the target ask
@@ -610,7 +610,7 @@ func (e *Engine) targetAsk() bool {
 	return true
 }
 
-// allTargets is Forge's AllTargeted$ union (task alltargeted1): the root
+// allTargets is Forge's AllTargeted$ union: the root
 // cast-time targets followed by every pre-asked sub-ability chain answer in
 // chain order. The cost-evaluation sites that read AllTargeted$ before
 // payment (repriceForTargets, evidenceAsk) thread this through
@@ -1483,7 +1483,7 @@ func (e *Engine) pushActivation() {
 
 // activationMintEvent returns the event that mints an activated ability's
 // stack object. It is the event the old payCast ability arm emitted, field for
-// field: a GRANTED activation (task grantcost1) mints through the SAME three
+// field: a GRANTED activation mints through the SAME three
 // events beginGrantedActivation/beginKeywordGrantedActivation mint -- the
 // delayed-shape DelayedPush for a self-grant (Counter carries the SVar name;
 // the ^uint32(0) registration id matches nothing) and GrantAbilityPush for a

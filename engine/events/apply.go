@@ -218,13 +218,13 @@ func applyKind(g *state.Game, e *Event) {
 	case Meld:
 		foldMeld(g, e)
 	case PlanarRoll:
-		// The planar-dice roll (CR 901.3, task rollplanar1) is a pure marker:
+		// The planar-dice roll (CR 901.3) is a pure marker:
 		// no plane deck exists in this build, so a roll folds no state — the
 		// logged event is the record (Amount the post-replacement count, IDs
 		// the kept results, Counter the ignored count the replacement wrote)
 		// and replay re-derives the same rolls from the seeded rng.
 	case Explore:
-		// The explore record (CR 701.35a, task explore1) is a pure marker,
+		// The explore record (CR 701.35a) is a pure marker,
 		// exactly like PlanarRoll: the explore's own state changes (the
 		// revealed card's move, the +1/+1 counter on the explorer) are their
 		// own MoveZone/CounterChange events that preceded this one, and the
@@ -232,7 +232,7 @@ func applyKind(g *state.Game, e *Event) {
 		// controller, IDs[0] the revealed card, Amount 1 = land (went to
 		// hand) / 0 = nonland (counter put; card back on top or graveyard).
 	case Investigate:
-		// The investigate record (CR 701.36a, task investtrig1) is a pure
+		// The investigate record (CR 701.36a) is a pure
 		// marker, exactly like Explore: the investigate's own state change
 		// (the Clue token mint) is its own TokenCreate event that preceded
 		// this one, and the record is what trig:Investigated matches. Player
@@ -277,7 +277,7 @@ func applyKind(g *state.Game, e *Event) {
 	case Crew:
 		foldCrew(g, e)
 	case Saddle:
-		// The saddle record (CR 702.171, task triage-478c51d1) is a pure
+		// The saddle record (CR 702.171) is a pure
 		// marker, exactly like Connive: the tap itself is its own Tap event,
 		// and the designation rides the AlterAttribute "Saddled" event whose
 		// fold stamps Object.SaddledTurn. Obj the saddling creature, Player
@@ -287,7 +287,7 @@ func applyKind(g *state.Game, e *Event) {
 		// per-turn list the Crew fold keeps (see foldCrew).
 		foldCrew(g, e)
 	case Connive:
-		// The connive record (CR 702.59, task connive1) is a pure marker,
+		// The connive record (CR 702.59) is a pure marker,
 		// exactly like Explore: the connive's own state changes (the draws,
 		// the discards, the +1/+1 counters) are their own events that
 		// preceded this one, and the record is what trig:Connives matches.

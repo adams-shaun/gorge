@@ -45,7 +45,7 @@ func init() {
 // The ask is the "choice" KChoose transport (ChooseCard/ChoosePlayer/
 // ChangeTargets' shared seam), with the ask's ResumeTarget carrying the
 // asking attacker's index in the deterministic Defined$ walk; each attacker's
-// ask is answered in place via AskTape. The R-9 no-host stand-in
+// ask is answered in place via AskTape. The no-host stand-in
 // keeps the original defender and records one Note — never a guessed
 // defender. An attacker whose only candidate defender is the one it already
 // attacks asks nothing: the decision's every answer is the same no-op, so a

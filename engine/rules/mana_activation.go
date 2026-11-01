@@ -916,7 +916,7 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 	chosen := pay.ChosenProducedColour(e.G, source)
 	for i, ma := range abilities {
 		// An explicit multi-colour "Produced$ Combo <colours>" ability is
-		// flattened into one option per colour (task fb-20260917T232800Z):
+		// flattened into one option per colour:
 		// the player asked for per-colour pip bubbles, not the prose "Add B
 		// or R" plus a second stage-2 colour ask. Each flattened option
 		// carries the ability's own index, so the answer resolves that
@@ -1513,7 +1513,7 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	// whenever one exists -- a caller that cannot ask (interactive == false:
 	// the attack-cost tap window and the direct-resolve tests) still has to
 	// pay the discard and exile parts. Only the sacrifice and tap ASKS are
-	// gated: such a caller keeps the R-9 deterministic first-eligible set
+	// gated: such a caller keeps the deterministic first-eligible set
 	// manaSacrifices/manaTapsPicked picked and skips straight past those
 	// parts.
 	// Announced SubCounter parts need the X ask (and a filtered part its
@@ -1653,8 +1653,8 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 	// ColorIdentity siblings apply): it resolves directly. Measured on the
 	// corpus, no raw script carries "Produced$ Combo <one letter>"; the only
 	// live carriers are the flattened stage-1 answers, whose ability arrives
-	// with its Produced$ already rewritten to the chosen colour (task
-	// fb-20260917T232800Z), so the shortcut skips the otherwise-posed
+	// with its Produced$ already rewritten to the chosen colour,
+	// so the shortcut skips the otherwise-posed
 	// one-option stage-2 ask.
 	if colours, ok := effects.ComboColours(produced); ok {
 		if len(colours) == 1 {
@@ -2133,7 +2133,7 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 // answerManaActivation completes a multi-ability choice and returns whether
 // it came from the cast-time mana window. A flattened combo choice (the
 // stage-1 wheel offered one option per colour of an explicit "Produced$ Combo
-// <colours>" ability, task fb-20260917T232800Z) resolves the ability with its
+// <colours>" ability) resolves the ability with its
 // Produced$ rewritten to the chosen colour: the cost is paid exactly once by
 // resolveManaAbility and the stage-2 colour ask never opens, because
 // resolveManaEffect sees a single fixed colour. The rewrite guards on the

@@ -7,9 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// host_roles.go splits effects.Host into role interfaces (rules-engine
-// refactor spec W1d, docs/design/2026-10-03-rules-engine-lasagna-
-// design.md section 5). Host stays the union of every role, so the change is
+// host_roles.go splits effects.Host into role interfaces. Host stays the union of every role, so the change is
 // incremental: an effect body still receives a Host, while a new helper takes
 // the narrowest role it uses, so its signature says what it touches.
 // internal/codeshape ratchets the union's size and the largest role's.
@@ -301,7 +299,7 @@ type HostRestrictions interface {
 	// cost-driven Sac-cost walks pass true, the effect-driven paths (this
 	// package's callers) false, so a static's ForCost$/ValidCause$ scoping can
 	// read the split. The rules-side cost walks call the engine's cause-aware
-	// sacrificeBlockedForCost instead (task cantsac1), which carries the
+	// sacrificeBlockedForCost instead, which carries the
 	// pending cast/activation so a cost-path ValidCause$ can be evaluated.
 	// Implemented by rules.Engine (engine/rules/layers.go); the
 	// effects test double reports false (no engine to consult).
@@ -471,7 +469,7 @@ type HostCastLedger interface {
 	// Derived from the event log like SpellsCastThisTurnMatching.
 	SpellsCastThisTurnMatchingExcluding(you state.PlayerID, spec string, exclude state.ObjID, tc TriggerContext) int
 	// EachSpellCastThisTurnMatching is the ARGUMENTED !CastSaSource forms'
-	// engine side (task castprov2): the object ids of the spells put on the
+	// engine side: the object ids of the spells put on the
 	// stack this turn matching spec (with the same You*-qualifier scoping
 	// and the same single-object exclusion as
 	// SpellsCastThisTurnMatchingExcluding), in reverse log order (newest
@@ -515,7 +513,7 @@ type HostCastLedger interface {
 	CostMovesInWindow(obj state.ObjID, k events.CostMoveKind) []state.ObjID
 	// WasCastFromHand reports whether card obj's LATEST cast came from a
 	// hand — ANY caster's hand — the bare wasCastFromYourHand filter family's
-	// backing (task castprov3: the "from anywhere other than your hand"
+	// backing (the "from anywhere other than your hand"
 	// carriers whose scripts spell the predicate without the ByYou suffix —
 	// Vega the Watcher's trigger, Otterball Antics' ConditionPresent$ gate,
 	// See the Truth's Count$ branch head, Approach of the Second Sun's
@@ -542,7 +540,7 @@ type HostCastLedger interface {
 	WasCastFromExile(obj state.ObjID) bool
 	// WasCast reports whether card obj is a CAST SPELL in the Forge
 	// Card.wasCast() sense (castFrom != null) -- the third conjunct of the
-	// Count$IfCastInOwnMainPhase branch head (task ifcastmain1). A card
+	// Count$IfCastInOwnMainPhase branch head. A card
 	// moved to the stack as part of casting is cast; a copy (IsCopy) is
 	// never cast; a permanent cheated into play reads false. Unlike the
 	// hand-provenance reads, an announced-but-not-yet-pushed cast IS cast:
@@ -746,11 +744,11 @@ type HostAsk interface {
 	// (rules' Engine.Ask is what runs the resume continuation). false means
 	// the host cannot ask now — an effects-package test double, or a
 	// rules-internal context with no engine to drive — and the calling
-	// effect falls back to its deterministic stand-in (R-9). M2d-2.
+	// effect falls back to its deterministic no-host stand-in.
 	Ask(d *decision.Decision) bool
 	// TypeChoices returns the owner-scoped CREATURE-type option list a
 	// ChooseType ask offers its chooser for an absent Type$ or Type$ Creature
-	// (task ct1) — the SAME list the cast-time "as this enters" type ask
+	// — the SAME list the cast-time "as this enters" type ask
 	// builds (rules/etbOptions' "type" arm), so the two asks and the no-ask
 	// fallback can never disagree about what a creature-type choice ranges
 	// over. validTypes/invalidTypes carry the SA's ValidTypes$/InvalidTypes$

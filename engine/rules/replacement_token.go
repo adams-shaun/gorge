@@ -343,7 +343,7 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 
 // tokenElectionAsk poses a CreateToken replacement election (the chosen-copy
 // and the plain Optional$ shapes). Under the resolution kernel the election
-// is answered in place (W3 step 5): the settled plan mints at the point of
+// is answered in place: the settled plan mints at the point of
 // the creation.
 func (e *Engine) tokenElectionAsk(d *decision.Decision, st *tokenChoiceState) {
 	if e.pending == nil && (e.resolvingObj != 0 || e.applyingReplacement) {
@@ -765,7 +765,7 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, mint 
 			if tok == nil {
 				return false
 			}
-			// The provenance qualifier split applies here too (task castprov1):
+			// The provenance qualifier split applies here too:
 			// a would-be TOKEN was never cast at all, so an alternative carrying
 			// the qualifier is dropped for it.
 			spec, ok := e.castProvenanceAdmits(v, tok.ID, e.controllerOf(m.id))

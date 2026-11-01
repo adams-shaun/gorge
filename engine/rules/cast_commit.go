@@ -496,7 +496,7 @@ func (e *Engine) payCast() {
 	mana := e.castPaymentMana(pc)
 	paid, spentMana, spentSnow, spentTyped := e.payManaCastSpent(pc, mana)
 	if !paid {
-		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
+		// This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
 		// than the shortfall needs, so the cast aborts with no state change
 		// and priority re-offers it. Declining is a legal, conforming answer --
@@ -726,7 +726,7 @@ func (e *Engine) payCast() {
 	if noCounter {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagNoCounter)
 	}
-	// DB$ Play's ReplaceGraveyard$ Exile rider (task replplay1): the played
+	// DB$ Play's ReplaceGraveyard$ Exile rider: the played
 	// spell's provenance — "if that spell would be put into your graveyard
 	// this turn, exile it instead" — rides the same pay-time CastInfo every
 	// other mode flag uses. A free Play cast today satisfies neither the X
@@ -819,7 +819,7 @@ func (e *Engine) payCast() {
 		sqFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagSquadPaid)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.squadTimes, Counter: sqFlags})
 	}
-	// Converge (CR 107.4f-family, task converge1): the distinct-colour spend
+	// Converge (CR 107.4f-family): the distinct-colour spend
 	// count rides its own TRAILING pay-time CastInfo -- the flag routes the
 	// Amount into Object.ConvergeColours (events.Apply's CastInfo case), so
 	// this event never clobbers the X or replicate count an earlier event in
@@ -834,7 +834,7 @@ func (e *Engine) payCast() {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagConverged)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.converge, Counter: flags})
 	}
-	// Multikicker (CR 702.43, task multikicker1): the times-kicked count
+	// Multikicker (CR 702.43): the times-kicked count
 	// rides its own TRAILING pay-time CastInfo -- the flag routes the Amount
 	// into Object.TimesKicked (events.Apply's CastInfo case), so this event
 	// never clobbers the X a main CastInfo carried (Comet Storm pairs {X}
@@ -867,7 +867,7 @@ func (e *Engine) payCast() {
 	for _, ev := range paidTapCastInfo(pc, flags) {
 		e.emit(ev)
 	}
-	// Convoke (CR 702.66, task connive1): the creatures the caster tapped to
+	// Convoke (CR 702.66): the creatures the caster tapped to
 	// help pay for the cast ride their own TRAILING pay-time CastInfo's IDs
 	// -- the flag (NOT ORed into the accumulating flags, the Conspired
 	// pattern) routes the IDs into Object.Convoked (events.Apply folds it
@@ -911,7 +911,7 @@ func (e *Engine) payCast() {
 		akFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagAddsKeywords)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: int32(len(pc.addsKeywordGrants)), Counter: akFlags, Text: events.ManaAddsKeywordGrantsText(pc.addsKeywordGrants)})
 	}
-	// Cast-spend (task castprov1): the TOTAL mana actually spent to cast the
+	// Cast-spend: the TOTAL mana actually spent to cast the
 	// spell rides its own TRAILING pay-time CastInfo -- the flag routes the
 	// Amount into Object.ManaSpent (events.Apply's CastInfo case), so this
 	// event never clobbers the X an earlier event in this block carried, and
@@ -924,7 +924,7 @@ func (e *Engine) payCast() {
 	if pc.manaSpentOn {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSpent)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpent, Counter: flags})
-		// The SNOW-unit part of that same spend (task castfilter1) rides its
+		// The SNOW-unit part of that same spend rides its
 		// own trailing CastInfo: the flag routes the Amount into
 		// Object.ManaSnowSpent, so it never clobbers the unfiltered total the
 		// event just set (the converge/multikick two-event split, applied one
@@ -934,7 +934,7 @@ func (e *Engine) payCast() {
 		// Snow carriers without a second gate.
 		snowFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSnowSpent)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpentSnow, Counter: snowFlags})
-		// The TYPED parts of that same spend (task castfilter2) ride their own
+		// The TYPED parts of that same spend ride their own
 		// trailing CastInfos, one per tag, each accumulating the earlier
 		// flags -- the same split, applied twice further. Emitted
 		// unconditionally alongside the total -- a cast that spent no mana of
@@ -1042,7 +1042,7 @@ func (e *Engine) payCast() {
 	if castEv.Kind == events.PutOnStack {
 		e.fireManaSpentTriggers(castEv, castLKI)
 	}
-	// Cascade (CR 702.85, task cascade1): one cast trigger per Cascade
+	// Cascade (CR 702.85): one cast trigger per Cascade
 	// instance, queued AFTER the ordinary cast triggers (deterministic
 	// append; the drain's APNAP ordering places them). The queue emits
 	// nothing and asks nothing, so no game without a cascade carrier

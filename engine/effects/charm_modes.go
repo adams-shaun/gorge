@@ -50,7 +50,7 @@ func modePawprint(sub *cards.SA) (int, bool) {
 }
 
 // charmUniqueBounds mirrors rules' targetBounds for the single-target check:
-// absent TargetMin$/TargetMax$ mean 1..1 (the M1 single-target contract).
+// absent TargetMin$/TargetMax$ mean 1..1 (the single-target contract).
 // Anything a caller set explicitly beyond 1..1 keeps the mode out of the
 // combined ask.
 func charmUniqueBounds(sa *cards.SA) (min, max int) {

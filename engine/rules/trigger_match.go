@@ -474,7 +474,7 @@ type combatFires struct {
 // so the entries citing it now explain only PlayerTurn$.
 var actionTriggerModes = map[string]bool{
 	// Clashed joins them for the same reason: it is an event mode registered
-	// with its own marker Kind (events.Clash, task clash1), so the
+	// with its own marker Kind (events.Clash), so the
 	// trigger-level parameters Forge scopes to every event mode --
 	// PlayerTurn$, ActivationLimit$, and an unevaluable CheckDefinedPlayer$
 	// predicate failing closed -- apply from day one. Its own ValidPlayer$ /
@@ -562,7 +562,7 @@ var actionTriggerModes = map[string]bool{
 	// once-per-turn latch trigmatch.lifeLostMatches implements without the map.
 	"LifeGained": true,
 	// Discover and SeekAll join them: both are event modes registered with
-	// their own marker Kinds (events.Discover/events.Seek, task trigdisc1)
+	// their own marker Kinds (events.Discover/events.Seek)
 	// whose corpus carriers carry the trigger-level parameters Forge scopes
 	// to every event mode -- Curator of Sun's Creation's ActivationLimit$ 1
 	// on its Discover line ("This ability triggers only once each turn")
@@ -804,9 +804,9 @@ func resolvedLimitValue(t cards.Trigger) (int, bool) {
 // ResolvedLimit$ gate. Callers MUST have verified that the trigger line being
 // resolved itself carries ResolvedLimit$ (resolvedLimitValue on the trigger
 // findTriggerForAbility returned for the resolving ability) -- a mixed-line
-// source's OTHER trigger lines must never consume this line's limit (the
-// round-2 defect: sourceHasResolvedLimit potted any line of the source and
-// killed Cosmic Crucible's copy trigger every turn its mandatory Main1 mana
+// source's OTHER trigger lines must never consume this line's limit (a
+// sourceHasResolvedLimit that counted any line of the source would kill
+// Cosmic Crucible's copy trigger every turn its mandatory Main1 mana
 // trigger resolved). The count self-resets when the turn changes, exactly as
 // triggerTurnFires does, so no reset hook is needed.
 func (e *Engine) noteTriggerResolved(source state.ObjID) {
@@ -1001,7 +1001,7 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 	if ev.Kind == events.DungeonRoom {
 		e.checkDungeonRoomTriggers(*ev)
 	}
-	// Exert's Trigger$ rider (task exert1, CR 702.100a): the static's named
+	// Exert's Trigger$ rider (CR 702.100a): the static's named
 	// SVar body queues off the Exert event itself, with Source = the
 	// exerted permanent. The Amount -1 consume marker fires nothing: it is
 	// the untap-step scan's own bookkeeping fold.
@@ -2506,7 +2506,7 @@ func (e *Engine) closeZoneBatch() {
 // object the triggering event was actually about (the card that changed
 // zones, was cast, or is being targeted), or -- for an event with no object
 // of its own, such as a step change, or a player-only Damage event -- the
-// trigger's own source. Most of the eight M1 modes' Execute$ abilities in
+// trigger's own source. Most of the base modes' Execute$ abilities in
 // the acceptance deck don't read Remembered at all (they use Defined$
 // Self/You), so this is deliberately one simple, general rule rather than a
 // mode-specific one -- except DeclareAttackers, which carries every attacker
@@ -2541,8 +2541,8 @@ func (e *Engine) closeZoneBatch() {
 // attacker that instance was queued for, falling back to Remembered -- every
 // declared attacker plus the defending player -- only when the role is absent
 // (a delayed registration, or the AttackersDeclared batch family).
-// On top of FL-48 (task 16),
-// trigmatch.AttacksMatches honours Alone$ True, so the trigger now fires only when
+// On top of that,
+// trigmatch.AttacksMatches honours Alone$ True, so the trigger fires only when
 // exactly one attacker is declared and pumps that single attacker -- which is
 // the measured cause of the four-seat chain-head move 81a8a100641b5442's
 // successor (see commit 75be2a3's merge note); before FL-48, Remembered listed
@@ -2653,7 +2653,7 @@ func (e *Engine) resolvingCaptured(o *state.Object) []state.Target {
 // checks that condition on whatever event happens to be emitted when the
 // state first matches, so the event's object is incidental. Capturing it made
 // the ability's Remembered (and its TriggerPush IDs) depend on which event
-// ran the check: measured (round-10 paymirror random4 seed 12468 seq 7211),
+// ran the check: measured (paymirror random4 seed 12468 seq 7211),
 // Veiled Crocodile's "when a player has no cards in hand" remembered the
 // Island its controller tapped inside a spell's CR 601.2g payment window, but
 // itself when the same Island was tapped at priority before the cast.
@@ -2712,7 +2712,7 @@ func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source s
 }
 
 // attackersDeclaredCapture binds the fire-time matched-attacker capture on an
-// AttackersDeclared(OneTarget) trigger's context (task tek1): the attackers
+// AttackersDeclared(OneTarget) trigger's context: the attackers
 // that passed THIS line's own ValidAttackers$ filter, read off the shared
 // trigmatch walk the match itself ran (AttackersDeclaredMatchedAttackers), so
 // the capture can never name an attacker the boolean match did not admit and
@@ -2721,7 +2721,7 @@ func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source s
 // (The Earth King's "up to that many basic land cards", where "that many" is
 // the MATCHED attackers' count, not the whole declared batch Ctx.Remembered
 // holds). A free function over trigmatch.Board -- not an Engine method -- in
-// the lasagna's free-func-over-a-narrow-interface shape. Engine scratch only:
+// the free-func-over-a-narrow-interface shape. Engine scratch only:
 // it rides the per-stack triggerContexts map (clone:"deep", removed when the
 // stack object leaves) and a replay re-derives it because pushTrigger
 // re-executes this same capture.
@@ -2764,7 +2764,7 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	if e.disableTriggersExcludes(t, source, ev) {
 		return false
 	}
-	// NotThisAbility$ True (task nta1): the event being matched must not
+	// NotThisAbility$ True: the event being matched must not
 	// have been caused by the resolution of THIS very trigger instance
 	// (Kodama of the East Tree -- the corpus's one carrier, 1 of 38000+ card
 	// files -- is the shape: its "whenever another permanent you control

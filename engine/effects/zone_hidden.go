@@ -241,7 +241,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 		// budget: walk budgetEligible in pool order and take each card only
 		// while the running sum still fits, bounded by the pick count m. With
 		// no budget every card fits and greedy is exactly the first m cards of
-		// eligible -- the take the pre-budget stand-in applied -- so the R-9
+		// eligible -- the take the pre-budget stand-in applied -- so the no-host
 		// fallback stays byte-identical there.
 		greedy := make([]state.ObjID, 0, len(budgetEligible))
 		running := 0
@@ -281,7 +281,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 					{Index: 1, Kind: "no", Label: "No", Player: chooser},
 				}}
 			// Answered in place: a decline skips this
-			// player and an acceptance enters the pick. R-9: with no answer,
+			// player and an acceptance enters the pick. No-host path: with no answer,
 			// play "may" as "do" deterministically, the same fallback the
 			// hand walk's confirmation applies.
 			if ans, ok := AskTape(h, cd); ok {
@@ -388,7 +388,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 			continue
 		}
 		unposable := askUnposable(d)
-		// R-9: a host without a decision channel cannot ask, so it takes the
+		// No-host path: a host without a decision channel cannot ask, so it takes the
 		// forced greedy take over the budget-eligible pool -- under a budget
 		// the cumulative cap decides which cards fit (effDig's exact mirror);
 		// without one greedy is the first m eligible cards, and the
@@ -399,7 +399,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 		if isEach {
 			// The structured stand-in: each group's first perType candidates, in
 			// group order -- the exact take the bot's group-aware fill
-			// re-derives. R-9 plays "you may" as "do", deterministically, per
+			// re-derives. The no-host path plays "you may" as "do", deterministically, per
 			// type, exactly as the flat stand-in plays it over the union.
 			for _, ids := range eachGroups {
 				n := eachPerType

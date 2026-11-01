@@ -145,7 +145,7 @@ func alterAttributeWouldChange(h Host, c *Ctx, sa *cards.SA, code int, activate 
 }
 
 // effAlterAttribute applies Forge's AlterAttribute effect: it flips a
-// designation attribute on each resolved target (task alterattr1). Targets
+// designation attribute on each resolved target. Targets
 // come through the ordinary Defined path, so a body with no Defined$ asks
 // its ValidTgts$ targets the way every other targeting primitive does --
 // Nelly Borca's "whenever it attacks, suspect target creature" gets its ask
@@ -200,7 +200,7 @@ func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
 			// CR 608.2d: "you may suspect it" is the controller's election at
 			// resolution. Option 0 is today's behaviour (yes), so the bot
 			// clamp keeps every bot game byte-identical; a host that cannot
-			// ask (R-9) keeps the mandatory apply and emits one Note.
+			// ask keeps the mandatory apply and emits one Note.
 			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 				Source: c.Source, ResumeKind: "alterattribute_optional", ResumeSA: sa,
 				Prompt: "Apply " + text + "?",

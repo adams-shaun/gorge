@@ -456,7 +456,7 @@ func copyDecisionInto(dst, d *decision.Decision, text *textMemo) *decision.Decis
 // every activated ability (engine/rules/legal.go: face name + ": " +
 // SpellDescription$). The engine copies the raw SpellDescription$, so Mount
 // Doom's damage ability read "Mount Doom: CARDNAME deals 1 damage to each
-// opponent." on the seat panel and the card wheel (fb-20260923T033148Z).
+// opponent." on the seat panel and the card wheel.
 // The name is the label's own prefix -- the one the engine already chose to
 // show this seat -- so the substitution reads no game state and can reveal
 // nothing the label did not. A label without a placeholder, or without the
@@ -519,7 +519,7 @@ func (p *projector) unorderedLibrary(buf []CardView, ids []state.ObjID, abilityP
 // unchanged unless a caller explicitly widens. ownLibrary admits the viewer's
 // own (or controlled) library CONTENTS into the projection
 // (own_library_list); it is true only for a real seat's Seat-mode view, so no
-// spectator mode -- Public or Omniscient -- ever lists a library (spec D12).
+// spectator mode -- Public or Omniscient -- ever lists a library.
 // omniHands projects every seat's hand, face-down cards revealed and without
 // ability costs, and anyDecision attaches d whoever it was asked of: the
 // Omniscient spectator's view.
@@ -769,8 +769,8 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 		}
 		// The library CONTENTS are the viewer's own seat only (CR 400.2),
 		// and only in a real seat's own projection (ownLibrary): a spectator
-		// mode -- Public or Omniscient -- never lists a library, preserving
-		// D12's "library order is hidden" for every spectator. unorderedLibrary
+		// mode -- Public or Omniscient -- never lists a library, keeping
+		// library order hidden from every spectator. unorderedLibrary
 		// canonicalises the order, so even the own seat learns the contents
 		// and never the secret draw order. While the CR 103.1 choice is
 		// pending, pr.hideHand suppresses it too (CR 103.5): the library is

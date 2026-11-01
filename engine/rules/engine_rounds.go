@@ -61,7 +61,7 @@ type engineRounds struct {
 	blockerRound blockerRound `clone:"share"`
 
 	// exertAskState is the declare-attackers exert election's resumable
-	// state (engine/rules/combat.go, task exert1): the deterministic offer list
+	// state (engine/rules/combat.go): the deterministic offer list
 	// (attacking creatures carrying an offerable stat:OptionalAttackCost
 	// static, in declaration option order) plus the cursor of the ask
 	// currently outstanding. Plain-value state, so Clone copies it like
@@ -78,7 +78,7 @@ type engineRounds struct {
 	bandAskState bandAsk `clone:"share"`
 
 	// enlistAskState is the declare-attackers enlist election's resumable
-	// state (engine/rules/enlist.go, task enlist1): the answered KAttackers
+	// state (engine/rules/enlist.go): the answered KAttackers
 	// declaration, the declaring player, the deterministic offer list
 	// (attacking creatures with `K:Enlist` that have at least one eligible
 	// creature to tap, in declaration option order) plus the cursor of the

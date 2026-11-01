@@ -823,7 +823,7 @@ func playerCountExtreme(h Host, g *state.Game, c *Ctx, players []state.PlayerID,
 	}
 	if _, ok := playerScalarProperty(h, g, 0, prop); ok && strings.TrimSpace(spec) == "" {
 		// A per-player zone size or tally (Highest/LowestCardsInHand,
-		// HighestCardsInGraveyard, HighestCardsDrawn -- fuzz-cov3).
+		// HighestCardsInGraveyard, HighestCardsDrawn).
 		best, seen := int32(0), false
 		for _, p := range players {
 			v, ok := playerScalarProperty(h, g, p, prop)

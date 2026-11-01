@@ -98,7 +98,7 @@ func aggregateCastSourceProperty(h Host, ids []state.ObjID, prop string) (int32,
 
 // aggregateCastProperty sums one numeric property over the matching casts'
 // objects (the ARGUMENTED !CastSaSource$<Property> aggregate forms' shared
-// read; task castprov2). The property vocabulary is the zone-count heads':
+// read). The property vocabulary is the zone-count heads':
 // CardManaCost sums the faces' converted costs, CardPower/CardToughness the
 // engine's derived (layer-aware) characteristics; any other property is
 // unresolvable (0, false) — the whole Count$ then degrades per its caller's

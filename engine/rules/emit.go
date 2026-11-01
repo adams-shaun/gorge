@@ -41,7 +41,7 @@ func deferredPushKind(k events.Kind) bool {
 }
 
 func (e *Engine) emit(ev events.Event) events.Event {
-	// E1 (emit-action.md): objects minted during this event are compared
+	// Objects minted during this event are compared
 	// against this count to raise the pool gates (the mint scan below).
 	objsBefore := len(e.G.Objs)
 	if suppressSuspectedEvent(e, ev) {
@@ -125,15 +125,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 				Text: "cannot attach: protected"})
 		}
 	}
-	// A CantPutCounter restriction swallows a counter placement outright
-	// (task cantputcounter1): the placement never happens, so neither the
+	// A CantPutCounter restriction swallows a counter placement outright:
+	// the placement never happens, so neither the
 	// event nor any AddCounter replacement of it may run. This gate was
 	// hoisted here, out of applyReplacementsDispatch, so it runs EVEN while a
 	// replacement effect's own ReplaceWith$ body is resolving
 	// (applyingReplacement): the guard that stops a replacement from
 	// re-matching its own event must not also swallow the prohibition, or a
 	// counter an "enters with N counters" body places slips past Solemnity
-	// and friends (task addcounter1/2). Looking at it before the replacement
+	// and friends. Looking at it before the replacement
 	// pass is harmless: applyReplacementsDispatch used to run it at its own
 	// top, before any match was collected.
 	//
@@ -424,7 +424,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// apply to a token's entry too (engine/rules/token_entry_replacements.go).
 		e.applyTokenEntryUpdates(tokenMintWant, absorbedEntry)
 	}
-	// E1 (emit-action.md): any object minted during this event (a token, a
+	// Any object minted during this event (a token, a
 	// named-card or permanent copy, an ability wrapper) is a card the genesis
 	// census never saw, so raise this match's pool gates on it BEFORE the
 	// refreshes below. The raise is monotone and a pure function of the log,
@@ -824,7 +824,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.checkBlessingGrants()
 		e.checkEnduringStoryGrants()
 	}
-	// E2: any genuinely state-changing event proves the game is making
+	// Any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
 	// see engine.go): a declined card's option comes back the moment the
 	// game does anything else, which is exactly when ending the current

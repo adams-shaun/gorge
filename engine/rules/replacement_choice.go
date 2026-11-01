@@ -496,7 +496,7 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 			Label: "Do not apply an optional replacement"})
 		// A single-optional competition asked of its OptionalDecider$ is the
 		// replacement's own "may", not an order among several: pose it as
-		// one (Battletide Alchemist round-2 finding).
+		// one (Battletide Alchemist).
 		if len(rc.cands) == 1 && strings.EqualFold(rc.cands[0].repl.ParamStr(cards.PKOptional), "True") {
 			label := "Apply the replacement"
 			if o := e.G.Obj(rc.cands[0].id); o != nil && o.Face() != nil && o.Face().Name != "" {
@@ -519,8 +519,8 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 	// ask already owns a resume point; pose it directly without overwriting
 	// the original continuation.
 	if e.resolvingObj != 0 || e.applyingReplacement {
-		// Under the resolution kernel the order is answered in place (W3
-		// step 5, lasagna spec §7.2): the chosen replacement applies at the
+		// Under the resolution kernel the order is answered in place:
+		// the chosen replacement applies at the
 		// point of the competing event, not after the rest of the chain.
 		if in, ok := parkTapeAnswer(e, d); ok {
 			e.handle(d, in)

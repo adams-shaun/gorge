@@ -13,8 +13,7 @@ import (
 )
 
 // OracleSnapshot is the engine-neutral observable state of an oracle
-// scenario at one checkpoint (spec 2026-10-02-xmage-compliance-oracle-design
-// §7). The XMage driver emits the same shape, so the comparator diffs the
+// scenario at one checkpoint. The XMage driver emits the same shape, so the comparator diffs the
 // two field by field. Building one never writes game state.
 type OracleSnapshot struct {
 	Checkpoint string              `json:"checkpoint"`
@@ -206,7 +205,7 @@ type OracleDecision struct {
 	// <colours>"): one multi-amount message per colour, in the set's own
 	// order, whatever the unit count — a count-1 restricted set included,
 	// which is the shape XMage's DynamicManaEffect (Produced$ Any) answers
-	// with a plain colour dialog instead (agent 20261009T041408Z cluster C2).
+	// with a plain colour dialog instead.
 	// Nil for every other ask, including a produced-Any one, so the
 	// generator's existing routing is untouched.
 	ManaColours []string `json:"mana_colours,omitempty"`

@@ -494,10 +494,7 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// ConditionPresent$ with NO ConditionDefined$: Forge's default group
 		// is the battlefield (the conditional enters-tapped land family —
 		// fast lands' Land.YouCtrl GT2, check lands' Plains.YouCtrl,Island.
-		// YouCtrl EQ0). This is the shape this resolves; it was
-		// previously removed (round 2) for changing unrelated cards through
-		// the global Resolve hook, and re-authorizing it is this task's
-		// scope. The battlefield scan, including the entering-object
+		// YouCtrl EQ0). The battlefield scan, including the entering-object
 		// exclusion, lives in conditionMetBattlefield.
 		//
 		// A BARE ConditionCompare$ (no Present, no Defined) names no count
@@ -537,8 +534,8 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 		return false, false
 	}
 	// The wasCastFromYourHandByYou / !wasCastFromYourHandByYou qualifier
-	// (task castprov2, Amped Raptor's gate) and its bare wasCastFromYourHand
-	// sibling (task castprov3, Otterball Antics' `Card.wasCast+!
+	// (Amped Raptor's gate) and its bare wasCastFromYourHand
+	// sibling (Otterball Antics' `Card.wasCast+!
 	// wasCastFromYourHand`) are not filter predicates: they are evaluated
 	// per member against the Host's log reads (castFromHandAdmitsFilter /
 	// castFromHandAnyAdmitsFilter), the same split rules' castProvenanceAdmits
@@ -783,7 +780,7 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		}
 	}
 	if defined == "Discarded" {
-		// ConditionDefined$ Discarded (task mordorparams1: Moria Scavenger's
+		// ConditionDefined$ Discarded (Moria Scavenger's
 		// "If the discarded card was a creature card, amass Orcs 1",
 		// Argentum Masticore's "When you discard a card this way, destroy
 		// ..."): Forge's group is the cards the resolving chain discarded.
@@ -896,7 +893,7 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		// The card the triggering event moved — the TriggerContext.TriggerCard
 		// role rules' triggerReferents captures for every mode that names one
 		// (ChangesZone, SpellCast, Drawn, ...). BOTH spellings enumerate the
-		// SAME group: M1 does not model LKI copies, so the LKI-copy spelling
+		// SAME group: this engine does not model LKI copies, so the LKI-copy spelling
 		// reads the live object exactly as the Defined$ TriggeredCardLKICopy
 		// resolver does (engine/effects/context.go), and gate and resolver cannot
 		// disagree. An ABSENT binding (a synthetic
@@ -1612,7 +1609,7 @@ func admitProvenanceAlternativesFilter(spec, pred string, holds bool) (string, b
 
 // castFromHandAdmitsFilter evaluates the bare wasCastFromYourHandByYou /
 // !wasCastFromYourHandByYou qualifier of a Forge filter spec against ONE
-// object through the Host's log read (task castprov2, Amped Raptor's
+// object through the Host's log read (Amped Raptor's
 // `ConditionPresent$ Card.wasCastFromYourHandByYou` gate — the effects-side
 // twin of rules' castFromHandAdmits, which runs the same split at the
 // rules-side match sites where the Engine and its log are in scope). The
@@ -1633,7 +1630,7 @@ func castFromHandAdmitsFilter(h Host, spec string, objID state.ObjID, you state.
 }
 
 // castFromHandAnyAdmitsFilter evaluates the BARE wasCastFromYourHand /
-// !wasCastFromYourHand qualifier (task castprov3 — the player-less hand
+// !wasCastFromYourHand qualifier (the player-less hand
 // provenance: the "from anywhere other than your hand" carriers whose
 // scripts omit the ByYou suffix, Otterball Antics' `ConditionPresent$
 // Card.wasCast+!wasCastFromYourHand`) against ONE object through the Host's
@@ -1723,7 +1720,7 @@ func castSaAdmitsFilter(h Host, spec string, objID state.ObjID) (string, bool) {
 
 // stripWasCastFromHandToken removes both spellings of the
 // wasCastFromYourHandByYou qualifier AND the bare wasCastFromYourHand
-// spelling (task castprov3) from every comma alternative of a spec,
+// spelling from every comma alternative of a spec,
 // text-only and polarity-agnostic: the UnknownPredicates guard must read the
 // token-STRIPPED spec (the tokens themselves are unknown to the filter —
 // that is the whole reason the split exists), while the per-member polarity

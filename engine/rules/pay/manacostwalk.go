@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The mana-ability cost election (lasagna spec §9.2, E7 flow slice 2): the
+// The mana-ability cost election: the
 // choice-bearing parts of a mana ability's cost, elected one stage at a time
 // over the session's ManaCost. Every ask goes through Engine.Ask; what follows
 // a completed election (the commit, the mana effect, the window or cast it

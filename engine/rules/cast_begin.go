@@ -874,7 +874,7 @@ func (e *Engine) effectLandPlayRefusal(p state.PlayerID, id state.ObjID, from st
 // cast's do (CR 118.9 / 601.2f). The card must still be on the stack of the
 // suspended Play resolution when this runs; a malformed answer degrades to a
 // logged no-op rather than panic. replaceGraveyard carries the Play SA's
-// ReplaceGraveyard$ Exile rider (task replplay1): true stamps the played
+// ReplaceGraveyard$ Exile rider: true stamps the played
 // spell's pay-time CastInfo with state.FlagReplaceGraveyard so the resolution
 // reader exiles it instead of the graveyard. manaConversion carries the Play
 // SA's ManaConversion$ rider (Quistis Trepe, Tinybones, the Pickpocket) onto

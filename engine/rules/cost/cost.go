@@ -736,7 +736,7 @@ func (c Cost) HasNonMana() bool {
 // the payer, but an {X} component that has not been folded into Generic, or a
 // Tap/Sac/Discard/SubCounter component, still needs cast-flow handling. Such a cost
 // is unpriceable by the mid-resolution payment API and must be DECLINED,
-// never silently priced at zero. This is the predicate I-5 routes through:
+// never silently priced at zero. This is that predicate:
 // every component ParseCost collapses into a shape payMana cannot charge --
 // an SVar-sourced X, a cast-time-chosen X, or a Tap/Sac/Discard/SubCounter part --
 // travels through the same predicate rather than a `if cost == "X"` special

@@ -118,7 +118,7 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 		}
 	}
 	if v, ok := t.Param(cards.PKActivatorThisTurnCastEach); ok {
-		// The PER-ALTERNATIVE first-cast read (task castprov2, Alania,
+		// The PER-ALTERNATIVE first-cast read (Alania,
 		// Divergent Storm — the corpus's one carrier): the trigger fires when
 		// the activator's cast is the FIRST this turn of at least ONE
 		// ValidCard$ alternative — a disjunction of firsts, so casting an
@@ -127,7 +127,7 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 		// cast INCLUDED (it is already in the log when the deferred trigger
 		// fires; EQ1 means this cast is the first).
 		//
-		// Only alternatives the CURRENT CAST MATCHES are evaluated (round-2
+		// Only alternatives the CURRENT CAST MATCHES are evaluated:
 		// review): the oracle reads "if it's the first instant ... you've cast
 		// this turn" — the firstness must attach to the spell being cast, so
 		// a second instant after instant→sorcery does NOT fire on the
@@ -209,7 +209,7 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 }
 
 // TargetShapeMatches implements the two target-shape parameters the
-// cast/activation trigger family carries (task targetsvalid1): TargetsValid$
+// cast/activation trigger family carries: TargetsValid$
 // and IsSingleTarget$. Both are read at every trigger arm the family has --
 // the SpellCast/SpellCastOrCopy/SpellCopy arm (SpellCastEval), the
 // AbilityCast/SpellAbilityCast activation arm (abilityCastMatches) and the
@@ -982,7 +982,7 @@ func spellCastLeadingPermanentToCard(alt string) string {
 
 // triggerCastAlternatives splits a Mode$ SpellCast trigger's ValidCard$ into
 // its comma alternatives and applies the trigger-side bare !CastSaSource
-// reading (task castprov2, Alania, Divergent Storm — measured: exactly 1
+// reading (Alania, Divergent Storm — measured: exactly 1
 // trigger-side line in the corpus): an alternative carrying the token names
 // "a spell whose PRINTED NAME is not the trigger SOURCE's printed name" (the
 // oracle's "other than NICKNAME"; Forge has no trigger-side CastSaSource

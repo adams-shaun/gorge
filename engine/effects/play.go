@@ -121,7 +121,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		for _, t := range DefinedSpec(h, c, defined.Raw) {
 			candidates = append(candidates, t.Obj)
 		}
-		// The trigger-capture exclusion (task castprov2, Amped Raptor's
+		// The trigger-capture exclusion (Amped Raptor's
 		// gated DigUntil → DB$ Play chain): Forge's triggering objects never
 		// sit in the shared remembered list — they are "triggering objects",
 		// a separate channel — so a Play over a REMEMBERED population reads
@@ -264,7 +264,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	// exceeds the budget can never be played, and the running sum of the
 	// plays must not exceed it either; the mechanics mirror effDig's
 	// (affordable filter, Decision.MaxSum + Option.Value on the wire). The
-	// R-9 no-host stand-in below plays one card, so the affordable filter
+	// no-host stand-in below plays one card, so the affordable filter
 	// alone bounds it. Absent the param the budget is 0 and every read is a
 	// no-op, so a non-budget Play emits byte-identically. Present but
 	// unresolvable degrades to budget 0 -- Num's documented convention.
@@ -427,7 +427,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		effPlay(h, c, sa)
 		return
 	}
-	// Fuzz/no-engine host: play the first candidate deterministically (R-9).
+	// Fuzz/no-engine host: play the first candidate deterministically.
 	// PlayDone marks the answer consumed so the field is not left half-set.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "Play chose the first candidate (no engine host to ask)"})
