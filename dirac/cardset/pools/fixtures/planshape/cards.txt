@@ -1,0 +1,8 @@
+# spells with a non-mana additional cost the autopay planner declines, for the
+# oracle's constructed lockstep (dirac/oracle/planshape_test.go)
+Abhorrent Oculus
+Fear of Exposure
+Forest
+Grizzly Bears
+Island
+Thought Scour

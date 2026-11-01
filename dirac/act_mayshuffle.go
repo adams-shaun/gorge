@@ -1,0 +1,201 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// Cold, out of line.
+
+// parentTargetOK reports whether code is in the graveyard of the player
+// named by t.ParentPlus1 (kgen's TargetsWithDefinedController$ ParentTarget:
+// "target card in target player's graveyard"). The parent slot is a player
+// target chosen earlier in the same cast/resolution entry.
+//
+//go:noinline
+func (s *State) parentTargetOK(t *kop.TargetSpec, code uint8) bool {
+	e := s.curEntry()
+	if e == nil || t.Kind != kop.TgtCard {
+		return false
+	}
+	i := int(t.ParentPlus1) - 1
+	if i < 0 || i >= kop.MaxTargets {
+		return false
+	}
+	p := e.tgt[i]
+	if p == NoTarget || p < PlayerTarget0 || p > PlayerTarget1 {
+		return false
+	}
+	if code == NoTarget || code >= PlayerTarget0 {
+		return false
+	}
+	return s.objs[code].owner() == p-PlayerTarget0
+}
+
+// execOblige runs the oblige ops (execCold7's default branch, cold). done=false
+// means the op is not one of these.
+//
+//go:noinline
+func (s *State) execOblige(k *prep, in *kop.Instr) (ok, done bool) {
+	switch in.Op {
+	case kop.OpMayShuffleMove:
+		return s.mayShuffleMove(k, in), true
+	case kop.OpIncubate:
+		s.incubate(k, in)
+		return true, true
+	}
+	if ok, done := s.execEarthbend(k, in); done { // act_earthbend.go
+		return ok, true
+	}
+	return s.execDread(k, in) // face_manifest.go
+}
+
+// askOptionsOblige builds the oblige resolution asks' options; false: not one.
+//
+//go:noinline
+func (s *State) askOptionsOblige(k *prep, d *Decision) bool {
+	switch s.res.ask {
+	case raGenMayShuffleMove:
+		d.Sub = ChGenConfirm // gorge objectPathMayShuffle yes/no
+		d.add(MakeAction(AkChoose, 0, 0, 1))
+		d.add(MakeAction(AkChoose, 0, 0, 0))
+	case raGenManifestDread:
+		// gorge's manifest_dread options: the top-two window in library order
+		d.Sub = ChGenManifestDread
+		for i := 0; i < int(s.res.peekN); i++ {
+			d.add(MakeAction(AkChoose, uint8(s.res.peek[i]), 0, uint8(i)))
+		}
+	default:
+		return s.askOptionsModalAct(k, d)
+	}
+	return true
+}
+
+// applyAskOblige applies an answer to an oblige resolution ask; false: not one.
+//
+//go:noinline
+func (s *State) applyAskOblige(k *prep, a Action) bool {
+	switch s.res.ask {
+	case raGenMayShuffleMove:
+		if a.Mode() == 1 {
+			in := &s.prog(k)[s.res.pc]
+			var refs [maxXTgt + 1]Obj
+			var legal [maxXTgt + 1]bool
+			n := s.shuffleRefs(k, &s.res.e, uint8(in.C), &refs, &legal)
+			s.doMayShuffleMove(&refs, &legal, n)
+		}
+		s.continueRes(k, 0)
+	case raGenManifestDread:
+		s.res.ask = raNone
+		chosen := Obj(a.Source())
+		other := s.res.peek[1]
+		if chosen == other {
+			other = s.res.peek[0]
+		}
+		s.dreadMove(k, chosen, other)
+		s.res.left--
+		if s.dreadAsk(k) {
+			s.continueRes(k, 0)
+		}
+	default:
+		return s.applyAskModalAct(k, a)
+	}
+	return true
+}
+
+// mayShuffleMove is OpMayShuffleMove: the player named by Obj (the effect's
+// controller; RefNone when A.N=0) may (A.N=1, gorge objectPathMayShuffle) or
+// must (A.N=0) put the legal chosen cards of target slot C on top of their
+// owners' libraries in pick order, then shuffle each distinct owner's
+// library once. A slot with no chosen card does nothing and asks nothing.
+func (s *State) mayShuffleMove(k *prep, in *kop.Instr) bool {
+	e := &s.res.e
+	slot := uint8(in.C)
+	var refs [maxXTgt + 1]Obj
+	var legal [maxXTgt + 1]bool
+	n := s.shuffleRefs(k, e, slot, &refs, &legal)
+	if n == 0 {
+		return true
+	}
+	if s.value(k, in.A) != 0 {
+		asker := s.playerRef(k, in.Obj)
+		if asker > 1 {
+			asker = e.ctrl
+		}
+		s.res.ask, s.res.askP = raGenMayShuffleMove, asker
+		return false
+	}
+	s.doMayShuffleMove(&refs, &legal, n)
+	return true
+}
+
+// shuffleRefs collects target slot's chosen object referents in target order
+// (the primary target, then the extras) and whether each is still legal to
+// move. A referent that has left the game is skipped: gorge's
+// objectPathMayShuffle/objectPathShuffleOwners see nil.
+func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt + 1]Obj, legal *[maxXTgt + 1]bool) int {
+	n := 0
+	if slot >= kop.MaxTargets {
+		return 0
+	}
+	if c := e.tgt[slot]; c != NoTarget && isObjTarget(c) && s.objs[c].zone != kop.ZoneNone {
+		refs[n] = Obj(c)
+		legal[n] = s.res.bad&(1<<slot) == 0
+		n++
+	}
+	x := s.xtOf(e)
+	for j := 0; j < int(x.n); j++ {
+		if x.slot[j] != slot {
+			continue
+		}
+		c := x.code[j]
+		if c == NoTarget || c >= PlayerTarget0 || s.objs[c].zone == kop.ZoneNone {
+			continue
+		}
+		refs[n] = Obj(c)
+		legal[n] = s.xtLegal(k, e, j)
+		n++
+	}
+	return n
+}
+
+// doMayShuffleMove performs OpMayShuffleMove's moves and shuffle: each legal
+// chosen card is detached and put on top of its owner's library (the first
+// chosen ends on top, gorge libraryOrderPlacementAt), then each distinct
+// owner's library is shuffled once in referent order (gorge
+// objectPathShuffleOwners). Cards chosen but illegal are not moved; the
+// shuffle still happens (CR 701.24c).
+func (s *State) doMayShuffleMove(refs *[maxXTgt + 1]Obj, legal *[maxXTgt + 1]bool, nr int) {
+	var moved [maxXTgt + 1]Obj
+	var movedFrom [maxXTgt + 1]kop.Zone
+	n := 0
+	for i := 0; i < nr; i++ {
+		if !legal[i] {
+			continue
+		}
+		moved[n] = refs[i]
+		n++
+	}
+	for i := 0; i < n; i++ {
+		movedFrom[i] = s.detach(moved[i])
+	}
+	if n > 0 {
+		s.libTopInOrder(moved[:n], movedFrom[:n])
+	}
+	var owners [2]uint8
+	no := 0
+	for i := 0; i < nr; i++ {
+		o := s.objs[refs[i]].owner()
+		seen := false
+		for j := 0; j < no; j++ {
+			if owners[j] == o {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			owners[no] = o
+			no++
+		}
+	}
+	for i := 0; i < no; i++ {
+		s.shuffleLib(owners[i])
+	}
+}

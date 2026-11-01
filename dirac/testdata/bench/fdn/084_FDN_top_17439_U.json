@@ -1,0 +1,71 @@
+{
+"name": "FDN_top_17439_U",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck fe2e9610f4484ec6a5e58f717d1a710a:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Aegis Turtle",
+"count": 2
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Clinquant Skymage",
+"count": 1
+},
+{
+"name": "Erudite Wizard",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 2
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Homunculus Horde",
+"count": 2
+},
+{
+"name": "Island",
+"count": 16
+},
+{
+"name": "Mocking Sprite",
+"count": 2
+},
+{
+"name": "Refute",
+"count": 2
+},
+{
+"name": "Spectral Sailor",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 3
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 3
+},
+{
+"name": "Witness Protection",
+"count": 1
+}
+]
+}

@@ -1,0 +1,42 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Abigale, Poet Laureate
+1	card	Bake into a Pie
+2	card	Biblioplex Tomekeeper
+3	card	Elite Interceptor
+4	card	Emeritus of Conflict
+5	card	Emeritus of Woe
+6	card	Encouraging Aviator
+7	card	Forest
+8	card	Gray Ogre
+9	card	Grizzly Bears
+10	card	Hill Giant
+11	card	Honorbound Page
+12	card	Infinite Coursework
+13	card	Infirmary Healer
+14	card	Island
+15	card	Kirol, History Buff
+16	card	Leech Collector
+17	card	Lightning Bolt
+18	card	Mountain
+19	card	Plains
+20	card	Pompous Battlemage
+21	card	Skycoach Conductor
+22	card	Skycoach Waypoint
+23	card	Swamp
+24	card	Tam, Observant Sequencer
+25	card	Woodwork Prodigy
+26	card	face:Abigale, Poet Laureate#1
+27	card	face:Elite Interceptor#1
+28	card	face:Emeritus of Conflict#1
+29	card	face:Emeritus of Woe#1
+30	card	face:Encouraging Aviator#1
+31	card	face:Honorbound Page#1
+32	card	face:Infirmary Healer#1
+33	card	face:Kirol, History Buff#1
+34	card	face:Leech Collector#1
+35	card	face:Pompous Battlemage#1
+36	card	face:Skycoach Conductor#1
+37	card	face:Tam, Observant Sequencer#1
+38	card	face:Woodwork Prodigy#1
+39	token	c_a_food_sac
+40	token	rg_a_heartwood

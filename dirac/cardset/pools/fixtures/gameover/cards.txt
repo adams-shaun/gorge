@@ -1,0 +1,24 @@
+# the game-over pool: Demonic Pact (ChoiceRestriction$
+# ThisGame on an upkeep trigger, DB$ LosesGame), Maze's End (DB$ WinsGame
+# behind a Gate count) and Herald of Eternal Dawn (can't lose / opponents
+# can't win) beside Gates, cheap creatures and burn
+# (dirac/oracle/gameover_test.go)
+Demonic Pact
+Herald of Eternal Dawn
+Maze's End
+Azorius Guildgate
+Orzhov Guildgate
+Boros Guildgate
+Thraben Inspector
+Elite Vanguard
+Savannah Lions
+Isamaru, Hound of Konda
+Ornithopter
+Swords to Plowshares
+Pacifism
+Shock
+Lightning Bolt
+Unsummon
+Plains
+Swamp
+Mountain

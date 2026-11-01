@@ -1,0 +1,12 @@
+{
+  "card": "Jumbo Cactuar",
+  "class": "capacity",
+  "why": "its +9999 end-of-turn pump needs more than the int8 pump field holds",
+  "repro": {
+    "pool": "std-fin",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 45,
+    "policy": "random"
+  }
+}

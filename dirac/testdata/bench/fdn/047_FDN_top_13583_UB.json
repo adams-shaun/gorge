@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_13583_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 4e81022c4b9745debf19961cf9871aa7:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 3
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 3
+},
+{
+"name": "Cephalid Inkmage",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Elementalist Adept",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Infernal Vessel",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Kiora, the Rising Tide",
+"count": 1
+},
+{
+"name": "Lightshell Duo",
+"count": 2
+},
+{
+"name": "Pilfer",
+"count": 2
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Self-Reflection",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+}
+]
+}

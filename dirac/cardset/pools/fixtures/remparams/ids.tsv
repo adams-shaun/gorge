@@ -1,0 +1,52 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Alpharael, Dreaming Acolyte
+1	card	Arid Archway
+2	card	Boomerang Basics
+3	card	Clive, Ifrit's Dominant
+4	card	Divination
+5	card	Dragon Fodder
+6	card	Elixir
+7	card	Elvish Mystic
+8	card	For the Common Good
+9	card	Forest
+10	card	Grizzly Bears
+11	card	Healer's Hawk
+12	card	Hex Magic
+13	card	Hill Giant
+14	card	Hotshot Investigators
+15	card	How to Start a Riot
+16	card	Island
+17	card	Jill, Shiva's Dominant
+18	card	Llanowar Elves
+19	card	Memnite
+20	card	Merfolk Looter
+21	card	Mountain
+22	card	Neutralize the Guards
+23	card	Nurturing Pixie
+24	card	Ornithopter
+25	card	Overwrite the Multiverse
+26	card	Plains
+27	card	Raging Goblin
+28	card	Savannah Lions
+29	card	Settle the Wreckage
+30	card	Shivan Dragon
+31	card	Shock
+32	card	Splash Portal
+33	card	Steamcore Scholar
+34	card	Stiltzkin, Moogle Merchant
+35	card	Swamp
+36	card	The Black Arrow
+37	card	Thirst for Identity
+38	card	Thirst for Knowledge
+39	card	Unyielding Gatekeeper
+40	card	Wail of War
+41	card	Wind Drake
+42	card	face:Clive, Ifrit's Dominant#1
+43	card	face:Jill, Shiva's Dominant#1
+44	card	name:Jace Token
+45	token	c_a_clue_draw
+46	token	r_1_1_goblin
+47	token	u_empower
+48	token	wu_2_2_detective
+49	card	Iridescent Tiger
+50	card	Priest of Gix

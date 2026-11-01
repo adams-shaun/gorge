@@ -1,0 +1,13 @@
+# the Craft pool (CR 702.167a): Clay-Fired Bricks and
+# Spring-Loaded Sawblades with artifact material
+# (dirac/oracle/craft_test.go)
+Clay-Fired Bricks
+Spring-Loaded Sawblades
+Ornithopter
+Savannah Lions
+Plains
+Hill Giant
+Grizzly Bears
+Shock
+Mountain
+Forest

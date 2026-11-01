@@ -1,0 +1,25 @@
+# the AbilityCast pool: exhaust and loyalty activation
+# watchers beside exhaust abilities and planeswalkers
+# (dirac/oracle/abilitycast_test.go)
+Afterburner Expert
+Rangers' Aetherhive
+Rangers' Refueler
+Ajani Unrelenting
+Way of the Paradox
+Gideon the Oathless
+Greasewrench Goblin
+Keen Buccaneer
+Skystreak Engineer
+Stampeding Scurryfoot
+Mindspring Merfolk
+Chandra, Flameshaper
+Vivien Reid
+Kaito, Cunning Infiltrator
+Liliana, Dreadhorde General
+Grizzly Bears
+Shock
+Forest
+Island
+Mountain
+Plains
+Swamp

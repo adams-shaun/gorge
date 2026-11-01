@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_35772_UR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 89df944966a04177b8a62864c6edc1db:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Dragonhawk, Fate's Tempest, 1 Hoarder's Overflow, 2 Might of the Meek, 1 Mind Spiral, 1 Otterball Antics -> 3 Island, 3 Mountain",
+"cards": [
+{
+"name": "Agate Assault",
+"count": 3
+},
+{
+"name": "Calamitous Tide",
+"count": 1
+},
+{
+"name": "Conduct Electricity",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 2
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Kindlespark Duo",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 11
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 1
+},
+{
+"name": "Playful Shove",
+"count": 1
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Stormcatch Mentor",
+"count": 3
+},
+{
+"name": "Sugar Coat",
+"count": 1
+},
+{
+"name": "Tempest Angler",
+"count": 1
+}
+]
+}

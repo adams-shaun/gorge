@@ -1,0 +1,160 @@
+package kgen
+
+import (
+	"strconv"
+	"strings"
+)
+
+// stackKwGrant lowers a Mode$ Continuous static whose AffectedZone$ is Stack
+// and which grants a keyword to the spells its controller casts (Sami,
+// Wildcat Captain's "Spells you cast have affinity for artifacts"; Quandrix's
+// cascade). gorge derives the proposed spell under a stack-zone override
+// (rules keywordmay.go stackKeywordPossibleH) and reads the granted keyword
+// at each cast-time reader (cascadeInstances), so the grant is read live,
+// per spell, off the static's controller (kernel stackKwN).
+//
+//   - Affinity is not a keyword read: gorge mints the ReduceCost static the
+//     printed expander would (statics_costscan.go affinityGrantCostStatics:
+//     generic only, Count$Valid <spec><sep>YouCtrl), so it lowers to an
+//     ordinary ReduceCost over the rewritten filter, live from the battlefield
+//     only (CR 113.6).
+//   - Cascade lowers to Kind "StackKw" (kernel StatStackKw).
+//   - Improvise and Casualty:<n> lower to Kind "StackKw" too (kernel
+//     tapPays / isImprovise / casualtyN). gorge offers a tap-paid or casualty
+//     cast only against a floating pool; the stackkw grant lockstep builds
+//     one (Iridescent Tiger's ETB mana). Casualty:X, Casualty:0 and a rider
+//     refuse.
+//   - Lifelink lowers to Kind "StackKw" too: gorge reads the keyword off the
+//     spell object when its damage is dealt (effects/damage.go HasKeyword),
+//     so the kernel reads the grant at damage time (srcKw, stackLifelinkKw).
+//     A cast-from-hand restriction refuses (no cast-time carrier).
+//   - Every other keyword (Storm, Conspire, Split second, Delve) has no
+//     printed form in the kernel and refuses by name.
+func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
+	kw := sp.str("AddKeyword")
+	if kw == "" || strings.Contains(kw, " & ") {
+		return refuse("AffectedZone Stack grant of %q", kw)
+	}
+	if st.Cond.Kind != cNone {
+		return refuse("AffectedZone Stack grant with a Condition$ / IsPresent$ / CheckSVar$ gate")
+	}
+	if ez, ok := sp.get("EffectZone"); ok && strings.TrimSpace(ez) != "Battlefield" {
+		return refuse("AffectedZone Stack grant with EffectZone %q", ez)
+	}
+	head, param, _ := strings.Cut(kw, ":")
+	switch head {
+	case "Affinity", "Cascade", "Improvise", "Casualty", "Lifelink":
+	default:
+		return refuse("AffectedZone Stack grant of %q", kw)
+	}
+	expr, castHand, err := stackAffected(aff, head == "Lifelink")
+	if err != nil {
+		return err
+	}
+	if st.F, err = lc.filter(expr); err != nil {
+		return err
+	}
+	switch head {
+	case "Affinity":
+		if castHand {
+			return refuse("AffectedZone Stack affinity grant restricted to spells cast from hand")
+		}
+		spec, _, _ := strings.Cut(param, ":")
+		if strings.TrimSpace(spec) == "" {
+			return refuse("AffectedZone Stack affinity grant without a spec")
+		}
+		sep := "." // kw_affinity.go: a dotted spec joins with "+", a dot-less one with "."
+		if strings.Contains(spec, ".") {
+			sep = "+"
+		}
+		st.Kind = "ReduceCost"
+		if st.Amount, err = lc.value("Count$Valid " + spec + sep + "YouCtrl"); err != nil {
+			return err
+		}
+		return nil
+	case "Cascade", "Improvise", "Lifelink":
+		if param != "" {
+			return refuse("AffectedZone Stack grant of %q", kw)
+		}
+		if head == "Lifelink" && castHand {
+			return refuse("AffectedZone Stack lifelink grant restricted to spells cast from hand")
+		}
+	case "Casualty":
+		if n, err := strconv.Atoi(param); err != nil || n < 1 || n > 127 || strconv.Itoa(n) != param {
+			return refuse("AffectedZone Stack grant of %q", kw)
+		}
+	}
+	st.Kind = "StackKw"
+	st.Kw = []string{kw} // the full token: build_ab.go reads the casualty threshold off it
+	if castHand {
+		st.Flags = append(st.Flags, "CastHand")
+	}
+	return nil
+}
+
+// stackAffected rewrites a stack-grant Affected$ for the cast-time read.
+// gorge judges the proposed spell, still in hand with no PutOnStack, under
+// the stack override (cast_provenance.go): wasCastByYou holds iff the caster
+// is the static's controller, bare wasCast always holds, and
+// wasCastFromYourHand[ByYou] holds iff the caster is the controller and the
+// card is in its hand. The kernel tests "the caster is the static's
+// controller" structurally (ReduceCost's stc.ctrl == p; stackKwN's caster
+// argument), so those words and YouCtrl (the controller of the proposed
+// spell IS its caster) drop out of the filter, and the cast-from-hand word
+// becomes a flag. An alternative that never names its caster (a bare wasCast
+// without YouCtrl would also match an opponent's spell) or carries any other
+// provenance word refuses. atDamage (a lifelink grant, read when the
+// resolving spell deals damage) inverts the provenance rule: the alternative
+// must name YouCtrl and carry no cast word.
+func stackAffected(aff string, atDamage bool) (string, bool, error) {
+	var alts []string
+	hand, plain := false, false
+	for _, alt := range strings.Split(aff, ",") {
+		alt = strings.TrimSpace(alt)
+		base, preds, _ := strings.Cut(alt, ".")
+		caster, cast, fromHand := false, false, false
+		var keep []string
+		if preds != "" {
+			for _, p := range strings.Split(preds, "+") {
+				switch p {
+				case "wasCastByYou":
+					caster, cast = true, true
+				case "wasCast":
+					cast = true
+				case "YouCtrl":
+					caster = true
+				case "wasCastFromYourHand", "wasCastFromYourHandByYou":
+					caster, cast, fromHand = true, true, true
+				default:
+					if strings.Contains(p, "wasCast") || strings.Contains(p, "CastSa") {
+						return "", false, refuse("AffectedZone Stack grant: Affected$ word %q", p)
+					}
+					keep = append(keep, p)
+				}
+			}
+		}
+		if atDamage {
+			// a lifelink grant is read off the resolving spell at damage
+			// time (srcKw): its controller must be named, a cast-time
+			// provenance word has no meaning there
+			if cast || !caster {
+				return "", false, refuse("AffectedZone Stack lifelink grant: Affected$ %q is not a plain YouCtrl spell filter", alt)
+			}
+		} else if !cast || !caster {
+			return "", false, refuse("AffectedZone Stack grant: Affected$ %q does not name the caster of a cast spell", alt)
+		}
+		if fromHand {
+			hand = true
+		} else {
+			plain = true
+		}
+		if len(keep) > 0 {
+			base += "." + strings.Join(keep, "+")
+		}
+		alts = append(alts, base)
+	}
+	if hand && plain {
+		return "", false, refuse("AffectedZone Stack grant: Affected$ mixes cast-from-hand and plain alternatives")
+	}
+	return strings.Join(alts, ","), hand, nil
+}

@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_01761_WG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 015bddabbf164ae5a1dc45f9058573d8:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Adventuring Gear",
+"count": 1
+},
+{
+"name": "Affectionate Indrik",
+"count": 2
+},
+{
+"name": "Apothecary Stomper",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Claws Out",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Eager Trufflesnout",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 8
+},
+{
+"name": "Giant Growth",
+"count": 2
+},
+{
+"name": "Helpful Hunter",
+"count": 3
+},
+{
+"name": "Inspiring Paladin",
+"count": 2
+},
+{
+"name": "Joust Through",
+"count": 1
+},
+{
+"name": "Llanowar Elves",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Wary Thespian",
+"count": 1
+}
+]
+}

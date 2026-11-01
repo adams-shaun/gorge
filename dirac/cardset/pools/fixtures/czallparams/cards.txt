@@ -1,0 +1,19 @@
+# the ChangeZoneAll UseAllOriginZones$ / Duration$ UntilHostLeavesPlay /
+# pool: Finale of Revelation,
+# Pinnacle Starcage and vanilla fillers (dirac/oracle/czallparams_test.go); Random Encounter (a many-object delayed return)
+Finale of Revelation
+Pinnacle Starcage
+Grizzly Bears
+Ornithopter
+Memnite
+Llanowar Elves
+Elvish Mystic
+Raging Goblin
+Shock
+Divination
+Plains
+Island
+Mountain
+Forest
+Shatter
+Random Encounter

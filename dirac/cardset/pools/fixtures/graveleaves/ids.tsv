@@ -1,0 +1,49 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Attuned Hunter
+1	card	Chalk Outline
+2	card	Coral Merfolk
+3	card	Cyan, Vengeful Samurai
+4	card	Desecrated Tomb
+5	card	Fang, Fearless l'Cie
+6	card	Forest
+7	card	Fuming Effigy
+8	card	Garrison Excavator
+9	card	Giant Spider
+10	card	Gray Ogre
+11	card	Grim Reaper's Scythe
+12	card	Grizzly Bears
+13	card	Hardened Academic
+14	card	Hill Giant
+15	card	Imotekh the Stormlord
+16	card	Insidious Roots
+17	card	Island
+18	card	Mountain
+19	card	On Wings of Gold
+20	card	Owlin Historian
+21	card	Plains
+22	card	Quintorius, Field Historian
+23	card	Raise Dead
+24	card	Regrowth
+25	card	Rot Farm Mortipede
+26	card	Savannah Lions
+27	card	Skeleton Crew
+28	card	Soul Enervation
+29	card	Spirit Mascot
+30	card	Stonebound Mentor
+31	card	Swamp
+32	card	Teval, the Balanced Scale
+33	card	Thran Vigil
+34	card	Undead Hand Ninja
+35	card	Walking Corpse
+36	token	b_1_1_bat_flying
+37	token	b_2_2_a_necron_warrior
+38	token	b_2_2_skeleton_pirate
+39	token	b_2_2_zombie
+40	token	b_2_2_zombie_druid
+41	token	c_a_clue_draw
+42	token	g_0_1_plant
+43	token	rw_2_2_spirit
+44	token	rw_3_2_spirit
+45	token	w_1_1_zombie
+46	token	wu_2_2_detective
+47	card	Ornithopter

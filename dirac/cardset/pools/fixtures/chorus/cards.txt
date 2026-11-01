@@ -1,0 +1,18 @@
+# the chorus pool: Malcolm, Alluring Scoundrel's chorus
+# counters and its conditional free cast of the discarded card from the
+# graveyard, beside cheap spells to discard and ground creatures that
+# cannot block a flyer (dirac/oracle/chorus_test.go)
+Malcolm, Alluring Scoundrel
+Opt
+Shock
+Divination
+Lightning Bolt
+Unsummon
+Wind Drake
+Grizzly Bears
+Hill Giant
+Walking Corpse
+Island
+Mountain
+Swamp
+Forest

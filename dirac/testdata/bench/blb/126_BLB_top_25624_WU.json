@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_25624_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck e83f5b4a69214ac29c2eec11cce4044f:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Jackdaw Savior, 1 Jolly Gerbils, 1 Parting Gust, 1 Pond Prophet, 1 Spellgyre, 1 Splash Lasher -> 3 Plains, 3 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Brave-Kin Duo",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Calamitous Tide",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Knightfisher",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Plumecreed Mentor",
+"count": 2
+},
+{
+"name": "Seedpod Squire",
+"count": 2
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Sugar Coat",
+"count": 2
+}
+]
+}

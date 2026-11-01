@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_15839_BR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck dba43501a0274ac4a4b2e568a3d8e22c:0, player win-rate bucket 0.66 (CC BY 4.0)",
+"cards": [
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Billowing Shriekmass",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Dragon Trainer",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Incinerating Blast",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Meteor Golem",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 8
+},
+{
+"name": "Revenge of the Rats",
+"count": 2
+},
+{
+"name": "Searslicer Goblin",
+"count": 1
+},
+{
+"name": "Slagstorm",
+"count": 2
+},
+{
+"name": "Solemn Simulacrum",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Thrill of Possibility",
+"count": 1
+},
+{
+"name": "Tragic Banshee",
+"count": 3
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 2
+}
+]
+}

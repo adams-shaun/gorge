@@ -1,0 +1,27 @@
+# the pool: end-step DelayedTrigger
+# RememberObjects$ TriggeredCard / TriggeredCardLKICopy (Esoteric
+# Duplicator, Resurrection Orb) and the delayed transformed return of the
+# source's own card (Biolume Egg, Loyal Cathar), beside sacrifice outlets,
+# artifacts, burn and vanilla creatures (dirac/oracle/lkidelayed_test.go)
+Resurrection Orb
+Esoteric Duplicator
+Biolume Egg
+Loyal Cathar
+Ochre Jelly
+A-Ochre Jelly
+Mind Stone
+Ornithopter
+Carrion Feeder
+Village Rites
+Grizzly Bears
+Raging Goblin
+Llanowar Elves
+Hill Giant
+Shock
+Lightning Bolt
+Giant Growth
+Plains
+Island
+Swamp
+Mountain
+Forest

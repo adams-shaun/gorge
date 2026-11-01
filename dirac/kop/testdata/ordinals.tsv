@@ -1,0 +1,1192 @@
+AbActivated	AbilityKind	1
+AbAltCost	AbilityKind	6
+AbMana	AbilityKind	2
+AbReplacement	AbilityKind	5
+AbSpell	AbilityKind	0
+AbStatic	AbilityKind	4
+AbTriggered	AbilityKind	3
+AddPhaseCombat	untyped int	0
+AddPhaseEnd	untyped int	2
+AddPhaseUpkeep	untyped int	1
+AfCharmTrigger	AbilityFlags	64
+AfCheckOnTrigger	AbilityFlags	16
+AfCycling	AbilityFlags	2048
+AfEquip	AbilityFlags	32
+AfGift	AbilityFlags	512
+AfLatent	AbilityFlags	1
+AfManaChoice	AbilityFlags	256
+AfManaChosen	AbilityFlags	4
+AfManaDynamic	AbilityFlags	2
+AfManaEachColor	AbilityFlags	128
+AfManaNonSpell	AbilityFlags	32768
+AfManaReflect	AbilityFlags	16384
+AfNinjutsu	AbilityFlags	8192
+AfOptionalCost	AbilityFlags	8
+AfResolveCount	AbilityFlags	1024
+AfStation	AbilityFlags	4096
+AggCardTypes	untyped int	10
+AggColors	untyped int	7
+AggDistinctMV	untyped int	8
+AggDistinctNames	untyped int	9
+AggDistinctPower	untyped int	6
+AggGreatestMV	untyped int	3
+AggGreatestPower	untyped int	1
+AggGreatestToughness	untyped int	2
+AggPermTypes	untyped int	12
+AggSumCounters	untyped int	11
+AggSumMV	untyped int	5
+AggSumToughness	untyped int	4
+B	untyped int	2
+BncDelayedMany	untyped int	8192
+BncFromLibrary	untyped int	4096
+BncShuffleOwed	untyped int	16384
+C	untyped int	5
+CastSpecCtrlTrig	untyped int	128
+CastSpecExclude	untyped int	2
+CastSpecExile	untyped int	64
+CastSpecGrave	untyped int	32
+CastSpecHand	untyped int	4
+CastSpecNotHand	untyped int	8
+CastSpecTreasure	untyped int	16
+CastSpecTypes	untyped int	256
+CastSpecYou	untyped int	1
+CfRemember	untyped int	4
+CfShuffle	untyped int	2
+CfTapped	untyped int	1
+ChooseOpp	untyped int	2
+ChooseRandom	untyped int	1
+ChooseSelf	untyped int	0
+CloneEOT	untyped int	1
+CloneExclTmpl	untyped int	2
+ClonePick	untyped int	8
+CloneTmplPick	untyped int	4
+CloneTmplShift	untyped int	4
+CmpEQ	CmpOp	3
+CmpGE	CmpOp	1
+CmpGT	CmpOp	4
+CmpLE	CmpOp	2
+CmpLT	CmpOp	5
+CmpNE	CmpOp	6
+CmpNone	CmpOp	0
+CmpPrime	CmpOp	64
+ColAny	ColorMask	31
+ColB	ColorMask	4
+ColC	ColorMask	32
+ColG	ColorMask	16
+ColR	ColorMask	8
+ColU	ColorMask	2
+ColW	ColorMask	1
+CondAlways	CondKind	0
+CondAnd	CondKind	8
+CondCount_	CondKind	9
+CondKicked	CondKind	3
+CondPresent	CondKind	1
+CondPromised	CondKind	7
+CondRefMatches	CondKind	6
+CondThreshold	CondKind	4
+CondValue	CondKind	2
+CondYourTurn	CondKind	5
+CopyPumpShift	untyped int	8
+CostAddCtr	CostFlags	32
+CostBlight	CostFlags	134217728
+CostCrew	CostFlags	8388608
+CostDiscard	CostFlags	64
+CostDiscardFiltered	CostFlags	268435456
+CostDiscardSelf	CostFlags	32768
+CostExileCtrlOrGrave	CostFlags	1073741824
+CostExileGrave	CostFlags	512
+CostExileSelf	CostFlags	1048576
+CostForage	CostFlags	65536
+CostLoyalty	CostFlags	4096
+CostLoyaltyX	CostFlags	536870912
+CostOncePerGame	CostFlags	8192
+CostOncePerTurn	CostFlags	2048
+CostPayEnergy	CostFlags	131072
+CostPayLife	CostFlags	128
+CostPowerUp	CostFlags	33554432
+CostRemoveCtr	CostFlags	16
+CostReturn	CostFlags	524288
+CostReturnSelf	CostFlags	262144
+CostSac	CostFlags	8
+CostSacSelf	CostFlags	4
+CostSaddle	CostFlags	16777216
+CostSorcery	CostFlags	1024
+CostSubAmong	CostFlags	2147483648
+CostSubCtrPick	CostFlags	2147483648
+CostTap	CostFlags	1
+CostTapHost	CostFlags	16384
+CostTapPower	CostFlags	4194304
+CostTapX	CostFlags	256
+CostUntap	CostFlags	2
+CostUntapSelf	CostFlags	2097152
+CostWaterbend	CostFlags	67108864
+CpExileAtEnd	untyped int	16
+CpFlying	untyped int	32
+CpHaste	untyped int	1
+CpOneOne	untyped int	8
+CpRemember	untyped int	4
+CpSacAtEnd	untyped int	2
+CpSacAtEndDly	untyped int	64
+CtrAddedFormCreature	untyped int	0
+CtrAddedFormSelf	untyped int	1
+CtrAddedFormShift	untyped int	2
+CtrAddedKindAny	untyped int	0
+CtrAddedKindLore	untyped int	2
+CtrAddedKindMask	untyped int	3
+CtrAddedKindP1P1	untyped int	1
+CtrAll	CounterKind	254
+CtrBait	CounterKind	8
+CtrBloodstain	CounterKind	60
+CtrBore	CounterKind	58
+CtrCharge	CounterKind	15
+CtrChorus	CounterKind	40
+CtrCoin	CounterKind	55
+CtrDeathtouch	CounterKind	25
+CtrDefense	CounterKind	39
+CtrDestExile	untyped int	1
+CtrDestHand	untyped int	2
+CtrDestLibBottom	untyped int	4
+CtrDestLibTop	untyped int	3
+CtrDestMove	untyped int	8
+CtrDivinity	CounterKind	56
+CtrDoubleStrike	CounterKind	24
+CtrDread	CounterKind	38
+CtrFellowship	CounterKind	10
+CtrFilm	CounterKind	52
+CtrFinality	CounterKind	42
+CtrFire	CounterKind	53
+CtrFirstStrike	CounterKind	23
+CtrFlying	CounterKind	5
+CtrFuse	CounterKind	21
+CtrGrowth	CounterKind	20
+CtrHaste	CounterKind	26
+CtrHexproof	CounterKind	27
+CtrHone	CounterKind	54
+CtrImpostor	CounterKind	57
+CtrIncubation	CounterKind	7
+CtrIndestructible	CounterKind	28
+CtrIngenuity	CounterKind	51
+CtrInvasion	CounterKind	47
+CtrLandmark	CounterKind	37
+CtrLevel	CounterKind	14
+CtrLifelink	CounterKind	29
+CtrLoot	CounterKind	48
+CtrLore	CounterKind	36
+CtrLoyalty	CounterKind	2
+CtrM0M1	CounterKind	41
+CtrM1M1	CounterKind	1
+CtrMaxSpeed	CounterKind	255
+CtrMenace	CounterKind	30
+CtrMode	CounterKind	253
+CtrNet	CounterKind	45
+CtrOil	CounterKind	16
+CtrOther	CounterKind	6
+CtrP1P1	CounterKind	0
+CtrPage	CounterKind	50
+CtrPlan	CounterKind	46
+CtrPoint	CounterKind	59
+CtrPossession	CounterKind	61
+CtrQuest	CounterKind	18
+CtrReach	CounterKind	31
+CtrRemMV	untyped int	1
+CtrRev	CounterKind	49
+CtrRevival	CounterKind	11
+CtrShadow	CounterKind	32
+CtrShield	CounterKind	4
+CtrSoul	CounterKind	9
+CtrSpore	CounterKind	17
+CtrStash	CounterKind	12
+CtrStory	CounterKind	22
+CtrStun	CounterKind	3
+CtrSupply	CounterKind	35
+CtrTime	CounterKind	43
+CtrTrample	CounterKind	33
+CtrValor	CounterKind	44
+CtrVerse	CounterKind	19
+CtrVigilance	CounterKind	34
+CtrlAny	CtrlSel	0
+CtrlEachPl	CtrlSel	3
+CtrlHitBySrc	CtrlSel	4
+CtrlOpp	CtrlSel	2
+CtrlYou	CtrlSel	1
+CzUntilLeaves	untyped int	1
+DelayDiesThisTurn	untyped int	5
+DelayEndCombat	untyped int	3
+DelaySpellCast	untyped int	4
+DelayUpkeep	untyped int	1
+DelayYourUpkeep	untyped int	2
+DigFaceDown	untyped int	2048
+DigOptional	untyped int	8
+DigRandomOrder	untyped int	16
+DigRemember	untyped int	64
+DigRestShift	untyped int	0
+DigRestTop	untyped int	256
+DigReveal	untyped int	32
+DigRevealToCtrl	untyped int	512
+DigTakeToTop	untyped int	128
+DigTapped	untyped int	1024
+DiscoverDugBottom	untyped int	240
+DivLKIP1P1	untyped int	255
+DivMaxV	untyped int	254
+DmgEQ	DmgCmp	3
+DmgExileIfDealt	untyped int	16
+DmgExileIfDiesThisTurn	untyped int	2
+DmgGE	DmgCmp	1
+DmgGT	DmgCmp	5
+DmgLE	DmgCmp	2
+DmgLT	DmgCmp	6
+DmgMapped	untyped int	4
+DmgNE	DmgCmp	4
+DmgRemember	untyped int	8
+DmgTrackExcess	untyped int	1
+DpGroup	untyped int	1
+DpMany	untyped int	3
+DpTrack	untyped int	2
+DuDugMark	untyped int	256
+DuFoundAttacking	untyped int	512
+DuFoundTapped	untyped int	64
+DuFoundWithRevealed	untyped int	32
+DuRandomOrder	untyped int	16
+DuRememberFound	untyped int	128
+DuRestBottom	untyped int	8
+DurAirbend	untyped int	10
+DurDefeated	untyped int	9
+DurEOT	untyped int	0
+DurPermanent	untyped int	1
+DurPlot	untyped int	7
+DurPrepared	untyped int	8
+DurUntilYourNextTurn	untyped int	5
+DurWarp	untyped int	6
+DurWhileControlSource	untyped int	4
+DurWhileSource	untyped int	3
+DurWhileSrcMay	untyped int	11
+DurWhileValid	untyped int	12
+DurYourNextTurn	untyped int	2
+EntryAtEOT	untyped int	32768
+EntryAtEOTExile	untyped int	16384
+EntryKindMask	untyped int	63
+EvHorsemanship	uint8	1
+EvIntimidate	uint8	2
+EvSkulk	uint8	4
+ExAdamant	ExprKind	244
+ExAttackedThisTurn	ExprKind	9
+ExAttackedTurn	ExprKind	235
+ExAttackersAll	ExprKind	55
+ExBranches	ExprKind	37
+ExCastBattlefield	ExprKind	237
+ExCastFromGrave	ExprKind	247
+ExCastManaSpent	ExprKind	35
+ExChosenMode	ExprKind	233
+ExCommittedCrime	ExprKind	48
+ExCompare	ExprKind	36
+ExConst	ExprKind	1
+ExConverge	ExprKind	245
+ExCount	ExprKind	3
+ExCountAtLeast	ExprKind	30
+ExCountExile	ExprKind	27
+ExCountGraveyard	ExprKind	4
+ExCountHand	ExprKind	250
+ExCount_	ExprKind	58
+ExCountersOn	ExprKind	18
+ExCreaturesDied	ExprKind	19
+ExCtrAdded	ExprKind	243
+ExDevotion	ExprKind	38
+ExDiscardedThisTurn	ExprKind	241
+ExDistinctCMC	ExprKind	6
+ExDrawnThisTurn	ExprKind	40
+ExExcessDamage	ExprKind	21
+ExExiledWithN	ExprKind	246
+ExGraveAgg	ExprKind	43
+ExGraveTypes	ExprKind	41
+ExHandSizeOf	ExprKind	26
+ExHighestOppPoison	ExprKind	45
+ExKicked	ExprKind	7
+ExLastLifeLost	ExprKind	22
+ExLeftZone	ExprKind	249
+ExLibrarySizeOf	ExprKind	13
+ExLifeGainedThisTurn	ExprKind	16
+ExLifeLostThisTurn	ExprKind	24
+ExLifeOf	ExprKind	12
+ExLowestLife	ExprKind	252
+ExMVOf	ExprKind	29
+ExMod	ExprKind	234
+ExMorbid	ExprKind	8
+ExNone	ExprKind	0
+ExNumColorsOf	ExprKind	57
+ExOppLifeLostThisTurn	ExprKind	17
+ExOppsLostLife	ExprKind	28
+ExParty	ExprKind	39
+ExPhaseCount	ExprKind	232
+ExPoisonOf	ExprKind	53
+ExPow	ExprKind	230
+ExPowerOf	ExprKind	10
+ExProduct	ExprKind	54
+ExPromisedGift	ExprKind	31
+ExRedNCDmg	ExprKind	253
+ExRefCount	ExprKind	56
+ExRemLKIPT	ExprKind	240
+ExRememberedCount	ExprKind	20
+ExResolvedThisTurn	ExprKind	32
+ExRevolt	ExprKind	248
+ExRollResult	ExprKind	34
+ExSacrificedThisTurn	ExprKind	242
+ExScriedThisTurn	ExprKind	238
+ExSelfPrepared	ExprKind	49
+ExSneaked	ExprKind	51
+ExStartingLife	ExprKind	14
+ExSum	ExprKind	25
+ExSumPower	ExprKind	5
+ExThisTurnActGrave	ExprKind	50
+ExThisTurnCast	ExprKind	33
+ExThisTurnCastSpec	ExprKind	47
+ExThisTurnEntered	ExprKind	46
+ExTokensCreated	ExprKind	23
+ExToughnessOf	ExprKind	11
+ExTriggerAmount	ExprKind	15
+ExTriggerSpellMVLKI	ExprKind	52
+ExUnlockedDoors	ExprKind	236
+ExValidAgg	ExprKind	42
+ExVoid	ExprKind	254
+ExX	ExprKind	2
+ExYourSpeed	ExprKind	44
+ExYourTurns	ExprKind	251
+ExtAddPhase	ExtOp	193
+ExtAegisClone	ExtOp	80
+ExtAirbend	ExtOp	95
+ExtBreachChoose	ExtOp	160
+ExtBreachReturn	ExtOp	161
+ExtChangeTargets	ExtOp	225
+ExtChooseColorRes	ExtOp	5
+ExtCloneCopy	ExtOp	81
+ExtColorGrant	ExtOp	6
+ExtCopyAbility	ExtOp	191
+ExtCopyAllEach	ExtOp	224
+ExtCopyTokenCtr	ExtOp	172
+ExtCounterAll	ExtOp	226
+ExtCounterLose	ExtOp	41
+ExtDividedCounters	ExtOp	30
+ExtEachDamage	ExtOp	2
+ExtEffEtbCtr	ExtOp	197
+ExtEndure	ExtOp	9
+ExtEnterUntapped	ExtOp	228
+ExtExHaste	ExtOp	171
+ExtExileExMark	ExtOp	51
+ExtFinalityCtr	ExtOp	198
+ExtHideaway	ExtOp	8
+ExtLibSweep	ExtOp	101
+ExtLockActs	ExtOp	140
+ExtManaChoice	ExtOp	100
+ExtMayPlayGrave	ExtOp	7
+ExtMustBeBlocked	ExtOp	194
+ExtNone	ExtOp	0
+ExtNumTimes	ExtOp	50
+ExtPhases	ExtOp	110
+ExtPlotGrant	ExtOp	31
+ExtPreventColor	ExtOp	1
+ExtRecruit	ExtOp	94
+ExtRemoveCounterAny	ExtOp	3
+ExtSacDelayed	ExtOp	32
+ExtSuspect	ExtOp	190
+ExtSweepFrom	ExtOp	97
+ExtToGraveyard	ExtOp	192
+ExtTokenPT	ExtOp	170
+ExtTwoPilesSac	ExtOp	4
+ExtUnlockDoor	ExtOp	227
+F2AttachedToT0	FilterFlags2	512
+F2BasePermanent	FilterFlags2	8388608
+F2Basic	FilterFlags2	131072
+F2BlockedBySrc	FilterFlags2	67108864
+F2CastByYou	FilterFlags2	2
+F2ChosenCard	FilterFlags2	128
+F2ChosenColor	FilterFlags2	16
+F2ChosenType	FilterFlags2	8
+F2CrewedSrc	FilterFlags2	268435456
+F2DamagedBy	FilterFlags2	134217728
+F2DefendingCtrl	FilterFlags2	2147483648
+F2Emblem	FilterFlags2	16384
+F2EnteredThisTurn	FilterFlags2	4
+F2Kicked	FilterFlags2	1
+F2Legendary	FilterFlags2	2097152
+F2NotChosenCard	FilterFlags2	256
+F2NotRemembered	FilterFlags2	64
+F2NotTriggerObj	FilterFlags2	524288
+F2Opponent	FilterFlags2	32768
+F2Remembered	FilterFlags2	32
+F2Saddled	FilterFlags2	4194304
+F2SameNameAsSource	FilterFlags2	2048
+F2SharesColorRem	FilterFlags2	262144
+F2Sneaked	FilterFlags2	16777216
+F2TargetedBy	FilterFlags2	1024
+F2TgtPlayerCtrl	FilterFlags2	1073741824
+F2Unblocked	FilterFlags2	33554432
+F2Warped	FilterFlags2	536870912
+F2WasDamaged	FilterFlags2	1048576
+F2WithFlying	FilterFlags2	4096
+F2WithoutFlying	FilterFlags2	8192
+F2You	FilterFlags2	65536
+FAttachedBySrc	FilterFlags	8192
+FAttacking	FilterFlags	32
+FAttackingOrBlocking	FilterFlags	128
+FBlocking	FilterFlags	64
+FCreatureOrPW	FilterFlags	1024
+FExiledWith	FilterFlags	16384
+FNontoken	FilterFlags	2
+FNotAttachedBySrc	FilterFlags	32768
+FNotAttacking	FilterFlags	2048
+FOther	FilterFlags	1
+FPlayer	FilterFlags	512
+FSelf	FilterFlags	256
+FSpell	FilterFlags	4096
+FTapped	FilterFlags	8
+FToken	FilterFlags	4
+FUntapped	FilterFlags	16
+FaceAdventure	untyped int	2
+FaceModal	untyped int	1
+FaceNone	untyped int	0
+FaceOmen	untyped int	7
+FacePrepare	untyped int	5
+FaceRoom	untyped int	6
+FaceSplit	untyped int	3
+FaceTransform	untyped int	4
+G	untyped int	4
+GcHasteEOT	untyped int	2
+GcRemember	untyped int	4
+GcUntap	untyped int	1
+HybPhyrexian	ColorMask	64
+HybTwobrid	ColorMask	128
+KwAffinity	KwMask	8388608
+KwCantBlock	KwMask	524288
+KwDeathtouch	KwMask	16
+KwDefender	KwMask	1024
+KwDoubleStrike	KwMask	8
+KwFear	KwMask	1073741824
+KwFirstStrike	KwMask	4
+KwFlash	KwMask	2048
+KwFlashback	KwMask	4194304
+KwFlashbackOwnCost	KwMask	268435456
+KwFlying	KwMask	1
+KwHaste	KwMask	256
+KwHexproof	KwMask	4096
+KwHexproofFromInstants	KwMask	16777216
+KwIndestructible	KwMask	8192
+KwKicker	KwMask	2097152
+KwLifelink	KwMask	32
+KwMenace	KwMask	512
+KwPreventCombatDamageFrom	KwMask	536870912
+KwPreventCombatDamageTo	KwMask	134217728
+KwProtBlack	KwMask	33554432
+KwProtRed	KwMask	67108864
+KwProtectionAll	KwMask	32768
+KwProwess	KwMask	16384
+KwReach	KwMask	2
+KwShadow	KwMask	2147483648
+KwShroud	KwMask	65536
+KwTrample	KwMask	64
+KwUnblockable	KwMask	262144
+KwVigilance	KwMask	128
+KwWard	KwMask	131072
+KwWither	KwMask	1048576
+LibChoiceSecond	untyped int	1
+LibThird	untyped int	6
+LibTopShuffle	untyped int	4
+LibTopShuffleSelf	untyped int	5
+MaxSubtypes	untyped int	128
+MaxTargets	untyped int	5
+MayGuardAnimateAll	untyped int	7
+MayGuardAttach	untyped int	1
+MayGuardCloneCopy	untyped int	8
+MayGuardDamage	untyped int	6
+MayGuardDraw	untyped int	5
+MayGuardLibraryTop	untyped int	4
+MayGuardMill	untyped int	0
+MayGuardMove	untyped int	2
+MayGuardSuspect	untyped int	3
+MayPlayAdvKind	untyped int	1
+MayPlayAdventure	untyped int	256
+MayPlayAnyType	untyped int	8
+MayPlayExileOnMoved	untyped int	1
+MayPlayFree	untyped int	4
+MayPlayIgnoreColor	untyped int	16
+MayPlayInstSorc	untyped int	8192
+MayPlayKinds	untyped int	252
+MayPlayLimitMask	untyped int	224
+MayPlayLimitShift	untyped int	5
+MayPlayNonLand	untyped int	2
+MayPlayOwner	untyped int	512
+MayPlayRaiseShift	untyped int	10
+MorphDisguise	uint8	3
+MorphMegamorph	uint8	2
+MorphMorph	uint8	1
+MorphNone	uint8	0
+MvAlsoSelf	untyped int	1024
+MvAttacking	untyped int	512
+MvEntryRiders	untyped int	4096
+MvForgetChanged	untyped int	2048
+MvForgetOther	untyped int	64
+MvFromBattlefield	untyped int	32
+MvFromGraveyard	untyped int	8192
+MvGraveExile	untyped int	8
+MvLKI	untyped int	128
+MvMayMill	untyped int	256
+MvPermOrSpell	untyped int	32
+MvRemember	untyped int	1
+MvTapped	untyped int	2
+MvTransformed	untyped int	16
+MvUnderYourControl	untyped int	4
+NoCard	CardID	65535
+NumCounterKinds	CounterKind	7
+NumCounterKinds2	CounterKind	13
+NumCounterKinds3	CounterKind	62
+NumCounterKindsX	int	47
+NumExtOps	ExtOp	256
+NumManaKinds	untyped int	6
+NumSteps	Step	13
+OpAddMana	Op	48
+OpAddTurn	Op	47
+OpAmass	Op	110
+OpAnimate	Op	31
+OpAtEOT	Op	115
+OpAtkPWGuard	Op	149
+OpAttach	Op	23
+OpAttachObj	Op	116
+OpBecomeCopy	Op	107
+OpBite	Op	51
+OpBlight	Op	155
+OpBolster	Op	126
+OpBounce	Op	5
+OpBranch	Op	62
+OpCastFree	Op	81
+OpChangeSpeed	Op	134
+OpChangeZoneAll	Op	30
+OpChangeZoneAllEx	Op	74
+OpCharm	Op	26
+OpChooseBranch	Op	95
+OpChooseCard	Op	42
+OpChooseColor	Op	40
+OpChooseEachType	Op	79
+OpChooseMove	Op	73
+OpChooseTargets	Op	96
+OpChooseType	Op	41
+OpClassLevelUp	Op	103
+OpClearChosen	Op	88
+OpClearCounters	Op	128
+OpClearRemembered	Op	87
+OpCloak	Op	142
+OpConnive	Op	111
+OpConniveCounters	Op	112
+OpCopyAsToken	Op	36
+OpCopyAsTokenEx	Op	93
+OpCopySpell	Op	98
+OpCount	Op	156
+OpCounter	Op	22
+OpCreateEmblem	Op	83
+OpCreateToken	Op	11
+OpCreateTokenEx	Op	94
+OpDamageAll	Op	27
+OpDealDamage	Op	1
+OpDealDamageDivided	Op	67
+OpDealDamageEx	Op	66
+OpDealDamageFrom	Op	101
+OpDelayedProgram	Op	86
+OpDelayedTrigger	Op	37
+OpDemonstrate	Op	147
+OpDestroy	Op	3
+OpDestroyAll	Op	28
+OpDig	Op	24
+OpDigCounters	Op	252
+OpDigEx	Op	75
+OpDigUntil	Op	76
+OpDiscard	Op	14
+OpDiscardUnless	Op	153
+OpDiscover	Op	123
+OpDoubleCounters	Op	89
+OpDoubleCountersAll	Op	145
+OpDraw	Op	2
+OpEarthbend	Op	139
+OpEarthbendReturn	Op	140
+OpEmpower	Op	137
+OpEndTurn	Op	46
+OpEnterTapped	Op	91
+OpEnterWithCounters	Op	92
+OpExile	Op	4
+OpExileEx	Op	69
+OpExileUntilLeaves	Op	55
+OpExplore	Op	118
+OpExt	Op	254
+OpFight	Op	18
+OpFog	Op	120
+OpGainControl	Op	113
+OpGainControlEOT	Op	32
+OpGainEnergy	Op	104
+OpGainLife	Op	12
+OpGenericChoice	Op	43
+OpGiveGift	Op	102
+OpGoad	Op	250
+OpGrantAbility	Op	58
+OpGrantKeyword	Op	8
+OpHighEnd	Op	255
+OpHighFirst	Op	250
+OpIfKicked	Op	39
+OpIfPaid	Op	65
+OpIncubate	Op	138
+OpLookAck	Op	152
+OpLoseAbilities	Op	35
+OpLoseGame	Op	52
+OpLoseLife	Op	13
+OpManifest	Op	141
+OpManifestDread	Op	143
+OpMayAsk	Op	150
+OpMayPlay	Op	82
+OpMayShuffleMove	Op	136
+OpMill	Op	17
+OpMonstrosity	Op	133
+OpMoveCounter	Op	124
+OpNinjutsu	Op	148
+OpNop	Op	0
+OpOverride	Op	84
+OpOverrideAll	Op	105
+OpPeek	Op	77
+OpPoison	Op	119
+OpPrepare	Op	146
+OpPreventDamage	Op	57
+OpProliferate	Op	59
+OpPumpAll	Op	29
+OpPumpAllEach	Op	144
+OpPumpUntilEOT	Op	7
+OpPutCounter	Op	9
+OpPutCounterAll	Op	99
+OpPutCountersFrom	Op	130
+OpPutOnBattlefield	Op	54
+OpRearrange	Op	125
+OpReflexiveTrigger	Op	85
+OpRegenerate	Op	56
+OpRemoveCounter	Op	10
+OpRemoveCounterAll	Op	129
+OpRemoveCounterRem	Op	90
+OpRepeat	Op	44
+OpRepeatEach	Op	45
+OpRepeatEachPlayer	Op	63
+OpRepeatWhile	Op	97
+OpResolveDamageMap	Op	68
+OpReturn	Op	49
+OpReturnEx	Op	70
+OpRollDie	Op	106
+OpSacrifice	Op	21
+OpSacrificeAll	Op	80
+OpSaddle	Op	127
+OpScry	Op	15
+OpSearch	Op	25
+OpSearchEx	Op	72
+OpSeek	Op	109
+OpSetLife	Op	121
+OpSetPT	Op	33
+OpSetTypes	Op	34
+OpShuffle	Op	53
+OpSkipIf	Op	50
+OpSkipNextUntap	Op	114
+OpSkipUnless	Op	61
+OpSkipUntap	Op	122
+OpSupport	Op	131
+OpSurveil	Op	16
+OpTakeInitiative	Op	251
+OpTap	Op	19
+OpTapAll	Op	108
+OpTapOrUntap	Op	117
+OpToLibrary	Op	6
+OpToLibraryChoice	Op	71
+OpToLibraryPair	Op	151
+OpTransform	Op	60
+OpTwoPiles	Op	78
+OpUnearth	Op	253
+OpUnlessPaid	Op	64
+OpUnlessSwitched	Op	132
+OpUntap	Op	20
+OpUntapAll	Op	100
+OpUntapChoose	Op	154
+OpWard	Op	38
+OpWarpExile	Op	135
+OppsHitLegendary	untyped int	1
+OptAll	untyped int	16
+OptAny	untyped int	8
+OptAsk	int16	4
+OvChosenColor	untyped int	1
+PayBRemember	untyped int	4
+PayBSubBlight	untyped int	1
+PayBSubEvidence	untyped int	2
+PayBSubTrigNew	untyped int	3
+PayDiscard	untyped int	2
+PayDiscardHand	untyped int	11
+PayDiscardRandom	untyped int	10
+PayDraw	untyped int	9
+PayEnergy	untyped int	5
+PayEvidence	untyped int	15
+PayExileGrave	untyped int	14
+PayForage	untyped int	7
+PayLife	untyped int	4
+PayMana	untyped int	1
+PayManaX	untyped int	15
+PayReturn	untyped int	6
+PaySac	untyped int	3
+PaySacSelf	untyped int	8
+PaySubCounter	untyped int	12
+PayTapX	untyped int	13
+PeekMayReveal	untyped int	4
+PeekPublic	untyped int	1
+PeekRemember	untyped int	2
+PermMarkAttacked	untyped int	0
+PermMarkDealtAny	untyped int	2
+PermMarkDealtCombat	untyped int	3
+PermMarkDealtTurn	untyped int	1
+PermMarkNot	untyped int	16
+PhaseCountCombats	untyped int	0
+PhaseCountEndSteps	untyped int	1
+PlayerPredArtOrEnch	untyped int	4
+PlayerPredControlsCreature	untyped int	1
+PlayerPredCorrupted	untyped int	3
+PlayerPredMaxSpeed	untyped int	2
+PlayerPredNeg	untyped int	256
+PredActiveCtrl	Pred	23
+PredAdventureCard	Pred	253
+PredAttached	Pred	22
+PredBlocked	Pred	251
+PredCMCEQ	Pred	11
+PredCMCGE	Pred	5
+PredCMCLE	Pred	4
+PredCMCLEV	Pred	12
+PredCountersGE	Pred	13
+PredCountersLT	Pred	33
+PredEnchanted	Pred	21
+PredEquipped	Pred	20
+PredExiledWith	Pred	249
+PredFaceDown	Pred	245
+PredHasCounter	Pred	7
+PredHasCounters	Pred	26
+PredHasKeyword	Pred	6
+PredHasXCost	Pred	16
+PredHistoric	Pred	19
+PredLacksKeyword	Pred	29
+PredModified	Pred	25
+PredMonoColor	Pred	31
+PredMonstrous	Pred	27
+PredMultiColor	Pred	18
+PredNamed	Pred	9
+PredNoCounters	Pred	28
+PredNone	Pred	0
+PredNotF2	Pred	246
+PredOutlaw	Pred	30
+PredPermMark	Pred	244
+PredPowerGE	Pred	2
+PredPowerGEV	Pred	14
+PredPowerGTBase	Pred	243
+PredPowerLE	Pred	1
+PredPowerLTToughness	Pred	17
+PredSameNameT0	Pred	32
+PredSolved	Pred	252
+PredSubtype	Pred	8
+PredSuspected	Pred	254
+PredTotalPT	Pred	250
+PredToughnessGE	Pred	15
+PredToughnessLE	Pred	3
+PredToughnessLEV	Pred	34
+PredTypesAll	Pred	24
+PredWasCastEnter	Pred	248
+PredWasCastSpell	Pred	247
+PredWithPowerLEX	Pred	10
+PredWord7	Pred	241
+PropCardManaCost	uint8	3
+PropCardPower	uint8	1
+PropCardToughness	uint8	2
+PropNone	uint8	0
+PumpEachPower	untyped int	1
+PumpEachTough	untyped int	2
+PutCtrCellFirst	untyped int	3
+PutCtrCellNext	untyped int	4
+R	untyped int	3
+ReduceAbMinShift	untyped int	4
+ReduceAbUnlock	untyped int	2
+ReduceColorBits	untyped int	2
+RefAttached	Ref	11
+RefChosen	Ref	13
+RefController	Ref	5
+RefDefendingPlayer	Ref	15
+RefDelayedRemembered	Ref	19
+RefDiscarded	Ref	29
+RefEach	Ref	16
+RefEachOpponent	Ref	8
+RefEachPlayer	Ref	7
+RefHost	Ref	23
+RefLastCreated	Ref	12
+RefLibTop	Ref	30
+RefNone	Ref	0
+RefOppNonRemCtrl	Ref	245
+RefOpponent	Ref	6
+RefRemembered	Ref	18
+RefRememberedController	Ref	28
+RefReplaced	Ref	20
+RefSacrificed	Ref	22
+RefSelf	Ref	4
+RefSrcOwner	Ref	246
+RefTarget0	Ref	1
+RefTarget1	Ref	2
+RefTarget2	Ref	3
+RefTarget3	Ref	243
+RefTarget4	Ref	244
+RefTargetController	Ref	14
+RefTargetOwner	Ref	17
+RefTargetSlot	Ref	24
+RefTargets01	Ref	25
+RefTargets012	Ref	26
+RefTargets12	Ref	27
+RefTgtCtrl1	Ref	241
+RefTgtCtrl2	Ref	242
+RefTriggerAttackers	Ref	31
+RefTriggerObj	Ref	9
+RefTriggerPlayer	Ref	10
+RefTriggerSource	Ref	21
+RepeatEachSeatOrder	untyped int	2
+ReplAddCountersOn	ReplKind	21
+ReplAfterEnter	untyped int	1
+ReplAnyUntap	ReplKind	28
+ReplCantBeCountered	ReplKind	3
+ReplCantLoseGame	ReplKind	8
+ReplCantTurnUp	ReplKind	26
+ReplCount	ReplKind	29
+ReplCtrAny	int16	-1
+ReplCtrAnyYou	int16	-2
+ReplDamagePlus	ReplKind	16
+ReplDmgCtrHost	untyped int	128
+ReplDmgNonCombat	untyped int	16
+ReplDmgOppPerm	untyped int	2
+ReplDmgOppPlayer	untyped int	1
+ReplDmgPerm	untyped int	8
+ReplDmgPlayer	untyped int	4
+ReplDmgRaise	untyped int	32
+ReplDmgSrcInPlay	untyped int	64
+ReplDoesntUntap	ReplKind	4
+ReplDoubleCounters	ReplKind	13
+ReplDoubleCountersOn	ReplKind	20
+ReplDoubleCountersYou	ReplKind	23
+ReplDoubleDamageToOpps	ReplKind	10
+ReplDoubleTokens	ReplKind	12
+ReplEntersAsChoice	ReplKind	5
+ReplEntersProgram	ReplKind	6
+ReplEntersTapped	ReplKind	1
+ReplEntersWithCounters	ReplKind	2
+ReplExileOnLeave	ReplKind	19
+ReplGraveToLibrary	ReplKind	14
+ReplLifeDouble	ReplKind	17
+ReplLifeLossDouble	ReplKind	24
+ReplLifePlus	ReplKind	18
+ReplNone	ReplKind	0
+ReplOnePoison	ReplKind	22
+ReplOppsCantWinGame	ReplKind	9
+ReplOthersDoesntUntap	ReplKind	15
+ReplOthersEnterProgram	ReplKind	7
+ReplPreventNoncombatToOthers	ReplKind	11
+ReplSpellsCantBeCountered	ReplKind	27
+ReplTurnUpProgram	ReplKind	25
+RetAttachShift	untyped int	8
+RetAttachTo	untyped int	2048
+RetFromLibrary	untyped int	16384
+RetShuffleOwed	untyped int	8192
+RetUnderOpponent	untyped int	4096
+SacSumMV	untyped int	8
+SacSumPower	untyped int	2
+SacSumToughness	untyped int	4
+SacrificedFood	untyped int	2
+SrAltOrigin	untyped int	16
+SrAltZoneShift	untyped int	5
+SrAttacking	untyped int	4096
+SrAuraEntry	untyped int	8
+SrChooserYou	untyped int	64
+SrConfirm	untyped int	16
+SrDifferentNames	untyped int	8192
+SrForgetChanged	untyped int	2
+SrForgetOther	untyped int	1024
+SrGraveExile	untyped int	512
+SrHandGrave	untyped int	4
+SrMandatory	untyped int	4
+SrNoShuffle	untyped int	16384
+SrOwnZone	untyped int	256
+SrRandom	untyped int	32768
+SrRemember	untyped int	32
+SrReveal	untyped int	128
+SrShuffleOptional	untyped int	8
+SrTapped	untyped int	1
+SrThenTop	untyped int	2
+SrUnderYourControl	untyped int	2048
+StAnyManaType	StaticFlags	4
+StBargained	StaticFlags	4096
+StCasterActive	StaticFlags	64
+StDynamic	StaticFlags	1
+StEmbNum	StaticFlags	16384
+StFunctionsInGraveyard	StaticFlags	16
+StMayRaise	StaticFlags	32768
+StOncePerTurn	StaticFlags	2
+StPanhETB	StaticFlags	2048
+StRaiseOpp	StaticFlags	256
+StRaiseYou	StaticFlags	128
+StReduceColor	StaticFlags	8192
+StRemove6Counters	StaticFlags	32
+StTargetsFilter2	StaticFlags	64
+StWithoutManaCost	StaticFlags	8
+StYouHexproof	StaticFlags	512
+StackKwCascade	int16	3
+StackKwCasualty	int16	2
+StackKwImprovise	int16	1
+StackKwLifelink	int16	4
+StatAlternativeCost	StaticKind	5
+StatCDAPT	StaticKind	10
+StatCanAttackDefender	StaticKind	250
+StatCantActivate	StaticKind	236
+StatCantAttack	StaticKind	8
+StatCantBeCast	StaticKind	16
+StatCantBlock	StaticKind	3
+StatCantBlockBy	StaticKind	4
+StatCantDraw	StaticKind	248
+StatCantGainLife	StaticKind	247
+StatCantPutCounter	StaticKind	252
+StatCastWithFlash	StaticKind	6
+StatCombatDmgToughness	StaticKind	245
+StatContinuous	StaticKind	1
+StatControl	StaticKind	17
+StatCount	StaticKind	19
+StatDisableETB	StaticKind	234
+StatExtraLandPlay	StaticKind	12
+StatIncreaseCost	StaticKind	9
+StatMaxBlockers	StaticKind	241
+StatMayPlayFrom	StaticKind	13
+StatMustAttack	StaticKind	7
+StatNoMaxHandSize	StaticKind	11
+StatNone	StaticKind	0
+StatOverride	StaticKind	14
+StatPanharmonicon	StaticKind	18
+StatPlayerHexproof	StaticKind	15
+StatReduceAbility	StaticKind	233
+StatReduceCost	StaticKind	2
+StatStackKw	StaticKind	251
+StatUntapOther	StaticKind	246
+StepAttackers	Step	5
+StepBeginCombat	Step	4
+StepBlockers	Step	6
+StepCleanup	Step	12
+StepDamage	Step	8
+StepDraw	Step	2
+StepEnd	Step	11
+StepEndCombat	Step	9
+StepFirstStrikeDamage	Step	7
+StepMain1	Step	3
+StepMain2	Step	10
+StepUntap	Step	0
+StepUpkeep	Step	1
+TArtifact	TypeMask	4
+TAura	TypeMask	512
+TBasic	TypeMask	2048
+TBattle	TypeMask	128
+TCreature	TypeMask	2
+TEnchantment	TypeMask	8
+TEquipment	TypeMask	1024
+TInstant	TypeMask	32
+TKindred	TypeMask	256
+TLand	TypeMask	1
+TLegendary	TypeMask	4096
+TPlaneswalker	TypeMask	16
+TSorcery	TypeMask	64
+TToken	TypeMask	8192
+TVehicle	TypeMask	16384
+TapPowToughness	int8	-128
+Tf2Alone	TrigFlags2	2048
+Tf2AtkOpp	TrigFlags2	16384
+Tf2AtkYou	TrigFlags2	4096
+Tf2AtkYourPW	TrigFlags2	8192
+Tf2Attacked	TrigFlags2	28672
+Tf2Batch	TrigFlags2	32768
+Tf2BlockedBySelf	TrigFlags2	512
+Tf2CastFromHand	TrigFlags2	536870912
+Tf2CastSnapshot	TrigFlags2	128
+Tf2CastSpent	TrigFlags2	8388608
+Tf2Convoked	TrigFlags2	268435456
+Tf2Cycled	TrigFlags2	131072
+Tf2DefPlayer	TrigFlags2	1048576
+Tf2Evolve	TrigFlags2	1073741824
+Tf2FirstTime	TrigFlags2	1
+Tf2Increment	TrigFlags2	16777216
+Tf2ManaFromSelf	TrigFlags2	2147483648
+Tf2NonCombat	TrigFlags2	8
+Tf2NthSpell	TrigFlags2	256
+Tf2OppTurn	TrigFlags2	4
+Tf2OrCopy	TrigFlags2	524288
+Tf2PerPair	TrigFlags2	65536
+Tf2PerReferent	TrigFlags2	33554432
+Tf2ResolvedLimit	TrigFlags2	4194304
+Tf2SecondDraw	TrigFlags2	64
+Tf2SelfOrFilter	TrigFlags2	32
+Tf2SpellToo	TrigFlags2	134217728
+Tf2SpentBound	TrigFlags2	134217728
+Tf2SrcInPlay	TrigFlags2	67108864
+Tf2TargetsFilter2	TrigFlags2	1024
+Tf2ToOpponent	TrigFlags2	16
+Tf2ToYou	TrigFlags2	16777216
+Tf2Unblocked	TrigFlags2	262144
+Tf2XBound	TrigFlags2	2097152
+Tf2YourTurn	TrigFlags2	2
+Tf3CastConverge	TrigFlags3	2
+Tf3ConvergeBound	TrigFlags3	1
+Tf3FirstAttack	TrigFlags3	128
+Tf3GameOnce	TrigFlags3	64
+Tf3ManaFromTreasure	TrigFlags3	4
+Tf3MayPlaySrc	TrigFlags3	32
+Tf3OrTargets	TrigFlags3	8
+Tf3Static	TrigFlags3	16
+Tf4CounterCell	TrigFlags4	4
+Tf4SingleCauseTarget	TrigFlags4	2
+Tf4SingleTarget	TrigFlags4	1
+TfCombat	TrigFlags	4
+TfNontokenSrc	TrigFlags	64
+TfNotToGrave	TrigFlags	128
+TfOncePerTurn	TrigFlags	16
+TfOptional	TrigFlags	1
+TfSecondDraw	TrigFlags	32
+TfSelf	TrigFlags	2
+TfToPlayer	TrigFlags	8
+TgfAtResolution	TargetFlags	32
+TgfAttachedToT0	TargetFlags	16
+TgfBoundsV	TargetFlags	512
+TgfDecl	TargetFlags	64
+TgfDeclSub	TargetFlags	256
+TgfDiffController	TargetFlags	4
+TgfDistinct	TargetFlags	1
+TgfDistinctNames	TargetFlags	2048
+TgfGiftRange	TargetFlags	128
+TgfKickedRange	TargetFlags	8
+TgfMaxTotalMV	TargetFlags	4096
+TgfSameController	TargetFlags	2
+TgfSharedCrType	TargetFlags	1024
+TgfSingleTgt	TargetFlags	8192
+TgtAny	TargetKind	3
+TgtCard	TargetKind	5
+TgtCopyAb	TargetKind	236
+TgtCopyTrig	TargetKind	237
+TgtNone	TargetKind	0
+TgtObject	TargetKind	1
+TgtPermOrSpell	TargetKind	235
+TgtPlayer	TargetKind	2
+TgtSpell	TargetKind	4
+TgtSpellTgting	TargetKind	239
+TgtStackAb	TargetKind	7
+TgtStackObj	TargetKind	6
+TgtStackObjTrig	TargetKind	238
+TimingInstant	Timing	1
+TimingLand	Timing	2
+TimingSorcery	Timing	0
+TokAtEOTDestroy	untyped int	1
+TokAtEOTSacCombat	untyped int	2
+TokAttach	untyped int	32
+TokAttackAsk	untyped int	128
+TokAttacking	untyped int	64
+TokExileAtEnd	untyped int	16
+TokRemember	untyped int	2
+TokRememberObj	untyped int	4
+TokSacAtEnd	untyped int	8
+TokTapped	untyped int	1
+TrAttacking	untyped int	2
+TrHasteEOT	untyped int	4
+TrTapped	untyped int	1
+TrigAbCastExhaust	int16	1
+TrigAbCastLoyalty	int16	2
+TrigAbCastLoyaltyOpp	int16	3
+TrigAbilityCast	TrigEvent	36
+TrigAttached	TrigEvent	33
+TrigAttackersDeclared	TrigEvent	6
+TrigAttacks	TrigEvent	5
+TrigBecomeMonstrous	TrigEvent	26
+TrigBecomesBlocked	TrigEvent	19
+TrigBecomesPlotted	TrigEvent	31
+TrigBecomesSaddled	TrigEvent	32
+TrigBecomesTarget	TrigEvent	13
+TrigBlocks	TrigEvent	18
+TrigCollectEvidence	TrigEvent	40
+TrigCommitCrime	TrigEvent	29
+TrigCounterAddedOnce	TrigEvent	16
+TrigDamageDealtOnce	TrigEvent	12
+TrigDamageDone	TrigEvent	11
+TrigDies	TrigEvent	2
+TrigDiscarded	TrigEvent	15
+TrigDiscardedAll	TrigEvent	35
+TrigDiscover	TrigEvent	44
+TrigDrawn	TrigEvent	14
+TrigETB	TrigEvent	1
+TrigEventCount	TrigEvent	45
+TrigExplores	TrigEvent	39
+TrigForage	TrigEvent	43
+TrigFullyUnlock	TrigEvent	34
+TrigGiveGift	TrigEvent	23
+TrigLandPlayed	TrigEvent	41
+TrigLeaves	TrigEvent	3
+TrigLifeGained	TrigEvent	9
+TrigLifeLost	TrigEvent	10
+TrigManaExpend	TrigEvent	21
+TrigNAnyCounter	int16	-1
+TrigNTeamworkTap	int16	1
+TrigNTraining	int16	2
+TrigNValiant	int16	1
+TrigNone	TrigEvent	0
+TrigPhase	TrigEvent	7
+TrigProliferate	TrigEvent	24
+TrigSacrificed	TrigEvent	20
+TrigScry	TrigEvent	37
+TrigSearchedLibrary	TrigEvent	42
+TrigSpellCast	TrigEvent	8
+TrigSurveil	TrigEvent	38
+TrigTaps	TrigEvent	22
+TrigToGraveyard	TrigEvent	4
+TrigTokenCreated	TrigEvent	25
+TrigTransformed	TrigEvent	28
+TrigTurnFaceUp	TrigEvent	27
+TrigUnlockDoor	TrigEvent	30
+TrigUntaps	TrigEvent	17
+U	untyped int	1
+VCardsInHand	VKind	7
+VConst	VKind	0
+VCountFilter	VKind	2
+VCountersSelf	VKind	6
+VCountersTarget	VKind	13
+VExpr	VKind	14
+VLastDamage	VKind	3
+VLifeGainedTurn	VKind	10
+VNegX	VKind	9
+VSelfPower	VKind	5
+VSelfToughness	VKind	12
+VTargetPower	VKind	4
+VTargetToughness	VKind	11
+VTriggerAmount	VKind	8
+VX	VKind	1
+W	untyped int	0
+W7AttackingAlone	int16	3
+W7AttackingOpp	int16	7
+W7CrewedBySrc	int16	13
+W7EnchantedByYours	int16	8
+W7FaceUp	int16	5
+W7GreatestPower	int16	2
+W7GreatestPowerTgt	int16	12
+W7InZone	int16	4
+W7NoName	int16	1
+W7NoNameTwin	int16	9
+W7NotChosenType	int16	6
+W7SharesNameLegend	int16	10
+W7WithWarp	int16	11
+WhoseAny	Whose	0
+WhoseEnchCtrl	Whose	3
+WhoseNonActive	Whose	200
+WhoseOpp	Whose	2
+WhoseYou	Whose	1
+ZoneBattlefield	Zone	3
+ZoneCommand	Zone	7
+ZoneExile	Zone	5
+ZoneGraveyard	Zone	4
+ZoneHand	Zone	2
+ZoneLibrary	Zone	1
+ZoneNone	Zone	0
+ZonePhased	Zone	8
+ZonePhasedInd	Zone	9
+ZoneStack	Zone	6

@@ -1,0 +1,12 @@
+# ChooseCard Mandatory$ True (Forge 91402ac5110): Fireglass
+# Mentor, Magmatic Channeler, You Find Some Prisoners
+# (dirac/oracle/mandatory_test.go)
+Fireglass Mentor
+Magmatic Channeler
+You Find Some Prisoners
+Shock
+Lightning Bolt
+Memnite
+Ornithopter
+Mountain
+Swamp

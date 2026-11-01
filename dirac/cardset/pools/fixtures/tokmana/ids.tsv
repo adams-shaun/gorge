@@ -1,0 +1,43 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	A Realm Reborn
+1	card	Air Elemental
+2	card	Cancel
+3	card	Chromatic Lantern
+4	card	Citanul Hierophants
+5	card	Counterspell
+6	card	Cryptolith Rite
+7	card	Divination
+8	card	Elvish Mystic
+9	card	Elvish Visionary
+10	card	Enduring Vitality
+11	card	Forest
+12	card	Gemhide Sliver
+13	card	Gray Ogre
+14	card	Grizzly Bears
+15	card	Hill Giant
+16	card	Island
+17	card	Jiang Yanggu, Wildcrafter
+18	card	Joiner Adept
+19	card	Lightning Strike
+20	card	Llanowar Elves
+21	card	Manaweft Sliver
+22	card	Metallic Sliver
+23	card	Mind Rot
+24	card	Mountain
+25	card	Murder
+26	card	Negate
+27	card	Plains
+28	card	Raise the Alarm
+29	card	Sachi, Daughter of Seshiro
+30	card	Savannah Lions
+31	card	Serra Angel
+32	card	Shock
+33	card	Springleaf Parade
+34	card	Swamp
+35	card	Thranduil the Strategist
+36	card	Tyvar Kell
+37	card	Wellwisher
+38	token	c_1_1_shapeshifter_changeling
+39	token	g_1_1_elf
+40	token	g_1_1_elf_warrior
+41	token	w_1_1_soldier

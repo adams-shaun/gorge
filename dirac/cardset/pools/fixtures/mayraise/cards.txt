@@ -1,0 +1,23 @@
+# a graveyard MayPlay permission's non-mana RaiseCost$:
+# Noctis, Prince of Lucis, Alien Symbiosis, Wickerfolk Indomitable
+# (dirac/oracle/mayraise_test.go)
+Noctis, Prince of Lucis
+Alien Symbiosis
+Wickerfolk Indomitable
+Ornithopter
+Phyrexian Walker
+Pilgrim's Eye
+Prophetic Prism
+Pitiless Plunderer
+Faithless Looting
+Careful Study
+Grizzly Bears
+Hill Giant
+Shock
+Lightning Bolt
+Plains
+Island
+Swamp
+Mountain
+Festival of Embers
+Darksteel Citadel

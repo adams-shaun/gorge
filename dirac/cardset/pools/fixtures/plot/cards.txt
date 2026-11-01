@@ -1,0 +1,34 @@
+# the plot pool: the Standard plot cards kgen lowers, basics
+# and Tormod's Crypt (a non-plot exile), for the oracle's constructed
+# lockstep (kernel/oracle/plot_test.go)
+# The Plot pool: every Standard plot card kgen lowers, plus basics
+# and Tormod's Crypt (a graveyard-to-exile effect, the non-plot exile that
+# must get no plot_cast offer), for the oracle's constructed lockstep
+# (dirac/oracle/plot_test.go).
+Beastbond Outcaster
+Blacksnag Buzzard
+Brimstone Roundup
+Cunning Coyote
+Demonic Ruckus
+Djinn of Fool's Fall
+Irascible Wolverine
+Loan Shark
+Pillage the Bog
+Pitiless Carnage
+Plan the Heist
+Railway Brawler
+Rictus Robber
+Rise of the Varmints
+Sheriff of Safe Passage
+Slickshot Lockpicker
+Slickshot Show-Off
+Spinewoods Paladin
+Stagecoach Security
+Stingerback Terror
+Unscrupulous Contractor
+Tormod's Crypt
+Plains
+Island
+Swamp
+Mountain
+Forest

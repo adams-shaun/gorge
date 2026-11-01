@@ -1,0 +1,27 @@
+# the Count$ heads pool: Delirium CharmNum$,
+# InOwnMainPhase, ValidLibrary, IsPrime and UnlockedDoors carriers beside
+# Rooms, vanilla creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/countprime_test.go)
+Let's Play a Game
+Dose of Dawnglow
+Ugin, Eye of the Storms
+Zimone, All-Questioning
+Rampaging Soulrager
+Bottomless Pool
+Meat Locker
+Surgical Suite
+Grizzly Bears
+Llanowar Elves
+Elvish Mystic
+Mind Stone
+Ornithopter
+Divination
+Duress
+Raise Dead
+Savannah Lions
+Plains
+Island
+Swamp
+Mountain
+Forest
+Wastes

@@ -1,0 +1,48 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Centaur Courser
+1	card	Craw Wurm
+2	card	Dazzling Angel
+3	card	Divination
+4	card	Elvish Mystic
+5	card	Forest
+6	card	Furnace Whelp
+7	card	Giada, Font of Hope
+8	card	Giant Growth
+9	card	Goblin Chieftain
+10	card	Grizzly Bears
+11	card	Guardian Idol
+12	card	Helga, Skittish Seer
+13	card	Hill Giant
+14	card	Island
+15	card	Kolvori, God of Kinship
+16	card	Lightning Bolt
+17	card	Lilypad Village
+18	card	Llanowar Elves
+19	card	Lupinflower Village
+20	card	Mind Stone
+21	card	Mountain
+22	card	Mudflat Village
+23	card	Oakhollow Village
+24	card	Ornithopter
+25	card	Pestilent Cauldron
+26	card	Plains
+27	card	Prodigal Sorcerer
+28	card	Rockface Village
+29	card	Savannah Lions
+30	card	Secluded Courtyard
+31	card	Serra Angel
+32	card	Shivan Dragon
+33	card	Shock
+34	card	Swamp
+35	card	Thran Spider
+36	card	Vanguard Seraph
+37	card	Walking Ballista
+38	card	Walking Corpse
+39	card	Wayfarer's Bauble
+40	card	Wind Drake
+41	card	face:Kolvori, God of Kinship#1
+42	card	face:Pestilent Cauldron#1
+43	token	bg_1_1_pest_lifegain
+44	token	c_a_powerstone
+45	card	Pacifism
+46	card	Mogg Fanatic

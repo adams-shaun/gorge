@@ -1,0 +1,14 @@
+# the non-creature-subtype vocabulary pool: Sokka's
+# Artifact/Lesson trigger and Intruding Soulrager's Sac<1/Room> cost,
+# with one Lesson card and one Room card for the matching matchup, for
+# the oracle's constructed lockstep (dirac/oracle/subtypevocab_test.go)
+Accumulate Wisdom
+Bottomless Pool
+Coral Merfolk
+Goblin Piker
+Intruding Soulrager
+Island
+Mountain
+Shock
+Sokka, Bold Boomeranger
+Unsummon

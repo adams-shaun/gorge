@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_24878_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 43810e385ec9464183149f2bb8a13cf3:1, player win-rate bucket 0.66 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Brineborn Cutthroat",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 2
+},
+{
+"name": "Dreadwing Scavenger",
+"count": 2
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Icewind Elemental",
+"count": 1
+},
+{
+"name": "Inspiration from Beyond",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Pilfer",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Soul-Shackled Zombie",
+"count": 1
+},
+{
+"name": "Spectral Sailor",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 6
+},
+{
+"name": "Think Twice",
+"count": 2
+},
+{
+"name": "Uncharted Voyage",
+"count": 2
+},
+{
+"name": "Witness Protection",
+"count": 1
+}
+]
+}

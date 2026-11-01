@@ -1,0 +1,20 @@
+# the Phyrexian mana pool (CR 107.4f): printed {C/P} pips
+# on spells and a creature beside creatures, burn and basics of every
+# colour (dirac/oracle/phy_test.go)
+Gut Shot
+Mutagenic Growth
+Dismember
+Vault Skirge
+Mental Misstep
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Wind Drake
+Walking Corpse
+Lightning Bolt
+Opt
+Mountain
+Forest
+Island
+Swamp
+Plains

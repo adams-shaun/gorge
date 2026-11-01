@@ -1,0 +1,11 @@
+# the Case pool (CR 719.3b): Crimson Pulse, Filched Falcon
+# and Gorgon's Kiss solved and used (dirac/oracle/case_test.go)
+Case of the Crimson Pulse
+Case of the Filched Falcon
+Case of the Gorgon's Kiss
+Ornithopter
+Island
+Mountain
+Swamp
+Shock
+Hill Giant

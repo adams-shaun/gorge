@@ -1,0 +1,37 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Abrade
+1	card	Bake into a Pie
+2	card	Billowing Shriekmass
+3	card	Bloodtithe Collector
+4	card	Burglar Rat
+5	card	Burst Lightning
+6	card	Cancel
+7	card	Chart a Course
+8	card	Crow of Dark Tidings
+9	card	Day of Judgment
+10	card	Deathmark
+11	card	Dragon Fodder
+12	card	Dryad Militant
+13	card	Duress
+14	card	Essence Scatter
+15	card	Forest
+16	card	Giant Growth
+17	card	Giant Spider
+18	card	Goblin Surprise
+19	card	Gray Ogre
+20	card	Grizzly Bears
+21	card	Hare Apparent
+22	card	Hero's Downfall
+23	card	Hill Giant
+24	card	Island
+25	card	Leyline of the Void
+26	card	Midnight Reaper
+27	card	Mountain
+28	card	Plains
+29	card	Rest in Peace
+30	card	Seeker's Folly
+31	card	Swamp
+32	card	Walking Corpse
+33	token	c_a_food_sac
+34	token	r_1_1_goblin
+35	token	w_1_1_rabbit

@@ -1,0 +1,99 @@
+# the multi-face test pool: every accepted modal
+# DFC, basics and a few vanilla creatures, for the kernel's scenario
+# tests and the oracle's constructed lockstep matchups
+Akoum Warrior
+Bala Ged Recovery
+Barkchannel Pathway
+Beyeen Veil
+Blackbloom Rogue
+Blightstep Pathway
+Branchloft Pathway
+Brightclimb Pathway
+Clearwater Pathway
+Cragcrown Pathway
+Darkbore Pathway
+Glasswing Grace
+Hengegate Pathway
+Jwari Disruption
+Kabira Takedown
+Kazandu Mammoth
+Kazuul's Fury
+Khalni Ambush
+Legion Leadership
+Makindi Stampede
+Malakir Rebirth
+Needleverge Pathway
+Ondu Inversion
+Revitalizing Repast
+Riverglide Pathway
+Silundi Vision
+Skyclave Cleric
+Song-Mad Treachery
+Strength of the Harvest
+Stump Stomp
+Tangled Florahedron
+Umara Wizard
+Vastwood Fortification
+Zof Consumption
+Mountain
+Forest
+Plains
+Island
+Swamp
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Giant Spider
+Savannah Lions
+Coral Merfolk
+Midnight Scavengers
+Blaze
+Stream of Life
+Mind Spring
+Rimrock Knight
+Embereth Shieldbreaker
+Brazen Borrower
+Merfolk Secretkeeper
+Giant Killer
+Murderous Rider
+Foulmire Knight
+Order of Midnight
+Curious Pair
+Garenbrig Carver
+Ardenvale Tactician
+Faerie Guidemother
+Shepherd of the Flock
+Young Red Dragon
+Lonesome Unicorn
+Beanstalk Giant
+Hypnotic Sprite
+Bellowing Bruiser
+Silverflame Squire
+Animating Faerie
+Smitten Swordmaster
+Fire
+Assault
+Pain
+Rough
+Wax
+Status
+Supply
+Dead
+Flower
+Pure
+Collision
+Integrity
+Expansion
+Carnival
+Thrash
+Warrant
+Depose
+Assure
+Jidoor, Aristocratic Capital
+Ishgard, the Holy See
+Value Town
+Zanarkand, Ancient Metropolis
+Lindblum, Industrial Regency
+Kolvori, God of Kinship
+Pestilent Cauldron

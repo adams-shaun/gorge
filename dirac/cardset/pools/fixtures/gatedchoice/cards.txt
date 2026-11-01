@@ -1,0 +1,19 @@
+# the MSH basic-land cycle ({C} beside a gated two-colour
+# choice) (dirac/oracle/gatedchoice_test.go)
+Dark Fortress
+Gathering Place
+Gleaming Bastion
+Hidden Lair
+Training Compound
+Shock
+Grizzly Bears
+Savannah Lions
+Wind Drake
+Hill Giant
+Llanowar Elves
+Cackling Prowler
+Plains
+Forest
+Mountain
+Island
+Swamp

@@ -1,0 +1,11 @@
+# Chandra, Hope's Beacon (the [-X] loyalty cost, the exiled-spell play grant)
+# (dirac/oracle/chandra_test.go)
+Chandra, Hope's Beacon
+Grizzly Bears
+Shock
+Lightning Bolt
+Divination
+Hill Giant
+Mountain
+Island
+Deb Thomas

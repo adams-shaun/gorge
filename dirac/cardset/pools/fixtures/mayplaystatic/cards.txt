@@ -1,0 +1,32 @@
+# the may-play-source pool: the five "if you cast a
+# spell this way, it enters with a counter" carriers (Intrepid
+# Paleontologist, Leonardo Sewer Samurai, Osteomancer Adept, Undead
+# Sprinter, Mikey & Don) whose Static$ True SpellCast triggers resolve
+# off the stack, beside their dinosaur/graveyard/top-of-library fodder,
+# changelings, self-mill, removal and basics, for the oracle's
+# constructed lockstep (dirac/oracle/mayplaystatic_test.go)
+Intrepid Paleontologist
+Leonardo, Sewer Samurai
+Osteomancer Adept
+Undead Sprinter
+Stitcher's Supplier
+Colossal Dreadmaw
+Thrashing Brontodon
+Typhoid Rats
+Grizzly Bears
+Murder
+Return to Nature
+Forest
+Swamp
+Mikey & Don, Party Planners
+Woodland Changeling
+Game-Trail Changeling
+Horned Turtle
+Ninja of the Deep Hours
+Mothdust Changeling
+Woodland Changeling
+Unsummon
+Naturalize
+Llanowar Elves
+Giant Growth
+Island

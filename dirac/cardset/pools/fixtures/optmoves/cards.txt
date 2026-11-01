@@ -1,0 +1,18 @@
+# the optional-move pool: a known-origin ChangeZone's
+# Optional$ ask (Mistbreath Elder, Intimidation Campaign) and an up-to-two
+# ChooseCard among the looked-at library cards (Thunderous Debut), beside
+# a crime enabler and vanilla creatures, for the oracle's constructed
+# lockstep (dirac/oracle/optmoves_test.go)
+Forest
+Giant Spider
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Intimidation Campaign
+Island
+Mistbreath Elder
+Mountain
+Shock
+Swamp
+Thunderous Debut
+Walking Corpse

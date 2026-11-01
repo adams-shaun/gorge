@@ -1,0 +1,80 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// a printed S:Mode$ CantBeActivated (kop.StatCantActivate,
+// CR 602.5; gorge abilityRestricted / abilityRestrictionApplies,
+// statics_cast.go). A locked permanent's activated abilities are not offered
+// (canActivate), and a locked mana ability is no mana source: gorge's
+// appendAvailableManaAbilitiesGateCompute gates every mana arm through
+// abilityRestricted, so neither its planner nor its payment window sees the
+// source (manaPCGen and the planner paths that bypass it).
+
+// DebugCantActMana (test only, TestCantactMutation): actForbidden never
+// forbids a mana ability, so a locked mana source stays live.
+var DebugCantActMana bool
+
+// DebugCantActCount (test only, TestCantactLockstep) arms the hold-out
+// counters below: CantActHeld counts actForbidden's activation-offer hits,
+// CantActManaHeld its mana-source hits, CantActCondHeld the hits (either) of
+// a conditional static (Grand Abolisher's Condition$ PlayerTurn).
+var (
+	DebugCantActCount                             bool
+	CantActHeld, CantActManaHeld, CantActCondHeld uint64
+)
+
+// prepCantAct arms genPrep.anyCantAct when some card has a StatCantActivate.
+func prepCantAct(t *kop.Table, g *genPrep) {
+	g.anyCantAct = tableHasStatic(t, kop.StatCantActivate)
+}
+
+// actForbidden reports whether a StatCantActivate forbids the controller of
+// the permanent at sl activating one of its abilities (mana: a mana
+// ability) -- gorge abilityRestrictionApplies: the activator relation
+// (Activator$: StRaiseYou the static's controller, StRaiseOpp its
+// opponents), the condition (Cond2, read as the static's), ValidSA$ (A = 1:
+// Activated.!ManaAbility spares mana abilities) and the card filter (read
+// with the static's controller as "you" and its source as the
+// EnchantedBy anchor) all hold. eachStatic skips a source that lost its
+// abilities, as gorge's activeStatics does.
+//
+//go:noinline
+func (s *State) actForbidden(k *prep, sl Slot, mana bool) bool {
+	if mana && DebugCantActMana {
+		return false
+	}
+	p := s.perms[sl].ctrl
+	hit, cond := false, false
+	s.eachStatic(k, func(stc statSrc) bool {
+		a := stc.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCantActivate {
+			return true
+		}
+		st := &a.Static
+		if st.StFlags&kop.StRaiseYou != 0 && stc.ctrl != p || st.StFlags&kop.StRaiseOpp != 0 && stc.ctrl == p {
+			return true
+		}
+		if mana && st.A == 1 {
+			return true
+		}
+		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, s.ctxStatic(stc)) {
+			return true
+		}
+		if s.matchPermGen(k, st.Filter, sl, stc.ctrl, stc.sl, layerFull) {
+			hit, cond = true, st.Cond2 != 0
+			return false
+		}
+		return true
+	})
+	if hit && DebugCantActCount {
+		if mana {
+			CantActManaHeld++
+		} else {
+			CantActHeld++
+		}
+		if cond {
+			CantActCondHeld++
+		}
+	}
+	return hit
+}

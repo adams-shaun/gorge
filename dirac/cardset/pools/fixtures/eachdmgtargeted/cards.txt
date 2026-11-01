@@ -1,0 +1,17 @@
+# EachDamage ParentTarget damagers and the TargetUnique$ chain
+# look-ahead (dirac/oracle/eachdmgtargeted_test.go)
+Common Goal
+Coordinated Clobbering
+Tandem Takedown
+Terrific Team-Up
+Allies at Last
+Band Together
+Jasmine Boreal
+Grizzly Bears
+Hill Giant
+Timberpack Wolf
+Healer's Hawk
+Shock
+Forest
+Mountain
+Plains

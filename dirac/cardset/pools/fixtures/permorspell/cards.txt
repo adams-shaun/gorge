@@ -1,0 +1,21 @@
+# ChangeZone Origin$ Battlefield,Stack, a target spell
+# or permanent returned or put on top/bottom (dirac/oracle/permorspell_test.go)
+Fatehold Charm
+Jeskai Revelation
+Venser, Shaper Savant
+Unsubstantiate
+Brutal Expulsion
+Swat Away
+Sudden Setback
+Think Twice
+Firebolt
+Shock
+Savannah Lions
+Raging Goblin
+Hill Giant
+Ornithopter
+Jayemdae Tome
+Glorious Anthem
+Island
+Plains
+Mountain

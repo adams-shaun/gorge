@@ -1,0 +1,21 @@
+# UnlessResolveSubs$ WhenPaid / WhenNotPaid gating the sub chain and a
+# triggered GenericChoice of unless-cost branches
+# (dirac/oracle/unlesssubs_test.go)
+Don't Make a Sound
+Divert Disaster
+Lord Skitter's Butcher
+Reckless Detective
+K'un-Lun Warrior
+Shock
+Lightning Bolt
+Thought Scour
+Heated Argument
+Callous Inspector
+Ornithopter
+Bonesplitter
+Raging Goblin
+Walking Corpse
+Bake into a Pie
+Island
+Swamp
+Mountain

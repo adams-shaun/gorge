@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_20845_WB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 19149b91987340388878130b99a67834:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arahbo, the First Fang",
+"count": 1
+},
+{
+"name": "Arbiter of Woe",
+"count": 2
+},
+{
+"name": "Burglar Rat",
+"count": 2
+},
+{
+"name": "Cat Collector",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 3
+},
+{
+"name": "Leyline Axe",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Savannah Lions",
+"count": 1
+},
+{
+"name": "Soul-Shackled Zombie",
+"count": 1
+},
+{
+"name": "Soulstone Sanctuary",
+"count": 1
+},
+{
+"name": "Squad Rallier",
+"count": 2
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 1
+}
+]
+}

@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_01456_UR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 5327017e6e01443c8a6a67bf65ac9628:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 2
+},
+{
+"name": "Cephalid Inkmage",
+"count": 1
+},
+{
+"name": "Clinquant Skymage",
+"count": 1
+},
+{
+"name": "Curator of Destinies",
+"count": 1
+},
+{
+"name": "Drake Hatcher",
+"count": 1
+},
+{
+"name": "Firespitter Whelp",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Mocking Sprite",
+"count": 2
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Niv-Mizzet, Visionary",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 2
+},
+{
+"name": "Swiftwater Cliffs",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 2
+},
+{
+"name": "Thrill of Possibility",
+"count": 2
+},
+{
+"name": "Tolarian Terror",
+"count": 2
+},
+{
+"name": "Witness Protection",
+"count": 2
+}
+]
+}

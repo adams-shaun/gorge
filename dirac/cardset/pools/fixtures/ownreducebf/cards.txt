@@ -1,0 +1,23 @@
+# the battlefield own-ReduceCost$ pool: "this ability
+# costs {N} less to activate..." on a printed battlefield ability
+# (Waterbending Scroll, Hylda's Crown of Winter, The Lonely Mountain,
+# Survey Mechan, Starport Security, Qiqirn Merchant, Balamb Garden)
+# beside an Equipment, a +1/+1-counter creature, basics and vanilla
+# creatures (dirac/oracle/ownreducebf_test.go)
+Waterbending Scroll
+Hylda's Crown of Winter
+The Lonely Mountain
+Survey Mechan
+Starport Security
+Qiqirn Merchant
+Balamb Garden, SeeD Academy
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Swiftfoot Boots
+Skyknight Squire
+Plains
+Island
+Swamp
+Mountain
+Forest

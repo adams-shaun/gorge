@@ -1,0 +1,33 @@
+# the statics that carry two gates in one conjunction
+# (Condition$ + CheckSVar$/IsPresent$, kop.CondAnd): Momo, Friendly
+# Flier (PlayerTurn + first non-Lemur flyer), Of One Mind (Human +
+# non-Human), Incisor Steed (Metalcraft + poison), Sardian
+# Cliffstomper (Mountain + PlayerTurn), beside non-Lemur flyers, a
+# Human, a poison source, burn, vanillas and basics, for the oracle's
+# constructed lockstep (dirac/oracle/condand_test.go). Grond, the
+# Gatebreaker also lowers; its self-override Army condition re-enters
+# the layer walk and is pooled in selfcond (below). Universal Automaton
+# (a changeling) is the only Human Of One Mind's IsPresent$ sees in some
+# games.
+Incisor Steed
+Prologue to Phyresis
+Momo, Friendly Flier
+Of One Mind
+Sardian Cliffstomper
+Grizzly Bears
+Elite Vanguard
+Stoic Sphinx
+Leapfrog
+Wind Drake
+Ornithopter
+Gray Ogre
+Hill Giant
+Walking Corpse
+Lightning Bolt
+Unsummon
+Plains
+Island
+Swamp
+Mountain
+Forest
+Universal Automaton

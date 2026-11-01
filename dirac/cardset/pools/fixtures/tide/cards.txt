@@ -1,0 +1,11 @@
+# Tishana's Tidebinder (counter an ability, its source loses
+# abilities while the host stays) (dirac/oracle/tide_test.go)
+Tishana's Tidebinder
+Prodigal Sorcerer
+Elvish Visionary
+Mind Stone
+Grizzly Bears
+Island
+Forest
+Mountain
+Pestermite

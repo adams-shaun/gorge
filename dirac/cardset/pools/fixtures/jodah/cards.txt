@@ -1,0 +1,23 @@
+# the Jodah pool: Jodah, the Unifier's dig-until-cheaper
+# legendary free cast and the random-order bottom, beside vanilla
+# legends of every mana value, Birds of Paradise and basics of every
+# colour (dirac/oracle/jodah_test.go)
+Jodah, the Unifier
+Birds of Paradise
+Isamaru, Hound of Konda
+Tyrox, Saurid Tyrant
+Kalakscion, Hunger Tyrant
+Jasmine Boreal
+Tobias Andrion
+Jedit Ojanen
+Lady Orca
+Shock
+Hill Giant
+Wind Drake
+Unsummon
+Counterspell
+Plains
+Island
+Swamp
+Mountain
+Forest

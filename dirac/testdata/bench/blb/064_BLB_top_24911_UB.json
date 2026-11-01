@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_24911_UB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 2aa200e79a4444528e0ceb7bfac5377e:1, player win-rate bucket 0.76 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Kitnap, 1 Lilypad Village, 1 Mockingbird, 1 Nocturnal Hunger, 1 Season of Weaving, 1 Thought-Stalker Warlock -> 3 Island, 3 Swamp",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 2
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mind Drill Assailant",
+"count": 2
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Mudflat Village",
+"count": 1
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 2
+},
+{
+"name": "Shoreline Looter",
+"count": 3
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Stargaze",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Tidecaller Mentor",
+"count": 5
+}
+]
+}

@@ -1,0 +1,107 @@
+{
+"name": "FDN_top_08718_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 32e6ede406dc4440944c12ae5d814c39:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Aetherize",
+"count": 1
+},
+{
+"name": "Ajani's Pridemate",
+"count": 1
+},
+{
+"name": "Archmage of Runes",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Crystal Barricade",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Exemplar of Light",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Heraldic Banner",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Luminous Rebuke",
+"count": 2
+},
+{
+"name": "Meteor Golem",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 7
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Scrawling Crawler",
+"count": 1
+},
+{
+"name": "Spectral Sailor",
+"count": 2
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Stroke of Midnight",
+"count": 1
+},
+{
+"name": "Tranquil Cove",
+"count": 1
+}
+]
+}

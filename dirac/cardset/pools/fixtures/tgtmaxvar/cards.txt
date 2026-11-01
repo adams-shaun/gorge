@@ -1,0 +1,34 @@
+# the value-bound target pool: Rabid Attack, Coveted
+# Falcon, Divergent Equation, Hide on the Ceiling, Heroic Feast and
+# Prismabasher (TargetMin$/TargetMax$ X over a count, X paid or the
+# trigger amount) beside lifegain, shroud creatures and a copier
+# (dirac/oracle/tgtmaxvar_test.go)
+# the value-bound target pool: TargetMax$/TargetMin$ X over a
+# count (Rabid Attack, Coveted Falcon, Prismabasher), X paid (Divergent
+# Equation) and the trigger amount (Heroic Feast), beside
+# lifegain (Bogwater Lumaret, Vampire Nighthawk), shroud creatures (Elvish
+# Lookout, Humble Budoka: fewer legal targets than Rabid Attack's count), a
+# multicolour permanent (Bogwater Lumaret), graveyard fodder (Unsummon,
+# Divination), a copier (Twincast) and bodies (dirac/oracle/tgtmaxvar_test.go)
+Rabid Attack
+Coveted Falcon
+Divergent Equation
+Heroic Feast
+Prismabasher
+Bogwater Lumaret
+Vampire Nighthawk
+Elvish Lookout
+Humble Budoka
+Grizzly Bears
+Unsummon
+Divination
+Twincast
+Wind Drake
+Merfolk of the Pearl Trident
+Forest
+Swamp
+Island
+Iridescent Tiger
+Mox Ruby
+Mox Sapphire
+Mountain

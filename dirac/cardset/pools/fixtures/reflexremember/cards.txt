@@ -1,0 +1,18 @@
+# the remember-writer pool: Novel Nunchaku (Attach
+# RememberAttached$) and Curse of the Werefox (ImmediateTrigger
+# RememberObjects$ Targeted read by Fight) beside Auras, green creatures,
+# burn and bounce (dirac/oracle/reflexremember_test.go)
+Novel Nunchaku
+Curse of the Werefox
+Rancor
+Pacifism
+Llanowar Elves
+Grizzly Bears
+Hill Giant
+Giant Growth
+Shock
+Unsummon
+Graceful Takedown
+Forest
+Mountain
+Island

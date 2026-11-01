@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_22911_WGpU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck f983b653b72b4de2bec1c6f21a562307:0, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Head of the Homestead, 1 Pond Prophet, 1 Rabbit Response, 1 Rust-Shield Rampager, 1 Season of the Burrow -> 3 Plains, 3 Forest",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Bumbleflower's Sharepot",
+"count": 1
+},
+{
+"name": "Druid of the Spade",
+"count": 2
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "Hazardroot Herbalist",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Seasoned Warrenguard",
+"count": 2
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Sunshower Druid",
+"count": 2
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 1
+},
+{
+"name": "Treeguard Duo",
+"count": 2
+}
+]
+}

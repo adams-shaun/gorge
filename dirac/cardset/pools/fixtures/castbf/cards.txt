@@ -1,0 +1,38 @@
+# the cast-battlefield pool: the two
+# Count$LastStateBattlefieldWithFallback carriers, Steer Clear (Mounts)
+# and Faerie Fencing (Faeries), beside Mounts, Faeries, instant removal,
+# cheap creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/castbf_test.go)
+# The cast-battlefield pool: the two Count$LastStateBattlefieldWithFallback
+# carriers, Steer Clear (Mounts) and Faerie Fencing (Faeries), beside Mounts and Faeries the
+# frozen filter matches, instant removal (so a Mount or Faerie can die between cast and
+# resolution and the frozen count diverges from the live one), cheap creatures and basics,
+# for the oracle's constructed lockstep (dirac/oracle/castbf_test.go).
+Steer Clear
+Faerie Fencing
+Bridled Bighorn
+Alacrian Jaguar
+Bulwark Ox
+Brightfield Mustang
+Caustic Bronco
+Faerie Miscreant
+Faerie Seer
+Brazen Borrower
+Picklock Prankster
+Silkbind Faerie
+Lightning Bolt
+Shock
+Murder
+Bake into a Pie
+Doom Blade
+Terror
+Immolating Glare
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Savannah Lions
+Llanowar Elves
+Plains
+Island
+Swamp
+Mountain

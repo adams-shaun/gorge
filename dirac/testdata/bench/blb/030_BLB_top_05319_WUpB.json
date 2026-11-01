@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_05319_WUpB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 4aeb835736c04b9c8015e7056ff623bc:0, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Barkform Harvester, 1 Kastral, the Windcrested, 2 Mockingbird, 1 Three Tree Mascot -> 3 Plains, 2 Island",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Patchwork Banner",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 4
+},
+{
+"name": "Wax-Wane Witness",
+"count": 4
+}
+]
+}

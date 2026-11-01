@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_02172_WUpB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 78f1e2794b4b451daff77f3640eb08b0:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Dazzling Denial, 1 Dewdrop Cure, 1 Dour Port-Mage, 1 Finch Formation, 1 Kastral, the Windcrested, 1 Nettle Guard -> 3 Plains, 3 Island",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 3
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mind Drill Assailant",
+"count": 1
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 3
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+}
+]
+}

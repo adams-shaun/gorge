@@ -1,0 +1,13 @@
+# Quirion Beastcaller's divided dies counters (dirac/oracle/quirion_test.go)
+Quirion Beastcaller
+Grizzly Bears
+Llanowar Elves
+Shock
+Prodigal Sorcerer
+Hill Giant
+Savannah Lions
+Suntail Hawk
+Plains
+Forest
+Mountain
+Island

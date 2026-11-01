@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_23340_WUR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck c74d9b7782bf47f288fe93977258281a:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Essence Channeler, 1 Salvation Swan, 1 Valley Rally, 2 Veteran Guardmouse -> 3 Plains, 2 Island, 1 Mountain",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Brambleguard Captain",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Fountainport Bell",
+"count": 2
+},
+{
+"name": "Island",
+"count": 7
+},
+{
+"name": "Knightfisher",
+"count": 1
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 3
+},
+{
+"name": "Pileated Provisioner",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Plumecreed Mentor",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Shrike Force",
+"count": 4
+},
+{
+"name": "Sonar Strike",
+"count": 1
+}
+]
+}

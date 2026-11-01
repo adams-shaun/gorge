@@ -1,0 +1,87 @@
+package cardset
+
+import "fmt"
+
+// Status is what a pool entry is allowed to do. kgen computes it at table build:
+//
+//	supported = lowered && not refused by name && evidenced
+//
+// The zero value is StatusSupported, so a table without statuses must not load
+// (DecodeTable refuses one).
+type Status uint8
+
+const (
+	StatusSupported  Status = iota // lowered, evidenced, not refused
+	StatusNotLowered               // kgen cannot represent it; Pool holds an inert stand-in
+	StatusRefused                  // named in dirac/support/refused
+	StatusUnverified               // lowered, in no dirac/support/evidence list
+)
+
+func (s Status) String() string {
+	switch s {
+	case StatusSupported:
+		return "supported"
+	case StatusNotLowered:
+		return "not lowered"
+	case StatusRefused:
+		return "refused"
+	case StatusUnverified:
+		return "unverified"
+	}
+	return fmt.Sprintf("Status(%d)", uint8(s))
+}
+
+// EnforceEvidence makes an unverified card unplayable through ByName, as a refused
+// one is. While it is false an unverified card plays, because self-play and training
+// read those tables and most lowered cards have no evidence.
+const EnforceEvidence = false
+
+// RefusedError is Matchup's answer for a deck holding a card its set will not play.
+type RefusedError struct {
+	Card   string
+	Status Status
+	Reason string
+}
+
+func (e *RefusedError) Error() string {
+	return fmt.Sprintf("card %q is not supported: %s", e.Card, e.Reason)
+}
+
+// playable is which statuses a view of a table plays.
+type playable func(Status) bool
+
+func gated(enforce bool) playable {
+	return func(s Status) bool {
+		return s == StatusSupported || s == StatusUnverified && !enforce
+	}
+}
+
+func notRefused(s Status) bool { return s != StatusNotLowered && s != StatusRefused }
+
+func lowered(s Status) bool { return s != StatusNotLowered }
+
+// viewOf is the Set that plays d's entries whose status plays accepts.
+func viewOf(d *PoolData, plays playable) Set {
+	sup := make([]bool, len(d.Status))
+	for i, st := range d.Status {
+		sup[i] = plays(st)
+	}
+	return &dataSet{d, sup}
+}
+
+// RawByName returns the set named name with every lowered card playable, refused
+// and unverified alike. It is how a card earns evidence or proves it still diverges,
+// so only the lockstep oracle and kgen may call it (internal/boundary holds them to that).
+func RawByName(name string) (Set, error) {
+	s, err := load(name)
+	if err != nil {
+		return nil, err
+	}
+	return viewOf(s.(*dataSet).d, lowered), nil
+}
+
+// AllowUnverified returns s playing unverified cards too. A refused card stays
+// refused: it is known to play wrongly, where an unverified one is only unproven.
+func AllowUnverified(s Set) Set {
+	return viewOf(s.(*dataSet).d, notRefused)
+}

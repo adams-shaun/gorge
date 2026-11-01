@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_07965_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck a91fcf4fb30d4b699207f307dde5ff85:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Early Winter, 2 Essence Channeler, 1 Jackdaw Savior, 1 Nocturnal Hunger, 1 Wick's Patrol -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 3
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Ravine Raider",
+"count": 1
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Scales of Shale",
+"count": 3
+},
+{
+"name": "Sinister Monolith",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

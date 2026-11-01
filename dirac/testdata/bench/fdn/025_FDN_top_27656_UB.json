@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_27656_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck a8f1d7bbe6024958932838ab39bcbfb1:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Erudite Wizard",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Fake Your Own Death",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 2
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 4
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 2
+},
+{
+"name": "Uncharted Voyage",
+"count": 2
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+}
+]
+}

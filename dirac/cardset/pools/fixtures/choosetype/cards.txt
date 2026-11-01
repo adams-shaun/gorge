@@ -1,0 +1,26 @@
+# the as-enters creature-type choice pool:
+# ValidTypes$ (Dawn-Blessed Pennant, Eclipsed Realms), an absent
+# Defined$ (Chronicle of Victory, Collective Inferno) and AddType$
+# ChosenType (Adaptive Automaton, Roaming Throne, Lifecraft Engine),
+# for the oracle's constructed lockstep (dirac/oracle/choosetype_test.go)
+Dawn-Blessed Pennant
+Chronicle of Victory
+Adaptive Automaton
+Eclipsed Realms
+Collective Inferno
+Roaming Throne
+Lifecraft Engine
+Llanowar Elves
+Elvish Visionary
+Goblin Piker
+Raging Goblin
+Warped Tusker
+Hill Giant
+Gray Ogre
+Merfolk of the Pearl Trident
+Shock
+Topiary Lecturer
+Lightning Bolt
+Forest
+Mountain
+Island

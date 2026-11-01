@@ -1,0 +1,95 @@
+{
+"name": "FDN_top_10664_BR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck e03906c3c56f4b978e7a14c66391ce76:0, player win-rate bucket 0.70 (CC BY 4.0)",
+"cards": [
+{
+"name": "Axgard Cavalry",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 2
+},
+{
+"name": "Billowing Shriekmass",
+"count": 1
+},
+{
+"name": "Brazen Scourge",
+"count": 3
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Frenzied Goblin",
+"count": 1
+},
+{
+"name": "Heartfire Immolator",
+"count": 2
+},
+{
+"name": "Hero's Downfall",
+"count": 2
+},
+{
+"name": "High-Society Hunter",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Liliana, Dreadhorde General",
+"count": 1
+},
+{
+"name": "Macabre Waltz",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 8
+},
+{
+"name": "Perforating Artist",
+"count": 1
+},
+{
+"name": "Pilfer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Tinybones, Bauble Burglar",
+"count": 1
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+}
+]
+}

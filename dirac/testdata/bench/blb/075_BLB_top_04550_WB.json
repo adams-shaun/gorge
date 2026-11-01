@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_04550_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck b0bbab9c9f6a4e04a854e49a9f1936cf:1, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Early Winter, 1 Head of the Homestead, 1 Jackdaw Savior -> 2 Plains, 1 Swamp",
+"cards": [
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Mind Drill Assailant",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 3
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Thistledown Players",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 2
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

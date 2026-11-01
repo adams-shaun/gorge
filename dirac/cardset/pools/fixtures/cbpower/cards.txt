@@ -1,0 +1,15 @@
+# CantBlockBy ValidBlocker$ Creature.power<op><N> (Cavern
+# Stomper, Cheeky House-Mouse) beside Agility Bobblehead's haste form
+# (dirac/oracle/cbpower_test.go)
+Cavern Stomper
+Cheeky House-Mouse
+Giant Growth
+Agility Bobblehead
+Fugitive Wizard
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Plains
+Forest
+Mountain
+Island

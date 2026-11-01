@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_23758_UBpW",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 6b377d5060ca42169887f022f9f6a14a:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Burglar Rat",
+"count": 2
+},
+{
+"name": "Campus Guide",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Erudite Wizard",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 2
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Island",
+"count": 6
+},
+{
+"name": "Kykar, Zephyr Awakener",
+"count": 1
+},
+{
+"name": "Pilfer",
+"count": 3
+},
+{
+"name": "Plains",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Soul-Shackled Zombie",
+"count": 1
+},
+{
+"name": "Spectral Sailor",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Think Twice",
+"count": 3
+},
+{
+"name": "Tolarian Terror",
+"count": 2
+},
+{
+"name": "Tranquil Cove",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+}
+]
+}

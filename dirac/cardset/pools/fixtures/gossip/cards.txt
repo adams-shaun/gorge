@@ -1,0 +1,12 @@
+# the Gossip's Talent pool: the no-ExileOnMoved$
+# CantBlockBy Effect on its own attacking target beside vanilla creatures,
+# Giant Spider blockers, mana and Opt (dirac/oracle/gossip_test.go)
+Gossip's Talent
+Grizzly Bears
+Hill Giant
+Giant Spider
+Llanowar Elves
+Elvish Mystic
+Opt
+Island
+Forest

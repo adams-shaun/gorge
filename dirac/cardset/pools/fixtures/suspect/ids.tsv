@@ -1,0 +1,28 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Absolving Lammasu
+1	card	Act of Treason
+2	card	Air Elemental
+3	card	Barbed Servitor
+4	card	Caught Red-Handed
+5	card	Clandestine Meddler
+6	card	Convenient Target
+7	card	Deadly Complication
+8	card	Disfigure
+9	card	Eliminate the Impossible
+10	card	Fire Elemental
+11	card	Hill Giant
+12	card	Island
+13	card	It Doesn't Add Up
+14	card	J. Jonah Jameson
+15	card	Mountain
+16	card	Person of Interest
+17	card	Plains
+18	card	Presumed Dead
+19	card	Repeat Offender
+20	card	Rubblebelt Braggart
+21	card	Rune-Brand Juggler
+22	card	Savannah Lions
+23	card	Swamp
+24	token	c_a_clue_draw
+25	token	c_a_treasure_sac
+26	token	wu_2_2_detective

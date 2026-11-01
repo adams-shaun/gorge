@@ -1,0 +1,26 @@
+# the TurnFaceUp-replacement pool: Bubble Smuggler and
+# Crowd-Control Warden (counters as they turn up), Karlov Watchdog and
+# Unable to Scream (can't be turned face up), beside the facedown
+# pool's Morph/Disguise creatures, Priests and Moxen
+# (dirac/oracle/turnuprepl_test.go)
+Bubble Smuggler
+Crowd-Control Warden
+Karlov Watchdog
+Unable to Scream
+Iridescent Tiger
+Soul Summons
+Manifest Dread
+Aven Farseer
+Mox Emerald
+Mox Sapphire
+Mox Jet
+Mox Ruby
+Mox Pearl
+Priest of Urabrask
+Priest of Gix
+Kolaghan Stormsinger
+Bolrac-Clan Basher
+Basilica Stalker
+Zoetic Cavern
+Concealed Weapon
+Memnite

@@ -1,0 +1,591 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// StallRestrSrc: restricted mana a planner-tapped source leaves floating past
+// what poolR holds (a second colour or restriction, or more than 15).
+const StallRestrSrc = 64
+
+func init() { stallNames[StallRestrSrc] = "restrsrc" }
+
+// Restricted mana sources as planner units (gorge,
+// CR 106.6, 601.2g-h, 602.2b).
+//
+// gorge's payment planner used to defer every RestrictValid$ mana ability
+// (a scripted-prefix gap); it now counts the source as a census unit for
+// exactly the payments its restriction admits (pay.PlanPaymentCostWithout's
+// descriptor, RestrictValidMatches):
+//   - a restricted fixed ability of a source with no census ability of its
+//     own (Giada {W}, a Powerstone {C}, Kolvori {G}) or a restricted
+//     Produced$ Any one (Gideon's Memorial) is appended with the
+//     choice-shaped units, in battlefield order (rkExt);
+//   - one beside a census ability (a Village's {W} beside {C}, Secluded
+//     Courtyard's any colour beside {C}) joins the unit that ability has,
+//     at the census position: the unit's colours widen (rkWiden);
+//   - an evaluated amount (Helga's Amount$ X, her power) joins the
+//     evaluated-amount layer, last (rkDyn).
+//
+// A payment is spell, activated ability (the source of the ability) or
+// other (echo, cumulative upkeep, a triggered cost). The ward / unless
+// mana window is unchanged: it activates every restricted source in
+// battlefield order (windowRestr), and a pool holding restricted mana
+// stays refused by the planner (poolR). A reflected restricted ability
+// (Plaza of Heroes) is still a census gap (planreflected.go refuses it).
+
+// restrSrc record kinds.
+const (
+	rkWiden uint8 = 1 + iota // joins the card's own census unit
+	rkExt                    // a unit of its own, with the choice-shaped ones
+	rkDyn                    // an evaluated amount: the last layer
+)
+
+// DebugRestrictedSource is the lockstep mutation switch of TestKf24Restr*: 1 admits
+// every restricted source for every payment, 2 none, 3 puts a widened unit
+// (Secluded Courtyard) with the choice-shaped ones instead of its census
+// position. Zero in every real run.
+var DebugRestrictedSource uint8
+
+// payment classes (gorge pay.Purpose).
+const (
+	pdSpell uint8 = iota
+	pdAct
+	pdOther
+	pdNone // no payment: the restricted sources count for nothing
+)
+
+// payDesc describes the payment a plan funds: for a spell the card, for an
+// activated ability the source's card and (when it is a permanent) slot.
+type payDesc struct {
+	class uint8
+	card  CardID
+	src   Slot
+	// og is the cast a spell payment funds, read by a provenance restriction
+	// the zero value fails closed
+	og restrOrigin
+}
+
+// restrRec is one restricted mana ability of the table: card c's ability
+// ab, planned through views[view] (rkDyn: views[view+n] for amount n).
+type restrRec struct {
+	card CardID
+	ab   int8
+	kind uint8
+	view int32
+}
+
+// restrData is the table's restricted planner sources.
+type restrData struct {
+	recs  []restrRec
+	views []pcard
+	// ext: some record adds units of its own (rkExt, rkDyn) rather than
+	// widening a census unit; nonSpell: some record may pay a payment that
+	// is not a spell (AfManaNonSpell, or an activated restriction). Both
+	// let restrSrcAffords answer without walking the battlefield.
+	ext, nonSpell bool
+}
+
+// restrSrcAb: a is a plain tap mana ability with a spend restriction that
+// gorge's planner counts per payment (not a reflected one).
+func restrSrcAb(a *kop.Ability) bool {
+	return a.Kind == kop.AbMana && a.ManaRestrict != 0 && !restrWideAnyMana(a) &&
+		a.AFlags&^(kop.AfManaNonSpell|kop.AfManaDynamic|kop.AfManaChoice) == 0 &&
+		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.ManaColors&0x3f != 0
+}
+
+// prepRestrSrc records card c's restricted planner source (its first).
+func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
+	for j := range c.Abilities {
+		a := &c.Abilities[j]
+		if a.AFlags&kop.AfLatent != 0 || !restrSrcAb(a) {
+			continue
+		}
+		if g.rs == nil {
+			g.rs = &restrData{}
+		}
+		g.anyRestrSrc = true
+		g.setFlag(id, gfRestrSrc)
+		rec := restrRec{card: id, ab: int8(j), view: int32(len(g.rs.views))}
+		n := max(a.ManaN, 1)
+		switch {
+		case a.AFlags&kop.AfManaDynamic != 0:
+			rec.kind = rkDyn
+			for n := 0; n <= maxDynMana; n++ {
+				g.rs.views = append(g.rs.views, pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: uint8(n), manaTap: true, manaDyn: true})
+			}
+		case pc.manaAb >= 0 && pc.manaTap && !pc.manaChosen && !pc.manaMulti && pc.painCol == 0:
+			rec.kind = rkWiden
+			v := *pc
+			v.manaCol |= a.ManaColors & 0x3f
+			g.rs.views = append(g.rs.views, v)
+		default:
+			rec.kind = rkExt
+			g.rs.views = append(g.rs.views, pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: n, manaTap: true})
+		}
+		g.rs.recs = append(g.rs.recs, rec)
+		g.rs.ext = g.rs.ext || rec.kind != rkWiden
+		g.rs.nonSpell = g.rs.nonSpell || a.AFlags&kop.AfManaNonSpell != 0 || a.ManaRestrictAb != 0
+		return
+	}
+}
+
+// restrRecOf is card c's restricted-source record.
+func (g *genPrep) restrRecOf(c CardID) *restrRec {
+	for i := range g.rs.recs {
+		if g.rs.recs[i].card == c {
+			return &g.rs.recs[i]
+		}
+	}
+	return nil
+}
+
+// payDescNow is the payment a plan taps for: the entry being built (a
+// spell's card, an activated ability's source), else a spell when the
+// caller excludes a hand card from the demand, else other.
+func (s *State) payDescNow(exclude Obj) payDesc {
+	if s.ctl == ctlBuild {
+		switch e := &s.bld().e; e.kind {
+		case seSpell:
+			og := s.restrOriginOfObj(e.obj)
+			if s.bld().bfl&bflPushed != 0 {
+				og = restrOriginOfEntry(e)
+			}
+			return payDesc{class: pdSpell, card: e.card, src: NoSlot, og: og}
+		case seAbility:
+			return payDesc{class: pdAct, card: e.card, src: s.srcSlot()}
+		}
+		return payDesc{class: pdOther, src: NoSlot}
+	}
+	if exclude != NoObj {
+		return payDesc{class: pdSpell, card: s.objs[exclude].card, src: NoSlot, og: s.restrOriginOfObj(exclude)}
+	}
+	return payDesc{class: pdOther, src: NoSlot}
+}
+
+// restrSrcAdmits reports whether restricted ability a of the source at sl
+// may pay d (gorge pay.RestrictValidMatches; the chosen type is the mana
+// source's own).
+func (s *State) restrSrcAdmits(k *prep, p uint8, sl Slot, a *kop.Ability, d *payDesc) bool {
+	if DebugRestrictedSource == 1 || DebugRestrictedSource == 2 {
+		return DebugRestrictedSource == 1
+	}
+	switch d.class {
+	case pdSpell:
+		return s.restrSpellMatch(k, p, sl, a.ManaRestrict, d.card, d.og)
+	case pdAct:
+		if a.AFlags&kop.AfManaNonSpell != 0 {
+			return true
+		}
+		if DebugManaRestrictActNone && a.ManaRestrictAb != 0 && restrActAnyCard(k, a.ManaRestrictAb) {
+			return false
+		}
+		return a.ManaRestrictAb != 0 && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d)
+	}
+	return a.AFlags&kop.AfManaNonSpell != 0
+}
+
+// restrPoolAct reports whether p's floating restricted mana (poolR) may pay
+// activated-ability payment d (gorge AvailableFor's RestrictValidMatches, CR
+// 106.6). The byte names the restriction by genPrep.restrF index, not the
+// source, so a chosen type is read from a source of p's with that restriction,
+// and a restriction with none admits as printed even if its source has left.
+//
+//go:noinline
+func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) bool {
+	r := s.pl[p&1].poolR
+	if r&poolRCnt == 0 || k.gen == nil {
+		return false
+	}
+	f := k.gen.restrF[0]
+	if r&poolRKind != 0 {
+		f = k.gen.restrF[1]
+	}
+	for i := range k.t.Cards {
+		abs := k.t.Cards[i].Abilities
+		for j := range abs {
+			a := &abs[j]
+			if a.Kind != kop.AbMana || a.ManaRestrict != f {
+				continue
+			}
+			if a.AFlags&kop.AfManaNonSpell != 0 {
+				return true
+			}
+			if a.ManaRestrictAb != 0 && k.t.Filters[a.ManaRestrictAb].Flags2&kop.F2ChosenType == 0 && s.restrActMatch(k, p, NoSlot, a.ManaRestrictAb, d) {
+				return true
+			}
+		}
+	}
+	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+		sl := m.first()
+		abs := k.t.Cards[s.cardAt(sl)].Abilities
+		for j := range abs {
+			if a := &abs[j]; a.Kind == kop.AbMana && a.ManaRestrict == f && a.ManaRestrictAb != 0 && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// restrSpellMatch: card c, cast as a spell, matches the spell restriction f
+// of the source at sl.
+func (s *State) restrSpellMatch(k *prep, p uint8, sl Slot, f kop.FilterID, c CardID, og restrOrigin) bool {
+	for ; f != 0; f = k.t.Filters[f].Or {
+		fl := k.t.Filters[f]
+		fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
+		chosen := fl.Flags2&kop.F2ChosenType != 0
+		fl.Flags2 &^= kop.F2ChosenType
+		if !s.restrFilterMatch(k, &fl, c, p, og) {
+			continue
+		}
+		if !chosen || s.restrChoseHas(k, sl, c) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrChoseHas: card c has the creature type the source at sl chose.
+func (s *State) restrChoseHas(k *prep, sl Slot, c CardID) bool {
+	ch, ok := s.chosenTypeSub(sl)
+	if !ok {
+		return false
+	}
+	cd := &k.t.Cards[c]
+	return int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch)) || cd.AllCreatureTypes
+}
+
+// restrActMatch: the activated ability d describes has a source matching
+// the activated restriction f of the mana source at sl.
+func (s *State) restrActMatch(k *prep, p uint8, sl Slot, f kop.FilterID, d *payDesc) bool {
+	if d.src != NoSlot {
+		return s.matchPerm(k, f, d.src, p, sl)
+	}
+	for ; f != 0; f = k.t.Filters[f].Or {
+		fl := k.t.Filters[f]
+		fl.Zone = kop.ZoneNone
+		chosen := fl.Flags2&kop.F2ChosenType != 0
+		fl.Flags2 &^= kop.F2ChosenType
+		if s.matchCardOne(k, &fl, d.card, p, p, NoObj) && (!chosen || s.restrChoseHas(k, sl, d.card)) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrUsable: the permanent at sl can be tapped for mana now (its own
+// mana ability aside: canTapForManaPC).
+func (s *State) restrUsable(k *prep, sl Slot) bool {
+	pm := &s.perms[sl]
+	return pm.flags&pfTapped == 0 && pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 &&
+		!(pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0) && !s.genLost(k, sl) &&
+		!(k.gen.anyCantAct && s.actForbidden(k, sl, true)) // a CantBeActivated lock (cast_cantactivate.go)
+}
+
+// restrView is the planner's view of the restricted ability of the source
+// at sl for payment d (nil: none, or d may not spend it): own is the
+// source's view of its census ability. kind is the record's, ab the
+// ability. A widened source whose restricted ability d may not spend
+// (widen: true, v nil) is still a unit of its census ability, but ranks
+// as the source it is: gorge's Alt.Flex and Alt.Colours describe the
+// SOURCE over every normal alternative, withheld or not (pay/planalts.go).
+func (s *State) restrView(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v *pcard, kind uint8, ab *kop.Ability) {
+	v, kind, ab, _ = s.restrViewW(k, p, sl, own, d)
+	return v, kind, ab
+}
+
+// restrViewW is restrView, also reporting the colours a widened source's
+// unit ranks over when d may not spend the restricted ability (dmask).
+func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v *pcard, kind uint8, ab *kop.Ability, dmask uint8) {
+	g := k.gen
+	c := s.cardAt(sl)
+	rec := g.restrRecOf(c)
+	if rec == nil {
+		return nil, 0, nil, 0
+	}
+	ab = &k.t.Cards[c].Abilities[rec.ab]
+	switch rec.kind {
+	case rkWiden:
+		if own.manaAb < 0 || !s.canTapForManaPC(k, sl, own) {
+			return nil, 0, nil, 0
+		}
+		if !s.restrSrcAdmits(k, p, sl, ab, d) {
+			return nil, 0, nil, srcMask(&g.rs.views[rec.view])
+		}
+	default:
+		if !s.restrUsable(k, sl) || !s.restrSrcAdmits(k, p, sl, ab, d) {
+			return nil, 0, nil, 0
+		}
+	}
+	view := rec.view
+	if rec.kind == rkDyn {
+		n := s.dynManaN(k, ab, sl)
+		if n <= 0 {
+			return nil, 0, nil, 0
+		}
+		view += int32(min(n, maxDynMana))
+	}
+	return &g.rs.views[view], rec.kind, ab, 0
+}
+
+// restrOnlyUsable: the source at sl has no census mana ability and a
+// restricted one payment d may spend (a planner unit of its own).
+func (s *State) restrOnlyUsable(k *prep, p uint8, sl Slot, d *payDesc) bool {
+	c := s.cardAt(sl)
+	if k.gen.flags[c]&gfRestrSrc == 0 || k.cards[c].manaAb >= 0 {
+		return false
+	}
+	v, _, _ := s.restrView(k, p, sl, &k.cards[c], d)
+	return v != nil
+}
+
+// restrSrcAffords: av, with the restricted sources payment d may spend
+// counted, pays cost plus extra generic. skip is a source the payment's own
+// {T} taps. Every caller asks only when av alone does not pay, so a
+// payment no restricted source of the table can widen enough is false
+// without the walk (restrSrcNone).
+func (s *State) restrSrcAffords(k *prep, p uint8, d payDesc, cost *kop.ManaCost, av *avail, skip Slot, extra int) bool {
+	if restrSrcNone(k.gen.rs, &d, cost, av, extra) {
+		return false
+	}
+	t, multi, nm := s.restrSrcAvail(k, p, d, av, skip)
+	return t.affordsMulti(cost, extra, multi[:nm])
+}
+
+// restrSrcNone: no restricted source of the table can make av pay cost
+// plus extra for d. PRECONDITION (unchecked, for speed): av alone does not
+// pay cost plus extra -- the class shortcut answers "no help", not "cannot
+// pay", so a caller holding an av that may pay must test av.affords first.
+// Each restrSrcAffords call site says so where it is reached: a non-spell payment on a table whose restrictions all
+// name spells (restrSrcAdmits never admits it), or a widen-only table (the
+// sources' units are already av's, their colours widened: the mana total
+// stays av's) short of the cost's mana total.
+func restrSrcNone(rs *restrData, d *payDesc, cost *kop.ManaCost, av *avail, extra int) bool {
+	if d.class != pdSpell && !rs.nonSpell && DebugRestrictedSource != 1 {
+		return true
+	}
+	if rs.ext || av.pain.on {
+		return false
+	}
+	tot := int(cost.Generic) + extra
+	for _, n := range cost.Pips {
+		tot += int(n)
+	}
+	return tot > av.total
+}
+
+// restrSrcAvail is a copy of av with the restricted sources payment d may
+// spend counted: a widened source's own unit becomes a unit of the widened
+// colours; an evaluated amount (Helga) is returned apart (multi[:nm]): that
+// many mana of one colour.
+func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot) (t avail, multi [2]uint8, nm int) {
+	t = *av
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		sl := m.first()
+		if sl == skip || k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 {
+			continue
+		}
+		own := s.manaPCGen(k, sl)
+		v, kind, _ := s.restrView(k, p, sl, own, &d)
+		if v == nil {
+			continue
+		}
+		switch kind {
+		case rkWiden:
+			t.remove(s.srcMaskAt(own, sl), own.manaN)
+			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
+		case rkExt:
+			t.addUnits(srcMask(v), v.manaN)
+		case rkDyn:
+			if nm == len(multi) {
+				s.capFull(StallRestrSrc)
+				continue
+			}
+			multi[nm] = v.manaN
+			nm++
+		}
+	}
+	return t, multi, nm
+}
+
+// affordsMulti: a, with each of ns a unit of that many mana of one colour
+// (any of W U B R G), pays cost plus extra generic.
+func (a avail) affordsMulti(cost *kop.ManaCost, extra int, ns []uint8) bool {
+	if len(ns) == 0 {
+		return a.affords(cost, pipMaskOf(cost), extra)
+	}
+	for c := 0; c < 5; c++ {
+		b := a
+		b.addUnits(1<<c, ns[0])
+		if b.affordsMulti(cost, extra, ns[1:]) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrFallback: the hand cast of card c for p, which av does not pay,
+// still pays through p's restricted mana (poolR) or the restricted sources
+// its spell payment may spend.
+//
+//go:noinline
+func (s *State) restrFallback(k *prep, p uint8, c CardID, og restrOrigin, cost *kop.ManaCost, av *avail) bool {
+	if s.pl[p].poolR != 0 {
+		return s.restrAffords(k, p, c, og, cost, av)
+	}
+	// restrSrcNone precondition: every caller tests !av.affords first.
+	return s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og}, cost, av, NoSlot, 0)
+}
+
+// payRiderRestr is payRider on a table with restricted planner sources: a
+// restricted evaluated amount (Helga) the plan taps floats restricted
+// (poolR), the payment spends it before the ordinary mana of its colour
+// (gorge emitRestrictedManaSpend carves the matching batches first) and
+// what it leaves stays restricted (gorge's RestrictedMana).
+//
+//go:noinline
+func (s *State) payRiderRestr(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) {
+	var pk planner
+	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
+	pl := &s.pl[p]
+	r := pl.poolR
+	if !pk.rdynOn || r&poolRCnt == 0 || s.poolRx[p&1] != 0 {
+		s.payFromPoolRider(k, p, cost, x, anyColor)
+		return
+	}
+	col, n := int(r>>poolRShift), r&poolRCnt
+	pl.pool[col] += n
+	pl.poolR = 0
+	pre := pl.pool[col]
+	s.payFromPoolRider(k, p, cost, x, anyColor)
+	if left := n - min(pre-pl.pool[col], n); left != 0 {
+		pl.pool[col] -= left
+		pl.poolR = r&^poolRCnt | left
+	}
+}
+
+// filtRestrMask: the colours of the restricted ability of the source at sl
+// a script's funding step may activate now (0: none). A widened source
+// needs its census ability usable too (gorge lists the source's activation
+// once; the ask offers both abilities).
+func (s *State) filtRestrMask(k *prep, sl Slot) uint8 {
+	c := s.cardAt(sl)
+	if k.gen.flags[c]&gfRestrSrc == 0 {
+		return 0
+	}
+	rec := k.gen.restrRecOf(c)
+	if rec == nil || rec.kind == rkDyn || !s.restrUsable(k, sl) {
+		return 0
+	}
+	return uint8(k.t.Cards[c].Abilities[rec.ab].ManaColors) & 0x1f
+}
+
+// filtRestrDo plays the restricted answer st: the source's restricted mana
+// floats (poolR).
+func (s *State) filtRestrDo(k *prep, p uint8, st filtStep) {
+	c := s.cardAt(st.sl)
+	rec := k.gen.restrRecOf(c)
+	ab := &k.t.Cards[c].Abilities[rec.ab]
+	if !s.pl[p&1].addRestr(k, &s.poolRx[p&1], ab.ManaRestrict, int(st.ans), max(ab.ManaN, 1)) {
+		s.capFull(StallRestrSrc) // poolR holds another colour or restriction, or is full: never a silent spill
+	}
+}
+
+// filtDeadEnd: the script fs found leaves a play the walk no longer lists: the
+// planner reads the pool through the restriction (pay.PlanPool), so the oracle
+// plays the script only when the play stays offered once it has run (gorge.go
+// scriptCompletes).
+func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
+	restr := false
+	for i := 0; i < fs.n; i++ {
+		restr = restr || fs.path[i].restr
+	}
+	t := s.fork()
+	defer s.unfork()
+	for i := 0; i < fs.n; i++ {
+		t.filtDo(k, p, fs.path[i])
+	}
+	var d Decision
+	if !restr {
+		t.restrOptions(k, &d, p)
+		return !hasOption(&d, a) // priced by mana alone, its own source tapped by the script
+	}
+	return !t.scriptCompletes(k, p, a)
+}
+
+// slotNoneUnkicked: target slot t takes no object unless the spell was
+// kicked (Tear Asunder's "if this spell was kicked, exile target nonland
+// permanent instead", announced on cast): a kicked
+// range with no unkicked bounds and a kicked minimum. The default of one
+// object applies to every other slot with Min|Max == 0.
+func slotNoneUnkicked(t *kop.TargetSpec) bool {
+	return t.TFlags&kop.TgfKickedRange != 0 && t.Min|t.Max == 0 && t.MinKicked > 0
+}
+
+// castAffordsR: av pays the cast of card c at cost, or p's restricted
+// mana floating (poolR, a spell it admits sees it in its pool: restrAffords)
+// or the restricted sources the cast may spend make it payable.
+func (s *State) castAffordsR(k *prep, p uint8, c CardID, og restrOrigin, cost *kop.ManaCost, av *avail) bool {
+	if av.affords(cost, pipMaskOf(cost), 0) {
+		return true
+	}
+	if s.pl[p&1].poolR != 0 && s.restrAffords(k, p, c, og, cost, av) {
+		return true
+	}
+	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (above).
+	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og}, cost, av, NoSlot, 0)
+}
+
+// restrSrcMaxX is the largest X the payment being built can announce with
+// p's restricted sources it may spend counted (-1: none) -- the X ask's
+// bound (cast.go bsX), av less the activation's own tapped source.
+//
+//go:noinline
+func (s *State) restrSrcMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail) int {
+	d := s.payDescNow(NoObj)
+	skip := NoSlot
+	if d.class == pdAct {
+		skip = d.src
+	}
+	t, multi, nm := s.restrSrcAvail(k, p, d, av, skip)
+	return t.maxXMulti(cost, pipMaskOf(cost), multi[:nm])
+}
+
+// maxXMulti is maxX with each of ns a unit of that many mana of one colour.
+func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []uint8) int {
+	if len(ns) == 0 {
+		return a.maxX(cost, pipMask)
+	}
+	best := -1
+	for c := 0; c < 5; c++ {
+		b := a
+		b.addUnits(1<<c, ns[0])
+		best = max(best, b.maxXMulti(cost, pipMask, ns[1:]))
+	}
+	return best
+}
+
+// actRestrAffords: av, with the restricted sources an activation of the
+// ability of the source at sl may spend counted, pays cost. skip is the
+// source the activation's own {T} taps. Callers ask only after av alone
+// failed (legal.go abilityAffords): restrSrcNone's precondition.
+//
+//go:noinline
+func (s *State) actRestrAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail, skip Slot) bool {
+	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	return s.restrSrcAffords(k, s.perms[sl].ctrl, d, cost, av, skip, 0)
+}
+
+// actPoolAffords: av, with p's floating restricted mana counted, pays the
+// activated ability of the source at sl, which may spend it.
+//
+//go:noinline
+func (s *State) actPoolAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail) bool {
+	p := s.perms[sl].ctrl
+	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	if !s.restrPoolAct(k, p, &d) {
+		return false
+	}
+	t := *av
+	s.restrAvailAdd(p, &t)
+	return t.affords(cost, pipMaskOf(cost), 0)
+}

@@ -1,0 +1,29 @@
+# the five-target-slot pool: Grub's Command, Call
+# Damage Control and Sygg's Command (four modes of one target each)
+# beside Goblin and Merfolk creatures, cheap artifacts, a self-mill
+# outlet and basics (dirac/oracle/maxtgt_test.go)
+# The five-target-slot pool: the four-mode Commands (Grub's
+# Command, Call Damage Control, Sygg's Command: each chosen mode declares one
+# target, so a choose-two Command lays out four slots, CR 700.2, 601.2c),
+# beside Goblin and Merfolk creatures for the copy mode, cheap artifacts and
+# creatures, Unsummon (it bounces a Command's creature target in
+# response), a self-mill outlet for Call Damage Control's graveyard targets and
+# basics, for the oracle's constructed lockstep
+# (dirac/oracle/maxtgt_test.go).
+Grub's Command
+Call Damage Control
+Sygg's Command
+Goblin Piker
+Stitcher's Supplier
+Ornithopter
+Sol Ring
+Grizzly Bears
+Unsummon
+Coral Merfolk
+Merfolk of the Pearl Trident
+Savannah Lions
+Swamp
+Mountain
+Forest
+Island
+Plains

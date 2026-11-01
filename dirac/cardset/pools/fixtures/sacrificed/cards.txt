@@ -1,0 +1,29 @@
+# the sacrificed-this-turn pool: the five
+# PlayerCountPropertyYou$SacrificedThisTurn carriers beside Clue and Food
+# makers, creature sacrifice outlets, a steal and basics, for the
+# oracle's constructed lockstep (dirac/oracle/sacrificed_test.go)
+# The sacrificed-this-turn pool: the five
+# PlayerCountPropertyYou$SacrificedThisTurn carriers (Sawblade Skinripper,
+# Detective's Satchel, Furtive Courier, Suspicious Detonation, Obsessive
+# Pursuit), sacrifice outlets (Bake into a Pie's Food, Hungry Ghoul, Clue and
+# Treasure makers), a steal (Control Magic: the sacrificer is the controller,
+# not the owner), burn and removal, cheap creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/sacrificed_test.go).
+Sawblade Skinripper
+Detective's Satchel
+Furtive Courier
+Suspicious Detonation
+Obsessive Pursuit
+Hungry Ghoul
+Bake into a Pie
+Control Magic
+Shock
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -1,0 +1,42 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Blighted Blackthorn
+1	card	Boggart Mischief
+2	card	Bogslither's Embrace
+3	card	Brambleback Brute
+4	card	Burdened Stoneback
+5	card	Chaos Spewer
+6	card	Dream Seizer
+7	card	Elvish Mystic
+8	card	Evershrike's Gift
+9	card	Forest
+10	card	Glen Elendra Guardian
+11	card	Gnarlbark Elm
+12	card	Gristle Glutton
+13	card	Grizzly Bears
+14	card	Gutsplitter Gang
+15	card	High Perfect Morcant
+16	card	Hovel Hurler
+17	card	Island
+18	card	Jessica Jones, Private Eye
+19	card	Llanowar Elves
+20	card	Loch Mare
+21	card	Moonlit Lamenter
+22	card	Mountain
+23	card	Opt
+24	card	Ornithopter
+25	card	Plains
+26	card	Raging Goblin
+27	card	Ray Fillet, Man Ray
+28	card	Scuzzback Scrounger
+29	card	Shock
+30	card	Slumbering Walker
+31	card	Sourbread Auntie
+32	card	Spiral into Solitude
+33	card	Sting-Slinger
+34	card	Sunstar Chaplain
+35	card	Swamp
+36	card	Warren Torchmaster
+37	card	Wild Unraveling
+38	token	br_1_1_goblin
+39	token	c_a_mutagen_sac
+40	token	c_a_treasure_sac

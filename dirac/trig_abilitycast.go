@@ -1,0 +1,124 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// Mode$ AbilityCast, "whenever you activate an exhaust /
+// loyalty ability" (CR 602.2, 603.2; gorge trigmatch abilityCastMatches).
+// gorge fires the trigger when the activation completes, after its costs
+// are paid (the AbilityPush boundary), and judges ValidSA$ through
+// abilityCastConstraintHolds: Activated.Exhaust is ab.ExhaustValue(),
+// Activated.Loyalty a planeswalker loyalty ability, +OppCtrl the ability's
+// controller an opponent of the listener's controller. The kernel's
+// seAbility arm of finishBuild calls fireAbilityCast once the entry is on
+// the stack and paid, behind genPrep.anyAbilityCast. A mana ability never
+// reaches it (it does not use the stack). No State field: the trigger rides
+// pend.
+
+// AbilityCastStats counts the lifted mechanic; oracle tests only.
+type AbilityCastStats struct {
+	Fires      [4]int // TrigAbilityCast triggers queued, by Trigger.N class (kop.TrigAbCast*)
+	OppFires   int    // queued for a listener whose controller activated nothing (the activator is its opponent)
+	GraveFires int    // queued from a graveyard card
+}
+
+// DebugAbilityCastStats is the test hook; nil in normal play.
+var DebugAbilityCastStats *AbilityCastStats
+
+// DebugAbilityCastIgnoreClass makes the class test pass for every activated
+// ability (the lockstep mutation test flips it and requires a divergence).
+var DebugAbilityCastIgnoreClass bool
+
+// prepAbilityCast sets anyAbilityCast when some printed trigger is an
+// AbilityCast. A granted one (AddTrigger$) is not scanned (no corpus carrier).
+func prepAbilityCast(t *kop.Table, g *genPrep) {
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			a := &t.Cards[i].Abilities[j]
+			g.anyAbilityCast = g.anyAbilityCast || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigAbilityCast
+		}
+	}
+}
+
+// abilityCastClass reports whether the activated ability ab of card c is of
+// class cls (kop.TrigAbCast*).
+func abilityCastClass(k *prep, e *stackEntry, cls int16) bool {
+	if DebugAbilityCastIgnoreClass {
+		return true
+	}
+	cd := &k.t.Cards[e.card]
+	if int(e.ab) >= len(cd.Abilities) {
+		return false
+	}
+	a := &cd.Abilities[e.ab]
+	if cls == kop.TrigAbCastExhaust {
+		return a.Exhaust
+	}
+	return a.Cost.Flags&(kop.CostLoyalty|kop.CostLoyaltyX) != 0
+}
+
+// abilityCastMatch is the listener test for one AbilityCast line.
+func abilityCastMatch(k *prep, e *stackEntry, l trigListener, a *kop.Ability) bool {
+	t := &a.Trig
+	if !whoseOK(t.Whose, l.ctrl, e.ctrl) || t.N == kop.TrigAbCastLoyaltyOpp && e.ctrl == l.ctrl {
+		return false
+	}
+	return abilityCastClass(k, e, t.N)
+}
+
+// fireAbilityCast queues the AbilityCast listeners for the just-activated
+// ability entry e: battlefield listeners in gorge's walk order, then
+// graveyard cards (TriggerZones$ Graveyard). No slot subscription.
+//
+//go:noinline
+func (s *State) fireAbilityCast(k *prep, e *stackEntry) {
+	st := DebugAbilityCastStats
+	note := func(before uint8, l trigListener, a *kop.Ability, grave bool) {
+		if st == nil || s.npend <= before {
+			return
+		}
+		st.Fires[a.Trig.N&3]++
+		if l.ctrl != e.ctrl {
+			st.OppFires++
+		}
+		if grave {
+			st.GraveFires++
+		}
+	}
+	var ord [MaxPerm]Slot
+	n := s.listenerOrder(s.occ, &ord)
+	for _, sl := range ord[:n] {
+		s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigAbilityCast }, func(l trigListener, a *kop.Ability) {
+			if !abilityCastMatch(k, e, l, a) {
+				return
+			}
+			b := s.npend
+			s.playerTrigGen(k, kop.TrigAbilityCast, l, a, e.ctrl, 0)
+			note(b, l, a, false)
+		})
+	}
+	for _, c := range k.gen.graveTrig {
+		cd := &k.t.Cards[c]
+		for pp := uint8(0); pp < 2; pp++ {
+			pl := &s.pl[pp]
+			for i := 0; i < int(pl.graveN); i++ {
+				o := pl.grave[i]
+				if s.objs[o].card != c {
+					continue
+				}
+				for j := range cd.Abilities {
+					a := &cd.Abilities[j]
+					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigAbilityCast {
+						continue
+					}
+					l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
+					if !abilityCastMatch(k, e, l, a) {
+						continue
+					}
+					b := s.npend
+					s.playerTrigGen(k, kop.TrigAbilityCast, l, a, e.ctrl, 0)
+					note(b, l, a, true)
+				}
+			}
+		}
+	}
+}

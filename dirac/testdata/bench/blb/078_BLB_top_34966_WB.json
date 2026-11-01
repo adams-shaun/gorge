@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_34966_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 224650ace5414561b66afad82d79aa14:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Agate-Blade Assassin, 1 Bonebind Orator, 1 Jackdaw Savior, 1 Starseer Mentor, 1 Valley Questcaller, 1 Zoraline, Cosmos Caller -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Hazel's Nocturne",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Scales of Shale",
+"count": 2
+},
+{
+"name": "Sonar Strike",
+"count": 3
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 2
+}
+]
+}

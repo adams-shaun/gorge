@@ -1,0 +1,103 @@
+{
+"name": "FDN_top_00961_RG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 48026e29399e4185a68f7de4d544df42:1, player win-rate bucket 0.74 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abrade",
+"count": 1
+},
+{
+"name": "Affectionate Indrik",
+"count": 1
+},
+{
+"name": "Apothecary Stomper",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 2
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Cackling Prowler",
+"count": 1
+},
+{
+"name": "Courageous Goblin",
+"count": 1
+},
+{
+"name": "Elfsworn Giant",
+"count": 1
+},
+{
+"name": "Etali, Primal Storm",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 8
+},
+{
+"name": "Garruk's Uprising",
+"count": 1
+},
+{
+"name": "Gnarlid Colony",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Gorehorn Raider",
+"count": 2
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Ruby, Daring Tracker",
+"count": 1
+},
+{
+"name": "Rugged Highlands",
+"count": 1
+},
+{
+"name": "Solemn Simulacrum",
+"count": 1
+},
+{
+"name": "Strongbox Raider",
+"count": 1
+},
+{
+"name": "Treetop Snarespinner",
+"count": 1
+},
+{
+"name": "Vivien Reid",
+"count": 1
+},
+{
+"name": "Wary Thespian",
+"count": 2
+}
+]
+}

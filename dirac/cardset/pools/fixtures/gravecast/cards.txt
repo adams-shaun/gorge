@@ -1,0 +1,16 @@
+# SpellCast triggers that work from the graveyard: Shambling Cie'th, Vengevine,
+# Lingering Phantom, beside burn that puts them there
+# (dirac/oracle/gravecast_test.go)
+Forest
+Grizzly Bears
+Lightning Bolt
+Lingering Phantom
+Mountain
+Shambling Cie'th
+Shock
+Swamp
+Vengevine
+Curious Cadaver
+Thraben Inspector
+Plains
+Island

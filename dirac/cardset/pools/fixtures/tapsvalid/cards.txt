@@ -1,0 +1,25 @@
+# the "whenever you tap an untapped creature an opponent controls"
+# pool: the four WOE Taps ValidPlayer$ You
+# carriers beside WOE tap effects and vanilla creatures, for the
+# oracle's constructed lockstep (dirac/oracle/tapsvalid_test.go)
+Bitter Chill
+Forest
+Freeze in Place
+Frostbridge Guard
+Giant Spider
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Hylda of the Icy Crown
+Hylda's Crown of Winter
+Icewrought Sentry
+Island
+Mountain
+Plains
+Plunge into Winter
+Savannah Lions
+Sharae of Numbing Depths
+Snaremaster Sprite
+Solitary Sanctuary
+Succumb to the Cold
+Wind Drake

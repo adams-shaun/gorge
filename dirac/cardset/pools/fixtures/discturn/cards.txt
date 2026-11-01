@@ -1,0 +1,22 @@
+# The cards-discarded-this-turn pool: the two
+# PlayerCountPropertyYou$CardsDiscardedThisTurn carriers (Green Goblin,
+# Revenant; Misty Knight, Hero for Hire), discard outlets (a Discard<1/Card>
+# cost: Rummaging Goblin; Tormenting Voice's additional cost; DB$ Discard:
+# Mind Rot, Faithless Looting), a cycling card (cycleDiscard), cheap
+# creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/discturn_test.go). No madness card: gorge's ledger does not
+# count a madness discard.
+Green Goblin, Revenant
+Misty Knight, Hero for Hire
+Rummaging Goblin
+Tormenting Voice
+Mind Rot
+Faithless Looting
+Gempalm Incinerator
+Shock
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Swamp
+Mountain
+Forest

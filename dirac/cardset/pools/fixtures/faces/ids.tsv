@@ -1,0 +1,197 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Akoum Warrior
+1	card	Bala Ged Recovery
+2	card	Barkchannel Pathway
+3	card	Beyeen Veil
+4	card	Blackbloom Rogue
+5	card	Blightstep Pathway
+6	card	Branchloft Pathway
+7	card	Brightclimb Pathway
+8	card	Clearwater Pathway
+9	card	Coral Merfolk
+10	card	Cragcrown Pathway
+11	card	Darkbore Pathway
+12	card	Forest
+13	card	Giant Spider
+14	card	Glasswing Grace
+15	card	Gray Ogre
+16	card	Grizzly Bears
+17	card	Hengegate Pathway
+18	card	Hill Giant
+19	card	Island
+20	card	Jwari Disruption
+21	card	Kabira Takedown
+22	card	Kazandu Mammoth
+23	card	Kazuul's Fury
+24	card	Khalni Ambush
+25	card	Legion Leadership
+26	card	Makindi Stampede
+27	card	Malakir Rebirth
+28	card	Mountain
+29	card	Needleverge Pathway
+30	card	Ondu Inversion
+31	card	Plains
+32	card	Revitalizing Repast
+33	card	Riverglide Pathway
+34	card	Savannah Lions
+35	card	Silundi Vision
+36	card	Skyclave Cleric
+37	card	Song-Mad Treachery
+38	card	Strength of the Harvest
+39	card	Stump Stomp
+40	card	Swamp
+41	card	Tangled Florahedron
+42	card	Umara Wizard
+43	card	Vastwood Fortification
+44	card	Walking Corpse
+45	card	Zof Consumption
+46	card	face:Akoum Warrior#1
+47	card	face:Bala Ged Recovery#1
+48	card	face:Barkchannel Pathway#1
+49	card	face:Beyeen Veil#1
+50	card	face:Blackbloom Rogue#1
+51	card	face:Blightstep Pathway#1
+52	card	face:Branchloft Pathway#1
+53	card	face:Brightclimb Pathway#1
+54	card	face:Clearwater Pathway#1
+55	card	face:Cragcrown Pathway#1
+56	card	face:Darkbore Pathway#1
+57	card	face:Glasswing Grace#1
+58	card	face:Hengegate Pathway#1
+59	card	face:Jwari Disruption#1
+60	card	face:Kabira Takedown#1
+61	card	face:Kazandu Mammoth#1
+62	card	face:Kazuul's Fury#1
+63	card	face:Khalni Ambush#1
+64	card	face:Legion Leadership#1
+65	card	face:Makindi Stampede#1
+66	card	face:Malakir Rebirth#1
+67	card	face:Needleverge Pathway#1
+68	card	face:Ondu Inversion#1
+69	card	face:Revitalizing Repast#1
+70	card	face:Riverglide Pathway#1
+71	card	face:Silundi Vision#1
+72	card	face:Skyclave Cleric#1
+73	card	face:Song-Mad Treachery#1
+74	card	face:Strength of the Harvest#1
+75	card	face:Stump Stomp#1
+76	card	face:Tangled Florahedron#1
+77	card	face:Umara Wizard#1
+78	card	face:Vastwood Fortification#1
+79	card	face:Zof Consumption#1
+80	card	Midnight Scavengers
+81	card	Animating Faerie
+82	card	Ardenvale Tactician
+83	card	Assault
+84	card	Assure
+85	card	Beanstalk Giant
+86	card	Bellowing Bruiser
+87	card	Boom
+88	card	Brazen Borrower
+89	card	Carnival
+90	card	Collision
+91	card	Crime
+92	card	Curious Pair
+93	card	Dead
+94	card	Depose
+95	card	Embereth Shieldbreaker
+96	card	Expansion
+97	card	Faerie Guidemother
+98	card	Fire
+99	card	Flower
+100	card	Foulmire Knight
+101	card	Garenbrig Carver
+102	card	Giant Killer
+103	card	Hypnotic Sprite
+104	card	Integrity
+105	card	Lonesome Unicorn
+106	card	Manamorphose
+107	card	Merfolk Secretkeeper
+108	card	Murderous Rider
+109	card	Order of Midnight
+110	card	Pain
+111	card	Pure
+112	card	Rimrock Knight
+113	card	Rosethorn Acolyte
+114	card	Rough
+115	card	Shepherd of the Flock
+116	card	Silverflame Squire
+117	card	Smitten Swordmaster
+118	card	Status
+119	card	Supply
+120	card	Thrash
+121	card	Warrant
+122	card	Wax
+123	card	Young Red Dragon
+124	card	face:Animating Faerie#1
+125	card	face:Ardenvale Tactician#1
+126	card	face:Assault#1
+127	card	face:Assure#1
+128	card	face:Beanstalk Giant#1
+129	card	face:Bellowing Bruiser#1
+130	card	face:Boom#1
+131	card	face:Brazen Borrower#1
+132	card	face:Carnival#1
+133	card	face:Collision#1
+134	card	face:Crime#1
+135	card	face:Curious Pair#1
+136	card	face:Dead#1
+137	card	face:Depose#1
+138	card	face:Embereth Shieldbreaker#1
+139	card	face:Expansion#1
+140	card	face:Faerie Guidemother#1
+141	card	face:Fire#1
+142	card	face:Flower#1
+143	card	face:Foulmire Knight#1
+144	card	face:Garenbrig Carver#1
+145	card	face:Giant Killer#1
+146	card	face:Hypnotic Sprite#1
+147	card	face:Integrity#1
+148	card	face:Lonesome Unicorn#1
+149	card	face:Merfolk Secretkeeper#1
+150	card	face:Murderous Rider#1
+151	card	face:Order of Midnight#1
+152	card	face:Pain#1
+153	card	face:Pure#1
+154	card	face:Rimrock Knight#1
+155	card	face:Rosethorn Acolyte#1
+156	card	face:Rough#1
+157	card	face:Shepherd of the Flock#1
+158	card	face:Silverflame Squire#1
+159	card	face:Smitten Swordmaster#1
+160	card	face:Status#1
+161	card	face:Supply#1
+162	card	face:Thrash#1
+163	card	face:Warrant#1
+164	card	face:Wax#1
+165	card	face:Young Red Dragon#1
+166	token	c_1_1_a_thopter_flying
+167	token	c_a_food_sac
+168	token	c_a_treasure_sac
+169	token	g_1_1_saproling
+170	token	g_3_3_elephant
+171	token	gw_2_2_elf_knight_vigilance
+172	token	rg_4_4_beast_trample
+173	token	w_2_2_knight_vigilance
+174	token	wu_4_4_sphinx_flying_vigilance
+175	card	Blaze
+176	card	Earthquake
+177	card	Stream of Life
+178	card	Mind Spring
+179	card	Ishgard, the Holy See
+180	card	Jidoor, Aristocratic Capital
+181	card	Lindblum, Industrial Regency
+182	card	Value Town
+183	card	Zanarkand, Ancient Metropolis
+184	card	face:Ishgard, the Holy See#1
+185	card	face:Jidoor, Aristocratic Capital#1
+186	card	face:Lindblum, Industrial Regency#1
+187	card	face:Value Town#1
+188	card	face:Zanarkand, Ancient Metropolis#1
+189	token	b_0_1_wizard_snipe
+190	token	c_1_1_hero
+191	card	Kolvori, God of Kinship
+192	card	Pestilent Cauldron
+193	card	face:Kolvori, God of Kinship#1
+194	card	face:Pestilent Cauldron#1
+195	token	bg_1_1_pest_lifegain

@@ -1,0 +1,17 @@
+# the chained-Counter unless-payer pool
+# Swallowed by Leviathan (a chained TgtZone$ Stack Counter, default
+# payer) beside creatures and burn to counter
+# (dirac/oracle/unlesschain_test.go)
+Swallowed by Leviathan
+Repulsive Mutation
+Grizzly Bears
+Giant Growth
+Raging Goblin
+Hill Giant
+Child of Night
+Shock
+Lightning Bolt
+Mountain
+Swamp
+Forest
+Island

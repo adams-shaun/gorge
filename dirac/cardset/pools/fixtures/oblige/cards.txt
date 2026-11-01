@@ -1,0 +1,13 @@
+# the shuffle-choice pool: multi-object
+# graveyard-to-library shuffles, mandatory and may-shuffle, self-owned
+# and parent-player-restricted, for the oracle's constructed lockstep
+# (dirac/oracle/oblige_test.go)
+Krosan Reclamation
+Oracle of Tragedy
+Put Away
+Witness the Future
+Wand of Vertebrae
+Cathartic Parting
+Grizzly Bears
+Island
+Forest

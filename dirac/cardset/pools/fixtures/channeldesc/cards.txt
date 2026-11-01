@@ -1,0 +1,17 @@
+# the channel-description pool: Discard<1/CARDNAME/desc>
+Gideon's Memorial
+Sureshot Sower
+The Masters of Evil
+Action News Crew
+Grizzly Bears
+Ornithopter
+Storm Crow
+Raging Goblin
+Shock
+Mind Stone
+Forest
+Plains
+Swamp
+Island
+Mountain
+Villainous Syndication

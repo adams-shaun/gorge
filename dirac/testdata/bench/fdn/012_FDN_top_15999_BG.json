@@ -1,0 +1,103 @@
+{
+"name": "FDN_top_15999_BG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 60bea6250cc84f33a0790c656898e0bc:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ambush Wolf",
+"count": 1
+},
+{
+"name": "Bite Down",
+"count": 2
+},
+{
+"name": "Blasphemous Edict",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Dwynen's Elite",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Elvish Regrower",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 8
+},
+{
+"name": "Giant Growth",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 1
+},
+{
+"name": "Marauding Blight-Priest",
+"count": 1
+},
+{
+"name": "Pilfer",
+"count": 1
+},
+{
+"name": "Rogue's Passage",
+"count": 1
+},
+{
+"name": "Rune-Scarred Demon",
+"count": 1
+},
+{
+"name": "Soul-Shackled Zombie",
+"count": 2
+},
+{
+"name": "Stab",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 6
+},
+{
+"name": "Sylvan Scavenging",
+"count": 1
+},
+{
+"name": "Treetop Snarespinner",
+"count": 1
+},
+{
+"name": "Wardens of the Cycle",
+"count": 1
+},
+{
+"name": "Wary Thespian",
+"count": 2
+}
+]
+}

@@ -1,0 +1,33 @@
+# the dynamic charm count pool: CharmNum$ over a
+# Count$Compare (Molten Collapse, Wail of the Forgotten), for the oracle's
+# constructed lockstep (dirac/oracle/charmcmp_test.go)
+# The dynamic charm count pool: CharmNum$ over a
+# Count$Compare (Molten Collapse, Wail of the Forgotten), graveyard fillers
+# and a sacrifice outlet to descend, and cheap noncreature targets, for the
+# oracle's constructed lockstep (dirac/oracle/charmcmp_test.go).
+Molten Collapse
+Wail of the Forgotten
+Stitcher's Supplier
+Grisly Salvage
+Cathartic Pyre
+Village Rites
+Diregraf Ghoul
+Pitiless Plunderer
+Bloodthirsty Adversary
+Thought Scour
+Shock
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Coral Merfolk
+Mind Stone
+Ornithopter
+Swamp
+Island
+Mountain
+Witch's Oven
+Vampiric Rites
+Blood Fountain
+Wayfarer's Bauble
+Voltaic Key

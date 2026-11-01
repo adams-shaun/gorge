@@ -1,0 +1,35 @@
+# the Void pool: the twelve Count$Void.<a>.<b> carriers,
+# warp creatures, nonland permanents that leave, a land that leaves
+# (Evolving Wilds) and basics, for the oracle's constructed lockstep
+# (dirac/oracle/void_test.go)
+# The Void pool: the eleven Count$Void.<a>.<b> carriers kgen
+# lowers, three warp creatures (the spell-warped half), Lightning Bolt, Shock,
+# Grizzly Bears, Hill Giant, Llanowar Elves (nonland permanents that leave),
+# Evolving Wilds (a LAND that leaves: the half the mutation must break) and
+# basics, for the oracle's constructed lockstep
+# (dirac/oracle/void_test.go).
+Decode Transmissions
+Elegy Acolyte
+Hylderblade
+Hymn of the Faller
+Insatiable Skittermaw
+Interceptor Mechan
+Kavaron Skywarden
+Plasma Bolt
+Temporal Intervention
+Tragic Trajectory
+Voidforged Titan
+Germinating Wurm
+Mightform Harmonizer
+Nova Hellkite
+Lightning Bolt
+Shock
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Evolving Wilds
+Plains
+Island
+Swamp
+Mountain
+Forest

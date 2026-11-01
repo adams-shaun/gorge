@@ -1,0 +1,9 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Edge Rover
+1	card	Forest
+2	card	Grizzly Bears
+3	card	Marching Duodrone
+4	card	Party Dude
+5	token	c_a_food_sac
+6	token	c_a_lander_sac_search
+7	token	c_a_treasure_sac

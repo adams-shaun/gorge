@@ -1,0 +1,37 @@
+# the twobrid pool: monocoloured hybrid mana ({2/W}, CR
+# 107.4e) carriers, {X} spells that leave mana floating, the cmc
+# filters, vanilla creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/twobrid_test.go)
+# The twobrid pool: the Standard cards with monocoloured hybrid
+# mana ({2/W}, CR 107.4e) kgen lowers, the {X} spells that leave mana
+# floating (gorge prices no twobrid cast but a floating pool's), the cmc
+# filters that read a twobrid mana value (Eliminate, Despark), vanilla
+# creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/twobrid_test.go).
+Defibrillating Current
+Dragonclaw Strike
+Gurmag Nightwatch
+Kin-Tree Severance
+Monastery Messenger
+Rakshasa's Bargain
+Reputable Merchant
+Temur Tawnyback
+Karn, Gilded Guardian
+Beseech the Queen
+Flame Javelin
+Reaper King
+Spectral Procession
+Blaze
+Exsanguinate
+Mind Spring
+Stream of Life
+Eliminate
+Despark
+Shock
+Opt
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -1,0 +1,29 @@
+# the Animate grants pool: Crawling Barrens'
+# Optional$, Possessed Goat's additive Colors$, Lizard, Connors's
+# Curse's RemoveCardTypes$, Summon: Primal Odin's sVars$ and the live
+# P/T statics of Beorn's Hospitality and Ms. Marvel, beside Doom Blade,
+# Murder, Ornithopter and cheap bodies (dirac/oracle/animg_test.go)
+Beorn's Hospitality
+Cloudchaser Kestrel
+Crawling Barrens
+Defiant Strike
+Divination
+Doom Blade
+Forest
+Gravedigger
+Grizzly Bears
+Hill Giant
+Indigo Faerie
+Island
+Lizard, Connors's Curse
+Llanowar Elves
+Mind Stone
+Mountain
+Ms. Marvel, Kamala Khan
+Murder
+Ornithopter
+Plains
+Possessed Goat
+Shock
+Summon: Primal Odin
+Swamp

@@ -1,0 +1,29 @@
+# an Effect's frozen SetChosenNumber$ as its emblem ReduceCost Amount$
+# Count$ChosenNumber: Rowan, Scion of War and Will,
+# Scion of Peace beside black/red and white/blue spells, life-loss and
+# life-gain sources and basics (dirac/oracle/embnum_test.go)
+Rowan, Scion of War
+Will, Scion of Peace
+Duress
+Sign in Blood
+Shock
+Char
+Flame Rift
+Lightning Strike
+Murder
+Lava Axe
+Opt
+Counterspell
+Divination
+Air Elemental
+Pacifism
+Revitalize
+Renewed Faith
+Serra Angel
+Child of Night
+Vampire Nighthawk
+Grizzly Bears
+Island
+Swamp
+Mountain
+Plains

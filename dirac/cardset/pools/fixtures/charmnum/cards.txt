@@ -1,0 +1,38 @@
+# the multi-pick charm pool: CharmNum$/MinCharmNum$
+# carriers, for the oracle's constructed lockstep
+# (dirac/oracle/charmnum_test.go)
+# The multi-pick charm pool: the Standard "choose two", "one or
+# both", "one or more" and "up to" charms kgen lowers (CharmNum$/MinCharmNum$),
+# with a triggered pair, basics, vanilla bodies and a few artifacts and
+# enchantments so the graveyard and permanent modes have targets, for the
+# oracle's constructed lockstep (dirac/oracle/charmnum_test.go).
+Azula Always Lies
+Flash Thompson, Spider-Fan
+Go Ninja Go
+Overwhelming Surge
+Pinecone Strike
+Molten Rebuke
+Farewell
+Perfect Intimidation
+Season of Renewal
+Return from the Wilds
+Urza's Command
+Scour for Scrap
+Craftwork Crusher
+Brilliance Unleashed
+Steal the Show
+Artistic Refusal
+Avengers Disassembled
+Rankle's Prank
+Ornithopter
+Mind Stone
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Coral Merfolk
+Savannah Lions
+Plains
+Island
+Swamp
+Mountain
+Forest

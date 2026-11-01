@@ -1,0 +1,36 @@
+# the constructed lockstep pool: dies-to-exile replacements,
+# filtered counter doublers and plus/minus replacements, and the
+# keyword-counter carriers, beside removal, basics and vanilla
+# creatures (dirac/oracle/exileanddoublers_test.go)
+Ozolith, the Shattered Spire
+Hardened Scales
+Branching Evolution
+Conclave Mentor
+Corpsejack Menace
+Kami of Whispered Hopes
+Mowu, Loyal Companion
+Vizier of Remedies
+Benevolent Hydra
+Michelangelo, Weirdness to 11
+Yoshimaru, Beloved Companion
+Mauhúr, Uruk-hai Captain
+Misery's Shadow
+Stone of Erech
+Grizzly Bears
+Doom Blade
+Walking Corpse
+Vampire Cutthroat
+Murder
+Gray Ogre
+Hill Giant
+Forest
+Plains
+Swamp
+Mountain
+Salvation Swan
+Stocking the Pantry
+Duskfang Mentor
+Eagle of Deliverance
+Void Beckoner
+Wingspan Mentor
+Island

@@ -1,0 +1,60 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Atmospheric Greenhouse
+1	card	Bladed Ambassador
+2	card	Coral Merfolk
+3	card	Debris Field Crusher
+4	card	Evendo, Waking Haven
+5	card	Extinguisher Battleship
+6	card	Exuberant Fuseling
+7	card	Fell Gravship
+8	card	Forest
+9	card	Galvanizing Sawship
+10	card	Giant Spider
+11	card	Gitaxian Raptor
+12	card	Golden Urn
+13	card	Gray Ogre
+14	card	Grindclock
+15	card	Grizzly Bears
+16	card	Hill Giant
+17	card	Incendiary
+18	card	Island
+19	card	Kavaron, Memorial World
+20	card	Kuldotha Cackler
+21	card	Larval Scoutlander
+22	card	Lilting Refrain
+23	card	Midsummer Revel
+24	card	Momentum
+25	card	Mountain
+26	card	Mycologist
+27	card	Necrosquito
+28	card	Pallid Mycoderm
+29	card	Pinnacle Kill-Ship
+30	card	Plains
+31	card	Quest for the Gravelord
+32	card	Rescue Skiff
+33	card	Savannah Lions
+34	card	Sawblade Scamp
+35	card	Shriekhorn
+36	card	Spawning Pit
+37	card	Staff of the Storyteller
+38	card	Susurian Dirgecraft
+39	card	Swamp
+40	card	Thallid
+41	card	Thallid Germinator
+42	card	The Eternity Elevator
+43	card	Trigon of Rage
+44	card	Urabrask's Anointer
+45	card	Uthros Scanship
+46	card	Uthros, Titanic Godcore
+47	card	Walking Corpse
+48	card	Wall of Wood
+49	card	War Dance
+50	card	Warmaker Gunship
+51	card	Wedgelight Rammer
+52	card	Wurmwall Sweeper
+53	token	b_5_5_zombie_giant
+54	token	c_2_2_a_robot
+55	token	c_2_2_a_spawn
+56	token	g_1_1_saproling
+57	token	g_3_3_beast
+58	token	w_1_1_spirit_flying

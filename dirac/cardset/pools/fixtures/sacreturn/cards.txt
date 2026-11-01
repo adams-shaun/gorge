@@ -1,0 +1,6 @@
+# a host sacrificed before the next player's choice, for the oracle's constructed
+# lockstep (dirac/oracle/sacreturn_test.go)
+Barter in Blood
+Deep-Cavern Bat
+Swamp
+Walking Corpse

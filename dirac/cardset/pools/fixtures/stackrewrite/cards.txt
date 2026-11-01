@@ -1,0 +1,27 @@
+# ChangeTargets and the mass Counter: Bolt Bend,
+# Redirect Lightning, Untimely Malfunction, Speedball, Glen Elendra's
+# Answer beside spells to redirect and abilities to counter
+# (dirac/oracle/stackrewrite_test.go)
+Bolt Bend
+Redirect Lightning
+Speedball, New Warrior
+Untimely Malfunction
+Glen Elendra's Answer
+Lightning Bolt
+Shock
+Giant Growth
+Grizzly Bears
+Hill Giant
+Essence Scatter
+Negate
+Opt
+Mind Stone
+Ichneumon Druid
+Llanowar Elves
+Raging Goblin
+Geralf, the Fleshwright
+Walking Corpse
+Mountain
+Island
+Forest
+Swamp

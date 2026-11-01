@@ -1,0 +1,26 @@
+# the Affected$ You player-static pool: The Ten Rings
+# (maximum hand size ten), Doctor Octopus, Master Planner (eight) and
+# Absolute Virtue (protection from each opponent), plus mana rocks, card
+# draw, burn and evasive attackers (dirac/oracle/plstat_test.go)
+The Ten Rings
+Doctor Octopus, Master Planner
+Absolute Virtue
+Sol Ring
+Mind Stone
+Llanowar Elves
+Divination
+Inspiration
+Night's Whisper
+Opt
+Shock
+Lightning Strike
+Grizzly Bears
+Gigantosaurus
+Wind Drake
+Air Elemental
+Plains
+Island
+Swamp
+Mountain
+Forest
+Flame Rift

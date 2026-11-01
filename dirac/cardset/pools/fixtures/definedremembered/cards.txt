@@ -1,0 +1,27 @@
+# the defined-heads pool: RememberedCard (Valgavoth's
+# Onslaught, two Rooms), a one-opponent ChoosePlayer (Discerning
+# Financier), TriggeredCardLKICopy.Spider (Aunt May) and "TriggeredCardLKICopy
+# & Self" (Sumala Sentry) (dirac/oracle/definedremembered_test.go)
+# the defined-heads pool: Defined$ RememberedCard
+# (Valgavoth's Onslaught, Moldering Gym, Underwater Tunnel), a one-opponent
+# ChoosePlayer then ChosenPlayer (Discerning Financier), the qualified
+# TriggeredCardLKICopy.Spider (Aunt May) and the joined "TriggeredCardLKICopy &
+# Self" (Sumala Sentry), beside Spiders and non-Spiders, Treasure makers
+# (Prosperous Innkeeper) and a disguise creature to turn permanents face up
+# (dirac/oracle/definedremembered_test.go)
+Valgavoth's Onslaught
+Moldering Gym
+Underwater Tunnel
+Discerning Financier
+Aunt May
+Sumala Sentry
+Giant Spider
+Mammoth Spider
+Woolly Spider
+Prosperous Innkeeper
+Grizzly Bears
+Elite Vanguard
+Vengeful Creeper
+Forest
+Plains
+Island

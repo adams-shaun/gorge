@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_28810_UGpB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 981d5191c708472a9f046bfa2ab2421c:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Eddymurk Crab, 1 Fecund Greenshell, 1 Long River's Pull, 1 Splash Lasher, 1 Stormchaser's Talent, 1 Three Tree Mascot -> 3 Island, 1 Swamp, 2 Forest",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Dreamdew Entrancer",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 8
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lightshell Duo",
+"count": 4
+},
+{
+"name": "Pawpatch Formation",
+"count": 1
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 2
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 3
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 1
+},
+{
+"name": "Tidecaller Mentor",
+"count": 2
+}
+]
+}

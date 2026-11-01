@@ -1,0 +1,38 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Ancient Stone Idol
+1	card	Colossus of the Blood Age
+2	card	Craw Wurm
+3	card	Dark Matter Manipulator
+4	card	Divination
+5	card	Doom Blade
+6	card	Explore
+7	card	Force of Nature
+8	card	Forest
+9	card	Giant Growth
+10	card	Gray Ogre
+11	card	Grizzly Bears
+12	card	Growth Spiral
+13	card	Hill Giant
+14	card	Hit the Mother Lode
+15	card	Island
+16	card	Lightning Bolt
+17	card	Mahamoti Djinn
+18	card	Mind Rot
+19	card	Mind Sculpt
+20	card	Mountain
+21	card	Outlaw Stitcher
+22	card	Plains
+23	card	Ponder
+24	card	Preordain
+25	card	Rampant Growth
+26	card	Serra Angel
+27	card	Shivan Dragon
+28	card	Shock
+29	card	Swamp
+30	card	Terror
+31	card	Thought Scour
+32	card	Tome Scour
+33	card	Unsummon
+34	token	c_6_12_a_construct_trample
+35	token	c_a_treasure_sac
+36	token	ub_2_2_zombie_rogue

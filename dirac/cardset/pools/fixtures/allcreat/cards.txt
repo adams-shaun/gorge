@@ -1,0 +1,35 @@
+# Continuous AddAllCreatureTypes$ statics (Stalactite
+# Dagger's equipped grant, Undercover Skrull's conditioned self grant)
+# beside chosen-type, type-lord and Count$Valid tribal readers, removal
+# and self-mill, for the oracle's constructed lockstep
+# (dirac/oracle/allcreat_test.go)
+# the all-creature-types static pool.
+# Carriers (Continuous AddAllCreatureTypes$): Stalactite Dagger (an
+# Equipment Aura-like attached override) and Undercover Skrull (a self
+# override behind an IsPresent$ graveyard gate).
+Stalactite Dagger
+Undercover Skrull
+# Chosen-type grant (AddType$ ChosenType) and "of the chosen type" anthem.
+Adaptive Automaton
+# Type lords and a Count$Valid <Type> payoff (Elvish Archdruid is both).
+Elvish Archdruid
+Goblin Chieftain
+Merfolk Sovereign
+Imperious Perfect
+# Bodies that are not the lords' types, so the grant is observable.
+Llanowar Elves
+Goblin Piker
+Merfolk of the Pearl Trident
+Grizzly Bears
+# Removal and self-mill (the Skrull gate flips).
+Murder
+Doom Blade
+Lightning Bolt
+Stitcher's Supplier
+Satyr Wayfinder
+# Lands.
+Forest
+Island
+Swamp
+Mountain
+Plains

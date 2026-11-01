@@ -1,0 +1,18 @@
+# the CantBeCast NumLimitEachTurn$ and granted view-only look pool
+# High Noon and Glowcap Lantern beside creatures,
+# burn, a draw spell and basics, for the oracle's constructed lockstep
+# (dirac/oracle/castlimitlook_test.go)
+High Noon
+Glowcap Lantern
+Grizzly Bears
+Savannah Lions
+Giant Spider
+Hill Giant
+Gray Ogre
+Lightning Bolt
+Shock
+Divination
+Plains
+Island
+Mountain
+Forest

@@ -1,0 +1,6 @@
+# Tainted Adversary's decayed Zombie tokens (dirac/oracle/tainted_test.go)
+Tainted Adversary
+Grizzly Bears
+Shock
+Swamp
+Mountain

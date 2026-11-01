@@ -1,0 +1,31 @@
+# the Firebending pool (CR 702.189): the printed-N
+# carriers (literal and X), red instants that spend the floating red
+# mid-combat, a first striker and a Lesson for the carriers' filters,
+# beside basics and vanilla creatures (dirac/oracle/firebend_test.go)
+Fire Sages
+Firebending Student
+Sun Warriors
+Rough Rhino Cavalry
+Uncle Iroh
+Jeong Jeong, the Deserter
+Shock
+Lightning Strike
+Youthful Knight
+Iroh's Demonstration
+Grizzly Bears
+Hill Giant
+Fire Elemental
+Air Elemental
+Giant Growth
+Disfigure
+Island
+Mountain
+Forest
+Plains
+Swamp
+Marsh Gas
+Fire Nation Cadets
+Fire Nation Palace
+Fire Nation Turret
+Firebending Lesson
+Memnite

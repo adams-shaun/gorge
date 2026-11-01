@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_05384_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 300a7c1d22414a3ba8e8ccf33821cf58:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Early Winter, 2 Intrepid Rabbit, 1 Nettle Guard, 1 Parting Gust, 1 Rabbit Response -> 4 Plains, 2 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Fountainport",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 2
+},
+{
+"name": "Patchwork Banner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 14
+},
+{
+"name": "Seasoned Warrenguard",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 2
+},
+{
+"name": "Stargaze",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Tangle Tumbler",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 1
+}
+]
+}

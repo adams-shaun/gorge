@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_16959_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 2bf1c8ce176a44c982bd7b349d26a3bb:1, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Archmage of Runes",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 2
+},
+{
+"name": "Bloodthirsty Conqueror",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Drake Hatcher",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Erudite Wizard",
+"count": 2
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Kiora, the Rising Tide",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Phyrexian Arena",
+"count": 1
+},
+{
+"name": "Rune-Sealed Wall",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Think Twice",
+"count": 4
+},
+{
+"name": "Tolarian Terror",
+"count": 1
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 1
+}
+]
+}

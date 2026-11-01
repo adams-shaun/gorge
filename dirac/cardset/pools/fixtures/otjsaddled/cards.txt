@@ -1,0 +1,13 @@
+# the becomes-saddled pool: Stubborn Burrowfiend
+# beside bears and mana creatures (dirac/oracle/otjsaddled_test.go)
+# The becomes-saddled pool: Stubborn Burrowfiend
+# beside bears and mana creatures for dirac/oracle/otjsaddled_test.go.
+Stubborn Burrowfiend
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Forest
+Raging Goblin
+Shock
+Lightning Bolt
+Mountain

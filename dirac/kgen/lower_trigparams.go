@@ -1,0 +1,132 @@
+package kgen
+
+import (
+	"strings"
+)
+
+// resolvedLimit reads a trigger's ResolvedLimit$ (gorge trigger_match.go
+// resolvedLimitValue / noteTriggerResolved): only the value 1 of a
+// battlefield trigger is lowered (kop.Tf2ResolvedLimit: the kernel keys the
+// count by the source object in its once-per-turn records, gated where a
+// listener queues a trigger); any other value, and a trigger of an Effect
+// or another zone, refuses.
+func (lc *lowerCtx) resolvedLimit(tr *lTrigger, rl, zone string) error {
+	if rl != "1" {
+		return refuse("ResolvedLimit %q", rl)
+	}
+	if zone != "" || (tr.Zone != 0 && tr.Zone != zBattlefield) {
+		return refuse("ResolvedLimit outside a battlefield trigger")
+	}
+	tr.ResolvedLimit = true
+	return nil
+}
+
+// readEvolveCondition reads this family's trigger parameters. Condition$ Evolve
+// (CR 702.99a written as a bare trigger condition; gorge trigger_match.go
+// evolveConditionHolds): an ETB trigger fires only when the entering
+// creature's power or toughness is greater than the source's, read as it
+// fires only (gorge has no resolution-time recheck). Any other Condition$
+// is left unread (refused by the caller).
+func (lc *lowerCtx) readEvolveCondition(tp *params, tr *lTrigger) error {
+	if c, ok := tp.get("Condition"); ok && strings.TrimSpace(c) == "Evolve" {
+		if tr.Event != "ETB" {
+			return refuse("Condition$ Evolve on a %s trigger", tr.Event)
+		}
+		tp.consume("Condition")
+		tr.Evolve = true
+	}
+	return nil
+}
+
+// trigParams3 reads three trigger parameters.
+//
+//   - Teamwork$ True (Taps, Card.Self): gorge trigmatch/tap.go:41 matches
+//     only a Tap whose reason is events.TapTeamworkCounter, the creatures
+//     elected for the teamwork additional cost (pay/paidcost.go:229-237).
+//   - GameActivationLimit$ 1: gorge trigger_match.go:610-660, once per
+//     source object (a zone change starts a new stint, CR 400.7).
+//   - TriggerController$ TriggeredCardController: read by gorge only for a
+//     ChangesZone/ChangesZoneAll line leaving the battlefield
+//     (trigger_match.go:1789-1795); on any other mode it is inert.
+func (lc *lowerCtx) trigParams3(tp *params, tr *lTrigger, mode string) error {
+	if _, ok := tp.get("Teamwork"); ok {
+		if mode != "Taps" || tp.str("Teamwork") != "True" || tr.Whose != 0 {
+			return refuse("Teamwork$ on a %s trigger", mode)
+		}
+		tr.TeamworkTap = true
+		tp.consume("Teamwork")
+	}
+	if v, ok := tp.get("GameActivationLimit"); ok {
+		if strings.TrimSpace(v) != "1" {
+			return refuse("GameActivationLimit$ %q", v)
+		}
+		if lc.granted != 0 {
+			return refuse("GameActivationLimit$ on a granted trigger")
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("GameActivationLimit$ off the battlefield")
+		}
+		tr.GameOnce = true
+		tp.consume("GameActivationLimit")
+	}
+	// peek, not get: any other value (or mode) must stay unread and refuse
+	if v, ok := tp.m["TriggerController"]; ok && strings.TrimSpace(v) == "TriggeredCardController" &&
+		mode != "ChangesZone" && mode != "ChangesZoneAll" {
+		tp.consume("TriggerController")
+	}
+	return nil
+}
+
+// trigParams4 reads the trigger parameters:
+//
+//   - IsSingleTarget$ True (SpellCast): gorge trigmatch.TargetShapeMatches
+//     (cast.go L200, L234-245) requires the cast spell's ROOT target list to
+//     have exactly one entry; any other value fails closed in gorge, so kgen
+//     refuses it rather than lowering a condition it does not read. A chained
+//     SubAbility$ link's target rides obj.SubTargets and is not counted there
+//     (the kernel's singleTargetOK reads the same root list).
+//   - ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$
+//     Creature.targetedBy (DamageDone): gorge damageCauseMatches
+//     (cause_qualifiers.go L71-101) reads the resolving stack object, which
+//     must be a spell (stackCauseAdmits L24-40), carry exactly one target in
+//     total (Targets plus SubTargets, targetCountAdmits L43-50), and the
+//     damaged creature must be one of them. Only this exact pair is lowered;
+//     any other spelling or a lone half refuses.
+//   - Origin$ / Destination$ on Sacrificed / SacrificedOnce: gorge
+//     sacrificedMatches (zone.go L207-238) reads ValidCard$, ValidPlayer$ and
+//     WhileKeyword$ and never these two, so they are inert and consumed here.
+func (lc *lowerCtx) trigParams4(tp *params, tr *lTrigger, mode string) error {
+	if mode == "SpellCast" {
+		if v, ok := tp.get("IsSingleTarget"); ok {
+			if strings.TrimSpace(v) != "True" {
+				return refuse("IsSingleTarget$ %q", v)
+			}
+			tr.SingleTarget = true
+		}
+	} else if v, ok := tp.m["IsSingleTarget"]; ok && !tp.used["IsSingleTarget"] {
+		return refuse("IsSingleTarget$ %q on a %s trigger", v, mode)
+	}
+	if mode == "DamageDone" {
+		vc, vok := tp.get("ValidCause")
+		rc, rok := tp.get("TargetRelativeToCause")
+		if vok || rok {
+			if !vok || !rok || strings.TrimSpace(vc) != "Spell.numTargets EQ1" || strings.TrimSpace(rc) != "Creature.targetedBy" ||
+				strings.TrimSpace(tp.str("ValidTarget")) != "Creature" {
+				return refuse("DamageDone cause qualifiers ValidCause$ %q TargetRelativeToCause$ %q ValidTarget$ %q", vc, rc, tp.str("ValidTarget"))
+			}
+			tr.CauseTarget = true
+		}
+	} else {
+		for _, k := range [...]string{"ValidCause", "TargetRelativeToCause"} {
+			if v, ok := tp.m[k]; ok && !tp.used[k] {
+				return refuse("%s$ %q on a %s trigger", k, v, mode)
+			}
+		}
+	}
+	if mode == "Sacrificed" || mode == "SacrificedOnce" {
+		// gorge sacrificedMatches never reads Origin$/Destination$; they are
+		// the zone-change frame's descriptive keys and are inert here too.
+		tp.consume("Origin", "Destination")
+	}
+	return nil
+}

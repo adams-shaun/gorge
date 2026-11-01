@@ -1,0 +1,17 @@
+# the saddler-pairing pool (CR 702.171c): Giant Beaver's
+# attack trigger targeting a creature that saddled it this turn, beside
+# saddlers, burn and basics (dirac/oracle/otjsaddle_test.go)
+# The saddler-pairing pool (CR 702.171c): Giant Beaver
+# ("Whenever Giant Beaver attacks while saddled, put a +1/+1 counter on
+# target creature that saddled it this turn. Saddle 3") beside creatures
+# to saddle it with, burn to remove a saddler and basics, for the oracle's
+# constructed lockstep (dirac/oracle/otjsaddle_test.go).
+Giant Beaver
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Raging Goblin
+Shock
+Lightning Bolt
+Forest
+Mountain

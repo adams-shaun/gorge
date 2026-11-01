@@ -1,0 +1,14 @@
+# the over-tap mana pool (ring): Ring of the Lucii and Sol Ring ({T}: add {C}{C})
+# beside cheap spells, for the oracle's constructed lockstep (dirac/oracle/ring_test.go)
+Ring of the Lucii
+Sol Ring
+Coral Merfolk
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Giant Spider
+Walking Corpse
+Island
+Swamp
+Forest
+Mountain

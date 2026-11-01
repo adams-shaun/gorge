@@ -1,0 +1,23 @@
+# the CantBeActivated pool: the four printed
+# S:Mode$ CantBeActivated carriers (Clarion Conqueror, Grand Abolisher,
+# Petrify, Stuck in Summoner's Sanctum) beside mana creatures, a mana
+# rock with a second ability, a pinger, pumps, an Equipment, an
+# enchantment and a planeswalker with activated abilities, and W/U/G
+# basics, for the oracle's constructed lockstep
+# (dirac/oracle/cantact_test.go)
+Ajani, Caller of the Pride
+Bonesplitter
+Canyon Crab
+Clarion Conqueror
+Elvish Mystic
+Forest
+Grand Abolisher
+Island
+Llanowar Elves
+Mind Stone
+Omen of the Sea
+Petrify
+Plains
+Prodigal Sorcerer
+Stuck in Summoner's Sanctum
+Twinblade Slasher

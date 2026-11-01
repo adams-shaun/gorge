@@ -1,0 +1,16 @@
+# the ClassBand$ static pool: Blacksmith's and Caretaker's
+# Talent's level-3 statics beside token makers, creatures and removal
+# (dirac/oracle/classband_test.go)
+Blacksmith's Talent
+Caretaker's Talent
+Raise the Alarm
+Mountain
+Plains
+Swamp
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Walking Corpse
+Shock
+Doom Blade
+Goblin Instigator

@@ -1,0 +1,28 @@
+# the reflexive-trigger remembered-value pool:
+# Ill-Timed Explosion, The Ancient One and Miasma Demon read
+# TriggerRemembered$ (Amount / CardManaCost / GreatestCardManaCost) in a
+# "when you do" body (dirac/oracle/trigrem_test.go)
+# the reflexive-trigger remembered-value pool:
+# TriggerRemembered$ Amount / CardManaCost / GreatestCardManaCost read by a
+# "when you do" body (Ill-Timed Explosion's X damage to each creature, The
+# Ancient One's mill, Miasma Demon's up-to-that-many targets), beside cards
+# of varied mana value (the discarded value varies), cheap creatures for the
+# damage and the -2/-2 to land on, and bounce and draw (dirac/oracle/trigrem_test.go)
+Ill-Timed Explosion
+The Ancient One
+Miasma Demon
+Air Elemental
+Mahamoti Djinn
+Hill Giant
+Lightning Bolt
+Wind Drake
+Merfolk of the Pearl Trident
+Raging Goblin
+Goblin Piker
+Vampire Nighthawk
+Phantom Warrior
+Unsummon
+Divination
+Island
+Mountain
+Swamp

@@ -1,0 +1,20 @@
+# max-speed grants of a ReduceCost static (Racers'
+# Scoreboard) and of a plus-1 damage replacement (Far Fortune), and
+# Hazoret's HasPropertyMaxSpeed gate (dirac/oracle/maxspeedgrants_test.go)
+# the max-speed grants of a non-Continuous static
+# (Racers' Scoreboard's ReduceCost), of a replacement (Far Fortune's plus-1
+# damage) and the HasPropertyMaxSpeed count (Hazoret's can't attack/block),
+# for the oracle's constructed lockstep (dirac/oracle/maxspeedgrants_test.go).
+# Each is a Start your engines! permanent; Shock and combat damage raise
+# the speed.
+Hazoret, Godseeker
+Racers' Scoreboard
+Far Fortune, End Boss
+Goblin Surveyor
+Hour of Victory
+Shock
+Grizzly Bears
+Raging Goblin
+Mountain
+Forest
+Swamp

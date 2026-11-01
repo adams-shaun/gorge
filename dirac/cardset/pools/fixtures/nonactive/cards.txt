@@ -1,0 +1,18 @@
+# the SpellCast Player.NonActive / Opponent.NonActive pool
+# Scytheclaw Raptor, Adrenaline Jockey, March of
+# the World Ooze, plus instants and flash creatures cast on both players'
+# turns (dirac/oracle/nonactive_test.go)
+Scytheclaw Raptor
+Adrenaline Jockey
+March of the World Ooze
+Shock
+Lightning Bolt
+Giant Growth
+Opt
+Unsummon
+Ambush Viper
+Spectral Sailor
+Grizzly Bears
+Forest
+Mountain
+Island

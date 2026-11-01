@@ -1,0 +1,31 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Bake into a Pie
+1	card	Control Magic
+2	card	Foot Mystic
+3	card	Forest
+4	card	Gravedigger
+5	card	Grizzly Bears
+6	card	Hill Giant
+7	card	Hungry Ghoul
+8	card	Insectoid Exterminator
+9	card	Island
+10	card	Lightning Bolt
+11	card	Living History
+12	card	Llanowar Elves
+13	card	Lord Dregg, Insect Invader
+14	card	Michelangelo, Game Master
+15	card	Mountain
+16	card	Pizza Face, Gastromancer
+17	card	Plains
+18	card	Primary Research
+19	card	Raise Dead
+20	card	Reanimate
+21	card	Shock
+22	card	Swamp
+23	card	Unsummon
+24	card	West Wind Avatar
+25	card	Wilt in the Heat
+26	token	b_1_1_insect_warrior_flying
+27	token	b_1_1_ninja
+28	token	c_a_food_sac
+29	token	rw_2_2_spirit

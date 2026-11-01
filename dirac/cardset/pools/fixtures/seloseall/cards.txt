@@ -1,0 +1,15 @@
+# the StaticEffect$ RemoveAllAbilities$ pool:
+# Xu-Ifit, Osteoharmonist and Hellcat, Undying Vigilante return a creature
+# that loses all abilities (Hellcat keeps the haste it is granted), beside
+# a flier with deathtouch, an enters-draw creature, vanilla bodies and
+# Shock (dirac/oracle/seloseall_test.go)
+Xu-Ifit, Osteoharmonist
+Hellcat, Undying Vigilante
+Vampire Nighthawk
+Elvish Visionary
+Grizzly Bears
+Hill Giant
+Shock
+Swamp
+Forest
+Mountain

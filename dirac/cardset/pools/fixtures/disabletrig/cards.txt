@@ -1,0 +1,20 @@
+# the DisableTriggers enters pool: Torpor Orb, Karn, Doorkeeper Thrull
+# for the oracle lockstep (dirac/oracle/disabletrig_test.go)
+Adventuring Gear
+Banishing Light
+Beast-Kin Ranger
+Blossoming Sands
+Celestial Armor
+Dazzling Angel
+Doorkeeper Thrull
+Elfsworn Giant
+Forest
+Good-Fortune Unicorn
+Helpful Hunter
+Karn, Argent Defender
+Mossborn Hydra
+Plains
+Prideful Parent
+Reclamation Sage
+Resolute Reinforcements
+Torpor Orb

@@ -1,0 +1,16 @@
+# the pay-life-equal-to-power ward pool:
+# Raubahn, Bull of Ala Mhigo, a pump in response, the burn/bounce that
+# targets it and basics, for the oracle's constructed lockstep
+# (dirac/oracle/wardpow_test.go)
+Raubahn, Bull of Ala Mhigo
+Giant Growth
+Grizzly Bears
+Raging Goblin
+Shock
+Unsummon
+Storm Crow
+Plains
+Island
+Swamp
+Mountain
+Forest

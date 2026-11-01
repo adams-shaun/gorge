@@ -1,0 +1,232 @@
+package oracle
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/rules"
+)
+
+// NoCardIndex is the table index of no card (a token, a copy).
+const NoCardIndex uint8 = 255
+
+// Matchup is one game's fixed inputs apart from the seed: the two deck lists,
+// resolved, and the card table both sides index.
+type Matchup struct {
+	Names [2]string        // deck names (pool file stems)
+	Decks [2][]*cards.Card // gorge's resolved decks, in decklist order
+	// Table is the matchup's distinct card names, sorted; the kernel's CardID
+	// for a deck card is its index here.
+	// NoCardIndex (255) is none.
+	Table []string
+	// Deck[s][i] is the table index of deck s's i-th card.
+	Deck [2][]uint8
+	// Mulligans is Config.Mulligans: London mulligans each player may take
+	// (0 skips the round), as in a gorge self-play game.
+	Mulligans int
+
+	reg *cards.Registry
+	// chars is the kernel vocabulary the gorge side maps derived
+	// characteristics into (RealKernel sets it; nil: not compared)
+	chars *charVocab
+}
+
+// Corpus is an opened gorge corpus plus a deck directory, with resolved decks
+// cached (filled once, read-only afterwards).
+type Corpus struct {
+	Reg      *cards.Registry
+	DecksDir string
+
+	mu    sync.Mutex
+	decks map[string][]*cards.Card
+	files map[string]deck.File // decks held in memory (AddDecks), by name
+}
+
+// AddDecks makes files playable by name without a file on disk: a synthetic pool
+// is dealt, never written. A name here hides a file of the same name.
+func (c *Corpus) AddDecks(files map[string]deck.File) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.files == nil {
+		c.files = make(map[string]deck.File, len(files))
+	}
+	for name, f := range files {
+		c.files[name] = f
+		delete(c.decks, name)
+	}
+}
+
+// deckFile is the parsed deck named name, from memory or DecksDir.
+func (c *Corpus) deckFile(name string) (deck.File, error) {
+	c.mu.Lock()
+	f, ok := c.files[name]
+	c.mu.Unlock()
+	if ok {
+		return f, nil
+	}
+	raw, err := os.ReadFile(filepath.Join(c.DecksDir, name+".json"))
+	if err != nil {
+		return deck.File{}, err
+	}
+	return deck.Parse(raw)
+}
+
+// OpenCorpus opens the gorge corpus at cardsDir exactly as gorge self-play does
+// (cards.SharedCorpus) and reads decks from decksDir.
+func OpenCorpus(cardsDir, decksDir string) (*Corpus, error) {
+	reg, err := cards.SharedCorpus(cardsDir)
+	if err != nil {
+		return nil, err
+	}
+	return &Corpus{Reg: reg, DecksDir: decksDir, decks: map[string][]*cards.Card{}}, nil
+}
+
+// OpenKernelCorpus is OpenCorpus for a process that plays the kernel alone:
+// its registry is cards.OpenCorpusSubset's, decoding only the cards names
+// lists plus every token script, instead of the whole corpus (a self-play runner's
+// bench plays 39 distinct cards of 34k; the full registry's open is most of
+// its peak RSS).
+//
+// Every name still resolves: the subset's Lookup answers any corpus name
+// (decoding a card outside names on first use, exactly as the full registry
+// holds it), and its Tokens is the full set, so every resolution kernel play
+// makes -- deck loads, FeatPool, HBotFacts, SBTCards, KernelMatchup, a card
+// a deck's cards create or name -- is the full registry's. Only the
+// registry's card list, and so Universe, is the subset: a gorge-rules game
+// (Matchup.Config: replay, parity, lockstep) needs the full name universe,
+// so it needs OpenCorpus, and Config panics on a subset matchup.
+func OpenKernelCorpus(cardsDir, decksDir string, names []string) (*Corpus, error) {
+	reg, err := cards.OpenCorpusSubset(cardsDir, names)
+	if err != nil {
+		return nil, err
+	}
+	return &Corpus{Reg: reg, DecksDir: decksDir, decks: map[string][]*cards.Card{}}, nil
+}
+
+// Deck resolves a pool deck by name (engine/deck.Load).
+func (c *Corpus) Deck(name string) ([]*cards.Card, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if d, ok := c.decks[name]; ok {
+		return d, nil
+	}
+	var d []*cards.Card
+	var err error
+	if f, ok := c.files[name]; ok {
+		d, err = f.Resolve(c.Reg)
+	} else {
+		_, d, err = deck.Load(c.Reg, filepath.Join(c.DecksDir, name+".json"))
+	}
+	if err != nil {
+		return nil, fmt.Errorf("deck %s: %w", name, err)
+	}
+	c.decks[name] = d
+	return d, nil
+}
+
+// Matchup builds the matchup of decks a and b.
+func (c *Corpus) Matchup(a, b string, mulligans int) (*Matchup, error) {
+	da, err := c.Deck(a)
+	if err != nil {
+		return nil, err
+	}
+	db, err := c.Deck(b)
+	if err != nil {
+		return nil, err
+	}
+	return NewMatchup(c.Reg, [2]string{a, b}, [2][]*cards.Card{da, db}, mulligans)
+}
+
+// NewMatchup builds a matchup from resolved decks.
+func NewMatchup(reg *cards.Registry, names [2]string, decks [2][]*cards.Card, mulligans int) (*Matchup, error) {
+	m := &Matchup{Names: names, Decks: decks, Mulligans: mulligans, reg: reg}
+	seen := map[string]bool{}
+	for _, d := range decks {
+		for _, c := range d {
+			n := cardName(c)
+			if !seen[n] {
+				seen[n] = true
+				m.Table = append(m.Table, n)
+			}
+		}
+	}
+	sort.Strings(m.Table)
+	if len(m.Table) >= int(NoCardIndex) {
+		return nil, fmt.Errorf("matchup %v: %d distinct cards, the table holds %d", names, len(m.Table), NoCardIndex)
+	}
+	if n := len(decks[0]) + len(decks[1]); n >= MaxInst {
+		return nil, fmt.Errorf("matchup %v: %d deck cards, a projection holds %d instances", names, n, MaxInst)
+	}
+	for s, d := range decks {
+		for _, c := range d {
+			m.Deck[s] = append(m.Deck[s], uint8(sort.SearchStrings(m.Table, cardName(c))))
+		}
+	}
+	return m, nil
+}
+
+// Config is the rules.Config a gorge self-play game builds for this
+// matchup and seed: the same Names, Decks, Tokens, NameUniverse and
+// Mulligans, and bench.PlayGame's default object cap. (-mull-heuristic is a
+// seat policy there, not setup; here the Policy answers the mulligan asks.)
+func (m *Matchup) Config(seed uint64) rules.Config {
+	cfg := rules.Config{
+		Seed: seed, Names: []string{"p0", "p1"}, Decks: [][]*cards.Card{m.Decks[0], m.Decks[1]},
+		Mulligans: m.Mulligans,
+	}
+	if m.reg != nil {
+		if m.reg.IsSubset() {
+			// a subset's Universe is not the corpus': the game could differ
+			panic("oracle: Matchup.Config on an OpenKernelCorpus registry (a gorge game needs OpenCorpus's full name universe)")
+		}
+		cfg.Tokens, cfg.NameUniverse = m.reg.Tokens, m.reg.Universe()
+	}
+	cfg.LoopGuard = rules.WithDefaultObjectCap(cfg.LoopGuard)
+	return cfg
+}
+
+// cardName is a compiled card's front face name.
+func cardName(c *cards.Card) string {
+	if c == nil {
+		return ""
+	}
+	if len(c.Faces) > 0 && c.Faces[0] != nil && c.Faces[0].Name != "" {
+		return c.Faces[0].Name
+	}
+	return c.Path
+}
+
+// PoolDeck is one row of a deck pool's pool.tsv.
+type PoolDeck struct{ Name, Split, Colors string }
+
+// ReadPool reads pool.tsv rows of split ("all" for every row), as gorge self-play's
+// readPool does.
+func ReadPool(path, split string) ([]PoolDeck, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var out []PoolDeck
+	sc := bufio.NewScanner(f)
+	for line := 0; sc.Scan(); line++ {
+		if line == 0 {
+			continue
+		}
+		v := strings.Split(sc.Text(), "\t")
+		if len(v) < 3 {
+			continue
+		}
+		if split == "all" || v[1] == split {
+			out = append(out, PoolDeck{Name: v[0], Split: v[1], Colors: v[2]})
+		}
+	}
+	return out, sc.Err()
+}

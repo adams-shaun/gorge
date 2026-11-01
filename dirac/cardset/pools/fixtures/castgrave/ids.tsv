@@ -1,0 +1,28 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Broodspinner
+1	card	Esper Origins
+2	card	Faithless Looting
+3	card	Forest
+4	card	Grizzly Bears
+5	card	Hill Giant
+6	card	Island
+7	card	Llanowar Elves
+8	card	Mind Rot
+9	card	Mountain
+10	card	Plains
+11	card	Plunder the Trollshaws
+12	card	Raging Goblin
+13	card	Recursive Recruitment
+14	card	Retrieve the Esper
+15	card	Ruthless Negotiation
+16	card	Swamp
+17	card	The Final Days
+18	card	Thought Scour
+19	card	Tidings of War
+20	card	Walking Corpse
+21	card	face:Esper Origins#1
+22	token	b_0_0_goblin_army
+23	token	b_2_2_horror
+24	token	bg_1_1_insect_flying
+25	token	cadet
+26	token	u_3_3_a_robot_warrior

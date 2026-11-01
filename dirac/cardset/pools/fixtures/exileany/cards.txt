@@ -1,0 +1,38 @@
+# the any-zone dies-to-exile pool: Rest in Peace,
+# Leyline of the Void and Dryad Militant beside spells that resolve,
+# get countered or are discarded, a discard outlet and a self-mill,
+# dies triggers, token makers, removal and basics
+# (dirac/oracle/exileany_test.go)
+Abrade
+Bake into a Pie
+Billowing Shriekmass
+Bloodtithe Collector
+Burglar Rat
+Burst Lightning
+Cancel
+Chart a Course
+Crow of Dark Tidings
+Day of Judgment
+Deathmark
+Dragon Fodder
+Dryad Militant
+Duress
+Essence Scatter
+Forest
+Giant Growth
+Giant Spider
+Goblin Surprise
+Gray Ogre
+Grizzly Bears
+Hare Apparent
+Hero's Downfall
+Hill Giant
+Island
+Leyline of the Void
+Midnight Reaper
+Mountain
+Plains
+Rest in Peace
+Seeker's Folly
+Swamp
+Walking Corpse

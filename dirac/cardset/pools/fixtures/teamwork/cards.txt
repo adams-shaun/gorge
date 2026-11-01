@@ -1,0 +1,26 @@
+# the Teamwork pool: the 12 MSH Teamwork carriers,
+# vanilla creatures to tap, a Bolt and basics, for the oracle's
+# constructed lockstep (dirac/oracle/teamwork_test.go)
+Cruel Alliance
+Earth's Mightiest Heroes
+Helicarrier Strike
+Repulsor Blast
+Too Evil to Stay Dead
+We Say Thee Nay!
+Team Tactics
+Atlantis Attacks
+Go Nuts!
+HULK SMASH!
+Murdock's Crusade
+Widow's Bite
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Lightning Bolt
+Plains
+Island
+Swamp
+Mountain
+Forest
+Iridescent Tiger
+Burning-Tree Emissary

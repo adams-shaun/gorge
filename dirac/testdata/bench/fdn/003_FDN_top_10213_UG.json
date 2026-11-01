@@ -1,0 +1,103 @@
+{
+"name": "FDN_top_10213_UG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 5dd97e12817348418f7196c4ea94c355:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Affectionate Indrik",
+"count": 1
+},
+{
+"name": "Archmage of Runes",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Burnished Hart",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Elvish Regrower",
+"count": 2
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 9
+},
+{
+"name": "Garruk's Uprising",
+"count": 1
+},
+{
+"name": "Giant Growth",
+"count": 1
+},
+{
+"name": "Gnarlid Colony",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Koma, World-Eater",
+"count": 1
+},
+{
+"name": "Loot, Exuberant Explorer",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 1
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Rune-Sealed Wall",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Snakeskin Veil",
+"count": 1
+},
+{
+"name": "Wary Thespian",
+"count": 2
+}
+]
+}

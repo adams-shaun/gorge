@@ -1,0 +1,44 @@
+package kgen
+
+// copyAbility lowers "copy target activated or triggered ability you control;
+// you may choose new targets for the copy" (gorge
+// effCopySpellAbility's targeted arm with TargetType$
+// Activated.YouCtrl,Triggered.YouCtrl or Triggered.YouCtrl): one copy of the
+// first object target, an ability on the stack its chooser controls. The
+// ability's types are its source's (CR 113.7a; gorge matchesTargetSpec binds
+// the source's derived types to the wrapper), so ValidTgts$ Card / Card,Emblem
+// name every source and a bare card type (Card.Creature, Artifact) filters by
+// the source's types; anything else refuses. MayChooseTarget$ must be True.
+func (lc *lowerCtx) copyAbility(ps *params) error {
+	var kind uint8
+	switch tt := ps.str("TargetType"); tt {
+	case "Activated.YouCtrl,Triggered.YouCtrl":
+		kind = 1
+	case "Triggered.YouCtrl":
+		kind = 2
+	default:
+		return refuse("CopySpellAbility TargetType %q", tt)
+	}
+	for _, k := range []string{"Amount", "Defined", "Controller", "CopyForEachCanTarget", "TargetMin", "TargetMax"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("CopySpellAbility of an ability with %s$", k)
+		}
+	}
+	if !ps.is("MayChooseTarget", "True") {
+		return refuse("CopySpellAbility of an ability without MayChooseTarget$ True")
+	}
+	vt := ps.str("ValidTgts")
+	if vt == "Card,Emblem" {
+		vt = "Card"
+	}
+	f, err := lc.filter(vt)
+	if err != nil {
+		return err
+	}
+	if f == nil || f.Players != 0 || len(f.Clauses) != 1 || f.Clauses[0] != (lClause{Types: f.Clauses[0].Types}) {
+		return refuse("CopySpellAbility of an ability whose ValidTgts$ %q reads more than the source's types", vt)
+	}
+	t := lc.addTarget(lTarget{F: f, Zone: zStack, Spell: true, StackAb: true, AbOnly: true, CopyAb: kind})
+	lc.emit(lInstr{Op: "CopyAbility", Obj: lRef{Kind: rTarget, N: t}, C: 1})
+	return nil
+}

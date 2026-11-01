@@ -1,0 +1,107 @@
+{
+"name": "FDN_top_08080_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 06949381923c4b3ca633cb062f9199f5:1, player win-rate bucket 0.66 (CC BY 4.0)",
+"cards": [
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Blasphemous Edict",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Drake Hatcher",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Icewind Elemental",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Lunar Insight",
+"count": 1
+},
+{
+"name": "Meteor Golem",
+"count": 1
+},
+{
+"name": "Pilfer",
+"count": 1
+},
+{
+"name": "Rune-Sealed Wall",
+"count": 1
+},
+{
+"name": "Sanguine Syphoner",
+"count": 2
+},
+{
+"name": "Seeker's Folly",
+"count": 1
+},
+{
+"name": "Self-Reflection",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tinybones, Bauble Burglar",
+"count": 1
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Witness Protection",
+"count": 1
+}
+]
+}

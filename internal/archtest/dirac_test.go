@@ -51,11 +51,11 @@ func diracCoreEdges(pkgs map[string]pkg) []string {
 	return out
 }
 
-// requireDirac skips a tree that has no dirac/ yet.
+// requireDirac fails rather than letting a rename leave these rows passing over nothing.
 func requireDirac(t *testing.T) {
 	t.Helper()
-	if _, err := os.Stat(filepath.Join("..", "..", "dirac", "doc.go")); os.IsNotExist(err) {
-		t.Skip("no dirac/ in this tree")
+	if _, err := os.Stat(filepath.Join("..", "..", "dirac", "doc.go")); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -91,11 +91,12 @@ var rawTableReaders = map[string]bool{
 }
 
 // rawTableUsers may name them: lockstep earns evidence on raw tables, kgen builds
-// them, and three dirac tests read synthetic pools, two for cards only they hold
+// them, and five dirac tests read synthetic pools, four for cards only they hold
 // and one to measure them. Everything else plays what the support lists allow.
 var rawTableUsers = []string{
 	"dirac/oracle/", "dirac/kgen/", "dirac/cardset/",
-	"dirac/panic_test.go", "dirac/poolbytes_test.go", "dirac/xannounce_test.go",
+	"dirac/panic_test.go", "dirac/poolbytes_test.go", "dirac/restractivation_test.go",
+	"dirac/synthshapes_test.go", "dirac/xannounce_test.go",
 }
 
 // rawTableViolation is the selector in src that file may not use, or "".

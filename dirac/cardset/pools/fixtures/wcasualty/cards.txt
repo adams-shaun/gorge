@@ -1,0 +1,24 @@
+# the Casualty pool: the nine printed Casualty N cards
+# kgen lowers, vanilla creatures to sacrifice and basics, for the oracle's
+# constructed lockstep (dirac/oracle/wcasualty_test.go)
+A Little Chat
+Cut of the Profits
+Cut Your Losses
+Dig Up the Body
+Join the Maestros
+Light 'Em Up
+Make Disappear
+Rob the Archives
+Rooftop Nuisance
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Vampire Cutthroat
+Giant Spider
+Savannah Lions
+Plains
+Island
+Swamp
+Mountain
+Forest

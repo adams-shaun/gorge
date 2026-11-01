@@ -1,0 +1,17 @@
+# the X/X Token carriers (dirac/oracle/tokenxpt_test.go)
+Unwilling Vessel
+The Skullspore Nexus
+Tumbleweed Rising
+Dance of the Tumbleweeds
+Abzan Monument
+Oviya Pashiri, Sage Lifecrafter
+Grizzly Bears
+Hill Giant
+Giant Growth
+Shock
+Murder
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_25174_UG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 52232204995f4c79b5672a8a193cd328:1, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Cache Grab, 1 Dour Port-Mage, 1 Gossip's Talent, 1 Innkeeper's Talent, 1 Rust-Shield Rampager, 1 Treetop Sentries -> 3 Island, 3 Forest",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 3
+},
+{
+"name": "Dreamdew Entrancer",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Knightfisher",
+"count": 2
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Overprotect",
+"count": 1
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Short Bow",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 2
+},
+{
+"name": "Sunshower Druid",
+"count": 1
+},
+{
+"name": "Valley Mightcaller",
+"count": 1
+}
+]
+}

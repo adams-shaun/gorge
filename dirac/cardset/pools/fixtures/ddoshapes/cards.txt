@@ -1,0 +1,26 @@
+# the DamageAll / DamageDoneOnce referent-shape pool:
+# Master of Barbs (Mode$ DamageAll at a single player), Cracked Skull
+# (TriggeredTargetLKICopy of the damaged object) and Contested Game Ball
+# (TriggeredAttackingPlayer), a sweep that hits each opponent and their
+# creatures, burn, cheap red/black creatures and basics, for the oracle's
+# constructed lockstep (dirac/oracle/ddoshapes_test.go)
+Master of Barbs
+Cracked Skull
+Contested Game Ball
+End the Festivities
+Pyroclasm
+Shock
+Lightning Bolt
+Burst Lightning
+Raging Goblin
+Fanatical Firebrand
+Gray Ogre
+Hill Giant
+Trained Armodon
+Craw Wurm
+Vampire Lacerator
+Doomed Dissenter
+Child of Night
+Walking Corpse
+Mountain
+Swamp

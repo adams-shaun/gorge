@@ -1,0 +1,27 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Caustic Exhale
+1	card	Coral Merfolk
+2	card	Countersculpt
+3	card	Dragon Moose
+4	card	Forest
+5	card	Goblin Bully
+6	card	Goblin Cavaliers
+7	card	Hulking Bugbear
+8	card	Island
+9	card	Kinsbaile Aspirant
+10	card	Kithkin Billyrider
+11	card	Knight of Meadowgrain
+12	card	Maritime Guard
+13	card	Merfolk of the Pearl Trident
+14	card	Mons's Goblin Raiders
+15	card	Mountain
+16	card	Mudbutton Cursetosser
+17	card	Plains
+18	card	Shock
+19	card	Silvergill Mentor
+20	card	Swamp
+21	card	Vodalian Soldiers
+22	card	Volcanic Dragon
+23	card	name:Jace Token
+24	token	u_empower
+25	token	wu_1_1_merfolk

@@ -1,0 +1,15 @@
+# one CounterPlayerAddedAll trigger per put action per recipient: The Great
+# Goblin and Generous Patron beside CounterTypes$ carriers
+# (dirac/oracle/ctrcell_test.go)
+The Great Goblin
+Generous Patron
+Abigale, Eloquent First-Year
+Unexpected Fangs
+Gift of the Viper
+Raging Goblin
+Goblin Piker
+Grizzly Bears
+Swamp
+Mountain
+Plains
+Forest

@@ -1,0 +1,22 @@
+# the unless-cost discard pool: Discard<N/Random> and
+# Discard<N/Hand> UnlessCost$ carriers, for the oracle's constructed
+# lockstep (dirac/oracle/unlessdiscard_test.go)
+Balduvian Horde
+Minotaur Explorer
+Pillaging Horde
+Gallia of the Endless Dance
+Perplex
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Giant Spider
+Raging Goblin
+Goblin Piker
+Centaur Courser
+Lightning Bolt
+Shock
+Divination
+Mountain
+Forest
+Island
+Swamp

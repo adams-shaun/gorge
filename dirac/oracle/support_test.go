@@ -1,0 +1,248 @@
+package oracle
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/engine/deck"
+)
+
+const (
+	moduleRootFromOracle = "../.."
+
+	refusedPairsMax  = 200              // pairs with the card dealt in, once its repro plays clean
+	refusedEntryCap  = 20 * time.Second // per entry
+	refusedGameCap   = 10 * time.Second // a game past this is a hang, which proves nothing
+	refusedMulligans = 1                // the gate's form
+)
+
+// refusedRun is one entry's pool: its raw set and the decks its pairs draw from.
+type refusedRun struct {
+	card    string
+	surface string
+	policy  func(uint64) Policy
+	set     cardset.Set
+	c       *Corpus
+	pool    []PoolDeck
+	seed    uint64
+}
+
+func refusedPolicy(t *testing.T, name string) func(uint64) Policy {
+	t.Helper()
+	switch name {
+	case "random":
+		return RandomPolicy
+	case "heuristic":
+		return HeuristicPolicy
+	case "explore":
+		return ExplorePolicy
+	case "first":
+		return func(uint64) Policy { return FirstPolicy() }
+	}
+	t.Fatalf("policy %q", name)
+	return nil
+}
+
+// isSynthPool: the synthetic pools are dealt, a deck pool is read.
+func isSynthPool(name string) bool {
+	return strings.HasPrefix(name, "std-") || strings.HasPrefix(name, "tail-")
+}
+
+// openRefusedRun opens the entry's pool. A tail pool is cut by hash over what lowers,
+// so the card can have moved: then the pool is whichever synthetic one holds it.
+func openRefusedRun(t *testing.T, e *cardset.RefusedEntry) *refusedRun {
+	t.Helper()
+	cardsDir := corpusDirOrSkip(t)
+	poolName := e.Repro.Pool
+	set, err := loadRefusedSet(poolName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := set.Lookup(e.Card); !ok {
+		names, err := cardset.SynthNames()
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, n := range names {
+			s, err := cardset.SynthByName(n)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, ok := s.Lookup(e.Card); ok {
+				poolName, set, found = n, s, true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("%s is in no synthetic pool", e.Card)
+		}
+	}
+	r := &refusedRun{card: e.Card, surface: e.Repro.Surface, policy: refusedPolicy(t, e.Repro.Policy), set: set, seed: e.Repro.Seed}
+	if isSynthPool(poolName) {
+		if r.c, err = OpenCorpus(cardsDir, ""); err != nil {
+			t.Fatal(err)
+		}
+		var files map[string]deck.File
+		if r.pool, files, err = synthDeal(r.c.Reg, set, r.seed, SynthDecks, e.Card); err != nil {
+			t.Fatal(err)
+		}
+		r.c.AddDecks(files)
+	} else {
+		r.c, r.pool = testPoolCorpus(t, poolName)
+	}
+	e.Repro.Pool = poolName
+	return r
+}
+
+func loadRefusedSet(pool string) (cardset.Set, error) {
+	if isSynthPool(pool) {
+		return cardset.SynthByName(pool)
+	}
+	return cardset.RawByName(pool)
+}
+
+// holdsCard reports whether either deck of p has the entry's card.
+func (r *refusedRun) holdsCard(p Pairing) bool {
+	for _, name := range []string{p.A, p.B} {
+		f, err := r.c.deckFile(name)
+		if err == nil && slices.ContainsFunc(f.Cards, func(e deck.Entry) bool { return e.Name == r.card }) {
+			return true
+		}
+	}
+	return false
+}
+
+// diverges plays pair p and reports whether its divergence implicates the card. A
+// pair that cannot be built or does not finish in time shows nothing.
+func (r *refusedRun) diverges(p Pairing) bool {
+	done := make(chan bool, 1)
+	go func() {
+		defer func() {
+			if recover() != nil {
+				done <- false
+			}
+		}()
+		m, tbl, err := SetMatchup(r.set, r.c, p.A, p.B, refusedMulligans)
+		if err != nil {
+			done <- false
+			return
+		}
+		rc := RunConfig{Config: Config{GorgeAutopaySurface: r.surface == "autopay"}, MaxDecisions: 20000, MaxTurns: 100}
+		k, err := SetSide(r.set, tbl, rc.Config)(m, p.Seed)
+		if err != nil {
+			done <- false
+			return
+		}
+		res := Lockstep(m, p.Seed, k, r.policy(p.Seed), rc)
+		CloseSide(k)
+		done <- res.Div != nil && slices.Contains(res.Div.Implicates(m), r.card)
+	}()
+	select {
+	case d := <-done:
+		return d
+	case <-time.After(refusedGameCap):
+		return false
+	}
+}
+
+// changedRefused is the entries' files that differ from base.
+func changedRefused(t *testing.T, base string) map[string]bool {
+	t.Helper()
+	cmd := exec.Command("git", "diff", "--name-only", base, "--", cardset.RefusedDir)
+	cmd.Dir = moduleRootFromOracle
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git diff %s: %v", base, err)
+	}
+	changed := map[string]bool{}
+	for _, f := range strings.Fields(string(out)) {
+		changed[strings.TrimSuffix(filepath.Base(f), ".json")] = true
+	}
+	return changed
+}
+
+// TestRefusedEntriesStillDiverge: a card may be refused only while it diverges. A
+// clean replay of an entry's repro is not staleness, since games shift as gorge moves:
+// the card's pool is searched for another game that implicates it, and only finding
+// none fails. DIRAC_UPDATE_SUPPORT=1 writes the newer game into the entry.
+// KERNEL_REFUSED_BASE=<rev> checks only the entries that differ from rev.
+func TestRefusedEntriesStillDiverge(t *testing.T) {
+	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var only map[string]bool
+	if base := os.Getenv("KERNEL_REFUSED_BASE"); base != "" {
+		only = changedRefused(t, base)
+	}
+	for i := range entries {
+		e := &entries[i]
+		if only != nil && !only[cardset.SupportSlug(e.Card)] {
+			continue
+		}
+		t.Run(e.Card, func(t *testing.T) {
+			t.Parallel()
+			checkRefusedEntry(t, e)
+		})
+	}
+}
+
+func checkRefusedEntry(t *testing.T, e *cardset.RefusedEntry) {
+	r := openRefusedRun(t, e)
+	if err := refusedPlayable(r); err != nil {
+		t.Fatal(err)
+	}
+	if r.diverges(PairingAt(r.pool, e.Repro.Pair, r.seed)) {
+		return
+	}
+	deadline := time.Now().Add(refusedEntryCap)
+	played := 0
+	for pair := 0; played < refusedPairsMax && pair < refusedPairsMax*100; pair++ {
+		if time.Now().After(deadline) {
+			t.Fatalf("inconclusive: %d pairs of %s in %s without a divergence implicating %s", played, e.Repro.Pool, refusedEntryCap, e.Card)
+		}
+		p := PairingAt(r.pool, pair, r.seed)
+		if !r.holdsCard(p) {
+			continue
+		}
+		played++
+		if !r.diverges(p) {
+			continue
+		}
+		e.Repro.Pair = pair
+		t.Logf("%s's repro plays clean; %s pair %d still diverges", e.Card, e.Repro.Pool, pair)
+		if os.Getenv("DIRAC_UPDATE_SUPPORT") == "1" {
+			b, err := e.Marshal()
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(moduleRootFromOracle, filepath.FromSlash(cardset.RefusedDir), cardset.SupportSlug(e.Card)+".json")
+			if err := os.WriteFile(path, b, 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return
+	}
+	t.Errorf("stale: %d pairs of %s with %s dealt in and none implicates it: go run ./dirac/cmd/kgen -unrefuse %q", played, e.Repro.Pool, e.Card, e.Card)
+}
+
+// refusedPlayable: an entry naming a card kgen does not lower has nothing to replay.
+func refusedPlayable(r *refusedRun) error {
+	i, ok := r.set.Lookup(r.card)
+	if !ok {
+		return fmt.Errorf("%s is not in %s", r.card, r.set.Name())
+	}
+	if !r.set.Supported()[i] {
+		return errors.New(r.set.Reason(i))
+	}
+	return nil
+}

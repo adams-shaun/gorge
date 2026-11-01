@@ -1,0 +1,21 @@
+# the entering spell's cast record in two more enter reads
+# Freestrider Commando's etbCounter replacement
+# reads Count$CastTotalManaSpent, Rocket-Powered Goblin Glider's trigger
+# reads wasCastFromYourGraveyard (mayhem from the graveyard), beside a
+# reanimation (Dread Return), removal, discard/draw, Burning-Tree Emissary
+# (the floating mana a mayhem cast needs), vanilla creatures
+# and basics (dirac/oracle/entercast_test.go)
+Freestrider Commando
+Rocket-Powered Goblin Glider
+Dread Return
+Murder
+Shock
+Tormenting Voice
+Thrill of Possibility
+Grizzly Bears
+Hill Giant
+Forest
+Mountain
+Swamp
+Plains
+Burning-Tree Emissary

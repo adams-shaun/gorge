@@ -1,0 +1,25 @@
+# the MTGA combat-props pool: Sengir Vampire's DamagedBy,
+# Tinder Wall's blockedBySourceLKI, Subterranean Schooner's CrewedThisTurn
+# and Raid Bombardment's TriggeredDefender beside
+# Walls, fight/burn spells, basics and vanilla creatures, for the oracle's
+# constructed lockstep (dirac/oracle/mcombat_test.go)
+Sengir Vampire
+Tinder Wall
+Subterranean Schooner
+Raid Bombardment
+Wall of Wood
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Savannah Lions
+Giant Spider
+Walking Corpse
+Coral Merfolk
+Prey Upon
+Shock
+Goblin Piker
+Plains
+Island
+Swamp
+Mountain
+Forest

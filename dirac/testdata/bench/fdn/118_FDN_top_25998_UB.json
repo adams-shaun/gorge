@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_25998_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck e293855a96e24ccebe7bc8c414845f7b:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Archmage of Runes",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Blasphemous Edict",
+"count": 1
+},
+{
+"name": "Curator of Destinies",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Gutless Plunderer",
+"count": 2
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Pilfer",
+"count": 2
+},
+{
+"name": "Refute",
+"count": 2
+},
+{
+"name": "Seeker's Folly",
+"count": 2
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Soul-Shackled Zombie",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 2
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 1
+}
+]
+}

@@ -1,0 +1,35 @@
+# the Role-token pool: the WOE AttachedTo$ carriers (own
+# target, chain target, Self), the role_* tokens they mint, Role payoffs
+# (Wicked's leave life loss, Young Hero's counter, Sorcerer's scry) and
+# basics, for the oracle's constructed lockstep
+# (dirac/oracle/role_test.go)
+Monstrous Rage
+Embereth Veteran
+Merry Bards
+Cut In
+Twisted Fealty
+Return Triumphant
+Cursed Courtier
+Unassuming Sage
+Spellbook Vendor
+Mountain
+Plains
+Spiteful Hexmage
+Lord Skitter's Blessing
+Charming Scoundrel
+Eriette's Whisper
+Shatter the Oath
+Witch's Mark
+The Witch's Vanity
+Shock
+Swamp
+Syr Armont, the Redeemer
+Ferocious Werefox
+Living Lectern
+Splashy Spellcaster
+Vantress Transmuter
+Protective Parents
+Conceited Witch
+Opt
+Forest
+Island

@@ -1,0 +1,13 @@
+# the Pump/PumpAll next-turn keyword-grant pool: For
+# the Common Good, Rootwise Survivor and Elspeth, Storm Slayer beside
+# sizes, a token maker and a board wipe (dirac/oracle/pumpnt_test.go)
+Day of Judgment
+Elspeth, Storm Slayer
+For the Common Good
+Forest
+Grizzly Bears
+Hill Giant
+Plains
+Raise the Alarm
+Rootwise Survivor
+Serra Angel

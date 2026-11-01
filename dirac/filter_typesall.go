@@ -1,0 +1,145 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// typesall: PredTypesAll, the all-of type predicate (cold, out of line).
+//
+// A Forge filter clause naming two disjoint card types ("Artifact.Creature"
+// = artifact creatures, "Land.Artifact" = artifact lands, "Creature.Artifact
+// +YouCtrl") is, in gorge, the type head AND the type property
+// (filter_word wordType: hasTypePredicateCtx on the current types), so a
+// permanent needs EVERY type in the clause. kgen keeps the clause's any-of
+// Filter.Types as the union (the hot pre-check stays a superset test) and
+// emits PredTypesAll with PredN = the conjunction; the predicate decides
+// the match exactly. The permanent path reads the DERIVED types (typesGen:
+// the layer walk, so an Ensoul Artifact-animated artifact is an artifact
+// creature); off the battlefield the printed types (prep.cards[c].types,
+// as every other card-path type read).
+
+// predPermCold is the predicate switch's default arm for a battlefield
+// permanent: the later kinds, dispatched here so the hot
+// switch table stays as it was.
+//
+//go:noinline
+func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
+	if fl.Pred == kop.PredTypesAll {
+		m := kop.TypeMask(uint16(fl.PredN))
+		return s.typesGen(k, sl)&m == m
+	}
+	if fl.Pred == kop.PredMonstrous {
+		return s.monstrousAt(sl) // act_monstrosity.go
+	}
+	if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && s.xBoundPending(fl) {
+		return true
+	}
+	if fl.Pred == kop.PredPowerGEV {
+		pw, _ := s.ptGen(k, sl) // power >= the value PredV
+		return pw >= s.evalV(k, fl.PredV, s.ctxCur())
+	}
+	if fl.Pred == kop.PredToughnessLEV {
+		_, t := s.ptGen(k, sl) // toughness <= the value PredV (current toughness, layers applied)
+		return t <= s.evalV(k, fl.PredV, s.ctxCur())
+	}
+	if fl.Pred >= kop.PredNoCounters && fl.Pred <= kop.PredMonoColor {
+		return s.predPermKvf(k, fl, sl) // filter_valueheads.go
+	}
+	if fl.Pred == kop.PredSameNameT0 {
+		return s.sameNameT0(sl) // kw_madness.go
+	}
+	if fl.Pred == kop.PredCountersLT {
+		n := int(fl.PredN)
+		return s.perms[sl].ctrN(s, n&0xff) < n>>8
+	}
+	if fl.Pred == kop.PredTotalPT {
+		pw, t := s.ptGen(k, sl) // gorge totalPT (current P + T)
+		return kop.DmgGatePass(fl.PredN, pw+t)
+	}
+	if fl.Pred == kop.PredBlocked {
+		// gorge "blocked": attacking with a blocker recorded
+		// (pfBlocked survives the blocker leaving, gorge's tombstone)
+		return s.perms[sl].flags&(pfAttacking|pfBlocked) == pfAttacking|pfBlocked
+	}
+	if fl.Pred == kop.PredSolved {
+		// a Case's solved designation (OpSaddle C=1, the
+		// cseenSaddled bit; kw_crewsaddle.go)
+		return (s.perms[sl].cseen&cseenSaddled != 0) == (fl.PredN == 1)
+	}
+	if fl.Pred == kop.PredSuspected {
+		return s.suspected(k, sl) == (fl.PredN == 1)
+	}
+	if fl.Pred == kop.PredPermMark {
+		return s.permMarkRead(k, fl, sl) // filter_permmarks.go
+	}
+	if fl.Pred == kop.PredExiledWith {
+		return s.exwCard(s.perms[sl].obj)
+	}
+	if fl.Pred == kop.PredWasCastEnter {
+		return s.wasCastPred(fl, s.perms[sl].obj, s.perms[sl].ctrl)
+	}
+	if fl.Pred == kop.PredAdventureCard {
+		return adventureCard(k, s.perms[sl].card) // the object's own card
+	}
+	if fl.Pred == kop.PredWasCastSpell {
+		return false // a spell on the stack, never a permanent (lowers it for the stack only)
+	}
+	if fl.Pred == kop.PredNotF2 {
+		return s.notF2Perm(k, fl, sl) // filter_negations.go
+	}
+	if fl.Pred == kop.PredFaceDown {
+		return s.faceDownPred(k, sl) // filter_facedown.go
+	}
+	if fl.Pred == kop.PredWord7 {
+		return s.wordPerm(k, fl, sl) // filter_props.go
+	}
+	if fl.Pred == kop.PredPowerGTBase {
+		return s.powerGTBase(k, sl) // filter_powerbase.go
+	}
+	panic("kernel: filter predicate not implemented: " + predName(fl.Pred))
+}
+
+// predCardCold is predPermCold for a card off the battlefield (printed
+// types).
+//
+//go:noinline
+func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
+	if fl.Pred == kop.PredTypesAll {
+		m := kop.TypeMask(uint16(fl.PredN))
+		return k.cards[c].types&m == m
+	}
+	if fl.Pred == kop.PredSuspected {
+		return fl.PredN == 0 // off the battlefield nothing is suspected (gorge Object.Suspected clears on the move)
+	}
+	if fl.Pred == kop.PredPermMark {
+		return fl.PredN&kop.PermMarkNot != 0 // a card off the battlefield has no mark
+	}
+	if fl.Pred == kop.PredSolved {
+		return fl.PredN == 0 // off the battlefield nothing is solved (gorge clears Solved on the move)
+	}
+	if fl.Pred == kop.PredMonstrous || fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV || fl.Pred == kop.PredTotalPT || fl.Pred == kop.PredBlocked {
+		return false // only a battlefield permanent is monstrous; PredPowerGEV and PredToughnessLEV are lowered for the battlefield only
+	}
+	if fl.Pred >= kop.PredNoCounters && fl.Pred <= kop.PredMonoColor {
+		return predCardKvf(k, fl, c, fd) // filter_valueheads.go
+	}
+	if fl.Pred == kop.PredSameNameT0 {
+		return false // only a battlefield permanent
+	}
+	if fl.Pred == kop.PredCountersLT {
+		// off the battlefield a card has no counters (a stash mark is read
+		// by the card path's PredCountersGE; no lowering pairs it with LT)
+		return 0 < fl.PredN>>8
+	}
+	if fl.Pred == kop.PredAdventureCard {
+		return adventureCard(k, c)
+	}
+	if fl.Pred == kop.PredFaceDown {
+		return false // off the battlefield nothing is face down for gorge (wordFaceDown), a face-down spell included
+	}
+	if fl.Pred == kop.PredWord7 {
+		return false // reached only with no object
+	}
+	if fl.Pred == kop.PredPowerGTBase {
+		return false // off the battlefield power equals base power (gorge objectPower/objectBasePower)
+	}
+	panic("kernel: card predicate not implemented: " + predName(fl.Pred))
+}

@@ -1,0 +1,280 @@
+Aeronaut Cavalry
+Aeronaut's Wings
+Air Marshal
+Airlift Chaplain
+Alloy Animist
+Ambush Paratrooper
+Arbalest Engineers
+Arcane Proxy
+Argivian Avenger
+Argoth, Sanctum of Nature
+Argothian Opportunist
+Argothian Sprite
+Arms Race
+Artificer's Dragon
+Ashnod's Harvester
+Ashnod's Intervention
+Ashnod, Flesh Mechanist
+Audacity
+Autonomous Assembler
+Awaken the Woods
+Battery Bearer
+Battlefield Butcher
+Battlefield Forge
+Bitter Reunion
+Bladecoil Serpent
+Blanchwood Armor
+Blanchwood Prowler
+Blast Zone
+Blitz Automaton
+Boulderbranch Golem
+Brotherhood's End
+Brushland
+Burrowing Razormaw
+Bushwhack
+Calamity's Wake
+Carrion Locust
+Citanul Stalwart
+Cityscape Leveler
+Clay Champion
+Clay Revenant
+Coastal Bulwark
+Combat Courier
+Combat Thresher
+Conscripted Infantry
+Corrupt
+Cradle Clearcutter
+Curate
+Deadly Riposte
+Deathbloom Ritualist
+Defabricate
+Demolition Field
+Depth Charge Colossus
+Desynchronize
+Diabolic Intent
+Disciples of Gix
+Disenchant
+Disfigure
+Draconic Destiny
+Drafna, Founder of Lat-Nam
+Dreams of Steel and Oil
+Dredging Claw
+Dwarven Forge-Chanter
+Emergency Weld
+Energy Refractor
+Epic Confrontation
+Evangel of Synthesis
+Evolving Wilds
+Excavation Explosion
+Fade from History
+Fallaji Archaeologist
+Fallaji Chaindancer
+Fallaji Dragon Engine
+Fallaji Excavation
+Fallaji Vanguard
+Fateful Handoff
+Fauna Shaman
+Feldon, Ronom Excavator
+Flow of Knowledge
+Fog of War
+Forest
+Forging the Anchor
+Fortified Beachhead
+Gaea's Courser
+Gaea's Gift
+Geology Enthusiast
+Giant Cindermaw
+Giant Growth
+Gix's Caress
+Gix's Command
+Gix, Yawgmoth Praetor
+Gixian Infiltrator
+Gixian Puppeteer
+Gixian Skullflayer
+Gnarlroot Pallbearer
+Gnawing Vermin
+Go for the Throat
+Goblin Blast-Runner
+Goblin Firebomb
+Goring Warplow
+Great Desert Prospector
+Gruesome Realization
+Gurgling Anointer
+Gwenna, Eyes of Gaea
+Hajar, Loyal Bodyguard
+Hall of Tagsin
+Harbin, Vanguard Aviator
+Haywire Mite
+Heavyweight Demolisher
+Hero of the Dunes
+Hoarding Recluse
+Horned Stoneseeker
+Hostile Negotiations
+Hulking Metamorph
+Hurkyl's Final Meditation
+Hurkyl, Master Wizard
+In the Trenches
+Involuntary Cooldown
+Iron-Craw Crusher
+Island
+Junkyard Genius
+Kayla's Command
+Kayla's Reconstruction
+Keeper of the Cadence
+Kill-Zone Acrobat
+Koilos Roc
+Lat-Nam Adept
+Lay Down Arms
+Legions to Ashes
+Levitating Statue
+Liberator, Urza's Battlethopter
+Llanowar Wastes
+Loran of the Third Path
+Loran's Escape
+Loran, Disciple of History
+Machine Over Matter
+Mask of the Jadecrafter
+Mass Production
+Mechanized Warfare
+Meticulous Excavation
+Mightstone's Animation
+Military Discipline
+Mine Worker
+Misery's Shadow
+Mishra's Command
+Mishra's Domination
+Mishra's Foundry
+Mishra's Juggernaut
+Mishra's Onslaught
+Mishra's Research Desk
+Mishra, Claimed by Gix
+Mishra, Excavation Prodigy
+Mishra, Lost to Phyrexia
+Mishra, Tamer of Mak Fawa
+Moment of Defiance
+Monastery Swiftspear
+Mountain
+Myrel, Shield of Argive
+No One Left Behind
+Obliterating Bolt
+Obstinate Baloth
+One with the Multiverse
+Over the Top
+Overwhelming Remorse
+Painful Quandary
+Penregon Strongbull
+Perennial Behemoth
+Perimeter Patrol
+Phalanx Vanguard
+Phyrexian Dragon Engine
+Phyrexian Fleshgorger
+Plains
+Platoon Dispenser
+Portal to Phyrexia
+Power Plant Worker
+Powerstone Engineer
+Powerstone Fracture
+Prison Sentence
+Pyrrhic Blast
+Queen Kayla bin-Kroog
+Ravenous Gigamole
+Raze to the Ground
+Razorlash Transmogrant
+Recommission
+Reconstructed Thopter
+Recruitment Officer
+Repair and Recharge
+Rescue Retriever
+Retrieval Agent
+Roc Hunter
+Rootwire Amalgam
+Rust Goliath
+Saheeli, Filigree Master
+Sardian Cliffstomper
+Sarinth Greatwurm
+Sarinth Steelseeker
+Scatter Ray
+Scrapwork Cohort
+Scrapwork Mutt
+Scrapwork Rager
+Shoot Down
+Sibling Rivalry
+Siege Veteran
+Simian Simulacrum
+Skitterbeam Battalion
+Skyfisher Spider
+Skystrike Officer
+Slagstone Refinery
+Soul Partition
+Spectrum Sentinel
+Splitting the Powerstone
+Spotter Thopter
+Static Net
+Steel Exemplar
+Steel Seraph
+Stern Lesson
+Stone Retrieval Unit
+Su-Chi Cave Guard
+Supply Drop
+Surge Engine
+Survivor of Korlis
+Swamp
+Swiftgear Drake
+Symmetry Matrix
+Take Flight
+Tawnos's Tinkering
+Tawnos, the Toymaker
+Teething Wurmlet
+Teferi, Temporal Pilgrim
+Terisian Mindbreaker
+Terror Ballista
+The Fall of Kroog
+The Mightstone and Weakstone
+The Stasis Coffin
+The Stone Brain
+The Temporal Anchor
+Third Path Iconoclast
+Third Path Savant
+Thopter Architect
+Thopter Mechanic
+Thran Power Suit
+Thran Spider
+Thran Vigil
+Thraxodemon
+Titania's Command
+Titania, Gaea Incarnate
+Titania, Voice of Gaea
+Tocasia's Dig Site
+Tocasia's Onulet
+Tocasia's Welcome
+Tocasia, Dig Site Mentor
+Tomakul Honor Guard
+Tomakul Scrapsmith
+Tower Worker
+Transmogrant Altar
+Transmogrant's Crown
+Trench Stalker
+Tyrant of Kher Ridges
+Underground River
+Union of the Third Path
+Unleash Shell
+Urza's Command
+Urza's Rebuff
+Urza's Sylex
+Urza, Lord Protector
+Urza, Planeswalker
+Urza, Powerstone Prodigy
+Urza, Prince of Kroog
+Veteran's Powerblade
+Visions of Phyrexia
+Warlord's Elite
+Wasteful Harvest
+Weakstone's Subjugation
+Whirling Strike
+Wing Commando
+Woodcaller Automaton
+Yotian Dissident
+Yotian Frontliner
+Yotian Medic
+Yotian Tactician
+Zephyr Sentinel

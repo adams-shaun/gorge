@@ -1,0 +1,30 @@
+# the copy exception rider pool: AddTypes$, AddColors$
+# and PumpKeywords$ on CopyPermanent (Molten Duplication, Saheeli, the
+# Sun's Brilliance, Devastating Onslaught, Vaultborn Tyrant, The Jolly
+# Balloon Man, Adagia), rider-less copy spells for a copy of a copy, an
+# artifact counter, cheap creatures and artifacts and basics
+# (dirac/oracle/copyriders_test.go)
+Adagia, Windswept Bastion
+Bonesplitter
+Bronze Sable
+Cackling Counterpart
+Devastating Onslaught
+Forest
+Giant Spider
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Island
+Lightning Bolt
+Master of Etherium
+Mogg Fanatic
+Molten Duplication
+Mountain
+Ornithopter
+Plains
+Relm's Sketching
+Saheeli, the Sun's Brilliance
+Shock
+The Jolly Balloon Man
+Thran Golem
+Vaultborn Tyrant

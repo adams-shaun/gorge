@@ -1,0 +1,43 @@
+# the cast-spend reader pool: TriggeredCard$CastTotalManaSpent
+# in a SpellCast trigger (Opus and kin), the spend spells they read and
+# the opponent's counterspells, for the oracle's constructed lockstep
+# (dirac/oracle/opus_test.go)
+Aberrant Manawurm
+Colorstorm Stallion
+Deluge Virtuoso
+Elemental Mascot
+Exhibition Tidecaller
+Expressive Firedancer
+Molten-Core Maestro
+Muse Seeker
+Spectacular Skywhale
+Tackle Artist
+Thunderdrum Soloist
+Shantotto, Tactician Magician
+Tellah, Great Sage
+Aetherflux Conduit
+Grandmother Goby
+Goblin Electromancer
+Lightning Bolt
+Shock
+Burst Lightning
+Blaze
+Crater's Claws
+Rite of Replication
+Wizard's Lightning
+Divination
+Counterspell
+Memory Lapse
+Essence Scatter
+Abandon Attachments
+Doom Blade
+Giant Growth
+Preordain
+Opt
+Feldon's Cane
+Bident of Thassa
+Mountain
+Island
+Plains
+Forest
+Swamp

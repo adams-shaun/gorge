@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_11637_WR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 40c1c29ee93646669093ca026bd1bfb2:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Angel of Finality",
+"count": 2
+},
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Courageous Goblin",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Dragon Trainer",
+"count": 2
+},
+{
+"name": "Etali, Primal Storm",
+"count": 1
+},
+{
+"name": "Fanatical Firebrand",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Giada, Font of Hope",
+"count": 1
+},
+{
+"name": "Goblin Surprise",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Incinerating Blast",
+"count": 1
+},
+{
+"name": "Inspiring Paladin",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 2
+},
+{
+"name": "Make Your Move",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 8
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Resolute Reinforcements",
+"count": 1
+},
+{
+"name": "Thrill of Possibility",
+"count": 1
+},
+{
+"name": "Youthful Valkyrie",
+"count": 1
+}
+]
+}

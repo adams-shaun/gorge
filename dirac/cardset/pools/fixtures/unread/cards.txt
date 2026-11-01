@@ -1,0 +1,40 @@
+# the unread-params pool: Optional$ (World Shaper's mill,
+# Cori-Steel Cutter's attach), beside burn, pump and removal
+# (dirac/oracle/unread_test.go)
+Cori-Steel Cutter
+World Shaper
+Shock
+Giant Growth
+Raging Goblin
+Grizzly Bears
+Mountain
+Forest
+Savannah Lions
+Vampire Interloper
+Doom Blade
+Mind Rot
+Night's Whisper
+Walking Corpse
+Plains
+Swamp
+Evolving Adaptive
+Sharp-Eyed Rookie
+Llanowar Elves
+Craw Wurm
+Centaur Courser
+Reckless Impulse
+Citadel Gate
+Sea Gate
+Island
+Coral Merfolk
+Pacifism
+Thriving Isle
+Ascendant Packleader
+Brainstorm
+Lembas
+Agonizing Memories
+Floodpits Drowner
+Deep-Cavern Bat
+Gleeful Demolition
+Thirst for Discovery
+Snap

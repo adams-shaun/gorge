@@ -1,0 +1,15 @@
+# a trigger's own "you may discard your hand" cost:
+# the Discard<N/Hand> carriers and supports, for the oracle's constructed
+# lockstep (dirac/oracle/trigdischand_test.go)
+Narset, Jeskai Waymaster
+Vaultguard Trooper
+Byway Barterer
+Grizzly Bears
+Raging Goblin
+Shock
+Opt
+Storm Crow
+Mind Stone
+Plains
+Island
+Mountain

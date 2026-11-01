@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_05063_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 4c07499f72d7469f8b546290f6a7c362:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Daring Waverider, 1 Heirloom Epic, 1 Intrepid Rabbit, 1 Rabbit Response -> 3 Plains, 2 Island",
+"cards": [
+{
+"name": "Brave-Kin Duo",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 3
+},
+{
+"name": "Dire Downdraft",
+"count": 2
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Knightfisher",
+"count": 1
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Short Bow",
+"count": 1
+},
+{
+"name": "Shrike Force",
+"count": 2
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 3
+}
+]
+}

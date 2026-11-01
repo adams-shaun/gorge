@@ -1,0 +1,22 @@
+# the ReduceCost turn/first-spell gate pool:
+# Mental Modulation (PlayerTurn$ You), Geyser Drake (Condition$
+# NotPlayerTurn), Radagast of Rhosgobel, Serah Farron and Melek,
+# Reforged Researcher (OnlyFirstSpell$ True; Melek's ValidSpell$ names
+# the first instant/sorcery) beside Inspiration, flash and legendary
+# creatures, a vanilla creature, Mountain and the other basics
+# (dirac/oracle/reducegates_test.go)
+Mental Modulation
+Geyser Drake
+Radagast of Rhosgobel
+Serah Farron
+Isamaru, Hound of Konda
+Ambush Viper
+Bounding Wolf
+Benalish Knight
+Grizzly Bears
+Melek, Reforged Researcher
+Inspiration
+Mountain
+Forest
+Plains
+Island

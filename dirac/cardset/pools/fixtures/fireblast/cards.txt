@@ -1,0 +1,7 @@
+# Fireblast's sacrifice alternative cost
+# (dirac/oracle/fireblast_test.go)
+Fireblast
+Shock
+Grizzly Bears
+Mountain
+Forest

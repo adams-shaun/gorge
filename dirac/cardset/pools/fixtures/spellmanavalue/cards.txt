@@ -1,0 +1,28 @@
+# the triggered-spell mana-value pool: the SpellCast carriers of
+# TriggeredSpellAbility$CardManaCostLKI, split/X/copy/Adventure fixtures,
+# basics and vanilla creatures, for the kernel's unit test and the
+# oracle's constructed lockstep (dirac/oracle/spellmanavalue_test.go)
+Manaplasm
+Erratic Cyclops
+Hammerhead Tyrant
+Kaervek the Merciless
+Skittering Cicada
+Prismari Apprentice
+Fire
+Mind Spring
+Twincast
+Murderous Rider
+Brazen Borrower
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Shock
+Lightning Bolt
+Divination
+Unsummon
+Cancel
+Island
+Mountain
+Forest
+Swamp
+Plains

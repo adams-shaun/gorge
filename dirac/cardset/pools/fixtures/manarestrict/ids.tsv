@@ -1,0 +1,23 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Divination
+1	card	Furnace Whelp
+2	card	Goblin Chieftain
+3	card	Grizzly Bears
+4	card	Guardian Idol
+5	card	Guidelight Optimizer
+6	card	Island
+7	card	Lightning Bolt
+8	card	Mind Stone
+9	card	Mogg Fanatic
+10	card	Mountain
+11	card	Ornithopter
+12	card	Pacifism
+13	card	Pestilent Cauldron
+14	card	Prodigal Sorcerer
+15	card	Purple Dragon Punks
+16	card	Shock
+17	card	Walking Ballista
+18	card	Wayfarer's Bauble
+19	card	Wind Drake
+20	card	face:Pestilent Cauldron#1
+21	token	bg_1_1_pest_lifegain

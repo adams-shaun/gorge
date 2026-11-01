@@ -1,0 +1,32 @@
+# dirac/oracle/anykindcounters_test.go
+Loading Zone
+Doc Samson, Super Psychiatrist
+Benevolent Hydra
+Conclave Mentor
+Mowu, Loyal Companion
+Wingspan Mentor
+Duskfang Mentor
+Eagle of Deliverance
+Void Beckoner
+Stocking the Pantry
+Grizzly Bears
+Walking Corpse
+Hill Giant
+Gray Ogre
+Doom Blade
+Murder
+Forest
+Plains
+Swamp
+Mountain
+Atmospheric Greenhouse
+Adagia, Windswept Bastion
+Island
+Jace Beleren
+Ajani, Caller of the Pride
+Frozen in Ice
+Twiddle
+Blossombind
+Air Elemental
+Serra Angel
+Pacifism

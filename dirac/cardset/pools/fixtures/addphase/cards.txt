@@ -1,0 +1,21 @@
+# DB$ AddPhase extra combats, upkeeps and end steps and the FirstAttack$ / FirstCombat$ gates (dirac/oracle/addphase_test.go)
+Y'shtola Rhul
+Obeka, Splitter of Seconds
+Aurelia, the Warleader
+Fear of Missing Out
+Genji Glove
+Raph & Leo, Sibling Rivals
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Isamaru, Hound of Konda
+Phyrexian Arena
+Scrawling Crawler
+Perforating Artist
+Shock
+Lightning Bolt
+Plains
+Island
+Swamp
+Mountain
+Forest

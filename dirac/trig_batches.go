@@ -1,0 +1,250 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// simultaneous-event batches on the stack frame —
+// collect, snapshot, apply, fire. Cold, out of line: every arm here is
+// reached from a site that already left the hot path (a paused combat
+// pass, a multi-entrant resolution, a fight).
+
+// replOrderFz is the frozen event of the paused pass from src to dst (nil:
+// none).
+func (s *State) replOrderFz(src, dst Slot) *fzEv {
+	bd := s.roBody()
+	for i := 0; i < int(s.g.ro.nfz); i++ {
+		if fe := &bd.fz[i]; fe.src == src && fe.dst == dst {
+			return fe
+		}
+	}
+	return nil
+}
+
+// replOrderEnd closes a paused combat damage pass: the damage triggers
+// fire (combatEventsGen), then each lifelink source gains once for all the
+// damage it dealt in the pass, in the order each first landed damage (CR
+// 702.15e with 119.9; gorge flushLifelinkBatch, which keeps the
+// accumulation open across a parked replacement-order ask). Every frozen
+// event holds what it dealt by now (replOrderCombat's walk writes it back),
+// so the gains need no per-pass storage beyond the frozen events.
+//
+//go:noinline
+func (s *State) replOrderEnd(k *prep, r *dmgRec) {
+	ro := *s.roBody() // the batch's snapshot: the record is cleared before the triggers fire
+	nfz := int(s.g.ro.nfz)
+	s.g.ro.replHdr = replHdr{}
+	*s.roBody() = replBody{}
+	s.combatEventsGen(k, r, true)
+	var src [MaxPerm]Slot
+	var ctl [MaxPerm]uint8
+	var amt [MaxPerm]int
+	n := 0
+	for j := 0; j < nfz; j++ {
+		fe := &ro.fz[ro.ord[j]]
+		if fe.n <= 0 || !fe.ll {
+			continue
+		}
+		i := 0
+		for i < n && (src[i] != fe.src || ctl[i] != fe.ctrl) {
+			i++
+		}
+		if i == n {
+			src[n], ctl[n], amt[n] = fe.src, fe.ctrl, 0
+			n++
+		}
+		amt[i] += int(fe.n)
+	}
+	for i := 0; i < n; i++ {
+		s.gainLife(k, ctl[i], amt[i])
+	}
+	if k.anyInit {
+		s.initCombat(k, r) // CR 726.2 (act_initiative.go)
+	}
+}
+
+// entBatch is one resolution's battlefield entrants (CR 603.6a, gorge
+// the zone batch): enterHeld puts each onto the battlefield without
+// its enters check, and fire runs the held checks in move order against the
+// board after the last entrant, so each entrant's "whenever another ...
+// enters" sees the whole batch.
+type entBatch struct {
+	sl [MaxPerm]Slot
+	o  [MaxPerm]Obj
+	n  int
+}
+
+// enterHeld is enter with the enters check held in b.
+func (s *State) enterHeld(k *prep, b *entBatch, o Obj, ctrl uint8, tapped bool, from kop.Zone) Slot {
+	sl := s.enterNF(k, o, ctrl, tapped, from, 0)
+	if b.n < len(b.sl) {
+		b.sl[b.n], b.o[b.n] = sl, o
+		b.n++
+	}
+	return sl
+}
+
+// fireEntries runs b's held enters checks, in move order.
+//
+//go:noinline
+func (s *State) fireEntries(k *prep, b *entBatch) {
+	if !s.anyETB(k) {
+		b.n = 0
+		return
+	}
+	if k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen())
+	}
+	for i := 0; i < b.n; i++ {
+		sl, o := b.sl[i], b.o[i]
+		if s.occ.has(sl) && s.perms[sl].obj == o {
+			s.fireObj(k, kop.TrigETB, sl, o, s.perms[sl].ctrl, 0)
+		}
+	}
+	b.n = 0
+}
+
+// createTokensHeld is OpCreateToken / OpCreateTokenEx for n ≥ 2 tokens:
+// one Token resolution's creations enter together (gorge runTokenMints'
+// zone batch, CR 603.6a), so their enters checks are held to the end. True
+// when the board is full (a stall).
+//
+//go:noinline
+func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int) bool {
+	var eb entBatch
+	for i := 0; i < n; i++ {
+		if s.nearCapacity() {
+			s.fireEntries(k, &eb)
+			s.stall(StallBoard)
+			return true
+		}
+		o := s.newToken(CardID(in.C), p)
+		tapped := in.B.N&kop.TrTapped != 0
+		if in.Op == kop.OpCreateTokenEx {
+			tapped = in.B.N&kop.TokTapped != 0
+			s.g.tokMade++
+			if in.B.N&kop.TokRememberObj != 0 {
+				s.remember(o)
+			}
+		}
+		sl := s.enterHeld(k, &eb, o, p, tapped, kop.ZoneLibrary)
+		if in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) != 0 {
+			s.tokenAtEOT(in, o)
+		}
+		if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttacking != 0 {
+			s.tokenAttacks(k, in, sl, p) // filter_combatwords.go
+		}
+		if k.gen.anyTokCr {
+			s.fireTokenCreated(k, sl)
+		}
+		if in.Op == kop.OpCreateToken && in.B.N&kop.TrHasteEOT != 0 {
+			s.perms[sl].eotKw |= kop.KwHaste
+			s.touchSl(sl)
+			s.promoKw(k, sl, kop.KwHaste)
+		}
+		s.res.lastTok = o
+	}
+	s.fireEntries(k, &eb)
+	return false
+}
+
+// hitBatch is one simultaneous damage event of a fight, bite or
+// DamageSource$ effect: each hit names its source creature as a field (CR
+// 701.14a, gorge fightRider: the fighter, not the resolving spell,
+// is the source for replacement, prevention, lifelink and the damage
+// triggers), its recipient and its amount, read before any hit lands.
+type hitBatch struct {
+	h [2]dmgHit
+	n int
+}
+
+type dmgHit struct {
+	src, dst Slot
+	n        int16
+	ctrl     uint8 // the source's controller as the hit is dealt
+	ll       bool  // the source has lifelink as the hit is dealt
+}
+
+func (b *hitBatch) add(s *State, src, dst Slot, n int) {
+	if b.n < len(b.h) {
+		b.h[b.n] = dmgHit{src: src, dst: dst, n: int16(min(max(n, -1<<14), 1<<14))}
+		b.n++
+	}
+}
+
+// dealHits applies the hits hs in order, then fires each dealt hit's damage
+// triggers in hit order (gorge emits one Damage event per hit, CR 120.8: a
+// hit of 0 is none), then each lifelink source gains once for its hits (CR
+// 702.15e: gorge's damage batch flushes the lifelink accumulation when it
+// closes).
+//
+//go:noinline
+func (s *State) dealHits(k *prep, hs []dmgHit) {
+	for i := range hs {
+		h := &hs[i]
+		h.n = int16(s.damageHit(k, h))
+	}
+	if k.gen != nil && k.gen.anyPermMark {
+		for i := range hs {
+			if h := &hs[i]; h.n > 0 {
+				s.markDealt(k, h.src, false) // filter_permmarks.go
+			}
+		}
+	}
+	if k.gen != nil && s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() {
+		for i := range hs {
+			if h := &hs[i]; h.n > 0 && s.occ.has(h.src) {
+				s.fireDamage(k, h.src, h.n, false, false, uint8(s.perms[h.dst].obj))
+			}
+		}
+	}
+	for i := range hs {
+		h := &hs[i]
+		if h.n <= 0 || !h.ll {
+			continue
+		}
+		tot := int(h.n)
+		for j := i + 1; j < len(hs); j++ {
+			if g := &hs[j]; g.src == h.src && g.ctrl == h.ctrl && g.ll {
+				tot += int(g.n)
+				g.ll = false
+			}
+		}
+		s.gainLife(k, h.ctrl, tot)
+	}
+}
+
+// damageHit deals hit h (damage, loyalty for a planeswalker, -1/-1
+// counters for infect, deathtouch) and returns the amount dealt; h's
+// controller and lifelink are read as it is dealt.
+func (s *State) damageHit(k *prep, h *dmgHit) int {
+	a, b, n := h.src, h.dst, int(h.n)
+	if !s.occ.has(a) || !s.occ.has(b) {
+		return 0
+	}
+	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 && n > 0 {
+		n = s.replDamage(k, s.perms[a].ctrl, a, s.cardAt(a), uint8(s.perms[b].obj), false, n)
+	}
+	if n <= 0 {
+		return 0
+	}
+	akw := s.kw(k, a)
+	h.ctrl, h.ll = s.perms[a].ctrl, akw&kop.KwLifelink != 0
+	s.touchSl(b)
+	if k.gen != nil && k.gen.dmgBy != nil {
+		s.noteDmgBy(k, a, b) // DamagedBy marks (filter_combatwords.go)
+	}
+	p := &s.perms[b]
+	if k.gen != nil && k.gen.anyInfect && (s.infectAt(k, a) || s.witherKw(k, a, akw)) && s.isCreature(k, b) {
+		s.infectBetween(k, a, b, n, akw)
+		return n
+	}
+	if !s.isCreature(k, b) && s.typesAt(k, b)&(kop.TPlaneswalker|kop.TBattle) != 0 {
+		s.dmgCounters(k, b, p, n) // damage to a planeswalker removes loyalty, to a battle defense
+	} else {
+		p.damage = uint8(min(int(p.damage)+n, 255))
+	}
+	if akw&kop.KwDeathtouch != 0 {
+		p.markDT(1) // gorge marks any permanent deathtouch damages (effects/damage.go)
+	}
+	s.res.lastDmg = int16(n)
+	return n
+}

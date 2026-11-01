@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_00698_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck dedf9a43181c43c3be31adc0d4852aef:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Harvestrite Host, 1 Jolly Gerbils, 1 Kitnap, 2 Nettle Guard, 1 Rabbit Response -> 3 Plains, 3 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 2
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Lupinflower Village",
+"count": 3
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Plumecreed Mentor",
+"count": 2
+},
+{
+"name": "Seedpod Squire",
+"count": 3
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 3
+}
+]
+}

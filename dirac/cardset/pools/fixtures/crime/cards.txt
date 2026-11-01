@@ -1,0 +1,48 @@
+# CR 700.13 crime carriers (trig:CommitCrime, Count$
+# CommittedCrimeThisTurn, Servant of the Stinger's CheckDefinedPlayer$)
+# beside the enablers (deserts, Deadeye Duelist, Burst Lightning, Bite
+# Down, Essence Scatter, Soul-Guide Lantern, Soul-Shackled Zombie) for
+# the oracle's constructed lockstep (dirac/oracle/crime_test.go)
+Blood Hustler
+Vadmir, New Blood
+Raven of Fell Omens
+Forsaken Miner
+Rattleback Apothecary
+Overzealous Muscle
+Servant of the Stinger
+Soul-Shackled Zombie
+Hardbristle Bandit
+Freestrider Lookout
+Magda, the Hoardmaster
+Deadeye Duelist
+Heartfire Hero
+Burst Lightning
+Bite Down
+Jagged Barrens
+Bristling Backwoods
+Festering Gulch
+Duelist of the Mind
+Deepmuck Desperado
+Marauding Sphinx
+Nimble Brigand
+Slickshot Vault-Buster
+Seize the Secrets
+Omenport Vigilante
+Patrolling Peacemaker
+Marchesa, Dealer of Death
+Essence Scatter
+Soul-Guide Lantern
+Slick Sequence
+Take Up the Shield
+Lonely Arroyo
+Soured Springs
+Eroded Canyon
+Forlorn Flats
+Swamp
+Mountain
+Forest
+Island
+Plains
+Bow of Nylea
+Cankerbloom
+Goblin Cratermaker

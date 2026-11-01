@@ -1,0 +1,117 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// the queue order of one sacrifice's triggers. gorge matches
+// a sacrificed permanent's departure (one MoveZone, Sacrificed set) against
+// the pre-departure board in ONE face walk (rules checkTriggers'
+// look-back checkFaceTriggers): source by source in battlefield order, each
+// source's trigger lines in card order, so a source's "whenever one or more
+// creatures you control die" queues before its own "whenever you sacrifice
+// a permanent" when that is the line order (Scavenger's Talent's L1 and L2).
+// The kernel fires the Sacrificed triggers in fireSac, just before the
+// departure, and the dies/leaves triggers in fireLeave: event by event.
+// sacLeaveOrder re-sorts that one departure's block into gorge's walk order.
+
+// DebugGyBfSacFirst is the mutation switch: the departure's
+// block keeps the kernel's event-by-event order. TestGybfMutation requires
+// the lockstep to diverge.
+var DebugGyBfSacFirst bool
+
+// DebugGyBfNoCounter is the second mutation switch: handGraveArm arms no
+// entry counter for a plain Graveyard pick (Scavenger's Talent's return
+// enters without its FINALITY counter).
+var DebugGyBfNoCounter bool
+
+// DebugGyBfOwnerEntry is the third mutation switch: a GainControl$ graveyard
+// pick enters under the card's owner instead of the chooser (gorge's
+// enteringControllerForAttack), so an opponent's card returns to them.
+var DebugGyBfOwnerEntry bool
+
+// gameGraveCands adds a plain Graveyard hidden pick's candidates when it
+// carries GainControl$ (SrUnderYourControl): gorge's gameWide pool (an
+// ownerless clause) is every player's graveyard in seat order, matched
+// against the card's real owner with the resolving controller as the
+// relative You. The ask stays with the chooser; the card enters under them
+// (moveFound). Picks without GainControl$ keep the chooser's own graveyard.
+//
+//go:noinline
+func (s *State) gameGraveCands(k *prep, in *kop.Instr, d *Decision) {
+	ctrl := s.res.e.ctrl
+	for p := uint8(0); p < 2; p++ {
+		pl := &s.pl[p]
+		for _, o := range pl.grave[:pl.graveN] {
+			if s.picksHas(o) {
+				continue
+			}
+			if s.matchCardGen(k, in.F, s.objs[o].card, s.objs[o].owner(), ctrl, o) {
+				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+			}
+		}
+	}
+}
+
+// sacLeaveOrder sorts pend[start:npend] by gorge's walk position, where
+// start is the first of the Sacrificed triggers fireSac queued for o just
+// before n0 (npend as fireLeave began). Without such a block, or with
+// nothing queued since, it leaves the queue alone.
+//
+//go:noinline
+func (s *State) sacLeaveOrder(k *prep, o Obj, n0 uint8) {
+	if DebugGyBfSacFirst || s.npend <= n0 {
+		return
+	}
+	start := n0
+	for start > 0 && s.sacTrigOf(k, &s.pend[start-1], o) {
+		start--
+	}
+	if start == n0 {
+		return
+	}
+	var ord [MaxPerm]Slot
+	n := s.listenerOrder(s.occ, &ord)
+	var key [MaxPending]uint16
+	for i := start; i < s.npend; i++ {
+		key[i] = s.sacWalkKey(&s.pend[i], ord[:n])
+	}
+	// a stable insertion sort: equal keys (a Panharmonicon echo) keep
+	// their queue order
+	for i := start + 1; i < s.npend; i++ {
+		pt, kk := s.pend[i], key[i]
+		j := i
+		for j > start && key[j-1] > kk {
+			s.pend[j], key[j] = s.pend[j-1], key[j-1]
+			j--
+		}
+		s.pend[j], key[j] = pt, kk
+	}
+}
+
+// sacTrigOf reports a pending printed Sacrificed trigger whose event object
+// is o.
+func (s *State) sacTrigOf(k *prep, pt *pendingTrig, o Obj) bool {
+	if pt.trigObj != o {
+		return false
+	}
+	ab := k.t.Cards[pt.card].Abilities
+	return int(pt.ab) < len(ab) && ab[pt.ab].Kind == kop.AbTriggered && ab[pt.ab].Trig.Event == kop.TrigSacrificed
+}
+
+// sacWalkKey is pt's place in gorge's face walk: its source's battlefield
+// position, then the source's own lines (ability order) before the
+// abilities granted to it. A source off the battlefield sorts last.
+func (s *State) sacWalkKey(pt *pendingTrig, ord []Slot) uint16 {
+	sl := s.objs[pt.obj].slot
+	r := len(ord)
+	for i, q := range ord {
+		if q == sl {
+			r = i
+			break
+		}
+	}
+	g := uint16(0)
+	if sl == NoSlot || s.cardAt(sl) != pt.card {
+		g = 1
+	}
+	return uint16(r)<<9 | g<<8 | uint16(pt.ab)
+}

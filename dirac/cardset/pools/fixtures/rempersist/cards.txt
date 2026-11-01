@@ -1,0 +1,25 @@
+# the remembered-persist pool: Journey to Nowhere and
+# Mesmeric Fiend's enters/leaves pair, for the oracle's constructed
+# lockstep (dirac/oracle/rempersist_test.go)
+# The remembered-persist pool: the enters/leaves
+# remembered pair kgen lowers as CardDef.RemPersist (Journey to Nowhere,
+# Mesmeric Fiend), creatures to exile, burn and enchantment removal to make
+# them leave, and basics, for the oracle's constructed lockstep
+# (dirac/oracle/rempersist_test.go).
+Journey to Nowhere
+Mesmeric Fiend
+Savannah Lions
+Walking Corpse
+Hill Giant
+Shock
+Disenchant
+Plains
+Swamp
+Mountain
+# the dies form (Hoarding Dragon: its enters trigger searches
+# an artifact into exile, its dies trigger puts it into the owner's hand),
+# artifacts to search for and a destroy spell that kills the dragon
+Hoarding Dragon
+Mind Stone
+Sol Ring
+Murder

@@ -1,0 +1,40 @@
+# the Prepare pool: the Standard preparation cards
+# kgen lowers, a creature removal spell and basics, for the oracle's
+# constructed lockstep (dirac/oracle/prepare_test.go)
+# The Prepare pool: the Standard preparation cards kgen
+# lowers (Secrets of Strixhaven, Fate Reforged Arena), one creature removal
+# spell so a prepared source dies with its copy in exile, and basics, for
+# the oracle's constructed lockstep (dirac/oracle/prepare_test.go).
+Abigale, Poet Laureate
+Emeritus of Conflict
+Emeritus of Woe
+Encouraging Aviator
+Leech Collector
+Hallway Heckler
+Infirmary Healer
+Pompous Battlemage
+Adventurous Eater
+Bloodline Recollector
+Blossom-Blessed Angel
+Campus Composer
+Cheerful Osteomancer
+Elite Interceptor
+Tam, Observant Sequencer
+Emeritus of Abundance
+Kirol, History Buff
+Spiritcall Enthusiast
+Woodwork Prodigy
+Stingerquill Voxmancer
+Paradox Shaper
+Landscape Painter
+Vigorbloom Vanguard
+Honorbound Page
+Skycoach Conductor
+Bake into a Pie
+Exsanguinate
+Goblin Negotiation
+Plains
+Island
+Swamp
+Mountain
+Forest

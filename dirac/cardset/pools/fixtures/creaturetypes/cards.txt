@@ -1,0 +1,8 @@
+# an all-creature-types permanent beside subtypes that are not creature types, for the
+# oracle's constructed lockstep (dirac/oracle/creaturetypes_test.go)
+Claim the Kingdom
+Doctor Doom
+Forest
+Mind Rot
+Swamp
+Undercover Skrull

@@ -1,0 +1,18 @@
+# the enchanted-permanent shuffle pool: the three
+# Aura "shuffle enchanted creature into its owner's library" carriers
+# (Defined$ Enchanted + Shuffle$ True), a token maker, instant removal
+# and Waterbend fodder, for the oracle's constructed lockstep
+# (dirac/oracle/equipshuf_test.go)
+Stay Hidden, Stay Silent
+Dramatic Accusation
+Watery Grasp
+Raise the Alarm
+Swords to Plowshares
+Elite Vanguard
+Silvercoat Lion
+Ornithopter
+Memnite
+Mind Stone
+Sol Ring
+Island
+Plains

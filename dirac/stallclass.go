@@ -1,0 +1,221 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// Stall classes, and refusing a pair before its game. Cold code.
+//
+// A stall is one of two things. Capacity: a fixed array or budget ran out, gorge
+// has no such limit, and the game was correct up to there. Those are declared
+// limits, always counted and never a failure. Unmodelled: gorge does something at
+// this point the kernel does not. Those are rule gaps, and a lockstep run fails on
+// them. The class belongs to the reason, so a site that stops for a rule gap must
+// not borrow a capacity reason's name: the five reasons below exist because sites
+// did.
+
+// Reasons for what used to stop under a capacity reason's name.
+const (
+	StallOutsideType   = 66 // a read of an outside type another source chose: equal or not is unknown (act_choosetype.go; was StallBoard)
+	StallExileOnMoved  = 67 // an ExileOnMoved$ permission over two or more remembered cards: gorge ends the whole effect when one leaves (value_validagg.go; was StallMayPlay)
+	StallMultiRetarget = 69 // a change-targets ask with a target no declaration holds or more than 8 answers (act_stackrewrite.go)
+	StallL6Walk        = 71 // a global lose-all override beside a subtype lord the layer-4 walk reads: the loss check would re-enter the walk (gen l6Stall; static_layer6.go; was StallTables)
+	StallLowering      = 72 // a state kgen's lowering is meant to rule out: a read no prep walk provided for, a broken table, an unreachable shape (was StallCtrAdded, StallAddPhase, StallTables, StallBoard)
+)
+
+func init() {
+	stallNames[StallOutsideType] = "outsidetype"
+	stallNames[StallExileOnMoved] = "exileonmoved"
+	stallNames[StallMultiRetarget] = "multiretarget"
+	stallNames[StallL6Walk] = "l6walk"
+	stallNames[StallLowering] = "lowering"
+	for _, r := range stallCapacityReasons {
+		stallClasses[r] = StallCapacity
+	}
+	for _, r := range stallUnmodelledReasons {
+		stallClasses[r] = StallUnmodelled
+	}
+	kop.PairGuard = pairRefusal
+}
+
+// StallClass is what kind of stop a stall reason is.
+type StallClass uint8
+
+const (
+	// stallUnclassed is a reason nobody classed. TestEveryStallHasAClass fails on
+	// one, and StallClassOf's callers treat it as unmodelled: a new reason cannot
+	// pass as a declared limit by being forgotten.
+	stallUnclassed StallClass = iota
+	StallCapacity
+	StallUnmodelled
+)
+
+var stallClasses [NumStall]StallClass
+
+// StallClassOf is reason r's class. StallNone and a reason nobody classed are
+// neither capacity nor unmodelled.
+func StallClassOf(r uint8) StallClass {
+	if int(r) >= len(stallClasses) {
+		return stallUnclassed
+	}
+	return stallClasses[r]
+}
+
+// StallIsUnmodelled reports whether reason r is not a declared limit: an
+// unmodelled reason, or one nobody classed. False for StallNone.
+func StallIsUnmodelled(r uint8) bool {
+	return r != StallNone && StallClassOf(r) != StallCapacity
+}
+
+var stallCapacityReasons = [...]uint8{
+	StallBoard, StallPending, StallStack, StallTables, StallLoop, StallDelayed, StallRemember, StallMayPlay,
+	StallDProg, StallEmblem, StallDmgMap, StallXTgt, StallUsed, StallKwRepX, StallLinks, StallFree, StallAsk,
+	StallCounters, StallLKI, StallTapPick, StallRegen, StallLook, StallGrants, StallActs, StallLinger, StallSac,
+	StallEntered, StallConvoke, StallCastRing, StallPT, StallActRing, StallCharmOpts, StallRefLatch, StallZone,
+	StallOptions, StallSrcMark, StallDmgLatch, StallReplCands, StallPrevCol, StallColGrant, StallRestrX,
+	StallObsSrc, StallDynMana, StallExiledWith, StallBreach, StallNetLock, StallCharmPick,
+	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
+	StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm,
+	StallCtrAdded, // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
+	StallAddPhase, // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
+}
+
+var stallUnmodelledReasons = [...]uint8{
+	StallTapsMana, StallInfect, StallReplPlus, StallRaiseFree, StallLifeRepl, StallProlif, StallCtrOrder,
+	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallTwobridMod, StallRoleMulti, StallDefenderPW,
+	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
+	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
+	StallEntryOrder, StallCopyAllAsk, StallCloneLayer,
+	StallGravePower, // a characteristic-defining power featValue cannot evaluate, where gorge reads it (value_countheads.go:50)
+	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
+	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering,
+}
+
+// initStall is the reason a game on this table stalls at its start, StallNone when
+// it does not: a pair of cards the kernel cannot play together, read off the table.
+// Init uses it as a guard for a hand-built table; pairRefusal refuses a built
+// matchup with it, so the two cannot disagree.
+func (g *genPrep) initStall() uint8 {
+	switch {
+	case g.tapsMana:
+		return StallTapsMana // TrigTaps is not fired for a mana tap
+	case g.infectStall:
+		return StallInfect // kw_infect.go prepInfect
+	case g.twobridMod:
+		return StallTwobridMod // mana_twobrid.go
+	case g.raiseFree:
+		return StallRaiseFree // a free cast is not priced with the raise gorge charges
+	case g.anyRepl&(rbDblLife|rbPlusLife) == rbDblLife|rbPlusLife:
+		return StallLifeRepl // gorge asks the order of a doubler and a plus-N
+	case g.l6Stall:
+		return StallL6Walk // static_layer6.go prepL6
+	}
+	return StallNone
+}
+
+// pairRefusal is kop.PairGuard: why a game on t would stall at its start, and which
+// cards carry the two halves. It prepares a throwaway copy of t's header, the same
+// prepare Init runs on the table, so it refuses exactly what Init would stall. It
+// keeps nothing: a caller may still edit the table before playing it. tablesMu
+// serialises it with registerTable's prepare. A table prepare panics on is not
+// refused: Init raises that.
+func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
+	defer func() {
+		if recover() != nil {
+			r = nil
+		}
+	}()
+	tablesMu.Lock()
+	defer tablesMu.Unlock()
+	tt := new(kop.Table) // prepare fills in an empty Filters
+	*tt = *t
+	g := prepare(tt).gen
+	if g == nil {
+		return nil
+	}
+	why := g.initStall()
+	if why == StallNone {
+		return nil
+	}
+	var a, b func(c *kop.CardDef, i int) bool
+	var text string
+	switch why {
+	case StallTapsMana:
+		text = "a Taps trigger beside a granted mana ability: the kernel fires no Taps trigger for a mana tap"
+		a = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbTriggered && x.Trig.Event == kop.TrigTaps })
+		b = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbMana && x.AFlags&kop.AfLatent != 0 })
+	case StallInfect:
+		text = "infect, toxic, wither or poison beside a damage replacement order ask, a counter-added trigger or proliferate: gorge orders the conversion differently"
+		a = func(c *kop.CardDef, i int) bool {
+			return c.Infect || c.Toxic != 0 || c.Wither || abilityOn(func(x *kop.Ability) bool {
+				return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatContinuous && x.Static.Kw&kop.KwWither != 0 ||
+					progHas(x, func(in *kop.Instr) bool {
+						return in.Op == kop.OpPoison ||
+							in.Op == kop.OpGrantKeyword && (kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)&kop.KwWither != 0
+					})
+			})(c, i)
+		}
+		b = func(c *kop.CardDef, i int) bool {
+			return g.replBits[i]&(rbDblDmg|rbPrevNC|rbPlusDmg|rbPrevCol|rbPlProt) != 0 || abilityOn(func(x *kop.Ability) bool {
+				return x.Kind == kop.AbTriggered && x.Trig.Event == kop.TrigCounterAddedOnce ||
+					progHas(x, func(in *kop.Instr) bool { return in.Op == kop.OpProliferate || in.Ext() == kop.ExtPreventColor })
+			})(c, i)
+		}
+	case StallTwobridMod:
+		text = "a twobrid cost beside a cost reduction or increase: gorge composes it on the unresolved cost at the offer and on the resolved faces at the charge"
+		a = func(c *kop.CardDef, _ int) bool { return c.Cost.Tb != 0 }
+		b = abilityOn(func(x *kop.Ability) bool {
+			return x.Kind == kop.AbStatic && (x.Static.Kind == kop.StatReduceCost || x.Static.Kind == kop.StatIncreaseCost)
+		})
+	case StallRaiseFree:
+		text = "a cost increase beside a free cast: gorge charges the raise on the empty cost, the kernel prices nothing"
+		a = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatIncreaseCost })
+		b = func(c *kop.CardDef, i int) bool {
+			return c.HasPlot || c.Types&kop.TBattle != 0 || abilityOn(func(x *kop.Ability) bool {
+				return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatMayPlayFrom && x.Static.StFlags&kop.StWithoutManaCost != 0 ||
+					progHas(x, func(in *kop.Instr) bool { return in.Op == kop.OpCastFree || in.Ext() == kop.ExtPlotGrant })
+			})(c, i)
+		}
+	case StallLifeRepl:
+		text = "a life-gain doubler beside a life-gain plus-N: gorge asks the CR 616.1 order and they do not commute"
+		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }
+		b = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPlusLife != 0 }
+	case StallL6Walk:
+		text = "a global lose-all override beside a subtype lord the layer-4 walk reads: the loss check would re-enter the walk"
+		a = abilityOn(func(x *kop.Ability) bool {
+			return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatOverride && x.Static.Override > 0 &&
+				t.Overrides[x.Static.Override-1].LoseAbilities && !filterAttachedOnly(t, x.Static.Filter)
+		})
+		b = abilityOn(func(x *kop.Ability) bool {
+			return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatContinuous && (x.Static.AddSub.Any() || x.Static.AddChosen) && filterReadsSub(t, x.Static.Filter)
+		})
+	}
+	r = &kop.PairRefusal{Reason: StallName(why), Why: text}
+	for _, side := range []func(*kop.CardDef, int) bool{a, b} {
+		for i := range t.Cards {
+			if side(&t.Cards[i], i) {
+				r.Cards = append(r.Cards, kop.CardID(i))
+			}
+		}
+	}
+	return r
+}
+
+// abilityOn is true of a card with an ability pred holds of.
+func abilityOn(pred func(*kop.Ability) bool) func(*kop.CardDef, int) bool {
+	return func(c *kop.CardDef, _ int) bool {
+		for j := range c.Abilities {
+			if pred(&c.Abilities[j]) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func progHas(a *kop.Ability, pred func(*kop.Instr) bool) bool {
+	for j := range a.Prog {
+		if pred(&a.Prog[j]) {
+			return true
+		}
+	}
+	return false
+}

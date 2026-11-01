@@ -1,0 +1,41 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Charming Scoundrel
+1	card	Conceited Witch
+2	card	Cursed Courtier
+3	card	Cut In
+4	card	Embereth Veteran
+5	card	Eriette's Whisper
+6	card	Ferocious Werefox
+7	card	Forest
+8	card	Island
+9	card	Living Lectern
+10	card	Lord Skitter's Blessing
+11	card	Merry Bards
+12	card	Monstrous Rage
+13	card	Mountain
+14	card	Opt
+15	card	Plains
+16	card	Protective Parents
+17	card	Return Triumphant
+18	card	Shatter the Oath
+19	card	Shock
+20	card	Spellbook Vendor
+21	card	Spiteful Hexmage
+22	card	Splashy Spellcaster
+23	card	Swamp
+24	card	Syr Armont, the Redeemer
+25	card	The Witch's Vanity
+26	card	Twisted Fealty
+27	card	Unassuming Sage
+28	card	Vantress Transmuter
+29	card	Witch's Mark
+30	card	face:Conceited Witch#1
+31	card	face:Ferocious Werefox#1
+32	card	face:Vantress Transmuter#1
+33	token	c_a_food_sac
+34	token	c_a_treasure_sac
+35	token	role_cursed
+36	token	role_monster
+37	token	role_sorcerer
+38	token	role_wicked
+39	token	role_young_hero

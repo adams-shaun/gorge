@@ -1,0 +1,25 @@
+# the ExileAnyGrave trigger-own-cost pool: the
+# "when this dies, you may exile it" carriers (Sandbender Scavengers,
+# Paramecia Coloniex) beside creature sacrifice outlets, removal, cheap
+# creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/exiletrignew_test.go)
+# The ExileAnyGrave trigger-own-cost pool: the two
+# "when this dies, you may exile it" carriers (Sandbender Scavengers'
+# reanimate, Paramecia Coloniex's top-of-library) beside creature sacrifice
+# outlets (Hungry Ghoul, Bake into a Pie's Food), removal (Murder, Shock,
+# Lightning Bolt), cheap creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/exiletrignew_test.go).
+Sandbender Scavengers
+Paramecia Coloniex
+Hungry Ghoul
+Bake into a Pie
+Murder
+Shock
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Walking Corpse
+Llanowar Elves
+Forest
+Swamp
+Mountain

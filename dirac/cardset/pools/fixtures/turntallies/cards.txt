@@ -1,0 +1,24 @@
+# the this-turn records pool: the five carriers (Bonecache
+# Overseer, Blitzball, Steel Hellkite, Avengers Assemble!, Thaumaton Torpedo)
+# beside Food makers, a legendary creature, Heroes, a Spacecraft, vanilla
+# creatures, burn and basics (dirac/oracle/turntallies_test.go)
+Elanor Gardner
+Tempting Witch
+Bake into a Pie
+Blitzball
+Isamaru, Hound of Konda
+Avengers Assemble!
+Amateur Hero
+Hero in Training
+Savannah Lions
+Steel Hellkite
+Thaumaton Torpedo
+Galvanizing Sawship
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Shock
+Plains
+Swamp
+Mountain
+Forest

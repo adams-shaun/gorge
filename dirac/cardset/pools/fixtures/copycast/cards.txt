@@ -1,0 +1,13 @@
+# Bloodthirsty Adversary's Play CopyCard$ cast of exiled instants and sorceries (dirac/oracle/copycast_test.go)
+Bloodthirsty Adversary
+Shock
+Lightning Bolt
+Brute Strength
+Pyroclasm
+Reenact the Crime
+Merfolk of the Pearl Trident
+Coral Merfolk
+Giant Tortoise
+Grizzly Bears
+Mountain
+Island

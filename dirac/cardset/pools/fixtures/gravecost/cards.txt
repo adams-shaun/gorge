@@ -1,0 +1,6 @@
+# a graveyard activation with a sacrifice part, for the oracle's constructed
+# lockstep (dirac/oracle/gravecost_test.go)
+Gollum the Abandoned
+Island
+Swamp
+Thought Scour

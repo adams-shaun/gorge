@@ -1,0 +1,25 @@
+# the scried / surveilled this-turn pool: the three
+# Count$YouScryThisTurn / Count$YouSurveilThisTurn carriers beside scry
+# and surveil cards, creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/scrytally_test.go)
+# The scried / surveilled this-turn pool: the three
+# Count$YouScryThisTurn/Plus.Count$YouSurveilThisTurn carriers (Desperate
+# Futurescribe, Proctor of Potential, Surveillance Phantasm) beside scry and
+# surveil instants (Opt, Consider) and creatures (Faerie Seer, Augury Owl,
+# Dimir Informant), an opponent's vanilla creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/scrytally_test.go).
+Desperate Futurescribe
+Proctor of Potential
+Surveillance Phantasm
+Opt
+Consider
+Faerie Seer
+Augury Owl
+Dimir Informant
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Plains
+Island
+Mountain
+Forest

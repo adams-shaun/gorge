@@ -1,0 +1,28 @@
+# the cast-provenance pool: Soulhunter Rakshasa, Knight-
+# Errant of Eos, Full Bore and Memory Deluge beside reanimation, warp
+# creatures, convoking bodies, burn and basics, for the oracle's
+# constructed lockstep (dirac/oracle/castprov_test.go)
+# The cast-provenance pool: Soulhunter Rakshasa (enters
+# "if you cast it from your hand"), Knight-Errant of Eos (Convoked$Amount),
+# Full Bore (CastSa Spell.Warp on its target) and Memory Deluge
+# (Count$CastTotalManaSpent, flashback), beside reanimation that puts a
+# creature onto the battlefield uncast, warp creatures, convoking bodies,
+# burn and basics, for the oracle's constructed lockstep
+# (dirac/oracle/castprov_test.go).
+Soulhunter Rakshasa
+Knight-Errant of Eos
+Full Bore
+Memory Deluge
+Village Rites
+Zombify
+Unburial Rites
+Savannah Lions
+Walking Corpse
+Weftstalker Ardent
+Red Tiger Mechan
+Nova Hellkite
+Shock
+Plains
+Island
+Swamp
+Mountain

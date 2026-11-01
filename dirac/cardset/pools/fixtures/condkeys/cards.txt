@@ -1,0 +1,24 @@
+# the pool: Eye of Jace (ConditionZone$ on a node),
+# The Rollercrusher Ride (Delirium$ on the noncombat damage doubler) and
+# Putrid Pals (Revolt$ on the enters-with-counters replacement), beside
+# self-mill/surveil, burn, a sacrifice outlet and a blink
+# (dirac/oracle/condkeys_test.go)
+Eye of Jace
+The Rollercrusher Ride
+Putrid Pals
+Thought Scour
+Armored Skaab
+Mulch
+Viscera Seer
+Cloudshift
+Shock
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Opt
+Sign in Blood
+Island
+Swamp
+Forest
+Mountain
+Plains

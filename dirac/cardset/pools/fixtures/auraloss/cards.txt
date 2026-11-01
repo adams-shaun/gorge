@@ -1,0 +1,7 @@
+# an ability-removing Aura on a host watching enchantments enter, for the
+# oracle's constructed lockstep (dirac/oracle/auraloss_test.go)
+Entity Tracker
+Island
+Plains
+Scrabbling Skullcrab
+Unable to Scream

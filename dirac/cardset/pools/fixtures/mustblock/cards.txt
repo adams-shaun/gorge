@@ -1,0 +1,21 @@
+# must be blocked if able, printed and granted: the
+# three printed carriers, Joraga Invocation / Magitek Scythe / Disturbed
+# Slumber's grants, a lure and a menace creature beside vanilla bodies
+# (dirac/oracle/mustblock_test.go)
+Fear of Being Hunted
+Vinebred Brawler
+Raphael, Ninja Destroyer
+Joraga Invocation
+Magitek Scythe
+Disturbed Slumber
+Prized Unicorn
+Boggart Brute
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Llanowar Elves
+Giant Growth
+Shock
+Forest
+Mountain
+Plains

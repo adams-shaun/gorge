@@ -26,6 +26,11 @@
       "intro": "The limited pipeline (boosters, pods, deck building, pick bots, set data), the draft event runtime and its server plugin, and draftlab with its external-agent wire. Imports `engine/`, `bots/`, `server/host` and `testkit/`; nothing in those imports it, and `cmd/gorged` links it through `gorged.Extensions`."
     },
     {
+      "id": "dirac",
+      "title": "dirac (`dirac/`)",
+      "intro": "A second rules engine built for machine learning, in lockstep with gorge: a fixed-layout state, binary card tables compiled from the corpus and a transition loop that does not allocate. The core imports nothing outside `dirac/`; `dirac/oracle` plays it against `engine/rules`, and nothing in `engine/` imports it."
+    },
+    {
       "id": "cmd",
       "title": "Commands (`cmd/`)",
       "intro": "Product and developer binaries. No package imports a command."
@@ -550,6 +555,79 @@
     },
     "draft/limited/setdata/internal/gen": {
       "tier": "draft",
+      "status": "EXT"
+    },
+    "(root)": {
+      "tier": "tooling",
+      "status": "SUPP",
+      "purpose": "The sources that key dirac's binary card tables, embedded."
+    },
+    "dirac": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/cardset": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/cardset/cardsettest": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/cmd/kgen": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/cmd/sbv2dirac": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/cmd/sbv2dirac/sbv2": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/crcoverage": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/feat": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/kgen": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/kop": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/oracle": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/oracle/cmd/kfuzz": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/oracle/cmd/khbot": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/oracle/cmd/ksbt": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/search/hbot": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/search/mull": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/vanilla": {
+      "tier": "dirac",
       "status": "EXT"
     }
   }

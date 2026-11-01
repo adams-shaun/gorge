@@ -1,0 +1,11 @@
+# Confront the Assault's cast restriction and Thraben Charm's
+# zero-target graveyard mode (dirac/oracle/castgate_test.go)
+Confront the Assault
+Thraben Charm
+Savannah Lions
+Healer's Hawk
+Pacifism
+Grizzly Bears
+Hill Giant
+Plains
+Forest

@@ -1,0 +1,24 @@
+# the Power-up pool (CR 702.193): the carriers whose only
+# refused ability was PowerUp$ True, including the hybrid Abomination,
+# Terrifying Titan ({3}{R/G} / {5}{R/G}{R/G}), Cloudshift (a blink that
+# makes a new object) and basics, for the kernel's scenario tests and the
+# oracle's constructed lockstep (dirac/oracle/powerup_test.go). Stature,
+# Size Shifter's {X} cost is refused by kgen (round-4 directive).
+Serpent Specialist
+Abomination, Terrifying Titan
+Goliath, Mass Manipulator
+Brave Brawler
+Hercules, Prince of Power
+Gamma Grotesque
+Shang-Chi, Martial Mentor
+Pet Avengers
+Volcanic Villain
+Human Torch, Johnny Storm
+Molly Hayes, Runaway
+Extremis Elite
+Ultron Drone
+Cloudshift
+Forest
+Mountain
+Island
+Plains

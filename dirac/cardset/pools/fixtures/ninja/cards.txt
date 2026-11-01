@@ -1,0 +1,21 @@
+# the ninjutsu pool: the K:Ninjutsu cards, attackers
+# to return, blockers, burn and basics, for the oracle's constructed
+# lockstep (dirac/oracle/ninjutsu_test.go)
+# The ninjutsu pool: the three K:Ninjutsu cards kgen
+# lowers (Pauper Faeries' Ninja of the Deep Hours and Moon-Circuit Hacker,
+# Standard's Kaito, Bane of Nightmares), evasive and plain attackers to
+# return, blockers, burn and basics, for the oracle's constructed lockstep
+# (dirac/oracle/ninjutsu_test.go).
+Ninja of the Deep Hours
+Moon-Circuit Hacker
+Kaito, Bane of Nightmares
+Wind Drake
+Walking Corpse
+Savannah Lions
+Hill Giant
+Shock
+Swords to Plowshares
+Plains
+Island
+Swamp
+Mountain

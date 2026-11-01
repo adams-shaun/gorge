@@ -1,0 +1,28 @@
+# the opponents'-highest-poison pool: the
+# ONE Corrupted carriers (static keyword grants, an activated draw, an
+# activated tap, attack and enter triggers, a cost reduction and an
+# aura) beside infect and toxic attackers, basics and vanilla creatures,
+# for the oracle's constructed lockstep (dirac/oracle/poisonhigh_test.go)
+Apostle of Invasion
+Bilious Skulldweller
+Blighted Agent
+Bonepicker Skirge
+Chittering Skitterling
+Distorted Curiosity
+Fleshless Gladiator
+Forest
+Giant Spider
+Glistener Elf
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Incisor Glider
+Island
+Mountain
+Plains
+Ravenous Necrotitan
+Sinew Dancer
+Swamp
+Vivisection Evangelist
+Walking Corpse
+Zealot's Conviction

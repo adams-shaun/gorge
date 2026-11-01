@@ -1,0 +1,55 @@
+{
+"name": "BLB_top_02997_UB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 5900fa39386c41f3b5e396bff58ef7bc:0, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 2 Daggerfang Duo, 1 Lilypad Village, 1 Mind Spiral, 1 Splash Portal, 1 Thornplate Intimidator -> 3 Island, 3 Swamp",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 3
+},
+{
+"name": "Calamitous Tide",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mudflat Village",
+"count": 1
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 2
+},
+{
+"name": "Shore Up",
+"count": 3
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Tidecaller Mentor",
+"count": 4
+}
+]
+}

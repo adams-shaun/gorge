@@ -1,0 +1,20 @@
+# the token-attacking pool: Leonin Warleader's and
+# Adeline's TokenAttacking$ mints beside Raid Bombardment (which a
+# token entering attacking must not trigger), burn, basics and vanilla
+# creatures (dirac/oracle/mtokatk_test.go)
+Leonin Warleader
+Adeline, Resplendent Cathar
+Raid Bombardment
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Savannah Lions
+Coral Merfolk
+Giant Spider
+Walking Corpse
+Shock
+Plains
+Island
+Swamp
+Mountain
+Forest

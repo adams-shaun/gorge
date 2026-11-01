@@ -1,0 +1,17 @@
+# CollectEvidence<N> as a permanent spell's OptionalCost part and the CastSA>Collected reads
+# (dirac/oracle/optevidperm_test.go)
+Crimestopper Sprite
+Vitu-Ghazi Inspector
+Thought Scour
+Careful Study
+Faithless Looting
+Grizzly Bears
+Hill Giant
+Shock
+Lightning Bolt
+Counterspell
+Iridescent Tiger
+Burning-Tree Emissary
+Forest
+Island
+Mountain

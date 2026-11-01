@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_17599_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 41db357587e2440f8c4f6230d505bcf5:1, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ajani's Pridemate",
+"count": 1
+},
+{
+"name": "Angel of Finality",
+"count": 1
+},
+{
+"name": "Arcane Epiphany",
+"count": 2
+},
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Cat Collector",
+"count": 1
+},
+{
+"name": "Curator of Destinies",
+"count": 1
+},
+{
+"name": "Exemplar of Light",
+"count": 1
+},
+{
+"name": "Extravagant Replication",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Grappling Kraken",
+"count": 2
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Icewind Elemental",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Kykar, Zephyr Awakener",
+"count": 1
+},
+{
+"name": "Make Your Move",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Skyknight Squire",
+"count": 1
+},
+{
+"name": "Squad Rallier",
+"count": 2
+},
+{
+"name": "Strix Lookout",
+"count": 1
+}
+]
+}

@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_00161_WR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck ed4640d7199c409c9517666dbd2c16af:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Armasaur Guide",
+"count": 1
+},
+{
+"name": "Axgard Cavalry",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Battlesong Berserker",
+"count": 2
+},
+{
+"name": "Brazen Scourge",
+"count": 2
+},
+{
+"name": "Cat Collector",
+"count": 1
+},
+{
+"name": "Courageous Goblin",
+"count": 1
+},
+{
+"name": "Dauntless Veteran",
+"count": 1
+},
+{
+"name": "Drakuseth, Maw of Flames",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 4
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Hare Apparent",
+"count": 1
+},
+{
+"name": "Heartfire Immolator",
+"count": 1
+},
+{
+"name": "Inspiring Paladin",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 9
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Slagstorm",
+"count": 1
+}
+]
+}

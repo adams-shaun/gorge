@@ -1,0 +1,27 @@
+# the filter-props pool: !Outlaw (Shoot the Sheriff),
+# protection from MonoColor (Guardian of the Guildpact), Attacked$
+# Player.withMostLife and CheckDefinedPlayer$ You.withMostLife
+# (Preacher of the Schism), ValidPlayer$ You.descended (Ruin-Lurker
+# Bat), beside outlaws, changelings, colourless and monocoloured
+# sources and graveyard fillers (dirac/oracle/fp_test.go)
+Shoot the Sheriff
+Preacher of the Schism
+Ruin-Lurker Bat
+Guardian of the Guildpact
+Village Rites
+Night's Whisper
+Doom Blade
+Savannah Lions
+Vampire Interloper
+Highway Robber
+Changeling Outcast
+Universal Automaton
+Raging Goblin
+Goblin Arsonist
+Shock
+Lightning Strike
+Thrill of Possibility
+Mind Rot
+Plains
+Swamp
+Mountain

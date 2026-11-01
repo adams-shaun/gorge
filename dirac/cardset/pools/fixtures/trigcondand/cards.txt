@@ -1,0 +1,19 @@
+# the two-clause trigger-condition pool: Creakwood
+# Safewright, Emergent Haunting and Inventive Wingsmith, whose end-step
+# triggers AND an IsPresent$ with a CheckSVar$, for the oracle's
+# constructed lockstep (dirac/oracle/trigcondand_test.go)
+Creakwood Safewright
+Emergent Haunting
+Inventive Wingsmith
+Llanowar Elves
+Elvish Mystic
+Lightning Bolt
+Opt
+Shock
+Grizzly Bears
+Hill Giant
+Forest
+Island
+Plains
+Mountain
+Swamp

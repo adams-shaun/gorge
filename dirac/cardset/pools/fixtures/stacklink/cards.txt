@@ -1,0 +1,20 @@
+# the AffectedZone$ Stack lifelink grant pool: Heartflame
+# Duelist and Lo and Li ("instants and sorceries / Lessons you control have
+# lifelink") beside the spells that deal the damage
+# (dirac/oracle/stacklink_test.go)
+Heartflame Duelist
+Lo and Li, Twin Tutors
+Firebending Lesson
+Combustion Technique
+Shock
+Lightning Bolt
+Divination
+Grizzly Bears
+Hill Giant
+Prodigal Sorcerer
+Raise the Alarm
+Mountain
+Plains
+Swamp
+Island
+Forest

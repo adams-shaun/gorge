@@ -1,0 +1,20 @@
+# the AdventureCard filter word's pool: the six
+# carriers beside adventurers, Shock, a vanilla creature and basics
+# (dirac/oracle/adventurecard_test.go)
+Beanstalk Wurm
+Bellowing Bruiser
+Beluna Grandsquall
+Bramble Familiar
+Edgewall Inn
+Ferocious Werefox
+Forest
+Frantic Firebolt
+Frolicking Familiar
+Galvanic Giant
+Grizzly Bears
+Hearth Elemental
+Howling Galefang
+Island
+Mountain
+Sentinel of Lost Lore
+Shock

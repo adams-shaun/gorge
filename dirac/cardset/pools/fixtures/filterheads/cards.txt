@@ -1,0 +1,24 @@
+# the filter-heads pool: TargetedPlayerCtrl,
+# ControlledBy TriggeredDefendingPlayer, the A;B cost type lists,
+# NICKNAME, Targeted.!Creature, the Spell head of a target-gated
+# reduction and an absent creature-type head, for the oracle's
+# constructed lockstep (dirac/oracle/filterheads_test.go)
+Villainous Wrath
+Captain America's Shield
+Spring Splasher
+Thunder Lasso
+Earthrumbler
+Postmortem Professor
+Out of Air
+Spider-Ham, Peter Porker
+Grizzly Bears
+Ornithopter
+Mind Stone
+Thought Scour
+Universal Automaton
+Divination
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -1,0 +1,20 @@
+# the power-compare pool: Technodrome (powerLT6 on the
+# card itself), Formation Breaker and Prehistoric Pet (CantBlockBy
+# ValidBlocker$ powerLTX / powerGTX against the host's power) beside
+# vanilla bodies of power 1-6, an artifact and a counter spell
+# (dirac/oracle/pwcmp_test.go)
+Technodrome
+Formation Breaker
+Prehistoric Pet
+Grizzly Bears
+Savannah Lions
+Elite Vanguard
+Hill Giant
+Giant Spider
+Craw Wurm
+Colossal Dreadmaw
+Ornithopter
+Plains
+Forest
+Mountain
+Dragonscale Boon

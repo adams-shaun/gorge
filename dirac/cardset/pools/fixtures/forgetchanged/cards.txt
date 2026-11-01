@@ -1,0 +1,35 @@
+# ChangeZone ForgetChanged$ True (the moved card leaves the
+# remembered set) and DefinedDesc$: the five Std carriers, the searched
+# artifacts / lands / creatures and the spells Bre and Breaching dig, for
+# the oracle's constructed lockstep (dirac/oracle/forgetchanged_test.go)
+# ChangeZone ForgetChanged$ True. The five Std carriers
+# (Guidelight Pathmaker, Troop of Ponies, Archdruid's Charm, Bre of Clan
+# Stoutarm, Breaching Dragonstorm), basic lands for Troop's search, artifacts
+# of mana value <= 2 and > 2 for Guidelight, creatures and lands for
+# Archdruid's Charm, Dragons and cheap spells for Bre / Breaching, fillers.
+Guidelight Pathmaker
+Troop of Ponies
+Archdruid's Charm
+Bre of Clan Stoutarm
+Breaching Dragonstorm
+Plains
+Island
+Swamp
+Mountain
+Forest
+Memnite
+Ornithopter
+Sol Ring
+Mind Stone
+Juggernaut
+Gilded Lotus
+Grizzly Bears
+Llanowar Elves
+Savannah Lions
+Healer's Hawk
+Shivan Dragon
+Dragon Hatchling
+Lightning Bolt
+Shock
+Lightning Helix
+Serra Angel

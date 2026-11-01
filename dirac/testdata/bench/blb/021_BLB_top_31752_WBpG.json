@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_31752_WBpG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 7bacc08a1d744c33bbe3b37ea94b89fb:1, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Crumb and Get It, 2 Head of the Homestead, 2 Intrepid Rabbit, 1 Starseer Mentor -> 4 Plains, 2 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Moonrise Cleric",
+"count": 2
+},
+{
+"name": "Mudflat Village",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Uncharted Haven",
+"count": 3
+},
+{
+"name": "Warren Elder",
+"count": 3
+},
+{
+"name": "Wax-Wane Witness",
+"count": 2
+}
+]
+}

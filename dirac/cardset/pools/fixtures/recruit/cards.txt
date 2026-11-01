@@ -1,0 +1,23 @@
+# the Recruit pool (CR 701.xx): the eight Standard
+# Recruit carriers, the shared draw/discard support (Opt, Lightning
+# Bolt, Grizzly Bears, Hill Giant, Llanowar Elves) and basics, for the
+# oracle's constructed lockstep (dirac/oracle/recruit_test.go)
+Esgaroth Garrison
+Forest
+Great Gilded Boat
+Grizzly Bears
+Hill Giant
+Island
+Lake-town Lookout
+Lightning Bolt
+Llanowar Elves
+Long Lake Nuisance
+Mountain
+One with Nothing
+Opt
+Patient Instructor
+Plains
+Sound the Trumpets
+Swamp
+The Mountain-king's Return
+The Queen of Dale

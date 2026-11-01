@@ -1,0 +1,83 @@
+{
+"name": "BLB_top_06028_WRpB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 37b2dcca84074f9a81adb1d3592b92f0:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Heartfire Hero, 1 Manifold Mouse, 2 Nettle Guard, 1 Rabbit Response, 1 Veteran Guardmouse -> 3 Plains, 1 Swamp, 2 Mountain",
+"cards": [
+{
+"name": "Brambleguard Captain",
+"count": 2
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Frilled Sparkshooter",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 9
+},
+{
+"name": "Rabid Gnaw",
+"count": 1
+},
+{
+"name": "Raccoon Rallier",
+"count": 2
+},
+{
+"name": "Rockface Village",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 4
+},
+{
+"name": "Take Out the Trash",
+"count": 1
+},
+{
+"name": "Thistledown Players",
+"count": 2
+},
+{
+"name": "Warren Elder",
+"count": 1
+}
+]
+}

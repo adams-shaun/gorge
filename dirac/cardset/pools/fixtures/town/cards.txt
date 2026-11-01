@@ -1,0 +1,13 @@
+# Starting Town (a {T}, Pay 1 life any-colour ability beside
+# {C}; enters tapped after your third turn) (dirac/oracle/town_test.go)
+Starting Town
+Grizzly Bears
+Suntail Hawk
+Shock
+Llanowar Elves
+Forest
+Plains
+Mountain
+Karplusan Forest
+Battlefield Forge
+Brushland

@@ -1,0 +1,25 @@
+# the OptionalCost pool: the Blight<1> and Behold<1/Dragon>
+# optional-cost carriers, Dragons to behold from the battlefield and the
+# hand, small creatures to blight and to fight, spells to counter and
+# basics (dirac/oracle/optcost_test.go)
+Burning Curiosity
+Cinder Strike
+Requiting Hex
+Dispelling Exhale
+Osseous Exhale
+Piercing Exhale
+Dragon Moose
+Volcanic Dragon
+Iridescent Tiger
+Burning-Tree Emissary
+Priest of Gix
+Priest of Urabrask
+Akki Rockspeaker
+Raging Goblin
+Grizzly Bears
+Shock
+Plains
+Island
+Swamp
+Mountain
+Forest

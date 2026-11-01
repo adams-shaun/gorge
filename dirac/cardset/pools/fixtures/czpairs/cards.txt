@@ -1,0 +1,35 @@
+# the per-card ChangesZone zone-pair pool: leaves-your-
+# graveyard (Along the Crooked Way, Kishla Skimmer), a destination set on
+# a battlefield leave (Justice, Syr Vondam, Three Tree Scribe), beside
+# blink, bounce, exile, removal and recursion support (dirac/oracle/czpairs_test.go)
+Along the Crooked Way
+Boomerang
+Cloudshift
+Forest
+Grizzly Bears
+Hill Giant
+Imperial Cosmographer
+Island
+Journey to Nowhere
+Justice, Vance Astrovik
+Kishla Skimmer
+Mind Stone
+Mountain
+Murder
+Oasis of Renewal
+Plains
+Psychomancer
+Raise Dead
+Regrowth
+Shard of the Void Dragon
+Shatter
+Shock
+Slagstone Refinery
+Sol Ring
+Stormfront Riders
+Swamp
+Swords to Plowshares
+Syr Vondam, Sunstar Exemplar
+Tameshi, Reality Architect
+Three Tree Scribe
+Unsummon

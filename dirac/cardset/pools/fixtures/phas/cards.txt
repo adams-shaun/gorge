@@ -1,0 +1,21 @@
+# the PlayerCount HasCardsIn pool: Wojek
+# Investigator, Teysa, Master's Councillors, The Master of Lake-town and
+# Aclazotz beside burn, hand attack, creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/phas_test.go)
+Aclazotz, Deepest Betrayal
+Wojek Investigator
+Master's Councillors
+The Master of Lake-town
+Teysa, Opulent Oligarch
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Lightning Bolt
+Shock
+Divination
+Mind Rot
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -1,0 +1,46 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Bottomless Pool
+1	card	Divination
+2	card	Dose of Dawnglow
+3	card	Duress
+4	card	Elvish Mystic
+5	card	Forest
+6	card	Grizzly Bears
+7	card	Island
+8	card	Let's Play a Game
+9	card	Llanowar Elves
+10	card	Meat Locker
+11	card	Mind Stone
+12	card	Mountain
+13	card	Ornithopter
+14	card	Plains
+15	card	Raise Dead
+16	card	Rampaging Soulrager
+17	card	Savannah Lions
+18	card	Surgical Suite
+19	card	Swamp
+20	card	Ugin, Eye of the Storms
+21	card	Wastes
+22	card	Zimone, All-Questioning
+23	card	face:Bottomless Pool#1
+24	card	face:Meat Locker#1
+25	card	face:Surgical Suite#1
+26	card	room:Bottomless Pool#00
+27	card	room:Bottomless Pool#02
+28	card	room:Bottomless Pool#03
+29	card	room:Bottomless Pool#10
+30	card	room:Bottomless Pool#11
+31	card	room:Bottomless Pool#13
+32	card	room:Meat Locker#00
+33	card	room:Meat Locker#02
+34	card	room:Meat Locker#03
+35	card	room:Meat Locker#10
+36	card	room:Meat Locker#11
+37	card	room:Meat Locker#13
+38	card	room:Surgical Suite#00
+39	card	room:Surgical Suite#02
+40	card	room:Surgical Suite#03
+41	card	room:Surgical Suite#10
+42	card	room:Surgical Suite#11
+43	card	room:Surgical Suite#13
+44	token	primo_the_indivisible

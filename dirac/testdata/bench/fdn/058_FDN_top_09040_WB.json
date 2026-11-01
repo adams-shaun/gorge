@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_09040_WB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck c6ec5f57673340f4904242ecd7c951b9:3, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Bake into a Pie",
+"count": 3
+},
+{
+"name": "Blasphemous Edict",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Claws Out",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 2
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 3
+},
+{
+"name": "Marauding Blight-Priest",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 7
+},
+{
+"name": "Resolute Reinforcements",
+"count": 1
+},
+{
+"name": "Scoured Barrens",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 2
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 1
+},
+{
+"name": "Vengeful Bloodwitch",
+"count": 3
+}
+]
+}

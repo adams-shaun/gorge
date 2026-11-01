@@ -1,0 +1,35 @@
+# the ThisTurnEntered generic-head pool: the
+# per-add ring carriers (Kinbinding, Waterspout Warden, Welcome the
+# Dead, Bontu, Ashen-Skin Zubera, Barrin, Kami of Transience, Malcator,
+# Vren, White Glove Gourmand, Macabre Reconstruction, Bespoke
+# Battlegarb, Ichor Shade, Bioengineered Future, Motivated Pony) beside
+# blink/bounce/mill/destroy enablers, vanilla creatures and basics, for
+# the oracle's constructed lockstep (dirac/oracle/entered_test.go)
+Kinbinding
+Waterspout Warden
+Cloudshift
+Barrin, Tolarian Archmage
+Malcator, Purity Overseer
+Kami of Transience
+White Glove Gourmand
+Bioengineered Future
+Motivated Pony
+Grizzly Bears
+Bontu the Glorified
+Ashen-Skin Zubera
+Welcome the Dead
+Macabre Reconstruction
+Ichor Shade
+Vren, the Relentless
+Bespoke Battlegarb
+Naturalize
+Bake into a Pie
+Thought Scour
+Unsummon
+Pyroclasm
+Walking Corpse
+Plains
+Island
+Swamp
+Forest
+Mountain

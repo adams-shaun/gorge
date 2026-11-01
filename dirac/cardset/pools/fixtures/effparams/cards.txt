@@ -1,0 +1,28 @@
+# the Effect-parameter pool: the four carriers of an
+# inert EffectOwner$ You (Laughing Jasper Flint, Redcap Gutter-Dweller)
+# and a MayPlay static's EffectZone$ Command (Count on Luck, Endrider
+# Spikespitter), plus outlaws, spare creatures, cheap spells and
+# start-your-engines creatures, for the oracle's constructed lockstep
+# (dirac/oracle/effparams_test.go)
+Count on Luck
+Endrider Spikespitter
+Laughing Jasper Flint
+Redcap Gutter-Dweller
+Hired Poisoner
+Hired Claw
+Swab Goblin
+Mountain Bandit
+Prickly Boggart
+Vampire Cutthroat
+Vengeful Bloodwitch
+Burnout Bashtronaut
+Walking Sarcophagus
+Mutant Surveyor
+Gray Ogre
+Hill Giant
+Raging Goblin
+Goblin Piker
+Lightning Bolt
+Shock
+Mountain
+Swamp

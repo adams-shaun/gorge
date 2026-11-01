@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_25188_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 3043c0215b1541b791719d72566195f6:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 3
+},
+{
+"name": "Dismal Backwater",
+"count": 2
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fake Your Own Death",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 2
+},
+{
+"name": "Infernal Vessel",
+"count": 1
+},
+{
+"name": "Island",
+"count": 7
+},
+{
+"name": "Meteor Golem",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 2
+},
+{
+"name": "Pilfer",
+"count": 2
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Think Twice",
+"count": 2
+},
+{
+"name": "Tolarian Terror",
+"count": 2
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+}
+]
+}

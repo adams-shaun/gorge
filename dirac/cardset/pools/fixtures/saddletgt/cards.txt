@@ -1,0 +1,29 @@
+# the targeted/triggered-saddle pool: the three
+# AlterAttribute Attributes$ Saddled carriers (Guidelight Matrix's
+# target, Alacrian Armory's optional target, Kolodin's TriggeredCard)
+# beside Mounts with saddled attack payoffs, a Vehicle, cheap creatures
+# and basics, for the oracle's constructed lockstep
+# (dirac/oracle/saddletgt_test.go)
+# The targeted/triggered-saddle pool: the three carriers
+# of AB$/DB$ AlterAttribute Attributes$ Saddled (Guidelight Matrix's target,
+# Alacrian Armory's optional target, Kolodin's TriggeredCard) beside Mounts
+# with saddled attack payoffs, a Vehicle, cheap creatures and basics, for
+# dirac/oracle/saddletgt_test.go.
+Guidelight Matrix
+Alacrian Armory
+Kolodin, Triumph Caster
+Brightfield Mustang
+Gilded Ghoda
+Bounding Felidar
+Stubborn Burrowfiend
+Burner Rocket
+Savannah Lions
+Raging Goblin
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Giant Spider
+Gray Ogre
+Forest
+Mountain
+Plains

@@ -1,0 +1,160 @@
+package oracle
+
+import (
+	"context"
+	"math/rand/v2"
+
+	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/heuristic"
+	"github.com/adams-shaun/gorge/engine/decision"
+)
+
+// PickCtx is what a Policy sees at one canonical decision.
+type PickCtx struct {
+	D   *CDecision // the leader's canonical decision (options sorted)
+	G   *GorgeSide // the gorge side when it leads (nil when a kernel leads)
+	Seq int        // canonical decision number in the game
+}
+
+// Policy picks one of a canonical decision's options. It must be a pure
+// function of its own state and the context: a run is replayed by its
+// action list, never by re-running the policy.
+type Policy interface {
+	Pick(c *PickCtx) Canon
+}
+
+// PolicyFunc is an external policy.
+type PolicyFunc func(c *PickCtx) Canon
+
+func (f PolicyFunc) Pick(c *PickCtx) Canon { return f(c) }
+
+// RandomPolicy picks uniformly among the options from its own PCG stream
+// (never gorge's or the kernel's RNG).
+func RandomPolicy(seed uint64) Policy {
+	r := rand.New(rand.NewPCG(seed, 0x6b65726e656c)) // "kernel"
+	return PolicyFunc(func(c *PickCtx) Canon { return c.D.Options[r.IntN(len(c.D.Options))] })
+}
+
+// FirstPolicy always picks the smallest action (Pass at priority: the game
+// still advances). The shrinker's tail policy.
+func FirstPolicy() Policy {
+	return PolicyFunc(func(c *PickCtx) Canon { return c.D.Options[0] })
+}
+
+// HeuristicPolicy plays gorge's heuristic bot (auto-pay mana) through the
+// canonical surface: at each new gorge decision it asks the bot, translates
+// the bot's intent into canonical actions (a planned cast, an offered play,
+// the picks of a multi-pick answer then Done) and serves them; an answer
+// with no canonical form (a manual mana tap) falls back to the seeded
+// random policy.
+func HeuristicPolicy(seed uint64) Policy {
+	h := &heurPolicy{bots: [2]*heuristic.Bot{heuristic.NewBot(seed ^ 1).EnableAutoPayMana(), heuristic.NewBot(seed ^ 2).EnableAutoPayMana()},
+		rnd: RandomPolicy(seed)}
+	return h
+}
+
+// ExplorePolicy is HeuristicPolicy piloted by gorge's coverage-exploration
+// bot (heuristic.NewExploreBot, auto-pay mana) on both seats, exactly as
+// gorge's cmd/cardfuzz seats it: it tries every card's abilities, so a
+// lockstep run under it compares more of each card's surface. Coverage
+// (CoverageOf) reports which cards and abilities a run exercised.
+func ExplorePolicy(seed uint64) Policy {
+	return &heurPolicy{bots: [2]*heuristic.Bot{heuristic.NewExploreBot(seed ^ 1).EnableAutoPayMana(), heuristic.NewExploreBot(seed ^ 2).EnableAutoPayMana()},
+		rnd: RandomPolicy(seed)}
+}
+
+// PolicyFallbacks is a bot policy's (HeuristicPolicy, ExplorePolicy) count
+// of picks its bot's answer could not supply; 0 for any other policy.
+func PolicyFallbacks(p Policy) int {
+	if h, ok := p.(*heurPolicy); ok {
+		return h.Fallbacks
+	}
+	return 0
+}
+
+type heurPolicy struct {
+	bots  [2]*heuristic.Bot
+	rnd   Policy
+	seq   uint64
+	queue []Canon
+	brd   botpolicy.Board
+	// Fallbacks counts picks the bot's answer could not supply.
+	Fallbacks int
+}
+
+func (h *heurPolicy) Pick(c *PickCtx) Canon {
+	if c.G == nil {
+		panic("oracle: HeuristicPolicy needs gorge to lead (PickCtx.G is nil in a kernel-led lockstep)")
+	}
+	d := c.G.Pending()
+	if d != nil && d.Seq != h.seq {
+		h.seq = d.Seq
+		h.queue = h.translate(c, d)
+	}
+	for len(h.queue) > 0 {
+		a := h.queue[0]
+		h.queue = h.queue[1:]
+		for _, o := range c.D.Options {
+			if o == a {
+				return a
+			}
+		}
+	}
+	h.Fallbacks++
+	return h.rnd.Pick(c)
+}
+
+func (h *heurPolicy) translate(c *PickCtx, d *decision.Decision) []Canon {
+	e := c.G.E
+	if int(d.Player) >= len(h.bots) {
+		return nil
+	}
+	e.EnsurePaymentActions()
+	brd := botpolicy.BoardFromGameInto(e.G, e, d.Player, &h.brd)
+	in, err := h.bots[d.Player].DecideBoard(context.Background(), brd, *d)
+	if err != nil {
+		return nil
+	}
+	if in.Payment != nil {
+		for _, pa := range d.PaymentActions {
+			if pa.ID == in.Payment.ActionID {
+				mc, _ := castModeCode(pa.Cast.CastMode())
+				return []Canon{Pack(ActCast, c.G.InstRef(pa.Cast.Object), RefNone, mc)}
+			}
+		}
+		return nil
+	}
+	if d.Kind == decision.KPriority {
+		if len(in.Choices) != 1 {
+			return nil
+		}
+		o := optByIndex(d, in.Choices[0])
+		switch o.Kind {
+		case "pass":
+			return []Canon{Pack(ActPass, RefNone, RefNone, 0)}
+		case "play_land":
+			return []Canon{Pack(ActPlayLand, c.G.InstRef(o.Obj), RefNone, landFaceCode(o.Mode))}
+		case "cast":
+			return []Canon{castOptCanon(c.G.InstRef(o.Obj), o.Mode, o.AltCostIndex)}
+		case "ability":
+			return []Canon{Pack(ActActivate, c.G.InstRef(o.Obj), RefNone, uint8(o.Ability))}
+		}
+		return nil
+	}
+	fr := c.G.fr
+	if fr == nil || fr.seq != d.Seq {
+		return nil
+	}
+	var out []Canon
+	for _, ch := range in.Choices {
+		for i := range fr.d.Options {
+			if fr.d.Options[i].Index == ch && fr.valid[i] {
+				out = append(out, fr.acts[i])
+			}
+		}
+	}
+	if fr.multi && len(out) < fr.d.Max {
+		out = append(out, Pack(ActDone, RefNone, RefNone, 0))
+	}
+	return out
+}

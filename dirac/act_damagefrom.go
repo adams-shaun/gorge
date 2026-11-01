@@ -1,0 +1,107 @@
+package dirac
+
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// DebugDmgSrcPlNoLifelink drops the lifelink gain of OpDealDamageFrom's
+// player mode (a mutation: the dmgsrcpl lockstep must
+// then diverge). Test-only; never set outside the oracle tests.
+var DebugDmgSrcPlNoLifelink bool
+
+// DebugDmgSrcPlLKI corrupts the last-known-information read of the player
+// mode: 1 drops the snapshot's keywords, 2 flips its controller. Test-only.
+var DebugDmgSrcPlLKI uint8
+
+// dmgSrcPlayers is OpDealDamageFrom with B.N = 1:
+// gorge DealDamage `Defined$ Opponent | DamageSource$ TriggeredCard`, the
+// trigger object dealing in.A damage to each player in in.C. The source is
+// the entry's trigger object: live while it is on the battlefield as the
+// same object, else the entry's last known information (CR 113.7a, 608.2h;
+// gorge newDamageRider). Lifelink, infect and the damage's controller are
+// read once; replacements, poison or life loss, lifelink and the damage
+// triggers follow damageTo's order for the resolving source.
+//
+// Not wired: damageTo's gorge replacement-order ask (parkNC), and infect is
+// the printed flag (the LKI record keeps no infect bit); both are in
+// GORGE-FINDINGS.md.
+func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
+	e := &s.res.e
+	o := s.objRefObj(in.Obj)
+	if o == NoObj {
+		return
+	}
+	n := s.value(k, in.A)
+	if DebugDmgAmountPlusOne {
+		n++
+	}
+	if n <= 0 {
+		return
+	}
+	ver := s.objs[o].ver
+	if e.li != 0 {
+		ver = s.lk(e.li).ver
+	}
+	sl := s.slotIfSame(o, ver)
+	var (
+		kw     kop.KwMask
+		ctrl   uint8
+		infect bool
+	)
+	switch {
+	case sl != NoSlot:
+		kw, ctrl = s.kw(k, sl), s.perms[sl].ctrl
+		infect = s.infectAt(k, sl)
+	case e.li != 0:
+		l := s.lk(e.li)
+		kw, ctrl = l.kw, l.ctrl
+		switch DebugDmgSrcPlLKI {
+		case 1:
+			kw = 0
+		case 2:
+			ctrl = 1 - ctrl
+		}
+		infect = k.t.Cards[s.objs[o].card].Infect
+	default:
+		kw, ctrl = k.cards[s.objs[o].card].kw, s.ctrlOfObj(o)
+		infect = k.t.Cards[s.objs[o].card].Infect
+	}
+	card := s.objs[o].card
+	p0, p1 := s.eachPlayers(k, kop.Ref(in.C))
+	for _, p := range [2]uint8{p0, p1} {
+		if p > 1 {
+			continue
+		}
+		code := PlayerTarget0 + p
+		m := n
+		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol) != 0 {
+			if m = s.replDamage(k, ctrl, sl, card, code, false, m); m <= 0 {
+				continue
+			}
+		}
+		if k.gen != nil && k.gen.anyInfect && infect {
+			s.addPoison(p, m)
+		} else {
+			s.loseLife(k, p, m)
+		}
+		s.res.lastDmg = int16(m)
+		if kw&kop.KwLifelink != 0 && !DebugDmgSrcPlNoLifelink {
+			s.gainLife(k, ctrl, m)
+		}
+		if k.gen != nil && k.gen.anyPermMark && sl != NoSlot {
+			s.markDealt(k, sl, false)
+		}
+		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && s.subs[kop.TrigDamageDealtOnce].any() {
+			if sl != NoSlot {
+				s.fireDamage(k, sl, int16(m), true, false, code)
+			} else if k.gen != nil {
+				s.fireDamageSrc(k, o, ctrl, int16(m), dmgPl(code), code, nil)
+			}
+		}
+	}
+}
+
+// DebugDmgAmountPlusOne adds 1 to every DealDamageFrom / Bite amount
+// (a mutation: the owntgt lockstep must then diverge).
+// Test-only; never set outside the oracle tests.
+var DebugDmgAmountPlusOne bool

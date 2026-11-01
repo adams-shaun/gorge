@@ -1,0 +1,52 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Coral Merfolk
+1	card	Forest
+2	card	Giant Spider
+3	card	Gray Ogre
+4	card	Grizzly Bears
+5	card	Hill Giant
+6	card	Invasion of Azgol
+7	card	Invasion of Belenon
+8	card	Invasion of Dominaria
+9	card	Invasion of Ergamon
+10	card	Invasion of Innistrad
+11	card	Invasion of Ixalan
+12	card	Invasion of Kaladesh
+13	card	Invasion of Karsus
+14	card	Invasion of Kylem
+15	card	Invasion of Mercadia
+16	card	Invasion of Moag
+17	card	Invasion of Muraganda
+18	card	Invasion of Tolvada
+19	card	Invasion of Xerex
+20	card	Invasion of Zendikar
+21	card	Island
+22	card	Lightning Strike
+23	card	Mountain
+24	card	Plains
+25	card	Savannah Lions
+26	card	Shock
+27	card	Swamp
+28	card	Walking Corpse
+29	card	face:Invasion of Azgol#1
+30	card	face:Invasion of Belenon#1
+31	card	face:Invasion of Dominaria#1
+32	card	face:Invasion of Ergamon#1
+33	card	face:Invasion of Innistrad#1
+34	card	face:Invasion of Ixalan#1
+35	card	face:Invasion of Kaladesh#1
+36	card	face:Invasion of Karsus#1
+37	card	face:Invasion of Kylem#1
+38	card	face:Invasion of Mercadia#1
+39	card	face:Invasion of Moag#1
+40	card	face:Invasion of Muraganda#1
+41	card	face:Invasion of Tolvada#1
+42	card	face:Invasion of Xerex#1
+43	card	face:Invasion of Zendikar#1
+44	token	b_2_2_zombie
+45	token	c_1_1_a_thopter_flying
+46	token	c_a_treasure_sac
+47	token	rw_3_2_warrior_symbiotic_attack
+48	token	ur_1_1_elemental
+49	token	wb_1_1_spirit_flying
+50	token	wu_2_2_knight_vigilance

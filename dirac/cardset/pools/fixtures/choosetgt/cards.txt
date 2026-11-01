@@ -1,0 +1,26 @@
+# the targeted-chooser ChooseCard pool: End of the
+# Hunt (ValidTgts$ Opponent, answered by the targeted opponent) beside
+# black creatures at mana values 1..5, a planeswalker and lands
+# (dirac/oracle/choosetgt_test.go)
+# The targeted-chooser ChooseCard pool: End of the Hunt
+# is a mandatory ChooseCard with ValidTgts$ Opponent, so gorge's chosen-target
+# fallback (engine/effects/context.go:80,130-139) makes the TARGETED opponent
+# answer the pick. The creatures cover mana values 1..5 for both seats, with
+# four Jagwasp Swarms and four Sengir Vampires per deck so 2+ tie at the
+# greatest mana value often (a real choice); Ajani, Caller of the Pride adds a
+# kernel-accepted planeswalker at mana value 3, beside lands.
+#
+# The fliers (Nighthawk, Jagwasp, Sengir) keep the 25-turn random games
+# decisive. Strategic Betrayal (TDM) and Destined Confrontation (TLA) are NOT
+# here: each has an unrelated second blocker (TargetedPlayerOwn in a two-zone
+# ChangeZoneAll sweep; a Defined$ Player WithTotalPower$ shape with no
+# Choices$).
+End of the Hunt
+Diregraf Ghoul
+Walking Corpse
+Vampire Nighthawk
+Jagwasp Swarm
+Sengir Vampire
+Ajani, Caller of the Pride
+Swamp
+Plains

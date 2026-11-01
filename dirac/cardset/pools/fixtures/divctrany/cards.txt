@@ -1,0 +1,17 @@
+# the any-number divided-counters pool: Stolen Goodies
+# (TargetMin$ 0) and Grove's Bounty (X counters over 0..X targets), a
+# creature carrier and Shock (dirac/oracle/divctrany_test.go)
+Elusive Otter
+Forest
+Grizzly Bears
+Hill Giant
+Jugan, the Rising Star
+Llanowar Elves
+Mountain
+Myojin of Towering Might
+Picnic Ruiner
+Shock
+Storm the Seedcore
+Swamp
+Terror
+Verdurous Gearhulk

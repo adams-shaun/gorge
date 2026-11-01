@@ -1,0 +1,42 @@
+# the activated-ability cost-reduction pool:
+# Mutagen Man, Blossoming Tortoise and Boom Scholar beside Clue makers,
+# Exhaust creatures and utility lands, no mana-costed mana ability
+# (dirac/oracle/reduceab_test.go)
+Mutagen Man, Living Ooze
+Blossoming Tortoise
+Boom Scholar
+Knowledge Seeker
+Callous Inspector
+Raven Eagle
+Messenger Hawk
+Keen Buccaneer
+Greasewrench Goblin
+Hog-Monkey
+Camera Launcher
+Pacesetter Paragon
+Stampeding Scurryfoot
+Skyserpent Seeker
+Greenbelt Guardian
+Mindspring Merfolk
+Fire Nation Raider
+Forecasting Fortune Teller
+Blighted Woodland
+Rogue's Passage
+Mutavault
+Mishra's Foundry
+Scavenger Grounds
+Blinkmoth Nexus
+Treetop Village
+Shambling Vent
+Slayers' Stronghold
+Faerie Conclave
+Stirring Wildwood
+Den of the Bugbear
+Lightning Bolt
+Shock
+Forest
+Island
+Mountain
+Plains
+Agatha of the Vile Cauldron
+Forensic Gadgeteer

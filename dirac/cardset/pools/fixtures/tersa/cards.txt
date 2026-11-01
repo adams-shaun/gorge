@@ -1,0 +1,11 @@
+# Tersa Lightshatter (AtRandom$ graveyard exile)
+# (dirac/oracle/tersa_test.go)
+Tersa Lightshatter
+Mountain
+Forest
+Shock
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Giant Growth
+Mind Rot

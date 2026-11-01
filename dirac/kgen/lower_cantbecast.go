@@ -1,0 +1,72 @@
+package kgen
+
+import (
+	"strconv"
+	"strings"
+)
+
+// cantBeCast lowers S:Mode$ CantBeCast (gorge castRestricted): spells
+// matching ValidCard$ (absent: every spell) can't be cast by the casters
+// Caster$ names (You / Opponent / Player; absent: anyone), under the
+// static's conditions (Condition$ PlayerTurn: during its controller's
+// turn). The kernel withholds the cast offers (hand, flashback, play
+// permissions, free casts). NumLimitEachTurn$ N (a positive literal, an
+// unfiltered ValidCard$) binds once the caster has cast N spells this turn
+// Refused: a filtered NumLimitEachTurn$, Origin$,
+// OnlySorcerySpeed$, Phases$, a mana-value filter (CR 601.3a's X
+// lookahead). ValidCard$ Card.Self | EffectZone$ All is the card's own "you
+// can't cast this spell": it binds only the card itself,
+// in any zone, with no filter; Caster$ Player.Active (the active player) is
+// read on that shape only.
+func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
+	vc := sp.str("ValidCard")
+	self := vc == "Card.Self"
+	if vc != "" {
+		if strings.Contains(vc, "cmc") || strings.Contains(vc, "Self") && !self {
+			return refuse("CantBeCast ValidCard %q", vc)
+		}
+		if self {
+			if sp.str("EffectZone") != "All" {
+				return refuse("CantBeCast Card.Self without EffectZone$ All")
+			}
+			sp.consume("EffectZone")
+			st.Zone = zAny
+		} else {
+			f, err := lc.filter(vc)
+			if err != nil {
+				return err
+			}
+			st.F = f
+		}
+	}
+	switch c := sp.str("Caster"); c {
+	case "", "Player":
+	case "You":
+		st.Flags = append(st.Flags, "ActivatorYou")
+	case "Opponent", "Player.Opponent":
+		st.Flags = append(st.Flags, "ActivatorOpp")
+	case "Player.Active":
+		if !self {
+			return refuse("CantBeCast Caster %q", c)
+		}
+		st.Flags = append(st.Flags, "CasterActive")
+	default:
+		return refuse("CantBeCast Caster %q", c)
+	}
+	if raw, ok := sp.get("NumLimitEachTurn"); ok {
+		// gorge castLimitBinds (rules/statics_cast.go:463-484): binds once the
+		// caster already cast N spells this turn. Exact only for an
+		// unfiltered ValidCard$: the kernel's count is histSpells.
+		raw = strings.TrimSpace(raw)
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 1 || n > 255 || strconv.Itoa(n) != raw {
+			return refuse("CantBeCast NumLimitEachTurn %q", raw)
+		}
+		if vc != "" && vc != "Card" {
+			return refuse("CantBeCast NumLimitEachTurn with ValidCard %q", vc)
+		}
+		st.Amount = cst(n)
+	}
+	sp.consume("Secondary")
+	return nil
+}

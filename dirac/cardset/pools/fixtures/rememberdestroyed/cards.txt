@@ -1,0 +1,31 @@
+# the remember-param pool: Shredder's Technique
+# (Destroy RememberDestroyed$), Wishing Well (PutCounter COIN
+# RememberAmount$ + Count$RememberedNumber) and Earthbender Ascension
+# (RememberAmount$ + an ImmediateTrigger IsPresent$), with Leyline of
+# the Void (a destroy replaced away), regenerating and indestructible
+# creatures, enchantments, cheap instants/sorceries and landfall lands,
+# for the oracle's constructed lockstep (dirac/oracle/rememberdestroyed_test.go)
+Shredder's Technique
+Wishing Well
+Earthbender Ascension
+Leyline of the Void
+Drudge Skeletons
+Darksteel Myr
+Walking Corpse
+Coral Merfolk
+Opt
+Think Twice
+Divination
+Sign in Blood
+Mind Rot
+Pacifism
+Glorious Anthem
+Grizzly Bears
+Llanowar Elves
+Savannah Lions
+Giant Growth
+Evolving Wilds
+Island
+Swamp
+Forest
+Plains

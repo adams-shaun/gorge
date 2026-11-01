@@ -1,0 +1,504 @@
+package dirac
+
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// Filter mana abilities (CR 605.3a, 601.2g): a mana ability with a mana
+// cost, Hidden Grotto's "{1}, {T}: Add one mana of any color" beside its
+// free "{T}: Add {C}". gorge's planner census prices tap-only abilities
+// (rules/pay appendUnitAlternatives: TierNormal needs TapOnly), so the
+// filter is a paid census gap (potential_plan.go paymentPlanCensusOf):
+//
+//   - a play the planner proves insufficient is re-asked with the filter
+//     as a free any-colour unit and its fee charged as generic
+//     (paymentPlanRelaxProof); one that relaxed run pays takes one of the
+//     potentialScriptPlays prefix searches (availFilt, scriptOffers);
+//   - the search (potentialPrefixScript -> scriptSearch.visit, gapsOnly
+//     with funding = the fees) activates, depth first in priority-option
+//     (battlefield) order, the gaps first and then up to fees other
+//     sources, branching on every ask; after a gap was activated the
+//     planner is asked at each node. The play is offered when a path is
+//     found within potentialScriptNodes, and the oracle plays the path
+//     before the play (prScript), which the planner then pays from the
+//     floating pool (filtSearch).
+//
+// The kernel runs the same search on State copies, the plain walk standing
+// for the planner, and plays the found path at the play (scriptPrefix).
+// Only boards whose census gaps are all filters take it; a filter beside a
+// Bloom Tender or a restricted gap keeps the older scripts' logic.
+
+const potentialScriptNodes = 160 // gorge rules/potential_script.go
+
+// relaxedPaidLimit bounds the paid census gaps gorge's relaxed proof
+// enumerates (rules/potential_plan.go): with a fourth filter the census is
+// unrelaxable and its paid list empty, so no relaxed proof runs (every
+// insufficient play is searched) and the search funds nothing (fees() 0):
+// it activates the filters alone.
+const relaxedPaidLimit = 3
+
+// filterTapMana: a, a mana ability of cd, is a filter the kernel models:
+// {N}, {T} (generic N only), one mana of any colour, no other cost,
+// restriction or dynamic amount, on a card whose first mana ability is a
+// free {T} one. Three Tree City's dynamic {2},{T} is not (it stays
+// unmodelled). A filter that is the card's first mana ability (Three Tree
+// Mascot's untapped {1}, Prophetic Prism) is kop.FilterManaAb's
+// (mana_filterfirst.go).
+func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
+	m := &a.Cost.Mana
+	if a.Kind != kop.AbMana || a.AFlags != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
+		m.Generic == 0 || m.X != 0 || m.Hyb[0] != 0 || m.Pips != ([kop.NumManaKinds]uint8{}) ||
+		a.ManaColors != kop.ColAny || a.ManaN > 1 {
+		return false
+	}
+	f := firstManaAb(cd)
+	if f < 0 || &cd.Abilities[f] == a {
+		return false
+	}
+	fa := &cd.Abilities[f]
+	return fa.Cost.Flags == kop.CostTap && fa.Cost.Mana.MV() == 0 && fa.Cost.Mana.X == 0 && fa.AFlags == 0 && fa.ManaRestrict == 0
+}
+
+// scriptFilt: p's activatable filter sources (untapped), a slot mask.
+func (s *State) scriptFilt(k *prep, p uint8) slotMask {
+	if !k.gen.anyFilt {
+		return slotMask{}
+	}
+	if k.gen.anyFiltFirst {
+		return s.filtFirstMask(k, p) // a filter first and only (mana_filterfirst.go)
+	}
+	return s.gapMask(k, p, gfFilt)
+}
+
+// filtFee is the filter's {N} at slot sl.
+func (s *State) filtFee(k *prep, sl Slot) int {
+	c := s.cardAt(sl)
+	return int(k.t.Cards[c].Abilities[k.gen.filt(c)].Cost.Mana.Generic)
+}
+
+// availFilt: in the gaps walk each filter is a free unit of its colours
+// (any, or a Combo's) and its fee is charged on top of the cost (paymentPlanRelaxProof's run with
+// every paid gap: the most permissive of its subsets, since an any-colour
+// unit only helps). Charging the fee is taking it off the total.
+//
+//go:noinline
+func (s *State) availFilt(k *prep, p uint8, a *avail) {
+	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
+		a.addUnits(uint8(s.filtAb(k, b.first()).ManaColors), 1)
+		a.total -= s.filtFee(k, b.first())
+	}
+}
+
+// faceReachable: the hybrid face r (plus extra generic) can be paid from av,
+// or by activating some of p's filters in the mana window (CR 601.2g): each
+// makes a coloured mana in place of its free ability's and takes its fee out
+// of the other mana (CR 601.2h).
+//
+//go:noinline
+func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extra int) bool {
+	if av.affords(r, pipMaskOf(r), extra) {
+		return true
+	}
+	if k.gen == nil || !k.gen.anyFilt {
+		return false
+	}
+	var filt [maxFaceFilters]Slot
+	n := 0
+	own := NoSlot
+	if e := &s.bld().e; e.kind == seAbility && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostTap != 0 {
+		own = s.srcSlot() // tapped for mana, it could not pay its own {T}
+	}
+	for b := s.scriptFilt(k, p); b.any() && n < len(filt); b = b.rest() {
+		if sl := b.first(); sl != own {
+			filt[n] = sl
+			n++
+		}
+	}
+	for set := 1; set < 1<<n; set++ {
+		t := *av
+		for i := 0; i < n; i++ {
+			if set&(1<<i) == 0 {
+				continue
+			}
+			sl := filt[i]
+			if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
+				pc := s.manaPCGen(k, sl)
+				t.remove(s.srcMaskAt(pc, sl), pc.manaN)
+			}
+			t.addUnits(uint8(s.filtAb(k, sl).ManaColors), 1)
+			t.total -= s.filtFee(k, sl)
+		}
+		if t.affords(r, pipMaskOf(r), extra) {
+			return true
+		}
+	}
+	return false
+}
+
+// windowFiltUseful: sl's filter can make a colour in want now, its fee
+// covered by p's floating mana (gorge's paymentSourceUseful reads the window
+// abilities, and a filter's is listed only once the pool pays it).
+func (s *State) windowFiltUseful(k *prep, p uint8, sl Slot, want uint8) bool {
+	return k.gen != nil && k.gen.has(s.cardAt(sl), gfFilt) && uint8(s.filtAb(k, sl).ManaColors)&want != 0 &&
+		poolTotal(&s.pl[p&1]) >= s.filtFee(k, sl)
+}
+
+// windowRestrUseful: sl has a restricted tap mana ability that makes a colour in
+// want. CR 106.6 limits what the mana may be spent on, not the activation, so the
+// source stays in the window whatever is being paid for; gorge's paymentSourceUseful
+// reads every window ability, and its answer then takes the first, plain one.
+func (s *State) windowRestrUseful(k *prep, sl Slot, want uint8) bool {
+	if k.gen == nil || !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR {
+		return false
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if a.Kind == kop.AbMana && a.ManaRestrict != 0 && a.Cost.Flags == kop.CostTap && uint8(a.ManaColors)&want != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// windowRestrOwedTap: a cast's ability ask lists sl's restricted ability first when
+// its colour is owed and the plain one's isn't (gorge owedAbilitiesFirst, which reads
+// colours only, so the mana may be mana this spell can't spend). It taps sl for that
+// mana, floating beside the pool, and reports whether it did.
+func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCost) bool {
+	want, decided := s.windowUseful(p, useful)
+	if !decided || s.windowSrcMask(k, sl)&want != 0 {
+		return false
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if !restrSrcAb(a) || a.AFlags&(kop.AfManaDynamic|kop.AfManaChoice) != 0 || a.ManaColors == kop.ColAny || uint8(a.ManaColors)&want == 0 {
+			continue
+		}
+		s.perms[sl].flags |= pfTapped
+		s.touchSl(sl)
+		if !s.pl[p].addRestr(k, &s.poolRx[p&1], a.ManaRestrict, bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
+			s.capFull(StallRestrSrc)
+		}
+		return true
+	}
+	return false
+}
+
+// censusGapMana: mana ability a is one gorge's planner census misses: a
+// spend restriction, each-colour production, or a cost beyond {T} (and
+// {T} plus sacrificing itself, a Treasure's last-resort tier).
+func censusGapMana(a *kop.Ability) bool {
+	if a.AFlags&kop.AfLatent != 0 {
+		return false
+	}
+	f := a.Cost.Flags
+	return a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
+		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
+}
+
+// filtOnly: p's census gaps are filters alone (no other activatable source
+// with a mana ability the census misses: a Bloom Tender, Giada, a
+// Courtyard, Lupinflower Village's restricted {W}).
+func (s *State) filtOnly(k *prep, p uint8) bool {
+	return s.scriptFilt(k, p).any() && !s.gapMask(k, p, gfGapOther).any()
+}
+
+// filtStep is one activation of a filter script: source sl; for a gap
+// (a filter source) ans 0 is its free ability and 1+c the filter making
+// colour c; for a funding source ans is the colour it makes.
+type filtStep struct {
+	sl  Slot
+	ans uint8
+	gap bool
+	// restr: a funding source's answer is its restricted ability's mana
+	// (ans its colour): gorge's activation ask lists the restricted
+	// ability beside the census one, and the search reads no restriction
+	// (mana_restrictedsource.go)
+	restr bool
+	// other: a census gap that is no filter (mixed gaps, zmixgaps file)
+	other otherStep
+}
+
+type filtKey struct {
+	pool  [kop.NumManaKinds]uint8
+	poolR uint8
+	rx    uint16 // poolRx: the other colours of the restricted mana
+	// art: the pool slots holding an artifact's mana (genState.poolArt):
+	// gorge's key reads the typed units apart (Player.ManaUnits), so a
+	// Three Tree Mascot's {W} over a Plains' {W} is a new state
+	art    uint8
+	tapped slotMask
+}
+
+const maxFiltPath = 16
+
+// maxFaceFilters bounds the filters faceReachable tries in combination.
+const maxFaceFilters = 6
+
+// filtSearch is gorge's prefix search (scriptSearch.visit) over filter gaps.
+type filtSearch struct {
+	a     Action
+	p     uint8
+	gaps  slotMask // the root census's filter gaps
+	other slotMask // its gaps that are no filter (otherGap)
+	fees  int      // the funding the search may activate
+	own   Slot     // the source whose {T} is the play's own cost (NoSlot: none)
+	nodes int
+	nseen int
+	seen  [potentialScriptNodes]filtKey
+	n     int
+	path  [maxFiltPath]filtStep
+}
+
+// filtScript reports whether gorge's prefix search finds a script for play
+// a of p; with apply it plays the script on s (the play's prefix).
+//
+//go:noinline
+func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
+	var fs filtSearch
+	fs.a, fs.p, fs.gaps, fs.own = a, p, s.scriptFilt(k, p), NoSlot
+	fs.other = s.otherGaps(k, p)
+	if a.Kind() == AkActivate {
+		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
+	}
+	if fs.gaps.count() <= relaxedPaidLimit && !(k.tapMana && s.tapXTwoLive(k, p)) { // (unrelaxable: no funding)
+		for b := fs.gaps; b.any(); b = b.rest() {
+			fs.fees += s.filtFee(k, b.first())
+		}
+	}
+	t := s.fork()
+	defer s.unfork()
+	if !fs.visit(k, t, 0, false) {
+		return false
+	}
+	if !apply && (k.restrSrc || fs.other.any()) && s.filtDeadEnd(k, p, a, &fs) {
+		return false
+	}
+	if apply {
+		for i := 0; i < fs.n; i++ {
+			s.filtDo(k, p, fs.path[i])
+		}
+	}
+	return true
+}
+
+// tick counts one visited node; false once the budget is spent.
+func (fs *filtSearch) tick() bool {
+	if fs.nodes >= potentialScriptNodes {
+		return false
+	}
+	fs.nodes++
+	return true
+}
+
+// filtDo plays step st for p.
+func (s *State) filtDo(k *prep, p uint8, st filtStep) {
+	if st.other.kind != otherNone {
+		s.otherDo(k, p, st)
+		return
+	}
+	pl := &s.pl[p&1]
+	if st.gap && st.ans > 0 {
+		s.filtUse(k, st.sl) // (a once-each-turn filter spends its use, not its {T})
+	} else {
+		s.perms[st.sl].flags |= pfTapped
+		s.touchSl(st.sl)
+	}
+	switch {
+	case st.gap && st.ans > 0:
+		// the fee is paid from the pool, generic in C W U B R G order, after
+		// the restricted mana it may spend
+		fee := s.filtFee(k, st.sl)
+		fee -= s.filtFeeRestr(k, p, st.sl, fee)
+		for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
+			for fee > 0 && pl.pool[c] > 0 {
+				pl.pool[c]--
+				fee--
+			}
+		}
+		if k.artMana {
+			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
+		}
+		pl.pool[st.ans-1]++
+		s.artTag(k, p, st.sl, int(st.ans-1)) // an artifact's mana is typed (Three Tree Mascot, Prophetic Prism; mana_artifact.go)
+	case st.gap:
+		pc := s.manaPCGen(k, st.sl)
+		c := bits.TrailingZeros8(s.srcMaskAt(pc, st.sl))
+		pl.pool[c] += max(pc.manaN, 1)
+		s.artTag(k, p, st.sl, c)
+	case st.restr:
+		s.filtRestrDo(k, p, st)
+	default:
+		pl.pool[st.ans] += max(s.manaPCGen(k, st.sl).manaN, 1)
+		s.artTag(k, p, st.sl, int(st.ans))
+	}
+}
+
+func poolTotal(pl *player) int {
+	n := 0
+	for _, v := range pl.pool {
+		n += int(v)
+	}
+	return n
+}
+
+// try plays st on a copy of t and continues the search there.
+func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bool) bool {
+	if fs.n == maxFiltPath {
+		return false
+	}
+	c := t.fork()
+	defer t.unfork()
+	c.filtDo(k, fs.p, st)
+	fs.path[fs.n] = st
+	fs.n++
+	if fs.visit(k, c, funded, gapUsed) {
+		return true
+	}
+	fs.n--
+	return false
+}
+
+// visit is one priority node of the search.
+func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
+	if !fs.tick() {
+		return false
+	}
+	p := fs.p
+	key := filtKey{pool: t.pl[p&1].pool, poolR: t.pl[p&1].poolR, rx: t.poolRx[p&1]}
+	if k.artMana {
+		t.artSync(p)
+		key.art = t.g.poolArt[p&1]
+	}
+	for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
+		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
+			key.tapped = key.tapped.with(sl)
+		}
+	}
+	for i := 0; i < fs.nseen; i++ {
+		if fs.seen[i] == key {
+			return false
+		}
+	}
+	if fs.nseen < len(fs.seen) {
+		fs.seen[fs.nseen] = key
+		fs.nseen++
+	}
+	if gapUsed {
+		var d Decision
+		t.restrOptions(k, &d, p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
+		if hasOption(&d, fs.a) {
+			return true
+		}
+	}
+	var order [MaxPerm]Slot
+	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
+	for pass := 0; pass < 2; pass++ {
+		gap := pass == 0
+		if !gap && funded >= fs.fees {
+			break
+		}
+		for i := 0; i < n; i++ {
+			sl := order[i]
+			if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own {
+				continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
+			}
+			if gap && fs.other.has(sl) {
+				if fs.otherGap(k, t, sl, funded) {
+					return true
+				}
+				continue
+			}
+			if gap && k.gen.anyFiltFirst {
+				if !t.filtUsable(k, sl) {
+					continue // (a once-each-turn filter: its use, not its {T})
+				}
+			} else if t.perms[sl].flags&pfTapped != 0 {
+				continue
+			}
+			if gap {
+				free := t.canTapForMana(k, sl)
+				filt := poolTotal(&t.pl[p&1])+t.filtFeeRestrN(k, p, sl) >= t.filtFee(k, sl)
+				switch {
+				case free && filt:
+					// two abilities: the ask, its {C} answer first
+					if !fs.tick() {
+						return false
+					}
+					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
+						return true
+					}
+					if fs.filtColours(k, t, sl, funded) {
+						return true
+					}
+				case free:
+					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
+						return true
+					}
+				case filt:
+					if fs.filtColours(k, t, sl, funded) {
+						return true
+					}
+				}
+				continue
+			}
+			rm := uint8(0)
+			if k.restrSrc {
+				rm = t.filtRestrMask(k, sl)
+			}
+			free := t.canTapForMana(k, sl)
+			if !free && rm == 0 {
+				continue
+			}
+			if free && rm != 0 && !fs.tick() {
+				return false // the ask between its census and its restricted ability
+			}
+			if free {
+				pc := t.manaPCGen(k, sl)
+				if pc.manaSac {
+					continue // (a Treasure funds nothing here: see the handoff's open items)
+				}
+				mask := t.srcMaskAt(pc, sl)
+				if bits.OnesCount8(mask) > 1 && !fs.tick() {
+					return false // the colour ask
+				}
+				for m := mask; m != 0; m &= m - 1 {
+					if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(m))}, funded+1, gapUsed) {
+						return true
+					}
+				}
+			}
+			if bits.OnesCount8(rm) > 1 && !fs.tick() {
+				return false // the restricted ability's colour ask
+			}
+			for m := rm; m != 0; m &= m - 1 { // the restricted ability's answers, after the census one's
+				if fs.try(k, t, filtStep{sl: sl, ans: uint8(bits.TrailingZeros8(m)), restr: true}, funded+1, gapUsed) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// filtColours is the filter's colour ask at sl: the colours in turn, Any's
+// W U B R G or a Combo's in printed order (manaColourOrder; gorge's
+// askManaColor offers effects.ComboColours in script order).
+func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
+	if !fs.tick() {
+		return false
+	}
+	var order [5]uint8
+	n := manaColourOrder(t.filtAb(k, sl), &order)
+	for i := 0; i < n; i++ {
+		c := order[i]
+		if fs.try(k, t, filtStep{sl: sl, ans: uint8(1 + c), gap: true}, funded, true) {
+			return true
+		}
+	}
+	return false
+}

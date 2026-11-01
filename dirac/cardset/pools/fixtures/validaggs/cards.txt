@@ -1,0 +1,56 @@
+# the constructed lockstep pool: skulk, the
+# Count$Valid aggregates, the remembered-set MayPlay, Condition$ Kicked,
+# ConditionPlayerTurn$ and activation PlayerTurn$ carriers, basics and
+# vanilla creatures (dirac/oracle/validaggs_test.go)
+Furtive Homunculus
+Pale Rider of Trostad
+Vampire Cutthroat
+Shimmercreep
+Rubblebelt Rioters
+Act on Impulse
+Seize Opportunity
+Wrenn's Resolve
+Abbot of Keral Keep
+Territorial Bruntar
+Blink of an Eye
+Aggressive Sabotage
+Fated Conflagration
+Disrupting Scepter
+Knacksaw Clique
+Towering Gibbon
+Pyreswipe Hawk
+Tuya Bearclaw
+Kulrath Zealot
+Gila Courser
+Aqueous Form
+Into the Roil
+Gnarlid Colony
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Savannah Lions
+Coral Merfolk
+Giant Spider
+Walking Corpse
+Mountain
+Forest
+Plains
+Island
+Swamp
+Agonasaur Rex
+Orchard Strider
+Kree Sentinel
+Ironhoof Boar
+Bamboo Grove Archer
+Vedalken Aethermage
+Shoreline Ranger
+Glorious Anthem
+Giant Growth
+Ghalta, Primal Hunger
+Volcanic Salvo
+Owlbear Shepherd
+Gnoll Hunter
+Hobgoblin Captain
+Dragon-Scarred Bear
+Crater Elemental
+Trumpet Blast

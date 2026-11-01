@@ -1,0 +1,27 @@
+# the graveyard card-type counts and the reversed graveyard/battlefield
+# zone order: Tarmogoyf, Broodspinner, Peer Past the
+# Veil, Matzalantli and the three Cave payoffs beside Caves, an artifact
+# creature, instants, sorceries, auras and basics
+# (dirac/oracle/gravecounts_test.go)
+Broodspinner
+Calamitous Cave-In
+Captivating Cave
+Cavernous Maw
+Forest
+Gargantuan Leech
+Grizzly Bears
+Hidden Necropolis
+Hidden Nursery
+Hidden Volcano
+Llanowar Elves
+Matzalantli, the Great Door
+Mind Rot
+Mountain
+Ornithopter
+Peer Past the Veil
+Raging Goblin
+Rancor
+Shock
+Swamp
+Tarmogoyf
+Unholy Strength

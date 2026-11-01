@@ -1,0 +1,95 @@
+{
+"name": "FDN_top_28629_BR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 76b65680ea1a4754b9296f3791e5eea4:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abrade",
+"count": 1
+},
+{
+"name": "Arbiter of Woe",
+"count": 1
+},
+{
+"name": "Axgard Cavalry",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Blasphemous Edict",
+"count": 1
+},
+{
+"name": "Bloodfell Caves",
+"count": 2
+},
+{
+"name": "Burglar Rat",
+"count": 2
+},
+{
+"name": "Chandra, Flameshaper",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 2
+},
+{
+"name": "Fanatical Firebrand",
+"count": 1
+},
+{
+"name": "Gorehorn Raider",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Nine-Lives Familiar",
+"count": 1
+},
+{
+"name": "Perforating Artist",
+"count": 1
+},
+{
+"name": "Seismic Rupture",
+"count": 1
+},
+{
+"name": "Shivan Dragon",
+"count": 1
+},
+{
+"name": "Spitfire Lagac",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 2
+},
+{
+"name": "Strongbox Raider",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Thrill of Possibility",
+"count": 2
+}
+]
+}

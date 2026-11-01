@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_24709_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck da31155144744745ab403581334da06b:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 2 Harvestrite Host, 1 Intrepid Rabbit, 1 Persistent Marshstalker, 1 Starseer Mentor, 1 Whiskervale Forerunner -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Scales of Shale",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 3
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Stargaze",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Warren Elder",
+"count": 2
+}
+]
+}

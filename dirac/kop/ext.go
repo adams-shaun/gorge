@@ -1,0 +1,505 @@
+package kop
+
+// Extension sub-ops (OpExt): the op space is full (the iota list below
+// OpCount and the high range 250-254), so a new family adds an ExtOp here,
+// numbered from 1 up and append-only, and lowers its instruction as
+// {Op: OpExt, A: Const(sub)} with the rest of the fields its own. The
+// kernel dispatches them in a cold file (extop.go):
+// one extra switch only on an ext instruction, nothing on the hot path.
+type ExtOp int16
+
+const (
+	// ExtNone is no sub-op (an OpExt instruction never carries it).
+	ExtNone ExtOp = iota
+	// ExtPreventColor (Prismatic Strands): the resolving
+	// controller chooses a colour (ChGenColor, all five); all damage that
+	// sources of that colour would deal this turn is prevented (gorge
+	// effChooseColor + effEffect's bodyless DamageDone Prevent$
+	// replacement, ValidSource$ Card.ChosenColor). Each effect keeps the
+	// colour chosen as it was created. No other field.
+	// dirac/cast_altfree.go.
+	ExtPreventColor
+	// ExtEachDamage (Case of the Gateway Express): each
+	// battlefield permanent matching F (seat 0 first, entry order) -- or,
+	// with damager target slots in C>>8 (Common Goal: a bit per
+	// slot, gorge DefinedDamagers$ ParentTarget), those slots' objects --
+	// deals B damage (B = Const(0): its own power) to the object in Ref
+	// C&0xff, one simultaneous damage event whose hits each name their own
+	// source (gorge effEachDamage: BeginDamageBatch .. EndDamageBatch).
+	// dirac/extop.go.
+	ExtEachDamage
+	// ExtRemoveCounterAny (Glissa Sunslayer): remove up to B.N
+	// counters of any kinds from the object in Obj, the controller picking
+	// the kind one counter at a time (C 1: UpTo$, a Done option at every
+	// step); the picks are removed together once the election ends (gorge
+	// removeCounterAny, cr-removecounter-any-upto 461d8b818).
+	// dirac/ctr_removeany.go.
+	ExtRemoveCounterAny
+	// ExtTwoPilesSac (Liliana of the Veil): the resolving
+	// controller separates the battlefield permanents matching F that the
+	// player in Obj controls into two piles (ChGenPileSplit, a permanent
+	// per pick, AkDone-closed; all picked ends it), that player picks one
+	// (ChGenPileChoose) and sacrifices every permanent in it (gorge
+	// effTwoPiles' battlefield arm then SacrificeAll IsRemembered,
+	// cr-twopiles-battlefield-validcards). dirac/act_piles.go.
+	ExtTwoPilesSac
+	// ExtChooseColorRes (Skrelv, Defector Mite): the resolving
+	// controller chooses a colour (ChGenColor, all five); it rides
+	// res.chosen (colour index + 1) for the ExtColorGrant that follow
+	// (gorge effChooseColor Defined$ You). dirac/static_colourgrant.go.
+	ExtChooseColorRes
+	// ExtColorGrant (Skrelv): the object in Obj gains, until end
+	// of turn and for the colour in res.chosen, hexproof from that colour
+	// (C bit 0), toxic B.N (B) and "can't be blocked by creatures of that
+	// colour" (C bit 1) (gorge definedKWGrant and the CantBlockBy Effect's
+	// freezeChosenColor, cr-pump-definedkw-chosencolor).
+	// dirac/static_colourgrant.go.
+	ExtColorGrant
+	// ExtMayPlayGrave (Case of the Uneaten Feast): every
+	// graveyard card matching F (seat 0's graveyard first, zone order) gets
+	// a may-play-from-the-graveyard permission until end of turn for the
+	// resolving controller (B: kop.MayPlayNonLand skips lands); gorge
+	// effAnimate over Defined$ ValidGraveyard granting a self MayPlay
+	// static. dirac/cast_graveyardgrant.go.
+	ExtMayPlayGrave
+	// ExtHideaway (Collector's Cage; CR 702.75a): C 0 is the
+	// Hideaway ETB: the controller looks at the top B cards of their library
+	// (B a constant), exiles one face down linked to the source and puts the
+	// rest on the bottom in a random order (gorge effHideaway, KChoose
+	// "hideaway_pick"). C 1 is the Play of the card exiled with the source
+	// (gorge effPlay Defined$ ExiledWith, Optional$, WithoutManaCost$, a land
+	// included): the ChGenCastFree ask over it.
+	// dirac/kw_hideaway.go.
+	ExtHideaway
+	// ExtEndure (CR 701.63): the object in Obj endures N,
+	// N the PA of override C (read once; N <= 0 does nothing). On the
+	// battlefield its controller chooses (ChGenEndure: 0 N +1/+1 counters
+	// on it, 1 an N/N white Spirit token, B.N its card); gone, the
+	// resolving controller gets the Spirit with no ask (gorge effEndure).
+	// dirac/act_endure.go.
+	ExtEndure
+	// ExtDividedCounters (Quirion Beastcaller): put the dying
+	// source's last-known +1/+1 counters (the entry's LKI) on the objects of
+	// target slot C, as the controller divided them while putting the
+	// trigger on the stack (TargetSpec.Divide == DivLKIP1P1: the slot takes
+	// 0..X targets, the total is X; CR 601.2d, 603.10a; gorge cr-dies-trigger-
+	// divided-counters-lki). dirac/ctr_divided.go.
+	ExtDividedCounters ExtOp = 30
+	// ExtSacDelayed (Mobilize): sacrifice, as one batch, the
+	// group program's remembered objects (trigObj and the one packed in
+	// trigAmt) still on the battlefield. dirac/kw_mobilize.go.
+	ExtSacDelayed ExtOp = 32
+	// ExtPlotGrant (Kellan Joins Up): every object in the
+	// resolution's remembered set that is in exile becomes plotted (CR
+	// 702.170b-d): a DurPlot record stamped with the current turn, then its
+	// own BecomesPlotted triggers (gorge effAlterAttribute "Plotted", zone
+	// gate ZExile; the fold's PlottedTurn). Obj is the Remembered ref (read
+	// by the kernel as the remembered set). dirac/kw_plot.go.
+	ExtPlotGrant ExtOp = 31
+	// ExtCounterLose (Tishana's Tidebinder): counter the stack
+	// ability in target slot Obj (RefTarget0..2); if its source is still the
+	// same artifact, creature or planeswalker on the battlefield, that
+	// permanent loses all abilities for as long as the resolving source stays
+	// on the battlefield (C: the Table.Overrides index of the host-bound
+	// LoseAbilities override; gorge cr counter RememberCountered$ remembers
+	// the countered ability's source card). dirac/act_counterlose.go.
+	ExtCounterLose ExtOp = 41
+	// ExtNumTimes (Tranquil Frillback): a printed trigger's own
+	// "you may pay {unit} up to N times" announcement (gorge cumulative.go
+	// triggeredCostNumTimesAsk): the controller announces 0..m, m the most
+	// repetitions (at most N = C>>4&7) that the potential mana covers of
+	// the unit (generic C&15, packed pips B.N); the answer rides the
+	// resolution's X (0 declines and jumps C>>7 instructions). The IfPaid
+	// right after it charges the unit that many times. With no repetition
+	// payable nothing is asked and the IfPaid poses its decline-only ask.
+	// dirac/cast_announcetimes.go.
+	ExtNumTimes ExtOp = 50
+	// ExtAegisClone (Assimilation Aegis): the resolution of a
+	// TrigAttached trigger. The attachment's controller picks a creature
+	// card exiled with the attachment (the exile-until-leaves link of its
+	// incarnation; the ask is gorge's clone_choice KChoose, one option
+	// whatever the pool) and the bearer (RefTriggerObj) becomes a copy of it
+	// for as long as the attachment stays attached to it (gorge Clone
+	// Duration$ UntilUnattached, ChoiceZone$ Exile). dirac/zone_exilethenattach.go.
+	ExtAegisClone ExtOp = 80
+	// ExtAirbend (CR 701.65a): exile the battlefield
+	// permanent Obj (or, with Obj RefNone, every battlefield permanent
+	// matching F, seat 0 first; C = 1+slot excludes that target slot's
+	// object, Defined$ ...NotDefinedTargeted), and give each card exiled
+	// that way its owner's DurAirbend record: the owner may cast it from
+	// exile for {2}. dirac/act_airbend.go.
+	ExtAirbend ExtOp = 95
+	// ExtManaChoice (Chandra, Hope's Beacon; CR 605.1a): a resolving
+	// Mana effect's colour choice, "add two mana in any combination of
+	// colors" on a loyalty ability, or a triggered "add four mana in any
+	// combination of colors" (Realm-Scorcher Hellkite; CR 106.3, 605.1a;
+	// gorge effects.askManaChoice, Produced$
+	// Combo Any with Amount$ 2 / Produced$ Any): B the amount (constant, at
+	// most 7), C the colour mask (W U B R G bits 0..4, two or more) with bit 8
+	// for the any-one-colour form (one pick for the whole amount; else one
+	// pick per mana, ChGenManaChoice). dirac/mana_colourchoice.go.
+	ExtManaChoice ExtOp = 100
+	// ExtLibSweep (Teferi, Temporal Pilgrim): every battlefield
+	// permanent matching F (as the resolving controller) goes to its owner's
+	// library, on top in move order (seat 0's battlefield, then seat 1's),
+	// then each owner whose cards moved, in order of first placement, shuffles
+	// its library (gorge effChangeZoneAll Destination$ Library, Shuffle$
+	// True). dirac/zone_sweeptolibrary.go.
+	ExtLibSweep ExtOp = 101
+	// ExtBreachChoose (Breach the Multiverse): for each player (the
+	// resolving controller first, then the other), the controller chooses a
+	// creature or planeswalker card in that player's graveyard (a mandatory
+	// ChGenChooseCard ask, posed with one candidate too, none when the
+	// graveyard holds none) and imprints it: the picks accumulate in the
+	// chosen set (RefChosen, OpClearChosen clears it), in pick order (gorge
+	// RepeatEach Player over ChooseCard Defined$ You Choices$
+	// Creature.RememberedPlayerCtrl,Planeswalker.RememberedPlayerCtrl
+	// ChoiceZone$ Graveyard ImprintChosen$ True). No other field.
+	// dirac/act_millthenreturn.go.
+	ExtBreachChoose ExtOp = 160
+	// ExtBreachReturn (Breach the Multiverse): the chosen set's cards
+	// still in a graveyard enter the battlefield together under the resolving
+	// controller's control, in pick order, one entering event (gorge
+	// ChangeZone Defined$ Imprinted GainControl$ True Origin$ Graveyard
+	// Destination$ Battlefield). dirac/act_millthenreturn.go.
+	ExtBreachReturn ExtOp = 161
+	// ExtRecruit (The Hobbit's Recruit action; CR 701.xx,
+	// 701.9, 111.1): the resolving controller draws a card, then discards a
+	// card (gorge effRecruit: one KChoose Min 1 Max 1 in hand order, no ask
+	// when the hand holds at most one), then creates one 1/1 white Human
+	// Soldier token only if the discarded card was a nonland. The pick is
+	// the kernel's ChRecruitDiscard ask, CanonKind "discard"
+	// (dirac/act_recruit.go).
+	ExtRecruit ExtOp = 94
+	// ExtPhases (Spectral Adversary; api Phases, CR 702.26): the
+	// permanent named by Ref Obj (RefSelf, or a target slot RefTarget0..2,
+	// run once per object of a multi-object slot) phases out, and with it
+	// every permanent attached to it, indirectly (CR 702.26g). A phased-out
+	// permanent is on no battlefield walk (dirac.ZonePhased); the toggle
+	// form (PhaseInOrOut$), AllValid$ sweeps, Phaseout$ False, RememberAffected$
+	// and WontPhaseInNormal$ are refused by kgen. dirac/kw_phasing.go.
+	ExtPhases ExtOp = 110
+	// ExtLockActs (Braided Net): the permanent in Obj (a target),
+	// when it is tapped as this resolves, loses the ability to have its
+	// activated abilities activated, mana abilities included, for as long as
+	// it stays tapped (gorge Effect Mode$ CantBeActivated | ValidCard$
+	// Card.IsRemembered | ValidSA$ Activated, Duration$ UntilTargetedUntaps;
+	// CR 602.5, 611.2b): its first untap or departure ends the lock for good,
+	// and the source leaving does not. dirac/act_lockpermanent.go.
+	ExtLockActs ExtOp = 140
+	// ExtTokenPT (DB$ Token TokenPower$/TokenToughness$, "create
+	// an X/X token"; CR 111.4, 613.4b): right BEFORE an OpCreateTokenEx. Reads
+	// override C's P/T through its PA/TA first (gorge resolves both sides once
+	// before the mint loop), runs that CreateToken in place and skips it, then
+	// sets the token it minted (res.lastTok) to those values as a permanent
+	// layer-7b set stamped at the mint (gorge effects/token.go: one SubSet
+	// effect sourced to the token). The Ex form counts the mint: no mint does
+	// nothing, more than one stalls StallTokenPT.
+	// dirac/act_tokenpt.go.
+	ExtTokenPT ExtOp = 170
+	// ExtExHaste (Agility Bobblehead): the object in Obj (RefTarget runs once
+	// per object of a multi-object slot) can't be blocked this turn except by
+	// creatures with haste (gorge Effect Mode$ CantBlockBy ValidBlocker$
+	// Creature.withoutHaste; CR 509.1b, 702.10a). dirac/static_cantblockexcept.go.
+	ExtExHaste ExtOp = 171
+	// NumExtOps is the capacity of the sub-op tables (ordinals below it).
+	NumExtOps ExtOp = 256
+)
+
+// extOpNames is filled by per-sub-op init registrations (extOpNames[ExtX] = "X").
+var extOpNames [NumExtOps]string
+
+// String names the sub-op (reports and panics only).
+func (x ExtOp) String() string {
+	if x >= 0 && x < NumExtOps && extOpNames[x] != "" {
+		return extOpNames[x]
+	}
+	return "Ext(?)"
+}
+
+// Ext is in's extension sub-op, ExtNone for any other op.
+func (in *Instr) Ext() ExtOp {
+	if in.Op != OpExt {
+		return ExtNone
+	}
+	return ExtOp(in.A.N)
+}
+
+// ExtInstr is an OpExt instruction for sub-op x (its other fields zero).
+func ExtInstr(x ExtOp) Instr { return Instr{Op: OpExt, A: Const(int(x))} }
+
+// DB$ AddPhase extra combats, upkeeps and end steps, and the
+// FirstAttack$ / FirstCombat$ trigger gates. Numbered explicitly clear of the
+// iota lists that sibling families append to.
+
+// ExtAddPhase queues extra phases (gorge effAddPhase). A holds the ext
+// selector like every OpExt; B is the count (NumPhases$, a constant or
+// TriggerCount$DamageAmount); C is the kind | the splice point << 4. Obeka,
+// Splitter of Seconds, Aurelia the Warleader, Y'shtola Rhul.
+const ExtAddPhase ExtOp = 193
+
+func init() {
+	extOpNames[ExtAddPhase] = "AddPhase"
+}
+
+// DB$ Clone on the battlefield (CR 707.2, 707.9b, 613.2a).
+
+// ExtCloneCopy: a battlefield permanent (or every one matching F) becomes a
+// copy of another permanent, a layer-1 copy (gorge effClone; Fleeting
+// Reflection, Shuri, Deepfathom Echo, Oko the Ringleader, Silent Hallcreeper,
+// Naga Fleshcrafter). Obj is the becomer (RefSelf or a target slot), or
+// RefNone with F the Valid set of becomers. B.N packs the flags (CloneEOT ..)
+// and the template's target slot (CloneTmplShift); C is the copy exceptions'
+// override index+1 (0 none). With ClonePick set the op is only the Choices$
+// pick: the controller picks one battlefield permanent matching F (the
+// template) and the choice rides the resolution's chosen[0]; the copy op that
+// follows (behind an OpMayAsk MayGuardCloneCopy when Optional$) reads it.
+// dirac/copy_clone.go.
+const ExtCloneCopy ExtOp = 81
+
+func init() {
+	extOpNames[ExtCloneCopy] = "CloneCopy"
+}
+
+// ExtCopyAbility: gorge's CopySpellAbility with no Defined$
+// and TargetType$ Activated.YouCtrl,Triggered.YouCtrl (or Triggered.YouCtrl),
+// "copy target activated or triggered ability you control; you may choose new
+// targets for the copy" (Peter Parker's Camera, Echo Perceptive Prodigy,
+// Scientist Supreme of A.I.M., Kirol Attentive First-Year). Obj is the target
+// slot (a TgtCopyAb or TgtCopyTrig one); C bit 0 is MayChooseTarget$ True: the
+// copy's controller may choose new targets as the copy is about to resolve
+// (CR 707.10c). The copy is an ordinary stack entry that is neither cast nor
+// activated (CR 707.10), so no cost is paid and no activation tally moves.
+const ExtCopyAbility ExtOp = 191
+
+func init() {
+	extOpNames[ExtCopyAbility] = "CopyAbility"
+}
+
+// ExtCopyTokenCtr (Obj source, B amount, C kind): the token copies of Obj
+// enter with B counters of kind C (gorge copypermanent.go's
+// WithCountersType$/WithCountersAmount$; CR 122.6, 614.1c). The amount is read
+// once for the whole resolution; a token doubler's extra copies each get it.
+// No copy exceptions or CopyFlags: kgen refuses those combinations.
+// dirac/copy_counters.go.
+const ExtCopyTokenCtr ExtOp = 172
+
+func init() {
+	extOpNames[ExtCopyTokenCtr] = "CopyTokenCtr"
+}
+
+// CopyPermanent and Animate over Defined$ Valid <filter>.
+
+// ExtCopyAllEach: for each battlefield permanent matching F (the OpGoad sweep
+// shape: seat 0 first, entry order, the set read once), create token copies
+// for the resolving controller: every source's count through the CreateToken
+// replacements first, then the mints source by source (gorge CopyPermanent's
+// Defined arm). C is the copy exceptions' override index+1, 0 for none
+// (dirac/copy_definedvalid.go).
+const ExtCopyAllEach ExtOp = 224
+
+func init() {
+	extOpNames[ExtCopyAllEach] = "CopyAllEach"
+}
+
+// ExtEffEtbCtr: a SpellCast trigger's Effect that gives
+// the spell that was cast "N additional +1/+1 counters as it enters" (Torgal,
+// A Fine Hound; Wildgrowth Archaic: DB$ Effect | RememberObjects$
+// TriggeredCard | SetChosenNumber$ N | ExileOnMoved$ Stack | ReplacementEffects$
+// <Event$ Moved ... Destination$ Battlefield ... PutCounter ETB$ True>). B is
+// N, evaluated once as the Effect resolves (gorge's frozen ChosenNumber); the
+// spell's stack entry gains N extra P1P1 counters (stackEntry.spc bits 11-15)
+// that enterGen puts on the permanent as it enters. The effect ends when the
+// spell leaves the stack (ExileOnMoved$ Stack), so a spell already gone gets
+// nothing.
+const ExtEffEtbCtr ExtOp = 197
+
+func init() {
+	extOpNames[ExtEffEtbCtr] = "EffEtbCtr"
+}
+
+// ExtExileExMark: "if that creature would die this
+// turn, exile it instead" on a Pump or Fight (gorge effects/damage.go
+// registerReplaceDying over the Targeted objects; ReplaceDyingDefined$
+// Targeted; CR 614.1a, 614.9). The object in Obj (RefTarget runs once per
+// object of a multi-object slot) that is still on the battlefield takes the
+// kernel's turn-scoped exile-instead mark (markExileEx). C is a Fight's
+// fighter ref (RefNone for a Pump): the mark lands only while the fighter and
+// the object are both creatures on the battlefield (gorge fightPairs). Emitted right after
+// the pump's or the fight's own events, before any state-based action.
+// dirac/repl_exilemark.go.
+const ExtExileExMark ExtOp = 51
+
+func init() { extOpNames[ExtExileExMark] = "ExileExMark" }
+
+// "CARDNAME must be blocked if able." granted until end
+// of turn (CR 509.1c; gorge hidden keyword MustBlock, read layer-derived per
+// attacker by combat.DerivedHiddenFlags). The printed form is
+// CardDef.MustBeBlocked. Numbered clear of the siblings' ordinals.
+
+// ExtMustBeBlocked: the battlefield objects named by Obj (RefSelf, a target
+// slot, ...), or with Obj RefNone every battlefield permanent matching F
+// (PumpAll's ValidCards$, seat 0 first, entry order), are marked must be
+// blocked this turn if able. The mark is an arena slot bit (mechMustBlocked,
+// no State byte): cleared as the next turn begins and when the permanent
+// leaves the battlefield. Pump KW$ HIDDEN CARDNAME must be blocked if able.,
+// PumpAll's, an Animate's HiddenKeywords$. dirac/combat_mustbeblocked.go.
+const ExtMustBeBlocked ExtOp = 194
+
+func init() {
+	extOpNames[ExtMustBeBlocked] = "MustBeBlocked"
+}
+
+// ExtEnterUntapped (CR 614.1d, 701.26b): the body of "lands
+// you control enter untapped" (The Wandering Minstrel, Spelunking; gorge
+// R:Event$ Moved ... ReplaceWith$ ETBUntapped, DB$ Untap | ETB$ True |
+// Defined$ ReplacedCard). Run on the entering permanent (the replaced
+// object) it clears the tapped bit. It is not OpUntap: that op removes a
+// stun counter instead of untapping (CR 122.1d), and an entering permanent
+// carries no counters, so the replacement is the plain untap event (gorge
+// effects/untap.go). Lowered only as the whole program of a
+// ReplOthersEnterProgram; competing with an enters-tapped body it is
+// ordered by the CR 616.1 entry-order ask (dirac/repl_entryorder.go).
+const ExtEnterUntapped ExtOp = 228
+
+func init() { extOpNames[ExtEnterUntapped] = "EnterUntapped" }
+
+// operations on stack entries that already exist.
+const (
+	// ExtChangeTargets (CR 115.7; gorge effChangeTargets, choose_control.go):
+	// the stack entry named by Obj (a TgtStackObj target slot, or
+	// RefTriggerObj, the spell whose cast fired this trigger) has its one
+	// target changed. The controller picks the new target among the entry's
+	// legal targets as its own controller would choose them; C bit 0:
+	// Optional$ True (a Done option keeps the old target). An entry with no
+	// target is left alone. dirac/act_stackrewrite.go.
+	ExtChangeTargets ExtOp = 225
+	// ExtCounterAll (CR 701.5; gorge effCounter, Defined$ ValidStack): counter
+	// every spell and ability on the stack that an opponent of the resolving
+	// controller controls (an uncounterable spell is skipped, an ability is
+	// removed), and count the entries countered (the Count$RememberedSize
+	// that follows). dirac/act_stackrewrite.go.
+	ExtCounterAll ExtOp = 226
+)
+
+func init() {
+	extOpNames[ExtChangeTargets] = "ChangeTargets"
+	extOpNames[ExtCounterAll] = "CounterAll"
+}
+
+// ExtFinalityCtr: a SpellCast trigger's Effect that
+// gives the cast spell "enters with a FINALITY counter" (Intrepid
+// Paleontologist, Leonardo, Sewer Samurai, Osteomancer Adept — the same
+// DB$ Effect | ReplacementEffects$ <Moved -> PutCounter ETB$ True>
+// | RememberObjects$ TriggeredCard shape the P1P1 riders use, with a
+// constant CounterNum$ 1). The spell's stack entry gains one (a spell's
+// stackEntry.sid is its rider count: several grants can cover one cast —
+// Leonardo beside active Osteomancer effects — and gorge runs each body's
+// PutCounter separately); enterGen puts each through the counter
+// replacements, after the printed enters-with counters and before the
+// entry's triggers.
+const ExtFinalityCtr ExtOp = 198
+
+func init() {
+	extOpNames[ExtFinalityCtr] = "FinalityCtr"
+}
+
+// the suspected designation (CR 701.60; gorge effAlterAttribute
+// Attributes$ Suspected, Object.Suspected). Numbered clear of the siblings'
+// ordinals (filters.go, ext.go).
+
+// ExtSuspect: the objects named by Obj (RefSelf, a target slot, the trigger
+// object, ...), or with Obj RefNone every battlefield permanent matching F
+// (Defined$ Valid <filter>, the OpGoad sweep shape: seat 0 first, entry
+// order), become suspected (C bit0 clear) or no longer suspected (C bit0 set,
+// Activate$ False). The designation is an arena slot bit (mechSuspected): a
+// suspected creature has menace and can't block, and the designation ends
+// when the permanent leaves or when any control change moves it (CR 701.60b-d;
+// dirac/act_suspect.go). The Optional$ election rides a preceding
+// OpMayAsk (MayGuardSuspect).
+const ExtSuspect ExtOp = 190
+
+func init() {
+	extOpNames[ExtSuspect] = "Suspect"
+}
+
+// ExtSweepFrom (CR 120.3, 120.4): DamageAll with
+// DamageSource$ ParentTarget over "<spec>.NotDefinedTargeted" ("target
+// creature you control deals damage equal to its power to each other
+// creature", Waltz of Rage, Nibelheim Aflame; gorge effects/damage.go
+// effDamageAll). Obj the source's target slot, B the amount (read once),
+// F the battlefield creature filter, C bit 0 set: the source's own slot is
+// not hit. Every matching creature is hit in one damage batch whose hits all
+// name the source (its deathtouch, lifelink, infect and wither apply).
+// dirac/act_sweepdamage.go.
+const ExtSweepFrom ExtOp = 97
+
+func init() { extOpNames[ExtSweepFrom] = "SweepFrom" }
+
+// ExtToGraveyard: move the object Obj names to its
+// owner's graveyard. gorge's ChangeZone Defined$ TopOfLibrary Origin$ Library
+// Destination$ Graveyard Optional$ True (Gathering Stone, Traveling Botanist),
+// the else branch after an optional PeekAndReveal: a ChangeZone move, not the
+// mill keyword action (CR 701.17a), so it shares nothing with OpMill. Obj is
+// RefLibTop there, under OpMayAsk MayGuardLibraryTop.
+const ExtToGraveyard ExtOp = 192
+
+func init() {
+	extOpNames[ExtToGraveyard] = "ToGraveyard"
+}
+
+// ExtUnlockDoor (CR 709.5f-g; gorge
+// effects/unlockdoor.go effUnlockDoor): DB$ UnlockDoor over one Room target
+// slot (Obj). C 0 unlocks a locked door; C 1 first asks the controller
+// whether to unlock (option 0) or lock, then picks the door. The kernel
+// swaps the Room permanent's door state without paying (this is not the
+// unlock special action) and fires the unlocked door's triggers and the
+// fully-unlock watchers; a lock clears the designation and fires nothing
+// (gorge DoorLock). dirac/face_unlockdoor.go.
+const ExtUnlockDoor ExtOp = 227
+
+func init() { extOpNames[ExtUnlockDoor] = "UnlockDoor" }
+
+// Spectral Adversary's sub-op name (dirac/kw_phasing.go).
+func init() {
+	extOpNames[ExtPhases] = "Phases"
+}
+
+// Breach the Multiverse's sub-op names (dirac/act_millthenreturn.go).
+func init() {
+	extOpNames[ExtBreachChoose] = "BreachChoose"
+	extOpNames[ExtBreachReturn] = "BreachReturn"
+}
+
+// Braided Net's sub-op name (dirac/act_lockpermanent.go).
+func init() {
+	extOpNames[ExtLockActs] = "LockActs"
+}
+
+// Ext sub-op names, registered per sub-op. A new sub-op registers its own
+// name from its own cold file: func init() { extOpNames[ExtX] = "X" }.
+func init() {
+	extOpNames[ExtNone] = "None"
+	extOpNames[ExtPreventColor] = "PreventColor"
+	extOpNames[ExtEachDamage] = "EachDamage"
+	extOpNames[ExtRemoveCounterAny] = "RemoveCounterAny"
+	extOpNames[ExtTwoPilesSac] = "TwoPilesSac"
+	extOpNames[ExtChooseColorRes] = "ChooseColorRes"
+	extOpNames[ExtColorGrant] = "ColorGrant"
+	extOpNames[ExtMayPlayGrave] = "MayPlayGrave"
+	extOpNames[ExtHideaway] = "Hideaway"
+	extOpNames[ExtEndure] = "Endure"
+	extOpNames[ExtDividedCounters] = "DividedCounters"
+	extOpNames[ExtPlotGrant] = "PlotGrant"
+	extOpNames[ExtSacDelayed] = "SacDelayed"
+	extOpNames[ExtCounterLose] = "CounterLose"
+	extOpNames[ExtNumTimes] = "NumTimes"
+	extOpNames[ExtAegisClone] = "AegisClone"
+	extOpNames[ExtAirbend] = "Airbend"
+	extOpNames[ExtManaChoice] = "ManaChoice"
+	extOpNames[ExtLibSweep] = "LibSweep"
+	extOpNames[ExtRecruit] = "Recruit"
+	extOpNames[ExtExHaste] = "ExHaste"
+}
+
+func init() { extOpNames[ExtTokenPT] = "TokenPT" }

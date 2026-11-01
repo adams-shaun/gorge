@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_07999_UB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck b06bd0e35e6548fea84150bcb3599303:0, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Agate-Blade Assassin, 1 Daggerfang Duo, 1 Early Winter, 2 Persistent Marshstalker, 1 Thornplate Intimidator -> 3 Island, 3 Swamp",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Cindering Cutthroat",
+"count": 2
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Mind Drill Assailant",
+"count": 2
+},
+{
+"name": "Mindwhisker",
+"count": 2
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 1
+},
+{
+"name": "Plumecreed Escort",
+"count": 2
+},
+{
+"name": "Psychic Whorl",
+"count": 1
+},
+{
+"name": "Scales of Shale",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 12
+}
+]
+}

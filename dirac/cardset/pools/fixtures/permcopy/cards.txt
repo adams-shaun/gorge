@@ -1,0 +1,34 @@
+# the permanent-spell copy pool: CopySpellAbility
+# carriers whose copy becomes a token, for the oracle's constructed
+# lockstep (dirac/oracle/permcopy_test.go)
+# The permanent-spell copy pool: the Standard cards whose
+# CopySpellAbility copies a permanent spell (the copy becomes a token, CR
+# 111.13) or an instant or sorcery by its own cast trigger, with artifacts,
+# adventurers, cheap spells and basics, for the oracle's constructed lockstep
+# (dirac/oracle/permcopy_test.go).
+Sage of the Skies
+Drafna, Founder of Lat-Nam
+Mendicant Core, Guidelight
+Jin-Gitaxias, Progress Tyrant
+Ornithopter
+Memnite
+Patchwork Automaton
+Juggernaut
+Mind Stone
+Opt
+Mind Spring
+Social Snub
+Chancellor of Tales
+Beluna's Gatekeeper
+Obyra's Attendants
+Bilbo Baggins, Burglar
+Healer's Hawk
+Savannah Lions
+Coral Merfolk
+Walking Corpse
+Lumaret's Favor
+Photon Blast Barrage
+Invasion of Vryn
+Plains
+Island
+Swamp

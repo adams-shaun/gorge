@@ -1,0 +1,24 @@
+# the permission-kind pool: impulse draws whose records carry
+# gorge's MayPlayFree / MayPlayIgnoreType riders (Stolen Goods,
+# Lidless Gaze, Rakdos, the Muscle),
+# basics and vanilla creatures (dirac/oracle/mayplaykind_test.go)
+Lidless Gaze
+Stolen Goods
+Rakdos, the Muscle
+Walking Corpse
+Vampire Cutthroat
+Gray Ogre
+Hill Giant
+Coral Merfolk
+Furtive Homunculus
+Swamp
+Mountain
+Island
+Daxos of Meletis
+Hurl Through Hell
+Stolen Strategy
+Flameskull
+Lightning Bolt
+Murder
+Wind Drake
+Giant Spider

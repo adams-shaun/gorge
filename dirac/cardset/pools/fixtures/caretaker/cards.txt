@@ -1,0 +1,31 @@
+# Saruli Caretaker and Springleaf Drum, "{T}, tap an untapped creature you control: Add one mana of any color" (dirac/oracle/caretaker_test.go)
+# The tap-another-permanent mana pool: Saruli Caretaker
+# and Springleaf Drum ("{T}, Tap an untapped creature you control: Add one
+# mana of any color") in a Pauper Spy-like deck (Balustrade Spy needs {B},
+# beside few Swamps and Elves of Deep Shadow), against a blue-red tempo deck
+# (dirac/oracle/caretaker_test.go); Wall of Roots and the pain boards of dirac/caretaker_test.go.
+Saruli Caretaker
+Springleaf Drum
+Balustrade Spy
+Elves of Deep Shadow
+Wall of Roots
+Llanowar Elves
+Grizzly Bears
+Skinrender
+Gray Merchant of Asphodel
+Chainer's Edict
+Doom Blade
+Faerie Miscreant
+Spellstutter Sprite
+Counterspell
+Pestermite
+Ninja of the Deep Hours
+Shock
+Lightning Bolt
+Wind Drake
+Hill Giant
+Vampire Nighthawk
+Swamp
+Forest
+Island
+Mountain

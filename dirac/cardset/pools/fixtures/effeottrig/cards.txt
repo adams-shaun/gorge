@@ -1,0 +1,26 @@
+# the until-end-of-turn combat Effect trigger pool:
+# Mistway Spy (whenever a creature you control deals combat damage to a
+# player this turn) and Dalkovan Encampment (whenever you attack this
+# turn) beside a printed combat-damage trigger (Bident of Thassa),
+# fliers, vanilla creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/effeottrig_test.go)
+Bident of Thassa
+Dalkovan Encampment
+Forest
+Giant Spider
+Gray Ogre
+Grizzly Bears
+Highspire Bell-Ringer
+Hill Giant
+Iridescent Tiger
+Island
+Mistway Spy
+Mountain
+Neighborhood Guardian
+Novice Inspector
+Plains
+Reconnaissance Mission
+Steamcore Scholar
+Swamp
+Walking Corpse
+Wind Drake

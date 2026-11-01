@@ -1,0 +1,16 @@
+# the PutCounter Choices$ / RememberPut$ pool:
+# Aerith Rescue Mission and Wick, the Whorled Mind (a recipient pick),
+# Systems Override (RememberPut$) with Wurmwall Sweeper, for the oracle's
+# constructed lockstep (dirac/oracle/putctrparams_test.go)
+Aerith Rescue Mission
+Wick, the Whorled Mind
+Systems Override
+Wurmwall Sweeper
+Grizzly Bears
+Hill Giant
+Doom Blade
+Shock
+Plains
+Swamp
+Mountain
+Forest

@@ -1,0 +1,28 @@
+# the suspected pool (CR 701.60): the 14 lowered AlterAttribute
+# Suspected carriers beside Act of Treason (a control change that ends the
+# designation), vanilla creatures of several sizes, removal and basics
+# (dirac/oracle/suspect_test.go)
+Barbed Servitor
+Caught Red-Handed
+Clandestine Meddler
+Convenient Target
+Deadly Complication
+It Doesn't Add Up
+Person of Interest
+Presumed Dead
+Repeat Offender
+Rubblebelt Braggart
+Rune-Brand Juggler
+J. Jonah Jameson
+Absolving Lammasu
+Eliminate the Impossible
+Act of Treason
+Savannah Lions
+Hill Giant
+Fire Elemental
+Air Elemental
+Disfigure
+Plains
+Island
+Swamp
+Mountain

@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_00525_WBpR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 0f17bf45c57f4a6598779b368393eefd:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Early Winter, 1 Moonstone Harbinger, 1 Nocturnal Hunger, 1 Starscape Cleric, 1 Zoraline, Cosmos Caller -> 2 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Cindering Cutthroat",
+"count": 1
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Moonrise Cleric",
+"count": 3
+},
+{
+"name": "Plains",
+"count": 9
+},
+{
+"name": "Ravine Raider",
+"count": 2
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 2
+},
+{
+"name": "Starlit Soothsayer",
+"count": 3
+},
+{
+"name": "Swamp",
+"count": 12
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+}
+]
+}

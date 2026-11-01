@@ -1,0 +1,22 @@
+# the Tarkir Dragonstorm Sieges' as-enters mode and ChosenMode-gated self
+# grants (dirac/oracle/siege_test.go)
+Barrensteppe Siege
+Glacierwood Siege
+Grizzly Bears
+Raging Goblin
+Llanowar Elves
+Shock
+Divination
+Opt
+Giant Growth
+Plains
+Island
+Swamp
+Mountain
+Forest
+Citadel Siege
+Palace Siege
+Outpost Siege
+Battle of Hoover Dam
+The Marvelous Scientist
+Hollowmurk Siege

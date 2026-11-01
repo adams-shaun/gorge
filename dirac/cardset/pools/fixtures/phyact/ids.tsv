@@ -1,0 +1,38 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Birthing Pod
+1	card	Blightreaper Thallid
+2	card	Blinding Souleater
+3	card	Forest
+4	card	Grizzly Bears
+5	card	Hill Giant
+6	card	Immolating Souleater
+7	card	Insatiable Souleater
+8	card	Island
+9	card	Khenra Spellspear
+10	card	Lashwrithe
+11	card	Lightning Bolt
+12	card	Mite Overseer
+13	card	Moltensteel Dragon
+14	card	Mountain
+15	card	Nezumi Freewheeler
+16	card	Order of the Mirror
+17	card	Plains
+18	card	Pyretic Prankster
+19	card	Savannah Lions
+20	card	Seraph of New Capenna
+21	card	Shock
+22	card	Swamp
+23	card	Tarkir Duneshaper
+24	card	Trespassing Souleater
+25	card	Wind Drake
+26	card	Zopandrel, Hunger Dominus
+27	card	face:Blightreaper Thallid#1
+28	card	face:Khenra Spellspear#1
+29	card	face:Nezumi Freewheeler#1
+30	card	face:Order of the Mirror#1
+31	card	face:Pyretic Prankster#1
+32	card	face:Seraph of New Capenna#1
+33	card	face:Tarkir Duneshaper#1
+34	token	b_0_0_phyrexian_germ
+35	token	c_1_1_a_phyrexian_mite_toxic_noblock
+36	token	g_1_1_phyrexian_saproling

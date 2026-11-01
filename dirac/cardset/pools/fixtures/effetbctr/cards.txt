@@ -1,0 +1,29 @@
+# the SpellCast Effect that gives a cast creature extra enters-with
+# counters (Torgal, A Fine Hound; Wildgrowth Archaic),
+# for the oracle's constructed lockstep (dirac/oracle/effetbctr_test.go)
+Torgal, A Fine Hound
+Wildgrowth Archaic
+Hardened Scales
+Cancel
+Essence Scatter
+Elite Vanguard
+Squire
+Border Guard
+Knight of New Benalia
+Order of the Sacred Bell
+Thornhide Wolves
+Russet Wolves
+Thraben Purebloods
+Talas Merchant
+Jhessian Lookout
+Tolarian Scholar
+Fugitive Wizard
+Grizzly Bears
+Plains
+Island
+Mountain
+Forest
+Blossoming Sands
+Thornwood Falls
+Rugged Highlands
+Swiftwater Cliffs

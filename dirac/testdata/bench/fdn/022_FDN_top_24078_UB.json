@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_24078_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 02f4d31e568243699fbe1c3ac79d62f6:0, player win-rate bucket 0.68 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abyssal Harvester",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 2
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 2
+},
+{
+"name": "Infernal Vessel",
+"count": 2
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Seeker's Folly",
+"count": 1
+},
+{
+"name": "Self-Reflection",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Stromkirk Bloodthief",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Vampire Nighthawk",
+"count": 2
+}
+]
+}

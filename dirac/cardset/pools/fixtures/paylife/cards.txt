@@ -1,0 +1,22 @@
+# the spell life-cost pool (paylife): PayLife<N> beside mana in a
+# spell or activation cost, for the oracle's constructed lockstep
+Bitter Triumph
+Book of Rass
+Final Payment
+Foul Familiar
+Fountainport
+Fumarole
+Greed
+Grimclaw Bats
+Hill Giant
+Mountain
+Ornithopter
+Phyrexian Reclamation
+Plains
+Reckless Assault
+Savannah Lions
+Stirge
+Swamp
+Treasure Dredger
+Walking Corpse
+Withering Boon

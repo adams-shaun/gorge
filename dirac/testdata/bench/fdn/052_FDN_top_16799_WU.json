@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_16799_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck b404bdbee10547a08480f4833ef94533:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ajani's Pridemate",
+"count": 1
+},
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Brineborn Cutthroat",
+"count": 1
+},
+{
+"name": "Cat Collector",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 2
+},
+{
+"name": "Faebloom Trick",
+"count": 2
+},
+{
+"name": "Felidar Savior",
+"count": 2
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Plains",
+"count": 9
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Resolute Reinforcements",
+"count": 2
+},
+{
+"name": "Serra Angel",
+"count": 1
+},
+{
+"name": "Sphinx of Forgotten Lore",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 2
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+}
+]
+}

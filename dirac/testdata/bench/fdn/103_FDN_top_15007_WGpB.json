@@ -1,0 +1,107 @@
+{
+"name": "FDN_top_15007_WGpB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 3026081f2154451ca45b86ff2711968e:1, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ambush Wolf",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 2
+},
+{
+"name": "Broken Wings",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Cat Collector",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 1
+},
+{
+"name": "Fiendish Panda",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 7
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Inspiring Paladin",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 6
+},
+{
+"name": "Prideful Parent",
+"count": 2
+},
+{
+"name": "Scoured Barrens",
+"count": 2
+},
+{
+"name": "Scrawling Crawler",
+"count": 1
+},
+{
+"name": "Skyknight Squire",
+"count": 1
+},
+{
+"name": "Soulstone Sanctuary",
+"count": 1
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Sylvan Scavenging",
+"count": 2
+},
+{
+"name": "Wary Thespian",
+"count": 1
+}
+]
+}

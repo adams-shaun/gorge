@@ -1,0 +1,14 @@
+# TargetsWithDefinedController$ TriggeredTarget under a
+# damage-to-an-opponent trigger (Satyr Firedancer, Arm with Aether, Fear of
+# Burning Alive) (dirac/oracle/tgtctrl_test.go)
+Satyr Firedancer
+Arm with Aether
+Fear of Burning Alive
+Shock
+Lightning Bolt
+Stitcher's Supplier
+Raging Goblin
+Hill Giant
+Mountain
+Island
+Swamp

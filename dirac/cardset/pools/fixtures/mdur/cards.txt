@@ -1,0 +1,21 @@
+# the MTGA durations pool: Extraction Specialist's
+# UntilHostLeavesPlay can't-attack-or-block Animate and Gingerbrute's
+# UntilHostLeavesPlayOrEOT CantBlockBy Effect beside haste creatures, burn,
+# basics and vanilla creatures (dirac/oracle/mdur_test.go)
+Extraction Specialist
+Gingerbrute
+Shock
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Savannah Lions
+Coral Merfolk
+Giant Spider
+Walking Corpse
+Goblin Piker
+Raging Goblin
+Plains
+Island
+Swamp
+Mountain
+Forest

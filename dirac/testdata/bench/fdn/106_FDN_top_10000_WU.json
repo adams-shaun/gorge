@@ -1,0 +1,79 @@
+{
+"name": "FDN_top_10000_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 44989a3aa07f446f994504a8dd140aef:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Angel of Finality",
+"count": 3
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Cephalid Inkmage",
+"count": 1
+},
+{
+"name": "Crystal Barricade",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 2
+},
+{
+"name": "Divine Resilience",
+"count": 1
+},
+{
+"name": "Elementalist Adept",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 2
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Luminous Rebuke",
+"count": 3
+},
+{
+"name": "Make Your Move",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 9
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 2
+}
+]
+}

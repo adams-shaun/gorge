@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_16502_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 7635e9f6d9894b14bb52cdc63ec9034f:1, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Angel of Finality",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 2
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 2
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Inspiration from Beyond",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Joust Through",
+"count": 2
+},
+{
+"name": "Lunar Insight",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Raise the Past",
+"count": 1
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Scrawling Crawler",
+"count": 1
+},
+{
+"name": "Serra Angel",
+"count": 1
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 2
+},
+{
+"name": "Tranquil Cove",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+},
+{
+"name": "Youthful Valkyrie",
+"count": 2
+}
+]
+}

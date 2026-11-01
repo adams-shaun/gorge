@@ -1,0 +1,137 @@
+package dirac
+
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// freeQueued: o is an OpCastFree pick still waiting to be cast after the
+// resolution (genState.freeQ). gorge casts a discovered card at once, so
+// the discover tail must not send it to the hand.
+func (s *State) freeQueued(o Obj) bool {
+	for _, q := range s.g.freeQ[:s.g.nfq] {
+		if q == o {
+			return true
+		}
+	}
+	return false
+}
+
+// the four api:Play free-cast spellings on OpCastFree, plus the
+// view-only top-of-library MayLookAt static (kgen lowers that one to no
+// instruction, so nothing here reads it).
+//
+// OpCastFree's operands:
+//   - C low 3 bits: the population zone (Exile / Hand / Graveyard).
+//   - C bit 3: Amount$ 1 (close the ask after one pick).
+//   - C bit 4: ForgetPlayed$ True (drop the begun card from s.g.rem).
+//   - C bit 5: ReplaceGraveyard$ Exile (exile when it leaves the stack).
+//   - Obj: RefRemembered (P1), a target slot (P2), or RefNone with F (P3/P4
+//     filter population over the zone).
+//
+// The zone and ReplaceGraveyard bit ride to the freeQ drain in s.g.freeP:
+// bit 0 is the caster, bits 1-3 the zone, bit 4 ReplaceGraveyard. freeP is
+// only a player index everywhere else, so its readers mask it.
+
+// sfFreeGY is stackEntry.flags bit 4, meaning "exile instead of the
+// graveyard" on a free cast. Bit 4 also means sfFbGranted while a cast is built
+// (cleared at finishBuild). A free cast's bit is set after finishBuild, in
+// cast.go, and read here by finishResolve and counterAt, so the two never
+// overlap.
+const sfFreeGY uint8 = 1 << 4
+
+// exilesOnLeave reports whether a spell entry leaving the stack for the
+// graveyard is exiled instead: the flashback family, or a free cast with
+// ReplaceGraveyard$ Exile (gorge state.ExilesInsteadOfGraveyard). The one
+// predicate every stack exit reads (finishResolve, the held-spell exit,
+// counterAt), so a new exit cannot miss the rider.
+func (e *stackEntry) exilesOnLeave() bool {
+	return e.flags&sfFlashback != 0 || e.flags&sfFree != 0 && e.flags&sfFreeGY != 0 && !DebugM11NoReplaceGY
+}
+
+// Debug switches for the mutation test (the counters live on
+// the gorge side of the lockstep, not in the kernel).
+var (
+	// DebugM11IgnoreOne makes Amount$ 1 offer every candidate (mutation).
+	DebugM11IgnoreOne bool
+	// DebugM11NoReplaceGY keeps a ReplaceGraveyard spell's normal
+	// graveyard destination (mutation).
+	DebugM11NoReplaceGY bool
+)
+
+// castFreeFillGen fills s.g.free for the target and filter populations. The
+// remembered population (P1) reuses the same gates; the caller keeps the
+// Etali path inline and reaches here only for the new operands.
+//
+//go:noinline
+func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
+	zone := kop.Zone(in.C & 7)
+	add := func(o Obj) bool {
+		ob := &s.objs[o]
+		if ob.zone != zone || k.cards[ob.card].land {
+			return true
+		}
+		if in.F != 0 && !s.matchCardGen(k, in.F, ob.card, ob.owner(), e.ctrl, o) {
+			return true
+		}
+		// CR 601.2c: a spell whose mandatory targets cannot all be chosen is
+		// never offered (gorge effPlay filters through castTargetsHost)
+		if !s.spellTargetsFeasible(k, ob.card, e.ctrl) {
+			return true
+		}
+		if k.gen.anyCantCast && s.castForbidden(k, e.ctrl, ob.card, o) {
+			return true
+		}
+		if s.g.nfree >= uint8(len(s.g.free)) {
+			s.capFull(StallFree)
+			return false
+		}
+		s.g.free[s.g.nfree] = o
+		s.g.nfree++
+		return true
+	}
+	switch {
+	case in.Obj == kop.RefRemembered:
+		for i := 0; i < int(s.g.nrem); i++ {
+			if !add(s.g.rem[i]) {
+				return
+			}
+		}
+	case tgtSlotOf(in.Obj) >= 0:
+		if slot := tgtSlotOf(in.Obj); slot < int(e.nt) {
+			if o := Obj(e.tgt[slot]); isObjTarget(uint8(o)) {
+				add(o)
+			}
+		}
+	case zone == kop.ZoneHand:
+		pl := &s.pl[e.ctrl]
+		for i := 0; i < int(pl.handN); i++ {
+			if !add(pl.hand[i]) {
+				return
+			}
+		}
+	case zone == kop.ZoneGraveyard:
+		// gorge AliveFrom(0): seat 0's graveyard then seat 1's, each in
+		// zone order
+		for p := 0; p < 2; p++ {
+			pl := &s.pl[p]
+			for i := 0; i < int(pl.graveN); i++ {
+				if !add(pl.grave[i]) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// forgetRemGen drops o from the resolution's remembered set, order-preserving
+// (gorge forgetRememberedOne; ForgetPlayed$ True drops the begun card on the
+// PlayDone pass, i.e. when the answer is applied, before the Sub chain).
+func (s *State) forgetRemGen(o Obj) {
+	for i := 0; i < int(s.g.nrem); i++ {
+		if s.g.rem[i] == o {
+			copy(s.g.rem[i:], s.g.rem[i+1:s.g.nrem])
+			s.g.nrem--
+			return
+		}
+	}
+}

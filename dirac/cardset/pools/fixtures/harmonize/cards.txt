@@ -1,0 +1,32 @@
+# the Harmonize pool (CR 702.180): the nine lowered TDM
+# carriers beside graveyard fillers (loot, discard, self-mill), creatures
+# of power 1..5, a pump, a -X/-X, a counterspell and basics
+# (dirac/oracle/harmonize_test.go)
+Channeled Dragonfire
+Glacial Dragonhunt
+Mammoth Bellow
+Roamer's Routine
+Synchronized Charge
+Unending Whisper
+Ureni's Rebuff
+Wild Ride
+Winternight Stories
+Tormenting Voice
+Cathartic Reunion
+Thrill of Possibility
+Mulch
+Satyr Wayfinder
+Grizzly Bears
+Hill Giant
+Fire Elemental
+Air Elemental
+Giant Growth
+Disfigure
+Cancel
+Burning-Tree Emissary
+Akki Rockspeaker
+Lotus Cobra
+Mardu Warshrieker
+Island
+Mountain
+Forest

@@ -1,0 +1,10 @@
+# Glissa Sunslayer's RemoveCounter Any/UpTo
+# (dirac/oracle/glissa_test.go)
+Glissa Sunslayer
+Travel Preparations
+Grizzly Bears
+Luminarch Aspirant
+Contagion Clasp
+Forest
+Swamp
+Plains

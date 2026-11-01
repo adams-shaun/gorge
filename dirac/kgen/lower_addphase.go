@@ -1,0 +1,88 @@
+package kgen
+
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// DB$ AddPhase (gorge effAddPhase) and the FirstAttack$ /
+// FirstCombat$ trigger gates. Only the shapes of the carriers lower; any other
+// spelling refuses by name.
+
+// addPhase lowers DB$ AddPhase as OpExt ExtAddPhase: A the NumPhases$ count,
+// C the kind | splice point << 4. The (kind, splice point) pairs the kernel
+// walk reproduces: a combat or an upkeep after end of combat, an end step
+// after the end step. ConditionPhases$ (Full Throttle, Great Train Heist) is
+// not lowered: both cards stay refused for another part of the card.
+func (lc *lowerCtx) addPhase(ps *params) error {
+	for _, k := range []string{"FollowedBy", "ExtraPhaseDelayedTrigger", "ExtraPhaseDelayedTriggerExcute", "BeforeFirstPostCombatMainEnd"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("AddPhase %s$", k)
+		}
+	}
+	var kind int
+	switch ev := ps.str("ExtraPhase"); ev {
+	case "Combat":
+		kind = kop.AddPhaseCombat
+	case "Upkeep":
+		kind = kop.AddPhaseUpkeep
+	case "End of Turn":
+		kind = kop.AddPhaseEnd
+	default:
+		return refuse("AddPhase ExtraPhase$ %q", ev)
+	}
+	var after int
+	switch ap := ps.str("AfterPhase"); ap {
+	case "EndCombat":
+		after = int(kop.StepEndCombat)
+	case "End of Turn":
+		after = int(kop.StepEnd)
+	default:
+		// the omitted form splices after the step the grant resolves in
+		// (Full Throttle, refused for its Effect); no other spelling lowers
+		return refuse("AddPhase AfterPhase$ %q", ap)
+	}
+	switch {
+	case kind == kop.AddPhaseCombat && after == int(kop.StepEndCombat),
+		kind == kop.AddPhaseUpkeep && after == int(kop.StepEndCombat),
+		kind == kop.AddPhaseEnd && after == int(kop.StepEnd):
+	default:
+		return refuse("AddPhase ExtraPhase$ %s with AfterPhase$ %q", ps.str("ExtraPhase"), ps.str("AfterPhase"))
+	}
+	n, err := lc.amount(ps, "NumPhases", 1)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "AddPhase", A: n, C: kind | after<<4, Note: "queue extra phases (gorge effAddPhase)"})
+	return nil
+}
+
+// finishedEndStepsValue is Count$FinishedEndOfTurnsThisTurn (gorge
+// evalCountBodyCostFinishedEndOfTurnsThisTurn): the end steps begun this
+// turn, less the one being run while in the end step.
+func finishedEndStepsValue() lValue {
+	return lValue{Kind: vPhaseCount, N: kop.PhaseCountEndSteps}
+}
+
+// firstAttackCombat reads the FirstAttack$ True and FirstCombat$ True trigger
+// gates. FirstAttack$ (gorge trigmatch firstAttackOK, AttacksThisTurn == 1 at
+// the fire) is a flag on an Attacks trigger. FirstCombat$ (gorge
+// trigger_match.go, CombatsThisTurn == 1 at the fire) is a fire-only
+// condition; it reports that, for the caller's CheckOnTriggerOnly.
+func (lc *lowerCtx) firstAttackCombat(tp *params, tr *lTrigger, conds *[]lCond, mode string) (bool, error) {
+	if v, ok := tp.get("FirstAttack"); ok {
+		if strings.TrimSpace(v) != "True" || mode != "Attacks" || tr.Event != "Attacks" {
+			return false, refuse("FirstAttack$ %q on a %s trigger", v, mode)
+		}
+		tr.FirstAttack = true
+	}
+	if v, ok := tp.get("FirstCombat"); ok {
+		if strings.TrimSpace(v) != "True" || mode != "Attacks" {
+			return false, refuse("FirstCombat$ %q on a %s trigger", v, mode)
+		}
+		*conds = append(*conds, lCond{Kind: cValue, A: lValue{Kind: vPhaseCount, N: kop.PhaseCountCombats}, Op: opEQ, B: cst(1)})
+		return true, nil
+	}
+	return false, nil
+}

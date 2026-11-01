@@ -1,0 +1,95 @@
+{
+"name": "FDN_top_00483_URpW",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 880df93d8560408eb505b7590aad1d74:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Axgard Cavalry",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Dragon Trainer",
+"count": 1
+},
+{
+"name": "Drakuseth, Maw of Flames",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Firebrand Archer",
+"count": 4
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Goblin Boarders",
+"count": 2
+},
+{
+"name": "Goblin Negotiation",
+"count": 1
+},
+{
+"name": "Incinerating Blast",
+"count": 1
+},
+{
+"name": "Island",
+"count": 6
+},
+{
+"name": "Kykar, Zephyr Awakener",
+"count": 1
+},
+{
+"name": "Leyline Axe",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Niv-Mizzet, Visionary",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 2
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Swiftwater Cliffs",
+"count": 2
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Thrill of Possibility",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 2
+}
+]
+}

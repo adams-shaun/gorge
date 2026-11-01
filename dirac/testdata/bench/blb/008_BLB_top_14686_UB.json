@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_14686_UB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 722ad70e751f402bbe9e75b57c61d1f4:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Bonebind Orator, 1 Darkstar Augur, 1 Dour Port-Mage, 1 Mind Spiral, 1 Nocturnal Hunger, 1 Thundertrap Trainer -> 3 Island, 3 Swamp",
+"cards": [
+{
+"name": "Calamitous Tide",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mind Drill Assailant",
+"count": 2
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 3
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Scales of Shale",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Stargaze",
+"count": 2
+},
+{
+"name": "Sugar Coat",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Tidecaller Mentor",
+"count": 2
+}
+]
+}

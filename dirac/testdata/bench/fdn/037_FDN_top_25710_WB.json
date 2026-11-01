@@ -1,0 +1,111 @@
+{
+"name": "FDN_top_25710_WB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 1defaab3aa3b4f3c9e20413a48dde8d1:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Angel of Finality",
+"count": 2
+},
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Crypt Feaster",
+"count": 1
+},
+{
+"name": "Dauntless Veteran",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Fiendish Panda",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 2
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 1
+},
+{
+"name": "Macabre Waltz",
+"count": 1
+},
+{
+"name": "Mischievous Pup",
+"count": 1
+},
+{
+"name": "Pilfer",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 7
+},
+{
+"name": "Scoured Barrens",
+"count": 2
+},
+{
+"name": "Serra Angel",
+"count": 1
+},
+{
+"name": "Stroke of Midnight",
+"count": 1
+},
+{
+"name": "Stromkirk Bloodthief",
+"count": 1
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 6
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+},
+{
+"name": "Youthful Valkyrie",
+"count": 1
+}
+]
+}

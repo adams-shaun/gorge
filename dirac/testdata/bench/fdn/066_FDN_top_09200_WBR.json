@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_09200_WBR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck a3b98885ff2340aca44763fb51cb2299:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Billowing Shriekmass",
+"count": 2
+},
+{
+"name": "Burglar Rat",
+"count": 2
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Fanatical Firebrand",
+"count": 2
+},
+{
+"name": "Heartfire Immolator",
+"count": 1
+},
+{
+"name": "High-Society Hunter",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 1
+},
+{
+"name": "Mischievous Pup",
+"count": 2
+},
+{
+"name": "Mountain",
+"count": 5
+},
+{
+"name": "Nine-Lives Familiar",
+"count": 1
+},
+{
+"name": "Phyrexian Arena",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 5
+},
+{
+"name": "Prideful Parent",
+"count": 2
+},
+{
+"name": "Scoured Barrens",
+"count": 1
+},
+{
+"name": "Skyknight Squire",
+"count": 1
+},
+{
+"name": "Slumbering Cerberus",
+"count": 2
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 6
+},
+{
+"name": "Zul Ashur, Lich Lord",
+"count": 1
+}
+]
+}

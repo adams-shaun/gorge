@@ -1,0 +1,22 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Claim the Kingdom
+1	card	Elite Vanguard
+2	card	Forest
+3	card	Grizzly Bears
+4	card	Herd Baloth
+5	card	Isamaru, Hound of Konda
+6	card	Island
+7	card	Kheru Goldkeeper
+8	card	Llanowar Elves
+9	card	Plains
+10	card	Practiced Offense
+11	card	Requisition Raid
+12	card	Rustler Rampage
+13	card	Sagu Pummeler
+14	card	Savannah Lions
+15	card	Swamp
+16	card	Thraben Inspector
+17	card	Twisted Fates
+18	token	c_a_clue_draw
+19	token	c_a_treasure_sac
+20	token	g_4_4_beast

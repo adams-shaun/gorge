@@ -1,0 +1,13 @@
+# the ChangeZone AttachedTo$ filter bearer pool: One Last Job beside Auras, an Equipment and Disenchant to
+# put them in a graveyard, and creatures to bear them
+# (dirac/oracle/onelastjob_test.go)
+One Last Job
+Pacifism
+Bonesplitter
+Disenchant
+Raging Goblin
+Hill Giant
+Shock
+Lightning Bolt
+Plains
+Mountain

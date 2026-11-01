@@ -1,0 +1,20 @@
+# Triggers whose own mana cost, count or {X} is priced against the potential
+# pool, beside sources it over-counts: duals, paid and restricted abilities
+# (dirac/oracle/potentialpay_test.go)
+Captivating Cave
+Elite Vanguard
+Forest
+Grizzly Bears
+Hawkeye, Master Marksman
+Hill Giant
+Island
+Llanowar Elves
+Mountain
+Plains
+Restless Bivouac
+Secluded Courtyard
+Shock
+Swamp
+Thousand Moons Crackshot
+Training Compound
+Wildborn Preserver

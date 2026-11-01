@@ -1,0 +1,20 @@
+# CopyPermanent and Animate over Defined$ Valid
+# <filter> (Multiversal Incursion; Sita Varma, Masked Racer) with mana
+# creatures and vanilla creatures, for the oracle's constructed lockstep
+# (dirac/oracle/defvalid_test.go)
+Multiversal Incursion
+Sita Varma, Masked Racer
+Llanowar Elves
+Elvish Mystic
+Cultivate
+Grizzly Bears
+Gnarlback Rhino
+Savannah Lions
+Giant Growth
+Air Elemental
+Divination
+Sol Ring
+Forest
+Island
+Plains
+Hydroid Krasis

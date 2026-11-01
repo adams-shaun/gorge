@@ -1,0 +1,14 @@
+# Mirrex ({C} beside a gated any colour)
+# (dirac/oracle/mirrex_test.go)
+Mirrex
+Savannah Lions
+Llanowar Elves
+Grizzly Bears
+Shock
+Wind Drake
+Hill Giant
+Cackling Prowler
+Plains
+Forest
+Mountain
+Island

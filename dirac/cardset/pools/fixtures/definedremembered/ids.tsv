@@ -1,0 +1,32 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Aunt May
+1	card	Discerning Financier
+2	card	Elite Vanguard
+3	card	Forest
+4	card	Giant Spider
+5	card	Grizzly Bears
+6	card	Island
+7	card	Mammoth Spider
+8	card	Moldering Gym
+9	card	Plains
+10	card	Prosperous Innkeeper
+11	card	Sumala Sentry
+12	card	Underwater Tunnel
+13	card	Valgavoth's Onslaught
+14	card	Vengeful Creeper
+15	card	Woolly Spider
+16	card	face:Moldering Gym#1
+17	card	face:Underwater Tunnel#1
+18	card	room:Moldering Gym#00
+19	card	room:Moldering Gym#02
+20	card	room:Moldering Gym#03
+21	card	room:Moldering Gym#10
+22	card	room:Moldering Gym#11
+23	card	room:Moldering Gym#13
+24	card	room:Underwater Tunnel#00
+25	card	room:Underwater Tunnel#02
+26	card	room:Underwater Tunnel#03
+27	card	room:Underwater Tunnel#10
+28	card	room:Underwater Tunnel#11
+29	card	room:Underwater Tunnel#13
+30	token	c_a_treasure_sac

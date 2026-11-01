@@ -1,0 +1,18 @@
+# printed hexproof from a colour (dirac/oracle/hexproofcolor_test.go)
+Knight of Grace
+Knight of Malice
+Doom Blade
+Terror
+Disfigure
+Go for the Throat
+Swords to Plowshares
+Pacifism
+Journey to Nowhere
+Shock
+Lightning Bolt
+Prodigal Sorcerer
+Grizzly Bears
+Plains
+Swamp
+Mountain
+Island

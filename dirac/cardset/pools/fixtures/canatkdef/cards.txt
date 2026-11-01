@@ -1,0 +1,26 @@
+# the CanAttackDefender pool: the five Standard
+# Defender carriers of S:Mode$ CanAttackDefender | ValidCard$ Card.Self
+# with a condition (an artifact entered, a counter on it, a power-4
+# creature, a Lesson in the graveyard) beside artifact makers, counter
+# sources, power-4 creatures, a Lesson, burn and basics, for the oracle's
+# constructed lockstep (dirac/oracle/canatkdef_test.go)
+Battlegrowth
+Boomerang Basics
+Bristlepack Sentry
+Colossal Dreadmaw
+Craw Wurm
+Demon Wall
+Earth Elemental
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Lightning Strike
+Mechan Shieldmate
+Mountain
+Plains
+Platypus-Bear
+Shipwreck Sentry
+Shock
+Swamp
+Thraben Inspector

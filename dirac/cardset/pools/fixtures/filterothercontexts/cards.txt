@@ -1,0 +1,44 @@
+# the side-effect pool: the 14 non-Standard cards its
+# filter words lifted (Coerced Confession, Reprieve, High Score, Eomer of
+# the Riddermark, Might Makes Right, Primal Empathy, Strength-Testing
+# Hammer, Topple, Viper Cruel Conspirator, Slitherwisp, Errant and Giada,
+# Waterlogged Teachings, Sidequest: Catch a Fish; Historian's Wisdom is
+# refused) beside flash creatures, counterspells, burn and vanilla
+# creatures of mixed power (dirac/oracle/filterothercontexts_test.go)
+# The filterothercontexts pool (agent-20261027T155751Z-2250f31f): the 14 non-Standard
+# cards lifted as a side effect (inZone<Zone>, greatestPower,
+# attackingAlone, hasKeywordFlash), beside the flash cards, vanilla creatures
+# of mixed power, counterspells and burn their contexts need, for the
+# oracle's constructed lockstep (dirac/oracle/filterothercontexts_test.go).
+Coerced Confession
+Sidequest: Catch a Fish
+Reprieve
+High Score
+Éomer of the Riddermark
+Might Makes Right
+Primal Empathy
+Strength-Testing Hammer
+Topple
+Viper, Cruel Conspirator
+Slitherwisp
+Errant and Giada
+Waterlogged Teachings
+Ambush Viper
+Spectral Sailor
+Brineborn Cutthroat
+Counterspell
+Cancel
+Lightning Bolt
+Shock
+Grizzly Bears
+Hill Giant
+Craw Wurm
+Glory Seeker
+Savannah Lions
+Llanowar Elves
+Divination
+Plains
+Island
+Swamp
+Mountain
+Forest

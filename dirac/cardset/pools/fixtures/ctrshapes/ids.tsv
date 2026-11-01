@@ -1,0 +1,30 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Counterspell
+1	card	Divination
+2	card	Elvish Visionary
+3	card	Forest
+4	card	Fugitive Droid
+5	card	Grizzly Bears
+6	card	Hill Giant
+7	card	Hurl into History
+8	card	Island
+9	card	Llanowar Elves
+10	card	Louisoix's Sacrifice
+11	card	Man-o'-War
+12	card	Mountain
+13	card	Ornithopter
+14	card	Prodigal Pyromancer
+15	card	Shock
+16	card	Spider-Sense
+17	card	Swallowed by Leviathan
+18	card	Thranduil's Decree
+19	card	Access Denied
+20	card	Draining Whelk
+21	card	Hydromorph Guardian
+22	card	Hydromorph Gull
+23	card	Keep Safe
+24	card	Overwhelming Intellect
+25	card	Spell Swindle
+26	card	Turn Aside
+27	token	c_1_1_a_thopter_flying
+28	token	c_a_treasure_sac

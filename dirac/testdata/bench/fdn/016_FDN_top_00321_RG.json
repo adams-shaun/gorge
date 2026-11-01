@@ -1,0 +1,111 @@
+{
+"name": "FDN_top_00321_RG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck e9c794c16cbf4812acb20e89b4de5ea3:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abrade",
+"count": 1
+},
+{
+"name": "Affectionate Indrik",
+"count": 1
+},
+{
+"name": "Ashroot Animist",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 2
+},
+{
+"name": "Dragon Trainer",
+"count": 1
+},
+{
+"name": "Eager Trufflesnout",
+"count": 2
+},
+{
+"name": "Elfsworn Giant",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 7
+},
+{
+"name": "Gnarlid Colony",
+"count": 2
+},
+{
+"name": "Gorehorn Raider",
+"count": 1
+},
+{
+"name": "Heartfire Immolator",
+"count": 1
+},
+{
+"name": "Llanowar Elves",
+"count": 1
+},
+{
+"name": "Loot, Exuberant Explorer",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 6
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 1
+},
+{
+"name": "Ruby, Daring Tracker",
+"count": 1
+},
+{
+"name": "Rugged Highlands",
+"count": 1
+},
+{
+"name": "Shivan Dragon",
+"count": 1
+},
+{
+"name": "Slagstorm",
+"count": 1
+},
+{
+"name": "Slumbering Cerberus",
+"count": 1
+},
+{
+"name": "Solemn Simulacrum",
+"count": 1
+},
+{
+"name": "Wary Thespian",
+"count": 1
+}
+]
+}

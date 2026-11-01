@@ -1,0 +1,6 @@
+# a waterbend cost beside Equipment, for the oracle's constructed lockstep
+# (dirac/oracle/waterbend_test.go)
+Foggy Swamp Vinebender
+Forest
+Grizzly Bears
+Bonesplitter

@@ -1,0 +1,366 @@
+# Gorge findings
+
+Where gorge departs from the Comprehensive Rules, or from what a card says, the kernel plays what gorge
+plays, because gorge leads and lockstep compares the two. Each such row says what gorge does, what the
+rules say where they differ, and how the kernel follows it. When gorge fixes one, the kernel follows in the
+same change and the row goes.
+
+The second list is the differences still open: a game that reaches one stops as a named stall, or the
+shape is not reachable in any pool. Each is fixed, or its cards are refused. They are not tolerated.
+
+## The kernel copies gorge
+
+- Cascade (CR 702.85a) puts the exiled cards on the bottom "in a random
+  order"; the kernel copies gorge's fixed stand-in: the non-found cards in
+  library order right after the scan, then the found card last if it was
+  not cast (dirac/kw_cascade.go). Printed K:Cascade only (CardDef.Cascade);
+  granted cascade and Averna's replacement are not lowered.
+- Improvise (CR 702.126a) rides the convoke payment path (kw_convoke.go,
+  CardDef.Improvise): the pick is a ChGenConvoke choose with mode 6 and pays
+  generic only; the candidates are untapped artifacts (Engine.IsArtifact,
+  creatures included, no attached-permanent exclusion: gorge excludes only
+  bestowed, which the kernel has none of; gorge also excludes a
+  ReconfiguredAttached permanent, so a future Reconfigure lift must add that
+  exclusion to the improvise branch of tapPayCand). Improvise taps are not
+  mana: the per-turn expend tally and CastTotalManaSpent both exclude them
+  (convoke picks count toward the expend tally but not CastTotalManaSpent).
+  A card with both keywords is
+  refused in kgen. gorge offers an improvise cast only when the floating pool
+  plus the greedy artifact credit pays the whole cost (its planner refuses
+  the shape), so a cast with a coloured pip is offered only with that colour
+  floating, which the lockstep reproduces.
+- X ceiling: gorge's xAsk loops X up to pool + caster's graveyard + convoke
+  credit + what the window's sources make + 1, and raises that only for a
+  named-count discount, so a generic reduction (Zimone, Mocking Sprite) paying
+  into {X} past it is not offered although CR 601.2f allows it. The kernel
+  clamps its X ask to the same ceiling on the gorge surfaces (cast.go bsX;
+  TestXCeilingReducePaysX).
+- Free cast with an either-or additional cost (Alternate Additional Cost,
+  Eaten Alive via Etali, Louisoix's Sacrifice via Hurl into History's
+  Discover): gorge's altAddAsk classifies the parts with `castable` ->
+  `pay.CostPayable`, which reads only the floating pool, and a free cast is
+  no lowered potential play, so untapped lands never reach the pool. A free
+  cast whose pip-free or coloured mana part the pool does not pay (and whose
+  other part is unpayable) is reversed with no ask (CR 733.1) even with
+  lands untapped, although CR 118.9d / 601.2h would let them pay. The kernel
+  emulates this at the ask (cast.go bsAltAdd, `altAddPayable(ask=true)`),
+  gated on `cfgGorgeLowering|cfgGorgeAutopay`; with neither part payable at
+  all it reverses with no ask and no taps on every configuration. The answer
+  path keeps the lands-inclusive reading (`ask=false`), since gorge pays a
+  chosen part at the mana window, where the lands are tapped (pair 9954).
+  Tests: TestFreeCastEitherOrNoPayablePart, TestFreeCastEitherOrFloatingPoolPays;
+  lockstep: ctrshapes (Hurl into History deck).
+- Mana abilities with a spending restriction (Giada, Secluded
+  Courtyard's any-colour mana) are not autopay sources. Giada's {W} or
+  the Courtyard's colour, tapped by a scripted prefix (gorge's planner
+  census misses both) or, Giada's, by a ward / unless window, floats
+  beside the pool as restricted mana (one byte per player, the struct's
+  padding: one colour, one of two restrictions): projected with the
+  pool, spent first by a spell its restriction allows (an Angel; a
+  creature spell of the Courtyard's chosen type), and while it floats
+  only plays the pool pays are offered, as gorge's planners refuse such
+  a pool. A loyalty ability's resolving restricted mana (Chandra, Chill
+  of Compliance's noncreature-only {U}: no mana ability, CR 605.1a, but
+  the restriction rides it, CR 106.6; gorge's ManaAdd restriction) floats
+  in the same byte: AddMana's F names the restriction, prepareGen
+  registers it, and a byte that cannot hold it stalls StallRestrSrc
+  (`TestChandraRestrictedLoyaltyMana`, `TestRememberWritesLockstep`). A dynamic-amount
+  one (Elvish Archdruid) is, listed after every fixed and choice-shaped
+  source as gorge's evaluated-amount layer. Quilled Greatwurm's six
+  counters are asked one at a time (ChCostSubCtr), as gorge asks them.
+- Mana an artifact's mana ability adds (Ring of the Lucii's {C}{C} paying a
+  one-mana remainder, a Treasure, Sol Ring) is tagged in gorge's pool
+  (effects.ManaProducerTag) and `pay.PlanPoolOK` refuses a pool holding any
+  tagged unit, as it refuses restricted mana: while one floats a spell is
+  offered only when the floating pool alone pays it. The kernel keeps the
+  slots holding such a unit (`genState.poolArt`, padding), clears a slot
+  when it empties (gorge spends a plain unit before a tagged one) and
+  declines the planner in `FeatPlannedCast` / `FeatPlannedActivation`
+  (mana_artifact.go; `ring` pool, TestRingLockstep). gorge's
+  other typed tallies (state.Player.TypedMana: Treasure, Cave, Desert) are
+  refused alike, so a Desert's or a Cave's mana tags too (pcard.manaTyped:
+  Arid Archway's {C}{C} paying a one-mana remainder; `remparams` pool,
+  TestRemparamsLockstep). Open: the filter-land and Giada-window pool
+  additions do not tag (no typed source reaches them).
+- Face casts: gorge's potential planner prices every face route,
+  and the kernel offers the Adventure (including its exile recast), split
+  and modal routes from the ordinary mana census (floating pool plus
+  untapped sources) on the oracle surface (`Config.GorgeUnpriced`). The
+  planner's limits apply only to those newly priced routes: a pool holding
+  restricted mana is refused ("unsupported: pool", so the floating pool
+  alone must pay; the query reads `RestrictedMana` only, so an
+  artifact-tagged unit is ordinary mana to it -- unlike the ordinary cast
+  and activation planners' `PlanPoolOK`, above), a scripted prefix whose
+  restricted mana floats dead-ends, and a witness whose plan consumes a
+  source the face's own targets need is dropped ("unsupported:
+  witness_unreachable"; Battle Display). gorge's cast planner also plans
+  face 0 only (rules payment_plan.go planCastPaymentChecked: a `FaceIdx`
+  other than `cast.Face` is "unsupported"), so `plannedCastCost` declines a
+  plain cast of a card showing a nonzero face -- a Room back in the hand on
+  door 1 is lowered or pool-paid. Omen and Prepare
+  keep their census offer. A Room's other door stays pool-only on
+  the oracle surface: its census offer reaches latent kernel Room-rule
+  divergences (the Unholy Annex Demon branch, unlock-trigger token timing). Pricing these casts from untapped
+  lands lets the kpermcopy lockstep's greedy caster push more than
+  `castRingN` spells in a turn: a cast-ring capacity stall, measured
+  2/720 games (TestPermcopyLockstep). Off the oracle surface (self-play's
+  default) every route is the plain rules census, CR 601.2h.
+- Replacement amounts are computed in a fixed order, amounts then
+  prevention (Twinflame Tyrant before Crystal Barricade; two Twinflames
+  x4). gorge asks the affected player to order two matching damage
+  replacements (KReplacement, CR 616.1); every order gives the same result,
+  and the kernel poses the same no-op ask (ChGenReplOrder) on a combat
+  damage event, dealing the pass's events one at a time in gorge's order
+  (state-based actions after each answer, the asked event dealt as
+  asked), and on a noncombat one mid-resolution (the spell still on the
+  stack). One noncombat event is parked per op; a second the same op
+  would ask is dealt at once (not seen). The combat pass's events and
+  their order are frozen when the first ask is posed, and the walk deals
+  a dead source's event as it stood at the freeze (its controller's live
+  Twinflames and the recipient's prevention still match it, as gorge's
+  re-collection does; pair 88223, a blocker the pause's state-based
+  actions killed), while an event whose recipient is gone deals nothing.
+- The cast ring (cast_castledger.go) is gorge's
+  this-turn cast ledger, bounded: the first `castRingN` = 12 pushes per
+  player per turn (the 13th stalls with StallCastRing), as Obj+1 in
+  `hist`, their from-hand bits in `histCastFl`, the
+  Treasure-spend bits in `histCastTr`, and one origin byte per entry in
+  `genState.castProv [2][castRingN]uint8` (bits 0-1: 0 other, 1 hand, 2
+  graveyard, 3 exile; bit 2 reserved for ManaFromTreasure, which
+  `histCastTr` holds today). packing the bits into the Obj+1 bytes was rejected (MaxObj = 192 needs
+  all 8 bits); castProv is a plain fixed array next to `hist`, written only
+  when `castRingOn` (FDN/BLB keep it zero) and, like `hist`, in no hash. Gorge's reads:
+  - `wasCastFromExile` is answered per push from its origin (gorge
+    `castOriginAdmits` on the ledger's cast view, any caster).
+  - The bare `wasCastFromGraveyard` reads the push's origin like the others
+, so Laboratory Drudge's "if you've cast a spell from a
+    graveyard this turn" stays true at end step after a resolved flashback
+    spell (CR 400.7, 601.2). The kernel reads the ring entry's origin.
+- D-entry-order: a tap and an untap body competing over one
+  entering permanent (a printed enters-tapped land beside "lands you control
+  enter untapped", The Wandering Minstrel / Spelunking, `ExtEnterUntapped`)
+  are gorge's CR 616.1 order ask on the MoveZone event
+  (`composeUpdatedReplacements`: the Note replaces the move, the move is
+  emitted at the first answer, then the chosen body runs and the rest is
+  re-checked; a tap and an untap still left are asked again, the permanent
+  already entered, otherwise the rest applies in scan order). The kernel
+  poses it as `DkChoose` + `ChGenReplOrder` over `g.ro` (the borrowed
+  combat-only bytes, State size unchanged) to the entering object's
+  controller before the move, with the card still in its zone, on two
+  routes only: a land play (`playLandNow`; gorge counts the play at once, the
+  kernel counts it at the park) and a resolving program's one-card move to
+  the battlefield (`OpReturnEx`, or a one-card hand `OpChooseMove` as
+  Spelunking's). The candidates are derived in gorge's scan order: each seat
+  in turn, its library and hand (the entering card's own enters-tapped line)
+  before its battlefield, so the entering card's own line precedes its
+  owner's carriers. Not modelled, and loud (`StallEntryOrder`, `StallReplCands`
+  past eight candidates): a tap/untap pair meeting any other route (a token,
+  a clone, a permanent spell resolving, a dig or search placement, a
+  graveyard or exile entry, an object entering under another player's
+  control), and a pair beside a self enters program, a self counter, or an
+  other-enter body that is neither a tap nor an untap (gorge poses those as
+  further options). An untap carrier's `Repl.Cond` is not evaluated by
+  `enterGen` for an other-enter program, so the conditional pair of Archelos,
+  Lagoon Mystic (`Card.Self+tapped` / `+untapped`) stays refused at lowering.
+- D-aura-reask: an Aura returning from an
+  until-leaves exile outside a resolution (its source died to an SBA) with
+  several hosts is asked of its owner at once, mid departure batch, card
+  still in exile (`queueAskRet`; the hosts are the permanents entered by
+  then, so one returned later in the batch is no answer). gorge parks only
+  one entry (`applyETBChoiceReplacement` needs `e.pending == nil`): a
+  second non-cast Aura returning in the same batch enters at once attached
+  to its first candidate in battlefield order (`firstHost`), and its entry
+  overwrites gorge's single `auraEntry` record, so the first Aura's answer
+  is dropped (`answerAuraEntry` no longer matches) and it too attaches to
+  its first candidate when it enters (CR 303.4f says its owner's choice
+  stands). The kernel marks the pending ask (`askRec.pc`) and ignores the
+  answer. Surfaced by TestWardLockstep seed 197 (two Pacifisms under two
+  Sheltered by Ghosts).
+- Panharmonicon (CR 603.2d, `StatPanharmonicon`, the
+  ValidCard$-only shape): the kernel copies these gorge limits. (1) gorge doubles
+  every trigger it queues except a Saga chapter and an Effect's delayed combat
+  trigger (`queueTrigger`).
+  (2) gorge reads the statics from
+  `e` (the board after each move) and matches the trigger source in
+  `observer` (before it): a Panharmonicon host that died earlier in the same
+  state-based batch, or is the dying permanent itself, doubles nothing, while
+  one later in the battlefield-list order still does. CR 603.10a would look
+  back at the host; the kernel marks the host (`pfPanhGone`, set as its leave
+  event fires, cleared when it is removed) to match gorge. (3) the kernel's
+  echo is a copy of the original pending entry, as gorge's is.
+  (4) the entering-permanent shape (`StPanhETB`:
+  ValidMode$ ChangesZone,ChangesZoneAll | ValidCause$ | Destination$
+  Battlefield; Starfield Vocalist, Virtue of Knowledge, Traveling Chocobo)
+  echoes the TrigETB and TrigTokenCreated placements of the entering
+  permanent or token, whose triggering object is the cause (gorge
+  `panharmoniconModes` maps a TokenCreate/CardToken mint to ChangesZone with
+  the battlefield as destination). Not modelled: a graveyard-leave
+  (`Origin$ Graveyard`) trigger caused by the same graveyard -> battlefield
+  move, which gorge's MoveZone mapping also echoes: the kernel queues it at
+  `detach`, before the destination is known, so it stays single.
+- The optional top-of-library carriers (exact). Traveling Botanist, Bucolic Ranch and Gathering Stone are
+  `Supported` in the `peekreveal` pool. (1) A taken reveal: the sub `Defined$
+  Remembered | Origin$ Library | Destination$ Hand` is a fetch, not a search
+  (CR 701.23a), and the printed text has no shuffle. The pinned gorge
+  (`c4f1ece62`, pin `70920b041`) shuffles after a `Defined$` library fetch
+  only through its `implicitShuffle` (a library destination, `NoLooking$`, or
+  a search that deferred its shuffle), so a plain reveal-and-take shuffles
+  nothing; the kernel copies gorge's `Origin$ Library` gate
+  (`BncFromLibrary` / `RetFromLibrary`) and follows the separate owed-shuffle
+  gate (`BncShuffleOwed` / `RetShuffleOwed`; `interp_gen.go` execReturnObj,
+  `zone_rememberparams.go` bounceRemember), which stays clear
+  for the carriers' Bounce (`C: 4096` = `BncFromLibrary` alone).
+  `ktoplibPolicy` takes the may-reveal three times in four.
+  `TestPeekrevealLockstep` takes the may-reveal and covers the taken fetch
+  gate on Traveling Botanist and Gathering Stone, holding the unchanged
+  library order and RNGDraws in lockstep (the absence of a shuffle).
+  Its policy elects Bear at Gathering Stone's whole-vocabulary creature-type ask so the
+  chosen-type match, and thus its reveal, is reached deterministically.
+  (2) Closed: Gathering Stone's chosen-type reads are exact
+  (`RevealValid$ Card.ChosenType` through `matchCardSrc` in `peekMayReveal`,
+  the `ReduceCost | ValidCard$ Card.ChosenType` static through
+  `matchSpellCard`'s source slot: `TestPeekRevealChosenType`,
+  `TestCostChosenType`, `TestGatheringStoneLockstep`) and it is back in
+  `ktoplibDecks`. The Top-of-library move itself (the reveal-not-taken else
+  branch) is exact (`TestToplibLockstep`, `TestTopLibraryGuard`); Bucolic
+  Ranch's reveal is never taken (`RevealValid$ Card.Mount` has no Mount in
+  the pool), so those tests exercise only its declined else branch.
+- DB$ Clone on the battlefield (`dirac/copy_clone.go`, Ext CloneCopy): the kernel models gorge's copy markers, not a stack of
+  layer-1 timestamps. (1) A permanent keeps its newest permanent marker's
+  source (an `fxCopyPerm` record, written by the Ext and by an ETB copy in a
+  table that has the Ext) and one `fxCopyEOT` record while an until-end-of-turn
+  copy is live; at cleanup it returns to its printed card and is re-based on
+  that source as the source is then (gorge `settleExpiredClones`), in the
+  order of the first until-end-of-turn marker. (2) A resolving trigger whose
+  source's current card is not the trigger's card is not asked its `may`
+  (gorge reads OptionalDecider$ off the source's current face; a copy of
+  something else has no such trigger). (3) The projection shows every copy
+  effect's permanent as its printed card in such a table (as an Aegis
+  bearer). (4) A permanent copying itself, or an Aegis bearer, stalls
+  `StallCloneLayer`. Only the
+  cleanup-step priority after a legend-rule ask is NOT followed (finishCleanupStep
+  returns early on the pending ask and the step then ends); no pool reaches it.
+
+## Still open
+
+- Two or more "can't be countered" replacements matching one Counter event
+  (a spell's own plus a battlefield Chimil / Sphinx of the Final Word, or two
+  such sources): gorge CounterAllowed parks the event
+  on a CR 616.1 order ask (replacement_choice.go replChoiceCounter, answered
+  by the spell's controller) though every candidate only stops the event. The
+  kernel does not pose that ask: the game stalls with StallUncounterOrder
+  (repl_uncounterable.go), loud, never a silent divergence. One match
+  (the usual case) is exact.
+- A Room trigger printed on the door that is not live resolves against the
+  live face's SVar table in gorge. `printedFaceTrigger`
+  (engine/rules/trigger_inactive_face.go) scans the other face only when
+  `inactiveFaceLayout` holds, and that is `BackFaceIsBattlefieldOnly`
+  (engine/cards/layout.go), true only for `DoubleFaced`/`Modal`, not
+  `Split` (Rooms). So Roaring Furnace's door-0 unlock trigger (Steaming
+  Sauna live) leaves `X:Count$CardsInYourHand` unresolved and deals 0
+  where the kernel resolves Roaring Furnace's own SVar and deals the hand
+  count; Unholy Annex's end-step trigger (Ritual Chamber live) loses its
+  `DBBranch`, so gorge drains 0 where the kernel takes the Demon branch
+  (drain 2/2) or the `otherwise` branch (lose 2). The kernel is
+  rules-correct; the rooms lockstep maps the 7 seeds whose first divergence
+  is this bug (`roomsKnown`).
+- Ward—Sacrifice a <filter>: CantSacrifice restrictions (gorge
+  sacrificeBlockedForCost) are not modelled: no pooled card has one.
+- Hollowmurk Siege's Sultai draw (granted
+  `Mode$ CounterAdded | ValidCard$ Creature.YouCtrl | ActivationLimit$ 1`):
+  gorge does not enforce `ActivationLimit$` on an `AddTrigger$`-granted
+  trigger (pin b4e6762a27f9, `engine/rules/trigger_granted.go`
+  `checkGrantedStaticTriggersUsing` never calls `triggerActivationLimitAllows`
+  / `reserveTriggerLimits`; Forge's `Trigger.checkActivationLimit` does), so
+  a second counter in one turn draws a second card in gorge only. The kernel
+  keys the limit per (object, ability), which is the card text, and does not
+  emulate gorge. With four or more Hollowmurks about half of 1000 seeds of
+  pool `siege` diverge (seed 1, a `trigger_order` decision: ref two
+  triggers, kernel none), as do two Hollowmurks beside Barrensteppe (several
+  counters in one turn); `khollowDecks` caps the pool at two copies and no
+  Barrensteppe, where only one counter a turn is reachable (`TestSiegeHollowmurkLockstep`).
+- A graveyard may-play permission's non-mana `RaiseCost$` (Noctis, Alien Symbiosis, Wickerfolk Indomitable, and BLB's Festival of
+  Embers): gorge SUMS the raise over every granting static
+  (`rules/mayplay.go` `mayPlayRaiseCost`, `Cost.Plus`); the kernel prices one.
+  A second granting raise (two Festivals of Embers on the battlefield, or
+  Noctis beside Wickerfolk) is a loud `StallMayRaise` ("mayraise"), as is a
+  spell that already owes its own additional pick cost. BLB's pool gains this
+  stall class with Festival; the pool's two-copy decks reach it only with both
+  on the battlefield. A land a raising permission grants (an artifact land
+  under Noctis) is withheld, payable or not, as gorge's `mayPlayLandIds` does
+  (`dirac/cost_mayplayraise.go` `mayRaiseLandHeld`).
+- The legendary-source combat-hit bit (Blitzball's
+  `HasPropertywasDealtCombatDamageThisTurnBy Creature.Legendary GE1`): gorge
+  snapshots the hit source's printed face and matches the spec at the READ,
+  where a layer-4 type entry for the source's ID (a crewed Vehicle, an
+  animated artifact) is read live and a dead source falls back to its printed
+  face. The kernel reads the source's types at the HIT (`typesAt`, layers
+  applied). The two agree unless a type-changing effect on a legendary source
+  begins or ends between the hit and the read (the same turn); no pool card
+  has the shape (an animated legendary non-creature, or a legendary creature
+  that loses Creature mid-turn). `NumStall` is 131 (`StallCombatHit`, a fifth
+  source that reads the BySource word dealt combat damage to a player in one
+  turn).
+- DealDamage `DamageSource$ <trigger object>` to each opponent
+  (OpDealDamageFrom with B.N = 1,
+  `dirac/act_damagefrom.go` `dmgSrcPlayers`): two gaps against gorge
+  `newDamageRider`. (1) A source that left the battlefield reads infect from
+  its printed card, where gorge reads `lki.Infect` (CR 113.7a); the LKI
+  record keeps no infect bit, so a source that gained or lost infect before
+  leaving would differ. Its lifelink and controller are read from the LKI
+  record (`TestDmgsrcplMutationLKIKw`, `TestDmgsrcplMutationLKICtrl`).
+  (2) damageTo's replacement-order ask (`parkNC`, CR 616.1) is not posed;
+  two noncombat damage replacements that both apply to the player would
+  order differently. Neither shape is in a pool (`dmgsrcpl` has at most
+  one noncombat damage replacement and no infect grant).
+- A "single target" filter on a stack object (`singleTarget`,
+  `engine/effects/filter.go`) reads `len(o.Targets)` and leaves out the
+  sub-abilities' targets, so Redirect Lightning is offered on The Last Agni
+  Kai's fight or How to Start a Riot, which have two targets. The card says a
+  spell or ability with a single target; Forge's property counts
+  `getAllTargetChoices`, read, not run. The kernel counts the whole chain
+  (`singleTargetOK`), so on the full surface these pairs diverge until gorge
+  is fixed (std-tla 125, 381, 400).
+- A paid Offspring whose source leaves with its enter trigger on the stack: gorge's
+  `Count$OffspringPaid` reads what the source left (CR 608.2h) and `CopyPermanent` mints the
+  1/1 from the departed object; the kernel's lowering (`Count$Valid Card.Self+kicked`) reads
+  0. Read, not played: gorge offers the offspring cast only against a floating pool that pays
+  all of it, and 800 lockstep games with Burning-Tree Emissary never reached one. Multikicker,
+  `Count$TimesKicked`, Mutate and OptionalCost on a permanent spell are refused by kgen, so
+  they have no such read.
+- A copy of a charm with two target-bearing modes, or of an ability with a target on a
+  SubAbility$ link: `Engine.charmTargets` is never written for a `StackCopy`, so
+  `charmDistinctTargetRun` falls back and every mode runs over the flat target list (Flash
+  Thompson's copy taps both targets, then untaps both; std-spm 224). `applyStackCopy` drops
+  `SubTargets` from an ability or charm copy, leaving the link to a resolution-time ask (Mechanical
+  Mobster; std-spm 319). CR 707.10 has the copy keep each target where the original had it. In Forge
+  (read, not run), `CopySpellAbilityEffect` copies through `SpellAbility.copy`, which clones that
+  ability's `targetChosen`, and `CardFactory.copySpellAbility` repeats the copy on its `SubAbility`.
+  How Forge builds a charm's mode chain wasn't read, and XMage wasn't checked. The kernel keeps both,
+  so these pairs diverge until gorge is fixed.
+- The look-back observer `checkTriggersNow` builds doesn't carry `Engine.startingLife`, so
+  `h.StartingLife()` reads 0 on it, and Leyline of Hope's `Count$YourStartingLife/Plus.7` gate is 7
+  there. A creature dying at 17 life then reads +2/+2 in its leaves-the-battlefield trigger: Infernal
+  Phantom deals 4 with power 2 at every decision (std-dsk 53). Adding the field to the observer's literal
+  in a patched gorge export makes the pair run clean to its end. CR 603.10a reads the board as it was,
+  whose condition was false.
+- A Changeling card off the battlefield shares no creature type for `TargetsWithSameCreatureType$`:
+  `setPropTokens` reads `e.Derived(obj).Types`, which carries only the printed Shapeshifter there, so
+  gorge doesn't offer Unbury's two-card mode for a Changeling and an Elf in a graveyard (std-ecl 38, 141,
+  194, 271, 365, 443, run). Changeling is a characteristic-defining ability that works in every zone (CR
+  702.73a, 604.3). Forge's static is `EffectZone$ All` and XMage's `shareCreatureTypes` reads
+  `isAllCreatureTypes` (both read, not run). All six pairs run clean on a patched gorge export whose
+  `setPropTokens` gives an `effects.IntrinsicAllCreatureTypes` card off the battlefield every creature
+  type. The kernel counts it (`crTypesOf`), so these pairs diverge until gorge is fixed.
+- Camellia, the Seedmiser's `Mode$ SacrificedOnce | ValidCard$ Food` doesn't fire when the Food is a creature
+  Ygra, Eater of All makes one, sacrificed for a forage (std-blb 308, 314, run: gorge's order ask has Scavenger's
+  Talent and Ygra but no Camellia; the kernel's has all three). CR 603.10a looks back at the permanent as it last
+  existed, when it was a Food. XMage's `SacrificeOneOrMorePermanentsTriggeredAbility` reads
+  `getPermanentOrLKIBattlefield` (read, not run); Forge's `TriggerSacrificedOnce` matches its `Cards` run parameter
+  (read, not run; whether that is a last-known copy wasn't traced). Gorge's matcher wasn't traced or patched, so
+  the cause is unconfirmed. std-blb 435 and 448 also name Camellia but diverge on the stack count and weren't read.
+- Dropkick Bomber's grant never fires: a Goblin given "When this creature deals combat damage, sacrifice it" by
+  Animate's `Triggers$` (Mode$ DamageDealtOnce) deals combat damage and gorge queues no trigger (std-fdn 3, 68, 342;
+  std-tmt 60, 386 on the same shape; run in lockstep, cause in gorge not traced). CR 603.2. XMage's `DropkickBomber`
+  grants `DealsCombatDamageTriggeredAbility` with a sacrifice (read); Forge's script is the same line (read). The
+  kernel fires it, so these stay divergent until gorge is fixed.

@@ -1,0 +1,26 @@
+# the self flash pool: the three CastWithFlash EffectZone$
+# All self carriers (Illusion Spinners, Bard's Company, Serpent of the
+# Pass) and Captain Mar-Vell's battlefield grant beside Faeries, Humans,
+# colorless Lessons, self-mill, instants and basics
+# (dirac/oracle/selfflash_test.go)
+Illusion Spinners
+Bard's Company
+Serpent of the Pass
+Captain Mar-Vell, Space-Born
+Cloud Sprite
+Moon Sprite
+Elite Vanguard
+Glory Seeker
+Border Guard
+Environmental Sciences
+Expanded Anatomy
+Accumulate Wisdom
+Mulch
+Cancel
+Swords to Plowshares
+Raise the Alarm
+Giant Growth
+Grizzly Bears
+Plains
+Island
+Forest

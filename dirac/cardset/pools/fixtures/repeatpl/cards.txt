@@ -1,0 +1,24 @@
+# the RepeatEach player-body pool: Pox Plague,
+# Zodiark, Umbral God and Betor, Kin to All (PlayerCountRemembered$ and
+# RememberedPlayerCtrl) beside high-toughness vanilla creatures, life
+# gain/loss and card draw (dirac/oracle/repeatpl_test.go)
+Pox Plague
+Zodiark, Umbral God
+Betor, Kin to All
+Sign in Blood
+Night's Whisper
+Sovereign's Bite
+Blood Pact
+Warpath Ghoul
+Barony Vampire
+Walking Corpse
+Undead Minotaur
+Indomitable Ancients
+Rotting Mastodon
+Kami of Old Stone
+Looming Altisaur
+Catacomb Crocodile
+Wandering Tombshell
+Swamp
+Plains
+Forest

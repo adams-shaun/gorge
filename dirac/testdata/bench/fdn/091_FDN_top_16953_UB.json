@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_16953_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 7f3c1e442a7140cd8695ad641eb15112:1, player win-rate bucket 0.72 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arbiter of Woe",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 2
+},
+{
+"name": "Billowing Shriekmass",
+"count": 1
+},
+{
+"name": "Brineborn Cutthroat",
+"count": 1
+},
+{
+"name": "Cephalid Inkmage",
+"count": 2
+},
+{
+"name": "Crypt Feaster",
+"count": 1
+},
+{
+"name": "Elementalist Adept",
+"count": 1
+},
+{
+"name": "Erudite Wizard",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 2
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 2
+},
+{
+"name": "High Fae Trickster",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Painful Quandary",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Rune-Sealed Wall",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Witness Protection",
+"count": 1
+}
+]
+}

@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_17475_WG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 765a150e68894a8286eb4a6d293296d8:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ajani, Caller of the Pride",
+"count": 1
+},
+{
+"name": "Anthem of Champions",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 8
+},
+{
+"name": "Ghalta, Primal Hunger",
+"count": 1
+},
+{
+"name": "Gnarlid Colony",
+"count": 4
+},
+{
+"name": "Good-Fortune Unicorn",
+"count": 2
+},
+{
+"name": "Healer's Hawk",
+"count": 2
+},
+{
+"name": "Helpful Hunter",
+"count": 2
+},
+{
+"name": "Inspiring Paladin",
+"count": 1
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 7
+},
+{
+"name": "Resolute Reinforcements",
+"count": 1
+},
+{
+"name": "Spinner of Souls",
+"count": 2
+},
+{
+"name": "Squad Rallier",
+"count": 1
+},
+{
+"name": "Sylvan Scavenging",
+"count": 1
+}
+]
+}

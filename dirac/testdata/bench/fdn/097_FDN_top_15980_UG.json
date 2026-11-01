@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_15980_UG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 4652df29fccc44e7837c2a3d738ee8ae:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Affectionate Indrik",
+"count": 1
+},
+{
+"name": "Ambush Wolf",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 1
+},
+{
+"name": "Eager Trufflesnout",
+"count": 1
+},
+{
+"name": "Elvish Regrower",
+"count": 2
+},
+{
+"name": "Faebloom Trick",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 8
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Grow from the Ashes",
+"count": 1
+},
+{
+"name": "Imprisoned in the Moon",
+"count": 2
+},
+{
+"name": "Island",
+"count": 7
+},
+{
+"name": "Lightshell Duo",
+"count": 3
+},
+{
+"name": "Llanowar Elves",
+"count": 2
+},
+{
+"name": "Sire of Seven Deaths",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Thornwood Falls",
+"count": 2
+},
+{
+"name": "Wary Thespian",
+"count": 2
+},
+{
+"name": "Witness Protection",
+"count": 1
+},
+{
+"name": "Zimone, Paradox Sculptor",
+"count": 1
+}
+]
+}

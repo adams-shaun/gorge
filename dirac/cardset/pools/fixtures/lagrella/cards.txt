@@ -1,0 +1,12 @@
+# Lagrella, the Magpie's until-leaves return rider (dirac/oracle/lagrella_test.go)
+Lagrella, the Magpie
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Terror
+Prodigal Sorcerer
+Forest
+Plains
+Island
+Mountain
+Swamp

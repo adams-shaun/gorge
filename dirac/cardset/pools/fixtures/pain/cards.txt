@@ -1,0 +1,35 @@
+# the painland pool (CR 605.3b): the ten painlands and Elves
+# of Deep Shadow (gorge's last-resort Consequence{Damage}) beside basics,
+# colour-hungry spells and burn that brings the lethal guard into play
+# (dirac/oracle/pain_test.go)
+Adarkar Wastes
+Battlefield Forge
+Brushland
+Caves of Koilos
+Karplusan Forest
+Llanowar Wastes
+Shivan Reef
+Sulfurous Springs
+Underground River
+Yavimaya Coast
+Elves of Deep Shadow
+Plains
+Island
+Swamp
+Mountain
+Forest
+Wastes
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Wind Drake
+Walking Corpse
+Shock
+Lightning Bolt
+Swords to Plowshares
+Counterspell
+Divination
+Llanowar Elves
+Serra Angel
+Boros Recruit
+Mana Leak

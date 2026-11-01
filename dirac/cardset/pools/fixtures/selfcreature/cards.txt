@@ -1,0 +1,8 @@
+# a "dies, if it was a creature" line on a permanent that left as something else, for
+# the oracle's constructed lockstep (dirac/oracle/selfcreature_test.go)
+Deadly Dispute
+Doom Blade
+Forest
+Necrosquito
+Swamp
+Tom, Bert, and William

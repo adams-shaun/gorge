@@ -1,0 +1,95 @@
+{
+"name": "FDN_top_18239_UBR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck c6df555c9e334183b483b253816dac95:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abrade",
+"count": 1
+},
+{
+"name": "Alesha, Who Laughs at Fate",
+"count": 1
+},
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 2
+},
+{
+"name": "Campus Guide",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Etali, Primal Storm",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Island",
+"count": 5
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Rite of the Dragoncaller",
+"count": 1
+},
+{
+"name": "Slumbering Cerberus",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 3
+},
+{
+"name": "Swiftwater Cliffs",
+"count": 1
+},
+{
+"name": "Thrill of Possibility",
+"count": 2
+},
+{
+"name": "Tolarian Terror",
+"count": 3
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 2
+}
+]
+}

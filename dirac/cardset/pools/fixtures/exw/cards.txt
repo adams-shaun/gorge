@@ -1,0 +1,55 @@
+# the exiled-with source link pool: the lowered carriers
+# (The Princess Takes Flight, Veteran Survivor) beside a flicker, removal,
+# another exiler, a self-mill creature, vanilla creatures and basics
+# (dirac/oracle/exw_test.go)
+The Princess Takes Flight
+Veteran Survivor
+Cloudshift
+Murder
+Stitcher's Supplier
+Journey to Nowhere
+Savannah Lions
+Barony Vampire
+Serra Angel
+Suntail Hawk
+Child of Night
+Plains
+Swamp
+Oblivion Ring
+Icy Prison
+Cold Storage
+Safe Haven
+Synod Sanctum
+Helvault
+Bag of Holding
+Day of the Dragons
+Endless Sands
+Faceless Butcher
+Realm Razer
+Trove Warden
+Underworld Sentinel
+Watcher for Tomorrow
+Worldgorger Dragon
+Island
+Mountain
+Forest
+Grizzly Bears
+Hill Giant
+Promise of Tomorrow
+Keen-Eyed Curator
+Dawnhand Dissident
+Maralen, Fae Ascendant
+Llanowar Elves
+Faerie Miscreant
+Battlegrowth
+Giant Growth
+Pick Up the Pace
+Raging Goblin
+Lightning Bolt
+Hedonist's Trove
+Rona, Disciple of Gix
+Omenpath Journey
+Northampton Farm
+Ghost Vacuum
+Purgatory
+Storm of Souls

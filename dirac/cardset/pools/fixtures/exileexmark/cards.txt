@@ -1,0 +1,19 @@
+# ReplaceDyingDefined$ Targeted on a Pump or Fight:
+# Gnashing of Teeth, Necrotic Wound, Bleed Dry and Faunsbane Troll (with
+# Blanchwood Armor for its Sac cost) beside creatures of toughness 2-6,
+# two regenerators and Shock (dirac/oracle/exileexmark_test.go)
+Gnashing of Teeth
+Faunsbane Troll
+Necrotic Wound
+Bleed Dry
+Blanchwood Armor
+Drudge Skeletons
+Blight Mamba
+Shock
+Grizzly Bears
+Hill Giant
+Trained Armodon
+Colossal Dreadmaw
+Mountain
+Forest
+Swamp

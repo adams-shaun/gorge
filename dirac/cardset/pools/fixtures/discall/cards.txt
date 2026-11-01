@@ -1,0 +1,23 @@
+# the DiscardedAll pool: discard payoffs beside discard sources
+# (dirac/oracle/discall_test.go)
+Burglar Rat
+Calamitous Tide
+Chart a Course
+Cryptcaller Chariot
+Dragon Mage
+Duress
+Fearless Swashbuckler
+Flamecache Gecko
+Grizzly Bears
+Hostile Investigator
+Inti, Seneschal of the Sun
+Island
+Magmakin Artillerist
+Marauding Mako
+Mind Rot
+Mountain
+Scrounging Skyray
+Swamp
+Thirst for Discovery
+Tinybones, Pocket Nuisance
+Wheel of Fortune

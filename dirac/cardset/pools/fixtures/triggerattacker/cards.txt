@@ -1,0 +1,25 @@
+# the TriggeredAttacker binding pool: Bone Sabres
+# (ValidCard$ Creature.EquippedBy + Defined$ TriggeredAttackerLKICopy) is
+# the pool's only Equipment, so an attack with the equipped creature plus
+# any other creature is the exactly-one-match case gorge binds
+# TriggerCard for; the other creatures are non-equipped attackers for the
+# oracle's constructed lockstep (dirac/oracle/triggerattacker_test.go).
+# A broad filter (Kragma Warcaller's Minotaur.YouCtrl) is refused: with
+# two matches gorge falls back to the whole Remembered batch, the kernel
+# fires one trigger per matching attacker (crcoverage 506.5).
+Bone Sabres
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Raging Goblin
+Goblin Piker
+Centaur Courser
+Mountain
+Swamp
+Forest
+Kragma Warcaller
+Borderland Minotaur
+Hurloon Minotaur
+Minotaur Warrior
+Pensive Minotaur
+Felhide Minotaur

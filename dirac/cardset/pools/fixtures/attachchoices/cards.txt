@@ -1,0 +1,34 @@
+# the object-side Attach pick pool: Zack Fair, Vow to
+# Erebor and Winter Soldier, Icy Assassin (`DB$ Attach | Choices$... |
+# Defined$...`) with Equipment, Dwarves and removal, for the oracle's
+# constructed lockstep (dirac/oracle/attachchoices_test.go)
+# The attachchoices lockstep pool: the three object-side
+# `DB$ Attach | Choices$ <Equipment filter> | Defined$ <dest>` carriers (Zack
+# Fair mandatory, Vow to Erebor and Winter Soldier, Icy Assassin optional),
+# cheap Equipment with equip costs, Dwarves for Vow's condition, plain
+# creatures, cheap removal so a target sometimes leaves, self-mill and
+# discard so Winter Soldier reaches the graveyard, and basics. Unexpected
+# Request (DB$ Unattach in a delayed trigger) is NOT here.
+Zack Fair
+Vow to Erebor
+Winter Soldier, Icy Assassin
+Bonesplitter
+Short Sword
+Leather Armor
+Bastion Enforcer
+Axgard Cavalry
+Staunch Shieldmate
+Dwarven Trader
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Lightning Bolt
+Doom Blade
+Shock
+Mind Rot
+Tome Scour
+Plains
+Swamp
+Mountain
+Forest
+Island

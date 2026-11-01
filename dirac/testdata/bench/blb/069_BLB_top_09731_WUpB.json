@@ -1,0 +1,83 @@
+{
+"name": "BLB_top_09731_WUpB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck c825be1285eb4525b73e0f12459430bf:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Daring Waverider, 1 Flowerfoot Swordmaster, 1 Gossip's Talent, 1 Jackdaw Savior, 1 Season of Weaving, 1 Three Tree Mascot -> 3 Plains, 3 Island",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Brave-Kin Duo",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Fountainport",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Knightfisher",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Mind Drill Assailant",
+"count": 1
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 1
+},
+{
+"name": "Patchwork Banner",
+"count": 1
+},
+{
+"name": "Pearl of Wisdom",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Plumecreed Mentor",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+}
+]
+}

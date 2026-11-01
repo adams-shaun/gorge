@@ -1,0 +1,28 @@
+# the DamageDoneOnce pool: enrage, aura and player
+# referents beside the per-event recipient-filter carriers and burn, for
+# the oracle's constructed lockstep (dirac/oracle/ddo_test.go)
+Feldon, Ronom Excavator
+Innocent Bystander
+Spinneret and Spiderling
+Venus, Torn Between Worlds
+Hexhaven Invigorator
+The Thing, Ben Grimm
+Professional Face-Breaker
+Strength of Will
+Seismic Rupture
+Fanatical Firebrand
+Mountain
+Forest
+Sleep Magic
+Nested Ghoul
+Giant's Skewer
+Burst Lightning
+Shock
+Gray Ogre
+Hill Giant
+Coral Merfolk
+Island
+Swamp
+Sun Droplet
+Farsight Mask
+No Mercy

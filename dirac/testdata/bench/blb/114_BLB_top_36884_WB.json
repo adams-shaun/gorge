@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_36884_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 27afe0b7a4214c0e9a88fc0d44dceed8:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Downwind Ambusher, 1 Early Winter, 1 Harvestrite Host, 1 Head of the Homestead, 1 Moonstone Harbinger, 1 Starscape Cleric -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Brightblade Stoat",
+"count": 2
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Scales of Shale",
+"count": 3
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 2
+}
+]
+}

@@ -1,0 +1,32 @@
+# the Start your engines! pool: speed starts
+# (entry, control change), the opponent-life-loss trigger, max-speed
+# gated abilities and triggers, Count$YourSpeed readers and the
+# ChangeSpeed decrease, for the oracle's constructed lockstep
+# (dirac/oracle/startengines_test.go)
+# Start your engines! / speed carriers for the
+# oracle's constructed lockstep (dirac/oracle/startengines_test.go).
+# Start your engines! permanents of every kind (creatures, enchantments,
+# artifacts, a land), their max-speed grants (gated triggers and activated
+# abilities), Count$YourSpeed readers, the ChangeSpeed decrease, and the
+# control changers and life losers that drive 702.179a/d/e.
+Embalmed Ascendant
+Risen Necroregent
+Pride of the Road
+Aether Syphon
+Amonkhet Raceway
+Kickoff Celebrations
+Starting Column
+Zahur, Glory's Past
+Point the Way
+Samut, the Driving Force
+The Speed Demon
+Spikeshell Harrier
+Involuntary Employment
+Shock
+Hill Giant
+Wind Drake
+Plains
+Island
+Swamp
+Mountain
+Forest

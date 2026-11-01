@@ -1,0 +1,30 @@
+# the defined-heads pool: OppNonRememberedController
+# (Momentum Breaker, Entropic Battlecruiser), CardOwner (Gandalf,
+# Wandering Wizard) and "You & Valid Permanent.YouCtrl" (Dawn's Truce)
+# (dirac/oracle/definedoppnonrem_test.go)
+# the defined-heads pool: Defined$ OppNonRememberedController
+# (Momentum Breaker, Entropic Battlecruiser's granted Attacks trigger), Defined$
+# CardOwner (Gandalf, Wandering Wizard) and the Pump compound "You & Valid
+# Permanent.YouCtrl" (Dawn's Truce), beside creatures and a Vehicle to sacrifice,
+# discard outlets that empty a hand, burn, creature theft to part the owner from
+# the controller, and basics (dirac/oracle/definedoppnonrem_test.go)
+Momentum Breaker
+Entropic Battlecruiser
+Gandalf, Wandering Wizard
+Dawn's Truce
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Smuggler's Copter
+Shock
+Lightning Bolt
+Mind Rot
+Duress
+Divination
+Control Magic
+Act of Treason
+Plains
+Island
+Swamp
+Mountain
+Forest

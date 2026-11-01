@@ -1,0 +1,18 @@
+# AtEOT$ on Animate (Coalstoke Gearhulk) and on a
+# ChangeZoneAll sweep onto the battlefield (Push the Limit), for the
+# oracle's constructed lockstep (dirac/oracle/ateotmovers_test.go)
+Coalstoke Gearhulk
+Push the Limit
+Burner Rocket
+Clamorous Ironclad
+Gastal Thrillroller
+Gilded Ghoda
+Daggerfang Duo
+Deathcap Marionette
+Carrion Cruiser
+Mountain
+Swamp
+Apprentice Necromancer
+Kami of Industry
+Chimeric Coils
+Dawn of the Dead

@@ -1,0 +1,23 @@
+# the view-only face-down MayLookAt$ pool: DSK Found
+# Footage (printed static) and MKM Lumbering Laundry (Effect static),
+# the facedown Morph/Disguise creatures so face-down creatures exist,
+# vanilla creatures and Moxen, for the oracle's constructed lockstep
+# (dirac/oracle/maylookat_test.go)
+# the view-only face-down battlefield MayLookAt$ lockstep pool.
+# DSK Found Footage (printed static) and MKM Lumbering Laundry (Effect static),
+# the facedown pool's Morph/Disguise creatures so face-down creatures exist,
+# vanilla creatures (Grizzly Bears) and Moxen for mana, plus lands, for the
+# oracle's constructed lockstep (dirac/oracle/maylookat_test.go).
+Found Footage
+Lumbering Laundry
+Kolaghan Stormsinger
+Bolrac-Clan Basher
+Basilica Stalker
+Concealed Weapon
+Zoetic Cavern
+Grizzly Bears
+Mox Jet
+Mox Ruby
+Mountain
+Forest
+Swamp

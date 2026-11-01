@@ -1,0 +1,31 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Burst Lightning
+1	card	Coral Merfolk
+2	card	Fanatical Firebrand
+3	card	Feldon, Ronom Excavator
+4	card	Forest
+5	card	Giant's Skewer
+6	card	Gray Ogre
+7	card	Hexhaven Invigorator
+8	card	Hill Giant
+9	card	Innocent Bystander
+10	card	Island
+11	card	Mountain
+12	card	Nested Ghoul
+13	card	Professional Face-Breaker
+14	card	Seismic Rupture
+15	card	Shock
+16	card	Sleep Magic
+17	card	Spinneret and Spiderling
+18	card	Strength of Will
+19	card	Swamp
+20	card	The Thing, Ben Grimm
+21	card	Venus, Torn Between Worlds
+22	token	b_2_2_phyrexian_zombie
+23	token	c_a_clue_draw
+24	token	c_a_food_sac
+25	token	c_a_treasure_sac
+26	card	No Mercy
+27	card	Swarmborn Giant
+28	card	Sun Droplet
+29	card	Farsight Mask

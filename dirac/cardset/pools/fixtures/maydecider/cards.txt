@@ -1,0 +1,19 @@
+# the OptionalDecider$ pool: Draw (Starwinder,
+# Cactarantula, Consecrated Sphinx, Vex) and DealDamage (Requiem
+# Monolith) "may" elections by a named decider, a Desert, burn, cheap
+# creatures and basics (dirac/oracle/maydecider_test.go)
+Cactarantula
+Consecrated Sphinx
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Llanowar Elves
+Lonely Arroyo
+Mountain
+Requiem Monolith
+Shock
+Starwinder
+Swamp
+Vex
+Walking Corpse

@@ -1,0 +1,14 @@
+# the Drawn trigger scoped by ValidPlayer$ (Gleaming
+# Splendor) beside draw spells and vanilla bodies
+# (dirac/oracle/drawnvp_test.go)
+Gleaming Splendor
+Divination
+Opt
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Shock
+Plains
+Island
+Mountain
+Forest

@@ -1,0 +1,75 @@
+{
+"name": "FDN_top_00934_BR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 6f84a7b3280248468744c5a4b5920bb0:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arbiter of Woe",
+"count": 2
+},
+{
+"name": "Bloodfell Caves",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 2
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Dragon Trainer",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 2
+},
+{
+"name": "Fake Your Own Death",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 2
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Involuntary Employment",
+"count": 3
+},
+{
+"name": "Macabre Waltz",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 8
+},
+{
+"name": "Perforating Artist",
+"count": 3
+},
+{
+"name": "Rune-Scarred Demon",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+},
+{
+"name": "Vampire Gourmand",
+"count": 2
+}
+]
+}

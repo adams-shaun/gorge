@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_06310_UB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 7a5e913063d846a6bf8072887947f0f2:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Darkstar Augur, 1 Dazzling Denial, 1 Eddymurk Crab, 1 Finch Formation, 1 Mockingbird, 1 Nocturnal Hunger -> 3 Island, 3 Swamp",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 2
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Lightshell Duo",
+"count": 2
+},
+{
+"name": "Mind Drill Assailant",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 1
+},
+{
+"name": "Savor",
+"count": 4
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Tidecaller Mentor",
+"count": 1
+}
+]
+}

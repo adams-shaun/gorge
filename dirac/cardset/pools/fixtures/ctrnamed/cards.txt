@@ -1,0 +1,32 @@
+# the plain named-counter pool: the carriers of INVASION,
+# LOOT, REV, PAGE, INGENUITY, FILM and FIRE (each with no inherent rules
+# meaning, CR 122.1), their removal/read costs, cheap creatures, burn,
+# card draw and basics, for the oracle's constructed lockstep
+# (dirac/oracle/ctrnamed_test.go). It also carries HONE (Dwalin,
+# Weaponmaster; CR 122.1j: +1/+0 on the equipped creature, kernel
+# honePower).
+Alien Invasion
+Bandit's Haul
+Chainsaw
+Diary of Dreams
+Lady Octopus, Inspired Inventor
+Peter Parker's Camera
+War Balloon
+Bonesplitter
+Ornithopter
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Wind Drake
+Goblin Piker
+Coral Merfolk
+Shock
+Lightning Bolt
+Giant Growth
+Opt
+Divination
+Plains
+Island
+Mountain
+Forest
+Dwalin, Weaponmaster

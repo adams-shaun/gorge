@@ -1,0 +1,11 @@
+# the Training pool: Hopeful Initiate's Training and its
+# remove-counters-from-among cost (dirac/oracle/train_test.go)
+Hopeful Initiate
+Savannah Lions
+Serra Angel
+Plains
+Ornithopter
+Pacifism
+Hill Giant
+Shock
+Mountain

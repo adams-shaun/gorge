@@ -1,0 +1,11 @@
+# Grab the Prize's cost-discarded card (RefDiscarded;
+# dirac/oracle/grabprize_test.go)
+Grab the Prize
+Raging Goblin
+Shock
+Grizzly Bears
+Serrated Scorpion
+Fanatic of Mogis
+Swamp
+Mountain
+Forest

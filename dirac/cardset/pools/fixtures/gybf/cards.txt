@@ -1,0 +1,36 @@
+# the graveyard->battlefield hidden-pick pool:
+# Scavenger's Talent (a grave pick onto the battlefield with a FINALITY
+# entry counter) beside Victor, Valgavoth's Seneschal and Zero Point
+# Ballad (the game-wide ownerless GainControl$ picks), Food
+# removal, creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/gybf_test.go)
+# The graveyard->battlefield hidden-pick pool:
+# Scavenger's Talent (a grave pick onto the battlefield with a FINALITY
+# entry counter), Victor, Valgavoth's Seneschal (the game-wide ownerless
+# GainControl$ pick: the third Eerie resolution of a turn, driven by the
+# cheap enchantment Auras Holy Strength, Unholy Strength and Dead Weight),
+# Zero Point Ballad (listed for the coverage report; its DestroyAll X compare
+# is a separate refusal), removal that makes Food (Bake into a Pie), Deadly
+# Brew (the YouCtrl grave pick already lowered by),
+# cheap creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/gybf_test.go).
+Scavenger's Talent
+Victor, Valgavoth's Seneschal
+Zero Point Ballad
+Holy Strength
+Unholy Strength
+Dead Weight
+Bake into a Pie
+Deadly Brew
+Shock
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Swamp
+Forest
+Mountain
+Plains
+Savannah Lions
+Walking Corpse
+Elite Vanguard

@@ -1,0 +1,32 @@
+# the Battle / Siege pool: the 15 Standard Sieges kgen
+# lifts, cheap creatures, burn and basics, for the oracle's constructed
+# lockstep and mutation tests (dirac/oracle/battle_test.go)
+Invasion of Azgol
+Invasion of Belenon
+Invasion of Dominaria
+Invasion of Ergamon
+Invasion of Innistrad
+Invasion of Ixalan
+Invasion of Kaladesh
+Invasion of Karsus
+Invasion of Kylem
+Invasion of Mercadia
+Invasion of Moag
+Invasion of Muraganda
+Invasion of Tolvada
+Invasion of Xerex
+Invasion of Zendikar
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Giant Spider
+Coral Merfolk
+Walking Corpse
+Shock
+Lightning Strike
+Plains
+Island
+Swamp
+Mountain
+Forest

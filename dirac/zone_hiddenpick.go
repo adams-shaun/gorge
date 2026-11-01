@@ -1,0 +1,84 @@
+package dirac
+
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// handTakeAll is a required hand move's no-choice arm (gorge
+// handMoveOwnersWalk: a required move whose eligible cards number no more
+// than the bound takes them all, in hand order, without an ask). It
+// reports whether it took them.
+//
+//go:noinline
+func (s *State) handTakeAll(k *prep) bool {
+	var d Decision
+	s.searchCands(k, &d)
+	if int(d.N) > int(s.g.pickLeft) {
+		return false
+	}
+	for i := 0; i < int(d.N); i++ {
+		s.resArm().look[s.g.nlook] = Obj(d.Options[i].Source())
+		s.g.nlook++
+	}
+	s.finishSearchNow(k)
+	return true
+}
+
+// battlefieldCands offers a hidden battlefield pick's candidates (gorge
+// effHiddenPick's game-wide pool over a public origin: every player's
+// battlefield in seat order, each in its list order, matching the filter
+// with the resolving controller as "you"), the ones already picked left
+// out.
+//
+//go:noinline
+func (s *State) battlefieldCands(k *prep, in *kop.Instr, d *Decision) {
+	var ord [MaxPerm]Slot
+	n := 0
+	for p := uint8(0); p < 2; p++ {
+		if s.g.pickF&kop.SrOwnZone != 0 && p != s.g.pickP {
+			continue // DefinedPlayer$: that player's battlefield only
+		}
+		n = s.battlefieldOrder(p, s.ctrlM[p], ord[:], n)
+	}
+	src := s.resSrcSlot(k)
+	for _, sl := range ord[:n] {
+		o := s.perms[sl].obj
+		if s.picksHas(o) {
+			continue
+		}
+		if s.matchPermGen(k, in.F, sl, s.res.e.ctrl, src, layerFull) {
+			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+		}
+	}
+}
+
+// pickLeaves moves a picked permanent from the battlefield to zone z
+// (gorge settleChangeZoneMoveAs: one move per picked card, in pick order),
+// remembering it with SrRemember.
+//
+//go:noinline
+func (s *State) pickLeaves(k *prep, o Obj, z kop.Zone) {
+	s.leave(k, s.objs[o].slot, z, false)
+	if s.g.pickF&kop.SrRemember != 0 {
+		s.remember(o)
+	}
+	s.forgetFound(k, o)
+}
+
+// chooserOf is who answers a search / choose-move over player p's zone:
+// p, or the resolving controller with SrChooserYou (gorge Chooser$ You).
+func (s *State) chooserOf(p uint8) uint8 {
+	if s.g.pickF&kop.SrChooserYou != 0 {
+		return s.res.e.ctrl
+	}
+	return p
+}
+
+// anyCand reports whether the search / choose-move in progress has a
+// candidate (a reveal's Optional$ ask is posed only then: gorge effReveal
+// skips a target whose pool is empty before asking).
+func (s *State) anyCand(k *prep) bool {
+	var d Decision
+	s.searchCands(k, &d)
+	return d.N > 0
+}

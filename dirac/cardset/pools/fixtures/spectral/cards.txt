@@ -1,0 +1,11 @@
+# Spectral Adversary's phasing (dirac/oracle/spectral_test.go)
+Spectral Adversary
+Grizzly Bears
+Savannah Lions
+Pacifism
+Bonesplitter
+Shock
+Island
+Plains
+Forest
+Mountain

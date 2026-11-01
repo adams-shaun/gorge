@@ -1,0 +1,24 @@
+# the announced life-cost pool: PayLife<X> with SVar X
+# Count$xPaid on two spells and an activation, beside artifacts and
+# creatures at mana values 0..4 (dirac/oracle/paylifex_test.go)
+Fix What's Broken
+Vicious Rivalry
+Krumar Initiate
+Ornithopter
+Memnite
+Savannah Lions
+Basal Thrull
+Walking Corpse
+Alpha Myr
+Great Hart
+Nether Horror
+Broodhunter Wurm
+Gilded Sentinel
+Canal Monitor
+Feral Krushok
+Midnight Tilling
+Cache Grab
+Plains
+Swamp
+Forest
+Liliana's Indignation

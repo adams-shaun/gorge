@@ -1,0 +1,9 @@
+# Etali, Primal Conqueror's each-player dig and free casts on a transform card (dirac/oracle/etali_test.go)
+Etali, Primal Conqueror
+Llanowar Elves
+Grizzly Bears
+Shock
+Rimrock Knight
+Hill Giant
+Mountain
+Forest

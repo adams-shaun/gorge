@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_09360_WB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck e4d7510d92ed47488a6f6ad087f59cf2:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arahbo, the First Fang",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Blasphemous Edict",
+"count": 1
+},
+{
+"name": "Blossoming Sands",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Cat Collector",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Claws Out",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 2
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 2
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 2
+},
+{
+"name": "Meteor Golem",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 2
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+}
+]
+}

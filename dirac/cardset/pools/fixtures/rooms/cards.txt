@@ -1,0 +1,26 @@
+# the Room pool: the two-door Rooms, a counterspell, a
+# bounce, and a mana-value-filtered removal, for the oracle's
+# constructed lockstep (dirac/oracle/rooms_test.go)
+Bottomless Pool
+Defiled Crypt
+Derelict Attic
+Funeral Room
+Grand Entryway
+Meat Locker
+Restricted Office
+Roaring Furnace
+Surgical Suite
+Ticket Booth
+Unholy Annex
+Counterspell
+Boomerang
+Abrupt Decay
+Savannah Lions
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest
+Mind Spring
+Blaze

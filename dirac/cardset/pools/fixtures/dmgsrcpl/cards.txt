@@ -1,0 +1,23 @@
+# the damage-source-to-opponents pool: Champion of the Path,
+# Pyrotechnic Performer and Ingris Stingerquill beside Elementals, disguise
+# creatures, lifelink and infect sources, Shock and basics
+# (dirac/oracle/dmgsrcpl_test.go)
+Champion of the Path
+Pyrotechnic Performer
+Ingris Stingerquill
+Ashmouth Hound
+Child of Night
+Bogardan Firefiend
+Vampire Nighthawk
+Plague Stinger
+Priest of Urabrask
+Kolaghan Stormsinger
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Shock
+Plains
+Island
+Swamp
+Mountain
+Forest

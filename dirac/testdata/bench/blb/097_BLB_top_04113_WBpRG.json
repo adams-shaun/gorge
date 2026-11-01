@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_04113_WBpRG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 9f8da37552464e83a264ef5c30e35d5e:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Innkeeper's Talent, 1 Intrepid Rabbit, 1 Nocturnal Hunger, 1 Starseer Mentor, 1 Valley Questcaller, 1 Wick's Patrol -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Cindering Cutthroat",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Hop to It",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 9
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Shrike Force",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Stargaze",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Uncharted Haven",
+"count": 2
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

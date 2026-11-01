@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_31014_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck f9fe1114cf1b4b1a8a5f5b0cfb1de6c3:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Builder's Talent, 1 Crumb and Get It, 1 Osteomancer Adept, 2 Starscape Cleric, 1 Starseer Mentor -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 3
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Psychic Whorl",
+"count": 1
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Scales of Shale",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 12
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

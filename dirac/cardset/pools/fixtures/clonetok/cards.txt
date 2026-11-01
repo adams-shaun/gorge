@@ -1,0 +1,16 @@
+# a token copy of a clone-like card elects and applies its as-enters copy
+# (dirac/oracle/clonetok_test.go)
+Clone
+Stunt Double
+Mockingbird
+Feldon of the Third Path
+Nightmare Shepherd
+Cackling Counterpart
+Grizzly Bears
+Silvercoat Lion
+Memnite
+Ornithopter
+Doom Blade
+Island
+Swamp
+Mountain

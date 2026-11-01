@@ -1,0 +1,41 @@
+# the Pauper keyword-mechanics / mana-misc / singletons pool
+# MinMaxBlocker (Troll of Khazad-dum) and the other
+# MageZero Pauper carriers (dirac/oracle/pauperkw_test.go)
+# The Pauper keyword-mechanics / mana-misc / singletons pool:
+# MageZero Pauper-deck carriers from CARD-CENSUS.md beside creatures to
+# block and pay with, burn and basics, for the oracle's constructed
+# lockstep (dirac/oracle/pauperkw_test.go).
+Troll of Khazad-dûm
+Winding Way
+Walking Corpse
+Grizzly Bears
+Savannah Lions
+Llanowar Elves
+Raging Goblin
+Shock
+Swamp
+Forest
+Plains
+Mountain
+Masked Vandal
+Ornithopter
+Pacifism
+Bonesplitter
+Highway Robbery
+Sacred Cat
+Chain Lightning
+Aven Initiate
+Tah-Crop Skirmisher
+Smother
+Sunlance
+Island
+Sheoldred, the Apocalypse
+Night's Whisper
+Divination
+Dusk Rose Reliquary
+Maelstrom Pulse
+Fiery Temper
+Thrill of Possibility
+Tormenting Voice
+Faithless Looting
+Mind Rot

@@ -1,0 +1,23 @@
+# target-set constraints (total mana value cap, different names,
+# shared creature type, the triggered card's controller) (dirac/oracle/tgtset_test.go)
+Scout for Survivors
+Joshua, Phoenix's Dominant
+Behold the Sinister Six!
+Unbury
+Driver of the Dead
+Grizzly Bears
+Savannah Lions
+Llanowar Elves
+Elvish Mystic
+Raging Goblin
+Hill Giant
+Glory Seeker
+Lightning Bolt
+Shock
+Plains
+Swamp
+Mountain
+Forest
+Wrap in Flames
+Secret Tunnel
+Agility Bobblehead

@@ -1,0 +1,19 @@
+# the FIN Tiered pool (CR 702.183): the K:Tiered carriers
+# kgen lowers, beside cheap creatures and basics
+# (dirac/oracle/fintiered_test.go)
+# The FIN Tiered pool (CR 702.183): the K:Tiered carriers
+# kgen lowers (Fire Magic, Restoration Magic, Thunder Magic, Vincent's Limit
+# Break), beside cheap creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/fintiered_test.go). Ice Magic (LibraryPosition$
+# shuffle) and Tifa's Limit Break (NumAtt$ Triple) stay refused.
+Fire Magic
+Restoration Magic
+Thunder Magic
+Vincent's Limit Break
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Forest
+Mountain
+Plains
+Swamp

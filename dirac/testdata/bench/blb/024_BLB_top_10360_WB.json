@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_10360_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck d9b041906b88433a8ca765c7842b208d:0, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Head of the Homestead, 2 Nettle Guard, 1 Nocturnal Hunger, 1 Starfall Invocation, 1 Zoraline, Cosmos Caller -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Brave-Kin Duo",
+"count": 2
+},
+{
+"name": "Cindering Cutthroat",
+"count": 1
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Moonrise Cleric",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

@@ -1,0 +1,38 @@
+# the spell cast-provenance pool: SpellCast triggers
+# reading where the spell was cast from (Vega, Keeper of Secrets, Memory Worm, Kami
+# of Celebration, Dirgur Focusmage), the flashback spells whose resolution
+# reads its own provenance (Otterball Antics, Antiquities on the Loose),
+# adventures cast from exile, cheap spells and basics
+# (dirac/oracle/wascastspell_test.go)
+# The spell cast-provenance pool: SpellCast triggers that
+# read where the spell was cast from (Vega, Keeper of Secrets, Memory Worm, Kami of
+# Celebration, Dirgur Focusmage), the flashback spells whose resolution reads
+# its own provenance (Otterball Antics, Antiquities on the Loose), adventures
+# that are cast from exile, cheap spells and basics for the oracle's lockstep
+# (dirac/oracle/wascastspell_test.go). Mm'menon, the Right Hand is the
+# spend-restricted granted mana
+# (dirac/oracle/wascastrestrict_test.go) beside cheap artifacts to grant;
+# Interdimensional Web Watch is the same restriction on a Combo Any x2 source
+# (TestWascastrestrictWebWatch).
+Vega, the Watcher
+Keeper of Secrets
+Memory Worm
+Kami of Celebration
+Dirgur Focusmage
+Otterball Antics
+Antiquities on the Loose
+Sentinel of Lost Lore
+Frolicking Familiar
+Savannah Lions
+Mm'menon, the Right Hand
+Interdimensional Web Watch
+Ornithopter
+Memnite
+Healer's Hawk
+Coral Merfolk
+Hill Giant
+Shock
+Opt
+Plains
+Island
+Mountain

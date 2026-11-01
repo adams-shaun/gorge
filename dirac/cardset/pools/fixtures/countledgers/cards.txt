@@ -1,0 +1,27 @@
+# the pool: the four Count$ heads (Agency
+# Coroner's Sacrificed$Valid Card.IsSuspected, Magebane Lizard's
+# ThisTurnCast+ControlledBy TriggeredActivator, April O'Neil's
+# ThisTurnCast $CardTypes and Luxurious Locomotive's Count$CrewSize),
+# the MKM suspect-target carrier and the R/G and B/U support cards, for
+# the oracle's constructed lockstep (dirac/oracle/countledgers_test.go)
+# the four Count$ heads and their support.
+Agency Coroner
+Clandestine Meddler
+April O'Neil, Hacktivist
+Magebane Lizard
+Luxurious Locomotive
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Raging Goblin
+Shock
+Lightning Bolt
+Opt
+Divination
+Giant Growth
+Wind Drake
+Brineborn Cutthroat
+Island
+Mountain
+Forest
+Swamp

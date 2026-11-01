@@ -1,0 +1,14 @@
+# the EachDamage pool: Case of the Gateway Express's
+# one-batch hits and Moonlight Hunt's per-damager power
+# (dirac/oracle/eachdmg_test.go)
+Case of the Gateway Express
+Savannah Lions
+Healer's Hawk
+Plains
+Hill Giant
+Grizzly Bears
+Mountain
+Forest
+Shock
+Moonlight Hunt
+Timberpack Wolf

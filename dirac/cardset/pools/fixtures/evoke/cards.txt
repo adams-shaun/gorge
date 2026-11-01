@@ -1,0 +1,28 @@
+# the Evoke + Adamant pool (CR 702.74 / 702.5): the five
+# ECL Incarnations beside vanilla creatures (targets) and basics and gain
+# lands of all five colours, so both gates and evoke casts happen
+# (dirac/oracle/evoke_test.go)
+Catharsis
+Deceit
+Emptiness
+Vibrance
+Wistfulness
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Air Elemental
+Plains
+Island
+Swamp
+Mountain
+Forest
+Scoured Barrens
+Dismal Backwater
+Bloodfell Caves
+Rugged Highlands
+Jungle Hollow
+Thornwood Falls
+Wind-Scarred Crag
+Swiftwater Cliffs
+Blossoming Sands
+Tranquil Cove

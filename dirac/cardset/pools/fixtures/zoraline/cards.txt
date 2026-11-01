@@ -1,0 +1,11 @@
+# the Zoraline pool: a trigger's own mana-and-life cost,
+# the reflexive return with a finality counter (dirac/oracle/zoraline_test.go)
+Zoraline, Cosmos Caller
+Savannah Lions
+Walking Corpse
+Plains
+Swamp
+Murder
+Shock
+Hill Giant
+Mountain

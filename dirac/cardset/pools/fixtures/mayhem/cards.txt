@@ -1,0 +1,29 @@
+# the Mayhem pool (CR 702.187): the seven lowered SPM carriers
+# beside discard outlets (spell, cost and upkeep discards), self-mill
+# (Mulch), floating-mana sources, creatures and basics
+# (dirac/oracle/mayhem_test.go)
+Electro's Bolt
+Prison Break
+Raging Goblinoids
+Scarlet Spider, Kaine
+Spider-Islanders
+Swarm, Being of Bees
+Ultimate Green Goblin
+Tormenting Voice
+Cathartic Reunion
+Thrill of Possibility
+Mulch
+Satyr Wayfinder
+Burning-Tree Emissary
+Akki Rockspeaker
+Lotus Cobra
+Mardu Warshrieker
+Grizzly Bears
+Hill Giant
+Fire Elemental
+Air Elemental
+Giant Growth
+Disfigure
+Swamp
+Mountain
+Forest

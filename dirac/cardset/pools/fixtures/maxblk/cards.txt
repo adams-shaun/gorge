@@ -1,0 +1,21 @@
+# the MinMaxBlocker Max$ 1 pool: the Card.Self, equipped,
+# enchanted and counter/power-scoped "can't be blocked by more than one
+# creature" carriers beside menace attackers, cheap creatures and basics,
+# for the oracle's constructed lockstep (dirac/oracle/maxblk_test.go)
+Boggart Brute
+Flopsie, Bumi's Buddy
+Forest
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Island
+Meltstrider's Resolve
+Michelangelo, Mutant BFF
+Mountain
+Plains
+Professional Wrestler
+Rope
+Safewright Cavalry
+Swamp
+Viashino Runner
+Walking Corpse

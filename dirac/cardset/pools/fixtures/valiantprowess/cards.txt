@@ -1,0 +1,5 @@
+# one permanent's targeted and spell-cast triggers from one spell, for the oracle's
+# constructed lockstep (dirac/oracle/valiantprowess_test.go)
+Emberheart Challenger
+Might of the Meek
+Mountain
