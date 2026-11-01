@@ -103,12 +103,16 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "stale")
 		return
 	}
+	ss := h.hub.seat(seatKey{table: t, match: k, seat: claim.Seat})
+	// Concede and choose_name reach the registry as any native answer does, but
+	// the seat's client is still speaking v2.
+	defer ss.hold()()
 	if msg.Human != nil {
 		if msg.Human.actions() > 1 {
 			writeError(w, http.StatusBadRequest, "bad_request")
 			return
 		}
-		if !h.hub.seat(seatKey{table: t, match: k, seat: claim.Seat}).open(id) {
+		if !ss.open(id) {
 			writeError(w, http.StatusConflict, "stale")
 			return
 		}
@@ -143,7 +147,7 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	if msg.CandidateID == nil || !h.hub.seat(seatKey{table: t, match: k, seat: claim.Seat}).answer(id, *msg.CandidateID) {
+	if msg.CandidateID == nil || !ss.answer(id, *msg.CandidateID) {
 		writeError(w, http.StatusConflict, "stale")
 		return
 	}

@@ -118,6 +118,9 @@ func (a *scripted) NativeOnly(n humanseat.NativeOnly) {
 	}
 }
 
+// connected is Config.Held for a client that stays connected all game.
+func connected() bool { return true }
+
 func repoOptions(t *testing.T) host.Options {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
@@ -235,11 +238,12 @@ func playV2(t *testing.T, tableSeed uint64, think time.Duration, ans *scripted) 
 	o := repoOptions(t)
 	o.ThinkTimeout = think
 	o.Seats = func(names []string, seed uint64) []seat.Seat {
-		tap, err := humanseat.New(humanseat.Config{Seats: len(names), Format: "constructed", Answerer: ans})
+		tap, err := humanseat.New(humanseat.Config{Seats: len(names), Format: "constructed", Answerer: ans, Held: connected})
 		if err != nil {
 			t.Errorf("humanseat.New: %v", err)
 			return nil
 		}
+		tap.Attach()
 		h := host.NewHumanSeat()
 		h.SetTap(recTap{tap, rec})
 		out := hostBots(t, len(names), seed)
@@ -475,7 +479,10 @@ func TestV2HumanSeatUndoDuringARead(t *testing.T) {
 	}
 	o.TapHuman = func(_ host.TableID, _ int, _ bool, mc *bots.MatchContext) (host.HumanTap, error) {
 		var err error
-		tap.Seat, err = humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: &scripted{bot: referenceBot(t, tableSeed)}})
+		tap.Seat, err = humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: &scripted{bot: referenceBot(t, tableSeed)}, Held: connected})
+		if err == nil {
+			tap.Seat.Attach()
+		}
 		return tap, err
 	}
 	r, err := host.New(o)

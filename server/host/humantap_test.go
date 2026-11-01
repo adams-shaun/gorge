@@ -20,6 +20,7 @@ type fakeTap struct {
 	attached atomic.Int32
 	parked   atomic.Int32
 	engine   atomic.Bool
+	native   atomic.Int32
 }
 
 func (f *fakeTap) AttachMatch(mc *bots.MatchContext) error {
@@ -32,6 +33,8 @@ func (f *fakeTap) Parked(_ context.Context, _ view.View, d decision.Decision, an
 	f.parked.Add(1)
 	go func() { _ = answer(legalIntent(&d)) }()
 }
+
+func (f *fakeTap) NativeAnswer() { f.native.Add(1) }
 
 func tapTable(t *testing.T, autoMana bool, tap HumanTap) (*Registry, TableID) {
 	t.Helper()
@@ -89,6 +92,55 @@ func TestHumanTapSeesTheLiveEngineAndAnswersThroughTheSeat(t *testing.T) {
 	if tap.parked.Load() < 10 {
 		t.Fatalf("tap saw %d parked decisions", tap.parked.Load())
 	}
+	if tap.native.Load() != 0 {
+		t.Fatalf("the tap's own answers reported as %d native answers", tap.native.Load())
+	}
+}
+
+// TestHumanTapHearsANativeAnswerBeforeTheNextPark: an answer through the
+// registry tells the tap once it is accepted for delivery, and a refused one
+// doesn't.
+func TestHumanTapHearsANativeAnswerBeforeTheNextPark(t *testing.T) {
+	tap := &nativeTap{}
+	r, id := tapTable(t, true, tap)
+	d := waitPending(t, r, id, 1, 0)
+	bad := legalIntent(d)
+	bad.Seq++
+	if err := r.SubmitIntent(id, 1, 0, bad); err == nil {
+		t.Fatal("a stale answer was accepted")
+	}
+	if n := tap.native.Load(); n != 0 {
+		t.Fatalf("a refused answer told the tap %d times", n)
+	}
+	parked := tap.parked.Load()
+	tap.onNative = func() {
+		if p := tap.parked.Load(); p != parked {
+			t.Errorf("parked moved from %d to %d before NativeAnswer", parked, p)
+		}
+	}
+	if err := r.SubmitIntent(id, 1, 0, legalIntent(d)); err != nil {
+		t.Fatal(err)
+	}
+	if n := tap.native.Load(); n != 1 {
+		t.Fatalf("an accepted answer told the tap %d times", n)
+	}
+}
+
+// nativeTap watches decisions park and answers none of them.
+type nativeTap struct {
+	fakeTap
+	onNative func()
+}
+
+func (n *nativeTap) Parked(_ context.Context, _ view.View, _ decision.Decision, _ func(decision.Intent) error, _ <-chan struct{}) {
+	n.parked.Add(1)
+}
+
+func (n *nativeTap) NativeAnswer() {
+	if n.onNative != nil {
+		n.onNative()
+	}
+	n.native.Add(1)
 }
 
 // TestHumanTapRefusesAManualManaTable: the tap answers from payment plans, so

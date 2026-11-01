@@ -213,7 +213,7 @@ func (s *HumanSeat) park(ctx context.Context, v view.View, d decision.Decision, 
 	tap := s.tap
 	s.mu.Unlock()
 	if tap != nil {
-		tap.Parked(ctx, v, *owned.Clone(), func(in decision.Intent) error { return s.submitAdmittedWait(in, nil, false, true) }, slot.abandoned)
+		tap.Parked(ctx, v, *owned.Clone(), func(in decision.Intent) error { return s.submitVia(in, nil, false, true, true) }, slot.abandoned)
 	}
 	return &parking{s: s, slot: slot, ctx: ctx, v: v, d: owned, timeout: timeout, caretaker: caretaker, undo: undo, fires0: fires0}
 }
@@ -425,6 +425,13 @@ func (s *HumanSeat) submitAdmitted(in decision.Intent, admit func(decision.Decis
 // (cancellation, undo, or play returning with this parking not yet awaited)
 // cannot strand the caller: every one of those exits closes abandoned.
 func (s *HumanSeat) submitAdmittedWait(in decision.Intent, admit func(decision.Decision, decision.Intent) error, auto, wait bool) error {
+	return s.submitVia(in, admit, auto, wait, false)
+}
+
+// submitVia is submitAdmittedWait saying whether the answer is the tap's own. Any
+// other answer tells the tap once it has claimed the slot, before the match
+// goroutine can receive it.
+func (s *HumanSeat) submitVia(in decision.Intent, admit func(decision.Decision, decision.Intent) error, auto, wait, viaTap bool) error {
 	in = decision.CloneIntent(in)
 	s.mu.Lock()
 	if s.slot == nil {
@@ -446,7 +453,11 @@ func (s *HumanSeat) submitAdmittedWait(in decision.Intent, admit func(decision.D
 	// racing submit is rejected above instead of parking on a verdict that can
 	// never come.
 	s.slot = nil
+	tap := s.tap
 	s.mu.Unlock()
+	if tap != nil && !viaTap {
+		tap.NativeAnswer()
+	}
 	ans := slotAnswer{in: in, auto: auto}
 	if wait {
 		ans.reply = make(chan error, 1)

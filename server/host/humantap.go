@@ -17,7 +17,7 @@ import (
 // and rewinds exactly as a plain one does. The tap only watches decisions park
 // and answers them through the seat's own submit path.
 //
-// A HumanSeat without a tap (every seat today) pays one nil check in park.
+// A HumanSeat without a tap pays one nil check in park and one in submit.
 type HumanTap interface {
 	// AttachMatch is bots.MatchSeat: the tap receives the live game and the
 	// Projection lock exactly as a bot seat does. An error crashes the match.
@@ -33,6 +33,11 @@ type HumanTap interface {
 	// delivered: think timeout or cancellation (the caretaker answered), an
 	// undo. The engine is then about to move, so the tap must not read it.
 	Parked(ctx context.Context, v view.View, d decision.Decision, answer func(decision.Intent) error, gone <-chan struct{})
+	// NativeAnswer is called when an answer from anywhere but the tap's own
+	// answer func claimed the parked decision. It runs on the submitter's
+	// goroutine before the match goroutine receives that answer, so it comes
+	// before the next Parked. It must not block.
+	NativeAnswer()
 }
 
 // SetTap installs the tap before the match starts (Options.Seats builds the

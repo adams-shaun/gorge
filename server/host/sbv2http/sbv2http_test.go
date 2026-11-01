@@ -409,6 +409,14 @@ func matchDone(t *testing.T, r *host.Registry, table host.TableID) (bool, string
 // openSBV2Stream opens the SSE route and decodes each pushed state document.
 func openSBV2Stream(t *testing.T, base, path, token string) <-chan stateBody {
 	t.Helper()
+	out, cancel := dialSBV2Stream(t, base, path, token)
+	t.Cleanup(cancel)
+	return out
+}
+
+// dialSBV2Stream is openSBV2Stream for a test that closes the connection itself.
+func dialSBV2Stream(t *testing.T, base, path, token string) (<-chan stateBody, context.CancelFunc) {
+	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path, nil)
 	if err != nil {
@@ -452,8 +460,7 @@ func openSBV2Stream(t *testing.T, base, path, token string) <-chan stateBody {
 			}
 		}
 	}()
-	t.Cleanup(cancel)
-	return out
+	return out, cancel
 }
 
 func getSBV2State(t *testing.T, base, path, token string) (int, []byte) {
