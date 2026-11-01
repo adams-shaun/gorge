@@ -96,4 +96,4 @@ nothing. `dirac/oracle` plays it against `engine/rules` decision by decision.
 
 ## Not in scope
 
-Promoting `search` or `neteval`. Any change to gorge-compliance.
+Any other part of the private module. Any change to gorge-compliance.

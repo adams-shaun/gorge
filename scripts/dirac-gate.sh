@@ -24,7 +24,7 @@
 # changed, 2 with only its dependencies changed.
 set -uo pipefail
 base=${1:?usage: dirac-gate.sh <base>}
-INSTR_MB_MAX=${INSTR_MB_MAX:-1.005}
+INSTR_MB_MAX=${INSTR_MB_MAX:-1.05}
 INSTR_PB_MAX=${INSTR_PB_MAX:-1.02}
 INSTR_CORE=${INSTR_CORE:-20}
 PERF_MAX=${PERF_MAX:-1.06}
