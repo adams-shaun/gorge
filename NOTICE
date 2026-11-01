@@ -4,8 +4,10 @@ Source: https://github.com/jackmaiorino/spellbench
 Revision: 1beea4c104911bba77a5672c644e570ed9afe28a
 License: MIT
 
-Portions of server/spellbench (agent, neutral and the A1 packages) and cmd/spellbench-gorge-agent and cmd/spellbench-gorge-env are derived from
-SpellBench's gorge engine adapter.
+Portions of server/spellbench (agent, catalog, env, gamecfg, identity, internal,
+mapping, minihost, neutral, observe, protocol, secrets, session, testdata,
+validate, wire and xview), cmd/spellbench-gorge-agent and
+cmd/spellbench-gorge-env are derived from SpellBench's gorge engine adapter.
 
 MIT License
 
@@ -38,13 +40,44 @@ MTGJSON. draft/limited/setdata/mtgjson and draft/limited/setdata/sets are trimme
 from MTGJSON (https://mtgjson.com, MIT, copyright Zachary Halpern); see
 draft/limited/setdata/mtgjson/LICENSE-MTGJSON.txt.
 
-XMage. engine/rules/testdata/sets lists card names taken from manifests derived
-from XMage (MIT, https://github.com/magefree/mage); see gorge-compliance's NOTICE.
+XMage. engine/rules/testdata/sets and dirac/cardset/setlists list card names taken
+from manifests derived from XMage (MIT, https://github.com/magefree/mage); see
+gorge-compliance's NOTICE.
 
 mtg-kernel. bots/spellbench/decks/pauper-kernel and
 cmd/enginebench/testdata/decks/burn.json derive from the SpellBench pauper deck
 catalog in jackmaiorino/mtg-kernel (MIT, https://github.com/jackmaiorino/mtg-kernel),
 data/pauper_pool_v1.json.
+
+MageZero
+Copyright (c) 2025 Will Wroble
+Source: https://github.com/WillWroble/MageZero
+License: MIT
+
+dirac/feat/mzgraph.go, dirac/feat/mzxgraph.go and dirac/feat/mzxgraph_test.go
+replicate MageZero's typed state graph and the state encoder it trains on, which
+lives in MageZero's fork of XMage (https://github.com/WillWroble/mage, branch
+graph-encoder, MIT, Copyright (c) 2010 betasteward@gmail.com).
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 Magic: The Gathering and its card names are trademarks of Wizards of the Coast.
 gorge is not affiliated with or endorsed by Wizards of the Coast.
