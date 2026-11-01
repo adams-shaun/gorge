@@ -740,6 +740,12 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		cv.ManaCost = f.ManaCost
 		cv.PrintedPT = f.PT
 		cv.Printing = Printing{Name: f.Name}
+		// CR 208.3: a noncreature has no P/T for counters to move. A printed pair
+		// (a Vehicle) still shows, and a permanent the viewer may look at while
+		// it is face down is the 2/2 CR 708.2a makes it, whatever its face says.
+		if !p.noDerived && o.Zone == state.ZBattlefield && !o.FaceDown && !strings.Contains(cv.Types, "Creature") {
+			cv.Power, cv.Toughness = int32(f.Power()), int32(f.Toughness())
+		}
 		// The colour identity (CR 903.4), a printed fact of the face. A
 		// colourless face's zero mask is indistinguishable from an
 		// unreadable card's, which is why the field is documented as

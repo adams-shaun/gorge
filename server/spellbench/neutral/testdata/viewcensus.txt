@@ -7,9 +7,7 @@ players[].battlefield[].blocked_by[]
 players[].battlefield[].exiled_cards[]
 players[].battlefield[].id
 players[].battlefield[].keywords[]
-players[].battlefield[].power	rare
 players[].battlefield[].token
-players[].battlefield[].toughness	rare
 players[].command[].id
 players[].command[].keywords[]
 players[].command[].mana_cost

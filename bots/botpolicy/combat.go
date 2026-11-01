@@ -402,6 +402,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			}
 			pumpPower, pumpToughness := effects.CastPumpBonus(f.SpellAbility())
 			pumpOwnCombatants := effects.CastPumpOwnCombatants(f.SpellAbility())
+			power, toughness = cardPT(f, o, hasTypeWord(words, "Creature"), power, toughness)
 			*b.Cards.slot(id) = Card{
 				PrintedName:    f.Name,
 				Creature:       hasTypeWord(words, "Creature"),
@@ -497,6 +498,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			}
 			f := o.Face()
 			words := effectiveTypeWords(f, id, ch)
+			power, toughness = cardPT(f, o, hasTypeWord(words, "Creature"), power, toughness)
 			*b.Cards.slot(id) = Card{
 				PrintedName:    f.Name,
 				Creature:       hasTypeWord(words, "Creature"),
@@ -568,6 +570,16 @@ func fillPublicCards(g *state.Game, b *Board, colourOf func(*state.Object, *card
 		}
 		b.PublicCards.Set(id, pc)
 	}
+}
+
+// cardPT is the P/T a Card carries: a noncreature permanent's printed pair, since it
+// has no P/T for counters to move (CR 208.3), and otherwise the derived one. The view
+// projects the same; a face-down permanent is a creature whatever its face says.
+func cardPT(f *cards.Face, o *state.Object, creature bool, power, toughness int32) (int32, int32) {
+	if creature || o.FaceDown || o.Zone != state.ZBattlefield {
+		return power, toughness
+	}
+	return int32(f.Power()), int32(f.Toughness())
 }
 
 // fillBlocks is the second creature pass: it records, for every creature
