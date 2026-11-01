@@ -592,7 +592,7 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	var opts []decision.Option
 	for idx, p := range e.protectorOpponents(o.Controller) {
 		opts = append(opts, decision.Option{Index: idx, Kind: "protector",
-			Label: e.G.Players[p].Name, Obj: o.ID, Player: p})
+			Label: seatFacingName(e.G, p), Obj: o.ID, Player: p})
 	}
 	if len(opts) == 0 {
 		return false

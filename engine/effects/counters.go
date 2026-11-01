@@ -1156,7 +1156,7 @@ func proliferateOnce(h Host, c *Ctx, sa *cards.SA) {
 		label := "a player"
 		if t.IsPlayer {
 			if t.Player >= 0 && int(t.Player) < len(g.Players) {
-				label = g.Players[t.Player].Name
+				label = g.SeatFacingName(t.Player)
 			}
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 				Kind: "proliferate", Label: label, Obj: 0, Player: t.Player})

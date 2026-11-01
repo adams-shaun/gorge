@@ -324,7 +324,7 @@ func (e *Engine) poseOpponentPick(controller state.PlayerID, source state.ObjID,
 		Prompt: "Choose which opponent answers the target ask for " + e.targetName(source)}
 	for _, p := range e.livingOpponents(controller) {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-			Kind: "player", Label: e.G.Players[p].Name, Player: p})
+			Kind: "player", Label: seatFacingName(e.G, p), Player: p})
 	}
 	e.oppSel = oppSelectState{stage: stage, ctl: controller, source: source, line: sa.Line}
 	e.choosing = chooseOppPick
@@ -468,7 +468,7 @@ func (e *Engine) OpponentPickAsk(c *effects.Ctx, sa *cards.SA) (state.PlayerID, 
 		Prompt: "Choose which opponent answers the target ask for " + e.targetName(c.Source)}
 	for _, p := range e.livingOpponents(c.Controller) {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-			Kind: "player", Label: e.G.Players[p].Name, Player: p})
+			Kind: "player", Label: seatFacingName(e.G, p), Player: p})
 	}
 	// The selection is answered in place from the tape; the pin is what the
 	// walk's later ChooserFor reads (midChooserCore).

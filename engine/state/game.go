@@ -1,6 +1,10 @@
 package state
 
-import "github.com/adams-shaun/gorge/engine/cards"
+import (
+	"strconv"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+)
 
 type Player struct {
 	ID          PlayerID
@@ -801,6 +805,26 @@ func NewGameInto(names []string, life int32, capacity int, spare []Object) *Game
 		g.Players = append(g.Players, Player{ID: PlayerID(i), Name: n, Life: life})
 	}
 	return g
+}
+
+// SeatFacingName is the seat's identity in client-facing prompt and option-label
+// text. PlayerName is supplied by the table and identifies a human even when two
+// players chose the same deck; Name is the deterministic fallback for bots or
+// callers without display names. Prompts and option labels are not chain content
+// (rules' ask emits only DecisionAsk{Kind}), so composing them from PlayerName
+// moves no chain head, but event text must stay on Name
+// (engine/rules/playername_test.go). The final fallback is defensive: malformed
+// state must not panic while constructing a client decision.
+func (g *Game) SeatFacingName(p PlayerID) string {
+	if g != nil && int(p) >= 0 && int(p) < len(g.Players) {
+		if name := g.Players[p].PlayerName; name != "" {
+			return name
+		}
+		if name := g.Players[p].Name; name != "" {
+			return name
+		}
+	}
+	return "seat " + strconv.Itoa(int(p))
 }
 
 func (g *Game) zoneIndex(z Zone, p PlayerID) int { return int(p)*numZones + int(z) }

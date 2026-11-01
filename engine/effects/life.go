@@ -178,7 +178,7 @@ func effSetLife(h Host, c *Ctx, sa *cards.SA) {
 				Min: 0, Max: len(pool), Prompt: sa.ParamStr(cards.PKChoicePrompt),
 				ResumeKind: "choice", ResumeSA: sa, ResumeTarget: 0}
 			for j, p := range pool {
-				d.Options = append(d.Options, decision.Option{Index: j, Kind: "player", Player: p, Label: g.Players[p].Name})
+				d.Options = append(d.Options, decision.Option{Index: j, Kind: "player", Player: p, Label: g.SeatFacingName(p)})
 			}
 			ans, ok := AskTape(h, d)
 			if !ok {
@@ -202,7 +202,7 @@ func effSetLife(h Host, c *Ctx, sa *cards.SA) {
 		for ; i < subsetSize; i++ {
 			recipient := c.Chosen[i].Player
 			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Source: c.Source,
-				Min: 1, Max: 1, Prompt: fmt.Sprintf("Choose a life total for %s", g.Players[recipient].Name),
+				Min: 1, Max: 1, Prompt: fmt.Sprintf("Choose a life total for %s", g.SeatFacingName(recipient)),
 				ResumeKind: "choice", ResumeSA: sa, ResumeTarget: 1 + i,
 			}
 			for _, src := range c.Chosen[:subsetSize] {
@@ -215,7 +215,7 @@ func effSetLife(h Host, c *Ctx, sa *cards.SA) {
 				}
 				if !used {
 					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "player", Player: src.Player,
-						Label: fmt.Sprintf("%d life of %s", g.Players[src.Player].Life, g.Players[src.Player].Name)})
+						Label: fmt.Sprintf("%d life of %s", g.Players[src.Player].Life, g.SeatFacingName(src.Player))})
 				}
 			}
 			if ans, ok := AskTape(h, d); ok {

@@ -124,7 +124,7 @@ func (e *Engine) giftAsk() bool {
 			continue
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "gift_promise",
-			Player: p, Label: "Promise " + pay.SeatName(e.G, p) + " " + gift})
+			Player: p, Label: "Promise " + seatFacingName(e.G, p) + " " + gift})
 	}
 	e.choosing = chooseCast
 	e.ask(d)

@@ -37,9 +37,9 @@ func effMyriad(h Host, c *Ctx, sa *cards.SA) {
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
 			Min: 1, Max: 1, Source: c.Source, ResumeKind: "myriad", ResumeSA: sa,
 			ResumeTarget: start,
-			Prompt:       "Myriad: create a copy attacking " + g.Players[q].Name + "?",
+			Prompt:       "Myriad: create a copy attacking " + g.SeatFacingName(q) + "?",
 			Options: []decision.Option{
-				{Index: 0, Kind: "yes", Label: "Create a copy attacking " + g.Players[q].Name, Obj: c.Source, Player: c.Controller},
+				{Index: 0, Kind: "yes", Label: "Create a copy attacking " + g.SeatFacingName(q), Obj: c.Source, Player: c.Controller},
 				{Index: 1, Kind: "no", Label: "Don't create a copy", Obj: c.Source, Player: c.Controller},
 			}}
 		if ans, ok := AskTape(h, d); ok {

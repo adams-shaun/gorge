@@ -49,7 +49,7 @@ func damageOptionalPrompt(h Host, c *Ctx, sa *cards.SA, n int32) string {
 		t := ts[0]
 		if t.IsPlayer {
 			if g := h.Game(); int(t.Player) < len(g.Players) {
-				target = g.Players[t.Player].Name
+				target = g.SeatFacingName(t.Player)
 			}
 		} else {
 			target = objName(h.Game(), t.Obj)
@@ -224,7 +224,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 						o.Kind = "player"
 						o.Player = t.player
 						if g := h.Game(); int(t.player) < len(g.Players) {
-							o.Label = g.Players[t.player].Name
+							o.Label = g.SeatFacingName(t.player)
 						}
 					}
 					opts = append(opts, o)

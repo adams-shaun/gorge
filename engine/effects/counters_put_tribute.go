@@ -47,7 +47,7 @@ func putCounterTribute(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, n int
 			ResumeSA: sa, Prompt: "Choose an opponent to offer the tribute"}
 		for _, p := range opponents {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-				Kind: "player", Label: g.Players[p].Name, Player: p})
+				Kind: "player", Label: g.SeatFacingName(p), Player: p})
 		}
 		// No-host stand-in: the first opponent in seat order -- the exact
 		// pick botpolicy's clamp fallback answers, so a bot-answered ask
