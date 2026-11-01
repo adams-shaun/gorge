@@ -11,6 +11,11 @@ into an IR; the engine implements the primitives that IR references. See
 - `engine/`: the rules core (`cards state decision events effects rules view
   replay eventdiff deck`, `game` and its `gorgegame`, the seam a host runs an
   engine through, and `seat`, the `Seat` contract only). Imports nothing outside.
+- `dirac/`: the second engine, in lockstep with `engine/` and built for machine
+  learning: `kop cardset vanilla feat crcoverage search/{hbot,mull}`, `oracle` (which
+  plays it against `engine/rules`; `oracle/cmd/{kfuzz,khbot,ksbt}`), `kgen` and
+  `cmd/{kgen,sbv2dirac}`. The core imports nothing outside `dirac/`; nothing in
+  `engine/` imports it. See [`dirac/README.md`](dirac/README.md).
 - `server/`: `gorged` (the importable server; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`), `protocol`, `manabrew`, `divergence`.
 - `bots/`: `botpolicy`, `heuristic` (the default bot), the registry, hosted bots and their inference runtime.
 - `cmd/`: product and developer tools. `internal/`: ratchets, test support, generators.
@@ -52,6 +57,14 @@ Bot and policy work starts at [`docs/site/bots/`](docs/site/bots/index.md).
   `engine/cards/boundary_test.go` fails the build if any are tracked.
 - **Never commit kgen's generated card tables, or anything private.** Tables are mechanical translations of GPL-3.0 scripts and live in a gitignored directory. `internal/archtest`'s `TestPublicBoundary` fails on them, on private paths, and on any import of the private module.
 - **No cgo, no third-party deps** in the card pipeline and rules core.
+- **A card dirac supports plays identically to gorge, decision by decision.** gorge
+  leads. A gorge change that alters behaviour on a supported card fixes dirac in the
+  same change, or makes kgen refuse the card by name (`kgen -refuse`). There is no
+  list of tolerated divergences; capacity stalls are declared limits and always
+  counted. `scripts/dirac-gate.sh` holds this.
+- **`dirac.State` holds no references** beyond its views of one pointer-free buffer
+  and its fork pool, and the transition loop allocates nothing
+  (`TestStateIsPointerFree`, `TestStateSize`, the gate's allocation and instruction steps).
 - **All state mutation goes through `events.Apply`.** If you are writing to a
   `state.Game` field outside `events`, you are introducing a replay bug.
   `events.Kind` is append-only: every kind is appended after all earlier kinds,
@@ -69,6 +82,8 @@ make report               # card coverage against implemented primitives
 make sim                  # build mtgsim and play 20 verified 4-seat games
 make test lint
 make conformance          # the focused CR 601/733 conformance audit
+make dirac-tables         # dirac's binary card tables, under .cards; needed before any dirac test plays a game
+make fresh-clone-check    # dirac with no corpus: builds, tests skip, none fail
 ```
 
 **Test budget:** every test fits 4 GB RSS, 4 vCPU and 1 minute wall; one outside
@@ -101,6 +116,8 @@ Coverage and golden figures change with every merge, so none are written here.
 - `engine/rules/testdata/heads/<seats>.txt` hold the golden chain heads
   (`TestHeads`, invariant 9).
 - `make report` prints corpus coverage at the `FORGE_REF` pin.
+- `dirac/docs/support.md` is generated (`TestSupportDocIsCurrent`): dirac's lowered,
+  refused, unverified and supported cards per set.
 
 Re-measure before quoting.
 

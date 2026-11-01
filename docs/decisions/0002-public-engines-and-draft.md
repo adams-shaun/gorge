@@ -53,10 +53,33 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
 
 ## Target root, additions to ADR 0001
 
-    dirac/     kop cardset vanilla feat crcoverage search/{hbot,mull} oracle sbv2 cmd/ docs/
+    dirac/     kop cardset vanilla feat crcoverage search/{hbot,mull} oracle kgen cmd/ docs/ support/
     draft/     limited/ event eventhost gorgedevents draftlab
     cmd/       adds draftsim labdemo extagent
     examples/  adds extagent
+
+## dirac
+
+`dirac/` holds a second rules engine: a fixed-layout core plus one pointer-free
+variable buffer per state, binary card tables and a transition loop that allocates
+nothing. `dirac/oracle` plays it against `engine/rules` decision by decision.
+
+- **Boundary.** The core (`dirac`, `kop`, `cardset`, `vanilla`, `feat`, `search/*`)
+  imports nothing outside `dirac/` but the module root's embedded table sources
+  (`TestDiracCoreImportsNoGorge`). `engine/` imports nothing from `dirac/`
+  (`TestEngineTierImportsNeitherDraftNorDirac`). Only `dirac/oracle`, `dirac/kgen` and
+  the tests that read synthetic pools reach the raw tables
+  (`TestOnlyTheOracleReadsRawTables`).
+- **Tables.** `make dirac-tables` writes them under the gitignored `.cards`, keyed by
+  corpus and kgen sources. They are never committed (`TestNoGeneratedTablesTracked`).
+  A clone without a corpus builds and its corpus-dependent tests skip
+  (`make fresh-clone-check`).
+- **Support.** A card is supported when kgen lowers it, it is not refused by name in
+  `dirac/support/refused/` and it has evidence in `dirac/support/evidence/`: clean
+  lockstep games. `dirac/docs/support.md` is generated from those lists.
+- **Gate.** `scripts/dirac-gate.sh <base>` runs on a change to dirac or to anything
+  dirac's oracle plays against. The whole oracle runs before a merge to `main`, not
+  per change.
 
 ## What this replaces in ADR 0001
 
@@ -73,5 +96,4 @@ and `kgen` import gorge's engine, and `gorged` will import dirac's adapter.
 
 ## Not in scope
 
-Promoting `search` or `neteval`. Renaming dirac's `zz…`-prefixed files, whose order
-is significant. Any change to gorge-compliance.
+Promoting `search` or `neteval`. Any change to gorge-compliance.
