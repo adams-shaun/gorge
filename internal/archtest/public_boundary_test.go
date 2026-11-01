@@ -121,7 +121,7 @@ var boundaryRules = []boundaryRule{
 		return ""
 	}},
 	{"dirac-binary", func(p string, blob []byte) string {
-		if inDirac(p) && isBinary(blob) {
+		if inDirac(p) && isBinary(blob) && !isDeckSlice(p) {
 			return "binary file (a NUL byte in its first 8000 bytes)"
 		}
 		return ""
@@ -175,7 +175,14 @@ var boundaryRules = []boundaryRule{
 	}},
 }
 
-func inDirac(p string) bool     { return strings.HasPrefix(p, "dirac/") }
+func inDirac(p string) bool { return strings.HasPrefix(p, "dirac/") }
+
+// isDeckSlice is the one binary under dirac/: the deck lists the lockstep gate
+// plays, compressed because the slice is thousands of small files.
+func isDeckSlice(p string) bool {
+	return path.Base(p) == "decks.tar.gz" && path.Dir(path.Dir(p)) == "dirac/oracle/testdata/slices"
+}
+
 func inMovedTree(p string) bool { return inDirac(p) || strings.HasPrefix(p, "draft/") }
 
 // inLabelFreeTree is where ticket labels are rejected: the moved trees and the
