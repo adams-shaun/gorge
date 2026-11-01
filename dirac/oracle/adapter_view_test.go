@@ -203,10 +203,52 @@ func onlyServedPotential(gv, sv any) {
 	}
 }
 
+// battlefieldGrants is every keyword a static on the battlefield adds.
+func battlefieldGrants(g *state.Game) map[string]bool {
+	out := map[string]bool{}
+	for p := range g.Players {
+		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(p)) {
+			f := g.Obj(id).Face()
+			if f == nil {
+				continue
+			}
+			for i := range f.Statics {
+				for _, w := range strings.Split(f.Statics[i].Params["AddKeyword"], " & ") {
+					out[strings.TrimSpace(w)] = true
+				}
+			}
+		}
+	}
+	return out
+}
+
 // dropBattlefieldGrants takes a battlefield-only static's keyword off cards in the
 // other zones of gorge's view: "creatures you control have trample" means permanents
-// (CR 109.2), yet gorge's derived keywords also list it on a library or hand card.
-func dropBattlefieldGrants(gv, sv any) {
+// (CR 109.2), yet gorge's derived keywords also list it on a library or hand card. Only
+// a word such a static adds, beyond what the served card has, is taken off.
+func dropBattlefieldGrants(gv, sv any, granted map[string]bool) {
+	fix := func(gc, sc map[string]any) {
+		gl, _ := gc["keywords"].([]any)
+		sl, _ := sc["keywords"].([]any)
+		have := map[any]int{}
+		for _, w := range sl {
+			have[w]++
+		}
+		var kept []any
+		for _, w := range gl {
+			if have[w] > 0 {
+				have[w]--
+				kept = append(kept, w)
+			} else if name, _ := w.(string); !granted[name] {
+				kept = append(kept, w)
+			}
+		}
+		if len(gl) > 0 && len(kept) == 0 {
+			delete(gc, "keywords")
+		} else if len(gl) > 0 {
+			gc["keywords"] = kept
+		}
+	}
 	gp, sp := gv.(map[string]any)["players"].([]any), sv.(map[string]any)["players"].([]any)
 	for i := range gp {
 		gm, sm := gp[i].(map[string]any), sp[i].(map[string]any)
@@ -215,10 +257,7 @@ func dropBattlefieldGrants(gv, sv any) {
 			sl, _ := sm[z].([]any)
 			for j := range gl {
 				if j < len(sl) {
-					gl[j].(map[string]any)["keywords"] = sl[j].(map[string]any)["keywords"]
-					if sl[j].(map[string]any)["keywords"] == nil {
-						delete(gl[j].(map[string]any), "keywords")
-					}
+					fix(gl[j].(map[string]any), sl[j].(map[string]any))
 				}
 			}
 		}
@@ -230,10 +269,7 @@ func dropBattlefieldGrants(gv, sv any) {
 			gc, ok := gs[i].(map[string]any)["card"].(map[string]any)
 			sc, ok2 := ss[i].(map[string]any)["card"].(map[string]any)
 			if ok && ok2 {
-				gc["keywords"] = sc["keywords"]
-				if sc["keywords"] == nil {
-					delete(gc, "keywords")
-				}
+				fix(gc, sc)
 			}
 		}
 	}
@@ -255,7 +291,7 @@ func viewCheck(d *viewDiffs, positions *int) func(ref *GorgeSide, a *adapter.Gam
 				}
 				keepPotentialFor(gv, holder)
 				keepPotentialFor(sv, holder)
-				dropBattlefieldGrants(gv, sv)
+				dropBattlefieldGrants(gv, sv, battlefieldGrants(ref.E.G))
 				onlyServedPotential(gv, sv)
 				d.walk("view", "", gv, sv)
 			}
