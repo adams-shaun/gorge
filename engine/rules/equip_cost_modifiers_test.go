@@ -22,7 +22,7 @@ import (
 )
 
 // TestCrownOfGondorEquipCostsLessAsMonarch pins the monarch discount: Crown
-// of Gondor's `K:Equip:4:::ReduceCost$ Monarch` (SVar:Monarch:Count$Monarch.3.0)
+// of Gondor's `K:Equip:4:::ReduceCost$ Monarch` (Monarch = Count$Monarch.3.0)
 // costs {1} while its controller is the monarch. With an EMPTY pool the
 // ability is not offered ({1} is not payable); with exactly {1} in the pool it
 // is offered and the full activation completes, so the pushed ability object

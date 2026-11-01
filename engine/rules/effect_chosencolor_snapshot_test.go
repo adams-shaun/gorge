@@ -9,7 +9,7 @@ import (
 )
 
 const chosenColorStrandsSrc = "Name:Prismatic Strands Fixture\nManaCost:2 W\nTypes:Instant\n" +
-	"K:Flashback:tapXType<1/Creature.White/white creature>\n" +
+	"K:Flashback:tapXType<1/Creature.White>\n" +
 	"A:SP$ ChooseColor | Defined$ You | SubAbility$ DBEffect\n" +
 	"SVar:DBEffect:DB$ Effect | ReplacementEffects$ RPrevent\n" +
 	"SVar:RPrevent:Event$ DamageDone | Prevent$ True | ActiveZones$ Command | ValidSource$ Card.ChosenColor\n" +

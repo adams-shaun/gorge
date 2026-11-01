@@ -21,8 +21,8 @@ func TestKernelEffectRememberedTargetFeedsTheChangeZoneSub(t *testing.T) {
 	src := "Name:JunoFx\nManaCost:B\nTypes:Sorcery\n" +
 		"A:SP$ Effect | RememberObjects$ Targeted & Self | ReplacementEffects$ ETBCreat | SubAbility$ DBReturn\n" +
 		"SVar:DBReturn:DB$ ChangeZone | ValidTgts$ Creature.YouOwn | TgtPrompt$ Select target creature card | Origin$ Graveyard | Destination$ Battlefield\n" +
-		"SVar:ETBCreat:Event$ Moved | ValidCard$ Creature.IsRemembered | Destination$ Battlefield | ReplaceWith$ DBPutP1P1 | ReplacementResult$ Updated | Description$ x\n" +
-		"SVar:DBPutP1P1:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ 2\nOracle:x\n"
+		"SVar:ETBCreat:Event$ Moved | ValidCard$ Creature.IsRemembered | Destination$ Battlefield | ReplaceWith$ Grow | ReplacementResult$ Updated | Description$ x\n" +
+		"SVar:Grow:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ 2\nOracle:x\n"
 	e, cfg, id := newFixtureGame(t, 250, src, creatureFixtureSrcs("Juno Target", "Other Body"), nil)
 	addMana(t, e, 0, "B")
 	tgt := putNamed(t, e, 0, "Juno Target", state.ZGraveyard)

@@ -18,7 +18,7 @@ import (
 //	  GainsAbilitiesOf$ Card.ExiledWithSource |
 //	  GainsTriggerAbsOf$ Card.ExiledWithSource | GainsAbilitiesOfZones$ Exile |
 //	  AddPower$ X | AddToughness$ X
-//	SVar:X:Count$ValidExile Card.ExiledWithSource$CardManaCost
+//	X = Count$ValidExile Card.ExiledWithSource$CardManaCost
 //
 // The exiled card is an AUTHORED fixture artifact (never a corpus .txt, per
 // the licensing rule) carrying one activated ability and one triggered
@@ -31,7 +31,7 @@ import (
 func gainsArtifactSrc(t testing.TB) *cards.Card {
 	t.Helper()
 	return card(t, "Name:Gains Artifact\nManaCost:2\nTypes:Artifact\n"+
-		"A:AB$ Draw | Cost$ T | NumCards$ 1 | SpellDescription$ Draw a card.\n"+
+		"A:AB$ Draw | Cost$ T | NumCards$ 1\n"+
 		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | Execute$ TrigBleed | TriggerDescription$ At the beginning of your upkeep, you lose 2 life.\n"+
 		"SVar:TrigBleed:DB$ LoseLife | LifeAmount$ 2 | Defined$ You\n"+
 		"Oracle:x\n")
@@ -384,7 +384,7 @@ func gainsRivalLandSrc(t testing.TB) *cards.Card {
 	t.Helper()
 	return card(t, "Name:Rival Land\nTypes:Land\n"+
 		"A:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\n"+
-		"A:AB$ Draw | Cost$ T | NumCards$ 1 | SpellDescription$ Draw a card.\n"+
+		"A:AB$ Draw | Cost$ T | NumCards$ 1\n"+
 		"Oracle:x\n")
 }
 
@@ -1010,7 +1010,7 @@ func TestGainedManaAbilityResolvesItsOwnSVars(t *testing.T) {
 func gainsCagedManaSrc(t testing.TB) *cards.Card {
 	t.Helper()
 	return card(t, "Name:Caged Filter\nManaCost:2\nTypes:Artifact\n"+
-		"A:AB$ Mana | Cost$ 1 | Produced$ B | SpellDescription$ Add {B}.\n"+
+		"A:AB$ Mana | Cost$ 1 | Produced$ B\n"+
 		"Oracle:x\n")
 }
 

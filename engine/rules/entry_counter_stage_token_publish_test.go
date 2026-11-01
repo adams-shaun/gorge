@@ -58,8 +58,8 @@ func rememberedChooses(log []events.Event, id state.ObjID) int {
 func TestChosenCopyRidersWaitForItsStagedEntry(t *testing.T) {
 	t.Parallel()
 	mandatory := card(t, "Name:Mandatory Copier\nTypes:Enchantment\n"+
-		"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidPlayer$ You | Layer$ Copy | ReplaceWith$ DBCopy | Description$ Create copies of the other creature instead.\n"+
-		"SVar:DBCopy:DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Creature.Other | TokenScript$ Chosen\nOracle:x\n")
+		"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidPlayer$ You | Layer$ Copy | ReplaceWith$ ThenCopy | Description$ Create copies of the other creature instead.\n"+
+		"SVar:ThenCopy:DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Creature.Other | TokenScript$ Chosen\nOracle:x\n")
 	for _, cp := range []struct {
 		name              string
 		esix              bool
@@ -355,8 +355,8 @@ func TestNoTokenRiderPrecedesItsStagedEntry(t *testing.T) {
 			name: "chosen-copy",
 			setup: func(t *testing.T) (*Engine, Config, state.ObjID, func(*Engine)) {
 				copier := card(t, "Name:Mandatory Copier\nTypes:Enchantment\n"+
-					"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidPlayer$ You | Layer$ Copy | ReplaceWith$ DBCopy | Description$ Create copies of the other creature instead.\n"+
-					"SVar:DBCopy:DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Creature.Other | TokenScript$ Chosen\nOracle:x\n")
+					"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidPlayer$ You | Layer$ Copy | ReplaceWith$ ThenCopy | Description$ Create copies of the other creature instead.\n"+
+					"SVar:ThenCopy:DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Creature.Other | TokenScript$ Chosen\nOracle:x\n")
 				bear := stagedGrantCreature(t, "Staged Copy Bear", "Creature Bear")
 				spell := card(t, "Name:Staged Copied Token\nManaCost:0\nTypes:Sorcery\n"+
 					"A:SP$ Token | TokenAmount$ 1 | TokenScript$ c_a_powerstone | TokenTapped$ True | SubAbility$ Rider | SpellDescription$ x\n"+

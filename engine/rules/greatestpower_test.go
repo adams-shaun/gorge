@@ -18,8 +18,8 @@ import (
 
 const orcishSiegemasterSrc = "Name:Orcish Siegemaster\nManaCost:2 R\nTypes:Creature Orc Soldier\nPT:0/5\n" +
 	"K:Trample\n" +
-	"S:Mode$ Continuous | Affected$ Goblin.YouCtrl+Other,Orc.YouCtrl+Other | AddKeyword$ Trample | Description$ Other Orcs and Goblins you control have trample.\n" +
-	"T:Mode$ Attacks | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigPump | TriggerDescription$ Whenever CARDNAME attacks, it gets +X/+0 until end of turn, where X is the greatest power among creatures you control.\n" +
+	"S:Mode$ Continuous | Affected$ Goblin.YouCtrl+Other,Orc.YouCtrl+Other | AddKeyword$ Trample\n" +
+	"T:Mode$ Attacks | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigPump\n" +
 	"SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +X\n" +
 	"SVar:X:Count$Valid Creature.YouCtrl$GreatestCardPower\n" +
 	"SVar:HasAttackEffect:TRUE\n" +

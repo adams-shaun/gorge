@@ -34,7 +34,7 @@ const (
 	// Phyrexian pip's only faces are U mana (absent from the pool, and the
 	// board has no mana sources to tap) and 2 life.
 	nlPhySrc = "Name:PhyProbe\nManaCost:2 UP\nTypes:Instant\n" +
-		"A:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"
+		"A:SP$ Draw | NumCards$ 1\nOracle:x\n"
 )
 
 // nlCastEngine builds a two-seat game where seat 0 leads with the REAL corpus

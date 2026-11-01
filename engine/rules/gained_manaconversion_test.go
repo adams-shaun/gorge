@@ -74,8 +74,8 @@ func TestGainedManaConversionDranaPaysRedWithBlue(t *testing.T) {
 func TestGainedManaConversionScopedToGainedAbilities(t *testing.T) {
 	t.Parallel()
 	e, _, dranaID, _ := dranaBoard(t,
-		"Name:Red Spark\nManaCost:R\nTypes:Instant\nA:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n")
-	spell := moveSeededCard(t, e, 0, card(t, "Name:Red Spark\nManaCost:R\nTypes:Instant\nA:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"), state.ZHand)
+		"Name:Red Spark\nManaCost:R\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n")
+	spell := moveSeededCard(t, e, 0, card(t, "Name:Red Spark\nManaCost:R\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"), state.ZHand)
 	addMana(t, e, 0, "U")
 	if _, ok := gainedOption(e, dranaID); !ok {
 		t.Fatal("precondition: the gained ability is not offered, so the conversion is not on the board")

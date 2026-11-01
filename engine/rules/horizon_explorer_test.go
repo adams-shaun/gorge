@@ -17,16 +17,16 @@ import (
 // substitution, which is a rule for untapping a permanent already in play;
 // an entering one carries no counters.
 //
-// horizonSrc is Horizon Explorer's real script shape (the R:/SVar pair
-// verbatim, no corpus dependency).
+// horizonSrc is Horizon Explorer's real script shape (the R:/SVar pair,
+// no corpus dependency).
 const horizonExplorerSrc = "Name:Horizon Explorer\nManaCost:2 G\nTypes:Creature Insect Scout\nPT:2/4\n" +
-	"R:Event$ Moved | ValidCard$ Land.YouCtrl | Destination$ Battlefield | ReplaceWith$ ETBUntapped | ReplacementResult$ Updated | ActiveZones$ Battlefield | Description$ Lands you control enter untapped.\n" +
+	"R:Event$ Moved | ValidCard$ Land.YouCtrl | Destination$ Battlefield | ReplaceWith$ ETBUntapped | ReplacementResult$ Updated | ActiveZones$ Battlefield\n" +
 	"SVar:ETBUntapped:DB$ Untap | ETB$ True | Defined$ ReplacedCard\nOracle:x\n"
 
 // horizonTaplandSrc is Temple of Malady's enters-tapped replacement: the
 // Updated + ReplaceWith(DB$ Tap | ETB$ True) shape every ETBTapped land uses.
 const horizonTaplandSrc = "Name:Temple of Malady\nTypes:Land\n" +
-	"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplacementResult$ Updated | ReplaceWith$ ETBTapped | Description$ CARDNAME enters tapped.\n" +
+	"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplacementResult$ Updated | ReplaceWith$ ETBTapped\n" +
 	"SVar:ETBTapped:DB$ Tap | Defined$ Self | ETB$ True\nOracle:x\n"
 
 // horizonEngine is a 2-seat engine at seat 0's turn-1 main phase with empty

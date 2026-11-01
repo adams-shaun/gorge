@@ -11,7 +11,7 @@ import (
 
 // Legate Lanius, Caesar's Ace is the corpus's one DivideEvenlyUp carrier:
 //
-//	SVar:X:Count$Valid Creature.RememberedPlayerCtrl/DivideEvenlyUp.10
+//	X = Count$Valid Creature.RememberedPlayerCtrl/DivideEvenlyUp.10
 //	"each opponent sacrifices a tenth of the creatures they control,
 //	 rounded up"
 //

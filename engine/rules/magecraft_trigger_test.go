@@ -27,7 +27,7 @@ const magecraftSrc = `Name:Apprentice
 ManaCost:1 U
 Types:Creature Wizard
 PT:1/1
-T:Mode$ SpellCastOrCopy | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigDraw | TriggerDescription$ Magecraft — Whenever you cast or copy an instant or sorcery spell, draw a card.
+T:Mode$ SpellCastOrCopy | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigDraw
 SVar:TrigDraw:DB$ Draw | NumCards$ 1 | Defined$ You
 Oracle:x
 `

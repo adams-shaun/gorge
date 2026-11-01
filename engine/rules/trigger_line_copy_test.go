@@ -30,13 +30,13 @@ func TestCopiedGrantedTriggerKeepsItsLineAcrossStackCopyAndClone(t *testing.T) {
 			continue
 		}
 		line, ok := e.triggerForAbilityObject(id, o)
-		if ok && line.Params["OptionalDecider"] == "You" && line.Params["Execute"] == "TrigCopy" {
+		if ok && line.Params["OptionalDecider"] == "You" && line.Params["Execute"] == "OnCopy" {
 			triggerID = id
 			break
 		}
 	}
 	if triggerID == 0 {
-		t.Fatal("granted AddTrigger$ wrapper with OptionalDecider$ and TrigCopy is not on the stack")
+		t.Fatal("granted AddTrigger$ wrapper with OptionalDecider$ and OnCopy is not on the stack")
 	}
 	if got := e.triggerLines[triggerID].Params["OptionalDecider"]; got != "You" {
 		t.Fatalf("granted trigger line OptionalDecider$ = %q, want You", got)
@@ -62,8 +62,8 @@ func TestCopiedGrantedTriggerKeepsItsLineAcrossStackCopyAndClone(t *testing.T) {
 		t.Fatalf("cloned copied trigger zone = %v, want stack", cloneCopy.Zone)
 	}
 	line, ok := clone.triggerForAbilityObject(copyID, cloneCopy)
-	if !ok || line.Params["OptionalDecider"] != "You" || line.Params["Execute"] != "TrigCopy" {
-		t.Fatalf("cloned granted trigger line = %+v, found=%v; want OptionalDecider You and Execute TrigCopy", line, ok)
+	if !ok || line.Params["OptionalDecider"] != "You" || line.Params["Execute"] != "OnCopy" {
+		t.Fatalf("cloned granted trigger line = %+v, found=%v; want OptionalDecider You and Execute OnCopy", line, ok)
 	}
 	if clone.triggerLines[copyID].Params == nil {
 		t.Fatal("cloned trigger line lost its parameter map")

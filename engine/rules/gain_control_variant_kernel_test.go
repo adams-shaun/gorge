@@ -70,8 +70,8 @@ func TestKernelGainControlVariantInniazCasterChoosesForEachRecipient(t *testing.
 // its SECOND option is what it gains.
 func TestKernelGainControlVariantOrderEachRecipientChoosesForThemself(t *testing.T) {
 	t.Parallel()
-	src := "Name:OrderFx\nManaCost:B\nTypes:Sorcery\nA:SP$ ChooseDirection | SubAbility$ DBGainControl\n" +
-		"SVar:DBGainControl:DB$ GainControlVariant | AllValid$ Creature | ChangeController$ ChooseNextPlayerInChosenDirection\nOracle:x\n"
+	src := "Name:OrderFx\nManaCost:B\nTypes:Sorcery\nA:SP$ ChooseDirection | SubAbility$ GainControl\n" +
+		"SVar:GainControl:DB$ GainControlVariant | AllValid$ Creature | ChangeController$ ChooseNextPlayerInChosenDirection\nOracle:x\n"
 	e, cfg, id := threeSeatFixture(t, 231, src,
 		[]string{permanentSrc("C Zero A", "Creature"), permanentSrc("C Zero B", "Creature")},
 		[]string{permanentSrc("C One", "Creature")},

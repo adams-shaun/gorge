@@ -72,8 +72,8 @@ func TestBlackDragonGateExcludesBlackFromTheColourAsk(t *testing.T) {
 // resolve, so the fixture is inline.
 func TestETBColorExcludeFailOpenOnUnresolvableToken(t *testing.T) {
 	t.Parallel()
-	land := "Name:FailOpen\nManaCost:no cost\nTypes:Land\nK:ETBReplacement:Other:ChooseColor\n" +
-		"SVar:ChooseColor:DB$ ChooseColor | Defined$ You | Exclude$ nonsense | SpellDescription$ x\n" +
+	land := "Name:FailOpen\nManaCost:no cost\nTypes:Land\nK:ETBReplacement:Other:PickColor\n" +
+		"SVar:PickColor:DB$ ChooseColor | Defined$ You | Exclude$ nonsense | SpellDescription$ x\n" +
 		"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n"
 	// seatZeroStart pins the toss on seat 0 (etbConfig itself does not pin
 	// the toss; a seat-1 starter chases driveToStep to the mill-out), the

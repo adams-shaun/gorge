@@ -34,14 +34,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// provisionerScript is tireless_provisioner.txt verbatim except the Oracle
-// line's parenthetical token reminder and the DeckHas rider (display/rider
-// text the engine never reads).
+// provisionerScript states Tireless Provisioner's landfall choice.
 const provisionerScript = "Name:Tireless Provisioner\nManaCost:2 G\nTypes:Creature Elf Scout\nPT:3/2\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Land.YouCtrl | TriggerZones$ Battlefield | Execute$ TrigTokenChoice | TriggerDescription$ Landfall — Whenever a land you control enters, create a Food token or a Treasure token.\n" +
-	"SVar:TrigTokenChoice:DB$ GenericChoice | Defined$ You | Choices$ Food,Treasure | AILogic$ FoodOrTreasure | SpellDescription$ Whenever a land you control enters, create a Food token or a Treasure token.\n" +
-	"SVar:Food:DB$ Token | TokenScript$ c_a_food_sac | TokenOwner$ You | SpellDescription$ Food\n" +
-	"SVar:Treasure:DB$ Token | TokenScript$ c_a_treasure_sac | TokenOwner$ You | SpellDescription$ Treasure\n" +
+	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Land.YouCtrl | TriggerZones$ Battlefield | Execute$ OnTokenChoice | TriggerDescription$ Landfall — Whenever a land you control enters, create a Food token or a Treasure token.\n" +
+	"SVar:OnTokenChoice:DB$ GenericChoice | Defined$ You | Choices$ Food,Treasure\n" +
+	"SVar:Food:DB$ Token | TokenScript$ c_a_food_sac | TokenOwner$ You\n" +
+	"SVar:Treasure:DB$ Token | TokenScript$ c_a_treasure_sac | TokenOwner$ You\n" +
 	"Oracle:x\n"
 
 const provForestScript = "Name:Forest\nManaCost:no cost\nTypes:Land Forest\nOracle:x\n"

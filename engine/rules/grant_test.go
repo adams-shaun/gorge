@@ -15,7 +15,7 @@ import (
 func balloonGoblin(t *testing.T) *Engine {
 	t.Helper()
 	gb := card(t, "Name:Goblin Balloon Brigade\nManaCost:R\nTypes:Creature Goblin Warrior\nPT:1/1\n"+
-		"A:AB$ Pump | Cost$ R | KW$ Flying | Defined$ Self | SpellDescription$ CARDNAME gains flying until end of turn.\nOracle:x\n")
+		"A:AB$ Pump | Cost$ R | KW$ Flying | Defined$ Self\nOracle:x\n")
 	e := handEngine(t)
 	o := e.G.AddObject(gb, 0)
 	o.Zone = state.ZBattlefield

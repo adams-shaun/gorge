@@ -25,7 +25,7 @@ package rules
 //
 // Corpus provenance: `PayLifeInsteadOf` appears in exactly one corpus file
 // (.cards/cardsfolder/k/krrik_son_of_yawgmoth.txt); Whipstitched Zombie's
-// SVar:TrigUpkeep is the real `UnlessCost$ B` trigger
+// SVar:OnUpkeep is the real `UnlessCost$ B` trigger
 // (.cards/cardsfolder/w/whipstitched_zombie.txt). No corpus card carries a
 // mixed choice+mana unless cost with a {B} pip, so the advanceUnlessPayment
 // fixture is a minimal synthetic ability whose UnlessCost$ parameter is the
@@ -46,8 +46,8 @@ import (
 // CARDNAME unless you pay a creature and {B}." The `Sac<1/Creature> B` cost
 // is the mixed choice+mana shape.
 const krrikMixedUnlessScript = "Name:Krrik Mixed Monger\nManaCost:B\nTypes:Creature Zombie\nPT:2/2\n" +
-	"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigUpkeep | TriggerDescription$ sac unless pay\n" +
-	"SVar:TrigUpkeep:DB$ Sacrifice | UnlessPayer$ You | UnlessCost$ Sac<1/Creature> B\nOracle:x\n"
+	"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ OnUpkeep | TriggerDescription$ sac unless pay\n" +
+	"SVar:OnUpkeep:DB$ Sacrifice | UnlessPayer$ You | UnlessCost$ Sac<1/Creature> B\nOracle:x\n"
 
 // krrikMixedUnlessFixture puts K'rrik, the mixed unless-cost permanent, a
 // spare creature for the sacrifice part and (when withSource) an untapped

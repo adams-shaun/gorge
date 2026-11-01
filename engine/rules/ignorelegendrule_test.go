@@ -390,7 +390,7 @@ func TestIgnoreLegendRuleEventStreamIsDeterministic(t *testing.T) {
 // delivers it as the SubAbility$ of its AB$ Clone; this source isolates the
 // registration and its lifetime for the scope and cleanup tests.
 const echoPermissionSrc = "Name:Echo Permission\nTypes:Enchantment\n" +
-	"SVar:DBEffect:DB$ Effect | StaticAbilities$ LegendPermission\n" +
+	"SVar:ThenEffect:DB$ Effect | StaticAbilities$ LegendPermission\n" +
 	"SVar:LegendPermission:Mode$ IgnoreLegendRule | ValidCard$ Permanent.YouCtrl | Description$ The \"legend rule\" doesn't apply to permanents you control this turn.\n" +
 	"Oracle:x\n"
 
@@ -403,7 +403,7 @@ func resolveEchoPermission(t *testing.T, e *Engine, source state.ObjID) {
 	t.Helper()
 	grant := e.G.Obj(source)
 	effects.Resolve(e, &effects.Ctx{Source: source, Controller: grant.Controller, SVars: grant.Face().SVars},
-		cards.ResolveSVar(grant.Face().SVars, "DBEffect"))
+		cards.ResolveSVar(grant.Face().SVars, "ThenEffect"))
 	exempt := e.legendExemptions()
 	if len(exempt) != 1 || exempt[0].Source != source || exempt[0].Params == nil {
 		t.Fatalf("fixture: the DB$ Effect did not register one live IgnoreLegendRule exemption (got %d views)", len(exempt))

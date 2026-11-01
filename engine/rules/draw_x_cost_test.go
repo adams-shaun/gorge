@@ -31,7 +31,7 @@ import (
 //
 // Champion of Wits (SVar:X:Count$CardPower) is the fold's positive control:
 // its body resolves to the permanent's own power. Titan of Littjara
-// (SVar:X:Count$Valid Creature.YouCtrl+Other+sharesCreatureTypeWith) is the
+// (X = Count$Valid Creature.YouCtrl+Other+sharesCreatureTypeWith) is the
 // trigger-window pin. Neither card is in a repo deck, so no chain head or
 // acceptance-ratchet row depends on these tests.
 
