@@ -1429,6 +1429,7 @@ func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 type combatRound struct {
 	hasFirst    bool `clone:"deep"` // this combat damage step runs a first-strike pass (CR 510.3)
 	firstDone   bool `clone:"deep"` // first-strike pass's damage dealt and priority granted
+	firstEnded  bool `clone:"deep"` // the first-strike damage step's priority round ended
 	regularDone bool `clone:"deep"` // regular pass's damage dealt
 	// firstStrikers lists the attackers and blockers that had first strike
 	// or double strike as the first-strike damage step began (CR 510.4):
@@ -1570,7 +1571,7 @@ func (e *Engine) combatStep() {
 			e.priorityRound()
 			return
 		}
-		if e.combatRound.hasFirst && !e.combatRound.active {
+		if e.combatRound.hasFirst && !e.combatRound.active && !e.combatRound.firstEnded {
 			// The between-passes priority round (CR 510.4) is in progress:
 			// a pass that did not end it (priority moved on to the next
 			// player) or a resolution (priority returned to the active

@@ -204,6 +204,48 @@ func TestCR510PriorityBetweenDoubleStrikeDamageSteps(t *testing.T) {
 	}
 }
 
+// First-strike combat damage is its own step, so floating mana is gone when the
+// regular damage step begins (CR 106.4, 500.4, 510.4).
+func TestCR510ManaEmptiesBetweenDamageSteps(t *testing.T) {
+	t.Parallel()
+	e := crResolutionEngine(t, []string{"Boros Swiftblade"}, nil)
+	a := crAbortMove(t, e, 0, "Boros Swiftblade", state.ZBattlefield)
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{a}})
+	before := e.G.Players[1].Life
+	crCombatAt(e, state.StepCombatDamage)
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority || e.G.Players[1].Life != before-1 {
+		t.Fatalf("precondition: want priority after the first-strike step, got %+v at life %d", d, e.G.Players[1].Life)
+	}
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 2})
+	for e.G.Players[1].Life == before-1 {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("pending = %+v, want priority until the regular damage", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{crPassIndex(t, d)}}); err != nil {
+			t.Fatal(err)
+		}
+		e.Advance()
+	}
+	if e.G.Step != state.StepCombatDamage || e.G.Players[1].Life != before-2 {
+		t.Fatalf("step %s life %d, want the regular damage step at %d", e.G.Step, e.G.Players[1].Life, before-2)
+	}
+	if pool := e.G.Players[0].Pool.Total(); pool != 0 {
+		t.Errorf("the seat kept %d mana into the regular damage step", pool)
+	}
+}
+
+func crPassIndex(t *testing.T, d *decision.Decision) int {
+	t.Helper()
+	for _, o := range d.Options {
+		if o.Kind == "pass" {
+			return o.Index
+		}
+	}
+	t.Fatalf("no pass in %+v", d.Options)
+	return -1
+}
+
 func TestCR506ReturnedBlockerIsRemovedFromCombat(t *testing.T) {
 	t.Parallel()
 	e := crResolutionEngine(t, []string{"Memnite"}, []string{"Memnite", "Ghostly Flicker"})

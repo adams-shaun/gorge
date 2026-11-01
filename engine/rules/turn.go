@@ -1301,6 +1301,15 @@ func (e *Engine) advanceStep() {
 		// handleDamageDivision -> finishCombatPass, which moves the step to
 		// end combat. If the pass completes here, finishCombatPass has
 		// already set StepEndCombat, so return without double-advancing.
+		//
+		// The first-strike damage step is a step of its own, so mana empties
+		// as it ends (CR 500.4). A loss that poses a replacement order parks
+		// here, and combatStep starts the regular pass once it is answered.
+		e.combatRound.firstEnded = true
+		e.finishStepBoundary(state.StepCombatDamage, state.StepCombatDamage, 0)
+		if e.pending != nil {
+			return
+		}
 		e.beginCombatPass(false)
 		return
 	}
