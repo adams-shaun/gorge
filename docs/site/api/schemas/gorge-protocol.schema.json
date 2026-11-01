@@ -2770,7 +2770,7 @@
           ]
         },
         "commanders": {
-          "description": "Commanders is the player's full commander roster -- the same list m30's genesis built, in the same order, never shrunk as commanders are cast or die. A roster CardView projects the commander's CURRENT zone's state (a cast commander is a battlefield object, a dead one a graveyard object), so the roster is what lets a client -- and the bot policy's view-shaped half -- tell that a battlefield creature is a commander (the CR 903.10 clock's subject) even when it has left the command zone and not yet dealt damage. Public for every seat: the identity of a player's commanders is the premise of the format.",
+          "description": "Commanders is the player's full commander roster -- the same list genesis built, in the same order, never shrunk as commanders are cast or die. A roster CardView projects the commander's CURRENT zone's state (a cast commander is a battlefield object, a dead one a graveyard object), so the roster is what lets a client -- and the bot policy's view-shaped half -- tell that a battlefield creature is a commander (the CR 903.10 clock's subject) even when it has left the command zone and not yet dealt damage. Public for every seat: the identity of a player's commanders is the premise of the format.",
           "items": {
             "$ref": "#/$defs/CardView"
           },
