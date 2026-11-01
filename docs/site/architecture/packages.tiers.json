@@ -468,6 +468,10 @@
       "tier": "tooling",
       "status": "TOOL"
     },
+    "testkit/hiddeninfo": {
+      "tier": "tooling",
+      "status": "TOOL"
+    },
     "testkit/paymirror": {
       "tier": "tooling",
       "status": "TOOL"
