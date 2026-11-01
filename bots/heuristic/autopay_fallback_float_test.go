@@ -22,7 +22,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestAutoPayFallbackDoesNotFloatForUncastable is the brief's headline test.
+// TestAutoPayFallbackDoesNotFloatForUncastable covers two boards.
 //
 //   - (1) the opponent's main phase, no plans, one sorcery-speed creature in
 //     hand and untapped Forests offered as activate: the tap gate wants the

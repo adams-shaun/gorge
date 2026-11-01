@@ -14,8 +14,7 @@ import (
 // decisionCtx's unbounded shape). The determinism gate compares two runs of
 // one seed byte-for-byte; arming the hosted wall-clock budget under it makes
 // a deadline bail-out answer from the non-searched fallback in one run and
-// not the other, which is load, not seed (BP-07 §7 rejected a wall-clock
-// budget for exactly this reason). Regression pin: with the knob absent or
+// not the other, which is load, not seed. Regression pin: with the knob absent or
 // the gate not setting it, the seat declares hostedDecisionDeadlineMS and
 // this test fails.
 //

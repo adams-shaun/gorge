@@ -52,7 +52,7 @@ func assertNoEngineHandle(t *testing.T, name string, v any) {
 	}
 }
 
-// TestNoRegistryDataResultIsAnEngineGame is Task M2c-4's runtime half of D6
+// TestNoRegistryDataResultIsAnEngineGame is the runtime half of the rule
 // (arch_test.go's TestNoExportLeaksAnEngineGame is the compile-time half).
 // It drives a live 2-seat human-bot match and calls every data-returning
 // *Registry method, asserting each result is a concrete view./protocol./

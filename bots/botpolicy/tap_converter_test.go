@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// T3, the converter gate (cardfuzz batch1 lines 3/5/6/16/17): a mana
+// The converter gate: a mana
 // ability that spends pool mana without tapping its source (Farrelite
 // Priest's "{1}: Add {W}", Bog Initiate, Initiates of the Ebon Hand) is
 // activated only when it provably moves the intended card closer to
@@ -111,7 +111,7 @@ func TestConverterGateTerminates(t *testing.T) {
 	}
 }
 
-// T4, the payment-window converter gate (cardfuzz batch3 lines 9/11): inside
+// The payment-window converter gate: inside
 // a KChoose payment window (cast payment, UnlessCost$/Ward, cumulative
 // upkeep) a non-tapping converter is never taken -- the first tap source is,
 // and once only converters remain the window is closed with Done. The window
@@ -147,7 +147,7 @@ func TestPaymentWindowNeverTakesAConverter(t *testing.T) {
 	}
 }
 
-// TestConverterGateIgnoresRestrictedPoolMana (cardfuzz batch5 line 9): Myr
+// TestConverterGateIgnoresRestrictedPoolMana: Myr
 // Reservoir's floating {C}{C} may only be spent on Myr, so the engine pays
 // Initiates of the Ebon Hand's "{1}: Add {B}" with the pool's {B} and adds
 // it straight back. The gate simulated the generic {1} out of the {C} and

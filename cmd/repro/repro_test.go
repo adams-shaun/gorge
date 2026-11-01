@@ -252,7 +252,7 @@ func TestReproFixtureOmniscientShowsHands(t *testing.T) {
 	}
 }
 
-// TestEngineAtMatchesReplayToHeads pins the brief's equality gate: for a
+// TestEngineAtMatchesReplayToHeads pins the equality gate: for a
 // spread of intent counts, EngineAt's engine and a hand-rolled
 // replay.ReplayTo over the same snapshot's (Log, Config) stand at the same
 // head — the same replay by construction, not two code paths. The negative
@@ -307,43 +307,13 @@ func TestReproOnFreshSnapshot(t *testing.T) {
 	if code := run([]string{dir}, &out, io.Discard); code != 0 {
 		t.Fatalf("exit %d, output:\n%s", code, out.String())
 	}
-	// 21 -> 24 (2026-09-17): main's sacrifice-asks-its-player and
-	// remembered/triggered-referents merges pose real asks this same opening
-	// sequence did not before, so the same advance(12) gate count now
-	// captures more total intents.
-	//
-	// 24 -> 25 (2026-09-17, later the same day): the capture point itself
-	// became deterministic. gatedFixtureRegistry's advance used to return
-	// after the last release WITHOUT waiting for that released decision's
-	// burst to be applied, so the snapshot raced the match goroutine and
-	// caught 24 or 25 recorded intents depending on scheduling (3/300 at
-	// default procs here; both replays verified every time — only this
-	// fixed-count assertion could tell). advance now waits for seat 0's
-	// NEXT decision to reach the gate — the match parked inside Decide with
-	// every earlier event emitted — and the count was stably 25 (150 events,
-	// head 775a4dcd17aaf606; 200/200 at GOMAXPROCS=2).
-	//
-	// 25 -> 26 (2026-09-23, wt/cli-20260922T225141Z-e771720d): the CR 103.1
-	// toss-winner ask (rules.NewStartingPlayerChoice + AskStartingPlayer)
-	// adds one recorded intent at genesis on every hosted match — the
-	// DecisionAsk + DecisionMade pair before the pregame rounds open — so
-	// the same advance(12) gate count now captures 26 (152 events). The
-	// committed fixture stays at its own recorded 24 (its log predates the
-	// ask, so it still reconstructs through plain New); regenerate it and
-	// its assertions together if it is ever re-recorded (REPRO_REGEN_FIXTURE).
-	//
-	// 26 -> 25 (2026-10-06): CR 103.8a skips the starting player's turn-1
-	// draw STEP, not only its draw, so that step's two priority intents are
-	// gone and the same advance(12) gate count captures 25 (146 events).
-	// The committed fixture was re-recorded with it (25 intents, now
-	// including the toss-winner ask).
-	//
-	// 25 -> 26 (2026-10-17): CR 117.3a, the end of combat step opens with
-	// the active player holding priority (rules 93b6057e4). Turn 1's
-	// no-attackers end of combat used to open with the last passer (seat 0)
-	// holding priority with one pass counted, so seat 1, the active player,
-	// never acted in it; it now passes there first, one more recorded intent
-	// (151 events). The committed fixture was re-recorded with it.
+	// The same advance(12) gate count captures 26 intents (151 events): advance
+	// waits for seat 0's NEXT decision to reach the gate, so the match is parked
+	// inside Decide with every earlier event emitted and the count is stable. A
+	// rules change that adds or removes an ask in this opening sequence moves the
+	// count (the CR 103.1 toss-winner ask at genesis, CR 117.3a's end-of-combat
+	// priority for the active player, CR 103.8a's skipped draw step); re-record the
+	// committed fixture with it (REPRO_REGEN_FIXTURE).
 	if !strings.Contains(out.String(), "replayed 26 of 26 recorded intents") {
 		t.Errorf("fresh snapshot summary unexpected:\n%s", out.String())
 	}

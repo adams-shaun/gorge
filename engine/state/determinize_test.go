@@ -1,6 +1,6 @@
 package state
 
-// Task D1: property tests for Determinize. The whole value of the feature is
+// Property tests for Determinize. The whole value of the feature is
 // the invariant:
 //
 //	No card visible to the searching seat may move, and the multiset of

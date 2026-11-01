@@ -10,7 +10,7 @@ import (
 
 // The budget arm for a budgeted hidden-library search (a KChoose with
 // ResumeKind "search" carrying WithTotalCMC$, so Decision.MaxSum > 0): the
-// arm fills to Min under the cap -- the exact mirror of the search's R-9
+// arm fills to Min under the cap -- the exact mirror of the search's
 // stand-in, whose pick bound is Min (greedy[:min] for a quantity-only
 // filter, whose Min the engine lowers to the greedy count; the empty
 // fail-to-find for a stated-quality filter, whose Min stays 0). The dig /

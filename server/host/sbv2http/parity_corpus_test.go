@@ -50,7 +50,7 @@ var paritySeeds = func() []uint64 {
 	return out
 }()
 
-// parityWorkers is the brief's worker count.
+// parityWorkers is the worker count.
 const parityWorkers = 2
 
 // parityDeadline bounds one seed's whole run (both tables and the client).

@@ -21,8 +21,7 @@ import (
 )
 
 // spyEnvSeat is a non-human seat that satisfies bots.EnvSeat and records
-// exactly what the host handed each DecideEnv call — the evidence BP-08's
-// tests assert on. It plays the wrapped bot from env.Board, the same fallback
+// exactly what the host handed each DecideEnv call. It plays the wrapped bot from env.Board, the same fallback
 // every real adapter plays when the root is refused, so a match it seats runs
 // identically to one driven through the plain Board path (that is what makes
 // TestHostFeedEqualsRebuildFeed's live-vs-rebuilt comparison still hold: the
@@ -100,10 +99,10 @@ func matchFor(t *testing.T, r *Registry, id TableID) (*match, *rules.Engine) {
 	return m, m.e
 }
 
-// TestHostFeedEqualsRebuildFeed is BP-07's central assertion: a live match's
+// TestHostFeedEqualsRebuildFeed is the central assertion: a live match's
 // host-owned feed, after every intent, equals searchseat.RebuildFeed over the
 // same log and actor. That equality is what makes the feed derived state the
-// host can rebuild after an undo (BP-09) and never persist (§5.2).
+// host can rebuild after an undo and never persist (§5.2).
 //
 // The table seats a spy EnvSeat at slot 0 (so the host creates a feed) and a
 // plain bot at slot 1, and it must reach a real game — asserted by the
@@ -198,11 +197,10 @@ func TestHostFeedEqualsRebuildFeed(t *testing.T) {
 	}
 }
 
-// TestNoEnvSeatNoFeed is BP-07's fast-path and no-regression gate: a table
+// TestNoEnvSeatNoFeed is the fast-path gate: a table
 // whose seats are all plain bots builds no feed at all (nil matchFeeds, no
 // backing slice), and the nil-receiver Observe allocates nothing. Every match
-// that existed before this ticket takes exactly this path, so its behaviour is
-// unchanged (the Done-means TestHeads run pins the rules half of that).
+// whose seats are all plain bots takes exactly this path.
 func TestNoEnvSeatNoFeed(t *testing.T) {
 	r, err := New(testOptions(t))
 	if err != nil {
@@ -238,7 +236,7 @@ func TestNoEnvSeatNoFeed(t *testing.T) {
 	}
 }
 
-// TestHostedEnvSeatsNeverSeeTheLiveEngine is BP-08's central claim (spec §5.4),
+// TestHostedEnvSeatsNeverSeeTheLiveEngine is the central claim (hosted-bot design §5.4),
 // asserted through a full live host match: every engine an EnvSeat is handed
 // across a real game is the honest root — never the live engine, never a
 // pointer that aliases it, never reused across DecideEnv calls — and the
@@ -248,7 +246,7 @@ func TestNoEnvSeatNoFeed(t *testing.T) {
 // The deciding seat's own hand, which the seat is entitled to, must match the
 // live hand at every boundary: the redeal keeps what the seat knows. The one
 // exception is the boundary where the CR 103.1 winner-chooses choice is still
-// pending (E3-fx1): CR 103.5 hides every hand from every player there -- the
+// pending: CR 103.5 hides every hand from every player there -- the
 // deciding seat's own included -- so the seat's own frame shows no hand and
 // its honest root deals its hand from the derivable pool like any other
 // hidden card. A root that held the LIVE hand at that boundary would be the
@@ -330,7 +328,7 @@ func TestHostedEnvSeatsNeverSeeTheLiveEngine(t *testing.T) {
 	// The live opponent hand at every slot-0 decision boundary, rebuilt by
 	// deterministic replay of the finished log, plus which of those
 	// boundaries still hold the pending CR 103.1 winner-chooses choice
-	// (E3-fx1: CR 103.5 hides the deciding seat's own hand there, so the
+	// (CR 103.5 hides the deciding seat's own hand there, so the
 	// honest root redeals it -- see the test's doc comment).
 	liveOpp, liveActor := map[uint64][]string{}, map[uint64][]string{}
 	choicePending := map[uint64]bool{}
@@ -385,7 +383,7 @@ func TestHostedEnvSeatsNeverSeeTheLiveEngine(t *testing.T) {
 }
 
 // TestHostedEnvSeatsIgnoreTheRealHiddenCards is the seat-level leak test
-// (spec §5.3): two live matches built from the same table config and seed
+// (hosted-bot design §5.3): two live matches built from the same table config and seed
 // differ ONLY in hidden cards after the swap fixture is applied to the second
 // match's live engine (every unpinned opponent hand card exchanged with a
 // same-named-different library card, that library reversed — all secret

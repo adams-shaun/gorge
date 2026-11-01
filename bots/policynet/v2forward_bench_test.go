@@ -1,16 +1,16 @@
-// The S0 forward-cost benchmark (P§5.1 S0 readout, P§3.4): a MEASUREMENT
-// harness, not the model. bots/policynet has no v2 model yet, so this
-// file shapes the P§3.4 encoder skeleton — per-row MLP, per-group scaled-sum
-// + max pooling, state trunk — over a REAL v2 table and measures the wall
-// time of one full forward at d=32 and d=64. The readout is compared against
-// the S0 kill criterion "forward > 0.5 ms at d=32 → redesign before S1".
+// The forward-cost benchmark: a MEASUREMENT harness, not the model.
+// bots/policynet has no v2 model yet, so this file shapes the encoder skeleton
+// — per-row MLP, per-group scaled-sum + max pooling, state trunk — over a REAL
+// v2 table and measures the wall time of one full forward at d=32 and d=64. A
+// forward above 0.5 ms at d=32 means the encoder needs a redesign before it is
+// built.
 //
 // The weights are drawn from a fixed-seed PRNG (deterministic; no global
-// math/rand). The table is built through front end G (V2TableFromView) from
+// math/rand). The table is built through V2TableFromView from
 // a mid-game view fixture written inline below, so the row count the
 // arithmetic runs over is the real one (~31 rows: two seats' battlefield,
 // the viewer's hand, graveyards, exile, and a two-deep stack). Only the
-// shapes below cost the S0 arithmetic; no training, gradient or model
+// shapes below cost the arithmetic; no training, gradient or model
 // construction is measured.
 //
 // Benchmarks do not run under a plain `go test`, so this file adds no
@@ -158,8 +158,8 @@ func v2benchHand() []view.CardView {
 }
 
 // ---------------------------------------------------------------------------
-// The P§3.4 encoder skeleton, measured. Weights are drawn from a fixed-seed
-// PCG at construction; the forward runs the three P§3.4 stages over a real
+// The encoder skeleton, measured. Weights are drawn from a fixed-seed
+// PCG at construction; the forward runs the three stages over a real
 // V2Table and returns a scalar readout.
 
 const v2fwdGroups = 10 // (mine/other) × (battlefield/hand/graveyard/stack/other)
@@ -217,7 +217,7 @@ func v2fwdVec(rng *rand.Rand, n int, s float64) []float32 {
 	return v
 }
 
-// v2fwdZoneGroup folds the table's zones into the P§3.4 pooling groups:
+// v2fwdZoneGroup folds the table's zones into the pooling groups:
 // battlefield / hand / graveyard / stack / other (exile and command).
 func v2fwdZoneGroup(z uint8) int {
 	switch z {

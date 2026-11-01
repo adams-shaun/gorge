@@ -86,37 +86,13 @@ func TestCollectorCaptureReusesRedactionStorageWithoutAliasingFrames(t *testing.
 			t.Fatal(err)
 		}
 	})
-	// 43 was measured at 230574a2; 45f9ac47 then made view.Project run the
-	// viewer's potential-action offer walk (9 allocations inside Project, not
-	// in the Collector's own redaction scratch this test guards). 52 is the
-	// measured post-walk cost with scratch reuse intact. 50 after the offer
-	// walk moved its option list and mana-ability lists onto Engine scratch
-	// (perf-allocs). bf2668175 then made view.copyDecision use
-	// `cp := *d.Clone()`, which heap-allocates the whole decision.Decision
-	// (Clone returns a pointer) per projection -- one extra allocation, not
-	// in the Collector's redaction scratch, so this ceiling was temporarily
-	// raised to 51. fc7d924ad added Decision.CloneValue() and
-	// view.copyDecision copies by value again, restoring the 50 steady state.
-	// Note (2026-09-25, go1.26.3): the compiler now inlines
-	// decision.(*Decision).Clone into copyDecision and stack-elides its
-	// pointee, so the historical `*d.Clone()` expression measures the identical
-	// allocation count as CloneValue (9=9 on a payment-extension fixture) and
-	// this ceiling passes uncached with it restored -- it regresses-guards
-	// future growth of the whole projection, not that expression. view's
-	// TestCopyDecisionRejectsDerefedClone pins the source shape instead.
-	//
-	// cli-20260930T040425Z-66318cee (the engine/rules/legal.go split, 2026-09-30):
-	// 50 -> 51. The split turned legalActionsWalkWithWindow's one 2255-line
-	// body into an entry plus (*legalWalk) section methods over a shared
-	// carrier; the walk's own per-call allocations measure identical on a
-	// clean priority state (6/12/6/12 for full/castsOnly/overbound/windowed,
-	// base and split alike) and the emitted options are byte-identical (the
-	// 2-seat acceptance timeline over 470 intents matches base exactly), but
-	// in the Projection path -- PotentialMana immediately followed by the
-	// overbound walk in one derivedMemo generation -- the reshaped method
-	// boundaries cost exactly one more allocation per capture (9 vs 8 on this
-	// fixture; 51 vs 50 here). Attribution measured, not guessed; the split
-	// is move-only, so the allocation moves with the code it came from.
+	// The ceiling covers the whole projection, not only the Collector's
+	// redaction scratch this test guards: view.Project runs the viewer's
+	// potential-action offer walk (PotentialMana followed by the overbound walk
+	// in one derivedMemo generation). 51 is the measured cost with scratch reuse
+	// intact. view's TestCopyDecisionRejectsDerefedClone pins copyDecision's source
+	// shape separately, because the compiler inlines the pointer form away and
+	// an allocation count cannot tell them apart.
 	if allocs > 51 {
 		t.Fatalf("Capture allocations = %.0f, want <= 51 after scratch reuse", allocs)
 	}

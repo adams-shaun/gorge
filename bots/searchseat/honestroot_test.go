@@ -1,6 +1,6 @@
 package searchseat_test
 
-// The honest root (BP-04, spec §5.1/§5.3): one redealer deal of the live
+// The honest root (hosted-bot spec §5.1/§5.3): one redealer deal of the live
 // position, taken from the seat's own feed, which is the only engine a hosted
 // bot ever touches. These tests pin the three claims the host depends on --
 // the root observes exactly what the seat last saw, the root's hidden cards
@@ -242,7 +242,7 @@ func TestHonestRootIsDeterministic(t *testing.T) {
 
 // TestRedealFromAnHonestRootPrepares: a nested honest redeal whose base is a
 // redealt root prepares rather than refusing. This is the INFERRED claim of
-// spec §5.3 that BP-05 depends on; a refusal here would mean azmcts and
+// spec §5.3 that hosted search depends on; a refusal here would mean azmcts and
 // sbsearch cannot run a hosted search from an honest root at all.
 func TestRedealFromAnHonestRootPrepares(t *testing.T) {
 	p := newRootPosition(t, rootTestConfig(t, "mono-red-prowess", "mono-blue-tempo"))

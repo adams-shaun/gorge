@@ -7,13 +7,12 @@ import (
 )
 
 // layering_pay_test.go pins engine/rules/pay, the L5 payment-planning package of the
-// rules-engine layering (spec 2026-10-03 §3, W5 step E7): the planner's
+// rules-engine layering (layering design §3): the planner's
 // vocabulary (alternatives, consequences, rank, witness) and its bounded
 // rank-aware search, the pool solver and payment core, and the payment
 // vocabulary (cost modifiers, window sources, planner classification and
 // stats). It reaches the engine only through the pay.Engine interface package
-// rules implements (engine/rules/pay_engine.go). Its rows live in their own file so
-// parallel W5 steps do not edit the same lines.
+// rules implements (engine/rules/pay_engine.go). Its rows live in their own file.
 
 // payImports is the closed set of module packages engine/rules/pay may import
 // directly: the L0/L1 vocabulary (cards, state, decision, events), the L2
@@ -93,8 +92,8 @@ func TestPayStaysDeterministic(t *testing.T) {
 // paramsImports is the closed set of module packages engine/effects/params may
 // import directly: the L0/L1 vocabulary only. engine/effects/params is the leaf
 // home of the compiled ability-parameter records both the resolution
-// (effects aliases every name) and the payment layer (engine/rules/pay) read (W5
-// step E7); anything above L1 would put the resolution's Host/Ctx machinery,
+// (effects aliases every name) and the payment layer (engine/rules/pay) read;
+// anything above L1 would put the resolution's Host/Ctx machinery,
 // or the engine, back under the payment layer.
 var paramsImports = map[string]bool{
 	module + "/engine/cards":    true,

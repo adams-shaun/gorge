@@ -1,12 +1,11 @@
 package host
 
-// Undo (dispatch fb-20260911T201015Z): the in-place rewind tests. The v1
-// attempt forked a successor match; its blocking MAJOR was that the fork
-// pushed the whole inherited prefix through OnBurst as one burst (one call,
-// many intents) — violating the one-intent-per-burst contract and breaking
-// every embedder's persistence. This slice rewinds IN PLACE, and the
-// regression test below is written against exactly that shape: after any
-// undo, every OnBurst call still carries exactly one intent's burst.
+// Undo: the in-place rewind tests. A fork of the match into a successor would
+// push the whole inherited prefix through OnBurst as one burst (one call, many
+// intents), violating the one-intent-per-burst contract and breaking every
+// embedder's persistence. Undo rewinds IN PLACE, and the regression test below
+// is written against exactly that shape: after any undo, every OnBurst call
+// still carries exactly one intent's burst.
 
 import (
 	"sync"

@@ -94,7 +94,7 @@ func TestSummaryLinksTheDocBesideIt(t *testing.T) {
 	}
 }
 
-// TestCoverageTablesAreNotCommitted holds the W2 decision: the coverage
+// TestCoverageTablesAreNotCommitted holds that the coverage
 // tables are generated into the gitignored .coverage/ and published by CI,
 // never committed. A README coverage block or a docs/coverage.md in the tree
 // is the old refresh-by-commit scheme coming back.

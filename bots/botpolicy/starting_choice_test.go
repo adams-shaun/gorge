@@ -41,7 +41,7 @@ func (c blindChars) Characteristics(id state.ObjID) (int32, int32, []string) {
 // (hand = decklist − OwnLibrary). It asserts the hand card is absent and
 // OwnLibrary zero while a pending-capable Chars is handed in, and present --
 // with a nonzero (no-manifest) composition -- for the same game without that
-// capability (the R-9 no-ask control), through both the scratch fill and the
+// capability (the no-ask control), through both the scratch fill and the
 // incremental refill of one reused Board.
 func TestStartingChoiceBoardHidesHand(t *testing.T) {
 	g := state.NewGame([]string{"alice", "bob"})
@@ -66,7 +66,7 @@ func TestStartingChoiceBoardHidesHand(t *testing.T) {
 	assertHandRedacted(t, "incremental", inc, hand.ID, grave.ID, field.ID, command.ID)
 
 	// Control: the same game with a Chars that carries no pending capability
-	// (the R-9 no-ask host) keeps the hand card, so the redaction is the
+	// (the no-ask host) keeps the hand card, so the redaction is the
 	// capability's doing, not a blanket drop. The control's OwnLibrary is
 	// nonzero (the no-manifest unknown) -- the precondition that proves the
 	// fold actually ran and the field is reachable, i.e. the blind's zero is

@@ -28,7 +28,7 @@ func islandCard() botpolicy.Card {
 	return botpolicy.Card{OnBattlefield: true, Basic: true, Produces: p}
 }
 
-// TestAutoPayPaysManuallyForUnplannedPreferredCast is the brief's headline
+// TestAutoPayPaysManuallyForUnplannedPreferredCast is the headline
 // case: a command-zone commander (5/5 for {3}{G}{G}, which V1 can never plan
 // -- cast.Origin != "hand") is the policy's preferred cast, and a 2/2 for
 // {1}{G} is the only offered plan. Five Forests, own main1, empty stack: the
@@ -70,7 +70,7 @@ func TestAutoPayPaysManuallyForUnplannedPreferredCast(t *testing.T) {
 	}
 }
 
-// TestAutoPayKeepsPlanForDeadCounterIntent is the brief's companion: the
+// TestAutoPayKeepsPlanForDeadCounterIntent is the companion: the
 // intended card is a Counter with NO foreign spell on b.Stack, so it is dead
 // (C8 refuses it outright) and falling back would spend the window on
 // nothing. The plan path is kept and the offered plan is selected.

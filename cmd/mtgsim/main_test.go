@@ -10,8 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRunPlaysAndVerifiesATwoSeatGame is the fix-round-1 test Minor #3 asked
-// for: run's io.Writer signature (rather than the old *os.File) is exercised
+// TestRunPlaysAndVerifiesATwoSeatGame: run's io.Writer signature is exercised
 // directly, with no subprocess and no real file, over a 2-seat, 1-game
 // -verify run against the repo's own decks.
 func TestRunPlaysAndVerifiesATwoSeatGame(t *testing.T) {
@@ -35,8 +34,7 @@ func TestRunPlaysAndVerifiesATwoSeatGame(t *testing.T) {
 	}
 }
 
-// TestPrintReplayOutcomeHonoursMissingWithoutAZeroEvent is the fix-round-1
-// test Minor #3 asked for: feed a hand-built *replay.Divergence with
+// TestPrintReplayOutcomeHonoursMissingWithoutAZeroEvent: feed a hand-built *replay.Divergence with
 // Missing: true through the printing branch directly (no need to corrupt a
 // real event log to force one) and assert the wording names Seq and Got.Kind
 // -- and, crucially, never prints the zero events.Event's Kind

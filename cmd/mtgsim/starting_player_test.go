@@ -12,7 +12,7 @@ import (
 )
 
 // TestRunPosesStartingPlayerToAgentSeat pins CR 103.1's ask: mtgsim must pose
-// the winner-chooses decision to the seats, not silently run the R-9 default
+// the winner-chooses decision to the seats, not silently run the default
 // in Advance before they attach.
 func TestRunPosesStartingPlayerToAgentSeat(t *testing.T) {
 	dir := testutil.CorpusDirOrSkip(t)

@@ -41,7 +41,7 @@ func reuseGame(t *testing.T, spec []struct {
 	return g, reuseChars{pw: pw, kw: map[state.ObjID][]string{}}
 }
 
-// TestBoardFromGameIntoOwnership is the named test for Task d2's reuse
+// TestBoardFromGameIntoOwnership is the named test for the reuse
 // contract: a Board built by BoardFromGameInto is the host's ONE board per
 // match, refilled for every decision, so its maps are shared across fills.
 // The contract has two halves, both asserted here:
@@ -57,8 +57,7 @@ func reuseGame(t *testing.T, spec []struct {
 // for the first decision shares its maps with the second fill, so a policy
 // that held it and read it after the second decision would observe that
 // decision's contents — which is why botpolicy.Decide never retains the Board
-// (TestDecideDoesNotRetainBoard). This is precisely the hazard Task d2 warns
-// about.
+// (TestDecideDoesNotRetainBoard).
 func TestBoardFromGameIntoOwnership(t *testing.T) {
 	gA, cA := reuseGame(t, []struct {
 		kind string
@@ -189,7 +188,7 @@ func tablePtr[K TableKey, V any](t IDTable[K, V]) uintptr {
 // match loop actually obeys — fill the one shared Board (build under the
 // match lock), hand it to Decide, let the next fill start only after the
 // decision is done — under the race detector. This is the concurrent form
-// Task d2 demands for a sharing invariant: the Board is one struct whose maps
+// of a sharing invariant: the Board is one struct whose maps
 // are shared across every decision, so a seat that RETAINED it and read it
 // while the next decision refilled the shared maps would data-race with the
 // producer. Two goroutines (producer = the host loop's next projectNext, and

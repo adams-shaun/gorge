@@ -2,8 +2,8 @@ package archtest
 
 import "testing"
 
-// TestPayMirrorClockStaysAtCommandBoundary pins the separation introduced by
-// 507fe00a7: the diagnostic command owns the harness wall clock, while the
+// TestPayMirrorClockStaysAtCommandBoundary pins a separation: the diagnostic
+// command owns the harness wall clock, while the
 // paymirror library receives only an injected budget predicate.
 func TestPayMirrorClockStaysAtCommandBoundary(t *testing.T) {
 	pkgs := packages(t)

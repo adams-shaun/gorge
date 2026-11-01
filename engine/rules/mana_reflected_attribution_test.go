@@ -1,5 +1,4 @@
-// Tests for the ATTRIBUTION of the ManaReflected producer tag (review round
-// r2 on the ctms sub-shape of the frozen castfilter1/2 row): which
+// Tests for the ATTRIBUTION of the ManaReflected producer tag: which
 // permanent's printed Treasure/Cave/Desert/Snow types a reflected mana unit
 // carries. The rule the three tests pin: "mana from a <Type>" is mana
 // PRODUCED BY a permanent of that type (Marut's official ruling; CR 107.4h's

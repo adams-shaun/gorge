@@ -7,17 +7,13 @@ package host
 // fixture. Never hand-edit the committed JSON; run this and commit what it
 // writes.
 //
-// fb-20260915T094418Z / event-802 staleness (2026-09-17): the previously
-// committed capture was itself regenerated with parkedOvershootMatch before
-// that helper wired host.Options.Tokens (see overshoot_tail_test.go) — its
-// live match ran token-starved, so a token-minting ability it hit recorded
-// the engine's "unimplemented API" Note stand-in. feedback.Load's
-// resolveTokens falls back to the full corpus token map when a capture
-// carries no token text, so replaying that same capture today actually
-// mints the token: "recorded move_zone [Note's text], replayed choose"
-// diverging at the first decision downstream of the mismatch (event 802).
-// Fixed at the source (Tokens now threaded through), then this regenerates
-// the fixture so the committed copy matches a token-complete live capture.
+// A capture regenerated with a helper that does not wire host.Options.Tokens
+// runs token-starved: a token-minting ability it hits records the engine's
+// "unimplemented API" Note stand-in. feedback.Load's resolveTokens falls back
+// to the full corpus token map when a capture carries no token text, so
+// replaying that capture mints the token and diverges at the first decision
+// downstream of the mismatch. Tokens are threaded through here, so the
+// committed copy matches a token-complete live capture.
 
 import (
 	"encoding/json"

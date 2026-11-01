@@ -1,6 +1,6 @@
 package httpapi
 
-// Task c7, wire half: the same three visibilities asserted on the JSON a
+// Wire half: the same three visibilities asserted on the JSON a
 // client actually receives. engine/view/ pins the Go structs; this file pins that a
 // redaction which is correct in view is also correct once marshalled and read
 // back off the wire -- a redaction "correct in view but lost in marshalling"

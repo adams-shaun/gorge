@@ -187,8 +187,8 @@ func TestPrewarmBackfillsFactsForALegacyArtOnlyCache(t *testing.T) {
 	}
 }
 
-// TestServePrewarmsTheDealtDecks is the serve-level wiring gate (the round-2
-// review's MAJOR finding): every other prewarm test drives prewarmArt
+// TestServePrewarmsTheDealtDecks is the serve-level wiring gate:
+// every other prewarm test drives prewarmArt
 // directly, so deleting the `go prewarmArt(...)` block in serve — or the
 // -prewarm flag default — would leave them all green while the live deploy
 // regressed. This one drives serve() itself, through the newServeArtCache

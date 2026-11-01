@@ -19,7 +19,7 @@ func grantDecision(b Board, options []tgt, statics []string) ([]int, *decision.D
 	return Decide(b, &d, rng(1)).Choices, &d
 }
 
-// TestTargetGrantAimsOwnNotOpponent is the fb-20260927T153930Z regression:
+// TestTargetGrantAimsOwnNotOpponent pins the grant's direction:
 // Whirler Rogue's "target creature can't be blocked this turn" is a one-way
 // BOON, so a bot handed the seat's own 5/5, an opponent's 2/2 and the
 // opponent's face must point the grant at its OWN creature. Before the

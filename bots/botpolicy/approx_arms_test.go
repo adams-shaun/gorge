@@ -7,8 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This file pins the real arms the approx tickets added to Decide for
-// decisions that previously fell through to Clamp's option-0 fallback: the
+// This file pins Decide's real arms for
+// decisions that would otherwise fall through to Clamp's option-0 fallback: the
 // CR 616.1 KReplacement order choice, the CR 702.43 multikicker count ask and
 // the CR 702.140b mutate over/under placement ask. Each test asserts its own
 // precondition (the metric the arm ranks on actually differs, and every

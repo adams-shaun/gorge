@@ -2100,7 +2100,7 @@ var apiSpecificRulesSA = map[string][]string{
 // static's genuinely unread gate keys: mayPlayStatic evaluates IsPresent$ /
 // MayPlayLimit$ live, but only for MayPlay$ statics -- Angelic Overseer's
 // IsPresent$ and Master of Etherium's CharacteristicDefining$ were all
-// masked exactly this way (review round findings-sol1, MAJOR). The family
+// masked exactly this way. The family
 // split restores them. Condition$ and CheckSVar$/SVarCompare$ later joined
 // the generic Continuous bucket legitimately: the statics wave's generic
 // restriction/cost gates read them on every Continuous static.
@@ -4160,7 +4160,7 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 // read only MayPlay$ Continuous statics, so their keys must NOT sit in the
 // generic Continuous union -- Mogis/Purphoros's CheckSVar$/SVarCompare$ and
 // Master of Etherium's CharacteristicDefining$ were all masked by that
-// misattribution (review round findings-sol1, MAJOR; Angelic Overseer's
+// misattribution (Angelic Overseer's
 // IsPresent$ was too, until the continuous-gate wave genuinely read it on
 // the generic bucket -- engine/rules/layers.go's continuousGateHolds). Inside the
 // family the genuinely evaluated gates (Condition$ PlayerTurn, IsPresent$,

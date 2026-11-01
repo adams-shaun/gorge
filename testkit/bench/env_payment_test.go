@@ -51,11 +51,10 @@ func (s *planEnvSeat) DecideEnv(ctx context.Context, env bots.Env, d decision.De
 }
 
 // TestEnvSeatPaymentPlanAnswerKeepsItsFeed: a payment-plan answer from an
-// EnvSeat is recorded on its feed without stopping it. Before the fix the
-// live decision's PaymentActions were never built for such a seat, so the
-// recorded answer did not translate and the seat was fed nothing (no honest
-// root, its search silently off) for the rest of the game -- the hosted bug
-// 964bab2f7 fixed in server/host/match.go, here in the lab's driver.
+// EnvSeat is recorded on its feed without stopping it. If the live decision's
+// PaymentActions are not built for such a seat, the recorded answer does not
+// translate and the seat is fed nothing (no honest root, its search silently
+// off) for the rest of the game.
 func TestEnvSeatPaymentPlanAnswerKeepsItsFeed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	deckA, deckB := fdnPair(t, reg)

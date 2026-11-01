@@ -276,7 +276,7 @@ func TestDeckDirectoryListingIsSortedAndComplete(t *testing.T) {
 // net.Listen("tcp", "127.0.0.1:0") pattern of TestServesTablesOverHTTP —
 // no test below binds a fixed port. Every human-seat test here drives a
 // real server with the corpus, because the seat-scoped routes are the whole
-// point of the task; the corpus guard is the same one the existing tests
+// point; the corpus guard is the same one the existing tests
 // use.
 func startServe(t *testing.T, c config) (string, context.CancelFunc, <-chan error) {
 	t.Helper()
@@ -500,9 +500,9 @@ func expectStatus(t *testing.T, url, path string, want int) protocol.ErrorBody {
 	}
 }
 
-// TestHumanSeatTakesADecisionEndToEnd is the point of the task: a human
+// TestHumanSeatTakesADecisionEndToEnd is the point: a human
 // seat answers the one decision a real person meets and the game visibly
-// advances. serve runs with the -perpetual default (true) to prove R-E3-2
+// advances. serve runs with the -perpetual default (true) to prove it
 // forces t1 single-shot anyway, pace 0 so the wait is about the wire, and a
 // fixed -seat-token so the test holds a seat without scraping stderr.
 func TestHumanSeatTakesADecisionEndToEnd(t *testing.T) {
@@ -531,7 +531,7 @@ func TestHumanSeatTakesADecisionEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The intent carries the token in the Authorization: Bearer header (the
-	// reads use ?token=): R-E3-3 reads the header first, then the query.
+	// reads use ?token=): the resolver reads the header first, then the query.
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -573,7 +573,7 @@ func TestHumanSeatTakesADecisionEndToEnd(t *testing.T) {
 	}
 }
 
-// TestTheHumanSeatIsAskedToMulligan is the product half of M2e-5: with
+// TestTheHumanSeatIsAskedToMulligan is the product half: with
 // -mulligans 1 (the flag default), the London round runs and the human
 // seat receives its keep/mulligan choice after any CR 103.1 toss choice.
 // Answering "keep" must move the match past the round.
@@ -643,7 +643,7 @@ func TestTheHumanSeatIsAskedToMulligan(t *testing.T) {
 
 // playDeadline bounds a full human-driven match. The loop's assertions
 // never depend on it — the seat view reporting over is the only exit — but
-// a wedged drive must fail with what it got, not hang the suite (R-E6-3).
+// a wedged drive must fail with what it got, not hang the suite.
 const playDeadline = 60 * time.Second
 
 // playMatchToCompletion drives the whole product: the human seat answers
@@ -773,7 +773,7 @@ func TestAHumanPlaysAMatchToCompletion(t *testing.T) {
 	if answers < 2 {
 		t.Fatalf("match ended after %d answer(s), census %v: a real game asks the seat more than once", answers, census)
 	}
-	// R-E6-1: choosing the last option would have conceded on the first
+	// Choosing the last option would have conceded on the first
 	// priority decision and "passed" a one-answer game.
 	if conceded {
 		t.Fatalf("a posted choice named a concede option, census %v: the driver must pick 0..Min-1, never the last option", census)
@@ -794,8 +794,8 @@ func TestAHumanPlaysAMatchToCompletion(t *testing.T) {
 }
 
 // TestHumanSeatRefusesTheOtherSeat: a token minted for seat 0 is refused
-// when the request names seat 1 — the claim≠requested comparison of M2e-2,
-// and the whole reason the resolver cannot be a rubber stamp (R-E3-3).
+// when the request names seat 1 — the claim≠requested comparison,
+// and the whole reason the resolver cannot be a rubber stamp.
 //
 // The startServe-based tests in this file are fully independent — own
 // listener on a random port, own tempdirs, no package-global mutated (the
@@ -845,7 +845,7 @@ func TestHumanSeatRefusesAMissingToken(t *testing.T) {
 }
 
 // TestHumanSeatRefusesAnUnknownToken: a token nobody was minted is a 401 —
-// unknown tokens are refused exactly like absent ones (R-E3-3).
+// unknown tokens are refused exactly like absent ones.
 func TestHumanSeatRefusesAnUnknownToken(t *testing.T) {
 	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, humansRaw: "0", pace: 0, seatToken: "tok"})
@@ -864,7 +864,7 @@ func TestHumanSeatRefusesAnUnknownToken(t *testing.T) {
 
 // TestBotTablesStayPerpetualBesideAHumanTable: with -tables 2 -humans 0 the
 // -perpetual default (true) still applies to t2, while t1 is forced
-// single-shot for its human (R-E3-2). Asserted on the TableConfig state
+// single-shot for its human. Asserted on the TableConfig state
 // directly, not by waiting out matches.
 func TestBotTablesStayPerpetualBesideAHumanTable(t *testing.T) {
 	c := config{seats: 2, tables: 2, seed: 1, perpetual: true, humansRaw: "0"}
@@ -903,7 +903,7 @@ func TestNoHumansIsSpectatorOnly(t *testing.T) {
 	}
 }
 
-// --- Task m39: gorged runs Commander tables ---------------------------------
+// --- gorged runs Commander tables ---------------------------------
 
 // TestFormatFlagParsing pins the -format flag's two shapes: a single name
 // makes every table that format, and a comma-separated list is cycled over
@@ -1129,7 +1129,7 @@ func TestCommanderTableDealtAnInvalidDeckFailsAtStartup(t *testing.T) {
 // and returns the served table's base URL parts: the table id and the human
 // seat's bearer token, straight from the CreateGameResponse. It is the
 // mulligan-allowance test's harness: the flow is the only way a client can
-// name its own London allowance (finding fb-20260914T114629Z-6c81e4d6).
+// name its own London allowance.
 func createVsBotGame(t *testing.T, url, body string) (table string, tok string) {
 	t.Helper()
 	resp, err := http.Post(url+"/api/games", "application/json", strings.NewReader(body))
@@ -1199,8 +1199,8 @@ func afterTossChoice(t *testing.T, url, table, pendingURL, tok string, d decisio
 	return nextDecision(t, pendingURL, "0", tok, d.Seq)
 }
 
-// TestVsBotGameHonoursRequestedMulliganAllowance is the product proof for
-// finding fb-20260914T114629Z-6c81e4d6: a play-vs-bot game created with
+// TestVsBotGameHonoursRequestedMulliganAllowance is the product proof: a
+// play-vs-bot game created with
 // "mulligans": 3 re-offers the keep/mulligan ask (option 1, "mulligan") until
 // the seat has taken 3 — the 4th ask offers ONLY "keep" — and then bottoms
 // the 3-card penalty, after which the match proceeds. The omission path is

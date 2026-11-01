@@ -1,6 +1,6 @@
 package host
 
-// HD-2's provenance ledger acceptance tests
+// Provenance ledger acceptance tests
 // (docs/design/2026-10-10-human-divergence-design.md §5.2, §12):
 // the caretaker bit follows HumanSeat.caretakerFires, the auto bit follows
 // SubmitIntentFrom's flag and the ?auto=1 query form, an undo truncates the
@@ -183,7 +183,7 @@ func TestLedgerMarksCaretaker(t *testing.T) {
 	// 2s: far longer than one driver iteration even on a saturated box, so a
 	// submitted decision can never lose the race to the timeout — a fire the
 	// driver caused would break the exact count below. 200ms lost that race
-	// at load ~60 (postmerge RED 91501ef4c, 12:37 c625a82be: 4 fires, want 2);
+	// at load ~60 (4 fires, want 2);
 	// only the two withheld decisions wait it out, so the test pays ~4s.
 	o.ThinkTimeout = 2 * time.Second
 	r := undoTable(t, o, "t1")
@@ -327,7 +327,7 @@ func TestLedgerTruncatesOnUndo(t *testing.T) {
 		t.Fatalf("the marked intent inside the kept prefix (index %d) lost its auto bit", markedIdx)
 	}
 
-	// Round 2: the rewound decision is pending again; re-answer it WITH the
+	// Second pass: the rewound decision is pending again; re-answer it WITH the
 	// auto flag, let the bots move once, and undo again — this rewind
 	// truncates a ledger entry that is currently MARKED.
 	d3 := waitPendingSeq(t, r, "t1", d2.Seq)

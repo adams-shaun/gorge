@@ -1,10 +1,10 @@
 package host
 
-// BP-10 (spec 2026-09-28-hosted-bot-packages §7, §11): the FIFO search-slot
+// The FIFO search-slot
 // gate, the abort-on-close of a queued decision, and AddTable's search-table
 // admission. The spy entry is a bots.Register'd entry with Search set — the
 // gate, the wait and the admission check all key on the TABLE's policy entry,
-// exactly as production will when the real search policies arrive (BP-11+).
+// exactly as production does for the real search policies.
 
 import (
 	"context"
@@ -25,15 +25,15 @@ import (
 	"github.com/adams-shaun/gorge/server/protocol"
 )
 
-// bp10SpyPolicy is the test-only hosted policy the BP-10 tests seat. It is
+// slotSpyPolicy is the test-only hosted policy the slot tests seat. It is
 // registered once per test binary with Search set; its factory delegates to
 // whichever harness the running test installed.
-const bp10SpyPolicy = "bp10-search-spy"
+const slotSpyPolicy = "slot-search-spy"
 
-// bp10Harness is the coordination point every BP-10 spy seat talks to. The
+// slotHarness is the coordination point every spy seat talks to. The
 // tests are serial (no t.Parallel): each installs itself as the current
 // harness before it starts any table, so no other test observes its signals.
-type bp10Harness struct {
+type slotHarness struct {
 	mu          sync.Mutex
 	blockN      int  // the first blockN entered decisions wait for a permit
 	open        bool // every decision proceeds without waiting
@@ -49,8 +49,8 @@ type bp10Harness struct {
 	parallelism int64 // bots.Options.SearchParallelism last seen by the factory
 }
 
-func newBP10Harness(blockN int) *bp10Harness {
-	return &bp10Harness{
+func newSlotHarness(blockN int) *slotHarness {
+	return &slotHarness{
 		blockN:   blockN,
 		permits:  map[string]chan struct{}{},
 		enteredC: make(chan string, 64),
@@ -59,41 +59,41 @@ func newBP10Harness(blockN int) *bp10Harness {
 }
 
 var (
-	bp10Once    sync.Once
-	bp10Current atomic.Pointer[bp10Harness]
+	slotOnce    sync.Once
+	slotCurrent atomic.Pointer[slotHarness]
 )
 
-// registerBP10Spy registers the spy policy once per binary and points it at h.
+// registerSlotSpy registers the spy policy once per binary and points it at h.
 // The factory must keep working between tests (a stale harness simply builds
 // plain bots), so it reads the current harness atomically.
-func registerBP10Spy(t *testing.T, h *bp10Harness) {
+func registerSlotSpy(t *testing.T, h *slotHarness) {
 	t.Helper()
-	bp10Current.Store(h)
-	bp10Once.Do(func() {
+	slotCurrent.Store(h)
+	slotOnce.Do(func() {
 		bots.Register(bots.Entry{Info: bots.Info{
-			Name: bp10SpyPolicy, Label: "BP-10 spy search", Tier: bots.Experimental,
-			Description: "test-only search entry for the BP-10 host slot tests",
+			Name: slotSpyPolicy, Label: "slot spy search", Tier: bots.Experimental,
+			Description: "test-only search entry for the host slot tests",
 			Env:         true, Search: true, Formats: []string{"constructed"}, MaxSeats: 8,
 		}, New: func(o bots.Options) (seat.Seat, error) {
-			if cur := bp10Current.Load(); cur != nil {
+			if cur := slotCurrent.Load(); cur != nil {
 				return cur.spyFactory(o)
 			}
 			return heuristic.NewBot(o.Seed), nil
 		}})
 	})
-	if _, ok := bots.Lookup(bp10SpyPolicy); !ok {
+	if _, ok := bots.Lookup(slotSpyPolicy); !ok {
 		t.Fatal("spy search policy was not registered")
 	}
 }
 
-func (h *bp10Harness) spyFactory(o bots.Options) (seat.Seat, error) {
+func (h *slotHarness) spyFactory(o bots.Options) (seat.Seat, error) {
 	atomic.StoreInt64(&h.parallelism, int64(o.SearchParallelism))
 	return heuristic.NewBot(o.Seed), nil
 }
 
 // seatBuilder is an opts.Seats override: it tags each match's spies A, B, C...
 // in play order so the test can tell the two tables' decisions apart.
-func (h *bp10Harness) seatBuilder(t *testing.T) func(names []string, seed uint64) []seat.Seat {
+func (h *slotHarness) seatBuilder(t *testing.T) func(names []string, seed uint64) []seat.Seat {
 	t.Helper()
 	return func(names []string, seed uint64) []seat.Seat {
 		h.mu.Lock()
@@ -102,13 +102,13 @@ func (h *bp10Harness) seatBuilder(t *testing.T) func(names []string, seed uint64
 		h.mu.Unlock()
 		out := make([]seat.Seat, len(names))
 		for i := range names {
-			out[i] = &bp10SpySeat{Bot: heuristic.NewBot(seed ^ uint64(i+1)), h: h, tag: tag}
+			out[i] = &slotSpySeat{Bot: heuristic.NewBot(seed ^ uint64(i+1)), h: h, tag: tag}
 		}
 		return out
 	}
 }
 
-func (h *bp10Harness) setOpen() {
+func (h *slotHarness) setOpen() {
 	h.mu.Lock()
 	h.open = true
 	h.mu.Unlock()
@@ -116,7 +116,7 @@ func (h *bp10Harness) setOpen() {
 
 // permitBlocked unblocks whichever decision is waiting for its permit and
 // returns its label.
-func (h *bp10Harness) permitBlocked() string {
+func (h *slotHarness) permitBlocked() string {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for label, ch := range h.permits {
@@ -127,31 +127,31 @@ func (h *bp10Harness) permitBlocked() string {
 	return ""
 }
 
-func (h *bp10Harness) enteredLabels() []string {
+func (h *slotHarness) enteredLabels() []string {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return append([]string(nil), h.entered...)
 }
 
-// bp10SpySeat is a bots.EnvSeat that records its wants and DecideEnv entries
+// slotSpySeat is a bots.EnvSeat that records its wants and DecideEnv entries
 // through the harness, blocks the harness's first blockN decisions until
 // permitted (or ctx is done), and otherwise answers exactly like the wrapped
 // bot — so a match the spies seat runs identically to a plain-bot match and
 // the slotting cannot change its intents.
-type bp10SpySeat struct {
+type slotSpySeat struct {
 	*heuristic.Bot
-	h   *bp10Harness
+	h   *slotHarness
 	tag string
 }
 
-func (s *bp10SpySeat) WantsEnv(d *decision.Decision) bool {
+func (s *slotSpySeat) WantsEnv(d *decision.Decision) bool {
 	s.h.mu.Lock()
 	s.h.signal(s.h.wantC, s.tag)
 	s.h.mu.Unlock()
 	return true
 }
 
-func (s *bp10SpySeat) DecideEnv(ctx context.Context, env bots.Env, d decision.Decision) (decision.Intent, error) {
+func (s *slotSpySeat) DecideEnv(ctx context.Context, env bots.Env, d decision.Decision) (decision.Intent, error) {
 	h := s.h
 	h.mu.Lock()
 	idx := h.entrySeq
@@ -176,16 +176,16 @@ func (s *bp10SpySeat) DecideEnv(ctx context.Context, env bots.Env, d decision.De
 		select {
 		case <-permit:
 		case <-ctx.Done():
-			h.exitBP10(label)
+			h.exitSlot(label)
 			return decision.Intent{}, ctx.Err()
 		}
 	}
 	in, err := s.Bot.DecideBoard(ctx, env.Board, d)
-	h.exitBP10(label)
+	h.exitSlot(label)
 	return in, err
 }
 
-func (h *bp10Harness) exitBP10(label string) {
+func (h *slotHarness) exitSlot(label string) {
 	h.mu.Lock()
 	h.holders--
 	delete(h.permits, label)
@@ -195,7 +195,7 @@ func (h *bp10Harness) exitBP10(label string) {
 // signal records an observable event on ch; the buffer is far larger than
 // any test consumes, and a full buffer drops rather than blocks (the signals
 // are a convenience observability aid, never a correctness input).
-func (h *bp10Harness) signal(ch chan string, s string) {
+func (h *slotHarness) signal(ch chan string, s string) {
 	select {
 	case ch <- s:
 	default:
@@ -215,16 +215,16 @@ func itoa(i int) string {
 	return string(b[p:])
 }
 
-// bp10Tag returns the table tag of a harness label: an entry label is
+// slotTag returns the table tag of a harness label: an entry label is
 // "<tag>#<n>", a want signal is the bare tag.
-func bp10Tag(label string) string {
+func slotTag(label string) string {
 	if i := strings.IndexByte(label, '#'); i >= 0 {
 		return label[:i]
 	}
 	return label
 }
 
-func bp10Idx(label string) int {
+func slotIdx(label string) int {
 	i := 0
 	for _, c := range label[strings.IndexByte(label, '#')+1:] {
 		i = i*10 + int(c-'0')
@@ -232,7 +232,7 @@ func bp10Idx(label string) int {
 	return i
 }
 
-func awaitBP10(t *testing.T, ch <-chan string, what string) string {
+func awaitSlot(t *testing.T, ch <-chan string, what string) string {
 	t.Helper()
 	select {
 	case s := <-ch:
@@ -243,13 +243,13 @@ func awaitBP10(t *testing.T, ch <-chan string, what string) string {
 	}
 }
 
-// bp10WaitQueued waits until exactly want decisions are queued on the
+// slotWaitQueued waits until exactly want decisions are queued on the
 // registry's search-slot gate. It replaces a fixed sleep: a sleeper races
 // Close — under load the second table's goroutine can reach acquire only
 // after the Close-driven release freed the slot, so it walks straight in
 // and the "never queued" assertions fail spuriously. Being in the waiters
 // queue is the deterministic state the assertions below actually need.
-func bp10WaitQueued(t *testing.T, r *Registry, want int) {
+func slotWaitQueued(t *testing.T, r *Registry, want int) {
 	t.Helper()
 	if r.searchGate == nil {
 		t.Fatal("the registry has no search-slot gate; the test's bounded setup is wrong")
@@ -270,18 +270,18 @@ func bp10WaitQueued(t *testing.T, r *Registry, want int) {
 	}
 }
 
-// bp10Tables is the two-table config every BP-10 slot test plays: 2 seats,
+// slotTables is the two-table config every slot test plays: 2 seats,
 // fixed seeds, fixed repo decks, the spy search policy.
-func bp10Tables(policy string) []TableConfig {
+func slotTables(policy string) []TableConfig {
 	return []TableConfig{
-		{ID: "s1", Name: "bp10 s1", Seats: 2, Decks: []string{"a", "b"}, Seed: 20260928,
+		{ID: "s1", Name: "slot s1", Seats: 2, Decks: []string{"a", "b"}, Seed: 20260928,
 			Pace: 0, Spectator: view.Public, BotPolicy: policy, AllowDecklistBots: true},
-		{ID: "s2", Name: "bp10 s2", Seats: 2, Decks: []string{"a", "b"}, Seed: 20260929,
+		{ID: "s2", Name: "slot s2", Seats: 2, Decks: []string{"a", "b"}, Seed: 20260929,
 			Pace: 0, Spectator: view.Public, BotPolicy: policy, AllowDecklistBots: true},
 	}
 }
 
-func addAndStartBP10(t *testing.T, r *Registry, cfgs []TableConfig) {
+func addAndStartSlotTables(t *testing.T, r *Registry, cfgs []TableConfig) {
 	t.Helper()
 	for _, c := range cfgs {
 		if err := r.AddTable(c); err != nil {
@@ -293,8 +293,8 @@ func addAndStartBP10(t *testing.T, r *Registry, cfgs []TableConfig) {
 	}
 }
 
-// bp10Snapshot captures one finished match's outcome and full log.
-func bp10Snapshot(t *testing.T, r *Registry, id TableID) (protocol.MatchInfo, *events.Log) {
+// slotSnapshot captures one finished match's outcome and full log.
+func slotSnapshot(t *testing.T, r *Registry, id TableID) (protocol.MatchInfo, *events.Log) {
 	t.Helper()
 	m, _ := matchFor(t, r, id)
 	m.mu.RLock()
@@ -302,9 +302,9 @@ func bp10Snapshot(t *testing.T, r *Registry, id TableID) (protocol.MatchInfo, *e
 	return m.info(), m.e.L.Clone()
 }
 
-// compareBP10Logs asserts two runs of the same table produced the identical
+// compareSlotLogs asserts two runs of the same table produced the identical
 // event chain and identical intents (§7: slotting must never change intents).
-func compareBP10Logs(t *testing.T, id TableID, bounded, unbounded *events.Log) {
+func compareSlotLogs(t *testing.T, id TableID, bounded, unbounded *events.Log) {
 	t.Helper()
 	if bounded.Head() != unbounded.Head() {
 		t.Fatalf("%s: bounded head %s, unbounded head %s (slotting changed intents)", id, bounded.Head(), unbounded.Head())
@@ -325,7 +325,7 @@ func compareBP10Logs(t *testing.T, id TableID, bounded, unbounded *events.Log) {
 	}
 }
 
-// TestSearchSlotsQueueFIFOAndNeverChangeIntents is BP-10's central assertion:
+// TestSearchSlotsQueueFIFOAndNeverChangeIntents is the central assertion:
 // two spy search tables contending for ONE slot (SearchSlots 1) run with
 // exactly one search inside DecideEnv at any moment, the second decision
 // queues FIFO behind the held slot and is served the moment it is released,
@@ -333,8 +333,8 @@ func compareBP10Logs(t *testing.T, id TableID, bounded, unbounded *events.Log) {
 // unbounded — the slot changes latency, never intents.
 func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 	boundedLogs := func() map[TableID]*events.Log {
-		h := newBP10Harness(1)
-		registerBP10Spy(t, h)
+		h := newSlotHarness(1)
+		registerSlotSpy(t, h)
 		opts := testOptions(t)
 		opts.SearchSlots = 1
 		opts.Seats = h.seatBuilder(t)
@@ -343,19 +343,19 @@ func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer r.Close()
-		addAndStartBP10(t, r, bp10Tables(bp10SpyPolicy))
+		addAndStartSlotTables(t, r, slotTables(slotSpyPolicy))
 
 		// The first search decision enters DecideEnv, holds the only slot and
 		// blocks on the harness permit.
-		first := awaitBP10(t, h.enteredC, "the first search decision to enter DecideEnv")
+		first := awaitSlot(t, h.enteredC, "the first search decision to enter DecideEnv")
 		// The other table reaches WantsEnv (the projection immediately
 		// precedes the slot wait), so it is deterministically about to queue.
 		other := ""
 		deadline := time.After(10 * time.Second)
-		for other == "" || bp10Tag(other) == bp10Tag(first) {
+		for other == "" || slotTag(other) == slotTag(first) {
 			select {
 			case w := <-h.wantC:
-				if bp10Tag(w) != bp10Tag(first) {
+				if slotTag(w) != slotTag(first) {
 					other = w
 				}
 			case <-deadline:
@@ -366,7 +366,7 @@ func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 		// on the gate, then prove it is QUEUED, not deciding: no second entry
 		// while the slot is held. A broken (or missing) gate enters here within
 		// microseconds of the want, so this assertion is what fails.
-		bp10WaitQueued(t, r, 1)
+		slotWaitQueued(t, r, 1)
 		select {
 		case l := <-h.enteredC:
 			t.Fatalf("a second search entered DecideEnv while the slot was held: %s", l)
@@ -375,12 +375,12 @@ func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 		// Release the holder: the queued decision must be served FIFO, at
 		// once, before anything else takes the slot.
 		h.permitBlocked()
-		second := awaitBP10(t, h.enteredC, "the queued search decision to enter DecideEnv after the release")
-		if bp10Tag(second) != bp10Tag(other) {
+		second := awaitSlot(t, h.enteredC, "the queued search decision to enter DecideEnv after the release")
+		if slotTag(second) != slotTag(other) {
 			t.Fatalf("the queued table %s did not get the slot first; %s entered instead", other, second)
 		}
-		if bp10Idx(second) != 1 {
-			t.Fatalf("the queued decision entered as entry #%d, want #1 (FIFO queue skipped or reordered)", bp10Idx(second))
+		if slotIdx(second) != 1 {
+			t.Fatalf("the queued decision entered as entry #%d, want #1 (FIFO queue skipped or reordered)", slotIdx(second))
 		}
 		h.setOpen()
 		r.Wait("s1")
@@ -389,7 +389,7 @@ func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 		// Precondition: the games really ran, and the slot actually
 		// serialized them — exactly one holder at any time.
 		for _, id := range []TableID{"s1", "s2"} {
-			_, log := bp10Snapshot(t, r, id)
+			_, log := slotSnapshot(t, r, id)
 			if len(log.Intents) < 20 {
 				t.Fatalf("%s: match logged only %d intents; too short to compare", id, len(log.Intents))
 			}
@@ -402,15 +402,15 @@ func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 		}
 		out := map[TableID]*events.Log{}
 		for _, id := range []TableID{"s1", "s2"} {
-			_, out[id] = bp10Snapshot(t, r, id)
+			_, out[id] = slotSnapshot(t, r, id)
 		}
 		return out
 	}()
 
 	// The control: the same two tables, same seeds, same spies, unbounded.
 	unbounded := func() map[TableID]*events.Log {
-		h := newBP10Harness(0)
-		registerBP10Spy(t, h)
+		h := newSlotHarness(0)
+		registerSlotSpy(t, h)
 		h.setOpen()
 		opts := testOptions(t)
 		opts.Seats = h.seatBuilder(t)
@@ -419,12 +419,12 @@ func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer r.Close()
-		addAndStartBP10(t, r, bp10Tables(bp10SpyPolicy))
+		addAndStartSlotTables(t, r, slotTables(slotSpyPolicy))
 		r.Wait("s1")
 		r.Wait("s2")
 		out := map[TableID]*events.Log{}
 		for _, id := range []TableID{"s1", "s2"} {
-			info, log := bp10Snapshot(t, r, id)
+			info, log := slotSnapshot(t, r, id)
 			if info.State != protocol.MatchFinished {
 				t.Fatalf("%s: unbounded match state %s, want finished", id, info.State)
 			}
@@ -434,11 +434,11 @@ func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 	}()
 
 	for _, id := range []TableID{"s1", "s2"} {
-		compareBP10Logs(t, id, boundedLogs[id], unbounded[id])
+		compareSlotLogs(t, id, boundedLogs[id], unbounded[id])
 	}
 }
 
-// TestSearchSlotWaitAbortsOnClose is BP-10's second assertion: a decision
+// TestSearchSlotWaitAbortsOnClose is the second assertion: a decision
 // queued on a held slot unblocks with ctx.Err() when its table closes, and
 // the play loop records a clean ABORT (never a crash, never a halt). The
 // queued table's serialization while the slot is held is pinned by the
@@ -450,8 +450,8 @@ func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 // granted waiter then decides with a still-live context and aborts at the
 // next t.stop poll — a clean abort either way).
 func TestSearchSlotWaitAbortsOnClose(t *testing.T) {
-	h := newBP10Harness(1)
-	registerBP10Spy(t, h)
+	h := newSlotHarness(1)
+	registerSlotSpy(t, h)
 	opts := testOptions(t)
 	opts.SearchSlots = 1
 	opts.Seats = h.seatBuilder(t)
@@ -460,24 +460,24 @@ func TestSearchSlotWaitAbortsOnClose(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer r.Close()
-	addAndStartBP10(t, r, bp10Tables(bp10SpyPolicy))
+	addAndStartSlotTables(t, r, slotTables(slotSpyPolicy))
 
 	// Table A's first search holds the only slot, blocked in DecideEnv.
-	first := awaitBP10(t, h.enteredC, "table A's search decision to enter DecideEnv")
+	first := awaitSlot(t, h.enteredC, "table A's search decision to enter DecideEnv")
 	// Table B reaches its projection, is queued behind A's slot...
 	other := ""
 	deadline := time.After(10 * time.Second)
-	for other == "" || bp10Tag(other) == bp10Tag(first) {
+	for other == "" || slotTag(other) == slotTag(first) {
 		select {
 		case w := <-h.wantC:
-			if bp10Tag(w) != bp10Tag(first) {
+			if slotTag(w) != slotTag(first) {
 				other = w
 			}
 		case <-deadline:
 			t.Fatalf("table B never reached WantsEnv (entries: %v)", h.enteredLabels())
 		}
 	}
-	bp10WaitQueued(t, r, 1) // B is deterministically IN the gate's queue
+	slotWaitQueued(t, r, 1) // B is deterministically IN the gate's queue
 	select {
 	case l := <-h.enteredC:
 		t.Fatalf("table B entered DecideEnv while the slot was held: %s", l)
@@ -532,13 +532,13 @@ func TestSearchSlotWaitAbortsOnClose(t *testing.T) {
 	}
 }
 
-// TestMaxSearchTablesRefusesAtCreate is BP-10's admission assertion: a live
+// TestMaxSearchTablesRefusesAtCreate is the admission assertion: a live
 // on-demand search table consumes the configured budget, a refusal names the
 // non-search alternative, non-search and durable tables are out of scope, and
 // a FINISHED table frees its capacity again.
 func TestMaxSearchTablesRefusesAtCreate(t *testing.T) {
-	h := newBP10Harness(1)
-	registerBP10Spy(t, h)
+	h := newSlotHarness(1)
+	registerSlotSpy(t, h)
 	opts := testOptions(t)
 	opts.MaxSearchTables = 1
 	opts.Seats = h.seatBuilder(t)
@@ -549,7 +549,7 @@ func TestMaxSearchTablesRefusesAtCreate(t *testing.T) {
 	defer r.Close()
 
 	g1 := TableConfig{ID: "g1", Seats: 2, Decks: []string{"a", "b"}, Seed: 20260928,
-		Pace: 0, Spectator: view.Public, OnDemand: true, BotPolicy: bp10SpyPolicy, AllowDecklistBots: true}
+		Pace: 0, Spectator: view.Public, OnDemand: true, BotPolicy: slotSpyPolicy, AllowDecklistBots: true}
 	if err := r.AddTable(g1); err != nil {
 		t.Fatal(err)
 	}
@@ -557,13 +557,13 @@ func TestMaxSearchTablesRefusesAtCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Precondition: the search table is actually live, holding its match.
-	first := awaitBP10(t, h.enteredC, "g1's search decision to enter DecideEnv")
+	first := awaitSlot(t, h.enteredC, "g1's search decision to enter DecideEnv")
 	_ = first
-	bp10WaitTableState(t, r, "g1", protocol.TableLive)
+	slotWaitTableState(t, r, "g1", protocol.TableLive)
 
 	// At the limit: refused, with the refusal that names the alternative.
 	err = r.AddTable(TableConfig{ID: "g2", Seats: 2, Decks: []string{"a", "b"}, Seed: 20260929,
-		Pace: 0, Spectator: view.Public, OnDemand: true, BotPolicy: bp10SpyPolicy, AllowDecklistBots: true})
+		Pace: 0, Spectator: view.Public, OnDemand: true, BotPolicy: slotSpyPolicy, AllowDecklistBots: true})
 	if err == nil || !strings.Contains(err.Error(), "search bots are at capacity; choose a non-search policy") {
 		t.Fatalf("second on-demand search table error = %v, want the capacity refusal", err)
 	}
@@ -580,7 +580,7 @@ func TestMaxSearchTablesRefusesAtCreate(t *testing.T) {
 		t.Fatalf("non-search on-demand table refused by the search limit: %v", err)
 	}
 	if err := r.AddTable(TableConfig{ID: "g4", Seats: 2, Decks: []string{"a", "b"}, Seed: 20260931,
-		Pace: 0, Spectator: view.Public, BotPolicy: bp10SpyPolicy, AllowDecklistBots: true}); err != nil {
+		Pace: 0, Spectator: view.Public, BotPolicy: slotSpyPolicy, AllowDecklistBots: true}); err != nil {
 		t.Fatalf("durable search table refused by the on-demand limit: %v", err)
 	}
 
@@ -589,14 +589,14 @@ func TestMaxSearchTablesRefusesAtCreate(t *testing.T) {
 	h.permitBlocked()
 	h.setOpen()
 	r.Wait("g1")
-	bp10WaitTableState(t, r, "g1", protocol.TableIdle)
+	slotWaitTableState(t, r, "g1", protocol.TableIdle)
 	if err := r.AddTable(TableConfig{ID: "g5", Seats: 2, Decks: []string{"a", "b"}, Seed: 20260932,
-		Pace: 0, Spectator: view.Public, OnDemand: true, BotPolicy: bp10SpyPolicy, AllowDecklistBots: true}); err != nil {
+		Pace: 0, Spectator: view.Public, OnDemand: true, BotPolicy: slotSpyPolicy, AllowDecklistBots: true}); err != nil {
 		t.Fatalf("on-demand search table refused after g1 finished: %v", err)
 	}
 }
 
-func bp10WaitTableState(t *testing.T, r *Registry, id TableID, want string) {
+func slotWaitTableState(t *testing.T, r *Registry, id TableID, want string) {
 	t.Helper()
 	deadline := time.After(5 * time.Second)
 	for {
@@ -623,8 +623,8 @@ func bp10WaitTableState(t *testing.T, r *Registry, id TableID, want string) {
 // bots.Options.SearchParallelism for every seat it builds from a table's
 // named policy.
 func TestSearchSlotPassesBotSearchParallelismToBotsOptions(t *testing.T) {
-	h := newBP10Harness(0)
-	registerBP10Spy(t, h)
+	h := newSlotHarness(0)
+	registerSlotSpy(t, h)
 	opts := testOptions(t)
 	opts.BotSearchParallelism = 5
 	r, err := New(opts)
@@ -633,7 +633,7 @@ func TestSearchSlotPassesBotSearchParallelismToBotsOptions(t *testing.T) {
 	}
 	defer r.Close()
 	cfg := TableConfig{ID: "p1", Seats: 2, Decks: []string{"a", "b"}, Seed: 20260933,
-		Pace: 0, Spectator: view.Public, BotPolicy: bp10SpyPolicy, AllowDecklistBots: true}
+		Pace: 0, Spectator: view.Public, BotPolicy: slotSpyPolicy, AllowDecklistBots: true}
 	if err := r.AddTable(cfg); err != nil {
 		t.Fatal(err)
 	}
@@ -645,7 +645,7 @@ func TestSearchSlotPassesBotSearchParallelismToBotsOptions(t *testing.T) {
 		t.Fatalf("bots.Options.SearchParallelism seen by the policy factory = %d, want 5", got)
 	}
 	// Precondition: the match really ran through the policy-built seats.
-	if _, log := bp10Snapshot(t, r, "p1"); len(log.Intents) < 20 {
+	if _, log := slotSnapshot(t, r, "p1"); len(log.Intents) < 20 {
 		t.Fatalf("match logged only %d intents; the pass-through was not exercised", len(log.Intents))
 	}
 }

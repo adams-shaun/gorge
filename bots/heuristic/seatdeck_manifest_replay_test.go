@@ -1,7 +1,7 @@
 package heuristic
 
-// The lifecycle half of the seat-deck-manifest acceptance (ticket
-// seat-deck-03-acceptance): the manifest is genesis data, so it must be
+// The lifecycle half of the seat-deck-manifest acceptance: the manifest is
+// genesis data, so it must be
 // identical before and after the opening shuffle, a whole played game, and a
 // replay at EVERY recorded sequence while the library it describes is dealt,
 // shuffled, drawn from and searched. Replay-at-sequence stands in for the

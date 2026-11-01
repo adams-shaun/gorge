@@ -80,8 +80,6 @@ func countType(t *testing.T, e *Engine, p state.PlayerID) int {
 	return n
 }
 
-// TestResolvedTargetBoundsResolvedZeroIsHonoured pins the resolver contract
-// : when BOTH TargetMin$ X and TargetMax$ X are dynamic and
 // resolve to 0, the pair is honoured as written (0, 0), not clamped up to
 // Max 1. This is the shared input to targetAsk, subTargetAsk AND askTarget, so
 // it is the class fix's unit pin. A bare TargetMax$ X (no TargetMin) that

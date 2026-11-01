@@ -29,7 +29,7 @@ func bodyCarriesID(b protocol.EventBody, id state.ObjID, name string) bool {
 	return name != "" && strings.Contains(b.Line, name)
 }
 
-// TestStartingChoiceEventsSeatHidesOwnDraws is the E3-fx3 serving half of
+// TestStartingChoiceEventsSeatHidesOwnDraws is the serving half of
 // CR 103.5: while the CR 103.1 play/draw choice is pending, the seat's own
 // EventsSeat stream (GET events?seat=, and the SSE catch-up built on it)
 // redacts the seat's own Secret opening-hand draws to the opponent shape --

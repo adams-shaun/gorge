@@ -11,7 +11,7 @@ import (
 )
 
 // Policy obligations, not CR requirements on a player's strategic choices.
-// Kept opt-in until I-12 is fixed; the ordinary target suite must not pin
+// Kept opt-in until the policy meets them; the ordinary target suite must not pin
 // missing information or a dead seat as a proven lethal opportunity.
 func requireCR601Audit(t *testing.T, finding string) {
 	t.Helper()

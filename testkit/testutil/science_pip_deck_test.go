@@ -5,8 +5,7 @@ import (
 )
 
 // TestSciencePipDeckImport pins the Science! (pip) Commander precon import
-// (testkit/testutil/decks/science-pip.json, task
-// agent-20260922T231317Z-842a3f1e). It is the deck that surfaced the
+// (testkit/testutil/decks/science-pip.json). It is the deck that surfaced the
 // kw:Fortify gap: C.A.M.P. is one of the keyword's two corpus carriers, and
 // the deck had to be imported before the deck-wide coverage and parameter
 // ratchets could measure its full card list.

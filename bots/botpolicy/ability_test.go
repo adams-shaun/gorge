@@ -14,7 +14,7 @@ import (
 // worth-thinking-about action is one activated ability. Min/Max 1 is the
 // engine's real priority shape, so Decide's answer must be exactly one of
 // them, and engine/rules/legal.go always offers "pass" second-to-last and "concede"
-// last (M2d-3) — the concede is omitted here because no branch ever touches
+// last — the concede is omitted here because no branch ever touches
 // it and the extra option just narrows the error message noise.
 func abilityPriority(src state.ObjID, lab string) *decision.Decision {
 	return &decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
@@ -83,17 +83,16 @@ func TestA1NoLegalTargetEquipNotChosen(t *testing.T) {
 	}
 }
 
-// TestA1AlreadyAttachedEquipDeclined pins the fix-round-2 A1 rule by name
-// (ability.go): an equipment that is ALREADY attached to any permanent has
-// its Equip declined — an already-attached permanent's activated ability is
-// never worth re-activating — even on a board where a second, more
-// threatening own creature (99) would be a plausible different bearer. This
-// is exactly the board the fix-round-1 A1 got wrong: it PREDICTED the
-// target (the 4/4 99) and, because the prediction was not the bearer,
-// concluded the equip "moves" the equipment. The target branch that
-// actually answers the follow-up decision elects the bearer instead, so the
-// activation re-attached the equipment to the creature it already sat on
-// and the policy looped forever. equipNoOp now reads AttachedTo itself —
+// TestA1AlreadyAttachedEquipDeclined pins the A1 rule by name (ability.go): an
+// equipment that is ALREADY attached to any permanent has its Equip declined —
+// an already-attached permanent's activated ability is never worth
+// re-activating — even on a board where a second, more threatening own
+// creature (99) would be a plausible different bearer. An A1 that PREDICTS the
+// target (the 4/4 99) concludes, because the prediction is not the bearer, that
+// the equip "moves" the equipment; the target branch that actually answers the
+// follow-up decision elects the bearer instead, so the activation re-attaches
+// the equipment to the creature it already sits on and the policy loops
+// forever. equipNoOp reads AttachedTo itself —
 // no prediction — so the two cannot disagree: this equip is declined and
 // the policy falls through to its explicit pass.
 func TestA1AlreadyAttachedEquipDeclined(t *testing.T) {
@@ -216,8 +215,7 @@ func TestA3TieBreaksOnIndex(t *testing.T) {
 // equipment setup, but the assertion is on the PASS fallthrough and the
 // loop ends. The gate deletes the pass fallthrough (the ability block
 // returns nothing and clamp tops up into an activation), and the priority
-// decision's Min 1 makes that leak: the intent would land on the ability,
-// exactly the I-1(b) defect fix rounds 1 and 2 fought.
+// decision's Min 1 makes that leak: the intent would land on the ability.
 func TestA4NoWorthtakingFallsThroughToPass(t *testing.T) {
 	b := Board{IsMain: true,
 		Creatures: TableOf(map[state.ObjID]Creature{22: {Power: 2, Toughness: 2, Controller: 0}}),

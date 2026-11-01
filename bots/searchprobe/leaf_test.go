@@ -54,9 +54,6 @@ func TestTeacherChoiceNilLeafIsTheHeuristicBitForBit(t *testing.T) {
 			t.Fatalf("value %d = %#x, want %#x (all %v)", i, math.Float64bits(v), want[i], got.Values)
 		}
 	}
-	// Submits 110 -> 118 with the combat priority fixes (rules e7aaf1530 and
-	// 93b6057e4): the rollouts pass through more combat priority windows;
-	// the values, rollouts and terminal counts are unchanged.
 	if got.Index != 0 || got.Rollouts != 6 || got.Submits != 118 || got.Terminal != 2 || got.Capped != 0 {
 		t.Fatalf("counts changed: %+v", got)
 	}

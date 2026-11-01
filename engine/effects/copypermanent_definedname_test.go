@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestCopyPermanentDefinedNameCopiesTheNamedCard pins the std3 fix for
+// TestCopyPermanentDefinedNameCopiesTheNamedCard pins
 // CopyPermanent's DefinedName$ (ECL Mutable Explorer: "create a tapped
 // Mutavault token"). The copy source is a CARD from the compiled corpus, not
 // an object on the battlefield, so the effect must mint a token whose printed

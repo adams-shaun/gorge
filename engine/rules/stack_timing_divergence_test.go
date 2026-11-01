@@ -1,6 +1,6 @@
 package rules
 
-// levelb_stack_timing_test.go pins the gorge side of a stack-content class
+// stack_timing_divergence_test.go pins the gorge side of a stack-content class
 // of cross-engine divergences: two multi-row mechanism families whose gorge side is
 // correct and whose divergences are XMage-side timing, plus one gorge
 // side (Skewer Slinger, engine/rules/trigger_blocks_blocker_test.go).

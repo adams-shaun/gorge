@@ -18,8 +18,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRebuildFeedRecordsPaymentPlanAnswers pins ticket
-// agent-20260929T051923Z-27abefaa: a log whose priority answers carry a
+// TestRebuildFeedRecordsPaymentPlanAnswers: a log whose priority answers carry a
 // payment-plan witness (or an announce value) must rebuild through
 // RebuildFeed. The live driver builds the payment extension before the seat
 // answers, and Submit rebuilds it lazily on the way in -- but the replay

@@ -114,7 +114,7 @@ func TestTargetEffectLethalFace(t *testing.T) {
 	}
 }
 
-// TestTargetEffectThreatBeforeLethalFace pins the brief's stated order of
+// TestTargetEffectThreatBeforeLethalFace pins the order of
 // the tiers: a threat that may kill the seat this round (tier 1) is the
 // first pick even when the same spell could also deal lethal to the
 // opponent's face (tier 2). The seat is at 4 life and the opponent at 2, so

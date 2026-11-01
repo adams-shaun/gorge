@@ -38,7 +38,7 @@ import (
 
 // nameUniverseDeckCards builds the deck the table below plays: Pithing
 // Needle, whose ETBReplacement resolves `DB$ NameCard` with no ValidCards$
-// (the brief's headline unrestricted card), beside a basic land to cast it
+// (an unrestricted card), beside a basic land to cast it
 // with. Both are REAL corpus cards by design — feedback.config() rebuilds
 // each seat's deck by looking its recorded card names up in the corpus, so a
 // synthetic script could not survive the round trip this test is about.

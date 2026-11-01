@@ -73,7 +73,7 @@ func TestMidResolutionObjectCapInertUnderBudget(t *testing.T) {
 
 // TestMidResolutionObjectCapDisabled pins max-objects 0: no EXPLICIT cap is
 // armed (the zero value is "unset"), the game plays to its turn cap with no
-// failure -- and since CV-8 the shared drive loop still arms the default
+// failure -- and the shared drive loop still arms the default
 // volume budget (rules.DefaultMaxObjs) under that 0, so this game is also
 // the ordinary-game proof that the default cap never trips on a real game.
 func TestMidResolutionObjectCapDisabled(t *testing.T) {

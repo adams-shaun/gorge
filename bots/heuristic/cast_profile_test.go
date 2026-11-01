@@ -91,7 +91,7 @@ func newDefaultProfileBot(t *testing.T) func(uint64) *Bot {
 	}
 }
 
-// TestCastProfileDefaultMatchesBotOverWholeGame is the brief's whole-game
+// TestCastProfileDefaultMatchesBotOverWholeGame is the whole-game
 // identity pin: on each adapter half, cast-profile playing the embedded
 // default profile submits exactly the intents bot does over a full game, so
 // the two chains reach the same head and the bench baseline

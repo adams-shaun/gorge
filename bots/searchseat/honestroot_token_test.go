@@ -30,17 +30,10 @@ import (
 // only -- no Forge script text) was written by draftrl gate -only-game
 // 5993994771396169689 -only-game-tape.
 //
-// Re-derived 2026-10-17 for the end-of-combat priority fix (rules
-// 93b6057e4, CR 117.3a: the step opens with the active player holding
-// priority): the recorded intents were replayed in order through the fixed
-// engine, each matched to its decision by (turn, step, player, kind) as
-// the old engine had asked it, with a pass inserted at each of the nine
-// end-of-combat windows the old engine never posed (453 -> 462 intents).
-// The enchant choice moved from decision seq 2211 to 2251. Re-derived again
-// for the CR 510.3 post-damage priority round (rules 24bbba791), with a
-// turn's combat damage step and end of combat matched as one window: 16
-// passes inserted, two per combat with regular damage (462 -> 478 intents),
-// and the enchant choice moved from 2251 to 2315.
+// The tape holds 478 intents, each matched to its decision by (turn, step,
+// player, kind), and the enchant choice is at decision seq 2315. A rules change
+// that adds a priority window means re-deriving it, inserting a pass at each
+// new window.
 func TestHonestRootAtATokenAuraCopyEnchantChoice(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	raw, err := os.ReadFile("testdata/token-aura-copy-tape.json")

@@ -11,13 +11,11 @@ import (
 )
 
 // layering_resolve_test.go pins engine/rules/resolve, the L6 resolution kernel of
-// the rules-engine layering (spec 2026-10-03 §3 and §7, W3): checkpoint at the
+// the rules-engine layering (layering design §3 and §7): checkpoint at the
 // intent boundary that begins a resolution, the intent tape, and the
 // ask/answer protocol, read and driven through the resolve.Board interface
-// package rules implements. Its rows live in their own file (not
-// TestDependencyOrderHolds' slice) so the W5 extraction steps running in
-// parallel do not edit the same lines; the checks are the same direct and
-// transitive ones.
+// package rules implements. Its rows live in their own file; the checks are
+// the same direct and transitive ones as TestDependencyOrderHolds'.
 
 // resolveImports is the closed set of module packages engine/rules/resolve may
 // import directly: the L1 decision and event vocabulary its tape is made of
@@ -113,7 +111,7 @@ func TestNothingBelowRulesReachesTheKernel(t *testing.T) {
 // resolveBoardMethods is the method count of resolve.Board, the interface
 // engine/rules/resolve drives the engine through (engine/rules/resolve/board.go). It is a
 // SHRINK-ONLY ratchet on the pattern of combatBoardMethods: measured 15 when
-// the kernel landed (W3 steps 0-1). A change that removes a method lowers the
+// the kernel landed. A change that removes a method lowers the
 // constant in the same commit; NEVER raise it -- fold a new need into an
 // existing method (Record carries every per-kind answer record, Restore the
 // whole checkpoint restore) instead of widening the interface.

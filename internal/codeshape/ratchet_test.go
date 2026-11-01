@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-// The W0 shrink-only ratchets of the rules-engine refactor spec
+// The shrink-only ratchets of the rules-engine layering
 // (docs/design/2026-10-03-rules-engine-layering-design.md, section
 // 4), on the pattern of testkit/testutil/agentsdoc_test.go's
-// shrink-only Known-approximations register: each constant is the measured value on main at
-// 49bd9af8d, the test FAILS when the measurement grows past it and LOGS when
+// shrink-only Known-approximations register: each constant is a measured
+// value, the test FAILS when the measurement grows past it and LOGS when
 // it falls below it. A change that shrinks a metric lowers its constant to
 // the new measurement in the same commit; NEVER raise one.
 //
@@ -19,166 +19,54 @@ import (
 const (
 	// maxFuncLinesOver300 is the number of non-test functions in engine/rules/ and
 	// engine/effects/ spanning more than 300 lines.
-	// W4 step 3's ChangeZoneAll compiler shrank effChangeZoneAll: 54 -> 53.
-	// W1a generated Engine.cloneWith's field copies from the clone tags
-	// (engine/rules/clone_gen.go): 53 -> 52. Re-measured at W1a pool/rekey/if tags: 48. W3 dead: 45. E7 flow slices: 44,
-	// then the CR 103.8a first-draw-step skip landed without locking its shrink: 41.
 	maxFuncLinesOver300 = 41
 	// engineMethodCount is the number of non-test methods on rules.Engine.
-	// W5 E5 moved combat legality onto engine/rules/combat's Board (2159 -> 2126)
-	// and W5 E3 the trigger matchers onto engine/rules/trigmatch's: -> 2022. W5 E4
-	// moved the layer walk onto engine/rules/chars: -> 2019. W3 clean deleted the
-	// Suspend* no-ops: -> 1965. W5 E7 moved mana payment onto engine/rules/pay:
-	// -> 1944. Slice 4 made the payer grants pay.Engine adapter methods: -> 1940. W3 dead deleted the resume-scratch setters: -> 1931.
-	// E7 slice 9 moved the payment board reads to engine/rules/pay funcs: -> 1917.
-	// E7 flow slice 3 moved the announced-SubCounter mana stage: -> 1822.
 	engineMethodCount = 1821
 	// hostMethodCount is the number of methods in the effects.Host interface
-	// (its whole method set, roles included). W1d replaced ObjectText,
-	// ObjectKeywords and BasePower with the one Chars query: 96 -> 94. W3 clean
-	// deleted the eight Suspend* no-ops: 94 -> 86.
+	// (its whole method set, roles included).
 	hostMethodCount = 84
 	// hostDirectMethodCount is the number of methods effects.Host declares
-	// itself rather than takes from a role interface (W1d split it into
-	// roles; host_roles.go).
+	// itself rather than takes from a role interface (host_roles.go).
 	hostDirectMethodCount = 0
 	// hostRoleMaxMethods is the method-set size of effects.Host's largest
-	// role interface (HostTurnLedger at the W1d split).
+	// role interface (HostTurnLedger).
 	hostRoleMaxMethods = 18
 	// hostOptionalAssertions is the number of type assertions in package
 	// effects to an interface other than Host and its roles (inline
-	// `interface{...}` or a named optional interface). W1d replaced five
-	// per-table optional interfaces with layerTablesHost: 54 -> 45.
+	// `interface{...}` or a named optional interface).
 	hostOptionalAssertions = 38
 	// ctxFieldCount is the number of named fields in effects.Ctx; embeds are
 	// ratcheted separately by ctxEmbedCount.
-	// W1d folded EffectiveNames, EffectiveTypes, StaticGoads and the embedded
-	// LayerTables into the one named Layers field: 293/2 -> 291/1. W3 clean
-	// grouped the LKI snapshot set, the replacement context, clone-as-enters,
-	// mana, kicker and the per-primitive cursors (engine/effects/ctx_groups.go): 121 -> 73.
-	// W3 dead removed write-only/never-set fields: 73 -> 68.
-	// lb-copyperm-sel grouped the cost-paid lists (Exiled, Revealed and the
-	// new CounterPut) into Ctx.Paid: 68 -> 67.
 	ctxFieldCount = 67
 	ctxEmbedCount = 1
 	// resumePointFieldCount is the number of fields in rules' resumePoint.
 	resumePointFieldCount = 5
 	// stringParamReads is the number of <x>Params["literal"] index
-	// expressions in engine/rules/ and engine/effects/ non-test files. W4 slice 3 (194
-	// ParamKeys, the 256-key mask) moved 488 reads onto the typed accessors:
-	// 1302 -> 814. The same rewrite over engine/rules/trigmatch's moved matchers
-	// (W5 E3, ValidSA/Static): 805 -> 798. W4 slice 4 added 56 keys (250 of
-	// the 254 a uint8 ParamKey can name) and migrated engine/rules/chars too:
-	// 798 -> 630. W4 step 3's ChangeZone compiler (one read per key,
-	// engine/effects/changezone_params.go): 630 -> 628. loop-bugs: effReveal reads
-	// RevealDefined$ once: 628 -> 627. W4 step 3's Attach compiler
-	// (RememberAttached$ read once): 627 -> 626. The Charm and Pump
-	// compilers (charm_params.go, pump_params.go): 626 -> 624. W4 step 3's
-	// DealDamage compiler (DamageSource$ read once): 624 -> 623. W4 step 3's
-	// PutCounter compiler (one read per key; the entry fold's presence gate
-	// and the rules-side CounterTypePerDefined$ read moved into it): 623 -> 621.
-	// W4 step 3's Effect compiler (ImprintOnHost$ read once, the opening
-	// hand's EffectOwner$ read moved into it): 621 -> 619. The Mana compiler
-	// (mana_params.go: each rider read once, the plain-shape key spelling a
-	// table scan): 619 -> 610. The ManaReflected compiler (ReflectProperty$
-	// read once): 610 -> 609. Measured slack on main (caa66ee75): 609 ->
-	// 608. The CopyPermanent compiler (SetCreatureTypes$, RemoveSubTypes$
-	// and NumCopies$ read once through rawParamText): 608 -> 605. W4 step 4's
-	// Defined-reference tier (the compound Defined$ branch and RevealDefined$
-	// no longer rewrite a copied Params map's Defined$ entry; each selector
-	// is a compiled Ref): 605 -> 603. The Clone
-	// compiler (clone.go's CloneTarget$/ExcludeChosen$/CloneZone$/NewName$/
-	// GainThisAbility$/KeepFacedown$/CopyFromChosenName$/SetCreatureTypes$/
-	// RemoveSubTypes$ reads compiled once): 603 -> 593.
-	// The Dig compiler (effDig moved to dig.go; its twelve literal reads
-	// compiled once): 593 -> 581.
-	// The DigUntil compiler (effDigUntil moved to diguntil.go; its literal
-	// reads and withheld-rider list compiled once): 581 -> 568.
-	// The RemoveCounter compiler (effRemoveCounter moved to removecounter.go;
-	// CounterNumShared$/ChoiceNum$/RememberRemoved$ read once): 568 -> 564.
-	// TargetsAtRandom$ compiled into TargetParams (TgtAtRandom) through
-	// PKTargetsAtRandom: 564 -> 563.
-	// The Token compiler (effToken's literal reads compiled once; the
-	// TokenRemembered$ helper takes each compiler's value): 563 -> 562.
-	// The Vote compiler (the three ballots' literal reads compiled once):
-	// 562 -> 561.
-	// The RepeatEach compiler (effRepeatEach moved to repeateach.go): reads
-	// compiled once, RepeatCards$ Zone$ switch a ZoneMask table.
-	// W4 tail: every remaining literal read in engine/effects/ and engine/rules/ went through
-	// the ParamKey accessors (state.ContinuousEffect.RestrictParam and kin for
-	// the continuous-effect maps); what is left is writes and engine/rules/play_tape.go
-	// (left to its live branch): 549 -> 20. W4 cases: play_tape.go and
-	// resolution_modes.go reads moved to ParamStr (7 new keys): 20 -> 12 (what
-	// is left are writes). W4 cases: the twelve writes go through the typed
-	// SA.SetParam / Repl.SetParam setters: 12 -> 0.
+	// expressions in engine/rules/ and engine/effects/ non-test files. Every read
+	// goes through the ParamKey accessors and every write through the typed
+	// SA.SetParam / Repl.SetParam setters.
 	stringParamReads = 0
 	// stringCaseLiterals is the number of string literals in switch case
 	// lists in engine/rules/ and engine/effects/ non-test files.
-	// W4 step 3: Attach: 2886 -> 2883. RepeatEach: 2883 -> 2876. W4 cases:
-	// constant-returning switches and param whitelists became cards.StrTable /
-	// cards.NameSet (sorted dense slices, built once at init): 2876 -> 2046. Every
-	// other literal-case switch dispatches on a cards.StrCodes code (one lookup,
-	// integer switch, vocabulary in one table): 2046 -> 181. What is left is the
-	// case-whitelists the param census reads over a Params range. W4 cases:
-	// those whitelists became NameSets (the census reads a range's
-	// `set.Has(k)` / `switch codes.Code(k)` keys from the file's table), the
-	// mixed and init-form switches code families, and the single-literal
-	// switches plain comparisons: 181 -> 0.
+	// Dispatch goes through cards.StrTable, cards.NameSet and cards.StrCodes
+	// (sorted dense slices, built once at init; one lookup, integer switch,
+	// vocabulary in one table).
 	stringCaseLiterals = 0
 	// ctxLiterals, specContextLiterals and triggerContextLiterals are the
 	// effects.Ctx / SpecContext / TriggerContext composite literals in engine/rules/
-	// and engine/effects/ non-test files outside codeshape.CtxConstructorFiles (W1c,
-	// spec section 5). Measured 108 / 22 / 19 on main at c49d04e14 before the
-	// constructors landed.
+	// and engine/effects/ non-test files outside codeshape.CtxConstructorFiles.
 	ctxLiterals            = 0
 	specContextLiterals    = 0
 	triggerContextLiterals = 13
 	// trigmatchBoardMethods is the method count of trigmatch.Board, the
-	// read-only view engine/rules/trigmatch's matchers read the engine through (W5
-	// E3). It replaced 21 distinct *Engine methods, 15 Engine fields and
-	// pendingCast that the matcher closure reached directly. The move folded
-	// SpecCtx/MatchesSpec/MatchesSpecFrom into MatchesSpec/MatchesObject with
-	// SpecOpts (a SpecContext's Resolve closure must not cross the
-	// interface): 29 -> 28. W5 cleanup moved IsManaAbilityAPI into cards
-	// (a pure function of the API word): 28 -> 27. It then swapped the Host()
-	// escape hatch (the whole engine as an effects.Host) for the one narrow
-	// EvalCount the matchers needed: 27 -> 27.
+	// read-only view engine/rules/trigmatch's matchers read the engine through.
 	trigmatchBoardMethods = 27
 	// payEngineMethods is the method count of pay.Engine, the payment
-	// layer's whole view of the engine (W5 E7; the spec's target is under
-	// 20). Slice 2 moved mana payment behind it with 10. The E7 redesign
-	// (spec section 9.1, operator decision 2026-10-03) budgets it up to 19
-	// for the ring's moves: Log (the event log, read-only) let the cost-part
-	// candidate walks and the log-reading planner probes move: 10 -> 11.
-	// SacrificeBlockedForCost (the CantSacrifice cost gate, cause-scoped;
-	// since E4 slice 2 CostBlocked, which also answers the CantExile gate)
-	// let the Sac cost-part walks and the mana-ability cost payability
-	// move: 11 -> 12. E4 slice 1 (spec section 9.2): ConfiguredCost (the
-	// compiled-text sidecar's frozen cost parse; pay.CompiledCostOf, CostRef
-	// and ParseCostOf build on it) and Chars (the chars.Reader role
-	// interface, budgeted separately by archtest TestCharsReaderBudget) let
-	// the mana activation gates move: 12 -> 14. E4 slice 2: Eval (the
-	// pay.Eval evaluation seam, budgeted by archtest TestPayEvalBudget) let
-	// the unless-payment reachability and the SVar-fixed cost counts move:
-	// 14 -> 15. E4 slice 3: Session (pay.Session, the ring's engine-owned
-	// fields, embedded in the Engine) replaced Capture, whose three spend
-	// capture fields moved into it: 15 -> 15. E4 slice 6: ZoneEntrySeq (the
-	// incremental zone-entry index the planner's source identity reads) let
-	// the planner's alternative builder move: 15 -> 16. E4 slice 7:
-	// SearchScratch (the plan search's recycled working storage) let the
-	// plain-cost planner move: 16 -> 17. E7 flow slice 1 (spec section 9.2,
-	// W3 done): Ask (the one coarse flow seam: sets the pending-choice marker
-	// and poses, answered in place under the tape) and Batch (the discard /
-	// mill action brackets) let the unless-payment walk and the cost
-	// discard/mill settles move; ZoneEntrySeq moved to chars.Reader: 17 -> 18.
-	// E7 flow slice 2: the static-pricing reads Conv, MayPlayRider and
-	// PayLifeInsteadOfB moved onto pay.Eval (they evaluate statics with the
-	// engine as the Host), and Rand (the engine's deterministic draw, a
-	// Discard<N/Random> pick) let the mana-ability cost election move:
-	// 18 -> 16.
+	// layer's whole view of the engine. Its budget is 19 (layering design section
+	// 9.1).
 	payEngineMethods = 16
 	// changeZoneParamLeaks is the number of ChangeZone parameter reads
-	// outside its compiler, engine/effects/changezone_params.go (W4 step 3, spec
+	// outside its compiler, engine/effects/changezone_params.go (layering design
 	// section 8): any read in ChangeZone's own resolution files, plus any
 	// read of a ChangeZone-only key elsewhere (codeshape.ChangeZoneFiles,
 	// codeshape.ChangeZoneOnlyKeys). It landed at zero.
@@ -269,35 +157,31 @@ const (
 	// methods, plus free functions with a *Engine parameter, plus methods of
 	// structs holding a *Engine field (codeshape.Metrics.EngineSurface). It
 	// closes the side door of turning an Engine method into a free function
-	// or a wrapper struct's method. Measured on main at 00363b185.
+	// or a wrapper struct's method.
 	engineSurface = 2018
 	// stringLiteralCompares is the ==/!= comparisons against a non-empty
 	// string literal plus strings.EqualFold calls with a literal argument: the
 	// if-chain spelling of the `case "X":` dispatch stringCaseLiterals froze
-	// at zero. Measured on main at 00363b185.
+	// at zero.
 	stringLiteralCompares = 2214
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
-	// Param/ParamStr call: a flag parameter re-parsed at each use. Measured on
-	// main at 00363b185.
+	// Param/ParamStr call: a flag parameter re-parsed at each use.
 	rawBoolParamParses = 232
 	// stringKeyedParamReads is the string literals passed at the key position
 	// of a string-keyed parameter helper (effects.Num and kin, found
 	// automatically: codeshape.Metrics.StringKeyedParamHelpers): the helper
 	// spelling of the Params["X"] read stringParamReads froze at zero.
-	// Measured on main at 00363b185.
 	stringKeyedParamReads = 167
 	// strCodesTables is the NewStrCodes / NewNameSet / NewStrTable call sites
 	// in engine/rules/ and engine/effects/, and strCodesKeyDup the sum over string keys of
-	// (distinct tables naming the key - 1): the W4 cases tables replaced the
-	// string switches, and a word named in a second table is the vocabulary
-	// splitting again. Measured on main at 00363b185; the CR 103.8a
-	// first-draw-step skip landed without locking its shrink: -> 1259.
+	// (distinct tables naming the key - 1): a word named in a second table is the
+	// vocabulary splitting again.
 	strCodesTables = 336
 	strCodesKeyDup = 1259
 )
 
 // longFuncCeilings freezes every non-test function in engine/rules/ and engine/effects/
-// over codeshape.LongFuncLines at its length on main (00363b185), keyed
+// over codeshape.LongFuncLines at its measured length, keyed
 // "<dir> <Name>" (codeshape.Func.CeilingKey). TestLongFunctionsOnlyShrink
 // fails on a new key, on growth, and on an entry no longer over the limit;
 // lower a value when its function shrinks. NEVER add a key or raise a value.
@@ -424,7 +308,7 @@ func TestCodeShapeOnlyShrinks(t *testing.T) {
 			"An embed promotes every field of the embedded type into effects.Ctx; add a " +
 				"named field instead (and count it against ctxFieldCount)."},
 		{"resumePointFieldCount", m.ResumePointFields, resumePointFieldCount,
-			"resumePoint is the hand-defunctionalised continuation W3 replaces; carry a " +
+			"resumePoint is the hand-defunctionalised continuation; carry a " +
 				"new suspension's state in the primitive's own resume record."},
 		{"stringParamReads", m.StringParamReads, stringParamReads,
 			"Read a parameter through a typed accessor (cards.ParamKey vocabulary) " +

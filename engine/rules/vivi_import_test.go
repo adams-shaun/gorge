@@ -1,7 +1,7 @@
 package rules
 
-// The review round's fixes on top of the vivi-ornitier-cedh import reads
-// (verdict-r2's findings), each pinned on the carrier the finding named:
+// Fixes on top of the vivi-ornitier-cedh import reads, each pinned on its
+// carrier:
 //
 //	static delayed-trigger scan   Insist (the "next creature spell can't be
 //	                              countered" promise family, ~50 corpus cards)

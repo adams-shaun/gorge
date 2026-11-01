@@ -19,7 +19,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestAutoPayDeadCounterDoesNotBlockManualPath is the brief's headline case:
+// TestAutoPayDeadCounterDoesNotBlockManualPath is the headline case:
 // the bot's OWN spell sits on b.Stack in its own main phase (so no foreign
 // spell exists and the planned counter is dead by C8), a Counter card is the
 // ONLY offered payment plan, and an unplanned instant-speed card (CMC 3, not

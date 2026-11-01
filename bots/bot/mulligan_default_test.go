@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 )
 
-// TestBotDefaultMulliganIsForge pins FORGE-M1: the production bot answers
+// TestBotDefaultMulliganIsForge pins the mulligan default: the production bot answers
 // London mulligans with Forge's keep/bottom rule in both mana modes.
 func TestBotDefaultMulliganIsForge(t *testing.T) {
 	for _, auto := range []bool{false, true} {

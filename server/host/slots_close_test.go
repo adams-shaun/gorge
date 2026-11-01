@@ -1,6 +1,6 @@
 package host
 
-// BP-10 follow-up (search-slot-grant-beats-close): a table whose stop channel
+// A table whose stop channel
 // has closed must never enter DecideEnv while it is queued on a held search
 // slot, even when the grant reaches it before its own run() watcher has
 // cancelled the play context. Close closes every table's stop synchronously
@@ -9,7 +9,7 @@ package host
 // decision before aborting at the next t.stop poll. acquire now observes
 // t.stop directly (errTableClosed) and the play loop aborts on it, so the
 // entry never happens. TestSearchSlotWaitAbortsOnClose pins the weaker
-// holder-serialization invariant BP-13 kept; this pins the strict one.
+// holder-serialization invariant; this pins the strict one.
 
 import (
 	"context"
@@ -86,8 +86,8 @@ func TestSearchSlotsAcquireObservesStop(t *testing.T) {
 }
 
 func TestSearchSlotWaitNeverDecidesAfterClose(t *testing.T) {
-	h := newBP10Harness(1)
-	registerBP10Spy(t, h)
+	h := newSlotHarness(1)
+	registerSlotSpy(t, h)
 	opts := testOptions(t)
 	opts.SearchSlots = 1
 	opts.Seats = h.seatBuilder(t)
@@ -96,17 +96,17 @@ func TestSearchSlotWaitNeverDecidesAfterClose(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer r.Close()
-	addAndStartBP10(t, r, bp10Tables(bp10SpyPolicy))
+	addAndStartSlotTables(t, r, slotTables(slotSpyPolicy))
 
 	// Table A's first search holds the only slot, blocked in DecideEnv.
-	first := awaitBP10(t, h.enteredC, "table A's search decision to enter DecideEnv")
+	first := awaitSlot(t, h.enteredC, "table A's search decision to enter DecideEnv")
 	// Table B reaches its projection, is queued behind A's slot...
 	other := ""
 	deadline := time.After(10 * time.Second)
-	for other == "" || bp10Tag(other) == bp10Tag(first) {
+	for other == "" || slotTag(other) == slotTag(first) {
 		select {
 		case w := <-h.wantC:
-			if bp10Tag(w) != bp10Tag(first) {
+			if slotTag(w) != slotTag(first) {
 				other = w
 			}
 		case <-deadline:
@@ -116,7 +116,7 @@ func TestSearchSlotWaitNeverDecidesAfterClose(t *testing.T) {
 	// Precondition: B is deterministically IN the gate's queue and has NOT
 	// entered DecideEnv (a B that never queued would fail loudly here, and a
 	// B already entered would make the post-Close assertion vacuous).
-	bp10WaitQueued(t, r, 1)
+	slotWaitQueued(t, r, 1)
 	select {
 	case l := <-h.enteredC:
 		t.Fatalf("table B entered DecideEnv while the slot was held: %s", l)
@@ -139,7 +139,7 @@ func TestSearchSlotWaitNeverDecidesAfterClose(t *testing.T) {
 	// and B decides once (the same window that made the old
 	// TestSearchSlotWaitAbortsOnClose pin flaky).
 	for _, l := range h.enteredLabels() {
-		if bp10Tag(l) == bp10Tag(other) {
+		if slotTag(l) == slotTag(other) {
 			t.Fatalf("table B entered DecideEnv (%s) despite its stop being closed; the queued table decided after Close", l)
 		}
 	}

@@ -11,7 +11,7 @@
 // creature with {3} available, and was withheld entirely from a {3} pool.
 //
 // engine/rules/equip_targeted_reducecost_test.go pins the FULL flow only for
-// Targeted$CardPower (Belt of Giant Strength); engine/effects/count_ref_property_rv2b_test.go
+// Targeted$CardPower (Belt of Giant Strength); engine/effects/count_ref_property_referenced_test.go
 // pins the count head only at unit level. No test on main drove a real
 // Targeted$CardNumColors reduction end to end. These leaves close that gap.
 package rules

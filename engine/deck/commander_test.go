@@ -229,7 +229,7 @@ func TestValidateCommanderDoctorCompanionPair(t *testing.T) {
 // TestValidateCommanderRejectsNonDoctorCompanion pins the companion clause's
 // other half: a Doctor's companion paired with a legendary creature that is
 // NOT a Doctor is not a legal pair. This is the deck-level twin of the
-// brief's "rejects a non-Doctor companion" gate — and it must fail on the
+// "rejects a non-Doctor companion" gate — and it must fail on the
 // PAIR, not on some unrelated colour or count, so the deck is otherwise legal
 // (100 cards, singleton, mono-white).
 func TestValidateCommanderRejectsNonDoctorCompanion(t *testing.T) {

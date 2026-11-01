@@ -93,8 +93,8 @@ func TestManaBrewOfferedOnlyOnSameOrigin(t *testing.T) {
 	}
 }
 
-// TestManaBrewOffMountsNothing pins §5.4's "off is byte-identical" claim
-// (MB-9 item 1): with -manabrew off, a request under the ManaBrew route
+// TestManaBrewOffMountsNothing pins §5.4's "off is byte-identical" claim:
+// with -manabrew off, a request under the ManaBrew route
 // prefix gets exactly the same 404 JSON httpapi's own catch-all already
 // serves for any unknown /api/ route -- because nothing registers a more
 // specific pattern to intercept it.

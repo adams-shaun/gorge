@@ -203,7 +203,7 @@ func TestRedealWorldsKeepWhatTheSeatSees(t *testing.T) {
 	}
 }
 
-// The leak test (AZ spec §4, the pn21 pattern): two real games that differ
+// The leak test (AZ spec §4): two real games that differ
 // only in the opponent's never-revealed hidden cards -- which cards are in
 // its hand, and the order of both libraries -- give byte-identical worlds for
 // every seed. What a world deals is a function of the seat's observation and
@@ -395,7 +395,7 @@ func TestNewSeatRejectsUnknownWorld(t *testing.T) {
 	}
 }
 
-// Regression (M1 diagnosis): on the CawGates mirror an embalmed Sacred Cat's
+// Regression: on the CawGates mirror an embalmed Sacred Cat's
 // token bears a deck card's name; counting it as a seen deck card made the
 // seat's derivable pool one short and refused the redeal. Tokens and copies
 // are not deck cards, so the seat never refuses (and never fails a deal).

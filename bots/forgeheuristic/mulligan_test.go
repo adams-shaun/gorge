@@ -14,8 +14,8 @@ import (
 
 // TestForgeHeuristicCommonSenseKeepsForgeMulligan pins that the common-sense
 // wrap keeps the policy's forge mulligan: the six-Plains-plus-a-spell hand
-// after one mulligan is a keep under forge. Since FORGE-M1 the guard's own
-// default is forge too, so the unwrapped-default control keeps the same hand.
+// after one mulligan is a keep under forge. The guard's own default is forge
+// too, so the unwrapped-default control keeps the same hand.
 func TestForgeHeuristicCommonSenseKeepsForgeMulligan(t *testing.T) {
 	land := botpolicy.Card{Basic: true, ManaCost: "no cost", Castable: true}
 	spell := botpolicy.Card{Creature: true, CMC: 2, ManaCost: "1 W", Castable: true}

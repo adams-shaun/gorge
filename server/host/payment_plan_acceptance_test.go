@@ -52,7 +52,7 @@ func decksHas(decks []string, name string) bool {
 // ppDualLandLoader serves "pp-dual", an authored mana base whose ONLY land is
 // a multi-intrinsic dual. Every planned payment for the deck's red or blue
 // spells must tap that Volcanic Island, so the hosted lane exercises the exact
-// alternative the witness names (spec §6): a dual land's {U} and {R}
+// alternative the witness names: a dual land's {U} and {R}
 // abilities share the {intrinsic, basic_land} PaymentAbility identity, and the
 // executor must activate the one the step's Produces names, never the first
 // identity match. The repo-deck planner ranks basics ahead of duals, so no
@@ -65,7 +65,7 @@ func ppDualLandLoader(t *testing.T) func(string) (Deck, error) {
 	card := func(name string) *cards.Card {
 		c, ok := reg.Lookup(name)
 		if !ok {
-			t.Fatalf("corpus lacks %q for the dual-land PP-20 lane", name)
+			t.Fatalf("corpus lacks %q for the dual-land lane", name)
 		}
 		return c
 	}
@@ -89,7 +89,7 @@ func ppDualLandLoader(t *testing.T) func(string) (Deck, error) {
 	}
 }
 
-// runPaymentPlanHumanSeat is PP-20's external-seat lane. Seat zero sees only
+// runPaymentPlanHumanSeat is the external-seat lane. Seat zero sees only
 // the decision published by the host and submits two offered witnesses through
 // Registry.SubmitIntent; it then answers an ordinary priority decision with
 // legacy Choices. The sample decks provide a basic land and fixed single-pip
@@ -157,8 +157,7 @@ func runPaymentPlanHumanSeat(t *testing.T, seats int, decks []string, seed uint6
 		// not succeed as planned: the engine only attaches PaymentFallback to
 		// a manual window after an accepted plan stops. The human submits each
 		// witness with no intervening board change, so any fallback naming a
-		// plan this lane selected is a real failed planned cast (the P0 class
-		// 5308ef397 fixed, and the class this lane exists to catch).
+		// plan this lane selected is a real failed planned cast.
 		if d.PaymentFallback != nil && plannedIDs[d.PaymentFallback.PlanID] {
 			t.Fatalf("planned cast fell back to manual payment: seq=%d reason=%s plan=%s", d.Seq, d.PaymentFallback.Reason, d.PaymentFallback.PlanID)
 		}

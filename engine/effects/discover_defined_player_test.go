@@ -13,7 +13,7 @@ import (
 // target artifact ... Then that player discovers X").  Before the fix
 // effDiscover hard-coded c.Controller, so the wrong seat's library was exiled,
 // the marker named the wrong seat, and the target owner kept every card
-// (std3 LCI: p1.library_count gorge "39", xmage "38").
+// (LCI: p1.library_count gorge "39", xmage "38").
 func TestDiscoverDefinedTargetedOwnerUsesOwnersLibrary(t *testing.T) {
 	h := newHost(t, 2)
 	// Distinguishable libraries: p0's cards are named so a wrong-library scan

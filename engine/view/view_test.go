@@ -447,7 +447,7 @@ func TestRedactStripsSecretPayloadsFromOtherSeats(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Review finding C-1 / fix-round item 1: RedactEvents is state-aware, not
+// RedactEvents is state-aware, not
 // merely Secret-flag-aware. Two pre-existing, non-Secret emitters put
 // hidden-zone object ids into a payload -- rules/trigger.go's TriggerPush
 // (Ctx.Remembered) and engine/effects/cardflow.go's RearrangeTopOfLibrary Note --
@@ -785,7 +785,7 @@ func driveRepeatedCastsWithinMainPhase(t *testing.T, e *rules.Engine, permanent,
 	t.Fatalf("did not accumulate %d TriggerPush events within %d iterations", minPushes, iterLimit)
 }
 
-// TestRedactEventsClosesTheTriggerPushLeakMeasured is the fix-round gate: a
+// TestRedactEventsClosesTheTriggerPushLeakMeasured is the gate: a
 // real game accumulates >=20 TriggerPush events (seat 0 casts DrawSpell
 // repeatedly, drawSpellSrc's own doc says why this stays within turn 1's
 // Main1), each one remembering that draw's card -- the same event shape as

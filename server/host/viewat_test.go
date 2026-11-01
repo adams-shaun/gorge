@@ -41,7 +41,7 @@ func TestBoundsOfMatchesTheLoopsOwnBookkeeping(t *testing.T) {
 	}
 	// One snapshot at genesis plus one per burst that began a turn; a burst
 	// can contain two turn changes only in degenerate games, so at most one
-	// snapshot per turn start. cli-20260922T225141Z-e771720d: turn 1 now
+	// snapshot per turn start. Turn 1
 	// begins inside the CR 103.1 toss-choice answer's burst (not at genesis,
 	// which the genesis snapshot already covers), so one turn-start burst can
 	// be counted twice — once by the genesis snapshot and once by its own
@@ -144,7 +144,7 @@ func (o *forwardOracle) viewAt(seq uint64) view.View {
 		}
 	}
 	v := view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, nil)
-	// ui13: the round is the exact round-trip count (view.RoundOf over the
+	// The round is the exact round-trip count (view.RoundOf over the
 	// ordered event stream up to seq), not the snapshot-only roundOf
 	// approximation ProjectFor fills in. viewAt applies the same fold, so
 	// the oracle must too, or this test would compare the exact count
@@ -224,7 +224,7 @@ func TestViewAtHeadEqualsTheLiveProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := view.ProjectFor(m.e.G, m.e, view.NoSeat, view.Omniscient, nil)
-	// ui13: the live projection and ViewAt(head) both report the exact round
+	// The live projection and ViewAt(head) both report the exact round
 	// (view.RoundOf over the whole log), not the snapshot-only roundOf
 	// approximation ProjectFor fills in.
 	want.Round = view.RoundOf(m.e.G, m.e.L.Events)

@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-// The fb-20260917T004304Z smoke-gate wedge, as a unit test. The upstream
-// catalog hangs (the review run's degraded network): without the wait budget
+// The smoke-gate wedge, as a unit test. The upstream catalog hangs (a degraded
+// network): without the wait budget
 // the /art/named handler holds the browser's connection for the full
 // serialized fetch chain — each request up to the outbound client's 15s
 // timeout, seven cold-cache cards one after another — and the browser's

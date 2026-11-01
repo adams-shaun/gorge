@@ -10,8 +10,8 @@ import (
 // strive1: a Strive spell's "any number of targets" ask (Min 0) used to be
 // answered at its full legal width, pricing one extra Strive payment per
 // target the bot could not pay. The cast reversed (CR 733.1) and the bot
-// re-proposed the identical unpayable cast (cardfuzz batch2 lines 19/22/30/
-// 41/45: Phalanx Formation, Nature's Panoply, Hour of Need, Aerial Formation,
+// re-proposed the identical unpayable cast (Phalanx Formation, Nature's
+// Panoply, Hour of Need, Aerial Formation,
 // Setessan Tactics). The engine now carries the largest affordable count on
 // the ask (Decision.AffordableTargets); the bot must stay within it.
 func TestTargetStaysWithinAffordableCount(t *testing.T) {

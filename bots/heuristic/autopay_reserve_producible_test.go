@@ -21,7 +21,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestAutoPayReserveUsesProducibleMana is the brief's headline case: four
+// TestAutoPayReserveUsesProducibleMana is the headline case: four
 // untapped Forests, two equal-power creatures -- 43 (offered first) costs
 // {3}{G} and empties the board, 42 costs {1}{G} and keeps the {1}{G} instant
 // 44 (the reserve, 2) castable. The manual bot floats the four green and

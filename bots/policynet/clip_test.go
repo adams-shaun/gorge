@@ -7,10 +7,10 @@ import (
 	"testing"
 )
 
-// The clip-semantics pins (ticket policytrain-clip-rankweight-interaction).
+// The clip-semantics pins.
 // Grads.Clip is documented as a PER-BATCH GLOBAL-L2 cap on the summed
 // gradient: direction-preserving, magnitude-only. These tests pin that
-// choice against the two alternatives the ticket named — a per-example cap
+// choice against two alternatives — a per-example cap
 // and a per-parameter-group cap — on a corpus where the alternatives give
 // measurably different training.
 

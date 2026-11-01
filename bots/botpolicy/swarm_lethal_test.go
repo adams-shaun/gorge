@@ -27,9 +27,9 @@ func swarmIDs(n int) []int {
 	return ids
 }
 
-// TestSwarmLethalAttacksThroughCheapBlockers is AR9's carrier, the cardfuzz
-// shape (batch4 line 15: 1410 Human Soldier tokens facing three creatures
-// and 21 life, never attacking for dozens of turns). Every 1/1 alone "dies
+// TestSwarmLethalAttacksThroughCheapBlockers is AR9's carrier, a shape cardfuzz
+// found (1410 Human Soldier tokens facing three creatures and 21 life, never
+// attacking for dozens of turns). Every 1/1 alone "dies
 // for free" to a 2/2 (AR3), yet ten of them against three blockers and 5
 // life are lethal however the defender blocks: it can stop at most three,
 // so the smallest lethal set -- 3 + 5 = 8 attackers -- is forced to attack.

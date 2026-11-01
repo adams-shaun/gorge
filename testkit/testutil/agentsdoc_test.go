@@ -9,11 +9,9 @@ import (
 	"testing"
 )
 
-// The Known-approximations register is a CLOSING REGISTER, frozen on
-// 2026-09-22 (it had grown to ~100 rows and 264 KB in AGENTS.md, loaded into
-// every agent's context on every turn). On 2026-10-26 it moved out of AGENTS.md
-// into one file per row, docs/agents/known-approximations/<slug>.md, so that
-// tickets closing different rows never edit the same line.
+// The Known-approximations register is a CLOSING REGISTER: one file per row in
+// docs/agents/known-approximations/<slug>.md, so that changes closing different
+// rows never edit the same line.
 //
 // ALLOWED.txt lists every remaining file with its byte cap. This test is the
 // ratchet: a file not listed fails (no row may be added), a file over its cap
@@ -78,8 +76,8 @@ func TestKnownApproximationsOnlyShrinks(t *testing.T) {
 		limit, listed := allowed[slug]
 		if !listed {
 			t.Errorf("%s/%s is not in ALLOWED.txt. The register is CLOSED: no row may be added. "+
-				"A deviation your ticket cannot close goes in the COMMIT MESSAGE and the ticket "+
-				"report; the operator files a ticket if it needs tracking.", knownApproxDir, name)
+				"A deviation your change cannot close goes in the COMMIT MESSAGE; the "+
+				"operator files an issue if it needs tracking.", knownApproxDir, name)
 			continue
 		}
 		info, err := e.Info()

@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestFuzz1003Findings replays the fuzz-1003 cardfuzz records
-// (testdata/fuzz1003.jsonl: card-name deck lists, no script text; the recorded
+// TestMixedFindings replays cardfuzz records
+// (testdata/findings_mixed.jsonl: card-name deck lists, no script text; the recorded
 // diag is replaced by a one-line summary) and requires each game to finish
 // without a failure:
 //
@@ -27,9 +27,9 @@ import (
 //   - Three Required attackers at a two-attacker AttackRestrict ceiling:
 //     RequiredQuota counted three while Validate's group cap allowed two, so
 //     no declaration was accepted (decision requiredCore).
-func TestFuzz1003Findings(t *testing.T) {
+func TestMixedFindings(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	f, err := os.Open("testdata/fuzz1003.jsonl")
+	f, err := os.Open("testdata/findings_mixed.jsonl")
 	if err != nil {
 		t.Fatal(err)
 	}

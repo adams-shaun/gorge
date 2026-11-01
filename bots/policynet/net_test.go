@@ -549,7 +549,7 @@ func TestLossFiniteOnDivergedScores(t *testing.T) {
 }
 
 // TestClipCapsTheNormAndPreservesDirection pins the per-batch global-L2
-// clip's contract (ticket policytrain-clip-rankweight-interaction): when the
+// clip's contract: when the
 // summed gradient's norm exceeds the cap, EVERY block is rescaled by the
 // SAME factor (the direction — and with it every direction-carrying weight,
 // per-example or per-term — is untouched) and the norm lands exactly on the

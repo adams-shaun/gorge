@@ -1,6 +1,6 @@
 package host
 
-// CV-8: the default object cap on hosted tables. The match config arms
+// The default object cap on hosted tables. The match config arms
 // rules.DefaultMaxObjs whenever the per-turn guard is on (the same volume
 // bound the shared drive loop arms), the Disabled opt-out is propagated
 // unchanged, and a game that crosses the cap mid-resolution ends through the

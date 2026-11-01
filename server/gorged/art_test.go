@@ -323,8 +323,8 @@ func TestArtCachesSharingADirectoryPublishAtomically(t *testing.T) {
 	}
 }
 
-// TestArtCacheDoesNotServeALegacyPreBumpEntry is round-2 finding 2's
-// regression pin: the live server had already cached "Insectile Aberration"
+// TestArtCacheDoesNotServeALegacyPreBumpEntry is a
+// regression pin: a live server may have cached "Insectile Aberration"
 // under the OLD unversioned key (sha256 of the bare name) with the FRONT
 // face's bytes, and ensure() treats an existing JPG as a permanent hit while
 // blob() marks the URL immutable — so after the face-matched fix deployed,
@@ -427,8 +427,7 @@ func TestArtCacheUsesTheFrontFaceOfADoubleFacedCard(t *testing.T) {
 	}
 }
 
-// TestArtCacheUsesTheMatchedFaceForABackFaceName is task
-// fb-20260914T033246Z-3f1cc033 defect 3: a transform card's back-face name
+// TestArtCacheUsesTheMatchedFaceForABackFaceName: a transform card's back-face name
 // must cache and serve the BACK face's art. Scryfall's named lookup lists
 // both faces for either name and leaves the top-level image_uris empty, so
 // the old code — which took card_faces[0] unconditionally — resolved

@@ -24,7 +24,7 @@ import (
 
 // The committed fixture under testdata/feedback/<fixtureID>/ is a real
 // snapshot produced by the feedback capture's own code (host's
-// SnapshotForFeedback, task fbrepro1), not hand-written JSON: the
+// SnapshotForFeedback), not hand-written JSON: the
 // REPRO_REGEN_FIXTURE=1 run below builds a live registry, parks the match
 // on a gated seat, captures the snapshot and verifies it replays before
 // writing the four files. Regenerate it after a corpus pin bump (FORGE_REF)

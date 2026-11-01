@@ -1,7 +1,7 @@
 package host
 
-// Task M2e-5: making the London mulligan reachable from the product, without
-// breaking replay. The whole hazard is R-8.4: Config.Mulligans must travel
+// Making the London mulligan reachable from the product, without breaking
+// replay. The whole hazard: Config.Mulligans must travel
 // in the same Config value replay is handed, and the replay Config for a
 // finished match is rebuilt from the persisted sidecar (server/host/viewat.go), not
 // from the live TableConfig — so the value must persist, and a sidecar that
@@ -12,9 +12,9 @@ package host
 // here directly. TestAMulliganTableSurvivesARestart is the sidecar
 // round-trip: a fresh registry knows a match only from disk, so a sidecar
 // field that was never written loads as 0 and the rebuilt match cannot
-// replay. TestAnOldSidecarWithoutMulligansLoadsAsZero pins R-E5-2 (no key ≡
-// 0, nothing migrated), and TestMulligansZeroIsUnchanged pins R-E5-1's other
-// half: an explicit 0 is byte-identical to no field at all.
+// replay. TestAnOldSidecarWithoutMulligansLoadsAsZero pins that no key means 0
+// with nothing migrated, and TestMulligansZeroIsUnchanged pins the other half:
+// an explicit 0 is byte-identical to no field at all.
 
 import (
 	"os"
@@ -29,14 +29,14 @@ import (
 // mulliganTable is a two-seat table with the London round switched on: each
 // player may take up to n mulligans between the deal and turn 1. Two seats
 // is the smallest shape where a mulligan round exists at all, and the shape
-// the task's own product verification played (gorged -seats 2); the replay
+// the product verification played (gorged -seats 2); the replay
 // pair it feeds is the same pair a four-seat table would need.
 func mulliganTable(id TableID, n int) TableConfig {
 	return TableConfig{ID: id, Name: "Table " + string(id), Seats: 2, Decks: []string{"a", "b"},
 		Seed: 99, Pace: 0, Spectator: view.Omniscient, Perpetual: false, Mulligans: n}
 }
 
-// TestAMulliganTableReplaysExactly is the task's one that matters: a table
+// TestAMulliganTableReplaysExactly is the one that matters: a table
 // with Mulligans: 1 plays a match to completion, and the match replays from
 // its log to the same chain head through the host's own replay build
 // (matchForLog, server/host/viewat.go:261) — not a test-side config — so a replay
@@ -95,7 +95,7 @@ func TestAMulliganTableReplaysExactly(t *testing.T) {
 // second registry knows the match only from disk, so a sidecar field that
 // was never written loads as 0, the rebuilt config skips the round, and the
 // first logged mulligan intent is refused the moment Events (or ViewAt)
-// forces the replay — the exact failure this task is here to prevent.
+// forces the replay.
 func TestAMulliganTableSurvivesARestart(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
@@ -148,10 +148,10 @@ func TestAMulliganTableSurvivesARestart(t *testing.T) {
 	}
 }
 
-// TestAnOldSidecarWithoutMulligansLoadsAsZero is R-E5-2: a sidecar written
-// before this task has no "mulligans" key and must still load — as 0, which
+// TestAnOldSidecarWithoutMulligansLoadsAsZero : a sidecar written
+// with no "mulligans" key and must still load — as 0, which
 // is exactly what those matches played with, so their replays stay correct.
-// The fixture is the pre-task file shape (no key, anywhere); readSidecar is
+// The fixture is that file shape (no key, anywhere); readSidecar is
 // the real read path, and the rest of the fields must round-trip untouched.
 func TestAnOldSidecarWithoutMulligansLoadsAsZero(t *testing.T) {
 	dir := t.TempDir()
@@ -186,7 +186,7 @@ func TestAnOldSidecarWithoutMulligansLoadsAsZero(t *testing.T) {
 	}
 }
 
-// TestMulligansZeroIsUnchanged pins R-E5-1's other half: a table with
+// TestMulligansZeroIsUnchanged pins the other half: a table with
 // Mulligans set to 0 produces a byte-identical log to one built without the
 // field at all. The no-field half is the shared fixture (played once per
 // test binary by fourSeatTable("t1", false), seed 99); the explicit-zero

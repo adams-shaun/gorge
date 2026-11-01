@@ -185,8 +185,7 @@ func TestGroupsCarryNoNativeIDs(t *testing.T) {
 	}
 }
 
-// Fix round 1: the payment drop is pinned on poses that DO carry payment
-// data (the review found it asserted only on a payment-free pose).
+// The payment drop is pinned on poses that DO carry payment data.
 
 func TestPaymentActionsAreDroppedFromALivePriorityPose(t *testing.T) {
 	pl, p := payloadAt(t, "Burn", func(d *decision.Decision, e *rules.Engine) bool {

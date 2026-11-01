@@ -46,8 +46,8 @@ func TestTargetsForEachPlayerUsesDecisionGroups(t *testing.T) {
 }
 
 // TestHavocEaterGoadsOneCreaturePerOpponentAndCountsThePower pins the
-// TargetsForEachPlayer$ target shape on Havoc Eater's real corpus card
-// : its ETB trigger's DB$ Goad carries TargetMin$ 0,
+// TargetsForEachPlayer$ target shape on Havoc Eater's real corpus card: its
+// ETB trigger's DB$ Goad carries TargetMin$ 0,
 // TargetMax$ X (SVar:X:PlayerCountOpponents$Amount) and
 // TargetsForEachPlayer$ True — the ask is over the OPPONENTS' creatures with
 // at most one per controller, the maximum is the OPPONENT COUNT (a dynamic

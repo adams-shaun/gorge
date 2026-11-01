@@ -1,7 +1,7 @@
 package host
 
-// HD-3 acceptance tests (docs/design/2026-10-10-human-divergence-design.md
-// §5.3-§5.5, ticket HD-3): SnapshotMatch names match k; a shadow built the
+// Shadow-scan acceptance tests (docs/design/2026-10-10-human-divergence-design.md
+// §5.3-§5.5): SnapshotMatch names match k; a shadow built the
 // way the host's dispatch builds a seat's input reproduces itself exactly
 // (parity, zero divergences); a seat that deviates at chosen intents is
 // found at exactly those intents; caretaker and auto intents are never

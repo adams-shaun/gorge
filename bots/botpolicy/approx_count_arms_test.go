@@ -6,9 +6,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// This file pins the CR 702.55a (replicate) and CR 702.66 (squad) arms the
-// approx ticket added when it widened Decide's optional-count case from
-// "multikick" alone to "multikick", "replicate", "squad". Both asks are the
+// This file pins the CR 702.55a (replicate) and CR 702.66 (squad) arms of
+// Decide's optional-count case, which covers "multikick", "replicate", "squad".
+// Both asks are the
 // same shape as CR 702.43's multikicker count ask -- option 0 is the decline
 // (Amount 0) and the options ascend to the largest count the board can still
 // pay -- so the arm takes the highest Amount. Each test asserts its own

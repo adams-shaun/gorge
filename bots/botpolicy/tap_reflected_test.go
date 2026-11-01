@@ -9,7 +9,7 @@ import (
 )
 
 // TestChooseTapAimsAReflectedSourceAtANeededPip pins the tap-to-pay half of
-// the api:ManaReflected ticket. A reflected source now reaches the Board as a
+// api:ManaReflected. A reflected source reaches the Board as a
 // conditional production with cards.ManaProduction.Reflected set
 // (cards.ManaProduction.addReflected), and the need-aware tap gate must treat
 // it as able to answer a needed coloured pip: the engine asks for the colour

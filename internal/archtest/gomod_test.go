@@ -17,7 +17,7 @@ import (
 // An experiment that genuinely needs a third-party module lives in its own
 // module of its own (a companion module's game pool requires purego for its CUDA binding)
 // and imports the root module through a replace; the root never requires it
-// back. wazero, the one planned exception (the M3 plugin tier), lands by
+// back. wazero, the one planned exception (the plugin tier), lands by
 // changing this test in the same commit, under an operator decision.
 //
 // It reads go.mod as text rather than through golang.org/x/mod, which would

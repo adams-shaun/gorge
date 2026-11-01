@@ -202,7 +202,7 @@ func TestSearchWithANetworkLeafAndPrior(t *testing.T) {
 }
 
 // hypSource hands out hypothetical worlds (fresh future chance per
-// simulation), the shape ticket 5's sampled worlds take.
+// simulation), the shape sampled worlds take.
 type hypSource struct {
 	e   *rules.Engine
 	obs *searchprobe.Collector

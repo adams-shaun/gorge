@@ -167,7 +167,7 @@ func (f *scryFixture) namedJSON(name string) string {
 		name, f.srv.URL, url.PathEscape(name))
 }
 
-// TestPrewarmSurvives429sAndCachesEveryName is the brief's 429 gate: a fake
+// TestPrewarmSurvives429sAndCachesEveryName is the 429 gate: a fake
 // Scryfall answering 429 twice (once with Retry-After: 1, once without) then
 // 200 must end with the name's art AND facts cached and the name NOT skipped.
 // The fake clock records the backoff pauses — honouring Retry-After on the
@@ -227,7 +227,7 @@ func TestExhausted429RetriesAreAFailureNotAMiss(t *testing.T) {
 	}
 }
 
-// TestLimiterSpacesEveryScryfallRequest is the brief's limiter gate: with
+// TestLimiterSpacesEveryScryfallRequest is the limiter gate: with
 // the REAL 100ms pace on a fake clock, every outbound Scryfall request start
 // is spaced at least a.pace after the previous one. The sequence deliberately
 // includes named metadata, the requested image, a multi-face sibling image,

@@ -1,8 +1,6 @@
 package main
 
-// Ported from the 2026-09-26 auto-pay audit's throwaway proof branch
-// (`wt/autopay-gaps-proofs` @ 124ed89fb, file payment_plan_audit_test.go) as
-// ticket ap-feedback-copy / PP-15's feedback lane: a match whose log carries
+// The feedback lane for planned payments: a match whose log carries
 // planned payment intents is captured by the real SnapshotForFeedback path and
 // replays through the real loader to the recorded head; tampering one saved
 // witness diverges.

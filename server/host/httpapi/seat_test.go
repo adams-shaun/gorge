@@ -1,6 +1,6 @@
 package httpapi
 
-// Task M2e-2: the seat endpoints. The four merged Registry methods
+// The seat endpoints. The four merged Registry methods
 // (ViewAtSeat, EventsSeat, Pending, SubmitIntent) are plumbed onto the REST
 // surface behind an optional ?seat= parameter, gated by a separate claim
 // resolver (Options.Seat) that never touches Authorize.
@@ -12,8 +12,7 @@ package httpapi
 // point — the openers are still in hand, so a "card that entered another
 // seat's hidden zone never surfaces" is observable in the event stream too,
 // and the table's spectator visibility is omniscient on purpose: the seat
-// path must redact even where the spectator god view would not (M2e-2: the
-// redaction has to be exercised locally, never invented downstream).
+// path must redact even where the spectator god view would not.
 
 import (
 	"bytes"
@@ -37,7 +36,7 @@ import (
 // claimResolver resolves a request to the seat its X-Seat-Session header
 // names — the local-gorged convention ("the claim comes from the existing
 // session: a session claims a seat and holds it"), with the map standing in
-// for the session store M2e-3's gorged will own. ok is false for an unknown
+// for the session store gorged owns. ok is false for an unknown
 // session: the request presents no claim.
 func claimResolver(by map[string]state.PlayerID) func(*http.Request) (SeatClaim, bool) {
 	return func(r *http.Request) (SeatClaim, bool) {
@@ -49,7 +48,7 @@ func claimResolver(by map[string]state.PlayerID) func(*http.Request) (SeatClaim,
 	}
 }
 
-// parkedSeatServer starts a 4-seat table with seats 0 and 1 human (M2c-2's
+// parkedSeatServer starts a 4-seat table with seats 0 and 1 human (via
 // TableConfig.Humans). It parks on the first decision asked of either human
 // — ThinkTimeout 0 means a human never answers on its own — and stays
 // parked; bot slots 2 and 3 answer their own decisions, so the parked point
@@ -141,7 +140,7 @@ func parkedSeat(t *testing.T, r *host.Registry) (parked, other state.PlayerID) {
 
 // pastStartingChoice parks a human seat on a decision AFTER the CR 103.1
 // starting-player choice. While that choice is pending no seat may see any
-// hand card (CR 103.5, E3-fx1), so a test about hand redaction between seats
+// hand card (CR 103.5), so a test about hand redaction between seats
 // has to look at the next decision (the London mulligan), where each seat
 // sees its own opening hand again. The choice is answered over HTTP by the
 // seat that owns it, exactly as a client would.
@@ -295,7 +294,7 @@ func TestTableBoundSeatClaimRejectsEveryOtherTable(t *testing.T) {
 	}
 }
 
-// TestSeatParamAbsentIsByteIdenticalToToday pins the M2e-2 contract
+// TestSeatParamAbsentIsByteIdenticalToToday pins the contract
 // "?seat= absent keeps today's spectator behaviour exactly" at the byte
 // level: a finished match serves identical view and events bodies with and
 // without a Seat resolver configured, because the no-?seat= path never
@@ -458,7 +457,7 @@ func TestSeatViewRedactsTheOtherSeatsHand(t *testing.T) {
 // TestSeatEventsRedactEveryOtherSeatsDraws pins the redaction of the event
 // stream: seat P's stream reduces every other seat's draw — the two human
 // seats and both bots — to its shape ("draws a card", no object, no name),
-// and (E3-fx3, CR 103.5) while the CR 103.1 starting-player choice is
+// and (CR 103.5) while the CR 103.1 starting-player choice is
 // pending — the fixture's parked state — P's own Secret opening-hand draws
 // are redacted to that same shape, so no opening-hand id or name leaves the
 // server during the window. The mirror direction (other's claim, other's
@@ -518,7 +517,7 @@ func TestSeatEventsRedactEveryOtherSeatsDraws(t *testing.T) {
 			}
 			who := state.PlayerID(b.Event.Player)
 			if who == viewer {
-				// E3-fx3 (CR 103.5): the fixture reads these streams while
+				// CR 103.5: the fixture reads these streams while
 				// the CR 103.1 starting-player choice is pending, so the
 				// seat's OWN Secret draws are redacted to the same shape an
 				// opponent gets — no object, a shape transcript line. Once

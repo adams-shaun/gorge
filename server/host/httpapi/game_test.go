@@ -68,7 +68,7 @@ func postGames(t *testing.T, url, body string) (int, protocol.ErrorBody, []byte)
 	return resp.StatusCode, protocol.ErrorBody{}, raw.Bytes()
 }
 
-// TestCreateGameStartsARealHumanVsBotMatch is the task's "starts a real
+// TestCreateGameStartsARealHumanVsBotMatch is the "starts a real
 // match" proof: POST /api/games returns a join identity, and the table it
 // created goes live and parks the human seat on a real decision — the
 // human-vs-bot concept, expressed end to end over the wire.
@@ -152,8 +152,7 @@ func TestCreateGameBotPolicyDecodeAndRejectsDiagnostic(t *testing.T) {
 }
 
 // TestCreateGameMulligansDecodeLeaf is the decode leaf for the per-game
-// London allowance (finding fb-20260914T114629Z-6c81e4d6): an omitted
-// "mulligans" must reach the builder as a NIL CreateGameOptions.Mulligans
+// London allowance: an omitted "mulligans" must reach the builder as a NIL CreateGameOptions.Mulligans
 // (server default), an explicit 0 must reach it as a POINTER to 0 — a
 // non-pointer field would collapse the two — and 7/-1 are rejected 400
 // bad_request, the shape a ParseFormat failure takes.

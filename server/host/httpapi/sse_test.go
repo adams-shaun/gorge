@@ -139,13 +139,13 @@ func TestStreamOpensWithHelloThenSnapshotThenEvents(t *testing.T) {
 	// gate gives up its first decision (the paused table's Sleep hook
 	// blocks right after fanning out intent #1's own events, and how many
 	// of those land before the ring cap is deck-dependent) — so check the
-	// PL-6 ids on exactly those two before releasing the gate for good.
+	// ids on exactly those two before releasing the gate for good.
 	frames := readSSE(t, resp.Body, 2)
 	if frames[0].event != "match_start" || frames[1].event != "snapshot" {
 		t.Fatalf("after start: %s, %s", frames[0].event, frames[1].event)
 	}
 	if frames[1].id != hello.Session+":"+"2" {
-		t.Fatalf("snapshot id %q (PL-6 expects <session>:<frame>)", frames[1].id)
+		t.Fatalf("snapshot id %q (expected <session>:<frame>)", frames[1].id)
 	}
 	// Release the gate for good and check event seqs stay contiguous over
 	// a long stretch of the match.
@@ -494,7 +494,7 @@ func TestReconnectWithinGraceCancelsTheTimer(t *testing.T) {
 	}
 }
 
-// --- Fix round 1: grace-timer cancellation safety and early-disconnect grace ---
+// --- Grace-timer cancellation safety and early-disconnect grace ---
 
 // TestGraceCallbackAfterCancelDoesNotCloseTheSession drives the exact race
 // the review flagged: the timer fires, its callback goroutine starts, but a

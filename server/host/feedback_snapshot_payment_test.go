@@ -1,6 +1,6 @@
 package host
 
-// The feedback snapshot's payment-extension boundary (spec §7, ap-feedback-copy):
+// The feedback snapshot's payment-extension boundary (payment-plan design §7):
 // SnapshotForFeedback copies the engine's pending decision for the reporting
 // seat's view. That copy must (a) deep-copy the payment-plan extension —
 // PaymentActions and the pending PaymentFallback — so nothing written through

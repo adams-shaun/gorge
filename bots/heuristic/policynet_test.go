@@ -720,8 +720,8 @@ func zeroResidualBot(s uint64, w float32, kinds []decision.Kind) *PolicyNetBot {
 }
 
 // TestPolicyNetDefaultKindsUnchanged pins the default scored-kind selection:
-// NewPolicyNetBot scores KAttackers and nothing else — the opt-in kinds this
-// ticket added (blockers, target) and priority stay off.
+// NewPolicyNetBot scores KAttackers and nothing else — the opt-in kinds
+// (blockers, target) and priority stay off.
 func TestPolicyNetDefaultKindsUnchanged(t *testing.T) {
 	b := NewPolicyNetBot(1, nil)
 	for _, k := range []decision.Kind{decision.KAttackers, decision.KPriority, decision.KBlockers, decision.KTarget, decision.KChoose} {
@@ -987,7 +987,7 @@ func TestPolicyNetBlockersTargetsRandomHeadLegal(t *testing.T) {
 }
 
 // TestPolicyNetRecorderObservesWithoutChangingPlay pins the on-policy
-// recorder (ticket pn13): whole games played with a recorder installed
+// recorder: whole games played with a recorder installed
 // submit exactly the intent stream of the same seat without one; every
 // record is a decision the seat answered FROM ITS SCORES (its Chosen is the
 // submitted intent, in option positions); the recorded scores are the
@@ -1052,7 +1052,7 @@ func TestPolicyNetRecorderObservesWithoutChangingPlay(t *testing.T) {
 	t.Logf("recorded kinds: %v", seenKinds)
 }
 
-// TestPolicyNetSignAdmission pins the opt-in sign vote (ticket pn13): on an
+// TestPolicyNetSignAdmission pins the opt-in sign vote: on an
 // ALL-POSITIVE multi-option attackers decision the default auto vote falls
 // back to the decision mean and drops the below-mean attackers, while the
 // sign vote admits every positive option; a straddling decision votes the
@@ -1119,7 +1119,7 @@ func TestPolicyNetSignAdmissionReproducesTheBotWithAZeroHead(t *testing.T) {
 }
 
 // entityCheckpoint is withResidual's model upgraded to the entity feature
-// set (ticket pn14) with a non-zero pooled projection, round-tripped through
+// set with a non-zero pooled projection, round-tripped through
 // the schema-4 checkpoint.
 func entityCheckpoint(t *testing.T, seed uint64, w float32) *policynet.Scorer {
 	t.Helper()
@@ -1148,7 +1148,7 @@ func entityCheckpoint(t *testing.T, seed uint64, w float32) *policynet.Scorer {
 	return sc
 }
 
-// TestPolicyNetSamplingIsSeededLegalAndRecorded pins ticket pn14's
+// TestPolicyNetSamplingIsSeededLegalAndRecorded pins the
 // collection mode over whole games: SetSampling(0) is the default seat
 // byte for byte; a sampling seat plays only legal intents (the engine is the
 // validator), replays identically from the same seed, differs from the

@@ -370,10 +370,9 @@ func TestCloseInterruptsALongCooldown(t *testing.T) {
 	}
 }
 
-// TestConcurrentReadersDuringALiveMatch is Important #4: every other
-// test's Tables()/Matches() call happens strictly before Start or after
-// Wait, so -race never actually exercised the RWMutex design this task
-// exists for. This one reads continuously while two full matches play out
+// TestConcurrentReadersDuringALiveMatch: every other test's Tables()/Matches()
+// call happens strictly before Start or after Wait, so -race would never
+// exercise the RWMutex design without it. This one reads continuously while two full matches play out
 // on a perpetual table, run under -race by the package's own test command.
 func TestConcurrentReadersDuringALiveMatch(t *testing.T) {
 	t.Parallel()

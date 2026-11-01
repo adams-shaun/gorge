@@ -137,7 +137,7 @@ func TestConstrainedTargetPrefixDistinctProperty(t *testing.T) {
 	}
 }
 
-// TestConstrainedTargetPrefixControllerAndGroup pins the round-3 MINOR: a
+// TestConstrainedTargetPrefixControllerAndGroup pins this: a
 // TargetsWithSameController ask whose options ALSO carry Group exclusivity.
 // The controller hoist alone only guarantees the largest controller group;
 // inside it group exclusivity can consume the candidates the greedy walk
@@ -188,11 +188,10 @@ func TestConstrainedTargetPrefixControllerAndGroup(t *testing.T) {
 	}
 }
 
-// TestParseBoardTargetsDistinguishesDuplicateRefs pins the round-3 MINOR:
+// TestParseBoardTargetsDistinguishesDuplicateRefs pins this:
 // two options that mint the SAME kind+id ref must resolve to two distinct
 // option indices, not the same one (which Validate rejects as a duplicate).
-// The positional matcher round 1 used distinguished them; the kind+id walk
-// must keep that ability by consuming each matching option at most once.
+// The kind+id walk distinguishes them by consuming each matching option at most once.
 func TestParseBoardTargetsDistinguishesDuplicateRefs(t *testing.T) {
 	// Two options for the same object ref (o90), distinguished only by Index.
 	d := &decision.Decision{Seq: 10, Player: 1, Kind: decision.KTarget, Min: 2, Max: 2,

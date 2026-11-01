@@ -13,8 +13,7 @@ import (
 // value false is a real value -- "auto-mana off" -- so the key must be
 // emitted even when false, or a client cannot tell "off" from "field not
 // present". The checked-in hello golden is the committed wire shape; a
-// regression that drops the field (the post-payment-plan main red this task
-// pins) must fail here.
+// regression that drops the field must fail here.
 func TestHelloAutoManaWireFlag(t *testing.T) {
 	// Locate the hello fixture the goldens use, so this test reads exactly
 	// the frame TestGoldens pins.

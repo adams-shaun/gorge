@@ -81,9 +81,8 @@ func TestChoosePolicy(t *testing.T) {
 // must prefer activate (when a castable card needs mana; the need gate of
 // tap.go, T1, gates the tap on the pool -- the main-phase Board carries an
 // unpayable hand card and an empty pool, so a tap is wanted), and the
-// trailing "concede" option is never chosen either way (M2d-3) -- the
-// guarantee that keeps the acceptance games from ending on turn one. Moved
-// here from the two mirror copies (engine/seat/bot_test.go, engine/rules/testbot_test.go).
+// trailing "concede" option is never chosen either way -- the
+// guarantee that keeps the acceptance games from ending on turn one.
 func TestPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
 		Options: []decision.Option{
@@ -111,7 +110,7 @@ func TestPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 	if len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "activate" {
 		t.Errorf("isMain=true: priority = %+v, want an activation chosen", in)
 	}
-	// M2d-3: the trailing "concede" option is never chosen in either phase
+	// The trailing "concede" option is never chosen in either phase
 	// -- the whole reason it sits after "pass", where only an explicit pick
 	// (or a blind default-to-final client) could reach it, so the
 	// acceptance games (this policy drives them, via either adapter) cannot
@@ -307,7 +306,7 @@ func TestEveryKind(t *testing.T) {
 		t.Errorf("bottoming = %+v, want the two least valuable cards (obj 101, 102) bottomed", in)
 	}
 
-	// Modes (M2d-2): the first Min options in order, no rng.
+	// Modes: the first Min options in order, no rng.
 	modes := decision.Decision{Seq: 8, Player: 0, Kind: decision.KModes, Min: 2, Max: 2,
 		Options: []decision.Option{
 			{Index: 0, Kind: "mode"}, {Index: 1, Kind: "mode"}, {Index: 2, Kind: "mode"},
@@ -486,7 +485,7 @@ func TestTotalityUnderArbitraryMinMax(t *testing.T) {
 		d := decision.Decision{Seq: uint64(i), Player: state.PlayerID(next(4)),
 			Kind: kinds[next(len(kinds))], Min: min, Max: max, Options: opts}
 		board := Board{IsMain: next(2) == 0}
-		// Since 858182dc8 a blocker may fill at most one pairing (outside
+		// A blocker may fill at most one pairing (outside
 		// BlockAllDefined), so a random KBlockers ask whose Min exceeds its
 		// distinct blockers has NO valid answer. The engine never poses one;
 		// skip it rather than demand the impossible. Feasible blocker asks

@@ -7,7 +7,7 @@ import (
 )
 
 // TestBotTapPickAnswersTheMinimumAndValidates: a Tap CardChoices$ ask is
-// answered with the R-9 stand-in (none for an AnyNumber$ Min 0 pick, the first
+// answered with the stand-in (none for an AnyNumber$ Min 0 pick, the first
 // n for a fixed count), and the answer passes Decision.Validate.
 func TestBotTapPickAnswersTheMinimumAndValidates(t *testing.T) {
 	opts := []decision.Option{

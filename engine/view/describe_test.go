@@ -184,7 +184,7 @@ func TestDescribeAbilityObjectNamesSource(t *testing.T) {
 		return o
 	}
 
-	// A triggered/activated ability names its source card .
+	// A triggered/activated ability names its source card.
 	sourced := mint(b.ID)
 	if got := obj(g, sourced.ID); got != "Bear's ability #"+itoa(int64(sourced.ID)) {
 		t.Fatalf("obj with resolvable source = %q", got)

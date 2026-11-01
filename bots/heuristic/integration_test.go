@@ -94,9 +94,8 @@ func TestBotOnlyActivatesInAMainPhase(t *testing.T) {
 // territory instead. The policy must then answer the same; this uses the
 // priority decision where IsMain changes the choice (in a main phase the
 // policy taps mana, outside it the same options are passed on), with the
-// two sides' rngs seeded identically. This is the test that dies on
-// mutation M1: invert BoardFromView's IsMain and the halves disagree
-// precisely on StepMain1/StepMain2.
+// two sides' rngs seeded identically. Inverting BoardFromView's IsMain makes
+// the halves disagree precisely on StepMain1/StepMain2, and this test fails.
 func TestBotAdaptersAgreePerStep(t *testing.T) {
 	prio := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
 		Options: []decision.Option{
@@ -156,10 +155,9 @@ func TestBotAdaptersAgreePerStep(t *testing.T) {
 // zone). The CR 903.10 damage clock is NOT asserted to move: the bot's
 // commanders never connect in combat before these 18-card decks deck out,
 // so CmdDamage stays zero — pinning the clock would be fake coverage. It is
-// an honest boundary of this fixture, not a bug. The View
-// additions this task made (the projected command zone, roster + cast
-// counts, and CmdDamage) are exactly the wire facts this test's view-shaped
-// half reads.
+// an honest boundary of this fixture, not a bug. The projected command zone,
+// roster + cast counts, and CmdDamage are exactly the wire facts this test's
+// view-shaped half reads.
 func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -260,7 +258,7 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 		if boardView.Pool.Total() > 0 {
 			poolN++
 		}
-		// The public stack census (C8's facts, task botcounter1), the
+		// The public stack census (C8's facts), the
 		// commander twin of the whole-game test's own agreement.
 		if !slices.Equal(boardView.Stack, boardGame.Stack) {
 			t.Fatalf("intent %d: stack census diverged: view %v vs game %v (step %s)", n, boardView.Stack, boardGame.Stack, eGame.G.Step)
@@ -388,8 +386,8 @@ func agreeOverWholeGame(t testing.TB, newBot func(uint64) *Bot) {
 
 // TestOp3Seed13GreavesLoopTerminates is the measured op3 regression test: a
 // whole two-seat game of foundations-keen-engineering (seat 0) vs
-// mono-red-goblins (seat 1) at engine seed 13 must TERMINATE. Before the
-// fix-round-2 A1 (bots/botpolicy/ability.go) this exact game froze: from turn 25,
+// mono-red-goblins (seat 1) at engine seed 13 must TERMINATE. Without the A1
+// rule (bots/botpolicy/ability.go) this exact game froze: from turn 25,
 // a free Lightning Greaves Equip re-attached the equipment onto the creature
 // it already carried at every main-phase priority — byte-stable, to the
 // bench's -max-intents cap. The fix reads the attachment state (AttachedTo)
@@ -490,8 +488,7 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		boardGame := botpolicy.BoardFromGame(eGame.G, eGame, d.Player)
 		// The casting Card census (B4): the view-shaped half fills the same
 		// map for the same deciding player off the projected Hand/Graveyard/
-		// Battlefield CardViews. It is the new field this task's widening adds
-		// to Board, so it is pinned here explicitly -- not only through the
+		// Battlefield CardViews. It is pinned here explicitly -- not only through the
 		// intents below (which would catch a divergence only when a ranking
 		// actually flips a choice): a Cards map one half fills and the other
 		// leaves zero is a bot that casts differently depending on who asked.
@@ -565,7 +562,7 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		if boardView.Pool.Total() > 0 {
 			poolN++
 		}
-		// The public stack census (C8's facts, task botcounter1): bottom-to-top
+		// The public stack census (C8's facts): bottom-to-top
 		// order on both halves, pinned on every intent — and counted when
 		// non-empty so the pin is not vacuous (a whole game always resolves
 		// something through the stack).

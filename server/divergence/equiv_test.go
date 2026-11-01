@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// TestMaterialTable walks design §5.5's materiality table: each row names
+// TestMaterialTable walks the human-divergence design §5.5's materiality table: each row names
 // the one rule that decides it, and asserts the precondition that rule
 // reads (same names on distinct objects, differing plans, bare costs), so
 // no row passes vacuously.

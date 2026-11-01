@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// A checkpoint trained under a non-v1 feature set (pn12) is scored under
+// A checkpoint trained under a non-v1 feature set is scored under
 // that set: the seat encodes with the scorer's Features, and a v1 scorer
 // encodes exactly as before.
 func TestPolicyNetEncodesUnderTheCheckpointsFeatureSet(t *testing.T) {
