@@ -165,6 +165,7 @@ func viewCheck(d viewDiffs, positions *int) func(ref *GorgeSide, a *adapter.Game
 var servedViewGaps = map[string]bool{
 	"exiled_cards (gorge only)": true, "effective_mana_cost (gorge only)": true,
 	"optional": true, "decider (gorge only)": true, "pending[len]": true,
+	"types": true, "keywords[len]": true, "priority": true,
 	"name": true, "card_name (gorge only)": true, "targets[len]": true, "keywords (gorge only)": true,
 	"archetype.top_score": true, "archetype.scores.aggro": true, "archetype.scores.burn": true, "archetype.scores.control": true,
 	"archetype.scores.go-wide": true, "archetype.scores.midrange": true, "archetype.scores.ramp": true, "archetype.scores.tempo": true,
