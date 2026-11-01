@@ -67,6 +67,8 @@ jobs:
         run: go vet ./...
       - name: generated types are current
         run: go run ./cmd/gentypes -check
+      - name: A fresh clone builds, and dirac's tests skip without a corpus
+        run: make fresh-clone-check
       - name: Save the Go cache
         if: github.event_name != 'pull_request'
         uses: actions/cache/save@v4
@@ -115,6 +117,8 @@ jobs:
           path: ~/.cache/go-build
           key: gocache-test${{ matrix.shard }}-${{ github.sha }}
           restore-keys: gocache-test${{ matrix.shard }}-
+      - name: Build dirac's card tables
+        run: make dirac-tables
       - name: Test shard ${{ matrix.shard }} of ${{ env.SHARDS }}
         run: |
           # The nightly run takes every package, experimental ones included.

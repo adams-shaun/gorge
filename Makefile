@@ -74,6 +74,8 @@ help:
 	@echo "  make fetch-cards    — fetch Forge cardsfolder + tokenscripts at FORGE_REF into $(CARDS_DIR)"
 	@echo "  make compile-cards  — compile the fetched corpus into the IR cache"
 	@echo "  make report         — print card coverage against implemented primitives"
+	@echo "  make dirac-tables   — write dirac's binary card tables under the corpus (gitignored, keyed by corpus and kgen sources)"
+	@echo "  make fresh-clone-check — build, vet and test dirac with no corpus: tests needing tables skip, none fail"
 	@echo "  make enginebench-pair BASE=main CAND=. — paired engine-speed comparison (cmd/enginebench)"
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
 	@echo "  make enginebench-verify [REV=.]        — memo-verify-mode smoke over the bench rows"
@@ -139,6 +141,22 @@ fetch-cards: $(BIN_DIR)/forgec
 .PHONY: compile-cards
 compile-cards: $(BIN_DIR)/forgec
 	$(BIN_DIR)/forgec compile -dir $(CARDS_DIR)
+
+.PHONY: dirac-tables
+# Every pool's binary card table under $(CARDS_DIR)/kernel-tables/<key>, and the
+# synthetic evidence pools' under $(CARDS_DIR)/kernel-synth-tables/<key>. Exit 3
+# means kgen wrote an ids.tsv: the binary embeds the old bytes, so it is rebuilt
+# and rerun. Built, not `go run`, because go run exits 1 whatever the program's
+# status was, which would hide the 3.
+dirac-tables:
+	@mkdir -p $(BIN_DIR)
+	go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables; rc=$$?; \
+	if [ $$rc -eq 3 ]; then go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables || exit $$?; elif [ $$rc -ne 0 ]; then exit $$rc; fi; \
+	$(BIN_DIR)/kgen -synth-pools
+
+.PHONY: fresh-clone-check
+fresh-clone-check:
+	bash scripts/fresh-clone-check.sh
 
 .PHONY: report
 report: $(BIN_DIR)/forgec

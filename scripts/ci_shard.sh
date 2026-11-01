@@ -47,7 +47,8 @@ shard_of() {
 # the lint job still compiles every one of them, so a build break is caught.
 EXCLUDE='^github\.com/adams-shaun/gorge/(cmd/(cardfuzz|mtgsim|enginebench|keywordbench)|bots/spellbench(/.*)?|internal/corpusheap|testkit/bench)$'
 
-pkgs=$(go list ./...)
+# dirac's oracle is a full lockstep suite, run on its own before a merge to main.
+pkgs=$(go list ./... | grep -v '/dirac/oracle$')
 if [ "${CI_FULL:-0}" != 1 ]; then
 	pkgs=$(printf '%s\n' "$pkgs" | grep -Ev "$EXCLUDE")
 fi
