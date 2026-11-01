@@ -1,6 +1,6 @@
 # Seat deck manifest contract
 
-Status: implementation specification.
+Status: the specification the feature was built from.
 
 ## Decision
 
@@ -134,10 +134,7 @@ the manifest does not claim those cards are currently in the library.
   object ids, game state mutation, or replay schema is authorized.
 - No UI decklist panel is required. Clients may ignore `own_deck`.
 
-## Queue
+## Order of the work
 
-The direct briefs are in
-[`seat-deck-manifest/`](seat-deck-manifest/README.md). They
-are intentionally sequential: the ManaBrew extension must consume the proven
-core contract, and the final slice audits every interface without broadening
-the protocol further.
+The work is sequential: the ManaBrew extension consumes the proven core contract,
+and the final step audits every interface without broadening the protocol further.

@@ -1,6 +1,6 @@
 # Announce then pay: the "select mana" prompt
 
-Status: implementation specification. Amends
+Status: the specification the feature was built from. Amends
 [`2026-09-24-cast-payment-plans.md`](2026-09-24-cast-payment-plans.md)
 (amendment item 5, "D-MANUAL", is superseded for a human seat with the
 Auto-pay preference off; see §9). Baseline: gorge main `671a3ad02`.
@@ -19,7 +19,7 @@ Cast Doom Blade                                 [Cancel cast]
   [Auto-fill: tap Swamp, Swamp]   [Undo last tap]
 ```
 
-Operator decisions (binding):
+Decisions:
 
 1. Manual tapping at priority and casting from a floating pool keep working
    exactly as today.
@@ -255,7 +255,7 @@ voluntary cancel is not a no-progress loop). Nothing was paid: 601.2h has not
 happened, and every non-mana cost an announced cast can carry (a fixed-count
 sacrifice) is paid at 601.2h, after the window.
 
-Cancelling a legal cast is a product decision (operator decision 4, the Arena
+Cancelling a legal cast is a product decision (decision 4 in §1, the Arena
 model); the engine applies CR 733.1's reversal procedure to it.
 
 ## 7. Bots, goldens and the byte-identical pins
@@ -271,7 +271,7 @@ Nothing reachable without an `Announce` intent changes:
 * No bot, caretaker, botbench policy or tool submits an `Announce`.
 
 Evidence: `TestHeads` (`engine/rules/heads_test.go`) and
-`TestConstructedDefaultIsByteIdentical` (`lab/cmd/botbench`) pass with no golden
+`TestConstructedDefaultIsByteIdentical` (in botbench) pass with no golden
 edit; `decision` pins that an intent and a decision without the new fields
 serialise byte-identically.
 

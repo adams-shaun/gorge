@@ -1,12 +1,15 @@
-# Hosted bot packages and live-table search seats — design and ticket plan (2026-09-28)
+# Hosted bot packages and live-table search seats — design (2026-09-28)
 
-**Status:** design of record for the "hosted bot packages" series. Nothing here
-is implemented.
-**Base:** `origin/spellbench-prep` at `f297a3123dde0f51a5214e8518508165dc3b2332`.
-Every `path:line` below was read at that SHA. It is about to land on `main`, and every ticket in §11
-depends on it.
-**Notation:** a claim not read from code or a report is marked **INFERRED**.
-A ticket must measure or test an INFERRED claim before it builds on it.
+**Status:** the design as settled on 2026-09-28, before any of it was
+implemented. Read it for why hosted bots have this shape, and the code for what
+they do today.
+**Base:** every `path:line` below was read at commit
+`f297a3123dde0f51a5214e8518508165dc3b2332`.
+**Notation:** a claim not read from code or a report is marked **INFERRED**. An
+INFERRED claim has to be measured or tested before anything builds on it.
+**botbench:** the bench command behind almost every number here. It drives games
+through `testkit/bench` and lives in the maintainers' private companion module,
+so this document describes its behaviour rather than citing its source.
 
 Related documents: the first policy-selection design
 (`archived 2026-09-19-hosted-bot-policy-selection-design.md (docs/design/ARCHIVE.md)`)
@@ -18,7 +21,7 @@ cited below as **SB**), and the training summary
 
 ---
 
-## 0. Operator decisions (settled; restated, not reopened)
+## 0. Decisions
 
 1. **Lineup.** Every honest bot is selectable. Each entry is labelled
    production or experimental and carries its measured strength and think
@@ -29,7 +32,6 @@ cited below as **SB**), and the training summary
    registry. gorged links the set, and a table picks an entry by name.
    `host.NormalizeBotPolicy`'s closed vocabulary becomes the registry's
    closed set. botbench consumes the same registry.
-3. **Sequencing.** Every ticket builds on `main` after spellbench-prep lands.
 
 ## 1. The key design calls (summary)
 
@@ -81,11 +83,11 @@ cited below as **SB**), and the training summary
    are: aliases of the manual bot, and weaker than the hosted auto-pay bot.
 10. **The listing is wire data.** `GET /api/bot-policies` returns
     `protocol.BotPolicyList`, generated to TypeScript by `cmd/gentypes`. The
-    landing page gets a policy picker (a UI ticket).
+    landing page gets a policy picker (§10).
 
 ---
 
-## 2. Current state (verified at `f297a3123`)
+## 2. The code this design started from (read at `f297a3123`)
 
 - **Hosted vocabulary.** `server/host/bot_policy.go:24-37`: `NormalizeBotPolicy`
   maps `""` to `bot`, accepts `bot`, `lethal-pressure` and `cast-profile`,
@@ -126,8 +128,8 @@ cited below as **SB**), and the training summary
   per search seat. `testkit/bench/bench.go:212-251` captures through every
   feed at every decision, calls `DecideSearch` with `Env{Engine: e}` (the
   **real** engine), and records the answer. botbench's `search` entry
-  comment (`lab/cmd/botbench/main.go:248-263`) records that "a live table has no
-  driver to feed the seat a history yet".
+  comment records that "a live table has no driver to feed the seat a history
+  yet".
 - **The real engine inside the honest paths.**
   - `searchseat.Choose` reads `e` for the turn (`teacherSeed`,
     `bots/searchseat/searchseat.go:432`), for the actor's blockers board,
@@ -151,18 +153,16 @@ cited below as **SB**), and the training summary
     gate the clone at runtime.
   - `azmcts.Seat.DecideSearch` itself calls `NewClairvoyant` when
     `SeatConfig.World` is `""` or `clairvoyant` (`bots/azmcts/seat.go:170-182`).
-  - botbench's `azFrontDoor` is the only non-test `AllowClairvoyant` caller
-    (`lab/cmd/botbench/azcost.go:114-116`).
+  - botbench's `azFrontDoor` is the only non-test `AllowClairvoyant` caller.
 - **The SpellBench builtins need the runner's help.**
   - `builtins.Seat.SetPlanner` takes a `Planner`, which `*rules.Engine`
     implements (`bots/spellbench/builtins/builtins.go:348-354, 420-422`).
-    The runner hands it the live engine (`lab/cmd/botbench/spellbench.go:327`).
+    botbench's SpellBench runner hands it the live engine.
   - `PotentialPaymentPlans` and `PotentialPlayScript` open derived-memo
     scopes on the engine (`engine/rules/potential_plan.go:88-97`,
     `engine/rules/potential_script.go:473-494`). They must not run on the live
     engine outside `m.mu`.
-  - The runner's `sbSubmitWithFallback` (`lab/cmd/botbench/spellbench.go:243-285`)
-    retries a refused builtin answer: `Seat.Refused`, then pass or `Clamp`,
+  - The runner's `sbSubmitWithFallback` retries a refused builtin answer: `Seat.Refused`, then pass or `Clamp`,
     then `botpolicy.Decide`.
   - A refused `Submit` preserves the pending decision and records nothing
     (`engine/rules/engine.go:3754-3820`, "preserve-and-reject").
@@ -175,14 +175,15 @@ cited below as **SB**), and the training summary
   command installs them. gorged must never install them.
 - **Clock rule.** `TestTimeIsImportedOnlyByTheHost`
   (`internal/archtest/arch_test.go:109`) forbids `time` in any `bots/...`
-  package. D6's compile-time half, `TestNoExportLeaksAnEngineGame`
-  (`internal/archtest/arch_test.go:188`), scans the host and httpapi exported
-  signatures. `TestNoRegistryDataResultIsAnEngineGame`
-  (`server/host/leak_test.go:65`) is D6's runtime half.
+  package. `TestNoExportLeaksAnEngineGame`
+  (`internal/archtest/arch_test.go:188`) keeps engine games out of the host and
+  httpapi exported signatures at compile time, and
+  `TestNoRegistryDataResultIsAnEngineGame` (`server/host/leak_test.go:65`) does
+  the same at run time.
 
 ---
 
-## 3. The lineup and the honesty census (D)
+## 3. The lineup and the honesty census
 
 ### 3.1 Hostable entries
 
@@ -202,14 +203,14 @@ every Commander deck are unmeasured for every entry below.
 |---|---|---|---|---|---|---|
 | `bot` | production | The baseline every other row is measured against. On auto-pay tables (gorged's `-bot-auto-mana` default) it plays the attack-sim arm: 53.17% [52.68, 53.65] constructed and 53.69% [52.73, 54.64] commander vs the plain auto-pay bot, held-out (commit `66aa546dd` message; `server/host/bot_policy.go:88-96`). | Not measured per decision. `bot` vs `bot` plays ~550k games/h on 8 workers (SB §12.5 table). **INFERRED** < 1 ms/decision. | self | both | any |
 | `lethal-pressure` | experimental | 51.65% [50.10, 53.20] vs the earlier bot, mono suite, manual mana. Promoted into the default Decide in `9be522522`, so on manual tables it plays as `bot`. On auto-pay tables it lacks the attack-sim arm, which makes it the `bot-auto-pay` arm that hosted `bot` beat by +3.17pp. | as `bot` | `bot` | both | any |
-| `cast-profile` | experimental | With the embedded default profile it is intent-identical to the manual bot (`lab/cmd/botbench/main.go:188-192`; `seat.NewCastProfileBot`, `bots/heuristic/bot.go:163`). The fitted L4 profile failed its gate at 50.92% [49.38, 52.47] (TS §2) and is not embedded (**INFERRED**: `botpolicy.DefaultCastProfileName` is the baseline). Same auto-pay caveat as `lethal-pressure`. | as `bot` | `bot` | both | any |
+| `cast-profile` | experimental | With the embedded default profile it is intent-identical to the manual bot (botbench's `cast-profile` entry; `seat.NewCastProfileBot`, `bots/heuristic/bot.go:163`). The fitted L4 profile failed its gate at 50.92% [49.38, 52.47] (TS §2) and is not embedded (**INFERRED**: `botpolicy.DefaultCastProfileName` is the baseline). Same auto-pay caveat as `lethal-pressure`. | as `bot` | `bot` | both | any |
 | `search` (L10 PIMC teacher) | experimental | 53.7% [52.2, 55.2] vs a 50.4% same-seed control, +3.3pp, held-out, mono suite, manual mana. The edge is early-game only: coverage is 64.5% on turns 1-6 and 4.8% on turns 13+ (TS §4). | 664 ms mean, p95 2.2 s per searched decision at parallelism 1. With `-decision-workers`, latency is 171 ms (TS §4). | `bot` | constructed | 2 |
 | `az-redeal` (gen 0: uniform prior, heuristic leaf, 100 sims, fresh deal per sim) | experimental | az100 redeal 70.5% [68.5, 72.5] vs `bot`, +20.5pp over the control, 2,000 games, `uw-tempo` vs the 5 mono decks, true lists visible (SB §12.5). On the Pauper kernel, `az-redeal-sims25` rated 1382 vs `bot` 1264 (SB §12.5 round robin). | 216-278 ms mean uncontended, p95 380-550 per searched decision at 100 sims (SB §12.5) | `bot` | constructed | 2 |
 | `sb-tactical` | experimental | vs `bot`: 110-18 on the Pauper kernel (benchmark seed), 106-22 (seed 99991), 87-41 on FDN mirrors. Elo 1507 vs `bot` 1242 (SB §3.4 "Measured" table). | ~80 ms per *game* vs `bot` on 8 workers (SB §3.4). **INFERRED** ~1 ms/decision. | `bot` | constructed | 2 |
 | `sb-search-lite-atk` | experimental | 328-184 (64.1%) vs `sb-tactical`, Pauper kernel, seed 777, 512 games (SB §12.6). Never measured vs `bot` directly. | 219 ms mean, p90 448, p99 1,108 per searched decision, box at load 14-20 (SB §12.6) | `bot` | constructed | 2 |
 | `sb-heuristic` | experimental | Weaker than `bot`: Pauper kernel 1078 vs 1242 (194-446), FDN 1103 vs 1327 (SB §3.4; `archived 2026-09-28-spellbench-fdn-limited.md (docs/design/ARCHIVE.md)` "First FDN baseline") | negligible | `bot` | constructed | 2 |
-| `sb-uniform` | experimental | Anchor 1000 vs `bot` 1238 on the Pauper kernel (SB §3.1 W1 table) | negligible | `bot` | constructed | 2 |
-| `sb-first` | experimental | 708 vs `bot` 1238 on the Pauper kernel (SB §3.1 W1 table) | negligible | `bot` | constructed | 2 |
+| `sb-uniform` | experimental | Anchor 1000 vs `bot` 1238 on the Pauper kernel (SB §3.1 table) | negligible | `bot` | constructed | 2 |
+| `sb-first` | experimental | 708 vs `bot` 1238 on the Pauper kernel (SB §3.1 table) | negligible | `bot` | constructed | 2 |
 
 Notes:
 
@@ -227,25 +228,29 @@ Notes:
   equals botbench's default flag config for the same name:
   - `search` = `searchseat.Defaults()` (`bots/searchseat/searchseat.go:174-186`).
   - `az-redeal` = `azmcts.DefaultSeatConfig()` with `World=redeal`,
-    `Sims=100` and `Worlds=0` (`lab/cmd/botbench/azcost.go:26,44,53,125-131`).
-  - `sb-search-lite-atk` = the `sbSearchVariants` row
-    (`lab/cmd/botbench/spellbench_registry.go`, Worlds 4, Horizon 2, Attack).
+    `Sims=100` and `Worlds=0`.
+  - `sb-search-lite-atk` = botbench's `sbSearchVariants` row (Worlds 4, Horizon
+    2, Attack).
 
   "Hosted `X`" therefore means "`botbench -a X` with default flags", apart
   from the honest-root difference in §5.3.
-- **Labels are refreshed by measurement.** BP-20 re-measures every search
-  entry through the hosted path (`-hosted-root`) and updates the labels.
+- **Labels are refreshed by measurement.** Every search entry is to be
+  re-measured through the hosted path (`botbench -hosted-root`) at the sizes the
+  original reports used, and its label updated: `search` on the mono-suite
+  held-out gate at 400 games per pair, `az-redeal` on the SB §12.5 matrix, and
+  `sb-search-lite-atk` at 512 games vs `sb-tactical` plus a new arm vs `bot`.
+  Tier promotions stay a maintainer call.
 
 ### 3.2 Not hostable, and why
 
 | name(s) | where | reason |
 |---|---|---|
-| `az` with `-az-world clairvoyant`, and `az` with no world | `lab/cmd/botbench/main.go:274`, `lab/cmd/botbench/spellbench_registry.go` | Clones the real engine. Never hostable (operator decision 1). |
-| `az` with `-az-world prior` (PriorOnly), and `policynet` | `bots/azmcts/seat.go:32-38`, `lab/cmd/botbench/main.go:228` | Need a `-checkpoint`, and none is embedded. At gen 0 PriorOnly *is* the bot. Measured flat: TS §5 (46-47% vs 50.1%) and SB §16. |
-| `legacy`, `explore`, `ar8`, `blocks`, `attack-sim`, `bot-auto-pay`, `attack-sim-auto-pay` | `lab/cmd/botbench/main.go:144-260` | Diagnostics or collection bots, or arms inside noise (TS §1). The two auto-pay arms are what `bot` already plays. |
-| `sb-tactical-{planned,noearly,notiming,norace,arch,alt,alt2..alt8}`, the `sb-*-manual` and `sb-*-planned` arms, the other `sb-search*` budgets | `lab/cmd/botbench/spellbench_registry.go`, `lab/training/spellbench/registry/sb.go` | Tuning, ablation or budget arms of a hosted entry, not distinct bots. They are honest, so the operator can add one later as a new registry entry. |
-| decorators `burn`, `curve`, `lethal`, `mull`, `passguard` | `lab/training/spellbench/registry/*.go` | Honest, but they are wrappers rather than bots, and all four heuristic decorators measured neutral on `sb-tactical` (SB §12.6). |
-| `sbv1-tactical` (tac9), `shadow-tactical`, `shadow-az`, `shadow-roll`, **the arbiter** (`-roll-arbiter`), `shadow-route`, `shadow-sbsearch` / `-arbsearch`, and the v2 protocol agent | `lab/cmd/sbv1agent/main.go:60-100`, `lab/training/spellbench/kshadow/policy.go` (imports `v1agent`), `lab/training/spellbench/v2agent` | **Kernel-shadow only.** They answer mtg-kernel or SpellBench protocol decisions from the kernel's `x_kernel_v5` observation. The arbiter compares `v1agent.Tactical`'s kernel pick with `sb-tactical`'s (SB §3.6 table). None of them is a gorge `seat.Seat`. |
+| `az` with `-az-world clairvoyant`, and `az` with no world | botbench | Clones the real engine. Never hostable (§0, decision 1). |
+| `az` with `-az-world prior` (PriorOnly), and `policynet` | `bots/azmcts/seat.go:32-38`, botbench | Need a `-checkpoint`, and none is embedded. At gen 0 PriorOnly *is* the bot. Measured flat: TS §5 (46-47% vs 50.1%) and SB §16. |
+| `legacy`, `explore`, `ar8`, `blocks`, `attack-sim`, `bot-auto-pay`, `attack-sim-auto-pay` | botbench | Diagnostics or collection bots, or arms inside noise (TS §1). The two auto-pay arms are what `bot` already plays. |
+| `sb-tactical-{planned,noearly,notiming,norace,arch,alt,alt2..alt8}`, the `sb-*-manual` and `sb-*-planned` arms, the other `sb-search*` budgets | botbench and the private SpellBench registry | Tuning, ablation or budget arms of a hosted entry, not distinct bots. They are honest, so one can be added later as a new registry entry. |
+| decorators `burn`, `curve`, `lethal`, `mull`, `passguard` | the private SpellBench registry | Honest, but they are wrappers rather than bots, and all four heuristic decorators measured neutral on `sb-tactical` (SB §12.6). |
+| `sbv1-tactical` (tac9), `shadow-tactical`, `shadow-az`, `shadow-roll`, **the arbiter** (`-roll-arbiter`), `shadow-route`, `shadow-sbsearch` / `-arbsearch`, and the v2 protocol agent | the private training module's SpellBench agents | **Kernel-shadow only.** They answer mtg-kernel or SpellBench protocol decisions from the kernel's `x_kernel_v5` observation. The arbiter compares `v1agent.Tactical`'s kernel pick with `sb-tactical`'s (SB §3.6 table). None of them is a gorge `seat.Seat`. |
 
 ---
 
@@ -392,8 +397,8 @@ type RefusalAnswerer interface {
 
 // Fallbacks are the ladder's non-seat rungs, in order: the minimal answer
 // (pass at priority, else botpolicy.Clamp of the empty answer), then
-// botpolicy.Decide on brd with PCG(d.Seq, seatIdx+1). It is exactly
-// lab/cmd/botbench/spellbench.go:262-283 lifted out, and deterministic.
+// botpolicy.Decide on brd with PCG(d.Seq, seatIdx+1). It is exactly the
+// SpellBench runner's inline rungs lifted out of botbench, and deterministic.
 func Fallbacks(d *decision.Decision, brd botpolicy.Board, seatIdx int) []decision.Intent
 ```
 
@@ -413,13 +418,13 @@ func Fallbacks(d *decision.Decision, brd botpolicy.Board, seatIdx int) []decisio
 
 Every search adapter exports `Hosted() <Config>` and
 `New(o bots.Options, cfg <Config>) seat.Seat`, so botbench can overlay its
-flags on the hosted config (§8.3). `host` imports only `bots` and `bots/bot`,
+flags on the hosted config. `host` imports only `bots` and `bots/bot`,
 which guarantees the default always resolves. host tests that need other
 entries blank-import them in a `_test.go` file.
 
 ---
 
-## 5. A — the live-table search feed
+## 5. The live-table search feed
 
 ### 5.1 What the seat receives
 
@@ -440,7 +445,7 @@ At an `EnvSeat`'s decision, only if `WantsEnv(d)` is true, the host builds
 - **`Search.Feed`** is the actor's feed, captured through this decision (§5.2).
 - **`Search.Engine`** is the **honest root**:
   `searchseat.HonestRoot(setup, feed, m.e, bots.RootSeed(seatSeed, d.Seq))`.
-  It is a new helper (BP-04) that prepares
+  It is a new helper that prepares
   `searchprobe.NewRedealer(setup, feed.History(), feed.Known(), RedealBase{m.e, feed.Collector()})`
   and returns one `Deal`. `Deal` itself checks that the dealt world projects
   to the same board and decision as the actor's last frame
@@ -477,8 +482,8 @@ Adapter rules:
   - `az-redeal`: the searched kinds (priority, attackers, blockers, target).
   - `sb-search-lite-atk`: priority or attackers.
   - the sb-* builtins: priority (the planner is read at priority only;
-    **INFERRED** from `bots/spellbench/builtins/builtins.go:72-90`, and
-    BP-13 verifies it).
+    **INFERRED** from `bots/spellbench/builtins/builtins.go:72-90`, to be
+    checked by counting planner calls by decision kind on a smoke game).
 
 ### 5.2 The feed's lifecycle (host-owned, derived, never persisted)
 
@@ -499,7 +504,7 @@ Adapter rules:
   rung (§5.5), not the seat's first answer. A `RecordAnswer` error stops the
   feed. The bench crashes instead (`testkit/bench/bench.go:238-245`), but a
   live table plays on with the fallback, and the stop is counted.
-- **Known cards.** `Feed.Known()` (BP-04) folds new frames lazily with the
+- **Known cards.** `Feed.Known()` folds new frames lazily with the
   tracker moved from `azmcts.KnownTracker` (`bots/azmcts/redeal.go:162-200`).
   The fold semantics are unchanged: the answer to frame i is folded before
   frame i+1. `azmcts.KnownTracker` becomes a type alias.
@@ -510,15 +515,16 @@ Adapter rules:
 - **Undo.** Right after `rewindToLastIntent` swaps in the replayed engine,
   under the same lock, the host rebuilds every feed:
   `searchseat.RebuildFeed(m.cfg, m.e.L, m.intents, actor)`.
-  - `RebuildFeed` (BP-03) is `replay.Walk` (a new exported stepping form of
+  - `RebuildFeed` is `replay.Walk` (a new exported stepping form of
     `replay.run`, `engine/replay/replay.go:196-264`). It calls `visit(e, i)` at every
     intent boundary before submitting intent i, and once at n.
   - Each visit Observes, and after the actor's own intents it records them.
-  - The result equals the live feed truncated to that boundary. BP-03 pins
-    this with `TestRebuildFeedMatchesTheLiveFeed`.
+  - The result equals the live feed truncated to that boundary.
+    `TestRebuildFeedMatchesTheLiveFeed` pins this.
   - Cost is one full capture pass over the kept prefix while `m.mu` is held.
-    **INFERRED** it is acceptable because undo is rare; BP-09 measures it.
-  - A rebuild error crashes the match (D15), because the feed and the log
+    **INFERRED** it is acceptable because undo is rare; the wall time for a
+    400-intent prefix is to be measured.
+  - A rebuild error crashes the match, because the feed and the log
     must never disagree.
 - **Persist and resume.** Nothing new is persisted. The feed is a pure
   function of (`rules.Config`, intent log prefix, actor). Today a restart
@@ -551,9 +557,9 @@ history, for example what the opponent drew. Two facts bound this channel:
   **real** engine, so the hosted exposure is strictly smaller than the
   measured one.
 
-The spec does not close the channel. It tests for its use: BP-08 adds the
-seat-level leak test `TestHostedEnvSeatsIgnoreTheRealHiddenCards`, and
-BP-11 to BP-15 add each entry to it. The test builds two live engines that
+This design does not close the channel. It tests for its use, with the
+seat-level leak test `TestHostedEnvSeatsIgnoreTheRealHiddenCards` and a row in
+it for each hosted entry. The test builds two live engines that
 differ only in hidden cards, using the swap fixture of
 `TestRedealWorldsIgnoreTheRealHiddenCards` (whose swap emits extra secret
 events into the alternate log). It drives one decision of each hosted entry
@@ -573,11 +579,11 @@ search at the real engine and the host at the honest root:
   may differ, and rollout tie-breaks can depend on option order.
   **INFERRED**: parity is not guaranteed.
 
-BP-05 therefore adds a `-hosted-root` botbench mode and measures intent
-agreement. If the INFERRED-exact entries are not exact, BP-05 stops and
-reports. For the other entries it reports the agreement rate, and BP-20
-re-measures strength through `-hosted-root` so the labels describe the
-hosted configuration. It also checks that a redeal from a redealt root
+So botbench gets a `-hosted-root` mode, which measures intent agreement. If
+the entries inferred exact are not exact, the work stops there until that is
+explained. The other entries get an agreement rate, and their strength is
+re-measured through `-hosted-root` so the labels describe the hosted
+configuration (§3.1). A test also checks that a redeal from a redealt root
 prepares at all (**INFERRED**; `NewRedealer`'s checks at
 `bots/searchprobe/redeal.go:121-136` are the same ones `Deal` already
 passed).
@@ -588,13 +594,13 @@ passed).
   host export (`Options.SearchSlots`, `Options.MaxSearchTables`,
   `Options.BotDeps`) carries no engine type. The dependency rows in §6.2 also
   apply.
-- **Runtime (BP-08): `TestHostedEnvSeatsNeverSeeTheLiveEngine`.** A test-only
+- **Runtime: `TestHostedEnvSeatsNeverSeeTheLiveEngine`.** A test-only
   spy `EnvSeat` records `env.Search.Engine` at each decision. The test asserts:
   - the pointer is never `m.e` and never aliases `m.e.G`;
   - across a fixed-seed game, the root's opponent hand differs from the live
     opponent hand at least once, which proves a redeal happened;
   - no root is reused after `DecideEnv` returns.
-- **Behavioural (BP-08, then each adapter).**
+- **Behavioural (a spy seat, then each adapter).**
   `TestHostedEnvSeatsIgnoreTheRealHiddenCards`, described in §5.3.
 - **Configuration (each adapter).**
   - `search`: `TestHostedSearchConfigIsHonest` asserts `Options.Clairvoyant`
@@ -602,7 +608,7 @@ passed).
   - `az-redeal`: `TestHostedAZIsRedeal` asserts `World == WorldRedeal`, a nil
     net and `Explore` false.
 
-### 5.5 The refusal ladder in the host (BP-06)
+### 5.5 The refusal ladder in the host
 
 Today `server/host/match.go:626-634` returns `intent %d rejected` and crashes. New
 behaviour applies only when the deciding seat implements
@@ -619,15 +625,15 @@ own `m.locked` Submit:
 Refusals leave no events (preserve-and-reject), so only the accepted intent
 is logged, and the ladder is deterministic. A per-match counter
 (`refusals`, `fallbacks`) goes on the crash report and the sidecar, as
-diagnostics only. The fallback logic moves out of
-`lab/cmd/botbench/spellbench.go:262-283` into `bots.Fallbacks`, which botbench
-calls in BP-16, so the bench and the host cannot drift.
+diagnostics only. The fallback logic moves out of botbench's SpellBench runner
+into `bots.Fallbacks`, which botbench then calls, so the bench and the host
+cannot drift.
 
 ---
 
-## 6. B — splitting the azmcts clairvoyant world
+## 6. Splitting the azmcts clairvoyant world
 
-### 6.1 The move (BP-02)
+### 6.1 The move
 
 - **New package `bots/azmcts/clairvoyant`.** `NewClairvoyant`,
   `AllowClairvoyant`, `ErrClairvoyantRefused` and the `clairvoyant` source
@@ -647,9 +653,7 @@ calls in BP-16, so the bench and the host cannot drift.
 - **The `AllowClairvoyant` runtime gate stays, inside the new package.** A
   clairvoyant arm therefore needs both a link-time import and a runtime
   opt-in.
-- **botbench** (`lab/cmd/botbench/azcost.go:114-116`, `azSeatConfig` at
-  `:125-131`, the `az` entries at `lab/cmd/botbench/main.go:274-280` and
-  `lab/cmd/botbench/spellbench_registry.go`) sets `cfg.Source = clairvoyant.Source`
+- **botbench** (`azSeatConfig` and its `az` entries) sets `cfg.Source = clairvoyant.Source`
   for `az` when the world is clairvoyant. It never does so for `az-redeal`.
 - **azmcts tests.** Package-internal tests that build clairvoyant worlds
   (`bots/azmcts/bench_test.go:39`, `search_test.go:77`, `seat_test.go`,
@@ -660,7 +664,7 @@ calls in BP-16, so the bench and the host cannot drift.
   only (`internal/archtest/arch_test.go:25-27`).
   `TestClairvoyantRefusedUnlessAllowed` moves to the new package.
   `TestSeatRefusesClairvoyantByDefault` becomes "refuses when Source is nil".
-- **`lab/cmd/botbench/azcorpus_test.go:25-32`** imports the new package.
+- **botbench's corpus test** imports the new package.
 
 ### 6.2 archtest rows (`internal/archtest/arch_test.go`)
 
@@ -682,7 +686,7 @@ allow-list, so a clock in a bot fails the build. The comment at
 
 ---
 
-## 7. C — server CPU
+## 7. Server CPU
 
 - **Search slots.** `host.Options.SearchSlots int` defaults to 0, which means
   unbounded, so embedders and tests are unchanged. gorged sets it from
@@ -717,8 +721,7 @@ allow-list, so a clock in a bot fails the build. The comment at
 - **Memory.** The az100 bench peaked at 0.9 GB RSS per 8-worker run (SB
   §12.5), **INFERRED** about 110 MB per concurrent search. Each feed holds one
   JSON board frame per decision for the whole game, **INFERRED** a few MB per
-  match. BP-07 and BP-10 measure both and record them in the ticket report.
-  Slots bound the first, and `-max-search-tables` the second.
+  match. Both are to be measured. Slots bound the first, and `-max-search-tables` the second.
 - **Pace.** The host's `-pace` sleep (`server/host/match.go:686`) is unaffected.
   vs-bot tables set no pace (`cmd/gorged/game.go:96-101`).
 - **Rejected alternatives.**
@@ -766,8 +769,8 @@ Two known limits:
 | `sb-tactical`, `sb-heuristic`, `sb-uniform`, `sb-first` | SplitMix64 seeded per seat (`bots/spellbench/builtins/builtins.go:415-418`) | none. The planner's exact search is bounded by `exactBudget` = 2000 clones (`bots/spellbench/builtins/priority.go:447`) | View, plus the honest root as planner | the refusal ladder is deterministic (§5.5) |
 | `sb-search-lite-atk` | `azmcts.DecisionSeed` for worlds, chance and rollout seats (SB §12.6 "Determinism") | Worlds 4, Horizon 2 turns, MaxSteps 4000 | honest root and feed | `TestSearchIsDeterministic` (`bots/spellbench/sbsearch/sbsearch_test.go:133`) |
 
-Enforced by `TestEveryHostedPolicyIsDeterministic` (new, `server/host/hosted_policies_test.go`,
-created in BP-11 and extended by BP-12 to BP-15). For each registered entry,
+Enforced by `TestEveryHostedPolicyIsDeterministic` (`server/host/hosted_policies_test.go`).
+For each registered entry,
 it plays two in-memory 2-seat tables with the same seed and a fixed
 `MaxIntents` cap (search entries 150 intents, cheap entries a whole game),
 then requires identical event logs and intents and a clean replay of each.
@@ -863,7 +866,7 @@ does not apply to them (Q4).
 
 ---
 
-## 10. The UI (ticket BP-19)
+## 10. The UI
 
 - **`web/src/lib/api.ts`** gets `botPoliciesURL()` and `fetchBotPolicies()`,
   typed by the generated `BotPolicyList`. `startPlayVsBot` (`web/src/lib/playvsbot.ts`)
@@ -885,524 +888,22 @@ does not apply to them (Q4).
 
 ---
 
-## 11. Tickets (ordered)
-
-Every ticket depends on that landing plus the tickets
-listed. "Pipeline" means the implementation queue. Commands follow the box
-rules: one at a time, `-p 1`, `GOMAXPROCS=3 GOMEMLIMIT=1GiB`. Each ticket's
-report records anything INFERRED that it measured.
-
-### BP-01 — `bots` registry and the three existing policies
-- **Goal:** create `bots` (§4.1, without `env.go` / `refusal.go`), plus
-  `bots/bot`, `bots/lethalpressure` and `bots/castprofile` (factories copied
-  from `server/host/bot_policy.go:67-98`), and `bots/all`.
-  - `host.NormalizeBotPolicy`, `NewBotPolicySeat` and
-    `NewBotPolicySeatWithAutoPayMana` delegate to `bots`. The exported
-    constants stay as aliases.
-  - host non-test code imports `bots` and `bots/bot` only. Add
-    `server/host/bots_link_test.go`, which blank-imports `bots/lethalpressure` and
-    `bots/castprofile`.
-  - `cmd/gorged` and `lab/cmd/botbench` import `bots/all`. botbench's
-    `hostedPolicy` (`lab/cmd/botbench/main.go:404-412`) calls `bots.New`.
-  - archtest rows: `protocol ↛ bots`, and the `bots/...` loop ↛ `host`,
-    `testkit/testutil`.
-  - Add `bots/` to `docs/agents/repo-map.md`.
-  - Fill `Info` for the three entries from §3.1.
-- **Files:** `bots/registry.go`, `bots/registry_test.go`, `bots/bot/bot.go`,
-  `bots/lethalpressure/lethalpressure.go`, `bots/castprofile/castprofile.go`,
-  `bots/all/all.go`, `server/host/bot_policy.go`, `server/host/bots_link_test.go`,
-  `cmd/gorged/main.go`, `lab/cmd/botbench/main.go`, `internal/archtest/arch_test.go`,
-  `docs/agents/repo-map.md`.
-- **Out of scope:** search entries, the env seam, flags, endpoint.
-  `TestHostedVocabularyRefusesSearchPolicies` stays green unchanged, because
-  `search` is not yet registered.
-- **Depends-On:** —.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestRegister|TestNormalize|TestEntries|TestValidate' ./bots/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestNormalizeBotPolicy|TestNewBotPolicySeatIsDeterministic|TestHostedAutoPayBotPlaysCombatSim|TestHostedVocabularyRefusesSearchPolicies|TestHostedPoliciesReplayDeterministically|TestHumanCaretakerUsesConfiguredPolicy|TestTableBotPolicyDefaultsAndRejectsUnknown|TestDefaultSeatsConstructTheConfiguredPolicy' ./server/host/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestCreateGame' ./server/host/httpapi/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestCreateGamePersistsRequestedBotPolicy' ./cmd/gorged/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSpellbenchRegistryRoundTrip' ./lab/cmd/botbench/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHeads$' ./engine/rules/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestDependencyOrderHolds|TestTimeIsImportedOnlyByTheHost|TestNoExportLeaksAnEngineGame|TestEngineCompilesFor32Bit' ./internal/archtest/
-  ```
-
-### BP-02 — split the clairvoyant world out of azmcts
-- **Goal:** §6.1 and §6.2 exactly.
-- **Files:** `bots/azmcts/world.go`, `bots/azmcts/seat.go`,
-  `bots/azmcts/redeal.go` (constants' doc), the new
-  `bots/azmcts/clairvoyant/clairvoyant.go` and `clairvoyant_test.go`,
-  `bots/azmcts/clairvoyant_helper_test.go`,
-  `bots/azmcts/{bench,search,seat,world}_test.go`, `lab/cmd/botbench/azcost.go`,
-  `lab/cmd/botbench/main.go` (the `az` entry and comment),
-  `lab/cmd/botbench/spellbench_registry.go` (`az`), `lab/cmd/botbench/azcorpus_test.go`,
-  `internal/archtest/arch_test.go`.
-- **Out of scope:** any behaviour change. botbench `-a az -az-world
-  clairvoyant` games must be event-identical before and after
-  (`TestAZCorpusRecordsWithoutChangingTheGame`).
-- **Depends-On:** BP-01. The steps are mechanical: move
-  the file, add the `Source` field, fix imports, add the test helper.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSeat|TestNewSeat|TestSearchOnRedealtWorlds|TestRedealWorlds|TestSubmitRecoversAnEnginePanic|TestHypotheticalSubmitClassifiesRejections' ./bots/azmcts/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestClairvoyant' ./bots/azmcts/clairvoyant/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestAZCorpusRecordsWithoutChangingTheGame|TestAZSeatDoesNotReEquipForever|TestSpellbenchRegistryRoundTrip' ./lab/cmd/botbench/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestDependencyOrderHolds|TestTimeIsImportedOnlyByTheHost' ./internal/archtest/
-  ```
-
-### BP-03 — `replay.Walk` and `searchseat.RebuildFeed`
-- **Goal:**
-  - Add `replay.Walk(l *events.Log, cfg rules.Config, n int, visit func(e *rules.Engine, i int) error) (*rules.Engine, error)`.
-    It is `run` with a visit before each intent and once at n, sharing
-    `run`'s genesis and compare logic. `run` becomes `Walk` with a nil visit.
-  - Add `searchseat.RebuildFeed(cfg rules.Config, l *events.Log, n int, actor state.PlayerID) (*Feed, error)`:
-    `Observe` at each visit, and `RecordAnswer(e.Pending(), l.Intents[i])`
-    after the actor's own intents.
-- **Files:** `engine/replay/replay.go`, `engine/replay/walk_test.go`,
-  `bots/searchseat/feed.go`, `bots/searchseat/rebuild_test.go`.
-- **Tests:**
-  - `TestWalkVisitsEveryBoundaryAndMatchesReplayTo`.
-  - `TestRebuildFeedMatchesTheLiveFeed`: a bench-driven game with a search
-    seat compared with `RebuildFeed` over its log at three prefixes (frames,
-    answers and collector state all equal).
-- **Out of scope:** host wiring.
-- **Depends-On:** —, and it can run in parallel with BP-01 and BP-02.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestWalk|TestReplay' ./engine/replay/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestRebuildFeed|TestFeed|TestBenchDriverFeedsTheTeacherLoop' ./bots/searchseat/
-  ```
-
-### BP-04 — the feed-owned known-card tracker and `searchseat.HonestRoot`
-- **Goal:**
-  - Move `KnownTracker` (`bots/azmcts/redeal.go:162-200`) to
-    `bots/searchseat`. `azmcts.KnownTracker` becomes an alias.
-  - Add `Feed.Known() (searchprobe.KnownCards, error)`.
-  - `azmcts.Seat` (`bots/azmcts/seat.go:96,250-263`) and `sbsearch.Seat`
-    (`bots/spellbench/sbsearch/sbsearch.go:157,670-679`) read
-    `env.Feed.Known()`.
-  - `RebuildFeed` inherits the tracker.
-  - Add `searchseat.HonestRoot(setup, f *Feed, e *rules.Engine, seed [2]uint64) (*rules.Engine, string)` (§5.1).
-- **Tests:**
-  - `TestFeedKnownMatchesTheSeatTracker` (bench game, every decision).
-  - `TestHonestRootKeepsTheObservation`: the root's capture with a
-    collector clone equals the last frame.
-  - `TestHonestRootIgnoresTheRealHiddenCards`: the
-    `TestRedealWorldsIgnoreTheRealHiddenCards` fixture, name-identical roots.
-  - `TestRedealFromAnHonestRootPrepares`: `NewRedeal` on a root does not
-    refuse. This is the INFERRED claim from §5.3; if it fails, stop and
-    report.
-  - Existing sbsearch and azmcts suites unchanged.
-- **Files:** `bots/searchseat/known.go`, `bots/searchseat/feed.go`,
-  `bots/searchseat/honestroot.go` (+ tests), `bots/azmcts/redeal.go`,
-  `bots/azmcts/seat.go`, `bots/spellbench/sbsearch/sbsearch.go`.
-- **Out of scope:** host and bench wiring.
-- **Depends-On:** BP-02 (seat.go), BP-03 (feed.go).
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestFeedKnown|TestHonestRoot|TestRedealFromAnHonestRoot|TestRebuildFeed' ./bots/searchseat/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestKnownTrackerMatchesProjection|TestRedeal|TestSeatOnRedealPlaysAndReplays|TestSeatSearchesAndReplaysExactly' ./bots/azmcts/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestZeroWorldsIsTactical|TestForcedErrorFallsBackToTactical|TestSearchIsDeterministic|TestCombatAndTargetSearch' ./bots/spellbench/sbsearch/
-  ```
-
-### BP-05 — the bench honest-root mode and the parity smoke
-- **Goal:**
-  - `bench.Hooks.HonestRoot bool`. When set, `PlayGame`
-    (`testkit/bench/bench.go:233-237`) passes
-    `Env{Engine: searchseat.HonestRoot(...)}` in place of `e` (nil on a
-    refusal, which takes the `DecideBoard` path), using the same
-    `bots.RootSeed`. `bots.RootSeed` lives in `bots/env.go`; BP-05 adds that
-    one function if BP-06 has not landed.
-  - botbench `-hosted-root` sets it.
-  - Parity smoke: 20 games per entry, 2 workers, using the brief's own seeds
-    and the mono pair `uw-tempo:mono-red-prowess`. It reports the fraction of
-    searched decisions whose intent matches between normal and `-hosted-root`
-    runs for `search`, `az-redeal` (`-az-sims 25` for the smoke) and
-    `sb-search-lite-atk`, plus refusal counts.
-  - **Stop condition:** `search` agreement is not 100% (INFERRED exact, §5.3).
-  - The full-size measurement is BP-20.
-- **Files:** `testkit/bench/bench.go`, `lab/cmd/botbench/main.go`,
-  `lab/cmd/botbench/hostedroot_test.go`, `bots/env.go` (RootSeed only).
-- **Out of scope:** host, and any strength claim.
-- **Depends-On:** BP-04, BP-02. Smoke-sized, one run at a time.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostedRoot' ./lab/cmd/botbench/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestBenchDriverFeedsTheTeacherLoop|TestSearchSeatWithoutCoveredKindsIsTheBotExactly' ./bots/searchseat/
-  ```
-  plus the parity table in the ticket report.
-
-### BP-06 — the env and refusal types, and the host refusal ladder
-- **Goal:**
-  - `bots/env.go` (`EnvSeat`, `Env`, `RootSeed`) and `bots/refusal.go`
-    (`RefusalAnswerer`, `Fallbacks`), per §4.2.
-  - The host ladder of §5.5 in the Submit section of `play`
-    (`server/host/match.go:626-646`). The re-projection happens under the lock,
-    `AnswerRefused` runs outside it, and each Submit is its own `m.locked`.
-  - Crash-report counters.
-- **Tests:**
-  - `TestRefusalLadderAcceptsTheSeatRetry` and
-    `TestRefusalLadderFallsBackToMinimalThenBot` use a test seat that returns
-    a refusable intent (a lone blocker on a menace attacker, the case named
-    at `lab/cmd/botbench/spellbench.go:35-37`).
-  - `TestNonRefusalSeatStillCrashesOnRejection`.
-  - `TestFallbacksMatchTheSpellbenchRunner` (bots): `Fallbacks` equals the
-    runner's inline rungs on a table of decisions.
-- **Files:** `bots/env.go`, `bots/refusal.go`, `bots/refusal_test.go`,
-  `server/host/match.go`, `server/host/refusal_test.go`.
-- **Out of scope:** feeds and Env dispatch.
-- **Depends-On:** BP-01, and BP-05 (`bots/env.go`).
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestFallbacks' ./bots/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestRefusalLadder|TestNonRefusalSeatStillCrashesOnRejection|TestHostedPoliciesReplayDeterministically|TestStall' ./server/host/
-  ```
-
-### BP-07 — the host feed lifecycle
-- **Goal:** §5.2 Create, Observe and Record for every non-human
-  `bots.EnvSeat`. There is no Env dispatch yet: seats still take the
-  Board/View path, so a match with no EnvSeat is byte-identical.
-  - New unexported `server/host/botenv.go` (`type matchFeeds`) holds them, owned by
-    the match goroutine.
-- **Tests:**
-  - `TestHostFeedEqualsRebuildFeed`: a spy EnvSeat table's live feed after
-    N intents equals `RebuildFeed` over the log.
-  - `TestNoEnvSeatNoFeed`: allocation-free fast path, and `TestHeads`
-    unchanged.
-  - Record per-decision capture cost and per-match feed memory (the INFERRED
-    items in §7) in the report.
-- **Files:** `server/host/match.go`, `server/host/botenv.go`, `server/host/botenv_test.go`.
-- **Out of scope:** the honest root, undo, slots.
-- **Depends-On:** BP-06, BP-04.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostFeed|TestNoEnvSeatNoFeed|TestHostedPoliciesReplayDeterministically|TestNoRegistryDataResultIsAnEngineGame' ./server/host/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHeads$' ./engine/rules/
-  ```
-
-### BP-08 — host Env dispatch with the honest root
-- **Goal:** §5.1 in `projectNext` / `parkSeat`.
-  - A new `parkedData.env` field. The order is `HumanSeat`, then
-    `EnvSeat && WantsEnv`, then `BoardSeat`, then View; the HumanSeat-first
-    ordering is argued at `server/host/match.go:394-401`.
-  - The honest root is built under the lock with `bots.RootSeed(m.seed^uint64(slot+1), d.Seq)`.
-  - `DecideEnv` runs outside the lock.
-  - Diagnostics count root refusals per match.
-- **Tests:**
-  - `TestHostedEnvSeatsNeverSeeTheLiveEngine` and
-    `TestHostedEnvSeatsIgnoreTheRealHiddenCards`, both with a spy EnvSeat
-    (§5.4).
-  - `TestEnvRootRefusalPlaysFallback`.
-- **Files:** `server/host/match.go`, `server/host/botenv.go`, `server/host/botenv_test.go`.
-- **Out of scope:** real adapters, undo, slots.
-- **Depends-On:** BP-07.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostedEnvSeats|TestEnvRoot|TestHostFeed|TestHostedPoliciesReplayDeterministically|TestHumanCaretakerUsesConfiguredPolicy' ./server/host/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestNoExportLeaksAnEngineGame|TestDependencyOrderHolds' ./internal/archtest/
-  ```
-
-### BP-09 — undo rebuilds the feeds
-- **Goal:** §5.2 Undo. `rewindToLastIntent` (`server/host/undo.go:241-285`) calls
-  `RebuildFeed` for every feed after swapping the engine and before
-  `projectNext`.
-- **Tests:**
-  - `TestUndoRebuildsEnvSeatFeeds`: after an undo, the feed equals
-    `RebuildFeed` at the new head, and play continues. Undo is one human
-    table with a spy EnvSeat bot.
-  - Existing `TestUndo*` unchanged.
-  - Report the rebuild wall time for a 400-intent prefix.
-- **Files:** `server/host/undo.go`, `server/host/botenv.go`, `server/host/botenv_test.go`.
-- **Depends-On:** BP-08, BP-03.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestUndo' ./server/host/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestUndo' ./server/host/httpapi/
-  ```
-
-### BP-10 — search slots and admission in the host
-- **Goal:** §7. Add `host.Options.SearchSlots`, `MaxSearchTables` and
-  `BotSearchParallelism`, which is passed into `bots.Options`.
-  - The FIFO slot around `DecideEnv` for `Search` entries.
-  - Cancellation becomes an abort.
-  - `AddTable` admission.
-- **Tests:**
-  - `TestSearchSlotsQueueFIFOAndNeverChangeIntents`: two spy search tables
-    on one slot give identical logs to an unbounded run.
-  - `TestSearchSlotWaitAbortsOnClose`.
-  - `TestMaxSearchTablesRefusesAtCreate`.
-- **Files:** `server/host/registry.go`, `server/host/botenv.go`, `server/host/match.go`,
-  `server/host/slots_test.go`.
-- **Depends-On:** BP-08.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSearchSlot|TestMaxSearchTables|TestOnDemand|TestHostedPoliciesReplayDeterministically' ./server/host/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestNoExportLeaksAnEngineGame' ./internal/archtest/
-  ```
-
-### BP-11 — `bots/search` (L10)
-- **Goal:**
-  - An adapter over `searchseat.SearchBot` implementing `EnvSeat` and
-    `BoardSeat` (§5.1), with `Hosted()` = `searchseat.Defaults()` plus
-    `Parallelism` from `Options`.
-  - `Info` from §3.1, `Caretaker: bot`, `Env` and `Search` set.
-  - Add it to `bots/all`.
-  - Create `server/host/hosted_policies_test.go` with
-    `TestEveryHostedPolicyIsDeterministic` (§8) and the `search` row of
-    `TestHostedEnvSeatsIgnoreTheRealHiddenCards`.
-  - `TestHostedSearchConfigIsHonest`.
-  - Rewrite `TestHostedVocabularyRefusesSearchPolicies`
-    (`server/host/bot_policy_az_test.go`) to refuse `az`, `policynet`, `legacy` and
-    `explore`, and to accept `search` only when linked.
-- **Files:** `bots/search/search.go` (+ test), `bots/all/all.go`,
-  `server/host/hosted_policies_test.go`, `server/host/bot_policy_az_test.go`.
-- **Depends-On:** BP-09, BP-10.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostedSearch' ./bots/search/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestEveryHostedPolicyIsDeterministic|TestHostedEnvSeatsIgnoreTheRealHiddenCards|TestHostedVocabularyRefusesSearchPolicies' ./server/host/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestDependencyOrderHolds|TestTimeIsImportedOnlyByTheHost' ./internal/archtest/
-  ```
-
-### BP-12 — `bots/azredeal`
-- **Goal:**
-  - An adapter over `azmcts.Seat` with
-    `Hosted()` = `DefaultSeatConfig()` with `World: WorldRedeal`, `Worlds: 0`,
-    a nil net and `Source` nil. It must never set `Source`.
-  - `Info` from §3.1.
-  - Rows in the two host tests, `TestHostedAZIsRedeal`, and the `bots/all`
-    line.
-- **Files:** `bots/azredeal/azredeal.go` (+ test), `bots/all/all.go`,
-  `server/host/hosted_policies_test.go`.
-- **Depends-On:** BP-11, BP-02.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostedAZ' ./bots/azredeal/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestEveryHostedPolicyIsDeterministic|TestHostedEnvSeatsIgnoreTheRealHiddenCards' ./server/host/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestDependencyOrderHolds' ./internal/archtest/
-  ```
-
-### BP-13 — `bots/sbtactical` and the cards dependency
-- **Goal:**
-  - `host.Options.BotDeps bots.Deps`, threaded into every `bots.New` call
-    in the host (`server/host/bot_policy.go`, `server/host/match.go:291,500`). gorged sets
-    `BotDeps{Cards: reg}` (`cmd/gorged/main.go:560-578`).
-  - The adapter over `builtins.NewTactical(AutoPay, ...)` implements
-    `EnvSeat` (planner = honest root, `SetPlanner(nil)` on refusal) and
-    `RefusalAnswerer` (delegating to `builtins.Seat.Refused`). With
-    `Deps.Cards == nil`, the factory returns an error.
-  - Verify the priority-only `WantsEnv` claim (§5.1 INFERRED) by counting
-    planner calls by decision kind on a smoke game.
-  - Host rows.
-- **Files:** `bots/sbtactical/sbtactical.go` (+ test), `bots/all/all.go`,
-  `server/host/registry.go`, `server/host/bot_policy.go`, `server/host/match.go`,
-  `cmd/gorged/main.go`, `server/host/hosted_policies_test.go`.
-- **Depends-On:** BP-12.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSBTactical' ./bots/sbtactical/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestEveryHostedPolicyIsDeterministic|TestHostedEnvSeatsIgnoreTheRealHiddenCards|TestRefusalLadder' ./server/host/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostThreadsCorpusTokens|TestCreateGame' ./cmd/gorged/
-  ```
-
-### BP-14 — `bots/sbsearch` (`sb-search-lite-atk`)
-- **Goal:**
-  - An adapter over `sbsearch.New(<sb-tactical>, seed, LiteAtk())`.
-    `LiteAtk()` is the `sbSearchVariants` row exported from this package,
-    which botbench references in BP-16.
-  - The fallback is the inner `sb-tactical` on `env.View` with a nil
-    planner, never `sbsearch.DecideBoard` (§5.1).
-  - `RefusalAnswerer` goes through `UnwrapSeat`.
-  - Host rows.
-- **Files:** `bots/sbsearch/sbsearch.go` (+ test), `bots/all/all.go`,
-  `server/host/hosted_policies_test.go`.
-- **Depends-On:** BP-13.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSBSearch' ./bots/sbsearch/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestEveryHostedPolicyIsDeterministic|TestHostedEnvSeatsIgnoreTheRealHiddenCards' ./server/host/
-  ```
-
-### BP-15 — `bots/sbheuristic`, `bots/sbuniform`, `bots/sbfirst`
-- **Goal:** three small adapters over `builtins.New(<p>, AutoPay, ...)`
-  (`sb-uniform` XORs `builtins.UniformSeed`, as at
-  `lab/training/spellbench/registry/sb.go:17-19`). Each implements `EnvSeat`
-  (planner) and `RefusalAnswerer`. Each exports
-  `NewWithMode(seed uint64, m builtins.ManaMode) *builtins.Seat`, which
-  `lab/training/spellbench/registry/sb.go` then calls for its plain names, so one
-  constructor serves both registries. Host rows and `bots/all` lines.
-- **Files:** `bots/sbheuristic/*`, `bots/sbuniform/*`, `bots/sbfirst/*`,
-  `bots/all/all.go`, `lab/training/spellbench/registry/sb.go`,
-  `server/host/hosted_policies_test.go`.
-- **Depends-On:** BP-14.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSB' ./bots/sbheuristic/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestRegistry' ./lab/training/spellbench/registry/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestEveryHostedPolicyIsDeterministic' ./server/host/
-  ```
-
-### BP-16 — botbench consumes the bots registry
-- **Goal:**
-  1. The `policies` map (`lab/cmd/botbench/main.go:144-364`): each name in
-     `bots.Names()` resolves through `bots.New`, except that `search`,
-     `az-redeal`, `sb-tactical` and `sb-search-lite-atk` are built with
-     `bots/<pkg>.New(opts, overlay(bots/<pkg>.Hosted()))`, so the `-search-*`,
-     `-az-*` and tactical-weights flags keep working.
-  2. `lab/cmd/botbench/spellbench_registry.go` registers `bot`, `az-redeal`,
-     `sb-tactical` and `sb-search-lite-atk` through the same constructors;
-     `sbSearchVariants`' lite-atk row references `bots/sbsearch.LiteAtk()`.
-  3. `sbSubmitWithFallback` (`lab/cmd/botbench/spellbench.go:243-285`) calls
-     `bots.Fallbacks`.
-  4. Botbench's own `SetPlanner(e)` for builtin seats is unchanged (the bench
-     keeps the real engine; `-hosted-root` from BP-05 is the hosted variant).
-- **Tests:**
-  - `TestBotbenchDefaultsAreTheHostedConfigs`: with default flags, every
-    overlay equals `Hosted()` (reflect.DeepEqual).
-  - `TestEveryHostedNameIsABenchPolicy`.
-- **Files:** `lab/cmd/botbench/main.go`, `lab/cmd/botbench/spellbench_registry.go`,
-  `lab/cmd/botbench/spellbench.go`, `lab/cmd/botbench/searchcost.go`,
-  `lab/cmd/botbench/azcost.go`, `lab/cmd/botbench/bots_registry_test.go`.
-- **Depends-On:** BP-15, BP-05.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestBotbenchDefaultsAreTheHostedConfigs|TestEveryHostedNameIsABenchPolicy|TestSpellbenchRegistryRoundTrip|TestSpellbenchUnknownNameListsRegistered|TestAZCorpusRecordsWithoutChangingTheGame|TestSearchCostReportNumbers' ./lab/cmd/botbench/
-  ```
-  plus the sb-gauntlet digest golden (`lab/cmd/botbench/spellbench_digest_test.go`),
-  run with `-run 'Digest'`.
-
-### BP-17 — the wire structs, `GET /api/bot-policies`, and gentypes
-- **Goal:** §9.1 and §9.2. Add `httpapi.Options.BotPolicies` and the
-  handler, the gentypes root and union, and regenerate `web/src/protocol.ts`
-  with `go run ./cmd/gentypes`, which writes only that file.
-- **Tests:**
-  - `TestBotPoliciesEndpointServesTheList` and
-    `TestBotPoliciesEndpointEmptyWhenUnset` (httpapi).
-  - `TestCommittedProtocolTSIsFresh`.
-- **Files:** `server/protocol/protocol.go`, `cmd/gentypes/main.go`,
-  `web/src/protocol.ts`, `server/host/httpapi/handler.go`, `server/host/httpapi/rest.go`,
-  `server/host/httpapi/botpolicies_test.go`.
-- **Depends-On:** BP-01 (it runs in parallel with BP-02 to BP-16).
-  The TS change is a generated file, not UI work.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestBotPoliciesEndpoint|TestCreateGame' ./server/host/httpapi/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestCommittedProtocolTSIsFresh|TestGentypes' ./cmd/gentypes/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestDependencyOrderHolds' ./internal/archtest/
-  ```
-
-### BP-18 — gorged flags, the default policy, and the offered set
-- **Goal:**
-  - The §9.4 flags, validated at startup.
-  - Build `protocol.BotPolicyList` in `cmd/gorged/botpolicies.go` and pass it
-    to httpapi.
-  - `createGame` applies the default and the offered, format and seat
-    checks (§9.3).
-  - httpapi `games` passes `""` through.
-  - The host options get slots, admission and parallelism.
-- **Tests:**
-  - `TestBotPolicyFlagsValidateAtStartup`: unknown, not offered, default not
-    in offered, and a default that lacks a format.
-  - `TestCreateGameAppliesTheDefaultPolicy`.
-  - `TestCreateGameRefusesAnUnofferedPolicy`.
-  - `TestCreateGameRefusesAFormatThePolicyLacks`.
-  - The updated `TestCreateGameBotPolicyDecodeAndRejectsDiagnostic`.
-- **Files:** `cmd/gorged/main.go`, `cmd/gorged/game.go`,
-  `cmd/gorged/botpolicies.go`, `cmd/gorged/game_test.go`,
-  `cmd/gorged/main_test.go`, `server/host/httpapi/rest.go`, `server/host/httpapi/game_test.go`.
-- **Depends-On:** BP-17, BP-10, BP-15.
-- **Done means:**
-  ```
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestBotPolicyFlags|TestCreateGame' ./cmd/gorged/
-  GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestCreateGame|TestBotPoliciesEndpoint' ./server/host/httpapi/
-  ```
-  plus a manual smoke on a port in 8090-8099, with `-dir /tmp/gorge-bp18`,
-  `-vsbot` and `-bot-policies bot,search`: `curl /api/bot-policies`, create
-  one `search` game, stop the server by its listening pid.
-
-### BP-19 — landing-page policy picker (UI)
-- **Goal:** §10.
-- **Files:** `web/src/lib/api.ts`, `web/src/lib/playvsbot.ts`,
-  `web/src/components/PlayVsBot.svelte`, `web/src/lib/api.test.ts`,
-  `web/src/lib/playvsbot.test.ts`.
-- **Depends-On:** BP-17, BP-18. The maintainers rebuild the bundle.
-- **Done means:** the vitest files named above pass, run by whoever holds the
-  web toolchain. A manual check against a BP-18 dev server: the picker lists
-  the offered set, filters by format, sends `bot_policy`, and shows a
-  capacity refusal.
-
-### BP-20 — hosted re-measurement and label refresh
-- **Goal:** for each search entry, a `botbench -hosted-root` run at the
-  measurement sizes the original reports used:
-  - `search`: the mono-suite held-out gate, 400 games per pair.
-  - `az-redeal`: the SB §12.5 matrix.
-  - `sb-search-lite-atk`: 512 games vs `sb-tactical`, plus a new vs-`bot`
-    arm.
-
-  Also a first `-decision-cost` measurement for `bot`. Update the §3.1
-  `Info` literals and this document's table. Tier promotions are the
-  maintainers' call.
-- **Files:** `bots/*/…` `Info` literals, this spec.
-- **Depends-On:** BP-16, BP-18. These are heavy sweeps, one at a time.
-- **Done means:** a report (now under `docs/design/` for living docs) holding each
-  arm's command, games, CI and cost, and `Info` literals that cite it.
-
-### 11.1 Dependency graph
-
-```
-spellbench-prep
- ├─ BP-01 ─┬─ BP-02 ─┐
- │         └─ BP-17 ─┼──────────────────────────────┐
- ├─ BP-03 ───────────┴─ BP-04 ─ BP-05 ─ BP-06 ─ BP-07 ─ BP-08 ─┬─ BP-09 ─┐
- │                                                             └─ BP-10 ─┴─ BP-11 ─ BP-12 ─ BP-13 ─ BP-14 ─ BP-15 ─┬─ BP-16 ─┐
- │                                                                                                                 └─ BP-18 ─┼─ BP-19
- └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─ BP-20
-```
-
-Parallel lanes: BP-03 runs alongside BP-01 and BP-02, and BP-17 alongside
-everything from BP-02 to BP-16.
-
-### 11.2 Collision map (tickets that share a file run sequentially)
-
-| file | tickets |
-|---|---|
-| `internal/archtest/arch_test.go` | BP-01 → BP-02 |
-| `lab/cmd/botbench/main.go` | BP-01 → BP-02 → BP-05 → BP-16 |
-| `lab/cmd/botbench/spellbench_registry.go`, `lab/cmd/botbench/azcost.go` | BP-02 → BP-16 |
-| `bots/azmcts/seat.go` | BP-02 → BP-04 |
-| `bots/searchseat/feed.go` | BP-03 → BP-04 |
-| `testkit/bench/bench.go` | BP-05 |
-| `bots/env.go` | BP-05 → BP-06 |
-| `server/host/match.go` | BP-06 → BP-07 → BP-08 → BP-10 → BP-13 |
-| `server/host/botenv.go`, `server/host/botenv_test.go` | BP-07 → BP-08 → BP-09 → BP-10 |
-| `server/host/undo.go` | BP-09 |
-| `server/host/registry.go` | BP-10 → BP-13 |
-| `server/host/bot_policy.go` | BP-01 → BP-13 |
-| `bots/all/all.go`, `server/host/hosted_policies_test.go` | BP-01 → BP-11 → BP-12 → BP-13 → BP-14 → BP-15 |
-| `lab/training/spellbench/registry/sb.go` | BP-15 |
-| `cmd/gorged/main.go` | BP-01 → BP-13 → BP-18 |
-| `server/host/httpapi/rest.go` | BP-17 → BP-18 |
-| `server/protocol/protocol.go`, `cmd/gentypes/main.go`, `web/src/protocol.ts` | BP-17 |
-| `web/src/lib/*.ts`, `web/src/components/PlayVsBot.svelte` | BP-19 |
-
----
-
 ## 12. Open questions (each with a recommendation)
 
 - **Q1. Tiers.** Should anything beyond `bot` start as production?
   **Recommend no.** `search` has the only held-out gate in the gorge setting
   (+3.3pp) but costs ~0.7 s per searched decision. `az-redeal`'s +20.5pp is
-  from a one-deck-vs-five matrix. Revisit after BP-20.
+  from a one-deck-vs-five matrix. Revisit after the hosted re-measurement
+  (§3.1).
 - **Q2. The honest root's secret log.** Do we require redacting past secret
   events' object ids in the root's log before hosting (§5.3)?
   **Recommend: not before hosting.** No lineup bot reads it, the leak test
-  covers use, and the bench exposure is larger. File a follow-up to add
-  `Redealer` log redaction, then measure rules correctness in rollouts.
+  covers use, and the bench exposure is larger. Add `Redealer` log redaction
+  as separate work, then measure rules correctness in rollouts.
 - **Q3. Commander for search entries.** `search` cannot sample Commander
   worlds (`PublicGame` has no format or commanders); the redeal paths are
   untested there. **Recommend constructed-only for every new entry** until a
-  Commander smoke (BP-20 extension) shows refusals below 1% and no crashes.
+  Commander smoke shows refusals below 1% and no crashes.
 - **Q4. Startup tables.** Should `-bot-policy` also drive the perpetual demo
   tables? **Recommend no.** They are 4-seat, the new entries are 2-seat only,
   and changing the demo's bot is a separate call.
@@ -1422,7 +923,8 @@ everything from BP-02 to BP-16.
   gap to `bot`.
 - **Q8. More budgets.** Should we also host `sb-search-fast-atk` (65.6%, 0.5 s)
   or `az-redeal` at 25 sims (+14.7pp, 45 ms)? **Recommend adding `az-redeal`
-  at 25 sims as `az-redeal-fast`** once BP-20 is done. It is 5x cheaper for
+  at 25 sims as `az-redeal-fast`** once the hosted re-measurement (§3.1) is
+  done. It is 5x cheaper for
   most of the gain. Hold `fast-atk`.
 - **Q9. External bots.** `bots.EnvSeat` names `bots/searchseat` types,
   so a bot in another module can implement only plain `Seat` or `BoardSeat`.
@@ -1430,9 +932,9 @@ everything from BP-02 to BP-16.
   to a public package is a larger move with no current consumer.
 - **Q10. Slot defaults.** Are `GOMAXPROCS/2` slots and 8 search tables
   right for the demo box? **Recommend** keeping these defaults and setting
-  explicit values in `make deploy-demo` after BP-07 and BP-10 report the
-  measured feed and search memory.
+  explicit values in the demo's deployment once the feed and search memory
+  are measured (§7).
 
-### 12.1 Operator answers (2026-09-28)
+### 12.1 Answers (2026-09-28)
 
 The maintainers accepted every recommendation above, Q1 through Q10, as written.

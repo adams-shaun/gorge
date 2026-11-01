@@ -1,9 +1,8 @@
 # Human divergence: the human player as the bot's teacher
 
-Status: design, 2026-10-10. Not started. Base: `main` @ `6a157c31f`
-(every `path:line` below was read at that SHA; anything not read from code is
-marked **INFERRED** or **HYPOTHESIS**). Owner of the decision to build: the
-maintainers. Nothing here changes rules behaviour, adds an event kind, or touches
+Status: the design as written on 2026-10-10, before implementation. Every
+`path:line` below was read at `6a157c31f`, and anything not read from code is
+marked **INFERRED** or **HYPOTHESIS**. Nothing here changes rules behaviour, adds an event kind, or touches
 `events.Apply`.
 
 ## 0. One-paragraph summary
@@ -22,7 +21,7 @@ hidden-information worlds. Each divergence lands in one of four buckets:
 plan the teacher cannot value), **indistinguishable** (split into
 hidden-information and reasoning gaps by an omniscient arm that never leaves
 the triage tool), or **untriaged**. The decided buckets are exported as
-`label-v1` records, so the existing DPO trainer (`llm-qlora/src/dpo.py`)
+`label-v1` records, so the existing DPO trainer (private, outside this repo)
 turns them into preference pairs with no code change. Human choices are
 never imitation targets. In a post-game review, and only for divergences the
 player is shown, the player answers which information they used, from a
@@ -46,15 +45,13 @@ Goals:
 4. Ask the human *why* without anchoring them, in a way that maps onto the
    policy encoder's feature families, and turn the free text into candidate
    encoder features.
-5. Break the work into agent-seat-sized tickets, separating engine and server
-   work from UI work.
 
 Non-goals (v1):
 
 - Human-vs-human tables. Their `log.json` would hold another *person's*
   hidden cards, so v1 captures only tables with exactly one human seat (§10).
-- Live, mid-game triage. In-game prompts are specified (§8.4) but deferred to a
-  P2 ticket, because they need a live teacher and a human-seat feed that the host
+- Live, mid-game triage. In-game prompts are specified (§8.4) but deferred
+  (§12), because they need a live teacher and a human-seat feed that the host
   does not build today (`server/host/botenv.go:54` skips `*HumanSeat` when creating
   feeds).
 - A Go-side pairwise loss in `bots/policynet`. §7.5 lists it as a follow-up.
@@ -74,11 +71,11 @@ Non-goals (v1):
 | Honest teacher over sampled worlds | `searchprobe.TeacherIntentChoice`, with paired `WinsOverBaseline`/`LossesToBaseline` against candidate 0 | `bots/searchprobe/teacher.go:147`, `:73-89` |
 | Adaptive A/B evaluation with CIs, honest and omniscient arms | `hindsight.Evaluate(candidates, source, seed, opts)`: blocks of common-random-number worlds, stops when the top two Wilson intervals separate; `PairedDiff95`; `ClearMargin` (≥ 0.10 and paired lower bound > 0); `Seed` | `internal/hindsight/hindsight.go:270`, `:207`, `:344`, `:365` |
 | Honest world source with redeal fallback; omniscient arm | `evaluateSampled`, `evaluateOmniscient` | `cmd/hindsight/main.go:371`, `:386` |
-| Sampler starvation is real | A hindsight smoke: 73 of 77 branched decisions (94.8%) were `no_world` before the redeal fallback existed | `archived 2026-09-24-pn20-hindsight-step1.md (docs/design/ARCHIVE.md)` §1 |
-| Training record the DPO path reads | `LabelRecord` "label-v1" (schema 2), with `Candidates` (index 0 = bot), `TeacherChoice`, `Margin`, `View` (seat view, `Decision` nil), `Board` (traceboard), `RescoreValues` | `lab/cmd/searchteacher/labels.go:35`, `:111`, `:121` |
+| Sampler starvation is real | A hindsight smoke: 73 of 77 branched decisions (94.8%) were `no_world` before the redeal fallback existed | an archived hindsight measurement (`docs/design/ARCHIVE.md`) |
+| Training record the DPO path reads | `LabelRecord` "label-v1" (schema 2), with `Candidates` (index 0 = bot), `TeacherChoice`, `Margin`, `View` (seat view, `Decision` nil), `Board` (traceboard), `RescoreValues` | the private `searchteacher` training command |
 | Go reader of the same records | `policynet.labelRecord` mirror, `AcceptedLabelSchemaVersions = {1,2,3}`, `Load` | `bots/policynet/loader.go:37`, `:53`, `:154` |
-| DPO pair construction (off-repo) | `build_pairs`: Q = (8·values + 64·rescore)/72, chosen = argmax Q, rejected = candidates ≥ `--gap` (default 0.06) below; records without `rescore` are skipped | `$DATA/llm-qlora/src/dpo.py:26-40`, `:142` (outside the repo, read 2026-10-10) |
-| Prompt rendering and game-level split (off-repo) | `render.to_example` (game key = `pair/game_index/seed`), `prep.py` splits by game | `$DATA/llm-qlora/src/render.py`, `prep.py` |
+| DPO pair construction (off-repo) | `build_pairs`: Q = (8·values + 64·rescore)/72, chosen = argmax Q, rejected = candidates ≥ `--gap` (default 0.06) below; records without `rescore` are skipped | the private DPO trainer (read 2026-10-10) |
+| Prompt rendering and game-level split (off-repo) | `render.to_example` (game key = `pair/game_index/seed`), `prep.py` splits by game | the private DPO trainer |
 | Human seat, caretaker | `HumanSeat` with a deterministic caretaker bot. A timed-out or cancelled decision is answered by the caretaker, and `caretakerFires` counts each such answer | `server/host/humanseat.go:23`, `:40`, `:228` |
 | How hosted bots are built | `bots.New(name, bots.Options{Seed, AutoPayMana, Deps, DecisionDeadlineMS, ...})`, wrapped by `NewBotPolicySeatWithDeps`. The served deadline is 2000 ms | `bots/registry.go:104`, `:45`; `server/host/bot_policy.go:53`, `:69` |
 | Seat dispatch order for one decision | HumanSeat → `EnvSeat && WantsEnv` (Env with honest root) → `BoardSeat` → View | `server/host/match.go:449-516`, `server/host/botenv.go` (envData doc) |
@@ -125,17 +122,17 @@ training only through the teacher's verdict, never on its own.**
 ```
 live match (host, opted-in vs-bot table)
   └─ per-match provenance ledger: caretaker / client-auto marks per intent,
-     truncated on undo                                   [HD-2, host]
-match end → OnMatchEnd (non-blocking enqueue)            [HD-4, cmd/gorged]
+     truncated on undo                                   [host]
+match end → OnMatchEnd (non-blocking enqueue)            [cmd/gorged]
   └─ divergence worker (one match at a time, background)
-       ├─ Registry.SnapshotMatch(id, k, seat)  → match.json, log.json  [HD-3]
-       ├─ Registry.ShadowScan(id, k, seat, policy) → divergences.jsonl [HD-3]
+       ├─ Registry.SnapshotMatch(id, k, seat)  → match.json, log.json
+       ├─ Registry.ShadowScan(id, k, seat, policy) → divergences.jsonl
        └─ <divergence-dir>/<match-id>/
 review UI (seat-authorised) ── GET list (no B) ── POST answer → reveals B
-       └─ answers.jsonl                                   [HD-5, UI-2]
-offline:  cmd/divergence triage  → triage.jsonl           [HD-6]
-          cmd/divergence export-labels → label-v1 JSONL (DPO)   [HD-7]
-          cmd/divergence export-reasons → reasons JSONL  → clustering → symbols [HD-7, HD-9]
+       └─ answers.jsonl
+offline:  cmd/divergence triage  → triage.jsonl
+          cmd/divergence export-labels → label-v1 JSONL (DPO)
+          cmd/divergence export-reasons → reasons JSONL  → clustering → symbols
 ```
 
 All new server-side state is host-side metadata of the same kind as
@@ -153,7 +150,7 @@ without opt-in runs byte-identically to today.
 - Game: `CreateGameRequest` gains `teach_bot bool`, carried into a new
   `TableConfig.TeachBot` with a `json:"teach_bot,omitempty"` tag, so existing
   sidecars decode unchanged. The client shows it as an explicit opt-in on the
-  play-vs-bot form (UI-1). The default is off.
+  play-vs-bot form. The default is off.
 - Eligible tables: `TeachBot` set, `len(Humans) == 1`, and the server armed.
   Anything else is never scanned.
 
@@ -221,7 +218,8 @@ search policy (`bots.Lookup(p).Search`, `server/host/registry.go:370`) each shad
 decision is a full search. The worker therefore takes the registry's
 search-slot gate (`searchGateFor`, `server/host/registry.go:366`) around each searched
 shadow decision, so it never competes with live tables beyond `SearchSlots`.
-Measuring this cost is HD-3's acceptance item.
+This cost is to be measured: scan wall time per match for `bot` and for one
+search policy.
 
 ### 5.4 The shadow answer
 
@@ -242,7 +240,7 @@ func Answer(e *rules.Engine, feed *searchseat.Feed, setup searchprobe.PublicGame
   Fresh per call: `seat.Bot`'s only cross-decision state is its RNG
   (`bots/heuristic/bot.go:30-31`), so a per-decision seed loses nothing. Any policy whose
   answer depends on state from earlier decisions is **INFERRED** absent.
-  HD-3's parity test (below) is the check.
+  The parity test (§11, shadow parity risk) is the check.
 - Dispatch mirrors `projectNextData` (`server/host/match.go:449-516`) in the same
   order. If the seat is an `EnvSeat` and `WantsEnv(&dc)`, build the Env as
   `m.envData` does: the feed, `searchseat.HonestRoot` with seed
@@ -323,7 +321,7 @@ New command. It may import `testkit/testutil/feedback`: only host, httpapi
 and gorged are fenced from testutil (`internal/archtest/arch_test.go:158-160`).
 It must not import `time` unless it is added to the allowlist
 (`arch_test.go:115-138`), so wall-clock measurement stays out of the records,
-as in `lab/cmd/searchteacher`.
+as in the `searchteacher` command.
 
 For each match directory:
 
@@ -413,7 +411,7 @@ the per-test budget in AGENTS.md (4 GB, 4 vCPU, 1 minute) by using
 `cmd/divergence export-labels -triage triage.jsonl -out human.labels.jsonl[.gz] [-buckets human_better,bot_better] [-include-flagged] [-include-ties]`
 
 One record per exported divergence, using the `LabelRecord` JSON keys
-(`lab/cmd/searchteacher/labels.go:35-105`). The mapping:
+(from the `searchteacher` command). The mapping:
 
 | field | value |
 |---|---|
@@ -421,7 +419,7 @@ One record per exported divergence, using the `LabelRecord` JSON keys
 | `pair` | `"human:" + <match-id>`, a prefix no generator emits today, so consumers can include or exclude by prefix |
 | `game_index`, `seed` | `match`, the match seed |
 | `decision_sequence`, `seat`, `kind`, `turn` | from the divergence |
-| `board` | `traceboard.Project(botpolicy.BoardFromGame(e.G, e, seat))` on the walk engine, the same projection `teach` records (`lab/cmd/searchteacher/main.go:529-530`) |
+| `board` | `traceboard.Project(botpolicy.BoardFromGame(e.G, e, seat))` on the walk engine, the same projection `teach` records |
 | `view` | the seat view with `Decision` nil and `Round` filled, the same function as `seatView` (`labels.go:121-126`) |
 | `options` | the decision's `Options` (no `PaymentActions`) |
 | `candidates` | `[{choices: B, bot: true, value: rB, worlds: n}, {choices: A, bot: false, value: rA, worlds: n}]` |
@@ -442,7 +440,7 @@ train/eval split.
 
 `policynet.Load` reads the same file as ordinary teacher labels. `teacher_choice`
 is the teacher's verdict, so the Go policy net also never trains on a raw
-human answer. A test pins this (HD-7).
+human answer. A test pins this.
 
 ### 7.2 What is never exported
 
@@ -459,8 +457,8 @@ same recipe without human pairs, on the existing held-out evaluation
 (`dpo-pipeline.sh` eval on the fresh `t1` set) and on the 64-world regret
 measure the program already uses. The human pairs are adopted only if the
 paired difference's lower bound is above zero. Volume **HYPOTHESIS**: the
-number of `human_better` divergences per human game is unknown. HD-4's
-acceptance run measures the rate with a simulated human (§12), and the first
+number of `human_better` divergences per human game is unknown. A
+simulated human measures the rate first (§12), and the first
 real games measure it again.
 
 ### 7.4 Why not imitation
@@ -470,7 +468,7 @@ Spelled out because the request invites it: an imitation target teaches
 into wins (§2). A preference pair whose winner the teacher chose teaches "what
 wins under the teacher". The human's contribution is *search guidance*: the
 human proposed a candidate the bot never considered, and the teacher verified
-it. In `lab/cmd/searchteacher`, a candidate the bot never considered cannot be
+it. In `searchteacher`, a candidate the bot never considered cannot be
 scored at all, because `searchseat.candidates` builds the set from the bot's
 own answer (`bots/searchseat/searchseat.go:445-511`). Human divergences
 are therefore a new source of candidates as well as of labels.
@@ -490,8 +488,9 @@ are therefore a new source of candidates as well as of labels.
 1. **No anchoring.** The bot's answer B and the triage verdict are not present
    in any client-side state until the player has committed their reasons. This
    is enforced server-side (the list endpoint never returns B) and client-side
-   (a pure state machine whose pre-commit states have no field for B; UI-2's
-   unit test).
+   (a pure state machine, `list → selected → answering → revealed →
+   reconsidered`, whose pre-commit states have no field for B, pinned by a unit
+   test).
 2. **Only redacted information.** Everything shown is either the seat's own
    historical view (`ViewAtSeat`) or the seat's own offered options and
    choices.
@@ -548,12 +547,12 @@ reconsider}`. No wall-clock time is written, and the server's sequence order
 is the file order.
 
 Triage verdicts are not shown to the player in v1. They arrive hours later,
-from an offline batch. A later ticket may surface "the teacher agreed with you"
+from an offline batch. Later work may surface "the teacher agreed with you"
 on a review page, as honest-arm results only.
 
-### 8.4 In-game chip (deferred, P2)
+### 8.4 In-game chip (deferred)
 
-An opt-in play setting, off by default. When the live shadow (a P2 host
+An opt-in play setting, off by default. When the live shadow (a later host
 change: the shadow runs asynchronously after a human Submit, on a copy of the
 parked View or Board) finds a material divergence whose class `P(decided)` is
 at least 0.5 (**HYPOTHESIS** threshold), a non-modal chip appears in the
@@ -561,7 +560,7 @@ feed. Clicking it runs the same flow as §8.3, with the board shown from the
 historical view. At most 2 chips per match, and never while the player holds a
 pending decision. The bot's choice is still revealed only after the answer.
 Revealing it mid-game teaches the player during the game, which contaminates
-their later decisions as data. The P2 ticket must therefore tag every later
+their later decisions as data. This mode must therefore tag every later
 divergence in that match `post_reveal: true`.
 
 ### 8.5 Checklist = encoder feature families
@@ -607,9 +606,9 @@ Pipeline:
 1. `cmd/divergence export-reasons` writes one line per answered divergence:
    `{divergence_id, bucket, sub_bucket, kind, checklist, text, confidence,
    reconsider}`. The view is not included; it is reachable by id. This is the
-   only export that carries free text, and it stays on the training box
-   (`$DATA/divergence/`), never in the repo.
-2. Clustering is off-repo, in the llm-qlora venv (it already holds the model
+   only export that carries free text, and it stays on the training box,
+   never in the repo.
+2. Clustering is off-repo, in the DPO trainer's environment (it already holds the model
    weights and torch). Steps: embed the texts, cluster them, then have the LLM
    name each cluster and **propose a predicate in terms of view fields** (for
    example "opponent kept ≥ 2 untapped Islands and passed with ≥ 2 cards in
@@ -652,26 +651,26 @@ Rules, each with its enforcement:
 | Anything shown to the player is seat-redacted | the board comes from `ViewAtSeat` (`server/host/viewat.go:66`, seat visibility). Options and choices are the seat's own offered options. B comes from a policy whose inputs are the seat's view, board or honest root (`bots/botpolicy/combat.go:115-124`, `bots/env.go:34-41`) |
 | No clairvoyant output leaves triage | the omniscient arm's values are written only to `triage.jsonl` (an offline file). every evaluation in a triage record carries an `arm` field (`honest` or `omniscient`), and `export-labels` reads only `arm == "honest"` values. It refuses any record whose exported values carry another arm. This mirrors the label writer's own oracle marker, which a consumer filters on (`labels.go:76-82`). The host never links `bots/azmcts/clairvoyant` (`arch_test.go:163-175`), and nothing here changes that |
 | Seat routes are fenced | new routes go through `claimForTable` plus a `seatFromQuery`-style check that the claim's seat equals `seat` (`server/host/httpapi/rest.go:113-150`) |
-| Training records are redacted | `view` is the seat view with the decision nil, and `board` is the traceboard projection, the same contract as `LabelRecord.View` (`labels.go:44-50`). HD-7's test asserts no opponent hand card name appears in any exported record, mirroring the label writer's documented property |
+| Training records are redacted | `view` is the seat view with the decision nil, and `board` is the traceboard projection, the same contract as `LabelRecord.View` (`labels.go:44-50`). A test asserts no opponent hand card name appears in any exported record, mirroring the label writer's documented property |
 | Free text stays out of training records | only checklist ids enter `export-labels`. Free text goes only to `export-reasons`, kept on the training box |
 | No player identity | `PlayerNames` is dropped from every export. The `match.json` on disk keeps it, as feedback does |
-| The bot's choice is not revealed before the answer | the list response has no shadow field (HD-5 test), and the client state machine cannot hold it pre-commit (UI-2 test) |
+| The bot's choice is not revealed before the answer | the list response has no shadow field, and the client state machine cannot hold it pre-commit, both pinned by tests |
 
 ## 11. Invariants, risks, open questions
 
 - **Determinism.** No new event, no new `events.Kind`, no write to
   `state.Game` outside `events`. The ledger and the divergence store are
   host-side metadata, like `m.snaps`. `TestHeads` and golden replays must be
-  untouched, and HD-2 runs them.
+  untouched.
 - **Hot path.** One byte appended per intent in an already-exclusive section.
   The scan is post-match, background, one match at a time.
 - **Shadow parity risk.** If `shadow.Answer`'s dispatch drifts from
-  `projectNextData`, B stops being "what the bot would do". HD-3's parity test
+  `projectNextData`, B stops being "what the bot would do". A parity test
   pins it: a host match whose bot seat is a per-decision `ShadowSeed`-seeded
   instance must yield **zero** divergences when that seat is shadowed.
 - **Sampler starvation.** A hindsight smoke measured 94.8% `no_world` before the redeal
   fallback. `-redeal` defaults on, `untriaged` is a first-class bucket, and its
-  rate is a reported metric. If it stays high on human games, the program
+  rate is a reported metric. If it stays high on human games, the work
   stalls on the sampler, not on this design.
 - **Teacher bias** (§6.3) is the largest *semantic* risk. Prefer
   `human_better` pairs, and flag `bot_better` pairs that the player explained
@@ -684,204 +683,32 @@ Rules, each with its enforcement:
   those decisions are attributed to the human seat. v1 marks them
   `material: "controlled"` and does not triage them.
 
-## 12. Ticket breakdown
+## 12. Order of the work
 
-Every Go test runs focused and capped:
+The capture core (`server/divergence`) comes first, then the host's provenance
+ledger and the match-end snapshot and shadow scan, the capture worker and opt-in
+field, the seat-fenced API, and the post-game review. Triage needs the core and
+the `shadow` package, the exports need triage, the opt-in form needs the worker's
+request field, and the symbol registry needs the exports.
 
-```sh
-systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB \
-  go test -timeout 2m -run '<TestName>' ./<pkg>
-```
+The first volume number for §7.3 comes from a simulated human: a different hosted
+policy in the human slot through the `Seats` option, over 20 games against `bot`,
+reporting divergences per game by `material` class.
 
-Never `go test ./...` or `-count=1`. A worktree without `.cards` makes the
-corpus tests skip, so the seat must stop and say so (AGENTS.md, "Working in a
-task worktree"). Web tests: `cd web && npx vitest run <file>` (Node ≥ 22).
-**Never `npm ci` or `npm install`** (`web/node_modules` is shared).
-
-Dependency order: HD-1 → HD-2, HD-3 → HD-4 → HD-5 → UI-2. HD-6 needs HD-1
-and HD-3's `shadow` package. HD-7 needs HD-6. UI-1 needs HD-4's request field.
-HD-9 needs HD-7.
-
-### HD-1: `server/divergence` core (engine side, S)
-
-- **Files (new):** `server/divergence/{doc.go, record.go, equiv.go, label.go, seed.go}` and tests.
-  `record.go`: the `Divergence`, `Answer`, `Triage` and `Bucket` types,
-  deterministic JSONL read/write sorted by intent. `equiv.go`: `Material`
-  (§5.5). `label.go`: `choiceSummary`, moved from `cmd/repro/main.go:391`,
-  with cmd/repro switched to call it. `seed.go`: `ShadowSeed`.
-- **Imports allowed:** `decision`, `state`, `view`, `events`. Not `host`,
-  `rules`, `testkit/testutil`, or `time`.
-- **Acceptance:** `TestMaterialTable` (same choices; two same-name lands →
-  equivalent; payment-only difference → equivalent; bare mana sources → not
-  material; different target → material `target`; attack subset →
-  `attack-set`); `TestRecordRoundTripBytes` (marshal → unmarshal → marshal is
-  byte-identical, and file order is by intent); `TestShadowSeedStable` (pinned
-  values); the `cmd/repro` tests still pass (`TestRepro*` in `./cmd/repro`).
-- **Also:** one row in `docs/agents/repo-map.md` (a hot file; keep it to the
-  one row).
-
-### HD-2: host provenance ledger and `auto` intent flag (server, S)
-
-- **Files:** `server/host/match.go` (append inside `attempt`'s locked section; truncate in the
-  undo path), `server/host/humanseat.go` (expose the caretaker delta to the loop),
-  `server/host/undo.go` (truncate beside `OnRewind`), `server/host/action.go`
-  (`SubmitIntent` variant carrying `auto`), `server/host/httpapi/rest.go` (`intent`
-  reads `?auto=1`), and a new `server/host/divergence_ledger.go`.
-- **Acceptance:** `TestLedgerMarksCaretaker` (ThinkTimeout fires on one decision →
-  that intent is marked); `TestLedgerAutoFlag` (POST with `?auto=1` → marked;
-  without → unmarked); `TestLedgerTruncatesOnUndo`; `TestLedgerNotInLog`
-  (a match with and without `?auto=1` has the same `L.Head()`). Run
-  `go test -run 'TestHeads$' ./engine/rules/` unchanged and the host package's
-  focused tests: `-run 'TestLedger|TestUndo|TestHuman' ./server/host/`.
-- **Caps:** the standard scope. `./server/host` tests are focused by `-run`, never the whole package.
-
-### HD-3: `SnapshotMatch`, `shadow.Answer`, `ShadowScan` (server, M)
-
-- **Files:** `server/host/feedback.go` (factor the copy section; add
-  `SnapshotMatch(id, k, seat)`), new `server/divergence/shadow/shadow.go`, new
-  `server/host/shadowscan.go`, and `internal/archtest/arch_test.go` (forbid
-  `server/divergence/shadow` → `host` and → `testkit/testutil`).
-- **Acceptance:**
-  - `TestSnapshotMatchNamesMatchK`: after match k ends and k+1 starts, the
-    snapshot is k's (head equals k's sidecar head).
-  - `TestShadowParityZeroDivergences`: the key test. A host table whose seat
-    0 is a test seat that builds `bots.New(policy, ShadowSeed(seed, 0, n))`
-    per decision plays a full match, and `ShadowScan(seat 0)` reports 0
-    divergences. Run for `bot` (Board path) and one EnvSeat policy
-    (`sb-tactical` or `search`; **INFERRED** EnvSeat, check
-    `bots.Lookup(p).Env`).
-  - `TestShadowScanFindsInjected`: a seat that answers like the shadow except at
-    two chosen intents → exactly those two indices, with the right `material`.
-  - `TestShadowScanSkipsLedgerMarked`: caretaker and auto intents are absent.
-  - Measure and record in the commit message: scan wall time per match for
-    `bot` and for one search policy (a timed run in a scratch command, not a
-    test).
-- **Caps:** standard. Use a short 2-seat constructed match (≤ 40 turns).
-
-### HD-4: gorged capture worker and opt-in field (server, M)
-
-- **Files:** `cmd/gorged/main.go` (`-divergence`, `-divergence-prior` flags; set
-  `Options.OnMatchEnd`), new `cmd/gorged/divergence.go` (bounded queue, worker,
-  directory writer reusing `captureSnapshot`'s marshal, cap and partial
-  logic, factored into a shared helper), `server/host/httpapi/rest.go`
-  (`CreateGameRequest.TeachBot`, `CreateGameOptions.TeachBot`), `server/host/table.go`
-  (`TableConfig.TeachBot`), `protocol` if the request type is generated, and
-  `cmd/gentypes` output (`web/src/protocol.ts`, regenerated, never
-  hand-edited).
-- **Acceptance:** `TestDivergenceCaptureWritesReplayableDir` in `./cmd/gorged`: a
-  vs-bot game with `teach_bot` and a scripted human that diverges at a known
-  attack → `<dir>/<id>/{match.json,log.json,report.json,divergences.jsonl}`.
-  The replay check lives in `./cmd/divergence` (HD-6), because gorged may not
-  import testutil. `TestDivergenceOffByDefault` (no flag → no directory, and
-  `OnMatchEnd` nil). `TestDivergenceQueueNonBlocking` (a full queue drops and
-  counts; the match goroutine never blocks). `TestCreateGameTeachBotDefaultsOff`.
-- **Measurement in the ticket report (not a gate):** a simulated human (a
-  different hosted policy in the human slot through the `Seats` option) over 20
-  games against `bot`, reporting divergences per game by `material` class.
-  This is the first volume number for §7.3. Smoke-sized only: 20 games, 2
-  workers.
-
-### HD-5: seat-fenced divergence API (server, M)
-
-- **Files:** `server/host/httpapi/handler.go` (three routes, plus the
-  method-not-allowed list at `handler.go:106-110`), new `host/httpapi/divergence.go`,
-  `server/host/httpapi` `Options.Divergences` (an interface; nil means 404, the
-  `CreateGame` pattern), its implementation in `cmd/gorged/divergence.go`
-  (reads the match directory, appends `answers.jsonl`), protocol types plus
-  gentypes.
-- **Routes:** `GET .../divergences?seat=S`,
-  `POST .../divergences/{id}/answer`, `POST .../divergences/{id}/reconsider`.
-- **Acceptance:** `TestDivergenceListHasNoShadow` (the JSON has no `shadow*`
-  key at any depth); `TestDivergenceAnswerReveals`; `TestDivergenceAnswerIdempotent`
-  (409 plus the same reveal); `TestDivergenceSeatFence` (no claim → 401, other
-  table → 403, other seat → 403); `TestDivergenceTextCap` (2 KiB truncation);
-  extend `server/host/httpapi/visibility_wire_test.go` with one case.
-- **Caps:** standard, `-run 'TestDivergence' ./server/host/httpapi/ ./cmd/gorged/`.
-
-### HD-6: `cmd/divergence triage` and `searchseat.WalkFeed` (engine and offline, M)
-
-- **Files:** `bots/searchseat/feed.go` (add `WalkFeed`, with `RebuildFeed`
-  reimplemented on it: same behaviour, pinned by the existing `feed_test.go` and
-  `rebuild_test.go`), new `cmd/divergence/{main.go,triage.go}`, and a committed
-  tiny fixture under `cmd/divergence/testdata/` generated **by a test**, the way
-  `cmd/repro`'s fixture generator works (token scripts stripped and synced into
-  the gitignored `.tokens` dir, never committed, per AGENTS.md).
-- **Acceptance:** `TestWalkFeedMatchesRebuildFeed` (identical history at
-  every stop); `TestTriageReplaysCapturedDir` (HD-4's fixture replays and the
-  recorded B recomputes); `TestTriageShadowDivergedIsUntriaged` (tamper with
-  `shadow_seed` → `untriaged: shadow_diverged`); `TestTriageBucketsSynthetic` (a
-  fixture position where A forgoes an on-board lethal attack that B takes →
-  `bot_better`, and the mirrored fixture → `human_better`, both with
-  `-block 4 -max-rollouts 8`); `TestTriageDeterministic` (two runs → identical
-  bytes; the `-workers` value changes nothing).
-- **Caps:** standard. Rollout budgets in tests are capped by flags. A full triage
-  run is a heavy job, run by hand.
-
-### HD-7: exports (offline, S)
-
-- **Files:** `cmd/divergence/export.go`; a key-set test in
-  `lab/cmd/searchteacher/labels_test.go` (marshal a `LabelRecord` → its key set is a
-  subset of an exported record's keys); a reader test using
-  `policynet.Load`.
-- **Acceptance:** `TestExportLabelsPolicynetLoads` (Stats shows every record
-  accepted); `TestExportTeacherChoiceIsVerdict` (`human_better` → 1,
-  `bot_better` → 0, ties absent by default); `TestExportNoOpponentHandNames`;
-  `TestExportRefusesOracleValues`; `TestExportExcludesFlaggedBotBetter`;
-  `TestExportReasonsOnlyFreeText` (free text appears only in `export-reasons`).
-  A maintainer step, outside the ticket: run the off-repo `prep.py` on a 10-record
-  export and confirm `dpo.build_pairs` yields one pair per record.
-
-### HD-8: live shadow and in-game chip, server half (server, M, P2)
-
-Deferred until §7.3's first gate. It needs: the asynchronous shadow on the
-parked View or Board copy after a human Submit; a human-seat feed (today
-`newMatchFeeds` skips humans, `server/host/botenv.go:54`) when the policy is an
-EnvSeat; a push frame for the chip; and `post_reveal` tagging.
-
-### HD-9: symbol registry and `symbols-eval` (research, S, P2)
-
-- **Files:** `internal/divergence/symbols.go` (registry with honesty refusal),
-  `cmd/divergence/symbols.go`.
-- **Acceptance:** `TestSymbolRefusesOmniscient`; `TestSymbolsEvalAUC` on a
-  synthetic set whose symbol perfectly separates the buckets → AUC 1.0;
-  deterministic output.
-
-### UI-1: opt-in on the play-vs-bot form (UI, S)
-
-- **Files:** `web/src/components/PlayVsBot.svelte`, `web/src/lib/api.ts`
-  (`CreateGameRequest.teach_bot`, from gentypes), and
-  `web/src/components/PlayVsBot.svelte.test.ts`.
-- **Acceptance:** the toggle is off by default; when on, the request body
-  carries `teach_bot: true`; the copy states what is recorded ("your decisions
-  in this game, to train the bot").
-
-### UI-2: post-game divergence review (UI, M)
-
-- **Files (new):** `web/src/lib/divergence.ts` (a pure state machine:
-  `list → selected → answering → revealed → reconsidered`; the pre-commit states
-  have no shadow field, so the type system enforces no-anchoring),
-  `web/src/lib/divergence.test.ts`, `web/src/components/DivergenceReview.svelte`,
-  and its `.svelte.test.ts`. Mount point: `web/src/routes/Table.svelte`, after
-  game over, for a seated client only.
-- **Acceptance:** `divergence.test.ts`: no state before `revealed` carries a
-  shadow label, and an answer with no ticks and no text is rejected. Component
-  test: the list renders without shadow text; selecting an item calls the DVR
-  scrub with `event_seq`; submit shows the reveal and then the reconsider
-  question. No new dependency.
-
-### UI-3: in-game chip (UI, S, P2, after HD-8)
-
-A play setting that defaults off, a non-modal feed chip, at most 2 per match,
-and the same flow as UI-2.
+The live shadow and in-game chip (§8.4) wait for §7.3's first gate. They need the
+asynchronous shadow on the parked View or Board copy after a human Submit, a
+human-seat feed when the policy is an EnvSeat (today `newMatchFeeds` skips humans,
+`server/host/botenv.go:54`), a push frame for the chip, and `post_reveal` tagging.
+The symbol registry (§9) refuses omniscient symbols.
 
 ## 13. Pre-registered first measurement
 
-After HD-1 through HD-7 land and the first 20 opted-in human games are captured:
+After capture, triage and the exports exist and the first 20 opted-in human games are captured:
 
 1. The divergence rate per human decision, by material class.
 2. The bucket shares, with the `untriaged` share broken down by reason. **Kill
    criterion:** `untriaged > 70%` means the sampler is the bottleneck, and the
-   program pauses until the sampler is fixed.
+   work pauses until the sampler is fixed.
 3. The `human_better` count. **Kill criterion:** zero `human_better` in 20 games
    with fewer than 30% untriaged means the human-as-teacher hypothesis, for this
    bot and these players, is not worth the UI cost. In that case keep only the

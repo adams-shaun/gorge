@@ -4,7 +4,7 @@ These are deliberate, decided behaviours of the gorge engine. None of them is
 a defect and none of them is owed to a milestone. They lived in AGENTS.md's
 "Known approximations" table, which is a CLOSING REGISTER of real debt; a
 contract sitting in that table made the table look longer than the debt is
-and invited a ticket that would have been wrong to write.
+and invited a fix that would have been wrong to write.
 
 If one of these ever stops being true, change it here, in the same commit as
 the code.
@@ -36,7 +36,7 @@ itself is real for a host that can answer. The named fallbacks are:
 - Any decision kind with no bot-policy arm of its own takes option 0
   through `botpolicy`'s clamp fallback (`bots/botpolicy/policy.go`, `Decide`).
   Where that produces a BAD but legal play rather than merely a neutral one,
-  it is real debt and carries a ticket; the clamp itself is the contract.
+  it is real debt; the clamp itself is the contract.
 
 ## api:TimeTravel is implemented, not approximated
 
@@ -63,7 +63,7 @@ corpus pin introduces one — the census would surface it.
 (`classBandGateHolds`) implement the level machinery. A level whose
 `AddStaticAbility$`/`AddTrigger$`/`AddReplacementEffect$` names an
 unimplemented mode or effect is exactly as dead as that primitive, and the
-debt belongs to that primitive's own ticket, not to Class.
+debt belongs to that primitive, not to Class.
 
 One decision to honour: a `ClassBand$` band must NOT be folded into
 `IsPresent$`/`IsPresent2$`. The trigger gate reads those as a UNION and a
@@ -174,7 +174,7 @@ fallback. It never touches engine state. Revisit if a same-seat repeat turn
 ## Staged hypothetical engines (`rules.NewStaged`)
 
 `rules.NewStaged` builds a two-player engine at an arbitrary position from a
-rules-level `Stage` (research harnesses only: `lab/training/searchbench`). Every
+rules-level `Stage` (research harnesses only). Every
 placement after the genesis-style object arena is an event folded by
 `events.Apply`, emitted raw, so staging queues no trigger, runs no
 replacement or ETB effect and writes no rules-side "this turn" ledger. A

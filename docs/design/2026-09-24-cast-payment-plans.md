@@ -1,6 +1,6 @@
 # Optional payment plans on cast actions
 
-Status: implementation specification. Amended
+Status: the specification the feature was built from. Amended
 2026-09-26 (below); the amendment wins wherever it and older text disagree.
 Scope: one suggested payment plan per supported cast; client selection per action.
 Source inspection baseline: gorge `b4e52200d56210a08fdddc6b4a7ffc8e2236c477`;
@@ -11,8 +11,7 @@ amendment re-verified against gorge main `6c711fece`.
 Five audits of the shipped feature (gaps, mana census, engine research, A/B
 mirror, corpus fuzz; 2026-09-26) found defects and scope questions. The
 maintainers decided the following. The body of this spec has been edited to
-match; the hardening work is the wave in
-[`autopay-v1-hardening/` (archived)](ARCHIVE.md).
+match; the hardening briefs are archived ([index](ARCHIVE.md)).
 
 1. **No planner versioning.** The newest planner is always V1 and the wire
    codec `version` stays `1`. There is no frozen V1, no versioned successor
@@ -37,9 +36,8 @@ match; the hardening work is the wave in
    production, `RestrictValid$`, production-altering effects) stays manual-only
    and is not scheduled.
 3. **CR 302.6** (summoning-sick creatures' `{T}` mana abilities) is fixed in
-   the shared mana-ability gate by the already-queued ticket
-   `cr302-6-sick-mana` (head regeneration approved for that ticket only). The
-   planner inherits the fix; no planner ticket re-plans it.
+   the shared mana-ability gate. The planner inherits the fix and does not
+   re-plan it.
 4. **Web UX is the shipped mode switch** (commit `7022042e6` on main). §8 now
    describes it. One behaviour is fixed:
    while the seat's auto-pay preference is on, the empty-window floor and
@@ -107,8 +105,8 @@ which are absent from the legacy option list until mana is floated.
 
 ## 2. Existing implementation and the compatibility boundary
 
-Read these paths before editing; symbols, not the inspected line numbers, are
-the navigation anchors because other tickets are landing continuously:
+Read these paths first; symbols, not the inspected line numbers, are
+the navigation anchors because the code keeps moving:
 
 | Concern | Current source |
 |---|---|
@@ -343,9 +341,8 @@ Activated non-mana abilities, ward/unless/upkeep/combat payments, multiple
 suggested plans, explicit source-lock preferences, strategic (next-turn or
 opponent-aware) planning, automatic hybrid/Phyrexian life elections for the
 spell's own cost, the deferred source tier of §3.2, and mtg-kernel/XMage
-adapters are follow-ups. Do not add debt rows to AGENTS.md; report any further
-exclusions in the ticket report and commit message under the repository's
-closing-register rule.
+adapters are follow-ups. Any further exclusion is stated in the commit message,
+under the repository's closing-register rule, and adds no debt row to AGENTS.md.
 
 ## 4. Additive protocol contract
 
@@ -625,8 +622,7 @@ eligibility should make this exceptional, but the executor must handle it safely
 (Amended.) A cast-time announcement answered before the payment window (a
 sacrifice, discard or delve pick) is not a decision the planned activation
 posed: only a genuinely pending decision interrupts a plan, and priority is
-never granted while a planned cast is still in progress (ticket
-`autopay-exec-harden`, in flight). Each remaining step is revalidated before it
+never granted while a planned cast is still in progress. Each remaining step is revalidated before it
 runs and its actual production is checked after it runs.
 
 Last-resort steps execute through the same ordinary mana-ability path with
@@ -848,7 +844,8 @@ Use the web package's actual package.json scripts for its focused tests, type
 checks and lint. Names of the new tests should contain PaymentPlan so the first
 command executes them; identify all selected tests and verify none were skipped
 for a missing corpus. `make sim` is a legacy-regression gate, not evidence that
-a planned cast was exercised: add the explicit plan-selecting test-seat lane.
+a planned cast was exercised, which is why an explicit plan-selecting test seat
+exists.
 
 Measure offer-generation cost over a fixed set of ordinary and broad-source
 boards, search nodes, complete-plan hit rate, unsupported/limit reasons, external
@@ -863,9 +860,9 @@ offer cost/fallback counts and the exact manual golden check. No production-bot
 promotion or change of planner ranking is hidden in the release.
 
 (Amended.) The 2026-09-26 audits showed that the curated suite missed every
-executor and planner defect the ordinary bot games exposed. Every ticket that
-changes the planner, the offer or the planned executor therefore also runs the
-standing sweeps, which exist on main:
+executor and planner defect the ordinary bot games exposed. Every change to the
+planner, the offer or the planned executor therefore also runs the
+standing sweeps:
 
 ```sh
 # A/B mirror: planned route versus a float-then-cast manual route, per planned cast
@@ -878,52 +875,30 @@ go run ./cmd/cardfuzz -dir .cards -games 1000 -batch 1000 -workers 4 -seed 26092
 GORGE_AUTOPAY_CENSUS=<scratch>/census go test ./engine/rules -run TestAutopayManaCensus -count=1 -v
 ```
 
-A ticket states which sweep is its real acceptance and quotes the before/after
-counts in its report.
+The change states which sweep is its real acceptance and quotes the before/after
+counts.
 
-## 11. Queue breakdown and landing order
+## 11. Order of the first release
 
-(Amended 2026-09-26.) The original six tickets below have all landed. The
-hardening work that encodes the amendment is the wave in
-[`autopay-v1-hardening/` (archived)](ARCHIVE.md):
-its README holds the queue order, the dependency DAG, the file/function
-collision map, which tickets change offers, and the intake commands. Tickets
-already queued from the audits (`cr302-6-sick-mana`, `offstack-mana-*`,
-`mana-*`, `ap-*`, the general engine tickets) and the in-flight
-`autopay-exec-harden` fix are not re-planned there; wave tickets that touch the
-planned executor in `engine/rules/cast.go` depend on `autopay-exec-harden`.
+The first release was built in six stages, each depending on the one before:
 
-The historical first-release breakdown follows.
+| Stage | Deliverable |
+|---|---|
+| Contract | Data types, canonical identity, validation and copy boundaries |
+| Planner | Pure bounded planner and dormant offer builder |
+| Execution | Submit, continuation, event commitment and replay |
+| Host | Publish supported offers, host admission, projection, restart/undo/feedback |
+| Client | Toggle, grouped actions, selection, auto-pass and fallback UX |
+| Acceptance | External-seat exercise, regression gates, coverage/performance report |
 
-Companion briefs live in `docs/design/cast-payment-plans/`. Each is
-written for direct intake, not a triage task.
-Use these IDs and dependencies (or rename all consistently before intake):
-
-| Ticket | Deliverable | Depends on |
-|---|---|---|
-| payplan-01-contract | Data types, canonical identity, validation and copy boundaries | none |
-| payplan-02-planner | Pure bounded planner and dormant offer builder | payplan-01-contract |
-| payplan-03-execution | Submit, continuation, event commitment and replay | payplan-02-planner |
-| payplan-04-host | Publish supported offers, host admission, projection, restart/undo/feedback | payplan-03-execution |
-| payplan-05-client | Toggle, grouped actions, selection, auto-pass and fallback UX | payplan-04-host |
-| payplan-06-acceptance | External-seat exercise, regression gates, coverage/performance report | payplan-05-client |
-
-Keep the offer builder dormant on normal engine/host decisions until submission
-and replay can consume it. Ticket 03 can exercise the builder via focused tests;
-ticket 04 enables publication in live pending decisions with all transport and
-privacy paths present. No landed stage may advertise an unexecutable action.
-
-Each ticket makes its changes in its own agent-worktree.sh worktree, rebases on
-its merged dependencies, stages explicit paths, passes relevant gates, lands,
-and removes its worktree. Do not dispatch shared-source edits concurrently.
-No ticket may grow the AGENTS.md approximation register, replace the existing
-payment engine, commit corpus scripts, or bind demo ports 8080/8081.
-
-The expected implementation effort for this bounded release is approximately
-8-12 engineer-days, not a deadline or an agent runtime budget. Planning and
-continuation correctness dominate; multiple plans and more payment shapes require
-their own acceptance criteria. A ticket is complete only when its assigned
-criteria pass; the feature is complete after payplan-06 closes the full matrix.
+The offer builder stays dormant on normal engine and host decisions until
+submission and replay can consume it. The execution stage exercises the builder
+through focused tests, and the host stage enables publication in live pending
+decisions with all transport and privacy paths present. No stage may advertise an
+unexecutable action. Planning and continuation correctness dominate the work, and
+planned and manual execution of the same payment choices are compared at
+equivalent rules boundaries: their decision bookkeeping differs, so their event
+hashes are not required to match.
 
 ## References
 

@@ -1,7 +1,7 @@
 # Rules engine: layered packages — design (2026-10-03)
 
-Status: design draft for review. No code yet. Measured against
-`main` at `49bd9af8d`. Every number below carries the command or data source
+Status: the design as written on 2026-10-03, before the work started. Measured
+against `49bd9af8d`. Every number below carries the command or data source
 that produced it (Appendix A); re-measure before quoting, and treat anything
 marked *hypothesis* as a claim a spike must confirm or kill.
 
@@ -29,8 +29,8 @@ per-set cost all fall out of it.
 | W3 | Resolution kernel: checkpoint + intent-tape re-execution | `resumePoint` cursors, `Resume*` riders, the 102-arm answer switches, ~220 `Ctx` cursor fields, the "state lost across a suspension" bug class | W1a + clone-fidelity fuzz; spike S3 must pass its exit criteria |
 | W4 | Typed parameter IR | stringly `Params["X"]` reads interpreted separately on each path; the hand-ratcheted param census | W0 ratchet in place |
 | W5 | Package extraction (the layering proper) | the "any of 2,162 methods can call any other" coupling | W1, and W3 for the resolution layer |
-| W6 | Pipeline and process | duplicate tickets; feature work racing a refactor in the same subsystem | none |
-| W7 | Set adoption and certification pipeline | per-set bespoke audit projects | W2 per-card files; W4 helps |
+| W6 | Process | duplicate changes; feature work racing a refactor in the same subsystem | none |
+| W7 | Set adoption and certification | per-set bespoke audit projects | W2 per-card files; W4 helps |
 
 Recommended order: W0, W1a, W1b, W2 and W6 immediately and in parallel (they
 are small and mechanical); the clone-fidelity fuzz, then spike S3; then W3 and W4 run as sequenced
@@ -71,7 +71,7 @@ These hold and are mechanically enforced; nothing in this spec weakens them:
 
 ### 1.3 Why changes are hard: the evidence
 
-Sources: `git log --numstat`, a blame sample, the landing pipeline's journal
+Sources: `git log --numstat`, a blame sample, the maintainers' landing journal
 (26,857 rows), 2,983 review verdicts, 1,681 gate logs.
 
 - **Fixes land on fresh code.** Blaming the lines 70 random fixes (3–10 days
@@ -80,9 +80,9 @@ Sources: `git log --numstat`, a blame sample, the landing pipeline's journal
   fixes rewrote code under 72 h old.
 - **Commits are small** (median 3–4 files, 109–170 lines). The difficulty is
   not change size; it is the number of hidden places a change must reach.
-- **Pipeline:** ~550 merged tickets a week; 43–56% need more than one
-  dispatch; 33–44% are reworked after review; merge_fix 15–23%
-  (0.152 over the last 7 days, worst ticket 15 resolver rounds).
+- **Rework:** ~550 merged changes a week; 43–56% need more than one attempt;
+  33–44% are reworked after review; 15–23% need a merge fix (0.152 over the last
+  7 days, worst change 15 conflict-resolution rounds).
 - **What reviewers reject** (1,275 MAJOR/CRITICAL findings): loud/silent
   degrade 12%, scope 12%, weak test 9%, ratchet/census bookkeeping 9%,
   **sibling path not updated 7%**, replay invariant 6%, **suspend/resume state
@@ -108,16 +108,16 @@ Sources: `git log --numstat`, a blame sample, the landing pipeline's journal
   the map — a conflict by construction.
 
 The trend is mixed: after the 2026-09-22 docs cleanup (TEST_HISTORY and
-AGENTS.md diaries frozen) the fix share fell from 46–54% to 29% and merge_fix
-to 15%. That proves aggregate-file taxes are removable. **The code-structure
+AGENTS.md diaries frozen) the fix share fell from 46–54% to 29% and the merge-fix
+rate to 15%. That proves aggregate-file taxes are removable. **The code-structure
 taxes — clone, resume, context, ratchets — are flat to rising.**
 
 ## 2. Root causes
 
-Symptoms are what the pipeline sees: hot files, resolver rounds, merge_fix,
-fix-on-fix chains, the hot-file notes in AGENTS.md (15 of 34 name `engine/rules/`
-paths). Throttling dispatch, sequencing branches and writing hot-file notes
-treat symptoms. The causes, ranked by evidence weight:
+Symptoms are what landing sees: hot files, conflict-resolution rounds, merge
+fixes, fix-on-fix chains, the hot-file notes in AGENTS.md (15 of 34 name
+`engine/rules/` paths). Throttling work, sequencing branches and writing hot-file
+notes treat symptoms. The causes, ranked by evidence weight:
 
 ### RC1. Hand-defunctionalised continuations for mid-resolution decisions
 
@@ -187,21 +187,20 @@ card (`engine/rules/testdata/oracle/<family>/known-divergent/<card>.json`).
 
 ### RC5. No seams inside `rules` (amplifier)
 
-With 2,162 methods on one receiver and files split by size, two tickets in
-different features routinely edit the same file. The steward metric makes it
-worse: `oversized_files` (`ops/scripts/reward_collect.py:1147-1200`, `n > 1500`)
-and the `BIG_FILE_ALARM_LINES = 4000` steward-split ticket
-(`ops/scripts/seed_candidates.py:62`) reward **size splits**
+With 2,162 methods on one receiver and files split by size, two changes in
+different features routinely edit the same file. The file-size metric makes it
+worse: counting files over 1,500 lines and forcing a split at 4,000 rewards
+**size splits**
 (`resolution_answer_rest.go` is the second half of one switch moved verbatim;
 `stack_helpers.go` is a 1,387-line grab-bag hosting 39 Host methods), which
 scatter one concern across files without adding a boundary.
 
-### RC6. Fine-grained parallel tickets (amplifier, not cause)
+### RC6. Fine-grained parallel changes (amplifier, not cause)
 
 ~550 merges a week with reviewers who cannot see sibling paths turns each
 hidden edit site into a follow-up fix and a conflict. Duplicate work happens
 (02b3bd302 and cacf057f5 share a subject). Throttling would treat a symptom;
-RC1–RC3 shrink each ticket's blast radius, which is what lowers the rate.
+RC1–RC3 shrink each change's blast radius, which is what lowers the rate.
 
 ## 3. Target architecture
 
@@ -247,7 +246,7 @@ Rules for the layering:
 What does **not** change: the outer chain, `events.Apply`, determinism, the
 event stream. Every step in W1–W5 is a **pure refactor that must leave
 `TestHeads`, `TestOracleAudit` and the `cmd/repro` fixtures byte-identical**
-(§9, §13). That property is what makes a large refactor safe to hand to seats.
+(§9, §13). That property is what makes a large refactor safe to delegate.
 The single exception is W3's park-and-continue paths (§7.2), migrated last as
 a deliberate, re-pinned behaviour change.
 
@@ -270,16 +269,15 @@ logs on shrink, copying `testkit/testutil/agentsdoc_test.go`
 Also in W0:
 
 - Add `var _ effects.Host = (*Engine)(nil)` in `rules`.
-- **Replace the steward size metric.** `oversized_files` counts files over
-  1,500 lines (tests included) and mints split tickets at 4,000. Replace it
-  with: functions over 300 lines (non-test), plus the ratchets above. A
-  steward-split ticket's done criterion becomes "moves a cohesive concern
+- **Replace the file-size metric.** It counts files over 1,500 lines (tests
+  included) and forces a split at 4,000. Replace it with: functions over 300
+  lines (non-test), plus the ratchets above. A split's done criterion becomes
+  "moves a cohesive concern
   behind a named seam", never "drops a file under N lines". Forbid new
   size-only file names (`*_rest.go`, `*_helpers.go`, `*_misc.go`, `*_more.go`)
   with an archtest name lint that allow-lists the existing ones.
 - Make `potential_kinds_test.go` name-agnostic (it finds a method by name, so
-  any rename or move breaks it; already filed as a follow-up in the hot-file
-  notes).
+  any rename or move breaks it).
 - Make every census that walks `engine/rules/*.go` recursive, so a W5 move into a
   subpackage cannot silently drop files and run vacuously green:
   `TestResumeStateOwnedOnlyByTheResolutionMachinery`
@@ -287,8 +285,7 @@ Also in W0:
   `engine/rules/choosefor_distinct_test.go:24`, `engine/rules/potential_kinds_test.go:55`.
   The W0 ratchets themselves walk `engine/rules/...`.
 
-Exit: all ratchets green on `main`; the steward seed no longer mints
-size-split tickets.
+Exit: all ratchets green on `main`; nothing asks for a size-only split.
 
 ## 5. W1 — Generate or mechanically check every parallel structure
 
@@ -376,9 +373,9 @@ Append-only ordering is unchanged: the table is indexed by the existing
 | Today | Change |
 |---|---|
 | `engine/rules/heads_test.go`: 4 hashes + 1,491 lines of prose, prose prepended on each re-pin | `engine/rules/testdata/heads/<seats>.txt`, one hash per file, no prose. Head-move rationale goes in the **commit message**. A `cmd/headdiff` (built on `replay`'s first-divergent-event code) prints the first differing event between `main` and the branch for each seat count, so a reviewer sees *what* changed instead of four hashes |
-| README coverage block refreshed by commits (92 in 14 days) | Generated in CI and published (or a gitignored file); seats never commit it |
+| README coverage block refreshed by commits (92 in 14 days) | Generated in CI and published (or a gitignored file); nobody commits it |
 | Param census table hand-edited | Becomes derived once W4 lands; until then, one file per card like `known-divergent/` |
-| AGENTS.md hot-file notes (each notes ticket appends prose) | Keep the generated table; move durable per-file notes to `ops/scripts/hotfiles-notes.json` only (already the source) and stop mirroring prose into AGENTS.md |
+| AGENTS.md hot-file notes (each note appends prose) | Keep a generated table, keep durable per-file notes in one source outside AGENTS.md, and stop mirroring prose into it |
 
 Model: the oracle `known-divergent/` directories already did this.
 
@@ -463,7 +460,7 @@ Not every ask stops the chain today:
 
 The park paths are a deliberate behaviour change, not a refactor. Applying
 the replacement at the point the event would happen is what CR 616.1 says;
-the park is the approximation. They migrate last, in their own tickets, with
+the park is the approximation. They migrate last, in their own changes, with
 a golden re-pin and the CR argument in the commit message. Everything else
 must be byte-identical.
 
@@ -507,7 +504,7 @@ and post-prefix draws are fresh.
   Repeat, `Execute$`, delayed triggers) and still could not predict
   board-dependent engine asks, so it is not used for correctness. The cheap
   path is to keep the Clone that the priority decision already permits and
-  drop it when the resolution finishes without asking. Measure on the perf-sb
+  drop it when the resolution finishes without asking. Measure on the perf
   gate, both mana modes.
 - **Re-execution cost.** k decisions in one resolution cost O(k²) primitive
   runs (typical k is 1–3). Pathological loops (vote with 8 players, RepeatEach
@@ -575,8 +572,8 @@ step-machine alternative, scoped the same way.
 - Old saved logs keep replaying for every path but the park paths; saved logs
   that cross a park path are re-recorded or marked pre-W3 in the feedback
   fixtures.
-- The program runs as one sequenced lane (W6): no feature ticket in the
-  resolution files while a batch is open.
+- The migration runs in sequence (W6): no feature change in the resolution
+  files while a batch is open.
 
 ## 8. W4 — Typed parameter IR
 
@@ -641,11 +638,11 @@ Extracting it first would fail. Extract leaves and low-fan-in subsystems first:
 Per step:
 
 - A pure move plus interface introduction. `TestHeads`, `TestOracleAudit`
-  and the repro fixtures byte-identical; perf-sb within noise.
+  and the repro fixtures byte-identical; the perf gate within noise.
 - White-box tests move with the code (61 mana test files are white-box today;
   plan for that in E7).
 - Archtest rows for the new package land first.
-- One sequenced lane; the subsystem's files are frozen to feature tickets
+- One step at a time; the subsystem's files are frozen to feature changes
   while the step is open (W6). A step is sized to land in one or two days so
   the freeze is short.
 
@@ -940,44 +937,32 @@ the mana-ability resolution), the triggered mana abilities (CR 605.3b), the
 cost-static pricing (its own seam or nothing), the interference matchers
 (above) and the mana walk (activation legality).
 
-## 10. W6 — Pipeline and process
+## 10. W6 — Process
 
-- **Refactor lane.** W1–W5 tickets run in one lane, in sequence, with
-  `Depends-On` chains. While a ticket in the lane holds a subsystem, the
-  seeder does not dispatch feature tickets that touch that subsystem's files.
-  The landing pipeline has no such file-set lock today (only `Depends-On` and the
-  serialized landing lane), and tickets do not declare a file footprint up
-  front, so this needs new pipeline work: a ticket field
-  naming the locked path set, and an intake check against it. Until then the
-  maintainers hold conflicting feature tickets by hand. This replaces hot-file
-  notes with scheduling.
-- **Tickets scoped by subsystem, not by card.** A card bug triggers a class
-  census for its mechanism (existing practice); the fix ticket owns the
-  mechanism across all paths.
-- **Sibling-path brief.** When a ticket touches a param key, API or Host
-  method, the brief lists every other read site (generated by grep today, by
-  the W4 compilers later). This targets the 7% "sibling path not updated"
-  findings.
-- **Dedupe before dispatch.** Refuse a ticket whose subject matches an open
-  or recently merged one.
-- **Metrics on the reward dashboard** (§12) so the program is steered by
-  measurement.
+- **One refactor at a time per subsystem.** W1–W5 steps run in sequence. While a
+  step holds a subsystem, no feature change touches that subsystem's files. This
+  replaces hot-file notes with scheduling.
+- **Changes scoped by subsystem, not by card.** A card bug triggers a class
+  census for its mechanism, and the fix owns the mechanism across all paths.
+- **Sibling paths listed up front.** A change to a param key, API or Host method
+  lists every other read site (found by grep today, by the W4 compilers later).
+  This targets the 7% "sibling path not updated" findings.
+- **No duplicate work.** A change whose subject matches an open or recently
+  merged one is refused.
+- **Measured** (§12), so the refactor is steered by the numbers.
 
 ## 11. W7 — Set adoption and certification
 
 Builds on
-[`2026-10-02-xmage-compliance-oracle-design.md`](2026-10-02-xmage-compliance-oracle-design.md)
+[`2026-10-02-xmage-compliance-oracle-design.md`](https://github.com/adams-shaun/gorge-compliance/blob/main/docs/design/2026-10-02-xmage-compliance-oracle-design.md) in gorge-compliance
 (levels A/B, the XMage oracle, the verdict store and gate). That spec stays
 authoritative for the oracle itself; this section says what makes it scale
 from one set to every set.
 
 ### 11.1 Where it stands (measured with `oraclediff status -set <S>`, ~1 s per set)
 
-- Rollout X0–X8 landed; **FRA:A declared** (`lab/oracle/compliance/declared.json`),
-  0 of 285 outstanding. X9 (level B) not started
-  (`lab/oracle/compliance/gate/gate.go:123-124`); X10 (full sweep, seeder integration)
-  not done — the seeder still emits "Oracle-audit the next N"
-  (`ops/scripts/seed_candidates.py:321`).
+- Rollout X0–X8 landed; **FRA:A declared**, 0 of 285 outstanding. X9 (level B)
+  not started; X10 (full sweep, automated follow-up work) not done.
 - 4,891 verdict rows, all level A: 4,638 agree, 156 diverge, 96 harness,
   1 xmage_wrong. Templates: cast-resolve 4,561, play-land 296, counter-spell 34.
 - **The other 19 Standard sets: 508 of 5,331 entries outstanding (90.5%)** —
@@ -1008,21 +993,19 @@ non-tournament (MakeCard, Planechase, Un-set stickers/contraptions, Draft).
 
 ### 11.2 Bottlenecks (the root causes, not the symptoms)
 
-1. **Triage does not reuse.** A ruling is free text on one card's verdict row
-   (`lab/oracle/compliance/verdicts.go:35`); the spec's shape rulings
-   (`lab/oracle/compliance/rulings/<shape>.json`) were never built. Every divergence is
-   triaged by hand, and the cluster files live off-repo on `$DATA`.
+1. **Triage does not reuse.** A ruling is free text on one card's verdict row;
+   the spec's per-shape rulings were never built. Every divergence is triaged
+   by hand, and the cluster files live off-repo.
 2. **The gate is fragile to unrelated change.** `canon_sha` hashes the whole
    canonical snapshot (`gate.go:197-199`) and `scenario_sha` moves with any
    generator change (`gate.go:189-191`). One engine fix cycle staled 14 of 20
    Standard sets into a Java rerun. The spec's "freeze only the fields that
    changed" (§7) was replaced by a hash.
-3. **Templates are three functions in one file** (`lab/oracle/compliance/oraclegen/gen.go`,
-   items at `:112`, `:198`, `:285`), now a hot file for three live worktrees;
-   there is one global `Version` (`gen.go:25`) and no per-template
+3. **Templates are three functions in one file** (`oraclegen/gen.go`), a hot
+   file for concurrent work; there is one global `Version` (`gen.go:25`) and no per-template
    versioning, so any template change stales every card.
-4. **Findings do not become tickets.** No step turns `gorge_wrong`/`unsupported`
-   rows into class-scoped tickets.
+4. **Findings do not become work.** No step turns `gorge_wrong`/`unsupported`
+   rows into class-scoped fixes.
 5. **Engine change cost** — every primitive or fix lands in `rules`; this is
    §2's RC1–RC5, and W1–W5 are the fix.
 6. **Claims outside Standard are weak.** Without a printed list the gate falls
@@ -1033,10 +1016,10 @@ non-tournament (MakeCard, Planechase, Un-set stickers/contraptions, Draft).
 
 | # | Change | Removes |
 |---|---|---|
-| C1 | **Commit the pass driver.** Move the std batch/write/summary scripts from `$DATA/.../xmageoracle/` into `scripts/` behind `make compliance-pass SETS=…`; rerun only stale rows, under the heavy-job lock | X10 mechanical half; off-repo state |
-| C2 | **Rulings by shape.** Key a ruling on `(template, field, normalised diff, IR api/mode)` in `lab/oracle/compliance/rulings/<shape>.json`; `oraclediff diff` auto-classifies matches (1-in-10 sampled for human check); `oraclediff triage` writes committed `lab/oracle/compliance/triage/<shape>.jsonl` clusters | per-card triage — Standard's 62 "choice" and 15 "class" divergences become 2 items |
+| C1 | **Commit the pass driver.** Move the batch, write and summary scripts from off-repo into `scripts/` behind `make compliance-pass SETS=…`; rerun only stale rows | X10 mechanical half; off-repo state |
+| C2 | **Rulings by shape.** Key a ruling on `(template, field, normalised diff, IR api/mode)` in one file per shape; `oraclediff diff` auto-classifies matches (1-in-10 sampled for human check); `oraclediff triage` writes committed per-shape clusters | per-card triage — Standard's 62 "choice" and 15 "class" divergences become 2 items |
 | C3 | **Field-level freezing.** Replace `canon_sha` with the frozen fields the scenario asserts (spec §7 `oracleExpect` vocabulary); one file per template under `oraclegen/templates/` with its own version, so a template change stales only that template's cards | gate fragility; `gen.go` as a hot file |
-| C4 | **Findings to tickets by class.** One ticket per shape or per primitive, carrying the affected cards and sets, each with a class-census ratchet (`fra_gap2_census_test.go` is the model). | per-card fix tickets; duplicate fixes |
+| C4 | **Fixes by class.** One fix per shape or per primitive, carrying the affected cards and sets, each with a class-census ratchet (`fra_gap2_census_test.go` is the model). | per-card fixes; duplicate fixes |
 | C5 | **Primitive impact table.** `oraclediff gen` (or `forgec report`) emits primitive → cards → sets unlocked, ranked by declared-target formats. The 58 primitives blocking 10+ cards are the queue | guessing what to implement next |
 | C6 | **Level B (X9).** Templates for activated abilities, trigger modes, attacks/blocks and statics; a fixture library for the 734 "no castable fixture" cards and Phyrexian mana. Make the meaning of level A explicit in the gate output | shallow certification |
 | C7 | **Honest claims.** Printed lists for every tournament set; the gate refuses to declare a set without one (closes the `gate.go:140` fallback). Exclude non-tournament primitives from the "all sets" target | silent drop-outs |
@@ -1047,10 +1030,10 @@ non-tournament (MakeCard, Planechase, Un-set stickers/contraptions, Draft).
 1. Bump `FORGE_REF` (as X0 did) and `XMAGE_REF`; `make xmage-oracle-setup`.
 2. `make compliance-manifests` and the printed list for the new set.
 3. `oraclediff gen` (~1 s per set); its skip output is the missing-primitive
-   list → C5 table → C4 tickets, filed automatically.
+   list → C5 table → C4 fixes.
 4. `make compliance-pass SETS=<new>` (~7 s per set of XMage time).
 5. Shape triage (C2): new divergences that match an existing ruling
-   classify themselves; new shapes become one ticket each.
+   classify themselves; new shapes become one fix each.
 6. Hand scenarios for the cards XMage does not implement (FRA had 16).
 7. Declare once outstanding reaches 0; the C8 ratchet locks it.
 
@@ -1070,7 +1053,7 @@ count by ~3–5 but not triage effort, if shapes reuse.
 ### 11.6 How this ties to the engine work
 
 Certification is where RC1–RC5 cost the most: each gorge_wrong verdict becomes
-a fix ticket in `rules`, and a fix that must reach resume state, clone and
+a fix in `rules`, and a fix that must reach resume state, clone and
 sibling paths by hand is the fix that comes back as the next divergence. The
 order in §0 front-loads exactly the pieces (W1a clone checks, W3 tape kernel,
 W4 typed params) that make a primitive a one-file change, which is what
@@ -1083,7 +1066,7 @@ Tracked weekly; baselines from this spec:
 | Metric | Baseline | Target |
 |---|---|---|
 | Fix-modified lines under 72 h old | 57% | < 25% |
-| merge_fix rate (7 d) | 0.152 | < 0.05 |
+| Merge-fix rate (7 d) | 0.152 | < 0.05 |
 | Review findings: clone omission + suspend/resume + sibling path | 17% of MAJOR | < 3% |
 | Lockstep gate failures (Kind tables, census) per week | ~50 / 4.5 wk | ~0 |
 | `clone.go` hand-edit commits / 30 d | 228 | 0 (generated) |
@@ -1096,16 +1079,16 @@ Tracked weekly; baselines from this spec:
 
 - **Byte-identical replay is the safety net for everything.** It holds only
   with `.cards` present; a worktree without it runs vacuously green
-  (AGENTS.md). Every lane ticket must show `TestHeads` actually ran.
+  (AGENTS.md). Every refactor step must show `TestHeads` actually ran.
 - **W3 is the large bet.** It is gated by W1a, the clone-fidelity fuzz and
   S3 with explicit kill criteria and a defined fallback; its park-and-continue
   paths are a deliberate behaviour change with a planned re-pin (§7.2).
-- **The lane lock (W6) is new pipeline work**; until it exists the maintainers
-  sequence conflicting feature tickets by hand.
+- **The subsystem freeze (W6) has no tooling behind it**; the maintainers
+  sequence conflicting feature changes by hand.
 - **Perf.** W1a generated clone, W1c constructors and W4 typed params all sit
-  on hot paths; each must pass the perf-sb gate. W4 should *improve* hot
+  on hot paths; each must pass the perf gate. W4 should *improve* hot
   paths by replacing map lookups with struct fields.
-- **Refactor vs feature contention.** The lane lock (W6) freezes a subsystem
+- **Refactor vs feature contention.** The W6 freeze holds a subsystem
   briefly; keep steps small so feature throughput dips only locally.
 - **Partial migrations.** Two kernels, two Host shapes, two param paths
   coexist during W3/W4. Each has a ratchet that only falls and a dual-run or
@@ -1131,15 +1114,13 @@ code and attacked W3. Changes made in this revision:
   blocker.
 - **Archtest**: sibling ordering and prefix matching instead of redundant
   `{rules/X, rules}` rows; three more non-recursive census globs listed in W0.
-- **W6** lane lock marked as new pipeline work.
 - Corrected counts: 9 Suspend/Suspended Host methods; `resumeAnswerBinding`
   64 arms; `ParseCost` 80 call sites; `controllerOf` 124 sites in 47 files;
   six suspension holders besides `e.resume`; case-literal metric definition.
 
 ## Appendix A. Measurement commands
 
-All run from the repo root against `main` at `49bd9af8d`, with `/usr/bin/grep`
-(bare `grep` is ugrep and skips git-excluded paths) under `bash -c`.
+All run from the repo root against `49bd9af8d`, with GNU grep.
 
 - LOC per top-level dir: `find <dir> -name '*.go' ! -name '*_test.go' | xargs cat | wc -l`
 - Engine methods: `cat $(ls engine/rules/*.go | grep -v _test) | grep -cE '^func \(e \*Engine\)'`
@@ -1150,7 +1131,7 @@ All run from the repo root against `main` at `49bd9af8d`, with `/usr/bin/grep`
 - String literals on case lines: all `"…"` literals on lines matching `^\s*case ` over the same files (the W0 `cmd/codeshape` metric is the authoritative definition)
 - Fix-on-fresh-lines: `git blame` of lines modified by 70 random `fix` commits
   (3–10 days old) in `engine/rules/` and `engine/effects/`; line age at the fix commit.
-- Pipeline rounds, verdicts and gate failures: the landing pipeline's records.
+- Rework rounds, verdicts and gate failures: the maintainers' landing records.
 - Resolution machinery: `engine/rules/resolution_point.go:48-428` (fields),
   `rules/resolution_answer.go:29-1109`, `rules/resolution_answer_rest.go:22-749`
   (case arms), `grep -c 'Ask(' engine/effects/*.go` (call sites).

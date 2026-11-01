@@ -34,7 +34,7 @@ The compliance commands (`oraclediff`, `compliance`, `xmageport`, `oraclepacket`
 |---|---|
 | `web/` | Svelte + Vite client. `web/src/protocol.ts` is **generated** — never hand-edit. |
 | `examples/` | Example bots and agents; `examples/extagent` is the Python `gorge-agent/1` agent. |
-| `docs/design/` | Living designs and contracts, flat, `YYYY-MM-DD-<slug>[-design].md`, plus `cast-payment-plans/` and `seat-deck-manifest/` brief sets. Deliberate contracts (not debt) are in `docs/design/2026-09-22-engine-contracts.md`. |
+| `docs/design/` | Living designs and contracts, flat, `YYYY-MM-DD-<slug>[-design].md`, plus the payment-plan codec in `cast-payment-plans/`. Deliberate contracts (not debt) are in `docs/design/2026-09-22-engine-contracts.md`. |
 | `docs/design/ARCHIVE.md` | Index of the parked design records; their text is in git history. |
 | `docs/decisions/` | Numbered architecture decisions (`0001-repo-layout.md`). |
 | `docs/site/` | The public MkDocs site (`mkdocs.yml`); `docs/site/architecture/packages.tiers.json` classifies every package. |

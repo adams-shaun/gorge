@@ -1,5 +1,5 @@
 // Package sbtactical hosts the sb-tactical policy (spec
-// 2026-09-28-hosted-bot-packages §11): the adapter over
+// 2026-09-28-hosted-bot-packages §3.1): the adapter over
 // internal/spellbench/builtins.NewTactical (the scored seat-visible
 // heuristic behind SpellBench's sb-tactical arm) that rides the host's Env
 // path for its planner and plays the plain View path everywhere else.
