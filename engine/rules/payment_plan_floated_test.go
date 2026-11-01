@@ -189,3 +189,28 @@ func TestAnnounceFromFloatedArtifactMana(t *testing.T) {
 		t.Fatalf("spell zone = %s, pending %+v", z, e.Pending())
 	}
 }
+
+// Floated mana an activation may not spend does not fund its offer (CR 106.6):
+// the Demon-only batch leaves the {3} one short until a third land is untapped.
+func TestRestrictedBatchFundsNoAbilityOffer(t *testing.T) {
+	t.Parallel()
+	const relic = "Name:Floated Relic\nTypes:Artifact\nA:AB$ GainLife | Cost$ 3 | LifeAmount$ 1\nOracle:x\n"
+	offered := func(e *Engine, obj state.ObjID) bool {
+		t.Helper()
+		_, ok := autopayAbilityOffer(paymentPlanReask(t, e), obj)
+		return ok
+	}
+	e, _, _ := newFixtureDeck(t, 9208, floatedSpell)
+	e.paidManaCensus = true
+	src := onBoard(t, e, 0, relic)
+	floatFrom(t, e, onBoard(t, e, 0, floatedDemonLand))
+	onBoard(t, e, 0, floatedSwamp)
+	onBoard(t, e, 0, floatedMountain)
+	if offered(e, src) {
+		t.Fatalf("two lands and a Demon-only batch offered {3}: %+v", e.Pending().Options)
+	}
+	onBoard(t, e, 0, floatedSwamp)
+	if !offered(e, src) {
+		t.Fatalf("three lands did not offer {3}: %+v", e.Pending().Options)
+	}
+}

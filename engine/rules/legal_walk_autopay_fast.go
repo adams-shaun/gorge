@@ -56,6 +56,11 @@ func (w *legalWalk) autoPayFast(p state.PlayerID, id state.ObjID, base Cost, ab 
 	if autoPayFastDisabled {
 		return false
 	}
+	// A restricted batch may not spend on this ability (CR 106.6); the planner
+	// reads the pool through pay.PlanPool.
+	if len(w.e.G.Players[p].RestrictedMana) > 0 {
+		return false
+	}
 	// PowerUp's ReduceCost is applied by the walk but not by the planner, so
 	// the walk's base would differ from the planner's cost. Exclude it; the
 	// planner owns those abilities.
