@@ -204,10 +204,29 @@ func TestNativeSeatPlaysTheSameGameWithTheTapArmed(t *testing.T) {
 		r := nativeSeatTable(t, reg, hub, 0, 11, 0, 1)
 		heads[i] = playNativeScript(t, r, &nativeScript{asked: map[string]int{}}, nil)
 		r.Close()
+		if hub != nil {
+			if !hub.seat(seatKey{table: "t", match: 1, seat: 0}).lostCodec(t) {
+				t.Fatal("the hub still holds the codec of a finished match")
+			}
+		}
 	}
 	if heads[0] == "" || heads[0] != heads[1] {
 		t.Fatalf("heads differ: flag off %q, flag on %q", heads[0], heads[1])
 	}
+}
+
+// lostCodec waits for the hub to let go of a finished match's codec.
+func (s *seatState) lostCodec(t *testing.T) bool {
+	t.Helper()
+	for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); time.Sleep(time.Millisecond) {
+		s.mu.Lock()
+		gone := s.codec == nil
+		s.mu.Unlock()
+		if gone {
+			return true
+		}
+	}
+	return false
 }
 
 // TestThinkTimeoutAnswersAPassiveAndAnAttachedSeat: nobody answers, so the think
@@ -215,7 +234,7 @@ func TestNativeSeatPlaysTheSameGameWithTheTapArmed(t *testing.T) {
 // plays; an attached seat's answers everything the codec doesn't answer itself.
 func TestThinkTimeoutAnswersAPassiveAndAnAttachedSeat(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	const think = 2 * time.Millisecond
+	const think = time.Millisecond
 	finish := func(r *host.Registry) string {
 		deadline := time.Now().Add(30 * time.Second)
 		for time.Now().Before(deadline) {
@@ -319,7 +338,12 @@ func TestV2AttachHoldAndHandBack(t *testing.T) {
 	if status, _ := getSBV2State(t, srv.URL, route+"state", "wrong"); status != http.StatusUnauthorized {
 		t.Fatalf("state with a wrong token: %d", status)
 	}
-	time.Sleep(20 * time.Millisecond)
+	ss.mu.Lock()
+	claimed := ss.claimed
+	ss.mu.Unlock()
+	if claimed {
+		t.Fatal("a read with a wrong token claimed the seat")
+	}
 	if req, _ := ss.snapshot(); req != nil {
 		t.Fatalf("a request opened with no authenticated read: %d", req.id)
 	}
@@ -375,9 +399,8 @@ func TestV2AttachHoldAndHandBack(t *testing.T) {
 	if rt := mapping.Route(colour); rt != "choose/mana" {
 		t.Fatalf("after handing back, a tap asked %s", rt)
 	}
-	time.Sleep(20 * time.Millisecond)
-	if still := pending(); still.Seq != colour.Seq {
-		t.Fatalf("the colour ask at seq %d was answered by seq %d", colour.Seq, still.Seq)
+	if req, _ := ss.snapshot(); req != nil {
+		t.Fatalf("a request opened on a handed-back seat: %d", req.id)
 	}
 
 	// A read takes the seat again in the middle of the native tap: the codec

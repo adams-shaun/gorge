@@ -97,6 +97,13 @@ func (s *seatState) bind(codec *humanseat.Seat) {
 	}
 }
 
+// unbind lets go of the codec when its match is over.
+func (s *seatState) unbind() {
+	s.mu.Lock()
+	s.codec = nil
+	s.mu.Unlock()
+}
+
 // attach is what a v2 read does: it hands the seat to the codec.
 func (s *seatState) attach() {
 	s.mu.Lock()
@@ -330,5 +337,7 @@ func (h *Hub) Tap(table host.TableID, match int, autoPayMana bool, mc *bots.Matc
 		return nil, err
 	}
 	s.bind(codec)
+	// The hub outlives the match, and a codec holds the whole game.
+	context.AfterFunc(mc.Context, s.unbind)
 	return codec, nil
 }
