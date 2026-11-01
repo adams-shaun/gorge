@@ -555,6 +555,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 			e.fuseTargets[copyID] = cp
 		}
+		// A charm's per-mode target groups are the same split: each mode of the
+		// copy acts on its own group (CR 707.10 copies modes and targets).
+		if groups, ok := e.charmTargets[ev.Obj]; ok && len(ev.IDs) == 0 {
+			cp := make([][]state.Target, len(groups))
+			for i, targets := range groups {
+				cp[i] = append([]state.Target(nil), targets...)
+			}
+			e.charmTargets[copyID] = cp
+		}
 		// CR 707.10: "If an effect of the copy refers to objects used to pay
 		// its costs, it uses the objects used to pay the costs of the
 		// original spell or ability" (a copied Fling deals the ORIGINAL's

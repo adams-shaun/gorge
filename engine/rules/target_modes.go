@@ -1229,6 +1229,9 @@ func (e *Engine) copyInheritedForDeclaration(o *state.Object, decls []*cards.SA,
 		}
 		return nil
 	}
+	if groups, ok := e.charmTargets[o.ID]; ok && stage < len(groups) {
+		return groups[stage]
+	}
 	start := 0
 	for i, sa := range decls {
 		end := len(o.Targets)

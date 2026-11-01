@@ -56,6 +56,9 @@ func (e *Engine) finishCopyTargets(obj state.ObjID, chosen []decision.Option) {
 		}
 		e.fuseTargets[obj] = stages
 	}
+	if _, ok := e.charmTargets[obj]; ok {
+		e.charmTargets[obj] = stages
+	}
 	for i, sa := range chainDecls {
 		ts := []state.Target{}
 		if idx := len(rootDecls) + i; idx < len(ans) {
