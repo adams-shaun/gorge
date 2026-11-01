@@ -18,7 +18,7 @@ import "testing"
 //     control-equivalent game;
 //   - 8175: the Hideaway ETB timing correction changes this game before the
 //     former Songs of the Damned finding, so that planned cast is no longer
-//     reached (verified against the pre-fix keyword expansion).
+//     reached (checked against the expansion without that timing).
 //
 // recordedKernelWant holds those pins.
 var recordedKernelWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key ("" = equivalent)

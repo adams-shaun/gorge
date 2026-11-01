@@ -150,9 +150,7 @@ func TestTextRouteAnswersWithinTheWaitBudgetWhileTheUpstreamHangs(t *testing.T) 
 
 // A fast upstream must be untouched by the budget: the ordinary cold-cache
 // fetch completes inside the budget and answers 200 on the very first
-// request — the pre-fix behaviour every existing art test already pins, so
-// this guard only exists to say out loud that the budget does not cost the
-// healthy path its answer.
+// request. The budget must not cost the healthy path its answer.
 func TestArtRouteStillAnswersAHealthyUpstreamInsideTheBudget(t *testing.T) {
 	ac, hits := artFixture(t, map[string]string{"Goblin Guide": "/img/gg.jpg"})
 	w := httptest.NewRecorder()

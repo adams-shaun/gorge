@@ -53,10 +53,10 @@ func TestManaBrewBoundaryFromRowsUseDirectImports(t *testing.T) {
 		t.Errorf("direct edge not reported; got %v", msgs)
 	}
 
-	// Case 2: a TRANSITIVE-only edge is NOT a from-row violation. This is
-	// the exact shape of the real package (manabrew -> view -> events), and
-	// it is the case the pre-fix code got wrong. Assert the fixture really
-	// differs between imports and deps before trusting the outcome.
+	// Case 2: a TRANSITIVE-only edge is NOT a from-row violation. This is the
+	// exact shape of the real package (manabrew -> view -> events), and it is
+	// the case a check over transitive deps gets wrong. Assert the fixture
+	// really differs between imports and deps before trusting the outcome.
 	transitiveOnly := pkg{path: manabrew, imports: set(""), deps: set(events)}
 	if transitiveOnly.imports[events] || !transitiveOnly.deps[events] {
 		t.Fatal("precondition: transitive-only fixture must have events in deps but NOT in imports")

@@ -93,10 +93,10 @@ type artCache struct {
 	// 15s timeout (or minutes of 429 backoff), so on a degraded network a
 	// cold-cache page's burst of art lookups can pin every one of the
 	// browser's per-origin connections and starve the page's OWN same-origin
-	// API traffic (pending/view/events) for the whole chain: a wedged page never answered its
-	// mulligan-keep follow-ups and its driver timed out. The budget is
-	// a field, not a constant, for the same reason pace is: a test seam. 0 =
-	// unbounded (the pre-fix behaviour; nothing in production sets it).
+	// API traffic (pending/view/events) for the whole chain: a wedged page
+	// never answered its mulligan-keep follow-ups and its driver timed out.
+	// The budget is a field, not a constant, for the same reason pace is: a
+	// test seam. 0 = unbounded (nothing in production sets it).
 	waitBudget time.Duration
 	// logf, when non-nil, gets one line per 429 retry so an operator can see
 	// the limiter working in the demo log (nil → silent; the fill and serve

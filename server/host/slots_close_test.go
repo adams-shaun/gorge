@@ -26,9 +26,8 @@ import (
 // it by releasing the holder, closes the waiter's stop in the same breath,
 // and asserts acquire reports errTableClosed and hands the slot on rather
 // than returning nil on a live context. Since the waiter's ctx is a plain
-// Background, the pre-fix code has no way to notice the stop and returns nil
-// — so this fails without the fix on every run, unlike the ~1.5%/run
-// integration race.
+// Background, only the table's stop can release it, so a missed stop fails
+// here on every run, unlike the ~1.5%/run integration race.
 func TestSearchSlotsAcquireObservesStop(t *testing.T) {
 	s := newSearchSlots(1)
 	// The holder owns the only slot.

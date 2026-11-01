@@ -336,8 +336,8 @@ func TestArtCachesSharingADirectoryPublishAtomically(t *testing.T) {
 func TestArtCacheDoesNotServeALegacyPreBumpEntry(t *testing.T) {
 	ac, hits := artFixture(t, map[string]string{"Insectile Aberration": "/img/back.jpg"})
 
-	// The legacy entry, exactly as the pre-fix server left it: a JPG at
-	// sha256(name) — the unversioned key — holding the wrong bytes.
+	// The legacy entry, an unversioned cache layout: a JPG at sha256(name) —
+	// the unversioned key — holding the wrong bytes.
 	sum := sha256.Sum256([]byte("Insectile Aberration"))
 	legacyKey := hex.EncodeToString(sum[:])
 	if legacyKey == artKey("Insectile Aberration") {

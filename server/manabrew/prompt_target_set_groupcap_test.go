@@ -29,10 +29,9 @@ func cap1Twin(d *decision.Decision) *decision.Decision {
 }
 
 // TestConstrainedTargetPrefixGroupCapRaised: a decision-wide GroupLimit of 2
-// lets the prefix take TWO options of one Group. Under the historical
-// at-most-one walk the offered prefix would have skipped the second "g"
-// option; under the cap-aware walk it fronts the pair and the decision's own
-// Validate accepts it.
+// lets the prefix take TWO options of one Group. An at-most-one walk would
+// have the offered prefix skip the second "g" option; under the cap-aware
+// walk it fronts the pair and the decision's own Validate accepts it.
 func TestConstrainedTargetPrefixGroupCapRaised(t *testing.T) {
 	d := &decision.Decision{Seq: 11, Player: 1, Kind: decision.KTarget, Min: 2, Max: 2,
 		Prompt: "Choose two", GroupLimit: 2,

@@ -545,10 +545,9 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	}
 	// The tail events are on the rebuilt log, after the ask that parked it.
 	// event-802 re-record (2026-09-17): with Tokens now attached, the token
-	// creatures the burst's lethal-damage sweep hits are real permanents,
-	// so their own SBA cleanup ("ceased to exist") now lands after the
-	// sweep — the pre-fix, token-starved capture never had real tokens to
-	// clean up, so its tail ended one step earlier (the step change).
+	// creatures the burst's lethal-damage sweep hits are real permanents, so
+	// their own SBA cleanup ("ceased to exist") lands after the sweep, one
+	// step past the sweep itself.
 	last := l.Events[len(l.Events)-1]
 	if last.Kind != events.MoveZone || last.Text != "ceased to exist" {
 		t.Fatalf("capture ends with %+v, want a token's post-sweep cleanup", last)
