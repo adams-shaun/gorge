@@ -276,8 +276,8 @@ func (a *artCache) retry429(ctx context.Context, resp *http.Response, what strin
 
 // artKeyVersion busts the whole cache whenever the meaning of the bytes a
 // key's fetch writes changes: a back-face name (Insectile Aberration) fetches its own
-// face's art, but a live server may have cached that name under older
-// OLD code with the FRONT face's bytes, and ensure() treats an existing JPG
+// face's art, but a live server may have cached that name under
+// older code with the FRONT face's bytes, and ensure() treats an existing JPG
 // as a permanent hit while blob() marks the URL immutable — so after deploy
 // the same key kept serving the wrong art from both the server's disk and
 // every browser's year-long cache. Folding the version into the hash gives
