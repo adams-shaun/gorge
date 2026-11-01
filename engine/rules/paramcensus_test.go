@@ -331,7 +331,7 @@ type scan struct {
 	// synthetic scan deliberately contains none of the real functions.
 	complete bool
 	// filePkg is the package clause of the file being scanned. The rules
-	// tree includes its lasagna subpackages (sourceFilesUnder walks "."
+	// tree includes its layered subpackages (sourceFilesUnder walks "."
 	// recursively), which are attributed in the rules namespace; filePkg
 	// tells a engine/rules/combat or engine/rules/chars file apart so its Board calls
 	// resolve to rules' combatBoard / charsBoard adapter (see scanCall).
@@ -1000,7 +1000,7 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 	case *ast.SelectorExpr:
 		if inner, ok := fun.X.(*ast.CallExpr); ok && pkg == "rules" && s.filePkg == "pay" {
 			// engine/rules/pay reaches the engine's role interfaces as e.Eval().M
-			// and e.Chars().M (lasagna spec §9.2): an edge to rules' adapter
+			// and e.Chars().M (layering design §9.2): an edge to rules' adapter
 			// method (payEval / charsReader, engine/rules/pay_eval.go and
 			// engine/rules/chars_reader.go), which forwards to the Engine reader the
 			// code called before it moved.
@@ -3553,7 +3553,7 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // inbox-engine-ratchet-parameter-census), checked in both directions by
 // TestEveryRepoDeckParamsAreRead exactly like knownUnsupported. It lives one
 // file per card, testdata/paramcensus/<slug>.json, {"card": "<Card>",
-// "labels": [...]} (spec 2026-10-03-rules-engine-lasagna-design.md W2): a
+// "labels": [...]} (spec 2026-10-03-rules-engine-layering-design.md W2): a
 // shared table made every ticket that retired a label conflict with every
 // other. Why a label left goes in the commit message, never a file. Label
 // grammar:

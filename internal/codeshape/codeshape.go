@@ -2,7 +2,7 @@
 // its functions are, how wide its interfaces and context structs are, and how
 // much of its behaviour is still keyed on string literals. It is the metric
 // behind the shrink-only ratchets of the rules-engine refactor
-// (docs/design/2026-10-03-rules-engine-lasagna-design.md). It replaced the old
+// (docs/design/2026-10-03-rules-engine-layering-design.md). It replaced the old
 // file-size count: a long FUNCTION is a concern without a seam, while
 // a long FILE says nothing about boundaries and rewarded size-only splits.
 //

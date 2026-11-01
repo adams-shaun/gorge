@@ -11,7 +11,7 @@ import (
 )
 
 // layering_resolve_test.go pins engine/rules/resolve, the L6 resolution kernel of
-// the rules-engine lasagna (spec 2026-10-03 §3 and §7, W3): checkpoint at the
+// the rules-engine layering (spec 2026-10-03 §3 and §7, W3): checkpoint at the
 // intent boundary that begins a resolution, the intent tape, and the
 // ask/answer protocol, read and driven through the resolve.Board interface
 // package rules implements. Its rows live in their own file (not

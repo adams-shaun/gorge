@@ -308,7 +308,7 @@ func TestAuraTokenWithNothingToEnchantIsNotCreated(t *testing.T) {
 // graveyard, and the game replays from its log.
 //
 // Under the resolution kernel (the default) each member's as-enters election
-// is answered in place as it enters (W3 step 5, lasagna spec §7.2), so both
+// is answered in place as it enters (W3 step 5, layering design §7.2), so both
 // Pacifisms are asked. (The legacy park could pose only the FIRST election
 // of a sweep: a later member entering while that ask was outstanding took
 // the deterministic first legal bearer.)

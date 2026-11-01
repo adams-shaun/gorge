@@ -11,7 +11,7 @@ import (
 )
 
 // layering_chars_test.go pins engine/rules/chars, the L4 characteristic-computation
-// package of the rules-engine lasagna (spec 2026-10-03 §3, W5 step E4): the
+// package of the rules-engine layering (spec 2026-10-03 §3, W5 step E4): the
 // CR 613 layer walk, read through the chars.Board interface package rules
 // implements. Its rows live in their own file (not TestDependencyOrderHolds'
 // slice) so the W5 extraction steps running in parallel do not edit the same

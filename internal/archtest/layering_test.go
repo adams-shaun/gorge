@@ -12,7 +12,7 @@ import (
 
 // costVocabularyImports is the closed set of module packages engine/rules/cost may
 // import directly (the standard library is always allowed). engine/rules/cost is the
-// L2 leaf of the rules-engine lasagna (spec 2026-10-03 §3, W5 step E1): the
+// L2 leaf of the rules-engine layering (spec 2026-10-03 §3, W5 step E1): the
 // Cost/CostPart vocabulary, cost parsing and cost formatting that every rules
 // subsystem shares. It reads only the L1 state vocabulary (state.Mana,
 // state.Zone, state.ObjID); anything wider -- effects, events, rules or a rules
@@ -53,7 +53,7 @@ func TestCostVocabularyIsALeaf(t *testing.T) {
 
 // trigmatchImports is the closed set of module packages engine/rules/trigmatch may
 // import directly (the standard library is always allowed). engine/rules/trigmatch is
-// the L5 trigger-matching layer of the rules-engine lasagna (spec 2026-10-03
+// the L5 trigger-matching layer of the rules-engine layering (spec 2026-10-03
 // §3, W5 step E3): the Mode$ registry and the per-mode matchers, reading the
 // game through trigmatch.Board. It reads the L0/L1 vocabulary (cards, state,
 // events), the L2 cost vocabulary and the L3 effects filter and count
@@ -146,7 +146,7 @@ func sortedKeys(m map[string]bool) []string {
 
 // combatImports is the closed set of module packages engine/rules/combat may import
 // directly. engine/rules/combat is an L5 subsystem package of the rules-engine
-// lasagna (spec 2026-10-03 §3, W5 step E5): attack and block legality, read
+// layering (spec 2026-10-03 §3, W5 step E5): attack and block legality, read
 // through the combat.Board interface package rules implements. It reads the
 // L0/L1 vocabulary (cards, state, events) and the L3 filter and restriction
 // grammar (effects); anything else -- rules, a sibling subsystem, decision or

@@ -209,7 +209,7 @@ func TestDependencyOrderHolds(t *testing.T) {
 		// scaffolding.
 		{module + "/server/divergence/shadow", module + "/server/host"},
 		{module + "/server/divergence/shadow", module + "/testkit/testutil"},
-		// The lasagna layering (spec 2026-10-03 §3): engine/rules/cost is the L2
+		// The package layering (spec 2026-10-03 §3): engine/rules/cost is the L2
 		// cost vocabulary leaf. It sits below effects and below every rules
 		// subsystem package, so none of them -- and never rules itself -- may
 		// be reachable from it. TestCostVocabularyIsALeaf pins its whole

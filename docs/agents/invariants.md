@@ -34,7 +34,7 @@ edges that must never appear: `effects` never imports `rules` (effects reaches
 the engine only through `effects.Host`). `view`, `protocol` and `deck` never
 import `rules`; `protocol` never imports `bots`. No `bots/` package reaches `server/host` or `testkit/testutil`. `botpolicy` never imports `view`, `rules` or `seat`. `host`, `server/host/httpapi`
 and `server/gorged` never import `testkit/testutil`. Inside the engine, the
-layered packages (design [`docs/design/2026-10-03-rules-engine-lasagna-design.md`](../design/2026-10-03-rules-engine-lasagna-design.md) §3) are
+layered packages (design [`docs/design/2026-10-03-rules-engine-layering-design.md`](../design/2026-10-03-rules-engine-layering-design.md) §3) are
 pinned as they land: `engine/rules/cost`, the cost vocabulary leaf, imports only
 `state` (`TestCostVocabularyIsALeaf`) and never `rules`, `effects` or a rules
 subsystem package. `engine/rules/combat`, attack/block legality, imports only

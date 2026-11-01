@@ -1,13 +1,13 @@
-# Rules engine: spaghetti to lasagna — design (2026-10-03)
+# Rules engine: layered packages — design (2026-10-03)
 
 Status: design draft for operator review. No code yet. Measured against
 `main` at `49bd9af8d`. Every number below carries the command or data source
 that produced it (Appendix A); re-measure before quoting, and treat anything
 marked *hypothesis* as a claim a spike must confirm or kill.
 
-This spec answers three operator questions:
+This spec answers three questions:
 
-1. **Make the spaghetti into lasagna.** Give `rules` internal layers with
+1. **Layer the rules package.** Give `rules` internal layers with
    enforced boundaries instead of one 131k-line package.
 2. **Why are recent changes so difficult?** Fix the root cause, not the
    symptom (hot files, resolver rounds, fix-on-fix).
@@ -28,7 +28,7 @@ per-set cost all fall out of it.
 | W2 | Shared aggregate files to per-entry files | conflicts manufactured by heads prose and generated blocks | none, start now |
 | W3 | Resolution kernel: checkpoint + intent-tape re-execution | `resumePoint` cursors, `Resume*` riders, the 102-arm answer switches, ~220 `Ctx` cursor fields, the "state lost across a suspension" bug class | W1a + clone-fidelity fuzz; spike S3 must pass its exit criteria |
 | W4 | Typed parameter IR | stringly `Params["X"]` reads interpreted separately on each path; the hand-ratcheted param census | W0 ratchet in place |
-| W5 | Package extraction (the lasagna proper) | the "any of 2,162 methods can call any other" coupling | W1, and W3 for the resolution layer |
+| W5 | Package extraction (the layering proper) | the "any of 2,162 methods can call any other" coupling | W1, and W3 for the resolution layer |
 | W6 | Pipeline and process | duplicate tickets; feature work racing a refactor in the same subsystem | none |
 | W7 | Set adoption and certification pipeline | per-set bespoke audit projects | W2 per-card files; W4 helps |
 
@@ -205,7 +205,7 @@ RC1–RC3 shrink each ticket's blast radius, which is what lowers the rate.
 
 ## 3. Target architecture
 
-Lasagna means **layers that import only downward**, each with a narrow
+Layering means **layers that import only downward**, each with a narrow
 interface to the one below, enforced by archtest rather than convention.
 
 ```
@@ -620,7 +620,7 @@ Plan:
 
 Ratchet: `stringParamReads` (W0) only falls.
 
-## 9. W5 — Package extraction (the lasagna proper)
+## 9. W5 — Package extraction (the layering proper)
 
 The mana/payment survey shows why order matters: that subsystem is a
 **24.5k-line ring** (31 files) whose 238 Engine methods reach ~60 Engine

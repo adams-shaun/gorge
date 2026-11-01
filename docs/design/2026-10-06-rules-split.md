@@ -4,8 +4,8 @@ Status: **plan + first slice landed** (`engine/rules/scriptfacts`, commit on
 `wt/cli-20261006T231747Z-a54b8662`). This plan sequences the remaining slices
 as independent tickets; it does not queue them.
 
-Related design (the wider "lasagna" refactor this serves):
-`docs/design/2026-10-03-rules-engine-lasagna-design.md` §3 (layers)
+Related design (the wider layering refactor this serves):
+`docs/design/2026-10-03-rules-engine-layering-design.md` §3 (layers)
 and §9 (W5 package extraction). That spec names the same L2–L7 layering; this
 plan is the *compile-time* execution of its W5, measured against the tree of
 2026-10-06.
@@ -80,7 +80,7 @@ go doc ./engine/rules/chars Board; go doc ./engine/rules/combat Board
 
 ## 3. Interfaces needed to break cycles with `*Engine`
 
-The rule (lasagna spec §3): **a lower layer reaches game state through a
+The rule (layering design §3): **a lower layer reaches game state through a
 read-only interface plus an emit function; it never holds `*rules.Engine`.**
 `rules` implements the interface on a *pointer conversion* of `*Engine`, so
 handing it out allocates nothing (the `chars.Board` / `combat.Board` /

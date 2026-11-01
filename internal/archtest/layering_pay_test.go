@@ -7,7 +7,7 @@ import (
 )
 
 // layering_pay_test.go pins engine/rules/pay, the L5 payment-planning package of the
-// rules-engine lasagna (spec 2026-10-03 §3, W5 step E7): the planner's
+// rules-engine layering (spec 2026-10-03 §3, W5 step E7): the planner's
 // vocabulary (alternatives, consequences, rank, witness) and its bounded
 // rank-aware search, the pool solver and payment core, and the payment
 // vocabulary (cost modifiers, window sources, planner classification and
@@ -19,7 +19,7 @@ import (
 // directly: the L0/L1 vocabulary (cards, state, decision, events), the L2
 // cost vocabulary and engine/effects/params (the leaf compiled-parameter records;
 // paramsImports pins it below effects), the L4 characteristics read
-// interface engine/rules/chars (chars.Reader, lasagna spec §9.2) and the L3
+// interface engine/rules/chars (chars.Reader, layering design §9.2) and the L3
 // effects vocabulary (effects.Ctx and its pure constructors and parsers --
 // never an effects.Host, TestPayHoldsNoHost). rules, the sibling L5
 // packages, the resolution kernel and the bot layer would invert the

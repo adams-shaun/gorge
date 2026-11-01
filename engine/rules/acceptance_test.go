@@ -15,7 +15,7 @@ import (
 // card -> missing-primitive set TestEveryRepoDeckIsFullySupported measures
 // over the repo decks. It lives one file per card,
 // testdata/known-unsupported/<slug>.json, {"card": "<Card>", "labels":
-// [...]} (spec 2026-10-03-rules-engine-lasagna-design.md W2): a shared
+// [...]} (spec 2026-10-03-rules-engine-layering-design.md W2): a shared
 // table made every ticket that retired an entry conflict with every other.
 // The test asserts the MEASURED set equals the files EXACTLY, in both
 // directions -- a newly-missing card is a regression, a file whose card is
