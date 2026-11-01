@@ -6,17 +6,13 @@
   import { pointerRelease } from '../lib/pointer';
 
   /**
-   * PhaseTrack is the board's clock: which round of the table and where in
-   * the twelve steps the game is standing right now —
-   * plus the seat's stops, set by clicking the step you want to be handed
-   * the game back at.
+   * PhaseTrack is where in the twelve steps the game is standing right now,
+   * plus the seat's stops, set by clicking the step you want to be handed the
+   * game back at.
    *
-   * It is THIN and stays that way. It used to carry a head row -- whose turn
-   * it is, the round number, and a sentence explaining shift-click -- above
-   * the cells. That is gone: whose turn it is comes from the shard's own
-   * active-seat perimeter and from IdentityBar, and the shift-click modifier
-   * is on every stoppable cell's title. The phase captions stay, at 9px, as
-   * tick marks on the ruler. Do not reintroduce the head row.
+   * It is thin. Whose turn it is comes from the centre strip and the active
+   * seat's perimeter, and the shift-click modifier is on every stoppable
+   * cell's title. The phase captions are tick marks on the ruler, at 9px.
    *
    * It decides nothing about the rules. The step order and the stoppable
    * set come from lib/autopilot via lib/phases (the client has exactly one
@@ -28,10 +24,8 @@
    * colour. It is full-strength when that seat is yours and recedes when it
    * is not; the current-step fill keeps the existing initiative grammar.
    */
-  let { view, seats, seat = null, stops = null, onToggle = null, clock = true }: {
+  let { view, seats, seat = null, stops = null, onToggle = null }: {
     view: View;
-    /** clock draws the leading round segment; the centre strip names the turn itself and turns it off. */
-    clock?: boolean;
     seats: SeatInfo[];
     /** seat is the viewer's own seat, or null for a spectator / a finished replay. */
     seat?: number | null;
@@ -75,24 +69,12 @@
   style={`--seat:${activeColour}`}
   aria-label="Phase"
 >
-  <!-- Round survives only as a small leading segment in the cell row. Whose
-       turn and the duplicated click instructions are gone: the active-seat
-       perimeter/IdentityBar and each stoppable cell already carry them. -->
-  {#if clock}
-    <div class="clock" data-clock aria-label={`Round ${view.round}`}>
-      <span class="tk">R</span><span class="tn">{view.round}</span>
-    </div>
-  {/if}
-
   <div class="groups">
     {#each PHASE_GROUPS as g (g.key)}
       <!-- Each group takes width in proportion to the steps it holds, so
            every cell is the same width and the track reads as one twelve-step
            timeline cut into five labelled sections — not five equal boxes,
            one of which happens to contain five steps. -->
-      <!-- Group captions used to consume a second line. The hairline group
-           divisions and the cells' own step names carry the same structure
-           without spending board height on BEGINNING / COMBAT / ENDING. -->
       <div class="group" data-group={g.key} aria-label={g.label} style={`flex-grow:${g.steps.length}`}>
         <div class="cells">
           {#each g.steps as c (c.step)}
@@ -154,27 +136,6 @@
   }
   .phase-track.yours {
     --now: var(--gilt);
-  }
-
-  .clock {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 0.3em;
-    flex: 0 0 2.5rem;
-    padding: var(--sp-1);
-    border-right: 1px solid var(--edge-inst);
-    min-width: 0;
-  }
-  .tk {
-    font-size: var(--t-10);
-    color: var(--ink-faint);
-  }
-  .tn {
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
-    font-size: var(--t-12);
-    color: var(--ink);
   }
 
   /* The track scrolls inside itself on a narrow board rather than pushing
@@ -281,7 +242,6 @@
 
   /* Four seats on a laptop: the track never wraps or pushes the page sideways. */
   @media (max-width: 60rem) {
-    .clock { flex-basis: 2rem; }
     .cell {
       padding-left: var(--sp-1);
       padding-right: var(--sp-1);

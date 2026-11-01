@@ -1493,16 +1493,14 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // TriggeredCardController read the wrong creature's controller whenever it
 // attacks alongside another creature that happened to be declared first.
 //
-// LIMITATION, stated rather than assumed: the remaining ten T: lines
-// (TriggeredPlayer, EnchantedController, TriggeredAttackingPlayer,
-// TriggeredActivator -- 0.7% of the corpus's optional triggers, and none of
-// them in a mode this milestone implements) name a player this engine's
-// pendingTrigger cannot derive, because events.Event carries no attacking
-// player, no activator and no enchant link. Those fall back to asking the
-// controller. A human is still asked and no outcome is assumed, but it can
-// ask the wrong human, so it is a real gap and not a silent approximation.
-// Closing it needs the trigger to capture the player at
-// match time, which is a change to what checkTriggers records.
+// LIMITATION: the remaining ten T: lines (TriggeredPlayer, EnchantedController,
+// TriggeredAttackingPlayer, TriggeredActivator, on Phase, SpellCast,
+// AttackersDeclared and AttackerUnblocked triggers; 0.7% of the corpus's
+// optional triggers) have no case in deciderFromSpec, so they ask the controller.
+// A human is still asked and no outcome is assumed, but it can ask the wrong
+// human, so it is a real gap and not a silent approximation. TriggerContext
+// already carries the triggering player, the attacking player and the activator;
+// the enchanted controller would read the source's attachment.
 func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optional, askable bool) {
 	// A Miracle offer is always optional and its decider is always the
 	// owner (the controller of the drawn card). It has no T: line to read, so

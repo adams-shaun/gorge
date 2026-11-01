@@ -45,7 +45,7 @@ const track = (props: TrackProps) => render(PhaseTrack, { props }).html;
 const seated = (v: View, st: Stops) =>
   track({ view: v, seats, seat: 1, stops: st, onToggle: () => {} });
 
-describe('PhaseTrack — the clock', () => {
+describe('PhaseTrack', () => {
   it('draws all twelve wire steps, in engine order, grouped into the five phases', () => {
     const html = seated(view(1, 'main1'), stops([], []));
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
@@ -64,12 +64,8 @@ describe('PhaseTrack — the clock', () => {
   });
 
 
-  it('keeps only the round in the cell row and drops both halves of the old head row', () => {
+  it('leaves whose turn it is to the centre strip', () => {
     const html = seated(view(1, 'upkeep'), stops([], []));
-    expect(html).toContain('data-clock');
-    expect(html).toContain('aria-label="Round 2"');
-    expect(html).not.toContain('class="head"');
-    expect(html).not.toContain('data-hint');
     expect(html).not.toMatch(/Click a step|Your turn|’s turn/);
     // The modifier remains discoverable at the control that uses it.
     expect(cell(html, 'upkeep')).toMatch(/title="[^"]*Shift-click/);
@@ -142,13 +138,13 @@ describe('PhaseTrack — stops', () => {
     expect(cell(theirs, 'main2')).toContain('aria-pressed="false"');
   });
 
-  it('a spectator gets the same clock with nothing focusable and no instruction row', () => {
+  it('a spectator gets the same track with nothing focusable and no instruction row', () => {
     const html = track({ view: view(0, 'main1'), seats });
     expect(html).toContain('data-phase-track');
     expect(html).not.toContain('<button');
     expect(html).not.toContain('aria-pressed');
     expect(html).not.toContain('data-hint');
-    // the step is still marked: the clock is the point, the stops are extra
+    // the step is still marked: the track is the point, the stops are extra
     expect(cell(html, 'main1')).toContain('aria-current="step"');
     expect(html).not.toMatch(/Your turn|’s turn/);
   });

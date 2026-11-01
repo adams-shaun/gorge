@@ -119,7 +119,7 @@
   ></span>
   <span class="turn" data-turn-label>Turn <b>{view.turn || 1}</b><small>{whose}</small></span>
   <div class="track" data-centre-instrument>
-    <PhaseTrack {view} {seats} {seat} {stops} {onToggle} clock={false} />
+    <PhaseTrack {view} {seats} {seat} {stops} {onToggle} />
   </div>
   {#if controlsLive && controls}
     <div class="controls">
