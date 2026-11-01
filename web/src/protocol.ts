@@ -433,7 +433,7 @@ export interface CardView {
   /**
    * AttackingPlayer is the seat this creature is attacking while
    * Attacking is true, nil otherwise; BlockedBy lists the creatures
-   * blocking it. Both exist for the arrow overlay (PL-17) and come
+   * blocking it. Both exist for the arrow overlay and come
    * straight from the object's combat fields, which EndCombatReset clears.
    */
   attacking_player?: number | null;
@@ -616,8 +616,7 @@ export interface PotentialAction {
    * complete, or whose missed abilities a relaxation of them still cannot
    * pay (decision.PotentialUnpayableCasts). It is what
    * lets a client withhold a "tap other mana first" affordance that no
-   * amount of tapping can satisfy
-   * (fb-20261006T100405Z). nil (omitted) for every other kind, for a cast
+   * amount of tapping can satisfy. nil (omitted) for every other kind, for a cast
    * in an alternative/additional-cost mode, for a cast outside the hand and
    * command zone, and for every verdict that is not a proof --
    * "unsupported" (a shape the planner does not price, e.g. Delve),
@@ -1178,8 +1177,8 @@ export interface Option {
    * Forge notation AbilityCosts uses (engine/rules/mana.go's formatCost over
    * ParseCost of the ability's Cost$ param) — "T Sac<1/Lion's Eye Diamond>"
    * for Lion's Eye Diamond, "T PayLife<1>" for Mana Confluence. It is the
-   * wire marker the client's empty-priority-window floor and auto-pass need
-   * (fb-20260917T192520Z-26136705): isActionKind excludes every "activate"
+   * wire marker the client's empty-priority-window floor and auto-pass need:
+   * isActionKind excludes every "activate"
    * because a bare tap is offered at every window and is not a play, but a
    * costly activation is exactly the play a ritual-combo deck needs the
    * window for, and an empty hand leaves it the window's ONLY action — the

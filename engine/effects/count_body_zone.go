@@ -167,7 +167,6 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		}
 		if multi != nil {
 			// A comma-joined zone list (Count$ValidGraveyard,Exile,
-			// ValidBattlefield,Graveyard, ValidBattlefield,Command --
 			// ValidBattlefield,Graveyard, ValidBattlefield,Command):
 			// the single-zone scan over each named zone in turn,
 			// the shared stack once. Each candidate is matched against its
