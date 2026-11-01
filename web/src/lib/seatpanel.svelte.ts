@@ -48,7 +48,7 @@ import {
   type RememberedStore,
 } from './remembered';
 
-import { actedOption, actedPayment, answersByToggle, followUpArm, identicalTriggerOrder, isConcede, optionAt, paymentActionForBase, pickOption, primaryOf, triggerOrderPermutation, unpickOption } from './prompts/decision';
+import { actedOption, actedPayment, answersByToggle, followUpArm, identicalTriggerOrder, isConcede, namedDecision, optionAt, paymentActionForBase, pickOption, primaryOf, triggerOrderPermutation, unpickOption } from './prompts/decision';
 import { MAX_DIGIT, renderedOrder } from './prompts/order';
 import { attackAllPicks, noAttackAllowed, noBlocksAllowed } from './prompts/combat';
 import { manaWindow, windowAction } from './announcepay';
@@ -131,6 +131,8 @@ export class SeatPanelState {
 
   /** pending is the decision this seat must answer right now, or null when the game is waiting on someone else. */
   pending = $state<Decision | null>(null);
+  /** The view the last adopted decision came with, for the names on its options. */
+  private board: View | null = null;
   /** picked holds the chosen option indices, in click order: for a permutation decision the ORDER is the answer (Chosen returns options in client order), so picks must never be reordered. */
   picked = $state<number[]>([]);
   /** postedSeq is the seq of the last intent the server accepted; while the pending decision has this seq the answer is in and the options stay hidden. */
@@ -1748,7 +1750,8 @@ export class SeatPanelState {
    * resolving. A decision whose seq we already answered is ignored — a
    * stale view must not re-open answered options.
    */
-  adoptView(d: Decision | null) {
+  adoptView(d: Decision | null, board: View | null = null) {
+    this.board = board;
     this.adopt(d);
   }
 
@@ -1763,7 +1766,7 @@ export class SeatPanelState {
     if (d.seq < this.seqHigh) return;
     this.seqHigh = d.seq;
     this.cancelPassWait();
-    this.pending = d;
+    this.pending = namedDecision(d, this.board);
     this.postedSeq = null;
     this.picked = [];
     this.confirming = false;

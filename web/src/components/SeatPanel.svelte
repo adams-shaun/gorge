@@ -55,14 +55,14 @@
   // the panel's first paint already carries the decision — including on the
   // server, where effects never run.
   // svelte-ignore state_referenced_locally
-  logic.adoptView(view.decision ?? null);
+  logic.adoptView(view.decision ?? null, view);
 
   // The pending decision comes from view.decision (the seat-scoped view at
   // head carries exactly the decision asked of this seat); fetchPending on
   // mount covers the first-view race and is the recovery path after a
   // rejected intent.
   $effect(() => {
-    logic.adoptView(view.decision ?? null);
+    logic.adoptView(view.decision ?? null, view);
   });
   onMount(() => {
     void logic.refreshPending();

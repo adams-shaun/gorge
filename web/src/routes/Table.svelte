@@ -176,7 +176,7 @@
       // Seed the first SSR/client paint. SeatPanel's effect keeps later views
       // adopted; doing the first one here lets the route place mulligan and
       // the page-level concede control correctly before that child mounts.
-      state.adoptView(m.view?.decision ?? null);
+      state.adoptView(m.view?.decision ?? null, m.view);
       panelCache = { match: mm, state };
     }
     return panelCache.state;

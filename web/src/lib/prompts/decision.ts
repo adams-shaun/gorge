@@ -1,4 +1,4 @@
-import type { Decision, Option, PaymentAction, PaymentPlan, PaymentSelection } from '../../protocol';
+import type { Decision, Option, PaymentAction, PaymentPlan, PaymentSelection, View } from '../../protocol';
 import { isPlainManualTap } from '../manualmana';
 import { isActionKind } from '../autopilot';
 
@@ -306,4 +306,35 @@ export function genericListOptions(
     && opt.index !== primary?.index
     && !paymentBases.has(opt.index)
     && !(hideManualMana && isPlainManualTap(opt)));
+}
+
+function nameOnBoard(v: View | null, obj: number | undefined): string | null {
+  if (!v || !obj) return null;
+  for (const s of v.stack) if (s.id === obj && s.name) return s.name;
+  for (const p of v.players) for (const z of [p.hand ?? [], p.battlefield, p.graveyard, p.exile, p.command]) for (const c of z) if (c.id === obj && c.name) return c.name;
+  return null;
+}
+
+function fillSelfName(text: string, name: string | null): string {
+  const self = name ?? 'This';
+  return text.replace(/\bCARDNAME\b/g, self).replace(/\bNICKNAME\b/g, name?.split(/[ ,]/)[0] ?? self);
+}
+
+/**
+ * namedDecision writes the card's name over Forge's CARDNAME and NICKNAME in
+ * what a player reads on a decision: a mode, a trigger to order, an ability.
+ * The name is the option's own card, then the name a trigger label leads with,
+ * then the decision's source.
+ */
+export function namedDecision(d: Decision, v: View | null): Decision {
+  if (!/\b(CARDNAME|NICKNAME)\b/.test([d.prompt, ...d.options.map((o) => o.label)].join(' '))) return d;
+  const source = nameOnBoard(v, d.source);
+  return {
+    ...d,
+    prompt: fillSelfName(d.prompt, source),
+    options: d.options.map((o) => {
+      const named = nameOnBoard(v, o.obj) ?? o.label.match(/^([^:]+): /)?.[1] ?? source;
+      return { ...o, label: fillSelfName(o.label, named) };
+    }),
+  };
 }
