@@ -880,6 +880,10 @@ exactly as they do without the flag, every ask included, and no v2 request opens
   routes and ManaBrew count as another wire. The open request closes and every later decision goes natively, until the
   next read attaches the seat again. With a stream open the seat stays attached: the request closes and the next
   decision opens one. A client posts a tap natively that way.
+- **`asks=native` on a `state` read or `stream` connection leaves the host's own answers to the client.** A mana ability's
+  colour ask, a triggered cost's pay-or-decline, a mana window, the division of damage and a flexible pip's payment each come
+  as a `native_only` request, for a client that puts them to a person. The last read to attach decides, so a read without it
+  turns them back over to the host.
 - **Closing a stream changes nothing by itself.** The seat keeps its open request and partial picks, so a reconnect
   carries on, and the next native answer hands it back. A connection the server hasn't yet seen close still counts as
   open.
@@ -894,7 +898,8 @@ whichever wire answered it.
 gorge's web client plays a seat over these routes when the player's Protocol setting is SpellBench v2 and the page
 carries `<meta name="gorge-sbv2">`, which gorged serves with `-sbv2`. It renders from `x_gorge_view_v1`. The panel
 answers a whole native decision, so `ops` turn that answer into one candidate per substep, and a substep ordering a
-`followups` decision is shown as that decision.
+`followups` decision is shown as that decision. It attaches with `asks=native`, so a player chooses a land's colour, pays or
+declines a triggered cost, divides damage and pays a Phyrexian pip with mana or life, and Undo steps back through those answers.
 
 A mana-costed play with no payment plan, such as an X spell or an equip, is offered only once the mana floats, and
 v2 has no candidate for a tap. The client posts a tap on the native routes with the same token, and the next request

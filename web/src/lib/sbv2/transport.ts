@@ -4,7 +4,10 @@ import type { Sbv2Request, Sbv2Send } from './wire';
 
 const enc = encodeURIComponent;
 const root = (t: string, k: number) => withBase(`/api/sbv2/v1/tables/${enc(t)}/matches/${k}`);
-export const streamURL = (t: string, k: number, token: string) => `${root(t, k)}/stream?token=${enc(token)}`;
+// asks=native: a person answers the asks the host otherwise answers for a v2
+// agent (a land's colour, a triggered cost, a division), so the server poses them
+// as native_only requests.
+export const streamURL = (t: string, k: number, token: string) => `${root(t, k)}/stream?asks=native&token=${enc(token)}`;
 
 async function refusal(res: Response): Promise<WireError> {
   const body = (await res.json().catch(() => ({}))) as { error?: string; code?: string; message?: string };
@@ -19,7 +22,7 @@ function requestOf(raw: unknown): Sbv2Request | null {
 
 /** fetchState is GET …/state: the seat's open request, or null between decisions. */
 export async function fetchState(t: string, k: number, token: string): Promise<Sbv2Request | null> {
-  const res = await bounded(`${root(t, k)}/state?token=${enc(token)}`, { headers: { Accept: 'application/json' } });
+  const res = await bounded(`${root(t, k)}/state?asks=native&token=${enc(token)}`, { headers: { Accept: 'application/json' } });
   if (!res.ok) throw await refusal(res);
   return requestOf(await res.json().catch(() => null));
 }

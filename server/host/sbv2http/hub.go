@@ -75,6 +75,9 @@ type seatState struct {
 	// holds counts the v2 connections that keep the seat attached through a
 	// native answer: open streams, and sends while they submit.
 	holds int
+	// leaveAsks says the last client to attach answers the asks the codec
+	// otherwise answers itself, on the native routes.
+	leaveAsks bool
 }
 
 func newSeatState() *seatState {
@@ -105,10 +108,12 @@ func (s *seatState) unbind() {
 	s.mu.Unlock()
 }
 
-// attach is what a v2 read does: it hands the seat to the codec.
-func (s *seatState) attach() {
+// attach is what a v2 read does: it hands the seat to the codec. leaveAsks is
+// that read's asks=native.
+func (s *seatState) attach(leaveAsks bool) {
 	s.mu.Lock()
 	s.claimed = true
+	s.leaveAsks = leaveAsks
 	codec := s.codec
 	s.mu.Unlock()
 	if codec != nil {
@@ -197,6 +202,13 @@ func (s *seatState) finish(req *request) {
 	}
 	s.mu.Unlock()
 	req.finish()
+}
+
+// leavesAsks implements humanseat.Config.LeaveAsks.
+func (s *seatState) leavesAsks() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.leaveAsks
 }
 
 // NativeOnly implements humanseat.Answerer. It publishes a candidate-less
@@ -349,7 +361,7 @@ func (h *Hub) Tap(table host.TableID, match int, autoPayMana bool, mc *bots.Matc
 	s := h.seat(seatKey{table: table, match: match, seat: state.PlayerID(mc.Seat)})
 	ext := newExtensionBuilder()
 	s.setExtension(ext)
-	codec, err := humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: s, Extend: ext.Extend, NameWindow: mapping.MaxCandidates, Held: s.held})
+	codec, err := humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: s, Extend: ext.Extend, NameWindow: mapping.MaxCandidates, Held: s.held, LeaveAsks: s.leavesAsks})
 	if err != nil {
 		return nil, err
 	}
