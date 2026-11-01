@@ -10,8 +10,13 @@ import (
 // deliberately does NOT re-implement the payment grammar: whether a payment
 // may spend a batch is decided in engine/rules/ (restrictValidMatches), and engine/view/
 // does not import rules/. What lives here is a light formatter for the
-// common Forge RestrictValid$ shapes the corpus carries, with the raw Valid$
-// string as an honest fallback for anything it does not recognise.
+// Forge RestrictValid$ shapes the corpus carries (TestEveryCorpusRestrictionReadsAsPlainWords),
+// with a plain generic sentence for a shape it does not recognise, so a script
+// string never reaches a player.
+
+// restrictionFallback states a restriction whose shape the formatter does not
+// model.
+const restrictionFallback = "spend only as its source allows"
 
 // poolRestrictions projects a seat's restricted batches. nil (an absent JSON
 // key) when the seat holds none, or when none of its batches carry a spend
@@ -63,41 +68,82 @@ func sourceChosenType(g *state.Game, source state.ObjID) string {
 // when there is no restriction to state. A comma-separated Valid$ is OR
 // semantics (engine/rules/stack.go's restrictValidMatches), so the alternatives are
 // joined with " or ". If ANY alternative is a shape the formatter does not
-// model, the whole string falls back to the raw Valid$ -- a half-prosed,
-// half-raw mixture would read as though the raw half were prose.
+// model, the whole string falls back to restrictionFallback: naming only some
+// alternatives would read as the whole restriction.
 func humanizeRestrictValid(g *state.Game, source state.ObjID, valid string) string {
+	text, ok := restrictSentence(g, source, valid)
+	if !ok {
+		return restrictionFallback
+	}
+	return text
+}
+
+// restrictSentence is humanizeRestrictValid's sentence, with ok false for a
+// shape it does not model.
+func restrictSentence(g *state.Game, source state.ObjID, valid string) (string, bool) {
 	valid = strings.TrimSpace(valid)
-	if valid == "" {
-		return ""
+	switch valid {
+	case "":
+		return "", true
+	case "CantCastNonArtifactSpells":
+		return "can't be spent to cast nonartifact spells", true
+	case "CantCastSpellFromHand":
+		return "can't be spent to cast spells from your hand", true
+	case "CantPayGenericCosts":
+		return "can't be spent on generic costs", true
 	}
 	terms := strings.Split(valid, ",")
 	parts := make([]string, 0, len(terms))
 	for _, term := range terms {
 		p, ok := humanizeRestrictTerm(g, source, strings.TrimSpace(term))
 		if !ok {
-			return valid
+			return "", false
 		}
 		parts = append(parts, p)
 	}
-	return "spend only to " + strings.Join(parts, " or ")
+	return "spend only to " + strings.Join(parts, " or "), true
 }
 
 // humanizeRestrictTerm humanises one comma-separated alternative. ok is false
 // for a shape it does not model, so the caller can fall back honestly.
 func humanizeRestrictTerm(g *state.Game, source state.ObjID, term string) (string, bool) {
-	if term == "" {
+	switch term {
+	case "":
 		return "", false
+	case "Spell":
+		return "cast a spell", true
+	case "Activated", "nonSpell":
+		return "activate an ability", true
+	case "CumulativeUpkeep":
+		return "pay cumulative upkeep", true
+	case "CostContainsX":
+		return "pay a cost with {X}", true
+	case "CostContainsC":
+		return "pay a cost with {C}", true
+	case "Spell.Disturb":
+		return "pay a disturb cost", true
+	case "Activated.Equip":
+		return "equip", true
+	case "Activated.ClassLevelUp":
+		return "level up a Class", true
+	case "Activated.PowerUp":
+		return "activate a power-up ability", true
+	case "Static.Unlock":
+		return "unlock a door", true
+	case "Static.Foretelling":
+		return "foretell a card", true
+	case "Static.isTurnFaceUp":
+		return "turn a permanent face up", true
+	case "Static.isTurnFaceUp+Creature":
+		return "turn a creature face up", true
+	case "Static.ManifestUp+Creature":
+		return "turn a manifested creature face up", true
+	case "Static.MorphUp":
+		return "pay a morph cost", true
 	}
 	kind, spec, dotted := strings.Cut(term, ".")
 	if !dotted {
-		switch term {
-		case "Spell":
-			return "cast a spell", true
-		case "Activated", "nonSpell":
-			return "activate an ability", true
-		default:
-			return "", false
-		}
+		return "", false
 	}
 	switch kind {
 	case "Spell":
@@ -120,12 +166,10 @@ func humanizeRestrictTerm(g *state.Game, source state.ObjID, term string) (strin
 // humanizeSpec turns a dotted term's spec into a noun phrase ("a creature
 // spell", "a Demon creature spell", "an artifact ability"), resolving
 // ChosenType against the producing permanent's recorded choice. ok is false
-// for any qualifier that is not a card type, supertype or colour -- the
-// honest raw-string fallback -- so exotic provenance tokens
-// (wasCastFromYourHand, MultiColor, ...) never become misleading prose.
+// for a qualifier it does not model.
 func humanizeSpec(g *state.Game, source state.ObjID, spec, noun string) (string, bool) {
 	chosen := sourceChosenType(g, source)
-	var types []string
+	var subtypes, words, after []string
 	hasChosen := false
 	for q := range strings.SplitSeq(spec, "+") {
 		q = strings.TrimSpace(q)
@@ -136,39 +180,121 @@ func humanizeSpec(g *state.Game, source state.ObjID, spec, noun string) (string,
 		case q == "ChosenType":
 			hasChosen = true
 		case knownSpecWord(q):
-			types = append(types, strings.ToLower(q))
+			words = append(words, strings.ToLower(q))
+		case specWord(q) != "":
+			words = append(words, specWord(q))
+		case specAfter(q) != "":
+			after = append(after, specAfter(q))
+		case subtypeWord(q):
+			subtypes = append(subtypes, q)
 		default:
 			return "", false
 		}
 	}
-	// A bare `Spell.`/`Activated.` spec (restriction on the class alone) is
-	// already handled by the bare-term branch; treat it as a plain noun.
+	lead := append(subtypes, words...)
 	if hasChosen {
 		if chosen == "" {
 			// The source has left the battlefield or recorded no type: name
 			// the shape honestly rather than inventing one.
-			if len(types) == 0 {
-				return "a creature " + noun + " of the chosen type", true
+			if len(lead) == 0 {
+				lead = []string{"creature"}
 			}
-			phrase := strings.Join(types, " ")
-			return article(phrase) + " " + phrase + " " + noun + " of the chosen type", true
+			after = append([]string{"of the chosen type"}, after...)
+		} else {
+			lead = append([]string{chosen}, lead...)
 		}
-		phrase := chosen
-		if len(types) > 0 {
-			phrase += " " + strings.Join(types, " ")
+	}
+	phrase := strings.Join(append(lead, noun), " ")
+	if len(after) > 0 {
+		phrase += " " + strings.Join(after, " ")
+	}
+	return article(phrase) + " " + phrase, true
+}
+
+// specWord is the modifier a script qualifier reads as before the noun, or "".
+func specWord(q string) string {
+	switch q {
+	case "nonCreature":
+		return "noncreature"
+	case "nonColorless":
+		return "colored"
+	case "MultiColor":
+		return "multicolored"
+	case "MonoColor":
+		return "monocolored"
+	case "Permanent":
+		return "permanent"
+	case "Kicked":
+		return "kicked"
+	case "isCastFaceDown":
+		return "face-down"
+	case "IsCommander":
+		return "commander"
+	}
+	return ""
+}
+
+// specAfter is the phrase a script qualifier reads as after the noun, or "".
+func specAfter(q string) string {
+	switch q {
+	case "ChosenColor":
+		return "of the chosen color"
+	case "numColorsEQ3":
+		return "with exactly three colors"
+	case "NoAbilities":
+		return "with no abilities"
+	case "hasXCost":
+		return "with {X} in its cost"
+	case "!hasXCost":
+		return "without {X} in its cost"
+	case "wasCastFromYourGraveyard":
+		return "from your graveyard"
+	case "wasCastFromGraveyard":
+		return "from a graveyard"
+	case "wasCastFromExile":
+		return "from exile"
+	case "!wasCastFromYourHand":
+		return "from anywhere but your hand"
+	case "YouOwn":
+		return "you own"
+	case "YouDontOwn":
+		return "you don't own"
+	case "IsRemembered":
+		return "exiled with its source"
+	case "withDevoid":
+		return "with devoid"
+	case "withFlashback":
+		return "with flashback"
+	case "withForetell":
+		return "with foretell"
+	case "withFreerunning":
+		return "with freerunning"
+	}
+	if v, ok := strings.CutPrefix(q, "cmcGE"); ok && v != "" {
+		return "with mana value " + v + " or greater"
+	}
+	return ""
+}
+
+// subtypeWord reports whether a qualifier reads as a printed subtype: every
+// word capitalised once ("Dragon", "Time Lord"). A script predicate is camel
+// case ("IsRemembered"), so it fails closed.
+func subtypeWord(q string) bool {
+	for word := range strings.SplitSeq(q, " ") {
+		if len(word) < 2 || word[0] < 'A' || word[0] > 'Z' {
+			return false
 		}
-		return article(phrase) + " " + phrase + " " + noun, true
+		for i := 1; i < len(word); i++ {
+			if word[i] < 'a' || word[i] > 'z' {
+				return false
+			}
+		}
 	}
-	if len(types) == 0 {
-		return article(noun) + " " + noun, true
-	}
-	phrase := strings.Join(types, " ")
-	return article(phrase) + " " + phrase + " " + noun, true
+	return true
 }
 
 // knownSpecWord reports whether a spec qualifier is a card type, supertype or
-// colour that reads naturally as a noun modifier. Anything else fails closed
-// to the raw Valid$ fallback.
+// colour that reads naturally as a noun modifier.
 func knownSpecWord(q string) bool {
 	switch strings.ToLower(q) {
 	case "artifact", "battle", "creature", "enchantment", "instant", "land",

@@ -15,11 +15,16 @@ package view
 
 import (
 	"encoding/json"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // restrictionBoard builds a 2-seat game whose seat 0 has a Cavern-of-Souls
@@ -137,45 +142,71 @@ func TestPoolRestrictionsOmittedWhenEmpty(t *testing.T) {
 	}
 }
 
-// TestRestrictedManaExoticValidFallsBackRaw pins the honest floor: a Valid$
-// shape the formatter does not model is projected as its raw string rather
-// than guessed at into prose, and a comma-separated all-common shape reads as
-// an "or" list.
-func TestRestrictedManaExoticValidFallsBackRaw(t *testing.T) {
-	g := state.NewGame([]string{"alice", "bob"})
-	g.Players[0].Pool[state.MB] = 1
-	g.Players[0].RestrictedMana = []state.ManaRestriction{
-		{Color: "B", Amount: 1, Valid: "Spell.MultiColor"},
-	}
-	v := Project(g, flatChars{g}, 0, nil)
-	var pv PlayerView
-	for _, p := range v.Players {
-		if p.ID == 0 {
-			pv = p
+// TestRestrictedManaUnknownShapeReadsPlainly pins the fallback: a shape the
+// formatter does not model reads as a generic sentence, never as the script
+// string, and one unknown alternative falls the whole restriction back so
+// the known half does not read as all of it.
+func TestRestrictedManaUnknownShapeReadsPlainly(t *testing.T) {
+	for _, valid := range []string{"Spell.someNewPredicate", "Spell.Creature,Spell.someNewPredicate", "someNewToken"} {
+		if got := humanizeRestrictValid(nil, 0, valid); got != restrictionFallback {
+			t.Errorf("humanizeRestrictValid(%q) = %q, want the fallback", valid, got)
 		}
 	}
-	if len(pv.PoolRestrictions) != 1 {
-		t.Fatalf("projects %d restrictions, want 1", len(pv.PoolRestrictions))
-	}
-	if pv.PoolRestrictions[0].Text != "Spell.MultiColor" {
-		t.Fatalf("exotic Valid$ text = %q, want the raw fallback", pv.PoolRestrictions[0].Text)
-	}
+}
 
-	// Two common alternatives join with "or" (comma is OR semantics).
-	g2 := state.NewGame([]string{"alice", "bob"})
-	g2.Players[0].Pool[state.MB] = 1
-	g2.Players[0].RestrictedMana = []state.ManaRestriction{
-		{Color: "B", Amount: 1, Valid: "Spell.Instant,Spell.Sorcery"},
-	}
-	v2 := Project(g2, flatChars{g2}, 0, nil)
-	var pv2 PlayerView
-	for _, p := range v2.Players {
-		if p.ID == 0 {
-			pv2 = p
+// TestRestrictionWording pins the sentence for each family of script shapes.
+func TestRestrictionWording(t *testing.T) {
+	for _, tc := range []struct{ valid, want string }{
+		{"Spell.Instant,Spell.Sorcery", "spend only to cast an instant spell or cast a sorcery spell"},
+		{"Spell.Dragon,Activated.Dragon+inZoneBattlefield", "spend only to cast a Dragon spell or activate a Dragon ability"},
+		{"Spell.Time Lord", "spend only to cast a Time Lord spell"},
+		{"Spell.Creature+Dragon", "spend only to cast a Dragon creature spell"},
+		{"Spell.nonCreature", "spend only to cast a noncreature spell"},
+		{"Spell.MultiColor", "spend only to cast a multicolored spell"},
+		{"Spell.cmcGE4", "spend only to cast a spell with mana value 4 or greater"},
+		{"Spell.nonColorless+!hasXCost", "spend only to cast a colored spell without {X} in its cost"},
+		{"Spell.wasCastFromExile", "spend only to cast a spell from exile"},
+		{"Spell.IsCommander+YouOwn", "spend only to cast a commander spell you own"},
+		{"Spell.Equipment,Activated.Equip", "spend only to cast an Equipment spell or equip"},
+		{"Static.Unlock,Spell.Room", "spend only to unlock a door or cast a Room spell"},
+		{"CumulativeUpkeep", "spend only to pay cumulative upkeep"},
+		{"CantPayGenericCosts", "can't be spent on generic costs"},
+	} {
+		if got := humanizeRestrictValid(nil, 0, tc.valid); got != tc.want {
+			t.Errorf("humanizeRestrictValid(%q) = %q, want %q", tc.valid, got, tc.want)
 		}
 	}
-	if want := "spend only to cast an instant spell or cast a sorcery spell"; pv2.PoolRestrictions[0].Text != want {
-		t.Fatalf("two-alternative text = %q, want %q", pv2.PoolRestrictions[0].Text, want)
+}
+
+// TestEveryCorpusRestrictionReadsAsPlainWords walks every RestrictValid$ in the
+// card corpus: each must have a sentence of its own. A new shape fails here
+// rather than reaching a player as the generic fallback.
+func TestEveryCorpusRestrictionReadsAsPlainWords(t *testing.T) {
+	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
+	param := regexp.MustCompile(`RestrictValid\$ ([^|\n]*)`)
+	shapes := 0
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		text, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		for _, m := range param.FindAllSubmatch(text, -1) {
+			valid := strings.TrimSpace(string(m[1]))
+			shapes++
+			if _, ok := restrictSentence(nil, 0, valid); !ok {
+				t.Errorf("%s: no sentence for RestrictValid$ %q", filepath.Base(path), valid)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if shapes == 0 {
+		t.Fatal("found no RestrictValid$ in the corpus")
 	}
 }
 

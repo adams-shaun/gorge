@@ -384,8 +384,7 @@ type PlayerView struct {
 // sees it: the produced symbol verbatim (a bare WUBRGC letter, an "S<colour>"
 // snow unit or a "<Tag><colour>" typed unit, exactly ManaRestriction.Color),
 // the unit count, and Text -- a sentence naming what the mana may be spent
-// on, or the raw Valid$ string when the formatter does not recognise the
-// shape (an honest floor).
+// on.
 type PoolRestrictionView struct {
 	Color  string `json:"color"`
 	Amount int32  `json:"amount"`
