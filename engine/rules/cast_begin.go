@@ -152,8 +152,8 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 	}
 
 	var optionalCost Cost
-	// Which cost this pays is opt.AltCostIndex, not always adjustedCost
-	// (Ruling T19b-b): legalActions gates each "cast" option on that
+	// Which cost this pays is opt.AltCostIndex, not always adjustedCost:
+	// legalActions gates each "cast" option on that
 	// specific option's own cost being payable, so beginCast must charge
 	// that same cost. An out-of-range AltCostIndex (a stale option from a
 	// board state that no longer holds the granting static) falls back to
@@ -365,7 +365,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			cost = cost.Plus(raise)
 		}
 	case castModeMiracle:
-		// Task 18: a Miracle cast pays the printed Miracle cost (CR 702.93d) in
+		// A Miracle cast pays the printed Miracle cost (CR 702.93d) in
 		// place of the card's normal cost. KeywordCostParam reads the keyword's
 		// first colon-field off the face;
 		// a missing keyword (offer routed here only from a Miracle offer, and
@@ -394,7 +394,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// reads: a continuous grant (Six's "nonland permanent cards in your
 		// graveyard have retrace") is not on the printed face, and reading
 		// f here offered the grant's cast but charged no discard -- a free
-		// graveyard recast loop (fuzz batch6 line 1, Jeweled Lotus).
+		// graveyard recast loop (Jeweled Lotus).
 		if e.hasKeywordH(id, kwhRetrace) {
 			cost = cost.Plus(retraceExtra())
 		}
@@ -874,7 +874,7 @@ func (e *Engine) effectLandPlayRefusal(p state.PlayerID, id state.ObjID, from st
 // cast's do (CR 118.9 / 601.2f). The card must still be on the stack of the
 // suspended Play resolution when this runs; a malformed answer degrades to a
 // logged no-op rather than panic. replaceGraveyard carries the Play SA's
-// ReplaceGraveyard$ Exile rider (task replplay1): true stamps the played
+// ReplaceGraveyard$ Exile rider: true stamps the played
 // spell's pay-time CastInfo with state.FlagReplaceGraveyard so the resolution
 // reader exiles it instead of the graveyard. manaConversion carries the Play
 // SA's ManaConversion$ rider (Quistis Trepe, Tinybones, the Pickpocket) onto

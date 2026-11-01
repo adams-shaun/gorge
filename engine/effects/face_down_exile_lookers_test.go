@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g64: a Dig take the chooser LOOKED at (a real choice records the look)
+// A Dig take the chooser LOOKED at (a real choice records the look)
 // and then exiles face down records the chooser in the may-look layout, so
 // the view shows that seat the face (CR 406.3). A blind take (no look) keeps
 // the plain marker.

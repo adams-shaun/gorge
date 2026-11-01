@@ -15,8 +15,8 @@ func init() { Register("Clone", effClone) }
 // effClone implements DB$ Clone (api:Clone), CR 613.1a's layer-1 copy: an
 // EXISTING permanent becomes a copy of another object. It is the ONE
 // primitive both clone routes call -- the standalone "CARDNAME becomes a copy
-// of target creature" family (Vesuvan Doppelganger, Lazav, Body Double) and,
-// once the ETB-copy replacement ticket lands, the "you may have it enter as a
+// of target creature" family (Vesuvan Doppelganger, Lazav, Body Double) and
+// the "you may have it enter as a
 // copy" family (Vizier of Many Faces), whose body is the same DB$ Clone with
 // CloneTarget$ ReplacedCard.
 //
@@ -134,7 +134,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		// any creature on the battlefield". A real host gets the per-player
 		// pick over the eligible pool; a no-host run (an effects test double,
 		// a fuzz run) keeps the deterministic first-eligible stand-in under a
-		// Note (the R-9 no-ask contract).
+		// Note (the no-host path).
 		spec := cp.Choices
 		// ChoiceZone$ names the zone the Choices$ pick draws from. An absent
 		// value keeps the historical battlefield pool byte-for-byte; a value
@@ -307,7 +307,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 
 	// Optional$ True: the copier -- the resolving controller, who for every
 	// corpus carrier is also the become object's controller -- takes the real
-	// may-copy election (ticket api-clone-trigger-copy; Sarkhan Soul Aflame's
+	// may-copy election (Sarkhan Soul Aflame's
 	// "you may have CARDNAME become a copy of it"), answered in place via
 	// AskTape; the answered decline returns without copying. A no-host run (an effects test double, a fuzz run)
 	// keeps the deterministic take stand-in the pre-election build shipped,

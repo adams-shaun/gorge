@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The unless-payment flow (lasagna spec §9.2, E7 flow slice): the walk that
+// The unless-payment flow: the walk that
 // collects an accepted UnlessCost$'s payer-chosen components, opens the CR
 // 601.2g mana window, and settles the payment. Its state is the session's
 // UnlessPayment; every ask goes through Engine.Ask, which answers it in place
@@ -311,7 +311,7 @@ func unlessSpecialPrompt(kind string, part costvocab.CostPart) string {
 // always a non-stranding tap; options that would strand remain offered (a
 // player may make a losing tap) but after every safe one. "Done" is always
 // legal: it settles the payment (the ordinary path declines if the pool still
-// cannot cover the charge) and is the R-9 no-host-compatible completion.
+// cannot cover the charge) and is the no-host-compatible completion.
 func askUnlessMana(e Engine) {
 	u := e.Session().UnlessPayment
 	if u == nil {

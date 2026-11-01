@@ -25,7 +25,7 @@ import (
 // observe and record return immediately without building anything.
 //
 // This is the Create/Observe/Record half of spec
-// 2026-09-28-hosted-bot-packages §5.2, plus the Undo rebuild (BP-09): this
+// 2026-09-28-hosted-bot-packages §5.2, plus the Undo rebuild: this
 // file starts the feed, captures a frame at every decision of every player,
 // records the accepted intent, and replaces every live feed with a
 // RebuildFeed of the truncated log after an undo, so that a live match's
@@ -126,7 +126,7 @@ func (f *matchFeeds) record(d *decision.Decision, in decision.Intent) {
 //
 // The caller runs it under m.mu, after the swap and before projectNext (its
 // observe appends the rewound pending decision's frame to whatever feeds are
-// installed). A rebuild error is fatal for the match (D15): the feed and the
+// installed). A rebuild error is fatal for the match: the feed and the
 // log must never disagree, and the rewindToLastIntent caller crashes on the
 // returned error.
 func (f *matchFeeds) rebuild(cfg rules.Config, l *events.Log, n int) error {
@@ -150,7 +150,7 @@ func (f *matchFeeds) rebuild(cfg rules.Config, l *events.Log, n int) error {
 // report no game.Caps.SearchRoots.
 const noSearchRootsRefusal = "this engine deals no search roots"
 
-// envData builds the parkedData of one bots.EnvSeat decision — BP-08's Env
+// envData builds the parkedData of one bots.EnvSeat decision — the Env
 // dispatch (spec 2026-09-28-hosted-bot-packages §5.1). It runs inside
 // projectNext's exclusive m.mu section and is the ONLY place a match builds
 // a bots.Env:
@@ -225,7 +225,7 @@ func (m *match) envData(p state.PlayerID, dc *decision.Decision, brd *botpolicy.
 	v := view.ProjectForControlled(m.g.Board(), m.g.Chars(), p, view.Seat, controlledSeats(m.g.Board(), p), dc)
 	v.Round = view.RoundOf(m.g.Board(), m.g.Log().Events)
 	b := botpolicy.BoardFromGameInto(m.g.Board(), m.g.Chars(), p, brd).Detached()
-	// BP-10 (spec §7): a search table's Env decisions queue on the registry's
+	// A search table's Env decisions queue on the registry's
 	// FIFO search-slot gate. The flag rides parkedData (set here, under the
 	// match's exclusive lock, exactly where env above is set) so parkSeat
 	// takes the slot only for decisions that actually carry a search Env.

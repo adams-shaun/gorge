@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the greatest_power_derived_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Myrkul's Edict's choice pool reading derived power, driven through the
+// resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -53,9 +52,9 @@ func TestMyrkulsEdictChoicePoolReadsDerivedPower(t *testing.T) {
 	if sa == nil {
 		t.Fatal("Myrkul's Edict has no SacTopPower SVar")
 	}
-	// Kernel-era: the direct resolution runs as a kernel probe, so the
+	// The direct resolution runs as a kernel probe, so the
 	// ChooseCard ask is posed and the answering Submit re-executes it.
-	kr6Probe(e, func() {
+	probeDroppingPending(e, func() {
 		effects.Resolve(e, &effects.Ctx{Source: src.ID, Controller: 0, SVars: src.Face().SVars}, sa)
 	})
 

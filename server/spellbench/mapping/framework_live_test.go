@@ -1,6 +1,6 @@
 package mapping_test
 
-// Live-engine tests for the Task 13 framework pieces later tasks consume:
+// Live-engine tests for the framework pieces:
 // Accepts (oracle.go), SingleChoice (single.go), ResolveSource and MustSource
 // (source.go), NewPick (pick.go). Each one is driven through a real game
 // (envFor/untilPending), so its answers are checked against the engine itself.

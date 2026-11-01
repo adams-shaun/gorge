@@ -57,7 +57,7 @@ mount(CardTile, {
   },
 });
 
-// fb-e079def5: the two-stage mana continuation, the reported Talisman of
+// The two-stage mana continuation, the reported Talisman of
 // Indulgence flow. Stage 1 is the ability wheel the player answers THROUGH
 // the picker (postTileOption arms the follow-up expectation); the post
 // callback plays Table.svelte's other half — decode the follow-up decision
@@ -116,7 +116,7 @@ mount(CardTile, {
   },
 });
 
-// fb-20260923T020152Z: the declare-attackers wheel. Attacker options are
+// The declare-attackers wheel. Attacker options are
 // SELECTIONS in a still-pending multi-pick decision (SeatPanelState.click
 // toggles them into `picked` and posts nothing), so clicking one must post
 // its own wire index and leave the wheel open for the next attacker. A third

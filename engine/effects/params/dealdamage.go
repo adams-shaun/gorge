@@ -8,9 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// This file is api:DealDamage's parameter compiler (W4 step 3 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 8), on ChangeZone's pattern (changezone_params.go). compileDealDamage is the
+// This file is api:DealDamage's parameter compiler, on ChangeZone's pattern
+// (changezone_params.go). compileDealDamage is the
 // ONLY reader of a DealDamage ability's own parameters: the resolution
 // (damage_deal.go), the rules-side target-ask damage preview
 // (targetDamageAmount's NumDmg$), the payment planner's self-damage rider
@@ -35,7 +34,7 @@ type DealDamageParams struct {
 	// (typed_params.go's identity rule).
 	paramBinding
 
-	// NumDmg is NumDmg$, the per-recipient amount (default 0, Ruling T14-f).
+	// NumDmg is NumDmg$, the per-recipient amount (default 0).
 	NumDmg ParamText
 	// Divided is a non-empty DividedAsYouChoose$; DividedTotal is its value
 	// text (the named total divided among the chosen targets).

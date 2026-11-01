@@ -14,7 +14,7 @@ import "github.com/adams-shaun/gorge/engine/decision"
 // keeps TWO decision generations and makes the CONTRACT below the reset
 // point.
 //
-// CONTRACT (operator decision, 2026-10-06). A posed *decision.Decision, its
+// CONTRACT. A posed *decision.Decision, its
 // Options slice and everything they reference are valid only until the next
 // Submit (or Advance) on the engine that posed them. A caller that needs a
 // decision past that point must copy it, with decision.Decision.Clone() or an

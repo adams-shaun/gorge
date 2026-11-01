@@ -54,7 +54,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 105.4 | follows | `engine/effects/choose.go#effChooseColor` | - | - |
 | 105.5 | unknown | - | - | not reached |
 | 106.1-106.3 | follows | `engine/state/game.go#Player.Pool` `engine/effects/mana_effect.go#effMana` `engine/rules/cast_window.go#Engine.castWindowProbeUnits` | `TestCastWindowChosenColourPaysHybridFace` | - |
-| 106.4-106.4b | follows | `engine/rules/turn.go#Engine.finishStepBoundary` `engine/events/event.go#ManaClear` | - | pool empties between steps |
+| 106.4-106.4b | follows | `engine/rules/turn.go#Engine.finishStepBoundary` `engine/rules/turn.go#Engine.advanceStep` `engine/events/event.go#ManaClear` | `TestCR510ManaEmptiesBetweenDamageSteps` | pool empties between steps, the two combat damage steps included |
 | 106.5 | partial | `engine/rules/cast_window.go#manaAbilityAddsNothing` | `TestManaAbilityThatAddsNothingLeavesTheCensusComplete` `TestTargetMenuPricesPastASourceThatAddsNothing` | a mana ability under a Condition$ this build does not evaluate adds no mana; other undefined types not reached |
 | 106.6-106.6a | partial | `engine/effects/mana_effect.go#effMana` `engine/rules/pay/payment.go#RestrictValidMatches` | - | LOUD (gorge register RestrictValid row) |
 | 106.7-106.13 | unknown | - | - | not reached |
@@ -84,7 +84,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 113.1-113.3d | follows | `engine/cards/ir.go#SA` | - | ability IR categories |
 | 113.4 | follows | `engine/rules/mana_activation.go#Engine.activateMana` | - |  |
 | 113.5 | follows | `engine/rules/legal_loyalty.go#Engine.loyaltyAbilityLimit` | `TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly` | - |
-| 113.6 | unknown | - | - | not reached |
+| 113.6 | partial | `engine/rules/layers_static.go#Engine.stackSelfStaticOK` | `TestSpellOnTheStackGrantsNoStatic` | a spell's static functions on the battlefield unless it names the stack; the other subrules not reached |
 | 113.7a | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` `engine/rules/pile.go#abilityOwnedFace` | `TestNegatedCopiedSpellTriggersCountExiledCard` `TestActivatedAbilityResolvesWithItsFacesSVars` | an ability object's stack exit is not a card changing zones |
 | 113.7b-113.12 | unknown | - | - | not reached |
 | 114.1-114.5 | follows | `engine/effects/effect.go#effEffect` | `TestKaitoEmblemOutlivesKaito` `TestTezzeretCruelCaptainEmblemFiresEveryCombat` `TestEffectPhaseTriggerRecursEachUpkeep` | an Effect's Mode$ Phase trigger recurs at every occurrence for the Effect's lifetime (OneOff$ True and a self-exiling body end it) |
@@ -95,7 +95,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 115.4 | follows | `engine/rules/target_legal.go#Engine.legalTargetCandidates` | - | any target |
 | 115.5 | follows | `engine/rules/target_legal.go#Engine.candidatesForLimitInto` `engine/rules/cast_targets.go#Engine.targetAsk` | - | spell not its own target |
 | 115.6 | follows | `engine/rules/target_legal.go#Engine.resolvedTargetMin` | - | TargetMin$ 0 |
-| 115.7-115.7f | partial | `engine/effects/choose_control.go#effChangeTargets` | - | gorge redirect not all-or-none; copies root-only |
+| 115.7-115.7f | partial | `engine/effects/choose_control.go#effChangeTargets` `engine/rules/target_sub_offer.go#Engine.RetargetLink` `engine/rules/target_legal.go#Engine.stackKindAdmits` | `TestTargetTypeQualifiersReadAllNamedQualifiers` `TestRedirectChainLink` `TestChangeTheTargetOffersAnotherTarget` `TestChooseNewTargetsMayLeaveTheTarget` | "a single target" counts the whole chain; a redirect changes the root and then each chain link; a script without Optional$ reads as "change the targets", so a mandatory "choose new targets" (Emissary of Grudges) and a "may change" (Goblin Flectomancer) are all-or-none and asked; copies root-only |
 | 115.8 | unknown | - | - | not reached |
 | 115.9-115.9c | unknown | - | - | not reached |
 | 115.10-115.10b | follows | `engine/effects/context.go#Defined` | - | Defined$ / Ref affect without targeting |
@@ -114,7 +114,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 117.1-117.1c | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | - |
 | 117.1d | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | no manual mana abilities (documented) |
 | 117.2-117.2e | follows | `engine/rules/turn.go#Engine.priorityRound` | - | - |
-| 117.3-117.3a | follows | `engine/rules/turn.go#Engine.priorityRound` | - | - |
+| 117.3-117.3a | follows | `engine/rules/turn.go#Engine.priorityRound` `engine/rules/replacement_choice.go#Engine.handleReplacement` | `TestUntapOrderAnswerGivesActivePlayerUpkeepPriority` | - |
 | 117.3b | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | AP priority after resolution |
 | 117.3c | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | - |
 | 117.3d | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | - |
@@ -159,7 +159,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 122.1-122.1a | follows | `engine/rules/chars/derive.go#PT` `engine/state/object.go#Object.CounterPTTotals` `engine/effects/filter_type.go#canReceiveCounter` | `TestPresentDefinedGateOverTheRealCorpusBodies` | P/T counters in layer 7c; any permanent can hold one |
 | 122.1b | follows | `engine/cards/counter_keyword.go#CounterKeyword` | - |  |
 | 122.1c | follows | `engine/effects/regeneration.go#ReplaceShieldCounter` `engine/rules/shield_counter.go#Engine.shieldCounterDamageMatches` | `TestCR122_1cShieldCounterReplacesDestruction` `TestCR122_1cShieldCounterPreventsDamage` | destruction order regen > shield > umbra is a deterministic CR 616.1 stand-in |
-| 122.1d | deviates | `engine/effects/untap.go#TryUntap` | `TestBalothPrimeSacrificeTriggerRemovesAStunCounterInsteadOfUntapping` | stun spent on a doesn't-untap permanent |
+| 122.1d | follows | `engine/effects/untap.go#TryUntap` `engine/rules/untap.go#Engine.UntapBlocked` | `TestBalothPrimeSacrificeTriggerRemovesAStunCounterInsteadOfUntapping` `TestStunCounterStaysOnADoesntUntapPermanent` | a permanent that doesn't untap keeps its stun counter |
 | 122.1e | follows | `engine/rules/sba.go#Engine.planeswalkerZeroLoyalty` | `TestCombatDamageToPlaneswalkerAtZeroLoyaltyAppliesStateBasedAction` | - |
 | 122.1f | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | - | poison SBA; none in pools |
 | 122.1g | follows | `engine/rules/sba.go#Engine.battleZeroDefense` | `TestBattleEntersWithPrintedDefense` | - |

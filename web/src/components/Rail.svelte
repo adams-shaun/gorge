@@ -16,7 +16,7 @@
    * between SeatTable counts and a second ZoneViewer count panel: life, hand,
    * library, graveyard and exile now appear exactly once. Disclosable pile
    * lists open in a body-portalled modal, so they cannot consume rail height.
-   * The command zone remains on the board as art tiles (CZ1).
+   * The command zone remains on the board as art tiles.
    *
    * The rail never scrolls as a whole: every section is intrinsically sized
    * or explicitly capped except the stack FRAME (history + live stack),
@@ -66,7 +66,7 @@
     stuck?: { prompt: string; answerable: boolean } | null;
     onContinue?: (() => void) | null;
     emphasizeTop?: boolean;
-    /** the DVR's own event list, forwarded to SeatTable for the PlayerLost cause (Task: dead seats say why) and read by ResolvedCard in the stack section (fb-20260916T225456Z — the resolved card's home is this frame, not the board). The shape is structural: any object whose `event` names a kind/player/text (and, for ResolvedCard, an obj) works, so every existing caller and test keeps rendering exactly as before. Optional so those callers stay unchanged. */
+    /** the DVR's own event list, forwarded to SeatTable for the PlayerLost cause and read by ResolvedCard in the stack section (the resolved card's home is this frame, not the board). The shape is structural: any object whose `event` names a kind/player/text (and, for ResolvedCard, an obj) works, so every existing caller and test keeps rendering exactly as before. Optional so those callers stay unchanged. */
     events?: { event: { kind: string; player: number; text?: string; obj?: number } }[];
     /** showLog is whether the transcript is shown right now; the toggle below
      *  flips it. It is owned by Table.svelte (persisted per table and seat/
@@ -79,7 +79,7 @@
     onToggleLog?: (() => void) | null;
     /** logbar is optional extra content for the logbar row, rendered after
      *  the LOGS toggle in normal flex flow (Table passes the concede control
-     *  as a snippet — task fb-53bd45b9). The row owns the alignment and the
+     *  as a snippet). The row owns the alignment and the
      *  height: the snippet content is pushed to the right edge by
      *  .logbar__extra, so a control sharing the row can never float over the
      *  seat table below it — the row simply grows if the content needs more
@@ -95,8 +95,8 @@
     viewerSeat?: number | null;
     /** options is the table's card-options bundle (Table.svelte's
      *  boardOptions), forwarded to SeatTable so its pile buttons wear the
-     *  same tone ring the identity bar's pile icons wear
-     *  (fb-20260916T225802Z). Optional and null by default so every
+     *  same tone ring the identity bar's pile icons wear.
+     *  Optional and null by default so every
      *  existing caller renders exactly as before. */
     options?: CardOptions | null;
   } = $props();
@@ -114,8 +114,8 @@
   // The live decision line names the seat being asked. `seats` is the first
   // word (the table's registered name), but on the live table route it can be
   // EMPTY while the view still carries each player's own name (the one-shot
-  // seed in Table.svelte races the async tables.lookup — see the ui15
-  // report); the fallback must be that name, not the 0-based `Seat N`
+  // seed in Table.svelte races the async tables.lookup);
+  // the fallback must be that name, not the 0-based `Seat N`
   // placeholder, exactly as IdentityBar does.
   const decisionWho = $derived(
     decision === null
@@ -159,8 +159,7 @@
     </p>
   {/if}
 
-  <!-- The last resolved object's artwork (fb-20260916T225456Z; lifetime
-       narrowed by fb-20260917T231516Z; placement fb-20260923T015554Z): a
+  <!-- The last resolved object's artwork: a
        card popping OFF this stack shows in its own rail band, BEFORE the
        Stack heading — recent history the player asked to read separately,
        not a current stack member (under the heading it read as one). It
@@ -222,7 +221,7 @@
      old label — while the state stays in the affordances a switch already
      carries: the dot fills/colours with class:on and aria-checked carries
      it for assistive tech. The state WORD was dropped after a seated
-     player rejected "Hidden" as unintelligible (ui21, player feedback:
+     player rejected "Hidden" as unintelligible (player feedback:
      "the hidden button doesn't make sense. Make it LOGS text instead"). */
   .logbar {
     display: flex;

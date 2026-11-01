@@ -15,11 +15,11 @@ import "math"
 // score ranks it, and any other shape -- no choice, several, an index out of
 // range -- is -Inf.
 //
-// It is the one definition shared by the pn10 candidate prior
+// It is the one definition shared by the candidate prior
 // (bots/searchseat delegates to it), the AlphaZero search's priors
-// (bots/azmcts) and ticket 3's visit-distribution loss, which spreads a
+// (bots/azmcts) and the visit-distribution loss, which spreads a
 // subset target onto the same Bernoulli form. candidateSoftplus is kept apart
-// from the training softplus in net.go on purpose: the pn10 prior ranked with
+// from the training softplus in net.go on purpose: the prior ranked with
 // this exact function before it moved here, and the training version's +/-30
 // cut-offs would change low bits of a log-likelihood and could reorder
 // near-tied candidates.

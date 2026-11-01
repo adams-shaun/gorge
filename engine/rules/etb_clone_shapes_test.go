@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// cr-g119: the as-enters copy election (CR 614.1c, 614.12a, 707.9b) for the
+// The as-enters copy election (CR 614.1c, 614.12a, 707.9b) for the
 // bodies that name the template's zone (ChoiceZone$), a new name (NewName$),
 // the copy origin (RememberCloneOrigin$) and a reflexive chain (Superior
 // Spider-Man), plus Mockingbird's non-cast entry.
@@ -55,7 +55,7 @@ func findOn(t *testing.T, e *Engine, zone state.Zone, seat state.PlayerID, name 
 func TestEchoingDeepsPlayedEntersAsGraveyardLandCopyTapped(t *testing.T) {
 	t.Parallel()
 	raw := func(pick string) string {
-		return `{"name":"echoing-deeps","cr":["614.12a","707.9b"],"why":"cr-g119","setup":{` +
+		return `{"name":"echoing-deeps","cr":["614.12a","707.9b"],"why":"as-enters copy election","setup":{` +
 			`"p0":{"hand":["Echoing Deeps"]},"p1":{"graveyard":["Forest"]}},` +
 			`"steps":[{"op":"play","seat":0,"card":"p0:Echoing Deeps","answers":[` +
 			`{"kind":"choose","pick":["` + pick + `"]}]}],"expect":[` +
@@ -108,7 +108,7 @@ func TestEchoingDeepsPlayedEntersAsGraveyardLandCopyTapped(t *testing.T) {
 // except his name is Chameleon, Master of Disguise" (NewName$).
 func TestChameleonCopyKeepsItsName(t *testing.T) {
 	t.Parallel()
-	raw := `{"name":"chameleon","cr":["707.9b"],"why":"cr-g119","setup":{` +
+	raw := `{"name":"chameleon","cr":["707.9b"],"why":"as-enters copy election","setup":{` +
 		`"p0":{"hand":["Chameleon, Master of Disguise"],"battlefield":["Grizzly Bears"]}},` +
 		`"steps":[{"op":"cast","seat":0,"card":"p0:Chameleon, Master of Disguise","mana":"CCCU"},` +
 		`{"op":"resolve","seat":0,"answers":[{"kind":"choose","pick":["p0:Grizzly Bears"]}]}],"expect":[]}`
@@ -130,7 +130,7 @@ func TestChameleonCopyKeepsItsName(t *testing.T) {
 // 603.12, a reflexive trigger the copy election creates).
 func TestSuperiorSpiderManCopiesGraveyardCreatureAndExilesIt(t *testing.T) {
 	t.Parallel()
-	raw := `{"name":"superior-spider-man","cr":["707.9b","603.12"],"why":"cr-g119","setup":{` +
+	raw := `{"name":"superior-spider-man","cr":["707.9b","603.12"],"why":"as-enters copy election","setup":{` +
 		`"p0":{"hand":["Superior Spider-Man"]},"p1":{"graveyard":["Craw Wurm"]}},` +
 		`"steps":[{"op":"cast","seat":0,"card":"p0:Superior Spider-Man","mana":"CCUB"},` +
 		`{"op":"resolve","seat":0,"answers":[{"kind":"choose","pick":["p1:Craw Wurm"]}]}],"expect":[]}`
@@ -166,8 +166,8 @@ func TestSuperiorSpiderManCopiesGraveyardCreatureAndExilesIt(t *testing.T) {
 		t.Fatal("the exile ran inline: no reflexive trigger was put on the stack")
 	}
 	for i := 0; i < 8 && len(e.G.Stack) > 0; i++ {
-		kr6ResolveTop(e)
-		kr6Settle(e)
+		resolveTopProbe(e)
+		settleDrain(e)
 	}
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
 		t.Fatalf("unexpected pending decision: %+v", d)
@@ -188,7 +188,7 @@ func TestSuperiorSpiderManCopiesGraveyardCreatureAndExilesIt(t *testing.T) {
 func TestMockingbirdNonCastEntryCopiesOnlyManaValueZero(t *testing.T) {
 	t.Parallel()
 	raw := func(pick string) string {
-		return `{"name":"mockingbird-reanimated","cr":["614.12a","707.9b"],"why":"cr-g119","setup":{` +
+		return `{"name":"mockingbird-reanimated","cr":["614.12a","707.9b"],"why":"as-enters copy election","setup":{` +
 			`"p0":{"hand":["Reanimate"],"graveyard":["Mockingbird"]},` +
 			`"p1":{"battlefield":["Grizzly Bears","Memnite"]}},` +
 			`"steps":[{"op":"cast","seat":0,"card":"p0:Reanimate","mana":"B","targets":["p0:Mockingbird"]},` +
@@ -224,7 +224,7 @@ func TestMockingbirdNonCastEntryCopiesOnlyManaValueZero(t *testing.T) {
 // AddTypes$ Illusion exception, and the loud fallback never runs.
 func TestReanimatedPhantasmalImageGetsCopyElection(t *testing.T) {
 	t.Parallel()
-	raw := `{"name":"phantasmal-image-reanimated","cr":["614.12a","707.9b"],"why":"cr-g119","setup":{` +
+	raw := `{"name":"phantasmal-image-reanimated","cr":["614.12a","707.9b"],"why":"as-enters copy election","setup":{` +
 		`"p0":{"hand":["Zombify"],"graveyard":["Phantasmal Image"]},` +
 		`"p1":{"battlefield":["Grizzly Bears"]}},` +
 		`"steps":[{"op":"cast","seat":0,"card":"p0:Zombify","mana":"BBBC","targets":["p0:Phantasmal Image"]},` +
@@ -253,7 +253,7 @@ func TestReanimatedPhantasmalImageGetsCopyElection(t *testing.T) {
 // copy; the loud fallback never runs.
 func TestBlinkedCloneGetsCopyElection(t *testing.T) {
 	t.Parallel()
-	raw := `{"name":"clone-blinked","cr":["614.12a","707.9b"],"why":"cr-g119","setup":{` +
+	raw := `{"name":"clone-blinked","cr":["614.12a","707.9b"],"why":"as-enters copy election","setup":{` +
 		`"p0":{"hand":["Ephemerate"],"battlefield":["Clone"],"counters":{"Clone":{"P1P1":1}}},` +
 		`"p1":{"battlefield":["Grizzly Bears"]}},` +
 		`"steps":[{"op":"cast","seat":0,"card":"p0:Ephemerate","mana":"W","targets":["p0:Clone"]},` +

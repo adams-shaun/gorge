@@ -151,13 +151,12 @@ func foldTurnChange(g *state.Game, e *Event) {
 			resetTurnWatchers(&g.Players[i])
 		}
 		// g.Zone(ZBattlefield, e.Player) can only ever hold IDs that Move
-		// already confirmed are real objects, so this nil check is
-		// currently unreachable in practice -- but it is one line, it
-		// matches every other zone-walk in this switch (DeclareAttackers,
-		// DeclareBlockers) that guards g.Obj before dereferencing, and it
-		// stops that invariant from becoming a silent, easy-to-reopen
-		// panic if a future Kind ever populates a zone list some other
-		// way. Found in the same audit as Ruling T20-e.
+		// already confirmed are real objects, so this nil check is currently
+		// unreachable in practice -- but it is one line, it matches every
+		// other zone-walk in this switch (DeclareAttackers, DeclareBlockers)
+		// that guards g.Obj before dereferencing, and it stops that invariant
+		// from becoming a silent, easy-to-reopen panic if a future Kind ever
+		// populates a zone list some other way.
 		for _, id := range g.Zone(state.ZBattlefield, e.Player) {
 			if o := g.Obj(id); o != nil {
 				o.SummonSick = false

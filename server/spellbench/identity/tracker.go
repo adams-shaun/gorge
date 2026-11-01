@@ -10,7 +10,7 @@
 // that disagrees with the engine is a hard error (halted). As it folds events
 // it also records the key each stack source, target, attacked permanent and
 // blocker was taken at, so a reference whose object has since changed zones
-// can be sent as null (G1-3).
+// can be sent as null.
 //
 // London mulligans: gorge defers every redraw until each un-kept seat has
 // declared (rules/mulligan.go: handleMulligan only counts, and
@@ -62,7 +62,7 @@ type Tracker struct {
 	prev [2]map[string]bool   // keys in the viewer's last committed observation
 	cur  [2]map[string]bool   // keys minted in the observation being built; nil when closed
 	zbuf []state.Zone
-	// References that must turn null when their object changes zones (G1-3):
+	// References that must turn null when their object changes zones:
 	// the key each was taken at. gorge keeps one ObjID across zone changes, so
 	// a live ObjID alone cannot tell a stale reference from a current one.
 	sourceKeys map[state.ObjID]string   // stack ability -> its source's key when put on the stack
@@ -314,7 +314,7 @@ func (t *Tracker) LookID(viewer state.PlayerID, id state.ObjID) (string, error) 
 }
 
 // sees reports whether viewer sees o in its zone: every public zone, and its
-// own hand. It mirrors observe.Visible (Task 11), the rule that decides which
+// own hand. It mirrors observe.Visible, the rule that decides which
 // objects get a VisibleID; observe imports this package, so the rule cannot
 // be shared, and a change to either must be made to both.
 func sees(viewer state.PlayerID, o *state.Object) bool {

@@ -265,7 +265,7 @@ func foldPair(g *state.Game, e *Event) {
 
 // foldCopyToken folds Kind CopyToken into state.
 func foldCopyToken(g *state.Game, e *Event) {
-	// DB$ CopyPermanent's mint (task copyp1: Flamerush Rider, Molten
+	// DB$ CopyPermanent's mint (Flamerush Rider, Molten
 	// Echoes, the populate family). Mirrors MyriadCopy's discipline: the
 	// copy is the SOURCE CARD + face snapshot taken BEFORE AddObject
 	// (which may reallocate g.Objs), the token's printed characteristics

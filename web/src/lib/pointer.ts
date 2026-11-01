@@ -7,10 +7,10 @@ export function blurAfterPointer(e: MouseEvent): void {
 
 /**
  * pointerRelease is the `use:` action form of blurAfterPointer, for the table
- * controls outside the hot strip (hotkey-focus2): attach it once per
+ * controls outside the hot strip: attach it once per
  * focusable control — `use:pointerRelease` — instead of threading the event
  * through every inline handler. The contract is the same one the strip's
- * buttons carry (fb-20260929T080219Z):
+ * buttons carry:
  *
  *  - a POINTER click (detail > 0) releases focus afterwards, so Space and
  *    Enter return to the table hotkeys instead of re-activating whatever the

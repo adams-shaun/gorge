@@ -104,7 +104,7 @@ type engineLayerCaches struct {
 	// current board plus e.continuous, and those are exactly the two inputs
 	// the key captures -- every board change moves the log head (emit), and
 	// e.continuous changes through exactly the two mutators above. activeDepth
-	// is a re-entry guard (Task A2's forEachObject pattern): it lets a nested
+	// is a re-entry guard (the forEachObject pattern): it lets a nested
 	// Derived (HasKeyword inside a MatchesSpecFrom) atomically share the
 	// cached list and, on the never-happens-in-practice rebuild-mid-range
 	// path, build a private list instead of clobbering the outer call's.

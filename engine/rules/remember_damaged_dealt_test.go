@@ -1,6 +1,6 @@
 package rules
 
-// cr-g240: RememberDamaged$ True remembers every recipient the emitter
+// RememberDamaged$ True remembers every recipient the emitter
 // proposed, even one whose damage a replacement or a prevention stopped.
 // These tests pin the corrected rule (CR 120.1: only damage actually dealt
 // after replacement and prevention counts) end to end on the filing card

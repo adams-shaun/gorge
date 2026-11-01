@@ -51,7 +51,7 @@ cited below as **SB**), and the training summary
    player inside `projectNext` (under `m.mu`), and records the *accepted*
    intent after a successful `Submit`. The feed is derived state and is never
    persisted. Undo rebuilds it with a new `replay.Walk`, and a future resume
-   (M5) would rebuild it the same way.
+   would rebuild it the same way.
 4. **The known-card tracker moves into the feed** (`Feed.Known()`), so it has
    one owner that the host can rebuild after undo. azmcts and sbsearch stop
    keeping their own.
@@ -81,7 +81,7 @@ cited below as **SB**), and the training summary
    are: aliases of the manual bot, and weaker than the hosted auto-pay bot.
 10. **The listing is wire data.** `GET /api/bot-policies` returns
     `protocol.BotPolicyList`, generated to TypeScript by `cmd/gentypes`. The
-    landing page gets a policy picker (a UI ticket, for codex or by hand).
+    landing page gets a policy picker (a UI ticket).
 
 ---
 
@@ -108,8 +108,8 @@ cited below as **SB**), and the training summary
   with `replay.ReplayTo` and swaps it in. Bot seats keep their state. The
   comment at `server/host/undo.go:32-35` says bots "re-decide against the rewound
   state".
-- **Restart.** Restart aborts live matches ("resume is M5",
-  `server/host/restart.go:27-30`). On-demand vs-bot tables are dropped at load
+- **Restart.** Restart aborts live matches
+  (`server/host/restart.go:27-30`). On-demand vs-bot tables are dropped at load
   (`server/host/restart.go:62-70`). Only perpetual startup tables reload, and their
   `BotPolicy` is unset and normalizes to `bot` (`cmd/gorged/main.go:544-546`).
 - **vs-bot create.**
@@ -201,7 +201,7 @@ every Commander deck are unmeasured for every entry below.
 | name | tier | measured strength (what, against whom, where) | cost (think time) | caretaker | formats | seats |
 |---|---|---|---|---|---|---|
 | `bot` | production | The baseline every other row is measured against. On auto-pay tables (gorged's `-bot-auto-mana` default) it plays the attack-sim arm: 53.17% [52.68, 53.65] constructed and 53.69% [52.73, 54.64] commander vs the plain auto-pay bot, held-out (commit `66aa546dd` message; `server/host/bot_policy.go:88-96`). | Not measured per decision. `bot` vs `bot` plays ~550k games/h on 8 workers (SB §12.5 table). **INFERRED** < 1 ms/decision. | self | both | any |
-| `lethal-pressure` | experimental | AR7: 51.65% [50.10, 53.20] vs the pre-AR7 bot, mono suite, manual mana (AR7 report "Held-out gate"). Promoted into the default Decide in `9be522522`, so on manual tables it plays as `bot`. On auto-pay tables it lacks the attack-sim arm, which makes it the `bot-auto-pay` arm that hosted `bot` beat by +3.17pp. | as `bot` | `bot` | both | any |
+| `lethal-pressure` | experimental | 51.65% [50.10, 53.20] vs the earlier bot, mono suite, manual mana. Promoted into the default Decide in `9be522522`, so on manual tables it plays as `bot`. On auto-pay tables it lacks the attack-sim arm, which makes it the `bot-auto-pay` arm that hosted `bot` beat by +3.17pp. | as `bot` | `bot` | both | any |
 | `cast-profile` | experimental | With the embedded default profile it is intent-identical to the manual bot (`lab/cmd/botbench/main.go:188-192`; `seat.NewCastProfileBot`, `bots/heuristic/bot.go:163`). The fitted L4 profile failed its gate at 50.92% [49.38, 52.47] (TS §2) and is not embedded (**INFERRED**: `botpolicy.DefaultCastProfileName` is the baseline). Same auto-pay caveat as `lethal-pressure`. | as `bot` | `bot` | both | any |
 | `search` (L10 PIMC teacher) | experimental | 53.7% [52.2, 55.2] vs a 50.4% same-seed control, +3.3pp, held-out, mono suite, manual mana. The edge is early-game only: coverage is 64.5% on turns 1-6 and 4.8% on turns 13+ (TS §4). | 664 ms mean, p95 2.2 s per searched decision at parallelism 1. With `-decision-workers`, latency is 171 ms (TS §4). | `bot` | constructed | 2 |
 | `az-redeal` (gen 0: uniform prior, heuristic leaf, 100 sims, fresh deal per sim) | experimental | az100 redeal 70.5% [68.5, 72.5] vs `bot`, +20.5pp over the control, 2,000 games, `uw-tempo` vs the 5 mono decks, true lists visible (SB §12.5). On the Pauper kernel, `az-redeal-sims25` rated 1382 vs `bot` 1264 (SB §12.5 round robin). | 216-278 ms mean uncontended, p95 380-550 per searched decision at 100 sims (SB §12.5) | `bot` | constructed | 2 |
@@ -213,8 +213,8 @@ every Commander deck are unmeasured for every entry below.
 
 Notes:
 
-- **Why only `bot` is production.** L10's promotion is an operator decision
-  not yet taken (TS §4). Every other search or SpellBench number was
+- **Why only `bot` is production.** L10's promotion is a maintainer decision
+  not yet taken. Every other search or SpellBench number was
   measured in a different setting from the one hosting will expose.
 - **Why constructed only and 2 seats for the new entries.** Their
   measurements are all 1v1 constructed. `sbsearch` searches only 2-player
@@ -523,7 +523,7 @@ Adapter rules:
 - **Persist and resume.** Nothing new is persisted. The feed is a pure
   function of (`rules.Config`, intent log prefix, actor). Today a restart
   aborts live matches (`server/host/restart.go:27-30`) and drops on-demand tables
-  (`server/host/restart.go:62-70`), so no feed ever needs restoring. If M5 resume
+  (`server/host/restart.go:62-70`), so no feed ever needs restoring. If match resume
   lands, it rebuilds feeds with the same `RebuildFeed`. It must also
   re-derive each bot seat's internal state by re-deciding the recorded prefix
   and checking that each re-decided intent equals the logged one; a mismatch
@@ -863,7 +863,7 @@ does not apply to them (Q4).
 
 ---
 
-## 10. The UI (ticket BP-19; codex or by hand, not the pipeline seats)
+## 10. The UI (ticket BP-19)
 
 - **`web/src/lib/api.ts`** gets `botPoliciesURL()` and `fetchBotPolicies()`,
   typed by the generated `BotPolicyList`. `startPlayVsBot` (`web/src/lib/playvsbot.ts`)
@@ -881,7 +881,7 @@ does not apply to them (Q4).
 - **Rematch** already sends the table's policy (`web/src/lib/playvsbot.ts:53-87`),
   and needs no change.
 - **Tests.** Vitest covers the fetch, the filter and the payload. The
-  operator rebuilds the bundle (agents must not run `make web`).
+  maintainers rebuild the bundle.
 
 ---
 
@@ -916,7 +916,7 @@ report records anything INFERRED that it measured.
 - **Out of scope:** search entries, the env seam, flags, endpoint.
   `TestHostedVocabularyRefusesSearchPolicies` stays green unchanged, because
   `search` is not yet registered.
-- **Depends-On:** —. **Seat:** pipeline.
+- **Depends-On:** —.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestRegister|TestNormalize|TestEntries|TestValidate' ./bots/
@@ -941,7 +941,7 @@ report records anything INFERRED that it measured.
 - **Out of scope:** any behaviour change. botbench `-a az -az-world
   clairvoyant` games must be event-identical before and after
   (`TestAZCorpusRecordsWithoutChangingTheGame`).
-- **Depends-On:** BP-01. **Seat:** pipeline. The steps are mechanical: move
+- **Depends-On:** BP-01. The steps are mechanical: move
   the file, add the `Source` field, fix imports, add the test helper.
 - **Done means:**
   ```
@@ -968,7 +968,6 @@ report records anything INFERRED that it measured.
     answers and collector state all equal).
 - **Out of scope:** host wiring.
 - **Depends-On:** —, and it can run in parallel with BP-01 and BP-02.
-  **Seat:** pipeline.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestWalk|TestReplay' ./engine/replay/
@@ -999,7 +998,7 @@ report records anything INFERRED that it measured.
   `bots/searchseat/honestroot.go` (+ tests), `bots/azmcts/redeal.go`,
   `bots/azmcts/seat.go`, `bots/spellbench/sbsearch/sbsearch.go`.
 - **Out of scope:** host and bench wiring.
-- **Depends-On:** BP-02 (seat.go), BP-03 (feed.go). **Seat:** pipeline.
+- **Depends-On:** BP-02 (seat.go), BP-03 (feed.go).
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestFeedKnown|TestHonestRoot|TestRedealFromAnHonestRoot|TestRebuildFeed' ./bots/searchseat/
@@ -1026,8 +1025,7 @@ report records anything INFERRED that it measured.
 - **Files:** `testkit/bench/bench.go`, `lab/cmd/botbench/main.go`,
   `lab/cmd/botbench/hostedroot_test.go`, `bots/env.go` (RootSeed only).
 - **Out of scope:** host, and any strength claim.
-- **Depends-On:** BP-04, BP-02. **Seat:** pipeline, smoke-sized, one run at
-  a time.
+- **Depends-On:** BP-04, BP-02. Smoke-sized, one run at a time.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostedRoot' ./lab/cmd/botbench/
@@ -1054,7 +1052,7 @@ report records anything INFERRED that it measured.
 - **Files:** `bots/env.go`, `bots/refusal.go`, `bots/refusal_test.go`,
   `server/host/match.go`, `server/host/refusal_test.go`.
 - **Out of scope:** feeds and Env dispatch.
-- **Depends-On:** BP-01, and BP-05 (`bots/env.go`). **Seat:** pipeline.
+- **Depends-On:** BP-01, and BP-05 (`bots/env.go`).
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestFallbacks' ./bots/
@@ -1076,7 +1074,7 @@ report records anything INFERRED that it measured.
     items in §7) in the report.
 - **Files:** `server/host/match.go`, `server/host/botenv.go`, `server/host/botenv_test.go`.
 - **Out of scope:** the honest root, undo, slots.
-- **Depends-On:** BP-06, BP-04. **Seat:** pipeline.
+- **Depends-On:** BP-06, BP-04.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostFeed|TestNoEnvSeatNoFeed|TestHostedPoliciesReplayDeterministically|TestNoRegistryDataResultIsAnEngineGame' ./server/host/
@@ -1098,7 +1096,7 @@ report records anything INFERRED that it measured.
   - `TestEnvRootRefusalPlaysFallback`.
 - **Files:** `server/host/match.go`, `server/host/botenv.go`, `server/host/botenv_test.go`.
 - **Out of scope:** real adapters, undo, slots.
-- **Depends-On:** BP-07. **Seat:** pipeline.
+- **Depends-On:** BP-07.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostedEnvSeats|TestEnvRoot|TestHostFeed|TestHostedPoliciesReplayDeterministically|TestHumanCaretakerUsesConfiguredPolicy' ./server/host/
@@ -1116,7 +1114,7 @@ report records anything INFERRED that it measured.
   - Existing `TestUndo*` unchanged.
   - Report the rebuild wall time for a 400-intent prefix.
 - **Files:** `server/host/undo.go`, `server/host/botenv.go`, `server/host/botenv_test.go`.
-- **Depends-On:** BP-08, BP-03. **Seat:** pipeline.
+- **Depends-On:** BP-08, BP-03.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestUndo' ./server/host/
@@ -1136,7 +1134,7 @@ report records anything INFERRED that it measured.
   - `TestMaxSearchTablesRefusesAtCreate`.
 - **Files:** `server/host/registry.go`, `server/host/botenv.go`, `server/host/match.go`,
   `server/host/slots_test.go`.
-- **Depends-On:** BP-08. **Seat:** pipeline.
+- **Depends-On:** BP-08.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSearchSlot|TestMaxSearchTables|TestOnDemand|TestHostedPoliciesReplayDeterministically' ./server/host/
@@ -1159,7 +1157,7 @@ report records anything INFERRED that it measured.
     `explore`, and to accept `search` only when linked.
 - **Files:** `bots/search/search.go` (+ test), `bots/all/all.go`,
   `server/host/hosted_policies_test.go`, `server/host/bot_policy_az_test.go`.
-- **Depends-On:** BP-09, BP-10. **Seat:** pipeline.
+- **Depends-On:** BP-09, BP-10.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostedSearch' ./bots/search/
@@ -1177,7 +1175,7 @@ report records anything INFERRED that it measured.
     line.
 - **Files:** `bots/azredeal/azredeal.go` (+ test), `bots/all/all.go`,
   `server/host/hosted_policies_test.go`.
-- **Depends-On:** BP-11, BP-02. **Seat:** pipeline.
+- **Depends-On:** BP-11, BP-02.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestHostedAZ' ./bots/azredeal/
@@ -1200,7 +1198,7 @@ report records anything INFERRED that it measured.
 - **Files:** `bots/sbtactical/sbtactical.go` (+ test), `bots/all/all.go`,
   `server/host/registry.go`, `server/host/bot_policy.go`, `server/host/match.go`,
   `cmd/gorged/main.go`, `server/host/hosted_policies_test.go`.
-- **Depends-On:** BP-12. **Seat:** pipeline.
+- **Depends-On:** BP-12.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSBTactical' ./bots/sbtactical/
@@ -1219,7 +1217,7 @@ report records anything INFERRED that it measured.
   - Host rows.
 - **Files:** `bots/sbsearch/sbsearch.go` (+ test), `bots/all/all.go`,
   `server/host/hosted_policies_test.go`.
-- **Depends-On:** BP-13. **Seat:** pipeline.
+- **Depends-On:** BP-13.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSBSearch' ./bots/sbsearch/
@@ -1237,7 +1235,7 @@ report records anything INFERRED that it measured.
 - **Files:** `bots/sbheuristic/*`, `bots/sbuniform/*`, `bots/sbfirst/*`,
   `bots/all/all.go`, `lab/training/spellbench/registry/sb.go`,
   `server/host/hosted_policies_test.go`.
-- **Depends-On:** BP-14. **Seat:** pipeline.
+- **Depends-On:** BP-14.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestSB' ./bots/sbheuristic/
@@ -1266,7 +1264,7 @@ report records anything INFERRED that it measured.
 - **Files:** `lab/cmd/botbench/main.go`, `lab/cmd/botbench/spellbench_registry.go`,
   `lab/cmd/botbench/spellbench.go`, `lab/cmd/botbench/searchcost.go`,
   `lab/cmd/botbench/azcost.go`, `lab/cmd/botbench/bots_registry_test.go`.
-- **Depends-On:** BP-15, BP-05. **Seat:** pipeline.
+- **Depends-On:** BP-15, BP-05.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestBotbenchDefaultsAreTheHostedConfigs|TestEveryHostedNameIsABenchPolicy|TestSpellbenchRegistryRoundTrip|TestSpellbenchUnknownNameListsRegistered|TestAZCorpusRecordsWithoutChangingTheGame|TestSearchCostReportNumbers' ./lab/cmd/botbench/
@@ -1286,7 +1284,7 @@ report records anything INFERRED that it measured.
   `web/src/protocol.ts`, `server/host/httpapi/handler.go`, `server/host/httpapi/rest.go`,
   `server/host/httpapi/botpolicies_test.go`.
 - **Depends-On:** BP-01 (it runs in parallel with BP-02 to BP-16).
-  **Seat:** pipeline. The TS change is a generated file, not UI work.
+  The TS change is a generated file, not UI work.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestBotPoliciesEndpoint|TestCreateGame' ./server/host/httpapi/
@@ -1313,7 +1311,7 @@ report records anything INFERRED that it measured.
 - **Files:** `cmd/gorged/main.go`, `cmd/gorged/game.go`,
   `cmd/gorged/botpolicies.go`, `cmd/gorged/game_test.go`,
   `cmd/gorged/main_test.go`, `server/host/httpapi/rest.go`, `server/host/httpapi/game_test.go`.
-- **Depends-On:** BP-17, BP-10, BP-15. **Seat:** pipeline.
+- **Depends-On:** BP-17, BP-10, BP-15.
 - **Done means:**
   ```
   GOMAXPROCS=3 GOMEMLIMIT=1GiB go test -p 1 -count=1 -run 'TestBotPolicyFlags|TestCreateGame' ./cmd/gorged/
@@ -1328,9 +1326,7 @@ report records anything INFERRED that it measured.
 - **Files:** `web/src/lib/api.ts`, `web/src/lib/playvsbot.ts`,
   `web/src/components/PlayVsBot.svelte`, `web/src/lib/api.test.ts`,
   `web/src/lib/playvsbot.test.ts`.
-- **Depends-On:** BP-17, BP-18. **Seat:** **codex or by hand. Not glm or
-  deepseek** (memory: UI work dies on the local seats). The operator rebuilds
-  the bundle.
+- **Depends-On:** BP-17, BP-18. The maintainers rebuild the bundle.
 - **Done means:** the vitest files named above pass, run by whoever holds the
   web toolchain. A manual check against a BP-18 dev server: the picker lists
   the offered set, filters by format, sends `bot_policy`, and shows a
@@ -1346,18 +1342,16 @@ report records anything INFERRED that it measured.
 
   Also a first `-decision-cost` measurement for `bot`. Update the §3.1
   `Info` literals and this document's table. Tier promotions are the
-  operator's call.
+  maintainers' call.
 - **Files:** `bots/*/…` `Info` literals, this spec.
-- **Depends-On:** BP-16, BP-18. **Seat:** operator or by hand. These are
-  heavy sweeps, one at a time, under `systemd-run --scope -p MemoryMax=4G`
-  with data on `$DATA`.
+- **Depends-On:** BP-16, BP-18. These are heavy sweeps, one at a time.
 - **Done means:** a report (now under `docs/design/` for living docs) holding each
   arm's command, games, CI and cost, and `Info` literals that cite it.
 
 ### 11.1 Dependency graph
 
 ```
-spellbench-prep (cli-20260928T193741Z-5822d0cd)
+spellbench-prep
  ├─ BP-01 ─┬─ BP-02 ─┐
  │         └─ BP-17 ─┼──────────────────────────────┐
  ├─ BP-03 ───────────┴─ BP-04 ─ BP-05 ─ BP-06 ─ BP-07 ─ BP-08 ─┬─ BP-09 ─┐
@@ -1394,7 +1388,7 @@ everything from BP-02 to BP-16.
 
 ---
 
-## 12. Open questions for the operator (each with a recommendation)
+## 12. Open questions (each with a recommendation)
 
 - **Q1. Tiers.** Should anything beyond `bot` start as production?
   **Recommend no.** `search` has the only held-out gate in the gorge setting
@@ -1441,6 +1435,4 @@ everything from BP-02 to BP-16.
 
 ### 12.1 Operator answers (2026-09-28)
 
-The operator accepted every recommendation above, Q1 through Q10, as written.
-Tickets BP-01 to BP-18 are queued. BP-19 (the UI) is done by hand
-or by codex. BP-20 (heavy re-measurement) runs at night.
+The maintainers accepted every recommendation above, Q1 through Q10, as written.

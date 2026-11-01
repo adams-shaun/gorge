@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of resolvedlimit_test.go's accepted-resolution
-// leaves (ResolvedLimit$, "Do this only once each turn."): the first accepted
+// The accepted-resolution leaves of ResolvedLimit$ ("Do this only once each
+// turn."): the first accepted
 // resolution spends the per-turn limit, a mandatory line without the param
 // does not, and the count survives Engine.Clone. The helpers (enterCreature,
 // drainQueuedTrigger, putInHand) are resolvedlimit_test.go's; direct
@@ -20,7 +20,7 @@ import (
 // first Villain entering queues and resolves Baron's optional connive (answered
 // YES), a SECOND Villain in the same turn must queue no second trigger, and a
 // third Villain after the turn changes queues again.
-func TestKr8ResolvedLimitBaronStruckerOnlyOncePerTurn(t *testing.T) {
+func TestKernelResolvedLimitBaronStruckerOnlyOncePerTurn(t *testing.T) {
 	t.Parallel()
 	e, baron := baronStruckerFixture(t)
 
@@ -49,14 +49,14 @@ func TestKr8ResolvedLimitBaronStruckerOnlyOncePerTurn(t *testing.T) {
 	}
 }
 
-// TestResolvedLimitMixedLineOtherTriggerDoesNotConsume pins the round-2
-// defect's exact shape on the real mixed-line carrier Cosmic Crucible: line 1
+// TestResolvedLimitMixedLineOtherTriggerDoesNotConsume pins the
+// exact shape on the real mixed-line carrier Cosmic Crucible: line 1
 // is a MANDATORY Main1 Phase trigger carrying NO ResolvedLimit$ ("add four
 // mana"), line 2 is the optional SpellCast copy trigger that does. Resolving
-// line 1 must not consume line 2's limit -- under the round-2 code the copy
-// trigger was dead EVERY turn, because the Main1 trigger resolved at the start
+// line 1 must not consume line 2's limit -- otherwise the copy
+// trigger is dead EVERY turn, because the Main1 trigger resolves at the start
 // of every turn. After an ACCEPTED line-2 resolution the limit binds normally.
-func TestKr8ResolvedLimitMixedLineOtherTriggerDoesNotConsume(t *testing.T) {
+func TestKernelResolvedLimitMixedLineOtherTriggerDoesNotConsume(t *testing.T) {
 	t.Parallel()
 	crucible := mshCorpusCardPath(t, "Cosmic Crucible", "c/cosmic_crucible.txt")
 	e := combatEngine(t)
@@ -120,7 +120,7 @@ func TestKr8ResolvedLimitMixedLineOtherTriggerDoesNotConsume(t *testing.T) {
 	}
 }
 
-// TestResolvedLimitTidusCheerOncePerTurn is the brief's own "Done means"
+// TestResolvedLimitTidusCheerOncePerTurn is the
 // corpus-card leaf: Tidus, Yuna's Guardian's Cheer trigger
 // (`T:Mode$ DamageDoneOnce | CombatDamage$ True | ValidSource$
 // Creature.YouCtrl+HasCounters | ValidTarget$ Player | ResolvedLimit$ 1 |
@@ -130,7 +130,7 @@ func TestKr8ResolvedLimitMixedLineOtherTriggerDoesNotConsume(t *testing.T) {
 // therefore did NOT stop a second SEPARATE combat damage event in the same
 // turn from firing the cheer again. Two separate combat damage events in one
 // turn must yield exactly one cheer resolution; the turn change re-arms it.
-func TestKr8ResolvedLimitTidusCheerOncePerTurn(t *testing.T) {
+func TestKernelResolvedLimitTidusCheerOncePerTurn(t *testing.T) {
 	t.Parallel()
 	tidus := mshCorpusCardPath(t, "Tidus, Yuna's Guardian", "t/tidus_yunas_guardian.txt")
 	e := combatEngine(t)
@@ -203,7 +203,7 @@ func TestKr8ResolvedLimitTidusCheerOncePerTurn(t *testing.T) {
 // and proves the clone's continued play is byte-identical -- the leaf that
 // catches a missing Engine.Clone copy of triggerTurnResolved (the clone would
 // re-fire where the original is silent).
-func TestKr8ResolvedLimitReplaysExactly(t *testing.T) {
+func TestKernelResolvedLimitReplaysExactly(t *testing.T) {
 	t.Parallel()
 	e, baron := baronStruckerFixture(t)
 	enterCreature(t, e, 0, card(t, resolvedLimitVillain))

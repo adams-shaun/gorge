@@ -172,7 +172,7 @@ func foldRingEmblemPush(g *state.Game, e *Event) {
 	// One of the Ring emblem's four level abilities (CR 701.54c) being
 	// put on the stack. The ability is minted HERE, inside Apply, so a
 	// log-only replay creates the exact same object a live game did
-	// (Ruling T20-a, the KeywordTriggerPush precedent): the emblem has
+	// (the KeywordTriggerPush precedent): the emblem has
 	// no object in any zone, so TriggerPush's face-index derivation
 	// cannot carry it and the "__ring:<level>" payload rebuilds the
 	// ability structurally from the event text alone.

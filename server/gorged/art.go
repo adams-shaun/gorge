@@ -93,9 +93,8 @@ type artCache struct {
 	// 15s timeout (or minutes of 429 backoff), so on a degraded network a
 	// cold-cache page's burst of art lookups can pin every one of the
 	// browser's per-origin connections and starve the page's OWN same-origin
-	// API traffic (pending/view/events) for the whole chain — measured in the
-	// fb-20260917T004304Z smoke gate, where a wedged page never answered its
-	// mulligan-keep follow-ups and the R-E4-1 driver timed out. The budget is
+	// API traffic (pending/view/events) for the whole chain: a wedged page never answered its
+	// mulligan-keep follow-ups and its driver timed out. The budget is
 	// a field, not a constant, for the same reason pace is: a test seam. 0 =
 	// unbounded (the pre-fix behaviour; nothing in production sets it).
 	waitBudget time.Duration
@@ -276,10 +275,9 @@ func (a *artCache) retry429(ctx context.Context, resp *http.Response, what strin
 }
 
 // artKeyVersion busts the whole cache whenever the meaning of the bytes a
-// key's fetch writes changes — round 2 of task fb-20260914T033246Z-3f1cc033:
-// the round-1 fix made a back-face name (Insectile Aberration) fetch its own
-// face's art, but the live server had already cached that name under the
-// OLD code with the FRONT face's bytes, and ensure() treats an existing JPG
+// key's fetch writes changes: a back-face name (Insectile Aberration) fetches its own
+// face's art, but a live server may have cached that name under
+// older code with the FRONT face's bytes, and ensure() treats an existing JPG
 // as a permanent hit while blob() marks the URL immutable — so after deploy
 // the same key kept serving the wrong art from both the server's disk and
 // every browser's year-long cache. Folding the version into the hash gives
@@ -316,7 +314,7 @@ type cardFacts struct {
 }
 
 // scryFace is one entry of Scryfall's card_faces: the face's printed name
-// (the face picker's key, task fb-20260914T033246Z-3f1cc033) plus the
+// (the face picker's key) plus the
 // printed facts and image the front-face fallback and the matching-face
 // path both read.
 type scryFace struct {
@@ -365,8 +363,8 @@ func (c *scryNamed) faceFor(name string) *scryFace {
 
 // faceImage picks the image bytes to cache for the requested name: the
 // top-level image when Scryfall carries one (single-faced cards),
-// otherwise the face whose printed name is the requested one — task
-// fb-20260914T033246Z-3f1cc033: Scryfall's named lookup lists BOTH faces
+// otherwise the face whose printed name is the requested one:
+// Scryfall's named lookup lists BOTH faces
 // for either name of a transform card and leaves the top-level image_uris
 // empty, so a back-face name (Insectile Aberration) must pick
 // card_faces[1], not the front face card_faces[0] the old code took —
@@ -389,7 +387,7 @@ func (c *scryNamed) faceImage(name string) string {
 // facts collapses a Scryfall named response to the six-field record, taking
 // the FRONT face's printed facts for a multi-faced card (Scryfall leaves the
 // top-level fields empty there) — EXCEPT when the requested name is one
-// face's own printed name (task fb-20260914T033246Z-3f1cc033: a transformed
+// face's own printed name (a transformed
 // Delver of Secrets is on the wire as "Insectile Aberration", and its
 // sidecar must carry THAT face's oracle text and P/T, not the front
 // face's). One face is still the contract for a name that matches no face.

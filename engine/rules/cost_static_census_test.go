@@ -32,7 +32,7 @@ package rules
 // NOTE marks a log-only finding (a state-dependent spec the fixture cannot
 // settle, a genuinely duplicated Secondary$ static).
 //
-// It is a RATCHET with Ruling R-20's two-direction contract: the measured
+// It is a RATCHET with a two-direction contract: the measured
 // BROKEN cards must equal knownBrokenCostStatics and the WRONG/OFFER-BLIND
 // cards knownWrongCostStatics (cost_static_census_known_test.go), each card
 // mapped to its sorted reason classes. A newly broken card fails naming its
@@ -1234,7 +1234,7 @@ func TestCostStaticCensus(t *testing.T) {
 		}
 	}
 
-	// ---- the ratchet (Ruling R-20's two-direction contract) ----------------
+	// ---- the ratchet (two-direction contract) ----------------
 	// BROKEN findings are held against knownBrokenCostStatics; WRONG and
 	// OFFER-BLIND findings against knownWrongCostStatics. NOTE findings are
 	// log-only. The value is the card's sorted reason classes.

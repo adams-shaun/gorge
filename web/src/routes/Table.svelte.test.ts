@@ -119,7 +119,7 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     // Concede has one page-level control and is not duplicated as a flyout
     // option label beside Pass.
     expect(html.match(/>Concede</g)).toHaveLength(1);
-    // The transcript renders the line, AND (Task 3) Ari's own name in Ari's
+    // The transcript renders the line, AND Ari's own name in Ari's
     // own seat colour — a strictly stronger check than the line's raw text
     // alone, which the colour-coding change now splits across markup.
     expect(html).toContain('draws a card');

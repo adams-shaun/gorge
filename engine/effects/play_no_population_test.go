@@ -1,7 +1,6 @@
 package effects
 
-// The no-population `DB$ Play` pin (review finding sol1/MAJOR on ticket
-// agent-20260920T071934Z-bae92ac6).
+// The no-population `DB$ Play` pin.
 //
 // effPlay's Valid$/ValidZone$ arm gained a Forge-faithful default zone --
 // the resolving controller's hand -- so the Face of Boe's

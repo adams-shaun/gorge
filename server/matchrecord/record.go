@@ -1,7 +1,7 @@
 // Package matchrecord is the portable record of one played game: the
 // replay input (the match's genesis configuration and its events.Log) plus
 // who produced it, written as one gzip-compressed JSON file per game,
-// `<id>.match.json.gz` (match-reviewer design D1-D3).
+// `<id>.match.json.gz`.
 //
 // A game is fully determined by (Config, Log), never by the Log alone
 // (engine/replay's package doc), so a record carries the Config's
@@ -10,7 +10,7 @@
 // sideboards, format, life, commanders, mulligans, the starting-player
 // chooser and the two match-mode bits (name universe, paid-mana census).
 // It deliberately carries neither the token scripts nor the name-universe
-// label list (D2): Forge token scripts are GPL-3.0 and the label list is
+// label list: Forge token scripts are GPL-3.0 and the label list is
 // ~24k entries. The record names the corpus pin (Producer.ForgeRef)
 // instead, and Load re-derives both from the registry it is handed, exactly
 // the way a committed feedback fixture replays. A record from another pin
@@ -61,8 +61,8 @@ type Record struct {
 	// Head is the chain head over every logged event, what Verify's replay
 	// must reproduce.
 	Head string `json:"head"`
-	// Chance is the chance transcript of a kernel-sourced game (design
-	// §2.3, D4). Phase 1 never writes it; Verify refuses a record that
+	// Chance is the chance transcript of a kernel-sourced game. Gorge never
+	// writes it; Verify refuses a record that
 	// carries one, since the ordinary replay implements Config-only
 	// randomness.
 	Chance []rules.ChanceDraw `json:"chance,omitempty"`

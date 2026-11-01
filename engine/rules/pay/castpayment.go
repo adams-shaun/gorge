@@ -5,8 +5,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// CastPayment is a pending cast's payment state beside PaidCost (lasagna spec
-// §9.2, E7 flow slice 4): the planned payment it executes, the announced
+// CastPayment is a pending cast's payment state beside PaidCost:
+// the planned payment it executes, the announced
 // CR 601.2g window and its taps, the cost-part ask cursors, the Convoke
 // announcement and the flexible-pip announcement. Package rules embeds it in
 // its pendingCast the way it embeds PaidCost, so the fields read as pending

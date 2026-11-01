@@ -339,7 +339,7 @@ func TestVillainousChoiceCloneKeepsTheVictimCursor(t *testing.T) {
 	}
 }
 
-// TestDamoclesBaseVillainousChoiceAsksTheDamagedPlayer pins the brief's named
+// TestDamoclesBaseVillainousChoiceAsksTheDamagedPlayer pins the named
 // carrier end to end: Damocles Base's combat-damage trigger resolves the real
 // compiled `TrigVillainousChoice` SA, and its `Defined$ TriggeredTarget` names
 // the DAMAGED player — the modes ask goes to that victim, the chosen DBSac

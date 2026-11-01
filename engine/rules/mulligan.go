@@ -18,7 +18,7 @@ import (
 // each other player follow in turn order, so the round starts at the toss
 // winner, not at seat 0 (kept[i], taken[i] and seats[i] correspond by
 // position). limit is Config.Mulligans, which is the PERMITTED
-// COUNT -- the most mulligans one seat may take (Ruling FL-113, rule R-8.4).
+// COUNT -- the most mulligans one seat may take.
 // It is NOT the CR 103.5b multiplayer free mulligan, which is derived from the
 // seat count and exempts a seat from the bottoming PENALTY, never from the
 // allowance; an earlier version of this comment called limit "the
@@ -151,7 +151,7 @@ func (e *Engine) stepPregame() {
 
 // askKeepMulligan offers seat i of the round a keep/mulligan decision. It is
 // Min == Max == 1 over the same distinct-index shape Validate enforces
-// everywhere (Ruling U2). While the seat still has a permitted mulligan
+// everywhere. While the seat still has a permitted mulligan
 // (taken < limit) it offers both the "keep" and "mulligan" options; once it
 // has used its whole allowance, London offers only "keep" -- you keep what
 // you have.
@@ -177,7 +177,7 @@ func bottomingPrompt(bottom int) string {
 }
 
 // keepMulliganPrompt is the human-readable wording for a keep/mulligan ask.
-// It names the starting player first (fix round rv2a: the ask is the one
+// It names the starting player first (the ask is the one
 // always-visible surface a seat reads before deciding keep/mulligan -- the
 // transcript that carries the toss Note starts hidden for a seated player,
 // and CR 103.5 runs the round from the starter, so the seat being asked is
@@ -199,6 +199,9 @@ func keepMulliganPrompt(starterName string, bottom, taken, limit, freeMulligans 
 		choice = fmt.Sprintf("Keep your hand (%s) or take a mulligan?", penalty)
 	} else {
 		choice = fmt.Sprintf("Keep your hand (%s)", penalty)
+	}
+	if starterName == "You" {
+		return "You play first. " + choice
 	}
 	return starterName + " plays first. " + choice
 }
@@ -223,7 +226,7 @@ func (e *Engine) askKeepMulligan(i int) {
 // askBottoming offers seat i a bottoming decision over its kept hand: one
 // "bottom" option per card, Min == Max == bottomCount(i) -- exactly the
 // distinct-index shape Validate already enforces for KTriggerOrder (a
-// bottoming choice is a permutation of hand indices; Ruling U2).
+// bottoming choice is a permutation of hand indices).
 func (e *Engine) askBottoming(i int) {
 	m := &e.mulligan
 	p := m.seats[i]
@@ -252,7 +255,7 @@ func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 		return
 	}
 	// Resolve the round index from the answering seat rather than the
-	// cursor (Finding 3, fix round 1): d.Player is the authority -- Submit
+	// cursor: d.Player is the authority -- Submit
 	// has already rejected any answer whose Player is not the pending
 	// decision's, and askKeepMulligan addressed that decision to
 	// seats[cursor] -- so the two always agree. Deriving the index from the

@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { EventBody, MatchInfo, MatchStart, View } from '../protocol';
 import { clientBreadcrumbs } from './breadcrumbs';
 
-// match.svelte.ts calls fetchView (PL-16's post-decision/match_end refresh,
-// and Task 21's cursor-driven fetch), fetchEvents (backfill, finished-match
+// match.svelte.ts calls fetchView (the post-decision/match_end refresh,
+// and the cursor-driven fetch), fetchEvents (backfill, finished-match
 // transcript) and fetchMatches (finished-match load); stub api so this stays
 // a hermetic test of apply()/dispatch()/showCursor()/loadFinished() with
 // hand-built frames, no network.
@@ -235,7 +235,7 @@ describe('MatchState', () => {
   });
 });
 
-describe('MatchState — DVR cursor fetching (Task 21)', () => {
+describe('MatchState — DVR cursor fetching', () => {
   it('pause then step back fetches exactly one view for the new cursor', async () => {
     fetchViewMock.mockReset();
     fetchEventsMock.mockReset();
@@ -396,7 +396,7 @@ describe('MatchState — DVR cursor fetching (Task 21)', () => {
   });
 });
 
-describe('MatchState — stale paused-cursor fetches never clobber a fresher view (Task 21 fix round)', () => {
+describe('MatchState — stale paused-cursor fetches never clobber a fresher view', () => {
   it('returning to live discards a slower in-flight paused-cursor fetch', async () => {
     fetchViewMock.mockReset();
     fetchEventsMock.mockReset();

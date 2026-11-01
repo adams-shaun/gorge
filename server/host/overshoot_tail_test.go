@@ -19,7 +19,7 @@ package host
 // the recorded intents reproduces the tail byte for byte. The shape is
 // re-derived from the live match below, so a corpus or engine move fails
 // here loudly instead of testing nothing. (Measured history: before CR
-// 903.9a, cr-g01a, the shape was an ask parked mid-lethal-sweep on
+// 903.9a, the shape was an ask parked mid-lethal-sweep on
 // wretched-ranks vs reign-of-dragons; that burst no longer exists.)
 
 import (
@@ -63,7 +63,7 @@ const (
 	// (rules 24bbba791): players receive priority in the combat damage step
 	// after the regular damage, two more passes per such combat before the
 	// burst: 541 -> 551, the same turn-21 burst, re-measured on seed 2.
-	// CR 903.9a (cr-g01a, 2026-10-20): a commander's graveyard/exile move is no
+	// CR 903.9a (2026-10-20): a commander's graveyard/exile move is no
 	// longer parked, so the old seed-2 burst (an ask parked mid-lethal-sweep) no
 	// longer exists; across seeds 1-29 of the old pair no burst ends past its
 	// last ask. Re-measured over the five FDN commander decks:
@@ -73,7 +73,7 @@ const (
 	// ("ceased to exist") after the ask. assertOvershootShape now requires that
 	// token-cleanup tail rather than a lethal-damage sweep. The capture was
 	// re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents,
-	// head 6d7b5325284ddbc4 (one more event after the develop rebase).
+	// head 8f92486feb45ce6b at the last re-record (see the capture's history below).
 	overshootIntents = 664 // intents recorded when parked on the overshoot burst's pending ask
 )
 
@@ -665,7 +665,7 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // passes inserted (two per combat with regular damage), no answer changed.
 // 2230 events, 398 intents, head fc7001a63b429c7b; the parked ask and its
 // tail are unchanged.
-// CR 903.9a (cr-g01a, 2026-10-20): a commander's graveyard/exile move is no
+// CR 903.9a (2026-10-20): a commander's graveyard/exile move is no
 // longer parked, so the old seed-2 burst (an ask parked mid-lethal-sweep) no
 // longer exists; across seeds 1-29 of the old pair no burst ends past its
 // last ask. Re-measured over the five FDN commander decks:
@@ -676,6 +676,11 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // token-cleanup tail rather than a lethal-damage sweep. The capture was
 // re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents,
 // head 6d7b5325284ddbc4 (one more event after the develop rebase).
+// Entered-object reads (2026-10-31, CR 608.2h): Righteous Valkyrie's life gain
+// on Selfless Spirit, sacrificed in response, reads its last toughness 3 under
+// the Valkyrie's own +2/+2 rather than the card's printed 1, so event 3623 gains
+// 3. Re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents, head
+// 8f92486feb45ce6b; the parked ask and its tail are unchanged.
 const committedCaptureRel = "../../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:

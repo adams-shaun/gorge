@@ -16,7 +16,7 @@ const legendCrest = "Name:Legend Crest\nTypes:Artifact\nA:AB$ Mana | Cost$ T | P
 // Kinship is a legendary creature, The Ringhart Crest a legendary artifact,
 // so green restricted to legendary creature spells cannot pay the Crest's
 // {1}{G}: with only that source and a Swamp untapped, the back face is not
-// offered (cr-g125 priced the restriction against the hand card's front
+// offered (the restriction is priced against the hand card's front
 // face in the potential planner, whose witness then named a cast the
 // payment refuses).
 func TestRestrictedSourceRefusesModalBackFace(t *testing.T) {

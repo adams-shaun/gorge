@@ -50,8 +50,7 @@ type Checkpoint struct {
 	S0 Snapshot
 	// World is set on a hypothetical world's copy of the checkpoint (Fork):
 	// rules' RNG splice, which a restore installs so the re-executed prefix
-	// draws S0's values up to the fork and the world's own after it (spec
-	// §7.3).
+	// draws S0's values up to the fork and the world's own after it.
 	World any
 	// k0 is the index in the intent log of the resolution-starting pass;
 	// base is the event log's length at S0.
@@ -135,7 +134,7 @@ func (k *Kernel) ForClone() Kernel {
 // Fork gives a hypothetical world forked at a posed tape resolution its own
 // checkpoint copy carrying the world's RNG splice; the world's log length
 // (len(l.Events)) is where whatever its builder appends before its first
-// Submit (a redeal's Secret events) is injected (spec §7.3). Call it only
+// Submit (a redeal's Secret events) is injected. Call it only
 // when Posed.
 //
 // The engine forked may itself be a world forked at this same posed
@@ -442,7 +441,7 @@ func (k *Kernel) Answer(b Board, d *decision.Decision) (decision.Intent, bool) {
 	acted := b.Record(d, in)
 	if r.cursor == len(r.serve) && r.rerun {
 		// Past the recorded prefix: new territory, so the live observers
-		// see what the run does from here (spec §7.5).
+		// see what the run does from here.
 		b.Observe()
 	}
 	return acted, true

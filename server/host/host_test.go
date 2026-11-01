@@ -257,7 +257,7 @@ func TestCloseAbortsALiveMatch(t *testing.T) {
 }
 
 // blockingSeat never answers on its own: Decide blocks until ctx is
-// cancelled, the shape a disconnected human seat (Task 25) will eventually
+// cancelled, the shape a disconnected human seat will eventually
 // have. entered is closed the moment Decide is called, so a test can wait
 // for the table to be genuinely stuck inside a decision before it acts —
 // otherwise Close could win the race and abort the match at play's
@@ -270,7 +270,7 @@ func (s blockingSeat) Decide(ctx context.Context, v view.View, d decision.Decisi
 	return decision.Intent{}, ctx.Err()
 }
 
-// TestCloseCancelsASeatBlockedInDecide is Ruling FL-17: t.stop is polled
+// TestCloseCancelsASeatBlockedInDecide: t.stop is polled
 // only between decisions, so once the loop is inside Decide, cancelling
 // the table's own context is the only way to unblock it. Without that
 // wiring this test hangs — Close would wait on r.wg forever.
@@ -317,7 +317,7 @@ func TestCloseCancelsASeatBlockedInDecide(t *testing.T) {
 	}
 }
 
-// TestCloseInterruptsALongCooldown is Ruling FL-18: Options.Sleep now takes
+// TestCloseInterruptsALongCooldown: Options.Sleep takes
 // the table's stop channel, and the default implementation (registry.go's
 // defaultSleep) races a real timer against it. This test supplies its own
 // Sleep to prove the *contract* — a cooldown sleep must return as soon as

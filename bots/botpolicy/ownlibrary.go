@@ -80,7 +80,7 @@ type faceDownLooker interface {
 // mayLookFaceDown mirrors the view's face rule for a face-down own object:
 // its controller on the battlefield and the stack (CR 708.5); in exile only
 // the recorded looker (Object.MayLookPlayer) or a live MayLookAt$ grant --
-// never the owner by default (CR 406.3; cr-g64). The view's CR 723.4
+// never the owner by default (CR 406.3). The view's CR 723.4
 // widening is not mirrored: a bot's Board is never widened (host
 // controlledSeats).
 func mayLookFaceDown(o *state.Object, look faceDownLooker, me state.PlayerID) bool {

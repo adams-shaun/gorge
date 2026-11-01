@@ -555,7 +555,7 @@ func (e *Engine) abilityOfferCost(p state.PlayerID, id state.ObjID, ab *cards.SA
 	return formatCost(e.offerCostFor(p, id, cost, abilityScope(ab)))
 }
 
-// manaActivationCostMarker is the wire marker fb-led1 adds to a priority
+// manaActivationCostMarker is the wire marker added to a priority
 // window's "activate" option (decision.Option.Cost): the formatCost rendering
 // of the FIRST available mana ability (face order, deterministic) whose cost
 // is more than a bare tap, "" when every available ability is a bare tap —

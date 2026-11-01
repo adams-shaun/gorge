@@ -271,7 +271,7 @@ func newHandMove(env *Env, d *decision.Decision) (Transaction, error) {
 // newModes poses one choose_spell_mode per pick. gorge offers only the
 // eligible modes (Thraben Charm without a creature to target starts at its
 // second mode), so a candidate names the printed mode and count (Section
-// 7.3), the numbering the stack entry's modes use (Task 12).
+// 7.3), the numbering the stack entry's modes use.
 func newModes(env *Env, d *decision.Decision) (Transaction, error) {
 	src, err := MustSource(env, d)
 	if err != nil {

@@ -13,7 +13,7 @@ import (
 // TapsForMana extra (Forsaken Monument's "whenever you tap a permanent for
 // {C}, add an additional {C}") lifts the tapped ability's true production
 // above its label. A label match on a DIFFERENT option is then a false
-// positive: round-7 paymirror seed 6085 taps Eldrazi Temple, whose
+// positive: paymirror seed 6085 taps Eldrazi Temple, whose
 // {T}: Add {C} plus the extra reads C:2 -- exactly the label of its
 // {T}: Add {C}{C} -- so a production-only match tapped Add {C}{C} and
 // over-produced (production_differs). preferLifted routes that wheel through

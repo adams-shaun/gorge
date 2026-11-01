@@ -26,7 +26,7 @@ type windowTap = pay.WindowTap
 
 // ValidateCastAnnounce is Submit's (and the host's) independent proof that an
 // announced cast is still payable from the pool plus untapped sources: the
-// planner must still return a plan (spec §3.1, operator decision 2), and a
+// planner must still return a plan (spec §3.1), and a
 // fixed-count sacrifice the cast will ask for must still be payable. A pure
 // read.
 func (e *Engine) ValidateCastAnnounce(p state.PlayerID, cast decision.PlannedCast) error {

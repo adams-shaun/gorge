@@ -122,7 +122,7 @@ func TestTapeMissCensus(t *testing.T) {
 		t.Logf("miss %4d  %s", r.n, r.class)
 		if !allowed[r.class] {
 			t.Errorf("predicate-miss class %q (%d) is not in tapeMissClasses: fix the predicate at its root "+
-				"(the allowlist is SHRINK-ONLY; adding a class is a MAJOR review finding)", r.class, r.n)
+				"(the allowlist is SHRINK-ONLY; adding a class needs a review)", r.class, r.n)
 		}
 	}
 	for _, c := range tapeMissClasses {

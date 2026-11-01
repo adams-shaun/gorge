@@ -1,6 +1,6 @@
 package host
 
-// Per-seat projection and event redaction — Task M2b-4 (FL-73).
+// Per-seat projection and event redaction.
 //
 // ViewAtSeat/EventsSeat are the library's answer to "what does player k
 // see": a view built for one seat and an event stream redacted for it, both

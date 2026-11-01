@@ -1,6 +1,6 @@
 package rules
 
-// The brief's behaviour gate for the shared Forge phase-name parser
+// The behaviour gate for the shared Forge phase-name parser
 // (engine/state/phase.go): each of the corpus's real Phase$ shapes -- `End of Turn`
 // (Braids, Arisen Nightmare), `BeginCombat` (Kamahl, Heart of Krosa),
 // `EndCombat` (Kjeldoran Frostbeast) and the comma list `Main1,Main2`

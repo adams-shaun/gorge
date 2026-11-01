@@ -16,7 +16,7 @@ import "math"
 // A = outcome − V_old(s) enters UNSIGNED, so a row pulls toward its own
 // recorded answer whether the game was won or lost: with y the seat's own
 // argmax the margin term sharpens the current policy on the surprising,
-// uncertain rows rather than steering it (see the ticket report). The
+// uncertain rows rather than steering it. The
 // trainer supplies |A| and the batch normalisation in PPOTarget.Weight
 // (VDWMRowWeight is the Σ_k (1 − q_k) factor it normalises with); there is no
 // KL anchor and no ratio. m ≤ 0 means DefaultVDWMMargin.

@@ -29,7 +29,7 @@ func TestPlanetaryAnnihilationEachPlayerChoosesOwnLandKernel(t *testing.T) {
 		lands[p] = o.ID
 	}
 	face := planet.Face()
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		ctx := &effects.Ctx{Source: planet.ID, Controller: 0}
 		effects.SetSVars(ctx, face.SVars)
 		return ctx
@@ -57,7 +57,7 @@ func TestCommandeerChangesTargetAfterAnsweredChoiceKernel(t *testing.T) {
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: target.ID, Player: 1, Amount: 1})
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: commandeer.ID, IDs: []state.ObjID{target.ID}})
 	sa := cards.ResolveSVar(commandeer.Face().SVars, "DBChooseTargets")
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		return &effects.Ctx{Source: commandeer.ID, Controller: 0, Targets: commandeer.Targets, SVars: commandeer.Face().SVars}
 	}, sa)
 	d := e.Pending()
@@ -88,7 +88,7 @@ func TestWishclawChosenPlayerGainsControlKernel(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: wish.ID, From: state.ZLibrary, To: state.ZBattlefield})
 	sa := cards.ResolveSVar(wish.Face().SVars, "DBChoose")
 	e.emit(events.Event{Kind: events.AbilityPush, Obj: wish.ID, Player: 0, Amount: 0})
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		return &effects.Ctx{Source: wish.ID, Controller: 0, SVars: wish.Face().SVars}
 	}, sa)
 	d := e.Pending()
@@ -115,7 +115,7 @@ func TestReboundTargetRestrictionOnlyOffersPlayersKernel(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: creature.ID, From: state.ZLibrary, To: state.ZBattlefield})
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: spell.ID, Player: 0, Amount: 1})
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		return &effects.Ctx{Source: rebound.ID, Controller: 0, Targets: []state.Target{{Obj: spell.ID}}, SVars: rebound.Face().SVars}
 	}, rebound.Face().SpellAbility())
 	d := e.Pending()
@@ -139,7 +139,7 @@ func TestValleymakerChoosePlayerOffersEveryPlayerKernel(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: vm.ID, From: state.ZLibrary, To: state.ZBattlefield})
 	idx := abilityIndex(t, vm.Card, "ChoosePlayer")
 	e.emit(events.Event{Kind: events.AbilityPush, Obj: vm.ID, Player: 0, Amount: int32(idx)})
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		return &effects.Ctx{Source: vm.ID, Controller: 0, SVars: vm.Face().SVars}
 	}, vm.Face().Abilities[idx])
 	d := e.Pending()
@@ -191,7 +191,7 @@ func TestMoxDiamondReanimatedFinishesTheReanimatingSpellKernel(t *testing.T) {
 	if d == nil || d.ResumeKind != "discard" {
 		t.Fatalf("Mox Diamond's replacement did not ask for the land: %+v", d)
 	}
-	land := kr4OptionKind(d, "discard")
+	land := optionKindOf(d, "discard")
 	if land < 0 {
 		t.Fatalf("no land offered for the discard: %+v", d.Options)
 	}
@@ -223,7 +223,7 @@ func TestDeflectingSwatOffersTheSpellControllersLegalTargetsKernel(t *testing.T)
 	}
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: murder.ID, IDs: []state.ObjID{mineA}})
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: swat.ID, IDs: []state.ObjID{murder.ID}})
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		return &effects.Ctx{Source: swat.ID, Controller: 0, Targets: []state.Target{{Obj: murder.ID}},
 			TargetsOffered: true, SVars: swat.Face().SVars}
 	}, swat.Face().SpellAbility())
@@ -231,10 +231,10 @@ func TestDeflectingSwatOffersTheSpellControllersLegalTargetsKernel(t *testing.T)
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("Deflecting Swat did not ask: %+v", d)
 	}
-	if kr4Offers(d, theirs) {
+	if offersObj(d, theirs) {
 		t.Fatalf("offered the caster's own creature, illegal for its spell: %+v", d.Options)
 	}
-	submitChoices(t, e, kr4Option(t, d, mineB))
+	submitChoices(t, e, optionOfObj(t, d, mineB))
 	if got := e.G.Obj(murder.ID).Targets; len(got) != 1 || got[0].Obj != mineB {
 		t.Fatalf("Murder targets = %+v, want creature %d", got, mineB)
 	}
@@ -257,7 +257,7 @@ func TestBraidsRepeatEachSeesTheSacrificedCardKernel(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 {
 		t.Fatalf("Braids's optional sacrifice did not ask: %+v", d)
 	}
-	submitChoices(t, e, kr4Option(t, d, relic))
+	submitChoices(t, e, optionOfObj(t, d, relic))
 	if e.G.Obj(braids).Zone != state.ZBattlefield || e.G.Obj(relic).Zone != state.ZGraveyard {
 		t.Fatalf("Braids zone %v relic zone %v, want Braids kept and the relic sacrificed",
 			e.G.Obj(braids).Zone, e.G.Obj(relic).Zone)
@@ -288,7 +288,7 @@ func TestFecundityOffersTheStolenCreaturesLastControllerKernel(t *testing.T) {
 	if d == nil || d.Kind != decision.KTriggerOptional || d.Player != 0 {
 		t.Fatalf("Fecundity's optional draw asked %+v, want the taker (player 0)", d)
 	}
-	yes := kr4OptionKind(d, "yes")
+	yes := optionKindOf(d, "yes")
 	if yes < 0 {
 		t.Fatalf("no yes option: %+v", d.Options)
 	}

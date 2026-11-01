@@ -112,7 +112,7 @@ func countDraws(e *Engine, p state.PlayerID) int {
 	return n
 }
 
-// The brief's headline defect, on the real corpus script: Umezawa's Jitte's
+// The defect, on the real corpus script: Umezawa's Jitte's
 // T:Mode$ DamageDealtOnce | CombatDamage$ True | ValidSource$
 // Creature.EquippedBy fires when its equipped creature deals combat damage,
 // putting two charge counters on the Jitte per damage STEP. The bearer here

@@ -10,7 +10,7 @@
 // and the corpus except the wall-clock readings it reports.
 //
 // Compatibility: the harness uses only APIs that exist at a4af596 (the pin
-// docs/015 measured) and at today's main: rules.New/Advance/Pending/Submit/
+// the comparison measured) and at today's main: rules.New/Advance/Pending/Submit/
 // Clone, decision.Decision/Intent, heuristic.NewBot(+EnableAutoPayMana),
 // botpolicy.BoardFromGameInto, testkit/bench.PlayGame, bots/searchseat
 // (Feed, NewSearchBot, Watch) and testutil.OpenCorpusRegistry. The azmcts
@@ -21,7 +21,7 @@
 // The wall clock is read only to report elapsed time; no game, decision or
 // seed reads it (internal/archtest's time allowlist names this command).
 //
-// Baseline break, 2026-10-06: the random and bot rows now recycle a finished
+// Baseline break: the random and bot rows recycle a finished
 // game's log and object arrays into the next game through a shared
 // testkit/bench.SparePool (rules.Spare), the way production self-play does.
 // The rows therefore no longer include a per-game events.NewLogInto /
@@ -61,7 +61,7 @@ type result struct {
 	HeapMB      float64 `json:"heap_live_mb"`
 	ScanHeapMB  float64 `json:"scan_heap_mb"`
 	HeapObjects int64   `json:"heap_objects"`
-	Corpus      string  `json:"corpus"`   // "full" (the only value since S4 retired the subset loader)
+	Corpus      string  `json:"corpus"`   // "full" (the only value)
 	Secs        float64 `json:"secs"`     // wall seconds of the timed region
 	CPU         float64 `json:"cpu_secs"` // process CPU seconds (user+sys) of the timed region
 	Err         string  `json:"err,omitempty"`

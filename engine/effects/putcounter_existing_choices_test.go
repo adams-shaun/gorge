@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task lb-existchoices: CounterType$ ExistingCounter + Choices$ names the
+// CounterType$ ExistingCounter + Choices$ names the
 // SOURCE of the counter kind, never the recipient, and never a literal
 // counter called ExistingCounter.
 

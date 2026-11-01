@@ -35,7 +35,7 @@ func TestReallyCharmingPrinceNameCardRandomUsesListedCorpusChoices(t *testing.T)
 	}
 	effects.Resolve(e, &effects.Ctx{Source: source, Controller: 0}, sa)
 	// The SubAbility chain ends in `DB$ Cleanup | ClearNamedCard$ True`, so the
-	// chosen name is consumed by the resolution (cr-g229) rather than left on
+	// chosen name is consumed by the resolution rather than left on
 	// the permanent. Read the recorded name event the handler emitted.
 	chosen := ""
 	for _, event := range e.L.Events {

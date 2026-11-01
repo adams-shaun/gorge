@@ -11,7 +11,7 @@ import (
 
 // An Effect-delivered MayPlayLimit$ grant is its own permission: its cap
 // counts the plays made through THAT grant, not the player's total may-plays
-// (cr-g217; Forge's StaticAbility.getMayPlayTurn is per static ability, and an
+// (Forge's StaticAbility.getMayPlayTurn is per static ability, and an
 // Effect's static lives on the Effect card).
 
 // effLimitArtifact is an artifact whose activation delivers one Effect-

@@ -1,7 +1,7 @@
 package rules
 
 // The counter-change trigger modes: trig:CounterRemoved, trig:CounterRemovedOnce
-// and trig:CounterAddedOnce, pinned on the three real corpus cards the brief
+// and trig:CounterAddedOnce, pinned on the three real corpus cards
 // names (Dinosaurs on a Spaceship, Regenerations Restored, Kate Stewart).
 //
 // All three are the SAME event shape CounterAdded already reads: the engine

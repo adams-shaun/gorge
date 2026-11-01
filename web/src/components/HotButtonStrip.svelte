@@ -59,7 +59,7 @@
   let showKeys = $state(false);
 
   const decision = $derived(logic.active);
-  // The ACTIONS tab projects the seat panel's own tone (R-E4-1: resolved from
+  // The ACTIONS tab projects the seat panel's own tone (resolved from
   // option KINDS, never labels or prompt text). The tab is the only part of
   // this instrument visible with the dropdown closed, so this is where "the
   // game is blocked on you" has to be visible: initiative pulses warm,
@@ -108,7 +108,7 @@
   // The strip counts exactly what its nested seat-panel list shows: the one
   // shared manual-mana rule (lib/manualmana.ts, spec §8) decides whether the
   // manual taps are hidden, never a rule of the strip's own.
-  const hideManualMana = $derived(manualManaHidden(decision, view, ctx.seat, logic.autoPayMana));
+  const hideManualMana = $derived(manualManaHidden(decision, view, ctx.seat, logic.hidesManualMana));
   const actionCount = $derived(
     (decision?.options.filter((option) =>
       option.kind !== 'pass' && !isConcede(option)
@@ -260,7 +260,7 @@
       const action = hotkeyAction(e, modalPickerOpen, keymapStore.current);
       if (action === null) {
         // The key was suppressed because a focused activatable control owns
-        // Space/Enter (fb-20260929T080219Z). Say why — but only for that
+        // Space/Enter. Say why — but only for that
         // reason: a keystroke that correctly went into a text field is no
         // surprise, and noting it would flood the 50-entry breadcrumb ring
         // while typing. A held key must not spam either.
@@ -382,7 +382,7 @@
     title={`Auto: ${autoStatus}`}
     onclick={(e) => { logic.pressAuto(); blurAfterPointer(e); }}
   ><span aria-hidden="true">AUTO</span></button>
-  {#if logic.autoManaAvailable}
+  {#if logic.autoManaAvailable && !logic.autoPayOnly}
   <button
     class="mode-chip payment-toggle"
     class:run={logic.autoPayMana}

@@ -1,6 +1,6 @@
 package rules
 
-// CR 709.4b/202.3d split-card mana value (cr-g13-face-characteristics-mvb).
+// CR 709.4b/202.3d split-card mana value.
 // A split card's mana value is its two halves' combined value in every zone
 // but the stack; on the stack only the half being cast counts, unless the
 // spell was fused (CR 709.4d). A cast restriction or cost modifier evaluates

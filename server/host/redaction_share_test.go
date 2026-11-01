@@ -22,7 +22,7 @@ package host
 //       different viewers can never corrupt each other's input or the log.
 //       This is a concurrency-only property: a sequential run cannot observe
 //       it, so the test drives both viewers concurrently and is run under
-//       -race (FL-89: one package per invocation).
+//       -race (one package per invocation).
 
 import (
 	"strings"
@@ -164,7 +164,7 @@ func objOr(b *protocol.EventBody) uint32 {
 // the test concurrently bodies in the input's appended encoding. If any
 // redaction aliased the input's IDs/Pairs instead of deep-copying them, the
 // race detector would fire or the later input check would catch a mutation.
-// Run under -race (one package per invocation, FL-89).
+// Run under -race (one package per invocation).
 func TestEventBodiesForConcurrentViewersOwnTheirBodies(t *testing.T) {
 	g, evs, alice := shareFixture(t)
 	// Give the log real IDs on a non-secret event too, so the deep-copy

@@ -11,8 +11,10 @@ import (
 // stream is GET .../stream: one SSE connection for the claim's own seat. On
 // connect it sends the current request (or null); from then on every change of
 // the seat's open request is pushed as a data line, including the null that
-// marks a request answered, timed out or superseded. The connection carries no
-// per-connection state, so a reconnect re-serves exactly what is still open.
+// marks a request answered, timed out or superseded. Opening it attaches the
+// seat, and while it is open a native answer doesn't hand the seat back. It
+// carries no other per-connection state, so a reconnect re-serves exactly what
+// is still open.
 func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 	t, k, ok := matchKey(w, r)
 	if !ok {
@@ -38,6 +40,8 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	ss := h.hub.seat(seatKey{table: t, match: k, seat: claim.Seat})
+	defer ss.hold()()
+	ss.attach()
 	// last is the request id already written. A sentinel no real request can
 	// have forces the initial frame (the null or the request already open), so
 	// a client that connects after a decision parked is never left waiting for

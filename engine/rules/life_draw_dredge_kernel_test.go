@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the life_draw_dredge_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// A life-gain replacement of a draw meeting Dredge, driven through the
+// resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -20,7 +19,7 @@ import (
 func TestLifeReplacementDredgeAsksOnceAndDrawsAll(t *testing.T) {
 	e, cfg, _ := lichThugEngine(t, 244, "Golgari Thug", "Nefarious Lich")
 	since := len(e.L.Events)
-	kr6Probe(e, func() { e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 2}) })
+	probeDroppingPending(e, func() { e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 2}) })
 	if n := countAsks(t, e, since); n != 1 {
 		t.Fatalf("DecisionAsk events for one replaced 2-card gain = %d, want exactly 1 (a second ask before the first is answered orphans it)", n)
 	}
@@ -58,7 +57,7 @@ func TestLifeReplacementDredgeAsksOnceAndDrawsAll(t *testing.T) {
 	if draws != 2 {
 		t.Fatalf("draws delivered for a replaced 2-card gain = %d, want 2", draws)
 	}
-	kr6Settle(e) // the probed emit ends with no priority grant of its own
+	settleDrain(e) // the probed emit ends with no priority grant of its own
 	if e.Pending() == nil {
 		t.Fatal("no decision pending after the replacement body completed")
 	}
@@ -72,7 +71,7 @@ func TestLifeReplacementDredgeAsksOnceAndDrawsAll(t *testing.T) {
 func TestLifeReplacementDredgeAcceptAppliesThenContinues(t *testing.T) {
 	e, cfg, ids := lichThugEngine(t, 245, "Golgari Thug", "Nefarious Lich")
 	since := len(e.L.Events)
-	kr6Probe(e, func() { e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 2}) })
+	probeDroppingPending(e, func() { e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 2}) })
 	d := e.Pending()
 	if d == nil || d.ResumeKind != "dredge" {
 		t.Fatalf("pending = %+v, want the dredge ask", d)
@@ -124,7 +123,7 @@ func TestLifeReplacementDredgeAcceptAppliesThenContinues(t *testing.T) {
 func TestLifeReplacementDredgeReParksForEachDraw(t *testing.T) {
 	e, cfg, _ := lichThugEngine(t, 246, "Golgari Thug", "Golgari Thug", "Nefarious Lich")
 	since := len(e.L.Events)
-	kr6Probe(e, func() { e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 2}) })
+	probeDroppingPending(e, func() { e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 2}) })
 	if n := countAsks(t, e, since); n != 1 {
 		t.Fatalf("first draw's asks = %d, want 1", n)
 	}

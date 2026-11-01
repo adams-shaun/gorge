@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// costmods.go is the cost-modifier vocabulary (lasagna spec W5 E7, the
+// costmods.go is the cost-modifier vocabulary (the
 // statics_cost machinery's data half): what is being priced (CostScope), one
 // evaluated reduction (CostMod) and the CR 601.2f composition (CostMods) with
 // its pure apply and feasibility reads. Collecting the live statics into a

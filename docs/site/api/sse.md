@@ -162,7 +162,7 @@ real undo on table `g4`:
 ```text
 id: sed430cb561daa394d2c819485abdf6bd:311
 event: decision
-data: {"v":1,"t":"decision","id":311,"table":"g4","match":1,"seq":282,"body":{"player":0,"kind":"priority","prompt":"turn 3, draw — You has priority"}}
+data: {"v":1,"t":"decision","id":311,"table":"g4","match":1,"seq":282,"body":{"player":0,"kind":"priority","prompt":"turn 3, draw — You have priority"}}
 
 id: sed430cb561daa394d2c819485abdf6bd:312
 event: rewind
@@ -170,7 +170,7 @@ data: {"v":1,"t":"rewind","id":312,"table":"g4","match":1,"seq":272,"body":{"vie
 
 id: sed430cb561daa394d2c819485abdf6bd:313
 event: decision
-data: {"v":1,"t":"decision","id":313,"table":"g4","match":1,"seq":272,"body":{"player":0,"kind":"priority","prompt":"turn 3, upkeep — You has priority"}}
+data: {"v":1,"t":"decision","id":313,"table":"g4","match":1,"seq":272,"body":{"player":0,"kind":"priority","prompt":"turn 3, upkeep — You have priority"}}
 ```
 
 ## Resuming

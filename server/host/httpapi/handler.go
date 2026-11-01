@@ -25,10 +25,10 @@ type SeatClaim struct {
 // Options configures the handler. Every duration defaults when zero.
 type Options struct {
 	Authorize      func(*http.Request) error // nil allows everyone; an error is a 401
-	WidgetInterval time.Duration             // SSE widget flush cadence; 0 = 250ms (Task 15)
-	KeepAlive      time.Duration             // SSE comment cadence; 0 = 15s (Task 15)
-	ResumeGrace    time.Duration             // how long a disconnected session survives; 0 = 30s (Task 15)
-	Web            fs.FS                     // the built client (has index.html); nil = 503 for non-API paths (Task 15)
+	WidgetInterval time.Duration             // SSE widget flush cadence; 0 = 250ms
+	KeepAlive      time.Duration             // SSE comment cadence; 0 = 15s
+	ResumeGrace    time.Duration             // how long a disconnected session survives; 0 = 30s
+	Web            fs.FS                     // the built client (has index.html); nil = 503 for non-API paths
 	// Engine is the engine GET /api/capabilities reports; "" is gorge.
 	Engine string
 	// Seat resolves which seat a request may act for, separately from
@@ -38,9 +38,9 @@ type Options struct {
 	// an Authorize failure (401); a claim whose table or seat disagrees with
 	// the request is refused (403); only an agreeing claim reaches the
 	// seat-scoped Registry methods. See SeatClaim.
-	Seat func(*http.Request) (SeatClaim, bool) // nil = spectator-only (M2e-2)
+	Seat func(*http.Request) (SeatClaim, bool) // nil = spectator-only
 	// CreateGame, when non-nil, arms the POST /api/games endpoint that seats
-	// a human against a bot on demand (Task ui11). It builds and starts a
+	// a human against a bot on demand. It builds and starts a
 	// fresh single-shot table for the requested format and returns its
 	// identity (table, seed, the human seat and its bearer token), which the
 	// client follows to the join URL. nil — the default — leaves the
@@ -64,7 +64,7 @@ type Options struct {
 	// leaves every /api/events path the JSON 404 it is today.
 	Events EventService
 	// Decisions, when non-nil, arms GET /api/tables/{t}/matches/{k}/decisions,
-	// a review table's decision index (match reviewer, design T4). Only
+	// a review table's decision index. Only
 	// `gorged review` sets it (to host.Registry.ReviewDecisions); nil -- the
 	// default, and every live server -- leaves the route unregistered, so it
 	// answers the JSON 404 like any path the handler does not serve and the
@@ -90,7 +90,7 @@ type handler struct {
 	opts Options
 
 	mu       sync.Mutex
-	grace    map[string]*graceTimer // session id -> pending close after disconnect (Task 15)
+	grace    map[string]*graceTimer // session id -> pending close after disconnect
 	graceGen uint64                 // monotonic token so stale grace callbacks recognise themselves
 }
 
@@ -128,8 +128,8 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	})
 	h.mountEvents(mux)
 	h.mountDecisions(mux)
-	h.mountStream(mux) // Task 15
-	h.mountStatic(mux) // Task 15
+	h.mountStream(mux)
+	h.mountStatic(mux)
 	return h, h.authorized(mux)
 }
 

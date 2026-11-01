@@ -151,7 +151,7 @@ const ezuriBeastStem = "g_4_4_phyrexian_beast"
 // The loop's token/fight PAIRING is not asserted here: RepeatEach's
 // UseImprinted$ is unread, so Ezuri's `Defined$ Imprinted & Remembered`
 // body names one creature twice and api:Fight notes the mis-resolved
-// selector loudly and deals no damage (cr-g18a). The order-dependent
+// selector loudly and deals no damage. The order-dependent
 // observable behaviour ChooseOrder governs is pinned by the focused
 // synthetic test above, whose body (DealDamage Defined$ Imprinted) is
 // unimpeded.

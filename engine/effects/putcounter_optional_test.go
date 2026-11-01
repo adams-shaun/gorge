@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task put-optional: api:PutCounter.Optional$ True was unread -- "you may put
+// api:PutCounter.Optional$ True -- "you may put
 // a counter" ALWAYS put, with no election recorded anywhere. effPutCounter
 // now poses a real yes/no KChoose (the attach_optional precedent, the shared
 // Ask boundary), the answer is applied in place, and a decline places nothing while the chained SubAbility$

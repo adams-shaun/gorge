@@ -7,7 +7,7 @@
   /**
    * Feed lines are the same server-described lines the match transcript uses
    * (widget.last, view/describe.go), so they get the same readable-log
-   * rendering (ui9): a card/permanent reference's `#<id>` is suppressed onto
+   * rendering: a card/permanent reference's `#<id>` is suppressed onto
    * a hover title (the id is still load-bearing — two copies of the same card
    * — so it stays reachable), mana symbols render as pips, and a faceless
    * ability reference is italicised. There is no match view at the lobby rail
@@ -167,7 +167,7 @@
   .text {
     overflow-wrap: anywhere;
   }
-  /* Same readable-log rendering as the match transcript (ui9). */
+  /* Same readable-log rendering as the match transcript. */
   .obj.card {
     font-weight: 600;
   }

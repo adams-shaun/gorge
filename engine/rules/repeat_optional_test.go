@@ -1,6 +1,6 @@
 package rules
 
-// Task repeatopt1: the RepeatOptional$ do/while election. Ad Nauseam is the
+// The RepeatOptional$ do/while election. Ad Nauseam is the
 // named corpus carrier (its brief source), and Forbidden Ritual is the
 // corpus carrier whose BODY itself asks (a sacrifice resolving into a
 // GenericChoice modal ask), which is the shape an answered body must return
@@ -92,7 +92,7 @@ func submitStop(t *testing.T, e *Engine, d *decision.Decision) {
 	submitChoices(t, e, idx)
 }
 
-// TestAdNauseamOptionalRepeatElectionStopsOnNo is the brief's core leaf on
+// TestAdNauseamOptionalRepeatElectionStopsOnNo is the core leaf on
 // the real corpus card: Ad Nauseam's optional do/while poses the "Repeat
 // this process?" election after its first reveal, and answering no resolves
 // after exactly that one iteration (one card taken, no second).

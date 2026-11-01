@@ -62,7 +62,7 @@ func backToHand(t *testing.T, e *Engine, id state.ObjID) {
 	e.priorityRound()
 }
 
-// TestAbominationWorldRavagerMayhemOfferedAndCasts pins the brief's
+// TestAbominationWorldRavagerMayhemOfferedAndCasts pins the
 // end-to-end shape on the real corpus card: the card discarded this turn is
 // offered a graveyard cast for the mayhem cost, the cast charges {4}{R} (not
 // the printed {7}{R}), and the resolved spell enters the battlefield.

@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Livelock detection: a real bug -- I-1's stack object that re-resolved
+// Livelock detection: a real bug -- a stack object that re-resolved
 // forever, and the rakdos-muscle-scam-exe run that pegged a core for 15+
 // minutes with no output -- presents to a harness as a game that never
 // returns from Advance/Submit. An outside `timeout` cannot tell "stuck"
@@ -28,7 +28,7 @@ import (
 // Two independent triggers, because two loop shapes evade each other:
 //
 //   - Repeating cycle: the trailing window of event signatures repeats a
-//     short period exactly. This catches I-1's shape (the same 13-event
+//     short period exactly. This catches the stuck-resolution shape (the same 13-event
 //     resolve cycle over and over) and stays precise enough to report the
 //     cycle itself. Signatures deliberately EXCLUDE Seq, Amount and Text:
 //     a stuck loop whose payload drifts a little each iteration (a life
@@ -46,7 +46,7 @@ import (
 
 const (
 	// defaultCycleEvents is how many consecutive events a repeating cycle
-	// must run before the watcher aborts. I-1's loop ran 700+ events in a
+	// must run before the watcher aborts. One such loop ran 700+ events in a
 	// 13-event cycle before anyone noticed; 400 trips that inside one
 	// Submit call, in well under a second, and is far past anything a
 	// legitimate resolution emits.
@@ -78,14 +78,14 @@ const (
 	// budget (rules.WithDefaultObjectCap). It is a VOLUME bound, not a
 	// bug detector: measured over 2100 ordinary games (1200 FDN-Limited
 	// pairs, 600 constructed repo-deck pairs, 300 4-seat Commander repo-deck
-	// games, CV-8 probe) the arena's end-of-game high-water (it is monotone,
+	// games, a Krenko probe) the arena's end-of-game high-water (it is monotone,
 	// so end-of-game length IS the high-water) was 554 objects (Commander,
-	// 4 seats); the widest legitimate token board on record is cardfuzz
-	// batch8's 1790 Goblins. 10000 sits ~18x above the measured ordinary
+	// 4 seats); the widest legitimate token board on record is a fuzz game's
+	// 1790 Goblins. 10000 sits ~18x above the measured ordinary
 	// maximum, equals RunawayBigBoardObjs (the same "this is volume, not a
-	// stuck resolution" population CV-2 fixed the runaway reason at), and
+	// stuck resolution" population the runaway reason names), and
 	// bounds a Krenko, Mob Boss storm well under the GB-scale RSS an
-	// unbounded one reaches (CV-8's measured 7.2 GB and climbing at 25127
+	// unbounded one reaches (a measured 7.2 GB and climbing at 25127
 	// objects) while an ordinary game never comes within an order of
 	// magnitude of it.
 	DefaultMaxObjs = RunawayBigBoardObjs
@@ -169,7 +169,7 @@ func WithDefaultObjectCap(g *LoopGuard) *LoopGuard {
 // budget -- rather than a stuck resolution. The harnesses (testkit/bench's
 // drive loop, the host's play recover) record a game that tripped a volume
 // reason as a stalled game under the cardfuzz "bigboard" vocabulary, never
-// as an engine-bug abort (Ruling CV-2). "token plan" is deliberately NOT
+// as an engine-bug abort. "token plan" is deliberately NOT
 // volume here: it predates the classification and its callers classify it
 // themselves.
 func IsVolumeReason(reason string) bool {
@@ -392,7 +392,7 @@ func (w *livelockWatcher) observe(ev events.Event) { w.observeFrom(&ev, 0, 0) }
 // arena population. A Damage event's payload names only its RECIPIENT -- a
 // player hit carries no object at all -- so the combat damage step of a wide
 // board (1790 Goblin tokens from Krenko, Mob Boss, each dealing 1 to the
-// same player: cardfuzz batch8 lines 2-3) logs hundreds of byte-identical
+// same player) logs hundreds of byte-identical
 // Damage events that are each a DIFFERENT creature's damage. Folding the
 // source into a Damage event's signature keeps those distinct, while a real
 // loop -- one source damaging the same recipient again and again -- still
@@ -451,10 +451,10 @@ func (w *livelockWatcher) observeFrom(ev *events.Event, damageSource state.ObjID
 	}
 
 	// A ClockTick is pure bookkeeping -- AddContinuous stamps one per
-	// registered effect (Ruling T19-a) -- and carries no object, so a single
+	// registered effect -- and carries no object, so a single
 	// resolution that legitimately registers one effect per affected
 	// permanent (a PumpAll over a 400-creature board: Moogles' Valor at the
-	// end of a token-doubling game, cardfuzz batch5 line 4) is a run of
+	// end of a token-doubling game) is a run of
 	// identical signatures that is not a loop. It is invisible to the
 	// exact-period detector (a real loop that also ticks the clock still
 	// repeats its other events, which the detector sees with the ticks

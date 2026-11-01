@@ -181,8 +181,8 @@ func TestKikiJikiCopyHasHasteAndIsSacrificedAtNextEndStep(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestMultiversalRecruitmentCopyIsNotLegendary pins NonLegendary$ True on the
-// brief's named carrier: the copy of a legendary creature (Kiki-Jiki) loses the
+// TestMultiversalRecruitmentCopyIsNotLegendary pins NonLegendary$ True:
+// the copy of a legendary creature (Kiki-Jiki) loses the
 // Legendary supertype while keeping the rest of its type line -- and, crucially,
 // SURVIVES the CR 704.5j legend rule against its original, because the legend
 // SBA reads the DERIVED type list (engine/rules/sba.go legendCasualties). Before that

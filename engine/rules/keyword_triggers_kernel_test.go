@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the keyword_triggers_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Riot, Hideaway, Play and Dredge on real corpus cards, driven through the
+// resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -89,7 +88,7 @@ func TestRiotAndHideawayUseRealCorpusCards(t *testing.T) {
 	if len(e2.G.Zone(state.ZExile, 0)) != 0 {
 		t.Fatalf("Hideaway exiled a card before trigger resolution: %v", e2.G.Zone(state.ZExile, 0))
 	}
-	kr6ResolveTop(e2)
+	resolveTopProbe(e2)
 	pick := e2.Pending()
 	if pick == nil || pick.Kind != decision.KChoose || len(pick.Options) != 4 {
 		t.Fatalf("Hideaway pick = %+v, want four-card choice", pick)
@@ -168,7 +167,7 @@ func TestPlayUsesRealCorpusCard(t *testing.T) {
 		}
 	}
 	from := e.G.Obj(kid).Zone
-	kr6Probe(e, func() {
+	probeDroppingPending(e, func() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: kid, From: from, To: state.ZBattlefield})
 	})
 	e.putTriggersOnStack()
@@ -181,7 +180,7 @@ func TestPlayUsesRealCorpusCard(t *testing.T) {
 	if len(e.G.Stack) == 0 {
 		t.Fatal("Spinerock Knoll Hideaway trigger not on stack")
 	}
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	pick := e.Pending()
 	if pick == nil || pick.Kind != decision.KChoose || len(pick.Options) != 4 {
 		t.Fatalf("Hideaway pick = %+v, want four-card choice", pick)
@@ -300,7 +299,7 @@ func TestDredgeUsesRealCorpusCard(t *testing.T) {
 	libBefore := len(e.G.Zone(state.ZLibrary, 0))
 	handBefore := len(e.G.Zone(state.ZHand, 0))
 	// Draw for seat 0 directly through the shared path.
-	kr6Probe(e, func() { e.drawCard(0) })
+	probeDroppingPending(e, func() { e.drawCard(0) })
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KModes {
 		t.Fatalf("expected dredge KModes ask, got %+v", d)
@@ -373,7 +372,7 @@ func TestDredgeResumesEveryDrawAndContinuation(t *testing.T) {
 			start := len(e.L.Events)
 			life := e.G.Players[0].Life
 			e.emit(events.Event{Kind: events.PutOnStack, Obj: did, From: e.G.Obj(did).Zone, To: state.ZStack, Player: 0})
-			kr6ResolveTop(e)
+			resolveTopProbe(e)
 			first := e.Pending()
 			if first == nil || first.ResumeKind != "dredge" {
 				t.Fatalf("first Draw 2 replacement = %+v", first)

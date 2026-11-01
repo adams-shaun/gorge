@@ -1,8 +1,8 @@
 package cards
 
-// mayask.go is the text half of the resolution kernel's ask-free predicate
-// (lasagna spec §7, W3 step 0; spike S3b candidate 1): a conservative
-// judgement, from an ability's immutable text alone, of whether resolving it
+// mayask.go is the text half of the resolution kernel's ask-free predicate:
+// a conservative judgement, from an ability's immutable text alone, of whether
+// resolving it
 // can pose a decision. rules' object half (engine/rules/resolve_mayask.go) adds what
 // the stack object knows and memoises the per-ability answer on its facts
 // record. It is a PERFORMANCE HINT: the kernel catches every miss at its one
@@ -11,7 +11,7 @@ package cards
 //
 // Every parameter in the ParamKey vocabulary is read through it. The
 // presence-only checks in mayAskRawDeny name parameters outside the
-// vocabulary (W4 owns it); each moves to mayAskDenyKeys when its key is
+// vocabulary; each moves to mayAskDenyKeys when its key is
 // added. They are
 // presence tests, not reads that honour the parameter, so they are kept out
 // of the rules parameter census on purpose: the predicate supports nothing.

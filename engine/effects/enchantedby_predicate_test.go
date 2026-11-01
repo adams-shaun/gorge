@@ -141,7 +141,7 @@ func TestEnchantedByNarrowArgsStillUnknown(t *testing.T) {
 	}
 }
 
-// TestEnchantedByBareFormUnchanged pins the guard the brief names: the BARE
+// TestEnchantedByBareFormUnchanged pins the guard: the BARE
 // "EnchantedBy" map predicate (attachedBy) keeps its existing meaning -- the
 // candidate is the permanent the resolving SOURCE is currently attached to.
 // Several other open issues depend on that shape; the two-token work must

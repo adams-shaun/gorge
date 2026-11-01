@@ -8,7 +8,7 @@ import (
 )
 
 // Void Winnower's two statics read Forge's cmcEven card property (CR 202.3:
-// mana value; "Zero is even."). Before cr-g03 the numeric-predicate parser
+// mana value; "Zero is even."). The numeric-predicate parser
 // split "cmcEven" into comparator "Ev" and right-hand side "en", the RHS
 // failed to resolve, and the predicate answered (false, recognised): both
 // statics were silent no-ops and UnknownPredicates called the shape

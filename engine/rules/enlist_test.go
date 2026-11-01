@@ -12,7 +12,7 @@ import (
 )
 
 // Enlist (CR 702.160, task enlist1) pinned end to end on real corpus cards.
-// Aradesh, the Founder is the deck carrier the brief names (its attack
+// Aradesh, the Founder is the deck carrier (its attack
 // trigger gates on `ValidCard$ Creature.YouCtrl+enlistedThisCombat`, an
 // intervening-if that was an unknown predicate and failed closed); Guardian
 // of New Benalia carries the corpus's other enlist shape, the `Mode$
@@ -53,7 +53,7 @@ func driveEnlistAttack(t *testing.T, e *Engine, carrier state.ObjID, opt int) {
 	submitChoices(t, e, opt)
 }
 
-// TestAradeshEnlistElectionPumpAndTrigger is the brief's leaf: the enlist
+// TestAradeshEnlistElectionPumpAndTrigger: the enlist
 // election is offered at attack with the Hill Giant as a candidate; enlisting
 // taps the giant and pumps the attacker +3/+0 (its power binds at enlist
 // time, CR 702.160a); the enlistedThisCombat predicate turns true, so

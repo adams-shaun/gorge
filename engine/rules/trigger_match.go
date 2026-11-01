@@ -32,9 +32,9 @@ import (
 // pendingTrigger is a matched trigger waiting to be placed on the stack.
 //
 // Idx is Source's own Face().Triggers index for the matched T: line. SA is
-// kept alongside it (the brief's own interface names both Source and SA)
+// kept alongside it (the interface names both Source and SA)
 // even though putTriggersOnStack ends up re-deriving the ability from
-// Source+Idx rather than using SA directly: Ruling T20-a means the eventual
+// Source+Idx rather than using SA directly: the eventual
 // stack object is created inside events.Apply, which cannot carry a raw
 // *cards.SA pointer through the log -- only data (an ObjID and a small
 // index) that lets Apply find the same *cards.SA a live engine already
@@ -44,12 +44,15 @@ type pendingTrigger struct {
 	Controller state.PlayerID
 	Idx        int
 	SA         *cards.SA
+	// follows names the object of a causing event the trigger reads live
+	// until it moves (see triggerObjectLKI).
+	follows state.ObjID
 	// sourceCharLKI is the source's last-known characteristics when it left
 	// the battlefield while this trigger waited (source_char_lki.go); it
 	// moves onto the stack object at TriggerPush.
 	sourceCharLKI      sourceCharSnapshot
 	sourceCharLKIValid bool
-	// Miracle marks a keyword offer (Task 18) rather than a matched T: line: a
+	// Miracle marks a keyword offer rather than a matched T: line: a
 	// Miracle drawing queued with Idx/SA unset, which the drain treats as an
 	// optional trigger whose decider is the owner and routes a yes through
 	// castMiracle (miracle.go) instead of minting a triggered-ability stack
@@ -453,7 +456,7 @@ type combatFires struct {
 }
 
 // actionTriggerModes are the event-trigger modes the sacrifice/discard/tap/
-// crime/attack-declaration ticket registered. The trigger-level parameters
+// crime/attack-declaration change registered. The trigger-level parameters
 // only they honour -- PlayerTurn$ and a CheckDefinedPlayer$ predicate this
 // build cannot evaluate failing closed -- are scoped to these modes, so no
 // trigger of another mode that fired before stops firing or fires less
@@ -471,7 +474,7 @@ type combatFires struct {
 // so the entries citing it now explain only PlayerTurn$.
 var actionTriggerModes = map[string]bool{
 	// Clashed joins them for the same reason: it is an event mode registered
-	// with its own marker Kind (events.Clash, task clash1), so the
+	// with its own marker Kind (events.Clash), so the
 	// trigger-level parameters Forge scopes to every event mode --
 	// PlayerTurn$, ActivationLimit$, and an unevaluable CheckDefinedPlayer$
 	// predicate failing closed -- apply from day one. Its own ValidPlayer$ /
@@ -539,7 +542,7 @@ var actionTriggerModes = map[string]bool{
 	"Attached": true,
 	// LifeGained joins them for the same reason: it is an event mode
 	// registered from the start (trigmatch.lifeGainedMatches over events.LifeChange,
-	// the api:RemoveCounter ticket's Prize Pig pin), so the trigger-level
+	// the api:RemoveCounter Prize Pig pin), so the trigger-level
 	// parameters Forge scopes to every event mode -- PlayerTurn$ (5 corpus
 	// lines: Vampire Scrivener, Wax//Wane Witness, Moonstone Harbinger,
 	// Cat Collector), ActivationLimit$ (2 lines) and an unevaluable
@@ -549,7 +552,7 @@ var actionTriggerModes = map[string]bool{
 	// once-per-turn latch trigmatch.lifeLostMatches implements without the map.
 	// LifeGained joins them for the same reason: it is an event mode
 	// registered from the start (trigmatch.lifeGainedMatches over events.LifeChange,
-	// the api:RemoveCounter ticket's Prize Pig pin), so the trigger-level
+	// the api:RemoveCounter Prize Pig pin), so the trigger-level
 	// parameters Forge scopes to every event mode -- PlayerTurn$ (5 corpus
 	// lines: Vampire Scrivener, Wax//Wane Witness, Moonstone Harbinger,
 	// Cat Collector), ActivationLimit$ (2 lines) and an unevaluable
@@ -559,7 +562,7 @@ var actionTriggerModes = map[string]bool{
 	// once-per-turn latch trigmatch.lifeLostMatches implements without the map.
 	"LifeGained": true,
 	// Discover and SeekAll join them: both are event modes registered with
-	// their own marker Kinds (events.Discover/events.Seek, task trigdisc1)
+	// their own marker Kinds (events.Discover/events.Seek)
 	// whose corpus carriers carry the trigger-level parameters Forge scopes
 	// to every event mode -- Curator of Sun's Creation's ActivationLimit$ 1
 	// on its Discover line ("This ability triggers only once each turn")
@@ -801,9 +804,9 @@ func resolvedLimitValue(t cards.Trigger) (int, bool) {
 // ResolvedLimit$ gate. Callers MUST have verified that the trigger line being
 // resolved itself carries ResolvedLimit$ (resolvedLimitValue on the trigger
 // findTriggerForAbility returned for the resolving ability) -- a mixed-line
-// source's OTHER trigger lines must never consume this line's limit (the
-// round-2 defect: sourceHasResolvedLimit potted any line of the source and
-// killed Cosmic Crucible's copy trigger every turn its mandatory Main1 mana
+// source's OTHER trigger lines must never consume this line's limit (a
+// sourceHasResolvedLimit that counted any line of the source would kill
+// Cosmic Crucible's copy trigger every turn its mandatory Main1 mana
 // trigger resolved). The count self-resets when the turn changes, exactly as
 // triggerTurnFires does, so no reset hook is needed.
 func (e *Engine) noteTriggerResolved(source state.ObjID) {
@@ -853,6 +856,13 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	if e.holdEntryCheck(ev, lki) {
 		return
 	}
+	queued := len(e.pendingTriggers)
+	e.checkTriggersNow(ev, lki, lkiPower, lkiToughness, lkiPTValid)
+	e.followTriggerObject(ev, queued)
+}
+
+func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
+	lkiPower, lkiToughness int32, lkiPTValid bool) {
 	batch := e.triggerBefore != nil && ev.Kind == events.MoveZone &&
 		ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
 	noop := batch && e.lookBackProvenNoop()
@@ -991,7 +1001,7 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	if ev.Kind == events.DungeonRoom {
 		e.checkDungeonRoomTriggers(*ev)
 	}
-	// Exert's Trigger$ rider (task exert1, CR 702.100a): the static's named
+	// Exert's Trigger$ rider (CR 702.100a): the static's named
 	// SVar body queues off the Exert event itself, with Source = the
 	// exerted permanent. The Amount -1 consume marker fires nothing: it is
 	// the untap-step scan's own bookkeeping fold.
@@ -1215,7 +1225,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		}
 		f := o.Face()
 		if f == nil {
-			// Ruling F3: an ability or token object has no Face and
+			// An ability or token object has no Face and
 			// therefore no printed Triggers to check -- only real cards
 			// carry triggered abilities.
 			return
@@ -2496,29 +2506,28 @@ func (e *Engine) closeZoneBatch() {
 // object the triggering event was actually about (the card that changed
 // zones, was cast, or is being targeted), or -- for an event with no object
 // of its own, such as a step change, or a player-only Damage event -- the
-// trigger's own source. Most of the eight M1 modes' Execute$ abilities in
+// trigger's own source. Most of the base modes' Execute$ abilities in
 // the acceptance deck don't read Remembered at all (they use Defined$
 // Self/You), so this is deliberately one simple, general rule rather than a
 // mode-specific one -- except DeclareAttackers, which carries every attacker
 // declared against one defending player in Event.IDs rather than a single
 // Event.Obj (see trigmatch.AttacksMatches): Remembered there is every declared
 // attacker, in order, followed by one more entry for that event's defending
-// player. ev.Player is set by handleAttackers (engine/rules/combat.go); since Task
-// m34 an attack may split across several defenders, so the engine emits ONE
+// player. ev.Player is set by handleAttackers (engine/rules/combat.go); an
+// attack may split across several defenders, so the engine emits ONE
 // DeclareAttackers event per defending player and each event's Player is
 // that event's own defender -- a trigger matching one of its attackers
 // resolves TriggeredDefendingPlayer against the opponent that creature is
 // actually attacking, the same value a two-player game always produced.
 //
 // effects.context.go's Defined already recognises Defined$
-// TriggeredDefendingPlayer/TriggeredPlayer (Task 5's playersOf(Remembered),
-// merged after this task started). The trailing entry only matters once it
-// survives onto the stack, which needed FL-41's fix: pushTrigger
-// (trigger_queue.go) could not just write tgt.Obj for this entry into the
-// logged TriggerPush event's IDs (always 0 for a player target) -- Apply
+// TriggeredDefendingPlayer/TriggeredPlayer (playersOf(Remembered)). The
+// trailing entry only matters once it survives onto the stack: pushTrigger
+// (trigger_queue.go) cannot just write tgt.Obj for this entry into the
+// logged TriggerPush event's IDs (always 0 for a player target), because Apply
 // would rebuild it as {Obj: 0}, and playersOf (engine/effects/context.go) filters
-// that entry out, so Defined$ TriggeredDefendingPlayer resolves to nothing
-// and the effect silently no-ops (PlayerOf is never reached). state.PlayerRef
+// that entry out, so Defined$ TriggeredDefendingPlayer would resolve to nothing
+// and the effect would silently no-op (PlayerOf is never reached). state.PlayerRef
 // is what lets a player reference survive that log-and-replay round trip
 // intact.
 //
@@ -2526,20 +2535,16 @@ func (e *Engine) closeZoneBatch() {
 // Knight of Infamy's intrinsic Exalted keyword trigger (engine/cards/keywords.go
 // expands it to Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True),
 // which fires twice in the 4-seat game (mono-black-aggro is dealt in at
-// seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker now prefers
+// seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker prefers
 // the TriggerCard role the queue point (attacksTriggerInstances) binds for the
 // attacker that instance was queued for, falling back to Remembered -- every
 // declared attacker plus the defending player -- only when the role is absent
 // (a delayed registration, or the AttackersDeclared batch family).
-// On top of FL-48 (task 16),
-// trigmatch.AttacksMatches honours Alone$ True, so the trigger now fires only when
-// exactly one attacker is declared and pumps that single attacker -- which is
-// the measured cause of the four-seat chain-head move 81a8a100641b5442's
-// successor (see commit 75be2a3's merge note); before FL-48, Remembered listed
-// several attackers and trigmatch.AttacksMatches, ignoring Alone$, pumped every one.
-// Goblin Guide and Goblin Piledriver never fire in the 8-seat game, and
-// Ulamog is in the tron deck, which is never dealt at 2/4/6/8 seats: neither
-// is a cause.
+// On top of that, trigmatch.AttacksMatches honours Alone$ True, so the trigger
+// fires only when exactly one attacker is declared and pumps that single
+// attacker. No other card in those games depends on the entry: Goblin Guide and
+// Goblin Piledriver never fire in the 8-seat game, and Ulamog is in the tron
+// deck, which is never dealt at 2/4/6/8 seats.
 func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 	if ev.Kind == events.DeclareAttackers {
 		out := make([]state.Target, 0, len(ev.IDs)+1)
@@ -2643,7 +2648,7 @@ func (e *Engine) resolvingCaptured(o *state.Object) []state.Target {
 // checks that condition on whatever event happens to be emitted when the
 // state first matches, so the event's object is incidental. Capturing it made
 // the ability's Remembered (and its TriggerPush IDs) depend on which event
-// ran the check: measured (round-10 paymirror random4 seed 12468 seq 7211),
+// ran the check: measured (paymirror random4 seed 12468 seq 7211),
 // Veiled Crocodile's "when a player has no cards in hand" remembered the
 // Island its controller tapped inside a spell's CR 601.2g payment window, but
 // itself when the same Island was tapped at priority before the cast.
@@ -2702,7 +2707,7 @@ func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source s
 }
 
 // attackersDeclaredCapture binds the fire-time matched-attacker capture on an
-// AttackersDeclared(OneTarget) trigger's context (task tek1): the attackers
+// AttackersDeclared(OneTarget) trigger's context: the attackers
 // that passed THIS line's own ValidAttackers$ filter, read off the shared
 // trigmatch walk the match itself ran (AttackersDeclaredMatchedAttackers), so
 // the capture can never name an attacker the boolean match did not admit and
@@ -2711,7 +2716,7 @@ func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source s
 // (The Earth King's "up to that many basic land cards", where "that many" is
 // the MATCHED attackers' count, not the whole declared batch Ctx.Remembered
 // holds). A free function over trigmatch.Board -- not an Engine method -- in
-// the lasagna's free-func-over-a-narrow-interface shape. Engine scratch only:
+// the free-func-over-a-narrow-interface shape. Engine scratch only:
 // it rides the per-stack triggerContexts map (clone:"deep", removed when the
 // stack object leaves) and a replay re-derives it because pushTrigger
 // re-executes this same capture.
@@ -2754,7 +2759,7 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	if e.disableTriggersExcludes(t, source, ev) {
 		return false
 	}
-	// NotThisAbility$ True (task nta1): the event being matched must not
+	// NotThisAbility$ True: the event being matched must not
 	// have been caused by the resolution of THIS very trigger instance
 	// (Kodama of the East Tree -- the corpus's one carrier, 1 of 38000+ card
 	// files -- is the shape: its "whenever another permanent you control
@@ -2986,14 +2991,14 @@ func init() {
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
 		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblocked", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll", "trig:CounterAddedAll", "trig:CounterTypeAddedAll",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana", "trig:Untaps",
-		// Aggregate tap trigger modes (task cli-20261005T075020Z-05241a06),
-		// matched by trigmatch.tapAllMatches/untapAllMatches off the ordinary
-		// Tap/Untap events, batched once per tapping/untapping action.
+		// Aggregate tap trigger modes, matched by
+		// trigmatch.tapAllMatches/untapAllMatches off the ordinary Tap/Untap
+		// events, batched once per tapping/untapping action.
 		"trig:TapAll", "trig:UntapAll",
 		"trig:ClassLevelGained", "trig:BecomeMonstrous",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:DamageAll",
-		// ExcessDamageAll (agent-20261005T061534Z-7ace93d1): dispatched by the
+		// ExcessDamageAll: dispatched by the
 		// aggregate damage-batch matcher; declaring support keeps real card
 		// carriers eligible for deck validation and coverage.
 		"trig:ExcessDamageAll", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
@@ -3002,12 +3007,11 @@ func init() {
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated", "trig:SearchedLibrary",
 		"trig:Exploited",
-		// trig:TurnFaceUp (task cli-20260924T031747Z-6d0658fc): "When
-		// CARDNAME is turned face up" (CR 702.36e for morph/megamorph,
-		// CR 708.6 for manifest/cloak; Master of Pearls, Kheru
-		// Spellsnatcher and the mode's 125 corpus carriers). Matched by
-		// trigmatch.turnFaceUpMatches (engine/rules/trigmatch/faceup.go) off the
-		// events.TurnFaceUp marker the morph-family special action and
+		// trig:TurnFaceUp: "When CARDNAME is turned face up" (CR 702.36e for
+		// morph/megamorph, CR 708.6 for manifest/cloak; Master of Pearls,
+		// Kheru Spellsnatcher and the mode's 125 corpus carriers). Matched by
+		// trigmatch.turnFaceUpMatches (engine/rules/trigmatch/faceup.go) off
+		// the events.TurnFaceUp marker the morph-family special action and
 		// effSetState's Mode$ TurnFaceUp arm emit; proved by
 		// engine/rules/turnup_replacement_test.go's
 		// TestMasterOfPearlsTurnFaceUpSelfTriggerFiresOnce.
@@ -3040,7 +3044,7 @@ func init() {
 		// TestCR701RingTemptsYouCallOfTheRingUpkeep).
 		"trig:DamagePreventedOnce", "trig:RingTemptsYou",
 		"repl:Moved",
-		// Task 16 keyword triggers, expanded by engine/cards/keywords.go into ordinary
+		// Keyword triggers, expanded by engine/cards/keywords.go into ordinary
 		// ChangesZone / Attacks / SpellCast triggers routed through the modes
 		// above: Undying and Evolve are ChangesZone triggers, Exalted is
 		// (Alone$) Attacks, Prowess is SpellCast.
@@ -3075,9 +3079,9 @@ func init() {
 		// here so the coverage walk stops naming kw:Firebending as a gap now
 		// that the expansion and the granted walk supply the whole rule.
 		"kw:Firebending",
-		// Task 17: Storm's expansion (engine/cards/keywords.go) is a SpellCast
+		// Storm's expansion (engine/cards/keywords.go) is a SpellCast
 		// trigger whose effect is CopySpellAbility -- the expansion existed
-		// since Task 11; registering the keyword here completes its
+		// already; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
 		"kw:Storm", "kw:Ward", "kw:Annihilator", "kw:Mobilize",
 		// Afflict's expansion (engine/cards/keywords.go) is a become-blocked trigger
@@ -3107,7 +3111,7 @@ func init() {
 		// by effects/exploit.go.
 		"kw:Exploit",
 		// Mass effects, extra turns and new-set mechanics (the
-		// inbox-engine-gap-mass-turn-new-mechanics ticket):
+		// mass-turn mechanics):
 		//   - trig:UnlockDoor: a Room's unlock trigger (engine/rules/rooms.go),
 		//     queued off the DoorUnlock event the unlock activation emits.
 		//   - kw:Station: the Spacecraft station activation (engine/rules/station.go).
@@ -3137,7 +3141,7 @@ func init() {
 		// filter-grammar shape, not this keyword -- so the registration
 		// asserts the corpus shape is understood, not that the second-commander
 		// seating exists (the deck.IsPartnerPair extension is a separate
-		// ticket; the Partner precedent above is the same class).
+		// change; the Partner precedent above is the same class).
 		"kw:Doctor's companion",
 		// kw:Companion is the deck-construction keyword (CR 702.139), in the
 		// same registration class as Partner above. This asserts the corpus

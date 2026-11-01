@@ -45,10 +45,8 @@ type Config struct {
 	// an empty Archetype. A short or nil slice leaves the extra seats' archetype
 	// empty.
 	Archetypes []string
-	// Format names the construction format. Zero means Constructed; the other
-	// tasks in the Commander milestone (the tax, CR 903.9, commander damage)
-	// read it. This task is plumbing: it reads Commanders and StartingLife
-	// only.
+	// Format names the construction format. Zero means Constructed;
+	// Commander rules (the tax, CR 903.9, commander damage) read it.
 	Format Format
 	// StartingLife is a game's opening life total. 0 (the zero value) means
 	// the existing 20, so every Config that never sets it observes exactly
@@ -64,7 +62,7 @@ type Config struct {
 	// pre-game round between the opening deal and turn 1. 0 (the zero value)
 	// skips the round entirely, so every Config that never sets it is
 	// unchanged (all standalone fixture Configs). It sits in the same Config
-	// replay is handed, so a replay reproduces the round (Ruling R-8.4): the
+	// replay is handed, so a replay reproduces the round: the
 	// acceptance config sets it so the 12-deck suite exercises keep/mulligan
 	// and bottoming.
 	Mulligans int
@@ -130,8 +128,8 @@ type Config struct {
 	// of the previous game of a match chooses). The toss is still drawn, so
 	// the rng stream and the deal are unchanged; the genesis Note reads
 	// "<name> chooses who takes the first turn" instead of "<name> won the
-	// toss". An index outside the seats is ignored (the toss stands). nil --
-	// every Config before E3 -- is byte-identical to today. Replay must pass
+	// toss". An index outside the seats is ignored (the toss stands). nil leaves
+	// the toss as drawn. Replay must pass
 	// the same value.
 	StartChooser *int
 
@@ -143,10 +141,16 @@ type Config struct {
 	Spare *Spare
 }
 
+// triggerObjectLKI is what a trigger on the stack knows about the object of
+// its causing event. An object that did not leave its zone (it entered the
+// battlefield, was cast, changed controller) is read live, so object is nil
+// and follows names it until it moves; follows is then cleared and object
+// holds what it was just before it moved (CR 608.2h).
 type triggerObjectLKI struct {
 	object           *state.Object
 	power, toughness int32
 	ptValid          bool
+	follows          state.ObjID
 }
 
 // counterAddedThisTurn is engine-only provenance for positive object counter
@@ -218,7 +222,7 @@ func submitValidate(e *Engine, d *decision.Decision, in decision.Intent) error {
 	// logs the answering seat's intent exactly as submitted.
 	d, in = actingView(d, in)
 	if d.Kind == decision.KAttackers {
-		// Ruling m34: the KAttackers option list offers every (attacker,
+		// The KAttackers option list offers every (attacker,
 		// defender) pair, so an intent naming the same creature twice --
 		// against two different defenders -- passes Validate's per-index
 		// checks while declaring it attacking two players (CR 506.2).
@@ -408,10 +412,9 @@ func submitCommit(e *Engine, d *decision.Decision, in decision.Intent) {
 // Draw primitive so the draw step and a card that says "draw a card" can
 // never disagree about what drawing means.
 //
-// Ruling T22-d: this used to call checkGameOver alone -- correct as far as
-// it went (an empty-library draw is itself a loss, via the PlayerLost
-// DrawFor emits directly), but it skipped destroyLethalDamage and, now,
-// checkLoseConditions' own permanent-removal sweep. checkStateBased runs
+// checkGameOver alone is not enough: an empty-library draw is itself a loss,
+// via the PlayerLost DrawFor emits directly, but it skips destroyLethalDamage
+// and checkLoseConditions' own permanent-removal sweep. checkStateBased runs
 // both of those in addition to checkGameOver, so a player who decks out
 // here has their battlefield cleaned up the same way one who hits 0 life
 // does, rather than only on whatever later checkStateBased call happens to

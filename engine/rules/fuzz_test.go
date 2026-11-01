@@ -34,7 +34,7 @@ type seedResult struct {
 // games, every one terminating, invariants intact throughout. This is the
 // test that found the stack double-push bug in the design spike.
 //
-// Ruling T25-b (fix round 1): this used to measure a game that never played
+// This must not measure a game that never played
 // Magic -- the bot wasted its whole pool tapping mana during the upkeep
 // (where it holds priority for the trigger drain), so the pool was empty
 // again by main 1 and no creature was ever affordable; combat therefore
@@ -86,7 +86,7 @@ func seedFuzzChunk(t *testing.T, k int) {
 			t.Run(fmt.Sprintf("seed%d", seed), func(t *testing.T) {
 				t.Parallel()
 				e := New(Config{Seed: seed, Names: names, Decks: decks})
-				// Ruling P6: e.L.NoHash = true here would panic -- events.Log.NoHash
+				// e.L.NoHash = true here would panic -- events.Log.NoHash
 				// is immutable after the first Append, and New already appended
 				// GameStart before returning this Engine. Hashing every event is
 				// cheap enough that there is nothing worth trading it away for.
@@ -95,7 +95,7 @@ func seedFuzzChunk(t *testing.T, k int) {
 				testutil.CheckInvariants(t, e.G, e.Pending(), "start")
 				n := 0
 				for !e.G.Over && e.Pending() != nil && n < 200000 {
-					// Ruling T25-b: isMain is now answer's own business, computed
+					// isMain is answer's own business, computed
 					// from the engine's step inside botpolicy.BoardFromGame --
 					// the rules package's counterpart to heuristic.Bot reading v.Phase.
 					if err := e.Submit(b.answer(e, e.Pending())); err != nil {
@@ -166,7 +166,7 @@ func seedFuzzChunk(t *testing.T, k int) {
 		t.Fatalf("%d of %d seeds [%d,%d) finished", finished, seedFuzzPerChunk, first, first+seedFuzzPerChunk)
 	}
 
-	// I-1 (Ruling T25-b): the gate must not go vacuous silently again. Every
+	// The gate must not go vacuous silently again. Every
 	// one of these four was exactly 0 before the fix.
 	if attackers == 0 {
 		t.Fatal("0 attackers ever declared across the chunk's seeds -- combat never happened")

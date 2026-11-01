@@ -33,7 +33,7 @@ func TestLeylineTyrantDeathTriggerSpendsTheBankKernel(t *testing.T) {
 	if len(e.G.Stack) == 0 {
 		t.Fatal("the death trigger never reached the stack")
 	}
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "trigger_cost_x" {
 		t.Fatalf("expected the choose-X announcement ask, got %+v", d)
@@ -70,7 +70,7 @@ func TestLeylineTyrantDeathTriggerSpendsTheBankKernel(t *testing.T) {
 	// target" is a placement target ask as it goes on the stack; take the
 	// opponent. (The probe's answering Submit re-ran only the resolution;
 	// the next priority round stacks the reflexive trigger.)
-	kr9Settle(e)
+	settleAfterPass(e)
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("expected the reflexive ability's damage target ask, got %+v", d)
@@ -96,15 +96,15 @@ func TestLeylineTyrantDeathTriggerSpendsTheBankKernel(t *testing.T) {
 	if pool := e.G.Players[0].Pool; pool[state.MR] != 0 {
 		t.Fatalf("red pool = %d after paying X = 2, want 0 (the bank paid it)", pool[state.MR])
 	}
-	kr9ReplaySince(t, e, replayed, start)
+	replayEventsSince(t, e, replayed, start)
 }
 
-// kr9ReplaySince is replaySince compared with diffGames (the replayCheck
+// replayEventsSince is replaySince compared with diffGames (the replayCheck
 // comparison): a kernel re-run restores the checkpoint snapshot, whose empty
 // zone slices are non-nil where the live-applied ones were nil, a
 // representation difference reflect.DeepEqual reports and the game never
 // reads.
-func kr9ReplaySince(t *testing.T, e *Engine, replayed *state.Game, start int) {
+func replayEventsSince(t *testing.T, e *Engine, replayed *state.Game, start int) {
 	t.Helper()
 	for _, ev := range e.L.Events[start:] {
 		events.Apply(replayed, ev)

@@ -1,5 +1,5 @@
 /**
- * Lobby composition (Task L2): how the overview's tables are grouped into
+ * Lobby composition: how the overview's tables are grouped into
  * sections, and how big a cell should be drawn.
  *
  * Both are decisions, not markup, so they live here with a test rather than

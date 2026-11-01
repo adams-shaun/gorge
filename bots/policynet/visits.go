@@ -15,7 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// The visit corpus (M1b, AZ spec ticket 3's "azgen" corpus): one JSONL
+// The visit corpus (the "azgen" corpus): one JSONL
 // record per decision the az seat SEARCHED, written by a bench runner
 // -az-corpus and read by LoadVisits for the trainer -visits-corpus. It
 // is the teacher-student distillation corpus: the TARGET is the search's

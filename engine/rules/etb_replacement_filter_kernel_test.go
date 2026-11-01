@@ -19,7 +19,7 @@ func TestMetallicMimicChosenTypeOtherFilter(t *testing.T) {
 		e.G.Players[0].Pool[state.MC] = 2
 		castMode(t, e, id, "")
 		chooseETBType(t, e, "Shapeshifter")
-		kr5FinishCast(t, e, id)
+		finishCastAsks(t, e, id)
 		if got := e.G.Obj(id).Counter("P1P1"); got != 0 {
 			t.Fatalf("Mimic entered with %d P1P1, want 0 (each OTHER creature of the chosen type; Mimic is itself a Shapeshifter)", got)
 		}
@@ -32,7 +32,7 @@ func TestMetallicMimicChosenTypeOtherFilter(t *testing.T) {
 		e.G.Players[0].Pool[state.MC] = 2
 		castMode(t, e, mimic, "")
 		chooseETBType(t, e, "Bear")
-		kr5FinishCast(t, e, mimic)
+		finishCastAsks(t, e, mimic)
 		if got := e.G.Obj(mimic).Counter("P1P1"); got != 0 {
 			t.Fatalf("Mimic entered with %d P1P1, want 0", got)
 		}
@@ -44,10 +44,10 @@ func TestMetallicMimicChosenTypeOtherFilter(t *testing.T) {
 	})
 }
 
-// kr5FinishCast is finishCast after a kernel-answered as-enters ask: the
+// finishCastAsks is finishCast after a kernel-answered as-enters ask: the
 // answering Submit re-executed the resolution to its end, so a spell already
 // off the stack has nothing left to resolve.
-func kr5FinishCast(t *testing.T, e *Engine, id state.ObjID) {
+func finishCastAsks(t *testing.T, e *Engine, id state.ObjID) {
 	t.Helper()
 	if o := e.G.Obj(id); o != nil && o.Zone != state.ZStack && e.Pending() == nil {
 		return

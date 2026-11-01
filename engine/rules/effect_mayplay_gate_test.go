@@ -1,5 +1,5 @@
 // The Effect-delivered may-play grant's CheckSVar$/SVarCompare$ gate
-// (task cr-g135): a `DB$ Effect` static line whose STPlay carries
+// a `DB$ Effect` static line whose STPlay carries
 // `CheckSVar$ X` ("for as long as those cards remain exiled, you may play
 // them if you control a Kavu/Wizard" -- CR 611.2a/b) must register AND be
 // gated on the live board: the permission holds exactly while its condition

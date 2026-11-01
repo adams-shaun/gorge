@@ -333,7 +333,7 @@ func TestMonstrosityClearsWhenItLeavesBattlefield(t *testing.T) {
 }
 
 // TestMonstrosityCorpusCarriersExistAndAreNotInRepoDecks guards the safety
-// claim the brief made: every Monstrosity$ carrier is real in the corpus and
+// claim: every Monstrosity$ carrier is real in the corpus and
 // none of the suite's carriers is in any repo deck (so the goldens are safe
 // by construction).
 func TestMonstrosityCorpusCarriersExistAndAreNotInRepoDecks(t *testing.T) {

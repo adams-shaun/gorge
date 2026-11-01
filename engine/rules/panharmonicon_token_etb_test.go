@@ -60,7 +60,7 @@ func tokenETBEngine(t *testing.T, carrierName string) (*Engine, state.ObjID) {
 	return e, makerID
 }
 
-// TestPanharmoniconDoublesTokenETB pins the cr-g253 defect: a Panharmonicon
+// TestPanharmoniconDoublesTokenETB pins a defect: a Panharmonicon
 // static whose ValidMode$ names ChangesZone/ChangesZoneAll must double an ETB
 // trigger caused by a TOKEN entering. A token is minted by a TokenCreate
 // event (no MoveZone), so before the fix panharmoniconModes returned nil, the

@@ -11,7 +11,7 @@
   import PromptFooter, { type FooterButton } from './PromptFooter.svelte';
 
   /**
-   * DiscardPrompt is the discard-pick ask (fb-20260914T120705Z) — every engine
+   * DiscardPrompt is the discard-pick ask — every engine
    * shape whose options are card picks: the Thoughtseize/Mind Rot discard
    * (KModes), the cleanup discard and the cast-cost discard (KChoose). The
    * posting path is the ordinary one (a min==max==1 click posts; otherwise

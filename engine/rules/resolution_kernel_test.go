@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from resolution_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// A suspended resolution surviving a clone, driven through the resolution kernel
+// (the only ask path).
 
 import (
 	"testing"

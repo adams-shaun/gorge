@@ -1,4 +1,4 @@
-// Enlist (CR 702.160, task enlist1).
+// Enlist (CR 702.160).
 //
 // `K:Enlist` is a static ability that functions while the creature is
 // attacking: "As this creature attacks, you may tap a nonattacking creature

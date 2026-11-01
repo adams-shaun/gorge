@@ -27,8 +27,7 @@ type engineScratch struct {
 	// colours, instead of re-entering Derived and recursing forever). All pure
 	// per-call scratch, rebuilt every call, carrying no cross-call state beyond
 	// capacity; Clone() copies none of it (see clone.go), so a cloned engine
-	// grows its own -- never aliasing the original's mutable scratch, exactly
-	// the A2 buffer / C3 digest precedent.
+	// grows its own -- never aliasing the original's mutable scratch.
 	charsWalk chars.Scratch `clone:"reset"`
 	// charsScratch is the record Engine.Chars answers with outside a Derived
 	// memo scope (host_read.go): one Derived build copied here so the query
@@ -122,7 +121,7 @@ type engineScratch struct {
 	walkReuse *walkBlockRec `clone:"reset"`
 	// manaCarry caches per own-battlefield object mana-ability membership
 	// across a seat's priority walks (engine/rules/mana_member_carry.go). Clone
-	// copies none: a clone starts cold (legal-walk design §4.6).
+	// copies none: a clone starts cold.
 	manaCarry manaMemberCarry `clone:"reset"`
 	// potentialManaRec is the record armed for the next PotentialMana's
 	// membership walk (walk_block_reuse.go potentialMembers). Clone copies
@@ -197,7 +196,7 @@ type engineScratch struct {
 	// append(buf[:0], zone...) grows it in place, so it settles at the size
 	// of the largest zone seen and then stops allocating -- a fresh zone
 	// copy per zone per event used to be forEachObject's 11.51 GB allocation
-	// footprint (Task A2), the single largest allocator in this package.
+	// footprint, the single largest allocator in this package.
 	// Owned by this Engine alone: Clone leaves both fields zero, so a clone
 	// and the original share no snapshot mid-walk (the clone just lets it
 	// grow again). foreachDepth guards re-entry (see forEachObject): zero

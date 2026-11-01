@@ -440,7 +440,7 @@ func TestFeedbackUnknownTableStillStoresTheReport(t *testing.T) {
 // match is actively resolving bursts, so the read path (Registry.
 // SnapshotForFeedback) runs concurrently with the match goroutine's writes.
 // It is written for the merge gate's `go test -race ./server/gorged/` run
-// (Ruling FL-67: the -race gate runs by hand, one package per invocation),
+// (the -race gate runs by hand, one package per invocation),
 // where any lock-discipline slip between the two goroutines fails loudly;
 // without -race it still proves the snapshot is consistent (the copied log
 // only ever grows, and every captured prefix replays).

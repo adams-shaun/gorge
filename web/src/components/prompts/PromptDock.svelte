@@ -372,7 +372,7 @@
      come from tableAnchor), the art a spine like floating.
 
      The panel deliberately covers the board, so its chrome is
-     pointer-transparent (ui24): a click aimed at a board target underneath
+     pointer-transparent: a click aimed at a board target underneath
      reaches the board. `pointer-events: none` on the root inherits into
      every descendant; the dock's OWN interactive surfaces opt back in — the
      tools buttons, and the renderer's controls (option rows, target chips,
@@ -380,7 +380,7 @@
      title/plain text, the body's padding — passes clicks and wheel through
      to the board.
 
-     The trade (ui24 fix): the body keeps `overflow-y: auto` but cannot be
+     The trade: the body keeps `overflow-y: auto` but cannot be
      wheel-scrolled over its padding, and its scrollbar thumb is not
      draggable, because the scrollable element itself is transparent. A wheel
      over any option row or control still scrolls it (the wheel scrolls the

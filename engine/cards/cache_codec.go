@@ -17,7 +17,7 @@ import (
 // allocated ~540 MB decoding it (113 MB before), and the millions of
 // short-lived decoder objects interleaved with the registry's long-lived
 // ones left the heap ~5x more fragmented, which raised every later GC's mark
-// cost (enginebench clone/step rows, 2026-10-13). This codec keeps the
+// cost (enginebench clone/step rows). This codec keeps the
 // determinism -- every map is written in sorted key order -- with one
 // append-only buffer per face and no type tables.
 //

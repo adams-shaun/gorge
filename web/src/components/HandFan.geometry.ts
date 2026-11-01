@@ -6,8 +6,8 @@ import '../app.css';
 import HandFan from './HandFan.svelte';
 
 /**
- * Geometry fixture for HandFan — the browser half of the hand-card peek
- * (fb-20260916T024357Z-9005ad6a). It mounts the REAL component (not a CSS
+ * Geometry fixture for HandFan — the browser half of the hand-card peek.
+ * It mounts the REAL component (not a CSS
  * replica) into a fixed-size, overflow:hidden board-stage equivalent, so the
  * measured rects are what a real hover/focus produces against the real clip.
  * SSR markup alone cannot prove clipping or :hover geometry.
@@ -69,8 +69,8 @@ const hand: CardView[] = names.map((name, i) => ({
 // THREE (a count badge whose menu must be opened before its `.menu__item`
 // controls exist), and card 3 a payment shortcut. The keyboard fixture can Tab from a focused face onto
 // BOTH kinds of action control and measure that the card STAYS raised — the
-// raise must follow any focused descendant of the card, not just the face
-// (fb-20260916T024357Z-9005ad6a). The bundle is hand-built, not derived from
+// raise must follow any focused descendant of the card, not just the face.
+// The bundle is hand-built, not derived from
 // a Decision, because the fixture has no server; the shape is what the wire
 // sends and what lib/cardoptions groups by.
 const options: CardOptions = {

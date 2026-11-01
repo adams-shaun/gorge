@@ -142,7 +142,7 @@ func cardColours(cv *view.CardView) [6]bool {
 }
 
 // archColourPriors turns a colour set into soft weights over the
-// archetypes. These are the brief's table, not rules: red is aggro/burn,
+// archetypes. This is a table of priors, not rules: red is aggro/burn,
 // blue tempo/control, green ramp/midrange, white go-wide, black
 // removal/drain.
 func archColourPriors(c [6]bool) [archCount]float64 {

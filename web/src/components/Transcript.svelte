@@ -24,27 +24,25 @@
    * lines ("Step: main-1") are hidden by default behind their own toggle,
    * independent of the noise toggle.
    *
-   * Task 3 ("each log should note the player name in colour"): `identities`
-   * is the caller's already-resolved seat name/colour list (Table.svelte
-   * builds it the same way SeatTable does, off the same view+seats), and
-   * every line is run through logcolour.ts's colourSegments so a seat's own
-   * name is coloured wherever it reads as that PLAYER rather than as part of
-   * a card's name — see logcolour.ts for how the two are told apart.
-   * Optional so a caller with no seats yet (or every existing test) renders
-   * every line as plain text, unchanged.
+   * `identities` is the caller's already-resolved seat name/colour list
+   * (Table.svelte builds it the same way SeatTable does, off the same
+   * view+seats), and every line is run through logcolour.ts's colourSegments
+   * so a seat's own name is coloured wherever it reads as that PLAYER rather
+   * than as part of a card's name — see logcolour.ts for how the two are told
+   * apart. Optional so a caller with no seats yet (or every existing test)
+   * renders every line as plain text, unchanged.
    *
-   * Readable log (ui9). Beyond that task-3 colouring, each line is also run
+   * Readable log. Beyond that colouring, each line is also run
    * through logrender.ts, which re-renders the server-described line from
    * its own structure rather than as prose:
    *   - mana symbols (`{R}{G}{W/U}`) are drawn as pips (ManaSymbols),
    *   - a card/permanent/spell reference `<Name> #<id>` is coloured by the
-   *     colour of the seat that OWNS it (lc1) with its `#<id>` suppressed
-   *     from the visible text and kept as a hover title (B3) — the id is
+   *     colour of the seat that OWNS it with its `#<id>` suppressed
+   *     from the visible text and kept as a hover title — the id is
    *     load-bearing when two copies of the same card are in play, so it is
    *     reachable, not dropped;
    *   - a faceless ability reference (`<Source>'s ability #id`, or the
-   *     `an ability #id` fallback) gets an italic ability treatment (lc1,
-   *     B2);
+   *     `an ability #id` fallback) gets an italic ability treatment;
    * `cardColour` is the caller's object-id -> owner-seat-colour resolver,
    * built from the current view's cards (buildCardOwnerColour) with the same
    * seat palette that colours each seat's name. It also carries the view's
@@ -54,7 +52,7 @@
    * caller with no cards (or a test) renders card names uncoloured by the
    * word-shape fallback.
    *
-   * Card-name hover preview (fb-20260927T154603Z). `cards` is the SAME
+   * Card-name hover preview. `cards` is the SAME
    * flattened view list `cardColour` is built over — every visible zone, via
    * everyVisibleCard. A card-name span resolves its `#<id>` against it with
    * cardById and, when an object is found, becomes a trigger for the shared
@@ -182,8 +180,8 @@
   let followedNotes = -1;
 
   $effect(() => {
-    // While the DVR is live the log is a TAIL follower (fb-20260928T043757Z,
-    // "it should automatically scroll to the most recent action"): it keeps
+    // While the DVR is live the log is a TAIL follower
+    // ("it should automatically scroll to the most recent action"): it keeps
     // the last RENDERED line in view — the newest visible row, or the seat's
     // own auto-pass note when one sits under them — not the cursor row. The
     // old cursor-keyed effect failed whenever the cursor named no rendered
@@ -418,16 +416,16 @@
   .text {
     overflow-wrap: anywhere;
   }
-  /* The seat's own identity colour (Task 3), inline with the sentence rather
+  /* The seat's own identity colour, inline with the sentence rather
      than a separate column — the same "learned once" register the rest of
      the rail uses colour for. */
   .who {
     font-weight: 600;
   }
-  /* A card name (lc1/B3) is coloured by its owner's seat colour — the same
+  /* A card name is coloured by its owner's seat colour — the same
      colour that seat's name renders in — and the "#<id>" is off the visible
      text and on the hover title instead. An id that resolves to a visible
-     object also opens the detail panel (fb-20260927T154603Z), so the span is
+     object also opens the detail panel, so the span is
      keyboard-focusable and says so on focus; the underline is the same
      affordance the rest of the client uses for "there is more here". */
   .obj.card {

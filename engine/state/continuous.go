@@ -5,9 +5,8 @@
 // importing rules (the dependency order is cards -> state -> decision ->
 // events -> effects -> rules -> view -> seat -> replay -> cmd/*, and effects
 // must never import rules). The layer computation itself -- ordering,
-// expiry, Derived -- stays in engine/rules/layers.go, which re-exports these same
-// names as aliases so its own existing API and tests are unaffected by the
-// move. See Task 19c.
+// expiry, Derived -- stays in engine/rules/layers.go, which re-exports these
+// same names as aliases.
 package state
 
 import "github.com/adams-shaun/gorge/engine/cards"
@@ -868,7 +867,7 @@ type ContinuousEffect struct {
 }
 
 // RestrictParam is RestrictParams[k]: the typed read of one S: parameter the
-// restriction carries (W4 tail).
+// restriction carries.
 func (ce ContinuousEffect) RestrictParam(k cards.ParamKey) string {
 	return ce.RestrictParams[k.String()]
 }

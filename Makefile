@@ -156,15 +156,9 @@ gentypes:
 test:
 	GOGC=200 go test $(GO_TEST_FLAGS) ./...
 
-# conformance runs the CR 601 and CR 733 conformance suites. I-2
-# (mandatory-target feasibility), I-7 (targets before payment), and the CR 733.1
-# illegal-cast reversal are fixed and asserted by the ordinary suite; the
-# historical opt-in guard and GORGE_CR_CONFORMANCE switch were removed after
-# the following fixes landed:
-#
-#   38846fb2  withhold casts without mandatory targets (I-2)
-#   22ea5da0  make the cast proposal a transaction (I-7)
-#   81ade672  undo as-enters choice on a mana abort (CR 733.1)
+# conformance runs the CR 601 and CR 733 conformance suites. Mandatory-target
+# feasibility, targets before payment, and the CR 733.1
+# illegal-cast reversal are asserted by the ordinary suite.
 #
 # This remains an explicit lane because it is a focused CR audit rather than a
 # default full-suite target. Use -run TestCR, not TestCR601: the 733 reversal
@@ -272,17 +266,17 @@ test-web: web/node_modules/.package-lock.json
 lint-web: web/node_modules/.package-lock.json
 	cd web && npm run check && npm run lint
 
-# smoke is the browser smoke gate (Task SG1, extended by ui19): it builds the
+# smoke is the browser smoke gate: it builds the
 # REAL client and the REAL binary, starts THREE gorged servers — one
 # -spectator public (the mode that was broken when a null hand spread into
 # the board killed every table page, and the one the omniscient-only unit
 # fixtures cannot see), one -spectator omniscient, and one SEATED 1v1
-# play-vs-bot server (-vsbot -humans 1, Task ui19) — on smoke ports in
+# play-vs-bot server (-vsbot -humans 1) — on smoke ports in
 # 8090-8099, and drives the headless-browser test at web/e2e against all
 # three. It fails on any pageerror, any console.error, any failed request to
 # the server's own origin, a page still in its loading state after a bounded
 # wait, or a blank page that never mounts. It also asserts the SEATED layout
-# invariants ui19 was added for: the seated player's own identity bar does
+# invariants: the seated player's own identity bar does
 # not overlap their own hand fan, and the hand fan stays bounded by the
 # board (never self-sizing straight off it). scripts/smoke.sh owns
 # starting/stopping the set and removing their temp dirs on failure (a leaked

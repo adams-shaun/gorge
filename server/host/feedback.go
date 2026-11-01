@@ -59,10 +59,9 @@ type FeedbackMatch struct {
 	Commanders   [][]int             `json:"commanders,omitempty"`
 	// StartChooser mirrors the sidecar's field of the same name: the
 	// configured seat posed CR 103.1's starting-player choice in place of
-	// the toss winner (E3-2). It is genesis replay input like Mulligans —
+	// the toss winner. It is genesis replay input like Mulligans —
 	// the genesis Note names the chooser — so a replay rebuilt from
-	// match.json alone needs it recorded. Absent = the toss, which every
-	// match before E3 used.
+	// match.json alone needs it recorded. Absent = the toss.
 	StartChooser *int   `json:"start_chooser,omitempty"`
 	BotPolicy    string `json:"bot_policy"`
 
@@ -76,7 +75,7 @@ type FeedbackMatch struct {
 	// sorted label list that match actually offered, so a corpus addition
 	// or rename after the report was filed cannot renumber a recorded
 	// numeric name choice. A capture from a pre-feature match carries
-	// neither field, which reads back as the legacy path (R-8.4).
+	// neither field, which reads back as the legacy path.
 	NameUniverse bool `json:"name_universe,omitempty"`
 	// NameUniverseNames is stripped from a COMMITTED fixture (it is ~24k
 	// entries, half a megabyte per fixture): the committed shape keeps only
@@ -221,7 +220,7 @@ func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (Feedba
 }
 
 // SnapshotMatch is SnapshotForFeedback for match k of table id, named
-// explicitly through lookup (HD-3, design §5.3): the current match, a
+// explicitly through lookup: the current match, a
 // retired one in the table's history, or an archived one rebuilt from disk.
 // SnapshotForFeedback snapshots whichever match is current, so a caller that
 // runs after the table has moved on to match k+1 (the divergence worker
@@ -252,12 +251,12 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 	// under the match lock no Submit is in flight (the match loop holds the
 	// write lock across Submit and its bookkeeping), so every event in the
 	// cloned log — including the tail past the last DecisionAsk a burst's
-	// own post-ask continuation emitted (fb-20260915T094418Z) — belongs to
+	// own post-ask continuation emitted — belongs to
 	// a completed burst. Trimming it here cut REAL events, desynced
 	// log.json's head (taken over the full chain) from its event list, and
 	// lost the seat view (headSeq named a seq the trimmed copy does not
 	// carry — the "view unavailable: seq beyond head" reports). Only a
-	// crashed match's log can carry an orphan tail and poison intent (D15),
+	// crashed match's log can carry an orphan tail and poison intent,
 	// and only that shape still gets the trim.
 	if m.state == protocol.MatchCrashed {
 		reconcileLog(l)
@@ -321,7 +320,7 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 	// clone is not trimmed), but a crashed match's reconciled copy is
 	// shorter than the live log, and a head past the copy's own end would
 	// fail the projection with a beyond-head error before the replay even
-	// ran (the defect fb-20260915T094418Z measured on the captured view).
+	// ran.
 	headSeq := head(m)
 	if n := uint64(len(l.Events)); n > 0 && headSeq >= n {
 		headSeq = n - 1

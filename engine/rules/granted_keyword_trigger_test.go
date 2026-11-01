@@ -95,7 +95,7 @@ var grantedTriggerKeywordWalk = map[string]string{
 
 // knownEquipAuraTriggerKeywords is the exact set of Equipment/Aura cards that
 // grant a triggered keyword at FORGE_REF, each mapped to the granted head and
-// whether the build fires it. Ruling R-20's two-direction contract: a new
+// whether the build fires it. It is a two-direction contract: a new
 // grant fails naming the card and head, and a stale entry fails too. The
 // uncovered rows are a known gap (the ticket that removes this census must
 // fire them); the covered rows must stay covered.

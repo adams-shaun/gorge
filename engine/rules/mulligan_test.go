@@ -12,7 +12,7 @@ import (
 
 // twoSeatConfig builds a two-seat, one-deck-each Config over mountainDeck,
 // with Mulligans permitted mulligans per seat. The mulligan round only runs
-// when Mulligans > 0 (Ruling R-8.4: the zero value skips the round entirely).
+// when Mulligans > 0 (the zero value skips the round entirely).
 func twoSeatConfig(t *testing.T, deckSize, mulligans int) Config {
 	t.Helper()
 	return Config{
@@ -228,7 +228,7 @@ func TestTwoPlayerFirstMulliganStillBottomsOne(t *testing.T) {
 }
 
 // TestMulliganBottomIsDistinctIndices pins London bottoming's reuse of the
-// distinct-index shape Validate already enforces for KTriggerOrder (Ruling
+// distinct-index shape Validate already enforces for KTriggerOrder
 // U2): a Min == Max == taken decision over per-card "bottom" options must
 // reject a duplicated index, because Validate's duplicate answer is not a
 // valid permutation of taken hand indices.
@@ -250,7 +250,7 @@ func TestMulliganBottomIsDistinctIndices(t *testing.T) {
 // TestTwoMulligansPenaltyIsLinear proves the London penalty is ONE bottomed
 // card per mulligan (7 - k after k mulligans), not a smaller redraw stacked
 // on top of the bottoming (which would end at 7 - 2k) -- the whole bug this
-// fix round corrects (Finding 1). Seat 0 takes both free mulligans
+// pins. Seat 0 takes both free mulligans
 // (Mulligans: 2), keeps, and bottoms two: the round must end at 7 - 2 = 5.
 // The double-penalizing implementation this fix replaces drew 7 - taken each
 // time and would end at 7 - 2 - 2 = 3, so the 5 is the linearity proof.
@@ -297,7 +297,7 @@ func TestTwoMulligansPenaltyIsLinear(t *testing.T) {
 }
 
 // TestLastMulliganThenOnlyKeepOffered wraps the free-mulligan gate (Finding
-// 2, fix round 1): with Mulligans: 1, seat 0's first ask offers keep AND
+// 2): with Mulligans: 1, seat 0's first ask offers keep AND
 // mulligan; after it takes the last allowed mulligan, the very next ask for
 // that seat must offer only "keep" -- one option, Kind == "keep", and no
 // option with Kind == "mulligan" -- because the allowance is spent (R-M4:
@@ -370,7 +370,7 @@ func TestLastMulliganThenOnlyKeepOffered(t *testing.T) {
 // TestKeptPregameRoundReplaysExactly proves the mulligan round is event-
 // driven: a round that mixed a mulligan (seat 0, once) and a keep (seat 1)
 // replayed from its own recorded (Config, Log) -- the same value replay is
-// handed -- reaches the same chain head as the live run. This is Ruling
+// handed -- reaches the same chain head as the live run. This is the
 // R-8.4's determinism invariant: Config.Mulligans must travel with the
 // Config replay reads.
 func TestKeptPregameRoundReplaysExactly(t *testing.T) {

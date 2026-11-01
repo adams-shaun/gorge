@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// The on-policy corpus (ticket pn13): one JSONL record per decision the
+// The on-policy corpus: one JSONL record per decision the
 // deployed policynet seat actually SCORED (heuristic.PolicyNetBot; a decision the
 // seat delegated to the default bot is not recorded), written by
 // a bench runner's -onpolicy-corpus and read by LoadOnPolicy for the trainer
@@ -45,8 +45,8 @@ import (
 //	                             answered with: "auto" or "sign"
 //	                             (seat.SetAdmission)
 //
-// Optional fields (ticket pn14; omitted when unset, so a greedy v1/mz corpus
-// is byte-identical to what the pn13 writer produced):
+// Optional fields (omitted when unset, so a greedy v1/mz corpus
+// is byte-identical to what the plain writer produced):
 //
 //	temperature                  the sampling temperature T of a stochastic
 //	                             collection seat (seat.SetSampling)

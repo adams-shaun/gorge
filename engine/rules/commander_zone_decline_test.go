@@ -1,4 +1,4 @@
-// cr-g01b: CR 903.9b (2026-09-25). The hand/library commander replacement
+// CR 903.9b. The hand/library commander replacement
 // stays a replacement, but declining it must leave the move subject to every
 // other replacement effect that applies to it.
 package rules

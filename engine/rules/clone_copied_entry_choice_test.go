@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g241: a permanent that enters as a copy also gets the copied permanent's
+// A permanent that enters as a copy also gets the copied permanent's
 // own "as enters, choose ..." elections (CR 707.2, 614.12), answered by the
 // entering object's controller and recorded on the entering object.
 
@@ -21,7 +21,7 @@ func copyEntryScenario(template, tmplMana, tmplAnswer, copier, copierMana, after
 	for _, a := range copyAnswers {
 		picks = append(picks, `{"kind":"choose","pick":["`+a+`"]}`)
 	}
-	return `{"name":"cr-g241","cr":["707.2","614.12"],"why":"cr-g241","setup":{` +
+	return `{"name":"clone-entry-choice","cr":["707.2","614.12"],"why":"a copy gets the copied permanent's entry choice","setup":{` +
 		`"p0":{"hand":["` + template + `"]},"p1":{"hand":["` + copier + `","Ornithopter"],"library":["Forest","Forest"]}},` +
 		`"steps":[{"op":"cast","seat":0,"card":"p0:` + template + `","mana":"` + tmplMana + `"},` +
 		`{"op":"resolve","seat":0,"answers":[{"kind":"choose","pick":["` + tmplAnswer + `"]}]},` +
@@ -99,7 +99,7 @@ func TestCloneCopyOfChooseColorUsesOwnAnswer(t *testing.T) {
 // colour.
 func TestCloneCopyStandardCopierOfChooseColor(t *testing.T) {
 	t.Parallel()
-	raw := `{"name":"spm-painter","cr":["707.2","614.12"],"why":"cr-g241","setup":{` +
+	raw := `{"name":"spm-painter","cr":["707.2","614.12"],"why":"a copy gets the copied permanent's entry choice","setup":{` +
 		`"p0":{"hand":["Superior Spider-Man"]},"p1":{"graveyard":["Painter's Servant"]}},` +
 		`"steps":[{"op":"cast","seat":0,"card":"p0:Superior Spider-Man","mana":"CCUB"},` +
 		`{"op":"resolve","seat":0,"answers":[{"kind":"choose","pick":["p1:Painter's Servant"]},{"kind":"choose","pick":["Green"]}]}],"expect":[]}`

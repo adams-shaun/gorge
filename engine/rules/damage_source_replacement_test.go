@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g18c: the damage replacement and prevention pipeline reads the source
+// The damage replacement and prevention pipeline reads the source
 // of the Damage event in flight -- the source the emitter published with
 // SetDamageSource (a fighting creature, CR 701.14a; a DamageSource$ biter,
 // CR 120.2b) -- not the resolving spell or ability. Protection and DamageDone

@@ -1,6 +1,6 @@
 package rules
 
-// W3 step 5 (the park-and-continue paths, lasagna spec §7.2): a park ask is
+// W3 step 5 (the park-and-continue paths, layering design §7.2): a park ask is
 // answered from the tape at the point of the parked event, so the kernel's
 // event order deliberately differs from the legacy park's. These tests run
 // each scenario on the kernel, require its asks served with no legacy ask

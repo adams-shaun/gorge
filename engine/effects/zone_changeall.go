@@ -272,7 +272,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		c.Remembered = nil
 		clearEventRemembered(h, c)
 	}
-	// RandomOrder$ True (task mordorparams1, Gríma, Saruman's Footman's
+	// RandomOrder$ True (Gríma, Saruman's Footman's
 	// "Then that player puts the exiled cards that weren't cast this way on
 	// the bottom of their library in a random order"): the destination
 	// placement order is a real shuffle, not the engine's scan order. The

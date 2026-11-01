@@ -13,15 +13,14 @@ package rules
 // minted a Junk token even for a Savannah Lions target that shares nothing
 // with the Forest's {G} (and Jaded Response countered every spell).
 //
-// Both drives below run the real corpus cards end to end. The matching
-// branch was already right at main and must keep holding; the non-matching
-// branches are the fix. Guard Dogs' SharesColorWith ChosenCard arm is
-// deliberately NOT landed -- the brief's stop rule applies: its
-// ConditionDefined$ Targeted gate is evaluated before the DB sub's
-// mid-resolution target ask is posed, so a recognised predicate resolves the
-// gate false on the empty group and the whole sub (target ask included) is
-// skipped. It stays unrecognised, and sharesColorBareReferent's comment
-// records the measured reason.
+// Both drives below run the real corpus cards end to end. The matching branch
+// was already right at main and must keep holding; the non-matching branches
+// are the fix. Guard Dogs' SharesColorWith ChosenCard arm is deliberately not
+// landed: its ConditionDefined$ Targeted gate is evaluated before the DB
+// sub's mid-resolution target ask is posed, so a recognised predicate
+// resolves the gate false on the empty group and the whole sub (target ask
+// included) is skipped. It stays unrecognised, and sharesColorBareReferent's
+// comment records the measured reason.
 
 import (
 	"testing"

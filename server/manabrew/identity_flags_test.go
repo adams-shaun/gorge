@@ -74,7 +74,7 @@ func TestFaceDownIdentityStaysHidden(t *testing.T) {
 		{ID: 0, Name: "Alice", Life: 20, HandSize: 0, LibrarySize: 30, Battlefield: []view.CardView{
 			// A malformed/intermediate view can carry flags despite FaceDown;
 			// the translator must not resurrect either one onto the wire.
-			{ID: 5, FaceDown: true, Token: "#5", Owner: 0, Controller: 0, IsToken: true, IsCopy: true},
+			{ID: 5, FaceDown: true, Token: "#5", Owner: 0, Controller: 0, IsToken: true, IsCopy: true, Types: "Creature", Power: 3, Toughness: 2, Tapped: true, Counters: map[string]int32{"P1P1": 1}},
 		}},
 		{ID: 1, Name: "Bob", Life: 20, HandSize: 0, LibrarySize: 30},
 	}}
@@ -103,6 +103,9 @@ func TestFaceDownIdentityStaysHidden(t *testing.T) {
 	}
 	if !faceDown.IsFaceDown || faceDown.Identity != (mb.CardIdentity{}) {
 		t.Fatalf("face-down card projected with identity %#v IsFaceDown=%v, want zeroed identity", faceDown.Identity, faceDown.IsFaceDown)
+	}
+	if len(faceDown.Types) != 1 || faceDown.Types[0] != "Creature" || *faceDown.Power != "3" || *faceDown.Toughness != "2" || !faceDown.Tapped || faceDown.Counters["P1P1"] != 1 {
+		t.Fatalf("face-down card lost its public state: %+v", faceDown)
 	}
 	if faceDown.Identity.IsToken || faceDown.IsCopy {
 		t.Fatalf("face-down card leaked token/copy flags: IsToken=%v IsCopy=%v", faceDown.Identity.IsToken, faceDown.IsCopy)

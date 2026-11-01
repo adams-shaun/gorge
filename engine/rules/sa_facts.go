@@ -7,9 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 )
 
-// saFacts is the one per-ability facts record (W4 steps 1 and 3 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 8): effects.SAFacts, defined in effects because resolution reads its typed
+// saFacts is the one per-ability facts record: effects.SAFacts, defined in effects because resolution reads its typed
 // parameter halves (ChangeZone's today) and effects sits below rules. An
 // ability has exactly one downstream slot (cards.ExtSlot) and a second claim
 // on it fails silently, so every compiled per-SA fact lives in this one

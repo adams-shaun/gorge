@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Spawner> chain on a Defined$/DefinedPlayer$ consumer (cr-g256):
+// The Spawner> chain on a Defined$/DefinedPlayer$ consumer:
 // Biting-Palm Ninja's `RevealHand | Defined$ Spawner>TriggeredTarget` and
 // `ChangeZone | DefinedPlayer$ Spawner>TriggeredTarget`, and Breeches, the
 // Blastmaker's `CopySpellAbility | Defined$ Spawner>TriggeredSpellAbility`.

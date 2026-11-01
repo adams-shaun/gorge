@@ -741,7 +741,7 @@ func TestSetAudit_sos_DigSiteInventory_FlashbackFromGraveyard(t *testing.T) {
 
 // ---------------------------------------------------------------------------
 // (c) Surveil (CR 701.21) — Imperious Inkmage's ETB "surveil 2" must pose the
-// arrange ask (Ruling J0) over the top two cards, and a chosen card goes to
+// arrange ask over the top two cards, and a chosen card goes to
 // the graveyard.
 func TestSetAudit_sos_ImperiousInkmage_SurveilArrangeAsk(t *testing.T) {
 	t.Parallel()

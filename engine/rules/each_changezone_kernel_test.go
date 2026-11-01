@@ -1,8 +1,6 @@
 package rules
 
-// Kernel-era restorations of the effects-package ChangeType$ EACH tests the
-// W3 legacy removal deleted (each_changetype, each_object_pick,
-// each_zero_count): the per-type structured pick on the library-search,
+// ChangeType$ EACH: the per-type structured pick on the library-search,
 // hand and hidden-pick paths, driven through a real engine.
 
 import (
@@ -14,14 +12,14 @@ import (
 )
 
 const (
-	kr1Forest = "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"
-	kr1Plains = "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n"
+	forestCardSrc = "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"
+	plainsCardSrc = "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n"
 )
 
-// kr1ClearHand returns every card in seat p's hand except keep to the
+// clearHandExcept returns every card in seat p's hand except keep to the
 // library with logged MoveZones, so a hand-origin pick sees only the cards
 // a test puts there.
-func kr1ClearHand(t *testing.T, e *Engine, p state.PlayerID, keep state.ObjID) {
+func clearHandExcept(t *testing.T, e *Engine, p state.PlayerID, keep state.ObjID) {
 	t.Helper()
 	for _, id := range append([]state.ObjID(nil), e.G.Zone(state.ZHand, p)...) {
 		if id != keep {
@@ -30,8 +28,8 @@ func kr1ClearHand(t *testing.T, e *Engine, p state.PlayerID, keep state.ObjID) {
 	}
 }
 
-// kr1Yes answers a yes/no confirmation with its "yes" option.
-func kr1Yes(t *testing.T, e *Engine, resume string) *decision.Decision {
+// answerYes answers a yes/no confirmation with its "yes" option.
+func answerYes(t *testing.T, e *Engine, resume string) *decision.Decision {
 	t.Helper()
 	d := e.Pending()
 	if d == nil || d.ResumeKind != resume {
@@ -39,28 +37,27 @@ func kr1Yes(t *testing.T, e *Engine, resume string) *decision.Decision {
 	}
 	for _, o := range d.Options {
 		if o.Kind == "yes" {
-			return kr1Answer(t, e, d.Kind, d.Player, o.Index)
+			return answerKindFor(t, e, d.Kind, d.Player, o.Index)
 		}
 	}
 	t.Fatalf("no yes option on %+v", d)
 	return nil
 }
 
-const kr1VergeBody = "A:SP$ ChangeZone | Origin$ Library | Destination$ Battlefield | ChangeType$ EACH Forest & Plains | Tapped$ True"
+const vergeBody = "A:SP$ ChangeZone | Origin$ Library | Destination$ Battlefield | ChangeType$ EACH Forest & Plains | Tapped$ True"
 
-// TestKr1KrosanVergeEachSearchAsksPerTypeAndHonoursTheAnswer (was
-// TestKrosanVergeEachSearchAsksPerTypeAndHonoursTheAnswer): Krosan Verge's
+// TestKernelKrosanVergeEachSearchAsksPerTypeAndHonoursTheAnswer: Krosan Verge's
 // search over a library holding Forests AND Plains asks the controller for
 // 0..2 cards, the Forests grouped "0" and the Plainses "1" in library
 // order; one-per-group is the only legal shape, and the answered Forest and
 // Plains enter tapped before exactly one shuffle.
-func TestKr1KrosanVergeEachSearchAsksPerTypeAndHonoursTheAnswer(t *testing.T) {
+func TestKernelKrosanVergeEachSearchAsksPerTypeAndHonoursTheAnswer(t *testing.T) {
 	t.Parallel()
-	e, cfg, id := kr1New(t, 150, kr1Sorcery("VergeSearch", kr1VergeBody),
-		[]string{kr1Forest, kr1Forest, kr1Plains, kr1Plains}, nil)
+	e, cfg, id := newFixtureGame(t, 150, sorceryFixtureSrc("VergeSearch", vergeBody),
+		[]string{forestCardSrc, forestCardSrc, plainsCardSrc, plainsCardSrc}, nil)
 	addMana(t, e, 0, "B")
-	ids := kr1Top(t, e, 0, "Forest", "Forest", "Plains", "Plains")
-	d := kr1Cast(t, e, id)
+	ids := stackLibraryTop(t, e, 0, "Forest", "Forest", "Plains", "Plains")
+	d := castSpellObj(t, e, id)
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" || d.Player != 0 {
 		t.Fatalf("decision = %+v, want a KChoose search for seat 0", d)
 	}
@@ -86,7 +83,7 @@ func TestKr1KrosanVergeEachSearchAsksPerTypeAndHonoursTheAnswer(t *testing.T) {
 		t.Fatal("two same-group choices accepted")
 	}
 	mark := len(e.L.Events)
-	if p := kr1Answer(t, e, decision.KChoose, 0, 1, 2); p != nil {
+	if p := answerKindFor(t, e, decision.KChoose, 0, 1, 2); p != nil {
 		t.Fatalf("unexpected follow-up ask %+v", p)
 	}
 	for _, f := range []state.ObjID{ids[1], ids[2]} {
@@ -106,32 +103,31 @@ func TestKr1KrosanVergeEachSearchAsksPerTypeAndHonoursTheAnswer(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1EachSearchOffersOnlyTheTypesWithCandidates (was
-// TestEachSearchOffersOnlyTheTypesWithCandidates): with Forests and no
+// TestKernelEachSearchOffersOnlyTheTypesWithCandidates: with Forests and no
 // Plains only the Forest group is offered (Max 1) and the answered Forest
 // moves.
-func TestKr1EachSearchOffersOnlyTheTypesWithCandidates(t *testing.T) {
+func TestKernelEachSearchOffersOnlyTheTypesWithCandidates(t *testing.T) {
 	t.Parallel()
-	e, cfg, id := kr1New(t, 151, kr1Sorcery("VergeSearch", kr1VergeBody), []string{kr1Forest, kr1Forest}, nil)
+	e, cfg, id := newFixtureGame(t, 151, sorceryFixtureSrc("VergeSearch", vergeBody), []string{forestCardSrc, forestCardSrc}, nil)
 	addMana(t, e, 0, "B")
-	ids := kr1Top(t, e, 0, "Forest", "Forest")
-	d := kr1Cast(t, e, id)
+	ids := stackLibraryTop(t, e, 0, "Forest", "Forest")
+	d := castSpellObj(t, e, id)
 	if d == nil || d.Min != 0 || d.Max != 1 || len(d.Options) != 2 {
 		t.Fatalf("decision = %+v, want 0..1 over the Forest group only", d)
 	}
 	if d.Options[0].Group != "0" || d.Options[1].Group != "0" {
 		t.Fatalf("groups = %q/%q, want one Forest group", d.Options[0].Group, d.Options[1].Group)
 	}
-	kr1Answer(t, e, decision.KChoose, 0, kr1OptIndex(t, d, ids[1]))
-	if kr1Zone(e, ids[1]) != state.ZBattlefield || kr1Zone(e, ids[0]) != state.ZLibrary {
-		t.Fatalf("zones = %s/%s, want only the answered Forest moved", kr1Zone(e, ids[0]), kr1Zone(e, ids[1]))
+	answerKindFor(t, e, decision.KChoose, 0, optionIdxOfObj(t, d, ids[1]))
+	if zoneOfID(e, ids[1]) != state.ZBattlefield || zoneOfID(e, ids[0]) != state.ZLibrary {
+		t.Fatalf("zones = %s/%s, want only the answered Forest moved", zoneOfID(e, ids[0]), zoneOfID(e, ids[1]))
 	}
 	replayCheck(t, e, cfg)
 }
 
-// kr1EachGroups checks d offers exactly crea in group "0" and land in "1"
+// requireEachGroups checks d offers exactly crea in group "0" and land in "1"
 // (and never other), returning their option indices.
-func kr1EachGroups(t *testing.T, d *decision.Decision, crea, land, other state.ObjID) (int, int) {
+func requireEachGroups(t *testing.T, d *decision.Decision, crea, land, other state.ObjID) (int, int) {
 	t.Helper()
 	if d.Min != 0 || d.Max != 2 || len(d.Options) != 2 {
 		t.Fatalf("decision = %+v, want 0..2 over one option per listed type", d)
@@ -159,67 +155,64 @@ func kr1EachGroups(t *testing.T, d *decision.Decision, crea, land, other state.O
 	return ci, li
 }
 
-// TestKr1EachHandMoveAsksOneOfEachListedType (was
-// TestEachHandMoveAsksOneOfEachListedType, Michelangelo Improvisers' shape):
+// TestKernelEachHandMoveAsksOneOfEachListedType (Michelangelo Improvisers' shape):
 // Optional$ True poses the confirm gate first, then a one-of-EACH pick
 // (Max 2, one Group per type, the instant excluded), and the answered pair
 // both enter the battlefield.
-func TestKr1EachHandMoveAsksOneOfEachListedType(t *testing.T) {
+func TestKernelEachHandMoveAsksOneOfEachListedType(t *testing.T) {
 	t.Parallel()
 	body := "A:SP$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ EACH Creature & Land | Optional$ True"
-	e, cfg, id := kr1New(t, 152, kr1Sorcery("Improvise", body), []string{
-		"Name:Grizzly\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", kr1Forest,
+	e, cfg, id := newFixtureGame(t, 152, sorceryFixtureSrc("Improvise", body), []string{
+		"Name:Grizzly\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", forestCardSrc,
 		"Name:Bolt\nManaCost:R\nTypes:Instant\nOracle:x\n"}, nil)
 	addMana(t, e, 0, "B")
-	kr1ClearHand(t, e, 0, id)
-	crea := kr1Put(t, e, 0, "Grizzly", state.ZHand)
-	land := kr1Put(t, e, 0, "Forest", state.ZHand)
-	inst := kr1Put(t, e, 0, "Bolt", state.ZHand)
-	kr1Cast(t, e, id)
-	d := kr1Yes(t, e, "hand_move_confirm")
+	clearHandExcept(t, e, 0, id)
+	crea := putNamed(t, e, 0, "Grizzly", state.ZHand)
+	land := putNamed(t, e, 0, "Forest", state.ZHand)
+	inst := putNamed(t, e, 0, "Bolt", state.ZHand)
+	castSpellObj(t, e, id)
+	d := answerYes(t, e, "hand_move_confirm")
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" {
 		t.Fatalf("decision = %+v, want a KChoose hand_move", d)
 	}
-	ci, li := kr1EachGroups(t, d, crea, land, inst)
-	kr1Answer(t, e, decision.KChoose, 0, ci, li)
-	if kr1Zone(e, crea) != state.ZBattlefield || kr1Zone(e, land) != state.ZBattlefield || kr1Zone(e, inst) != state.ZHand {
-		t.Fatalf("zones crea/land/inst = %s/%s/%s, want battlefield/battlefield/hand", kr1Zone(e, crea), kr1Zone(e, land), kr1Zone(e, inst))
+	ci, li := requireEachGroups(t, d, crea, land, inst)
+	answerKindFor(t, e, decision.KChoose, 0, ci, li)
+	if zoneOfID(e, crea) != state.ZBattlefield || zoneOfID(e, land) != state.ZBattlefield || zoneOfID(e, inst) != state.ZHand {
+		t.Fatalf("zones crea/land/inst = %s/%s/%s, want battlefield/battlefield/hand", zoneOfID(e, crea), zoneOfID(e, land), zoneOfID(e, inst))
 	}
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1EachHiddenPickAsksOneOfEachListedType (was
-// TestEachHiddenPickAsksOneOfEachListedType, Druidic Ritual's shape): from
+// TestKernelEachHiddenPickAsksOneOfEachListedType (Druidic Ritual's shape): from
 // the graveyard, the confirm gate then a one-of-EACH pick, and the answered
 // creature and land both return to hand.
-func TestKr1EachHiddenPickAsksOneOfEachListedType(t *testing.T) {
+func TestKernelEachHiddenPickAsksOneOfEachListedType(t *testing.T) {
 	t.Parallel()
 	body := "A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Hand | Hidden$ True | ChangeType$ EACH Creature.YouOwn & Land.YouOwn | Optional$ True"
-	e, cfg, id := kr1New(t, 153, kr1Sorcery("Ritual", body), []string{
-		"Name:Zed\nManaCost:B\nTypes:Creature Zombie\nPT:2/2\nOracle:x\n", kr1Forest,
+	e, cfg, id := newFixtureGame(t, 153, sorceryFixtureSrc("Ritual", body), []string{
+		"Name:Zed\nManaCost:B\nTypes:Creature Zombie\nPT:2/2\nOracle:x\n", forestCardSrc,
 		"Name:Page\nManaCost:U\nTypes:Instant\nOracle:x\n"}, nil)
 	addMana(t, e, 0, "B")
-	crea := kr1Put(t, e, 0, "Zed", state.ZGraveyard)
-	land := kr1Put(t, e, 0, "Forest", state.ZGraveyard)
-	other := kr1Put(t, e, 0, "Page", state.ZGraveyard)
-	kr1Cast(t, e, id)
-	d := kr1Yes(t, e, "hidden_pick_confirm")
+	crea := putNamed(t, e, 0, "Zed", state.ZGraveyard)
+	land := putNamed(t, e, 0, "Forest", state.ZGraveyard)
+	other := putNamed(t, e, 0, "Page", state.ZGraveyard)
+	castSpellObj(t, e, id)
+	d := answerYes(t, e, "hidden_pick_confirm")
 	if d == nil || d.ResumeKind != "hidden_pick" {
 		t.Fatalf("decision = %+v, want a hidden_pick", d)
 	}
-	ci, li := kr1EachGroups(t, d, crea, land, other)
-	kr1Answer(t, e, d.Kind, d.Player, ci, li)
-	if kr1Zone(e, crea) != state.ZHand || kr1Zone(e, land) != state.ZHand || kr1Zone(e, other) != state.ZGraveyard {
-		t.Fatalf("zones = %s/%s/%s, want hand/hand/graveyard", kr1Zone(e, crea), kr1Zone(e, land), kr1Zone(e, other))
+	ci, li := requireEachGroups(t, d, crea, land, other)
+	answerKindFor(t, e, d.Kind, d.Player, ci, li)
+	if zoneOfID(e, crea) != state.ZHand || zoneOfID(e, land) != state.ZHand || zoneOfID(e, other) != state.ZGraveyard {
+		t.Fatalf("zones = %s/%s/%s, want hand/hand/graveyard", zoneOfID(e, crea), zoneOfID(e, land), zoneOfID(e, other))
 	}
 	replayCheck(t, e, cfg)
 }
 
-// TestKr1EachExplicitZeroChangeNumSelectsNothing (was the engine subcases of
-// TestEachExplicitZeroChangeNumSelectsNothing): an explicit ChangeNum$ 0 on
+// TestKernelEachExplicitZeroChangeNumSelectsNothing: an explicit ChangeNum$ 0 on
 // the EACH hand, library-search and hidden-pick paths poses no pick (the
 // Optional$ confirm gate still runs first where present) and moves nothing.
-func TestKr1EachExplicitZeroChangeNumSelectsNothing(t *testing.T) {
+func TestKernelEachExplicitZeroChangeNumSelectsNothing(t *testing.T) {
 	t.Parallel()
 	for i, tc := range []struct {
 		name, body, confirm string
@@ -234,31 +227,31 @@ func TestKr1EachExplicitZeroChangeNumSelectsNothing(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			body := "A:SP$ ChangeZone | " + tc.body + " | ChangeType$ EACH Creature & Land.Forest | ChangeNum$ 0"
-			e, cfg, id := kr1New(t, seed, kr1Sorcery("ZeroProbe", body), []string{
-				"Name:ZeroCreature\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", kr1Forest}, nil)
+			e, cfg, id := newFixtureGame(t, seed, sorceryFixtureSrc("ZeroProbe", body), []string{
+				"Name:ZeroCreature\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", forestCardSrc}, nil)
 			addMana(t, e, 0, "B")
-			kr1ClearHand(t, e, 0, id)
+			clearHandExcept(t, e, 0, id)
 			var crea, land state.ObjID
 			if tc.zone == state.ZLibrary {
-				ids := kr1Top(t, e, 0, "ZeroCreature", "Forest")
+				ids := stackLibraryTop(t, e, 0, "ZeroCreature", "Forest")
 				crea, land = ids[0], ids[1]
 			} else {
-				crea = kr1Put(t, e, 0, "ZeroCreature", tc.zone)
-				land = kr1Put(t, e, 0, "Forest", tc.zone)
+				crea = putNamed(t, e, 0, "ZeroCreature", tc.zone)
+				land = putNamed(t, e, 0, "Forest", tc.zone)
 			}
-			d := kr1Cast(t, e, id)
+			d := castSpellObj(t, e, id)
 			if tc.confirm != "" {
-				d = kr1Yes(t, e, tc.confirm)
+				d = answerYes(t, e, tc.confirm)
 			}
 			if d != nil {
 				t.Fatalf("zero-count EACH posed a choice: %+v", d)
 			}
 			for _, c := range []state.ObjID{crea, land} {
-				if z := kr1Zone(e, c); z != tc.zone {
+				if z := zoneOfID(e, c); z != tc.zone {
 					t.Fatalf("candidate %d ended in %s, want it to remain in %s", c, z, tc.zone)
 				}
 			}
-			if kr1HasNote(e, "unimplemented API ChangeZone") {
+			if hasNoteContaining(e, "unimplemented API ChangeZone") {
 				t.Fatal("the ChangeZone handler did not run")
 			}
 			replayCheck(t, e, cfg)

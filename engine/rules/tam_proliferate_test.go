@@ -1,6 +1,6 @@
 package rules
 
-// cr-g222: Tam, the Possibility's activated ability is
+// Tam, the Possibility's activated ability is
 // "{W}{U}{B}{R}{G}, {T}: Proliferate X times, where X is the number of
 // planeswalker types among planeswalkers you control", with
 // `SVar:X:Count$Valid Planeswalker.YouCtrl$PlaneswalkerType`. The property

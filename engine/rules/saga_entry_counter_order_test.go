@@ -60,7 +60,7 @@ func entryCounterSagaChapters(e *Engine, id state.ObjID) []string {
 	return got
 }
 
-// TestEntryCounterSagaLoreOrderIsDecidedBeforeEntry is the brief's Saga clause. It
+// TestEntryCounterSagaLoreOrderIsDecidedBeforeEntry is the Saga clause. It
 // drives the staged CR 616.1 ask with BOTH answers and asserts the entered
 // lore differs by that answer (so a fixed-total or fold-first path fails), the
 // entry folds atomically, and the chapters that the final lore reaches queue

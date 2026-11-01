@@ -37,7 +37,7 @@
   } = $props();
 
   const art = $derived(player.commanders?.[0]?.name ?? null);
-  const label = $derived(`${name}${player.lost ? ', out of the game' : ''}${active ? ', their turn' : ''}${priority ? ', has priority' : ''}: ${player.life} life`);
+  const label = $derived(`${name}${player.lost ? ', out of the game' : ''}${active ? (name === 'You' ? ', your turn' : ', their turn') : ''}${priority ? (name === 'You' ? ', you have priority' : ', has priority') : ''}: ${player.life} life`);
 </script>
 
 <header

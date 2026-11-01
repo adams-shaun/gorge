@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// window.go is the payment-window source vocabulary (lasagna spec W5 E7):
+// window.go is the payment-window source vocabulary:
 // one permanent's single-tap production alternatives as a payment window
 // or the auto-pay planner sees them. The census that builds them from the
 // live board stays in package rules (windowManaUnits).

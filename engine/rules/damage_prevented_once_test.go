@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task dponce1: Selfless Squire's two halves on the real corpus script —
+// Selfless Squire's two halves on the real corpus script —
 // the ETB "prevent all damage that would be dealt to you this turn" bodyless
 // Prevent$ replacement (DB$ Effect | ReplacementEffects$ RPrevent) and the
 // Mode$ DamagePreventedOnce trigger that grows the Squire by the prevented

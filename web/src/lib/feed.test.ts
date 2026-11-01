@@ -23,6 +23,8 @@ describe('isRoutineLine', () => {
   it('matches the two lines that say only "the engine reached a priority window"', () => {
     expect(isRoutineLine('mono-red-goblins is asked: priority')).toBe(true);
     expect(isRoutineLine('Ann has priority')).toBe(true);
+    expect(isRoutineLine('You have priority')).toBe(true);
+    expect(isRoutineLine('You are asked: priority')).toBe(true);
   });
   it('keeps every line that reports something happening', () => {
     expect(isRoutineLine('eldrazi-stompy is asked: attackers')).toBe(false);

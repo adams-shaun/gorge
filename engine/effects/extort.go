@@ -42,7 +42,7 @@ func effExtort(h Host, c *Ctx, sa *cards.SA) {
 		extortDrain(h, g, c.Controller)
 		return
 	}
-	// Fuzz/no-engine host: the deterministic decline (R-9).
+	// Fuzz/no-engine host: the deterministic decline.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "Extort declined (no engine host to ask)"})
 }

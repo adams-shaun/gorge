@@ -179,7 +179,7 @@ func (e *Engine) quietBlocker(p state.PlayerID) quietBlockerID {
 	// static walk) take the walk's caches only inside a derived-memo scope
 	// (engine/rules/walkcache.go walkKeyNow). At depth 0 every board static read
 	// misses and rescans the whole board, which made the serve net-negative
-	// on the az row (Q4 ticket report: quietBlocker 9.99 s / 11.49%). Open a
+	// on the az row (measured: quietBlocker 9.99 s / 11.49%). Open a
 	// scope around the read when the caller is not already inside one, so the
 	// scans WRITE the board-only cache entries the walk (and the serve's own
 	// nested scope, same generation) then hit. The depth guard keeps a direct
@@ -239,7 +239,7 @@ func (e *Engine) quietBlocker(p state.PlayerID) quietBlockerID {
 // deliberately: two reads here touch a Params map or a string -- the
 // MayPlay$ param scan over active Continuous statics and the AddKeyword head
 // compare in quietActiveKWGrantBlocker. §2.2's board-flag reader REQUIRES
-// them (there is no compiled S2 bit for an arbitrary MayPlay$/AddKeyword
+// them (there is no compiled bit for an arbitrary MayPlay$/AddKeyword
 // carrier in v1), and both run on the already-built active() summaries the
 // walk shares, not on a raw script re-parse. They are the proof's most
 // expensive part, so quietBlocker runs this reader LAST, only for a window

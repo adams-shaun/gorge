@@ -7,7 +7,7 @@
 
   /**
    * Transcript fixture: a real browser-mounted transcript for the card-name
-   * hover preview (fb-20260927T154603Z). It mounts the production component
+   * hover preview. It mounts the production component
    * with the SAME two props Table.svelte wires — the flattened view cards and
    * the owner-colour resolver built over them — so the Playwright test
    * exercises the pointer-dwell path through Document-level hit-testing and

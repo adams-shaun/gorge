@@ -68,7 +68,7 @@ func (s *Server) EnableAutoPay() {
 		panic("cannot enable auto-pay during a game")
 	}
 	s.autoPay = true
-	s.engine.Version += "/autopay"
+	s.engine.Version += AutoPayVersionSuffix
 }
 
 // AddDeck makes d playable by its catalog_id beside the engine catalog, for an

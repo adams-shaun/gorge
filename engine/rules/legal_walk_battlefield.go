@@ -14,7 +14,7 @@ import (
 )
 
 // manaSection is the walk's mana-activation section, extracted verbatim from
-// battlefieldWalk (quiet-seat Q2, design
+// battlefieldWalk (design
 // docs/design/2026-10-08-quiet-seat-walk-skip-design.md §3.3) so
 // the quiet serve (engine/rules/quiet_serve.go) can run exactly this block without
 // the walk's other sections, and the walk itself goes through the one copy.
@@ -68,7 +68,7 @@ func (w *legalWalk) manaSection() walkBoardFacts {
 				// PotentialMana (walk_block_reuse.go: recordMembers).
 				own := w.rec != nil && z == state.ZBattlefield && zonePlayer == p
 				// The mana-member carry serves a seat's OWN battlefield
-				// objects (legal-walk design §S4). A board-wide grant or an
+				// objects. A board-wide grant or an
 				// add-ability changes every object's membership, so those
 				// boards keep the direct walk.
 				ownSeat := z == state.ZBattlefield && zonePlayer == p
@@ -136,7 +136,7 @@ func (w *legalWalk) manaSection() walkBoardFacts {
 						continue
 					}
 					opt := decision.Option{Index: len(*out), Kind: "activate", Label: w.manaLabel(f), Obj: id}
-					// fb-led1: a mana ability that costs more than a bare tap is the
+					// A mana ability that costs more than a bare tap is the
 					// play the window exists for — carry its cost so the client's
 					// empty-priority-window floor stops instead of passing it away.
 					if marker := e.manaActivationCostMarker(mas); marker != "" {
@@ -163,7 +163,7 @@ func (w *legalWalk) battlefieldWalk() {
 	if !castsOnly {
 		board := w.manaSection()
 
-		// Activated abilities (Task 10): every non-mana AB$ ability on a
+		// Activated abilities: every non-mana AB$ ability on a
 		// permanent p controls, and every one on a card in p's graveyard whose
 		// ActivationZone$ names the graveyard, offered as an "ability" option the
 		// way a cast is (engine/rules/activate.go resolves one). Each is gated on the
@@ -173,11 +173,11 @@ func (w *legalWalk) battlefieldWalk() {
 		// is neither tapped nor (for a creature, CR 302.6) summoning-sick without
 		// Haste, and -- the totality gate -- the whole cost must be castable
 		// (mana payable, every Sac/Discard/SubCounter part satisfiable) before the option
-		// is ever offered. Equip (Task 14's attachments) is carried by this same
+		// is ever offered. Equip is carried by this same
 		// loop -- its K:Equip expansion (engine/cards/keywords.go) is an AB$ Attach with
 		// SorcerySpeed$ True, so the gates above cover it with no carve-out, and
 		// engine/rules/activate.go resolves it exactly like any other ability. This was
-		// not always true: Task 14 round 1 shipped a second, Equip-only loop and
+		// not always true: a second, Equip-only loop
 		// deleted it again on the main merge (one offer path, one activation
 		// path), so do not resurrect one.
 		for _, z := range []state.Zone{state.ZBattlefield, state.ZStack, state.ZGraveyard, state.ZHand, state.ZExile} {
@@ -376,7 +376,7 @@ func (w *legalWalk) battlefieldWalk() {
 						// (a mis-answered phyrexian pip, a pool that moved) re-offered
 						// forever inside one priority window: measured, the commander
 						// bench spun 20000 intents on Solphim's {1}{R/P}{R/P} ability
-						// (seed 1295, 2026-09-15) because the ability-offer path never
+						// (seed 1295) because the ability-offer path never
 						// read the map the abort wrote.
 						if e.castSuppressed(p, id) {
 							continue
@@ -650,7 +650,7 @@ func (w *legalWalk) battlefieldWalk() {
 					// printed AbilityPush ones. The granted half was once exempt on the
 					// premise that an AddAbility$ body is never a loyalty ability;
 					// Rowan's Talent's body is one, and the exemption let a bot
-					// activate it without bound (cardfuzz batch1 line 18: 20000
+					// activate it without bound (20000
 					// intents of "+1" on one Jaya Ballard in one main phase).
 					if e.isLoyaltyAbility(ab) {
 						if !sorcery && !e.loyaltyAtInstantSpeed(p, id) {
@@ -666,7 +666,7 @@ func (w *legalWalk) battlefieldWalk() {
 					// ability is this recipient -- without the check a granted
 					// activation whose transaction aborts (no legal target, an
 					// unpayable cost) was re-offered inside one priority window
-					// forever (cardfuzz batch5 line 1: Trazyn's gained Equip).
+					// forever (Trazyn's gained Equip).
 					if w.abilityRestricted(p, id, ab) || e.castSuppressed(p, id) {
 						continue
 					}
@@ -746,7 +746,7 @@ func (w *legalWalk) battlefieldWalk() {
 					// disagree (the grantor's face does not carry the table the
 					// effect captured) the option was a silent no-op: chosen, it
 					// emitted nothing and the identical board re-offered it forever
-					// (cardfuzz batch7 line 2: a gained-Animate grant on Manascape
+					// (a gained-Animate grant on Manascape
 					// Refractor, 100x "Regenerate CARDNAME" in one main phase).
 					if e.grantedSAFrom(ga.Source, id, ga.SVar) == nil {
 						continue

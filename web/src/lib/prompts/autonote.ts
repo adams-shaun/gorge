@@ -31,7 +31,7 @@ export type AutoNote =
   | { kind: 'armed' }
   | { kind: 'passing'; count: number }
   /**
-   * detail (fb-20260916T225211Z) carries the actionable option labels that
+   * detail carries the actionable option labels that
    * made a stop-set window stop-worthy — autoNoteText folds it into the
    * note text, so the player reads WHAT the window offered, not just that a
    * stop they set fired. Absent (or empty) for every other reason and for a
@@ -104,7 +104,7 @@ export function autoNoteText(note: AutoNote): string {
         ? 'Auto passed 1 priority window.'
         : `Auto passed ${note.count} priority windows.`;
     case 'waiting':
-      // stop-set with actionable labels (fb-20260916T225211Z): the base line
+      // stop-set with actionable labels: the base line
       // alone read "you set a stop" without saying WHY the window was worth
       // stopping at — the exact gap the Deadly Rollick free-cast report is
       // about. The labels come from actionables(), the same predicate the

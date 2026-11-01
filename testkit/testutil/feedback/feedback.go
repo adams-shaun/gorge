@@ -1,6 +1,6 @@
 // Package feedback loads a feedback snapshot directory — the match.json /
 // log.json (plus optional view.json / report.json) files the server's
-// feedback capture (task fbrepro1) writes beside a bug report — back into
+// feedback capture writes beside a bug report — back into
 // the (events.Log, rules.Config) pair a deterministic replay needs, and
 // drives that replay to a chosen intent.
 //
@@ -73,10 +73,9 @@ type matchJSON struct {
 	StartingLife int32      `json:"starting_life,omitempty"`
 	Commanders   [][]int    `json:"commanders,omitempty"`
 	// StartChooser is the configured starting-player chooser the live match
-	// ran with (E3-2): the seat posed CR 103.1's choice in place of the toss
+	// ran with: the seat posed CR 103.1's choice in place of the toss
 	// winner. config() must restore it or the rebuilt engine replays the
-	// toss instead and diverges at the genesis Note. Absent = the toss,
-	// which every match before E3 used.
+	// toss instead and diverges at the genesis Note. Absent = the toss.
 	StartChooser *int              `json:"start_chooser,omitempty"`
 	Tokens       map[string]string `json:"tokens,omitempty"`
 	TokensUnread []string          `json:"tokens_unread,omitempty"`
@@ -251,7 +250,7 @@ func Load(dir string) (*events.Log, rules.Config, Meta, error) {
 // live, uncommitted capture has it and it overrides the list the engine
 // would derive; a size-stripped committed fixture does not, and the engine
 // then derives the list from this corpus at genesis. The seed is carried
-// but replay overwrites it with the log's own seed (replay's Ruling P5).
+// but replay overwrites it with the log's own seed.
 func config(m matchJSON, reg *cards.Registry, tokens map[string]*cards.Card) (rules.Config, error) {
 	cfg, err := m.record().Config(reg, tokens)
 	if err != nil {

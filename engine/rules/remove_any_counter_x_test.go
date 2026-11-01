@@ -43,7 +43,14 @@ func TestMoxiteRefineryAnyCounterXSpansObjects(t *testing.T) {
 	addMana(t, e, p, "GG") // Moxite's {2}; X is paid in counters.
 	submitChoices(t, e, abilityOption(t, e, moxite, 0).Index)
 
+	// CR 602.2b: the mode comes first.
 	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes {
+		t.Fatalf("Moxite mode decision = %+v, want a mode choice", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+
+	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "x" {
 		t.Fatalf("Moxite X decision = %+v, want an X choice", d)
 	}
@@ -57,6 +64,12 @@ func TestMoxiteRefineryAnyCounterXSpansObjects(t *testing.T) {
 		t.Fatalf("Moxite X options = %+v, want aggregate X=4", d.Options)
 	}
 	submitChoices(t, e, xFour)
+
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Moxite target decision = %+v, want a target choice", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
 
 	// Each per-unit ask must still offer the selected object until its second
 	// counter is paid; the payment intentionally spans the two objects. The

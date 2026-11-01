@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// CR 118.12a / 118.3 (cr-g113): an "unless [player] [cost]" cost outside the
+// CR 118.12a / 118.3: an "unless [player] [cost]" cost outside the
 // old strict grammar (tapXType, AddCounter, DamageYou<X>, Waterbend, Blight,
 // CollectEvidence, ExileFromStack, a folded Draw<X/...>) is offered whenever
 // the payer CAN pay it, and paying it settles through the same payer-choice
@@ -75,7 +75,7 @@ func ugPushTrigger(e *Engine, src state.ObjID, controller state.PlayerID, target
 		ability := e.G.Stack[len(e.G.Stack)-1]
 		e.emit(events.Event{Kind: events.TargetsChosen, Obj: ability, IDs: targets})
 	}
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 }
 
 // ugBridge is Command Bridge as it is when its enters-tapped replacement has

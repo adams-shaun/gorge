@@ -5,9 +5,7 @@ import (
 )
 
 // This file is the machinery the Charm/Pump/Draw typed parameter compilers
-// share (W4 step 3 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 8): the identity rule a compiled struct answers by, and the configured
+// share: the identity rule a compiled struct answers by, and the configured
 // binding's compile step. The compile-time unread check and its Note are the
 // shared unreadKeys/noteUnreadParams (changezoneall_params.go). Each
 // compiler (charm_params.go, pump_params.go, draw_params.go) is the ONLY

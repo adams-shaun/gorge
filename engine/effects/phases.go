@@ -13,7 +13,7 @@ func init() {
 }
 
 // effPhases implements Forge's PhasesEffect (the `SP$`/`DB$ Phases` action),
-// CR 702.25's phasing (task phases1). Representatives in the corpus (56
+// CR 702.25's phasing. Representatives in the corpus (56
 // files): Talon Gates of Madara's "when this enters, up to one target
 // creature phases out", Guardian of Faith's "any number of other target
 // creatures you control phase out", Teferi's Protection, Riftwing Cloudskate,

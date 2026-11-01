@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g224: a SetState with Choices$ (no Defined$) asks the controller which
+// A SetState with Choices$ (no Defined$) asks the controller which
 // permanent to change instead of silently changing nothing (Sunder the
 // Gateway's "transform an Incubator token you control", Hustle // Bustle's
 // "you may turn a creature you control face up").

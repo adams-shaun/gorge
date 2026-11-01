@@ -1,6 +1,6 @@
 package rules
 
-// Restores engine/effects/player_opponentof_test.go on the kernel: Bend or Break's
+// Bend or Break's
 // `ChoosePlayer | Defined$ Remembered | Choices$ Player.OpponentOf
 // Remembered` asks the REMEMBERED player (each RepeatEach iteration's
 // player) to choose among that player's opponents only, in seat order after
@@ -15,8 +15,8 @@ import (
 
 func TestChoosePlayerOpponentOfRemembered(t *testing.T) {
 	t.Parallel()
-	e := kr2Engine(t, 4)
-	spell := kr2Put(t, e, 0, kr2Sorcery(t, "Bend Fixture",
+	e := kernelEngine(t, 4)
+	spell := putCardIn(t, e, 0, sorceryCard(t, "Bend Fixture",
 		"A:SP$ RepeatEach | RepeatPlayers$ Player | RepeatSubAbility$ DBChoosePlayer",
 		"SVar:DBChoosePlayer:DB$ ChoosePlayer | Defined$ Remembered | Choices$ Player.OpponentOf Remembered | SubAbility$ DBDraw",
 		"SVar:DBDraw:DB$ Draw | Defined$ ChosenPlayer | NumCards$ 1 | SubAbility$ DBCleanup",
@@ -26,7 +26,7 @@ func TestChoosePlayerOpponentOfRemembered(t *testing.T) {
 		hands[p] = len(e.G.Zone(state.ZHand, state.PlayerID(p)))
 	}
 	hands[0]-- // the spell leaves seat 0's hand
-	d := kr2Cast(t, e, 0, spell)
+	d := castWithMana(t, e, 0, spell)
 	// Each player answers with the opponent two seats after it, except seat
 	// 1, which picks seat 2 (proving a non-first option is honoured is the
 	// point of the others).
@@ -52,7 +52,7 @@ func TestChoosePlayerOpponentOfRemembered(t *testing.T) {
 			pick = 2
 		}
 		wantDraws[pick]++
-		d = kr2Answer(t, e, d, kr2PlayerIdx(t, d, pick))
+		d = answerDecision(t, e, d, playerOptionIndex(t, d, pick))
 	}
 	if d != nil {
 		t.Fatalf("unexpected ask after the loop: %+v", d)

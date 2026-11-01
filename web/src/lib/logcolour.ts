@@ -3,7 +3,7 @@
  * svelte's `e.line`, from view/describe.go) into plain-text and
  * seat-coloured runs, so a seat's own identity colour (the same one
  * SeatTable/IdentityBar use) marks their name wherever it appears in the
- * log (Task 3, "each log should note the player name in colour"). This is
+ * log ("each log should note the player name in colour"). This is
  * client-side text matching on purpose — no wire field, no Go change — so
  * it has to guard against a false match on its own: a card's own name can
  * contain a seat's display name as a whole word ("Storm Cauldron" beside a

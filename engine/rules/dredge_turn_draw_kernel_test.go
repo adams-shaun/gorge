@@ -83,7 +83,7 @@ func TestTurnDrawDredgeSuspendsBeforePriority(t *testing.T) {
 	if draws != 1 {
 		t.Fatalf("draw-step draws after declining dredge = %d, want 1", draws)
 	}
-	if n := kr5DrawStepPriorityRounds(t, e, drawAt, events.Draw); n != 1 {
+	if n := drawStepPriorityRounds(t, e, drawAt, events.Draw); n != 1 {
 		t.Fatalf("draw-step priority rounds = %d, want exactly 1", n)
 	}
 	// What is now outstanding is the active player's priority ask (CR
@@ -154,18 +154,18 @@ func TestTurnDrawDredgeAcceptAlsoGrantsExactlyOnePriority(t *testing.T) {
 			t.Fatal("accepted dredge still drew the ordinary card")
 		}
 	}
-	if n := kr5DrawStepPriorityRounds(t, e, drawAt, events.MoveZone); n != 1 {
+	if n := drawStepPriorityRounds(t, e, drawAt, events.MoveZone); n != 1 {
 		t.Fatalf("draw-step priority rounds after accepting dredge = %d, want exactly 1", n)
 	}
 	replayCheck(t, e, cfg)
 }
 
-// kr5DrawStepPriorityRounds counts the priority rounds opened in the draw
+// drawStepPriorityRounds counts the priority rounds opened in the draw
 // step that begins at log index drawAt, as priority DecisionAsks. Every
 // Priority marker of the step must name the active player (seat 0, CR
 // 117.3a) and come after the step's last `after` event (the replaced or
 // ordinary draw's own events): no priority while the dredge ask is open.
-func kr5DrawStepPriorityRounds(t *testing.T, e *Engine, drawAt int, after events.Kind) int {
+func drawStepPriorityRounds(t *testing.T, e *Engine, drawAt int, after events.Kind) int {
 	t.Helper()
 	last := -1
 	for i := drawAt + 1; i < len(e.L.Events); i++ {

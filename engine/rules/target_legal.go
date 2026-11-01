@@ -7,6 +7,7 @@
 package rules
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -55,13 +56,13 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	}
 	ctx := effects.NewCtxPtr(0, p, effects.CtxInit{})
 	// A trigger's dynamic target bound reading the causing event (Vitality
-	// Hunter's `TargetMax$ MaxTgts` with `SVar:MaxTgts:TriggerCount$Amount`,
-	// task agent-20260919T190014Z): the trigger context recorded for this
-	// stack wrapper carries TriggerAmount, so the bound reads the mark/damage
-	// magnitude instead of degrading to the clamp's 1. Measured corpus: the
-	// ONLY two TargetMax$ TriggerCount$Amount shapes (one inline, one behind
-	// the MaxTgts SVar name) are Vitality Hunter's; every other dynamic bound
-	// names a Count$ body targetBoundCtx's SVar table already resolves.
+	// Hunter's `TargetMax$ MaxTgts` with `SVar:MaxTgts:TriggerCount$Amount`):
+	// the trigger context recorded for this stack wrapper carries
+	// TriggerAmount, so the bound reads the mark/damage magnitude instead of
+	// degrading to the clamp's 1. Measured corpus: the ONLY two TargetMax$
+	// TriggerCount$Amount shapes (one inline, one behind the MaxTgts SVar
+	// name) are Vitality Hunter's; every other dynamic bound names a Count$
+	// body targetBoundCtx's SVar table already resolves.
 	if tc, ok := e.triggerContexts[source]; ok {
 		ctx.TriggerContext = tc
 		// The trigger's own Remembered and fire-time LKI are bound here for
@@ -73,7 +74,7 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		// the TriggerPush capture; triggerLKI is the snapshot taken before the
 		// move (engine/rules/emit.go), the same one resolution reads.
 		ctx.Remembered = append([]state.Target(nil), o.Remembered...)
-		if lki, ok := e.triggerLKI[source]; ok {
+		if lki, ok := e.triggerLKI[source]; ok && lki.object != nil {
 			ctx.LKI = lki.object
 			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
 				lki.power, lki.toughness, lki.ptValid
@@ -102,6 +103,7 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		// mode was settled when the cast OPTION was picked, before this ask.
 		ctx.Kicker.PendingKicked = modeIsKicked(pc.mode)
 		ctx.Kicker.PendingTeamwork = castAnswerCodes.Code(pc.mode) == castAnswerTeamworkMode
+		ctx.Kicker.PendingBargained = castModeCodes.Code(pc.mode) == castModeBargained
 		// The same pre-payment gap for the optional additional cost's
 		// election (a TargetMax$ over Count$OptionalGenericCostPaid).
 		ctx.Num.OptionalCostElected = castModeCodes.Code(pc.mode) == castModeOptionalcost
@@ -244,7 +246,7 @@ func (e *Engine) resolvedTargetMin(p state.PlayerID, source state.ObjID, sa *car
 // named a zone -- a typo'd TgtZone$ on a TargetType$ Spell card must not
 // silently widen a stack target back to the battlefield.
 //
-// fb-20260916T024739Z-b89aea46: the remaining default is wrong for one more
+// The remaining default is wrong for one more
 // shape -- the Wrenn and Six ability (`AB$ ChangeZone | Origin$ Graveyard |
 // Destination$ Hand | TargetMin$ 0 | TargetMax$ 1 | ValidTgts$ Land.YouOwn`,
 // no TgtZone$). Its census searched the battlefield, offered a land already
@@ -273,7 +275,7 @@ func targetZones(sa *cards.SA) []state.Zone {
 		// the default battlefield census offered no candidate and withheld the
 		// cast entirely. The inZone<X> words in the comma-split ValidTgts$
 		// alternatives name the census zones directly. Deliberately narrow, the
-		// same shape as the fb-20260916 Origin$ precedent below: Attach-only,
+		// same shape as the Origin$ precedent below: Attach-only,
 		// inZone-words-only -- every other API keeps its existing zone
 		// resolution, so the ~37 corpus specs carrying non-battlefield inZone<X>
 		// outside this API are untouched. An explicit Origin$ outranks this
@@ -527,10 +529,13 @@ func (e *Engine) stackKindAdmits(toks []targetTypeToken, k stackObjKind, o *stat
 		if !state.StackKindAdmits([]state.StackKindToken{tok}, k, o, controller, you) {
 			continue
 		}
-		if tok.SingleTarget && len(o.Targets) != 1 {
+		// A chain link's targets (The Last Agni Kai's second) are the spell's
+		// targets too, though they ride SubTargets, not Targets.
+		n := len(o.Targets) + len(o.SubTargets)
+		if tok.SingleTarget && n != 1 {
 			continue
 		}
-		if tok.NumTargetsOp != "" && !targetCountMatches(len(o.Targets), tok.NumTargetsOp, tok.NumTargets) {
+		if tok.NumTargetsOp != "" && !targetCountMatches(n, tok.NumTargetsOp, tok.NumTargets) {
 			continue
 		}
 		if k == stackSpell {
@@ -600,19 +605,18 @@ func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
 }
 
 // protectionSource resolves the object whose characteristics decide whether
-// "protection from X" filters out a candidate target or a Damage recipient
-// (Task 15 fix round 1, Critical C2): for an ability stack object -- the
-// top-of-stack wrapper events.Apply mints via AbilityPush/TriggerPush with no
-// Face -- that is the Source permanent that carries the ability, because
-// effects.ColorsOf and the Face-type reads in sourceHasQuality both return
-// nothing for a Face-less object (CR 606.3: targeting checks the spell or
-// ability's source, and for an activated or triggered ability that source is
-// the permanent that granted it). For everything else -- a spell's own stack
-// object, which IS the card and so carries a Face, or a plain permanent -- it
-// is the object itself. This is the single definition both askTarget (which
-// in the same round discovered it was passing the Face-less ability object)
-// and legalTargets consult, so the two sites always agree on what "the
-// source" is.
+// "protection from X" filters out a candidate target or a Damage recipient.
+// For an ability stack object -- the top-of-stack wrapper events.Apply mints
+// via AbilityPush/TriggerPush with no Face -- that is the Source permanent
+// that carries the ability, because effects.ColorsOf and the Face-type reads
+// in sourceHasQuality both return nothing for a Face-less object (CR 606.3:
+// targeting checks the spell or ability's source, and for an activated or
+// triggered ability that source is the permanent that granted it). For
+// everything else -- a spell's own stack object, which IS the card and so
+// carries a Face, or a plain permanent -- it is the object itself. This is
+// the single definition both askTarget (which in the same round discovered it
+// was passing the Face-less ability object) and legalTargets consult, so the
+// two sites always agree on what "the source" is.
 func (e *Engine) protectionSource(source state.ObjID) state.ObjID {
 	if o := e.G.Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
 		return o.Source
@@ -1039,7 +1043,7 @@ func (e *Engine) candidatesForLimitInto(dst []targetCandidate, p state.PlayerID,
 	// it) is the SOURCE PERMANENT when the ask belongs to a minted ability
 	// object -- the same object resolution-time recheck (legalTargets) already
 	// judges its specs against (engine/rules/stack.go passes o.Source there), so the
-	// offer and the recheck cannot disagree (Critical C2's one-definition
+	// offer and the recheck cannot disagree (the one-definition
 	// rule). The Face-less wrapper itself is never a creature/permanent, so
 	// a spec like Flamerush Rider's `Creature.attacking+Other` judged the
 	// wrapper id meant "every creature but nobody in particular" and offered
@@ -1243,7 +1247,7 @@ func (e *Engine) filterTargetValidTargeting(in []targetCandidate, sa *cards.SA, 
 		if o == nil {
 			continue
 		}
-		for _, t := range o.Targets {
+		for _, t := range slices.Concat(o.Targets, o.SubTargets) {
 			if t.IsPlayer || t.Obj == 0 {
 				continue
 			}

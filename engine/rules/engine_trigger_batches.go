@@ -33,8 +33,8 @@ type engineTriggerBatches struct {
 	// and "attacks and isn't blocked" is ONE event per combat (CR 509.2): a
 	// second walk queued Senu, Keen-Eyed Protector's trigger again on every
 	// aborted cast attempt, and the TriggerPush it drained cleared the F05-2
-	// held-out cast suppression, so the no-progress abort re-offered forever
-	// (cardfuzz batch10). The zero value names no combat (CombatsThisTurn is
+	// held-out cast suppression, so the no-progress abort re-offered forever.
+	// The zero value names no combat (CombatsThisTurn is
 	// at least 1 inside combat), so it needs no reset hook.
 	unblockedRoundChecked combatFires `clone:"deep"`
 	// attackersDeclaredFired latches a BATCH trig:AttackersDeclared trigger
@@ -117,27 +117,28 @@ type engineTriggerBatches struct {
 	exileReturnHeld []state.ObjID `clone:"deep"`
 	// millBatch is the shared "one or more" ACTION batch: one api:Mill
 	// resolution (Mode$ MilledAll), one api TapAll/UntapAll resolution or
-	// turn-based tapping/untapping action (Mode$ TapAll/UntapAll, task
-	// cli-20261005T075020Z-05241a06) is ONE action, so the batch mode fires
-	// once for the whole call, not once per event. The damage/zone batches'
-	// shape, but keyed by trigger LINE alone (the DamageAll "one or more"
-	// reading): the first matching event queues the single instance and every
-	// later matching event accumulates into the entry's COUNT -- the number
-	// of cards/permanents this way, which the bodies read through
-	// TriggerCount$Amount (The Wise Mothman's X, Magmakin Artillerist's X,
-	// The Millennium Calendar's X). Only events matching THIS line's
-	// ValidCard$/ValidCards$ count, exactly as DamageAll only accumulates
-	// matching pairs. It is opened by engine/effects/action_batch.go's
-	// beginActionBatch (effMill, effTapAll, effUntapAll) and by rules-side
-	// action boundaries (engine/rules/combat.go's declare-attackers taps,
-	// engine/rules/turn.go's untap step, engine/rules/pay's BatchTap cost bracket). The
-	// untap-step bracket is held open across a pending untap choice or
-	// replacement (engine/rules/turn.go's finishUntapStep suspends mid-step), so the
-	// bracket state is clone:"deep" (the discard bracket's shape): a clone or
-	// snapshot taken at that pending decision must carry the open bracket, or
-	// a resume in the clone would re-derive per-event triggers instead of the
-	// single batched one. Never opened across a drain: pendingTriggers is
-	// append-only while the batch is open, so the recorded index stays valid.
+	// turn-based tapping/untapping action (Mode$ TapAll/UntapAll) is
+	// ONE action, so the batch mode fires once for the whole call, not once
+	// per event. The damage/zone batches' shape, but keyed by trigger LINE
+	// alone (the DamageAll "one or more" reading): the first matching event
+	// queues the single instance and every later matching event accumulates
+	// into the entry's COUNT -- the number of cards/permanents this way,
+	// which the bodies read through TriggerCount$Amount (The Wise Mothman's
+	// X, Magmakin Artillerist's X, The Millennium Calendar's X). Only events
+	// matching THIS line's ValidCard$/ValidCards$ count, exactly as DamageAll
+	// only accumulates matching pairs. It is opened by
+	// engine/effects/action_batch.go's beginActionBatch (effMill, effTapAll,
+	// effUntapAll) and by rules-side action boundaries
+	// (engine/rules/combat.go's declare-attackers taps,
+	// engine/rules/turn.go's untap step, engine/rules/pay's BatchTap cost
+	// bracket). The untap-step bracket is held open across a pending untap
+	// choice or replacement (engine/rules/turn.go's finishUntapStep suspends
+	// mid-step), so the bracket state is clone:"deep" (the discard bracket's
+	// shape): a clone or snapshot taken at that pending decision must carry
+	// the open bracket, or a resume in the clone would re-derive per-event
+	// triggers instead of the single batched one. Never opened across a
+	// drain: pendingTriggers is append-only while the batch is open, so the
+	// recorded index stays valid.
 	millBatchOpen  bool               `clone:"deep"`
 	millBatchDepth int                `clone:"deep"`
 	millBatchIdx   map[triggerKey]int `clone:"deep"`

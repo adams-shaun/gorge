@@ -1,8 +1,8 @@
 package rules
 
-// Kernel-era restorations of the flexible_pip_upkeep_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Cumulative upkeep paid with flexible pips, and the sacrifice an unpayable
+// election still owes, driven through the resolution kernel
+// (engine/rules/resolve).
 
 import (
 	"testing"
@@ -18,7 +18,7 @@ func TestCumulativeUpkeepFlexiblePipPayment(t *testing.T) {
 	t.Parallel()
 	const cumulativeHybrid = "Name:Test Cumulative Hybrid\nManaCost:1\nTypes:Creature Bear\nPT:2/2\n" +
 		"K:Cumulative upkeep:W/U\nOracle:test\n"
-	e, cfg, bear := kr6FlexCumulativeEngine(t, cumulativeHybrid, []string{
+	e, cfg, bear := flexPipUpkeepEngine(t, cumulativeHybrid, []string{
 		"Name:Island\nTypes:Basic Land Island\nOracle:x\n",
 		"Name:Forest\nTypes:Basic Land Forest\nOracle:x\n",
 	})
@@ -69,7 +69,7 @@ func TestCumulativeUpkeepUnpayableElectionStillSacrifices(t *testing.T) {
 	t.Parallel()
 	const cumulativeHybrid = "Name:Test Cumulative Hybrid\nManaCost:1\nTypes:Creature Bear\nPT:2/2\n" +
 		"K:Cumulative upkeep:W/U\nOracle:test\n"
-	e, cfg, bear := kr6FlexCumulativeEngine(t, cumulativeHybrid, nil)
+	e, cfg, bear := flexPipUpkeepEngine(t, cumulativeHybrid, nil)
 	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: the cumulative permanent is not on the battlefield: %+v", e.G.Obj(bear))
 	}

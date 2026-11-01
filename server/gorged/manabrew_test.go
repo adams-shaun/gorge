@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -61,6 +63,33 @@ func TestManaBrewOnRequiresSeatGate(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "manabrew") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// TestManaBrewOfferedOnlyOnSameOrigin pins the tag the browser client reads:
+// served when the routes share the page's origin, and nowhere else.
+func TestManaBrewOfferedOnlyOnSameOrigin(t *testing.T) {
+	t.Parallel()
+	web := fstest.MapFS{"index.html": &fstest.MapFile{Data: []byte("<html><head></head></html>")}}
+	for _, tc := range []struct {
+		name string
+		c    config
+		want bool
+	}{
+		{"off", config{}, false},
+		{"mounted", config{manabrew: true}, true},
+		{"separate listener", config{manabrew: true, manabrewAddr: "127.0.0.1:0"}, false},
+	} {
+		page, err := fs.ReadFile(tc.c.offerManaBrew(web), "index.html")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Contains(string(page), manabrewMetaTag); got != tc.want {
+			t.Errorf("%s: tag served = %v, want %v:\n%s", tc.name, got, tc.want, page)
+		}
+	}
+	if (config{manabrew: true}).offerManaBrew(nil) != nil {
+		t.Error("a server with no web build must stay without one")
 	}
 }
 

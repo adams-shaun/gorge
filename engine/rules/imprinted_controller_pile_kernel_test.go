@@ -1,8 +1,7 @@
 package rules
 
-// Restores the sacrifice leg of engine/effects/imprinted_controller_pile_test.go's
-// TestEnchantersBaneImprintedControllerDamage on the kernel (its decline leg
-// is TestEnchantersBaneDamageLegReachesImprintController): when the
+// The sacrifice leg of Enchanter's Bane's imprinted-controller damage (the
+// decline leg is TestEnchantersBaneDamageLegReachesImprintController): when the
 // imprinted enchantment's controller SACRIFICES it, the damage leg's
 // ConditionCheckSVar gate (Remembered$Amount EQ0) suppresses the damage.
 
@@ -36,7 +35,7 @@ func TestEnchantersBaneSacrificedTargetDealsNoDamage(t *testing.T) {
 				t.Fatalf("sacrifice ask posed to seat %d, want the aura's controller (seat 1)", d.Player)
 			}
 			sacAsked = true
-			submitChoices(t, e, kr2ObjIdx(t, d, auraID))
+			submitChoices(t, e, objOptionIndex(t, d, auraID))
 		default:
 			t.Fatalf("unexpected decision %+v", d)
 		}
@@ -47,7 +46,7 @@ func TestEnchantersBaneSacrificedTargetDealsNoDamage(t *testing.T) {
 	if z := e.G.Obj(auraID).Zone; z != state.ZGraveyard {
 		t.Fatalf("sacrificed aura is on %s, want graveyard", z)
 	}
-	if dmg := kr2Events(e, from, events.Damage); len(dmg) != 0 {
+	if dmg := eventsOfKindFrom(e, from, events.Damage); len(dmg) != 0 {
 		t.Fatalf("damage dealt despite the sacrifice: %+v", dmg)
 	}
 	if e.G.Players[0].Life != 20 || e.G.Players[1].Life != 20 {

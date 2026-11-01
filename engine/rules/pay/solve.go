@@ -5,8 +5,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// solve.go is the pool solver (moved from package rules' mana.go and
-// mana_convert.go, E7): the pip expansion and the deterministic backtracking
+// solve.go is the pool solver: the pip expansion and the deterministic backtracking
 // search that pays a cost's mana and fixed-life parts from a pool and its
 // snow/typed tallies, under a payer's riders and colour conversion. Pure.
 
@@ -207,7 +206,7 @@ func anyTypeAlts() []PipAlt {
 // Payment is what ResolveMana found: the pool and its two parallel
 // tallies after every Pip and the generic requirement were paid, plus any
 // Phyrexian face spent. Snow units are always consumed alongside their pool
-// slot (Snow[i] never exceeds Pool[i]); typed units (task castfilter2) are
+// slot (Snow[i] never exceeds Pool[i]); typed units are
 // consumed alongside theirs (TypedMana[k][i] never exceeds Pool[i]).
 type Payment struct {
 	Pool      state.Mana

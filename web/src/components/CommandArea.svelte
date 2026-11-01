@@ -7,7 +7,7 @@
 
   /**
    * CommandArea projects one seat's command zone into the CREATURES row of
-   * its own Quadrant (CZ2): one CommanderTile per roster commander, in
+   * its own Quadrant: one CommanderTile per roster commander, in
    * genesis order (CR 903.6), rendered directly as siblings of the creature
    * CardStacks that already live there — not into a private area of its own.
    *
@@ -22,7 +22,7 @@
    * the creature row like any other permanent, which is the direct
    * consequence of no longer having a private layout to pin.
    *
-   * ONE TILE PER COMMANDER, WHEREVER IT IS — EXCEPT THE BATTLEFIELD (ui10).
+   * ONE TILE PER COMMANDER, WHEREVER IT IS — EXCEPT THE BATTLEFIELD.
    * A commander actually IN PLAY is a battlefield permanent, and the real
    * one is already drawn in this same creatures row by the CardStack that
    * `groupBattlefield` produced from the seat's battlefield list. Drawing the
@@ -39,14 +39,14 @@
    * inspect them.
    *
    * This component renders ONE wrapping element — the command pack
-   * (`.cmd-pack`, fb-20260917T232202Z) — a sub-container inside the
+   * (`.cmd-pack`) — a sub-container inside the
    * creatures row that carries the command zone's OWN layout settings: its
    * scale resolves the tiles' `--card-w` (the creatures row's resolution of
    * that property has already happened on the `.row`, so a tile-level value
    * could not reach its children) and its `data-align` packs the pack's
    * main axis independently of the creatures row's. It is a flex-wrap row
    * exactly like the row that contains it, sits FIRST among the creatures
-   * row's children (the CZ2 "commanders draw first" order preserved) and
+   * row's children ("commanders draw first") and
    * its tiles wrap inside it. With both settings at their defaults the pack
    * is content-sized at the row's front and renders indistinguishably from
    * the pre-pack interleaved tiles. A seat with no roster (a Constructed

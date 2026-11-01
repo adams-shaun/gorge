@@ -16,7 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// LabelExtras is the pn12 label-record extension (schema 3): enough raw
+// LabelExtras is the label-record extension (schema 3): enough raw
 // state to re-encode one label under every feature set and action encoding
 // of the grid without regenerating the corpus. The search teacher writes
 // it under -label-extras; it is the "extras" object of the record.
@@ -71,7 +71,7 @@ type LoadOptions struct {
 }
 
 // leanRecord is labelRecord without the board snapshot (the encoders never
-// read it) plus the pn12 extras.
+// read it) plus the extras.
 type leanRecord struct {
 	RecordType    string            `json:"record_type"`
 	SchemaVersion int               `json:"schema_version"`

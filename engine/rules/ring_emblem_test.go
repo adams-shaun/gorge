@@ -80,7 +80,7 @@ func TestRingEmblemLevel4NonCombatDamageDoesNotDrain(t *testing.T) {
 // TestRingEmblemAbilitiesReplayByteIdentically drives every triggered level
 // ability and then replays the recorded log through events.Apply alone.
 // The emblem's stack objects are minted by the RingEmblemPush event inside
-// events.Apply (Ruling T20-a), so a log-only replay reconstructs the
+// events.Apply, so a log-only replay reconstructs the
 // identical game state -- no unlogged Game.AddObject names an ObjID the
 // replay never learns about.
 //

@@ -61,11 +61,10 @@ func runCheck(g *state.Game, d *decision.Decision, where string) (failed bool, m
 // tests need.
 func blankCard() *cards.Card { return &cards.Card{} }
 
-// place is AddObject plus the two things it does NOT do (Ruling T25-e, fix
-// round 1): set Object.Zone and append the id to the matching zone list. A
-// well-formed object needs both, or checkZones' own invariant-1 exactly-
-// one-zone check fires before whatever the caller actually meant to test
-// ever gets a chance to.
+// place is AddObject plus the two things it does NOT do: set Object.Zone and
+// append the id to the matching zone list. A well-formed object needs both,
+// or checkZones' own invariant-1 exactly- one-zone check fires before
+// whatever the caller actually meant to test ever gets a chance to.
 func place(g *state.Game, owner state.PlayerID, z state.Zone) *state.Object {
 	o := g.AddObject(blankCard(), owner)
 	o.Zone = z
@@ -124,11 +123,10 @@ func TestCheckInvariantsCatchesObjID0InAZoneList(t *testing.T) {
 	}
 }
 
-// TestCheckInvariantsCatchesHiddenAndBattlefieldOverlap is invariant 6, now
-// reachable after I-3/Ruling T25-d hoisted it above the zone-agreement
-// check: the same id sits in a hidden zone's list (library) and the
-// battlefield's, so invariant 6 must fire on its own, before invariant 1's
-// zone-agreement check ever gets a look at it.
+// TestCheckInvariantsCatchesHiddenAndBattlefieldOverlap is invariant 6, which
+// runs before the zone-agreement check: the same id sits in a hidden zone's
+// list (library) and the battlefield's, so invariant 6 must fire on its own,
+// before invariant 1's zone-agreement check ever gets a look at it.
 func TestCheckInvariantsCatchesHiddenAndBattlefieldOverlap(t *testing.T) {
 	g := state.NewGame([]string{"a", "b"})
 	o := place(g, 0, state.ZLibrary)
@@ -204,8 +202,8 @@ func TestCheckInvariantsCatchesADecisionForALostPlayer(t *testing.T) {
 	}
 }
 
-// TestCheckInvariantsCatchesADecisionForAZeroLifePlayer is invariant 7
-// (Ruling P10): Task 22's measured pin, encoded permanently.
+// TestCheckInvariantsCatchesADecisionForAZeroLifePlayer is invariant 7: a
+// measured pin, encoded permanently.
 func TestCheckInvariantsCatchesADecisionForAZeroLifePlayer(t *testing.T) {
 	g := state.NewGame([]string{"a", "b"})
 	g.Players[0].Life = 0

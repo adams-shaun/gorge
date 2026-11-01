@@ -67,7 +67,7 @@ func NewBotPolicySeatWithAutoPayMana(name string, seed uint64, autoPayMana bool)
 }
 
 // NewBotPolicySeatWithDeps builds a named hosted bot with the embedder's
-// card dependency (BP-13): every bots.New the host makes carries
+// card dependency: every bots.New the host makes carries
 // host.Options.BotDeps, so a policy whose factory reads card facts — the
 // sb-tactical heuristic (bots/sbtactical) — builds on a served table and
 // refuses, with its own error, when a caller builds it bare.

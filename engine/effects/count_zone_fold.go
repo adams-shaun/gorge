@@ -142,12 +142,12 @@ type zoneCountFold struct {
 	// only through len.
 	seenCreatureTypes map[string]bool
 	// seenPlaneswalkerTypes is the PlaneswalkerType spelling's distinct set
-	// (cr-g222): planeswalker-subtype words among the matched faces, read
+	// planeswalker-subtype words among the matched faces, read
 	// only through len.
 	seenPlaneswalkerTypes map[string]bool
 	colorsSeen            ColorMask
 	// diffKind and the seen sets for the Different* distinct-set property
-	// family (task diffcount1). Both maps are read only through len, so no
+	// family. Both maps are read only through len, so no
 	// map ordering ever reaches an event or a view.
 	diffKind       differentPropertyKind
 	seenDiffValues map[int32]bool
@@ -296,7 +296,7 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 	case zoneFoldPropColors:
 		f.colorsSeen |= ColorMaskOf(o)
 	default:
-		// The Different* distinct-set properties (task diffcount1): each
+		// The Different* distinct-set properties: each
 		// matching object contributes its value to the seen set. The nil-face
 		// guard lives inside differentPropertyValue; visit's early return
 		// already guarantees o.Face() != nil for the name read.
@@ -359,7 +359,7 @@ const (
 // family of a Count$Valid<zone> <spec>$<Property> body: the properties that
 // count DISTINCT VALUES among the matching cards rather than the cards
 // themselves. The three numeric spellings and the name spelling all existed in
-// the corpus unread (whole-token fail-closed to zero) before task diffcount1;
+// the corpus unread (whole-token fail-closed to zero);
 // classifying them in ONE place keeps the matcher, the value fold and the
 // verdict from drifting apart. A spelling outside this set returns diffNone
 // and keeps the pre-existing behaviour.

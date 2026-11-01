@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// station.go implements the two bespoke activated actions this ticket's
+// station.go implements the two bespoke activated actions this
 // keywords need, each with its own offer in legalActions, its own KChoose
 // answer flow (handleChoose routes on the chooseFor below), and its own
 // effects:

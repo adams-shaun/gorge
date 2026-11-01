@@ -16,7 +16,7 @@ import (
 // and the R:Event$ Explore replacement (repl:Explore). Every test drives real
 // corpus cards: the explore source is Enter the Unknown's SP$ Explore cast or
 // the Map token's {1},{T},sacrifice activation, and the trigger/replacement
-// carriers are the corpus cards the brief names.
+// carriers are the corpus cards.
 
 // counterOn reports the number of kind counters on the object (0 when the
 // object or the counter kind is absent).
@@ -145,7 +145,7 @@ func arrangeLibraryTop(t *testing.T, e *Engine, names ...string) []state.ObjID {
 	return head
 }
 
-// TestExploreSupported registers the three primitives the brief names — the
+// TestExploreSupported registers the three primitives — the
 // coverage census (make report) reads effects.Supported(), so a missing entry
 // would silently keep every carrier unplayable.
 func TestExploreSupported(t *testing.T) {

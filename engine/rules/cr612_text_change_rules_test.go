@@ -1,6 +1,6 @@
 package rules
 
-// CR 612.1/612.2 and 613.1c (cr-g36a): a text-changing effect changes the
+// CR 612.1/612.2 and 613.1c: a text-changing effect changes the
 // words of the object's rules text and type line, so its abilities work
 // with the new words -- not only its rendered text. Elvish Champion ("Other
 // Elf creatures get +1/+1 and have forestwalk") changed Elf -> Vampire pumps

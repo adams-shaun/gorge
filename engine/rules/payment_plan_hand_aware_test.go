@@ -19,7 +19,7 @@ import (
 // placeholder used to leave to the typed witness.
 //
 // Boards here follow the aph-hand-reserve design (the spec §5 key 6 text),
-// which this ticket implements. The brief's own Done-means board is pinned in
+// which this implements. The acceptance board is pinned in
 // TestPaymentPlanHandAwareBriefBoard; its stated pre-change premise
 // ("today taps Forest+Forest by the canonical tie-break") was measured FALSE
 // at this base: remainder diversity (key 7) already picks Forest+Wastes
@@ -118,13 +118,13 @@ func TestPaymentPlanHandAwareKeepsHandBlueCastable(t *testing.T) {
 		rankStep{forest, rankMana('G', 1)}, rankStep{plains, rankMana('W', 1)})
 }
 
-// The brief's Done-means board: an empty pool, battlefield in zone order
+// The acceptance board: an empty pool, battlefield in zone order
 // Forest, Forest, Wastes, Mountain, hand A = a {2} artifact (the cast) and
 // B = a {R}{G} spell. Every 2-source plan for A ties on keys 1-5 (every
 // source has one alternative), so the hand-aware key decides; the plan must
 // leave one Forest and the Mountain untapped, keeping B's {R}{G} payable.
 // (Measured at the pre-change base the plan was ALREADY Forest+Wastes via
-// key 7 remainder diversity — the brief's "pins Forest+Forest today" premise
+// key 7 remainder diversity — the "pins Forest+Forest" premise
 // was false — so this board pins the composed outcome, and the decisive key-6
 // behaviour is pinned by the two P5 boards above and the rank unit test.)
 func TestPaymentPlanHandAwareBriefBoard(t *testing.T) {

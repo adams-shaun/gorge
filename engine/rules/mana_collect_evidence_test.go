@@ -1,14 +1,13 @@
 package rules
 
-// Task agent-20261009T085207Z-2ef0d22c: MKM Cryptex ("{T}, Collect evidence
-// 3: Add one mana of any color. Put an unlock counter on Cryptex") is an
-// AB$ Mana whose cost carries a CollectEvidence<3> part. The off-stack mana
-// path had no settle for the part, so manaAbilityPayable refused the whole
-// ability and the oracle comparison could not generate it. The path now
-// elects the evidence (the cast flow's evidenceAsk shape: any combination of
-// the payer's graveyard whose mana values total 3 or more, mana value
-// descending, Min the greedy count) and exiles it with the
-// CollectEvidenceAction marker.
+// MKM Cryptex ("{T}, Collect evidence 3: Add one mana of any color. Put an
+// unlock counter on Cryptex") is an AB$ Mana whose cost carries a
+// CollectEvidence<3> part. The off-stack mana path had no settle for the
+// part, so manaAbilityPayable refused the whole ability and the oracle
+// comparison could not generate it. The path now elects the evidence (the
+// cast flow's evidenceAsk shape: any combination of the payer's graveyard
+// whose mana values total 3 or more, mana value descending, Min the greedy
+// count) and exiles it with the CollectEvidenceAction marker.
 
 import (
 	"testing"

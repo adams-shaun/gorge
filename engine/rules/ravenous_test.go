@@ -81,7 +81,7 @@ func castRavenous(t *testing.T, e *Engine, id state.ObjID, x int) int {
 	return countDraw(e) - before
 }
 
-// TestJackedRabbitRavenousX3CountersNoDraw is the brief's X=3 leg: the
+// TestJackedRabbitRavenousX3CountersNoDraw is the X=3 leg: the
 // creature enters with 3 +1/+1 counters and does NOT draw (3 < 5).
 func TestJackedRabbitRavenousX3CountersNoDraw(t *testing.T) {
 	t.Parallel()
@@ -107,7 +107,7 @@ func TestJackedRabbitRavenousX3CountersNoDraw(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestJackedRabbitRavenousX5CountersAndDraw is the brief's X=5 leg: 5
+// TestJackedRabbitRavenousX5CountersAndDraw is the X=5 leg: 5
 // +1/+1 counters AND the entry draw.
 func TestJackedRabbitRavenousX5CountersAndDraw(t *testing.T) {
 	t.Parallel()

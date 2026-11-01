@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task prolif1: api:Proliferate (CR 701.27). The primitive was unregistered,
+// api:Proliferate (CR 701.27). The primitive was unregistered,
 // so every `DB$ Proliferate` / `AB$ Proliferate` / `SP$ Proliferate` line in
 // the corpus degraded to one "unimplemented API Proliferate" Note and added
 // nothing. These effects-level leaves pin the primitive itself on synthetic

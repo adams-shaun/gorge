@@ -1,40 +1,25 @@
-import type { CardView, Decision, DecisionBody, EventBody, Intent, MatchInfo, SeatInfo, View } from '../../protocol';
+import type { CardView, Decision, Intent, MatchInfo, View } from '../../protocol';
 import { ApiError, fetchMatches, postNativeUndo } from '../api';
-import { dvrReducer, initialDvr, type DvrAction, type DvrState } from '../dvr';
-import type { SeatCtx, SeatTransport } from '../seat';
-import { ModelBus } from '../clientmodel/gorge';
+import { dvrReducer } from '../dvr';
+import type { SeatCtx } from '../seat';
 import { transitionLine } from '../clientmodel/log';
 import { diffViews } from '../clientmodel/snapshotdiff';
-import type { ClientModelSource, ModelListener, PendingDecision, Transition } from '../clientmodel/types';
+import { WireError } from '../wire/http';
+import { SnapshotMatch, type StartResult } from '../wire/snapshot.svelte';
 import { applyPatch, PatchError } from './patch';
 import { compatPass, loadCompat, nothingToDo } from './compat';
 import { AnswerError, bindPrompt, undoMessage, type PromptBinding } from './prompt';
 import { projectView, rememberCards } from './project';
-import { httpTransport, MbError, streamURL, type MbStream, type Transport } from './transport';
+import { httpTransport, streamURL, type Transport } from './transport';
 import type { AgentPrompt, ClientMessage, EngineMessage, GameViewDto } from './wire';
 
 /**
  * ManaBrewMatch is the ManaBrew adapter (UI rework sub-project 0): the table
- * route's game source when the protocol setting is ManaBrew. It carries the
- * same surface the route reads from MatchState (match, view, seats, dvr,
- * dispatch, halted, …) and implements ClientModelSource, so the board,
- * motion, log and seat panel are unchanged.
- *
- * The protocol has no event log. Transitions come from diffing successive
- * projected snapshots (diffViews); the transcript is built from those
- * transitions (transitionLine); and the DVR is a client-side ring of
- * snapshots, each at a synthetic seq that follows its log lines.
- *
- * It is also the seat's SeatTransport: the panel's intents, pending reads
- * and undo requests are answered over ManaBrew's /send, never the native
- * intent route.
+ * route's game source when the protocol setting is ManaBrew. The protocol has
+ * no event log, so transitions come from diffing successive projected
+ * snapshots (diffViews) and the transcript is built from those transitions
+ * (transitionLine). The seat's answers go over ManaBrew's /send.
  */
-
-const RING = 500;
-
-export type StartResult = { ok: true } | { ok: false; reason: string };
-
-interface RingEntry { seq: number; view: View }
 
 interface Deps {
   transport: Transport;
@@ -43,55 +28,20 @@ interface Deps {
   compat: boolean;
 }
 
-export class ManaBrewMatch implements ClientModelSource, SeatTransport {
+export class ManaBrewMatch extends SnapshotMatch {
   readonly protocol = 'manabrew' as const;
-  match = $state<number | null>(null);
-  view = $state<View | null>(null);
-  renderedSeq = $state<number | null>(null);
-  seats = $state<SeatInfo[]>([]);
-  // Raw, not deep: every write is a whole-object reassignment from
-  // dvrReducer (see MatchState.dvr in ../match.svelte.ts for the freeze a
-  // deep proxy of the growing event log caused).
-  dvr = $state.raw<DvrState>(initialDvr);
-  /** The spectator decision line; a ManaBrew source is always seated, so never set. */
-  decision = $state<DecisionBody | null>(null);
-  halted = $state<string | null>(null);
-  loadError = $state<string | null>(null);
-  /** The last protocol error or degradation worth showing, until dismissed or superseded. */
-  notice = $state<string | null>(null);
-  /** Called when a prompt arrives with a LOWER id than the last: an undo landed. */
-  onRewind: (() => void) | null = null;
-
-  private model = new ModelBus();
-  private stream: MbStream | null = null;
   private deps: Deps;
   private gv: GameViewDto | null = null;
-  private live: View | null = null;
   private binding: PromptBinding | null = null;
   private lastPromptId = -1;
   // eslint-disable-next-line svelte/prefer-svelte-reactivity -- private projection cache (last-known card faces), never rendered
   private known = new Map<number, CardView>();
-  private ring: RingEntry[] = [];
-  private seq = 0;
-  private closed = false;
   /** How many prompts the compat rule answered with a pass (diagnostics). */
   autoPassed = 0;
 
-  constructor(readonly table: string, readonly seat: SeatCtx, deps: Partial<Deps> = {}) {
+  constructor(table: string, seat: SeatCtx, deps: Partial<Deps> = {}) {
+    super(table, seat);
     this.deps = { transport: deps.transport ?? httpTransport, fetchMatches: deps.fetchMatches ?? fetchMatches, compat: deps.compat ?? loadCompat() };
-  }
-
-  /** The seat context the panel answers through: this adapter is its transport. */
-  get ctx(): SeatCtx {
-    return { seat: this.seat.seat, token: this.seat.token, transport: this };
-  }
-
-  get clientDecision(): PendingDecision | null {
-    return this.view?.decision ?? null;
-  }
-
-  onModel(fn: ModelListener): () => void {
-    return this.model.on(fn);
   }
 
   /**
@@ -114,7 +64,7 @@ export class ManaBrewMatch implements ClientModelSource, SeatTransport {
     try {
       first = await this.deps.transport.fetchState(this.table, info.match, this.seat.token);
     } catch (e) {
-      const why = e instanceof MbError ? e : null;
+      const why = e instanceof WireError ? e : null;
       if (why && why.status === 404) return { ok: false, reason: `ManaBrew is not enabled on this server (${why.message})` };
       if (why && (why.status === 401 || why.status === 403)) return { ok: false, reason: `the ManaBrew route refused this seat (${why.message})` };
       return { ok: false, reason: `the ManaBrew route did not answer (${e instanceof Error ? e.message : String(e)})` };
@@ -127,12 +77,6 @@ export class ManaBrewMatch implements ClientModelSource, SeatTransport {
     for (const m of first) this.handle(m);
     this.stream = this.deps.transport.openStream(streamURL(this.table, info.match, this.seat.token), (m) => this.handle(m), () => this.onStreamError());
     return { ok: true };
-  }
-
-  close() {
-    this.closed = true;
-    this.stream?.close();
-    this.stream = null;
   }
 
   private onStreamError() {
@@ -220,10 +164,7 @@ export class ManaBrewMatch implements ClientModelSource, SeatTransport {
       const l = transitionLine(t, (s) => this.seatName(s));
       if (l !== null) lines.push(l);
     }
-    for (const line of lines) this.log(line, next);
-    if (next.turn !== prev.turn) this.dvr = { ...this.dvr, turnStarts: [...this.dvr.turnStarts, this.seq - lines.length + 1] };
-    this.pushRing(next);
-    this.show(next, 'step', prev, transitions);
+    this.advance(lines, prev, next, transitions);
   }
 
   private acceptPrompt(p: AgentPrompt) {
@@ -249,64 +190,8 @@ export class ManaBrewMatch implements ClientModelSource, SeatTransport {
     this.binding = bindPrompt(p, { view: this.live });
     if (this.live === null) return;
     this.live = this.decorate(this.live);
-    if (this.ring.length > 0) this.ring[this.ring.length - 1] = { ...this.ring[this.ring.length - 1], view: this.live };
+    this.replaceRingHead(this.live);
     if (this.dvr.live) this.assign(this.live);
-  }
-
-  private seatName(s: number): string {
-    return this.seats[s]?.name || this.live?.players.find((p) => p.seat === s)?.name || `Seat ${s}`;
-  }
-
-  private log(line: string, v: View) {
-    this.seq++;
-    const body: EventBody = { event: { seq: this.seq, kind: 'manabrew', player: v.active }, line };
-    this.dvr = dvrReducer(this.dvr, { type: 'event', body });
-  }
-
-  private pushRing(v: View) {
-    const last = this.ring[this.ring.length - 1];
-    if (last && last.seq === this.seq) last.view = v;
-    else this.ring.push({ seq: this.seq, view: v });
-    if (this.ring.length > RING) this.ring.splice(0, this.ring.length - RING);
-    if (this.dvr.head < this.seq) this.dvr = dvrReducer(this.dvr, { type: 'head', seq: this.seq });
-  }
-
-  /** show paints a live view: a forward step animates, anything else resets motion. */
-  private show(next: View, how: 'step' | 'reset', prev?: View, transitions: Transition[] = []) {
-    if (!this.dvr.live) return;
-    if (how === 'step' && prev && this.view !== null) this.model.emit({ type: 'step', prev: this.view, next, transitions });
-    else this.model.emit({ type: 'reset' });
-    this.assign(next);
-  }
-
-  private assign(v: View) {
-    this.view = v;
-    this.renderedSeq = this.seq;
-  }
-
-  /** dispatch drives the DVR over the snapshot ring. */
-  dispatch(a: DvrAction) {
-    this.dvr = dvrReducer(this.dvr, a);
-    if (this.dvr.live) {
-      if (this.live && this.view !== this.live) {
-        this.model.emit({ type: 'reset' });
-        this.assign(this.live);
-      }
-      return;
-    }
-    const at = this.snapshotAt(this.dvr.cursor);
-    if (at && at !== this.view) {
-      this.model.emit({ type: 'reset' });
-      this.view = { ...at, decision: null };
-      this.renderedSeq = this.dvr.cursor;
-    }
-  }
-
-  /** snapshotAt is the newest ring snapshot at or before seq. */
-  snapshotAt(seq: number): View | null {
-    let found: View | null = null;
-    for (const e of this.ring) if (e.seq <= seq) found = e.view;
-    return found ?? this.ring[0]?.view ?? null;
   }
 
   // ---- SeatTransport -------------------------------------------------
@@ -347,7 +232,7 @@ export class ManaBrewMatch implements ClientModelSource, SeatTransport {
     try {
       await this.deps.transport.send(this.table, this.match, this.seat.token, msg);
     } catch (e) {
-      if (e instanceof MbError) {
+      if (e instanceof WireError) {
         this.notice = `ManaBrew ${e.code}: ${e.message}`;
         throw new ApiError(e.status, e.code, e.message);
       }

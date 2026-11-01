@@ -1,6 +1,6 @@
 package rules
 
-// cr-g157: an Effect-delivered Mode$ AssignCombatDamageAsUnblocked (a DB$/
+// An Effect-delivered Mode$ AssignCombatDamageAsUnblocked (a DB$/
 // SP$ Effect's StaticAbilities$ body) registers as a continuous restriction
 // and reaches the ordinary as-unblocked election/assignment path
 // (engine/rules/combat.go asUnblockedNeeding), beside the printed S: static

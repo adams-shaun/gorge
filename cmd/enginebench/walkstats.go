@@ -1,13 +1,12 @@
 // walkstats.go implements enginebench's -walkstats observer: the reuse oracle
-// for the priority legal-action walk (archived 2026-10-06-legal-walk-design.md (docs/design/ARCHIVE.md)
-// §1.5, step S0).
+// for the priority legal-action walk (archived 2026-10-06-legal-walk-design.md
+// in docs/design/ARCHIVE.md).
 //
 // At every posed priority decision it compares the offered option list with the
 // SAME SEAT's previous priority decision and classifies the kinds of the events
-// logged in between. The output is the input to the later steps' kill
-// criteria: S4/S5 read how often a seat's consecutive walks see the same state,
-// and how much of that is reachable through the engine's existing inert-suffix
-// machinery.
+// logged in between. The output says how often a seat's consecutive walks see
+// the same state, and how much of that is reachable through the engine's
+// existing inert-suffix machinery.
 //
 // It uses only the exported API (Engine.Pending, Engine.L.Events, Engine.G), so
 // it lives in the command, not in rules/. The observer's counters are a
@@ -54,10 +53,10 @@ type walkStats struct {
 	timingPool, timingPoolSame           int
 	s5Timing, s5TimingSorc, s5TimingPool int
 	s5TimingPoolSame                     int
-	// W0 (action-walk.md §2): the W1/W2 admissibility classes.
+	// The two walk-reuse classes: non-tap transitions and tap-only transitions.
 	w1, w1Same         int
 	w2, w2Same         int
-	w1KindsSeen        [256]int // per-kind presence in a W1-admissible suffix
+	w1KindsSeen        [256]int // per-kind presence in a suffix admissible for non-tap reuse
 	onlyPassOffered    int
 	opts, hand, bf     int
 	sigs               map[string]*sigStat
@@ -82,15 +81,15 @@ var timingKinds = [256]bool{
 	events.StepChange: true, events.ManaClear: true, events.Note: true,
 }
 
-// s5TimingKinds is the exact event class admitted by the S5 start gate in §6.
-// Keep it separate from timingKinds, the broader §1.5 measurement.
+// s5TimingKinds is the exact event class admitted by the start gate for reuse.
+// Keep it separate from timingKinds, the broader measurement.
 var s5TimingKinds = [256]bool{
 	events.DecisionAsk: true, events.DecisionMade: true, events.Priority: true,
 	events.StepChange: true,
 }
 
-// w1Kinds is action-walk.md §2's W1Kinds: the event classes W1 admits, before
-// the per-kind conditions (an opponent's Draw, equal pools, cold combat).
+// w1Kinds is the event classes non-tap reuse admits, before the per-kind
+// conditions (an opponent's Draw, equal pools, cold combat).
 var w1Kinds = [256]bool{
 	events.DecisionAsk: true, events.DecisionMade: true, events.Priority: true,
 	events.Note: true, events.StepChange: true,
@@ -98,16 +97,16 @@ var w1Kinds = [256]bool{
 	events.ManaClear: true, events.Draw: true,
 }
 
-// w2Kinds is action-walk.md §2's W2Kinds: a mana-tap transition only.
+// w2Kinds is the event classes tap-only reuse admits: a mana-tap transition only.
 var w2Kinds = [256]bool{
 	events.DecisionAsk: true, events.DecisionMade: true, events.Priority: true,
 	events.Tap: true, events.ManaAdd: true,
 }
 
 // optsSorcerySensitive reports whether any option in the marshaled list is
-// sorcery-sensitive (play_land or a cast): W0's cheap proxy for W1's
-// sorceryDecisive (action-walk.md §2, §3.3). Over-approximates (a refused
-// sorcery leaves no option), which is the safe direction for a bench measure.
+// sorcery-sensitive (play_land or a cast): a cheap proxy for whether the
+// sorcery-speed bit decides the list. Over-approximates (a refused sorcery
+// leaves no option), which is the safe direction for a bench measure.
 func optsSorcerySensitive(raw string) bool {
 	return strings.Contains(raw, "\"play_land\"") || strings.Contains(raw, "\"cast\"")
 }
@@ -142,7 +141,7 @@ func (m *walkStats) observe(e *rules.Engine, d *decision.Decision) {
 		var ks []events.Kind
 		var seen [256]bool
 		allQuiet, allTiming, allS5Timing := true, true, true
-		// W0 classes (action-walk.md §2).
+		// The walk-reuse classes.
 		allW1, allW2 := true, true
 		drawBySef, manaAddOther := false, false
 		for _, ev := range e.L.Events[pv.ev:cur.ev] {
@@ -215,10 +214,10 @@ func (m *walkStats) observe(e *rules.Engine, d *decision.Decision) {
 				}
 			}
 		}
-		// W0 (action-walk.md §2): W1 admits the kind set, equal pools at both
-		// asks, no Draw by the walking seat, and no sorcery-sensitive option in
-		// the previous list; W2 admits the tap set with all ManaAdd credit to
-		// the walking seat.
+		// Non-tap reuse admits the kind set, equal pools at both asks, no Draw by
+		// the walking seat, and no sorcery-sensitive option in the previous list;
+		// tap-only reuse admits the tap set with all ManaAdd credit to the walking
+		// seat.
 		if allW1 && !drawBySef && pv.pools == cur.pools && !optsSorcerySensitive(pv.opts) {
 			m.w1++
 			if same {
@@ -256,7 +255,7 @@ func (m *walkStats) observe(e *rules.Engine, d *decision.Decision) {
 	m.prev[p] = cur
 }
 
-// report prints the §1.5 transition table to stderr. Every list is ordered
+// report prints the transition table to stderr. Every list is ordered
 // deterministically (the top-K signature list breaks ties by signature text),
 // so two runs of the same row produce the same report.
 func (m *walkStats) report() {
@@ -274,9 +273,9 @@ func (m *walkStats) report() {
 	fmt.Fprintf(w, "walkstats:   only quiet+{StepChange,ManaClear,Note}: %d (%.1f%%), identical %d (%.1f%%)\n", m.timing, pct(m.timing, m.trans), m.timingSame, pct(m.timingSame, m.timing))
 	fmt.Fprintf(w, "walkstats:     ... and same sorcery-speed bit: %d (%.1f%%), identical %d (%.1f%%)\n", m.timingSorc, pct(m.timingSorc, m.trans), m.timingSorcSame, pct(m.timingSorcSame, m.timingSorc))
 	fmt.Fprintf(w, "walkstats:     ... and all pools equal: %d (%.1f%%), identical %d (%.1f%%)\n", m.timingPool, pct(m.timingPool, m.trans), m.timingPoolSame, pct(m.timingPoolSame, m.timingPool))
-	fmt.Fprintf(w, "walkstats: S5 exact {Priority,DecisionAsk,DecisionMade,StepChange} only: %d; same sorcery bit %d; all pools equal %d (%.1f%% of priority asks; S5 gate), identical %d (%.1f%%)\n", m.s5Timing, m.s5TimingSorc, m.s5TimingPool, pct(m.s5TimingPool, m.asks), m.s5TimingPoolSame, pct(m.s5TimingPoolSame, m.s5TimingPool))
-	fmt.Fprintf(w, "walkstats: W0/W1 admissible: %d (%.1f%% of transitions), identical %d (%.1f%%)\n", m.w1, pct(m.w1, m.trans), m.w1Same, pct(m.w1Same, m.w1))
-	fmt.Fprintf(w, "\nwalkstats: W0/W2 admissible (tap-only, all ManaAdd to the walker): %d (%.1f%% of transitions), identical %d (%.1f%%)\n", m.w2, pct(m.w2, m.trans), m.w2Same, pct(m.w2Same, m.w2))
+	fmt.Fprintf(w, "walkstats: exact {Priority,DecisionAsk,DecisionMade,StepChange} only: %d; same sorcery bit %d; all pools equal %d (%.1f%% of priority asks; start gate), identical %d (%.1f%%)\n", m.s5Timing, m.s5TimingSorc, m.s5TimingPool, pct(m.s5TimingPool, m.asks), m.s5TimingPoolSame, pct(m.s5TimingPoolSame, m.s5TimingPool))
+	fmt.Fprintf(w, "walkstats: non-tap reuse admissible: %d (%.1f%% of transitions), identical %d (%.1f%%)\n", m.w1, pct(m.w1, m.trans), m.w1Same, pct(m.w1Same, m.w1))
+	fmt.Fprintf(w, "\nwalkstats: tap-only reuse admissible (all ManaAdd to the walker): %d (%.1f%% of transitions), identical %d (%.1f%%)\n", m.w2, pct(m.w2, m.trans), m.w2Same, pct(m.w2Same, m.w2))
 	fmt.Fprintf(w, "walkstats: per-kind presence (transitions containing kind: n, identical%%):\n")
 	for k := 0; k < 256; k++ {
 		if m.kindIn[k] > 0 {

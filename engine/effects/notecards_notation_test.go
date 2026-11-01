@@ -9,7 +9,7 @@ package effects
 // Count$ head all resolve the same seats from one read.
 //
 // The real corpus carriers pin the exact parameter spellings. Seize the
-// Spotlight is the brief's pinned card:
+// Spotlight is the pinned card:
 //
 //	SVar:Fame:DB$ Pump | Defined$ Remembered | NoteCards$ Self | NoteCardsFor$ Fame
 //	SVar:DBFame:DB$ RepeatEach | RepeatPlayers$ Player.NotedForFame | ... | ClearRememberedBeforeLoop$ True
@@ -143,7 +143,7 @@ func TestSeizeTheSpotlightBranchesNoteTheChooser(t *testing.T) {
 	}
 }
 
-// TestSeizeTheSpotlightTwoOpponentSplit pins the brief's headline proof: with
+// TestSeizeTheSpotlightTwoOpponentSplit pins the headline proof: with
 // one opponent noted Fame and the other Fortune, the card's own DBFame loop
 // walks ONLY the fame chooser and DBFortune walks ONLY the fortune chooser.
 // The inner bodies are swapped for an observable LoseLife so the split is

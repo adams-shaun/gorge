@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the malleable_impostor_revalidation_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Malleable Impostor revalidating its copy template at entry, driven through
+// the resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -69,7 +68,7 @@ func TestMalleableImpostorRevalidatesTemplateAtEntry(t *testing.T) {
 			// as-enters election is announced, so the later no-copy result must
 			// come from replacement-time revalidation rather than setup.
 			castMode(t, e, id, "")
-			kr6ResolveTop(e)
+			resolveTopProbe(e)
 			d := e.Pending()
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" {
 				t.Fatalf("expected copy choice, got %+v", d)
@@ -89,7 +88,7 @@ func TestMalleableImpostorRevalidatesTemplateAtEntry(t *testing.T) {
 			tc.respond(e, template.ID)
 			tc.check(t, e, template.ID)
 			submitChoices(t, e, choice)
-			kr6Settle(e)
+			settleDrain(e)
 			if d := e.Pending(); d != nil && d.Kind == decision.KPriority && len(e.G.Stack) > 0 {
 				passUntilStackEmpty(t, e, 60)
 			}

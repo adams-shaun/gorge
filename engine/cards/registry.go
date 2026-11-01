@@ -445,7 +445,7 @@ func finishDecoded(decoded []*Card, tokens map[string]*Card) (*Registry, error) 
 			// Re-link decoded faces so a newly added idempotent keyword expansion
 			// is present even when this worktree intentionally reuses the shared,
 			// read-only corpus cache. This covers the cumulative-upkeep keyword
-			// expansions this task added too: link re-runs expandKeywords and
+			// expansions too: link re-runs expandKeywords and
 			// re-resolves every trigger's Execute$ SVar.
 			f.link(c.Path)
 			f.derive()
@@ -581,8 +581,8 @@ func compileScripts(dir string) ([]*Card, []Diag, error) {
 // Tokens share compileScripts' parse/link/intrinsics pipeline but are never
 // Add-ed to cards or byName: a token is not a card a deck can contain, and
 // a card's Lookup-by-name must not resolve to one. A missing tokenscripts
-// directory is not an error — plenty of fixtures (and every pre-M2r cache)
-// have no tokens at all.
+// a card's Lookup-by-name must not resolve to one. A missing tokenscripts
+// directory is not an error — plenty of fixtures have no tokens at all.
 func compileTokens(r *Registry, cardsDir string, diags *[]Diag) error {
 	tokensDir := TokensDir(filepath.Dir(cardsDir))
 	info, err := os.Stat(tokensDir)

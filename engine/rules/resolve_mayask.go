@@ -1,9 +1,9 @@
 package rules
 
 // resolve_mayask.go is the object half of the resolution kernel's ask-free
-// predicate (lasagna spec §7, W3 step 0; spike S3b candidate 1): before the
+// predicate: before the
 // kernel checkpoints a resolution it asks whether the object about to resolve
-// can pose a decision at all. The S3 spike measured 86.6% of per-resolution
+// can pose a decision at all. A measurement found 86.6% of per-resolution
 // checkpoints dropped unused; skipping those is what brings the kernel's cost
 // within noise.
 //

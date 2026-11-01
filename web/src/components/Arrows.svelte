@@ -91,7 +91,7 @@
     return () => ro.disconnect();
   });
 
-  // Redraw when any internal scroller scrolls (fb-20260914T121642Z): the
+  // Redraw when any internal scroller scrolls: the
   // stack rail's section.stack is a real overflow-y container, scroll does
   // not bubble, and a scrolled tile moves under a line whose endpoints were
   // measured at the old scroll offset. A capture-phase listener on

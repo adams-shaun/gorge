@@ -26,7 +26,7 @@ type EventService interface {
 	Sideboard(id, token string, req protocol.SideboardRequest) (protocol.EventState, error)
 	EventLog(id, token string) (protocol.EventLog, error)
 	SubscribeEvent(id, token, session string) error
-	// The two discovery endpoints (E1-8).
+	// The two discovery endpoints.
 	Sets() []protocol.EventSetInfo
 	Personas() protocol.EventPersonas
 }

@@ -89,9 +89,29 @@ The default keys, which **Options → Keymap** rebinds and `?` lists:
 trigger auto-ordering, a step delay and the board layout. Settings live in your browser's local
 storage.
 
-The lobby's **Protocol** switch chooses how a seat talks to the server: *Native*, gorge's own
-stream, or *ManaBrew*, which needs a server started with `-manabrew`
-([Wires](../architecture/wires.md)). Leave it on *Native* unless you're testing that wire.
+The **Protocol** switch, in the lobby and in Options, chooses how a seat talks to the server when a
+table loads: *Native*, gorge's own stream, *ManaBrew* or *SpellBench v2* ([Wires](../architecture/wires.md)).
+ManaBrew needs a server started with `-manabrew`, and SpellBench v2 one started with `-sbv2`. A wire the server
+doesn't offer is disabled, and every table plays over Native with your choice kept for a server that does.
+Native is the same game on any server. A seat you played over SpellBench v2 goes back to it from your next answer
+after you reload the table on Native.
+
+A ManaBrew seat plays the same game with the same board and prompts. Three things differ, because the
+protocol has no event log and no payment plans: the game log holds only what the page has seen and
+starts empty after a reload, Auto-pay taps through the Auto-fill of the mana window, and the window
+doesn't mark which sources Auto-fill would tap. **Auto-pass when all I could do is make mana**, on by
+default, skips the priority stops ManaBrew's own engine never poses, including the rest of your main
+phase once you have nothing left to play.
+
+A SpellBench v2 seat also plays the same game with the same board and prompts. The protocol is two players,
+so a Commander table or one with more seats plays over Native, with no warning. These differ:
+
+- The board moves when you're asked something, not between your decisions.
+- CAST always pays with the suggested plan, so there is no **Auto-pay** switch and no mana window. To pay
+  another way, or to pay an X above 0, tap your lands first. The taps are always on offer.
+- A land that makes any colour gives the first one, and the server answers a triggered cost and the division
+  of an attacker's damage among several blockers for you.
+- The log holds what the page has seen and starts empty after a reload, and an undo leaves the undone lines in it.
 
 ### Mulligans and mana
 
@@ -302,7 +322,7 @@ replayed 4 of 4 recorded intents (34 events); recorded head 7f24e17580718ec6
 turn 1, round 1, beginning (step upkeep) — active: seat 1, priority: seat 0
 seat 0 You: life 20, library 53, hand 7, graveyard 0, exile 0
 seat 1 Bot: life 20, library 53, hand 7, graveyard 0, exile 0
-pending: seat 0 priority: turn 1, upkeep — You has priority (2 options)
+pending: seat 0 priority: turn 1, upkeep — You have priority (2 options)
 ```
 
 `-list` prints the timeline of recorded answers, `-at N` stops at answer N, `-omniscient` shows every hand,

@@ -8,9 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// This file is api:Draw's parameter compiler (W4 step 3 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 8). compileDraw is the ONLY reader of a Draw ability's own parameters: the
+// This file is api:Draw's parameter compiler. compileDraw is the ONLY reader
+// of a Draw ability's own parameters: the
 // resolution (draw.go) and rules' scry-replacement draw (a ReplaceWith$ Draw
 // body's NumCards$) both read the compiled DrawParams. internal/codeshape's
 // drawParamLeaks ratchet holds that: no parameter read in draw.go, and no read

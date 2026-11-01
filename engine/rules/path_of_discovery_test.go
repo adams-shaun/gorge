@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Path of Discovery end to end (task explore1, the brief's named deck carrier):
+// Path of Discovery end to end (the named deck carrier):
 // "Whenever a creature you control enters, it explores." — an Enchantment
 // whose ChangesZone trigger body is `DB$ Explore | Defined$ TriggeredCardLKICopy`,
 // so the exploring creature is the one that just entered (the trigger's

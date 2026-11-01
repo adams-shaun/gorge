@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Restored from the W3 legacy removal: an inner replacement-order
+// An inner replacement-order
 // competition posed from inside the answer to an outer in-resolution one
 // resumes the resolution exactly once (life and Updated-entry shapes).
 

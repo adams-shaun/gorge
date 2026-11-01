@@ -23,7 +23,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 502.1 | follows | `engine/rules/turn.go#Engine.finishUntapStep` | `TestCR702PhasedOutPermanentPhasesInAtUntap` `TestCR702PhasingKeywordTogglesAtUntapStep` |  |
 | 502.2 | follows | `engine/rules/daynight.go#Engine.dayNightUntapCheck` `engine/rules/turn.go#Engine.finishUntapStep` | `TestCR731DayBecomesNightWhenThePreviousActivePlayerCastNothing` `TestCR731NightBecomesDayAfterTwoSpells` | after the phasing scan; a skipped untap step skips it |
 | 502.2a | n/a | - | - | shared team turns not offered |
-| 502.3 | follows | `engine/rules/turn.go#Engine.finishUntapStep` | `TestBasaltMonolithStaysTappedThroughItsUntapStep` |  |
+| 502.3 | follows | `engine/rules/turn.go#Engine.finishUntapStep` `engine/rules/replacement_phase.go#Engine.continueUntapReplacements` | `TestBasaltMonolithStaysTappedThroughItsUntapStep` `TestTwoDoesntUntapEffectsAskNothing` |  |
 | 502.4 | follows | `engine/rules/turn.go#Engine.priorityRound` | - |  |
 | 503.1 | follows | `engine/rules/turn.go#Engine.finishEnteredStep` | - |  |
 | 503.1a | follows | `engine/rules/trigger_queue.go#Engine.putTriggersOnStack` | - |  |
@@ -117,7 +117,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 510.2 | partial | `engine/rules/combat.go#Engine.runCombatAssignments` | `TestFirstStrikeReplacementOrderSettlesBeforeRegularPass` `TestLivelockWatcherLifelinkBatchIsNotACycle` | D14: replacement-order ask splits the pass with SBAs between |
 | 510.3 | follows | `engine/rules/combat.go#Engine.regularDamageRound` | `TestCR510PriorityBetweenDoubleStrikeDamageSteps` |  |
 | 510.3a | follows | `engine/rules/combat.go#Engine.completeCombatPass` `engine/rules/combat.go#Engine.regularDamageRound` | `TestFirstStrikeDiesTriggerResolvesBeforeRegularDamage` |  |
-| 510.4 | partial | `engine/rules/turn.go#Engine.advanceStep` `engine/rules/combat.go#Engine.actsThisDamageStep` `engine/rules/combat.go#Engine.collectFirstStrikers` | `TestCR510PriorityBetweenDoubleStrikeDamageSteps` `TestFirstStrikeGainedAfterTheFirstStepStillDealsRegularDamage` | D7: one gorge step, mana pools not emptied between passes |
+| 510.4 | partial | `engine/rules/turn.go#Engine.advanceStep` `engine/rules/combat.go#Engine.actsThisDamageStep` `engine/rules/combat.go#Engine.collectFirstStrikers` | `TestCR510PriorityBetweenDoubleStrikeDamageSteps` `TestFirstStrikeGainedAfterTheFirstStepStillDealsRegularDamage` `TestCR510ManaEmptiesBetweenDamageSteps` | D7: one gorge step; StepChange does not name the first-strike step, though mana empties as it ends |
 | 511.1 | follows | `engine/rules/combat.go#Engine.enterEndCombat` | `TestCR511AttackerPersistsThroughEndCombatStep` |  |
 | 511.2 | partial | `engine/rules/layers_effect.go#Engine.continuousLive` `engine/rules/layers_effect.go#Engine.expireUntilEndOfCombat` `engine/rules/turn.go#Engine.finishStepBoundary` `engine/rules/trigmatch/actions.go#phaseTriggerMatches` | `TestCR511UntilEndCombatAppliesFromCreation` `TestCR511UntilEndCombatDoesNotReturnInExtraCombat` `TestCR511UntilEndCombatPumpExpiresBeforeMain` `TestFrostbeastEndCombatTriggerFiresOnlyAtEndCombat` | continuous effects follow; UntilEndOfCombat delayed triggers still step-keyed (trigger_delayed.go); one created postcombat ends at cleanup |
 | 511.3 | follows | `engine/rules/turn.go#Engine.finishStepBoundary` `engine/events/apply_combat.go#foldEndCombatReset` | `TestLeavingEndCombatRemovesAttackerBeforePostcombatMain` `TestEndCombatResetClearsIsAttackingAndBlockedBy` |  |

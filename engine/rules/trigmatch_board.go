@@ -10,7 +10,7 @@ import (
 )
 
 // trigBoard is the engine as trigmatch.Board, the read-only view the trigger
-// matchers in engine/rules/trigmatch receive (W5 E3). It is a defined type over
+// matchers in engine/rules/trigmatch receive. It is a defined type over
 // Engine rather than a set of Engine methods so the adapter adds nothing to
 // Engine's method set and cannot collide with an Engine method of the same
 // name; boardOf(e) is a free pointer conversion (a function, not an Engine

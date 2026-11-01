@@ -1,6 +1,6 @@
 package rules
 
-// Restores engine/effects/move_counter_test.go on the kernel: CounterType$ Any asks
+// MoveCounter: CounterType$ Any asks
 // which kind to move when the origin holds several and the answered kind is
 // what moves; CounterNum$ Any asks how many (Min 0 / Max the origin's
 // count) and the answered amount -- zero included -- is exactly what moves;
@@ -15,13 +15,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kr2MoverBoard seats an artifact whose free ability is the MoveCounter body
+// moverBoard seats an artifact whose free ability is the MoveCounter body
 // (Source$ Self) with the given counters, and a creature to receive them.
-func kr2MoverBoard(t *testing.T, body string, counters map[string]int32) (*Engine, state.ObjID, state.ObjID) {
+func moverBoard(t *testing.T, body string, counters map[string]int32) (*Engine, state.ObjID, state.ObjID) {
 	t.Helper()
-	e := kr2Engine(t, 2)
-	src := kr2Put(t, e, 0, kr2Src(t, "Name:Mover\nManaCost:1\nTypes:Artifact\nA:AB$ MoveCounter | Cost$ 0 | Source$ Self | ValidTgts$ Creature | "+body+"\nOracle:x\n"), state.ZBattlefield, false)
-	dst := kr2Put(t, e, 0, kr2Src(t, "Name:Receiver\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), state.ZBattlefield, false)
+	e := kernelEngine(t, 2)
+	src := putCardIn(t, e, 0, cardOfSrc(t, "Name:Mover\nManaCost:1\nTypes:Artifact\nA:AB$ MoveCounter | Cost$ 0 | Source$ Self | ValidTgts$ Creature | "+body+"\nOracle:x\n"), state.ZBattlefield, false)
+	dst := putCardIn(t, e, 0, cardOfSrc(t, "Name:Receiver\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), state.ZBattlefield, false)
 	for _, k := range []string{"P1P1", "CHARGE"} {
 		if n := counters[k]; n != 0 {
 			e.G.Obj(src).AddCounter(k, n)
@@ -30,21 +30,21 @@ func kr2MoverBoard(t *testing.T, body string, counters map[string]int32) (*Engin
 	return e, src, dst
 }
 
-// kr2MoverAsk activates the mover at dst and returns the first ask after
+// moverAsk activates the mover at dst and returns the first ask after
 // the target.
-func kr2MoverAsk(t *testing.T, e *Engine, src, dst state.ObjID) *decision.Decision {
+func moverAsk(t *testing.T, e *Engine, src, dst state.ObjID) *decision.Decision {
 	t.Helper()
-	d := kr2Activate(t, e, 0, src)
+	d := activatePermanentAbility(t, e, 0, src)
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("activation = %+v, want the creature target ask", d)
 	}
-	return kr2Answer(t, e, d, kr2ObjIdx(t, d, dst))
+	return answerDecision(t, e, d, objOptionIndex(t, d, dst))
 }
 
 func TestMoveCounterTypeAnyAsksForTheKind(t *testing.T) {
 	t.Parallel()
-	e, src, dst := kr2MoverBoard(t, "CounterType$ Any | CounterNum$ 1", map[string]int32{"P1P1": 2, "CHARGE": 3})
-	d := kr2Want(t, kr2MoverAsk(t, e, src, dst), "move_counter_kind")
+	e, src, dst := moverBoard(t, "CounterType$ Any | CounterNum$ 1", map[string]int32{"P1P1": 2, "CHARGE": 3})
+	d := requireResumeAsk(t, moverAsk(t, e, src, dst), "move_counter_kind")
 	if d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != 2 {
 		t.Fatalf("kind ask = %+v, want a 1-of KChoose over the two distinct kinds", d)
 	}
@@ -60,7 +60,7 @@ func TestMoveCounterTypeAnyAsksForTheKind(t *testing.T) {
 	if charge < 0 {
 		charge = d.Options[1].Index
 	}
-	if d = kr2Answer(t, e, d, charge); d != nil {
+	if d = answerDecision(t, e, d, charge); d != nil {
 		t.Fatalf("unexpected ask after the kind: %+v", d)
 	}
 	if got := e.G.Obj(src).Counter("CHARGE"); got != 2 {
@@ -82,15 +82,15 @@ func TestMoveCounterNumAnyAsksAndHonoursTheAmount(t *testing.T) {
 	}{{"two", 2}, {"decline", 0}} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			e, src, dst := kr2MoverBoard(t, "CounterType$ P1P1 | CounterNum$ Any", map[string]int32{"P1P1": 4})
-			d := kr2Want(t, kr2MoverAsk(t, e, src, dst), "move_counter")
+			e, src, dst := moverBoard(t, "CounterType$ P1P1 | CounterNum$ Any", map[string]int32{"P1P1": 4})
+			d := requireResumeAsk(t, moverAsk(t, e, src, dst), "move_counter")
 			if d.Kind != decision.KChoose || d.Min != 0 || d.Max != 4 && len(d.Options) != 5 {
 				t.Fatalf("amount ask = %+v, want Min 0 over 0..4", d)
 			}
 			if len(d.Options) != 5 {
 				t.Fatalf("amount options = %d, want 5 (0..4)", len(d.Options))
 			}
-			if d = kr2Answer(t, e, d, int(tc.n)); d != nil {
+			if d = answerDecision(t, e, d, int(tc.n)); d != nil {
 				t.Fatalf("unexpected ask after the amount: %+v", d)
 			}
 			if got := e.G.Obj(src).Counter("P1P1"); got != 4-tc.n {
@@ -105,14 +105,14 @@ func TestMoveCounterNumAnyAsksAndHonoursTheAmount(t *testing.T) {
 
 func TestBlackPantherRememberAmountFeedsGainLife(t *testing.T) {
 	t.Parallel()
-	e := kr2Engine(t, 2)
-	panther := kr2Put(t, e, 0, kr2Corpus(t, "Black Panther, Wakandan King"), state.ZBattlefield, false)
-	land := kr2Put(t, e, 0, kr2Src(t, "Name:Vibranium Land\nTypes:Land\nOracle:x\n"), state.ZBattlefield, false)
-	creature := kr2Put(t, e, 0, kr2Src(t, "Name:Target Creature\nManaCost:G\nTypes:Creature\nPT:1/1\nOracle:x\n"), state.ZBattlefield, false)
+	e := kernelEngine(t, 2)
+	panther := putCardIn(t, e, 0, corpusFixtureCard(t, "Black Panther, Wakandan King"), state.ZBattlefield, false)
+	land := putCardIn(t, e, 0, cardOfSrc(t, "Name:Vibranium Land\nTypes:Land\nOracle:x\n"), state.ZBattlefield, false)
+	creature := putCardIn(t, e, 0, cardOfSrc(t, "Name:Target Creature\nManaCost:G\nTypes:Creature\nPT:1/1\nOracle:x\n"), state.ZBattlefield, false)
 	e.G.Obj(land).AddCounter("P1P1", 2)
 	life := e.G.Players[0].Life
 	hand := len(e.G.Zone(state.ZHand, 0))
-	d := kr2Activate(t, e, 0, panther)
+	d := activatePermanentAbility(t, e, 0, panther)
 	for i := 0; d != nil && i < 6; i++ {
 		if d.Kind != decision.KTarget {
 			t.Fatalf("unexpected decision %+v", d)
@@ -123,7 +123,7 @@ func TestBlackPantherRememberAmountFeedsGainLife(t *testing.T) {
 				want = land
 			}
 		}
-		d = kr2Answer(t, e, d, kr2ObjIdx(t, d, want))
+		d = answerDecision(t, e, d, objOptionIndex(t, d, want))
 	}
 	if got := e.G.Obj(land).Counter("P1P1"); got != 0 {
 		t.Fatalf("land P1P1 = %d, want 0 after moving both", got)

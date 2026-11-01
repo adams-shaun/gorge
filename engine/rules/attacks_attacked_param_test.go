@@ -94,12 +94,12 @@ func TestRevengeOfRavensDoesNotFireWhenAThirdSeatIsAttacked(t *testing.T) {
 	}
 }
 
-// kazuulAttackedSeat builds a three-seat table with the real corpus Kazuul,
-// Tyrant of the Cliffs on seat 0 and one ready 0/4 attacker on seat 1, active
-// on seat 1 in the declare-attackers step. Kazuul's trigger is the compound
-// Attacked$ selector the brief names --
-// "You,Planeswalker.YouCtrl,Battle.ProtectedBy You" -- so this pins the real
-// corpus value: the player half must resolve while the permanent-only
+// kazuulAttackedSeat builds a three-seat table with the real corpus
+// Kazuul, Tyrant of the Cliffs on seat 0 and one ready 0/4 attacker on
+// seat 1, active on seat 1 in the declare-attackers step. Kazuul's trigger
+// is the compound Attacked$ selector --
+// "You,Planeswalker.YouCtrl,Battle.ProtectedBy You" -- so this pins the
+// real corpus value: the player half must resolve while the permanent-only
 // alternatives fail closed (the engine models players-only defenders).
 func kazuulAttackedSeat(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()
@@ -145,7 +145,7 @@ func kazuulUnlessPayPending(t *testing.T, e *Engine) bool {
 	return false
 }
 
-// TestKazuulFiresWhenItsControllerIsAttacked is the brief's positive half: seat
+// TestKazuulFiresWhenItsControllerIsAttacked is the positive half: seat
 // 1 attacks seat 0 (Kazuul's controller), whose real
 // "Attacked$ You,Planeswalker.YouCtrl,Battle.ProtectedBy You" must resolve on
 // the player half and queue the ogre-token trigger.
@@ -160,7 +160,7 @@ func TestKazuulFiresWhenItsControllerIsAttacked(t *testing.T) {
 	}
 }
 
-// TestKazuulDoesNotFireWhenAThirdSeatIsAttacked is the brief's negative half:
+// TestKazuulDoesNotFireWhenAThirdSeatIsAttacked is the negative half:
 // seat 1 attacks seat 2, which is not Kazuul's controller, so the trigger must
 // not queue at all.
 func TestKazuulDoesNotFireWhenAThirdSeatIsAttacked(t *testing.T) {

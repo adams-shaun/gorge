@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 )
 
-// cr-g180: the cost-gap census prices a Cost$/UnlessCost$ value with the
+// The cost-gap census prices a Cost$/UnlessCost$ value with the
 // grammar the runtime pays it with, not plain ParseCost. A RaiseCost static's
 // Cost$ is read by raiseExtraResolve (its real-gap channel is
 // extra.Withheld); an UnlessCost$ by effects.UnlessCostResolved's token folds

@@ -26,7 +26,7 @@ import { validate, type PlaySettings } from './playsettings';
 /** KEY is the profile store's own localStorage key (see module doc). */
 export const PROFILES_KEY = 'gorge.playsettings.profiles.v1';
 
-/** MAX_PROFILE_NAME is the longest accepted trimmed name (brief: ~24 chars). */
+/** MAX_PROFILE_NAME is the longest accepted trimmed name (~24 chars). */
 export const MAX_PROFILE_NAME = 24;
 
 /**

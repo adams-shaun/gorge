@@ -8,10 +8,10 @@
   import { pointerRelease } from '../lib/pointer';
 
   /**
-   * One commander, drawn as a card in its seat's CREATURES row (CZ2) — a
+   * One commander, drawn as a card in its seat's CREATURES row — a
    * commander is a creature, and the tile reads the ambient `--card-w`
    * cascading over it rather than setting a scale of its own. Nothing here
-   * decides the number; it only inherits it. Since fb-20260917T232202Z the
+   * decides the number; it only inherits it. The
    * ambient value comes from the COMMAND PACK (CommandArea's own sub-row at
    * the creatures row's front), which carries the command zone's OWN layout
    * scale — at its default 1 that is exactly the creatures row's creature
@@ -58,7 +58,7 @@
    *   battlefield  it is in play, so the box shows FULL art, and it is
    *                marked "on the battlefield". The PERMANENT is what the
    *                board draws for a commander in play — CommandArea filters
-   *                battlefield commanders out (ui10, bug 1), so this state
+   *                battlefield commanders out, so this state
    *                is no longer reached from the board's command area: a
    *                commander in play belongs in the creature row as the real
    *                permanent, not twice. The component still renders it, so
@@ -89,7 +89,7 @@
   //
   // `seat` is carried only as a data attribute for the board test that counts
   // "one command area per commander seat" now that the tiles have no
-  // wrapping element of their own (CZ2) — nothing here reads it.
+  // wrapping element of their own — nothing here reads it.
   let { status, player, seat, hover = new HoverCard(), anchor: anchorProp = null, tileOptions = null, open0 = false }: {
     status: CommanderStatus;
     player: string;
@@ -214,7 +214,7 @@
      rather than over it: the band is the one thing that must stay readable
      when the face is greyed (in the zone) or an empty box (away), so it
      never sits on the art. */
-  /* Width comes from the ambient --card-w — since fb-20260917T232202Z that
+  /* Width comes from the ambient --card-w — that
      is the command pack's own scale (CommandArea's .cmd-pack), whose
      default 1 is the creatures row's scale (104px) the tile has always
      read. No fallback is set here: outside a container that defines
@@ -230,7 +230,7 @@
   }
   /* The box IS the command zone — a place on the board, not a picture of a
      card — so it is always there, card-sized (--card-w, the row's own
-     creature scale, CZ2), and framed by a little dotted border. `position:`
+     creature scale), and framed by a little dotted border. `position:`
      relative gives the tax chip below a corner to anchor to, and `overflow:`
      hidden clips the card art to the box. What is inside the box depends on
      where the commander actually is: the art when it is somewhere you can

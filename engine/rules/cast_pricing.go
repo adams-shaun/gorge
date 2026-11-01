@@ -30,7 +30,7 @@ func (pc *pendingCast) isSpecialAction() bool {
 }
 
 // pcAbility resolves the proposal's ability body. A printed activation reads
-// its Face().Abilities index; a granted activation (task grantcost1) resolves
+// its Face().Abilities index; a granted activation resolves
 // the SVar anchor off the GRANTOR's face -- the recipient's face has no such
 // SVar, which is the whole reason the anchor exists. The resolve is
 // deterministic (ParseSVar over a fixed table), so re-resolving at each
@@ -541,7 +541,7 @@ func faceWantsConvoked(f *cards.Face) bool {
 // census would attribute). Keeping it a value scan is the point: the
 // share-family referent can ride any spec-bearing parameter, and a key
 // whitelist here would silently miss the next one -- exactly the silent gap
-// (sharesCreatureTypeWith Convoked classifying wordUnknown) this ticket
+// (sharesCreatureTypeWith Convoked classifying wordUnknown) this
 // fixed.
 func abilityParamsUseConvoked(params map[string]string) bool {
 	for _, v := range params {

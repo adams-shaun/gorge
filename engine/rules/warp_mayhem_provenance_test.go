@@ -12,7 +12,7 @@ package rules
 //   - full_bore.txt: `ConditionPresent$ Card.CastSa Spell.Warp`
 //   - sandmans_quicksand.txt: `ConditionPresent$ Card.CastSa Spell.Mayhem`
 //
-// The brief's premise that Spell.Mayhem still fails closed was measured
+// The premise that Spell.Mayhem still fails closed was measured
 // FALSE: it was closed by the earlier kw:Mayhem work (commits 5d952df6,
 // db87a8f1) and is asserted here so a future regression of the flag path
 // fails this test rather than the mayhem-specific one.

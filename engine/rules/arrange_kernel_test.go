@@ -2,7 +2,7 @@ package rules
 
 import "testing"
 
-// TestArrangePosesDecisionAndSuspends is the Ruling J0/J2 leaf, restored for
+// TestArrangePosesDecisionAndSuspends covers posing and suspending, for
 // the resolution kernel: resolving a RearrangeTopOfLibrary | NumCards$ 3
 // poses a KArrange decision to the library owner with 3 options and
 // Min == Max == 3 (a full permutation over the top N), with the spell still

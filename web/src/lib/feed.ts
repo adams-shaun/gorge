@@ -8,7 +8,7 @@ export function pushFeed(lines: FeedLine[], l: FeedLine, cap = 200): FeedLine[] 
 }
 
 /*
- * What the lobby rail actually receives (Task L2).
+ * What the lobby rail actually receives.
  *
  * The rail is fed by `widget.last` — one line per widget burst per table,
  * host-side. Sampled against the live demo server, 130 consecutive bursts
@@ -41,9 +41,10 @@ export function pushFeed(lines: FeedLine[], l: FeedLine, cap = 200): FeedLine[] 
  *
  * The shapes come from view/describe.go: events.Priority renders as
  * "<player> has priority" and a priority DecisionAsk as
- * "<player> is asked: priority".
+ * "<player> is asked: priority", or "You have priority" and "You are asked:
+ * priority" for a seat displayed as You.
  */
-const ROUTINE = /(?: has priority| is asked: priority)$/;
+const ROUTINE = /(?: ha(?:s|ve) priority| (?:is|are) asked: priority)$/;
 
 export function isRoutineLine(line: string): boolean {
   return ROUTINE.test(line);
@@ -88,8 +89,8 @@ export interface FeedNow {
  * have said nothing yet, so the rail's row count matches the grid's table
  * count and rows never jump position. `count` collapses the repeat run at
  * the end of that table's own lines (see runKey), ignoring the other tables
- * interleaved between them. A table's current line skips step lines (ui9,
- * B4): a phase boundary is clock noise, so a table whose only recent lines
+ * interleaved between them. A table's current line skips step lines:
+ * a phase boundary is clock noise, so a table whose only recent lines
  * are "Step: …" reports an empty line rather than flashing the clock.
  */
 export function latestPerTable(lines: FeedLine[], order: readonly string[]): FeedNow[] {

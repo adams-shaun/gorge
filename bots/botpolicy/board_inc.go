@@ -277,7 +277,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				continue
 			}
 			r := inc.face(id, f, k)
-			if !hasTypeWord(effectiveTypeWords(f, id, vtypes), "Creature") {
+			if !o.FaceDown && !hasTypeWord(effectiveTypeWords(f, id, vtypes), "Creature") {
 				continue
 			}
 			inc.derive(r, id, combined, vtypes)
@@ -316,11 +316,12 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			inc.derive(r, id, combined, vtypes)
 			pumpPower, pumpToughness := effects.CastPumpBonus(f.SpellAbility())
 			pumpOwnCombatants := effects.CastPumpOwnCombatants(f.SpellAbility())
+			power, toughness := cardPT(f, o, r.creature, r.power, r.toughness)
 			*b.Cards.slot(id) = Card{
 				PrintedName:    f.Name,
 				Creature:       r.creature,
-				Power:          r.power,
-				Toughness:      r.toughness,
+				Power:          power,
+				Toughness:      toughness,
 				CMC:            r.cmc,
 				Basic:          r.basic,
 				Land:           r.land,
@@ -371,17 +372,18 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			}
 			r := inc.face(id, f, k)
 			inc.derive(r, id, combined, vtypes)
+			power, toughness := cardPT(f, o, r.creature, r.power, r.toughness)
 			*b.Cards.slot(id) = Card{
 				PrintedName:    f.Name,
 				Creature:       r.creature,
-				Power:          r.power,
+				Power:          power,
 				CMC:            r.cmc,
 				Basic:          r.basic,
 				Land:           r.land,
 				Colour:         r.colour,
 				TypeSig:        r.typeSig,
 				ManaCost:       f.ManaCost,
-				Toughness:      r.toughness,
+				Toughness:      toughness,
 				Activated:      o.ActivatedThisTurn, // public; A5 (BoardFromGameInto's foreign walk)
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),

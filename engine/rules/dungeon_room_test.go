@@ -143,7 +143,7 @@ func battlefieldNameCount(e *Engine, name string) int {
 	return n
 }
 
-// TestDungeonRoomAbilitiesTriggerResolveAndComplete is the brief's core test.
+// TestDungeonRoomAbilitiesTriggerResolveAndComplete is the core test.
 // It ventures through Lost Mine of Phandelver's own arrows, asserting each
 // room's ability triggered, went on the stack and resolved with its printed
 // effect, that a two-way room posed a choose decision, and that after the
@@ -279,7 +279,7 @@ func TestDungeonRoomAbilitiesTriggerResolveAndComplete(t *testing.T) {
 	replayHeadCheck(t, e, cfg)
 }
 
-// TestCompletedDungeonIsNotReentered is the brief's second test: after
+// TestCompletedDungeonIsNotReentered: after
 // completion the dungeon is gone, so the next venture starts a NEW dungeon
 // (a dungeon choice is posed again).
 func TestCompletedDungeonIsNotReentered(t *testing.T) {
@@ -348,7 +348,7 @@ func TestCompletedDungeonIsNotReentered(t *testing.T) {
 // token; the next room, Storeroom (PutCounter P1P1 on target creature), must
 // then pose a target decision naming that token, and the answered ability must
 // put the counter. This is the "uses the stack, targets and resolution
-// normally" half of the brief.
+// normally" half.
 func TestDungeonRoomAbilityTargetsAndResolves(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -460,7 +460,7 @@ func TestDungeonRoomAbilityTargetsAndResolves(t *testing.T) {
 // chained SubAbility$) resolves to an API the effects registry supports,
 // naming any room that is not. The room and dungeon counts are pinned so a
 // corpus-pin change to a dungeon script is noticed rather than silently
-// skipped. It also asserts the brief's named room APIs really do occur, so
+// skipped. It also asserts the named room APIs really do occur, so
 // the walk cannot pass by finding no rooms at all.
 func TestEveryDungeonRoomAbilityIsSupported(t *testing.T) {
 	t.Parallel()
@@ -523,7 +523,7 @@ func TestEveryDungeonRoomAbilityIsSupported(t *testing.T) {
 	if rooms != 30 {
 		t.Fatalf("corpus dungeon rooms = %d, want 30 (7+9+5+9)", rooms)
 	}
-	// The brief's named room APIs: each must genuinely occur, or this test
+	// The named room APIs: each must genuinely occur, or this test
 	// could pass while walking nothing.
 	for _, api := range []string{"ChangeZone", "PutCounter", "Scry", "LoseLife", "Goad", "Token", "Draw", "Dig", "Pump"} {
 		if !apis[api] {

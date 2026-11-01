@@ -4,7 +4,7 @@
 // the rules package's fuzz-test testBot, answering with only a *state.Game
 // in hand -- build a Board and call Decide. rules cannot import seat without
 // running the dependency order backwards (cards -> state -> decision ->
-// events -> effects -> rules -> view -> seat; Ruling F7), so before this
+// events -> effects -> rules -> view -> seat), so before this
 // package existed the two sides each carried a line-for-line copy of the
 // policy under a "keep the two in step" comment. This package is that
 // comment made code: there is one policy, and the two adapters are thin
@@ -104,7 +104,7 @@ type Board struct {
 	// the same whichever host asks (pinned over a whole game by
 	// engine/seat/integration_test.go's TestBotAdaptersAgreeOverWholeGame). A
 	// hand/graveyard/battlefield/command-zone fact is the deciding seat's
-	// own, so carrying it in the Board is no information leak (Ruling C0):
+	// own, so carrying it in the Board is no information leak:
 	// it is exactly what that seat may see.
 	Cards CardTable
 	// PublicCards is every player's public-zone card colour identity, keyed
@@ -125,18 +125,18 @@ type Board struct {
 	// the same pool whichever host asks (pinned non-vacuously by
 	// engine/seat/integration_test.go's pool agreement). A mana pool is the
 	// deciding seat's own private state, like its hand, so carrying it in
-	// the Board is no information leak (Ruling C0).
+	// the Board is no information leak.
 	Pool state.Mana
 	// PoolRestricted is the part of Pool, slot for slot, that carries a
 	// RestrictValid$ spend limit (Myr Reservoir's "spend this mana only to
 	// cast Myr spells": state.Player.RestrictedMana batches with a non-empty
 	// Valid, the same batches the projected View names in PoolRestrictions).
-	// PoolRestricted[i] <= Pool[i]. The T3 converter gate (tap.go) prices a
+	// PoolRestricted[i] <= Pool[i]. The converter gate (tap.go) prices a
 	// conversion over the UNRESTRICTED pool only: the engine will not spend a
 	// restricted unit on an ability its restriction does not admit, so a
 	// simulation that paid a converter's {1} out of restricted {C} saw
 	// progress where the engine paid the {B} it then added back, forever
-	// (cardfuzz batch5 line 9: Initiates of the Ebon Hand beside Myr
+	// (Initiates of the Ebon Hand beside Myr
 	// Reservoir's floating {C}{C}).
 	PoolRestricted state.Mana
 	// Commanders is the CR 903.6/903.10 commander bookkeeping, keyed by
@@ -159,10 +159,10 @@ type Board struct {
 	//	Stack is the public stack census, bottom to top in the stack's own
 	//	order (state.Game.Stack and view.View.Stack are both order-preserving,
 	//	so the census is an ordered slice and no map iteration reaches any
-	//	choice that reads it). The stack is a public zone (Ruling T23-u;
-	//	view.View.Stack already carries Controller and Kind for exactly this),
-	//	so carrying it is no information leak (Ruling C0). The casting rule
-	//	(cast.go's C8) reads it to tell whose spells are on the stack: a
+	//	choice that reads it). The stack is a public zone
+	//	(view.View.Stack already carries Controller and Kind for exactly
+	//	this), so carrying it is no information leak. The casting rule in
+	//	cast.go reads it to tell whose spells are on the stack: a
 	//	counter cast is worth its mana only when a FOREIGN spell is there to
 	//	counter, never at an own-spells-only (or empty) stack. Both adapter
 	//	halves fill it identically (engine/seat/bot.go's BoardFromView off the
@@ -171,18 +171,17 @@ type Board struct {
 	//	tests.
 	Commanders CommanderTable
 	// Stack is the public stack census, bottom to top in the stack's own
-	// order (state.Game.Stack and view.View.Stack are both
-	// order-preserving, so the census is an ordered slice and no map
-	// iteration reaches any choice that reads it). The stack is a public
-	// zone (Ruling T23-u; view.View.Stack already carries Controller and
-	// Kind for exactly this), so carrying it is no information leak
-	// (Ruling C0). The casting rule (cast.go's C8) reads it to tell whose
-	// spells are on the stack: a counter cast is worth its mana only when
-	// a FOREIGN spell is there to counter, never at an own-spells-only (or
-	// empty) stack. Both adapter halves fill it identically (engine/seat/bot.go's
-	// BoardFromView off the projected StackView list; BoardFromGame off
-	// state.Game.Stack), pinned on every intent of a whole game by
-	// engine/seat/integration_test.go's parity tests.
+	// order (state.Game.Stack and view.View.Stack are both order-preserving,
+	// so the census is an ordered slice and no map iteration reaches any
+	// choice that reads it). The stack is a public zone (view.View.Stack
+	// already carries Controller and Kind for exactly this), so carrying it
+	// is no information leak. The casting rule in cast.go reads it to tell
+	// whose spells are on the stack: a counter cast is worth its mana only
+	// when a FOREIGN spell is there to counter, never at an own-spells-only
+	// (or empty) stack. Both adapter halves fill it identically
+	// (engine/seat/bot.go's BoardFromView off the projected StackView list;
+	// BoardFromGame off state.Game.Stack), pinned on every intent of a whole
+	// game by engine/seat/integration_test.go's parity tests.
 	Stack []StackEntry
 	// Cast is the learned cast profile the cast scorer dots its feature
 	// vector with (cast.go's CastWeights). It is CONFIGURATION, not board
@@ -221,14 +220,14 @@ type Board struct {
 	// (engine/view/view.go sets Step = g.Step.String()), so both halves name the
 	// same engine step. A step is public information (the projected View
 	// already carries it for every seat), so carrying it in the Board is
-	// no information leak (Ruling C0). The zero value is StepUntap; the
+	// no information leak. The zero value is StepUntap; the
 	// new timing features are all weight 0 in the default profile, so a
 	// Board that never sets it -- every pre-timing test and adapter path --
 	// plays identically.
 	Step state.Step
 	// LibrarySize and HandSize are the deciding seat's own library and hand
 	// card counts -- public counts (view.PlayerView's library_size and
-	// hand_size), so carrying them is no information leak (Ruling C0). The
+	// hand_size), so carrying them is no information leak. The
 	// RepeatOptional$ election arm reads them: every corpus carrier whose
 	// do/while body consumes a zone (Ad Nauseam and Dance with Calamity dig
 	// the library, Kindle the Carnage discards from hand) makes no progress
@@ -303,7 +302,7 @@ type PublicCard struct {
 }
 
 // StackEntry is one object on the stack, the plain-data shape of a
-// StackView the policy can read without importing view (Ruling F7). CMC is
+// StackView the policy can read without importing view. CMC is
 // carried for target ranking, so a counter can prefer a more valuable spell.
 // IsSpell is true for a spell object (a card cast onto the stack, which a
 // counter can target) and false for an ability object (minted by a
@@ -311,9 +310,9 @@ type PublicCard struct {
 // Face-less stack objects (engine/rules/stack.go), so no counter can be cast at one
 // today. Ability-targeting counters (Stifle) and Defined$ ValidStack
 // counter-all spells (Glen Elendra's Answer) are open engine gaps; revisit
-// C8 when they land). Controller is the object's controller, which for a
+// the foreign-spell rule when they land). Controller is the object's controller, which for a
 // stack spell is the seat that cast it. Both adapter halves fill it the
-// same way, so C8 judges the same stack whichever host asked.
+// same way, so the rule judges the same stack whichever host asked.
 type StackEntry struct {
 	ID         state.ObjID
 	Controller state.PlayerID
@@ -328,7 +327,7 @@ type StackEntry struct {
 	// actually consume instead of assuming at most one unit. Both adapter
 	// halves fill it the same way from the same printed face (the game half's
 	// o.Face().ManaCost for a spell, the view half's StackView.Card.ManaCost),
-	// so C8's stack census stays equal whichever host asked.
+	// so the stack census stays equal whichever host asked.
 	ManaCost string
 	// PumpPower and PumpToughness carry the spell's literal creature-pump
 	// bonus (effects.CastPumpBonus) while it sits on the stack. The A6 pump
@@ -359,9 +358,9 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 }
 
 // Decide implements every decision.Kind the engine (or a future one) can
-// ask, so the policy needs no rules knowledge either (Ruling P7):
+// ask, so the policy needs no rules knowledge either:
 //
-//   - KPriority: tap for mana only in a main phase (Ruling T25-b -- tapping
+//   - KPriority: tap for mana only in a main phase (tapping
 //     during the upkeep or combat empties the pool before there is anything
 //     worth spending it on), then make a land drop, then cast, then pass.
 //     IsMain comes from b, so whichever adapter built the Board decides
@@ -372,7 +371,7 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //     never non-mana activated abilities (those are "ability"), so it
 //     fills the pool in a main phase before the land drop and cast. Which
 //     "activate" is tapped stays position-first within the offered group;
-//     WHAT the gate asks before tapping any of them is need (tap.go, T1):
+//     WHAT the gate asks before tapping any of them is need (tap.go):
 //     activate only while the pool cannot currently pay ANY card the seat
 //     could cast from a castable zone (hand, command zone, graveyard with
 //     Flashback), priced with the CR 903.8 commander tax when the card sits
@@ -382,15 +381,15 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //     tapped until nothing untapped was left, floating mana in bulk and
 //     letting each step's end (CR 500.4) empty whatever a cast never
 //     spent; the need gate keeps the tap until the first cast opens and
-//     lets the cast take over (measured, op6: the waste share of floated
+//     lets the cast take over (measured: the waste share of floated
 //     mana fell from 32.9% to 22.8% constructed and 28.0% to 24.6%
-//     four-seat commander, see the task report). The land
-//     drop and the cast then order with chooseLand before chooseCast (G0,
-//     cast.go).
-//   - "concede" (M2d-3): never picked. It is another priority option kind,
+//     four-seat commander). The land
+//     drop and the cast then order with chooseLand before chooseCast
+//     (cast.go).
+//   - "concede": never picked. It is another priority option kind,
 //     served last after "pass", but no policy wants to leave the game it
 //     is winning; the explicit kind scans below return before any blind
-//     fallback, and clamp's top-up prefers "pass" (Ruling T25-g), which
+//     fallback, and clamp's top-up prefers "pass", which
 //     legalActions (engine/rules/legal.go) always offers. Unknown option kinds are
 //     otherwise never chosen by this switch at all.
 //   - KTarget: the targeting heuristic in target.go's chooseTargets (R1-R5,
@@ -441,15 +440,11 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 // above that found nothing to pick — falls to the last resort: pass if one
 // is offered and Min == 0, otherwise whatever clamp below tops up with.
 //
-// Ruling T25-c (fix round 1): every branch used to return its pick
-// unclamped, so it only ever validated by coincidence of the Min/Max shapes
-// today's engine happens to emit (engine/rules/stack.go's askTarget already names
-// TargetMin/TargetMax as coming). clamp is now the last thing every return
-// does, so the totality guarantee holds by construction for any Min/Max the
-// wire format allows, not only today's. Every access into d.Options remains
-// guarded against the list being empty.
+// clamp is the last thing every return does, so the totality guarantee holds
+// by construction for any Min/Max the wire format allows, not only today's.
+// Every access into d.Options remains guarded against the list being empty.
 func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
-	// main's 9be52252 promoted AR7 lethal pressure into the default bot, so the
+	// AR7 lethal pressure is part of the default bot, so the
 	// default carries lethalPressure; the AR8 combined-lethal test stays opt-in
 	// (CombinedLethalDecide only), per this branch's 162a8acc.
 	return decide(b, d, r, true, false, false)
@@ -490,28 +485,27 @@ func BlocksDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 // production Decide's answers, and every golden chain head, are unchanged by
 // it. The differences (explore.go) are:
 //
-//   - X1 was promoted into the production policy: A1's attachment no-op
-//     rule applies to attach abilities only for every policy (ability.go,
-//     equipNoOp), so it is no longer an explore difference.
-//   - X2: among the worth-taking abilities the pick is uniform over the
-//     seat's rng instead of A2's cheapest-label ranking, so every loyalty
+//   - The attachment no-op rule applies to attach abilities for every
+//     policy (ability.go, equipNoOp), so it is not an explore difference.
+//   - Among the worth-taking abilities the pick is uniform over the
+//     seat's rng instead of the cheapest-label ranking, so every loyalty
 //     ability and every sibling ability of one source is reached (A2 reads the
 //     first number in the DESCRIPTION, which is not the cost: Brightling's
 //     "+1/-1" mode outranked its three {W} abilities forever).
-//   - X3: in a main phase, with probability 1/3, an ability is activated
+//   - In a main phase, with probability 1/3, an ability is activated
 //     before the land drop and the cast (cycling, channel and other hand
 //     abilities of a card the cast would otherwise always consume).
-//   - X4: outside a main phase, with probability 1/4, an ability is
+//   - Outside a main phase, with probability 1/4, an ability is
 //     activated at an ordinary priority window (combat-only targets, upkeep
 //     windows, a response to a spell on the stack).
-//   - X5: a mana-ability / mana-colour pick is uniform instead of the first
+//   - A mana-ability / mana-colour pick is uniform instead of the first
 //     offer (exploreManaPick).
-//   - X6: mana is floated speculatively (exploreFloat), because the engine
+//   - Mana is floated speculatively (exploreFloat), because the engine
 //     offers an ability only once the floating pool pays it and the
 //     production tap gate floats only toward a castable card.
 //
-// A5's per-source per-turn budget still bounds every repeat, so X3/X4
-// cannot loop a turn, and X6 taps only plain {T} sources, so it ends when
+// The per-source per-turn budget still bounds every repeat, so the early
+// activations cannot loop a turn, and the float taps only plain {T} sources, so it ends when
 // they are all tapped.
 func ExploreDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	b.explore = true
@@ -523,7 +517,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 	switch d.Kind {
 	case decision.KPriority:
 		if b.explore {
-			// X3/X4 (ExploreDecide): the early activation.
+			// ExploreDecide: the early activation.
 			if pick := b.exploreEarlyAbility(d, r); pick >= 0 {
 				in.Choices = []int{pick}
 				return Clamp(d, in)
@@ -541,7 +535,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 					return Clamp(d, in)
 				}
 			}
-			// T1 (tap.go): the need-aware tap gate. The block this replaced
+			// The need-aware tap gate (tap.go). The block this replaced
 			// tapped the first "activate" option in every main phase until
 			// every source was spent -- need-blind and position-first -- which
 			// floated mana in bulk and let each step's end (CR 500.4) empty
@@ -565,7 +559,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				return Clamp(d, in)
 			}
 		}
-		// G0 (cast.go): the land drop ranks before the cast. A land drop is
+		// The land drop ranks before the cast (cast.go). A land drop is
 		// free and unconditional and only raises the mana ceiling for the
 		// rest of the turn, so taking it first is weakly strictly better
 		// than casting first (which would only tie — you would play the
@@ -595,7 +589,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		if b.IsMain {
 			pick := -1
 			if b.explore {
-				pick = b.exploreAbility(d, r) // X2
+				pick = b.exploreAbility(d, r)
 			} else {
 				pick = b.chooseAbility(d)
 			}
@@ -604,26 +598,26 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				return Clamp(d, in)
 			}
 		}
-		// Ruling T25-g (fix round 2): explicitly pass here, before clamp
-		// ever runs. This is the common case -- outside a main phase, or
+		// Explicitly pass here, before clamp ever runs. This is the common
+		// case -- outside a main phase, or
 		// with nothing affordable in one -- and legalActions
 		// (engine/rules/legal.go) lists every "activate" option before "pass", so
 		// without this, clamp's blind first-unused-index top-up (needed
 		// because a priority decision is always Min:1/Max:1, so falling
 		// through with in.Choices empty is not itself a legal answer) would
-		// reach for an activation and reintroduce I-1(b) through the
-		// fallback path -- exactly what fix round 1 missed, because its own
-		// synthetic regression decision carried a play_land option the loop
-		// above matches unconditionally, a shape the live engine never
-		// offers outside sorcery speed. Pass is offered on every priority
+		// reach for an activation through the fallback path, spending mana
+		// on an activation the policy never chose. A test whose synthetic
+		// decision carries a play_land option cannot catch this: the loop
+		// above matches that option unconditionally, a shape the live engine
+		// never offers outside sorcery speed. Pass is offered on every priority
 		// decision the engine emits; if it is somehow absent, this falls
 		// through to the shared last resort below, same as any other kind.
-		// M2d-3: the "concede" option sits directly after "pass" in the
+		// The "concede" option sits directly after "pass" in the
 		// option list, so this explicit scan is also what keeps the bot from
 		// ever conceding -- it returns pass before clamp, or any
 		// position-based fallback, can reach the new final option.
 		if b.explore {
-			// X6 (ExploreDecide): float mana toward abilities.
+			// ExploreDecide: float mana toward abilities.
 			if pick := b.exploreFloat(d, r); pick >= 0 {
 				in.Choices = []int{pick}
 				return Clamp(d, in)
@@ -747,7 +741,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// pre-choice seat, consuming no rng. The kind's contract is that the
 		// self-choice is the option whose Player equals the asking seat; if it
 		// is somehow absent, option 0 (the first offered seat in turn order)
-		// is the clamp-legal fallback, the same R-9 shape every kind shares.
+		// is the clamp-legal fallback, the same no-host shape every kind shares.
 		if len(d.Options) > 0 {
 			in.Choices = []int{d.Options[0].Index}
 			for _, o := range d.Options {
@@ -766,7 +760,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// one source at a time while one is offered, and submit Done once
 		// the engine has closed the source list (its pool covers the
 		// charge). A non-tapping pool converter is never taken here -- see
-		// chooseManaWindow (T4).
+		// chooseManaWindow.
 		if pick, ok := chooseManaWindow(d); ok {
 			in.Choices = []int{pick}
 			return Clamp(d, in)
@@ -774,8 +768,14 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		if len(d.Options) == 0 {
 			break
 		}
+		if !b.explore {
+			if pick := b.chooseManaColour(d); pick >= 0 {
+				in.Choices = []int{pick}
+				return Clamp(d, in)
+			}
+		}
 		if b.explore {
-			// X5 (ExploreDecide): a mana-ability or mana-colour pick (every
+			// ExploreDecide: a mana-ability or mana-colour pick (every
 			// option a "mana" option: the stage-1 "choose a mana ability of
 			// <source>" wheel, or the stage-2 colour ask) is uniform over the
 			// seat's rng instead of the first offer, so a dual land's second
@@ -792,7 +792,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// spell": Chain of Smog, Barroom Brawl) hands the copy to another
 			// seat, whose copy offers the copy back, and two bots that always
 			// accept extend it forever -- a legal loop no state change ever
-			// ends (cardfuzz batch1: Chain of Smog on empty hands, 20000
+			// ends (Chain of Smog on empty hands, 20000
 			// intents in one main phase). Accepting the FIRST link (the
 			// original spell) keeps the card's real value; declining every
 			// copy-of-a-copy bounds each chain at one hand-over. The fact is
@@ -826,7 +826,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		case "destination":
 			// A non-MANDATORY DestAltSVar$ "may put it onto the battlefield
 			// instead" (Green Sun's Twilight, Caravan Vigil, Emeria
-			// Shepherd): take the alternate, the R-9 no-host stand-in's
+			// Shepherd): take the alternate, the no-host stand-in's
 			// direction, so an answered ask moves the same cards.
 			in.Choices = []int{d.Options[0].Index}
 			for _, o := range d.Options {
@@ -839,7 +839,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// preserve it via AllowNone; no artificial power-valued option exists.
 		case "gift_decline", "gift_promise":
 			// CR 702.168: the Gift election. The deterministic bot declines
-			// (the plain-cast direction, exactly the R-9 no-ask stand-in's
+			// (the plain-cast direction, exactly the no-host stand-in's
 			// behaviour), selected by KIND rather than index so a reordered
 			// option list that put a promise first still takes the decline.
 			// The option Kind is the one shared identifier the engine's
@@ -904,19 +904,23 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		case "name":
 			// The full corpus list is deliberately large and hidden cards are
 			// not available in Board. Choose its deterministic first legal name;
-			// this is also the R-9 no-host fallback and always validates.
+			// this is also the no-host fallback and always validates.
 			in.Choices = []int{d.Options[0].Index}
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
-		case "tapcost", "waterbend_generic", "improvise_generic", "activation_creature", "convoke_generic",
-			"convoke_W", "convoke_U", "convoke_B", "convoke_R", "convoke_G":
+		case "tapcost", "waterbend_generic", "activation_creature":
 			in.Choices = b.tapHelperChoices(d)
+		case "improvise_generic", "convoke", "convoke_generic", "convoke_W", "convoke_U", "convoke_B", "convoke_R", "convoke_G":
+			in.Choices = b.castHelperChoices(d)
+			if len(in.Choices) == 0 {
+				in.Choices = b.tapHelperChoices(d)
+			}
 		case "harmonize":
 			in.Choices = []int{chooseHarmonize(d)}
 		case "discard":
 			in.Choices = b.chooseDiscard(d)
 		case "exile":
-			// Preserve the existing exile policy: this task adds sacrifice
+			// Keep the existing exile policy: this branch adds sacrifice
 			// choices, not a new policy for unrelated exile effects.
 			in.Choices = b.chooseWorst(d)
 		case "sacrifice":
@@ -929,7 +933,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				in.Choices = []int{d.Options[0].Index}
 			}
 		case "tap":
-			// A Tap's CardChoices$ pick (tapChoices): the R-9 stand-in is
+			// A Tap's CardChoices$ pick (tapChoices): the no-host stand-in is
 			// the minimum, so an AnyNumber$ (Min 0) ask answers none and a
 			// fixed count takes the first Min offers in battlefield order.
 			for i := 0; i < len(d.Options) && i < d.Min; i++ {
@@ -963,7 +967,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// Infernal Tutor's "Reveal a card from your hand"): take the
 			// first Max options in offered (zone) order
 			// -- the exact mirror of effDig's / effChangeZoneHand's /
-			// effHiddenPick's / putCounterPickDistribute's no-ask stand-in (R-9),
+			// effHiddenPick's / putCounterPickDistribute's no-host stand-in,
 			// so a bot-answered ask emits
 			// the same MoveZone events the silent build did and no golden game
 			// moves for the ask alone. An Optional$ Min-0 ask still takes the
@@ -1074,7 +1078,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		case "move_counter":
 			// A MoveCounter CounterNum$ Any amount pick: unlike the shared
 			// first-Max arm above, option 0 here means "move ZERO counters",
-			// not "take the first offered object". The R-9 no-host stand-in
+			// not "take the first offered object". The no-host stand-in
 			// effMoveCounter takes is take-ALL, so the bot must answer the
 			// option whose Amount is the offered maximum, or a bot-answered
 			// ask would move fewer counters than the silent build and a golden
@@ -1110,7 +1114,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				}
 			}
 		case "player":
-			// api:Vote's PLAYER ballot (ResumeKind "vote", task votepb1): each
+			// api:Vote's PLAYER ballot (ResumeKind "vote"): each
 			// voter picks the player who should receive the vote. Take the first
 			// offered entry that is not the voter themselves -- a vote that
 			// damages or rewards its caster's own seat is the one a real player
@@ -1131,7 +1135,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			}
 		case "search":
 			// A budgeted search (WithTotalCMC$, so d.MaxSum > 0) mirrors its
-			// R-9 stand-in, which picks greedy[:min]: for a quantity-only
+			// no-host stand-in, which picks greedy[:min]: for a quantity-only
 			// filter the engine lowers Min to the forced greedy count (the
 			// mandatory-budget rule), so a fill up to d.Min IS the greedy set;
 			// for a stated-quality filter Min stays 0 and the stand-in finds
@@ -1345,6 +1349,185 @@ func (b Board) tapHelperChoices(d *decision.Decision) []int {
 	return picks
 }
 
+// castHelperChoices answers a Convoke or Improvise announcement the seat's mana
+// can't finish alone (CR 601.2g-h): the permanents that make no mana and leave the
+// rest of the cost, at its lowest X, payable. It is nil when the seat's mana pays
+// the cost alone or no such permanents reach it. An answer tapping too few reverses
+// the cast, and the ask's Min can't say which picks those are: a second creature of
+// one colour can be an illegal answer.
+//
+// It reads only the Board and the offered objects, so a seat rebuilding the ask from
+// a plain observation answers the same: an offer's own Kind names the pip it pays
+// only on the native decision. It prices the printed cost, as the tap gate does. A
+// helper pays the first outstanding pip of its colours, the same contribution a v2
+// seat's selection of that object commits, else one generic.
+func (b Board) castHelperChoices(d *decision.Decision) []int {
+	spell := b.announcedSpell(d)
+	if spell == nil {
+		return nil
+	}
+	pips := colourPips(spell.ManaCost)
+	generic := CmcOf(spell.ManaCost)
+	for _, n := range pips {
+		generic -= n
+	}
+	if b.manaReaches(pips, generic) {
+		return nil
+	}
+	coloured := false
+	for i := range d.Options {
+		coloured = coloured || d.Options[i].Kind != "improvise_generic"
+	}
+	type helper struct {
+		option, pip int // pip is the WUBRG slot it pays, -1 for one generic
+	}
+	var helpers []helper
+	var offered []state.ObjID
+	for i := range d.Options {
+		o := &d.Options[i]
+		if slices.Contains(offered, o.Obj) {
+			continue
+		}
+		offered = append(offered, o.Obj)
+		if !b.Cards.Get(o.Obj).Produces.IsZero() {
+			continue
+		}
+		pip := -1
+		if coloured {
+			colours := b.PublicCards.Get(o.Obj).Colour
+			for slot, n := range pips {
+				if n > 0 && colours&(1<<slot) != 0 {
+					pip = slot
+					break
+				}
+			}
+		}
+		switch {
+		case pip >= 0:
+			pips[pip]--
+		case generic > 0:
+			generic--
+		default:
+			continue
+		}
+		helpers = append(helpers, helper{option: helperOffer(d, o.Obj, pip), pip: pip})
+		if b.manaReaches(pips, generic) {
+			break
+		}
+	}
+	if !b.manaReaches(pips, generic) {
+		return nil
+	}
+	var picks []int
+	for _, h := range helpers {
+		backPips, backGeneric := pips, generic
+		if h.pip >= 0 {
+			backPips[h.pip]++
+		} else {
+			backGeneric++
+		}
+		if b.manaReaches(backPips, backGeneric) {
+			pips, generic = backPips, backGeneric
+			continue
+		}
+		picks = append(picks, h.option)
+	}
+	return picks
+}
+
+// helperOffer is the option that commits obj to the pip (a WUBRG slot, -1 for one
+// generic): the offer naming that contribution where the ask names them, else the
+// object's first, which is the one option a rebuilt ask has for it.
+func helperOffer(d *decision.Decision, obj state.ObjID, pip int) int {
+	kind := "convoke_generic"
+	if pip >= 0 {
+		kind = "convoke_" + string("WUBRG"[pip])
+	}
+	first := -1
+	for i := range d.Options {
+		o := &d.Options[i]
+		if o.Obj != obj {
+			continue
+		}
+		if o.Kind == kind {
+			return o.Index
+		}
+		if first < 0 {
+			first = o.Index
+		}
+	}
+	return first
+}
+
+// announcedSpell is the deciding seat's spell an announcement d pays for: the top
+// of the stack, as d names it. It is nil when d names anything else.
+func (b Board) announcedSpell(d *decision.Decision) *StackEntry {
+	if len(b.Stack) == 0 {
+		return nil
+	}
+	top := &b.Stack[len(b.Stack)-1]
+	if top.ID != d.Source || !top.IsSpell || top.Controller != d.Player || top.ManaCost == "" {
+		return nil
+	}
+	return top
+}
+
+// manaReaches reports whether the seat's unrestricted pool and its untapped mana
+// sources can pay pips and generic. A source that lists several colours makes one of
+// them per tap, so each set of colours needs that many sources (Hall's condition);
+// the pool pays first, and what it leaves pays generic. The answer doesn't depend on
+// the order of the Board's tables.
+func (b Board) manaReaches(pips [5]int32, generic int32) bool {
+	spare := b.Pool[5] - b.PoolRestricted[5]
+	var short int32
+	for slot, n := range pips {
+		pool := b.Pool[slot] - b.PoolRestricted[slot]
+		spare += max(pool-n, 0)
+		pips[slot] = max(n-pool, 0)
+		short += pips[slot]
+	}
+	cs := b.Cards.Values()
+	sourceMakes := func(i int, slots int) int32 {
+		var most int32
+		for slot, n := range cs[i].Produces.Colour {
+			if slots&(1<<slot) != 0 {
+				most = max(most, n)
+			}
+		}
+		return most
+	}
+	usable := func(i int) bool {
+		c := &cs[i]
+		return c.OnBattlefield && !c.Tapped && !(c.Creature && c.Sick)
+	}
+	for set := 1; set < 1<<5; set++ {
+		var need, have int32
+		for slot, n := range pips {
+			if set&(1<<slot) != 0 {
+				need += n
+			}
+		}
+		if need == 0 {
+			continue
+		}
+		for i := range cs {
+			if usable(i) {
+				have += sourceMakes(i, set)
+			}
+		}
+		if have < need {
+			return false
+		}
+	}
+	var total int32
+	for i := range cs {
+		if usable(i) {
+			total += sourceMakes(i, 1<<6-1)
+		}
+	}
+	return total+spare >= short+generic
+}
+
 // chooseHarmonize returns the index of the harmonize option to take. CR
 // 702.180a/b lets the caster tap at most one creature and choose which, so
 // take the largest offered power (ties keep the first offered), funding as
@@ -1447,7 +1630,7 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 }
 
 // Clamp enforces [Min, Max] on top of whatever a policy's switch (or its
-// fallback) picked (Ruling T25-c): truncate to at most Max, in the order
+// fallback) picked: truncate to at most Max, in the order
 // already chosen, then -- if that leaves fewer than Min -- top up with the
 // lowest-index unused options until Min is reached or none remain. It is the
 // shared last resort every botpolicy return runs and the one heuristic.PolicyNetBot
@@ -1455,15 +1638,14 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 // from it.
 // the ones reachable today.
 //
-// Ruling T25-g (fix round 2): the top-up prefers an unused "pass" option
+// The top-up prefers an unused "pass" option
 // over anything else. The KPriority branch above already returns "pass"
 // explicitly before clamp ever runs, so this is defense in depth for
 // whatever reaches here anyway (an absent "pass", or a future caller) --
 // without it, a blind first-unused-index top-up would reach for whatever
 // legalActions (engine/rules/legal.go) happens to list first, which is every
-// "activate" option, before "pass". That is precisely how fix round 1's own
-// clamp reintroduced I-1(b): a Min:1 priority decision falling through with
-// nothing chosen got topped up into an activation instead of a pass.
+// "activate" option, before "pass": a Min:1 priority decision falling through
+// with nothing chosen would be topped up into an activation instead of a pass.
 func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 	// A same-controller target answer must be repaired as one controller's
 	// complete decision, not by retaining the first controller in the input:

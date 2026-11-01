@@ -23,7 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/server/spellbench/xview"
 )
 
-// Record is how the agent played one native decision, for Task 28b's parity
+// Record is how the agent played one native decision, for the parity
 // audit: the bot's plan (its intent, and its answers to the folded follow-ups
 // it was asked, keyed as the payload keys them) and the substeps no op
 // matched: Forced when the decision had a single candidate, Fallbacks
@@ -39,6 +39,9 @@ type Record struct {
 }
 
 type Server struct {
+	// OnGameOver, when set, runs on the first game_over of a game, before its
+	// ack: a client may kill the process as soon as it reads the ack.
+	OnGameOver        func()
 	policy            string
 	identity          Policy
 	bot               seat.Seat
@@ -82,7 +85,7 @@ func (s *Server) Fallbacks() int { return s.fallbacks }
 
 func (s *Server) Forced() int { return s.forced }
 
-// Records exposes the current game's native decisions to Task 28b's audit.
+// Records exposes the current game's native decisions to the audit.
 func (s *Server) Records() map[uint64]*Record { return s.records }
 
 func (s *Server) PolicyKey() string { return s.policy }
@@ -209,7 +212,11 @@ func (s *Server) Handle(line []byte) (resp []byte) {
 		base["response_type"] = "choice"
 		base["selection"] = map[string]uint32{"candidate_id": s.choose(q)}
 	case "game_over":
+		first := !s.gameOverReceived
 		s.gameOverReceived = true
+		if first && s.OnGameOver != nil {
+			s.OnGameOver()
+		}
 		base["response_type"] = "ack"
 	default:
 		base["response_type"] = "ack"

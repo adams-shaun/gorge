@@ -220,7 +220,7 @@ func effChangeText(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// deterministicTextWord is the R-9 no-host / empty-list stand-in: the first
+// deterministicTextWord is the no-host / empty-list stand-in: the first
 // offered word in the list's own deterministic order (the lists are fixed or
 // sorted), so a no-host run still records a concrete substitution rather than
 // inventing an off-list word.
@@ -317,7 +317,7 @@ func registerTextSet(h Host, c *Ctx, id state.ObjID, text string, keywordGrant [
 	// NOTE: this exchanges keywords, not ACTIVATED/TRIGGERED abilities, which
 	// the engine still enumerates off the printed face (the same limitation
 	// that keeps a Humility'd creature's triggered abilities firing); that
-	// remainder is documented in the ticket report, not silently claimed.
+	// remainder is not claimed.
 	ceAbilities := state.ContinuousEffect{
 		Source: id, DurationSource: c.Source, Affects: "Card.Self", Controller: c.Controller,
 		Layer: state.LAbilities, RemoveAbilities: true,

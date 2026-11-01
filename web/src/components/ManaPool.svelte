@@ -1,7 +1,7 @@
 <script lang="ts">
   /**
    * ManaPool draws the seat box's line-3 mana readout, which the product spec
-   * (B1) defines as "the mana pool OR free mana one gains by tapping lands or
+   * defines as "the mana pool OR free mana one gains by tapping lands or
    * other effects". Those are two different things and the box has one row, so
    * this renders BOTH, deliberately distinct:
    *

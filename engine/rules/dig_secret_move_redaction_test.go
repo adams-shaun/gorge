@@ -13,7 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// cr-g47: a Dig over ANOTHER player's library moves the card it takes with
+// A Dig over ANOTHER player's library moves the card it takes with
 // a Secret MoveZone. Secret's Player is the one seat redaction rule 1 hands
 // the payload to (engine/view/redact.go), so it must name the seat that
 // LOOKED -- the Dig's chooser (CR 701.29a; "look at the top card of target
@@ -157,7 +157,7 @@ func TestHideawayExileIsSeatOnesSecretNotSeatZeros(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
 	e.putTriggersOnStack()
 	mark := len(e.L.Events)
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	pick := e.Pending()
 	if pick == nil || pick.Kind != decision.KChoose || pick.Player != 1 || len(pick.Options) != 4 {
 		t.Fatalf("Hideaway pick = %+v, want seat 1's four-card choice", pick)

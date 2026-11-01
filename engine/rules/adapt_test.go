@@ -1,6 +1,6 @@
 package rules
 
-// Task param-adapt (CR 702.35a): Adapt$ N on AB$ PutCounter was unread --
+// CR 702.35a: Adapt$ N on AB$ PutCounter was unread --
 // the activation was offered without the CR 702.35a gate ("Activate only if
 // this creature has no +1/+1 counters on it") and, worse, resolved placing
 // the CounterNum$-default ONE counter instead of N. effPutCounter now reads

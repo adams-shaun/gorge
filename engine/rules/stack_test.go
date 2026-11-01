@@ -280,7 +280,7 @@ func TestResolveDoesAsMuchAsItCanWhenSomeTargetsAreStillLegal(t *testing.T) {
 	}
 }
 
-// --- Task 13 gap-closing coverage -----------------------------------------
+// --- Gap-closing coverage -----------------------------------------
 //
 // legal_test.go and fix1_test.go's Submit-driven tests (TestPlayLandReplay-
 // ThroughSubmit, TestActivateManaAbilityReplayThroughSubmit) could not cover
@@ -300,7 +300,7 @@ func TestResolveDoesAsMuchAsItCanWhenSomeTargetsAreStillLegal(t *testing.T) {
 // matter how the live game got its cards. That is the same, already-
 // established boundary TestPlayLandReplayThroughSubmit and
 // TestActivateManaAbilityReplayThroughSubmit observe for LandsPlayed/Tapped;
-// Task 24 (replay) is what recombines a Config with a log to reconstruct
+// Replay recombines a Config with a log to reconstruct
 // object-scoped state.
 
 // TestCastReplayThroughSubmit drives a full cast -> target -> resolve cycle
@@ -472,10 +472,10 @@ func TestActivateManaAbilityProducesMana(t *testing.T) {
 	}
 }
 
-// --- Fix round 1: Ruling T14-e -- the caster keeps priority ---------------
+// --- The caster keeps priority ---------------
 //
 // CR 117.3c: the player who cast a spell (or chose its target) keeps
-// priority. All three Priority emits Ruling T14-a moved behind events used
+// priority. All three Priority emits moved behind events used
 // e.G.Active as the value, which is right only when the caster happens to
 // be the active player -- every test above casts as the active player
 // (seat 0), so none of them could have caught this. These two tests build a
@@ -511,7 +511,7 @@ func passToPlayerOne(t *testing.T, e *Engine) {
 }
 
 // TestNonActiveCasterKeepsPriorityNoTarget: player 1 casts a no-target
-// instant. Before Ruling T14-e, castSpell's trailing Priority emit used
+// instant. castSpell's trailing Priority emit must not use
 // e.G.Active (0), clobbering the correct value legal.go's "cast" case had
 // just emitted.
 func TestNonActiveCasterKeepsPriorityNoTarget(t *testing.T) {
@@ -561,8 +561,8 @@ func TestNonActiveCasterKeepsPriorityNoTarget(t *testing.T) {
 }
 
 // TestNonActiveCasterKeepsPriorityWithTarget is the targeted counterpart:
-// player 1 casts Lightning Bolt and chooses its target. Before Ruling
-// T14-e, handleTarget's trailing Priority emit used e.G.Active (0) instead
+// player 1 casts Lightning Bolt and chooses its target.
+// handleTarget's trailing Priority emit must not use e.G.Active (0) instead
 // of the submitting player.
 func TestNonActiveCasterKeepsPriorityWithTarget(t *testing.T) {
 	t.Parallel()
@@ -716,7 +716,7 @@ func TestNonActiveCasterReplayThroughSubmit(t *testing.T) {
 
 // putLands places n fixture Mountains directly onto seat p's battlefield with
 // the same bypass-the-events direct-zone write the package's other onBoard
-// helper uses, and returns their IDs. The brief's "three Mountains onto seat
+// helper uses, and returns their IDs. The "three Mountains onto seat
 // 1's battlefield" arms a multi-target cast trigger with candidates.
 func putLands(t *testing.T, e *Engine, p state.PlayerID, n int) []state.ObjID {
 	t.Helper()
@@ -741,7 +741,7 @@ func putLands(t *testing.T, e *Engine, p state.PlayerID, n int) []state.ObjID {
 // the two chosen mountains actually leave the battlefield for exile while the
 // Titan spell resolves to the battlefield.
 //
-// Why the TriggerZones$ Stack is load-bearing here instead of the brief's
+// Why the TriggerZones$ Stack is load-bearing here instead of the
 // unmodified fixture (a bare `T:Mode$ SpellCast` with no TriggerZones$): the
 // spell's own source sits ON the stack when its cast trigger fires, and
 // zoneGate's default trigger zone is Battlefield, so a spell-on-stack source
@@ -824,7 +824,7 @@ func TestTgtZoneGraveyardOffersGraveyardCards(t *testing.T) {
 	}
 }
 
-// TestTargetBoundsClampsTargetMaxNotDiscardsIt is fix-round-1's rendering of
+// TestTargetBoundsClampsTargetMaxNotDiscardsIt renders
 // targetBounds' documented contract: the rule is clamp, not ignore. A
 // TargetMax$ that parses to 0 (or a negative number) is taken seriously and
 // clamped to >= 1 and >= Min -- never silently dropped back to the default of

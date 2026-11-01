@@ -16,7 +16,7 @@ const obstinateTapeDrawSrc = "Name:Obstinate Tape Draw\nManaCost:B\nTypes:Sorcer
 // a legacy decision after the spell continues.
 func TestObstinateFamiliarOptionalDrawDuringResolutionUsesTape(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	e, _ := kr8Fixture(t, 2, 20261005, obstinateTapeDrawSrc)
+	e, _ := kernelFixture(t, 2, 20261005, obstinateTapeDrawSrc)
 	familiar := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Obstinate Familiar"))
 	if o := e.G.Obj(familiar); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatal("precondition: Obstinate Familiar is not on the battlefield")

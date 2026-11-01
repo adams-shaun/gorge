@@ -16,7 +16,7 @@ import (
 //     that convoked the cast draws one, discards one (a real KModes ask when
 //     the hand holds more than one card — the strict-supersets rule), and a
 //     nonland discard puts the +1/+1 counter on the conniver (a land discard
-//     puts none). This is the corpus carrier the brief names, and it pins
+//     puts none). This is the corpus carrier, and it pins
 //     the Defined$ Convoked selector through the real convoke announcement
 //     (engine/rules/cast.go's convokeAsk -> the pay-time FlagConvoked CastInfo ->
 //     Object.Convoked -> effects' definedSpec).
@@ -203,7 +203,7 @@ func castLethalSchemeAtBear(t *testing.T, e *Engine, opponentBear, convokeWith s
 	return passUntilNonPriority(t, e, 30)
 }
 
-// TestLethalSchemeConvokedConniveNonlandDiscardCounters is the brief's main
+// TestLethalSchemeConvokedConniveNonlandDiscardCounters is the main
 // pin: the convoked creature connives (draws one, is ASKED which card to
 // discard), and discarding a nonland card puts the +1/+1 counter on it.
 func TestLethalSchemeConvokedConniveNonlandDiscardCounters(t *testing.T) {
@@ -454,6 +454,13 @@ func TestLedgerShredderConnivesWithOneCardHandWithoutAsking(t *testing.T) {
 	if !sawRecord {
 		t.Fatal("no events.Connive record for the trigger connive")
 	}
+}
+
+// CR 701.50e: with no creature dead this turn the Vault's connive is connive 0,
+// which is no event, so Iron Monger doesn't trigger.
+func TestConniveZeroIsNoEvent(t *testing.T) {
+	t.Parallel()
+	playRuleScenario(t, `{"name":"vault-connive-zero","cr":["701.50e"],"why":"connive 0 triggers nothing","setup":{"p0":{"battlefield":["Spymaster's Vault","Iron Monger, Sadistic Tycoon","Grizzly Bears"],"hand":["Island"],"mana":"B"},"p1":{}},"steps":[{"op":"activate","seat":0,"card":"p0:Spymaster's Vault","ability":"connives","mana":"B","targets":["p0:Grizzly Bears"]},{"op":"resolve","expect":[{"stack_size":0}]}],"expect":[{"card":"p0:Iron Monger, Sadistic Tycoon","counters":{}},{"hand_size":{"p0":1}}]}`)
 }
 
 // TestConnivesTriggerFiresForIronMonger pins trig:Connives end to end: Iron

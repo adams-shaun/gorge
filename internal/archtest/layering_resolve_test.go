@@ -11,7 +11,7 @@ import (
 )
 
 // layering_resolve_test.go pins engine/rules/resolve, the L6 resolution kernel of
-// the rules-engine lasagna (spec 2026-10-03 §3 and §7, W3): checkpoint at the
+// the rules-engine layering (spec 2026-10-03 §3 and §7, W3): checkpoint at the
 // intent boundary that begins a resolution, the intent tape, and the
 // ask/answer protocol, read and driven through the resolve.Board interface
 // package rules implements. Its rows live in their own file (not
@@ -167,7 +167,7 @@ func TestResolveBoardOnlyShrinks(t *testing.T) {
 	case n > resolveBoardMethods:
 		t.Errorf("resolve.Board has %d methods, above the frozen ceiling of %d. This is a SHRINK-ONLY "+
 			"ratchet: fold the need into an existing Board method instead of adding one. A raised "+
-			"constant is a MAJOR review finding.", n, resolveBoardMethods)
+			"constant needs a review.", n, resolveBoardMethods)
 	case n < resolveBoardMethods:
 		t.Logf("resolve.Board has %d methods, below the ceiling of %d: lower resolveBoardMethods in "+
 			"internal/archtest/layering_resolve_test.go to %d in the same commit.", n, resolveBoardMethods, n)

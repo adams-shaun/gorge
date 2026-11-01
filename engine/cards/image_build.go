@@ -165,7 +165,7 @@ func buildImage(cards []*Card, tokens map[string]*Card) (*Image, error) {
 // Encode of the same cacheFile), so re-encoding the decoded corpus only to
 // hash it again -- ~670 MB of short-lived buffers on every process start,
 // which fragmented the long-lived heap and raised every later GC's mark cost
-// (enginebench clone row, 2026-10-13) -- is skipped. A nil canon computes it.
+// (enginebench clone row) -- is skipped. A nil canon computes it.
 func buildImageHashed(cards []*Card, tokens map[string]*Card, canon *[sha256.Size]byte) (*Image, error) {
 	im := &Image{Hdr: ImageHeader{Schema: imageSchema, CacheVersion: cacheVersion}}
 	copy(im.Hdr.Magic[:], "gorgeimg")

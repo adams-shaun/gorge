@@ -8,7 +8,7 @@ import (
 )
 
 // adNauseamRepeatSA returns Ad Nauseam's real corpus Repeat ability -- the
-// brief's named carrier for RepeatOptional$ -- after asserting the shape the
+// named carrier for RepeatOptional$ -- after asserting the shape the
 // feature reads is still present. Tying the no-host leaf to the real corpus
 // card (rather than an invented SA) is what keeps this test honest if the
 // script shape moves.
@@ -38,7 +38,7 @@ func adNauseamRepeatSA(t *testing.T) *cards.SA {
 	return repeat
 }
 
-// TestAdNauseamRepeatOptionalNoHostRunsOneIterationThenStops is the brief's
+// TestAdNauseamRepeatOptionalNoHostRunsOneIterationThenStops is the
 // deterministic no-host half: on a host whose Ask reports no channel (the
 // engine's R-9 degradation), a RepeatOptional$ do/while runs the body EXACTLY
 // once and stops -- it neither spins to the 1000-iteration guard nor skips

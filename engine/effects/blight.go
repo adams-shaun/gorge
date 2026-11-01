@@ -107,7 +107,7 @@ func effBlight(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 
-			// R-9 no-host stand-in: the first eligible creature in zone
+			// No-host stand-in: the first eligible creature in zone
 			// order — the exact pick botpolicy's clamp fallback answers, so
 			// a bot-answered ask emits the same events this silent path does.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,

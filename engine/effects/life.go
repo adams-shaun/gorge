@@ -18,7 +18,7 @@ func init() {
 }
 
 // effGainLife and effLoseLife both clamp a negative LifeAmount$ to zero,
-// mirroring Ruling T14-f's DealDamage/Mana clamps: LifeChange's Apply case is
+// mirroring the DealDamage/Mana clamps: LifeChange's Apply case is
 // a plain "+= Amount", so an unclamped negative would silently flip the
 // direction of the effect (a life-gain spell that drains, or vice versa)
 // instead of doing nothing.

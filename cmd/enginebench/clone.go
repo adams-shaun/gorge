@@ -16,7 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// rootTurns are the mid-game turns docs/015 copied at (turns 5-8).
+// rootTurns are the mid-game turns the comparison copied at (turns 5-8).
 var rootTurns = []int32{5, 6, 7, 8}
 
 type rootInfo struct {

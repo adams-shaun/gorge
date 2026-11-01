@@ -21,7 +21,7 @@ func (b Board) worthAbilities(d *decision.Decision) []int {
 	return out
 }
 
-// exploreAbility is X2 (ExploreDecide): a uniform pick, over the seat's rng,
+// exploreAbility is ExploreDecide's mid-window spend: a uniform pick, over the seat's rng,
 // among the worth-taking abilities, or -1 when none is. The rng is consumed
 // only when there is something to pick, and the pick is a pure function of
 // the options and the rng state, so the policy stays deterministic.
@@ -33,7 +33,7 @@ func (b Board) exploreAbility(d *decision.Decision, r *rand.Rand) int {
 	return w[r.IntN(len(w))]
 }
 
-// exploreEarlyAbility is X3/X4 (ExploreDecide): with probability 1/3 in a
+// exploreEarlyAbility is ExploreDecide's early spend: with probability 1/3 in a
 // main phase (before the land drop and the cast), or 1/4 at any other
 // priority window, activate a uniformly chosen worth-taking ability.
 // Returns -1 when the coin says no or nothing is worth taking.
@@ -47,7 +47,7 @@ func (b Board) exploreEarlyAbility(d *decision.Decision, r *rand.Rand) int {
 	case b.IsMain:
 		n = 3
 	case b.Pool.Total() > 0:
-		// Outside a main phase floating mana is only ever X6's own float,
+		// Outside a main phase floating mana is only ever exploreFloat's own float,
 		// which exists to pay for exactly this: spend it.
 		n = 1
 	}
@@ -57,17 +57,17 @@ func (b Board) exploreEarlyAbility(d *decision.Decision, r *rand.Rand) int {
 	return w[r.IntN(len(w))]
 }
 
-// exploreFloat is X6 (ExploreDecide): the engine offers an ability only
+// exploreFloat is ExploreDecide's float: the engine offers an ability only
 // once the FLOATING pool can pay it (the float-then-act payment model,
 // engine/rules/legal.go), and the production tap gate (chooseTap) floats mana only
 // toward a castable card, in a main phase. So an ability costing mana was
 // offered only when a cast happened to leave enough floating -- never
 // outside a main phase (an upkeep-only or combat-only ability, a response)
-// and never for a cost above the leftover (Tower of Eons' {8}). X6 floats
+// and never for a cost above the leftover (Tower of Eons' {8}). It floats
 // mana speculatively: with an empty pool, with probability 1/3 in a main
 // phase or 1/6 elsewhere, it taps one plain {T} mana source; once the pool
 // holds mana it keeps tapping (every tap is a new priority window, where
-// X2/X4 can spend the pool on a now-affordable ability). Only bare-tap
+// the spend rules can use the pool on a now-affordable ability). Only bare-tap
 // "activate" options are taken (Option.Cost empty), so a float never
 // sacrifices, pays life or loops a free repeatable ability, and it ends when
 // the untapped sources do. Returns -1 when it does not tap.
@@ -93,7 +93,7 @@ func (b Board) exploreFloat(d *decision.Decision, r *rand.Rand) int {
 	return taps[r.IntN(len(taps))]
 }
 
-// exploreManaPick is X5 (ExploreDecide): when every option of d is a "mana"
+// exploreManaPick is ExploreDecide's mana pick: when every option of d is a "mana"
 // option, a uniform pick over the seat's rng; ok is false for any other
 // shape.
 func exploreManaPick(d *decision.Decision, r *rand.Rand) (int, bool) {

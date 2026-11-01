@@ -35,7 +35,7 @@ func handChangeNum(cz *ChangeZoneParams) (int32, bool) {
 // Sculptor's [0], Sawtooth Loon, Burgeoning). The mechanics -- the ask gate
 // (the dig1/effDiscard strict-supersets rule), explicit markers plus real
 // card/script text for markerless optionality (never an assumed "may"), the
-// the R-9 stand-in, the Destination$ Library placement
+// no-host stand-in, the Destination$ Library placement
 // (absent LibraryPosition$ = TOP in answer order; Shuffle$ True randomises instead)
 // and the unread-parameter list -- are handMoveOwnersWalk's, which this
 // delegates to with the one-owner, chooser==owner, no-random configuration.
@@ -347,11 +347,11 @@ func handMoveChooserFor(h Host, c *Ctx, cz *ChangeZoneParams, owner state.Player
 // a meaningful answer even when taking every card is the only nonempty pick
 // (an empty-only ChangeNum$ 0 is never posted and takes the stand-in, which
 // moves nothing). An answer is moved exactly as answered, revalidated against
-// the CURRENT hand and filter; a host with no answer takes the R-9 stand-in.
+// the CURRENT hand and filter; a host with no answer takes the no-host stand-in.
 //
 // The whole-hand shape (handmove1/rv2b r1) is the one-owner case of this
-// walk, with the chooser == the owner -- the r1 contracts (ask shape, card
-// text/explicit-marker optionality, R-9 stand-in text, zero-eligible silence,
+// walk, with the chooser == the owner -- the contracts (ask shape, card
+// text/explicit-marker optionality, no-host stand-in text, zero-eligible silence,
 // library tail) are this walk's contracts, unchanged. Still unread here, each
 // a scoped-out follow-up:
 // Destination$ Hand/Sideboard oddities (2 lines), and any ConditionPresent$/
@@ -514,7 +514,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 				}}
 			// Answered in place: a decline skips this
 			// owner with the remembered set intact and an acceptance enters
-			// the fetch. R-9: with no answer, play "may" as "do"
+			// the fetch. No-host path: with no answer, play "may" as "do"
 			// deterministically, the same fallback moveDefinedLibraryObjects
 			// applies.
 			if ans, ok := AskTape(h, cd); ok {
@@ -652,7 +652,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 			continue
 		}
 		unposable := askUnposable(d)
-		// R-9: a host without a decision channel cannot ask a player, so it
+		// No-host path: a host without a decision channel cannot ask a player, so it
 		// supplies the deterministic answer in the player's place -- the first
 		// ChangeNum eligible cards in the same ordered eligible list the
 		// decision's options were built from.

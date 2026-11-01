@@ -76,7 +76,7 @@ go build -trimpath -o bin/ ./cmd/spellbench-gorge-env ./cmd/spellbench-gorge-age
 | `-source-revision REV` | env | reported as `engine.source_revision` |
 | `-policy KEY` | agent | a registered bot policy, default `bot`; `-list-policies` prints them |
 | `-world WORLD` | agent | `gorge` (the default) or `neutral`; see below |
-| `-audit-dir DIR` | agent | write aggregate policy coverage there when the process closes (or `$GORGE_AGENT_AUDIT_DIR`) |
+| `-audit-dir DIR` | agent | write aggregate policy coverage there, one file before each `game_over` ack and one if the process closes mid-game (or `$GORGE_AGENT_AUDIT_DIR`) |
 
 `-corpus` defaults to `$GORGE_CARDS`. The env needs `-corpus` or the pair `-registry` + `-registry-sha256`,
 and exits 2 without them, or when a catalog deck doesn't resolve.
@@ -531,7 +531,7 @@ What gorged's seat sent an agent, with decklists, names, `decision_kinds` and th
   "request_type": "game_start", "protocol": "spellbench/v2", "request_id": "r-2",
   "agent_seed": 608617540958772, "game_id": "g-0faf80117d331ab5", "seat": "p1",
   "format": "constructed",
-  "engine": {"name": "gorge", "version": "gorge-3a3ffb962e9c/spellbench-adapter-0.1.0", "source_revision": null,
+  "engine": {"name": "gorge", "version": "gorge-3a3ffb962e9c/spellbench-adapter-0.1.0/autopay", "source_revision": null,
     "rules_snapshot_id": "gorge/3a3ffb962e9c/ir-e75c8c4eca7565be05788becfbe41c3c",
     "card_pool_identity": "forge-91402ac51104/corpus-a59b417462be378f/catalog-ddaa89bf514cd72d"},
   "engine_profile": {"decision_kinds": ["activate_ability", "activate_mana_ability", "arrange_card"],
@@ -797,8 +797,8 @@ server's JSON 404 `{"code":"not_found","message":"no such endpoint"}`.
 
 | Route | Answers |
 |---|---|
-| `GET /api/sbv2/v1/tables/{t}/matches/{k}/state` | `{"request": R}`: the seat's open request, or `null` between decisions |
-| `GET /api/sbv2/v1/tables/{t}/matches/{k}/stream` | Server-Sent Events: `data: {"request": R}` on connect and on each change, including `null` when a request closes. A reconnect re-serves what's open |
+| `GET /api/sbv2/v1/tables/{t}/matches/{k}/state` | `{"request": R}`: the seat's open request, or `null` between decisions. [Attaches the seat](#attaching-a-seat) |
+| `GET /api/sbv2/v1/tables/{t}/matches/{k}/stream` | Server-Sent Events: `data: {"request": R}` on connect and on each change, including `null` when a request closes. A reconnect re-serves what's open. [Attaches the seat](#attaching-a-seat) |
 | `POST /api/sbv2/v1/tables/{t}/matches/{k}/send` | answers the open request; `204` with no body |
 
 The seat is the claim of the [native wire's seat token](http.md), given as `Authorization: Bearer` or
@@ -867,13 +867,46 @@ priority `activate` candidates, are ratcheted in
 The routes have no `terminal` or `game_over`. When a match ends, `request` stays `null`; read the result from the
 [native routes](http.md), for example `over` and `winner` in `GET /api/tables/{t}/matches/{k}/view`.
 
+### Attaching a seat
+
+`-sbv2` changes nothing for a seat until a client attaches to it. Until then its decisions go to the native routes
+exactly as they do without the flag, every ask included, and no v2 request opens.
+
+- **A `state` read or a `stream` connection attaches the seat**, given the seat's token. v2 then answers the seat,
+  starting with the decision already parked: the read that attaches can return `null`, and the request follows on the
+  stream or the next read. The host answers a mana ability's colour ask, a triggered cost's pay-or-decline and the
+  division of combat damage on an attached seat, even when a native client started that action.
+- **An answer or undo on another wire hands the seat back, unless a `stream` connection of that seat is open.** The native
+  routes and ManaBrew count as another wire. The open request closes and every later decision goes natively, until the
+  next read attaches the seat again. With a stream open the seat stays attached: the request closes and the next
+  decision opens one. A client posts a tap natively that way.
+- **Closing a stream changes nothing by itself.** The seat keeps its open request and partial picks, so a reconnect
+  carries on, and the next native answer hands it back. A connection the server hasn't yet seen close still counts as
+  open.
+
+A native client never sees half an answer. A v2 walk stays on the server until it commits a whole native decision, so
+a native client sees that decision as it was asked and answering it drops the partial picks. The think timeout and the
+caretaker run the same on an attached seat and a passive one. The log holds only answers, so a game reads the same
+whichever wire answered it.
+
+### The browser client
+
+gorge's web client plays a seat over these routes when the player's Protocol setting is SpellBench v2 and the page
+carries `<meta name="gorge-sbv2">`, which gorged serves with `-sbv2`. It renders from `x_gorge_view_v1`. The panel
+answers a whole native decision, so `ops` turn that answer into one candidate per substep, and a substep ordering a
+`followups` decision is shown as that decision.
+
+A mana-costed play with no payment plan, such as an X spell or an equip, is offered only once the mana floats, and
+v2 has no candidate for a tap. The client posts a tap on the native routes with the same token, and the next request
+carries the board with the mana floating. A 409 from the state route plays the table over Native without a notice.
+
 | Status | Body | When |
 |---|---|---|
 | 400 | `{"error":"bad_request"}` | `{k}` isn't a positive integer; an unreadable or over-64-KiB body; more than one action; a `choose_name` the decision doesn't offer |
 | 401 | `{"error":"unauthorized"}` | no token, or an unknown one |
 | 403 | `{"error":"forbidden"}` | a token for another table |
 | 404 | `{"error":"not_found"}` | the table no longer exists |
-| 409 | `{"error":"unsupported"}` | the table isn't two-seat, constructed and automatic-mana. Use the native routes |
+| 409 | `{"error":"unsupported"}` | the table isn't two-seat, constructed and automatic-mana, or a match of it ran on an engine with no v2 reader. Use the native routes |
 | 409 | `{"error":"stale"}` | the `request_id` is absent or isn't the open request, the `candidate_id` is absent or out of range, or the action no longer applies. Nothing changed |
 | 404, 405 | plain text | another path under the prefix, or the wrong method |
 
@@ -917,9 +950,9 @@ A client that renders from the observation, and not from `x_gorge_view_v1`, has 
 
 A face-down card's printed identity is redacted on both planes. `TestObservationDegradationCensus`
 ([`server/spellbench/neutral`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/neutral/observation_degradation_test.go))
-measures the difference field by field over 100 seeded games and holds the result to
-[`observation_degradation.tsv`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/neutral/testdata/observation_degradation.tsv),
-which may only shrink.
+measures the difference field by field over 100 seeded games and holds the set of fields that differ to
+[`observation_degradation.tsv`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/neutral/testdata/observation_degradation.tsv):
+a field outside that set fails, and its counts are information only.
 
 ## Failure modes
 

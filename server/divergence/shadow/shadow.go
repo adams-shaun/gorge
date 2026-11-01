@@ -94,9 +94,9 @@ func Answer(e *rules.Engine, feed *searchseat.Feed, setup searchprobe.PublicGame
 	return s.Decide(ctx, v, dc)
 }
 
-// controlledSeats mirrors host's helper of the same name: the live CR 723
-// controlled seat the viewer answers for (state.Game.LiveController), nil
-// otherwise (cr-g57).
+// controlledSeats mirrors host's helper of the same name: the live CR
+// 723 controlled seat the viewer answers for
+// (state.Game.LiveController), nil otherwise.
 func controlledSeats(g *state.Game, viewer state.PlayerID) []state.PlayerID {
 	if ctl, ok := g.LiveController(g.Active); ok && ctl == viewer {
 		return []state.PlayerID{g.Active}

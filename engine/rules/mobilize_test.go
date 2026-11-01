@@ -141,7 +141,7 @@ func TestMobilizeUsesRealCorpusCard(t *testing.T) {
 }
 
 // TestMobilizeCountScalesWithTheKeyword: a single-count card passing by
-// coincidence is the failure mode the brief names, so a K:Mobilize:2 card
+// coincidence is the failure mode, so a K:Mobilize:2 card
 // (Bone-Cairn Butcher) must mint exactly two tokens, both tapped and
 // attacking, and K:Mobilize:3 (Dalkovan Packbeasts) exactly three.
 func TestMobilizeCountScalesWithTheKeyword(t *testing.T) {

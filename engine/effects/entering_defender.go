@@ -121,7 +121,7 @@ func enteringDefenderFallback(h Host, c *Ctx, controller state.PlayerID, objects
 // resolveEnteringDefender is CR 508.4's defender for one "enters attacking"
 // effect call whose text does not name the defender (Attacking$ True,
 // TokenAttacking$ True). ok false means the creature enters but does not
-// attack (no combat defender exists for it). See the cr-g11b spec.
+// attack (no combat defender exists for it).
 func resolveEnteringDefender(h Host, c *Ctx, controller state.PlayerID, objects bool, noun string) (enteringDefender, bool) {
 	fb, ok := enteringDefenderFallback(h, c, controller, objects)
 	if !ok {
@@ -172,7 +172,7 @@ func enteringControllerForAttack(h Host, c *Ctx, attack string, to state.Zone, o
 
 // chooseEnteringDefender asks controller which candidate the entering
 // creature attacks, fallback first; with fewer than two candidates, or with
-// no answer served (the R-9 stand-in), it is fallback.
+// no answer served (the no-host stand-in), it is fallback.
 func chooseEnteringDefender(h Host, c *Ctx, controller state.PlayerID, fallback enteringDefender, objects bool, noun string) enteringDefender {
 	cands := enteringDefenders(h, controller, objects)
 	if i := slices.Index(cands, fallback); i >= 0 {

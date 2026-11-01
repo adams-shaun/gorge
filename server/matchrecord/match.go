@@ -11,9 +11,9 @@ import (
 // host.FeedbackMatch's JSON field names so a record and a feedback
 // snapshot's match.json read the same way. It is what testkit/testutil/
 // feedback's loader builds its Config through as well, so the two loaders
-// cannot drift (design D3).
+// cannot drift.
 //
-// It records no token scripts and no name-universe label list (D2): Config
+// It records no token scripts and no name-universe label list: Config
 // takes the token table from the caller and re-derives the name universe
 // from the registry.
 type Match struct {
@@ -119,7 +119,7 @@ func cardNames(what string, decks [][]*cards.Card) ([][]string, error) {
 // and mode settings. The name universe, when the mode bit is set, is
 // reg's own, and the label list is left nil so the engine derives it from
 // that corpus at genesis. The seed is carried, though a replay overwrites
-// it with the log's own seed (replay's Ruling P5).
+// it with the log's own seed.
 func (m Match) Config(reg *cards.Registry, tokens map[string]*cards.Card) (rules.Config, error) {
 	if len(m.DeckCards) == 0 {
 		return rules.Config{}, fmt.Errorf("matchrecord: the match records no deck_cards")

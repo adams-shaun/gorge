@@ -11,7 +11,7 @@ import (
 )
 
 // layering_chars_test.go pins engine/rules/chars, the L4 characteristic-computation
-// package of the rules-engine lasagna (spec 2026-10-03 §3, W5 step E4): the
+// package of the rules-engine layering (spec 2026-10-03 §3, W5 step E4): the
 // CR 613 layer walk, read through the chars.Board interface package rules
 // implements. Its rows live in their own file (not TestDependencyOrderHolds'
 // slice) so the W5 extraction steps running in parallel do not edit the same
@@ -127,7 +127,7 @@ func TestCharsBoardOnlyShrinks(t *testing.T) {
 	case n > charsBoardMethods:
 		t.Errorf("chars.Board has %d methods, above the frozen ceiling of %d. This is a SHRINK-ONLY "+
 			"ratchet: derive the fact from an existing Board method instead of adding one. A raised "+
-			"constant is a MAJOR review finding.", n, charsBoardMethods)
+			"constant needs a review.", n, charsBoardMethods)
 	case n < charsBoardMethods:
 		t.Logf("chars.Board has %d methods, below the ceiling of %d: lower charsBoardMethods in "+
 			"internal/archtest/layering_chars_test.go to %d in the same commit.", n, charsBoardMethods, n)

@@ -13,7 +13,7 @@ import { layoutStore } from '../lib/layouts.svelte';
  * CommandArea.svelte.test.ts already covers the tile's own three states,
  * inspectability and tax.
  *
- * Task 3 (lost seats greyed on the board) is also covered here at the
+ * Greying a lost seat on the board is also covered here at the
  * Quadrant level, since Quadrant is what carries the `lost` class and the
  * greying scrim.
  */
@@ -86,7 +86,7 @@ describe('Quadrant — commanders share the creatures row at creature scale (CZ2
 
 });
 
-describe('Quadrant — an eliminated seat is greyed out on the board (Task 3)', () => {
+describe('Quadrant — an eliminated seat is greyed out on the board', () => {
   it('a lost seat carries the lost class and a data-lost flag Board/CSS key off', () => {
     const p = player({ lost: true });
     const { html } = render(Quadrant, { props: { player: p, colour: '#e5484d' } });

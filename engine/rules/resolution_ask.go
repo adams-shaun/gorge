@@ -14,7 +14,7 @@ import (
 // TapeAnswer (effects.AskTape) inside a tape run, so what reaches this method
 // is an ask no run serves: a resolution the ask-free predicate wrongly
 // exempted, or an engine driven with no run at all. It is refused with one
-// Note (the R-9 no-host degrade: the asking primitive takes its deterministic
+// Note (the no-host degrade: the asking primitive takes its deterministic
 // default) and counted by the legacy-ask census. The one ask this engine
 // still poses itself is an off-stack mana ability's colour choice, which is
 // the activation's own flow (askOffStackMana).
@@ -49,7 +49,7 @@ func (e *Engine) EventMark() int { return len(e.L.Events) }
 // and the fold marks nothing for it (a DamageAll whose NumDmg$ counts an
 // empty Remembered set -- Kindle the Carnage repeated over an empty hand
 // logs one per creature per pass, and counting it as progress let a bot's
-// "Repeat" answer loop forever, cardfuzz batch8 line 1). A ZERO-amount
+// "Repeat" answer loop forever). A ZERO-amount
 // LifeChange likewise folds into nothing (events.Apply adds 0 to the life
 // total; CR 119.9's "gains 0 life" is no life-gain event, and a 0 loss the
 // same): Ad Nauseam repeated over an empty library loses life equal to the

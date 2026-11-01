@@ -47,7 +47,7 @@ func TestDenryKlinCopiesHisOwnKindsOntoTheEnteringCreature(t *testing.T) {
 		t.Fatalf("Denry choices = %+v, want First Strike", d.Options)
 	}
 	submitChoices(t, e, want)
-	kr5Settle(e) // the turn loop after the entry: Denry's own entry trigger reaches the stack
+	settleResolve(e) // the turn loop after the entry: Denry's own entry trigger reaches the stack
 	if got := e.G.Obj(denryID).Counter("First Strike"); got != 1 {
 		t.Fatalf("Denry First Strike = %d, want 1", got)
 	}

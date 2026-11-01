@@ -65,6 +65,9 @@ func (e *Engine) fuseCost(front, alt *cards.Face) Cost {
 // names its own modes.
 func (e *Engine) castStageSA(pc *pendingCast, o *state.Object, f *cards.Face) *cards.SA {
 	if pc.isAbility() {
+		if so := e.G.Obj(pc.stackObj); so != nil {
+			return modalTargetSA(f, e.pcAbility(pc), so.ChosenModes)
+		}
 		return e.pcAbility(pc)
 	}
 	if pc.mode == "fuse" {
@@ -139,11 +142,10 @@ func (e *Engine) castHasNextTargetStage(pc *pendingCast, o *state.Object) bool {
 // A suspension on the LAST half chains no fuse-rest frame: nothing is left to
 // run, and the generic completion is byte-identical because the asking
 // frame's own fusedTargets binding (resumeResolution) supplies the half's
-// targets and suppresses the spurious ValidTgts$ re-ask the empty tail was
-// once believed necessary for (review round 3, MINOR 2 -- the tail was
-// untested and redundant).
+// targets and suppresses the spurious ValidTgts$ re-ask the empty tail
+// would pose.
 //
-// It never writes the engine resume state itself (ruling T21-e, pinned by
+// It never writes the engine resume state itself (pinned by
 // internal/archtest's TestResumeStateOwnedOnlyByTheResolutionMachinery):
 // when a half suspends it returns (cont, true), and its caller -- resolveTop,
 // the resolution machinery's first pass -- links cont onto the fresh resume
@@ -214,7 +216,7 @@ func (e *Engine) resolveFused(o *state.Object) (*resumePoint, bool) {
 // carrying its own captured target slice), with `outer` behind them, and
 // returns it with suspended == true. It does not link that chain onto the
 // new pending point itself: only the resolution machinery may write the
-// engine resume state (ruling T21-e), so the caller -- resolveTop through
+// engine resume state, so the caller -- resolveTop through
 // resolveFused, or resumeResolution's rp.fuseAlt branch -- sets
 // e.resume.outer to the returned chain and returns, and the fuse-rest
 // frame's own completion tail (resumeResolution's rp.fuseAlt branch)

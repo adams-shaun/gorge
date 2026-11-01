@@ -204,8 +204,8 @@ type Engine struct {
 	engineEmitCtx
 	engineResolveKernel
 
-	// paySession is the payment layer's engine-owned state (pay.Session,
-	// lasagna spec §9.2): embedded so its fields read as Engine fields, and
+	// paySession is the payment layer's engine-owned state (pay.Session):
+	// embedded so its fields read as Engine fields, and
 	// handed to engine/rules/pay through pay.Engine's Session.
 	paySession
 }

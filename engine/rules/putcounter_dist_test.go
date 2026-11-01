@@ -8,7 +8,7 @@ import (
 )
 
 // putcounter_dist_test.go (task inbox-paramcensus-putcounter-etb) pins the
-// DividedAsYouChoose$ PutCounter distribution shape. The brief's other
+// DividedAsYouChoose$ PutCounter distribution shape. The other
 // carriers (the etbCounter X-cost family: Chalice of the Void, Endless One,
 // Walking Ballista, Hangarback Walker) were already read and pinned on main
 // before this work (engine/effects/counters.go's ETB$ read,

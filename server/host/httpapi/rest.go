@@ -329,7 +329,7 @@ func (h *handler) events(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, evs)
 }
 
-// pending serves the decision currently asked of one seat (M2e-2). It needs
+// pending serves the decision currently asked of one seat. It needs
 // ?seat= — there is no spectator notion of a pending decision — and the seat
 // must be the claim's own, so a seat can never read another seat's pending
 // decision. Rejections (match not live, seat not human, nothing pending) are
@@ -363,7 +363,7 @@ func (h *handler) pending(w http.ResponseWriter, r *http.Request) {
 // an HTTP status plus the registry's reason body (audit item 17); a 204 means
 // the intent was accepted and the parked seat is free.
 //
-// The ?auto=1 query flag (HD-2, docs/design/2026-10-10-human-divergence-design.md
+// The ?auto=1 query flag (docs/design/2026-10-10-human-divergence-design.md
 // §5.2) marks the answer as produced by the client's autopilot rather than a
 // deliberate human choice: the handler forwards it as a boolean into
 // SubmitIntentFrom, which records it in the match's provenance ledger. It
@@ -389,8 +389,8 @@ func (h *handler) intent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// undo is the POST /api/tables/{t}/matches/{k}/undo action (dispatch
-// fb-20260911T201015Z, the undo slice): it asks the registry to roll the live
+// undo is the POST /api/tables/{t}/matches/{k}/undo action:
+// it asks the registry to roll the live
 // match back in place to the decision the requesting seat last answered
 // (server/host/undo.go). It takes no ?seat= and no body: the claim alone names the
 // requesting seat, which the registry fences to the table's sole human seat —
@@ -486,7 +486,7 @@ type CreateGameRequest struct {
 	BotDeck   string `json:"bot_deck,omitempty"`
 	BotPolicy string `json:"bot_policy,omitempty"`
 	// Mulligans is the optional London mulligan allowance for the created
-	// game (finding fb-20260914T114629Z-6c81e4d6: a play-vs-bot game could
+	// game (without it a play-vs-bot game could
 	// mulligan exactly once, with no knob at any layer). It is a pointer so
 	// 0 — "0 disables the pre-game round" — is distinguishable from an
 	// omitted field, which keeps the server default.

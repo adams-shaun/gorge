@@ -1,7 +1,7 @@
 package rules
 
 // W3 step 2's tests for the "misc" group's converted ask sites
-// (lasagna spec §7.7): each scenario resolves on the tape kernel with a
+// (layering design §7.7): each scenario resolves on the tape kernel with a
 // deterministic driver, and the converted asks are served from the tape.
 
 import (

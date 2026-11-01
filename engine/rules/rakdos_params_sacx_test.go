@@ -2,7 +2,7 @@ package rules
 
 // The Rakdos-params brief, gap 5: Sac<X/Spec> -- the announced-count
 // sacrifice cost -- and the ReduceCost static that reads the paid X. Dargo,
-// the Shipwrecker is the brief's named corpus card: "As an additional cost to
+// the Shipwrecker is the named corpus card: "As an additional cost to
 // cast this spell, you may sacrifice any number of artifacts and/or
 // creatures. This spell costs {2} less to cast for each permanent sacrificed
 // this way and {2} less to cast for each other artifact or creature you've

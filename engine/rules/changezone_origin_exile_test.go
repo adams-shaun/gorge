@@ -1,6 +1,6 @@
 package rules
 
-// cr-g213: a targeted ChangeZone with an explicit single Origin$ takes its
+// A targeted ChangeZone with an explicit single Origin$ takes its
 // target census from that Origin$ when no TgtZone$ is declared (Forge
 // AbilityFactory.adjustChangeZoneTarget: every listed Origin$ zone is the
 // target zone; XMage Sentinel of Lost Lore uses TargetCardInExile). Exile was
@@ -18,7 +18,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// originExileSpellScript is the brief's shape: a targeted ChangeZone whose
+// originExileSpellScript is the shape: a targeted ChangeZone whose
 // only zone declaration is Origin$ Exile.
 const originExileSpellScript = "Name:Exile Fetch\nManaCost:G\nTypes:Sorcery\n" +
 	"A:SP$ ChangeZone | ValidTgts$ Card.YouOwn | Origin$ Exile | Destination$ Hand | SpellDescription$ Return target card you own in exile to your hand.\nOracle:x\n"

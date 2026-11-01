@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRepeatHonoursMaxRepeatAndIsBounded is Task 20's hygiene test for
+// TestRepeatHonoursMaxRepeatAndIsBounded is the hygiene test for
 // effRepeat: the fetched corpus's real cards parameterise Repeat with
 // MaxRepeat$, not the RepeatNum$ the OLD M1 implementation read (RepeatNum$
 // appears nowhere in the corpus, so every real Repeat degraded to a single

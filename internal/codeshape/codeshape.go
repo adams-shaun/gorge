@@ -2,7 +2,7 @@
 // its functions are, how wide its interfaces and context structs are, and how
 // much of its behaviour is still keyed on string literals. It is the metric
 // behind the shrink-only ratchets of the rules-engine refactor
-// (docs/design/2026-10-03-rules-engine-lasagna-design.md). It replaced the old
+// (docs/design/2026-10-03-rules-engine-layering-design.md). It replaced the old
 // file-size count: a long FUNCTION is a concern without a seam, while
 // a long FILE says nothing about boundaries and rewarded size-only splits.
 //
@@ -41,8 +41,8 @@ var ScannedDirs = []string{"engine/rules", "engine/effects"}
 // composite literal is not counted. Repo-relative, slash-separated.
 var CtxConstructorFiles = []string{"engine/effects/ctx_new.go", "engine/rules/ctx_new.go"}
 
-// ChangeZoneCompilerFile is api:ChangeZone's parameter compiler (W4 step 3 of
-// the rules-engine refactor spec, section 8): the one file in engine/rules/ and
+// ChangeZoneCompilerFile is api:ChangeZone's parameter compiler:
+// the one file in engine/rules/ and
 // engine/effects/ allowed to read a ChangeZone ability's parameters.
 const ChangeZoneCompilerFile = "engine/effects/changezone_params.go"
 
@@ -69,8 +69,8 @@ var ChangeZoneOnlyKeys = []string{
 	"Unimprint", "WithMayLook", "WithTotalCardTypes",
 }
 
-// ChangeZoneAllCompilerFile is api:ChangeZoneAll's parameter compiler (W4
-// step 3): the one file allowed to read a ChangeZoneAll ability's parameters.
+// ChangeZoneAllCompilerFile is api:ChangeZoneAll's parameter compiler:
+// the one file allowed to read a ChangeZoneAll ability's parameters.
 const ChangeZoneAllCompilerFile = "engine/effects/changezoneall_params.go"
 
 // ChangeZoneAllFiles are ChangeZoneAll's own resolution files (the sweep):
@@ -81,7 +81,7 @@ var ChangeZoneAllFiles = []string{"engine/effects/zone_changeall.go"}
 // reads.
 var ChangeZoneAllOnlyKeys = []string{"RandomOrder", "UseAllOriginZones"}
 
-// AttachCompilerFile is api:Attach's parameter compiler (W4 step 3): the one
+// AttachCompilerFile is api:Attach's parameter compiler: the one
 // file allowed to read an Attach ability's parameters.
 const AttachCompilerFile = "engine/effects/attach_params.go"
 
@@ -93,7 +93,7 @@ var AttachFiles = []string{"engine/effects/attach.go"}
 // Reconfigure offer gate reads Unattach$ through it too).
 var AttachOnlyKeys = []string{"Object", "RememberAttached", "Unattach"}
 
-// CharmCompilerFile is the modal family's parameter compiler (W4 step 3):
+// CharmCompilerFile is the modal family's parameter compiler:
 // the one file allowed to read a Charm/GenericChoice ability's own
 // parameters (the Choices$ mode list for every modal carrier).
 const CharmCompilerFile = "engine/effects/charm_params.go"
@@ -107,7 +107,7 @@ var CharmFiles = []string{"engine/effects/charm.go"}
 var CharmOnlyKeys = []string{"CanRepeatModes", "CharmNum", "ChoiceRestriction", "FallbackAbility",
 	"MinCharmNum", "RandomCompare", "RandomCompareSVar", "TempRemember"}
 
-// PumpCompilerFile is api:Pump's parameter compiler (W4 step 3), including
+// PumpCompilerFile is api:Pump's parameter compiler, including
 // the KW$/Duration$/LeaveBattlefield$ grant PumpAll shares.
 const PumpCompilerFile = "engine/effects/pump_params.go"
 
@@ -118,7 +118,7 @@ var PumpFiles = []string{"engine/effects/pump.go"}
 var PumpOnlyKeys = []string{"ClearNotedCardsFor", "ForgetImprinted", "KWChoice", "NoteCards",
 	"NoteCardsFor", "NoteNumber"}
 
-// DrawCompilerFile is api:Draw's parameter compiler (W4 step 3).
+// DrawCompilerFile is api:Draw's parameter compiler.
 const DrawCompilerFile = "engine/effects/draw_params.go"
 
 // DrawFiles are Draw's own resolution files: no parameter read of any key.
@@ -127,8 +127,7 @@ var DrawFiles = []string{"engine/effects/draw.go"}
 // DrawOnlyKeys are the parameter keys only Draw's compiler reads.
 var DrawOnlyKeys = []string{"RememberDrawn", "Upto"}
 
-// ReplaceEffectCompilerFile is api:ReplaceEffect's parameter compiler (W4
-// step 3).
+// ReplaceEffectCompilerFile is api:ReplaceEffect's parameter compiler.
 const ReplaceEffectCompilerFile = "engine/effects/replaceeffect_params.go"
 
 // ReplaceEffectFiles are ReplaceEffect's own resolution files: no parameter
@@ -140,7 +139,7 @@ var ReplaceEffectFiles = []string{"engine/effects/replacement.go"}
 // them through it).
 var ReplaceEffectOnlyKeys = []string{"VarName", "VarValue"}
 
-// ManaCompilerFile is api:Mana's production-parameter compiler (W4 step 3).
+// ManaCompilerFile is api:Mana's production-parameter compiler.
 const ManaCompilerFile = "engine/effects/params/mana.go"
 
 // ManaFiles are Mana's own resolution files: no parameter read of any key.
@@ -153,8 +152,7 @@ var ManaFiles = []string{"engine/effects/mana_effect.go"}
 var ManaOnlyKeys = []string{"AddsCounters", "AddsNoCounter", "PersistentMana",
 	"PersistentUntilEndOfCombat", "TriggersWhenSpent"}
 
-// ManaReflectedCompilerFile is api:ManaReflected's parameter compiler (W4
-// step 3).
+// ManaReflectedCompilerFile is api:ManaReflected's parameter compiler.
 const ManaReflectedCompilerFile = "engine/effects/manareflected_params.go"
 
 // ManaReflectedFiles are ManaReflected's own resolution files: no parameter
@@ -165,7 +163,7 @@ var ManaReflectedFiles = []string{"engine/effects/mana_reflected.go"}
 // reads.
 var ManaReflectedOnlyKeys = []string{"ColorOrType", "ReflectProperty"}
 
-// DealDamageCompilerFile is api:DealDamage's parameter compiler (W4 step 3):
+// DealDamageCompilerFile is api:DealDamage's parameter compiler:
 // the one file allowed to read a DealDamage ability's parameters.
 const DealDamageCompilerFile = "engine/effects/params/dealdamage.go"
 
@@ -178,7 +176,7 @@ var DealDamageFiles = []string{"engine/effects/damage_deal.go"}
 // not a read).
 var DealDamageOnlyKeys = []string{"ExcessSVar", "ExcessSVarCondition", "RelativeTarget"}
 
-// PutCounterCompilerFile is api:PutCounter's parameter compiler (W4 step 3):
+// PutCounterCompilerFile is api:PutCounter's parameter compiler:
 // the one file allowed to read a PutCounter ability's parameters.
 const PutCounterCompilerFile = "engine/effects/putcounter_params.go"
 
@@ -192,7 +190,7 @@ var PutCounterOnlyKeys = []string{"Adapt", "Bolster", "ChooseDifferent", "Counte
 	"CounterTypePerDefined", "Divided", "EachFromSource", "MinChoiceAmount", "PerDefined",
 	"RandomType", "RememberCards", "Renown", "Support"}
 
-// EffectCompilerFile is api:Effect's parameter compiler (W4 step 3): the one
+// EffectCompilerFile is api:Effect's parameter compiler: the one
 // file allowed to read an Effect ability's parameters (and its Triggers$
 // bodies' own, readEffectTriggerLine).
 const EffectCompilerFile = "engine/effects/effect_params.go"
@@ -207,8 +205,8 @@ var EffectOnlyKeys = []string{"EffectOwner", "ExileOnMoved", "ForgetCounter", "F
 	"ForgetOnMoved", "ForgetOnPhasedIn", "ImprintOnHost", "ReplacementEffects", "SetChosenNumber",
 	"Stackable"}
 
-// TargetCompilerFile is the generic targeting tier's parameter compiler (W4
-// step 3's cross-API tier): the one file in engine/rules/ and engine/effects/ allowed to
+// TargetCompilerFile is the generic targeting tier's parameter compiler:
+// the one file in engine/rules/ and engine/effects/ allowed to
 // read a targeting parameter, whatever the ability's API.
 const TargetCompilerFile = "engine/effects/params/targets.go"
 
@@ -229,7 +227,7 @@ var TargetOnlyKeys = []string{
 }
 
 // DefinedCompilerFile is the generic Defined-reference tier's parameter
-// compiler (W4 step 4's cross-API tier): the one file in engine/rules/ and engine/effects/
+// compiler: the one file in engine/rules/ and engine/effects/
 // allowed to read a Defined-reference parameter, whatever the ability's API.
 const DefinedCompilerFile = "engine/effects/params/defined.go"
 
@@ -241,7 +239,7 @@ const DefinedCompilerFile = "engine/effects/params/defined.go"
 // DefinedDamagers$ and DefinedPiles$ are one API's each and are not listed.
 var DefinedOnlyKeys = []string{"Defined", "DefinedCards", "DefinedPlayer", "DefinedTarget"}
 
-// DelayedTriggerCompilerFile is api:DelayedTrigger's parameter compiler (W4 step 3): the
+// DelayedTriggerCompilerFile is api:DelayedTrigger's parameter compiler: the
 // one file allowed to read a DelayedTrigger ability's parameters.
 const DelayedTriggerCompilerFile = "engine/effects/delayedtrigger_params.go"
 
@@ -252,7 +250,7 @@ var DelayedTriggerFiles = []string{"engine/effects/delayed_trigger.go"}
 // DelayedTriggerOnlyKeys are the parameter keys only DelayedTrigger's compiler reads.
 var DelayedTriggerOnlyKeys = []string{"NextTurn", "RememberChain"}
 
-// CopyPermanentCompilerFile is api:CopyPermanent's parameter compiler (W4 step 3): the
+// CopyPermanentCompilerFile is api:CopyPermanent's parameter compiler: the
 // one file allowed to read a CopyPermanent ability's parameters.
 const CopyPermanentCompilerFile = "engine/effects/copypermanent_params.go"
 
@@ -263,7 +261,7 @@ var CopyPermanentFiles = []string{"engine/effects/copypermanent.go"}
 // CopyPermanentOnlyKeys are the parameter keys only CopyPermanent's compiler reads.
 var CopyPermanentOnlyKeys = []string{"AtEOTTrig", "DefinedName", "NumCopies", "Pawprint", "Populate", "RandomCopied", "RandomNum", "ValidSupportedCopy", "WithDifferentNames"}
 
-// CloneCompilerFile is api:Clone's parameter compiler (W4 step 3): the one
+// CloneCompilerFile is api:Clone's parameter compiler: the one
 // file allowed to read a Clone ability's parameters.
 const CloneCompilerFile = "engine/effects/clone_params.go"
 
@@ -274,7 +272,7 @@ var CloneFiles = []string{"engine/effects/clone.go"}
 // CloneOnlyKeys are the parameter keys only Clone's compiler reads.
 var CloneOnlyKeys = []string{"CloneTarget", "CloneZone", "CopyFromChosenName", "ExcludeChosen", "GainThisAbility", "KeepFacedown", "NewName"}
 
-// DigCompilerFile is api:Dig's parameter compiler (W4 step 3): the one
+// DigCompilerFile is api:Dig's parameter compiler: the one
 // file allowed to read a Dig ability's parameters.
 const DigCompilerFile = "engine/effects/dig_params.go"
 
@@ -285,7 +283,7 @@ var DigFiles = []string{"engine/effects/dig.go"}
 // DigOnlyKeys are the parameter keys only Dig's compiler reads.
 var DigOnlyKeys = []string{"ChangeValid", "Choser", "DestinationZone", "DestinationZone2", "DigNum", "ForceRevealToController", "FromBottom", "LibraryPosition2", "OptionalAbilityPrompt", "PromptToSkipOptionalAbility", "RestRandomOrder", "SkipReorder"}
 
-// DigUntilCompilerFile is api:DigUntil's parameter compiler (W4 step 3): the one
+// DigUntilCompilerFile is api:DigUntil's parameter compiler: the one
 // file allowed to read a DigUntil ability's parameters.
 const DigUntilCompilerFile = "engine/effects/diguntil_params.go"
 
@@ -296,7 +294,7 @@ var DigUntilFiles = []string{"engine/effects/diguntil.go"}
 // DigUntilOnlyKeys are the parameter keys only DigUntil's compiler reads.
 var DigUntilOnlyKeys = []string{"DigZone", "FoundDestination", "FoundLibraryPosition", "ImprintRevealed", "NoMoveFound", "NoMoveRevealed", "NoneFoundDestination", "NoneFoundLibraryPosition", "OptionalFoundMove", "OptionalNoDestination", "RevealRandomOrder", "RevealedDestination", "RevealedLibraryPosition", "ShuffleCondition"}
 
-// RemoveCounterCompilerFile is api:RemoveCounter's parameter compiler (W4 step 3): the one
+// RemoveCounterCompilerFile is api:RemoveCounter's parameter compiler: the one
 // file allowed to read a RemoveCounter ability's parameters.
 const RemoveCounterCompilerFile = "engine/effects/removecounter_params.go"
 
@@ -307,7 +305,7 @@ var RemoveCounterFiles = []string{"engine/effects/removecounter.go"}
 // RemoveCounterOnlyKeys are the parameter keys only RemoveCounter's compiler reads.
 var RemoveCounterOnlyKeys = []string{"ChoiceNum", "CounterNumShared", "RememberRemoved"}
 
-// TokenCompilerFile is api:Token's parameter compiler (W4 step 3): the one
+// TokenCompilerFile is api:Token's parameter compiler: the one
 // file allowed to read a Token ability's parameters.
 const TokenCompilerFile = "engine/effects/token_params.go"
 
@@ -318,7 +316,7 @@ var TokenFiles = []string{"engine/effects/token.go"}
 // TokenOnlyKeys are the parameter keys only Token's compiler reads.
 var TokenOnlyKeys = []string{"RememberOriginalTokens", "TokenAmount", "TokenOwner", "TokenPower", "TokenToughness"}
 
-// VoteCompilerFile is api:Vote's parameter compiler (W4 step 3): the one
+// VoteCompilerFile is api:Vote's parameter compiler: the one
 // file allowed to read a Vote ability's parameters.
 const VoteCompilerFile = "engine/effects/vote_params.go"
 
@@ -329,7 +327,7 @@ var VoteFiles = []string{"engine/effects/vote.go", "engine/effects/vote_effect.g
 // VoteOnlyKeys are the parameter keys only Vote's compiler reads.
 var VoteOnlyKeys = []string{"RememberVotedObjects", "StoreVoteNum", "VoteCard", "VoteMessage", "VotePlayer", "VoteSubAbility", "VoteTiedAbility"}
 
-// RepeatEachCompilerFile is api:RepeatEach's parameter compiler (W4 step 3): the one
+// RepeatEachCompilerFile is api:RepeatEach's parameter compiler: the one
 // file allowed to read a RepeatEach ability's parameters.
 const RepeatEachCompilerFile = "engine/effects/repeateach_params.go"
 
@@ -522,11 +520,11 @@ type Metrics struct {
 	RepeatEachLeaks      []string `json:"repeat_each_leaks"`
 	// TrigmatchBoardMethods counts the methods trigmatch.Board declares
 	// (engine/rules/trigmatch/board.go): the read-only view the trigger matchers
-	// reach the engine through (W5 E3). Zero when the package is absent.
+	// reach the engine through. Zero when the package is absent.
 	TrigmatchBoardMethods int `json:"trigmatch_board_methods"`
 	// PayEngineMethods counts the methods pay.Engine declares
-	// (engine/rules/pay/engine.go): the payment layer's whole view of the engine
-	// (W5 E7). Zero when the package is absent.
+	// (engine/rules/pay/engine.go): the payment layer's whole view of the engine.
+	// Zero when the package is absent.
 	PayEngineMethods int `json:"pay_engine_methods"`
 	// EngineSurface counts, under engine/rules/ (recursive, non-test), the *Engine
 	// methods plus the free functions with a *Engine parameter plus the

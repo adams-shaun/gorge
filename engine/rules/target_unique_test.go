@@ -173,7 +173,7 @@ func TestTargetUniqueAccumulatesAcrossTheChain(t *testing.T) {
 // cyberneticaScript is cybernetica_datasmith.txt's ability shape, verbatim
 // except the ManaCost/Type lines: the root Draw declares "target player" and
 // the SubAbility Token carries TargetUnique$ True — the corpus's encoding of
-// the Oracle's "Another target player creates ...". This is the brief's
+// the Oracle's "Another target player creates ...". This is the
 // api:Token instance (the api:Draw instance is Biomantic Mastery above).
 const cyberneticaScript = "Name:Cybernetica Datasmith\nManaCost:1\nTypes:Artifact Creature Human Artificer\nPT:0/1\n" +
 	"A:SP$ Draw | NumCards$ 1 | ValidTgts$ Player | SubAbility$ DBToken | SpellDescription$ Target player draws a card. Another target player creates a 4/4 colorless Robot artifact creature token with \"This creature can't block.\"\n" +
@@ -183,7 +183,7 @@ const cyberneticaScript = "Name:Cybernetica Datasmith\nManaCost:1\nTypes:Artifac
 const robotScript = "Name:Robot\nManaCost:\nTypes:Artifact Creature Robot\nPT:4/4\nOracle:x\n"
 
 // TestCyberneticaTokenSubTargetExcludesParentTarget pins the api:Token half of
-// the brief: the Token SubAbility's "another target player" must not create the
+// the Token SubAbility's "another target player" must not create the
 // token under the root's own target. It asserts the exclusion ask AND that the
 // token actually lands under the DIFFERENT player (TokenOwner$
 // ThisTargetedPlayer reads the sub's answered target).

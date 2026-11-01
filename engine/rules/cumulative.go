@@ -408,7 +408,7 @@ func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.S
 //     window could only offer decline-only, which for a mandatory payment
 //     would be the WORSE regression (the body would never run AND the payment
 //     would never happen). Those bodies keep the established free-executor
-//     semantics (follow-up ticket), EXCEPT the shapes the existing gate
+//     semantics, EXCEPT the shapes the existing gate
 //     already served: the Untap/ImmediateTrigger APIs and the dynamic
 //     tapXType election (yotia_declares_war's "Mandatory tapXType<X/Artifact>")
 //     -- the tap election is the payment there, so the window stays right.
@@ -843,8 +843,12 @@ func (e *Engine) continueCumulativeAction() {
 		d := &decision.Decision{Player: cu.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: "Choose a graveyard", Source: cu.source}
 		for _, p := range owners {
+			label := "Your graveyard"
+			if name := seatFacingName(e.G, p); name != "You" {
+				label = name + "'s graveyard"
+			}
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "cumulative_action_grave",
-				Player: p, Label: seatFacingName(e.G, p) + "'s graveyard"})
+				Player: p, Label: label})
 		}
 		windowAsk(e, d, chooseCumulative)
 	}

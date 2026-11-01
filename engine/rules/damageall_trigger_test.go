@@ -28,7 +28,7 @@ import (
 // engine-side combatDamaging flag, so a creature's own ability dealing
 // non-combat damage must not fire it.
 
-// TestDamageAllFiresOncePerBatchOnRealCorpusScript is the brief's headline
+// TestDamageAllFiresOncePerBatchOnRealCorpusScript is the headline
 // case. Two creatures you control (Contaminant Grafter itself and a Hill
 // Giant) attack unblocked, so TWO Damage events land in the one combat damage
 // batch; the "one or more" reading is ONE proliferate, which adds exactly one

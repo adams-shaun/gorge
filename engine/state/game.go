@@ -555,14 +555,16 @@ type ZoneEntry struct {
 	// player's graveyard received a permanent card this turn (CR 700.11).
 	Owner         PlayerID
 	PermanentCard bool
+	// Controller is the object's controller as it left From, read before the
+	// move resets it to the owner (CR 400.7): for a battlefield departure, who
+	// "controlled" the permanent as it last existed (CR 603.10a).
+	Controller PlayerID
 	// Sacrificed marks a battlefield departure made under the sacrifice
-	// action marker (events.IsSacrifice, CR 701.21a), and Sacrificer is the
-	// permanent's controller at that instant -- the player who sacrificed
-	// it (a stolen permanent its taker sacrifices is the taker's). Both are
-	// folded by events.Apply's MoveZone case, so the
+	// action marker (events.IsSacrifice, CR 701.21a); Controller is then the
+	// player who sacrificed it (a stolen permanent its taker sacrifices is the
+	// taker's). Folded by events.Apply's MoveZone case, so the
 	// PlayerCount*$SacrificedThisTurn heads read a replay-derived record.
 	Sacrificed bool
-	Sacrificer PlayerID
 	// WasCreature is, for a battlefield departure (From == ZBattlefield),
 	// whether the permanent was a creature as it last existed on the
 	// battlefield (CR 603.10a last known information), folded by
@@ -630,16 +632,15 @@ type DelayedTrigger struct {
 	// one-shot promise, its registration survives each firing until MaxTurn.
 	EffectRepeat bool
 	// ValidPlayer is the registering DelayedTrigger SA's ValidPlayer$ value
-	// when it has one (Necropotence's "You": "put that card into your hand
-	// at the beginning of YOUR next end step"). The rules-side delayed
-	// trigger scan gates the fire on it -- the phase occurrence must satisfy
-	// the spec against the registration's controller -- and a phase the gate
-	// fails leaves the one-shot registration pending for the first later
-	// occurrence that matches. Empty keeps the ungated fire every earlier
-	// registration had. It rides in the DelayedRegister event's Text
-	// ("<Phase>|VP=<value>") because the event gains no field (Ruling T20-a's
-	// field-reuse precedent); the SpellCast decode never collides because a
-	// Phase$ value contains no "|".
+	// when it has one (Necropotence's "You": "put that card into your hand at
+	// the beginning of YOUR next end step"). The rules-side delayed trigger
+	// scan gates the fire on it -- the phase occurrence must satisfy the spec
+	// against the registration's controller -- and a phase the gate fails
+	// leaves the one-shot registration pending for the first later occurrence
+	// that matches. Empty keeps the ungated fire every earlier registration
+	// had. It rides in the DelayedRegister event's Text
+	// ("<Phase>|VP=<value>") because the event gains no field; the SpellCast
+	// decode never collides because a Phase$ value contains no "|".
 	ValidPlayer string
 	// PresentSpec, PresentZone and PresentCompare are the registering
 	// DelayedTrigger SA's IsPresent$/PresentZone$/PresentCompare$ condition
@@ -653,22 +654,21 @@ type DelayedTrigger struct {
 	// ValidPlayer. Empty PresentSpec keeps the ungated fire every earlier
 	// registration had. The triple rides the DelayedRegister event's Text
 	// ("<Phase>|VP=<value>|IP=<spec>|PZ=<zone>|PC=<compare>") because the
-	// event gains no field (Ruling T20-a's field-reuse precedent); the values
-	// contain no "|", so the LastIndex strips are exact and an already-logged
-	// registration without the suffixes decodes exactly as before (all three
-	// empty, every presence gate skipped).
+	// event gains no field; the values contain no "|", so the LastIndex
+	// strips are exact and an already-logged registration without the
+	// suffixes decodes exactly as before (all three empty, every presence
+	// gate skipped).
 	PresentSpec    string
 	PresentZone    string
 	PresentCompare string
-	// MaxTurn is the LATEST game turn the trigger may fire in (zero = no
-	// bound) — the mirror of MinTurn for a ThisTurn$ True registration
-	// (Mistrise Village's "the next spell you cast this turn can't be
-	// countered"): a registration whose turn has passed without firing is
-	// skipped by rules' delayed-trigger scans forever after, never removed
-	// (removal would need an event of its own to keep a replay folding the
-	// same set, so the expired entry just stays inert). It rides the
-	// registering event's Text ("|TT=<turn>") because the event gains no
-	// field (Ruling T20-a's field-reuse precedent).
+	// MaxTurn is the LATEST game turn the trigger may fire in (zero = no bound)
+	// — the mirror of MinTurn for a ThisTurn$ True registration (Mistrise
+	// Village's "the next spell you cast this turn can't be countered"): a
+	// registration whose turn has passed without firing is skipped by rules'
+	// delayed-trigger scans forever after, never removed (removal would need an
+	// event of its own to keep a replay folding the same set, so the expired
+	// entry just stays inert). It rides the registering event's Text
+	// ("|TT=<turn>") because the event gains no field.
 	MaxTurn int32
 	// OptionalSpec is an api:Effect Triggers$ body's OptionalDecider$ spec
 	// (Beck's "whenever a creature enters this turn, you may draw a card").
@@ -689,10 +689,9 @@ type DelayedTrigger struct {
 	// chain's `DB$ Cleanup | ClearNamedCard$ True` may have wiped by then; a
 	// bound name makes NamedCard read this value instead (Medomai's
 	// Prophecy's "when you cast a spell with the chosen name"). The pair
-	// rides the DelayedRegister event's Text ("|CN=<name>") because the
-	// event gains no field (Ruling T20-a's field-reuse precedent), and
-	// ChosenNameFrozen distinguishes a frozen EMPTY name (fail closed) from
-	// a registration that took no snapshot.
+	// rides the DelayedRegister event's Text ("|CN=<name>") because the event
+	// gains no field, and ChosenNameFrozen distinguishes a frozen EMPTY name
+	// (fail closed) from a registration that took no snapshot.
 	ChosenName       string
 	ChosenNameFrozen bool
 	// Effect-created trigger lifetime riders, folded from DelayedRegister.Text.
@@ -719,14 +718,14 @@ type DelayedTrigger struct {
 	// emblem/command-zone source has no battlefield incarnation to lose, so
 	// its Permanent promise is unbounded and must not be killed by the
 	// battlefield liveness rule. It rides the DelayedRegister event's Text
-	// ("|SB") because the event gains no field (Ruling T20-a).
+	// ("|SB") because the event gains no field.
 	SourceBattlefield bool
 	// RememberedAmount is the per-trigger remembered Integer a DelayedTrigger
 	// RememberNumber$ True registration carried (Forge's delTrig.
 	// addRemembered of the host's remembered Integers): Mana Drain's
 	// countered spell's mana value, read back at fire time through
 	// Count$TriggerRememberAmount. It rides the DelayedRegister event's Text
-	// ("|RN=<n>") because the event gains no field (Ruling T20-a); zero when
+	// ("|RN=<n>") because the event gains no field; zero when
 	// the registration remembered no number.
 	RememberedAmount int32
 	// RememberedManaSpent is the cast-time spend of each remembered spell
@@ -735,14 +734,14 @@ type DelayedTrigger struct {
 	// that spell"): events.Apply zeroes a spell's live spend when it leaves
 	// the stack (CR 400.7), so the delayed body would read 0 off the countered
 	// card. It rides the DelayedRegister Text ("|MS=<id>:<total>:<snow>:<t0>:
-	// <t1>:<t2>:<t3>,...") because the event gains no field (Ruling T20-a);
+	// <t1>:<t2>:<t3>,...") because the event gains no field;
 	// empty on every registration that remembered no spell.
 	RememberedManaSpent []ManaSpentLKI
 	// DefinedPlayer is a DelayedTriggerDefinedPlayer$ registration's player
 	// (seat+1; zero = none): the registration is armed only from that
 	// player's first turn start after BirthTurn, and with ThisTurn$ it dies
 	// when that turn ends. It rides the DelayedRegister Text ("|DP=<n>")
-	// because the event gains no field (Ruling T20-a).
+	// because the event gains no field.
 	DefinedPlayer int32
 	// ThisTurnDefined marks a DefinedPlayer registration that also carried
 	// ThisTurn$ True (expires at the end of the defined player's turn).
@@ -1126,7 +1125,7 @@ func (g *Game) IsInitiative(p PlayerID) bool { return g.HasInitiative && g.Initi
 // the ONE home of that interval: the engine's decision redirect
 // (controlPlayerRedirect) and the view's CR 723.4 widening (controlsSeat, and
 // the host's controlledSeats) all read it, so who answers for subj and who
-// may see subj's hidden information cannot disagree (cr-g57). A self-control
+// may see subj's hidden information cannot disagree. A self-control
 // entry is never live (CR 723.9). A combat-only grant (ControlCombatOnly,
 // CR 723.2's limited duration) is further live only from that turn's
 // beginning of combat step through its end of combat step.

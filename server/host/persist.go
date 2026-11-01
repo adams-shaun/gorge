@@ -16,8 +16,8 @@ import (
 )
 
 // sidecar is <k>.json: everything about a match except its events and
-// intents. Rewritten whole at start and at end; never carries a timestamp
-// (PL-11), so two runs of one configuration write identical files.
+// intents. Rewritten whole at start and at end; never carries a timestamp,
+// so two runs of one configuration write identical files.
 type sidecar struct {
 	Table string              `json:"table"`
 	Match int                 `json:"match"`
@@ -27,9 +27,9 @@ type sidecar struct {
 	// PlayerNames is the display player name per seat (rules.Config.
 	// PlayerNames), independent of the deck. Persisted so a restarted or
 	// archived match rebuilds a view whose player box names the seat the
-	// same way the live one did (R-8.4). Omitted/older sidecars rebuild
-	// without it, which replays the display names back to the deck stem — the
-	// pre-B3 behaviour — so nothing migrates (R-E5-2).
+	// same way the live one did. Omitted/older sidecars rebuild
+	// without it, which replays the display names back to the deck stem, so
+	// nothing migrates.
 	PlayerNames []string `json:"player_names,omitempty"`
 	Decks       []string `json:"decks"`
 	Spectator   string   `json:"spectator"`
@@ -42,11 +42,11 @@ type sidecar struct {
 	Reason      string   `json:"reason,omitempty"`
 	// Mulligans is the London-mulligan allowance the match's rules.Config ran
 	// with, persisted so a restart rebuilds a replay Config that reproduces
-	// the match (R-8.4; server/host/viewat.go rebuilds its Config from this sidecar
+	// the match (server/host/viewat.go rebuilds its Config from this sidecar
 	// alone, not from the live TableConfig). omitempty keeps both an old
 	// sidecar that predates the field and a no-mulligan match loading as
 	// exactly 0 — the value those matches played with — so nothing is
-	// migrated or versioned (R-E5-2).
+	// migrated or versioned.
 	Mulligans int `json:"mulligans,omitempty"`
 	// Format, StartingLife and Commanders are the rest of the match's
 	// rules.Config, for a Commander match: the construction format, the
@@ -54,19 +54,18 @@ type sidecar struct {
 	// carried) and each seat's commander indices, parallel to Decks.
 	// Persisted so a
 	// restart rebuilds a replay Config that reproduces a Commander match
-	// exactly (R-8.4, viewat.go). omitempty keeps an old sidecar that
+	// exactly (viewat.go). omitempty keeps an old sidecar that
 	// predates the fields loading as Format zero (constructed), life 0 (the
 	// engine's 20) and no commanders — exactly the values those matches
-	// played with (R-E5-2).
+	// played with.
 	Format       Format  `json:"format,omitempty"`
 	StartingLife int32   `json:"starting_life,omitempty"`
 	Commanders   [][]int `json:"commanders,omitempty"`
 	// StartChooser is the configured starting-player chooser the match's
-	// rules.Config ran with (E3-2): the seat posed CR 103.1's choice in
+	// rules.Config ran with: the seat posed CR 103.1's choice in
 	// place of the toss winner. A replay rebuilt without it would replay the
 	// toss instead and diverge at the genesis Note, so matchForLog restores
-	// it the way it restores Mulligans. Absent = the toss, which every match
-	// before E3 used, so nothing migrates (R-E5-2).
+	// it the way it restores Mulligans. Absent = the toss, so nothing migrates.
 	StartChooser *int `json:"start_chooser,omitempty"`
 	// NameUniverse records whether the live match was played with a card-name
 	// universe. A missing field is a pre-feature no-universe match, whose ETB
@@ -85,16 +84,16 @@ type sidecar struct {
 	// takes a different offer list and diverges at the first census-sensitive
 	// decision. A missing field is a pre-flip capture, whose engine ran the
 	// narrow census, so it reads back as census OFF — the value those matches
-	// played with — and nothing is migrated or versioned (R-E5-2).
+	// played with — and nothing is migrated or versioned.
 	PaidManaCensus bool   `json:"paid_mana_census,omitempty"`
 	BotPolicy      string `json:"bot_policy"`
-	// Refusals and Fallbacks are BP-06 ladder diagnostics: how many Submits
+	// Refusals and Fallbacks are ladder diagnostics: how many Submits
 	// the engine refused and how many times the fallback rungs ran. They are
 	// counters only and never reach an event, so a sidecar written without
 	// them (omitempty) loads byte-identically and replays unchanged.
 	Refusals  int `json:"refusals,omitempty"`
 	Fallbacks int `json:"fallbacks,omitempty"`
-	// RootRefusals is BP-08's honest-root diagnostic (spec §5.1): how many
+	// RootRefusals is the honest-root diagnostic (spec §5.1): how many
 	// bots.EnvSeat decisions were answered from a REFUSED root (nil engine).
 	// Same counter-only contract as Refusals above.
 	RootRefusals int `json:"root_refusals,omitempty"`
@@ -151,11 +150,11 @@ func openMatchFiles(dir string, t TableID, k int, sync bool) (*matchFiles, error
 
 // append writes one burst: the new events and the intent that produced
 // them (nil for genesis), one JSON object per line, then fsyncs when
-// configured (PL-13, opts.Sync). The per-burst byte offsets are recorded
+// configured (opts.Sync). The per-burst byte offsets are recorded
 // here on success, so a later rewind (truncateTo) can cut both files back
 // to any recorded burst boundary in place.
 //
-// Burst atomicity (fix round 1): the intent that owns a burst is written
+// Burst atomicity: the intent that owns a burst is written
 // BEFORE the burst's events. The two live in separate files and can never
 // be committed atomically, and this ordering is the safe side: it guarantees
 // the events stream is never longer than the intents that account for it.
@@ -264,7 +263,7 @@ func (f *matchFiles) close() {
 
 // writeSidecar writes <k>.json atomically (temp file + rename). When sync
 // is set the temp is fsynced before the rename and the parent directory
-// after it (fix round 1, fsync coverage) so the rename, not just the file's
+// after it (fsync coverage) so the rename, not just the file's
 // contents, is durable. The temp file is removed on every error path and
 // consumed by the rename, so no *.tmp survives (writeFileAtomic).
 func writeSidecar(dir string, sc sidecar, sync bool) error {
@@ -362,7 +361,7 @@ func readSidecars(dir string, t TableID) ([]sidecar, error) {
 // readLog rebuilds a match's events.Log from its files. A trailing partial
 // line (a crash mid-write) is ignored; anything malformed before it is an
 // error. The Seed comes from the sidecar. The two streams are reconciled to
-// a consistent prefix (fix round 1) before returning, so Events/ViewAt of a
+// a consistent prefix before returning, so Events/ViewAt of a
 // match whose write was cut off never serve a log that cannot replay.
 func readLog(dir string, t TableID, k int) (*events.Log, error) {
 	sc, err := readSidecar(dir, t, k)
@@ -395,7 +394,7 @@ func readLog(dir string, t TableID, k int) (*events.Log, error) {
 }
 
 // reconcileLog trims a log read from disk to the consistent prefix a replay
-// can rebuild (fix round 1, burst atomicity). A burst's events and its
+// can rebuild (burst atomicity). A burst's events and its
 // owning intent live in two separate files and can never be committed
 // atomically, so a crash or kill mid-burst can leave either stream ahead of
 // the other: the events file can be cut inside its last burst (the
@@ -408,7 +407,7 @@ func readLog(dir string, t TableID, k int) (*events.Log, error) {
 // stream may run past the other. Everything past that is trimmed, so
 // Events and ViewAt always serve a prefix that replays cleanly.
 //
-// DECIDED, fb-20260915T094418Z: the trim stays on the file path, cutting a
+// DECIDED: the trim stays on the file path, cutting a
 // parked/finished burst's overshoot tail along with a crash-cut one — the
 // two are indistinguishable here (reconcileLog has no Config to replay
 // with, and a crash mid-APPEND leaves exactly the shape a legitimate tail
@@ -480,7 +479,7 @@ type tableRecord struct {
 
 // save writes tables.json (sorted by id) when persistence is on. It takes
 // the registry lock itself; callers that already hold r.mu use saveLocked.
-// fsync coverage (fix round 1): the temp file is synced before the rename
+// fsync coverage: the temp file is synced before the rename
 // and the parent directory after it (writeFileAtomic), the same guarantees
 // as the sidecar and the events files.
 func (r *Registry) save() error {

@@ -1,4 +1,4 @@
-// Task 29: rules/trigger.go's applyReplacements used to treat every
+// rules/trigger.go's applyReplacements must not treat every
 // matching R:Event$ Moved replacement as Forge's ReplacementResult$
 // Replaced -- resolve ReplaceWith$, discard the original event. That is
 // wrong for the corpus's dominant shape, ReplacementResult$ Updated ("the
@@ -21,10 +21,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// tappedLandSrc is the Hallowed Fountain shape the brief names: a land whose
+// tappedLandSrc is the Hallowed Fountain shape: a land whose
 // only R: line says "you may pay 2 life... enters tapped" -- simplified here
-// to the unconditional "enters tapped" the brief's own excerpt shows, since
-// the UnlessCost$ branch is not what Task 29 is about.
+// to the unconditional "enters tapped", since
+// the UnlessCost$ branch is not the point here.
 const tappedLandSrc = `Name:Tide Gate
 Types:Land
 R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ DBTap | ReplacementResult$ Updated | Description$ enters tapped
@@ -69,7 +69,7 @@ Oracle:x
 `
 
 // graveyardBlockingReplacementSrc is the shipped corpus's Rest in Peace
-// shape (review finding I-1): a broad "if a card would be put into a
+// shape: a broad "if a card would be put into a
 // graveyard from anywhere, [do something else] instead" replacement, with
 // no ValidCard$ narrowing beyond "any card" and no ReplacementResult$ (so
 // today's ReplacementResult$-absent code path, unchanged by this task,
@@ -98,7 +98,7 @@ Oracle:x
 // newFixtureDeck builds a 2-seat engine the same way newSeats does, except
 // seat 0's deck leads with fixture (followed by each extra, in order, then
 // mountains), so cfg.Decks -- and therefore replayFromLog's own genesis
-// reconstruction -- actually contains them (Ruling: an object added to a
+// reconstruction -- actually contains them (an object added to a
 // live Engine after New via a direct AddObject call, the way several
 // existing tests in this package do it, is invisible to replayFromLog,
 // which only rebuilds from cfg.Decks; test 5 below needs the object to line
@@ -244,7 +244,7 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 		}
 		if d.Kind == decision.KChoose && d.ResumeKind == "search_zones" {
 			// An OriginAlternative$ zone election suspended mid-resolution
-			// (cr-g51: "search your library and/or graveyard" now asks which
+			// ("search your library and/or graveyard" now asks which
 			// zones). These drains were written around the pre-election
 			// engine, which always searched every named zone, so answer with
 			// every offered zone -- Min 1 makes all of them a legal answer --
@@ -435,7 +435,7 @@ func playTappedLand(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
 
 // castAndResolveTappedCreature drives newFixtureDeck's creature through the
 // cast option, funds its cost, and then drains priority -- bounded, per the
-// brief's instruction not to let a real regression hang the test process --
+// not letting a real regression hang the test process --
 // until it resolves off the stack. Shared by test 2 and test 5.
 //
 // Funding happens AFTER driving to main1, not before: setStep clears every
@@ -481,7 +481,7 @@ func castAndResolveTappedCreature(t *testing.T, seed uint64) (*Engine, Config, s
 	passUntilStackEmpty(t, e, bound)
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v after %d bounded priority passes -- did not resolve "+
-			"(possible infinite re-resolution, Task 29's defect)", e.G.Stack, bound)
+			"(possible infinite re-resolution)", e.G.Stack, bound)
 	}
 	return e, cfg, id
 }
@@ -567,7 +567,7 @@ func TestUpdatedReplacementOnACreatureSpellResolvesOnce(t *testing.T) {
 	}
 }
 
-// TestReplacedReplacementStillDiscardsTheMove is brief test 3: the Task 22
+// TestReplacedReplacementStillDiscardsTheMove: the
 // fixture shape (no ReplacementResult$ at all, i.e. absent == Replaced) on a
 // permanent being destroyed must keep discarding the Move exactly as before
 // -- unchanged behaviour, pinned so the Updated branch above cannot regress
@@ -632,7 +632,7 @@ func TestPermanentSpellWhoseEntryIsFullyReplacedDoesNotStickOnTheStack(t *testin
 	passAll(t, e, bound)
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v after %d bounded priority passes -- the fully-replaced entry stuck "+
-			"on the stack instead of being swept off it (Task 29's resolveTop guard)", e.G.Stack, bound)
+			"on the stack instead of being swept off it (the resolveTop guard)", e.G.Stack, bound)
 	}
 	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
 		t.Fatalf("zone = %s, want graveyard", got)
@@ -652,8 +652,8 @@ func TestPermanentSpellWhoseEntryIsFullyReplacedDoesNotStickOnTheStack(t *testin
 	}
 }
 
-// TestTotalityGuardSurvivesABroadGraveyardReplacement is review finding I-1
-// (Task 29 fix round 1): the totality guard's own escape hatch -- the Note
+// TestTotalityGuardSurvivesABroadGraveyardReplacement:
+// the totality guard's own escape hatch -- the Note
 // and the stack->graveyard MoveZone in resolveTop -- used to go through
 // e.emit with applyingReplacement left false, so a broad "any card that
 // would go to a graveyard from anywhere" replacement already in play (the
@@ -695,7 +695,7 @@ func TestTotalityGuardSurvivesABroadGraveyardReplacement(t *testing.T) {
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v after %d bounded priority passes with a broad graveyard "+
 			"replacement in play -- the totality guard's own escape hatch got blocked "+
-			"the same way the original Move was (Task 29 review finding I-1)", e.G.Stack, bound)
+			"the same way the original Move was", e.G.Stack, bound)
 	}
 	if n != 2 {
 		t.Fatalf("passes to drain the stack = %d, want exactly 2 -- the same as with no "+
@@ -722,13 +722,12 @@ func TestTotalityGuardSurvivesABroadGraveyardReplacement(t *testing.T) {
 // sharing state with them -- but the exact same helper functions, so this
 // exercises precisely what those tests exercised.
 //
-// Review finding M-4 (Task 29 fix round 1): this pins REPLAY fidelity of the
-// Updated path's log, not the Updated semantics themselves -- it would still
-// pass with applyReplacements' Updated branch reverted, as long as the
-// resolveTop guard is present (the shared helpers' own bounded drive is what
-// would then fail first, not this test's diff). Tests 1, 2 and 6 are what
-// pin Updated's actual behaviour; this one only pins that whatever it does
-// is faithfully reconstructible from the log alone.
+// This pins REPLAY fidelity of the Updated path's log, not the Updated semantics
+// themselves -- it would still pass with applyReplacements' Updated branch
+// reverted, as long as the resolveTop guard is present (the shared helpers' own
+// bounded drive is what would then fail first, not this test's diff). Tests 1, 2
+// and 6 are what pin Updated's actual behaviour; this one only pins that whatever
+// it does is faithfully reconstructible from the log alone.
 func TestUpdatedReplacementReplaysFaithfully(t *testing.T) {
 	t.Parallel()
 	t.Run("land", func(t *testing.T) {

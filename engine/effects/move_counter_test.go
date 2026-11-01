@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task movecounter1: api:MoveCounter (Forge's MoveCounterEffect). The
+// api:MoveCounter (Forge's MoveCounterEffect). The
 // primitive was unregistered, so every `AB$ MoveCounter` / `DB$ MoveCounter` /
 // `SP$ MoveCounter` line (33 raw SA lines over 32 corpus files) degraded to
 // one "unimplemented API MoveCounter" Note and moved nothing -- and the

@@ -45,7 +45,7 @@ func effectChosenNameSuffix(h Host, source state.ObjID, body string) string {
 }
 
 // effEffect creates a lasting effect object holding StaticAbilities$ for
-// Duration$. This is the part of Task ce1 that turns the M1 Note into a real
+// Duration$. This is the part that turns a Note into a real
 // registration: a StaticAbilities$ entry naming a RESTRICTION static
 // (CantTarget for Vines of Vastwood, CantRegenerate for Incinerate) is
 // registered into the engine's continuous-effect registry (rules' layer
@@ -102,7 +102,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// blinked target). Both ride the registrations below.
 	forgetOn := ep.ForgetOnMoved
 	exileOn := ep.ExileOnMoved
-	// ForgetCounter$ <kind> (task vow1): a remembered card whose count of
+	// ForgetCounter$ <kind>: a remembered card whose count of
 	// that kind reaches zero after a counter-removal leaves the registered
 	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
 	// registration below.
@@ -181,6 +181,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	remembered := effectRemembered(h, c, sa)
+	// CR 611.2c: an effect on several permanents locks them in as it resolves,
+	// so one of them leaving ends it only for that one (Secret Tunnel's two
+	// creatures). Elsewhere ExileOnMoved$ means a choice has been used.
+	if len(remembered) > 1 && forgetOn == "" && strings.EqualFold(exileOn, "Battlefield") {
+		forgetOn, exileOn = exileOn, ""
+	}
 	// Capture the effect's own subjects before discarding older source memory.
 	forgetOtherRemembered(h, c, sa)
 	if imprintOnHost && len(remembered) > 0 {
@@ -255,7 +261,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     Blocks, PlaneswalkedTo, ... -- the broader printed-trigger gap) is
 	//     named in the Note here, not silently dropped. Every matcher-backed
 	//     mode (DamageDone included) registers through the generic matcher arm
-	//     below (landed under cli-20260922T225138Z-504a0e97).
+	//     below.
 	//   - an OptionalDecider$ body (Beck's "you may draw a card") IS
 	//     registered: registering it without the election would fire the
 	//     effect MANDATORILY, the opposite of the card text, so the spec
@@ -347,7 +353,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// registration INLINE at fire time -- never minting a stack
 			// object -- so there is no resolution gate to pose the CR 603.5
 			// yes/no at, and registering it would execute the "you may"
-			// mandatorily. Withheld loudly (cli-20260923T060218Z round 2);
+			// mandatorily. Withheld loudly;
 			// the static firing arm carries a matching fail-closed guard so
 			// no future "|OD=" minter can misexecute there either.
 			if tl.Static {
@@ -636,7 +642,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// (the body is a DB$ ReplaceEffect damage rewrite); Event$ Moved with
 		// a PutCounter body is the "that creature enters with an additional
 		// +1/+1 counter for each ..." family (torgal_a_fine_hound,
-		// communal_brewing, wildgrowth_archaic, task wildgrowth1): the
+		// communal_brewing, wildgrowth_archaic): the
 		// Updated-shaped MoveZone dispatch already applies the original move,
 		// fires entry triggers, then runs the body, and effPutCounter handles
 		// ETB$ True on the entered object. Event$ CreateToken with a ReplaceToken
@@ -747,7 +753,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// MayLookAt$ over face-down exiled cards (Praetor's Grasp's "you
 			// may look at and play that card", Ugin, the Ineffable's MayLook,
 			// Mind Flayer, the Shadow): registered as its own look grant
-			// rules' MayLookAtFaceDown reads for the view (CR 406.3; cr-g64),
+			// rules' MayLookAtFaceDown reads for the view (CR 406.3),
 			// with the Effect's lifetime and Remembered set. The key is then
 			// dropped, so a MayPlay$ rider on the same line registers through
 			// the ordinary may-play branch below; a look-only line is done.
@@ -934,7 +940,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				})
 				registered = true
 			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
-				// AddKeyword$ Cascade (task cascade1): the Effect-delivered
+				// AddKeyword$ Cascade: the Effect-delivered
 				// cascade grant (TARDIS's GrantCascade, Dark Apostle's, Bigger
 				// on the Inside's), registered as a layer-6 keyword grant the
 				// same walk the printed S: statics feed (engine/rules/layers.go's

@@ -183,7 +183,7 @@ const krenkoCapOffset = 64
 func krenkoCap(goblins int) int { return 80 + goblins + krenkoCapOffset }
 
 // TestKrenkoBoardCapFiresMidResolution is the deterministic replacement for
-// the round-4 explore repro (seed 6181111140895991800), which no longer
+// the explore repro (seed 6181111140895991800), which no longer
 // reproduces on main: a staged 4000-Goblin board whose very next Krenko
 // resolution crosses the armed -max-objects budget mid-resolution, 64
 // tokens into the doubling. The abort must carry the watcher's own reason,
@@ -284,7 +284,7 @@ func TestKrenkoBoardUnarmedDoubles(t *testing.T) {
 //
 //   - before: the resolution runs to completion -- it mints the whole other
 //     half of the doubling, so ns/op grows with the staged board, the shape
-//     that burned the whole wall-clock budget on the round-4 explore game
+//     that burned the whole wall-clock budget on the explore game
 //     before any boundary check could classify it.
 //   - after: the armed cap aborts the resolution a few mints past the
 //     budget, so ns/op is flat in the staged board size and the game is

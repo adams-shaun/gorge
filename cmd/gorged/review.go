@@ -39,7 +39,7 @@ func reviewLoad(path string) (host.ReviewMatch, error) {
 		return host.ReviewMatch{}, err
 	}
 	if len(rec.Chance) > 0 {
-		return host.ReviewMatch{}, fmt.Errorf("record carries a chance transcript; review of kernel-sourced records needs replay.WalkChance (T6)")
+		return host.ReviewMatch{}, fmt.Errorf("record carries a chance transcript; review of kernel-sourced records needs replay.WalkChance")
 	}
 	explain := rec.Explain
 	if len(explain) > 0 && len(explain) != len(rec.Log.Intents) {

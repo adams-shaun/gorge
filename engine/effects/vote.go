@@ -181,7 +181,7 @@ func emitVoteFinished(h Host, c *Ctx, ballots []VoteBallot, ballotExisted, secre
 	h.Emit(VoteFinishedNote(c.Controller, c.Source, ballots, ballotExisted))
 }
 
-// effPlayerVote is api:Vote's PLAYER-ballot shape (task votepb1): the third
+// effPlayerVote is api:Vote's PLAYER-ballot shape: the third
 // ballot kind beside the fixed Choices$ list and the VoteCard$ permanent
 // ballot, spelled `VotePlayer$ <selector>` (Mob Verdict's `VotePlayer$ Other`,
 // Círdan the Shipwright's `VotePlayer$ Player`). It is Forge's VoteEffect
@@ -250,9 +250,9 @@ func effPlayerVote(h Host, c *Ctx, sa *cards.SA, vp *VoteParams) {
 			continue
 		}
 
-		// No host to ask (the R-9 fuzz/test contract): the deterministic first
+		// No host to ask (the fuzz and test path): the deterministic first
 		// admissible entry -- the same pick the pre-ask stand-in made -- under
-		// the R-9 degradation Note every other asking site records.
+		// the degradation Note every other asking site records.
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "player vote resolved as the first ballot entry (no engine host to ask)"})
 		picks = append(picks, state.Target{Player: opts[0], IsPlayer: true})
@@ -370,7 +370,7 @@ func VoteCountForTarget(counts []VoteCount, subject state.Target) (int, bool) {
 }
 
 // votePlayerLabel is a ballot entry's event-text identity: the seat's deck
-// Name, else "seat N" -- the same F3-safe identity the toss Note uses. The
+// Name, else "seat N" -- the same seat-only identity the toss Note uses. The
 // display PlayerName never reaches the chain.
 func votePlayerLabel(g *state.Game, p state.PlayerID) string {
 	if g != nil && int(p) < len(g.Players) {

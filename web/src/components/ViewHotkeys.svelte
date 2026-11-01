@@ -42,8 +42,8 @@
         // Space/Enter on a focused activatable control was suppressed as a
         // table hotkey because the control's native activation owns it. Say
         // so — this route is mounted for spectators too, who have no seat
-        // strip, so the cue would otherwise never reach them
-        // (fb-20260929T080219Z). Text-entry suppression stays silent: every
+        // strip, so the cue would otherwise never reach them.
+        // Text-entry suppression stays silent: every
         // keystroke while typing would flood the breadcrumb ring, and a
         // keystroke landing in a textbox is no surprise.
         const owned = focusOwnership(e);

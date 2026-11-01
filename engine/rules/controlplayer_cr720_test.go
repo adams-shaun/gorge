@@ -243,7 +243,7 @@ func findGrantOption(t *testing.T, d *decision.Decision, obj state.ObjID, svar s
 	return decision.Option{}
 }
 
-// TestControlPlayerCensusNamesTheOtherCarriers is the census the brief asks
+// TestControlPlayerCensusNamesTheOtherCarriers is the census
 // for: it enumerates every corpus card serving `api:ControlPlayer` (either as a
 // printed A: ability or as an SVar body -- The Dominion Bracelet's granted
 // shape) and every card whose Exile cost names OriginalHost, so a corpus pin

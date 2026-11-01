@@ -411,7 +411,7 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			// The value rides on Option.Amount, not Option.Index: xAsk is the
 			// first stage and appends 0..max into an empty option list, so
 			// Index happens to equal the value today, but a later task that
-			// prepends an option (a "cancel", Task 10's ability variants)
+			// prepends an option (a "cancel", ability variants)
 			// would silently corrupt an Index-derived value.
 			pc.x = int32(chosen[0].Amount)
 		}

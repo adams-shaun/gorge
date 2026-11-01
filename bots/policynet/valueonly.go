@@ -1,6 +1,6 @@
 package policynet
 
-// The value-only gradient (ticket pn17): the value head's BCE gradient on a
+// The value-only gradient: the value head's BCE gradient on a
 // single (state, outcome) pair with NO offered options. It is exactly the
 // value-head tail of LossGrad (net.go), extracted so the state/outcome dump
 // path can descend the same arithmetic without a policy example: forward

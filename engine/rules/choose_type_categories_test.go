@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task ct1: the as-enters ChooseType ask (the ETBReplacement path) is
+// The as-enters ChooseType ask (the ETBReplacement path) is
 // category-aware too. Before the fix its "type" arm built the owner-scoped
 // creature-type list for EVERY Type$ category, so a real corpus Basic Land
 // carrier asked the wrong question. These tests drive the real carriers

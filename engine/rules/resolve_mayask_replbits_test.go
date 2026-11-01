@@ -33,7 +33,7 @@ func TestReplEventBitCensus(t *testing.T) {
 	for k := cards.ReplEvent(1); k < cards.ReplEventCount; k++ {
 		name := fmt.Sprintf("Census %s", k)
 		src := fmt.Sprintf("Name:%s\nManaCost:W\nTypes:Enchantment\nR:Event$ %s | ActiveZones$ Battlefield | Description$ x\nOracle:x\n", name, k)
-		e, _ := kr8Fixture(t, 2, 9900+uint64(k), src)
+		e, _ := kernelFixture(t, 2, 9900+uint64(k), src)
 		id := moveByName(t, e, 0, name, state.ZBattlefield)
 		found := false
 		e.forEachReplacementSourceFor(^uint32(0), func(v state.ObjID) { found = found || v == id })
@@ -50,8 +50,8 @@ const tapeGainAskerSrc = "Name:Tape Gain Asker\nManaCost:W\nTypes:Enchantment\n"
 	"R:Event$ GainLife | ActiveZones$ Battlefield | ValidPlayer$ You | ReplaceWith$ DBChoose | Description$ x\n" +
 	"SVar:DBChoose:DB$ ChooseColor | Defined$ You\nOracle:x\n"
 
-func TestKr8GainLifeOnlyReplacementBodyAskIsCheckpointed(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9204, func(t *testing.T, e *Engine) {
+func TestKernelGainLifeOnlyReplacementBodyAskIsCheckpointed(t *testing.T) {
+	_, st := runScenarioKernel(t, 2, 9204, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Gain Asker", state.ZBattlefield)
 		if !tapeAnyReplBodyMayAsk(e) {
 			t.Fatal("the body scan misses a GainLife-only replacement whose body asks")

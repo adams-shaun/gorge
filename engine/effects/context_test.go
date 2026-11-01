@@ -253,6 +253,11 @@ func (h *fakeHost) QueueReflexiveTrigger(c *Ctx, execute string, body *cards.SA,
 func (h *fakeHost) LegalSubTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA, parent []state.Target) []state.Target {
 	return h.LegalTargets(chooser, source, sa)
 }
+func (h *fakeHost) LegalRetargets(obj state.ObjID, sa *cards.SA, parent []state.Target) []state.Target {
+	return h.LegalTargets(h.g.Obj(obj).Controller, obj, sa)
+}
+func (h *fakeHost) AnnouncedLinkTargets(obj state.ObjID, link *cards.SA) []state.Target { return nil }
+func (h *fakeHost) RetargetLink(obj state.ObjID, link *cards.SA, ts []state.Target)     {}
 func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
 	var out []state.Target
 	spec := sa.Params["ValidTgts"]
@@ -295,6 +300,9 @@ func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 	return h.sacrificeBlocked[id]
 }
+
+// UntapBlocked has no replacement registry to consult here.
+func (h *fakeHost) UntapBlocked(id state.ObjID) bool { return false }
 
 // ExileBlocked has no registry to consult here (the engine-side CantExile
 // restriction lives in rules.Engine), the same discipline as SacrificeBlocked
@@ -356,7 +364,7 @@ func (h *fakeHost) BeginTokenCreation() {}
 func (h *fakeHost) EndTokenCreation()   {}
 func (h *fakeHost) EndZoneBatch()       {}
 
-// CastThisTurn has no real turn log to count here (Task 17); the effects
+// CastThisTurn has no real turn log to count here; the effects
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }
 

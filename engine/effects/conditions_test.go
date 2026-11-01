@@ -308,7 +308,7 @@ func TestConditionBareDeliriumReportsTheCensus(t *testing.T) {
 }
 
 // TestConditionBareBlessingReadsTheLatch pins the bare-Condition$ Blessing
-// arm against the three corpus carriers the brief names (ocelot_pride /
+// arm against the three corpus carriers (ocelot_pride /
 // a-ocelot_pride's DB$ CopyPermanent, the_golden_city_of_orazca's DB$ Draw):
 // the gate is met exactly when the resolving controller's seat holds the
 // city's blessing -- the one-way latch state.Player.Blessing that

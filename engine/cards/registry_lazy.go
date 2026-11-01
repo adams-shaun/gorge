@@ -13,14 +13,14 @@ import (
 // SharedCorpus): the corpus stays resident as the pointer-free Image, and a
 // card's *Card tree is built only when something first touches it. The GC
 // then marks the materialized cards (the decks in play) instead of the whole
-// ~34k-card tree on every cycle -- the pointer-free corpus spec's §2.3.
+// ~34k-card tree on every cycle.
 //
 // Materializing ordinal i is the image's raw (cache-shaped) card put through
 // the per-card half of finishDecoded on a private one-card registry -- the
 // subset loader's route, which TestImageCorpusOracle holds equal to the
 // whole-registry route for every card. The result is published with
 // CompareAndSwap, so concurrent callers all get ONE pointer per ordinal for
-// the life of the registry (spec §2.5 contract 2): every pointer-keyed memo
+// the life of the registry: every pointer-keyed memo
 // downstream depends on that.
 type lazyCards struct {
 	img  *Image
@@ -97,7 +97,7 @@ func (l *lazyCards) lookup(key string) (*Card, bool) {
 
 // catalog is Registry.Catalog on an imaged registry: the whole-corpus
 // catalog, built on demand over a private copy of every card and token so no
-// materialized face is ever bound to it (spec §2.5 contract 3). Tests and
+// materialized face is ever bound to it. Tests and
 // tools only; nothing at runtime reads it.
 func (l *lazyCards) catalog() *CompiledCatalog {
 	l.catOnce.Do(func() {
@@ -128,7 +128,7 @@ func (im *Image) strBytes(id StringID) []byte {
 }
 
 // imagedRegistry is LoadRegistry's imaged route: decoded holds the cache's
-// cards exactly as gob decoded them (T0, before finishDecoded). The image
+// cards exactly as gob decoded them, before finishDecoded. The image
 // keeps them; the trees themselves are dropped by the caller.
 func imagedRegistry(decoded []*Card, tokens map[string]*Card) (*Registry, error) {
 	return imagedRegistryHashed(decoded, tokens, nil)

@@ -65,7 +65,7 @@ func thisDefinedAndTgtsTargets(h Host, c *Ctx, value string) []state.Target {
 //
 // The optional "MANDATORY " prefix is stripped. A mandatory alternate takes
 // the alternate directly; otherwise the controller chooses between the two
-// destinations. If no answer is available, R-9 preserves the historical
+// destinations. If no answer is available, the no-host path preserves the historical
 // deterministic alternate-destination behavior.
 //
 // Unlike CheckSVarHolds's other call sites, an unreadable condition here fails
@@ -129,7 +129,7 @@ func (cz *ChangeZoneParams) searchDefersDestination() bool {
 }
 
 // askUnconditionalDestination is the controller's hand-or-graveyard style
-// choice. With no answer available (R-9) the primary is kept, so every
+// choice. With no answer available the primary is kept, so every
 // no-host replay is unchanged, and one Note names both zones.
 func askUnconditionalDestination(h Host, c *Ctx, cz *ChangeZoneParams, primary state.Zone) state.Zone {
 	if to, ok := askDestinationChoice(h, c, cz, primary); ok {
@@ -655,7 +655,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// Offer the targets now, through the same Host.LegalTargets census the
 	// announcement ask uses (targetZones' Origin$-implied graveyard included),
 	// as a KChoose answered in place via AskTape. A host that cannot ask
-	// takes the deterministic first-max stand-in (R-9, the same mirror the
+	// takes the deterministic first-max stand-in (the same mirror the
 	// effDig ask's botpolicy arm answers with option 0). The chosen bounds are
 	// TargetMin$/TargetMax$ through the ordinary Num grammar (TrigReturn's
 	// TargetMin$ 0 / TargetMax$ 1 -- "up to one"), clamped to the eligible
@@ -750,7 +750,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 					altBottom = len(ans) > 0 && ans[0].Label == "bottom"
 					altEngaged = true
 				} else {
-					// R-9 no-ask host: the primary placement, deterministically.
+					// No-host path: the primary placement, deterministically.
 					altBottom = false
 					altEngaged = true
 				}
@@ -1078,7 +1078,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 // TargetMin$/TargetMax$ through the ordinary Num grammar, clamped to the
 // eligible count; Min == Max == 0 or an empty eligible set is no ask and no
 // move. A host that cannot ask takes the deterministic first-max stand-in
-// (R-9), which is exactly what botpolicy's clamp fallback answers with.
+// instead, which is exactly what botpolicy's clamp fallback answers with.
 func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 	t := compileChangeZoneTargeting(TargetsOf(sa), DefinedOf(sa))
 	ts, ok, _ := changeZoneChosenTargetsFor(h, c, sa, &t)
@@ -1110,7 +1110,7 @@ func changeZoneChosenTargetsFor(h Host, c *Ctx, sa *cards.SA, cz *changeZoneTarg
 	if len(c.Targets) > 0 {
 		// Inherit ONLY when the targets genuinely belong to THIS SA -- the
 		// OfferedSA marker names exactly the SA the placement/announcement ask
-		// covered (task spcz1; previously every sub that did not declare
+		// covered (previously every sub that did not declare
 		// TargetUnique$ True inherited, so a targeted root's SubAbility$
 		// ChangeZone read the PARENT's targets through Defined's ValidTgts$
 		// fallthrough and its own Origin$ filter rejected them into a silent
@@ -1525,7 +1525,7 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 		// owner is not admitted by default. A Foretold$ designation grants
 		// the same look (CR 702.143a: "That player may look at that card";
 		// Forge's ChangeZoneEffect adds the look for WithMayLook OR
-		// Foretold), so it rides this arm too (cr-g64).
+		// Foretold), so it rides this arm too.
 		ev.Counter = "exiled_with_face_down_maylook"
 		if foretold {
 			ev.Counter = "exiled_with_face_down_maylook_foretold"
@@ -1568,7 +1568,7 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 // move out of a public zone is left public: every seat already saw that
 // card. An emitter that has already made the move Secret owns its Player,
 // so it is left alone; effDig's take re-addresses its moves after this runs
-// (digSecretTo) (cr-g62).
+// (digSecretTo).
 func secretFaceDownMove(ev *events.Event, looker state.PlayerID) {
 	if ev.Secret || !ev.From.Hidden() {
 		return
@@ -1605,7 +1605,7 @@ func movedCardOwner(h Host, ev *events.Event) state.PlayerID {
 // card". events.Apply folds the looker into Object.MayLookPlayer, the one
 // seat the view then shows the face to, and a Secret move is addressed to
 // it. A move already in the may-look layout, or not a plain face-down exile,
-// is unchanged (cr-g64).
+// is unchanged.
 func seenFaceDownExile(ev *events.Event, looker state.PlayerID, source state.ObjID) {
 	if ev.To != state.ZExile || ev.Counter != "exiled_with_face_down" {
 		return

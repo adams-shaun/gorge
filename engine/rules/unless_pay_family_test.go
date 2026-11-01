@@ -21,7 +21,7 @@ import (
 // for both branches (pay vs decline) on real corpus cards, so the census
 // read is backed by behaviour, not by a param-read shim.
 //
-// The task brief's premise that the four census entries still stood was
+// The premise that the four census entries still stood was
 // re-measured FALSE at the worktree base: the shared gate had already
 // shrunk every `param:api:<Tap|DealDamage|LoseLife|ChangeZone>.UnlessCost`
 // entry; what was missing was exactly this behavioural pinning per SA kind.

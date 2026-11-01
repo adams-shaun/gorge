@@ -46,7 +46,7 @@ func specializeRider(kw string) (params map[string]string, unsupported string, o
 		params[k] = strings.TrimSpace(v)
 		switch specializeRiderCodes.Code(string(k)) {
 		case specializeRiderUnsupported:
-			// Out of scope for this ticket: the option is NOT offered and the
+			// Out of scope: the option is NOT offered and the
 			// unsupported rider is named instead. Both are loud so a corpus
 			// count can see them rather than a silent merge.
 			return nil, k, true

@@ -125,7 +125,7 @@ func resolveSearch(t *testing.T, e *Engine) {
 	submitChoices(t, e, 0)
 }
 
-// TestLandGrantRevealHandAltCostCastsForFreeWithALandFreeHand: the brief's
+// TestLandGrantRevealHandAltCostCastsForFreeWithALandFreeHand: the
 // recorded shape (Generous Ent, Balustrade Spy, no land cards). The
 // alternative is offered, pays no mana, reveals the whole hand as a public
 // cost, and the spell resolves (the Forest is searched into hand).

@@ -12,7 +12,7 @@ import (
 // TestAetherSnapRemovesAllCounters pins the corpus Aether Snap script's
 // `AllCounterTypes$ True` shape: with no CounterType$ it must remove EVERY
 // counter kind from each permanent (CR 122.8), not return early and leave the
-// board untouched. The internal Shield marker is not a counter (cr-g83), so it
+// board untouched. The internal Shield marker is not a counter, so it
 // stays, and the SubAbility still exiles the token.
 func TestAetherSnapRemovesAllCounters(t *testing.T) {
 	t.Parallel()

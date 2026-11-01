@@ -89,7 +89,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// printed face carries a SetColor$ CDA contributes that colour.
 	var colorsSeen ColorMask
 	// The Different* distinct-set property family over a reference's objects
-	// (task diffcount1): `Remembered$DifferentCardManaCost` (Azor's Gateway,
+	// `Remembered$DifferentCardManaCost` (Azor's Gateway,
 	// Sanctum of the Sun settling X, Atemsis All-Seeing). The set is read
 	// through len, so no map ordering ever reaches an event or a view.
 	diffKind := differentPropertyKindOf(prop)
@@ -138,7 +138,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		// cannot disagree.
 		//
 		// The same read applies to the sacrifice paid-list refs themselves
-		// (`Sacrificed`/`SacrificedCards`, cr-g297): the bare `Sacrificed$…`
+		// (`Sacrificed`/`SacrificedCards`): the bare `Sacrificed$…`
 		// head is cut by evalCountExprOK before it reaches this evaluator,
 		// but its `Spawner>Sacrificed$…` chained spelling (Bolg of the North,
 		// Heart-Piercer Manticore -- the resolving reflexive trigger's
@@ -247,7 +247,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			// a repeated mode (CR 700.2d) counted each time it was chosen.
 			n += int32(len(o.ChosenModes))
 		case prop == "CardNumColors":
-			// The referenced object's colour count (task rv2b-countheads):
+			// The referenced object's colour count:
 			// Mana Drain's drain (Lurking Spinecrawler's
 			// TriggeredCard$CardNumColors, Moonveil Regent's and Mana
 			// Cannons' Targeted$CardNumColors), read off the object the ref
@@ -448,7 +448,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 // shared definedSpec -- the SAME resolver the body's own Defined$ spelling
 // goes through -- so the ref list is not a hand-maintained duplicate that
 // can miss the next sibling. The LifeTotal head is wired for those refs
-// (task rv2b-countheads: Quietus Spike's and Ebonblade Reaper's
+// (Quietus Spike's and Ebonblade Reaper's
 // TriggeredTarget$LifeTotal/HalfUp); every OTHER property on such a ref
 // still fails closed, so this arm's wider ref set cannot silently widen the
 // player count semantics. An unknown ref or an unmodelled property returns
@@ -475,7 +475,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 // ref TriggeredPlayersTargets (trig:DamageAll; both refs' only property
 // is Amount) returns false, and the caller degrades to zero
 // exactly as evalRefProperty's default always did. CardsDiscardedThisTurn
-// is the one optional head the brief allowed in: the shared Host predicate
+// is the one optional head: the shared Host predicate
 // already existed.
 func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	ref, prop, found := strings.Cut(expr, "$")
@@ -500,7 +500,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		// count head and a Defined$ spelling of the ref cannot disagree.
 		// Lullmage's Domination's SVar:CheckTgt reads
 		// `TargetedController$CardsInGraveyard` through the ReduceCost
-		// static's Count$Compare (agent-20260928T043626Z-b7e271c1).
+		// static's Count$Compare.
 		src := c.Targets
 		if c.PickedTargets != nil {
 			src = c.PickedTargets
@@ -522,10 +522,10 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		// through definedSpec -- the SAME resolver the body's own Defined$
 		// spelling goes through -- and keep its player entries, so the ref
 		// list is not a hand-maintained duplicate that can miss the next
-		// sibling. This ticket (rv2b-countheads) wires the LifeTotal head for
+		// sibling. This wires the LifeTotal head for
 		// those refs (Quietus Spike's / Ebonblade Reaper's
 		// TriggeredTarget$LifeTotal/HalfUp). The property is confined to the
-		// one head the ticket names so the change cannot widen the family's
+		// one head so the change cannot widen the family's
 		// other player count semantics (CardsInHand, Valid, Counters.Poison,
 		// ...) for refs that used to fail closed; an unknown ref or property
 		// still fails closed to (0, false).

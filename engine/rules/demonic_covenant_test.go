@@ -1,7 +1,7 @@
 package rules
 
 // Demonic Covenant's end-step mill-sacrifice rider, end to end on the real
-// compiled corpus SA (the defender the brief names): the Phase$ End of Turn
+// compiled corpus SA: the Phase$ End of Turn
 // trigger creates the Demon token, mills two (RememberMilled$ True records
 // them, ShowMilledCards$ True reveals them publicly), and the chained
 // sacrifice's gate — ConditionCheckSVar$ MilledSharesAllTypes with the body

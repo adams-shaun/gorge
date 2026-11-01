@@ -2,11 +2,11 @@ package host
 
 import "fmt"
 
-// The provenance ledger is HD-2 of the human-divergence design
+// The provenance ledger is part of the human-divergence design
 // (docs/design/2026-10-10-human-divergence-design.md §5.2): one
 // byte per accepted intent, saying whether the answer was a deliberate human
 // choice. The match log alone cannot tell — a caretaker substitution logs
-// byte-identically to a human answer (D3), and the client's autopilot submits
+// byte-identically to a human answer, and the client's autopilot submits
 // through the same intent route. Two bits per intent:
 //
 //   - bit 0 (provCaretaker): the seat's caretaker answered — the HumanSeat's
@@ -24,7 +24,7 @@ import "fmt"
 // length always equals the match's intent count, and an undo truncates it
 // beside the log (rewindToLastIntent).
 //
-// The only reader in this ticket is Provenance; HD-3's ShadowScan reads the
+// The only reader is Provenance; ShadowScan reads the
 // same slice under the match lock to exclude caretaker and auto intents from
 // the divergence scan.
 
@@ -61,7 +61,7 @@ func (m *match) ledgerTruncate(n int) {
 }
 
 // Provenance returns a copy of match k of table id's provenance ledger,
-// indexed by intent (see the package ledger doc). It is the read path HD-3's
+// indexed by intent (see the package ledger doc). It is the read path
 // ShadowScan and the ledger tests use; the returned slice is a copy, so a
 // caller can never mutate the match's own bytes. A finished non-perpetual
 // match is read through the table's history tail once run() has retired it

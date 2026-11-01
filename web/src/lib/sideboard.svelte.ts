@@ -5,7 +5,7 @@ import { message } from './draftevent.svelte';
 import { eventApi, type EventApi } from './eventapi';
 
 /**
- * Sideboard is the between-games panel's state (E3-9): one seat's working
+ * Sideboard is the between-games panel's state: one seat's working
  * copy for the next game of its Bo3 series, started from the deck it played
  * last game (EventPool.playing).
  *

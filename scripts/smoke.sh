@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# scripts/smoke.sh — the browser smoke gate (Task SG1, extended by ui19).
+# scripts/smoke.sh — the browser smoke gate.
 #
 # Builds the REAL client and the REAL binary, starts FIVE `gorged` servers on
 # smoke ports (8090-8099 by default) — public and omniscient spectators, a SEATED 1v1,
-# the shared ui24/wheel1 board fixture, and the fb-e079def5 Talisman two-stage
+# the shared mana-wheel board fixture, and the Talisman two-stage
 # continuation fixture — then drives
 # the headless-browser smoke test in web/e2e against all five, and tears
 # every server down (and removes its temp dir) whether the gate passes or
@@ -13,7 +13,7 @@
 # The public spectator server is non-negotiable: it is the mode that was
 # broken (a literal JSON-null hand spread into the board), and the
 # omniscient-only path is exactly what hid the regression from every unit
-# test. The SEATED server is the ui19 extension: the earlier public/omni
+# test. The SEATED server exists because the earlier public/omni
 # gates drive only the two SPECTATOR modes, so two real regressions — a
 # hand fan that sized itself from its own output (running a big hand off the
 # board) and a seated player's identity bar drawn on top of their own first
@@ -259,7 +259,7 @@ CGO_ENABLED=0 go build -o bin/gorged ./cmd/gorged
 PUBDIR="$(mktemp -d /tmp/gorge-smoke-public-XXXXXX)"
 OMNDIR="$(mktemp -d /tmp/gorge-smoke-omni-XXXXXX)"
 SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
-FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-ui24-XXXXXX)"
+FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-board-XXXXXX)"
 TALISDIR="$(mktemp -d /tmp/gorge-smoke-talisman-XXXXXX)"
 SERVER_PIDS=()
 
@@ -281,7 +281,7 @@ start_server() {
   SERVER_PIDS+=("$!")
 }
 
-# The SEATED server (ui19) is a 1v1 play-vs-bot server: `-vsbot` arms
+# The SEATED server is a 1v1 play-vs-bot server: `-vsbot` arms
 # POST /api/games (which returns a join URL seating the client at seat 0 of
 # a fresh 2-seat table), and `-humans 1` additionally seats a real human at
 # seat 1 of startup table t1 (the -vsbot flow always seats at seat 0, so the
@@ -311,15 +311,15 @@ start_farm() {
   start_server "$OMNPORT" "$OMNDIR" omniscient "$OMNDIR/server.log"
   start_seated_server "$SEATPORT" "$SEATDIR" "$SEATDIR/server.log"
 
-  # ui24/wheel1: deterministic human hands with zero-cost Memnites plus the
+  # The mana-wheel board: deterministic human hands with zero-cost Memnites plus the
   # Underground Sea that exercises the two-stage mana wheel. The tracked fixture
   # is a deck list (names/counts), never Forge card text.
   ./bin/gorged -addr "127.0.0.1:$FIXTUREPORT" -dir "$FIXTUREDIR" -spectator omniscient \
     -decks web/e2e/fixtures/decks -tables 1 -seats 2 -pace 0 -seed 24 \
-    -mulligans 0 -perpetual=false -humans 0,1 -seat-token ui24fixture >"$FIXTUREDIR/server.log" 2>&1 &
+    -mulligans 0 -perpetual=false -humans 0,1 -seat-token boardfixture >"$FIXTUREDIR/server.log" 2>&1 &
   SERVER_PIDS+=("$!")
 
-  # fb-e079def5: the two-stage Talisman continuation. The fixture gets a
+  # The two-stage Talisman continuation. The fixture gets a
   # Talisman of Indulgence castable by turn 2 (two Mountains for its {2} cost),
   # then stops at the priority window whose Talisman activation poses the
   # stage-1 ability wheel the browser test answers THROUGH the picker — the
@@ -361,7 +361,7 @@ for attempt in 1 2 3 4 5; do
   PUBDIR="$(mktemp -d /tmp/gorge-smoke-public-XXXXXX)"
   OMNDIR="$(mktemp -d /tmp/gorge-smoke-omni-XXXXXX)"
   SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
-  FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-ui24-XXXXXX)"
+  FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-board-XXXXXX)"
   TALISDIR="$(mktemp -d /tmp/gorge-smoke-talisman-XXXXXX)"
 done
 if [ "$farm" != true ]; then
@@ -387,7 +387,7 @@ if ! wait_ready "$SEATPORT"; then
   exit 1
 fi
 if ! wait_ready "$FIXTUREPORT"; then
-  echo "smoke: ui24 fixture gorged on :$FIXTUREPORT never became ready:" >&2
+  echo "smoke: board fixture gorged on :$FIXTUREPORT never became ready:" >&2
   sed -n '1,60p' "$FIXTUREDIR/server.log" >&2 || true
   exit 1
 fi

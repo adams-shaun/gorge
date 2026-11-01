@@ -10,8 +10,7 @@ import (
 // SeriesGame is a series table's plan for one match: the deck each table
 // seat plays, indexed by SEAT (never rotated by k, unlike TableConfig.
 // Decks), and the seat posed CR 103.1's starting-player choice in place of
-// the toss winner (rules.Config.StartChooser), or -1 to keep the seeded
-// toss (E3-2).
+// the toss winner (rules.Config.StartChooser), or -1 to keep the seeded toss.
 type SeriesGame struct {
 	Decks   []string
 	Chooser int

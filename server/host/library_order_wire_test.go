@@ -12,7 +12,7 @@ import (
 // (eventBodiesFor, behind the seat event stream and EventsSeat) ships a
 // Secret LibraryOrder to the library's OWN seat with no ids on the wire
 // (protocol.Event.IDs) and the same transcript line every other seat gets
-// (CR 401.2; cr-g61).
+// (CR 401.2).
 func TestLibraryOrderBodyCarriesNoIDsForItsOwner(t *testing.T) {
 	g, _, _ := shareFixture(t)
 	order := events.Event{Seq: 5, Kind: events.LibraryOrder, Player: 0, IDs: []state.ObjID{3, 2, 1}, Secret: true}

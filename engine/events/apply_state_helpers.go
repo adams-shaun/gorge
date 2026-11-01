@@ -287,7 +287,7 @@ func applyManaAdd(g *state.Game, e *Event) {
 		//                        Player.Snow so a {S} pip can be paid only
 		//                        from it. The historical two-char form stays
 		//                        first and exact: recorded games carry it.
-		//   "<Tag><colour>"   -- a TYPED mana unit (task castfilter2),
+		//   "<Tag><colour>"   -- a TYPED mana unit,
 		//                        tallied in Player.TypedMana[tag] so the
 		//                        filtered Count$CastTotalManaSpent
 		//                        Treasure/Cave/Desert heads can read how much

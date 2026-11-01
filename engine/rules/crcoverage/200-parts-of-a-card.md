@@ -75,7 +75,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 208.2 | follows | `engine/rules/chars/derive.go#PT` | - | *-P/T on the battlefield via CDA |
 | 208.2a | follows | `engine/effects/filter_value.go#numericPred` `engine/effects/filter.go#LayerTables` `engine/rules/host_read.go#Engine.cdaPTTable` `engine/rules/chars/cda.go#CDASetPT` | `TestCR208_2aDigReadsLibraryCDAPower` `TestCR208_2aDigCDAGuard` | - |
 | 208.2b | follows | `engine/cards/face.go#Face.Power` | - | not line-checked |
-| 208.3 | partial | `engine/effects/filter_value.go#lacksPT` | - | printed-PT noncreature (Vehicle) treated as having P/T |
+| 208.3 | partial | `engine/effects/filter_value.go#lacksPT` `engine/view/card.go#projector.cardView` | `TestCountersOnANoncreatureMoveNoPT` | printed-PT noncreature (Vehicle) treated as having P/T; the derived value still adds counters on any permanent, and the view and the Board show the printed pair |
 | 208.3a | unknown | - | - | - |
 | 208.4-208.4b | follows | `engine/rules/chars/derive.go#PT` | `TestBasePowerPredicateUsesLayerSevenBSet` | - |
 | 208.5 | follows | `engine/cards/face.go#parsePT` | - | - |

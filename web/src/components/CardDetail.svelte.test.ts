@@ -18,6 +18,13 @@ const card = (over: Partial<CardView> = {}): CardView => ({
   ...over,
 });
 
+describe('CardDetail keywords', () => {
+  it('prints a keyword held twice once', () => {
+    const { html } = render(CardDetail, { props: { card: card({ types: 'Creature Spirit', keywords: ['Trample', 'Trample'] }), anchor } });
+    expect(html.match(/>Trample</g) ?? []).toHaveLength(1);
+  });
+});
+
 describe('CardDetail loyalty ledger row', () => {
   it('a walker prints a Loyalty row and no generic LOYALTY counter chip', () => {
     const { html } = render(CardDetail, { props: { card: card({ counters: { LOYALTY: 3 } }), anchor } });

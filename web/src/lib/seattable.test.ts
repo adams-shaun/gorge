@@ -49,6 +49,9 @@ describe('seatStateOf', () => {
     expect(stateLabel('priority')).toBe('has priority');
     expect(stateLabel('lost')).toBe('out of the game');
     expect(stateLabel('idle')).toBe('');
+    expect(stateLabel('acting', 'You')).toBe('your turn, you have priority');
+    expect(stateLabel('active', 'You')).toBe('your turn');
+    expect(stateLabel('priority', 'You')).toBe('you have priority');
   });
 });
 

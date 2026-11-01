@@ -13,7 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// The oracle state/outcome dump (ticket pn17): a JSONL corpus of encoded
+// The oracle state/outcome dump: a JSONL corpus of encoded
 // STATES with game outcomes and NO labelled options. It is the value-only
 // training path's input (the trainer -value-corpus): one record per
 // observed board state, carrying the redacted seat view the encoders read,
@@ -53,7 +53,7 @@ type StateRecord struct {
 	Outcome      float64         `json:"outcome"`
 	OutcomeKnown bool            `json:"outcome_known"`
 	View         json.RawMessage `json:"view"`
-	// Extras is the label corpus's pn12 extras object re-used unchanged: only
+	// Extras is the label corpus's extras object re-used unchanged: only
 	// its Diag* fields matter here, and only for the diagnostic feature sets.
 	Extras *LabelExtras `json:"extras"`
 }

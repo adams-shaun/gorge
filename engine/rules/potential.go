@@ -412,7 +412,7 @@ func saturatingPotentialMana(have, add int32) int32 {
 // each face is folded additively as an over-bound. The blank case is kept
 // only defensively: addPotentialMana normalizes a blank Produced$ to "C"
 // before calling this, so a colourless source is never mistaken for an open
-// production (the round-2 finding that granted 99 of every colour to a
+// production (which would grant 99 of every colour to a
 // blank-Produced$ source).
 func producedOpen(raw string) bool {
 	if producedOpenSet.Has(raw) {

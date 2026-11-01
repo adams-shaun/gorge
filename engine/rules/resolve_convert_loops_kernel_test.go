@@ -1,8 +1,8 @@
 package rules
 
-// Kernel-era restorations of the W3 step 2 dual-run tests of
-// resolve_convert_loops_test.go: one kernel run per scenario (kr7Run), the
-// asks served from the tape, the named asks posed, the replay identical.
+// The looping-effect asks (RepeatEach, RepeatOptional, optional triggers): one
+// kernel run per scenario (runScenarioSetup), the asks served from the tape, the named
+// asks posed, the replay identical.
 
 import (
 	"fmt"
@@ -59,7 +59,7 @@ func TestKernelAskLoops(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			src := "Name:" + tc.name + "\nManaCost:B\nTypes:Sorcery\n" + tc.src + "\nOracle:x\n"
-			kr7Converted(t, tc.seats, 13000+uint64(i), tc.name, "B", tc.served, src)
+			convertedAskGame(t, tc.seats, 13000+uint64(i), tc.name, "B", tc.served, src)
 		})
 	}
 }
@@ -71,7 +71,7 @@ func TestKernelAskRepeatEachChooseOrder(t *testing.T) {
 		"SVar:DBScry:DB$ Scry | ScryNum$ 1\nOracle:x\n"
 	for _, seed := range []uint64{13101, 13102} {
 		t.Run(fmt.Sprint(seed), func(t *testing.T) {
-			_, st := kr7Dual(t, 2, seed, func(t *testing.T, e *Engine) {
+			_, st := runKernelScenario(t, 2, seed, func(t *testing.T, e *Engine) {
 				moveByName(t, e, 0, "ParentLink Bear", state.ZBattlefield)
 				moveByName(t, e, 0, "ParentLink Angel", state.ZBattlefield)
 				tapeCastAndResolve(t, e, "Tape Order", "G")
@@ -91,7 +91,7 @@ func TestKernelAskRepeatOptionalRepeats(t *testing.T) {
 		"SVar:DBGain:DB$ GainLife | LifeAmount$ 1\nOracle:x\n"
 	repeated := false
 	for seed := uint64(13200); seed < 13206; seed++ {
-		if st := kr7Converted(t, 2, seed, "Tape Again", "B", 1, src); st.Served >= 2 {
+		if st := convertedAskGame(t, 2, seed, "Tape Again", "B", 1, src); st.Served >= 2 {
 			repeated = true
 		}
 	}
@@ -110,7 +110,7 @@ func TestKernelAskOptionalTrigger(t *testing.T) {
 		"SVar:DBGain:DB$ GainLife | LifeAmount$ 1\nOracle:x\n"
 	for _, yes := range []bool{true, false} {
 		t.Run(fmt.Sprint("yes=", yes), func(t *testing.T) {
-			_, st := kr7Dual(t, 2, 13300, func(t *testing.T, e *Engine) {
+			_, st := runKernelScenario(t, 2, 13300, func(t *testing.T, e *Engine) {
 				addMana(t, e, 0, "G")
 				submitChoices(t, e, castOptionFor(t, e, fixtureInHand(t, e, "Tape Maybe Bear")).Index)
 				for i := 0; i < 60; i++ {

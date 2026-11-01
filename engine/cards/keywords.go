@@ -16,7 +16,7 @@ import (
 // "Myriad, myriad", or Evercoat Ursine, "Hideaway 3, hideaway 3"). Forge
 // expands every K: line independently, so matching it means each instance is
 // its own expansion. Two distinct K:Equip: lines (different costs or
-// restrictions) still expand both -- ruling FL-13. Keywords whose meaning is
+// restrictions) still expand both. Keywords whose meaning is
 // a casting option (Kicker, Surge, Flashback, Delve, Flash, Miracle) or a
 // static property (Protection, Indestructible, Devoid) are not expanded:
 // rules reads them directly.
@@ -86,7 +86,7 @@ func (f *Face) expandedKeywordKeys() map[string]bool {
 // two lines of the same keyword cannot collide), k the FULL keyword line
 // verbatim, head and param its split halves, and has the idempotence check --
 // whether this exact LINE already produced a T:/R:/A: entry, which is what
-// lets a face with two distinct K:Equip: lines expand both (ruling FL-13)
+// lets a face with two distinct K:Equip: lines expand both
 // while a second Link() call adds nothing.
 type kwExpander func(f *Face, i int, k, head, param string, has func(kind, line string) bool)
 

@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// The entity encoding (ticket pn14, FeaturesEntity). The mz set is a
+// The entity encoding (FeaturesEntity). The mz set is a
 // zone-aggregated hashed bag: "some creature is tapped", "some creature is a
 // 3/3 flyer" — it cannot say WHICH creature. The entity set binds properties
 // to individual cards: every visible card becomes one fixed-width vector
@@ -721,7 +721,7 @@ func (m *Model) entBackward(c *entCache, st State, ds []float32, dh [][]float32,
 }
 
 // UpgradeEntity turns a model into a FeaturesEntity model with a k-wide
-// per-card encoder (ticket pn14's warm start): the encoder is drawn from rng,
+// per-card encoder (the warm start): the encoder is drawn from rng,
 // while the pooled projection and the new hidden-input columns start at
 // ZERO, so the upgraded model scores every (state, option) exactly as the
 // source did until training moves them. The source must be an mz model (the

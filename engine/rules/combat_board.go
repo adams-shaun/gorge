@@ -7,9 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// combat_board.go is package rules' side of the engine/rules/combat seam (spec
-// docs/design/2026-10-03-rules-engine-lasagna-design.md §9, W5
-// step E5): combatBoard implements combat.Board over the Engine, so the
+// combat_board.go is package rules' side of the engine/rules/combat seam:
+// combatBoard implements combat.Board over the Engine, so the
 // attack/block legality predicates read the game without holding the
 // engine. Every method is a pure read that forwards to the engine reader the
 // predicate called before it moved, so the predicates' answers -- and every

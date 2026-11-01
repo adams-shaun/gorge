@@ -1,7 +1,7 @@
 package rules
 
-// park_tape.go migrates the park-and-continue asks onto the W3 resolution
-// kernel (lasagna spec §7.2). On the legacy path such an ask parks the event
+// park_tape.go migrates the park-and-continue asks onto the resolution
+// kernel. On the legacy path such an ask parks the event
 // it interrupts ("never emitted, never applied") and the chain that emitted
 // it keeps running; the answer applies the parked event after everything the
 // chain did meanwhile. Under the kernel the answer is in hand at the point of

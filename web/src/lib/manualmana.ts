@@ -5,17 +5,14 @@ import { parseSymbol } from './mana';
 
 /**
  * manualmana.ts is the ONE rule for when the auto-pay mode hides a manual
- * mana tap (spec §8, as amended by aph-web-manual-only-plays): "Manual mana
+ * mana tap (spec §8 as amended): "Manual mana
  * taps are hidden under auto-pay only when every play the window can reach is
  * reachable without them."
  *
  * All three surfaces read manualManaHidden, and apply it to exactly the
  * options isPlainManualTap names — SeatPanel.svelte's option list,
  * Table.svelte's boardOptions (the tile/hand/pile badges) and
- * HotButtonStrip.svelte's ACTIONS count — so they cannot drift apart again
- * (before aph-web-autopay-policy each decided separately: the board kept the
- * taps for any non-cast option, the list and the strip hid them
- * unconditionally, even on a manual payment window).
+ * HotButtonStrip.svelte's ACTIONS count — so they cannot drift apart.
  *
  * WHAT HIDING MAY NEVER TAKE AWAY. A play the window can reach is reachable
  * without the manual taps when it is a visible option, or a cast its own
@@ -52,8 +49,8 @@ import { parseSymbol } from './mana';
  *    so the carve-out must be true when it does), which is exactly the state
  *    the fallback button in the payment block serves.
  *
- * MEASURED, not assumed (aph-web-autopay-policy, a Go probe through the real
- * priority ask at e77928ae9): the engine offers a mana-costed play
+ * MEASURED, not assumed (a Go probe through the real
+ * priority ask): the engine offers a mana-costed play
  * FLOAT-FIRST. With an untapped Plains and Mountain, an Equipment "Probe
  * Blade" (K:Equip:1) beside an untapped creature, and a firebreather ("{R}:
  * +1/+0"), seat 0's empty-pool main-1 priority decision offered ONLY the two
@@ -61,8 +58,8 @@ import { parseSymbol } from './mana';
  * seat's potential_actions as kind "ability", and each appeared on the next
  * decision once its mana floated. The engine pins the same model in
  * rules/lander_token_offer_test.go and rules/potential_test.go, and — for the
- * special actions and granted abilities rules.PotentialActions projects since
- * aph-web-manual-only-plays — rules/potential_kinds_test.go.
+ * special actions and granted abilities rules.PotentialActions projects
+ * (rules/potential_kinds_test.go).
  *
  * COSTLY MANA ACTIVATIONS ARE PLAYS, NOT TAPS. An "activate" mana option
  * carrying a cost on the wire (autopilot.isCostlyManaActivation: Lion's Eye

@@ -1,14 +1,13 @@
 package main
 
-// The feedback sideboard round-trip (task sideboards, fix round 2):
-// sideboards are genesis configuration — the engine mints their objects
-// before the first event — so a captured match.json must record the
-// sideboard card names beside deck_cards, and the replay rebuild
-// (feedback.Load → rules.Config) must restore them, or the genesis object
-// IDs shift and every captured Burning Wish/Karn match diverges at the
-// first shuffle. This test captures a live snapshot from a table whose
-// deck file carries a sideboard (the-epic-storm, the repo deck that plays
-// Burning Wish) and replays it through the same Load the CLI uses.
+// The feedback sideboard round-trip: sideboards are genesis configuration —
+// the engine mints their objects before the first event — so a captured
+// match.json must record the sideboard card names beside deck_cards, and the
+// replay rebuild (feedback.Load → rules.Config) must restore them, or the
+// genesis object IDs shift and every captured Burning Wish/Karn match
+// diverges at the first shuffle. This test captures a live snapshot from a
+// table whose deck file carries a sideboard (the-epic-storm, the repo deck
+// that plays Burning Wish) and replays it through the same Load the CLI uses.
 
 import (
 	"testing"

@@ -20,7 +20,7 @@ const endureSpiritToken = "w_x_x_spirit"
 // Spirit creature token (CR 701.63a). The choice is a real mid-resolution
 // election answered in place through the resolution kernel's tape (AskTape),
 // never a silent default: a host with no tape run observes the ask through
-// Host.Ask and the deterministic R-9 stand-in takes the counter branch, which
+// Host.Ask and the deterministic no-host stand-in takes the counter branch, which
 // matches Forge's "unless they put counters" reading.
 //
 // CR 701.63b: endure 0 does nothing -- no counters, no token -- so the whole
@@ -68,7 +68,7 @@ func effEndure(h Host, c *Ctx, sa *cards.SA) {
 				{Index: 1, Kind: "endure_spirit", Label: "Create a Spirit", Obj: t.Obj, Player: player},
 			}
 			// The branch is the option INDEX, not the string kind: option 0 is
-			// the counter branch. A served answer names it; the R-9 no-tape
+			// the counter branch. A served answer names it; the no-tape
 			// stand-in is the counter branch (Forge's literal "unless they put
 			// counters" reading), so useCounters is true unless the seat
 			// answered option 1.

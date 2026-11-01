@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// LegacyDecide preserves the pre-B2 heuristic for the botbench head-to-head:
+// LegacyDecide preserves the original heuristic for the botbench head-to-head:
 // attackers are still all declared, and blockers are still selected by the
 // historical per-option coin. Its blocker arm is the one branch that reads
 // attacker facts beyond Board.IsMain: after the coin loop it drops a whole
@@ -69,7 +69,7 @@ func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 
 	case decision.KAttackers:
 		// Attack with every legal attacker -- at most ONE defender each (CR
-		// 506.2; Task m34 offers every (attacker, defender) pair, and the
+		// 506.2; every (attacker, defender) pair is offered, and the
 		// engine rejects an intent naming the same creature twice, so a
 		// naive "every option" would be rejected in a multiplayer game).
 		// The first option per creature is already deterministic: the

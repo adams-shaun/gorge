@@ -3,7 +3,7 @@ package rules
 import costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 
 // This file is package rules' one bridge to the cost vocabulary leaf,
-// engine/rules/cost (lasagna spec W5 step E1). The types are aliases, so a
+// engine/rules/cost. The types are aliases, so a
 // rules.Cost IS a cost.Cost, and every function below is a one-line
 // forwarder the compiler inlines: rules keeps its historical names and its
 // call sites, while the definitions live in the leaf that holds no *Engine.
@@ -11,7 +11,7 @@ import costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 // The import is named costvocab because "cost" is one of the most common
 // local variable names in this package. Add a forwarder here only for a
 // name rules actually calls; payment-side code (pip expansion, resolveMana)
-// stays in rules until engine/rules/pay (E7).
+// stays in rules until engine/rules/pay.
 
 type (
 	// Cost is the parsed cost (cost.Cost).

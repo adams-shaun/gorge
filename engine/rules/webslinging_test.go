@@ -209,7 +209,7 @@ func TestWebSlingingCastChargesSubstitutedCostAndReturnsCreature(t *testing.T) {
 	}
 }
 
-// TestWebSlingingProvenanceDrivesTheSpidersManRider is the brief's rider
+// TestWebSlingingProvenanceDrivesTheSpidersManRider is the rider
 // pin: Spiders-Man, Heroic Horde's ETB trigger is gated on
 // `ValidCard$ Card.Self+wasCast+webSlinged` (the exact corpus line), so it
 // must fire on a web-slinging cast and stay silent on a hardcast. The ETB

@@ -28,8 +28,8 @@ const (
 		"K:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseColor | Defined$ You | SpellDescription$ x\nOracle:x\n"
 )
 
-func TestKr8ParentSubTargetWithoutCandidateIsExempt(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9301, func(t *testing.T, e *Engine) {
+func TestKernelParentSubTargetWithoutCandidateIsExempt(t *testing.T) {
+	_, st := runScenarioKernel(t, 2, 9301, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Bear", state.ZBattlefield)
 		tapeCastAndResolve(t, e, "Tape Fiery", "R")
 	}, tapeCondFierySrc, tapeCondBearSrc)
@@ -38,8 +38,8 @@ func TestKr8ParentSubTargetWithoutCandidateIsExempt(t *testing.T) {
 	}
 }
 
-func TestKr8ParentSubTargetWithCandidateIsCheckpointed(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9302, func(t *testing.T, e *Engine) {
+func TestKernelParentSubTargetWithCandidateIsCheckpointed(t *testing.T) {
+	_, st := runScenarioKernel(t, 2, 9302, func(t *testing.T, e *Engine) {
 		bear := moveByName(t, e, 0, "Tape Bear", state.ZBattlefield)
 		sword := moveByName(t, e, 0, "Tape Sword", state.ZBattlefield)
 		e.emit(events.Event{Kind: events.Attach, Obj: sword, IDs: []state.ObjID{bear}})
@@ -55,8 +55,8 @@ func TestKr8ParentSubTargetWithCandidateIsCheckpointed(t *testing.T) {
 	}
 }
 
-func TestKr8TargetEntryWithoutEntryAskIsExempt(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9303, func(t *testing.T, e *Engine) {
+func TestKernelTargetEntryWithoutEntryAskIsExempt(t *testing.T) {
+	_, st := runScenarioKernel(t, 2, 9303, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Bear", state.ZGraveyard)
 		tapeCastAndResolve(t, e, "Tape Reanimate", "B")
 	}, tapeCondReanimSrc, tapeCondBearSrc)
@@ -65,8 +65,8 @@ func TestKr8TargetEntryWithoutEntryAskIsExempt(t *testing.T) {
 	}
 }
 
-func TestKr8TargetEntryWithEntryAskIsCheckpointed(t *testing.T) {
-	_, st := kr8Kernel(t, 2, 9304, func(t *testing.T, e *Engine) {
+func TestKernelTargetEntryWithEntryAskIsCheckpointed(t *testing.T) {
+	_, st := runScenarioKernel(t, 2, 9304, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Tape Chooser", state.ZGraveyard)
 		tapeCastAndResolve(t, e, "Tape Reanimate", "B")
 	}, tapeCondReanimSrc, tapeCondChooserSrc)

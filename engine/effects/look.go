@@ -13,10 +13,8 @@ import (
 // emitLook is the ONE construction point for a private look: an effect (or
 // engine flow) that shows hidden-zone cards to a SUBSET of the table rather
 // than revealing them to everyone. Every looker-scoped effect in the engine
-// routes through here — the round-2 review of the Gitaxian Probe merge found
-// one of them (RevealHand's Look$ arm) emitting its look as a PUBLIC Note,
-// handing the target's whole hand to every seat and spectator, so the class
-// was fixed by funnelling all of them through this helper:
+// routes through here, because a look emitted as a PUBLIC Note would hand
+// the target's whole hand to every seat and spectator:
 //
 //   - effReveal's Look$ arm (RevealHand/Reveal/PeekAndReveal with Look$ True;
 //     28 corpus RevealHand lines — Gitaxian Probe, Glasses of Urza, Slayer's
@@ -32,7 +30,7 @@ import (
 // every other seat and a Public spectator get the bare shape (and the
 // generic "looks at hidden cards" transcript line), and an Omniscient
 // spectator keeps the payload only for a HAND look (From == ZHand — their
-// visibility already includes every hand, per Ruling FL-9's library-order
+// visibility already includes every hand, per the library-order
 // carve-out not applying to one). The looked-at zone rides From so the
 // looker's transcript line can name it even after the cards have moved on;
 // existing library-top callers pass ZLibrary, which is also the zero value
@@ -48,8 +46,7 @@ func emitLook(h Host, lookers []state.PlayerID, from state.Zone, ids []state.Obj
 	}
 }
 
-// poseLookAck is the bare private look's pacing gate (lookack, task
-// fb-20260917T232325Z-35cfca4b): the one information transfer in the engine
+// poseLookAck is the bare private look's pacing gate: the one information transfer in the engine
 // that used to land as a Secret Note with NO decision attached, so a
 // client's auto-passing priority streamed the line past before the player
 // could read it. effReveal's two bare arms (NoReveal$ True — Mishra's
@@ -67,7 +64,7 @@ func emitLook(h Host, lookers []state.PlayerID, from state.Zone, ids []state.Obj
 // poses its own ack.
 //
 // The ack is answered in place via AskTape; the caller emits the look right
-// after, whether it was answered or no host could ask (R-9) — information is
+// after, whether it was answered or no host could ask — information is
 // never lost to a host that cannot ask, the same deterministic degradation
 // Scry/Surveil carry.
 func poseLookAck(h Host, c *Ctx, sa *cards.SA, looker, owner state.PlayerID, zone state.Zone, ids []state.ObjID, targetIndex int) {

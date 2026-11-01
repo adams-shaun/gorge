@@ -10,15 +10,15 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task approx-player-shroud: the AGENTS.md "Known approximations" row —
-// PLAYER shroud (`Affected$ You` + `AddKeyword$ Shroud`, True Believer,
-// Ivory Mask) was unread: players had no ObjID and no keyword machinery, so
-// a player with granted shroud stayed targetable by everything. The fix
-// gives players a derived keyword surface (engine/rules/playerkeywords.go,
-// playerKeywords over the shared layer walk) and wires CR 702.18 shroud and
-// CR 702.11 hexproof into both targeting gates — candidatesFor's player arm
-// (the offer census) and legalTargets's player arm (the CR 608.2b resolution
-// recheck) — exactly where the same keywords bind a permanent.
+// Player shroud: PLAYER shroud (`Affected$ You` + `AddKeyword$ Shroud`, True
+// Believer, Ivory Mask) was unread: players had no ObjID and no keyword
+// machinery, so a player with granted shroud stayed targetable by everything.
+// The fix gives players a derived keyword surface
+// (engine/rules/playerkeywords.go, playerKeywords over the shared layer walk)
+// and wires CR 702.18 shroud and CR 702.11 hexproof into both targeting gates
+// — candidatesFor's player arm (the offer census) and legalTargets's player
+// arm (the CR 608.2b resolution recheck) — exactly where the same keywords
+// bind a permanent.
 //
 // Every test here is driven by the real corpus cards the row names (True
 // Believer, Ivory Mask) or by the same-shaped player-hexproof carriers

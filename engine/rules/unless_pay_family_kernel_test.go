@@ -20,7 +20,7 @@ func TestUnlessPayChangeZoneMeathookPayKeepsTheCardInTheGraveyardKernel(t *testi
 	bear := onBoard(t, e, 1, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZGraveyard})
 	e.putTriggersOnStack()
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 
 	ask := e.Pending()
 	if ask == nil || ask.Kind != decision.KModes || ask.ResumeKind != "unless_pay" {
@@ -54,7 +54,7 @@ func TestUnlessPayChangeZoneMeathookDeclineReturnsItWithFinalityKernel(t *testin
 	bear := onBoard(t, e, 1, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZGraveyard})
 	e.putTriggersOnStack()
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 
 	ask := e.Pending()
 	if ask == nil || ask.Kind != decision.KModes || ask.ResumeKind != "unless_pay" {

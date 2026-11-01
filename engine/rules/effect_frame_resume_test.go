@@ -1,6 +1,6 @@
 package rules
 
-// effect_frame_resume_test.go pins the brief's path 1: an api:Effect's
+// effect_frame_resume_test.go pins one path: an api:Effect's
 // ReplaceWith$ body that SUSPENDS on a mid-resolution ask and resumes. The
 // frame carrying the Effect-created registration identity onto the resume
 // point (engine/rules/resolution.go's resumePoint.effectFrame, published by

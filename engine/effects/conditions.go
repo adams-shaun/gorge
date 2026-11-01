@@ -9,25 +9,24 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// conditions.go implements the TWO Condition* shapes this build gates a
+// conditions.go implements the Condition* shapes this build gates a
 // sub-ability on:
 //
 //  1. `ConditionDefined$ Remembered` + optional `ConditionPresent$ <spec>` +
 //     optional `ConditionCompare$ <op><n>` — Delver of Secrets' "transform
-//     only if the revealed card was an instant or sorcery" shape (task
-//     fb-3f1cc033).
+//     only if the revealed card was an instant or sorcery" shape.
 //  2. `ConditionPresent$ <spec>` with NO `ConditionDefined$`, whose Forge
 //     default group is the whole battlefield — the conditional
 //     enters-tapped land family (Blooming Marsh and the fast / check lands,
-//     task fb-9d2338cc: `Land.YouCtrl` GT2 / `Plains.YouCtrl,Island.YouCtrl`
+//     `Land.YouCtrl` GT2 / `Plains.YouCtrl,Island.YouCtrl`
 //     EQ0). See conditionMetBattlefield for the entering-object exclusion
 //     that makes "two or fewer OTHER lands" mean what the oracle says.
 //
 // Forge spells the compare without a space ("EQ1"; 793 corpus lines) and the
-// brief's "EQ 1" spelling is accepted too.
+// "EQ 1" spelling is accepted too.
 //
-// Two more shapes landed with the action-level SVar-condition task (the
-// paramcensus Draw/LoseLife/ChangeZone/Reveal/DealDamage cluster):
+// Three more shapes gate actions in the param census's
+// Draw/LoseLife/ChangeZone/Reveal/DealDamage cluster and beyond:
 //
 //  3. `ConditionCheckSVar$` + optional `ConditionSVarCompare$` — the SVar
 //     gate (544 corpus SAs carry the pair): the named SVar (or inline
@@ -65,21 +64,20 @@ import (
 //     unresolved shape; the walk's fail direction for it is in the scope
 //     note below.
 //
-// Scope (task fb-3f1cc033, extended by the condition-gate work): this file
-// itself enumerates the ConditionDefined$ groups in conditionSupportedDefined
-// and the bare Condition$ values in conditionSupportedBare. The wider
-// vocabulary the corpus still carries but this file does not evaluate —
-// ConditionZone$ (60), ConditionNotPresent$ over an
-// unenumerable group, a bare ConditionCompare$ with no group, and the other
-// ConditionDefined$/bare values — is classified unmodelled by
-// engine/effects/condition_census.go, so the walk fails it CLOSED with a Note. A
-// supported key whose remaining gap the census does not classify stays the
-// residual fail-open described below. Whatever the shape, conditionMet
-// reports resolved=false, and Resolve's walk decides its fail direction from
-// the ONE census classifier (engine/effects/condition_census.go) rather than
-// running the sub unconditionally: a shape the classifier names fails CLOSED
-// with a replay-visible Note; a shape it does not name still falls through.
-// Every unresolved key family is listed in the task report's Issues section.
+// Scope: this file itself enumerates the ConditionDefined$ groups in
+// conditionSupportedDefined and the bare Condition$ values in
+// conditionSupportedBare. The wider vocabulary the corpus still carries but
+// this file does not evaluate — ConditionZone$ (60), ConditionNotPresent$
+// over an unenumerable group, a bare ConditionCompare$ with no group, and the
+// other ConditionDefined$/bare values — is classified unmodelled by
+// engine/effects/condition_census.go, so the walk fails it CLOSED with a
+// Note. A supported key whose remaining gap the census does not classify
+// stays the residual fail-open described below. Whatever the shape,
+// conditionMet reports resolved=false, and Resolve's walk decides its fail
+// direction from the ONE census classifier
+// (engine/effects/condition_census.go) rather than running the sub
+// unconditionally: a shape the classifier names fails CLOSED with a
+// replay-visible Note; a shape it does not name still falls through.
 //
 // The classifier has two halves (UnmodelledCondition and
 // unmodelledConditionDetail): an unmodelled Condition* KEY, an unmodelled
@@ -90,8 +88,7 @@ import (
 // evaluated. A shape that is unresolved WITHOUT the classifier naming it --
 // an unmodelled ConditionCheckSVar$ count body, an absent binding on a
 // supported ConditionDefined$ group -- still runs: that residual fail-OPEN is
-// deliberate and NOT this ticket's scope (the unknown-predicate extension is
-// ticket agent-20261005T013526Z's).
+// deliberate.
 //
 // The sacrifice chooser additionally needs one narrower bridge for a
 // post-sacrifice loop body: a `Defined$ Player.IsRemembered` effect — or its
@@ -214,28 +211,25 @@ func CheckSVarCompare(h Host, c *Ctx, check string, cmp Compare) (holds, evaluat
 //   - (…, true)  the gate is one of the supported shapes and met says
 //     whether the sub should run;
 //   - (…, false) the gate carries something unsupported — the caller runs
-//     the sub anyway (the pre-condition-engine behaviour, documented in
-//     the task report). A ConditionNotPresent$, a non-Remembered
+//     the sub anyway (the pre-condition-engine behaviour). A
+//     ConditionNotPresent$, a non-Remembered
 //     ConditionDefined$, a bare ConditionCompare$ with no group, a bare
 //     Condition$ whose value is not Kicked, and the mixed shapes are all in
 //     this class.
 //   - a sub with no Condition* key at all is not gated: (true, false).
 //
-// Two more keys landed with the Unbreakable Formation task
-// (agent-20260918T200326Z-10b49320): `ConditionPlayerTurn$ True|False` —
-// the resolving controller's turn vs. not — and `ConditionPhases$ <list>`
-// (Main1,Main2 — the Addendum family), both read through the ONE shared
-// phase-name parser state.ParsePhases and AND-ed with whatever group gate
-// the SA also carries.
-// conditionMet evaluates sa's Condition* gate against the resolving
-// context. It is conditionMetCore (the primary ConditionDefined$/
+// Two more keys: `ConditionPlayerTurn$ True|False` — the resolving controller's
+// turn vs. not — and `ConditionPhases$ <list>` (Main1,Main2 — the Addendum
+// family), both read through the ONE shared phase-name parser state.ParsePhases
+// and AND-ed with whatever group gate the SA also carries.
+//
+// conditionMet is conditionMetCore (the primary ConditionDefined$/
 // ConditionPresent$/ConditionCheckSVar$/bare-Condition$ shape) AND-ed with
 // Forge's SECOND presence group (ConditionPresent2$/ConditionCompare2$):
 // Super-Adaptoid's `ConditionPresent$ Creature.targetedBy+withHaste |
 // ConditionPresent2$ Card.Self+withoutHaste` needs both legs, and the two are
-// independent groups. A lone ConditionPresent2$ (no primary key) is still a
-// real gate, so the wrapper evaluates it even when the core reports "not
-// gated".
+// independent groups. A lone ConditionPresent2$ (no primary key) is still a real
+// gate, so the wrapper evaluates it even when the core reports "not gated".
 func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	met, resolved = conditionMetCore(h, c, sa)
 	cp := &ActivationOf(sa).Cond
@@ -500,10 +494,7 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// ConditionPresent$ with NO ConditionDefined$: Forge's default group
 		// is the battlefield (the conditional enters-tapped land family —
 		// fast lands' Land.YouCtrl GT2, check lands' Plains.YouCtrl,Island.
-		// YouCtrl EQ0). This is the shape task fb-9d2338cc resolves; it was
-		// previously removed (round 2) for changing unrelated cards through
-		// the global Resolve hook, and re-authorizing it is this task's
-		// scope. The battlefield scan, including the entering-object
+		// YouCtrl EQ0). The battlefield scan, including the entering-object
 		// exclusion, lives in conditionMetBattlefield.
 		//
 		// A BARE ConditionCompare$ (no Present, no Defined) names no count
@@ -543,8 +534,8 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 		return false, false
 	}
 	// The wasCastFromYourHandByYou / !wasCastFromYourHandByYou qualifier
-	// (task castprov2, Amped Raptor's gate) and its bare wasCastFromYourHand
-	// sibling (task castprov3, Otterball Antics' `Card.wasCast+!
+	// (Amped Raptor's gate) and its bare wasCastFromYourHand
+	// sibling (Otterball Antics' `Card.wasCast+!
 	// wasCastFromYourHand`) are not filter predicates: they are evaluated
 	// per member against the Host's log reads (castFromHandAdmitsFilter /
 	// castFromHandAnyAdmitsFilter), the same split rules' castProvenanceAdmits
@@ -670,6 +661,11 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 		if defined == "Remembered" || defined == "RememberedLKI" {
 			o = rememberedControllerLKI(c, o)
 		}
+		// CR 608.2h: "if it was kicked" asks about the source as it last
+		// existed once it has left (Sphinx of Lost Truths killed in response).
+		if defined == "Self" {
+			o = castProvenanceSource(g, c)
+		}
 		if present == "" {
 			count++
 			continue
@@ -767,16 +763,16 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		// a Target-bearing ability always has a definite target list, and a
 		// gate over an empty list genuinely denies.
 		//
-		// ORDERING (task agent-20261001T034046Z-5fea0e4d): this gate runs in
-		// Resolve's loop BEFORE chosenTargetsFor poses the SA's own
-		// ValidTgts$ ask. A gate whose SA declares its own targets, whose ask
-		// has NOT been covered yet, and whose group is therefore empty is NOT
-		// the resolved zero above -- it is UNRESOLVED, so Resolve dispatches
-		// the sub and chosenTargetsFor poses the ask inside that dispatch. A
-		// recorded cast-time answer is visible (targetedGateGroup reads
-		// Ctx.SubPreAsk), so the gate resolves for real and the ask is never
-		// re-posed. Guard Dogs' DBPrevent is the one measured carrier (a DB sub of an ACTIVATED
-		// ability, reached by no placement or charm ask).
+		// ORDERING: this gate runs in Resolve's loop BEFORE chosenTargetsFor
+		// poses the SA's own ValidTgts$ ask. A gate whose SA declares its own
+		// targets, whose ask has NOT been covered yet, and whose group is
+		// therefore empty is NOT the resolved zero above -- it is UNRESOLVED,
+		// so Resolve dispatches the sub and chosenTargetsFor poses the ask
+		// inside that dispatch. A recorded cast-time answer is visible
+		// (targetedGateGroup reads Ctx.SubPreAsk), so the gate resolves for
+		// real and the ask is never re-posed. Guard Dogs' DBPrevent is the
+		// one measured carrier (a DB sub of an ACTIVATED ability, reached by
+		// no placement or charm ask).
 		group = targetedGateGroup(c, sa)
 		if len(group) == 0 && TargetsOf(sa).Targeted() &&
 			!targetedAskCovered(c, sa) {
@@ -784,7 +780,7 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		}
 	}
 	if defined == "Discarded" {
-		// ConditionDefined$ Discarded (task mordorparams1: Moria Scavenger's
+		// ConditionDefined$ Discarded (Moria Scavenger's
 		// "If the discarded card was a creature card, amass Orcs 1",
 		// Argentum Masticore's "When you discard a card this way, destroy
 		// ..."): Forge's group is the cards the resolving chain discarded.
@@ -897,7 +893,7 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		// The card the triggering event moved — the TriggerContext.TriggerCard
 		// role rules' triggerReferents captures for every mode that names one
 		// (ChangesZone, SpellCast, Drawn, ...). BOTH spellings enumerate the
-		// SAME group: M1 does not model LKI copies, so the LKI-copy spelling
+		// SAME group: this engine does not model LKI copies, so the LKI-copy spelling
 		// reads the live object exactly as the Defined$ TriggeredCardLKICopy
 		// resolver does (engine/effects/context.go), and gate and resolver cannot
 		// disagree. An ABSENT binding (a synthetic
@@ -1242,7 +1238,7 @@ func conditionMetZone(h Host, c *Ctx, zone, present, compare string, targets map
 
 // conditionMetBattlefield resolves a ConditionPresent$ (with an optional
 // ConditionCompare$ but NO ConditionDefined$) against Forge's default group
-// for that shape: every permanent on the battlefield. Task fb-9d2338cc (the
+// for that shape: every permanent on the battlefield. The later form (the
 // conditional enters-tapped land family — Blooming Marsh and the fast / check
 // lands) is what needs it.
 //
@@ -1613,7 +1609,7 @@ func admitProvenanceAlternativesFilter(spec, pred string, holds bool) (string, b
 
 // castFromHandAdmitsFilter evaluates the bare wasCastFromYourHandByYou /
 // !wasCastFromYourHandByYou qualifier of a Forge filter spec against ONE
-// object through the Host's log read (task castprov2, Amped Raptor's
+// object through the Host's log read (Amped Raptor's
 // `ConditionPresent$ Card.wasCastFromYourHandByYou` gate — the effects-side
 // twin of rules' castFromHandAdmits, which runs the same split at the
 // rules-side match sites where the Engine and its log are in scope). The
@@ -1634,7 +1630,7 @@ func castFromHandAdmitsFilter(h Host, spec string, objID state.ObjID, you state.
 }
 
 // castFromHandAnyAdmitsFilter evaluates the BARE wasCastFromYourHand /
-// !wasCastFromYourHand qualifier (task castprov3 — the player-less hand
+// !wasCastFromYourHand qualifier (the player-less hand
 // provenance: the "from anywhere other than your hand" carriers whose
 // scripts omit the ByYou suffix, Otterball Antics' `ConditionPresent$
 // Card.wasCast+!wasCastFromYourHand`) against ONE object through the Host's
@@ -1696,7 +1692,7 @@ func hasCastSaFlag(spec string) bool {
 // A copy was never cast (CR 707.10) and carries no provenance bit for the
 // flags state.CastProvenanceFlags strips at the copy; FlagWarped is
 // deliberately NOT in that set (a warp cast's alternative cost is a choice
-// the copy rules carry), so a warp copy reads true — the same ruling the
+// the copy rules carry), so a warp copy reads true — the same reading the
 // FlagWarped entry hook takes. Both spellings of each token (positive and
 // !-negated) are handled; the spend spellings of the CastSa family and the
 // sibling task mayplay-src's Spell.MayPlaySource stay fail-closed here, the
@@ -1724,7 +1720,7 @@ func castSaAdmitsFilter(h Host, spec string, objID state.ObjID) (string, bool) {
 
 // stripWasCastFromHandToken removes both spellings of the
 // wasCastFromYourHandByYou qualifier AND the bare wasCastFromYourHand
-// spelling (task castprov3) from every comma alternative of a spec,
+// spelling from every comma alternative of a spec,
 // text-only and polarity-agnostic: the UnknownPredicates guard must read the
 // token-STRIPPED spec (the tokens themselves are unknown to the filter —
 // that is the whole reason the split exists), while the per-member polarity

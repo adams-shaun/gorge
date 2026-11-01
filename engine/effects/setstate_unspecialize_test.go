@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task api:SetState Unspecialize: the SetState choke point treated
+// api:SetState Unspecialize: the SetState choke point treated
 // Mode$ Unspecialize like an unrecognised face mode and ran the generic
 // next-face walk -- from a later Specialize face that lands on a DIFFERENT
 // specialization (or wraps), never the card's front face. The mode now

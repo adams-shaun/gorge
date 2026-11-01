@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g09 (ticket b): CR 701.24c/d. "If an effect would cause a player to
+// CR 701.24c/d. "If an effect would cause a player to
 // shuffle one or more specific objects into a library, that library is
 // shuffled even if none of those objects are in the zone they're expected
 // to be in" (701.24c); "... a set of objects into a library, that library is

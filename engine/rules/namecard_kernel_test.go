@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the namecard_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Cabal Therapy naming a nonland card mid-resolution, driven through the
+// resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -25,7 +24,7 @@ func TestCabalTherapyNamesANonlandMidResolution(t *testing.T) {
 	if z := e.G.Obj(therapy).Zone; z != state.ZStack {
 		t.Fatalf("Cabal Therapy zone after cast = %s, want stack", z)
 	}
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 
 	d := pendingNameAsk(t, e, "Cabal Therapy resolution")
 	if len(d.Options) < 1000 {

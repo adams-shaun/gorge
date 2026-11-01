@@ -1,10 +1,8 @@
 package rules
 
-// Kernel-era restorations of engine/effects/shufflenonmandatory_test.go's
-// fail-to-find pin, engine/effects/targeted_gate_preask_test.go,
-// engine/effects/yunas_decision_each_test.go, engine/effects/zone_compound_origin_test.go
-// and engine/effects/zone_compound_selector_test.go (deleted with the W3 legacy
-// removal).
+// Search behaviour: the fail-to-find pin of a nonmandatory shuffle, the targeted
+// gate's pre-ask, Yuna's Decision's each-leg, and compound zone origins and
+// selectors.
 
 import (
 	"testing"
@@ -22,16 +20,16 @@ func TestSearchShuffleTailFailToFindShuffles(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Fruitless Search\nManaCost:U\nTypes:Sorcery\n" +
 		"A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Card.namedNothing | ShuffleNonMandatory$ True\nOracle:x\n"
-	e, cfg := kr3Game(t, 171, kr3Cards(t, spell), nil)
-	kr3Move(t, e, 0, "Fruitless Search", state.ZHand)
+	e, cfg := fixtureGame(t, 171, cardsOfSrcs(t, spell), nil)
+	moveNamedTo(t, e, 0, "Fruitless Search", state.ZHand)
 	hand := len(e.G.Zone(state.ZHand, 0))
 	mark := len(e.L.Events)
-	d := kr3Cast(t, e, "Fruitless Search", "U", -1)
+	d := castNamedSpell(t, e, "Fruitless Search", "U", -1)
 	if d != nil && d.ResumeKind == "search" {
 		if len(d.Options) != 0 {
 			t.Fatalf("a namedNothing search offered %+v", d.Options)
 		}
-		d = kr3Answer(t, e)
+		d = answerChoices(t, e)
 	}
 	if d != nil {
 		t.Fatalf("unexpected follow-up %+v, want the search to finish with its shuffle", d)
@@ -66,23 +64,23 @@ func TestTargetedGateLeavesAPreAskSASubRunnable(t *testing.T) {
 			spell := "Name:Gated Pump\nManaCost:G\nTypes:Sorcery\n" +
 				"A:SP$ GainLife | Defined$ You | LifeAmount$ 1 | SubAbility$ DBPump\n" +
 				"SVar:DBPump:DB$ Pump | ValidTgts$ Creature" + tc.min + " | NumAtt$ +2 | ConditionDefined$ Targeted | ConditionPresent$ Card\nOracle:x\n"
-			e, cfg := kr3Game(t, uint64(181+i), kr3Cards(t, spell, kr3Creature("Bear")), nil)
-			kr3Move(t, e, 0, "Gated Pump", state.ZHand)
-			bear := kr3Move(t, e, 0, "Bear", state.ZBattlefield)
+			e, cfg := fixtureGame(t, uint64(181+i), cardsOfSrcs(t, spell, creatureLineSrc("Bear")), nil)
+			moveNamedTo(t, e, 0, "Gated Pump", state.ZHand)
+			bear := moveNamedTo(t, e, 0, "Bear", state.ZBattlefield)
 			power := e.Power(bear)
 			life := e.G.Players[0].Life
 			e.pending = nil
 			addMana(t, e, 0, "G")
-			submitChoices(t, e, castOptionFor(t, e, kr3Find(e, 0, state.ZHand, "Gated Pump")).Index)
+			submitChoices(t, e, castOptionFor(t, e, findNamedInZone(e, 0, state.ZHand, "Gated Pump")).Index)
 			d := e.Pending()
 			if d == nil || d.Kind != decision.KTarget {
 				t.Fatalf("decision = %+v, want the sub-ability's target ask", d)
 			}
 			var choice []int
 			if tc.pick {
-				choice = []int{kr3OptionObj(t, d, bear)}
+				choice = []int{optionObjOrFail(t, d, bear)}
 			}
-			if d := kr3Answer(t, e, choice...); d != nil {
+			if d := answerChoices(t, e, choice...); d != nil {
 				t.Fatalf("unexpected follow-up %+v", d)
 			}
 			if got := e.G.Players[0].Life; got != life+1 {
@@ -126,31 +124,31 @@ func TestYunasDecisionPilgrimageEachCreatureAndLand(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			filler := "Name:Pilgrim Filler\nManaCost:U\nTypes:Instant\nOracle:x\n"
-			e, cfg := kr3Game(t, uint64(191+i), append([]*cards.Card{yuna},
-				kr3Cards(t, kr3Creature("Pilgrim Bear"), land, kr3Creature("Sacrificed Bear"), filler)...), nil)
-			kr3EmptyHand(t, e, 0)
-			kr3Move(t, e, 0, "Yuna's Decision", state.ZHand)
-			kr3Move(t, e, 0, "Sacrificed Bear", state.ZBattlefield)
+			e, cfg := fixtureGame(t, uint64(191+i), append([]*cards.Card{yuna},
+				cardsOfSrcs(t, creatureLineSrc("Pilgrim Bear"), land, creatureLineSrc("Sacrificed Bear"), filler)...), nil)
+			emptyHand(t, e, 0)
+			moveNamedTo(t, e, 0, "Yuna's Decision", state.ZHand)
+			moveNamedTo(t, e, 0, "Sacrificed Bear", state.ZBattlefield)
 			var creature, landID state.ObjID
 			if tc.includeCreature {
-				creature = kr3Move(t, e, 0, "Pilgrim Bear", state.ZHand)
+				creature = moveNamedTo(t, e, 0, "Pilgrim Bear", state.ZHand)
 			}
 			if tc.includeLand {
-				landID = kr3Move(t, e, 0, "Pilgrim Forest", state.ZHand)
+				landID = moveNamedTo(t, e, 0, "Pilgrim Forest", state.ZHand)
 			}
 			// The mode's draw takes a nonland, noncreature card, so the
 			// eligible set is exactly the cards the case put in hand.
-			kr3LibraryTop(t, e, 0, kr3Move(t, e, 0, "Pilgrim Filler", state.ZLibrary))
-			d := kr3Cast(t, e, "Yuna's Decision", "GGGG", -1) // mode 0: Continue the Pilgrimage
+			libraryTopOrder(t, e, 0, moveNamedTo(t, e, 0, "Pilgrim Filler", state.ZLibrary))
+			d := castNamedSpell(t, e, "Yuna's Decision", "GGGG", -1) // mode 0: Continue the Pilgrimage
 			for d != nil && d.ResumeKind != "hand_move_confirm" {
 				// The sacrifice of the one creature, if posed.
-				d = kr3Answer(t, e, 0)
+				d = answerChoices(t, e, 0)
 			}
 			if d == nil {
 				t.Fatal("no hand_move_confirm was posed (Optional$ True asks before the pick)")
 			}
-			d = kr3Answer(t, e, kr3OptionKind(t, d, "yes"))
-			if kr3Find(e, 0, state.ZHand, "Pilgrim Filler") == 0 {
+			d = answerChoices(t, e, optionKindOrFail(t, d, "yes"))
+			if findNamedInZone(e, 0, state.ZHand, "Pilgrim Filler") == 0 {
 				t.Fatal("precondition: the mode did not draw")
 			}
 			if tc.want == 0 {
@@ -184,11 +182,11 @@ func TestYunasDecisionPilgrimageEachCreatureAndLand(t *testing.T) {
 			if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: all}); err != nil {
 				t.Fatalf("a one-per-present-clause answer was rejected: %v", err)
 			}
-			if d := kr3Answer(t, e, all...); d != nil {
+			if d := answerChoices(t, e, all...); d != nil {
 				t.Fatalf("unexpected follow-up %+v", d)
 			}
 			for _, id := range chosen {
-				if z := kr3Zone(e, id); z != state.ZBattlefield {
+				if z := zoneOfObjID(e, id); z != state.ZBattlefield {
 					t.Fatalf("chosen card %d is in %v, want the battlefield", id, z)
 				}
 			}
@@ -206,27 +204,27 @@ func TestVerdantCrescendoSearchesItsCompoundOrigin(t *testing.T) {
 	vc := corpusAlternativeCard(t, "Verdant Crescendo")
 	nissa := "Name:Nissa, Nature's Artisan\nManaCost:4 G G\nTypes:Legendary Planeswalker Nissa\nLoyalty:5\nOracle:x\n"
 	forest := "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"
-	e, cfg := kr3Game(t, 201, append([]*cards.Card{vc}, kr3Cards(t, nissa, nissa, forest)...), nil)
-	kr3Move(t, e, 0, "Verdant Crescendo", state.ZHand)
-	graveNissa := kr3Move(t, e, 0, "Nissa, Nature's Artisan", state.ZGraveyard)
-	libNissa := kr3Move(t, e, 0, "Nissa, Nature's Artisan", state.ZLibrary)
+	e, cfg := fixtureGame(t, 201, append([]*cards.Card{vc}, cardsOfSrcs(t, nissa, nissa, forest)...), nil)
+	moveNamedTo(t, e, 0, "Verdant Crescendo", state.ZHand)
+	graveNissa := moveNamedTo(t, e, 0, "Nissa, Nature's Artisan", state.ZGraveyard)
+	libNissa := moveNamedTo(t, e, 0, "Nissa, Nature's Artisan", state.ZLibrary)
 	if libNissa == graveNissa {
 		t.Fatal("precondition: the two Nissas are the same object")
 	}
-	kr3Move(t, e, 0, "Forest", state.ZLibrary)
-	d := kr3Cast(t, e, "Verdant Crescendo", "GGGG", -1)
+	moveNamedTo(t, e, 0, "Forest", state.ZLibrary)
+	d := castNamedSpell(t, e, "Verdant Crescendo", "GGGG", -1)
 	// The first search (a basic land, onto the battlefield tapped).
 	if d == nil || d.ResumeKind != "search" {
 		t.Fatalf("decision = %+v, want the basic land search", d)
 	}
-	d = kr3Answer(t, e, 0)
+	d = answerChoices(t, e, 0)
 	for d != nil && d.ResumeKind != "search" {
-		d = kr3Answer(t, e, tapePick(d)...)
+		d = answerChoices(t, e, tapePick(d)...)
 	}
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatal("the compound-origin search posed no chooser")
 	}
-	offered := kr3OptionObjs(d)
+	offered := optionObjIDs(d)
 	has := func(id state.ObjID) bool {
 		for _, o := range offered {
 			if o == id {
@@ -238,14 +236,14 @@ func TestVerdantCrescendoSearchesItsCompoundOrigin(t *testing.T) {
 	if !has(libNissa) || !has(graveNissa) {
 		t.Fatalf("options = %v, want both compound-origin candidates %d and %d", offered, libNissa, graveNissa)
 	}
-	d = kr3Answer(t, e, kr3OptionObj(t, d, graveNissa))
+	d = answerChoices(t, e, optionObjOrFail(t, d, graveNissa))
 	for d != nil {
-		d = kr3Answer(t, e, tapePick(d)...)
+		d = answerChoices(t, e, tapePick(d)...)
 	}
-	if got := kr3Zone(e, graveNissa); got != state.ZHand {
+	if got := zoneOfObjID(e, graveNissa); got != state.ZHand {
 		t.Fatalf("answered graveyard Nissa zone = %v, want hand", got)
 	}
-	if got := kr3Zone(e, libNissa); got != state.ZLibrary {
+	if got := zoneOfObjID(e, libNissa); got != state.ZLibrary {
 		t.Fatalf("unchosen library Nissa zone = %v, want library", got)
 	}
 	replayCheck(t, e, cfg)
@@ -258,17 +256,17 @@ func TestVerdantCrescendoSearchesItsCompoundOrigin(t *testing.T) {
 func TestMemoryLeakCompoundFetchPlayerChoosesFromBothZones(t *testing.T) {
 	t.Parallel()
 	ml := corpusAlternativeCard(t, "Memory Leak")
-	e, cfg := kr3Game(t, 211, append([]*cards.Card{ml}, kr3Cards(t, kr3Creature("Other Hand Creature"))...),
-		kr3Cards(t, kr3Creature("Hand Creature"), kr3Creature("Grave Creature")))
-	kr3EmptyHand(t, e, 0)
-	kr3Move(t, e, 0, "Memory Leak", state.ZHand)
-	other := kr3Move(t, e, 0, "Other Hand Creature", state.ZHand)
-	kr3EmptyHand(t, e, 1)
-	hand := kr3Move(t, e, 1, "Hand Creature", state.ZHand)
-	grave := kr3Move(t, e, 1, "Grave Creature", state.ZGraveyard)
-	d := kr3Cast(t, e, "Memory Leak", "BBB", 1)
+	e, cfg := fixtureGame(t, 211, append([]*cards.Card{ml}, cardsOfSrcs(t, creatureLineSrc("Other Hand Creature"))...),
+		cardsOfSrcs(t, creatureLineSrc("Hand Creature"), creatureLineSrc("Grave Creature")))
+	emptyHand(t, e, 0)
+	moveNamedTo(t, e, 0, "Memory Leak", state.ZHand)
+	other := moveNamedTo(t, e, 0, "Other Hand Creature", state.ZHand)
+	emptyHand(t, e, 1)
+	hand := moveNamedTo(t, e, 1, "Hand Creature", state.ZHand)
+	grave := moveNamedTo(t, e, 1, "Grave Creature", state.ZGraveyard)
+	d := castNamedSpell(t, e, "Memory Leak", "BBB", 1)
 	for d != nil && d.ResumeKind != "search" {
-		d = kr3Answer(t, e, tapePick(d)...) // the reveal's own acknowledgement, if any
+		d = answerChoices(t, e, tapePick(d)...) // the reveal's own acknowledgement, if any
 	}
 	if d == nil || d.Player != 0 {
 		t.Fatalf("decision = %+v, want the caster's compound search", d)
@@ -283,14 +281,14 @@ func TestMemoryLeakCompoundFetchPlayerChoosesFromBothZones(t *testing.T) {
 	if !seen[hand] || !seen[grave] || seen[other] {
 		t.Fatalf("options = %+v, want the targeted player's hand and graveyard only", d.Options)
 	}
-	d = kr3Answer(t, e, kr3OptionObj(t, d, grave))
+	d = answerChoices(t, e, optionObjOrFail(t, d, grave))
 	for d != nil {
-		d = kr3Answer(t, e, tapePick(d)...)
+		d = answerChoices(t, e, tapePick(d)...)
 	}
-	if got := kr3Zone(e, grave); got != state.ZExile {
+	if got := zoneOfObjID(e, grave); got != state.ZExile {
 		t.Fatalf("chosen graveyard card zone = %v, want exile", got)
 	}
-	if got := kr3Zone(e, hand); got != state.ZHand {
+	if got := zoneOfObjID(e, hand); got != state.ZHand {
 		t.Fatalf("unchosen hand card zone = %v, want hand", got)
 	}
 	replayCheck(t, e, cfg)

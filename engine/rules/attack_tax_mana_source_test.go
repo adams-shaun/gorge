@@ -52,7 +52,7 @@ func attackTaxManaSourceSeat(t *testing.T, counters int32, others int) (*Engine,
 	return e, myr, ritualist, bear
 }
 
-// TestAttackTaxAttackingManaSourceBotAnswer is the brief's failure shape: a
+// TestAttackTaxAttackingManaSourceBotAnswer is the failure shape: a
 // {9} Myr Prototype tax plus an Oasis Ritualist whose two units are the only
 // reason the naive per-pair budget (9) looks reachable while the declaration's
 // folded cost (tax 9 + Ritualist 2 = 11) is not. The bot's own answer must be

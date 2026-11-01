@@ -25,7 +25,7 @@ const (
 	// while the seat still has a free mulligan, a "mulligan") option; a
 	// bottoming ask is Min == Max == taken over one "bottom" option per kept-
 	// hand card -- exactly the distinct-index shape Validate already enforces
-	// for KTriggerOrder, so no new wire format is needed (Ruling U2).
+	// for KTriggerOrder, so no new wire format is needed.
 	KMulligan Kind = "mulligan"
 	// KModes is a modal pick: MinCharmNum$ (default CharmNum$) through
 	// CharmNum$ (default 1) over one "mode" option per Choices$ sub-ability,
@@ -40,7 +40,7 @@ const (
 	// 603.3b). It is Min == Max == len(Options) over exactly that
 	// controller's own pending triggers, so Validate's existing "N distinct
 	// in-range indices" rule already means "a permutation" and no new wire
-	// format is needed (Ruling U2).
+	// format is needed.
 	//
 	// DIRECTION, which is silent if a client gets it backwards: Choices[0]
 	// is the trigger put on the stack FIRST, and therefore the one that
@@ -104,10 +104,9 @@ const (
 	// whether it gets its opportunity. A decline continues through every
 	// remaining applicable phase replacement before the StepChange is logged.
 	KReplacement Kind = "replacement"
-	// KArrange is the ordered-subset ask a library-arranging effect poses
-	// (Ruling J0): the engine offers N cards, and the answer is an ordered
-	// subset of them -- the one general decision shape Scry, Surveil and
-	// Dig later share.
+	// KArrange is the ordered-subset ask a library-arranging effect poses:
+	// the engine offers N cards, and the answer is an ordered subset of them
+	// -- the one general decision shape Scry, Surveil and Dig share.
 	//
 	// The contract, stated once because a client that gets it backwards gets
 	// it silently wrong: the engine offers N cards. The answer is an ordered
@@ -147,7 +146,7 @@ const (
 	// self-choice is the option whose Player equals the asking seat), each
 	// option carrying its seat in Option.Player and its label. The Decision's
 	// own Player is the toss winner, never the seat that ends up starting.
-	// An absent or unanswerable host takes the deterministic R-9 fallback:
+	// An absent or unanswerable host takes the deterministic no-host fallback:
 	// the toss winner names themselves, which is the pre-choice seat.
 	KStartingPlayer Kind = "starting_player"
 )
@@ -366,7 +365,7 @@ type Option struct {
 	// that omits), which the option's own label "X = 0" already shows.
 	Amount int `json:"amount,omitempty"`
 	// Ability anchors an "ability" option to its exact activated ability:
-	// the index into the source Face().Abilities being offered (Task 10), so
+	// the index into the source Face().Abilities being offered, so
 	// a client can pop that ability's own text up beside the right ability
 	// on the card. The engine reads it in beginActivation, where a stale
 	// index degrades to a no-op. omitempty: options that are not ability
@@ -397,8 +396,8 @@ type Option struct {
 	// Forge notation AbilityCosts uses (engine/rules/mana.go's formatCost over
 	// ParseCost of the ability's Cost$ param) — "T Sac<1/Lion's Eye Diamond>"
 	// for Lion's Eye Diamond, "T PayLife<1>" for Mana Confluence. It is the
-	// wire marker the client's empty-priority-window floor and auto-pass need
-	// (fb-20260917T192520Z-26136705): isActionKind excludes every "activate"
+	// wire marker the client's empty-priority-window floor and auto-pass need:
+	// isActionKind excludes every "activate"
 	// because a bare tap is offered at every window and is not a play, but a
 	// costly activation is exactly the play a ritual-combo deck needs the
 	// window for, and an empty hand leaves it the window's ONLY action — the
@@ -638,6 +637,10 @@ type WindowReason struct {
 	Kind   string      `json:"kind"`
 	Reason string      `json:"reason"`
 }
+
+// ResumeManaPayment marks a source's "which mana" ask (Decision.ResumeKind) that a
+// payment window posed: the mana goes to the cost being paid.
+const ResumeManaPayment = "mana_payment"
 
 // Decision is the engine asking one player for one answer.
 type Decision struct {
@@ -1296,7 +1299,7 @@ type Intent struct {
 	// enforces (one rule, one home: validateRest). Every non-arrange kind
 	// rejects a non-empty Rest outright. omitempty: every intent a client
 	// sends today serialises byte-identically, and a recorded intent's Rest
-	// rides the log and replays exactly (Ruling P2 submits intents as
+	// rides the log and replays exactly (intents are submitted as
 	// logged).
 	Rest []int `json:"rest,omitempty"`
 	// Payment selects an offered payment action and exact plan witness. It is
@@ -1685,8 +1688,7 @@ type PotentialAction struct {
 	// complete, or whose missed abilities a relaxation of them still cannot
 	// pay (decision.PotentialUnpayableCasts). It is what
 	// lets a client withhold a "tap other mana first" affordance that no
-	// amount of tapping can satisfy
-	// (fb-20261006T100405Z). nil (omitted) for every other kind, for a cast
+	// amount of tapping can satisfy. nil (omitted) for every other kind, for a cast
 	// in an alternative/additional-cost mode, for a cast outside the hand and
 	// command zone, and for every verdict that is not a proof --
 	// "unsupported" (a shape the planner does not price, e.g. Delve),

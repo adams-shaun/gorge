@@ -50,7 +50,16 @@ func (e *Engine) extraTurnSkipped(seat state.PlayerID) (skip, unsupported bool) 
 // the chosen effect completes the event and the others get no second pass.
 // This is the same CR 616.1 affected-player choice as MoveZone, with Untap's
 // event-specific applySimpleReplacement semantics.
+//
+// A bodyless match is "doesn't untap" (Sleep Magic), a restriction rather than
+// a replacement (CR 502.3, 614.1): there is no untap for anything to replace,
+// so it ends the event ahead of any ask, and two of them offer no choice.
 func (e *Engine) continueUntapReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	for _, m := range matches {
+		if m.repl.With == nil {
+			return e.applySimpleReplacement(ev, m)
+		}
+	}
 	if len(matches) == 1 {
 		return e.applySimpleReplacement(ev, matches[0])
 	}
@@ -218,19 +227,18 @@ func (e *Engine) applyTransformReplacement(ev events.Event, matches []replMatch)
 }
 
 // applyTurnFaceUpReplacements is the TurnFaceUp event's replacement pass
-// (R:Event$ TurnFaceUp, CR 614.1a with CR 708.6/702.36e, task
-// cli-20260924T031747Z-6d0658fc). The bodies resolve BEFORE the turn-up event
-// is folded: the counters Hooded Hydra's body places land on the permanent as
-// it turns face up, and only then does events.Apply retire the CR 708.5
-// face-down set. An augmenting body never prevents the flip -- Forge's
-// Replaced reading of these lines: the physical turn-up belongs to the
-// turn-up action/effect, the replacement only adds to it -- so after every
-// body the event is left intact (handled=false) for the ordinary fold and
-// its own trigger matching. A With==nil (Layer$ CantHappen) body -- Karlov
-// Watchdog's "permanents your opponents control can't be turned face up",
-// Unable to Scream -- IS the complete replacement: the turn-up never happens
-// and a Note records the prevention, the same shape the damage-prevention
-// arm emits.
+// (R:Event$ TurnFaceUp, CR 614.1a with CR 708.6/702.36e). The bodies
+// resolve BEFORE the turn-up event is folded: the counters Hooded Hydra's
+// body places land on the permanent as it turns face up, and only then does
+// events.Apply retire the CR 708.5 face-down set. An augmenting body never
+// prevents the flip -- Forge's Replaced reading of these lines: the physical
+// turn-up belongs to the turn-up action/effect, the replacement only adds to
+// it -- so after every body the event is left intact (handled=false) for the
+// ordinary fold and its own trigger matching. A With==nil (Layer$ CantHappen)
+// body -- Karlov Watchdog's "permanents your opponents control can't be
+// turned face up", Unable to Scream -- IS the complete replacement: the
+// turn-up never happens and a Note records the prevention, the same shape the
+// damage-prevention arm emits.
 func (e *Engine) applyTurnFaceUpReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
 		if m.repl.With == nil {

@@ -8,7 +8,7 @@ import (
 )
 
 // This file is the ONE home for the option lists a ChooseType Type$ category
-// ranges over (task ct1). Before it, only "Creature" (and an absent Type$)
+// ranges over. Before it, only "Creature" (and an absent Type$)
 // had an option builder, so a resolution-time or as-enters ChooseType for a
 // non-creature category emitted a loud Note and the nonsensical creature-type
 // fallback. Here each enumerable category names its real, rules-defined list;

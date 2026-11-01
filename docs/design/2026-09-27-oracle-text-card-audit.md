@@ -67,11 +67,11 @@ because many tickets span two buckets.
 
 The three motivating reports resolved as follows:
 
-- **Fatal Push** ("cast on an enemy, not removed", `fb-20260927T153930Z-a9e16775`):
+- **Fatal Push** ("cast on an enemy, not removed"):
   replay showed no Fatal Push in that match. The bot aimed Whirler Rogue's
   unblockable grant at an enemy creature, which is a bot-policy bug. The pilot
   still covers revolt (§8); it passes.
-- **Sidar Jabari** (`fb-20260927T160557Z-b958ef31`): a confirmed engine bug.
+- **Sidar Jabari**: a confirmed engine bug.
   `Engine.forEachObject` walks `ZLibrary..ZStack` and never `ZCommand`. The
   pilot reproduces it from the Oracle text alone.
 - **Relic Vial**: no ticket exists. The pilot found a real Relic Vial bug that
@@ -343,7 +343,7 @@ regression.
    - Likely affects every `AddTrigger$` grant whose gate the departing
      permanent itself satisfies.
 3. **Command-zone triggers never fire.** This is Sidar Jabari's Eminence,
-   already ticketed as `fb-20260927T160557Z-b958ef31`, root-caused to
+   already reported and root-caused to
    `Engine.forEachObject` skipping `ZCommand`. The pilot reproduced it from
    the Oracle text alone. The same shape affects Edgar Markov, Inalla and
    Sahir.

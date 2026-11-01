@@ -86,7 +86,7 @@ func TestPlayerProtectionExistingAura(t *testing.T) {
 	if !e.playerProtectedFrom(0, aura) {
 		t.Fatal("precondition: player did not gain protection from the Aura's controller")
 	}
-	if !e.attachmentSBAs() {
+	if !runAttachmentSBAs(e) {
 		t.Fatal("protection gain did not make the existing Aura attachment illegal")
 	}
 	if o := e.G.Obj(aura); o.Zone != state.ZGraveyard || o.HasAttachedPlayer {

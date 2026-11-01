@@ -12,7 +12,7 @@ import (
 
 // An untyped MayPlayLimit$ static is ONE permission: its limit counts the
 // plays made through the static, not the plays of each affected card
-// (cr-g215; Forge's StaticAbility.getMayPlayTurn and XMage's
+// (Forge's StaticAbility.getMayPlayTurn and XMage's
 // OnceEachTurnCastWatcher both count per static).
 
 const (

@@ -375,17 +375,20 @@ func (e *Engine) payUnlessDamageCost(ctx *effects.Ctx, payer state.PlayerID, n i
 // a decision nobody could answer differently.
 func (e *Engine) applyCastModes(d *decision.Decision, player state.PlayerID, chosen []decision.Option) {
 	pc := e.cast
-	if pc == nil || pc.ability >= 0 || pc.stackObj == 0 {
+	if pc == nil || pc.stackObj == 0 {
 		e.emit(events.Event{Kind: events.Note, Player: player,
-			Text: "cast modes answered with no spell proposal pending"})
+			Text: "cast modes answered with no proposal pending"})
 		return
 	}
 	names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes)
 	labels := chosenModeLabels(chosen)
 	// ChoiceRestriction$: log each announced mode on the SPELL object so a
 	// later Charm of the same source sees the pick. A no-op unless the SA
-	// carries the param.
-	effects.RecordCharmChoices(e, pc.card, d.ResumeSA, names)
+	// carries the param. An activation records at payment, since it can still
+	// be reversed and its source stays where it is.
+	if !pc.isAbility() {
+		effects.RecordCharmChoices(e, pc.card, d.ResumeSA, names)
+	}
 	if o := e.G.Obj(pc.stackObj); o != nil {
 		if !pc.modeChosen {
 			pc.preModes = state.CloneChosenModes(o.ChosenModes)

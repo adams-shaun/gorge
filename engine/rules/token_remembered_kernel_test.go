@@ -14,8 +14,8 @@ import (
 // exiled by the paid trigger cost, the Bat remembers it, and the Bat's
 // granted combat-damage trigger returns it tapped under seat 0's control.
 
-// kr9WaitForWindow is waitForWindow resolving the stack as kernel probes.
-func kr9WaitForWindow(t *testing.T, e *Engine) *decision.Decision {
+// waitForManaWindow is waitForWindow resolving the stack as kernel probes.
+func waitForManaWindow(t *testing.T, e *Engine) *decision.Decision {
 	t.Helper()
 	for i := 0; i < 4; i++ {
 		d := e.Pending()
@@ -29,7 +29,7 @@ func kr9WaitForWindow(t *testing.T, e *Engine) *decision.Decision {
 		if len(e.G.Stack) == 0 {
 			t.Fatal("stack empty but the triggered-cost window never opened")
 		}
-		kr9ResolveTop(e)
+		resolveTopAfterPass(e)
 	}
 	t.Fatal("the triggered-cost window never opened")
 	return nil
@@ -66,7 +66,7 @@ func TestTokenRememberedTimotharEndToEndKernel(t *testing.T) {
 
 	// Resolve into the trigger situation; the cost window (the `Cost$ 1
 	// ExileAnyGrave<1/Card.TriggeredNewCard>` half) opens as a pay/decline ask.
-	d := kr9WaitForWindow(t, e)
+	d := waitForManaWindow(t, e)
 	if !strings.Contains(d.Options[0].Label, "1") {
 		t.Fatalf("Timothar's window pay label lost the {{1}}: %q", d.Options[0].Label)
 	}
@@ -78,7 +78,7 @@ func TestTokenRememberedTimotharEndToEndKernel(t *testing.T) {
 		t.Fatalf("paying the cost did not exile the dead Vampire: zone %v, log %+v", z, e.L.Events)
 	}
 
-	kr9Settle(e)
+	settleAfterPass(e)
 	// Let the Token + Animate chain resolve.
 	passUntilStackEmpty(t, e, 30)
 

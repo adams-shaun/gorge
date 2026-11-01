@@ -172,7 +172,12 @@ func (r *oracleRun) placeSetupEntry(sc oracleScenario, p int, id state.ObjID, na
 	}
 	for _, tapped := range seat.Tapped {
 		if cards.NormalizeName(tapped) == cards.NormalizeName(name) {
+			// Tapped is how the card is placed, not an action, so "becomes
+			// tapped" does not trigger.
+			pendingBefore := len(e.pendingTriggers)
 			e.emit(events.Event{Kind: events.Tap, Obj: id})
+			e.pendingTriggers = e.pendingTriggers[:pendingBefore]
+			e.orderedTriggers = min(e.orderedTriggers, pendingBefore)
 			break
 		}
 	}

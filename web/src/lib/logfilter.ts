@@ -1,5 +1,5 @@
 /**
- * Client-side rules-log filtering (Task U5).
+ * Client-side rules-log filtering.
  *
  * The omniscient log drowns real game actions under engine bookkeeping:
  * against 341 live events, 109 were `priority`, 123 decision asks/answers,
@@ -37,7 +37,7 @@ export function isHiddenKind(kind: string): boolean {
 }
 
 /**
- * The step-line kind (ui9, "suppress step lines"). view/describe.go renders
+ * The step-line kind ("suppress step lines"). view/describe.go renders
  * a StepChange event as "Step: <phase>"; a step line names a phase boundary,
  * not a game action, and every phase yields one on its way through a corridor
  * ("Step: main-1", "Step: main-2"...). So it is filtered out by default, behind

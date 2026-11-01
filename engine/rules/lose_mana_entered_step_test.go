@@ -95,3 +95,43 @@ func TestLoseManaBoundaryResumesAfterProduceManaChoice(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// A loss between the two combat damage steps that parks on a replacement order
+// resumes into the regular damage, without another priority round.
+func TestLoseManaChoiceResumesRegularDamage(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, ids := realCardEngine(t, reg, 8675422, "Horizon Stone", "Ozai, the Phoenix King", "Boros Swiftblade")
+	attacker := ids[2]
+	e.pending = nil
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepCombatDamage})
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{attacker}})
+	before := e.G.Players[1].Life
+	e.combatStep()
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority || e.G.Players[1].Life != before-1 {
+		t.Fatalf("precondition: want priority after the first-strike step, got %+v at life %d", d, e.G.Players[1].Life)
+	}
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1})
+	var d *decision.Decision
+	for d = e.Pending(); d != nil && d.Kind == decision.KPriority; d = e.Pending() {
+		pass := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+			}
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if d == nil || d.Kind != decision.KReplacement || e.G.Players[1].Life != before-1 {
+		t.Fatalf("precondition: the loss did not park before the regular damage: %+v at life %d", d, e.G.Players[1].Life)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.G.Players[1].Life; got != before-2 {
+		t.Fatalf("life %d after the answer, want the regular damage at %d", got, before-2)
+	}
+	replayCheck(t, e, cfg)
+}

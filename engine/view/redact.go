@@ -14,7 +14,7 @@ import (
 // below ask "is this object CURRENTLY sitting in a hidden zone", and
 // "currently" means at that point in the log, not at the moment the event
 // was originally emitted. A live stream redacts each newly-appended batch
-// against the game that batch just produced; a playback viewer (Task 24)
+// against the game that batch just produced; a playback viewer
 // passes the state reconstructed as of that point in the log, not the
 // game's eventual final state.
 //
@@ -28,8 +28,7 @@ import (
 //     Player, From, To, Step, Secret) and zero every payload field
 //     (Obj, Amount, Counter, Text, IDs, Pairs). This is an allowlist
 //     of what SURVIVES redaction, not an enumerated list of what to
-//     strip from it (Ruling T23-s, closing review finding I-2): a
-//     future Secret emitter that starts carrying Pairs or Amount is
+//     strip from it: a future Secret emitter that starts carrying Pairs or Amount is
 //     covered automatically, which an enumerated strip list is not.
 //     - Player == viewer: pass through untouched -- it is their own
 //     secret, EXCEPT the library-order kinds (libraryOrderKind: Shuffle,
@@ -44,7 +43,7 @@ import (
 //     -- everyone already saw the permanent bounce to hand.
 //  3. Not Secret, every other kind EXCEPT Note: any id referenced by Obj,
 //     IDs or Pairs is stripped when it is not visible to viewer. Note is
-//     exempt (Ruling T23-w): a Note is the engine's explicit "tell
+//     exempt: a Note is the engine's explicit "tell
 //     everyone" channel -- effReveal/effRevealHand/effPeekAndReveal
 //     (engine/effects/cardflow.go) exist specifically to show hidden cards to
 //     EVERY seat via a public Note, so a Note is public unless its own
@@ -53,21 +52,19 @@ import (
 //     Note that must NOT be public -- a private look at the library) is
 //     therefore Secret itself, not filtered by this rule.
 //
-// Rule (3) is what closes review finding C-1's TriggerPush half:
-// rules/trigger.go's TriggerPush.IDs (Ctx.Remembered; for a "whenever you
-// draw a card" trigger, the ChangesZone-mode T: line this engine uses to
-// express that, this is the card now sitting in its owner's hand) names a
-// hidden-zone object without ever setting Secret, and cannot be fixed by
-// widening the Secret+Player contract at the emitter: TriggerPush's Player
-// is the trigger's CONTROLLER (Apply needs it to mint the ability object),
-// which is not the same seat as the remembered card's OWNER, so
-// Secret+Player cannot express "this payload belongs to someone other than
-// the event's own Player" for that case at all. Redaction has to be
-// state-aware instead, checking each referenced id's actual owner against
-// the game rather than trusting the event's own Player field to name it.
-// C-1's other half, effRearrangeTopOfLibrary's Note, is closed by making it
-// Secret (see engine/effects/cardflow.go) rather than by rule (3), per Ruling
-// T23-w above.
+// Rule (3) covers TriggerPush: rules/trigger.go's TriggerPush.IDs
+// (Ctx.Remembered; for a "whenever you draw a card" trigger, the
+// ChangesZone-mode T: line this engine uses to express that, this is the card
+// now sitting in its owner's hand) names a hidden-zone object without ever
+// setting Secret, and cannot be fixed by widening the Secret+Player contract
+// at the emitter: TriggerPush's Player is the trigger's CONTROLLER (Apply
+// needs it to mint the ability object), which is not the same seat as the
+// remembered card's OWNER, so Secret+Player cannot express "this payload
+// belongs to someone other than the event's own Player" for that case at all.
+// Redaction has to be state-aware instead, checking each referenced id's
+// actual owner against the game rather than trusting the event's own Player
+// field to name it. effRearrangeTopOfLibrary's Note is handled by making it
+// Secret (see engine/effects/cardflow.go) rather than by rule (3).
 //
 // visibleTo's "an unresolvable id is not visible" is the safe default for
 // both rule (2) and rule (3): an id nothing can currently resolve (stale
@@ -101,7 +98,7 @@ func RedactEvents(g *state.Game, evs []events.Event, viewer state.PlayerID) []ev
 // identical to RedactEvents'; see its doc for rules (1)/(2)/(3) and the
 // state-as-of-last-event convention.
 //
-// Deep-copying (final review finding I2): e is a struct copy of the caller's
+// Deep-copying: e is a struct copy of the caller's
 // event, but e.IDs and e.Pairs are slice HEADERS -- copying the header does
 // not copy the backing array. Every branch below that returns e unchanged
 // would otherwise still point at the caller's own arrays. filterVisible/
@@ -150,7 +147,7 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 		if e.From.Hidden() && e.To.Hidden() && !visibleTo(g, e.Obj, viewer) {
 			e.Obj = 0
 		}
-		// T23-z: rule 2 above only ever narrowed Obj; IDs/Pairs on a
+		// Rule 2 above only ever narrowed Obj; IDs/Pairs on a
 		// zone-move kind got no filtering at all, unlike every other kind
 		// (rule 3's default branch below). Measured behaviour-neutral
 		// today (0 non-test emitters of MoveZone/Draw/PutOnStack carry IDs
@@ -159,7 +156,7 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 		e.IDs = filterVisible(g, e.IDs, viewer)
 		e.Pairs = filterVisiblePairs(g, e.Pairs, viewer)
 	case events.Note:
-		// Ruling T23-w: rule 3 does not apply to a non-Secret Note at all
+		// Rule 3 does not apply to a non-Secret Note at all
 		// -- it passes through unchanged. A Note is the engine's explicit
 		// "tell everyone" channel (Reveal/RevealHand/PeekAndReveal exist
 		// to show hidden cards to every seat via one), so it is public
@@ -186,7 +183,7 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 // the library's contents (PlayerView.Library), so the ids alone would name
 // every card in order. What the owner legitimately knows about the cards an
 // arrange put back (a Scry, a Ponder, a Brainstorm put-back) is the decision
-// they were shown and the answer they gave, not this event (cr-g61).
+// they were shown and the answer they gave, not this event.
 func libraryOrderKind(k events.Kind) bool {
 	return k == events.Shuffle || k == events.PlanarDeckShuffle || k == events.LibraryOrder
 }
@@ -212,7 +209,7 @@ func secretShape(e events.Event) events.Event {
 // examine such a card, its owner included, so its payload is served to no
 // viewer -- the board hides the face from everyone too (card.go
 // mayLookFaceDown). A MayLookAt$ grant made after the move (Tezzeret's
-// Reckoning) shows the face on the board; the move itself stays shape (cr-g64).
+// Reckoning) shows the face on the board; the move itself stays shape.
 func blindFaceDownExile(e events.Event) bool {
 	if e.Kind != events.MoveZone || e.To != state.ZExile {
 		return false
@@ -227,7 +224,7 @@ func blindFaceDownExile(e events.Event) bool {
 // controlsSeat reports whether viewer controls seat under CR 723 -- that is,
 // seat is controlled by viewer while the control is LIVE: during seat's next
 // turn, never from the moment the grant resolves (state.Game.LiveController,
-// the interval the engine's decision redirect also reads; cr-g57). It is the
+// the interval the engine's decision redirect also reads). It is the
 // ONE home of the CR 720.4 view predicate ("you may look at all cards that
 // player could see"): project(), RedactEvent and visibleTo all consult it, so
 // the projection and the event stream cannot disagree about which seats the

@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Session is the payment layer's engine-owned state (lasagna spec §9.1-9.2):
+// Session is the payment layer's engine-owned state:
 // the ring's fields, moved off the Engine field list. Package rules embeds it
 // in its Engine (unexported, as paySession), so rules code reads the fields
 // as before (promoted) and the payment layer reaches them through

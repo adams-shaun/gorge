@@ -15,7 +15,7 @@ func init() {
 	Register("CopySpellAbility", effCopySpellAbility)
 }
 
-// effCopySpellAbility duplicates the spell named by Defined$ (Task 17). Two
+// effCopySpellAbility duplicates the spell named by Defined$. Two
 // shapes exist in the corpus:
 //
 //   - Defined$ Parent: the spell currently resolving (c.Source) — Chain
@@ -140,7 +140,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			// degradation to Spell-only must not leak in here -- a genuinely
 			// unknown token would otherwise widen to "all spells you control"
 			// and copy every spell on the stack. Fail closed instead. The
-			// `Ability` base IS a stack kind now (task abcopy3: Activated+
+			// `Ability` base IS a stack kind (Activated+
 			// Triggered, never Spell), and its `otherAbility` qualifier
 			// excludes the resolving wrapper via Ctx.ResolvingObj, so the
 			// sub-copy cannot copy itself; the arm is PLURAL -- every admitted
@@ -236,8 +236,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// "may sacrifice a land. If the player does, they may copy" runs it on the
 	// PAY. By the time this dispatch runs the unless question is fully
 	// answered -- so the may-copy election is the SECOND ask in Forge's own sequence: posing it
-	// duplicates nothing and inverts nothing (the round-1 read that scoped
-	// this arm to UnlessCost$-free SAs was wrong, findings-r2).
+	// duplicates nothing and inverts nothing.
 	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True") {
 		d := &decision.Decision{Player: controller, Kind: decision.KChoose, Min: 1, Max: 1,
 			Source: c.Source, ResumeKind: "copy_optional", ResumeSA: sa,
@@ -402,14 +401,19 @@ func emitCopy(h Host, c *Ctx, remember bool, ev events.Event, addTypes []string)
 		return
 	}
 	for _, id := range h.EmitStackCopy(ev) {
-		if remember {
-			c.Remembered = append(c.Remembered, state.Target{Obj: id})
-			eventRemember(h, c, id)
-		}
-		if len(addTypes) > 0 {
-			if x := copyExceptions(h.Game().Obj(ev.Obj), copyExceptSpec{addTypes: addTypes}); !x.Empty() {
-				h.Emit(events.Event{Kind: events.CopyExcept, Obj: id, Text: x.Text()})
-			}
+		noteCopy(h, c, remember, ev.Obj, id, addTypes)
+	}
+}
+
+// noteCopy remembers a copy and applies its added types.
+func noteCopy(h Host, c *Ctx, remember bool, spell, id state.ObjID, addTypes []string) {
+	if remember {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		eventRemember(h, c, id)
+	}
+	if len(addTypes) > 0 {
+		if x := copyExceptions(h.Game().Obj(spell), copyExceptSpec{addTypes: addTypes}); !x.Empty() {
+			h.Emit(events.Event{Kind: events.CopyExcept, Obj: id, Text: x.Text()})
 		}
 	}
 }
@@ -418,7 +422,8 @@ func emitCopy(h Host, c *Ctx, remember bool, ev events.Event, addTypes []string)
 // it could target" (CopyForEachCanTarget$ <spec>): one copy per legal target
 // of the spell's targeting clause that the spec admits (the copier is "You")
 // and the spell does not already target, each copy's first target replaced by
-// its candidate through the StackCopy IDs override, in ObjID order.
+// its candidate through the StackCopy IDs override, in ObjID order. A spell whose
+// targets all sit on a chain link (Wild Slash) moves the copy's link target instead.
 // ChooseOnlyOne$ True (Beamsplitter Mage) asks the copier for one candidate
 // and makes one copy. A player candidate cannot ride StackCopy's object-only
 // IDs, so it yields no copy under one loud Note. It reports false when the
@@ -431,24 +436,39 @@ func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, contr
 	}
 	g := h.Game()
 	so := g.Obj(spell)
-	if so == nil || len(so.Targets) == 0 {
+	if so == nil {
 		return false
 	}
-	for _, t := range so.Targets {
+	targets, offered := so.Targets, []state.Target(nil)
+	var link *cards.SA
+	if len(targets) == 0 {
+		for l := effectSA(so); l != nil && link == nil; l = l.Sub {
+			if targets = h.AnnouncedLinkTargets(spell, l); len(targets) > 0 {
+				link = l
+			}
+		}
+		if link == nil {
+			return false
+		}
+		offered = h.LegalSubTargets(controller, spell, link, []state.Target{})
+	} else {
+		offered = ch.CopyTargetCandidates(controller, spell)
+	}
+	for _, t := range targets {
 		if t.IsPlayer {
 			return false
 		}
 	}
 	var cands []state.ObjID
 	playerCand := false
-	for _, t := range ch.CopyTargetCandidates(controller, spell) {
+	for _, t := range offered {
 		if t.IsPlayer {
 			if MatchesPlayerSpec(g, spec, t.Player, controller) {
 				playerCand = true
 			}
 			continue
 		}
-		if t.Obj == so.Targets[0].Obj || !MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(controller)) {
+		if t.Obj == targets[0].Obj || !MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(controller)) {
 			continue
 		}
 		cands = append(cands, t.Obj)
@@ -478,6 +498,14 @@ func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, contr
 		}
 	}
 	for _, cand := range cands {
+		if link != nil {
+			moved := append([]state.Target{{Obj: cand}}, targets[1:]...)
+			for _, id := range h.EmitStackCopy(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, Counter: payload}) {
+				noteCopy(h, c, remember, spell, id, addTypes)
+				h.RetargetLink(id, link, moved)
+			}
+			continue
+		}
 		ids := []state.ObjID{cand}
 		for _, t := range so.Targets[1:] {
 			ids = append(ids, t.Obj)
@@ -585,8 +613,7 @@ func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool
 		// copy this spell": the next living seat after the resolving
 		// controller in turn order (this build has no teams). Before this arm
 		// the unknown selector fell back to the resolving controller, so the
-		// CASTER was offered its own copy, and the copy's copy, forever
-		// (cardfuzz batch1 line 1).
+		// CASTER was offered its own copy, and the copy's copy, forever.
 		alive := g.AliveFrom(c.Controller)
 		if len(alive) < 2 {
 			return 0, false

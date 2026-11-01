@@ -1,6 +1,6 @@
 package rules
 
-// Task wildgrowth1: Effect-delivered replacements with a SetChosenNumber$
+// Effect-delivered replacements with a SetChosenNumber$
 // binding -- the "that creature enters with an additional +1/+1 counter on
 // it for each ..." trigger family (torgal_a_fine_hound, communal_brewing,
 // wildgrowth_archaic). Before the fix the trigger fired, the DB$ Effect

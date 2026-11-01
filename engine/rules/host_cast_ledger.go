@@ -14,7 +14,7 @@ import (
 // from where, read from the event log.
 
 // CastThisTurn satisfies effects.Host's CastThisTurn for Count$ThisTurnCast
-// (Task 17/Storm): the spells cast this turn by ANY player, counted from
+// (Storm): the spells cast this turn by ANY player, counted from
 // the same event log spellsCastThisTurn reads, so a replay that rebuilds the
 // game derives the identical number -- never a live-only engine counter.
 // Storm subtracts one (Count$ThisTurnCast/Minus1) because the resolving
@@ -185,8 +185,8 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		// The bare wasCastFromYourHandByYou qualifier (the 5 end-step "if you
 		// haven't cast a spell from your hand this turn" carriers'
 		// Count$ThisTurnCast_Card.wasCastFromYourHandByYou bodies) is
-		// evaluated per cast event against the log (task castprov1); the
-		// wasCastByYou sibling (task castprov2) rides the same combined read.
+		// evaluated per cast event against the log; the
+		// wasCastByYou sibling rides the same combined read.
 		// The provenance reads answer from THIS cast (e.ledgerCast), not the
 		// object's current state: a spell that has since left the stack is
 		// a new object (CR 400.7) but its cast still counts.
@@ -247,7 +247,7 @@ func castProvenanceEndedBy(ev events.Event) bool {
 }
 
 // WasCastFromHand satisfies effects.Host's WasCastFromHand for the BARE
-// wasCastFromYourHand filter family (task castprov3 — the "from anywhere
+// wasCastFromYourHand filter family (the "from anywhere
 // other than your hand" carriers whose scripts spell the predicate without
 // the ByYou suffix: Vega the Watcher, Bilbo Thief in the Night, Mm'menon's
 // RestrictValid$): obj's latest PutOnStack event names the cast that put it
@@ -484,7 +484,7 @@ func (e *Engine) WasCast(obj state.ObjID) bool {
 }
 
 // WasCastByYou reports whether card obj was CAST AT ALL by player p — the
-// bare wasCastByYou qualifier's engine read (task castprov2: the "When
+// bare wasCastByYou qualifier's engine read (the "When
 // CARDNAME enters, if you cast it" ETB family — Zacama, Marina Vendrell's
 // Grimoire — and Nine-Lives Familiar's etbCounter gate field): the LATEST
 // PutOnStack event for this object names you as caster, whatever zone the

@@ -1,12 +1,11 @@
-// Task fb-20260918T073138Z-1ccd3f2d: Starting Town enters tapped on the
-// first three turns. The corpus card's ETB-tapped replacement gates on
-// SVar:X:Count$Compare Y GE1.Z.4 with
-// SVar:Y:PlayerCountPropertyYou$HasPropertyActive and SVar:Z:Count$YourTurns
-// — tapped only when X > 3, i.e. untapped on your first, second and third
-// turns of the game (CR 305.7's "enters tapped unless" family). The sole
-// defect was the PlayerCountPropertyYou$HasPropertyActive count head
-// (unresolvable, Y=0), which took the Compare's ifFalse branch 4 on every
-// turn and held the GT3 gate always; engine/effects/count.go now resolves the head.
+// Starting Town enters tapped on the first three turns. The corpus card's
+// ETB-tapped replacement gates on SVar:X:Count$Compare Y GE1.Z.4 with
+// SVar:Y:PlayerCountPropertyYou$HasPropertyActive and SVar:Z:Count$YourTurns —
+// tapped only when X > 3, i.e. untapped on your first, second and third turns
+// of the game (CR 305.7's "enters tapped unless" family). The sole defect was
+// the PlayerCountPropertyYou$HasPropertyActive count head (unresolvable, Y=0),
+// which took the Compare's ifFalse branch 4 on every turn and held the GT3 gate
+// always; engine/effects/count.go now resolves the head.
 //
 // Card text below is authored for this test in the same R:/SVar$ shape as
 // the corpus card — never copied from Forge's .cards/cardsfolder (GPL).

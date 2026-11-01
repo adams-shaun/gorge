@@ -223,11 +223,10 @@ func TestSuspectedCreatureCannotBlock(t *testing.T) {
 	}
 }
 
-// TestSuspectedEndsOnLeaveBattlefieldAndControlChange pins the two CR
-// 702.157b end conditions on the folds every object crosses: leaving the
-// battlefield, and another player gaining control (a same-controller
-// ControlChange is no change and keeps it).
-func TestSuspectedEndsOnLeaveBattlefieldAndControlChange(t *testing.T) {
+// TestSuspectedEndsOnLeavingTheBattlefieldOnly pins CR 701.60a on the folds
+// every object crosses: leaving the battlefield ends the designation, and a
+// change of controller does not.
+func TestSuspectedEndsOnLeavingTheBattlefieldOnly(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
 	cre := onBoardCard(t, e, 0, card(t, "Name:Victim\nTypes:Creature\nPT:2/2\nOracle:synthetic\n"))
@@ -236,13 +235,8 @@ func TestSuspectedEndsOnLeaveBattlefieldAndControlChange(t *testing.T) {
 		t.Fatal("precondition: the designation must be set")
 	}
 	e.emit(events.Event{Kind: events.ControlChange, Obj: cre, Player: 1})
-	if e.G.Obj(cre).Suspected {
-		t.Fatal("the designation survived another player gaining control")
-	}
-	e.emit(events.Event{Kind: events.AlterAttribute, Obj: cre, Text: "Suspected", Amount: 1})
-	e.emit(events.Event{Kind: events.ControlChange, Obj: cre, Player: 1})
 	if !e.G.Obj(cre).Suspected {
-		t.Fatal("a same-controller ControlChange cleared the designation")
+		t.Fatal("another player gaining control cleared the designation")
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: cre, From: state.ZBattlefield,
 		To: state.ZGraveyard, Player: 1})
@@ -298,8 +292,8 @@ Oracle:synthetic AllValid probe
 	if e.G.Obj(untouched).Controller != 1 {
 		t.Fatal("AllValid$ GainControl took a creature that was neither goaded nor suspected")
 	}
-	if e.G.Obj(suspected).Suspected {
-		t.Fatal("the suspected designation survived the control change")
+	if !e.G.Obj(suspected).Suspected {
+		t.Fatal("the control change cleared the suspected designation")
 	}
 	if e.G.Obj(watcher).Controller != 0 {
 		t.Fatal("the resolving source itself changed controller")

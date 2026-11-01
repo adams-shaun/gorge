@@ -22,7 +22,7 @@ import (
 
 // AttacksMatches implements Mode$ Attacks against a DeclareAttackers event.
 // DeclareAttackers carries the attackers declared against ONE defending
-// player in one event (IDs; Task m34 emits one event per defender).
+// player in one event (IDs; one event per defender).
 //
 // A Mode$ Attacks line is the SINGULAR "whenever [a creature] attacks" form
 // (CR 508.3a): it triggers once for each attacker the line's ValidCard$
@@ -31,7 +31,7 @@ import (
 // attacker matched; AttacksMatchedAttackers hands back the ordered set that
 // answer and the queue point share.
 //
-// Alone$ True (Exalted's expansion, engine/cards/keywords.go -- Ruling FL-48, which
+// Alone$ True (Exalted's expansion, engine/cards/keywords.go, which
 // was previously a known approximation here) gates the trigger to "exactly
 // one attacker declared this combat": Exalted must pump only a single lone
 // attacker, and with several declared it must not fire at all -- counted
@@ -346,7 +346,7 @@ func AttackersDeclaredOneTargetMatches(e Board, t cards.Trigger, source state.Ob
 	return ok
 }
 
-// ExertedMatches is the trig:Exerted half of CR 702.100 (task exert1 built the
+// ExertedMatches is the trig:Exerted half of CR 702.100 (the exert ask builds the
 // election and the static's own Trigger$ rider; this is the separate "whenever
 // you exert a creature" listener a different script line carries). The event is
 // events.Exert: Obj is the permanent the controller exerted and Amount >= 0 is
@@ -433,7 +433,7 @@ func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev e
 	if !damageCauseMatches(e, t, source, ev) {
 		return false
 	}
-	// FirstTime$ True on DamageDoneOnce (task agent-20261001T020044Z; only
+	// FirstTime$ True on DamageDoneOnce (only
 	// Hercules, Olympian Hero carries the combination corpus-wide) admits
 	// exactly the first Damage event on that recipient this turn, mirroring
 	// the life-gain/life-loss gates in trigmatch_life.go. Scoped to
@@ -556,7 +556,7 @@ func damageDefendingPlayer(e Board, ev events.Event) state.Target {
 	return state.Target{Player: ev.Player, IsPlayer: true}
 }
 
-// DamagePreventedMatches implements Mode$ DamagePreventedOnce (task dponce1):
+// DamagePreventedMatches implements Mode$ DamagePreventedOnce:
 // the trigger fires on a STORED prevention Note -- the re-entrant Note the
 // full-prevention replacement arm (engine/rules/replacement.go
 // applyNonMoveReplacements) and the ReplaceDamage/protection siblings emit

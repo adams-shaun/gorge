@@ -226,7 +226,7 @@ func resolveAvengingHunterETB(t *testing.T, e *Engine) state.ObjID {
 }
 
 // TestAvengingHunterETBTakesInitiativeAndVenturesIntoUndercity is the
-// brief's first Avenging Hunter leaf: the ETB gives its controller the
+// first Avenging Hunter leaf: the ETB gives its controller the
 // initiative and ventures into Undercity, marker on Secret Entrance, and the
 // basic-land search resolves.
 func TestAvengingHunterETBTakesInitiativeAndVenturesIntoUndercity(t *testing.T) {
@@ -281,7 +281,7 @@ func runInitiativeUpkeepScenario(t *testing.T, reg *cards.Registry) (*Engine, Co
 	return e, cfg
 }
 
-// TestInitiativeHolderVenturesAtTheirUpkeep is the brief's second leaf: the
+// TestInitiativeHolderVenturesAtTheirUpkeep: the
 // holder's next upkeep ventures again (a non-holder's upkeep does not).
 func TestInitiativeHolderVenturesAtTheirUpkeep(t *testing.T) {
 	t.Parallel()
@@ -349,7 +349,7 @@ func runInitiativeCombatScenario(t *testing.T, reg *cards.Registry) (*Engine, Co
 	return e, cfg
 }
 
-// TestCombatDamageToInitiativeHolderMovesItAndVentures is the brief's third
+// TestCombatDamageToInitiativeHolderMovesItAndVentures is the third
 // leaf: an opponent's creature dealing combat damage to the holder moves the
 // initiative to that opponent and ventures for them. The combat board is
 // fabricated directly (not replay-asserted here); the replay leaf below
@@ -360,7 +360,7 @@ func TestCombatDamageToInitiativeHolderMovesItAndVentures(t *testing.T) {
 	runInitiativeCombatScenario(t, reg)
 }
 
-// TestInitiativeReplayHead is the brief's standalone replay leaf: the fully
+// TestInitiativeReplayHead is the standalone replay leaf: the fully
 // logged ETB + upkeep game rebuilt from the log has byte-identical state and
 // the same chain head.
 func TestInitiativeReplayHead(t *testing.T) {

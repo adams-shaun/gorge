@@ -254,7 +254,7 @@ func (e *Engine) scryReplacementCount(ctx *effects.Ctx, raw string, base int32) 
 // ReplaceEffect rewrite touches no modelled field (SwapRoll's
 // DicePTExchanges), cannot be modelled: the match is skipped LOUDLY (the
 // roll proceeds unmodified, the conservative direction) and the shape is
-// named here for the next ticket, never silently widened.
+// named here, never silently widened.
 func (e *Engine) continueRollDiceReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
 		// CR 616.1e: the recheck uses the same matcher class the collection

@@ -9,7 +9,7 @@
 
   /**
    * ResolvedCard is the stack section's own record of the last resolved
-   * object (task fb-20260916T225456Z): a spell resolving is a card popping
+   * object: a spell resolving is a card popping
    * off THIS stack, so its artwork shows here — a labelled row above the
    * tiles still on the stack — where it reads as the stack's history rather
    * than a poster parked over the combat seam. It replaces the old
@@ -17,7 +17,7 @@
    * bottom centre and was itself a patchwork of two earlier complaints
    * about the same element (survey #26's lift, then a 220px→132px resize).
    *
-   * Lifetime (fb-20260917T231516Z): the row shows the most recent
+   * Lifetime: the row shows the most recent
    * stack_resolve and clears on whichever comes first — the next resolve
    * replacing it, the next turn OR step boundary (every phase/step change
    * emits a `step` event and every turn a `turn` event, both read straight
@@ -40,7 +40,7 @@
    * renders, so findCardAnywhere locates it there. Derived values render
    * identically under SSR, which is what the component tests exercise.
    *
-   * NAME + HOVER + OWNER (fb-20260917T131253Z-41d199c8): the row read as
+   * NAME + HOVER + OWNER: the row read as
    * "just resolved" + bare art — no name in text (only the img alt), no
    * hover detail, no notion of who resolved it. Now it renders the card's
    * real name as text beside the label, wires the same HoverCard

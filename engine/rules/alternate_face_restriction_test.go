@@ -1,7 +1,7 @@
 package rules
 
 // alternate_face_restriction_test.go pins the CantBeCast face probe on every
-// alternate-face cast route the brief names: the hand split_alt/adventure_alt
+// alternate-face cast route: the hand split_alt/adventure_alt
 // offers, the graveyard aftermath offer and the exile adventure_recast offer.
 //
 // Before this change each route gated on the card-level castRestricted, which

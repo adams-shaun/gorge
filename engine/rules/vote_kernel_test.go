@@ -15,34 +15,34 @@ import (
 // a Ctx seam: every voter is posed its real private "vote" ask and answered
 // with the scenario's pick.
 
-// kr9ResolveVote is kr9ResolveVoteBy with seat 0 casting.
-func kr9ResolveVote(t *testing.T, e *Engine, votes []int) {
+// resolveVote is resolveVoteBy with seat 0 casting.
+func resolveVote(t *testing.T, e *Engine, votes []int) {
 	t.Helper()
-	kr9ResolveVoteBy(t, e, 0, votes)
+	resolveVoteBy(t, e, 0, votes)
 }
 
-// kr9ResolveVoteBy puts the synthetic vote spell on the stack under caster,
+// resolveVoteBy puts the synthetic vote spell on the stack under caster,
 // resolves it as a kernel probe, answers voter i's ballot ask (voters in
 // AliveFrom(caster) order) with option votes[i], then moves the spent spell
 // off the stack so the drain sees only the queued Vote trigger.
-func kr9ResolveVoteBy(t *testing.T, e *Engine, caster state.PlayerID, votes []int) {
+func resolveVoteBy(t *testing.T, e *Engine, caster state.PlayerID, votes []int) {
 	t.Helper()
 	vc := voteSpell(t)
 	src := e.G.AddObject(vc, caster)
 	src.Zone = state.ZStack
 	e.G.SetZone(state.ZStack, caster, []state.ObjID{src.ID})
 	sa := vc.Faces[0].Abilities[0]
-	kr9Probe(e, func() {
+	probeAfterPass(e, func() {
 		effects.Resolve(e, &effects.Ctx{Source: src.ID, Controller: caster, SVars: vc.Faces[0].SVars}, sa)
 	})
-	kr9AnswerBallots(t, e, caster, votes)
+	answerBallots(t, e, caster, votes)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZStack, To: state.ZGraveyard})
 }
 
-// kr9AnswerBallots answers the posed per-voter "vote" asks in order: voter i
+// answerBallots answers the posed per-voter "vote" asks in order: voter i
 // (AliveFrom(first)) takes option votes[i]; a negative entry submits the
 // empty (UpTo$) ballot.
-func kr9AnswerBallots(t *testing.T, e *Engine, first state.PlayerID, votes []int) {
+func answerBallots(t *testing.T, e *Engine, first state.PlayerID, votes []int) {
 	t.Helper()
 	voters := e.G.AliveFrom(first)
 	for i, v := range votes {
@@ -71,7 +71,7 @@ func TestErestorVoteFinishedTreasureScryAndDrawKernel(t *testing.T) {
 		e, _ := voteCarrierEngine(t, reg, "Erestor of the Council")
 		carrier := enterCarrier(t, e, "Erestor of the Council")
 		before := drawsFor(e, 0)
-		kr9ResolveVote(t, e, votes)
+		resolveVote(t, e, votes)
 		scry := drainVoteTrigger(t, e, carrier)
 		for p, want := range wantSame {
 			if got := tokensNamed(e, state.PlayerID(p), "Treasure"); got != want {
@@ -108,7 +108,7 @@ func TestModelOfUnityScrysTheLikeVotingOpponentKernel(t *testing.T) {
 	run := func(votes []int, wantPlayer state.PlayerID) {
 		e, _ := voteCarrierEngine(t, reg, "Model of Unity")
 		carrier := enterCarrier(t, e, "Model of Unity")
-		kr9ResolveVote(t, e, votes)
+		resolveVote(t, e, votes)
 		scry := drainVoteTrigger(t, e, carrier)
 		if scry == nil {
 			t.Fatalf("votes %v: no scry ask, want KArrange for seat %d", votes, wantPlayer)
@@ -132,7 +132,7 @@ func TestGrudgeKeeperDiffVotersLoseLifeKernel(t *testing.T) {
 		for i := range e.G.Players {
 			before[i] = e.G.Players[i].Life
 		}
-		kr9ResolveVote(t, e, votes)
+		resolveVote(t, e, votes)
 		drainVoteTrigger(t, e, carrier)
 		for i := range e.G.Players {
 			lost := before[i] - e.G.Players[i].Life
@@ -155,7 +155,7 @@ func TestErestorVoteReferentsAnchorOnCarrierControllerKernel(t *testing.T) {
 	run := func(votes []int, wantTreasure [3]int, wantScry int) {
 		e, _ := voteCarrierEngine(t, reg, "Erestor of the Council")
 		carrier := enterCarrier(t, e, "Erestor of the Council")
-		kr9ResolveVoteBy(t, e, 1, votes)
+		resolveVoteBy(t, e, 1, votes)
 		scry := drainVoteTrigger(t, e, carrier)
 		for p, want := range wantTreasure {
 			if got := tokensNamed(e, state.PlayerID(p), "Treasure"); got != want {
@@ -187,7 +187,7 @@ func TestGrudgeKeeperVoteReferentsAnchorOnCarrierControllerKernel(t *testing.T) 
 	for i := range e.G.Players {
 		before[i] = e.G.Players[i].Life
 	}
-	kr9ResolveVoteBy(t, e, 1, []int{1, 0, 1})
+	resolveVoteBy(t, e, 1, []int{1, 0, 1})
 	drainVoteTrigger(t, e, carrier)
 	for i := range e.G.Players {
 		lost := before[i] - e.G.Players[i].Life

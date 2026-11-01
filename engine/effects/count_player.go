@@ -361,7 +361,7 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 	// bare name; the suffix applies inside hasPropertyLostLifeCount.
 	base, _, _ := strings.Cut(prop, "/")
 	base = strings.TrimSpace(base)
-	// Deliberately NO lifeExtreme call here: the brief names exactly three
+	// Deliberately NO lifeExtreme call here: this group has exactly three
 	// resolvable properties on this group, and the life-TOTAL extremes
 	// (HighestLifeTotal/LowestLifeTotal) are not among them — they stay
 	// (0, false) on DefinedRegistered[.Other]$ even though the sibling
@@ -411,8 +411,8 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 	}
 	// Any other property is NOT resolvable: (0, false), the documented
 	// fail-closed verdict. The HighestValid/LowestValid zone-count extremes
-	// of playerCountExtreme are deliberately not offered on this group (the
-	// brief names exactly the three properties above, and no corpus carrier
+	// of playerCountExtreme are deliberately not offered on this group (only
+	// the three properties above are in scope, and no corpus carrier
 	// reaches a zone-count extreme here); only the two LifeLostThisTurn
 	// extremes route into playerCountExtreme, above.
 	return 0, false
@@ -823,7 +823,7 @@ func playerCountExtreme(h Host, g *state.Game, c *Ctx, players []state.PlayerID,
 	}
 	if _, ok := playerScalarProperty(h, g, 0, prop); ok && strings.TrimSpace(spec) == "" {
 		// A per-player zone size or tally (Highest/LowestCardsInHand,
-		// HighestCardsInGraveyard, HighestCardsDrawn -- fuzz-cov3).
+		// HighestCardsInGraveyard, HighestCardsDrawn).
 		best, seen := int32(0), false
 		for _, p := range players {
 			v, ok := playerScalarProperty(h, g, p, prop)

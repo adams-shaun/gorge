@@ -114,6 +114,7 @@ engine/rules/attackprop_window_test.go
 engine/rules/attacks_trigger_per_attacker_test.go
 engine/rules/augur_autumn_coven_test.go
 engine/rules/autopay_census_test.go
+engine/rules/blight_cost_test.go
 engine/rules/block_prop_test.go
 engine/rules/botpolicy_approx_test.go
 engine/rules/can_attack_defender_present_zone_test.go
@@ -179,10 +180,10 @@ engine/rules/counter_added_limit_instances_test.go
 engine/rules/counter_adder_source_test.go
 engine/rules/counter_target_type_test.go
 engine/rules/counteradded_batch_test.go
+engine/rules/counteradded_per_counter_test.go
 engine/rules/cr120_8_zero_damage_test.go
 engine/rules/cr506_7_had_to_attack_test.go
 engine/rules/cr702_madness_storm_test.go
-engine/rules/cr_g72_blight_cost_test.go
 engine/rules/craft_transformed_test.go
 engine/rules/creature_sac_value_mana_test.go
 engine/rules/cumulative_nested_mana_color_test.go
@@ -215,7 +216,6 @@ engine/rules/dismantle_lki_test.go
 engine/rules/draw_replacement_validcause_test.go
 engine/rules/draw_step_test.go
 engine/rules/draw_x_cost_test.go
-engine/rules/ds2_counteradded_per_counter_test.go
 engine/rules/effect_cantbeactivated_test.go
 engine/rules/effect_chosencolor_snapshot_test.go
 engine/rules/effect_frame_resume_test.go

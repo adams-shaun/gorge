@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task E1b — CR 800.4j: "If a player leaves the game during their turn, that
+// CR 800.4j: "If a player leaves the game during their turn, that
 // turn continues to its completion without an active player. If the active
 // player would receive priority, instead the next player in turn order
 // receives priority, or the top object on the stack resolves, or the phase or

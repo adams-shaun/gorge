@@ -5,9 +5,7 @@
 // ability's SkipTurn rider takes, and the triggered ability a granted keyword
 // line mints.
 //
-// It is a leaf of the rules-engine lasagna (spec
-// docs/design/2026-10-03-rules-engine-lasagna-design.md §3, and the
-// 2026-10-06 rules-split plan). It holds no *rules.Engine and reads no game
+// It is a leaf of the rules engine. It holds no *rules.Engine and reads no game
 // state: every function is a pure function of a cards.Face, a cards.SA or a
 // cards.Trigger, so a moving game cannot change an answer and a replay cannot
 // diverge. It imports only cards, state and engine/rules/cost (the L2 cost

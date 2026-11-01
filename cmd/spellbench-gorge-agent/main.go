@@ -25,7 +25,7 @@ func main() {
 	corpus := flag.String("corpus", os.Getenv("GORGE_CARDS"), "pinned corpus directory (neutral world)")
 	registry := flag.String("registry", "", "frozen registry file (neutral world)")
 	registrySHA := flag.String("registry-sha256", "", "expected SHA-256 of the frozen registry")
-	auditDir := flag.String("audit-dir", os.Getenv("GORGE_AGENT_AUDIT_DIR"), "optional directory for aggregate policy coverage after the process closes")
+	auditDir := flag.String("audit-dir", os.Getenv("GORGE_AGENT_AUDIT_DIR"), "optional directory for aggregate policy coverage, one file at each game over and one when the process closes mid-game")
 	world := flag.String("world", "gorge", "gorge (read x_gorge_view_v1 from gorge's engine) or neutral (translate the v2 observation and candidates of any engine; needs the registry)")
 	listPolicies := flag.Bool("list-policies", false, "list registered policies and exit")
 	flag.Parse()
@@ -62,12 +62,22 @@ func main() {
 		fmt.Fprintf(os.Stderr, "spellbench-gorge-agent: unknown world %q\n", *world)
 		os.Exit(2)
 	}
-	err = agent.Serve(os.Stdin, &flushWriter{bufio.NewWriter(os.Stdout)}, s)
-	if *auditDir != "" {
-		if auditErr := writeAudit(*auditDir, s.Audit()); auditErr != nil {
-			fmt.Fprintln(os.Stderr, "spellbench-gorge-agent audit:", auditErr)
-			os.Exit(1)
+	auditFailed := false
+	audit := func() {
+		if err := writeAudit(*auditDir, s.Audit()); err != nil {
+			fmt.Fprintln(os.Stderr, "spellbench-gorge-agent audit:", err)
+			auditFailed = true
 		}
+	}
+	if *auditDir != "" {
+		s.OnGameOver = audit
+	}
+	err = agent.Serve(os.Stdin, &flushWriter{bufio.NewWriter(os.Stdout)}, s)
+	if *auditDir != "" && !s.Audit().GameOverReceived {
+		audit()
+	}
+	if auditFailed {
+		os.Exit(1)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "spellbench-gorge-agent:", err)
@@ -112,6 +122,10 @@ func writeAudit(dir string, value agent.PolicyAudit) error {
 		return err
 	}
 	if err := json.NewEncoder(f).Encode(value); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Sync(); err != nil {
 		f.Close()
 		return err
 	}

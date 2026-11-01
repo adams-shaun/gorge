@@ -14,9 +14,8 @@ package rules
 // (script text lives only in this gitignored corpus; a fixture copies it into
 // a test, never into a tracked .txt).
 //
-// DEVIATION from the original brief, measured: the brief's symptom claimed
-// Unbound Flourishing's SpellCast trigger "fires on EVERY permanent spell you
-// cast". It did not fire AT ALL in this build: trigmatch.spellCastMatches read
+// Measured: Unbound Flourishing's SpellCast trigger did not fire at all in
+// this build: trigmatch.spellCastMatches read
 // ValidCard$ through the zone-unaware MatchesObjectCtx, whose base
 // "Permanent" was `o.Zone == ZBattlefield` (engine/effects/filter.go matchesBase) --
 // a spell on the stack never matched, so the trigger was dead before and
@@ -26,7 +25,7 @@ package rules
 // 109.2), and TestUnboundFlourishingFiresOnPermanentSpellCasts below pins
 // the live behaviour; the SpellCast gate itself is also proven on Brass
 // Infiniscope's carrier line, whose ValidSA$ Spell DOES match every stack
-// spell (the over-firing the brief described is real there, and on UF's
+// spell (over-firing is real there, and on UF's
 // SpellAbilityCast half).
 
 import (
@@ -205,7 +204,7 @@ func drainTriggerAsks(t *testing.T, e *Engine, limit int) {
 
 // TestHasXManaCostSpellCastGateOnBrassInfiniscope is the SpellCast leaf:
 // Brass Infiniscope's real corpus trigger line (ValidSA$ Spell -- it matched
-// EVERY spell cast before the gate, the brief's over-firing symptom) fires
+// EVERY spell cast before the gate, the over-firing symptom) fires
 // exactly once on an X-cost cast and not at all on a non-X cast.
 func TestHasXManaCostSpellCastGateOnBrassInfiniscope(t *testing.T) {
 	t.Parallel()

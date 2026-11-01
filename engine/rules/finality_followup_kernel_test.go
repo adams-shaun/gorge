@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the finality_followup_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Winter, Cynical Opportunist returning a permanent with a finality counter,
+// and its replay, driven through the resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -67,7 +66,7 @@ func TestWinterCynicalOpportunistReturnsFinalityPermanentAndReplays(t *testing.T
 		t.Fatal("precondition: remembered permanent does not match normalized Winter DBReturn filter")
 	}
 
-	kr6Probe(e, func() { effects.Resolve(e, &effects.Ctx{Source: wid, Controller: 0, X: 4}, ability) })
+	probeDroppingPending(e, func() { effects.Resolve(e, &effects.Ctx{Source: wid, Controller: 0, X: 4}, ability) })
 	d := e.Pending()
 	if d == nil || len(d.Options) != 4 {
 		t.Fatalf("precondition: Winter hidden pick = %+v, want four options", d)

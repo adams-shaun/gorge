@@ -17,14 +17,14 @@ func init() { Register("Demonstrate", effDemonstrate) }
 // it. If you do, choose an opponent to also copy it. Each copy becomes a
 // token."
 //
-// The two "may/choose" halves are real mid-resolution asks (the fx42
+// The two "may/choose" halves are real mid-resolution asks (the
 // transport: Ctx.Demonstrate* fields, rebuilt by rules' "demonstrate" resume
 // arm and consumed and cleared at the top of this walk):
 //
 //   - Stage 0, the election: "you may copy it" -- a yes/no KChoose to the
 //     caster (the trigger's controller). A decline ends the trigger having
 //     copied nothing. The no-host deterministic answer (an effects-package
-//     test double, a fuzz run) is the decline under one R-9 Note.
+//     test double, a fuzz run) is the decline under one Note.
 //
 //   - Stage 1, the opponent: "choose an opponent to also copy it" -- a
 //     one-pick KChoose over the caster's living opponents in AliveFrom
@@ -32,7 +32,7 @@ func init() { Register("Demonstrate", effDemonstrate) }
 //     the caster's copy exists); ONE means a decision nobody could answer
 //     differently, so the copies are recorded without an ask (the
 //     strict-supersets convention, the battle-protector precedent). The
-//     no-host deterministic answer is the first opponent under one R-9 Note.
+//     no-host deterministic answer is the first opponent under one Note.
 //
 // Both copies are emitted only once the opponent clause is settled (the
 // caster's copy first, then the chosen opponent's): an emission between the
@@ -40,8 +40,8 @@ func init() { Register("Demonstrate", effDemonstrate) }
 // opponent ask's resume point -- the top of the stack -- would then re-enter
 // the COPY's resolution instead of this body's. Each copy is an ordinary
 // StackCopy mint (the same event effCopySpellAbility emits) keeping the
-// original's targets -- the standing copy-keeps-targets stand-in the M4
-// copy-target task owns (the printed carriers' oracle adds "Players may
+// original's targets -- the standing copy-keeps-targets stand-in
+// (the printed carriers' oracle adds "Players may
 // choose new targets for their copies", a choice this build cannot pose). A
 // creature-spell copy becomes a token when it RESOLVES, through the standing
 // CR 707.10g fold in events.Apply's Move case (enteredFrom ZStack + IsCopy ->
@@ -96,7 +96,7 @@ func effDemonstrate(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	} else {
-		// No host to ask (the R-9 fuzz/test contract): the deterministic
+		// No host to ask (the fuzz and test path): the deterministic
 		// decline -- a may-copy the engine cannot ask is never copied.
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "demonstrate copy resolved as the decline (no engine host to ask)"})

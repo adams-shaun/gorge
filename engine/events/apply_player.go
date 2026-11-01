@@ -6,6 +6,7 @@
 package events
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/adams-shaun/gorge/engine/state"
@@ -54,7 +55,7 @@ func foldDrawEmpty(g *state.Game, e *Event) {
 
 // foldGameOver folds Kind GameOver into state.
 func foldGameOver(g *state.Game, e *Event) {
-	// Ruling T22-g (fix round 1): the first GameOver wins; a later one
+	// The first GameOver wins; a later one
 	// on an already-finished game is a no-op. Without this guard, a log
 	// carrying two GameOver events (a duplicate, a replay quirk, a
 	// tampered log) produced a game simultaneously won (Winner set by
@@ -64,13 +65,10 @@ func foldGameOver(g *state.Game, e *Event) {
 	if g.Over {
 		return
 	}
-	// Ruling T22-a (Amount is the draw/winner discriminator, the same
-	// trick TargetsChosen already uses to tell its two target shapes
-	// apart), pinned down fully by T22-g and, for Amount == 0's own
-	// Player validity, T22-l: exactly two shapes are defined, and
-	// everything else is not a GameOver this build recognizes at all.
-	//   Amount == 0: a win, but ONLY when Player validates. Ruling
-	//     T22-l (fix round 2): a fix-round-1 build of this let an
+	// Amount is the draw/winner discriminator (the same trick TargetsChosen
+	// uses to tell its target shapes apart): exactly two shapes are defined,
+	// and everything else is not a GameOver this build recognizes at all.
+	//   Amount == 0: a win, but ONLY when Player validates. Setting Over on an
 	//     invalid Player under Amount 0 still set Over, with Winner
 	//     left at its untouched zero value -- an invalid seat silently
 	//     reading as seat 0 winning, the exact defect class this whole
@@ -114,15 +112,9 @@ func foldControlChange(g *state.Game, e *Event) {
 					g.Players[i].RingBearer = 0
 				}
 			}
-			// CR 702.157b: the suspected designation ends the moment
-			// ANOTHER player gains control of the permanent -- the same
-			// condition the Ring-bearer designation keys on, evaluated on
-			// the still-old controller (o.Controller is still the old seat
-			// here). A same-controller ControlChange (no real change of
-			// controller) keeps the designation. A Soulbond pairing ends
-			// the same way (CR 702.95e).
+			// CR 702.95e: a Soulbond pairing ends when another player gains
+			// control of either creature.
 			if o.Controller != e.Player {
-				o.Suspected = false
 				endPairing(g, o)
 			}
 			changeControl(g, o, e.Player)
@@ -226,8 +218,7 @@ const SubTargetNotice = "sub-target"
 
 // foldTargetsChosen folds Kind TargetsChosen into state.
 func foldTargetsChosen(g *state.Game, e *Event) {
-	// Amount discriminates the target shape (Ruling T14-b's own
-	// discriminator, extended by Task 4 with two more shapes that
+	// Amount discriminates the target shape (two of its shapes
 	// APPEND rather than replace -- a spell can gain a second target
 	// from a later effect without losing the first):
 	//   0 (default): replace with object targets, read from IDs.
@@ -287,6 +278,26 @@ func foldTargetsChosen(g *state.Game, e *Event) {
 	}
 }
 
+// foldSubTargetRemoved folds Kind SubTargetRemoved into state: the first entry
+// of Object.SubTargets naming the target goes. The list is flat, so a second
+// link holding the same target keeps its entry.
+func foldSubTargetRemoved(g *state.Game, e *Event) {
+	o := g.Obj(e.Obj)
+	if o == nil {
+		return
+	}
+	want := state.Target{Player: e.Player, IsPlayer: true}
+	if e.Amount != 3 {
+		if len(e.IDs) != 1 {
+			return
+		}
+		want = state.Target{Obj: e.IDs[0]}
+	}
+	if i := slices.Index(o.SubTargets, want); i >= 0 {
+		o.SubTargets = append(o.SubTargets[:i:i], o.SubTargets[i+1:]...)
+	}
+}
+
 // stampTarget records which incarnation of id the stack object o targets
 // (state.Object.TargetStamps, CR 400.7). A later stamp for the same id
 // supersedes an earlier one (a replaced target list re-stamps it), so the
@@ -299,7 +310,7 @@ func stampTarget(g *state.Game, o *state.Object, id state.ObjID) {
 
 // foldAlterAttribute folds Kind AlterAttribute into state.
 func foldAlterAttribute(g *state.Game, e *Event) {
-	// The AlterAttribute fold (task alterattr1): the engine models the
+	// The AlterAttribute fold: the engine models the
 	// "Saddled" (CR 702.171), "Suspected" (CR 702.157), "Harnessed" and "Plotted"
 	// (CR 701.34, task kw-plot)
 	// attributes. Text names the attribute so a future modelled one
@@ -348,7 +359,7 @@ func foldAlterAttribute(g *state.Game, e *Event) {
 			}
 		case "Monstrous":
 			// CR 701.31b's monstrous designation (Giggling Skitterspike's
-			// `{5}: Monstrosity 5`, task agent-20260919T190014Z): Amount is
+			// `{5}: Monstrosity 5`): Amount is
 			// the monstrosity COUNT the resolving ability carried (the
 			// BecomeMonstrous triggers' `SVar:MonstrosityX:TriggerCount$Amount`
 			// reads it back), and Amount >= 1 sets the mark. CR 701.31 gives

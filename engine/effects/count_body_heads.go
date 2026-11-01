@@ -220,7 +220,7 @@ func evalCountBodyObjHeads(h Host, c *Ctx, g *state.Game, head, arg string, dept
 }
 
 // evalCountBodyDotted evaluates Forge's generic dotted yes/no branch heads
-// (Count$<Predicate>.<yes>.<no>): the fuzz-cov3 branch predicates, the
+// (Count$<Predicate>.<yes>.<no>): the count_cov3.go branch predicates, the
 // wasCastFrom* provenance bits, Morbid/Monarch/Blessing and the devotion
 // spellings.
 // evalCountAdamantHead claims the two Count$Adamant head spellings ahead of
@@ -288,7 +288,7 @@ func evalCountBodyDotted(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	// state g.IsMonarch answers for a CheckDefinedPlayer$ .isMonarch spec).
 	if dot := strings.IndexByte(head, '.'); dot > 0 {
 		if holds, known := cov3BranchHolds(h, c, head[:dot], depth); known {
-			// The fuzz-cov3 branch predicates (Delirium, Metalcraft,
+			// The count_cov3.go branch predicates (Delirium, Metalcraft,
 			// Hellbent, FatefulHour, Landfall, Void): branch tokens through
 			// countBranchOperand, the Threshold sibling's read.
 			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
@@ -750,8 +750,8 @@ var evalCountBodyDottedCodes = state.NewStrCodes(
 // the <no> branch.
 func countBargainedBranch(h Host, c *Ctx, g *state.Game, branches string, depth int) int32 {
 	yesTok, noTok, _ := strings.Cut(branches, ".")
-	bargained := false
-	if o := g.Obj(c.Source); o != nil {
+	bargained := c.Kicker.PendingBargained
+	if o := g.Obj(c.Source); o != nil && !bargained {
 		bargained = o.CastFlags&state.FlagBargained != 0
 	}
 	return countBranchOperand(h, c, bargained, yesTok, noTok, depth)

@@ -71,8 +71,8 @@ var excluded = map[excludedField]bool{
 	// Engine.Chars's answer record (host_read.go): overwritten by every Chars
 	// call outside a memo scope and valid only until the next one; Clone
 	// resets it. The trigger matchers read characteristics through Chars
-	// since W5 E3 (trigmatch.Board), so a live engine holds the last read
-	// while its control clone holds none (round-9 paymirror, seed 8175).
+	// (trigmatch.Board), so a live engine holds the last read
+	// while its control clone holds none (paymirror, seed 8175).
 	{"rules.Engine", "charsScratch"}: true,
 	// combatBoard.Statics' per-mode conversion buffer (engine/rules/combat_board.go):
 	// per-call scratch rewritten in full on every read; Clone copies none.
@@ -218,7 +218,7 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "walkClsOwner"}:    true,
 	{"rules.Engine", "offerProbeDepth"}: true,
 	{"rules.Engine", "staticTouchGen"}:  true,
-	// The S4 own-battlefield mana-membership carry (mana_member_carry.go):
+	// The own-battlefield mana-membership carry (mana_member_carry.go):
 	// a walk cache keyed on the board stamp plus a mana-relevant log cursor;
 	// Clone copies none (ownManaCarry gives a copy its own on first use).
 	{"rules.Engine", "manaCarry"}: true,
@@ -280,17 +280,15 @@ var excluded = map[excludedField]bool{
 	// decisions by construction, so these count the route, not the game.
 	{"rules.Engine", "loop"}:     true,
 	{"rules.Engine", "askCount"}: true,
-	// legalActionWalks is legalActionsPriced's diagnostic call counter: the
-	// float route re-prices every offer against a hypothetical floating pool
-	// the control route never opens, so it counts the route's work, not the
-	// game (ticket cli-20260927T103840Z-0fb8a354: the field was read by this
-	// differ in round 1 and every route pair mismatched on it).
+	// legalActionWalks is legalActionsPriced's diagnostic call counter: the float
+	// route re-prices every offer against a hypothetical floating pool the
+	// control route never opens, so it counts the route's work, not the game.
 	{"rules.Engine", "legalActionWalks"}: true,
 	// Harness-only observers (engine/rules/clone.go: Clone deliberately copies
 	// neither). cmd/cardfuzz installs ManaAbilityHook on its LIVE engine, so
 	// CheckLive's control -- the live run A against a clone replaying it --
-	// read "ManaAbilityHook <func> vs nil" on every planned cast (round-5
-	// cardfuzz mirror diags); botbench's stats sink is the same shape. Both
+	// read "ManaAbilityHook <func> vs nil" on every planned cast
+	// (cardfuzz mirror diags); botbench's stats sink is the same shape. Both
 	// emit nothing and mutate nothing, so they are not game state.
 	{"rules.Engine", "ManaAbilityHook"}: true,
 	{"rules.Engine", "PaymentStats"}:    true,
@@ -298,7 +296,7 @@ var excluded = map[excludedField]bool{
 	// (derived_transparent.go): derivedSeq moves with activeBuildSeq, and
 	// derivedPrev*/derivedTouched/activeBufAlt are the previous build's key
 	// and list. Never cloned, so a control clone restarts them at zero while
-	// the live run A has counted its own rebuilds (round-7 cardfuzz seed
+	// the live run A has counted its own rebuilds (cardfuzz seed
 	// 16178228601564090929: derivedSeq 9 vs 1).
 	{"rules.Engine", "derivedSeq"}:         true,
 	{"rules.Engine", "activeBufAlt"}:       true,
@@ -313,7 +311,7 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "derivedPrevEntered"}: true,
 	{"rules.Engine", "activeList"}:         true,
 	// The rename table's arena-size key and its derivedSeq stamp
-	// (setname.go), the renames/* cache keys, and the E2 measurement
+	// (setname.go), the renames/* cache keys, and the measurement
 	// diagnostic counting refreshRenames' exits (never read by rules; Clone
 	// resets it, so the live run's tally and a clone's cannot agree).
 	{"rules.Engine", "renameObjs"}:         true,
@@ -361,22 +359,17 @@ var excluded = map[excludedField]bool{
 	// each is a pure function of the log prefix its watermark names, and the
 	// log itself is compared semantically. The manual route answers more
 	// decisions, so its watermark names a longer prefix of an equivalent log
-	// (round-9 cardfuzz seed 8175: airbendFolded).
+	// (cardfuzz seed 8175: airbendFolded).
 	{"rules.Engine", "legalScratch"}: true,
 }
 
-// The engine_struct embedding refactor (2026-09-30) moved most of the Engine
-// struct's fields onto anonymous embedded cluster structs (engineScratch,
-// engineResolution, ...). The differ's walk visits those clusters under their
-// own "rules.<Type>" keys, and a promoted field's reflective path grew a
-// cluster prefix -- so the table above, keyed {"rules.Engine", field} exactly
-// as doc.go's exclusion table documents it, stopped matching and every
-// excluded cache started being compared again (the module-gate failure this
-// resolution closed: all ten failing route pairs diverged on
-// engineScratch.derivedMemo / engineDerivedTables.types* /
-// engineLayerCaches.activeBuildSeq). The two tables below, built once by
-// reflect over rules.Engine, keep the documented spellings working however
-// the fields are clustered:
+// Most of the Engine struct's fields live on anonymous embedded cluster structs
+// (engineScratch, engineResolution, ...). The differ's walk visits those
+// clusters under their own "rules.<Type>" keys, and a promoted field's
+// reflective path carries a cluster prefix, so the table above, keyed
+// {"rules.Engine", field} as doc.go's exclusion table documents it, does not
+// match them. The two tables below, built once by reflect over rules.Engine,
+// keep the documented spellings working however the fields are clustered:
 //
 //   - engineExcludedByType maps each struct type reachable from Engine by
 //     anonymous embedding to its fields that carry an exclusion entry,
@@ -995,7 +988,7 @@ func normalizePath(p string) string {
 //     boundary into them left uncompared;
 //   - the event multisets are equal once since-fork ObjIDs are masked (a
 //     cast trigger removed for want of a target names its own permuted
-//     ObjID, round-9 commander4 seed 11056);
+//     ObjID, commander4 seed 11056);
 //   - a full differ walk (with the cost-move floatReorder allowance) finds
 //     nothing outside those fields and the per-object bookkeeping maps keyed
 //     by a since-fork object (trigger contexts and LKI snapshots, whose

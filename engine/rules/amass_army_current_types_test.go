@@ -1,6 +1,6 @@
 package rules
 
-// cr-g212: Amass must find an Army creature by its CURRENT characteristics.
+// Amass must find an Army creature by its CURRENT characteristics.
 // CR 701.47a asks for "an Army creature you control", and CR 702.73a makes a
 // changeling every creature type, so a changeling is an Army; a printed-type
 // read misses it (and any layer-4 Army grant) and mints a second Army token.
@@ -15,7 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// amassFixtureSrc is the brief's probe: a one-mana sorcery that amasses Orcs 2.
+// amassFixtureSrc is a probe: a one-mana sorcery that amasses Orcs 2.
 const amassFixtureSrc = "Name:AmassMe\nManaCost:U\nTypes:Sorcery\nA:SP$ Amass | Num$ 2 | Type$ Orc\nOracle:x\n"
 
 // hasPrintedType reports whether o's printed face lists typ. It is the

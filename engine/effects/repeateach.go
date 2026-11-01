@@ -183,7 +183,7 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	// with no ChangesZoneAll observer in the window replays exactly as
 	// before.
 	zoneTable := rp.ChangeZoneTable
-	// AmountFromVotes$ True (task votepb1: Mob Verdict, Círdan the Shipwright,
+	// AmountFromVotes$ True (Mob Verdict, Círdan the Shipwright,
 	// Trap the Trespassers): before each body runs, bind the reserved name
 	// "Votes" to the CURRENT loop subject's tally from the most recent
 	// api:Vote (Ctx.VoteCounts). It is Forge's RepeatEachEffect.setVoteAmount
@@ -300,7 +300,7 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	// subject slice, so every iteration carries the chosen order and the
 	// subjects are never re-derived or re-sorted. Subjects
 	// are NOT silently sorted: the offered list is the selector/scan order
-	// and the answer names a permutation of it. A no-host host (R-9) keeps
+	// and the answer names a permutation of it. A no-host run keeps
 	// that scan order as its deterministic stand-in.
 	if cardsSubjects && len(subjects) > 1 && rp.ChooseOrder != "" {
 		subjects = repeatEachChooseOrder(h, c, sa, rp, subjects)
@@ -313,7 +313,7 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	optionalMsg := rp.OptionalMessage
 	for i, t := range subjects {
 		if optionalForEach {
-			// A yes runs the body below; a no, or no answer served (R-9: a
+			// A yes runs the body below; a no, or no answer served (a
 			// host with no decision channel), skips this subject.
 			ans, ok := AskTape(h, repeatEachElectionDecision(h, c, sa, t, i, optionalMsg))
 			if !ok || len(ans) == 0 || ans[0].Kind != "yes" {

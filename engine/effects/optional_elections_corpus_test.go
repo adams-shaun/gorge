@@ -12,7 +12,7 @@ import (
 )
 
 // TestOptionalElectionCorpusCarriers pins the 16 corpus files carrying the
-// five optional-election shapes cr-g128 repaired. The API token is the first
+// five optional-election shapes. The API token is the first
 // field after "$ ", so a SubAbility$ named DBAnimate or a trigger line that
 // merely mentions Animate/DealDamage does not count: only the resolving line
 // itself must carry both the API and its key.

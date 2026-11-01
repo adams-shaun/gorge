@@ -1,11 +1,11 @@
 package rules
 
-// cr-g62/cr-g64: a ChangeZone face-down exile out of a hidden zone (CR
+// A ChangeZone face-down exile out of a hidden zone (CR
 // 406.3: a card "exiled face down" can't be examined by any player except
 // when instructions allow it) must not name the card on any seat's
 // transcript but a seat that may look at it -- the recorded looker, or
 // nobody for a blind exile (engine/view/card.go: projector.mayLookFaceDown).
-// Before cr-g62 the move was not Secret, so view.RedactEvent's rule (2) kept
+// If the move were not Secret, view.RedactEvent's rule (2) kept
 // its Obj (exile is not a hidden zone) and view.Describe named the card to
 // every seat and to the public spectator.
 
@@ -76,7 +76,7 @@ func TestForetellActionNamesNoCardToTheOpponent(t *testing.T) {
 				}
 				// The redacted CastInfo keeps the foreteller in Player, so
 				// its line must attribute the public action to the
-				// foreteller, not to seat 0 (review MAJOR, cr-g62).
+				// foreteller, not to seat 0.
 				if ev.Kind == events.CastInfo && viewer != p {
 					if want := names[p] + " foretells"; !strings.HasPrefix(line, want) {
 						t.Fatalf("foreteller seat %d: seat %d is served %q, want it to name the foreteller %q", p, viewer, line, want)

@@ -15,7 +15,7 @@
 // the head lookup misses, the phantom reappears in the coverage report, and
 // the ratchet named in engine/rules/untap_choice_head_test.go fails on the drift.
 //
-// Measured corpus carriers at the 2026-09-28 pin: 45 card files
+// Measured corpus carriers: 45 card files
 // (`grep -rln 'choose not to untap' .cards/cardsfolder | wc -l`).
 
 package effects

@@ -10,19 +10,18 @@ import (
 )
 
 // This file is the ONE home for the option list a ChooseNumber ask ranges
-// over (task cli-20260923T060000Z-choose-number). Before it, the number list
-// existed only inline in rules' as-enters ask (engine/rules/cast.go etbOptions'
-// "number" arm), so a mid-resolution ChooseNumber had no list at all and
-// silently recorded 0. Here the list is named once; the asking primitive
-// (engine/effects/choose.go effChooseNumber) and the as-enters ask build their
-// options from this function, so the two asks can never disagree.
+// over. Before it, the number list existed only inline in rules' as-enters
+// ask (engine/rules/cast.go etbOptions' "number" arm), so a mid-resolution
+// ChooseNumber had no list at all and silently recorded 0. Here the list is
+// named once; the asking primitive (engine/effects/choose.go effChooseNumber)
+// and the as-enters ask build their options from this function, so the two
+// asks can never disagree.
 
 // chooseNumberMaxOffer is the inclusive upper bound of the deterministic
 // number list, matching the historical as-enters number ask (0..12). It is a
 // build default, NOT the card's own range: Max$ (a dynamic or literal bound
-// such as a mana pool or energy total) is owned by a separate ticket and
-// remains unread here, so every ChooseNumber currently offers this fixed
-// list. The bound is deliberately finite so the ask is answerable by a list
+// such as a mana pool or energy total) is read by chooseNumberAsk below.
+// The bound is deliberately finite so the ask is answerable by a list
 // pick; an unbounded card (Void's bare "Choose a number") stays a real ask
 // over the values a game can plausibly need rather than a silent 0.
 const chooseNumberMaxOffer = 12
@@ -46,8 +45,7 @@ const chooseNumberBoundedCeiling = 1000
 
 // chooseNumberAsk derives the option list and prompt the mid-resolution
 // ChooseNumber ask (engine/effects/choose.go effChooseNumber) offers, reading the
-// card's own bound parameters here so the ask has ONE home for them (task
-// bounded1, absorbing agent-20260922T091245Z-d777f1b6):
+// card's own bound parameters here so the ask has ONE home for them:
 //
 //   - Max$ names the inclusive upper bound of the offered list, through the
 //     ordinary parameter grammar (engine/effects/count.go NumResolved): a literal

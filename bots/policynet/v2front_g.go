@@ -1,10 +1,10 @@
-// Front end G (P§3.3, S0): gorge's own view.View plus its pending decision
+// Front end G: gorge's own view.View plus its pending decision
 // surface -> the v2 entity table. Extends entity.go; never replaces it.
 //
-// Row order (P§3.4): players in seat order, and per player the zones
+// Row order: players in seat order, and per player the zones
 // battlefield, hand (the viewer's own seat only), graveyard, exile,
 // command; then the stack, bottom to top. Front end V iterates the same
-// order off the observation, so the parity test (P§3.9) can hold both to
+// order off the observation, so the parity test can hold both to
 // byte-identity.
 
 package policynet
@@ -65,7 +65,7 @@ func (t *V2GTable) V2RefPlayer(seat string) int32 {
 
 // V2TableFromView builds the table from one seat's projection. priorityAsk
 // is whether the pending decision is a priority ask: the observation poses
-// its priority seat only on those (spec 6.3), so the S0 table encodes the
+// its priority seat only on those (spec 6.3), so the table encodes the
 // priority bit only on those too.
 func V2TableFromView(v view.View, viewer state.PlayerID, priorityAsk bool, into *V2GTable) *V2GTable {
 	t := into

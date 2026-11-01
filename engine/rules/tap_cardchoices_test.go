@@ -45,7 +45,7 @@ func tapChoicesBoard(t *testing.T) (e *Engine, cfg Config, orphans, a, b, foe st
 func TestTapCardChoicesOrphansPumpsPerTapped(t *testing.T) {
 	e, cfg, orphans, a, b, foe, mk := tapChoicesBoard(t)
 	sa := cards.ResolveSVar(e.G.Obj(orphans).Face().SVars, "TrigTap")
-	d := kr0Run(t, e, sa, mk, nil)
+	d := runProbeSA(t, e, sa, mk, nil)
 	if d == nil || d.Player != 0 || d.Min != 0 || d.Max != 2 || len(d.Options) != 2 {
 		t.Fatalf("decision = %+v, want seat 0's 0..2 pick over the two untapped creatures", d)
 	}
@@ -57,7 +57,7 @@ func TestTapCardChoicesOrphansPumpsPerTapped(t *testing.T) {
 	if e.G.Obj(a).Tapped || e.G.Obj(b).Tapped {
 		t.Fatal("a creature was tapped before the answer")
 	}
-	kr0Answer(t, e, kr0Opt(t, d, a), kr0Opt(t, d, b))
+	answerAsk(t, e, optionIdxForObj(t, d, a), optionIdxForObj(t, d, b))
 	if !e.G.Obj(a).Tapped || !e.G.Obj(b).Tapped {
 		t.Fatalf("answered creatures tapped = %v/%v, want both", e.G.Obj(a).Tapped, e.G.Obj(b).Tapped)
 	}
@@ -73,11 +73,11 @@ func TestTapCardChoicesOrphansPumpsPerTapped(t *testing.T) {
 func TestTapCardChoicesAnyNumberZero(t *testing.T) {
 	e, cfg, orphans, a, b, _, mk := tapChoicesBoard(t)
 	sa := cards.ResolveSVar(e.G.Obj(orphans).Face().SVars, "TrigTap")
-	d := kr0Run(t, e, sa, mk, nil)
+	d := runProbeSA(t, e, sa, mk, nil)
 	if d == nil || d.Min != 0 {
 		t.Fatalf("decision = %+v, want a Min 0 pick", d)
 	}
-	kr0Answer(t, e)
+	answerAsk(t, e)
 	if e.G.Obj(a).Tapped || e.G.Obj(b).Tapped {
 		t.Fatal("a creature was tapped on an empty answer")
 	}
@@ -89,7 +89,7 @@ func TestTapCardChoicesAnyNumberZero(t *testing.T) {
 
 func TestTapCardChoicesTeferiMinusThree(t *testing.T) {
 	e, cfg, orphans, _, _, _, mk := tapChoicesBoard(t)
-	teferi := kr0Corpus(t, "Invasion of New Phyrexia")
+	teferi := corpusCardNamed(t, "Invasion of New Phyrexia")
 	var sa *cards.SA
 	for _, f := range teferi.Faces {
 		for _, ab := range f.Abilities {
@@ -101,7 +101,7 @@ func TestTapCardChoicesTeferiMinusThree(t *testing.T) {
 	if sa == nil {
 		t.Fatal("precondition: no CardChoices Tap on Invasion of New Phyrexia")
 	}
-	d := kr0Run(t, e, sa, mk, nil)
+	d := runProbeSA(t, e, sa, mk, nil)
 	const want = "Tap any number of untapped creatures you control"
 	if d == nil || d.Prompt != want {
 		t.Fatalf("decision = %+v, want the ChoicePrompt$ %q", d, want)
@@ -114,13 +114,13 @@ func TestTapCardChoicesTeferiMinusThree(t *testing.T) {
 // referent with no ask, and RememberTapped$ replaces the Remembered set with
 // what it tapped.
 func TestTapDefinedUnchanged(t *testing.T) {
-	e := kr0Engine(t, 2)
-	src := kr0Src(t, e, 0, "Name:Fixture src\nTypes:Creature\nPT:1/1\nOracle:x\n", state.ZBattlefield)
+	e := fixtureEngine(t, 2)
+	src := placeSrc(t, e, 0, "Name:Fixture src\nTypes:Creature\nPT:1/1\nOracle:x\n", state.ZBattlefield)
 	if e.G.Obj(src).Tapped {
 		t.Fatal("precondition: source already tapped")
 	}
 	var last *effects.Ctx
-	d := kr0Run(t, e, kr0SA(t, "DB$ Tap | Defined$ Self | RememberTapped$ True"),
+	d := runProbeSA(t, e, parseFixtureSA(t, "DB$ Tap | Defined$ Self | RememberTapped$ True"),
 		func() *effects.Ctx {
 			return &effects.Ctx{Source: src, Controller: 0, Remembered: []state.Target{{Obj: 999}}}
 		}, &last)

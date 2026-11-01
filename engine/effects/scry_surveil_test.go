@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestScryNoHostStandInKeepsOrder is the Ruling J6.4 leaf for Scry: a host
+// TestScryNoHostStandInKeepsOrder covers Scry with no host: a host
 // that cannot ask (the effects-package test double, whose Ask always returns
 // false) falls back to the deterministic stand-in of keeping every card on
 // top in its existing order -- pile B empty, nothing to the bottom -- and the
@@ -57,7 +57,7 @@ func TestScryNoHostStandInKeepsOrder(t *testing.T) {
 	}
 }
 
-// TestSurveilNoHostStandInPutsNothingInGraveyard is the Ruling J6.4 leaf for
+// TestSurveilNoHostStandInPutsNothingInGraveyard covers
 // Surveil: a host that cannot ask leaves every card on top (nothing to the
 // graveyard) and emits no MoveZone.
 func TestSurveilNoHostStandInPutsNothingInGraveyard(t *testing.T) {

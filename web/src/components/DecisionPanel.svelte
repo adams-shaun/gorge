@@ -18,7 +18,7 @@
   } from '../lib/review';
 
   /**
-   * DecisionPanel is the match reviewer's rail section (design T5), mounted
+   * DecisionPanel is the match reviewer's rail section, mounted
    * only for a review table (`gorged review`). It fetches the match's
    * decision index once and shows the decision at the DVR cursor: who was
    * asked, the kind and prompt, every option offered with the chosen one

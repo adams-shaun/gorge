@@ -910,10 +910,13 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 	o := e.G.Obj(source)
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a mana ability of " + o.Face().Name, Source: source}
+	if !atPriority {
+		d.ResumeKind = decision.ResumeManaPayment
+	}
 	chosen := pay.ChosenProducedColour(e.G, source)
 	for i, ma := range abilities {
 		// An explicit multi-colour "Produced$ Combo <colours>" ability is
-		// flattened into one option per colour (task fb-20260917T232800Z):
+		// flattened into one option per colour:
 		// the player asked for per-colour pip bubbles, not the prose "Add B
 		// or R" plus a second stage-2 colour ask. Each flattened option
 		// carries the ability's own index, so the answer resolves that
@@ -1065,7 +1068,7 @@ func (e *Engine) commitManaDiscard() {
 	// paths. The Tap events carry the same "tapped as a cost" text the cast
 	// path uses, so a replay rebuilds the identical chain. One mana ability's
 	// elected taps are ONE cost action, so the aggregate Mode$ TapAll trigger
-	// fires once for the whole cost (task cli-20261005T075020Z-05241a06).
+	// fires once for the whole cost.
 	e.openMillBatch()
 	for _, id := range md.Taps {
 		e.emit(events.Event{Kind: events.Tap, Obj: id, Text: "tapped as a cost"})
@@ -1429,6 +1432,9 @@ func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger,
 	}
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: min, Max: max,
 		Prompt: pay.ManaColourPrompt(mana), Source: pt.Source}
+	if cast || cumulative {
+		d.ResumeKind = decision.ResumeManaPayment
+	}
 	for unit := 0; unit < max; unit++ {
 		for _, color := range colours {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: pt.Source, Label: "Add " + color, ManaSymbol: color})
@@ -1507,7 +1513,7 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	// whenever one exists -- a caller that cannot ask (interactive == false:
 	// the attack-cost tap window and the direct-resolve tests) still has to
 	// pay the discard and exile parts. Only the sacrifice and tap ASKS are
-	// gated: such a caller keeps the R-9 deterministic first-eligible set
+	// gated: such a caller keeps the deterministic first-eligible set
 	// manaSacrifices/manaTapsPicked picked and skips straight past those
 	// parts.
 	// Announced SubCounter parts need the X ask (and a filtered part its
@@ -1647,8 +1653,8 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 	// ColorIdentity siblings apply): it resolves directly. Measured on the
 	// corpus, no raw script carries "Produced$ Combo <one letter>"; the only
 	// live carriers are the flattened stage-1 answers, whose ability arrives
-	// with its Produced$ already rewritten to the chosen colour (task
-	// fb-20260917T232800Z), so the shortcut skips the otherwise-posed
+	// with its Produced$ already rewritten to the chosen colour,
+	// so the shortcut skips the otherwise-posed
 	// one-option stage-2 ask.
 	if colours, ok := effects.ComboColours(produced); ok {
 		if len(colours) == 1 {
@@ -1801,11 +1807,14 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: min, Max: max,
 		Prompt: pay.ManaColourPrompt(ma), Source: source}
+	if cast || cumulative {
+		d.ResumeKind = decision.ResumeManaPayment
+	}
 	// The colour ask is the ONLY place a single-ability source's cost can
 	// appear: activateManaFor resolves a one-ability source directly, with
 	// no stage-1 wheel to name the cost (Mount Doom's "{T}, Pay 1 life: Add
 	// {B} or {R}"). Name it on every colour option, so a paid activation
-	// never offers a bare "Add B" that hides the life (fb-bbe4fd8f); a
+	// never offers a bare "Add B" that hides the life; a
 	// multi-ability wheel's prefix is repeated here for the same reason.
 	prefix := pay.ManaAbilityCostPrefix(ma)
 	// CR 601.2b/601.2g: inside a cast or ability payment window the added
@@ -2124,7 +2133,7 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 // answerManaActivation completes a multi-ability choice and returns whether
 // it came from the cast-time mana window. A flattened combo choice (the
 // stage-1 wheel offered one option per colour of an explicit "Produced$ Combo
-// <colours>" ability, task fb-20260917T232800Z) resolves the ability with its
+// <colours>" ability) resolves the ability with its
 // Produced$ rewritten to the chosen colour: the cost is paid exactly once by
 // resolveManaAbility and the stage-2 colour ask never opens, because
 // resolveManaEffect sees a single fixed colour. The rewrite guards on the

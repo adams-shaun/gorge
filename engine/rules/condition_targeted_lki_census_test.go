@@ -28,7 +28,7 @@ func TestConditionTargetedLKICarrierCensus(t *testing.T) {
 				if defined != "Targeted" && defined != "ThisTargetedCard" {
 					return
 				}
-				// The brief's census spelling: a lowercase power/toughness
+				// The census spelling: a lowercase power/toughness
 				// threshold (`powerLE2`, `toughnessGE6`). The relative
 				// `greatestPower`/`leastPower` comparisons are a different
 				// look-back class (they compare against the live board), so

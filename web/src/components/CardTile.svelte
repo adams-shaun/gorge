@@ -66,11 +66,11 @@
      *  in which case the tile carries no options affordance and no mark. It
      *  is the SAME fact behind 'highlight cards with valid options' and
      *  'highlight valid targets', so a card that is a valid target and a card
-     *  you may cast both get it — no kind is special-cased (R-E4-2). */
+     *  you may cast both get it — no kind is special-cased. */
     tileOptions?: import('../lib/cardoptions').TileOptions | null;
     /** options is the whole pending bundle (cardoptions.CardOptions), handed
-     *  down so each ATTACHMENT rider can look up its OWN object's offers
-     *  (fb-20260928T230741Z): an attached Equipment is rendered as a rider
+     *  down so each ATTACHMENT rider can look up its OWN object's offers:
+     *  an attached Equipment is rendered as a rider
      *  under its host, so even when the Equip is on the wire as a
      *  potential action the rider had no affordance of its own. Each rider
      *  that carries options (live or float-gated later rows) renders its own
@@ -82,7 +82,7 @@
      *  face is a representative of the whole pile, and a MIXED pile (some
      *  members tapped, some ready — only ever a lands pile, since only the
      *  lands row merges tapped) is definitionally NOT all tapped, so its face
-     *  presents ready and the ready plate carries the counts (fb-20260917T004545Z).
+     *  presents ready and the ready plate carries the counts.
      *  It is presentation only: the object's real state stays on card.tapped
      *  and the inspector reads that, and the data-obj anchor stays the lead. */
     faceTapped?: boolean;
@@ -149,17 +149,17 @@
   const isCreature = $derived(card.types.includes('Creature'));
   const showStats = $derived((isCreature || card.damage > 0) && !isPlaneswalker);
 
-  // Each attachment rider's own offers (fb-20260928T230741Z): looked up by
+  // Each attachment rider's own offers: looked up by
   // the rider's id in the same bundle the tile itself reads, so an attached
   // Equipment with a float-gated Equip renders the same count badge +
   // disabled row an unattached one does. Null for riders the pending
   // decision says nothing about — no badge, no mark.
   const riderOptions = $derived(attachments.map((a) => (options ? tileOptionsOf(options, a.id) : null)));
 
-  // The muted tap affordance (fb-20260928T161557Z-2d23d432). The engine
+  // The muted tap affordance. The engine
   // withholds the tap-for-mana option from a summoning-sick non-haste
   // creature (rules/mana_activation.go tapFlagsSick, CR 302.6), so the
-  // client has no option to badge and must not invent one (R-E4-2). The
+  // client has no option to badge and must not invent one. The
   // player's only clue was the face dim and a hover-panel chip. This is a
   // DISPLAY-ONLY card-state annotation: it renders the SAME tap glyph the
   // live option shows, disabled, with the reason — it never posts, carries
@@ -280,8 +280,8 @@
        outside it): a rider whose object the pending decision says something
        about renders its own OptionPicker — a real button nested inside a
        role="button" ancestor would be the exact nesting the picker exists
-       to avoid. fb-20260928T230741Z: an attached Equipment (two of the
-       reporter's three) now carries the same affordance an unattached one
+       to avoid. An attached Equipment
+       carries the same affordance an unattached one
        does. -->
   <div class="attached">
     {#each attachments as a, i (a.id)}
@@ -309,7 +309,7 @@
     position: relative;
     display: inline-block;
   }
-  /* The board marking (ui21): a tile whose object the pending decision
+  /* The board marking: a tile whose object the pending decision
      offers something to wears the panel's own initiative/offered register,
      so 'cards you may act on' and 'valid targets' read as the SAME fact in
      the SAME two tones the seat panel already uses — a blocked decision
@@ -400,7 +400,7 @@
      look at a sick creature is to check whether it can attack yet. The dim is
      for CREATURES only: a noncreature land is never affected by summoning
      sickness (a sick land still taps for mana), and after the lands pile
-     merged sickness out of its identity (fb-20260917T004545Z) a dim on the
+     merged sickness out of its identity a dim on the
      pile's fresh lead would make the pile look different from its mates. */
   .card-tile.sick .face {
     opacity: 0.78;
@@ -536,7 +536,7 @@
 
   /* An attachment rides UNDER its host, overlapping slightly, so the pair
      reads as one object without hiding either. The rider is positioned so
-     its own OptionPicker badge (fb-20260928T230741Z) anchors to the rider
+     its own OptionPicker badge anchors to the rider
      chip, not to the wrapper's top edge where the host tile's own picker
      lives. */
   .attached {

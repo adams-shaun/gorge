@@ -33,7 +33,7 @@
    * opens the card inspector, and a second floating box over it is noise.
    *
    * The first card keeps its data-obj anchor (on the CardTile itself), and
-   * the group's every member id is on `data-obj-group` so a later task can
+   * the group's every member id is on `data-obj-group` so the client can
    * draw arrows to each member of a stacked tile.
    */
   let { group, size = 'tile', attachments = [], options = null, art = false }: { group: CardStackGroup; size?: 'tile' | 'large'; attachments?: CardView[]; options?: CardOptions | null; /** render every face as an art tile (CardTile's `art`) */ art?: boolean } = $props();
@@ -47,7 +47,7 @@
   );
   const memberIds = $derived(group.cards.map((c) => c.id).join(','));
 
-  // fb-20260916T201423Z: the lands row merges tapped and untapped members
+  // The lands row merges tapped and untapped members
   // into one pile (Quadrant passes ignoreTapped), so the readiness the split
   // used to carry moves onto the tab: a collapsed pile whose members MIX
   // tapped states shows the untapped count as a second mini-plate above the
@@ -56,12 +56,12 @@
   // tapped, so this plate fires only where the merge happens. Uniform piles
   // — all untapped or all tapped — keep the shipped xN tab alone. Members
   // stay id-sorted, so a tap/untap never moves the lead and never churns the
-  // render key (fb-20260915T182335Z).
+  // render key.
   const tappedCount = $derived(group.cards.filter((c) => c.tapped).length);
   const mixedTapped = $derived(tappedCount > 0 && tappedCount < group.cards.length);
   const readyCount = $derived(group.cards.length - tappedCount);
 
-  // fb-20260917T004545Z: the collapsed face presents the PILE's readiness,
+  // The collapsed face presents the PILE's readiness,
   // not the lead member's rotation. A merged lands pile mixes tapped states
   // (only the lands row merges tapped), and rendering the lead's own rotation
   // made ONE member's tap rotate the whole pile's silhouette while the tap
@@ -78,7 +78,7 @@
   // is presentation — pinned in CardStack.test.ts.
   const collapsedFaceTapped = $derived(readyCount === 0);
 
-  // fb-20260918T010805Z: on a COLLAPSED MIXED pile the ready plate alone was
+  // On a COLLAPSED MIXED pile the ready plate alone was
   // the tapped signal, and the player overlooked it twice — "should show
   // tapped card in the same pile". So the pile renders a SECOND face: the
   // quarter-turned representative (the lowest-id tapped member — cards are
@@ -86,11 +86,11 @@
   // lying across the pile's corner, while the lead face above keeps its ready
   // presentation, its data-obj anchor and the inspector's subject. The
   // historical constraints all hold: the pile never splits into two piles by
-  // tapped state (fb-20260916T201423Z — this is one pile with a visible tapped
+  // tapped state (this is one pile with a visible tapped
   // member in it), the whole-pile silhouette never rotates from one member's
-  // tap (fb-20260917T004545Z — the lead face stays ready until EVERY member
+  // tap (the lead face stays ready until EVERY member
   // is tapped), and the render key is still the lead id so nothing
-  // unmounts (fb-20260915T182335Z). Uniform piles and expanded piles never
+  // unmounts. Uniform piles and expanded piles never
   // mix, so they never render the representative and are byte-identical to
   // before. Deliberately a full CardTile, not a third small plate: the plate
   // is the thing the player already overlooked.
@@ -134,7 +134,7 @@
       <CardTile card={c} {size} {art} faceTapped={expanded ? undefined : collapsedFaceTapped} tileOptions={expanded ? memberOptions(c.id) : collapsedOptions} />
     {/each}
     {#if !expanded && tappedRep}
-      <!-- fb-20260918T010805Z: the collapsed mixed pile's tapped member, shown
+      <!-- The collapsed mixed pile's tapped member, shown
            IN the pile as the quarter-turned card it is. Presentation only: the
            representative carries no options affordance of its own (the pile's
            union lives on the lead tile) and the lead face stays the anchor. -->
@@ -243,7 +243,7 @@
     border-color: var(--initiative);
     color: var(--initiative);
   }
-  /* The readiness plate (fb-20260916T201423Z): the second mini-plate on a
+  /* The readiness plate: the second mini-plate on a
      mixed pile, stacked directly above the count tab with the same hang and
      right-edge alignment. The offset is the count tab's own height (~1.8em
      at --t-11/1.4 plus the 2px edges) plus a small gap. It only ever exists
@@ -253,7 +253,7 @@
     bottom: calc(var(--sp-2) + 2.1em);
   }
 
-  /* The tapped representative (fb-20260918T010805Z): a quarter-turned card
+  /* The tapped representative: a quarter-turned card
      lying across the pile's bottom-right corner and sticking out past it,
      like the tapped card it stands in for. Absolutely positioned, so it is
      out of the flex flow and the ghost layers still trace the lead face's

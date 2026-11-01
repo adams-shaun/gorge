@@ -75,14 +75,14 @@ func triggerPushIndexes(amount int32) (face, idx int) {
 
 // foldTriggerPush folds Kind TriggerPush into state.
 func foldTriggerPush(g *state.Game, e *Event) {
-	// Ruling T20-a: the ability object is minted here, inside Apply, so
+	// The ability object is minted here, inside Apply, so
 	// a log-only replay creates the exact same object a live game did --
 	// not via a direct, unlogged AddObject call from rules.Engine. e.Obj
 	// names the permanent whose trigger fired; a permanent that no
 	// longer exists, or an out-of-range trigger index (stale data, a
 	// tampered log), degrades to a no-op rather than panicking.
 	//
-	// Ruling T20-e: Player must be checked too, same as every sibling
+	// Player must be checked too, same as every sibling
 	// case in this switch that indexes a Player-keyed slice (LifeChange,
 	// TurnChange, Priority, ManaAdd, ManaClear). This case skipped it,
 	// and an out-of-range Player flows straight into g.AddObject below,
@@ -124,7 +124,7 @@ func foldTriggerPush(g *state.Game, e *Event) {
 	// own default case below), then set what the ability actually
 	// carries. Setting these before Move would have them wiped by that
 	// same reset; ordering them after is what makes Remembered actually
-	// survive onto the stack (Ruling T20-c).
+	// survive onto the stack.
 	Move(g, o.ID, state.ZLibrary, state.ZStack)
 	if idx == -1 {
 		// A layer-granted Dethrone has no printed Trigger index. The
@@ -141,7 +141,7 @@ func foldTriggerPush(g *state.Game, e *Event) {
 	}
 	o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 	o.Source = e.Obj
-	// FL-41: an id in IDs is either a real object (the ordinary case)
+	// An id in IDs is either a real object (the ordinary case)
 	// or a player reference (state.PlayerRef, rules.pushTrigger) --
 	// triggerRemembered's DeclareAttackers case appends the defending
 	// player to Remembered, and IDs has no field of its own for a bare
@@ -451,7 +451,7 @@ func foldKeywordTriggerPush(g *state.Game, e *Event) {
 // foldKeywordAbilityPush folds Kind KeywordAbilityPush into state.
 func foldKeywordAbilityPush(g *state.Game, e *Event) {
 	// A keyword-GRANTED activated ability (CR 613.1f): the mint mirrors
-	// AbilityPush (Ruling T20-a) so a log-only replay creates the same
+	// AbilityPush so a log-only replay creates the same
 	// object a live game did, but the body is not a face index -- it is
 	// SYNTHESIZED from the derived keyword line Counter carries
 	// ("Cycling:1 U", "TypeCycling:Sliver:3", "Saddle:2", "Crew:1"),
@@ -490,7 +490,7 @@ func foldKeywordAbilityPush(g *state.Game, e *Event) {
 
 // foldAbilityPush folds Kind AbilityPush into state.
 func foldAbilityPush(g *state.Game, e *Event) {
-	// Mirrors TriggerPush above (Ruling T20-a): the ability object is
+	// Mirrors TriggerPush above: the ability object is
 	// minted here, inside Apply, so a log-only replay creates the same
 	// object a live game did.
 	if !validPlayer(g, e.Player) {
@@ -533,7 +533,7 @@ func foldAbilityPush(g *state.Game, e *Event) {
 	o.AbilityFace = pa.Face
 	o.StackKind, o.StackKindKnown = state.StackKindActivated, true
 	o.Source = e.Obj
-	// Same PlayerRef decode as TriggerPush above (FL-41): an activated
+	// Same PlayerRef decode as TriggerPush above: an activated
 	// ability can remember a player the same way a trigger can, so the
 	// two mint paths stay symmetric through rememberedFrom.
 	o.Remembered = rememberedFrom(e.IDs)
@@ -543,7 +543,7 @@ func foldAbilityPush(g *state.Game, e *Event) {
 func foldMergedTriggerPush(g *state.Game, e *Event) {
 	// CR 702.140d: a mutated pile's under-card trigger fired and its
 	// ability object is minted here, inside Apply, so a log-only replay
-	// creates the same object a live game did (the Ruling T20-a/DelayedPush
+	// creates the same object a live game did (the DelayedPush
 	// precedent). Unlike DelayedPush no registration is consumed -- the
 	// grant-trigger shape -- and unlike both by-name siblings the ability
 	// is minted from the UNDER-CARD's own COMPILED trigger, named by

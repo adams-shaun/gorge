@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestDigOpponentTopRemainderAsksTheControllerAndNoHostKeepsOrder (cr-g08,
-// CR 701.29a): a Dig over seat 1's library resolved by seat 0 with an
+// TestDigOpponentTopRemainderAsksTheControllerAndNoHostKeepsOrder
+// (CR 701.29a): a Dig over seat 1's library resolved by seat 0 with an
 // omitted DestinationZone2$ and an explicit LibraryPosition2$ 0 leaves the
 // window on TOP (the explicit position is not overwritten by the omitted
 // zone's bottom default); seat 0 -- the controller -- gets the private look

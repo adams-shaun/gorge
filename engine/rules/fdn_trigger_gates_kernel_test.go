@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the fdn_trigger_gates_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Kiora's threshold-gated optional token trigger, driven through the resolution
+// kernel (engine/rules/resolve).
 
 import (
 	"testing"
@@ -56,7 +55,7 @@ func TestKioraThresholdOptionalTokenGate(t *testing.T) {
 		// its tape ask only with no other decision pending -- drop the stale
 		// priority snapshot the raw emits above left behind.
 		e.pending = nil
-		kr6ResolveTop(e)
+		resolveTopProbe(e)
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KTriggerOptional {
 			t.Fatalf("Kiora's optional token ask = %+v, want KTriggerOptional at threshold", d)

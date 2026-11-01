@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task lb-existctr: CounterType$ ExistingCounter names "a kind of counter the
+// CounterType$ ExistingCounter names "a kind of counter the
 // recipient already has", never a literal counter called ExistingCounter.
 // These pins resolve the real effPutCounter on the corpus's own lines.
 

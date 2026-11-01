@@ -995,7 +995,7 @@ func (e *Engine) AskCopyTargets() bool {
 	e.copyTargetStage[o.ID] = stage + 1
 	{
 		in := tapeServe(e, d)
-		// The resolution kernel's answer in hand (W3 step 4j): run the
+		// The resolution kernel's answer in hand: run the
 		// legacy answer's continuation (resumeResolution's copy_targets
 		// arm: record, or ask the next declaration, then resolveTop) now.
 		//

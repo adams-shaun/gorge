@@ -1,10 +1,8 @@
 package rules
 
-// Kernel-era restoration of TestReplacementOrderAnswerRunsBodyChainOutsideParkedResolution
-// (replacement_order_parked_body_test.go): a CR 616.1 damage-replacement order
-// choice posed while Zap resolves; the chosen body's SubAbility$ rider must
-// run and the amounts must compose in the answered order. The legacy
-// e.resume / contChain internals the old test also inspected no longer exist.
+// TestReplacementOrderAnswerRunsBodyChainOutsideParkedResolution: a CR 616.1
+// damage-replacement order choice posed while Zap resolves; the chosen body's
+// SubAbility$ rider must run and the amounts must compose in the answered order.
 
 import (
 	"testing"

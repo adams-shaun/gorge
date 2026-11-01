@@ -294,7 +294,7 @@ func TestVeiledAscensionUpkeepCloaksFaceDown(t *testing.T) {
 	}
 
 	// The view redacts the cloaked card exactly like a manifested one (the
-	// FaceDown rule covers both variants; the brief forbids touching it).
+	// FaceDown rule covers both variants).
 	oppView := view.Project(e.G, e, 1, nil)
 	var blank *view.CardView
 	for i := range oppView.Players[0].Battlefield {

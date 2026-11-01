@@ -2,15 +2,15 @@
   import { pointerRelease } from '../lib/pointer';
   /**
    * The seated player's page-level concede control: the ARM-then-CONFIRM
-   * two-step (R-E4-1). Presentational only — the state (SeatPanelState:
+   * two-step. Presentational only — the state (SeatPanelState:
    * which option is the pending concede, the arm click, the confirm post by
    * its own wire index) stays with the route, Table.svelte, which passes the
    * two callbacks in. Owning the markup here (not inlined in Table's snippet)
    * is what lets the geometry fixture (SeatTable.geometry) render the REAL
    * control through Rail's real `logbar` snippet seam and measure it, rather
-   * than probing a hand-copied replica of it (task fb-53bd45b9).
+   * than probing a hand-copied replica of it.
    *
-   * fb-53bd45b9: the control used to be absolutely positioned at top: 3rem
+   * The control is not absolutely positioned at top: 3rem
    * inside the rail — an offset calibrated to clear the logbar that landed on
    * seat row 0 once the zone counts stacked two-high, its z-index: 9 painting
    * over that row's life and pile counts and eating the pile buttons' clicks.

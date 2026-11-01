@@ -19,7 +19,7 @@ import (
 )
 
 // ZoneChangeMatches implements Mode$ ChangesZone. The two keyword triggers
-// this task expands through it are both handled here (engine/cards/keywords.go):
+// expanded through it are both handled here (engine/cards/keywords.go):
 // Undying's Origin$ Graveyard -> Destination$ Battlefield return is an
 // ordinary ChangeZone, and its ValidCard$ Card.Self+counters_EQ0_P1P1 "no
 // counters when it died" is read against the LKI; Evolve's Evolve$ True
@@ -149,7 +149,7 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 		// The bare wasCastFromYourHandByYou qualifier (the "if you cast it
 		// from your hand" ETB family) is split out and evaluated against the
 		// log here, where the Engine is in scope; the remainder matches as
-		// before (task castprov1).
+		// before.
 		if ev.Obj != 0 && lki != nil &&
 			(source == ev.Obj || LeftBattlefield(ev) ||
 				(ev.From == state.ZExile && ev.To != state.ZBattlefield)) {

@@ -180,7 +180,7 @@ func rememberManifested(h Host, c *Ctx, id state.ObjID, remember bool) {
 // effManifestDread implements CR 701.61's two-card library operation. The
 // private look is recorded before the choice; the offered identities are
 // visible only to the library's player. If the host cannot ask, choose the
-// top card deterministically, matching the engine's R-9 fallback contract.
+// top card deterministically, matching the engine's no-host fallback contract.
 //
 // Scope, measured over the corpus's 39 ManifestDread lines: the plain
 // top-two body (Zimone, Mystery Unraveler and 26 others), a

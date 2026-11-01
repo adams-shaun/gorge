@@ -9,7 +9,7 @@ import (
 )
 
 // TestForEachObjectReentrySafety pins the re-entry property of forEachObject
-// (Task A2). forEachObject snapshots each zone into a scratch buffer before
+// forEachObject snapshots each zone into a scratch buffer before
 // walking it, because fn may move objects between zones (a trigger match
 // putting something on the stack), and the depth-0 walk reuses the shared
 // e.foreachBuf so it settles at the largest zone and stops allocating. If fn
@@ -99,7 +99,7 @@ func TestForEachObjectReentrySafety(t *testing.T) {
 
 // TestForEachObjectCloneOwnsScratch pins that Engine.Clone does not share the
 // forEachObject scratch buffer (foreachBuf/foreachDepth) between the original
-// and the clone (Task A2). The brief's concern: a cloned engine that walks
+// and the clone. A cloned engine that walks
 // while the original walks would corrupt both. A clone is taken at an intent
 // boundary -- never mid-walk, so foreachDepth is zero -- and sharing the
 // buffer would still be a bug for a future concurrent pair. The structural

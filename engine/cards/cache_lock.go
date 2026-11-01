@@ -10,7 +10,7 @@ import (
 // process that opens the corpus finds no cache under the new name; before
 // this lock each one -- 20-45 test binaries per gate run -- compiled the
 // whole corpus itself and raced to Save it (a thundering herd: measured
-// 2026-10-12 at ~1.0-1.2 s wall CompileDir plus ~4.6 s Save per process).
+// at ~1.0-1.2 s wall CompileDir plus ~4.6 s Save per process).
 // Now the first opener takes an exclusive lock on <cache>.lock, compiles and
 // saves; the rest block on the lock and, once it is released, find the fresh
 // cache and load it.

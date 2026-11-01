@@ -127,7 +127,8 @@ var predicates = map[string]predFn{
 			cards.ManaCostColours(o.Face().ManaCost)&cards.ColourBlue != 0
 	},
 	// singleTarget is Forge's SpellAbility property singleTarget: the spell
-	// on the stack carries exactly ONE chosen target (object or player).
+	// on the stack carries exactly ONE chosen target (object or player),
+	// counting every SubAbility$ link's targets with the root's.
 	// It is the ValidSA$ shape's predicate (Spinerock Tyrant's
 	// `Instant.singleTarget,Sorcery.singleTarget`, and the sibling
 	// `Spell.singleTarget` carriers Captured by the Consulate and
@@ -137,7 +138,7 @@ var predicates = map[string]predFn{
 	// match -- exactly one target was chosen, not one at most -- and the
 	// predicate fails closed on a nil object.
 	"singleTarget": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return o != nil && len(o.Targets) == 1
+		return o != nil && len(o.Targets)+len(o.SubTargets) == 1
 	},
 	// DrawnThisTurn is Forge's Card.getDrawnThisTurn (Captain Eberhart's
 	// "spells cast from among cards you drew this turn"): the object's last
@@ -332,8 +333,8 @@ var predicates = map[string]predFn{
 	"nonBlack": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !strings.Contains(ColorsOf(o), "B")
 	},
-	// IsSuspected is CR 702.157's suspected designation (task alterattr1;
-	// Nelly Borca's "goad all suspected creatures", Hot Pursuit's "all
+	// IsSuspected is CR 702.157's suspected designation (Nelly Borca's
+	// "goad all suspected creatures", Hot Pursuit's "all
 	// goaded and/or suspected creatures", the DBDebuff family's
 	// "Creature.OppCtrl+IsSuspected"). It reads the event-backed status the
 	// events.AlterAttribute fold maintains; a permanent that left the
@@ -427,16 +428,15 @@ var predicates = map[string]predFn{
 	"IsSaddled": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o != nil && o.SaddledTurn == g.Turn
 	},
-	// IsMonstrous is CR 701.31b's monstrous designation (task
-	// agent-20260919T190014Z): the 8 corpus statics keyed on it
-	// (`Affected$ Card.Self+IsMonstrous` -- Domesticated Hydra's trample,
-	// Fleecemane Lion, Colossus of Akros, ...) grant through the ordinary
-	// layer walk, and Polis Crusher's trigger-side `IsPresent$
+	// IsMonstrous is CR 701.31b's monstrous designation: the 8 corpus
+	// statics keyed on it (`Affected$ Card.Self+IsMonstrous` -- Domesticated
+	// Hydra's trample, Fleecemane Lion, Colossus of Akros, ...) grant through
+	// the ordinary layer walk, and Polis Crusher's trigger-side `IsPresent$
 	// Card.Self+IsMonstrous` intervening-if evaluates through the shared
 	// gate. It reads the event-backed status the events.AlterAttribute fold
 	// (the Monstrous case) maintains; a permanent that left the battlefield
-	// has already been cleared by the Move fold, so the predicate cannot
-	// read a stale designation.
+	// has already been cleared by the Move fold, so the predicate cannot read
+	// a stale designation.
 	"IsMonstrous": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Monstrous
 	},
@@ -601,7 +601,7 @@ var predicates = map[string]predFn{
 	"wasCastFromGraveyard": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return state.ObjectWasCastFromGraveyard(o)
 	},
-	// notExertedThisTurn is CR 702.100a's offer gate (task exert1): the
+	// notExertedThisTurn is CR 702.100a's offer gate: the
 	// object has NOT been exerted this turn. The event-backed read is
 	// events.Apply's Exert fold (state.Object.ExertedThisTurn). Combat
 	// Celebrant's `IsPresent$ Creature.Self+notExertedThisTurn` is the
@@ -626,7 +626,7 @@ var predicates = map[string]predFn{
 	"notTributed": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !o.Tributed
 	},
-	// enlistedThisCombat is CR 702.160's enlist marker (task enlist1): the
+	// enlistedThisCombat is CR 702.160's enlist marker: the
 	// creature enlisted another creature in the CURRENT combat. The stamp
 	// (state.Object.EnlistedTurn/EnlistedCombat, folded by events.Apply's
 	// Enlist case) is compared against the live game clock, so a later combat
@@ -1018,7 +1018,7 @@ func init() {
 	// it), the same tracked ExiledWith field ExiledWithSource reads.
 	predicates["ExiledWithEffectSource"] = predicates["ExiledWithSource"]
 	// EquippedBy / EnchantedBy / AttachedBy: the candidate is the permanent
-	// source is attached to (attachedBy below). Task 14 wires all three to the
+	// source is attached to (attachedBy below). All three are wired to the
 	// same predicate -- Forge spells "attached to" three ways depending on
 	// whether the source is Equipment, an Aura, or a generic script.
 	predicates["EquippedBy"] = attachedBy
@@ -1266,25 +1266,24 @@ func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc 
 	if o == nil || sc == nil {
 		return false
 	}
-	targets := o.Targets
-	if sc.ProposedTargets != nil {
-		targets = sc.ProposedTargets
-	}
-	for _, tgt := range targets {
-		if tgt.IsPlayer {
-			if MatchesPlayerSpecCtx(g, spec, tgt.Player, sc.You, PlayerSpecCtx{Source: sc.Source}) {
+	matches := func(targets []state.Target) bool {
+		for _, tgt := range targets {
+			if tgt.IsPlayer {
+				if MatchesPlayerSpecCtx(g, spec, tgt.Player, sc.You, PlayerSpecCtx{Source: sc.Source}) {
+					return true
+				}
+				continue
+			}
+			if tgt.Obj != 0 && MatchesSpecCtx(g, spec, tgt.Obj, *sc) {
 				return true
 			}
-			continue
 		}
-		if tgt.Obj == 0 {
-			continue
-		}
-		if MatchesSpecCtx(g, spec, tgt.Obj, *sc) {
-			return true
-		}
+		return false
 	}
-	return false
+	if sc.ProposedTargets != nil {
+		return matches(sc.ProposedTargets)
+	}
+	return matches(o.Targets) || matches(o.SubTargets)
 }
 
 // sharesColorBareReferent reports whether a `SharesColorWith ` argument is
@@ -1294,8 +1293,7 @@ func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc 
 // both or unknown to both. Two referents are bound: TriggeredProduced
 // (C.A.M.P.'s mana set) and ChosenCard (Guard Dogs' chosen permanent).
 //
-// ChosenCard was held back until the sub-target-before-gate ordering landed
-// (task agent-20261001T030154Z-694d075b's stop rule): its carrier's
+// ChosenCard was held back until the sub-target-before-gate ordering landed: its carrier's
 // ConditionDefined$ Targeted gate is evaluated by effects.conditionMet BEFORE
 // the DB sub's own mid-resolution target ask is posed, so on the empty group
 // a recognised predicate resolved the gate false and the whole sub -- target
@@ -1575,21 +1573,21 @@ func filterAlternatives(spec string) iter.Seq[string] {
 
 // FilterAlternatives exposes filterAlternatives to rules (the one package
 // above effects): rules-side spec rewriting (the cast-provenance qualifier
-// split, task castprov1) must split alternatives EXACTLY as the filter does,
+// split) must split alternatives EXACTLY as the filter does,
 // so the two cannot disagree about where a comma is a boundary.
 func FilterAlternatives(spec string) iter.Seq[string] { return filterAlternatives(spec) }
 
 // SpecReadsKeywords reports whether the spec consults the walk's derived
 // KEYWORD list when a caller binds SpecContext.ExtraKeywords -- i.e. whether
-// applying another layer-6 effect could change what the spec matches (the
-// CR 613.8 dependency test). Exactly two shapes read it: a
-// `with<Keyword>`/`without<Keyword>` predicate (keywordPredicates, matched
-// by the same exact token lookup the evaluator uses) and the Affinity base,
+// applying another layer-6 effect could change what the spec matches (the CR
+// 613.8 dependency test). Exactly two shapes read it: a
+// `with<Keyword>`/`without<Keyword>` predicate (keywordPredicates, matched by
+// the same exact token lookup the evaluator uses) and the Affinity base,
 // whose context-aware match reads ExtraKeywords directly. rules' layer walk
-// (cli-20260923T060000Z-layers-dep613) uses this to detect CR 613.6
-// dependencies among layer-6 effects without paying for a full spec match
-// per candidate pair; a spec that reads no keyword can never gain or lose
-// its match to a keyword grant, so it always keeps timestamp order.
+// uses this to detect CR 613.6 dependencies among layer-6 effects without
+// paying for a full spec match per candidate pair; a spec that reads no
+// keyword can never gain or lose its match to a keyword grant, so it always
+// keeps timestamp order.
 //
 // The answer is a pure function of the spec, cached in a direct-mapped front
 // keyed by the string's data pointer and length (specFront's pattern): the
@@ -3215,7 +3213,7 @@ func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecConte
 		// Remembered.sameName, Targeted.Permanent+sameName, and
 		// Triggered.sameName. Rewrite only those name-predicate alternatives;
 		// a global rewrite would activate unrelated Remembered/Targeted/
-		// Triggered filters outside this task's scope.
+		// Triggered filters.
 		if contextualSameName {
 			ref, bound := sameNameContextReferent(g, base, asc)
 			if !bound {
@@ -3398,7 +3396,8 @@ func matchesInOwnZone(g *state.Game, spec string, o *state.Object, sc SpecContex
 // (Extravagant Replication's Healer's Hawk) still died (CR 700.4, 603.10a),
 // so a morbid count includes it. Every other entry keeps matchesZoneSpecCtx's
 // CR 707.10h rejection (a resolved Storm copy parked in exile is not a card
-// that was exiled).
+// that was exiled). A departure's controller is the one it left under: the
+// object itself has reverted to its owner (CR 400.7).
 func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecContext) bool {
 	if e.From != state.ZBattlefield {
 		return matchesZoneSpecCtx(g, spec, e.Obj, sc, e.To)
@@ -3406,6 +3405,11 @@ func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecC
 	o := g.Obj(e.Obj)
 	if o == nil {
 		return false
+	}
+	if o.Controller != e.Controller {
+		lki := *o
+		lki.Controller = e.Controller
+		o = &lki
 	}
 	return matchesZoneSpecObj(g, spec, o, sc, e.To)
 }
@@ -3737,7 +3741,7 @@ func hasAbilityToken(p string) bool {
 //
 // Reads the PRINTED face plus counter keywords only. A keyword or ability
 // granted by a continuous effect (CR 113.12's granted-flying case) is not
-// visible here -- predFn carries no SpecContext and this ticket does not
+// visible here -- predFn carries no SpecContext and this does not
 // thread one through the map. That is a known deviation, recorded in the
 // commit message.
 //

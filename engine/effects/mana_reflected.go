@@ -357,7 +357,7 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 	// its own -- a multi-colour set is a REAL mid-resolution colour choice: a
 	// real host is asked, and only a host that cannot answer (or an empty
 	// option list) keeps the deterministic first-candidate stand-in with its
-	// R-9 Note.
+	// Note.
 	switch len(cols) {
 	case 0:
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,

@@ -95,13 +95,7 @@ func foldMoveZone(g *state.Game, e *Event) {
 			wasCreature = DepartureDefaultCreature(o) != (e.Step == DepartureCreatureFlip)
 		}
 	}
-	var sacrificer state.PlayerID
 	sacrificed := IsSacrifice(*e)
-	if sacrificed {
-		if o := g.Obj(e.Obj); o != nil {
-			sacrificer = o.Controller
-		}
-	}
 	if e.Kind == MoveZone && countersRemain {
 		MoveCountersRemain(g, e.Obj, e.From, e.To)
 	} else {
@@ -131,11 +125,10 @@ func foldMoveZone(g *state.Game, e *Event) {
 	if sacrificed {
 		// Stamp the sacrifice onto this move's own zone entry (the
 		// latest one naming the object: a mutated pile's under-cards
-		// append after it). The controller was read BEFORE Move reset
-		// it to the owner (CR 400.7).
+		// append after it).
 		for i := len(g.Entered) - 1; i >= 0; i-- {
 			if g.Entered[i].Obj == e.Obj {
-				g.Entered[i].Sacrificed, g.Entered[i].Sacrificer = true, sacrificer
+				g.Entered[i].Sacrificed = true
 				break
 			}
 		}
@@ -207,8 +200,8 @@ func foldMoveZone(g *state.Game, e *Event) {
 			switch moveCounter {
 			case "exiled_with_face_down", "exiled_with_face_down_foretold":
 				// A blind face-down exile (Necropotence's top-card exile; a
-				// pre-cr-g64 Hideaway/foretold log): the exiling source rides
-				// in Amount and no looker is recorded, so FaceDown is state a
+				// Hideaway or foretold card with no looker recorded): the
+				// exiling source rides in Amount, so FaceDown is state a
 				// later projection reads to withhold the face from everyone
 				// (CR 406.3). The foretold variant also records the
 				// designation after Move has reset a battlefield object's
@@ -370,15 +363,14 @@ func foldMoveZone(g *state.Game, e *Event) {
 
 // foldLibraryOrder folds Kind LibraryOrder into state.
 func foldLibraryOrder(g *state.Game, e *Event) {
-	// A library-arranging effect (Ponder, later Scry/Surveil) set a
-	// complete new order on a player's library. Mechanically identical to
-	// Shuffle's SetZone (see the same defensive copy below -- never alias
-	// the event's slice into game state), but a separate Kind on purpose
-	// (Ruling J1): Shuffle means "randomised, the old order is gone" to
-	// a decoder, while LibraryOrder means "the player chose a new order"
-	// -- a scry is not a shuffle, and a log reader must be able to tell
-	// them apart. Same totality stance as every case here: an invalid
-	// Player is a no-op, never a panic.
+	// A library-arranging effect (Ponder, later Scry/Surveil) set a complete
+	// new order on a player's library. Mechanically identical to Shuffle's
+	// SetZone (see the same defensive copy below -- never alias the event's
+	// slice into game state), but a separate Kind on purpose: Shuffle means
+	// "randomised, the old order is gone" to a decoder, while LibraryOrder
+	// means "the player chose a new order" -- a scry is not a shuffle, and a
+	// log reader must be able to tell them apart. Same totality stance as
+	// every case here: an invalid Player is a no-op, never a panic.
 	if validPlayer(g, e.Player) {
 		g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
 	}
@@ -543,12 +535,13 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		return
 	}
 	// The object's real (pre-move) zone, captured before o.Zone is
-	// overwritten below -- Task 4's X/CastFlags/Chosen* reset needs to know
+	// overwritten below -- the X/CastFlags/Chosen* reset needs to know
 	// whether this object is actually LEAVING the battlefield, not merely
 	// where the caller-supplied from claims it came from (the same
 	// real-zone-over-claimed-zone rule this function already applies to the
 	// removal itself, a few lines below).
 	enteredFrom := o.Zone
+	leftController := o.Controller
 	wasBattlefield := enteredFrom == state.ZBattlefield
 	wasStack := enteredFrom == state.ZStack
 	o.SplitFrom, o.SplitDep = 0, 0
@@ -865,7 +858,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// A ceased ability is no zone entry: a Count$ThisTurnEntered_Exile
 		// head counts cards put into exile, never retired abilities.
 		g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom,
-			Owner: o.Owner, PermanentCard: permanentCard})
+			Owner: o.Owner, PermanentCard: permanentCard, Controller: leftController})
 	}
 	switch to {
 	case state.ZBattlefield:
@@ -916,7 +909,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// this move folds and places each grant through a real CounterChange
 		// event, so replacements and prohibitions see an entry counter exactly
 		// like any other placement and a log-only replay re-derives it from
-		// those logged events (task addcounter1/2). What stays here is only the
+		// those logged events. What stays here is only the
 		// Riot "haste" election (a keyword grant, not a counter) and the
 		// one-shot consumption of both elections.
 		if !wasBattlefield {
@@ -1096,6 +1089,8 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// is gone.
 		o.DamageTakenThisTurnBy = nil
 		o.DamageTakenByGame = nil
+		// CR 400.7: a permanent that returns this turn has activated nothing.
+		o.ActivatedThisTurn = 0
 		if !countersRemain || to == state.ZHand || to == state.ZLibrary {
 			o.Counters = nil
 		}

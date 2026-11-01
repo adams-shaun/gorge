@@ -6,7 +6,7 @@ import (
 )
 
 // The announced CR 601.2g window's activation records (announce-then-pay spec
-// §5; lasagna spec §9.2, E7 flow slice 4): one WindowTap per activation made
+// §5): one WindowTap per activation made
 // from the window, judged reversible or not when it closes, and reversed by
 // Undo last tap / Cancel cast. trig is always the engine's pending-trigger
 // queue length at the call (the queue is the engine's flow state).

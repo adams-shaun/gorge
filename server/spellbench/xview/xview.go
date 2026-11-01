@@ -88,8 +88,8 @@ type Follow struct {
 type Extender struct {
 	lastPayments [2]map[string]decision.PaymentSelection
 	tables       [2]*table
-	last         [2][]int             // the seat's last native -> payload renumbering (audit only, Task 28a)
-	lastFollow   [2]map[string]Follow // the same for its follow-ups, by native key (audit only, Task 28a)
+	last         [2][]int             // the seat's last native -> payload renumbering (audit only)
+	lastFollow   [2]map[string]Follow // the same for its follow-ups, by native key (audit only)
 	castCensus   bool
 }
 

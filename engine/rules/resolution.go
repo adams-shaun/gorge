@@ -1,5 +1,5 @@
 // Re-entry of a resolution body after a rules-side payment window. A
-// resolution that runs on the W3 kernel (engine/rules/resolve) never suspends: every
+// resolution that runs on the kernel (engine/rules/resolve) never suspends: every
 // ask inside it is answered in place from the intent tape. What remains of the
 // old suspend/resume machinery is the body re-entry three flows need after
 // they have settled their own window in line: a triggered ability's Cost$
@@ -192,7 +192,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.XAnnounced = true
 		}
 		reflexiveCaptured(ctx)
-		if lki, ok := e.triggerLKI[rp.obj]; ok {
+		if lki, ok := e.triggerLKI[rp.obj]; ok && lki.object != nil {
 			ctx.LKI = lki.object
 			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
 				lki.power, lki.toughness, lki.ptValid
@@ -218,7 +218,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		svars = f.SVars
 	}
 	effects.SetSVars(ctx, svars)
-	// Task mvts1: carry the SA whose targeting the placement/announcement ask
+	// Carry the SA whose targeting the placement/announcement ask
 	// covered, exactly as resolveTop's first pass does.
 	if offeredSA := offeredTargetSA(o, svars); offeredSA != nil {
 		ctx.OfferedSA = offeredSA

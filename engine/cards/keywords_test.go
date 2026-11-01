@@ -152,7 +152,7 @@ func TestEtbCounterDropsTrailingConditionFromCounterNum(t *testing.T) {
 	}
 }
 
-// TestEquipExpandsEachDistinctKeywordLine is ruling FL-13: idempotency keys
+// TestEquipExpandsEachDistinctKeywordLine: idempotency keys
 // on the full keyword line (head + params), not the head alone, so a face
 // with two distinct K:Equip: lines (different costs/restrictions -- 24 such
 // cards in the corpus) expands both, not just the first.

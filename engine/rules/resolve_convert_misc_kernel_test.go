@@ -1,8 +1,8 @@
 package rules
 
-// Kernel-era restorations of the W3 step 2 dual-run tests of
-// resolve_convert_misc_test.go: one kernel run per scenario (kr7Run), the
-// asks served from the tape, the named asks posed, the replay identical.
+// The remaining asks (sorceries, battlefield effects, SetState, soulbond,
+// extort, myriad, venture): one kernel run per scenario (runScenarioSetup), the asks
+// served from the tape, the named asks posed, the replay identical.
 
 import (
 	"fmt"
@@ -31,7 +31,7 @@ func TestKernelAskMiscSorceries(t *testing.T) {
 	for i, tc := range cases {
 		for _, seed := range []uint64{0, 1} {
 			t.Run(fmt.Sprintf("%s/%d", tc.name, seed), func(t *testing.T) {
-				kr7Converted(t, 2, 13000+uint64(i)*2+seed, tc.name, "U", tc.served, tapeMiscSorcery(tc.name, tc.body))
+				convertedAskGame(t, 2, 13000+uint64(i)*2+seed, tc.name, "U", tc.served, tapeMiscSorcery(tc.name, tc.body))
 			})
 		}
 	}
@@ -58,7 +58,7 @@ func TestKernelAskMiscBattlefield(t *testing.T) {
 	for i, tc := range cases {
 		for _, seed := range []uint64{0, 1} {
 			t.Run(fmt.Sprintf("%s/%d", tc.name, seed), func(t *testing.T) {
-				_, st := kr7Dual(t, 2, 13100+uint64(i)*2+seed, func(t *testing.T, e *Engine) {
+				_, st := runKernelScenario(t, 2, 13100+uint64(i)*2+seed, func(t *testing.T, e *Engine) {
 					moveByName(t, e, 0, "ParentLink Bear", state.ZBattlefield)
 					moveByName(t, e, 0, "ParentLink Angel", state.ZBattlefield)
 					tapeCastAndResolve(t, e, tc.name, "U")
@@ -76,7 +76,7 @@ func TestKernelAskMiscSetState(t *testing.T) {
 		"SVar:DBGain:DB$ GainLife | LifeAmount$ 2")
 	for _, seed := range []uint64{0, 1} {
 		t.Run(fmt.Sprint(seed), func(t *testing.T) {
-			_, st := kr7Dual(t, 2, 13200+seed, func(t *testing.T, e *Engine) {
+			_, st := runKernelScenario(t, 2, 13200+seed, func(t *testing.T, e *Engine) {
 				moveByName(t, e, 0, "Tape Front", state.ZBattlefield)
 				tapeCastAndResolve(t, e, name, "U")
 			}, src, tapeMiscFrontSrc)
@@ -91,7 +91,7 @@ func TestKernelAskMiscSoulbond(t *testing.T) {
 	const src = "Name:Tape Bonder\nManaCost:G\nTypes:Creature Human\nPT:1/1\nK:Soulbond\nOracle:x\n"
 	for _, seed := range []uint64{0, 1} {
 		t.Run(fmt.Sprint(seed), func(t *testing.T) {
-			_, st := kr7Dual(t, 2, 13300+seed, func(t *testing.T, e *Engine) {
+			_, st := runKernelScenario(t, 2, 13300+seed, func(t *testing.T, e *Engine) {
 				moveByName(t, e, 0, "ParentLink Bear", state.ZBattlefield)
 				tapeCastAndResolve(t, e, "Tape Bonder", "G")
 			}, src, ptResumeBearSrc)
@@ -110,7 +110,7 @@ func TestKernelAskMiscExtort(t *testing.T) {
 		seed uint64
 	}{{"WB", 0}, {"WB", 1}, {"WB", 4}, {"W", 2}, {"W", 3}} {
 		t.Run(fmt.Sprint(tc.mana, tc.seed), func(t *testing.T) {
-			e, st := kr7Dual(t, 2, 13400+tc.seed, func(t *testing.T, e *Engine) {
+			e, st := runKernelScenario(t, 2, 13400+tc.seed, func(t *testing.T, e *Engine) {
 				moveByName(t, e, 0, "Tape Extorter", state.ZBattlefield)
 				tapeCastAndResolve(t, e, "Tape Gain", tc.mana)
 			}, src, tapeNoAskSrc)
@@ -134,7 +134,7 @@ func TestKernelAskMiscMyriad(t *testing.T) {
 	for _, seats := range []int{3, 4} {
 		for _, seed := range []uint64{0, 1} {
 			t.Run(fmt.Sprintf("seats%d/%d", seats, seed), func(t *testing.T) {
-				_, st := kr7Dual(t, seats, 13500+uint64(seats)*2+seed, func(t *testing.T, e *Engine) {
+				_, st := runKernelScenario(t, seats, 13500+uint64(seats)*2+seed, func(t *testing.T, e *Engine) {
 					id := moveByName(t, e, 0, "Tape Swarm", state.ZBattlefield)
 					e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{id}})
 					e.priorityRound()
@@ -156,7 +156,7 @@ func TestKernelAskMiscVenture(t *testing.T) {
 		"SVar:DBThird:DB$ Venture | Defined$ Player")
 	for _, seed := range []uint64{0, 1, 2} {
 		t.Run(fmt.Sprint(seed), func(t *testing.T) {
-			_, st := kr7DualTokens(t, 2, 13600+seed, reg.Tokens, func(t *testing.T, e *Engine) {
+			_, st := runKernelScenarioTokens(t, 2, 13600+seed, reg.Tokens, func(t *testing.T, e *Engine) {
 				tapeCastAndResolve(t, e, name, "U")
 			}, src)
 			tapeMiscServed(t, "venture", st, 2)

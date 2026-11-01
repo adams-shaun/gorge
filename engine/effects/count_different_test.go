@@ -1,6 +1,6 @@
 package effects
 
-// Task diffcount1: the Different* distinct-set property family of a
+// The Different* distinct-set property family of a
 // Count$Valid<zone> <spec>$<Property> body counts DISTINCT VALUES among the
 // matching cards, not the cards themselves. Before this, the property was
 // unrecognised and the whole token became the spec (so it matched nothing and

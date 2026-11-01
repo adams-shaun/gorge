@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-// writeCrashReport is spec D15's evidence: what the match was doing when
+// writeCrashReport is the crash evidence: what the match was doing when
 // it died, enough to reproduce from the files beside it. Best effort — a
 // failure to write the report must not mask the crash itself.
 func (r *Registry) writeCrashReport(t *table, m *match, reason string) {
@@ -19,11 +19,10 @@ func (r *Registry) writeCrashReport(t *table, m *match, reason string) {
 		return
 	}
 	m.mu.RLock()
-	// head and seq are over the PERSISTED prefix, not the in-memory log
-	// (Task 12 fix round 1): the in-memory tail can be ahead of disk
-	// because the crashed Submit's events never fully reached the files, so
-	// only the durable prefix is safe to name in a report meant to agree
-	// with the log it points at.
+	// head and seq are over the PERSISTED prefix, not the in-memory log: the
+	// in-memory tail can be ahead of disk because the crashed Submit's events
+	// never fully reached the files, so only the durable prefix is safe to
+	// name in a report meant to agree with the log it points at.
 	persisted := len(m.g.Log().Events) - 1
 	if m.files != nil {
 		persisted = m.persisted - 1

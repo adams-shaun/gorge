@@ -13,9 +13,9 @@
    * 2026-09-27-announce-then-pay.md §4, §8). It reads the window's readout
    * (decision.mana_payment: total cost, still owed, pool, the Auto-fill
    * sources) and regroups the offered "mana" options by source. Every button
-   * posts one offered option by its own index (R-E4-1) through onPick, the
+   * posts one offered option by its own index through onPick, the
    * seat panel's ordinary click path; nothing here decides what a source can
-   * pay (R-E4-2). The same options also mark and answer on the battlefield
+   * pay. The same options also mark and answer on the battlefield
    * through the shared card-options index, so the board is the second
    * surface of this one decision.
    *

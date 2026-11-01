@@ -1,7 +1,6 @@
 package rules
 
-// Restored from engine/effects/clone_choicezone_test.go and clone_optional_test.go
-// (W3 legacy removal): Clone's Choices$ pick, ChoiceOptional$ decline,
+// Clone's Choices$ pick, ChoiceOptional$ decline,
 // ExcludeChosen$ and Optional$ "you may" election, answered through the
 // resolution kernel on a real engine.
 
@@ -15,7 +14,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-func kr0ClonePermanents(evs []events.Event, id state.ObjID) int {
+func clonePermanentCount(evs []events.Event, id state.ObjID) int {
 	n := 0
 	for _, ev := range evs {
 		if ev.Kind == events.ClonePermanent && ev.Obj == id {
@@ -25,10 +24,10 @@ func kr0ClonePermanents(evs []events.Event, id state.ObjID) int {
 	return n
 }
 
-// kr0Token puts a token creature named name on p's battlefield.
-func kr0Token(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
+// placeToken puts a token creature named name on p's battlefield.
+func placeToken(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
 	t.Helper()
-	id := kr0Src(t, e, p, "Name:"+name+"\nManaCost:0\nTypes:Creature Myr\nPT:1/1\nOracle:x\n", state.ZBattlefield)
+	id := placeSrc(t, e, p, "Name:"+name+"\nManaCost:0\nTypes:Creature Myr\nPT:1/1\nOracle:x\n", state.ZBattlefield)
 	e.G.Obj(id).IsToken = true
 	return id
 }
@@ -38,27 +37,27 @@ func kr0Token(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjI
 // copy of it. The chosen creature takes no self-copy.
 func TestCloneExcludeChosenSkipsThePickedSourceKernel(t *testing.T) {
 	t.Parallel()
-	will := kr0Corpus(t, "Sakashima's Will")
-	body := kr0SVar(t, will, "DBClone")
+	will := corpusCardNamed(t, "Sakashima's Will")
+	body := svarSA(t, will, "DBClone")
 	if body.Params["ExcludeChosen"] != "True" || body.Params["Choices"] != "Creature.YouCtrl" || body.Params["CloneTarget"] != "Valid Creature.YouCtrl" {
 		t.Fatalf("precondition: unexpected Sakashima's Will DBClone %+v", body.Params)
 	}
-	e := kr0Engine(t, 2)
-	chosen := kr0Src(t, e, 0, "Name:Fixture Exclusion Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", state.ZBattlefield)
-	other := kr0Src(t, e, 0, "Name:Fixture Exclusion Elk\nManaCost:1 G\nTypes:Creature Elk\nPT:3/3\nOracle:x\n", state.ZBattlefield)
+	e := fixtureEngine(t, 2)
+	chosen := placeSrc(t, e, 0, "Name:Fixture Exclusion Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", state.ZBattlefield)
+	other := placeSrc(t, e, 0, "Name:Fixture Exclusion Elk\nManaCost:1 G\nTypes:Creature Elk\nPT:3/3\nOracle:x\n", state.ZBattlefield)
 	start := len(e.L.Events)
-	d := kr0Run(t, e, body, func() *effects.Ctx {
+	d := runProbeSA(t, e, body, func() *effects.Ctx {
 		return &effects.Ctx{Source: chosen, Controller: 0, SVars: will.Faces[0].SVars}
 	}, nil)
 	if d == nil || d.ResumeKind != "clone_choice" {
 		t.Fatalf("Sakashima's Will posed %+v, want the clone_choice pick", d)
 	}
-	kr0Answer(t, e, kr0Opt(t, d, chosen))
-	evs := kr0Since(e, start)
-	if n := kr0ClonePermanents(evs, chosen); n != 0 {
+	answerAsk(t, e, optionIdxForObj(t, d, chosen))
+	evs := eventsSince(e, start)
+	if n := clonePermanentCount(evs, chosen); n != 0 {
 		t.Fatalf("the CHOSEN creature received %d self-copy ClonePermanent events", n)
 	}
-	if n := kr0ClonePermanents(evs, other); n != 1 {
+	if n := clonePermanentCount(evs, other); n != 1 {
 		t.Fatalf("the OTHER creature received %d ClonePermanent events, want 1", n)
 	}
 	if e.G.Obj(chosen).CopyFace != nil {
@@ -74,16 +73,16 @@ func TestCloneExcludeChosenSkipsThePickedSourceKernel(t *testing.T) {
 // decline; the decline makes no copy and no malformed-answer Note.
 func TestCloneChoiceOptionalDeclineMakesNoCopyKernel(t *testing.T) {
 	t.Parallel()
-	brud := kr0Corpus(t, "Brudiclad, Telchor Engineer")
-	body := kr0SVar(t, brud, "DBClone")
+	brud := corpusCardNamed(t, "Brudiclad, Telchor Engineer")
+	body := svarSA(t, brud, "DBClone")
 	if body.Params["ChoiceOptional"] != "True" || body.Params["ExcludeChosen"] != "True" {
 		t.Fatalf("precondition: Brudiclad DBClone must carry ChoiceOptional$/ExcludeChosen$ True: %+v", body.Params)
 	}
-	e := kr0Engine(t, 2)
-	brudID := kr0Place(t, e, 0, brud, state.ZBattlefield)
-	tok := kr0Token(t, e, 0, "Fixture Myr Token")
+	e := fixtureEngine(t, 2)
+	brudID := placeCard(t, e, 0, brud, state.ZBattlefield)
+	tok := placeToken(t, e, 0, "Fixture Myr Token")
 	start := len(e.L.Events)
-	d := kr0Run(t, e, body, func() *effects.Ctx {
+	d := runProbeSA(t, e, body, func() *effects.Ctx {
 		return &effects.Ctx{Source: brudID, Controller: 0, SVars: brud.Faces[0].SVars}
 	}, nil)
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "clone_choice" || d.Min != 0 {
@@ -96,9 +95,9 @@ func TestCloneChoiceOptionalDeclineMakesNoCopyKernel(t *testing.T) {
 	if !sawToken {
 		t.Fatalf("the token is not offered in %+v", d.Options)
 	}
-	kr0Answer(t, e, kr0Kind(t, d, "decline"))
-	evs := kr0Since(e, start)
-	if n := kr0Count(evs, events.ClonePermanent); n != 0 {
+	answerAsk(t, e, optionOfKind(t, d, "decline"))
+	evs := eventsSince(e, start)
+	if n := countEventKind(evs, events.ClonePermanent); n != 0 {
 		t.Fatalf("an answered decline still copied (%d ClonePermanent)", n)
 	}
 	for _, ev := range evs {
@@ -113,25 +112,25 @@ func TestCloneChoiceOptionalDeclineMakesNoCopyKernel(t *testing.T) {
 // copies it.
 func TestCloneChoiceOptionalExcludesChosenFromBecomeKernel(t *testing.T) {
 	t.Parallel()
-	brud := kr0Corpus(t, "Brudiclad, Telchor Engineer")
-	body := kr0SVar(t, brud, "DBClone")
-	e := kr0Engine(t, 2)
-	brudID := kr0Place(t, e, 0, brud, state.ZBattlefield)
-	a := kr0Token(t, e, 0, "Fixture Token Alpha")
-	b := kr0Token(t, e, 0, "Fixture Token Beta")
+	brud := corpusCardNamed(t, "Brudiclad, Telchor Engineer")
+	body := svarSA(t, brud, "DBClone")
+	e := fixtureEngine(t, 2)
+	brudID := placeCard(t, e, 0, brud, state.ZBattlefield)
+	a := placeToken(t, e, 0, "Fixture Token Alpha")
+	b := placeToken(t, e, 0, "Fixture Token Beta")
 	start := len(e.L.Events)
-	d := kr0Run(t, e, body, func() *effects.Ctx {
+	d := runProbeSA(t, e, body, func() *effects.Ctx {
 		return &effects.Ctx{Source: brudID, Controller: 0, SVars: brud.Faces[0].SVars}
 	}, nil)
 	if d == nil || d.ResumeKind != "clone_choice" {
 		t.Fatalf("Brudiclad posed %+v, want the clone_choice pick", d)
 	}
-	kr0Answer(t, e, kr0Opt(t, d, a))
-	evs := kr0Since(e, start)
-	if n := kr0ClonePermanents(evs, a); n != 0 {
+	answerAsk(t, e, optionIdxForObj(t, d, a))
+	evs := eventsSince(e, start)
+	if n := clonePermanentCount(evs, a); n != 0 {
 		t.Fatalf("the chosen token received %d self-copy events", n)
 	}
-	if n := kr0ClonePermanents(evs, b); n != 1 {
+	if n := clonePermanentCount(evs, b); n != 1 {
 		t.Fatalf("the other token received %d ClonePermanent events, want 1", n)
 	}
 	if e.G.Obj(a).CopyFace != nil {
@@ -139,30 +138,30 @@ func TestCloneChoiceOptionalExcludesChosenFromBecomeKernel(t *testing.T) {
 	}
 }
 
-// kr0CloneOptionalBoard: a Sarkhan-like permanent (the become operand) and a
+// cloneOptionalBoard: a Sarkhan-like permanent (the become operand) and a
 // Dragon (the copy source, bound as the remembered triggered card).
-func kr0CloneOptionalBoard(t *testing.T) (*Engine, func() *effects.Ctx, state.ObjID) {
+func cloneOptionalBoard(t *testing.T) (*Engine, func() *effects.Ctx, state.ObjID) {
 	t.Helper()
-	e := kr0Engine(t, 2)
-	sark := kr0Src(t, e, 0, "Name:Sarkhan, Soul Aflame\nManaCost:1 U R\nTypes:Legendary Creature Human Shaman\nPT:2/4\nOracle:x\n", state.ZBattlefield)
-	dragon := kr0Src(t, e, 0, "Name:Dragon Hatchling\nManaCost:1 R\nTypes:Creature Dragon\nPT:0/1\nK:Flying\nOracle:x\n", state.ZBattlefield)
+	e := fixtureEngine(t, 2)
+	sark := placeSrc(t, e, 0, "Name:Sarkhan, Soul Aflame\nManaCost:1 U R\nTypes:Legendary Creature Human Shaman\nPT:2/4\nOracle:x\n", state.ZBattlefield)
+	dragon := placeSrc(t, e, 0, "Name:Dragon Hatchling\nManaCost:1 R\nTypes:Creature Dragon\nPT:0/1\nK:Flying\nOracle:x\n", state.ZBattlefield)
 	return e, func() *effects.Ctx {
 		return &effects.Ctx{Controller: 0, Source: sark, Remembered: []state.Target{{Obj: dragon}}}
 	}, sark
 }
 
-// kr0CloneElect resolves an Optional$ Clone body, answers its yes/no with
+// cloneElectBoard resolves an Optional$ Clone body, answers its yes/no with
 // kind, and returns the events the resolution logged.
-func kr0CloneElect(t *testing.T, line, kind string) (*Engine, state.ObjID, []events.Event) {
+func cloneElectBoard(t *testing.T, line, kind string) (*Engine, state.ObjID, []events.Event) {
 	t.Helper()
-	e, mk, sark := kr0CloneOptionalBoard(t)
+	e, mk, sark := cloneOptionalBoard(t)
 	start := len(e.L.Events)
-	d := kr0Run(t, e, kr0SA(t, line), mk, nil)
+	d := runProbeSA(t, e, parseFixtureSA(t, line), mk, nil)
 	if d == nil || d.ResumeKind != "clone" || len(d.Options) != 2 {
 		t.Fatalf("Optional$ Clone posed %+v, want the clone yes/no", d)
 	}
-	kr0Answer(t, e, kr0Kind(t, d, kind))
-	return e, sark, kr0Since(e, start)
+	answerAsk(t, e, optionOfKind(t, d, kind))
+	return e, sark, eventsSince(e, start)
 }
 
 // TestCloneOptionalElectionKernel: Sarkhan Soul Aflame's "you may" copy --
@@ -171,11 +170,11 @@ func kr0CloneElect(t *testing.T, line, kind string) (*Engine, state.ObjID, []eve
 func TestCloneOptionalElectionKernel(t *testing.T) {
 	t.Parallel()
 	const line = "DB$ Clone | Defined$ TriggeredCardLKICopy | NewName$ Sarkhan, Soul Aflame | AddTypes$ Legendary | Duration$ UntilEndOfTurn | Optional$ True"
-	e, sark, _ := kr0CloneElect(t, line, "no")
+	e, sark, _ := cloneElectBoard(t, line, "no")
 	if e.G.Obj(sark).CopyFace != nil {
 		t.Fatal("the answered decline still cloned")
 	}
-	e2, sark2, _ := kr0CloneElect(t, line, "yes")
+	e2, sark2, _ := cloneElectBoard(t, line, "yes")
 	if e2.G.Obj(sark2).CopyFace == nil {
 		t.Fatal("the accepted copy recorded no copy basis")
 	}
@@ -199,14 +198,14 @@ func TestCloneOptionalAcceptedAnswerEmitsTheUnreadRiderNoteKernel(t *testing.T) 
 		}
 		return false
 	}
-	e, sark, evs := kr0CloneElect(t, line, "yes")
+	e, sark, evs := cloneElectBoard(t, line, "yes")
 	if f := e.G.Obj(sark).Face(); f == nil || f.Name != "Kimahri, Valiant Guardian" {
 		t.Fatalf("accepted copy name %v, want Kimahri", f)
 	}
 	if !has(evs) {
 		t.Fatalf("accepted clone dropped the unread-rider diagnostic %q: %+v", want, evs)
 	}
-	e2, sark2, evs2 := kr0CloneElect(t, line, "no")
+	e2, sark2, evs2 := cloneElectBoard(t, line, "no")
 	if e2.G.Obj(sark2).CopyFace != nil {
 		t.Fatal("the decline copied")
 	}
@@ -219,7 +218,7 @@ func TestCloneOptionalAcceptedAnswerEmitsTheUnreadRiderNoteKernel(t *testing.T) 
 // election with Duration$ UntilFacedown copies without a duration warning.
 func TestCloneOptionalAcceptedAnswerRegistersDurationKernel(t *testing.T) {
 	t.Parallel()
-	e, sark, evs := kr0CloneElect(t, "DB$ Clone | Defined$ TriggeredCardLKICopy | Optional$ True | Duration$ UntilFacedown", "yes")
+	e, sark, evs := cloneElectBoard(t, "DB$ Clone | Defined$ TriggeredCardLKICopy | Optional$ True | Duration$ UntilFacedown", "yes")
 	if e.G.Obj(sark).CopyFace == nil {
 		t.Fatal("accepted copy recorded no copy basis")
 	}

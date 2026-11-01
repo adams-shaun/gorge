@@ -14,7 +14,7 @@ func kwEnchant(f *Face, i int, k, head, param string, has func(kind, line string
 	// readable prompt Forge itself shows ("Creature.YouCtrl:
 	// creature you control"). When present, that third field is
 	// used verbatim as the prompt; when absent, one is generated
-	// from the spec the same way the brief's table describes.
+	// from the spec.
 	spec, prompt, hasPrompt := strings.Cut(param, ":")
 	if !hasPrompt || prompt == "" {
 		prompt = strings.ToLower(spec)

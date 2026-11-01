@@ -1,10 +1,8 @@
 package rules
 
-// Kernel-era restoration of resume_drain_suspended_test.go: resumeTriggerDrain
-// is inert while a resolution's mid-resolution ask is outstanding. On the
-// kernel the resolving object stays on the stack with its ask posed (a held
-// tape checkpoint) instead of a suspended resume frame; the drain must still
-// run no SBA, place no trigger, grant no priority, move nothing and leave the
+// resumeTriggerDrain is inert while a resolution's mid-resolution ask is
+// outstanding. The resolving object stays on the stack with its ask posed (a
+// held tape checkpoint); the drain must run no SBA, place no trigger, grant no priority, move nothing and leave the
 // outstanding ask untouched.
 
 import (
@@ -19,7 +17,7 @@ import (
 // Chain Lightning's DealDamage->CopySpellAbility chain poses a genuine
 // mid-resolution UnlessCost$ ("unless_pay") ask for the damaged seat. Three
 // seats so the game keeps running while the ask sits.
-func TestKr8ResumeTriggerDrainIsInertWhileAResolutionAsks(t *testing.T) {
+func TestKernelResumeTriggerDrainIsInertWhileAResolutionAsks(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	cfg := Config{Seed: 42, Tokens: reg.Tokens}
 	for _, n := range []string{"ur-delver", "death-n-taxes", "ur-delver"} {

@@ -67,7 +67,7 @@ import (
 // empty list to nil, so Surge Engine, its printed Defender removed by its own
 // Animate, matched Card.Self+!withDefender only in an engine whose memo entry
 // had been filled while it still had Defender: a replay or a Clone offered a
-// different priority option list than the live game (round-8 fuzz).
+// different priority option list than the live game.
 //
 // derivedMemoVerify (set by the rules test binary, or at link time through
 // derivedMemoVerifyFlag for a botbench run) recomputes every hit and panics

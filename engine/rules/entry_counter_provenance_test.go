@@ -36,7 +36,7 @@ func assertEntryCounterLedger(t *testing.T, e *Engine, id state.ObjID, kind stri
 	t.Fatalf("entry %s placement (%d) absent from ledger with seat %d as adder: %+v", kind, amount, actor, e.counterAddsThisTurn)
 }
 
-// TestCastEntryCounterProvenanceNotifiesTriggerAndLedger is the brief's
+// TestCastEntryCounterProvenanceNotifiesTriggerAndLedger is the
 // headline walk: a REAL cast of an authored Loyalty:4 planeswalker under
 // Doubling Season enters with the doubled 8 loyalty AND the settled entry
 // notification carries the entrant's controller as adder, so an opponent's
@@ -90,7 +90,7 @@ func TestCastEntryCounterProvenanceNotifiesTriggerAndLedger(t *testing.T) {
 }
 
 // TestDoublingSeasonSagaEntryAndProgressionCounts pins the two Saga halves
-// the brief measured: a Saga cast under Doubling Season enters with 2 LORE
+// measured: a Saga cast under Doubling Season enters with 2 LORE
 // (the entry grant rides the cast's cause, the same precedent that doubles a
 // planeswalker's starting loyalty), while the turn-based chapter-progression
 // lore counter stays +1 -- it is a turn-based action with no stack cause, so

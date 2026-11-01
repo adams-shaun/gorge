@@ -6,11 +6,11 @@ Scope: one suggested payment plan per supported cast; client selection per actio
 Source inspection baseline: gorge `b4e52200d56210a08fdddc6b4a7ffc8e2236c477`;
 amendment re-verified against gorge main `6c711fece`.
 
-## Amendment 2026-09-26 (operator decisions after the auto-pay audit)
+## Amendment 2026-09-26 (maintainer decisions after the auto-pay audit)
 
 Five audits of the shipped feature (gaps, mana census, engine research, A/B
 mirror, corpus fuzz; 2026-09-26) found defects and scope questions. The
-operator decided the following. The body of this spec has been edited to
+maintainers decided the following. The body of this spec has been edited to
 match; the hardening work is the wave in
 [`autopay-v1-hardening/` (archived)](ARCHIVE.md).
 
@@ -40,13 +40,8 @@ match; the hardening work is the wave in
    the shared mana-ability gate by the already-queued ticket
    `cr302-6-sick-mana` (head regeneration approved for that ticket only). The
    planner inherits the fix; no planner ticket re-plans it.
-4. **Web UX is the shipped mode switch** (commit `7022042e6` on main; the
-   branch commits "keep auto-pay toggle in control strip" `ae0aef4ef`,
-   "keep auto-pay out of autopass policy" `4757be4e9` / merge "decouple
-   auto-pay from autopass" `6675497a7`, and "add auto-pay shortcuts to hand
-   cards" `57de23759` live on `wt/automana-feature-flag` and are not ancestors
-   of main, but their changes are present in main's tree -- inferred to have
-   been squashed into `7022042e6`). §8 now describes it. One behaviour is fixed:
+4. **Web UX is the shipped mode switch** (commit `7022042e6` on main). §8 now
+   describes it. One behaviour is fixed:
    while the seat's auto-pay preference is on, the empty-window floor and
    Auto's actionable test must not skip a window whose only real play is a
    plan-only cast, and own-spell auto-resolution is keyed on the seat

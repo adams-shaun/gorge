@@ -43,8 +43,7 @@ func (e *Engine) TriggerModeSupported(mode string) bool {
 // is handed to EVERY trigger this event fires, not only a Card.Self trigger
 // on ev.Obj itself: a bystander's "whenever a creature you control dies"
 // wants the LKI of the creature that died, exactly the same as that
-// creature's own dies trigger would. Fix round 1, Important 2: an earlier
-// version of this doc claimed LKI was withheld from every trigger but the
+// creature's own dies trigger would. LKI is not withheld from every trigger but the
 // matching object's own, which was never what the code below does (see
 // objLKI's guard) -- lki.ID == ev.Obj is already guaranteed by construction
 // in emit (lki, when non-nil, is always built from e.G.Obj(ev.Obj)), so
@@ -250,7 +249,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// ValidPlayer$ values are Player 135, You 35, Opponent 2 plus a
 		// handful of qualified forms; bare Player matches every seat (the
 		// ungated behaviour those registrations already had), and the
-		// qualified ones fail closed inside MatchesPlayerSpec (the fx20
+		// qualified ones fail closed inside MatchesPlayerSpec (the
 		// convention: an unmodellable qualifier fires for nobody, never for
 		// everybody).
 		// The registration's capture is also what Player.IsRemembered names:
@@ -677,7 +676,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// inline; an ask the body poses parks through the ordinary direct
 		// resume machinery.
 		if f.static {
-			// Fail-closed guard (cli-20260923T060218Z round 2): a static
+			// Fail-closed guard: a static
 			// delayed registration carrying an OptionalDecider$ spec has no
 			// election channel on this path -- the body resolves inline,
 			// never minting a stack object, so resolveTop's CR 603.5 gate
@@ -854,8 +853,8 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 	if ev.Kind != events.PutOnStack {
 		return false
 	}
-	// Casting a spell means an actual card entering the stack (Ruling F3,
-	// the same guard trigmatch.spellCastMatches carries).
+	// Casting a spell means an actual card entering the stack
+	// (the same guard trigmatch.spellCastMatches carries).
 	obj := e.G.Obj(ev.Obj)
 	if obj == nil || obj.Face() == nil {
 		return false

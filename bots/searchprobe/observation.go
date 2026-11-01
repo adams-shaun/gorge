@@ -363,7 +363,7 @@ func (c *Collector) CaptureBoardJSON(e *rules.Engine, burst []events.Event) (Fra
 //     Skipping the walk only preserves which worlds are accepted because no
 //     rejection is decided by that field alone. SampleOptions.
 //     ComparePotentialActions restores the walk and counts such rejections
-//     (SampleResult.BoardPotentialActionsOnly): measured 2026-09-21 over 300
+//     (SampleResult.BoardPotentialActionsOnly): measured over 300
 //     games of the ten approved pairs (3191 searched decisions, 204224
 //     attempts) the count is zero.
 func (c *Collector) captureScratch(e *rules.Engine, burst []events.Event, withPotential bool) (Frame, error) {

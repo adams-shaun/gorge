@@ -30,8 +30,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	// anyway. The Different* distinct family IS read since diffcount1
 	// (differentPropertyKindOf's case above): distinct powers/names/mana
 	// values among the matches, the Augur of Autumn Coven gate's shape.
-	// CreatureType, PlaneswalkerType and CardTypesPermanent (task
-	// diffcount2, cr-g222) are the same distinct-set shape over a narrower
+	// CreatureType, PlaneswalkerType and CardTypesPermanent are the same distinct-set shape over a narrower
 	// vocabulary; PlaneswalkerType reads the matched planeswalker's own
 	// printed subtypes (CR 205.3j), so it has no roster to fall behind. The four extreme
 	// reductions (GreatestCardPower 64 files,
@@ -66,7 +65,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// count each real card type (CR 205.1) represented among the
 		// selected cards once. The map is read only through len, so its
 		// iteration order never reaches an event or a view. The two
-		// siblings (task diffcount2) are the same distinct-set shape over a
+		// siblings are the same distinct-set shape over a
 		// narrower vocabulary: CreatureType counts distinct creature
 		// subtypes (Valiant Changeling's per-type reduction),
 		// CardTypesPermanent the six CR 205.2 permanent types (Korvold,
@@ -80,14 +79,14 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		if prop == "CreatureType" {
 			seenCreatureTypes = make(map[string]bool)
 		}
-		// PlaneswalkerType (cr-g222) is the planeswalker-subtype sibling of
+		// PlaneswalkerType is the planeswalker-subtype sibling of
 		// CreatureType: Tam, the Possibility's "the number of planeswalker
 		// types among planeswalkers you control".
 		var seenPlaneswalkerTypes map[string]bool
 		if prop == "PlaneswalkerType" {
 			seenPlaneswalkerTypes = make(map[string]bool)
 		}
-		// The bare wasCastFromYourHand qualifier (task castprov3, Approach of
+		// The bare wasCastFromYourHand qualifier (Approach of
 		// the Second Sun's Count$ValidStack Card.wasCastFromYourHand+Self):
 		// not a filter predicate — split out per CANDIDATE object through the
 		// Host's log read before the ordinary match (the ByYou family never
@@ -152,7 +151,7 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 			seenTokenNames: seenTokenNames, seenCardTypes: seenCardTypes,
 			seenCreatureTypes:     seenCreatureTypes,
 			seenPlaneswalkerTypes: seenPlaneswalkerTypes}
-		// The Different* distinct-set property family (task diffcount1):
+		// The Different* distinct-set property family:
 		// DifferentCardManaCost / DifferentCardPower / DifferentCardNames /
 		// DifferentColorPair count the DISTINCT values among the matching
 		// cards, not the cards themselves. Numeric values fold into a set
@@ -168,8 +167,8 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		}
 		if multi != nil {
 			// A comma-joined zone list (Count$ValidGraveyard,Exile,
-			// ValidBattlefield,Graveyard, ValidBattlefield,Command --
-			// fuzz-cov3): the single-zone scan over each named zone in turn,
+			// ValidBattlefield,Graveyard, ValidBattlefield,Command):
+			// the single-zone scan over each named zone in turn,
 			// the shared stack once. Each candidate is matched against its
 			// own zone, the ValidAll convention.
 			for _, z := range multi {

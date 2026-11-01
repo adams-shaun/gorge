@@ -199,6 +199,10 @@ type KickerInputs struct {
 	// (no pending cast, the flag actually stamped) is unaffected. Zero (false)
 	// everywhere else; it is derived data, never event-encoded.
 	PendingKicked bool
+	// PendingBargained is the same pre-payment gap for the pending cast's Bargain
+	// election (CR 702.166d): Brave the Wilds' TargetMin$ X over
+	// Count$Bargained.1.0 is read before payment stamps FlagBargained.
+	PendingBargained bool
 	// PendingTeamwork is the cast's elected intention to pay its optional
 	// Teamwork cost, available during CR 601.2c target announcement before
 	// payCast stamps TeamworkPaid on the stack object (CR 702.194b-c).
@@ -397,11 +401,10 @@ type ETBRecords struct {
 	// the entering object before this body runs at the re-emitted MoveZone,
 	// so rules' replCtx flags that invocation and effChooseColor keeps the
 	// historical no-op for it alone. Without the flag an unconditional
-	// o.ChosenColor guard also suppressed a FRESH resolution-time ask after
+	// o.ChosenColor guard would also suppress a FRESH resolution-time ask after
 	// an earlier ChooseColor had set the field (a second sequential SA in
 	// one resolution, or an ability activation on an already-chosen
-	// permanent) -- the stale-source-state bug the same ticket's review
-	// named. Consumed and cleared by the effect, so a nested ChooseColor
+	// permanent). Consumed and cleared by the effect, so a nested ChooseColor
 	// deeper in the same chain poses its own fresh ask.
 	ColorRecorded bool
 	// ETBNumberRecorded marks the ONE ChooseNumber invocation that must not
@@ -411,9 +414,8 @@ type ETBRecords struct {
 	// the entering object before this body runs at the re-emitted MoveZone, so
 	// rules' replCtx flags that invocation and effChooseNumber keeps the
 	// historical no-op for it alone. Without the flag an unconditional
-	// o.ChosenNumber guard also suppressed a FRESH resolution-time ask after an
-	// earlier ChooseNumber had set the field -- the stale-source-state bug the
-	// sibling colour ticket's review named. The flag is what makes the entry
+	// o.ChosenNumber guard would also suppress a FRESH resolution-time ask after
+	// an earlier ChooseNumber had set the field. The flag is what makes the entry
 	// no-op exact even when the recorded entry answer is 0 (the value a bare
 	// o.ChosenNumber guard cannot distinguish from unset). Consumed and cleared
 	// by the effect, so a nested ChooseNumber deeper in the same chain poses

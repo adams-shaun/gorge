@@ -72,7 +72,7 @@ func TestPlayCopyCardCastsCopyAndLeavesOriginalInExileKernel(t *testing.T) {
 
 	// Resolve the copied spell too: resolving it must move only the copy to
 	// its resting zone, never consume the original exile card.
-	kr7Settle(e)
+	settleKernel(e)
 	passUntilStackEmpty(t, e, 60)
 	if e.G.Obj(original).Zone != state.ZExile {
 		t.Fatalf("resolving copied spell moved original: %+v", e.G.Obj(original))

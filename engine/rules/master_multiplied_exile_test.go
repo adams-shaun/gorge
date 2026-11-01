@@ -14,7 +14,7 @@ package rules
 // Every leaf drives the real ChangeZone path on real corpus cards and ends
 // replay-verified: Fiend Hunter's ETB trigger (Triggered, YouCtrl) is the
 // blocked cause; Swords to Plowshares (Spell) is the permitted contrast that
-// a whitelist-without-evaluation fix -- the over-restriction the brief warns
+// a whitelist-without-evaluation fix -- the over-restriction to avoid
 // about -- would fail.
 
 import (

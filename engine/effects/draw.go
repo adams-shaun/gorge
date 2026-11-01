@@ -74,7 +74,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	// Opponent the controller's opponents). The ask is the same mid-
 	// resolution KChoose yes/no every other asking primitive poses, answered
 	// in place (ResumeKind "draw_optional"); no answer keeps the pre-ask
-	// mandatory draw (the R-9 degradation). A
+	// mandatory draw (the no-host degradation). A
 	// spec the grammar cannot resolve fails closed below this read's own
 	// convention: the pre-ask mandatory draw stays and one loud Note names
 	// the unmodelled value. A target with an empty library makes the draw a
@@ -149,7 +149,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
-	// Upto$ True (task mordorparams1: Arcane Denial's "Its controller may
+	// Upto$ True (Arcane Denial's "Its controller may
 	// draw up to two cards at the beginning of the next turn's upkeep",
 	// Truce's "Each player may draw up to two cards"): the draw is a real
 	// per-target COUNT choice, one KChoose per Defined$ target before that
@@ -158,7 +158,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	// ask's private card options — a decision is visible only to
 	// Decision.Player, so no leak). Answered in place (ResumeKind
 	// "draw_upto"), the count tracked per target in Ctx.Draw. No answer
-	// keeps the pre-ask mandatory draw (the R-9 degradation every
+	// keeps the pre-ask mandatory draw (the no-host degradation every
 	// effDraw arm takes). A library with fewer than n cards caps the ask at
 	// what is there; an empty library is a no-op (never a decision whose
 	// only answer is empty — OnlyEmptyAnswer refuses it — and never a
@@ -194,7 +194,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 					c.Draw.UptoCount, c.Draw.UptoAnswered = int32(len(ans)), true
 					tapeReentry()
 				} else {
-					// No answer (R-9): the pre-ask mandatory draw of what was offered.
+					// No answer: the pre-ask mandatory draw of what was offered.
 					c.Draw.UptoCount, c.Draw.UptoAnswered = m, true
 				}
 			}

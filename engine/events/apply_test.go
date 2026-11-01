@@ -27,7 +27,7 @@ func sailorCard() *cards.Card {
 }
 
 // gameWithOneCardSrc builds a two-seat game (Ann/Bob) with one card, parsed
-// from src, sitting in seat 0's hand. Task 4's own object-field tests need a
+// from src, sitting in seat 0's hand. The object-field tests need a
 // single known object to apply CastInfo/Choose/... events to, rather than
 // twoPlayer's five-bears-per-library shape.
 func gameWithOneCardSrc(t *testing.T, src string) (*state.Game, state.ObjID) {
@@ -235,8 +235,7 @@ func TestScalarEventsFold(t *testing.T) {
 	}
 }
 
-// TestGameOverFirstWinsAndSubsequentAreNoOps is the Ruling T22-g regression
-// test (fix round 1): before this fix, GameOver had no guard against a
+// TestGameOverFirstWinsAndSubsequentAreNoOps: GameOver guards against a
 // second event on an already-finished game, so a log carrying a win
 // followed by a draw (a duplicate event, a replay quirk, a tampered log)
 // produced a game that was simultaneously Winner=1 and Draw=true. The
@@ -256,14 +255,13 @@ func TestGameOverFirstWinsAndSubsequentAreNoOps(t *testing.T) {
 	}
 }
 
-// TestGameOverWithUnrecognizedAmountChangesNothing is the second half of the
-// Ruling T22-g regression test: GameOver defines exactly two shapes (Amount
-// 0 = win, Amount 1 = draw). Before this fix, Over was set unconditionally
-// regardless of Amount, so a tampered or malformed event with some third
-// Amount and an out-of-range Player -- naming no real seat at all -- still
-// ended the game, with Winner left at its zero value: indistinguishable
-// from a real seat-0 win, the exact ambiguity the Amount discriminator
-// exists to remove.
+// TestGameOverWithUnrecognizedAmountChangesNothing: GameOver defines exactly
+// two shapes (Amount 0 = win, Amount 1 = draw). Before this guard, Over was
+// set unconditionally regardless of Amount, so a tampered or malformed event
+// with some third Amount and an out-of-range Player -- naming no real seat at
+// all -- still ended the game, with Winner left at its zero value:
+// indistinguishable from a real seat-0 win, the exact ambiguity the Amount
+// discriminator exists to remove.
 func TestGameOverWithUnrecognizedAmountChangesNothing(t *testing.T) {
 	g, l := twoPlayer(t)
 	Emit(g, l, Event{Kind: GameOver, Amount: 7, Player: 250})
@@ -276,10 +274,9 @@ func TestGameOverWithUnrecognizedAmountChangesNothing(t *testing.T) {
 	}
 }
 
-// TestGameOverWithAmountZeroAndInvalidPlayerChangesNothing is the Ruling
-// T22-l regression test (fix round 2): the win shape (Amount == 0) must
-// require a validated Player, not merely use one when present. The
-// fix-round-1 version of this case set Over unconditionally on Amount 0 and
+// TestGameOverWithAmountZeroAndInvalidPlayerChangesNothing: the win shape
+// (Amount == 0) must require a validated Player, not merely use one when
+// present. A version of this case set Over unconditionally on Amount 0 and
 // only guarded Winner -- so {Amount: 0, Player: <out of range>} produced
 // Over=true Winner=0 (its untouched zero value): an invalid seat silently
 // reading as a real seat-0 win, the same defect class the Amount
@@ -488,12 +485,12 @@ func TestMoveZoneInvariantTableDriven(t *testing.T) {
 // The kind list is Kind(0)..len(kindNames)-1, not a hand-typed slice, on
 // purpose: a hand-typed list is exactly how this test used to miss coverage
 // -- the previous version of this loop enumerated every Kind up to ClockTick
-// and simply never mentioned TriggerPush, whose own Player-handling bug
-// (Ruling T20-e) this test would otherwise exist to catch. kindInfo
-// (engine/events/kindinfo.go) is the one table required to stay in lockstep with the
-// Kind const block (Kind.String() reads it, and TestEveryKindHasADescriptor
-// rejects a Kind without an entry), so bounding the loop by its length means a future appended Kind is covered here with
-// no edit to this test required -- exactly what "append-only, never
+// and simply never mentioned TriggerPush, whose own Player-handling bug this
+// test exists to catch. kindInfo (engine/events/kindinfo.go) is the one table
+// required to stay in lockstep with the Kind const block (Kind.String() reads
+// it, and TestEveryKindHasADescriptor rejects a Kind without an entry), so
+// bounding the loop by its length means a future appended Kind is covered
+// here with no edit to this test required -- exactly what "append-only, never
 // renumbered" should buy a totality test like this one.
 func TestApplyNeverPanics(t *testing.T) {
 	const badZone = state.Zone(200)
@@ -538,7 +535,7 @@ func TestApplyNeverPanics(t *testing.T) {
 						// so it has zero triggers -- TriggerPush would break
 						// on its trigger-index guard before ever reaching
 						// the Player-consuming AddObject call this variant
-						// exists to reach, whether or not Ruling T20-e's fix
+						// exists to reach, whether or not the seat check
 						// is present, which would make this variant vacuous
 						// for the one kind that motivated it. Give
 						// TriggerPush a source that actually has a trigger
@@ -590,7 +587,7 @@ func TestApplyNeverPanics(t *testing.T) {
 							t.Fatal("out-of-range player must not affect player 0")
 						}
 					case "player out of range with a valid obj":
-						// Ruling T20-e's regression: a real trigger source
+						// A real trigger source
 						// plus an out-of-range Player must still mint no
 						// ability object, not merely avoid a panic.
 						if k == TriggerPush && len(g.Objs) != before {
@@ -676,7 +673,7 @@ func TestApplyIsPure(t *testing.T) {
 	build := func(t *testing.T) (*state.Game, *Log) {
 		t.Helper()
 		g, l := twoPlayerWith(t, bear)
-		// Task 4: a token table, so TokenCreate below actually mints
+		// A token table, so TokenCreate below actually mints
 		// (rather than only exercising its no-op guard) -- reusing
 		// bearCard's own source is enough to prove the mutation is
 		// deterministic; it need not be a "real" token script.
@@ -704,7 +701,7 @@ func TestApplyIsPure(t *testing.T) {
 		Emit(g, l, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 3})
 		Emit(g, l, Event{Kind: MoveZone, Obj: lib1[0], From: state.ZLibrary, To: state.ZBattlefield})
 
-		// Task 4's six new kinds, one apiece, exercised here so any hidden
+		// Six more kinds, one apiece, exercised here so any hidden
 		// non-determinism in their Apply cases (map-range order, and so on)
 		// would show up as a divergence below exactly like every other
 		// kind's already does.
@@ -759,7 +756,7 @@ func TestApplyIsPure(t *testing.T) {
 	}
 }
 
-// TestTargetsChosenSetsObjectTargets is Ruling T14-b's regression test: a
+// TestTargetsChosenSetsObjectTargets: a
 // spell or ability's chosen targets must flow through an event, the same as
 // every other state mutation, so that replaying the log alone reproduces
 // what the live game has. Covers both target shapes (Amount discriminates
@@ -829,8 +826,8 @@ func twoFacedCard(t *testing.T) *cards.Card {
 	return c
 }
 
-// TestFlipFaceChangesActiveFace is Task 18's regression test for SetState's
-// dedicated event (Ruling T18-a): FaceIdx must move through an event like
+// TestFlipFaceChangesActiveFace covers SetState's
+// dedicated event: FaceIdx must move through an event like
 // every other mutation, and every hostile input (nil object, a single-face
 // card, an out-of-range index) must be a no-op rather than a panic or an
 // out-of-bounds FaceIdx.
@@ -882,7 +879,7 @@ func TestFlipFaceChangesActiveFace(t *testing.T) {
 	}
 }
 
-// TestClockTickIncrementsClock is the carrier for Ruling T19-a: Game.Clock
+// TestClockTickIncrementsClock covers ClockTick: Game.Clock
 // must only ever advance through this event, never a direct field write, so
 // a game reconstructed from the log alone matches a live game's Clock (and
 // therefore the Object.Timestamp values Move stamps from it).
@@ -945,7 +942,7 @@ Oracle:x
 	return c
 }
 
-// TestTriggerPushCreatesTheAbilityObjectOnTheStack is Ruling T20-a's carrier:
+// TestTriggerPushCreatesTheAbilityObjectOnTheStack:
 // the ability object must be minted inside Apply itself (from Player/Obj/
 // Amount/IDs, no new Event field), not by a direct, unlogged Game.AddObject
 // call from rules.Engine, or a log-only replay can never recreate it.
@@ -968,7 +965,7 @@ func TestTriggerPushCreatesTheAbilityObjectOnTheStack(t *testing.T) {
 	}
 	ability := g.Obj(g.Stack[0])
 	if ability.Card != nil {
-		t.Fatal("ability object must have no Face (Ruling F3)")
+		t.Fatal("ability object must have no Face")
 	}
 	if ability.Ability == nil || ability.Ability.API != "Draw" {
 		t.Fatalf("Ability = %+v, want Scribe's Execute$ SVar (a Draw SA)", ability.Ability)
@@ -1011,7 +1008,7 @@ func TestTriggerPushKindString(t *testing.T) {
 	}
 }
 
-// TestEndCombatResetClearsIsAttackingAndBlockedBy is Ruling T21-e's carrier:
+// TestEndCombatResetClearsIsAttackingAndBlockedBy:
 // rules.setStep used to clear these two fields with a direct loop over
 // e.G.Objs instead of emitting anything, so a log-only reconstruction never
 // learned combat had ended. This exercises Apply's own EndCombatReset case in
@@ -1051,7 +1048,7 @@ func TestEndCombatResetKindString(t *testing.T) {
 	}
 }
 
-// TestCastInfoRecordsXAndFlags is Task 4's carrier for CastInfo: X and
+// TestCastInfoRecordsXAndFlags covers CastInfo: X and
 // CastFlags must survive a spell resolving onto the battlefield (an ETB
 // "if it was kicked" trigger needs to read them off the permanent) and
 // reset once that permanent actually leaves the battlefield again.
@@ -1126,7 +1123,7 @@ func TestFlagsFromTrimsWhitespaceAndIgnoresUnknownNames(t *testing.T) {
 	}
 }
 
-// TestChooseRecordsNameTypeAndNumber is Task 4's carrier for Choose: each of
+// TestChooseRecordsNameTypeAndNumber covers Choose: each of
 // its three shapes lands on the right field, an unrecognized shape is a
 // no-op (not a panic), and a nil object is a no-op too.
 func TestChooseRecordsNameTypeAndNumber(t *testing.T) {
@@ -1172,7 +1169,7 @@ func TestImprintSeparatesExplicitAndExiledWith(t *testing.T) {
 	}
 }
 
-// TestTokenCreateMintsFromTheGameTokenTable is Task 4's carrier for
+// TestTokenCreateMintsFromTheGameTokenTable covers
 // TokenCreate: the minted object comes from Game.Tokens (never from data
 // smuggled through the event itself), lands on the battlefield summoning
 // sick, and an unknown key or invalid player is a no-op.
@@ -1205,7 +1202,7 @@ func TestTokenCreateKindString(t *testing.T) {
 	}
 }
 
-// TestStackCopyDuplicatesASpellAboveIt is Task 4's carrier for StackCopy:
+// TestStackCopyDuplicatesASpellAboveIt covers StackCopy:
 // the copy shares the original's Card/FaceIdx/X/CastFlags/Targets by value
 // (never by aliasing a shared slice), lands directly above the original on
 // the stack, and a missing or off-stack source is a no-op.
@@ -1243,7 +1240,7 @@ func TestStackCopyKindString(t *testing.T) {
 	}
 }
 
-// TestAttachAndDetach is Task 4's carrier for Attach: an IDs entry attaches,
+// TestAttachAndDetach covers Attach: an IDs entry attaches,
 // an empty IDs detaches, leaving the battlefield always detaches, and an
 // unknown target is a no-op.
 func TestAttachAndDetach(t *testing.T) {
@@ -1273,10 +1270,9 @@ func TestAttachKindString(t *testing.T) {
 	}
 }
 
-// TestAbilityPushMintsAnActivatedAbilityObject is Task 4's carrier for
-// AbilityPush: the ability object is minted inside Apply (no Face, per
-// Ruling F3), carries the source's chosen Ability and Source, and an
-// out-of-range ability index or invalid player is a no-op.
+// TestAbilityPushMintsAnActivatedAbilityObject covers AbilityPush: the ability
+// object is minted inside Apply (no Face), carries the source's chosen Ability
+// and Source, and an out-of-range ability index or invalid player is a no-op.
 func TestAbilityPushMintsAnActivatedAbilityObject(t *testing.T) {
 	g, id := gameWithOneCardSrc(t, "Name:Sailor\nManaCost:U\nTypes:Creature Spirit\nPT:1/1\nA:AB$ Draw | Cost$ 3 U | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.\nOracle:x\n")
 	Move(g, id, state.ZHand, state.ZBattlefield)
@@ -1319,7 +1315,22 @@ func TestAbilityPushActivationCountSurvivesRealloc(t *testing.T) {
 	}
 }
 
-// TestAbilityPushPlayerRefRememberedRoundTrips is FL-41's symmetry check for
+// CR 400.7: the activation census belongs to the permanent, not the card.
+func TestActivationCountEndsWhenTheSourceLeaves(t *testing.T) {
+	g, id := gameWithOneCardSrc(t, "Name:Sailor\nManaCost:U\nTypes:Creature Spirit\nPT:1/1\nA:AB$ Draw | Cost$ 3 U | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.\nOracle:x\n")
+	Move(g, id, state.ZHand, state.ZBattlefield)
+	Apply(g, Event{Kind: AbilityPush, Obj: id, Player: 0, Amount: 0})
+	if got := g.Obj(id).ActivatedThisTurn; got != 1 {
+		t.Fatalf("ActivatedThisTurn = %d after one activation, want 1", got)
+	}
+	Move(g, id, state.ZBattlefield, state.ZExile)
+	Move(g, id, state.ZExile, state.ZBattlefield)
+	if got := g.Obj(id).ActivatedThisTurn; got != 0 {
+		t.Fatalf("ActivatedThisTurn = %d on the returned permanent, want 0", got)
+	}
+}
+
+// TestAbilityPushPlayerRefRememberedRoundTrips is the symmetry check for
 // AbilityPush: the same PlayerRef sentinel TriggerPush decodes must decode
 // in AbilityPush too, so an activated ability that remembered a player (the
 // same shape rules.pushTrigger produces for a DeclareAttackers trigger)
@@ -1345,7 +1356,7 @@ func TestAbilityPushKindString(t *testing.T) {
 	}
 }
 
-// TestTargetsChosenAppendShapes is Task 4's carrier for TargetsChosen's two
+// TestTargetsChosenAppendShapes covers TargetsChosen's two
 // new shapes (Amount 2 appends an object target, Amount 3 appends a player
 // target); shapes 0 and 1 must keep replacing exactly as before, so every
 // pre-Task-4 log still applies unchanged.
@@ -1507,8 +1518,8 @@ func TestRingTemptsYouFoldsCountBearerAndClears(t *testing.T) {
 	Apply(g, Event{Kind: RingTemptsYou, Player: 9, Obj: o.ID})
 }
 
-// TestRingEmblemPushMintsAnAbilityInApply is the CR 701.54c / Ruling T20-a
-// fold pin: the Ring emblem has no object in any zone and no corpus script
+// TestRingEmblemPushMintsAnAbilityInApply is the CR 701.54c fold pin: the
+// Ring emblem has no object in any zone and no corpus script
 // text, so its four level abilities are minted by the RingEmblemPush event
 // inside Apply itself. Every level builds the same handful of hand-built
 // bodies, and applying the identical event to two fresh games must produce
@@ -1699,5 +1710,24 @@ func TestSubTargetsChosenFoldsApartFromRootTargets(t *testing.T) {
 	Emit(g, l, Event{Kind: MoveZone, Obj: spell, From: state.ZStack, To: state.ZGraveyard})
 	if o = g.Obj(spell); o.Targets != nil || o.SubTargets != nil {
 		t.Fatalf("a zone change kept targets: %+v / %+v", o.Targets, o.SubTargets)
+	}
+}
+
+// TestSubTargetRemoved: the fold drops one entry naming the target, so a second
+// link holding the same target keeps its own.
+func TestSubTargetRemoved(t *testing.T) {
+	g, l := twoPlayer(t)
+	spell := g.Zone(state.ZLibrary, 0)[0]
+	Emit(g, l, Event{Kind: MoveZone, Obj: spell, From: state.ZLibrary, To: state.ZStack})
+	sub := g.Zone(state.ZLibrary, 0)[1]
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 2, IDs: []state.ObjID{sub}, Text: SubTargetNotice})
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 3, Player: 1, Text: SubTargetNotice})
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 2, IDs: []state.ObjID{sub}, Text: SubTargetNotice})
+
+	Emit(g, l, Event{Kind: SubTargetRemoved, Obj: spell, Amount: 2, IDs: []state.ObjID{sub}})
+	Emit(g, l, Event{Kind: SubTargetRemoved, Obj: spell, Amount: 3, Player: 1})
+	want := []state.Target{{Obj: sub}}
+	if got := g.Obj(spell).SubTargets; !reflect.DeepEqual(got, want) {
+		t.Fatalf("sub targets = %+v, want %+v", got, want)
 	}
 }

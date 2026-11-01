@@ -56,7 +56,7 @@ func (e *Engine) chosenModesTargetableAt(pc *pendingCast, x int32) bool {
 	defer func() { pc.x = saved }()
 	for _, name := range o.ChosenModes {
 		sub := cards.ResolveSVar(f.SVars, name)
-		if !modeTargetsAvailable(e, pc.player, pc.card, sub, x, false) {
+		if !modeTargetsAvailable(e, pc.player, pc.card, pc.card, sub, x, false) {
 			return false
 		}
 	}
@@ -939,7 +939,7 @@ func (e *Engine) settleSubCounterParts(pc *pendingCast) {
 // order (pc.sacPart). The chosen sacrifices are excluded from each later
 // part's candidates so one permanent can never pay two Sac parts of the
 // same cost. castable already required a distinct-candidate assignment
-// before this option was ever offered (the fix-round-1 gate), so a part
+// before this option was ever offered (the feasibility gate), so a part
 // with too few candidates here is a board that changed under the flow --
 // most directly, an earlier part of the SAME cost consumed the remaining
 // matching permanents (an `Sac` part earlier in the same cost, or a board
@@ -1021,8 +1021,7 @@ func (e *Engine) sacAsk() bool {
 		}
 		if n <= 0 || n > len(candidates) {
 			// A cost that can no longer be fully paid must not commit half
-			// paid (fix round 1, reviewer Important 1). Abort the whole
-			// thing; nothing has moved yet.
+			// paid. Abort the whole thing; nothing has moved yet.
 			//
 			// This site used to hand-roll the teardown (clear e.cast, emit the
 			// Note) on the reasoning that it was "unreachable from a

@@ -140,7 +140,7 @@ func TestOwnLibraryFoldRules(t *testing.T) {
 	// A Hideaway-style face-down exile we may look at is still counted.
 	f.g.SetZone(state.ZLibrary, 0, slices.DeleteFunc(slices.Clone(f.g.Zone(state.ZLibrary, 0)), func(id state.ObjID) bool { return id == f.libBeta }))
 	f.g.SetZone(state.ZExile, 0, append(slices.Clone(f.g.Zone(state.ZExile, 0)), f.libBeta))
-	// Hideaway records its controller as the looker (cr-g64: the may-look
+	// Hideaway records its controller as the looker (the may-look
 	// layout); a blind face-down exile (Necropotence) names no looker, so
 	// not even its owner may read it.
 	o := f.g.Obj(f.libBeta)

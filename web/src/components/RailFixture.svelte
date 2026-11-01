@@ -8,7 +8,7 @@
    * Geometry-fixture host for the whole rail (SeatTable.geometry.ts mounts it
    * into #rail). It exists only so the fixture can render Rail with the SAME
    * logbar snippet the live route uses — a ConcedeControl passed as Rail's
-   * `logbar` snippet, exactly as Table.svelte passes it (task fb-53bd45b9) —
+   * `logbar` snippet, exactly as Table.svelte passes it —
    * so the harness measures the real rendered control, not a probe button
    * pasted into the row. No production caller; not used by any route.
    */
@@ -28,8 +28,7 @@
     /** Transcript events handed straight through to Rail (and so to
      *  SeatTable's lossCauses) — the lost-seat fixture variant uses one real
      *  `player_lost` event carrying the longest real cause text so the
-     *  eliminated line is measured with the widest content it ever holds
-     *  (fb-20260917T232028Z round-2 overflow finding). */
+     *  eliminated line is measured with the widest content it ever holds. */
     events = [],
   }: {
     view: View;

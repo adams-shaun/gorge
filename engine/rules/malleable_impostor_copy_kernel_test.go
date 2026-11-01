@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the malleable_impostor_copy_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Malleable Impostor's declined copy, driven through the resolution kernel
+// (engine/rules/resolve).
 
 import (
 	"testing"
@@ -23,7 +22,7 @@ func TestMalleableImpostorDecline(t *testing.T) {
 	e.G.Players[0].Pool[state.MC] = 3
 	e.G.Players[0].Pool[state.MU] = 1
 	castMode(t, e, id, "")
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" {
 		t.Fatalf("expected ETB copy choice, got %+v", d)
@@ -38,7 +37,7 @@ func TestMalleableImpostorDecline(t *testing.T) {
 		t.Fatalf("decline option not offered: %+v", d.Options)
 	}
 	submitChoices(t, e, decline)
-	kr6Settle(e)
+	settleDrain(e)
 	if d := e.Pending(); d != nil && d.Kind == decision.KPriority && len(e.G.Stack) > 0 {
 		passUntilStackEmpty(t, e, 60)
 	}

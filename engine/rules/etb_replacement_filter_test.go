@@ -1,6 +1,6 @@
 // kw:ETBReplacement's trailing FILTER field (the 5th colon field) is the
 // replacement's real ValidCard$ spec, and the trailing ZONE field (4th) is
-// the source's ActiveZones$ — the follow-up pins the brief's named carriers
+// the source's ActiveZones$ — the follow-up pins the named carriers
 // on top of the zone file's Dearly Departed / Bramblewood Paragon pins
 // (engine/rules/etbreplacement_zone_test.go). Before the expansion read the fields
 // (commit dcfa4d4a) every expanded repl carried the Card.Self placeholder,
@@ -22,7 +22,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestVenserVisionaryTravelerFilterGate is the brief's four-way pin:
+// TestVenserVisionaryTravelerFilterGate is a four-way pin:
 //   - Venser's OWN entry takes nothing (he is a planeswalker; the filter is
 //     Creature.!token+YouCtrl+!wasCastFromYourHand),
 //   - a raw-move creature he controls takes 2 P1P1 (never cast),

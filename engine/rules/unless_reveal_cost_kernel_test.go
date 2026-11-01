@@ -14,7 +14,7 @@ import (
 // Priest of the Wakening Sun's SWITCHED unless reveal: paying causes the
 // body (2 life, one public reveal), declining runs nothing.
 
-func kr9DrivePriestTrigger(t *testing.T, dinos int) (*Engine, state.ObjID) {
+func drivePriestToTrigger(t *testing.T, dinos int) (*Engine, state.ObjID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	e := stealEngine(t, 743)
@@ -35,7 +35,7 @@ func kr9DrivePriestTrigger(t *testing.T, dinos int) (*Engine, state.ObjID) {
 		e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
 	}
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: priest, Player: 0, Amount: 0})
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 	// OptionalDecider$ You makes the trigger itself an optional election;
 	// accept it so the unless-pay gate on the body is reached.
 	if d := e.Pending(); d != nil && d.Kind == decision.KTriggerOptional && d.ResumeKind == "optional" {
@@ -49,7 +49,7 @@ func kr9DrivePriestTrigger(t *testing.T, dinos int) (*Engine, state.ObjID) {
 
 func TestUnlessRevealPriestSwitchedPayGainsLifeKernel(t *testing.T) {
 	t.Parallel()
-	e, priest := kr9DrivePriestTrigger(t, 2)
+	e, priest := drivePriestToTrigger(t, 2)
 	before := e.G.Players[0].Life
 	answerUnlessPay(t, e, true)
 
@@ -88,7 +88,7 @@ func TestUnlessRevealPriestSwitchedPayGainsLifeKernel(t *testing.T) {
 
 func TestUnlessRevealPriestSwitchedDeclineRunsNoBodyKernel(t *testing.T) {
 	t.Parallel()
-	e, _ := kr9DrivePriestTrigger(t, 1)
+	e, _ := drivePriestToTrigger(t, 1)
 	before := e.G.Players[0].Life
 	answerUnlessPay(t, e, false)
 	if got := e.G.Players[0].Life; got != before {

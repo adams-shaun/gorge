@@ -1,6 +1,6 @@
 package rules
 
-// cr-g64: CR 406.3 -- cards "exiled face down" can't be examined by any
+// CR 406.3 -- cards "exiled face down" can't be examined by any
 // player except when instructions allow it; a player instructed to look and
 // then exile, or allowed to look, may keep looking. The face of a face-down
 // exiled card is therefore visible to EXACTLY the seats that may look:
@@ -257,7 +257,7 @@ func TestHideawayControllerStillSeesTheHiddenFace(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
 	e.putTriggersOnStack()
 	mark := len(e.L.Events)
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	pick := e.Pending()
 	if pick == nil || pick.Kind != decision.KChoose || pick.Player != 1 {
 		t.Fatalf("Hideaway pick = %+v, want seat 1's choice", pick)

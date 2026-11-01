@@ -96,8 +96,16 @@ func TestEffectDelayedPermanentAndNextTurn(t *testing.T) {
 
 func TestEffectDelayedMoveEndAndForget(t *testing.T) {
 	t.Parallel()
-	for _, rider := range []string{"ExileOnMoved", "ForgetOnMoved"} {
-		t.Run(rider, func(t *testing.T) {
+	for _, tc := range []struct {
+		name, rider string
+		both        bool
+	}{
+		{"ExileOnMoved alone", "ExileOnMoved", false},
+		{"ExileOnMoved of several", "ExileOnMoved", true},
+		{"ForgetOnMoved", "ForgetOnMoved", true},
+	} {
+		rider := tc.rider
+		t.Run(tc.name, func(t *testing.T) {
 			// Assemble one board so the remembered objects and the source belong
 			// to this SAME game (and the positive control differs from the mover).
 			e := layerEngine(t)
@@ -108,8 +116,12 @@ func TestEffectDelayedMoveEndAndForget(t *testing.T) {
 				t.Fatal("precondition: two distinct battlefield subjects required")
 			}
 			face := e.G.Obj(src).Face()
-			effects.Resolve(e, &effects.Ctx{Source: src, Controller: 0, SVars: face.SVars, Remembered: []state.Target{{Obj: moved}, {Obj: kept}}}, face.Abilities[0])
-			if len(e.G.Delayed) != 1 || len(e.G.Delayed[0].Remembered) != 2 {
+			subjects := []state.Target{{Obj: moved}}
+			if tc.both {
+				subjects = append(subjects, state.Target{Obj: kept})
+			}
+			effects.Resolve(e, &effects.Ctx{Source: src, Controller: 0, SVars: face.SVars, Remembered: subjects}, face.Abilities[0])
+			if len(e.G.Delayed) != 1 || len(e.G.Delayed[0].Remembered) != len(subjects) {
 				t.Fatalf("precondition: forgotten set not captured: %+v", e.G.Delayed)
 			}
 			e.emit(events.Event{Kind: events.Damage, Obj: moved, Amount: 1})
@@ -125,7 +137,7 @@ func TestEffectDelayedMoveEndAndForget(t *testing.T) {
 			if len(e.pendingTriggers) != 0 {
 				t.Fatal("moved card matched after lifetime change")
 			}
-			if rider == "ExileOnMoved" {
+			if !tc.both {
 				if len(e.G.Delayed) != 0 {
 					t.Fatalf("exile did not end Effect: %+v", e.G.Delayed)
 				}

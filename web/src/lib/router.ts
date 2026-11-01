@@ -8,7 +8,7 @@ export type Route =
 
 export function parseRoute(pathname: string): Route {
   if (pathname === '/') return { kind: 'overview' };
-  // Draft events (E2): /events/new creates a pod, /e/{id} is the event page.
+  // Draft events: /events/new creates a pod, /e/{id} is the event page.
   // The seat credentials ride the query (?seat=&token=), never the path, so
   // the route is the same for every viewer of one event.
   if (pathname === '/events/new' || pathname === '/events/new/') return { kind: 'newEvent' };

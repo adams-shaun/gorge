@@ -184,7 +184,7 @@ func TestTossNoteSurvivesWhenEveryOpeningDeckIsUndersized(t *testing.T) {
 
 // TestTossedGameReplaysByteIdentically: a seeded two-seat game whose toss
 // winner is NOT seat 0 replays byte-identically through the logged intents --
-// same chain head, same RNGDraws count (Ruling P5's replay contract).
+// same chain head, same RNGDraws count (the replay contract).
 func TestTossedGameReplaysByteIdentically(t *testing.T) {
 	t.Parallel()
 	cfg := tossedTwoSeat(t, 1, 0) // measured: seed 1 tosses to seat 1
@@ -276,7 +276,7 @@ func TestMulliganPromptNamesTheDisplayPlayerWithDuplicateDecks(t *testing.T) {
 }
 
 // TestTossIsUniformOverGenesisSurvivors is the survivor-bias regression
-// test (fix round 2): when the deal itself eliminates a seat, the toss must
+// test: when the deal itself eliminates a seat, the toss must
 // stay uniform over the SURVIVORS -- not be reduced modulo the survivor
 // count. Three seats with seat 0's three-card deck (it decks out during its
 // opening hand, CR 704.5c) leave seats 1 and 2 alive; the pre-fix engine

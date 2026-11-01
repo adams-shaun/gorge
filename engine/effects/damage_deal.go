@@ -59,19 +59,14 @@ func damageOptionalPrompt(h Host, c *Ctx, sa *cards.SA, n int32) string {
 }
 
 // effDealDamage implements "SP$/AB$/DB$ DealDamage" against players and
-// permanents. Absorbed from Task 14's stopgap (formerly primitives.go, now
-// folded in here): the negative-NumDmg clamp and its default of 0 (not 1) are
-// Ruling T14-f, kept verbatim -- events.Apply's Damage case is a plain
-// subtraction from Life, so an unclamped negative value would heal instead of
-// doing nothing, and TestDealDamageDefaultsMissingNumDmgToZero already locks
-// in the zero default.
+// permanents. A negative NumDmg clamps to 0 because events.Apply's Damage case
+// is a plain subtraction from Life, so an unclamped negative value would heal
+// instead of doing nothing; a missing NumDmg defaults to 0, not 1
+// (TestDealDamageDefaultsMissingNumDmgToZero).
 //
-// Folded in on top of that stopgap: a permanent that has already left the
-// battlefield (destroyed or sacrificed in response, say) is not a legal
-// recipient any more -- the effect does nothing to it rather than marking
-// damage on a card sitting in a graveyard. See the Task 18 report for how
-// this (and Destroy/ChangeZone/Sacrifice/Counter, which can make exactly that
-// happen) interacts with CR 608.2b target rechecking.
+// A permanent that has already left the battlefield (destroyed or sacrificed
+// in response, say) is not a legal recipient any more -- the effect does
+// nothing to it rather than marking damage on a card sitting in a graveyard.
 //
 // CR 609.7a provenance: the damage's source is DamageSource$ when the script
 // names one, the resolving source otherwise, and SetDamageSource makes that
@@ -93,8 +88,8 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// may election made by the NAMED player, resolved through the same
 	// selector grammar Draw's OptionalDecider$ arm uses. Option 0 is today's
 	// behaviour (yes), so the bot clamp keeps every bot game byte-identical.
-	// An unresolvable spec fails closed: one Note and the damage stays (the
-	// pre-ask behaviour); a host that cannot ask (R-9) does the same.
+	// An unresolvable spec fails closed: one Note and the damage stays;
+	// a host that cannot ask does the same.
 	if dp.OptionalDecider != "" && n > 0 && damageHasRecipient(h, c, sa) {
 		if seat, ok := dealDamageDecider(h, c, dp.OptionalDecider); ok {
 			d := &decision.Decision{Player: seat, Kind: decision.KChoose, Min: 1, Max: 1,
@@ -110,7 +105,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 				}
 			} else {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-					Text: "DealDamage: no host to ask the OptionalDecider$ election; deals (R-9 stand-in)"})
+					Text: "DealDamage: no host to ask the OptionalDecider$ election; deals (no-host stand-in)"})
 			}
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
@@ -150,7 +145,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// damage. Ctx is threaded by pointer through Resolve, so appending here is
 	// visible to the sub-ability without any state write -- the remembered set
 	// is per-resolution context, not game state, and replay re-derives it by
-	// re-running the same resolution (Task ce1).
+	// re-running the same resolution.
 	remember := dp.RememberDamaged
 	// DividedAsYouChoose$ N (Fury's "deals 4 damage divided as you choose
 	// among any number of target creatures and/or planeswalkers", Forked
@@ -161,7 +156,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// are the shares (a target that receives nothing is simply never picked).
 	// The decision's own Min/Max/Repeatable wire rules already constrain the
 	// answer to exactly the named total over exactly the chosen target list,
-	// so no new Validate rule is needed. The deterministic R-9 no-host
+	// so no new Validate rule is needed. The deterministic no-host
 	// stand-in distributes one damage at a time,
 	// round-robin in the chosen-target order, so the batch total is exactly
 	// N. Targets beyond N take nothing, as an unchosen target would.
@@ -243,7 +238,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 					// them with the rider built on the way in.
 					split = damageSplitAnswer(ans)
 				} else {
-					// No host (R-9): the deterministic round-robin stand-in.
+					// No host: the deterministic round-robin stand-in.
 					split = roundRobinSplit(len(divTargets), total)
 				}
 
@@ -436,9 +431,9 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 // that source's nothing (fail closed inside, never a guessed pairing). A
 // source no longer on the battlefield contributes nothing (Forge reads its
 // LKI; the corpus multi-source lines all name live battlefield permanents, so
-// the narrower liveness rule is unreachable there and is recorded in the
-// ticket report). Returns false when the arm did not run -- fewer than two
-// resolvable sources, a shared recipient arm that resolved to nothing, or a
+// the narrower liveness rule is unreachable there).
+// Returns false when the arm did not run -- fewer than two resolvable
+// sources, a shared recipient arm that resolved to nothing, or a
 // DividedAsYouChoose resolution (no corpus line combines the two) -- so the
 // caller falls through to its single-rider path unchanged.
 func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sources []state.ObjID, n int32,

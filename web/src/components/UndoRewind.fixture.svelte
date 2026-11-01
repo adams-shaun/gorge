@@ -13,7 +13,7 @@
    * effects adopt view.decision and poll /pending) -- in front of a simulated
    * server behind a stubbed window.fetch.
    *
-   * The scenario is the 2026-09-26 demo report (table g3, round 7): the seat's
+   * The scenario is from a player report: the seat's
    * pending ask is the Lord Windgrace +2 discard at seq 1526; UNDO rewinds the
    * server to the seat's last intent, the priority window at seq 1519 with the
    * +2 still on the stack, where Harrow is castable through an Auto Mana

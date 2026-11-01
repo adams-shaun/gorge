@@ -19,7 +19,7 @@ import CardTile from './CardTile.svelte';
 /**
  * FocusRelease.fixture.ts mounts the REAL hot wiring (HotButtonStrip +
  * SeatPanelState) beside one representative of every remaining focusable
- * table-control family (hotkey-focus2 F1–F7), so a mounted test can click a
+ * table-control family, so a mounted test can click a
  * control with the pointer and assert — through the live document — that the
  * next Space reaches the table hotkey instead of re-activating the control:
  *
@@ -27,7 +27,7 @@ import CardTile from './CardTile.svelte';
  *  - window.__picks: the mana panel's onPick recorder;
  *  - window.__dvrActions / __flowOpened / __dismissed: the chrome recorders;
  *  - window.__newDecision: adopts a fresh answerable priority window;
- *  - window.__pile: the shared pileOpener singleton for the F5 pair.
+ *  - window.__pile: the shared pileOpener singleton for the pile opener pair.
  */
 
 interface FixtureWindow {
@@ -106,13 +106,13 @@ win.__newDecision = () => {
   state.adoptView({ ...decision, seq: (state.pending?.seq ?? 7) + 1 });
 };
 
-// F2 + F3 + the real hotkeys.
+// The hot button strip and the real hotkeys.
 mount(HotButtonStrip, {
   target: document.querySelector('#strip')!,
   props: { view, seats, state, ctx: { seat: 0, token: 'tok' }, table: 'fx', match: 1 },
 });
 
-// F1: the chrome pills; onOpenFlow records the flow pill's effect.
+// The chrome pills; onOpenFlow records the flow pill's effect.
 mount(CentreStrip, {
   target: document.querySelector('#centre')!,
   props: {
@@ -124,21 +124,21 @@ mount(CentreStrip, {
   },
 });
 
-// F1: the drawer the layout pill opens (the same layoutStore singleton).
+// The drawer the layout pill opens (the same layoutStore singleton).
 mount(LayoutDrawer, { target: document.querySelector('#layout')!, props: {} });
 
-// hotkey-focus-nonaction pin: a battlefield CardTile — role=button,
+// A battlefield CardTile — role=button,
 // tabindex=0, no onclick of its own. A pointer click on it does nothing BUT
 // park focus, which is exactly what made focusOwnsKey drop the next
 // Space/Enter before lib/pointer's pointerRelease landed here (the named
-// first instance of the defect, alongside the CentreStrip pills F1 above).
+// first instance of the defect, alongside the CentreStrip pills above).
 // Production defaults (hover etc.) are used: this is a real browser mount.
 mount(CardTile, {
   target: document.querySelector('#tile')!,
   props: { card: player.battlefield[0] },
 });
 
-// F4: the mana-payment panel with a stubbed window: one Mountain source
+// The mana-payment panel with a stubbed window: one Mountain source
 // offering R, plus the window's four control actions. onPick records.
 const mpDecision: Decision & { mana_payment: { card: number; cost: { generic: number; mana: [number, number, number, number, number, number] }; owed: { generic: number; mana: [number, number, number, number, number, number] }; pool: [number, number, number, number, number, number] } } = {
   seq: 7, player: 0, kind: 'payment', prompt: 'Pay for Bolt.', min: 1, max: 1,
@@ -166,7 +166,7 @@ mount(ManaPaymentPanel, {
   },
 });
 
-// F5: a real pile opener (ZonePiles over the viewer's graveyard) and the one
+// A real pile opener (ZonePiles over the viewer's graveyard) and the one
 // modal host reading the shared opener.
 mount(ZonePiles, {
   target: document.querySelector('#zones')!,
@@ -174,7 +174,7 @@ mount(ZonePiles, {
 });
 mount(PileHost, { target: document.querySelector('#pilehost')!, props: { view, seats, options: null } });
 
-// F6: the DVR transport.
+// The DVR transport.
 const dvr: DvrState = { ...initialDvr, head: 3, cursor: 3, events: [] };
 mount(ReplayTransport, {
   target: document.querySelector('#dvr')!,
@@ -185,14 +185,14 @@ mount(ReplayTransport, {
   },
 });
 
-// F7: the settings panel over the real seat state (settings edits land on
+// The settings panel over the real seat state (settings edits land on
 // state.settings, which the tests read through __state).
 mount(PlaySettingsPanel, {
   target: document.querySelector('#settings')!,
   props: { state, showLog: true, onToggleLog: () => {} },
 });
 
-// F3's persistent half: ListPrompt's multi-pick chips stay enabled after a
+// The persistent half: ListPrompt's multi-pick chips stay enabled after a
 // click (a modes decision toggles into `picked`; nothing unmounts), so the
 // focus-released assertion is NOT vacuous the way the single-post answer
 // buttons' busy-disable cycle would make it. Its logic is its own manual
@@ -214,18 +214,17 @@ mount(ListPrompt, {
   props: { decision: modesDecision, logic: listState },
 });
 
-// F6-class chrome: the wire notice dismiss.
+// More chrome: the wire notice dismiss.
 mount(WireNotice, {
   target: document.querySelector('#wire')!,
   props: { text: 'reconnected', onDismiss: () => { win.__dismissed = true; } },
 });
 
-// F8: a battlefield CardTile (agent-20260929T101809Z-adba832d pin). The
-// role="button" + tabindex=0 tile is inside hotkeys.ts's ACTIVATABLE set, so
-// before lib/pointer.ts's release a pointer click parked focus on it and
-// Space re-targeted the tile instead of passing. Mounted with the plain
-// card() card: the detail panel it opens on focus is irrelevant to the
-// assertions.
+// A battlefield CardTile. The role="button" + tabindex=0 tile is inside
+// hotkeys.ts's ACTIVATABLE set, so before lib/pointer.ts's release a pointer
+// click parked focus on it and Space re-targeted the tile instead of passing.
+// Mounted with the plain card() card: the detail panel it opens on focus is
+// irrelevant to the assertions.
 mount(CardTile, {
   target: document.querySelector('#board')!,
   props: { card: card(41, 'Bolt') },

@@ -8,9 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// This file is api:ManaReflected's parameter compiler (W4 step 3 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 8). compileManaReflected is the ONLY reader of a reflected-mana ability's
+// This file is api:ManaReflected's parameter compiler.
+// compileManaReflected is the ONLY reader of a reflected-mana ability's
 // own parameters: the resolution (mana_reflected.go's effManaReflected), the
 // candidate census rules' mana walk and activation share
 // (ManaReflectedCandidates) and rules' reflected-mana activation gate

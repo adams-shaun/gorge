@@ -145,7 +145,7 @@ func alterAttributeWouldChange(h Host, c *Ctx, sa *cards.SA, code int, activate 
 }
 
 // effAlterAttribute applies Forge's AlterAttribute effect: it flips a
-// designation attribute on each resolved target (task alterattr1). Targets
+// designation attribute on each resolved target. Targets
 // come through the ordinary Defined path, so a body with no Defined$ asks
 // its ValidTgts$ targets the way every other targeting primitive does --
 // Nelly Borca's "whenever it attacks, suspect target creature" gets its ask
@@ -200,7 +200,7 @@ func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
 			// CR 608.2d: "you may suspect it" is the controller's election at
 			// resolution. Option 0 is today's behaviour (yes), so the bot
 			// clamp keeps every bot game byte-identical; a host that cannot
-			// ask (R-9) keeps the mandatory apply and emits one Note.
+			// ask keeps the mandatory apply and emits one Note.
 			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 				Source: c.Source, ResumeKind: "alterattribute_optional", ResumeSA: sa,
 				Prompt: "Apply " + text + "?",
@@ -214,7 +214,7 @@ func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
 				}
 			} else {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-					Text: "AlterAttribute: no host to ask the Optional$ election; applies (R-9 stand-in)"})
+					Text: "AlterAttribute: no host to ask the Optional$ election; applies (no-host stand-in)"})
 			}
 		}
 		prepared, solved := code == alterAttributePrepared, code == alterAttributeSolved
@@ -310,12 +310,11 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 // object mid-match (a copy of a spell or ability already on the stack), and
 // every state mutation in this engine goes through events.Apply -- there is
 // no Apply case yet that mints an ID and decides how a copy's Card/FaceIdx/
-// Ability/Targets carry over. Token had the identical shape (see the Task
-// 18 report for the original analysis of both) and closed it in Task 13 via
+// Ability/Targets carry over. Token has the identical shape and closes it via
 // events.TokenCreate, whose Apply case mints the new object from
 // Game.Tokens; see token.go. CopySpellAbility's own object comes from
 // wherever it is on the stack already, not a registry, so it needs its own
-// event kind (StackCopy exists as of Task 12) wired up rather than reusing
+// event kind (StackCopy) wired up rather than reusing
 // TokenCreate's shape verbatim. Registering it as a Note-only stub would
 // make Supported()/Coverage claim a card is playable when it cannot
 // actually do what its text says. Left unregistered, Resolve's existing

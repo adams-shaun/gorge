@@ -4,7 +4,7 @@
 
   /**
    * Quadrant fixture: a real browser-mounted battlefield for the hover
-   * inspector lifetime regression (fb-20260915T182335Z). Seat 0's battlefield
+   * inspector lifetime regression. Seat 0's battlefield
    * holds one Grizzly Bear (object 7); the window hooks below mutate the LIVE
    * view the way an incoming stream frame would — same-object state updates,
    * a replaced object, a removed object — so the test can prove the keyed

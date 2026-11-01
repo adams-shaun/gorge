@@ -1,7 +1,7 @@
 package rules
 
 // The Rakdos-params brief, gap 1: ChangeZone's GainControl$ parameter.
-// Reanimate is the brief's named corpus card: "Put target creature card from
+// Reanimate is the named corpus card: "Put target creature card from
 // a graveyard onto the battlefield under your control. You lose life equal
 // to its mana value." Before this work the GainControl$ key was never read,
 // so the reanimated creature stayed under its OWNER's control.

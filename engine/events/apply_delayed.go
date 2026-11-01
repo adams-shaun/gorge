@@ -15,7 +15,7 @@ import (
 
 // foldDelayedRegister folds Kind DelayedRegister into state.
 func foldDelayedRegister(g *state.Game, e *Event) {
-	// Ruling dt1-a: the registration is game state folded here, so a
+	// The registration is game state folded here, so a
 	// log-only replay rebuilds the same set a live game held. Totality
 	// like every case: an invalid controller, a nonexistent source, or a
 	// non-canonical Step (at the very least a zero Step is untap, which
@@ -46,9 +46,8 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		strings.HasPrefix(e.Counter, "__kwDecayed")
 	// Event-matched (non-phase) registrations encode
 	// "<Mode$ value>:<trigger SVar name>" in Text. The DelayedRegister
-	// event gains no field of its own (Ruling T20-a's field-reuse
-	// precedent); a Mode$ Phase registration's Text is the Forge Phase$
-	// string, which never contains a colon, and the decode only splits on
+	// event gains no field of its own; a Mode$ Phase registration's Text is
+	// the Forge Phase$ string, which never contains a colon, and the decode only splits on
 	// the modes rules.registerOpeningEffectTriggers emits, so every
 	// already-logged registration decodes as a phase one. An inline
 	// body (effDelayedTrigger's Mode$ SpellCast branch, where the
@@ -349,9 +348,9 @@ func foldDelayedRemove(g *state.Game, e *Event) {
 
 // foldDelayedPush folds Kind DelayedPush into state.
 func foldDelayedPush(g *state.Game, e *Event) {
-	// Ruling dt1-a: the ability object is minted here, inside Apply, so a
+	// The ability object is minted here, inside Apply, so a
 	// log-only replay creates the same object a live game did (the
-	// Ruling T20-a precedent TriggerPush and AbilityPush already set).
+	// precedent TriggerPush and AbilityPush already set).
 	// Unlike those two, the Ability is not a face Triggers index -- a
 	// delayed trigger's Effect is an SVar-named sub-ability on the
 	// source's face -- so it is resolved here from e.Counter (the
@@ -486,7 +485,7 @@ func foldDelayedPush(g *state.Game, e *Event) {
 // foldGrantTriggerPush folds Kind GrantTriggerPush into state.
 func foldGrantTriggerPush(g *state.Game, e *Event) {
 	// A static-grant's trigger (AddTrigger$ on a Mode$ Continuous static):
-	// the Ruling T20-a/DelayedPush precedent -- the ability object is
+	// the DelayedPush precedent -- the ability object is
 	// minted here, inside Apply, so a log-only replay creates the same
 	// object a live game did. Like DelayedPush the Ability is not a face
 	// Triggers index: it is the granted trigger's Execute$ SVar-named
@@ -596,8 +595,8 @@ func foldGrantAbilityPush(g *state.Game, e *Event) {
 
 // foldGainedAbilityPush folds Kind GainedAbilityPush into state.
 func foldGainedAbilityPush(g *state.Game, e *Event) {
-	// A has-all-abilities-of activated ability (Forge's GainsAbilitiesOf$,
-	// task gains1): like AbilityPush the object is minted inside Apply so a
+	// A has-all-abilities-of activated ability (Forge's GainsAbilitiesOf$):
+	// like AbilityPush the object is minted inside Apply so a
 	// log-only replay creates the same object a live game did, but the
 	// ability is a compiled SA on a FOREIGN card's face rather than an
 	// index of the recipient's own. Obj is the recipient (o.Source, so
@@ -651,8 +650,8 @@ func foldGainedAbilityPush(g *state.Game, e *Event) {
 
 // foldGainedTriggerPush folds Kind GainedTriggerPush into state.
 func foldGainedTriggerPush(g *state.Game, e *Event) {
-	// A has-all-abilities-of triggered ability (Forge's GainsTriggerAbsOf$,
-	// task gains1): the GainedAbilityPush shape one level over, the
+	// A has-all-abilities-of triggered ability (Forge's GainsTriggerAbsOf$):
+	// the GainedAbilityPush shape one level over, the
 	// MergedTriggerPush precedent's Apply-time mint. Obj is the recipient
 	// (o.Source), IDs[0] the foreign card, Amount the index of the
 	// trigger in that face's Triggers, and Counter the Execute$ name

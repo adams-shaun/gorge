@@ -40,18 +40,18 @@
    * fan's container — never the `.card-image` width directly), so a hand card
    * gets exactly the same blank-vs-art treatment as a board tile.
    *
-   * THE SAME OPTIONS AFFORDANCE AS A BOARD TILE (ui21), FROM THE SAME INDEX.
+   * THE SAME OPTIONS AFFORDANCE AS A BOARD TILE, FROM THE SAME INDEX.
    * The board's tiles mark and menu the cards a pending decision offers
    * something to; a hand card was the blind spot — casting a card from hand
    * is the commonest decision a seat makes, and `tileOptions` (lib/cardoptions)
    * already returns exactly what a hand card needs: this card's options, its
    * picked ordinals, the tone, and the post callback. One mechanism, one
-   * index, one post path (R-E4-1): the affordance here is a FAN-SPECIFIC
+   * index, one post path: the affordance here is a FAN-SPECIFIC
    * PRESENTATION of the same data, not a second index or a second post path.
    * Each hand card wears the tone ring marking; one offer is a direct icon,
    * while several get a count badge and menu of the server's own labels. Both
    * post each option's own index, with a picked chip in click order — exactly what a board tile gets,
-   * adapted to the fan's geometry. See the task report for why the shape
+   * adapted to the fan's geometry. The shape
    * differs (the fan overlaps; a menu must open UP, the hand sits at the
    * board's bottom edge; and the tile's all-four-corners signal hierarchy
    * has no purchase on a bare face, so the badge marks the card's top edge).
@@ -67,10 +67,10 @@
     player,
     /** the room the fan may occupy, px. Left at 0 the component measures its own container width; a unit test passes a concrete number. */
     width = 0,
-    /** the pending decision's card-indexed offers (ui21's CardOptions bundle),
+    /** the pending decision's card-indexed offers (the CardOptions bundle),
      *  or null for a spectator / when nothing is pending. A hand card the
      *  decision offers something to is marked and carries the same options
-     *  menu as a board tile (R-E4-1: each item posts the option's own index). */
+     *  menu as a board tile (each item posts the option's own index). */
     options = null,
     paymentActions = [],
     /** autoPay is the seat's Auto-pay preference: it only changes the CAST
@@ -199,7 +199,7 @@
            chrome, just the face plus the shared hover inspector. When the
            pending decision offers this card something it also carries the
            same options affordance a board tile gets — the tone ring, the
-           options badge + menu (each item posting its own index, R-E4-1),
+           options badge + menu (each item posting its own index),
            and the picked chip — adapted to the fan. -->
       {@const opt = options ? tileOptions(options, c.id) : null}
       {@const payment = paymentActions.find((action) => action.cast.object === c.id)}
@@ -337,7 +337,7 @@
     z-index: 6;
     pointer-events: none;
   }
-  /* The dotted outline (fb-20260916T182801Z): up while the hand's resize
+  /* The dotted outline: up while the hand's resize
      stepper is being used (handHover) and for FLASH_MS after any hand
      adjustment — including one made in the Game Options panel, which pulses
      the same shared store this track reads. */
@@ -345,7 +345,7 @@
      make one seat strip. The track, not the cards, consumes --own-seat-w, so
      overlap tightening still follows the actual room available.
 
-     The peek (fb-20260916T024357Z-9005ad6a): the whole fan sits half a card
+     The peek: the whole fan sits half a card
      LOW so the board's own overflow:hidden (Table.svelte .board) clips the
      lower half — the normal state exposes exactly the top 50% of every hand
      card. The offset is relative (50% of the fan's own height, which is one
@@ -360,7 +360,7 @@
     transform: translateY(calc(var(--peek, 0.5) * 100%));
     pointer-events: none;
   }
-  /* The peek modes (fb-20260916T182801Z, brief decision 2 — the three
+  /* The peek modes (the three
      readings of "slide up"):
      - hover (the shipped default): the half-clipped rest above, raised on
        hover/focus — the base rules, unchanged.
@@ -401,7 +401,7 @@
      neighbours it overlaps.
 
      The focus arm is `.card:has(:focus-visible)`, NOT `.card:focus-visible`:
-     since ui23 moved tabindex off the card onto the inner .face (so a real
+     tabindex lives on the inner .face, not the card (so a real
      options button is never nested inside a role=button), the element the
      keyboard focuses is the FACE, and a :focus-visible on .card itself could
      never match again — the old selector was dead, leaving a keyboard user
@@ -507,7 +507,7 @@
      across the neighbour's exposed left strip and wins the hit-test there, so
      the raise gesture — `.card:hover`, and Playwright's hover actionability —
      landed on the affordance instead of the neighbour's face (the mirror of
-     the buried-button bug this ticket fixes). Starting the box a few px
+     the buried-button bug). Starting the box a few px
      inside the neighbour leaves its leftmost edge its own face, while the
      affordance centre still sits over the neighbour's face (asserted in
      HandFan.geometry.test.ts). The last card has no next face to clear, so it
@@ -528,7 +528,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    /* +25% over the pre-fb-9946410e 1.1rem, matching OptionPicker's badge. */
+    /* +25% over 1.1rem, matching OptionPicker's badge. */
     min-width: 1.375rem;
     height: 1.375rem;
     padding: 0 0.25rem;

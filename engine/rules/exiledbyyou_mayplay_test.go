@@ -2,7 +2,7 @@ package rules
 
 // exiledbyyou_mayplay_test.go pins Card.ExiledByYou on the two corpus cards that
 // read it (Evelyn, the Covetous; Haldan, Avid Arcanist): a card the controller's
-// own Dig exiled, with the cr-g190 counter, is offered to be played from exile.
+// own Dig exiled, with its counter, is offered to be played from exile.
 
 import (
 	"testing"

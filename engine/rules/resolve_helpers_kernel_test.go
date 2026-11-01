@@ -1,0 +1,90 @@
+package rules
+
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/state"
+)
+
+// resolveUnderProbe resolves sa directly under a kernel probe: an ask inside it is
+// posed as e.Pending() and the answering Submit re-executes the resolution
+// from the checkpoint with the recorded answers served. ctx is called afresh
+// for every (re-)execution, so it must only read what was captured before.
+// Any outstanding decision (the priority a fixture holds) is dropped first:
+// the kernel serves an ask only with no other decision posed.
+func resolveUnderProbe(e *Engine, ctx func() *effects.Ctx, sa *cards.SA) {
+	e.pending = nil
+	e.probe(func() { effects.Resolve(e, ctx(), sa) })
+}
+
+// optionOfObj returns the index of the option offering obj, or fails.
+func optionOfObj(t *testing.T, d *decision.Decision, obj state.ObjID) int {
+	t.Helper()
+	for _, o := range d.Options {
+		if o.Obj == obj {
+			return o.Index
+		}
+	}
+	t.Fatalf("object %d not offered: %+v", obj, d.Options)
+	return -1
+}
+
+// offersObj reports whether d offers obj.
+func offersObj(d *decision.Decision, obj state.ObjID) bool {
+	for _, o := range d.Options {
+		if o.Obj == obj {
+			return true
+		}
+	}
+	return false
+}
+
+// settlePassing re-asks priority once a probed resolution has finished (a probe
+// runs outside the engine's flow, so nothing poses the next decision): the
+// state-based actions a resolution is followed by, then priority.
+func settlePassing(e *Engine) {
+	if e.Pending() == nil && !e.G.Over {
+		e.checkStateBased()
+		if !e.G.Over {
+			e.priorityRound()
+		}
+	}
+}
+
+// passUntilPosed drops the fixture's held decision, opens a priority
+// round and passes priority through real Submits until a non-priority
+// decision is posed or the stack empties, so stack objects resolve under the
+// engine's own kernel flow. Returns the non-priority decision, or nil.
+func passUntilPosed(t *testing.T, e *Engine, limit int) *decision.Decision {
+	t.Helper()
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+		e.pending = nil
+		e.priorityRound()
+	}
+	for i := 0; i < limit && !e.G.Over; i++ {
+		d := e.Pending()
+		if d == nil {
+			return nil
+		}
+		if d.Kind != decision.KPriority {
+			return d
+		}
+		if len(e.G.Stack) == 0 {
+			return nil
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("priority decision with no pass option: %+v", d)
+		}
+		submitChoices(t, e, idx)
+	}
+	return e.Pending()
+}

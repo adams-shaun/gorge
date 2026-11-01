@@ -491,7 +491,7 @@ func MillCostTotal(parts []CostPart) (int64, bool) {
 
 // AddClampedGeneric adds n to the int32 generic count, saturating at
 // math.MaxInt32 on top and refusing to go below zero, so no accumulation of
-// numeric tokens (nor a WithX fold) can ever wrap Generic negative. Task 20.
+// numeric tokens (nor a WithX fold) can ever wrap Generic negative.
 func AddClampedGeneric(v int32, n int64) int32 {
 	total := int64(v) + n
 	if total > math.MaxInt32 {
@@ -736,7 +736,7 @@ func (c Cost) HasNonMana() bool {
 // the payer, but an {X} component that has not been folded into Generic, or a
 // Tap/Sac/Discard/SubCounter component, still needs cast-flow handling. Such a cost
 // is unpriceable by the mid-resolution payment API and must be DECLINED,
-// never silently priced at zero. This is the predicate I-5 routes through:
+// never silently priced at zero. This is that predicate:
 // every component ParseCost collapses into a shape payMana cannot charge --
 // an SVar-sourced X, a cast-time-chosen X, or a Tap/Sac/Discard/SubCounter part --
 // travels through the same predicate rather than a `if cost == "X"` special

@@ -210,7 +210,7 @@ func (e *Engine) Toughness(id state.ObjID) int32 {
 }
 
 // HasKeyword matches case-insensitively, like its sibling cards.Face.HasKeyword
-// (Ruling T19-b) — every existing call site already goes through that
+// — every existing call site already goes through that
 // case-insensitive comparison, so an exact-match Engine.HasKeyword would have
 // been a silent trap for the first caller with non-canonical-cased input.
 func (e *Engine) HasKeyword(id state.ObjID, kw string) bool {
@@ -413,7 +413,7 @@ func (e *Engine) objColors(o *state.Object) string {
 	return effects.ColorsOf(o)
 }
 
-// Keywords exists for Ruling F2: Task 23's view.Chars interface needs a
+// Keywords exists for view.Chars: interface needs a
 // Keywords(state.ObjID) []string method, and Engine.Derived already returns
 // a Derived struct — a method of the same name on Engine could not satisfy
 // an interface expecting a slice. This is that method; Derived(id).Keywords

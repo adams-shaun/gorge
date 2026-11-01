@@ -59,7 +59,7 @@ func commanderCastCountGame(t *testing.T, seed uint64) (*Engine, Config) {
 	return e, cfg
 }
 
-// TestThunderclapDrakeCopiesOncePerCommanderCast is the brief's end-to-end
+// TestThunderclapDrakeCopiesOncePerCommanderCast is the end-to-end
 // pin on the Count$TotalCommanderCastFromCommandZone head: cast the commander
 // from the command zone twice, resolve Thunderclap Drake's {2}{U} ability,
 // then cast the instant — the delayed SpellCast trigger copies it exactly

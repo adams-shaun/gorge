@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from play_cost_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Amped Raptor's play cost paying energy instead of mana, driven through the
+// resolution kernel (the only ask path).
 
 import (
 	"testing"
@@ -15,7 +15,7 @@ func TestAmpedRaptorPlayCostPaysEnergyInsteadOfManaKernel(t *testing.T) {
 	// The pool is empty: the only way the YES arm can pay is the {E}
 	// alternative. Answer YES (option 0).
 	submitChoices(t, e, 0)
-	kr7Settle(e)
+	settleKernel(e)
 	passUntilStackEmpty(t, e, 60)
 	if n := e.G.Players[0].Counter("ENERGY"); n != 0 {
 		t.Fatalf("energy after the YES arm = %d, want 0 (PayEnergy<ConvertedManaCost> paid)", n)

@@ -61,7 +61,7 @@ type ManaProduction struct {
 	// sources (Cavern of Souls and the rest): a reflected source resolves to
 	// the colour its controller asks for, so a tap gate may aim a needed
 	// coloured pip at it, while an ordinary Any source's behaviour must not
-	// be widened by the same change (ticket cli-20260922T225137Z). It is a
+	// be widened by the same change. It is a
 	// server-only field, like Indeterminate: the bot policy reads it, it
 	// must not ride the human wire (CardView).
 	Reflected bool `json:"-"`
@@ -72,7 +72,7 @@ type ManaProduction struct {
 //
 //   - a blank Amount is the executor's own default of 1 (Num's def), known;
 //   - a literal integer is used directly, known (negative clamped to 0,
-//     effMana's T14-f clamp);
+//     effMana's clamp);
 //   - anything else ("X", "Y", "UrzaAmount", a Count$ expression,
 //     "Sacrificed$...") is a value the projection cannot price -- the
 //     executor's Num resolves it through the SVar/count/$X machinery to a
@@ -123,7 +123,7 @@ func ManaSymbol(i int) byte {
 // parse the projection collectors share: cards.ManaProduction.add (the
 // per-face capability summary that rides CardView.produces) and rules'
 // addAvailable (the engine's available-by-tapping aggregate) both fold
-// through it, so the two cannot drift the way the pre-fb-windgrace rune walk
+// through it, so the two cannot drift the way a separate rune walk
 // let them (walking "Combo B R" one rune at a time counted the letters of
 // the word "Combo" as five phantom colourless).
 //

@@ -1,6 +1,5 @@
-// Task agent-20260923T100454Z-377fd23a: the end-to-end pin for the
-// `Targeted$CardNumColors` equip-cost reduction, on the real corpus
-// Dragonfire Blade (`K:Equip:4:::ReduceCost$ X` with
+// The end-to-end pin for the `Targeted$CardNumColors` equip-cost reduction,
+// on the real corpus Dragonfire Blade (`K:Equip:4:::ReduceCost$ X` with
 // `SVar:X:Targeted$CardNumColors` -- "This ability costs {1} less to activate
 // for each color of the creature it targets").
 //

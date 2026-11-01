@@ -10,18 +10,16 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task agent-20260918T210307Z-963a7aba (filed as
-// deck-gap-effect-bodyless-prevent): Take the Bait's prevention half — an
-// Effect SA (SP$ Effect | ReplacementEffects$ RPrevent) whose named R: body
-// is a BODYLESS Prevent$ True DamageDone line with IsCombat$ True and
-// ValidTarget$ You,Planeswalker.YouCtrl. The registration machinery landed
-// with task dponce1 (Selfless Squire, engine/rules/damage_prevented_once_test.go);
-// this file pins the SECOND carrier shape, which exercises three parameters
-// Selfless Squire's simpler line does not: IsCombat$ (only combat damage is
-// prevented), ValidTarget$ naming a PLAYER and a planeswalker clause, and
-// the Effect's own cast-window riders (OpponentTurn$ True |
-// ActivationPhases$ BeginCombat->EndCombat) that must not suppress the
-// registration once the cast itself is legal.
+// Take the Bait's prevention half — an Effect SA (SP$ Effect |
+// ReplacementEffects$ RPrevent) whose named R: body is a BODYLESS Prevent$ True
+// DamageDone line with IsCombat$ True and ValidTarget$ You,Planeswalker.YouCtrl.
+// engine/rules/damage_prevented_once_test.go pins the registration machinery on
+// Selfless Squire; this file pins the SECOND
+// carrier shape, which exercises three parameters Selfless Squire's simpler
+// line does not: IsCombat$ (only combat damage is prevented), ValidTarget$
+// naming a PLAYER and a planeswalker clause, and the Effect's own cast-window
+// riders (OpponentTurn$ True | ActivationPhases$ BeginCombat->EndCombat) that
+// must not suppress the registration once the cast itself is legal.
 //
 // The fixture is the real corpus card (testutil.CorpusRegistry), cast for
 // real at an opponent's BeginCombat step, and the damage is seeded the way

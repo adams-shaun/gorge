@@ -15,7 +15,7 @@ import (
 //     path -- the same every-entry-site convention the planeswalker starting
 //     loyalty uses -- placed through a real CounterChange event, so a search
 //     putting a Saga onto the battlefield is covered too and the CR 614
-//     replacement class sees the placement; task addcounter1/2).
+//     replacement class sees the placement).
 //   - Immediately after its controller's precombat main phase begins
 //     (engine/rules/turn.go's finishEnteredStep) it adds another.
 //   - Each lore counter triggers the chapter ability of that number: the
@@ -94,7 +94,7 @@ func (e *Engine) advanceSagas(p state.PlayerID) {
 
 // checkChapterTriggers queues one chapter trigger per lore counter the event
 // just placed. Every lore-counter placement is a real CounterChange on the
-// LORE kind -- the entry grant (rules' foldEntryMove, task addcounter1/2) and
+// LORE kind -- the entry grant (rules' foldEntryMove) and
 // the precombat-main counter (advanceSagas) alike -- so this is called for exactly
 // that one event kind. The MoveZone branch this replaced queued the SAME
 // chapter I twice on an entry (the CounterChange the engine now emits queued
@@ -196,8 +196,7 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 // re-armed on an alive-set shrink like every other pass here, so a replacement
 // or a can't-be-sacrificed restriction that permanently blocks the move burns
 // one attempt, not the whole pass budget.
-func (e *Engine) checkSagas(tried *sbaAttempts) bool {
-	changed := false
+func (e *Engine) checkSagas(b *sbaBatch, tried *sbaAttempts) {
 	// The battlefield snapshot the walk ranges (emit moves objects out
 	// of the live zone) lives in the Engine's SBA scratch, taken for the
 	// walk so a re-entrant pass allocates its own (sbaIDBuf).
@@ -205,7 +204,6 @@ func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 	e.sbaIDBuf = nil
 	for _, p := range e.G.AliveFrom(0) {
 		ids = append(ids[:0], e.G.Zone(state.ZBattlefield, p)...)
-		e.beginSacrificeBatch()
 		for _, id := range ids {
 			o := e.G.Obj(id)
 			if o == nil {
@@ -246,11 +244,8 @@ func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 			if e.sacrificeBlockedBySBA(id) {
 				continue
 			}
-			e.emit(events.Sacrifice(id))
-			changed = true
+			b.add(events.Sacrifice(id))
 		}
-		e.endSacrificeBatch()
 	}
 	e.sbaIDBuf = ids[:0]
-	return changed
 }

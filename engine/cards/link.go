@@ -209,7 +209,7 @@ func resolveSVar(svars map[string]string, name string, depth int) *SA {
 	// every engine site that rewrites an ability's parameters first copies
 	// Params into a map of its own (effects' Defined splitter, reveal and
 	// exchange rewrites, damage riders, prevention shields, paid-X mana
-	// copies -- audited 2026-09-27), exactly as it must for a printed
+	// copies), exactly as it must for a printed
 	// ability's map. TestResolveSVarTemplateMatchesFreshParse pins the
 	// shared parse to a fresh one over the corpus.
 	sa := new(SA)

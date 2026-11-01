@@ -11,7 +11,7 @@ import (
 )
 
 // butchMenaceCounterEngine seats the REAL Butch DeLoria, Tunnel Snake (the
-// deck carrier the brief names) on seat 0's battlefield with a Bear to
+// deck carrier) on seat 0's battlefield with a Bear to
 // receive its menace counter, and two Memnites on seat 1 to block with. Seat
 // 0's pool is funded with {1}{B} for Butch's activated ability. It returns
 // the engine, Butch's id and the Bear's id after the ability has resolved and

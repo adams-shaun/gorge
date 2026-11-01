@@ -6,8 +6,8 @@
   import CardImage from './CardImage.svelte';
 
   /**
-   * DiscardModal is the discard-pick ask's "Open the card view" popup
-   * (fb-20260918T201739Z-2a7cdc26): the big-card-face surface for a decision
+   * DiscardModal is the discard-pick ask's "Open the card view" popup:
+   * the big-card-face surface for a decision
    * whose options are card picks — the Thoughtseize/Duress reveal-pick, the
    * Mind Rot discard, the cleanup-step discard, the cast-cost discard. The
    * player's ask was exactly the affordance the arrange ask already has: a
@@ -37,7 +37,7 @@
    *
    * Hovering a face shows it large in the aside with the printed description
    * beneath (resolved by name through lib/oracle, the way ArrangeModal and
-   * CardDetail do) — the fb-20260914T120705Z "mouseover oracle help popup
+   * CardDetail do) — the "mouseover oracle help popup
    * like every other view" requirement.
    */
   let {

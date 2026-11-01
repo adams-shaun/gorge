@@ -1,4 +1,4 @@
-// cr-g54: CR 508.3a/508.3e/506.6. "Whenever a creature attacks you" and
+// CR 508.3a/508.3e/506.6. "Whenever a creature attacks you" and
 // "whenever you attack a player" are about attacks on a PLAYER: a creature
 // attacking that player's planeswalker (or a battle) does not attack the
 // player. gorge's Attacked$ / AttackedTarget$ gates matched the

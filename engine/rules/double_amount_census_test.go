@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestDoubleAmountCarrierCensus is the durable census for the brief that
+// TestDoubleAmountCarrierCensus is the durable census that
 // implemented Forge's bare `NumAtt$ Double` / `NumDef$ Double` P/T amount
 // (effects.NumForObject). It walks the compiled corpus and asserts the
 // MECHANISM class of every carrier: each face that names `Double` on a P/T

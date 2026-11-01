@@ -73,7 +73,7 @@ func declineExerts(t *testing.T, e *Engine, never state.ObjID) {
 	t.Fatal("the exert election never ended")
 }
 
-// TestCombatCelebrantExertUntapAllRiderAndExtraCombat is the leaf the brief
+// TestCombatCelebrantExertUntapAllRiderAndExtraCombat is the leaf
 // names: Combat Celebrant attacks, the exert ask is offered and answered
 // yes, the rider untaps every OTHER creature you control (the Celebrant
 // itself stays tapped -- StrictlyOther), and the extra combat splices after

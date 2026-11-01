@@ -15,7 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 
-	// Ruling W1: forgec's report command reads effects.Supported() but never
+	// forgec's report command reads effects.Supported() but never
 	// otherwise touches rules, so without this blank import none of
 	// engine/rules/combat.go's, engine/rules/statics.go's or rules/trigger.go's init()
 	// functions (each an effects.RegisterNonAPI call) ever run in this
@@ -112,9 +112,8 @@ func report(dir string, top int) error {
 	if l, err := cards.ReadLock(dir); err == nil {
 		fmt.Printf("corpus: %s @ %s (%s, %d files)\n", l.Ref, l.Commit, l.License, l.Files)
 	}
-	// Task 18 wires in the real primitive set; earlier milestones passed an
-	// empty map here, which made every card "not playable" but still let the
-	// report rank what to build next.
+	// Pass the real primitive set; an empty map would make every card
+	// "not playable" while still letting the report rank what to build next.
 	r.ShapeGate = etbCopyShapeGate
 	cv := r.Coverage(effects.Supported())
 	fmt.Printf("cards: %d  playable: %d (%.1f%%)\n",
@@ -125,7 +124,6 @@ func report(dir string, top int) error {
 		fmt.Printf("%3d. %-32s %6d\n", i+1, m.Name, m.Cards)
 	}
 
-	// Ruling T16-a.
 	if bad := unknownFilterTypes(r); len(bad) > 0 {
 		fmt.Println("\nfilter base types matching no card in the registry (likely typos):")
 		for _, u := range bad {
@@ -140,7 +138,7 @@ func report(dir string, top int) error {
 // spec argument to effects.MatchesSpec / MatchesSpecFrom somewhere in this
 // build. That is the whole vocabulary matchesBase's base-type switch
 // (engine/effects/filter.go) governs, so it is exactly the set where a typo'd type
-// token is dangerous the way Ruling T16-a describes: matchesBase's "non"
+// token is dangerous this way: matchesBase's "non"
 // handling negates a base check that never succeeds for anything, so a
 // typo'd "non<Type>" silently matches EVERY object instead of none.
 //
@@ -149,8 +147,8 @@ func report(dir string, top int) error {
 // engine/effects/zone.go), ValidCard/ValidBlocker (engine/rules/statics.go),
 // ValidTarget/ValidSource (rules/trigger.go), ChangeType
 // (engine/effects/zone.go's effChangeZoneAll) and ChangeValid
-// (engine/effects/cardflow.go's effDig). Fix round 1 (Important #1): ChangeType and
-// ChangeValid were missing from this list even though the doc comment
+// (engine/effects/cardflow.go's effDig). ChangeType and
+// ChangeValid are on this list because the doc comment
 // claimed a complete audit of every MatchesSpec/MatchesSpecFrom call site --
 // they were not, and adding them moved several tokens materially (Remembered
 // 1 -> 50, TargetedCard 5 -> 33, Targeted 16 -> 25, plus a dozen new ones).
@@ -195,7 +193,7 @@ type unknownFilterType struct {
 	count int
 }
 
-// unknownFilterTypes implements Ruling T16-a: it collects every base-type
+// unknownFilterTypes collects every base-type
 // token named in a ValidTgts$/ValidCards$/ValidCard$/ValidBlocker$/
 // ValidTarget$/ValidSource$ spec anywhere in the registry, and flags every
 // one that is neither a pseudo type (Any/Card/Permanent/Spell) nor an actual

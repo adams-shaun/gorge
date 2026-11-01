@@ -24,8 +24,8 @@ import { stackYieldKey } from './yields';
  * exactly the window the player is about to need. actionable() consults
  * castableAfterTap so both auto-pass paths stop there.
  *
- * The SECOND exception is the response rules' own blind spot (fb-20260914T114244Z,
- * the same float-then-cast model seen from the other side): respondable()'s
+ * The SECOND exception is the response rules' own blind spot (the same
+ * float-then-cast model seen from the other side): respondable()'s
  * option-kind test reads the window as dead exactly when the player is
  * holding a counterspell and the untapped lands to pay for it, because the
  * cast option does not exist until the mana floats. respondableFor() is the
@@ -91,7 +91,7 @@ export const STEPS = [
 /**
  * STOPPABLE_STEPS is STEPS minus untap and cleanup, the two steps that
  * normally grant no priority. A stop there would be meaningless, so the UI
- * can only offer stops on these ten. Exported so the UI task cannot invent
+ * can only offer stops on these ten. Exported so the UI cannot invent
  * its own list.
  */
 export const STOPPABLE_STEPS: readonly string[] = STEPS.filter((s) => s !== 'untap' && s !== 'cleanup');
@@ -114,9 +114,9 @@ export function turnSide(view: View, seat: number): TurnSide {
  *    availableManaAbilities loop), so counting it as an action makes almost
  *    every window "actionable" and defeats both the empty-window skip and the
  *    smart step rule — tapping mana with nothing to spend it on is not a play
- *    (fb-3ab6d9da: it also armed pass-after-acting, machine-passing the very
+ *    (it also armed pass-after-acting, machine-passing the very
  *    window the floated mana unlocked). The one exception is the COSTLY
- *    activation (fb-20260917T192520Z): since the engine marks an activate
+ *    activation: since the engine marks an activate
  *    option whose mana ability costs more than a bare tap with Option.cost,
  *    that option IS a play — it is the sac-for-mana / pay-life activation a
  *    ritual-combo deck needs the window for, and with a dead hand it is the
@@ -139,7 +139,7 @@ export function isActionKind(kind: string): boolean {
 }
 
 /**
- * isCostlyManaActivation is the ONE fb-led1 exception to the activate
+ * isCostlyManaActivation is the ONE exception to the activate
  * exclusion above: an "activate" option carrying the engine's cost marker
  * (decision.Option.Cost, set at rules/legal.go's mana-ability offer loop when
  * the offered mana ability costs more than a bare tap — Lion's Eye Diamond's
@@ -157,7 +157,7 @@ export function isCostlyManaActivation(o: Option): boolean {
 
 /**
  * plannedCasts is the auto-pay arm of actionables() (spec §8 as amended
- * 2026-09-26, aph-web-autopass): with the seat's auto-pay preference ON, every
+ * 2026-09-26): with the seat's auto-pay preference ON, every
  * payment action carrying at least one plan is a real play. The seat panel,
  * the hand fan and the hot strip all offer it as a one-click cast paid by its
  * first plan — including a PLAN-ONLY cast, which has no legacy cast option
@@ -181,17 +181,15 @@ function plannedCasts(decision: Decision, autoPayMana: boolean): string[] {
 
 /**
  * announcedCasts is the plan-less sibling arm of plannedCasts (the ManaBrew
- * autopilot stop-note ticket, agent-20260929T172335Z-dee96bba): with the
- * seat's auto-pay preference ON, a payment action carrying no plan is
- * announced-then-paid — the panel renders its "Cast — choose mana" announce
- * button (PriorityOptions.svelte's plan-less branch, from the parent ticket
- * agent-20260929T100942Z-1ec23e18), the select-mana window opens and the
- * player pays by hand. Only ManaBrew produces a plan-less action
- * (web/src/lib/manabrew/prompt.ts; the engine's paymentActionsForPriority
- * appends an action only when it carries a plan), and this arm runs after
- * plannedCasts', so a window offering both is still named by the plan-bearing
- * arm. Labels use the action.label + parenthetical convention, "(announce)",
- * matching the announce route the label names.
+ * autopilot stop note): with the seat's auto-pay preference ON, a payment
+ * action carrying no plan is announced-then-paid — the panel renders its "Cast
+ * — choose mana" announce button (PriorityOptions.svelte's plan-less branch),
+ * the select-mana window opens and the player pays by hand. Only ManaBrew
+ * produces a plan-less action (web/src/lib/manabrew/prompt.ts; the engine's
+ * paymentActionsForPriority appends an action only when it carries a plan), and
+ * this arm runs after plannedCasts', so a window offering both is still named
+ * by the plan-bearing arm. Labels use the action.label + parenthetical
+ * convention, "(announce)", matching the announce route the label names.
  */
 function announcedCasts(decision: Decision, autoPayMana: boolean): string[] {
   if (!autoPayMana || decision.kind !== 'priority') return [];
@@ -201,21 +199,20 @@ function announcedCasts(decision: Decision, autoPayMana: boolean): string[] {
 }
 
 /**
- * actionables is actionable()'s descriptive twin (fb-20260916T225211Z): the
- * SAME scan, returned as the human labels of what made the window actionable
- * — an action-kind option's own wire label ("Cast Deadly Rollick (alternative
- * cost)"), the costly mana activation's label ("Activate Lion's Eye Diamond
- * for mana", fb-20260917T192520Z), else — only while the seat's auto-pay
- * preference is on — plannedCasts()'s labels for the casts an offered plan
- * pays in one click ("Cast Opt (with suggested mana)"), then — also only with
- * the preference on — announcedCasts()'s labels for the plan-less ManaBrew
- * casts the panel offers as announce-then-pay ("Cast Opt (announce)",
- * agent-20260929T172335Z-dee96bba), else castablesAfterTap's
- * labels for the float-then-cast shape ("Cast Lava Spike (after tapping)").
- * actionable() below is this list's emptiness test, so a smart step stop and
- * the note that explains it read ONE predicate by construction: whatever made
- * the stop fire is named here, verbatim. The arms are actionable()'s arms, in
- * the same order; the first non-empty one names the window.
+ * actionables is actionable()'s descriptive twin: the SAME
+ * scan, returned as the human labels of what made the window actionable — an
+ * action-kind option's own wire label ("Cast Deadly Rollick (alternative cost)"),
+ * the costly mana activation's label ("Activate Lion's Eye Diamond for mana"),
+ * else — only while the seat's auto-pay preference is on —
+ * plannedCasts()'s labels for the casts an offered plan pays in one click ("Cast
+ * Opt (with suggested mana)"), then — also only with the preference on —
+ * announcedCasts()'s labels for the plan-less ManaBrew casts the panel offers as
+ * announce-then-pay ("Cast Opt (announce)"), else castablesAfterTap's labels for
+ * the float-then-cast shape ("Cast Lava Spike (after tapping)"). actionable()
+ * below is this list's emptiness test, so a smart step stop and the note that
+ * explains it read ONE predicate by construction: whatever made the stop fire is
+ * named here, verbatim. The arms are actionable()'s arms, in the same order; the
+ * first non-empty one names the window.
  *
  * autoPayMana is the SEAT's auto-pay preference (SeatPanelState.autoPayMana),
  * never the table's auto_mana capability. It is an explicit argument, threaded
@@ -322,7 +319,7 @@ export function respondableFor(view: View, seat: number, decision: Decision): bo
  * that becomes castable after tapping IS actionable now (lib/castable: the
  * float-then-cast payment model hides the cast behind the tap), and so is a
  * window whose only action is a COSTLY mana activation carrying the engine's
- * cost marker (fb-20260917T192520Z — Lion's Eye Diamond with a dead hand). So this
+ * cost marker (Lion's Eye Diamond with a dead hand). So this
  * covers the only-pass-and-concede shape and the mana-only shape whose hand
  * is dead mana-wise, and deliberately does NOT cover the post-land window
  * holding a spell the player is about to want -- that window stops, in
@@ -339,7 +336,7 @@ export function respondableFor(view: View, seat: number, decision: Decision): bo
  * concede: the index always comes from the pass option that was found.
  *
  * autoPayMana is the seat's auto-pay preference, handed to actionable() so
- * this floor and decide() read the same test (spec §8, aph-web-autopass):
+ * this floor and decide() read the same test (spec §8):
  * while it is on, a window whose only play is a plan-only cast is NOT empty,
  * whether or not potential_actions lists the card (the gaps audit's third
  * probe: the floor used to pass it); off, the floor is the capability-less
@@ -414,8 +411,7 @@ export function decide(args: {
    * own-turn main-phase floor below is bypassed for them. Persistent Auto
    * and every other caller keep the default (false), and ffwd keeps it too:
    * a fast-forward honours the floor — it is one press, the player is
-   * present, and the floor only fires where there is a real play
-   * (fb-20260917T231311Z-e392fcc0).
+   * present, and the floor only fires where there is a real play.
    */
   skipOwnTurnFloor?: boolean;
   /**
@@ -509,7 +505,7 @@ export function decide(args: {
     return { act: 'stop', reason: 'stop-set' };
   }
 
-  // 3b. The own-turn main-phase floor (fb-20260917T231311Z-e392fcc0): with
+  // 3b. The own-turn main-phase floor: with
   // Auto on and the step rule 'off', a plain pass never consulted the
   // potential-mana hand scan at all — on the player's own main phase that
   // means the machine plays their turn even while they hold a castable

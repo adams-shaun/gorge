@@ -513,16 +513,16 @@ func (b *Builder) buildCard(r protocol.ObjectRecord, costs bool) (view.CardView,
 		// base-difference case on it.
 		cv.AttachedTo = b.IDs.Of(p.AttachedTo.Object.ObjectID)
 	}
-	if r.CardName == nil {
-		// A face-down card the viewer may not look at: gorge projects it
-		// with every printed field blank.
-		return cv, nil
-	}
-	f := b.face(r.CardName, r.Token && !r.Copy, r.Characteristics)
-	b.printed(&cv, f, *r.CardName, r.Characteristics)
-	b.frontName(&cv, r.CardName, r.Token)
-	if costs && f != nil {
-		cv.AbilityCosts = printedAbilityCosts(f)
+	// A face-down card the viewer may not look at has no name, and gorge
+	// projects it with every printed field blank.
+	var f *cards.Face
+	if r.CardName != nil {
+		f = b.face(r.CardName, r.Token && !r.Copy, r.Characteristics)
+		b.printed(&cv, f, *r.CardName, r.Characteristics)
+		b.frontName(&cv, r.CardName, r.Token)
+		if costs && f != nil {
+			cv.AbilityCosts = printedAbilityCosts(f)
+		}
 	}
 	if c := r.Characteristics; c != nil {
 		// The observation gives P/T only to a creature. Native's board carries

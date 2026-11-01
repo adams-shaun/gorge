@@ -11,7 +11,7 @@ import (
 )
 
 // layering_pay_seam_test.go pins the two role interfaces engine/rules/pay reaches
-// the engine through besides pay.Engine (lasagna spec §9.2): chars.Reader,
+// the engine through besides pay.Engine (layering design §9.2): chars.Reader,
 // the characteristics layer's read direction, and the rule that the payment
 // layer never holds an effects.Host -- an evaluation that needs one goes
 // through a named, counted pay.Eval method on the engine side.
@@ -128,7 +128,7 @@ func TestPayHoldsNoHost(t *testing.T) {
 				return true
 			}
 			if id, ok := se.X.(*ast.Ident); ok && id.Name == local && se.Sel.Name == "Host" {
-				t.Errorf("%s: engine/rules/pay names effects.Host; evaluate through pay.Eval instead (lasagna spec §9.2)", fset.Position(se.Pos()))
+				t.Errorf("%s: engine/rules/pay names effects.Host; evaluate through pay.Eval instead (layering design §9.2)", fset.Position(se.Pos()))
 			}
 			return true
 		})

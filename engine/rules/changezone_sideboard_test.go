@@ -1,6 +1,6 @@
 package rules
 
-// The Karn, the Great Creator concern (task sideboards, fix round 2): the
+// The Karn, the Great Creator concern: the
 // -2's real corpus ability is a compound DIRECT Origin$ — `Origin$
 // Sideboard,Exile`, no OriginAlternative$, no object selector — so it must
 // route through the hidden-origin search like Burning Wish's exact

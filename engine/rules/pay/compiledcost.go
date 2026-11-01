@@ -18,7 +18,7 @@ type CompiledCost struct {
 	// zero -- the cost of nearly every mana ability. Mana-ability payability
 	// prices it without the generic payability walk.
 	BareTap bool
-	// BeyondTap caches ManaCostBeyondTap(Cost) (the fb-led1 marker test).
+	// BeyondTap caches ManaCostBeyondTap(Cost) (the marker test).
 	BeyondTap bool
 	// text memoizes FormatCost(Cost) (the mana activation's cost marker):
 	// the Cost is frozen, so its text never changes; set once, read by any

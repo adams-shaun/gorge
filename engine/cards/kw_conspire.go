@@ -14,8 +14,7 @@ func kwConspire(f *Face, i int, k, head, param string, has func(kind, line strin
 	// when the tap was actually paid (the pay-time FlagConspired
 	// CastInfo), so a DECLINED/plain cast resolves the trigger with
 	// Amount 0 and effCopySpellAbility emits nothing. The copies keep
-	// their targets (MayChooseTarget$), the same Storm-shaped stand-in
-	// the M4 copy-target task owns.
+	// their targets (MayChooseTarget$), the same Storm-shaped stand-in.
 	f.addKeywordTrigger(head, k,
 		"Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Conspire",
 		"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$Conspired | MayChooseTarget$ True", has)

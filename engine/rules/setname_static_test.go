@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestPsychicPaperRenameAndType is the brief's mandated end-to-end regression.
+// TestPsychicPaperRenameAndType is the end-to-end regression.
 //
 // It equips the real corpus Psychic Paper and drives BOTH halves of the card:
 //

@@ -12,7 +12,7 @@ import (
 
 // chosenTargetsFor serves ANY ValidTgts$-declared SA that resolves with no
 // ask having covered its targeting: the generic pre-ask inside
-// effects.Resolve's dispatch loop (task mvts1). The placement ask
+// effects.Resolve's dispatch loop. The placement ask
 // (engine/rules/trigger_queue.go pushTrigger) and the announcement ask
 // (engine/rules/stack.go resolveTop's ability/spell branches) cover only the
 // depth-1 body of a trigger or cast -- a deeper sub of the Execute chain
@@ -21,8 +21,8 @@ import (
 // targets and either moved nothing silently or inherited the OUTER SA's
 // targets. This poses the sub's own ask through the same Host.LegalTargets
 // census the placement ask uses, as a KChoose answered in place via
-// AskTape. A host that cannot ask takes the deterministic first-max stand-in
-// (R-9), which is what botpolicy's first-option KChoose default answers
+// AskTape. A host that cannot ask takes the deterministic first-max stand-in,
+// which is what botpolicy's first-option KChoose default answers
 // with for card/player options.
 //
 // The ok return is NOT "targets were found" -- it is "use the returned set
@@ -171,8 +171,7 @@ func TargetAskIsChangeZone(sa *cards.SA) bool {
 
 // DefinedIsTargetReuse reports whether a Defined$ value names one of the
 // parent-target-reuse referents -- the reason chosenTargetsFor suppresses a
-// duplicate target ask (a sub that names its PARENT's target; task tgtplayer1
-// narrowed the guard to exactly that shape). Any other
+// duplicate target ask (a sub that names its PARENT's target). Any other
 // Defined$ value -- `You`, `Self`, a battlefield `Valid` sweep, a fire-time
 // `Triggered*` referent -- is the beneficiary/actor half of the SA, not its
 // targeting, so the SA's own ValidTgts$ is a REAL targeting this build must
@@ -202,7 +201,7 @@ func DefinedIsTargetReuse(defined string) bool {
 // (this file's chosenTargetsFor and zone.go's changeZoneChosenTargets): a
 // KChoose over the eligible candidates -- one option per target, players
 // labelled from the player table, cards from the face name -- answered in
-// place via AskTape under the resume kind the caller names, with the R-9
+// place via AskTape under the resume kind the caller names, with the
 // no-host stand-in (the first max candidates in offered order) when the host
 // cannot ask. ok=true returns the set to use: the stand-in, or -- with served
 // set -- the answer, already fed to the TargetUnique$ accumulator.
@@ -319,8 +318,8 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 }
 
 // recordActivatedCharmTargets records the targets a modal ACTIVATED ability
-// asks for while its modes resolve. A modal ability's modes are chosen at
-// resolution, not at activation (rules' castModeAsk skips abilities), so the
+// asks for while its modes resolve. An ability rules' castModeAsk did not ask
+// (one gained from another object) chooses its modes at resolution, so the
 // targets its modes name are never covered by the activation-time target ask
 // and the ability would otherwise leave the stack with no TargetsChosen event
 // at all -- no CR 700.13 crime and no BecomesTarget trigger.

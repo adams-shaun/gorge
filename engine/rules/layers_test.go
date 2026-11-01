@@ -10,8 +10,8 @@ import (
 )
 
 // onBoard places a card straight onto the battlefield, bypassing events the
-// same way every other direct test setup in this package does. Ruling T21-f
-// (Task 21 fix round 1): it sets SummonSick, matching what a real entry
+// same way every other direct test setup in this package does.
+// It sets SummonSick, matching what a real entry
 // (events.Move's ZBattlefield case) does -- previously it left this false,
 // so every test built on it got an attack-ready creature for free, unlike a
 // real game. A test that wants that must clear it explicitly (see
@@ -69,7 +69,7 @@ func TestDerivedStartsFromPrintedCharacteristics(t *testing.T) {
 // (engine/rules/layers.go): Derived.Types must start from the object's printed type
 // line, exactly as Keywords starts from the printed keyword line, and then
 // accumulate any LType-granted types. This is the regression test for the
-// fix-round-1 defect where the printed types were dropped (ty was reset but
+// defect where the printed types were dropped (ty was reset but
 // never seeded from f.Types), leaving the field holding only granted types --
 // a change no consumer exercised, so no suite caught it. Removing the seed
 // makes the printed type disappear from Derived.Types and fails this test by
@@ -89,11 +89,10 @@ func TestDerivedSeedsTypesFromPrintedThenAddsGrantedTypes(t *testing.T) {
 }
 
 // TestDerivedSeedsKeywordsFromPrintedThenAddsGrantedKeywords is the same pin
-// for the layer-6 seed: Derived.Keywords must contain the printed keyword
-// AND any LAbilities-granted keyword. It has the same shape as the types seed
-// and, before this fix round, the same missing test, so it gets the same
-// guard; removing the seed makes the printed keyword disappear and fails this
-// test by name.
+// for the layer-6 seed: Derived.Keywords must contain the printed keyword AND
+// any LAbilities-granted keyword. It has the same shape as the types seed so
+// it gets the same guard; removing the seed makes the printed keyword
+// disappear and fails this test by name.
 func TestDerivedSeedsKeywordsFromPrintedThenAddsGrantedKeywords(t *testing.T) {
 	e := layerEngine(t)
 	id := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nK:Trample\nOracle:x\n")
@@ -292,7 +291,7 @@ func TestDerivedWithContinuousEffectsDoesNotAllocate(t *testing.T) {
 	}
 }
 
-// TestActiveCacheInvalidatesWhenEffectsEnterAndLeave is the Task c5 cache
+// TestActiveCacheInvalidatesWhenEffectsEnterAndLeave is the cache
 // invalidation regression test. active() (layers.go) caches its sorted effect
 // list on the pair (log head, continuousVersion) so Derived stops rebuilding
 // it once per object; the enforced point is that the cache is invalidated
@@ -356,7 +355,7 @@ func TestEffectsFromObjectsThatLeftAreDropped(t *testing.T) {
 	}
 }
 
-// TestAddContinuousClockAdvanceIsReplayable is the Ruling T19-a regression
+// TestAddContinuousClockAdvanceIsReplayable is a regression
 // test: AddContinuous's Timestamp auto-stamp must advance Game.Clock only
 // through a logged ClockTick event, never a direct field write, so folding
 // the events these two calls produced into a snapshot taken just before
@@ -396,7 +395,7 @@ func TestAddContinuousClockAdvanceIsReplayable(t *testing.T) {
 	}
 }
 
-// TestHasKeywordIsCaseInsensitive is the Ruling T19-b regression test:
+// TestHasKeywordIsCaseInsensitive is a regression test:
 // Engine.HasKeyword must match case-insensitively like its sibling
 // cards.Face.HasKeyword, for both a printed keyword and one granted by a
 // continuous effect.

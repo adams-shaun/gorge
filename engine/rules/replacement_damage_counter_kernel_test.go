@@ -1,7 +1,8 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from replacement_damage_counter_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// DamageAll settling every recipient before the chain resumes, and the supported
+// damage-replacement body families, driven through the resolution kernel (the
+// only ask path).
 
 import (
 	"testing"
@@ -72,7 +73,7 @@ func TestDamageAllParksEveryRecipientBeforeTheChainResumesKernel(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	kr7Settle(e)
+	settleKernel(e)
 	if answers != 2 {
 		t.Fatalf("replacement asks = %d, want one per recipient (2)", answers)
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 // FeatureSet selects the state/option encoding a model was trained under
-// (ticket pn12, the feature axis). FeaturesV1 is the pinned encoder of
+// (the feature axis). FeaturesV1 is the pinned encoder of
 // policynet.go/option.go, byte for byte: every existing checkpoint, golden and
 // digest reads it. The other sets are ADDITIVE: they emit the v1 encoding
 // unchanged and then append further hashed rows into the same shared
@@ -22,7 +22,7 @@ import (
 //     battlefields and the viewer's hand (types, current P/T, keywords,
 //     tapped, summoning sick, can-attack/can-block, counters, attached-to,
 //     damage, attacking), per-seat available (untapped) mana, the stack's
-//     spell APIs, and the option-side pn03 bits (the option card's spell API;
+//     spell APIs, and the option-side bits (the option card's spell API;
 //     the decision-kind "other" routed to a hashed id instead of the v1 slot
 //     that collides with the Land bit). Read from the redacted view only, so
 //     a seat can encode it: checkpointable and playable.
@@ -31,7 +31,7 @@ import (
 //     information, so WriteCheckpoint refuses it and no seat can load it.
 //   - FeaturesMZOracle ("mz-oracle"): FeaturesMZOppHand plus the next draws
 //     of both libraries. DIAGNOSTIC ONLY, same refusal.
-//   - FeaturesEntity ("entity", ticket pn14): FeaturesMZ plus one ENTITY
+//   - FeaturesEntity ("entity"): FeaturesMZ plus one ENTITY
 //     vector per visible card (entity.go: State.Cards, Option.EntA/EntB).
 //     Unlike every set above it changes the model geometry: an entity model
 //     carries a per-card encoder, a pooled projection into the state trunk
@@ -224,8 +224,8 @@ func encodeStateWith(buf *StateBuf, fs FeatureSet, v *view.View, seat state.Play
 // exactly EncodeOption. Every other set (a) routes a decision kind outside
 // decision.Kinds' named slots to a hashed "mz|deckind|other" id instead of
 // the v1 "other" slot, which sits one past the 13-slot block ON the Land
-// type bit (the pn03 finding: slot 24+len(decision.Kinds) == typeOffset),
-// and (b) adds the option card's spell API as a hashed id (pn03's counter
+// type bit (slot 24+len(decision.Kinds) == typeOffset),
+// and (b) adds the option card's spell API as a hashed id (the counter
 // vs. other-instant signal).
 func EncodeOptionWith(fs FeatureSet, v view.View, seat state.PlayerID, d decision.Kind, o decision.Option, idx, n int) Option {
 	return withEncoder(&v, seat, func(x *OptionEncoder) Option { return x.Encode(fs, d, o, idx, n) })

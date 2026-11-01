@@ -118,7 +118,7 @@ describe('Rail — the live decision line (ui15)', () => {  it('names the decisi
   });
 });
 
-describe('Rail — the stack (Task 1/2)', () => {
+describe('Rail — the stack', () => {
   const stackOf = (n: number): StackView[] =>
     Array.from({ length: n }, (_, i) => ({
       id: 100 + i, kind: i === 0 ? 'spell' : 'trigger', name: `Entry ${i}`,
@@ -293,7 +293,7 @@ describe('Rail — resolved history at short viewport heights (fb-20260923T01555
   });
 });
 
-describe('Rail — dead seats say why (Task 4)', () => {
+describe('Rail — dead seats say why', () => {
   it('forwards the DVR event list down to SeatTable, which surfaces the PlayerLost cause', () => {
     const v = baseView({
       players: [

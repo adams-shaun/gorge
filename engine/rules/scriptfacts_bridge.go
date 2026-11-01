@@ -6,7 +6,7 @@ import (
 )
 
 // This file is package rules' one bridge to the card-fact leaf,
-// engine/rules/scriptfacts (the 2026-10-06 rules-split plan's first slice). The
+// engine/rules/scriptfacts. The
 // printed-head type is a defined type over scriptfacts.Heads so rules keeps
 // its historical unexported name AND its `has` method, and every function
 // below is a one-line forwarder the compiler inlines: rules keeps its

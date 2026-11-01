@@ -1,10 +1,10 @@
 package rules
 
-// Mana/tap interference scoping for payment plans (spec §3.2 as amended
-// 2026-09-26, ticket aph-interference-scope). Like payment_plan.go this file
-// contains no call to emit: every read below is a pure query of the current
-// state, run against a HYPOTHETICAL tap and production of one candidate
-// source through the engine's own trigger and replacement matchers.
+// Mana/tap interference scoping for payment plans.
+// Like payment_plan.go this file contains no call to emit: every read below
+// is a pure query of the current state, run against a HYPOTHETICAL tap and
+// production of one candidate source through the engine's own trigger and
+// replacement matchers.
 //
 // A trigger or replacement on source S affects only S's tier:
 //
@@ -141,7 +141,13 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 			// takes: the consequence is the largest, not the sum.
 			c.Damage = max(c.Damage, dmg)
 		}
-		if by, ok := e.paymentPlanProductionReplaced(id, controller, produced, availableAmount(ma), cost.Tap); ok {
+		// A dynamic Amount$ (Gaea's Cradle) is sized now: Damping Sphere's
+		// ManaAmount$ GE2 reads how much the production really is.
+		amount := availableAmount(ma)
+		if amount == 0 {
+			amount = e.manaEffectAmount(controller, id, ma, nil, pay.GainedManaRef{})
+		}
+		if by, ok := e.paymentPlanProductionReplaced(id, controller, produced, amount, cost.Tap); ok {
 			return deferredBy(by)
 		}
 	}
@@ -314,7 +320,7 @@ func (e *Engine) paymentPlanExtraReplaced(oid state.ObjID, activator state.Playe
 // the registration's owner under the effect-match scope -- and restores that
 // matcher scratch before returning. A non-repeating registration with a tap
 // mode is never fired by that scan, so it observes nothing. Without this walk
-// the planner priced a Swamp at {B} while the tap added {B}{B} (round-5
+// the planner priced a Swamp at {B} while the tap added {B}{B} (cardfuzz
 // cardfuzz mirror seed 14886721532440673633: wrong_production and a
 // pool_after the witness did not promise).
 func (e *Engine) paymentPlanDelayedTapObserver(id state.ObjID, ev events.Event) (state.ObjID, bool) {

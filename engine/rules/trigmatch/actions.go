@@ -307,7 +307,7 @@ func becomesTargetMatches(e Board, t cards.Trigger, source state.ObjID, ev event
 				return true
 			}
 		}
-		// A player target is not in ev.IDs: recordChosenTargets (T14-b)
+		// A player target is not in ev.IDs: recordChosenTargets
 		// carries it as Amount 1/3 with Player set, the shape
 		// becomesTargetOnceMatches' ValidTarget$ read already answers with
 		// the player-spec grammar. "Player,Permanent" (Loki, God of

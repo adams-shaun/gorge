@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// fillerTable is the three Tape Filler cards of the kr8 fixture as a card
+// fillerTable is the three Tape Filler cards of the kernelFixture engine as a card
 // table, sorted by name.
 func fillerTable(t *testing.T, e *Engine) *cards.Universe {
 	t.Helper()
@@ -34,7 +34,7 @@ func fillerTable(t *testing.T, e *Engine) *cards.Universe {
 // refused, a world's hidden card takes the new identity through one Secret
 // HiddenIdentity event, and a second, different table is refused.
 func TestReidentifyHiddenIsHypotheticalOnly(t *testing.T) {
-	e, _ := kr8Fixture(t, 2, 9902, tapeDrawVoteSrc,
+	e, _ := kernelFixture(t, 2, 9902, tapeDrawVoteSrc,
 		"Name:Tape Filler A\nManaCost:1\nTypes:Artifact\nOracle:x\n",
 		"Name:Tape Filler B\nManaCost:2\nTypes:Artifact\nOracle:x\n",
 		"Name:Tape Filler C\nManaCost:3\nTypes:Artifact\nOracle:x\n")
@@ -74,7 +74,7 @@ func TestReidentifyHiddenIsHypotheticalOnly(t *testing.T) {
 // after the fork is the re-identified one -- the world's card table and pool
 // gates survive the restore.
 func TestReidentifiedWorldSurvivesATapeReRun(t *testing.T) {
-	e, _ := kr8Fixture(t, 2, 9901, tapeDrawVoteSrc,
+	e, _ := kernelFixture(t, 2, 9901, tapeDrawVoteSrc,
 		"Name:Tape Filler A\nManaCost:1\nTypes:Artifact\nOracle:x\n",
 		"Name:Tape Filler B\nManaCost:2\nTypes:Artifact\nOracle:x\n",
 		"Name:Tape Filler C\nManaCost:3\nTypes:Artifact\nOracle:x\n")
@@ -135,7 +135,7 @@ func TestReidentifiedWorldSurvivesATapeReRun(t *testing.T) {
 // table survives a posed-resolution re-run from S0 -- whose own table is the
 // real one with every seat's list.
 func TestClosedManifestsSurviveATapeReRun(t *testing.T) {
-	e, _ := kr8Fixture(t, 2, 9903, tapeDrawVoteSrc,
+	e, _ := kernelFixture(t, 2, 9903, tapeDrawVoteSrc,
 		"Name:Tape Filler A\nManaCost:1\nTypes:Artifact\nOracle:x\n",
 		"Name:Tape Filler B\nManaCost:2\nTypes:Artifact\nOracle:x\n",
 		"Name:Tape Filler C\nManaCost:3\nTypes:Artifact\nOracle:x\n")

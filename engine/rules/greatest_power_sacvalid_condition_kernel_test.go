@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the greatest_power_sacvalid_condition_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Greatest-power SacValid pools and ConditionDefined$ groups reading derived
+// power, driven through the resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"

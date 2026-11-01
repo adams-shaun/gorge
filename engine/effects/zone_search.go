@@ -18,7 +18,7 @@ import (
 // zone in the parsed Origin$-then-OriginAlternative$ order (Option.Kind
 // "zone", Label the zone name); the answer is the subset searched, kept in
 // that order. Without OriginAlternative$, with a single zone, or with no
-// answer (the R-9 no-host stand-in) every zone is searched -- the
+// answer (the no-host stand-in) every zone is searched -- the
 // pre-election behaviour, byte-identical.
 func originAlternativeZones(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner state.PlayerID, targetIndex int, zones []state.Zone) []state.Zone {
 	if !cz.OriginAltPresent || len(zones) < 2 {
@@ -99,7 +99,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 				}}
 			// Answered in place: a decline skips this
 			// player's search/tail with the remembered set intact and an
-			// acceptance enters the fetch. R-9: with no answer, play "may" as
+			// acceptance enters the fetch. No-host path: with no answer, play "may" as
 			// "do" deterministically, then let the search path apply its own
 			// no-host pick policy.
 			if ans, ok := AskTape(h, cd); ok {
@@ -123,7 +123,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 		// Candidate order: the library first (in library order), then each public
 		// origin zone in the order given by the parsed origin set. Dedupe across
 		// zones so a card can never be offered twice. `eligible` is the ordered
-		// list both the decision options and the R-9 stand-in read, so its order
+		// list both the decision options and the no-host stand-in read, so its order
 		// is load-bearing for determinism.
 		eligible := make([]state.ObjID, 0, len(lib))
 		seen := make(map[state.ObjID]bool, len(lib))
@@ -247,7 +247,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 		// greedy is the deterministic stand-in take under the cumulative budget
 		// (bound by the ChangeNum cap): with no budget every card fits and greedy
 		// is exactly the first max cards of eligible -- the take the pre-budget
-		// stand-in applied -- so the R-9 fallback stays byte-identical there. It
+		// stand-in applied -- so the no-host fallback stays byte-identical there. It
 		// is computed before the Min below is finalised, because the budget can
 		// strand a quantity-only search's forced Min.
 		greedy := make([]state.ObjID, 0, len(budgetEligible))
@@ -443,7 +443,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 		// exactly the Squadron Hawk fail-to-find shape that used to soft-lock the
 		// game. It resolves silently through the stand-in below: the
 		// search still shuffles, and a fail-to-find is legitimate under
-		// CR 701.23b, so nothing is degraded and no R-9 Note is recorded.
+		// CR 701.23b, so nothing is degraded and no degradation Note is recorded.
 		if ans, ok := AskTape(h, d); ok {
 			// Answered in place: the answered ordered subset applies.
 			c.Search.Target = targetIndex
@@ -451,7 +451,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 			continue
 		}
 		unposable := askUnposable(d)
-		// R-9: a host without a decision channel cannot ask a player, so it
+		// No-host path: a host without a decision channel cannot ask a player, so it
 		// supplies a deterministic answer in the player's place. For a
 		// quantity-only search (CR 701.23d) the decision would refuse to find
 		// fewer than Min cards, so the stand-in takes the first Min eligible
@@ -565,7 +565,7 @@ type libraryFetch struct {
 // that card on the bottom. The yes/no decision is answered in place via
 // AskTape before either a move or a shuffle. A no-host run keeps the previous
 // deterministic mover (yes), the
-// R-9 fallback used by the other optional mid-resolution effects.
+// no-host fallback used by the other optional mid-resolution effects.
 //
 // An unrecognised Defined$ selector is a fail-closed no-op here. In
 // particular it must not pass through Defined's public source fallback: that

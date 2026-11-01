@@ -1,4 +1,4 @@
-// Task m32 (narrowed by cr-g01a): CR 903.9, a commander's return to the
+// CR 903.9, a commander's return to the
 // command zone. CR 903.9b: a commander about to be put into its owner's
 // hand or library from anywhere may instead be put into the command zone
 // by its OWNER -- a replacement effect asked before anything moves
@@ -466,7 +466,7 @@ func TestTwoCommandersParkedAtOnceAreAskedOneAtATime(t *testing.T) {
 // plus a DecisionAsk/DecisionMade pair with the kind name, and the accept
 // outcome is a real MoveZone to the command zone. A log-only replay from
 // Config + events re-derives the identical state for BOTH branches --
-// accept lands in the command zone, decline in the graveyard (Task m33's
+// accept lands in the command zone, decline in the graveyard (the
 // commanderReplayFromLog fold, the same helper it uses for the CmdDamage
 // event: the log alone never needs the live engine's memory).
 func TestCommanderZoneChoiceIsInTheLog(t *testing.T) {

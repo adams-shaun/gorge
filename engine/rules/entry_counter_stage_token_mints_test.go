@@ -55,7 +55,7 @@ func TestTokenPlanMintIsObservedOnce(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestEntryCounterStageTokenMints is the brief's token-mint clause: a token
+// TestEntryCounterStageTokenMints is the token-mint clause: a token
 // entry whose characteristic-counter grant competes under non-commuting
 // AddCounter replacements must stage its CR 616.1 order ask BEFORE the mint
 // folds, for a direct TokenCreate, a CardToken copy, AND a finalized token

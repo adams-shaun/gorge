@@ -1,6 +1,6 @@
 package rules
 
-// The engine-level end to end for the round-2 review finding (fx45), on the
+// The engine-level end to end for a declined optional reveal, on the
 // REAL compiled corpus card: a DECLINED "you may reveal a Dragon card from
 // your hand" (Dragon's Disciple's ETB replacement) used to resume into a
 // MANDATORY reveal_pick over the eligible Dragons -- the decline's

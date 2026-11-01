@@ -2,7 +2,7 @@
 # enginebench-profile.sh [REV]: CPU and allocation profiles of enginebench rows.
 #
 # Builds REV (default "." -- the working tree; -memprofile needs a revision
-# that has it, 2026-10-05 or later) and runs each row in ROWS once with
+# that has it) and runs each row in ROWS once with
 # -cpuprofile and -memprofile. Profiles land in
 # $BENCH_DIR/prof/<time>/<row>-<pair>.{cpu,mem} next to the binary they were
 # taken with, and the script prints, per row:

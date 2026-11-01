@@ -152,7 +152,7 @@ func TestDecodedSemanticsRoundTrip(t *testing.T) {
 	}
 }
 
-// Task 25's host decodes whole decision responses into these types.
+// A host decodes whole decision responses into these types.
 func TestDecodedDecisionKeepsItsCandidates(t *testing.T) {
 	sd := protocol.SeatDecision{ActingSeat: "p0", Context: protocol.Context{Kind: "choice"}}
 	for i, s := range everyConstructor() {
@@ -747,7 +747,7 @@ func TestExtensionsMarshalAsAnObject(t *testing.T) {
 	if b, _ = json.Marshal(protocol.ExtensionMap(nil)); string(b) != `{}` {
 		t.Errorf("nil ExtensionMap marshals as %s", b)
 	}
-	// A host decoding an engine's null still sees it (Task 9's check).
+	// A host decoding an engine's null still sees it.
 	var back protocol.SeatDecision
 	if err := json.Unmarshal([]byte(`{"extensions":null}`), &back); err != nil || back.Extensions != nil {
 		t.Errorf("decoded null extensions: %v %v", err, back.Extensions)

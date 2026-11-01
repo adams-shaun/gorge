@@ -8,7 +8,7 @@ package rules
 // (engine/rules/clone.go) are unchanged by the move.
 type engineDrain struct {
 	// pendingTriggers holds matched triggers not yet placed on the stack.
-	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
+	// checkTriggers appends; putTriggersOnStack drains (trigger.go).
 	pendingTriggers []pendingTrigger `clone:"deep,pool=pending,release=clear"`
 	// trigQueueStale bounds the prefix of pendingTriggers' backing array that
 	// may hold entries a shrink left behind len (noteTrigShrink records each
@@ -19,7 +19,7 @@ type engineDrain struct {
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
-	// whole of Task 27's resumable-drain state, and it exists because the
+	// whole of the resumable-drain state, and it exists because the
 	// queue can grow while a controller is being asked: Submit runs handle,
 	// then checkStateBased, then Advance, and checkStateBased (sba.go) is a
 	// fixed-point loop whose PlayerLost/MoveZone/GameOver emits each run

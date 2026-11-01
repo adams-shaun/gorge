@@ -642,7 +642,7 @@ func TestMadnessEmrakulUsesMandatoryReplacementAndRespondableTrigger(t *testing.
 	}
 	submitChoices(t, e, emrakulIdx, emberIdx)
 	// CR 702.35a: Madness's replacement is mandatory -- the discard goes
-	// straight to exile, with no replacement ask (cr-g29).
+	// straight to exile, with no replacement ask.
 	if e.G.Obj(emrakul).Zone != state.ZExile || e.G.Obj(ember).Zone != state.ZGraveyard {
 		t.Fatalf("discard destinations: Emrakul=%s Ember=%s", e.G.Obj(emrakul).Zone, e.G.Obj(ember).Zone)
 	}
@@ -1193,16 +1193,20 @@ func TestAlternateAdditionalCostAsksWhichAlternative(t *testing.T) {
 	for i := 0; i < 40 && len(e.G.Stack) != 0; i++ {
 		d = e.Pending()
 		if d != nil && d.Kind == decision.KChoose && d.Prompt == "Choose new target" {
-			keep := -1
+			// CR 115.7a: the redirect must move it, so aim it away from seat 0's life.
+			away := -1
 			for _, opt := range d.Options {
 				if opt.Obj == bear {
-					keep = opt.Index
+					t.Fatalf("redirect offers the current target: %+v", d.Options)
+				}
+				if opt.Kind == "player" && opt.Player == 1 {
+					away = opt.Index
 				}
 			}
-			if keep < 0 {
-				t.Fatalf("redirect options omit original Bear target: %+v", d.Options)
+			if away < 0 {
+				t.Fatalf("redirect options omit the opponent: %+v", d.Options)
 			}
-			submitChoices(t, e, keep)
+			submitChoices(t, e, away)
 			continue
 		}
 		passOnceP(t, e)

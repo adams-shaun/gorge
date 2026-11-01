@@ -40,7 +40,7 @@ type Pending struct {
 
 // UndoRequest marks the restoreSnapshot outcome: the caller should submit an
 // undo request for the connection's seat (server/host/undo.go's Registry.Undo). The
-// marker carries nothing -- G-10: checkpointId discovery does not exist, so
+// marker carries nothing: checkpointId discovery does not exist, so
 // restoreSnapshot works only as "undo my last answer", which is why
 // promptPriority's parser accepts nothing but the current promptId as the
 // checkpoint.

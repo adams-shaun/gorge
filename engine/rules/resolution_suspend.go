@@ -1,5 +1,5 @@
 // resolution_suspend.go holds Suspended, the engine's "a resolution-time
-// payment window is open" test. A resolution on the W3 kernel never suspends
+// payment window is open" test. A resolution on the kernel never suspends
 // at an ask (every ask inside it is answered in place from the tape).
 
 package rules

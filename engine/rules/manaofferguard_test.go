@@ -12,7 +12,7 @@ import (
 // activated ability through S:Mode$ Continuous | AddAbility$. It returns the
 // engine and the recipient/grantor ids.
 //
-// The brief's exact repro (cardfuzz seed 12345, MBX-6 ManaBrew lane) is a
+// The exact repro (cardfuzz seed 12345) is a
 // phased-out permanent whose Continuous AddAbility$ grant stayed in the offer
 // walk's pass-scoped statics snapshot while the guard/handler's fresh walk
 // dropped it, so the seat was offered "Activate ... for mana" and Submit

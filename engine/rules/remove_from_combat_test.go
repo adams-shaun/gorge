@@ -282,7 +282,7 @@ func TestRemoveFromCombatHollowhengeSpiritRemovesAttackerStillTapped(t *testing.
 	}
 	submitChoices(t, e, castOpt.Index)
 
-	// Drain to the ETB trigger's target ask (Task 7 poses it at push time),
+	// Drain to the ETB trigger's target ask (posed at push time),
 	// answer it with the attacking bear, then let the stack empty.
 	for i := 0; i < 30; i++ {
 		d = e.Pending()

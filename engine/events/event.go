@@ -49,9 +49,9 @@ const (
 	Note
 	LandPlayed
 	// TargetsChosen carries a spell or ability's chosen targets. Appended here
-	// (Ruling T14-b) rather than inserted near PutOnStack/Resolve so every
+	// rather than inserted near PutOnStack/Resolve so every
 	// earlier kind's numeric value, and therefore the hash chain and the
-	// golden replays Tasks 9-13 already locked in, is unaffected.
+	// golden replays, is unaffected.
 	//
 	// Amount is the discriminator between the two target shapes: 0 means
 	// object targets (read from IDs), 1 means a player target (read from
@@ -59,60 +59,51 @@ const (
 	// indistinguishable from "player 0 was targeted" -- PlayerID 0 is a real
 	// seat as well as the zero value.
 	TargetsChosen
-	// FlipFace changes an object's active face. Task 18's SetState primitive
+	// FlipFace changes an object's active face. The SetState primitive
 	// is the only source of this event. Appended here rather than inserted
-	// nearer Tap/Untap (Ruling T18-a, following TargetsChosen's own T14-b
-	// precedent) so every earlier Kind's numeric value -- and therefore the
-	// hash chain and any golden replay already locked in -- is unaffected.
+	// nearer Tap/Untap, so every earlier Kind's numeric value -- and therefore
+	// the hash chain and any golden replay already locked in -- is unaffected.
 	//
 	// Amount carries the destination FaceIdx directly, not a delta: SetState
 	// resolves Mode$ (Transform/Flip/...) to a concrete index itself, so
 	// Apply does not need to know the object's current face to act on it.
 	FlipFace
-	// ClockTick advances Game.Clock by one. Ruling T19-a: rules.AddContinuous
-	// used to increment g.Clock with a direct field write to stamp a
-	// zero-Timestamp ContinuousEffect, the same bug class Ruling T11-a fixed
-	// for Passes/Priority -- Object.Timestamp is assigned from Clock whenever
+	// ClockTick advances Game.Clock by one. rules.AddContinuous stamps a
+	// zero-Timestamp ContinuousEffect from the result of this event, not from
+	// a direct field write -- Object.Timestamp is assigned from Clock whenever
 	// a permanent enters the battlefield (see Move below), so a live game
 	// that advances Clock outside Apply leaves every later Timestamp off by
-	// one in a fresh reconstruction folded from the log alone. AddContinuous
-	// now emits this and reads the result instead of writing Clock itself.
+	// one in a fresh reconstruction folded from the log alone.
 	// It carries no fields: the tick's only effect is the increment, so
 	// nothing else needs to survive the encode/decode round trip. Appended
-	// here (following TargetsChosen's T14-b and FlipFace's T18-a precedent)
+	// here (following TargetsChosen and FlipFace)
 	// so every earlier Kind's numeric value, the hash chain, and any golden
 	// replay already locked in are unaffected.
 	ClockTick
-	// TriggerPush creates a triggered ability's stack object and places it
-	// on the stack, in one event. Ruling T20-a: a live rules.Engine used to
-	// mint this object with a direct, unlogged Game.AddObject call and then
-	// emit a plain MoveZone naming its (already-assigned) ObjID -- but a log
-	// replayed with no Engine behind it never learns that ID exists, so
-	// events.Move's "if o == nil { return }" guard silently no-ops and the
-	// replayed stack permanently diverges from the live one. This event
-	// carries what Apply needs to recreate the object itself: Player is its
-	// controller, Obj is the permanent whose trigger fired (Object.Source),
-	// Amount is that permanent's Face().Triggers index (so Apply re-derives
-	// the *cards.SA to run -- a raw pointer cannot be logged, only the data
-	// that lets it be found again), and IDs is the triggering event's
-	// Remembered object(s). No new Event field was added: Player/Obj/Amount/
-	// IDs already exist and are reused, exactly as the brief's Ruling
-	// requires, so the hash chain and every earlier golden replay are
-	// unaffected by this Kind's own shape -- only its ordinal, appended here
-	// after ClockTick, is new.
+	// TriggerPush creates a triggered ability's stack object and places it on
+	// the stack, in one event. A direct, unlogged Game.AddObject call
+	// followed by a plain MoveZone naming its (already-assigned) ObjID would
+	// not replay: a log replayed with no Engine behind it never learns that
+	// ID exists, so events.Move's "if o == nil { return }" guard silently
+	// no-ops and the replayed stack permanently diverges from the live one.
+	// This event carries what Apply needs to recreate the object itself:
+	// Player is its controller, Obj is the permanent whose trigger fired
+	// (Object.Source), Amount is that permanent's Face().Triggers index (so
+	// Apply re-derives the *cards.SA to run -- a raw pointer cannot be
+	// logged, only the data that lets it be found again), and IDs is the
+	// triggering event's Remembered object(s). No new Event field was added:
+	// Player/Obj/Amount/ IDs already exist and are reused, so the hash chain
+	// and every earlier golden replay are unaffected by this Kind's own shape
+	// -- only its ordinal, appended here after ClockTick, is new.
 	TriggerPush
 	// EndCombatReset clears every object's IsAttacking/BlockedBy fields
 	// when Obj is zero. Nonzero Obj removes only that permanent from combat,
 	// retaining zero blocker-list tombstones so attackers stay blocked.
-	// Ruling T21-e (Task 21 fix round 1): rules.setStep used to do this with
-	// a direct loop over e.G.Objs when entering StepEndCombat or
-	// StepCleanup, instead of emitting anything -- a violation of "all state
-	// mutation goes through events.Apply" that was structurally present
-	// before Task 21 but stayed inert (IsAttacking/BlockedBy were never
-	// actually set to a non-zero value by anything) until real combat made
-	// it observable: a log-only reconstruction, having never been told
-	// combat ended, kept a surviving attacker/blocker marked IsAttacking/
-	// BlockedBy forever, while the live game correctly cleared both.
+	// Clearing these with a direct loop over e.G.Objs when entering
+	// StepEndCombat or StepCleanup would violate "all state mutation goes
+	// through events.Apply": a log-only reconstruction, never told combat
+	// ended, would keep a surviving attacker/blocker marked IsAttacking/
+	// BlockedBy forever, while the live game cleared both.
 	// Carries no fields (same shape as ClockTick): the reset, applied to
 	// every object in the arena, is its whole effect. Appended here,
 	// following TriggerPush's own precedent, so every earlier Kind's
@@ -161,7 +152,7 @@ const (
 	Attach
 	// AbilityPush creates an activated ability's stack object and places it
 	// on the stack, in one event -- the same shape TriggerPush already
-	// uses for triggered abilities, for the same reason (Ruling T20-a): a
+	// uses for triggered abilities, for the same reason: a
 	// log-only replay must be able to recreate the object itself, not rely
 	// on a live Engine's direct, unlogged AddObject call. Player is the
 	// ability's controller, Obj is the source permanent, Amount is that
@@ -177,10 +168,10 @@ const (
 	// log lets replay re-derive the same branch. Appended
 	// here, after AbilityPush, following every prior Kind's own append-only
 	// precedent, so no earlier ordinal, hash chain or golden replay is
-	// affected (M2d-2).
+	// affected.
 	ModeChosen
 	// CmdDamage records a commander dealing combat damage to a player (CR
-	// 903.10, Task m33). Player is the damaged player, Obj the source
+	// 903.10). Player is the damaged player, Obj the source
 	// commander (whose Object ID is stable across zone moves), and Amount
 	// the damage that actually landed (prevented/replaced damage is never
 	// emitted). events.Apply folds it into that player's cumulative
@@ -216,7 +207,7 @@ const (
 	// it -- the "goes on the stack like any other triggered ability" half of
 	// a Mode$ Phase delayed trigger, created when the registered phase is
 	// entered. It is a sibling of TriggerPush/AbilityPush and exists for the
-	// same reason (Ruling T20-a): the ability object is minted inside Apply,
+	// same reason: the ability object is minted inside Apply,
 	// so a log-only replay creates the exact object a live game did. Unlike
 	// TriggerPush (whose Ability re-derives from a face Triggers index), a
 	// delayed trigger's Ability is an SVar-named sub-ability on the source's
@@ -235,14 +226,13 @@ const (
 	// COMPLETE new order (the top cards reordered, then the untouched
 	// remainder beneath them). Secret is always true: CR 401.2 hides a
 	// library's order from every player, its owner included, so view
-	// redaction serves every viewer the event's shape only (cr-g61); the
+	// redaction serves every viewer the event's shape only; the
 	// IDs exist for events.Apply and replay.
 	//
-	// Appended here, after DelayedPush, following the named precedents of
-	// TargetsChosen (Ruling T14-b), FlipFace (T18-a) and ClockTick (T19-a)
-	// rather than inserted anywhere earlier, so every earlier Kind's numeric
-	// value, and therefore the hash chain and every golden replay already
-	// locked in, is unaffected.
+	// Appended here, after DelayedPush, like TargetsChosen, FlipFace and
+	// ClockTick, rather than inserted anywhere earlier, so every earlier
+	// Kind's numeric value, and therefore the hash chain and every golden
+	// replay already locked in, is unaffected.
 	LibraryOrder
 	// ExtraTurn records one grant or consumption of an extra turn (CR
 	// 500.7). Player is the seat the turn belongs to and Amount the delta:
@@ -432,7 +422,7 @@ const (
 	ExtraPhase
 	// CopyToken mints a battlefield token that is a copy of the CARD object
 	// Obj names (DB$ CopyPermanent: Flamerush Rider, Molten Echoes, the
-	// populate family -- task copyp1). Like MyriadCopy it only MINTS the
+	// populate family). Like MyriadCopy it only MINTS the
 	// object, in the untracked ZLibrary state AddObject leaves it in; the
 	// caller follows with a genuine MoveZone, so the copy's battlefield
 	// entry stays a ChangesZone-matchable event every "a creature enters"
@@ -447,7 +437,7 @@ const (
 	// every earlier Kind, so no earlier ordinal, hash chain or golden replay
 	// is affected.
 	CopyToken
-	// Exert records CR 702.100's exert election (task exert1): Obj is the
+	// Exert records CR 702.100's exert election: Obj is the
 	// permanent the controller exerted and Player is the controller at exert
 	// time. Amount >= 0 is the exert itself; Amount == -1 is the
 	// consumed-at-use marker engine/rules/turn.go's untap-step scan emits when it
@@ -457,7 +447,7 @@ const (
 	// own append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Exert
-	// PlanarRoll records one planar-dice roll (CR 901.3, task rollplanar1):
+	// PlanarRoll records one planar-dice roll (CR 901.3):
 	// Player is the roller, Obj the rolling source, Amount the number of
 	// dice rolled AFTER any planar-dice replacement rewrote the count, IDs
 	// the KEPT results (1-4 blank, 5 planeswalk, 6 chaos) in roll order and
@@ -525,7 +515,7 @@ const (
 	// (folded into the ability's Remembered); the other levels carry none.
 	// The mint lives
 	// in Apply because a direct unlogged Game.AddObject call would name an
-	// ObjID a log-only replay never learns about (Ruling T20-a). Appended
+	// ObjID a log-only replay never learns about. Appended
 	// here, after RingTemptsYou, following every prior Kind's own
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
@@ -564,7 +554,7 @@ const (
 	// is affected.
 	Investigate
 	// BlessingChange records a seat GAINING the city's blessing (CR
-	// 702.131d, task ascend1): Player is the seat. It is one-way -- Apply
+	// 702.131d): Player is the seat. It is one-way -- Apply
 	// sets the latch and nothing ever clears it (CR 702.131a: "for the
 	// rest of the game") -- and the grant's continuous re-check lives in
 	// the rules emitter (engine/rules/ascend.go), so Apply folds the bit plainly.
@@ -653,7 +643,7 @@ const (
 	// after every earlier Kind, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Seek
-	// Connive records one completed connive action (CR 702.59, task connive1):
+	// Connive records one completed connive action (CR 702.59):
 	// Obj is the conniving permanent, Player its controller, IDs the cards it
 	// discarded in discard order, and Amount the number of NONLAND cards
 	// among them (the +1/+1 counters that went on the conniver). It is an
@@ -665,8 +655,8 @@ const (
 	// Appended after Seek, still after every earlier Kind, so no earlier
 	// ordinal, hash chain or golden replay is affected.
 	Connive
-	// Enlist records one CR 702.160 enlist action (the `K:Enlist` keyword,
-	// task enlist1): Obj is the ATTACKING creature that enlisted (the
+	// Enlist records one CR 702.160 enlist action (the `K:Enlist` keyword):
+	// Obj is the ATTACKING creature that enlisted (the
 	// trigger's source for Mode$ Enlisted, so ValidCard$ Card.Self matches
 	// it) and IDs[0] the nonattacking creature it tapped, Player the
 	// attacker's controller. Apply folds the per-combat stamp the
@@ -707,7 +697,7 @@ const (
 	// GainedAbilityPush creates the stack object for an activated ability
 	// GAINED off a foreign card (Forge's GainsAbilitiesOf$ on a Mode$
 	// Continuous static, the Idris, Soul of the TARDIS shape). Like
-	// AbilityPush it mints inside Apply (Ruling T20-a) so a log-only replay
+	// AbilityPush it mints inside Apply so a log-only replay
 	// creates the same object a live game did, but the ability is not a
 	// Face().Abilities index of the recipient: Obj is the recipient (the
 	// minted object's Source, so `Defined$ Self`/`CARDNAME` names it),
@@ -829,8 +819,8 @@ const (
 	// it), and Counter carries the DERIVED keyword line the activation resolved
 	// ("Cycling:1 U", "TypeCycling:Sliver:3") -- Apply re-synthesizes the body
 	// from it, exactly as the offer loop and pendingCast re-derive it, so a
-	// log-only replay creates the identical ability object (the Ruling
-	// T20-a/GainedAbilityPush precedent). Appended after SearchedLibrary,
+	// log-only replay creates the identical ability object (the
+	// GainedAbilityPush precedent). Appended after SearchedLibrary,
 	// following every prior Kind's own append-only precedent, so no earlier
 	// ordinal, hash chain or golden replay is affected.
 	KeywordAbilityPush
@@ -1107,8 +1097,8 @@ const (
 	// Appended after SetupEntered so main's existing ordinals (and the oracle
 	// fixtures that encode SetupEntered) are unchanged.
 	DoorLock
-	// Saddle records one CR 702.171 saddle action (the `K:Saddle` keyword,
-	// task triage-478c51d1): Obj is the SADDLING creature (one of the
+	// Saddle records one CR 702.171 saddle action (the `K:Saddle` keyword):
+	// Obj is the SADDLING creature (one of the
 	// creatures the saddle cost tapped), Player its controller, and IDs[0]
 	// the Mount that creature saddled. It is the exact mirror of the Crew
 	// event above -- the tap itself is its own Tap event -- and exists so
@@ -1243,7 +1233,7 @@ const (
 	// Fog Patch, Choking Vines). Obj is the attacker and Player its
 	// defending player. The fold records a blocked creature with no blocker:
 	// one zero entry in Object.BlockedBy, the same tombstone a blocker that
-	// left combat leaves (Ruling T21-d), so it deals no combat damage unless
+	// left combat leaves, so it deals no combat damage unless
 	// it has trample. It is a no-op for a creature that is not attacking or is
 	// already blocked. Its "becomes blocked" triggers fire off this event
 	// (CR 509.3c); "becomes blocked by a creature" ones do not (CR 509.3d).
@@ -1306,10 +1296,16 @@ const (
 	// (2); Text is the state's name. Appended after HadToAttack so every
 	// earlier ordinal, hash chain and golden replay is unchanged.
 	DayNightChange
+	// SubTargetRemoved records a target leaving a chain link when an effect
+	// changes it (CR 115.7), with TargetsChosen's append shapes: Amount 2 for
+	// the object in IDs, 3 for Player. It is not a targeting. Appended after
+	// DayNightChange so every earlier ordinal, hash chain and golden replay is
+	// unchanged.
+	SubTargetRemoved
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(DayNightChange) + 1
+	NumKinds = int(SubTargetRemoved) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving
@@ -1362,7 +1358,7 @@ const (
 )
 
 // ExtraPhaseRiders is the rider payload an api:AddPhase grant forwards on
-// its ExtraPhase event, Text-encoded (Ruling T20-a's field-reuse precedent
+// its ExtraPhase event, Text-encoded (the field-reuse precedent
 // -- the event gains no field), joined with "|":
 //
 //   - "DELAY=<step ordinal>" + "VP=<ValidPlayer$ value>": the grant's
@@ -1926,20 +1922,20 @@ var flagNames = [...]struct {
 	// the end per the table's own ordering rule.
 	{"conspired", state.FlagConspired},
 	{"teamwork_paid", state.FlagTeamworkPaid},
-	// Convoke's creature provenance (CR 702.66, task connive1): the flag is
+	// Convoke's creature provenance (CR 702.66): the flag is
 	// what Defined$ Convoked reads -- the creatures tapped to help pay for
 	// the cast ride the pay-time CastInfo's IDs. Emitted only for a face
 	// whose SVar table or abilities reference the selector (engine/rules/cast.go's
 	// faceWantsConvoked), so every unrelated convoke cast stays
 	// byte-identical. Appended at the end per the table's own ordering rule.
 	{"convoked", state.FlagConvoked},
-	// The total-mana-spent capture (task castprov1): a face whose SVar
+	// The total-mana-spent capture: a face whose SVar
 	// table reads the Count$CastTotalManaSpent head stamps its pay-time
 	// CastInfo with the flag, so the Amount folds into Object.ManaSpent
 	// instead of overwriting X. Appended at the end per the table's own
 	// ordering rule.
 	{"manaspent", state.FlagManaSpent},
-	// The SNOW-unit part of the total-mana-spent capture (task castfilter1):
+	// The SNOW-unit part of the total-mana-spent capture:
 	// a face whose SVar table reads the filtered Count$CastTotalManaSpent Snow
 	// head stamps its pay-time CastInfo with this flag too, so the Amount
 	// folds into Object.ManaSnowSpent instead of overwriting X or the
@@ -1947,7 +1943,7 @@ var flagNames = [...]struct {
 	// rule.
 	{"manasnowspent", state.FlagManaSnowSpent},
 	// The TREASURE-/CAVE-/DESERT-sourced parts of the total-mana-spent
-	// capture (task castfilter2): a face whose SVar table reads the filtered
+	// capture: a face whose SVar table reads the filtered
 	// Count$CastTotalManaSpent Treasure/Cave/Desert head stamps its pay-time
 	// CastInfo with these flags too, so each Amount folds into its own
 	// Object field instead of overwriting X, the total, or an earlier tag.
@@ -1963,7 +1959,7 @@ var flagNames = [...]struct {
 	// instead of overwriting X or an earlier tag. Appended at the end per
 	// the table's own ordering rule.
 	{"manaartifactspent", state.FlagManaArtifactSpent},
-	// The DB$ Play ReplaceGraveyard$ Exile rider (task replplay1): the Play
+	// The DB$ Play ReplaceGraveyard$ Exile rider: the Play
 	// SA's own provenance stamps its pay-time CastInfo with this flag, so
 	// spellRestZone/spellFizzleZone send the played card to exile instead
 	// of the graveyard. Appended at the end per the table's own ordering

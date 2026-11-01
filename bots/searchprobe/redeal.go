@@ -15,7 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// RedealBase opts Sample into the redeal fallback (pn21 stretch): when the
+// RedealBase opts Sample into the redeal fallback: when the
 // rejection sampler starves, worlds are built from Engine -- the engine the
 // deciding seat is playing in, at the observed boundary -- by re-dealing every
 // hidden card the seat does not know, with the known-card projection pinning
@@ -101,7 +101,7 @@ func redealWorlds(setup PublicGame, h History, known KnownCards, base *RedealBas
 // against the base engine run in NewRedealer, and each Deal is then one
 // uniform redeal (RedealBase documents what a redealt world keeps and what
 // it re-deals). It is the honest world source's building block (the SpellBench
-// M1 "redeal" worlds, internal/azmcts.RedealSource) as well as Sample's
+// "redeal" worlds, internal/azmcts.RedealSource) as well as Sample's
 // starvation fallback, so both draw worlds the same way.
 //
 // A Redealer reads its base engine and observer and never modifies them;

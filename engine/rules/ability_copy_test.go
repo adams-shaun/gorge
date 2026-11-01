@@ -15,7 +15,7 @@ package rules
 //     unboundFlourishingSrc): DB$ CopySpellAbility, no cost -- the pin test.
 //   - The Enigma Jewel / Locus of Enlightenment's T: line + TrigCopy SVar
 //     (the_enigma_jewel_locus_of_enlightenment.txt): the second clean DB
-//     carrier (the brief's other candidates need an Exhaust/EquippedBy
+//     carrier (other candidates need an Exhaust/EquippedBy
 //     predicate that fights the fixture).
 //   - Rings of Brighthearth's T: line + TrigCopySpell SVar
 //     (rings_of_brighthearth.txt): the AB$ CopySpellAbility WITH Cost$ {2}

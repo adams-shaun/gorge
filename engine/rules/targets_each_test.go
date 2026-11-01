@@ -316,11 +316,11 @@ func TestTolarianContemptBareInlineBoundAsksOnePerOpponent(t *testing.T) {
 	// RepeatEach over the targeted) then moves each chosen creature to its
 	// OWNER's library. Tolarian Contempt's script writes NO LibraryPosition$
 	// on the primary move (Forge's absent default is 0 = TOP), and its
-	// top-or-bottom election rides AlternativeDecider$ RememberedOwner, which
-	// cr-g221 resolves through the Defined$ player grammar to each iteration's
+	// top-or-bottom election rides AlternativeDecider$ RememberedOwner.
+	// It resolves through the Defined$ player grammar to each iteration's
 	// remembered card's owner. Each owner is therefore asked top or bottom;
 	// answer "top" (the primary placement this test's assertions were written
-	// against). Before cr-g221 the decider was unrecognised, so no owner was
+	// against). An unrecognised decider would mean no owner was
 	// asked and the Note-plus-primary fallback happened to place the bears on
 	// top too.
 	pick := []int{indexOf(bearA), indexOf(bearC)}

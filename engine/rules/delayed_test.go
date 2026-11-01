@@ -149,7 +149,7 @@ func driveToEndStep(t *testing.T, e *Engine) {
 	}
 }
 
-// TestDelayedTriggerFlickerwispReturnsPermanent is the brief's test 1: the
+// TestDelayedTriggerFlickerwispReturnsPermanent: the
 // ETB exiles a permanent and the delayed trigger returns it at the beginning
 // of the next end step.
 func TestDelayedTriggerFlickerwispReturnsPermanent(t *testing.T) {
@@ -219,7 +219,7 @@ func driveToStepAll(t *testing.T, e *Engine, turn int32, active state.PlayerID, 
 	t.Fatalf("did not reach turn %d seat %d step %s", turn, active, step)
 }
 
-// TestDelayedTriggerFiresOnce is the brief's test 2: the delayed trigger
+// TestDelayedTriggerFiresOnce: the delayed trigger
 // fires once, not at every subsequent end step. One-shot is structural --
 // events.Apply's DelayedPush case removes the registration, so there is
 // nothing left to fire on a later occurrence of the phase. This pins both
@@ -247,7 +247,7 @@ func TestDelayedTriggerFiresOnce(t *testing.T) {
 	}
 }
 
-// TestDelayedTriggerDoesNotRefireNextTurn is the brief's test 2 companion: on
+// TestDelayedTriggerDoesNotRefireNextTurn: on
 // a later occurrence of the phase (the next turn's end step) the delayed
 // trigger does not fire again -- the target stays put and no further
 // DelayedPush is recorded.
@@ -284,7 +284,7 @@ func TestDelayedTriggerDoesNotRefireNextTurn(t *testing.T) {
 	}
 }
 
-// TestDelayedTriggerFiresAfterSourceLeaves is the brief's test 3: the delayed
+// TestDelayedTriggerFiresAfterSourceLeaves: the delayed
 // trigger still fires even when its source has left the battlefield.
 func TestDelayedTriggerFiresAfterSourceLeaves(t *testing.T) {
 	t.Parallel()
@@ -303,7 +303,7 @@ func TestDelayedTriggerFiresAfterSourceLeaves(t *testing.T) {
 	}
 }
 
-// TestDelayedTriggerDegradesWhenReferentMoved is the brief's test 4: if the
+// TestDelayedTriggerDegradesWhenReferentMoved: if the
 // object it refers to has changed zones since registration, the ability does
 // what it can and the rest does nothing -- no crash.
 func TestDelayedTriggerDegradesWhenReferentMoved(t *testing.T) {
@@ -324,7 +324,7 @@ func TestDelayedTriggerDegradesWhenReferentMoved(t *testing.T) {
 	}
 }
 
-// TestDelayedTriggerReplaysIdentically is the brief's test 5: a game
+// TestDelayedTriggerReplaysIdentically: a game
 // containing a delayed trigger replays byte-identically from its
 // (Config, Log), proving the registration and its firing both survive the
 // event log.
@@ -348,7 +348,7 @@ func TestDelayedTriggerReplaysIdentically(t *testing.T) {
 		t.Fatalf("target not returned: %v", zoneName(o))
 	}
 
-	// Ruling dt1-a: the registration and its firing must reconstruct from the
+	// The registration and its firing must reconstruct from the
 	// EVENT LOG ALONE (events.Apply, no engine re-simulation) -- a replay
 	// that rebuilt the game this way is the strongest proof a registration
 	// stored only in an in-memory field would fail. replayFromLog folds every
@@ -367,7 +367,7 @@ func TestDelayedTriggerReplaysIdentically(t *testing.T) {
 	}
 }
 
-// TestDelayedTriggerCloneIsIndependent is the brief's test 6: a Clone taken
+// TestDelayedTriggerCloneIsIndependent: a Clone taken
 // between registration and firing behaves correctly and does not share
 // mutable state with its original.
 func TestDelayedTriggerCloneIsIndependent(t *testing.T) {

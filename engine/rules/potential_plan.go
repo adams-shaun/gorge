@@ -363,7 +363,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 			return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}
 		}
 		// a RestrictValid$ source admits the payment by the cast face's
-		// characteristics (cr-g125; The Ringhart Crest's "legendary creature
+		// characteristics (The Ringhart Crest's "legendary creature
 		// spell" mana cannot pay its own back face), the rest of the plan
 		// reads the board as it is
 		prev := e.planFace

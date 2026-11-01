@@ -2,6 +2,7 @@ package gorged
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 
@@ -15,6 +16,18 @@ import (
 // under this prefix, so a request here falls through to httpapi's own "/"
 // catch-all 404 exactly as ManaBrew does. TestSBV2OffMountsNothing pins it.
 const sbv2RoutePrefix = "/api/sbv2/v1/tables"
+
+// sbv2MetaTag is how the browser client learns, with no request of its own,
+// that this origin serves the SpellBench v2 routes (web/src/lib/wire/pref.ts).
+const sbv2MetaTag = `<meta name="gorge-sbv2">`
+
+// offerSBV2 adds sbv2MetaTag to the web build when -sbv2 is on.
+func (c config) offerSBV2(web fs.FS) fs.FS {
+	if web == nil || !c.sbv2 {
+		return web
+	}
+	return withMeta(web, sbv2MetaTag)
+}
 
 // applySBV2 arms the registry's human-seat tap factory when -sbv2 is on and
 // returns the hub the HTTP routes share. It must run before host.New, because

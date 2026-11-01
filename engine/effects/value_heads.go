@@ -9,7 +9,7 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // list feeds Supported as "count:<head>" primitives, so cards.Registry.
 // Unsupported reports a card reading an unlisted head -- a gate that could
 // never be evaluated, an amount that read a meaningless zero -- as
-// unsupported instead of counting it playable (fuzz-cov3, the cardfuzz
+// unsupported instead of counting it playable (the cardfuzz
 // coverage audit's registration-honesty gap).
 //
 // It is not hand-trusted: rules' TestValueHeadRegistryMatchesEvaluator

@@ -23,7 +23,7 @@ func (h AIHints) On() bool { return h.Enabled }
 // aiHintsPlayMain1Bonus is the score a PlayMain1 card earns in the first
 // main phase when its condition holds. It is deliberately on the same scale
 // as a creature body (a 2/2 is worth 38), so the hint can separate a card
-// from a comparable alternative; it is not a hard rule, and a C9 threshold
+// from a comparable alternative; it is not a hard rule, and a profile
 // can still hold the card when the profile asks for one.
 const aiHintsPlayMain1Bonus int32 = 40
 

@@ -3,9 +3,7 @@ package effects
 import "github.com/adams-shaun/gorge/engine/state"
 
 // This file is the ONE home of effects.Ctx and effects.SpecContext
-// construction (rules-engine refactor spec W1c,
-// docs/design/2026-10-03-rules-engine-lasagna-design.md section
-// 5). Every other file builds a context through the constructors below; the
+// construction. Every other file builds a context through the constructors below; the
 // shrink-only ratchet in internal/codeshape (ctxLiterals, specContextLiterals)
 // counts the Ctx{...} / SpecContext{...} composite literals anywhere else and
 // fails the build if one comes back.

@@ -12,7 +12,7 @@ import (
 
 // Session is one client connection's worth of subscriptions: a bounded
 // outbound channel, a ring of the frames it has sent (for Last-Event-ID
-// resume), and the latest widget per table (PL-5: widgets are coalesced,
+// resume), and the latest widget per table (widgets are coalesced,
 // never ring-buffered, never given an id).
 type Session struct {
 	ID string
@@ -154,7 +154,7 @@ func (s *Session) push(f protocol.Frame) bool {
 }
 
 // setWidget replaces the latest widget for a table. Called with no frame
-// id (PL-5): widgets bypass the ring entirely.
+// id: widgets bypass the ring entirely.
 func (s *Session) setWidget(id TableID, f protocol.Frame) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -323,7 +323,7 @@ func (r *Registry) Subscribe(s *Session, id TableID, mode string) error {
 	s.mu.Unlock()
 	if mode == protocol.ModeFocus {
 		// fanMu serialises this build-then-push against the match loop's
-		// own fan-out (Ruling FL-30): without it, a live burst could land
+		// own fan-out: without it, a live burst could land
 		// between this snapshot's build and its push, permanently
 		// stranding the client behind an already-stale snapshot. push
 		// never blocks, so this never parks the match loop on a client.

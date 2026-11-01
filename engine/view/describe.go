@@ -226,7 +226,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " becomes a copy of " + obj(g, ev.IDs[0])
 	case events.Exert:
-		// CR 702.100 (task exert1): the exert itself, and the consume marker
+		// CR 702.100: the exert itself, and the consume marker
 		// the untap-step scan emits as it passes an exerted permanent -- the
 		// window that made it skip that untap closes there.
 		if ev.Amount < 0 {
@@ -234,7 +234,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " is exerted"
 	case events.Enlist:
-		// CR 702.160 (task enlist1): the enlist action record. Obj is the
+		// CR 702.160: the enlist action record. Obj is the
 		// ATTACKING creature that enlisted; IDs[0] the nonattacking creature
 		// it tapped (its own Tap event is a separate line) and Player the
 		// attacker's controller. The +X/+0 pump is a continuous effect, not
@@ -244,7 +244,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " enlists " + obj(g, ev.IDs[0])
 	case events.Crew:
-		// CR 702.122 (task crewedthisturn1): the crew action record. Obj is a
+		// CR 702.122: the crew action record. Obj is a
 		// CREWING creature and IDs[0] the Vehicle it crewed (the Tap event is
 		// a separate line). It is what the Creature.CrewedThisTurn filter
 		// reads, one line per crewing creature.
@@ -259,7 +259,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " saddles " + obj(g, ev.IDs[0])
 	case events.PlanarRoll:
-		// CR 901.3 (task rollplanar1): the roll record. The per-die faces ride
+		// CR 901.3: the roll record. The per-die faces ride
 		// the die-roll Notes rules emits beside this event; Amount > 1 names
 		// the post-replacement count (never render the face list here — the
 		// Describe-coverage fuzz carries arbitrary IDs values that are not
@@ -385,12 +385,12 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return s
 	case events.Explore:
-		// The explore record (task explore1): the revealed card is already
+		// The explore record: the revealed card is already
 		// public (the reveal Note that precedes the record), so the line
 		// names only the explorer.
 		return obj(g, ev.Obj) + " explores"
 	case events.Investigate:
-		// The investigate record (CR 701.36a, task investtrig1) is a pure
+		// The investigate record (CR 701.36a) is a pure
 		// marker: the Clue-token mint is its own TokenCreate line, so this
 		// line names only the investigating seat (Player; Obj is the source
 		// permanent, which may be 0 for a game-rule investigate).
@@ -406,7 +406,7 @@ func describe(g *state.Game, ev events.Event) string {
 		// The completed gift marker follows the gift action's own events.
 		return player(g, ev.Player) + " gives a gift"
 	case events.Clash:
-		// The completed clash marker (CR 701.31, task clash1), one per
+		// The completed clash marker (CR 701.31), one per
 		// clashing player: Player is the clashing seat, Amount 1 when that
 		// player WON the clash and 0 when they lost or tied (CR 701.31
 		// leaves a tie with no winner). The reveal and the top/bottom
@@ -424,18 +424,18 @@ func describe(g *state.Game, ev events.Event) string {
 		// evolving permanent (Obj is the Evolve trigger's own source).
 		return obj(g, ev.Obj) + " evolves"
 	case events.ElementalBend:
-		// The elemental-bend record (task agent-20260929T010346Z-ae55d89d)
-		// is a replay-visible pure marker: one completed bend action, whose
-		// own state change (the airbend exile, earthbend animate, firebending
-		// mana or waterbend tap) is its own line. Player is the bending seat;
-		// Text carries the verb (water/earth/fire/air), absent only for a
-		// unset hostile field, in which case the line still names the seat.
+		// The elemental-bend record is a replay-visible pure marker: one
+		// completed bend action, whose own state change (the airbend exile,
+		// earthbend animate, firebending mana or waterbend tap) is its own
+		// line. Player is the bending seat; Text carries the verb
+		// (water/earth/fire/air), absent only for a unset hostile field, in
+		// which case the line still names the seat.
 		if ev.Text == "" {
 			return player(g, ev.Player) + " elemental-bends"
 		}
 		return player(g, ev.Player) + " " + ev.Text + "bends"
 	case events.Exploit:
-		// The exploit record (CR 702.58a, task exploit1): Obj is the
+		// The exploit record (CR 702.58a): Obj is the
 		// exploiting creature, IDs[0] the exploited (sacrificed) one. The
 		// sacrifice's own MoveZone line already named the creature, so this
 		// line names both halves of the action the way the oracle reads.
@@ -445,8 +445,8 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return s
 	case events.Discover, events.Seek, events.Surveil, events.Scry, events.Proliferate:
-		// The discover (CR 701.57), seek (task trigdisc1), surveil
-		// (CR 701.42) and scry (CR 701.18, task scrybottom) records are pure
+		// The discover (CR 701.57), seek, surveil
+		// (CR 701.42) and scry (CR 701.18) records are pure
 		// markers: the action's own state changes (the exiles/reveals and the
 		// sought card's move, the surveil's or scry's KArrange answer) are
 		// their own lines, so these lines name only the acting seat (Player;
@@ -473,7 +473,7 @@ func describe(g *state.Game, ev events.Event) string {
 		// name, Amount the stored value.
 		return obj(g, ev.Obj) + " records " + ev.Text + " = " + itoa(int64(ev.Amount))
 	case events.Connive:
-		// The connive record (task connive1): the draws and discards are
+		// The connive record: the draws and discards are
 		// already their own lines (Draw/Discard events), so this line names
 		// only the conniving permanent.
 		return obj(g, ev.Obj) + " connives"
@@ -517,12 +517,12 @@ func describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " wins the game"
 	case events.Note:
 		if ev.Text == "" && len(ev.IDs) > 0 && !ev.Secret {
-			// effReveal's reveal (task fb-3f1cc033): the Note carries the
+			// effReveal's reveal: the Note carries the
 			// revealed cards' ids and no text of its own, so Describe renders
 			// them — the transcript line names WHAT was revealed ("player 0
 			// reveals Mountain #82"), which is the only data path a client
 			// has for hidden-zone ids in a Note. Rule 3 of view.RedactEvents
-			// (Ruling T23-w) passes a non-Secret Note through unchanged, so
+			// passes a non-Secret Note through unchanged, so
 			// these ids are public by contract on every viewer's line.
 			return player(g, ev.Player) + " reveals " + objs(g, ev.IDs)
 		}
@@ -573,11 +573,16 @@ func describe(g *state.Game, ev events.Event) string {
 			return obj(g, ev.Obj) + " targets " + player(g, ev.Player)
 		}
 		return obj(g, ev.Obj) + " targets " + objs(g, ev.IDs)
+	case events.SubTargetRemoved:
+		if ev.Amount == 3 {
+			return obj(g, ev.Obj) + " no longer targets " + player(g, ev.Player)
+		}
+		return obj(g, ev.Obj) + " no longer targets " + objs(g, ev.IDs)
 	case events.ClockTick:
 		return ""
 	case events.CastInfo:
-		// Records how a spell was cast, right before the PutOnStack line
-		// (Task 4): Amount is the value chosen for {X}, Counter the comma-
+		// Records how a spell was cast, right before the PutOnStack line:
+		// Amount is the value chosen for {X}, Counter the comma-
 		// separated mode flags ("kicked", ...). Described, not "": X and
 		// the kicker are the caster's own decisions and nothing else in the
 		// transcript shows them (mana-spend lines record totals, not what
@@ -585,7 +590,7 @@ func describe(g *state.Game, ev events.Event) string {
 		// landing on it needs no neighbouring line. The caster is the card's
 		// controller; when the event is a Secret whose payload is not for
 		// this viewer, RedactEvent zeroes Obj and keeps Player, so the caster
-		// is then that Player (cr-g62). The two lines read
+		// is then that Player. The two lines read
 		// as one cast: the how, then the fact. The same event also records an
 		// activated ability's paid {X} on the ability's stack object
 		// (engine/rules/cast.go commitCast's ability arm), and that object must not
@@ -596,10 +601,10 @@ func describe(g *state.Game, ev events.Event) string {
 		// and the stack view cannot disagree.
 		if ev.Secret {
 			// The one Secret CastInfo is the Foretell special action's
-			// provenance marker (engine/rules/cast_commit.go; cr-g62): CR
+			// provenance marker (engine/rules/cast_commit.go): CR
 			// 702.143b makes it a special action, not a cast, so it reads
 			// "foretells". Redacted for another seat it keeps Player and
-			// Secret, so that seat reads "a foretells a card" (cr-g64).
+			// Secret, so that seat reads "a foretells a card".
 			return player(g, ev.Player) + " foretells " + obj(g, ev.Obj)
 		}
 		verb := "casts"
@@ -707,7 +712,7 @@ func describe(g *state.Game, ev events.Event) string {
 		return s
 	case events.AbilityPush:
 		// An activated ability minted onto the stack (the same shape
-		// TriggerPush uses for triggers, Ruling T20-a): Player is the
+		// TriggerPush uses for triggers): Player is the
 		// activator, Obj the source permanent. The mirror of "X triggers":
 		// the IR carries no ability names, so the source permanent is what
 		// a line can name.
@@ -730,7 +735,7 @@ func describe(g *state.Game, ev events.Event) string {
 		}
 		return player(g, ev.Player) + " chooses " + labels
 	case events.CmdDamage:
-		// Commander combat damage to a player (CR 903.10, task m33): Obj
+		// Commander combat damage to a player (CR 903.10): Obj
 		// is the source commander, Player the damaged player, Amount what
 		// actually landed. The ordinary Damage event already says "Bob
 		// takes N damage"; this line is the second clock -- the
@@ -936,7 +941,7 @@ func objController(g *state.Game, id state.ObjID) state.PlayerID {
 // castInfoActor is the caster an ordinary CastInfo line names: the card's
 // controller. The one Secret CastInfo -- the foretell action -- returns its
 // "foretells" line in Describe's CastInfo branch before this helper is
-// reached (cr-g62/cr-g64); the ev.Obj == 0 guard is the generic redacted-
+// reached; the ev.Obj == 0 guard is the generic redacted-
 // payload fallback.
 func castInfoActor(g *state.Game, ev events.Event) state.PlayerID {
 	if ev.Obj == 0 {
@@ -1033,7 +1038,7 @@ func tossNoteText(g *state.Game, p state.PlayerID) string {
 }
 
 // chooserNoteText is the deterministic chain text a Config.StartChooser
-// genesis emits for its chooser Note (E3-1). It deliberately follows
+// genesis emits for its chooser Note. It deliberately follows
 // tossNoteText's deck-name fallback but excludes PlayerName, which is
 // display-only and must not reach the hash chain.
 func chooserNoteText(g *state.Game, p state.PlayerID) string {

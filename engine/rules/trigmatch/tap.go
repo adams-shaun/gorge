@@ -216,13 +216,13 @@ func init() {
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return untapsMatches(e, t, source, ev)
 	}, "Untaps")
-	// TapAll/UntapAll (task cli-20261005T075020Z-05241a06) are the batch
-	// siblings: one trigger per tapping/untapping ACTION, not per permanent.
-	// Their per-event matchers read the plural ValidCards$ the aggregate modes
-	// print; the "one or more" cadence is the dispatcher's batch latch
-	// (engine/rules/trigger_match.go, keyed on the trigger line inside the open
-	// zone/action bracket), which still requires the matcher to return true
-	// for every matching event so the latch can accumulate its count.
+	// TapAll/UntapAll are the batch siblings: one trigger per
+	// tapping/untapping ACTION, not per permanent. Their per-event matchers
+	// read the plural ValidCards$ the aggregate modes print; the "one or
+	// more" cadence is the dispatcher's batch latch
+	// (engine/rules/trigger_match.go, keyed on the trigger line inside the
+	// open zone/action bracket), which still requires the matcher to return
+	// true for every matching event so the latch can accumulate its count.
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 		return tapAllMatches(e, t, source, ev, lki)
 	}, "TapAll")

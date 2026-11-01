@@ -2,15 +2,15 @@
   import { pointerRelease } from '../lib/pointer';
   /**
    * The seated player's page-level Restart control: the ARM-then-CONFIRM
-   * two-step (the same R-E4-1 shape as ConcedeControl, because confirming
+   * two-step (the same shape as ConcedeControl, because confirming
    * navigates the player away from the current table). Presentational only —
    * the armed state, the busy flag and the POST itself stay with the route,
    * Table.svelte, which passes the two callbacks in.
    *
    * It deliberately does NOT wear the danger colour ConcedeControl wears:
    * restart creates a new game, it destroys nothing. It renders inside the
-   * rail's logbar row next to the concede control, in normal flex flow (the
-   * fb-53bd45b9 ruling: no absolutely-positioned controls in this row), and
+   * rail's logbar row next to the concede control, in normal flex flow
+   * (no absolutely-positioned controls in this row), and
    * owning the markup here is what lets a geometry fixture render the REAL
    * control through Rail's `logbar` snippet seam.
    */

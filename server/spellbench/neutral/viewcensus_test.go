@@ -90,20 +90,21 @@ func censusWalk(path string, a, b any, out map[string]bool) {
 	}
 }
 
-func censusBaseline(t *testing.T) map[string]bool {
+// censusBaseline reads the table of paths known to differ: one per line, with
+// "rare" after a tab on a row that may go unreached.
+func censusBaseline(t *testing.T) map[string]observationDegradationRow {
 	t.Helper()
-	out := map[string]bool{}
 	b, err := os.ReadFile(viewCensusBaseline)
-	if os.IsNotExist(err) {
-		return out
-	}
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, line := range strings.Split(string(b), "\n") {
-		if line = strings.TrimSpace(line); line != "" && !strings.HasPrefix(line, "#") {
-			out[line] = true
+	out := map[string]observationDegradationRow{}
+	for _, line := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+		path, mark, marked := strings.Cut(line, "\t")
+		if path == "" || (marked && mark != "rare") {
+			t.Fatalf("%s: malformed line %q, want path or path<TAB>rare", viewCensusBaseline, line)
 		}
+		out[path] = observationDegradationRow{rare: marked}
 	}
 	return out
 }
@@ -149,9 +150,12 @@ func seedCensusState(t *testing.T, g *gamecfg.Game) {
 }
 
 // TestNeutralViewCensus structurally compares the native view beside every bot
-// decision with the view neutral rebuilds from the observation. It is a
-// ratchet: testdata/viewcensus.txt lists exactly the fields that still differ,
-// and may only shrink. NEUTRAL_VIEWCENSUS_REGEN=1 rewrites the baseline.
+// decision with the view neutral rebuilds from the observation.
+// testdata/viewcensus.txt is the set of fields known to differ, and the test holds
+// the set as TestObservationDegradationCensus holds its own: a measured field with
+// no row fails, and so does a row the games never reach, unless it is marked rare.
+// A few of the 50 games produce a rare row, so a change in their course can remove
+// it without fixing anything; delete one by hand when the field is fixed.
 func TestNeutralViewCensus(t *testing.T) {
 	t.Parallel()
 	reg := testcorpus.Registry(t)
@@ -220,47 +224,11 @@ func TestNeutralViewCensus(t *testing.T) {
 			}
 		}
 	}
-	var paths []string
-	for p := range counts {
-		paths = append(paths, p)
-	}
-	sort.Strings(paths)
-	if os.Getenv("NEUTRAL_VIEWCENSUS_REGEN") != "" {
-		if err := os.MkdirAll("testdata", 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(viewCensusBaseline, []byte(strings.Join(paths, "\n")+"\n"), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		t.Logf("wrote %s: %d unequal fields over %d decisions", viewCensusBaseline, len(paths), checked)
-		return
-	}
-	sort.Slice(paths, func(i, j int) bool {
-		if counts[paths[i]] != counts[paths[j]] {
-			return counts[paths[i]] > counts[paths[j]]
-		}
-		return paths[i] < paths[j]
-	})
-	t.Logf("view census: %d decisions, %d unequal fields", checked, len(paths))
-	for _, p := range paths {
-		t.Logf("%6d %s", counts[p], p)
-	}
 	baseline := censusBaseline(t)
-	var unexpected, stale []string
-	for _, p := range paths {
-		if !baseline[p] {
-			unexpected = append(unexpected, p)
-		}
+	added, unreached := observationDegradationDrift(baseline, counts)
+	if len(added) > 0 || len(unreached) > 0 {
+		t.Fatalf("view census differs from %s:\nnew unequal fields (fix the projection, or add a row by hand if the loss is accepted): %v\nfields that became equal (delete their rows): %v",
+			viewCensusBaseline, added, unreached)
 	}
-	for p := range baseline {
-		if counts[p] == 0 {
-			stale = append(stale, p)
-		}
-	}
-	sort.Strings(unexpected)
-	sort.Strings(stale)
-	if len(unexpected) > 0 || len(stale) > 0 {
-		t.Fatalf("view census differs from %s:\nnew unequal fields (fix the projection or, if unavoidable, regenerate the baseline): %v\nfields that became equal (remove them from the baseline): %v",
-			viewCensusBaseline, unexpected, stale)
-	}
+	t.Logf("view census: %d decisions, %d unequal fields", checked, len(counts))
 }

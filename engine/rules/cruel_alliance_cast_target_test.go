@@ -97,7 +97,7 @@ func TestChangeZoneBattlefieldSubTargetAnnouncementZonesAreNarrow(t *testing.T) 
 		{name: "inferred exile origin", line: "DB$ ChangeZone | ValidTgts$ Card | Origin$ Exile | Destination$ Library", admitted: true, zone: state.ZExile},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			sa := kr0SA(t, tc.line)
+			sa := parseFixtureSA(t, tc.line)
 			if got := castSubChangeZoneAnnounceable(sa); got != tc.admitted {
 				t.Fatalf("announcement admitted=%v, want %v", got, tc.admitted)
 			}

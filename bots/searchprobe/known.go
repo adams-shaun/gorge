@@ -13,7 +13,7 @@ import (
 
 // KnownCards is the deciding seat's knowledge of which cards sit in the
 // hidden zones (every hand, every library) as of the last observed frame: the
-// search-only known-card projection (pn21). It is derived from a History
+// search-only known-card projection. It is derived from a History
 // alone -- the redacted, observer-local frames and the seat's own semantic
 // answers that Sample already consumes -- so it can never carry a fact the
 // seat did not observe. Cards are named by their observer references

@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// T1 -- the need-aware tap gate (task op6). The tap-for-mana "activate"
+// The need-aware tap gate. The tap-for-mana "activate"
 // options legalActions (engine/rules/legal.go) offers are gated on "do any of the
 // cards this seat could cast need mana the pool does not yet have". The old
 // position-first block tapped the first "activate" in every main phase
@@ -31,7 +31,7 @@ import (
 // the pool's total covers its converted cost and its coloured pips cover
 // every coloured symbol in its printed cost -- the CanPay shape
 // engine/rules/cast.go's castable runs, re-expressed over the Board's Card facts
-// because botpolicy cannot import rules (Ruling F7). The engine only ever
+// because botpolicy cannot import rules. The engine only ever
 // offers a "cast" option once the CURRENT pool can pay the cost, so
 // "nothing castable yet + tapping could help" is exactly "some castable
 // card the pool cannot pay" -- the triggers of the tap loop, and the
@@ -306,7 +306,7 @@ func (b Board) bestUnpayable(d *decision.Decision, offered [5]bool) (state.ObjID
 //
 // Either way no amount of manual tapping can make the card castable, so a
 // tap toward it only floats mana that empties at step end. Measured over a
-// 435-game auto-pay mirror of the repo decks (2026-10-14), such cards were
+// 435-game auto-pay mirror of the repo decks, such cards were
 // the tap gate's intent in roughly two of every three manual tap runs the
 // auto-pay bot made while it held payment plans or none. A linear scan over
 // the census (one hand's casts) keeps the hot path map-free.
@@ -353,7 +353,7 @@ func (b Board) neededColours(c Card) [5]bool {
 // enable -- in which case the caller falls through to the land drop and the
 // cast.
 //
-// T2 (Task dp2): the WHICH source is colour-aware instead of position-first.
+// The WHICH source is colour-aware instead of position-first.
 // chooseTap names the intended card (the best-scoring castable card the pool
 // cannot pay) and taps toward its colour need, ordered by a three-tier
 // preference that the production honesty fix (bl1) tightened:
@@ -367,8 +367,8 @@ func (b Board) neededColours(c Card) [5]bool {
 //     tap is aimed at a specific pip. A plain conditional "Any" source
 //     (Cavern of Souls, and 500+ other corpus cards) is deliberately NOT
 //     here: widening the gate to every Any source is a separate behaviour
-//     change from the reflected-source fix and moves the botbench golden
-//     (ticket cli-20260922T225137Z), so only Produces.Reflected qualifies.
+//     change from the reflected-source fix and moves the botbench golden, so
+//     only Produces.Reflected qualifies.
 //   - tier 1: a source that demonstrably produces some mana, but none of a
 //     needed colour (a screw in colour, or a pure generic shortfall): it at
 //     least adds to the pool, so it outranks a source that may produce
@@ -380,7 +380,7 @@ func (b Board) neededColours(c Card) [5]bool {
 //     only: it might produce nothing, so chooseTap never PREFERS it over a
 //     source that demonstrably produces.
 //   - within a tier, the source with the FEWEST distinct colours is tapped
-//     first (Task dp2's least-flexible-first: the mono-colour source before
+//     first (least-flexible-first: the mono-colour source before
 //     the dual, keeping the flexible source for the colour it is still
 //     needed for); a tie breaks on option index.
 //
@@ -397,9 +397,63 @@ func (b Board) chooseTap(d *decision.Decision) int {
 	return b.tapToward(d, c)
 }
 
+// chooseManaColour answers a tapped source's "which mana" ask (every option a
+// "mana" option naming one colour) with the first colour the card the tap gate
+// is aiming at still needs, or -1 to leave the ask to the ordinary fallback. A
+// dual tapped toward a blue spell should not float its first colour, white. A
+// payment window charges for a spell on the stack, which that card is not, so it
+// is left alone.
+func (b Board) chooseManaColour(d *decision.Decision) int {
+	if d.ManaPayment != nil || d.ResumeKind == decision.ResumeManaPayment || d.Options[0].Kind != "mana" {
+		return -1
+	}
+	var offered [5]bool
+	syms := make([]int, len(d.Options))
+	for i := range d.Options {
+		o := &d.Options[i]
+		if o.Kind != "mana" {
+			return -1
+		}
+		syms[i] = manaOptionColour(o)
+		if syms[i] >= 0 {
+			offered[syms[i]] = true
+		}
+	}
+	_, c, ok := b.bestUnpayable(d, offered)
+	if !ok {
+		return -1
+	}
+	need := b.neededColours(c)
+	for i, sym := range syms {
+		if sym >= 0 && need[sym] {
+			return d.Options[i].Index
+		}
+	}
+	return -1
+}
+
+// manaOptionColour is the WUBRG slot of the one colour a "mana" option adds, or
+// -1 for an option that doesn't name exactly one, or that has a cost, whose
+// payment moves the pool the ask is read against: a v2 seat answers it before
+// paying. A flattened colour carries its ManaSymbol; a source with one ability per
+// colour (a typed dual) says it only in its label, "Add U".
+func manaOptionColour(o *decision.Option) int {
+	if strings.Contains(o.Label, ":") {
+		return -1
+	}
+	sym := o.ManaSymbol
+	if sym == "" {
+		sym, _ = strings.CutPrefix(o.Label, "Add ")
+	}
+	if len(sym) != 1 {
+		return -1
+	}
+	return strings.IndexByte("WUBRG", sym[0])
+}
+
 // tapToward picks the "activate" option that best advances card c toward
 // castability in this window. It is the tail of chooseTap extracted verbatim
-// (T1/T3 and the colour-need ranking), so a timing rule that has already
+// (the need gate, the converter gate and the colour-need ranking), so a timing rule that has already
 // chosen its intended card (timedTap) uses the same tap ranking as the main
 // phase.
 func (b Board) tapToward(d *decision.Decision, c Card) int {
@@ -421,7 +475,7 @@ func (b Board) tapToward(d *decision.Decision, c Card) int {
 			continue
 		}
 		if conv, spend := converterCost(o.Cost); conv {
-			// T3: a converter (see converterCost) is taken only when it
+			// A converter (see converterCost) is taken only when it
 			// provably moves the intended card closer to castable.
 			if castOffered || !b.conversionProgresses(c, spend, b.Cards.Get(o.Obj).Produces) {
 				continue
@@ -518,9 +572,9 @@ func (b Board) TapIntent(d *decision.Decision) (state.ObjID, bool) {
 //     -- the manual bot's own casting window. A sorcery-speed card in
 //     another seat's main phase, or over a non-empty stack, is not a cast
 //     the manual policy would make now;
-//   - not C8-dead: a counter (Counter) with no foreign spell on the stack
+//   - not a dead counter: a counter (Counter) with no foreign spell on the stack
 //     (ForeignSpell) self-counters, so it is never worth the mana. This is
-//     the same C8 census chooseCast and the plan filter read;
+//     the same census chooseCast and the plan filter read;
 //   - affordable: the seat can produce this turn (producibleMana) enough to
 //     pay the card's printed cost plus the CR 903.8 command-zone tax
 //     (castCost). A 7-drop on five lands is not a cast the window can make,
@@ -544,7 +598,7 @@ func (b Board) CastableNow(player state.PlayerID, d *decision.Decision) (state.O
 // gap the offered sources can close (offeredClosesPips, the same
 // satisfiability filter the tap gate's intent uses). It is the broader
 // reading of the same predicate, for a window with NO plan: the tap gate's
-// single best intent (CastableNow) can be an uncostable or C8-dead card while
+// single best intent (CastableNow) can be an uncostable or dead-counter card while
 // a different card in the same hand IS a real cast the manual policy could
 // pay, and suppressing the manual answer there would drop that cast. The
 // plan-bearing window keeps the narrower CastableNow so a plan the policy
@@ -582,7 +636,7 @@ func (b Board) AnyCastableNow(player state.PlayerID, d *decision.Decision) bool 
 	return false
 }
 
-// castableNowCard is the per-card half of CastableNow: timing window, C8's
+// castableNowCard is the per-card half of CastableNow: timing window, the
 // dead-counter test and total affordability, all over the card the tap gate
 // intended. It is the single implementation both CastableNow and
 // AnyCastableNow read, so the two can never disagree about what "castable
@@ -613,7 +667,7 @@ func (b Board) castableNowCard(player state.PlayerID, id state.ObjID) bool {
 // two Urza lands included, and since the V1 planner withholds those sources
 // too, the no-plan window then never tapped at all (tron:uw-tempo 46.7% ->
 // 20.0% at bench seed 5500000). While such a source is untapped the gate
-// falls back to the pre-float-waste reading (timing and C8 only); a board of
+// falls back to the pre-float-waste reading (timing and the dead-counter test only); a board of
 // known production keeps the affordability refusal.
 func (b Board) indeterminateSourceUntapped() bool {
 	cs := b.Cards.Values()
@@ -625,12 +679,12 @@ func (b Board) indeterminateSourceUntapped() bool {
 	return false
 }
 
-// T3 -- the converter gate (cardfuzz batch1 lines 3/5/6/10/16/17). A mana
+// The converter gate. A mana
 // ability whose cost spends POOL mana and does not tap its source (Farrelite
 // Priest's and Bog Initiate's "{1}: Add {W}/{B}", Initiates of the Ebon
 // Hand) is a converter: it can be activated any number of times, and each
 // activation takes mana out of the very pool the tap gate is trying to fill.
-// The T1/T2 gate prices a source only by what it PRODUCES, so a converter
+// The need gate prices a source only by what it PRODUCES, so a converter
 // that produces a needed colour ranked tier 0 and was re-activated forever:
 // the engine pays its generic {1} out of the pool in fixed C,W,U,B,R,G order
 // (engine/rules/mana.go resolveManaWith), which for a white card against a
@@ -655,7 +709,7 @@ func (b Board) indeterminateSourceUntapped() bool {
 //
 // A mana-costed ability that also TAPS its source (Celestial Prism's
 // "{2}, {T}", a filter land) is bounded by the tap and is not a converter;
-// it keeps the T2 ordering unchanged.
+// it keeps the source ordering unchanged.
 
 // converterCost parses an "activate" option's engine-supplied cost marker
 // (decision.Option.Cost, engine/rules/legal.go: Forge notation, empty for a bare
@@ -718,7 +772,7 @@ func isDigits(s string) bool {
 	return true
 }
 
-// conversionProgresses is T3's progress test: would paying spend out of the
+// conversionProgresses is the converter gate's progress test: would paying spend out of the
 // current pool and adding the source's production leave the intended card c
 // with a strictly smaller conversionDeficit? The payment is simulated the
 // way the engine pays it (coloured pips from their slot, generic from C then
@@ -807,7 +861,7 @@ func conversionDeficit(c Card, pips [5]int32, pool state.Mana) int32 {
 	return d
 }
 
-// T4 -- the payment-window converter gate (cardfuzz batch3 lines 9/11). T3
+// The payment-window converter gate. The priority gate
 // keeps a converter from looping at PRIORITY, but the engine also offers
 // mana sources as "activate" options inside KChoose payment windows (the
 // cast payment window, the UnlessCost$ and Ward windows, cumulative upkeep),
@@ -819,12 +873,12 @@ func conversionDeficit(c Card, pips [5]int32, pool state.Mana) int32 {
 //
 // A payment window carries no fact naming the charge, so a conversion's
 // progress cannot be priced there; the gate fails closed toward Done, the
-// T3 direction: the first offered source that is NOT a converter is taken,
+// priority gate's direction: the first offered source that is NOT a converter is taken,
 // and when only converters remain the window is closed with Done. Every
 // non-converter activation taps a source (converterCost's definition), so
 // the activations a window can take are bounded by the untapped sources,
 // and every window ends. This is a class rule over the option's
-// engine-supplied cost marker, read the same way T3 reads it; a window with
+// engine-supplied cost marker, read the same way the priority gate reads it; a window with
 // no "activate" option is not a payment window and is left to the caller.
 func chooseManaWindow(d *decision.Decision) (int, bool) {
 	isWindow := false

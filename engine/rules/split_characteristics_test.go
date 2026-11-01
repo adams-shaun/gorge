@@ -1,6 +1,6 @@
 package rules
 
-// CR 709.4b-d split-card colours and card types (cr-g13-face-characteristics-mvd).
+// CR 709.4b-d split-card colours and card types.
 // Off the stack a split card has the colours of its combined mana cost and
 // each card type on either half; on the stack only the half being cast
 // exists (CR 709.3b) unless the spell is fused (CR 709.4d). A cast

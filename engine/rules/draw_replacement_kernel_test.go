@@ -22,7 +22,7 @@ func TestBreathstealersCryptReplacedPlayerPay(t *testing.T) {
 	top := setupDrawLibrary(t, e, 1, bear)
 
 	draws := countDraw(e)
-	kr5EmitDraw(t, e, 1)
+	emitDrawEvent(t, e, 1)
 	// The replacement discarded the original Draw event; the body drew one.
 	if got := countDraw(e) - draws; got != 1 {
 		t.Fatalf("draw events after replacement = %d, want 1 (the body's re-draw)", got)
@@ -51,7 +51,7 @@ func TestBreathstealersCryptReplacedPlayerDecline(t *testing.T) {
 	bear := mustCorpusCard(t, reg, "Grizzly Bears")
 	top := setupDrawLibrary(t, e, 1, bear)
 
-	kr5EmitDraw(t, e, 1)
+	emitDrawEvent(t, e, 1)
 	d := e.Pending()
 	if d == nil || d.ResumeKind != "unless_pay" || d.Player != 1 {
 		t.Fatalf("pending = %+v, want the ReplacedPlayer unless-pay ask for seat 1", d)
@@ -83,7 +83,7 @@ func TestZursWeirdingNonReplacedPlayerPays(t *testing.T) {
 	addMana(t, e, 0, "CC")
 
 	draws := countDraw(e)
-	kr5EmitDraw(t, e, 1)
+	emitDrawEvent(t, e, 1)
 	d := e.Pending()
 	if d == nil || d.ResumeKind != "unless_pay" || d.Player != 0 {
 		t.Fatalf("pending = %+v, want the NonReplacedPlayer unless-pay ask for seat 0", d)
@@ -112,7 +112,7 @@ func TestZursWeirdingNonReplacedPlayerDeclines(t *testing.T) {
 	top := setupDrawLibrary(t, e, 1, bear)
 
 	draws := countDraw(e)
-	kr5EmitDraw(t, e, 1)
+	emitDrawEvent(t, e, 1)
 	d := e.Pending()
 	if d == nil || d.ResumeKind != "unless_pay" || d.Player != 0 {
 		t.Fatalf("pending = %+v, want the NonReplacedPlayer unless-pay ask for seat 0", d)
@@ -126,10 +126,10 @@ func TestZursWeirdingNonReplacedPlayerDeclines(t *testing.T) {
 	}
 }
 
-// kr5EmitDraw is emitDraw run as a kernel probe from a quiet engine: a
+// emitDrawEvent is emitDraw run as a kernel probe from a quiet engine: a
 // draw replacement's body asks (an unless-pay election) are posed and the
 // answering Submit re-executes the draw with the answer served.
-func kr5EmitDraw(t *testing.T, e *Engine, p state.PlayerID) {
+func emitDrawEvent(t *testing.T, e *Engine, p state.PlayerID) {
 	t.Helper()
 	e.pending = nil
 	e.probe(func() { emitDraw(t, e, p) })

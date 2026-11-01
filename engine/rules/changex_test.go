@@ -18,7 +18,7 @@ package rules
 //     activation arm's Remembered is the SOURCE PERMANENT (an AbilityPush's
 //     Obj -- the ability stack object is minted inside events.Apply, off the
 //     event), so effChangeX re-derives the ability wrapper (measured premise
-//     correction vs the brief, which claimed triggerRemembered captures the
+//     triggerRemembered does not capture the
 //     stack object on both arms).
 //
 // The Glava lines are copied verbatim from

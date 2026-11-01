@@ -1,6 +1,6 @@
 // PersistentMana$ True — "you don't lose this mana as steps and phases end"
 // (CR 500.4 with the producing card's exception, bounded by the cards'
-// "until end of turn"). The brief's census carrier is Rousing Refrain
+// "until end of turn"). The census carrier is Rousing Refrain
 // (`SP$ Mana | Produced$ R | Amount$ Z | PersistentMana$ True | Defined$ You`,
 // Z = the target opponent's hand size); the corpus population is 23 files /
 // 24 raw lines, every occurrence the literal True. The pool tally is

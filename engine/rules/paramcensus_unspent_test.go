@@ -49,7 +49,7 @@ func TestParamCensusSacrificeModeIsInert(t *testing.T) {
 }
 
 // TestParamCensusReadsUnspentManaOnCorpusCards pins the two real carriers the
-// set census named before cr-g184 (Electro, Assaulting Battery and The Last
+// set census names (Electro, Assaulting Battery and The Last
 // Agni Kai). TestParamCensusReadsUnspentManaParams pins the derived read set;
 // this test pins the card-level walk, including The Last Agni Kai's
 // Effect-delivered static reached through EachRawEffectChild. A closure in

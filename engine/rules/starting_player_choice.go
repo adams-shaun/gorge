@@ -16,10 +16,9 @@ import (
 // available (tossChoice.active), with only startPostDealSetup deferred so
 // the pregame rounds open in the CHOSEN seat's turn order. A harness that
 // can answer calls AskStartingPlayer; any caller that poses no ask and
-// advances gets the deterministic R-9 fallback at Advance's head: the toss
+// advances gets the deterministic no-host fallback at Advance's head: the toss
 // winner takes the first turn, the pre-choice seat. Plain rules.New never
-// offers the ask at all -- it is the R-9 no-host fallback, byte-identical to
-// the pre-choice engine.
+// offers the ask at all -- it is the no-host fallback.
 //
 // The answer is the authoritative starting seat: handleStartingPlayer folds
 // StartingPlayerChange (a re-fold of the same no-append genesis Apply when
@@ -39,7 +38,7 @@ import (
 // candidate seats travel in the Decision's own option list (Option.Player),
 // so replay rebuilds them from the live survivors without a second copy here.
 // configured is true when a Config.StartChooser named this seat rather than
-// the toss (E3-1); it only picks the decision's prompt.
+// the toss; it only picks the decision's prompt.
 type tossChoice struct {
 	active     bool
 	winner     state.PlayerID
@@ -58,8 +57,8 @@ func TossWinner(seed uint64, seats int) int {
 // tossOutcome applies cfg.StartChooser to the drawn toss: it returns the seat
 // that will be posed the choice, the genesis Note text for it, and whether
 // the seat was configured rather than tossed. An index outside the seats is
-// ignored (the toss stands), so a nil -- every Config before E3 -- or
-// out-of-range chooser returns the toss itself, byte-identical to today.
+// ignored (the toss stands), so a nil or
+// out-of-range chooser returns the toss itself.
 // It is the one home of both the genesis Note text and the tossChoice
 // configured flag: genesisDeal (engine/rules/genesis.go) emits the Note it returns
 // and rebinds its toss variable to the seat, and the choice-pending guard
@@ -82,7 +81,7 @@ func (e *Engine) tossOutcome(cfg Config, toss int) (seat int, note string, confi
 // a seat-scoped projection or bot input suppresses every hand-derived fact
 // while it holds. It is the read side of tossChoice.active for the view and
 // botpolicy layers, which reach it through an optional capability interface
-// rather than importing rules (Ruling F7).
+// rather than importing rules.
 func (e *Engine) StartingChoicePending() bool {
 	return e != nil && e.tossChoice.active
 }
@@ -113,7 +112,7 @@ func (e *Engine) AskStartingPlayer() *decision.Decision {
 	}
 	prompt := "You won the toss. Choose who takes the first turn."
 	if e.tossChoice.configured {
-		// A configured chooser (Config.StartChooser, E3-1) did not win a
+		// A configured chooser (Config.StartChooser) did not win a
 		// toss -- MTR 2.2 hands the previous game's loser the choice -- so
 		// the honest prompt omits the toss.
 		prompt = "Choose who takes the first turn."
@@ -142,7 +141,7 @@ func (e *Engine) resolveStartingPlayer(start state.PlayerID) {
 	}
 }
 
-// resolveTossChoiceDefault applies the deterministic R-9 fallback for a
+// resolveTossChoiceDefault applies the deterministic no-host fallback for a
 // choice no host answered: the toss winner takes the first turn. It runs
 // from Advance's loop head (engine/rules/engine.go) -- never from step(), which the
 // resolution machinery calls mid-game -- and only on an engine still at
@@ -159,8 +158,8 @@ func (e *Engine) resolveTossChoiceDefault() {
 // handleStartingPlayer applies the answered CR 103.1 choice. The chosen
 // option's Player field names the starting seat; the offered option list
 // already holds only living seats, so Validate has checked it. A decision
-// that somehow carried nothing falls back to the toss winner (the same R-9
-// default).
+// that somehow carried nothing falls back to the toss winner (the same
+// no-host default).
 func (e *Engine) handleStartingPlayer(d *decision.Decision, in decision.Intent) {
 	start := e.tossChoice.winner
 	if chosen := d.Chosen(in); len(chosen) == 1 {

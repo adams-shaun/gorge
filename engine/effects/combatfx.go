@@ -245,7 +245,7 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // tapChoices is the CardChoices$ pick: the battlefield permanents matching it
 // (seat order, then zone order), of which the controller chooses
 // ChoiceAmount$ (AnyNumber$: zero up to that many; the count is capped at the
-// eligible set). Unserved (no tape, no host) the R-9 stand-in is the
+// eligible set). Unserved (no tape, no host) the stand-in is the
 // minimum: none with AnyNumber$, else the first n in order.
 func tapChoices(h Host, c *Ctx, sa *cards.SA, p tapParams) []state.ObjID {
 	g := h.Game()
@@ -296,8 +296,8 @@ func tapChoices(h Host, c *Ctx, sa *cards.SA, p tapParams) []state.ObjID {
 
 // effPump, effPumpAll, effAnimate and effProtection are all continuous
 // effects: they build a state.ContinuousEffect and hand it to the Host,
-// which is rules.Engine.AddContinuous, so the CR 613 layer system Task 19
-// built actually has a caller (Task 19c). Every one of them is a temporary
+// which is rules.Engine.AddContinuous, so the CR 613 layer system
+// has a caller. Every one of them is a temporary
 // grant from a resolving spell or ability, never a permanent's own printed
 // static, so they always set UntilEOT: true -- the layer system's existing
 // EndOfTurnCleanup already drops those on schedule, and Engine.active()
@@ -307,7 +307,7 @@ func tapChoices(h Host, c *Ctx, sa *cards.SA, p tapParams) []state.ObjID {
 //
 // Each one scopes its effect to exactly the object it targets with
 // Affects: "Card.Self" and Source: <that object's ID> -- not the resolving
-// ability's own source -- reusing the same Self-predicate pattern Task 19's
+// ability's own source -- reusing the same Self-predicate pattern
 // own lord-effect tests already established (layers_test.go), rather than
 // inventing a new filter form. effPump itself lives in pump.go, its
 // parameters compiled once in pump_params.go.
@@ -603,7 +603,7 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 		// election at resolution (Crawling Barrens, Ebony Fly, The Irencrag).
 		// Option 0 is today's behaviour (yes), so the bot clamp keeps every
 		// bot game byte-identical. OptionQuestion$ is the card's own prompt
-		// when it names one; a host that cannot ask (R-9) keeps the mandatory
+		// when it names one; a host that cannot ask keeps the mandatory
 		// animation and emits one Note.
 		prompt := strings.TrimSpace(sa.ParamStr(cards.PKOptionQuestion))
 		if prompt == "" {
@@ -621,7 +621,7 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 			}
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-				Text: "Animate: no host to ask the Optional$ election; animates (R-9 stand-in)"})
+				Text: "Animate: no host to ask the Optional$ election; animates (no-host stand-in)"})
 		}
 	}
 	emitAnimateColorsNotes(h, c, ag, "Animate")
@@ -1199,8 +1199,8 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		})
 	}
 	// Keywords$ and HiddenKeywords$ are ONE keyword grant: both are layer-6
-	// derived keywords, and the brief's "do not let ability removal erase its
-	// own simultaneous grant" needs HiddenKeywords$ to ride the SAME
+	// derived keywords, and not letting ability removal erase its
+	// own simultaneous grant needs HiddenKeywords$ to ride the SAME
 	// AddKeywords list as Keywords$, AFTER RemoveAbilities clears. Concatenate
 	// only when HiddenKeywords$ is present so an ordinary animation's list is
 	// the parser's own slice, byte-identical to before.
@@ -1331,7 +1331,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	// destroy" (Spectacular Pileup) really strips.
 	ag.replacements = nil
 	// AnimateAll's HiddenKeywords$ stays unread too (the corpus carries no
-	// AnimateAll HiddenKeywords$ line, and this ticket scopes the derived
+	// AnimateAll HiddenKeywords$ line, and this scopes the derived
 	// restriction to Animate): clear what the shared parser read so the
 	// sweep below cannot apply it behind animateAllUnreadNote's note.
 	ag.hiddenKws = nil

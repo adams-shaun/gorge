@@ -2,8 +2,8 @@
 // verifies the rebuilt event stream against the one on file, naming the
 // first sequence number where they part ways.
 //
-// The contract is (Config, Log) together, never the Log alone (Rulings P5,
-// T11-d). Genesis -- state.NewGame and the per-deck AddObject calls in
+// The contract is (Config, Log) together, never the Log alone (see
+// Replay). Genesis -- state.NewGame and the per-deck AddObject calls in
 // rules.New -- runs before the log exists and legitimately bypasses events
 // (see engine/rules/engine.go's own package doc), so the log can never recover
 // deck contents or player names on its own: a faithful replay needs the
@@ -42,10 +42,10 @@ type Divergence = eventdiff.Divergence
 // Replay rebuilds the whole match named by (cfg, l) and verifies it against
 // l: every recorded Intent is submitted, in order, to a freshly-created
 // engine, and the rebuilt event stream is compared against l.Events as it
-// is produced (Ruling P3) rather than only once at the end. On success the
+// is produced rather than only once at the end. On success the
 // returned engine's log has the same events, in the same order, as l, and a
 // chain Head equal to l.HeadAt(len(l.Events)) -- l.Head() itself only if l
-// accumulated that chain live in this process, see Ruling T24-a below; the
+// accumulated that chain live in this process, see below; the
 // returned error is nil.
 //
 // A *Divergence names the first event where the two streams part ways,
@@ -54,14 +54,11 @@ type Divergence = eventdiff.Divergence
 // a Seq the current pending decision does not match, an out-of-range or
 // duplicate choice, the wrong player, and so on -- is refused by
 // decision.Decision.Validate before it can do anything; that surfaces as a
-// plain wrapped error, not a Divergence, since nothing was compared (Ruling
-// P2). A returned engine is never nil once a log was supplied; a nil log is
-// a programming error and returns (nil, error) instead (Ruling T24-b, fix
-// round 1: this sentence used to promise a non-nil engine unconditionally,
-// which the l == nil guard below directly contradicted). Otherwise the
+// plain wrapped error, not a Divergence, since nothing was compared. A returned
+// engine is never nil once a log was supplied; a nil log is a programming error
+// and returns (nil, error) instead. Otherwise the
 // engine reflects however far the replay got before it stopped; a caller
 // may inspect its Game and Log freely, but should not expect further Submit
-// calls against it to mean anything once an error has been returned.
 func Replay(l *events.Log, cfg rules.Config) (*rules.Engine, error) {
 	if l == nil {
 		return nil, fmt.Errorf("replay: nil log")
@@ -88,17 +85,17 @@ func Replay(l *events.Log, cfg rules.Config) (*rules.Engine, error) {
 	if len(e.L.Events) != len(l.Events) {
 		return e, &Divergence{Seq: uint64(len(e.L.Events)), Short: true, Want: l.Events[len(e.L.Events)]}
 	}
-	// Ruling T24-a (fix round 1, Important #1): l.Head() is wrong for any l
-	// that did not accumulate its own chain live in this process. l.chain is
-	// unexported with no json tag (engine/events/log.go), while Seed, Events and
-	// Intents all have one -- so a Log that came off disk or the wire has a
-	// zero chain, and Head() reports the seedless zero hash even when every
-	// event matches the replay byte for byte. l.HeadAt(len(l.Events))
-	// recomputes the whole chain from Seed and Events alone, which DO
-	// round-trip; HeadAt's own doc calls this "what makes 'playback to N'
-	// verifiable against a full log", and engine/events/log_test.go already pins
-	// Head() == HeadAt(len(Events)) for an in-memory log, so nothing changes
-	// for a log built and replayed in the same process.
+	// l.Head() is wrong for any l that did not accumulate its own chain live
+	// in this process. l.chain is unexported with no json tag
+	// (engine/events/log.go), while Seed, Events and Intents all have one --
+	// so a Log that came off disk or the wire has a zero chain, and Head()
+	// reports the seedless zero hash even when every event matches the replay
+	// byte for byte. l.HeadAt(len(l.Events)) recomputes the whole chain from
+	// Seed and Events alone, which DO round-trip; HeadAt's own doc calls this
+	// "what makes 'playback to N' verifiable against a full log", and
+	// engine/events/log_test.go already pins Head() == HeadAt(len(Events))
+	// for an in-memory log, so nothing changes for a log built and replayed
+	// in the same process.
 	//
 	// A NoHash log tracks no chain at all: HeadAt short-circuits to "" for
 	// one, and so does Head() (engine/events/log.go), so there is nothing coherent
@@ -126,14 +123,14 @@ func Replay(l *events.Log, cfg rules.Config) (*rules.Engine, error) {
 // driven onward exactly like one built fresh, by calling Submit with a new
 // Intent for its Pending() decision.
 //
-// n is clamped rather than rejected (Ruling P4's totality table): n < 0
+// n is clamped rather than rejected (a total function): n < 0
 // behaves as 0 (genesis and the events it logs, but no Intents applied),
 // and n > len(l.Intents) behaves as len(l.Intents) (every recorded Intent,
 // the same prefix Replay itself would run). Either way the result is a
 // valid engine, never a panic.
 //
 // Like Replay, cfg.Seed is overwritten with l.Seed, and the incremental
-// compare against l.Events (Ruling P3) still runs after every Advance and
+// compare against l.Events still runs after every Advance and
 // Submit, so a *Divergence can still surface here -- ReplayTo is Replay
 // with an early stop, not a separate, unchecked code path.
 func ReplayTo(l *events.Log, cfg rules.Config, n int) (*rules.Engine, error) {
@@ -160,7 +157,7 @@ func Walk(l *events.Log, cfg rules.Config, n int, visit func(e *rules.Engine, i 
 // Intents (clamped to [0, len(l.Intents)]), comparing the engine's own
 // growing event log against l's recorded events after every step that can
 // add to it: the first Advance past genesis, and every subsequent Submit.
-// Comparing incrementally, rather than once at the end, is Ruling P3: an
+// Comparing incrementally, rather than once at the end, matters: an
 // intent altered early enough can make a LATER recorded intent invalid
 // against the now-different game (Submit would then return a plain
 // rejection, not a Divergence), so the only way to guarantee the FIRST
@@ -179,7 +176,7 @@ func walk(l *events.Log, cfg rules.Config, n int, visit func(e *rules.Engine, i 
 	} else if n > len(l.Intents) {
 		n = len(l.Intents)
 	}
-	cfg.Seed = l.Seed // Ruling P5: the log's seed wins over the caller's.
+	cfg.Seed = l.Seed // The log's seed wins over the caller's.
 
 	// CR 103.1's winner-chooses ask is posed only by a harness that can
 	// answer it, so a log that recorded it carries a DecisionAsk event for
@@ -188,7 +185,7 @@ func walk(l *events.Log, cfg rules.Config, n int, visit func(e *rules.Engine, i 
 	// rounds the original run deferred, and the ask is re-posed here so the
 	// recorded choice Intent lands on the decision it answered. A log that
 	// never asked is reconstructed through plain rules.New -- byte-identical
-	// to the run that produced it -- and advances through the R-9 fallback
+	// to the run that produced it -- and advances through the no-host fallback
 	// exactly as the original run did.
 	var e *rules.Engine
 	asked := startingPlayerAsked(l)
@@ -198,7 +195,7 @@ func walk(l *events.Log, cfg rules.Config, n int, visit func(e *rules.Engine, i 
 		e = rules.New(cfg)
 	}
 	if asked {
-		// Re-pose the recorded ask, before Advance's R-9 fallback would
+		// Re-pose the recorded ask, before Advance's no-host fallback would
 		// default it, so the recorded choice Intent lands on the decision it
 		// answered. The re-pose emits the same DecisionAsk event at the same
 		// log position the original run recorded.
@@ -224,12 +221,10 @@ func walk(l *events.Log, cfg rules.Config, n int, visit func(e *rules.Engine, i 
 		if e.Pending() == nil {
 			return e, fmt.Errorf("replay: no decision pending at intent %d", i)
 		}
-		// Ruling P2: submit the recorded Intent exactly as logged. Rewriting
-		// its Seq to whatever the engine currently asks for (as the brief's
-		// own reference implementation did) would silently repair the very
-		// mismatch that means the engine changed underneath this log --
-		// test 5's whole point is that such an Intent must be refused, not
-		// quietly patched up and applied anyway.
+		// Submit the recorded Intent exactly as logged. Rewriting its Seq to
+		// whatever the engine currently asks for would silently repair the
+		// very mismatch that means the engine changed underneath this log:
+		// such an Intent must be refused, not patched up and applied.
 		if err := e.Submit(l.Intents[i]); err != nil {
 			return e, fmt.Errorf("replay: intent %d rejected: %w", i, err)
 		}
@@ -264,7 +259,7 @@ func startingPlayerAsked(l *events.Log) bool {
 
 // compare checks e's own event log, from index checked onward, against l's
 // recorded events at the same indices, byte for byte via Event.Append
-// (Ruling P3) -- the same comparison events.Log's own Head chains, so two
+// -- the same comparison events.Log's own Head chains, so two
 // events that compare equal here always chain to the same Head, and two
 // that do not can never accidentally chain to one. It returns how many
 // events have now been verified (so the caller can resume from there next

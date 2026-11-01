@@ -30,7 +30,7 @@ func TestRepeatEachChangeZoneTableBatchesChangesZoneAllKernel(t *testing.T) {
 		t.Fatalf("precondition: DBRepeat carries ChangeZoneTable = %q, want True", sa.Params["ChangeZoneTable"])
 	}
 
-	kr9Probe(e, func() {
+	probeAfterPass(e, func() {
 		effects.Resolve(e, &effects.Ctx{Source: organ, Controller: 0,
 			SVars: e.G.Obj(organ).Face().SVars}, sa)
 	})
@@ -38,7 +38,7 @@ func TestRepeatEachChangeZoneTableBatchesChangesZoneAllKernel(t *testing.T) {
 		t.Fatal("the loop body's optional sacrifice never asked")
 	}
 	sacrificeAllBears(t, e, bears)
-	kr9Settle(e)
+	settleAfterPass(e)
 	drainTriggers(t, e)
 
 	// Precondition: the loop body really moved the three distinct bears to
@@ -73,7 +73,7 @@ func TestRepeatEachWithoutChangeZoneTableKeepsPerMoveChangesZoneAllKernel(t *tes
 		t.Fatal("control precondition: ChangeZoneTable still present on the compiled SA")
 	}
 
-	kr9Probe(e, func() {
+	probeAfterPass(e, func() {
 		effects.Resolve(e, &effects.Ctx{Source: organ, Controller: 0,
 			SVars: e.G.Obj(organ).Face().SVars}, sa)
 	})
@@ -81,7 +81,7 @@ func TestRepeatEachWithoutChangeZoneTableKeepsPerMoveChangesZoneAllKernel(t *tes
 		t.Fatal("the loop body's optional sacrifice never asked")
 	}
 	sacrificeAllBears(t, e, bears)
-	kr9Settle(e)
+	settleAfterPass(e)
 	drainTriggers(t, e)
 
 	for _, id := range bears {

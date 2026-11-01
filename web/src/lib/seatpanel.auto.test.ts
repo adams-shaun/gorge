@@ -589,7 +589,7 @@ describe('the post-land window — castable after tapping (fb-20260914T014141Z)'
 
   /** ledWindow is the fb-led1 window: the ONLY action on it is that costly activation — the shape the empty-priority-window floor swallowed for the whole rest of the reporter's game (fb-20260917T192520Z-26136705). */
   const ledWindow = (seq: number): Decision =>
-    ({ seq, player: 0, kind: 'priority', prompt: 'turn 5, main1 — You has priority', min: 1, max: 1, options: [ledActivate(0), pass(1), concede(2)] });
+    ({ seq, player: 0, kind: 'priority', prompt: 'turn 5, main1 — You have priority', min: 1, max: 1, options: [ledActivate(0), pass(1), concede(2)] });
 
   it('manual mode (skipEmpty on): the floor does NOT swallow the fb-led1 window — a costly mana activation with a dead hand stops (20260917T192520Z-26136705)', async () => {
     const p = manualSeat();

@@ -33,7 +33,7 @@ func TestSecretVoteTriggerRetainsReferentsWithoutLoggingBallotsKernel(t *testing
 	src.Zone = state.ZStack
 	e.G.SetZone(state.ZStack, 0, []state.ObjID{src.ID})
 	before := e.G.Players[1].Life
-	kr9Probe(e, func() {
+	probeAfterPass(e, func() {
 		effects.Resolve(e, &effects.Ctx{Source: src.ID, Controller: 0, SVars: card.Faces[0].SVars}, card.Faces[0].Abilities[0])
 	})
 	for i, v := range votes {
@@ -94,7 +94,7 @@ func TestVaultVoteMessageAndUpToWithSecretBallotKernel(t *testing.T) {
 	src := e.G.AddObject(vault, 0)
 	src.Zone = state.ZStack
 	e.G.SetZone(state.ZStack, 0, []state.ObjID{src.ID})
-	kr9Probe(e, func() {
+	probeAfterPass(e, func() {
 		effects.Resolve(e, &effects.Ctx{Source: src.ID, Controller: 0, SVars: vault.Faces[0].SVars}, vote)
 	})
 	for i := 0; i < 3; i++ {

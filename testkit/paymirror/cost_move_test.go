@@ -13,7 +13,7 @@ import (
 )
 
 // TestWitnessReadsCostMovedSources pins the witness over the activation
-// shapes a last-resort plan step discloses (round-5 cardfuzz mirror:
+// shapes a last-resort plan step discloses (cardfuzz mirror:
 // 36 wrong_production, 10 unexecuted_activation). A Treasure or Lotus Petal
 // taps, is sacrificed, then adds its mana; an Eldrazi Spawn is sacrificed
 // with no tap at all; a pay-life source pays its life between the tap and
@@ -78,7 +78,7 @@ func diffsOf(a, b *rules.Engine, relax *floatReorder) []Diff {
 }
 
 // TestFloatReorderAllowsOnlyAReorder pins the float route's cost-move
-// allowance (diff.go floatReorder; round-5 paymirror float_then_cast
+// allowance (diff.go floatReorder; paymirror float_then_cast
 // state_differs on G.Entered[*].Sacrificed/Sacrificer/From/To and
 // PreStackEnteredLen). Run A sacrifices a planned Treasure after its spell
 // moved to the stack, the float route before: the same entries in another
@@ -127,7 +127,7 @@ func TestFloatReorderAllowsOnlyAReorder(t *testing.T) {
 
 // TestControlIgnoresHarnessObservers pins the control's exclusion of the
 // harness-only observers Clone deliberately does not copy: cmd/cardfuzz
-// installs ManaAbilityHook on its live run A, and every round-5 cardfuzz
+// installs ManaAbilityHook on its live run A, and every cardfuzz
 // mirror diag read control "ManaAbilityHook <func> vs nil".
 func TestControlIgnoresHarnessObservers(t *testing.T) {
 	live := fixtureEngine(t)
@@ -139,8 +139,8 @@ func TestControlIgnoresHarnessObservers(t *testing.T) {
 }
 
 // TestExpectedUnmirrorableVerdict pins the verdict of a cast whose only
-// manual route is blocked by the float's own triggers (round-5
-// cast_blocked_by_float_trigger, City of Brass): unmirrorable, keyed
+// manual route is blocked by the float's own triggers
+// (cast_blocked_by_float_trigger, City of Brass): unmirrorable, keyed
 // "expected:", and not a cardfuzz failure -- unless run A itself broke its
 // contract or another route was not expected.
 func TestExpectedUnmirrorableVerdict(t *testing.T) {
@@ -165,16 +165,13 @@ func TestExpectedUnmirrorableVerdict(t *testing.T) {
 	}
 }
 
-// TestPayMirrorSacrificeSourcesSeed1006 is the round-5 paymirror finding end
+// TestPayMirrorSacrificeSources is a paymirror finding end
 // to end (constructed seed 1006, the-epic-storm vs uw-control, Cabal Ritual
 // paid with a Lotus Petal): every planned cast whose witness sacrifices a
 // planned source mirrors equivalently -- witness, float route and control.
 //
-// cov-loyaltyrank: the bot now ranks planeswalker loyalty abilities by their
-// cost/effect facts, which moved uw-control's games; seed 1006 no longer
-// sacrifices a planned source, so the test plays seed 1003 (same decks, two
-// such casts, all equivalent). The name keeps the round-5 seed it came from.
-func TestPayMirrorSacrificeSourcesSeed1006(t *testing.T) {
+// It plays seed 1003 (same decks), which reaches two such casts, all equivalent.
+func TestPayMirrorSacrificeSources(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	d, err := LoadDecks(reg)

@@ -16,7 +16,7 @@ import (
 )
 
 // A Killer Among Us is the only Standard carrier of ChooseType's Secretly$
-// True (cr-g126): its "secretly choose Human, Merfolk, or Goblin" must reach
+// True: its "secretly choose Human, Merfolk, or Goblin" must reach
 // the chooser only. The Choose event stays the ordinary "type" shape but
 // carries Secret and Player, so view.RedactEvent serves every other seat the
 // event's shape; the sacrifice ability's RevealChosen cost is the public

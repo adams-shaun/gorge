@@ -57,7 +57,7 @@ func TestPlayerCountPropertyYouPerTurnLedgerCounts(t *testing.T) {
 		}
 	}
 	h.g.Entered = append(h.g.Entered, state.ZoneEntry{Obj: sacked, From: state.ZBattlefield,
-		To: state.ZGraveyard, Sacrificed: true, Sacrificer: 1})
+		To: state.ZGraveyard, Sacrificed: true, Controller: 1})
 	if got, ok := EvalCountOK(h, c, "PlayerCountPropertyYou$SacrificedThisTurn"); !ok || got != 1 {
 		t.Errorf("controller 1 SacrificedThisTurn = (%d, %v), want (1, true)", got, ok)
 	}

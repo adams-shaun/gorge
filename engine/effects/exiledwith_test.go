@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestOblivionRingExiledWithResolvesOpponentOwnedTarget is the brief's leaf for
+// TestOblivionRingExiledWithResolvesOpponentOwnedTarget covers
 // the `Defined$ ExiledWith` reader half. It runs Oblivion Ring's real
 // (owner seat 1, ring controlled by seat 0), which is exactly the case that
 // proves the association must be read across EVERY player's exile zone: the
@@ -46,7 +46,7 @@ func TestOblivionRingExiledWithResolvesOpponentOwnedTarget(t *testing.T) {
 	}
 }
 
-// TestKohExiledWithSourceChoicePoolContainsExiledCreature is the brief's leaf
+// TestKohExiledWithSourceChoicePoolContainsExiledCreature covers
 // for the `filter.go` half: the `Card.ExiledWithSource` predicate family that
 // Koh, the Face Stealer's ChooseCard reads (`Choices$
 // Creature.ExiledWithSource`).
@@ -87,7 +87,7 @@ func TestKohExiledWithSourceChoicePoolContainsExiledCreature(t *testing.T) {
 	}
 }
 
-// TestDetentionSphereChangeZoneAllRecordsExiledWith is the brief's leaf for
+// TestDetentionSphereChangeZoneAllRecordsExiledWith covers
 // the writer half: `effChangeZoneAll` must record the same
 // exiled-with association `effChangeZone` does, so Detention Sphere's return
 // (`ChangeZoneAll | ChangeType$ Card.ExiledWithSource`) can find the swept

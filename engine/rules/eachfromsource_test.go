@@ -27,7 +27,7 @@ func mustCorpusCardT(t *testing.T, name string) *cards.Card {
 	return c
 }
 
-// TestResourcefulDefenseCopiesEachCounterKind is the brief's Done test: a
+// TestResourcefulDefenseCopiesEachCounterKind: a
 // 2/2 with two +1/+1 counters and a charge counter leaves the battlefield;
 // the target permanent gains exactly two +1/+1 and one charge counter.
 // Before the fix the CounterType$ EachFromSource put placed NOTHING (not a

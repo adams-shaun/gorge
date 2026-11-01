@@ -2,7 +2,7 @@ import type { CardView, Decision, Option } from '../protocol';
 import { cardFromPick } from './arrange';
 
 /**
- * discard.ts is the discard-pick ask's pure half (fb-20260914T120705Z). Four
+ * discard.ts is the discard-pick ask's pure half. Four
  * engine shapes pose a decision whose options are CARD PICKS — Option.kind
  * "discard", Obj the card's id, Label the card's name (three of the four
  * prefix it with "Discard ", the cast-cost one does not):

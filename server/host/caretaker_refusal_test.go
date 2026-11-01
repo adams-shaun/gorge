@@ -2,7 +2,7 @@ package host
 
 import "testing"
 
-// TestOnlyAWaitingHumanSubmitIsReparked pins the review finding that a refused
+// TestOnlyAWaitingHumanSubmitIsReparked pins that a refused
 // answer must be re-parked only when a registry submit is waiting for the
 // verdict. A caretaker or plain Decide answer has a parking but no ack
 // channel; re-parking it would make the same timed-out caretaker answer the

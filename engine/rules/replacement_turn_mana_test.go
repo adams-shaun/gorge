@@ -135,7 +135,7 @@ func TestNecropotenceSkipsItsControllersDrawStep(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestWildWastelandSkipsItsControllersDrawStep pins the brief's named deck
+// TestWildWastelandSkipsItsControllersDrawStep pins the named deck
 // carrier (Hail, Caesar pip census 2026-09-18): Wild Wasteland's real
 // R:Event$ BeginPhase | ActiveZones$ Battlefield | ValidPlayer$ You |
 // Phase$ Draw | Skip$ True line -- character-for-character the Necropotence
@@ -611,17 +611,18 @@ func TestReplacementManaColorResumesCastPayment(t *testing.T) {
 }
 
 // TestCompetingUntapReplacementsUseAffectedPlayerOrder drives the real
-// battlefield Intruder Alarm and command-zone Edge of Malacol scripts against
-// one tapped Memnite. Both prevent its untap, but Edge's ReplaceWith$ adds two
-// counters, so the affected permanent's controller must get the CR 616.1
-// choice rather than whichever replacement appears first in the zone scan.
+// battlefield Freyalise's Winds and command-zone Edge of Malacol scripts against
+// one tapped Memnite with a wind counter. Both replace its untap, so the affected
+// permanent's controller must get the CR 616.1 choice rather than whichever
+// replacement appears first in the zone scan.
 func TestCompetingUntapReplacementsUseAffectedPlayerOrder(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	e, cfg, ids := realCardEngine(t, reg, 100, "Edge of Malacol", "Intruder Alarm", "Memnite")
+	e, cfg, ids := realCardEngine(t, reg, 100, "Edge of Malacol", "Freyalise's Winds", "Memnite")
 	edge, memnite := ids[0], ids[2]
 	e.emit(events.Event{Kind: events.MoveZone, Obj: edge, From: state.ZBattlefield, To: state.ZCommand})
 	e.emit(events.Event{Kind: events.Tap, Obj: memnite})
+	e.emit(events.Event{Kind: events.CounterChange, Obj: memnite, Counter: "WIND", Amount: 1})
 	e.pending = nil
 	// beginTurn's actual untap loop must park here. The answer must resume that
 	// loop and advance to upkeep only after the selected replacement completes.
@@ -656,6 +657,28 @@ func TestCompetingUntapReplacementsUseAffectedPlayerOrder(t *testing.T) {
 	}
 	if e.G.Step != state.StepUpkeep || e.Pending() == nil || e.Pending().Kind != decision.KPriority {
 		t.Fatalf("after untap answer: step=%s pending=%+v, want upkeep priority", e.G.Step, e.Pending())
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestDoesntUntapLeavesNoUntapToReplace: Intruder Alarm keeps Memnite from
+// untapping (CR 502.3), so Edge of Malacol's "would untap" never applies and
+// nothing is asked. Forge's "can't is never a choice" and XMage's rule-modifying
+// effects answer the same (ran on Freyalise's Winds with Intruder Alarm).
+func TestDoesntUntapLeavesNoUntapToReplace(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, ids := realCardEngine(t, reg, 100, "Edge of Malacol", "Intruder Alarm", "Memnite")
+	edge, memnite := ids[0], ids[2]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: edge, From: state.ZBattlefield, To: state.ZCommand})
+	e.emit(events.Event{Kind: events.Tap, Obj: memnite})
+	e.pending = nil
+	e.beginTurn(0)
+	if d := e.Pending(); d != nil || e.G.Step != state.StepUpkeep {
+		t.Fatalf("step %s pending %+v, want upkeep with nothing asked", e.G.Step, d)
+	}
+	if o := e.G.Obj(memnite); !o.Tapped || o.Counter("P1P1") != 0 {
+		t.Fatalf("Memnite tapped=%v counters=%+v, want tapped with no counters", o.Tapped, o.Counters)
 	}
 	replayCheck(t, e, cfg)
 }

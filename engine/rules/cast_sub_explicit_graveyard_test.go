@@ -52,7 +52,7 @@ func TestChangeZoneExplicitGraveyardAnnouncementRequiresMatchingObjectZone(t *te
 		{"mixed targets", "Graveyard", "Graveyard", "Player,Card", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			sa := kr0SA(t, "DB$ ChangeZone | Origin$ "+tc.origin+" | Destination$ Library | TgtZone$ "+tc.zone+" | ValidTgts$ "+tc.spec)
+			sa := parseFixtureSA(t, "DB$ ChangeZone | Origin$ "+tc.origin+" | Destination$ Library | TgtZone$ "+tc.zone+" | ValidTgts$ "+tc.spec)
 			if got := castSubChangeZoneAnnounceable(sa); got != tc.want {
 				t.Fatalf("castSubChangeZoneAnnounceable = %v, want %v", got, tc.want)
 			}

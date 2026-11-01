@@ -337,8 +337,7 @@ func (s *Game) answer(i int) {
 var errFollowup = errors.New("engine_contract_failure:followup_mismatch")
 
 // followKeys names the pose follow-ups a candidate's folded intents answer,
-// in commit order: "<option>", then "<option>/<first follow-up option>"
-// (Tasks 15 and 21 key them so).
+// in commit order: "<option>", then "<option>/<first follow-up option>".
 func followKeys(op mapping.NativeOp) []string {
 	keys := make([]string, 0, len(op.Followup))
 	key := strconv.Itoa(op.Option)

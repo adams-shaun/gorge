@@ -162,8 +162,8 @@ func drainChoices(t *testing.T, e *Engine, limit int) {
 	}
 }
 
-// TestStalkingLeoninRevealChosenPlayerExilesAttacker is the end-to-end leaf
-// the brief names. Stalking Leonin enters, its ETB trigger secretly chooses
+// TestStalkingLeoninRevealChosenPlayerExilesAttacker is the end-to-end leaf:
+// Stalking Leonin enters, its ETB trigger secretly chooses
 // seat 1 through the REAL ChoosePlayer flow; a creature controlled by seat 1
 // is attacking seat 0. The ability must be OFFERED (it needs the revealing
 // cost AND the source-relative attackingYou target spec), the reveal must be

@@ -1,7 +1,7 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from putcounter_optional_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Optional$ PutCounter elections (Talus Paladin, Black Widow, non-battlefield
+// recipients), driven through the resolution kernel (the only ask path).
 
 import (
 	"testing"
@@ -16,7 +16,7 @@ import (
 // CounterChange at all and the trigger completes (no pending decision).
 func TestTalusPaladinMayPutElectionPosesAndDeclinePlacesNothingKernel(t *testing.T) {
 	t.Parallel()
-	e, cfg, pal := kr7TalusPaladinGame(t, 911)
+	e, cfg, pal := talusPaladinBoard(t, 911)
 	answerPutOptional(t, e, 1) // no
 	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
 		t.Fatalf("a non-priority decision is still pending after the decline: %+v", d)
@@ -34,7 +34,7 @@ func TestTalusPaladinMayPutElectionPosesAndDeclinePlacesNothingKernel(t *testing
 // exactly the one P1P1 counter (byte-identical to the pre-ask silent put).
 func TestTalusPaladinMayPutAcceptPlacesExactlyOneCounterKernel(t *testing.T) {
 	t.Parallel()
-	e, cfg, pal := kr7TalusPaladinGame(t, 912)
+	e, cfg, pal := talusPaladinBoard(t, 912)
 	answerPutOptional(t, e, 0) // yes
 	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
 		t.Fatalf("a non-priority decision is still pending after the accept: %+v", d)
@@ -52,10 +52,7 @@ func TestTalusPaladinMayPutAcceptPlacesExactlyOneCounterKernel(t *testing.T) {
 // TestPutCounterOptionalNonBattlefieldRecipientElection: with the recipient
 // off the battlefield (the trigger's source still in hand) the put WOULD
 // place something -- CR 122.1 lets counters live on an object in any zone,
-// so a hand card is a live recipient -- and the election is posed (the
-// round-1 CR 122.1 fix made putCounterWouldPlace match the placement; the
-// old pin here asserted the battlefield-only premise and the election was
-// "never posed", which is what made the module gate red in round 3). This
+// so a hand card is a live recipient -- and the election is posed. This
 // is the rules-side end-to-end twin of the effects-package pins: the
 // decline places nothing and the trigger completes; the accept places one
 // P1P1 counter on the hand object through the real trigger resolution path.
@@ -179,9 +176,9 @@ func TestSynthEradicatorMayPutEnergyDeclinePlacesNoneAndAcceptPlacesTwoKernel(t 
 	replayCheck(t, e2, cfg2)
 }
 
-// kr7TalusPaladinGame is talusPaladinGame resolving the pushed trigger with
+// talusPaladinBoard is talusPaladinGame resolving the pushed trigger with
 // no priority decision pending (the kernel serves no ask behind one).
-func kr7TalusPaladinGame(t *testing.T, seed uint64) (*Engine /*cfg*/, Config, state.ObjID) {
+func talusPaladinBoard(t *testing.T, seed uint64) (*Engine /*cfg*/, Config, state.ObjID) {
 	t.Helper()
 	e, cfg, pal := gateFixture(t, seed, "Talus Paladin")
 	pal = gateMoveFromLibrary(t, e, "Talus Paladin", state.ZBattlefield)

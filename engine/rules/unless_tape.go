@@ -1,8 +1,7 @@
 package rules
 
 // unless_tape.go is the one home of an answered UnlessCost$ election's
-// settlement on the resolution kernel's tape path (W3 batch d, lasagna spec
-// §7.7: the unless-pay window). The CR 601.2g mana window runs in line as a
+// settlement on the resolution kernel's tape path. The CR 601.2g mana window runs in line as a
 // multi-intent answer -- one served intent per source activated, then Done --
 // and so does the choice-bearing component continuation.
 
@@ -72,7 +71,7 @@ func settleUnlessElection(e *Engine, ctx *effects.Ctx, sa *cards.SA, obj state.O
 	paid, ok := ParseUnlessCost(raw)
 	ctx.UnlessPay = "decline"
 	if !ok {
-		// I-5: an unless-cost the payment API cannot price is a hard
+		// An unless-cost the payment API cannot price is a hard
 		// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never charges
 		// the unfolded X, so an empty pool "pays" it for free and the
 		// counterspell stays inert. The named dynamic shapes close against

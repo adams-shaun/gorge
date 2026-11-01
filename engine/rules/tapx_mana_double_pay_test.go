@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g92: Volrath's Gardens' "{2}, Tap an untapped creature you control"
+// Volrath's Gardens' "{2}, Tap an untapped creature you control"
 // beside Llanowar Elves as the only green source and one other untapped
 // creature. The payment planner witnesses the {2} by tapping the Elves and a
 // colourless rock; the tap-cost ask runs first and (like Forge's

@@ -31,7 +31,7 @@ type SeatConfig struct {
 	// decision.Kinds members and entries >= 0 (NewSeat refuses others). Only
 	// looked up, never ranged.
 	SimsByKind map[decision.Kind]int
-	// Explore is generation mode (ticket 3's azgen): Dirichlet noise at every
+	// Explore is generation mode (azgen): Dirichlet noise at every
 	// searched root, and moves sampled proportional to visits while the game
 	// turn is <= ExploreTurns (spec §2: turns 1-4). Eval leaves it false:
 	// argmax, no noise.
@@ -39,10 +39,10 @@ type SeatConfig struct {
 	ExploreTurns int32
 	// NoNoise drops the root Dirichlet noise from Explore: moves are still
 	// sampled proportional to visits on turns <= ExploreTurns, but the
-	// recorded visit distribution is the search's own (M1b distillation: at a
+	// recorded visit distribution is the search's own (distillation: at a
 	// small budget the root noise would be a large share of every target).
 	NoNoise bool
-	// PriorOnly is the STUDENT seat (M1b): no simulation at all; at every
+	// PriorOnly is the STUDENT seat: no simulation at all; at every
 	// decision Search would search, play the argmax of the network prior
 	// over the same candidates (ties on the lowest index, the bot's answer).
 	// It reads only the seat's own decision and redacted view, never a
@@ -162,7 +162,7 @@ var Watch func(Diag)
 // Search answering the searched kinds. It is a searchseat.SearchSeat, so
 // testkit/bench.PlayGame hands it the live engine at its own decisions --
 // the route the L10 search seat takes. Stage 1 reads only the engine; the
-// driver's observation feed is for ticket 5's sampled worlds.
+// driver's observation feed is for sampled worlds.
 type Seat struct {
 	def  *heuristic.Bot
 	seed uint64
@@ -191,7 +191,7 @@ type Seat struct {
 	note func(explain.Note)
 }
 
-// SetRecorder installs the visit-corpus recorder (M1b; a bench runner
+// SetRecorder installs the visit-corpus recorder (a bench runner
 // -az-corpus). The records carry the searched decision (redacted state,
 // the candidates' options, visits, prior, Q, root value, the played
 // candidate) and the diagnostic opponent-hand rows; the driver fills the

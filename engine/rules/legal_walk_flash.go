@@ -16,8 +16,7 @@ import (
 // without a target census. Both halves of that emptiness test are fixed for a
 // walk -- the board's CastWithFlash list is one fact per walk and the face's
 // own static is a per-face constant -- so the walk reads them as two bits and
-// skips the per-card activeStatics/withSelfStatics pair. That is legal-walk
-// step S2 (archived 2026-10-06-legal-walk-design.md (docs/design/ARCHIVE.md), §6 S2).
+// skips the per-card activeStatics/withSelfStatics pair.
 //
 // The two bits answer the ORIGINAL expression exactly: the merged list is
 // empty iff the board list is empty AND the face carries none, because

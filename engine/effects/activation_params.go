@@ -10,9 +10,8 @@ import (
 )
 
 // This file is the generic ACTIVATION/CONDITION tier's parameter compiler
-// (W4 step 4, docs/design/2026-10-03-rules-engine-lasagna-design.md
-// section 8: "start with APIs whose params are read on more than one path
-// (costs, targets, Defined$)"). The keys it compiles are not one API's: every
+// (costs, targets and Defined$ are read on more than one path). The keys it
+// compiles are not one API's: every
 // AB$/SP$/DB$ ability carries them whatever its API --
 //
 //   - the cost: Cost$;

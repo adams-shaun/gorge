@@ -2,7 +2,7 @@ package protocol
 
 import "encoding/json"
 
-// Draft-event frame kinds (eventhost; spec 2026-10-13 §5 E1). Their frames
+// Draft-event frame kinds (eventhost). Their frames
 // carry no table, match or seq: NewFrame(t, "", 0, 0, body).
 const (
 	TEventState   FrameType = "event_state"
@@ -42,7 +42,7 @@ type EventSeat struct {
 
 // EventSeries is one pairing of an event round. State is "pending", "live",
 // "between" or "ended" — "between" names the sideboarding step between two
-// games of a series (E3-3). Table names the live (or last) game's host
+// games of a series. Table names the live (or last) game's host
 // table, so a spectator can watch at /t/{table}; Attempt is the game
 // attempt in flight. Game is the live game, or the next one while between.
 // Games is the winner seat per played game (-1 for a draw); Chooser names

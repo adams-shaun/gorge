@@ -1,8 +1,7 @@
 package rules
 
-// Kernel-era restorations of the offstack_mana_ask_test.go behaviour tests the W3
-// legacy removal deleted: the same scenarios, driven through the resolution
-// kernel (engine/rules/resolve) instead of the suspend/resume protocol.
+// Asks an off-stack mana ability poses (target, modes, name, arrange), driven
+// through the resolution kernel (engine/rules/resolve).
 
 import (
 	"testing"

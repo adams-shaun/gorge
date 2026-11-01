@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g62/cr-g64: a face-down exile out of a hidden zone is Secret, addressed
+// A face-down exile out of a hidden zone is Secret, addressed
 // to the recorded looker when the instruction names one and to the card's
 // owner for a blind move (whose payload the view then serves to nobody); one
 // out of a public zone stays public; a move its emitter already made Secret

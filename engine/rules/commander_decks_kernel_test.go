@@ -8,7 +8,7 @@ import (
 )
 
 // TestRepoCommanderDecksPlayAndCastTheirCommanderKernel is the m38 play
-// evidence (Ruling M3-P) on the kernel-only engine: one real Commander game
+// evidence on the kernel-only engine: one real Commander game
 // per interim deck -- command zone, CR 903.8 tax on, 40 life, London
 // mulligan -- driven by the test bot to completion and replayed to the same
 // chain head; each deck must cast its commander from the command zone at
@@ -73,7 +73,7 @@ func TestRepoCommanderDecksPlayAndCastTheirCommanderKernel(t *testing.T) {
 				if got := e.G.Players[0].CmdCasts[0]; got > maxCasts {
 					maxCasts = got
 				}
-				// Ruling P14: Draw before Winner — Winner's zero value is a real
+				// Draw before Winner — Winner's zero value is a real
 				// seat (0), so read it only for a non-draw.
 				result := "draw"
 				if !e.G.Draw {

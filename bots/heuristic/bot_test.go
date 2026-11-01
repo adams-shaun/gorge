@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// TestBotIsDeterministic is Ruling P8's whole point: the same bot seed
+// TestBotIsDeterministic: the same bot seed
 // answering the same decision sequence produces identical intents, so a
 // match is reproducible from (engine seed, bot seed) alone. The sequence
 // below deliberately includes the KMulligan keep/mulligan coin (the one
@@ -19,7 +19,7 @@ import (
 // deterministic), since a bot whose rng leaked from the engine or the
 // process clock would only show it on paths that actually draw from it.
 //
-// M1 (fix round 1): run(7) is also compared against run(8) -- comparing
+// run(7) is also compared against run(8) -- comparing
 // run(7) to itself alone cannot tell "seeded" from "constant"; deleting the
 // bot's rng entirely (a fixed choice in KBlockers/KTriggerOrder/
 // KTriggerOptional) would still pass a same-seed-only check.
@@ -89,7 +89,7 @@ func TestBotIsDeterministic(t *testing.T) {
 	}
 }
 
-// TestBotOnlyChoosesOfferedOptions is Ruling P7's completeness requirement
+// TestBotOnlyChoosesOfferedOptions is the completeness requirement
 // made concrete: every decision.Kind decision.go defines (eight today --
 // the brief and supplement both say seven, predating KModes) gets a
 // representative Decision here, including the two edge shapes the fuzz gate
@@ -98,7 +98,7 @@ func TestBotIsDeterministic(t *testing.T) {
 // generic fallback's own edge case). Every resulting intent must validate
 // against the decision it answered -- an intent Validate rejects is a bot
 // bug, full stop. The priority case is answered in a main phase, so the
-// activate branch (Ruling T25-b, fix round 1's isMain gate) gets exercised
+// activate branch (the isMain gate) gets exercised
 // here too, not only in TestBotAlwaysAnswersEveryDecisionKind.
 func TestBotOnlyChoosesOfferedOptions(t *testing.T) {
 	cases := []struct {
@@ -178,7 +178,7 @@ func TestBotOnlyChoosesOfferedOptions(t *testing.T) {
 	}
 }
 
-// TestBotPassesOutsideMainWithNoCastOrLandDrop is Ruling T25-g's regression
+// TestBotPassesOutsideMainWithNoCastOrLandDrop is a regression
 // test, using the engine's REAL shape for a non-main priority decision
 // (engine/rules/legal.go's legalActions never offers play_land or cast outside
 // sorcery speed/an affordable instant): one or more "activate" options

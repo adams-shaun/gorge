@@ -8,7 +8,7 @@ import { vi } from 'vitest';
 import type { DraftCard, DraftPack, EventPool, EventState } from '../protocol';
 
 /**
- * WIRE is the printed facts the server puts on each DraftCard (E1-8), in its
+ * WIRE is the printed facts the server puts on each DraftCard, in its
  * wire spelling: a Forge-notation cost, the mana value (omitted at zero),
  * the colour identity as a WUBRG subset and the space-joined type line. A
  * name missing here arrives with no facts, as a card the server's corpus

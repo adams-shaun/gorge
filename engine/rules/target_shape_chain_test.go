@@ -8,7 +8,7 @@ import (
 )
 
 // TestTargetShapeChainAnyAndUnique pins the whole-chain reading of the
-// cast/activation target-shape params (cr-g287), on the real corpus carriers
+// cast/activation target-shape params, on the real corpus carriers
 // and the chain shape the engine records (root Targets + SubAbility$
 // SubTargets):
 //

@@ -14,7 +14,7 @@ import (
 const maxPaymentQuantity = uint32(^uint32(0) >> 1)
 
 // PaymentPlanV1 is the only payment witness version this build understands,
-// and the newest planner is always V1 (spec amendment 2026-09-26, item 1).
+// and the newest planner is always V1.
 // The codec changes only additively -- the last-resort consequence trailer is
 // such a change, present only when a step carries a consequence, so every
 // earlier plan identity is byte-identical -- and each change is pinned by the
@@ -248,7 +248,7 @@ type PaymentSelection struct {
 }
 
 // PaymentFallback explains why an accepted plan returned to the ordinary
-// manual payment flow. Execution publishes it in a later ticket.
+// manual payment flow.
 type PaymentFallback struct {
 	PlanID string `json:"plan_id"`
 	Reason string `json:"reason"`

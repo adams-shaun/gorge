@@ -15,7 +15,7 @@ import (
 // still exist, and is it still on the battlefield" -- a target that stayed on
 // the battlefield but became newly ineligible some other way (e.g. it gained
 // Indestructible in response, or protection from the source) between
-// targeting and resolution is not rechecked. See the Task 18 report.
+// targeting and resolution is not rechecked.
 func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 	// Forge's ForgetOtherTargets$ replaces the prior remembered set before
 	// this Destroy. Resolve records chosen targets after the body, including
@@ -579,7 +579,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 								minv, maxv = amount, amount
 							}
 						} else {
-							// R-9 no-host fallback: preserve the old deterministic pick,
+							// No-host fallback: preserve the old deterministic pick,
 							// but only as a complete strict batch.
 							h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: t.Player,
 								Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
@@ -628,7 +628,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					chosen = append(chosen, tapeAnswerObjs(ans)...)
 					continue
 				}
-				// Fuzz/no-engine host: the deterministic stand-in (R-9) keeps
+				// Fuzz/no-engine host: the deterministic stand-in keeps
 				// the pre-ask behaviour — the first Amount$ eligible permanents
 				// in zone order, so an Optional$ "may sacrifice" plays "do".
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: t.Player,

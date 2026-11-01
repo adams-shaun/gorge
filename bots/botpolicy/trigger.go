@@ -8,10 +8,10 @@ import (
 )
 
 // This file holds the trigger-order and trigger-optional rules the policy
-// answers without any randomness. Before this task (dp1) those two kinds
-// were a Fisher-Yates over the bot's rng (trigger_order) and a coin between
-// yes and no (trigger_optional): two decisions that injected variance into
-// every game and widened the very confidence intervals that make most deck
+// answers without any randomness. A Fisher-Yates over the bot's rng
+// (trigger_order) and a coin between
+// yes and no (trigger_optional) would inject variance into
+// every game and widen the very confidence intervals that make most deck
 // pairs read as coin flips. The semantic content the policy needs -- which
 // trigger, from what source, carrying what label -- is carried on the
 // Decision's own options (each trigger option's Obj is the source permanent

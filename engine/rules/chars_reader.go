@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// chars_reader.go is package rules' side of chars.Reader (lasagna spec §9.2):
+// chars_reader.go is package rules' side of chars.Reader:
 // the read direction of the characteristics layer and the shared activation
 // gates, for rules/pay. charsReader is the Engine under another method set:
 // asCharsReader is a pointer conversion, so handing it out neither allocates

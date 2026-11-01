@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -23,7 +24,7 @@ func evalCountBodyProvenance(h Host, c *Ctx, body string, depth int) (int32, boo
 		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
 			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source, c.TriggerContext)), true, true
 		}
-		// The ARGUMENTED forms (task castprov2) peel the token and reuse the
+		// The ARGUMENTED forms peel the token and reuse the
 		// same Excluding read:
 		//
 		//   - !CastSaSource/<op> (thunder_salvo's /Plus.2): this form never
@@ -121,7 +122,7 @@ func evalTotalDamageDoneThisTurn(h Host, c *Ctx) int32 {
 // evalCountBodyCost evaluates the scalar heads claimed right after the
 // head/argument split: the EachSpentToCast colour read, the
 // TotalDamageReceivedThisTurn / TotalDamageDoneByThisTurn shortcuts, the
-// Convoked$/TargetedByTarget$ forms, the fuzz-cov3 heads and the first
+// Convoked$/TargetedByTarget$ forms, the count_cov3.go heads and the first
 // switch-arm group (YouDescendedThisTurn through SquadPaid).
 func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth int) (int32, bool, bool) {
 	// Count$EachSpentToCast.<colour> (Bladecoil Serpent, Clay Champion,
@@ -227,7 +228,7 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 			if inner == nil {
 				continue
 			}
-			for _, it := range inner.Targets {
+			for _, it := range slices.Concat(inner.Targets, inner.SubTargets) {
 				if it.IsPlayer || it.Obj == 0 {
 					continue
 				}
@@ -255,7 +256,7 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		return n, true, true
 	}
 
-	// The fuzz-cov3 heads (engine/effects/count_cov3.go): heads that previously
+	// The heads in engine/effects/count_cov3.go: heads that previously
 	// matched nothing below, so consulting them first changes no verdict
 	// another arm gave.
 	if n, ok := evalCov3Head(h, c, head, arg, depth); ok {
@@ -269,7 +270,7 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	case evalCountBodyCostYouDescendedThisTurn:
 		// The number of times the resolving controller descended this turn
 		// (CR 700.11): The Mycotyrant's TokenAmount$ X and Molten Collapse's
-		// CharmNum$ Count$Compare Y GE1.2.1. Reads the same fx20 provenance
+		// CharmNum$ Count$Compare Y GE1.2.1. Reads the same descend provenance
 		// ledger as the Player.descended predicate (descendedThisTurn), so
 		// the head and the predicate cannot drift. An out-of-range seat and
 		// an empty ledger are both a MODELLED zero -- never the unresolvable
@@ -433,7 +434,7 @@ const (
 	evalCountBodyCostIsPrime
 	evalCountBodyCostImprintedSize
 	evalCountBodyCostFinishedEndOfTurnsThisTurn
-	// The two scalar heads the part-2 ticket landed: the reflexive trigger's
+	// The two scalar heads: the reflexive trigger's
 	// remembered Integer and the "last state battlefield, else current"
 	// battlefield count.
 	evalCountBodyCostTriggerRememberAmount

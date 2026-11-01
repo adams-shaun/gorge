@@ -19,7 +19,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/bench"
 )
 
-// Game caps. docs/015 reports gorge's random games at 36-43 turns; a game
+// Game caps. The comparison reports gorge's random games at 36-43 turns; a game
 // that reaches a cap is counted as a stall, and its turns still count.
 const (
 	maxTurns   = 300
@@ -56,7 +56,7 @@ type randomStats struct {
 const maxPanics = 8
 
 // intentScratch is the random client's per-game reusable buffers, so a draw
-// allocates nothing in steady state (action-walk W3). pool and perm are
+// allocates nothing in steady state. pool and perm are
 // overwritten every draw; ch is built fresh only when the answer is retained.
 type intentScratch struct {
 	pool []int
@@ -87,7 +87,7 @@ func (s *intentScratch) permInto(n int, r *rand.Rand) []int {
 // at the option count), then that many distinct options uniformly, in random
 // order. At a priority decision (Min = Max = 1) that is uniform over the
 // offered options, a mana ability's activation included: gorge's random
-// player taps lands one at a time (docs/015 §6). The "concede" option every
+// player taps lands one at a time, as in the comparison. The "concede" option every
 // priority decision carries is never drawn (a uniform player would concede
 // on turn 1 in most games).
 //
@@ -268,7 +268,7 @@ func playRandomWithPool(cfg rules.Config, st *randomStats, pool *bench.SparePool
 // autopayIntent instead of randomIntent's manual taps.
 func playRandomGame(cfg rules.Config, st *randomStats, pool *bench.SparePool, autopay bool) {
 	r := rand.New(rand.NewPCG(cfg.Seed, cfg.Seed^0x5bd1e9955bd1e995))
-	// W3: the random client's reusable draw buffers, per game.
+	// The random client's reusable draw buffers, per game.
 	var scratch intentScratch
 	// The finished game's log and object arrays back the next game this run
 	// plays (rules.Spare; reuse never changes a game). The pooled spare is
@@ -439,7 +439,7 @@ func playBotWithPool(cfg rules.Config, autopay bool, st *botStats, pool *bench.S
 	if walkStatsFlag {
 		// A Decision hook disables the kernel's synchronous answerer; it does
 		// not change priority asks. It is how the observer sees each posed
-		// decision on the bot row (spec §9.1).
+		// decision on the bot row.
 		var eng *rules.Engine
 		hooks.SyncAnswer = false
 		hooks.Setup = func(e *rules.Engine) { eng = e; wm.reset() }

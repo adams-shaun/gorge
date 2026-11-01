@@ -96,18 +96,19 @@ func (d *Decision) blockRequiredCore() []int {
 		if bestRequired == requiredCount+len(atkReq) {
 			return
 		}
-		remaining := requiredCount - at
-		if remaining < 0 {
-			remaining = 0
+		// Prune what can't beat the best team: more satisfied units, or as
+		// many with a shorter team. Each candidate left picks one pair, worth
+		// at most one required blocker and one required attacker, so this
+		// bound holds and an answer found first stays the answer. Without the
+		// cap on attackers, more must-be-blocked attackers than blockers
+		// enumerate every assignment.
+		left := max(requiredCount-at, 0)
+		unsat := min(len(atkReq)-len(satAtk), len(candidates)-at)
+		need := bestRequired - satisfied
+		if need > left+unsat {
+			return
 		}
-		// Over-estimate the satisfaction still reachable from here: every
-		// unsatisfied attacker requirement may still be satisfied ahead. An
-		// over-estimate only costs search, never prunes a branch that could
-		// beat the best team.
-		if unsat := len(atkReq) - len(satAtk); unsat > 0 {
-			remaining += unsat
-		}
-		if satisfied+remaining < bestRequired {
+		if need == left+unsat && len(chosen)+max((need+1)/2, need-left) >= bestLength {
 			return
 		}
 		if at == len(candidates) {

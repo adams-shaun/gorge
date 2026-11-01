@@ -133,7 +133,7 @@ func TestFlashCreatureIsCastableOffTurn(t *testing.T) {
 	}
 }
 
-// TestFlashGrantedByAContinuousEffectIsCastableOffTurn is the Ruling T19-c
+// TestFlashGrantedByAContinuousEffectIsCastableOffTurn is the
 // regression test: legalActions' instant-speed check must read the keyword
 // through the layer system (Engine.HasKeyword), not the printed face
 // (f.HasKeyword), so a creature granted Flash by another permanent's

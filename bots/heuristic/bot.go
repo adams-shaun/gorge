@@ -17,11 +17,11 @@ import (
 // Bot is a deterministic policy with its own RNG, independent of the
 // engine's (engine/rules/rng.go), so a match is reproducible from (engine seed, bot
 // seed). It picks from the options the engine offered and nothing else,
-// which is the same contract a human client has (Ruling P8).
+// which is the same contract a human client has.
 //
 // The policy itself lives in botpolicy (bots/botpolicy/policy.go), shared with
 // the rules package's fuzz testBot (engine/rules/testbot_test.go): rules cannot
-// import seat without running the dependency order backwards (Ruling F7),
+// import seat without running the dependency order backwards,
 // so both sides build a botpolicy.Board from what they can see and call the
 // same botpolicy.Decide. This file is the view-shaped half of that -- it
 // converts the projected View into the Board and seeds the bot's own rng.
@@ -97,11 +97,11 @@ type Bot struct {
 	payCand  decision.Decision
 }
 
-// M4: a compile-time assertion that Bot keeps satisfying Seat, since
+// A compile-time assertion that Bot keeps satisfying Seat, since
 // seat.go and bot.go otherwise never reference each other.
 var _ seat.Seat = (*Bot)(nil)
 
-// M4: Bot also satisfies BoardSeat — the game-shaped half of the adapter
+// Bot also satisfies BoardSeat — the game-shaped half of the adapter
 // pair, answered without a projected View. host builds the botpolicy.Board
 // (via BoardFromGame, the same Board BoardFromView would lift off the View)
 // under the match's exclusive lock and calls this instead of Decide, so a
@@ -393,7 +393,7 @@ func (b *Bot) paymentIntent(brd botpolicy.Board, d *decision.Decision) (decision
 		clear(payable)
 	}
 	for _, a := range d.PaymentActions {
-		// A plan the policy would never take must not count as payable: C8
+		// A plan the policy would never take must not count as payable: the policy
 		// refuses a counter with no foreign spell (CounterIsDead), so its
 		// plan is dead -- leaving it in `payable` would let the private
 		// candidate lose to pass and hide the manual path (an instant the
@@ -458,7 +458,7 @@ func (b *Bot) paymentIntent(brd botpolicy.Board, d *decision.Decision) (decision
 		if planShaped(o) {
 			// An ordinary legacy cast whose object has a plan is a
 			// plan-backed candidate: choosing it submits the plan, so the
-			// cast scorer prices it against producible mana (C7). A
+			// cast scorer prices it against producible mana. A
 			// non-ordinary mode (an evoke, pitch, dash, surge) pays its
 			// own cost by hand and stays false. A primary flashback cast
 			// is plan-backed only by a flashback-origin action
@@ -563,7 +563,7 @@ func planModeOf(a decision.PaymentAction) string {
 //     ANY unpayable card that is castable now justifies the manual answer
 //     (Board.AnyCastableNow). This is the class reading the dead-counter
 //     shape needs: the tap gate's one best intent can be an uncostable or
-//     C8-dead card while a DIFFERENT card in the hand is a real cast, and
+//     dead-counter card while a DIFFERENT card in the hand is a real cast, and
 //     looking only at the intent would drop that cast;
 //   - plan-bearing (len(payable)>0): a planned cast is at stake, so only the
 //     tap gate's own best intent justifies diverting to manual, and only
@@ -665,7 +665,7 @@ func BoardFromView(v view.View) botpolicy.Board {
 	// this View alone by view.OwnLibrary, the same per-card rules the game
 	// half's fillOwnLibrary applies to state.Game.
 	view.OwnLibrary(v, v.Viewer, &b.OwnLibrary)
-	// The public stack census (C8's facts): the projected StackView list is
+	// The public stack census: the projected StackView list is
 	// the stack's own bottom-to-top order, so the census slice is that same
 	// order and every read of it is deterministic. IsSpell mirrors the
 	// game-shaped half's o.Ability == nil test exactly: the View's Kind is
@@ -709,7 +709,8 @@ func BoardFromView(v view.View) botpolicy.Board {
 			}
 		}
 		for _, cv := range p.Battlefield {
-			if !isCreatureView(cv) {
+			// CR 708.2: a face-down permanent is a creature whatever it prints.
+			if !cv.FaceDown && !isCreatureView(cv) {
 				continue
 			}
 			var defender state.PlayerID

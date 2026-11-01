@@ -214,9 +214,9 @@ func (e *Engine) madnessReplacementApplies(ev events.Event) bool {
 }
 
 // offerMadness queues the triggered ability created by madness's mandatory
-// discard replacement (CR 702.35a-b). The replacement emits a marked
-// hand-to-exile move; matching both that marker and the zone pair
-// prevents an unrelated exile from creating the cast window.
+// discard replacement (CR 702.35a-b), which turns a madness card's discard into
+// a discard to exile. An ordinary exile from hand is not a discard, so it opens
+// no cast window.
 func (e *Engine) offerMadness(ev events.Event) {
 	o := e.G.Obj(ev.Obj)
 	if o == nil || o.Face() == nil {
@@ -225,7 +225,7 @@ func (e *Engine) offerMadness(ev events.Event) {
 	if _, ok := o.Face().KeywordParam("Madness"); !ok {
 		return
 	}
-	if ev.Text != "discarded (madness exile)" {
+	if !events.IsDiscard(ev) {
 		return
 	}
 	owner := o.Owner
@@ -290,7 +290,7 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 }
 
 // tapeMadnessAnswer runs the legacy madness answer (resolveMadnessChoice)
-// in line for a tape-served cast-or-not choice (W3 step 4l). Both arms log
+// in line for a tape-served cast-or-not choice. Both arms log
 // their own completion -- the decline's CR 117.3b reset, or the begun
 // cast's -- so handlePriority adds none. A cast that asks (a target, a
 // payment window) reaches the ask choke point as a legacy ask and aborts the
@@ -477,23 +477,24 @@ func (e *Engine) mayhemCastCost(id state.ObjID) (Cost, bool) {
 }
 
 // mayhemDiscardedThisTurn is Mayhem's provenance gate ("if you discarded it
-// this turn"): some events.IsDiscard move of id since the last TurnChange
-// naming p as the discarder -- the ordinary discard by its Player field, the
-// cost form (events.DiscardCost carries no Player) by the card's owner,
-// since a cost discard is paid from the payer's own hand (CR 118.2a, the
-// same read CardsDiscardedThisTurn takes). Log-derived so a replayed game
-// derives the same answer, like warpRecastAvailable and
-// foretellCastAvailable; the last TurnChange bounds the window, so a card
-// discarded LAST turn has no offer even while it still sits in the
-// graveyard.
+// this turn"): id's last move since the last TurnChange is an events.IsDiscard
+// move naming p as the discarder -- the ordinary discard by its Player field,
+// the cost form (events.DiscardCost carries no Player) by the card's owner,
+// since a cost discard is paid from the payer's own hand (CR 118.2a, the same
+// read CardsDiscardedThisTurn takes). Only the last move counts: a card that
+// left the graveyard and came back is a new object nobody discarded (CR 400.7).
+// Log-derived so a replayed game derives the same answer, like
+// warpRecastAvailable and foretellCastAvailable; the last TurnChange bounds the
+// window, so a card discarded LAST turn has no offer even while it still sits
+// in the graveyard.
 func (e *Engine) mayhemDiscardedThisTurn(p state.PlayerID, id state.ObjID) bool {
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			return false
 		}
-		if ev.Obj == id && events.IsDiscard(ev) && events.Discarder(e.G, ev) == p {
-			return true
+		if ev.Kind == events.MoveZone && ev.Obj == id {
+			return events.IsDiscard(ev) && events.Discarder(e.G, ev) == p
 		}
 	}
 	return false

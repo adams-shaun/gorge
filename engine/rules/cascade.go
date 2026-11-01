@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Cascade (CR 702.85, task cascade1) — the rules-side half. The keyword is
+// Cascade (CR 702.85) — the rules-side half. The keyword is
 // READ, never expanded: engine/cards/keywords.go has no Cascade case, and both the
 // printed K:Cascade line and every layer-6 AddKeyword$ Cascade grant (the
 // printed S: statics the layer walk already emits AND the DB$ Effect-delivered

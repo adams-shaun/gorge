@@ -134,8 +134,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.41a | deviates | `engine/effects/counters_put.go#putCounterSupport` | `TestLeadByExampleSpellSupportOffersEveryCreature` | support not targeted: ignores hexproof/ward |
 | 701.42a-c | follows | `engine/effects/meld.go#Meld` `engine/effects/meld.go#meldRoles` `engine/effects/meld_api.go#effMeld` | - |  |
 | 701.43a-d | follows | `engine/rules/combat.go#Engine.startExertAsks` `engine/rules/combat.go#Engine.exertAnswer` `engine/rules/turn.go#Engine.finishUntapStep` | - |  |
-| 701.44a | follows | `engine/effects/explore.go#effExplore` `engine/effects/explore.go#exploreOnce` | - |  |
-| 701.44b-c | deviates | `engine/effects/explore.go#exploreOnce` | - | empty library / departed explorer: nothing, no trigger |
+| 701.44a | follows | `engine/effects/explore.go#effExplore` `engine/effects/explore.go#exploreOnce` | `TestDepartedExplorerNonlandFiresExploresTrigger` |  |
+| 701.44b-c | follows | `engine/effects/explore.go#exploreOnce` `engine/effects/connive.go#lastKnownController` | `TestDepartedExplorerStillPutsLandInHand` `TestDepartedExplorerNonlandFiresExploresTrigger` `TestExploreWithEmptyLibraryStillExplores` |  |
 | 701.44d | partial | `engine/effects/explore.go#effExplore` | - | Defined order, not APNAP |
 | 701.45a | n/a | - | - | - |
 | 701.46a | follows | `engine/effects/counters_put.go#effPutCounter` | `TestAdaptDBBodyCountsAndConditionsOnNoP1P1` |  |
@@ -145,9 +145,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.48a | not-impl | - | - |  |
 | 701.49a-d | follows | `engine/effects/venture.go#effVenture` `engine/effects/venture.go#ventureAdvance` | `TestFirstVentureOffersTheThreeDungeons` |  |
 | 701.50a,d,f | follows | `engine/effects/connive.go#effConnive` `engine/effects/connive.go#conniveOnce` | `TestConnivesTriggerFiresForIronMonger` |  |
-| 701.50b | deviates | `engine/effects/connive.go#conniveOnce` | - | departed conniver: no draw/discard (no LKI) |
+| 701.50b | follows | `engine/effects/connive.go#conniveOnce` `engine/effects/connive.go#lastKnownController` | `TestDepartedConniverStillDrawsAndDiscards` |  |
 | 701.50c | partial | `engine/effects/connive.go#effConnive` | - | Defined order, not APNAP |
-| 701.50e | deviates | `engine/effects/connive.go#conniveOnce` | - | connive 0 still fires Connives triggers |
+| 701.50e | follows | `engine/effects/connive.go#effConnive` | `TestConniveZeroIsNoEvent` |  |
 | 701.51a-c | not-impl | `engine/effects/registry.go#Supported` | - | OpenAttraction unregistered |
 | 701.52a | n/a | - | - | no Attraction deck |
 | 701.53a-b | follows | `engine/effects/incubate.go#effIncubate` `engine/effects/incubate.go#incubateLoop` | `TestIncubateMintsTokenWithTheCounters` `TestIncubatorTokenTransformsIntoThePhyrexianFace` |  |
@@ -167,7 +167,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.58g-h | n/a | - | - | no turn-face-up path exists; 58h cross-reference |
 | 701.59a-b | follows | `engine/rules/pay/evidence.go#EvidenceGraveCandidates` `engine/rules/cast_targets.go#Engine.evidenceAsk` `engine/rules/cumulative.go#Engine.triggeredCostXAsk` `engine/rules/evidence_cost.go#triggeredEffectCost.evidenceStage` | `TestConditionCollectedGatesOnEvidence` `TestTriggerCollectEvidenceXAnnouncesAndPays` |  |
 | 701.59c | follows | `engine/effects/conditions.go#conditionDefinedGroup` `engine/rules/cast_targets.go#castSubTargetsOwed` | - | linked via OptionalCost (traced shallowly) |
-| 701.60a | deviates | `engine/events/apply_player.go#foldControlChange` | - | suspected cleared on control change |
+| 701.60a | follows | `engine/events/apply_player.go#foldControlChange` | `TestSuspectedSurvivesControlChange` |  |
 | 701.60b-d | follows | `engine/rules/chars/derive.go#BaseKeywords` `engine/rules/combat/block.go#CanBlock` `engine/effects/misc.go#effAlterAttribute` | - |  |
 | 701.61a | follows | `engine/rules/cast_asks.go#Engine.forageAsk` `engine/rules/pay/castparts.go#NonManaCastableP` `engine/rules/pay/sacparts.go#ManaForagePayable` `engine/rules/trigger_cost_forage.go#triggeredEffectCost.foragePayable` | `TestTriggeredForageCanBePaid` |  |
 | 701.62a | follows | `engine/effects/zone_manifest.go#effManifestDread` | - |  |
@@ -209,7 +209,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 704.1 | follows | `engine/rules/sba.go#Engine.checkStateBased` | `TestSBALoopsUntilStable` | SBAs applied directly, never stacked |
 | 704.1a | follows | `engine/rules/trigmatch/actions.go#PhaseMatches` `engine/rules/sba.go#Engine.checkStateBased` | - | state triggers are ordinary triggered abilities, outside the SBA pass |
 | 704.2 | follows | `engine/rules/turn.go#Engine.step` `engine/rules/engine.go#submitCommit` | - | engine-performed; checked at every priority point |
-| 704.3 | deviates | `engine/rules/sba.go#Engine.checkStateBased` `engine/rules/sba.go#Engine.annihilateOppositeCounters` | `TestSBALoopsUntilStable` `TestSBABatchUsesPreDepartureBoard` `TestCleanupChecksStateBasedActionsAfterEndingEffects` `TestNoStateBasedActionsBetweenSacrificeCosts` | per-family batches, not one event |
+| 704.3 | follows | `engine/rules/sba.go#Engine.checkStateBased` `engine/rules/sba.go#Engine.applySBABatch` | `TestSBALoopsUntilStable` `TestSBABatchUsesPreDepartureBoard` `TestCleanupChecksStateBasedActionsAfterEndingEffects` `TestNoStateBasedActionsBetweenSacrificeCosts` `TestCR704_3WorldRuleCountsAWorldPermanentDyingInTheSameCheck` `TestCR704_3DepartureFamiliesShareOneLookBackBoard` `TestCR704_3CreaturePlaneswalkerTakesBothActions` `TestCR704_3ALosersCreatureWithLethalDamageStillDies` | every family reads one board and queues; the batch applies as one zone, sacrifice and replacement batch, then a loser's permanents leave (CR 800.4a) |
 | 704.4 | follows | `engine/rules/engine.go#submitCommit` `engine/rules/turn.go#Engine.step` | `TestDrawDuringResolutionDefersStateBasedActions` `TestCR704NoLifeSBAInsideSmallpoxDiscard` `TestMidCastSBADoesNotEndGameDuringManaWindow` | checked only at priority boundaries, not mid-resolution or mid-cast |
 | 704.5 | follows | `engine/rules/sba.go#Engine.checkStateBased` | - | index rule; members below |
 | 704.5a | follows | `engine/rules/sba.go#Engine.checkLoseConditions` `engine/rules/cantlose.go#Engine.playerLoses` | `TestZeroLifeEliminatesAPlayer` `TestNoPendingDecisionWithAZeroLifePlayerNotYetLost` | can't-lose replacements honoured |
@@ -227,7 +227,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 704.5m | follows | `engine/rules/attach.go#Engine.attachmentSBAs` `engine/rules/attach.go#Engine.auraStillMatchesEnchant` `engine/events/apply_zone.go#move` | `TestCR704AuraBecomesIllegalAfterProtection` `TestFlickerUnattachesAura` | the bearer-departure fold queues the detach as UnattachPending (the live AttachedTo link stays while the bearer is off the battlefield, so the mid-resolution window still shows the attachment fastened; the bearer's re-entry breaks it before the SBA pass, where destroyLethalDamage would otherwise read the stale -2/-2 first); attachmentSBAs' pending arm publishes the same graveyard MoveZone and clears the link |
 | 704.5n | partial | `engine/rules/attach.go#Engine.attachmentSBAs` `engine/events/apply_zone.go#move` | `TestFortificationDetachesWhenBearerStopsBeingALand` `TestFortifiedLandThatGainsATypeStaysAttached` `TestFlickerUnattachesAura` | SILENT: protection from the Equipment ignored; the bearer-departure fold queues the detach as UnattachPending (the live AttachedTo link stays while the bearer is off the battlefield; the bearer's re-entry breaks it before the SBA pass) and attachmentSBAs' pending arm publishes the same events.Unattached ("bearer left the battlefield") |
 | 704.5p | follows | `engine/rules/attach.go#Engine.attachmentSBAs` `engine/rules/attach.go#Engine.attachedKindIllegal` | `TestCR704_5pAnimatedEquipmentUnattaches` `TestCR704_5pRelicsRoarOnAttachedEquipmentUnattaches` `TestCR704_5pAnimatedAuraGoesToGraveyard` `TestCR704_5pReconfigureStaysAttached` | an attached Reconfigure permanent is exempt (CR 702.151b) and a bestowed one takes its own arm |
-| 704.5q | follows | `engine/rules/sba.go#Engine.annihilateOppositeCounters` | `TestCR704RepoCreatureOppositeCountersAnnihilate` | ordering vs deaths: see 704.3/704.8 |
+| 704.5q | follows | `engine/rules/sba.go#Engine.annihilateOppositeCounters` | `TestCR704RepoCreatureOppositeCountersAnnihilate` | applied after the check's departures, so a casualty leaves with both counters |
 | 704.5r | not-impl | - | - |  |
 | 704.5s | follows | `engine/rules/saga.go#Engine.checkSagas` `engine/rules/saga.go#Engine.isChapterAbilityObject` | `TestSagaConclusionIsASacrifice` `TestSagaThatCantBeSacrificedStays` `TestSagaConclusionWaitsOnlyForChapterAbilities` |  |
 | 704.5t | follows | `engine/rules/dungeon_room.go#Engine.dungeonCompletion` | `TestDungeonRoomAbilitiesTriggerResolveAndComplete` `TestCompletedDungeonIsNotReentered` |  |
@@ -242,7 +242,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 704.6e | n/a | - | - | Archenemy not modelled |
 | 704.6f | not-impl | - | - |  |
 | 704.7 | partial | `engine/rules/cantlose.go#Engine.gameLossPrevented` `engine/rules/sba.go#Engine.checkLoseConditions` | - | CantHappen losses only; ReplaceWith GameLoss (Lich's Mirror) family out of scope, losses proposed per cause |
-| 704.8 | deviates | `engine/rules/sba.go#Engine.checkStateBased` `engine/rules/sba.go#Engine.annihilateOppositeCounters` | `TestSBABatchUsesPreDepartureBoard` `TestSBABatchLookBackEndsBeforeNextPass` | LKI per family batch |
+| 704.8 | follows | `engine/rules/sba.go#Engine.applySBABatch` | `TestSBABatchUsesPreDepartureBoard` `TestSBABatchLookBackEndsBeforeNextPass` `TestCR704_8YoungWolfKeepsItsCounterInLastKnownInformation` `TestCR704_8CounterReaderSeesBothCountersOfACasualty` | one look-back board for the whole check |
 | 705.1 | follows | `engine/effects/flipcoin.go#FlipCoinWin` `engine/effects/flipcoin.go#effFlipCoin` | `TestFlipCoinFlippedHeadsTailsResolve` | seeded engine Rand |
 | 705.2 | follows | `engine/effects/flipcoin.go#effFlipCoin` `engine/effects/flipcoin.go#FlipCoinNote` | `TestFlipCoinFlippedHeadsTailsResolve` `TestFlipCoinMemoryFlagsAreRead` |  |
 | 705.3 | follows | `engine/effects/flipcoin.go#FlipCoinForced` | `TestFlipCoinModFirstBatchForcedThenOrdinary` `TestFlipCoinModScopesToController` |  |
@@ -277,7 +277,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 707.10a | follows | `engine/state/object.go#Object.Ephemeral` `engine/effects/filter.go#matchesObjectPtr` | `TestCopiedInstantSpellCeasesWhenItLeavesTheStack` `TestZoneListsSkipEphemeralObjects` | off-stack copies are ephemeral and match nothing; code cites old number 707.10h |
 | 707.10b | follows | `engine/events/apply_copy.go#foldStackCopy` `engine/rules/target_ask.go#Engine.resolvedAbilityTallyFor` | `TestUFActivationCopyResolvesTheAbility` `TestEachTriggerCopiesItsOwnActivation` | copy keeps Source and Ability |
 | 707.10c | follows | `engine/rules/target_modes.go#Engine.AskCopyTargets` `engine/effects/copy.go#effCopySpellAbility` | `TestChainLightningMayChooseTargetUsesTheRealCorpus` `TestCopyOfTwoTargetSpellAsksForBothTargets` | inherited targets offered first even if illegal; new ones from the legal census |
-| 707.10d | partial | `engine/effects/copy.go#copyForEachCanTarget` `engine/rules/host_read.go#Engine.CopyTargetCandidates` | `TestZadaCopiesForEachOtherCreature` `TestZadaStriveCopies` | CopyForEachCanTarget$ copies per object candidate (ChooseOnlyOne$ asks); player candidates make no copy under a Note (LOUD) |
+| 707.10d | partial | `engine/effects/copy.go#copyForEachCanTarget` `engine/rules/host_read.go#Engine.CopyTargetCandidates` | `TestZadaCopiesForEachOtherCreature` `TestZadaStriveCopies` `TestCopyForEachCandidateOfAChainLinkTarget` | CopyForEachCanTarget$ copies per object candidate, a spell's chain link standing in when its root names no target (ChooseOnlyOne$ asks); player candidates make no copy under a Note (LOUD) |
 | 707.10e | partial | `engine/effects/copy.go#copyDefinedTargets` | `TestFeatherChosenCopyAskPricedAndTargets` | DefinedTarget$ ChosenCard/Self only; other specs keep targets with a Note (LOUD) |
 | 707.10f | follows | `engine/events/apply_zone.go#move` | `TestCopiedPermanentSpellEntersAsToken` | stack copy entering the battlefield becomes a token |
 | 707.10g | follows | `engine/events/apply_copy.go#foldStackCopy` | - | spell copy carries the whole card and face index |
@@ -286,11 +286,11 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 707.13 | not-impl | `engine/effects/play.go#effPlay` | - | Garth One-Eye's Play CopyFromChosenName$ has no population and returns: SILENT |
 | 707.14 | unknown | `engine/effects/play.go#effPlay` | `TestMagarReturnsASpellAsA33FaceDownCreature` | shape: face-down 3/3 tested; casting the CopyCard copy untested, ZoneRegardless$ unread |
 | 708.1 | follows | `engine/rules/chars/derive.go#Compute` `engine/rules/layers_types.go#Engine.faceDownPrintedHides` | `TestManifestedLandIsA22Creature` |  |
-| 708.2-708.2a | follows | `engine/rules/chars/derive.go#PT` `engine/rules/chars/types.go#TypesAndAllCreatureTypes` `engine/state/mana_value.go#Object.FaceDownHidden` `engine/effects/colors.go#ColorMaskOf` `engine/effects/filter.go#nameCharacteristics` | `TestManifestedLandIsA22Creature` `TestFaceDownHidesPrintedSubtypes` `TestManaValueFaceDownPermanentIsZero` `TestFaceDownPermanentIsColourless` `TestFaceDownPermanentHasNoName` `TestFaceDownRecipientKeepsGrantedManaAbility` | later layers still apply: a grant from a face-up permanent reaches the 2/2 |
+| 708.2-708.2a | follows | `engine/rules/chars/derive.go#PT` `engine/rules/chars/types.go#TypesAndAllCreatureTypes` `engine/state/mana_value.go#Object.FaceDownHidden` `engine/effects/colors.go#ColorMaskOf` `engine/effects/filter.go#nameCharacteristics` `engine/view/card.go#projector.faceDownCard` | `TestManifestedLandIsA22Creature` `TestFaceDownHidesPrintedSubtypes` `TestManaValueFaceDownPermanentIsZero` `TestFaceDownPermanentIsColourless` `TestFaceDownPermanentHasNoName` `TestFaceDownRecipientKeepsGrantedManaAbility` `TestFaceDownPermanentKeepsItsPublicState` | later layers still apply: a grant from a face-up permanent reaches the 2/2 |
 | 708.2b | follows | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldTurnFaceDown` | - | already face down: no-op |
 | 708.3 | follows | `engine/events/facedown.go#IsFaceDownEntry` `engine/rules/layers_types.go#Engine.faceDownPrintedHides` | `TestEntryCounterGrantsFaceDownGrantsNothing` `TestFaceDownAquamorphEntityEntersWithoutItsModeChoice` | face-down entry runs no ETB replacement or trigger |
 | 708.4 | partial | `engine/rules/chars/derive.go#Compute` `engine/rules/layers_types.go#Engine.faceDownPrintedHides` `engine/rules/legal_walk_hand.go#legalWalk.handWalk` `engine/state/mana_value.go#Object.FaceDownHidden` | - | face-down spell: name, MV, colour reads hide on the stack too (untested); types, P/T, abilities still printed |
-| 708.5 | follows | `engine/view/card.go#projector.zoneCard` | `TestControllerSeesControlledFaceDownFace` `TestFaceDownStackCopyIsRedactedFromOpponents` | controller-only identity |
+| 708.5 | follows | `engine/view/card.go#projector.zoneCard` `engine/view/card.go#projector.faceDownCard` | `TestControllerSeesControlledFaceDownFace` `TestFaceDownStackCopyIsRedactedFromOpponents` `TestFaceDownPermanentKeepsItsPublicState` | controller-only identity |
 | 708.6 | n/a | - | - | physical bookkeeping; object IDs distinguish |
 | 708.7 | partial | `engine/rules/morph_turnup.go#morphFaceUpCost` `engine/rules/morph_turnup.go#Engine.turnFaceUp` | `TestMorphTurnFaceUpIsASpecialActionPaysItsKeywordCost` `TestMegamorphTurnFaceUpAddsAPlusOnePlusOneCounter` | SILENT: only morph-family face-down casts turn up; manifested/cloaked morph never does |
 | 708.8 | follows | `engine/events/apply_copy.go#foldTurnFaceUp` | `TestDisguiseTurnFaceUpEndsTheWardTwo` `TestMasterOfPearlsTurnFaceUpSelfTriggerFiresOnce` | same object, no ETB |

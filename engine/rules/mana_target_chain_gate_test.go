@@ -1,14 +1,13 @@
 package rules
 
-// Task agent-20261010T044009Z-8af5f286: CR 605.1a through the SubAbility$
-// chain. Witch Engine ("{T}: Add {B}{B}{B}{B}. Target opponent gains control
-// of Witch Engine.") and Chandra, Bold Pyromancer's +1 ("Add {R}{R}. Chandra
-// deals 2 damage to target player.") are AB$ Mana heads with no ValidTgts$ of
-// their own; the target lives on the DB$ GainControl / DB$ DealDamage
-// sub-ability. An ability that requires a target is not a mana ability, so
-// both take the ordinary activated-ability path (target ask, stack) instead of
-// the instant mana "activate" option, and the mana arrives when the ability
-// resolves.
+// CR 605.1a through the SubAbility$ chain. Witch Engine ("{T}: Add
+// {B}{B}{B}{B}. Target opponent gains control of Witch Engine.") and Chandra,
+// Bold Pyromancer's +1 ("Add {R}{R}. Chandra deals 2 damage to target
+// player.") are AB$ Mana heads with no ValidTgts$ of their own; the target
+// lives on the DB$ GainControl / DB$ DealDamage sub-ability. An ability that
+// requires a target is not a mana ability, so both take the ordinary
+// activated-ability path (target ask, stack) instead of the instant mana
+// "activate" option, and the mana arrives when the ability resolves.
 
 import (
 	"testing"

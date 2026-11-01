@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// K:Ascend (CR 702.131, task ascend1): "If you control ten or more
+// K:Ascend (CR 702.131): "If you control ten or more
 // permanents, you get the city's blessing for the rest of the game."
 //
 // The keyword is read DIRECTLY here rather than expanded in

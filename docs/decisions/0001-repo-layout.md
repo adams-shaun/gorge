@@ -72,7 +72,7 @@ docs/      contributing/ architecture/ decisions/ site/
 
 ## As built (2026-10-16)
 
-All phases landed in one sitting on branch `wt/restructure`, driven by
+All phases landed in one sitting, driven by
 `ops/restructure/restructure.py` (stage `go`, then `--stage=ops`) plus hand
 fixes for what a path rewrite cannot see: archtest/codeshape short package
 names, gate trigger regexes, smoke fixtures, Python path joins. The fence is
@@ -118,7 +118,7 @@ rebased by re-running the script on it.
 
 ## Not in scope
 
-Splitting the flat `engine/rules/` directory (the lasagna work owns it). Moving
+Splitting the flat `engine/rules/` directory. Moving
 `lab/` to its own repository.
 
 ## Amendment (2026-10-16): the lab tree moves to a private companion module

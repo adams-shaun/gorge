@@ -90,7 +90,7 @@ func (e *Engine) layerInertSince(epoch int) bool {
 // filter, so a Goblin token entering can turn Bolg's Company's
 // `IsPresent$ Goblin.Other+YouCtrl` haste grant ON, and a
 // "you control exactly one creature" gate OFF (this is the bug
-// agent-20260928T171650Z-006e2611 fixes: the re-stamp served a static list a
+// this avoids: the re-stamp served a static list a
 // fresh rescan would no longer produce). staticSafeSince's own loop cannot
 // see that, and re-parsing the gate values here would re-implement the gate
 // grammar -- the fragile direction. Instead the build records whether the

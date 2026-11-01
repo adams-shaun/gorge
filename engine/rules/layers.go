@@ -1,7 +1,7 @@
 // Layer application is CR 613: characteristics settle in a fixed layer order
 // (copy, control, text, type, color, abilities, power/toughness), and within
 // layer 7 in a further sublayer order (characteristic-defining, setting,
-// modifying, counters, switching). M1 only produces effects in layers 6 and
+// modifying, counters, switching). The engine only produces effects in layers 6 and
 // 7, but the full ladder is defined now so a later layer 2 control-change or
 // layer 4 type-change effect is an addition to this file, not a rewrite of
 // it — that retrofit is the project's own top-named risk.
@@ -30,12 +30,9 @@ var emptySVars = map[string]string{}
 // statics into ContinuousEffects, so a card whose entire rules text is a
 // static (an Equipment's EquippedBy pump, an Aura's EnchantedBy pump, a
 // vanilla lord's global pump) actually applies instead of silently doing
-// nothing. Task 14 is what first wires static text into the layer system:
-// until it, every S: line this build cared about was a play restriction
-// (CantBeCast etc.), and the Mode$ Continuous statics every creature-lord
-// and echo of Equipment/Enchant text carries were parsed but never turned
-// into an effect -- a card with nothing but static text read as "does
-// nothing".
+// nothing. Without this, the Mode$ Continuous statics every creature-lord and
+// echo of Equipment/Enchant text carries would be parsed but never turned
+// into an effect.
 //
 // Reading these live off the battlefield permanent (the same scan activeStatics
 // performs for restrictions) rather than registering them at ETB means a
@@ -47,7 +44,7 @@ var emptySVars = map[string]string{}
 // AddToughness is a layer-7 modify, AddKeyword a layer-6 grant, AddTypes a
 // layer-4 type change -- so the layer ordering Derived applies (CR 613) still
 // holds when one static carries both a pump and a keyword (exactly the Sword
-// of Fire and Ice / Umezawa shape Task 14's tests build). The scan order is
+// of Fire and Ice / Umezawa shape). The scan order is
 // deterministic: AliveFrom(0) walks seats in fixed APNAP order, each
 // battlefield zone is a slice, and each face's Statics is its parsed script
 // order -- nothing here ranges a map, so the resulting option/view/settle
@@ -344,8 +341,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							// abilities only and GainsTriggerAbsOf$ TRIGGERED only (a
 							// shared untyped list made a GainsAbilitiesOf-only card fire
 							// the foreign card's phase triggers and a
-							// GainsTriggerAbsOf-only card offer its activated ones -- the
-							// round-2 review's break). A GainsValidAbilities$ filter and a
+							// GainsTriggerAbsOf-only card offer its activated ones). A GainsValidAbilities$ filter and a
 							// GainsAbilitiesLimitPerTurn$ cap ride the ACTIVATED half
 							// (both parameters are activated-ability vocabulary).
 							gg := base
@@ -569,7 +565,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							}
 							out = append(out, ra)
 						}
-						// A may-play-from-zone grant (M2d?): the "You may play lands from
+						// A may-play-from-zone grant: the "You may play lands from
 						// your graveyard" static (Conduit of Worlds, Crucible of Worlds,
 						// Ramunap Excavator, ...). It changes no characteristic, so it is
 						// NOT a layer effect and is carried as a rules-mod on the effect
@@ -894,7 +890,7 @@ func (e *Engine) activeBuild() []ContinuousEffect {
 	buf := e.activeBufAlt[:0]
 	if e.activeDepth > 1 {
 		// Re-entrant (a nested Derived mid-rebuild): own a private list rather
-		// than overwrite the outer call's result mid-range. Same guard Task A2
+		// than overwrite the outer call's result mid-range. Same guard
 		// uses for forEachObject. (This path is effectively unreachable — a
 		// Derived call never emits an event, so the epoch cannot move mid-
 		// range — but it keeps the buffer discipline airtight.

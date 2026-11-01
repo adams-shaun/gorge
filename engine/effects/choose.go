@@ -10,22 +10,20 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// ChooseType, ChooseNumber and ChooseColor record a choice on the source.
-// With the choice already present -- for ChooseColor only the as-enters
-// ENTRY-choice body, flagged Ctx.ETBColorRecorded by rules' replCtx (the
-// entry ask machinery recorded it with a Choose event before the body runs,
-// plan ruling R-6) -- these do nothing. Without one -- a script that
-// uses them at RESOLUTION time -- ChooseType poses a real KChoose ask over
-// its Type$ CATEGORY's option list (task ct1; engine/effects/type_choices.go is the
-// one home for the non-creature lists) and ChooseColor poses a real KChoose
-// ask over the WUBRG colour list (task cli-20260923T060000Z-choose-color),
-// each answered in place via AskTape and falling back to its deterministic
-// pick only when the host cannot ask, the option list is empty, or the SA
-// carries a list shape this build cannot ask honestly. ChooseNumber likewise
-// poses a real KChoose over its number list (task
-// cli-20260923T060000Z-choose-number), falling back to the deterministic 0
-// only when the host cannot ask or it is the as-enters ENTRY-choice body (the
-// entry machinery already asked).
+// ChooseType, ChooseNumber and ChooseColor record a choice on the source. With
+// the choice already present -- for ChooseColor only the as-enters ENTRY-choice
+// body, flagged Ctx.ETBColorRecorded by rules' replCtx (the entry ask machinery
+// recorded it with a Choose event before the body runs, the no-host path) --
+// these do nothing. Without one -- a script that uses them at RESOLUTION time
+// -- ChooseType poses a real KChoose ask over its Type$ CATEGORY's option list
+// (engine/effects/type_choices.go is the one home for the non-creature lists)
+// and ChooseColor poses a real KChoose ask over the WUBRG colour list, each
+// answered in place via AskTape and falling back to its deterministic pick
+// only when the host cannot ask, the option list is empty, or the SA carries a
+// list shape this build cannot ask honestly. ChooseNumber likewise poses a
+// real KChoose over its number list, falling back to the deterministic 0 only
+// when the host cannot ask or it is the as-enters ENTRY-choice body (the entry
+// machinery already asked).
 func init() {
 	Register("ChooseType", effChooseType)
 	Register("ChooseNumber", effChooseNumber)
@@ -74,7 +72,7 @@ func effChooseEvenOdd(h Host, c *Ctx, sa *cards.SA) {
 // restriction resolves to no colour all fall through to the same fallback:
 // the deterministic FIRST colour of the restricted option list, which for an
 // unrestricted ask is the first-WUBRG "W" the old silent stand-in recorded --
-// a degraded but restriction-respecting pick the ledger tracks (R-9).
+// a degraded but restriction-respecting pick.
 // A SP$/AB$/DB$ ChooseColor mid-resolution ask (Wash Out, Nyx Lotus's
 // devotion ability) therefore resolves through the chooser's pick instead of
 // silently to W.
@@ -87,8 +85,8 @@ func effChooseColor(h Host, c *Ctx, sa *cards.SA) {
 		// already recorded the answer on the object, so this pass is the
 		// historical no-op -- never a second ask. With no recorded answer
 		// (an entry answer the fold could not name) it keeps the
-		// deterministic fallback emit. The flag is consumed and cleared
-		// (fx42): a nested ChooseColor deeper in the same chain poses its
+		// deterministic fallback emit. The flag is consumed and cleared:
+		// a nested ChooseColor deeper in the same chain poses its
 		// own fresh ask.
 		c.ETB.ColorRecorded = false
 		if o := g.Obj(c.Source); o != nil && o.ChosenColor != "" {
@@ -248,7 +246,7 @@ func chooseColorOffers(opts []decision.Option, l byte) bool {
 // context; a bound this context cannot honour keeps the loud fail-closed
 // fallback (a Note naming the parameter, then the deterministic 0), a host
 // that cannot ask falls through to the deterministic first legal value with
-// no extra Note (R-9), the value the old stand-in always recorded.
+// no extra Note, the value the old stand-in always recorded.
 //
 // A number already on the source -- an EARLIER Choose event's answer, from a
 // previous ChooseNumber SA or the entry choice an ability now re-asks -- is
@@ -325,7 +323,7 @@ func effChooseNumber(h Host, c *Ctx, sa *cards.SA) {
 	// The no-ask fallback: the deterministic first legal value of the list the
 	// ask derived — for the historical fixed list and for every measured
 	// corpus bound that is 0 (the value the old stand-in recorded, and the
-	// R-9 no-host degradation); a Min$-floored list starts at its own floor.
+	// no-host degradation); a Min$-floored list starts at its own floor.
 	fallback := int32(0)
 	if len(opts) > 0 {
 		fallback = int32(opts[0].Amount)
@@ -347,7 +345,7 @@ func effChooseNumber(h Host, c *Ctx, sa *cards.SA) {
 // (controller plus the resolution's targets), so this path adds no second
 // Defined$ resolution. The choosers are asked in that deterministic APNAP
 // order, each answered in place via AskTape, and the picks accumulated; a
-// host that cannot ask (R-9) takes the deterministic first legal value so the
+// host that cannot ask takes the deterministic first legal value so the
 // election still completes. The asked chooser's index rides the decision's
 // ResumeTarget.
 //
@@ -397,7 +395,7 @@ func effChooseNumberElection(h Host, c *Ctx, sa *cards.SA, matched, unmatched st
 			continue
 		}
 
-		// R-9 no-ask host: take the deterministic first legal value for this
+		// No-host path: take the deterministic first legal value for this
 		// chooser and continue to the next.
 		picks = append(picks, int32(opts[0].Amount))
 	}
@@ -475,7 +473,7 @@ func formatNumberPicks(picks []int32) string {
 // choice is forced (or empty) and the single legal answer equals the
 // fallback's deterministic pick, so no ask is posed (the effDiscard
 // strict-supersets convention). A host that cannot ask falls through to the
-// same fallback with no extra Note (R-9).
+// same fallback with no extra Note.
 //
 // Type$ (Herald's Horn's Creature, Realmwright's Basic Land, Archon of
 // Valor's Reach's Card, Deification's Planeswalker, Apex Observatory's

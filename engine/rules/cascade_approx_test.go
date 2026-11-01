@@ -1,7 +1,7 @@
 package rules
 
-// Task cascade-approx (row ~48): the three real deviations the cascade1 row
-// recorded, each pinned end to end on a real corpus card where one exists:
+// The three real deviations recorded, each pinned end to end on a real corpus
+// card where one exists:
 //
 //   (c) CR 202.3b -- an {X} cascade spell's mana value is its printed value
 //       plus the X announced at casting (it is on the stack), not its

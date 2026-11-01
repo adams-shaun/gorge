@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
+	"github.com/adams-shaun/gorge/server/spellbench/gamecfg"
 	"github.com/adams-shaun/gorge/server/spellbench/humanseat"
 	"github.com/adams-shaun/gorge/server/spellbench/mapping"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
@@ -67,6 +68,13 @@ type seatState struct {
 	// ext builds the opt-in extensions for this seat. Nil when the hub was not
 	// asked for extensions (the native wire).
 	ext *extensionBuilder
+	// codec is the seat's v2 codec, nil until its match builds it; claimed
+	// remembers a read that came first.
+	codec   *humanseat.Seat
+	claimed bool
+	// holds counts the v2 connections that keep the seat attached through a
+	// native answer: open streams, and sends while they submit.
+	holds int
 }
 
 func newSeatState() *seatState {
@@ -77,6 +85,54 @@ func (s *seatState) setExtension(ext *extensionBuilder) {
 	s.mu.Lock()
 	s.ext = ext
 	s.mu.Unlock()
+}
+
+// bind connects the codec the match built, attaching it if a client came first.
+func (s *seatState) bind(codec *humanseat.Seat) {
+	s.mu.Lock()
+	s.codec = codec
+	claimed := s.claimed
+	s.mu.Unlock()
+	if claimed {
+		codec.Attach()
+	}
+}
+
+// unbind lets go of the codec when its match is over.
+func (s *seatState) unbind() {
+	s.mu.Lock()
+	s.codec = nil
+	s.mu.Unlock()
+}
+
+// attach is what a v2 read does: it hands the seat to the codec.
+func (s *seatState) attach() {
+	s.mu.Lock()
+	s.claimed = true
+	codec := s.codec
+	s.mu.Unlock()
+	if codec != nil {
+		codec.Attach()
+	}
+}
+
+// hold keeps the seat attached through a native answer until release is called.
+func (s *seatState) hold() (release func()) {
+	s.mu.Lock()
+	s.holds++
+	s.mu.Unlock()
+	return func() {
+		s.mu.Lock()
+		s.holds--
+		s.mu.Unlock()
+	}
+}
+
+// held implements humanseat.Config.Held.
+func (s *seatState) held() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.holds > 0
 }
 
 // notifyLocked wakes every stream watching this seat. Called under s.mu.
@@ -243,11 +299,20 @@ func (s *seatState) answer(requestID uint64, candidateID int) bool {
 type Hub struct {
 	mu    sync.Mutex
 	seats map[seatKey]*seatState
+	// noReader holds the tables whose engine a v2 seat cannot read.
+	noReader map[host.TableID]bool
 }
 
 // NewHub returns an empty hub.
 func NewHub() *Hub {
-	return &Hub{seats: map[seatKey]*seatState{}}
+	return &Hub{seats: map[seatKey]*seatState{}, noReader: map[host.TableID]bool{}}
+}
+
+// unreadable reports whether a match of table ran on an engine with no v2 reader.
+func (h *Hub) unreadable(table host.TableID) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.noReader[table]
 }
 
 func (h *Hub) seat(key seatKey) *seatState {
@@ -263,9 +328,11 @@ func (h *Hub) seat(key seatKey) *seatState {
 
 // Tap is the host.HumanTapFactory gorged installs on the registry: for a
 // two-seat, constructed, AutoMana table it returns the v2 codec wired to this
-// hub; every other table gets nil, so no tap is installed and the seat is an
-// ordinary native human seat. The host's attach path already refuses a tapped
-// manual-mana table, which is why the AutoMana check is part of "covers".
+// hub, passive until a v2 client reads the seat's state or stream; every other
+// table gets nil, so no tap is installed and the seat is an ordinary native
+// human seat. That includes a table whose engine has no v2 reader, which the
+// routes then answer as unsupported. The host's attach path already refuses a tapped manual-mana
+// table, which is why the AutoMana check is part of "covers".
 func (h *Hub) Tap(table host.TableID, match int, autoPayMana bool, mc *bots.MatchContext) (host.HumanTap, error) {
 	if mc == nil {
 		return nil, errors.New("sbv2: nil match context")
@@ -273,8 +340,21 @@ func (h *Hub) Tap(table host.TableID, match int, autoPayMana bool, mc *bots.Matc
 	if !autoPayMana || mc.Seats != 2 || mc.Format != "constructed" {
 		return nil, nil
 	}
+	if mc.Game != nil && gamecfg.Readable(mc.Game) != nil {
+		h.mu.Lock()
+		h.noReader[table] = true
+		h.mu.Unlock()
+		return nil, nil
+	}
 	s := h.seat(seatKey{table: table, match: match, seat: state.PlayerID(mc.Seat)})
 	ext := newExtensionBuilder()
 	s.setExtension(ext)
-	return humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: s, Extend: ext.Extend, NameWindow: mapping.MaxCandidates})
+	codec, err := humanseat.New(humanseat.Config{Seats: mc.Seats, Format: mc.Format, Answerer: s, Extend: ext.Extend, NameWindow: mapping.MaxCandidates, Held: s.held})
+	if err != nil {
+		return nil, err
+	}
+	s.bind(codec)
+	// The hub outlives the match, and a codec holds the whole game.
+	context.AfterFunc(mc.Context, s.unbind)
+	return codec, nil
 }

@@ -292,7 +292,7 @@ const qpmSage2 = "Name:Quiet Two Sage\nManaCost:2\nTypes:Creature Wizard\nPT:1/1
 	"A:AB$ Draw | Cost$ 2 | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"
 
 // TestQuietPaidManaGrantedAndExtraAdders probes the wider adder family the
-// brief's six cards stand for: a granted tap-for-mana ability (Cryptolith
+// six cards stand for: a granted tap-for-mana ability (Cryptolith
 // Rite, Citanul Hierophants, Song of Freyalise), a doubling or extra-mana
 // replacement/trigger (Mirari's Wake, Nyxbloom Ancient, Vorinclex, Dictate of
 // Karametra, Crypt Ghast, Overgrowth, Wild Growth) and a land-type grant

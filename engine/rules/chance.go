@@ -275,7 +275,7 @@ func (e *Engine) CloneHypotheticalInto(seed uint64, sp *Spare) *Engine {
 		// from S0, which holds the TRUE hidden cards and RNG: give the world
 		// its own checkpoint copy whose re-run draws S0's values only up to
 		// the fork and the world's own after it, and re-applies the world's
-		// redeal at the fork point (lasagna spec §7.3).
+		// redeal at the fork point.
 		c.tape.Fork(e.forkSplice(c.rng), c.L)
 	}
 	c.rng.forked = true

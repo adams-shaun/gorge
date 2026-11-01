@@ -1,6 +1,6 @@
 package rules
 
-// effect_frame_trigger_test.go pins the brief's path 2: the one-shot
+// effect_frame_trigger_test.go pins another path: the one-shot
 // self-exile idiom (`DB$ ChangeZone | Defined$ Self | Origin$ Command |
 // Destination$ Exile`) run from an Effect's OWN Triggers$ body. Before this
 // the delayed-trigger fire built a Ctx with no EffectFrame, so the idiom

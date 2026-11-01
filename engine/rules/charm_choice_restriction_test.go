@@ -195,7 +195,7 @@ func modeNameIndex(d *decision.Decision, name string) int {
 	return -1
 }
 
-// TestParapetThrasherChoiceRestrictionThisTurn is the brief's pin: two trigger
+// TestParapetThrasherChoiceRestrictionThisTurn is the pin: two trigger
 // instances in one combat/one turn, and the same mode must not be offered
 // twice; a fresh trigger on the next turn offers every mode again. The
 // assertions read d.ResumeModes -- the eligible SVar vocabulary the engine

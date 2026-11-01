@@ -12,8 +12,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Decklist privacy at a table with a human (operator ruling 2026-10-13: an
-// opponent's decklist is private information).
+// Decklist privacy at a table with a human: an
+// opponent's decklist is private information.
 //
 // Table validation refuses, by name, every policy that reads decklists
 // (bots.Info.ReadsDecklists: Env without ClosedLists). A closed-list policy

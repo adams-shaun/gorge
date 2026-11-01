@@ -43,7 +43,7 @@ type Env struct {
 }
 
 // RootSeed derives one honest root's deal seed from the per-seat seed and the
-// decision sequence number (BP-05, spec 2026-09-28-hosted-bot-packages §5.1).
+// decision sequence number (spec 2026-09-28-hosted-bot-packages §5.1).
 // It is the one derivation the bench and the host share: the caller passes
 // the seed the seat was built from (the game seed XOR the seat index plus
 // one, the SeatCtor convention) and the deciding decision's sequence number,

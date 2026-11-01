@@ -133,7 +133,7 @@ type Model struct {
 	// (BotPick is not an encoded feature); the checkpoint carries it.
 	ResidualW float32
 
-	// The VALUE head (ticket pn08): V(s) = sigmoid(VOutW·relu(VHidW·s + VHidB)
+	// The VALUE head: V(s) = sigmoid(VOutW·relu(VHidW·s + VHidB)
 	// + VOutB), the deciding seat's win probability read off the SAME state
 	// trunk s the policy head reads. ValueHidden 0 means the model has no
 	// value head (HasValue false; the three slices are empty and VOutB 0) —
@@ -145,7 +145,7 @@ type Model struct {
 	VOutW       []float32 // ValueHidden
 	VOutB       float32
 
-	// The ENTITY encoder (ticket pn14, entity.go; FeaturesEntity only):
+	// The ENTITY encoder (entity.go; FeaturesEntity only):
 	// EntK 0 means none, and then the three blocks are empty and InW is the
 	// pinned geometry. With EntK > 0 the hidden input grows by 2·EntK (the
 	// option's two referenced cards' encodings) and the state trunk gains the
@@ -742,7 +742,7 @@ func (g *Grads) Norm() float64 {
 // norm (Norm, over every parameter block) is at most maxNorm — a no-op when
 // the norm is already inside; maxNorm <= 0 disables. This is the
 // deliberate clip semantics, chosen over the alternatives (pinned by this
-// package's TestClipSemanticsIsPerBatchNotPerExample; ticket
+// package's TestClipSemanticsIsPerBatchNotPerExample;
 // policytrain-clip-rankweight-interaction):
 //
 //   - Per-batch, not per-example: the clip normalises only the batch
@@ -859,8 +859,8 @@ func (m *Model) forwardExampleEnt(ex Example) (labelled []int, trunk []float32, 
 //
 // The ranking term is a softmax cross-entropy over the LABELLED options
 // toward the teacher-preferred set (LSE(labelled) − LSE(preferred)) — for a
-// single preferred candidate exactly the argmax CE logsumexp(z) − z_pref the
-// L9b-fix2 brief names. Its preferred-side gradient is the uniform −w used
+// single preferred candidate exactly the argmax CE logsumexp(z) − z_pref.
+// Its preferred-side gradient is the uniform −w used
 // since the trainer's first version: for a multi-option preferred set (the
 // attackers decisions, where the teacher's answer commits several
 // creatures) the exact softmax-over-preferred gradient concentrates on the

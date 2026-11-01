@@ -243,7 +243,7 @@ func TestValidStackAbilityBaseAdmitsBothAbilityKindsYouCtrl(t *testing.T) {
 // TestValidStackOtherAbilityExcludesTheResolvingWrapper pins the
 // otherAbility qualifier's anchor: Ctx.ResolvingObj -- the resolving
 // stack-object WRAPPER -- not Ctx.Source, which for an ability resolution is
-// the source permanent (Ruling T20-b) and excludes nothing on the stack.
+// the source permanent and excludes nothing on the stack.
 // Without this, Ulalek's sub-copy would copy its own still-resolving wrapper
 // (each copy asking its pay question again).
 func TestValidStackOtherAbilityExcludesTheResolvingWrapper(t *testing.T) {

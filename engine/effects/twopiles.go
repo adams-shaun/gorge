@@ -14,7 +14,7 @@ func init() {
 }
 
 // effTwoPiles implements Forge's TwoPilesEffect, the Fact or Fiction pile
-// split (task twopiles1). The card set comes from DefinedCards$ ("Remembered"
+// split. The card set comes from DefinedCards$ ("Remembered"
 // — the cards the upstream PeekAndReveal put in the resolution's
 // Remembered — or "Targeted", the Split the Spoils/Boneyard Parley exiled
 // targets); the Separator$ player splits it into pile A (a KChoose subset
@@ -28,7 +28,7 @@ func init() {
 // Two asks, each answered in place: the split ask (pile A; pile B is the
 // offered-order rest) and then the pile pick.
 //
-// The R-9 no-host stand-in: pile A is the FIRST card of the set and the
+// The no-host stand-in: pile A is the FIRST card of the set and the
 // chooser takes pile A — silent, byte-identical run to run, straight from
 // the ordered card list. Botpolicy's KChoose default arm answers the split
 // with option 0 (pile A = the first card) and the pick with option 0 (pile
@@ -230,7 +230,7 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 				Kind: "twopiles", Label: name, Obj: id, Player: sep})
 		}
-		// R-9 no-host stand-in: pile A is the first card of the set, silent
+		// No-host stand-in: pile A is the first card of the set, silent
 		// and byte-identical run to run. An answer names pile A, in answer
 		// order; either way the walk continues to the pile pick.
 		pileA := []state.ObjID{ids[0]}

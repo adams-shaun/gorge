@@ -23,7 +23,7 @@ import (
 // use -- it stops attacking/blocking, and an attacker it blocked stays
 // blocked (CR 506.4 / 509.1h). The scan is in battlefield seat order, so the
 // emitted order is deterministic.
-func (e *Engine) removeNoncreatureCombatants() bool {
+func (e *Engine) removeNoncreatureCombatants(b *sbaBatch) {
 	var blockers []state.ObjID
 	if e.G.BlockersLive() {
 		for _, p := range e.G.AliveFrom(0) {
@@ -38,7 +38,6 @@ func (e *Engine) removeNoncreatureCombatants() bool {
 			}
 		}
 	}
-	var out []state.ObjID
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
@@ -51,11 +50,7 @@ func (e *Engine) removeNoncreatureCombatants() bool {
 			if e.IsCreature(id) {
 				continue
 			}
-			out = append(out, id)
+			b.add(events.Event{Kind: events.EndCombatReset, Obj: id})
 		}
 	}
-	for _, id := range out {
-		e.emit(events.Event{Kind: events.EndCombatReset, Obj: id})
-	}
-	return len(out) > 0
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cr-g152: Manifest's Defined$ object forms (Remembered, ValidLibrary,
+// Manifest's Defined$ object forms (Remembered, ValidLibrary,
 // ValidHand) and a declared SVar Amount$ (Forge ManifestBaseEffect).
 
 // castOption submits seat 0's cast option for id.

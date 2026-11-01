@@ -10,7 +10,7 @@ import (
 // shield, and "Deathtouched", the lethal-damage mark) as counters because it
 // has no per-object status field, but they are not counters (CR 122.1). The
 // every-kind readers must exclude them the same way hasCounters and
-// proliferate do (cr-g81): a regenerating creature is not modified (CR 700.9)
+// proliferate do: a regenerating creature is not modified (CR 700.9)
 // and "remove every counter" leaves the shield alone.
 
 func TestModifiedIgnoresInternalMarkers(t *testing.T) {

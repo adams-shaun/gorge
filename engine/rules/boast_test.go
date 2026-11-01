@@ -1,6 +1,6 @@
 package rules
 
-// Task kw-boast (CR 702.142): the Boast keyword and its `Boast$ True`
+// CR 702.142: the Boast keyword and its `Boast$ True`
 // ability parameter. Forge marks a Boast ability with a parameter on the
 // activated ability itself, not a `K:Boast` keyword line, so the ability
 // offer loop has to read it directly. The restriction has two halves --

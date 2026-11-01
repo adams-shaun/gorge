@@ -309,7 +309,7 @@ components:
         attacking:
           type: "boolean"
         attacking_player:
-          description: "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay (PL-17) and come straight from the object's combat fields, which EndCombatReset clears."
+          description: "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay and come straight from the object's combat fields, which EndCombatReset clears."
           maximum: 255
           minimum: 0
           type: "integer"
@@ -528,7 +528,7 @@ components:
         human_deck:
           type: "string"
         mulligans:
-          description: "Mulligans is the optional London mulligan allowance for the created game (finding fb-20260914T114629Z-6c81e4d6: a play-vs-bot game could mulligan exactly once, with no knob at any layer). It is a pointer so 0 — \"0 disables the pre-game round\" — is distinguishable from an omitted field, which keeps the server default."
+          description: "Mulligans is the optional London mulligan allowance for the created game (without it a play-vs-bot game could mulligan exactly once, with no knob at any layer). It is a pointer so 0 — \"0 disables the pre-game round\" — is distinguishable from an omitted field, which keeps the server default."
           format: "int64"
           type: "integer"
       required:
@@ -703,7 +703,7 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/engine/decision.Decision"
     DecisionBody:
-      description: "DecisionBody says who is being asked what; options come with the player seat (M2b), not here."
+      description: "DecisionBody says who is being asked what; options come with the player seat, not here."
       properties:
         kind:
           type: "string"
@@ -1209,7 +1209,7 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.EventSeat"
     EventSeries:
-      description: "EventSeries is one pairing of an event round. State is \"pending\", \"live\", \"between\" or \"ended\" — \"between\" names the sideboarding step between two games of a series (E3-3). Table names the live (or last) game's host table, so a spectator can watch at /t/{table}; Attempt is the game attempt in flight. Game is the live game, or the next one while between. Games is the winner seat per played game (-1 for a draw); Chooser names the event seat choosing play/draw for Game; Waiting lists the seats still to submit their deck while between. Winner is nil while the series is not ended and for a drawn series. Join appears only in the viewer's own state: the seat-tokenised spectate URL for that seat's side of the live game."
+      description: "EventSeries is one pairing of an event round. State is \"pending\", \"live\", \"between\" or \"ended\" — \"between\" names the sideboarding step between two games of a series. Table names the live (or last) game's host table, so a spectator can watch at /t/{table}; Attempt is the game attempt in flight. Game is the live game, or the next one while between. Games is the winner seat per played game (-1 for a draw); Chooser names the event seat choosing play/draw for Game; Waiting lists the seats still to submit their deck while between. Winner is nil while the series is not ended and for a drawn series. Join appears only in the viewer's own state: the seat-tokenised spectate URL for that seat's side of the live game."
       properties:
         a:
           format: "int64"
@@ -1493,7 +1493,7 @@ components:
           minimum: 0
           type: "integer"
         rest:
-          description: "Rest is the answer's order for the COMPLEMENT of Choices — the second ordered list a KArrange answer may carry (the pile-B order): the options the player did not choose, in the order the player wants them, where \"where they go\" is still the decision's shared Option.Kind (bottom, graveyard, ...). Absent or empty means the legacy contract: the complement is taken in the order the options were OFFERED. The two lists together must be a partition of the offered options -- Rest's indices are in range, distinct, disjoint from Choices, and len(Rest) == len(Options) - len(Choices) -- which Decision.Validate enforces (one rule, one home: validateRest). Every non-arrange kind rejects a non-empty Rest outright. omitempty: every intent a client sends today serialises byte-identically, and a recorded intent's Rest rides the log and replays exactly (Ruling P2 submits intents as logged)."
+          description: "Rest is the answer's order for the COMPLEMENT of Choices — the second ordered list a KArrange answer may carry (the pile-B order): the options the player did not choose, in the order the player wants them, where \"where they go\" is still the decision's shared Option.Kind (bottom, graveyard, ...). Absent or empty means the legacy contract: the complement is taken in the order the options were OFFERED. The two lists together must be a partition of the offered options -- Rest's indices are in range, distinct, disjoint from Choices, and len(Rest) == len(Options) - len(Choices) -- which Decision.Validate enforces (one rule, one home: validateRest). Every non-arrange kind rejects a non-empty Rest outright. omitempty: every intent a client sends today serialises byte-identically, and a recorded intent's Rest rides the log and replays exactly (intents are submitted as logged)."
           items:
             format: "int64"
             type: "integer"
@@ -1747,7 +1747,7 @@ components:
       description: "Option is one legal choice. Obj and Player are echoed only so a client can highlight the object; selection is by Index."
       properties:
         ability:
-          description: "Ability anchors an \"ability\" option to its exact activated ability: the index into the source Face().Abilities being offered (Task 10), so a client can pop that ability's own text up beside the right ability on the card. The engine reads it in beginActivation, where a stale index degrades to a no-op. omitempty: options that are not ability options carry no field, and on an ability option a missing field is index 0 (the first ability), the one value that omits."
+          description: "Ability anchors an \"ability\" option to its exact activated ability: the index into the source Face().Abilities being offered, so a client can pop that ability's own text up beside the right ability on the card. The engine reads it in beginActivation, where a stale index degrades to a no-op. omitempty: options that are not ability options carry no field, and on an ability option a missing field is index 0 (the first ability), the one value that omits."
           format: "int64"
           type: "integer"
         alone_restricted:
@@ -1772,7 +1772,7 @@ components:
           minimum: 0
           type: "integer"
         cost:
-          description: "Cost is the activation cost of a priority-window \"activate\" option whose mana ability costs MORE than a bare tap, in the same whitespace-delimited Forge notation AbilityCosts uses (engine/rules/mana.go's formatCost over ParseCost of the ability's Cost$ param) — \"T Sac\u003c1/Lion's Eye Diamond\u003e\" for Lion's Eye Diamond, \"T PayLife\u003c1\u003e\" for Mana Confluence. It is the wire marker the client's empty-priority-window floor and auto-pass need (fb-20260917T192520Z-26136705): isActionKind excludes every \"activate\" because a bare tap is offered at every window and is not a play, but a costly activation is exactly the play a ritual-combo deck needs the window for, and an empty hand leaves it the window's ONLY action — the floor passed it away unseen, and the card was unreachable for the rest of the game. A bare tap (every plain land) omits the field, so every existing option list and every plain-land window serialises byte-identically. omitempty: only a beyond-tap activation carries it."
+          description: "Cost is the activation cost of a priority-window \"activate\" option whose mana ability costs MORE than a bare tap, in the same whitespace-delimited Forge notation AbilityCosts uses (engine/rules/mana.go's formatCost over ParseCost of the ability's Cost$ param) — \"T Sac\u003c1/Lion's Eye Diamond\u003e\" for Lion's Eye Diamond, \"T PayLife\u003c1\u003e\" for Mana Confluence. It is the wire marker the client's empty-priority-window floor and auto-pass need: isActionKind excludes every \"activate\" because a bare tap is offered at every window and is not a play, but a costly activation is exactly the play a ritual-combo deck needs the window for, and an empty hand leaves it the window's ONLY action — the floor passed it away unseen, and the card was unreachable for the rest of the game. A bare tap (every plain land) omits the field, so every existing option list and every plain-land window serialises byte-identically. omitempty: only a beyond-tap activation carries it."
           type: "string"
         cost_life:
           description: "CostLife is a block option's non-mana life component (CR 509.1b): the life the defender pays for declaring this block, beside Value's mana (the MaxSum budget's currency). A rules-ignorant client sums it against the defender's life total the same way. omitempty: an uncharged option emits no field, so every ordinary option list serialises byte-identically."
@@ -1998,7 +1998,7 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/engine/decision.PaymentCost"
     PaymentFallback:
-      description: "PaymentFallback explains why an accepted plan returned to the ordinary manual payment flow. Execution publishes it in a later ticket."
+      description: "PaymentFallback explains why an accepted plan returned to the ordinary manual payment flow."
       properties:
         plan_id:
           type: "string"
@@ -2064,7 +2064,7 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/engine/decision.PaymentSelection"
     PendingView:
-      description: "PendingView is a trigger that will hit the stack once its controller has ordered it / its decider has accepted it. R3."
+      description: "PendingView is a trigger that will hit the stack once its controller has ordered it / its decider has accepted it."
       properties:
         controller:
           maximum: 255
@@ -2371,7 +2371,7 @@ components:
           minimum: 0
           type: "integer"
         payable:
-          description: "Payable is the payment planner's verdict for an ordinary cast from the hand or (Commander) the command zone: false only when the planner PROVED the cast unpayable -- an \"insufficient\" verdict whose source census is complete, or whose missed abilities a relaxation of them still cannot pay (decision.PotentialUnpayableCasts). It is what lets a client withhold a \"tap other mana first\" affordance that no amount of tapping can satisfy (fb-20261006T100405Z). nil (omitted) for every other kind, for a cast in an alternative/additional-cost mode, for a cast outside the hand and command zone, and for every verdict that is not a proof -- \"unsupported\" (a shape the planner does not price, e.g. Delve), \"search_limit\", \"ambiguous\" and a census-incomplete insufficiency -- because those do not prove the play possible or impossible. A client must not re-derive this from printed mana_cost: castable.ts records the cost rules that drift."
+          description: "Payable is the payment planner's verdict for an ordinary cast from the hand or (Commander) the command zone: false only when the planner PROVED the cast unpayable -- an \"insufficient\" verdict whose source census is complete, or whose missed abilities a relaxation of them still cannot pay (decision.PotentialUnpayableCasts). It is what lets a client withhold a \"tap other mana first\" affordance that no amount of tapping can satisfy. nil (omitted) for every other kind, for a cast in an alternative/additional-cost mode, for a cast outside the hand and command zone, and for every verdict that is not a proof -- \"unsupported\" (a shape the planner does not price, e.g. Delve), \"search_limit\", \"ambiguous\" and a census-incomplete insufficiency -- because those do not prove the play possible or impossible. A client must not re-derive this from printed mana_cost: castable.ts records the cost rules that drift."
           type: "boolean"
       required:
         - "kind"
@@ -2412,7 +2412,7 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/engine/decision.RemovalEffect"
     ReviewDecision:
-      description: "ReviewDecision is one entry of a review table's decision index, served only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions (match reviewer, design D8/T4). Entry i describes the match log's Intents[i]: the decision the engine offered at that point and the answer the seat gave. It is derived at load from the replay itself -- the options and labels are never stored in a record -- so it is exactly what the seat was shown."
+      description: "ReviewDecision is one entry of a review table's decision index, served only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions (match reviewer). Entry i describes the match log's Intents[i]: the decision the engine offered at that point and the answer the seat gave. It is derived at load from the replay itself -- the options and labels are never stored in a record -- so it is exactly what the seat was shown."
       properties:
         answer:
           type: "string"
@@ -2514,7 +2514,7 @@ components:
           type: "object"
       description: "An undo rolled the live match back in place: discard everything past `body.head`, then apply the body like a snapshot."
     SeatInfo:
-      description: "SeatInfo names a seat for the identity bars; Colour is the seat colour the client keeps consistent from overview to focused view. Human marks a seat played by a real person (TableConfig.Humans): additive and omitempty (old sidecars and every bot seat omit it), it is what tells a client whether an undo control may be offered — the registry refuses an undo on any table whose human seats are not all the requester, so a seat that can see two humans on the wire can know its UNDO button would be refused (dispatch fb-20260911T201015Z)."
+      description: "SeatInfo names a seat for the identity bars; Colour is the seat colour the client keeps consistent from overview to focused view. Human marks a seat played by a real person (TableConfig.Humans): additive and omitempty (old sidecars and every bot seat omit it), it is what tells a client whether an undo control may be offered — the registry refuses an undo on any table whose human seats are not all the requester, so a seat that can see two humans on the wire can know its UNDO button would be refused see two humans on the wire can know its UNDO button would be refused."
       properties:
         colour:
           type: "string"
@@ -2577,7 +2577,7 @@ components:
           minimum: 0
           type: "integer"
         seats:
-          description: "Seats is the live match's seat list, the same []SeatInfo MatchStart carries. A focus subscriber (server/host/session.go's Subscribe) receives a snapshot but not the match's match_start frame — that went out before it connected — so without this the table route has no way to learn the seats for the current match (ui16). Always populated for a live match; never omitempty, so the client type stays a plain SeatInfo[]."
+          description: "Seats is the live match's seat list, the same []SeatInfo MatchStart carries. A focus subscriber (server/host/session.go's Subscribe) receives a snapshot but not the match's match_start frame — that went out before it connected — so without this the table route has no way to learn the seats for the current match. Always populated for a live match; never omitempty, so the client type stays a plain SeatInfo[]."
           items:
             $ref: "#/components/schemas/SeatInfo"
           type:
@@ -2639,14 +2639,14 @@ components:
         name:
           type: "string"
         optional:
-          description: "Optional and Decider are Ruling VW-1: an optional triggered ability on the stack, awaiting its resolution-time yes/no (CR 603.5), reports that it is optional and names the seat that answers it. Decider is nil unless Optional."
+          description: "Optional and Decider: an optional triggered ability on the stack, awaiting its resolution-time yes/no (CR 603.5), reports that it is optional and names the seat that answers it. Decider is nil unless Optional."
           type: "boolean"
         source:
           maximum: 4294967295
           minimum: 0
           type: "integer"
         targets:
-          description: "Targets is a public list (Ruling T23-u): non-nil, \"[]\" not \"null\", even when nothing has been targeted yet."
+          description: "Targets is a public list: non-nil, \"[]\" not \"null\", even when nothing has been targeted yet."
           items:
             $ref: "#/components/schemas/TargetView"
           type:
@@ -2722,7 +2722,7 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.Subscribe"
     TableHaltedBody:
-      description: "TableHaltedBody is spec D15: a crashed table stops and says why."
+      description: "TableHaltedBody says a crashed table stopped, and why."
       properties:
         reason:
           type: "string"
@@ -2783,7 +2783,7 @@ components:
           format: "int64"
           type: "integer"
         series:
-          description: "Series marks a series table (TableConfig.Series, E3-2): it plays match after match, its end decided by the series hook rather than a match count, and between games it sits in the \"between_games\" table_state while players sideboard. omitempty: false is the default and the zero value, so a non-series table is byte-identical to a table before the field existed."
+          description: "Series marks a series table (TableConfig.Series): it plays match after match, its end decided by the series hook rather than a match count, and between games it sits in the \"between_games\" table_state while players sideboard. omitempty: false is the default and the zero value, so a non-series table is byte-identical to a table before the field existed."
           type: "boolean"
         spectator:
           type: "string"
@@ -2896,7 +2896,7 @@ components:
         own_deck:
           $ref: "#/components/schemas/Manifest"
         pending:
-          description: "Pending is the trigger queue, in the order it will be placed on the stack. Public for every seat — R3."
+          description: "Pending is the trigger queue, in the order it will be placed on the stack. Public for every seat."
           items:
             $ref: "#/components/schemas/PendingView"
           type:
@@ -2905,7 +2905,7 @@ components:
         phase:
           type: "string"
         players:
-          description: "Players, Stack and Pending (below) are every public list this type carries. All of them are built non-nil even when empty (Ruling T23-u): a client should never have to treat a bare JSON `null` and an empty `[]` as the same \"nothing here\" case for one of these, the way it legitimately must for Hand/Pool below."
+          description: "Players, Stack and Pending (below) are every public list this type carries. All of them are built non-nil even when empty: a client should never have to treat a bare JSON `null` and an empty `[]` as the same \"nothing here\" case for one of these, the way it legitimately must for Hand/Pool below."
           items:
             $ref: "#/components/schemas/PlayerView"
           type:
@@ -2919,7 +2919,7 @@ components:
           format: "int32"
           type: "integer"
         stack:
-          description: "Stack keeps g.Stack's own order: index 0 is the bottom, the last entry is the top. Public for every seat — R3."
+          description: "Stack keeps g.Stack's own order: index 0 is the bottom, the last entry is the top. Public for every seat."
           items:
             $ref: "#/components/schemas/StackView"
           type:
@@ -2939,7 +2939,7 @@ components:
           description: "Visibility names which rule set built this view: \"seat\", \"public\" or \"omniscient\" (see Visibility)."
           type: "string"
         winner:
-          description: "Winner is nil unless Over \u0026\u0026 !Draw: PlayerID's zero value is seat 0, a real seat, so a bare PlayerID field could never distinguish \"seat 0 won\" from \"the game is still going\" or \"it was a draw\" (Task 22 finding 5). A JSON null is unambiguous where a bare 0 would not be."
+          description: "Winner is nil unless Over \u0026\u0026 !Draw: PlayerID's zero value is seat 0, a real seat, so a bare PlayerID field could never distinguish \"seat 0 won\" from \"the game is still going\" or \"it was a draw\". A JSON null is unambiguous where a bare 0 would not be."
           maximum: 255
           minimum: 0
           type:
@@ -3136,7 +3136,7 @@ paths:
                           - claim: "(elided in this reference)"
                             setting: "(elided in this reference)"
                             source: "(elided in this reference)"
-                            versus: "pre-AR7 bot"
+                            versus: "earlier bot"
                         tier: "experimental"
               schema:
                 $ref: "#/components/schemas/BotPolicyList"
@@ -4635,7 +4635,7 @@ paths:
                               - 0
                             version: 1
                     player: 0
-                    prompt: "turn 1, main1 — You has priority"
+                    prompt: "turn 1, main1 — You have priority"
                     seq: 38
                 starting_player:
                   summary: "a real `starting_player` decision"

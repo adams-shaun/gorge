@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This file is the fix-round companion to effect_delayed_lifetime_test.go and
+// This file is the companion to effect_delayed_lifetime_test.go and
 // effect_delayed_riders_test.go.
 //
 // The MAJOR it pins: a Duration$ Permanent api:Effect trigger's source-relative

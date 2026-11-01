@@ -40,7 +40,7 @@ func TestSidarJabariEminenceTriggersFromCommandZoneKernel(t *testing.T) {
 
 	// Resolve under the kernel (no stale priority snapshot pending, so the
 	// probe owns the ask): draw a card, then the discard ask.
-	kr9ResolveTop(e)
+	resolveTopAfterPass(e)
 	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
 		t.Fatalf("Eminence draw: hand = %d, want %d (one drawn)", got, handBefore+1)
 	}

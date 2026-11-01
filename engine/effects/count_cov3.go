@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The count heads the cardfuzz coverage audit (fuzz-cov3) found unmodelled
+// The count heads the cardfuzz coverage audit found unmodelled
 // while their cards sat in the "supported" pool -- every one a replay-safe
 // read of the event-derived state (zone lists, g.Entered, the player
 // records) or a Host log fold, never the wall clock or ambient randomness.
@@ -39,7 +39,7 @@ func domainCount(h Host, c *Ctx, p state.PlayerID, depth int) int32 {
 	return n
 }
 
-// evalCov3Head answers the fuzz-cov3 heads. head/arg are evalCountBody's
+// evalCov3Head answers the coverage audit's heads. head/arg are evalCountBody's
 // head/argument split.
 func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 	g := h.Game()
@@ -113,7 +113,7 @@ func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 			if en.From != from || seen[en.Obj] {
 				continue
 			}
-			if matchesZoneSpecCtx(g, spec, en.Obj, c.SpecContext(c.Controller), en.To) {
+			if matchesEnteredEntry(g, spec, en, c.SpecContext(c.Controller)) {
 				seen[en.Obj] = true
 				n++
 			}
@@ -173,7 +173,7 @@ func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 	return 0, false
 }
 
-// cov3BranchHolds answers the fuzz-cov3 yes/no branch predicates of the
+// cov3BranchHolds answers the coverage audit's yes/no branch predicates of the
 // Count$<Predicate>.<yes>.<no> family: ok=false for a predicate this table
 // does not know.
 func cov3BranchHolds(h Host, c *Ctx, pred string, depth int) (holds, ok bool) {
@@ -291,7 +291,7 @@ func sacrificedThisTurn(g *state.Game, c *Ctx, players []state.PlayerID, spec st
 		}
 		member := false
 		for _, p := range players {
-			if p == en.Sacrificer {
+			if p == en.Controller {
 				member = true
 				break
 			}
@@ -299,7 +299,7 @@ func sacrificedThisTurn(g *state.Game, c *Ctx, players []state.PlayerID, spec st
 		if !member {
 			continue
 		}
-		if matchesZoneSpecCtx(g, spec, en.Obj, c.SpecContext(en.Sacrificer), en.To) {
+		if matchesZoneSpecCtx(g, spec, en.Obj, c.SpecContext(en.Controller), en.To) {
 			n++
 		}
 	}
@@ -307,7 +307,7 @@ func sacrificedThisTurn(g *state.Game, c *Ctx, players []state.PlayerID, spec st
 }
 
 // evalCov3PlayerHead answers the PlayerCount<group>$<Property> heads the
-// fuzz-cov3 audit added, for the three groups that name a fixed player set:
+// coverage audit added, for the three groups that name a fixed player set:
 // PlayerCountPropertyYou$ (the resolving controller), PlayerCount$ and
 // PlayerCountPlayers$ (every living player) and PlayerCountOpponents$.
 // ok=false for anything else.
@@ -706,7 +706,7 @@ func cov3RememberedOwners(g *state.Game, c *Ctx) []state.PlayerID {
 func sacrificedPermanentTypes(g *state.Game, players []state.PlayerID) int32 {
 	seen := map[string]bool{}
 	for _, en := range g.Entered {
-		if !en.Sacrificed || en.From != state.ZBattlefield || !slices.Contains(players, en.Sacrificer) {
+		if !en.Sacrificed || en.From != state.ZBattlefield || !slices.Contains(players, en.Controller) {
 			continue
 		}
 		o := g.Obj(en.Obj)

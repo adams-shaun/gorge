@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// payment.go is mana payment (moved from package rules' mana_payment.go,
-// E7): paying a cost from a seat's pool through events, the
+// payment.go is mana payment: paying a cost from a seat's pool through events, the
 // restriction-aware view of what the pool can pay for one payment
 // descriptor, RestrictValid$ matching, and the CostPayable offer gates that
 // run the same solver the payment does. The engine is reached only through
@@ -38,10 +37,10 @@ var manaTaggedLetters, manaSnowLetters = func() (tagged [len(state.ManaUnitTags)
 // write to Players[p].Pool: it emits one ManaAdd event per colour bucket
 // actually spent, with a negative Amount. That reuses the existing ManaAdd
 // kind rather than adding a new one -- Apply's ManaAdd case is a plain "+=",
-// so a negative Amount already subtracts correctly, the same trick Ruling F4
+// so a negative Amount already subtracts correctly, the same trick
 // uses for clearing damage.
 //
-// Ruling T19b-b: this used to be silent on failure (a no-op the caller could
+// This must not be silent on failure (a no-op the caller could
 // not observe), on the theory that legalActions always gates "cast" on
 // CanPay first so failure here was unreachable. That theory held for the
 // base cost but not for an alternative one: legalActions gates an alt-cost
@@ -103,7 +102,7 @@ func PayManaFor(e Engine, p state.PlayerID, id state.ObjID, ability bool, cost C
 // payManaCastSpent -- `spentSnow` is the per-colour count of the spent
 // units that were SNOW units (CR 107.4h), the parallel-tally delta, and
 // `spentTyped` is the per-tag per-colour count of the spent units that were
-// TYPED units (task castfilter2: Treasure/Cave/Desert, the parallel
+// TYPED units (Treasure/Cave/Desert, the parallel
 // Player.TypedMana tally), which the filtered Count$CastTotalManaSpent
 // Treasure/Cave/Desert heads read. The RememberCostMana$ payment site
 // (Jeweled Amulet) keeps its existing split-based note; every other caller

@@ -25,7 +25,7 @@ import (
 // The existing Ring-bearer, when still controlled and on the battlefield,
 // is the deterministic default AND one of the offered options: CR 701.54a
 // keeps the designation "until another creature becomes your Ring-bearer",
-// so a player may keep it, and the no-host R-9 fallback does exactly that
+// so a player may keep it, and the no-host fallback does exactly that
 // (falling back to the first eligible creature in zone order when the
 // existing bearer is stale). The choice is answered in place (ResumeKind
 // "ring_bearer"), and every path emits exactly one RingTemptsYou event.
@@ -83,11 +83,11 @@ func effRingTemptsYou(h Host, c *Ctx, sa *cards.SA) {
 	// controlled, else first-in-zone-order) is offered FIRST when it is one
 	// of the eligible creatures. CR 701.54a's choice is over every
 	// controlled creature, so the ordering is free; but this makes the
-	// shared KChoose first-option policy (botpolicy, and every R-9 clamp
+	// shared KChoose first-option policy (botpolicy, and every no-host clamp
 	// fallback) answer "keep the existing Ring-bearer" exactly as the
 	// no-host stand-in and the pre-choice engine did. Ordering the offered
 	// list any other way would silently switch a bot's bearer off the
-	// deterministic default -- a regression the brief forbids.
+	// deterministic default.
 	ordered := make([]state.ObjID, 0, len(eligible))
 	defaultEligible := false
 	for _, id := range eligible {
@@ -124,7 +124,7 @@ func effRingTemptsYou(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
-	// R-9 no-host stand-in: the existing Ring-bearer when still controlled,
+	// No-host stand-in: the existing Ring-bearer when still controlled,
 	// otherwise the first eligible creature in zone order -- the same pick
 	// botpolicy's clamp fallback answers, so a bot-answered ask emits the
 	// same event this silent path does.

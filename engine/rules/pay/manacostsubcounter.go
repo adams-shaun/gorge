@@ -12,7 +12,7 @@ import (
 )
 
 // The mana ability's announced / anchored SubCounter stage (Haruspex,
-// Petalmane Baku, Rasputin, Jetfire; lasagna spec §9.2, E7 flow slice 3):
+// Petalmane Baku, Rasputin, Jetfire):
 // the shared X announcement (once) and each announced or anchored part's
 // removal election, over the session's ManaCost. It runs between
 // ManaCostTapStage and ManaCostChoiceStages and reports a ManaCostStep like

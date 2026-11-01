@@ -22,8 +22,7 @@ func kwEncore(f *Face, i int, k, head, param string, has func(kind, line string)
 	// (encore.go): one CardToken copy per opponent, haste granted, and
 	// one end-step delayed sacrifice per copy. The tokens' "attacks that
 	// opponent this turn if able" is NOT enforced -- this build has no
-	// attack-requirement machinery for it (recorded in the ticket
-	// report's Issues), the copy is otherwise exact.
+	// attack-requirement machinery for it; the copy is otherwise exact.
 	cost, _, _ := strings.Cut(param, ":")
 	sa, _ := parseSA("", "AB$ Encore | Cost$ "+cost+" ExileFromGrave<1/CARDNAME> | ActivationZone$ Graveyard | SorcerySpeed$ True | Keyword$ Encore | SpellDescription$ Encore "+cost)
 	if sa != nil {

@@ -17,7 +17,7 @@ import (
 func TestTitanOfLittjaraDrawXPayAskCountedOnceKernel(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
-	e, titan := kr9TitanBearFixture(t, reg)
+	e, titan := titanBearKernelFixture(t, reg)
 
 	// Preconditions the count assertion depends on. A vacuous fixture (the
 	// trigger never pushed, or the fold not resolving to exactly one Bear)
@@ -138,17 +138,17 @@ func TestTitanOfLittjaraDrawXPayAskCountedOnceKernel(t *testing.T) {
 	}
 }
 
-// kr9TitanBearFixture is titanBearFixture with Titan's entry run as a kernel
+// titanBearKernelFixture is titanBearFixture with Titan's entry run as a kernel
 // probe, so its as-enters ChooseType ask is posed: Grizzly Bears on the
 // battlefield, then Titan entering with "Bear" chosen.
-func kr9TitanBearFixture(t *testing.T, reg *cards.Registry) (*Engine, state.ObjID) {
+func titanBearKernelFixture(t *testing.T, reg *cards.Registry) (*Engine, state.ObjID) {
 	t.Helper()
 	e, _ := searchEngine(t, reg, "Titan of Littjara")
 	if bears, _ := cleanMoveByName(t, e, "Grizzly Bears", state.ZBattlefield); bears == 0 {
 		t.Fatal("no Grizzly Bears fixture")
 	}
 	var titan state.ObjID
-	kr9Probe(e, func() { titan, _ = cleanMoveByName(t, e, "Titan of Littjara", state.ZBattlefield) })
+	probeAfterPass(e, func() { titan, _ = cleanMoveByName(t, e, "Titan of Littjara", state.ZBattlefield) })
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Prompt != "Choose a creature type" {
 		t.Fatalf("Titan's entry posed no ChooseType ask: %+v", d)
@@ -163,7 +163,7 @@ func kr9TitanBearFixture(t *testing.T, reg *cards.Registry) (*Engine, state.ObjI
 		t.Fatalf("the ChooseType ask offered no Bear option: %+v", d.Options)
 	}
 	submitChoices(t, e, idx)
-	kr9Settle(e)
+	settleAfterPass(e)
 	if got := e.G.Obj(titan).ChosenType; got != "Bear" {
 		t.Fatalf("Titan's chosen type = %q, want Bear (the shared-type precondition)", got)
 	}

@@ -331,7 +331,7 @@ type scan struct {
 	// synthetic scan deliberately contains none of the real functions.
 	complete bool
 	// filePkg is the package clause of the file being scanned. The rules
-	// tree includes its lasagna subpackages (sourceFilesUnder walks "."
+	// tree includes its layered subpackages (sourceFilesUnder walks "."
 	// recursively), which are attributed in the rules namespace; filePkg
 	// tells a engine/rules/combat or engine/rules/chars file apart so its Board calls
 	// resolve to rules' combatBoard / charsBoard adapter (see scanCall).
@@ -1000,7 +1000,7 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 	case *ast.SelectorExpr:
 		if inner, ok := fun.X.(*ast.CallExpr); ok && pkg == "rules" && s.filePkg == "pay" {
 			// engine/rules/pay reaches the engine's role interfaces as e.Eval().M
-			// and e.Chars().M (lasagna spec §9.2): an edge to rules' adapter
+			// and e.Chars().M (layering design §9.2): an edge to rules' adapter
 			// method (payEval / charsReader, engine/rules/pay_eval.go and
 			// engine/rules/chars_reader.go), which forwards to the Engine reader the
 			// code called before it moved.
@@ -1756,7 +1756,7 @@ var stringMapParams = map[string]string{
 	"effects:redirectRiderChain:svars":      "SVars table lookup by SubAbility$ name, not a card Params map",
 	"effects:redirectLineRemembered:params": "parseReplacementLine-built ReplaceWith$ line map, not a card Params map",
 	// engine/effects/restrictions.go replacementMovedBodyLiveKind / redirectTapBody
-	// (cr-g138): the same parseReplacementLine-built line map, now also read for
+	// the same parseReplacementLine-built line map, now also read for
 	// the ReplacementResult$/ValidCause$ riders, and the DB$ Tap | ETB$ True
 	// body's replacementBodyParams-built map.
 	"effects:replacementMovedBodyLiveKind:params": "parseReplacementLine-built ReplaceWith$ line map (ReplacementResult$/ValidCause$ riders), not a card Params map",
@@ -3016,7 +3016,7 @@ var ignoredParamKeys = map[string]string{
 	// gates no rules-side behaviour — the pay-or-decline ask the shared
 	// unless gate poses is the rules — so the census ignores it.
 	"UnlessAI": "AI copy-eligibility hint; forge-ai/src/main/java/forge/ai/ability/CopySpellAbilityAi.java",
-	// cr-g193: stack-description, dialog-title and AI-hint keys. Every Forge
+	// Stack-description, dialog-title and AI-hint keys. Every Forge
 	// reader is text or AI only; TestIgnoredDescAndAIHintKeysAreUnreadInGorge
 	// fails if a gorge primitive ever reads one.
 	"ChoiceDesc":        "ChooseCard stack-description noun; forge-game/src/main/java/forge/game/ability/effects/ChooseCardEffect.java:41",
@@ -3154,7 +3154,7 @@ var ignoredStatParams = func() map[string]string {
 	const cite = "static text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179 (Card.java getText callers only)"
 	// ValidSA$ on the CantAttack/CantBlock halves of a compound
 	// `Mode$ CantAttack,CantBlock,CantBeActivated | ValidSA$ Activated.!ManaAbility`
-	// line (Realmbreaker's Grasp, Intercessor's Arrest; cr-g204): Forge's
+	// line (Realmbreaker's Grasp, Intercessor's Arrest): Forge's
 	// StaticAbilityCantAttackBlock never reads ValidSA$ (its params are
 	// UnlessDefender/DefenderNotNearestToYouInChosenDirection/ValidBlocker/
 	// Cost/Trigger/Min/Max), and the value belongs to the sibling
@@ -3553,7 +3553,7 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // inbox-engine-ratchet-parameter-census), checked in both directions by
 // TestEveryRepoDeckParamsAreRead exactly like knownUnsupported. It lives one
 // file per card, testdata/paramcensus/<slug>.json, {"card": "<Card>",
-// "labels": [...]} (spec 2026-10-03-rules-engine-lasagna-design.md W2): a
+// "labels": [...]} (spec 2026-10-03-rules-engine-layering-design.md W2): a
 // shared table made every ticket that retired a label conflict with every
 // other. Why a label left goes in the commit message, never a file. Label
 // grammar:
@@ -3925,7 +3925,7 @@ func TestParamCensusIgnoresValidCardsDesc(t *testing.T) {
 // ExileFromHand<1/Card.Blue+Other> and Whirler Rogue's tapXType<2/Artifact>
 // retired earlier with the alternative-cost work (the
 // ExileFromHand/ExileFromGrave/Reveal/Behold/tapXType/Blight/Forage heads).
-// (The brief's other example, Reanimate's GainControl$ on api:ChangeZone, is
+// (Another example, Reanimate's GainControl$ on api:ChangeZone, is
 // not in any repo deck; the same label appears in the baseline on Meathook
 // Massacre II and retires the moment the read is implemented.)
 func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
@@ -4352,7 +4352,7 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 	// TargetingPlayer$ before all of these, until the shared target-ask read
 	// made that parameter read for every API; the SVar-body-gap fixture is
 	// only meaningful while its key stays unread. Pawprint$ held this slot
-	// until cr-g175 scoped it to the mode APIs as the parent Charm's read.)
+	// read as the parent Charm's, scoped to the mode APIs.)
 	// PayEnergy<X> WAS the fixture's unmodelled
 	// cost token until ParseCost gained a real Energy field, and Waterbend<X>
 	// followed it when ParseCost learned the Waterbend head (task tla-waterbend-

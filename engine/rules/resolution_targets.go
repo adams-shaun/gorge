@@ -2,7 +2,7 @@ package rules
 
 import "github.com/adams-shaun/gorge/engine/state"
 
-// The resolution-time target set (spike S3, legacy defect 2).
+// The resolution-time target set.
 //
 // resolveTop does not hand a resolving chain the stack object's recorded
 // Targets as-is. An overloaded spell's "each" set is a census taken as it

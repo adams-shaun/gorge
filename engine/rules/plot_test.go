@@ -70,7 +70,7 @@ func plotEngine(t *testing.T) (*Engine, state.ObjID) {
 	return e, lal
 }
 
-// TestPlotLockAndLoadPlotsThenCastsFreeOnALaterTurn is the brief's scenario
+// TestPlotLockAndLoadPlotsThenCastsFreeOnALaterTurn is the scenario
 // end to end: Lock and Load ({2}{U}, K:Plot:3 U) is plotted on turn 1 -- the
 // ACTION pays {3}{U}, exiles it and records the plotted designation with NO
 // counters (CR 701.34b's restriction is "on a later turn", not Suspend's

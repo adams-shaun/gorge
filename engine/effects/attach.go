@@ -82,7 +82,7 @@ func emitPlayerAttach(h Host, c *Ctx, p *AttachParams, attachObj state.ObjID, se
 	}
 }
 
-// Attachable reports whether obj may legally be attached to target. Task 14
+// Attachable reports whether obj may legally be attached to target.
 // leaves this always-true: the full check includes "the target is not
 // protected from the attachment's colours" (CR 702.16e for being attached
 // despite protection). That half is NOT added here, and is deliberately NOT
@@ -207,7 +207,7 @@ func attachObjectGone(h Host, c *Ctx, id state.ObjID) bool {
 // it") asks its controller a yes/no KChoose before attaching, answered in
 // place via AskTape; a decline emits no Attach and no refusal Note, and the
 // chained SubAbility$ still runs. A host that
-// cannot ask takes the deterministic decline stand-in (R-9); botpolicy's
+// cannot ask takes the deterministic decline stand-in; botpolicy's
 // clamp fallback answers option 0, which is the "yes" option, so bots
 // attach. With NO legal target the existing Note refusal fires and no ask
 // is ever posed (a decision nobody could answer differently).
@@ -675,7 +675,7 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			}}
 		ans, ok := AskTape(h, d)
 		if !ok {
-			// No answer: the deterministic decline stand-in (R-9); the
+			// No answer: the deterministic decline stand-in; the
 			// clamp-answered bot path answers option 0 = "yes".
 			return
 		}

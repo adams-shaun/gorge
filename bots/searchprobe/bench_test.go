@@ -213,19 +213,22 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// that field (json:"-"): the previous digests return byte-for-byte.
 		// Measured after: frames 126, attempts 64, accepted 9, worlds 8,
 		// ESS 9 (land exclusion: accepted 32, ESS 32).
-		// Re-measured for cr-g67b (CR 602.2a): an activation's mint now
+		// Re-measured for CR 602.2a: an activation's mint now
 		// precedes its first decision, so the captured frames' stack moves.
 		// Measured after: frames 126, attempts 64, accepted 4, worlds 8, ESS 4
 		// (land exclusion: accepted 25, ESS 25).
-		{"pre-optimisation sampler", true, "1e7df4d6ca1595dd000618c11501418d3e7879612ae105d2cde94b8134e1727b"},
+		// Re-measured when a permanent's activation count began to end as it
+		// leaves (CR 400.7): frames 126, accepted 13.
+		{"pre-optimisation sampler", true, "402f31816c56e38e252fc9ae9b0694b30171d91ba10dcf15f8016972a5aac349"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
 		// Mausoleum Wanderer unless-cost ask label (see the test comment) and
 		// again for the damage-provenance fact (see above); see the
 		// pre-optimisation entry for the archetype-posterior re-measure.
-		// Re-measured for cr-g67b (CR 602.2a): frames 126, accepted 25, ESS 25.
-		{"land exclusion", false, "bba783b430332248182a73dc58e3dba12c31bea0d4d0556b28b592d66318cc76"},
+		// Re-measured for CR 602.2a: frames 126, accepted 25, ESS 25.
+		// Re-measured for the activation count (CR 400.7): accepted 31, ESS 31.
+		{"land exclusion", false, "e9b70c702411030b14878712449d56c6c0d32f5e8bfeaa8b78b020a271debd39"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -471,10 +474,12 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// Index 0, Values [1,1,1,1], Rollouts 32, Submits 3309, Terminal 32,
 	// Capped 0, WinsByCandidate [8,8,8,8], TerminalByCandidate [8,8,8,8],
 	// WinsOverBaseline [0,0,0,0], LossesToBaseline [0,0,0,0].
-	// Re-measured for cr-g67b (CR 602.2a): the captured frames' stack moves
+	// Re-measured for CR 602.2a: the captured frames' stack moves
 	// when an activation's mint precedes its first decision, so the teacher's
 	// decoded frames and rollouts move with them.
-	const want = "52f8e0b29b017f836f4649fcd00c5ac4516c84cb464c8bfec88012358114faba"
+	// Re-measured for the activation count (CR 400.7), which the replayed frames
+	// carry: Submits 5458, the rest as above.
+	const want = "3d031979c9fce0452030f51fc03a9b0fe99cc0d9ce7a53be3f629e6e57ec9491"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

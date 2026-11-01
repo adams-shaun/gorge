@@ -278,8 +278,7 @@ func TestCastMethodTable(t *testing.T) {
 			t.Errorf("%+v: %q %q %q is outside the Section 7.4 vocabularies", c.opt, m, o, a)
 		}
 	}
-	// Every other mode gorge can offer at the pin fails closed (the engine
-	// notes list them, Task 29).
+	// Every other mode gorge can offer at the pin fails closed.
 	for _, mode := range []string{"multikicked", "kicked1", "kicked2", "kickedboth", "replicated", "squadded",
 		"dashed", "overloaded", "warped", "morphed", "megamorphed", "disguised", "harmonize",
 		"aftermath", "retrace", "jumpstart", "mayhem", "adventure_recast", "warp_recast", "room_alt",

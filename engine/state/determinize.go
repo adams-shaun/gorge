@@ -28,14 +28,14 @@ import (
 //
 // This flag is therefore NOT a NO-OP on Determinize's output: the output here
 // embodies composition-is-preserved (true). The flag is carried here as the
-// single documented place the assumption lives, so C2 reads it from this one
+// single documented place the assumption lives, so a caller reads it from this one
 // spot rather than re-deriving it in two places and letting the two drift.
 const SearchingSeatKnowsOpponentComposition = true
 
 // Determinize returns a NEW game (built on Clone; the receiver is never
 // mutated) in which every fact fromSeat cannot legally see has been
 // re-randomised and every fact it can see is byte-identical -- the honest
-// information set a search agent (C2) is allowed to plan with. Ruling C0: a
+// information set a search agent is allowed to plan with: a
 // search agent searches determinizations, never the true state.
 //
 // What stays put:
@@ -60,9 +60,7 @@ const SearchingSeatKnowsOpponentComposition = true
 // state, and a determinization has no access to the log, so it cannot tell
 // which opponent cards became known during play. A card an opponent revealed,
 // or drew from a public zone, is re-randomised like any other unknown card. The
-// concrete case it gets wrong is documented in the D1 report; tracking
-// revealed-ness well enough to exempt such cards is deliberately deferred --
-// no mechanism is invented this round.
+// tracking revealed-ness well enough to exempt such cards is deliberately deferred.
 //
 // Face-down permanents (morph/manifest) do not exist in gorge's corpus
 // (engine/state/object.go has no such flag and engine/cards/keywords.go registers none), so

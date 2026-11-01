@@ -122,7 +122,7 @@ func TestVisionsOfDuplicityFlashbackCostIsPrintedNotPolluted(t *testing.T) {
 }
 
 // TestKeywordCostParamFlashbackReaderLeavesOtherHeadsAlone is the boundary
-// check asked for by the brief: the new accessor is a KeywordWithCost read,
+// check: the accessor is a KeywordWithCost read,
 // and the heads Forge leads with a value rather than a cost (Suspend,
 // Impending, Kicker) keep their own readers. It asserts the accessor would
 // return the wrong field for those lines, which is exactly why they must not

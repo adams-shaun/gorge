@@ -113,14 +113,13 @@ const (
 	TriggerBecomesSaddled TriggerMode = 87
 	TriggerBecomesPlotted TriggerMode = 88
 	TriggerSacrificedOnce TriggerMode = 89
-	// Aggregate tap trigger modes (task cli-20261005T075020Z-05241a06):
-	// Forge's batch siblings of Taps/Untaps, "whenever one or more ...
-	// become tapped/untapped". They are the "one or more" readings of the
-	// Tap/Untap events (the millBatch/discardBatch cadence), not new event
-	// kinds, so they append here rather than being aliased onto
-	// TriggerTaps/TriggerUntaps. Appended after TriggerSacrificedOnce,
-	// following the vocabulary's append-only convention, so no earlier
-	// ordinal moves.
+	// Aggregate tap trigger modes: Forge's batch siblings of Taps/Untaps,
+	// "whenever one or more ... become tapped/untapped". They are the "one or
+	// more" readings of the Tap/Untap events (the millBatch/discardBatch
+	// cadence), not new event kinds, so they append here rather than being
+	// aliased onto TriggerTaps/TriggerUntaps. Appended after
+	// TriggerSacrificedOnce, following the vocabulary's append-only
+	// convention, so no earlier ordinal moves.
 	TriggerTapAll              TriggerMode = 90
 	TriggerUntapAll            TriggerMode = 91
 	TriggerExiled              TriggerMode = 92
@@ -132,7 +131,7 @@ const (
 	// CaseSolved (MKM Case File Auditor, "whenever you solve a Case"):
 	// appended after ExcessDamageAll so no earlier ordinal moves.
 	TriggerCaseSolved TriggerMode = 98
-	// cli-20261006T024353Z-ce4a0d59: keyword-action trigger modes, appended
+	// Keyword-action trigger modes, appended
 	// after TriggerCaseSolved so every earlier ordinal (including main's
 	// CaseSolved) is unchanged.
 	TriggerForage          TriggerMode = 99

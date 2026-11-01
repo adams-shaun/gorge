@@ -1,6 +1,6 @@
 package rules
 
-// cr-g61: CR 401.2 -- "Players can't look at or change the order of cards in
+// CR 401.2 -- "Players can't look at or change the order of cards in
 // a library" -- covers the library's owner too. Every Secret LibraryOrder
 // carries the library's COMPLETE new order in IDs (events.Apply needs it),
 // and view.RedactEvent used to hand that payload to the event's Player, the

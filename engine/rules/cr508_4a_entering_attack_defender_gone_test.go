@@ -1,4 +1,4 @@
-// cr-g55: CR 506.3c / 508.4a-b. A creature put onto the battlefield
+// CR 506.3c / 508.4a-b. A creature put onto the battlefield
 // attacking a player who has left the game, or a planeswalker that is no
 // longer controlled by that defending player, enters but is never an
 // attacking creature. Ninjutsu (CR 702.49c) names its defender -- the one

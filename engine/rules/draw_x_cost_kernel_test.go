@@ -17,12 +17,11 @@ import (
 // Creature.YouCtrl+Other+sharesCreatureTypeWith` folds to exactly 1 (the one
 // other Bear). Paying must draw exactly that one card and then run the
 // `Mode$ TgtChoose` discard; declining must do neither; and the window must
-// pose exactly ONE pay/decline election per trigger (the round-1 pin paid
-// every election it was shown, which masked the duplicate-window shape).
+// pose exactly ONE pay/decline election per trigger.
 func TestTitanOfLittjaraDrawXCost(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
-	e, titan := kr5TitanBearFixture(t, reg)
+	e, titan := titanBearBoard(t, reg)
 
 	// Precondition: the fold's own verdict on this board is EXACTLY the one
 	// other Bear — a zero here would mean the shared-type read is broken and
@@ -96,7 +95,7 @@ func TestTitanOfLittjaraDrawXCost(t *testing.T) {
 func TestTitanOfLittjaraDrawXDecline(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
-	e, titan := kr5TitanBearFixture(t, reg)
+	e, titan := titanBearBoard(t, reg)
 	if n, ok := pay.DrawCostCount(asPayer(e), titan, 0, drawCostPart()); !ok || n != 1 {
 		t.Fatalf("drawCostCount(Titan) = %d, %v; want exactly 1", n, ok)
 	}
@@ -134,11 +133,11 @@ func TestTitanOfLittjaraDrawXDecline(t *testing.T) {
 	}
 }
 
-// kr5TitanBearFixture is titanBearFixture under the resolution kernel: the
+// titanBearBoard is titanBearFixture under the resolution kernel: the
 // Titan's entry runs as a kernel probe from a quiet engine, so its as-enters
 // ChooseType ask is posed and answered "Bear"; the engine then continues
-// (kr5Settle) so the queued ETB trigger reaches the stack.
-func kr5TitanBearFixture(t *testing.T, reg *cards.Registry) (*Engine, state.ObjID) {
+// (settleResolve) so the queued ETB trigger reaches the stack.
+func titanBearBoard(t *testing.T, reg *cards.Registry) (*Engine, state.ObjID) {
 	t.Helper()
 	e, _ := searchEngine(t, reg, "Titan of Littjara")
 	bears, _ := cleanMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
@@ -180,6 +179,6 @@ func kr5TitanBearFixture(t *testing.T, reg *cards.Registry) (*Engine, state.ObjI
 	if got := e.G.Obj(titan).ChosenType; got != "Bear" {
 		t.Fatalf("Titan's chosen type = %q, want Bear (the shared-type precondition)", got)
 	}
-	kr5Settle(e)
+	settleResolve(e)
 	return e, titan
 }

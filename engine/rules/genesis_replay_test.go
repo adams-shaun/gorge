@@ -12,7 +12,7 @@ import (
 // smallDeckGame builds an n-player engine with decks just barely bigger than
 // the opening hand, so the players deck out (and the game reaches Over)
 // after a handful of turns instead of the ~30+ turns a 40-card deck needs.
-// Returns the Config used, since a fresh replay needs it (Ruling D).
+// Returns the Config used, since a fresh replay needs it.
 func smallDeckGame(t *testing.T, n, deckSize int) (*Engine, Config) {
 	t.Helper()
 	names := make([]string, n)
@@ -41,13 +41,13 @@ func driveToOver(t *testing.T, e *Engine, limit int) {
 	}
 }
 
-// TestGenesisStopsAtEliminationDuringTheOpeningDraw is the Ruling T22-c
+// TestGenesisStopsAtEliminationDuringTheOpeningDraw is the
 // regression test: a deck smaller than the opening hand means a player
 // decks out (CR 704.5c) before genesis even finishes dealing everyone their
-// opening hand. Before Task 22, losing a game had no real consequence
+// opening hand. Otherwise losing a game had no real consequence
 // anywhere the genesis loop could observe -- checkGameOver alone could never
 // fire mid-deal, since nothing reduced AliveCount to 1 before every seat at
-// least had a full library to draw from. Task 22 makes losing real
+// least had a full library to draw from. Losing is real
 // (checkStateBased, called from drawCard on every single draw, including
 // these), so New's own per-seat loop must notice Over and stop once dealing
 // further makes no sense -- not shuffle and deal a later seat's hand
@@ -80,8 +80,8 @@ func TestGenesisStopsAtEliminationDuringTheOpeningDraw(t *testing.T) {
 	}
 }
 
-// TestGenesisBeginsWithTheFirstAliveSeat is the Ruling T22-f regression test
-// (fix round 1): the previous fix only ever checked Over, which is false
+// TestGenesisBeginsWithTheFirstAliveSeat is a regression test:
+// checking only Over is not enough, because it is false
 // whenever the seat that decked out is not the LAST one -- three seats,
 // only the first eliminated, still leaves two others to play the game out.
 // Genesis used to end with an unconditional beginTurn(0) regardless, handing
@@ -121,15 +121,13 @@ func TestGenesisBeginsWithTheFirstAliveSeat(t *testing.T) {
 	}
 }
 
-// TestNewWithNoSeatsDoesNotPanic is the Ruling T22-e regression test: a
-// zero-seat Config used to panic inside beginTurn(0) -- Zone(ZBattlefield, 0)
-// indexes a zones slice sized numZones*len(Players), which is empty with no
-// players at all. Pre-existing at BASE (dec046a), not introduced by Task 22,
-// but the genesis rewrite that fixes T22-f touches this exact line, so a
-// guarded "first alive seat" should make the zero-seat case fall out safely
-// rather than reaching index-out-of-range. A game with nobody in it is
-// trivially over (CR 104.4a's draw, vacuously) rather than a live game
-// nobody can ever submit anything to.
+// TestNewWithNoSeatsDoesNotPanic is a regression test: a zero-seat Config used
+// to panic inside beginTurn(0) -- Zone(ZBattlefield, 0) indexes a zones slice
+// sized numZones*len(Players), which is empty with no players at all, but the
+// genesis rewrite touches this exact line, so a guarded "first alive seat"
+// should make the zero-seat case fall out safely rather than reaching
+// index-out-of-range. A game with nobody in it is trivially over (CR 104.4a's
+// draw, vacuously) rather than a live game nobody can ever submit anything to.
 func TestNewWithNoSeatsDoesNotPanic(t *testing.T) {
 	t.Parallel()
 	e := New(Config{})
@@ -144,17 +142,15 @@ func TestNewWithNoSeatsDoesNotPanic(t *testing.T) {
 	}
 }
 
-// TestNewWithMoreDecksThanNamesDoesNotPanic is the Ruling T22-m regression
-// test (fix round 2): a Config carrying more decks than named seats used to
-// panic inside the per-deck loop, before New's zero-alive guard (this same
-// function, added for T22-e) is ever reached -- state.NewGame sizes
-// g.zones from len(cfg.Names) alone, so the deck loop's own
+// TestNewWithMoreDecksThanNamesDoesNotPanic is a regression test: a Config
+// carrying more decks than named seats used to panic inside the per-deck loop,
+// before New's zero-alive guard (this same function) is ever reached --
+// state.NewGame sizes g.zones from len(cfg.Names) alone, so the deck loop's own
 // SetZone(ZLibrary, PlayerID(i), ...) call for i >= len(cfg.Names) indexes
-// outside it. Task 25 wires Config from a client, so a malformed one (the
-// same motivation as T22-e last round) must degrade rather than crash the
-// one goroutine running the whole match. A deck with no seat to belong to
-// is simply never dealt; with zero real seats left, the game is trivially
-// over, same as the zero-seat case just above.
+// outside it. Config comes from a client, so a malformed one (the must
+// degrade rather than crash the one goroutine running the whole match. A deck
+// with no seat to belong to is simply never dealt; with zero real seats left,
+// the game is trivially over, same as the zero-seat case just above.
 func TestNewWithMoreDecksThanNamesDoesNotPanic(t *testing.T) {
 	t.Parallel()
 	e := New(Config{Decks: [][]*cards.Card{mountainDeck(t, 40)}})
@@ -169,7 +165,7 @@ func TestNewWithMoreDecksThanNamesDoesNotPanic(t *testing.T) {
 	}
 }
 
-// TestReplayReconstructsPassesAndPriority is the Ruling A regression test:
+// TestReplayReconstructsPassesAndPriority is a regression test:
 // Passes and Priority must flow through events, not direct field writes, so
 // that replaying the log alone (no rules-package code involved) reproduces
 // them. If a write to G.Passes or G.Priority ever bypasses an emit again,
@@ -182,7 +178,7 @@ func TestReplayReconstructsPassesAndPriority(t *testing.T) {
 
 	// Replay through events.Apply alone -- no Engine, no rules code. Genesis
 	// (state.NewGame plus the deck-building AddObject calls in Engine.New)
-	// is not itself logged (Ruling D), so it is not replayed here either;
+	// is not itself logged, so it is not replayed here either;
 	// Passes and Priority never depend on the object arena being populated.
 	fresh := state.NewGame(cfg.Names)
 	for _, ev := range e.L.Events {
@@ -197,7 +193,7 @@ func TestReplayReconstructsPassesAndPriority(t *testing.T) {
 	}
 }
 
-// TestFinishedGameRejectsSubmit is the first Ruling B regression test: once
+// TestFinishedGameRejectsSubmit is a regression test: once
 // a game ends, no further decision should be outstanding at all.
 func TestFinishedGameRejectsSubmit(t *testing.T) {
 	t.Parallel()
@@ -212,7 +208,7 @@ func TestFinishedGameRejectsSubmit(t *testing.T) {
 	}
 }
 
-// TestSubmitGuardsOverEvenWithStalePending is the second Ruling B regression
+// TestSubmitGuardsOverEvenWithStalePending is a second regression
 // test. It reproduces the reviewer's exact failure mode directly: a live
 // decision left queued (however that happens) after e.G.Over is set. Submit
 // must refuse it regardless of what Pending() currently holds; this is a
@@ -236,24 +232,24 @@ func TestSubmitGuardsOverEvenWithStalePending(t *testing.T) {
 	}
 }
 
-// TestDrawStepSkipsEliminatedActivePlayer is the Ruling C regression test:
+// TestDrawStepSkipsEliminatedActivePlayer is a regression test:
 // the once-per-turn draw must check that the active player is still alive
 // before drawing for them.
 //
-// Ruling T28-a (rewritten for Task 28): this used to force the scenario by
-// calling e.priorityRound() directly against raw-forged state (a
-// TurnChange/StepChange/Priority/PlayerLost sequence standing in for "turn 2,
-// draw step, no passes yet, priority already on the active seat, that seat
-// eliminated" -- exactly what priorityRound's own draw guard used to
-// inspect). Task 28 deleted that guard: priorityRound no longer performs any
-// draw at all, for any player, so calling it directly now passes this
-// scenario VACUOUSLY -- there is no draw to skip because there is no draw
-// there any more. The property this pins is still real (an eliminated active
-// player must not draw once the check moves to advanceStep), so this now
-// drives a genuine elimination through the real path: a player who dies to
-// something other than drawing (here, a raw PlayerLost -- CR 704.5a covers
-// the common real case, life loss, but the mechanism is agnostic to why)
-// partway through their OWN turn, before that turn's draw step is reached.
+// The scenario must not be forced by calling e.priorityRound() directly
+// against raw-forged state (a TurnChange/StepChange/Priority/PlayerLost
+// sequence standing in for "turn 2, draw step, no passes yet, priority
+// already on the active seat, that seat eliminated" -- exactly what
+// priorityRound's own draw guard used to inspect). That is gone:
+// guard: priorityRound no longer performs any draw at all, for any player, so
+// calling it directly now passes this scenario VACUOUSLY -- there is no draw
+// to skip because there is no draw there any more. The property this pins is
+// still real (an eliminated active player must not draw once the check moves
+// to advanceStep), so this now drives a genuine elimination through the real
+// path: a player who dies to something other than drawing (here, a raw
+// PlayerLost -- CR 704.5a covers the common real case, life loss, but the
+// mechanism is agnostic to why) partway through their OWN turn, before that
+// turn's draw step is reached.
 func TestDrawStepSkipsEliminatedActivePlayer(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 4)
@@ -285,10 +281,9 @@ func TestDrawStepSkipsEliminatedActivePlayer(t *testing.T) {
 	}
 }
 
-// TestPlayLandReplayThroughSubmit is the Task 13 fix-round regression test
-// for Ruling T13-a and T13-b as applied to handlePriority's play_land
-// branch specifically: TestReplayReconstructsPassesAndPriority above only
-// ever drives "pass" (via passAll/driveToOver), so it never exercised this
+// TestPlayLandReplayThroughSubmit is a regression test for handlePriority's
+// play_land branch specifically: TestReplayReconstructsPassesAndPriority above
+// only ever drives "pass" (via passAll/driveToOver), so it never exercised this
 // branch's own Priority-reset emit or the LandPlayed emit at all.
 //
 // The action under test is driven through the public Submit path only --
@@ -315,7 +310,6 @@ func TestDrawStepSkipsEliminatedActivePlayer(t *testing.T) {
 //     which is what the replay comparison below is able to detect.
 //
 // This was verified empirically, not just reasoned through: see the
-// Task 13 fix-round report for the revert-and-rerun check.
 func TestPlayLandReplayThroughSubmit(t *testing.T) {
 	t.Parallel()
 	names := []string{"a", "b"}

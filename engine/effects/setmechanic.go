@@ -1,4 +1,4 @@
-// The set-mechanic / keyword-action trigger modes (task triage-478c51d1).
+// The set-mechanic / keyword-action trigger modes.
 //
 // Crewed, Saddled, BecomesSaddled, BecomesPlotted and SacrificedOnce are
 // implemented rules-side (engine/rules/trigmatch/*.go), so their coverage keys are

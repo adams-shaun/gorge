@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Eval is the payment layer's evaluation seam (lasagna spec §9.2): every
+// Eval is the payment layer's evaluation seam: every
 // read that needs the engine as an effects.Host -- a Count$/Amount$
 // expression, a ValidCard$ filter under a resolution's spec context, the
 // payment window's mana sources -- is one named method here, implemented by

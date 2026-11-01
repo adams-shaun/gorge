@@ -199,7 +199,7 @@ func (e *Engine) actionCause() state.ObjID {
 }
 
 // causeSpecAdmits evaluates a CantSacrifice static's ValidCause$ stack spec
-// (task vc-static1) against the in-flight sacrifice cause -- actionCause(),
+// against the in-flight sacrifice cause -- actionCause(),
 // the resolving wrapper at the top of the stack for the whole effect-driven
 // call. The rules COST sites never reach it: SacrificeBlocked's forCost
 // callers skip every ValidCause-carrying static before this helper runs,
@@ -268,7 +268,7 @@ func causeSpecQualifiersKnown(alt string) bool {
 }
 
 // causeCostAdmits evaluates a CantSacrifice static's ValidCause$ spec on the
-// COST path (task cantsac1) against the pending activation's cause. It is
+// COST path against the pending activation's cause. It is
 // causeSpecAdmits' cost-side sibling and shares its fail-closed discipline,
 // but not its input: a cost payment has no resolving stack object to
 // classify (pushCast pays an ability's costs before its AbilityPush, and a

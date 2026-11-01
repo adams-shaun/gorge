@@ -89,23 +89,22 @@ func MatchesPlayerSpecCtx(g *state.Game, spec string, p, you state.PlayerID, pc 
 
 // matchesPlayerCompoundFrom evaluates ONE comma alternative as a `+`-joined
 // conjunction of player clauses, each optionally negated with a leading `!`.
-// Forge's player specs spell their properties this way -- Tribal
-// Hellkite's `Choices$ Player.Opponent+!IsRemembered`
-// ("choose an opponent at random that CARDNAME didn't attack"),
-// `Player.Opponent+lifeEQX`, `Player.Opponent+!EnchantedBy`. Before this the
-// whole `+` string was cut on the first `.` and fell into the unknown-
-// qualifier branch, so every such spec matched NOBODY -- a Choices$ pool that
-// is silently empty (Territorial Hellkite could never choose an opponent, so
-// its random pick always took the no-candidate arm) and a ValidTgts$ pool
-// that admits no target. A clause with no `+` is a one-clause conjunction and
-// behaves exactly as before, so the single-qualifier grammar is unchanged.
-// A DOTLESS clause (no `.`) after `+` is a qualifier on the same candidate,
-// not an independent spec: it is compiled as `Player.<clause>` (the same
-// reading matchesPlayerSpecSVars gives a dotless clause), so each clause
-// stays an independent candidate property and the conjunction conjoins them
-// -- `Player.Opponent+Active` is "candidate is an opponent of `you` AND
-// candidate is the active player" (agent-20261009T174731Z-42d5e0f4,
-// Unstable Glyphbridge's back face). An unknown qualifier still fails that
+// Forge's player specs spell their properties this way -- Tribal Hellkite's
+// `Choices$ Player.Opponent+!IsRemembered` ("choose an opponent at random
+// that CARDNAME didn't attack"), `Player.Opponent+lifeEQX`,
+// `Player.Opponent+!EnchantedBy`. Before this the whole `+` string was cut on
+// the first `.` and fell into the unknown-qualifier branch, so every such
+// spec matched NOBODY -- a Choices$ pool that is silently empty (Territorial
+// Hellkite could never choose an opponent, so its random pick always took the
+// no-candidate arm) and a ValidTgts$ pool that admits no target. A clause
+// with no `+` is a one-clause conjunction and behaves exactly as before, so
+// the single-qualifier grammar is unchanged. A DOTLESS clause (no `.`) after
+// `+` is a qualifier on the same candidate, not an independent spec: it is
+// compiled as `Player.<clause>` (the same reading matchesPlayerSpecSVars
+// gives a dotless clause), so each clause stays an independent candidate
+// property and the conjunction conjoins them -- `Player.Opponent+Active` is
+// "candidate is an opponent of `you` AND candidate is the active player"
+// (Unstable Glyphbridge's back face). An unknown qualifier still fails that
 // clause closed, exactly as a dotted `Player.<unknown>` does.
 func matchesPlayerCompoundCtx(g *state.Game, alt []playerClause, p, you state.PlayerID, pc PlayerSpecCtx) bool {
 	for i := range alt {
@@ -312,7 +311,7 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 				continue
 			}
 			if rem, is := strings.CutPrefix(qualifier, "controlsCard."); is {
-				// This ticket models only the registration-relative card form.
+				// This models only the registration-relative card form.
 				if rem == "IsTriggerRemembered" && playerControlsMatches(g, p, you, pc, "Card", rem) {
 					return true
 				}
@@ -417,7 +416,7 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 			// value (Fealty to the Realm's "The monarch controls enchanted
 			// creature") and any other player spec resolve through. A
 			// qualified You/Opponent/Other base (You.isMonarch) still fails
-			// closed, like every fx20 qualifier not listed here.
+			// closed, like every qualifier not listed here.
 			if (base == "Player" || base == "Any") && g.IsMonarch(p) {
 				return true
 			}
@@ -596,7 +595,7 @@ func attackedThisTurn(g *state.Game, p, d state.PlayerID, walker bool) bool {
 
 // descendedThisTurn counts the permanent CARDS that entered player p's
 // graveyard this turn from any zone (CR 700.11). This is the single read of
-// the fx20 descend provenance: the Player.descended predicate and the
+// the descend provenance: the Player.descended predicate and the
 // Count$YouDescendedThisTurn head both call it, so they cannot disagree.
 // A token or a nonpermanent card never counts ($PermanentCard is folded
 // from !IsToken/!IsCopy/IsPermanent at the move).

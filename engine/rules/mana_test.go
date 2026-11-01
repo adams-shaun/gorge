@@ -28,7 +28,7 @@ func TestParseCostForms(t *testing.T) {
 	}
 }
 
-// TestParseCostCleansRealSacSpec is the Ruling FL-54 addendum's regression
+// TestParseCostCleansRealSacSpec is a regression
 // test, built on a REAL corpus string (found via grep of .cards/cardsfolder):
 //
 //	A:AB$ Draw | Cost$ 2 B Sac<1/Artifact;Creature/artifact or creature>
@@ -50,7 +50,7 @@ func TestParseCostCleansRealSacSpec(t *testing.T) {
 	}
 }
 
-// TestParseCostClampsAbsurdGeneric is Task 20's hygiene guard: ParseCost sums
+// TestParseCostClampsAbsurdGeneric is the hygiene guard: ParseCost sums
 // numeric tokens into Cost.Generic as raw int32, so two legitimate-per-token
 // but collectively overflowing values wrapped to a negative total. The sum
 // must be clamped at math.MaxInt32 across all tokens.

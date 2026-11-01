@@ -13,8 +13,8 @@ import (
 // You may repeat this process any number of times") discards Violent
 // Eruption. Its madness replacement used to be an optional ask that the
 // Repeat body ran past (the parked discard never moved, and a bot saying
-// yes looped forever). Madness's replacement is mandatory (CR 702.35a;
-// cr-g29): the discard moves to exile at the point of the discard, Kindle
+// yes looped forever). Madness's replacement is mandatory (CR 702.35a): the
+// discard moves to exile at the point of the discard, Kindle
 // deals the discarded card's mana value, the Repeat election follows, and
 // once Kindle has resolved the madness trigger is on the stack.
 func TestMadnessDiscardDuringARepeatExilesInPlace(t *testing.T) {

@@ -1,7 +1,6 @@
 package rules
 
-// The resolution kernel's test drivers (W3 steps 0-1; lasagna spec §7.7):
-// every scenario is driven by the same deterministic driver on the tape
+// The resolution kernel's test drivers: every scenario is driven by the same deterministic driver on the tape
 // kernel (engine/rules/resolve). The kernel counters prove the tape path ran.
 
 import (

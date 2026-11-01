@@ -1,7 +1,6 @@
 // Command mtgsim plays headless games between heuristic.Bot instances over the
 // repo's 12 Legacy decks and verifies that each one replays to the same
-// event chain. It is the harness M5's performance work and the AI seat will
-// both build on -- a way to run many real games with no client, no network
+// event chain: a way to run many real games with no client, no network
 // and no wall clock in the loop.
 package main
 
@@ -70,15 +69,13 @@ func main() {
 
 // run is main's testable body. It returns a non-nil error -- and therefore a
 // non-zero exit code -- if any game fails to terminate or, with -verify, to
-// replay, exactly the contract Task 26's supplement (Ruling, mtgsim §5)
-// asks for. Everything runs on the caller's own goroutine, one match at a
+// replay. Everything runs on the caller's own goroutine, one match at a
 // time: no goroutines, so two runs with the same arguments print the same
 // lines in the same order every time.
 //
-// out is io.Writer, not *os.File (fix round 1, Minor #3): main passes
-// os.Stdout, but main_test.go passes a *bytes.Buffer so this body is
-// actually exercised by a test, which the old *os.File signature made
-// impossible without writing to a real file.
+// out is io.Writer, not *os.File: main passes os.Stdout, but main_test.go
+// passes a *bytes.Buffer so this body is exercised by a test without writing
+// to a real file.
 func run(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir string, out io.Writer) error {
 	return runAgents(decksFlag, seats, baseSeed, games, verify, verbose, dir, "", "", nil, out)
 }
@@ -144,7 +141,7 @@ func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, 
 // pinned Legacy constructed decks, not RepoDeckNames(): the directory also
 // holds the five interim foundations-* commander decks, which mtgsim plays
 // as 20-life constructed games and which must not silently change what the
-// default -verify pool is (Ruling M38-P). Pass -decks to play any of them
+// default -verify pool is. Pass -decks to play any of them
 // explicitly.
 func deckNames(flagVal string, seats int) ([]string, error) {
 	if flagVal == "" {
@@ -166,11 +163,11 @@ func deckNames(flagVal string, seats int) ([]string, error) {
 
 // playOne plays a single game to completion (or to maxIntents) and prints
 // its one-line summary, then -- if verify is set -- a second line reporting
-// the replay outcome. It returns false for anything Ruling §5 counts as
+// the replay outcome. It returns false for anything counted as
 // failure: non-termination, a replay error or a chain divergence.
 func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, reg *cards.Registry, verify bool, policyA, policyB string) (ok bool) {
 	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()}
-	// The default object cap (CV-8), the same volume bound the shared drive
+	// The default object cap, the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
 	// line under a bounded arena instead of growing the process until the
 	// box OOMs.
@@ -188,7 +185,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	// CR 103.1's winner-chooses ask: pose it before the seats attach so the
 	// table's own policy answers it, and the seat's game_start sees the
 	// choice pending. The drive loop answers the pending decision; no Advance
-	// runs the R-9 default underneath it.
+	// runs the no-host default underneath it.
 	e.AskStartingPlayer()
 
 	seats, err := matchSeats(e, reg, seed, names, policyA, policyB, out)
@@ -225,7 +222,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 		return false
 	}
 
-	// Ruling P14: Draw before Winner -- Winner's zero value is a real seat
+	// Draw before Winner -- Winner's zero value is a real seat
 	// (0), so reading it unconditionally would misreport a drawn game.
 	result := "draw"
 	if !e.G.Draw {
@@ -308,10 +305,9 @@ func driveMatch(e *rules.Engine, seats []engineseat.Seat) (n int, err error) {
 }
 
 // printReplayOutcome prints the -verify line for one game -- "replay OK"
-// with its chain head, or the divergence in the shape supplement §5 asks
-// for: Seq, both Kinds, and Missing honoured (no zero events.Event printed
-// when the recorded log simply ended first). Factored out of playOne (fix
-// round 1, Minor #3) so it can be driven directly from a hand-built
+// with its chain head, or the divergence: Seq, both Kinds, and Missing
+// honoured (no zero events.Event printed when the recorded log simply ended
+// first). Factored out of playOne so it can be driven directly from a hand-built
 // *replay.Divergence in a test, without needing to corrupt a real event log
 // to force one out of replay.Replay.
 func printReplayOutcome(out io.Writer, err error, chainHead string) bool {

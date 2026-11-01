@@ -9,7 +9,7 @@ import (
 
 // Incinerate is "SP$ DealDamage ... | SubAbility$ DBEffect | RememberDamaged$
 // True" whose DBEffect registers a CantRegenerate static ("creature dealt
-// damage this way can't be regenerated this turn"). Before Task ce1 the
+// damage this way can't be regenerated this turn"). Without its registration the
 // DBEffect was a Note, so a creature with a regeneration shield would survive
 // Incinerate's lethal damage; the test pins that the CantRegenerate
 // registration now blocks the shield consumption (an inline fixture, per the

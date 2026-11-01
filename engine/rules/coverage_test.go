@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 )
 
-// TestNonAPIPrimitivesAreRegistered pins Ruling W1's premise: that the
+// TestNonAPIPrimitivesAreRegistered pins the premise that the
 // keyword, static and trigger families this build implements
 // (engine/rules/combat.go, engine/rules/statics.go, rules/trigger.go, each an init()
 // calling effects.RegisterNonAPI) actually register themselves. This test
@@ -18,7 +18,7 @@ import (
 // that the registrations exist, not that every consumer of
 // effects.Supported() sees them.
 //
-// That gap is exactly Ruling W1's bug: cmd/forgec's report command imports
+// That gap is exactly the bug: cmd/forgec's report command imports
 // cards and effects but, before this task, never imported rules, so none of
 // these three init()s ran in that separate binary and its
 // effects.Supported() returned "api:" primitives only -- understating
@@ -118,7 +118,7 @@ func TestScryReplacementPrimitiveIsRegistered(t *testing.T) {
 // process -- links in engine/rules/combat.go, engine/rules/statics.go and
 // rules/trigger.go and therefore runs their init()s before its own report
 // command ever calls effects.Supported(). This is what the blank import
-// `_ "github.com/adams-shaun/gorge/engine/rules"` in cmd/forgec/main.go (Ruling
+// `_ "github.com/adams-shaun/gorge/engine/rules"` in cmd/forgec/main.go
 // W1) actually fixes; skip only if the go tool itself is unavailable to run
 // this check with, not if the corpus is absent -- this test needs neither
 // .cards/ nor a build, only the module's own source tree.
@@ -137,5 +137,5 @@ func TestForgecBinaryImportsRules(t *testing.T) {
 	}
 	t.Fatal("cmd/forgec does not import github.com/adams-shaun/gorge/engine/rules -- " +
 		"its effects.Supported() call in report() sees API primitives only " +
-		`(Ruling W1); add a blank import "_ \"github.com/adams-shaun/gorge/engine/rules\"" to cmd/forgec/main.go`)
+		`; add a blank import "_ \"github.com/adams-shaun/gorge/engine/rules\"" to cmd/forgec/main.go`)
 }

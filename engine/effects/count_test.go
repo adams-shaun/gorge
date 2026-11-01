@@ -37,7 +37,7 @@ func TestNumFollowsSVarIndirection(t *testing.T) {
 	}
 }
 
-// TestNumEvaluatesInlineCountExpression locks in Task 17's Num extension:
+// TestNumEvaluatesInlineCountExpression locks in the Num extension:
 // Storm's expansion puts Count$ThisTurnCast/Minus1 inline in the Amount$
 // param (engine/cards/keywords.go), not behind an SVar name -- before the extension
 // Num mistook that literal for an SVar lookup, failed it, and judged the
@@ -287,7 +287,7 @@ func TestEvalCountArithmeticSuffix(t *testing.T) {
 	}
 }
 
-// TestCountOpsDoNotOverflow is Task 20's hygiene guard for applyCountOp: the
+// TestCountOpsDoNotOverflow is the hygiene guard for applyCountOp: the
 // /Op arithmetic (Plus/Minus/Times/Twice/Negative) was computed in raw int32,
 // where MaxInt32 doubled, negated or nudged silently wrapped. It must now run
 // in int64 and clamp to the int32 range so a huge Count$ can neither overflow

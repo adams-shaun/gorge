@@ -17,7 +17,7 @@ package gorged
 // acceptance leaf (rules/seatdeck_manifest_acceptance_test.go); this file is
 // the transport half, where the negotiated wire is actually mounted.
 //
-// The fixture is authored inline (Ruling P9): duplicate main-deck names, one
+// The fixture is authored inline: duplicate main-deck names, one
 // legendary commander, and a sideboard.
 
 import (

@@ -15,7 +15,7 @@ import (
 // CR 601.2a moves the card from its zone to the stack BEFORE CR 601.2c asks
 // for its targets, so a target whose legality reads the caster's hand is
 // judged with the hand one card smaller. The offer census (castTargetsAvailable)
-// runs with the card still in hand. Measured (round-9 cardfuzz explore seed
+// runs with the card still in hand. Measured (cardfuzz explore seed
 // 9606575608234985872): Empyrial Armor ("+1/+1 for each card in your hand")
 // on an opponent's 1/3 made it a 4/6 with three cards in hand, so Guiding
 // Bolt ("destroy target creature with power 4 or greater") passed the census;
@@ -98,7 +98,7 @@ func (e *Engine) castTargetsAvailableOnStack(p state.PlayerID, id state.ObjID) b
 // in the spell's CR 601.2g mana-ability window, which opens only after CR
 // 601.2a has moved the card from the hand to the stack, so a mana ability
 // whose activation restriction or amount reads the caster's hand must be
-// judged with the hand one card smaller. Measured (round-10 paymirror random2
+// judged with the hand one card smaller. Measured (paymirror random2
 // seed 11828 seq 4243): Fanatic of Rhonas's "{T}: Add {G}{G}{G}{G}. Activate
 // only if you control a creature with power 4 or greater" held only through
 // Syr Elenora (power = cards in hand) at 4 power while Vorinclex was in hand;

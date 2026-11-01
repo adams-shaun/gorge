@@ -156,12 +156,12 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	// Re-pinned after 24bbba791 (CR 510.3: players receive priority in the
 	// combat damage step after the regular damage): 286 -> 298 decisions,
 	// the GAME again, not an encoding.
-	// Re-pinned after cr-g67a (CR 601.2a: the spell is on the stack at its
+	// Re-pinned for CR 601.2a (the spell is on the stack at its
 	// cast-time decisions): the GAME's views changed, not an encoding; 298
 	// decisions.
-	// Re-pinned after cr-g69 (CR 601.2h): the game's decisions answer in a
-	// different order (cost objects are chosen at payment), not an encoding;
-	// 298 decisions.
+	// Re-pinned for CR 601.2h: the game's decisions answer in a different
+	// order (cost objects are chosen at payment), not an encoding; 298
+	// decisions.
 	// entity-full is the untruncated entity encoding: it moves whenever the
 	// relational slots do (ENTREL-A sets it; ENTREL-B re-pins it with the
 	// combat slots, format 3).

@@ -58,8 +58,9 @@ func TestFaceDownPlaneswalkerSurvivesZeroLoyaltySBA(t *testing.T) {
 			}
 			// Exercise the sweep directly: the prefilter must not be able to
 			// hide a missing face-down guard in the action itself.
-			if e.planeswalkerZeroLoyalty(&sbaAttempts{}) || o.Zone != state.ZBattlefield {
-				t.Fatalf("direct zero-loyalty sweep acted on face-down walker: zone %v", o.Zone)
+			var b sbaBatch
+			if e.planeswalkerZeroLoyalty(&b, &sbaAttempts{}); !b.empty() {
+				t.Fatalf("direct zero-loyalty sweep queued against a face-down walker: %+v", b)
 			}
 			facts := e.sbaFacts(&sbaBoardFacts{at: -1})
 			if facts.pw {

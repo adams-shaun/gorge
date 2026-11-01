@@ -9,7 +9,7 @@ import (
 )
 
 // The generic targeting tier's compiler lives in the leaf package
-// engine/effects/params (params/targets.go, W5 step E7): the payment planner reads
+// engine/effects/params (params/targets.go): the payment planner reads
 // the compiled TargetParams without importing effects. These are the effects
 // spellings, plus the bound evaluations that need the resolution's Host.
 

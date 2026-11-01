@@ -24,9 +24,9 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// acceptanceDeck builds the compact fixture the brief asks for on top of
-// testutil's inline, playable sample deck (Ruling P9: no Forge scripts):
-// duplicate main-deck names, one appended commander, and a sideboard.
+// acceptanceDeck builds a compact fixture on top of testutil's inline, playable
+// sample deck (no Forge scripts): duplicate main-deck names, one appended
+// commander, and a sideboard.
 func acceptanceDeck(t *testing.T, seatIndex int) (main []*cards.Card, side []*cards.Card, commanderIndex int) {
 	t.Helper()
 	_, decks := testutil.SampleDecks(t, 2)

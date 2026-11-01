@@ -218,13 +218,13 @@ func applyKind(g *state.Game, e *Event) {
 	case Meld:
 		foldMeld(g, e)
 	case PlanarRoll:
-		// The planar-dice roll (CR 901.3, task rollplanar1) is a pure marker:
+		// The planar-dice roll (CR 901.3) is a pure marker:
 		// no plane deck exists in this build, so a roll folds no state — the
 		// logged event is the record (Amount the post-replacement count, IDs
 		// the kept results, Counter the ignored count the replacement wrote)
 		// and replay re-derives the same rolls from the seeded rng.
 	case Explore:
-		// The explore record (CR 701.35a, task explore1) is a pure marker,
+		// The explore record (CR 701.35a) is a pure marker,
 		// exactly like PlanarRoll: the explore's own state changes (the
 		// revealed card's move, the +1/+1 counter on the explorer) are their
 		// own MoveZone/CounterChange events that preceded this one, and the
@@ -232,7 +232,7 @@ func applyKind(g *state.Game, e *Event) {
 		// controller, IDs[0] the revealed card, Amount 1 = land (went to
 		// hand) / 0 = nonland (counter put; card back on top or graveyard).
 	case Investigate:
-		// The investigate record (CR 701.36a, task investtrig1) is a pure
+		// The investigate record (CR 701.36a) is a pure
 		// marker, exactly like Explore: the investigate's own state change
 		// (the Clue token mint) is its own TokenCreate event that preceded
 		// this one, and the record is what trig:Investigated matches. Player
@@ -249,24 +249,22 @@ func applyKind(g *state.Game, e *Event) {
 	case KeywordAbilityPush:
 		foldKeywordAbilityPush(g, e)
 	case Discover, Seek, Surveil, Scry, Proliferate, ElementalBend:
-		// The discover (CR 701.57), seek (task trigdisc1), surveil
-		// (CR 701.42, task trig-surveil), scry (CR 701.18, task
-		// scrybottom) and proliferate (CR 701.27, task trig-proliferate)
-		// records are pure markers, exactly like Explore/Investigate: the
-		// action's own state changes (the exiles/reveals, the sought card's
-		// move, the KArrange answer's LibraryOrder, the counter batch per
-		// chosen recipient) are their own events that surround this one, and
-		// the record is what trig:Discover / trig:SeekAll / trig:Surveil /
-		// trig:Scry / trig:Proliferate match. Player is the acting seat, Obj
-		// the resolving source permanent; Scry's Amount is the number of
-		// cards put on the bottom. One marker per completed action. The
-		// ElementalBend record (task agent-20260929T010346Z-ae55d89d) is
-		// the same shape: the bend's own state changes are their own
-		// events that surround it, and the record is what
-		// trig:ElementalBend matches; its Text carries the verb
+		// The discover (CR 701.57), seek, surveil (CR 701.42), scry (CR
+		// 701.18) and proliferate (CR 701.27) records are pure
+		// markers, exactly like Explore/Investigate: the action's own state
+		// changes (the exiles/reveals, the sought card's move, the KArrange
+		// answer's LibraryOrder, the counter batch per chosen recipient) are
+		// their own events that surround this one, and the record is what
+		// trig:Discover / trig:SeekAll / trig:Surveil / trig:Scry /
+		// trig:Proliferate match. Player is the acting seat, Obj the
+		// resolving source permanent; Scry's Amount is the number of cards
+		// put on the bottom. One marker per completed action. The
+		// ElementalBend record is the same shape: the bend's own state
+		// changes are their own events that surround it, and the record is
+		// what trig:ElementalBend matches; its Text carries the verb
 		// (water/earth/fire/air) the per-turn all-four ledger folds.
 	case Exploit:
-		// The exploit record (CR 702.58a, task exploit1) is a pure marker,
+		// The exploit record (CR 702.58a) is a pure marker,
 		// exactly like Explore/Investigate: the sacrifice's own state change
 		// (the battlefield-to-graveyard MoveZone) is its own event that
 		// preceded this one, and the record is what trig:Exploited matches.
@@ -279,7 +277,7 @@ func applyKind(g *state.Game, e *Event) {
 	case Crew:
 		foldCrew(g, e)
 	case Saddle:
-		// The saddle record (CR 702.171, task triage-478c51d1) is a pure
+		// The saddle record (CR 702.171) is a pure
 		// marker, exactly like Connive: the tap itself is its own Tap event,
 		// and the designation rides the AlterAttribute "Saddled" event whose
 		// fold stamps Object.SaddledTurn. Obj the saddling creature, Player
@@ -289,7 +287,7 @@ func applyKind(g *state.Game, e *Event) {
 		// per-turn list the Crew fold keeps (see foldCrew).
 		foldCrew(g, e)
 	case Connive:
-		// The connive record (CR 702.59, task connive1) is a pure marker,
+		// The connive record (CR 702.59) is a pure marker,
 		// exactly like Explore: the connive's own state changes (the draws,
 		// the discards, the +1/+1 counters) are their own events that
 		// preceded this one, and the record is what trig:Connives matches.
@@ -512,6 +510,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldHadToAttack(g, e)
 	case DayNightChange:
 		foldDayNightChange(g, e)
+	case SubTargetRemoved:
+		foldSubTargetRemoved(g, e)
 	case Exert:
 		foldExert(g, e)
 	case KeywordTriggerPush:

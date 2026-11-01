@@ -1,4 +1,4 @@
-// cr-g52: CR 903.3b/903.3c. A melded permanent whose cards include a
+// CR 903.3b/903.3c. A melded permanent whose cards include a
 // player's commander, and a merged (mutated) permanent with a commander
 // among its components, IS that player's commander: its combat damage is
 // commander damage (CR 903.10a), and when it leaves the battlefield the

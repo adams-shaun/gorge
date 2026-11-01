@@ -1,6 +1,6 @@
 package rules
 
-// cr-g243: an Animate staticAbilities$ grant of a combat restriction or
+// An Animate staticAbilities$ grant of a combat restriction or
 // requirement mode (MustAttack, CantAttack, CantBlock, CanAttackDefender)
 // registers as the animated object's own static (CR 611.3a) and binds the
 // declaration sites the Effect-registered walk already consults (CR 508.1d,

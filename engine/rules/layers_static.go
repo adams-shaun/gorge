@@ -12,21 +12,19 @@ import (
 
 // stackSelfStaticOK admits a printed Continuous static with NO EffectZone$
 // whose SOURCE sits on the stack, when the static's own text scopes itself to
-// the stack (an IsPresent$/PresentZone$ or AffectedZone$ naming Stack).
-// effectZoneOK's default admission is the battlefield -- right for a
-// permanent's continuous statics, wrong for a spell's own on-the-stack
-// static: Molten Disaster's kicked split second (IsPresent$ Card.Self+kicked
-// | PresentZone$ Stack) names the stack as the zone it functions from, and
-// CR 113.6 has it live exactly there, while an unqualified lord static (a
-// creature spell's "creatures you control get +1/+1") still stays
-// battlefield-only. PresentZone$ is a comma list in the grammar, hence the
+// the stack by an IsPresent$/PresentZone$ naming it. effectZoneOK's default
+// admission is the battlefield -- right for a permanent's continuous statics,
+// wrong for a spell's own on-the-stack static: Molten Disaster's kicked split
+// second (IsPresent$ Card.Self+kicked | PresentZone$ Stack) names the stack as
+// the zone it functions from. AffectedZone$ Stack does not count: it says what a
+// static affects, and "spells you cast have cascade" functions only from the
+// battlefield (CR 113.6). PresentZone$ is a comma list in the grammar, hence the
 // substring read.
 func (e *Engine) stackSelfStaticOK(st cards.Static, o *state.Object) bool {
 	if o == nil || o.Zone != state.ZStack || st.ParamStr(cards.PKEffectZone) != "" {
 		return false
 	}
-	return strings.Contains(st.ParamStr(cards.PKPresentZone), "Stack") ||
-		st.ParamStr(cards.PKAffectedZone) == "Stack"
+	return strings.Contains(st.ParamStr(cards.PKPresentZone), "Stack")
 }
 
 // continuousGateKeys are the keys continuousGateHolds reads to decide
@@ -310,7 +308,7 @@ func (e *Engine) libraryTopLook(p state.PlayerID, all bool) bool {
 // looker; a MayPlayPlayer$ Exiler value (Shared Fate) names the player
 // recorded in Object.ExiledBy instead. The view's optional
 // MayLookAtFaceDown capability (engine/view/card.go mayLookFaceDown), so the
-// face is shown to exactly the seat the grant names (CR 406.3; cr-g64). A
+// face is shown to exactly the seat the grant names (CR 406.3). A
 // read over active()'s sorted slice; the answer is boolean.
 func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 	o := e.G.Obj(id)
@@ -335,7 +333,7 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 		// A printed static may grant a look at another zone (Enduring
 		// Renewal's hand reveal, Oracle of Mul Daya's library top): only an
 		// exile-scoped grant can name a face-down exiled card. The
-		// Effect-delivered route sets AffectedZone Exile (cr-g64).
+		// Effect-delivered route sets AffectedZone Exile.
 		if ce.AffectedZone != "" && ce.AffectedZone != "Exile" {
 			continue
 		}

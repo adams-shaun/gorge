@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task tgtowner1: Chaos Warp's exact sub-ability shape, pinned end to end.
+// Chaos Warp's exact sub-ability shape, pinned end to end.
 // The root poses the target ask (ValidTgts$ Permanent) and chains a DBDig
 // sub carrying `Defined$ TargetedOwner` and NO ValidTgts of its own -- the
 // shape where, before the grammar learned the spelling, the Dig's player

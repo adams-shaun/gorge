@@ -6,8 +6,8 @@
   import PromptDock from './prompts/PromptDock.svelte';
 
   /**
-   * Geometry fixture body for PromptDock's near-table placement (the ui24
-   * leaf): the real component mounted over a fake board, so the measured
+   * Geometry fixture body for PromptDock's near-table placement:
+   * the real component mounted over a fake board, so the measured
    * hit-testing is what a real prompt produces.
    *
    * The board is a full-viewport fixed surface with the action cluster at
@@ -50,7 +50,7 @@
     options: [opt(0, 'player', 'Mira', { player: 1 }), opt(1, 'permanent', 'Tarmogoyf (Mira)', { obj: 20 })],
   } as unknown as Decision;
 
-  // The long-list ask (promptdock2): the ui24 repro needs a tall dock whose
+  // The long-list ask: the overlap needs a tall dock whose
   // numbered rows reach down over the board. min 1 / max 3 keeps a row click
   // a toggle, so the fixture never posts.
   const long: Decision = {

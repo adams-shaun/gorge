@@ -188,7 +188,7 @@ func splitCorpusEngine(t *testing.T, reg *cards.Registry, seed uint64) (*Engine,
 	return e, cfg, id, ringID, prisonID
 }
 
-// TestSplitCardEachHalfIsSeparatelyCastable is the brief's first half: on the
+// TestSplitCardEachHalfIsSeparatelyCastable is the first half: on the
 // real corpus card Wear // Tear both the front half (Wear, mode "") and the
 // alternate half (Tear, mode "split_alt") are offered from hand, and casting
 // Tear resolves Tear's own body -- it destroys the enchantment, not the
@@ -240,7 +240,7 @@ func TestSplitCardEachHalfIsSeparatelyCastable(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSplitFusePaysCombinedCostAndResolvesBothHalves is the brief's second
+// TestSplitFusePaysCombinedCostAndResolvesBothHalves is the second
 // half: a fused cast costs BOTH halves' printed mana (Wear {1}{R} + Tear {W}
 // = {1}{R}{W}), asks each half's own targets in turn, and resolves both
 // destroys in one spell.

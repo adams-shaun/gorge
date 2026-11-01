@@ -30,11 +30,11 @@ import (
 // Jace does not match, so the graveyard must get Jace -- not a deeper card --
 // and the library must shrink by exactly the one milled card.
 func TestGatheringStoneMillsThePeekedTopCard(t *testing.T) {
-	e := kr2Engine(t, 2)
-	stone := kr2Put(t, e, 0, kr2Corpus(t, "Gathering Stone"), state.ZHand, false)
-	// kr2Put(top=true) prepends, so the deeper Bear is placed first.
-	deep := kr2Put(t, e, 0, kr2Corpus(t, "Grizzly Bears"), state.ZLibrary, true)
-	peeked := kr2Put(t, e, 0, kr2Corpus(t, "Jace Beleren"), state.ZLibrary, true)
+	e := kernelEngine(t, 2)
+	stone := putCardIn(t, e, 0, corpusFixtureCard(t, "Gathering Stone"), state.ZHand, false)
+	// putCardIn(top=true) prepends, so the deeper Bear is placed first.
+	deep := putCardIn(t, e, 0, corpusFixtureCard(t, "Grizzly Bears"), state.ZLibrary, true)
+	peeked := putCardIn(t, e, 0, corpusFixtureCard(t, "Jace Beleren"), state.ZLibrary, true)
 
 	// Preconditions the assertions below depend on: the peeked card really is
 	// the top card and is not a Bear (so the chosen-type filter drops it),
@@ -83,7 +83,7 @@ func TestGatheringStoneMillsThePeekedTopCard(t *testing.T) {
 			}
 		case "defined_library_optional":
 			// "you may put it into your graveyard"
-			choice = []int{kr2Kind(t, d, "yes")}
+			choice = []int{optionKindIndex(t, d, "yes")}
 		}
 		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choice}); err != nil {
 			t.Fatalf("submit %s: %v", d.ResumeKind, err)

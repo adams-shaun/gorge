@@ -1,6 +1,6 @@
 package rules
 
-// cr-g137: three spell-ability condition shapes that used to fail closed with
+// Three spell-ability condition shapes that used to fail closed with
 // an `unmodelled condition` Note: Condition$ EnduringStory (CR 702.195),
 // ConditionDefined$ Enchanted/Equipped (CR 303.4) and the DoubleFaced filter
 // word (CR 712.1).

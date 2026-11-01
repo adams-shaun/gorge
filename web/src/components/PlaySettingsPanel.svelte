@@ -69,7 +69,7 @@
     onToggleLog = null,
   }: {
     state: SeatPanelState;
-    /** fb-20260917T231628Z: the transcript's current visibility, mirrored by
+    /** The transcript's current visibility, mirrored by
      *  the Layout section's "Show game log" switch. It is a display preference
      *  owned by Table.svelte (logshown.ts, the persisted stops contract) — NOT
      *  a PlaySettings field — so it arrives as a prop and never touches
@@ -91,7 +91,7 @@
    * answers, the transcript toggle — is silently memory-only in this browser
    * (site data refused or the write probe fails), so settings reset on every
    * reload. Probed once at mount; rendered as the notice under the step-stop
-   * grid (fb-20260917T232814Z), the one place a player editing preferences
+   * grid, the one place a player editing preferences
    * is guaranteed to look.
    */
   const persistOK = storageWritable();
@@ -114,7 +114,7 @@
 
   /**
    * PACING_OPTIONS is the step delay (pause between auto-passes):
-   * (step/resolve) ms pairs. fb-20260917T004341Z: 'slow' joined the canned
+   * (step/resolve) ms pairs. 'slow' is one of the canned
    * pairs and the Custom segment below exposes an arbitrary user-set pair —
    * the machine (paceMs) and the settings model already accept any numbers,
    * so this is purely picker surface.
@@ -137,7 +137,7 @@
   const pacingId = $derived(
     PACING_OPTIONS.find((p) => p.stepMs === s.pacing.stepMs && p.resolveMs === s.pacing.resolveMs)?.id ?? null,
   );
-  // fb-20260917T004341Z: the Custom affordance. A pacing that matches no
+  // The Custom affordance. A pacing that matches no
   // canned pair IS the custom pair, so its segment reads selected and the
   // inputs show without a click; a canned pair hides them until the player
   // opens them deliberately (customOpen).
@@ -491,7 +491,7 @@ onclick={() => logic.editSettings({ autoOrderAllTriggers: !s.autoOrderAllTrigger
     >
       <span>Auto-order all triggers</span><span class="state" aria-hidden="true">{s.autoOrderAllTriggers ? 'On' : 'Off'}</span>
     </button>
-    <!-- fb-20260917T004341Z: the reporter's own word, "step delay", leads the
+    <!-- The reporter's own word, "step delay", leads the
          label; the old meaning (pause between auto-passes) is kept. The four
          canned segments post whole pairs through the ordinary editSettings
          path, and the Custom segment reveals two numeric inputs for an
@@ -584,7 +584,7 @@ onclick={() => logic.clearYields()}
   <!-- Layout: the board's appearance lives in the layout profile library
        (lib/layouts.svelte.ts) and its drawer, never in play settings — the
        preset relabelling above is untouched by it. The game log's
-       show/hide switch stays here (fb-20260917T231628Z); its state and write
+       show/hide switch stays here; its state and write
        path are Table.svelte's (per table + scope, or pinned by the layout
        profile). -->
   <section class="sec" data-layout-section>
@@ -610,7 +610,7 @@ onclick={() => onToggleLog?.()}
   </section>
   <section class="sec"><h3>Connection</h3><ProtocolSetting /></section>
 
-  <!-- Remembered trigger answers (fb-20260914T062319Z-88b4069a B4): the
+  <!-- Remembered trigger answers: the
        management list for the remember checkbox on optional-trigger prompts.
        One row per remembered answer — the prompt's label (card + trigger
        text), the answer itself, and a Forget button — plus Forget all. This
@@ -745,7 +745,7 @@ onclick={() => logic.removeRemembered(logic.remembered.entries[i]?.key ?? '')}
     font-family: var(--font-ui);
     font-size: var(--t-11);
   }
-  /* fb-20260917T004341Z: the Custom pair of numeric inputs sits under the
+  /* The Custom pair of numeric inputs sits under the
      pacing segments row. */
   .pacing-inputs {
     gap: var(--sp-2);
@@ -822,7 +822,7 @@ onclick={() => logic.removeRemembered(logic.remembered.entries[i]?.key ?? '')}
     color: var(--ink-faint);
     font-size: var(--t-10);
   }
-  /* fb-20260917T232814Z: the storage-refusal notice under the step-stop grid.
+  /* The storage-refusal notice under the step-stop grid.
      Same box rhythm as .legend but in --danger so it reads as a warning, not
      as a cell explanation. */
   .persist-warn {

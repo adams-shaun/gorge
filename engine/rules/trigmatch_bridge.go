@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The rules -> engine/rules/trigmatch bridge (W5 E3), on the engine/rules/cost_vocab.go
+// The rules -> engine/rules/trigmatch bridge, on the engine/rules/cost_vocab.go
 // precedent: the trigger-condition comparison grammar and the two event
 // classifiers moved into engine/rules/trigmatch with the matchers that own them, and
 // these forwarders keep their historical rules names, so the static,

@@ -10,7 +10,7 @@ package rules
 // is named rather than silently joining an untested set.
 //
 // It is a data census in the established per-card ratchet shape
-// (engine/rules/oracle_fix_census_test.go, engine/rules/paramcensus_test.go): one file per
+// (engine/rules/oracle_carrier_census_test.go, engine/rules/paramcensus_test.go): one file per
 // card under engine/rules/testdata/corpus-ltb-source-counters/, loaded with the shared
 // loadPerCardLabels, and compared in BOTH directions -- a new carrier is a
 // regression to classify, a stale entry is a card the corpus no longer carries

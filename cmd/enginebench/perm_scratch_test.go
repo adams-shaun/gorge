@@ -33,7 +33,7 @@ func TestRandomIntentScratchKeepsTheStream(t *testing.T) {
 	// windows in combat draw more random answers, so the games move.
 	// Re-pinned for the CR 510.3 post-damage priority round (rules
 	// 24bbba791; was 1644/41005, 1669/41915, 1700/43169), the same cause.
-	// Re-pinned after cr-g69 (CR 601.2h: cost objects are chosen at payment,
+	// Re-pinned for CR 601.2h (cost objects are chosen at payment,
 	// after the targets and the mana window): the random games answer the
 	// reordered decisions differently, so the games move.
 	want := []struct {

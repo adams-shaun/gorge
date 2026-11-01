@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -105,8 +106,8 @@ func (e *Engine) activeZonesGateOK(r cards.Repl, source state.ObjID, ev events.E
 // entities, so their R: lines declare ActiveZones$ Command (Taii Wakeen's
 // RepDamage, 18 measured DamageDone carriers) while this engine holds the
 // registration in the continuous registry with the source on the battlefield
-// — gating on the source's zone would permanently silence every one of them
-// (task wildgrowth1). active() still ends the effect on its own lifetime.
+// — gating on the source's zone would permanently silence every one of them.
+// active() still ends the effect on its own lifetime.
 func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	return e.replacementMatchesEffectCreatedCap(r, source, ev, remembered, rememberedPlayers, chosenCapture{})
 }
@@ -287,7 +288,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 			// etbCounter gate field `ValidCard$ Card.Self+
 			// !wasCastFromYourHandByYou`: "enters with three +1/+1 counters on
 			// it if you didn't cast it from your hand") is split out and
-			// evaluated against the log here (task castprov1); the remainder
+			// evaluated against the log here; the remainder
 			// matches as before.
 			spec, ok2 := e.castProvenanceAdmits(v, ev.Obj, you)
 			sc := e.rememberedSpecContext(you, source, remembered)
@@ -426,7 +427,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// Requiring ExtraTurn$ True is what keeps Time Vault out: its R:
 		// Event$ BeginTurn line skips a NORMAL turn (Optional$ True, a
 		// ReplaceWith$ body, IsPresent$ Card.Self+tapped, no ExtraTurn$), a
-		// different shape this task deliberately does not implement -- a
+		// different shape deliberately not implemented -- a
 		// matcher without the requirement would change that card's behaviour
 		// without implementing it.
 		if r.ParamStr(cards.PKExtraTurn) != "True" {
@@ -467,7 +468,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// (CR 120.8: 0 damage is never dealt). No DamageDone replacement
 		// applies to it -- matching it posed CR 616.1 order asks at every
 		// cleanup under two Ghosts of the Innocent, and each answer's
-		// halving re-emitted the removal, forever (fuzz batch6 line 9).
+		// halving re-emitted the removal, forever.
 		if ev.Kind != events.Damage || ev.Amount <= 0 ||
 			!e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers, cc) {
 			return false
@@ -517,7 +518,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 	case cards.ReplConnive:
 		return replacementMatchesConnive(e, r, source, ev, you)
 	case cards.ReplExplore:
-		// The explore replacement (R:Event$ Explore, task explore1 —
+		// The explore replacement (R:Event$ Explore —
 		// Topography Tracker, Twists and Turns); ValidExplorer$ names the
 		// proposed creature, using the replacement source's controller as You.
 		if ev.Kind != events.Explore {
@@ -813,7 +814,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplRollPlanarDice:
-		// The planar-dice replacement class (Ichor Elixir, task rollplanar1):
+		// The planar-dice replacement class (Ichor Elixir):
 		// "if you would roll one or more planar dice, instead roll that many
 		// planar dice plus one and ignore one". ValidPlayer$ scopes the roller
 		// the same way the Draw class reads it; the count/ignore rewrites are
@@ -1122,19 +1123,13 @@ func (e *Engine) countPresentInZone(spec string, source state.ObjID, you state.P
 	return n
 }
 
+// revoltThisTurn reads "a permanent you controlled left the battlefield this
+// turn" off the per-turn entry list, whose Controller is the one the permanent
+// left under.
 func (e *Engine) revoltThisTurn(controller state.PlayerID) bool {
-	for i := len(e.L.Events) - 1; i >= 0; i-- {
-		ev := e.L.Events[i]
-		if ev.Kind == events.TurnChange {
-			break
-		}
-		if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield {
-			// Move preserves the object's pre-move controller outside the
-			// battlefield, so this is the controller at the moment it left —
-			// exactly Revolt's "a permanent you controlled" test (not owner).
-			if o := e.G.Obj(ev.Obj); o != nil && o.Controller == controller {
-				return true
-			}
+	for i := range e.G.Entered {
+		if en := &e.G.Entered[i]; en.From == state.ZBattlefield && en.Controller == controller {
+			return true
 		}
 	}
 	return false
@@ -1235,7 +1230,7 @@ func (e *Engine) replacementCauseMatches(spec string, replacementSource, cause s
 		return true
 	}
 	if strings.HasPrefix(quals, "IsTargeting Self") {
-		for _, t := range o.Targets {
+		for _, t := range slices.Concat(o.Targets, o.SubTargets) {
 			if !t.IsPlayer && t.Obj == replacementSource {
 				return true
 			}

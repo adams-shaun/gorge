@@ -201,7 +201,7 @@ func TestFlashPhotographyAnnouncementUsesCoveredTarget(t *testing.T) {
 	}
 }
 
-// TestDisruptionAuraAttachAILogicDoesNotRestrictTargets pins the brief's aura
+// TestDisruptionAuraAttachAILogicDoesNotRestrictTargets pins the aura
 // family: Disruption Aura (Enchant artifact) carries SVar:AttachAITgts and
 // SVar:AttachAILogic:Curse, which are Forge AI hints that must NOT restrict the
 // legal targets. With only the caster's own artifact in play the K:Enchant

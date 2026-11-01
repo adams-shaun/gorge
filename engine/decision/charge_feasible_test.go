@@ -169,3 +169,21 @@ func TestBlockRequiredTeamChargeBoundKeepsPayableTeam(t *testing.T) {
 		t.Fatalf("RequiredQuota = %d, want 1 (one required blocker, helper counts nothing)", q)
 	}
 }
+
+// More must-be-blocked attackers than blockers can never satisfy every
+// requirement, so the search has no early exit and must prune to finish: 12
+// blockers over 15 attackers is 16^12 assignments unpruned.
+func TestBlockRequiredTeamManyMustBeBlockedAttackers(t *testing.T) {
+	t.Parallel()
+	d := &Decision{Kind: KBlockers}
+	for b := state.ObjID(1); b <= 12; b++ {
+		for a := state.ObjID(101); a <= 115; a++ {
+			d.Options = append(d.Options, Option{Index: len(d.Options), Kind: "block", Obj: b, Attacker: a, AttackMust: true})
+		}
+	}
+	d.Max = len(d.Options)
+	team := d.BlockRequiredTeam()
+	if len(team) != 12 || d.blockRequirementsSatisfied(team) != 12 {
+		t.Fatalf("team %v satisfies %d, want 12 blockers on 12 attackers", team, d.blockRequirementsSatisfied(team))
+	}
+}

@@ -19618,7 +19618,7 @@
     {
       "seq": 3623,
       "kind": 4,
-      "amount": 1
+      "amount": 3
     },
     {
       "seq": 3624,
@@ -24431,7 +24431,7 @@
       ]
     }
   ],
-  "head": "177d8935726f2ad9",
+  "head": "8f92486feb45ce6b",
   "intent_count": 664,
   "turn": 22,
   "step": "main1",

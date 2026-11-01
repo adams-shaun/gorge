@@ -7,7 +7,8 @@ import (
 // state is GET .../state: the current v2 choose request for the caller's seat,
 // or {"request":null} when the seat is between decisions (or the codec left the
 // decision to the native wire). It reads exactly what the stream's initial
-// frame sends and answers 409 unsupported for a table v2 does not cover.
+// frame sends and answers 409 unsupported for a table v2 does not cover. It
+// attaches the seat, so the first read can come before its first request.
 func (h *handler) state(w http.ResponseWriter, r *http.Request) {
 	t, k, ok := matchKey(w, r)
 	if !ok {
@@ -20,5 +21,7 @@ func (h *handler) state(w http.ResponseWriter, r *http.Request) {
 	if !h.covers(w, t) {
 		return
 	}
-	writeJSON(w, http.StatusOK, h.stateBody(seatKey{table: t, match: k, seat: claim.Seat}))
+	key := seatKey{table: t, match: k, seat: claim.Seat}
+	h.hub.seat(key).attach()
+	writeJSON(w, http.StatusOK, h.stateBody(key))
 }

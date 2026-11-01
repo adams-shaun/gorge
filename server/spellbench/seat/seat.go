@@ -329,13 +329,15 @@ func (a *Agent) gameStart() error {
 	if startingSeat != "" {
 		startSeat = &startingSeat
 	}
+	engine := sbenv.EngineIdentity(nil, mc.Registry)
+	engine.Version += sbenv.AutoPayVersionSuffix // mana_payment above is engine_autopay
 	id := a.nextID()
 	req := gameStartReq{
 		RequestType:   "game_start",
 		Protocol:      protocolName,
 		RequestID:     id,
 		AgentSeed:     agentSeed(a.secret, a.gameID, seat),
-		Engine:        sbenv.EngineIdentity(nil, mc.Registry),
+		Engine:        engine,
 		EngineProfile: profile,
 		Format:        formatOr(mc.Format),
 		GameID:        a.gameID,

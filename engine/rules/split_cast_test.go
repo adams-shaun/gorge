@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// split_cast_test.go pins the brief's named deck carriers: Coward // Killer
+// split_cast_test.go pins the named deck carriers: Coward // Killer
 // (its Killer alternate half deals 3 and sweeps shared types) and Gallifrey
 // Falls // No More (its No More alternate half is the mass phase-out and its
 // Fuse asks the combined cost). split_card_test.go already pins the same CR
@@ -43,7 +43,7 @@ func killerSplitEngine(t *testing.T, reg *cards.Registry, seed uint64) (*Engine,
 	return e, cfg, id, bearID
 }
 
-// TestKillerHalfIsCastable pins the brief's first carrier: the split card's
+// TestKillerHalfIsCastable pins the first carrier: the split card's
 // SECOND face is reachable from hand. Coward // Killer's Killer half ({2}{R}
 // {R} sorcery) is offered as mode split_alt alongside the front Coward half,
 // casting it asks Killer's own creature target, and its 3 damage kills the
@@ -67,7 +67,7 @@ func TestKillerHalfIsCastable(t *testing.T) {
 		t.Fatalf("front-half offer missing/renamed: %+v", castOptions(t, e))
 	}
 	if alt == nil || alt.Label != "Cast Killer" {
-		t.Fatalf("alternate-half offer missing/renamed (the brief's dead-half bug): %+v", castOptions(t, e))
+		t.Fatalf("alternate-half offer missing/renamed (the dead-half bug): %+v", castOptions(t, e))
 	}
 	submitChoices(t, e, alt.Index)
 	d := e.Pending()
@@ -94,7 +94,7 @@ func TestKillerHalfIsCastable(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestGallifreyFallsFuseCastsBothHalves pins the brief's second carrier: the
+// TestGallifreyFallsFuseCastsBothHalves pins the second carrier: the
 // fused cast of Gallifrey Falls // No More is offered only at the SUMMED cost
 // ({4}{R}{R} + {2}{W} = {6}{R}{R}{W}) and dispatches BOTH halves: Falls
 // damages every creature, then No More's real Phases half (engine/effects/phases.go)

@@ -345,8 +345,7 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 			c.Targets = []state.Target{c.Targets[base+ti]}
 			// The combined placement ask covered THIS mode's targeting (its
 			// assignment is positional); mark it so the generic ValidTgts$
-			// pre-ask does not re-pose the cross-mode question per mode
-			// (task mvts1).
+			// pre-ask does not re-pose the cross-mode question per mode.
 			c.OfferedSA = sub
 			Resolve(h, c, sub)
 			c.OfferedSA = savedOffered
@@ -417,7 +416,7 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 
-		// R-9: an effects-only host has no chooser, so deterministically take
+		// No-host path: an effects-only host has no chooser, so deterministically take
 		// the first option and continue to the next victim.
 		if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
 			Resolve(h, c, sub)
@@ -507,7 +506,7 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 //   - a GenericChoice whose Defined$ is absent, resolves to exactly the
 //     resolving controller (Defined$ You), or resolves to anything that is
 //     not all players (Defined$ Targeted on a spell's creature, Defined$
-//     Valid <filter>): those keep the existing ask, so this ticket cannot
+//     Valid <filter>): those keep the existing ask, so this cannot
 //     change an object-defined carrier.
 //
 // A GenericChoice whose Defined$ is one of the PLAYER-role selectors
@@ -582,7 +581,7 @@ func playerRoleDefined(defined string) bool {
 // is the chooser still to ask; a non-nil Ctx.Modes is the answer for the
 // chooser at index-1, whose chosen body has not yet run. A nested
 // GenericChoice in a chosen body sees a nil cursor for the body's walk
-// (cleared around Resolve, the fx41 discipline) and resolves its own Defined$
+// (cleared around Resolve) and resolves its own Defined$
 // rather than inheriting this one.
 func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool {
 	// TempRemember$ (Forge ChooseGenericEffect): when present, the chooser is
@@ -690,7 +689,7 @@ func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool
 				}
 				noteUnreadParams(h, c, sa.API, p.Unread)
 			} else {
-				// R-9: an effects-only host has no chooser, so deterministically
+				// No-host path: an effects-only host has no chooser, so deterministically
 				// take the first option for this chooser and continue to the next
 				// -- or, for an AILogic$ Random ask, a draw from the engine rng
 				// (aiRandomNoAskPick), so a Repeat re-posing it advances.
@@ -727,7 +726,7 @@ func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool
 // reachability gate the unless ask itself uses, so the option list and the pay
 // decision cannot disagree). A choice with no UnlessCost$ is always available;
 // a host that cannot price costs (an effects-only embedder) keeps the historic
-// full list, so R-9 still degrades deterministically rather than silently
+// full list, so the no-host path still degrades deterministically rather than silently
 // dropping choices. FORGE ALSO drops a choice failing getRestrictions(); the
 // engine's cards.SA carries no such field, and no corpus GenericChoice choice
 // uses Restrictions$ today.
@@ -774,7 +773,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	// Announced modes: Ctx.Modes already names the chosen SVars in execution
 	// order, so run exactly those and do not ask.
 	if c.Modes != nil {
-		// fx41: take the names into a local and clear c.Modes BEFORE running
+		// Take the names into a local and clear c.Modes BEFORE running
 		// them. The same Ctx is handed to Resolve for every mode AND to the
 		// Charm's own SubAbility$, and nothing else in the walk reads Modes,
 		// so an uncleared field would leak the OUTER Charm's answered modes
@@ -835,8 +834,8 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// param:api:Charm.Random (Random$ True / Random$ Compare with
 	// RandomCompareSVar$/RandomCompare$): a Charm whose mode is picked AT
-	// RANDOM rather than asked. The direction is the card oracle's, not the
-	// brief's gloss: Typhoid Mary, Fractured ("choose one at random. If you
+	// RANDOM rather than asked. The direction is the card oracle's:
+	// Typhoid Mary, Fractured ("choose one at random. If you
 	// discarded a card this turn, you choose one instead", RandomCompare$
 	// LT1 over SVar Y = CardsDiscardedThisTurn) is random exactly while the
 	// comparison HOLDS, and a failed comparison reverts to the ordinary
@@ -907,7 +906,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
-	// Fuzz/no-engine host: the deterministic first-mode default (R-9), with
+	// Fuzz/no-engine host: the deterministic first-mode default, with
 	// the Note that records why the richer path did not run.
 	if min == 1 && max == 1 && !repeat && len(choices) > 1 && aiLogicRandom(sa) {
 		// AILogic$ Random: the no-ask answer is an engine-rng draw, not the
@@ -937,7 +936,7 @@ func charmRunModes(h Host, c *Ctx, sa *cards.SA, names []string) {
 	if charmCrossModeRun(h, c, sa, names) {
 		return
 	}
-	// Task mvts1, two guards the generic ValidTgts$ pre-ask needs here.
+	// Two guards the generic ValidTgts$ pre-ask needs here.
 	//
 	// Coverage: a placement-announced modal resolution asked every CHOSEN
 	// target-bearing mode's targeting in its placement ask (the combined
@@ -998,8 +997,8 @@ func charmRunModes(h Host, c *Ctx, sa *cards.SA, names []string) {
 //   - `Random$ True` is always random (Outlaws' Merriment, Cult of Skaro,
 //     Umaru the Raging Yeti, Summon the Magus Sisters);
 //   - `Random$ Compare` is random exactly while the RandomCompareSVar$
-//     comparison holds -- the card oracle's direction, NOT the brief's
-//     gloss. Typhoid Mary, Fractured's own oracle quote ("choose one at
+//     comparison holds -- the card oracle's direction.
+//     Typhoid Mary, Fractured's own oracle quote ("choose one at
 //     random. If you discarded a card this turn, you choose one instead")
 //     with RandomCompare$ LT1 over Y = CardsDiscardedThisTurn reads: zero
 //     discards (LT1 holds) -> random; a discard this turn (LT1 fails) ->

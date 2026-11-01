@@ -10,7 +10,7 @@ import (
 // Vines of Vastwood's real script is an SP$ Pump whose SubAbility$ is a DB$
 // Effect registering a CantTarget static ("target creature can't be the
 // target of spells or abilities your opponents control this turn") against a
-// StaticAbilities$ SVar. Before Task ce1 that DB$ Effect was a Note, so the
+// StaticAbilities$ SVar. A DB$ Effect that is only a Note means the
 // restriction never registered and the creature stayed targetable by the
 // opponent; the test below pins that the restriction is now real and bites
 // the opponent's targeting (an inline fixture -- the licensing rule forbids a

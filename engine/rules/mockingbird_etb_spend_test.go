@@ -40,7 +40,7 @@ func TestMockingbirdETBSpendSelector(t *testing.T) {
 			if bear.Zone != state.ZBattlefield || dread.Zone != state.ZBattlefield || bear.Face().ManaValue() != 2 || dread.Face().ManaValue() <= 3 {
 				t.Fatalf("precondition: templates not on battlefield or mana values do not straddle 3: bear=%+v dread=%+v", bear, dread)
 			}
-			kr6ResolveTop(e)
+			resolveTopProbe(e)
 			d = e.Pending()
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" {
 				t.Fatalf("expected ETB election, got %+v", d)
@@ -67,7 +67,7 @@ func TestMockingbirdETBSpendSelector(t *testing.T) {
 				}
 			}
 			submitChoices(t, e, choice)
-			kr6Settle(e)
+			settleDrain(e)
 			if !lowerSpendAtEntry {
 				if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.Face().Name != "Grizzly Bears" {
 					t.Fatalf("copied template face or zone wrong: zone=%s face=%s", o.Zone, o.Face().Name)

@@ -1,4 +1,4 @@
-// Task alltargeted1: the Count$ head AllTargeted$ was unread -- every body
+// The Count$ head AllTargeted$ was unread -- every body
 // built on it evaluated to 0, so an ability whose own ReduceCost$ names such
 // an SVar never discounted. This file pins the surviving end-to-end carrier
 // on the real corpus card: Raft Security Officer's {2},{T} tap ability costs

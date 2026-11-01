@@ -1,6 +1,6 @@
 package rules
 
-// cr-g139b: a DelayedTrigger registered at Mode$ AbilityCast / SpellAbilityCast
+// A DelayedTrigger registered at Mode$ AbilityCast / SpellAbilityCast
 // must fire on the next matching activation (Pit Automaton, Repeated
 // Reverberation). The registration, firing and one-shot removal all ride the
 // ordinary DelayedRegister/DelayedPush path; only the event gate, the mode

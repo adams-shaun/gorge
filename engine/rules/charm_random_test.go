@@ -7,7 +7,7 @@ package rules
 // engine's seeded rng while the comparison holds (zero discards this turn --
 // RandomCompare$ LT1 over SVar Y = CardsDiscardedThisTurn), and a discard
 // reverts the choice to the real KModes ask. The direction is the card's own
-// oracle, not the brief's inverted gloss. An authored Random$ True fixture
+// oracle. An authored Random$ True fixture
 // pins the always-random spelling, and an unresolvable comparison pins the
 // fail-to-the-ask direction. No Forge .txt text is committed; the card comes
 // from the compiled corpus registry.

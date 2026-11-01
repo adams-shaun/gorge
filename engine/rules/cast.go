@@ -21,7 +21,7 @@ import (
 )
 
 // chooseCast and chooseMiracle extend chooseFor (engine/rules/engine.go
-// declares chooseNone = iota, the only value Task 8 needed). iota+1 here
+// declares chooseNone = iota). iota+1 here
 // keeps every value distinct from chooseNone without redeclaring it --
 // nothing outside this package compares chooseFor values, so the exact
 // numbers only need to be pairwise different, not contiguous with the other
@@ -71,7 +71,7 @@ const (
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
-// commitCast (or an abort). ability is -1 for a spell; Task 10 (activated
+// commitCast (or an abort). ability is -1 for a spell (activated
 // abilities) sets it to a real Face().Abilities index and reuses this same
 // flow for a cost with X/Sac/Delve of its own.
 type pendingCast struct {
@@ -79,7 +79,7 @@ type pendingCast struct {
 	card    state.ObjID    `clone:"deep"`
 	from    state.Zone     `clone:"deep"`
 	mode    string         `clone:"deep"` // "", "kicked", "surged", "flashback", "miracle", and the alternative-cost modes this file offers
-	ability int            `clone:"deep"` // -1 for a spell (Task 10 uses >= 0)
+	ability int            `clone:"deep"` // -1 for a spell (abilities use >= 0)
 	// abilityMerged is the pile position of the activated ability pc.ability
 	// names: 0 for the top face, i+1 for the i-th card merged beneath it
 	// (CR 702.140d). It selects the SVar table a computed cost/limit resolves
@@ -91,10 +91,10 @@ type pendingCast struct {
 	// the planned payment it executes, the announced window and its taps,
 	// the cost-part ask cursors, the Convoke announcement and the flexible
 	// pip announcement. The payment layer reads and records it without the
-	// rest of the pending cast (lasagna spec §9.2, E7 flow slice 4).
+	// rest of the pending cast.
 	pay.CastPayment `clone:"deep"`
 
-	// grantSource / grantSVar (task grantcost1) anchor a GRANTED activation
+	// grantSource / grantSVar anchor a GRANTED activation
 	// (engine/rules/speed.go's beginGrantedActivation, reached from the max-speed
 	// "granted" option and beginActivation's SVar branch): the body is the
 	// SVar the AddAbility$ grant names, resolved off the GRANTOR's face, and
@@ -190,8 +190,8 @@ type pendingCast struct {
 	// move -- the mayPlayRemembered discipline, for cost statics.
 	costRemembered []costRememberedEntry `clone:"deep"`
 
-	// replaceGraveyard is the Play SA's ReplaceGraveyard$ Exile rider
-	// (task replplay1): the played spell must not rest in the graveyard —
+	// replaceGraveyard is the Play SA's ReplaceGraveyard$ Exile rider:
+	// the played spell must not rest in the graveyard —
 	// payCast stamps state.FlagReplaceGraveyard onto the pay-time CastInfo
 	// and spellRestZone/spellFizzleZone read it. Per-SA provenance, so it
 	// rides pendingCast rather than the shared "play" mode.
@@ -351,7 +351,7 @@ type pendingCast struct {
 	casualtySac      state.ObjID `clone:"deep"`
 	casualtyX        int32       `clone:"deep"`
 
-	// converge (task converge1) is CR 107.4f-family's count of distinct
+	// converge is CR 107.4f-family's count of distinct
 	// colours (WUBRG) of mana actually spent to cast this spell, captured at
 	// payment from the full spent delta payManaCastSpent returns. convergeOn
 	// is the heads-safety two-arm gate (faceWantsConverge OR a battlefield
@@ -363,16 +363,16 @@ type pendingCast struct {
 	convergeOn bool  `clone:"deep"`
 	converge   int32 `clone:"deep"`
 
-	// manaSpentOn/manaSpent (task castprov1) capture the TOTAL mana the
+	// manaSpentOn/manaSpent capture the TOTAL mana the
 	// cast's payment actually spent, from the same full spent delta
 	// payManaCastSpent returns (the pips summed over every slot).
 	// manaSpentOn is the heads-safety gate (faceWantsCastSpend): the pay-time
 	// CastInfo is emitted ONLY for a face whose SVar table reads the
 	// Count$CastTotalManaSpent head, so no game that casts no such card
-	// changes an event. manaSpentSnow (task castfilter1) is the SNOW-unit part
+	// changes an event. manaSpentSnow is the SNOW-unit part
 	// of that same payment (CR 107.4h), the filtered
 	// Count$CastTotalManaSpent Snow form the six Snow carriers read;
-	// manaSpentTreasure/Cave/Desert (task castfilter2) are the TYPED parts of
+	// manaSpentTreasure/Cave/Desert are the TYPED parts of
 	// that same payment, the filtered Treasure/Cave/Desert forms Marut, Bat
 	// Colony and Cataclysmic Prospecting read. They ride the same emission
 	// gate, and each tag's total rides its OWN trailing CastInfo, so no two
@@ -501,7 +501,7 @@ type pendingCast struct {
 	charmTargets [][]state.Target `clone:"deep"`
 
 	// subAsks / subAns / subStage carry the CAST-TIME pre-ask of the chain's
-	// targeting SubAbility$ bodies (task alltargeted1): Forge asks every
+	// targeting SubAbility$ bodies: Forge asks every
 	// targeting SA in the root ability's whole sub-ability chain BEFORE
 	// cost payment (CR 601.2c), and the answers must (a) feed the
 	// AllTargeted$ cost reads through the union and (b) be consumed by the
@@ -523,7 +523,7 @@ type pendingCast struct {
 	targetedFinish bool `clone:"deep"`
 
 	// evidence / evidenceN / evidenceResolved / evidenceSettled carry the
-	// CollectEvidence<N>/<NAME> cost component (task alltargeted1): the
+	// CollectEvidence<N>/<NAME> cost component: the
 	// amount is resolved once the CR 601.2c targets exist (the corpus
 	// carrier's body reads AllTargeted$CardManaCost over the whole target
 	// union), the ask (evidenceAsk) runs after the sub pre-asks, and the

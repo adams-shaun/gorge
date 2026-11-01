@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestArrangeNoHostStandInKeepsOrder is the Ruling J3 leaf: a host that
+// TestArrangeNoHostStandInKeepsOrder covers the no-host path: a host that
 // cannot ask -- the effects-package test double, whose Ask always returns
 // false -- falls back to the deterministic stand-in of keeping the existing
 // order (pile A = the offered options in offered order), and the resolution

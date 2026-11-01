@@ -39,12 +39,12 @@ func castTargetsFor(t *testing.T, e *Engine, id state.ObjID) []decision.Option {
 	return nil
 }
 
-// TestProtectionFromBlueBlocksTargetingBlockingAndDamage is Task 15's end-to-
+// TestProtectionFromBlueBlocksTargetingBlockingAndDamage is the end-to-
 // end cycle on one protected permanent (Goblin Piledriver's shape, in
 // miniature): a blue source's damage to it is prevented while a red one's
 // lands; a blue creature cannot block it; a blue spell offers it no target
 // while a red one does; and the game still replays exactly. The direct
-// e.damaging/e.canBlock reads mirror the engine-internal hooks the brief
+// e.damaging/e.canBlock reads mirror the engine-internal hooks the
 // exposes; the cast path goes through real decisions so the protection
 // check in askTarget is exercised through play, not just unit-called.
 func TestProtectionFromBlueBlocksTargetingBlockingAndDamage(t *testing.T) {
@@ -110,8 +110,8 @@ func TestProtectionFromBlueBlocksTargetingBlockingAndDamage(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestProtectedBlockerTakesNoDeathtouchAndGivesNoLifelink is Task 15 fix
-// round 1's Critical C1 regression pin. Protection stops a creature from
+// TestProtectedBlockerTakesNoDeathtouchAndGivesNoLifelink is a
+// a regression pin. Protection stops a creature from
 // being blocked BY a blue source, not from blocking one, so a creature with
 // protection from blue blocking a blue Lifelink+Deathtouch attacker is a
 // normal board state. The damage is prevented, and the riders that used to
@@ -146,7 +146,7 @@ func TestProtectedBlockerTakesNoDeathtouchAndGivesNoLifelink(t *testing.T) {
 	}
 }
 
-// TestAbilityFizzlesWhenTargetGainsProtectionBeforeResolving is Task 15 fix
+// TestAbilityFizzlesWhenTargetGainsProtectionBeforeResolving is a
 // round 1's Important I1 pin for the legalTargets filter (stack.go's CR
 // 608.2b recheck at resolution). legalTargets was mutation-tested to be
 // uncovered -- no test exercised dropping a target that became PROTECTED
@@ -273,7 +273,7 @@ func TestAbilityFizzlesWhenTargetGainsProtectionBeforeResolving(t *testing.T) {
 	}
 }
 
-// TestAbilityTargetingWithheldFromProtectedPermanent is Task 15 fix round
+// TestAbilityTargetingWithheldFromProtectedPermanent is a
 // 1's Critical C2 pin. askTarget used to filter protection against the
 // ability STACK OBJECT (minted with no Face by events.Apply's AbilityPush),
 // so effects.ColorsOf saw "" and the filter never fired for an ability: a

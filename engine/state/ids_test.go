@@ -12,7 +12,7 @@ func TestCeasedZoneIsAppendedAndValid(t *testing.T) {
 }
 
 // TestPlayerRefRoundTripsAndRealObjectIDsNeverDecode is PlayerRef/
-// ObjID.PlayerRef's own guard test (FL-41): the sentinel bit only exists
+// ObjID.PlayerRef's own guard test: the sentinel bit only exists
 // because a real object id must never collide with it, so this pins both
 // halves -- encode-then-decode returns the original PlayerID, and every
 // ObjID an ordinary match could plausibly produce (including right up to

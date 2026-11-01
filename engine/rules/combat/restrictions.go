@@ -274,7 +274,7 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 			return true
 		}
 	}
-	// The Effect-registered CantBlock restrictions (cr-g156): a
+	// The Effect-registered CantBlock restrictions: a
 	// `DB$ Effect | StaticAbilities$ KWPump` whose SVar body is
 	// `Mode$ CantBlock | ValidCard$ Creature.OppCtrl` -- Cosmotronic Wave's
 	// "creatures your opponents control can't block this turn", the same
@@ -331,7 +331,7 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 			return true
 		}
 	}
-	// The Effect-registered CantBlockBy restrictions (task cbb1): an
+	// The Effect-registered CantBlockBy restrictions: an
 	// `AB$ Effect | StaticAbilities$ Unblockable` whose SVar body is
 	// `Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered` -- Suspicious
 	// Bookcase's "{3},{T}: Target creature can't be blocked this turn", the

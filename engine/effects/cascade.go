@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Cascade (CR 702.85, task cascade1). The keyword is implemented as a real
+// Cascade (CR 702.85). The keyword is implemented as a real
 // triggered ability: rules' cast flow queues one pendingTrigger per Cascade
 // instance (printed K:Cascade line or layer-6 grant), the drain mints a
 // respondable KeywordTriggerPush stack object whose "__kwCascade" payload

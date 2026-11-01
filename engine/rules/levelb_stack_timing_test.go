@@ -8,7 +8,7 @@ package rules
 //
 // - Starfield Vocalist's static#0.0 probe: gorge doubles the probe creature's
 //   ETB trigger exactly once, and the doubled pair is placed on the stack
-//   only after the controller's trigger-order answer (CR 603.3b, Ruling U1)
+//   only after the controller's trigger-order answer (CR 603.3b)
 //   -- the XMage side places them before asking, which is what its "pass"
 //   checkpoint records.
 // - Ferocification's trigger#0.0 probe: the "At the beginning of combat on

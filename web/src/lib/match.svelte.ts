@@ -25,7 +25,7 @@ function frameSeq(f: Frame): number | null {
  */
 const SPECTATOR_VIEW_MIN_MS = 200;
 
-/** MatchState is everything the focused view renders for one table. A seat context (M2e-4) is additive: when present, views and events are fetched seat-scoped (ViewAtSeat/EventsSeat) so the rendered board and log are the seat's own redacted truth, and the spectator-frame bodies are never rendered; when absent, every fetch and render is byte-identical to the spectator path. */
+/** MatchState is everything the focused view renders for one table. A seat context is additive: when present, views and events are fetched seat-scoped (ViewAtSeat/EventsSeat) so the rendered board and log are the seat's own redacted truth, and the spectator-frame bodies are never rendered; when absent, every fetch and render is byte-identical to the spectator path. */
 export class MatchState implements ClientModelSource {
   match = $state<number | null>(null);
   // Raw for the same reason as dvr below: every write replaces the whole
@@ -138,7 +138,7 @@ export class MatchState implements ClientModelSource {
           return true;
         }
         this.match = f.match ?? this.match;
-        // ui16: the snapshot carries the match's seat list, so a subscriber
+        // The snapshot carries the match's seat list, so a subscriber
         // gets it however it joined — cold load, refresh, or a mid-game focus
         // subscribe that never saw the match_start frame. Re-seeding here
         // (not once at mount from tables.list, which is async) is what makes
@@ -259,7 +259,7 @@ export class MatchState implements ClientModelSource {
    * rewind() writes re-run it -- so the discarded ask was re-adopted into the
    * fresh seq space the rewind had just opened, where it became the seqHigh
    * fence and the restored, lower-seq decision was refused for good: the
-   * 2026-09-26 demo g3 undo, where every answer carried seq 1526 against the
+   * undo report where every answer carried seq 1526 against the
    * restored 1519. The board stays on screen; only its ask is withdrawn.
    */
   private withdrawPaintedDecision() {
@@ -301,7 +301,7 @@ export class MatchState implements ClientModelSource {
     }
   }
 
-  /** refreshLive is PL-16: one GET per burst, coalesced. */
+  /** refreshLive is one GET per burst, coalesced. */
   async refreshLive() {
     if (this.match === null) return;
     if (this.inflight) { this.again = true; return; }

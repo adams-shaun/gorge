@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// The Clone generator (lasagna spec W1a step 4). The `clone:"..."` struct tags
+// The Clone generator (layering design W1a step 4). The `clone:"..."` struct tags
 // are the single source of truth for what Clone copies and what Release
 // recycles: this test renders clone_gen.go from them, so a new field needs a
 // tag and nothing else, and TestCloneGenIsUpToDate fails when the checked-in

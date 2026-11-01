@@ -199,7 +199,7 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 			selector := r.With.ParamStr(cards.PKValidDescription)
 			var opts []decision.Option
 			if kind == "type" {
-				// The type ask is category-aware (task ct1): a Type$ Basic Land
+				// The type ask is category-aware: a Type$ Basic Land
 				// or Card or Planeswalker ranges over that category's real list,
 				// exactly the list the mid-resolution ChooseType ask builds
 				// (engine/effects/type_choices.go), so the two asks cannot disagree.
@@ -219,8 +219,8 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 			if kind == "name" && len(opts) == 0 {
 				// No name passes the filter: the legacy (no-universe) builder
 				// only sees public objects, so "choose a nonbasic land card
-				// name" with none in view (Alpine Moon, cardfuzz batch1 line
-				// 14) built a Min 1 ask with zero options that no answer
+				// name" with none in view (Alpine Moon) built a Min 1 ask
+				// with zero options that no answer
 				// could satisfy. Mirror effNameCard's own empty-list rule so
 				// the two NameCard paths agree: without a corpus universe (or
 				// with no ChooseFromList$) it names the deterministic legacy
@@ -304,7 +304,7 @@ func etbColourLetter(name string) string {
 // total list-pick -- every entryETBChoice caller is guaranteed at least one
 // legal option (a name is anything on the board/hand/yard, a type falls back
 // to "Human", a number is always 0..12) -- so no etb decision can ever be
-// handed out with zero options, and nothing asks an empty choice (R-9's
+// handed out with zero options, and nothing asks an empty choice (the
 // totality rule; see the Options here and the entry decision's Min/Max 1).
 //
 // Option list order is deterministic: names and types are sorted strings
@@ -382,9 +382,9 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 	case etbOptionsEvenodd:
 		return []decision.Option{{Index: 0, Kind: "evenodd", Label: "Odd"}, {Index: 1, Kind: "evenodd", Label: "Even"}}
 	default: // "number"
-		// The shared 0..N list (task cli-20260923T060000Z-choose-number:
-		// engine/effects/number_choices.go is the ONE home), so the as-enters ask
-		// and the mid-resolution ChooseNumber ask cannot disagree.
+		// The shared 0..N list (engine/effects/number_choices.go is the ONE
+		// home), so the as-enters ask and the mid-resolution ChooseNumber ask
+		// cannot disagree.
 		return effects.NumberChoices()
 	}
 }
@@ -442,7 +442,7 @@ func isCreatureFace(f *cards.Face) bool {
 
 // creatureTypeOptions enumerates the creature-type option list the cast-time
 // "as this enters" ask (etbOptions' "type" arm) and the mid-resolution
-// ChooseType ask (Engine.TypeChoices, task ct1) BOTH offer, so the two asks
+// ChooseType ask (Engine.TypeChoices) BOTH offer, so the two asks
 // and the no-ask fallback can never disagree about what a creature-type
 // choice ranges over. CR 205.3m: "choose a creature type" ranges over EVERY
 // creature type, not only the ones in the game, so the list is the whole
@@ -503,8 +503,8 @@ func (e *Engine) creatureTypeOptions(you state.PlayerID, validTypes, invalidType
 	return out
 }
 
-// typeChoiceOptions builds the option list for one ChooseType Type$ category
-// (task ct1), the ONE builder both the as-enters ask (entryETBChoice's "type"
+// typeChoiceOptions builds the option list for one ChooseType Type$ category,
+// the ONE builder both the as-enters ask (entryETBChoice's "type"
 // dispatch) and etbOptions' "type" arm use. A creature (or absent) category
 // keeps the owner-scoped creatureTypeOptions; the context-scoped Shared
 // category reads the entering object's own exiled-with set; every other
@@ -533,7 +533,7 @@ func (e *Engine) typeChoiceOptions(you state.PlayerID, source state.ObjID, param
 	return out
 }
 
-// TypeChoices implements effects.Host.TypeChoices (task ct1): the option list
+// TypeChoices implements effects.Host.TypeChoices: the option list
 // a mid-resolution ChooseType ask offers its chooser. Only the creature
 // category reaches this Host method now -- the creature list is owner-scoped
 // and lives here, while engine/effects/type_choices.go builds the non-creature
@@ -564,7 +564,7 @@ func etbChoicePrompt(kind string) string {
 // SetColor$/AddColors$ and NonLegendary$ True (CR 707.9b exceptions, written
 // by CopyExcept) and SpellDescription$. This is a POSITIVE whitelist over the parsed parameter
 // keys -- the param census's case-whitelist range shape -- never a blacklist:
-// an explicit key list cannot keep up with the corpus. The round-1 blacklist
+// an explicit key list cannot keep up with the corpus. The earlier blacklist
 // missed IntoPlayTapped$ (Vesuva), ChoiceTitle$ (Mirrorhall Mimic),
 // Embalm$-provenance riders (Vizier of Many Faces), AddColors$, RemoveCost$,
 // PumpKeywords$/PumpDuration$ and the AI-hint params, each of which offered a

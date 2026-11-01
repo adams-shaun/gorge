@@ -96,7 +96,7 @@ func (e *Env) CloseLooks() {
 // declines), "cast" (a cast_spell standing for several native variants,
 // listed in Covers), "list" (Option at Position of the native list named by
 // List: "choices", "rest" or "followup:<key>"), "dest" (an arrangement
-// partition, Task 19b). The neutral world adds "fixed": a choice another
+// partition). The neutral world adds "fixed": a choice another
 // engine poses where gorge's engine asks nothing (Pick takes it as is).
 type NativeOp struct {
 	Payment *decision.PaymentSelection `json:"payment,omitempty"`
@@ -162,7 +162,7 @@ type InternalFunc func(*Env, *decision.Decision) (decision.Intent, error)
 
 var internals = map[string]InternalFunc{}
 
-// RegisterInternal makes route an engine-internal answer (Tasks 16 and 21).
+// RegisterInternal makes route an engine-internal answer.
 func RegisterInternal(route string, f InternalFunc) { internals[route] = f }
 
 // Internal answers d when its route is engine-internal; ok is false otherwise.

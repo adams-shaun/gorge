@@ -28,7 +28,7 @@ func resetLine(t *testing.T, id, gameID string) []byte {
 	return []byte(line)
 }
 
-// Task 22 review flag: session.Start returns gamecfg's CheckRandomness error
+// session.Start returns gamecfg's CheckRandomness error
 // as a plain error. Section 9.2 licenses it as unsupported_deck ("cards the
 // engine cannot play, or whose decisions it cannot offer"), and the failed
 // start must consume nothing: no game, no game id.

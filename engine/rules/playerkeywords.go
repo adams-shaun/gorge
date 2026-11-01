@@ -24,7 +24,7 @@ import (
 // inherited rather than re-implemented, and a grant expires with its source
 // exactly as an object's grant does. Only AddKeyword$ grants with a PLAYER
 // spec are consulted (Shroud CR 702.18 and Hexproof CR 702.11 read them;
-// protection CR 702.16 for players is a follow-up — see the ticket report).
+// protection CR 702.16 for players is not modelled).
 // The caller owns every zone/interaction gate, exactly as shroudBlocksTarget
 // and hexproofBlocksTarget's callers do for objects.
 

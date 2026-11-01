@@ -1,7 +1,8 @@
 package rules
 
-// Kernel-era restorations of the tests W3 removed from primitives_untap_mana_test.go: the
-// same behaviour driven through the resolution kernel (the only ask path).
+// Reflected mana (Fellwar Stone, Chrome Mox), Mystic Remora's cumulative upkeep
+// and Mana Vault's upkeep trigger, driven through the resolution kernel (the
+// only ask path).
 
 import (
 	"testing"

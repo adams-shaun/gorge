@@ -96,3 +96,48 @@ func TestChooseTapPrefersDemonstrableOverEmpty(t *testing.T) {
 		t.Fatalf("tap = obj %d (option %d), want the demonstrable producer (obj 10), not the empty source", d.Options[got].Obj, got)
 	}
 }
+
+// manaColourAsk is a source's "which mana" ask over the given options.
+func manaColourAsk(opts ...decision.Option) *decision.Decision {
+	for i := range opts {
+		opts[i].Index, opts[i].Kind = i, "mana"
+	}
+	return &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: opts}
+}
+
+// TestChooseManaColourFloatsWhatTheCardNeeds: a dual tapped toward a blue spell
+// adds blue, not its first colour, whichever way the engine spelled the colour.
+func TestChooseManaColourFloatsWhatTheCardNeeds(t *testing.T) {
+	blue := priorityCards(map[state.ObjID]Card{1: {CMC: 1, ManaCost: "U", Castable: true}})
+	for _, tc := range []struct {
+		name string
+		b    Board
+		d    *decision.Decision
+		want int
+	}{
+		{"flattened colours", blue, manaColourAsk(decision.Option{ManaSymbol: "W"}, decision.Option{ManaSymbol: "U"}), 1},
+		{"one ability per colour", blue, manaColourAsk(decision.Option{Label: "Add W"}, decision.Option{Label: "Add U"}), 1},
+		{"a costed ability", blue, manaColourAsk(decision.Option{Label: "Pay 1: Add W", ManaSymbol: "W"}, decision.Option{Label: "Pay 1: Add U", ManaSymbol: "U"}), -1},
+		{"colourless and a multi-pip ability name no colour", blue, manaColourAsk(decision.Option{Label: "Add C"}, decision.Option{Label: "Add UU"}), -1},
+		{"nothing needs either colour", priorityCards(map[state.ObjID]Card{1: {CMC: 1, ManaCost: "1", Castable: true}}),
+			manaColourAsk(decision.Option{Label: "Add W"}, decision.Option{Label: "Add U"}), -1},
+		{"an announced payment window", blue, func() *decision.Decision {
+			d := manaColourAsk(decision.Option{Label: "Add W"}, decision.Option{Label: "Add U"})
+			d.ManaPayment = &decision.ManaPaymentWindow{}
+			return d
+		}(), -1},
+		{"a payment window's ask", blue, func() *decision.Decision {
+			d := manaColourAsk(decision.Option{Label: "Add W"}, decision.Option{Label: "Add U"})
+			d.ResumeKind = decision.ResumeManaPayment
+			return d
+		}(), -1},
+	} {
+		if got := tc.b.chooseManaColour(tc.d); got != tc.want {
+			t.Errorf("%s: pick %d, want %d", tc.name, got, tc.want)
+		}
+	}
+	d := manaColourAsk(decision.Option{Label: "Add W"}, decision.Option{Label: "Add U"})
+	if in := Decide(blue, d, nil); len(in.Choices) != 1 || in.Choices[0] != 1 {
+		t.Errorf("Decide answered %v, want the blue option", in.Choices)
+	}
+}

@@ -52,12 +52,12 @@ func ringEmblemLabel(level int) string {
 // priorityRound -- see resumeTriggerDrain's own header (turn.go) for the
 // reason that still holds: a second call on priorityRound's path would give
 // a replacement-blocked state-based action a second attempt per step and
-// move sba.go's measured firing counts (Ruling T22-p). (Ruling T28-b: this
+// move sba.go's measured firing counts. (This
 // used to say re-entering priorityRound "would run the draw step's draw a
-// second time" -- true before Task 28 moved the draw out of priorityRound
+// second time" -- true when the draw lived in priorityRound
 // entirely; the reason above is what actually survives that move.)
 //
-// ORDERING DIRECTION (Ruling U2, and the one thing here that is silent if it
+// ORDERING DIRECTION (the one thing here that is silent if it
 // is backwards): the ordering decision's choice[0] is the trigger put on the
 // stack FIRST, and therefore the trigger that resolves LAST. That is the same
 // direction as the between-player rule either side of it -- APNAP puts the
@@ -67,14 +67,13 @@ func ringEmblemLabel(level int) string {
 // asserts it by the order the two effects actually RUN, not by the order they
 // were pushed.
 //
-// The between-player order is not the player's (Ruling U1): it is CR 603.3b's
-// APNAP, kept here as the same sort.SliceStable by controller rank the
-// pre-Task-27 version used. Ties within one controller keep checkTriggers'
-// discovery order (seat, then zone, then zone position); that is the order the
+// The between-player order is not the player's: it is CR 603.3b's APNAP, kept
+// here as a sort.SliceStable by controller rank. Ties within one controller
+// keep checkTriggers' discovery order (seat, then zone, then zone position); that is the order the
 // options are OFFERED in, and which of them actually goes first is then the
 // controller's answer rather than the engine's.
 //
-// RESUMABILITY (Ruling U3). The queue this walks can grow underneath it.
+// RESUMABILITY. The queue this walks can grow underneath it.
 // Submit runs handle, then checkStateBased, then Advance, and checkStateBased
 // (sba.go) is a bounded fixed-point loop that emits PlayerLost, MoveZone and
 // GameOver events -- every one of which runs checkTriggers. So a creature
@@ -171,7 +170,7 @@ func (e *Engine) putTriggersOnStack() bool {
 		e.popFrontTrigger()
 		e.pushTrigger(pt)
 		if e.Pending() != nil {
-			// Task 7: the trigger asked for its targets right after its
+			// The trigger asked for its targets right after its
 			// TriggerPush. Return immediately without granting priority, exactly
 			// as for the ordering and optional asks above; the drain resumes
 			// through handleTarget -> resumeTriggerDrain.
@@ -394,8 +393,7 @@ func (e *Engine) removeTriggerAt(i int) pendingTrigger {
 // decision was asked about.
 //
 // It is normally at the front: nothing on a reachable path removes from the
-// front of the queue between an ask and its answer. Fix round 1, review
-// finding F4: this used to be a bare front-only equality check whose failure
+// front of the queue between an ask and its answer. A bare front-only equality check whose failure
 // branch did nothing at all, so the drain went straight on to ask the SAME
 // trigger's question again -- the player's answer consumed, its Seq spent,
 // and silently discarded. Searching forward instead honours the answer
@@ -415,7 +413,7 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 
 // pushTrigger mints one triggered ability's stack object.
 //
-// Ruling T20-a: the object itself is created inside events.Apply's TriggerPush
+// The object itself is created inside events.Apply's TriggerPush
 // case, not here -- a direct, unlogged Game.AddObject call (as this used to
 // be) names an ObjID a log-only replay never learns about, so its own
 // zone-placement Move silently no-ops and the replayed stack permanently
@@ -424,9 +422,9 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // (pt.Idx, so Apply re-derives the *cards.SA rather than needing a logged
 // pointer), the controller, and the Remembered object(s).
 //
-// Ruling U4: the ORDER of these events is the only place the ordering choice
+// The ORDER of these events is the only place the ordering choice
 // is recorded, and it is the whole of what a log-only replay needs. No event
-// kind and no Event field was added for Task 27.
+// kind and no Event field was added.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// Every push path announces the modes, the root target and (CR 603.3d)
 	// the chain links' targets before priority through this one helper. A
@@ -702,7 +700,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
-	// A printed-or-granted cascade (CR 702.85, task cascade1): the Ward
+	// A printed-or-granted cascade (CR 702.85): the Ward
 	// shape. The trigger is mandatory; its Counter payload "__kwCascade:" is
 	// what events.Apply rebuilds into the DB$ Cascade body both the printed
 	// K:Cascade line and every layer-6 AddKeyword$ Cascade grant share, and
@@ -936,11 +934,11 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
-	// Task 18: a Miracle offer is placed by casting the card for its miracle
+	// A Miracle offer is placed by casting the card for its miracle
 	// cost, not by minting a triggered-ability stack object. castMiracle
 	// verifies the card is still in the owner's hand, emits the reveal Note,
 	// and begins the ordinary cast flow; it may pause on an X/target decision
-	// of its own, which is exactly Task 7's drainAwaitsTarget continuation
+	// of its own, which is exactly the drainAwaitsTarget continuation
 	// (see castMiracle's doc). A Miracle trigger is NOT delayed, so the flag
 	// order matters: a Miracle offer must reach castMiracle, never the
 	// DelayedPush path below.
@@ -1095,20 +1093,20 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil && !e.drainAwaitsModes
 		return
 	}
-	// CR 800.4a / Ruling U6, fix round 2 (re-review N2): an ability
-	// controlled by a player who has left the game ceases to exist, so it is
-	// never minted. dropDepartedTriggers enforces this for the queue, but it
-	// only runs inside putTriggersOnStack -- it cannot run while a decision
-	// is pending, and an optional trigger's DECIDER may be a different,
-	// living seat (OptionalDecider$ TriggeredCardController, 40 T: lines in
-	// the corpus). So a decider could answer yes for a controller who had
-	// been eliminated in the meantime and resurrect their ability. This is
-	// the check placed at the one point a triggered ability's stack object is
-	// created, rather than at each of the paths that reach it.
+	// CR 800.4a: an ability controlled by a player who has left the game
+	// ceases to exist, so it is never minted. dropDepartedTriggers enforces
+	// this for the queue, but it only runs inside putTriggersOnStack -- it
+	// cannot run while a decision is pending, and an optional trigger's
+	// DECIDER may be a different, living seat (OptionalDecider$
+	// TriggeredCardController, 40 T: lines in the corpus). So a decider could
+	// answer yes for a controller who had been eliminated in the meantime and
+	// resurrect their ability. This is the check placed at the one point a
+	// triggered ability's stack object is created, rather than at each of the
+	// paths that reach it.
 	if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 		return
 	}
-	// FL-41: Remembered can hold a player entry now (triggerRemembered's
+	// Remembered can hold a player entry (triggerRemembered's
 	// DeclareAttackers case appends the defending player), but IDs is an
 	// []ObjID -- there is no field here for a bare PlayerID. Encoding it
 	// with state.PlayerRef instead of just writing tgt.Obj (always 0 for a
@@ -1134,15 +1132,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 		}
 		e.triggerContexts[id] = pt.Ctx.TriggerContext
-		if pt.Ctx.LKI != nil {
-			if e.triggerLKI == nil {
-				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
-			}
-			lki := pt.Ctx.LKI.CloneDeep()
-			e.triggerLKI[id] = triggerObjectLKI{object: &lki,
-				power: pt.Ctx.Snap.Power, toughness: pt.Ctx.Snap.Toughness,
-				ptValid: pt.Ctx.Snap.PTValid}
-		}
+		e.keepTriggerLKI(id, &pt)
 		if pt.Ctx.Snap.SourceLifelinkValid {
 			if e.sourceLifelinkLKI == nil {
 				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
@@ -1165,7 +1155,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			e.damageSourceLKI[id] = cloneDamageSourceLKI(pt.Ctx.Snap.DamageSource)
 		}
 	}
-	// Task 7: a trigger that declares ValidTgts$ asks its controller for
+	// A trigger that declares ValidTgts$ asks its controller for
 	// targets RIGHT AFTER its TriggerPush -- the ability object is now top of
 	// stack, and the choice is asked before any player receives priority. The
 	// drain records drainAwaitsTarget (Clone copies it) so handleTarget knows
@@ -1193,7 +1183,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		id := e.G.Stack[len(e.G.Stack)-1]
 		announce(id, false)
 	}
-	// Fix round 1 (reviewer minor, cheap): derive drainAwaitsTarget from
+	// Derive drainAwaitsTarget from
 	// e.Pending() rather than clearing it first. The old form set it false
 	// up front and recomputed it only inside the ask branch, so a flag an
 	// OUTER caller had already set and not yet consumed was discarded the
@@ -1209,12 +1199,12 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 // triggerOf re-reads the T: line a pending trigger came from, so nothing has
 // to be cached on pendingTrigger for it.
 //
-// Fix round 1, review finding F5: the guarantee is narrower than the previous
+// The guarantee is narrower than the previous
 // wording claimed. A parsed cards.Trigger is static text, but this reads
 // Obj.Face(), which is NOT static -- it follows the object's ACTIVE face. A
 // permanent whose face changed between the trigger matching and the drain
 // would be read against the new face's Triggers slice, giving the wrong
-// optionality flag and label. Nothing in M1 can reach that (effects.SetState
+// optionality flag and label. Nothing in the engine reaches that (effects.SetState
 // is the only FlipFace source and no card in play uses it), but this is
 // "correct because nothing flips faces", not "correct because the data cannot
 // change". A source that has ceased to exist, or an index the current face is
@@ -1444,14 +1434,13 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // the yes/no question, and whether that seat can still answer it.
 //
 // The spelling is Forge's, established by grepping .cards/cardsfolder rather
-// than guessed (the precedent for not guessing is Ruling T12-a). On a T: line
-// optionality is spelled OptionalDecider$ and nothing else: 1496 T: lines
-// carry it, and the bare Optional$ form -- 1143 occurrences (SVar 884, A 225,
-// R 19, S 15) -- never once appears on a T: line, because it is a different
-// thing (a "you may" inside an ability's own resolution, not a choice about
-// whether the trigger is put on the stack). The parser needs no change to
-// carry it: parseParams already collects every Key$ value on the line into
-// Trigger.Params.
+// than guessed. On a T: line optionality is spelled OptionalDecider$ and
+// nothing else: 1496 T: lines carry it, and the bare Optional$ form -- 1143
+// occurrences (SVar 884, A 225, R 19, S 15) -- never once appears on a T:
+// line, because it is a different thing (a "you may" inside an ability's own
+// resolution, not a choice about whether the trigger is put on the stack).
+// The parser needs no change to carry it: parseParams already collects every
+// Key$ value on the line into Trigger.Params.
 //
 // "Bare" means the anchored pattern (^|[^A-Za-z])Optional$ and is load-
 // bearing in the count: the unanchored substring gives 1199, because Forge
@@ -1486,24 +1475,23 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // of Trest, Undercity Reaches, Gix Yawgmoth Praetor, Synapse Sliver) now read
 // the captured damage source, one root cause per card.
 //
-// CAVEAT (Task 6, fix round 1; B8 kept the shape): the Remembered[0] fallback
-// assumes it is the object the FIRING trigger's own T: line is on, which
-// triggerRemembered no longer guarantees for a DeclareAttackers-driven Attacks
-// trigger -- Remembered there is every attacker declared against one defending
-// player (handleAttackers emits one event per defender since Task m34), in
-// event order, so Remembered[0] is whichever creature attacking that defender
-// was declared first, not necessarily pt.Source. For TriggeredSourceController
-// the captured role now wins because every Attacks instance binds one (the
-// queue point's attacksTriggerInstances sets TriggerSource = TriggerCard to
-// each matching attacker, CR 508.3a/603.2c); only a delayed registration or
-// the AttackersDeclared batch family leaves the role absent and still reads
-// Remembered[0]. No repo-deck T: line combines Mode$
-// Attacks with OptionalDecider$ TriggeredCardController/
-// TriggeredSourceController today (measured against the same corpus the table
-// above was), so this is a latent gap, not a live one -- but a future card
-// that did would have TriggeredCardController read the wrong creature's
-// controller whenever it attacks alongside another creature that happened to
-// be declared first.
+// CAVEAT: the Remembered[0] fallback assumes it is the object the FIRING
+// trigger's own T: line is on, which triggerRemembered no longer guarantees
+// for a DeclareAttackers-driven Attacks trigger -- Remembered there is every
+// attacker declared against one defending player (handleAttackers emits one
+// event per defender), in event order, so Remembered[0] is
+// whichever creature attacking that defender was declared first, not
+// necessarily pt.Source. For TriggeredSourceController the captured role now
+// wins because every Attacks instance binds one (the queue point's
+// attacksTriggerInstances sets TriggerSource = TriggerCard to each matching
+// attacker, CR 508.3a/603.2c); only a delayed registration or the
+// AttackersDeclared batch family leaves the role absent and still reads
+// Remembered[0]. No repo-deck T: line combines Mode$ Attacks with
+// OptionalDecider$ TriggeredCardController/ TriggeredSourceController today
+// (measured against the same corpus the table above was), so this is a latent
+// gap, not a live one -- but a future card that did would have
+// TriggeredCardController read the wrong creature's controller whenever it
+// attacks alongside another creature that happened to be declared first.
 //
 // LIMITATION, stated rather than assumed: the remaining ten T: lines
 // (TriggeredPlayer, EnchantedController, TriggeredAttackingPlayer,
@@ -1516,7 +1504,7 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // silent approximation. Closing it needs the trigger to capture the player at
 // match time, which is a change to what checkTriggers records.
 func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optional, askable bool) {
-	// Task 18: a Miracle offer is always optional and its decider is always the
+	// A Miracle offer is always optional and its decider is always the
 	// owner (the controller of the drawn card). It has no T: line to read, so
 	// this must be special-cased before triggerOf (which would fail for it).
 	// Evoke and Madness are mandatory follow-ups with no placement question;
@@ -1614,7 +1602,7 @@ func (e *Engine) targetChooserFromSpec(spec string, controller state.PlayerID, r
 	// The Opponent / Player.Opponent form is handled by targetChooserCore,
 	// the one home for that shape: this resolver only resolves
 	// trigger-relative referents. (The Opponent branch was here until the
-	// controller-selection ask was added -- agent-20260925T085158Z-c861188d.)
+	// controller-selection ask was added.)
 	default:
 		return controller, false
 	}
@@ -1636,7 +1624,7 @@ func (e *Engine) targetChooserAlive(p state.PlayerID) bool {
 // so is each entry's own Label -- neither aliases e.pendingTriggers, so a
 // caller (view.Project) mutating what it gets back cannot corrupt the drain.
 //
-// Ruling F2/R3: this is the whole of what lets view describe the trigger
+// This is the whole of what lets view describe the trigger
 // queue without importing rules -- state.PendingTrigger is the shared
 // vocabulary, built here from the same triggerLabel and optionalDecider the
 // drain itself (putTriggersOnStack, above) already uses, so a client's view
@@ -1662,7 +1650,7 @@ func (e *Engine) PendingTriggers() []state.PendingTrigger {
 
 // StackOptional reports whether a stack object is an optional triggered
 // ability whose resolution-time yes/no (CR 603.5) has not yet been answered,
-// and which seat answers it. Ruling VW-1: the optionality belongs on the
+// and which seat answers it. The optionality belongs on the
 // stack entry, because under CR 603.5 the ability is already on the stack
 // when the question is posed, so the queue is empty at that moment. It
 // reuses the same OptionalDecider$ read and deciderFromSpec derivation as
@@ -1702,8 +1690,8 @@ func (e *Engine) StackOptional(id state.ObjID) (optional bool, decider state.Pla
 // TriggerDescription$ is the text a real player would recognise; the source's
 // name disambiguates two copies of the same card.
 func (e *Engine) triggerLabel(pt pendingTrigger) string {
-	// Task 18: a Miracle offer is named by the card and its miracle cost, not by
-	// a TriggerDescription$ (there is no T: line). This is the label the brief's
+	// A Miracle offer is named by the card and its miracle cost, not by
+	// a TriggerDescription$ (there is no T: line). This is the label
 	// interface spells -- "Miracle — reveal <name> and cast it for <cost>?" --
 	// and it is what askTriggerOptional shows inside its offer prompt.
 	// Madness and Evoke are mandatory keyword-triggered abilities; their labels
@@ -1969,7 +1957,7 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 // askTriggerOrder is R1: the controller of two or more simultaneous triggers
 // chooses the order. Min == Max == n over exactly that controller's own n
 // pending triggers, so Decision.Validate's existing rules (n choices, all
-// distinct, all in range) already mean "a permutation of these n" and Ruling
+// distinct, all in range) already mean "a permutation of these n" and
 // U2 needs no wire-format change at all.
 //
 // Option i is e.pendingTriggers[i]; that positional correspondence is the only
@@ -2049,7 +2037,7 @@ func permuteTriggersInPlace(q []pendingTrigger, choices []int) {
 }
 
 // frontIsTheOfferedGroup rechecks that the queue still starts with exactly the
-// triggers d offered, in the order it offered them. Ruling U3's "cannot be
+// triggers d offered, in the order it offered them. The "cannot be
 // reordered by that path", verified rather than assumed.
 func (e *Engine) frontIsTheOfferedGroup(d *decision.Decision) bool {
 	n := len(d.Options)

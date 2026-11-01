@@ -158,7 +158,7 @@ func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state
 	return e, id, bears
 }
 
-// TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter is the brief's
+// TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter is the
 // integration case: the real corpus Out of Time acquires its TIME counters
 // through its OWN printed Count$RememberedSize mechanism (the fixture
 // RememberAffected$ event-captures the affected creatures;

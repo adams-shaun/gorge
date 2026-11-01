@@ -12,8 +12,7 @@ import (
 // every zone-change event (Origin$, ExcludedOrigins$, Destination$) are
 // classified once at load: each key has a cards.ParamCoder below, so the
 // ParamSet stores the compiled code and the matchers read it through
-// ParamCode instead of re-parsing the word per event (spec W4, "strings
-// compile to masks").
+// ParamCode instead of re-parsing the word per event.
 
 // ZoneList is a zone-set parameter (Origin$'s grammar: one zone word or a
 // comma list, Any/All a wildcard) compiled exactly as ParseZones reads it: a

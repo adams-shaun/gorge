@@ -14,7 +14,7 @@ import (
 )
 
 // createGame returns the Options.CreateGame closure gorged arms so the
-// browser can seat a human against a bot on demand (Task ui11). It builds a
+// browser can seat a human against a bot on demand. It builds a
 // fresh single-shot 2-seat table in the requested format — seat 0 human,
 // seat 1 bot. Each seat may request a deck from that format's pool; an
 // omitted choice is assigned from the same seeded random order as before.
@@ -57,7 +57,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			return httpapi.CreateGameResponse{}, err
 		}
 		// The offered set gates BOTH the default and the client's explicit
-		// pick (BP-18, spec §9.3): -bot-policies is the listing this server
+		// pick: -bot-policies is the listing this server
 		// advertises, so a name it omits must be refused here too, or a
 		// client could create a game it would never have been offered. An
 		// empty set means every registered entry (the flag's own default and
@@ -149,8 +149,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
-		// The request may set its own London allowance (finding
-		// fb-20260914T114629Z-6c81e4d6); an omitted field keeps the server
+		// The request may set its own London allowance; an omitted field keeps the server
 		// default. host.TableConfig.Validate still rejects a negative, so a
 		// caller that skips the handler's 0..6 cap fails at AddTable.
 		mulligans := c.mulligans

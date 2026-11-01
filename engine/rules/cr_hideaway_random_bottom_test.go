@@ -1,6 +1,6 @@
 package rules
 
-// Hideaway's remainder (cr-g63). CR 702.75a: "look at the top N cards of
+// Hideaway's remainder. CR 702.75a: "look at the top N cards of
 // your library. Exile one of them face down and put the rest on the bottom
 // of your library in a random order." The order is the engine's seeded
 // draw, never a player's arrangement.
@@ -34,7 +34,7 @@ func TestCRHideawayRestGoesToBottomInRandomOrder(t *testing.T) {
 	id := e.G.Objs[0].ID
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
 	e.putTriggersOnStack()
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	pick := e.Pending()
 	if pick == nil || pick.Kind != decision.KChoose || len(pick.Options) != 4 {
 		t.Fatalf("Hideaway pick = %+v, want the four-card exile choice", pick)

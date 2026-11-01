@@ -100,7 +100,7 @@ func TestInOwnMainPhaseHeadIgnoresWasCast(t *testing.T) {
 // TestIfCastInOwnMainPhaseHeadResolvesSVariantOperands pins the operand
 // machinery: the corpus's branch values are literals, but the shared resolver
 // must still reach an SVar-named token the way Count$Foretold.X.1 does (the
-// brief's Return to Dust / Might of Old Krosa / Haunting Hymn shapes all read
+// Return to Dust / Might of Old Krosa / Haunting Hymn shapes all read
 // numbers, so a future SVar spelling must not silently read 0).
 func TestIfCastInOwnMainPhaseHeadResolvesSVariantOperands(t *testing.T) {
 	h, c := fixtureHost(t)

@@ -12,15 +12,15 @@ import (
 // This file holds the three planechase effect verbs Forge's card corpus uses
 // on plane cards and the "Will of the Planeswalkers" cycle (Path of the
 // Pyromancer/Animist/Schemer/Enigma/Ghosthunter). The planar deck and zone
-// now exist (CR 901; task agent-20260924T183758Z-1ddc7625), so a seat with a
-// planar deck planeswalks for real (the events.PlanarWalk fold rotates the
-// deck and reveals the next plane) and DB$ ChaosEnsues erupts the current
-// plane for real (the events.ChaosEnsues marker makes the plane's own
-// Mode$ ChaosEnsues ability trigger). A seat with NO planar deck keeps the
-// recorded no-op Note the verbs have always had, so a non-Planechase game
-// that resolves one of these SVars is still visible and harmless. Each is a
-// genuine registration rather than a RegisterNonAPI marker: they are DB$
-// APIs the resolver dispatches, not keywords/triggers/statics.
+// now exist (CR 901), so a seat with a planar deck planeswalks for real (the
+// events.PlanarWalk fold rotates the deck and reveals the next plane) and DB$
+// ChaosEnsues erupts the current plane for real (the events.ChaosEnsues
+// marker makes the plane's own Mode$ ChaosEnsues ability trigger). A seat
+// with NO planar deck keeps the recorded no-op Note the verbs have always
+// had, so a non-Planechase game that resolves one of these SVars is still
+// visible and harmless. Each is a genuine registration rather than a
+// RegisterNonAPI marker: they are DB$ APIs the resolver dispatches, not
+// keywords/triggers/statics.
 
 func init() {
 	Register("BlankLine", effBlankLine)
@@ -69,7 +69,7 @@ func effPlaneswalk(h Host, c *Ctx, sa *cards.SA) {
 				}
 			} else {
 
-				// R-9: a host without a decision channel deterministically declines.
+				// No-host path: a host without a decision channel deterministically declines.
 				answer = "no"
 			}
 

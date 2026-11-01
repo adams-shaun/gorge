@@ -48,7 +48,7 @@ func TestHideawayETBTriggerClivesHideaway(t *testing.T) {
 		t.Fatalf("Clive's Hideaway ETB stack = %v, want one trigger", e.G.Stack)
 	}
 
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	pick := e.Pending()
 	if pick == nil || pick.Kind != decision.KChoose || len(pick.Options) != 4 {
 		t.Fatalf("Clive's Hideaway pick = %+v, want four-card choice after resolving ETB trigger", pick)

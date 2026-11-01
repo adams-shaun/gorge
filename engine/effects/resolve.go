@@ -181,7 +181,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		// Pose the yes/no election -- but only when the change would
 		// actually do something; with nothing to change, decline and accept
 		// are the same, so no ask (the Attach precedent's len(legal) == 0
-		// gate). No served answer ends the effect (R-9); the clamp-answered
+		// gate). No served answer ends the effect; the clamp-answered
 		// bot path answers option 0 = "yes", so a bot game stays
 		// byte-identical to the pre-ask always-change.
 		if setStateWouldChange(h, c, sa, turnUp, turnDown, unspecialize, transform) {
@@ -359,7 +359,7 @@ func setStateObjWouldChange(h Host, c *Ctx, sa *cards.SA, o *state.Object, turnU
 // mode would change. Forge's chooseCardsForEffect is optional unless
 // Mandatory$ True, and Optional$ True also lets the pick be declined. An empty
 // pool asks nothing and changes nothing; ok is false when no answer was
-// served (R-9).
+// served.
 func setStateChoose(h Host, c *Ctx, sa *cards.SA, sp *SetStateParams, optional, turnUp, turnDown, unspecialize, transform bool) ([]state.Target, bool) {
 	g := h.Game()
 	var eligible []state.ObjID
@@ -413,7 +413,7 @@ func setStateChoose(h Host, c *Ctx, sa *cards.SA, sp *SetStateParams, optional, 
 // countered by an earlier effect in the same response), it is simply skipped
 // rather than moved from wherever it now sits.
 //
-// Task 9 fix round 1 (Important 2): a spell cast for its flashback cost is
+// A spell cast for its flashback cost is
 // exiled "any time it would leave the stack" (CR 702.33b), which includes
 // being countered -- spellRestZone (engine/rules/stack.go) covers every exit in
 // resolveTop, but this primitive hard-coded the graveyard, so a countered
@@ -573,7 +573,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 
 // encodeRemembered turns a Remembered target list into the []ObjID an event
 // carries, PlayerRef-encoding a player target the same way rules.pushTrigger
-// does (FL-41) so events.Apply's rememberedFrom decodes it back to a player
+// does so events.Apply's rememberedFrom decodes it back to a player
 // target rather than a zero object id. It mirrors the rule in effects since
 // effects cannot import rules.
 func encodeRemembered(remembered []state.Target) []state.ObjID {
@@ -589,7 +589,7 @@ func encodeRemembered(remembered []state.Target) []state.ObjID {
 }
 
 // effRepeat runs RepeatSubAbility$ MaxRepeat$ times -- the fetched corpus's
-// real parameter name. RepeatNum$ (the Task 18 brief's name, which real
+// real parameter name. RepeatNum$ (which real
 // cards never use) is still honoured, as a fallback for anything that
 // predates MaxRepeat$. Either way the run count goes through Num(), so an
 // SVar-indirected Count$ works for either name. It is capped at 1000 so a
@@ -668,7 +668,7 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 				// iteration up to the cap is the same no-op (Rally the Horde
 				// over an empty library: nothing is exiled, "the last card
 				// exiled isn't a land" keeps holding -- 1000 empty passes, a
-				// livelock to the watcher; cardfuzz batch8 line 4). End the
+				// livelock to the watcher). End the
 				// loop here, the optional arm's CR 732.2a shortcut below.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 					Text: "the repeated process changed nothing; it is not repeated again"})

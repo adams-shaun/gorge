@@ -22,7 +22,7 @@ import (
 // Snow, Blessing of Frost, Tundra Fumarole, Graven Lore, Search for Glory)
 // all read `Count$CastTotalManaSpent Snow`; before this fix the head returned
 // the UNFILTERED total (e.g. 5), and after it returns the snow-sourced count
-// (2). Task castfilter2 below gives Treasure/Cave/Desert the same per-unit
+// (2). Below, Treasure/Cave/Desert the same per-unit
 // provenance through Player.TypedMana (Marut, Bat Colony, Cataclysmic
 // Prospecting).
 
@@ -122,12 +122,12 @@ func TestCataclysmicProspectingCastTotalManaSpentFailsClosed(t *testing.T) {
 	}
 }
 
-// --- Task castfilter2: producer-type mana provenance ------------------------
+// --- Producer-type mana provenance ------------------------
 //
 // The filtered Count$CastTotalManaSpent Treasure/Cave/Desert forms now
 // resolve from Player.TypedMana, the per-unit producer tally the pool
 // carries beside Snow. Marut, Bat Colony and Cataclysmic Prospecting are
-// the brief's named carriers; the pins below assert the REAL derived effect
+// the named carriers; the pins below assert the REAL derived effect
 // (tokens created), never the captured field alone.
 
 // drainEtb drains the resolution's queued triggers and the stack: the

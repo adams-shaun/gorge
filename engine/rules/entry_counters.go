@@ -6,15 +6,14 @@
 // arithmetic lives in events.EntryCounterGrants. The final placements are
 // prepared against the would-enter board, then folded with the move itself.
 //
-// Task agent-20260923T084704Z-b2386c25 adds the last leg: when a grant's
-// AddCounter competition does not commute and the affected player must make
-// CR 616.1's order choice, the ENTRY itself is staged behind the answer
-// (entryCounterStage) instead of folding first and adjusting after. The
-// staging is detected in Engine.emit's pre-pass, before any of the fold's
-// observers run, so no observer -- an ETB trigger, a state-based action, a
-// chapter queue -- ever sees the un-replaced entry. The completed stage is
-// consumed by foldEntryMove, which folds the move with the finalized amounts
-// in its Pairs payload exactly as an uncontested entry does.
+// The last leg: when a grant's AddCounter competition does not commute and the
+// affected player must make CR 616.1's order choice, the ENTRY itself is staged
+// behind the answer (entryCounterStage) instead of folding first and adjusting
+// after. The staging is detected in Engine.emit's pre-pass, before any of the
+// fold's observers run, so no observer -- an ETB trigger, a state-based action,
+// a chapter queue -- ever sees the un-replaced entry. The completed stage is
+// consumed by foldEntryMove, which folds the move with the finalized amounts in
+// its Pairs payload exactly as an uncontested entry does.
 
 package rules
 
@@ -1250,7 +1249,7 @@ func (e *Engine) foldEntryMove(ev *events.Event, tally bool) []string {
 		// an entry emitted inside a replacement body, or a TokenCreate/
 		// CardToken mint. There the ordinary counter path owns its park and
 		// resume, and the placements follow the move (the pre-staging
-		// behaviour this task's pre-pass replaces for ordinary entries).
+		// behaviour the pre-pass replaces for ordinary entries).
 		// No body is absorbed here: its own placement run owns the park.
 		stripEntryRequests(ev)
 		events.EmitPtr(e.G, e.L, ev)

@@ -31,21 +31,20 @@ import (
 // answers yes to any of the probes the zone's collectors share, or when it
 // carries merged cards (a pile is never skipped by the collectors).
 //
-// The battlefield joined the four hidden-ish zones (task
-// agent-20260927T121204Z-25ddc587): staticEffects re-scans once per emitted
-// event, and on a mass-token board almost every permanent is a vanilla token
-// with no statics at all, so the scan's cost is O(board) per event for a
-// result no object changes. A face with NO statics is a provable no-op for
-// every collector that shares staticSourceIDs, so the battlefield summary
-// treats a face with any statics at all as hot. That probe is deliberately
-// coarser than the off-battlefield trio below: the collectors sharing this
-// walk differ in which Mode$ and which parameters they read (staticEffects
-// reads Continuous; staticsMayChangeTypes reads the layer-4 keys; the
-// walkcache cost/mana collectors read others), so "has any static" is the
-// one test conservative for all of them, and it still skips the vanilla
-// token. A static-cold object is therefore skipped by every collector's own
-// per-object gate, so leaving it out of the walk changes no collector's
-// output or order.
+// The battlefield is summarised with the four hidden-ish zones: staticEffects
+// re-scans once per emitted event, and on a mass-token board almost every
+// permanent is a vanilla token with no statics at all, so the scan's cost is
+// O(board) per event for a result no object changes. A face with NO statics
+// is a provable no-op for every collector that shares staticSourceIDs, so the
+// battlefield summary treats a face with any statics at all as hot. That
+// probe is deliberately coarser than the off-battlefield trio below: the
+// collectors sharing this walk differ in which Mode$ and which parameters
+// they read (staticEffects reads Continuous; staticsMayChangeTypes reads the
+// layer-4 keys; the walkcache cost/mana collectors read others), so "has any
+// static" is the one test conservative for all of them, and it still skips
+// the vanilla token. A static-cold object is therefore skipped by every
+// collector's own per-object gate, so leaving it out of the walk changes no
+// collector's output or order.
 //
 // Summary freshness is the replacement-walk argument (engine/rules/repl_zoneskip.go):
 // each (seat, zone) summary records its id list and hot subset, and is reused

@@ -125,7 +125,7 @@ func TestTeamworkTargetAnnouncementEligibility(t *testing.T) {
 					// Charm's Teamwork announcement offers both modes; the bounce
 					// mode's own target census must expose the seeded nonland
 					// permanents and its 1..2 declaration range.
-					if !e.charmTargetsAvailable(0, spell, root, false) {
+					if !e.charmTargetsAvailable(0, spell, spell, root, false) {
 						t.Fatal("Atlantis Attacks Charm offered no legal mode despite battlefield candidates")
 					}
 					modes := copyCharmModes(face, root, []string{"DBCreate", "DBBounce"})

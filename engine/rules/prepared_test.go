@@ -1,6 +1,6 @@
 package rules
 
-// Task prepare1 (CR 722, "Preparation Cards"): the prepared designation and
+// CR 722, "Preparation Cards": the prepared designation and
 // the exile copy of a permanent's prepare spell. The designated carrier
 // family -- every corpus script with an `Attributes$ Prepared` line -- is
 // larger than any one set, so this file also pins the corpus census so a
@@ -21,7 +21,7 @@ import (
 // brief: it names the corpus population the Prepared fold serves. `Attributes$
 // Prepared` is the raw Forge spelling both the ETBReplacement grant and the
 // unprepare effect use; measured over the pinned Card-Forge corpus it is 56
-// files (the brief's figure held). Elite Interceptor is and remains one
+// files. Elite Interceptor is and remains one
 // ordinary member of this class -- the engine special-cases no card.
 func TestPrepareCensusCountsPreparedAttributeCarriers(t *testing.T) {
 	t.Parallel()
@@ -44,7 +44,7 @@ func TestPrepareCensusCountsPreparedAttributeCarriers(t *testing.T) {
 		t.Fatalf("walk corpus: %v", err)
 	}
 	// The pinned corpus (FORGE_REF) is the authority; a mismatch means the
-	// corpus moved and the figure in the brief needs re-measuring, not that
+	// corpus moved and the figure needs re-measuring, not that
 	// the mechanic is wrong.
 	const want = 74 // 56 at FORGE_REF 95f04e8; 74 at fb4d809
 	if len(carriers) != want {

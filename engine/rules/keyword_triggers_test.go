@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task 16 keyword triggers: Undying, Evolve, Exalted, Prowess. Each keyword
+// Keyword triggers: Undying, Evolve, Exalted, Prowess. Each keyword
 // is expanded by engine/cards/keywords.go into an ordinary ChangesZone / Attacks /
 // SpellCast trigger routed through trigger_match.go's own modes (see
 // keyword_registration_test.go's pin and the acceptance ratchet), so these
@@ -21,7 +21,7 @@ import (
 // -- the engine's "CR 117.5: handle state-based actions and triggered
 // abilities before granting priority" entry point -- to place any queued
 // trigger on the stack ahead of passUntilStackEmpty draining it. This deviates
-// from the brief's bare e.Advance() calls, which are a no-op here: emitting an
+// from bare e.Advance() calls, which are a no-op here: emitting an
 // event directly leaves whatever decision was pending (genesis's first
 // priority in newFixtureDeck) untouched, so e.Advance() returns immediately
 // without ever running putTriggersOnStack. e.priorityRound() is the same

@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task cost:xmin-param: the ability-level `XMin$ N` parameter is a floor on
+// The ability-level `XMin$ N` parameter is a floor on
 // the announced X of the activated ability's own cost, beside the already
 // modelled cost-embedded XMin<N>/X1+ carriers. Before this ticket xAsk read
 // only pc.cost.XMin and pc.suspendMinX, so an SA with a bare announced-X

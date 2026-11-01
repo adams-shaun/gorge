@@ -10,14 +10,13 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestSunbirdsInvocationRestRandomOrderShufflesLibraryBottom is the
-// ticket-20260918T221252Z-064ef40a pin for the brief's named real-corpus
-// carrier: Sunbird's Invocation's `DBRestRandomOrder` ChangeZoneAll
-// (`ChangeType$ Card.IsRemembered | Origin$ Library | Destination$ Library |
-// LibraryPosition$ -1 | RandomOrder$ True`) returns the remembered revealed
-// cards to the bottom of their owner's library in a shuffled order, and a
-// log-only replay re-derives the identical order (the shuffle draws the
-// seeded engine rng, never math/rand).
+// TestSunbirdsInvocationRestRandomOrderShufflesLibraryBottom is the pin for
+// the named real-corpus carrier: Sunbird's Invocation's `DBRestRandomOrder`
+// ChangeZoneAll (`ChangeType$ Card.IsRemembered | Origin$ Library |
+// Destination$ Library | LibraryPosition$ -1 | RandomOrder$ True`) returns
+// the remembered revealed cards to the bottom of their owner's library in a
+// shuffled order, and a log-only replay re-derives the identical order (the
+// shuffle draws the seeded engine rng, never math/rand).
 func TestSunbirdsInvocationRestRandomOrderShufflesLibraryBottom(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

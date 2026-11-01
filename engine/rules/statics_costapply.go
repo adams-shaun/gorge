@@ -743,7 +743,7 @@ func saFlagProperty(ab *cards.SA, property string) bool {
 // int32 range, or a malformed value from a card script this build cannot
 // otherwise validate).
 //
-// Ruling T19b-c: this used to cast straight to int32 with no range check at
+// This must not cast straight to int32 with no range check at
 // all, unlike mana.go's ParseCost (which explicitly checks 0 <= n <=
 // math.MaxInt32 before ever converting). An out-of-range Amount$ silently
 // wrapped into a negative int32 -- inverting a RaiseCost into a discount and

@@ -11,25 +11,25 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// kr4WardCause is cantsacWardCause with the fixture's held decision dropped
+// wardCause is cantsacWardCause with the fixture's held decision dropped
 // first, so the ward trigger's resolution runs as a kernel probe that poses
 // its asks.
-func kr4WardCause(t *testing.T, e *Engine, warded state.ObjID) {
+func wardCause(t *testing.T, e *Engine, warded state.ObjID) {
 	t.Helper()
 	e.pending = nil
 	cantsacWardCause(t, e, warded)
 }
 
-// kr4UpkeepCumulative is resolveUpkeepCumulative with the held decision
+// upkeepCumulative is resolveUpkeepCumulative with the held decision
 // dropped first.
-func kr4UpkeepCumulative(t *testing.T, e *Engine) {
+func upkeepCumulative(t *testing.T, e *Engine) {
 	t.Helper()
 	e.pending = nil
 	resolveUpkeepCumulative(t, e)
 }
 
-// kr4OptionKind returns the index of the first option of kind k, or -1.
-func kr4OptionKind(d *decision.Decision, k string) int {
+// optionKindOf returns the index of the first option of kind k, or -1.
+func optionKindOf(d *decision.Decision, k string) int {
 	for _, o := range d.Options {
 		if o.Kind == k {
 			return o.Index
@@ -51,7 +51,7 @@ func TestCantSacCostCauseTriggeredBlocksWardSacrificeKernel(t *testing.T) {
 	ctl, ctlCfg := cantsacWardGame(t, 9501, []*cards.Card{ripper}, []*cards.Card{payment})
 	ctlWarded := battlefieldObj(t, ctl, 0, ripper)
 	ctlPayment := battlefieldObj(t, ctl, 1, payment)
-	kr4WardCause(t, ctl, ctlWarded)
+	wardCause(t, ctl, ctlWarded)
 	if len(ctl.Pending().Options) < 2 {
 		t.Fatalf("control: ward pay ask has no Pay option: %+v", ctl.Pending().Options)
 	}
@@ -67,7 +67,7 @@ func TestCantSacCostCauseTriggeredBlocksWardSacrificeKernel(t *testing.T) {
 	if z := ctl.G.Obj(ctlPayment).Zone; z != state.ZGraveyard {
 		t.Fatalf("control: the ward payment creature zone = %s, want graveyard", z)
 	}
-	kr4Settle(ctl)
+	settlePassing(ctl)
 	cantsacDrainStack(t, ctl)
 	replayCheck(t, ctl, ctlCfg)
 
@@ -80,7 +80,7 @@ func TestCantSacCostCauseTriggeredBlocksWardSacrificeKernel(t *testing.T) {
 	if e.sacrificeBlockedForCost(payID, pay.CostCauseSpell) {
 		t.Fatal("the ValidCause$ Triggered carrier blanket-blocks a spell-cast cost sacrifice")
 	}
-	kr4WardCause(t, e, warded)
+	wardCause(t, e, warded)
 	submitChoices(t, e, 0)
 	if sac := e.Pending(); sac != nil && sac.ResumeKind == "ward_sac" {
 		t.Fatalf("restricted: the ward still asked for a blocked sacrifice: %+v", sac.Options)
@@ -110,7 +110,7 @@ func TestCantSacCostCauseAngelLeavesWardAloneKernel(t *testing.T) {
 	if e.sacrificeBlockedForCost(payID, pay.CostCauseTriggered) {
 		t.Fatal("Angel blocked a ward payment, which the ward trigger demands")
 	}
-	kr4WardCause(t, e, warded)
+	wardCause(t, e, warded)
 	submitChoices(t, e, 0)
 	sac := e.Pending()
 	if sac == nil || sac.ResumeKind != "ward_sac" {
@@ -123,7 +123,7 @@ func TestCantSacCostCauseAngelLeavesWardAloneKernel(t *testing.T) {
 	if z := e.G.Obj(payID).Zone; z != state.ZGraveyard {
 		t.Fatalf("Angel: the ward payment creature zone = %s, want graveyard", z)
 	}
-	kr4Settle(e)
+	settlePassing(e)
 	cantsacDrainStack(t, e)
 	replayCheck(t, e, cfg)
 }
@@ -142,12 +142,12 @@ func TestCantSacCostCauseTriggeredBlocksCumulativeUpkeepPaymentKernel(t *testing
 	ctl, ctlCfg := cantsacUpkeepGame(t, 9504, []*cards.Card{kraken, mtn, mtn})
 	krakenCtl := battlefieldObj(t, ctl, 0, kraken)
 	m1 := battlefieldObj(t, ctl, 0, mtn)
-	kr4UpkeepCumulative(t, ctl)
+	upkeepCumulative(t, ctl)
 	d := ctl.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("control: no cumulative-upkeep ask: %+v", d)
 	}
-	payIdx := kr4OptionKind(d, "cumulative_pay")
+	payIdx := optionKindOf(d, "cumulative_pay")
 	if payIdx < 0 {
 		t.Fatalf("control: the land payment is not offered: %+v", d.Options)
 	}
@@ -156,7 +156,7 @@ func TestCantSacCostCauseTriggeredBlocksCumulativeUpkeepPaymentKernel(t *testing
 	if sac == nil || sac.Kind != decision.KChoose {
 		t.Fatalf("control: no land choice ask: %+v", sac)
 	}
-	submitChoices(t, ctl, kr4Option(t, sac, m1))
+	submitChoices(t, ctl, optionOfObj(t, sac, m1))
 	if z := ctl.G.Obj(m1).Zone; z != state.ZGraveyard {
 		t.Fatalf("control: the paid land zone = %s, want graveyard", z)
 	}
@@ -177,7 +177,7 @@ func TestCantSacCostCauseTriggeredBlocksCumulativeUpkeepPaymentKernel(t *testing
 	if e.sacrificeBlockedForCost(krakenID, pay.CostCauseTriggered) {
 		t.Fatal("the carrier's ValidCard$ Land scope caught Polar Kraken itself")
 	}
-	kr4UpkeepCumulative(t, e)
+	upkeepCumulative(t, e)
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "cumulative_sac" {
 		t.Fatalf("restricted: the upkeep ask is not the sacrifice-only arm: %+v", d)
@@ -209,12 +209,12 @@ func TestCantSacCostCauseAngelLeavesUpkeepAloneKernel(t *testing.T) {
 	if e.sacrificeBlockedForCost(bearID, pay.CostCauseTriggered) {
 		t.Fatal("Angel blocked an upkeep payment, which the upkeep trigger demands")
 	}
-	kr4UpkeepCumulative(t, e)
+	upkeepCumulative(t, e)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("Angel: no cumulative-upkeep ask: %+v", d)
 	}
-	payIdx := kr4OptionKind(d, "cumulative_pay")
+	payIdx := optionKindOf(d, "cumulative_pay")
 	if payIdx < 0 {
 		t.Fatalf("Angel: the upkeep payment is not offered: %+v", d.Options)
 	}

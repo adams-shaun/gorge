@@ -7,8 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/effects"
 )
 
-// kr4NumberOption returns the index of the number option with amount n.
-func kr4NumberOption(t *testing.T, d *decision.Decision, n int) int {
+// numberOptionIndex returns the index of the number option with amount n.
+func numberOptionIndex(t *testing.T, d *decision.Decision, n int) int {
 	t.Helper()
 	for _, o := range d.Options {
 		if o.Kind == "number" && o.Amount == n {
@@ -51,7 +51,7 @@ func TestEnergyMayPayCarriersPoseTheBoundedAskKernel(t *testing.T) {
 			if (want != tc.seed && want != 2*tc.seed) || want <= 0 || want > 12 {
 				t.Fatalf("precondition: board energy = %d", want)
 			}
-			kr4Resolve(e, func() *effects.Ctx { return &effects.Ctx{Controller: 0, Source: id, SVars: face.SVars} }, sa)
+			resolveUnderProbe(e, func() *effects.Ctx { return &effects.Ctx{Controller: 0, Source: id, SVars: face.SVars} }, sa)
 			d := e.Pending()
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosenumber" {
 				t.Fatalf("expected the bounded number ask, got %+v", d)
@@ -67,7 +67,7 @@ func TestEnergyMayPayCarriersPoseTheBoundedAskKernel(t *testing.T) {
 					t.Fatalf("option %d = %+v, want the ascending number %d", i, o, i)
 				}
 			}
-			submitChoices(t, e, kr4NumberOption(t, d, int(want)))
+			submitChoices(t, e, numberOptionIndex(t, d, int(want)))
 			evs := numberEventsIn(e)
 			if len(evs) != 1 || evs[0].Amount != want {
 				t.Fatalf("Choose{number} events = %+v, want exactly one recording %d", evs, want)
@@ -102,7 +102,7 @@ func TestRampagingAetherhoodSVarIndirectBoundKernel(t *testing.T) {
 	if want := e.G.Players[0].Counter("ENERGY"); want != 4 {
 		t.Fatalf("precondition: board energy = %d, want 4", want)
 	}
-	kr4Resolve(e, func() *effects.Ctx { return &effects.Ctx{Controller: 0, Source: id, SVars: face.SVars} }, sa)
+	resolveUnderProbe(e, func() *effects.Ctx { return &effects.Ctx{Controller: 0, Source: id, SVars: face.SVars} }, sa)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosenumber" || d.Prompt != "amount of energy to pay" {
 		t.Fatalf("expected the bounded number ask, got %+v", d)
@@ -115,7 +115,7 @@ func TestRampagingAetherhoodSVarIndirectBoundKernel(t *testing.T) {
 			t.Fatalf("option %d = %+v, want the ascending number %d", i, o, i)
 		}
 	}
-	submitChoices(t, e, kr4NumberOption(t, d, 1))
+	submitChoices(t, e, numberOptionIndex(t, d, 1))
 	evs := numberEventsIn(e)
 	if len(evs) != 1 || evs[0].Amount != 1 {
 		t.Fatalf("Choose{number} events = %+v, want exactly one recording 1", evs)

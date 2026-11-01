@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// The policy prior (pn10): a trained policynet checkpoint chooses which
+// The policy prior: a trained policynet checkpoint chooses which
 // candidates the teacher spends its rollouts on. Without it the attackers and
 // cast arms roll out a FIXED, hand-ordered list capped at Limit (bot answer,
 // then no-attack / all-in / toggles; or pass, then the pool in JSON order).
@@ -80,7 +80,7 @@ func applyPrior(collector *searchprobe.Collector, e *rules.Engine, d *decision.D
 		return unguided()
 	}
 	// The cast arm is re-ranked only on the shape the priority head was
-	// trained on (pn01's gate, the one heuristic.PolicyNetBot applies): residual
+	// trained on (the gate heuristic.PolicyNetBot applies): residual
 	// prior active, >= 2 castable objects, the bot's answer one cast / ability
 	// / pass option. Outside it the head's opinion is untrained, so today's
 	// list stands.
@@ -150,7 +150,7 @@ func priorOrder(m *policynet.Model, v view.View, d *decision.Decision, bot decis
 // candidateScore is the head's opinion of one candidate: the attackers head
 // is a per-option BCE head (subset log-likelihood), every other kind this
 // prior ranks is a single-option softmax head. The definition lives in
-// policynet.CandidateScore, shared with the AlphaZero search; the pn10 prior
+// policynet.CandidateScore, shared with the AlphaZero search; the prior
 // has never ranked blockers, so kind == "attackers" is exactly the pre-move
 // behaviour (pinned by TestCandidateScoreMoveIsBitIdentical).
 func candidateScore(kind string, scores []float32, choices []int) float64 {

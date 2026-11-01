@@ -11,7 +11,7 @@ import (
 )
 
 // This file pins the CR 601.2b / 107.4e flexible-pip payment at a
-// TRIGGERED-cost window, on the brief's real-corpus flagship carrier: Alesha,
+// TRIGGERED-cost window, on a real-corpus carrier: Alesha,
 // Who Smiles at Death's attack trigger `Cost$ WB WB`. Before the fix the
 // window's pay/decline ask collapsed to a single `trigger_cost_decline`
 // because Cost.Priceable() rejects hybrid pips and no announcement ask
@@ -56,7 +56,7 @@ func aleshaPipFaces(t *testing.T, d *decision.Decision) []string {
 	return faces
 }
 
-// TestAleshaHybridTriggerPaysEitherFace is the brief's real-corpus regression:
+// TestAleshaHybridTriggerPaysEitherFace is a real-corpus regression:
 // with the required coloured mana in the pool, Alesha's trigger costs WB WB,
 // the pip ask offers both faces of each pip, a legal payment is made, and the
 // chosen graveyard creature leaves the graveyard and enters tapped and
@@ -98,7 +98,7 @@ func TestAleshaHybridTriggerPaysEitherFace(t *testing.T) {
 		case d.Kind == decision.KChoose && len(d.Options) > 0 && isPipAsk(d.Options):
 			faces := aleshaPipFaces(t, d)
 			// Each of Alesha's two hybrid pips offers BOTH of its colours --
-			// the legal color choices the brief requires.
+			// the legal color choices.
 			hasW, hasB := false, false
 			for _, f := range faces {
 				if f == "pay_W" {
@@ -191,7 +191,7 @@ func TestAleshaHybridTriggerWillNotPayUnpayable(t *testing.T) {
 			chooseKindOption(t, e, d, "pay_W")
 			pipAsks++
 		case d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "trigger_cost_pay":
-			// The brief's requirement: an unpayable window does not falsely
+			// An unpayable window does not falsely
 			// offer the payment. An empty pool with zero untapped mana sources
 			// cannot cover the announced WB WB, so the pay option must be
 			// absent -- decline-only.

@@ -49,13 +49,13 @@ func TestCascadeSelfExileTriggerEndsGrantAfterOneCastKernel(t *testing.T) {
 		t.Fatal("precondition: real TARDIS face has no Attacks Effect trigger")
 	}
 	sa := face.Triggers[triggerIdx].Effect
-	kr4Resolve(e, func() *effects.Ctx {
+	resolveUnderProbe(e, func() *effects.Ctx {
 		return &effects.Ctx{Source: tardis, Controller: 0, SVars: face.SVars}
 	}, sa)
 	if d := e.Pending(); d != nil && d.ResumeKind == "planeswalk_optional" {
 		submitChoices(t, e, d.Options[1].Index) // no planar deck in this engine
 	}
-	kr4Settle(e)
+	settlePassing(e)
 	passUntilStackEmpty(t, e, 40)
 
 	grant, ok := findCascadeGrant(e)

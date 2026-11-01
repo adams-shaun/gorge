@@ -57,16 +57,13 @@ import (
 // Reports whether anything changed, so it plugs into checkStateBased's own
 // pass loop (a graveyard-bound Aura can itself trigger on its zone change,
 // so "changed" keeps the loop going until the board is stable).
-func (e *Engine) attachmentSBAs() bool {
-	changed := false
-	// The battlefield snapshot the walk ranges (emit moves objects out
-	// of the live zone) lives in the Engine's SBA scratch, taken for the
-	// walk so a re-entrant pass allocates its own (sbaIDBuf).
+func (e *Engine) attachmentSBAs(b *sbaBatch) {
+	// The battlefield snapshot the walk ranges lives in the Engine's SBA
+	// scratch (sbaIDBuf).
 	ids := e.sbaIDBuf
 	e.sbaIDBuf = nil
-	// The board's layer-4 presence for sbaIsAura, re-read whenever an emit
-	// below has moved the log (a departure can change the active list).
-	ltAt, anyLType := -1, false
+	// The board's layer-4 presence for sbaIsAura.
+	anyLType := e.activeHasLType()
 	for _, p := range e.G.AliveFrom(0) {
 		ids = append(ids[:0], e.G.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
@@ -79,9 +76,6 @@ func (e *Engine) attachmentSBAs() bool {
 				// does not exist, so attachment SBAs do not fire on it (it and
 				// anything attached to it phase out together).
 				continue
-			}
-			if n := len(e.L.Events); n != ltAt {
-				ltAt, anyLType = n, e.activeHasLType()
 			}
 			if o.UnattachPending {
 				// CR 400.7/704.5m-n: the bearer-departure fold in events'
@@ -117,19 +111,18 @@ func (e *Engine) attachmentSBAs() bool {
 				}
 				switch {
 				case bestowed:
-					e.emit(events.Event{Kind: events.Unattached, Obj: id,
+					b.add(events.Event{Kind: events.Unattached, Obj: id,
 						IDs:  []state.ObjID{o.LastBearer},
 						Text: "bestowed attachment ended"})
 				case e.isAura(o):
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+					b.add(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard,
 						Text: "attached to an object that left the battlefield"})
 				default:
-					e.emit(events.Event{Kind: events.Unattached, Obj: id,
+					b.add(events.Event{Kind: events.Unattached, Obj: id,
 						IDs:  []state.ObjID{o.LastBearer},
 						Text: "bearer left the battlefield"})
 				}
-				changed = true
 				continue
 			}
 			if o.HasAttachedPlayer {
@@ -139,18 +132,16 @@ func (e *Engine) attachmentSBAs() bool {
 				p := o.AttachedPlayer
 				if !e.isAura(o) || int(p) >= len(e.G.Players) || e.G.Players[p].Lost ||
 					!e.playerAuraStillMatchesEnchant(o, p) || e.playerProtectedFrom(p, o.ID) {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+					b.add(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard, Text: "illegal player attachment"})
-					changed = true
 				}
 				continue
 			}
 			if o.AttachedTo == 0 {
 				// A detached Aura has nothing legal to do on the battlefield.
 				if e.sbaIsAura(o, anyLType) {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+					b.add(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard, Text: "Aura attached to nothing"})
-					changed = true
 				}
 				continue
 			}
@@ -169,10 +160,9 @@ func (e *Engine) attachmentSBAs() bool {
 				// "becomes a creature again if it's not attached".)
 				if bearer == nil || bearer.Zone != state.ZBattlefield ||
 					!e.IsCreature(bearer.ID) || e.protectedFrom(bearer.ID, o.ID) {
-					e.emit(events.Event{Kind: events.Unattached, Obj: id,
+					b.add(events.Event{Kind: events.Unattached, Obj: id,
 						IDs:  []state.ObjID{o.AttachedTo},
 						Text: "bestowed attachment ended"})
-					changed = true
 				}
 				continue
 			}
@@ -202,28 +192,25 @@ func (e *Engine) attachmentSBAs() bool {
 					continue
 				}
 				if e.isAura(o) {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+					b.add(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard, Text: "attached to an object that left the battlefield"})
 				} else {
-					e.emit(events.Event{Kind: events.Unattached, Obj: id,
+					b.add(events.Event{Kind: events.Unattached, Obj: id,
 						IDs:  []state.ObjID{o.AttachedTo},
 						Text: "bearer left the battlefield"})
 				}
-				changed = true
 				continue
 			}
 			if why := e.attachedKindIllegal(o); why != "" {
-				e.emit(events.Event{Kind: events.Unattached, Obj: id,
+				b.add(events.Event{Kind: events.Unattached, Obj: id,
 					IDs:  []state.ObjID{o.AttachedTo},
 					Text: why})
-				changed = true
 				continue
 			}
 			if e.isAura(o) && (!e.auraStillMatchesEnchant(o, bearer) || e.protectedFrom(bearer.ID, o.ID)) {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+				b.add(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZBattlefield, To: state.ZGraveyard,
 					Text: "attached to something it can no longer legally enchant"})
-				changed = true
 				continue
 			}
 			if e.isEquipment(o) && (bearer.ReconfiguredAttached() || bearer.ImpendingDormant() ||
@@ -239,10 +226,9 @@ func (e *Engine) attachmentSBAs() bool {
 				// keyword names (Luxior's "Equip planeswalker") stays equipped
 				// even after it stops being a creature, exactly as it was
 				// equipped while one.
-				e.emit(events.Event{Kind: events.Unattached, Obj: id,
+				b.add(events.Event{Kind: events.Unattached, Obj: id,
 					IDs:  []state.ObjID{o.AttachedTo},
 					Text: "Equipment bearer is no longer a creature"})
-				changed = true
 				continue
 			}
 			if e.isFortification(o) && !e.IsLand(bearer.ID) {
@@ -251,15 +237,13 @@ func (e *Engine) attachmentSBAs() bool {
 				// battlefield. The read is the DERIVED type list -- a bearer that
 				// lost its Land type to a layer-4 static is as illegal as one
 				// printed without it.
-				e.emit(events.Event{Kind: events.Unattached, Obj: id,
+				b.add(events.Event{Kind: events.Unattached, Obj: id,
 					IDs:  []state.ObjID{o.AttachedTo},
 					Text: "Fortification bearer is no longer a land"})
-				changed = true
 			}
 		}
 	}
 	e.sbaIDBuf = ids[:0]
-	return changed
 }
 
 // attachedKindIllegal implements CR 704.5p: an attached object that is a
@@ -319,10 +303,7 @@ func printsAttachmentType(o *state.Object) bool {
 // no replacement or regeneration path, and the recursive emit lets the
 // swept Role's "leaves the battlefield" triggers fire normally (a Wicked
 // Role's "each opponent loses 1 life").
-//
-// Reports whether anything changed, so checkStateBased's pass loop runs
-// again (a swept Role can trigger, and its departure can change the board).
-func (e *Engine) roleSBA() bool {
+func (e *Engine) roleSBA(b *sbaBatch) {
 	// The battlefield snapshot the walk ranges lives in the Engine's SBA
 	// scratch, taken so a re-entrant pass allocates its own (sbaIDBuf).
 	ids := e.sbaIDBuf
@@ -342,7 +323,6 @@ func (e *Engine) roleSBA() bool {
 			rolesByBearer[o.AttachedTo] = append(rolesByBearer[o.AttachedTo], id)
 		}
 	}
-	changed := false
 	for _, bearer := range bearers {
 		roles := rolesByBearer[bearer]
 		if len(roles) < 2 {
@@ -375,14 +355,12 @@ func (e *Engine) roleSBA() bool {
 			if newest[o.Controller] == i {
 				continue
 			}
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+			b.add(events.Event{Kind: events.MoveZone, Obj: id,
 				From: state.ZBattlefield, To: state.ZGraveyard,
 				Text: "another Role on it: the old Role goes to the graveyard"})
-			changed = true
 		}
 	}
 	e.sbaIDBuf = ids[:0]
-	return changed
 }
 
 // attachRefused implements the CR 701.3a/b refusal half of emit's Attach

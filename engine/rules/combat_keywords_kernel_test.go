@@ -9,9 +9,9 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// kr4WardTarget seeds a seat-1 targeting object at warded and resolves the
+// wardTarget seeds a seat-1 targeting object at warded and resolves the
 // ward trigger under a kernel probe, leaving its pay election posed.
-func kr4WardTarget(e *Engine, warded state.ObjID) {
+func wardTarget(e *Engine, warded state.ObjID) {
 	cause := e.G.Zone(state.ZLibrary, 1)[0]
 	e.emit(events.Event{Kind: events.PutOnStack, Obj: cause, Player: 1, From: state.ZLibrary, To: state.ZStack})
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: cause, IDs: []state.ObjID{warded}})
@@ -30,7 +30,7 @@ func TestWardBlightMayUseATappedCreatureAndPoisonLosesKernel(t *testing.T) {
 	warded := onBoardCard(t, e, 0, corpusKeywordCard(t, "Auntie Ool, Cursewretch"))
 	blighted := onBoard(t, e, 1, "Name:Tapped payment\nTypes:Creature\nPT:3/3\nOracle:x\n")
 	e.emit(events.Event{Kind: events.Tap, Obj: blighted})
-	kr4WardTarget(e, warded)
+	wardTarget(e, warded)
 	d := e.Pending()
 	if d == nil || d.Player != 1 {
 		t.Fatalf("ward pay election not posed to seat 1: %+v", d)
@@ -48,7 +48,7 @@ func TestWardBlightMayUseATappedCreatureAndPoisonLosesKernel(t *testing.T) {
 	e2 := combatEngine(t)
 	serpent := onBoardCard(t, e2, 0, corpusKeywordCard(t, "The Serpent Society"))
 	e2.emit(events.Event{Kind: events.PlayerCounterChange, Player: 1, Counter: "POISON", Amount: 5})
-	kr4WardTarget(e2, serpent)
+	wardTarget(e2, serpent)
 	if d := e2.Pending(); d == nil || d.Player != 1 {
 		t.Fatalf("poison ward pay election not posed to seat 1: %+v", d)
 	}

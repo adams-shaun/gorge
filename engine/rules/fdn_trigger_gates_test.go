@@ -1,6 +1,6 @@
 package rules
 
-// Task fdn-trigger-gates: two trigger-side requirement parameters were unread,
+// Two trigger-side requirement parameters were unread,
 // so their triggers fired when they must not.
 //
 //   - `OpponentTurn$ True` on `T:Mode$ SpellCast` / `T:Mode$ Drawn`: the mirror

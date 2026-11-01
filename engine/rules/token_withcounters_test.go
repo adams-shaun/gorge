@@ -95,7 +95,7 @@ func TestIncubobTokenEntersWithACounter(t *testing.T) {
 }
 
 // TestPrintlifterOozeTokenEntersWithComputedCounters is the dynamic-X carrier
-// (the brief's named card): the token enters with X +1/+1 counters, X =
+// (the named card): the token enters with X +1/+1 counters, X =
 // Count$Valid Creature.YouCtrl on the real compiled SVar:X. Printlifter Ooze
 // and one other creature are on the battlefield, so the token enters with 2
 // counters and survives the zero-toughness SBA.

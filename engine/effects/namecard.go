@@ -12,7 +12,7 @@ import (
 
 // NameChoices is the ONE card-name universe builder every NameCard path
 // shares: the cast-time "as this enters" ask (rules.etbOptions), the
-// mid-resolution DB$/SP$/AB$ NameCard ask (effNameCard) and the R-9 no-host
+// mid-resolution DB$/SP$/AB$ NameCard ask (effNameCard) and the no-host
 // fallback all read it, so the offered names, the recorded answer and a bot
 // policy can never disagree about what a name choice ranges over.
 //
@@ -20,7 +20,7 @@ import (
 // state.Game.NameUniverse, so an unseen land (Pithing Needle) or an unseen
 // opponent card is offered. Order is the sorted distinct nameable face name
 // (cards.NameableFace); a nil or face-less universe yields nil and each
-// caller keeps its own R-9 deterministic stand-in.
+// caller keeps its own deterministic stand-in.
 //
 // spec is the SA's ValidCards$ filter, evaluated through the engine's own
 // predicate grammar (MatchesObjectCtx) against each card's printed face, so
@@ -40,15 +40,15 @@ import (
 // is mapped to its equivalent predicate as a SAFETY fallback (see
 // descriptionSpec): it only ever narrows an otherwise-unrestricted offer,
 // never widens one, so it cannot change real corpus behaviour (no corpus
-// NameCard carries ValidDescription$ without ValidCards$). This keeps the
-// brief's "ValidCards$/ValidDescription semantics" honest without
+// NameCard carries ValidDescription$ without ValidCards$). This keeps
+// ValidCards$/ValidDescription semantics honest without
 // re-implementing Forge's message localisation.
 //
 // A spec this build cannot evaluate for a printed face (a dynamic
 // game-state comparator such as `Creature.cmcEQX`, or an object predicate
 // with no resolving context) fails closed in the matcher, and a filter that
 // would empty the ask falls back to the unrestricted universe. That is the
-// totality rule (R-9): a name ask is never posted with zero options.
+// totality rule: a name ask is never posted with zero options.
 func NameChoices(g *state.Game, spec, description string) []string {
 	return NameChoicesFromList(g, spec, description, "")
 }

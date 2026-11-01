@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots"
@@ -39,6 +40,7 @@ func TestGameStartNamesTheCardPool(t *testing.T) {
 	var start struct {
 		Engine struct {
 			CardPoolIdentity string `json:"card_pool_identity"`
+			Version          string `json:"version"`
 		} `json:"engine"`
 	}
 	lines := json.NewDecoder(f)
@@ -49,5 +51,8 @@ func TestGameStartNamesTheCardPool(t *testing.T) {
 	}
 	if !regexp.MustCompile(`^forge-[0-9a-f]{12}/corpus-[0-9a-f]{16}/catalog-[0-9a-f]{16}$`).MatchString(start.Engine.CardPoolIdentity) {
 		t.Fatalf("card_pool_identity %q", start.Engine.CardPoolIdentity)
+	}
+	if !strings.HasSuffix(start.Engine.Version, "/autopay") {
+		t.Fatalf("version %q: the seat declares engine_autopay, so its version says so as hello_ok's does", start.Engine.Version)
 	}
 }

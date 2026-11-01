@@ -832,7 +832,7 @@ func TestInGroupMarksAPartialGroup(t *testing.T) {
 
 // decode is the host's view of a decision: the engine's JSON decoded into
 // protocol types, where Semantic.UnmarshalJSON keeps numbers as json.Number
-// and nested objects as raw JSON (Task 5).
+// and nested objects as raw JSON.
 func decode(t *testing.T, sd protocol.SeatDecision) protocol.SeatDecision {
 	t.Helper()
 	b, err := json.Marshal(sd)
@@ -901,8 +901,8 @@ func game() []protocol.SeatDecision {
 	return []protocol.SeatDecision{cast, x, search, order}
 }
 
-// G1-2: a host validates decisions it decoded from the engine's JSON (Task
-// 25). Decoded decisions, with non-pass and choose_number candidates, get
+// A host validates decisions it decoded from the engine's JSON. Decoded
+// decisions, with non-pass and choose_number candidates, get
 // exactly the verdicts of the Go-built values, passing and failing alike.
 func TestDecodedDecisionsGetTheGoBuiltVerdicts(t *testing.T) {
 	p := every("pending_triggers", "keywords")

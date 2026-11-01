@@ -13,7 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task mordorparams1 — five small unread parameters from the Hosts of Mordor
+// Five small parameters from the Hosts of Mordor
 // census. Every test drives the real corpus card (compiled scripts only; no
 // Forge script text is committed here), the search_library_test.go /
 // commander_colour_identity_test.go way.

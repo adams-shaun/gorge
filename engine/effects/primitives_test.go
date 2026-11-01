@@ -96,7 +96,7 @@ func TestAddManaDefaultsToColorlessAndAmountOne(t *testing.T) {
 	}
 }
 
-// TestDealDamageClampsNegativeNumDmgToZero is Ruling T14-f's regression test:
+// TestDealDamageClampsNegativeNumDmgToZero:
 // NumDmg$ is Num()'s unclamped output, and events.Apply's Damage case is a
 // plain subtraction from Life, so a negative NumDmg would otherwise heal
 // instead of doing nothing. No real card text ever specifies this, but the
@@ -111,7 +111,7 @@ func TestDealDamageClampsNegativeNumDmgToZero(t *testing.T) {
 	}
 }
 
-// TestAddManaClampsNegativeAmountToZero is Mana's half of Ruling T14-f: a
+// TestAddManaClampsNegativeAmountToZero is Mana's half of the same clamp: a
 // negative Amount$ would otherwise drop the pool below zero.
 func TestAddManaClampsNegativeAmountToZero(t *testing.T) {
 	h := newHost(t, 2)
@@ -150,7 +150,7 @@ func TestPrimitivesAreRegistered(t *testing.T) {
 // ---------------------------------------------------------------------------
 // damage.go
 
-// TestDealDamageHitsPlayersAndPermanents is the brief's own worked-example
+// TestDealDamageHitsPlayersAndPermanents is the worked-example
 // regression test.
 func TestDealDamageHitsPlayersAndPermanents(t *testing.T) {
 	g, ids := board(t)
@@ -167,8 +167,8 @@ func TestDealDamageHitsPlayersAndPermanents(t *testing.T) {
 	}
 }
 
-// TestDealDamageIgnoresObjectsOffTheBattlefield is the enhancement Task 18
-// folds into Task 14's stopgap: a permanent that left the battlefield (in
+// TestDealDamageIgnoresObjectsOffTheBattlefield pins:
+// a permanent that left the battlefield (in
 // response, say) is no longer a legal recipient.
 func TestDealDamageIgnoresObjectsOffTheBattlefield(t *testing.T) {
 	g, ids := board(t)
@@ -276,7 +276,7 @@ func TestDigMovesMatchingCardsToDestinationLeavingTheRestOnTop(t *testing.T) {
 	}
 }
 
-// TestDigChangeNumAllMovesEveryMatchingCardOfTheTopN is Task 5's regression
+// TestDigChangeNumAllMovesEveryMatchingCardOfTheTopN is a regression
 // test for "ChangeNum$ All" (e.g. Goblin Guide's own Dig): every matching
 // card within the top DigNum cards moves, not just the first ChangeNum of
 // them, with no cap short of DigNum itself. A card outside the DigNum window
@@ -305,7 +305,7 @@ func TestDigChangeNumAllMovesEveryMatchingCardOfTheTopN(t *testing.T) {
 	}
 }
 
-// TestDigsSecretMoveNamesTheLibraryOwner is Task 23 §11's regression test: a
+// TestDigsSecretMoveNamesTheLibraryOwner is a regression test: a
 // pre-existing leak. effDig's MoveZone event for a card taken from a hidden
 // library was emitted Secret with no Player at all, so under the redaction
 // contract (Player names the seat whose secret this is) PlayerID(0) -- a
@@ -335,8 +335,8 @@ func TestDigsSecretMoveNamesTheLibraryOwner(t *testing.T) {
 	}
 }
 
-// TestRearrangeTopOfLibraryNoteIsSecretToItsOwner is fix round 2's
-// regression test (Ruling T23-w): the private look at the top of the
+// TestRearrangeTopOfLibraryNoteIsSecretToItsOwner is a
+// regression test: the private look at the top of the
 // library must be Secret, with Player naming its owner -- the same shape
 // every other hidden-zone emitter in this file already uses (DrawFor,
 // effDig above). Player 1 (non-zero), not 0, so a bug that silently reads
@@ -733,9 +733,9 @@ func TestTapTapsUntappedTargetOnly(t *testing.T) {
 	}
 }
 
-// TestPumpRegistersLayerContinuousEffectsOnTheTarget is the Task 19c
+// TestPumpRegistersLayerContinuousEffectsOnTheTarget is the
 // regression test: Pump must build real state.ContinuousEffect values and
-// hand them to the Host, not just log a Note, so the layer system Task 19
+// hand them to the Host, not just log a Note, so the layer system
 // built actually has a caller. Power/Toughness and a granted keyword go on
 // separate layers (7c and 6), so they are two effects, not one.
 func TestPumpRegistersLayerContinuousEffectsOnTheTarget(t *testing.T) {
@@ -861,7 +861,7 @@ func TestPumpAllSkipsNonMatchingCreatures(t *testing.T) {
 // TestAnimateRegistersASetContinuousEffectEvenOffTheBattlefield keeps the
 // original off-battlefield coverage (Forge's own Animate targets a graveyard
 // card as often as a permanent) while asserting the real layer-7b "setting"
-// registration Task 19c adds.
+// registration.
 func TestAnimateRegistersASetContinuousEffectEvenOffTheBattlefield(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
@@ -920,7 +920,7 @@ func TestProtectionRequiresTheBattlefield(t *testing.T) {
 
 // TestProtectionChoiceDefaultsDeterministically covers Mother of Runes'
 // shape (Gains$ Choice | Choices$ AnyColor): with no chooser mechanism yet
-// (a real choice is Task 20's job, the same simplification effCharm and
+// (the same simplification effCharm and
 // effVote already document), it must still resolve to a concrete, fixed
 // quality rather than granting a nonsense "Protection from Choice" keyword.
 func TestProtectionChoiceDefaultsDeterministically(t *testing.T) {
@@ -1279,10 +1279,10 @@ func TestBecomeMonarchMovesTheDesignationBetweenSeats(t *testing.T) {
 	}
 }
 
-// TestRestartGameEndsTheGame is the fix-round-2 regression test for the
+// TestRestartGameEndsTheGame is the regression test for the
 // re-review's N3: effRestartGame's own comment and Text both say the game
 // ends as a draw, but the GameOver event it emitted left Amount at its zero
-// value, which events.Apply's GameOver case (Task 22 fix round 1) reads as
+// value, which events.Apply's GameOver case reads as
 // "Amount 0: a win" -- and Player, also left at zero, validates as seat 0.
 // So despite every piece of this primitive's own documentation, it was
 // actually encoding a seat-0 win. Asserting Draw (not just Over) is what
@@ -1307,13 +1307,7 @@ func TestMana(t *testing.T) {
 	}
 }
 
-// TestCopySpellAbilityIsNotYetRegistered documented the pre-Task-17 gap
-// (StackCopy existed as of Task 12 but nothing wired the primitive to it).
-// Task 17 implemented effCopySpellAbility (engine/effects/copy.go); the primitive's
-// behaviour is now covered by engine/effects/copy_test.go and engine/rules/storm_test.go,
-// so this interim marker is removed rather than kept asserting the opposite.
-
-// TestCardflowAPIsGuardOutOfRangePlayerID is Ruling T18-a's regression test.
+// TestCardflowAPIsGuardOutOfRangePlayerID is a regression test.
 // Every one of cardflow.go's nine registered APIs eventually reads a zone via
 // PlayerOf's result (a target's raw Player field) or, for NameCard,
 // Ctx.Controller directly. Neither is validated before this task's fix, and

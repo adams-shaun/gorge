@@ -4,7 +4,9 @@
   import { tables } from '../lib/tables.svelte';
   import { MatchState } from '../lib/match.svelte';
   import { ManaBrewMatch } from '../lib/manabrew/source.svelte';
-  import { activeWire, loadProtocol } from '../lib/manabrew/pref';
+  import { Sbv2Match } from '../lib/sbv2/source.svelte';
+  import { activeWire, tableProtocol } from '../lib/wire/pref';
+  import { SnapshotMatch } from '../lib/wire/snapshot.svelte';
   import WireNotice from '../components/WireNotice.svelte';
   import BoardStage from '../components/BoardStage.svelte';
   import Arrows from '../components/Arrows.svelte';
@@ -56,19 +58,18 @@
   import { keymapStore } from '../lib/keymap.svelte';
 
   // match (from the /t/:table/m/:match route) names a specific, already-played
-  // match. Task 21's finished mode replays it end to end via loadFinished:
+  // match. Finished mode replays it end to end via loadFinished:
   // no stream, no session.focus — everything from the JSON GETs.
   //
-  // App.svelte keys <Table> by `${table}/${match}` (FL-38), so a route change
+  // App.svelte keys <Table> by `${table}/${match}`, so a route change
   // always remounts a fresh instance — these one-shot reads of table/match
   // are intentional, not a stale-binding bug.
   let { table, match = null }: { table: string; match?: number | null } = $props();
   // svelte-ignore state_referenced_locally
   const finished = match !== null;
 
-  // The seat identity is read once from the join URL (?seat=N&token=…,
-  // M2e-3's FL-99). With no seat, every line below is the spectator path
-  // it always was (R-E4-4).
+  // The seat identity is read once from the join URL (?seat=N&token=…).
+  // With no seat, every line below is the spectator path.
   const seatCtx = getSeat();
   const seated = seatCtx !== null;
   // The replay transport's playback settings (ReplayTransport binds them),
@@ -127,28 +128,29 @@
   let railPreview = $state<number | null>(null);
   const displayedRailWidth = $derived(railPreview ?? railWidth);
   const tableStyle = $derived(`--rail-width:${displayedRailWidth * 100}%`);
-  // The game wire (ManaBrew adapter plan): a live seat whose protocol
-  // setting is ManaBrew plays through ManaBrewMatch; everything else — and a
-  // ManaBrew probe that fails — is the native MatchState. Both expose the
-  // surface this route reads, so nothing below knows which wire is live.
+  // The game wire: a live seat whose protocol setting is ManaBrew or SpellBench
+  // v2 plays through that wire's SnapshotMatch; everything else — and a probe
+  // that fails — is the native MatchState. Both expose the surface this route
+  // reads, so nothing below knows which wire is live.
+  const chosenWire = tableProtocol();
   // svelte-ignore state_referenced_locally
-  const mb = liveSeated && seatCtx !== null && loadProtocol() === 'manabrew' ? new ManaBrewMatch(table, seatCtx) : null;
+  const wire = liveSeated && seatCtx !== null && chosenWire !== 'native' ? (chosenWire === 'manabrew' ? new ManaBrewMatch(table, seatCtx) : new Sbv2Match(table, seatCtx)) : null;
   // svelte-ignore state_referenced_locally
-  let m = $state<MatchState | ManaBrewMatch>(mb ?? new MatchState(table, seatCtx ?? undefined));
-  // The seat panel answers through the ManaBrew adapter when it is live.
-  const panelCtx = $derived(m instanceof ManaBrewMatch ? m.ctx : seatCtx);
+  let m = $state<MatchState | SnapshotMatch>(wire ?? new MatchState(table, seatCtx ?? undefined));
+  // The seat panel answers through the wire's source when one is live.
+  const panelCtx = $derived(m instanceof SnapshotMatch ? m.ctx : seatCtx);
   let wireFallback = $state<string | null>(null);
-  const wireNotice = $derived(wireFallback ?? (m instanceof ManaBrewMatch ? m.notice : null));
+  const wireNotice = $derived(wireFallback ?? (m instanceof SnapshotMatch ? m.notice : null));
   function dismissWireNotice() {
     wireFallback = null;
-    if (m instanceof ManaBrewMatch) m.notice = null;
+    if (m instanceof SnapshotMatch) m.notice = null;
   }
 
   // idle: the table has no live match and none imminent, so the match list
   // is the whole page rather than a strip under a "waiting" placeholder. A
   // series table between two of its games is not idle: the table store reads
-  // it as cooldown from TableInfo.series and the server's table_state frame
-  // (E3-fx2), so the finished board stays up until the next game starts.
+  // it as cooldown from TableInfo.series and the server's table_state frame,
+  // so the finished board stays up until the next game starts.
   const idle = $derived.by(() => {
     if (finished) return false;
     const state = tables.list.find((t) => t.info.id === table)?.info.state;
@@ -313,7 +315,7 @@
       restartBusy = false;
     }
   }
-  // fb-20260917T231628Z: the log show/hide control moved into the OPTIONS drop
+  // The log show/hide control lives in the OPTIONS drop
   // (PlaySettingsPanel's Layout section) for ordinary seated play. The drop is
   // mounted only while BoardStage's controls are live, so the rail's
   // LOGS toggle must survive in exactly the states where the drop does not exist
@@ -352,8 +354,8 @@
   // A direct card action can hand the server a first-stage choice and receive
   // a second decision for the same object (Underground Sea's activate -> Add
   // U / Add B flow; a multi-ability mana source's stage-1 ability pick -> its
-  // stage-2 colour wheel, fb-e079def5; a Treasure's activate -> its colour
-  // ask, fb-20260923T050205Z). The expectation is ARMED by SeatPanelState
+  // stage-2 colour wheel; a Treasure's activate -> its colour
+  // ask). The expectation is ARMED by SeatPanelState
   // itself, on the accepted hand post -- this route no longer owns that
   // write, because the tile path (boardOptions.post) and the seat panel's own
   // option buttons (SeatPanel.svelte's onclick -> panel.click) both post
@@ -370,7 +372,7 @@
   // the decision and the mirror: an arm that lands AFTER SSE already
   // delivered the follow-up still retriggers it (a fresh object each arm),
   // and no reactive edge reaches the panel's derived UI graph (the null-ctx
-  // hang, agent-20260924T114750Z-ba517e3b).
+  // hang).
   let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
   let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
   $effect(() => {
@@ -381,7 +383,7 @@
     expectedCardFollowUp = null;
   });
 
-  // The board's card-options index (ui21): the pending decision grouped by
+  // The board's card-options index: the pending decision grouped by
   // the object each option concerns. For a seated view this is exactly the
   // decision the seat must answer now — the same decision the seat panel
   // surfaces (SeatPanelState.active), so the board and the panel can never
@@ -390,8 +392,8 @@
   // seat that has nothing pending gets null — in both cases no tile is
   // marked and no tile carries a menu. Building it once here, from the
   // active decision, is what makes one index serve both 'cards with valid
-  // options' and 'valid targets' (R-E4-2: the client only regroups options
-  // the server already sent, and posts each one by its own index, R-E4-1).
+  // options' and 'valid targets' (the client only regroups options
+  // the server already sent, and posts each one by its own index).
   const boardOptions = $derived.by((): CardOptions | null => {
     if (!seated || panel === null) return null;
     const d = panel.active;
@@ -407,7 +409,7 @@
     // Treasure) is a play of its own, never hidden. WHEN and WHICH are the
     // one shared rule the option list and the hot strip read too
     // (lib/manualmana.ts, §8).
-    if (manualManaHidden(d, m.view, seatCtx?.seat, panel.autoPayMana)) {
+    if (manualManaHidden(d, m.view, seatCtx?.seat, panel.hidesManualMana)) {
       for (const [obj, offered] of byObj) {
         const visible = offered.filter((option) => !isPlainManualTap(option));
         if (visible.length === 0) byObj.delete(obj);
@@ -443,7 +445,7 @@
     };
   });
 
-  // Task 3's colour-coded log: the same name/colour resolution SeatTable's
+  // The colour-coded log: the same name/colour resolution SeatTable's
   // rows use (seats[seat].name falling back to the wire's own player name),
   // off whichever view is currently on screen. Guarded for the pre-snapshot
   // instant when m.view is still null — the template only mounts Transcript
@@ -453,7 +455,7 @@
     m.view ? seatRows(m.view, m.seats).map((r) => ({ name: r.name, colour: r.colour || seatColour(r.seat, m.seats) })) : [],
   );
 
-  // Task lc1: colour each card name in the log by the colour of the seat
+  // Colour each card name in the log by the colour of the seat
   // that OWNS it — the same colour that seat's name renders in — resolved by
   // the card's object id. The described line carries the id (and the name)
   // but not the owner's colour, so it is looked up from the current view's
@@ -463,8 +465,8 @@
   // null and renders uncoloured. Rebuilt each render.
   //
   // The SAME flattened list is handed to the transcript as `cards` so a
-  // card-name hover can resolve its id to a CardView for the detail panel
-  // (fb-20260927T154603Z) — one flatten, two consumers.
+  // card-name hover can resolve its id to a CardView for the detail panel —
+  // one flatten, two consumers.
   const logCards = $derived(m.view ? everyVisibleCard(m.view.players) : []);
   const logCardColour = $derived(
     m.view
@@ -538,13 +540,14 @@
         void session.unfocus(table);
       };
     };
-    if (mb) {
-      activeWire.current = 'manabrew';
-      mb.onRewind = () => panelCache?.state.rewind();
-      void mb.start().then((r) => {
+    if (wire) {
+      activeWire.current = wire.protocol;
+      wire.onRewind = () => panelCache?.state.rewind();
+      void wire.start().then((r) => {
         if (r.ok || closed) return;
-        mb.close();
-        wireFallback = `${r.reason} — playing over Native.`;
+        wire.close();
+        activeWire.outOfScope = r.quiet === true;
+        if (!r.quiet) wireFallback = `${r.reason} — playing over Native.`;
         const nm = new MatchState(table, seatCtx ?? undefined);
         m = nm;
         native(nm);
@@ -552,7 +555,7 @@
     } else if (m instanceof MatchState) native(m);
     return () => {
       closed = true;
-      mb?.close();
+      wire?.close();
       offNative?.();
     };
   });
@@ -567,7 +570,7 @@
 
 <svelte:window onkeydown={closeOptions} onclick={closeOptionsOutside} />
 
-<!-- E3-9: a draft-event series game (join link carries &event=) overlays the
+<!-- A draft-event series game (join link carries &event=) overlays the
      between-games panel; it renders nothing for any other table. -->
 {#if liveSeated}<TableEventOverlay {table} />{/if}
 
@@ -604,7 +607,7 @@
           hand={seated && seatCtx && ownPlayer ? handFan : null}
         />
         <!-- The last resolved card's artwork lives in the rail's stack
-             section now (fb-20260916T225456Z): Rail renders ResolvedCard
+             section: Rail renders ResolvedCard
              from the same m.dvr.events it already receives, and the old
              RecentStrip board overlay — absolutely positioned over the
              board's bottom centre, a patchwork of two earlier complaints
@@ -635,8 +638,8 @@
         </div>
       {/if}
       {#snippet handFan({ cardWidth, visible, raise }: { cardWidth: number; visible: number; raise: boolean })}
-        <!-- The seated player's own hand (Task ui17), in the hand row the
-             layout sizes from its row unit. ui23: the hand gets the same
+        <!-- The seated player's own hand, in the hand row the
+             layout sizes from its row unit. The hand gets the same
              card-options index the board does (one mechanism, one index, one
              post path). -->
         {#if ownPlayer}
@@ -660,8 +663,8 @@
         <div class="rail-main">
         <!-- The concede control (when a concede option is pending) is passed
              to Rail as a logbar snippet: it renders inside the rail's own
-             LOGS row, in normal flex flow at the row's right edge. fb-53bd45b9:
-             it used to be absolutely positioned at top: 3rem inside the rail,
+             LOGS row, in normal flex flow at the row's right edge.
+             It used to be absolutely positioned at top: 3rem inside the rail,
              a hand-calibrated offset that cleared the logbar but landed on
              seat row 0 (the stacked zone counts made each row taller), and
              its z-index: 9 painted over the row's life and pile counts —
@@ -670,7 +673,7 @@
              the row is the anchor and grows if the control needs height.
              The state stays here (SeatPanelState wiring); only the markup's
              host row moved. -->
-        <!-- fb-20260917T231628Z: while the OPTIONS drop is reachable the log
+        <!-- While the OPTIONS drop is reachable the log
              switch lives there, so the rail renders no second control (its
              own {#if onToggleLog} hides the row's button when the prop is
              null). The drop is NOT mounted for a spectator, the mulligan
@@ -761,7 +764,7 @@
       {#if layoutStore.drawerOpen}
         <LayoutDrawer />
       {/if}
-      <!-- fb-20260914T121642Z: the one arrows overlay lives HERE, at the
+      <!-- The one arrows overlay lives HERE, at the
            table root, not inside the felt subtree. section.board clips its
            own content (overflow: hidden bounds the felt/cards), so an overlay
            mounted under it cannot draw a line that reaches the stack rail —
@@ -770,7 +773,7 @@
            by the table root the overlay's box contains both endpoints, and
            .table below is its positioned containing block. Still
            pointer-events: none; arrowsFor/previewArrowsFor are unchanged. -->
-      <!-- fb-20260916T225802Z: the table's ONE pile modal. The rail's pile
+      <!-- The table's ONE pile modal. The rail's pile
            buttons and the identity bar's graveyard/exile icons open it
            through the shared pileOpener store; PileHost renders the single
            instance and hands it boardOptions, so pile cards are actionable
@@ -809,11 +812,11 @@
   }
   .table {
     display: grid;
-    /* The overlay's containing block: Arrows mounts here (fb-20260914T121642Z)
+    /* The overlay's containing block: Arrows mounts here
        and positions itself absolute/inset 0 against this box, so its
        coordinates are measured over the whole table — felt and rail both. */
     position: relative;
-    /* The rail's floor is what its content measures: since fb-20260917T232028Z
+    /* The rail's floor is what its content measures:
        the seat summary is one text-line tall and its register — the life
        pill, the four one-line zone counts and the row's own chrome — measures
        ~141px (SeatTable.svelte.test.ts's geometry harness). That now sits
@@ -899,7 +902,7 @@
   }
   /* Concede lives INSIDE the logbar row (passed to Rail as a snippet), at
      the row's right edge in normal flex flow — the row is its anchor, so it
-     cannot paint over the seat table below the row (fb-53bd45b9: the old
+     cannot paint over the seat table below the row (the old
      top: 3rem absolute anchor landed on seat row 0 and its z-index ate the
      row's pile-button clicks), and it cannot read as unanchored. The
      .logbar__extra wrapper in Rail pushes this to the right; nothing here

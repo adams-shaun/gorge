@@ -25,7 +25,7 @@ func decode[T any](t *testing.T, f protocol.Frame) T {
 // after that decision's burst has already been fully fanned out (fanout
 // runs synchronously before Sleep is ever invoked) — so this is a
 // deterministic per-decision handshake, not a race against a separately
-// scheduled reader goroutine (Ruling FL-31); and as a final, one-shot call
+// scheduled reader goroutine; and as a final, one-shot call
 // after r.Wait has confirmed the table's goroutine exited, to pick up
 // whatever onMatchEnd pushed after the last decision's handshake. Both uses
 // are free of timing dependency: the first because it never overlaps a
@@ -522,7 +522,7 @@ func TestSinceStillAnswersTheRingsWindowAfterOverflow(t *testing.T) {
 }
 
 // TestOverflowedDroppedCountsEveryFrameAfterTheFirst is the regression
-// test for Ruling FL-32: dropped must count every frame attempted against
+// test: dropped must count every frame attempted against
 // an already-overflowed session, not latch at 1 the moment the channel
 // first fills — a fan-out burst often calls push more than once per
 // session (an event, then a decision), and once overflowed, every one of
@@ -572,7 +572,7 @@ func TestTakeWidgetsSortsRegardlessOfInsertionOrder(t *testing.T) {
 }
 
 // TestSubscribeFocusSnapshotIsSerialisedAgainstFanout is the regression
-// test for Ruling FL-30: without table.fanMu serialising a focus
+// test: without table.fanMu serialising a focus
 // Subscribe's snapshot build+push against the match loop's own fan-out
 // push loops, a client joining a live table could build its snapshot at
 // head H, be preempted before pushing, let a burst's fanout push events
@@ -585,7 +585,7 @@ func TestTakeWidgetsSortsRegardlessOfInsertionOrder(t *testing.T) {
 //     unpaced match plays, no explicit synchronisation): passed 15/15 even
 //     with fanMu's Lock/Unlock pairs removed everywhere. The race window
 //     is too narrow to hit by hoping the scheduler cooperates — exactly
-//     the kind of margin Ruling FL-31 rules out.
+//     a margin that is not reliable.
 //   - Holding fanMu while the match was deliberately PAUSED (via a
 //     blocking Sleep hook) removed all ambiguity about ordering, but also
 //     removed the only other actor (a live fanout call) that could

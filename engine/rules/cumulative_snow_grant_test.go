@@ -64,10 +64,9 @@ func resolveUpkeepCumulative(t *testing.T, e *Engine) {
 const cumulativeGrantStatic = "Name:Cumulus Cover\nManaCost:0\nTypes:Enchantment\n" +
 	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Cumulative upkeep:2 | Description$ Creatures you control have cumulative upkeep {2}.\nOracle:x\n"
 
-// cumulativeGrantPump is an activated A:AB$ Pump with a KW$ Cumulative
-// upkeep:1 grant -- the Balduvian Shaman / Dreams of the Dead shape (the brief
-// names KW$ Cumulative upkeep:...). It grants to its own source so a test can
-// activate it without a target decision.
+// cumulativeGrantPump is an activated A:AB$ Pump with a KW$ Cumulative upkeep:1
+// grant -- the Balduvian Shaman / Dreams of the Dead shape. It grants to its
+// own source so a test can activate it without a target decision.
 const cumulativeGrantPump = "Name:Cumulus Idol\nManaCost:0\nTypes:Artifact\n" +
 	"A:AB$ Pump | Cost$ 0 | Defined$ Self | KW$ Cumulative upkeep:1 | Duration$ Permanent | SpellDescription$ CARDNAME gains cumulative upkeep {1}.\nOracle:x\n"
 

@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestTriggeredForageCanBePaid (CR 701.61a, cr-g77): a triggered "you may
+// TestTriggeredForageCanBePaid (CR 701.61a): a triggered "you may
 // forage" (Bushy Bodyguard, Treetop Sentries, Corpseberry Cultivator, Curious
 // Forager, Euru Acorn Scrounger) is payable, not decline-only. Before the fix
 // the trigger-cost window kept the decline-only ask, so the payer could never

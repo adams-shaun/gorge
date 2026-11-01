@@ -19,7 +19,7 @@ func playAnswerApply(e *Engine, ctx *effects.Ctx, sa *cards.SA, chosen []decisio
 	// Play (effPlay now offers Min 0) -- the answer is consumed with
 	// nothing begun. Only the effect's own WithoutManaCost$ grants a
 	// free cast: Conduit has no such parameter, while Spinerock Knoll
-	// does. A PlayCost$ alternative (task playcost1: Amped Raptor's
+	// does. A PlayCost$ alternative (Amped Raptor's
 	// PayEnergy<ConvertedManaCost>, Anrakyr's PayLife<ConvertedManaCost>,
 	// Blue Mage's Cane's fixed {3}, Cruelclaw's Discard<1/Card>) is
 	// priced per chosen card -- ConvertedManaCost substitutes the
@@ -36,7 +36,7 @@ func playAnswerApply(e *Engine, ctx *effects.Ctx, sa *cards.SA, chosen []decisio
 	// effPlay sees the answer as consumed either way.
 	free := strings.EqualFold(sa.ParamStr(cards.PKWithoutManaCost), "True")
 	playCost := strings.TrimSpace(sa.ParamStr(cards.PKPlayCost))
-	// ReplaceGraveyard$ Exile (task replplay1): the Play SA's own
+	// ReplaceGraveyard$ Exile: the Play SA's own
 	// rider — "if that spell would be put into your graveyard this
 	// turn, exile it instead" — stamps the played spell's pay-time
 	// CastInfo with state.FlagReplaceGraveyard so spellRestZone (and
@@ -93,7 +93,7 @@ func playAnswerApply(e *Engine, ctx *effects.Ctx, sa *cards.SA, chosen []decisio
 	// reveal is ONE public Note (the ids payload view.Describe
 	// renders) emitted BEFORE the first cast begins, while the cards
 	// still sit in their hidden zones. A decline plays nothing and
-	// reveals nothing. The R-9 no-host path (effPlay's deterministic
+	// reveals nothing. The no-host path (effPlay's deterministic
 	// first candidate) never reaches this arm and stays untouched --
 	// the same boundary ForgetPlayed$ keeps.
 	var toPlay []state.ObjID

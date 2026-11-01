@@ -76,7 +76,7 @@ func TestCompileClone(t *testing.T) {
 		"Choices": "Creature", "AddKeywords": "IfNew Vanishing:3"}}).ETBShapeOK {
 		t.Fatal("Flesh Duplicate's IfNew Vanishing:3 rider must pass the ETB gate")
 	}
-	// cr-g119: ChoiceZone$, ChoiceTitle$, NewName$ and RememberCloneOrigin$
+	// ChoiceZone$, ChoiceTitle$, NewName$ and RememberCloneOrigin$
 	// True are inside the as-enters scope.
 	if !CloneOf(&cards.SA{API: "Clone", Params: map[string]string{
 		"Choices": "Creature.Other", "ChoiceZone": "Graveyard", "ChoiceTitle": "Pick",

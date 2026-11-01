@@ -10,7 +10,7 @@ import (
 )
 
 // This file pins the Attacking$ True entry rider on the REAL corpus move
-// bodies (the brief's flagship carriers), one per entry path: the hand
+// bodies (flagship carriers), one per entry path: the hand
 // movers (Paladin Elizabeth Taggerdy, Preeminent Captain), the graveyard
 // object path (Thunderkin Awakener), the self-return AttackersDeclared
 // trigger (Warcry Phoenix) and the Dig window (Jet, Rebel Leader). Every
@@ -222,7 +222,7 @@ func TestPreeminentCaptainSoldierEntersAttacking(t *testing.T) {
 // the graveyard TAPPED and ATTACKING, it is blockable, and its blocked
 // damage kills it against the blocker.
 //
-// It stands in for the brief's named Alesha coverage. That coverage was
+// It stands in for Alesha coverage, which was
 // unreachable through a gap since closed by agent-20260922T232740Z-cf0357bb:
 // her trigger's Cost$ WB WB used to be decline-only at the triggered-cost
 // window (Cost.Priceable() rejected the hybrid pips and no announcement ask

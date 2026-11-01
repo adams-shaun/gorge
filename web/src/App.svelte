@@ -16,7 +16,7 @@
   onMount(() => {
     const onPop = () => (route = parseRoute(location.pathname));
     addEventListener('popstate', onPop);
-    // The stale-client watch (fb-3ab6d9da defect 2): the demo redeploys on
+    // The stale-client watch: the demo redeploys on
     // every merge to main, and a tab opened before a deploy keeps running the
     // old embedded bundle with nothing telling the player. It polls GET / on a
     // slow timer (lib/versioncheck) and flips the banner below when the served
@@ -42,7 +42,7 @@
   seat={getSeat()?.seat ?? null}
 />
 
-<!-- The stale-client banner (fb-3ab6d9da defect 2): non-intrusive by design —
+<!-- The stale-client banner: non-intrusive by design —
      it overlays nothing and steals no focus; the player reloads when ready. -->
 {#if versionWatch.stale}
   <div class="stale-banner" role="status">
@@ -54,7 +54,7 @@
 {#if route.kind === 'overview'}
   <Overview />
 {:else if route.kind === 'table'}
-  <!-- keyed by table: MatchState binds its table/match once at mount (FL-38), so a route change between two tables must remount, not just update props -->
+  <!-- keyed by table: MatchState binds its table/match once at mount, so a route change between two tables must remount, not just update props -->
   {#key `${route.table}/`}
     <Table table={route.table} />
   {/key}

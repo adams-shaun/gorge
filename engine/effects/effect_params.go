@@ -9,9 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// This file is api:Effect's parameter compiler (W4 step 3 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 8), on ChangeZone's pattern (changezone_params.go). compileEffect is the
+// This file is api:Effect's parameter compiler, on ChangeZone's pattern
+// (changezone_params.go). compileEffect is the
 // ONLY reader of an Effect ability's own parameters: the resolution
 // (effect.go), the rules-side target ask's granted-static scan
 // (staticModesFromSVars' StaticAbilities$) and the opening-hand Effect

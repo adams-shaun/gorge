@@ -19,7 +19,7 @@ import (
 )
 
 // applyReplacements is called from emit before the event is logged. The
-// single M1 replacement event is "Moved" (R:Event$ Moved), which applies to
+// single base replacement event is "Moved" (R:Event$ Moved), which applies to
 // a MoveZone event and honours Origin$, Destination$, ValidCard$ and
 // ReplaceWith$.
 //
@@ -30,11 +30,11 @@ import (
 // when the chosen effect completes the event and when remaining effects are
 // reconsidered.
 //
-// Task 29 (Ruling T26-a): what happens to the ORIGINAL event once a
+// What happens to the ORIGINAL event once a
 // replacement matches depends on Forge's ReplacementResult$, which this used
 // to ignore entirely -- every match was treated as ReplacementResult$
 // Replaced, discarding the original event unconditionally. That is right for
-// "Replaced" (and for no ReplacementResult$ at all: Task 22's four pins were
+// "Replaced" (and for no ReplacementResult$ at all: the four pins were
 // measured against fixtures with neither, and must keep reading as
 // Replaced), but wrong for ReplacementResult$ Updated -- Forge's idiom for
 // "the event still happens, augmented" (CR 616.1's "an effect that modifies
@@ -44,7 +44,7 @@ import (
 // Fountain, Celestial Colonnade, Geralf's Messenger, ...). Treating Updated
 // as a full replace discarded the permanent's own MoveZone onto the
 // battlefield, so it never left the stack and resolveTop kept re-resolving
-// the same object forever (see Task 26's report and the resolveTop guard
+// the same object forever (see the resolveTop guard
 // below for the other half of this fix).
 func (e *Engine) finalityReplacementApplies(id state.ObjID) bool {
 	o := e.G.Obj(id)
@@ -97,7 +97,7 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		// recognises damage-caused loss (lifeLoss/trigger_match.go). A card
 		// with both classes active competing for the SAME event is not in
 		// the corpus this build measures against; that composition is left
-		// for whichever ticket first needs it.
+		// for whatever first needs it.
 		replaced, handled := e.applyReplacementsDispatch(ev)
 		if handled {
 			return replaced, true
@@ -133,7 +133,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return ev, false
 	}
 	// CantPutCounter is enforced in Engine.emit before this dispatch, even
-	// while a replacement body is in flight (task addcounter1/2).
+	// while a replacement body is in flight.
 	// FINALITY (CR 122.1) is a replacement at the common move boundary:
 	// a creature with a finality counter that would go from the battlefield to
 	// a graveyard is exiled instead. This covers destruction, toughness-based
@@ -159,11 +159,10 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// discards it, but exiles it instead of putting it into their
 	// graveyard". The move is rewritten in place, like finality's above, so
 	// ordinary card and format replacements still see (and may redirect) the
-	// exile move; the marked Text is what offerMadness keys the cast trigger
-	// on. Only the trigger's cast is optional (askMadnessCast).
+	// exile move, and it stays a discard for discard triggers. Only the
+	// trigger's cast is optional (askMadnessCast).
 	if ev.Kind == events.MoveZone && e.madnessReplacementApplies(ev) {
 		ev.To = state.ZExile
-		ev.Text = "discarded (madness exile)"
 	}
 	// All card-defined as-enters choices (including Riot and Unleash) are
 	// parked through the shared mid-resolution ETB path below.
@@ -185,7 +184,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if e.applySiegeProtector(ev) {
 		return ev, true
 	}
-	// CR 903.9b (Task m32, narrowed by cr-g01a): a commander about to be put
+	// CR 903.9b: a commander about to be put
 	// into its owner's hand or library from anywhere may instead be put into
 	// the command zone by its OWNER. A construct-rule replacement, matched
 	// before any card-text replacement; matching parks the event and asks
@@ -201,7 +200,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	}
 	// Collect EVERY replacement effect this event matches, in
 	// forEachObject's deterministic scan order, rather than the single first
-	// match the M1 build took.
+	// match.
 	var matches, manaCandidates []replMatch
 	// Effect-created replacements (Blood of the Martyr and the broader
 	// ReplacementEffects$ family) are active independently of their source's
@@ -243,7 +242,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			// ReplaceWith$ — stopping the event is the complete replacement,
 			// the same shape printed R: lines take (the With==nil arm below).
 			// The bodyless Prevent$ True DamageDone form (Selfless Squire's
-			// RPrevent, task dponce1; the wider bodyless prevent family it
+			// RPrevent; the wider bodyless prevent family it
 			// belongs to) is the same idiom for damage: full prevention is the
 			// complete replacement, applied by the shared damage dispatch
 			// (applyNonMoveReplacements' Prevent$ arm) exactly as a printed R:
@@ -519,7 +518,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			}
 			if strings.EqualFold(m.repl.ParamStr(cards.PKPrevent), "True") {
 				// Stored through a re-entrant emit (the ReplaceDamage arm's
-				// shape, task dponce1): the log record IS the prevention's
+				// shape): the log record IS the prevention's
 				// occurrence, so Mode$ DamagePreventedOnce triggers fire off it
 				// -- Amount carries the prevented damage (Note is an Apply
 				// no-op marker; no reader of Note.Amount predates this). Obj is
@@ -626,7 +625,7 @@ type replMatch struct {
 	chosenCards []state.ObjID
 	chosenBound bool
 	// chosen carries the Effect-created replacement's SetChosenNumber$ binding
-	// (state.ContinuousEffect.ChosenNumber, task wildgrowth1): the number the
+	// (state.ContinuousEffect.ChosenNumber): the number the
 	// Effect resolved at creation, which replCtx threads into the body Ctx so
 	// the body's Count$ChosenNumber head reads the frozen binding. Zero on
 	// every printed replacement (and on an Effect that bound nothing).
@@ -884,11 +883,11 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		// ValidPlayer$.
 		return cards.ReplAddCounter
 	case events.TurnFaceUp:
-		// The turn-up boundary itself (CR 614.1a with CR 708.6/702.36e, task
-		// cli-20260924T031747Z-6d0658fc): Hooded Hydra's five +1/+1 counters,
-		// Karlov Watchdog's CantHappen prohibition, Gift of Doom's attach.
-		// These match the marker events.TurnFaceUp that the morph-family
-		// special action and the SetState effect's turn-up arm emit.
+		// The turn-up boundary itself (CR 614.1a with CR 708.6/702.36e):
+		// Hooded Hydra's five +1/+1 counters, Karlov Watchdog's
+		// CantHappen prohibition, Gift of Doom's attach. These match the
+		// marker events.TurnFaceUp that the morph-family special action and
+		// the SetState effect's turn-up arm emit.
 		return cards.ReplTurnFaceUp
 	case events.LifeChange:
 		if ev.Text == pay.PayLifeProposalText && ev.Amount > 0 {
@@ -948,7 +947,7 @@ func replacementFaceHidden(o *state.Object, id state.ObjID, ev events.Event) boo
 // the {X} paid for the moving object, Replaced names the object the replaced
 // event was about (so a Defined$ ReplacedCard body finds its subject), and
 // the SVar table comes from the source's face. This is exactly the context
-// the single-match path built inline for M1; it is factored out so the
+// the single-match path builds inline; it is factored out so the
 // composition and order-choice paths reuse it.
 //
 // Ctx.Remembered deliberately starts EMPTY. The replaced object is reached
@@ -960,12 +959,12 @@ func replacementFaceHidden(o *state.Object, id state.ObjID, ev events.Event) boo
 // RememberChanged$/RememberRevealed$), and seeding the replaced card here
 // made every one of those counts one too high (measured over the compiled
 // corpus: all nine gating bodies carry a rider; none reads the seed). The
-// seed was fx44's stand-in for the suspended-resolution case; the resume
+// seed was a stand-in for the suspended-resolution case; the resume
 // thread carries the body's own Remembered instead (engine/rules/resolution.go's
 // replacement branch).
 //
 // The rule is scoped to PRINTED replacements. An EFFECT-created replacement
-// (m.key != "", task wildgrowth1) is a different population: the effect's
+// (m.key != "") is a different population: the effect's
 // registered Remembered list IS the intended binding -- the trigger captured
 // the cast spell with RememberObjects$ and the body's Remembered$ specs (the
 // runadi_behemoth_caller / gluttonous_hellkite CounterNum$ readers) read
@@ -1068,22 +1067,22 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	// resumeETBEntry) already posed the entry ask and recorded the answer on
 	// the entering object before this body runs at the re-emitted move, so
 	// effChooseColor keeps the historical no-op for THIS invocation rather
-	// than posing a second ask (task cli-20260923T060000Z-choose-color; the
-	// flag is what keeps a FRESH resolution-time ask after an earlier
-	// ChooseColor's answer askable -- the stale-source-state guard cannot be
-	// unconditional). The effect consumes the flag, so a nested ChooseColor
-	// in the same chain poses its own fresh ask.
+	// than posing a second ask (the flag is what keeps a FRESH
+	// resolution-time ask after an earlier ChooseColor's answer askable --
+	// the stale-source-state guard cannot be unconditional). The effect
+	// consumes the flag, so a nested ChooseColor in the same chain poses its
+	// own fresh ask.
 	if o != nil && m.repl != nil && m.repl.ParamStr(cards.PKKeyword) == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "ChooseColor" {
 		ctx.ETB.ColorRecorded = true
 	}
 	// The as-enters NUMBER-choice body (K:ETBReplacement:Other:ChooseNumber,
-	// Talion the Kindly Lord) marks itself the same way: resumeETBEntry already
-	// posed the entry ask and recorded the answer on the entering object, so
-	// effChooseNumber keeps the historical no-op for THIS invocation rather
-	// than posing a second ask (task cli-20260923T060000Z-choose-number). The
-	// flag is exact where a bare o.ChosenNumber guard is not: a recorded entry
-	// answer of 0 is indistinguishable from unset on the object, but the flag
-	// is set precisely when the machinery recorded one.
+	// Talion the Kindly Lord) marks itself the same way: resumeETBEntry
+	// already posed the entry ask and recorded the answer on the entering
+	// object, so effChooseNumber keeps the historical no-op for THIS
+	// invocation rather than posing a second ask. The flag is exact where a
+	// bare o.ChosenNumber guard is not: a recorded entry answer of 0 is
+	// indistinguishable from unset on the object, but the flag is set
+	// precisely when the machinery recorded one.
 	if o != nil && m.repl != nil && m.repl.ParamStr(cards.PKKeyword) == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "ChooseNumber" {
 		ctx.ETB.NumberRecorded = true
 	}
@@ -1255,11 +1254,11 @@ func (e *Engine) resolveReplacementBody(ctx *effects.Ctx, with *cards.SA) {
 }
 
 // applyReplacement applies the ONE chosen replacement to a MoveZone event,
-// the exact behaviour the M1 build had for its single matching replacement.
-// An "Updated" match emits the original event, fires triggers (in the M1
-// order: before the With resolves -- the I-3 caveat stands), then resolves
+// the exact behaviour for a single matching replacement.
+// An "Updated" match emits the original event, fires triggers
+// (before the With resolves), then resolves
 // the With; anything else ("Replaced", or no ReplacementResult$ at all --
-// Task 22's four pins must keep reading as a full replace) discards the
+// The four pins must keep reading as a full replace) discards the
 // original and only the With's own effect happens. Returns the event to log
 // (stored for Updated, ev for Replaced) and handled=true.
 func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, bool) {
@@ -1285,7 +1284,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 	}
 	ctx := e.replCtx(m, ev)
 	if m.repl.ParamStr(cards.PKReplacementResult) == "Updated" {
-		// Review finding M-6: an exact case-sensitive "Updated" compare is
+		// An exact case-sensitive "Updated" compare is
 		// deliberate (the corpus spells it one way). Apply the ORIGINAL event
 		// first (not routing back through e.emit, which is what keeps this
 		// from re-running replacement matching on the event it just
@@ -1300,7 +1299,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
 		// sweep) run on Engine.emit's own MoveZone path right here in the
 		// ordering; the raw events.Emit above bypasses that path, so the sweep
-		// is replayed inline (task wildgrowth1: the "enters with N additional
+		// is replayed inline (the "enters with N additional
 		// counters" Effect must end exactly after the one entry it upgraded,
 		// not linger to re-upgrade the same remembered card's next entry).
 		e.effectMoveSweep(ev)
@@ -1347,20 +1346,20 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 
 // resolveReplacementWith runs a ReplaceWith$ effect with e.damaging set to
 // the permanent that owns the replacement and then restores whatever it was
-// beforehand (Task 15 fix round 1, Important I3). A ReplaceWith$ resolves
-// inside emit, where the only write to e.damaging so far was around
-// resolveTop's own resolution calls and damageStep's assignment loop -- so a
-// replacement that emits damage normally inherited whichever value that outer
-// context happened to hold: the combat attacker when the replaced event came
-// from damageStep's loop, or 0 (no source) during ordinary turn structure.
-// Either way the damage was attributed to the wrong thing, or to nothing.
-// The reading chosen here is: the damage a replacement emits is dealt by the
-// permanent whose R: line owns the replacement (ctx.Source) -- it is an
-// effect of that permanent, exactly as resolveTop attributes a resolved
-// ability's damage to its source -- and CR 609.7a asks for the source of the
-// effect, which is the permanent granting the replacement. The PREVIOUS
-// damaging is saved and restored (never zeroed) so an outer in-flight
-// assignment keeps its own attribution once the replacement returns.
+// beforehand. A ReplaceWith$ resolves inside emit, where the only write to
+// e.damaging so far was around resolveTop's own resolution calls and
+// damageStep's assignment loop -- so a replacement that emits damage normally
+// inherited whichever value that outer context happened to hold: the combat
+// attacker when the replaced event came from damageStep's loop, or 0 (no
+// source) during ordinary turn structure. Either way the damage was
+// attributed to the wrong thing, or to nothing. The reading chosen here is:
+// the damage a replacement emits is dealt by the permanent whose R: line owns
+// the replacement (ctx.Source) -- it is an effect of that permanent, exactly
+// as resolveTop attributes a resolved ability's damage to its source -- and
+// CR 609.7a asks for the source of the effect, which is the permanent
+// granting the replacement. The PREVIOUS damaging is saved and restored
+// (never zeroed) so an outer in-flight assignment keeps its own attribution
+// once the replacement returns.
 func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
 	// ReplaceEffect rewrites the held event and must retain e.damaging as the
 	// ORIGINAL damage source (Affected$ ReplacedSourceController needs it).

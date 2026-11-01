@@ -1,5 +1,5 @@
 // Package explain is the per-intent decision note a match record carries
-// beside its log (match-reviewer design §3, D6): who answered one decision,
+// beside its log: who answered one decision,
 // by which route, and -- for a search or a scoring net -- what it saw.
 //
 // Record.Explain[i] (server/matchrecord) describes Record.Log.Intents[i]:
@@ -34,7 +34,7 @@ import (
 	"sort"
 )
 
-// Source records who actually answered a decision (design §3, D6).
+// Source records who actually answered a decision.
 type Source string
 
 const (

@@ -1079,7 +1079,7 @@ func (r *oracleRun) forceRequiredAttackers(d *decision.Decision, choices []int, 
 }
 
 // arrangeSharedKind is the option Kind every option of a KArrange shares (its
-// destination, ruling J5), or "" for an empty or disagreeing option list.
+// destination), or "" for an empty or disagreeing option list.
 func arrangeSharedKind(d *decision.Decision) string {
 	if len(d.Options) == 0 {
 		return ""
@@ -1461,7 +1461,7 @@ func (r *oracleRun) answer(d *decision.Decision, why string) error {
 		// (revisitsUpkeep), because the stored XMage references of the two
 		// level-B templates disagree and only the shape tells them apart:
 		//   - the activate/cast templates never revisit the phase; their
-		//     reference graveyards the SETUP ask (the D1 rows Broodheart
+		//     reference graveyards the SETUP ask (the rows Broodheart
 		//     Engine / Essence Anchor / Morcant's Eyes activate#0.0), so the
 		//     setup drive answers empty and a step-time ask keeps the
 		//     choose-all fallback;
@@ -2157,7 +2157,22 @@ func (r *oracleRun) do(st oracleStep) error {
 		if err != nil {
 			return err
 		}
-		return r.submit(d, []int{pickPass(d)}, "pass")
+		if err := r.submit(d, []int{pickPass(d)}, "pass"); err != nil {
+			return err
+		}
+		// A pass that resolves a permanent spell can open its trigger's target
+		// ask. Answers scripted on the pass settle it, so the step can stop with
+		// the trigger on the stack.
+		for len(r.answers) > 0 {
+			d := e.Pending()
+			if d == nil || d.Kind == decision.KPriority || e.G.Over {
+				break
+			}
+			if err := r.answer(d, "pass"); err != nil {
+				return err
+			}
+		}
+		return nil
 	case oracleOpPassTo:
 		var want state.Step
 		if st.Step != "" {

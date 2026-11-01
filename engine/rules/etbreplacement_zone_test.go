@@ -14,7 +14,7 @@ import (
 // only the SVar name and always built ValidCard$ Card.Self, so Dearly
 // Departed's graveyard static ("each Human creature you control enters with
 // an additional +1/+1 counter") fired the PutCounter on Dearly Departed's OWN
-// entry and never on a Human. Pinned on the real corpus card, per the brief's
+// entry and never on a Human. Pinned on the real corpus card, per the
 // "Done" contract.
 //
 // The engine builders and helpers come from search_library_test.go
@@ -46,7 +46,7 @@ func p1p1Of(t *testing.T, e *Engine, name string) int32 {
 	return 0
 }
 
-// TestDearlyDepartedGraveyardPumpsAnEnteringHuman is the brief's primary
+// TestDearlyDepartedGraveyardPumpsAnEnteringHuman is the primary
 // case: with Dearly Departed in the graveyard, a Human that enters gets one
 // extra +1/+1 counter. The Human is moved library -> battlefield directly so
 // no cast/priority plumbing obscures the replacement.

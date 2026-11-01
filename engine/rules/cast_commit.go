@@ -194,7 +194,7 @@ func (e *Engine) payCast() {
 		sourceControllerLKI = sourceObj.Controller
 	}
 	if pc.isAbility() {
-		// Task 10: an activated ability. The shared stages above (X, Delve --
+		// An activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
 		// recorded; what differs from a spell here is the cost's remaining
 		// non-mana parts. Pay mana, then each Tap (a Tap event), each
@@ -369,7 +369,7 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.Exert, Obj: pc.card, Player: pc.player})
 			}
 		}
-		// Capture the sacrifice LKI (Task sac1) BEFORE the MoveZone events
+		// Capture the sacrifice LKI BEFORE the MoveZone events
 		// drain the permanents: each chosen object is still on the battlefield
 		// here, so SacrificedInfoOf reads its live face and +1/+1 counters (the
 		// layer-7d portion of its P/T, which Move will reset). The resulting
@@ -434,6 +434,9 @@ func (e *Engine) payCast() {
 		if pc.x != 0 {
 			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.stackObj, Amount: pc.x})
 		}
+		if so := e.G.Obj(pc.stackObj); so != nil && pc.modeChosen {
+			effects.RecordCharmChoices(e, pc.card, so.Ability, so.ChosenModes)
+		}
 		if e.sacrificedLKI == nil {
 			e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
 		}
@@ -493,7 +496,7 @@ func (e *Engine) payCast() {
 	mana := e.castPaymentMana(pc)
 	paid, spentMana, spentSnow, spentTyped := e.payManaCastSpent(pc, mana)
 	if !paid {
-		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
+		// This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
 		// than the shortfall needs, so the cast aborts with no state change
 		// and priority re-offers it. Declining is a legal, conforming answer --
@@ -660,12 +663,12 @@ func (e *Engine) payCast() {
 		// Both events are the foreteller's Secret (Player pc.player): CR
 		// 406.3 hides a card exiled face down from every other player, and
 		// without Secret the exile is a public zone, so view.RedactEvent
-		// would keep the Obj and every transcript would name the card
-		// (cr-g62). The move uses the may-look layout naming the foreteller
+		// would keep the Obj and every transcript would name the card.
+		// The move uses the may-look layout naming the foreteller
 		// (CR 702.143a: "That player may look at that card as long as it
 		// remains in exile"; Amount the looker, no IDs: no exiling source),
-		// so the view shows its face to the foreteller and nobody else
-		// (cr-g64); any move NOT to exile clears FaceDown and the look, so
+		// so the view shows its face to the foreteller and nobody else;
+		// any move NOT to exile clears FaceDown and the look, so
 		// the later foretell-cost cast reveals automatically.
 		e.emit(events.Event{Kind: events.CastInfo, Player: pc.player, Obj: pc.card, Counter: events.FlagsString(state.FlagForetold), Secret: true})
 		e.emit(events.Event{Kind: events.MoveZone, Player: pc.player, Obj: pc.card, From: pc.from, To: state.ZExile,
@@ -723,7 +726,7 @@ func (e *Engine) payCast() {
 	if noCounter {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagNoCounter)
 	}
-	// DB$ Play's ReplaceGraveyard$ Exile rider (task replplay1): the played
+	// DB$ Play's ReplaceGraveyard$ Exile rider: the played
 	// spell's provenance — "if that spell would be put into your graveyard
 	// this turn, exile it instead" — rides the same pay-time CastInfo every
 	// other mode flag uses. A free Play cast today satisfies neither the X
@@ -816,7 +819,7 @@ func (e *Engine) payCast() {
 		sqFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagSquadPaid)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.squadTimes, Counter: sqFlags})
 	}
-	// Converge (CR 107.4f-family, task converge1): the distinct-colour spend
+	// Converge (CR 107.4f-family): the distinct-colour spend
 	// count rides its own TRAILING pay-time CastInfo -- the flag routes the
 	// Amount into Object.ConvergeColours (events.Apply's CastInfo case), so
 	// this event never clobbers the X or replicate count an earlier event in
@@ -831,7 +834,7 @@ func (e *Engine) payCast() {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagConverged)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.converge, Counter: flags})
 	}
-	// Multikicker (CR 702.43, task multikicker1): the times-kicked count
+	// Multikicker (CR 702.43): the times-kicked count
 	// rides its own TRAILING pay-time CastInfo -- the flag routes the Amount
 	// into Object.TimesKicked (events.Apply's CastInfo case), so this event
 	// never clobbers the X a main CastInfo carried (Comet Storm pairs {X}
@@ -864,7 +867,7 @@ func (e *Engine) payCast() {
 	for _, ev := range paidTapCastInfo(pc, flags) {
 		e.emit(ev)
 	}
-	// Convoke (CR 702.66, task connive1): the creatures the caster tapped to
+	// Convoke (CR 702.66): the creatures the caster tapped to
 	// help pay for the cast ride their own TRAILING pay-time CastInfo's IDs
 	// -- the flag (NOT ORed into the accumulating flags, the Conspired
 	// pattern) routes the IDs into Object.Convoked (events.Apply folds it
@@ -908,7 +911,7 @@ func (e *Engine) payCast() {
 		akFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagAddsKeywords)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: int32(len(pc.addsKeywordGrants)), Counter: akFlags, Text: events.ManaAddsKeywordGrantsText(pc.addsKeywordGrants)})
 	}
-	// Cast-spend (task castprov1): the TOTAL mana actually spent to cast the
+	// Cast-spend: the TOTAL mana actually spent to cast the
 	// spell rides its own TRAILING pay-time CastInfo -- the flag routes the
 	// Amount into Object.ManaSpent (events.Apply's CastInfo case), so this
 	// event never clobbers the X an earlier event in this block carried, and
@@ -921,7 +924,7 @@ func (e *Engine) payCast() {
 	if pc.manaSpentOn {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSpent)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpent, Counter: flags})
-		// The SNOW-unit part of that same spend (task castfilter1) rides its
+		// The SNOW-unit part of that same spend rides its
 		// own trailing CastInfo: the flag routes the Amount into
 		// Object.ManaSnowSpent, so it never clobbers the unfiltered total the
 		// event just set (the converge/multikick two-event split, applied one
@@ -931,7 +934,7 @@ func (e *Engine) payCast() {
 		// Snow carriers without a second gate.
 		snowFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSnowSpent)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpentSnow, Counter: snowFlags})
-		// The TYPED parts of that same spend (task castfilter2) ride their own
+		// The TYPED parts of that same spend ride their own
 		// trailing CastInfos, one per tag, each accumulating the earlier
 		// flags -- the same split, applied twice further. Emitted
 		// unconditionally alongside the total -- a cast that spent no mana of
@@ -1039,7 +1042,7 @@ func (e *Engine) payCast() {
 	if castEv.Kind == events.PutOnStack {
 		e.fireManaSpentTriggers(castEv, castLKI)
 	}
-	// Cascade (CR 702.85, task cascade1): one cast trigger per Cascade
+	// Cascade (CR 702.85): one cast trigger per Cascade
 	// instance, queued AFTER the ordinary cast triggers (deterministic
 	// append; the drain's APNAP ordering places them). The queue emits
 	// nothing and asks nothing, so no game without a cascade carrier
@@ -1156,7 +1159,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	// CR 733.1 applies identically to a mode announced during the proposal.
 	// ModeChosen is a marker event, so the cache is restored beside the reverse
 	// marker just as handleModes maintains it beside the forward marker.
-	if pc.modeChosen {
+	if pc.modeChosen && !pc.isAbility() {
 		if o := e.G.Obj(pc.card); o != nil {
 			if sa := o.Face().SpellAbility(); sa != nil {
 				e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.card, Player: pc.player,
@@ -1326,7 +1329,7 @@ func svarBodyForObject(o *state.Object, name string) string {
 // a cast from any other zone (hand, graveyard-flashback, ...) is never
 // counted here.
 //
-// The count it maintains is DERIVED state, and the brief's "derived from
+// The count it maintains is DERIVED state, and "derived from
 // events on replay" is the right of its two options for exactly this reason:
 // CmdCasts[k] is a deterministic pure function of the already-logged
 // PutOnStack events (From == ZCommand, per commander id). The generic,
@@ -1339,7 +1342,7 @@ func svarBodyForObject(o *state.Object, name string) string {
 // identical count. Clone deep-copies the slice (state goes through
 // Game.Clone) so the O(1) tax read (commanderTaxFor) survives a clone; the
 // number itself comes from the event stream alone. No event of its own is
-// needed, and engine/events/ is outside this task's boundary.
+// needed, so engine/events/ stays untouched.
 func (e *Engine) recordCmdCast(p state.PlayerID, id state.ObjID) {
 	if e.format != FormatCommander {
 		return

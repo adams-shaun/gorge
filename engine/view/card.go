@@ -161,7 +161,7 @@ type CardView struct {
 	IsCopy  bool `json:"is_copy,omitempty"`
 	// AttackingPlayer is the seat this creature is attacking while
 	// Attacking is true, nil otherwise; BlockedBy lists the creatures
-	// blocking it. Both exist for the arrow overlay (PL-17) and come
+	// blocking it. Both exist for the arrow overlay and come
 	// straight from the object's combat fields, which EndCombatReset clears.
 	AttackingPlayer *state.PlayerID `json:"attacking_player,omitempty"`
 	BlockedBy       []state.ObjID   `json:"blocked_by,omitempty"`
@@ -340,7 +340,7 @@ type projector struct {
 	// choice is unresolved, when no player may see any hand. It is probed
 	// once from ch's optional StartingChoicePending capability
 	// (rules.Engine); a Chars without it (a hand-built snapshot, a test
-	// stand-in) never blinds, matching the R-9 no-ask host.
+	// stand-in) never blinds, matching the no-host path.
 	hideHand bool
 	// noDerived leaves every CardView's Chars-derived facts (layer-3 name,
 	// keywords, P/T) unasked: a lean projection's OmitDerivedChars.
@@ -407,7 +407,7 @@ func (s *seatSet) has(p state.PlayerID) bool { return s[p>>6]&(1<<(p&63)) != 0 }
 // is replaced by one exactly n long when it had no storage (a fresh
 // projection allocates what Project always has), or by one with doubled
 // capacity whose slots carry buf's old ones. Never nil, even for n == 0, so a
-// refilled list marshals "[]" the way a fresh one does (Ruling T23-u).
+// refilled list marshals "[]" the way a fresh one does.
 func refill[T any](buf []T, n int) []T {
 	if cap(buf) >= n && buf != nil {
 		return buf[:0]
@@ -424,7 +424,7 @@ func refill[T any](buf []T, n int) []T {
 // cardViews maps a zone's object ids to CardViews, in zone order, into buf's
 // storage (refill). An id whose object no longer exists (a dangling entry, or
 // a defensively tampered list) is skipped rather than producing a zero
-// CardView or panicking (supplement §7). Always non-nil (Ruling T23-u), even
+// CardView or panicking. Always non-nil, even
 // for an empty or all-dangling ids: this is what lets the viewer's own
 // genuinely empty Hand marshal "[]" rather than the same "null" a hidden hand
 // would.
@@ -434,7 +434,7 @@ func refill[T any](buf []T, n int) []T {
 // here rather than re-spelled inline so it cannot drift from any other call
 // site -- and an ability object (Card == nil, so Face() == nil too) never
 // legitimately sits in a card zone at all. Both are parked in exile by the
-// engine and are skipped here (Task 4).
+// engine and are skipped here.
 func (p *projector) cardViews(buf []CardView, ids []state.ObjID, includeAbilityCosts bool, abilityPlayer state.PlayerID, revealFaceDown bool, alsoVisible *seatSet) []CardView {
 	out := refill(buf, len(ids))
 	for _, id := range ids {
@@ -480,13 +480,12 @@ func (p *projector) zoneCard(cv *CardView, id state.ObjID, includeAbilityCosts b
 	// every seat, including its owner; only the face-up current plane is
 	// public.
 	//
-	// The redacted card is decided first and never built: none of the
-	// derived facts the full card would read survives the blanking, so asking
-	// Chars for them would only spend storage the blank card then drops.
+	// The redacted card is decided first and never built: its printed facts
+	// are what the blanking removes, so asking for them would only spend
+	// storage the blank card then drops.
 	hidden := o.FaceDown && (o.Zone == state.ZPlanarDeck || (!revealFaceDown && !p.mayLookFaceDown(o, alsoVisible)))
 	if hidden {
-		*cv = CardView{ID: id, FaceDown: true, Token: p.token(id),
-			Controller: o.Controller, Owner: o.Owner}
+		p.faceDownCard(cv, o)
 	} else {
 		p.cardView(cv, id)
 		if p.effective != nil {
@@ -506,6 +505,58 @@ func (p *projector) zoneCard(cv *CardView, id state.ObjID, includeAbilityCosts b
 	return true
 }
 
+// faceDownCard writes the card a viewer who may not look at face-down o sees:
+// no printed fact, and for a permanent what is public about one (CR 708.2): its
+// characteristics, usually a 2/2 with no abilities, and its state on the
+// battlefield. It reuses cv's storage as cardView does.
+func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
+	atk, ctr := cv.AttackingPlayer, cv.Counters
+	blk, kws := cv.BlockedBy[:0], cv.Keywords[:0]
+	*cv = CardView{ID: o.ID, FaceDown: true, Token: p.token(o.ID), Controller: o.Controller, Owner: o.Owner}
+	if o.Zone != state.ZBattlefield {
+		return
+	}
+	cv.Tapped, cv.Damage, cv.Attacking = o.Tapped, o.Damage, o.IsAttacking
+	cv.SummonSick, cv.AttachedTo = o.SummonSick, o.AttachedTo
+	// A Room's doors are printed text, which the face-down permanent has none of.
+	cv.Flags = cardFlags(p.g, o) &^ (FlagLeftDoor | FlagRightDoor)
+	if o.IsAttacking {
+		if atk == nil {
+			atk = new(state.PlayerID)
+		}
+		*atk = o.Attacking
+		cv.AttackingPlayer = atk
+	}
+	if len(o.BlockedBy) > 0 {
+		cv.BlockedBy = append(blk, o.BlockedBy...)
+	}
+	// CR 708.2a: it is a creature, unless a type-changing effect says otherwise
+	// (Yedora's returned Forest land), which shows like any other derived type.
+	cv.Types = "Creature"
+	if !p.noDerived && p.vtypes != nil {
+		if derived, ok := p.vtypes.ViewTypes(o.ID); ok {
+			cv.Types = p.typeLine("", derived)
+		}
+	}
+	if !p.noDerived && p.ch != nil {
+		cv.Power, cv.Toughness = p.ch.Power(o.ID), p.ch.Toughness(o.ID)
+		if kw := p.ch.Keywords(o.ID); len(kw) > 0 {
+			cv.Keywords = append(kws, kw...)
+		}
+	}
+	if len(o.Counters) > 0 {
+		if ctr == nil {
+			ctr = make(map[string]int32, len(o.Counters))
+		} else {
+			clear(ctr)
+		}
+		for _, c := range o.Counters {
+			ctr[c.Kind] = c.N
+		}
+		cv.Counters = ctr
+	}
+}
+
 // mayLookFaceDown reports whether the viewer may see face-down o's face.
 //
 // On the battlefield and the stack the face is its controller's (CR 708.5,
@@ -523,7 +574,7 @@ func (p *projector) zoneCard(cv *CardView, id state.ObjID, includeAbilityCosts b
 //
 // Either way CR 723.4 widens it to a seat controlling that looker (the
 // alsoVisible set or a live control, controlsSeat). Forge's
-// CardView.canBeShownTo is the same rule (cr-g64).
+// CardView.canBeShownTo is the same rule.
 func (p *projector) mayLookFaceDown(o *state.Object, alsoVisible *seatSet) bool {
 	if o.Zone != state.ZExile {
 		return p.seesFor(o.Controller, alsoVisible)
@@ -611,7 +662,7 @@ func printedNonManaAbilityCosts(f *cards.Face) []string {
 // cardView writes one object's public face into cv. ch is read through
 // Power/Toughness/Keywords rather than any printed field directly — the view
 // asks the engine for derived characteristics, never the card's own text —
-// and a nil ch (supplement §7) degrades to the zero P/T with no keywords.
+// and a nil ch degrades to the zero P/T with no keywords.
 //
 // Every field of cv is rewritten. The storage cv already holds -- its
 // Produces and AttackingPlayer structs, its BlockedBy and Keywords arrays,
@@ -689,6 +740,12 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		cv.ManaCost = f.ManaCost
 		cv.PrintedPT = f.PT
 		cv.Printing = Printing{Name: f.Name}
+		// CR 208.3: a noncreature has no P/T for counters to move. A printed pair
+		// (a Vehicle) still shows, and a permanent the viewer may look at while
+		// it is face down is the 2/2 CR 708.2a makes it, whatever its face says.
+		if !p.noDerived && o.Zone == state.ZBattlefield && !o.FaceDown && !strings.Contains(cv.Types, "Creature") {
+			cv.Power, cv.Toughness = int32(f.Power()), int32(f.Toughness())
+		}
 		// The colour identity (CR 903.4), a printed fact of the face. A
 		// colourless face's zero mask is indistinguishable from an
 		// unreadable card's, which is why the field is documented as
@@ -711,7 +768,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 			cv.CombatTrick = effects.CastCombatTrick(sa)
 			cv.AuraLogic = effects.CastAuraLogic(f)
 		}
-		// The mana-production projection (Task dp2): what tapping this card
+		// The mana-production projection: what tapping this card
 		// puts in the pool, from its own abilities. A nil pointer keeps a card
 		// with no mana ability off the wire; the struct is this CardView's own
 		// (fresh, or the one it held before), so the address is never aliased
@@ -745,7 +802,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		cv.Toughness = p.ch.Toughness(id)
 		// A copy: Chars is an interface, and nothing guarantees an
 		// implementation hands back a slice nobody else holds a reference
-		// to (supplement §10's no-aliasing rule).
+		// to (no aliasing).
 		if kw := p.ch.Keywords(id); len(kw) > 0 {
 			cv.Keywords = append(kws, kw...)
 		}

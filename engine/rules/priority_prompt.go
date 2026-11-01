@@ -14,8 +14,7 @@ import (
 // (turn, step, seat index) process-wide; an entry answers only for the exact
 // name it was built with, so a seat renamed (or another table's seat at the
 // same index) rebuilds and replaces it. Strings are immutable, so sharing
-// one across engines and goroutines is safe, and the text is byte-identical
-// to the uncached build.
+// one across engines and goroutines is safe.
 const (
 	promptTurns = 64
 	promptSteps = 32
@@ -29,8 +28,7 @@ type priorityPromptEntry struct {
 
 var priorityPromptTable [promptTurns * promptSteps * promptSeats]atomic.Pointer[priorityPromptEntry]
 
-// priorityPrompt is the priority decision's Prompt for p, byte-identical to
-// fmt.Sprintf("turn %d, %s — %s has priority", turn, step, seatFacingName).
+// priorityPrompt is the priority decision's Prompt for p.
 func (e *Engine) priorityPrompt(p state.PlayerID) string {
 	turn, step := e.G.Turn, e.G.Step
 	name := seatFacingName(e.G, p)
@@ -47,5 +45,9 @@ func (e *Engine) priorityPrompt(p state.PlayerID) string {
 }
 
 func priorityPromptText(turn int32, step state.Step, name string) string {
-	return "turn " + strconv.Itoa(int(turn)) + ", " + step.String() + " — " + name + " has priority"
+	verb := " has priority"
+	if name == "You" {
+		verb = " have priority"
+	}
+	return "turn " + strconv.Itoa(int(turn)) + ", " + step.String() + " — " + name + verb
 }

@@ -25,7 +25,7 @@ func combatEngine(t *testing.T) *Engine {
 // onBoardReady places a creature via onBoard already able to attack --
 // SummonSick cleared, as if it had been under its controller's control since
 // the beginning of their most recent turn (CR 302.6). onBoard itself now
-// defaults to SummonSick true (Ruling T21-f), matching a real battlefield
+// defaults to SummonSick true, matching a real battlefield
 // entry (events.Move's ZBattlefield case); most of this file's attackers want
 // the opposite of that default, which is what this wrapper is for. Blockers
 // never need it -- summoning sickness has no bearing on blocking -- so every
@@ -92,7 +92,7 @@ func drainCombatDamageToStack(t *testing.T, e *Engine) {
 }
 
 // drainCombatDamagePriority answers "pass" for every priority decision the
-// engine offers while still inside the combat damage step. Task jj-cmb (F37)
+// engine offers while still inside the combat damage step.
 // introduced the between-passes priority round (CR 510.4): a first-strike
 // attacker deals its damage, then players gain priority in the combat damage
 // step before the regular pass runs. A fixture that declared a first striker
@@ -123,7 +123,7 @@ func drainCombatDamagePriority(t *testing.T, e *Engine) {
 }
 
 // submitDivision answers the combat damage step's controller damage-division
-// decision (CR 510.1c, Task jj-cmb F40) with the option whose per-blocker
+// decision (CR 510.1c) with the option whose per-blocker
 // split equals want. The engine's pending ask already exposes the split
 // table (askOptions) in lockstep with the option list, so a fixture names the
 // division it wants rather than guessing an option index.
@@ -780,13 +780,9 @@ func TestCombatDamageUsesDerivedPowerNotPrinted(t *testing.T) {
 	}
 }
 
-// TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects is the regression
-// test for a gap outside this task's own 11 named tests but explicitly in its
-// scope: EndOfTurnCleanup (layers.go, built and tested since Task 19c) was
-// never called from anywhere in the engine, so a resolved pump effect used to
-// survive forever instead of expiring at the end of its own turn -- and
-// nothing cleared marked damage or the Deathtouched counter this task
-// introduces either. This drives the real cleanup path (priorityRound, not a
+// TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects pins that cleanup
+// expires a resolved pump effect at the end of its own turn and clears marked
+// damage and the Deathtouched counter. This drives the real cleanup path (priorityRound, not a
 // direct EndOfTurnCleanup call) so the wiring itself is under test, not just
 // the primitive layers_test.go already covers in isolation.
 func TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects(t *testing.T) {
@@ -819,8 +815,8 @@ func TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects(t *testing.T) {
 
 // --- Fix round 1 (code review) ---------------------------------------------
 
-// TestFirstStrikeAttackerTakesSurvivingBlockersRegularDamage is Ruling
-// T21-a's carrier: damageStep used to gate the "blockers hit back" section
+// TestFirstStrikeAttackerTakesSurvivingBlockersRegularDamage:
+// damageStep must not gate the "blockers hit back" section
 // on whether the ATTACKER itself acted this step, so once a first-strike
 // attacker's own first-strike-step turn was done, the whole rest of its
 // block was skipped too -- including a blocker that survived the
@@ -841,7 +837,7 @@ func TestFirstStrikeAttackerTakesSurvivingBlockersRegularDamage(t *testing.T) {
 	e.askAttackers()
 	submitAttackers(t, e, atk)
 	submitBlockers(t, e, blk)
-	// Task jj-cmb (F37): the first-strike pass dealt 2 to the blocker and
+	// The first-strike pass dealt 2 to the blocker and
 	// then granted priority in the combat damage step (CR 510.4) before the
 	// regular pass runs. Cross that window so the surviving blocker swings
 	// back in the regular step.
@@ -861,7 +857,7 @@ func TestFirstStrikeAttackerTakesSurvivingBlockersRegularDamage(t *testing.T) {
 	}
 }
 
-// TestNonTrampleMultipleBlockersAssignLethalThenSpill is Ruling T21-b's
+// TestNonTrampleMultipleBlockersAssignLethalThenSpill is the
 // carrier: without Trample, damageStep used to hand the ENTIRE remaining
 // power to whichever blocker was declared first (uncapped, regardless of
 // need) and leave every later blocker at exactly 0 -- CR 510.1c instead
@@ -880,7 +876,7 @@ func TestNonTrampleMultipleBlockersAssignLethalThenSpill(t *testing.T) {
 	e.askAttackers()
 	submitAttackers(t, e, atk)
 	submitBlockers(t, e, first, second)
-	// Task jj-cmb (F40): the no-order CR 510.1c lets the attacker's
+	// The no-order CR 510.1c lets the attacker's
 	// controller divide 3 damage between the two blockers however they
 	// choose; the engine now asks that division before dealing. This fixture
 	// wants the (2,1) split -- exact lethal to the 1/2 first blocker, the
@@ -903,11 +899,11 @@ func TestNonTrampleMultipleBlockersAssignLethalThenSpill(t *testing.T) {
 	}
 }
 
-// TestAskBlockersSkipsAnAttackerWithNoFace is Ruling T21-c's carrier:
+// TestAskBlockersSkipsAnAttackerWithNoFace:
 // DeclareAttackers's own events.Apply case sets IsAttacking on any existing
 // object, with no check that the object has a Face() at all -- so a
 // malformed or tampered event (or, as reproduced here, a nil-Card object:
-// the same shape an ability's own stack object already has, per Ruling F3)
+// the same shape an ability's own stack object already has)
 // naming an "attacker" used to reach askBlockers' option-label build, which
 // read e.G.Obj(aid).Face().Name unconditionally. One goroutine runs the
 // whole match, so that nil-pointer dereference was a remote kill the instant
@@ -932,8 +928,8 @@ func TestAskBlockersSkipsAnAttackerWithNoFace(t *testing.T) {
 	}
 }
 
-// TestAttackerWhoseBlockerIsRemovedDealsNoDamageWithoutTrample is Ruling
-// T21-d's carrier (CR 509.1h): a creature that was blocked remains blocked
+// TestAttackerWhoseBlockerIsRemovedDealsNoDamageWithoutTrample:
+// (CR 509.1h) a creature that was blocked remains blocked
 // for the rest of combat even if every creature blocking it is removed
 // before damage is dealt -- it deals no combat damage at all (absent
 // Trample), not full damage to the defending player as though it had never
@@ -1016,7 +1012,7 @@ func TestMenaceStaysBlockedWhenOneOfTwoBlockersLeavesCombat(t *testing.T) {
 }
 
 // TestReplayReconstructsPostCombatStateExactly is the reviewer's own proof
-// method for Ruling T21-e: play a real game through a full combat round
+// method: play a real game through a full combat round
 // (attackers declared, blocked, damage dealt, into end of combat), then fold
 // the log alone -- via events.Apply on a clone taken just before combat --
 // forward, and expect the reconstruction to match the live game exactly.
@@ -1028,7 +1024,7 @@ func TestMenaceStaysBlockedWhenOneOfTwoBlockersLeavesCombat(t *testing.T) {
 // The clone is taken right after board setup (onBoard, which itself bypasses
 // events for placement, same as every other test in this file), not from an
 // empty state.NewGame: genesis -- the deck-building AddObject calls -- is
-// documented as never logged (engine/rules/engine.go's package doc, Ruling D), so a
+// documented as never logged (engine/rules/engine.go's package doc), so a
 // truly-from-scratch state.NewGame has an empty object arena no matter what
 // the live game's board looks like. From an identical starting point,
 // though, "does the rest of the log alone reproduce the rest of the game" is
@@ -1121,7 +1117,7 @@ func TestReplayReconstructsPostCombatStateExactly(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Task m34: free-for-all attack targeting -- every attacker may choose its
+// Free-for-all attack targeting -- every attacker may choose its
 // own defender (CR 506.2 / CR 903.14).
 
 // TestSplitAttackAcrossTwoDefenders is the behaviour this task exists to

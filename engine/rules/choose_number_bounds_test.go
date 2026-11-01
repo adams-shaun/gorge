@@ -14,7 +14,7 @@ import (
 // number ask -- no more hard-coded 0..12 offer under a literal "Choose a
 // number". The primitive-level pins live effects-side
 // (engine/effects/choose_number_bounds_test.go); these are the REAL-corpus end-to-end
-// pins on the carriers the brief names: Pia Nalaar, Chief Mechanic (direct
+// pins on the carriers: Pia Nalaar, Chief Mechanic (direct
 // Max$ Count$YourCountersEnergy, driving the full trigger -> ask -> pay ->
 // X/X token chain), Localized Destruction and Aether Refinery (the Creative
 // Energy may-pay carriers, absorbing the d777f1b6 ticket: one KChoose bounded

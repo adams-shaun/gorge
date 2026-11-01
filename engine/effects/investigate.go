@@ -43,7 +43,7 @@ const clueTokenKey = "c_a_clue_draw"
 // their own KChoose yes/no (the draw_optional ask shape; the ask goes to the
 // AFFECTED seat, never the trigger controller), a yes performs the ordinary
 // Clue creation below and a no performs nothing. A host that cannot ask keeps the pre-ask mandatory
-// investigate (the R-9 degradation the effDraw optional arms take), one
+// investigate (the no-host degradation the effDraw optional arms take), one
 // loud Note per gated resolution.
 //
 // RememberInvestigatingPlayers$ (1 file, will_the_wise) remembers the
@@ -84,7 +84,7 @@ func effInvestigate(h Host, c *Ctx, sa *cards.SA) {
 // walk.
 func investigateOptionalWalk(h Host, c *Ctx, sa *cards.SA, players []state.PlayerID, n int32, remember bool) {
 	// Each affected player poses their own ask. A no-host ask keeps the
-	// mandatory investigate (R-9), one Note per gated resolution.
+	// mandatory investigate, one Note per gated resolution.
 	noted := false
 	for idx, p := range players {
 		var accepted bool
@@ -105,7 +105,7 @@ func investigateOptionalWalk(h Host, c *Ctx, sa *cards.SA, players []state.Playe
 			if !noted {
 				noted = true
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-					Text: "Investigate: no host to ask the election; investigates (R-9 stand-in)"})
+					Text: "Investigate: no host to ask the election; investigates (no-host stand-in)"})
 			}
 		}
 

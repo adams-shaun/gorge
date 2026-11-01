@@ -1,4 +1,4 @@
-// cr-g53a: CR 702.22c-i, 802.3b. Banding's attack half: as attackers are
+// CR 702.22c-i, 802.3b. Banding's attack half: as attackers are
 // declared, the attacking player may put attacking creatures with banding
 // and up to one attacking creature without banding, all attacking the same
 // defender, into a band; a creature blocking one member blocks every member.

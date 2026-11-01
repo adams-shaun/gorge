@@ -14,6 +14,9 @@ import (
 
 const AdapterVersion = "0.1.0"
 
+// AutoPayVersionSuffix ends the engine version of a table that pays mana itself.
+const AutoPayVersionSuffix = "/autopay"
+
 // DecisionKinds are the 25 kinds the engine emits. distribute is not one:
 // combat damage follows the declared engine_order default (Section 7.6).
 // choose_option is the two-pile pick (a counted option list); it joins the
@@ -94,7 +97,7 @@ func provenance(e protocol.Engine) protocol.Provenance {
 }
 
 // engineOrder is the declared combat damage default (Section 7.6): gorge
-// assigns combat damage in engine order (Task 16).
+// assigns combat damage in engine order.
 var engineOrder = "engine_order"
 
 func helloOK(id string, e protocol.Engine, flags map[string]bool, autoPay bool) protocol.HelloOK {

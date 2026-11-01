@@ -92,7 +92,7 @@ func castDescend(t *testing.T, e *Engine, dec state.ObjID) {
 	passUntilStackEmpty(t, e, 20)
 }
 
-// TestDescendUponTheSinfulBareDeliriumGatesTheAngel is the brief's named
+// TestDescendUponTheSinfulBareDeliriumGatesTheAngel is the named
 // card: the chained DB$ Token creates its 4/4 white Angel creature token
 // with flying only when the caster's graveyard already held four or more
 // distinct core card types at resolution.

@@ -175,7 +175,7 @@ func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 // removals, and the whole election is logged as ONE batched event per kind
 // when it ends (the CounterRemovedOnce contract: one negative-Amount event
 // carries the whole removal). The no-answer fallback is the first present
-// kind -- the same pick botpolicy's "counter_kind" arm takes -- so the R-9
+// kind -- the same pick botpolicy's "counter_kind" arm takes -- so the
 // no-host path and a bot-answered ask emit the same events.
 func removeCounterAny(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) {
 	g := h.Game()
@@ -330,7 +330,7 @@ func removeCounterAnyCarrier(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterPara
 // differently is never emitted): zero eligible objects acts on nothing, an
 // exact count at or above the eligible count takes the deterministic first
 // Max, and everything else — an Optional$ 0..1 over even ONE eligible object
-// — is a real election. The no-host fallback (R-9) and botpolicy's
+// — is a real election. The no-host fallback and botpolicy's
 // "counter_pick" arm both take the first Max eligible in zone order, so a
 // bot-answered ask emits the same events a silent build would have.
 //

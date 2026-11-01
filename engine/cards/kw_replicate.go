@@ -14,7 +14,7 @@ func kwReplicate(f *Face, i int, k, head, param string, has func(kind, line stri
 	// off the cast spell, so a DECLINED replicate resolves the trigger
 	// with Amount 0 and effCopySpellAbility's loop emits nothing. The
 	// copies keep their targets (MayChooseTarget$), the same
-	// Storm-shaped stand-in the M4 copy-target task owns.
+	// Storm-shaped stand-in.
 	f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Replicate",
 		"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ReplicatePaid | MayChooseTarget$ True", has)
 }

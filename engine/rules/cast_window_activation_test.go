@@ -1,16 +1,15 @@
-// Task agent-20260924T100320Z-65e9b8fe (castwindow-probe remaining shapes):
-// the CR 601.2g target-affordability probe (castWindowUnits ->
-// castWindowReachable) previously priced only free literal productions, a
-// dynamic amount on a SINGLE-type free producer, a literal generic netted
-// against a SINGLE-type production, PayLife and deterministic self-sacrifice.
-// These leaves pin the three remaining representable shapes -- a choice-shaped
-// production with a resolvable non-literal amount, a generic activation cost
-// with multi-colour production, and a generic fee funded by mana an earlier
-// same-window activation produced -- plus the two boundaries that stay
-// fail-closed (RestrictValid$ and one tap per permanent). Each positive case
-// shows a target previously withheld is offered once its reduced cost is
-// payable; each negative case shows the same board with the source removed or
-// underfunded stays withheld.
+// Cast-window shapes: the CR 601.2g target-affordability probe
+// (castWindowUnits -> castWindowReachable) previously priced only free
+// literal productions, a dynamic amount on a SINGLE-type free producer, a
+// literal generic netted against a SINGLE-type production, PayLife and
+// deterministic self-sacrifice. These leaves pin the three remaining
+// representable shapes -- a choice-shaped production with a resolvable
+// non-literal amount, a generic activation cost with multi-colour production,
+// and a generic fee funded by mana an earlier same-window activation produced
+// -- plus the two boundaries that stay fail-closed (RestrictValid$ and one
+// tap per permanent). Each positive case shows a target previously withheld
+// is offered once its reduced cost is payable; each negative case shows the
+// same board with the source removed or underfunded stays withheld.
 package rules
 
 import (

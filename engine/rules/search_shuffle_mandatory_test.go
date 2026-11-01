@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The library search's shuffle is mandatory (CR 701.23 / 701.24; cr-g09).
+// The library search's shuffle is mandatory (CR 701.23 / 701.24).
 // These replace the retired search_mayshuffle pins: every card is the real
 // compiled corpus script loaded through the gitignored corpus registry -- no
 // Forge script text is committed.

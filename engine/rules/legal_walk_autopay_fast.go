@@ -20,12 +20,12 @@ var autoPayFastVerify = os.Getenv("GORGE_AUTOPAY_FAST_VERIFY") != ""
 
 // autoPayFastDisabled disables the fast path entirely
 // (GORGE_AUTOPAY_FAST_DISABLE=1, read once at package init). It exists so the
-// brief's offer-equivalence method is reproducible without editing the tree:
+// offer-equivalence method is reproducible without editing the tree:
 // a digest taken with it set is the planner-only baseline the fast path's
 // digest must equal byte-for-byte.
 var autoPayFastDisabled = os.Getenv("GORGE_AUTOPAY_FAST_DISABLE") != ""
 
-// autoPayFastAccepts counts fast-path accepts, for the ticket report (a zero
+// autoPayFastAccepts counts fast-path accepts, for measurement (a zero
 // count after a benchmark run means the fast path is dead on that board).
 var autoPayFastAccepts atomic.Int64
 

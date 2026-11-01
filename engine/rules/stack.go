@@ -62,9 +62,9 @@ func (e *Engine) resolveTop() {
 				return
 			}
 		}
-		// A triggered or activated ability with no printed card: Ruling
-		// T14-c / F3 -- Face() returns nil for these, so this branch must
-		// run before anything below touches it. Task 20 is what actually
+		// A triggered or activated ability with no printed card:
+		// Face() returns nil for these, so this branch must
+		// run before anything below touches it. The trigger path
 		// puts objects like this on the stack.
 		//
 		// CR 603.4 (intervening-if): a triggered ability's condition is
@@ -106,7 +106,7 @@ func (e *Engine) resolveTop() {
 			}
 		}
 		// No triggered or activated ability this build produces ever
-		// actually populates Targets (only Remembered): Task 20's
+		// actually populates Targets (only Remembered): the
 		// checkTriggers never calls askTarget, which is the only place
 		// TargetsChosen is ever emitted from. So this is unreachable in
 		// practice today, but a stack object is a stack object, and CR
@@ -123,7 +123,7 @@ func (e *Engine) resolveTop() {
 		if charmHandled {
 			targets = charmFlatTargets
 		}
-		// Fix round 2 (re-review N1): the gate is `spec != ""` -- "this
+		// The gate is `spec != ""` -- "this
 		// ability declares a targeting requirement" -- not `len(targets) > 0`
 		// -- "this ability happens to have targets right now". The old form
 		// used the latter as a proxy for the former, so an ability that NEEDS
@@ -349,7 +349,7 @@ func (e *Engine) resolveTop() {
 		// unchanged, and an activated ability finds no trigger at all and
 		// falls through to Face() exactly as before.
 		svars := e.abilityResolutionSVars(id, o)
-		// Ruling T20-b: Source must be o.Source (the permanent that has this
+		// Source must be o.Source (the permanent that has this
 		// ability), not id (the transient stack-object wrapper) -- Defined$
 		// Self, the most common Defined$ value in real trigger scripts,
 		// resolves to Ctx.Source, and a wrapper ID means "Self" refers to a
@@ -392,7 +392,7 @@ func (e *Engine) resolveTop() {
 		ctx.ActivationsThisTurn = e.activationsThisTurnFor(o.Source, o.Ability)
 		// The resolving stack-object wrapper: ValidStack's otherAbility
 		// exclusion (Ulalek's sub-copy) anchors here, not on Source --
-		// Source is the source permanent (Ruling T20-b), which is not on
+		// Source is the source permanent, which is not on
 		// the stack and would exclude nothing.
 		ctx.ResolvingObj = id
 		// alltargeted1: the cast flow's pre-asked SubAbility$ target
@@ -430,7 +430,7 @@ func (e *Engine) resolveTop() {
 			ctx.OfferedSA = offeredSA
 		}
 		reflexiveCaptured(ctx)
-		if lki, ok := e.triggerLKI[id]; ok {
+		if lki, ok := e.triggerLKI[id]; ok && lki.object != nil {
 			ctx.LKI = lki.object
 			ctx.Snap.Power, ctx.Snap.Toughness, ctx.Snap.PTValid =
 				lki.power, lki.toughness, lki.ptValid
@@ -484,12 +484,11 @@ func (e *Engine) resolveTop() {
 				evolveCountersBefore = src.Counter("P1P1")
 			}
 		}
-		// CR 603.3c: the mode choice was announced at placement (pushTrigger
-		// asked KModes and handleModes recorded the answer into ChosenModes).
-		// Pre-seeding Ctx.Modes makes effCharm take its re-entry branch and
-		// run exactly the chosen modes rather than asking again at
-		// resolution. Nil for a non-modal trigger, for an activated ability,
-		// and for any trigger the placement ask never reached.
+		// CR 603.3c, 602.2b: the mode choice was announced at placement or
+		// activation and recorded into ChosenModes. Pre-seeding Ctx.Modes makes
+		// effCharm take its re-entry branch and run exactly the chosen modes
+		// rather than asking again at resolution. Nil for a non-modal ability
+		// and for any modal one the announcement never reached.
 		ctx.Modes = o.ChosenModes
 		e.damaging = o.Source
 		e.endTurnRequested = false
@@ -598,7 +597,7 @@ func (e *Engine) resolveTop() {
 		// A half that suspended on a mid-resolution ask hands back the
 		// continuation (the rest of that half plus a fuse-rest frame for any
 		// unrun half); link it onto the ask's fresh resume point here, the
-		// resolution machinery's own write (ruling T21-e).
+		// resolution machinery's own write.
 		e.resolveFused(o)
 		return
 	}
@@ -643,9 +642,9 @@ func (e *Engine) resolveTop() {
 		// not the outer Charm SA. Use the same selected declaration targetAsk
 		// used during CR 601.2c, so its targets receive the ordinary CR 608.2b
 		// legality recheck at resolution. (targetSA is hoisted above.)
-		// Fix round 2 (re-review N1), the same correction as the ability
+		// The same correction as the ability
 		// branch above, and the one that was actually reachable. Widening the
-		// departed-player release hook in fix round 1 turned a stall into a
+		// departed-player release hook turned a stall into a
 		// spell that RESOLVES with no targets at all: the caster is
 		// eliminated while their target decision is outstanding, the hook
 		// clears it so the match can continue, and the spell is left on the
@@ -850,9 +849,7 @@ func spellFizzleZone(o *state.Object) state.Zone {
 // off the stack itself and the guard never engages. The guard is for the
 // replacements whose ReplaceWith$ truly leaves the card where it was.
 //
-// Originally added by Task 29 (Ruling T26-a) for the permanent-ETB exit
-// alone; the final whole-branch review (Critical C1) measured the identical
-// hazard, independently reachable, on the other four exits -- a two-card
+// The hazard is reachable on all five exits -- a two-card
 // deck (an instant or an ability-granting permanent, plus a Rest-in-Peace-
 // shaped enchantment already on the battlefield) reliably hung a real match
 // at 100 000+ intents, never terminating, on turn 1. 24 corpus cards this
@@ -864,7 +861,7 @@ func spellFizzleZone(o *state.Object) state.Zone {
 //
 // Held under applyingReplacement (saved and restored, not just set, in case
 // a future caller ever reaches here already inside one) for the same reason
-// the original ETB guard was (Task 29 review finding I-1): "ceases to
+// the original ETB guard was: "ceases to
 // exist" is engine bookkeeping, not a game event a card's own replacement
 // gets to intercept a second time. why becomes the Note's Text, tailored by
 // each call site to name which of the five moves was actually being
@@ -873,7 +870,7 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZStack {
 		return
 	}
-	// fx44: a SUSPENDED replacement is legitimately still on the stack,
+	// A SUSPENDED replacement is legitimately still on the stack,
 	// waiting for its answer — the ask it posed decides where the object goes
 	// (Mox Diamond's ETB replacement parks the card exactly here). The guard
 	// must distinguish "the replacement finished and moved nothing" (the
@@ -965,7 +962,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	// sees (candidatesFor's sc.Source): a source-reading predicate
 	// (CanEnchantEquippedBy -- Mantle of the Ancients' recheck) judges the
 	// chosen target at resolution exactly as the offer judged it at
-	// placement, Critical C2's one-definition rule. Before this, the recheck
+	// placement, the one-definition rule. Before this, the recheck
 	// built its SpecContext with source 0 and every source-reading predicate
 	// failed closed there -- a target the placement offer had just certified
 	// fizzled at resolution.
@@ -1068,7 +1065,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 		// is dropped from resolution too (CR 608.2b). The source is resolved
 		// through protectionSource so an ability fizzling here judges "the
 		// source" as its Source permanent, the same object askTarget's own
-		// filter has now been made to see (Critical C2 -- one definition).
+		// filter sees (one definition).
 		// CR 702.14 rides the same recheck: a target that GAINED shroud
 		// between placement and resolution (Lightning Greaves equipping in
 		// response) is dropped here, and a target with no other legal target
@@ -1243,7 +1240,7 @@ func (e *Engine) resolveAbilitySacrificing(source state.ObjID, controller state.
 	ctx.ActivationsThisTurn = e.activationsThisTurnFor(source, sa)
 	// The caller supplies the chosen targets -- the announcement or placement
 	// ask's answer -- so the generic ValidTgts$ pre-ask must not re-pose it
-	// for an SA that declares targets (task mvts1).
+	// for an SA that declares targets.
 	if sa != nil && effects.TargetsOf(sa).Targeted() {
 		ctx.TargetsOffered = true
 	}

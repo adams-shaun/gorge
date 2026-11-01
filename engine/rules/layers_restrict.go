@@ -10,7 +10,7 @@ import (
 )
 
 // RegenerationDisallowed implements effects.Host for the CantRegenerate
-// restriction (Task ce1): reports whether an Effect-registered restriction
+// restriction: reports whether an Effect-registered restriction
 // forbids id from regenerating. Consulted by effects.ReplaceDestruction, so
 // Incinerate's "creature can't be regenerated this turn" actually blocks the
 // shield-consumption path instead of being a Note. Scanning e.active() keeps
@@ -131,8 +131,8 @@ func (e *Engine) untapDenied(id state.ObjID) bool {
 	return false
 }
 
-// SacrificeBlocked implements effects.Host for the CantSacrifice restriction
-// (task combatrestriction1): reports whether id is forbidden from being
+// SacrificeBlocked implements effects.Host for the CantSacrifice restriction:
+// it reports whether id is forbidden from being
 // sacrificed at all — an Effect-registered CantSacrifice restriction (Call for
 // Aid's "You can't sacrifice those creatures this turn") or a face
 // CantSacrifice static (the simple Card.Self carriers). Consulted at every
@@ -154,7 +154,7 @@ func (e *Engine) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 	return e.sacrificeBlocked(id, forCost, pay.CostCauseNone)
 }
 
-// sacrificeBlockedForCost is the cost path's entry point (task cantsac1):
+// sacrificeBlockedForCost is the cost path's entry point:
 // the rules-side Sac-cost walks (cast/activation, mana ability, ward,
 // unless, the cumulative-upkeep/echo Sac arm and the Cost$ Mandatory
 // trigger-cost window) know what the sacrifice is paying for, so they call
@@ -371,7 +371,7 @@ func (e *Engine) exileBlocked(id state.ObjID, forCost bool, cause pay.CostCause)
 
 // PutCounterBlocked reports whether a counter of kind would be placed on obj
 // (object form) or player (player form) is forbidden -- a real CantPutCounter
-// restriction static (task cantputcounter1): an Effect-registered one (Melira,
+// restriction static: an Effect-registered one (Melira,
 // the Living Cure's "you can't get additional poison counters this turn",
 // registered by effEffect from the Effect's StaticAbilities$ NoMorePoison) or
 // a face S:Mode$ CantPutCounter static (Solemnity, Melira's Keepers,

@@ -1,6 +1,6 @@
 package rules
 
-// Task fx27 — "drawCard runs state-based actions unconditionally, including
+// "drawCard runs state-based actions unconditionally, including
 // mid-resolution".
 //
 // This file records the investigation of engine/rules/engine.go drawCard and PINS

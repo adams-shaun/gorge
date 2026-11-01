@@ -2,7 +2,7 @@
 // parameter on a resolving Animate body ("If it would leave the battlefield,
 // exile it instead of putting it anywhere else" -- Whip of Erebos, Kheru Lich
 // Lord, Gruesome Encore, Storm Herald, the four `DB$ Animate` corpus carriers
-// measured 2026-09-22), and the sibling `sVars$` grant on an Animate body
+// measured), and the sibling `sVars$` grant on an Animate body
 // (the named SVars the animated object carries).
 //
 // The rider's scope is the whole promise family: the Animate site (Whip of

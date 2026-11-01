@@ -9,7 +9,7 @@
   import BetweenGames from './BetweenGames.svelte';
 
   /**
-   * The table page's event layer (E3-9). A series game's join link carries
+   * The table page's event layer. A series game's join link carries
    * `&event=<id>`; with a remembered event seat for that event (never the
    * URL's game token), the page watches the event's frames and — while the
    * viewer's series on this table is between games and the server still

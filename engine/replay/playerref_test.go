@@ -10,8 +10,8 @@ import (
 )
 
 // raiderSrc is a Haste attacker whose own Attacks trigger reads Defined$
-// TriggeredDefendingPlayer (Task 5's form, engine/effects/context.go's playersOf)
-// to drain the DEFENDING player specifically. FL-41: before pushTrigger
+// TriggeredDefendingPlayer (engine/effects/context.go's playersOf)
+// to drain the DEFENDING player specifically. Before pushTrigger
 // encoded a Remembered player entry with state.PlayerRef, that entry
 // persisted through the logged TriggerPush event as ObjID 0 (an object
 // that never exists), Apply rebuilt it as {Obj: 0}, and playersOf filters
@@ -68,15 +68,14 @@ func raiderConfig(t *testing.T) rules.Config {
 		Decks: [][]*cards.Card{deck0, deck1}}
 }
 
-// TestDeclareAttackersPlayerRefSurvivesReplay is FL-41's own regression
-// test: it drives a real game (the deterministic heuristic.Bot, exactly
-// playGame's own wiring, not a rules-package-internal shortcut) through
-// Raider's cast and its very first attack, checks the LoseLife landed on
-// the DEFENDING player (not the attacker -- the bug this fixes would swap
-// them), and then reconstructs the same match from (cfg, log) alone via
-// the real replay.Replay -- proving the state.PlayerRef sentinel actually
-// round-trips through a log, not just through the live engine that
-// produced it.
+// TestDeclareAttackersPlayerRefSurvivesReplay: it drives a real game (the
+// deterministic heuristic.Bot, exactly playGame's own wiring, not a
+// rules-package-internal shortcut) through Raider's cast and its very first
+// attack, checks the LoseLife landed on the DEFENDING player (not the
+// attacker -- the bug this fixes would swap them), and then reconstructs the
+// same match from (cfg, log) alone via the real replay.Replay -- proving the
+// state.PlayerRef sentinel actually round-trips through a log, not just
+// through the live engine that produced it.
 func TestDeclareAttackersPlayerRefSurvivesReplay(t *testing.T) {
 	cfg := raiderConfig(t)
 	e := rules.New(cfg)
@@ -98,7 +97,7 @@ func TestDeclareAttackersPlayerRefSurvivesReplay(t *testing.T) {
 		t.Fatalf("turn 1 did not complete within the intent budget (stuck at turn %d)", e.G.Turn)
 	}
 	// 20 starting life; unblocked 2/2 combat damage plus the 3-life
-	// TrigLose landing correctly on the defender: 20 - 2 - 3 = 15. If FL-41
+	// TrigLose landing correctly on the defender: 20 - 2 - 3 = 15. If this
 	// regressed, the effect silently no-ops (playersOf drops the {Obj: 0}
 	// entry): defender stays at 18 (combat damage only) and the attacker
 	// stays at 20.
@@ -108,7 +107,7 @@ func TestDeclareAttackersPlayerRefSurvivesReplay(t *testing.T) {
 	}
 	if e.G.Players[0].Life != 20 {
 		t.Fatalf("attacking player life = %d, want unchanged 20 -- "+
-			"FL-41 regression: TrigLose silently no-oped (playersOf dropped the Obj:0 entry)", e.G.Players[0].Life)
+			"TrigLose silently no-oped (playersOf dropped the Obj:0 entry)", e.G.Players[0].Life)
 	}
 
 	// Now the round trip the finding actually asked for: reconstruct from

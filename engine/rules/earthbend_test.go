@@ -346,7 +346,7 @@ func earthbendDepart(t *testing.T, e *Engine, id state.ObjID, dest state.Zone) {
 // TestEarthbendBaSingSeRealDestroy casts a real Sinkhole at the earthbent
 // land and asserts the promise returns it tapped. This drives the actual
 // Destroy primitive (engine/effects/zone.go -> MoveZone), not the MoveZone the
-// helper emits, so the brief's "destroying it returns it to the battlefield
+// helper emits, so "destroying it returns it to the battlefield
 // tapped" is proven at the primitive. Sinkhole ("destroy target land",
 // ValidTgts$ Land) is used rather than a creature-killer because the
 // engine's ordinary target filters read the PRINTED face (the documented

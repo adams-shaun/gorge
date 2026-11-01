@@ -1,14 +1,12 @@
 /**
  * storage is the ONE shared localStorage handle every persistent client
  * store routes through: playsettings, layoutsettings, remembered decisions,
- * logshown, the art cache and the oracle cache. Before fb-20260917T232814Z
- * each module carried its own identical private `safeStorage()` copy — the
- * guard existed six times and no single "storage is unavailable" signal
- * existed anywhere, which is why a browser that refuses site data degraded
- * every store to memory-only in silence (the player-visible symptom: every
- * preference resets on every reload, with nothing on screen saying why).
+ * logshown, the art cache and the oracle cache. Having one guard gives one
+ * "storage is unavailable" signal: a browser that refuses site data degrades
+ * every store to memory-only, and the player-visible symptom is that every
+ * preference resets on every reload, with nothing on screen saying why.
  *
- * The scope here is deliberately the same as the copies it replaces: BOTH
+ * The scope here is deliberate: BOTH
  * helpers are per-browser, per-origin — a cookie would give a player
  * nothing localStorage does not already give (same lifetime, same origin
  * scope, a 100× smaller limit and request overhead), so the fix for

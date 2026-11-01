@@ -7,14 +7,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestB2ReserveIsCheapestInstantSpeedCard pins reserve() (the B2 mana
+// TestReserveIsCheapestInstantSpeedCard pins reserve() (the mana
 // reserve): it is the converted cost of the cheapest castable card the seat
 // holds that can be cast at instant speed -- an Instant, or a permanent with
 // Flash -- and 0 when it holds none. It is evidence-driven: it reads what is
 // actually in hand (Castable), what it costs (CMC) and whether it is
 // instant-speed (InstantSpeed). The gate makes reserve() a fixed constant
 // (or reads the expensive card) and this test fails.
-func TestB2ReserveIsCheapestInstantSpeedCard(t *testing.T) {
+func TestReserveIsCheapestInstantSpeedCard(t *testing.T) {
 	b := Board{Cards: TableOf(map[state.ObjID]Card{
 		1: {CMC: 3, Castable: true, InstantSpeed: true}, // a 3-cost instant
 		2: {CMC: 1, Castable: true, InstantSpeed: true}, // a 1-cost flash creature
@@ -25,14 +25,14 @@ func TestB2ReserveIsCheapestInstantSpeedCard(t *testing.T) {
 	if got := b.reserve(); got != 1 {
 		t.Fatalf("reserve() = %d, want the cheapest instant-speed castable card (1, the flash creature)", got)
 	}
-	// No instant-speed castable card: reserve 0, so C7 is inert.
+	// No instant-speed castable card: reserve 0, so the preference is inert.
 	b = Board{Cards: TableOf(map[state.ObjID]Card{3: {CMC: 2, Castable: true}})}
 	if got := b.reserve(); got != 0 {
 		t.Fatalf("reserve() with no instant-speed card = %d, want 0", got)
 	}
 }
 
-// TestB2ReservePrefersKeepingCast pins C7 (cast.go chooseCast): the reserve
+// TestReservePrefersKeepingCast pins cast.go chooseCast: the reserve
 // is a PREFERENCE for a cast that keeps the mana pool at or above the cost
 // of the cheapest instant-speed card in hand over a comparable cast that
 // empties it. With a 1-cost spell, a 3-cost spell, a 1-cost instant in hand
@@ -41,7 +41,7 @@ func TestB2ReserveIsCheapestInstantSpeedCard(t *testing.T) {
 // the 1-cost cast win even though the 3-cost one is otherwise the bigger
 // spell. The gate deletes the reserve preference and this test fails: the
 // draining 3-cost cast is chosen and the pool hits zero.
-func TestB2ReservePrefersKeepingCast(t *testing.T) {
+func TestReservePrefersKeepingCast(t *testing.T) {
 	b := Board{IsMain: true,
 		Pool: state.Mana{state.MC: 3},
 		Cards: TableOf(map[state.ObjID]Card{
@@ -61,13 +61,13 @@ func TestB2ReservePrefersKeepingCast(t *testing.T) {
 	}
 }
 
-// TestB2ReserveNeverSuppressesBestPlay is C7's negative half: the preference
+// TestReserveNeverSuppressesBestPlay is the negative half: the preference
 // must not make the bot refuse a clearly better cast to hoard mana. A
 // 4-power creature (a real threat) is cast even though it empties the pool
 // and even though the seat holds an instant to reserve mana for. The gate
 // turns the reserve preference into a hard block and this test fails: the
 // creature is refused and the bot sits on mana.
-func TestB2ReserveNeverSuppressesBestPlay(t *testing.T) {
+func TestReserveNeverSuppressesBestPlay(t *testing.T) {
 	b := Board{IsMain: true,
 		Pool: state.Mana{state.MC: 4},
 		Cards: TableOf(map[state.ObjID]Card{
@@ -85,13 +85,12 @@ func TestB2ReserveNeverSuppressesBestPlay(t *testing.T) {
 	}
 }
 
-// TestB2ReserveAllowsCastWithSurplus is C7's positive half: the reserve only
+// TestReserveAllowsCastWithSurplus is the positive half: the reserve only
 // stops a cast that would dip INTO it; a cast the pool can pay WHILE still
 // holding the reserve is fine. A pool of 4, a 3-cost creature and a 1-cost
 // instant (reserve 1) leave pool 1 after the cast, so the creature is cast.
-// The gate makes C7 block every cast while a reserve exists and this test
-// fails.
-func TestB2ReserveAllowsCastWithSurplus(t *testing.T) {
+// A gate that blocks every cast while a reserve exists fails this test.
+func TestReserveAllowsCastWithSurplus(t *testing.T) {
 	b := Board{IsMain: true,
 		Pool: state.Mana{state.MC: 4},
 		Cards: TableOf(map[state.ObjID]Card{
@@ -109,13 +108,13 @@ func TestB2ReserveAllowsCastWithSurplus(t *testing.T) {
 	}
 }
 
-// TestB2ReserveInertWithoutInstant pins C7's "not a magic constant" half: a
+// TestReserveInertWithoutInstant pins the "not a magic constant" half: a
 // seat with no instant-speed card in hand reserves nothing (reserve 0), so it
 // casts exactly as it did before — an otherwise-unused 3-cost creature from a
 // pool of exactly 3 is cast even though that empties the pool. The gate makes
 // reserve() return a constant and this test fails: a deck holding no instant
 // is forced to hoard.
-func TestB2ReserveInertWithoutInstant(t *testing.T) {
+func TestReserveInertWithoutInstant(t *testing.T) {
 	b := Board{IsMain: true,
 		Pool: state.Mana{state.MC: 3},
 		Cards: TableOf(map[state.ObjID]Card{
@@ -132,13 +131,13 @@ func TestB2ReserveInertWithoutInstant(t *testing.T) {
 	}
 }
 
-// TestB2ReserveKeepsBestCastableExemptForCommander pins C7's carve-out
-// (cast.go chooseCast): the reserve never refuses the seat's commander cast
+// TestReserveKeepsBestCastableExemptForCommander pins the carve-out in
+// cast.go chooseCast: the reserve never refuses the seat's commander cast
 // from the command zone, whatever the reserve -- a deck built around its
 // commander must cast it, and holding mana forever for an instant is not the
 // point. The gate applies the reserve to the command-zone cast too and this
 // test fails: the commander is suppressed and never cast.
-func TestB2ReserveKeepsBestCastableExemptForCommander(t *testing.T) {
+func TestReserveKeepsBestCastableExemptForCommander(t *testing.T) {
 	b := Board{IsMain: true,
 		Pool:       state.Mana{state.MC: 3},
 		Commanders: TableOf(map[state.ObjID]Commander{9: {Casts: 0, InCommandZone: true}}),

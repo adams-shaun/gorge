@@ -924,25 +924,31 @@ func heuristicLeafValue(e *rules.Engine, actor state.PlayerID) float64 {
 	return 1 / (1 + math.Exp(-value/20))
 }
 
+// faceDownTypes is a face-down permanent's type line a viewer who may not look reads.
+var faceDownTypes = []string{"Creature"}
+
 // leafMaterial is searchprobe's material over the object's CardView as the
 // actor's projection would build it.
 func leafMaterial(e *rules.Engine, o *state.Object, actor state.PlayerID) float64 {
+	types := o.Face().Types
 	if o.FaceDown {
 		looker := o.Controller
 		if o.HasMayLook {
 			looker = o.MayLookPlayer
 		}
 		if o.Zone == state.ZPlanarDeck || actor != looker {
-			// The redacted face-down view carries no types: neither a land
-			// nor a creature.
-			return 10
+			// The redacted face-down view has types only on the battlefield:
+			// CR 708.2a's Creature unless a layer-4 effect changed them.
+			if o.Zone != state.ZBattlefield {
+				return 10
+			}
+			types = faceDownTypes
 		}
 	}
 	// The view projects the derived type line when a layer-4 effect changed
 	// the card types (rules.Engine.ViewTypes: an animated land, Imprisoned
 	// in the Moon, a face-down permanent's CR 708.2a Creature), the printed
 	// one otherwise.
-	types := o.Face().Types
 	if dt, ok := e.ViewTypes(o.ID); ok {
 		types = dt
 	}

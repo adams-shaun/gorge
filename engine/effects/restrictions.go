@@ -41,7 +41,7 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // already evaluates it, so excluding the keys only skipped the attack half
 // whole while the block half (combat.BlockRestricted's CantBlock loop, which runs
 // continuousGateHolds with no whitelist) bound at runtime -- the asymmetry
-// this ticket fixes.
+// this fixes.
 //
 // Measured over the corpus: of the 24 real `Mode$ CantAttack` files carrying
 // this family, 20 spell the battlefield IsPresent$/PresentCompare$ count shape
@@ -315,7 +315,7 @@ func unlessDefenderTypeCount(g *state.Game, z state.Zone, p state.PlayerID, card
 
 // CantBlockByRestrictionParamsReadable is the parameter whitelist an
 // Effect-registered CantBlockBy static must pass before this build enforces
-// it (task cbb1; the same discipline CantRestrictionParamsReadable enforces
+// it (the same discipline CantRestrictionParamsReadable enforces
 // for CantAttack/CantSacrifice, so the registration and consultation paths
 // cannot disagree): the two-side specs the continuous consultation reads
 // (engine/rules/combat/restrictions.go BlockRestricted's registered-effects walk: ValidAttacker$
@@ -345,7 +345,7 @@ func CantBlockByRestrictionParamsReadable(params map[string]string) bool {
 
 // CantBlockRestrictionParamsReadable is the parameter whitelist an
 // Effect-registered CantBlock static must pass before this build enforces it
-// (cr-g156; the same discipline CantBlockByRestrictionParamsReadable enforces
+// (the same discipline CantBlockByRestrictionParamsReadable enforces
 // for CantBlockBy, so the registration and consultation paths cannot
 // disagree): the blocker-side spec the continuous consultation reads
 // (engine/rules/combat/restrictions.go BlockRestricted's registered-effects
@@ -465,8 +465,8 @@ func CantAttackUnlessRestrictionParamsReadable(params map[string]string) bool {
 }
 
 // CantSacrificeRestrictionParamsReadable is the parameter whitelist a face
-// CantSacrifice static must pass before rules' SacrificeBlocked enforces it
-// (task vc-static1). It is the CantAttack list above PLUS the two
+// CantSacrifice static must pass before rules' SacrificeBlocked enforces it.
+// It is the CantAttack list above PLUS the two
 // cause-scoping parameters SacrificeBlocked itself evaluates -- ValidCause$
 // against actionCause() through the shared stack-kind classifier
 // (engine/rules/layers.go causeSpecAdmits) and ForCost$ against the
@@ -880,7 +880,7 @@ func absentDurationMeansThisTurn(mode string) bool {
 
 // IsNextTurnDuration reports whether a Duration$ value names the
 // controller's NEXT-turn lifetime (UntilYourNextTurn, UntilTheEndOfYourNextTurn)
-// -- the two largest non-Permanent durations the wave survey measured. Such
+// -- the two largest non-Permanent durations a corpus survey measured. Such
 // an effect is neither UntilEOT (which would expire it a full turn early, at
 // the end of the current turn) nor source-leaves (which never expires it);
 // it gets a real turn-boundary lifetime via ContinuousEffect.UntilTurn,
@@ -1013,7 +1013,7 @@ func replacementLineWith(params map[string]string) string {
 // Before this, Mavinda, Students' Advocate's "if that spell would be put into
 // your graveyard, exile it instead" was a Note: the recast card went back to
 // the graveyard while the MayPlay grant still named it, so a {0} sorcery
-// (Indicate) was recast forever inside one turn (cardfuzz batch5 line 7).
+// (Indicate) was recast forever inside one turn.
 // The same promise is the whole point of Jace, Vryn's Prodigy, Dire Fleet
 // Daredevil, Gaea's Will and the other ~20 carriers of this shape.
 func replacementRedirectsToExile(params map[string]string, body string, svars map[string]string) bool {
@@ -1240,7 +1240,7 @@ func replacementLineCantHappen(params map[string]string) bool {
 // replacementLinePrevents reports whether a parseReplacementLine-built
 // replacement body is the bodyless full-prevention form: Prevent$ True with
 // no ReplaceWith$ body of its own -- the complete replacement is stopping
-// the damage (Selfless Squire's RPrevent, task dponce1). Factored into its
+// the damage (Selfless Squire's RPrevent). Factored into its
 // own function so the paramcensus rot guard can classify the read through a
 // tracked helper parameter rather than an unclassified local, the same shape
 // replacementLineCantHappen takes.

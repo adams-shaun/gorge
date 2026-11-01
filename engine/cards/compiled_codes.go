@@ -127,7 +127,7 @@ const (
 	APIEcho                  APICode = 75
 	APIChangeX               APICode = 76
 	APIAnimateAll            APICode = 77
-	// Appended after AnimateAll (task alterattr1), following the enum's own
+	// Appended after AnimateAll, following the enum's own
 	// append-only precedent: no assigned value moves, so an existing compiled
 	// cache stays valid.
 	APIAlterAttribute APICode = 78
@@ -687,11 +687,10 @@ var triggerModeInterests = func() (t [TriggerModeCount]TriggerInterest) {
 	// keeps a ManaExpend-only face's scan set narrow instead of the
 	// fail-open default.
 	set(TriggerInterestCastInfo, TriggerManaExpend)
-	// trig:Foretell (task agent-20260923T032009Z-3b9d3432) fires on the
-	// {2} Foretell action's pay-time FlagForetold CastInfo and the
-	// effect-designation exile MoveZone marker (rules'
-	// trigmatch.foretellMatches); the two bits keep a Foretell-only face's scan
-	// set narrow instead of the fail-open Any default.
+	// trig:Foretell fires on the {2} Foretell action's pay-time FlagForetold
+	// CastInfo and the effect-designation exile MoveZone marker (rules'
+	// trigmatch.foretellMatches); the two bits keep a Foretell-only face's
+	// scan set narrow instead of the fail-open Any default.
 	set(TriggerInterestCastInfo|TriggerInterestZoneChange, TriggerForetell)
 	// The monarch designation transition (events.MonarchChange), matched
 	// by trigmatch.BecomeMonarchMatches. The dedicated bit narrows a

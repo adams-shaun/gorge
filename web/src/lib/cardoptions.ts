@@ -2,7 +2,7 @@ import type { CardView, Decision, Option, PotentialAction } from '../protocol';
 import { offersPotential } from './castable';
 
 /**
- * cardoptions.ts is the ONE mechanism behind three symptoms (task ui21):
+ * cardoptions.ts is the ONE mechanism behind three symptoms:
  * "abilities tied to a card should be viewable and actionable from options on
  * that card", "highlight cards with valid options", and "valid targets should
  * get highlighted". They are one fact — *the pending decision offers you
@@ -11,14 +11,14 @@ import { offersPotential } from './castable';
  * concerns, whether it is a cast, an activation, a target, an attacker or a
  * blocker. This module groups a decision's options by that `obj`.
  *
- * R-E4-2 (the client is rules-ignorant): the index grouping is a pure
+ * The client is rules-ignorant: the index grouping is a pure
  * re-grouping of options the server already sent. Nothing here, and nothing
  * the board does with it, decides what an ability is, what a legal target
  * is, or what a blocker is. A target option and a cast option are the same
  * shape on the wire, so ONE index serves both "highlight cards with valid
  * options" and "highlight valid targets". No `kind` is special-cased.
  *
- * R-E4-1 (never resolve an option by position): every function here keys
+ * Never resolve an option by position: every function here keys
  * options by their own `index` (carried through from the decision). The tile
  * posts the option's own index — never a position in a list the client
  * rebuilt.
@@ -43,16 +43,16 @@ export type OptionTone = 'initiative' | 'offered' | 'idle';
  * indexed by obj, the seat's picked indices (in click order — for a
  * permutation answer the ORDER is the answer), the tone the marking should
  * wear, and the post callback that hands one option index back to the seat
- * panel (the single answer path, R-E4-1).
+ * panel (the single answer path).
  *
  * post's `holdPriority` (prio3) threads the Ctrl modifier from the tile
  * click into SeatPanelState.click's `{ holdPriority }`: Ctrl held while
  * submitting a cast/ability must not arm pass-after-acting for that one
  * action. post's `expectFollowUp` declares that a card-anchored post may
- * hand back a follow-up decision for the same object (fb-e079def5: a
+ * hand back a follow-up decision for the same object (a
  * multi-ability mana source's stage-1 ability pick, answered through the
  * wheel, must re-open the wheel for its stage-2 colour ask). The ARM itself
- * is SeatPanelState's (fb-20260923T050205Z): panel.click arms it for an
+ * is SeatPanelState's: panel.click arms it for an
  * `activate` or `mana` answer only (seatpanel.svelte.ts followUpArm), so the
  * tile and the panel's own buttons behave identically. The route's own
  * boardOptions.post is what finally reaches panel.click, so this signature
@@ -77,7 +77,7 @@ export interface CardOptions {
   /** later indexes the seat's potential actions (laterByObj) by object: the
    *  abilities the engine WOULD offer on a card once mana floats — indexed
    *  for every permanent that carries one, whether or not the decision also
-   *  offers that permanent a live option (fb-20260928T230741Z: an Equipment
+   *  offers that permanent a live option (an Equipment
    *  at a mana-taps-only window still gets its Equip badge). Absent when
    *  there are none. */
   later?: Map<number, PotentialAction[]>;
@@ -90,7 +90,7 @@ export interface CardOptions {
  * `{pickedAt + 1}` idiom), the tone, and the post callback. It is null when
  * the pending decision offers this object nothing — which is exactly the
  * "no badge, no mark" state, so the tile never learns a rule to decide it.
- * A later-only tile (list empty, later rows present — fb-20260928T230741Z's
+ * A later-only tile (list empty, later rows present, the
  * Equipment at a mana-taps-only window) is NOT null: it renders the count
  * badge, and opening it shows the not-yet-payable rows as disabled, so the
  * affordance is visible whatever the mana mode.
@@ -112,8 +112,8 @@ export interface TileOptions {
  * mana-costed activations and special actions ON a permanent — "ability", a
  * max-speed "granted" ability (Avishkar Raceway's "{3}, {T}, Discard a card:
  * Draw a card." beside its own mana tap is the Mount Doom shape again), a
- * Room "unlock", a morph "turn_face_up" and a "specialize"
- * (aph-web-manual-only-plays widened the projection to them). Hand casts are
+ * Room "unlock", a morph "turn_face_up" and a "specialize".
+ * Hand casts are
  * handled separately for actual hand objects with no live cast option or
  * payment action; land drops and stations remain excluded. An unknown kind is
  * not indexed, so it can never produce a row.
@@ -127,7 +127,7 @@ const LATER_KINDS: ReadonlySet<string> = new Set(['ability', 'granted', 'unlock'
  * permanent that carries a LATER_KINDS entry the decision does not already
  * offer live (castable.offersPotential), plus eligible plan-less hand casts.
  *
- * fb-20260928T230741Z widened the index from "the objects this decision
+ * The index reaches beyond "the objects this decision
  * already offers something" to EVERY permanent with a float-gated
  * LATER_KINDS action. The reporter's ask — "equipment should have a cast
  * button, e.g. equip, in both manual and auto mana mode" — is exactly the
@@ -143,7 +143,7 @@ const LATER_KINDS: ReadonlySet<string> = new Set(['ability', 'granted', 'unlock'
  * out (LATER_KINDS), while plan-less hand casts are indexed separately only
  * when they have no live option and no payment action.
  *
- * Why (fb-20260923T033148Z-877b8f8f, "mount doom -- can only play tap for
+ * Why ("mount doom -- can only play tap for
  * mana, not the other abilities"): the engine offers a mana-costed ability
  * only once its mana floats (the float-then-cast model), so an untapped
  * Mount Doom's live option list is its one mana activation -- and a
@@ -154,13 +154,13 @@ const LATER_KINDS: ReadonlySet<string> = new Set(['ability', 'granted', 'unlock'
  * picker instead of acting, and shows them as disabled "tap other mana
  * first" rows.
  *
- * R-E4-2 holds: nothing is derived here -- the entries are the server's own
+ * The client stays rules-ignorant: nothing is derived here -- the entries are the server's own
  * offer labels and the index is a pure regrouping. They are display-only and
- * carry no wire index, so they can never be posted (R-E4-1). Only a
+ * carry no wire index, so they can never be posted. Only a
  * LATER_KINDS entry is indexed, plus hand casts with no live cast option or
  * payment action, so the float-gated plan-less cast is discoverable.
  *
- * fb-20261006T100405Z: a hand cast the ENGINE has proved unpayable
+ * A hand cast the ENGINE has proved unpayable
  * (PotentialAction.payable === false, projected by
  * rules.Engine.PotentialActions) is never
  * indexed -- its "tap other mana first" row promised a tapped-out cast no
@@ -181,7 +181,7 @@ export function laterByObj(
     if ((!LATER_KINDS.has(a.kind) && !handCast) || a.obj === undefined) continue;
     if (handCast && a.payable === false) continue;
     if (handCast && decision.payment_actions?.some((action) => action.cast.object === a.obj)) continue;
-    // fb-20260928T230741Z: an object with no live option is indexed too —
+    // An object with no live option is indexed too —
     // that is the Equipment case. An entry the decision already offers live
     // (its mana floated) is still not repeated (offersPotential).
     const offered = live.get(a.obj);
@@ -207,7 +207,7 @@ export function hasLater(tile: Pick<TileOptions, 'later'>): boolean {
 
 /**
  * The badge's scenario icon, derived from the option's WIRE kind — a pure
- * wire-kind → glyph mapping (R-E4-2: display, not rules). A one-option card
+ * wire-kind → glyph mapping (display, not rules). A one-option card
  * acts directly instead of opening a one-row menu. The wire can distinguish a
  * cast, the dedicated mana activation (`activate`, whose server label is
  * "Tap … for mana"), a target candidate (`permanent` object / `player` seat),
@@ -250,7 +250,7 @@ export function singleActionIcon(option: Option): SingleActionIcon {
  * toggles a non-single decision into `picked` and posts nothing, and the
  * player commits the whole declaration afterwards. Closing the picker on the
  * click therefore interrupts exactly the flow it is meant to serve — the
- * reported fb-20260923T020152Z bug, where each attacker had to be re-opened
+ * reported bug where each attacker had to be re-opened
  * from the badge.
  *
  * The test is on the OPTION's own wire kind, in one place, so the next
@@ -271,7 +271,7 @@ export function isSelectionOption(option: Pick<Option, 'kind'>): boolean {
  * that owns both a text and an emoji face (U+2694 ⚔ is in Noto Color Emoji)
  * keeps the monochrome one. Verified against the fonts this deployment's
  * browsers fall back to (IBM Plex Mono lacks all three; DejaVu Sans Mono has
- * ◎ and ⚔, Noto Sans Symbols/FreeSans have ⛨) — see the task report.
+ * ◎ and ⚔, Noto Sans Symbols/FreeSans have ⛨).
  */
 export const ACTION_GLYPHS: Record<SingleActionIcon, string> = {
   cast: '✦',
@@ -338,7 +338,7 @@ export function tileScenario(tile: Pick<TileOptions, 'list'>): TileScenario | nu
  * A collapsed pile of interchangeable mana sources can act like one physical
  * button when every offered action has identical object-independent wire
  * semantics. The option with the lowest wire index wins; member/list order is
- * not option identity (R-E4-1). An announced select-mana window's per-source
+ * not option identity. An announced select-mana window's per-source
  * `mana` options (announce-then-pay) collapse the same way: a pile of basic
  * Swamps offering "Add B" each is one tap, while a dual land's two colours
  * differ in wire semantics and keep the picker.
@@ -358,10 +358,10 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
   return tile.list.reduce((first, option) => option.index < first.index ? option : first);
 }
 
-/** Post one displayed option by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action.
+/** Post one displayed option by its WIRE index, never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action.
  *
- * Every picker post declares a possible card follow-up (task fb-e079def5;
- * the arm is SeatPanelState.followUpArm's, `activate`/`mana` answers only):
+ * Every picker post declares a possible card follow-up (the arm is
+ * SeatPanelState.followUpArm's, `activate`/`mana` answers only):
  * every option a picker posts is card-anchored (it comes from optionsByObj /
  * optionsByPlayer, so its `obj` names the card the choice was made on), and a
  * card-anchored choice can hand the server a follow-up decision for the SAME
@@ -371,16 +371,16 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
  * self-disarming: Table.svelte's $effect decodes it through
  * resolveCardFollowUp, which re-opens the MANA colour wheel only -- the next
  * decision must carry 2-6 options on the expected object AND every option
- * must be of kind 'mana' (fb-20260917T233137Z: without the kind gate a
- * shock land's "pay 2 life?" election -- 2 'mode' options on the land --
- * auto-opened the radial wheel and presented as the mana bubble). */
+ * must be of kind 'mana' (without the kind gate a shock land's "pay 2 life?"
+ * election -- 2 'mode' options on the land -- would auto-open the radial wheel
+ * and present as the mana bubble). */
 export function postTileOption(tile: TileOptions, option: Option, holdPriority = false): void {
   tile.post(option.index, true, holdPriority);
 }
 
 /**
  * resolveCardFollowUp is the ONE decoder of an armed card-follow-up
- * expectation (task fb-e079def5, generalising the ui24 single-action arm to
+ * expectation (generalising the single-action arm to
  * every card-anchored post). After a card action is posted, the next
  * decision for the seat re-opens that card's picker exactly when it carries
  * 2-6 options on the expected object AND every option is kind 'mana' --
@@ -389,7 +389,7 @@ export function postTileOption(tile: TileOptions, option: Option, holdPriority =
  * Underground Sea's activate → Add U / Add B, a Talisman's stage-1 ability
  * pick → its stage-2 colour wheel.
  *
- * The kind gate (fb-20260917T233137Z) keeps every OTHER card-anchored
+ * The kind gate keeps every OTHER card-anchored
  * follow-up off the radial picker: a shock land's pay-life election, a
  * Charm's mode ask, a counter's "pay to save" -- all arrive as 'mode'
  * options on the played card and present through the seat panel and the
@@ -413,7 +413,7 @@ export function resolveCardFollowUp(
   return count >= 2 && count <= 6 ? { seq: d.seq, obj: expected.obj } : null;
 }
 
-/** Post a direct action by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action. */
+/** Post a direct action by its WIRE index, never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action. */
 export function postSingleAction(tile: TileOptions, expectFollowUp = false, holdPriority = false): void {
   if (hasLater(tile)) return;
   const option = tile.list.length === 1 ? tile.list[0] : singleTapOptionOf(tile);
@@ -469,7 +469,7 @@ export function optionsByPlayer(decision: Decision | null): Map<number, Option[]
 }
 
 /**
- * pileTone is the tone a WHOLE pile affordance wears (task fb-20260916T225802Z):
+ * pileTone is the tone a WHOLE pile affordance wears:
  * when the pending decision offers something to ANY card in the pile — a
  * flashback/escape/warp cast option on a graveyard card, a warp-recast or a
  * may-play land on an exile card, a target option on a card in an
@@ -544,7 +544,7 @@ export function optionSetFor(
  * is offered anything, the pile is. Because stack members are
  * interchangeable (same identity and state — see stackIdentical), the
  * concatenation is the pile's options, and each option still carries its own
- * index and obj, so posting one is R-E4-1-correct whichever member it came
+ * index and obj, so posting one is correct whichever member it came
  * from.
  */
 export function optionSetForMany(
@@ -564,7 +564,7 @@ export function optionSetForMany(
 
 /** tileOptions hands a single tile its rendered option set plus the tone and
  *  the post callback — or null when the decision offers this object nothing.
- *  A later-only object (fb-20260928T230741Z: an Equipment whose Equip is
+ *  A later-only object (an Equipment whose Equip is
  *  gated behind floating mana, with no live option at this window) is NOT
  *  null: `list: []` / `pickedOrder: []` is a valid shape — OptionPicker's
  *  direct is false with an empty list, total counts the later rows, and
@@ -586,7 +586,7 @@ export function tileOptions(bundle: CardOptions, obj: number): TileOptions | nul
 
 /** tileOptionsMany hands a collapsed-stack tile the pile's combined option
  *  set — or null when no member is offered anything and no member carries a
- *  later row (fb-20260928T230741Z: a pile of float-gated Equipment still
+ *  later row (a pile of float-gated Equipment still
  *  gets its badge, as a later-only tile). */
 export function tileOptionsMany(bundle: CardOptions, objs: readonly number[]): TileOptions | null {
   const set = optionSetForMany(bundle.byObj, objs, bundle.picked);
@@ -653,7 +653,7 @@ const MANA_ALTERNATIVES = /^[WUBRGC](, [WUBRGC])* or [WUBRGC]$/;
  * ability" wheel, rules/mana_activation.go manaAbilityLabel). Those labels
  * are "Add <production>", optionally behind the ability's extra cost --
  * Phyrexian Tower's paid ability is "Sacrifice 1 creature: Add BB"
- * (fb-20260924T180813Z) -- so the generic first-word face read "Add" on
+ * -- so the generic first-word face read "Add" on
  * every button. The face is the production (pips as-is, otherwise its first
  * word; "B or R" reads "B/R"), prefixed with the cost's first three letters
  * when there is one: Tower's wheel reads "C" and "Sac BB".

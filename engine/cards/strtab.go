@@ -70,8 +70,7 @@ func buildStrIndex(n int, key func(int) string) strIndex {
 // StrTable is an immutable string-keyed lookup table built once at package
 // init: a dense entry slice answered through a hashed slot index, with no
 // map and no allocation on a read. It is the compiled form of a `switch s {
-// case "a", "b": return X ... }` whose clauses only return constants (spec
-// W4).
+// case "a", "b": return X ... }` whose clauses only return constants.
 type StrTable[T any] struct {
 	ents []StrEntry[T]
 	ix   strIndex

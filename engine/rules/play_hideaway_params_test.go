@@ -10,7 +10,7 @@ import (
 )
 
 // The api:Play parameter-family pin (ticket agent-20260918T221252Z-d504b33b)
-// on REAL compiled corpus cards. The brief's four parameters:
+// on REAL compiled corpus cards. The four parameters:
 //
 //   - WithoutManaCost$ True gates the free cast end to end (rules'
 //     resumeResolution "play" arm -> beginPlay): the played card's printed
@@ -108,7 +108,7 @@ func mosswortEngine(t *testing.T, reg *cards.Registry) (*Engine, Config, state.O
 	if o := e.G.Obj(bridgeID); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("Mosswort Bridge entry = %+v, want battlefield before Hideaway resolves", o)
 	}
-	kr6ResolveTop(e)
+	resolveTopProbe(e)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "hideaway" {
 		t.Fatalf("after the Bridge entered: %+v, want the Hideaway pick ask", d)

@@ -44,7 +44,7 @@ import (
 // krrikMixedUnlessScript is the synthetic upkeep ability for the
 // advanceUnlessPayment path: "At the beginning of your upkeep, sacrifice
 // CARDNAME unless you pay a creature and {B}." The `Sac<1/Creature> B` cost
-// is the mixed choice+mana shape the brief names.
+// is the mixed choice+mana shape.
 const krrikMixedUnlessScript = "Name:Krrik Mixed Monger\nManaCost:B\nTypes:Creature Zombie\nPT:2/2\n" +
 	"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigUpkeep | TriggerDescription$ sac unless pay\n" +
 	"SVar:TrigUpkeep:DB$ Sacrifice | UnlessPayer$ You | UnlessCost$ Sac<1/Creature> B\nOracle:x\n"

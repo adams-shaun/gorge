@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// stat:CantPhaseIn / stat:CantPhaseOut (CR 702.26, task cr-g159) -- "it can't
+// stat:CantPhaseIn / stat:CantPhaseOut (CR 702.26) -- "it can't
 // phase out" (Ertai's Familiar, Spatial Binding) and "those permanents can't
 // phase in" (The Phasing of Zhalfir; Teferi, Timeless Voyager; Disciple of
 // Caelus Nin's printed line). Forge's StaticAbilityCantPhase reads every

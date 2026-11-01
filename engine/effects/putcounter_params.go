@@ -8,9 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// This file is api:PutCounter's parameter compiler (W4 step 3 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 8), on ChangeZone's pattern (changezone_params.go). compilePutCounter is the
+// This file is api:PutCounter's parameter compiler, on ChangeZone's pattern
+// (changezone_params.go). compilePutCounter is the
 // ONLY reader of a PutCounter ability's own parameters: the resolution
 // (counters_put.go), the rules-side entry-counter fold (entry_counters.go:
 // ETB$, CounterType$, CounterNum$ and the asking-modifier presence gate), the

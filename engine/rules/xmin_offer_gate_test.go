@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Task cost:xmin-param-offer-gate: the ability-level `XMin$ N` parameter
+// The ability-level `XMin$ N` parameter
 // must gate the ACTIVATION OFFER, not only the X ask. Before this ticket the
 // offer's cheapest legal announced-X price (costMods.feasibleAny's bound
 // pricing) read only the cost-embedded XMin<N> token, so an activated

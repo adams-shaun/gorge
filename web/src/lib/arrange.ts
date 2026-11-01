@@ -1,7 +1,7 @@
 import type { CardView, Decision, Option } from '../protocol';
 
 /**
- * arrange.ts is the pure half of the arrange popup (brief Job 4). A KArrange
+ * arrange.ts is the pure half of the arrange popup. A KArrange
  * decision (kind 'arrange') is the engine's ordered-subset ask — a pure
  * reorder of the top N library cards (Min == Max == N), or a Scry/Surveil
  * (Min 0, Max N): the picked options in answer order become the keep pile
@@ -88,7 +88,7 @@ export function arrangeSeed(d: Decision, picked: readonly number[]): number[] {
  * posted `choices` are the final visual order. The old click-order answer
  * posted the same array for the same final ordering (a click appends the
  * clicked index, so clicking in the final order builds the same picked
- * array); this is the byte-equivalence the brief pins.
+ * array); this is the byte-equivalence the tests pin.
  */
 export function arrangeOrder(split: ArrangeSplit): number[] {
   return split.keep.map((o) => o.index);

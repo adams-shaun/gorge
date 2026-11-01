@@ -1,15 +1,8 @@
 package rules
 
-// Kernel-era restorations of the W3 converted-ask scenarios
-// (resolve_convert_test.go, resolve_convert_park_test.go,
-// resolve_convert_unless_test.go, resolve_convert_window_test.go,
-// resolve_convert_zone_test.go). The originals ran each scenario on the
-// legacy resume machinery and on the tape kernel and required identical
-// logs; the legacy arm is gone, so each scenario now runs on the kernel
-// alone and keeps what the old tests asserted about the game: the ask it is
-// named for is posed, its answer is served from the tape, the outcome the
-// legacy run used to be checked for (life, zones, event order) holds, and a
-// log-only replay matches.
+// The converted-ask scenarios. Each runs on the kernel: the ask it is named for
+// is posed, its answer is served from the tape, the outcome (life, zones, event
+// order) holds, and a log-only replay matches.
 
 import (
 	"fmt"
@@ -23,9 +16,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kr8Fixture is newFixtureDeck generalised to n seats: seat 0's library
+// kernelFixture is newFixtureDeck generalised to n seats: seat 0's library
 // holds the fixture cards (moved to hand), every other card is a Mountain.
-func kr8Fixture(t *testing.T, seats int, seed uint64, srcs ...string) (*Engine, Config) {
+func kernelFixture(t *testing.T, seats int, seed uint64, srcs ...string) (*Engine, Config) {
 	t.Helper()
 	var fixtures []*cards.Card
 	for _, s := range srcs {
@@ -56,13 +49,13 @@ func kr8Fixture(t *testing.T, seats int, seed uint64, srcs ...string) (*Engine, 
 	return e, cfg
 }
 
-// kr8Run runs scenario on a fresh kernel fixture, requires at least
+// runServedScenario runs scenario on a fresh kernel fixture, requires at least
 // minServed answers served from the tape with no legacy ask ending the run,
 // and a matching log-only replay; it returns the engine and the counters.
-func kr8Run(t *testing.T, seats int, seed uint64, minServed int64, scenario func(t *testing.T, e *Engine), srcs ...string) (*Engine, resolve.Stats) {
+func runServedScenario(t *testing.T, seats int, seed uint64, minServed int64, scenario func(t *testing.T, e *Engine), srcs ...string) (*Engine, resolve.Stats) {
 	t.Helper()
 	before := resolve.ReadStats()
-	e, cfg := kr8Fixture(t, seats, seed, srcs...)
+	e, cfg := kernelFixture(t, seats, seed, srcs...)
 	scenario(t, e)
 	st := resolve.ReadStats().Sub(before)
 	replayCheck(t, e, cfg)
@@ -72,10 +65,10 @@ func kr8Run(t *testing.T, seats int, seed uint64, minServed int64, scenario func
 	return e, st
 }
 
-// kr8Drive casts name for mana after setup, then resolves everything,
+// driveCastPick casts name for mana after setup, then resolves everything,
 // answering every non-priority decision with pick and counting the resume
 // kinds posed.
-func kr8Drive(t *testing.T, e *Engine, name, mana string, pick func(d *decision.Decision) []int) map[string]int {
+func driveCastPick(t *testing.T, e *Engine, name, mana string, pick func(d *decision.Decision) []int) map[string]int {
 	t.Helper()
 	kinds := map[string]int{}
 	addMana(t, e, 0, mana)
@@ -101,7 +94,7 @@ func kr8Drive(t *testing.T, e *Engine, name, mana string, pick func(d *decision.
 	return kinds
 }
 
-func kr8OnField(e *Engine, p state.PlayerID, name string) bool {
+func onFieldNamed(e *Engine, p state.PlayerID, name string) bool {
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		if e.G.Obj(id).Face().Name == name {
 			return true
@@ -114,7 +107,7 @@ func kr8OnField(e *Engine, p state.PlayerID, name string) bool {
 
 // Scry, Surveil and RearrangeTopOfLibrary (one and every player, optional,
 // Ponder's may-shuffle) pose their arrange asks and are served from the tape.
-func TestKr8ConvertArrange(t *testing.T) {
+func TestKernelConvertArrange(t *testing.T) {
 	cases := []struct {
 		name, src string
 		served    int64
@@ -132,9 +125,9 @@ func TestKr8ConvertArrange(t *testing.T) {
 			src := "Name:" + tc.name + "\nManaCost:U\nTypes:Sorcery\n" + tc.src + "\nOracle:x\n"
 			var life int32
 			arranges := 0
-			e, _ := kr8Run(t, 2, 12000+uint64(i), tc.served, func(t *testing.T, e *Engine) {
+			e, _ := runServedScenario(t, 2, 12000+uint64(i), tc.served, func(t *testing.T, e *Engine) {
 				life = e.G.Players[0].Life
-				kr8Drive(t, e, tc.name, "U", func(d *decision.Decision) []int {
+				driveCastPick(t, e, tc.name, "U", func(d *decision.Decision) []int {
 					if d.Kind == decision.KArrange {
 						arranges++
 					}
@@ -160,7 +153,7 @@ func TestKr8ConvertArrange(t *testing.T) {
 // Paper's name and creature type) is answered as the Attach happens: the
 // Attach applies before the rest of the spell's chain and before the spell
 // leaves the stack.
-func TestKr8ParkAttached(t *testing.T) {
+func TestKernelParkAttached(t *testing.T) {
 	for i, eq := range []string{"Tape Blade", "Tape Paper"} {
 		t.Run(eq, func(t *testing.T) {
 			name := "Tape Equip " + eq
@@ -168,7 +161,7 @@ func TestKr8ParkAttached(t *testing.T) {
 				"A:SP$ Attach | Object$ Valid Equipment.YouCtrl | Defined$ Valid Creature.YouCtrl | SubAbility$ DBGain\n" +
 				tapeGainSVar + "\nOracle:x\n"
 			var spell, gear, bear state.ObjID
-			e, _ := kr8Run(t, 2, 13900+uint64(i), 1, func(t *testing.T, e *Engine) {
+			e, _ := runServedScenario(t, 2, 13900+uint64(i), 1, func(t *testing.T, e *Engine) {
 				gear = moveByName(t, e, 0, eq, state.ZBattlefield)
 				bear = moveByName(t, e, 0, "ParentLink Bear", state.ZBattlefield)
 				spell = fixtureInHand(t, e, name)
@@ -198,13 +191,13 @@ func TestKr8ParkAttached(t *testing.T) {
 // An entry an effect makes mid-chain (a mass return from the graveyard)
 // asks its as-enters choices -- and its entry replacement body's ask -- in
 // place: each permanent enters, answered, before the spell leaves the stack.
-func TestKr8ParkMidChainEntry(t *testing.T) {
+func TestKernelParkMidChainEntry(t *testing.T) {
 	name := "Tape Mass Return"
 	src := "Name:" + name + "\nManaCost:U\nTypes:Sorcery\n" +
 		"A:SP$ ChangeZoneAll | ChangeType$ Creature.YouOwn,Artifact.YouOwn | Origin$ Graveyard | Destination$ Battlefield | SubAbility$ DBGain\n" +
 		tapeGainSVar + "\nOracle:x\n"
 	var spell, bear, totem state.ObjID
-	e, _ := kr8Run(t, 2, 13950, 3, func(t *testing.T, e *Engine) {
+	e, _ := runServedScenario(t, 2, 13950, 3, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Mountain", state.ZBattlefield)
 		moveByName(t, e, 0, "Mountain", state.ZBattlefield)
 		bear = moveByName(t, e, 0, "Tape Prism Bear", state.ZGraveyard)
@@ -233,7 +226,7 @@ func TestKr8ParkMidChainEntry(t *testing.T) {
 
 // A CR 616.1 order competition posed mid-resolution (two rewriters of the
 // same destroy) is answered in place: the chosen replacement applies.
-func TestKr8ParkReplacementOrder(t *testing.T) {
+func TestKernelParkReplacementOrder(t *testing.T) {
 	toHand := "Name:Tape Hand Rewriter\nTypes:Enchantment\n" +
 		"R:Event$ Moved | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature | ReplaceWith$ Back | Description$ x\n" +
 		"SVar:Back:DB$ ChangeZone | Origin$ Battlefield | Destination$ Hand | Defined$ ReplacedCard\nOracle:x\n"
@@ -248,7 +241,7 @@ func TestKr8ParkReplacementOrder(t *testing.T) {
 	defer func() { tapeCheckpointAll = false }()
 	for i := 0; i < 2; i++ {
 		var bear state.ObjID
-		e, _ := kr8Run(t, 2, 14000+uint64(i), 1, func(t *testing.T, e *Engine) {
+		e, _ := runServedScenario(t, 2, 14000+uint64(i), 1, func(t *testing.T, e *Engine) {
 			moveByName(t, e, 0, "Tape Hand Rewriter", state.ZBattlefield)
 			moveByName(t, e, 0, "Tape Exile Rewriter", state.ZBattlefield)
 			bear = moveByName(t, e, 0, "ParentLink Bear", state.ZBattlefield)
@@ -262,7 +255,7 @@ func TestKr8ParkReplacementOrder(t *testing.T) {
 
 // --- resolve_convert_unless_test.go ---
 
-func TestKr8ConvertUnlessPay(t *testing.T) {
+func TestKernelConvertUnlessPay(t *testing.T) {
 	const gain = "\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
 	cases := []struct {
 		name, body string
@@ -300,7 +293,7 @@ func TestKr8ConvertUnlessPay(t *testing.T) {
 			var life int32
 			window := 0
 			pick := tapeUnlessPick(tc.pay)
-			e, _ := kr8Run(t, tc.seats, 13100+uint64(i), tc.served, func(t *testing.T, e *Engine) {
+			e, _ := runServedScenario(t, tc.seats, 13100+uint64(i), tc.served, func(t *testing.T, e *Engine) {
 				life = e.G.Players[0].Life
 				tapeUnlessScenario(tc.name, tc.mana, tc.lands, func(d *decision.Decision) []int {
 					if d.ResumeKind == unlessManaKind {
@@ -321,12 +314,12 @@ func TestKr8ConvertUnlessPay(t *testing.T) {
 
 // A choice-bearing unless cost: the served election's component step (the
 // discard pick) is served from the tape too, and the paid discard happens.
-func TestKr8ConvertUnlessComponents(t *testing.T) {
+func TestKernelConvertUnlessComponents(t *testing.T) {
 	src := tapeUnlessSorcery("Tape Discard Tithe",
 		"A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ Discard<1/Card> | UnlessPayer$ You | UnlessSwitched$ True")
 	var life int32
 	var gy int
-	e, st := kr8Run(t, 2, 13150, 2, func(t *testing.T, e *Engine) {
+	e, st := runServedScenario(t, 2, 13150, 2, func(t *testing.T, e *Engine) {
 		moveByName(t, e, 0, "Mountain", state.ZHand)
 		life = e.G.Players[0].Life
 		gy = len(e.G.Zone(state.ZGraveyard, 0))
@@ -346,7 +339,7 @@ func TestKr8ConvertUnlessComponents(t *testing.T) {
 
 // --- resolve_convert_window_test.go ---
 
-func TestKr8ConvertTriggerCost(t *testing.T) {
+func TestKernelConvertTriggerCost(t *testing.T) {
 	cases := []struct {
 		name, cost, body string
 		mana             string
@@ -369,7 +362,7 @@ func TestKr8ConvertTriggerCost(t *testing.T) {
 			asks := 0
 			pick := tapeWindowPick(tc.pay)
 			var life int32
-			e, _ := kr8Run(t, 2, 13300+uint64(i), tc.served, func(t *testing.T, e *Engine) {
+			e, _ := runServedScenario(t, 2, 13300+uint64(i), tc.served, func(t *testing.T, e *Engine) {
 				for j := 0; j < tc.hand; j++ {
 					moveByName(t, e, 0, "Mountain", state.ZHand)
 				}
@@ -391,7 +384,7 @@ func TestKr8ConvertTriggerCost(t *testing.T) {
 	}
 }
 
-func TestKr8ConvertUpkeepWindows(t *testing.T) {
+func TestKernelConvertUpkeepWindows(t *testing.T) {
 	cases := []struct {
 		name, src string
 		lands     int
@@ -410,7 +403,7 @@ func TestKr8ConvertUpkeepWindows(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			asks := 0
 			pick := tapeWindowPick(tc.pay)
-			e, _ := kr8Run(t, 2, 13400+uint64(i), tc.served, tapeWindowUpkeep(tc.name, tc.lands, func(d *decision.Decision) []int {
+			e, _ := runServedScenario(t, 2, 13400+uint64(i), tc.served, tapeWindowUpkeep(tc.name, tc.lands, func(d *decision.Decision) []int {
 				if d.Kind == decision.KChoose && strings.Contains(d.Prompt, tc.name) {
 					asks++
 				}
@@ -419,7 +412,7 @@ func TestKr8ConvertUpkeepWindows(t *testing.T) {
 			if asks == 0 {
 				t.Fatal("the upkeep election was never posed")
 			}
-			if on := kr8OnField(e, 0, tc.name); on == tc.gone {
+			if on := onFieldNamed(e, 0, tc.name); on == tc.gone {
 				t.Fatalf("permanent on battlefield %v, want %v", on, !tc.gone)
 			}
 		})
@@ -428,7 +421,7 @@ func TestKr8ConvertUpkeepWindows(t *testing.T) {
 
 // An "as this enters" choice is served from the tape and recorded on the
 // permanent.
-func TestKr8ConvertETBChoice(t *testing.T) {
+func TestKernelConvertETBChoice(t *testing.T) {
 	srcs := []string{
 		"Name:Tape Prism Bear\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:ChooseColor\nSVar:ChooseColor:DB$ ChooseColor\nOracle:x\n",
 		"Name:Tape Totem\nManaCost:B\nTypes:Artifact\nK:ETBReplacement:Other:ChooseCT\nSVar:ChooseCT:DB$ ChooseType | Type$ Creature\nOracle:x\n",
@@ -436,8 +429,8 @@ func TestKr8ConvertETBChoice(t *testing.T) {
 	for i, src := range srcs {
 		name := strings.TrimPrefix(strings.SplitN(src, "\n", 2)[0], "Name:")
 		t.Run(name, func(t *testing.T) {
-			e, _ := kr8Run(t, 2, 13500+uint64(i), 1, tapeUnlessScenario(name, "B", 0, tapePick), src)
-			if !kr8OnField(e, 0, name) {
+			e, _ := runServedScenario(t, 2, 13500+uint64(i), 1, tapeUnlessScenario(name, "B", 0, tapePick), src)
+			if !onFieldNamed(e, 0, name) {
 				t.Fatalf("%s did not enter", name)
 			}
 		})
@@ -446,7 +439,7 @@ func TestKr8ConvertETBChoice(t *testing.T) {
 
 // Ward's pay-or-countered election is served from the tape: paid, the pump
 // resolves; declined, it is countered.
-func TestKr8ConvertWard(t *testing.T) {
+func TestKernelConvertWard(t *testing.T) {
 	const wardBear = "Name:Tape Ward Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nK:Ward:1\nOracle:x\n"
 	const pump = "Name:Tape Pump\nManaCost:B\nTypes:Instant\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +1\nOracle:x\n"
 	cases := []struct {
@@ -478,7 +471,7 @@ func TestKr8ConvertWard(t *testing.T) {
 				return base(d)
 			}
 			var bear state.ObjID
-			e, _ := kr8Run(t, 2, 13600+uint64(i), tc.served, func(t *testing.T, e *Engine) {
+			e, _ := runServedScenario(t, 2, 13600+uint64(i), tc.served, func(t *testing.T, e *Engine) {
 				bear = moveByName(t, e, 0, "Tape Ward Bear", state.ZBattlefield)
 				e.emit(events.Event{Kind: events.ControlChange, Obj: bear, Player: 1})
 				tapeUnlessScenario("Tape Pump", tc.mana, tc.lands, pick)(t, e)
@@ -495,7 +488,7 @@ func TestKr8ConvertWard(t *testing.T) {
 
 // A resolving permanent spell's own entry replacement body asks after its
 // move took it off the stack: served from the tape in line.
-func TestKr8ConvertOwnEntryReplacement(t *testing.T) {
+func TestKernelConvertOwnEntryReplacement(t *testing.T) {
 	srcs := []string{
 		"Name:Tape Sower\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n",
 		"Name:Tape Charm Gate\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:DBCharm\nSVar:DBCharm:DB$ Charm | Choices$ DBA,DBB\nSVar:DBA:DB$ GainLife | LifeAmount$ 1 | SpellDescription$ a\nSVar:DBB:DB$ GainLife | LifeAmount$ 2 | SpellDescription$ b\nOracle:x\n",
@@ -503,8 +496,8 @@ func TestKr8ConvertOwnEntryReplacement(t *testing.T) {
 	for i, src := range srcs {
 		name := strings.TrimPrefix(strings.SplitN(src, "\n", 2)[0], "Name:")
 		t.Run(name, func(t *testing.T) {
-			e, _ := kr8Run(t, 2, 13700+uint64(i), 1, tapeUnlessScenario(name, "B", 2, tapePick), src)
-			if !kr8OnField(e, 0, name) {
+			e, _ := runServedScenario(t, 2, 13700+uint64(i), 1, tapeUnlessScenario(name, "B", 2, tapePick), src)
+			if !onFieldNamed(e, 0, name) {
 				t.Fatalf("%s did not enter", name)
 			}
 		})
@@ -514,10 +507,10 @@ func TestKr8ConvertOwnEntryReplacement(t *testing.T) {
 // Riptide Replicator's shape: an as-enters colour choice, then the entry
 // replacement body's own ask; both served in place, and the resolution
 // completes with the CR 117.3b priority grant to the active player.
-func TestKr8ETBThenEntryReplacement(t *testing.T) {
+func TestKernelETBThenEntryReplacement(t *testing.T) {
 	src := "Name:Tape Replicator\nManaCost:B\nTypes:Artifact\nK:ETBReplacement:Other:ChooseColor\nSVar:ChooseColor:DB$ ChooseColor\n" +
 		"K:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n"
-	e, _ := kr8Run(t, 2, 13750, 2, tapeUnlessScenario("Tape Replicator", "B", 2, tapePick), src)
+	e, _ := runServedScenario(t, 2, 13750, 2, tapeUnlessScenario("Tape Replicator", "B", 2, tapePick), src)
 	last := -1
 	for i, ev := range e.L.Events {
 		if ev.Kind == events.DecisionMade {
@@ -527,7 +520,7 @@ func TestKr8ETBThenEntryReplacement(t *testing.T) {
 	if g := tapeEventIndex(e, last, events.Priority, 0); g < 0 || e.L.Events[g].Player != e.G.Active || e.L.Events[g].Amount != 0 {
 		t.Fatalf("no CR 117.3b grant to the active player after the resolution (last answer at %d)", last)
 	}
-	if !kr8OnField(e, 0, "Tape Replicator") {
+	if !onFieldNamed(e, 0, "Tape Replicator") {
 		t.Fatal("the replicator did not enter")
 	}
 }
@@ -537,14 +530,14 @@ func TestKr8ETBThenEntryReplacement(t *testing.T) {
 // the paid trigger gains the life. The window is reached through the
 // election's manual route (the auto route's planner names the exact ability
 // and colour, so it poses neither): election, tap, wheel/colour.
-func TestKr8ConvertWindowManaChoices(t *testing.T) {
+func TestKernelConvertWindowManaChoices(t *testing.T) {
 	const dual = "Name:Tape Dual\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ r\nA:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ g\nOracle:x\n"
 	const prism = "Name:Tape Prism\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ any\nOracle:x\n"
 	for i, land := range []string{"Tape Dual", "Tape Prism"} {
 		t.Run(land, func(t *testing.T) {
 			src := tapeWindowETB("Tape Fee Bear", "1", "GainLife | LifeAmount$ 3 | Defined$ You")
 			var life int32
-			e, _ := kr8Run(t, 2, 13800+uint64(i), 3, func(t *testing.T, e *Engine) {
+			e, _ := runServedScenario(t, 2, 13800+uint64(i), 3, func(t *testing.T, e *Engine) {
 				moveByName(t, e, 0, land, state.ZBattlefield)
 				life = e.G.Players[0].Life
 				tapeUnlessScenario("Tape Fee Bear", "B", 0, tapeWindowPickManual())(t, e)
@@ -558,13 +551,13 @@ func TestKr8ConvertWindowManaChoices(t *testing.T) {
 
 // A copy's CR 707.10c new-target choice is served from the tape and its
 // continuation resolves the copy in line: two pings land.
-func TestKr8ConvertCopyTargets(t *testing.T) {
+func TestKernelConvertCopyTargets(t *testing.T) {
 	for i, rider := range []string{"", " | UnlessCost$ PayLife<1> | UnlessPayer$ Player"} {
 		t.Run(fmt.Sprintf("rider%d", i), func(t *testing.T) {
 			bolt := "Name:Tape Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1" + rider + "\nOracle:x\n"
 			const twin = "Name:Tape Twincast\nManaCost:U\nTypes:Instant\nA:SP$ CopySpellAbility | ValidTgts$ Card | TgtZone$ Stack | TargetType$ Spell | MayChooseTarget$ True\nOracle:x\n"
 			copied := false
-			kr8Run(t, 2, 13900+uint64(i), 1, func(t *testing.T, e *Engine) {
+			runServedScenario(t, 2, 13900+uint64(i), 1, func(t *testing.T, e *Engine) {
 				addMana(t, e, 0, "RU")
 				submitChoices(t, e, castOptionFor(t, e, fixtureInHand(t, e, "Tape Bolt")).Index)
 				for i := 0; i < 10; i++ {
@@ -592,7 +585,7 @@ func TestKr8ConvertCopyTargets(t *testing.T) {
 // A Play whose cast commits synchronously (a free creature) is served from
 // the tape and begun in line; one whose cast asks (a target) is answered in
 // place: the cast's target is answered before the rest of the chain runs.
-func TestKr8ConvertPlay(t *testing.T) {
+func TestKernelConvertPlay(t *testing.T) {
 	const bear = "Name:Tape Free Bear\nManaCost:4 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 	const bolt = "Name:Tape Free Bolt\nManaCost:4 R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
 	const gain = "\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
@@ -617,7 +610,7 @@ func TestKr8ConvertPlay(t *testing.T) {
 				min = 2
 			}
 			var played state.ObjID
-			e, _ := kr8Run(t, 2, 14000+uint64(i), min, func(t *testing.T, e *Engine) {
+			e, _ := runServedScenario(t, 2, 14000+uint64(i), min, func(t *testing.T, e *Engine) {
 				played = fixtureInHand(t, e, tc.target)
 				tapeUnlessScenario("Tape Conduit", "B", 0, pick)(t, e)
 			}, src, bear, bolt)
@@ -649,7 +642,7 @@ func TestKr8ConvertPlay(t *testing.T) {
 // Madness's cast-or-not choice at the MadnessCast ability's resolution is
 // posed and served from the tape: declined, the card goes to the graveyard;
 // cast, it reaches the battlefield.
-func TestKr8ConvertMadness(t *testing.T) {
+func TestKernelConvertMadness(t *testing.T) {
 	const bear = "Name:Tape Mad Bear\nManaCost:3 B\nTypes:Creature Bear\nPT:2/2\nK:Madness:B\nOracle:x\n"
 	rot := tapeUnlessSorcery("Tape Rot", "A:SP$ Discard | Defined$ You | NumCards$ 1 | Mode$ TgtChoose")
 	for i, yes := range []bool{false, true} {
@@ -675,7 +668,7 @@ func TestKr8ConvertMadness(t *testing.T) {
 			// Served: the discard pick and the madness choice (the madness
 			// replacement itself is mandatory, CR 702.35a: no election).
 			var mad state.ObjID
-			e, _ := kr8Run(t, 2, 14100+uint64(i), 2, func(t *testing.T, e *Engine) {
+			e, _ := runServedScenario(t, 2, 14100+uint64(i), 2, func(t *testing.T, e *Engine) {
 				mad = fixtureInHand(t, e, "Tape Mad Bear")
 				tapeUnlessScenario("Tape Rot", "BB", 0, pick)(t, e)
 			}, rot, bear)
@@ -695,7 +688,7 @@ func TestKr8ConvertMadness(t *testing.T) {
 
 // --- resolve_convert_zone_test.go ---
 
-func TestKr8ConvertZone(t *testing.T) {
+func TestKernelConvertZone(t *testing.T) {
 	gain := "\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2"
 	cases := []struct {
 		name, src string
@@ -758,11 +751,11 @@ func TestKr8ConvertZone(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			srcs := append([]string{tc.src}, tc.extra...)
 			var kinds map[string]int
-			kr8Run(t, tc.seats, 31000+uint64(i), tc.served, func(t *testing.T, e *Engine) {
+			runServedScenario(t, tc.seats, 31000+uint64(i), tc.served, func(t *testing.T, e *Engine) {
 				if tc.setup != nil {
 					tc.setup(t, e)
 				}
-				kinds = kr8Drive(t, e, tc.name, "B", tapePick)
+				kinds = driveCastPick(t, e, tc.name, "B", tapePick)
 			}, srcs...)
 			for _, k := range tc.kinds {
 				if kinds[k] == 0 {
@@ -776,7 +769,7 @@ func TestKr8ConvertZone(t *testing.T) {
 // Each yes/no election answered both ways: the election named by kind takes
 // option `answer`, every other decision tapePick's; both answers are served
 // and replay.
-func TestKr8ConvertZoneElectionsBothWays(t *testing.T) {
+func TestKernelConvertZoneElectionsBothWays(t *testing.T) {
 	cases := []struct{ name, src, kind string }{
 		{"Tape Sweep Confirm", tapeZoneSorcery("Tape Sweep Confirm", "A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | Optional$ True"), "search_confirm"},
 		{"Tape Sweep Fetch", tapeZoneSorcery("Tape Sweep Fetch", "A:SP$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Graveyard | Optional$ True"), "defined_library_optional"},
@@ -788,11 +781,11 @@ func TestKr8ConvertZoneElectionsBothWays(t *testing.T) {
 		for answer := 0; answer < 2; answer++ {
 			t.Run(fmt.Sprintf("%s/%d", tc.name, answer), func(t *testing.T) {
 				hit := 0
-				kr8Run(t, 2, 32000, 1, func(t *testing.T, e *Engine) {
+				runServedScenario(t, 2, 32000, 1, func(t *testing.T, e *Engine) {
 					tapeZoneToHand(3)(t, e)
 					tapeZoneToGraveyard(2)(t, e)
 					tapeZoneToBattlefield(2)(t, e)
-					kr8Drive(t, e, tc.name, "B", func(d *decision.Decision) []int {
+					driveCastPick(t, e, tc.name, "B", func(d *decision.Decision) []int {
 						if d.ResumeKind == tc.kind {
 							hit++
 							return []int{answer}
@@ -814,10 +807,10 @@ func TestKr8ConvertZoneElectionsBothWays(t *testing.T) {
 // ask is posed as an ordinary boundary decision and the tape serves the roll
 // itself (minServed 0); the assertion is that the roll's result still reaches
 // the mill.
-func TestKr8RollSurvivesTargetAsk(t *testing.T) {
+func TestKernelRollSurvivesTargetAsk(t *testing.T) {
 	src := tapeZoneETB("Tape Jelly", "SVar:TrigBody:DB$ RollDice | ResultSVar$ Result | SubAbility$ DBMill\nSVar:DBMill:DB$ Mill | ValidTgts$ Player | NumCards$ Result")
 	var before int
-	e, _ := kr8Run(t, 2, 33001, 0, func(t *testing.T, e *Engine) {
+	e, _ := runServedScenario(t, 2, 33001, 0, func(t *testing.T, e *Engine) {
 		before = len(e.G.Zone(state.ZGraveyard, 0)) + len(e.G.Zone(state.ZGraveyard, 1))
 		tapeCastAndResolve(t, e, "Tape Jelly", "B")
 	}, src)
@@ -830,15 +823,15 @@ func TestKr8RollSurvivesTargetAsk(t *testing.T) {
 // (the Wave of Vitriol shape): an Optional$ search per sacrificed land,
 // fetched by ImprintedController. Every confirmation is followed by its
 // search, and every sacrificed land is replaced.
-func TestKr8NestedAskKeepsRepeatSubject(t *testing.T) {
+func TestKernelNestedAskKeepsRepeatSubject(t *testing.T) {
 	src := tapeZoneSorcery("Tape Vitriol",
 		"A:SP$ SacrificeAll | ValidCards$ Land | RememberSacrificed$ True | SubAbility$ DBRepeat\n"+
 			"SVar:DBRepeat:DB$ RepeatEach | DefinedCards$ DirectRemembered.Land | UseImprinted$ True | RepeatSubAbility$ DBSearch | ClearRemembered$ True\n"+
 			"SVar:DBSearch:DB$ ChangeZone | Origin$ Library | Destination$ Battlefield | ChangeType$ Land.Basic | Tapped$ True | DefinedPlayer$ ImprintedController | Chooser$ ImprintedController | NoShuffle$ True | Optional$ True")
 	searches := 0
-	e, _ := kr8Run(t, 2, 33101, 8, func(t *testing.T, e *Engine) {
+	e, _ := runServedScenario(t, 2, 33101, 8, func(t *testing.T, e *Engine) {
 		tapeZoneToBattlefield(2)(t, e)
-		kr8Drive(t, e, "Tape Vitriol", "B", func(d *decision.Decision) []int {
+		driveCastPick(t, e, "Tape Vitriol", "B", func(d *decision.Decision) []int {
 			switch d.ResumeKind {
 			case "search_confirm":
 				return []int{0}
@@ -859,11 +852,11 @@ func TestKr8NestedAskKeepsRepeatSubject(t *testing.T) {
 // Caldera Hellion shape): Devour's sacrifice is asked from the entry
 // replacement of a mass return, as the devourer enters, before the next
 // creature moves.
-func TestKr8ReplacementBodyAskInPlace(t *testing.T) {
+func TestKernelReplacementBodyAskInPlace(t *testing.T) {
 	devourer := "Name:Tape Devourer\nManaCost:B\nTypes:Creature Hellion\nPT:1/1\nK:Devour:1\nOracle:x\n"
 	raise := tapeZoneSorcery("Tape Mass Raise", "A:SP$ ChangeZoneAll | ChangeType$ Creature | Origin$ Graveyard | Destination$ Battlefield")
 	var dev, bear state.ObjID
-	e, _ := kr8Run(t, 2, 33201, 1, func(t *testing.T, e *Engine) {
+	e, _ := runServedScenario(t, 2, 33201, 1, func(t *testing.T, e *Engine) {
 		dev = moveByName(t, e, 0, "Tape Devourer", state.ZGraveyard)
 		bear = moveByName(t, e, 0, "ParentLink Bear", state.ZGraveyard)
 		moveByName(t, e, 0, "ParentLink Angel", state.ZBattlefield)

@@ -1,6 +1,6 @@
 package rules
 
-// cr-g220: an Animate staticAbilities$ Mode$ Continuous body that grants a
+// An Animate staticAbilities$ Mode$ Continuous body that grants a
 // keyword or ability, or reaches beyond the animated object, registers as a
 // static the animated object HAS (CR 611.3a, 613.1f, 613.4c): Restless
 // Spire's turn-gated first strike, The Irencrag's equipped pump, Mileva's

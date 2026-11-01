@@ -1,6 +1,6 @@
 package rules
 
-// Task agent-20261009T085207Z-2ef0d22c: CR 605.1a -- an ability that requires
+// CR 605.1a -- an ability that requires
 // a target is not a mana ability. Radiant Lotus ("{T}, Sacrifice one or more
 // artifacts: Choose a color. Target player adds three mana of the chosen color
 // for each artifact sacrificed this way") is an AB$ Mana with ValidTgts$ and an

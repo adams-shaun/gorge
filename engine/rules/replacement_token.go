@@ -23,7 +23,7 @@ import (
 // pattern), which BYPASSES applyReplacements: no mint can re-match, so a
 // doubler can never loop on its own output. The deviation from CR 616.1 is
 // deliberate (the CR 616.1 order choice for competing CreateToken
-// replacements is a follow-up ticket, not this build): competing CreateToken
+// replacements is not in this build): competing CreateToken
 // replacements apply in
 // scan order, NOT through a posed KReplacement order choice (non-commuting
 // compositions are reachable in Commander, but no repo deck carries any of
@@ -61,7 +61,7 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 // applicable matches (each "twice that many" doubler doubles it), and a
 // game that stacks enough of them under one creation asks for a creation
 // that cannot be represented at all: the mints alone would be hundreds of
-// millions of events. Measured (cli-20261014T150338Z-47872e76): one FDN
+// millions of events. Measured: one FDN
 // sweep game stacked ~27 Amount matches onto one token-copy proposal and
 // grew the plan to 2^27 mints (~5 GB live) inside one resolution --
 // before the first mint was even emitted, so the livelock watcher's
@@ -343,7 +343,7 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 
 // tokenElectionAsk poses a CreateToken replacement election (the chosen-copy
 // and the plain Optional$ shapes). Under the resolution kernel the election
-// is answered in place (W3 step 5): the settled plan mints at the point of
+// is answered in place: the settled plan mints at the point of
 // the creation.
 func (e *Engine) tokenElectionAsk(d *decision.Decision, st *tokenChoiceState) {
 	if e.pending == nil && (e.resolvingObj != 0 || e.applyingReplacement) {
@@ -602,7 +602,7 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []tokenPlanMi
 		// Corpus convention: Amount$ present is a fixed add for the whole
 		// creation event; absent Amount$ means "that many" (one per matched
 		// mint), as on Chatterfang. Append fixed extras at plan end so their
-		// replay-visible mint order is deterministic. (cli-20260927T005250Z-c5ac2e83)
+		// replay-visible mint order is deterministic.
 		raw := strings.TrimSpace(body.ParamStr(cards.PKAmount))
 		fixed := raw != ""
 		n := int32(1)
@@ -765,7 +765,7 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, mint 
 			if tok == nil {
 				return false
 			}
-			// The provenance qualifier split applies here too (task castprov1):
+			// The provenance qualifier split applies here too:
 			// a would-be TOKEN was never cast at all, so an alternative carrying
 			// the qualifier is dropped for it.
 			spec, ok := e.castProvenanceAdmits(v, tok.ID, e.controllerOf(m.id))

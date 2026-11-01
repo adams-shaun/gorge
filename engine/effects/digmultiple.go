@@ -68,7 +68,7 @@ func effDigMultiple(h Host, c *Ctx, sa *cards.SA) {
 			if answer, ok := AskTape(h, d); ok {
 				picked = answerObjs(answer)
 			} else {
-				// R-9 host: a maximum feasible selection in offer order.
+				// No-host path: a maximum feasible selection in offer order.
 				for _, i := range best {
 					picked = append(picked, d.Options[i].Obj)
 				}

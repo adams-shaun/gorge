@@ -138,3 +138,21 @@ func TestAgentMissingExtensionAnswersTheFirstCandidateID(t *testing.T) {
 		t.Fatalf("missing extension selected %v, want the first candidate's id 5", got)
 	}
 }
+
+// TestOnGameOverRunsBeforeTheAck: the hook sees the finished game, and a repeated
+// game_over does not run it twice.
+func TestOnGameOverRunsBeforeTheAck(t *testing.T) {
+	t.Parallel()
+	a, err := agent.New("bot")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seen []bool
+	a.OnGameOver = func() { seen = append(seen, a.Audit().GameOverReceived) }
+	over := []byte(`{"request_type":"game_over","protocol":"spellbench/v2","request_id":"r-1","game_id":"g"}`)
+	a.Handle(over)
+	a.Handle(over)
+	if len(seen) != 1 || !seen[0] {
+		t.Fatalf("OnGameOver saw %v, want one finished game", seen)
+	}
+}

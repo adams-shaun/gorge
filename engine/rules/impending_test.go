@@ -252,7 +252,7 @@ func TestImpendingCensusPinsCorpusCarriers(t *testing.T) {
 		"Overlord of the Hauntwoods",
 		"Overlord of the Mistmoors",
 	}
-	// The five Standard Overlords are the brief's target: they must now be
+	// The five Standard Overlords are the target: they must be
 	// fully supported (kw:Impending was their only blocker). Lurker in the Deep
 	// is the sixth corpus carrier; it still misses api:MakeCard (Conjure), an
 	// unrelated primitive, so it is only held to "kw:Impending no longer

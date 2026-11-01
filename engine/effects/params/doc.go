@@ -5,8 +5,7 @@
 // api:DealDamage's record (DealDamageOf), plus the pure Produced$ Combo
 // classifier (ComboColours).
 //
-// It exists for the lasagna's W5 step E7 (spec
-// docs/design/2026-10-03-rules-engine-lasagna-design.md §9): the
+// It exists because the
 // mana and payment ring reads these records on nearly every path, and
 // engine/rules/pay may not import effects (it sits above effects in no sense -- it
 // is a sibling that must not reach the resolution's Host/Ctx machinery). The

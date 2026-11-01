@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Task movecounter1: api:MoveCounter end to end on the REAL corpus carriers.
+// api:MoveCounter end to end on the REAL corpus carriers.
 // Before this task `DB$ MoveCounter` / `AB$ MoveCounter` was unregistered, so
 // every such line was one "unimplemented API MoveCounter" Note and moved
 // nothing -- and the ACTIVATED carriers (Weapon Rack, Diamond City,

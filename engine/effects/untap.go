@@ -23,13 +23,15 @@ func init() {
 }
 
 // TryUntap is the shared CR 122.1d event proposal for effects and the untap
-// step: a stun counter is removed instead of untapping the permanent.
+// step: a stun counter is removed instead of untapping the permanent. A
+// permanent that "doesn't untap" would not become untapped, so its stun counter
+// stays.
 func TryUntap(h Host, id state.ObjID) {
 	o := h.Game().Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
 		return
 	}
-	if o.Counter("STUN") > 0 {
+	if o.Counter("STUN") > 0 && !h.UntapBlocked(id) {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "STUN", Amount: -1, Text: events.UntapReplacedByStunNotice})
 		return
 	}

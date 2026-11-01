@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Bargain (CR 702.166) corpus census (Ruling P12/D2-a's two-direction
+// Bargain (CR 702.166) corpus census (the two-direction
 // contract, the knownUnsupported shape): the EXACT set of corpus cards that
 // carry the keyword primitive and that read each count head, pinned so a new
 // carrier fails loudly rather than joining the playable pool with an

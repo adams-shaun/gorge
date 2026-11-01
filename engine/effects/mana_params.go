@@ -6,8 +6,7 @@ import (
 )
 
 // api:Mana's parameter compiler lives in the leaf package engine/effects/params
-// (params/mana.go, W5 step E7 of
-// docs/design/2026-10-03-rules-engine-lasagna-design.md): the
+// (params/mana.go): the
 // payment layer (engine/rules/pay) reads a mana ability's production there without
 // importing effects. These are the effects spellings every existing caller
 // uses, plus the two Amount$ evaluations that need the resolution's Host.

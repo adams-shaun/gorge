@@ -13,9 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This file is the generic TARGETING tier's parameter compiler (W4 step 3's
-// cross-API tier, docs/design/2026-10-03-rules-engine-lasagna-design.md
-// section 8: "start with APIs whose params are read on more than one path").
+// This file is the generic TARGETING tier's parameter compiler.
 // The targeting parameters -- ValidTgts$, TgtPrompt$, TargetMin$/TargetMax$,
 // TgtZone$, TargetType$, TargetUnique$, the TargetsWith*$ set constraints,
 // TargetingPlayer$/TargetingPlayerControls$, TargetValidTargeting$ and
@@ -462,7 +460,7 @@ func SpecTargetsStack(spec string) bool {
 // "Creature.YouCtrl" IS an object filter (its ".YouCtrl" clause scopes the
 // creature's controller, not the target being a player). The old substring
 // form matched the "You" inside "YouCtrl" and wrongly offered players as
-// Equip targets (Task 14 found it: an Equip onto Creature.YouCtrl offered
+// Equip targets (an Equip onto Creature.YouCtrl offered
 // both players as options, which effAttach then had to refuse).
 func SpecTargetsPlayers(spec string) bool {
 	for alt := range strings.SplitSeq(spec, ",") {

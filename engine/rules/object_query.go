@@ -8,8 +8,8 @@ import "github.com/adams-shaun/gorge/engine/state"
 // object in the game (forEachObject). They used to live in trigger_match.go,
 // which made every caller -- casting, combat, layers, replacements, effects
 // hosting -- depend on the trigger matcher's file; they are not trigger
-// logic (lasagna spec W5 step E2), and moving them out is what lets the
-// trigger matcher become its own package (E3).
+// logic, and moving them out is what lets the
+// trigger matcher become its own package.
 
 // objectWalkZones is the deterministic per-seat zone order forEachObject and
 // the trigger walk visit. It is the historical library..stack order with the
@@ -43,7 +43,7 @@ var objectWalkZones = [...]state.Zone{
 // would be a bug. The copy is kept and grown with append(buf[:0], zone...),
 // so it settles at the size of the largest zone seen and stops allocating;
 // a fresh []state.ObjID allocation per zone per event used to be this
-// package's single largest allocation site (Task A2). fn is NEVER called
+// package's single largest allocation site. fn is NEVER called
 // after the zone it is walking mutates.
 //
 // Re-entry safety: each rendering passes its snapshot buffer separately --

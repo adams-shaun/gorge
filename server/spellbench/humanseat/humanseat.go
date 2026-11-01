@@ -12,6 +12,10 @@
 // and lets the caretaker answer the whole native decision, byte-identically to
 // a native human timing out at that decision.
 //
+// A Seat stays passive until Attach: it remembers the decision parked and answers
+// nothing, so the seat plays exactly as an untapped one until a v2 client claims
+// it. NativeAnswer hands it back.
+//
 // It mirrors server/spellbench/seat (Agent), with a human at the far end of
 // the question instead of a process. It does not import server/host: the tap
 // contract is spelled in lower-layer types, so host's own tests can keep
@@ -124,6 +128,10 @@ type Config struct {
 	// transport sets it to mapping.MaxCandidates and answers the rest through
 	// its own action.
 	NameWindow int
+	// Held reports whether a v2 client is connected to the seat right now. A
+	// native answer leaves a held seat attached and hands any other back to
+	// native. Nil means never held.
+	Held func() bool
 }
 
 // Seat is the v2 codec of one human seat of one match. Install it with
@@ -133,8 +141,11 @@ type Seat struct {
 	extend   ExtendFunc
 	// nameWindow is Config.NameWindow.
 	nameWindow int
+	held       func() bool
 
 	mu       sync.Mutex
+	attached bool
+	parked   *parkedAsk // the decision parked last, until something answers it
 	mc       *bots.MatchContext
 	g        game.Game
 	env      *mapping.Env
@@ -152,6 +163,15 @@ type Seat struct {
 	nativeOnly        int
 }
 
+// parkedAsk is one Parked call, kept so Attach can drive it.
+type parkedAsk struct {
+	ctx    context.Context
+	v      view.View
+	d      decision.Decision
+	answer func(decision.Intent) error
+	gone   <-chan struct{}
+}
+
 type queuedIntent struct {
 	in   decision.Intent
 	want *decision.Decision
@@ -166,7 +186,7 @@ func New(cfg Config) (*Seat, error) {
 	if cfg.Answerer == nil {
 		return nil, errors.New("v2 human seat: nil answerer")
 	}
-	return &Seat{answerer: cfg.Answerer, extend: cfg.Extend, nameWindow: cfg.NameWindow}, nil
+	return &Seat{answerer: cfg.Answerer, extend: cfg.Extend, nameWindow: cfg.NameWindow, held: cfg.Held}, nil
 }
 
 func checkTable(seats int, format string) error {
@@ -259,6 +279,7 @@ func (s *Seat) MatchRewound(v any) {
 	s.tx = nil
 	s.queue = nil
 	s.native = nil
+	s.parked = nil
 	s.contSeq, s.queueSeq = 0, 0
 	s.attachEnv()
 }
@@ -269,15 +290,66 @@ func (s *Seat) logf(format string, args ...any) {
 	}
 }
 
-// Parked starts answering a decision the HumanSeat parked (host.HumanTap).
-// It never blocks the match goroutine: the transaction runs on a goroutine of
-// its own, and a newer park supersedes it.
+// Attach hands the seat to the v2 client: from now on every decision it parks is
+// answered through the Answerer, starting with the one parked now. It is safe
+// before AttachMatch and when already attached.
+func (s *Seat) Attach() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.attached {
+		return
+	}
+	s.attached = true
+	if s.parked != nil {
+		s.start(s.parked)
+	}
+}
+
+// NativeAnswer implements host.HumanTap: another wire answered the parked
+// decision or asked for an undo. Whatever was open for it is void, so the v2 request closes now, and
+// unless a v2 client holds the seat it goes back to being passive.
+func (s *Seat) NativeAnswer() {
+	held := s.held != nil && s.held()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.parked = nil
+	if !s.attached {
+		return
+	}
+	s.attached = held
+	if s.cancel != nil {
+		s.cancel()
+		s.cancel = nil
+	}
+	s.gen++
+	s.tx = nil
+	s.queue = nil
+	s.native = nil
+	s.contSeq, s.queueSeq = 0, 0
+	s.env.CloseLooks()
+}
+
+// Parked records a decision the HumanSeat parked (host.HumanTap) and, on an
+// attached seat, starts answering it. It never blocks the match goroutine.
 func (s *Seat) Parked(ctx context.Context, v view.View, d decision.Decision, answer func(decision.Intent) error, gone <-chan struct{}) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.env == nil {
 		return
 	}
+	s.parked = &parkedAsk{ctx: ctx, v: v, d: d, answer: answer, gone: gone}
+	if s.attached {
+		s.start(s.parked)
+		return
+	}
+	if d.Kind == decision.KPriority {
+		s.env.Action, s.env.Slots = nil, map[string]uint32{}
+	}
+}
+
+// start runs the transaction for p on a goroutine of its own; a newer start
+// supersedes it. Called with the seat lock held.
+func (s *Seat) start(p *parkedAsk) {
 	if s.cancel != nil {
 		s.cancel()
 	}
@@ -286,24 +358,24 @@ func (s *Seat) Parked(ctx context.Context, v view.View, d decision.Decision, ans
 	// commit was accepted and left it open (a multi-step action). One that a
 	// timeout, an undo or an engine refusal interrupted is dropped: the engine
 	// either took another answer or still asks the same decision.
-	if s.tx != nil && !(s.contSeq != 0 && s.contSeq < d.Seq) {
+	if s.tx != nil && !(s.contSeq != 0 && s.contSeq < p.d.Seq) {
 		s.tx = nil
 		s.env.CloseLooks()
 	}
 	s.contSeq = 0
-	if len(s.queue) > 0 && s.queueSeq >= d.Seq {
+	if len(s.queue) > 0 && s.queueSeq >= p.d.Seq {
 		s.queue = nil
 	}
-	dctx, cancel := context.WithCancel(ctx)
+	dctx, cancel := context.WithCancel(p.ctx)
 	s.cancel = cancel
 	go func() {
 		select {
-		case <-gone:
+		case <-p.gone:
 			cancel()
 		case <-dctx.Done():
 		}
 	}()
-	go s.drive(dctx, cancel, s.gen, gone, v, d, answer)
+	go s.drive(dctx, cancel, s.gen, p.gone, p.v, p.d, p.answer)
 }
 
 // projected runs f under the host's projection lock (see bots.MatchContext).

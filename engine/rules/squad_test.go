@@ -116,9 +116,9 @@ func squadCopies(e *Engine, id state.ObjID) int {
 	return n
 }
 
-// TestSquadSecuritronSquadronPaidTwiceMintsTwoCopies is the brief's headline
+// TestSquadSecuritronSquadronPaidTwiceMintsTwoCopies is the headline
 // adapted to the corpus mechanic (CR 702.66: "you may pay {3} any number of
-// times ... create that many tokens that are copies of it" -- the brief's
+// times ... create that many tokens that are copies of it" -- the
 // tap-the-squad description does not match any corpus K:Squad line): the
 // squadded cast option is offered, the count ask is answered twice, the
 // pay-time CastInfo carries the squadpaid flag with Amount 2, and two token

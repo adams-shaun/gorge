@@ -11,7 +11,7 @@ import (
 )
 
 // testBot drives the rules package's own fuzz and acceptance harnesses with
-// the same policy heuristic.Bot uses, through the same botpolicy.Decide (Ruling
+// the same policy heuristic.Bot uses, through the same botpolicy.Decide
 // F7): it is botpolicy.GameBot, the game-shaped adapter cmd/headdiff also
 // answers the TestHeads acceptance game with, so the two cannot drift.
 // Before botpolicy existed, this file carried a line-for-line copy of

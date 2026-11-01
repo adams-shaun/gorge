@@ -11,8 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The cast's payment asks and their answer records (lasagna spec §9.2, E7
-// flow slice 4): the Convoke/Harmonize/Improvise/waterbend announcement, the
+// The cast's payment asks and their answer records:
+// the Convoke/Harmonize/Improvise/waterbend announcement, the
 // flexible-pip announcement (CR 601.2b) and the Optional$ ManaConvert
 // election, each posed through Engine.Ask (AskCast), and the record of every
 // payment-shaped cast answer into the CastPayment / PaidCost pair. What the

@@ -226,15 +226,6 @@ var changeTextCarriers = []string{
 // DIFFERENT primitive owns. It is asserted in full -- empty and non-empty
 // alike -- so the gate cannot pass by scoping itself to the text family, and a
 // card whose gap later closes (or opens) makes this table stale and fails.
-//
-// The one non-nil entry is unrelated to text modification. The operator's
-// 2026-09-25 ruling explicitly leaves this keyword out of scope here:
-//   - Spectral Shift: now fully playable. Its former kw:Entwine gap closed
-//     when agent-20260925T000311Z-22c4c559 landed CR 702.42 Entwine (the
-//     optional additional cost whose payment forces all Charm modes).
-//
-// Trait Doctoring's former kw:Cipher gap closed when agent-20260919T181215Z-
-// 71ad9572 landed Cipher, so it is now fully playable and reads nil.
 var changeTextCarrierGaps = map[string][]string{
 	"Alter Reality":          nil,
 	"Artificial Evolution":   nil,
@@ -252,11 +243,10 @@ var changeTextCarrierGaps = map[string][]string{
 	"Trait Doctoring":        nil,
 }
 
-// TestChangeTextCarriersUnsupportedIsExact implements the operator's
-// 2026-09-25 registration ruling: assert the COMPLETE Unsupported result for
-// all 14 carriers. Twelve must be fully playable; the other two must report
-// exactly their unrelated keyword gaps, not any text primitive. A card that
-// gains or loses any unsupported primitive makes this table stale and fails.
+// TestChangeTextCarriersUnsupportedIsExact asserts the COMPLETE Unsupported
+// result for all 14 carriers: each must report exactly its entry in the table
+// above, not any text primitive. A card that gains or loses any unsupported
+// primitive makes this table stale and fails.
 func TestChangeTextCarriersUnsupportedIsExact(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

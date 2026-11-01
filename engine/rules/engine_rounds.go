@@ -54,14 +54,14 @@ type engineRounds struct {
 	// pregame projection read it before turn one.
 	opening openingRound `clone:"deep"`
 	// blockerRound is the declare-blockers step's per-defender cursor
-	// (engine/rules/combat.go, Task m34): an attack may be split across several
+	// (engine/rules/combat.go): an attack may be split across several
 	// defending players, and each declares its own blocks, one KBlockers
 	// decision at a time. Plain-value state (a defender list plus an index),
 	// never a closure, so Clone copies it like the mulligan round.
 	blockerRound blockerRound `clone:"share"`
 
 	// exertAskState is the declare-attackers exert election's resumable
-	// state (engine/rules/combat.go, task exert1): the deterministic offer list
+	// state (engine/rules/combat.go): the deterministic offer list
 	// (attacking creatures carrying an offerable stat:OptionalAttackCost
 	// static, in declaration option order) plus the cursor of the ask
 	// currently outstanding. Plain-value state, so Clone copies it like
@@ -78,7 +78,7 @@ type engineRounds struct {
 	bandAskState bandAsk `clone:"share"`
 
 	// enlistAskState is the declare-attackers enlist election's resumable
-	// state (engine/rules/enlist.go, task enlist1): the answered KAttackers
+	// state (engine/rules/enlist.go): the answered KAttackers
 	// declaration, the declaring player, the deterministic offer list
 	// (attacking creatures with `K:Enlist` that have at least one eligible
 	// creature to tap, in declaration option order) plus the cursor of the
@@ -95,7 +95,7 @@ type engineRounds struct {
 	stationing state.ObjID `clone:"deep"`
 
 	// combatRound is the combat damage step's continuation state
-	// (engine/rules/combat.go, Task jj-cmb): which damage passes are done, and any
+	// (engine/rules/combat.go): which damage passes are done, and any
 	// controller damage-division choices still being collected or awaiting an
 	// answer (CR 510.1c multi-block division, CR 510.3/4 double-strike).
 	// Plain-value data (slices plus scalars), never a closure, so Clone

@@ -9,10 +9,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// CR 701.14a, cr-g18b: the two hits of a fight are dealt simultaneously, so
+// CR 701.14a: the two hits of a fight are dealt simultaneously, so
 // both powers are read before either hit lands, and each hit is the
 // fighting creature's own (its wither is read). cr70114DamageSince and
-// cr70114TargetFightSA live in fight_cr70114_test.go (cr-g18a).
+// cr70114TargetFightSA live in fight_cr70114_test.go.
 
 // TestCR701_14aInfectFightHitsAreSimultaneous: a 3/3 infect fighter fights
 // a 3/3. Both powers are read before either hit lands (CR 701.14a), so the

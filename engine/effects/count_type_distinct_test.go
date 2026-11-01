@@ -1,6 +1,6 @@
 package effects
 
-// Task diffcount2: the two remaining distinct-set aggregate spellings on the
+// The two remaining distinct-set aggregate spellings on the
 // Count$Valid<zone> head, siblings of the Different* family (diffcount1) and
 // the CardTypes/Colors reads:
 //

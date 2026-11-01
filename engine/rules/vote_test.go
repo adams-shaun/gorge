@@ -215,7 +215,7 @@ func TestVoteFinishedCarrierGatedOnVoteTriggerFaces(t *testing.T) {
 }
 
 // TestGrudgeKeeperEmptyBallotDrainsNobody is the empty-ballot regression
-// (review finding) end to end on a real card-ballot cast: Council's Judgment
+// end to end on a real card-ballot cast: Council's Judgment
 // with NO eligible permanent on any opponent's battlefield (its VoteCard$
 // filters to a nonland permanent you don't control; the opponents control
 // only Mountains). Nobody could vote for anything, so both List$ sets are

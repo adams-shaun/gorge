@@ -22,13 +22,13 @@ type engineEmitCtx struct {
 	// damaging names the source object responsible for the damage emit
 	// currently in flight (CR 609.7a): the resolution source for a spell or
 	// ability being resolved, or the dealing creature for a combat
-	// assignment. Task 15 sets it around resolveTop's two resolution
+	// assignment. It is set around resolveTop's two resolution
 	// calls and combat's assignment loop, and emit consults it to prevent
 	// damage to a protection-bearer whose protecting quality the source
 	// carries (CR 702.16d). Zero when nothing is resolving/assigning damage;
 	// a zero damaging never suppresses a Damage event.
 	//
-	// Not copied by Clone (Task 15 fix round 1, M5): Clone runs only at an
+	// Not copied by Clone: Clone runs only at an
 	// intent boundary, after New/Advance/Submit has returned, at which point
 	// every resolution and damage-step that EVER sets damaging has completed
 	// and reset it to zero -- an unset non-zero damaging would mean an emit

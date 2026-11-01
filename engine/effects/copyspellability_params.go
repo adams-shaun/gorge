@@ -8,7 +8,7 @@ import (
 
 // CopySpellAbilityParams is api:CopySpellAbility's compiled parameter set.
 // AddTypes$ is the only key this compiler owns; the primitive's other
-// parameter reads stay where they are (this ticket does not migrate them).
+// parameter reads stay where they are.
 type CopySpellAbilityParams struct {
 	paramBinding
 	// AddTypes is AddTypes$ split into type words by copyTypeList (comma and

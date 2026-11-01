@@ -1,6 +1,6 @@
 package host
 
-// RunShadowParityContract, the HD-3 shadow-scan parity row
+// RunShadowParityContract, the shadow-scan parity row
 // (docs/design/2026-10-10-human-divergence-design.md §5.3-§5.5) for a hosted
 // policy, and the shadow test seat the host's own shadow-scan tests drive.
 

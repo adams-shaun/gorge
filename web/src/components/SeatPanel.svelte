@@ -13,7 +13,7 @@
   /**
    * SeatPanel is a human seat's decision surface: the status readout,
    * auto/manual controls, floating mana, prompt and options, with the primary
-   * button resolved by kind (R-E4-1). The options themselves are drawn by the
+   * button resolved by kind. The options themselves are drawn by the
    * one renderer per decision kind (components/prompts/PromptBody, UI rework
    * spec §4); this panel owns the seat's lifecycle around them — the pending
    * poll, the autopilot loop and the Escape panic key. Priority mounts under
@@ -135,7 +135,7 @@
   // The autopilot loop. The dependencies are listed explicitly and the call
   // itself is untracked: considerAuto both reads and writes the seat's
   // state, and a self-triggering effect around a thing that posts to the
-  // server is exactly the runaway this task exists to prevent.
+  // server is exactly the runaway to prevent.
   $effect(() => {
     void logic.settings;
     void logic.oneShot;
@@ -160,8 +160,8 @@
   // The panel names the seat it is waiting on. `seats` is the first word
   // (the table's registered name), but on the live table route it can be
   // EMPTY while the view still carries each player's own name (the one-shot
-  // seed in Table.svelte races the async tables.lookup — see the ui15
-  // report); the fallback must be that name, not the 0-based `Seat N`
+  // seed in Table.svelte races the async tables.lookup);
+  // the fallback must be that name, not the 0-based `Seat N`
   // placeholder, exactly as IdentityBar does.
   const waitingName = $derived(
     seats[view.priority]?.name ?? view.players.find((p) => p.seat === view.priority)?.name ?? `Seat ${view.priority}`,
@@ -180,16 +180,18 @@
   // click the same answer).
   const deferred = $derived(placement === 'strip' && logic.dockCount > 0 && dockAnswers(decision));
 
-  // The prompt context line (brief Job 3): who the prompt is from and what
+  // The prompt context line: who the prompt is from and what
   // shape the answer takes, from fields already on the wire (source,
   // kind/min/max). Null facts are omitted; the line itself is omitted when
   // neither is known (priority, mulligan).
   const ctxText = $derived(decision !== null ? promptContextText(promptContext(decision, view)) : null);
+
+  const winLine = (name: string) => (name === 'You' ? 'You win' : `${name} wins`);
 </script>
 
 {#if view.over}
   <div class="seat-panel over" data-tone="idle" role="status">
-    <p class="prompt result">{view.draw ? 'Draw' : `${seats[view.winner ?? -1]?.name ?? view.players.find((p) => p.seat === view.winner)?.name ?? `Seat ${view.winner}`} wins`}</p>
+    <p class="prompt result">{view.draw ? 'Draw' : winLine(seats[view.winner ?? -1]?.name ?? view.players.find((p) => p.seat === view.winner)?.name ?? `Seat ${view.winner}`)}</p>
     <p class="sub">Match over</p>
   </div>
 {:else}
@@ -233,7 +235,7 @@
             <span class="dot" aria-hidden="true"></span>
             <span class="word">{logic.machinePaused ? 'Paused' : logic.auto ? 'Auto' : 'Manual'}</span>
           </button>
-          {#if logic.autoManaAvailable}
+          {#if logic.autoManaAvailable && !logic.autoPayOnly}
           <button
             class="skiptoggle"
             class:on={logic.autoPayMana}
@@ -332,7 +334,7 @@
      backdrop-filter, will-change or contain would re-break it.
      No backdrop-filter here or anywhere in the client: on an AMD iGPU under
      Mesa radeonsi it makes Chrome's GPU process raise amdgpu page faults that
-     wedge the whole desktop (reproduced 2026-10-30; see lib/visualfx.ts). */
+     wedge the whole desktop (see lib/visualfx.ts). */
   .seat-panel {
     position: absolute;
     top: var(--sp-2);
@@ -511,7 +513,7 @@
     font-size: var(--t-12);
     color: var(--ink-dim);
   }
-  /* The context line (Job 3): who the prompt is from and the shape of the
+  /* The context line: who the prompt is from and the shape of the
      answer — smaller and quieter than the prompt itself, because it is
      metadata about the ask, not the ask. */
   .ctx {

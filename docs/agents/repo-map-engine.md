@@ -38,7 +38,7 @@ never appear (see [invariants.md](invariants.md#1-dependency-direction)).
 | `engine/game/gorgegame` | The rules engine behind `game.Game` and `game.Engine`; `RulesConfig` maps `game.Config` to `rules.Config`, `Rules` returns the engine for gorge-only paths. |
 
 The layering design for `engine/rules` is
-[`docs/design/2026-10-03-rules-engine-lasagna-design.md`](../design/2026-10-03-rules-engine-lasagna-design.md).
+[`docs/design/2026-10-03-rules-engine-layering-design.md`](../design/2026-10-03-rules-engine-layering-design.md).
 
 ## `bots/`
 

@@ -1,6 +1,5 @@
 package rules
 
-// Kernel-era restoration of restrict_valid_dotless_test.go's
 // TestRestrictValidDotlessPaymentTerms: the cost-keyed and remaining dotless
 // RestrictValid$ terms, each on its real corpus producer's own batch. The
 // helpers (dotlessEngine, tapForRestrictedBatch, restrictedBatchesOf, the
@@ -24,7 +23,7 @@ import (
 // Helper), CantCastSpellFromHand (Vhal, paid by a genuine from-graveyard
 // flashback cast), and CumulativeUpkeep (Adarkar Unicorn, paying Mystic
 // Remora's real upkeep window but no ordinary payment).
-func TestKr8RestrictValidDotlessPaymentTerms(t *testing.T) {
+func TestKernelRestrictValidDotlessPaymentTerms(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
 

@@ -14,7 +14,7 @@ import (
 // exactly as candidatesFor withheld it at cast time, so the Shock fizzles and
 // deals no damage. The offer leg is pinned by TestPrintedHexproofWithholds…
 // and TestCorpusLotusFieldHexproofWithholdsOpponent in engine/rules/hexproof_test.go;
-// this is the one leg the brief names ("offer and recheck both") that had no
+// this is the one leg of "offer and recheck both" that had no
 // test. The grant rides an instant-speed KW$ Hexproof pump — the same real
 // engine grant path (engine/effects/combatfx.go registerPumpEffects) shroud's own
 // recheck test uses — because equip is sorcery-speed and cannot be activated

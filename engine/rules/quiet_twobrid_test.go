@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// cr-g133: a twobrid ({2/X}) pip is payable with one coloured mana (CR
+// A twobrid ({2/X}) pip is payable with one coloured mana (CR
 // 107.4e), so the cheapest payment of a twobrid hand spell counts each pip
 // as 1, not 2 (CR 202.3f makes the mana value 2 per pip, but the mana value
 // is not a payment floor). The quiet proof's castFloor must therefore be the
