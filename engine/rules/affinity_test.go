@@ -19,9 +19,9 @@ const frogmiteSrc = "Name:Frogmite\nManaCost:4\nTypes:Artifact Creature Frog\nPT
 const artCritterSrc = "Name:Trinket\nManaCost:1\nTypes:Artifact Creature Golem\nPT:1/1\nOracle:x\n"
 
 const banquetGuestsSrc = "Name:Banquet Guests\nManaCost:X G W\nTypes:Creature Halfling Citizen\nPT:0/0\n" +
-	"K:Affinity:Food\nK:Trample\nK:etbCounter:P1P1:Y:no Condition:CARDNAME enters with twice X +1/+1 counters on it.\n" +
+	"K:Affinity:Food\nK:Trample\nK:etbCounter:P1P1:Y:no Condition\n" +
 	"SVar:X:Count$xPaid\nSVar:Y:SVar$X/Twice\n" +
-	"A:AB$ Pump | Cost$ 2 Sac<1/Food> | Defined$ Self | KW$ Indestructible | SpellDescription$ CARDNAME gains indestructible until end of turn.\n" +
+	"A:AB$ Pump | Cost$ 2 Sac<1/Food> | Defined$ Self | KW$ Indestructible\n" +
 	"Oracle:Affinity for Foods (This spell costs {1} less to cast for each Food you control.)\\nTrample\\nBanquet Guests enters with twice X +1/+1 counters on it.\\n{2}, Sacrifice a Food: Banquet Guests gains indestructible until end of turn.\n"
 
 const foodSrc = "Name:Yummy\nManaCost:0\nTypes:Artifact Food\nOracle:x\n"
@@ -137,8 +137,8 @@ func itoa(n int) string {
 // before its display field, so the SVar must join with '+'):
 // Count$Valid Permanent.token+YouCtrl.
 const junkWinderSrc = "Name:Junk Winder\nManaCost:5 U U\nTypes:Creature Serpent\nPT:5/6\n" +
-	"K:Affinity:Permanent.token:token\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Permanent.token+YouCtrl | TriggerZones$ Battlefield | Execute$ TrigTap | TriggerDescription$ Whenever a token you control enters, tap target nonland permanent an opponent controls. It doesn't untap during its controller's next untap step.\n" +
+	"K:Affinity:Permanent.token:display text\n" +
+	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Permanent.token+YouCtrl | TriggerZones$ Battlefield | Execute$ TrigTap\n" +
 	"SVar:TrigTap:DB$ Tap | ValidTgts$ Permanent.nonLand+OppCtrl | TgtPrompt$ Choose target nonland permanent an opponent controls\n" +
 	"Oracle:Affinity for tokens (This spell costs {1} less to cast for each token you control.)\\nWhenever a token you control enters, tap target nonland permanent an opponent controls.\n"
 

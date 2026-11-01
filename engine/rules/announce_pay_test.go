@@ -188,7 +188,7 @@ func TestAnnouncePayDualLandOffersEachAbility(t *testing.T) {
 // Produced$ Any flattens to one option per colour for a planner-tier source.
 func TestAnnouncePayAnyColourSourceFlattens(t *testing.T) {
 	e, _, spell := newFixtureDeck(t, 9303, "Name:Green Spell\nManaCost:G\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	birds := onBoard(t, e, 0, "Name:Bird Test\nTypes:Creature Bird\nPT:0/1\nA:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ Add one mana of any color.\nOracle:x\n")
+	birds := onBoard(t, e, 0, "Name:Bird Test\nTypes:Creature Bird\nPT:0/1\nA:AB$ Mana | Cost$ T | Produced$ Any\nOracle:x\n")
 	e.G.Obj(birds).SummonSick = false
 	e.pending = nil
 	e.askPriority(0)

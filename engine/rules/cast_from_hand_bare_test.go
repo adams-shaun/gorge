@@ -10,7 +10,7 @@
 //     Card.wasCast+!wasCastFromYourHand | ConditionCompare$ EQ1` gate on its
 //     own flashback cast: the token enters WITH the +1/+1 counter from the
 //     graveyard, without it from the hand.
-//   - See the Truth's `SVar:X:Count$wasCastFromYourHand.1.3` branch head: a
+//   - See the Truth's `X = Count$wasCastFromYourHand.1.3` branch head: a
 //     non-hand cast takes all three dug cards into the hand, a hand cast one.
 //   - Bilbo, Thief in the Night's `S:Mode$ ReduceCost | ValidCard$
 //     Card.!wasCastFromYourHand | Amount$ 1` static: a non-hand cast is {1}

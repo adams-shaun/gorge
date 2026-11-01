@@ -27,7 +27,7 @@ func TestCantPlayLandHandLocked(t *testing.T) {
 		t.Fatalf("precondition: unlocked hand land offers = %d, want 1", got)
 	}
 	source := onBoardGrant(t, e, 0, "Name:Memory Vessel\nTypes:Artifact\n"+
-		"SVar:NoLand:Mode$ CantPlayLand | Player$ Player | Origin$ Hand | Description$ Players can't play lands from their hand.\n"+
+		"SVar:NoLand:Mode$ CantPlayLand | Player$ Player | Origin$ Hand\n"+
 		"SVar:DBEffect:DB$ Effect | StaticAbilities$ NoLand | RememberObjects$ Remembered | Duration$ UntilYourNextTurn | SubAbility$ DBCleanup | ForgetOnMoved$ Exile\n"+
 		"Oracle:x\n")
 	vessel := e.G.Obj(source)

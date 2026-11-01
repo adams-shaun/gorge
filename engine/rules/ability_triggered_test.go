@@ -28,8 +28,8 @@ const atWatcherOther = "Name:Watcher\nManaCost:1 R\nTypes:Creature Human\nPT:1/1
 
 // atCounterOnly counts a ChangesZone-caused ability, never an attack one.
 const atCounterOnly = "Name:Zone Watcher\nManaCost:1 R\nTypes:Enchantment\n" +
-	"T:Mode$ AbilityTriggered | TriggerZones$ Battlefield | ValidMode$ ChangesZone | Execute$ TrigPut | ValidSource$ Creature.YouCtrl | TriggeredOwnAbility$ True | TriggerDescription$ x\n" +
-	"SVar:TrigPut:DB$ PutCounter | Defined$ Self | CounterType$ QUEST | CounterNum$ 1\nOracle:x\n"
+	"T:Mode$ AbilityTriggered | TriggerZones$ Battlefield | ValidMode$ ChangesZone | Execute$ OnPut | ValidSource$ Creature.YouCtrl | TriggeredOwnAbility$ True | TriggerDescription$ x\n" +
+	"SVar:OnPut:DB$ PutCounter | Defined$ Self | CounterType$ QUEST | CounterNum$ 1\nOracle:x\n"
 
 func atTable(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()

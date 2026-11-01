@@ -26,7 +26,7 @@ import (
 )
 
 const adamantSentrySrc = "Name:Adamant Sentry\nManaCost:3 U\nTypes:Creature Soldier\nPT:1/1\n" +
-	"K:etbCounter:P1P1:1:Adamant$ Blue:Adamant — If at least three blue mana was spent to cast this spell, CARDNAME enters with a +1/+1 counter on it.\n" +
+	"K:etbCounter:P1P1:1:Adamant$ Blue\n" +
 	"Oracle:x\n"
 
 const adamantRagerSrc = "Name:Adamant Rager\nManaCost:2 R\nTypes:Creature Elemental\nPT:2/2\n" +
@@ -35,7 +35,7 @@ const adamantRagerSrc = "Name:Adamant Rager\nManaCost:2 R\nTypes:Creature Elemen
 	"Oracle:x\n"
 
 const adamantHengeSrc = "Name:Adamant Henge\nManaCost:4 G\nTypes:Creature Giant\nPT:3/3\n" +
-	"K:etbCounter:P1P1:1:Adamant$ Any:Adamant — If at least three mana of the same color was spent to cast this spell, CARDNAME enters with a +1/+1 counter on it.\n" +
+	"K:etbCounter:P1P1:1:Adamant$ Any\n" +
 	"Oracle:x\n"
 
 // TestAdamantEtbCounterAppliesOnlyWhenColourThresholdPaid casts the

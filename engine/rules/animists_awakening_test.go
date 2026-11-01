@@ -14,11 +14,11 @@ import (
 // ConditionZone$ read the hardcoded battlefield scan always counted 0, failed
 // GE2, and the untap never fired even with two instants in the graveyard.
 //
-// animistsAwakeningSrc is the real card script verbatim (no corpus
-// dependency); the pin resolves its DBUntap SVar exactly as the Dig's
+// animistsAwakeningSrc states the real card's shape (no corpus
+// dependency); the pin resolves its ThenUntap SVar exactly as the Dig's
 // SubAbility$ chain would.
 const animistsAwakeningSrc = "Name:Animist's Awakening\nManaCost:X G\nTypes:Sorcery\n" +
-	"SVar:DBUntap:DB$ Untap | Defined$ Remembered | ConditionPresent$ Instant.YouOwn,Sorcery.YouOwn | ConditionZone$ Graveyard | ConditionCompare$ GE2\n" +
+	"SVar:ThenUntap:DB$ Untap | Defined$ Remembered | ConditionPresent$ Instant.YouOwn,Sorcery.YouOwn | ConditionZone$ Graveyard | ConditionCompare$ GE2\n" +
 	"Oracle:x\n"
 
 func untapAnimistEngine(t *testing.T, instants int) (*Engine, []state.ObjID) {
@@ -56,7 +56,7 @@ func untapAnimistEngine(t *testing.T, instants int) (*Engine, []state.ObjID) {
 
 	ctx := &effects.Ctx{Source: spell.ID, Controller: 0,
 		Remembered: []state.Target{{Obj: lands[0]}, {Obj: lands[1]}}}
-	effects.Resolve(e, ctx, cards.ResolveSVar(aw.Faces[0].SVars, "DBUntap"))
+	effects.Resolve(e, ctx, cards.ResolveSVar(aw.Faces[0].SVars, "ThenUntap"))
 	return e, lands
 }
 

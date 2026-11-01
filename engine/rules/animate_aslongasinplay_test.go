@@ -1,8 +1,7 @@
 // Animate's Duration$ AsLongAsInPlay is the "for as long as CARDNAME remains
 // on the battlefield" lifetime, and for the real corpus carriers the host is
-// the ANIMATING permanent, not the animated target:
-//
-//	SVar:TrigAnimate:DB$ Animate | ValidTgts$ Artifact.YouCtrl | TgtPrompt$ Select target artifact you control | Power$ 5 | Toughness$ 5 | Types$ Artifact,Creature | Duration$ AsLongAsInPlay
+// the ANIMATING permanent, not the animated target: an activated DB$ Animate
+// that turns target artifact you control into a 5/5 artifact creature.
 //
 // Without this, effects.animateUntilEOT classifies AsLongAsInPlay with
 // the absent-Duration$/UntilEndOfTurn bucket, so every animation layer is

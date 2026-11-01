@@ -21,7 +21,7 @@ func TestAttackOffersStaticScanIsNotPerObject(t *testing.T) {
 		e := layerEngine(t)
 		e.G.Step = state.StepDeclareAttackers
 		onBoard(t, e, 0, "Name:Anthem Stand-in\nTypes:Enchantment\n"+
-			"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddPower$ 1 | Description$ Creatures you control get +1/+0.\nOracle:x\n")
+			"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddPower$ 1\nOracle:x\n")
 		for i := 0; i < n; i++ {
 			onBoardReady(t, e, 0, fmt.Sprintf("Name:Goblin %d\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n", i))
 		}

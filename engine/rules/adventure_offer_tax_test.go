@@ -21,11 +21,11 @@ import (
 // livelock reversed).
 const taxedAdventureSrc = "Name:Dusk Squire\nManaCost:1 B\nTypes:Creature Human Knight\nPT:2/2\n" +
 	"AlternateMode:Adventure\nOracle:front\nALTERNATE\nName:Grim Errand\nManaCost:1 B\n" +
-	"Types:Sorcery Adventure\nA:SP$ Destroy | ValidTgts$ Creature | SpellDescription$ Destroy target creature.\nOracle:back\n"
+	"Types:Sorcery Adventure\nA:SP$ Destroy | ValidTgts$ Creature\nOracle:back\n"
 
 // taxWardenSrc: Thalia's shape -- noncreature spells cost {1} more.
 const taxWardenSrc = "Name:Tax Warden\nManaCost:1 W\nTypes:Creature Human Soldier\nPT:2/1\n" +
-	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1 | Description$ Noncreature spells cost {1} more to cast.\nOracle:x\n"
+	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1\nOracle:x\n"
 
 // TestAdventureFaceOfferPricesTheAdventureFace: with exactly {B}{B} floating
 // under the tax, the {1}{B} Creature front is castable and offered, but the

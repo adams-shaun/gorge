@@ -15,7 +15,7 @@ import (
 // lockstep pair 726: an empty delayed return was registered).
 func TestModalTriggerWithAllTargetsIllegalFizzles(t *testing.T) {
 	const kykarLike = "Name:Modal Bird\nManaCost:2 W U\nTypes:Creature Bird\nPT:3/4\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerDescription$ When CARDNAME enters, ABILITY\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm\n" +
 		"SVar:TrigCharm:DB$ Charm | Choices$ DBBlink,DBGain\n" +
 		"SVar:DBBlink:DB$ ChangeZone | ValidTgts$ Creature.YouCtrl+Other | TgtPrompt$ Select another target creature you control | Origin$ Battlefield | Destination$ Exile | SubAbility$ DBRider | SpellDescription$ Exile another target creature you control.\n" +
 		"SVar:DBRider:DB$ GainLife | Defined$ You | LifeAmount$ 5\n" +
@@ -23,7 +23,7 @@ func TestModalTriggerWithAllTargetsIllegalFizzles(t *testing.T) {
 		"Oracle:x\n"
 	// twoModes chooses two targeted modes, both of whose targets leave.
 	const twoModes = "Name:Twin Modal Bird\nManaCost:2 W U\nTypes:Creature Bird\nPT:3/4\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerDescription$ When CARDNAME enters, ABILITY\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm\n" +
 		"SVar:TrigCharm:DB$ Charm | CharmNum$ 2 | Choices$ DBTapA,DBTapB\n" +
 		"SVar:DBTapA:DB$ Tap | ValidTgts$ Creature.YouCtrl+Other | TgtPrompt$ Select target | SubAbility$ DBRider | SpellDescription$ Tap another target creature you control.\n" +
 		"SVar:DBTapB:DB$ Tap | ValidTgts$ Creature.YouCtrl+Other | TgtPrompt$ Select target | SpellDescription$ Tap another target creature you control.\n" +

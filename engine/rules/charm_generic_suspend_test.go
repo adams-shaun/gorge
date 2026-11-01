@@ -44,7 +44,7 @@ func genericCharmLifeFirstScript() string {
 
 func genericCharmScriptOrdered(choices string) string {
 	return "Name:GenCharm\nManaCost:1 U\nTypes:Creature Human Wizard\nPT:2/2\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerDescription$ When NICKNAME enters, ABILITY\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm\n" +
 		"SVar:TrigCharm:DB$ Charm | CharmNum$ 2 | Choices$ " + choices + "\n" +
 		"SVar:MReturn:DB$ ChangeZone | Hidden$ True | Mandatory$ True | ChangeType$ Creature.YouOwn | ChangeTypeDesc$ creature card | ChangeNum$ 1 | Origin$ Graveyard | Destination$ Hand | SpellDescription$ Return a creature card from your graveyard to your hand.\n" +
 		"SVar:MLife:DB$ LoseLife | Defined$ You | LifeAmount$ 3 | SpellDescription$ You lose 3 life.\n" +

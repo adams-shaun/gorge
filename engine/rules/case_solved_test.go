@@ -18,13 +18,13 @@ ManaCost:1 W
 Types:Enchantment Case
 T:Mode$ Phase | Phase$ End of Turn | ValidPlayer$ You | TriggerZones$ Battlefield | IsPresent$ Artifact.YouCtrl | PresentCompare$ GE1 | IsPresent2$ Card.Self+!IsSolved | Execute$ TrigSolve | TriggerDescription$ To solve — You control an artifact.
 SVar:TrigSolve:DB$ AlterAttribute | Defined$ Self | Attributes$ Solved
-S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddPower$ 1 | IsPresent$ Card.Self+IsSolved | Description$ Solved — Creatures you control get +1/+0.
+S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddPower$ 1 | IsPresent$ Card.Self+IsSolved
 A:AB$ GainLife | Cost$ Sac<1/CARDNAME> | Activation$ Solved | LifeAmount$ 3 | PrecostDesc$ Solved — | SpellDescription$ You gain 3 life.
 Oracle:To solve — You control an artifact.\nSolved — Creatures you control get +1/+0.\nSolved — Sacrifice this Case: You gain 3 life.
 `
 
-// caseFileAuditor is MKM Case File Auditor's CaseSolved trigger line
-// verbatim; its Dig body is swapped for a GainLife so the test observes the
+// caseFileAuditor is MKM Case File Auditor's CaseSolved trigger line;
+// its Dig body is swapped for a GainLife so the test observes the
 // trigger without driving the library-look decision.
 const caseFileAuditor = `Name:Case File Auditor
 ManaCost:2 W

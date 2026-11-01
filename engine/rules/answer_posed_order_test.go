@@ -270,8 +270,8 @@ func TestAnswerPosedTokenOrderResumesTheResolution(t *testing.T) {
 func lifeReplSrc(name, op string) string {
 	return "Name:" + name + "\nTypes:Enchantment\n" +
 		"R:Event$ GainLife | ActiveZones$ Battlefield | ValidPlayer$ You | ReplaceWith$ X | Description$ x\n" +
-		"SVar:X:DB$ ReplaceEffect | VarName$ LifeGained | VarValue$ Y\n" +
-		"SVar:Y:ReplaceCount$LifeGained/" + op + "\nOracle:x\n"
+		"SVar:X:DB$ ReplaceEffect | VarName$ LifeGained | VarValue$ Scaled\n" +
+		"SVar:Scaled:ReplaceCount$LifeGained/" + op + "\nOracle:x\n"
 }
 
 // entryReplSrc is an authored all-Updated Moved replacement whose body taps or

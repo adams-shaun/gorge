@@ -5,12 +5,12 @@ package rules
 // sub-chain-only carriers and the only one whose Charm is a TRIGGER body: at
 // the beginning of its controller's upkeep its cumulative-upkeep trigger
 // poses the placement KModes ask (askTriggerModes, CR 603.3c), whose two
-// modes (TrigAgeSurvivor, TrigAgeSacrifice) carry no SpellDescription$ of
+// modes (OnAgeSurvivor, OnAgeSacrifice) carry no SpellDescription$ of
 // their own — theirs ride the SurvivorDistribution and Sacrifice subs, one
 // hop down. Neither option is labelled by its raw SVar name.
 //
-// The script is varchilds_war_riders.txt verbatim except the deck-related
-// rider (AI:RemoveDeck) and the Oracle line (display text), inlined so the
+// The script follows Varchild's War-Riders, without the deck-related rider or
+// the Oracle line, inlined so the
 // corpus carrier's exact parameter spellings are what the engine defends
 // without committing GPL data.
 
@@ -25,15 +25,15 @@ import (
 
 const varchildsWarRidersScript = "Name:Varchild's War-Riders\nManaCost:1 R\nTypes:Creature Human Warrior\nPT:3/4\n" +
 	"K:Trample\nK:Rampage:1\n" +
-	"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigCumUpkeep | TriggerDescription$ Cumulative upkeep—Have an opponent create a 1/1 red Survivor creature token.\n" +
-	"SVar:TrigCumUpkeep:DB$ Charm | Choices$ TrigAgeSurvivor,TrigAgeSacrifice\n" +
-	"SVar:TrigAgeSurvivor:DB$ PutCounter | Defined$ Self | CounterType$ AGE | CounterNum$ 1 | SubAbility$ SurvivorDistribution\n" +
-	"SVar:SurvivorDistribution:DB$ Repeat | RepeatSubAbility$ SurvivorRecipient | MaxRepeat$ X | SpellDescription$ Have an opponent create a 1/1 red Survivor creature token for each Age Counter on CARDNAME.\n" +
-	"SVar:SurvivorRecipient:DB$ ChoosePlayer | Defined$ You | Choices$ Player.Opponent | ChoiceTitle$ Choose an opponent to create a 1/1 red Survivor creature token. | SubAbility$ Survivor\n" +
-	"SVar:Survivor:DB$ Token | TokenScript$ r_1_1_survivor | TokenOwner$ ChosenPlayer\n" +
+	"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ OnCumUpkeep\n" +
+	"SVar:OnCumUpkeep:DB$ Charm | Choices$ OnAgeSurvivor,OnAgeSacrifice\n" +
+	"SVar:OnAgeSurvivor:DB$ PutCounter | Defined$ Self | CounterType$ AGE | CounterNum$ 1 | SubAbility$ SurvivorDistribution\n" +
+	"SVar:SurvivorDistribution:DB$ Repeat | RepeatSubAbility$ PickOpponent | MaxRepeat$ X | SpellDescription$ An opponent gets a red Survivor for each Age Counter.\n" +
+	"SVar:PickOpponent:DB$ ChoosePlayer | Defined$ You | Choices$ Player.Opponent | SubAbility$ MakeToken\n" +
+	"SVar:MakeToken:DB$ Token | TokenScript$ r_1_1_survivor | TokenOwner$ ChosenPlayer\n" +
 	"SVar:X:Count$CardCounters.AGE\n" +
-	"SVar:TrigAgeSacrifice:DB$ PutCounter | Defined$ Self | CounterType$ AGE | CounterNum$ 1 | SubAbility$ Sacrifice\n" +
-	"SVar:Sacrifice:DB$ Sacrifice | Defined$ Self | SpellDescription$ Sacrifice CARDNAME.\n" +
+	"SVar:OnAgeSacrifice:DB$ PutCounter | Defined$ Self | CounterType$ AGE | CounterNum$ 1 | SubAbility$ Sacrifice\n" +
+	"SVar:Sacrifice:DB$ Sacrifice | Defined$ Self | SpellDescription$ Sacrifice this.\n" +
 	"Oracle:x\n"
 
 // TestVarchildsWarRidersPlacementLabelsFollowThePrintedDescriptions drives a
@@ -63,8 +63,8 @@ func TestVarchildsWarRidersPlacementLabelsFollowThePrintedDescriptions(t *testin
 	}
 
 	for _, want := range []string{
-		"create a 1/1 red Survivor creature token for each Age Counter",
-		"Sacrifice CARDNAME.",
+		"a red Survivor for each Age Counter",
+		"Sacrifice this.",
 	} {
 		found := false
 		for _, o := range d.Options {
@@ -77,7 +77,7 @@ func TestVarchildsWarRidersPlacementLabelsFollowThePrintedDescriptions(t *testin
 		}
 	}
 	for _, o := range d.Options {
-		if o.Label == "TrigAgeSurvivor" || o.Label == "TrigAgeSacrifice" {
+		if o.Label == "OnAgeSurvivor" || o.Label == "OnAgeSacrifice" {
 			t.Fatalf("mode option still labelled by its raw SVar name: %+v", d.Options)
 		}
 	}

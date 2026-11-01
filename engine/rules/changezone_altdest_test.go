@@ -14,7 +14,7 @@ package rules
 //   - zukos_conviction: `MANDATORY X` with `SVar:X:Count$Kicked.1.0` over a
 //     graveyard return, both directions, plus the Tapped$ True rider.
 //   - from_father_to_son: `MANDATORY X` with
-//     `SVar:X:Count$wasCastFromGraveyard.1.0` through the flashback cast.
+//     `X = Count$wasCastFromGraveyard.1.0` through the flashback cast.
 
 import (
 	"testing"

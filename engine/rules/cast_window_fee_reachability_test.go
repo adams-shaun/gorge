@@ -120,7 +120,7 @@ Oracle:x
 `
 	small := `Name:SmallFee
 Types:Land
-A:AB$ Mana | Cost$ 1 T | Produced$ G | SpellDescription$ Add {G}.
+A:AB$ Mana | Cost$ 1 T | Produced$ G
 Oracle:x
 `
 	b := equipWindowGame(t, 721, large, small)

@@ -21,26 +21,26 @@ import (
 // azusaSrc is Azusa, Lost but Seeking's real compiled static: the +2 shape,
 // top-level S: with Affected$ You.
 const azusaSrc = "Name:Azusa, Lost but Seeking\nManaCost:2 G\nTypes:Legendary Creature Human Monk\nPT:1/2\n" +
-	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ 2 | Description$ You may play two additional lands on each of your turns.\nOracle:x\n"
+	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ 2\nOracle:x\n"
 
 // oracleSrc is Oracle of Mul Daya's AdjustLandPlays static: the +1 shape.
 const oracleSrc = "Name:Oracle of Mul Daya\nManaCost:3 G\nTypes:Creature Elf Wizard\nPT:0/4\n" +
-	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ 1 | Description$ You may play an additional land on each of your turns.\nOracle:x\n"
+	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ 1\nOracle:x\n"
 
 // explorationSrc is Exploration's static, used for the stacking test.
 const explorationSrc = "Name:Exploration\nManaCost:G\nTypes:Enchantment\n" +
-	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ 1 | Description$ You may play an additional land on each of your turns.\nOracle:x\n"
+	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ 1\nOracle:x\n"
 
 // azusaUnlimitedSrc is Fastbond's shape: a non-literal value this build
 // cannot price as a count. It must fail closed, never silently become a
 // smaller grant.
 const azusaUnlimitedSrc = "Name:Fastbond\nManaCost:G\nTypes:Enchantment\n" +
-	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ Unlimited | Description$ You may play any number of lands on each of your turns.\nOracle:x\n"
+	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ Unlimited\nOracle:x\n"
 
 // azusaIsPresentSrc is Thranduil's Company's shape: the grant carries an
 // IsPresent$ qualifier. It must fail closed until that grammar exists.
 const azusaIsPresentSrc = "Name:Thranduil's Company\nManaCost:5 G\nTypes:Creature Elf Noble\nPT:3/4\n" +
-	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ 1 | IsPresent$ Elf.YouCtrl+Other | Description$ As long as you control another Elf, you may play an additional land on each of your turns.\nOracle:x\n"
+	"S:Mode$ Continuous | Affected$ You | AdjustLandPlays$ 1 | IsPresent$ Elf.YouCtrl+Other\nOracle:x\n"
 
 // landBase is a 2-seat engine at seat 0's turn-1 main phase, hands
 // emptied, so a fixture can place a granting permanent on the battlefield

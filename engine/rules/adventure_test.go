@@ -18,7 +18,7 @@ import (
 // spell face that destroys a creature, over a creature front.
 const adventureFixtureSrc = "Name:Swindle\nManaCost:2 R\nTypes:Creature Goblin Rogue\nPT:3/1\n" +
 	"AlternateMode:Adventure\nOracle:front\nALTERNATE\nName:Swipe\nManaCost:1 R\n" +
-	"Types:Instant Adventure\nA:SP$ Destroy | ValidTgts$ Creature | SpellDescription$ Destroy target creature.\nOracle:back\n"
+	"Types:Instant Adventure\nA:SP$ Destroy | ValidTgts$ Creature\nOracle:back\n"
 
 const adventureCancelSrc = "Name:Cancel\nManaCost:1 U U\nTypes:Instant\n" +
 	"A:SP$ Counter | TargetType$ Spell | TgtPrompt$ Select target spell | ValidTgts$ Card\nOracle:x\n"
