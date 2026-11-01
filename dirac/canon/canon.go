@@ -157,8 +157,8 @@ func ChooseCode(kind string) (uint8, bool) {
 	return ChooseOther, false
 }
 
-// specialKinds are the priority special actions (ActSpecial's mode).
-var specialKinds = []string{"granted", "unlock", "turn_face_up", "specialize", "station", "plot", "foretell", "suspend", "crew", "saddle"}
+// SpecialKinds are the priority special actions (ActSpecial's mode).
+var SpecialKinds = []string{"granted", "unlock", "turn_face_up", "specialize", "station", "plot", "foretell", "suspend", "crew", "saddle"}
 
 // TurnUpModeCode is the turn_face_up ActSpecial mode's procedure sub-mode
 // (bits 4..7, beside SpecialCode's kind index): 0 the face-down cast's own
@@ -194,7 +194,7 @@ func UnlockModeCode(mode string) uint8 {
 }
 
 func SpecialCode(kind string) (uint8, bool) {
-	for i, k := range specialKinds {
+	for i, k := range SpecialKinds {
 		if k == kind {
 			return uint8(i), true
 		}

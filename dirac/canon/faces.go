@@ -110,3 +110,27 @@ func (r *Translator) faceCastCanon(src, i uint8) uint8 {
 	}
 	return faceCastFaces[code]<<4 | code
 }
+
+// CastModeOf is the Option.Mode of a cast's canonical action.
+func CastModeOf(c Canon) string {
+	switch c.Kind() {
+	case ActCastFace:
+		return faceCastModes[c.Mode()&15]
+	case ActCastCasualty:
+		return "casualty"
+	case ActCastImpended:
+		return "impended"
+	case ActCastAirbend:
+		return "airbend_cast"
+	}
+	return CastModeName(c.Mode() & 15)
+}
+
+// CastAlt is the Option.AltCostIndex of a cast's canonical action.
+func CastAlt(c Canon) int {
+	switch c.Kind() {
+	case ActCast, ActCastCasualty, ActCastImpended:
+		return int(c.Mode() >> 4)
+	}
+	return 0
+}
