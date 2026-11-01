@@ -82,6 +82,11 @@ function isOptionalTriggerPrompt(title: string): boolean {
     title.startsWith("Apply this triggered ability's effect? — ");
 }
 
+/** isModesPrompt infers a modal spell's selection from its engine title (presentation only). */
+function isModesPrompt(title: string): boolean {
+  return / mode\(s\)$/.test(title);
+}
+
 /** pickVerb infers a card pick's option kind from its title (presentation only). */
 function pickVerb(title: string): string {
   const t = title.toLowerCase();
@@ -230,12 +235,13 @@ export function bindPrompt(p: AgentPrompt, ctx: PromptContext): PromptBinding {
     case 'chooseFromSelection': {
       const names = new Map((v?.players ?? []).map((pl) => [pl.name, pl.seat]));
       const players = input.options.length === (v?.players.length ?? -1) && input.options.every((o) => names.has(o.label));
+      const modes = isModesPrompt(title);
       input.options.forEach((o, i) => {
         if (players) add({ kind: 'player', label: o.label, player: names.get(o.label) ?? 0 }, { t: 'index', i });
-        else add({ kind: 'choice', label: o.label, ...(o.weight !== undefined && o.weight !== 1 ? { amount: o.weight } : {}) }, { t: 'index', i });
+        else add({ kind: modes ? 'mode' : 'choice', label: o.label, ...(o.weight !== undefined && o.weight !== 1 ? { amount: o.weight } : {}) }, { t: 'index', i });
       });
       const repeat = input.options.some((o) => o.canRepeat);
-      d = { ...base, kind: players ? 'starting_player' : 'choose', min: input.minTotal, max: input.maxTotal, options: opts, ...(repeat ? { repeatable: true } : {}) };
+      d = { ...base, kind: players ? 'starting_player' : modes ? 'modes' : 'choose', min: input.minTotal, max: input.maxTotal, options: opts, ...(repeat ? { repeatable: true } : {}) };
       break;
     }
     case 'chooseBoolean': {

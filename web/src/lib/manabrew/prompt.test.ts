@@ -200,3 +200,22 @@ describe('the announced mana window', () => {
     expect(window('2 U G', { G: 2, R: 1 }).decision!.mana_payment!.owed).toEqual({ generic: 0, mana: [0, 1, 0, 0, 0, 0] });
   });
 });
+
+describe('a modal spell', () => {
+  it('reads as modes, so the panel words it as the native wire does', () => {
+    const p = {
+      promptId: 7,
+      decidingPlayerId: 'player-0',
+      input: {
+        type: 'chooseFromSelection',
+        minTotal: 1,
+        maxTotal: 1,
+        options: [{ label: 'Draw two cards, then discard two cards.', weight: 1, canRepeat: false }],
+        presentation: { title: 'Choose 1 to 1 mode(s)', targets: [] },
+      },
+    } as unknown as AgentPrompt;
+    const d = bindPrompt(p, { view: null }).decision!;
+    expect(d.kind).toBe('modes');
+    expect(d.options[0].kind).toBe('mode');
+  });
+});
