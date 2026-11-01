@@ -168,6 +168,8 @@ func (e *Engine) New(c game.Config) (game.Game, error) {
 	g.tr.BindSet(s, tbl, e.reg)
 	g.bind()
 	g.s.Init(tbl, decks[0], decks[1], c.Seed, e.config(c))
+	g.s.Project(&g.kp)
+	g.ids.sync(&g.kp)
 	g.settle()
 	return g, nil
 }

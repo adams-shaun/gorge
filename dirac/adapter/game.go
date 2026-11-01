@@ -20,6 +20,9 @@ var (
 	_ game.Stalled = (*Game)(nil)
 )
 
+// adapterVersion moves when the log or decisions a table derives change.
+const adapterVersion = "1"
+
 // turnTally is what a seat did this turn that the view counts.
 type turnTally struct{ spells, tokens int32 }
 
@@ -61,6 +64,11 @@ type Game struct {
 	multi bool
 	// passed: the last answer passed priority.
 	passed bool
+
+	// prev is the position before the last answer, which the log is derived from.
+	prev dirac.Projection
+	// poison is each seat's count as last logged.
+	poison [2]int32
 
 	conceded bool
 	loser    uint8
@@ -107,7 +115,7 @@ func (g *Game) StallReason() string {
 func (g *Game) Fork() game.Game {
 	c := &Game{eng: g.eng, set: g.set, tbl: g.tbl, cfg: g.cfg, tr: g.tr,
 		d: g.d, log: g.log.Clone(), multi: g.multi, conceded: g.conceded, loser: g.loser,
-		ids: g.ids, targets: g.targets, stalled: g.stalled, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, building: g.building}
+		ids: g.ids, targets: g.targets, stalled: g.stalled, poison: g.poison, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, building: g.building}
 	c.bind()
 	c.board.prio, c.board.step, c.board.seen, c.board.resolving, c.board.landOpen = g.board.prio, g.board.step, g.board.seen, g.board.resolving, g.board.landOpen
 	for i, l := range g.board.blockers {
@@ -129,9 +137,12 @@ func (g *Game) Fork() game.Game {
 	return c
 }
 
-// settle reads the position the kernel stopped at: the next decision, the board,
-// and the game's end.
+// settle reads the position the kernel stopped at: the next decision, the board, the
+// log of what changed, and the game's end.
 func (g *Game) settle() {
+	g.prev = g.kp
+	prevIDs := g.ids
+	asked := g.d.Kind
 	var before [dirac.MaxObj]kop.Zone
 	for o := 0; o < int(g.kp.NObj); o++ {
 		before[o] = g.kp.Objs[o].Zone
@@ -145,6 +156,7 @@ func (g *Game) settle() {
 	g.stalled = g.s.StallReason()
 	g.s.Project(&g.kp)
 	g.ids.sync(&g.kp)
+	g.derive(&g.prev, &prevIDs, asked)
 	g.noteExiled(&before, top)
 	g.noteTally(&before, int32(g.kp.Turn))
 	g.pend = nil
@@ -162,6 +174,9 @@ func (g *Game) logSettled() {
 		return
 	}
 	if over, win := g.s.Terminal(); over && g.stalled == 0 {
+		if win >= 0 {
+			g.log.Append(events.Event{Kind: events.PlayerLost, Player: state.PlayerID(1 - win), Text: g.lossText(uint8(1 - win))})
+		}
 		g.logOver(win)
 	}
 }
@@ -170,11 +185,30 @@ func (g *Game) logOver(win int8) {
 	e := events.Event{Kind: events.GameOver}
 	if win >= 0 {
 		e.Player = state.PlayerID(win)
+	} else {
+		e.Amount = 1
 	}
 	g.log.Append(e)
 }
 
 func newLog(seed uint64) *events.Log { return events.NewLog(seed) }
+
+// EngineKey pins what a recording replays on: the set, the surface, the tables built
+// from the corpus and this adapter's reading of them.
+func (g *Game) EngineKey() string {
+	key, err := cardset.Key()
+	if err != nil {
+		key = "no-tables"
+	}
+	return g.set.Name() + "/" + surfaceName(g.eng.surface) + "/" + key + "/" + adapterVersion
+}
+
+func surfaceName(s dirac.Surface) string {
+	if s == dirac.SurfaceAutopay {
+		return "autopay"
+	}
+	return "full"
+}
 
 // Table is the game's card table.
 func (g *Game) Table() *kop.Table { return g.tbl }

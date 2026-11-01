@@ -63,6 +63,7 @@ func (g *Game) materialise() {
 			names = []string{"p0", "p1"}
 		}
 		b.g = state.NewGameLife(names, int32(g.kp.Life[0]))
+		b.g.Tokens = g.eng.reg.Tokens
 		for i := range b.g.Players {
 			if i < len(g.cfg.PlayerNames) {
 				b.g.Players[i].PlayerName = g.cfg.PlayerNames[i]
