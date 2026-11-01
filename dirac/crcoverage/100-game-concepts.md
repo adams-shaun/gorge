@@ -78,7 +78,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 108.1-108.2b | n/a | - | - | reference rules |
 | 108.3-108.4a | follows | `dirac/state.go#object.owner` `dirac/engine.go#State.Init` `dirac/filter_defined.go#State.srcOwner` | `TestDefinedHeadsOppNonRememberedLockstep` | owner = starting deck holder; Defined$ CardOwner (RefSrcOwner) names the resolving source object's owner, the object keeping its identity across zones (Gandalf, Wandering Wizard shuffles himself into his library, then his owner draws) |
 | 108.5-108.6 | n/a | - | - | nontraditional cards; cross-reference |
-| 109.1-109.5 | follows | `dirac/state.go#object` | - | structural; 109.2 not line-checked |
+| 109.1,109.3-109.5 | follows | `dirac/state.go#object` | - | structural |
+| 109.2 | follows | `dirac/filter_cardflying.go#State.cardFlyingOK` `dirac/featview.go#State.featCardMatch` | `TestFlycardMatch` | a card off the battlefield reads its printed characteristics; a battlefield static's grant reaches permanents |
 | 110.1-110.3 | follows | `dirac/state.go#perm` | - | permanents on the battlefield |
 | 110.4-110.4c | unknown | - | - | not reached |
 | 110.5-110.5d | follows | `dirac/state.go#pfTapped` | - | status fields; not characteristics |

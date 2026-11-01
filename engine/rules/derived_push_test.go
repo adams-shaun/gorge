@@ -106,8 +106,8 @@ func TestDerivedSeqSpansBattlefieldMoves(t *testing.T) {
 		_ = e.Derived(bear)
 		return e.Derived(id).Power
 	}
-	if p := walk(cub); p != 2 {
-		t.Fatalf("cub power in hand %d, want 2", p)
+	if p := walk(cub); p != 1 {
+		t.Fatalf("cub power in hand %d, want its printed 1: a lord affects permanents", p)
 	}
 	seq, bf := e.derivedSeq, e.derivedBFSeq
 	e.emit(events.Event{Kind: events.MoveZone, Obj: cub, From: state.ZHand, To: state.ZBattlefield})
@@ -124,8 +124,8 @@ func TestDerivedSeqSpansBattlefieldMoves(t *testing.T) {
 		t.Fatal("the bear's entry was not kept across the cub's entry")
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: cub, From: state.ZBattlefield, To: state.ZGraveyard})
-	if p := walk(cub); p != 2 {
-		t.Fatalf("cub power in the graveyard %d, want 2", p)
+	if p := walk(cub); p != 1 {
+		t.Fatalf("cub power in the graveyard %d, want its printed 1", p)
 	}
 	if e.derivedSeq != seq {
 		t.Fatalf("a static-free battlefield departure moved derivedSeq %d -> %d", seq, e.derivedSeq)

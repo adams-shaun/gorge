@@ -544,7 +544,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if f2&(kop.F2TgtPlayerCtrl|kop.F2DefendingCtrl) != 0 && !s.cardRoleF2(f2, owner) {
 			return false // an Owner role off the battlefield (filter_referents.go)
 		}
-		if f2&(kop.F2WithFlying|kop.F2WithoutFlying) != 0 && !s.cardFlyingOK(k, f2, pc, o, fd) {
+		if f2&(kop.F2WithFlying|kop.F2WithoutFlying) != 0 && !s.cardFlyingOK(f2, pc, fd) {
 			return false // filter_cardflying.go
 		}
 		if f2&kop.F2Basic != 0 && ty&kop.TBasic == 0 || f2&kop.F2Legendary != 0 && ty&kop.TLegendary == 0 {

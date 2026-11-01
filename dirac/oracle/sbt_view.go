@@ -83,11 +83,6 @@ func (a *SBT) card(s *dirac.State, o uint8, cv *view.CardView) {
 		if p, t, ok := s.FeatCDAPT(ob); ok {
 			cv.Power, cv.Toughness = int32(p), int32(t)
 		}
-		if po.Zone == kop.ZoneHand || po.Zone == kop.ZoneGraveyard {
-			dp, dt, _, _ := s.FeatStaticPT(ob)
-			cv.Power += int32(dp)
-			cv.Toughness += int32(dt)
-		}
 		cv.Keywords = v.kw
 		return
 	}

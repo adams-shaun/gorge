@@ -20,7 +20,7 @@ import (
 var viewIDKeys = map[string]bool{"id": true, "attached_to": true, "blocked_by": true, "source": true, "obj": true,
 	"imprinted": true, "paired": true, "exiled_cards": true, "attacking_battle": true}
 
-// renameIDs rewrites x's object ids through ref. Keywords and blockers compare as sets.
+// renameIDs rewrites x's object ids through ref. Keywords compare as a set.
 func renameIDs(x any, key string, ref func(state.ObjID) Ref) any {
 	switch v := x.(type) {
 	case map[string]any:
@@ -86,9 +86,6 @@ func (d *viewDiffs) add(path, owner string, a, b any) {
 }
 
 func (d *viewDiffs) walk(path, owner string, a, b any) {
-	if strings.HasSuffix(path, ".blocked_by") {
-		a = departedBlockers(a, b)
-	}
 	if ma, ok := a.(map[string]any); ok {
 		mb, ok := b.(map[string]any)
 		if !ok {
@@ -144,23 +141,6 @@ func fieldOf(path string) string {
 	f, _, _ = strings.Cut(f, " ")
 	f, _, _ = strings.Cut(f, "[")
 	return f
-}
-
-// departedBlockers fills in gorge's blockers that have left the game, which its ids no
-// longer reach, from the served list: only how many there were can be compared.
-func departedBlockers(g, s any) any {
-	gl, ok := g.([]any)
-	sl, ok2 := s.([]any)
-	if !ok || !ok2 || len(gl) != len(sl) {
-		return g
-	}
-	out := slices.Clone(sl)
-	for _, x := range gl {
-		if x != float64(RefNone) && !slices.Contains(sl, x) {
-			return g
-		}
-	}
-	return out
 }
 
 // comparableView is one projection in the form both engines' are compared in.
@@ -219,78 +199,6 @@ func onlyServedPotential(gv, sv any) {
 	}
 }
 
-// battlefieldGrants is every keyword a static on the battlefield adds.
-func battlefieldGrants(g *state.Game) map[string]bool {
-	out := map[string]bool{}
-	for p := range g.Players {
-		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(p)) {
-			f := g.Obj(id).Face()
-			if f == nil {
-				continue
-			}
-			for i := range f.Statics {
-				for _, w := range strings.Split(f.Statics[i].Params["AddKeyword"], " & ") {
-					out[strings.TrimSpace(w)] = true
-				}
-			}
-		}
-	}
-	return out
-}
-
-// dropBattlefieldGrants takes a battlefield-only static's keyword off cards in the
-// other zones of gorge's view: "creatures you control have trample" means permanents
-// (CR 109.2), yet gorge's derived keywords also list it on a library or hand card. Only
-// a word such a static adds, beyond what the served card has, is taken off.
-func dropBattlefieldGrants(gv, sv any, granted map[string]bool) {
-	fix := func(gc, sc map[string]any) {
-		gl, _ := gc["keywords"].([]any)
-		sl, _ := sc["keywords"].([]any)
-		have := map[any]int{}
-		for _, w := range sl {
-			have[w]++
-		}
-		var kept []any
-		for _, w := range gl {
-			if have[w] > 0 {
-				have[w]--
-				kept = append(kept, w)
-			} else if name, _ := w.(string); !granted[name] {
-				kept = append(kept, w)
-			}
-		}
-		if len(gl) > 0 && len(kept) == 0 {
-			delete(gc, "keywords")
-		} else if len(gl) > 0 {
-			gc["keywords"] = kept
-		}
-	}
-	gp, sp := gv.(map[string]any)["players"].([]any), sv.(map[string]any)["players"].([]any)
-	for i := range gp {
-		gm, sm := gp[i].(map[string]any), sp[i].(map[string]any)
-		for _, z := range []string{"hand", "library", "graveyard", "exile"} {
-			gl, _ := gm[z].([]any)
-			sl, _ := sm[z].([]any)
-			for j := range gl {
-				if j < len(sl) {
-					fix(gl[j].(map[string]any), sl[j].(map[string]any))
-				}
-			}
-		}
-	}
-	gs, _ := gv.(map[string]any)["stack"].([]any)
-	ss, _ := sv.(map[string]any)["stack"].([]any)
-	for i := range gs {
-		if i < len(ss) {
-			gc, ok := gs[i].(map[string]any)["card"].(map[string]any)
-			sc, ok2 := ss[i].(map[string]any)["card"].(map[string]any)
-			if ok && ok2 {
-				fix(gc, sc)
-			}
-		}
-	}
-}
-
 // viewCheck compares both engines' projections of one position for every viewer.
 func viewCheck(d *viewDiffs, positions *int) func(ref *GorgeSide, a *adapter.Game) {
 	return func(ref *GorgeSide, a *adapter.Game) {
@@ -307,7 +215,6 @@ func viewCheck(d *viewDiffs, positions *int) func(ref *GorgeSide, a *adapter.Gam
 				}
 				keepPotentialFor(gv, holder)
 				keepPotentialFor(sv, holder)
-				dropBattlefieldGrants(gv, sv, battlefieldGrants(ref.E.G))
 				onlyServedPotential(gv, sv)
 				d.walk("view", "", gv, sv)
 			}
@@ -315,18 +222,17 @@ func viewCheck(d *viewDiffs, positions *int) func(ref *GorgeSide, a *adapter.Gam
 	}
 }
 
-func TestNativeViewMatchesGorge(t *testing.T) {
-	pairs := envPairs(100)
-	for _, name := range []string{"fdn", "blb"} {
-		for _, autopay := range []bool{true, false} {
-			t.Run(fmt.Sprintf("%s/autopay=%v", name, autopay), func(t *testing.T) {
-				if testing.Short() && (name != "fdn" || !autopay) {
-					t.Skip("short")
-				}
-				viewCompare(t, name, pairs, autopay)
-			})
-		}
+// The view comparison is one test per set and surface, each inside the time budget.
+func TestNativeViewMatchesGorgeFDN(t *testing.T)           { viewCompare(t, "fdn", envPairs(100), true) }
+func TestNativeViewMatchesGorgeFDNManualMana(t *testing.T) { viewCompareLong(t, "fdn", false) }
+func TestNativeViewMatchesGorgeBLB(t *testing.T)           { viewCompareLong(t, "blb", true) }
+func TestNativeViewMatchesGorgeBLBManualMana(t *testing.T) { viewCompareLong(t, "blb", false) }
+
+func viewCompareLong(t *testing.T, name string, autopay bool) {
+	if testing.Short() {
+		t.Skip("short")
 	}
+	viewCompare(t, name, envPairs(100), autopay)
 }
 
 func viewCompare(t *testing.T, name string, pairs int, autopay bool) {

@@ -239,8 +239,8 @@ func stripCastToken(alt, tok string) (string, bool) {
 // both sides, CR 708.2/708.4), Historic and ActivePlayerCtrl read the same
 // object facts on both sides, and so do withFlying / withoutFlying (gorge
 // objectHasKeyword over the bound Derived keywords: the perm matcher's kwGen
-// on the battlefield, the card matcher's printed keywords plus FeatStaticPT's
-// grants elsewhere, none face down); and Legendary (gorge hasType: the
+// on the battlefield, the card matcher's printed keywords elsewhere, none face
+// down); and Legendary (gorge hasType: the
 // perm matcher's superGen reads the current types, the card matcher the
 // printed ones); every other flag and comparison is
 // refused. Self and Other would read the pushed object as the source

@@ -8,11 +8,9 @@ import (
 )
 
 // TestFlycardMatch pins matchCardOne's withFlying / withoutFlying read on
-// a card off the battlefield (cardFlyingOK): gorge's matchesSpec binds the
-// object's Derived keywords, the printed ones plus every battlefield
-// Continuous grant whose Affected$ spec matches the card where it is
-// (FeatStaticPT). Before, the card matcher refused withFlying outright, so
-// Momo, Friendly Flier's Count$ThisTurnCast_Creature.nonLemur+withFlying
+// a card off the battlefield (cardFlyingOK): its printed keywords, whatever a
+// battlefield static grants permanents (CR 109.2). Before, the card matcher refused
+// withFlying outright, so Momo, Friendly Flier's Count$ThisTurnCast_Creature.nonLemur+withFlying
 // could not count a flyer still on the stack.
 func TestFlycardMatch(t *testing.T) {
 	set := cardsettest.Set(t, "thisturncast")
@@ -51,7 +49,7 @@ func TestFlycardMatch(t *testing.T) {
 		ob := &s.objs[o]
 		return s.matchCardGen(k, f, ob.card, ob.owner(), ctrl, o)
 	}
-	sph, bea, bea1 := sc.hand(sphinx, 0), sc.hand(bears, 0), sc.hand(bears, 1)
+	sph, bea := sc.hand(sphinx, 0), sc.hand(bears, 0)
 	for _, c := range []struct {
 		name string
 		f    kop.FilterID
@@ -71,13 +69,10 @@ func TestFlycardMatch(t *testing.T) {
 		t.Fatal("an unknown object reads the printed keywords")
 	}
 	sc.perm(crab, 0)
-	if !m(with, bea, 0) || m(without, bea, 0) {
-		t.Fatal("a hand creature under a battlefield flying grant must read as a flyer (gorge Derived)")
+	if m(with, bea, 0) || !m(without, bea, 0) {
+		t.Fatal("a hand creature under a battlefield flying grant still reads as printed")
 	}
-	if m(with, bea1, 1) || !m(without, bea1, 1) {
-		t.Fatal("the opponent's hand creature is outside the YouCtrl grant")
-	}
-	if !m(youWith, bea, 0) || m(youWith, bea, 1) {
-		t.Fatal("YouCtrl+withFlying reads both the controller and the grant")
+	if !m(youWith, sph, 0) || m(youWith, sph, 1) {
+		t.Fatal("YouCtrl+withFlying reads both the controller and the printed flying")
 	}
 }

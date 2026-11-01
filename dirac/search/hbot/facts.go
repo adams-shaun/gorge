@@ -18,9 +18,6 @@ import (
 type Facts struct {
 	Tbl   *kop.Table
 	Cards []CardFacts // per CardID
-	// contKw reports that every CardFacts.ContKw is filled (NewFacts): a
-	// hand-built Facts without it never lets the board skip a static walk.
-	contKw bool
 }
 
 // CardFacts is one card's facts (botpolicy.Card's printed half).
@@ -45,11 +42,6 @@ type CardFacts struct {
 	// exception never fires on a NewFacts table.
 	FaceDmg int16
 	CDA     bool // the card has a StatCDAPT ability (FeatCDAPT can hit)
-	// ContKw is every keyword the card's Continuous statics grant (the
-	// union of their Static.Kw): kernel State.FeatStaticPT can add a
-	// keyword to an off-battlefield card only when some battlefield
-	// permanent's card has it here (emblems grant none there).
-	ContKw kop.KwMask
 	// Produces is the face's cards.ManaProduction: per-colour amounts
 	// W U B R G C, any colour, reflected, indeterminate.
 	Produces  [6]int8
@@ -150,7 +142,7 @@ const (
 // abilities; no ability labels (every ability costs 20) and no target
 // effects. HBotFacts (dirac/oracle) builds the exact ones.
 func NewFacts(tbl *kop.Table) *Facts {
-	f := &Facts{Tbl: tbl, Cards: make([]CardFacts, len(tbl.Cards)), contKw: true}
+	f := &Facts{Tbl: tbl, Cards: make([]CardFacts, len(tbl.Cards))}
 	for i := range tbl.Cards {
 		cd := &tbl.Cards[i]
 		c := &f.Cards[i]
@@ -171,9 +163,6 @@ func NewFacts(tbl *kop.Table) *Facts {
 			}
 			if a.Static.Kind == kop.StatCDAPT {
 				c.CDA = true
-			}
-			if a.Static.Kind == kop.StatContinuous {
-				c.ContKw |= a.Static.Kw
 			}
 		}
 		c.Abilities = make([]AbFacts, len(cd.Abilities))

@@ -13,7 +13,7 @@ const (
 	sclsPT      uint8 = 1 << iota // StatContinuous with a P/T delta (ptGen)
 	sclsKw                        // StatContinuous granting keywords (kwGen)
 	sclsSub                       // StatContinuous granting subtypes
-	sclsCont                      // any StatContinuous (FeatStaticPT)
+	sclsCont                      // any StatContinuous
 	sclsMayPlay                   // StatMayPlayFrom off the battlefield's permanents
 	sclsReduce                    // StatReduceCost from a permanent (Zone != ZoneCommand)
 	sclsGyMay                     // the card's own StatMayPlayFrom that works from its graveyard

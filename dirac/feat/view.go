@@ -636,18 +636,9 @@ func (e *Encoder) mkCard(s *dirac.State, ob *dirac.ProjObj, o uint8, z uint8, re
 		}
 		c.sick = s.FeatSickOff(dirac.Obj(o))
 		if c.c.creature {
-			// gorge's layer walk derives a card's P/T in any zone: its own
-			// characteristic-defining P/T, then the battlefield's statics
-			// that match it (dirac.FeatCDAPT, FeatStaticPT).
+			// a card's own characteristic-defining P/T applies in any zone
 			if p, t, ok := s.FeatCDAPT(dirac.Obj(o)); ok {
 				c.power, c.tough = int32(p), int32(t)
-			}
-			dp, dt, kw, rep := s.FeatStaticPT(dirac.Obj(o))
-			c.power += int32(dp)
-			c.tough += int32(dt)
-			c.kw |= kw & e.pool.kwSpelled
-			if e.spelledReps(&rep, reps) {
-				c.kwRep = reps
 			}
 		}
 	}

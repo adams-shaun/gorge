@@ -55,7 +55,7 @@ when a row stops matching the code.
 <!-- crcoverage:summary -->
 | file | rows | follows | partial | deviates | not-impl | definition | n/a | unknown |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| [100-game-concepts](100-game-concepts.md) | 176 | 82 | 17 | 3 | 1 | 0 | 49 | 24 |
+| [100-game-concepts](100-game-concepts.md) | 177 | 83 | 17 | 3 | 1 | 0 | 49 | 24 |
 | [200-parts-of-a-card](200-parts-of-a-card.md) | 81 | 40 | 2 | 0 | 0 | 3 | 36 | 0 |
 | [300-card-types](300-card-types.md) | 98 | 55 | 8 | 0 | 0 | 3 | 29 | 3 |
 | [400-zones](400-zones.md) | 70 | 44 | 0 | 0 | 1 | 4 | 20 | 1 |
@@ -65,5 +65,5 @@ when a row stops matching the code.
 | [702-keyword-abilities](702-keyword-abilities.md) | 252 | 78 | 20 | 2 | 0 | 0 | 151 | 1 |
 | [800-multiplayer](800-multiplayer.md) | 43 | 0 | 0 | 0 | 0 | 0 | 43 | 0 |
 | [900-casual-variants](900-casual-variants.md) | 49 | 0 | 0 | 0 | 0 | 0 | 49 | 0 |
-| **all** | 1621 | 700 | 104 | 12 | 4 | 20 | 733 | 48 |
+| **all** | 1622 | 701 | 104 | 12 | 4 | 20 | 733 | 48 |
 <!-- /crcoverage:summary -->

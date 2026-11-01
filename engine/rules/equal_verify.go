@@ -20,7 +20,7 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 130
+	continuousEffectFieldCount = 131
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
@@ -63,6 +63,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.Controller == b.Controller &&
 		a.UntilEOT == b.UntilEOT &&
 		a.FromEffect == b.FromEffect &&
+		a.PermanentsOnly == b.PermanentsOnly &&
 		cards.StringMapEqual(a.SVars, b.SVars) &&
 		a.AddPower == b.AddPower &&
 		a.AddToughness == b.AddToughness &&

@@ -42,18 +42,11 @@ type board struct {
 	bf  [2][dirac.MaxPerm]dirac.Obj
 	nbf [2]int
 
-	// d is fillPriority's decision (staticsIdle reads its cast options).
-	d *dirac.Decision
 	// creOnly: fillCombat's creature-only census.
 	creOnly bool
 	// forceFull makes fillPriority and fillCombat read the whole board
 	// (fill): the reference TestLiteFillsMatchFull compares against.
 	forceFull bool
-
-	// bfKw is the union of ContKw over both battlefields' cards (every
-	// keyword a Continuous static in force could grant), when
-	// Facts.contKw; all bits otherwise.
-	bfKw kop.KwMask
 
 	// bfPos is a battlefield object's index in its controller's entry
 	// order (gorge's battlefield zone list).
@@ -112,9 +105,7 @@ func (b *board) fill(s *dirac.State, f *Facts, me uint8) { b.fillAs(s, f, me, tr
 // damage: those fields are left zero, skipping the derived P/T and keyword
 // walks (each a pass over every static in force).
 func (b *board) fillPriority(s *dirac.State, f *Facts, me uint8, d *dirac.Decision) {
-	b.d = d
 	b.fillAs(s, f, me, b.forceFull)
-	b.d = nil
 }
 
 // fillCombat is fill for combat.go (attackers, blockers, Declaration),
@@ -169,18 +160,12 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 	}
 	b.nCre = 0
 	b.nCard = 0
-	b.bfKw = 0
-	if !f.contKw {
-		b.bfKw = ^kop.KwMask(0)
-	}
 	for p := uint8(0); p < 2; p++ {
 		objs := s.FeatBattlefield(p, b.bf[p][:0])
 		b.nbf[p] = len(objs)
 		for i, o := range objs {
 			b.bfPos[o] = uint8(i)
 			cid := s.ObjCard(o)
-			cf := f.card(cid)
-			b.bfKw |= cf.ContKw
 			// combat.go's census reads the effective type words: an animated
 			// land or a crewed Vehicle is in it, a creature that lost the type
 			// is not. A face-down permanent is a 2/2 creature (CR 708.2).
@@ -267,17 +252,6 @@ func (b *board) addOwn(o dirac.Obj, z kop.Zone, full bool) {
 		}
 	} else {
 		var kw kop.KwMask
-		if !full && b.staticsIdle(o, cid, cf, z) {
-			// fillPriority: nothing the priority policy reads can
-			// change (staticsIdle); the P/T and instant stay zero, as
-			// that policy never reads them here
-			c.castable = z == kop.ZoneHand
-			c.instant = cf.Instant || tbl.Cards[cid].Keywords&kop.KwFlash != 0
-			b.card[b.nCard] = c
-			b.nCard++
-			b.cardX[o] = int16(b.nCard)
-			return
-		}
 		if int(cid) < len(tbl.Cards) {
 			cd := &tbl.Cards[cid]
 			c.power, c.tough = int32(cd.Power), int32(cd.Toughness)
@@ -288,58 +262,12 @@ func (b *board) addOwn(o dirac.Obj, z kop.Zone, full bool) {
 				c.power, c.tough = int32(p), int32(t)
 			}
 		}
-		// gorge's derived characteristics apply the battlefield's
-		// Continuous statics to an off-battlefield card too
-		dp, dt, skw, _ := s.FeatStaticPT(o)
-		c.power += int32(dp)
-		c.tough += int32(dt)
-		kw |= skw
 		c.castable = z == kop.ZoneHand || (z == kop.ZoneGraveyard && kw&kop.KwFlashback != 0)
 		c.instant = cf.Instant || kw&kop.KwFlash != 0
 	}
 	b.card[b.nCard] = c
 	b.nCard++
 	b.cardX[o] = int16(b.nCard)
-}
-
-// staticsIdle reports, for fillPriority, that an off-battlefield own card
-// o (cid, in zone z) needs no FeatStaticPT walk. The walk can change the
-// census only through its keywords (flash: instant; flashback: a graveyard
-// card's castable) and its P/T, and the priority policy reads a card's P/T
-// only through c.creature-gated scores (cardWorth of a cast option's
-// source, bestUnpayable over castable cards). So: no Continuous static on
-// the battlefield grants flash or flashback (bfKw) or the card prints
-// flashback, and the card is a noncreature (hand) or a graveyard card no
-// cast option names (not castable, and no cast candidate scores it).
-func (b *board) staticsIdle(o dirac.Obj, cid dirac.CardID, cf *CardFacts, z kop.Zone) bool {
-	tbl := b.f.Tbl
-	if tbl == nil || int(cid) >= len(tbl.Cards) {
-		return false
-	}
-	if b.bfKw&kop.KwFlash != 0 {
-		return false
-	}
-	switch z {
-	case kop.ZoneHand:
-		return !cf.Creature
-	case kop.ZoneGraveyard:
-		if (tbl.Cards[cid].Keywords|b.bfKw)&kop.KwFlashback != 0 {
-			return false
-		}
-		if cf.Creature {
-			d := b.d
-			if d == nil {
-				return false
-			}
-			for i := 0; i < int(d.N); i++ {
-				if a := d.Options[i]; a.Kind() == dirac.AkCast && dirac.Obj(a.Source()) == o {
-					return false
-				}
-			}
-		}
-		return true
-	}
-	return false
 }
 
 // cardOf is obj's census entry (zero facts when the census has none).

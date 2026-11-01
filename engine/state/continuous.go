@@ -96,6 +96,9 @@ type ContinuousEffect struct {
 	// Effect -- is never a casualty. Rebuilt by re-execution on replay like
 	// every other continuous-effect field.
 	FromEffect bool
+	// PermanentsOnly marks a printed Continuous static with no AffectedZone$ naming
+	// another zone: it affects permanents, so nothing off the battlefield (CR 109.2).
+	PermanentsOnly bool
 
 	// SVars is the SVar table of the face that carries this static, so a
 	// deferred expression (AddPowerExpr$ naming an SVar) resolves against the

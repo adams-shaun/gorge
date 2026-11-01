@@ -108,134 +108,13 @@ func (s *State) FeatGrantedRep(o Obj) (granted kop.KwMask, rep FeatKwReps, print
 	return granted, rep, p.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
 }
 
-// FeatStaticPT is what the battlefield's Continuous statics add to object
-// o's power, toughness and keywords when o is NOT on the battlefield, the
-// way gorge's derived characteristics apply them: gorge's layer walk
-// (rules/chars.PT, Derived) applies every active P/T and keyword effect
-// whose Affected$ spec matches the object, in whatever zone it is, so a
-// "Creatures you control get +1/+1" pumps the owner's hand creatures and an
-// "Other creatures you control with flying" pumps a hand flyer. The spec is
-// read off the card (featCardMatch): conditions that only a permanent can
-// meet (tapped, attacking, attached, the source itself, a token) fail.
-// rep is FeatGrantedRep's: gorge lists a keyword once per matching static,
-// so two Garruk's Uprisings list trample twice on a hand creature too.
-func (s *State) FeatStaticPT(o Obj) (dp, dt int, kw kop.KwMask, rep FeatKwReps) {
-	ob := &s.objs[o]
-	if ob.zone == kop.ZoneBattlefield {
-		return 0, 0, 0, rep
-	}
-	k := s.k()
-	var cob object
-	if c := s.featCtrl(o); c != ob.owner() {
-		// the matcher reads the card's controller off owner
-		cob = *ob
-		cob.setOwner(c)
-		ob = &cob
-	}
-	// gorge's layer-7 walk matches a with-flying spec against the finished
-	// layer-6 keywords (rules/chars.PT): Empyrean Eagle pumps a hand
-	// creature Akroma's Memorial gives flying. A static whose spec tests
-	// flying is deferred to a second walk, after every other grant.
-	pass, deferred := 0, false
-	apply := func(sa *kop.Static, ctrl uint8, srcCard CardID, src Slot, st *statSrc) {
-		if fly := s.featTestsFlying(k, sa.Filter); fly != (pass == 1) {
-			deferred = deferred || fly
-			return
-		}
-		if !s.featCardMatch(k, sa.Filter, ob, ctrl, srcCard, src, kw) {
-			return
-		}
-		if st != nil && sa.StFlags&kop.StDynamic != 0 {
-			// Banner of Kinship's +1/+1 per fellowship counter (ptGen's read)
-			ctx := s.ctxStatic(*st)
-			dp += s.evalV(k, sa.VA, ctx)
-			dt += s.evalV(k, sa.VB, ctx)
-		} else {
-			dp += int(sa.A)
-			dt += int(sa.B)
-		}
-		m := sa.Kw
-		if src == NoSlot {
-			// an emblem's static: the pool's one (Vivien Reid's) says
-			// AffectedZone$ Battlefield, which gorge's layer-6 walk honours
-			// off the battlefield while its P/T walk does not (a hand
-			// creature gets +2/+2 but no keywords); kgen drops the zone
-			m = 0
-		}
-		rep.add(kw, m)
-		kw |= m
-	}
-	if k.gen != nil {
-		// the generated statics as ptGen/kwGen walk them: a source that
-		// lost all abilities grants nothing, a conditional static applies
-		// while its condition holds, a dynamic amount is evaluated
-		if !s.statM.any() && s.g.nemb[0]+s.g.nemb[1] == 0 {
-			return
-		}
-		walk := func(st statSrc) bool {
-			a := st.a
-			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || !s.statCond(k, st) {
-				return true
-			}
-			srcCard := CardID(NoCard)
-			if st.sl != NoSlot {
-				srcCard = s.cardAt(st.sl)
-			}
-			apply(&a.Static, st.ctrl, srcCard, st.sl, &st)
-			return true
-		}
-		s.eachStaticC(k, sclsCont, walk)
-		if deferred {
-			pass = 1
-			s.eachStaticC(k, sclsCont, walk)
-		}
-		return
-	}
-	for pass = 0; pass < 2 && (pass == 0 || deferred); pass++ {
-		s.featStaticPTOld(k, apply)
-	}
-	return
-}
-
-// featStaticPTOld is FeatStaticPT's walk over the hand-written tables'
-// statics.
-func (s *State) featStaticPTOld(k *prep, apply func(sa *kop.Static, ctrl uint8, srcCard CardID, src Slot, st *statSrc)) {
-	for m := s.statM; m.any(); m = m.rest() {
-		src := m.first()
-		sp := &s.perms[src]
-		if sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
-			continue
-		}
-		srcCard := s.cardAt(src)
-		cd := &k.t.Cards[srcCard]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Cond2 != 0 {
-				continue
-			}
-			apply(&a.Static, sp.ctrl, srcCard, src, nil)
-		}
-	}
-}
-
-// featTestsFlying reports whether filter id (any alternative) tests
-// flying.
-func (s *State) featTestsFlying(k *prep, id kop.FilterID) bool {
-	for ; id != 0; id = k.t.Filters[id].Or {
-		if k.t.Filters[id].Flags2&(kop.F2WithFlying|kop.F2WithoutFlying) != 0 {
-			return true
-		}
-	}
-	return false
-}
-
 // featCardMatch is filter id read on a card that is not a permanent (gorge
 // matches an Affected$ spec against the object as it is): the type,
 // controller, colour, predicate and subtype tests, and the conditions a
 // card off the battlefield can meet. ctrl is the static's controller.
-func (s *State) featCardMatch(k *prep, id kop.FilterID, ob *object, ctrl uint8, srcCard CardID, srcSl Slot, gkw kop.KwMask) bool {
+func (s *State) featCardMatch(k *prep, id kop.FilterID, ob *object, ctrl uint8, srcCard CardID, srcSl Slot) bool {
 	for id != 0 {
-		if s.featCardMatch1(k, id, ob, ctrl, srcCard, srcSl, gkw) {
+		if s.featCardMatch1(k, id, ob, ctrl, srcCard, srcSl) {
 			return true
 		}
 		id = k.t.Filters[id].Or
@@ -243,7 +122,7 @@ func (s *State) featCardMatch(k *prep, id kop.FilterID, ob *object, ctrl uint8, 
 	return false
 }
 
-func (s *State) featCardMatch1(k *prep, id kop.FilterID, ob *object, ctrl uint8, srcCard CardID, srcSl Slot, gkw kop.KwMask) bool {
+func (s *State) featCardMatch1(k *prep, id kop.FilterID, ob *object, ctrl uint8, srcCard CardID, srcSl Slot) bool {
 	f := &k.t.Filters[id]
 	if k.gen != nil {
 		// the generated matcher refuses a with-flying card test outright;
@@ -306,10 +185,10 @@ func (s *State) featCardMatch1(k *prep, id kop.FilterID, ob *object, ctrl uint8,
 		kop.F2Remembered|kop.F2ChosenCard|kop.F2AttachedToT0|kop.F2TargetedBy|kop.F2Emblem|kop.F2Opponent|kop.F2You|kop.F2WasDamaged|kop.F2Saddled|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2TgtPlayerCtrl|kop.F2DefendingCtrl) != 0 {
 		return false
 	}
-	if f2&kop.F2WithFlying != 0 && (pc.kw|gkw)&kop.KwFlying == 0 {
+	if f2&kop.F2WithFlying != 0 && pc.kw&kop.KwFlying == 0 {
 		return false
 	}
-	if f2&kop.F2WithoutFlying != 0 && (pc.kw|gkw)&kop.KwFlying != 0 {
+	if f2&kop.F2WithoutFlying != 0 && pc.kw&kop.KwFlying != 0 {
 		return false
 	}
 	if f2&kop.F2Basic != 0 && pc.types&kop.TBasic == 0 || f2&kop.F2Legendary != 0 && pc.types&kop.TLegendary == 0 {
@@ -385,7 +264,7 @@ func (s *State) featValue(k *prep, v kop.ValueRef, ctrl uint8) (int, bool) {
 	case kop.ExCountGraveyard:
 		for i := 0; i < int(s.nobj); i++ {
 			ob := &s.objs[i]
-			if ob.zone == kop.ZoneGraveyard && s.featCardMatch(k, x.F, ob, ctrl, NoCard, NoSlot, 0) {
+			if ob.zone == kop.ZoneGraveyard && s.featCardMatch(k, x.F, ob, ctrl, NoCard, NoSlot) {
 				n++
 			}
 		}
