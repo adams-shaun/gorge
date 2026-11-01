@@ -48,12 +48,12 @@ func fx20BattlefieldByName(t *testing.T, e *Engine, p state.PlayerID, name strin
 	return 0
 }
 
-// TestPlayerSpecFx20MindWhipEnchantedController drives the REAL corpus Aura
+// TestPlayerSpecMindWhipEnchantedController drives the REAL corpus Aura
 // Mind Whip's upkeep trigger ("At the beginning of the upkeep of enchanted
 // creature's controller ...") through trigmatch.PhaseMatches. The aura belongs to seat
 // 0 and enchants seat 1's creature, so Player.EnchantedController must name
 // seat 1 -- a fallback to the source's own controller would name seat 0.
-func TestPlayerSpecFx20MindWhipEnchantedController(t *testing.T) {
+func TestPlayerSpecMindWhipEnchantedController(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e, _, ids := dsBoardWith(t, reg, mustCorpusCard(t, reg, "Grizzly Bears"), "Mind Whip")
@@ -82,12 +82,12 @@ func TestPlayerSpecFx20MindWhipEnchantedController(t *testing.T) {
 	}
 }
 
-// TestPlayerSpecFx20MissHighwaterPlayerCounters drives the REAL corpus card
+// TestPlayerSpecMissHighwaterPlayerCounters drives the REAL corpus card
 // Miss Highwater's "deals combat damage to a player who doesn't have a
 // contract counter" trigger through trigmatch.DamageMatches. The read must be the
 // recipient's live player-counter state: seat 1 with no contract counter
 // matches, and adding one flips the answer.
-func TestPlayerSpecFx20MissHighwaterPlayerCounters(t *testing.T) {
+func TestPlayerSpecMissHighwaterPlayerCounters(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e, _, ids := dsBoard(t, reg, "Miss Highwater")
@@ -111,12 +111,12 @@ func TestPlayerSpecFx20MissHighwaterPlayerCounters(t *testing.T) {
 	}
 }
 
-// TestPlayerSpecFx20LatullasOrdersDefendingPlayer drives the REAL corpus Aura
+// TestPlayerSpecLatullasOrdersDefendingPlayer drives the REAL corpus Aura
 // Latulla's Orders' "enchanted creature deals combat damage to defending
 // player" trigger through trigmatch.DamageMatches: the Damage event's recipient is the
 // defending player the clause names, and the attached bearer is the damage
 // source the ValidSource$ half requires.
-func TestPlayerSpecFx20LatullasOrdersDefendingPlayer(t *testing.T) {
+func TestPlayerSpecLatullasOrdersDefendingPlayer(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e, _, ids := dsBoardWith(t, reg, mustCorpusCard(t, reg, "Grizzly Bears"), "Latulla's Orders")
@@ -136,12 +136,12 @@ func TestPlayerSpecFx20LatullasOrdersDefendingPlayer(t *testing.T) {
 	}
 }
 
-// TestPlayerSpecFx20BrandCasterEnchantedController drives the REAL corpus Aura
+// TestPlayerSpecBrandCasterEnchantedController drives the REAL corpus Aura
 // Brand of Ill Omen's "enchanted creature's controller can't cast creature
 // spells" static through actorMatches, the Caster$/Activator$ call site: the
 // scoped caster is the controller of the enchanted creature (seat 1), not the
 // aura's own controller (seat 0).
-func TestPlayerSpecFx20BrandCasterEnchantedController(t *testing.T) {
+func TestPlayerSpecBrandCasterEnchantedController(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e, _, ids := dsBoardWith(t, reg, mustCorpusCard(t, reg, "Grizzly Bears"), "Brand of Ill Omen")

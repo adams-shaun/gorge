@@ -49,12 +49,12 @@ func TestKernelResolvedLimitBaronStruckerOnlyOncePerTurn(t *testing.T) {
 	}
 }
 
-// TestResolvedLimitMixedLineOtherTriggerDoesNotConsume pins the round-2
-// defect's exact shape on the real mixed-line carrier Cosmic Crucible: line 1
+// TestResolvedLimitMixedLineOtherTriggerDoesNotConsume pins the
+// exact shape on the real mixed-line carrier Cosmic Crucible: line 1
 // is a MANDATORY Main1 Phase trigger carrying NO ResolvedLimit$ ("add four
 // mana"), line 2 is the optional SpellCast copy trigger that does. Resolving
-// line 1 must not consume line 2's limit -- under the round-2 code the copy
-// trigger was dead EVERY turn, because the Main1 trigger resolved at the start
+// line 1 must not consume line 2's limit -- otherwise the copy
+// trigger is dead EVERY turn, because the Main1 trigger resolves at the start
 // of every turn. After an ACCEPTED line-2 resolution the limit binds normally.
 func TestKernelResolvedLimitMixedLineOtherTriggerDoesNotConsume(t *testing.T) {
 	t.Parallel()

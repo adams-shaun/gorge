@@ -52,10 +52,7 @@ func TestTalusPaladinMayPutAcceptPlacesExactlyOneCounterKernel(t *testing.T) {
 // TestPutCounterOptionalNonBattlefieldRecipientElection: with the recipient
 // off the battlefield (the trigger's source still in hand) the put WOULD
 // place something -- CR 122.1 lets counters live on an object in any zone,
-// so a hand card is a live recipient -- and the election is posed (the
-// round-1 CR 122.1 fix made putCounterWouldPlace match the placement; the
-// old pin here asserted the battlefield-only premise and the election was
-// "never posed", which is what made the module gate red in round 3). This
+// so a hand card is a live recipient -- and the election is posed. This
 // is the rules-side end-to-end twin of the effects-package pins: the
 // decline places nothing and the trigger completes; the accept places one
 // P1P1 counter on the hand object through the real trigger resolution path.

@@ -253,7 +253,7 @@ func Test3141DiscardedCardsAreTheIntentNamed(t *testing.T) {
 	}
 }
 
-// Test3141ChoosingIsClearedByDiscardCleanup pins that answering the cleanup
+// TestChoosingIsClearedByDiscardCleanup pins that answering the cleanup
 // discard does NOT leave e.choosing = chooseCleanup behind.
 // cleanupStep sets e.choosing before it asks and discardCleanup must set
 // it back to chooseNone, the invariant the cast flows maintain explicitly
@@ -264,7 +264,7 @@ func Test3141DiscardedCardsAreTheIntentNamed(t *testing.T) {
 // discardCleanup run (it would move the cards hand -> graveyard, run the CR
 // 514.2 body, and advance the step, i.e. a defensive fallback became a
 // destructive one).
-func Test3141ChoosingIsClearedByDiscardCleanup(t *testing.T) {
+func TestChoosingIsClearedByDiscardCleanup(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	e.G.Active = 0

@@ -65,6 +65,6 @@ workload_args() {
 	echo -decks "$DECKS" -burn "$DECKS/burn.json" -cards "$CARDS"
 }
 
-# The default row set (the 2026-10-05 profiling loop's rows): ';'-separated
+# The default row set: ';'-separated
 # enginebench argument strings. SECS overrides each row's -secs.
 DEFAULT_ROWS="-row random -pair A;-row random -pair B;-row bot -pair A;-row sampler"

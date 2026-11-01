@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# scripts/smoke.sh — the browser smoke gate (Task SG1, extended by ui19).
+# scripts/smoke.sh — the browser smoke gate.
 #
 # Builds the REAL client and the REAL binary, starts FIVE `gorged` servers on
 # smoke ports (8090-8099 by default) — public and omniscient spectators, a SEATED 1v1,
@@ -13,7 +13,7 @@
 # The public spectator server is non-negotiable: it is the mode that was
 # broken (a literal JSON-null hand spread into the board), and the
 # omniscient-only path is exactly what hid the regression from every unit
-# test. The SEATED server is the ui19 extension: the earlier public/omni
+# test. The SEATED server exists because the earlier public/omni
 # gates drive only the two SPECTATOR modes, so two real regressions — a
 # hand fan that sized itself from its own output (running a big hand off the
 # board) and a seated player's identity bar drawn on top of their own first
@@ -281,7 +281,7 @@ start_server() {
   SERVER_PIDS+=("$!")
 }
 
-# The SEATED server (ui19) is a 1v1 play-vs-bot server: `-vsbot` arms
+# The SEATED server is a 1v1 play-vs-bot server: `-vsbot` arms
 # POST /api/games (which returns a join URL seating the client at seat 0 of
 # a fresh 2-seat table), and `-humans 1` additionally seats a real human at
 # seat 1 of startup table t1 (the -vsbot flow always seats at seat 0, so the

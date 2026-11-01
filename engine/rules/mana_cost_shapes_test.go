@@ -44,14 +44,14 @@ func led1Board(t *testing.T, c *cards.Card) (*Engine, Config, state.ObjID, state
 	return e, cfg, led, mtn
 }
 
-// TestLed1CostlyManaActivationCarriesCostMarker pins the wire marker the
+// TestCostlyManaActivationCarriesCostMarker pins the wire marker the
 // fb-led1 fix adds: a priority window's "activate" option carries the
 // activation cost whenever the offered mana ability costs more than a bare
 // tap (Lion's Eye Diamond's {T}, Sacrifice), and carries none for a plain
 // tap (a Mountain), so every existing land window serialises byte-identically.
 // The marker is what lets the client's empty-priority-window floor stop on
 // the LED window instead of auto-passing it away (fb-20260917T192520Z-26136705).
-func TestLed1CostlyManaActivationCarriesCostMarker(t *testing.T) {
+func TestCostlyManaActivationCarriesCostMarker(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	c := mustCorpusCard(t, reg, "Lion's Eye Diamond")
@@ -87,12 +87,12 @@ func TestLed1CostlyManaActivationCarriesCostMarker(t *testing.T) {
 	}
 }
 
-// TestLed1PayLifeManaActivationCarriesCostMarker pins the same marker on the
+// TestPayLifeManaActivationCarriesCostMarker pins the same marker on the
 // pay-life shape (Treasonous Ogre / Mana Confluence in the reporter's own
 // deck): a cost whose only non-tap component is life is still more than a
 // bare tap, so narrowing the marker to irreversible components would
 // re-swear these windows.
-func TestLed1PayLifeManaActivationCarriesCostMarker(t *testing.T) {
+func TestPayLifeManaActivationCarriesCostMarker(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	for _, name := range []string{"Mana Confluence", "Treasonous Ogre"} {

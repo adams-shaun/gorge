@@ -10,8 +10,7 @@ import (
 
 // TestEvolvingWildsSearchPosesHiddenChoose: activating Evolving Wilds pays
 // its sacrifice cost and poses the hidden-library search as a 0..1 KChoose
-// offering exactly the basic lands (restored from the legacy-only
-// TestEvolvingWildsSearchPosesHiddenChooseAndSuspends; the suspension
+// offering exactly the basic lands.
 // assertion is gone with the protocol).
 func TestEvolvingWildsSearchPosesHiddenChoose(t *testing.T) {
 	t.Parallel()

@@ -6,13 +6,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestPlayerSpecFx20Grammar pins the fx20 player-spec qualifiers this build
+// TestPlayerSpecGrammar pins the fx20 player-spec qualifiers this build
 // now resolves: Player.EnchantedController, Player.TriggeredDefendingPlayer
 // and the Player.counters_<CMP><n>_<KIND> comparison, each read from the
 // event-backed state the rule needs. The two the row still leaves
 // fail-closed -- Player.EnchantedBy (the engine has no player attachment)
 // and Player.descended (no descend state) -- are asserted to stay closed.
-func TestPlayerSpecFx20Grammar(t *testing.T) {
+func TestPlayerSpecGrammar(t *testing.T) {
 	g := state.NewGame([]string{"a", "b", "c"})
 	bearer := qualifierObject(t, g, 1, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	aura := qualifierObject(t, g, 0, "Name:Aura\nTypes:Enchantment Aura\nOracle:x\n")

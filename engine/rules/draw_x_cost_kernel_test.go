@@ -17,8 +17,7 @@ import (
 // Creature.YouCtrl+Other+sharesCreatureTypeWith` folds to exactly 1 (the one
 // other Bear). Paying must draw exactly that one card and then run the
 // `Mode$ TgtChoose` discard; declining must do neither; and the window must
-// pose exactly ONE pay/decline election per trigger (the round-1 pin paid
-// every election it was shown, which masked the duplicate-window shape).
+// pose exactly ONE pay/decline election per trigger.
 func TestTitanOfLittjaraDrawXCost(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

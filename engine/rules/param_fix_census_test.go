@@ -193,10 +193,10 @@ func checkStd3Census(t *testing.T, label, dir, mustCarry string) {
 	}
 }
 
-// TestStd3ParamCensusFilesWellFormed holds the eight census directories to the
+// TestFixedParamCensusFilesWellFormed holds the eight census directories to the
 // per-card schema without a corpus, so a malformed table file fails even where
 // .cards is absent.
-func TestStd3ParamCensusFilesWellFormed(t *testing.T) {
+func TestFixedParamCensusFilesWellFormed(t *testing.T) {
 	t.Parallel()
 	for _, dir := range []string{
 		"corpus-std3-pump-replacedying",
@@ -214,49 +214,49 @@ func TestStd3ParamCensusFilesWellFormed(t *testing.T) {
 	}
 }
 
-// TestStd3ParamCensusPump pins Pump's ReplaceDyingDefined$ carriers.
-func TestStd3ParamCensusPump(t *testing.T) {
+// TestFixedParamCensusPump pins Pump's ReplaceDyingDefined$ carriers.
+func TestFixedParamCensusPump(t *testing.T) {
 	checkStd3Census(t, std3LabelPumpReplaceDying, "corpus-std3-pump-replacedying", "Gnashing of Teeth")
 }
 
-// TestStd3ParamCensusChangeZone pins ChangeZone's ThisDefinedAndTgts$ carriers.
-func TestStd3ParamCensusChangeZone(t *testing.T) {
+// TestFixedParamCensusChangeZone pins ChangeZone's ThisDefinedAndTgts$ carriers.
+func TestFixedParamCensusChangeZone(t *testing.T) {
 	checkStd3Census(t, std3LabelChangeZoneThisAndTgts, "corpus-std3-changezone-thisdefinedandtgts", "Mangara of Corondor")
 }
 
-// TestStd3ParamCensusDigUntil pins DigUntil's MinTotalCMC$ carriers.
-func TestStd3ParamCensusDigUntil(t *testing.T) {
+// TestFixedParamCensusDigUntil pins DigUntil's MinTotalCMC$ carriers.
+func TestFixedParamCensusDigUntil(t *testing.T) {
 	checkStd3Census(t, std3LabelDigUntilMinTotalCMC, "corpus-std3-diguntil-mintotalcmc", "Dream Harvest")
 }
 
-// TestStd3ParamCensusCopyPermanent pins CopyPermanent's DefinedName$ carriers.
-func TestStd3ParamCensusCopyPermanent(t *testing.T) {
+// TestFixedParamCensusCopyPermanent pins CopyPermanent's DefinedName$ carriers.
+func TestFixedParamCensusCopyPermanent(t *testing.T) {
 	checkStd3Census(t, std3LabelCopyPermanentDefName, "corpus-std3-copypermanent-definedname", "Mutable Explorer")
 }
 
-// TestStd3ParamCensusPutCounter pins PutCounter's CounterTypes$ carriers.
-func TestStd3ParamCensusPutCounter(t *testing.T) {
+// TestFixedParamCensusPutCounter pins PutCounter's CounterTypes$ carriers.
+func TestFixedParamCensusPutCounter(t *testing.T) {
 	checkStd3Census(t, std3LabelPutCounterTypes, "corpus-std3-putcounter-countertypes", "Abigale, Eloquent First-Year")
 }
 
-// TestStd3ParamCensusAnimate pins the Animate Colors$ ChosenColor carriers.
-func TestStd3ParamCensusAnimate(t *testing.T) {
+// TestFixedParamCensusAnimate pins the Animate Colors$ ChosenColor carriers.
+func TestFixedParamCensusAnimate(t *testing.T) {
 	checkStd3Census(t, std3LabelAnimateColors, "corpus-std3-animate-chosencolor", "Puca's Eye")
 }
 
-// TestStd3ParamCensusChooseType pins the ChooseType ValidTypes$/InvalidTypes$
+// TestFixedParamCensusChooseType pins the ChooseType ValidTypes$/InvalidTypes$
 // carriers (both spellings share one table and one label).
-func TestStd3ParamCensusChooseType(t *testing.T) {
+func TestFixedParamCensusChooseType(t *testing.T) {
 	checkStd3Census(t, std3LabelChooseTypeTypes, "corpus-std3-choosetype-validinvalidtypes", "Dawn-Blessed Pennant")
 }
 
-// TestStd3ParamCensusNumberPow pins the Number$/Pow. carriers.
-func TestStd3ParamCensusNumberPow(t *testing.T) {
+// TestFixedParamCensusNumberPow pins the Number$/Pow. carriers.
+func TestFixedParamCensusNumberPow(t *testing.T) {
 	checkStd3Census(t, std3LabelNumberPow, "corpus-std3-number-pow", "Mathemagics")
 }
 
 // std3CensusDirForLabel maps a label back to its table directory so
-// TestStd3ParamCensusAllShapesMeasured can hold the shape list and the
+// TestFixedParamCensusAllShapesMeasured can hold the shape list and the
 // directories in sync.
 var std3CensusDirForLabel = map[string]string{
 	std3LabelPumpReplaceDying:      "corpus-std3-pump-replacedying",
@@ -269,11 +269,11 @@ var std3CensusDirForLabel = map[string]string{
 	std3LabelNumberPow:             "corpus-std3-number-pow",
 }
 
-// TestStd3ParamCensusAllShapesMeasured is the self-check that every registered
+// TestFixedParamCensusAllShapesMeasured is the self-check that every registered
 // shape has a table directory and a measured member: a shape added to
 // std3Shapes with no directory, or one whose walk silently measured nothing,
 // fails here rather than being quietly untested.
-func TestStd3ParamCensusAllShapesMeasured(t *testing.T) {
+func TestFixedParamCensusAllShapesMeasured(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	got := std3ParamCarriers(reg)
 	for _, s := range std3Shapes {

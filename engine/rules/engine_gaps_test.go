@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-func runLB5Oracle(t *testing.T, raw string) OracleResult {
+func runRawOracle(t *testing.T, raw string) OracleResult {
 	t.Helper()
 	res, err := RunOracleScenarioJSON(testutil.CorpusRegistry(t), []byte(raw))
 	if err != nil {
@@ -35,7 +35,7 @@ const etrataFaceDownGrant = `{"name":"etrata-face-down-grant","cr":["708.2a","61
 	`{"op":"resolve"}]}`
 
 func TestFaceDownCreatureIsOfferedItsGrantedAbility(t *testing.T) {
-	res := runLB5Oracle(t, etrataFaceDownGrant)
+	res := runRawOracle(t, etrataFaceDownGrant)
 	// After the activation (checkpoint 3: setup, cast, resolve, activate) the
 	// ability is on the stack and its source, still face down, is unnamed.
 	act := res.Snapshots[3]
@@ -73,7 +73,7 @@ const aangUpkeepTransform = `{"name":"aang-upkeep-transform","cr":["603.12","608
 	`{"op":"resolve","answers":[{"kind":"trigger_optional","pick":["yes"]}]}]}`
 
 func TestPhaseTriggerIfYouDoReadsItsOwnTransform(t *testing.T) {
-	res := runLB5Oracle(t, aangUpkeepTransform)
+	res := runRawOracle(t, aangUpkeepTransform)
 	last := res.Snapshots[len(res.Snapshots)-1]
 	if p, ok := snapPerm(last, "p0:Avatar Aang"); !ok || p.Name != "Avatar Aang" || p.Counters["P1P1"] != 4 {
 		t.Fatalf("Aang after the trigger = %+v (found %v), want front face with four +1/+1 counters", p, ok)
@@ -105,6 +105,6 @@ const wanderglyphNoAttack = `{"name":"wanderglyph-no-attack","turn":2,"cr":["101
 	`{"op":"pass_to","seat":1,"step":"main2","expect":[{"offered":{"seat":1,"kind":"cast","card":"p1:Gut Shot"},"want":true}]}]}`
 
 func TestAttackedYouThisTurnOpponentCantCast(t *testing.T) {
-	runLB5Oracle(t, wanderglyphAttackedYou)
-	runLB5Oracle(t, wanderglyphNoAttack)
+	runRawOracle(t, wanderglyphAttackedYou)
+	runRawOracle(t, wanderglyphNoAttack)
 }
