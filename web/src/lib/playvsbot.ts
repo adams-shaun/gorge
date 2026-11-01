@@ -1,6 +1,13 @@
-import { createGame, type CreateGame } from './api';
+import { createGame, type CreateGame, type DeckInfo } from './api';
 import { withBase } from './basepath';
 import type { SeatInfo } from '../protocol';
+
+/** deckLabel is a deck as the pickers list it; a refused deck reads why. */
+export function deckLabel(d: DeckInfo): string {
+  if (d.refused) return `${d.name} — ${d.refused}`;
+  const details = [d.archetype, d.commander ? `Commander: ${d.commander}` : ''].filter(Boolean);
+  return details.length === 0 ? d.name : `${d.name} — ${details.join(' · ')}`;
+}
 
 /** The formats the play-vs-bot entry point offers, in the order shown. */
 export const VS_BOT_FORMATS = [

@@ -3,7 +3,7 @@
   import { fetchBotPolicies, fetchDecks, type DeckInfo } from '../lib/api';
   import type { BotPolicyInfo } from '../protocol';
   import ProtocolSetting from './ProtocolSetting.svelte';
-  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, startPlayVsBot, type VsBotFormat, type VsBotMulligans } from '../lib/playvsbot';
+  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, deckLabel, startPlayVsBot, type VsBotFormat, type VsBotMulligans } from '../lib/playvsbot';
 
   // The landing-page entry point that sits the player down 1v1 against a bot.
   // Deck ids come only from the server catalogue; empty values deliberately
@@ -63,11 +63,6 @@
     if (botPolicy && !formatPolicies.some((p) => p.name === botPolicy)) botPolicy = '';
   }
 
-  function deckLabel(d: DeckInfo): string {
-    const details = [d.archetype, d.commander ? `Commander: ${d.commander}` : ''].filter(Boolean);
-    return details.length === 0 ? d.name : `${d.name} — ${details.join(' · ')}`;
-  }
-
   async function start() {
     busy = true;
     error = null;
@@ -107,7 +102,7 @@
       <select aria-label="Your deck" bind:value={humanDeck} data-testid="human-deck">
         <option value="">Random</option>
         {#each formatDecks as d (d.id)}
-          <option value={d.id} disabled={!!d.refused} title={d.refused}>{deckLabel(d)}</option>
+          <option value={d.id} disabled={!!d.refused}>{deckLabel(d)}</option>
         {/each}
       </select>
     </label>
@@ -116,7 +111,7 @@
       <select aria-label="Bot deck" bind:value={botDeck} data-testid="bot-deck">
         <option value="">Random</option>
         {#each formatDecks as d (d.id)}
-          <option value={d.id} disabled={!!d.refused} title={d.refused}>{deckLabel(d)}</option>
+          <option value={d.id} disabled={!!d.refused}>{deckLabel(d)}</option>
         {/each}
       </select>
     </label>

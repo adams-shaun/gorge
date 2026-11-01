@@ -43,6 +43,7 @@
   import { laterByObj, offHandPlays, optionsByObj, optionsByPlayer, resolveCardFollowUp, type CardOptions } from '../lib/cardoptions';
   import { isPlainManualTap, manualManaHidden, paymentRouteHidden } from '../lib/manualmana';
   import { castableActions } from '../lib/announcepay';
+  import { fetchCapabilities } from '../lib/api';
   import { rematchDecks, startRematch } from '../lib/playvsbot';
   import { stuckDecision } from '../lib/prompt';
   import { loadLogShown, saveLogShown, type LogScope } from '../lib/logshown';
@@ -228,6 +229,13 @@
   // manual baseline even if a stale response carried a payment extension.
   $effect(() => {
     panel?.setAutoManaAvailable(tableInfo?.auto_mana === true);
+  });
+  let noManualMana = $state(false);
+  onMount(() => {
+    fetchCapabilities().then((c) => { noManualMana = c.manual_mana === false; }).catch(() => {});
+  });
+  $effect(() => {
+    panel?.setNoManualMana(noManualMana);
   });
 
   // Restart is offered only on the play-vs-bot shape createGame builds:

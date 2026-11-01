@@ -190,8 +190,16 @@ export class SeatPanelState {
   /** The card of a plan-less cast Auto-pay announced, until its mana window is filled. */
   private autoFillCard: number | null = null;
 
+  /** Set when the server's engine pays for every cast, so the switch has no off. */
+  private noManualMana = $state(false);
+
   get autoPayOnly(): boolean {
-    return this.ctx.transport?.autoPayOnly === true;
+    return this.noManualMana || this.ctx.transport?.autoPayOnly === true;
+  }
+
+  setNoManualMana(on: boolean) {
+    this.noManualMana = on;
+    this.setAutoManaAvailable(this.autoManaAvailable);
   }
 
   /** Auto-pay may hide plain taps, unless the wire has no off for it: floating is then the only way to pay an X above its plan. */
