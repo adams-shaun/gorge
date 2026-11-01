@@ -4,7 +4,7 @@
 //
 // The end-to-end pin runs on the REAL corpus card Razorfield Ripper (whose
 // trigger body is `DB$ Pump | Defined$ TriggeredAttackerLKICopy | NumAtt$ +X
-// | NumDef$ +X` with `SVar:X:Count$YourCountersEnergy`); the compiled-SVar
+// | NumDef$ +X` with `X = Count$YourCountersEnergy`); the compiled-SVar
 // pins run Localized Destruction's and Aether Refinery's
 // `DB$ ChooseNumber | Max$ Count$YourCountersEnergy` Max expressions and the
 // YourCountersExperience / YourCountersRAD spellings (Otharri, Mariposa

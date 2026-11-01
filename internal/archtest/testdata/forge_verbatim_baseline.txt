@@ -271,12 +271,9 @@ engine/rules/trigmatch_destination_unknown_test.go
 engine/rules/trigmatch_zone_origin_list_test.go
 engine/rules/valid_saon_card_test.go
 engine/rules/was_cast_from_graveyard_test.go
-engine/rules/wildgrowth_chosen_number_test.go
 engine/rules/window_diagnostics_test.go
 engine/rules/winsgame_test.go
-engine/rules/withcounters_comma_test.go
 engine/rules/world_rule_test.go
-engine/rules/your_counters_test.go
 engine/view/identity_test.go
 engine/view/into_internal_test.go
 engine/view/placeholder_test.go
