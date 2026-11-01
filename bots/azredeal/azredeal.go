@@ -1,4 +1,4 @@
-// Package azredeal hosts the az-redeal policy (BP-12, spec
+// Package azredeal hosts the az-redeal policy (spec
 // 2026-09-28-hosted-bot-packages §11): the adapter over internal/azmcts.Seat
 // in its honest redeal world (generation 0: uniform prior, heuristic leaf,
 // 100 simulations, a fresh deal per simulation) that answers the searched

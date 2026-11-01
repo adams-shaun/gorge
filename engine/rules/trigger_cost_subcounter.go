@@ -13,7 +13,6 @@ import (
 )
 
 // The triggered-effect window's counter-removal cost: a
-
 // triggered ability whose effect sits behind "you may remove a counter from
 // this creature" -- Guiding Hydra's and Ingenious Prodigy's `Cost$
 // SubCounter<1/P1P1>`, Slumbering Walker's and Leatherhead's `ImmediateTrigger

@@ -63,7 +63,7 @@ type SampleOptions struct {
 	// (the search teacher -workers) leaves it at 1; a live seat answering one
 	// decision at a time is what it is for.
 	Parallelism int
-	// KnownCards turns on the known-card constraint (pn21): the History's
+	// KnownCards turns on the known-card constraint: the History's
 	// known-card projection (ProjectKnownCards) is computed once, and a world
 	// whose replay does not place every known card in its known zone and
 	// library position is rejected (SampleResult.KnownCardViolations). A world
@@ -74,7 +74,7 @@ type SampleOptions struct {
 	// Zero value off: the sampler and its output are byte-identical to
 	// before.
 	KnownCards bool
-	// Redeal, when non-nil, turns on the redeal fallback (pn21 stretch; see
+	// Redeal, when non-nil, turns on the redeal fallback (see
 	// RedealBase): when the rejection sampler ends without Worlds worlds, the
 	// result's worlds are instead Worlds uniform redeals of Redeal.Engine's
 	// hidden cards the seat does not know, pinning every known card. Nil is

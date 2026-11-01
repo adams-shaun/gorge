@@ -31,7 +31,7 @@ const (
 // AcceptedLabelSchemaVersions is the allow-list of label schema versions a
 // reader accepts, in ascending order. Callers must treat it as read-only.
 //
-// Schema 3 (pn12) is schema 2 plus the optional "extras" object
+// Schema 3 is schema 2 plus the optional "extras" object
 // (LabelExtras, written by the search teacher -label-extras): Load reads a
 // schema 3 record exactly as schema 2 and ignores the extras; LoadWith reads
 // them.
@@ -125,12 +125,12 @@ type Example struct {
 	// makes the example train the PPO objective instead of the supervised
 	// loss. nil for every label-corpus example.
 	PPO *PPOTarget
-	// Visits is the visit-distribution target (M1b, LoadVisits): non-nil
+	// Visits is the visit-distribution target (LoadVisits): non-nil
 	// makes the example train the soft candidate cross-entropy against the
 	// search's visits instead of the supervised loss. nil otherwise.
 	Visits *VisitTarget
 	// JointCard is the joint (card, target) action encoding's option map
-	// (pn12, LoadWith with Joint): JointCard[k] is the index in the RECORD's
+	// (LoadWith with Joint): JointCard[k] is the index in the RECORD's
 	// option list of the card Options[k] casts. nil for the split encoding,
 	// where Options parallels the record's options one to one.
 	JointCard []int

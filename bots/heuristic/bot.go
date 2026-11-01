@@ -393,7 +393,7 @@ func (b *Bot) paymentIntent(brd botpolicy.Board, d *decision.Decision) (decision
 		clear(payable)
 	}
 	for _, a := range d.PaymentActions {
-		// A plan the policy would never take must not count as payable: C8
+		// A plan the policy would never take must not count as payable: the policy
 		// refuses a counter with no foreign spell (CounterIsDead), so its
 		// plan is dead -- leaving it in `payable` would let the private
 		// candidate lose to pass and hide the manual path (an instant the
@@ -458,7 +458,7 @@ func (b *Bot) paymentIntent(brd botpolicy.Board, d *decision.Decision) (decision
 		if planShaped(o) {
 			// An ordinary legacy cast whose object has a plan is a
 			// plan-backed candidate: choosing it submits the plan, so the
-			// cast scorer prices it against producible mana (C7). A
+			// cast scorer prices it against producible mana. A
 			// non-ordinary mode (an evoke, pitch, dash, surge) pays its
 			// own cost by hand and stays false. A primary flashback cast
 			// is plan-backed only by a flashback-origin action
@@ -563,7 +563,7 @@ func planModeOf(a decision.PaymentAction) string {
 //     ANY unpayable card that is castable now justifies the manual answer
 //     (Board.AnyCastableNow). This is the class reading the dead-counter
 //     shape needs: the tap gate's one best intent can be an uncostable or
-//     C8-dead card while a DIFFERENT card in the hand is a real cast, and
+//     dead-counter card while a DIFFERENT card in the hand is a real cast, and
 //     looking only at the intent would drop that cast;
 //   - plan-bearing (len(payable)>0): a planned cast is at stake, so only the
 //     tap gate's own best intent justifies diverting to manual, and only
@@ -665,7 +665,7 @@ func BoardFromView(v view.View) botpolicy.Board {
 	// this View alone by view.OwnLibrary, the same per-card rules the game
 	// half's fillOwnLibrary applies to state.Game.
 	view.OwnLibrary(v, v.Viewer, &b.OwnLibrary)
-	// The public stack census (C8's facts): the projected StackView list is
+	// The public stack census: the projected StackView list is
 	// the stack's own bottom-to-top order, so the census slice is that same
 	// order and every read of it is deterministic. IsSpell mirrors the
 	// game-shaped half's o.Ability == nil test exactly: the View's Kind is

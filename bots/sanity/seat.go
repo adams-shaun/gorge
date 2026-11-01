@@ -13,8 +13,8 @@ import (
 )
 
 // Mulligan is the London-mulligan rule the guard answers keep/mulligan and
-// bottoming asks with: botpolicy.MulliganForge, Forge's own keep/bottom rule
-// (FORGE-M1). The guard answers the ask itself and does not consult the
+// bottoming asks with: botpolicy.MulliganForge, Forge's own keep/bottom rule.
+// The guard answers the ask itself and does not consult the
 // wrapped seat, so no rng is drawn.
 const Mulligan = botpolicy.MulliganForge
 

@@ -46,7 +46,7 @@ import (
 //	                             (seat.SetAdmission)
 //
 // Optional fields (omitted when unset, so a greedy v1/mz corpus
-// is byte-identical to what the pn13 writer produced):
+// is byte-identical to what the plain writer produced):
 //
 //	temperature                  the sampling temperature T of a stochastic
 //	                             collection seat (seat.SetSampling)

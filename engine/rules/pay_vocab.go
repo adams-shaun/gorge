@@ -7,7 +7,6 @@ import (
 
 // pay_vocab.go is package rules' bridge to the pool solver in engine/rules/pay.
 // The types are aliases and every function is a
-
 // one-line forwarder the compiler inlines, so rules keeps its historical
 // names while the definitions live in the package that holds no *Engine.
 

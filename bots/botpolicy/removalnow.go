@@ -48,7 +48,7 @@ const removalThreatBar int32 = 24
 //     is about the best TARGET, not the biggest body.
 //
 // A false answer means "hold the spell and its mana for a bigger threat";
-// chooseCast then skips the option exactly as C8 skips a dead counter, and
+// chooseCast then skips the option exactly as it skips a dead counter, and
 // the tap gate (removalHeld) refuses to tap toward it.
 //
 // The predicate reads only Board facts both adapters fill: Card.RemovalKind,

@@ -129,8 +129,8 @@ func (c Creature) pt() int32 { return c.Power + c.Toughness }
 // NewBoard returns a Board whose three maps are allocated at the sizes
 // BoardFromGame fills them to (empty, but ready to grow without reallocating
 // their buckets), for a caller that intends to reuse them across decisions
-// via BoardFromGameInto. The host match loop keeps one such Board per match
-// (Task d2): a cleared map keeps its buckets, so reusing it costs none of
+// via BoardFromGameInto. The host match loop keeps one such Board per match:
+// a cleared map keeps its buckets, so reusing it costs none of
 // the per-call allocation a fresh make(map, n) would. capCapitals is the seat
 // count the Life map is sized to (len(g.Players) at the time).
 func NewBoard(numPlayers int) Board {
@@ -164,7 +164,7 @@ func BoardFromGame(g *state.Game, ch Chars, me state.PlayerID) Board {
 	return BoardFromGameInto(g, ch, me, &b)
 }
 
-// BoardFromGameInto is BoardFromGame's buffered-reuse form (Task d2): it
+// BoardFromGameInto is BoardFromGame's buffered-reuse form: it
 // fills the Board derivable from state.Game into the caller-owned Board b,
 // clearing and reusing b's own three maps rather than allocating fresh ones
 // — clear on a map keeps its buckets, so a Board built once (NewBoard) and
@@ -191,7 +191,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	b.PublicCards.Reset()
 	b.Commanders.Reset()
 	b.kwArena = b.kwArena[:0]
-	// The public stack census (C8's facts): the stack's own bottom-to-top
+	// The public stack census: the stack's own bottom-to-top
 	// order, truncated in place so the reused Board's slice never carries a
 	// stale entry from the previous refill (the same clear-the-buckets
 	// discipline the maps above get). IsSpell is o.Ability == nil — exactly
@@ -269,7 +269,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	// skipped (the count stays in HandSize). ch's optional
 	// StartingChoicePending capability (rules.Engine) answers it; a Chars
 	// without it (a snapshot, a test stand-in) never blinds, matching the
-	// R-9 no-ask host. Both the incremental and the scratch fill honour it,
+	// no-host path. Both the incremental and the scratch fill honour it,
 	// so the two agree (boardIncVerify).
 	hideHand := false
 	if s, ok := ch.(interface{ StartingChoicePending() bool }); ok {
@@ -357,7 +357,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	// hasTypeWord), so a card ranks identically on both halves — including
 	// a commander sitting in the command zone, which is why the casting
 	// rule can read its power and mana value like any other castable. The
-	// zone walk also fills the two tap-gate facts (tap.go, T1): ManaCost is
+	// zone walk also fills the two tap-gate facts (tap.go): ManaCost is
 	// the printed cost the gate re-parses for coloured pips, and Castable
 	// is the zone membership that says whether a card is worth mana at all
 	// — true for a hand card (the engine offers its cast as soon as the
@@ -970,7 +970,7 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //     one whose every block fails to kill it, then one it can only trade
 //     even-or-worse with; ties favour the lowest defender life, then the
 //     first offered option. With a single opponent the pair list is one
-//     option per creature and this reduces to the M1 choice verbatim.
+//     option per creature and this reduces to a single-defender choice.
 //   - AR2 (unblockable): if no creature OF THAT DEFENDER can block it
 //     (Flying against a defender with no Flying/Reach; no untapped
 //     defenders), that defender gets the swing -- the damage is guaranteed
@@ -1259,7 +1259,7 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// risk an option against them carries -- and whether any of them has a
 	// creature with power (AR4's "could attack back"). Keyed by the
 	// defender each option names: every attacker may now choose its own
-	// opponent (CR 506.2), so the analysis the M1 policy ran against ONE
+	// opponent (CR 506.2), so the analysis a single-defender policy would run against ONE
 	// defender runs here against each option's own.
 	defBlockers := make(map[state.PlayerID][]blocker, len(d.Options))
 	defHasThreat := make(map[state.PlayerID]bool, len(d.Options))
@@ -1291,7 +1291,7 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// engine REJECTS a declaration that omits one it could have included --
 	// an unmarked bot once declared around a goaded Knight and the whole
 	// run aborted on "must attack with as many required creatures as
-	// possible" (seed 1283, commander bench 2026-09-15).
+	// possible" (seed 1283, commander bench).
 	required := make(map[state.ObjID]bool, len(d.Options))
 	for i := range d.Options {
 		if d.Options[i].Required {
@@ -1504,7 +1504,7 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// A4's armed aggro posture releases the hold when the whole crack-back
 	// cannot kill us (posture.go's aggroReleasesBlocker).
 	// only blockable attackers are candidates, since an unblockable one is
-	// the way a defensive board still wins. Task m34 generalizes the M1
+	// the way a defensive board still wins. This generalizes the
 	// check from the single defender to ANY opponent: "leave the board
 	// undefended" is a fact about the whole table, and any opponent with a
 	// threat creature can punish it.
@@ -1530,10 +1530,8 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	}
 	if canStillBlock == 0 && anyOppThreat && len(chosen) > 0 && !b.aggroReleasesBlocker(me) {
 		hold := -1 // position in chosen, NOT an option index -- the slice
-		// below cuts at it (a latent M1 bug wrote the option index here,
-		// which only happened to equal the position while every attacker
-		// had exactly one option and none were skipped; the Task-m34
-		// cross-product option list made the mismatch reachable).
+		// below cuts at it (writing the option index here would only equal the
+		// position while every attacker had exactly one option and none were skipped).
 		var holdScore int32 = -1
 		var holdID state.ObjID
 		// Memoised per attacker profile: the any-defender blockability scan

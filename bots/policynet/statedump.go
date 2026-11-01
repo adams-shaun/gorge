@@ -53,7 +53,7 @@ type StateRecord struct {
 	Outcome      float64         `json:"outcome"`
 	OutcomeKnown bool            `json:"outcome_known"`
 	View         json.RawMessage `json:"view"`
-	// Extras is the label corpus's pn12 extras object re-used unchanged: only
+	// Extras is the label corpus's extras object re-used unchanged: only
 	// its Diag* fields matter here, and only for the diagnostic feature sets.
 	Extras *LabelExtras `json:"extras"`
 }

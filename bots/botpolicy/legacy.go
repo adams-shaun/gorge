@@ -69,7 +69,7 @@ func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 
 	case decision.KAttackers:
 		// Attack with every legal attacker -- at most ONE defender each (CR
-		// 506.2; Task m34 offers every (attacker, defender) pair, and the
+		// 506.2; every (attacker, defender) pair is offered, and the
 		// engine rejects an intent naming the same creature twice, so a
 		// naive "every option" would be rejected in a multiplayer game).
 		// The first option per creature is already deterministic: the

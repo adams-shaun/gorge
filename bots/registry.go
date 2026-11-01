@@ -37,7 +37,7 @@ type Info struct {
 	// seat's REAL decklist (server/host/botenv.go envData: searchprobe.PublicGame
 	// from m.cfg.Decks). "Honest" root redeals the hidden cards, but the
 	// deck LIST it redeals from is each seat's true list, so an Env seat
-	// knows every seat's real decklist. Operator ruling 2026-10-13: Env
+	// knows every seat's real decklist. Env
 	// therefore never seats against a human, and on a bot-only table only
 	// with TableConfig.AllowDecklistBots (enforced by host's table
 	// validation and gorged's offered-set gate).
@@ -185,8 +185,8 @@ func Names() []string {
 
 // ReadsDecklists reports whether the named policy builds a search engine
 // over every seat's REAL decklist (Info.Env without Info.ClosedLists;
-// server/host/botenv.go's envData). The single discriminator for the operator
-// ruling of 2026-10-13: such a policy seats only on a bot-only table that
+// server/host/botenv.go's envData). The single discriminator for the rule that
+// such a policy seats only on a bot-only table that
 // set TableConfig's AllowDecklistBots, and never against a human. A
 // closed-list policy is an Env policy that does NOT read decklists.
 // An unknown name is false.

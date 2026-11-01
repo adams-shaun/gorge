@@ -22,7 +22,7 @@ import (
 //     battlefields and the viewer's hand (types, current P/T, keywords,
 //     tapped, summoning sick, can-attack/can-block, counters, attached-to,
 //     damage, attacking), per-seat available (untapped) mana, the stack's
-//     spell APIs, and the option-side pn03 bits (the option card's spell API;
+//     spell APIs, and the option-side bits (the option card's spell API;
 //     the decision-kind "other" routed to a hashed id instead of the v1 slot
 //     that collides with the Land bit). Read from the redacted view only, so
 //     a seat can encode it: checkpointable and playable.
@@ -224,8 +224,8 @@ func encodeStateWith(buf *StateBuf, fs FeatureSet, v *view.View, seat state.Play
 // exactly EncodeOption. Every other set (a) routes a decision kind outside
 // decision.Kinds' named slots to a hashed "mz|deckind|other" id instead of
 // the v1 "other" slot, which sits one past the 13-slot block ON the Land
-// type bit (the pn03 finding: slot 24+len(decision.Kinds) == typeOffset),
-// and (b) adds the option card's spell API as a hashed id (pn03's counter
+// type bit (slot 24+len(decision.Kinds) == typeOffset),
+// and (b) adds the option card's spell API as a hashed id (the counter
 // vs. other-instant signal).
 func EncodeOptionWith(fs FeatureSet, v view.View, seat state.PlayerID, d decision.Kind, o decision.Option, idx, n int) Option {
 	return withEncoder(&v, seat, func(x *OptionEncoder) Option { return x.Encode(fs, d, o, idx, n) })

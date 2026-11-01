@@ -566,7 +566,7 @@ type libraryFetch struct {
 // AskTape before either a move or a shuffle. A no-host run keeps the previous
 // deterministic mover (yes), the
 // no-host fallback used by the other optional mid-resolution effects.
-
+//
 // An unrecognised Defined$ selector is a fail-closed no-op here. In
 // particular it must not pass through Defined's public source fallback: that
 // fallback would make an unknown selector look like an object fetch list and

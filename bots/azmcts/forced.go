@@ -2,8 +2,8 @@ package azmcts
 
 import "math"
 
-// Forced playouts and policy target pruning (KataGo, arXiv:1902.10565 §3.1;
-// DraftZero research memo B/C6), Options.ForcedK. During the search every
+// Forced playouts and policy target pruning (KataGo, arXiv:1902.10565 §3.1),
+// Options.ForcedK. During the search every
 // root child c the world offers is guaranteed n_forced(c) = sqrt(k * P(c) *
 // N) visits, N the root children's visits so far and P the tree's root prior
 // (root noise included): a child below that is selected before PUCT is asked.

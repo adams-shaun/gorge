@@ -37,7 +37,7 @@ package azmcts
 //
 // Options.NodeCache caps the stored node states (the root's included). A
 // stored state owns its whole event log and object arena, so it is larger
-// than a plain Clone (which shares the log): measured 2026-09-30 on
+// than a plain Clone (which shares the log): measured on
 // mid-game 60-card roots, 300-450 KB each (log ~45%, arena ~35%), so the
 // default 256 holds at most ~100 MB live, and only while a search with more
 // than 256 expanded nodes runs. Eviction drops the state for the garbage

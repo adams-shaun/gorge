@@ -140,7 +140,7 @@ type Options struct {
 	// replay's potential-action walk and counts the rejections it alone
 	// decides (Trace.BoardPotentialActionsOnly). A playing seat leaves it false.
 	ComparePotentialActions bool
-	// Redeal turns on searchprobe's redeal fallback (pn21): when the sampler
+	// Redeal turns on searchprobe's redeal fallback: when the sampler
 	// starves, the seat's unknown hidden cards are redealt from clones of the
 	// engine it is deciding in, pinning every card its observation history
 	// knows (searchprobe.RedealBase documents what is and is not read). Off
@@ -152,7 +152,7 @@ type Options struct {
 	// false.
 	Clairvoyant bool
 	// Prior, when non-nil, is a trained policynet checkpoint that chooses
-	// WHICH candidates get the rollout budget (pn10): the attackers and cast
+	// WHICH candidates get the rollout budget: the attackers and cast
 	// arms enumerate up to PriorWiden candidates, the non-bot candidates are
 	// ranked by the policy head scored on the actor's own view, and the top
 	// PriorTopK are kept behind the bot's answer (see applyPrior). nil is

@@ -121,7 +121,7 @@ type Card struct {
 	// cards.Face.SpellAbility().API on the game half -- so a card is a
 	// counter whichever host asked (pinned over a whole game by the
 	// adapter-parity tests, non-vacuously over a counterspell-vs-creature
-	// mirror). The casting rule (C8) reads it: a counter is only worth its
+	// mirror). The foreign-spell casting rule reads it: a counter is only worth its
 	// mana at a stack holding a FOREIGN spell, never at an own-spells-only
 	// (or empty) stack, where casting it would spend mana to counter the
 	// caster's own play. A card whose counter lives on an AB/trigger line
@@ -460,27 +460,27 @@ func hasTypeWord(words []string, want string) bool {
 // CastWeights is the learned cast profile: the weights the cast scorer
 // (cardWorth, castScore, chooseCast) dots its feature vector with. The
 // default profile below reproduces the pre-refactor literal arithmetic
-// EXACTLY — every C1–C8 rule and CR1 in cast.go's doc comments stays true
+// EXACTLY — every rule in cast.go's doc comments stays true
 // of DefaultCastWeights — so a Board carrying it (or the zero value, see
 // castWeights) plays the bot that has always played. Integer arithmetic
 // only, fixed evaluation order, ties on option index.
 type CastWeights struct {
-	// CreatureBase is the per-creature base worth (C1); CreaturePower the
-	// per-point-of-power term (C2). Both apply only to a creature option.
+	// CreatureBase is the per-creature base worth; CreaturePower the
+	// per-point-of-power term. Both apply only to a creature option.
 	// NonCreatureCMC is the per-mana-value term for every non-creature
-	// option (C3).
+	// option.
 	CreatureBase, CreaturePower, NonCreatureCMC int32
-	// Kicked is the alternative-cost premium a kicked/surged cast earns
-	// (C4); Flashback the one a flashback/miracle cast earns (C4).
+	// Kicked is the alternative-cost premium a kicked/surged cast earns;
+	// Flashback the one a flashback/miracle cast earns.
 	Kicked, Flashback int32
-	// ReserveScale prices the C7 reserve preference: a cast that keeps the
+	// ReserveScale prices the mana reserve preference: a cast that keeps the
 	// pool at or above the reserve earns reserve*ReserveScale points.
 	ReserveScale int32
 	// CommanderTaxScale prices the CR1 command-zone recast penalty: a
 	// command-zone cast scores minus CommanderTaxScale*Casts*CMC.
 	CommanderTaxScale int32
 
-	// CastThreshold is the hold threshold (C9): when the best surviving
+	// CastThreshold is the hold threshold: when the best surviving
 	// cast option's final score is strictly below it, chooseCast returns
 	// -1 and the whole priority rule falls through to the ability ranking
 	// and the pass, exactly as when nothing was castable. This is what
@@ -526,7 +526,7 @@ type CastWeights struct {
 	// ManaLeft is the feature "pool total minus this cast's cost": a
 	// positive weight prefers the cheaper cast, a negative one the pricier.
 	// A plan-backed candidate (set by the auto-pay adapter) is priced
-	// against producible mana instead of the empty pool, like C7.
+	// against producible mana instead of the empty pool, like the reserve.
 	ManaLeft int32
 	// Precombat scores 1 in the first main phase (Board.FirstMain).
 	Precombat int32
@@ -568,7 +568,7 @@ type CastWeights struct {
 	// weights stay semantically legible (InstantOnOwnTurn is the "cast
 	// instants now" premium; this is the paired "hold instants" term).
 	// On its own a per-option term can only reorder casts; PAIRED WITH THE
-	// C9 THRESHOLD it is what moves an instant-speed cast below the hold
+	// hold threshold it is what moves an instant-speed cast below the hold
 	// boundary — a negative weight holds the instant in the seat's own
 	// main phase while a creature cast (which earns no such term) stays
 	// above the threshold and is still made.
@@ -579,7 +579,7 @@ type CastWeights struct {
 	// auto-pay adapter a planned instant-speed cast is offered at EVERY
 	// priority window, so the scorer decides WHEN an instant is cast, and
 	// these weights are the hold/cast boundaries per window (paired with
-	// C9's CastThreshold, exactly as InstantSpeedOffTurnHold is). Each
+	// the CastThreshold, exactly as InstantSpeedOffTurnHold is). Each
 	// scores 1 for an INSTANT-SPEED card in its window — the card's own
 	// class, so a creature or sorcery is never reached — and all are
 	// weight 0 in the default profile, so the default bot is byte-identical.
@@ -627,10 +627,10 @@ type CastWeights struct {
 }
 
 // DefaultCastWeights is the pre-refactor arithmetic, weight for weight:
-// creature 30 + 4*Power (C1/C2), non-creature its mana value (C3), kicked
-// +6 and flashback +4 (C4), the reserve preference at 5 points per reserved
-// mana (C7, the old reserveBonusScale) and the command-zone tax at 5 per
-// prior cast per mana value (CR1, the old cmdrTaxScale). Every weight for
+// creature 30 + 4*Power, non-creature its mana value, kicked
+// +6 and flashback +4, the reserve preference at 5 points per reserved
+// mana and the command-zone tax at 5 per
+// prior cast per mana value. Every weight for
 // the new features is 0, so the default pick is byte-identical to the
 // literal pre-refactor rule (pinned by cast_weights_test.go's equivalence
 // table over every cast_test.go case). The one non-zero addition is the
@@ -676,12 +676,12 @@ func (b Board) castWeights() CastWeights {
 //   - a creature scores 30 + 4*Power, which outranks every non-creature
 //     this policy can read (a non-creature scores its mana value, a
 //     realistic ceiling of a handful all the while a 1/1 sits at 34) — the
-//     C1 preference that the damage engine is worth more than a one-shot
-//     — and higher power outranks lower (C2);
+//     preference that the damage engine is worth more than a one-shot
+//     — and higher power outranks lower;
 //   - a non-creature scores its mana value, so the biggest spell the bot
-//     can afford wins the "which one-shot" question (C3);
+//     can afford wins the "which one-shot" question;
 //   - an alternative-cost cast (Mode kicked/surged vs flashback/miracle)
-//     is never scored as an ordinary cast (C4): each adds its own small
+//     is never scored as an ordinary cast: each adds its own small
 //     premium, because a kicked/surge larger effect and a flashback/
 //     miracle second use are both net-upside casts the bot is committing
 //     to anyway — but the premium is tiny so it only ever decides an
@@ -689,7 +689,7 @@ func (b Board) castWeights() CastWeights {
 //     preference above.
 //
 // A cast whose Obj is in no zone the board reads cards for scores as a
-// non-creature of mana value 0 (C5): it can only win against another
+// non-creature of mana value 0: it can only win against another
 // zero-fact card, and never beats a real read.
 func (b Board) castScore(o decision.Option) int32 {
 	w := b.castWeights()
@@ -713,7 +713,7 @@ func (b Board) castScore(o decision.Option) int32 {
 
 // cardWorth prices cast desirability, not the usefulness of keeping a hand card.
 // It is the shared base-worth feature dot — CreatureBase+CreaturePower*Power
-// for a creature (C1/C2), NonCreatureCMC*CMC for everything else (C3) — read
+// for a creature, NonCreatureCMC*CMC for everything else — read
 // by the cast scorer AND the paths that only want a card's standing worth
 // (the discard bottoming, the commander-zone leave ask). Toughness is NOT a
 // base-worth feature: it belongs to the cast scorer alone (castScore).
@@ -750,22 +750,22 @@ func (b Board) diesAtZeroX(o decision.Option) bool {
 // "cast" options, or returns -1 when none is offered. The rules, each
 // stated for what it reads:
 //
-//   - C1 (board over one-shots): a creature outranks a non-creature. A
+//   - Board over one-shots: a creature outranks a non-creature. A
 //     creature is the only card type that attacks, and therefore deals
 //     damage, every turn; casting one adds a permanent source of damage —
 //     the fast path to ending the game. A one-shot (burn/removal) removes
 //     one thing or deals damage once and is done. With the effect unread,
 //     a creature is the choice that moves the game toward a finish.
-//   - C2 (more imminent damage): among creatures, the higher power wins —
+//   - More imminent damage: among creatures, the higher power wins —
 //     the more damage it will deal the next time it attacks, and every
 //     time after.
-//   - C3 (bigger effect): among non-creatures, the higher mana value wins
+//   - Bigger effect: among non-creatures, the higher mana value wins
 //     — the printed cost the bot is spending, its best guess at the bigger
 //     effect when it cannot read effects.
-//   - C4 (no alternative cost is an ordinary cast): a kicked/surged/
+//   - No alternative cost is an ordinary cast: a kicked/surged/
 //     flashback/miracle "cast" option scores apart from an ordinary one
 //     (see castScore), read off Option.Mode never the label.
-//   - C5 (unreadable): an option whose Obj carries no board card facts
+//   - Unreadable: an option whose Obj carries no board card facts
 //     scores as a non-creature of mana value 0, a low rank, never a crash.
 //   - CR1 (the command zone is taxed, CR 903.8): a "cast" whose Obj is a
 //     commander currently sitting in its owner's command zone ranks as its
@@ -785,10 +785,10 @@ func (b Board) diesAtZeroX(o decision.Option) bool {
 //     check: the engine already refuses what the pool cannot pay
 //     (engine/rules/cast.go's commanderTaxFor gates the offer), so this is purely
 //     "is the recast still worth bothering with". A command-zone cast is
-//     also NOT subject to C9's hold threshold: CR1 prices it by value
+//     also NOT subject to the hold threshold: the tax prices it by value
 //     alone and its own score-below-zero refusal is its only boundary,
 //     because the deck must always be able to cast its commander.
-//   - C9 (the hold threshold): after the loop, when the best surviving
+//   - The hold threshold: after the loop, when the best surviving
 //     option's final score is strictly below CastThreshold AND that best
 //     option is NOT a command-zone cast, chooseCast returns -1 and the
 //     priority rule (policy.go) falls through to the ability ranking and
@@ -805,28 +805,28 @@ func (b Board) diesAtZeroX(o decision.Option) bool {
 //     NonCreatureOppCreatures (each class × the opponent creature count,
 //     the latter the removal proxy), CreatureLifeDelta (creature ×
 //     LifeDelta) and InstantSpeedOffTurnHold (instant-speed × the seat's
-//     own main phase, the hold term that pairs with C9). All are weight 0
+//     own main phase, the hold term that pairs with the threshold). All are weight 0
 //     in the default profile, so the default arithmetic is unchanged.
-//   - C6 (deterministic tie): ties break on option index, so no map
+//   - Deterministic tie: ties break on option index, so no map
 //     iteration order reaches the answer.
-//   - C7 (the mana reserve, B2): the bot keeps the mana pool at or above the
+//   - The mana reserve: the bot keeps the mana pool at or above the
 //     cost of the cheapest instant-speed card it holds (an Instant, or a
-//     permanent with Flash; reserve() is 0 when it holds none, making C7
+//     permanent with Flash; reserve() is 0 when it holds none, making the reserve
 //     inert) by PREFERRING a cast that leaves that reserve over a
 //     comparable one that empties it -- the reserve is a score bonus a
 //     reserve-keeping cast earns, so among equivalent cards the bot holds
 //     mana for an instant-speed play, but a clearly better cast (a strong
 //     creature, an unprotected commander) is still made even if it spends
 //     the reserve. A hard block here made the bot decline casting its good
-//     hands and sit on mana the phase threw away, so C7 is deliberately a
+//     hands and sit on mana the phase threw away, so the reserve is deliberately a
 //     preference, not a refusal. A command-zone commander cast is priced by
 //     value alone, never held for the reserve. The pool this rule reads is
 //     the current pool for the ordinary manual decision, but producible
 //     mana (the offered untapped sources) for a plan-backed candidate
 //     (decision.Option.PlanBacked, set by the auto-pay adapter), because a
 //     V1 plan is offered only on an empty pool and the pool reading would
-//     otherwise make C7 inert under auto-pay.
-//   - C8 (a counter needs a foreign spell): a "cast" option whose Card is a
+//     otherwise make the reserve inert under auto-pay.
+//   - A counter needs a foreign spell: a "cast" option whose Card is a
 //     counter (Card.Counter — its SP$ ability is a Counter) is not cast at
 //     all when the Board's stack census shows NO foreign spell — every
 //     stack spell is the deciding seat's own, or the stack is empty.
@@ -849,9 +849,9 @@ func (b Board) chooseCast(d *decision.Decision) int {
 	best := -1
 	var bestScore int32 = -1
 	bestInCmd := false
-	// C7 (the mana reserve, B2): the reserve is the cost of the cheapest
+	// The mana reserve: the reserve is the cost of the cheapest
 	// instant-speed card the seat holds (0 when it holds none, in which case
-	// C7 is inert). It is a PREFERENCE, not a hard block: a cast that would
+	// the reserve is inert). It is a PREFERENCE, not a hard block: a cast that would
 	// leave the pool at or above the reserve scores reserve points higher, so
 	// among comparable cards the bot keeps mana for an instant-speed play
 	// rather than emptying the pool -- but a cast that is clearly better
@@ -863,11 +863,11 @@ func (b Board) chooseCast(d *decision.Decision) int {
 	res := b.reserve()
 	// A4's R4: the reserve's weight by deck posture (posture.go).
 	resScale := b.reserveScale(w)
-	// C8's census: is there a foreign spell on the stack for a counter to
+	// The foreign-spell census: is there a foreign spell on the stack for a counter to
 	// eat? ForeignSpell is its one home, read in b.Stack's own order.
 	foreignSpell := b.ForeignSpell(d.Player)
 	ctx := b.castContextFor(d)
-	// C11's candidate table: every cast option that survives C8, deduped by
+	// The candidate table: every cast option that survives the foreign-spell rule, deduped by
 	// object id (a card offered under several cast modes counts once, at
 	// its best castScore) and sorted by object id. Built ONCE per decision
 	// so the subset search below is independent of option order; only read
@@ -882,7 +882,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 			continue
 		}
 		card := b.Cards.Get(o.Obj)
-		// C8: a counter with no foreign spell to counter is not cast at all,
+		// A counter with no foreign spell to counter is not cast at all,
 		// whatever it would otherwise score — the wasted self-counter is
 		// refused at the commit point, before the mana is ever spent.
 		if card.Counter && !foreignSpell {
@@ -907,15 +907,15 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		if b.auraHeld(d, o.Obj) {
 			continue
 		}
-		// A6: a timing rule that governs this card may hold the cast even
-		// though C8 and A1 allowed it. With every rule off this is a no-op.
+		// A timing rule that governs this card may hold the cast even
+		// though the foreign-spell and need gates allowed it. With every rule off this is a no-op.
 		if !b.timingNow(d, *o) {
 			continue
 		}
 		// CR1: price the command-zone tax on the commander's mana value, not
 		// a flat power-equivalent, so a costly commander is abandoned before
 		// a cheap one. CMC 0 (an unreadable commander, should not happen)
-		// prices the tax at 0 and so casts at its base score (C5's own
+		// prices the tax at 0 and so casts at its base score (the unreadable
 		// degenerate shape); a real commander always carries CMC on both
 		// adapter halves (combat.go's census fills it for the command zone,
 		// and engine/seat/bot.go's BoardFromView the same). A command-zone cast is
@@ -932,11 +932,11 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		// CAN flip a CR1-priced-out commander cast back above zero without ever
 		// reordering an otherwise-tied pair; the per-option ones (CurveFit,
 		// ManaLeft, InstantOnOwnTurn) separate casts the base worth ties. With
-		// a C9 threshold set, the constants become meaningful in a second way:
+		// a hold threshold set, the constants become meaningful in a second way:
 		// they move the cast/hold boundary instead of only reordering casts.
 		cost := b.castCost(o.Obj, b.Cards.Get(o.Obj))
 		// The mana-side features below ask what mana is LEFT after this cast
-		// (ManaLeft) or whether it keeps the C7 reserve. On a plan-backed
+		// (ManaLeft) or whether it keeps the mana reserve. On a plan-backed
 		// candidate the auto-pay adapter performs the cast's mana
 		// activations atomically and a V1 plan is offered only on an empty
 		// pool (engine/rules/payment_plan.go's paymentPlanPoolOK), so the current
@@ -1005,7 +1005,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 			s += w.NonCreatureOppCreatures * ctx.oppCreatures
 		}
 		if b.MyTurn && b.IsMain && card.InstantSpeed {
-			s += w.InstantSpeedOffTurnHold // the hold-instants term (pairs with C9)
+			s += w.InstantSpeedOffTurnHold // the hold-instants term (pairs with the threshold)
 		}
 		if inCmd {
 			s -= b.commandTax(o.Obj)
@@ -1013,14 +1013,14 @@ func (b Board) chooseCast(d *decision.Decision) int {
 				continue // CR1: the recast has priced itself out — do not cast
 			}
 		} else if res > 0 && pool-cost >= res {
-			s += res * resScale // C7: prefer a cast that keeps the reserve
+			s += res * resScale // prefer a cast that keeps the reserve
 		}
 		if best == -1 || s > bestScore || (s == bestScore && o.Index < best) {
 			best, bestScore, bestInCmd = o.Index, s, inCmd
 		}
 	}
-	// C9: the hold threshold. Only a NON-commander best can be held — a
-	// command-zone cast is priced by value alone (CR1) because the deck
+	// The hold threshold. Only a NON-commander best can be held — a
+	// command-zone cast is priced by value alone because the deck
 	// must be able to cast its commander; see the rule's comment above for
 	// the per-winner reading.
 	if best >= 0 && !bestInCmd && bestScore < w.CastThreshold {
@@ -1213,7 +1213,7 @@ type castEntry struct {
 // board falls back to the deterministic greedy-by-score pass.
 const setSubsetMaxCards = 10
 
-// ForeignSpell reports C8's census: whether the stack holds a spell
+// ForeignSpell reports the foreign-spell census: whether the stack holds a spell
 // controlled by anyone other than player — the only stack a counter is worth
 // its mana at. It reads b.Stack in its own order, so it is deterministic by
 // construction, and it is the ONE home of the census: chooseCast and the
@@ -1228,19 +1228,19 @@ func (b Board) ForeignSpell(player state.PlayerID) bool {
 	return false
 }
 
-// CounterIsDead reports C8's verdict on a specific card for player: it is a
+// CounterIsDead reports the foreign-spell verdict on a specific card for player: it is a
 // counter (Card.Counter) with no foreign spell on the stack, so chooseCast
 // refuses to cast it at all and spending mana on it can only self-counter.
 // It composes the census's one home, ForeignSpell, so every caller that needs
-// C8's refusal (chooseCast, castEntries, the auto-pay adapter's plan filter)
+// that refusal (chooseCast, castEntries, the auto-pay adapter's plan filter)
 // reads the same rule rather than re-deriving it. A non-counter is never
 // dead. The card must already be in b.Cards.
 func (b Board) CounterIsDead(player state.PlayerID, id state.ObjID) bool {
 	return b.Cards.Get(id).Counter && !b.ForeignSpell(player)
 }
 
-// castEntries builds C11's candidate table: every cast option that survives
-// C8 (a counter with no foreign spell is never cast; foreignSpell is the same
+// castEntries builds the candidate table: every cast option that survives
+// the foreign-spell rule (a counter with no foreign spell is never cast; foreignSpell is the same
 // census chooseCast computed), deduped by object id so a card offered under
 // several cast modes counts once at its best castScore, and sorted by object
 // id. The map is only an accumulator -- the returned slice is sorted, so no
@@ -1267,8 +1267,8 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 		if b.auraHeld(d, o.Obj) {
 			continue
 		}
-		// A6: a timing rule that governs this card may hold the cast even
-		// though C8 and A1 allowed it. With every rule off this is a no-op.
+		// A timing rule that governs this card may hold the cast even
+		// though the foreign-spell and need gates allowed it. With every rule off this is a no-op.
 		if !b.timingNow(d, *o) {
 			continue
 		}

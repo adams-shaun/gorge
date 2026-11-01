@@ -978,7 +978,6 @@ func (e *Engine) recheckCharmTargets(o *state.Object) ([][]state.Target, []state
 // covered SA on the first pass AND on every resume re-entry -- an optional
 // trigger's yes re-enters through resumeResolution, where the first pass's
 // bool marker alone is not carried.
-
 func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 	if o.Ability != nil {
 		if len(o.ChosenModes) > 0 && effects.CharmOf(o.Ability).HasChoices {

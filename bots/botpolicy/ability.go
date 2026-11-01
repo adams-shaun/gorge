@@ -47,7 +47,7 @@ import (
 //     events.Apply AbilityPush census). The rule exists because some
 //     repeatable abilities form a cycle with the bot's own tap gate: Basalt
 //     Monolith's "{3}: Untap this artifact" re-enables the {T} the tap gate
-//     (T1's need gate) just spent the produced mana on, and the pair loops
+//     (the need gate) just spent the produced mana on, and the pair loops
 //     forever -- net zero mana, board unchanged, one decision per cycle
 //     (measured: seed 0 of the ulalek-eldrazi commander deck spun past
 //     60,000 intents on turn 5 with only Tap/ManaAdd/AbilityPush events in
@@ -173,7 +173,7 @@ func (b Board) opponentHasCreature(me state.PlayerID) bool {
 	return false
 }
 
-// boonHasNoOwnTarget is A1c's pre-activation decline, the fb-20260927T153930Z
+// boonHasNoOwnTarget is the pre-activation decline, the
 // fix's activation-side half: an ability option whose whole activation is an
 // Effect granting only one-way BOON statics to a target (decision.Option's
 // GrantStatics, the offer-time twin of TargetEffect.Statics) is never
@@ -257,7 +257,7 @@ func (b Board) AbilityWorthTaking(o decision.Option, me state.PlayerID) bool {
 // really sits the equipment somewhere. A1 therefore only ever fires where
 // the activation provably reproduces the current attach state.
 //
-// Scope (X1, promoted from the explore policy): both halves are facts about
+// Scope (promoted from the explore policy): both halves are facts about
 // an ATTACH, so equipNoOp fires only on an option whose ability is an AB$
 // Attach (decision.Option.Attach -- K:Equip, Reconfigure, Fortify, a gained
 // Equip). Every other activated ability of an Aura or an attached Equipment
@@ -299,7 +299,7 @@ func (b Board) grantNoOp(o decision.Option) bool {
 // hasOwnCreature is A1's no-legal-target census: does the deciding seat
 // control at least one battlefield creature (the target test an Equip's
 // "Creature.YouCtrl" ask needs)? It is ONLY the census — the threat-ranked
-// "best own creature" projection the fix-round-1 A1 elected an equip
+// "best own creature" projection an equip
 // target from is gone, because a projection is a second copy of the target
 // heuristic and is not guaranteed to agree with the target branch that
 // actually answers the follow-up decision. No ranking is produced and none

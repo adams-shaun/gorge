@@ -5,7 +5,7 @@ package sanity
 // name only with the census line that justifies it. Names are matched against
 // the card name carried in the option label.
 //
-// Seed, from the 2026-10-09 census of the 15 constructed repo decks (every
+// Seed, from a census of the 15 constructed repo decks (every
 // card whose first target step is hostile and can have only own targets:
 // Doom Blade, Fatal Push, Ghost Quarter, Hero's Downfall, Karn Liberated, Path
 // to Exile, Swords to Plowshares, Wasteland):

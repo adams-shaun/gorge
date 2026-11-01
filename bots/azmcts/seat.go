@@ -39,10 +39,10 @@ type SeatConfig struct {
 	ExploreTurns int32
 	// NoNoise drops the root Dirichlet noise from Explore: moves are still
 	// sampled proportional to visits on turns <= ExploreTurns, but the
-	// recorded visit distribution is the search's own (M1b distillation: at a
+	// recorded visit distribution is the search's own (distillation: at a
 	// small budget the root noise would be a large share of every target).
 	NoNoise bool
-	// PriorOnly is the STUDENT seat (M1b): no simulation at all; at every
+	// PriorOnly is the STUDENT seat: no simulation at all; at every
 	// decision Search would search, play the argmax of the network prior
 	// over the same candidates (ties on the lowest index, the bot's answer).
 	// It reads only the seat's own decision and redacted view, never a
@@ -191,7 +191,7 @@ type Seat struct {
 	note func(explain.Note)
 }
 
-// SetRecorder installs the visit-corpus recorder (M1b; a bench runner
+// SetRecorder installs the visit-corpus recorder (a bench runner
 // -az-corpus). The records carry the searched decision (redacted state,
 // the candidates' options, visits, prior, Q, root value, the played
 // candidate) and the diagnostic opponent-hand rows; the driver fills the

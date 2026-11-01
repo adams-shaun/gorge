@@ -1039,7 +1039,6 @@ func tossNoteText(g *state.Game, p state.PlayerID) string {
 
 // chooserNoteText is the deterministic chain text a Config.StartChooser
 // genesis emits for its chooser Note. It deliberately follows
-
 // tossNoteText's deck-name fallback but excludes PlayerName, which is
 // display-only and must not reach the hash chain.
 func chooserNoteText(g *state.Game, p state.PlayerID) string {

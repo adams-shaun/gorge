@@ -3,7 +3,7 @@ package azmcts
 import "fmt"
 
 // Decided-game searches (KataGo's reduced visits once a game is decided,
-// arXiv:1902.10565; DraftZero research memo D7): once a seat's last
+// arXiv:1902.10565): once a seat's last
 // SeatConfig.DecidedN completed searches all valued its position above
 // DecidedHigh, or all below 1 - DecidedHigh, the game is as good as decided
 // (DraftZero's offline count: 18.4% of recorded decisions, whose side agreed

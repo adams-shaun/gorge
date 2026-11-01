@@ -130,7 +130,7 @@ type Options struct {
 	ChoiceSalt uint64
 	// HeuristicLeaf keeps the frozen heuristic leaf (searchprobe.LeafValue)
 	// even when a network supplies the prior: the network's value head is
-	// then unused (M1b's prior-only ablation).
+	// unused (a prior-only ablation).
 	HeuristicLeaf bool
 	// UniformPrior keeps the uniform prior even when a network is given: the
 	// network then supplies only the leaf value (the search benchmark's

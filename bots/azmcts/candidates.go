@@ -808,7 +808,7 @@ func CandidateLabel(d *decision.Decision, in decision.Intent) string {
 // nothing is worth activating, the pass ends the turn); a candidate that
 // bypasses them lets the search pick a free no-op -- a re-equip onto the
 // creature already wearing the Equipment -- over the pass at every priority,
-// and the real game's turn never advances (Stage 0, 2026-09-27: seed
+// and the real game's turn never advances (seed
 // 90000003, uw-tempo:mono-white-equipment, Bonesplitter re-equipped onto a
 // Phyrexian Germ until -max-intents). Filtering here covers the root and
 // every in-tree searched decision, since both enumerate.

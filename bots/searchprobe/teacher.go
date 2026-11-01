@@ -14,7 +14,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// Search-teacher spike (2026-09-19). Ensemble determinization in the sense of
+// Search-teacher spike. Ensemble determinization in the sense of
 // Cowling, Ward & Powley (2012): the deciding seat's observation history is
 // turned into K sampled worlds by Sample (which never sees the actual engine),
 // every candidate answer is rolled out on every world with the default bot as
@@ -141,7 +141,7 @@ func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (
 
 // TeacherIntentChoice is TeacherChoice with support for KArrange's Rest.
 // A panic inside a rollout is returned as an error (the caller falls back to
-// the bot). Measured cause on 2026-09-19: engine/rules/livelock.go detect() indexes
+// the bot). Measured cause: engine/rules/livelock.go detect() indexes
 // sigAt(j-p) below zero while a Clone's freshly reset watcher window is short
 // and its signatures repeat.
 func TeacherIntentChoice(worlds []World, candidates []SemanticIntent, opts TeacherOptions) (res TeacherResult, err error) {

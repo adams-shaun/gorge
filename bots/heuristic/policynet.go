@@ -36,7 +36,7 @@ package heuristic
 //     cast/ability/pass option (the only bot answers the teacher labels).
 //     Every other priority decision returns the bot's answer unscored.
 //
-//     Why the gate, measured (pn01; ten approved mono pairs, 100 games/pair,
+//     Why the gate, measured (ten approved mono pairs, 100 games/pair,
 //     seed 10000000, 1000 games per arm; control bot-vs-bot 50.1%
 //     [47.0%, 53.2%], 15.4 turns): priority scored UNGATED on a ResidualW 0
 //     checkpoint wins 0/1000 at 13.3 turns, reproducing the historical
@@ -177,7 +177,7 @@ func (b *PolicyNetBot) SetSampling(temp float64, seed uint64) {
 // AdmissionSign (opt-in) always votes on the calibrated sign,
 // score > 0 — the per-option inclusion probability σ(score) > ½ the BCE head
 // is trained under and the on-policy PPO objective models. Measured on the
-// pn11 gen-0 checkpoint's own games (pn13): 93% of the auto rule's attackers
+// checkpoint's own games: 93% of the auto rule's attackers
 // "overrides" came from ALL-POSITIVE multi-option decisions, where the mean
 // fallback drops every below-mean attacker the head (and the residual prior)
 // voted to include; no weight update can reach those, because the mean rule
@@ -412,7 +412,7 @@ func priorityScorable(d *decision.Decision, botIn decision.Intent, residualW flo
 
 // PriorityInDistribution is priorityScorable exported: the priority
 // distribution gate, for a caller outside this package that scores priority
-// options with a policynet head (searchseat's candidate prior, pn10) and must
+// options with a policynet head (searchseat's candidate prior) and must
 // score only the shape the head was trained on, exactly as this seat does.
 func PriorityInDistribution(d *decision.Decision, botIn decision.Intent, residualW float32) bool {
 	return priorityScorable(d, botIn, residualW)
@@ -434,7 +434,7 @@ func (b *PolicyNetBot) encode(v view.View, d *decision.Decision) (policynet.Stat
 	if b.scorer == nil || len(d.Options) == 0 {
 		return policynet.State{}, nil, false
 	}
-	// The checkpoint's feature set (pn12): FeaturesV1 is the pinned encoder
+	// The checkpoint's feature set: FeaturesV1 is the pinned encoder
 	// byte for byte; a non-v1 checkpoint is scored under the set it trained on.
 	fs := b.scorer.Features()
 	st := policynet.EncodeStateWith(fs, v, d.Player, nil)

@@ -1,4 +1,4 @@
-// Package sbtactical hosts the sb-tactical policy (BP-13, spec
+// Package sbtactical hosts the sb-tactical policy (spec
 // 2026-09-28-hosted-bot-packages §11): the adapter over
 // internal/spellbench/builtins.NewTactical (the scored seat-visible
 // heuristic behind SpellBench's sb-tactical arm) that rides the host's Env
@@ -11,7 +11,7 @@
 // answered through the plain Seat path, where the host projects exactly the
 // View a non-Env seat would get. The planner is INFERRED (builtins package
 // doc, 1) to be read at priority only; this package's test measures the
-// claim (BP-13), because a read at any other kind would consult a root
+// claim, because a read at any other kind would consult a root
 // built for an earlier decision.
 //
 // The adapter never sees the live engine: the host's Env carries only the
@@ -55,8 +55,8 @@ func init() {
 }
 
 // Hosted is the hosted configuration the registry entry serves: the tactical
-// weights exactly as SpellBench measured them (SB §3.4). botbench's
-// tactical-weights flags overlay this (BP-16), so the hosted default and the
+// weights exactly as SpellBench measured them. botbench's
+// tactical-weights flags overlay this, so the hosted default and the
 // bench's default arm stay one function.
 func Hosted() builtins.TacticalWeights { return builtins.DefaultTacticalWeights() }
 

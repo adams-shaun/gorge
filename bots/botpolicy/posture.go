@@ -37,7 +37,7 @@ func (s DeckShape) String() string {
 type PostureRules struct {
 	// Attack arms R2 (release the AR4 blocker) and R3 (sim life weights).
 	Attack bool
-	// Reserve arms R4 (scale the C7 reserve preference by shape).
+	// Reserve arms the reserve rule (scale the reserve preference by shape).
 	Reserve bool
 }
 
@@ -149,7 +149,7 @@ func (b Board) postureLifePcts() (own, opp int64) {
 	}
 }
 
-// reserveScale returns the C7 reserve scale for R4: aggro taps out, control
+// reserveScale returns the reserve scale: aggro taps out, control
 // doubles the preference, and Midrange (or an unarmed Board) is unchanged.
 func (b Board) reserveScale(w CastWeights) int32 {
 	if !b.Posture.Reserve {
