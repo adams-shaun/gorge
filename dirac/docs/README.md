@@ -4,7 +4,7 @@ Index for dirac, also called the kernel: a second 2-player Magic rules engine bu
 training, held to gorge by lockstep. Start with the front door, then pick the guide that matches the
 job.
 
-## The four guides
+## The guides
 
 | Doc | Read it when |
 |---|---|
@@ -12,6 +12,7 @@ job.
 | [`dirac/docs/cards.md`](cards.md) | You need to know how cards get into the kernel (`kgen`, binary tables), whether a card is supported, or how to add a card or mechanic. |
 | [`dirac/docs/verification.md`](verification.md) | You changed the kernel or oracle and need the lockstep, `kfuzz`, parity commands, CR coverage or how to follow a gorge change. |
 | [`dirac/docs/running.md`](running.md) | You want to run games or bots: `kfuzz`, the Go API, the SpellBench v2 engine and the benchmarks. |
+| [`dirac/docs/serving.md`](serving.md) | You want a server's tables to run on dirac: `gorged -engine dirac`, what it plays and what it refuses. |
 
 ## Deep reference
 
