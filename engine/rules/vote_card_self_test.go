@@ -18,6 +18,7 @@ package rules
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -283,5 +284,62 @@ func TestVoteCardOptionCarriesSubjectController(t *testing.T) {
 	}
 	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
 		t.Fatalf("a legal answer to the vote ask was rejected: %v", err)
+	}
+}
+
+// A face-down permanent on a card ballot stays nameless, on the ballot and in
+// the public "votes for" note: only its controller may see its name (CR 708.5).
+func TestCardVoteKeepsAFaceDownPermanentNameless(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := voteThreeSeatEngine(t, reg, []string{"Council's Judgment", "Ancient Brontodon"}, nil, nil)
+	addMana(t, e, 0, "CWW")
+	brontodon := miscMoveByName(t, e, 1, "Ancient Brontodon", state.ZHand)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: brontodon, From: state.ZHand, To: state.ZBattlefield,
+		Player: 1, Counter: events.FaceDownEntryCounter, Secret: true})
+	e.pending = nil
+	e.priorityRound()
+	submitChoices(t, e, miscCastOption(t, e, miscHandObj(t, e, 0, "Council's Judgment")))
+	miscPass(t, e)
+	mark := len(e.L.Events)
+	asked := 0
+	for len(e.G.Stack) > 0 {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision while draining Council's Judgment")
+		}
+		if d.Kind != decision.KChoose {
+			passUntilStackEmpty(t, e, 1)
+			continue
+		}
+		pick := -1
+		for _, o := range d.Options {
+			if o.Obj == brontodon {
+				pick = o.Index
+				if o.Label != "a face-down permanent" {
+					t.Fatalf("ballot label = %q", o.Label)
+				}
+			}
+		}
+		if pick < 0 {
+			t.Fatalf("the face-down permanent is not on the ballot: %+v", d.Options)
+		}
+		asked++
+		submitChoices(t, e, pick)
+	}
+	if asked == 0 {
+		t.Fatal("precondition: no vote was asked")
+	}
+	notes := 0
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Note && strings.HasPrefix(ev.Text, "votes for ") {
+			notes++
+			if ev.Text != "votes for a face-down permanent" {
+				t.Fatalf("public vote note = %q", ev.Text)
+			}
+		}
+	}
+	if notes == 0 {
+		t.Fatal("precondition: no vote note")
 	}
 }

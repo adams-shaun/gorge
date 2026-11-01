@@ -139,6 +139,9 @@ func TestStalePriorityOptionIsRejectedOrHeldOut(t *testing.T) {
 	for _, ev := range e.L.Events[mark:] {
 		if ev.Kind == events.Note && strings.HasPrefix(ev.Text, InertPriorityNotePrefix) && ev.Obj == bearID {
 			noted = true
+			if !ev.Secret || ev.Player != 0 {
+				t.Fatalf("the backstop Note names a hand card and must be the acting seat's alone: %+v", ev)
+			}
 		}
 	}
 	if !noted {

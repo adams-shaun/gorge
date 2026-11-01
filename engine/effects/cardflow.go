@@ -203,6 +203,15 @@ func objName(g *state.Game, id state.ObjID) string {
 	return "it"
 }
 
+// publicObjName is objName for text a seat other than the object's controller
+// reads: only its controller may see a face-down permanent's name (CR 708.5).
+func publicObjName(g *state.Game, id state.ObjID) string {
+	if o := g.Obj(id); o != nil && o.FaceDown {
+		return "a face-down permanent"
+	}
+	return objName(g, id)
+}
+
 // effDiscard moves cards from a player's hand to their graveyard. Which
 // cards, and who chooses, is driven by the corpus params that the real
 // discard spells use and that this primitive now reads:

@@ -198,7 +198,8 @@ func (e *Engine) inertPriorityBackstop(p state.PlayerID, opt decision.Option, ma
 			return
 		}
 	}
-	e.emit(events.Event{Kind: events.Note, Player: p, Obj: opt.Obj,
+	// Secret: the label can name a card in p's hand.
+	e.emit(events.Event{Kind: events.Note, Player: p, Obj: opt.Obj, Secret: true,
 		Text: InertPriorityNotePrefix + opt.Kind + " " + opt.Label})
 	if e.inertHeldOut == nil {
 		e.inertHeldOut = map[inertKey]bool{}
