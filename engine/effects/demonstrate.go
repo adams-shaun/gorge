@@ -115,7 +115,7 @@ func effDemonstrate(h Host, c *Ctx, sa *cards.SA) {
 	if len(opps) == 0 {
 		// No living opponent: the choice has no candidate, so only the
 		// caster's copy exists.
-		demonstrateCopies(h, c, spell, c.Controller, 0)
+		demonstrateCopies(h, c, spell, c.Controller)
 		return
 	}
 	if len(opps) == 1 {
@@ -134,14 +134,16 @@ func effDemonstrate(h Host, c *Ctx, sa *cards.SA) {
 			Player: p, Label: g.Players[p].Name})
 	}
 	if ans, ok := AskTape(h, d); ok {
-		// The opponent pick in hand.
-		var picked []state.Target
+		// The opponent pick in hand. An answer naming no player keeps only
+		// the caster's copy.
+		copiers := []state.PlayerID{c.Controller}
 		for _, o := range ans {
 			if o.Kind == "player" {
-				picked = append(picked, state.Target{Player: o.Player, IsPlayer: true})
+				copiers = append(copiers, o.Player)
+				break
 			}
 		}
-		demonstrateCopies(h, c, spell, c.Controller, demonstratePlayer(picked))
+		demonstrateCopies(h, c, spell, copiers...)
 		return
 	}
 
@@ -150,23 +152,11 @@ func effDemonstrate(h Host, c *Ctx, sa *cards.SA) {
 	demonstrateCopies(h, c, spell, c.Controller, opps[0])
 }
 
-// demonstrateCopies makes the copies, the caster's first: "players who copy
-// this spell may choose new targets for their copies" (CR 702.144a). An answer
-// naming no player keeps only the caster's copy.
-func demonstrateCopies(h Host, c *Ctx, spell state.ObjID, caster, opp state.PlayerID) {
-	emitCopy(h, c, false, events.Event{Kind: events.StackCopy, Obj: spell, Player: caster, Amount: 1}, nil)
-	if opp != 0 {
-		emitCopy(h, c, false, events.Event{Kind: events.StackCopy, Obj: spell, Player: opp, Amount: 1}, nil)
+// demonstrateCopies makes one copy per copier, in order, so the caster comes
+// first: "players who copy this spell may choose new targets for their copies"
+// (CR 702.144a).
+func demonstrateCopies(h Host, c *Ctx, spell state.ObjID, copiers ...state.PlayerID) {
+	for _, p := range copiers {
+		emitCopy(h, c, false, events.Event{Kind: events.StackCopy, Obj: spell, Player: p, Amount: 1}, nil)
 	}
-}
-
-// demonstratePlayer is the first player Target of an answered pick list
-// (the demonstrate opponent ask's answer), or 0.
-func demonstratePlayer(ts []state.Target) state.PlayerID {
-	for _, t := range ts {
-		if t.IsPlayer {
-			return t.Player
-		}
-	}
-	return 0
 }

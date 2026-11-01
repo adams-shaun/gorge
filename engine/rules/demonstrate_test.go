@@ -240,6 +240,61 @@ func TestDemonstrateSoleOpponentAsksNothing(t *testing.T) {
 	}
 }
 
+// TestDemonstrateCasterInSeatOneCopiesForSeatZero holds CR 702.144a's "choose
+// an opponent to also copy it" to seat 0 being an opponent like any other, both
+// as the sole opponent and as the one picked.
+func TestDemonstrateCasterInSeatOneCopiesForSeatZero(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	lecturer := searchCorpusCard(t, reg, "Silverquill Lecturer")
+	bear := searchCorpusCard(t, reg, "Grizzly Bears")
+	caster := []*cards.Card{lecturer, bear}
+	for _, tc := range []struct {
+		name   string
+		others [][]*cards.Card
+	}{
+		{"sole opponent", [][]*cards.Card{caster}},
+		{"picked opponent", [][]*cards.Card{caster, nil}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, _ := demonstrateEngine(t, reg, nil, tc.others...)
+			driveToStep(t, e, e.G.Turn+1, 1, state.StepMain1)
+			demonstrateMove(t, e, 1, "Silverquill Lecturer", state.ZBattlefield)
+			bearID := demonstrateMove(t, e, 1, "Grizzly Bears", state.ZHand)
+			addMana(t, e, 1, "GG")
+			castFixture(t, e, bearID, -1)
+
+			d := e.Pending()
+			if d == nil || d.ResumeKind != "demonstrate" || d.Player != 1 {
+				t.Fatalf("pending after the cast = %+v, want seat 1's demonstrate election", d)
+			}
+			submitChoices(t, e, d.Options[0].Index) // yes
+			if d = e.Pending(); d != nil && d.ResumeKind == "demonstrate" {
+				pick := -1
+				for _, o := range d.Options {
+					if o.Kind == "player" && o.Player == 0 {
+						pick = o.Index
+					}
+				}
+				if pick < 0 {
+					t.Fatalf("opponent ask %+v does not offer seat 0", d.Options)
+				}
+				submitChoices(t, e, pick)
+			}
+			if got := demonstrateStackCopies(e); got != 2 {
+				t.Fatalf("%d StackCopy events, want the caster's and seat 0's", got)
+			}
+			drainStack(t, e, 200)
+			toks0, _ := demonstrateBearsOnBattlefield(e, 0, "Grizzly Bears")
+			toks1, real1 := demonstrateBearsOnBattlefield(e, 1, "Grizzly Bears")
+			if toks0 != 1 || toks1 != 1 || real1 != 1 {
+				t.Fatalf("seat 0: %d tokens; seat 1: %d tokens %d real; want one token per seat and the original",
+					toks0, toks1, real1)
+			}
+		})
+	}
+}
+
 // TestPrintedDemonstrateCarrierOffersTheElection pins the printed expansion
 // (engine/cards/kw_demonstrate.go): Excavation Technique carries K:Demonstrate on
 // its face, the compiled face grows the SpellCast trigger, and casting it
