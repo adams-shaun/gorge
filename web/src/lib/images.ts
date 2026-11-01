@@ -162,6 +162,8 @@ export function createImages(src: Partial<ImageSource> = {}) {
   }
 
   function url(name: string, facts?: ImageFacts): Promise<string | null> {
+    // A face-down card has no name on the wire, so there is no art to ask for.
+    if (name === '') return Promise.resolve(null);
     // A token resolves through /art/token against namespaced cache keys: its
     // display name is NOT a card name, so sharing the plain-name key with a
     // same-named real card would let one entry poison the other.
