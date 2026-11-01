@@ -86,6 +86,25 @@ func PlanManaHalf(c Cost) Cost {
 	return c
 }
 
+// PlanManaUnderRider is the mana half a plan funds when the cast's may-play
+// grant relaxes its pips (MayPlayIgnoreColor$, MayPlayIgnoreType$): a pip the
+// rider lets any mana pay is generic to the plan. The real cast still spends
+// under the rider, so the witness only has to bring enough mana.
+func PlanManaUnderRider(c Cost, r PipRider) Cost {
+	slots := 0
+	switch {
+	case r.AnyType:
+		slots = len(c.Colored)
+	case r.AnyColor:
+		slots = len(c.Colored) - 1 // {C} stays: "any color" isn't colourless.
+	}
+	for i := 0; i < slots; i++ {
+		c.Generic += c.Colored[i]
+		c.Colored[i] = 0
+	}
+	return c
+}
+
 func PlanCostDetail(c Cost) string {
 	switch {
 	case c.X != 0 || c.XMin != 0:

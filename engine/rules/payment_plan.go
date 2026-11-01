@@ -147,6 +147,9 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	}
 	desc := pay.DescriptorFor(cast.Object, false, cost)
 	mana := pay.PlanManaHalf(cost)
+	if mayPlay {
+		mana = pay.PlanManaUnderRider(mana, asPayer(e).Eval().MayPlayRider(p, cast.Object))
+	}
 	if len(cost.Sac) == 0 && len(cost.TapPermanent) == 0 {
 		return pay.PlanPaymentCost(asPayer(e), p, cast, mana, &desc)
 	}
@@ -779,6 +782,9 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		}
 	}
 	cost := pay.PlanManaHalf(e.offerCostFor(p, cast.Object, pay.WithSpellAbilityExtras(e.G.Obj(cast.Object).Face(), settleBase), settleScope))
+	if o := e.G.Obj(cast.Object); o != nil && plannedMayPlayZone(o.Zone) && cast.Origin != decision.OriginFlashback {
+		cost = pay.PlanManaUnderRider(cost, asPayer(e).Eval().MayPlayRider(p, cast.Object))
+	}
 	payment, ok := resolveManaWith(cost, pool, state.Mana{}, [7]state.Mana{}, e.G.Players[p].Life, false, pipRider{}, nil)
 	expected := pay.Witness(cost, e.G.Players[p].Pool, produced, nil, payment.Pool)
 	if !ok || pay.ManaAmount(payment.Pool) != plan.PoolAfter || expected.PoolSpend != plan.PoolSpend {

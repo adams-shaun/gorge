@@ -247,6 +247,74 @@ func TestMayPlayGraveyardPlannedPaymentCompletesTheCast(t *testing.T) {
 	}
 }
 
+// mayPlayRiderBoard is seat 0's board for a may-play cast whose grant carries
+// rider: the grant, `mountains` Mountains, an empty pool, and the creature in
+// the graveyard. Mountains make only red, so a non-red pip is payable only
+// through the rider.
+func mayPlayRiderBoard(t *testing.T, rider, manaCost string, mountains int) (*Engine, state.ObjID) {
+	t.Helper()
+	e := mayPlayBase(t)
+	onBoardGrant(t, e, 0, "Name:Rider Grant\nManaCost:1\nTypes:Artifact\n"+
+		"S:Mode$ Continuous | Affected$ Creature.YouOwn | MayPlay$ True | "+rider+
+		"EffectZone$ Battlefield | AffectedZone$ Graveyard\nOracle:x\n")
+	for i := 0; i < mountains; i++ {
+		onBoard(t, e, 0, apMountain)
+	}
+	card := graveyardCard(t, e, "Name:Rider Creature\nManaCost:"+manaCost+"\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.pending = nil
+	e.askPriority(0)
+	return e, card
+}
+
+// "Mana of any type can be spent" (MayPlayIgnoreType$, Rakdos, the Muscle) is a
+// permission the plan reads too: {B}{B}{B}{B} from four Mountains gets a
+// one-click cast that taps them all and leaves the pool empty.
+func TestMayPlayAnyTypePlanPaysPipsNoSourceProduces(t *testing.T) {
+	e, creature := mayPlayRiderBoard(t, "MayPlayIgnoreType$ True | ", "B B B B", 4)
+	a, ok := mayPlayAction(e, creature)
+	if !ok {
+		t.Fatalf("no payment action for {B}{B}{B}{B} under the any-type rider")
+	}
+	submitPaymentPlan(t, e, e.Pending(), a)
+	if got := e.G.Obj(creature).Zone; got != state.ZStack {
+		t.Fatalf("creature in zone %v, want the stack", got)
+	}
+	if pool := e.G.Players[0].Pool; pool != (state.Mana{}) {
+		t.Fatalf("pool = %v after the plan, want empty", pool)
+	}
+}
+
+// The rider relaxes what mana pays, not how much: one source short is no plan,
+// and without the rider the same board has no black to spend.
+func TestMayPlayPlanStillNeedsTheManaAndTheRider(t *testing.T) {
+	e, creature := mayPlayRiderBoard(t, "MayPlayIgnoreType$ True | ", "B B B B", 3)
+	if _, ok := mayPlayAction(e, creature); ok {
+		t.Fatalf("payment action for four pips from three Mountains")
+	}
+	e, creature = mayPlayRiderBoard(t, "", "B B B B", 4)
+	if _, ok := mayPlayAction(e, creature); ok {
+		t.Fatalf("payment action for {B}{B}{B}{B} from Mountains with no rider")
+	}
+}
+
+// "Any color" (MayPlayIgnoreColor$) covers coloured pips and leaves {C} alone
+// (CR 106.1b: colourless isn't a colour).
+func TestMayPlayAnyColorPlanLeavesColorlessPips(t *testing.T) {
+	e, creature := mayPlayRiderBoard(t, "MayPlayIgnoreColor$ True | ", "B B", 2)
+	a, ok := mayPlayAction(e, creature)
+	if !ok {
+		t.Fatalf("no payment action for {B}{B} under the any-color rider")
+	}
+	submitPaymentPlan(t, e, e.Pending(), a)
+	if got := e.G.Obj(creature).Zone; got != state.ZStack {
+		t.Fatalf("creature in zone %v, want the stack", got)
+	}
+	e, creature = mayPlayRiderBoard(t, "MayPlayIgnoreColor$ True | ", "C C", 2)
+	if _, ok := mayPlayAction(e, creature); ok {
+		t.Fatalf("payment action for {C}{C} from Mountains under the any-color rider")
+	}
+}
+
 // The planned (Intent.Payment) route settles a may-play cast whose permission
 // adds a RaiseCost$ surcharge. ValidateCastPayment's witness settle must price
 // the same composed cost the planner and beginCast charge ({1}{R} + {1}, three

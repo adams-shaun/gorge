@@ -83,7 +83,7 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 	// A pure read: one zone-entry index serves every remaining step.
 	defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
 	plan := pc.Payment.Plan
-	cost := e.castPaymentMana(pc)
+	cost := pay.PlanManaUnderRider(e.castPaymentMana(pc), pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType})
 	if plan.Version != decision.PaymentPlanV1 || plan.Cost != pay.WireCost(cost) {
 		return paymentFallbackCostChanged, nil, pay.Alt{}, false
 	}
