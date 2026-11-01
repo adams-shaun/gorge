@@ -1781,6 +1781,10 @@ func (s *State) PendingTrigger(i int) (src Obj, card CardID, ability uint8, ctrl
 	return pt.obj, pt.card, pt.ab, pt.ctrl, s.occurrence(i)
 }
 
+// PendingOrdered is the pending triggers an answered ordering round has yet to push,
+// in pick order, by PendingTrigger index.
+func (s *State) PendingOrdered() []uint8 { return s.ordList[:s.orderPlace] }
+
 // spellAddCost is card c's additional cost: its spell ability's cost
 // (instants, sorceries, Auras) or CardDef.SpellCost (other permanents).
 func spellAddCost(k *prep, c CardID) *kop.Cost {

@@ -466,13 +466,16 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 
 // enchantingCard is the card of the Aura the pending enchant ask is for:
 // the returning card (OpReturnEx) or the pending token copy.
-func (s *State) enchantingCard(k *prep) CardID {
+func (s *State) enchantingCard(k *prep) CardID { return s.objs[s.enchantingObj(k)].card }
+
+// enchantingObj is the Aura an enchant ask is about.
+func (s *State) enchantingObj(k *prep) Obj {
 	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpReturnEx || in.Op == kop.OpReturn {
-		return s.objs[s.objRefObj(in.Obj)].card
+		return s.objRefObj(in.Obj)
 	} else if in.Op == kop.OpChooseMove {
-		return s.objs[s.resArm().look[0]].card // the hand move's parked Aura (handAuraEnter)
+		return s.resArm().look[0] // the hand move's parked Aura (handAuraEnter)
 	}
-	return s.objs[s.res.lastTok].card
+	return s.res.lastTok
 }
 
 // autoPayPick pays the pending pick at once when its candidates are

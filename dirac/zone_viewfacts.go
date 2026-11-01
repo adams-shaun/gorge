@@ -28,11 +28,16 @@ func (s *State) FeatTargetBounds() (lo, hi int, ok bool) {
 	return int(s.g.mt.min), int(s.g.mt.max), true
 }
 
-// FeatEnterSource is the permanent an as-enters choice or an entering replacement's
-// order is being asked for.
+// FeatEnterSource is the object an ask is about, when it is not the resolving one: a
+// permanent's as-enters choice or entering replacements' order, what an entering Aura
+// will enchant, or the replacements' order for a move.
 func (s *State) FeatEnterSource() Obj {
 	resolving := s.ctl == ctlResolve
 	switch {
+	case s.ctl == ctlExileOrder:
+		return s.cold.parked[0].obj
+	case resolving && s.res.ask == raGenEnchant:
+		return s.enchantingObj(s.k())
 	case s.g.pre.state == 1 || resolving && (s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice):
 		return s.g.pre.obj
 	case resolving && s.res.ask == raGenEntryOrder || s.ctl == ctlGenAsk && s.entryAsked(s.k()):
@@ -61,9 +66,6 @@ func (s *State) FeatHandCost(p uint8, o Obj) (kop.ManaCost, bool) {
 	s.g.noTgtRed = was
 	return got, got != cost
 }
-
-// DebugStall stops the game at a declared limit, the way a full pool does.
-func (s *State) DebugStall(why uint8) { s.capFull(why) }
 
 // FeatResolving reports whether the pending decision is asked inside a resolution.
 func (s *State) FeatResolving() bool {

@@ -241,15 +241,14 @@ func (s *State) payCostEvidence(k *prep) {
 	}
 }
 
-// unpushEvidence takes the reversed activation off the stack and gives back
+// unpushActivation takes the reversed activation off the stack and gives back
 // the activation count its push took (CR 733.1; gorge ActivationReversed).
 //
 //go:noinline
-func (s *State) unpushEvidence() {
+func (s *State) unpushActivation() {
 	e := &s.bld().e
 	s.sp--
 	s.bld().bfl &^= bflPushed
-	s.g.evSel = 0
 	if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.activations() > 0 {
 		s.touch(e.obj)
 		ob.acts--
