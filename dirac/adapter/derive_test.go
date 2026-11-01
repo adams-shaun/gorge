@@ -184,7 +184,7 @@ func TestReplayRefusesAnotherKey(t *testing.T) {
 	g := played(t, e, c)
 	c.Key = "another"
 	_, err := e.Replay(g.Log(), c)
-	if err == nil || !strings.Contains(err.Error(), "tables or adapter changed") {
+	if !errors.Is(err, ErrTablesMoved) {
 		t.Fatalf("a recording of other tables: %v", err)
 	}
 	c.Key = g.EngineKey()
