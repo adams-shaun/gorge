@@ -132,6 +132,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 		e.recordedBoardFacts(rec, &lw.actionStatics, p)
 	}
 	board := lw.boardFacts()
+	restricted := false
 	for {
 		progressed := false
 		for zi, id := range zone {
@@ -195,6 +196,9 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 					e.manaAbilityPayablePool(p, id, ma, &others) {
 					admitted[k] = true
 					admittedAny = true
+					if effects.ManaOf(ma).RestrictValid != "" {
+						restricted = true
+					}
 					// A payment's bound reads a Chosen source's colour.
 					if payment == nil || !addPotentialChosenColour(e, &out, id, ma) {
 						if !addPotentialReflected(e, &out, p, id, ma) {
@@ -217,7 +221,22 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 	}
 	clear(flat)
 	e.hypPool().pm = potentialManaScratch{members: flat[:0], admitted: admitted[:0], spans: spans[:0], own: own[:0]}
+	if payment == nil {
+		e.potentialRestricted = restricted
+	}
 	return out
+}
+
+// potentialPoolFor is the hypothetical bound a payment may be priced against:
+// hyp itself while no restricted mana ability fed the bound, else the bound
+// rebuilt admitting only the restricted mana whose RestrictValid$ this
+// payment satisfies (CR 106.6), so an Orb of Dragonkind's mana funds a
+// Dragon's ability as a potential action and never an Equip.
+func (e *Engine) potentialPoolFor(p state.PlayerID, d paymentDescriptor, hyp state.Mana) state.Mana {
+	if !e.potentialRestricted {
+		return hyp
+	}
+	return e.potentialManaFor(p, &d)
 }
 
 // potentialRestrictionAdmits reports whether mana ability ma of source id

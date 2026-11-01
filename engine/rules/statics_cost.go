@@ -105,7 +105,7 @@ func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c
 	case hyp != nil:
 		// A hypothetical bound is a pure mana bound (see costPayablePool),
 		// so its typed partition is the raw tally.
-		pool, typed = *hyp, pl.ManaUnits()
+		pool, typed = e.potentialPoolFor(p, desc.Priced(c), *hyp), pl.ManaUnits()
 	case len(pl.RestrictedMana) == 0:
 		pool, typed = pl.Pool, pl.ManaUnits()
 	default:
