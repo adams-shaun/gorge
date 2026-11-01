@@ -173,6 +173,7 @@ func (e *Engine) New(c game.Config) (game.Game, error) {
 	g.s.Init(tbl, decks[0], decks[1], c.Seed, e.config(c))
 	g.s.Project(&g.kp)
 	g.ids.sync(&g.kp)
+	g.kp.Turn = 0 // so the log opens with the first turn, which the view's round anchors on
 	g.settle()
 	return g, nil
 }

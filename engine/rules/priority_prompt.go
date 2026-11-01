@@ -1,9 +1,9 @@
 package rules
 
 import (
-	"strconv"
 	"sync/atomic"
 
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -31,23 +31,15 @@ var priorityPromptTable [promptTurns * promptSteps * promptSeats]atomic.Pointer[
 // priorityPrompt is the priority decision's Prompt for p.
 func (e *Engine) priorityPrompt(p state.PlayerID) string {
 	turn, step := e.G.Turn, e.G.Step
-	name := seatFacingName(e.G, p)
+	name := e.G.SeatFacingName(p)
 	if turn < 0 || turn >= promptTurns || int(step) >= promptSteps || int(p) >= promptSeats {
-		return priorityPromptText(turn, step, name)
+		return decision.PriorityPrompt(turn, step, name)
 	}
 	slot := &priorityPromptTable[(int(turn)*promptSteps+int(step))*promptSeats+int(p)]
 	if en := slot.Load(); en != nil && en.name == name {
 		return en.s
 	}
-	s := priorityPromptText(turn, step, name)
+	s := decision.PriorityPrompt(turn, step, name)
 	slot.Store(&priorityPromptEntry{name: name, s: s})
 	return s
-}
-
-func priorityPromptText(turn int32, step state.Step, name string) string {
-	verb := " has priority"
-	if name == "You" {
-		verb = " have priority"
-	}
-	return "turn " + strconv.Itoa(int(turn)) + ", " + step.String() + " — " + name + verb
 }

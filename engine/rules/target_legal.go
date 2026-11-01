@@ -597,7 +597,7 @@ func (e *Engine) targetName(source state.ObjID) string { return pay.TargetName(e
 func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
 	// The controller's name is seat-facing (the seat that answers sees it),
 	// so it prefers the table's display name over the deck-identity slug.
-	label := seatFacingName(e.G, candidate.player)
+	label := e.G.SeatFacingName(candidate.player)
 	if candidate.obj != 0 {
 		label = e.targetName(candidate.obj) + " (" + label + ")"
 	}

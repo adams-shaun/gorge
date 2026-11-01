@@ -220,7 +220,7 @@ func (e *Engine) askKeepMulligan(i int) {
 	// the toss winner AliveFrom(start) begins with), so the decision is
 	// made knowing play/draw without opening the transcript.
 	e.ask(decision.New(p, decision.KMulligan,
-		keepMulliganPrompt(seatFacingName(e.G, m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
+		keepMulliganPrompt(e.G.SeatFacingName(m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
 }
 
 // askBottoming offers seat i a bottoming decision over its kept hand: one

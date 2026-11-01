@@ -21,16 +21,19 @@ const nativeMatch = "/api/tables/" + tableName + "/matches/1"
 
 // Native is the HTTP API a browser plays through: a host table in process with
 // every seat a HumanSeat answered through /intent, and an omniscient spectator.
-type Native struct{}
+type Native struct {
+	// OfferedOnly moves a seat's PotentialActions from a frame's Answers to Unplanned.
+	OfferedOnly bool
+}
 
 func (Native) Name() string { return "native" }
 
 // Open starts c on e.
-func (Native) Open(t testing.TB, e game.Engine, c game.Config) Session {
+func (n Native) Open(t testing.TB, e game.Engine, c game.Config) Session {
 	t.Helper()
 	seats := len(c.Decks)
 	r := startTable(t, "native", e, c)
-	s := &nativeSession{t: t, spectator: httpapi.NewHandler(r, httpapi.Options{})}
+	s := &nativeSession{t: t, spectator: httpapi.NewHandler(r, httpapi.Options{}), offeredOnly: n.OfferedOnly}
 	for i := range seats {
 		s.seats = append(s.seats, httpapi.NewHandler(r, httpapi.Options{
 			Seat: func(*http.Request) (httpapi.SeatClaim, bool) {
@@ -47,11 +50,13 @@ type nativeSession struct {
 	spectator http.Handler
 	pending   *decision.Decision // what the last poll found; nil at the end of the game
 	names     *objectNames       // the last frame's renaming
+
+	offeredOnly bool
 }
 
 func (s *nativeSession) Next() (Frame, bool) {
 	s.t.Helper()
-	raw := nativeRaw{}
+	raw := nativeRaw{OfferedOnly: s.offeredOnly}
 	s.pending, raw.Pending = s.poll()
 	for i := range s.seats {
 		raw.Seats = append(raw.Seats, s.get(s.seats[i], fmt.Sprintf("%s/view?seat=%d", nativeMatch, i)))

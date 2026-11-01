@@ -97,7 +97,7 @@ func (e *Engine) divisionDecision(player state.PlayerID, source state.ObjID, tar
 		opt := decision.Option{Index: i, Kind: "divide"}
 		if t.IsPlayer {
 			opt.Player = t.Player
-			opt.Label = seatFacingName(e.G, t.Player)
+			opt.Label = e.G.SeatFacingName(t.Player)
 		} else {
 			opt.Obj = t.Obj
 			opt.Label = e.targetName(t.Obj)

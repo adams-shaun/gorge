@@ -79,3 +79,14 @@ func (s *State) FeatLifeThisTurn(p uint8) (gained, lost int32) {
 
 // ObjVer counts object o's zone changes (CR 400.7). It wraps at 256.
 func (s *State) ObjVer(o Obj) uint8 { return s.objs[o].ver }
+
+// FeatDivision is the pending damage division: the blockers in block order, and how
+// much the attacker divides among them. SplitAt reads an option's split from these.
+func (s *State) FeatDivision(out *[MaxPerm]Obj) (n, damage int) {
+	var bl [MaxPerm]Slot
+	n = s.liveBlockers(s.divA, &bl)
+	for i := range n {
+		out[i] = s.perms[bl[i]].obj
+	}
+	return n, int(s.divRem)
+}

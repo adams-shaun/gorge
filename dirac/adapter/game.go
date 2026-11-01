@@ -21,7 +21,7 @@ var (
 )
 
 // adapterVersion moves when the log or decisions a table derives change.
-const adapterVersion = "1"
+const adapterVersion = "2"
 
 // turnTally is what a seat did this turn that the view counts.
 type turnTally struct{ spells, tokens int32 }
@@ -166,6 +166,9 @@ func (g *Game) settle() {
 		g.pose()
 	}
 	g.materialise()
+	if g.pend != nil && g.pend.Kind == decision.KPriority {
+		g.pend.Prompt = decision.PriorityPrompt(g.board.g.Turn, g.board.g.Step, g.board.g.SeatFacingName(g.pend.Player))
+	}
 	g.logSettled()
 }
 

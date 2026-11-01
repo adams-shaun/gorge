@@ -824,7 +824,7 @@ func (e *Engine) continueCumulativeAction() {
 				continue
 			}
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "cumulative_action_life",
-				Player: p, Label: seatFacingName(e.G, p)})
+				Player: p, Label: e.G.SeatFacingName(p)})
 		}
 		windowAsk(e, d, chooseCumulative)
 	case continueCumulativeActionPutCardToLibFromSameGrave:
@@ -844,7 +844,7 @@ func (e *Engine) continueCumulativeAction() {
 			Prompt: "Choose a graveyard", Source: cu.source}
 		for _, p := range owners {
 			label := "Your graveyard"
-			if name := seatFacingName(e.G, p); name != "You" {
+			if name := e.G.SeatFacingName(p); name != "You" {
 				label = name + "'s graveyard"
 			}
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "cumulative_action_grave",

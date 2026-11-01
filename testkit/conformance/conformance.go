@@ -37,6 +37,9 @@ type Frame struct {
 	Key     string         // which decision this is
 	Answers []string       // sorted ids of the answers on offer
 	State   map[string]any // the wire's state, by viewer
+	// Unplanned are plays this engine lists but can answer only through manual mana:
+	// not on offer here, and not a difference if the other engine offers one.
+	Unplanned []string
 }
 
 // Picker chooses the answer both sessions are sent. It is called with the
@@ -88,6 +91,7 @@ func Run(t testing.TB, w Wire, a, b game.Engine, c game.Config, pick Picker) *Di
 	for n := 0; ; n++ {
 		fa, moreA := sa.Next()
 		fb, moreB := sb.Next()
+		fa.Answers, fb.Answers = without(fa.Answers, fb.Unplanned), without(fb.Answers, fa.Unplanned)
 		diff := func(path string, va, vb any) *Diff {
 			return &Diff{Wire: w.Name(), Seed: c.Seed, Frame: n, Key: fa.Key, Path: path, A: va, B: vb}
 		}
@@ -115,6 +119,13 @@ func Run(t testing.TB, w Wire, a, b game.Engine, c game.Config, pick Picker) *Di
 			offered.Answers = slices.DeleteFunc(slices.Clone(offered.Answers), func(s string) bool { return s == key })
 		}
 	}
+}
+
+func without(answers, drop []string) []string {
+	if len(drop) == 0 {
+		return answers
+	}
+	return slices.DeleteFunc(slices.Clone(answers), func(s string) bool { return slices.Contains(drop, s) })
 }
 
 func errText(err error) string {

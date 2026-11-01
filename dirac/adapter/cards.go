@@ -49,8 +49,8 @@ func (g *Game) cardName(o uint8) string {
 		return "object"
 	}
 	c := g.kp.Objs[o].Card
-	if int(c) >= len(g.tr.GName) {
-		return "object"
+	if int(c) >= len(g.tr.GName) || g.tr.GName[c] == "" {
+		return g.tbl.Cards[c].Name
 	}
 	return strings.TrimPrefix(g.tr.GName[c], "name:")
 }

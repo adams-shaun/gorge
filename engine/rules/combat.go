@@ -178,7 +178,7 @@ func (e *Engine) askAttackers() {
 	// declaration check uses.
 	groupLimits := map[string]int{}
 	for _, of := range offers {
-		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + seatFacingName(e.G, of.def)
+		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + e.G.SeatFacingName(of.def)
 		if of.battle != 0 {
 			if b := e.G.Obj(of.battle); b != nil && b.Face() != nil {
 				if b.Face().IsBattle() {

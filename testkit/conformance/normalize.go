@@ -17,6 +17,9 @@ type nativeRaw struct {
 	Seats     [][]byte // GET view?seat=i, per seat
 	Spectator []byte   // GET view
 	Pending   []byte   // GET pending of the seat asked; nil at the end of the game
+	// OfferedOnly moves a seat's PotentialActions from Answers to Unplanned: gorge also
+	// lists there a cast its planner cannot pay for.
+	OfferedOnly bool
 }
 
 // noSelection is the id of an answer that chooses no options.
@@ -92,7 +95,8 @@ func normaliseNative(raw nativeRaw) (Frame, *objectNames, error) {
 		return Frame{}, nil, fmt.Errorf("%s decision has no prompt", d.Kind)
 	}
 	for _, o := range d.Options {
-		if o.Label == "" {
+		// An option naming an object shows that object.
+		if o.Label == "" && o.Obj == 0 {
 			return Frame{}, nil, fmt.Errorf("%s decision: option %d (%s) has no label", d.Kind, o.Index, o.Kind)
 		}
 	}
@@ -109,7 +113,20 @@ func normaliseNative(raw nativeRaw) (Frame, *objectNames, error) {
 	if err := json.Unmarshal(raw.Seats[d.Player], &asked); err != nil {
 		return Frame{}, nil, fmt.Errorf("seat %d view: %w", d.Player, err)
 	}
-	if f.Answers, err = playKeys(&d, asked.Players[d.Player].Potential, names); err != nil {
+	potential := asked.Players[d.Player].Potential
+	if raw.OfferedOnly {
+		offered, err := playKeys(&d, nil, names)
+		if err != nil {
+			return Frame{}, nil, err
+		}
+		listed, err := playKeys(&d, potential, names)
+		if err != nil {
+			return Frame{}, nil, err
+		}
+		f.Unplanned = without(listed, offered)
+		potential = nil
+	}
+	if f.Answers, err = playKeys(&d, potential, names); err != nil {
 		return Frame{}, nil, err
 	}
 	askedView := views[d.Player]

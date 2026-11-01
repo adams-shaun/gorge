@@ -280,6 +280,7 @@ func (g *Game) poseAsk() {
 		g.fillTargetEffect(d)
 	case canon.DModes:
 		d.Kind, d.Prompt = decision.KModes, "Choose"
+		g.labelModes(d)
 		if unlessPay {
 			d.ResumeKind, d.ResumeSA, d.Prompt = "unless_pay", unlessSA, "Pay the cost, or decline"
 		}
@@ -551,14 +552,20 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	case "x", "number", "altaddcost":
 		o.Amount = int(c.Mode())
 		o.Label = strconv.Itoa(o.Amount)
+	case "division":
+		g.labelDivision(&o, c.Mode())
+	case "primary":
+		o.Label, o.Player = "top", 0
+	case "bottom":
+		o.Player = 0
 	case "mana":
 		if int(c.Mode()) < len(canon.ManaSyms) {
 			o.ManaSymbol = canon.ManaSyms[c.Mode() : c.Mode()+1]
 			o.Label = o.ManaSymbol
 		}
 	case "color":
-		if int(c.Mode()) < len(canon.ManaSyms) {
-			o.Label = canon.ManaSyms[c.Mode() : c.Mode()+1]
+		if int(c.Mode()) < len(colorNames) {
+			o.Label = colorNames[c.Mode()]
 		}
 	case "pay":
 		o.Kind = "pay_" + [8]string{"W", "U", "B", "R", "G", "C", "generic", "life"}[c.Mode()&7]
@@ -572,6 +579,25 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 		}
 	}
 	return o, g.chooseKey(x)
+}
+
+// colorNames words a colour choice, in canon.ManaSyms' order.
+var colorNames = [...]string{"White", "Blue", "Black", "Red", "Green"}
+
+// labelDivision says how split number i divides the attacker's damage. Amount is the
+// first blocker's share, as on gorge.
+func (g *Game) labelDivision(o *decision.Option, i uint8) {
+	var blockers [dirac.MaxPerm]dirac.Obj
+	var split [dirac.MaxPerm]uint8
+	n, damage := g.s.FeatDivision(&blockers)
+	dirac.SplitAt(damage, n, int(i), split[:])
+	o.Amount = int(split[0])
+	for j := range n {
+		if j > 0 {
+			o.Label += ","
+		}
+		o.Label += strconv.Itoa(int(split[j])) + " to " + g.cardName(uint8(blockers[j]))
+	}
 }
 
 // stackPos is where spell object o sits on the stack.
@@ -655,19 +681,49 @@ func (g *Game) fillTargetEffect(d *decision.Decision) {
 	abs := g.tbl.Cards
 	valid := int(card) < len(abs) && int(ab) < len(abs[card].Abilities)
 	activated := valid && (abs[card].Abilities[ab].Kind == kop.AbActivated || abs[card].Abilities[ab].Kind == kop.AbMana)
-	var sa *cards.SA
-	if valid && abs[card].Abilities[ab].Kind == kop.AbSpell || ab == 255 {
-		sa = g.faceSA(card, 255)
-	} else if g.tr.Origin != nil {
-		if gi, ok := g.tr.Origin(card, ab); ok {
-			sa = g.faceSA(card, gi)
-		}
-	}
+	sa := g.buildingSA(card, ab)
 	g.chooseTargetEffect(d, card, sa)
 	// gorge's cast-time ask names no source for an activated ability, whose object
 	// is not yet minted, an Attach excepted
 	if activated && (d.TargetEffect == nil || d.TargetEffect.API != "Attach") {
 		d.Source = 0
+	}
+}
+
+// buildingSA is the spell ability a cast or activation under way runs.
+func (g *Game) buildingSA(card dirac.CardID, ab uint8) *cards.SA {
+	abs := g.tbl.Cards
+	if int(card) < len(abs) && int(ab) < len(abs[card].Abilities) && abs[card].Abilities[ab].Kind == kop.AbSpell || ab == 255 {
+		return g.faceSA(card, 255)
+	}
+	if g.tr.Origin != nil {
+		if gi, ok := g.tr.Origin(card, ab); ok {
+			return g.faceSA(card, gi)
+		}
+	}
+	return nil
+}
+
+// labelModes words a modal ability's options from its Choices$, as gorge does.
+func (g *Game) labelModes(d *decision.Decision) {
+	var sa *cards.SA
+	card, ab, _, building := g.s.Building()
+	if building {
+		sa = g.buildingSA(card, ab)
+	} else if top := int(g.kp.NStack) - 1; top >= 0 {
+		card, sa = g.kp.Stack[top].Card, g.stackSA(&g.kp.Stack[top])
+	}
+	f := g.face(card)
+	if sa == nil || f == nil || sa.API != "Charm" {
+		return
+	}
+	choices := strings.Split(sa.Params["Choices"], ",")
+	for i := range d.Options {
+		o := &d.Options[i]
+		if m := int(g.canons[i].Mode()); o.Kind == "mode" && m < len(choices) {
+			name := strings.TrimSpace(choices[m])
+			o.Label = effects.CharmModeLabel(cards.ResolveSVar(f.SVars, name), name)
+		}
 	}
 }
 
