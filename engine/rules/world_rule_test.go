@@ -7,8 +7,8 @@
 // it is an automatic SBA (engine/rules/sba.go worldRule) and the survivor is the most
 // recently entered (largest Object.Timestamp) permanent.
 //
-// The rule is no per-controller controller choice like the legend rule's twin:
-// the CR text flatly contradicts that. These tests pin the CR text.
+// The rule is not a per-controller choice like the legend rule: the CR text
+// flatly contradicts that. These tests pin the CR text.
 package rules
 
 import (
