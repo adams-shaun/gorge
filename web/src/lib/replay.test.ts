@@ -72,13 +72,13 @@ describe('replay query', () => {
     expect(parseReplayQuery('?seq=-4&turn=0&unit=frame&speed=3')).toEqual({});
   });
 
-  it('resolves seq, then intent, then turn (a round, as the phase bar shows it)', () => {
+  it('resolves seq, then intent, then turn', () => {
     const d = game(39);
     expect(resolveStart({ seq: 500 }, d, 2)).toBe(39);
     expect(resolveStart({ seq: 4, intent: 2 }, d, 2)).toBe(4);
     expect(resolveStart({ intent: 2 }, d, 2)).toBe(25);
     expect(resolveStart({ intent: 99 }, d, 2)).toBe(39);
-    expect(resolveStart({ turn: 2 }, d, 2)).toBe(22);
+    expect(resolveStart({ turn: 2 }, d, 2)).toBe(12);
     expect(resolveStart({ turn: 9 }, d, 2)).toBe(39);
     expect(resolveStart({}, d, 2)).toBeNull();
   });

@@ -481,7 +481,7 @@
   /**
    * applyReplayQuery positions a finished replay from its URL: ?seq= (or
    * ?event=), ?intent= (the board with that intent pending, as `repro -at N`
-   * prints it), or ?turn= (the round the phase bar calls "Turn N"); plus
+   * prints it), or ?turn= (the "Turn N" the board shows); plus
    * ?unit=, ?speed= and ?play=1.
    */
   function applyReplayQuery(fm: MatchState) {

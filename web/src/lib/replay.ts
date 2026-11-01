@@ -67,8 +67,8 @@ export interface TurnBand {
 /**
  * turnBands draws the timeline: one band per engine turn, from its 'turn'
  * event to the next (the last runs to head). The active player comes from the
- * turn event; the round, which the phase bar labels "Turn N", is derived
- * from the turn number and the seat count (an extra turn shifts it, the
+ * turn event; the round, which spaces the timeline's labels, is derived
+  * from the turn number and the seat count (an extra turn shifts it, the
  * same approximation the client's snapshot path already uses).
  */
 export function turnBands(dvr: DvrState, seats: number): TurnBand[] {
@@ -101,7 +101,7 @@ export function bandAt(bands: readonly TurnBand[], seq: number): TurnBand | null
 /** The replay position and playback settings a URL query carries. */
 export interface ReplayQuery {
   seq?: number;
-  /** turn is the round the phase bar shows as "Turn N" (1-based). */
+  /** turn is the "Turn N" the board shows (1-based). */
   turn?: number;
   /** intent N is the board with intent N pending — the same point `repro -at N` prints. */
   intent?: number;
@@ -147,7 +147,7 @@ export function resolveStart(q: ReplayQuery, dvr: DvrState, seats: number): numb
     return asks[q.intent] ?? dvr.head;
   }
   if (q.turn !== undefined) {
-    const band = turnBands(dvr, seats).find((b) => b.round >= q.turn!);
+    const band = turnBands(dvr, seats).find((b) => b.turn >= q.turn!);
     return band ? band.start : dvr.head;
   }
   return null;

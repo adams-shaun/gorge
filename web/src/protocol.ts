@@ -1652,9 +1652,9 @@ export interface View {
    * players still alive, folded over the ordered event stream (RoundOf) by
    * host, which has the log in hand when it builds this view; a caller with
    * only a snapshot gets the roundOf approximation instead. Both Turn and
-   * Round are sent because the raw engine counter is what the transcript
-   * ("Turn N: <player>") refers to, and the round is what the board's
-   * clock shows.
+   * Round are sent because the raw engine counter is what the client and the
+   * transcript ("Turn N: <player>") show, and the round says how far around
+   * the table the game has come.
    */
   turn: number;
   round: number;

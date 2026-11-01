@@ -117,7 +117,7 @@
     title="Drag to share height between the boards; double-click resets"
     onkeydown={key}
   ></span>
-  <span class="turn" data-turn-label>Turn <b>{view.round}</b><small>{whose}</small></span>
+  <span class="turn" data-turn-label>Turn <b>{view.turn || 1}</b><small>{whose}</small></span>
   <div class="track" data-centre-instrument>
     <PhaseTrack {view} {seats} {seat} {stops} {onToggle} clock={false} />
   </div>

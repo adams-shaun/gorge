@@ -2979,7 +2979,7 @@ components:
         step:
           type: "string"
         turn:
-          description: "Turn is the engine's per-player-turn counter (TurnChange events). It increments once per seat's turn, so a four-seat table reads \"Turn 22\" after five and a half rounds. Round is the exact round-trip count of the players still alive, folded over the ordered event stream (RoundOf) by host, which has the log in hand when it builds this view; a caller with only a snapshot gets the roundOf approximation instead. Both Turn and Round are sent because the raw engine counter is what the transcript (\"Turn N: \u003cplayer\u003e\") refers to, and the round is what the board's clock shows."
+          description: "Turn is the engine's per-player-turn counter (TurnChange events). It increments once per seat's turn, so a four-seat table reads \"Turn 22\" after five and a half rounds. Round is the exact round-trip count of the players still alive, folded over the ordered event stream (RoundOf) by host, which has the log in hand when it builds this view; a caller with only a snapshot gets the roundOf approximation instead. Both Turn and Round are sent because the raw engine counter is what the client and the transcript (\"Turn N: \u003cplayer\u003e\") show, and the round says how far around the table the game has come."
           format: "int32"
           type: "integer"
         viewer:

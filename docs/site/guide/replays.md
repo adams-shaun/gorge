@@ -247,11 +247,11 @@ From left to right:
 - **Play and step.** The outer buttons jump a whole turn back or forward.
   The inner ones step one unit, and the round button plays and pauses.
   Pressing play at the end of the game starts it again from the beginning.
-- **Turn and active player.** The turn number is the round, the same "Turn
-  N" the phase bar shows, so in a two-player game turn 3 holds each
-  player's third turn. Before the first turn it reads *Setup*.
+- **Turn and active player.** The turn number counts every player's turn, the
+  same "Turn N" the table and the log show, so in a two-player game turn 3 is
+  the first player's second turn. Before the first turn it reads *Setup*.
 - **Timeline.** One band per turn, tinted with the active player's colour,
-  with the round number under each round's first turn. Click or drag to
+  with the turn number under each round's first turn. Click or drag to
   move, and hover to see the turn and the event under the pointer. On a
   review server, ticks mark the decisions worth a look: green where a bot
   overrode its own heuristic, ember where a fallback answered. Hover a tick

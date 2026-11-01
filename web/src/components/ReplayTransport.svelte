@@ -196,7 +196,7 @@
   </div>
 
   <div class="where" aria-live="polite">
-    <span class="turn">{here ? `Turn ${here.round}` : 'Setup'}</span>
+    <span class="turn">{here ? `Turn ${here.turn}` : 'Setup'}</span>
     {#if here && here.player !== null}
       <span class="who" style:--seat={seatColour(here.player, seats)}>{seatName(here.player)}</span>
     {/if}
@@ -211,7 +211,7 @@
     aria-valuemin={0}
     aria-valuemax={dvr.head}
     aria-valuenow={dvr.cursor}
-    aria-valuetext={`${here ? `Turn ${here.round}, ${seatName(here.player)}` : 'Setup'}, event ${dvr.cursor} of ${dvr.head}`}
+    aria-valuetext={`${here ? `Turn ${here.turn}, ${seatName(here.player)}` : 'Setup'}, event ${dvr.cursor} of ${dvr.head}`}
     onpointerdown={onPointerDown}
     onpointermove={onPointerMove}
     onpointerleave={() => (hover = null)}
@@ -240,13 +240,13 @@
     <div class="rounds" aria-hidden="true">
       {#each bands as b (b.start)}
         {#if (b.turn - 1) % Math.max(1, seats.length) === 0 && (b.round === 1 || b.round % labelEvery === 0)}
-          <span style:left={pct(b.start)}>{b.round}</span>
+          <span style:left={pct(b.start)}>{b.turn}</span>
         {/if}
       {/each}
     </div>
     {#if hover}
       <div class="tip" style:left={`${hover.x}px`} aria-hidden="true">
-        {#if hover.mark}<span class="tip-mark tip-{hover.mark.kind}">{hover.mark.tip}</span>{:else}{hoverBand ? `Turn ${hoverBand.round}, ${seatName(hoverBand.player)}` : 'Setup'} <span class="tip-seq">event {hover.seq}</span>{/if}
+        {#if hover.mark}<span class="tip-mark tip-{hover.mark.kind}">{hover.mark.tip}</span>{:else}{hoverBand ? `Turn ${hoverBand.turn}, ${seatName(hoverBand.player)}` : 'Setup'} <span class="tip-seq">event {hover.seq}</span>{/if}
       </div>
     {/if}
   </div>
