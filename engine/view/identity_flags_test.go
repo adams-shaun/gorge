@@ -107,6 +107,11 @@ func (faceDownChars) Power(state.ObjID) int32       { return 3 }
 func (faceDownChars) Toughness(state.ObjID) int32   { return 2 }
 func (faceDownChars) Keywords(state.ObjID) []string { return []string{"Ward:2"} }
 
+// landedChars derives every object as a Forest land, as a layer-4 effect would.
+type landedChars struct{ faceDownChars }
+
+func (landedChars) ViewTypes(state.ObjID) ([]string, bool) { return []string{"Land", "Forest"}, true }
+
 // TestFaceDownPermanentKeepsItsPublicState: CR 708.2 makes a face-down
 // permanent's characteristics public, and its state on the battlefield is public
 // like any permanent's. A viewer who may not look reads all of it and no printed
@@ -127,8 +132,14 @@ func TestFaceDownPermanentKeepsItsPublicState(t *testing.T) {
 	g.SetZone(state.ZBattlefield, 1, []state.ObjID{fd.ID})
 
 	cv := Project(g, faceDownChars{flatChars{g}}, 0, nil).Players[1].Battlefield[0]
-	if !cv.FaceDown || cv.Name != "" || cv.Types != "" || cv.ManaCost != "" || cv.PrintedPT != "" {
+	if !cv.FaceDown || cv.Name != "" || cv.ManaCost != "" || cv.PrintedPT != "" {
 		t.Fatalf("a printed fact survived: %+v", cv)
+	}
+	if cv.Types != "Creature" {
+		t.Fatalf("types = %q, want the creature CR 708.2a makes it", cv.Types)
+	}
+	if cv := Project(g, landedChars{faceDownChars{flatChars{g}}}, 0, nil).Players[1].Battlefield[0]; cv.Types != "Land Forest" {
+		t.Fatalf("types under a type-changing effect = %q, want its derived line", cv.Types)
 	}
 	if cv.Power != 3 || cv.Toughness != 2 || len(cv.Keywords) != 1 {
 		t.Fatalf("characteristics = %d/%d %v, want the derived 3/2 with ward", cv.Power, cv.Toughness, cv.Keywords)

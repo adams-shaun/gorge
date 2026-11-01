@@ -530,6 +530,14 @@ func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
 	if len(o.BlockedBy) > 0 {
 		cv.BlockedBy = append(blk, o.BlockedBy...)
 	}
+	// CR 708.2a: it is a creature, unless a type-changing effect says otherwise
+	// (Yedora's returned Forest land), which shows like any other derived type.
+	cv.Types = "Creature"
+	if !p.noDerived && p.vtypes != nil {
+		if derived, ok := p.vtypes.ViewTypes(o.ID); ok {
+			cv.Types = p.typeLine("", derived)
+		}
+	}
 	if !p.noDerived && p.ch != nil {
 		cv.Power, cv.Toughness = p.ch.Power(o.ID), p.ch.Toughness(o.ID)
 		if kw := p.ch.Keywords(o.ID); len(kw) > 0 {

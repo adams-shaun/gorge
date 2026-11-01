@@ -61,6 +61,20 @@ describe('CardTile panel lifetime', () => {
   });
 });
 
+describe('CardTile on a face-down permanent', () => {
+  it('an opponent\'s morph shows its power and toughness, counters and tap state', () => {
+    const morph = card({
+      name: '', types: 'Creature', printing: { name: '' }, face_down: true, controller: 1, owner: 1,
+      power: 3, toughness: 3, counters: { P1P1: 1 }, tapped: true,
+    });
+    const { html } = render(CardTile, { props: { card: morph } });
+    expect(html).toContain('3/3');
+    expect(html).toContain('stats__pt');
+    expect(html).toMatch(/card-tile[^"]*tapped/);
+    expect(html).toContain('counters');
+  });
+});
+
 describe('CardTile options affordance (ui21)', () => {
   const opts = (over: Partial<TileOptions> = {}): TileOptions => ({
     list: [
