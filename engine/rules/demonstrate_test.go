@@ -319,3 +319,53 @@ func TestPrintedDemonstrateCarrierOffersTheElection(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestDemonstrateCopiesMayChooseNewTargets: CR 702.144a, "players who copy this
+// spell may choose new targets for their copies". Each player elects for their
+// own copy, the caster first.
+func TestDemonstrateCopiesMayChooseNewTargets(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	eng, cfg := miscHandsEngine(t, reg, []string{"Replication Technique"}, nil, []string{"Grizzly Bears"}, []string{"Serra Angel"})
+	addMana(t, eng, 0, "UUUUU")
+	bear := miscBoardObj(t, eng, 0, "Grizzly Bears")
+	angel := miscBoardObj(t, eng, 1, "Serra Angel")
+	submitChoices(t, eng, miscCastOption(t, eng, miscHandObj(t, eng, 0, "Replication Technique")))
+	d := eng.Pending()
+	for _, o := range d.Options {
+		if o.Obj == bear {
+			submitChoices(t, eng, o.Index)
+			break
+		}
+	}
+	d = passUntilNonPriority(t, eng, 10)
+	if d == nil || d.ResumeKind != "demonstrate" {
+		t.Fatalf("expected the may-copy election, got %+v", d)
+	}
+	submitChoices(t, eng, 0)
+	for _, seat := range []state.PlayerID{0, 1} {
+		d = eng.Pending()
+		if d == nil || d.ResumeKind != "copy_targets" || d.Player != seat || d.Options[0].Obj != bear {
+			t.Fatalf("seat %d's election: %+v", seat, d)
+		}
+		if seat == 0 {
+			submitChoices(t, eng, d.Options[0].Index)
+			continue
+		}
+		pick := -1
+		for _, o := range d.Options {
+			if o.Obj == angel {
+				pick = o.Index
+			}
+		}
+		if pick < 0 {
+			t.Fatalf("Serra Angel not offered to its controller: %+v", d.Options)
+		}
+		submitChoices(t, eng, pick)
+	}
+	top := eng.G.Obj(eng.G.Stack[len(eng.G.Stack)-1])
+	if len(top.Targets) != 1 || top.Targets[0].Obj != angel {
+		t.Fatalf("seat 1's copy targets %+v, want the Serra Angel", top.Targets)
+	}
+	replayCheck(t, eng, cfg)
+}

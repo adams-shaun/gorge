@@ -115,15 +115,14 @@ func effDemonstrate(h Host, c *Ctx, sa *cards.SA) {
 	if len(opps) == 0 {
 		// No living opponent: the choice has no candidate, so only the
 		// caster's copy exists.
-		h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: c.Controller})
+		demonstrateCopies(h, c, spell, c.Controller, 0)
 		return
 	}
 	if len(opps) == 1 {
 		// A decision nobody could answer differently is never posted (the
 		// strict-supersets convention, the battle-protector precedent): one
 		// living opponent means both copies are recorded without an ask.
-		h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: c.Controller})
-		h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: opps[0]})
+		demonstrateCopies(h, c, spell, c.Controller, opps[0])
 		return
 	}
 	d = &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
@@ -142,22 +141,22 @@ func effDemonstrate(h Host, c *Ctx, sa *cards.SA) {
 				picked = append(picked, state.Target{Player: o.Player, IsPlayer: true})
 			}
 		}
-		demonstrateCopies(h, spell, c.Controller, demonstratePlayer(picked))
+		demonstrateCopies(h, c, spell, c.Controller, demonstratePlayer(picked))
 		return
 	}
 
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "demonstrate opponent resolved as the first opponent (no engine host to ask)"})
-	h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: c.Controller})
-	h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: opps[0]})
+	demonstrateCopies(h, c, spell, c.Controller, opps[0])
 }
 
-// demonstrateCopies emits the answered opponent clause's copies, the
-// caster's first. An answer naming no player keeps only the caster's copy.
-func demonstrateCopies(h Host, spell state.ObjID, caster, opp state.PlayerID) {
-	h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: caster})
+// demonstrateCopies makes the copies, the caster's first: "players who copy
+// this spell may choose new targets for their copies" (CR 702.144a). An answer
+// naming no player keeps only the caster's copy.
+func demonstrateCopies(h Host, c *Ctx, spell state.ObjID, caster, opp state.PlayerID) {
+	emitCopy(h, c, false, events.Event{Kind: events.StackCopy, Obj: spell, Player: caster, Amount: 1}, nil)
 	if opp != 0 {
-		h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: opp})
+		emitCopy(h, c, false, events.Event{Kind: events.StackCopy, Obj: spell, Player: opp, Amount: 1}, nil)
 	}
 }
 
