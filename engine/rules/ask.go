@@ -134,6 +134,7 @@ func (e *Engine) ask(d *decision.Decision) {
 				i, d.Options[i].Index, i, d.Kind))
 		}
 	}
+	e.hideFaceDownNames(d)
 	d.Seq = uint64(len(e.L.Events))
 	// Cache the ordinary offer-walk tail before any opt-in consumer requests
 	// the separate payment extension. EnsurePaymentActions may run later, after

@@ -27,8 +27,8 @@ func (c richChars) Keywords(id state.ObjID) []string {
 }
 func (c richChars) PendingTriggers() []state.PendingTrigger {
 	return []state.PendingTrigger{
-		{Source: 3, Controller: 0, Label: "a"},
-		{Source: 5, Controller: 1, Label: "b", Optional: true, Decider: 1},
+		{Source: 14, Controller: 0, Label: "a"},
+		{Source: 28, Controller: 1, Label: "b", Optional: true, Decider: 1},
 	}
 }
 func (c richChars) StackOptional(state.ObjID) (bool, state.PlayerID) { return true, 2 }

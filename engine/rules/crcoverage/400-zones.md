@@ -30,7 +30,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 400.11a-c | follows | `engine/state/ids.go#ZSideboard` `engine/effects/zone.go#ParseZone` | `TestChangeZoneWishFindsSideboard` `TestBurningWishEmptySideboardKeepsSelfExile` |  |
 | 400.12 | follows | `engine/effects/zone_changeall.go#effChangeZoneAll` | `TestChangeZoneAllShufflesDestinationLibraries` |  |
 | 401.1 | follows | `engine/rules/genesis.go#New` | - |  |
-| 401.2 | follows | `engine/view/view.go#projector.unorderedLibrary` `engine/view/redact.go#libraryOrderKind` `engine/effects/dig.go#digSecretTo` | `TestPonderLibraryOrderIsHiddenFromItsOwner` `TestGontiRemainderOrderIsHiddenFromTheLibraryOwner` `TestLibraryOrderIsShapeOnlyForItsOwnerAndController` `TestJacePlusTwoBottomedCardIsHiddenFromItsOwner` `TestDigOpponentLibraryMovesAreTheChoosersSecret` | a Secret LibraryOrder or Shuffle is served as its shape to every seat, the owner included (cr-g61) |
+| 401.2 | follows | `engine/view/view.go#projector.unorderedLibrary` `engine/view/redact.go#libraryOrderKind` `engine/effects/dig.go#digSecretTo` `engine/view/stack.go#projector.sourceHidden` | `TestAbilityFromASourceTheViewerCantSee` `TestPonderLibraryOrderIsHiddenFromItsOwner` `TestGontiRemainderOrderIsHiddenFromTheLibraryOwner` `TestLibraryOrderIsShapeOnlyForItsOwnerAndController` `TestJacePlusTwoBottomedCardIsHiddenFromItsOwner` `TestDigOpponentLibraryMovesAreTheChoosersSecret` | a Secret LibraryOrder or Shuffle is served as its shape to every seat, the owner included (cr-g61) |
 | 401.3 | follows | `engine/view/view.go#PlayerView.LibrarySize` | - |  |
 | 401.4 | partial | `engine/effects/zone_library.go#placeTargetedLibraryObjects` | - | targeted path places in target order without asking (Plow Under) |
 | 401.5 | partial | `engine/rules/layers.go#Engine.staticEffectsWalk` `engine/rules/layers_static.go#Engine.LibraryTopRevealed` `engine/view/view.go#projectInto` | `TestCR401_5PlayWithTopCardRevealedShowsEveryPlayer` `TestCR401_5MayLookAtYouStaysPrivate` `TestOracleOfMulDayaRevealsTopCard` | MayLookAt$ Player revealed to every seat; the new top card is not withheld while a spell is being cast |
@@ -38,7 +38,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 401.7 | follows | `engine/effects/zone_library.go#libraryOrderPlacementAt` | - |  |
 | 402.1 | follows | `engine/rules/engine.go#Engine.drawCard` | - |  |
 | 402.2 | follows | `engine/rules/combat.go#Engine.maxHandSizeFor` | `TestCleanupExactlyMaxHandSizeAsksNothing` |  |
-| 402.3 | follows | `engine/state/ids.go#Zone.Hidden` `engine/view/redact.go#visibleTo` | - |  |
+| 402.3 | follows | `engine/state/ids.go#Zone.Hidden` `engine/view/redact.go#visibleTo` `engine/view/stack.go#projector.sourceHidden` | `TestAbilityFromASourceTheViewerCantSee` |  |
 | 403.1 | follows | `engine/events/apply_zone.go#move` | - |  |
 | 403.2 | follows | `engine/effects/zone.go#ParseZone` | - | default zone is battlefield |
 | 403.3 | follows | `engine/events/apply_zone.go#move` | - |  |

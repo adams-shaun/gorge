@@ -171,6 +171,14 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 		e.IDs = filterVisible(g, e.IDs, viewer)
 		e.Pairs = filterVisiblePairs(g, e.Pairs, viewer)
 	}
+	if o := g.Obj(e.Obj); e.Text != "" && e.Kind != events.Note && o != nil && o.FaceDown &&
+		o.Controller != viewer && !controlsSeat(g, viewer, o.Controller) {
+		// The cast and resolve events' Text is the spell's name, and a logged
+		// Text can't change: CR 708.5 keeps it from all but the controller.
+		if f := o.Face(); f != nil && e.Text == f.Name {
+			e.Text = ""
+		}
+	}
 	return e
 }
 

@@ -934,6 +934,9 @@ func (b *Builder) stack(e protocol.StackEntry) (view.StackView, error) {
 	sv := view.StackView{ID: b.IDs.Of(e.ObjectID), Controller: controller, Targets: []view.TargetView{}}
 	if e.CardName != nil {
 		sv.Name = *e.CardName
+	} else if e.StackKind != "spell" {
+		// What the native view calls an ability whose source this seat can't see.
+		sv.Name = "Ability"
 	}
 	for _, t := range e.Targets {
 		switch {

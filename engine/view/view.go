@@ -629,7 +629,7 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 	if ch != nil {
 		pts = ch.PendingTriggers()
 	}
-	v.Pending = pendingViews(pending, pts)
+	v.Pending = pr.pendingViews(pending, pts, m.revealFaceDown)
 
 	// A viewer index that names no real seat is a spectator: everything
 	// below that gates on "is this the viewer's own seat" naturally stays

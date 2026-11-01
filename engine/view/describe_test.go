@@ -176,6 +176,7 @@ func TestDescribeAbilityObjectNamesSource(t *testing.T) {
 	// A source card with a real face, plus a faceless ability object.
 	g := state.NewGame([]string{"Ann", "Bob"})
 	b := g.AddObject(bear, 0)
+	b.Zone = state.ZBattlefield
 
 	mint := func(source state.ObjID) *state.Object {
 		o := g.AddObject(nil, 0)
@@ -228,6 +229,7 @@ func TestDescribeCastInfoOnAnActivatedAbilitySaysActivates(t *testing.T) {
 	crier.Link()
 	g := state.NewGame([]string{"Ann", "Bob"})
 	b := g.AddObject(bear, 0)
+	b.Zone = state.ZBattlefield
 	c := g.AddObject(crier, 0)
 
 	mint := func(source state.ObjID, sa *cards.SA) *state.Object {

@@ -144,3 +144,37 @@ func TestFaceDownPermanentHidesChosenClassAndDoors(t *testing.T) {
 		t.Fatalf("opponent statuses %v dropped the public cloaked status", oppRoom.Permanent.Statuses)
 	}
 }
+
+// The monarch's end-step draw has any card at all as its source (CR 724.2a); a
+// library card there is named to no seat, its owner included (CR 401.2).
+func TestStackAbilityFromALibraryCardIsNameless(t *testing.T) {
+	reg := testcorpus.Registry(t)
+	deck := catalog.Deck{CatalogID: "MonarchSource", Rows: []wire.DeckRow{{Name: "Wizard Class", Count: 40}}}
+	cardsInDeck, err := catalog.Resolve(reg, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := gamecfg.New(reg, secrets.NewGame(make([]byte, 32)), [2][]*cards.Card{cardsInDeck, cardsInDeck},
+		gamecfg.Rules{Mulligan: "none", StartingSeat: 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var source state.ObjID
+	for i := range g.E.G.Objs {
+		if o := &g.E.G.Objs[i]; o.Zone == state.ZLibrary && o.Owner == 0 {
+			source = o.ID
+			break
+		}
+	}
+	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.DelayedPush, Player: 0, Obj: source, Counter: "__monarch_draw"})
+	proj := &observe.Projector{R: g.R, IDs: identity.New(g.R, g.Secret)}
+	for _, viewer := range []state.PlayerID{0, 1} {
+		obs, err := proj.Observation(viewer, observe.State{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(obs.Stack) != 1 || obs.Stack[0].CardName != nil {
+			t.Fatalf("seat %d: stack %+v", viewer, obs.Stack)
+		}
+	}
+}

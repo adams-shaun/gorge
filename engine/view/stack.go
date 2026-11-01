@@ -104,9 +104,16 @@ func (p *projector) stackViews(buf []StackView, ids []state.ObjID, revealFaceDow
 			if state.StackKindOf(g, o) == state.StackKindTriggered {
 				kind = "trigger"
 			}
+			name, source := abilityName(g, o), o.Source
+			if src := g.Obj(o.Source); src != nil && p.sourceHidden(src, revealFaceDown) {
+				name = hiddenSourceName
+				if src.Zone.Hidden() {
+					source = 0
+				}
+			}
 			*sv = StackView{
-				ID: id, Kind: kind, Name: abilityName(g, o), Text: abilityText(g, o, p.text),
-				Controller: o.Controller, Source: o.Source, Targets: targetViews(targets, o.Targets, o.SubTargets, targetLabel(o)),
+				ID: id, Kind: kind, Name: name, Text: abilityText(g, o, name, p.text),
+				Controller: o.Controller, Source: source, Targets: targetViews(targets, o.Targets, o.SubTargets, targetLabel(o)),
 			}
 			castDetail(sv, o)
 			// An optional triggered ability on the stack awaiting
@@ -133,7 +140,7 @@ func (p *projector) stackViews(buf []StackView, ids []state.ObjID, revealFaceDow
 			// trigger whose card is now in its owner's hand) or be gone
 			// entirely, and neither may be exposed here. This is the same
 			// projection everything else uses, never a hand-built view.
-			if src := g.Obj(o.Source); src != nil && src.Face() != nil && !src.Zone.Hidden() && !src.Ephemeral() {
+			if src := g.Obj(o.Source); src != nil && src.Face() != nil && !src.Zone.Hidden() && !src.Ephemeral() && !p.sourceHidden(src, revealFaceDown) {
 				if card == nil {
 					card = new(CardView)
 				}
@@ -171,7 +178,32 @@ func abilityName(g *state.Game, o *state.Object) string {
 			return f.Name
 		}
 	}
-	return "Ability"
+	return hiddenSourceName
+}
+
+// hiddenSourceName is an ability object's display name when its source is gone
+// or the viewer can't see it.
+const hiddenSourceName = "Ability"
+
+// sourceHidden reports whether the viewer can't tell which card src is, so an
+// ability from it can't carry its name: a library is hidden from every seat (CR
+// 401.2), a hand from all but its owner (CR 402.3) and a face-down object from
+// all but its controller (CR 708.5). An omniscient viewer sees hands and
+// face-down objects, but a library stays hidden from it too. A token or copy that
+// has ceased to exist is never in those zones, whatever its Zone field reads (CR
+// 111.8).
+func (p *projector) sourceHidden(src *state.Object, omniscient bool) bool {
+	switch {
+	case src.FaceDown:
+		return !omniscient && src.Controller != p.viewer
+	case src.Ephemeral():
+		return false
+	case src.Zone == state.ZLibrary:
+		return true
+	case src.Zone == state.ZHand:
+		return !omniscient && !visibleTo(p.g, src.ID, p.viewer)
+	}
+	return false
 }
 
 // triggerLine finds the T: line an ability object was minted from: the
@@ -188,10 +220,9 @@ func triggerLine(g *state.Game, o *state.Object) (cards.Trigger, bool) {
 // SA's own SpellDescription$/StackDescription$ covers an activated ability
 // (a later milestone) or a source that changed face since the trigger
 // matched (rules/trigger.go's triggerOf documents the same caveat). The
-// text is then placeholder-substituted with the same display name the
-// StackView.Name uses -- the source's face name, or "Ability" when the
-// source is gone (see abilityName and substitutePlaceholders).
-func abilityText(g *state.Game, o *state.Object, memo *textMemo) string {
+// text is then placeholder-substituted with name, the display name the
+// StackView.Name uses (see abilityName and substitutePlaceholders).
+func abilityText(g *state.Game, o *state.Object, name string, memo *textMemo) string {
 	text := ""
 	if t, ok := triggerLine(g, o); ok {
 		if d := t.Params["TriggerDescription"]; d != "" {
@@ -208,7 +239,7 @@ func abilityText(g *state.Game, o *state.Object, memo *textMemo) string {
 			}
 		}
 	}
-	return memo.substitute(printedLines(text), abilityName(g, o))
+	return memo.substitute(printedLines(text), name)
 }
 
 // spellText is SpellDescription$ of the face's own cast ability, falling
@@ -272,12 +303,17 @@ func targetLabel(o *state.Object) string {
 }
 
 // pendingViews copies the engine's pending-trigger queue into the wire
-// shape, in the same order. Always non-nil, including
-// when called with nil (Project's own default before a real Chars, if any,
-// overwrites it).
-func pendingViews(buf []PendingView, pts []state.PendingTrigger) []PendingView {
+// shape, in the same order, leaving out a trigger whose source the viewer can't
+// see: its label names the card, and the row alone would tell another seat that
+// a hand holds a miracle it hasn't revealed (CR 702.94a). Always non-nil,
+// including when called with nil (Project's own default before a real Chars, if
+// any, overwrites it).
+func (p *projector) pendingViews(buf []PendingView, pts []state.PendingTrigger, omniscient bool) []PendingView {
 	out := refill(buf, len(pts))
 	for _, pt := range pts {
+		if src := p.g.Obj(pt.Source); src != nil && p.sourceHidden(src, omniscient) {
+			continue
+		}
 		n := len(out)
 		out = out[:n+1]
 		pv := &out[n]

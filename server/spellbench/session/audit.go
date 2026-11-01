@@ -71,8 +71,7 @@ func LeakHits(sd []byte, hidden map[string]bool) int {
 // hand, libraries, face-down cards), minus every name the seat can see: any
 // visible card, and every name the decision's own observation carries in
 // public records (zone records, stack entries of either kind, pending
-// triggers) or in known. A stack ability names its source even after the
-// source went into a library (Lembas), and that name is public.
+// triggers) or in known.
 func (s *Game) hiddenNames(seat state.PlayerID, obs protocol.Observation) map[string]bool {
 	g := s.g.R.Board()
 	hidden, seen := map[string]bool{}, map[string]bool{}

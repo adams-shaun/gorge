@@ -62,9 +62,9 @@ func (p *Projector) name(viewer state.PlayerID, o *state.Object) *string {
 	}
 	var n string
 	if o.Ability != nil {
-		// An ability is named after its source, unless that source is face
-		// down and the viewer may not look at it.
-		if src := p.R.Board().Obj(o.Source); src != nil && src.Face() != nil && (!src.FaceDown || MayLook(viewer, src)) {
+		// An ability is named after its source, unless the viewer can't see
+		// that source: in a hidden zone, or face down and it may not look.
+		if src := p.R.Board().Obj(o.Source); src != nil && src.Face() != nil && (Visible(viewer, src) || src.Ephemeral()) && (!src.FaceDown || MayLook(viewer, src)) {
 			n = src.Face().Name
 		}
 	} else if n = p.R.Facts(o.ID).Name; n == "" && o.Face() != nil {
