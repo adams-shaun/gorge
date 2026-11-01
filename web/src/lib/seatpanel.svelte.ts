@@ -1732,9 +1732,13 @@ export class SeatPanelState {
    * `busy` still holds it off, so this panel's own in-flight intent and a
    * poll cannot race to define the current ask. That wait is bounded by the
    * intent request's own deadline (STATE_TIMEOUT in ./api).
+   *
+   * A finished game asks nothing: the server answers every poll with a 409,
+   * which the browser logs as an error once a second, so the poll stops
+   * until a live view arrives.
    */
   get shouldPoll(): boolean {
-    return !this.busy;
+    return !this.busy && !this.board?.over;
   }
 
   rewind() {
@@ -2235,11 +2239,23 @@ export class SeatPanelState {
       // mid-flight) is not an error the player can act on — the undo already
       // moved the game. Stay silent; the restored decision is pending.
       if (stale) return;
-      // Surfaced, not swallowed: the intent was rejected (a stale seq, a
-      // race, a refusal) and the game is exactly where it was — recover by
-      // adopting the CURRENT decision rather than wedging on the stale one.
       this.picked = [];
       this.confirming = false;
+      // A 409 says the match is not where this post assumed, most often
+      // because the decision moved on while the click was in flight. Re-read
+      // the current ask first: a different one (or none) means the game has
+      // already recovered and the player has nothing to act on, so nothing is
+      // shown. The same ask means the server refused this answer itself,
+      // which stays visible.
+      if (e instanceof ApiError && e.status === 409) {
+        await this.refreshPending();
+        if (this.pending?.seq !== d.seq) return;
+        this.error = message;
+        return;
+      }
+      // Surfaced, not swallowed: the intent was rejected and the game is
+      // exactly where it was. Recover by adopting the CURRENT decision rather
+      // than wedging on the stale one.
       this.error = message;
       void this.refreshPending();
     } finally {
