@@ -1,6 +1,11 @@
 package decision
 
-import "github.com/adams-shaun/gorge/engine/state"
+import (
+	"encoding/binary"
+	"slices"
+
+	"github.com/adams-shaun/gorge/engine/state"
+)
 
 // blockRequiredCore finds the largest legal team of required blockers (CR
 // 509.1c). Unlike a pairwise matching, a block of a Min$ N attacker is legal
@@ -91,10 +96,40 @@ func (d *Decision) blockRequiredCore() []int {
 	var chosen, best []int
 	bestRequired := -1
 	bestLength := int(^uint(0) >> 1)
+	// Where only the blockers per attacker can matter later, a node reached a
+	// second time holds nothing the first visit didn't try, and the first best
+	// team found stays the answer. Teams of a Min$ attacker reach most nodes
+	// many times over.
+	var attackers []state.ObjID
+	var seen map[string]bool
+	var key []byte
+	if d.blockSearchMemoizable(lifeBound) {
+		seen = make(map[string]bool)
+		for _, o := range d.Options {
+			if !slices.Contains(attackers, o.Attacker) {
+				attackers = append(attackers, o.Attacker)
+			}
+		}
+	}
 	var search func(int, int, int, int32)
 	search = func(at, satisfied, spent int, spentLife int32) {
 		if bestRequired == requiredCount+len(atkReq) {
 			return
+		}
+		if seen != nil && at < len(candidates) {
+			key = binary.AppendUvarint(key[:0], uint64(at))
+			key = binary.AppendUvarint(key, uint64(satisfied))
+			for _, a := range attackers {
+				n := uint64(counts[a]) << 1
+				if satAtk[a] {
+					n |= 1
+				}
+				key = binary.AppendUvarint(key, n)
+			}
+			if seen[string(key)] {
+				return
+			}
+			seen[string(key)] = true
 		}
 		// Prune what can't beat the best team: more satisfied units, or as
 		// many with a shorter team. Each candidate left picks one pair, worth
@@ -211,6 +246,21 @@ func (d *Decision) blockRequiredCore() []int {
 	}
 	search(0, 0, 0, 0)
 	return best
+}
+
+// blockSearchMemoizable reports that what's still legal in the team search reads
+// only the blockers per attacker, not which ones: no budget, life charge, shared
+// group or can't-block-alone creature.
+func (d *Decision) blockSearchMemoizable(lifeBound int32) bool {
+	if d.HasBudget() || lifeBound >= 0 {
+		return false
+	}
+	for i := range d.Options {
+		if o := &d.Options[i]; o.BlockMustAll || o.Group != "" || o.AloneRestricted {
+			return false
+		}
+	}
+	return true
 }
 
 func (d *Decision) hasRequiredBlocks() bool {
