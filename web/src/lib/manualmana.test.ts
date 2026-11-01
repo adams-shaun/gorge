@@ -86,7 +86,7 @@ describe('isPlainManualTap — only a bare tap is ever hidden (a costly mana act
   });
 });
 
-describe('manualManaHidden — the predicate table (spec §8)', () => {
+describe('manualManaHidden — the predicate table', () => {
   it('hides manual mana on a priority decision offering only casts and manual mana', () => {
     const d = priority([plains, opt(7, 'cast', 'Cast Opt', { obj: 22 }), pass, concede], [planned(7)]);
     expect(manualManaHidden(d, view(), 0, true)).toBe(true);

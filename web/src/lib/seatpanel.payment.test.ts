@@ -91,7 +91,7 @@ describe('payment plan seat preference', () => {
 
 /**
  * offer is priority() with payment identities that bind the decision seq, as
- * the engine's do (spec §4: action and plan IDs hash the seq): action-<seq>,
+ * the engine's do (action and plan IDs hash the seq): action-<seq>,
  * plan-<seq>-a and plan-<seq>-b. Two seqs' offers are then distinguishable by
  * ID, not only by object identity, so "N's plan attached to N+1" is visible
  * in the posted body. base null is the plan-only shape.
@@ -323,7 +323,7 @@ describe('in-flight and stale payment submissions', () => {
   });
 });
 
-// Spec §8: "Auto-pay changes which witness an explicit cast uses; it does not
+// "Auto-pay changes which witness an explicit cast uses; it does not
 // otherwise change Auto/Manual policy." A planned cast posts choices=[] plus a
 // payment selection, so pass-after-acting must arm on the selection exactly as
 // it arms on the same cast's legacy option: on the ACCEPTED post, skipped with
@@ -332,7 +332,7 @@ describe('in-flight and stale payment submissions', () => {
 // list and the hot strip's nested list) calls submitPayment with the plan it
 // lists, Table.svelte's HandFan CAST shortcut calls submitPayment with the
 // first plan, and a legacy cast click on a base option goes through click().
-describe('pass after acting arms on a planned cast exactly as on its legacy cast (spec §8)', () => {
+describe('pass after acting arms on a planned cast exactly as on its legacy cast', () => {
   beforeEach(() => {
     postIntentMock.mockReset();
     fetchPendingMock.mockReset();

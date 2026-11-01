@@ -40,8 +40,8 @@
   import { downloadText } from '../lib/download';
 
   /**
-   * LayoutDrawer is every layout choice without drag and drop (UI rework
-   * spec §2, principle 3): presets, the table (arrangement, the opponents'
+   * LayoutDrawer is every layout choice without drag and drop: presets, the
+   * table (arrangement, the opponents'
    * share, orientation), the board template's regions, cards (stacking,
    * overflow, art tiles, the hand) and panels (the rail, the log, the prompt
    * placement), plus saving named profiles and exporting/importing them as a

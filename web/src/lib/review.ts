@@ -1,7 +1,7 @@
 import type { ReviewDecision } from '../protocol';
 
 /**
- * The match reviewer's decision overlay (design §3-§4): pure functions over
+ * The match reviewer's decision overlay: pure functions over
  * the review server's decision index (GET .../decisions, one entry per
  * intent). The DecisionPanel and the transport's marks read them; nothing
  * here touches the DVR — a jump is the caller's 'scrub' to an entry's

@@ -4,8 +4,7 @@ import { isActionKind } from '../autopilot';
 
 /**
  * decision.ts holds the pure, rules-ignorant decision helpers the seat's
- * answer surfaces share (moved out of lib/seatpanel.svelte.ts by the prompt
- * system work, UI rework sub-project 4). Nothing here posts or holds state.
+ * answer surfaces share. Nothing here posts or holds state.
  */
 
 /**
@@ -41,8 +40,8 @@ export function actedOption(d: Decision, choices: number[]): boolean {
 }
 
 /**
- * actedPayment is actedOption's twin for the payment selector (spec §8:
- * "Auto-pay changes which witness an explicit cast uses; it does not
+ * actedPayment is actedOption's twin for the payment selector
+ * ("Auto-pay changes which witness an explicit cast uses; it does not
  * otherwise change Auto/Manual policy"). A planned cast posts `choices: []`
  * plus a payment selection, so actedOption alone never saw it and a cast paid
  * by its plan never armed pass-after-acting while the same cast clicked

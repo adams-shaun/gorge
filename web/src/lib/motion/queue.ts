@@ -1,6 +1,5 @@
 /**
- * MotionQueue plays batches one after another (spec sub-project 5: "a queue
- * plays transitions in order"). It knows nothing about the DOM: a batch is a
+ * MotionQueue plays batches one after another. It knows nothing about the DOM: a batch is a
  * duration plus a `start` callback that begins its animations and returns a
  * handle to finish them early. The clock is injected so tests are exact.
  *

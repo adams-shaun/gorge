@@ -55,7 +55,7 @@ import { manaWindow, windowAction } from './announcepay';
 import { AUTO_PASS_CAP, type AutoNote, type AutoOffReason, runStopNote } from './prompts/autonote';
 
 // The pure decision helpers and the Auto note vocabulary live in
-// lib/prompts/ (UI rework sub-project 4); they are re-exported here so every
+// lib/prompts/; they are re-exported here so every
 // existing importer of this module keeps working.
 export * from './prompts/decision';
 export * from './prompts/autonote';
@@ -400,8 +400,8 @@ export class SeatPanelState {
    */
   searchFilter = $state('');
   /**
-   * dockCount is how many prompt docks are mounted against this seat (UI
-   * rework spec §4). While one is, it is the answer surface for every
+   * dockCount is how many prompt docks are mounted against this seat.
+   * While one is, it is the answer surface for every
    * non-priority decision: the ACTIONS strip points at it instead of drawing
    * a second copy, and does not pop open for it. Display-only.
    */

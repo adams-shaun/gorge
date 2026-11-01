@@ -5,7 +5,7 @@
 
   /**
    * TickNumber counts a number (a life total) to its new value instead of
-   * jumping (spec sub-project 5, "life changes tick"). Motion off or reduced
+   * jumping. Motion off or reduced
    * motion shows the new value at once. The server-rendered and first paint
    * is the value itself; only a later change ticks. The parent keeps its own
    * accessible label with the true value.

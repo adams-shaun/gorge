@@ -8,7 +8,7 @@
   import CardImage from './CardImage.svelte';
 
   /**
-   * ZonePiles is a seat's zone-piles column (UI rework spec §2): library,
+   * ZonePiles is a seat's zone-piles column: library,
    * graveyard and exile as small piles beside the board, sized from the
    * panel height by cardsizing.pileWidth (the `width` prop). The graveyard
    * and exile show their top card and open the shared pile modal. The

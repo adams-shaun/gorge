@@ -201,7 +201,7 @@ func (w *worldEnvs) Env(sim int) (Env, error) {
 // engineEnv walks one world. The searching seat's searched decisions are
 // the tree's points -- and under Options.OpponentNodes the opponent's too
 // (oppPoint); botpolicy.Decide answers every other decision of both
-// seats (spec §1's env step), from bot streams seeded identically for every
+// seats (design §1's env step), from bot streams seeded identically for every
 // simulation of the decision, so a clairvoyant clone is deterministic along
 // a path.
 type engineEnv struct {
@@ -846,7 +846,7 @@ func (e *engineEnv) Leaf() (l Leaf) {
 	return Leaf{V: leafValue(leafNet, e.e, e.cfg.actor, e.cfg.views), Capped: e.capped}
 }
 
-// leafValue is spec §1's leaf: the value head on the actor's REDACTED view
+// leafValue is design §1's leaf: the value head on the actor's REDACTED view
 // (policynet.Model.Value), or -- generation 0, no network -- the frozen
 // heuristic searchprobe.LeafValue, computed straight from the game
 // (heuristicLeafValue, bit-identical to the view-based value). Clamped into

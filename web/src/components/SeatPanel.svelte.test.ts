@@ -143,7 +143,7 @@ describe('SeatPanel — payment plans', () => {
     expect(html).toContain('data-payment-plan="first"');
     expect(html).toContain('data-payment-plan="second"');
     // The plan-only cast (no legacy option) is its own payment action with
-    // its plan button (spec §8: "Plan-only casts ... are shown the same way").
+    // its plan button (plan-only casts are shown the same way).
     expect(html).toContain('data-payment-action="b"');
     expect(html).toContain('data-payment-plan="third"');
     expect(html).toContain('Cast Future Spell');
@@ -188,7 +188,7 @@ describe('SeatPanel — payment plans', () => {
   });
 });
 
-// Spec §8: with auto-pay on, manual "Activate … for mana" options are hidden
+// With auto-pay on, manual "Activate … for mana" options are hidden
 // "unless the decision also offers a non-cast action that may need mana". The
 // option list reads the shared predicate (lib/manualmana.ts manualManaHidden),
 // not a rule of its own. Measured: a mana-costed non-cast action is offered

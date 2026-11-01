@@ -7,7 +7,7 @@
   import { motionStore } from '../lib/motion/settings.svelte';
 
   /**
-   * MotionLayer is the table's motion overlay (spec sub-project 5). It
+   * MotionLayer is the table's motion overlay. It
    * listens to the client model: each live step's transitions become one
    * batch in the queue, played over the board in a fixed, pointer-events-none
    * layer on <body> (above the rail and the board, below nothing that takes

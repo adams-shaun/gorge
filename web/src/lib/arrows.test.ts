@@ -144,7 +144,7 @@ describe('previewArrowsFor', () => {
   });
 });
 
-describe('arrowsFor — stack targets only for the hovered item (UI rework §3)', () => {
+describe('arrowsFor — stack targets only for the hovered item', () => {
   it('draws one stack item\'s targets when named, none for null, and combat always', async () => {
     const { arrowsFor } = await import('./arrows');
     const v = {

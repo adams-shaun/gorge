@@ -2,7 +2,7 @@ import type { Decision } from '../../protocol';
 import { rendererFor } from './renderer';
 
 /**
- * dock.ts is the prompt dock's placement (UI rework spec §4: "docked at the
+ * dock.ts is the prompt dock's placement ("docked at the
  * top of the rail … Floating is a layout setting; the prompt is
  * dragged by its grip, and the position is saved in the layout profile").
  * The optional near-table placement ('table') pins question prompts just

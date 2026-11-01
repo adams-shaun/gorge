@@ -8,7 +8,7 @@
   import TickNumber from './TickNumber.svelte';
 
   /**
-   * SeatHeader is an opponent's header bar (UI rework spec §3): avatar,
+   * SeatHeader is an opponent's header bar: avatar,
    * serif name, a Turn badge on the active seat, the public counts and a
    * big life total. It glows verdigris when the pending decision offers this
    * player as a choice and ember while creatures attack them; the whole bar

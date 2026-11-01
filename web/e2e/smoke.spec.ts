@@ -18,8 +18,8 @@ import { test, expect, type Locator, type Page, type APIRequestContext } from '@
  * leaves its loading state.
  *
  * The servers are started by scripts/smoke.sh and handed to us as base URLs
-  * in the SMOKE_* variables. Nothing here starts or stops a server; the gate's
-  * teardown lives in the script so every server dies even on failure.
+ * in the SMOKE_* variables. Nothing here starts or stops a server; the gate's
+ * teardown lives in the script so every server dies even on failure.
  */
 
 const PUBLIC = process.env.SMOKE_PUBLIC;

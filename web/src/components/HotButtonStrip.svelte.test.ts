@@ -435,7 +435,7 @@ describe('HotButtonStrip — Auto Mana action availability', () => {
   });
 });
 
-// Spec §8: the hot strip hides manual mana under auto-pay by the SAME rule as
+// The hot strip hides manual mana under auto-pay by the SAME rule as
 // the option list and the board badges (lib/manualmana.ts manualManaHidden).
 // Measured float-first: on an empty pool an Equip {1} is not an option, only a
 // potential action, so the strip must keep counting (and its nested list keep

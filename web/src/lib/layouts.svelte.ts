@@ -38,7 +38,7 @@ import { safeStorage } from './storage';
  * change or a hotkey re-renders the table with no event plumbing. Every
  * write persists the library. It replaces the old layoutsettings store.
  *
- * The prompt's placement is read by the decision-prompt surfaces (lane C):
+ * The prompt's placement is read by the decision-prompt surfaces:
  * `layoutStore.prompt` is the live `{placement, x, y}` and `setPromptPosition`
  * saves a dragged floating prompt's position.
  */

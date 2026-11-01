@@ -14,8 +14,8 @@
    * SeatPanel is a human seat's decision surface: the status readout,
    * auto/manual controls, floating mana, prompt and options, with the primary
    * button resolved by kind. The options themselves are drawn by the
-   * one renderer per decision kind (components/prompts/PromptBody, UI rework
-   * spec §4); this panel owns the seat's lifecycle around them — the pending
+   * one renderer per decision kind (components/prompts/PromptBody); this
+   * panel owns the seat's lifecycle around them — the pending
    * poll, the autopilot loop and the Escape panic key. Priority mounts under
    * the clock's ACTIONS tab; mulligan mounts over the board; every other
    * decision is answered in the prompt dock when one is mounted (the strip

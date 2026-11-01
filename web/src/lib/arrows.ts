@@ -26,7 +26,7 @@ export function previewArrowsFor(options: CardOptions | null): Arrow[] {
  * nothing about legality. Declared combat (attacks, blocks) is always drawn.
  * A stack item's targets are drawn for `stackTargets`: every item ('all',
  * the historic behaviour), only the item with that id (the table passes the
- * HOVERED stack item — UI rework spec §3: arrows only for the pending
+ * HOVERED stack item: arrows only for the pending
  * decision, the hovered stack item or declared combat, never XMage's
  * spaghetti), or none (null).
  */
@@ -50,8 +50,8 @@ export function arrowsFor(view: View, stackTargets: 'all' | number | null = 'all
 }
 
 /**
- * hoverArrowFor is the prompt dock's one hover arrow (UI rework spec §3/§4:
- * arrows are drawn for the pending decision, and a hovered option draws its
+ * hoverArrowFor is the prompt dock's one hover arrow
+ * (arrows are drawn for the pending decision, and a hovered option draws its
  * own): from the hovered option's own start (a blocker, an attacker) or else
  * the decision's source, to what it points at. Null when nothing is hovered
  * or the arrow has no start.

@@ -52,7 +52,7 @@
     const next: Line[] = [];
     // Proposed arrows belong to a pending TARGET choice only: fanning lines
     // from a resolving spell to every card a discard or search offers is the
-    // spaghetti the spec rules out.
+    // spaghetti this rules out.
     const preview = view.decision?.kind === 'target' ? previewArrowsFor(options) : [];
     const hover = hoverArrowFor(options, promptHover.link);
     for (const arrow of [...arrowsFor(view, hoveredStack), ...preview, ...(hover ? [hover] : [])]) {
@@ -131,7 +131,7 @@
 <style>
   .arrows { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
   svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-  /* Verdigris for a choice being made, ember for attacks (spec §3). */
+  /* Verdigris for a choice being made, ember for attacks. */
   .line--target { stroke: var(--verdigris); }
   .line--target-preview {
     stroke: var(--verdigris);
@@ -139,7 +139,7 @@
     opacity: 0.58;
   }
   /* The hovered prompt option's arrow: verdigris, "a choice being made"
-     (UI rework spec §3), solid and a step heavier than the dashed previews. */
+     solid and a step heavier than the dashed previews. */
   .line--target-hover { stroke: var(--verdigris, #6fb7ae); }
   .head--target-hover { fill: var(--verdigris, #6fb7ae); }
   .line--attack { stroke: var(--ember); }

@@ -401,7 +401,7 @@ export function bindPrompt(p: AgentPrompt, ctx: PromptContext): PromptBinding {
 /** concedeMessage is the out-of-band concession (legal at any time). */
 export const concedeMessage = (): ClientMessage => ({ kind: 'directive', directive: { type: 'concede' } });
 
-/** undoMessage asks the server to undo this seat's last answer (scope spec §6.4): only while a chooseAction is open. */
+/** undoMessage asks the server to undo this seat's last answer: only while a chooseAction is open. */
 export function undoMessage(p: AgentPrompt | null): ClientMessage {
   if (!p || p.input.type !== 'chooseAction') throw new AnswerError('undo is only available at a priority prompt over ManaBrew');
   return { kind: 'response', promptId: p.promptId, action: out('chooseAction', { type: 'restoreSnapshot', checkpointId: p.promptId }) };

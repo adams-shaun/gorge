@@ -14,7 +14,7 @@
  * mechanism. Per-store KEYS and SCOPES are untouched (renaming
  * `gorge.playsettings.v1` would orphan saved settings; the yields store
  * stays sessionStorage — its session scope is a deliberate
-  * contract, and it keeps its own safeSessionStorage copy in seatpanel).
+ * contract, and it keeps its own safeSessionStorage copy in seatpanel).
  */
 
 /**

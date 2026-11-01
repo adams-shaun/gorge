@@ -58,7 +58,7 @@ export class MatchState implements ClientModelSource {
   // lines up to; the next decision boundary fetches from here, never 0.
   private seatSince = 0;
 
-  // The client-model bus (sub-project 0): MatchState is the gorge adapter,
+  // The client-model bus: MatchState is the gorge adapter,
   // and every view assignment tells listeners what changed, BEFORE the new
   // view is assigned, so a motion listener can still measure the old DOM.
   private model = new ModelBus();

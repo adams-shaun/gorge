@@ -136,7 +136,7 @@ describe('Quadrant — lands always stack, creatures keep the tapped split', () 
   });
 });
 
-describe('Quadrant — the board template and sizes (UI rework §2)', () => {
+describe('Quadrant — the board template and sizes', () => {
   const bear = (id: number): CardView => card(id, 'Grizzly Bears');
   const forest = (id: number): CardView => ({ ...card(id, 'Forest', 'Basic Land Forest'), printing: { name: 'Forest', set: 'X', number: '1' } });
 

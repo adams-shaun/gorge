@@ -293,7 +293,7 @@ func TestDependencyOrderHolds(t *testing.T) {
 // boundary violation, for the synthetic or live package map pkgs.
 //
 // The from-manabrew rows check DIRECT imports only, deliberately. The
-// translator is allowed to import view, decision and state (ManaBrew spec §5.1), and
+// translator is allowed to import view, decision and state, and
 // view imports events; the transport is allowed to import host, and host
 // imports rules. A transitive check on those rows would therefore forbid the
 // imports §5.1 requires, and note that server/host/manabrewhttp cannot avoid host.

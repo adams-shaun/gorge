@@ -2,8 +2,8 @@ import type { CardView, Decision, Option, View } from '../../protocol';
 import { findCardAnywhere } from '../board';
 
 /**
- * combat.ts is the attackers/blockers prompts' pure half (UI rework spec §4:
- * "attackers and blockers are assigned by clicking the board, and the dock
+ * combat.ts is the attackers/blockers prompts' pure half
+ * ("attackers and blockers are assigned by clicking the board, and the dock
  * summarises the assignments"). It reads the offered options and the view;
  * it decides no legality — the server validates every declaration — and the
  * quick answers it builds (attack with all, no blocks) are ordinary picks
@@ -137,7 +137,7 @@ export function unblockedDamage(d: Decision, view: View, picked: readonly number
   return damage > 0 ? { damage, life: me.life } : null;
 }
 
-/** damageText renders unblockedDamage in the spec's words. */
+/** damageText renders unblockedDamage in words. */
 export function damageText(x: { damage: number; life: number } | null): string | null {
   return x === null ? null : `you'd take ${x.damage} (${x.life} → ${x.life - x.damage})`;
 }

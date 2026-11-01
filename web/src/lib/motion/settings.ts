@@ -1,5 +1,5 @@
 /**
- * Motion speed (spec sub-project 5): a user setting, off / fast / normal,
+ * Motion speed: a user setting, off / fast / normal,
  * default normal. `prefers-reduced-motion: reduce` forces off whatever is
  * saved. Client-side only: the value lives in this browser under
  * `gorge.motion.v1` and is never sent to the server.

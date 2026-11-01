@@ -54,7 +54,7 @@ async function open(surface: Surface): Promise<Page> {
 const plannedPost = { seq: 17, player: 0, choices: [], payment: { action_id: 'action-17', plan: { id: 'plan-17-a' } } };
 const SURFACES = ['panel', 'strip', 'hand'] as const;
 
-describe('a planned cast arms pass-after-acting from every UI entry point (spec §8)', () => {
+describe('a planned cast arms pass-after-acting from every UI entry point', () => {
   it.each(SURFACES)('%s: a click posts the plan, and the next priority window is machine-passed exactly once', async (surface) => {
     const page = await open(surface);
     await (await planButton(page, surface)).click();

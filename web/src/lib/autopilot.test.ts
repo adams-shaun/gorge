@@ -83,7 +83,7 @@ const plan = (id: string): PaymentPlan => ({
 /**
  * plannedAction builds a PLAN-ONLY cast's payment action: no base_option_index,
  * because the engine offers the legacy cast option only once floating mana
- * can pay it (spec §8: plan-only casts are shown while the preference is on).
+ * can pay it (plan-only casts are shown while the preference is on).
  */
 const plannedAction = (plans: PaymentPlan[] = [plan('p1')]): PaymentAction =>
   ({ id: 'act', cast: { object: 102, face: 0, origin: 'hand' }, label: 'Cast Opt', plans });
@@ -1105,13 +1105,13 @@ describe('a playable plan-only cast prevents an empty-window auto-pass', () => {
     payment_actions: [{ id: 'act', cast: { object: 102, face: 0, origin: 'hand' }, label: 'Cast Opt', plans: [plan('p1')] }],
   };
 
-  it('§8: with the seat auto-pay preference on, the floor reads payment_actions, not only potential_actions', () => {
+  it('with the seat auto-pay preference on, the floor reads payment_actions, not only potential_actions', () => {
     // The View carries no potential_actions for the card: the floor must still
     // see the offered plan when plan use is enabled.
     expect(emptyPriorityWindow(plannedOnly, auditView(plannedOnly, [card(102, 'Opt')]), 1, true)).toBeNull();
   });
 
-  it('§8: with the preference off the floor is the capability-less one and passes the same window', () => {
+  it('with the preference off the floor is the capability-less one and passes the same window', () => {
     expect(emptyPriorityWindow(plannedOnly, auditView(plannedOnly, [card(102, 'Opt')]), 1, false)).toBe(1);
   });
 });

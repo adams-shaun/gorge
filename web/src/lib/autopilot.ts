@@ -34,8 +34,8 @@ import { stackYieldKey } from './yields';
  * window and a sorcery does not (the server's own timing gates are already in
  * the projection, so nothing here re-derives them).
  *
- * The THIRD input is the seat's auto-pay preference (spec §8 as amended
- * 2026-09-26): while it is on, the decision's own payment_actions count, and a
+ * The THIRD input is the seat's auto-pay preference: while it is on, the
+ * decision's own payment_actions count, and a
  * payment action carrying a plan is a real play for the actionable tests — a
  * plan-only cast has no cast option yet, and the projection may not list it.
  * With the preference off nothing here reads payment_actions at all.
@@ -156,8 +156,7 @@ export function isCostlyManaActivation(o: Option): boolean {
 }
 
 /**
- * plannedCasts is the auto-pay arm of actionables() (spec §8 as amended
- * 2026-09-26): with the seat's auto-pay preference ON, every
+ * plannedCasts is the auto-pay arm of actionables(): with the seat's auto-pay preference ON, every
  * payment action carrying at least one plan is a real play. The seat panel,
  * the hand fan and the hot strip all offer it as a one-click cast paid by its
  * first plan — including a PLAN-ONLY cast, which has no legacy cast option
@@ -302,7 +301,7 @@ export function respondable(decision: Decision): boolean {
  *
  * Kept as one function (not an inline OR at each arm) so the three arms
  * cannot drift apart and the next if-respondable consumer inherits the fix.
- * The auto-pay preference is deliberately not an input here: spec §8 makes a
+ * The auto-pay preference is deliberately not an input here: the rule makes a
  * plan-bearing payment action count for the actionable tests (actionables()'s
  * planned arm), not for these stack rules.
  */
@@ -336,7 +335,7 @@ export function respondableFor(view: View, seat: number, decision: Decision): bo
  * concede: the index always comes from the pass option that was found.
  *
  * autoPayMana is the seat's auto-pay preference, handed to actionable() so
- * this floor and decide() read the same test (spec §8):
+ * this floor and decide() read the same test:
  * while it is on, a window whose only play is a plan-only cast is NOT empty,
  * whether or not potential_actions lists the card (the gaps audit's third
  * probe: the floor used to pass it); off, the floor is the capability-less
@@ -418,7 +417,7 @@ export function decide(args: {
    * autoPayMana is the SEAT's auto-pay preference (SeatPanelState.autoPayMana),
    * never the table's auto_mana capability: the capability only makes the
    * switch available, and a player who never turns it on gets exactly the
-   * capability-less policy (spec §8 as amended 2026-09-26). It reaches this
+   * capability-less policy. It reaches this
    * classification only through actionables()' planned arm: a payment action
    * carrying a plan is a real play, so the 'smart' step rule and the own-turn
    * main-phase floor stop for a plan-only cast exactly as they stop for an
@@ -451,7 +450,7 @@ export function decide(args: {
   // even when persistent auto is off.
   if (!settings.autoPass && !ffwd) return { act: 'stop', reason: 'disabled' };
 
-  // 1b. Breakpoints: the player's pause-on-X rules (UI rework spec §1). They
+  // 1b. Breakpoints: the player's pause-on-X rules. They
   // stop ffwd and the one-shot runs too — like a step stop, they are the
   // player's own ask. The top-object rules respect a yield or a Resolve All
   // baseline: those are explicit consent for that object.

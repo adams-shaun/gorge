@@ -2,7 +2,7 @@ import type { View } from '../protocol';
 import type { CardOptions } from './cardoptions';
 
 /**
- * seatglow says why a seat's box or header bar glows (UI rework spec §3):
+ * seatglow says why a seat's box or header bar glows:
  * verdigris when the pending decision offers that PLAYER as a choice (a
  * target, a player to attack), ember while creatures are attacking them.
  * Both read facts already on the wire: the decision's own player-indexed

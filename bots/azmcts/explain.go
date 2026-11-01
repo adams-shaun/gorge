@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The az seat's decision notes (bots/explain, match-reviewer design §3).
+// The az seat's decision notes (bots/explain).
 // Everything here runs only when a driver installed a sink (SetExplain): the
 // seat's Decide paths test s.note for nil and call in, so with no sink the
 // seat builds no note, no row and no copy.

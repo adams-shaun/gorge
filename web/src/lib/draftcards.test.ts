@@ -55,7 +55,7 @@ describe('mvColumns', () => {
 });
 
 describe('pod geometry', () => {
-  it('packs 1 and 3 pass left, pack 2 right (spec §4.4)', () => {
+  it('packs 1 and 3 pass left, pack 2 right', () => {
     expect([1, 2, 3].map(passDirection)).toEqual(['left', 'right', 'left']);
   });
   it('names the seat that opened the pack at a pick', () => {

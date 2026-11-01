@@ -58,7 +58,7 @@ export type StoppableStep =
   | 'declare-blockers' | 'combat-damage' | 'end-combat' | 'main2' | 'end';
 
 /**
- * Breakpoints are the player's "pause on X" rules (UI rework spec §1). They
+ * Breakpoints are the player's "pause on X" rules. They
  * stop auto-pass even where the stack and step rules would pass. They belong
  * to the PLAYER, not to a preset: every preset ships them off, applying a
  * preset never touches them, and the preset label ignores them.

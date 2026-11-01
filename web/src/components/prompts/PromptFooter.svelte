@@ -13,7 +13,7 @@
 <script lang="ts">
   import { pointerRelease } from '../../lib/pointer';
   /**
-   * PromptFooter is the anatomy's last row (UI rework spec §4): the live
+   * PromptFooter is the anatomy's last row: the live
    * state on the left ("2 of 2 chosen", "you'd take 5 (17 → 12)") and the
    * secondary then primary buttons on the right. The primary is gilt — the
    * one saturated control, because it is "your move".

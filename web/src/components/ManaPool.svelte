@@ -1,8 +1,8 @@
 <script lang="ts">
   /**
-   * ManaPool draws the seat box's line-3 mana readout, which the product spec
-   * defines as "the mana pool OR free mana one gains by tapping lands or
-   * other effects". Those are two different things and the box has one row, so
+   * ManaPool draws the seat box's line-3 mana readout: "the mana pool OR free
+   * mana one gains by tapping lands or other effects". Those are two
+   * different things and the box has one row, so
    * this renders BOTH, deliberately distinct:
    *
    *   - AVAILABLE (the outlined chips) is what player could produce right now

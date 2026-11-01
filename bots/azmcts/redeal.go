@@ -50,7 +50,7 @@ type RedealInput struct {
 	Base    searchprobe.RedealBase
 }
 
-// RedealSource is the honest WorldSource (AZ spec §1's
+// RedealSource is the honest WorldSource (design §1's
 // sampled source without the behaviour-consistent rejection sampler). Every
 // world is a searchprobe.Redealer deal: public state, zone sizes and every
 // card the seat knows (its own hand, anything the known-card projection

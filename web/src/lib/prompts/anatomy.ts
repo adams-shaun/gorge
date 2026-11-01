@@ -6,7 +6,7 @@ import { mulliganPhase } from './decision';
 import { rendererFor, type RendererKind } from './renderer';
 
 /**
- * anatomy.ts is the prompt anatomy's words (UI rework spec §4): the source
+ * anatomy.ts is the prompt anatomy's words: the source
  * line, the serif title that asks the question, and the one plain-language
  * line saying what happens. Every fact comes from the wire — the decision's
  * kind/min/max/source/target_effect and the view's stack and cards — so the

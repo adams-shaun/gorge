@@ -4,7 +4,7 @@ import type { ClientView, ModelListener, Transition, Zone, ZoneRef } from './typ
 /**
  * snapshotdiff derives transitions by comparing two views by object id.
  *
- * This is the Manabrew half of sub-project 0: that protocol sends whole
+ * This is the Manabrew half of the client model: that protocol sends whole
  * `gameView` snapshots with no event log, and a card's `id` is stable across
  * zones, so moved A→B, tapped, damage, counters, life and stack push/pop all
  * fall out of a keyed comparison. It runs over `ClientView` — the future

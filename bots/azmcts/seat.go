@@ -33,7 +33,7 @@ type SeatConfig struct {
 	SimsByKind map[decision.Kind]int
 	// Explore is generation mode (azgen): Dirichlet noise at every
 	// searched root, and moves sampled proportional to visits while the game
-	// turn is <= ExploreTurns (spec §2: turns 1-4). Eval leaves it false:
+	// turn is <= ExploreTurns (design §2: turns 1-4). Eval leaves it false:
 	// argmax, no noise.
 	Explore      bool
 	ExploreTurns int32

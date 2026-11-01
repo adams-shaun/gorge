@@ -1,7 +1,7 @@
 <script lang="ts">
   /**
    * Digit is a numbered option's key cap: the `1`-`9` the pick hotkeys
-   * answer (UI rework spec §4, numbered options). The number comes from the
+   * answer. The number comes from the
    * decision's rendered order (lib/prompts/order.ts), so the cap and the key
    * cannot disagree. Absent past the ninth row.
    */

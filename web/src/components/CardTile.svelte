@@ -54,7 +54,7 @@
   let { card, size = 'tile', attachments = [], hover = new HoverCard(), anchor: anchorProp = null, tileOptions = null, options = null, open0 = false, faceTapped = undefined, art = false }: {
     card: CardView;
     size?: 'tile' | 'large';
-    /** art renders the face as an ART TILE (UI rework spec §2): the card's
+    /** art renders the face as an ART TILE: the card's
      *  art crop with a name strip, for a seat whose cards are below the
      *  layout profile's art-tile width. The P/T and counter pills stay. */
     art?: boolean;

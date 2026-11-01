@@ -9,7 +9,7 @@
 
   /**
    * PriorityOptions is the priority window's action list under the ACTIONS
-   * strip (UI rework spec §4: "priority is the action button and does not
+   * strip ("priority is the action button and does not
    * use the dock"). It is deliberately NOT numbered: the pass, concede and
    * payment actions sit outside the list, so no digit could name the Nth
    * thing the player sees.
@@ -18,7 +18,7 @@
    * here so a cast with a BaseOptionIndex cannot appear as two unrelated
    * actions. They are an Auto Mana affordance: with the toggle off this is
    * the untouched manual list. The manual taps are hidden only by the one
-   * shared rule (lib/manualmana.ts, spec §8). With Auto-pay OFF, a cast the
+   * shared rule (lib/manualmana.ts). With Auto-pay OFF, a cast the
    * planner can pay but the pool alone cannot is listed as a cast that
    * opens the select-mana window (announce-then-pay §8); with Auto-pay ON a
    * plan-less ManaBrew action renders the same announce fallback inside its

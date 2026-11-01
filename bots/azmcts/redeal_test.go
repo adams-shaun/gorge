@@ -203,7 +203,7 @@ func TestRedealWorldsKeepWhatTheSeatSees(t *testing.T) {
 	}
 }
 
-// The leak test (AZ spec §4): two real games that differ
+// The leak test (design §4): two real games that differ
 // only in the opponent's never-revealed hidden cards -- which cards are in
 // its hand, and the order of both libraries -- give byte-identical worlds for
 // every seed. What a world deals is a function of the seat's observation and

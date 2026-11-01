@@ -137,7 +137,7 @@ describe('keymap', () => {
 });
 
 
-describe('the layout and view actions (UI rework §2/§3)', () => {
+describe('the layout and view actions', () => {
   it('have defaults that collide with nothing shipped, and layout 1-9 start unbound', async () => {
     const { defaultKeymap, conflictsFor, matchKeymap } = await import('./keymap');
     const k = defaultKeymap();

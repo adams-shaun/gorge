@@ -101,7 +101,7 @@ describe('announce-then-pay helpers', () => {
     expect(scenarioIconOf('mana')).toBe('tap');
   });
 
-  // The board half of the window (spec §4.2, §8): every option carrying an
+  // The board half of the window: every option carrying an
   // Obj marks its source, and a tile answers the window with its own wire
   // index. A lone Swamp and a pile of interchangeable Swamps are one tap; a
   // dual land's two colours keep the picker.

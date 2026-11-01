@@ -89,8 +89,8 @@
     handScale: profile.hand.scale,
   }));
 
-  // While the centre bar is dragged only the grid rows move (the spec's
-  // "update only CSS while dragging"); card sizes follow on release.
+  // While the centre bar is dragged only the grid rows move (update only
+  // CSS while dragging); card sizes follow on release.
   const gridHeights = $derived(liveSplit === null || arr.opponents.length === 0 ? heights : splitHeights({
     boardH: H,
     stripH,

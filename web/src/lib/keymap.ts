@@ -1,6 +1,6 @@
 /**
- * keymap is the pure, rebindable binding table behind the table's hotkeys
- * (UI rework spec §1). hotkeys.ts keeps the guards (Meta, modal pickers,
+ * keymap is the pure, rebindable binding table behind the table's hotkeys.
+ * hotkeys.ts keeps the guards (Meta, modal pickers,
  * focused inputs, the Escape panic key) and asks matchKeymap which action a
  * chord means. Bindings match the PHYSICAL key (KeyboardEvent.code), so a
  * chord survives Shift changing the printable key. Ctrl without Shift is
@@ -91,7 +91,7 @@ export function defaultKeymap(): Keymap {
   k['zoom-card'] = [b('KeyZ')];
   k['open-grave'] = [b('KeyG')];
   k['open-exile'] = [b('KeyX')];
-  // The prompt system's quick answers (UI rework spec §1/§4). Shifted, so
+  // The prompt system's quick answers. Shifted, so
   // ordinary typing is still never a hotkey; bare letters stay free.
   k['attack-all'] = [b('KeyA', { shift: true })];
   k['no-blocks'] = [b('KeyN', { shift: true })];

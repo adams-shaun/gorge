@@ -409,7 +409,7 @@
     // once the mana floats -- and a costly activation (Lion's Eye Diamond, a
     // Treasure) is a play of its own, never hidden. WHEN and WHICH are the
     // one shared rule the option list and the hot strip read too
-    // (lib/manualmana.ts, §8).
+    // (lib/manualmana.ts).
     if (manualManaHidden(d, m.view, seatCtx?.seat, panel.hidesManualMana)) {
       for (const [obj, offered] of byObj) {
         const visible = offered.filter((option) => !isPlainManualTap(option));
@@ -581,7 +581,7 @@
   </main>
 {:else}
   <main class="table rail-{railSide}" style={tableStyle} class:log-hidden={!showLog} class:rail-peek={optionsOpen} class:with-transport={!seated && !!m.view}>
-    <!-- Motion overlay (spec sub-project 5): renders nothing here; it plays
+    <!-- Motion overlay: renders nothing here; it plays
          the client model's transitions in a fixed layer on <body>. Mounted
          outside the view guard so a match change does not remount it. -->
     {#key m}<MotionLayer source={m} viewerSeat={seated ? (seatCtx?.seat ?? null) : null} />{/key}
@@ -648,7 +648,7 @@
         {/if}
       {/snippet}
       <aside class="rail" data-rail-side={railSide}>
-        <!-- The prompt dock's mount point (UI rework §4, lane C): the
+        <!-- The prompt dock's mount point: the
              decision prompt docks at the top of the rail, next to the stack
              it concerns, unless the layout profile floats it
              (layoutStore.prompt, which PromptDock reads). ONE dock: priority

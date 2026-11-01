@@ -52,7 +52,7 @@ func benchSearch(b *testing.B, minTurn int32) {
 func BenchmarkSearchDecisionEarly(b *testing.B) { benchSearch(b, 3) }
 
 // Late: the event log is long here, so the first append after each Clone
-// copies it (spec §2 "Known cost risk").
+// copies it (design §2 "Known cost risk").
 func BenchmarkSearchDecisionLate(b *testing.B) { benchSearch(b, 9) }
 
 // BenchmarkSearchDecisionRedeal is the honest source's per-simulation cost

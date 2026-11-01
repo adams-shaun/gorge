@@ -1500,7 +1500,8 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // pendingTrigger cannot derive, because events.Event carries no attacking
 // player, no activator and no enchant link. Those fall back to asking the
 // controller. A human is still asked and no outcome is assumed, but it can
-// ask the wrong human, so it is a real gap and not a silent approximation. Closing it needs the trigger to capture the player at
+// ask the wrong human, so it is a real gap and not a silent approximation.
+// Closing it needs the trigger to capture the player at
 // match time, which is a change to what checkTriggers records.
 func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optional, askable bool) {
 	// A Miracle offer is always optional and its decider is always the

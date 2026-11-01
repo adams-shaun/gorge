@@ -68,7 +68,7 @@
   // the moment the decision is answered.
   const awaiting = $derived(toneOf(decision));
   // A required response is anchored to the ACTIONS control as soon as it
-  // arrives — unless the prompt dock answers it (UI rework spec §4: the
+  // arrives — unless the prompt dock answers it (the
   // dock is the answer surface for every non-priority decision while it is
   // mounted, so ACTIONS stays shut instead of opening a second copy over
   // the board). Otherwise it stays open until the answer changes it.
@@ -106,7 +106,7 @@
     action.base_option_index === undefined || action.base_option_index === null ? [] : [action.base_option_index],
   )));
   // The strip counts exactly what its nested seat-panel list shows: the one
-  // shared manual-mana rule (lib/manualmana.ts, spec §8) decides whether the
+  // shared manual-mana rule (lib/manualmana.ts) decides whether the
   // manual taps are hidden, never a rule of the strip's own.
   const hideManualMana = $derived(manualManaHidden(decision, view, ctx.seat, logic.hidesManualMana));
   const actionCount = $derived(

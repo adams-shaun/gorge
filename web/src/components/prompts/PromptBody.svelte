@@ -16,8 +16,8 @@
   import TargetChips from './TargetChips.svelte';
 
   /**
-   * PromptBody is the one dispatch from a decision to its renderer (UI
-   * rework spec §4: "one renderer per decision kind"). The seat panel (the
+   * PromptBody is the one dispatch from a decision to its renderer (one
+   * renderer per decision kind). The seat panel (the
    * ACTIONS strip and the board-centred mulligan) and the prompt dock both
    * mount it, so a decision looks and answers the same wherever it is
    * shown. rendererFor holds the precedence; every renderer answers through

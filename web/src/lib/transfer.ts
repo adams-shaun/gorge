@@ -1,6 +1,6 @@
 /**
- * transfer is export/import-to-file for the client-side libraries (UI rework
- * spec §1). A file is one JSON envelope {kind, version, items}. Import runs
+ * transfer is export/import-to-file for the client-side libraries. A file is
+ * one JSON envelope {kind, version, items}. Import runs
  * every entry through the owning store's own validate, so a file can never
  * carry a configuration the model would reject; a bad entry is skipped and
  * counted, never fatal, and an existing profile is never overwritten.

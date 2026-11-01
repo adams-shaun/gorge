@@ -68,7 +68,7 @@ export interface TurnBand {
  * turnBands draws the timeline: one band per engine turn, from its 'turn'
  * event to the next (the last runs to head). The active player comes from the
  * turn event; the round, which spaces the timeline's labels, is derived
-  * from the turn number and the seat count (an extra turn shifts it, the
+ * from the turn number and the seat count (an extra turn shifts it, the
  * same approximation the client's snapshot path already uses).
  */
 export function turnBands(dvr: DvrState, seats: number): TurnBand[] {

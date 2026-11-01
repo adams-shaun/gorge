@@ -8,7 +8,7 @@
   import ManaPool from './ManaPool.svelte';
 
   /**
-   * SeatBox is the viewer's own seat (UI rework spec §3): avatar, serif
+   * SeatBox is the viewer's own seat: avatar, serif
    * name, a big life total, the public counts and the floating mana pool,
    * in the hand row's left corner. Same glows and arrow anchor as an
    * opponent's header bar, in gilt because it is you.

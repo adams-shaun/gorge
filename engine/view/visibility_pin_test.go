@@ -243,7 +243,7 @@ func TestOmniscientRevealsEveryHandAndPoolNeverTheLibrary(t *testing.T) {
 // cannot be silently missed).
 //
 // The one deliberate exception is a real seat's OWN library in Seat mode:
-// `own_library_list` (reward-loop spec §6) exposes the viewer's own library as
+// `own_library_list` exposes the viewer's own library as
 // an UNORDERED []CardView, gated on "is this the viewer's own seat" exactly
 // like Hand (CR 400.2). The ORDER stays hidden (view.unorderedLibrary
 // canonicalises it by name then object id, so the emitted order is a pure

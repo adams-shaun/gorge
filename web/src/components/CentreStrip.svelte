@@ -10,8 +10,8 @@
   import PhaseTrack from './PhaseTrack.svelte';
 
   /**
-   * CentreStrip is the bar between the opponents and the viewer's board (UI
-   * rework spec §3): the turn label, the phase track with the seat's stops
+   * CentreStrip is the bar between the opponents and the viewer's board:
+   * the turn label, the phase track with the seat's stops
    * dotted, the seat's prompt controls (the hot strip without its transport
    * tabs — the gilt action cluster owns those), and two pills naming the
    * active flow profile and layout profile, each opening its drawer.

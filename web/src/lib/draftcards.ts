@@ -132,7 +132,7 @@ export function tint(facts: CardFacts): ManaColour | 'M' | 'C' {
   return facts.colours[0] ?? 'C';
 }
 
-/** passDirection is the spec's pass rule (§4.4): packs 1 and 3 pass left (seat i to i+1), pack 2 passes right. */
+/** passDirection is the pass rule: packs 1 and 3 pass left (seat i to i+1), pack 2 passes right. */
 export function passDirection(round: number): 'left' | 'right' {
   return round === 2 ? 'right' : 'left';
 }

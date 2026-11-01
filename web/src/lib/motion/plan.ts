@@ -4,7 +4,7 @@ import { TIMINGS, type MotionSpeed } from './settings';
 
 /**
  * plan turns one batch of transitions (one view step) into timed motion
- * steps (spec sub-project 5). Pure: the DOM layer (dom.ts) resolves anchors
+ * steps. Pure: the DOM layer (dom.ts) resolves anchors
  * and plays the steps; the queue (queue.ts) orders batches.
  *
  * - A zone move is a flight. Consecutive moves of one object coalesce into a

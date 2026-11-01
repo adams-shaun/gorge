@@ -96,7 +96,7 @@ describe('Table.svelte seat gating', () => {
     expect(html).toContain('data-hot-tab="actions"');
     expect(html).toContain('data-hot-tab="done"');
     // Pass, End turn and Undo moved from the strip's tabs to the one gilt
-    // action button and its secondaries (UI rework §3), in the hand row.
+    // action button and its secondaries, in the hand row.
     expect(html).not.toContain('data-hot-tab="pass"');
     expect(html).toContain('data-action-cluster');
     expect(html).toContain('data-pass-action');

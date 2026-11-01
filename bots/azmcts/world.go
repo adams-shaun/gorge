@@ -22,7 +22,7 @@ type World struct {
 	Hypothetical bool
 }
 
-// WorldSource hands each simulation a fresh world (spec §1). Nothing else in
+// WorldSource hands each simulation a fresh world (design §1). Nothing else in
 // the search touches hidden information. An error wrapping ErrNoWorld means
 // no world could be produced (the sampler starving with no redeal).
 // The clairvoyant source (a clone of the REAL engine) lives in

@@ -142,7 +142,7 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail (real
     for (const sel of ['main.table section.stack [data-obj="900"]', 'main.table section.stack [data-obj="890"]']) {
       await page.waitForSelector(sel, { state: 'attached', timeout: 60_000 });
     }
-    // UI rework §3: a stack item's target arrows are drawn only while that
+    // A stack item's target arrows are drawn only while that
     // item is hovered. The pointer is never moved (a real hover would be
     // re-hit-tested as the rail scrolls below), so the hover is the one
     // pointerover the table's delegated tracker listens for.
