@@ -161,7 +161,7 @@ describe('auto-ordered identical triggers', () => {
     expect(note?.text).toBe('Ordered 2 identical triggers automatically');
   });
 
-  it('a mixed pair stays manual when the broad setting is ALSO off (casual turns it on — the fb-trigorder1 tests pin that path)', () => {
+  it('a mixed pair stays manual when the broad setting is ALSO off (casual turns it on, which other tests pin)', () => {
     const p = immediateSeat();
     p.editSettings({ autoOrderAllTriggers: false });
     p.adoptView(triggerOrder(1, MIXED));
@@ -169,7 +169,7 @@ describe('auto-ordered identical triggers', () => {
     expect(p.pending?.seq).toBe(1);
   });
 
-  it('the identical setting off, with the broad setting still on, answers an identical pair through the broad path (fb-trigorder1 precedence)', async () => {
+  it('the identical setting off, with the broad setting still on, answers an identical pair through the broad path', async () => {
     const p = immediateSeat();
     p.editSettings({ autoOrderIdenticalTriggers: false });
     p.adoptView(triggerOrder(1, IDENTICAL));

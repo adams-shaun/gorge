@@ -3,7 +3,7 @@ import type { Decision, Option } from '../protocol';
 import { SeatPanelState } from './seatpanel.svelte';
 import { searchOptions } from './search';
 
-// The library-search picker's state half (fb-20260916T181754Z): the
+// The library-search picker's state half: the
 // display-only filter lives on the shared SeatPanelState, resets on every
 // newly adopted decision, and never touches the answer machinery — picked,
 // canSubmit and the posted intent are the generic ones. The DISPLAY list

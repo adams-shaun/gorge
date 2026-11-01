@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Decision, Option } from '../protocol';
 import { SeatPanelState } from './seatpanel.svelte';
 
-// The discard-pick modal's state-machine half (fb-20260918T201739Z): the
+// The discard-pick modal's state-machine half: the
 // modal is PRESENTATIONAL — its picks go through the panel's EXISTING
 // click/submit logic, so the wire intent is byte-identical to the inline
 // strip's by construction. These tests pin exactly that: the open flag's

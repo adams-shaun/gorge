@@ -153,7 +153,7 @@ describe('SeatPanelState', () => {
     expect(postIntentMock).toHaveBeenCalledWith('t1', 1, { seq: 5, player: 0, choices: [0] }, ctx);
   });
 
-  it('test 2 — R-E4-1: the primary button resolves the pass option by kind, never the last option, never concede', async () => {
+  it('test 2 — the primary button resolves the pass option by kind, never the last option, never concede', async () => {
     const p = new SeatPanelState('t1', 1, ctx);
     const d = priority(5, [cast(0), pass(1), concede(2)]);
     expect(primaryOf(d)).not.toBeNull();
@@ -196,7 +196,7 @@ describe('SeatPanelState', () => {
     expect(postIntentMock).toHaveBeenLastCalledWith('t1', 1, { seq: 12, player: 0, choices: [42] }, ctx);
   });
 
-  it('test 3 — R-E4-1: concede needs a second, explicit confirmation before its intent is posted', async () => {
+  it('test 3 — concede needs a second, explicit confirmation before its intent is posted', async () => {
     const p = new SeatPanelState('t1', 1, ctx);
     p.adoptView(priority(5, [cast(0), pass(1), concede(2)]));
 

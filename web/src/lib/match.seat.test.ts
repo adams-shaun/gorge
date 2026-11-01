@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { MatchStart, View } from '../protocol';
 
-// The seated half of MatchState (M2e-4): when constructed with a seat
+// The seated half of MatchState: when constructed with a seat
 // context, views and events are fetched seat-scoped (ViewAtSeat/EventsSeat
 // over the wire), the pushed spectator snapshot/event bodies are never
 // rendered, and the transcript is backfilled with the redacted lines on
@@ -36,7 +36,7 @@ async function settle(predicate: () => boolean, maxTicks = 200): Promise<void> {
   throw new Error(`settle: condition still false after ${maxTicks} microtask ticks`);
 }
 
-describe('MatchState — seated (M2e-4)', () => {
+describe('MatchState — seated', () => {
   it('a snapshot renders the seat-scoped view at head, never the pushed spectator god view', async () => {
     fetchViewMock.mockReset();
     fetchEventsMock.mockReset();
@@ -115,7 +115,7 @@ describe('MatchState — seated (M2e-4)', () => {
     });
   }
 
-  it('unseated construction renders the pushed snapshot and fetches nothing (R-E4-4)', async () => {
+  it('unseated construction renders the pushed snapshot and fetches nothing', async () => {
     fetchViewMock.mockReset();
     fetchEventsMock.mockReset();
     fetchViewMock.mockResolvedValue(spectatorView(1));
@@ -129,13 +129,12 @@ describe('MatchState — seated (M2e-4)', () => {
   });
 });
 
-// E3-9 relies on this (plan §10 risk 3, verified here rather than
-// inferred): a Bo3 series plays games 2 and 3 as matches 2 and 3 of the SAME
+// A Bo3 series relies on this: it plays games 2 and 3 as matches 2 and 3 of the SAME
 // table, and the human stays on /t/{table} with the one game token the
 // table's seat claim honours for every match. The seated MatchState must
 // follow the table's next match on its own: drop match 1's board at
 // match_start, and fetch match 2's seat-scoped view with the same seat.
-describe('MatchState — seated, across a table\'s next match (E3-9)', () => {
+describe('MatchState — seated, across a table\'s next match', () => {
   it('match_start for match 2 clears match 1\'s board; match 2\'s snapshot and decisions fetch match 2 with the same seat', async () => {
     fetchViewMock.mockReset();
     fetchEventsMock.mockReset();

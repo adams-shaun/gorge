@@ -9,20 +9,19 @@ import Board from './Board.svelte';
 import Rail from './Rail.svelte';
 
 /**
- * The board's command area replaces the rail's Commanders section (CZ1). Every
+ * The board's command area replaces the rail's Commanders section. Every
  * assertion the removed CommandZone.svelte.test.ts made is made here against
  * the new component — the derived CR 903.8 tax and never the raw count, the
  * zone each commander resolves to, a stack cast not counting as "in the
  * command zone", a constructed table drawing nothing, and one tile per
  * commander seat in seat order — and the rest are new: the drawing
  * states, inspectability in every one of them, art-free legibility, the
- * rail no longer carrying any of it, and the ui10 bug-1 rule — a commander
+ * rail no longer carrying any of it, and the one-permanent rule — a commander
  * on the battlefield is the one permanent in the creature row, not a
  * command-zone tile as well, so the board never draws the same commander
  * twice.
  *
- * CZ2 moved the tiles OUT of a private, rim-pinned area and INTO the seat's
- * creatures row, at creature scale. fb-20260917T232202Z then gave the command
+ * The tiles sit in the seat's creatures row, at creature scale. The command
  * zone its OWN layout settings, which the creatures row cannot carry for it
  * (the row resolves --card-w on itself; the tiles are siblings of the
  * CardStacks in one flex row, where an independent justify-content has
@@ -76,7 +75,7 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html).toContain('data-cmd-zone="graveyard"');
   });
 
-  it('draws command-zone and away tiles; the BATTLEFIELD commander is skipped so it renders once (ui10 bug 1)', () => {
+  it('draws command-zone and away tiles; the BATTLEFIELD commander is skipped so it renders once', () => {
     const inZone = card(1, 'Isamaru', 'W');
     const onBoard = card(2, 'Zur', '1 U U');
     const dead = card(3, 'Liliana', '2 B B');
@@ -192,7 +191,7 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html.match(/data-tax=/g)).toHaveLength(1);
   });
 
-  it('the tax renders in the mana-cost corner of the FACE (CZ3), not below it, and keeps its CR 903.8 tooltip', () => {
+  it('the tax renders in the mana-cost corner of the FACE, not below it, and keeps its CR 903.8 tooltip', () => {
     const c = card(1, 'Edgar', '2 W B');
     const p = player({ commanders: [c], command: [c], commander_casts: [3] });
     const { html } = render(CommandArea, { props: { player: p } });
@@ -213,7 +212,7 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html).toContain('next cast pays 6 generic commander tax (CR 903.8)');
   });
 
-  it('a commander on the battlefield is not a command-zone tile at all (ui10 bug 1)', () => {
+  it('a commander on the battlefield is not a command-zone tile at all', () => {
     const c = card(1, 'Isamaru', 'W');
     const p = player({ commanders: [c], battlefield: [c], commander_casts: [2] });
     const { html } = render(CommandArea, { props: { player: p } });
@@ -273,7 +272,7 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html.replace(/<!--[\s\S]*?-->/g, '').trim()).toBe('');
   });
 
-  it('the private rim-pinned area is gone (CZ2): no private area element, no corner-dependent placement, no recess', () => {
+  it('the private rim-pinned area is gone: no private area element, no corner-dependent placement, no recess', () => {
     const c = card(1, 'Isamaru');
     const p = player({ commanders: [c], command: [c] });
     const { html } = render(CommandArea, { props: { player: p } });
@@ -352,10 +351,10 @@ describe('the board draws one commander tile per roster commander, inline in eac
     ],
   });
 
-  it('draws a tile for every seat that has a roster AND a commander not in play; a battlefield commander is not a tile (ui10 bug 1)', () => {
+  it('draws a tile for every seat that has a roster AND a commander not in play; a battlefield commander is not a tile', () => {
     const { html } = render(Board, { props: { view: view(), seats } });
     // each cmd-tile carries the owning seat as its own data-seat attribute
-    // now that there is no wrapping area to carry it instead (CZ2)
+    // now that there is no wrapping area to carry it instead
     const bySeat = [...html.matchAll(/data-cmd-state="[a-z]+" data-cmd-zone="[a-z]+" data-seat="(\d)"/g)].map((m) => m[1]);
     // seat 0: one tile (in the zone). seat 1: NONE — its commander is on the
     // battlefield, so the real permanent is the one copy. seat 2: two tiles
@@ -384,7 +383,7 @@ describe('the board draws one commander tile per roster commander, inline in eac
     expect(html.match(/data-tax=/g)).toHaveLength(2);
   });
 
-  it('the commander on the battlefield renders ONCE — as the permanent in the creature row, not again as a command-zone tile (ui10 bug 1)', () => {
+  it('the commander on the battlefield renders ONCE — as the permanent in the creature row, not again as a command-zone tile', () => {
     const { html } = render(Board, { props: { view: view(), seats } });
     // no command-zone tile for the seat-1 battlefield commander
     expect(html).not.toContain('data-cmd-state="battlefield"');

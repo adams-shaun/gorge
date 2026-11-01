@@ -3,7 +3,7 @@ import { render } from 'svelte/server';
 import type { PlayerView, TableInfo, View } from '../protocol';
 import { initSeatContext } from '../lib/seat';
 
-// E3-fx2: a series (best-of-three) table between two games keeps the finished
+// A series (best-of-three) table between two games keeps the finished
 // board on the table page because the TABLE STORE knows the table is between
 // games (TableInfo.series at match_end, then the server's table_state frame),
 // not because any event overlay reports the series in play. The join link
@@ -59,7 +59,7 @@ function onBoard(html: string): boolean {
   return BOARD.test(html) && !html.includes('matches-page');
 }
 
-describe('Table.svelte — a series table between games (E3-fx2)', () => {
+describe('Table.svelte — a series table between games', () => {
   it('keeps the finished board after match_end and between_games, and drops to the match list only when the series is over', () => {
     tables.apply({ v: 1, t: 'hello', seq: 0, body: { session: 's1', tables: [info('bo3', { series: true })] } });
     tables.apply({ v: 1, t: 'match_end', seq: 1, table: 'bo3', match: 1, body: { result: 'win', winner: 1, head: 'h1' } });

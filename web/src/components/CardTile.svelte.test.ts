@@ -75,7 +75,7 @@ describe('CardTile on a face-down permanent', () => {
   });
 });
 
-describe('CardTile options affordance (ui21)', () => {
+describe('CardTile options affordance', () => {
   const opts = (over: Partial<TileOptions> = {}): TileOptions => ({
     list: [
       { index: 3, kind: 'cast', label: 'Cast Fireball', obj: 16, player: 0 },
@@ -100,7 +100,7 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).not.toContain('badge__icon');
   });
 
-  it('a same-scenario option list wears the scenario icon on the count badge (fb-9946410e)', () => {
+  it('a same-scenario option list wears the scenario icon on the count badge', () => {
     const targets = opts({ list: [
       { index: 3, kind: 'permanent', label: 'Wasteland', obj: 16, player: 0 },
       { index: 8, kind: 'permanent', label: 'Wasteland', obj: 16, player: 0 },
@@ -131,7 +131,7 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).toContain('data-wire-index="3"');
     expect(html).toContain('data-wire-index="8"');
     postTileOption(t, t.list[1]);
-    expect(t.post).toHaveBeenCalledWith(8, true, false); // fb-e079def5: every picker post arms the follow-up
+    expect(t.post).toHaveBeenCalledWith(8, true, false); // every picker post arms the follow-up
   });
 
   it('more than six options retain the rectangular list menu', () => {
@@ -162,7 +162,7 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).not.toMatch(/data-mana-option="[^"]+"[^>]*>\s*<span[^>]*>Add /);
   });
 
-  it('each radial wheel button carries an immediate help bubble with the label of the option, and no native title (fb-20260917T232800Z)', () => {
+  it('each radial wheel button carries an immediate help bubble with the label of the option, and no native title', () => {
     const { html } = render(CardTile, { props: { card: card(), tileOptions: opts(), open0: true } });
     // One tooltip per option, sibling of its button inside the portaled
     // radial layer (a child would be clipped by .wheel-button's overflow:
@@ -206,7 +206,7 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).not.toMatch(/<button[^>]*data-wire-index[^>]*title=/);
   });
 
-  it('each menu item is keyed by the option\'s OWN index, never a position in a rebuilt list (R-E4-1)', () => {
+  it('each menu item is keyed by the option\'s OWN index, never a position in a rebuilt list', () => {
     // Two options on this card whose indices (3 and 8) are unrelated to their
     // wire positions (0 and 1). The menu must carry each one's own index so a
     // click posts 3 for the cast and 8 for the activation, not 0 and 1.
@@ -234,7 +234,7 @@ describe('CardTile options affordance (ui21)', () => {
     const { html } = render(CardTile, { props: { card: card(), tileOptions: one, open0: true } });
     expect(html).toContain('data-single-action');
     expect(html).toContain(`data-action-icon="${icon}"`);
-    // aria-label AND title both name the scenario (fb-9946410e r2): a target
+    // aria-label AND title both name the scenario: a target
     // candidate's raw wire label alone ("Wasteland", "Ari") is not an
     // accessible name a screen-reader user can act on.
     expect(html).toContain(`aria-label="${accessible}`);
@@ -244,7 +244,7 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).not.toContain('badge__n');
   });
 
-  it('a direct target badge names the scenario, not just the candidate (fb-9946410e r2)', () => {
+  it('a direct target badge names the scenario, not just the candidate', () => {
     for (const [kind, label] of [['permanent', 'Wasteland (Ari)'], ['player', 'Ari']] as const) {
       const one = opts({ list: [{ index: 17, kind, label, obj: 16, player: 0 }] });
       const { html } = render(CardTile, { props: { card: card(), tileOptions: one, open0: true } });
@@ -334,7 +334,7 @@ describe('CardTile loyalty (CR 306.5b/306.8)', () => {
   });
 
   it('a land with depletion counters prints a chip without creature or walker stats', () => {
-    // fb-20260923T194401Z: Sandstone Needle uses the land fixture's counter path.
+    // Sandstone Needle uses the land fixture's counter path.
     const land = card({ counters: { DEPLETION: 2 } });
     expect(land.types).toBe('Land');
     const { html } = render(CardTile, { props: { card: land } });
@@ -347,7 +347,7 @@ describe('CardTile loyalty (CR 306.5b/306.8)', () => {
   });
 });
 
-describe('CardTile summoning sickness (fb-20260917T004545Z)', () => {
+describe('CardTile summoning sickness', () => {
   it('a noncreature land with summon_sick shows no sick dim', () => {
     // the engine carries the flag on every battlefield entry, but a sick land
     // still taps for mana: the dim would be a lie about what the land can do
@@ -361,7 +361,7 @@ describe('CardTile summoning sickness (fb-20260917T004545Z)', () => {
   });
 });
 
-describe('CardTile faceTapped presentation override (fb-20260917T004545Z)', () => {
+describe('CardTile faceTapped presentation override', () => {
   it('overrides the face rotation regardless of card.tapped', () => {
     // a mixed collapsed pile presents ready even though its lead member is tapped
     const readyFace = render(CardTile, { props: { card: card({ tapped: true }), faceTapped: false } });
@@ -377,7 +377,7 @@ describe('CardTile faceTapped presentation override (fb-20260917T004545Z)', () =
   });
 });
 
-describe('CardTile muted tap affordance for a summoning-sick mana source (fb-20260928T161557Z-2d23d432)', () => {
+describe('CardTile muted tap affordance for a summoning-sick mana source', () => {
   // Elvish Mystic's shape: a creature that would tap for mana, freshly cast.
   const green = { colour: [0, 0, 0, 0, 1, 0] as [number, number, number, number, number, number], any: false };
   const mystic = (over: Partial<CardView> = {}): CardView => card({
@@ -428,7 +428,7 @@ describe('CardTile muted tap affordance for a summoning-sick mana source (fb-202
     expect(render(CardTile, { props: { card: c } }).html).not.toContain('sick-tap');
   });
 
-  it('shows no glyph on a sick noncreature land, and keeps its dim off (fb-20260917T004545Z)', () => {
+  it('shows no glyph on a sick noncreature land, and keeps its dim off', () => {
     const c = mystic({ types: 'Basic Land Forest', name: 'Forest', mana_cost: '', power: 0, toughness: 0 });
     expect(c.types.includes('Creature')).toBe(false); // setup: really a land
     const { html } = render(CardTile, { props: { card: c } });
@@ -437,12 +437,12 @@ describe('CardTile muted tap affordance for a summoning-sick mana source (fb-202
   });
 });
 
-// fb-20260928T230741Z: an Equipment's float-gated Equip must have an
+// An Equipment's float-gated Equip must have an
 // affordance on the equipment itself, in both mana modes. An ATTACHED
 // Equipment renders as a rider under its host, so it needs its own picker
 // beside its name — in the .tile-wrap, never inside the role="button" tile
 // div (the a11y constraint the host's own picker already obeys).
-describe('CardTile attachment riders (fb-20260928T230741Z)', () => {
+describe('CardTile attachment riders', () => {
   const equip: PotentialAction = { kind: 'ability', obj: 48, ability: 0, label: 'Flayer Husk: Equip 2' };
   // The captured window's shape: only Plains taps live; the Equip is later-only.
   const bundle = (laterObj: number): CardOptions => ({

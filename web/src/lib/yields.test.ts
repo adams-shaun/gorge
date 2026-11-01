@@ -26,7 +26,7 @@ function fakeStorage(): Storage {
 }
 
 describe('yield keys', () => {
-  it('yieldKey is controller:name:text — the brief\u2019s exact format', () => {
+  it('yieldKey is controller:name:text — the exact format', () => {
     expect(yieldKey(1, 'Blood Artist', 'Whenever a creature dies…')).toBe(
       '1:Blood Artist:Whenever a creature dies…',
     );

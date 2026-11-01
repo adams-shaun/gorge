@@ -5,7 +5,7 @@ import { rememberKey } from './remembered';
 import { SeatPanelState, autoNoteText } from './seatpanel.svelte';
 import { clientBreadcrumbs } from './breadcrumbs';
 
-// The UNDO pause (fb-20260914T063523Z): pressing UNDO rewinds the board to
+// The UNDO pause: pressing UNDO rewinds the board to
 // the decision point of the player's last action, and the autopilot machine
 // — auto-pass, the empty-window floor, pass-after-acting, the
 // identical-trigger auto-order, remembered optional-trigger answers — must

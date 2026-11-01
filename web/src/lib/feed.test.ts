@@ -85,7 +85,7 @@ describe('latestPerTable', () => {
     expect(now[0].line).toBe('a casts Shock');
   });
 
-  it('skips a trailing step line when picking a table\'s current line (ui9 B4)', () => {
+  it('skips a trailing step line when picking a table\'s current line', () => {
     const now = latestPerTable([l('t1', 1, 'a casts Shock'), l('t1', 2, 'Step: main-1')], ['t1']);
     expect(now[0].line).toBe('a casts Shock');
     expect(now[0].count).toBe(1);
@@ -109,7 +109,7 @@ describe('lastNotableByTable', () => {
     expect(m.has('t2')).toBe(false);
     expect(lastNotableByTable([]).size).toBe(0);
   });
-  it('does not report a step line as the last notable thing a table did (ui9 B4)', () => {
+  it('does not report a step line as the last notable thing a table did', () => {
     const m = lastNotableByTable([l('t1', 1, 'Step: main-1'), l('t1', 2, 'a casts Shock')]);
     expect(m.get('t1')).toBe('a casts Shock');
   });
@@ -129,7 +129,7 @@ describe('notableLines', () => {
   it('shows everything when asked', () => {
     expect(notableLines(feed, true).length).toBe(4);
   });
-  it('drops step lines by default, and shows them when all is set (ui9 B4)', () => {
+  it('drops step lines by default, and shows them when all is set', () => {
     const withSteps = [...feed, l('t1', 4, 'Step: combat')];
     expect(notableLines(withSteps).some((x) => isStepLine(x.line))).toBe(false);
     expect(notableLines(withSteps, true).some((x) => isStepLine(x.line))).toBe(true);

@@ -194,7 +194,7 @@ describe('the wait is cancellable', () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     const trigger = { ...stackView('Harmless trigger'), kind: 'trigger' };
-    // On the OPPONENT'S turn: since fb-20260917T231311Z the own-turn main-phase
+    // On the OPPONENT'S turn: the own-turn main-phase
     // floor stops persistent Auto on the seat's own main1/main2 whenever the
     // window carries a playable action (this `live` decision offers a cast),
     // so an own-turn main1 shape is no longer a paced-pass window at all —
@@ -221,13 +221,13 @@ describe('the wait is cancellable', () => {
     expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Harmless trigger resolving']);
   });
 
-  it('the own-turn main-phase floor stops persistent Auto before any pacing while the window holds a playable action (fb-20260917T231311Z)', async () => {
+  it('the own-turn main-phase floor stops persistent Auto before any pacing while the window holds a playable action', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     const trigger = { ...stackView('Harmless trigger'), kind: 'trigger' };
     // The exact shape the old r3 leaf above used to pace-pass: the seat's own
     // main1, an already-present opponent trigger, and a decision offering a
-    // cast. Since the floor (fb-20260917T231311Z) the verdict is a stop — the
+    // cast. Under the floor the verdict is a stop — the
     // machine must never blow through the player's own main phase while a
     // play exists — so no wait is armed, nothing posts, and the stop-set note
     // names the play the smart rule's note already names.
@@ -530,7 +530,7 @@ describe('casual still ships the paced defaults', () => {
   });
 });
 
-// fb-20260917T004341Z: the Custom step-delay pair. paceMs reads
+// The Custom step-delay pair. paceMs reads
 // settings.pacing generically, so any user-set pair drives the machine —
 // this is the wiring pin that a pair set through the panel's Custom inputs
 // schedules a wait (never posts synchronously, never posts early).

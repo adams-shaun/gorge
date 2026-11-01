@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { VersionWatch, bundleStale, loadedBundleSrc, parseBundleSrc, versionWatch } from './versioncheck.svelte';
 import { setBasePathForTests } from './basepath';
 
-// The stale-client detector (fb-3ab6d9da defect 2): a tab loaded from an old
+// The stale-client detector: a tab loaded from an old
 // embedded bundle is told when the served index.html names a different one.
 // What these tests hold down: the parsing/comparison half, and the watch's
 // poll loop under an injected fetch and a manual timer — which also proves

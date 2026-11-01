@@ -23,7 +23,7 @@ async function open(query = '') {
   await page.waitForSelector(`${panel} .quiet, ${panel} .entry`, { timeout: 60_000 });
 }
 
-describe('DecisionPanel (match reviewer T5)', () => {
+describe('DecisionPanel (match reviewer)', () => {
   it('shows the decision at the cursor, dims it between decisions, and jumps with o/f/d', async () => {
     await open();
     await setCursor(15);

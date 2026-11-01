@@ -4,7 +4,7 @@ import type { EventSeries, EventState, PlayerView, SeatInfo, View } from '../pro
 import { initSeatContext } from '../lib/seat';
 import { eventState } from '../test/eventfixtures';
 
-// E3-9: a series game's join link carries &event=<id>; the table page then
+// A series game's join link carries &event=<id>; the table page then
 // watches that event with the event seat the event page REMEMBERED (never
 // the URL's game token) and overlays the between-games panel while the
 // viewer's series on this table is between games and the server waits on
@@ -109,7 +109,7 @@ function page(row: EventSeries | null, opts: { stored?: boolean; event?: boolean
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('Table.svelte — the between-games overlay (E3-9)', () => {
+describe('Table.svelte — the between-games overlay', () => {
   it('with ?event= and a remembered event seat, a between row waiting on the viewer overlays the panel', () => {
     const { html, storage } = page(series({}));
     expect(html).toContain('data-testid="table-between"');

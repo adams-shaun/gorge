@@ -6,8 +6,7 @@ import { isManualManaOption, isPlainManualTap, manualManaHidden } from './manual
 // preference on, "manual mana taps are hidden under auto-pay only when every
 // play the window can reach is reachable without them". manualManaHidden is
 // the ONE predicate all three surfaces read, and isPlainManualTap the one
-// per-option test they apply it to. The shapes below are the measured wire
-// (aph-web-autopay-policy Go probe at e77928ae9): a mana-costed play is
+// per-option test they apply it to. The shapes below are the measured wire: a mana-costed play is
 // offered FLOAT-FIRST, so on an empty pool it is absent from the options and
 // present only in the seat's potential_actions.
 

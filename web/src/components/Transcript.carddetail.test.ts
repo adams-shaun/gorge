@@ -8,7 +8,7 @@ import { CardHover } from '../lib/carddetail.svelte';
 import Transcript from './Transcript.svelte';
 
 /**
- * The transcript's card-name hover preview (fb-20260927T154603Z), SSR half.
+ * The transcript's card-name hover preview, SSR half.
  *
  * The pointer interaction itself is proved in real Chromium by
  * Transcript.hover.test.ts; this harness has no DOM, no pointer events and no
@@ -81,7 +81,7 @@ describe('cardById — the transcript id -> CardView lookup', () => {
   });
 });
 
-describe('Transcript — card-name hover trigger (fb-20260927T154603Z)', () => {
+describe('Transcript — card-name hover trigger', () => {
   it('a card whose id is in the view becomes a panel trigger; the id absent from the view keeps today\'s title-only span', () => {
     const d = dvr([
       ev(1, 'put_on_stack', 'Ann casts Jace, the Mind Sculptor #4'),

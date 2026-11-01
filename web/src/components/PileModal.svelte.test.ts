@@ -209,7 +209,7 @@ describe('PileModal — float-gated actions', () => {
   });
 });
 
-describe('PileModal — the seat header pile affordances (fb-20260916T225802Z)', () => {
+describe('PileModal — the seat header pile affordances', () => {
   // The ?case=identity fixture mounts SeatHeader for two seats plus the
   // table's ONE shared PileHost, wired exactly as Table.svelte wires them,
   // over a pending decision that touches Alice's graveyard (a flashback
@@ -217,7 +217,7 @@ describe('PileModal — the seat header pile affordances (fb-20260916T225802Z)',
   // BOB's graveyard (a target option on card 300 — the not-gated-by-owner
   // case). Tone is resolved through toneOf's register; the decision carries
   // a pass, so the whole bundle reads offered. window.__pilePosted records
-  // the wire index every post carries (R-E4-1).
+  // the wire index every post carries.
   const openIdentity = async (): Promise<Page> => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/PileModal.fixture.html?case=identity`);
@@ -257,7 +257,7 @@ describe('PileModal — the seat header pile affordances (fb-20260916T225802Z)',
     await page.close();
   });
 
-  it("pile cards wear the tone and post the option's own wire index (R-E4-1)", async () => {
+  it("pile cards wear the tone and post the option's own wire index", async () => {
     const page = await openIdentity();
     await page.locator('[data-seat="0"] [data-pile="graveyard"]').click();
     const dialog = page.getByRole('dialog', { name: "Alice's graveyard" });

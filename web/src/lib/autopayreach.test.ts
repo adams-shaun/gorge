@@ -69,7 +69,7 @@ function surfaces(d: Decision, v: View) {
     const o = d.options.find((x) => x.label === label);
     if (o) return reachesOption(o);
     if (planned.some((p) => `${p.label} (with suggested mana)` === label)) return true;
-    // The plan-less announce arm (agent-20260929T172335Z-dee96bba): under
+    // The plan-less announce arm: under
     // Auto-pay ON the panel renders the plan-less action's "Cast — choose
     // mana" announce button (PriorityOptions.svelte's plan-less branch), so
     // the label names a reachable surface.

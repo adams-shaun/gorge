@@ -72,7 +72,7 @@ describe('board', () => {
     pastBoundary[0] = ev(0, 'stack_resolve', 11);
     expect(recentlyMattered(pastBoundary)).toBeNull();
   });
-  it('clears when a turn or step boundary is newer than the resolve (fb-20260917T231516Z)', () => {
+  it('clears when a turn or step boundary is newer than the resolve', () => {
     const ev = (seq: number, kind: string, obj?: number): EventBody => ({ event: { seq, kind, player: 0, obj }, line: '' });
     // The resolved card belongs to the phase it resolved in: the newest turn
     // or step boundary wins over the most recent resolve.
@@ -144,7 +144,7 @@ describe('stackIdentical', () => {
     expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 3], [2]]);
   });
 
-  // fb-20260916T201423Z: the lands row merges regardless of tapped state —
+  // The lands row merges regardless of tapped state —
   // a pile of Forests is a pile of Forests, and the readiness moves onto
   // the pile's tab instead of sharding the pile.
   it('ignoreTapped merges mixed tapped/untapped same-name cards into one pile, id-sorted', () => {
@@ -165,7 +165,7 @@ describe('stackIdentical', () => {
     expect(stackIdentical([tapped(1), tapped(2, { controller: 1 })], { ignoreTapped: true })).toHaveLength(2);
   });
 
-  // fb-20260917T004545Z: the lands row also drops summoning sickness from the
+  // The lands row also drops summoning sickness from the
   // identity. The engine sets SummonSick on every battlefield entry and clears
   // it at the next turn boundary, so a land played THIS round carried a key
   // component its older name-mates lacked and sat in its own pile until then.
@@ -335,7 +335,7 @@ describe('stackIdentical', () => {
     expect(stackFaces(g, true).map((c) => c.id)).toEqual([2, 5, 9]);
   });
 
-  // The render key (fb-20260915T182335Z): the keyed-each identity Quadrant
+  // The render key: the keyed-each identity Quadrant
   // mounts a CardStack under. It must be the visible lead object's stable
   // identity — NOT the equivalence string — so a kept tile handed a newer
   // CardView for the same object survives the update with its local hover

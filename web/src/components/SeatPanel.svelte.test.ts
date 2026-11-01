@@ -76,12 +76,12 @@ describe('SeatPanel — the test contract', () => {
     }
   });
 
-  // ui15: the live table route hands the panel a view whose players carry
+  // The live table route hands the panel a view whose players carry
   // names but a `seats` array that is EMPTY (the one-shot seed in
   // Table.svelte races the async tables.lookup). The wait-the-priority line
   // must fall back to the wire's player name, not the 0-based `Seat N`
   // placeholder.
-  it('names the priority player from the view when seats is empty (ui15 discrimination)', () => {
+  it('names the priority player from the view when seats is empty', () => {
     // seat 2 is deliberately absent from the module-scope `seats` fixtures
     // (only 0/1 exist), so it is built by hand rather than through the helper
     // that reads seats[seat].name.
@@ -392,7 +392,7 @@ describe('SeatPanel — the prompt surface (fb prompts: never passed over, never
     options: [opt(0, 'yes', 'Yes — Bloodghast: Whenever a land enters, Bloodghast may return from the graveyard', 9), opt(1, 'no', 'No', 9)],
   };
 
-  it('the context line names the source and the shape of the answer (Job 3)', () => {
+  it('the context line names the source and the shape of the answer', () => {
     const { html } = render(SeatPanel, { props: props(bolt(target)) });
     expect(html).toMatch(/data-prompt-ctx[^>]*>From Lightning Bolt \(a resolving spell\) · Pick 1 target</);
   });
@@ -401,7 +401,7 @@ describe('SeatPanel — the prompt surface (fb prompts: never passed over, never
     expect(render(SeatPanel, { props: props(view(priority)) }).html).not.toContain('data-prompt-ctx');
   });
 
-  it('an arrange decision renders card faces in offered order and opens the popup, not a text index (Job 4)', () => {
+  it('an arrange decision renders card faces in offered order and opens the popup, not a text index', () => {
     const { html } = render(SeatPanel, { props: props(bolt(arrangeAsk)) });
     expect(html).toContain('data-arrange');
     expect(html).toContain('data-arrange-row');
@@ -425,7 +425,7 @@ describe('SeatPanel — the prompt surface (fb prompts: never passed over, never
     expect(offered).not.toContain('data-auto-pay-toggle');
   });
 
-  it('while the undo pause holds, the Auto/Manual toggle reads Paused and the note says how to resume (fb-20260914T063523Z)', () => {
+  it('while the undo pause holds, the Auto/Manual toggle reads Paused and the note says how to resume', () => {
     // The route hands the panel its shared SeatPanelState; rewind() (the
     // stream's rewind frame) pauses the machine on it.
     const state = new SeatPanelState('t1', 1, ctx, null);
@@ -529,7 +529,7 @@ describe('SeatPanel — the mulligan prompt names the starting player (rv2a)', (
   });
 });
 
-describe('SeatPanel — the library-search picker (fb-20260916T181754Z)', () => {
+describe('SeatPanel — the library-search picker', () => {
   // The wire shape the engine poses (effects/zone.go effSearchLibrary): a
   // KChoose whose options are kind "search" with Obj set and the card's bare
   // name as Label, in LIBRARY scan order — deliberately unalphabetical so

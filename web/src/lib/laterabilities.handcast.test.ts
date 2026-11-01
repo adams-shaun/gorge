@@ -4,7 +4,7 @@ import type { CardView, Decision, Option, PlayerView, PotentialAction } from '..
 import HandFan from '../components/HandFan.svelte';
 import { laterByObj, optionsByObj, optionsByPlayer, type CardOptions } from './cardoptions';
 
-// The report fb-20261006T070024Z-ff7470d7: seat 0 held Gurmag Angler ({6}{B},
+// A report: seat 0 held Gurmag Angler ({6}{B},
 // Delve) in hand with 6 cards in the graveyard and a black source untapped,
 // but the priority window offered only mana taps. Delve is reachable (float B,
 // then the live cast reappears with the delve prompt), but the hand card

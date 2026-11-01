@@ -13,7 +13,7 @@ import Transcript from './Transcript.svelte';
  * click the toggle, so the step-line test asserts the default (hidden); the
  * toggle wiring is logfilter's own test's job (logfilter.test.ts).
  *
- * lc1 extends this for the owner-colour resolution: a card in the log takes
+ * This extends to the owner-colour resolution: a card in the log takes
  * the colour of the seat that OWNS it (by object id), and a faceless ability
  * is named by its source card.
  */
@@ -76,7 +76,7 @@ describe('Transcript — readable log rendering', () => {
   });
 });
 
-describe('Transcript — owner-coloured cards (lc1)', () => {
+describe('Transcript — owner-coloured cards', () => {
   it('two seats owning the same card name render in two different colours in one transcript', () => {
     // The case name-keying could never express: two Islands owned by different
     // seats must render differently.
@@ -122,7 +122,7 @@ describe('Transcript — owner-coloured cards (lc1)', () => {
   });
 });
 
-describe('Transcript — source-named abilities (lc1)', () => {
+describe('Transcript — source-named abilities', () => {
   it("renders \"<source>'s ability #<id>\" as an ability, id on the hover title, no invented words", () => {
     const html = renderLog(dvr([ev(1, 'resolve', "Goblin Balloon Brigade's ability #217 resolves")]));
     // the source possessive is kept, and the id is on the hover title (not the
@@ -135,7 +135,7 @@ describe('Transcript — source-named abilities (lc1)', () => {
   });
 });
 
-describe('Transcript — step-line default (ui9)', () => {
+describe('Transcript — step-line default', () => {
   it('suppresses step lines by default (the step filter)', () => {
     const html = renderLog(dvr([
       ev(1, 'move_zone', 'Ann plays Island #2'),

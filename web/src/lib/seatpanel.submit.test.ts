@@ -29,7 +29,7 @@ const attack = (index: number, obj: number): Option => ({
  * does: Min 0 (declining to attack is always legal, CR 508.1a), Max the
  * number of (attacker, defender) pairs offered, and EVERY option of kind
  * "attacker" — there is no `pass` and no `resolve` on the wire, so the
- * panel's primary-by-kind button (R-E4-1) never appears for one.
+ * panel's primary-by-kind button never appears for one.
  */
 const attackers = (n: number): Decision => ({
   seq: 7,

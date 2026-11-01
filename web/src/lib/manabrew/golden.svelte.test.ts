@@ -9,8 +9,8 @@ import type { Transport } from './transport';
 import { parseEngineMessage, type EngineMessage } from './wire';
 
 /**
- * The server's own golden transcript (server/host/manabrewhttp/testdata/golden,
- * MB-11): a whole fixed-seed 2-seat game's engine→client stream for seat 0,
+ * The server's own golden transcript (server/host/manabrewhttp/testdata/golden):
+ * a whole fixed-seed 2-seat game's engine→client stream for seat 0,
  * exactly as the transport writes it. Replaying it through the adapter
  * exercises every state and prompt a real game sends, in order.
  */
@@ -72,7 +72,7 @@ describe('the server golden transcript through ManaBrewMatch', () => {
       if (msg.kind === 'prompt') {
         prompts++;
         if (msg.input.type === 'gameOver') {
-          // MBX-2 appends exactly one terminal gameOver prompt per seat, and
+          // The stream appends exactly one terminal gameOver prompt per seat, and
           // web prompt.ts deliberately binds it to NO decision (prompt.test.ts
           // pins that: it takes no answer). It is the one prompt whose
           // view.decision stays null; assert delivery, not binding.

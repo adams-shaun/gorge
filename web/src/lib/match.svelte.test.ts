@@ -78,10 +78,10 @@ describe('MatchState', () => {
     vi.unstubAllGlobals();
   });
 
-  // ui16 discrimination proof, entry path 1 — COLD LOAD. The table route is
+  // Entry path 1 — COLD LOAD. The table route is
   // entered directly (or refreshed): onMount seeds m.seats once from
   // tables.list, which is empty until the SSE hello (or tables.load) lands,
-  // so a cold load read an empty list and never looked again (ui15). The
+  // so a cold load reads an empty list and never looks again. The
   // seat list must still end up populated — from the snapshot frame the
   // route receives, not from any tables.list seed in this test (none is
   // applied: the MatchState is constructed with nothing seeding seats).
@@ -96,7 +96,7 @@ describe('MatchState', () => {
     expect(m.seats).toEqual(seats);
   });
 
-  // ui16 discrimination proof, entry path 2 — MID-GAME FOCUS SUBSCRIBE. A
+  // Entry path 2 — MID-GAME FOCUS SUBSCRIBE. A
   // subscriber who joins a table mid-match gets a snapshot frame but never a
   // match_start (host/session.go's Subscribe pushes only the snapshot); with
   // the seats only on match_start, this seat list stayed empty for the whole

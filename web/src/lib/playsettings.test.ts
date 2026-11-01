@@ -198,8 +198,8 @@ describe('persistence', () => {
   });
 });
 
-describe('persistence migration — blob v1 to field-set v2 (fb-trigorder1)', () => {
-  /** v1Blob builds a REAL v1-shaped blob: the pre-fb-trigorder1 PlaySettings — version 1, no autoOrderAllTriggers field at all. */
+describe('persistence migration — blob v1 to field-set v2', () => {
+  /** v1Blob builds a REAL v1-shaped blob: the old PlaySettings — version 1, no autoOrderAllTriggers field at all. */
   const v1Blob = (base: Omit<PlaySettings, 'autoOrderAllTriggers'>): Record<string, unknown> => {
     const { autoOrderAllTriggers: _dropped, ...rest } = base as PlaySettings;
     void _dropped;

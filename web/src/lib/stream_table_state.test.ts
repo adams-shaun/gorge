@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { parseFrame } from './stream';
 
-// E3-fx2: the server emits a table_state frame for a series table between
+// The server emits a table_state frame for a series table between
 // games. parseFrame is the only gate between the wire and the stores, so it
-// must accept the frame rather than drop it — the bug this ticket fixes was a
-// second, hand-maintained frame-type list that omitted it.
+// must accept the frame rather than drop it, and no second, hand-maintained
+// frame-type list may omit it.
 describe('stream frame types', () => {
   it('accepts a table_state frame', () => {
     const data = JSON.stringify({ v: 1, t: 'table_state', seq: 1, table: 't1', body: { state: 'between_games' } });

@@ -4,8 +4,7 @@ import { browserURL, sharedBrowser } from '../test/browser';
 
 /**
  * HandFanCast.test.ts is the mounted regression proof for the ManaBrew
- * plan-less cast on the hand fan (fb-20260929T075330Z + its Auto-pay-ON
- * follow-up). In BOTH Auto-pay modes the fan must render the CAST button for
+ * plan-less cast on the hand fan. In BOTH Auto-pay modes the fan must render the CAST button for
  * a plan-less payment action and the click must reach onCastPayment: castable
  * Actions offers the action in both (castAction falls back to announce-then-
  * pay for it), so a missing button would hide the only route to the cast.

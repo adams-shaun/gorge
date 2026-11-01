@@ -96,7 +96,7 @@ describe('images', () => {
     expect(await createImages(env).url('Delver of Secrets')).toBe('https://img/front.jpg');
   });
   it('resolves a back-face name to the back face of a double-faced card', async () => {
-    // task fb-20260914T033246Z-3f1cc033 defect 3: Scryfall lists BOTH faces
+    // Scryfall lists BOTH faces
     // for either name of a transform card and leaves the top-level
     // image_uris empty, so the old front-face-only fallback resolved
     // "Insectile Aberration" to Delver of Secrets' art forever and a
@@ -176,7 +176,7 @@ describe('images', () => {
     expect(store.get(IMAGE_KEY + 'A')).toBe('/art/blob/a.jpg');
   });
   it('aborts a lookup still in flight after the 10s timeout, resolves null, and never stores the miss', async () => {
-    // The production failure this pins (task fb-20260916T225456Z): gorged's
+    // The production failure this pins: gorged's
     // /art/named proxy queues behind the art cache's pacing semaphore while
     // the prewarm's Scryfall 429 backoff sleeps HOLD it (cmd/gorged/art.go),
     // so a fetch can block for minutes — and every millisecond of it holds

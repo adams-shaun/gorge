@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Decision, Option } from '../protocol';
 import { SeatPanelState, triggerOrderPermutation } from './seatpanel.svelte';
 
-// fb-trigorder1: casual should not make the player hand-order simultaneous
+// Casual should not make the player hand-order simultaneous
 // triggers. The prio6 identical-trigger auto-order exists but only fires on
 // equal labels; this file pins the BROADER path — settings.autoOrderAllTriggers
 // auto-answers ANY trigger_order ask satisfying the same shape contract

@@ -108,7 +108,7 @@ describe('Rail — hands live on the board, not in the rail', () => {
   });
 });
 
-describe('Rail — the live decision line (ui15)', () => {  it('names the decision player from the view when seats is empty, not the Seat N placeholder', () => {
+describe('Rail — the live decision line', () => {  it('names the decision player from the view when seats is empty, not the Seat N placeholder', () => {
     const v = baseView({
       players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo'), spectatorPlayer(2, 'Player 3')],
     });
@@ -144,7 +144,7 @@ describe('Rail — the stack', () => {
   });
 });
 
-describe('Rail — the resolved card is its own band BEFORE the Stack heading (fb-20260923T015554Z)', () => {
+describe('Rail — the resolved card is its own band BEFORE the Stack heading', () => {
   it('a resolve renders the labelled resolved card OUTSIDE the stack section, before the Stack heading; the real stack stays under it', () => {
     const v = baseView({
       players: [spectatorPlayer(0, 'Ari', { graveyard: [card({ id: 42, name: 'Resolved Thing' })] }), spectatorPlayer(1, 'Bo')],
@@ -253,7 +253,7 @@ describe('Rail — live projection updates with exposed hands', () => {
   }, 15000);
 });
 
-describe('Rail — resolved history at short viewport heights (fb-20260923T015554Z)', () => {
+describe('Rail — resolved history at short viewport heights', () => {
   let browser: Browser;
   beforeAll(async () => { browser = await sharedBrowser(); });
 
@@ -315,7 +315,7 @@ describe('Rail — dead seats say why', () => {
   });
 });
 
-describe('Rail — the log visibility control (ui21)', () => {
+describe('Rail — the log visibility control', () => {
   it('renders the control as a switch reflecting the current state, only when a toggle is supplied', () => {
     // No onToggleLog: a caller that does not own the log (an existing test, or
     // a rail used without the live table route) renders no control at all.
@@ -330,7 +330,7 @@ describe('Rail — the log visibility control (ui21)', () => {
     expect(off.html).toContain('aria-checked="false"');
   });
 
-  it('names itself LOGS in both states — the word is the noun, not the state (player feedback, ui21)', () => {
+  it('names itself LOGS in both states — the word is the noun, not the state', () => {
     // The old toggle spelt its STATE ("Visible"/"Hidden"); a seated player
     // whose log starts hidden read "Hidden" with no idea what it referred
     // to. The button now names the thing it controls, statically, in both

@@ -88,7 +88,7 @@ describe('DiscardModal — the discard-pick ask’s "Open the card view" popup',
     expect(html).not.toContain('data-discard-submit');
   });
 
-  // fb-20260914T120705Z's requirement, carried over: "mouseover oracle help
+  // The requirement: "mouseover oracle help
   // popup like every other view" — the aside resolves the hovered card's
   // printed description by name through lib/oracle.
   describe('the preview aside', () => {

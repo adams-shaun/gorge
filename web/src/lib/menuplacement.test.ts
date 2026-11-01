@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { placeMenu, placeRadial, MENU_WIDTH, MENU_MARGIN, RADIAL_BUTTON, RADIAL_MARGIN } from './menuplacement';
 
-// placeMenu pins the viewport guarantees of the card options menu (task
-// ui23): it opens down and right-aligned to the badge, flips up when there is
+// placeMenu pins the viewport guarantees of the card options menu: it opens
+// down and right-aligned to the badge, flips up when there is
 // not enough room below, and caps maxHeight so a tall menu scrolls inside the
 // viewport rather than leaving it.
 

@@ -163,7 +163,7 @@ describe('offersPotential — "the decision already offers this projected play"'
   });
 });
 
-describe('castablesAfterTap — the descriptive twin (fb-20260916T225211Z)', () => {
+describe('castablesAfterTap — the descriptive twin', () => {
   // Whatever makes castableAfterTap true is named here by construction (the
   // boolean IS this list's emptiness test): the labels are the server's own
   // offer labels for every real play in the projection.

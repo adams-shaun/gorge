@@ -138,7 +138,7 @@ async function measure(page: Awaited<ReturnType<typeof browser.newPage>>, obj = 
   }, obj);
 }
 
-describe('HandFan — the hand-card peek (fb-20260916T024357Z-9005ad6a)', () => {
+describe('HandFan — the hand-card peek', () => {
   it('at rest exactly the top half of a hand card is visible inside the clipped board; hover and keyboard focus each raise it fully inside, above its neighbours', { timeout: 20_000 }, async () => {
     for (const { width, height } of VIEWPORTS) {
       const page = await browser.newPage({ viewport: { width, height } });

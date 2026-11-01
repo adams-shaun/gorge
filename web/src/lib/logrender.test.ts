@@ -3,7 +3,7 @@ import { parseLogLine, buildCardOwnerColour, type CardOwnerColour } from './logr
 
 // fXC is the SEAT_COLOURS palette (lib/colours.ts), the same palette that
 // colours a seat's name in the line. A card's colour is its OWNER seat's
-// colour (lc1), so the fixture below maps each object id to an owner seat and
+// colour, so the fixture below maps each object id to an owner seat and
 // resolves it through this palette.
 const PALETTE = ['#e5484d', '#3b82f6', '#22c55e', '#eab308'] as const;
 const seatColourOf = (seat: number): string => PALETTE[seat] ?? '#777777';
@@ -76,7 +76,7 @@ describe('logrender object references (B2)', () => {
     expect(pieces[pieces.length - 1]).toMatchObject({ kind: 'card', name: 'Counterspell', colour: '#e5484d' });
   });
 
-  it('two seats owning the same card name render in different colours (the lc1 id-keying case)', () => {
+  it('two seats owning the same card name render in different colours (the id-keying case)', () => {
     // One Island owned by seat 2, one owned by seat 3, in one line. Name-keying
     // could never express two colours for one printed name.
     const twoIslands = buildCardOwnerColour([
@@ -98,7 +98,7 @@ describe('logrender object references (B2)', () => {
   });
 
   it("renders a source-named ability \"<Source>'s ability #id\" as an ability naming its source", () => {
-    // lc1: describe.go now names a faceless ability's source. The client must
+    // describe.go names a faceless ability's source. The client must
     // recognise the possessive shape and keep the "an ability" invention out.
     const pieces = parseLogLine("Goblin Balloon Brigade's ability #217 resolves", { cardColour: ownerColour });
     expect(pieces[0]).toMatchObject({ kind: 'ability', name: "Goblin Balloon Brigade's ability", id: '217' });
@@ -125,7 +125,7 @@ describe('logrender object references (B2)', () => {
   });
 
   it('a legendary comma name is matched whole, not split on the comma', () => {
-    // fix-round-1 regression (F2): ", " is outside the old word-shape match,
+    // ", " is outside the old word-shape match,
     // so "Jace, the Mind Sculptor" used to render as "Mind Sculptor" with a
     // wrong hover title and a partial colour. The exact key set gets it whole.
     const pieces = parseLogLine('Ann casts Jace, the Mind Sculptor #4', { identities, cardColour: ownerColour });
@@ -136,7 +136,7 @@ describe('logrender object references (B2)', () => {
   });
 
   it('a connector outside the old allowlist ("in") is part of a whole match', () => {
-    // fix-round-1 regression (F2): "Sign in Blood" used to split to "Blood".
+    // "Sign in Blood" used to split to "Blood".
     const pieces = parseLogLine('Ann casts Sign in Blood #6', { identities, cardColour: ownerColour });
     const card = pieces.find((p) => p.kind === 'card');
     expect(card).toMatchObject({ kind: 'card', name: 'Sign in Blood', id: '6', colour: '#e5484d' });
@@ -177,7 +177,7 @@ describe('logrender id suppression (B3)', () => {
   });
 
   it('a seat name that is a card-name prefix is not coloured inside that card token', () => {
-    // fix-round-1 finding F4: with a seat literally named "Jace", the prefix
+    // With a seat literally named "Jace", the prefix
     // inside "Jace, the Mind Sculptor" must NOT be coloured as a player.
     const jaceSeat = [{ name: 'Jace', colour: '#eab308' }];
     const pieces = parseLogLine('Ann casts Jace, the Mind Sculptor #4', { identities: jaceSeat, cardColour: ownerColour });
@@ -200,7 +200,7 @@ describe('logrender identity', () => {
   });
 
   it('an unresolvable object id renders the honest bare id, not the words "an ability"', () => {
-    // fix-round-1 finding F1: describe.go's bare "#id" means an object the
+    // describe.go's bare "#id" means an object the
     // game cannot resolve; the parser must invent no name for it.
     const pieces = parseLogLine('#77 dies', { identities, cardColour: ownerColour });
     expect(pieces).toEqual([{ kind: 'text', text: '#77' }, { kind: 'text', text: ' dies' }]);

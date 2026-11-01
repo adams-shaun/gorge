@@ -12,7 +12,7 @@ vi.mock('./api', async (importOriginal) => ({
 const ctx = { seat: 0, token: 'tok' };
 
 // pickOption is the seat's pure selection logic, expressed entirely in terms
-// of the decision's own Option.Group field (R-E4-2): the panel never finds
+// of the decision's own Option.Group field: the panel never finds
 // out what a Group's members are, only that a non-empty Group is an
 // exclusivity marker. These tests therefore build the decision by hand and
 // assert nothing about blockers, creatures or combat.
@@ -75,7 +75,7 @@ describe('pickOption — exclusivity by Group', () => {
     expect(pickOption(d, 99, [0])).toEqual([0]);
   });
 
-  it('options with no Group are never exclusive (R-E4-2: only the Group contract applies)', () => {
+  it('options with no Group are never exclusive (only the Group contract applies)', () => {
     const ungrouped: Decision = {
       seq: 4,
       player: 0,

@@ -64,7 +64,7 @@ describe('CardStack', () => {
     expect(expanded).toBe(group.cards); // expanded = every member, nothing filtered
   });
 
-  // fb-20260916T201423Z: a MIXED collapsed pile carries its readiness on the
+  // A MIXED collapsed pile carries its readiness on the
   // tab — a second mini-plate above the count — because the lands row merges
   // tapped and untapped members and the split no longer carries the signal.
   const tz = (id: number): CardView => ({ ...zombie(id), tapped: true });
@@ -108,14 +108,14 @@ describe('CardStack', () => {
     expect(html).toContain('data-tone="offered"');
   });
 
-  // fb-20260917T004545Z: a merged lands pile mixes tapped states, and the
+  // A merged lands pile mixes tapped states, and the
   // collapsed face used to show the LEAD member's own rotation — so one
   // member's tap rotated the whole pile's silhouette while the tap badge (the
   // union: the next tap takes the next READY member) stayed up. The collapsed
   // face now presents the PILE's readiness: rotated only when EVERY member is
   // tapped. The lead member stays the face, the data-obj anchor (what arrows
   // target) and the inspector's subject — only the rotation is presentation.
-  // fb-20260918T010805Z narrows the original no-rotated-face-anywhere
+  // This narrows a no-rotated-face-anywhere
   // assertion to the LEAD face: the constraint it guards — the lead face /
   // whole-pile silhouette stays ready on a mixed pile — still holds, but the
   // pile now ALSO renders a quarter-turned representative of its tapped
@@ -137,7 +137,7 @@ describe('CardStack', () => {
     expect(html).toContain('data-obj-group="1,2"');
   });
 
-  // fb-20260918T010805Z: the mixed pile's tapped member is VISIBLE in the
+  // The mixed pile's tapped member is VISIBLE in the
   // pile, not only on the plate the player overlooked twice.
   it('a collapsed mixed pile shows a rotated representative face beside its ready lead (tap one of three)', () => {
     const mixed = stackIdentical([zombie(1), zombie(2), tz(3)], { ignoreTapped: true })[0];
@@ -178,7 +178,7 @@ describe('CardStack', () => {
     expect(render(CardStack, { props: { group: all } }).html).toMatch(/class="card-tile[^"]*tapped/);
   });
 
-  // fb-20260918T010805Z: the representative exists ONLY on a collapsed MIXED
+  // The representative exists ONLY on a collapsed MIXED
   // pile. Tapping the last ready member makes the pile uniform all-tapped
   // again: one rotated face (the whole pile is genuinely inert), no
   // representative, no ready plate — byte-identical to the shipped uniform

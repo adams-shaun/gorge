@@ -11,7 +11,7 @@ beforeAll(async () => {
 });
 
 /**
- * PromptDock near-table geometry (ui24): the default placement pins the dock
+ * PromptDock near-table geometry: the default placement pins the dock
  * above the action button and grows it UP OVER the board, so its rect covers
  * board cards. The contract this pins: the dock's chrome is
  * pointer-transparent — a click aimed at a board target under it reaches the
@@ -56,7 +56,7 @@ async function openWithBadgeUnderDock(page: Awaited<ReturnType<Browser['newPage'
   });
 }
 
-describe('PromptDock near-table placement (ui24)', () => {
+describe('PromptDock near-table placement', () => {
   it('a board badge under the dock is clickable: the dock chrome does not intercept the pointer', { timeout: 60_000 }, async () => {
     const page = await browser.newPage();
     await openWithBadgeUnderDock(page);
@@ -207,7 +207,7 @@ describe('PromptDock near-table auto-yield (promptdock2)', () => {
       expect(rows).toBeGreaterThanOrEqual(7);
 
       // Pin the board option carrier (the pile badge) entirely inside one of
-      // the dock's own option rows — the measured ui24 overlap.
+      // the dock's own option rows — the measured overlap.
       await page.evaluate(() => {
         const row = document.querySelectorAll('[data-prompt-dock] .row')[2] as HTMLElement;
         const r = row.getBoundingClientRect();

@@ -10,7 +10,7 @@ import HandFan from './HandFan.svelte';
 // $effect, no pointer/hover lifecycle. The fan's per-card `left` is derived
 // from the pure handFanLayout over the `width` prop, so overlap (second card's
 // left < card width) is observable in the rendered HTML without a browser.
-// The options affordance (ui23) is reached by the same seed CardTile uses
+// The options affordance is reached by the same seed CardTile uses
 // (`open0`): the harness cannot click a badge to open a menu, so the test
 // drives the menu's own state by hand.
 
@@ -39,7 +39,7 @@ function lefts(html: string): number[] {
   return [...html.matchAll(/style="left:\s*([0-9.]+)px/g)].map((m) => parseFloat(m[1]));
 }
 
-describe('HandFan — the seated player\'s own hand (Task ui17)', () => {
+describe('HandFan — the seated player\'s own hand', () => {
   it('an empty hand renders nothing (no fan, no cards, no crash)', () => {
     const { html } = render(HandFan, { props: { player: player([]), width: BOARD_W } });
     // an empty array is a real empty hand: no fan container, no card faces
@@ -83,8 +83,8 @@ describe('HandFan — the seated player\'s own hand (Task ui17)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ui23 — the hand gets the same options index a board tile does. One mechanism
-// (cardoptions.ts), one index, one post path (R-E4-1). The suite asserts the
+// The hand gets the same options index a board tile does. One mechanism
+// (cardoptions.ts), one index, one post path. The suite asserts the
 // affordance RENDERS, driven via the open0 seed (a badge click cannot happen
 // in an SSR harness); the real click->menu->index path is guarded end-to-end
 // in web/e2e/smoke.spec.ts.
@@ -109,7 +109,7 @@ function bundle(over: Partial<CardOptions> = {}): CardOptions {
 
 const ballistaHand = player([card(16, 'Walking Ballista')]);
 
-describe('HandFan options affordance (ui23)', () => {
+describe('HandFan options affordance', () => {
   it('one hand-card option is a direct cast icon with the wire label as its accessible name', () => {
     const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle(), open0: 16 } });
     expect(html).toContain('data-single-action');
@@ -120,7 +120,7 @@ describe('HandFan options affordance (ui23)', () => {
     expect(html).not.toContain('badge__n');
   });
 
-  it('a direct target badge names the scenario, not just the candidate (fb-9946410e r2)', () => {
+  it('a direct target badge names the scenario, not just the candidate', () => {
     const one = bundle();
     one.byObj.set(16, [{ index: 5, kind: 'permanent', label: 'Wasteland (Ari)', obj: 16, player: 0 }]);
     const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: one, open0: 16 } });
@@ -149,7 +149,7 @@ describe('HandFan options affordance (ui23)', () => {
     expect(html).not.toContain('data-action-icon');
   });
 
-  it('a same-scenario option list wears the scenario icon on the count badge (fb-9946410e)', () => {
+  it('a same-scenario option list wears the scenario icon on the count badge', () => {
     // two cast options (alternate costs): every option agrees on the scenario,
     // so the count badge carries the cast icon and names it "plays".
     const two = bundle();

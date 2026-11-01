@@ -205,7 +205,7 @@ describe('autopilot — what it will and will not answer', () => {
     p.considerAuto(view('main1', 0));
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.auto).toBe(true);
-    // fb-20260916T225211Z: the note names the play the smart stop stopped for.
+    // The note names the play the smart stop stopped for.
     expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step and you can act — Cast 0.');
   });
 
@@ -226,7 +226,7 @@ describe('autopilot — what it will and will not answer', () => {
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.auto).toBe(true);
     expect(p.active?.seq).toBe(9);
-    // fb-20260916T225211Z: the land drop the smart stop caught is named too.
+    // The land drop the smart stop caught is named too.
     expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step and you can act — Play land 1.');
   });
 
@@ -465,7 +465,7 @@ describe('the loop guard and the cap pause the machine, never the preference', (
   });
 });
 
-describe('the stop-set note names the play (fb-20260916T225211Z)', () => {
+describe('the stop-set note names the play', () => {
   // The Deadly Rollick shape: the player's own main1 smart stop fired on a
   // window whose only real action was one cast option, and the note used to
   // say only "you set a stop on this step" — which read as a contradiction of
@@ -528,7 +528,7 @@ describe('the words — no enum identifier ever reaches the screen', () => {
   });
 });
 
-// fb-20260914T014141Z: the post-land window. After a land drop the engine's
+// The post-land window. After a land drop the engine's
 // float-then-cast payment model leaves the window nothing but a tap-for-mana
 // "activate" option, so the old shape test read the window as empty and BOTH
 // auto-pass paths (casual's smart stop, the manual empty-window floor) sailed
@@ -536,7 +536,7 @@ describe('the words — no enum identifier ever reaches the screen', () => {
 // extended actionable(); these tests hold the panel-level wiring on both
 // paths: the floor must not swallow the window in manual mode, and auto must
 // stop there under casual.
-describe('the post-land window — castable after tapping (fb-20260914T014141Z)', () => {
+describe('the post-land window — castable after tapping', () => {
   beforeEach(() => {
     postIntentMock.mockReset();
     fetchPendingMock.mockReset();
@@ -583,15 +583,15 @@ describe('the post-land window — castable after tapping (fb-20260914T014141Z)'
     expect(p.active?.seq).toBe(3);
   });
 
-  /** ledActivate is the fb-led1 option: a mana activation whose cost is more than a bare tap (Lion's Eye Diamond's {T}, Sacrifice) — the wire marker the engine now hangs on the option. */
+  /** ledActivate is the option: a mana activation whose cost is more than a bare tap (Lion's Eye Diamond's {T}, Sacrifice) — the wire marker the engine now hangs on the option. */
   const ledActivate = (i: number): Option =>
     ({ index: i, kind: 'activate', label: "Activate Lion's Eye Diamond for mana", player: 0, cost: "T Sac<1/Lion's Eye Diamond>" });
 
-  /** ledWindow is the fb-led1 window: the ONLY action on it is that costly activation — the shape the empty-priority-window floor swallowed for the whole rest of the reporter's game (fb-20260917T192520Z-26136705). */
+  /** ledWindow is the window: the ONLY action on it is that costly activation — the shape the empty-priority-window floor swallowed for the whole rest of the reporter's game. */
   const ledWindow = (seq: number): Decision =>
     ({ seq, player: 0, kind: 'priority', prompt: 'turn 5, main1 — You have priority', min: 1, max: 1, options: [ledActivate(0), pass(1), concede(2)] });
 
-  it('manual mode (skipEmpty on): the floor does NOT swallow the fb-led1 window — a costly mana activation with a dead hand stops (20260917T192520Z-26136705)', async () => {
+  it('manual mode (skipEmpty on): the floor does NOT swallow the costly-activation window — a costly mana activation with a dead hand stops', async () => {
     const p = manualSeat();
     p.adoptView(ledWindow(3));
     p.considerAuto(postLandView([])); // the reporter's hand: empty, nothing castable, no projection
@@ -611,7 +611,7 @@ describe('the post-land window — castable after tapping (fb-20260914T014141Z)'
     expect(p.emptySkipped).toBe(1);
   });
 
-  it('auto (casual): the fb-led1 costly-activation window stops instead of machine-passing it', async () => {
+  it('auto (casual): the costly-activation window stops instead of machine-passing it', async () => {
     const p = armedSeat();
     p.adoptView(ledWindow(5));
     p.considerAuto(postLandView([]));
@@ -640,7 +640,7 @@ describe('the post-land window — castable after tapping (fb-20260914T014141Z)'
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.auto).toBe(true); // Auto stays armed; the window is the player's
     expect(p.active?.seq).toBe(9);
-    // fb-20260916T225211Z: the cast the post-land window's stop caught is
+    // The cast the post-land window's stop caught is
     // named (the float-then-cast shape — the label says "after tapping").
     expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step and you can act — Cast Card (after tapping).');
   });

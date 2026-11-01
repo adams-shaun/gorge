@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Decision, Option } from '../protocol';
 import { isSearchPick, searchCard, searchMatches, searchOptions } from './search';
 
-// search.ts is the library-search ask's pure half (fb-20260916T181754Z):
+// search.ts is the library-search ask's pure half:
 // the shape predicate, the display filter and the display sort. The
 // decisions here are built by hand from the wire shape the engine poses
 // (effects/zone.go effSearchLibrary): a KChoose whose options are kind

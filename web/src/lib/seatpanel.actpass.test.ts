@@ -6,7 +6,7 @@ import { SeatPanelState, autoNoteText } from './seatpanel.svelte';
 // seat POSTS a hand answer to a priority decision carrying a real action,
 // its NEXT priority window is passed once. "Real action" is actedOption's
 // kind test: an option whose kind is neither pass, concede nor activate —
-// the activate exclusion (fb-3ab6d9da) is what keeps a mana tap from arming
+// the activate exclusion is what keeps a mana tap from arming
 // the pass that would machine-pass the very window the floated mana just
 // unlocked. decide() is the safety oracle and is tested in autopilot.test.ts;
 // what these tests hold down is the token's lifecycle — what arms it, what
@@ -35,7 +35,7 @@ const quiet = (seq: number): Decision =>
 const live = (seq: number): Decision =>
   ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [cast(0), pass(1), concede(2)] });
 
-/** tappable is the pre-tap priority window (fb-3ab6d9da): a mana tap, a pass and a concede — no real action. */
+/** tappable is the pre-tap priority window: a mana tap, a pass and a concede — no real action. */
 const tappable = (seq: number): Decision =>
   ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [activate(0), pass(1), concede(2)] });
 
@@ -338,7 +338,7 @@ describe('pass after acting — what arms the token', () => {
   });
 });
 
-describe('pass after acting — arming boundaries: a mana tap is not an action (fb-3ab6d9da)', () => {
+describe('pass after acting — arming boundaries: a mana tap is not an action', () => {
   beforeEach(() => {
     postIntentMock.mockReset();
     fetchPendingMock.mockReset();

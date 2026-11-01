@@ -113,7 +113,7 @@ describe('createOracle', () => {
     expect(o.offline()).toBe(false);
   });
   it('aborts a lookup still in flight after the 10s timeout, resolves null, and never stores the miss', async () => {
-    // The production failure this pins (task fb-20260916T225456Z): the
+    // The production failure this pins: the
     // measured wedge was a CardDetail hover's /cards/named fetch blocking
     // forever behind gorged's art semaphore (the prewarm's Scryfall 429
     // backoff sleeps hold it), taking the browser's last free per-host

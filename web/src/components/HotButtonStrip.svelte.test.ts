@@ -74,7 +74,7 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     expect(unavailable).toMatch(/data-hot-tab="pass"[^>]*aria-disabled="true"/);
     // The button is always present now -- it is a transport control, not a
     // menu that appears only when it has something in it. Unavailable means
-    // DISABLED, which is what keeps R-E4-2 true: the strip never offers an
+    // DISABLED, which is what keeps the client rules-ignorant: the strip never offers an
     // action the wire did not send.
     expect(unavailable).toMatch(/data-pass-action[^>]*disabled/);
 
@@ -150,7 +150,7 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
 });
 
 describe('HotButtonStrip — the ACTIONS tab projects the seat tone', () => {
-  // toneOf resolves from option KINDS only (R-E4-1): initiative is a decision
+  // toneOf resolves from option KINDS only: initiative is a decision
   // with no pass option — the game is blocked on this seat; offered is a
   // window this seat may decline. The tab must carry that state machine-
   // readably in data-awaiting, with the dropdown closed.

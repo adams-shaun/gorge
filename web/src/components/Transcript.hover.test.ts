@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * The pointer half of the transcript's card-name hover preview
- * (fb-20260927T154603Z: "the card names in the logs should show the card
+ * ("the card names in the logs should show the card
  * detail like the battlefield does"). The SSR harness
  * (Transcript.carddetail.test.ts) can prove the rendered trigger and the
  * portalled panel's placement in the tree, but it has no DOM and no pointer
@@ -33,7 +33,7 @@ const open = async (page: Page): Promise<void> => {
   await expect.poll(() => page.locator('[data-seq="1"] .obj.card[tabindex]').count()).toBe(1);
 };
 
-describe('the transcript card-name hover preview (fb-20260927T154603Z)', () => {
+describe('the transcript card-name hover preview', () => {
   it('does not render an auto-pass snapshot until opened, then exposes JSON for export', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/Transcript.fixture.html`);

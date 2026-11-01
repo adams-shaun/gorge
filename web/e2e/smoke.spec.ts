@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page, type APIRequestContext } from '@playwright/test';
 
 /**
- * Task SG1 — a browser smoke gate.
+ * A browser smoke gate.
  *
  * The unit suite (45 files, 439 tests), svelte-check over 382 files and
  * eslint were ALL GREEN while the whole public demo was dead: every table
@@ -29,13 +29,12 @@ const FIXTURE = process.env.SMOKE_FIXTURE;
 const WHEEL = process.env.SMOKE_WHEEL;
 const TALIS = process.env.SMOKE_TALISMAN;
 
-// ui19: the seated-view gate. The two spectator modes above drove no seated
-// client, which is precisely the gap the task closes. These helpers measure
-// the REAL rendered DOM with boundingBox()/getBoundingClientRect — never by
-// reading CSS — because both ui19 regressions (a fan that sized itself from
-// its own output, and a seated identity bar drawn on top of the seat's own
-// first card) were geometry facts that the whole unit suite reported as
-// correct. See the seated describe block at the bottom.
+// The seated-view gate. The two spectator modes above drive no seated client.
+// These helpers measure the REAL rendered DOM with
+// boundingBox()/getBoundingClientRect — never by reading CSS — because a fan
+// that sizes itself from its own output, and a seated identity bar drawn on top
+// of the seat's own first card, are geometry facts the whole unit suite reports
+// as correct. See the seated describe block at the bottom.
 
 /** Rectangle helper: the overlapping test used across the seated assertions. */
 type Rect = { x: number; y: number; width: number; height: number };
@@ -79,7 +78,7 @@ async function ownHandRect(page: Page): Promise<Rect | null> {
   return await page.locator('.handtrack .handfan').boundingBox();
 }
 
-/** assertOwnHandClearOfIdentity checks the ui19 identity-bar defect: the
+/** assertOwnHandClearOfIdentity checks for the identity-bar defect: the
  *  seated player's OWN identity bar must not overlap their own hand fan. The
  *  defect had the bar's bottom offset at `var(--sp-2)`, dropping it onto the
  *  fan; the measured fix sits it above by --own-hand-h. This is the exact
@@ -97,7 +96,7 @@ async function assertOwnHandClearOfIdentity(page: Page, seat: number, label: str
   ).toBe(false);
 }
 
-/** assertHandWithinBoard checks the ui19 hand-fan defect: the fan's right
+/** assertHandWithinBoard checks for the hand-fan defect: the fan's right
  *  edge must not exceed the board's, and its left edge must not precede it.
  *  The defect sized maxWidth from the fan's own output, so a hand wider than
  *  the felt ran straight off it instead of tightening. */
@@ -129,7 +128,7 @@ function epsGe(a: number, b: number, t: number): boolean {
 
 /**
  * driveToCardOptionsWindow drives the seeded seated game to its FIRST
- * card-options window (ui23 R-E4-1). It answers the only decision the
+ * card-options window. It answers the only decision the
  * engine's auto-pass does not handle — the opening mulligan (keep) — by
  * clicking the seated panel's own keep button, then poll the pending decision
  * until the seat's first main phase offers a card from hand at a NON-ZERO
@@ -197,7 +196,7 @@ async function driveToCardOptionsWindow(
 
     // CR 103.1's toss ask precedes the mulligan round, so the panel poses it
     // first. Answer it through the same panel-option click, or the game never
-    // enters the round this driver walks (fb-20260923T050205Z smoke triage).
+    // enters the round this driver walks.
     if (d.kind === 'starting_player') {
       const first = d.options[0];
       if (first) {
@@ -216,7 +215,7 @@ async function driveToCardOptionsWindow(
   throw new Error('driveToCardOptionsWindow: did not reach a card-options window');
 }
 
-/** ui24's fixture has two human seats, so this tiny driver echoes only
+/** The constructed-board fixture has two human seats, so this tiny driver echoes only
  * server-provided option indices. It casts every offered zero-cost creature,
  * passes every other priority window, and declines early attacks. With the
  * fixed seed/deck this constructs the board instead of depending on bot policy. */
@@ -249,7 +248,7 @@ async function postFixtureIntent(request: APIRequestContext, base: string, d: Wi
  * into a game whose toss ask is unanswered therefore sits parked on the ask
  * instead of the round it means to assert.
  *
- * The ask may legitimately not be posed (the R-9 no-ask fallback) or belong to
+ * The ask may legitimately not be posed (the no-ask fallback) or belong to
  * the other seat (the bot answers its own), so this returns as soon as the
  * seat's pending decision is anything else, and waits out the 409 the seat gets
  * while the toss belongs to its opponent.
@@ -292,9 +291,8 @@ async function settleStartingPlayer(
 /**
  * settleMulliganKeep answers the viewer's London mulligan ask over the HTTP
  * API (the exact option the seated panel's keep button posts), before the
- * test mounts a client. Since c7655f7c0 the Table passes the pending mulligan
- * into the Board and the Board draws NO hand row during the round (ui26
- * ruling, archived 2026-09-28-ui-layout.md (docs/design/ARCHIVE.md)): the opening hand
+ * test mounts a client. The Table passes the pending mulligan into the Board and
+ * the Board draws NO hand row during the round: the opening hand
  * lives in the seat panel instead. A layout test that mounts into the
  * mulligan round therefore never sees `.handtrack .handfan`; keeping here
  * leaves the game on the live board the layout assertions describe, and lets
@@ -373,7 +371,7 @@ async function matchOfTable(request: APIRequestContext, base: string, table: str
  * cover a board option carrier with one of its interactive rows latches
  * itself into the rail for that decision (dockYields in
  * web/src/lib/prompts/dock.ts, latched per decision by PromptDock.svelte;
- * partial overlap never yields). At the ui24 fixture's 1000x700 viewport
+ * partial overlap never yields). At the constructed-board fixture's 1000x700 viewport
  * with the seven-attacker ask, the seat-0 collapsed-pile badge (~28x22 px at
  * ~430,307) lies entirely inside option row 3, so the dock reaches the rail
  * on its own and the badge underneath is directly clickable; this test
@@ -405,12 +403,10 @@ async function matchOfTable(request: APIRequestContext, base: string, table: str
  */
 async function dockPromptInRail(page: Page, label: string): Promise<void> {
   const dock = page.locator('[data-prompt-dock]');
-  // ui24 (ticket agent-20260929T124737Z-fda041b7) tightened the old silent
-  // return: this helper's ONLY caller arrives with a decision pending — the
+  // This helper's ONLY caller arrives with a decision pending — the
   // dock answers every kind except priority and mulligan — and its board
   // interactions are only safe once the dock is out of the board's way, so a
-  // missing dock is a named failure. A future no-prompt caller must pass a
-  // requirement of its own rather than resurrecting the silent return here.
+  // missing dock is a named failure.
   await dock.waitFor({ state: 'attached', timeout: 3_000 }).catch(() => {
     throw new Error(`${label}: no prompt dock attached within 3s — the caller should have a decision pending, so the dock must exist`);
   });
@@ -434,7 +430,7 @@ async function dockPromptInRail(page: Page, label: string): Promise<void> {
 }
 
 /**
- * clickWithInterceptDiagnostics (ticket agent-20260929T124737Z-fda041b7)
+ * clickWithInterceptDiagnostics
  * keeps the REAL user-path click primary — Playwright's actionability walk
  * is the thing under test's premise — but bounds it at WAIT_MS and, on
  * timeout, (a) captures the overlay geometry ONCE into the failure output
@@ -443,7 +439,7 @@ async function dockPromptInRail(page: Page, label: string): Promise<void> {
  * interceptor instead of dying inside ctx.close() as a stale-DOM error, and
  * (b) falls back to the seat-1 precedent `evaluate(el => el.click())` (the
  * escape this file already accepts at the seat-1 badge for a target an
- * overlay can cover). The R-E4-1 assertions this click serves are the
+ * overlay can cover). The wire-index assertions this click serves are the
  * non-zero wire index and the menu escaping the quadrant, NOT the click's
  * own hit path, so the fallback does not weaken them. Chosen shape:
  * diagnostics + fallback (not an explicit interception assertion) because a
@@ -534,8 +530,7 @@ const WAIT_MS = 20_000;
 
 /**
  * STALL_MS is the de-flake budget for the one seated test that walks the
- * seeded game's paced engine while a real client rides it (fb-20260917T004341Z
- * round-3 diagnosis, measured in worktree traces): the seated client's fetch
+ * seeded game's paced engine while a real client rides it: the seated client's fetch
  * pool can stall tens of seconds — its own intent POSTs abort (net::ERR_ABORTED
  * within ms, server-side applied anyway) and its /pending and /view GETs then
  * queue behind a stuck socket for 5-41s while the SSE stream itself keeps
@@ -545,7 +540,7 @@ const WAIT_MS = 20_000;
  * unanswered for the whole stall and the drive/crossing budgets must absorb
  * one full stall each. Measured stalls: 5.3s, 11s, 11.2s (single-worktree
  * probes) and 41s (the smoke gate's own failing run). WAIT_MS (20s) is fine
- * for every assertion that does not straddle a stall; the R-E4-1 drive and
+ * for every assertion that does not straddle a stall; the wire-index drive and
  * its crossing assertion get STALL_MS instead, and the test's own timeout is
  * raised to hold drive + crossing + one stall each with margin.
  */
@@ -554,7 +549,7 @@ const STALL_MS = 90_000;
 // not ride the browser's socket pool), so the bound is the client's own
 // stall time plus the paced walk. 90s was met once at 47.4s under load.
 const DRIVE_MS = 150_000;
-// ui24, wheel1 and talisman all poll the -pace 0 smoke fixtures from Node;
+// The constructed-board, wheel and talisman tests all poll the -pace 0 smoke fixtures from Node;
 // under box load a single request can stall for tens of seconds. Give each
 // walk a 90s cap rather than letting its old 20/30s deadline masquerade as a
 // fixture/product failure; this stays within the neighboring tests' 120s cap.
@@ -646,8 +641,8 @@ function watch(page: Page, base: string): Issues {
     // (cmd/gorged/art.go answers StatusBadGateway only on an upstream error); 503
     // on the same routes is the wait budget's "the upstream fetch had not
     // settled within artWaitBudget — the fetch is still running detached,
-    // retry shortly" (art.go's boundedWait, added after the fb-20260917T004304Z
-    // run showed a degraded upstream wedging the page). A Scryfall outage (observed 2026-09-14: 503
+    // retry shortly" (art.go's boundedWait, because a
+    // degraded upstream can wedge the page). A Scryfall outage (observed 2026-09-14: 503
     // upstream) is not a gorge product failure and must not block every web
     // merge; any other status on those paths, and every other path's failure, still counts.
     if ((r.status() === 502 || r.status() === 503) && sameOrigin(base, r.url()) && /^\/(art\/|cards\/named$)/.test(new URL(r.url()).pathname)) return;
@@ -804,14 +799,13 @@ for (const [mode, base] of [
 }
 
 // ---------------------------------------------------------------------------
-// ui19 — SEATED 1v1 smoke gate.
+// SEATED 1v1 smoke gate.
 //
-// The two spectator modes above drove no seated client, so the two regressions
-// this task exists to close — a hand fan that sized itself from its own
-// output, and a seated player's identity bar drawn on top of their own hand
-// — were invisible to the whole gate. This block drives a REAL seated 1v1
-// client (against a REAL bot) and asserts the layout invariants those bugs
-// violated, on the real rendered DOM.
+// The two spectator modes above drive no seated client, so a hand fan that
+// sizes itself from its own output, or a seated player's identity bar drawn on
+// top of their own hand, is invisible to them. This block drives a REAL seated
+// 1v1 client (against a REAL bot) and asserts those layout invariants on the
+// real rendered DOM.
 //
 // Join paths: the `-vsbot` flow (POST /api/games) always seats the human at
 // seat 0 of a fresh table; the `-humans 1` startup table (t1) seats the
@@ -820,11 +814,9 @@ for (const [mode, base] of [
 //
 // Assertions (all measured, never read off CSS):
 //  1. the seated player's own identity bar does not overlap their own hand
-//     fan on both axes (the exact check that would have caught ui19's
-//     identity-bar defect);
+//     fan on both axes;
 //  2. the hand fan is bounded by the board — right edge <= board right, and
-//     its left edge does not precede the board's (the exact check that would
-//     have caught ui19's self-sizing-fan defect);
+//     its left edge does not precede the board's;
 //  3. 1v1 is top vs bottom, relative to the viewer: the seated player's own
 //     quadrant/identity is BELOW their opponent's on screen, verified from
 //     EACH seat (seat 0 via -vsbot, seat 1 via -humans 1);
@@ -838,9 +830,7 @@ for (const [mode, base] of [
 // not reliably achievable without driving the whole match through its
 // decisions (which would make the gate slow and order-dependent), so the
 // hand-bounded-by-board assertion is made on the real opening hand AND, where
-// a large hand is genuinely reached in the live flow, on that too. See the
-// ui19 report for the measured geometry and the honest statement of what a
-// large hand would add.
+// a large hand is genuinely reached in the live flow, on that too.
 for (const [mode, base] of [['seated', SEATED]] as const) {
   const skip = base ? false : true;
   test.describe(`gorged [${mode}] seated 1v1 smoke`, () => {
@@ -875,7 +865,7 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
       // The seated page must mount its board and its own hand. Which surface
       // holds the hand depends on the phase: on the live board it is the hand
       // row (`.handtrack .handfan`); in the mulligan round the Board
-      // deliberately draws NO hand row (ui26 ruling) and the opening hand
+      // deliberately draws NO hand row and the opening hand
       // lives in the seat panel instead. Waiting on the wrong one is a
       // guaranteed timeout, so the phase selects the right loading-state
       // gate rather than assuming a single posture.
@@ -897,10 +887,10 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
       // 1 and 2 are hand-row invariants: during the mulligan round there is no
       // hand row to measure, so they run only on the live board.
       if (phase === 'live-board') {
-        // 1. own identity bar clear of own hand fan (ui19 identity-bar defect).
+        // 1. own identity bar clear of own hand fan.
         await assertOwnHandClearOfIdentity(page, seat, label);
 
-        // 2. hand bounded by the board (ui19 self-sizing-fan defect).
+        // 2. hand bounded by the board.
         await assertHandWithinBoard(page, label);
       }
 
@@ -972,7 +962,7 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         await page.waitForURL(/\/t\/g\d+\?seat=0&token=/, { timeout: WAIT_MS });
         // The lobby-created game seats the human at seat 0 of a fresh table
         // and parks it on the pre-game toss + mulligan, which the Board draws
-        // with NO hand row (ui26 ruling). Settle both over the API (the join
+        // with NO hand row. Settle both over the API (the join
         // URL carries the table and token) so the page reaches the live board
         // this test measures.
         const joinURL = new URL(page.url());
@@ -1017,15 +1007,15 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
     // The overlap-tightening path: the two tests above mount a 1440px-wide
     // board whose opening hand (7 cards) fits before any tightening is needed,
     // so a fan that sized itself from its own output would look fine there.
-    // ui19's second defect was exactly that — maxWidth came from measuring the
-    // fan itself, so the width constraint never bound and a hand too wide for
-    // the felt ran straight off it. This test narrows the viewport so the SAME
+    // If maxWidth came from measuring the
+    // fan itself, the width constraint would never bind and a hand too wide for
+    // the felt would run straight off it. This test narrows the viewport so the SAME
     // real 7-card hand genuinely exceeds the board and MUST tighten; the
     // overflow is then asserted against the board bounds. (A genuinely large
     // 9+ card hand is not reachable inside a live game's budget in this build:
     // the normal hand-size rule caps it at 7 without an "no maximum hand size"
     // permanent, so we can only reach the tightening path by narrowing the
-    // felt, not by growing the hand. See the ui19 report.)
+    // felt, not by growing the hand.)
     test('bounds a hand that exceeds a narrower board by tightening, not overflowing', async ({ browser, request }) => {
       const b = base as string;
       const label = `[seated]`;
@@ -1041,10 +1031,10 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
       }
     });
 
-    // ui21 — the log starts hidden for a SEATED player, with a toggle in the
-    // rail. The contracted rail-toggle window is specifically the mulligan
-    // round (fb-20260917T231628Z); fd4e6a0f0 settles the CR 103.1 toss before
-    // mounting so this test can assert that window rather than assume it.
+    // The log starts hidden for a SEATED player, with a toggle in the rail. The
+    // rail-toggle window is specifically the mulligan round; createVsBotJoin settles
+    // the CR 103.1 toss before mounting so this test can assert that window rather
+    // than assume it.
     // It drives a REAL seated client and measures the transcript visibility.
     // The other half — the per-card options affordance — is exercised below.
     test('a seated player sees the log hidden by default and can toggle it in the rail', async ({ browser, request }) => {
@@ -1057,8 +1047,8 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         // This test's contract (the rail toggle) holds only in the mulligan
         // round, so it deliberately mounts INTO that round: createVsBotJoin
         // has already answered the CR 103.1 toss, and the viewer's mulligan
-        // is left pending. The Board draws no hand row during the round (ui26
-        // ruling), so assertSeatedJoin waits on the opening-hand posture.
+        // is left pending. The Board draws no hand row during the round, so
+        // assertSeatedJoin waits on the opening-hand posture.
         await assertSeatedJoin(b, page, join, seat, label, 'opening-hand');
 
         // Watch the post-mount interactions (the toggle itself) so a console
@@ -1105,10 +1095,10 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
       }
     });
 
-    // ui23 — the R-E4-1 guard, in a real browser. The rule this whole options
+    // The wire-index guard, in a real browser. The rule this whole options
     // feature rests on is: never resolve an option by position. The unit
     // suite cannot express the discriminating test — vitest runs
-    // `environment: 'node'` with no DOM, and the existing R-E4-1 test calls
+    // `environment: 'node'` with no DOM, and a unit test calls
     // the mock itself and asserts it was called, never clicking the rendered
     // menu. A positional bug (clicking menu item N posts index-of-position
     // instead of the option's own index) is type-clean, passes svelte-check,
@@ -1125,7 +1115,7 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
     // the option that was actually POSTED is that option's own index — most
     // robustly by which card it is that gets cast/played, since a positional
     // bug plays the wrong one.
-    test('a card menu posts its own index, not a position in a rebuilt list (R-E4-1)', async ({ browser, request }) => {
+    test('a card menu posts its own index, not a position in a rebuilt list', async ({ browser, request }) => {
       // The paced walk + the seated client's measured socket-pool stalls
       // (see STALL_MS) put this test's honest worst case far above the
       // config's 120s default; give it room explicitly.
@@ -1172,13 +1162,13 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         // to <body>, so it is not a descendant of the card either: a
         // card-scoped locator matches nothing. Two-to-six options render the
         // radial wheel, whose buttons carry their own wire index; a longer
-        // list renders the same `body > .menu-pop` the ui24 guard locates.
+        // list renders the same `body > .menu-pop` the constructed-board guard locates.
         //
-        // R-E4-1 holds on both paths — the direct action posts the option's
+        // The rule holds on both paths — the direct action posts the option's
         // own wire index exactly as a menu item does — and the assertion
         // below (this card, and only this card, crosses to the board) is what
         // actually discriminates a positional bug either way.
-        // Since 7022042e6 a land's play option renders as its own PLAY
+        // A land's play option renders as its own PLAY
         // shortcut carrying the option's wire index (`[data-play-land]`),
         // ahead of the generic single-action and badge affordances.
         const playLand = cardLoc.locator(`[data-play-land="${pick.index}"]`);
@@ -1261,8 +1251,8 @@ test.describe('gorged [wheel1] Underground Sea fixture', () => {
     const endpoint = `${b}/api/tables/t1/matches/1`;
     let source: number | undefined;
     let played = false;
-    // Ticket agent-20260929T075920Z-479ffd6e: share the load-tolerant
-    // fixture-drive budget with ui24 rather than an unexplained 20s cutoff.
+    // Share the load-tolerant fixture-drive budget with the constructed-board test
+    // rather than an unexplained 20s cutoff.
     const deadline = Date.now() + FIXTURE_DRIVE_MS;
 
     // Drive the real engine to seat 0's first post-land priority window before
@@ -1317,7 +1307,7 @@ test.describe('gorged [wheel1] Underground Sea fixture', () => {
       const blue = wheel.locator('[data-mana-option="U"]');
       await expect(blue).toBeVisible();
       await expect(wheel.locator('[data-mana-option="B"]')).toBeVisible();
-      // Complete the choice so the serial ui24 test can continue driving this
+      // Complete the choice so the serial constructed-board test can continue driving this
       // shared real game from the next priority window.
       await blue.click();
     } finally {
@@ -1326,11 +1316,11 @@ test.describe('gorged [wheel1] Underground Sea fixture', () => {
   });
 });
 
-// fb-e079def5 / fb-20260917T232800Z — the Talisman continuation. A Talisman
+// The Talisman continuation. A Talisman
 // of Indulgence carries TWO mana abilities ({T}: Add {C}; {T}: Add {B} or {R}
 // plus its 1 damage), so activating it poses a stage-1 ability choose that
-// the player answers THROUGH the radial wheel. fb-20260917T232800Z
-// FLATTENED the explicit Combo ability into per-colour options (Add C / Add
+// the player answers THROUGH the radial wheel. The engine
+// FLATTENS the explicit Combo ability into per-colour options (Add C / Add
 // B / Add R in one wheel), so the stage-2 colour ask no longer exists: one
 // click on Add B pays the tap and lands the mana, and the wheel closes
 // without a second ask re-opening. (The pre-flattening pin asserted the
@@ -1362,8 +1352,8 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
     base: string,
     stop: (d: WireDecision) => boolean,
   ): Promise<WireDecision> {
-    // Ticket agent-20260929T075920Z-479ffd6e: the -pace 0 fixture walk
-    // needs the same load-tolerant budget as ui24 and wheel1.
+    // The -pace 0 fixture walk needs the same load-tolerant budget as the
+    // constructed-board and wheel tests.
     const deadline = Date.now() + FIXTURE_DRIVE_MS;
     while (Date.now() < deadline) {
       for (const seat of [0, 1]) {
@@ -1427,7 +1417,7 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
 
       // Click one: the single-action badge posts the source-level activation
       // and the server answers with the stage-1 ability choose, FLATTENED
-      // (fb-20260917T232800Z) into Add C / Add B / Add R — pip-tinted, one
+      // into Add C / Add B / Add R — pip-tinted, one
       // wheel, no prose "Add B or R" option.
       await action.click();
       const stageOne = page.locator('body > [data-radial-picker]');
@@ -1448,16 +1438,16 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
   });
 });
 
-// ui24 — construct the board the seed-1 game cannot produce. This shared
+// Construct the board the seed-1 game cannot produce. This shared
 // two-human fixture casts the zero-cost Memnites and otherwise echoes wire
 // options. Do not assume a particular opening-hand composition: the engine's
 // seeded shuffle is intentionally free to change as start-of-game draws evolve.
-test.describe('gorged [ui24] constructed board fixture', () => {
+test.describe('gorged constructed board fixture', () => {
   test.skip(!FIXTURE, 'SMOKE_FIXTURE unset — run via scripts/smoke.sh');
   test.describe.configure({ mode: 'serial' });
 
-  test('a board tile posts its non-zero wire index and a long menu escapes the quadrant (R-E4-1)', async ({ browser, request }) => {
-    // Ticket agent-20260929T075920Z-479ffd6e: quiet-box runs are 3.9s
+  test('a board tile posts its non-zero wire index and a long menu escapes the quadrant', async ({ browser, request }) => {
+    // Quiet-box runs are 3.9s
     // isolated, but a retained trace measured starved Frame.goto at 72–82s;
     // the global 120s ceiling can expire during cleanup. Budget 600s for two
     // 90s fixture walks, two ~90s starved navigations, and assertion margin.

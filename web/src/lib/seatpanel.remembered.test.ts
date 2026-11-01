@@ -3,7 +3,7 @@ import type { Decision, Option } from '../protocol';
 import { SeatPanelState } from './seatpanel.svelte';
 import { REMEMBERED_STORAGE_KEY, emptyRemembered, rememberKey } from './remembered';
 
-// The remembered-answer feature (fb-20260914T062319Z-88b4069a part B) at the
+// The remembered-answer feature at the
 // SeatPanelState level: the checkbox write path (B4), the adopt-time
 // auto-answer with its guard and note (B5), and the management write paths.
 // The STORE itself (keying, cap, corruption) is pinned in lib/remembered.test.ts.

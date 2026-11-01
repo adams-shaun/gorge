@@ -52,7 +52,7 @@ async function probe(page: Awaited<ReturnType<typeof browser.newPage>>): Promise
   });
 }
 
-describe('SeatBox — pile buttons are never clipped (fb-20261006T101047Z-cd69ff29)', () => {
+describe('SeatBox — pile buttons are never clipped', () => {
   it('graveyard and exile buttons sit fully inside the counts box at every seat-slot width, with a restricted mana pool present', { timeout: 60_000 }, async () => {
     for (const w of SLOT_WIDTHS) {
       const page = await browser.newPage({ viewport: { width: 1267, height: 531 } });

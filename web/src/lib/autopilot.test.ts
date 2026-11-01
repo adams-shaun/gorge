@@ -183,7 +183,7 @@ describe('decide', () => {
     expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]))).toEqual({ act: 'pass', index: 1 });
   });
 
-  // --- the if-respondable arms see the tap-then-cast hand (fb-20260914T114244Z):
+  // --- the if-respondable arms see the tap-then-cast hand:
   // the engine prices a cast against the FLOATING pool only, so a window where the
   // player holds a castable counterspell and the untapped lands to pay for it
   // offers nothing but mana taps — respondable()'s option-kind test read that
@@ -467,10 +467,9 @@ describe('decide', () => {
   });
 
   it('an off step with a dead mana-only window falls through to a pass (the floor is quiet when nothing is playable)', () => {
-    // fb-20260917T231311Z-e392fcc0: the old leaf asserted a plain fall-through
-    // with a cast option on the window — but a cast option IS an action, so the
-    // own-turn main-phase floor stops that shape now. The fall-through survives
-    // for the mana-only window with an unreadable/dead hand.
+    // A cast option IS an action, so the own-turn main-phase floor stops that
+    // shape; the fall-through is for the mana-only window with an unreadable/dead
+    // hand.
     const d = priority(ONLY_MANA);
     const s = withSteps('yours', { main1: 'off' });
     expect(run(d, view(0, 'main1'), s)).toEqual({ act: 'pass', index: 1 });
@@ -502,7 +501,7 @@ describe('decide', () => {
     expect(runFfwd(priority(RESPONDABLE), view(0, 'main1'), s)).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 
-  // --- own-turn main-phase floor (fb-20260917T231311Z-e392fcc0) ---
+  // --- own-turn main-phase floor ---
   //
   // rv2c merged over b4234e28: the castability oracle the floor reads is no
   // longer a client-side mana scan of hand+lands — it is the seat's own
@@ -660,14 +659,12 @@ describe('decide', () => {
   });
 
   it('actionable is false exactly when every option kind is pass, concede or activate AND no hand card is castable after tapping', () => {
-    // SEMANTICS CHANGED (fb-20260914T014141Z): the old pin — "false exactly when every
-    // option kind is pass/concede/activate" — no longer holds. A mana-only window
-    // whose hand holds a card the seat could cast after tapping (lib/castable,
-    // the post-land Lava Spike window) is now actionable: the engine prices a
-    // cast against the floating pool only, so the cast option does not exist
-    // YET, and auto-passing the tap would eat exactly the window the player
-    // wants. These pins keep the view hand-less (the empty hand fails closed),
-    // so every line below is the OLD semantics on the kind test alone.
+    // A mana-only window whose hand holds a card the seat could cast after
+    // tapping (lib/castable, the post-land Lava Spike window) is actionable: the
+    // engine prices a cast against the floating pool only, so the cast option does
+    // not exist YET, and auto-passing the tap would eat exactly the window the
+    // player wants. These pins keep the view hand-less (the empty hand fails
+    // closed), so every line below is the kind test alone.
     const noHand = view(0, 'main1');
     expect(actionable(priority([opt('pass', 0), opt('concede', 1)]), noHand, 0)).toBe(false);
     expect(actionable(priority([opt('pass', 0)]), noHand, 0)).toBe(false);
@@ -716,9 +713,9 @@ describe('decide', () => {
     expect(emptyPriorityWindow(d, v, 0)).toBe(null);
   });
 
-  // --- fb-20260917T192520Z-26136705: a costly mana activation is an action ---
+  // --- A costly mana activation is an action ---
 
-  it("fb-led1: a window whose ONLY action is a costly mana activation (Lion's Eye Diamond) is actionable and emptyPriorityWindow returns null", () => {
+  it("a window whose ONLY action is a costly mana activation (Lion's Eye Diamond) is actionable and emptyPriorityWindow returns null", () => {
     const d = priority([
       { index: 0, kind: 'activate', label: "Activate Lion's Eye Diamond for mana", player: 0, cost: "T Sac<1/Lion's Eye Diamond>" },
       opt('pass', 1),
@@ -730,13 +727,13 @@ describe('decide', () => {
     expect(emptyPriorityWindow(d, v, 0)).toBe(null);
   });
 
-  it('fb-led1: the same window whose activate option is a bare tap (no cost marker) is still empty — the floor passes it', () => {
+  it('the same window whose activate option is a bare tap (no cost marker) is still empty — the floor passes it', () => {
     const d = priority(ONLY_MANA);
     const v = view(0, 'main1');
     expect(emptyPriorityWindow(d, v, 0)).toBe(1);
   });
 
-  // --- the post-land window (fb-20260914T014141Z): smart stops now catch the tap-then-cast shape ---
+  // --- the post-land window: smart stops catch the tap-then-cast shape ---
 
   it('casual decide(): a post-land mana-only window with a castable-after-tap card in hand STOPS (stop-set)', () => {
     const d = priority(ONLY_MANA); // activate + pass + concede — exactly the window after the turn-1 Mountain
@@ -910,7 +907,7 @@ describe('decide', () => {
   });
 });
 
-describe('actionables — the labels behind actionable() (fb-20260916T225211Z)', () => {
+describe('actionables — the labels behind actionable()', () => {
   // The Deadly Rollick window: one real cast the smart step rule stopped for,
   // and the note had to be able to name it.
   it('names each action-kind option by its wire label, and actionable is its emptiness test', () => {
@@ -961,8 +958,7 @@ describe('actionables — the labels behind actionable() (fb-20260916T225211Z)',
 // read a plan-only cast window as "nothing to do", whether or not
 // potential_actions also lists the card. With the preference OFF every one of
 // them is exactly the capability-less policy. This is the actionable test
-// only: 7022042e6 removed a blanket derivePass guard that held EVERY window
-// carrying a plan, and it stays removed.
+// only: no blanket derivePass guard holds a window for carrying a plan.
 describe('auto-pay: a plan-bearing payment action is a real play only while the preference is on', () => {
   /** plannedWindow is a priority window whose legacy options are a bare Island tap, the pass and the concede, plus one plan-only payment action. */
   const plannedWindow = (action: PaymentAction = PLANNED_ACTION): Decision => ({
@@ -1072,16 +1068,12 @@ describe('auto-pay: a plan-bearing payment action is a real play only while the 
   });
 });
 
-// Ported from the auto-pay gaps audit (`git show 124ed89fb:web/src/lib/payment.audit.test.ts`),
-// its third probe -- the one the spec §8 amendment keeps; the first two probed
-// UI text the amendment withdraws (a one-cast action while off, Pay manually
-// while on). The fixture is the audit's own: seat 1's main phase, Opt in hand,
-// a window whose legacy options are a bare Island tap, the pass and the
-// concede, and a plan-only payment action. The View carries NO
-// potential_actions for the card (the Urborg-granted intrinsic shape the
-// engine's projection misses today). On main 6c711fece the probe failed:
-// expected null, got 1. The seat preference is now an explicit argument.
-describe('gaps audit probe 3: a playable plan-only cast prevents an empty-window auto-pass (spec §8)', () => {
+// A playable plan-only cast. The fixture: seat 1's main phase, Opt in hand, a
+// window whose legacy options are a bare Island tap, the pass and the concede,
+// and a plan-only payment action. The View carries NO potential_actions for the
+// card (the Urborg-granted intrinsic shape). The seat preference is an explicit
+// argument.
+describe('a playable plan-only cast prevents an empty-window auto-pass', () => {
   const seats: SeatInfo[] = [
     { name: 'alice', deck: 'burn', colour: '#e5484d' },
     { name: 'bob', deck: 'stompy', colour: '#30a46c' },
