@@ -388,25 +388,6 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.fuseTargets[k0] = nv0
 		}
 	}
-	if e.copyTargetStage != nil {
-		c.copyTargetStage = make(map[state.ObjID]int, len(e.copyTargetStage))
-		for k0, v0 := range e.copyTargetStage {
-			c.copyTargetStage[k0] = v0
-		}
-	}
-	if e.copyAnswerTargets != nil {
-		c.copyAnswerTargets = make(map[state.ObjID][][]decision.Option, len(e.copyAnswerTargets))
-		for k0, v0 := range e.copyAnswerTargets {
-			var nv0 [][]decision.Option
-			if v0 != nil {
-				nv0 = make([][]decision.Option, len(v0))
-				for i1 := range v0 {
-					nv0[i1] = append([]decision.Option(nil), v0[i1]...)
-				}
-			}
-			c.copyAnswerTargets[k0] = nv0
-		}
-	}
 	if e.castSubTargets != nil {
 		c.castSubTargets = make(map[state.ObjID]map[string][]state.Target, len(e.castSubTargets))
 		for k0, v0 := range e.castSubTargets {
@@ -422,9 +403,6 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.castSubTargets[k0] = nv0
 		}
 	}
-}
-
-func cloneFieldsEngineTriggerMaps2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.resolutionTargets != nil {
 		c.resolutionTargets = make(resolutionTargetMap, len(e.resolutionTargets))
 		for k0, v0 := range e.resolutionTargets {
@@ -441,6 +419,9 @@ func cloneFieldsEngineTriggerMaps2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		}
 	}
 	c.trigSub = e.trigSub.clone()
+}
+
+func cloneFieldsEngineTriggerMaps2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.charmTargets != nil {
 		c.charmTargets = make(map[state.ObjID][][]state.Target, len(e.charmTargets))
 		for k0, v0 := range e.charmTargets {

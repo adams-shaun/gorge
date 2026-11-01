@@ -115,7 +115,7 @@ func tapeTextMayAsk(e *Engine) bool {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
 	if o == nil || o.IsCopy {
-		return true // a copy: copy-target elections, copied modal riders
+		return true // a copy: copied modal riders
 	}
 	if o.CastFlags&state.FlagFused != 0 {
 		// A fused split spell (CR 702.102c) runs BOTH halves; the face read

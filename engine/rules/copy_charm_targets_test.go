@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -63,8 +64,7 @@ func TestCopyOfTwoTargetCharmKeepsEachModesTargets(t *testing.T) {
 			if tc.elect {
 				amount = 1
 			}
-			e.emit(events.Event{Kind: events.StackCopy, Obj: trig, Player: 0, Amount: amount})
-			e.priorityRound()
+			copyElecting(e, events.Event{Kind: events.StackCopy, Obj: trig, Player: 0, Amount: amount})
 			copyID := e.G.Stack[len(e.G.Stack)-1]
 			if copyID == trig {
 				t.Fatalf("no copy on the stack: %v", e.G.Stack)
@@ -73,7 +73,12 @@ func TestCopyOfTwoTargetCharmKeepsEachModesTargets(t *testing.T) {
 			// The copy resolves first. Keeping each declaration's inherited
 			// target answers an electing copy.
 			for i := 0; i < 8 && e.G.Obj(copyID).Zone == state.ZStack; i++ {
-				if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
+				d := e.Pending()
+				if d == nil {
+					e.priorityRound()
+					continue
+				}
+				if d.Kind == decision.KTarget {
 					submitChoices(t, e, d.Options[0].Index)
 					continue
 				}
@@ -87,6 +92,20 @@ func TestCopyOfTwoTargetCharmKeepsEachModesTargets(t *testing.T) {
 					e.G.Obj(bear).Tapped, e.G.Obj(angel).Tapped)
 			}
 		})
+	}
+}
+
+// copyElecting copies a stack object as effCopySpellAbility does: the copy goes
+// on the stack and its election, if any, is posed before anyone has priority.
+func copyElecting(e *Engine, ev events.Event) {
+	e.pending = nil
+	e.probe(func() {
+		for _, id := range e.EmitStackCopy(ev) {
+			e.AskCopyTargets(id)
+		}
+	})
+	if e.Pending() == nil {
+		e.priorityRound()
 	}
 }
 
@@ -143,8 +162,7 @@ func TestCopyOfAbilityKeepsItsChainTargets(t *testing.T) {
 			if tc.elect {
 				amount = 1
 			}
-			e.emit(events.Event{Kind: events.StackCopy, Obj: trig, Player: 0, Amount: amount})
-			e.priorityRound()
+			copyElecting(e, events.Event{Kind: events.StackCopy, Obj: trig, Player: 0, Amount: amount})
 			copyID := e.G.Stack[len(e.G.Stack)-1]
 			if subs := e.G.Obj(copyID).SubTargets; len(subs) != 1 || subs[0].Obj != bear {
 				t.Fatalf("copy's chain targets on the stack: %+v", subs)
@@ -155,7 +173,9 @@ func TestCopyOfAbilityKeepsItsChainTargets(t *testing.T) {
 			for i := 0; i < 8 && e.G.Obj(copyID).Zone == state.ZStack; i++ {
 				d := e.Pending()
 				switch {
-				case d != nil && d.Kind == decision.KPriority:
+				case d == nil:
+					e.priorityRound()
+				case d.Kind == decision.KPriority:
 					passOnceP(t, e)
 				case d != nil && d.Kind == decision.KTarget && d.ResumeKind == "copy_targets":
 					if !tc.elect || d.Options[0].Obj != bear {
@@ -184,5 +204,53 @@ func TestCopyOfAbilityKeepsItsChainTargets(t *testing.T) {
 				t.Errorf("the copy did not connive %d", want)
 			}
 		})
+	}
+}
+
+// TestElectingCopyDropsAnUpToTarget: CR 707.10c lets a copy's controller change
+// any target, and the trigger's root is "up to one". An election that answers
+// the root with nothing leaves the copy without the inherited graveyard card,
+// and the chain link's target stands.
+func TestElectingCopyDropsAnUpToTarget(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Mechanical Mobster", "Serra Angel")
+	bear := searchMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
+	angel := searchMoveByName(t, e, "Serra Angel", state.ZGraveyard)
+
+	castSpellNamed(t, e, reg, "Mechanical Mobster", "WWW")
+	d := passUntilAskKind(t, e, decision.KTarget, 8)
+	for _, want := range []state.ObjID{angel, bear} {
+		i := slices.IndexFunc(d.Options, func(o decision.Option) bool { return o.Obj == want })
+		if i < 0 {
+			t.Fatalf("no option for %d: %+v", want, d.Options)
+		}
+		submitChoices(t, e, d.Options[i].Index)
+		d = e.Pending()
+	}
+	trig := e.G.Stack[len(e.G.Stack)-1]
+	if got := e.G.Obj(trig).Targets; len(got) != 1 || got[0].Obj != angel {
+		t.Fatalf("original's root targets: %+v", got)
+	}
+
+	copyElecting(e, events.Event{Kind: events.StackCopy, Obj: trig, Player: 0, Amount: 1})
+	d = e.Pending()
+	if d == nil || d.ResumeKind != "copy_targets" || d.Min != 0 {
+		t.Fatalf("root election: %+v", d)
+	}
+	copyID := d.Source
+	submitChoices(t, e)
+	d = e.Pending()
+	if d == nil || d.ResumeKind != "copy_targets" {
+		t.Fatalf("chain election: %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+
+	co := e.G.Obj(copyID)
+	if len(co.Targets) != 0 {
+		t.Fatalf("copy kept root targets %+v after answering with nothing", co.Targets)
+	}
+	if len(co.SubTargets) != 1 || co.SubTargets[0].Obj != bear {
+		t.Fatalf("copy's chain targets: %+v", co.SubTargets)
 	}
 }

@@ -657,8 +657,6 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.castTapped, ev.Obj)
 		delete(e.castReturned, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
-		delete(e.copyTargetStage, ev.Obj)
-		delete(e.copyAnswerTargets, ev.Obj)
 		delete(e.castSubTargets, ev.Obj)
 		delete(e.resolutionTargets, ev.Obj)
 		delete(e.tpCtlChooser, ev.Obj)

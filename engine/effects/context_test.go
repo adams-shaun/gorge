@@ -257,6 +257,7 @@ func (h *fakeHost) LegalRetargets(obj state.ObjID, sa *cards.SA, parent []state.
 	return h.LegalTargets(h.g.Obj(obj).Controller, obj, sa)
 }
 func (h *fakeHost) AnnouncedLinkTargets(obj state.ObjID, link *cards.SA) []state.Target { return nil }
+func (h *fakeHost) AskCopyTargets(id state.ObjID)                                       {}
 func (h *fakeHost) RetargetLink(obj state.ObjID, link *cards.SA, ts []state.Target)     {}
 func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
 	var out []state.Target

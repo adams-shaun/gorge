@@ -34,11 +34,6 @@ func (e *Engine) resolveTop() {
 	}
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
-	if o != nil && o.IsCopy && (o.CopyMayChooseTarget || (e.copyTargetStage != nil && e.copyTargetStage[id] > 0)) {
-		if e.AskCopyTargets() {
-			return
-		}
-	}
 	savedResolving := e.resolvingObj
 	e.resolvingObj = id
 	defer func() { e.resolvingObj = savedResolving }()

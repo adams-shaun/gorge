@@ -354,12 +354,10 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			for i := 0; i < n; i++ {
 				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller, Counter: payload}
 				if mayChoose {
-					// CR 707.10c: the copy's controller may choose new targets. The
-					// permission rides the StackCopy event (Amount 1), so it is
-					// recorded per copy instance and replayed; engine/rules/stack.go's
-					// resolveTop poses the election and the TargetsChosen fold
-					// consumes it. No Note: the election is now real, not a
-					// stand-in.
+					// CR 707.10c: the copy's controller may choose new targets
+					// before anyone can respond. The permission rides the
+					// StackCopy event (Amount 1), so it is recorded per copy
+					// instance and replayed.
 					ev.Amount = 1
 				}
 				emitCopy(h, c, rememberCopies, ev, addTypes)
@@ -376,8 +374,9 @@ func spellCopyAllowed(h Host, id state.ObjID) bool {
 	return !ok || checker.SpellCopyAllowed(id)
 }
 
-// emitCopy emits one StackCopy event. When remember or addTypes is set it
-// routes through the mint-returning Host.EmitStackCopy: remember appends every
+// emitCopy emits one StackCopy event and poses the election of a copy that may
+// choose new targets. When remember or addTypes is set it routes through the
+// mint-returning Host.EmitStackCopy: remember appends every
 // minted copy object to the resolution's remembered set -- both halves,
 // exactly as engine/effects/token.go's RememberTokens$ rider does for a token
 // mint: the chain local Ctx.Remembered (read by Defined$ Remembered and by the
@@ -396,12 +395,15 @@ func spellCopyAllowed(h Host, id state.ObjID) bool {
 // so a copy of a copy inherits AddTypes$ (CR 707.2). An absent key leaves the
 // historical plain Emit.
 func emitCopy(h Host, c *Ctx, remember bool, ev events.Event, addTypes []string) {
-	if !remember && len(addTypes) == 0 {
+	if !remember && len(addTypes) == 0 && ev.Amount == 0 {
 		h.Emit(ev)
 		return
 	}
 	for _, id := range h.EmitStackCopy(ev) {
 		noteCopy(h, c, remember, ev.Obj, id, addTypes)
+		if ev.Amount == 1 {
+			h.AskCopyTargets(id)
+		}
 	}
 }
 

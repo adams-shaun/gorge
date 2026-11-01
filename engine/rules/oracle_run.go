@@ -24,6 +24,7 @@ package rules
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -948,21 +949,10 @@ func (r *oracleRun) submit(d *decision.Decision, choices []int, why string) erro
 		if d.Kind == decision.KTarget && d.ResumeKind == "copy_targets" {
 			// CR 707.10c: XMage poses one "Change this N of M target?"
 			// chooseUse per INHERITED target of the declaration before the
-			// new-target pick, so the generator needs the count. The ask's
-			// declaration is the stage just posed: copyTargetStage[obj] is
-			// the NEXT stage, so the one answered is one less. Computed here
-			// (not a new Engine method) because the oracle runner already
-			// reaches the engine through exported fields and the method/
-			// surface ratchets only fall.
+			// new-target pick, so the generator needs the count.
 			if o := r.e.G.Obj(d.Source); o != nil {
 				decls := r.e.copyTargetDeclarations(o)
-				stage := 0
-				if r.e.copyTargetStage != nil {
-					stage = r.e.copyTargetStage[o.ID] - 1
-				}
-				if stage < 0 {
-					stage = 0
-				}
+				stage := max(slices.Index(decls, d.ResumeSA), 0)
 				od.CopyInherited = len(r.e.copyInheritedForDeclaration(o, decls, stage))
 			}
 		}

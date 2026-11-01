@@ -2,7 +2,6 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -120,25 +119,6 @@ type engineTriggerMaps struct {
 	// StackCopy inherits this split alongside its flat targets when available;
 	// resolveFused uses its spec fallback only for copies without provenance.
 	fuseTargets map[state.ObjID][][]state.Target `clone:"deep"`
-	// copyTargetStage tracks the in-progress per-declaration copy-target
-	// election (CR 707.10c), keyed on the copying stack object: the value is
-	// the index of the NEXT declaration AskCopyTargets must ask. The
-	// TargetsChosen fold clears Object.CopyMayChooseTarget after the FIRST
-	// declaration's answer, so this scratch is what carries the election
-	// across the stage that follows -- a fused copy's second half, exactly as
-	// the cast's pendingCast.targetStage carries it for a cast. Engine-only
-	// scratch like fuseTargets: rebuilt by replay (the ask re-executes on the
-	// re-entered resolveTop), cloned with the engine, and removed with the
-	// stack object so a later object reusing the id never reads a stale stage.
-	copyTargetStage map[state.ObjID]int `clone:"deep"`
-	// copyAnswerTargets accumulates a multi-declaration copy-target election's
-	// PER-DECLARATION answers until every declaration has been asked, at which
-	// point the flattened list is recorded in one replace. Recording each
-	// stage as it arrives would replace (or duplicate) the flat list mid-
-	// election and lose a later declaration's inherited keep-current slots.
-	// Engine-only scratch, rebuilt by replay, cloned with the engine, removed
-	// with the stack object.
-	copyAnswerTargets map[state.ObjID][][]decision.Option `clone:"deep"`
 	// castSubTargets carries a cast or activation's CAST-TIME pre-asked
 	// SubAbility$ target answers, keyed by the stack
 	// object that will resolve the chain and then by the sub SA's Line.

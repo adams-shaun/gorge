@@ -1868,10 +1868,9 @@ type Object struct {
 	// CREATING CopySpellAbility SA declared MayChooseTarget$ True (the event's
 	// Amount discriminator) -- so an external copier (Mirari, Cloven Casting,
 	// a Storm or Replicate copy) that is not part of the copied spell's own
-	// text still grants the election. engine/rules/stack.go's resolveTop asks the
-	// copy's controller exactly once while this is true and records the answer
-	// through TargetsChosen, whose fold clears the flag; a log-only replay
-	// rebuilds set-then-cleared identically.
+	// text still grants the election, which Engine.AskCopyTargets poses as the
+	// copy goes on the stack and records through TargetsChosen, whose fold clears
+	// the flag; a log-only replay rebuilds set-then-cleared identically.
 	CopyMayChooseTarget bool
 
 	// CopyNonLegendary is the CopySpellAbility NonLegendary$ True rider (The
