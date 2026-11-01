@@ -1,5 +1,5 @@
 import type { PlayerView, SeatInfo, View } from '../protocol';
-import { visibleHand } from './board';
+import { actingSeat, visibleHand } from './board';
 import { countsFor } from './zones';
 
 /**
@@ -78,7 +78,7 @@ export function lossCauses(events: { event: { kind: string; player: number; text
 export function seatStateOf(view: View, p: PlayerView): SeatState {
   if (p.lost) return 'lost';
   const active = view.active === p.seat;
-  const priority = view.priority === p.seat;
+  const priority = actingSeat(view) === p.seat;
   if (active && priority) return 'acting';
   if (active) return 'active';
   if (priority) return 'priority';
@@ -116,7 +116,7 @@ export function seatRows(view: View, seats: SeatInfo[] = [], causes: Record<numb
       graveyard: counts.graveyard,
       exile: counts.exile,
       active: view.active === p.seat,
-      priority: view.priority === p.seat,
+      priority: actingSeat(view) === p.seat,
       state: seatStateOf(view, p),
       commanders: (p.commanders ?? []).length,
       lostReason: p.lost ? (causes[p.seat] ?? null) : null,

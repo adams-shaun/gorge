@@ -202,6 +202,15 @@ export function recentlyMattered(events: { event: { kind: string; obj?: number }
   return null;
 }
 
+/**
+ * actingSeat is the seat the game is waiting on. While a spell or ability
+ * resolves nobody holds priority and the wire still names the last seat that
+ * passed, so a seat answering a decision is the one to mark.
+ */
+export function actingSeat(v: View): number {
+  return v.decision?.player ?? v.priority;
+}
+
 /** findCardAnywhere locates an object id across every visible zone of the
  *  view: each seat's battlefield, graveyard, exile and visible hand, then
  *  the stack. It exists for the resolved-card display — a resolved object

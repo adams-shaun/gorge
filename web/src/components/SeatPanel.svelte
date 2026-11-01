@@ -10,6 +10,7 @@
   import PromptBody from './prompts/PromptBody.svelte';
   import { dockAnswers } from '../lib/prompts/renderer';
   import { promptWords } from '../lib/prompts/words';
+  import { actingSeat } from '../lib/board';
 
   /**
    * SeatPanel is a human seat's decision surface: the status readout,
@@ -165,7 +166,7 @@
   // the fallback must be that name, not the 0-based `Seat N`
   // placeholder, exactly as IdentityBar does.
   const waitingName = $derived(
-    seats[view.priority]?.name ?? view.players.find((p) => p.seat === view.priority)?.name ?? `Seat ${view.priority}`,
+    seats[actingSeat(view)]?.name ?? view.players.find((p) => p.seat === actingSeat(view))?.name ?? `Seat ${actingSeat(view)}`,
   );
   const stepLabel = $derived(view.step.charAt(0).toUpperCase() + view.step.slice(1));
 
@@ -210,7 +211,7 @@
       <div class="readout" role="status">
         <div class="fact">
           <span class="k">Priority</span>
-          <span class="v">{view.priority === ctx.seat ? 'you' : waitingName}</span>
+          <span class="v">{actingSeat(view) === ctx.seat ? 'you' : waitingName}</span>
         </div>
         <div class="fact">
           <span class="k">Stack</span>
