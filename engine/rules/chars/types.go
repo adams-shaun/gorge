@@ -82,7 +82,7 @@ func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 	// 2/2 exactly as it reaches a face-up creature, while the printed face
 	// stays hidden (no printed word reappears merely from a type grant).
 	base := o.Face().Types
-	faceDown := o.FaceDown && o.Zone == state.ZBattlefield
+	faceDown := o.FaceDownHidden()
 	if faceDown {
 		base = o.FaceDownTypeWords()
 	}

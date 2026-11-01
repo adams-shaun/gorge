@@ -2166,13 +2166,13 @@ func (o *Object) faceDownEffective() bool {
 	return o.FaceDown && o.Zone == ZBattlefield
 }
 
-// FaceDownTypeWords is the effective base type set of a face-down battlefield
-// permanent (CR 708.5): {Creature} when no FaceDownSetType$ was folded, else
-// the set type split on Forge's " & " join. A non-face-down object returns
+// FaceDownTypeWords is the effective base type set of a face-down spell or
+// battlefield permanent (CR 708.4, 708.5): {Creature} when no FaceDownSetType$
+// was folded, else the set type split on Forge's " & " join. A non-face-down object returns
 // its printed types. It returns a fresh slice so a caller can append to it
 // (the layer-4 walk does) without aliasing stored state.
 func (o *Object) FaceDownTypeWords() []string {
-	if !o.faceDownEffective() {
+	if !o.FaceDownHidden() {
 		if f := o.Face(); f != nil {
 			return append([]string(nil), f.Types...)
 		}
@@ -2209,7 +2209,7 @@ func (o *Object) EffectiveIsCreature() bool {
 	if o.ImpendingDormant() {
 		return false
 	}
-	if o.faceDownEffective() {
+	if o.FaceDownHidden() {
 		for _, w := range o.FaceDownTypeWords() {
 			if w == "Creature" {
 				return true

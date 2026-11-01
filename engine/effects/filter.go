@@ -3758,7 +3758,7 @@ func noAbilitiesPermanent(_ *state.Game, o *state.Object, _ state.PlayerID, _ st
 	if f == nil {
 		return false
 	}
-	if o.FaceDown && o.Zone == state.ZBattlefield {
+	if o.FaceDownHidden() {
 		return true
 	}
 	if len(f.Keywords) > 0 || len(f.Statics) > 0 || len(f.Repls) > 0 || len(f.Triggers) > 0 {
@@ -3819,7 +3819,7 @@ func costOnlyMana(raw string) bool {
 // object's printed face's activated (AB) abilities.
 func objectHasAbility(o *state.Object, sub string) bool {
 	f := o.Face()
-	if f == nil || (o.FaceDown && o.Zone == state.ZBattlefield) {
+	if f == nil || o.FaceDownHidden() {
 		return false
 	}
 	for _, a := range f.Abilities {

@@ -333,7 +333,7 @@ func (e *Engine) printedReach(id state.ObjID) (*state.Object, *cards.Face) {
 		return nil, nil
 	}
 	f := o.Face()
-	if f == nil || (o.FaceDown && o.Zone == state.ZBattlefield) {
+	if f == nil || o.FaceDownHidden() {
 		return nil, nil
 	}
 	if o.Zone == state.ZBattlefield && isRoom(o) {
@@ -417,7 +417,7 @@ func (e *Engine) printedViewCharacteristics(id state.ObjID) (name string, keywor
 // printed pair plus the 7d counter totals -- the layer-4/6 bindings a layer-7 match
 // would read never matter. The same exclusions as printedReach apply.
 func (e *Engine) printedPT(o *state.Object, f *cards.Face, active []ContinuousEffect) (power, toughness int32, ok bool) {
-	if !e.derivedMemoUsable() || (o.FaceDown && o.Zone == state.ZBattlefield) {
+	if !e.derivedMemoUsable() || o.FaceDownHidden() {
 		return 0, 0, false
 	}
 	s := &e.charsSum

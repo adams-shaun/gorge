@@ -78,7 +78,7 @@ func hasTypePrinted(o *state.Object, t string, id cards.TypeWordID) (typeDecisio
 	// the gate runs before them; the Changeling tail in hasTypeID is skipped
 	// by the same token (a decided No) -- a face-down permanent has no
 	// abilities (CR 708.2) and its printed Changeling cannot grant one.
-	if o.FaceDown && o.Zone == state.ZBattlefield {
+	if o.FaceDownHidden() {
 		for _, w := range o.FaceDownTypeWords() {
 			if strings.EqualFold(w, t) {
 				return typeYes, f
@@ -313,7 +313,7 @@ func changelingType(t string) bool { return CreatureTypeWords(t) }
 // effects. Bound layer results must use their own marker instead. A face-down
 // battlefield permanent has no printed CDA (CR 708.5).
 func IntrinsicAllCreatureTypes(o *state.Object) bool {
-	if o == nil || o.Face() == nil || (o.FaceDown && o.Zone == state.ZBattlefield) {
+	if o == nil || o.Face() == nil || o.FaceDownHidden() {
 		return false
 	}
 	f := o.Face()

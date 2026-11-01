@@ -75,7 +75,7 @@ func chromaColourBit(letter byte) uint8 {
 // contributes nothing -- the same rule the battlefield devotion scan
 // applies (devotionCount) -- and a missing or faceless object counts zero.
 func chromaObjectCount(o *state.Object, mask uint8) int32 {
-	if o == nil || (o.FaceDown && o.Zone == state.ZBattlefield) {
+	if o == nil || o.FaceDownHidden() {
 		return 0
 	}
 	f := o.Face()

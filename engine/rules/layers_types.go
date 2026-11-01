@@ -12,13 +12,13 @@ import (
 )
 
 // faceDownPrintedHides is the one CR 708.8 gate every printed-face scan
-// shares: while a battlefield object is face down, its printed abilities,
+// shares: while a spell or permanent is face down, its printed abilities,
 // triggers and statics do not exist. The ability-offer loop, the
 // mana-ability collector, the trigger scan and both static scans all
 // consult it, so no printed face of a manifested card can leak into any
 // offer or queue while it is face down.
 func (e *Engine) faceDownPrintedHides(o *state.Object) bool {
-	return o != nil && o.FaceDown && o.Zone == state.ZBattlefield
+	return o.FaceDownHidden()
 }
 
 // typeCharacteristics applies layer 4 before anything that tests a type. The
