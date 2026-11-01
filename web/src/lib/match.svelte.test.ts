@@ -362,6 +362,32 @@ describe('MatchState — DVR cursor fetching', () => {
     expect(m.loadError).toBeNull();
   });
 
+  it('showLastGame opens a seat at its last game\'s final board, live at the head', async () => {
+    fetchMatchesMock.mockReset();
+    fetchEventsMock.mockReset();
+    fetchViewMock.mockReset();
+    const info = (match: number, events: number) => ({ match, state: 'finished', turns: 4, events, seats }) as unknown as MatchInfo;
+    fetchMatchesMock.mockResolvedValue([info(1, 40), info(2, 3), info(3, 0)]);
+    fetchEventsMock.mockResolvedValue([ev(0), ev(1), ev(2)]);
+    const over = { ...view(4), over: true, winner: 1 };
+    fetchViewMock.mockResolvedValue(over);
+    const m = new MatchState('t1', { seat: 0, token: 'tok' });
+    await m.showLastGame();
+    expect(m.match).toBe(2);
+    expect(m.dvr.live).toBe(true);
+    expect(m.dvr.head).toBe(2);
+    expect(m.view).toEqual(over);
+    expect(m.seats).toEqual(seats);
+  });
+
+  it('showLastGame is a seat\'s: a spectator stays on the list', async () => {
+    fetchMatchesMock.mockReset();
+    const m = new MatchState('t1');
+    await m.showLastGame();
+    expect(m.match).toBeNull();
+    expect(fetchMatchesMock).not.toHaveBeenCalled();
+  });
+
   it('loadFinished sets loadError (and never rejects) when the table has no such match', async () => {
     fetchMatchesMock.mockReset();
     fetchMatchesMock.mockResolvedValue([]);

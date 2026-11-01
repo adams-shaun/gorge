@@ -155,7 +155,13 @@
   const idle = $derived.by(() => {
     if (finished) return false;
     const state = tables.list.find((t) => t.info.id === table)?.info.state;
+    // A seat keeps the board of the game it played, with the result on it.
+    if (state === 'idle' && seated && m.match !== null) return false;
     return state === 'idle' || state === 'halted';
+  });
+
+  $effect(() => {
+    if (idle && seated && m instanceof MatchState) void m.showLastGame();
   });
 
   // One SeatPanelState per match, created here rather than inside SeatPanel

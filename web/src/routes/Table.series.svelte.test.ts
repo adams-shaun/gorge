@@ -60,7 +60,7 @@ function onBoard(html: string): boolean {
 }
 
 describe('Table.svelte — a series table between games', () => {
-  it('keeps the finished board after match_end and between_games, and drops to the match list only when the series is over', () => {
+  it('keeps the finished board after match_end, between games and when the series is over', () => {
     tables.apply({ v: 1, t: 'hello', seq: 0, body: { session: 's1', tables: [info('bo3', { series: true })] } });
     tables.apply({ v: 1, t: 'match_end', seq: 1, table: 'bo3', match: 1, body: { result: 'win', winner: 1, head: 'h1' } });
     expect(onBoard(page('bo3'))).toBe(true);
@@ -72,14 +72,19 @@ describe('Table.svelte — a series table between games', () => {
     expect(onBoard(page('bo3'))).toBe(true);
 
     tables.apply({ v: 1, t: 'table_state', seq: 4, table: 'bo3', match: 2, body: { state: 'idle' } });
-    const html = page('bo3');
-    expect(html).toContain('matches-page');
-    expect(html).not.toMatch(BOARD);
+    expect(onBoard(page('bo3'))).toBe(true);
   });
 
-  it('an ordinary single-match table still drops to the match list at match_end', () => {
+  it('an ordinary single-match table keeps a seat on the finished board', () => {
     tables.apply({ v: 1, t: 'hello', seq: 0, body: { session: 's1', tables: [info('plain')] } });
     tables.apply({ v: 1, t: 'match_end', seq: 1, table: 'plain', match: 1, body: { result: 'win', winner: 1, head: 'h1' } });
-    expect(page('plain')).toContain('matches-page');
+    expect(onBoard(page('plain'))).toBe(true);
+  });
+
+  it('a spectator of a finished table gets the match list', () => {
+    tables.apply({ v: 1, t: 'hello', seq: 0, body: { session: 's1', tables: [info('plain')] } });
+    tables.apply({ v: 1, t: 'match_end', seq: 1, table: 'plain', match: 1, body: { result: 'win', winner: 1, head: 'h1' } });
+    initSeatContext('');
+    expect(render(Table, { props: { table: 'plain' } }).html).toContain('matches-page');
   });
 });

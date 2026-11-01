@@ -1,4 +1,4 @@
-import type { DecisionBody, Frame, MatchStart, SeatInfo, Snapshot, View, EventBody, TableHaltedBody } from '../protocol';
+import type { DecisionBody, Frame, MatchInfo, MatchStart, SeatInfo, Snapshot, View, EventBody, TableHaltedBody } from '../protocol';
 import { dvrReducer, initialDvr, type DvrAction, type DvrState } from './dvr';
 import { ApiError, fetchEvents, fetchMatches, fetchView } from './api';
 import { withBase } from './basepath';
@@ -417,6 +417,24 @@ export class MatchState implements ClientModelSource {
       }
       this.loadError = e instanceof Error ? e.message : String(e);
     }
+  }
+
+  /**
+   * showLastGame opens a seat that reaches an idle table on the final board of
+   * its last game, the way the ManaBrew and SpellBench wires do: live at the
+   * head, so the seat panel shows the result rather than a replay.
+   */
+  async showLastGame() {
+    if (!this.seat || this.match !== null) return;
+    const infos = await fetchMatches(this.table, this.seat).catch((): MatchInfo[] => []);
+    const last = infos.filter((m) => m.events > 0).at(-1);
+    if (!last || this.match !== null) return;
+    this.match = last.match;
+    this.seats = last.seats;
+    const all = await this.fetchEventsAt(last.match, 0).catch(() => []);
+    this.dispatch({ type: 'snapshot', match: `${this.table}/${last.match}`, head: last.events - 1, turnStarts: turnStartsFrom(all) });
+    this.dispatch({ type: 'backfill', events: all });
+    await this.refreshLive();
   }
 
   private async loadFinishedAs(k: number, seat: SeatCtx | undefined) {
