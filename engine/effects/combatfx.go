@@ -621,7 +621,7 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 			}
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-				Text: "Animate: no host to ask the Optional$ election; animates (R-9 stand-in)"})
+				Text: "Animate: no host to ask the Optional$ election; animates (no-host stand-in)"})
 		}
 	}
 	emitAnimateColorsNotes(h, c, ag, "Animate")

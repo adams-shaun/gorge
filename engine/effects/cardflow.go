@@ -1013,7 +1013,7 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 			} else if !noted {
 				noted = true
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-					Text: "Mill: no host to ask the Optional$ election; mills (R-9 stand-in)"})
+					Text: "Mill: no host to ask the Optional$ election; mills (no-host stand-in)"})
 			}
 		}
 		if count > 0 {

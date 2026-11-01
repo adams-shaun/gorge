@@ -214,7 +214,7 @@ func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
 				}
 			} else {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-					Text: "AlterAttribute: no host to ask the Optional$ election; applies (R-9 stand-in)"})
+					Text: "AlterAttribute: no host to ask the Optional$ election; applies (no-host stand-in)"})
 			}
 		}
 		prepared, solved := code == alterAttributePrepared, code == alterAttributeSolved

@@ -441,7 +441,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					}
 				} else {
 					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
-						Text: "Dig: no host to ask the DestZone2Optional$ election; moves (R-9 stand-in)"})
+						Text: "Dig: no host to ask the DestZone2Optional$ election; moves (no-host stand-in)"})
 				}
 			}
 			dest2 := ParseZone(dest2Name)
@@ -816,7 +816,7 @@ func digRevealOptional(h Host, c *Ctx, sa *cards.SA, p state.PlayerID, top []sta
 		}
 	} else {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
-			Text: "Dig: no host to ask the RevealOptional$ election; reveals (R-9 stand-in)"})
+			Text: "Dig: no host to ask the RevealOptional$ election; reveals (no-host stand-in)"})
 	}
 	h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 	return true

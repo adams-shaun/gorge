@@ -105,7 +105,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 				}
 			} else {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-					Text: "DealDamage: no host to ask the OptionalDecider$ election; deals (R-9 stand-in)"})
+					Text: "DealDamage: no host to ask the OptionalDecider$ election; deals (no-host stand-in)"})
 			}
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,

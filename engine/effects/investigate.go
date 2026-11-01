@@ -105,7 +105,7 @@ func investigateOptionalWalk(h Host, c *Ctx, sa *cards.SA, players []state.Playe
 			if !noted {
 				noted = true
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-					Text: "Investigate: no host to ask the election; investigates (R-9 stand-in)"})
+					Text: "Investigate: no host to ask the election; investigates (no-host stand-in)"})
 			}
 		}
 
