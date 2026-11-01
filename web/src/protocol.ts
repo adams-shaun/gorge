@@ -1460,8 +1460,7 @@ export interface Decision {
   /**
    * PaymentActions is an additive, separately indexed cast-payment
    * extension. Keeping it outside Options preserves every legacy priority
-   * choice index. It remains empty until payplan-04 publishes executable
-   * offers.
+   * choice index. It stays empty until the host publishes executable offers.
    */
   payment_actions?: PaymentAction[];
   /**
