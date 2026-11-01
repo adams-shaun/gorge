@@ -14,7 +14,7 @@ ManaCost:2 R
 Types:Enchantment Case
 T:Mode$ Phase | Phase$ End of Turn | ValidPlayer$ You | Hellbent$ True | IsPresent$ Card.Self+!IsSolved | TriggerZones$ Battlefield | Execute$ TrigSolve | TriggerDescription$ To solve — You have no cards in hand.
 SVar:TrigSolve:DB$ AlterAttribute | Defined$ Self | Attributes$ Solved
-T:Mode$ Phase | Phase$ Upkeep | IsPresent$ Card.Self+IsSolved | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigDiscard | TriggerDescription$ Solved — At the beginning of your upkeep, discard your hand, then draw two cards.
+T:Mode$ Phase | Phase$ Upkeep | IsPresent$ Card.Self+IsSolved | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigDiscard
 SVar:TrigDiscard:DB$ Discard | Mode$ Hand | Defined$ You | SubAbility$ DBDraw
 SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 2
 Oracle:To solve — You have no cards in hand.\nSolved — At the beginning of your upkeep, discard your hand, then draw two cards.

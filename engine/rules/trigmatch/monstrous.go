@@ -16,7 +16,7 @@ import (
 // every one of the 19 corpus carriers) and its Amount is the monstrosity
 // COUNT, which the bodies read back as TriggerCount$Amount (Hydra
 // Broodmaster's `SVar:MonstrosityX:TriggerCount$Amount`, Vitality Hunter's
-// `SVar:MaxTgts:TriggerCount$Amount`) through the BecomeMonstrous referent
+// `MaxTgts = TriggerCount$Amount`) through the BecomeMonstrous referent
 // bindings in rules/trigger_referents.go.
 func becomeMonstrousMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 	if ev.Kind != events.AlterAttribute || ev.Text != "Monstrous" {

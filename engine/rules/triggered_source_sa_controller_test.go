@@ -41,7 +41,7 @@ func TestAshenmoorLiegeTriggeredSourceSAController(t *testing.T) {
 	// untapping the Liege changes nothing but its tapped state, so the only
 	// life movement below is the trigger's payout.
 	const tapperSrc = "Name:OneTap\nManaCost:1 G\nTypes:Creature Elf\nPT:1/1\n" +
-		"A:AB$ Untap | Cost$ T | ValidTgts$ Creature | SpellDescription$ Untap target creature.\n" +
+		"A:AB$ Untap | Cost$ T | ValidTgts$ Creature\n" +
 		"Oracle:x\n"
 	e, ids := becomesTargetOnceBoard(t, reg, []string{"Ashenmoor Liege"}, nil)
 	liege := ids["Ashenmoor Liege"]
@@ -97,7 +97,7 @@ func TestBlackBoltTriggeredSourceSAController(t *testing.T) {
 	// both are legal under Permanent.nonLand; what must be EXCLUDED is
 	// Black Bolt himself (seat 0's board).
 	const tapperSrc = "Name:OneTap\nManaCost:1 G\nTypes:Creature Elf\nPT:1/1\n" +
-		"A:AB$ Untap | Cost$ T | ValidTgts$ Creature | SpellDescription$ Untap target creature.\n" +
+		"A:AB$ Untap | Cost$ T | ValidTgts$ Creature\n" +
 		"Oracle:x\n"
 	const idolSrc = "Name:Idol\nManaCost:2\nTypes:Artifact\nOracle:x\n"
 	e, ids := becomesTargetOnceBoard(t, reg, []string{"Black Bolt, Inhuman King"}, nil)

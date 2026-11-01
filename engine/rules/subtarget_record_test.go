@@ -96,8 +96,8 @@ func TestTriggerSubTargetRecordsBecomesTargetTrigger(t *testing.T) {
 	e, src := triggerChainWithTargetSource(t)
 	watcher := onBoard(t, e, 1,
 		"Name:Rotpriest Watcher\nTypes:Creature\nPT:1/2\n"+
-			"T:Mode$ BecomesTarget | ValidTarget$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigPoison | TriggerDescription$ x\n"+
-			"SVar:TrigPoison:DB$ Poison | ValidTgts$ Opponent | Num$ 1\n"+
+			"T:Mode$ BecomesTarget | ValidTarget$ Card.Self | TriggerZones$ Battlefield | Execute$ OnPoison | TriggerDescription$ x\n"+
+			"SVar:OnPoison:DB$ Poison | ValidTgts$ Opponent | Num$ 1\n"+
 			"Oracle:x\n")
 	o := e.G.Obj(watcher)
 	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil || len(o.Face().Triggers) != 1 {

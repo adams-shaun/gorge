@@ -20,8 +20,8 @@ import (
 )
 
 const ferocificationSrc = "Name:Ferocification Fixture\nManaCost:2 R\nTypes:Enchantment\n" +
-	"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | Execute$ TrigCharm | TriggerZones$ Battlefield\n" +
-	"SVar:TrigCharm:DB$ Charm | Choices$ DBPump,DBPumpKW\n" +
+	"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | Execute$ OnCharm | TriggerZones$ Battlefield\n" +
+	"SVar:OnCharm:DB$ Charm | Choices$ DBPump,DBPumpKW\n" +
 	"SVar:DBPump:DB$ Pump | ValidTgts$ Creature.YouCtrl | NumAtt$ +2 | SpellDescription$ Pump mode.\n" +
 	"SVar:DBPumpKW:DB$ Pump | ValidTgts$ Creature.YouCtrl | KW$ Menace & Haste | SpellDescription$ Keyword mode.\n" +
 	"Oracle:x\n"
@@ -80,9 +80,9 @@ func TestOptionalModalTriggerWithNoTargetableModeIsRemoved(t *testing.T) {
 	e, cfg, _ := newFixtureDeck(t, 7103, src)
 	s := putCreature(t, e, 0, src)
 	face := e.G.Obj(s).Face()
-	charm := cards.ResolveSVar(face.SVars, "TrigCharm")
+	charm := cards.ResolveSVar(face.SVars, "OnCharm")
 	if charm == nil || !effects.CharmOf(charm).OptionalTrue {
-		t.Fatalf("fixture precondition: TrigCharm not Optional$: %+v", charm)
+		t.Fatalf("fixture precondition: OnCharm not Optional$: %+v", charm)
 	}
 	for _, m := range []string{"DBPump", "DBPumpKW"} {
 		if n := len(e.legalTargetCandidates(0, s, s, cards.ResolveSVar(face.SVars, m))); n != 0 {
@@ -104,8 +104,8 @@ func TestOptionalModalTriggerWithNoTargetableModeIsRemoved(t *testing.T) {
 func TestModalTriggerOffersOnlyTargetableModes(t *testing.T) {
 	t.Parallel()
 	src := "Name:Half Targetable Charm\nManaCost:2 R\nTypes:Enchantment\n" +
-		"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | Execute$ TrigCharm | TriggerZones$ Battlefield\n" +
-		"SVar:TrigCharm:DB$ Charm | Choices$ DBArt,DBPump\n" +
+		"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | Execute$ OnCharm | TriggerZones$ Battlefield\n" +
+		"SVar:OnCharm:DB$ Charm | Choices$ DBArt,DBPump\n" +
 		"SVar:DBArt:DB$ Destroy | ValidTgts$ Artifact | SpellDescription$ Artifact mode.\n" +
 		"SVar:DBPump:DB$ Pump | ValidTgts$ Creature.YouCtrl | NumAtt$ +2 | SpellDescription$ Pump mode.\n" +
 		"Oracle:x\n"

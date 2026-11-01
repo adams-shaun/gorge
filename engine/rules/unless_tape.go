@@ -54,7 +54,7 @@ func settleUnlessElection(e *Engine, ctx *effects.Ctx, sa *cards.SA, obj state.O
 	//
 	// UnlessCostResolved first: an UnlessCost$ naming an SVar whose count
 	// body resolves folds its numeric result into a generic amount (Feather,
-	// Radiant Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2 -- "{2} for
+	// Radiant Arbiter's CopyCost = Count$ChosenSize/Times.2 -- "{2} for
 	// each of those creatures"), the same string unlessProceed's ask label
 	// showed, so the offer and the charge can never disagree. An SVar the
 	// ctx's table lacks or whose body does not resolve passes through raw and

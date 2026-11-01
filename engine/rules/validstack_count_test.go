@@ -6,7 +6,7 @@ package rules
 // engine/effects/count_test.go
 // (TestEvalCountValidStackScansTheSharedStackOnce); this file pins the REAL
 // corpus carrier end to end: Mindbreak Trap's `TargetMax$ MaxTgts` with
-// `SVar:MaxTgts:Count$ValidStack Card`, read through the ordinary cast flow
+// `MaxTgts = Count$ValidStack Card`, read through the ordinary cast flow
 // on a 2-seat table.
 
 import (

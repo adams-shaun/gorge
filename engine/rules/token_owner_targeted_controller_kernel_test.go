@@ -40,8 +40,8 @@ func TestTokenOwnerTargetedControllerSurvivesAMidResolutionAsk(t *testing.T) {
 
 	gift := card(t, "Name:Generous Gift\nManaCost:2 W\nTypes:Instant\n"+
 		"A:SP$ Destroy | Defined$ Targeted | ValidTgts$ Permanent | SubAbility$ DBChoose\n"+
-		"SVar:DBChoose:DB$ ChoosePlayer | Choices$ Player | SubAbility$ DBToken\n"+
-		"SVar:DBToken:DB$ Token | TokenScript$ g_3_3_elephant | TokenOwner$ TargetedController\n"+
+		"SVar:DBChoose:DB$ ChoosePlayer | Choices$ Player | SubAbility$ ThenToken\n"+
+		"SVar:ThenToken:DB$ Token | TokenScript$ g_3_3_elephant | TokenOwner$ TargetedController\n"+
 		"Oracle:x\n")
 	src := e.G.AddObject(gift, 0)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZStack})

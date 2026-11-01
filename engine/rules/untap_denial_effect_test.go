@@ -13,10 +13,10 @@ import (
 // krakenShapeSrc is a freely-authored sorcery with Icebreaker Kraken's Effect
 // body (artifacts and creatures), never a corpus .txt.
 const krakenShapeSrc = "Name:Kraken Shape\nManaCost:U\nTypes:Sorcery\nOracle:x\n" +
-	"A:SP$ Effect | ValidTgts$ Opponent | StaticAbilities$ DontUntap | Triggers$ RemoveEffect | Duration$ Permanent | RememberObjects$ Targeted | SpellDescription$ x\n" +
+	"A:SP$ Effect | ValidTgts$ Opponent | StaticAbilities$ DontUntap | Triggers$ EndAtUntap | Duration$ Permanent | RememberObjects$ Targeted | SpellDescription$ x\n" +
 	"SVar:DontUntap:Mode$ Continuous | AffectedZone$ Battlefield | Affected$ Artifact.RememberedPlayerCtrl,Creature.RememberedPlayerCtrl | AddHiddenKeyword$ This card doesn't untap during your next untap step.\n" +
-	"SVar:RemoveEffect:Mode$ Phase | Phase$ Untap | ValidPlayer$ Player.IsRemembered | TriggerZones$ Command | Static$ True | Execute$ ExileEffect\n" +
-	"SVar:ExileEffect:DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile\n"
+	"SVar:EndAtUntap:Mode$ Phase | Phase$ Untap | ValidPlayer$ Player.IsRemembered | TriggerZones$ Command | Static$ True | Execute$ EndEffect\n" +
+	"SVar:EndEffect:DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile\n"
 
 const (
 	udBear  = "Name:Ud Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"

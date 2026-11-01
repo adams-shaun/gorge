@@ -6,7 +6,7 @@ package rules
 //     EffectZone$ All | Description$ This spell costs {1} less to cast for
 //     each creature type among creatures you control. This effect can't
 //     reduce the amount of mana this spell costs by more than {5}.
-//   SVar:X:Count$Valid Creature.YouCtrl$CreatureType/LimitMax.5
+//   X = Count$Valid Creature.YouCtrl$CreatureType/LimitMax.5
 // Before the CreatureType spelling existed the SVar read 0 (whole-token
 // fail-closed), so Valiant Changeling always cost full price.
 

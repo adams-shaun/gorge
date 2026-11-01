@@ -16,11 +16,11 @@ import (
 // "discard" ask; a declined election falls through to the ordinary
 // TgtChoose path, whose strict-supersets no-ask rule then governs.
 
-// tfkSrc is Thirst for Knowledge's real script shape (the SP$/DBDiscard pair
-// verbatim).
+// tfkSrc is Thirst for Knowledge's real script shape (the SP$/ThenDiscard
+// pair).
 const tfkSrc = "Name:Thirst for Knowledge\nManaCost:2 U\nTypes:Instant\n" +
-	"A:SP$ Draw | NumCards$ 3 | SpellDescription$ Draw three cards. Then discard two cards unless you discard an artifact card. | SubAbility$ DBDiscard\n" +
-	"SVar:DBDiscard:DB$ Discard | Defined$ You | NumCards$ 2 | Mode$ TgtChoose | UnlessType$ Artifact\nOracle:x\n"
+	"A:SP$ Draw | NumCards$ 3 | SubAbility$ ThenDiscard\n" +
+	"SVar:ThenDiscard:DB$ Discard | Defined$ You | NumCards$ 2 | Mode$ TgtChoose | UnlessType$ Artifact\nOracle:x\n"
 
 // tfkHand builds the caster's hand: the spell plus the named extra cards, so
 // the discard decisions have a known eligible set.

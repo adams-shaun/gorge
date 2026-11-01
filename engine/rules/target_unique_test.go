@@ -21,14 +21,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// biomanticScript is biomantic_mastery.txt's script, verbatim except the
+// biomanticScript follows biomantic_mastery.txt's script, except the
 // Oracle line and the ManaCost (7 generic instead of the hybrid 4 GU GU GU,
 // so the fixture funds with one colour). The root Draw declares "target
 // player" and the SubAbility carries TargetUnique$ True — the corpus's own
 // encoding of the Oracle's "another target player".
 const biomanticScript = "Name:Biomantic Mastery\nManaCost:7\nTypes:Sorcery\n" +
-	"A:SP$ Draw | Defined$ You | ValidTgts$ Player | NumCards$ X | SubAbility$ DBDraw | SpellDescription$ Draw a card for each creature target player controls, then draw a card for each creature another target player controls.\n" +
-	"SVar:DBDraw:DB$ Draw | Defined$ You | ValidTgts$ Player | TargetUnique$ True | NumCards$ X\n" +
+	"A:SP$ Draw | Defined$ You | ValidTgts$ Player | NumCards$ X | SubAbility$ ThenDraw\n" +
+	"SVar:ThenDraw:DB$ Draw | Defined$ You | ValidTgts$ Player | TargetUnique$ True | NumCards$ X\n" +
 	"SVar:X:ThisTargetedPlayer$Valid Creature.YouCtrl\n" +
 	"Oracle:x\n"
 
@@ -170,14 +170,14 @@ func TestTargetUniqueAccumulatesAcrossTheChain(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// cyberneticaScript is cybernetica_datasmith.txt's ability shape, verbatim
+// cyberneticaScript follows cybernetica_datasmith.txt's ability shape,
 // except the ManaCost/Type lines: the root Draw declares "target player" and
 // the SubAbility Token carries TargetUnique$ True — the corpus's encoding of
 // the Oracle's "Another target player creates ...". This is the
 // api:Token instance (the api:Draw instance is Biomantic Mastery above).
 const cyberneticaScript = "Name:Cybernetica Datasmith\nManaCost:1\nTypes:Artifact Creature Human Artificer\nPT:0/1\n" +
-	"A:SP$ Draw | NumCards$ 1 | ValidTgts$ Player | SubAbility$ DBToken | SpellDescription$ Target player draws a card. Another target player creates a 4/4 colorless Robot artifact creature token with \"This creature can't block.\"\n" +
-	"SVar:DBToken:DB$ Token | TokenScript$ c_4_4_a_robot_noblock | ValidTgts$ Player | TargetUnique$ True | TokenOwner$ ThisTargetedPlayer\n" +
+	"A:SP$ Draw | NumCards$ 1 | ValidTgts$ Player | SubAbility$ ThenToken | SpellDescription$ Target player draws a card. Another target player creates a 4/4 colorless Robot artifact creature token with \"This creature can't block.\"\n" +
+	"SVar:ThenToken:DB$ Token | TokenScript$ c_4_4_a_robot_noblock | ValidTgts$ Player | TargetUnique$ True | TokenOwner$ ThisTargetedPlayer\n" +
 	"Oracle:x\n"
 
 const robotScript = "Name:Robot\nManaCost:\nTypes:Artifact Creature Robot\nPT:4/4\nOracle:x\n"
@@ -255,13 +255,13 @@ func p1p1On(t *testing.T, e *Engine, id state.ObjID) int32 {
 	return 0
 }
 
-// venomBlastScript is venom_blast.txt's script, verbatim except ManaCost
+// venomBlastScript follows venom_blast.txt's script, except ManaCost
 // (4 generic instead of 2 G G, so the fixture funds with one colour). The
 // root pumps "target creature you control"; the SubAbility deals its power
 // "to up to one OTHER target creature" (TargetUnique$ True).
 const venomBlastScript = "Name:Venom Blast\nManaCost:4\nTypes:Instant\n" +
-	"A:SP$ PutCounter | ValidTgts$ Creature.YouCtrl | TgtPrompt$ Select target creature you control | CounterType$ P1P1 | CounterNum$ 2 | SubAbility$ DBDamage | SpellDescription$ Put two +1/+1 counters on target creature you control. It deals damage equal to its power to up to one other target creature.\n" +
-	"SVar:DBDamage:DB$ DealDamage | ValidTgts$ Creature | TargetUnique$ True | TargetMin$ 0 | TargetMax$ 1 | TgtPrompt$ Select up to one other target creature | NumDmg$ X | DamageSource$ ParentTarget | AILogic$ PowerDmg\n" +
+	"A:SP$ PutCounter | ValidTgts$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 2 | SubAbility$ ThenDamage\n" +
+	"SVar:ThenDamage:DB$ DealDamage | ValidTgts$ Creature | TargetUnique$ True | TargetMin$ 0 | TargetMax$ 1 | NumDmg$ X | DamageSource$ ParentTarget\n" +
 	"SVar:X:ParentTargeted$CardPower\n" +
 	"Oracle:x\n"
 
@@ -314,13 +314,13 @@ func TestVenomBlastNoOtherTargetDealsNoDamage(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// withdrawScript is withdraw.txt's script verbatim (ManaCost U U kept — the
+// withdrawScript follows withdraw.txt's script (ManaCost U U kept — the
 // fixture funds blue). The root bounces "target creature"; the SubAbility
-// (DBBounce verbatim) bounces "another target creature ... unless its
+// (Bounce) bounces "another target creature ... unless its
 // controller pays {1}".
 const withdrawScript = "Name:Withdraw\nManaCost:U U\nTypes:Instant\n" +
-	"A:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Hand | SubAbility$ DBBounce | SpellDescription$ Return target creature to its owner's hand. Then return another target creature to its owner's hand unless its controller pays {1}.\n" +
-	"SVar:DBBounce:DB$ ChangeZone | ValidTgts$ Creature | TgtPrompt$ Select another target creature | TargetUnique$ True | Origin$ Battlefield | Destination$ Hand | UnlessCost$ 1 | UnlessPayer$ TargetedController\n" +
+	"A:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Hand | SubAbility$ Bounce\n" +
+	"SVar:Bounce:DB$ ChangeZone | ValidTgts$ Creature | TargetUnique$ True | Origin$ Battlefield | Destination$ Hand | UnlessCost$ 1 | UnlessPayer$ TargetedController\n" +
 	"Oracle:x\n"
 
 // TestWithdrawChangeZoneSubAsksAnotherTarget pins the ChangeZone half of the
@@ -406,15 +406,15 @@ func TestWithdrawChangeZoneSubAsksAnotherTarget(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// withdrawPumpRootScript keeps withdraw.txt's DBBounce SubAbility VERBATIM but
+// withdrawPumpRootScript keeps withdraw.txt's Bounce SubAbility but
 // replaces the root with a Pump (the Betrayal at the Vault root shape), so the
 // parent target STAYS on the battlefield and the TargetUnique$ filter itself —
 // not just the census — is load-bearing: without the exclusion the sub's ask
 // would offer the parent again and a deterministic first-option host would
 // bounce the PARENT instead of "another target creature".
 const withdrawPumpRootScript = "Name:Withdraw Shape\nManaCost:2\nTypes:Instant\n" +
-	"A:SP$ Pump | ValidTgts$ Creature.YouCtrl | TgtPrompt$ Select target creature you control | SubAbility$ DBBounce | SpellDescription$ Target creature you control gets +1/+0. Then return another target creature to its owner's hand.\n" +
-	"SVar:DBBounce:DB$ ChangeZone | ValidTgts$ Creature | TgtPrompt$ Select another target creature | TargetUnique$ True | Origin$ Battlefield | Destination$ Hand\n" +
+	"A:SP$ Pump | ValidTgts$ Creature.YouCtrl | TgtPrompt$ Select target creature you control | SubAbility$ Bounce | SpellDescription$ Target creature you control gets +1/+0. Then return another target creature to its owner's hand.\n" +
+	"SVar:Bounce:DB$ ChangeZone | ValidTgts$ Creature | TgtPrompt$ Select another target creature | TargetUnique$ True | Origin$ Battlefield | Destination$ Hand\n" +
 	"Oracle:x\n"
 
 // TestWithdrawShapedSubExcludesTheBattlefieldParent pins the exclusion half

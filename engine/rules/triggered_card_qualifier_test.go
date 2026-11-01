@@ -15,9 +15,9 @@ const auntMayText = `Name:Aunt May
 ManaCost:W
 Types:Legendary Creature Human Citizen
 PT:0/2
-T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.Other+YouCtrl | TriggerZones$ Battlefield | Execute$ TrigGainLife | TriggerDescription$ x
-SVar:TrigGainLife:DB$ GainLife | Defined$ You | LifeAmount$ 1 | SubAbility$ DBPutCounter
-SVar:DBPutCounter:DB$ PutCounter | Defined$ TriggeredCardLKICopy.Spider | CounterType$ P1P1 | CounterNum$ 1
+T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.Other+YouCtrl | TriggerZones$ Battlefield | Execute$ OnGainLife | TriggerDescription$ x
+SVar:OnGainLife:DB$ GainLife | Defined$ You | LifeAmount$ 1 | SubAbility$ PutCounter
+SVar:PutCounter:DB$ PutCounter | Defined$ TriggeredCardLKICopy.Spider | CounterType$ P1P1 | CounterNum$ 1
 Oracle:x
 `
 

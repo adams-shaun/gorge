@@ -223,8 +223,8 @@ func TestUpwellingProtectsEverySeatAndColour(t *testing.T) {
 // effectUntilEOT converts it to, which is the oracle's "until end of turn".
 const unspentGrantFixture = "Name:Unspent Grant Fixture\n" +
 	"ManaCost:2\nTypes:Instant\n" +
-	"A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1 | SubAbility$ DBEffect\n" +
-	"SVar:DBEffect:DB$ Effect | StaticAbilities$ Unspent\n" +
+	"A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1 | SubAbility$ ThenEffect\n" +
+	"SVar:ThenEffect:DB$ Effect | StaticAbilities$ Unspent\n" +
 	"SVar:Unspent:Mode$ UnspentMana | ValidPlayer$ You | ManaType$ Red\n" +
 	"Oracle:x\n"
 

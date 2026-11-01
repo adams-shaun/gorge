@@ -148,7 +148,7 @@ func TestTwoPartKickerBothPartsPayBothTriggers(t *testing.T) {
 }
 
 const altCostGrantorSrc = "Name:NullMonolith\nManaCost:3\nTypes:Artifact\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 3 | SpellDescription$ Add {C}{C}{C}.\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 3\n" +
 	"S:Mode$ Continuous | MayPlay$ True | MayPlayAltManaCost$ 0 | MayPlayLimit$ 1 | " +
 	"MayPlayDontGrantZonePermissions$ True | Affected$ Card.nonLand+Colorless+YouOwn | AffectedZone$ Hand | " +
 	"Description$ Once each turn, you may pay {0} rather than pay the mana cost for a colorless spell that you cast from your hand.\nOracle:x\n"

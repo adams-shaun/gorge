@@ -16,10 +16,10 @@ import (
 
 // hulkEnrageSrc is The Incredible Hulk's enrage face, written inline.
 const hulkEnrageSrc = "Name:Enrage Hulk\nManaCost:2 R R G G\nTypes:Legendary Creature Gamma Berserker Hero\nPT:8/8\n" +
-	"T:Mode$ DamageDoneOnce | Execute$ TrigPutCounter | ValidTarget$ Card.Self | TriggerZones$ Battlefield\n" +
-	"SVar:TrigPutCounter:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1 | SubAbility$ DBUntap\n" +
-	"SVar:DBUntap:DB$ Untap | Defined$ Self | ConditionDefined$ TriggeredTargetLKICopy | ConditionPresent$ Creature.attacking | SubAbility$ DBAddCombat\n" +
-	"SVar:DBAddCombat:DB$ AddPhase | ExtraPhase$ Combat | AfterPhase$ EndCombat | ConditionDefined$ TriggeredTargetLKICopy | ConditionPresent$ Creature.attacking\n" +
+	"T:Mode$ DamageDoneOnce | Execute$ OnPutCounter | ValidTarget$ Card.Self | TriggerZones$ Battlefield\n" +
+	"SVar:OnPutCounter:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1 | SubAbility$ Untap\n" +
+	"SVar:Untap:DB$ Untap | Defined$ Self | ConditionDefined$ TriggeredTargetLKICopy | ConditionPresent$ Creature.attacking | SubAbility$ AddCombat\n" +
+	"SVar:AddCombat:DB$ AddPhase | ExtraPhase$ Combat | AfterPhase$ EndCombat | ConditionDefined$ TriggeredTargetLKICopy | ConditionPresent$ Creature.attacking\n" +
 	"Oracle:x\n"
 
 func hulkEnrageBoard(t *testing.T, attacking bool) (*Engine, Config, state.ObjID) {

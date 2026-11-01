@@ -10,17 +10,9 @@ import (
 )
 
 // This file pins `api:Token`'s TokenRemembered$ parameter end to end on the
-// real compiled Timothar, Baron of Bats script. Timothar's dies trigger is
-//
-//	SVar:TrigToken:AB$ Token | Cost$ 1 ExileAnyGrave<1/Card.TriggeredNewCard> |
-//	  TokenRemembered$ ExiledCards | TokenScript$ b_1_1_bat_flying |
-//	  ImprintTokens$ True | SubAbility$ DBAnimate
-//	SVar:DBAnimate:DB$ Animate | Defined$ Imprinted | Duration$ Permanent | Triggers$ CDTrigger
-//	SVar:CDTrigger:Mode$ DamageDone | ValidSource$ Card.Self | ValidTarget$ Player |
-//	  CombatDamage$ True | Execute$ TrigSac | TriggerZones$ Battlefield
-//	SVar:TrigSac:DB$ Sacrifice | SubAbility$ DBReturn
-//	SVar:DBReturn:DB$ ChangeZone | Defined$ Remembered | Origin$ Exile |
-//	  Destination$ Battlefield | Tapped$ True | GainControl$ True
+// real compiled Timothar, Baron of Bats script. Timothar's dies trigger may pay to
+// exile the dead card and make a Bat that remembers it and gains a combat-damage
+// trigger: sacrifice the Bat and return the remembered card tapped under your control.
 //
 // so the whole card depends on TokenRemembered$ binding the exiled Vampire to
 // the CREATED Bat: without that read the Bat's granted return trigger resolves

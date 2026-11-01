@@ -56,7 +56,7 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	}
 	ctx := effects.NewCtxPtr(0, p, effects.CtxInit{})
 	// A trigger's dynamic target bound reading the causing event (Vitality
-	// Hunter's `TargetMax$ MaxTgts` with `SVar:MaxTgts:TriggerCount$Amount`):
+	// Hunter's `TargetMax$ MaxTgts` with `MaxTgts = TriggerCount$Amount`):
 	// the trigger context recorded for this stack wrapper carries
 	// TriggerAmount, so the bound reads the mark/damage magnitude instead of
 	// degrading to the clamp's 1. Measured corpus: the ONLY two TargetMax$

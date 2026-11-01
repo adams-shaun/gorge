@@ -750,8 +750,8 @@ func putLands(t *testing.T, e *Engine, p state.PlayerID, n int) []state.ObjID {
 func TestStackZoneCastTriggerAsksForTwoTargetsAndExilesBoth(t *testing.T) {
 	t.Parallel()
 	src := "Name:Titan\nManaCost:1\nTypes:Creature Eldrazi\nPT:10/10\n" +
-		"T:Mode$ SpellCast | TriggerZones$ Stack | ValidCard$ Card.Self | Execute$ TrigChange | TriggerDescription$ When you cast this spell, exile two target permanents.\n" +
-		"SVar:TrigChange:DB$ ChangeZone | ValidTgts$ Permanent | TargetMin$ 2 | TargetMax$ 2 | Origin$ Battlefield | Destination$ Exile\nOracle:x\n"
+		"T:Mode$ SpellCast | TriggerZones$ Stack | ValidCard$ Card.Self | Execute$ OnChange | TriggerDescription$ When you cast this spell, exile two target permanents.\n" +
+		"SVar:OnChange:DB$ ChangeZone | ValidTgts$ Permanent | TargetMin$ 2 | TargetMax$ 2 | Origin$ Battlefield | Destination$ Exile\nOracle:x\n"
 	e, _, titan := newFixtureDeck(t, 11, src)
 	addMana(t, e, 0, "R") // the cast option is only offered once {1} is payable
 	lands := putLands(t, e, 1, 3)

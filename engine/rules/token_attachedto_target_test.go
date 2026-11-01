@@ -53,9 +53,9 @@ const atInheritSpell = "Name:Role Maker I\nManaCost:R\nTypes:Instant\n" +
 // remembers the token it minted (RememberTokens$ True) and the chained Attach
 // fastens it to the source (Defined$ Self).
 const atRememberedSpell = "Name:Shield Bearer\nManaCost:3 W\nTypes:Creature Human\nPT:3/2\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigToken\n" +
-	"SVar:TrigToken:DB$ Token | TokenScript$ sturdy_shield | TokenOwner$ You | RememberTokens$ True | SubAbility$ DBAttach\n" +
-	"SVar:DBAttach:DB$ Attach | Object$ Remembered | Defined$ Self\n" +
+	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ OnToken\n" +
+	"SVar:OnToken:DB$ Token | TokenScript$ sturdy_shield | TokenOwner$ You | RememberTokens$ True | SubAbility$ ThenAttach\n" +
+	"SVar:ThenAttach:DB$ Attach | Object$ Remembered | Defined$ Self\n" +
 	"Oracle:x\n"
 
 const shieldTokenSrc = "Name:Sturdy Shield\nManaCost:no cost\nTypes:Artifact Equipment\nOracle:x\n"

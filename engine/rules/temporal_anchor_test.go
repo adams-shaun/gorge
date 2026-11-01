@@ -14,7 +14,7 @@ import (
 // library while scrying, exile that many cards from the bottom of your
 // library." Its two halves are the scry trigger (`T:Mode$ Scry |
 // ValidPlayer$ You | ToBottom$ True`, matched against the completed
-// events.Scry record) and the amount (`SVar:X:TriggerCount$ScryBottom`,
+// events.Scry record) and the amount (`X = TriggerCount$ScryBottom`,
 // read by `DB$ Dig | DigNum$ X | FromBottom$ True`).
 //
 // The tests pin the two answers a scry can give against the REAL card body:
