@@ -1149,6 +1149,12 @@ func (s *Session) selection(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nat
 	if !ok {
 		return nil, nil, nil
 	}
+	if purpose == "tap" && src != nil && src.Zone == "stack" {
+		// The wire poses Improvise as a tap of the spell it helps pay for.
+		if f := s.B.face(src.CardName, false, nil); f != nil && f.HasKeyword("Improvise") {
+			kind = "improvise_generic"
+		}
+	}
 	lo, hi := num(first, "minimum"), num(first, "maximum")
 	for _, c := range sd.Candidates {
 		if c.Semantic.Kind == "select_object" {

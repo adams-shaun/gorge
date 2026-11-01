@@ -908,9 +908,13 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			in.Choices = []int{d.Options[0].Index}
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
-		case "tapcost", "waterbend_generic", "improvise_generic", "activation_creature", "convoke_generic",
-			"convoke_W", "convoke_U", "convoke_B", "convoke_R", "convoke_G":
+		case "tapcost", "waterbend_generic", "activation_creature":
 			in.Choices = b.tapHelperChoices(d)
+		case "improvise_generic", "convoke", "convoke_generic", "convoke_W", "convoke_U", "convoke_B", "convoke_R", "convoke_G":
+			in.Choices = b.castHelperChoices(d)
+			if len(in.Choices) == 0 {
+				in.Choices = b.tapHelperChoices(d)
+			}
 		case "harmonize":
 			in.Choices = []int{chooseHarmonize(d)}
 		case "discard":
@@ -1343,6 +1347,185 @@ func (b Board) tapHelperChoices(d *decision.Decision) []int {
 		return []int{d.Options[0].Index}
 	}
 	return picks
+}
+
+// castHelperChoices answers a Convoke or Improvise announcement the seat's mana
+// can't finish alone (CR 601.2g-h): the permanents that make no mana and leave the
+// rest of the cost, at its lowest X, payable. It is nil when the seat's mana pays
+// the cost alone or no such permanents reach it. An answer tapping too few reverses
+// the cast, and the ask's Min can't say which picks those are: a second creature of
+// one colour can be an illegal answer.
+//
+// It reads only the Board and the offered objects, so a seat rebuilding the ask from
+// a plain observation answers the same: an offer's own Kind names the pip it pays
+// only on the native decision. It prices the printed cost, as the tap gate does. A
+// helper pays the first outstanding pip of its colours, the same contribution a v2
+// seat's selection of that object commits, else one generic.
+func (b Board) castHelperChoices(d *decision.Decision) []int {
+	spell := b.announcedSpell(d)
+	if spell == nil {
+		return nil
+	}
+	pips := colourPips(spell.ManaCost)
+	generic := CmcOf(spell.ManaCost)
+	for _, n := range pips {
+		generic -= n
+	}
+	if b.manaReaches(pips, generic) {
+		return nil
+	}
+	coloured := false
+	for i := range d.Options {
+		coloured = coloured || d.Options[i].Kind != "improvise_generic"
+	}
+	type helper struct {
+		option, pip int // pip is the WUBRG slot it pays, -1 for one generic
+	}
+	var helpers []helper
+	var offered []state.ObjID
+	for i := range d.Options {
+		o := &d.Options[i]
+		if slices.Contains(offered, o.Obj) {
+			continue
+		}
+		offered = append(offered, o.Obj)
+		if !b.Cards.Get(o.Obj).Produces.IsZero() {
+			continue
+		}
+		pip := -1
+		if coloured {
+			colours := b.PublicCards.Get(o.Obj).Colour
+			for slot, n := range pips {
+				if n > 0 && colours&(1<<slot) != 0 {
+					pip = slot
+					break
+				}
+			}
+		}
+		switch {
+		case pip >= 0:
+			pips[pip]--
+		case generic > 0:
+			generic--
+		default:
+			continue
+		}
+		helpers = append(helpers, helper{option: helperOffer(d, o.Obj, pip), pip: pip})
+		if b.manaReaches(pips, generic) {
+			break
+		}
+	}
+	if !b.manaReaches(pips, generic) {
+		return nil
+	}
+	var picks []int
+	for _, h := range helpers {
+		backPips, backGeneric := pips, generic
+		if h.pip >= 0 {
+			backPips[h.pip]++
+		} else {
+			backGeneric++
+		}
+		if b.manaReaches(backPips, backGeneric) {
+			pips, generic = backPips, backGeneric
+			continue
+		}
+		picks = append(picks, h.option)
+	}
+	return picks
+}
+
+// helperOffer is the option that commits obj to the pip (a WUBRG slot, -1 for one
+// generic): the offer naming that contribution where the ask names them, else the
+// object's first, which is the one option a rebuilt ask has for it.
+func helperOffer(d *decision.Decision, obj state.ObjID, pip int) int {
+	kind := "convoke_generic"
+	if pip >= 0 {
+		kind = "convoke_" + string("WUBRG"[pip])
+	}
+	first := -1
+	for i := range d.Options {
+		o := &d.Options[i]
+		if o.Obj != obj {
+			continue
+		}
+		if o.Kind == kind {
+			return o.Index
+		}
+		if first < 0 {
+			first = o.Index
+		}
+	}
+	return first
+}
+
+// announcedSpell is the deciding seat's spell an announcement d pays for: the top
+// of the stack, as d names it. It is nil when d names anything else.
+func (b Board) announcedSpell(d *decision.Decision) *StackEntry {
+	if len(b.Stack) == 0 {
+		return nil
+	}
+	top := &b.Stack[len(b.Stack)-1]
+	if top.ID != d.Source || !top.IsSpell || top.Controller != d.Player || top.ManaCost == "" {
+		return nil
+	}
+	return top
+}
+
+// manaReaches reports whether the seat's unrestricted pool and its untapped mana
+// sources can pay pips and generic. A source that lists several colours makes one of
+// them per tap, so each set of colours needs that many sources (Hall's condition);
+// the pool pays first, and what it leaves pays generic. The answer doesn't depend on
+// the order of the Board's tables.
+func (b Board) manaReaches(pips [5]int32, generic int32) bool {
+	spare := b.Pool[5] - b.PoolRestricted[5]
+	var short int32
+	for slot, n := range pips {
+		pool := b.Pool[slot] - b.PoolRestricted[slot]
+		spare += max(pool-n, 0)
+		pips[slot] = max(n-pool, 0)
+		short += pips[slot]
+	}
+	cs := b.Cards.Values()
+	sourceMakes := func(i int, slots int) int32 {
+		var most int32
+		for slot, n := range cs[i].Produces.Colour {
+			if slots&(1<<slot) != 0 {
+				most = max(most, n)
+			}
+		}
+		return most
+	}
+	usable := func(i int) bool {
+		c := &cs[i]
+		return c.OnBattlefield && !c.Tapped && !(c.Creature && c.Sick)
+	}
+	for set := 1; set < 1<<5; set++ {
+		var need, have int32
+		for slot, n := range pips {
+			if set&(1<<slot) != 0 {
+				need += n
+			}
+		}
+		if need == 0 {
+			continue
+		}
+		for i := range cs {
+			if usable(i) {
+				have += sourceMakes(i, set)
+			}
+		}
+		if have < need {
+			return false
+		}
+	}
+	var total int32
+	for i := range cs {
+		if usable(i) {
+			total += sourceMakes(i, 1<<6-1)
+		}
+	}
+	return total+spare >= short+generic
 }
 
 // chooseHarmonize returns the index of the harmonize option to take. CR
