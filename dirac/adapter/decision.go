@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -93,6 +95,7 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 		if c.Mode() == 1 {
 			e.opt.Mode = "modal_land"
 		}
+		e.opt.LandWontStay = g.landWontStay(p, g.face(po.Card))
 		e.key = zidx << 8
 	case canon.ActActivate:
 		e.opt.Kind, e.opt.Ability = "ability", int(c.Mode())
@@ -586,6 +589,43 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 
 // colorNames words a colour choice, in canon.ManaSyms' order.
 var colorNames = [...]string{"White", "Blue", "Black", "Red", "Green"}
+
+// landWontStay reports whether land f, played by p, would not stay on the battlefield:
+// its enters trigger asks for a land to return and p controls no other that qualifies.
+func (g *Game) landWontStay(p uint8, f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	filter := cost.EntryLandReturn(f)
+	if filter == "" {
+		return false
+	}
+	for o := 0; o < int(g.kp.NObj); o++ {
+		po := &g.kp.Objs[o]
+		if po.Zone == kop.ZoneBattlefield && po.Ctrl == p && returnFits(filter, g.face(po.Card), po.Flags&dirac.ProjTapped != 0) {
+			return false
+		}
+	}
+	return true
+}
+
+// returnFits reads a return cost's filter against a permanent the seat controls:
+// Type.mod+mod, of what these costs say. A modifier it does not know is taken to fit.
+func returnFits(filter string, f *cards.Face, tapped bool) bool {
+	if f == nil {
+		return false
+	}
+	base, mods, _ := strings.Cut(filter, ".")
+	if !slices.Contains(f.Types, base) {
+		return false
+	}
+	for _, m := range strings.Split(mods, "+") {
+		if not, ok := strings.CutPrefix(m, "non"); ok && slices.Contains(f.Types, not) || m == "untapped" && tapped {
+			return false
+		}
+	}
+	return true
+}
 
 // labelDivision says how split number i divides the attacker's damage, in the words a
 // v2 mapping rebuilds. Amount is the first blocker's share, as on gorge.

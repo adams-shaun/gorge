@@ -1979,7 +1979,7 @@ var handEffectsRoots = []string{
 // added here or its reads over-suppress every other API's real gaps.
 var apiSpecificRulesSA = map[string][]string{
 	// The enters-trigger readers behind a play_land option's LandWontStay:
-	// each is called only on a trigger effect of that API (entryLandReturn).
+	// each is called only on a trigger effect of that API (EntryLandReturn).
 	"entryReturnFilter":       {"ChangeZone"},
 	"entryUnlessReturnFilter": {"Sacrifice"},
 	// The mana-ability chain. A mana ability's production
@@ -2336,7 +2336,7 @@ var handRoots = struct {
 	// (triggerReferents) and the stack-optional query (StackOptional). All are
 	// mode-SHARED machinery; each mode still adds its own dispatch branch on
 	// top.
-	trig: []string{"entryLandReturn", "Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
+	trig: []string{"EntryLandReturn", "Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
 		"Engine.resolveTop", "Engine.isTriggeredManaAbility", "Engine.triggerReferents",
 		"Engine.StackOptional", "Engine.optionalDecider",
 		// putTriggersOnStack is the queue drain's root: its

@@ -180,6 +180,9 @@ func decisionDiffs(ref *GorgeSide, gd *decision.Decision, a *adapter.Game, ad *d
 		if gd.Kind == decision.KTarget && g.Controller != s.Controller {
 			out = append(out, "target controller")
 		}
+		if g.LandWontStay != s.LandWontStay {
+			out = append(out, "land_wont_stay")
+		}
 		if g.ManaSymbol != s.ManaSymbol || g.Amount != s.Amount {
 			out = append(out, fmt.Sprintf("%s symbol or amount", g.Kind))
 		}

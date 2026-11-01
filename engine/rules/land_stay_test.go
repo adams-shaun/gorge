@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"testing"
 
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -22,7 +23,7 @@ func TestEntryLandReturnCensus(t *testing.T) {
 			if !f.IsLand() {
 				continue
 			}
-			read, printed := entryLandReturn(f) != "", entryReturnOracle.MatchString(f.Oracle)
+			read, printed := costvocab.EntryLandReturn(f) != "", entryReturnOracle.MatchString(f.Oracle)
 			if read != printed {
 				t.Errorf("%s: script reader %v, rules text %v: %q", f.Name, read, printed, f.Oracle)
 			}
