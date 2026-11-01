@@ -48,6 +48,12 @@ type PaymentPlanner interface {
 	ValidateCastAnnounce(p state.PlayerID, cast decision.PlannedCast) error
 }
 
+// Keyed is a game whose replay is pinned to what it was built from. The host records
+// the key as Config.Key beside the log.
+type Keyed interface {
+	EngineKey() string
+}
+
 // Stalled is a Game that can end without a result and say why.
 type Stalled interface {
 	// StallReason is "" unless Pending is nil and Board().Over is false.

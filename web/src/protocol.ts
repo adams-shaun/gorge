@@ -1887,6 +1887,10 @@ export interface Capabilities {
    * Engine names the engine this server creates tables on; absent for gorge.
    */
   engine?: string;
+  /**
+   * ManualMana is false on an engine that pays for every cast; absent elsewhere.
+   */
+  manual_mana?: boolean | null;
 }
 
   /**

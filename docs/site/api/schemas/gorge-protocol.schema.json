@@ -204,6 +204,10 @@
         },
         "events": {
           "type": "boolean"
+        },
+        "manual_mana": {
+          "description": "ManualMana is false on an engine that pays for every cast; absent elsewhere.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -915,6 +919,10 @@
         },
         "pool": {
           "description": "Pool names the bot policy this deck is reserved for (\"\" for an ordinary deck). A reserved deck is dealt only to games against that policy, and that policy deals nothing else. A deck reserved for several policies (two policies sharing one deck directory) names them all, comma-separated (JoinPools).",
+          "type": "string"
+        },
+        "refused": {
+          "description": "Refused says why this server's engine cannot play the deck, naming the card: the client lists it, disabled.",
           "type": "string"
         }
       },

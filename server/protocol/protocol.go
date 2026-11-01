@@ -368,4 +368,6 @@ type Capabilities struct {
 	Events bool `json:"events"`
 	// Engine names the engine this server creates tables on; absent for gorge.
 	Engine string `json:"engine,omitempty"`
+	// ManualMana is false on an engine that pays for every cast; absent elsewhere.
+	ManualMana *bool `json:"manual_mana,omitempty"`
 }

@@ -184,6 +184,9 @@ func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, erro
 	if err != nil {
 		return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
 	}
+	if keyed, ok := g.(game.Keyed); ok {
+		gc.Key = keyed.EngineKey()
+	}
 	m := &match{table: t, k: k, seed: gc.Seed, engine: engine, gc: gc, seats: infos, decks: deckNames, state: protocol.MatchLive,
 		undo: newUndoQueue()}
 	m.setGame(g)

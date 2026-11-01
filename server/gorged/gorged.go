@@ -2,6 +2,7 @@ package gorged
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,6 +24,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	_ "github.com/adams-shaun/gorge/bots/all"
+	"github.com/adams-shaun/gorge/dirac/adapter"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/game"
@@ -58,6 +61,10 @@ type config struct {
 	// network policies' demo tables and draft event tables, which read gorge's
 	// engine. "" is gorge.
 	engine string
+	// diracSets is -dirac-sets, the card sets -engine dirac plays.
+	diracSets string
+	// refusedDecks says why -engine dirac cannot play each deck it refuses.
+	refusedDecks map[string]string
 	// formatsRaw is the -format flag: a comma-separated table-format list,
 	// table i taking formats[(i-1) mod n]. "constructed" (the default) and
 	// "commander" are the two names — the smallest thing that lets a person
@@ -381,8 +388,9 @@ func serveFlags() (*flag.FlagSet, *config) {
 	c := new(config)
 	fs.StringVar(&c.addr, "addr", ":8080", "listen address")
 	fs.StringVar(&c.cards, "cards", ".cards", "corpus directory (ir.gob.gz / cardsfolder)")
-	fs.StringVar(&c.decks, "decks", "testkit/testutil/decks", "directory of deck JSON files")
+	fs.StringVar(&c.decks, "decks", defaultDecks, "directory of deck JSON files; with -engine dirac the default is the first -dirac-sets set's bench decks")
 	fs.StringVar(&c.engine, "engine", gorgegame.Name, "the engine this server's tables and vs-bot games run on; one this binary does not link fails at startup, naming those it does")
+	fs.StringVar(&c.diracSets, "dirac-sets", "fdn", "with -engine dirac: comma-separated card sets, tried in order for each game (built by make dirac-tables)")
 	fs.IntVar(&c.tables, "tables", 4, "number of tables")
 	fs.IntVar(&c.seats, "seats", 4, "seats per table")
 	fs.IntVar(&c.commanderSeats, "commander-seats", 0, "seats per commander table; 0 = -seats")
@@ -463,8 +471,13 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if c.pprof && !isLoopbackListener(ln) {
 		return fmt.Errorf("-pprof requires a loopback listener (got %s)", ln.Addr())
 	}
-	if _, err := host.LookupEngine(c.engines(), c.engine); err != nil {
-		return fmt.Errorf("-engine: %w", err)
+	if !c.diracOn() {
+		if _, err := host.LookupEngine(c.engines(), c.engine); err != nil {
+			return fmt.Errorf("-engine: %w", err)
+		}
+	}
+	if err := c.checkDiracFlags(); err != nil {
+		return err
 	}
 	vis, err := view.ParseVisibility(c.spectator)
 	if err != nil {
@@ -490,6 +503,14 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err != nil {
 		return fmt.Errorf("opening corpus at %s: %w (run make fetch-cards compile-cards)", c.cards, err)
 	}
+	var diracEngine *adapter.Engine
+	if c.diracOn() {
+		if diracEngine, err = c.openDirac(reg); err != nil {
+			return fmt.Errorf("-engine dirac: %w", err)
+		}
+		c.withDirac(diracEngine)
+		c.decks = c.diracDecks()
+	}
 	// Network policies register only when asked, so this precedes resolving the
 	// offered set, and their beliefs are read from the corpus (netbots.go).
 	if err := c.enableNetBots(reg); err != nil {
@@ -507,6 +528,15 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	def, offered, err := validateBotPolicyFlags(c.botPolicy, c.botPoliciesRaw)
 	if err != nil {
 		return err
+	}
+	if c.diracOn() {
+		offered = seatablePolicies(offered)
+		if len(offered) == 0 {
+			return errors.New("-bot-policies: every policy offered searches or reads decklists, which dirac cannot seat")
+		}
+		if !slices.Contains(offered, def) {
+			def = offered[0]
+		}
 	}
 	c.botPolicy, c.botPolicies = def, offered
 	// -humans applies to table t1 alone by configuration. Claims are now
@@ -552,6 +582,16 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	}
 	if len(cmdPool)+len(conPool) == 0 {
 		return fmt.Errorf("no deck files in %s", c.decks)
+	}
+	if c.diracOn() {
+		if conPool, c.refusedDecks, err = checkDecks(diracEngine, reg, c.decks, conPool); err != nil {
+			return err
+		}
+		for _, id := range cmdPool {
+			c.refusedDecks[id] = "dirac plays constructed only"
+		}
+		cmdPool = nil
+		markRefused(deckCatalogue, c.refusedDecks)
 	}
 	// A deck shared with an earlier policy's pool is reserved for both and
 	// catalogued once.
@@ -625,7 +665,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := r.StartAll(); err != nil {
 		return err
 	}
-	opts := httpapi.Options{Web: c.offerSBV2(c.offerManaBrew(webFS())), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine()}
+	opts := httpapi.Options{Web: c.offerSBV2(c.offerManaBrew(webFS())), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine(), NoManualMana: c.diracOn()}
 	var gate *seatGate
 	if len(c.humans) > 0 {
 		// Arm Options.Seat with a real token check — one opaque

@@ -115,6 +115,9 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			if containsDeck(pool, pick.id) {
 				continue
 			}
+			if why := c.refusedDecks[pick.id]; why != "" {
+				return httpapi.CreateGameResponse{}, fmt.Errorf("%s deck %q: %s", pick.role, pick.id, why)
+			}
 			if hasPool {
 				return httpapi.CreateGameResponse{}, fmt.Errorf("%s deck %q is not in the %s pool: that bot plays only the decks it was trained on", pick.role, pick.id, policy)
 			}
