@@ -206,8 +206,30 @@ func TestCardViewCarriesCombatRelationships(t *testing.T) {
 		t.Fatalf("blocker carries attack state: %+v", b)
 	}
 	events.Apply(g, events.Event{Kind: events.EndCombatReset})
-	if cv := Project(g, flatChars{g}, 0, nil).Players[0].Battlefield[0]; cv.AttackingPlayer != nil || cv.BlockedBy != nil {
+	if cv := Project(g, flatChars{g}, 0, nil).Players[0].Battlefield[0]; cv.AttackingPlayer != nil || cv.BlockedBy != nil || cv.Blocked {
 		t.Fatalf("combat state survived EndCombatReset: %+v", cv)
+	}
+}
+
+// A creature stays blocked when its blocker leaves the battlefield (CR 509.1h): the
+// view says so, and lists no blocker that is gone.
+func TestViewKeepsADepartedBlockersAttackerBlocked(t *testing.T) {
+	g, attacker := twoSeatWith(t, watcherSrc)
+	events.Apply(g, events.Event{Kind: events.MoveZone, Obj: attacker, From: state.ZHand, To: state.ZBattlefield})
+	c, _ := cards.ParseBytes("b.txt", []byte("Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
+	blocker := g.AddObject(c, 1).ID
+	g.SetZone(state.ZHand, 1, []state.ObjID{blocker})
+	events.Apply(g, events.Event{Kind: events.MoveZone, Obj: blocker, From: state.ZHand, To: state.ZBattlefield})
+	events.Apply(g, events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{attacker}})
+	events.Apply(g, events.Event{Kind: events.DeclareBlockers, Pairs: [][2]state.ObjID{{attacker, blocker}}})
+	a := Project(g, flatChars{g}, 0, nil).Players[0].Battlefield[0]
+	if !a.Blocked || len(a.BlockedBy) != 1 || a.BlockedBy[0] != blocker {
+		t.Fatalf("blocked %v by %v", a.Blocked, a.BlockedBy)
+	}
+	events.Apply(g, events.Event{Kind: events.MoveZone, Obj: blocker, From: state.ZBattlefield, To: state.ZGraveyard})
+	a = Project(g, flatChars{g}, 0, nil).Players[0].Battlefield[0]
+	if !a.Blocked || a.BlockedBy != nil {
+		t.Fatalf("after the blocker left: blocked %v by %v", a.Blocked, a.BlockedBy)
 	}
 }
 

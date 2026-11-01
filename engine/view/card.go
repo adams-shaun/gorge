@@ -163,8 +163,12 @@ type CardView struct {
 	// Attacking is true, nil otherwise; BlockedBy lists the creatures
 	// blocking it. Both exist for the arrow overlay and come
 	// straight from the object's combat fields, which EndCombatReset clears.
+	// Blocked is true from the moment a creature is blocked until combat ends,
+	// even after every blocker has left the battlefield (CR 509.1h); BlockedBy
+	// then lists fewer creatures than blocked it, or none.
 	AttackingPlayer *state.PlayerID `json:"attacking_player,omitempty"`
 	BlockedBy       []state.ObjID   `json:"blocked_by,omitempty"`
+	Blocked         bool            `json:"blocked,omitempty"`
 	Tapped          bool            `json:"tapped"`
 	Power           int32           `json:"power"`
 	Toughness       int32           `json:"toughness"`
@@ -505,6 +509,24 @@ func (p *projector) zoneCard(cv *CardView, id state.ObjID, includeAbilityCosts b
 	return true
 }
 
+// blockers reads o's block state: blocked at all, and the blockers still on the
+// battlefield, appended to blk. A blocker that left stands as a zero in o's list
+// (events.foldDeclareBlockers), which keeps the creature blocked and names nothing.
+func blockers(blk []state.ObjID, o *state.Object) (bool, []state.ObjID) {
+	if len(o.BlockedBy) == 0 {
+		return false, nil
+	}
+	for _, id := range o.BlockedBy {
+		if id != 0 {
+			blk = append(blk, id)
+		}
+	}
+	if len(blk) == 0 {
+		return true, nil
+	}
+	return true, blk
+}
+
 // faceDownCard writes the card a viewer who may not look at face-down o sees:
 // no printed fact, and for a permanent what is public about one (CR 708.2): its
 // characteristics, usually a 2/2 with no abilities, and its state on the
@@ -527,9 +549,7 @@ func (p *projector) faceDownCard(cv *CardView, o *state.Object) {
 		*atk = o.Attacking
 		cv.AttackingPlayer = atk
 	}
-	if len(o.BlockedBy) > 0 {
-		cv.BlockedBy = append(blk, o.BlockedBy...)
-	}
+	cv.Blocked, cv.BlockedBy = blockers(blk, o)
 	// CR 708.2a: it is a creature, unless a type-changing effect says otherwise
 	// (Yedora's returned Forest land), which shows like any other derived type.
 	cv.Types = "Creature"
@@ -788,9 +808,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		*atk = o.Attacking
 		cv.AttackingPlayer = atk
 	}
-	if len(o.BlockedBy) > 0 {
-		cv.BlockedBy = append(blk, o.BlockedBy...)
-	}
+	cv.Blocked, cv.BlockedBy = blockers(blk, o)
 	if p.noDerived {
 		// no keywords, zero P/T
 	} else if p.vchars != nil {

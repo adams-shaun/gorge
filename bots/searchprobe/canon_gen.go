@@ -1001,6 +1001,16 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 			}
 		}
 	}
+	if !v.Blocked {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.Blocked {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
 	if v.Tapped {
 		e.buf = append(e.buf, 1)
 	} else {

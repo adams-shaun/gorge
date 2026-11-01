@@ -315,7 +315,7 @@ func mzState(v view.View, seat state.PlayerID, sk *sink) {
 		if cv.Attacking {
 			sk.h(fnvAdd(zh, "attacking"), 1)
 		}
-		if len(cv.BlockedBy) > 0 {
+		if cv.Blocked {
 			sk.h(fnvAdd(zh, "blocked"), 1)
 		}
 		kwh := fnvAdd(zh, "kw|")

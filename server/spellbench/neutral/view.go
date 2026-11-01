@@ -399,10 +399,10 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 
 // rememberBlocks restores blocks the observation no longer shows. An attacker
 // stays blocked when its blocker leaves the battlefield or phases out (CR
-// 509.1h), and gorge's view keeps a zero tombstone in BlockedBy for each such
-// blocker; a v2 observation lists blocks only from the blocker's side, so a
-// departed blocker drops out of it. The builder remembers each attacker's
-// blocker count across one combat's observations and pads the live list with
+// 509.1h), and gorge's view keeps it blocked; a v2 observation lists blocks only
+// from the blocker's side, so a departed blocker drops out of it. The builder
+// remembers each attacker's blocker count across one combat's observations and
+// pads the live list with
 // zero tombstones up to it. The memory resets on a new turn and at any step
 // outside declare_blockers..end_of_combat, and an attacker's entry goes when
 // it stops attacking or its attack target changes (gorge clears a re-pointed
@@ -489,10 +489,12 @@ func applyBlocks(cv *view.CardView, r protocol.ObjectRecord, blockers map[string
 	if r.CardName == nil || r.Permanent == nil {
 		return
 	}
-	if bs := blockers[r.ObjectID]; len(bs) > 0 {
-		cv.BlockedBy = slices.Clone(bs)
-	} else {
-		cv.BlockedBy = nil
+	bs := blockers[r.ObjectID]
+	cv.Blocked, cv.BlockedBy = len(bs) > 0, nil
+	for _, id := range bs {
+		if id != 0 { // a remembered blocker that has left
+			cv.BlockedBy = append(cv.BlockedBy, id)
+		}
 	}
 }
 

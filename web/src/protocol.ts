@@ -435,9 +435,13 @@ export interface CardView {
    * Attacking is true, nil otherwise; BlockedBy lists the creatures
    * blocking it. Both exist for the arrow overlay and come
    * straight from the object's combat fields, which EndCombatReset clears.
+   * Blocked is true from the moment a creature is blocked until combat ends,
+   * even after every blocker has left the battlefield (CR 509.1h); BlockedBy
+   * then lists fewer creatures than blocked it, or none.
    */
   attacking_player?: number | null;
   blocked_by?: number[];
+  blocked?: boolean;
   tapped: boolean;
   power: number;
   toughness: number;

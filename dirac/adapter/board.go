@@ -606,15 +606,15 @@ func (g *Game) stateTarget(t uint8) state.Target {
 
 // blockOrder is where id stands in its attacker's block, one that has left first.
 func (g *Game) blockOrder(id state.ObjID) int {
-	r := g.RefOf(id)
-	if int(r) >= int(g.kp.NObj) || g.kp.Objs[r].Zone != kop.ZoneBattlefield {
+	if id == 0 {
 		return -1
 	}
-	return int(g.s.FeatBlockOrder(dirac.Obj(r)))
+	return int(g.s.FeatBlockOrder(dirac.Obj(g.RefOf(id))))
 }
 
-// boardCombat lists each attacker's blockers in block order, one that has since left
-// included: a blocked creature stays blocked.
+// boardCombat lists each attacker's blockers in block order, a blocker that has since
+// left as a zero in its place, as gorge's log folds it: a blocked creature stays
+// blocked (CR 509.1h) and the object that left is a new one (CR 400.7).
 func (g *Game) boardCombat() {
 	b := &g.board
 	kp := &g.kp
@@ -622,21 +622,34 @@ func (g *Game) boardCombat() {
 		if !g.s.FeatBlocked(dirac.Obj(i)) {
 			b.blockers[i] = b.blockers[i][:0]
 		}
+		for j, id := range b.blockers[i] {
+			if id != 0 && !g.blocks(id, dirac.Obj(i)) {
+				b.blockers[i][j] = 0
+			}
+		}
 	}
 	for i := 0; i < int(kp.NObj); i++ {
 		po := &kp.Objs[i]
 		if po.Zone == kop.ZoneBattlefield && po.Flags&dirac.ProjBlocking != 0 && po.Blocks != dirac.NoObj {
 			if id := g.ids.obj(uint8(i)); !slices.Contains(b.blockers[po.Blocks], id) {
 				b.blockers[po.Blocks] = append(b.blockers[po.Blocks], id)
+				slices.SortStableFunc(b.blockers[po.Blocks], func(x, y state.ObjID) int { return cmp.Compare(g.blockOrder(x), g.blockOrder(y)) })
 			}
 		}
 	}
 	for i := 0; i < int(kp.NObj); i++ {
-		if len(b.blockers[i]) > 1 {
-			slices.SortStableFunc(b.blockers[i], func(x, y state.ObjID) int { return cmp.Compare(g.blockOrder(x), g.blockOrder(y)) })
-		}
 		if len(b.blockers[i]) > 0 {
 			b.g.Objs[g.ids.obj(uint8(i))-1].BlockedBy = append(b.g.Objs[g.ids.obj(uint8(i))-1].BlockedBy, b.blockers[i]...)
 		}
 	}
+}
+
+// blocks reports whether object id is on the battlefield blocking attacker.
+func (g *Game) blocks(id state.ObjID, attacker dirac.Obj) bool {
+	r := g.RefOf(id)
+	if int(r) >= int(g.kp.NObj) {
+		return false
+	}
+	po := &g.kp.Objs[r]
+	return po.Zone == kop.ZoneBattlefield && po.Flags&dirac.ProjBlocking != 0 && po.Blocks == attacker
 }

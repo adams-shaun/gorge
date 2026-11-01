@@ -345,13 +345,15 @@ components:
         attacking:
           type: "boolean"
         attacking_player:
-          description: "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay and come straight from the object's combat fields, which EndCombatReset clears."
+          description: "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay and come straight from the object's combat fields, which EndCombatReset clears. Blocked is true from the moment a creature is blocked until combat ends, even after every blocker has left the battlefield (CR 509.1h); BlockedBy then lists fewer creatures than blocked it, or none."
           maximum: 255
           minimum: 0
           type: "integer"
         aura_logic:
           description: "AuraLogic is the AttachAILogic hint (\"Pump\", \"Curse\", ...) of a card whose spell is an Aura aimed at a creature, \"\" for every other card. It is a printed deck-builder hint of a visible card. The opt-in A5 attach rules read it to hold a boon Aura while the caster controls no creature that could use it."
           type: "string"
+        blocked:
+          type: "boolean"
         blocked_by:
           items:
             maximum: 4294967295

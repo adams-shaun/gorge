@@ -34,7 +34,7 @@ func (c *tcre) canAttack() bool { return !c.defender && c.pow > 0 }
 
 func newTcre(cv *view.CardView, p *tProfile, mine bool) *tcre {
 	c := &tcre{id: cv.ID, cv: cv, p: p, mine: mine, pow: cv.Power, tough: cv.Toughness, dmg: cv.Damage,
-		tapped: cv.Tapped, sick: cv.SummonSick, attacking: cv.Attacking, blocked: len(cv.BlockedBy) > 0}
+		tapped: cv.Tapped, sick: cv.SummonSick, attacking: cv.Attacking, blocked: cv.Blocked}
 	for _, k := range cv.Keywords {
 		switch strings.ToLower(cards.KeywordHead(k)) {
 		case "flying":
