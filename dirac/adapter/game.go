@@ -62,8 +62,10 @@ type Game struct {
 	// passed: the last answer passed priority.
 	passed bool
 
-	conceded  bool
-	loser     uint8
+	conceded bool
+	loser    uint8
+	// stalled is the limit the kernel stopped at, 0 if none.
+	stalled   uint8
 	manifests []deck.Manifest
 
 	ids     idTable
@@ -91,22 +93,21 @@ func (g *Game) Caps() game.Caps { return g.eng.Caps() }
 // StallReason is "" unless the kernel stopped a live game at a declared limit or
 // a rule gap.
 func (g *Game) StallReason() string {
-	if g.pend != nil || g.board.g.Over {
+	if g.stalled == 0 || g.pend != nil || g.board.g.Over {
 		return ""
 	}
-	r := g.s.StallReason()
 	class := "capacity"
-	if dirac.StallIsUnmodelled(r) {
+	if dirac.StallIsUnmodelled(g.stalled) {
 		class = "unmodelled"
 	}
-	return class + " " + dirac.StallName(r)
+	return class + " " + dirac.StallName(g.stalled)
 }
 
 // Fork is an independent copy at this point.
 func (g *Game) Fork() game.Game {
 	c := &Game{eng: g.eng, set: g.set, tbl: g.tbl, cfg: g.cfg, tr: g.tr,
 		d: g.d, log: g.log.Clone(), multi: g.multi, conceded: g.conceded, loser: g.loser,
-		ids: g.ids, targets: g.targets, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, building: g.building}
+		ids: g.ids, targets: g.targets, stalled: g.stalled, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, building: g.building}
 	c.bind()
 	c.board.prio, c.board.step, c.board.seen, c.board.resolving, c.board.landOpen = g.board.prio, g.board.step, g.board.seen, g.board.resolving, g.board.landOpen
 	for i, l := range g.board.blockers {
@@ -141,6 +142,7 @@ func (g *Game) settle() {
 		top = &e
 	}
 	g.s.StepInto(&g.d)
+	g.stalled = g.s.StallReason()
 	g.s.Project(&g.kp)
 	g.ids.sync(&g.kp)
 	g.noteExiled(&before, top)
@@ -159,7 +161,7 @@ func (g *Game) logSettled() {
 		g.log.Append(events.Event{Kind: events.DecisionAsk, Player: g.pend.Player, Text: string(g.pend.Kind)})
 		return
 	}
-	if over, win := g.s.Terminal(); over && !g.s.Stalled() {
+	if over, win := g.s.Terminal(); over && g.stalled == 0 {
 		g.logOver(win)
 	}
 }

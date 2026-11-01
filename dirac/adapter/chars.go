@@ -256,7 +256,8 @@ func (b *board) PotentialActions(p state.PlayerID) []decision.PotentialAction {
 	}
 	for i := range d.PaymentActions {
 		a := &d.PaymentActions[i]
-		out = append(out, decision.PotentialAction{Kind: "cast", Obj: a.Cast.Object, Label: "Cast " + a.Label, Mode: planMode(a.Cast.Origin)})
+		mode := planMode(a.Cast.Origin)
+		out = append(out, decision.PotentialAction{Kind: "cast", Obj: a.Cast.Object, Label: castLabel(a.Label, mode), Mode: mode})
 	}
 	return out
 }
@@ -269,11 +270,19 @@ func planMode(origin string) string {
 	return ""
 }
 
+// castLabel words a cast, with the cost it is cast for.
+func castLabel(name, mode string) string {
+	if mode == "" {
+		return "Cast " + name
+	}
+	return "Cast " + name + " (" + mode + ")"
+}
+
 // playLabel words a play the way a client lists what it could do.
 func (b *board) playLabel(o *decision.Option) string {
 	switch o.Kind {
 	case "cast":
-		return "Cast " + o.Label
+		return castLabel(o.Label, o.Mode)
 	case "play_land":
 		return "Play " + o.Label
 	case "ability":

@@ -300,10 +300,10 @@ func viewCheck(d *viewDiffs, positions *int) func(ref *GorgeSide, a *adapter.Gam
 }
 
 // servedViewGaps are the paths a served view does not carry yet. It only shrinks.
+// priority: who last held it at a combat damage division after a first-strike step.
+// exiled_cards: a source's link to a card still in exile, across its own recast.
 var servedViewGaps = map[string]bool{
-	"priority": true, "label": true, "label (gorge only)": true, "source": true, "id": true,
-	"activated_this_turn": true, "activated_this_turn (served only)": true,
-	"exiled_cards[len]": true, "exiled_cards (served only)": true, "spells_cast_this_turn": true,
+	"priority": true, "exiled_cards[len]": true, "exiled_cards (served only)": true,
 }
 
 func TestNativeViewMatchesGorge(t *testing.T) {

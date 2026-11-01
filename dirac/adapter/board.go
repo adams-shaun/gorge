@@ -99,23 +99,34 @@ func (g *Game) materialise() {
 	g.boardPending()
 }
 
-// boardPending lists the triggers waiting to go on the stack.
+// boardPending lists the triggers waiting to go on the stack: those an answered
+// order has settled, in that order, then the rest.
 func (g *Game) boardPending() {
 	b := &g.board
 	b.pending = b.pending[:0]
-	for i := 0; i < g.s.NumPending(); i++ {
-		src, card, ab, ctrl, _ := g.s.PendingTrigger(i)
-		pt := state.PendingTrigger{Source: g.ids.obj(uint8(src)), Controller: state.PlayerID(ctrl), Label: g.cardName(uint8(src))}
-		if gi, ok := g.tr.Origin(card, ab); ok {
-			if g.triggerOptional(card, gi) {
-				pt.Optional, pt.Decider = true, state.PlayerID(ctrl)
-			}
-			if d := g.triggerText(card, gi); d != "" {
-				pt.Label += ": " + d
-			}
-		}
-		b.pending = append(b.pending, pt)
+	ordered := g.s.PendingOrdered()
+	for _, i := range ordered {
+		g.addPending(int(i))
 	}
+	for i := 0; i < g.s.NumPending(); i++ {
+		if !slices.Contains(ordered, uint8(i)) {
+			g.addPending(i)
+		}
+	}
+}
+
+func (g *Game) addPending(i int) {
+	src, card, ab, ctrl, _ := g.s.PendingTrigger(i)
+	pt := state.PendingTrigger{Source: g.ids.obj(uint8(src)), Controller: state.PlayerID(ctrl), Label: g.cardName(uint8(src))}
+	if gi, ok := g.tr.Origin(card, ab); ok {
+		if g.triggerOptional(card, gi) {
+			pt.Optional, pt.Decider = true, state.PlayerID(ctrl)
+		}
+		if d := g.triggerText(card, gi); d != "" {
+			pt.Label += ": " + d
+		}
+	}
+	g.board.pending = append(g.board.pending, pt)
 }
 
 // triggerOptional reads a card's trigger for the "you may" a resolution asks. The
@@ -210,9 +221,11 @@ func (g *Game) noteExiled(before *[dirac.MaxObj]kop.Zone, top *dirac.ProjStack) 
 	if g.exiled == nil {
 		g.exiled = make([][]state.ObjID, dirac.MaxObj)
 	}
-	var src = -1
-	if top != nil && g.resolvedExile(top) {
-		src = int(top.Source)
+	src, targetedOnly := -1, false
+	if top != nil {
+		if exiles, targeted := g.resolvedExile(top); exiles {
+			src, targetedOnly = int(top.Source), targeted
+		}
 	}
 	from := 0
 	if src >= 0 {
@@ -222,7 +235,7 @@ func (g *Game) noteExiled(before *[dirac.MaxObj]kop.Zone, top *dirac.ProjStack) 
 		po := &g.kp.Objs[o]
 		switch {
 		case po.Zone == kop.ZoneExile && before[o] != kop.ZoneExile:
-			if src >= 0 && !po.Token {
+			if src >= 0 && !po.Token && (!targetedOnly || targets(top, uint8(o))) {
 				g.exiled[src] = append(g.exiled[src], g.ids.obj(uint8(o)))
 			}
 		case po.Zone != kop.ZoneExile && before[o] == kop.ZoneExile:
@@ -240,36 +253,42 @@ func (g *Game) noteExiled(before *[dirac.MaxObj]kop.Zone, top *dirac.ProjStack) 
 	}
 }
 
+// targets reports whether a stack entry targets object o.
+func targets(e *dirac.ProjStack, o uint8) bool {
+	return slices.Contains(e.Targets[:], o) || slices.Contains(e.Extra[:e.NExtra], o)
+}
+
 // resolvedExile reports whether a stack entry's ability moves objects to exile through
-// ChangeZone.
-func (g *Game) resolvedExile(e *dirac.ProjStack) bool {
+// ChangeZone, and whether only what it targets: anything else that reached exile in
+// that resolution went by another rule, such as a replacement on a death it caused.
+func (g *Game) resolvedExile(e *dirac.ProjStack) (exiles, targeted bool) {
 	sa := g.stackSA(e)
 	if sa == latentSA {
-		return false
+		return false, false
 	}
 	f := g.face(e.Card)
-	var walk func(x *cards.SA) bool
-	walk = func(x *cards.SA) bool {
+	targeted = true
+	var walk func(x *cards.SA)
+	walk = func(x *cards.SA) {
 		for ; x != nil; x = x.Sub {
 			if x.APIKind() == cards.APIChangeZone {
 				if cz := effects.ChangeZoneOf(x); cz.DestinationKnown && cz.Destination == state.ZExile {
-					return true
+					exiles = true
+					targeted = targeted && x.Params["ValidTgts"] != ""
 				}
 			}
 			if x.APIKind() == cards.APIChangeZoneAll && effects.ChangeZoneAllOf(x).DestinationLower == "exile" {
-				return true
+				exiles, targeted = true, false
 			}
 			if (x.API == "Charm" || x.API == "GenericChoice") && f != nil {
 				for _, name := range strings.Split(x.Params["Choices"], ",") {
-					if walk(cards.ResolveSVar(f.SVars, strings.TrimSpace(name))) {
-						return true
-					}
+					walk(cards.ResolveSVar(f.SVars, strings.TrimSpace(name)))
 				}
 			}
 		}
-		return false
 	}
-	return walk(sa)
+	walk(sa)
+	return exiles, targeted
 }
 
 func (g *Game) boardGame() {
@@ -286,15 +305,15 @@ func (g *Game) boardGame() {
 		b.prio = state.PlayerID(g.d.Player)
 	case kp.Turn == 0:
 		b.prio = 0
-	case g.d.Sub == dirac.ChDivide:
+	case g.d.Sub == dirac.ChDivide && !g.passed:
 		// a combat damage division comes before the step gives anyone priority
-	case kp.Step != b.step || !b.seen || (g.passed || b.resolving) && !g.s.FeatResolving():
+	case kp.Step != b.step || !b.seen || (g.passed || b.resolving) && !g.s.FeatResolving() || g.d.Sub == dirac.ChDivide:
 		b.prio = state.PlayerID(kp.Active)
 	}
 	b.step, b.seen, b.resolving = kp.Step, true, g.s.FeatResolving()
 	gm.Priority = b.prio
 	// a kernel stopped at a limit reads as over, but the game has no result
-	over := kp.Over && !g.s.Stalled()
+	over := kp.Over && g.stalled == 0
 	gm.Over, gm.Winner, gm.Draw = over, 0, false
 	if over {
 		if kp.Winner >= 0 {
@@ -496,8 +515,8 @@ func (g *Game) boardStack() {
 	}
 }
 
-// latentSA stands for an ability no face lists, such as a reflexive trigger's: it is
-// on the stack, and has no printed text to show.
+// latentSA stands for an ability no face lists and no card text describes: it is on
+// the stack, and has no printed text to show.
 var latentSA = &cards.SA{}
 
 // stackSA is the spell ability a stack entry is resolving.
@@ -511,7 +530,42 @@ func (g *Game) stackSA(e *dirac.ProjStack) *cards.SA {
 			return sa
 		}
 	}
+	if sa := g.reflexiveSA(e.Card); sa != nil {
+		return sa
+	}
 	return latentSA
+}
+
+// reflexiveSA is what a "when you do" on card c runs with its target. Only a targeted
+// one is read, for what the target was allowed to be.
+func (g *Game) reflexiveSA(c dirac.CardID) *cards.SA {
+	f := g.face(c)
+	if f == nil {
+		return nil
+	}
+	find := func(sa *cards.SA) *cards.SA {
+		for x := sa; x != nil; x = x.Sub {
+			if x.API != "ImmediateTrigger" {
+				continue
+			}
+			run := cards.ResolveSVar(f.SVars, x.Params["Execute"])
+			if run != nil && run.Params["ValidTgts"] != "" {
+				return run
+			}
+		}
+		return nil
+	}
+	for _, sa := range f.Abilities {
+		if run := find(sa); run != nil {
+			return run
+		}
+	}
+	for i := range f.Triggers {
+		if run := find(cards.ResolveSVar(f.SVars, f.Triggers[i].Params["Execute"])); run != nil {
+			return run
+		}
+	}
+	return nil
 }
 
 // chosenModes names a modal entry's chosen modes, in execution order.

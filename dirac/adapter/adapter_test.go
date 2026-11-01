@@ -81,8 +81,9 @@ func TestStallIsReported(t *testing.T) {
 	if r := g.StallReason(); r != "" {
 		t.Fatalf("a live game reads as stalled: %q", r)
 	}
-	g.s.DebugStall(dirac.StallExiledWith)
-	g.settle()
+	g.stalled, g.pend = dirac.StallExiledWith, nil
+	g.kp.Over = true
+	g.materialise()
 	if g.Pending() != nil || g.Board().Over {
 		t.Fatalf("stalled: pending %v, over %v", g.Pending(), g.Board().Over)
 	}

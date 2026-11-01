@@ -91,7 +91,7 @@ func (g *Game) RefOf(id state.ObjID) canon.Ref {
 			return canon.Ref(o)
 		}
 	}
-	for i := 0; i < int(g.kp.NStack); i++ {
+	for i := 0; i < int(g.kp.NStack) && i < int(canon.RefPlayer-canon.RefStack); i++ {
 		if g.ids.stack[i] == id {
 			return canon.RefStack + canon.Ref(i)
 		}
