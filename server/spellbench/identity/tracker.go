@@ -79,6 +79,12 @@ type Source interface {
 	Board() *state.Game
 }
 
+// zoneCounter is a Source whose log does not rebuild its board. It counts each
+// object's zone changes itself, and the shadow is a copy of its board.
+type zoneCounter interface {
+	ZoneMoves(id state.ObjID) uint32
+}
+
 // New tracks src from its current state.
 func New(src Source, sec *secrets.Game) *Tracker {
 	return &Tracker{sec: sec, shadow: src.Board().Clone(), applied: len(src.Log().Events),
@@ -95,6 +101,10 @@ func keyOf(id state.ObjID, moves uint32) string { return fmt.Sprintf("%d:z%d", i
 // counting every zone change per object, then checks the shadow against src.
 func (t *Tracker) Sync(src Source) error {
 	clear(t.before)
+	if c, ok := src.(zoneCounter); ok {
+		t.syncBoard(src, c)
+		return nil
+	}
 	evs := src.Log().Events
 	for ; t.applied < len(evs); t.applied++ {
 		ev := evs[t.applied]
@@ -125,6 +135,27 @@ func (t *Tracker) Sync(src Source) error {
 		}
 	}
 	return nil
+}
+
+// syncBoard takes the shadow and the move counts from src, then records references
+// from the events appended since the last call. Several moves of one object between
+// two calls read as its last.
+func (t *Tracker) syncBoard(src Source, c zoneCounter) {
+	n := len(t.shadow.Objs)
+	objs := src.Board().Objs
+	for i := range objs {
+		id := objs[i].ID
+		if moves := c.ZoneMoves(id); moves != t.moves[id] {
+			t.before[id] = t.moves[id]
+			t.moves[id] = moves
+		}
+	}
+	t.shadow = src.Board().Clone()
+	evs := src.Log().Events
+	for ; t.applied < len(evs); t.applied++ {
+		t.record(evs[t.applied], n)
+		n = len(objs)
+	}
 }
 
 // record notes, after event ev (which may have minted the objects from index

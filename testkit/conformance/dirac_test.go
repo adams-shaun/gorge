@@ -2,13 +2,14 @@ package conformance
 
 import (
 	"cmp"
+	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/adapter"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -16,6 +17,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
+	"github.com/adams-shaun/gorge/engine/seat"
+	"github.com/adams-shaun/gorge/engine/view"
+	"github.com/adams-shaun/gorge/server/manabrew/mbtest"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -34,15 +38,7 @@ func diracEngine(t *testing.T, reg *cards.Registry, surface dirac.Surface) *adap
 // benchConfig is game g of the bench decks, each against the next.
 func benchConfig(t *testing.T, reg *cards.Registry, g int) game.Config {
 	t.Helper()
-	entries, err := os.ReadDir(benchDecks)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var names []string
-	for _, e := range entries {
-		names = append(names, strings.TrimSuffix(e.Name(), ".json"))
-	}
-	slices.Sort(names)
+	names := testutil.DeckDirNames(t, benchDecks)
 	c := game.Config{Seed: uint64(1000 + g), Tokens: reg.Tokens, NameUniverse: reg.Universe()}
 	for i := range 2 {
 		name := names[(g+i)%len(names)]
@@ -211,6 +207,51 @@ func TestNativeWireMatchesGorge(t *testing.T) {
 			c := benchConfig(t, reg, g)
 			if d := Run(t, acrossEngines{Native{OfferedOnly: true}}, gorgegame.Engine{}, e, c, Random(c.Seed)); d != nil {
 				t.Fatal(d)
+			}
+		})
+	}
+}
+
+// playSeats plays c on e with one seat per player and returns the game's log head.
+func playSeats(t *testing.T, e game.Engine, c game.Config, seats []seat.Seat) string {
+	t.Helper()
+	g, err := e.New(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for d := g.Pending(); d != nil; d = g.Pending() {
+		v := view.Project(g.Board(), g.Chars(), d.Player, d)
+		v.Round = view.RoundOf(g.Board(), g.Log().Events)
+		in, err := seats[d.Player].Decide(context.Background(), v, *d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := g.Submit(in); err != nil {
+			t.Fatalf("seq %d: %v", d.Seq, err)
+		}
+	}
+	if !g.Board().Over {
+		t.Fatal("the game stopped before its end")
+	}
+	return g.Log().Head()
+}
+
+// TestBotThroughManaBrewOnDirac has the production bot answer through the ManaBrew
+// translator on dirac tables: it plays the game it plays with no wire in between.
+func TestBotThroughManaBrewOnDirac(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := diracEngine(t, reg, dirac.SurfaceFull)
+	for g := range 8 {
+		t.Run(fmt.Sprintf("game%d", g), func(t *testing.T) {
+			c := benchConfig(t, reg, g)
+			native := playSeats(t, e, c, []seat.Seat{heuristic.NewBot(c.Seed), heuristic.NewBot(c.Seed)})
+			census := mbtest.NewCensus()
+			wire := func() seat.Seat { return mbtest.NewBotWireSeat("dirac", int64(g), c.Seed, census) }
+			if head := playSeats(t, e, c, []seat.Seat{wire(), wire()}); head != native {
+				t.Fatalf("seed %d: through the wire %s, with no wire %s", c.Seed, head, native)
+			}
+			if census.TotalUnmapped()+census.TotalRejected()+census.TotalFallback() != 0 {
+				t.Fatal(census.Summary())
 			}
 		})
 	}

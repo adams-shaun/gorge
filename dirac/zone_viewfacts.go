@@ -90,3 +90,7 @@ func (s *State) FeatDivision(out *[MaxPerm]Obj) (n, damage int) {
 	}
 	return n, int(s.divRem)
 }
+
+// FeatBlockOrder is where blocking permanent o was declared among its attacker's
+// blockers.
+func (s *State) FeatBlockOrder(o Obj) uint8 { return s.perms[s.objs[o].slot].bord }

@@ -73,6 +73,9 @@ func (g *Game) deriveTurn(prev *dirac.Projection) {
 	logged := stepOf[prev.Step]
 	step := func(s kop.Step) {
 		if stepOf[s] != logged {
+			if logged == state.StepEndCombat {
+				g.log.Append(events.Event{Kind: events.EndCombatReset})
+			}
 			logged = stepOf[s]
 			g.log.Append(events.Event{Kind: events.StepChange, Player: state.PlayerID(cur.Active), Step: logged})
 		}

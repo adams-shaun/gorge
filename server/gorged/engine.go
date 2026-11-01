@@ -40,8 +40,6 @@ func (c config) checkDiracFlags() error {
 		return errors.New("-bot-auto-mana=false: dirac pays for every cast and has no manual mana")
 	case c.events:
 		return errors.New("-events: a draft event's decks need the gorge engine")
-	case c.sbv2:
-		return errors.New("-sbv2: the v2 wire needs the gorge engine")
 	}
 	for _, a := range c.nets {
 		if a.net != "" {
@@ -70,7 +68,11 @@ func (c config) openDirac(reg *cards.Registry) (*adapter.Engine, error) {
 			sets = append(sets, s)
 		}
 	}
-	return adapter.New(sets, reg, dirac.SurfaceFull)
+	surface := dirac.SurfaceFull
+	if c.sbv2 {
+		surface = dirac.SurfaceAutopay // what the v2 wire poses, which casts by engine auto-pay
+	}
+	return adapter.New(sets, reg, surface)
 }
 
 // checkDecks splits the deck pool into what the engine plays and why it refuses the

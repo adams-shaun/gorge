@@ -40,7 +40,6 @@ func TestDiracFlagsRefuseCommander(t *testing.T) {
 		{"manual mana", func(c *config) { c.autoMana = false }, "-auto-mana=false"},
 		{"a bot's manual mana", func(c *config) { c.botAutoPayMana = false }, "-bot-auto-mana=false"},
 		{"events", func(c *config) { c.events = true }, "-events"},
-		{"v2 wire", func(c *config) { c.sbv2 = true }, "-sbv2"},
 		{"network bot", func(c *config) { c.nets = []netPolicy{{policy: "az", net: "n"}} }, "-az-net"},
 	} {
 		c := diracConfig()

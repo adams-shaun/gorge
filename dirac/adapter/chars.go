@@ -3,14 +3,17 @@ package adapter
 import (
 	"math/bits"
 	"slices"
+	"strings"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/dirac/feat"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -196,6 +199,70 @@ func (b *board) Power(id state.ObjID) int32 { return b.fact(id).power }
 func (b *board) Toughness(id state.ObjID) int32 { return b.fact(id).tough }
 
 func (b *board) Keywords(id state.ObjID) []string { return b.fact(id).keywords }
+
+// HasKeyword reports whether id has keyword kw now.
+func (g *Game) HasKeyword(id state.ObjID, kw string) bool {
+	return slices.ContainsFunc(g.board.fact(id).keywords, func(k string) bool { return strings.EqualFold(k, kw) })
+}
+
+// ObservedAbilities lists id's printed non-mana activated abilities. The kernel keeps
+// no granted activated ability apart from its printed ones.
+func (g *Game) ObservedAbilities(_ state.PlayerID, id state.ObjID) []decision.Option {
+	o := g.board.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	var out []decision.Option
+	for i, ab := range o.Face().Abilities {
+		if ab != nil && ab.Kind == "AB" && !cards.IsManaAbilitySA(ab) {
+			out = append(out, decision.Option{Index: len(out), Kind: "ability", Obj: id, Ability: i, Label: o.Face().Name + ": " + ab.ParamStr(cards.PKSpellDescription)})
+		}
+	}
+	return out
+}
+
+// Facts is id's characteristics after continuous effects.
+func (g *Game) Facts(id state.ObjID) game.Facts {
+	f := g.board.fact(id)
+	types := f.types
+	if !f.retyped {
+		if o := g.board.g.Obj(id); o != nil && o.Face() != nil {
+			types = o.Face().Types
+		}
+	}
+	return game.Facts{Name: f.name, Types: types, Colors: g.colors(id), Keywords: f.keywords, Power: f.power, Toughness: f.tough}
+}
+
+// colors is id's colours as WUBRG letters.
+func (g *Game) colors(id state.ObjID) string {
+	r := g.RefOf(id)
+	if int(r) >= int(g.kp.NObj) {
+		return ""
+	}
+	mask := uint8(g.tbl.Cards[g.kp.Objs[r].Card].Colors)
+	if g.kp.Objs[r].Zone == kop.ZoneBattlefield {
+		mask = g.s.FeatColorsOf(dirac.Obj(r))
+	}
+	var out []byte
+	for i := range 5 {
+		if mask&(uint8(kop.ColW)<<i) != 0 {
+			out = append(out, canon.ManaSyms[i])
+		}
+	}
+	return string(out)
+}
+
+// HostTriggerAmount has no kernel read: a served observation leaves the amount out.
+func (g *Game) HostTriggerAmount(state.ObjID) (int32, bool) { return 0, false }
+
+// ZoneMoves counts id's zone changes (CR 400.7).
+func (g *Game) ZoneMoves(id state.ObjID) uint32 {
+	r := g.RefOf(id)
+	if int(r) >= int(g.kp.NObj) {
+		return 0
+	}
+	return uint32(g.s.ObjVer(dirac.Obj(r)))
+}
 
 // ViewCharacteristics answers the view's four derived facts at once.
 func (b *board) ViewCharacteristics(id state.ObjID) (string, bool, []string, int32, int32) {

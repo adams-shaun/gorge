@@ -30,6 +30,13 @@ replays in `TestFoundPairs` for good.
 | gorge / manabrew / fuzz | No failure over 2,000 fuzzed-deck games on a rolling seed | `cardfuzz -manabrew` | nightly |
 | gorge / v2 / harness | Goldens, chain heads over `/api/sbv2`, an empty native-only census, privacy | `server/spellbench/...`, `server/host/sbv2http` | commit nightly pr |
 | gorge / v2 / stdio-agent | An agent plays to the end over the frozen wire | `TestV2AgentSeatPlaysGorgeAgent`, `TestSpellbenchSeatAppliesAgentPick`, `TestSpellbenchSeatAnswersUnposableDecisionWithFallback` | commit nightly pr |
+| dirac / native / harness | Gorge and dirac agree frame by frame on one game, same seed and answers, less what the test names | `TestNativeWireMatchesGorge` | commit nightly pr |
+| dirac / native / hosted-bots | Each policy dirac seats finishes 40 pairs without the refusal ladder | `TestBotsPlayDiracGames` | commit nightly pr |
+| dirac / native / http-agent | A scripted client plays a complete game over HTTP, undo included | `TestServesADiracGame` | commit nightly pr |
+| dirac / manabrew / harness | Every seat a seeded client, a complete game through `/state` and `/send` | `TestManaBrewServesADiracGame` | commit nightly pr |
+| dirac / manabrew / bot | A bot through the translator plays the game it plays with no wire | `TestBotThroughManaBrewOnDirac` | commit nightly pr |
+| dirac / v2 / harness | A complete game over `/api/sbv2` with no rules engine built and no decision left to the native wire | `TestSBV2ServesADiracGame` | commit nightly pr |
+| dirac / v2 / stdio-agent | An agent plays to the end over the frozen wire | `TestV2AgentSeatPlaysDiracGame` | commit nightly pr |
 
 Not every combination is a cell:
 

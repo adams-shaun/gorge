@@ -261,3 +261,19 @@ func CorpusRegistry(t testing.TB) *cards.Registry {
 	}
 	return result.reg
 }
+
+// DeckDirNames lists the .json decks of dir, by name, sorted.
+func DeckDirNames(t testing.TB, dir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, e := range entries {
+		if name, ok := strings.CutSuffix(e.Name(), ".json"); ok {
+			names = append(names, name)
+		}
+	}
+	return names
+}

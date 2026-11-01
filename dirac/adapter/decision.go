@@ -344,6 +344,9 @@ func (g *Game) poseAsk() {
 	if d.Kind != decision.KTarget && g.d.Sub != dirac.ChWardPay {
 		d.Source = g.askSource(d)
 	}
+	if d.Kind == decision.KChoose && n > 0 && d.Options[0].Kind == "dig" {
+		d.ResumeSA = g.resolvingSA("Dig")
+	}
 	g.multi = d.Min != 1 || d.Max != 1
 }
 
@@ -584,8 +587,8 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 // colorNames words a colour choice, in canon.ManaSyms' order.
 var colorNames = [...]string{"White", "Blue", "Black", "Red", "Green"}
 
-// labelDivision says how split number i divides the attacker's damage. Amount is the
-// first blocker's share, as on gorge.
+// labelDivision says how split number i divides the attacker's damage, in the words a
+// v2 mapping rebuilds. Amount is the first blocker's share, as on gorge.
 func (g *Game) labelDivision(o *decision.Option, i uint8) {
 	var blockers [dirac.MaxPerm]dirac.Obj
 	var split [dirac.MaxPerm]uint8
@@ -596,7 +599,7 @@ func (g *Game) labelDivision(o *decision.Option, i uint8) {
 		if j > 0 {
 			o.Label += ","
 		}
-		o.Label += strconv.Itoa(int(split[j])) + " to " + g.cardName(uint8(blockers[j]))
+		o.Label += strconv.Itoa(int(split[j])) + " to " + g.face(g.kp.Objs[blockers[j]].Card).Name
 	}
 }
 
@@ -688,6 +691,19 @@ func (g *Game) fillTargetEffect(d *decision.Decision) {
 	if activated && (d.TargetEffect == nil || d.TargetEffect.API != "Attach") {
 		d.Source = 0
 	}
+}
+
+// resolvingSA is the part of the resolving ability that runs api, or nil.
+func (g *Game) resolvingSA(api string) *cards.SA {
+	top := int(g.kp.NStack) - 1
+	if top < 0 {
+		return nil
+	}
+	sa := g.stackSA(&g.kp.Stack[top])
+	for sa != nil && sa.API != api {
+		sa = sa.Sub
+	}
+	return sa
 }
 
 // buildingSA is the spell ability a cast or activation under way runs.

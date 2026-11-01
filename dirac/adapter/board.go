@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"cmp"
 	"slices"
 	"strings"
 
@@ -603,8 +604,17 @@ func (g *Game) stateTarget(t uint8) state.Target {
 	return state.Target{Obj: g.ids.ref(t, &g.kp)}
 }
 
-// boardCombat lists each attacker's blockers, one that has since left included: a
-// blocked creature stays blocked.
+// blockOrder is where id stands in its attacker's block, one that has left first.
+func (g *Game) blockOrder(id state.ObjID) int {
+	r := g.RefOf(id)
+	if int(r) >= int(g.kp.NObj) || g.kp.Objs[r].Zone != kop.ZoneBattlefield {
+		return -1
+	}
+	return int(g.s.FeatBlockOrder(dirac.Obj(r)))
+}
+
+// boardCombat lists each attacker's blockers in block order, one that has since left
+// included: a blocked creature stays blocked.
 func (g *Game) boardCombat() {
 	b := &g.board
 	kp := &g.kp
@@ -622,6 +632,9 @@ func (g *Game) boardCombat() {
 		}
 	}
 	for i := 0; i < int(kp.NObj); i++ {
+		if len(b.blockers[i]) > 1 {
+			slices.SortStableFunc(b.blockers[i], func(x, y state.ObjID) int { return cmp.Compare(g.blockOrder(x), g.blockOrder(y)) })
+		}
 		if len(b.blockers[i]) > 0 {
 			b.g.Objs[g.ids.obj(uint8(i))-1].BlockedBy = append(b.g.Objs[g.ids.obj(uint8(i))-1].BlockedBy, b.blockers[i]...)
 		}

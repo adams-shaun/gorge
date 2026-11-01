@@ -48,6 +48,29 @@ type PaymentPlanner interface {
 	ValidateCastAnnounce(p state.PlayerID, cast decision.PlannedCast) error
 }
 
+// Facts is what an observation reports of an object's characteristics.
+type Facts struct {
+	Name             string
+	Types            []string
+	Colors           string // WUBRG letters
+	Keywords         []string
+	Power, Toughness int32
+}
+
+// Observed is a Game a seat can read beyond Chars, when no gorge engine stands behind
+// it: what a v2 observation names of an object, and how many times it has changed
+// zones, since this game's log does not rebuild its board.
+type Observed interface {
+	HasKeyword(id state.ObjID, kw string) bool
+	// ObservedAbilities lists id's non-mana activated abilities in a fixed order.
+	ObservedAbilities(p state.PlayerID, id state.ObjID) []decision.Option
+	Facts(id state.ObjID) Facts
+	// HostTriggerAmount is the causing event's magnitude for a stack ability that
+	// reads one, or false.
+	HostTriggerAmount(id state.ObjID) (int32, bool)
+	ZoneMoves(id state.ObjID) uint32
+}
+
 // Keyed is a game whose replay is pinned to what it was built from. The host records
 // the key as Config.Key beside the log.
 type Keyed interface {

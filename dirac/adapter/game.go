@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	_ game.Game    = (*Game)(nil)
-	_ game.Stalled = (*Game)(nil)
+	_ game.Game     = (*Game)(nil)
+	_ game.Stalled  = (*Game)(nil)
+	_ game.Observed = (*Game)(nil)
 )
 
 // adapterVersion moves when the log or decisions a table derives change.
