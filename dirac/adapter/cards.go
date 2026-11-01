@@ -21,12 +21,16 @@ func (g *Game) card(c dirac.CardID) *cards.Card {
 	return nil
 }
 
-// face is table card c's front face.
+// face is the face table card c plays as.
 func (g *Game) face(c dirac.CardID) *cards.Face {
-	if gc := g.card(c); gc != nil && len(gc.Faces) > 0 {
-		return gc.Faces[0]
+	gc := g.card(c)
+	if gc == nil || len(gc.Faces) == 0 {
+		return nil
 	}
-	return nil
+	if i := int(g.tbl.Cards[c].Face); i < len(gc.Faces) {
+		return gc.Faces[i]
+	}
+	return gc.Faces[0]
 }
 
 // faceSA is the spell ability a face index names: Face.Abilities, Face.Triggers'

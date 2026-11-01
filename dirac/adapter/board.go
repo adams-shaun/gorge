@@ -1,12 +1,15 @@
 package adapter
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/scriptfacts"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -14,13 +17,19 @@ import (
 // kernel's position, rebuilt after each answer. No game runs on it and nothing
 // replays it, so it is written here directly and in no other file.
 type board struct {
-	g     *state.Game
-	game  *Game
-	facts []objFacts // by id-1
-	zone  [2][7][]state.ObjID
-	prio  state.PlayerID
-	step  kop.Step
-	seen  bool
+	g       *state.Game
+	game    *Game
+	facts   []objFacts // by id-1
+	pending []state.PendingTrigger
+	// blockers[o] is who has blocked kernel object o this combat.
+	blockers [dirac.MaxObj][]state.ObjID
+	zone     [2][7][]state.ObjID
+	prio     state.PlayerID
+	step     kop.Step
+	seen     bool
+	nstack   uint8
+	// resolving: the last decision was asked inside a resolution.
+	resolving bool
 	// landOpen is the active seat's land drop as of now, and the other seat's as of
 	// the end of its own turn, as gorge's count stands until its next untap.
 	landOpen [2]bool
@@ -29,9 +38,13 @@ type board struct {
 // objFacts are the derived characteristics the view asks for, by object.
 type objFacts struct {
 	power, tough int32
+	name         string
+	effective    string
 	keywords     []string
 	types        []string
 	retyped      bool
+	optional     bool
+	decider      state.PlayerID
 }
 
 var stepOf = [...]state.Step{
@@ -59,12 +72,14 @@ func (g *Game) materialise() {
 			names = []string{"p0", "p1"}
 		}
 		b.g = state.NewGameLife(names, int32(g.kp.Life[0]))
-		b.landOpen = [2]bool{true, true}
 		for i := range b.g.Players {
 			if i < len(g.cfg.PlayerNames) {
 				b.g.Players[i].PlayerName = g.cfg.PlayerNames[i]
 			}
 		}
+	}
+	if !b.seen {
+		b.landOpen = [2]bool{true, true}
 	}
 	b.game = g
 	gm := b.g
@@ -86,9 +101,184 @@ func (g *Game) materialise() {
 	for i := 0; i < int(kp.NObj); i++ {
 		g.boardObject(uint8(i))
 	}
+	g.boardRenames()
 	g.boardZones()
 	g.boardStack()
 	g.boardCombat()
+	g.boardPending()
+}
+
+// boardPending lists the triggers waiting to go on the stack.
+func (g *Game) boardPending() {
+	b := &g.board
+	b.pending = b.pending[:0]
+	for i := 0; i < g.s.NumPending(); i++ {
+		src, card, ab, ctrl, _ := g.s.PendingTrigger(i)
+		pt := state.PendingTrigger{Source: g.ids.obj(uint8(src)), Controller: state.PlayerID(ctrl), Label: g.cardName(uint8(src))}
+		if gi, ok := g.tr.Origin(card, ab); ok {
+			if g.triggerOptional(card, gi) {
+				pt.Optional, pt.Decider = true, state.PlayerID(ctrl)
+			}
+			if d := g.triggerText(card, gi); d != "" {
+				pt.Label += ": " + d
+			}
+		}
+		b.pending = append(b.pending, pt)
+	}
+}
+
+// triggerOptional reads a card's trigger for the "you may" a resolution asks. The
+// kernel lowers some of them to a payment, so its own flag does not say.
+func (g *Game) triggerOptional(c dirac.CardID, gi uint8) bool {
+	f := g.face(c)
+	if f == nil || gi&0x80 == 0 || int(gi&^0x80) >= len(f.Triggers) {
+		return false
+	}
+	return scriptfacts.TriggerOptionalSpec(f.Triggers[gi&^0x80]) != ""
+}
+
+// triggerText is a card's trigger's own description.
+func (g *Game) triggerText(c dirac.CardID, gi uint8) string {
+	f := g.face(c)
+	if f == nil || gi&0x80 == 0 || int(gi&^0x80) >= len(f.Triggers) {
+		return ""
+	}
+	return f.Triggers[gi&^0x80].ParamStr(cards.PKTriggerDescription)
+}
+
+// noteTally counts this turn's casts and tokens: the kernel keeps them only for a card
+// that reads them, and the view shows them for every seat.
+func (g *Game) noteTally(before *[dirac.MaxObj]kop.Zone, turn int32) {
+	if turn != g.tallyTurn {
+		g.tally, g.tallyTurn = [2]turnTally{}, turn
+	}
+	for o := 0; o < int(g.kp.NObj); o++ {
+		po := &g.kp.Objs[o]
+		switch {
+		case po.Zone == kop.ZoneStack && before[o] != kop.ZoneStack:
+			g.tally[po.Ctrl&1].spells++
+		case g.building == dirac.Obj(o) && before[o] == kop.ZoneStack && po.Zone != kop.ZoneStack && g.tally[po.Ctrl&1].spells > 0:
+			g.tally[po.Ctrl&1].spells-- // the proposal was reversed
+		case po.Token && before[o] == kop.ZoneNone && po.Zone != kop.ZoneNone:
+			g.tally[po.Ctrl&1].tokens++
+		}
+	}
+	g.building = dirac.NoObj
+	if _, _, _, ok := g.s.Building(); ok {
+		g.building = g.s.FeatSource()
+	}
+}
+
+// boardRenames gives a permanent the name an Aura or Equipment attached to it sets.
+func (g *Game) boardRenames() {
+	b := &g.board
+	for i := 0; i < int(g.kp.NObj); i++ {
+		po := &g.kp.Objs[i]
+		if po.Zone != kop.ZoneBattlefield || po.Attached == dirac.NoObj {
+			continue
+		}
+		f := g.face(po.Card)
+		if f == nil {
+			continue
+		}
+		for j := range f.Statics {
+			st := &f.Statics[j]
+			host := &b.facts[g.ids.obj(uint8(po.Attached))-1]
+			if name := st.ParamStr(cards.PKSetName); name != "" {
+				host.name = name
+			}
+			if added := st.ParamStr(cards.PKAddType); added != "" && host.retyped {
+				orderAdded(host.types, strings.Split(added, " & "))
+			}
+		}
+	}
+}
+
+// orderAdded moves the words an effect added to the end of a type line, in the effect's
+// own order: gorge's line reads what stayed, then what was added.
+func orderAdded(types, added []string) {
+	kept := types[:0:0]
+	for _, w := range types {
+		if !slices.Contains(added, w) {
+			kept = append(kept, w)
+		}
+	}
+	for _, w := range added {
+		if slices.Contains(types, w) {
+			kept = append(kept, w)
+		}
+	}
+	copy(types, kept)
+}
+
+// noteExiled follows what the entry that was resolving exiled: the kernel keeps this
+// link only for a card that reads it, and the view shows it for every card. A card
+// leaves every list as it leaves exile, and a source entering the battlefield other
+// than from the stack starts over.
+func (g *Game) noteExiled(before *[dirac.MaxObj]kop.Zone, top *dirac.ProjStack) {
+	if g.exiled == nil {
+		g.exiled = make([][]state.ObjID, dirac.MaxObj)
+	}
+	var src = -1
+	if top != nil && g.resolvedExile(top) {
+		src = int(top.Source)
+	}
+	from := 0
+	if src >= 0 {
+		from = len(g.exiled[src])
+	}
+	for o := 0; o < int(g.kp.NObj); o++ {
+		po := &g.kp.Objs[o]
+		switch {
+		case po.Zone == kop.ZoneExile && before[o] != kop.ZoneExile:
+			if src >= 0 && !po.Token {
+				g.exiled[src] = append(g.exiled[src], g.ids.obj(uint8(o)))
+			}
+		case po.Zone != kop.ZoneExile && before[o] == kop.ZoneExile:
+			id := g.ids.obj(uint8(o))
+			for s := range g.exiled {
+				g.exiled[s] = slices.DeleteFunc(g.exiled[s], func(x state.ObjID) bool { return x == id })
+			}
+		}
+		if po.Zone == kop.ZoneBattlefield && before[o] != kop.ZoneBattlefield && before[o] != kop.ZoneStack {
+			g.exiled[o] = g.exiled[o][:0]
+		}
+	}
+	if src >= 0 && from < len(g.exiled[src]) {
+		slices.SortFunc(g.exiled[src][from:], func(a, b state.ObjID) int { return int(g.zoneIdx(a)) - int(g.zoneIdx(b)) })
+	}
+}
+
+// resolvedExile reports whether a stack entry's ability moves objects to exile through
+// ChangeZone.
+func (g *Game) resolvedExile(e *dirac.ProjStack) bool {
+	sa := g.stackSA(e)
+	if sa == latentSA {
+		return false
+	}
+	f := g.face(e.Card)
+	var walk func(x *cards.SA) bool
+	walk = func(x *cards.SA) bool {
+		for ; x != nil; x = x.Sub {
+			if x.APIKind() == cards.APIChangeZone {
+				if cz := effects.ChangeZoneOf(x); cz.DestinationKnown && cz.Destination == state.ZExile {
+					return true
+				}
+			}
+			if x.APIKind() == cards.APIChangeZoneAll && effects.ChangeZoneAllOf(x).DestinationLower == "exile" {
+				return true
+			}
+			if (x.API == "Charm" || x.API == "GenericChoice") && f != nil {
+				for _, name := range strings.Split(x.Params["Choices"], ",") {
+					if walk(cards.ResolveSVar(f.SVars, strings.TrimSpace(name))) {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+	return walk(sa)
 }
 
 func (g *Game) boardGame() {
@@ -97,18 +287,25 @@ func (g *Game) boardGame() {
 	gm.Turn = int32(kp.Turn)
 	gm.Step = stepOf[kp.Step]
 	gm.Active = state.PlayerID(kp.Active)
-	// gorge moves priority to the active player as a step begins, and leaves it with
-	// the last player who held it through any other ask.
+	// gorge moves priority to the active player once all have passed, and leaves it
+	// with the last player who held it through any other ask. It starts with the first
+	// seat, whoever will take the first turn.
 	switch {
 	case g.d.Kind == dirac.DkPriority:
 		b.prio = state.PlayerID(g.d.Player)
-	case kp.Step != b.step || !b.seen:
+	case kp.Turn == 0:
+		b.prio = 0
+	case g.d.Sub == dirac.ChDivide:
+		// a combat damage division comes before the step gives anyone priority
+	case kp.Step != b.step || !b.seen || (g.passed || b.resolving) && !g.s.FeatResolving():
 		b.prio = state.PlayerID(kp.Active)
 	}
-	b.step, b.seen = kp.Step, true
+	b.step, b.seen, b.resolving = kp.Step, true, g.s.FeatResolving()
 	gm.Priority = b.prio
-	gm.Over, gm.Winner, gm.Draw = kp.Over, 0, false
-	if kp.Over {
+	// a kernel stopped at a limit reads as over, but the game has no result
+	over := kp.Over && !g.s.Stalled()
+	gm.Over, gm.Winner, gm.Draw = over, 0, false
+	if over {
 		if kp.Winner >= 0 {
 			gm.Winner = state.PlayerID(kp.Winner)
 		} else {
@@ -133,6 +330,8 @@ func (g *Game) boardGame() {
 		for k := 0; k < 6; k++ {
 			pl.Pool[k] = int32(kp.Pool[p][k])
 		}
+		pl.LifeGainedThisTurn, pl.LifeLostThisTurn = g.s.FeatLifeThisTurn(uint8(p))
+		pl.SpellsCastThisTurn, pl.TokensCreatedThisTurn = g.tally[p].spells, g.tally[p].tokens
 		pl.Counters = pl.Counters[:0]
 		if n := g.s.Poison(uint8(p)); n > 0 {
 			pl.Counters = append(pl.Counters, state.Counter{Kind: "POISON", N: int32(n)})
@@ -161,6 +360,9 @@ func (g *Game) boardObject(i uint8) {
 		o.CopyFace = g.face(po.Card)
 	}
 	o.SyncFace()
+	if int(i) < len(g.exiled) && len(g.exiled[i]) > 0 {
+		o.ExiledCards = g.exiled[i]
+	}
 	if po.Attached != dirac.NoObj {
 		o.AttachedTo = g.ids.obj(uint8(po.Attached))
 	}
@@ -175,6 +377,13 @@ func (g *Game) boardObject(i uint8) {
 	for k, n := range po.Counters {
 		if n != 0 && counterNames[k] != "" {
 			o.AddCounter(counterNames[k], int32(n))
+		}
+	}
+	// a kind removed to none stays listed at zero while the permanent stays
+	listed := g.s.FeatCountersListed(dirac.Obj(i), &po.Counters)
+	for k := range po.Counters {
+		if listed&(1<<k) != 0 && po.Counters[k] == 0 && counterNames[k] != "" {
+			o.Counters = append(o.Counters, state.Counter{Kind: counterNames[k]})
 		}
 	}
 	for x, n := range po.CountersX {
@@ -270,6 +479,11 @@ func (g *Game) boardStack() {
 			gm.Stack = append(gm.Stack, id)
 		}
 		o.Controller = state.PlayerID(e.Ctrl)
+		f := &b.facts[o.ID-1]
+		f.optional, f.decider = false, 0
+		if gi := g.tr.StackAbility(e.Card, e.Card, e.Ability); e.Kind == 2 && g.triggerOptional(e.Card, gi) {
+			f.optional, f.decider = true, state.PlayerID(e.Ctrl)
+		}
 		if g.s.FeatStackKicked(i) {
 			o.CastFlags |= state.FlagKicked
 		}
@@ -334,14 +548,27 @@ func (g *Game) stateTarget(t uint8) state.Target {
 	return state.Target{Obj: g.ids.ref(t, &g.kp)}
 }
 
-// boardCombat lists each attacker's blockers.
+// boardCombat lists each attacker's blockers, one that has since left included: a
+// blocked creature stays blocked.
 func (g *Game) boardCombat() {
-	gm, kp := g.board.g, &g.kp
+	b := &g.board
+	kp := &g.kp
+	for i := 0; i < int(kp.NObj); i++ {
+		if !g.s.FeatBlocked(dirac.Obj(i)) {
+			b.blockers[i] = b.blockers[i][:0]
+		}
+	}
 	for i := 0; i < int(kp.NObj); i++ {
 		po := &kp.Objs[i]
 		if po.Zone == kop.ZoneBattlefield && po.Flags&dirac.ProjBlocking != 0 && po.Blocks != dirac.NoObj {
-			a := &gm.Objs[g.ids.obj(uint8(po.Blocks))-1]
-			a.BlockedBy = append(a.BlockedBy, g.ids.obj(uint8(i)))
+			if id := g.ids.obj(uint8(i)); !slices.Contains(b.blockers[po.Blocks], id) {
+				b.blockers[po.Blocks] = append(b.blockers[po.Blocks], id)
+			}
+		}
+	}
+	for i := 0; i < int(kp.NObj); i++ {
+		if len(b.blockers[i]) > 0 {
+			b.g.Objs[g.ids.obj(uint8(i))-1].BlockedBy = append(b.g.Objs[g.ids.obj(uint8(i))-1].BlockedBy, b.blockers[i]...)
 		}
 	}
 }

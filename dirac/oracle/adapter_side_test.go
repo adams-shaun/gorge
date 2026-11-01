@@ -2,8 +2,9 @@ package oracle
 
 import (
 	"fmt"
+	"maps"
 	"os"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -13,11 +14,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/game"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 )
-
-// decisionTally counts how the served decision matches gorge's, per kind.
-type decisionTally struct{ n, kind, bounds, count, set int }
 
 func adapterRun(t *testing.T, name string, first, n int, mulligans int, cfg Config, check func(ref *GorgeSide, a *adapter.Game)) (clean, total int) {
 	t.Helper()
@@ -85,79 +84,112 @@ func TestAdapterIsALockstepSide(t *testing.T) {
 }
 
 // TestNativeDecisionMatchesGorge compares each non-priority decision a client sees
-// with gorge's: its kind, its bounds and its options.
+// with gorge's: its kind, bounds, source and options in order.
 func TestNativeDecisionMatchesGorge(t *testing.T) {
-	tally := map[string]*decisionTally{}
+	pairs := envPairs(40)
+	for _, name := range []string{"fdn", "blb"} {
+		for _, autopay := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s/autopay=%v", name, autopay), func(t *testing.T) {
+				if testing.Short() && (name != "fdn" || !autopay) {
+					t.Skip("short")
+				}
+				decisionCheck(t, name, pairs, autopay)
+			})
+		}
+	}
+}
+
+func decisionCheck(t *testing.T, name string, pairs int, autopay bool) {
+	tally := map[string]int{}
 	diffs := map[string]int{}
+	samples := map[string]string{}
 	check := func(ref *GorgeSide, a *adapter.Game) {
 		gd, ad := ref.Pending(), a.Pending()
 		if gd == nil || ad == nil || gd.Kind == decision.KPriority {
 			return
 		}
+		gd = withoutManualRoutes(gd)
 		key := string(gd.Kind)
 		if gd.Kind == decision.KChoose && len(gd.Options) > 0 {
 			key += "/" + gd.Options[0].Kind
 		}
-		tl := tally[key]
-		if tl == nil {
-			tl = &decisionTally{}
-			tally[key] = tl
-		}
-		tl.n++
-		if ad.Kind == gd.Kind {
-			tl.kind++
-		} else {
-			diffs[fmt.Sprintf("%s kind served %s", key, ad.Kind)]++
-		}
-		// gorge's maximum can exceed the options there are
-		gmax := min(gd.Max, len(gd.Options))
-		if ad.Min == gd.Min && min(ad.Max, len(ad.Options)) == gmax {
-			tl.bounds++
-		} else {
-			diffs[fmt.Sprintf("%s bounds gorge %d..%d served %d..%d", key, gd.Min, gd.Max, ad.Min, ad.Max)]++
-		}
-		if len(ad.Options) == len(gd.Options) {
-			tl.count++
-		} else {
-			diffs[fmt.Sprintf("%s count gorge %d served %d", key, len(gd.Options), len(ad.Options))]++
-		}
-		same := len(gd.Options) == len(ad.Options)
-		for i := 0; same && i < len(gd.Options); i++ {
-			same = gd.Options[i].Kind == ad.Options[i].Kind && ref.InstRef(gd.Options[i].Obj) == a.RefOf(ad.Options[i].Obj)
-		}
-		if same {
-			tl.set++
-		} else {
-			diffs[key+" options or their order"]++
+		tally[key]++
+		for _, what := range decisionDiffs(ref, gd, a, ad) {
+			k := key + " " + what
+			diffs[k]++
+			if samples[k] == "" {
+				samples[k] = fmt.Sprintf("gorge %s served %s", optionShape(gd, ref.InstRef), optionShape(ad, a.RefOf))
+			}
 		}
 	}
-	clean, total := adapterRun(t, "fdn", 0, envPairs(40), 1, Config{GorgeAutopaySurface: true}, check)
+	clean, total := adapterRun(t, name, 0, pairs, 1, Config{GorgeAutopaySurface: autopay}, check)
 	var b strings.Builder
 	fmt.Fprintf(&b, "games %d clean %d\n", total, clean)
-	var keys []string
-	for k := range tally {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		s := tally[k]
-		fmt.Fprintf(&b, "%-36s n %6d kind %6d bounds %6d count %6d options %6d\n", k, s.n, s.kind, s.bounds, s.count, s.set)
-		if s.kind != s.n {
-			t.Errorf("%s: %+v", k, *s)
-		}
-	}
-	keys = keys[:0]
-	for k := range diffs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		fmt.Fprintf(&b, "%6d %s\n", diffs[k], k)
+	for _, k := range slices.Sorted(maps.Keys(tally)) {
+		fmt.Fprintf(&b, "%8d %s\n", tally[k], k)
 	}
 	if p := os.Getenv("ADAPTER_OUT"); p != "" {
 		os.WriteFile(p, []byte(b.String()), 0o644)
 	}
 	t.Log(b.String())
+	for _, k := range slices.Sorted(maps.Keys(diffs)) {
+		t.Errorf("%d %s: %s", diffs[k], k, samples[k])
+	}
+}
+
+// decisionDiffs names what differs between two decisions.
+func decisionDiffs(ref *GorgeSide, gd *decision.Decision, a *adapter.Game, ad *decision.Decision) []string {
+	var out []string
+	if ad.Kind != gd.Kind {
+		out = append(out, "kind")
+	}
+	// gorge's maximum can exceed the options there are, unless they repeat
+	gmax, amax := min(gd.Max, len(gd.Options)), min(ad.Max, len(ad.Options))
+	if gd.Repeatable {
+		gmax, amax = gd.Max, ad.Max
+	}
+	if ad.Min != gd.Min || amax != gmax || ad.Repeatable != gd.Repeatable {
+		out = append(out, fmt.Sprintf("bounds gorge %d..%d served %d..%d", gd.Min, gd.Max, ad.Min, ad.Max))
+	}
+	if ref.InstRef(gd.Source) != a.RefOf(ad.Source) {
+		out = append(out, "source")
+	}
+	if len(ad.Options) != len(gd.Options) {
+		return append(out, fmt.Sprintf("count gorge %d served %d", len(gd.Options), len(ad.Options)))
+	}
+	for i := range gd.Options {
+		g, s := &gd.Options[i], &ad.Options[i]
+		if g.Kind != s.Kind || ref.InstRef(g.Obj) != a.RefOf(s.Obj) {
+			return append(out, "options or their order")
+		}
+	}
+	return out
+}
+
+// withoutManualRoutes drops a resolution payment's choose-your-sources route: a served
+// game declares no manual mana, and the kernel funds every payment by the plan.
+func withoutManualRoutes(d *decision.Decision) *decision.Decision {
+	c := *d
+	c.Options = slices.DeleteFunc(slices.Clone(d.Options), func(o decision.Option) bool { return strings.HasSuffix(o.Kind, "_manual") })
+	return &c
+}
+
+// optionShape prints a decision's options as the comparison reads them.
+func optionShape(d *decision.Decision, ref func(state.ObjID) Ref) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "[%s src#%d] ", d.Prompt, ref(d.Source))
+	for i := range d.Options {
+		o := &d.Options[i]
+		fmt.Fprintf(&b, "%s", o.Kind)
+		if o.Obj != 0 {
+			fmt.Fprintf(&b, "#%d", ref(o.Obj))
+		}
+		if o.Mode != "" {
+			fmt.Fprintf(&b, ":%s", o.Mode)
+		}
+		b.WriteByte(' ')
+	}
+	return b.String()
 }
 
 // envPairs is n, or ADAPTER_PAIRS for a longer run by hand.

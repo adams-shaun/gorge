@@ -289,8 +289,12 @@ func (g *Game) poseAsk() {
 		d.Kind, d.Prompt = decision.KArrange, "Arrange"
 		d.Restable = true
 		d.Min, d.Max = 0, n
+		kind := g.arrangeKind()
+		if kind == "dig_bottom" {
+			d.Min = n
+		}
 		for i := range d.Options {
-			d.Options[i].Kind = g.arrangeKind()
+			d.Options[i].Kind = kind
 		}
 	case canon.DReplacement:
 		d.Kind, d.Prompt = decision.KReplacement, "Choose a replacement to apply"
@@ -310,17 +314,46 @@ func (g *Game) poseAsk() {
 			}
 		}
 	}
-	switch d.Kind {
-	case decision.KChoose, decision.KModes, decision.KTarget:
+	switch {
+	case d.Kind == decision.KChoose && g.d.Sub == dirac.ChCastDivide:
+		d.Min = g.s.FeatCastDivideLeft()
+		d.Max, d.Repeatable = d.Min, true
+	case d.Kind == decision.KChoose && g.d.Sub == dirac.ChGenDivide:
+		d.Min = g.s.PicksLeft()
+		d.Max, d.Repeatable = d.Min, true
+	case d.Kind == decision.KChoose && g.d.Sub == dirac.ChGenPip:
+		// each symbol is its own ask
+	case d.Kind == decision.KChoose, d.Kind == decision.KModes, d.Kind == decision.KTarget:
 		d.Min, d.Max = g.span()
+	}
+	if lo, hi, ok := g.s.FeatTargetBounds(); ok && d.Kind == decision.KTarget {
+		d.Min, d.Max = lo, hi
 	}
 	if hasDone {
 		d.Min = 0
 	}
-	if d.Min > n {
+	if d.Min > n && !d.Repeatable {
 		d.Min = n
 	}
+	if d.Kind != decision.KTarget && g.d.Sub != dirac.ChWardPay {
+		d.Source = g.askSource(d)
+	}
 	g.multi = d.Min != 1 || d.Max != 1
+}
+
+// askSource is the object a decision other than a target's belongs to.
+func (g *Game) askSource(d *decision.Decision) state.ObjID {
+	if g.d.Sub == dirac.ChDivide && len(d.Options) > 0 {
+		return d.Options[0].Obj
+	}
+	src := g.s.FeatEnterSource()
+	if src == dirac.NoObj {
+		src = g.s.FeatSource()
+	}
+	if src == dirac.NoObj {
+		return 0
+	}
+	return g.ids.obj(uint8(src))
 }
 
 // arrangeKind names where a scry or surveil's unchosen cards go, which every option
@@ -361,7 +394,7 @@ func (g *Game) span() (min, max int) {
 		max++
 		prev := g.wd
 		g.ws.StepInto(&g.wd)
-		if !continues(&prev, &g.wd, pick) {
+		if !g.sameAsk() || !continues(&prev, &g.wd, pick) {
 			break
 		}
 	}
@@ -404,13 +437,13 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 		o.Kind = "attacker"
 		if c.Tgt() >= canon.RefPlayer {
 			o.Player = state.PlayerID(c.Tgt() - canon.RefPlayer)
-			key = uint32(o.Player)<<24 | g.zoneKey(c.Src())
+			key = g.zoneKey(c.Src()) << 8
 		} else {
 			o.Battle = g.ids.ref(c.Tgt(), &g.kp)
 			if int(c.Tgt()) < int(g.kp.NObj) {
 				o.Player = state.PlayerID(g.kp.Objs[c.Tgt()].Ctrl)
 			}
-			key = uint32(o.Player)<<24 | g.zoneKey(c.Src())<<4 | 1
+			key = g.zoneKey(c.Src())<<8 | 1 + g.zoneKey(c.Tgt())&0x7F
 		}
 		o.Required = g.s.MustAttack(dirac.Obj(c.Src()))
 		o.Label = g.cardName(c.Src())
@@ -449,13 +482,24 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 				o.Player = o.Controller
 			}
 			key = 1<<24 | 1<<20 | g.zoneKey(t)
+			if o.Kind == "spell" {
+				key = 1<<24 | uint32(g.stackPos(t))
+			}
 		}
 	case k == canon.ActMode:
 		o.Kind = "mode"
 		o.Label = "Mode " + strconv.Itoa(int(c.Mode())+1)
+		o.Player = state.PlayerID(me)
+		if src := g.s.FeatSource(); src != dirac.NoObj && g.d.Sub != dirac.ChWardPay {
+			o.Obj = g.ids.obj(uint8(src))
+		}
+		if g.d.Sub == dirac.ChGenCastFree {
+			o.Obj = g.ids.obj(x.Source())
+			o.Label = "Play " + g.cardName(x.Source())
+		}
 		key = uint32(c.Mode())
 		if g.d.Sub == dirac.ChWardPay || g.d.Sub == dirac.ChGenPayMode {
-			o.Player, o.Obj, unless = state.PlayerID(me), 0, true
+			unless = true
 			if x.Mode() == 1 {
 				o.Mode, o.Label = decision.ModeUnlessPay, "Pay the cost"
 			} else {
@@ -471,10 +515,12 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 		o.Kind, o.Label, key = "no", "No", 1
 	case k == canon.ActArrange:
 		o.Kind, o.Label = "arrange", g.cardName(c.Src())
+		key = g.zoneKey(c.Src())
 	case k == canon.ActReplacement:
 		o.Kind, o.Label = "replacement", g.cardName(c.Src())
 	case k == canon.ActBottom:
 		o.Kind, o.Label = "bottom", g.cardName(c.Src())
+		key = g.zoneKey(c.Src())
 	case k == canon.ActKeep:
 		o.Kind, o.Label = "keep", "Keep"
 	case k == canon.ActMulligan:
@@ -516,6 +562,16 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	return o, g.chooseKey(x)
 }
 
+// stackPos is where spell object o sits on the stack.
+func (g *Game) stackPos(o canon.Ref) int {
+	for i := 0; i < int(g.kp.NStack); i++ {
+		if e := &g.kp.Stack[i]; e.Kind == 0 && canon.Ref(e.Source) == o {
+			return i
+		}
+	}
+	return 0
+}
+
 // zoneKey orders objects as gorge's zone walks meet them.
 func (g *Game) zoneKey(obj canon.Ref) uint32 {
 	if obj >= canon.RefStack || int(obj) >= int(g.kp.NObj) {
@@ -539,7 +595,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 		return uint32(mode)
 	case dirac.ChGenType:
 		return g.s.FeatTypeKey(g.d.Player, int(x.Target())<<8|int(mode))
-	case dirac.ChGenChooseCard, dirac.ChGenCastFree:
+	case dirac.ChGenChooseCard, dirac.ChGenChooseEach, dirac.ChGenCastFree:
 		return uint32(src)
 	}
 	if src == uint8(dirac.NoObj) || src >= dirac.PlayerTarget0 {
@@ -577,6 +633,9 @@ func (g *Game) fillTargetEffect(d *decision.Decision) {
 	}
 	if !building {
 		return
+	}
+	if top := int(g.kp.NStack) - 1; top >= 0 && g.kp.Stack[top].Kind == 2 {
+		d.Source = g.ids.stack[top]
 	}
 	abs := g.tbl.Cards
 	valid := int(card) < len(abs) && int(ab) < len(abs[card].Abilities)

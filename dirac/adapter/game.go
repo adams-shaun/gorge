@@ -1,6 +1,8 @@
 package adapter
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -18,6 +20,9 @@ var (
 	_ game.Stalled = (*Game)(nil)
 )
 
+// turnTally is what a seat did this turn that the view counts.
+type turnTally struct{ spells, tokens int32 }
+
 // Game is one running game. The kernel is read only inside New, Submit and Fork;
 // everything a host reads between them is data those calls left behind.
 type Game struct {
@@ -30,6 +35,14 @@ type Game struct {
 	d  dirac.Decision
 	kp dirac.Projection
 	tr canon.Translator
+
+	// exiled[o] is what kernel object o's abilities exiled and is still there.
+	exiled [][]state.ObjID
+	// tally is this turn's casts and tokens, per seat.
+	tally     [2]turnTally
+	tallyTurn int32
+	// building is the object the last decision's cast or activation was building.
+	building dirac.Obj
 
 	// ws is the scratch position an answer is dry-run on, wtr its translator.
 	ws  *dirac.State
@@ -46,6 +59,8 @@ type Game struct {
 	paid   []dirac.Action
 	// multi: the answer is several kernel picks.
 	multi bool
+	// passed: the last answer passed priority.
+	passed bool
 
 	conceded  bool
 	loser     uint8
@@ -91,8 +106,15 @@ func (g *Game) StallReason() string {
 func (g *Game) Fork() game.Game {
 	c := &Game{eng: g.eng, set: g.set, tbl: g.tbl, cfg: g.cfg, tr: g.tr,
 		d: g.d, log: g.log.Clone(), multi: g.multi, conceded: g.conceded, loser: g.loser,
-		ids: g.ids, targets: g.targets, manifests: g.manifests}
+		ids: g.ids, targets: g.targets, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, building: g.building}
 	c.bind()
+	c.board.prio, c.board.step, c.board.seen, c.board.resolving, c.board.landOpen = g.board.prio, g.board.step, g.board.seen, g.board.resolving, g.board.landOpen
+	for i, l := range g.board.blockers {
+		c.board.blockers[i] = slices.Clone(l)
+	}
+	for _, l := range g.exiled {
+		c.exiled = append(c.exiled, slices.Clone(l))
+	}
 	dirac.Register(g.tbl)
 	c.s.CopyFrom(&g.s)
 	c.s.Project(&c.kp)
@@ -109,9 +131,20 @@ func (g *Game) Fork() game.Game {
 // settle reads the position the kernel stopped at: the next decision, the board,
 // and the game's end.
 func (g *Game) settle() {
+	var before [dirac.MaxObj]kop.Zone
+	for o := 0; o < int(g.kp.NObj); o++ {
+		before[o] = g.kp.Objs[o].Zone
+	}
+	var top *dirac.ProjStack
+	if g.kp.NStack > 0 {
+		e := g.kp.Stack[g.kp.NStack-1]
+		top = &e
+	}
 	g.s.StepInto(&g.d)
 	g.s.Project(&g.kp)
 	g.ids.sync(&g.kp)
+	g.noteExiled(&before, top)
+	g.noteTally(&before, int32(g.kp.Turn))
 	g.pend = nil
 	if g.d.Kind != dirac.DkNone {
 		g.pose()
@@ -126,7 +159,7 @@ func (g *Game) logSettled() {
 		g.log.Append(events.Event{Kind: events.DecisionAsk, Player: g.pend.Player, Text: string(g.pend.Kind)})
 		return
 	}
-	if over, win := g.s.Terminal(); over {
+	if over, win := g.s.Terminal(); over && !g.s.Stalled() {
 		g.logOver(win)
 	}
 }

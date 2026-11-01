@@ -83,6 +83,9 @@ func (t *idTable) ref(r canon.Ref, kp *dirac.Projection) state.ObjID {
 // RefOf is the canonical reference id stands for, for a check comparing two engines'
 // ids.
 func (g *Game) RefOf(id state.ObjID) canon.Ref {
+	if id == 0 {
+		return canon.RefNone
+	}
 	for o := 0; o < int(g.kp.NObj); o++ {
 		if g.ids.objs[o] == id {
 			return canon.Ref(o)

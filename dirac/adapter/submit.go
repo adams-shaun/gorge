@@ -32,6 +32,7 @@ func (g *Game) Submit(in decision.Intent) error {
 	}
 	g.s.CopyFrom(g.ws)
 	g.log.Intents = append(g.log.Intents, in)
+	g.passed = d.Kind == decision.KPriority && in.Payment == nil && d.Options[in.Choices[0]].Kind == "pass"
 	g.settle()
 	return nil
 }
@@ -122,9 +123,17 @@ func (g *Game) playPicks(choices []int) error {
 	return nil
 }
 
-// sameAsk reports whether the scratch position still poses the pending ask.
+// sameAsk reports whether the scratch position still poses the pending ask. A target
+// ask can read the same as the last one's: another trigger's has a new entry on the
+// stack, and the same spell's next target has the next slot.
 func (g *Game) sameAsk() bool {
-	return g.wd.Kind == g.d.Kind && g.wd.Sub == g.d.Sub && g.wd.Player == g.d.Player
+	if g.wd.Kind != g.d.Kind || g.wd.Sub != g.d.Sub || g.wd.Player != g.d.Player ||
+		g.ws.StackLen() != g.s.StackLen() || g.ws.FeatSource() != g.s.FeatSource() {
+		return false
+	}
+	ws, _ := g.ws.BuildTargetSlot()
+	s, _ := g.s.BuildTargetSlot()
+	return ws == s
 }
 
 // kernelPick is the scratch step's action for native option c.
@@ -188,15 +197,17 @@ func (g *Game) playRest(rest []int) error {
 }
 
 // Pick is one thing the next kernel step of an answer can be. Choice is the native
-// option it stands for, PickDone closing the ask, or PickPaid-k payment action k.
+// option it stands for, PickDone closing the ask, PickOther a pick the pending
+// decision has no option for, or PickPaid-k payment action k.
 type Pick struct {
 	Canon  canon.Canon
 	Choice int
 }
 
 const (
-	PickDone = -1
-	PickPaid = -2
+	PickDone  = -1
+	PickOther = -2
+	PickPaid  = -3
 )
 
 // Picks lists the kernel's next step of a partial answer to the pending decision:
@@ -250,7 +261,7 @@ func (g *Game) playPartialRest(rest []int) error {
 // choiceOf is the native option or payment action a step's canonical action is.
 func (g *Game) choiceOf(c canon.Canon, chosen []int) int {
 	for i, x := range g.canons {
-		if x == c && !slices.Contains(chosen, i) {
+		if x == c && (g.pend.Repeatable || !slices.Contains(chosen, i)) {
 			return i
 		}
 	}
@@ -259,5 +270,5 @@ func (g *Game) choiceOf(c canon.Canon, chosen []int) int {
 			return PickPaid - i
 		}
 	}
-	return PickDone
+	return PickOther
 }

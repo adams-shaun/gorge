@@ -7,9 +7,11 @@ import (
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/feat"
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -21,7 +23,9 @@ func (g *Game) objFacts(i uint8, id state.ObjID) {
 	f.retyped, f.types = false, f.types[:0]
 	f.keywords = f.keywords[:0]
 	ob := dirac.Obj(i)
+	f.name, f.effective = "", ""
 	if face := g.face(po.Card); face != nil {
+		f.name = face.Name
 		f.power, f.tough = int32(face.Power()), int32(face.Toughness())
 		f.keywords = append(f.keywords, face.Keywords...)
 	}
@@ -32,6 +36,11 @@ func (g *Game) objFacts(i uint8, id state.ObjID) {
 		dp, dt, _, _ := g.s.FeatStaticPT(ob)
 		f.power += int32(dp)
 		f.tough += int32(dt)
+		granted, rep := g.s.FeatGrantedOffRep(ob)
+		f.keywords = appendGranted(f.keywords, granted, &rep)
+		if po.Zone == kop.ZoneHand {
+			f.effective = g.handCost(ob, po)
+		}
 		return
 	}
 	f.power, f.tough = int32(po.Power), int32(po.Tough)
@@ -39,15 +48,53 @@ func (g *Game) objFacts(i uint8, id state.ObjID) {
 	if !printed {
 		f.keywords = f.keywords[:0]
 	}
+	f.keywords = appendGranted(f.keywords, granted, &rep)
+	g.retype(i, f)
+}
+
+// appendGranted lists granted keywords, each once per grant.
+func appendGranted(out []string, granted kop.KwMask, rep *dirac.FeatKwReps) []string {
 	for m := uint32(granted); m != 0; m &= m - 1 {
 		b := bits.TrailingZeros32(m)
 		if n := feat.KeywordNames[b]; n != "" {
 			for k := 0; k <= int(rep[b]); k++ {
-				f.keywords = append(f.keywords, n)
+				out = append(out, n)
 			}
 		}
 	}
-	g.retype(i, f)
+	return out
+}
+
+// handCost is a hand card's cost when a static changed it: no X and no alternative
+// cost, the only cast the view prices.
+func (g *Game) handCost(o dirac.Obj, po *dirac.ProjObj) string {
+	c, changed := g.s.FeatHandCost(po.Owner, o)
+	if !changed || c.X != 0 {
+		return ""
+	}
+	out := cost.Cost{Generic: int32(c.Generic)}
+	for k, n := range c.Pips {
+		out.Colored[k] = int32(n)
+	}
+	for k, m := range c.Hyb {
+		if m == 0 {
+			break
+		}
+		a, b := hybridFaces(m, c.HybOrd&(1<<k) != 0)
+		out.Hybrid = append(out.Hybrid, cost.ManaPair{A: a, B: b})
+	}
+	return cost.FormatCost(out)
+}
+
+// hybridFaces spells a hybrid pip's two colours in printed order.
+func hybridFaces(m kop.ColorMask, swapped bool) (a, b byte) {
+	const faces = "WUBRG"
+	lo := bits.TrailingZeros8(uint8(m))
+	hi := 7 - bits.LeadingZeros8(uint8(m))
+	if swapped {
+		lo, hi = hi, lo
+	}
+	return faces[lo], faces[hi]
 }
 
 // retype records a type-changing effect's derived type line: the printed words still
@@ -102,16 +149,16 @@ func (g *Game) retype(i uint8, f *objFacts) {
 			f.types = append(f.types, c.word)
 		}
 	}
-	for b, n := range g.tbl.Subtypes {
-		if subs.Has(b) && !isCard(n) && !contains(f.types, n) {
-			f.types = append(f.types, n)
-		}
-	}
 	if all {
 		for _, w := range effects.CreatureTypeWordList() {
 			if !contains(f.types, w) {
 				f.types = append(f.types, w)
 			}
+		}
+	}
+	for b, n := range g.tbl.Subtypes {
+		if !all && subs.Has(b) && !isCard(n) && !contains(f.types, n) {
+			f.types = append(f.types, n)
 		}
 	}
 	f.retyped = !sameWords(f.types, face.Types)
@@ -153,21 +200,42 @@ func (b *board) Keywords(id state.ObjID) []string { return b.fact(id).keywords }
 // ViewCharacteristics answers the view's four derived facts at once.
 func (b *board) ViewCharacteristics(id state.ObjID) (string, bool, []string, int32, int32) {
 	f := b.fact(id)
-	return "", false, f.keywords, f.power, f.tough
+	return f.name, false, f.keywords, f.power, f.tough
+}
+
+// SpellEffectiveCost is a hand card's cost as its statics leave it, "" when unchanged.
+func (b *board) SpellEffectiveCost(_ state.PlayerID, id state.ObjID) string {
+	return b.fact(id).effective
 }
 
 // LandDropOpen reports whether a seat has a land drop left this turn.
 func (b *board) LandDropOpen(p state.PlayerID) bool { return b.landOpen[p&1] }
 
-func (b *board) PendingTriggers() []state.PendingTrigger { return nil }
+func (b *board) PendingTriggers() []state.PendingTrigger { return b.pending }
 
-func (b *board) StackOptional(state.ObjID) (bool, state.PlayerID) { return false, 0 }
+// StackOptional: the kernel asks a "you may" trigger's controller.
+func (b *board) StackOptional(id state.ObjID) (bool, state.PlayerID) {
+	f := b.fact(id)
+	return f.optional, f.decider
+}
 
 // AvailableMana is left at zero: no client reads it.
 func (b *board) AvailableMana(state.PlayerID) state.Mana { return state.Mana{} }
 
-// AbilityCosts is left empty: no client reads it.
-func (b *board) AbilityCosts(state.PlayerID, state.ObjID) []string { return nil }
+// AbilityCosts is each non-mana activated ability's printed cost.
+func (b *board) AbilityCosts(_ state.PlayerID, id state.ObjID) []string {
+	o := b.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	var out []string
+	for _, ab := range o.Face().Abilities {
+		if ab.Kind == "AB" && !cards.IsManaAbilitySA(ab) {
+			out = append(out, cost.FormatCost(cost.ParseCost(ab.ParamStr(cards.PKCost))))
+		}
+	}
+	return out
+}
 
 func (b *board) MayLookAtLibraryTop(state.PlayerID) bool { return false }
 
@@ -183,14 +251,39 @@ func (b *board) PotentialActions(p state.PlayerID) []decision.PotentialAction {
 	for i := range d.Options {
 		o := &d.Options[i]
 		if o.Kind != "pass" && o.Kind != "concede" {
-			out = append(out, decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode, Label: o.Label})
+			out = append(out, decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode, Label: b.playLabel(o)})
 		}
 	}
 	for i := range d.PaymentActions {
 		a := &d.PaymentActions[i]
-		out = append(out, decision.PotentialAction{Kind: "cast", Obj: a.Cast.Object, Label: a.Label})
+		out = append(out, decision.PotentialAction{Kind: "cast", Obj: a.Cast.Object, Label: "Cast " + a.Label, Mode: planMode(a.Cast.Origin)})
 	}
 	return out
+}
+
+// planMode is a planned cast's origin as a potential action spells it.
+func planMode(origin string) string {
+	if origin == decision.OriginFlashback {
+		return "flashback"
+	}
+	return ""
+}
+
+// playLabel words a play the way a client lists what it could do.
+func (b *board) playLabel(o *decision.Option) string {
+	switch o.Kind {
+	case "cast":
+		return "Cast " + o.Label
+	case "play_land":
+		return "Play " + o.Label
+	case "ability":
+		if obj := b.g.Obj(o.Obj); obj != nil && obj.Face() != nil && o.Ability < len(obj.Face().Abilities) {
+			if d := obj.Face().Abilities[o.Ability].ParamStr(cards.PKSpellDescription); d != "" {
+				return o.Label + ": " + d
+			}
+		}
+	}
+	return o.Label
 }
 
 // OwnDeck is the seat's deck as it entered the game.
