@@ -436,7 +436,7 @@
             "type": "boolean"
           },
           "attacking_player": {
-            "description": "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay (PL-17) and come straight from the object's combat fields, which EndCombatReset clears.",
+            "description": "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay and come straight from the object's combat fields, which EndCombatReset clears.",
             "maximum": 255,
             "minimum": 0,
             "type": "integer"
@@ -730,7 +730,7 @@
             "type": "string"
           },
           "mulligans": {
-            "description": "Mulligans is the optional London mulligan allowance for the created game (finding fb-20260914T114629Z-6c81e4d6: a play-vs-bot game could mulligan exactly once, with no knob at any layer). It is a pointer so 0 — \"0 disables the pre-game round\" — is distinguishable from an omitted field, which keeps the server default.",
+            "description": "Mulligans is the optional London mulligan allowance for the created game (without it a play-vs-bot game could mulligan exactly once, with no knob at any layer). It is a pointer so 0 — \"0 disables the pre-game round\" — is distinguishable from an omitted field, which keeps the server default.",
             "format": "int64",
             "type": "integer"
           }
@@ -2450,7 +2450,7 @@
             "type": "integer"
           },
           "cost": {
-            "description": "Cost is the activation cost of a priority-window \"activate\" option whose mana ability costs MORE than a bare tap, in the same whitespace-delimited Forge notation AbilityCosts uses (engine/rules/mana.go's formatCost over ParseCost of the ability's Cost$ param) — \"T Sac<1/Lion's Eye Diamond>\" for Lion's Eye Diamond, \"T PayLife<1>\" for Mana Confluence. It is the wire marker the client's empty-priority-window floor and auto-pass need (fb-20260917T192520Z-26136705): isActionKind excludes every \"activate\" because a bare tap is offered at every window and is not a play, but a costly activation is exactly the play a ritual-combo deck needs the window for, and an empty hand leaves it the window's ONLY action — the floor passed it away unseen, and the card was unreachable for the rest of the game. A bare tap (every plain land) omits the field, so every existing option list and every plain-land window serialises byte-identically. omitempty: only a beyond-tap activation carries it.",
+            "description": "Cost is the activation cost of a priority-window \"activate\" option whose mana ability costs MORE than a bare tap, in the same whitespace-delimited Forge notation AbilityCosts uses (engine/rules/mana.go's formatCost over ParseCost of the ability's Cost$ param) — \"T Sac<1/Lion's Eye Diamond>\" for Lion's Eye Diamond, \"T PayLife<1>\" for Mana Confluence. It is the wire marker the client's empty-priority-window floor and auto-pass need: isActionKind excludes every \"activate\" because a bare tap is offered at every window and is not a play, but a costly activation is exactly the play a ritual-combo deck needs the window for, and an empty hand leaves it the window's ONLY action — the floor passed it away unseen, and the card was unreachable for the rest of the game. A bare tap (every plain land) omits the field, so every existing option list and every plain-land window serialises byte-identically. omitempty: only a beyond-tap activation carries it.",
             "type": "string"
           },
           "cost_life": {
@@ -3259,7 +3259,7 @@
             "type": "integer"
           },
           "payable": {
-            "description": "Payable is the payment planner's verdict for an ordinary cast from the hand or (Commander) the command zone: false only when the planner PROVED the cast unpayable -- an \"insufficient\" verdict whose source census is complete, or whose missed abilities a relaxation of them still cannot pay (decision.PotentialUnpayableCasts). It is what lets a client withhold a \"tap other mana first\" affordance that no amount of tapping can satisfy (fb-20261006T100405Z). nil (omitted) for every other kind, for a cast in an alternative/additional-cost mode, for a cast outside the hand and command zone, and for every verdict that is not a proof -- \"unsupported\" (a shape the planner does not price, e.g. Delve), \"search_limit\", \"ambiguous\" and a census-incomplete insufficiency -- because those do not prove the play possible or impossible. A client must not re-derive this from printed mana_cost: castable.ts records the cost rules that drift.",
+            "description": "Payable is the payment planner's verdict for an ordinary cast from the hand or (Commander) the command zone: false only when the planner PROVED the cast unpayable -- an \"insufficient\" verdict whose source census is complete, or whose missed abilities a relaxation of them still cannot pay (decision.PotentialUnpayableCasts). It is what lets a client withhold a \"tap other mana first\" affordance that no amount of tapping can satisfy. nil (omitted) for every other kind, for a cast in an alternative/additional-cost mode, for a cast outside the hand and command zone, and for every verdict that is not a proof -- \"unsupported\" (a shape the planner does not price, e.g. Delve), \"search_limit\", \"ambiguous\" and a census-incomplete insufficiency -- because those do not prove the play possible or impossible. A client must not re-derive this from printed mana_cost: castable.ts records the cost rules that drift.",
             "type": "boolean"
           }
         },
